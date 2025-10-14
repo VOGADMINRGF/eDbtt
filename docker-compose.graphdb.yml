@@ -1,0 +1,119 @@
+services:
+  mongo_core:
+    image: mongo:7
+    restart: unless-stopped
+    ports: ["27017:27017"]
+    command: >
+      bash -lc '
+        mkdir -p /data/configdb &&
+        cp /etc/secrets/mongo_keyfile /data/configdb/keyfile &&
+        chown mongodb:mongodb /data/configdb/keyfile &&
+        chmod 400 /data/configdb/keyfile &&
+        exec mongod --replSet rs_core --bind_ip_all --keyFile /data/configdb/keyfile
+      '
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_CORE_ROOT_USER}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_CORE_ROOT_PASS}
+    volumes:
+      - mongo_core_data:/data/db
+      - ./secrets/mongo_keyfile:/etc/secrets/mongo_keyfile:ro
+
+  mongo_votes:
+    image: mongo:7
+    restart: unless-stopped
+    ports: ["27018:27017"]
+    command: >
+      bash -lc '
+        mkdir -p /data/configdb &&
+        cp /etc/secrets/mongo_keyfile /data/configdb/keyfile &&
+        chown mongodb:mongodb /data/configdb/keyfile &&
+        chmod 400 /data/configdb/keyfile &&
+        exec mongod --replSet rs_votes --bind_ip_all --keyFile /data/configdb/keyfile
+      '
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_VOTES_ROOT_USER}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_VOTES_ROOT_PASS}
+    volumes:
+      - mongo_votes_data:/data/db
+      - ./secrets/mongo_keyfile:/etc/secrets/mongo_keyfile:ro
+
+  mongo_pii:
+    image: mongo:7
+    restart: unless-stopped
+    ports: ["27019:27017"]
+    command: >
+      bash -lc '
+        mkdir -p /data/configdb &&
+        cp /etc/secrets/mongo_keyfile /data/configdb/keyfile &&
+        chown mongodb:mongodb /data/configdb/keyfile &&
+        chmod 400 /data/configdb/keyfile &&
+        exec mongod --replSet rs_pii --bind_ip_all --keyFile /data/configdb/keyfile
+      '
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_PII_ROOT_USER}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PII_ROOT_PASS}
+    volumes:
+      - mongo_pii_data:/data/db
+      - ./secrets/mongo_keyfile:/etc/secrets/mongo_keyfile:ro
+
+  arangodb:
+    image: arangodb:3.11
+    restart: unless-stopped
+    environment:
+      ARANGO_ROOT_PASSWORD: ${ARANGO_ROOT_PASSWORD}
+    ports: ["8529:8529"]
+    volumes: ["arangodb_data:/var/lib/arangodb3"]
+
+  neo4j:
+    image: neo4j:5.22
+    restart: unless-stopped
+    environment:
+      NEO4J_AUTH: ${NEO4J_AUTH}            # Format: neo4j/<PASSWORD>
+      NEO4J_PLUGINS: '["apoc"]'
+      NEO4J_dbms_memory_pagecache_size: 2G
+      NEO4J_dbms_memory_heap_initial__size: 1G
+      NEO4J_dbms_memory_heap_max__size: 2G
+    ports: ["7474:7474", "7687:7687"]
+    volumes:
+      - neo4j_data:/data
+      - neo4j_plugins:/plugins
+
+  memgraph:
+    image: memgraph/memgraph:latest
+    restart: unless-stopped
+    command: ["--bolt-port=7687", "--log-level=INFO"]
+    ports: ["7688:7687"]
+    volumes: ["memgraph_data:/var/lib/memgraph"]
+
+  redpanda:
+    image: docker.redpanda.com/redpandadata/redpanda:v24.2.5
+    container_name: redpanda
+    restart: unless-stopped
+    command:
+      - redpanda
+      - start
+      - --overprovisioned
+      - --smp=1
+      - --memory=1G
+      - --reserve-memory=0M
+      - --kafka-addr=PLAINTEXT://0.0.0.0:9092,OUTSIDE://0.0.0.0:19092
+      - --advertise-kafka-addr=PLAINTEXT://redpanda:9092,OUTSIDE://localhost:19092
+    ports:
+      - "9092:9092"
+      - "19092:19092"
+      - "9644:9644"
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
+    volumes: ["redpanda_data:/var/lib/redpanda/data"]
+
+volumes:
+  mongo_core_data:
+  mongo_votes_data:
+  mongo_pii_data:
+  arangodb_data:
+  neo4j_data:
+  neo4j_plugins:
+  memgraph_data:
+  redpanda_data:

@@ -1,0 +1,679 @@
+apps/web/src/app/(public)/join/JoinClient.tsx(3,25): error TS2614: Module '"@/components/QuickRegister"' has no exported member 'QuickRegisterSuccess'. Did you mean to use 'import QuickRegisterSuccess from "@/components/QuickRegister"' instead?
+apps/web/src/app/(public)/join/JoinClient.tsx(10,9): error TS2322: Type '{ source: string; onSuccess: (p: QuickRegisterSuccess) => void; }' is not assignable to type 'IntrinsicAttributes & Props'.
+  Property 'source' does not exist on type 'IntrinsicAttributes & Props'.
+apps/web/src/app/(public)/join/page.tsx(7,22): error TS2322: Type '{ source: string; }' is not assignable to type 'IntrinsicAttributes & Props'.
+  Property 'source' does not exist on type 'IntrinsicAttributes & Props'.
+apps/web/src/app/[locale]/layout.tsx(2,25): error TS2307: Cannot find module '../../../i18n' or its corresponding type declarations.
+apps/web/src/app/[locale]/layout.tsx(4,32): error TS2307: Cannot find module '@/context/LocaleContext' or its corresponding type declarations.
+apps/web/src/app/admin/users/[id]/page.tsx(6,11): error TS2339: Property 'id' does not exist on type '{ id: string; } | null'.
+apps/web/src/app/api/admin/alerts/notify/route.ts(5,10): error TS2724: '"@/utils/email"' has no exported member named 'sendAlertMail'. Did you mean 'sendAlertEmail'?
+apps/web/src/app/api/admin/alerts/notify/route.ts(15,57): error TS2769: No overload matches this call.
+  Overload 1 of 6, '(filter: Filter<Document>): Promise<WithId<Document> | null>', gave the following error.
+    Type 'string' is not assignable to type 'Condition<ObjectId> | undefined'.
+  Overload 2 of 6, '(filter: Filter<Document>): Promise<Document | null>', gave the following error.
+    Type 'string' is not assignable to type 'Condition<ObjectId> | undefined'.
+  Overload 3 of 6, '(filter: Filter<Document>, options?: (Omit<FindOneOptions, "timeoutMode"> & Abortable) | undefined): Promise<Document | null>', gave the following error.
+    Type 'string' is not assignable to type 'Condition<ObjectId> | undefined'.
+apps/web/src/app/api/admin/alerts/settings/route.ts(15,57): error TS2769: No overload matches this call.
+  Overload 1 of 6, '(filter: Filter<Document>): Promise<WithId<Document> | null>', gave the following error.
+    Type 'string' is not assignable to type 'Condition<ObjectId> | undefined'.
+  Overload 2 of 6, '(filter: Filter<Document>): Promise<Document | null>', gave the following error.
+    Type 'string' is not assignable to type 'Condition<ObjectId> | undefined'.
+  Overload 3 of 6, '(filter: Filter<Document>, options?: (Omit<FindOneOptions, "timeoutMode"> & Abortable) | undefined): Promise<Document | null>', gave the following error.
+    Type 'string' is not assignable to type 'Condition<ObjectId> | undefined'.
+apps/web/src/app/api/admin/alerts/settings/route.ts(31,7): error TS2322: Type 'string' is not assignable to type 'Condition<ObjectId> | undefined'.
+apps/web/src/app/api/admin/alerts/test/route.ts(18,57): error TS2769: No overload matches this call.
+  Overload 1 of 6, '(filter: Filter<Document>): Promise<WithId<Document> | null>', gave the following error.
+    Type 'string' is not assignable to type 'Condition<ObjectId> | undefined'.
+  Overload 2 of 6, '(filter: Filter<Document>): Promise<Document | null>', gave the following error.
+    Type 'string' is not assignable to type 'Condition<ObjectId> | undefined'.
+  Overload 3 of 6, '(filter: Filter<Document>, options?: (Omit<FindOneOptions, "timeoutMode"> & Abortable) | undefined): Promise<Document | null>', gave the following error.
+    Type 'string' is not assignable to type 'Condition<ObjectId> | undefined'.
+apps/web/src/app/api/admin/dev-elevate/route.ts(22,37): error TS2345: Argument of type '"users"' is not assignable to parameter of type 'TriStore'.
+apps/web/src/app/api/admin/graph/seed/route.ts(7,16): error TS2709: Cannot use namespace 'User' as a type.
+apps/web/src/app/api/admin/graph/seed/route.ts(11,17): error TS2709: Cannot use namespace 'Topic' as a type.
+apps/web/src/app/api/admin/graph/seed/route.ts(15,18): error TS2709: Cannot use namespace 'Region' as a type.
+apps/web/src/app/api/admin/graph/seed/route.ts(18,21): error TS2709: Cannot use namespace 'Statement' as a type.
+apps/web/src/app/api/admin/graph/seed/route.ts(23,7): error TS2353: Object literal may only specify known properties, and 'id' does not exist in type 'Report'.
+apps/web/src/app/api/admin/graph/seed/route.ts(25,16): error TS2709: Cannot use namespace 'Vote' as a type.
+apps/web/src/app/api/admin/settings/get/route.ts(24,57): error TS2769: No overload matches this call.
+  Overload 1 of 6, '(filter: Filter<Document>): Promise<WithId<Document> | null>', gave the following error.
+    Type 'string' is not assignable to type 'Condition<ObjectId> | undefined'.
+  Overload 2 of 6, '(filter: Filter<Document>): Promise<Document | null>', gave the following error.
+    Type 'string' is not assignable to type 'Condition<ObjectId> | undefined'.
+  Overload 3 of 6, '(filter: Filter<Document>, options?: (Omit<FindOneOptions, "timeoutMode"> & Abortable) | undefined): Promise<Document | null>', gave the following error.
+    Type 'string' is not assignable to type 'Condition<ObjectId> | undefined'.
+apps/web/src/app/api/admin/users/detail/route.ts(9,35): error TS2345: Argument of type '"users"' is not assignable to parameter of type 'TriStore'.
+apps/web/src/app/api/admin/users/list/route.ts(19,35): error TS2345: Argument of type '"users"' is not assignable to parameter of type 'TriStore'.
+apps/web/src/app/api/admin/users/reset2fa/route.ts(9,35): error TS2345: Argument of type '"users"' is not assignable to parameter of type 'TriStore'.
+apps/web/src/app/api/admin/users/resetVerify/route.ts(11,35): error TS2345: Argument of type '"users"' is not assignable to parameter of type 'TriStore'.
+apps/web/src/app/api/admin/users/suspend/route.ts(8,35): error TS2345: Argument of type '"users"' is not assignable to parameter of type 'TriStore'.
+apps/web/src/app/api/admin/users/updateRole/route.ts(10,35): error TS2345: Argument of type '"users"' is not assignable to parameter of type 'TriStore'.
+apps/web/src/app/api/ai/health/route.ts(2,10): error TS2614: Module '"@/lib/db"' has no exported member 'mongo'. Did you mean to use 'import mongo from "@/lib/db"' instead?
+apps/web/src/app/api/ai/health/route.ts(2,17): error TS2614: Module '"@/lib/db"' has no exported member 'mongoPing'. Did you mean to use 'import mongoPing from "@/lib/db"' instead?
+apps/web/src/app/api/ai/health/route.ts(3,10): error TS2305: Module '"@/lib/redis"' has no exported member 'redis'.
+apps/web/src/app/api/auth/login/route.ts(20,37): error TS2345: Argument of type '"users"' is not assignable to parameter of type 'TriStore'.
+apps/web/src/app/api/auth/magic/consume/route.ts(20,35): error TS2345: Argument of type '"users"' is not assignable to parameter of type 'TriStore'.
+apps/web/src/app/api/auth/magic/request/route.ts(11,35): error TS2345: Argument of type '"users"' is not assignable to parameter of type 'TriStore'.
+apps/web/src/app/api/auth/me/route.ts(22,16): error TS2339: Property 'uid' does not exist on type 'Promise<SessionPayload | null>'.
+apps/web/src/app/api/auth/me/route.ts(22,54): error TS2339: Property 'uid' does not exist on type 'Promise<SessionPayload | null>'.
+apps/web/src/app/api/auth/me/route.ts(30,32): error TS2339: Property 'uid' does not exist on type 'Promise<SessionPayload | null>'.
+apps/web/src/app/api/auth/register/route.ts(34,35): error TS2345: Argument of type '"users"' is not assignable to parameter of type 'TriStore'.
+apps/web/src/app/api/auth/request-reset/route.ts(18,30): error TS2345: Argument of type '"users"' is not assignable to parameter of type 'TriStore'.
+apps/web/src/app/api/auth/reset/route.ts(19,30): error TS2345: Argument of type '"users"' is not assignable to parameter of type 'TriStore'.
+apps/web/src/app/api/auth/verify/resend/route.ts(11,35): error TS2345: Argument of type '"users"' is not assignable to parameter of type 'TriStore'.
+apps/web/src/app/api/auth/verify/route.ts(12,33): error TS2345: Argument of type '"emailTokens"' is not assignable to parameter of type 'TriStore'.
+apps/web/src/app/api/auth/verify/route.ts(19,32): error TS2345: Argument of type '"users"' is not assignable to parameter of type 'TriStore'.
+apps/web/src/app/api/contributions/analyze/route.ts(32,10): error TS7023: 'normalizeAnalysis' implicitly has return type 'any' because it does not have a return type annotation and is referenced directly or indirectly in one of its return expressions.
+apps/web/src/app/api/contributions/analyze/route.ts(38,28): error TS2339: Property 'statements' does not exist on type '{ type: "impact"; summary: string; items: { claim: string; direction: "none" | "increase" | "decrease" | "unclear"; magnitude: number; affected: string[]; assumptions: string[]; caveats: string[]; confidence: number; sources: { ...; }[]; timeframe?: string | undefined; }[]; overallConfidence: number; } | { ...; } | ...'.
+  Property 'statements' does not exist on type '{ type: "impact"; summary: string; items: { claim: string; direction: "none" | "increase" | "decrease" | "unclear"; magnitude: number; affected: string[]; assumptions: string[]; caveats: string[]; confidence: number; sources: { ...; }[]; timeframe?: string | undefined; }[]; overallConfidence: number; }'.
+apps/web/src/app/api/contributions/analyze/route.ts(39,24): error TS2339: Property 'topics' does not exist on type '{ type: "impact"; summary: string; items: { claim: string; direction: "none" | "increase" | "decrease" | "unclear"; magnitude: number; affected: string[]; assumptions: string[]; caveats: string[]; confidence: number; sources: { ...; }[]; timeframe?: string | undefined; }[]; overallConfidence: number; } | { ...; } | ...'.
+  Property 'topics' does not exist on type '{ type: "impact"; summary: string; items: { claim: string; direction: "none" | "increase" | "decrease" | "unclear"; magnitude: number; affected: string[]; assumptions: string[]; caveats: string[]; confidence: number; sources: { ...; }[]; timeframe?: string | undefined; }[]; overallConfidence: number; }'.
+apps/web/src/app/api/contributions/analyze/route.ts(60,11): error TS7022: 'base' implicitly has type 'any' because it does not have a type annotation and is referenced directly or indirectly in its own initializer.
+apps/web/src/app/api/contributions/analyze/save.ts(2,27): error TS2307: Cannot find module '@/lib/connectDB' or its corresponding type declarations.
+apps/web/src/app/api/contributions/analyze/save.ts(4,29): error TS2307: Cannot find module '@/core/utils/errors' or its corresponding type declarations.
+apps/web/src/app/api/contributions/save/route.ts(2,10): error TS2614: Module '"@/lib/db"' has no exported member 'dbConnect'. Did you mean to use 'import dbConnect from "@/lib/db"' instead?
+apps/web/src/app/api/contributions/save/route.ts(5,39): error TS7006: Parameter 'req' implicitly has an 'any' type.
+apps/web/src/app/api/contributions/save/route.ts(5,44): error TS7006: Parameter 'res' implicitly has an 'any' type.
+apps/web/src/app/api/editor/items/[id]/publish/route.ts(79,25): error TS2698: Spread types may only be created from object types.
+apps/web/src/app/api/editor/items/[id]/publish/route.ts(94,25): error TS2698: Spread types may only be created from object types.
+apps/web/src/app/api/editor/items/reorder/route.ts(33,15): error TS2339: Property 'errors' does not exist on type 'ZodError<unknown>'.
+apps/web/src/app/api/editor/items/reorder/route.ts(33,27): error TS7006: Parameter 'e' implicitly has an 'any' type.
+apps/web/src/app/api/editor/items/reorder/route.ts(72,19): error TS2353: Object literal may only specify known properties, and 'order' does not exist in type '(Without<AnswerOptionUpdateInput, AnswerOptionUncheckedUpdateInput> & AnswerOptionUncheckedUpdateInput) | (Without<...> & AnswerOptionUpdateInput)'.
+apps/web/src/app/api/editor/items/route.ts(75,7): error TS2353: Object literal may only specify known properties, and 'topicId' does not exist in type '{ kind: ContentKind; text: string; locale?: string | null | undefined; regionMode?: RegionMode | null | undefined; regionManualId?: string | null | undefined; answerOptions?: AnswerOpt[] | undefined; publishAt?: string | ... 2 more ... | undefined; expireAt?: string | ... 2 more ... | undefined; }'.
+apps/web/src/app/api/editor/regions/route.ts(16,7): error TS2322: Type '{ OR: ({ code: { contains: string; mode: string; }; name?: undefined; } | { name: { contains: string; mode: string; }; code?: undefined; })[]; } | undefined' is not assignable to type 'RegionWhereInput | undefined'.
+  Type '{ OR: ({ code: { contains: string; mode: string; }; name?: undefined; } | { name: { contains: string; mode: string; }; code?: undefined; })[]; }' is not assignable to type 'RegionWhereInput'.
+    Types of property 'OR' are incompatible.
+      Type '({ code: { contains: string; mode: string; }; name?: undefined; } | { name: { contains: string; mode: string; }; code?: undefined; })[]' is not assignable to type 'RegionWhereInput[]'.
+        Type '{ code: { contains: string; mode: string; }; name?: undefined; } | { name: { contains: string; mode: string; }; code?: undefined; }' is not assignable to type 'RegionWhereInput'.
+          Type '{ code: { contains: string; mode: string; }; name?: undefined; }' is not assignable to type 'RegionWhereInput'.
+            Types of property 'code' are incompatible.
+              Type '{ contains: string; mode: string; }' is not assignable to type 'string | StringFilter<"Region"> | undefined'.
+                Type '{ contains: string; mode: string; }' is not assignable to type 'StringFilter<"Region">'.
+                  Types of property 'mode' are incompatible.
+                    Type 'string' is not assignable to type 'QueryMode | undefined'.
+apps/web/src/app/api/editor/server/validation/contentValidation.ts(63,53): error TS2551: Property 'auto' does not exist on type '{ AUTO: "AUTO"; MANUAL: "MANUAL"; }'. Did you mean 'AUTO'?
+apps/web/src/app/api/editor/server/validation/contentValidation.ts(91,33): error TS2551: Property 'auto' does not exist on type '{ AUTO: "AUTO"; MANUAL: "MANUAL"; }'. Did you mean 'AUTO'?
+apps/web/src/app/api/editor/statements/[id]/route.ts(24,34): error TS2339: Property 'statement' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+apps/web/src/app/api/editor/statements/[id]/route.ts(52,18): error TS2339: Property 'statement' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+apps/web/src/app/api/editor/statements/route.ts(23,34): error TS2339: Property 'statement' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+apps/web/src/app/api/editor/topics/[id]/route.ts(27,9): error TS2322: Type 'string | undefined' is not assignable to type 'Locale | EnumLocaleFieldUpdateOperationsInput | undefined'.
+  Type 'string' is not assignable to type 'Locale | EnumLocaleFieldUpdateOperationsInput | undefined'.
+apps/web/src/app/api/factcheck/result/[contributionId]/route.ts(7,28): error TS2339: Property 'factcheckJob' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+apps/web/src/app/api/factcheck/result/[contributionId]/route.ts(16,32): error TS2339: Property 'factcheckResult' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+apps/web/src/app/api/factcheck/status/[jobId]/route.ts(48,30): error TS2339: Property 'factcheckJob' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+apps/web/src/app/api/factcheck/status/[jobId]/route.ts(55,33): error TS2339: Property 'factcheckClaim' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+apps/web/src/app/api/finding/upsert/route.ts(23,24): error TS2345: Argument of type 'NextRequest' is not assignable to parameter of type 'Role'.
+apps/web/src/app/api/finding/upsert/route.ts(23,41): error TS2339: Property 'EDITOR_EDIT' does not exist on type '{ readonly EDITOR_ITEM_PUBLISH: "editor:item:publish"; readonly EDITOR_ITEM_REORDER: "editor:item:reorder"; readonly EDITOR_ITEM_WRITE: "editor:item:write"; readonly VIEW_REPORTS_VERIFIED: "reports:view:verified-only"; readonly FACTCHECK_ENQUEUE: "factcheck:enqueue"; readonly FACTCHECK_STATUS: "factcheck:status"; }'.
+apps/web/src/app/api/finding/upsert/route.ts(29,34): error TS2339: Property 'finding' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+apps/web/src/app/api/finding/upsert/route.ts(49,18): error TS2339: Property 'factcheckClaim' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+apps/web/src/app/api/finding/upsert/route.ts(55,20): error TS2339: Property 'evidence' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+apps/web/src/app/api/finding/upsert/route.ts(62,30): error TS2554: Expected 2-3 arguments, but got 1.
+apps/web/src/app/api/gdpr/delete/route.ts(18,5): error TS18048: 'db' is possibly 'undefined'.
+apps/web/src/app/api/gdpr/delete/route.ts(19,5): error TS18048: 'db' is possibly 'undefined'.
+apps/web/src/app/api/gdpr/delete/route.ts(20,5): error TS18048: 'db' is possibly 'undefined'.
+apps/web/src/app/api/gdpr/delete/route.ts(21,5): error TS18048: 'db' is possibly 'undefined'.
+apps/web/src/app/api/gdpr/export/route.ts(16,26): error TS18048: 'db' is possibly 'undefined'.
+apps/web/src/app/api/gdpr/export/route.ts(18,23): error TS18048: 'db' is possibly 'undefined'.
+apps/web/src/app/api/health/gpt.ts(1,33): error TS7006: Parameter 'req' implicitly has an 'any' type.
+apps/web/src/app/api/health/gpt.ts(1,38): error TS7006: Parameter 'res' implicitly has an 'any' type.
+apps/web/src/app/api/health/map/route.ts(3,10): error TS2614: Module '"@/lib/db"' has no exported member 'getDb'. Did you mean to use 'import getDb from "@/lib/db"' instead?
+apps/web/src/app/api/health/map/route.ts(25,39): error TS7006: Parameter 'ix' implicitly has an 'any' type.
+apps/web/src/app/api/health/mongo.ts(1,33): error TS7006: Parameter 'req' implicitly has an 'any' type.
+apps/web/src/app/api/health/mongo.ts(1,38): error TS7006: Parameter 'res' implicitly has an 'any' type.
+apps/web/src/app/api/health/prisma/route.ts(3,26): error TS2307: Cannot find module '@/lib/db/core' or its corresponding type declarations.
+apps/web/src/app/api/health/redis/route.ts(7,43): error TS2339: Property 'ok' does not exist on type 'string'.
+apps/web/src/app/api/health/route.ts(34,22): error TS2709: Cannot use namespace 'RedisClientType' as a type.
+apps/web/src/app/api/health/route.ts(36,22): error TS2709: Cannot use namespace 'RedisClientType' as a type.
+apps/web/src/app/api/health/route.ts(68,29): error TS2314: Generic type 'Promise<T>' requires 1 type argument(s).
+apps/web/src/app/api/health/route.ts(68,37): error TS2538: Type 'Check' cannot be used as an index type.
+apps/web/src/app/api/health/route.ts(102,3): error TS1234: An ambient module declaration is only allowed at the top level in a file.
+apps/web/src/app/api/health/route.ts(154,47): error TS7006: Parameter 'r' implicitly has an 'any' type.
+apps/web/src/app/api/region/set/route.ts(31,7): error TS2339: Property 'set' does not exist on type 'Promise<ReadonlyRequestCookies>'.
+apps/web/src/app/api/region/set/route.ts(45,27): error TS2339: Property 'userProfile' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+apps/web/src/app/api/statements/create/route.ts(2,10): error TS2614: Module '"@/lib/db"' has no exported member 'dbConnect'. Did you mean to use 'import dbConnect from "@/lib/db"' instead?
+apps/web/src/app/api/statements/create/route.ts(39,57): error TS2554: Expected 1 arguments, but got 2.
+apps/web/src/app/api/statements/route.ts(121,19): error TS2339: Property 'uid' does not exist on type 'Promise<SessionPayload | null>'.
+apps/web/src/app/api/topics/route.ts(13,7): error TS2322: Type '{ locale: string; } | undefined' is not assignable to type 'TopicWhereInput | undefined'.
+  Type '{ locale: string; }' is not assignable to type 'TopicWhereInput'.
+    Types of property 'locale' are incompatible.
+      Type 'string' is not assignable to type 'Locale | EnumLocaleFilter<"Topic"> | undefined'.
+apps/web/src/app/api/topics/route.ts(16,9): error TS2353: Object literal may only specify known properties, and 'statements' does not exist in type 'TopicInclude<DefaultArgs>'.
+apps/web/src/app/api/unit/[id]/interest/route.ts(16,31): error TS2339: Property 'extractedUnit' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+apps/web/src/app/api/unit/[id]/interest/route.ts(20,34): error TS2339: Property 'extractedUnit' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+apps/web/src/app/api/unit/[id]/interest/route.ts(28,30): error TS2554: Expected 2-3 arguments, but got 1.
+apps/web/src/app/api/user-demographics/[id].ts(1,23): error TS2307: Cannot find module '@/utils/dbConnect' or its corresponding type declarations.
+apps/web/src/app/api/user-demographics/[id].ts(2,30): error TS2307: Cannot find module '@/models/UserDemographics' or its corresponding type declarations.
+apps/web/src/app/api/user-demographics/[id].ts(4,39): error TS7006: Parameter 'req' implicitly has an 'any' type.
+apps/web/src/app/api/user-demographics/[id].ts(4,44): error TS7006: Parameter 'res' implicitly has an 'any' type.
+apps/web/src/app/api/user-demographics/[id].ts(38,70): error TS18046: 'err' is of type 'unknown'.
+apps/web/src/app/api/users/[id].ts(1,23): error TS2307: Cannot find module '@/utils/dbConnect' or its corresponding type declarations.
+apps/web/src/app/api/users/[id].ts(2,25): error TS2307: Cannot find module '@/models/UserProfile' or its corresponding type declarations.
+apps/web/src/app/api/users/[id].ts(4,39): error TS7006: Parameter 'req' implicitly has an 'any' type.
+apps/web/src/app/api/users/[id].ts(4,44): error TS7006: Parameter 'res' implicitly has an 'any' type.
+apps/web/src/app/api/users/[id].ts(34,70): error TS18046: 'err' is of type 'unknown'.
+apps/web/src/app/auth/onboarding/location/page.tsx(13,25): error TS18047: 'qp' is possibly 'null'.
+apps/web/src/app/context/page.tsx(10,8): error TS2741: Property 'roots' is missing in type '{}' but required in type 'ContextExplorerProps'.
+apps/web/src/app/dashboard/admin/page.tsx(2,20): error TS2307: Cannot find module '@components/TabNav' or its corresponding type declarations.
+apps/web/src/app/dashboard/admin/page.tsx(16,22): error TS2322: Type '{ admin: true; }' is not assignable to type 'IntrinsicAttributes'.
+  Property 'admin' does not exist on type 'IntrinsicAttributes'.
+apps/web/src/app/dashboard/community/CommunityDashboardClient.tsx(2,20): error TS2307: Cannot find module '@components/TabNav' or its corresponding type declarations.
+apps/web/src/app/dashboard/community/CommunityDashboardClient.tsx(6,34): error TS2305: Module '"@features/user/hooks/useRolePermission"' has no exported member 'RpUser'.
+apps/web/src/app/dashboard/community/CommunityDashboardClient.tsx(13,11): error TS2339: Property 'hasRole' does not exist on type 'Boolean'.
+apps/web/src/app/dashboard/community/page.tsx(18,24): error TS2322: Type '{ communityView: true; }' is not assignable to type 'IntrinsicAttributes & { admin?: boolean | undefined; moderator?: boolean | undefined; orgView?: boolean | undefined; readOnly?: boolean | undefined; onEdit?: ((user: IUserProfile) => void) | undefined; }'.
+  Property 'communityView' does not exist on type 'IntrinsicAttributes & { admin?: boolean | undefined; moderator?: boolean | undefined; orgView?: boolean | undefined; readOnly?: boolean | undefined; onEdit?: ((user: IUserProfile) => void) | undefined; }'.
+apps/web/src/app/dashboard/community/page.tsx(19,26): error TS2322: Type '{ communityView: true; }' is not assignable to type 'IntrinsicAttributes & EngagementStatsProps'.
+  Property 'communityView' does not exist on type 'IntrinsicAttributes & EngagementStatsProps'.
+apps/web/src/app/dashboard/community/page.tsx(20,24): error TS2322: Type '{ communityView: true; }' is not assignable to type 'IntrinsicAttributes'.
+  Property 'communityView' does not exist on type 'IntrinsicAttributes'.
+apps/web/src/app/dashboard/editor/items/[id]/page.tsx(6,77): error TS2307: Cannot find module '@features' or its corresponding type declarations.
+apps/web/src/app/dashboard/editor/items/[id]/page.tsx(7,49): error TS2307: Cannot find module '@features' or its corresponding type declarations.
+apps/web/src/app/dashboard/editor/items/[id]/page.tsx(10,11): error TS2339: Property 'id' does not exist on type '{ id: string; } | null'.
+apps/web/src/app/dashboard/editor/items/[id]/page.tsx(26,102): error TS7006: Parameter '_' implicitly has an 'any' type.
+apps/web/src/app/dashboard/editor/items/[id]/page.tsx(26,104): error TS7006: Parameter 'i' implicitly has an 'any' type.
+apps/web/src/app/dashboard/editor/items/[id]/page.tsx(45,52): error TS7006: Parameter 'o' implicitly has an 'any' type.
+apps/web/src/app/dashboard/editor/items/[id]/page.tsx(45,55): error TS7006: Parameter 'idx' implicitly has an 'any' type.
+apps/web/src/app/dashboard/index.tsx(4,27): error TS2307: Cannot find module '../components/UsageKPIPanel' or its corresponding type declarations.
+apps/web/src/app/dashboard/manage-contributions/page.tsx(21,24): error TS2322: Type '{ editable: true; }' is not assignable to type 'IntrinsicAttributes'.
+  Property 'editable' does not exist on type 'IntrinsicAttributes'.
+apps/web/src/app/dashboard/manage-contributions/page.tsx(22,27): error TS2322: Type '{ editable: true; }' is not assignable to type 'IntrinsicAttributes & { admin?: boolean | undefined; ngoView?: boolean | undefined; presseView?: boolean | undefined; politikView?: boolean | undefined; readOnly?: boolean | undefined; user?: any; onEdit?: ((contribution: any) => void) | undefined; }'.
+  Property 'editable' does not exist on type 'IntrinsicAttributes & { admin?: boolean | undefined; ngoView?: boolean | undefined; presseView?: boolean | undefined; politikView?: boolean | undefined; readOnly?: boolean | undefined; user?: any; onEdit?: ((contribution: any) => void) | undefined; }'.
+apps/web/src/app/dashboard/manage-contributions/page.tsx(23,25): error TS2322: Type '{ editable: true; }' is not assignable to type 'IntrinsicAttributes & Props'.
+  Property 'editable' does not exist on type 'IntrinsicAttributes & Props'.
+apps/web/src/app/dashboard/manage-streams/page.tsx(19,14): error TS2339: Property 'title' does not exist on type 'never'.
+apps/web/src/app/dashboard/manage-streams/page.tsx(45,30): error TS2339: Property 'id' does not exist on type 'never'.
+apps/web/src/app/dashboard/manage-streams/page.tsx(46,82): error TS2339: Property 'title' does not exist on type 'never'.
+apps/web/src/app/dashboard/manage-streams/page.tsx(48,34): error TS2339: Property 'date' does not exist on type 'never'.
+apps/web/src/app/dashboard/manage-streams/page.tsx(56,26): error TS2339: Property 'status' does not exist on type 'never'.
+apps/web/src/app/dashboard/manage-streams/page.tsx(58,30): error TS2339: Property 'status' does not exist on type 'never'.
+apps/web/src/app/dashboard/manage-streams/page.tsx(63,25): error TS2339: Property 'status' does not exist on type 'never'.
+apps/web/src/app/dashboard/manage-streams/page.tsx(68,36): error TS2339: Property 'status' does not exist on type 'never'.
+apps/web/src/app/dashboard/manage-streams/page.tsx(70,28): error TS2339: Property 'status' does not exist on type 'never'.
+apps/web/src/app/dashboard/ngo/page.tsx(33,9): error TS2322: Type '{ tabs: string[]; tab: number; setTab: Dispatch<SetStateAction<number>>; children: Element[]; }' is not assignable to type 'IntrinsicAttributes & { tabs: string[]; children: ReactNode[]; }'.
+  Property 'tab' does not exist on type 'IntrinsicAttributes & { tabs: string[]; children: ReactNode[]; }'. Did you mean 'tabs'?
+apps/web/src/app/dashboard/ngo/page.tsx(56,17): error TS2322: Type '{ contribution: null; onSave: () => void; onCancel: () => void; user: UserType | null; }' is not assignable to type 'IntrinsicAttributes & { user: any; }'.
+  Property 'contribution' does not exist on type 'IntrinsicAttributes & { user: any; }'.
+apps/web/src/app/dashboard/ngo/page.tsx(78,15): error TS2322: Type '{ ngoView: true; user: UserType | null; onEdit: (s: any) => void; }' is not assignable to type 'IntrinsicAttributes'.
+  Property 'ngoView' does not exist on type 'IntrinsicAttributes'.
+apps/web/src/app/dashboard/ngo/page.tsx(80,23): error TS7006: Parameter 's' implicitly has an 'any' type.
+apps/web/src/app/dashboard/ngo/page.tsx(84,17): error TS2322: Type '{ statement: null; onSubmit: () => void; onCancel: () => void; user: UserType | null; }' is not assignable to type 'IntrinsicAttributes & Props'.
+  Property 'statement' does not exist on type 'IntrinsicAttributes & Props'.
+apps/web/src/app/dashboard/ngo/page.tsx(94,20): error TS2339: Property 'premium' does not exist on type 'UserType'.
+apps/web/src/app/dashboard/ngo/page.tsx(95,32): error TS2322: Type '{ ngoView: true; user: UserType; }' is not assignable to type 'IntrinsicAttributes & EngagementStatsProps'.
+  Property 'ngoView' does not exist on type 'IntrinsicAttributes & EngagementStatsProps'.
+apps/web/src/app/dashboard/orgs.tsx(3,30): error TS2307: Cannot find module '@/utils/orgHelpers' or its corresponding type declarations.
+apps/web/src/app/dashboard/politik/page.tsx(3,20): error TS2307: Cannot find module '@components/TabNav' or its corresponding type declarations.
+apps/web/src/app/dashboard/politik/page.tsx(35,28): error TS2339: Property 'district' does not exist on type 'UserType'.
+apps/web/src/app/dashboard/politik/page.tsx(36,25): error TS2339: Property 'politicalLevel' does not exist on type 'UserType'.
+apps/web/src/app/dashboard/politik/page.tsx(74,15): error TS2322: Type 'UserType | null' is not assignable to type '{ country?: string | undefined; region?: string | undefined; district?: string | undefined; } | undefined'.
+  Type 'null' is not assignable to type '{ country?: string | undefined; region?: string | undefined; district?: string | undefined; } | undefined'.
+apps/web/src/app/dashboard/politik/page.tsx(75,24): error TS7006: Parameter 'stream' implicitly has an 'any' type.
+apps/web/src/app/dashboard/politik/page.tsx(104,15): error TS2322: Type '{ politikView: true; user: UserType | null; onEdit: (statement: any) => void; }' is not assignable to type 'IntrinsicAttributes'.
+  Property 'politikView' does not exist on type 'IntrinsicAttributes'.
+apps/web/src/app/dashboard/politik/page.tsx(106,24): error TS7006: Parameter 'statement' implicitly has an 'any' type.
+apps/web/src/app/dashboard/politik/page.tsx(113,17): error TS2322: Type '{ statement: null; onSubmit: () => void; onCancel: () => void; user: UserType | null; }' is not assignable to type 'IntrinsicAttributes & Props'.
+  Property 'statement' does not exist on type 'IntrinsicAttributes & Props'.
+apps/web/src/app/dashboard/politik/page.tsx(123,20): error TS2339: Property 'premium' does not exist on type 'UserType'.
+apps/web/src/app/dashboard/presse/page.tsx(8,20): error TS2307: Cannot find module '@components/TabNav' or its corresponding type declarations.
+apps/web/src/app/dashboard/presse/page.tsx(35,25): error TS2322: Type '{ presseView: true; user: UserType | null; }' is not assignable to type 'IntrinsicAttributes & { level?: string | undefined; district?: string | undefined; ministry?: string | undefined; party?: string | undefined; streams?: any[] | undefined; userId?: string | undefined; focus?: boolean | undefined; }'.
+  Property 'presseView' does not exist on type 'IntrinsicAttributes & { level?: string | undefined; district?: string | undefined; ministry?: string | undefined; party?: string | undefined; streams?: any[] | undefined; userId?: string | undefined; focus?: boolean | undefined; }'.
+apps/web/src/app/dashboard/presse/page.tsx(46,43): error TS2322: Type '{ key: string; presseView: true; user: UserType | null; }' is not assignable to type 'IntrinsicAttributes'.
+  Property 'presseView' does not exist on type 'IntrinsicAttributes'.
+apps/web/src/app/dashboard/presse/page.tsx(54,25): error TS2322: Type '{ presseView: true; user: UserType | null; }' is not assignable to type 'IntrinsicAttributes & Props'.
+  Property 'presseView' does not exist on type 'IntrinsicAttributes & Props'.
+apps/web/src/app/dashboard/presse/page.tsx(58,29): error TS2322: Type '{ presseView: true; user: UserType | null; }' is not assignable to type 'IntrinsicAttributes & { level?: string | undefined; district?: string | undefined; ministry?: string | undefined; party?: string | undefined; streams?: any[] | undefined; userId?: string | undefined; focus?: boolean | undefined; }'.
+  Property 'presseView' does not exist on type 'IntrinsicAttributes & { level?: string | undefined; district?: string | undefined; ministry?: string | undefined; party?: string | undefined; streams?: any[] | undefined; userId?: string | undefined; focus?: boolean | undefined; }'.
+apps/web/src/app/dashboard/presse/page.tsx(63,22): error TS2339: Property 'premium' does not exist on type 'UserType'.
+apps/web/src/app/dashboard/qr-codes/page.tsx(2,18): error TS7019: Rest parameter 'args' implicitly has an 'any[]' type.
+apps/web/src/app/dashboard/qr-codes/page.tsx(2,36): error TS2556: A spread argument must either have a tuple type or be passed to a rest parameter.
+apps/web/src/app/dashboard/qr-codes/page.tsx(25,26): error TS7006: Parameter 'qr' implicitly has an 'any' type.
+apps/web/src/app/dashboard/tv/page.tsx(25,9): error TS2322: Type '{ tabs: string[]; tab: number; setTab: Dispatch<SetStateAction<number>>; children: Element[]; }' is not assignable to type 'IntrinsicAttributes & { tabs: string[]; children: ReactNode[]; }'.
+  Property 'tab' does not exist on type 'IntrinsicAttributes & { tabs: string[]; children: ReactNode[]; }'. Did you mean 'tabs'?
+apps/web/src/app/dashboard/tv/page.tsx(28,37): error TS2322: Type '{ key: string; tvView: true; accentColor: string; }' is not assignable to type 'IntrinsicAttributes & { user?: { country?: string | undefined; region?: string | undefined; district?: string | undefined; } | undefined; admin?: boolean | undefined; ... 6 more ...; language?: string | undefined; }'.
+  Property 'tvView' does not exist on type 'IntrinsicAttributes & { user?: { country?: string | undefined; region?: string | undefined; district?: string | undefined; } | undefined; admin?: boolean | undefined; ... 6 more ...; language?: string | undefined; }'.
+apps/web/src/app/dashboard/tv/page.tsx(29,43): error TS2322: Type '{ key: string; tvView: true; }' is not assignable to type 'IntrinsicAttributes'.
+  Property 'tvView' does not exist on type 'IntrinsicAttributes'.
+apps/web/src/app/dashboard/tv/page.tsx(30,35): error TS2322: Type '{ key: string; tvView: true; }' is not assignable to type 'IntrinsicAttributes & { items?: TvEvent[] | undefined; }'.
+  Property 'tvView' does not exist on type 'IntrinsicAttributes & { items?: TvEvent[] | undefined; }'.
+apps/web/src/app/dashboard/tv/page.tsx(33,20): error TS2339: Property 'premium' does not exist on type 'UserType'.
+apps/web/src/app/dashboard/tv/page.tsx(36,46): error TS2322: Type '{ user: UserType; mediaView: true; }' is not assignable to type 'IntrinsicAttributes & { user?: any; streams?: any[] | undefined; region?: string | undefined; role?: string | undefined; timeFrame?: "month" | "week" | "custom" | undefined; exportEnabled?: boolean | undefined; analyticsProps?: Record<...> | undefined; }'.
+  Property 'mediaView' does not exist on type 'IntrinsicAttributes & { user?: any; streams?: any[] | undefined; region?: string | undefined; role?: string | undefined; timeFrame?: "month" | "week" | "custom" | undefined; exportEnabled?: boolean | undefined; analyticsProps?: Record<...> | undefined; }'.
+apps/web/src/app/dashboard/usage.tsx(2,27): error TS2307: Cannot find module '../components/UsageKPIPanel' or its corresponding type declarations.
+apps/web/src/app/dashboard/user.tsx(20,22): error TS2740: Type 'UserContextType' is missing the following properties from type 'IUserProfile': username, roles, activeRole, trustScore, and 67 more.
+apps/web/src/app/presse/page.tsx(89,25): error TS7006: Parameter 'e' implicitly has an 'any' type.
+apps/web/src/app/presse/page.tsx(92,25): error TS7006: Parameter 'e' implicitly has an 'any' type.
+apps/web/src/app/providers.tsx(6,32): error TS2307: Cannot find module '@context/LocaleContext' or its corresponding type declarations.
+apps/web/src/app/qr/[qrId]/page.tsx(3,44): error TS7031: Binding element 'params' implicitly has an 'any' type.
+apps/web/src/app/qr/[qrId]/page.tsx(32,32): error TS7031: Binding element 'id' implicitly has an 'any' type.
+apps/web/src/app/qr/[qrId]/page.tsx(36,35): error TS7031: Binding element 'id' implicitly has an 'any' type.
+apps/web/src/app/qr/[qrId]/page.tsx(40,29): error TS7031: Binding element 'id' implicitly has an 'any' type.
+apps/web/src/app/qr/[qrId]/page.tsx(44,28): error TS7031: Binding element 'ids' implicitly has an 'any' type.
+apps/web/src/app/qr/[qrId]/page.tsx(48,23): error TS7031: Binding element 'data' implicitly has an 'any' type.
+apps/web/src/app/qrcodegenerator/page.tsx(11,24): error TS2322: Type '{ userId: string; }' is not assignable to type 'IntrinsicAttributes'.
+  Property 'userId' does not exist on type 'IntrinsicAttributes'.
+apps/web/src/app/qrcodewizard/page.tsx(9,53): error TS7006: Parameter 'id' implicitly has an 'any' type.
+apps/web/src/app/stream/[slug]/page.tsx(2,8): error TS2613: Module '"/Users/RF/VPM25/features/stream/data/streamData"' has no default export. Did you mean to use 'import { streamData } from "/Users/RF/VPM25/features/stream/data/streamData"' instead?
+apps/web/src/app/stream/[slug]/page.tsx(3,25): error TS2307: Cannot find module '@ui' or its corresponding type declarations.
+apps/web/src/app/stream/[slug]/page.tsx(4,27): error TS2307: Cannot find module '@ui' or its corresponding type declarations.
+apps/web/src/app/stream/[slug]/page.tsx(7,26): error TS7006: Parameter 'stream' implicitly has an 'any' type.
+apps/web/src/app/stream/[slug]/page.tsx(11,35): error TS7006: Parameter 's' implicitly has an 'any' type.
+apps/web/src/app/stream/pausepage.tsx(4,8): error TS2613: Module '"/Users/RF/VPM25/features/stream/data/streamData"' has no default export. Did you mean to use 'import { streamData } from "/Users/RF/VPM25/features/stream/data/streamData"' instead?
+apps/web/src/app/stream/pausepage.tsx(21,8): error TS2739: Type '{}' is missing the following properties from type 'Props': filters, active, onToggle
+apps/web/src/app/stream/pausepage.tsx(24,26): error TS7006: Parameter 'stream' implicitly has an 'any' type.
+apps/web/src/app/swipe/page.tsx(10,10): error TS2741: Property 'userHash' is missing in type '{}' but required in type '{ userHash: any; }'.
+apps/web/src/app/verify/page.tsx(22,16): error TS18047: 'sp' is possibly 'null'.
+apps/web/src/app/verify/page.tsx(23,16): error TS18047: 'sp' is possibly 'null'.
+apps/web/src/app/verify/page.tsx(63,22): error TS18047: 'sp' is possibly 'null'.
+apps/web/src/app/verify/page.tsx(75,16): error TS18047: 'sp' is possibly 'null'.
+apps/web/src/app/verify/page.tsx(76,16): error TS18047: 'sp' is possibly 'null'.
+apps/web/src/components/FAQTabs.tsx(3,8): error TS2613: Module '"/Users/RF/VPM25/apps/web/src/components/Headline"' has no default export. Did you mean to use 'import { Headline } from "/Users/RF/VPM25/apps/web/src/components/Headline"' instead?
+apps/web/src/components/FAQTabs.tsx(12,8): error TS2307: Cannot find module '@heroicons/react/24/outline' or its corresponding type declarations.
+apps/web/src/components/MiniAccordion.tsx(4,33): error TS7031: Binding element 'items' implicitly has an 'any' type.
+apps/web/src/components/MiniAccordion.tsx(8,19): error TS7006: Parameter 'item' implicitly has an 'any' type.
+apps/web/src/components/MiniAccordion.tsx(8,25): error TS7006: Parameter 'idx' implicitly has an 'any' type.
+apps/web/src/components/MiniFeed.tsx(1,28): error TS7031: Binding element 'items' implicitly has an 'any' type.
+apps/web/src/components/MiniFeed.tsx(4,21): error TS7006: Parameter 'item' implicitly has an 'any' type.
+apps/web/src/components/MiniFeed.tsx(4,27): error TS7006: Parameter 'idx' implicitly has an 'any' type.
+apps/web/src/components/SetBuilder.tsx(4,72): error TS7016: Could not find a declaration file for module 'react-beautiful-dnd'. '/Users/RF/VPM25/node_modules/.pnpm/react-beautiful-dnd@13.1.1_react-dom@19.1.1_react@19.1.1__react@19.1.1/node_modules/react-beautiful-dnd/dist/react-beautiful-dnd.cjs.js' implicitly has an 'any' type.
+  Try `npm i --save-dev @types/react-beautiful-dnd` if it exists or add a new declaration (.d.ts) file containing `declare module 'react-beautiful-dnd';`
+apps/web/src/components/SetBuilder.tsx(29,11): error TS7006: Parameter 'provided' implicitly has an 'any' type.
+apps/web/src/components/SetBuilder.tsx(33,19): error TS7006: Parameter 'prov' implicitly has an 'any' type.
+apps/web/src/core/factcheck/triage.ts(2,15): error TS2305: Module '"@prisma/client"' has no exported member 'ExtractedUnit'.
+apps/web/src/hooks/useRouteGuardClient.ts(4,63): error TS2307: Cannot find module '../../../features/auth/hooks/useRouteGuard' or its corresponding type declarations.
+apps/web/src/lib/http/typedCookies.ts(14,11): error TS2345: Argument of type '[string, string, string | undefined]' is not assignable to parameter of type '[key: string, value: string, cookie?: Partial<ResponseCookie> | undefined] | [options: ResponseCookie]'.
+  Type '[string, string, string | undefined]' is not assignable to type '[key: string, value: string, cookie?: Partial<ResponseCookie> | undefined]'.
+    Type at position 2 in source is not compatible with type at position 2 in target.
+      Type 'string | undefined' is not assignable to type 'Partial<ResponseCookie> | undefined'.
+        Type 'string' has no properties in common with type 'Partial<ResponseCookie>'.
+apps/web/src/lib/prisma.ts(3,50): error TS2305: Module '"@db-web"' has no exported member 'Locale'.
+apps/web/src/lib/redis.ts(27,20): error TS2709: Cannot use namespace 'RedisClientType' as a type.
+apps/web/src/lib/redis.ts(29,19): error TS2709: Cannot use namespace 'RedisClientType' as a type.
+apps/web/src/lib/redis.ts(31,19): error TS2709: Cannot use namespace 'RedisClientType' as a type.
+apps/web/src/lib/redis.ts(43,41): error TS2709: Cannot use namespace 'RedisClientType' as a type.
+apps/web/src/lib/redis.ts(52,44): error TS2709: Cannot use namespace 'RedisClientType' as a type.
+apps/web/src/lib/redis.ts(61,45): error TS2709: Cannot use namespace 'RedisClientType' as a type.
+apps/web/src/lib/redis.ts(98,33): error TS7006: Parameter 'payload' implicitly has an 'any' type.
+apps/web/src/lib/region/effective.ts(51,33): error TS2339: Property 'userProfile' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+apps/web/src/lib/region/effective.ts(79,22): error TS2352: Conversion of type 'number' to type 'RegionLevel' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+apps/web/src/lib/region/effective.ts(104,18): error TS2352: Conversion of type 'number' to type 'RegionLevel' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+apps/web/src/lib/validation/contentValidation.ts(2,35): error TS2305: Module '"@db-web"' has no exported member 'Locale'.
+apps/web/src/lib/vote/stats.ts(2,27): error TS2307: Cannot find module '@/models/Vote' or its corresponding type declarations.
+apps/web/src/middleware.ts(98,20): error TS2339: Property 'ip' does not exist on type 'NextRequest'.
+apps/web/src/models/core/Contribution.ts(4,26): error TS2307: Cannot find module '@/lib/db/core' or its corresponding type declarations.
+apps/web/src/models/core/ErrorLog.ts(3,26): error TS2307: Cannot find module '@/lib/db/core' or its corresponding type declarations.
+apps/web/src/models/core/Event.ts(18,21): error TS2347: Untyped function calls may not accept type arguments.
+apps/web/src/models/core/Event.ts(61,54): error TS2694: Namespace '"@core/*"' has no exported member 'Model'.
+apps/web/src/models/core/Event.ts(63,54): error TS2694: Namespace '"@core/*"' has no exported member 'Model'.
+apps/web/src/models/core/Event.ts(64,22): error TS2347: Untyped function calls may not accept type arguments.
+apps/web/src/models/core/Report.ts(4,26): error TS2307: Cannot find module '@/lib/db/core' or its corresponding type declarations.
+apps/web/src/models/core/Source.ts(2,10): error TS2724: '"@core/triMongo"' has no exported member named 'coreConn'. Did you mean 'coreCol'?
+apps/web/src/models/core/Statement.ts(3,10): error TS2724: '"@core/triMongo"' has no exported member named 'coreConn'. Did you mean 'coreCol'?
+apps/web/src/models/core/Stream.ts(3,26): error TS2307: Cannot find module '@/lib/db/core' or its corresponding type declarations.
+apps/web/src/models/core/StreamEvent.ts(2,26): error TS2307: Cannot find module '@/lib/db/core' or its corresponding type declarations.
+apps/web/src/models/ErrorLog.ts(52,15): error TS2484: Export declaration conflicts with exported declaration of 'IErrorLog'.
+apps/web/src/models/pii/UserDemographics.ts(112,16): error TS2347: Untyped function calls may not accept type arguments.
+apps/web/src/models/pii/UserProfile.ts(212,16): error TS2347: Untyped function calls may not accept type arguments.
+apps/web/src/models/votes/Vote.ts(135,60): error TS2635: Type 'any' has no signatures for which the type argument list is applicable.
+apps/web/src/models/votes/Vote.ts(136,8): error TS2347: Untyped function calls may not accept type arguments.
+apps/web/src/server/handlers/contributions/analyzePost.ts(4,37): error TS2307: Cannot find module '@/lib/contribution/analyzeAndTranslate' or its corresponding type declarations.
+apps/web/src/server/handlers/contributions/analyzePost.ts(9,79): error TS2339: Property 'ip' does not exist on type 'NextRequest'.
+apps/web/src/server/handlers/contributions/analyzePost.ts(35,7): error TS2322: Type 'string | null' is not assignable to type 'string'.
+  Type 'null' is not assignable to type 'string'.
+apps/web/src/server/health.ts(52,37): error TS2322: Type 'Promise<{ name: string; ok: { name: string; ok: boolean; error?: undefined; } | { name: string; ok: boolean; error: any; }; }>' is not assignable to type 'Promise<MaybeRow>'.
+  Type '{ name: string; ok: { name: string; ok: boolean; error?: undefined; } | { name: string; ok: boolean; error: any; }; }' is not assignable to type 'MaybeRow'.
+    Type '{ name: string; ok: { name: string; ok: boolean; error?: undefined; } | { name: string; ok: boolean; error: any; }; }' is not assignable to type 'Omit<Row, "ms">'.
+      Types of property 'ok' are incompatible.
+        Type '{ name: string; ok: boolean; error?: undefined; } | { name: string; ok: boolean; error: any; }' is not assignable to type 'boolean'.
+          Type '{ name: string; ok: boolean; error?: undefined; }' is not assignable to type 'boolean'.
+apps/web/src/server/services.ts(15,14): error TS2322: Type '({ id: string; label: string; group: string; ping: () => Promise<{ ok: boolean; }>; } | { id: string; label: string; group: string; ping: () => Promise<{ ok: { name: string; ok: boolean; error?: undefined; } | { ...; }; }>; })[]' is not assignable to type 'Service[]'.
+  Type '{ id: string; label: string; group: string; ping: () => Promise<{ ok: boolean; }>; } | { id: string; label: string; group: string; ping: () => Promise<{ ok: { name: string; ok: boolean; error?: undefined; } | { ...; }; }>; }' is not assignable to type 'Service'.
+    Type '{ id: string; label: string; group: string; ping: () => Promise<{ ok: boolean; }>; }' is not assignable to type 'Service'.
+      Types of property 'group' are incompatible.
+        Type 'string' is not assignable to type '"other" | "db" | "queue" | "ai"'.
+apps/web/src/server/services.ts(27,17): error TS2339: Property 'enabled' does not exist on type '{ id: string; label: string; group: string; ping: () => Promise<{ ok: boolean; }>; } | { id: string; label: string; group: string; ping: () => Promise<{ ok: { name: string; ok: boolean; error?: undefined; } | { ...; }; }>; }'.
+  Property 'enabled' does not exist on type '{ id: string; label: string; group: string; ping: () => Promise<{ ok: boolean; }>; }'.
+apps/web/src/utils/aiProviders.ts(4,84): error TS2306: File '/Users/RF/VPM25/apps/web/src/lib/audit.ts' is not a module.
+apps/web/src/utils/aiProviders.ts(11,39): error TS7006: Parameter 'input' implicitly has an 'any' type.
+apps/web/src/utils/aiProviders.ts(11,46): error TS7006: Parameter 'userContext' implicitly has an 'any' type.
+apps/web/src/utils/aiProviders.ts(28,40): error TS7031: Binding element 'text' implicitly has an 'any' type.
+apps/web/src/utils/aiProviders.ts(28,46): error TS7031: Binding element 'context' implicitly has an 'any' type.
+apps/web/src/utils/aiProviders.ts(39,40): error TS7031: Binding element 'text' implicitly has an 'any' type.
+apps/web/src/utils/aiProviders.ts(39,46): error TS7031: Binding element 'gptData' implicitly has an 'any' type.
+apps/web/src/utils/aiProviders.ts(39,55): error TS7031: Binding element 'meta' implicitly has an 'any' type.
+apps/web/src/utils/aiProviders.ts(39,61): error TS7031: Binding element 'context' implicitly has an 'any' type.
+apps/web/src/utils/aiProviders.ts(50,46): error TS7031: Binding element 'gptData' implicitly has an 'any' type.
+apps/web/src/utils/aiProviders.ts(50,55): error TS7031: Binding element 'ariData' implicitly has an 'any' type.
+apps/web/src/utils/aiProviders.ts(50,64): error TS7031: Binding element 'meta' implicitly has an 'any' type.
+apps/web/src/utils/aiProviders.ts(58,38): error TS7031: Binding element 'gptData' implicitly has an 'any' type.
+apps/web/src/utils/aiProviders.ts(58,47): error TS7031: Binding element 'ariData' implicitly has an 'any' type.
+apps/web/src/utils/aiProviders.ts(58,56): error TS7031: Binding element 'meta' implicitly has an 'any' type.
+apps/web/src/utils/aiProviders.ts(76,42): error TS7006: Parameter 'meta' implicitly has an 'any' type.
+apps/web/src/utils/aiProviders.ts(76,48): error TS7006: Parameter 'gptData' implicitly has an 'any' type.
+apps/web/src/utils/aiProviders.ts(76,57): error TS7006: Parameter 'ariData' implicitly has an 'any' type.
+apps/web/src/utils/aiProviders.ts(76,66): error TS7006: Parameter 'metaResult' implicitly has an 'any' type.
+apps/web/src/utils/aiProviders.ts(76,78): error TS7006: Parameter 'context' implicitly has an 'any' type.
+apps/web/src/utils/aiProviders.ts(91,47): error TS7006: Parameter 'input' implicitly has an 'any' type.
+apps/web/src/utils/aiProviders.ts(91,54): error TS7006: Parameter 'userContext' implicitly has an 'any' type.
+apps/web/src/utils/arangoClient.ts(8,9): error TS2709: Cannot use namespace 'Database' as a type.
+apps/web/src/utils/env.server.ts(2,24): error TS2307: Cannot find module 'dotenv' or its corresponding type declarations.
+apps/web/src/utils/env.server.ts(70,55): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(def: boolean): ZodDefault<ZodPipe<ZodString, ZodTransform<boolean, string>>>', gave the following error.
+    Argument of type 'string' is not assignable to parameter of type 'boolean'.
+  Overload 2 of 2, '(def: () => boolean): ZodDefault<ZodPipe<ZodString, ZodTransform<boolean, string>>>', gave the following error.
+    Argument of type 'string' is not assignable to parameter of type '() => boolean'.
+apps/web/src/utils/env.server.ts(71,54): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(def: boolean): ZodDefault<ZodPipe<ZodString, ZodTransform<boolean, string>>>', gave the following error.
+    Argument of type 'string' is not assignable to parameter of type 'boolean'.
+  Overload 2 of 2, '(def: () => boolean): ZodDefault<ZodPipe<ZodString, ZodTransform<boolean, string>>>', gave the following error.
+    Argument of type 'string' is not assignable to parameter of type '() => boolean'.
+apps/web/src/utils/env.server.ts(72,57): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(def: boolean): ZodDefault<ZodPipe<ZodString, ZodTransform<boolean, string>>>', gave the following error.
+    Argument of type 'string' is not assignable to parameter of type 'boolean'.
+  Overload 2 of 2, '(def: () => boolean): ZodDefault<ZodPipe<ZodString, ZodTransform<boolean, string>>>', gave the following error.
+    Argument of type 'string' is not assignable to parameter of type '() => boolean'.
+apps/web/src/utils/env.server.ts(73,55): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(def: boolean): ZodDefault<ZodPipe<ZodString, ZodTransform<boolean, string>>>', gave the following error.
+    Argument of type 'string' is not assignable to parameter of type 'boolean'.
+  Overload 2 of 2, '(def: () => boolean): ZodDefault<ZodPipe<ZodString, ZodTransform<boolean, string>>>', gave the following error.
+    Argument of type 'string' is not assignable to parameter of type '() => boolean'.
+apps/web/src/utils/env.server.ts(74,58): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(def: boolean): ZodDefault<ZodPipe<ZodString, ZodTransform<boolean, string>>>', gave the following error.
+    Argument of type 'string' is not assignable to parameter of type 'boolean'.
+  Overload 2 of 2, '(def: () => boolean): ZodDefault<ZodPipe<ZodString, ZodTransform<boolean, string>>>', gave the following error.
+    Argument of type 'string' is not assignable to parameter of type '() => boolean'.
+apps/web/src/utils/env.server.ts(75,65): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(def: boolean): ZodDefault<ZodPipe<ZodString, ZodTransform<boolean, string>>>', gave the following error.
+    Argument of type 'string' is not assignable to parameter of type 'boolean'.
+  Overload 2 of 2, '(def: () => boolean): ZodDefault<ZodPipe<ZodString, ZodTransform<boolean, string>>>', gave the following error.
+    Argument of type 'string' is not assignable to parameter of type '() => boolean'.
+apps/web/src/utils/mongo/votes.ts(8,59): error TS2344: Type 'T' does not satisfy the constraint 'Document'.
+apps/web/src/utils/mongo/votes.ts(9,23): error TS2344: Type 'T' does not satisfy the constraint 'Document'.
+apps/web/src/utils/mongoPing.ts(17,10): error TS2339: Property 'topology' does not exist on type 'MongoClient'.
+apps/web/src/utils/serverBaseUrl.ts(8,19): error TS2339: Property 'get' does not exist on type 'Promise<ReadonlyHeaders>'.
+apps/web/src/utils/serverBaseUrl.ts(9,19): error TS2339: Property 'get' does not exist on type 'Promise<ReadonlyHeaders>'.
+apps/web/src/utils/serverBaseUrl.ts(9,48): error TS2339: Property 'get' does not exist on type 'Promise<ReadonlyHeaders>'.
+apps/web/src/utils/session.ts(68,13): error TS2339: Property 'set' does not exist on type 'Promise<ReadonlyRequestCookies>'.
+apps/web/src/utils/session.ts(90,13): error TS2339: Property 'set' does not exist on type 'Promise<ReadonlyRequestCookies>'.
+apps/web/src/utils/tokens.ts(15,28): error TS2345: Argument of type '"tokens"' is not assignable to parameter of type 'TriStore'.
+apps/web/src/utils/tokens.ts(23,28): error TS2345: Argument of type '"tokens"' is not assignable to parameter of type 'TriStore'.
+core/ari/ariClient.ts(6,34): error TS7031: Binding element 'query' implicitly has an 'any' type.
+core/db/mongoose.ts(19,52): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+core/factcheck/__tests__/canonical.test.ts(4,1): error TS2593: Cannot find name 'test'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha` and then add 'jest' or 'mocha' to the types field in your tsconfig.
+core/factcheck/__tests__/canonical.test.ts(7,3): error TS2304: Cannot find name 'expect'.
+core/factcheck/extractAndPersist.ts(2,24): error TS2307: Cannot find module '@db-core' or its corresponding type declarations.
+core/factcheck/extractAndPersist.ts(5,33): error TS2307: Cannot find module './triage' or its corresponding type declarations.
+core/factcheck/trust.ts(1,24): error TS2307: Cannot find module '@db-core' or its corresponding type declarations.
+core/gpt/analyzeContribution.ts(8,10): error TS2305: Module '"@features/contribution/utils/cacheAIResponses"' has no exported member 'cacheGet'.
+core/gpt/analyzeContribution.ts(8,20): error TS2305: Module '"@features/contribution/utils/cacheAIResponses"' has no exported member 'cacheSet'.
+core/locale/server.ts(1,34): error TS2307: Cannot find module 'next/headers' or its corresponding type declarations.
+core/logic/storeContribution.ts(2,26): error TS2307: Cannot find module '@/data/models/Contribution' or its corresponding type declarations.
+core/queue/factcheckQueue.ts(11,12): error TS2709: Cannot use namespace 'Redis' as a type.
+core/queue/factcheckQueue.ts(12,29): error TS2709: Cannot use namespace 'Redis' as a type.
+core/utils/validation/promptSchemas.ts(3,31): error TS2307: Cannot find module '../../../../core/utils/jsonRepair' or its corresponding type declarations.
+features/ai/orchestrator.ts(3,67): error TS2305: Module '"@core/utils/validation/promptSchemas"' has no exported member 'ImpactOnly'.
+features/ai/orchestrator.ts(3,79): error TS2724: '"@core/utils/validation/promptSchemas"' has no exported member named 'AlternativesOnly'. Did you mean 'Alternative'?
+features/ai/orchestrator.ts(79,17): error TS2347: Untyped function calls may not accept type arguments.
+features/ai/orchestrator.ts(79,45): error TS7006: Parameter 'acc' implicitly has an 'any' type.
+features/ai/orchestrator.ts(79,50): error TS7006: Parameter 'k' implicitly has an 'any' type.
+features/ai/orchestrator.ts(115,15): error TS2339: Property 'text' does not exist on type 'String'.
+features/ai/orchestrator.ts(115,21): error TS2339: Property 'raw' does not exist on type 'String'.
+features/ai/orchestrator.ts(193,52): error TS2554: Expected 2 arguments, but got 3.
+features/ai/telemetry.ts(31,41): error TS2339: Property 'catch' does not exist on type 'void | Promise<void>'.
+  Property 'catch' does not exist on type 'void'.
+features/auth/components/index.ts(1,10): error TS2305: Module '"./withPageGuard"' has no exported member 'default'.
+features/auth/components/withPageGuard.tsx(5,27): error TS2307: Cannot find module 'next/navigation' or its corresponding type declarations.
+features/auth/components/withPageGuard.tsx(14,19): error TS2339: Property 'loading' does not exist on type 'UserContextType'.
+features/auth/hooks/index.ts(1,10): error TS2305: Module '"./useAuth"' has no exported member 'default'.
+features/auth/hooks/index.ts(3,10): error TS2305: Module '"./usePermission"' has no exported member 'default'.
+features/auth/hooks/index.ts(5,10): error TS2305: Module '"./useRouteGuard"' has no exported member 'default'.
+features/auth/hooks/usePermission.ts(7,40): error TS2551: Property 'role' does not exist on type 'UserType'. Did you mean 'roles'?
+features/auth/hooks/usePermission.ts(9,15): error TS2551: Property 'role' does not exist on type 'UserType'. Did you mean 'roles'?
+features/auth/index.ts(2,15): error TS2306: File '/Users/RF/VPM25/features/auth/utils/index.ts' is not a module.
+features/common/components/UniversalSearchBar.tsx(65,29): error TS2339: Property 'id' does not exist on type 'never'.
+features/common/components/UniversalSearchBar.tsx(65,92): error TS2339: Property 'title' does not exist on type 'never'.
+features/common/components/UniversalSearchBar.tsx(74,29): error TS2339: Property 'id' does not exist on type 'never'.
+features/common/components/UniversalSearchBar.tsx(74,91): error TS2339: Property 'title' does not exist on type 'never'.
+features/common/components/UniversalSearchBar.tsx(83,30): error TS2339: Property 'id' does not exist on type 'never'.
+features/common/components/UniversalSearchBar.tsx(83,92): error TS2339: Property 'title' does not exist on type 'never'.
+features/common/components/UniversalSearchBar.tsx(92,32): error TS2339: Property 'url' does not exist on type 'never'.
+features/common/components/UniversalSearchBar.tsx(93,55): error TS2339: Property 'title' does not exist on type 'never'.
+features/common/components/UniversalSearchBar.tsx(94,25): error TS2339: Property 'source' does not exist on type 'never'.
+features/common/components/UniversalSearchBar.tsx(95,70): error TS2339: Property 'source' does not exist on type 'never'.
+features/common/hooks/index.ts(1,10): error TS2305: Module '"./useApiOrDummy"' has no exported member 'default'.
+features/common/types/index.ts(1,10): error TS2305: Module '"./ModAction"' has no exported member 'default'.
+features/common/utils/error.ts(3,31): error TS7031: Binding element 'message' implicitly has an 'any' type.
+features/common/utils/error.ts(3,40): error TS7031: Binding element 'code' implicitly has an 'any' type.
+features/common/utils/index.ts(1,10): error TS2305: Module '"./date"' has no exported member 'default'.
+features/common/utils/index.ts(3,10): error TS2305: Module '"./error"' has no exported member 'default'.
+features/contribution/components/ContributionForm.tsx(17,44): error TS7031: Binding element 'user' implicitly has an 'any' type.
+features/contribution/components/ContributionList.tsx(90,15): error TS2322: Type '{ key: any; contribution: any; admin: boolean | undefined; readOnly: boolean | undefined; onEdit: (() => void) | undefined; }' is not assignable to type 'IntrinsicAttributes & ContributionCardProps'.
+  Property 'admin' does not exist on type 'IntrinsicAttributes & ContributionCardProps'.
+features/contribution/types/AgendaItem.ts(2,34): error TS2307: Cannot find module './ExpectedTendency' or its corresponding type declarations.
+features/contribution/types/EventAnalytics.ts(7,52): error TS2304: Cannot find name 'ExpectedTendency'.
+features/contribution/types/FactBoxEntry.ts(4,27): error TS2307: Cannot find module './ModAction' or its corresponding type declarations.
+features/contribution/types/index.ts(1,10): error TS2305: Module '"./ ExpectedTendency"' has no exported member 'default'.
+features/contribution/types/index.ts(3,10): error TS2305: Module '"./ ParticipantEntry"' has no exported member 'default'.
+features/contribution/types/index.ts(5,10): error TS2305: Module '"./AgendaItem"' has no exported member 'default'.
+features/contribution/types/index.ts(7,10): error TS2305: Module '"./AnalyticsType"' has no exported member 'default'.
+features/contribution/types/index.ts(9,10): error TS2305: Module '"./ContributionType"' has no exported member 'default'.
+features/contribution/types/index.ts(11,10): error TS2305: Module '"./EventAnalytics"' has no exported member 'default'.
+features/contribution/types/index.ts(13,10): error TS2305: Module '"./FactBoxEntry"' has no exported member 'default'.
+features/contribution/types/index.ts(15,10): error TS2305: Module '"./FeedReference"' has no exported member 'default'.
+features/contribution/types/index.ts(17,10): error TS2305: Module '"./GamificationStats"' has no exported member 'default'.
+features/contribution/types/index.ts(19,10): error TS2305: Module '"./OrganizationEvent"' has no exported member 'default'.
+features/contribution/types/index.ts(21,10): error TS2305: Module '"./PoliticalArea"' has no exported member 'default'.
+features/contribution/types/index.ts(23,10): error TS2305: Module '"./QRCodeEntry"' has no exported member 'default'.
+features/contribution/types/index.ts(25,10): error TS2305: Module '"./StatementType"' has no exported member 'default'.
+features/contribution/types/index.ts(27,10): error TS2305: Module '"./VotingRule"' has no exported member 'default'.
+features/contribution/types/index.ts(29,10): error TS2305: Module '"./VotingStats"' has no exported member 'default'.
+features/contribution/types/OrganizationEvent.ts(2,34): error TS2307: Cannot find module './ParticipantEntry' or its corresponding type declarations.
+features/contribution/utils/cacheAIResponses.ts(3,19): error TS2307: Cannot find module './redisClient' or its corresponding type declarations.
+features/contribution/utils/index.ts(3,10): error TS2305: Module '"./cacheAIResponses"' has no exported member 'default'.
+features/contribution/utils/index.ts(5,10): error TS2305: Module '"./loadPrompt"' has no exported member 'default'.
+features/contribution/utils/index.ts(7,10): error TS2305: Module '"./mapToSwipeStatement"' has no exported member 'default'.
+features/contribution/utils/index.ts(9,10): error TS2305: Module '"./preprocessMedia"' has no exported member 'default'.
+features/contribution/utils/index.ts(11,10): error TS2305: Module '"./promptRegistry"' has no exported member 'default'.
+features/contribution/utils/index.ts(13,10): error TS2305: Module '"./retry"' has no exported member 'default'.
+features/contribution/utils/index.ts(15,10): error TS2305: Module '"./textSim"' has no exported member 'default'.
+features/contribution/utils/mapToSwipeStatement.ts(3,17): error TS2307: Cannot find module 'ajv' or its corresponding type declarations.
+features/contribution/utils/preprocessMedia.ts(1,80): error TS2307: Cannot find module '@/utils/mediaExtractors' or its corresponding type declarations.
+features/dashboard/components/admin/SidebarNavAdmin.tsx(4,18): error TS2307: Cannot find module 'next/link' or its corresponding type declarations.
+features/dashboard/components/admin/SidebarNavAdmin.tsx(5,29): error TS2307: Cannot find module 'next/navigation' or its corresponding type declarations.
+features/dashboard/components/index.ts(2,42): error TS2307: Cannot find module './UsageKPIPanel' or its corresponding type declarations.
+features/dashboard/components/index.ts(5,38): error TS2307: Cannot find module './HealthBar' or its corresponding type declarations.
+features/dashboard/components/SidebarNav.tsx(3,18): error TS2307: Cannot find module 'next/link' or its corresponding type declarations.
+features/dashboard/components/StreamsPanel.tsx(73,45): error TS2554: Expected 1 arguments, but got 2.
+features/dashboard/components/StreamsPanel.tsx(74,32): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(timeout: string | number | Timeout | undefined): void', gave the following error.
+    Argument of type 'void' is not assignable to parameter of type 'string | number | Timeout | undefined'.
+  Overload 2 of 2, '(id: number | undefined): void', gave the following error.
+    Argument of type 'void' is not assignable to parameter of type 'number | undefined'.
+features/editor/utils/index.ts(1,10): error TS2305: Module '"./http"' has no exported member 'default'.
+features/event/components/index.ts(3,10): error TS2305: Module '"./ProjectList"' has no exported member 'default'.
+features/event/types/index.ts(1,10): error TS2305: Module '"./ProjectType"' has no exported member 'default'.
+features/factcheck/components/index.ts(1,10): error TS2305: Module '"./UnitList"' has no exported member 'default'.
+features/map/components/MapClient.tsx(18,45): error TS2694: Namespace '"maplibre-gl"' has no exported member 'Map'.
+features/map/OLMap.tsx(5,17): error TS2307: Cannot find module 'ol/Map' or its corresponding type declarations.
+features/map/OLMap.tsx(6,18): error TS2307: Cannot find module 'ol/View' or its corresponding type declarations.
+features/map/OLMap.tsx(7,45): error TS2307: Cannot find module 'ol/proj' or its corresponding type declarations.
+features/map/OLMap.tsx(8,43): error TS2307: Cannot find module 'ol-mapbox-style' or its corresponding type declarations.
+features/map/OLMap.tsx(9,26): error TS2307: Cannot find module 'ol/source/Vector' or its corresponding type declarations.
+features/map/OLMap.tsx(10,25): error TS2307: Cannot find module 'ol/layer/Vector' or its corresponding type declarations.
+features/map/OLMap.tsx(11,21): error TS2307: Cannot find module 'ol/format/GeoJSON' or its corresponding type declarations.
+features/map/OLMap.tsx(12,60): error TS2307: Cannot find module 'ol/style' or its corresponding type declarations.
+features/map/OLMap.tsx(13,25): error TS2307: Cannot find module 'ol/control/Attribution' or its corresponding type declarations.
+features/map/OLMap.tsx(14,23): error TS2307: Cannot find module 'ol/control/ScaleLine' or its corresponding type declarations.
+features/map/OLMap.tsx(70,44): error TS7006: Parameter 'e' implicitly has an 'any' type.
+features/organization/components/OrgDashboard.tsx(9,8): error TS2749: 'Organization' refers to a value, but is being used as a type here. Did you mean 'typeof Organization'?
+features/organization/components/OrgDashboard.tsx(13,30): error TS2749: 'Organization' refers to a value, but is being used as a type here. Did you mean 'typeof Organization'?
+features/organization/index.ts(4,1): error TS2308: Module "./types" has already exported a member named 'Organization'. Consider explicitly re-exporting to resolve the ambiguity.
+features/organization/types/index.ts(1,10): error TS2305: Module '"./OrganizationType"' has no exported member 'default'.
+features/organization/utils/index.ts(1,10): error TS2305: Module '"./orgHelper"' has no exported member 'default'.
+features/organization/utils/orgHelper.ts(2,10): error TS2614: Module '"../models/Organization"' has no exported member 'Organization'. Did you mean to use 'import Organization from "../models/Organization"' instead?
+features/report/components/ImpactModal.tsx(2,39): error TS7031: Binding element 'statement' implicitly has an 'any' type.
+features/report/components/ImpactModal.tsx(2,50): error TS7031: Binding element 'onClose' implicitly has an 'any' type.
+features/report/components/ImpactModal.tsx(13,40): error TS7006: Parameter 'imp' implicitly has an 'any' type.
+features/report/components/ImpactModal.tsx(13,45): error TS7006: Parameter 'i' implicitly has an 'any' type.
+features/report/components/index.ts(28,1): error TS2308: Module "./ReportCard" has already exported a member named 'NewsItem'. Consider explicitly re-exporting to resolve the ambiguity.
+features/report/components/NewTrendsWidget.tsx(13,44): error TS7031: Binding element 'region' implicitly has an 'any' type.
+features/report/components/NewTrendsWidget.tsx(28,22): error TS2339: Property 'url' does not exist on type '{ title: string; source: string; time: string; }'.
+features/report/components/NewTrendsWidget.tsx(28,31): error TS2339: Property 'id' does not exist on type '{ title: string; source: string; time: string; }'.
+features/report/components/Report.tsx(3,27): error TS2307: Cannot find module 'next/navigation' or its corresponding type declarations.
+features/report/components/Report.tsx(5,19): error TS2307: Cannot find module './Swipe' or its corresponding type declarations.
+features/report/components/ReportCard.tsx(447,22): error TS2322: Type '{ votes: Record<string, number>; }' is not assignable to type 'IntrinsicAttributes & Props'.
+  Property 'votes' does not exist on type 'IntrinsicAttributes & Props'.
+features/report/components/ReportCard.tsx(476,41): error TS2339: Property 'summary' does not exist on type 'Report'.
+features/report/components/ReportCard.tsx(477,73): error TS2339: Property 'summary' does not exist on type 'Report'.
+features/report/components/ReportCard.tsx(480,48): error TS2339: Property 'recommendation' does not exist on type 'Report'.
+features/report/components/ReportCard.tsx(482,64): error TS2339: Property 'recommendation' does not exist on type 'Report'.
+features/report/components/ReportDetails.tsx(3,15): error TS2305: Module '"../types/Report"' has no exported member 'Report'.
+features/report/components/ReportExplorer.client.tsx(6,15): error TS2614: Module '"./ReportPage"' has no exported member 'ReportListItem'. Did you mean to use 'import ReportListItem from "./ReportPage"' instead?
+features/report/components/ReportExplorer.client.tsx(26,54): error TS7006: Parameter 't' implicitly has an 'any' type.
+features/report/components/ReportExplorer.client.tsx(130,44): error TS7006: Parameter 'id' implicitly has an 'any' type.
+features/report/components/ReportPageClient.tsx(32,24): error TS2352: Conversion of type 'DemoStatement[]' to type '{ id: string; }[] & Record<string, unknown>' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Type 'DemoStatement[]' is not comparable to type 'Record<string, unknown>'.
+    Index signature for type 'string' is missing in type 'DemoStatement[]'.
+features/report/components/ReportStatsChart.tsx(1,10): error TS2305: Module '"../types/Report"' has no exported member 'CountryResult'.
+features/report/components/ReportView.tsx(2,22): error TS2614: Module '"./ReportCard"' has no exported member 'VoteType'. Did you mean to use 'import VoteType from "./ReportCard"' instead?
+features/report/components/ReportView.tsx(17,8): error TS2741: Property 'report' is missing in type '{ title: string; region: string; createdAt: string; tags: string[]; votes: VoteType; imageUrl: string; }' but required in type '{ report: Report; userHash?: string | undefined; onEdit?: ((r: Report) => void) | undefined; onShare?: ((r: Report) => void) | undefined; onVote?: ((vote: "neutral" | "agree" | "disagree") => void) | undefined; language?: string | undefined; }'.
+features/report/components/VoicesList.tsx(1,38): error TS7031: Binding element 'voices' implicitly has an 'any' type.
+features/report/components/VoicesList.tsx(6,22): error TS7006: Parameter 'v' implicitly has an 'any' type.
+features/report/components/VoicesList.tsx(6,25): error TS7006: Parameter 'i' implicitly has an 'any' type.
+features/report/data/demoStatements.ts(36,5): error TS2741: Property 'ES' is missing in type '{ DE: { agree: number; neutral: number; disagree: number; }; FR: { agree: number; neutral: number; disagree: number; }; EU: { agree: number; neutral: number; disagree: number; }; }' but required in type 'Record<CountryCode, VoteTriple>'.
+features/report/data/demoStatements.ts(69,5): error TS2741: Property 'FR' is missing in type '{ DE: { agree: number; neutral: number; disagree: number; }; EU: { agree: number; neutral: number; disagree: number; }; ES: { agree: number; neutral: number; disagree: number; }; }' but required in type 'Record<CountryCode, VoteTriple>'.
+features/report/data/index.ts(5,10): error TS2305: Module '"./listReports"' has no exported member 'default'.
+features/report/data/listReports.ts(3,24): error TS2307: Cannot find module '@db-core' or its corresponding type declarations.
+features/report/data/reportData.ts(2,10): error TS2305: Module '"../types/Report"' has no exported member 'Report'.
+features/report/index.ts(2,1): error TS2308: Module "./components" has already exported a member named 'Report'. Consider explicitly re-exporting to resolve the ambiguity.
+features/report/types/index.ts(1,10): error TS2305: Module '"./AnalyticsReportType"' has no exported member 'default'.
+features/report/types/index.ts(3,10): error TS2305: Module '"./PublicReportType"' has no exported member 'default'.
+features/report/types/index.ts(5,10): error TS2305: Module '"./Report"' has no exported member 'default'.
+features/report/types/index.ts(6,1): error TS2308: Module "./AnalyticsReportType" has already exported a member named 'ReportChart'. Consider explicitly re-exporting to resolve the ambiguity.
+features/statement/components/index.ts(7,10): error TS2305: Module '"../constants/statementCategories"' has no exported member 'default'.
+features/statement/components/StatementForm.tsx(22,37): error TS2352: Conversion of type 'readonly ["Klima", "Arbeit", "Bildung", "Digitalisierung", "Gesundheit", "Soziales", "Wirtschaft", "Verkehr", "Energie", "Migration", "Recht", "Sicherheit", "Landwirtschaft", "Verbraucher", "Kultur"]' to type 'any[]' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  The type 'readonly ["Klima", "Arbeit", "Bildung", "Digitalisierung", "Gesundheit", "Soziales", "Wirtschaft", "Verkehr", "Energie", "Migration", "Recht", "Sicherheit", "Landwirtschaft", "Verbraucher", "Kultur"]' is 'readonly' and cannot be assigned to the mutable type 'any[]'.
+features/statement/components/StatementForm.tsx(25,35): error TS2352: Conversion of type 'readonly [{ readonly label: "Global"; readonly value: "global"; }, { readonly label: "National"; readonly value: "national"; }, { readonly label: "Regional"; readonly value: "regional"; }, { readonly label: "Lokal"; readonly value: "local"; }]' to type 'any[]' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  The type 'readonly [{ readonly label: "Global"; readonly value: "global"; }, { readonly label: "National"; readonly value: "national"; }, { readonly label: "Regional"; readonly value: "regional"; }, { readonly label: "Lokal"; readonly value: "local"; }]' is 'readonly' and cannot be assigned to the mutable type 'any[]'.
+features/statement/components/StatementList.tsx(57,20): error TS2347: Untyped function calls may not accept type arguments.
+features/statement/components/StatementList.tsx(59,18): error TS7006: Parameter 'row' implicitly has an 'any' type.
+features/statement/components/StatementList.tsx(100,11): error TS2322: Type '{ statement: Partial<StatementRow>; onSubmit: any; onCancel: () => void; }' is not assignable to type 'IntrinsicAttributes & Props'.
+  Property 'statement' does not exist on type 'IntrinsicAttributes & Props'.
+features/statement/components/StatementList.tsx(101,21): error TS2304: Cannot find name 'handleFormSubmit'.
+features/statement/components/StatementListDisplay.tsx(4,27): error TS2307: Cannot find module '../types/Statement' or its corresponding type declarations.
+features/statement/index.ts(2,1): error TS2308: Module "./components" has already exported a member named 'Statement'. Consider explicitly re-exporting to resolve the ambiguity.
+features/statement/index.ts(4,15): error TS2307: Cannot find module './constants' or its corresponding type declarations.
+features/statement/index.ts(5,10): error TS2305: Module '"./api"' has no exported member 'default'.
+features/statement/models/index.ts(1,23): error TS2307: Cannot find module '../../../apps/web/src/models/Statement.DBModel' or its corresponding type declarations.
+features/statement/models/index.ts(2,30): error TS2307: Cannot find module './StatementVersion' or its corresponding type declarations.
+features/stream/components/index.ts(9,44): error TS2307: Cannot find module './StreamListPause' or its corresponding type declarations.
+features/stream/components/index.ts(10,15): error TS2307: Cannot find module './StreamListPause' or its corresponding type declarations.
+features/stream/components/StreamCard.tsx(196,13): error TS2322: Type 'string | undefined' is not assignable to type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+features/stream/components/StreamCard.tsx(197,13): error TS2322: Type 'string | undefined' is not assignable to type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+features/stream/components/StreamCard.tsx(199,13): error TS2322: Type 'number | undefined' is not assignable to type 'number'.
+  Type 'undefined' is not assignable to type 'number'.
+features/stream/components/StreamCard.tsx(202,13): error TS2322: Type 'string | undefined' is not assignable to type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+features/stream/components/StreamCard.tsx(203,13): error TS2740: Type '{ agreed: number; rejected: number; unanswered: number; }' is missing the following properties from type 'Statement[]': length, pop, push, concat, and 35 more.
+features/stream/components/StreamCard.tsx(341,11): error TS2322: Type 'string | undefined' is not assignable to type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+features/stream/components/StreamCard.tsx(342,11): error TS2322: Type 'string | undefined' is not assignable to type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+features/stream/components/StreamCard.tsx(344,11): error TS2322: Type 'number | undefined' is not assignable to type 'number'.
+  Type 'undefined' is not assignable to type 'number'.
+features/stream/components/StreamCard.tsx(347,11): error TS2322: Type 'string | undefined' is not assignable to type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+features/stream/components/StreamCard.tsx(348,11): error TS2740: Type '{ agreed: number; rejected: number; unanswered: number; }' is missing the following properties from type 'Statement[]': length, pop, push, concat, and 35 more.
+features/stream/components/StreamList.tsx(124,15): error TS7053: Element implicitly has an 'any' type because expression of type 'any' can't be used to index type '{ Live: number; Geplant: number; Replay: number; Vergangen: number; }'.
+features/stream/components/StreamList.tsx(124,47): error TS7053: Element implicitly has an 'any' type because expression of type 'any' can't be used to index type '{ Live: number; Geplant: number; Replay: number; Vergangen: number; }'.
+features/stream/components/StreamModal.tsx(100,15): error TS2322: Type '{ src: string; title: string; controls: true; poster: string | undefined; }' is not assignable to type 'IntrinsicAttributes & VideoPlayerProps'.
+  Property 'controls' does not exist on type 'IntrinsicAttributes & VideoPlayerProps'.
+features/stream/components/StreamModal.tsx(122,13): error TS2719: Type 'Statement' is not assignable to type 'Statement'. Two different types with this name exist, but they are unrelated.
+  Types of property 'translations' are incompatible.
+    Type '{ language: string; text: string; }[]' is not assignable to type 'Record<string, { title?: string | undefined; }>'.
+      Index signature for type 'string' is missing in type '{ language: string; text: string; }[]'.
+features/stream/data/index.ts(1,10): error TS2305: Module '"./streamData"' has no exported member 'default'.
+features/stream/utils/index.ts(1,10): error TS2305: Module '"./nationalFlag"' has no exported member 'default'.
+features/swipe/components/AlternativeCard.tsx(2,24): error TS2307: Cannot find module '@ui' or its corresponding type declarations.
+features/swipe/components/AlternativeCard.tsx(4,43): error TS7031: Binding element 'alternative' implicitly has an 'any' type.
+features/swipe/components/AlternativeCard.tsx(7,24): error TS7006: Parameter 'type' implicitly has an 'any' type.
+features/swipe/components/AlternativeCard.tsx(7,42): error TS7006: Parameter 'prev' implicitly has an 'any' type.
+features/swipe/components/KompromissModal.tsx(8,43): error TS7031: Binding element 'alternatives' implicitly has an 'any' type.
+features/swipe/components/KompromissModal.tsx(8,57): error TS7031: Binding element 'onClose' implicitly has an 'any' type.
+features/swipe/components/KompromissModal.tsx(8,66): error TS7031: Binding element 'onSelect' implicitly has an 'any' type.
+features/swipe/components/KompromissModal.tsx(30,43): error TS7006: Parameter 'alt' implicitly has an 'any' type.
+features/swipe/components/KompromissModal.tsx(30,48): error TS7006: Parameter 'i' implicitly has an 'any' type.
+features/swipe/components/KompromissModal.tsx(40,42): error TS7053: Element implicitly has an 'any' type because expression of type 'any' can't be used to index type '{ community: { text: string; color: string; icon: string; }; redaktion: { text: string; color: string; icon: string; }; ki: { text: string; color: string; icon: string; }; }'.
+features/swipe/components/KompromissModal.tsx(41,18): error TS7053: Element implicitly has an 'any' type because expression of type 'any' can't be used to index type '{ community: { text: string; color: string; icon: string; }; redaktion: { text: string; color: string; icon: string; }; ki: { text: string; color: string; icon: string; }; }'.
+features/swipe/components/KompromissModal.tsx(41,47): error TS7053: Element implicitly has an 'any' type because expression of type 'any' can't be used to index type '{ community: { text: string; color: string; icon: string; }; redaktion: { text: string; color: string; icon: string; }; ki: { text: string; color: string; icon: string; }; }'.
+features/swipe/components/SwipeAdminList.tsx(76,15): error TS2322: Type '{ key: string | undefined; swipe: Swipe; admin: boolean | undefined; moderator: boolean | undefined; readOnly: boolean | undefined; onEdit: (() => void) | undefined; }' is not assignable to type 'IntrinsicAttributes & Props'.
+  Property 'swipe' does not exist on type 'IntrinsicAttributes & Props'.
+features/swipe/components/SwipeCard.tsx(8,29): error TS2307: Cannot find module '@/ui/design/badgeColor' or its corresponding type declarations.
+features/swipe/components/SwipeCard.tsx(86,56): error TS18049: 'statement' is possibly 'null' or 'undefined'.
+features/swipe/components/SwipeCard.tsx(131,25): error TS2322: Type 'unknown[]' is not assignable to type 'never[]'.
+  Type 'unknown' is not assignable to type 'never'.
+features/swipe/components/SwipeCard.tsx(134,16): error TS2322: Type '{ votes: Record<string, number>; }' is not assignable to type 'IntrinsicAttributes & Props'.
+  Property 'votes' does not exist on type 'IntrinsicAttributes & Props'.
+features/swipe/components/SwipeCard.tsx(140,30): error TS2322: Type 'unknown' is not assignable to type 'Impact'.
+features/swipe/components/SwipeDeck.tsx(5,37): error TS7031: Binding element 'userHash' implicitly has an 'any' type.
+features/swipe/types/index.ts(1,10): error TS2305: Module '"./swipe"' has no exported member 'default'.
+features/user/__tests__/onboarding.test.ts(13,1): error TS2593: Cannot find name 'describe'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha` and then add 'jest' or 'mocha' to the types field in your tsconfig.
+features/user/__tests__/onboarding.test.ts(14,3): error TS2593: Cannot find name 'it'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha` and then add 'jest' or 'mocha' to the types field in your tsconfig.
+features/user/__tests__/onboarding.test.ts(15,5): error TS2304: Cannot find name 'expect'.
+features/user/__tests__/onboarding.test.ts(17,3): error TS2593: Cannot find name 'it'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha` and then add 'jest' or 'mocha' to the types field in your tsconfig.
+features/user/__tests__/onboarding.test.ts(18,5): error TS2304: Cannot find name 'expect'.
+features/user/__tests__/onboarding.test.ts(20,3): error TS2593: Cannot find name 'it'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha` and then add 'jest' or 'mocha' to the types field in your tsconfig.
+features/user/__tests__/onboarding.test.ts(21,5): error TS2304: Cannot find name 'expect'.
+features/user/__tests__/onboarding.test.ts(23,3): error TS2593: Cannot find name 'it'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha` and then add 'jest' or 'mocha' to the types field in your tsconfig.
+features/user/__tests__/onboarding.test.ts(24,5): error TS2304: Cannot find name 'expect'.
+features/user/__tests__/onboarding.test.ts(26,3): error TS2593: Cannot find name 'it'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha` and then add 'jest' or 'mocha' to the types field in your tsconfig.
+features/user/__tests__/onboarding.test.ts(27,5): error TS2304: Cannot find name 'expect'.
+features/user/__tests__/onboarding.test.ts(29,3): error TS2593: Cannot find name 'it'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha` and then add 'jest' or 'mocha' to the types field in your tsconfig.
+features/user/__tests__/onboarding.test.ts(30,5): error TS2304: Cannot find name 'expect'.
+features/user/__tests__/onboarding.test.ts(34,1): error TS2593: Cannot find name 'describe'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha` and then add 'jest' or 'mocha' to the types field in your tsconfig.
+features/user/__tests__/onboarding.test.ts(35,3): error TS2593: Cannot find name 'it'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha` and then add 'jest' or 'mocha' to the types field in your tsconfig.
+features/user/__tests__/onboarding.test.ts(36,5): error TS2304: Cannot find name 'expect'.
+features/user/__tests__/onboarding.test.ts(38,3): error TS2593: Cannot find name 'it'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha` and then add 'jest' or 'mocha' to the types field in your tsconfig.
+features/user/__tests__/onboarding.test.ts(39,5): error TS2304: Cannot find name 'expect'.
+features/user/__tests__/onboarding.test.ts(41,3): error TS2593: Cannot find name 'it'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha` and then add 'jest' or 'mocha' to the types field in your tsconfig.
+features/user/__tests__/onboarding.test.ts(42,5): error TS2304: Cannot find name 'expect'.
+features/user/__tests__/onboarding.test.ts(44,3): error TS2593: Cannot find name 'it'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha` and then add 'jest' or 'mocha' to the types field in your tsconfig.
+features/user/__tests__/onboarding.test.ts(45,5): error TS2304: Cannot find name 'expect'.
+features/user/__tests__/onboarding.test.ts(47,3): error TS2593: Cannot find name 'it'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha` and then add 'jest' or 'mocha' to the types field in your tsconfig.
+features/user/__tests__/onboarding.test.ts(48,5): error TS2304: Cannot find name 'expect'.
+features/user/__tests__/onboarding.test.ts(50,3): error TS2593: Cannot find name 'it'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha` and then add 'jest' or 'mocha' to the types field in your tsconfig.
+features/user/__tests__/onboarding.test.ts(51,5): error TS2304: Cannot find name 'expect'.
+features/user/components/LogoutButton.tsx(3,25): error TS2307: Cannot find module 'next-auth/react' or its corresponding type declarations.
+features/user/components/UserAdminList.tsx(76,15): error TS2322: Type 'unknown' is not assignable to type 'Key | null | undefined'.
+features/user/components/UserDashboard.tsx(14,11): error TS2339: Property 'can' does not exist on type 'Boolean'.
+features/user/components/UserDashboard.tsx(14,33): error TS2345: Argument of type 'IUserProfile | null' is not assignable to parameter of type 'string | string[]'.
+  Type 'null' is not assignable to type 'string | string[]'.
+features/user/context/index.ts(1,10): error TS2305: Module '"./UserContext"' has no exported member 'default'.
+features/user/context/UserContext.tsx(4,34): error TS2307: Cannot find module 'contribution' or its corresponding type declarations.
+features/user/hooks/index.ts(1,10): error TS2305: Module '"./useActionPermission"' has no exported member 'default'.
+features/user/hooks/index.ts(3,10): error TS2305: Module '"./usePermission"' has no exported member 'default'.
+features/user/hooks/index.ts(4,1): error TS2308: Module "./useActionPermission" has already exported a member named 'PermissionAction'. Consider explicitly re-exporting to resolve the ambiguity.
+features/user/hooks/index.ts(5,10): error TS2305: Module '"./useRolePermission"' has no exported member 'default'.
+features/user/hooks/usePermission.ts(5,25): error TS2307: Cannot find module './useAuth' or its corresponding type declarations.
+features/user/hooks/usePermission.ts(55,38): error TS2367: This comparison appears to be unintentional because the types '"user" | "moderator" | "ngo" | "politics" | "b2b"' and '"superadmin"' have no overlap.
+features/user/hooks/usePermission.ts(58,37): error TS2367: This comparison appears to be unintentional because the types '"moderator" | "ngo" | "politics" | "b2b"' and '"citizen"' have no overlap.
+features/user/hooks/usePermission.ts(74,41): error TS2367: This comparison appears to be unintentional because the types '"moderator" | "b2b"' and '"party"' have no overlap.
+features/user/index.ts(5,1): error TS2308: Module "./types" has already exported a member named 'UserProfile'. Consider explicitly re-exporting to resolve the ambiguity.
+features/user/index.ts(7,15): error TS2307: Cannot find module './__tests__' or its corresponding type declarations.
+features/user/types/index.ts(1,10): error TS2305: Module '"./UserType"' has no exported member 'default'.
+features/user/utils/index.ts(1,10): error TS2305: Module '"./onboarding"' has no exported member 'default'.
+features/user/utils/index.ts(3,10): error TS2305: Module '"./trustScore"' has no exported member 'default'.
+features/user/utils/trustScore.ts(22,26): error TS2339: Property 'votedStatements' does not exist on type 'IUserProfile'.
+features/utils/index.ts(1,15): error TS2307: Cannot find module './ai' or its corresponding type declarations.
+features/utils/index.ts(2,10): error TS2305: Module '"./mfaCrypto"' has no exported member 'default'.
+features/vote/components/CountryAccordion.tsx(19,44): error TS7031: Binding element 'countries' implicitly has an 'any' type.
+features/vote/components/CountryAccordion.tsx(19,73): error TS7031: Binding element 'userCountry' implicitly has an 'any' type.
+features/vote/components/UserVoteBar.tsx(18,30): error TS2345: Argument of type 'string' is not assignable to parameter of type 'Options'.
+features/vote/components/UserVoteBar.tsx(46,23): error TS2339: Property 'statementId' does not exist on type '{ totals: Totals; myVote: VoteKind | null; loading: boolean; error: Error | null; castVote: (next: VoteKind) => Promise<void>; }'.
+features/vote/components/VotingRuleBadge.tsx(2,28): error TS2307: Cannot find module '@/types/VotingRule' or its corresponding type declarations.
+features/vote/hooks/index.ts(1,10): error TS2305: Module '"./useVoteStream"' has no exported member 'default'.
+features/vote/index.ts(5,10): error TS2305: Module '"./hooks/useVoteStream"' has no exported member 'default'.
+features/vote/index.ts(5,21): error TS2300: Duplicate identifier 'useVoteStream'.
+features/vote/index.ts(6,10): error TS2300: Duplicate identifier 'useVoteStream'.

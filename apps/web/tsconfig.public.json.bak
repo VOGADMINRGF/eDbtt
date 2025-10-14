@@ -1,0 +1,26 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "noEmit": true,
+    "skipLibCheck": true,
+    "noImplicitAny": false,
+    "paths": {
+      "@*",
+    "src/lib*",
+    "src/app*",
+    "src/types*.d.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    ".next",
+    "dist",
+    "coverage",
+    "src/app/api*",
+    "src/app/admin*",
+    "src/app/editor*",
+    "src/app/dashboard*",
+    "src/tests*",
+    "**/__tests__*.test.*"
+  ]
+}

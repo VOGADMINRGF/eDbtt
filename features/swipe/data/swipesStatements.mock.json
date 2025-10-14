@@ -1,0 +1,74 @@
+//Noch nicht auf die anderen ausgerollt. XX! 
+// Wird über initialStatement.json abgebildet. Stand 04.August 2025
+
+{
+    "id": "statement-001",
+    "title": "Soll die Rente ab 70 eingeführt werden?",
+    "statement": "Die Anhebung des Renteneintrittsalters auf 70 Jahre soll eingeführt werden.",
+    "shortText": "Rente ab 70 – Ja oder Nein?",
+    "context": "Vor dem Hintergrund des demografischen Wandels steht die Erhöhung des Renteneintrittsalters zur Debatte.",
+    "category": "Soziales & Rente",
+    "source": "tagesschau.de",
+    "sourceUrl": "https://www.tagesschau.de/rente70",
+    "language": "de",
+    "imageUrl": "/dummy/rente70.jpg",
+    "publishedAt": "2025-07-19T09:00:00Z",
+    "regionScope": ["national"],
+    "tags": ["Rente", "Soziales", "Rentenreform"],
+    "visibility": "public",
+    "status": "active",
+    "importance": "hoch",
+    "reviewStatus": "reviewed",
+    "archivedAt": null,
+    "createdBy": "admin",
+    "createdAt": "2025-07-19T08:45:00Z",
+    "updatedAt": "2025-07-19T09:00:00Z",
+    "impactLogic": [
+      { "type": "sozial", "description": "Erhöht den Druck auf ältere Beschäftigte, kann aber Rentensystem stabilisieren." },
+      { "type": "wirtschaftlich", "description": "Entlastet die Rentenkassen und die Beitragszahler." }
+    ],
+    "arguments": {
+      "pro": [
+        "Stabilisiert die Rentenkasse",
+        "Reaktion auf längere Lebenserwartung"
+      ],
+      "contra": [
+        "Belastung für körperlich Tätige",
+        "Gefahr von Altersarmut"
+      ]
+    },
+    "summary": "Die Anhebung des Rentenalters spaltet die Gesellschaft. Es gibt Argumente für mehr Stabilität, aber auch für soziale Härten.",
+    "recommendation": "Eine flexible Regelung nach Berufsgruppen wird empfohlen.",
+    "alternatives": [
+      {
+        "text": "Rente ab 67 belassen",
+        "type": "Status Quo",
+        "impact": "Wenig Entlastung der Rentenkasse",
+        "votes": { "agree": 120, "neutral": 15, "disagree": 80 }
+      },
+      {
+        "text": "Abhängig von Berufsfeld",
+        "type": "Flexibilisierung",
+        "impact": "Soziale Fairness, aber Verwaltungsaufwand",
+        "votes": { "agree": 190, "neutral": 12, "disagree": 50 }
+      }
+    ],
+    "facts": [
+      "Die durchschnittliche Lebenserwartung ist in den letzten 30 Jahren gestiegen.",
+      "Bereits jetzt gehen viele Beschäftigte vorzeitig in Rente.",
+      "Das Verhältnis Beitragszahler zu Rentnern sinkt."
+    ],
+    "votes": {
+      "agree": 210,
+      "neutral": 21,
+      "disagree": 130,
+      "requiredMajority": 66.7
+    },
+    "reportAvailable": true,
+    "topComments": [
+      { "user": "buerger123", "text": "Wer schwer arbeitet, schafft das niemals!", "agree": true, "createdAt": "2025-07-19T10:00:00Z" },
+      { "user": "pensionist45", "text": "Bin froh, wenn ich es bis 65 schaffe...", "agree": true, "createdAt": "2025-07-19T11:00:00Z" }
+    ],
+    "relatedReports": ["renten-report-2025"]
+  }
+  

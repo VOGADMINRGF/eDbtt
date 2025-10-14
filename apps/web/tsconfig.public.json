@@ -1,0 +1,49 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "jsx": "react-jsx",
+    "strict": false,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "paths": {
+      "@/*": ["src/*"],
+
+      "@db/web": ["src/shims/db-web.ts"],
+      "@db/core": ["src/shims/db-core.ts"],
+
+      "@core/db/triMongo": ["../../core/db/triMongo.ts"],
+      "@core/triMongo": ["../../core/db/triMongo.ts"],
+      "@core/*": ["../../core/*"],
+      "@core/mongoose": ["../../core/mongoose.ts"],
+
+      "@models/*": ["src/models/*"],
+      "@context/*": ["src/context/*"],
+      "@components/*": ["src/shims/components/*"]
+    }
+  },
+  "include": [
+    "src/app/(public)/**/*",
+    "src/app/[locale]/**/*",
+    "src/components/**/*",
+    "src/context/**/*",
+    "src/utils/**/*",
+    "src/types/**/*",
+    "src/shims/**/*",
+    "src/lib/**/*",
+    "src/models/**/*"
+  ],
+  "exclude": [
+    "src/_disabled",
+    "src/app/api",
+    "src/app/**/admin/**",
+    "src/app/**/dashboard/**",
+    "src/server",
+    "src/shims/features/**",
+    "**/*.test.*",
+    "**/*.spec.*",
+    ".next",
+    "node_modules",
+    "dist"
+  ]
+}

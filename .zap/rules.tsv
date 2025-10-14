@@ -1,0 +1,19 @@
+# alertkey	risk
+# Beispiel: fehlende Anti-Clickjacking Header nur als LOW werten
+CSP Header Not Set	LOW
+X-Frame-Options Header Not Set	LOW
+
+# Beispiel: fehlendes HSTS (in CI/Lokal oft nicht sinnvoll)
+Strict-Transport-Security (HSTS) Header Not Set	LOW
+
+# Beispiel: Cookie ohne Secure im HTTP (lokale Tests oft ohne TLS)
+Cookie Without Secure Flag	LOW
+
+# Beispiel: 404-Leaking auf Standardpfaden während Build/Preview ignorieren
+Absence of Anti-CSRF Tokens	LOW
+
+# Optional: falls ihr absichtlich auf http://localhost testet
+HTTPS Content Available via HTTP	IGNORE
+
+# Beispiel: Info-Noise reduzieren
+Timestamp Disclosure - Unix	IGNORE

@@ -1,0 +1,38 @@
+{
+  "dbClientMapping": {
+    "apps/web": "@db-web",
+    "apps/admin": "@db-web",
+    "apps/worker": "@db-core",
+    "core": "@db-core"
+  },
+  "mongooseModels": [
+    {
+      "glob": "apps/web/src/models/**/Statement.ts",
+      "indexes": [
+        {
+          "fields": {
+            "category": 1
+          }
+        },
+        {
+          "fields": {
+            "status": 1
+          }
+        },
+        {
+          "fields": {
+            "publishedAt": -1
+          }
+        }
+      ]
+    }
+  ],
+  "nextDynamic": {
+    "insertDynamicFlag": true,
+    "flagValue": "force-dynamic"
+  },
+  "redisAlias": {
+    "from": "@lib/redis",
+    "to": "@upstash/redis"
+  }
+}

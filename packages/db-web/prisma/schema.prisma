@@ -1,0 +1,40 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("MONGODB_URI")
+}
+
+enum ContentKind {
+  STATEMENT
+  REPORT
+  POST
+}
+
+enum RegionMode {
+  AUTO
+  MANUAL
+}
+
+enum Locale {
+  de
+  en
+  fr
+}
+
+model Region {
+  id           String        @id @default(auto()) @map("_id") @db.ObjectId
+  code         String        @unique
+  name         String
+  level        String
+  userProfiles UserProfile[] @relation("RegionUsers") // <— Gegenfeld
+}
+
+model UserProfile {
+  id       String  @id @default(auto()) @map("_id") @db.ObjectId
+  userId   String  @unique
+  regionId String? @db.ObjectId
+  region   Region? @relation("RegionUsers", fields: [regionId], references: [id]) // <— Relation benannt
+}

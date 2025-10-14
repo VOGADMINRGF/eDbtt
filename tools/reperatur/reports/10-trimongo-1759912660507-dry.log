@@ -1,0 +1,16 @@
+UPDATED: /Users/RF/VPM25/apps/web/src/utils/tokens.ts
+UPDATED: /Users/RF/VPM25/apps/web/src/app/api/admin/dev-elevate/route.ts
+UPDATED: /Users/RF/VPM25/apps/web/src/app/api/auth/login/route.ts
+UPDATED: /Users/RF/VPM25/apps/web/src/app/api/auth/register/route.ts
+UPDATED: /Users/RF/VPM25/apps/web/src/app/api/auth/request-reset/route.ts
+UPDATED: /Users/RF/VPM25/apps/web/src/app/api/auth/reset/route.ts
+UPDATED: /Users/RF/VPM25/apps/web/src/app/api/auth/verify/route.ts
+UPDATED: /Users/RF/VPM25/apps/web/src/app/api/admin/users/detail/route.ts
+UPDATED: /Users/RF/VPM25/apps/web/src/app/api/admin/users/list/route.ts
+UPDATED: /Users/RF/VPM25/apps/web/src/app/api/admin/users/reset2fa/route.ts
+UPDATED: /Users/RF/VPM25/apps/web/src/app/api/admin/users/resetVerify/route.ts
+UPDATED: /Users/RF/VPM25/apps/web/src/app/api/admin/users/suspend/route.ts
+UPDATED: /Users/RF/VPM25/apps/web/src/app/api/admin/users/updateRole/route.ts
+UPDATED: /Users/RF/VPM25/apps/web/src/app/api/auth/magic/consume/route.ts
+UPDATED: /Users/RF/VPM25/apps/web/src/app/api/auth/magic/request/route.ts
+UPDATED: /Users/RF/VPM25/apps/web/src/app/api/auth/verify/resend/route.ts

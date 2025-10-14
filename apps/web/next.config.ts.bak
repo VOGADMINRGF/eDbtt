@@ -1,0 +1,18 @@
+import path from "path";
+import type { NextConfig } from "next";
+
+const nextConfig: NextConfig = {
+  experimental: { externalDir: true },
+  webpack(config) {
+    config.resolve.alias = {
+      ...(config.resolve.alias || {}),
+      "@": path.resolve(__dirname, "src"),
+      "@lib": path.resolve(__dirname, "src/lib"),
+      "@features": path.resolve(__dirname, "../../features"),
+      "@core": path.resolve(__dirname, "../../core"),
+      "@ui": path.resolve(__dirname, "../../features/ui/src"),
+    };
+    return config;
+  },
+};
+export default nextConfig;

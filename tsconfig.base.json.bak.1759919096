@@ -1,0 +1,46 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "jsx": "preserve",
+    "strict": true,
+    "noEmit": true,
+    "allowJs": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "baseUrl": ".",
+    "paths": {
+      "@db-web": ["packages/db-web/src/client.ts"],
+      "@db-core": ["packages/db-core/src/client.ts"],
+      "core/*": ["core/*"],
+      "core/mongoose":["core/db/mongoose.ts"],
+      "features/*": ["features/*"],
+      "@core/*": ["core/*"],
+      "@features/*": ["features/*"],
+      "@/*": ["apps/web/src/*"],
+      "@models/*": ["models/*"],
+      "@components/*": ["apps/web/src/components/*"],
+      "@constants/*": ["apps/web/src/constants/*"],
+      "@context/*": ["core/context/*"],
+      "@types/*": ["apps/web/src/types/*"],
+      "@hooks/*": ["apps/web/src/hooks/*"],
+      "@data/*": ["apps/web/src/data/*"],
+      "@lib/*": ["apps/web/src/lib/*"],
+      "@utils/*": ["apps/web/src/utils/*"],
+
+      /* ✅ UI-Paket: auf DIST zeigen (Typs) – keine direkten SRC-Mappings mehr */
+      "@vog/ui": ["packages/ui/dist/index.d.ts"],
+      "@vog/ui/*": ["packages/ui/dist/*"],
+
+      /* 🔁 Kompatibilitäts-Aliasse (falls irgendwo noch @ui verwendet wird) */
+      "@ui": ["packages/ui/dist/index.d.ts"],
+      "@ui/*": ["packages/ui/dist/*"],
+      "@ui/button": ["packages/ui/dist/design/Button.d.ts"],
+      "@ui/theme": ["packages/ui/dist/theme.d.ts"]
+    }
+  }
+}

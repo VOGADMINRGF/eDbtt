@@ -1,0 +1,84 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": [
+      "ES2022",
+      "DOM"
+    ],
+    "jsx": "preserve",
+    "moduleResolution": "bundler",
+    "baseUrl": ".",
+    "paths": {
+      "@/*": [
+        "src/*"
+      ],
+      "@db/web": [
+        "src/shims/db-web.ts"
+      ],
+      "@db/core": [
+        "src/shims/db-core.ts"
+      ],
+      "@core/triMongo": [
+        "src/shims/core/db/triMongo.ts"
+      ],
+      "@core/db/triMongo": [
+        "src/shims/core/db/triMongo.ts"
+      ],
+      "@models/*": [
+        "src/models/*"
+      ],
+      "@ui/*": [
+        "../../packages/ui/src/*"
+      ],
+      "@context/LocaleContext": [
+        "src/shims/context/LocaleContext.tsx"
+      ],
+      "@features/utils/ai/generateImage": [
+        "src/shims/features/utils/ai/generateImage.ts"
+      ],
+      "@features/utils/ai/youClient": [
+        "src/shims/features/utils/ai/youClient.ts"
+      ],
+      "@lib/*": [
+        "src/lib/*"
+      ],
+      "@core/*": [
+        "../../core/*"
+      ],
+      "@features/*": [
+        "../../features/*"
+      ],
+      "@ui": [
+        "../../packages/ui/src/index.ts"
+      ],
+      "@db-web": [
+        "../../packages/db-web/src"
+      ]
+    },
+    "types": [
+      "node"
+    ],
+    "incremental": true,
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
+    "noEmit": true,
+    "tsBuildInfoFile": ".tsbuildinfo.web"
+  },
+  "include": [
+    "next-env.d.ts",
+    "src/**/*",
+    ".next/types/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "**/*.test.*",
+    "**/__tests__/**",
+    "src/_disabled/**",
+    ".next/**"
+  ]
+}

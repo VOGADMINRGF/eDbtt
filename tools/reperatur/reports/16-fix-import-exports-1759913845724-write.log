@@ -1,0 +1,11 @@
+named→default: Organization in /Users/RF/VPM25/features/organization/utils/orgHelper.ts from ../models/Organization
+SKIP (manipulation error): /Users/RF/VPM25/apps/web/src/app/admin/errors/page.tsx :: import ErrorLogModel from "@/models/ErrorLog";
+SKIP (manipulation error): /Users/RF/VPM25/apps/web/src/app/api/errors/resolve.ts :: import ErrorLogModel from "@/models/ErrorLog";
+named→default: mongo in /Users/RF/VPM25/apps/web/src/app/api/ai/health/route.ts from @/lib/db
+SKIP (manipulation error): /Users/RF/VPM25/apps/web/src/app/api/contributions/analyze/route.ts :: import ErrorLogModel from "@/models/ErrorLog";
+SKIP (manipulation error): /Users/RF/VPM25/apps/web/src/app/api/contributions/analyze/save.ts :: import ErrorLogModel from "@/models/ErrorLog";
+named→default: dbConnect in /Users/RF/VPM25/apps/web/src/app/api/contributions/save/route.ts from @/lib/db
+SKIP (manipulation error): /Users/RF/VPM25/apps/web/src/app/api/errors/list/route.ts :: import ErrorLogModel from "@/models/ErrorLog";
+SKIP (manipulation error): /Users/RF/VPM25/apps/web/src/app/api/errors/resolve/route.ts :: import ErrorLogModel from "@/models/ErrorLog";
+named→default: getDb in /Users/RF/VPM25/apps/web/src/app/api/health/map/route.ts from @/lib/db
+named→default: dbConnect in /Users/RF/VPM25/apps/web/src/app/api/statements/create/route.ts from @/lib/db

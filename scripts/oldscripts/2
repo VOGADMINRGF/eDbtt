@@ -1,0 +1,305 @@
+# Query: utils/serverBaseUrl
+# ContextLines: 1
+
+73 results - 36 files
+
+apps/web/public/_review/0496eb082e84ff33f6e5/index.json:
+  1970      {
+  1971:       "path": "apps/web/src/utils/absUrl.ts",
+  1972        "size": 697,
+
+apps/web/public/_review/0496eb082e84ff33f6e5/apps/web/src/app/admin/page.tsx:
+  2  import Link from "next/link";
+  3: import { absUrl } from "@/utils/absUrl";
+  4  
+
+apps/web/public/_review/0496eb082e84ff33f6e5/apps/web/src/app/admin/errors/page.tsx:
+  1: import { absUrl } from "@/utils/absUrl";
+  2  import ErrorLogModel from "@/models/ErrorLog";
+
+apps/web/public/_review/0496eb082e84ff33f6e5/apps/web/src/app/admin/telemetry/page.tsx:
+  1: import { absUrl } from "@/utils/absUrl";
+  2  import "server-only";
+
+apps/web/public/_review/0496eb082e84ff33f6e5/apps/web/src/app/contributions/page.tsx:
+  1  import "server-only";
+  2: import { absUrl } from "@/utils/absUrl";
+  3  
+
+apps/web/public/_review/0496eb082e84ff33f6e5/apps/web/src/components/QuickRegister.tsx:
+  1: import { absUrl } from "@/utils/absUrl";
+  2  import { useState } from "react";
+
+apps/web/public/_review/0496eb082e84ff33f6e5/apps/web/src/hooks/useFactcheckJob.ts:
+  1: import { absUrl } from "@/utils/absUrl";
+  2  // apps/web/src/lib/hooks/useFactcheckJob.ts
+
+apps/web/public/_review/0496eb082e84ff33f6e5/apps/web/src/utils/useTranslation.ts:
+  1: import { absUrl } from "@/utils/absUrl";
+  2  // src/utils/useTranslation.ts
+
+apps/web/public/_review/0496eb082e84ff33f6e5/scripts/absurlify.mjs:
+  44  
+  45:   if (!src.includes('from "@/utils/absUrl"')) {
+  46      // Import nach eventueller 'use server' Direktive einfügen
+
+  49      while (i < Math.min(4, lines.length) && /^['"]use (client|server)['"];?/.test(lines[i]?.trim()||"")) i++;
+  50:     lines.splice(i, 0, 'import { absUrl } from "@/utils/absUrl";');
+  51      src = lines.join("\n");
+
+apps/web/public/_review/0496eb082e84ff33f6e5/scripts/oldscripts/e150_fix_admin_reports_contrib.sh:
+    9  # Helper absUrl (falls fehlt)
+   10: if [ ! -f "$SRC/utils/absUrl.ts" ]; then
+   11: cat > "$SRC/utils/absUrl.ts" <<'TS'
+   12  import { headers } from "next/headers";
+
+   26  TS
+   27: echo "✓ wrote utils/absUrl.ts"
+   28  fi
+
+   33  import Link from "next/link";
+   34: import { absUrl } from "@/utils/absUrl";
+   35  
+
+   87  import "server-only";
+   88: import { absUrl } from "@/utils/absUrl";
+   89  
+
+  117  import "server-only";
+  118: import { absUrl } from "@/utils/absUrl";
+  119  
+
+apps/web/public/_review/0496eb082e84ff33f6e5/scripts/oldscripts/e150_fix_relative_fetch.sh:
+   35  import "server-only";
+   36: import { absUrl } from "@/utils/absUrl";
+   37  
+
+   63  import "server-only";
+   64: import { absUrl } from "@/utils/absUrl";
+   65  
+
+  135  
+  136:   if (!src.includes('from "@/utils/absUrl"')) {
+  137      // Import nach eventueller 'use server' Direktive einfügen
+
+  140      while (i < Math.min(4, lines.length) && /^['"]use (client|server)['"];?/.test(lines[i]?.trim()||"")) i++;
+  141:     lines.splice(i, 0, 'import { absUrl } from "@/utils/absUrl";');
+  142      src = lines.join("\n");
+
+apps/web/public/_review/ea26c9f903ba59809862/index.json:
+  1975      {
+  1976:       "path": "apps/web/src/utils/absUrl.ts",
+  1977        "size": 697,
+
+  6005      {
+  6006:       "path": "apps/web/public/_review/0496eb082e84ff33f6e5/apps/web/src/utils/absUrl.ts",
+  6007        "size": 697,
+
+apps/web/public/_review/ea26c9f903ba59809862/apps/web/public/_review/0496eb082e84ff33f6e5/index.json:
+  1970      {
+  1971:       "path": "apps/web/src/utils/absUrl.ts",
+  1972        "size": 697,
+
+apps/web/public/_review/ea26c9f903ba59809862/apps/web/public/_review/0496eb082e84ff33f6e5/apps/web/src/app/admin/page.tsx:
+  2  import Link from "next/link";
+  3: import { absUrl } from "@/utils/absUrl";
+  4  
+
+apps/web/public/_review/ea26c9f903ba59809862/apps/web/public/_review/0496eb082e84ff33f6e5/apps/web/src/app/admin/errors/page.tsx:
+  1: import { absUrl } from "@/utils/absUrl";
+  2  import ErrorLogModel from "@/models/ErrorLog";
+
+apps/web/public/_review/ea26c9f903ba59809862/apps/web/public/_review/0496eb082e84ff33f6e5/apps/web/src/app/admin/telemetry/page.tsx:
+  1: import { absUrl } from "@/utils/absUrl";
+  2  import "server-only";
+
+apps/web/public/_review/ea26c9f903ba59809862/apps/web/public/_review/0496eb082e84ff33f6e5/apps/web/src/app/contributions/page.tsx:
+  1  import "server-only";
+  2: import { absUrl } from "@/utils/absUrl";
+  3  
+
+apps/web/public/_review/ea26c9f903ba59809862/apps/web/public/_review/0496eb082e84ff33f6e5/apps/web/src/components/QuickRegister.tsx:
+  1: import { absUrl } from "@/utils/absUrl";
+  2  import { useState } from "react";
+
+apps/web/public/_review/ea26c9f903ba59809862/apps/web/public/_review/0496eb082e84ff33f6e5/apps/web/src/hooks/useFactcheckJob.ts:
+  1: import { absUrl } from "@/utils/absUrl";
+  2  // apps/web/src/lib/hooks/useFactcheckJob.ts
+
+apps/web/public/_review/ea26c9f903ba59809862/apps/web/public/_review/0496eb082e84ff33f6e5/apps/web/src/utils/useTranslation.ts:
+  1: import { absUrl } from "@/utils/absUrl";
+  2  // src/utils/useTranslation.ts
+
+apps/web/public/_review/ea26c9f903ba59809862/apps/web/public/_review/0496eb082e84ff33f6e5/scripts/absurlify.mjs:
+  44  
+  45:   if (!src.includes('from "@/utils/absUrl"')) {
+  46      // Import nach eventueller 'use server' Direktive einfügen
+
+  49      while (i < Math.min(4, lines.length) && /^['"]use (client|server)['"];?/.test(lines[i]?.trim()||"")) i++;
+  50:     lines.splice(i, 0, 'import { absUrl } from "@/utils/absUrl";');
+  51      src = lines.join("\n");
+
+apps/web/public/_review/ea26c9f903ba59809862/apps/web/public/_review/0496eb082e84ff33f6e5/scripts/oldscripts/e150_fix_admin_reports_contrib.sh:
+    9  # Helper absUrl (falls fehlt)
+   10: if [ ! -f "$SRC/utils/absUrl.ts" ]; then
+   11: cat > "$SRC/utils/absUrl.ts" <<'TS'
+   12  import { headers } from "next/headers";
+
+   26  TS
+   27: echo "✓ wrote utils/absUrl.ts"
+   28  fi
+
+   33  import Link from "next/link";
+   34: import { absUrl } from "@/utils/absUrl";
+   35  
+
+   87  import "server-only";
+   88: import { absUrl } from "@/utils/absUrl";
+   89  
+
+  117  import "server-only";
+  118: import { absUrl } from "@/utils/absUrl";
+  119  
+
+apps/web/public/_review/ea26c9f903ba59809862/apps/web/public/_review/0496eb082e84ff33f6e5/scripts/oldscripts/e150_fix_relative_fetch.sh:
+   35  import "server-only";
+   36: import { absUrl } from "@/utils/absUrl";
+   37  
+
+   63  import "server-only";
+   64: import { absUrl } from "@/utils/absUrl";
+   65  
+
+  135  
+  136:   if (!src.includes('from "@/utils/absUrl"')) {
+  137      // Import nach eventueller 'use server' Direktive einfügen
+
+  140      while (i < Math.min(4, lines.length) && /^['"]use (client|server)['"];?/.test(lines[i]?.trim()||"")) i++;
+  141:     lines.splice(i, 0, 'import { absUrl } from "@/utils/absUrl";');
+  142      src = lines.join("\n");
+
+apps/web/public/_review/ea26c9f903ba59809862/apps/web/src/app/admin/page.tsx:
+  2  import Link from "next/link";
+  3: import { absUrl } from "@/utils/absUrl";
+  4  
+
+apps/web/public/_review/ea26c9f903ba59809862/apps/web/src/app/admin/errors/page.tsx:
+  1: import { absUrl } from "@/utils/absUrl";
+  2  import ErrorLogModel from "@/models/ErrorLog";
+
+apps/web/public/_review/ea26c9f903ba59809862/apps/web/src/app/admin/telemetry/page.tsx:
+  1: import { absUrl } from "@/utils/absUrl";
+  2  import "server-only";
+
+apps/web/public/_review/ea26c9f903ba59809862/apps/web/src/app/contributions/page.tsx:
+  1  import "server-only";
+  2: import { absUrl } from "@/utils/absUrl";
+  3  
+
+apps/web/public/_review/ea26c9f903ba59809862/apps/web/src/components/QuickRegister.tsx:
+  1: import { absUrl } from "@/utils/absUrl";
+  2  import { useState } from "react";
+
+apps/web/public/_review/ea26c9f903ba59809862/apps/web/src/hooks/useFactcheckJob.ts:
+  1: import { absUrl } from "@/utils/absUrl";
+  2  // apps/web/src/lib/hooks/useFactcheckJob.ts
+
+apps/web/public/_review/ea26c9f903ba59809862/apps/web/src/utils/useTranslation.ts:
+  1: import { absUrl } from "@/utils/absUrl";
+  2  // src/utils/useTranslation.ts
+
+apps/web/public/_review/ea26c9f903ba59809862/scripts/absurlify.mjs:
+  44  
+  45:   if (!src.includes('from "@/utils/absUrl"')) {
+  46      // Import nach eventueller 'use server' Direktive einfügen
+
+  49      while (i < Math.min(4, lines.length) && /^['"]use (client|server)['"];?/.test(lines[i]?.trim()||"")) i++;
+  50:     lines.splice(i, 0, 'import { absUrl } from "@/utils/absUrl";');
+  51      src = lines.join("\n");
+
+apps/web/public/_review/ea26c9f903ba59809862/scripts/oldscripts/e150_fix_admin_reports_contrib.sh:
+    9  # Helper absUrl (falls fehlt)
+   10: if [ ! -f "$SRC/utils/absUrl.ts" ]; then
+   11: cat > "$SRC/utils/absUrl.ts" <<'TS'
+   12  import { headers } from "next/headers";
+
+   26  TS
+   27: echo "✓ wrote utils/absUrl.ts"
+   28  fi
+
+   33  import Link from "next/link";
+   34: import { absUrl } from "@/utils/absUrl";
+   35  
+
+   87  import "server-only";
+   88: import { absUrl } from "@/utils/absUrl";
+   89  
+
+  117  import "server-only";
+  118: import { absUrl } from "@/utils/absUrl";
+  119  
+
+apps/web/public/_review/ea26c9f903ba59809862/scripts/oldscripts/e150_fix_relative_fetch.sh:
+   35  import "server-only";
+   36: import { absUrl } from "@/utils/absUrl";
+   37  
+
+   63  import "server-only";
+   64: import { absUrl } from "@/utils/absUrl";
+   65  
+
+  135  
+  136:   if (!src.includes('from "@/utils/absUrl"')) {
+  137      // Import nach eventueller 'use server' Direktive einfügen
+
+  140      while (i < Math.min(4, lines.length) && /^['"]use (client|server)['"];?/.test(lines[i]?.trim()||"")) i++;
+  141:     lines.splice(i, 0, 'import { absUrl } from "@/utils/absUrl";');
+  142      src = lines.join("\n");
+
+scripts/absurlify.mjs:
+  44  
+  45:   if (!src.includes('from "@/utils/absUrl"')) {
+  46      // Import nach eventueller 'use server' Direktive einfügen
+
+  49      while (i < Math.min(4, lines.length) && /^['"]use (client|server)['"];?/.test(lines[i]?.trim()||"")) i++;
+  50:     lines.splice(i, 0, 'import { absUrl } from "@/utils/absUrl";');
+  51      src = lines.join("\n");
+
+scripts/oldscripts/e150_fix_admin_reports_contrib.sh:
+    9  # Helper absUrl (falls fehlt)
+   10: if [ ! -f "$SRC/utils/absUrl.ts" ]; then
+   11: cat > "$SRC/utils/absUrl.ts" <<'TS'
+   12  import { headers } from "next/headers";
+
+   26  TS
+   27: echo "✓ wrote utils/absUrl.ts"
+   28  fi
+
+   33  import Link from "next/link";
+   34: import { absUrl } from "@/utils/absUrl";
+   35  
+
+   87  import "server-only";
+   88: import { absUrl } from "@/utils/absUrl";
+   89  
+
+  117  import "server-only";
+  118: import { absUrl } from "@/utils/absUrl";
+  119  
+
+scripts/oldscripts/e150_fix_relative_fetch.sh:
+   35  import "server-only";
+   36: import { absUrl } from "@/utils/absUrl";
+   37  
+
+   63  import "server-only";
+   64: import { absUrl } from "@/utils/absUrl";
+   65  
+
+  135  
+  136:   if (!src.includes('from "@/utils/absUrl"')) {
+  137      // Import nach eventueller 'use server' Direktive einfügen
+
+  140      while (i < Math.min(4, lines.length) && /^['"]use (client|server)['"];?/.test(lines[i]?.trim()||"")) i++;
+  141:     lines.splice(i, 0, 'import { absUrl } from "@/utils/absUrl";');
+  142      src = lines.join("\n");

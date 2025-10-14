@@ -1,0 +1,12 @@
+{
+    "extends": "./tsconfig.json",
+    "include": ["next-env.d.ts", "src/**/*.ts", "src/**/*.tsx"],
+    "exclude": [
+      "node_modules",
+      "public/**",
+      "../../features/**",
+      "**/__tests__/**",
+      "**/*.test.*"
+    ]
+  }
+  

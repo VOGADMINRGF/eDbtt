@@ -1,0 +1,12 @@
+export { default as AlternativeCard } from "./AlternativeCard";
+export * from "./AlternativeCard";
+export { default as ImpactIndicator } from "./ImpactIndicator";
+export * from "./ImpactIndicator";
+export { default as KompromissModal } from "./KompromissModal";
+export * from "./KompromissModal";
+export { default as SwipeAdminList } from "./SwipeAdminList";
+export * from "./SwipeAdminList";
+export { default as SwipeCard } from "./SwipeCard";
+export * from "./SwipeCard";
+export { default as SwipeDeck } from "./SwipeDeck";
+export * from "./SwipeDeck";

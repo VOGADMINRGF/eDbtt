@@ -1,0 +1,71 @@
+{
+  "name": "@vog/ui",
+  "version": "0.1.0",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    },
+    "./theme": {
+      "types": "./dist/theme.d.ts",
+      "import": "./dist/theme.mjs",
+      "require": "./dist/theme.js"
+    },
+    "./design/Button": {
+      "types": "./dist/design/Button.d.ts",
+      "import": "./dist/design/Button.mjs",
+      "require": "./dist/design/Button.js"
+    },
+    "./design/Badge": {
+      "types": "./dist/design/Badge.d.ts",
+      "import": "./dist/design/Badge.mjs",
+      "require": "./dist/design/Badge.js"
+    },
+    "./design/Modal": {
+      "types": "./dist/design/Modal.d.ts",
+      "import": "./dist/design/Modal.mjs",
+      "require": "./dist/design/Modal.js"
+    },
+    "./design/badgeColor": {
+      "types": "./dist/design/badgeColor.d.ts",
+      "import": "./dist/design/badgeColor.mjs",
+      "require": "./dist/design/badgeColor.js"
+    },
+    "./design/button": {
+      "types": "./dist/design/Button.d.ts",
+      "import": "./dist/design/Button.mjs",
+      "require": "./dist/design/Button.js"
+    },
+    "./design/badge": {
+      "types": "./dist/design/Badge.d.ts",
+      "import": "./dist/design/Badge.mjs",
+      "require": "./dist/design/Badge.js"
+    },
+    "./design/modal": {
+      "types": "./dist/design/Modal.d.ts",
+      "import": "./dist/design/Modal.mjs",
+      "require": "./dist/design/Modal.js"
+    }
+  },
+  "files": ["dist", "src"],
+  "scripts": {
+    "clean": "rimraf dist || rm -rf dist",
+    "build": "pnpm run clean && tsup && tsc -p tsconfig.build.json"
+  },
+  "devDependencies": {
+    "@types/node": "^22.18.7",
+    "rimraf": "^5.0.10",
+    "tsup": "^8.5.0",
+    "typescript": "^5.9.2"
+  },
+  "peerDependencies": {
+    "react": "^18 || ^19",
+    "react-dom": "^18 || ^19",
+    "next": "^14 || ^15",
+    "react-icons": "^4.12.0"
+  }
+}

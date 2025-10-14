@@ -1,0 +1,440 @@
+// prisma/core/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../../packages/db-core/src/generated"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("CORE_DATABASE_URL")
+}
+
+//
+// ---------- ENUMS ----------
+enum ContentKind {
+  SWIPE
+  EVENT
+  SUNDAY_POLL
+}
+
+enum PublishStatus {
+  draft
+  review
+  published
+  archived
+}
+
+enum RegionMode {
+  AUTO
+  MANUAL
+}
+
+enum Locale {
+  de
+  en
+  fr
+  it
+  es
+  pl
+  uk
+  ru
+  tr
+  hi
+  zh
+  ar
+}
+
+enum Stance {
+  FOR
+  AGAINST
+  NEUTRAL
+}
+
+enum UnitKind {
+  claim
+  opinion
+  policy
+  question
+  prediction
+}
+
+enum ReviewStatus {
+  OPEN
+  IN_PROGRESS
+  VERIFIED
+  REFUTED
+  MIXED
+  STALE
+}
+
+enum Interest {
+  interested
+  ignored
+  undecided
+}
+
+enum Triage {
+  none
+  watchlist
+  escalate
+}
+
+// --- Stream & Source ---
+enum SourceKind {
+  USER
+  NEWS
+  SOCIAL
+  API
+  SYSTEM
+}
+
+enum StreamKind {
+  EVENT
+  METRIC
+  LOG
+}
+
+enum StreamStatus {
+  ACCEPTED
+  APPLIED
+  REJECTED
+}
+
+//
+// ---------- CONTENT / TOPIC / TAG ----------
+model Topic {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  title       String
+  description String?
+  locale      Locale   @default(de)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  items ContentItem[]
+  tags  TopicTag[]
+
+  @@index([locale])
+  @@index([createdAt])
+}
+
+model Tag {
+  id     String     @id @default(cuid())
+  slug   String     @unique
+  label  String
+  topics TopicTag[]
+  items  ItemTag[]
+}
+
+model TopicTag {
+  id      String @id @default(cuid())
+  topicId String
+  tagId   String
+
+  topic Topic @relation(fields: [topicId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  tag   Tag   @relation(fields: [tagId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  @@unique([topicId, tagId])
+  @@index([topicId])
+  @@index([tagId])
+}
+
+model ItemTag {
+  id     String @id @default(cuid())
+  itemId String
+  tagId  String
+
+  item ContentItem @relation(fields: [itemId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  tag  Tag         @relation(fields: [tagId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  @@unique([itemId, tagId])
+  @@index([itemId])
+  @@index([tagId])
+}
+
+//
+// ---------- REGION + CLOSURE ----------
+model Region {
+  id        String   @id @default(cuid())
+  code      String   @unique
+  name      String
+  level     Int
+  parentId  String?
+  parent    Region?  @relation("RegionHierarchy", fields: [parentId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  children  Region[] @relation("RegionHierarchy")
+  meta      Json?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relationen zu ContentItem
+  itemsManual    ContentItem[] @relation("ItemRegionManual")
+  itemsEffective ContentItem[] @relation("ItemRegionEffective")
+
+  // Closure-Table
+  ancestors   RegionClosure[] @relation("RegionAncestor")
+  descendants RegionClosure[] @relation("RegionDescendant")
+
+  @@index([level])
+}
+
+model RegionClosure {
+  id           String @id @default(cuid())
+  ancestorId   String
+  descendantId String
+  depth        Int
+
+  ancestor   Region @relation("RegionAncestor", fields: [ancestorId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  descendant Region @relation("RegionDescendant", fields: [descendantId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@unique([ancestorId, descendantId])
+  @@index([ancestorId, depth])
+  @@index([descendantId, depth])
+}
+
+//
+// ---------- CONTENT ITEMS ----------
+model ContentItem {
+  id   String      @id @default(cuid())
+  kind ContentKind
+
+  topicId String
+  topic   Topic  @relation(fields: [topicId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  locale    Locale  @default(de)
+  title     String?
+  text      String
+  richText  String?
+  sortOrder Int     @default(0) @map("order")
+
+  units ExtractedUnit[]
+
+  status     PublishStatus @default(draft)
+  authorName String?
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+
+  publishAt DateTime?
+  expireAt  DateTime?
+
+  regionMode        RegionMode @default(AUTO)
+  regionManualId    String?
+  regionManual      Region?    @relation("ItemRegionManual", fields: [regionManualId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  regionAuto        Json?
+  regionEffectiveId String?
+  regionEffective   Region?    @relation("ItemRegionEffective", fields: [regionEffectiveId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+
+  validation Json?
+  meta       Json?
+
+  answerOptions AnswerOption[]
+  tags          ItemTag[]
+
+  @@index([kind, status, locale])
+  @@index([publishAt])
+  @@index([topicId])
+  @@index([regionEffectiveId])
+  @@index([createdAt])
+}
+
+model AnswerOption {
+  id        String      @id @default(cuid())
+  itemId    String
+  item      ContentItem @relation(fields: [itemId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  label     String
+  value     String
+  sortOrder Int         @default(0) @map("order")
+  exclusive Boolean     @default(false)
+  meta      Json?
+
+  @@unique([itemId, sortOrder])
+  @@unique([itemId, value])
+}
+
+//
+// ---------- FACT-CHECK DOMAIN ----------
+model FactcheckJob {
+  id             String   @id @default(cuid())
+  jobId          String   @unique
+  contributionId String
+  status         String // PENDING | PROCESSING | COMPLETED | FAILED
+  tokensUsed     Int      @default(0)
+  durationMs     Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  claims  FactcheckClaim[]
+  results FactcheckResult[]
+
+  @@index([status, createdAt])
+}
+
+model FactcheckClaim {
+  id              String   @id @default(cuid())
+  jobId           String
+  text            String
+  language        String?
+  topic           String?
+  falsifiable     Boolean  @default(true)
+  frames          String[] @default([])
+  rhetoricalFlags String[] @default([])
+
+  canonicalKey String       @unique
+  scope        String?
+  timeframe    String?
+  status       ReviewStatus @default(OPEN)
+
+  job             FactcheckJob     @relation(fields: [jobId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  providerRuns    ProviderRun[]
+  evidences       Evidence[]
+  consensus       ConsensusRun?
+  verdictVersions VerdictVersion[]
+  units           ExtractedUnit[]
+  finding         Finding?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([jobId, createdAt])
+  @@index([status, updatedAt])
+}
+
+model ProviderRun {
+  id         String   @id @default(cuid())
+  claimId    String
+  provider   String
+  verdict    String
+  confidence Float
+  costTokens Int      @default(0)
+  latencyMs  Int      @default(0)
+  raw        Json
+  createdAt  DateTime @default(now())
+
+  claim FactcheckClaim @relation(fields: [claimId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([claimId, provider])
+  @@index([createdAt])
+}
+
+model ConsensusRun {
+  id             String   @id @default(cuid())
+  claimId        String   @unique
+  method         String
+  verdict        String
+  confidence     Float
+  balanceScore   Float
+  diversityIndex Float
+  providers      Json
+  createdAt      DateTime @default(now())
+
+  claim FactcheckClaim @relation(fields: [claimId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+}
+
+model Evidence {
+  id           String    @id @default(cuid())
+  claimId      String
+  url          String
+  domain       String
+  stance       Stance
+  snapshotHash String?
+  firstSeenAt  DateTime? @default(now())
+  trustScore   Int?
+
+  claim FactcheckClaim @relation(fields: [claimId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([claimId, domain])
+}
+
+model VerdictVersion {
+  id         String   @id @default(cuid())
+  claimId    String
+  verdict    String
+  confidence Float
+  asOf       DateTime @default(now())
+  supersedes String?
+
+  claim FactcheckClaim @relation(fields: [claimId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([claimId, asOf])
+}
+
+model FactcheckResult {
+  id        String   @id @default(cuid())
+  jobId     String
+  verdict   String
+  rawOutput Json
+  createdAt DateTime @default(now())
+
+  job FactcheckJob @relation(fields: [jobId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([jobId, createdAt])
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  entityType String
+  entityId   String
+  action     String
+  actor      String
+  at         DateTime @default(now())
+  meta       Json
+
+  @@index([entityType, at])
+}
+
+//
+// ---------- ERWEITERUNG: Extracted Units & Findings ----------
+model ExtractedUnit {
+  id String @id @default(cuid())
+
+  // optionale Verknüpfung zu ContentItem (V2)
+  itemId String?
+  item   ContentItem? @relation(fields: [itemId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+
+  // externe Statement-Referenz (optional)
+  statementId String?
+
+  kind       UnitKind
+  text       String
+  spanStart  Int
+  spanEnd    Int
+  confidence Float
+
+  // Deduplizierung
+  canonicalKey String
+  scope        String?
+  timeframe    String?
+
+  // Verknüpfung auf Claim (optional)
+  claimId String?
+  claim   FactcheckClaim? @relation(fields: [claimId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+
+  interest   Interest @default(undecided)
+  triage     Triage   @default(none)
+  editorNote String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([kind, canonicalKey])
+  @@index([interest, triage])
+  @@index([itemId])
+  @@index([statementId])
+}
+
+model Finding {
+  id String @id @default(cuid())
+
+  // 1:1 – Finding hält den FK auf Claim
+  claimId String         @unique
+  claim   FactcheckClaim @relation(fields: [claimId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  summary               String
+  outcome               String // LIKELY_TRUE | LIKELY_FALSE | MIXED | UNDETERMINED
+  rationale             String
+  metrics               Json?
+  comparedJurisdictions Json?
+  lastChecked           DateTime @default(now())
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+}
