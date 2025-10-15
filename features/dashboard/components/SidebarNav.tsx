@@ -1,27 +1,24 @@
-"use client";
+// features/dashboard/components/SidebarNav.tsx
+import type { ReactNode, ComponentType } from "react";
 
-import Link from "next/link";
-import { useUser } from "@features/user/context/UserContext";
-import { DASHBOARD_MODULES } from "src/app/dashboard/config/dashboardConfig";
+type LinkLikeProps = { href: string; className?: string; children?: ReactNode };
+export type LinkLike = ComponentType<LinkLikeProps>;
 
-export default function SidebarNav() {
-  const { role, roleCompat } = useUser();
-
-  const visibleModules = (DASHBOARD_MODULES ?? []).filter((mod) => {
-    const roles: string[] = Array.isArray(mod.roles) ? mod.roles : [];
-    return roles.includes(roleCompat) || roles.includes(role);
-  });
-
-  if (visibleModules.length === 0) return null;
-
+type Item = { href: string; title: string };
+export default function SidebarNav({
+  items,
+  LinkComponent = (props: LinkLikeProps) => <a {...props} />, // Fallback: <a>
+}: {
+  items: Item[];
+  LinkComponent?: LinkLike;
+}) {
   return (
-    <aside className="w-56 bg-white shadow flex flex-col gap-1 p-4">
-      <div className="mb-4 font-bold text-xl">VOG Dashboard</div>
-      {visibleModules.map((nav) => (
-        <Link key={nav.href} href={nav.href} className="block px-3 py-2 rounded hover:bg-violet-100 text-gray-800 font-medium">
-          {nav.label}
-        </Link>
+    <nav className="flex flex-col gap-1">
+      {items.map((it) => (
+        <LinkComponent key={it.href} href={it.href} className="px-3 py-2 rounded hover:underline">
+          {it.title}
+        </LinkComponent>
       ))}
-    </aside>
+    </nav>
   );
 }

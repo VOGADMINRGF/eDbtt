@@ -5,10 +5,11 @@
   "version": "1.0.0",
   "packageManager": "pnpm@10.17.1",
   "engines": {
-    "node": ">=20.x"
+    "node": "20.x"
   },
   "scripts": {
-    "prisma:generate": "node ./scripts/prisma-generate.mjs",
+    "prisma:generate": "node ./scripts/prisma-generate-all.mjs",
+    "postinstall": "pnpm run prisma:generate",
     "build": "next build",
     "dev": "next dev -p 3000",
     "start": "next start -p 3000",
@@ -26,23 +27,27 @@
     "bcryptjs": "^3.0.2",
     "framer-motion": "^12.23.22",
     "jsonwebtoken": "^9.0.2",
-    "mongodb": "^6.20.0",
+    "mongodb": "6.20.0",
     "mongoose": "^8.18.3",
     "neo4j-driver": "^5.28.2",
     "next": "15.3.2",
     "next-auth": "^4.24.11",
+    "openai": "^4.104.0",
     "otplib": "^12.0.1",
     "react": "19.1.1",
     "react-dom": "19.1.1",
     "react-icons": "^4.12.0",
-    "redis": "^5.8.2"
+    "redis": "^5.8.2",
+    "zod": "^4.1.11"
   },
   "devDependencies": {
     "@tailwindcss/aspect-ratio": "^0.4.2",
     "@tailwindcss/forms": "^0.5.10",
+    "@tailwindcss/postcss": "^4.1.14",
     "@tailwindcss/typography": "^0.5.19",
     "@types/bcryptjs": "^3.0.0",
     "@types/node": "^22.7.5",
+    "autoprefixer": "^10.4.21",
     "eslint": "^9.11.1",
     "eslint-config-next": "15.3.2",
     "typescript": "^5.9.2"

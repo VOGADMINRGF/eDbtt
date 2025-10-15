@@ -7,17 +7,16 @@
       "DOM"
     ],
     "jsx": "preserve",
-    "moduleResolution": "bundler",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "resolveJsonModule": true,
+    "noEmit": true,
+    "strict": true,
+    "skipLibCheck": true,
     "baseUrl": ".",
     "paths": {
       "@/*": [
         "src/*"
-      ],
-      "@db/web": [
-        "src/shims/db-web.ts"
-      ],
-      "@db/core": [
-        "src/shims/db-core.ts"
       ],
       "@core/triMongo": [
         "src/shims/core/db/triMongo.ts"
@@ -25,60 +24,53 @@
       "@core/db/triMongo": [
         "src/shims/core/db/triMongo.ts"
       ],
-      "@models/*": [
-        "src/models/*"
-      ],
-      "@ui/*": [
-        "../../packages/ui/src/*"
-      ],
-      "@context/LocaleContext": [
-        "src/shims/context/LocaleContext.tsx"
-      ],
-      "@features/utils/ai/generateImage": [
-        "src/shims/features/utils/ai/generateImage.ts"
-      ],
-      "@features/utils/ai/youClient": [
-        "src/shims/features/utils/ai/youClient.ts"
-      ],
-      "@lib/*": [
-        "src/lib/*"
-      ],
       "@core/*": [
         "../../core/*"
       ],
       "@features/*": [
         "../../features/*"
       ],
-      "@ui": [
-        "../../packages/ui/src/index.ts"
+      "@packages/*": [
+        "../../packages/*"
       ],
-      "@db-web": [
-        "../../packages/db-web/src"
+      "@db/web": [
+        "src/shims/db-web.ts"
+      ],
+      "@ui": [
+        "src/shims/ui.tsx"
+      ],
+      "@components/*": [
+        "src/shims/components/*"
+      ],
+      "@db/core": [
+        "src/shims/db-core.ts"
+      ],
+      "@config/*": [
+        "src/config/*"
+      ],
+      "@/ui/design/*": [
+        "src/ui/design/*"
       ]
     },
-    "types": [
-      "node"
-    ],
     "incremental": true,
     "plugins": [
       {
         "name": "next"
       }
-    ],
-    "noEmit": true,
-    "tsBuildInfoFile": ".tsbuildinfo.web"
+    ]
   },
   "include": [
     "next-env.d.ts",
-    "src/**/*",
+    "src",
     ".next/types/**/*.ts"
   ],
   "exclude": [
     "node_modules",
+    ".next",
     "dist",
-    "**/*.test.*",
-    "**/__tests__/**",
+    "build",
     "src/_disabled/**",
-    ".next/**"
+    "src/middleware.ts",
+    "../../features/**"
   ]
 }

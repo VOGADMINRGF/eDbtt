@@ -1,33 +1,23 @@
+import { analyzeContribution } from "@/features/analyze/analyzeContribution";
 const REQUIRE_LOGIN = process.env.REQUIRE_LOGIN === "1";
 export const runtime = "nodejs";
 
 import { NextRequest, NextResponse } from "next/server";
 import { ObjectId } from "mongodb";
+import { cookies, headers } from "next/headers";
 import { coreCol } from "@core/triMongo";
 import { readSession } from "src/utils/session";
+
+const DEV_DISABLE_CSRF = process.env.DEV_DISABLE_CSRF === "1";
 
 function clamp(n: number, min: number, max: number) {
   return Math.max(min, Math.min(max, n));
 }
 function safeLang(v: unknown) {
-  const ok = new Set([
-    "de",
-    "en",
-    "fr",
-    "it",
-    "es",
-    "pl",
-    "uk",
-    "ru",
-    "tr",
-    "hi",
-    "zh",
-    "ar",
-  ]);
+  const ok = new Set(["de","en","fr","it","es","pl","uk","ru","tr","hi","zh","ar"]);
   const x = typeof v === "string" ? v.slice(0, 2).toLowerCase() : "de";
   return ok.has(x) ? x : "de";
 }
-
 type CursorPayload = { t: string | number | Date; id: string };
 function enc(c: CursorPayload) {
   const t = c.t instanceof Date ? c.t.toISOString() : String(c.t);
@@ -39,14 +29,35 @@ function dec(s: string): CursorPayload {
   return j as CursorPayload;
 }
 
-// GET: Cursor-Pagination, optional Filter (category, status, language)
+async function isCsrfValid(req: NextRequest): Promise<boolean> {
+  if (DEV_DISABLE_CSRF) return true;
+  const jar = await cookies();
+  const c = jar.get("csrf-token")?.value ?? "";
+  // bevorzugt expliziter Header; fallback: global headers() (Next 15 dynamic)
+  const h = req.headers.get("x-csrf-token") ?? (await headers()).get("x-csrf-token") ?? "";
+  if (c && h && c === h) return true;
+
+  // DEV-Fallback: gleiche Origin + gesetztes Cookie reicht
+  try {
+    const origin = req.nextUrl.origin;
+    const referer = req.headers.get("referer") || "";
+    const sameOrigin = referer.startsWith(origin);
+    if (sameOrigin && c && !h) return true;
+  } catch {}
+  return false;
+}
+function csrfForbidden() {
+  return NextResponse.json({ ok: false, error: "forbidden_csrf" }, { status: 403 });
+}
+
+// GET – Cursor Pagination + optionale Filter
 export async function GET(req: NextRequest) {
   const url = new URL(req.url);
   const limitParam = Number(url.searchParams.get("limit") ?? "20");
   const limit = clamp(Number.isFinite(limitParam) ? limitParam : 20, 1, 100);
   const cursor = url.searchParams.get("cursor");
 
-  const category = url.searchParams.get("category")?.trim();
+  let category = url.searchParams.get("category")?.trim();
   const status = url.searchParams.get("status")?.trim();
   const language = url.searchParams.get("language")?.trim();
 
@@ -68,17 +79,11 @@ export async function GET(req: NextRequest) {
         };
         query = Object.keys(query).length ? { $and: [query, older] } : older;
       }
-    } catch {
-      /* ignore */
-    }
+    } catch { /* ignore bad cursor */ }
   }
 
-  const stmts = await coreCol("statements");
-  const docs = await stmts
-    .find(query)
-    .sort({ createdAt: -1, _id: -1 })
-    .limit(limit + 1)
-    .toArray();
+  const col = await coreCol("statements");
+  const docs = await col.find(query).sort({ createdAt: -1, _id: -1 }).limit(limit + 1).toArray();
 
   const hasMore = docs.length > limit;
   if (hasMore) docs.pop();
@@ -93,115 +98,82 @@ export async function GET(req: NextRequest) {
     updatedAt: d.updatedAt,
     factcheckStatus: d.factcheckStatus ?? null,
     stats: d.stats ?? {
-      views: 0,
-      votesAgree: 0,
-      votesNeutral: 0,
-      votesDisagree: 0,
-      votesTotal: 0,
+      views: 0, votesAgree: 0, votesNeutral: 0, votesDisagree: 0, votesTotal: 0,
     },
     location: d.location ?? null,
   }));
 
   const last = docs.at(-1);
-  const nextCursor =
-    hasMore && last ? enc({ t: last.createdAt, id: String(last._id) }) : null;
+  const nextCursor = hasMore && last ? enc({ t: last.createdAt, id: String(last._id) }) : null;
 
   const res = NextResponse.json({ ok: true, data, nextCursor });
   res.headers.set("Cache-Control", "no-store");
   return res;
 }
 
-// Factcheck-Job best effort einstellen (BullMQ)
+// Factcheck-Job optional enqueuen
 async function tryEnqueueFactcheck(payload: any) {
   try {
     const { getFactcheckQueue } = await import("@core/queue/factcheckQueue");
     const q = getFactcheckQueue();
-    await q.add("factcheck", payload, {
-      jobId: `stmt:${payload.contributionId}`,
-    });
+    await q.add("factcheck", payload, { jobId: `stmt-${payload.contributionId}` });
   } catch (err) {
     console.warn("[factcheck enqueue skipped]", (err as any)?.message || err);
   }
 }
 
-// POST: anlegen (Login optional) + optional Factcheck
+// POST – persist
 export async function POST(req: NextRequest) {
-  const sess = readSession();
+  if (!(await isCsrfValid(req))) return csrfForbidden();
+
+  const sess = await readSession();
   if (REQUIRE_LOGIN && !sess) {
-    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+    return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
   }
 
   let body: any;
-  try {
-    body = await req.json();
-  } catch {
-    return NextResponse.json({ error: "invalid_json" }, { status: 400 });
-  }
+  try { body = await req.json(); }
+  catch { return NextResponse.json({ ok: false, error: "invalid_json" }, { status: 400 }); }
 
   const rawText = body?.text ?? body?.content ?? "";
   const text = String(rawText).trim().slice(0, 4000);
-  if (!text)
-    return NextResponse.json({ error: "text required" }, { status: 400 });
+  if (!text) return NextResponse.json({ ok: false, error: "text_required" }, { status: 400 });
 
-  const providedTitle = String(body?.title ?? "")
-    .trim()
-    .slice(0, 200);
-  const autoTitle =
-    (text.split(/\n+/).find(Boolean) || "").slice(0, 120) || "Beitrag";
+  const providedTitle = String(body?.title ?? "").trim().slice(0, 200);
+  const autoTitle = (text.split(/\n+/).find(Boolean) || "").slice(0, 120) || "Beitrag";
   const title = providedTitle || autoTitle;
 
-  const category = String(body?.category ?? "Allgemein")
-    .trim()
-    .slice(0, 80);
+  let category = String(body?.category ?? "").trim().slice(0,80);
   const language = safeLang(body?.language);
   const scope = body?.scope ? String(body.scope).slice(0, 120) : undefined;
-  const timeframe = body?.timeframe
-    ? String(body.timeframe).slice(0, 120)
-    : undefined;
+  const timeframe = body?.timeframe ? String(body.timeframe).slice(0, 120) : undefined;
 
+  
+  const analysis = await analyzeContribution(text, [category]);
+  if (!category && analysis.subTopics?.length) category = analysis.subTopics[0];
   const now = new Date();
-  const doc = {
-    title,
-    text,
-    category,
-    language,
+
+  const doc: any = { analysis,
+    title, text, category, language,
     author: null,
     userId: (sess as any)?.uid ?? null,
-    createdAt: now,
-    updatedAt: now,
+    createdAt: now, updatedAt: now,
     factcheckStatus: "queued" as const,
-    stats: {
-      views: 0,
-      votesAgree: 0,
-      votesNeutral: 0,
-      votesDisagree: 0,
-      votesTotal: 0,
-    },
-    location:
-      body?.location && Array.isArray(body.location?.coordinates)
-        ? {
-            type: "Point",
-            coordinates: [
-              Number(body.location.coordinates[0]),
-              Number(body.location.coordinates[1]),
-            ] as [number, number],
-          }
-        : undefined,
+    stats: { views: 0, votesAgree: 0, votesNeutral: 0, votesDisagree: 0, votesTotal: 0 },
   };
 
-  const stmts = await coreCol("statements");
-  const ins = await stmts.insertOne(doc);
+  if (body?.location && Array.isArray(body.location?.coordinates)) {
+    doc.location = {
+      type: "Point",
+      coordinates: [Number(body.location.coordinates[0]), Number(body.location.coordinates[1])] as [number, number],
+    };
+  }
+
+  const col = await coreCol("statements");
+  const ins = await col.insertOne(doc);
   const id = String(ins.insertedId);
 
-  tryEnqueueFactcheck({
-    contributionId: id,
-    text,
-    language,
-    topic: category,
-    scope,
-    timeframe,
-  }).catch(() => {});
-
+  tryEnqueueFactcheck({ contributionId: id, text, language, topic: category, scope, timeframe }).catch(() => {});
   const resp = NextResponse.json({ ok: true, id }, { status: 201 });
   resp.headers.set("Location", `/api/statements/${id}`);
   return resp;

@@ -1,5 +1,5 @@
 "use client";
-import { useUser } from "@features/user/context/UserContext";
+import useUser from "@features/user/context/UserContext"; // ⬅️ default statt { useUser }
 import StreamList from "@features/stream/components/StreamList";
 import DashboardLayout from "@features/dashboard/components/DashboardLayout";
 

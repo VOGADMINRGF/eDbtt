@@ -2,7 +2,7 @@
  
 "use client";
 import { useState, useRef, useEffect, useMemo } from "react";
-import Badge from "@ui/design/Badge";
+import Badge from "@ui/design/badge";
 import StreamModal from "./StreamModal";
 import { badgeColors } from "@ui/design/badgeColor";
 import { getNationalFlag } from "@features/stream/utils/nationalFlag";

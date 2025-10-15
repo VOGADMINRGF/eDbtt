@@ -238,7 +238,7 @@ const config = {
       "value": "prisma-client-js"
     },
     "output": {
-      "value": "/Users/RF/VPM25/packages/db-web/src/generated",
+      "value": "/Users/RF/Arbeitsmappe/LandingeDbtt/packages/db-web/src/generated",
       "fromEnvVar": null
     },
     "config": {
@@ -252,7 +252,7 @@ const config = {
       }
     ],
     "previewFeatures": [],
-    "sourceFilePath": "/Users/RF/VPM25/prisma/web/schema.prisma",
+    "sourceFilePath": "/Users/RF/Arbeitsmappe/LandingeDbtt/prisma/web/schema.prisma",
     "isCustomOutput": true
   },
   "relativeEnvPaths": {

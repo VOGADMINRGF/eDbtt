@@ -1,2 +1,2 @@
-export const prisma: any = {};
 export type Prisma = any;
+export default {} as any;

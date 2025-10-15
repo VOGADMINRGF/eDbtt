@@ -52,7 +52,6 @@ export async function POST(req: NextRequest) {
             content: `Region: ${JSON.stringify(region)}\nFilter: ${JSON.stringify(filters || {})}\nAufgabe: Gib eine 3-5 Sätze Kurz-Zusammenfassung und 3 Stichpunkte (neutral, faktenorientiert).`,
           },
         ],
-        temperature: 0.2,
         max_tokens: 300,
       }),
     });

@@ -4,7 +4,7 @@ export const dynamic = "force-dynamic";
 
 import { NextRequest, NextResponse } from "next/server";
 import { fetchGptTranslation } from "@/utils/gptTranslator";
-import { analyzeContribution } from "@/lib/contribution/analyzeContribution";
+import { analyzeContribution } from "@/features/analysis/extract";
 import { extractStatementsFromText } from "@/lib/contribution/extractStatements";
 import { translateAndCache } from "@/lib/contribution/translateAndCache";
 import { storeContribution } from "@/lib/contribution/storeContribution";
@@ -73,7 +73,7 @@ export async function POST(req: NextRequest) {
       text,
       region: region ?? undefined,
     };
-    const analysis = await analyzeContribution(analysisReq);
+    const analysis = await analyzeContribution(String((analysisReq as any)?.text ?? ""));
 
     // 2) Statements aus Originaltext (Objekte)
     const statementObjs = extractStatementsFromText(text, {

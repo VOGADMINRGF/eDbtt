@@ -1,152 +1,61 @@
-// apps/web/src/shims/core/db/triMongo.ts
-// Dünner Back-Compat-Shim auf @vog/tri-mongo.
-// Bietet die bekannten Helfer (getDb/coreDb/coreCol/…)
-// und leitet intern auf das neue Paket weiter.
+import { MongoClient, Db, Collection, Document } from "mongodb";
 
-import type { Collection, Document, Db } from "mongodb";
-import {
-  // Verbindungen
-  getCoreConn,
-  getVotesConn,
-  getPiiConn,
-  getAiCoreReaderConn,
+let coreClient: MongoClient | null = null;
+let votesClient: MongoClient | null = null;
+let piiClient: MongoClient | null = null;
 
-  // Namespaces mit getCol()
-  core as coreNS,
-  votes as votesNS,
-  pii as piiNS,
-  ai_reader as readerNS,
-} from "@vog/tri-mongo";
-
-/* -------------------- DB-Resolver (für *Db / getDb) -------------------- */
-
-function must(k: string): string {
-  const v = process.env[k];
-  if (!v) throw new Error(`[triMongo shim] missing env ${k}`);
-  return v;
+async function getClient(uri: string): Promise<MongoClient> {
+  const client = new MongoClient(uri);
+  try { await client.connect(); } catch {}
+  return client;
 }
 
 export async function coreDb(): Promise<Db> {
-  const conn = await getCoreConn();
-  return conn.getClient().db(must("CORE_DB_NAME"));
+  const uri = process.env.CORE_MONGODB_URI || process.env.MONGODB_URI || "mongodb://127.0.0.1:27017";
+  coreClient = coreClient ?? await getClient(uri);
+  const name = process.env.CORE_DB_NAME || process.env.DB_NAME || "core";
+  return coreClient.db(name);
 }
 export async function votesDb(): Promise<Db> {
-  const conn = await getVotesConn();
-  return conn.getClient().db(must("VOTES_DB_NAME"));
+  const uri = process.env.VOTES_MONGODB_URI || process.env.MONGODB_URI || "mongodb://127.0.0.1:27017";
+  votesClient = votesClient ?? await getClient(uri);
+  const name = process.env.VOTES_DB_NAME || process.env.DB_NAME || "votes";
+  return votesClient.db(name);
 }
 export async function piiDb(): Promise<Db> {
-  const conn = await getPiiConn();
-  return conn.getClient().db(must("PII_DB_NAME"));
-}
-export async function readerDb(): Promise<Db> {
-  const conn = await getAiCoreReaderConn();
-  return conn.getClient().db(must("AI_CORE_READER_DB_NAME"));
+  const uri = process.env.PII_MONGODB_URI || process.env.MONGODB_URI || "mongodb://127.0.0.1:27017";
+  piiClient = piiClient ?? await getClient(uri);
+  const name = process.env.PII_DB_NAME || process.env.DB_NAME || "pii";
+  return piiClient.db(name);
 }
 
-/** Legacy-Kompatibilität: alter Code erwartet `getDb()` → Core-DB */
-export async function getDb(): Promise<Db> {
-  return coreDb();
+/** getDb(dbName) – für legacy Importe */
+export async function getDb(dbName: "core" | "votes" | "pii" = "core"): Promise<Db> {
+  if (dbName === "core") return coreDb();
+  if (dbName === "votes") return votesDb();
+  return piiDb();
 }
 
-/* -------------------- Col-Shortcuts (für *Col) -------------------- */
-
-export function coreCol<T extends Document = Document>(name: string) {
-  return coreNS.getCol<T>(name);
+export async function coreCol<T extends Document = Document>(name: string): Promise<Collection<T>> {
+  return (await coreDb()).collection<T>(name);
 }
-export function votesCol<T extends Document = Document>(name: string) {
-  return votesNS.getCol<T>(name);
+export async function votesCol<T extends Document = Document>(name: string): Promise<Collection<T>> {
+  return (await votesDb()).collection<T>(name);
 }
-export function piiCol<T extends Document = Document>(name: string) {
-  return piiNS.getCol<T>(name);
-}
-export function readerCol<T extends Document = Document>(name: string) {
-  return readerNS.getCol<T>(name);
+export async function piiCol<T extends Document = Document>(name: string): Promise<Collection<T>> {
+  return (await piiDb()).collection<T>(name);
 }
 
-/* -------------------- Re-exports der Connection-Getter -------------------- */
-
-export {
-  getCoreConn,
-  getVotesConn,
-  getPiiConn,
-  getAiCoreReaderConn as getReaderConn,
-};
-
-/* -------------------- Objekt-Style wie im Altcode -------------------- */
-
-export const core = {
-  async getCol<T extends Document = Document>(name: string): Promise<Collection<T>> {
-    return coreCol<T>(name);
-  },
-};
-export const votes = {
-  async getCol<T extends Document = Document>(name: string): Promise<Collection<T>> {
-    return votesCol<T>(name);
-  },
-};
-export const pii = {
-  async getCol<T extends Document = Document>(name: string): Promise<Collection<T>> {
-    return piiCol<T>(name);
-  },
-};
-export const ai_reader = {
-  async getCol<T extends Document = Document>(name: string): Promise<Collection<T>> {
-    return readerCol<T>(name);
-  },
-};
-
-/* -------------------- Universeller getCol-Helper (Überladung) -------------------- */
-
-export async function getCol<T extends Document = Document>(
-  name: string,
-): Promise<Collection<T>>;
-export async function getCol<T extends Document = Document>(
-  kind: "core" | "votes" | "pii" | "ai_reader" | "ai_core_reader",
-  name: string,
-): Promise<Collection<T>>;
-export async function getCol<T extends Document = Document>(
-  a: string,
-  b?: string,
-): Promise<Collection<T>> {
-  if (b) {
-    const k = (a === "ai_core_reader" ? "ai_reader" : a) as
-      | "core" | "votes" | "pii" | "ai_reader";
-    if (k === "core")  return coreCol<T>(b);
-    if (k === "votes") return votesCol<T>(b);
-    if (k === "pii")   return piiCol<T>(b);
-    return readerCol<T>(b);
+/** getCol(name) oder getCol(dbName, name) (legacy Overload) */
+export async function getCol<T extends Document = Document>(name: string): Promise<Collection<T>>;
+export async function getCol<T extends Document = Document>(dbName: "core" | "votes" | "pii", name: string): Promise<Collection<T>>;
+export async function getCol<T extends Document = Document>(a: any, b?: any): Promise<Collection<T>> {
+  if (typeof b === "string") {
+    const db = await getDb(a as "core"|"votes"|"pii");
+    return db.collection<T>(b);
   }
-  return coreCol<T>(a);
+  return coreCol<T>(a as string);
 }
 
-/* -------------------- Default-Aggregat -------------------- */
-
-const tri = {
-  // Conns
-  getCoreConn,
-  getVotesConn,
-  getPiiConn,
-  getReaderConn: getAiCoreReaderConn,
-
-  // DBs & Cols
-  coreDb,
-  votesDb,
-  piiDb,
-  readerDb,
-  coreCol,
-  votesCol,
-  piiCol,
-  readerCol,
-
-  // Objekt-Style + Helper
-  core,
-  votes,
-  pii,
-  ai_reader,
-  getCol,
-
-  // Legacy
-  getDb,
-};
-
-export default tri;
+const api = { coreDb, votesDb, piiDb, getDb, coreCol, votesCol, piiCol, getCol };
+export default api;

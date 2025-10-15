@@ -1,56 +1,56 @@
 "use client";
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 
 export default function NewStatement() {
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
-  const [msg, setMsg] = useState<string>();
-  const router = useRouter();
+  const [msg, setMsg] = useState<string>("");
+  const [createdId, setCreatedId] = useState<string | null>(null);
 
   async function submit(e: React.FormEvent) {
-    e.preventDefault();
-    setBusy(true);
-    setMsg(undefined);
+    e.preventDefault(); setBusy(true); setMsg(""); setCreatedId(null);
     try {
-      const r = await fetch("/api/statements", {
+      const t = (await (await fetch("/api/csrf", { cache: "no-store" })).json()).token;
+      const res = await fetch("/api/statements", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text, language: "de" }), // <-- richtiges Feld
+        headers: { "Content-Type": "application/json", "x-csrf-token": t ?? "" },
+        body: JSON.stringify({ text }),
       });
-      const j = await r.json();
-      if (!r.ok) throw new Error(j?.error || "Fehler beim Speichern");
-      router.push(`/statements/${j.id}`);
-    } catch (e: any) {
-      setMsg(e.message);
-    } finally {
-      setBusy(false);
-    }
+      const data = await res.json().catch(()=>({}));
+      if (res.ok && data?.ok && data?.id) {
+        setCreatedId(String(data.id));
+        setMsg("✅ erfolgreich gespeichert (inkl. KI-Analyse).");
+        setText("");
+      } else {
+        setMsg(`❌ Fehler: ${data?.error || res.statusText}`);
+      }
+    } catch (e:any) {
+      setMsg(`❌ Client/Netzwerk: ${e?.message || e}`);
+    } finally { setBusy(false); }
   }
 
   return (
-    <div className="max-w-2xl mx-auto p-6">
-      <h1 className="text-2xl font-bold mb-4">Neues Anliegen</h1>
+    <div className="p-6 max-w-3xl mx-auto">
+      <h1 className="text-3xl font-bold mb-4">Neues Anliegen</h1>
       <form onSubmit={submit} className="space-y-3">
-        <textarea
-          className="w-full border rounded px-3 py-2 min-h-[240px]"
-          placeholder="Beschreibe dein Anliegen... (wir extrahieren automatisch prüfbare Aussagen)"
+        <textarea className="w-full h-56 border rounded px-3 py-2"
+          placeholder="Dein Text…"
           value={text}
-          onChange={(e) => setText(e.target.value)}
+          onChange={e=>setText(e.target.value)}
           required
         />
-        {msg && <p className="text-red-600 text-sm">{msg}</p>}
-        <button
-          disabled={busy}
-          className="bg-black text-white rounded px-4 py-2 disabled:opacity-50"
-        >
-          {busy ? "…" : "Speichern"}
+        <button disabled={busy} className="border rounded px-4 py-2 disabled:opacity-50" type="submit">
+          {busy ? "Sende…" : "Statement einreichen"}
         </button>
-        <p className="text-xs text-neutral-500">
-          Hinweis: Du musst dich nicht einloggen. Wir erzeugen den Titel
-          automatisch und prüfen dein Anliegen optional.
-        </p>
       </form>
+      <div className="mt-3 text-sm">
+        {msg && <div>{msg}</div>}
+        {createdId && (
+          <div className="mt-2">
+            ID: <code>{createdId}</code> – <a className="underline" href={`/api/statements/${createdId}`}>API</a>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

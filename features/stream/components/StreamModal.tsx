@@ -1,6 +1,6 @@
 "use client";
 
-import Badge from "@ui/design/Badge";
+import Badge from "@ui/design/badge";
 import Modal from "@ui/design/Modal";
 import VideoPlayer from "./VideoPlayer";
 import SwipeCard from "@features/swipe/components/SwipeCard";

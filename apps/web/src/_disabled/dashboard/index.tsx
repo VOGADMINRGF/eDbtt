@@ -1,7 +1,9 @@
-// features/dashboard/pages/index.tsx
-import DashboardLayout from "../../../../../features/dashboard/components/DashboardLayout";
-import SystemMatrix from "../../../../../features/dashboard/components/SystemMatrix";
-import UsageKPIPanel from "../components/UsageKPIPanel";
+import React from "react";
+import {
+  DashboardLayout,
+  SystemMatrix,
+  UsageKIPanel,
+} from "@/features/dashboard";
 
 export default function DashboardHome() {
   return (
@@ -9,7 +11,7 @@ export default function DashboardHome() {
       <div className="mb-6">
         <SystemMatrix />
       </div>
-      <UsageKPIPanel />
+      <UsageKIPanel />
     </DashboardLayout>
   );
 }

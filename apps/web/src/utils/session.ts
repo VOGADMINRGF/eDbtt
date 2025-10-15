@@ -53,7 +53,7 @@ function toVal(v: unknown): string | undefined {
 
 // ---------- API ----------
 export async function getSessionToken(): Promise<string | undefined> {
-  return toVal(await getCookie(COOKIE_NAME));
+  return toVal(await await getCookie(COOKIE_NAME));
 }
 
 export function createSession(uid: string, roles: string[] = []) {

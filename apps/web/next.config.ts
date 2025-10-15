@@ -1,25 +1,27 @@
-import path from "path";
+import path from "node:path";
 import type { NextConfig } from "next";
 
-const nextConfig: NextConfig = {
-  eslint: { ignoreDuringBuilds: true }, experimental: { externalDir: true },
-  webpack(config) {
-    config.resolve.alias = {
-      ...(config.resolve.alias || {}),
-      "@":        path.resolve(__dirname, "src"),
-      "@lib":     path.resolve(__dirname, "src/lib"),
-      "@features":path.resolve(__dirname, "../../features"),
-      "@core":    path.resolve(__dirname, "../../core"),
-
-      // UI: Ordner + exakter Index-Match für bare "@ui"
-      "@ui":      path.resolve(__dirname, "../../features/ui"),
-      "@ui$":     path.resolve(__dirname, "../../features/ui/index.ts"),
-
-      // Prisma Web-Client
-      "@db-web":  path.resolve(__dirname, "../../packages/db-web/src"),
+const config: NextConfig = {
+  reactStrictMode: true,
+  eslint: { ignoreDuringBuilds: true },
+  experimental: { externalDir: true, typedRoutes: true },
+  transpilePackages: ["@ui"],
+  webpack(cfg) {
+    cfg.resolve.alias = {
+      ...(cfg.resolve.alias ?? {}),
+      "@":         path.resolve(__dirname, "src"),
+      "src":       path.resolve(__dirname, "src"),
+      "@config":   path.resolve(__dirname, "src/config"),
+      "@lib":      path.resolve(__dirname, "src/lib"),
+      "@features": path.resolve(__dirname, "../../features"),
+      "@core":     path.resolve(__dirname, "../../core"),
+      // ⬇️ wichtig: direkt aufs UI-Paket zeigen
+      "@ui":       path.resolve(__dirname, "../../packages/ui/src"),
+      "@db-web":   path.resolve(__dirname, "../../packages/db-web/src"),
+      "@db/web":   path.resolve(__dirname, "../../packages/db-web/src"),
     };
-    return config;
+    return cfg;
   },
 };
 
-export default nextConfig;
+export default config;

@@ -1,0 +1,55 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM"],
+    "jsx": "preserve",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "noEmit": true,
+    "strict": true,
+    "skipLibCheck": true,
+    "incremental": true,
+    "baseUrl": ".",
+    "paths": {
+      "@/features/*": ["../../features/*"],
+      "@/app/*": ["src/app/*"],
+      "@/*": ["src/*"],    
+
+      "@config/*": ["src/config/*"],
+      "@lib/*": ["src/lib/*"],
+      "@models/*": ["src/models/*"],
+
+      "@db/web": ["src/shims/db-web.ts"],
+      "@db/core": ["src/shims/db-core.ts"],
+      "@core/triMongo": ["src/shims/core/db/triMongo.ts"],
+      "@core/db/triMongo": ["src/shims/core/db/triMongo.ts"],
+
+      "@core/*": ["../../core/*"],
+      "@ui": ["../../packages/ui/src/index.ts"],
+      "@ui/*": ["../../packages/ui/src/*"],
+      "@ui/src/*": ["../../packages/ui/src/*"],      // ✅ Kompat für alte Deep-Imports
+      "@db-web": ["../../packages/db-web/src"]
+    },
+    "types": ["node", "react", "next"],               // ✅ "next/types" entfernen
+    "plugins": [{ "name": "next" }],
+    "tsBuildInfoFile": ".tsbuildinfo.web"
+  },
+  "include": [
+    "next-env.d.ts",
+    "src/**/*",
+    ".next/types/**/*.ts",
+    "../../features/**/*",
+    "../../packages/**/*",
+    "../../core/**/*"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "**/*.test.*",
+    "**/__tests__/**",
+    "src/_disabled/**",
+    ".next/**"
+  ]
+}

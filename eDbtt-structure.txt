@@ -1,5 +1,6 @@
 .
 ├── .DS_Store
+├── .envrc
 ├── .github
 │   ├── pull_request_template.md
 │   └── workflows
@@ -7,13 +8,18 @@
 ├── .gitignore
 ├── .zap
 │   └── rules.tsv
+├── README_VPM25_SCRIPT_BUNDLE.md
+├── _incoming
+│   └── .envrc
 ├── apps
 │   ├── .DS_Store
 │   └── web
 │       ├── .DS_Store
+│       ├── .env.example
 │       ├── .env.local
 │       ├── .eslintignore
 │       ├── .gitignore
+│       ├── .tsbuildinfo.web
 │       ├── Dockerfile
 │       ├── README.md
 │       ├── eslint.config.js
@@ -21,6 +27,7 @@
 │       ├── next-env.d.ts
 │       ├── next-env.d.ts.bak
 │       ├── next.config.ts
+│       ├── next.config.ts.bak
 │       ├── package.json
 │       ├── postcss.config.mjs
 │       ├── public
@@ -139,6 +146,8 @@
 │       │   │   │   └── join
 │       │   │   ├── [locale]
 │       │   │   │   └── layout.tsx
+│       │   │   ├── admin
+│       │   │   │   └── settings
 │       │   │   ├── api
 │       │   │   │   ├── _echo
 │       │   │   │   ├── admin
@@ -316,8 +325,10 @@
 │       │   ├── context
 │       │   │   └── LocaleContext.tsx
 │       │   ├── core
-│       │   │   └── factcheck
-│       │   │       └── triage.ts
+│       │   │   ├── factcheck
+│       │   │   │   └── triage.ts
+│       │   │   └── utils
+│       │   │       └── errors.ts
 │       │   ├── db
 │       │   │   ├── .DS_Store
 │       │   │   ├── core
@@ -357,6 +368,11 @@
 │       │   │       ├── wasm-worker-loader.mjs
 │       │   │       ├── wasm.d.ts
 │       │   │       └── wasm.js
+│       │   ├── features
+│       │   │   ├── fact
+│       │   │   │   └── FactBadge.tsx
+│       │   │   └── newsfeed
+│       │   │       └── pipeline.ts
 │       │   ├── graph
 │       │   │   ├── arangoRepo.ts
 │       │   │   ├── config.ts
@@ -381,8 +397,10 @@
 │       │   │   ├── audit.ts
 │       │   │   ├── auth
 │       │   │   │   ├── getServerUser.ts
-│       │   │   │   └── index.ts
+│       │   │   │   ├── index.ts
+│       │   │   │   └── roles.ts
 │       │   │   ├── ci.ts
+│       │   │   ├── connectDB.ts
 │       │   │   ├── contribution
 │       │   │   │   ├── analyze
 │       │   │   │   ├── analyzeAndTranslate.ts
@@ -405,6 +423,10 @@
 │       │   │   ├── dbWeb.ts
 │       │   │   ├── errors
 │       │   │   │   └── formatError.ts
+│       │   │   ├── gamification
+│       │   │   │   └── rules.ts
+│       │   │   ├── geo
+│       │   │   │   └── provider.ts
 │       │   │   ├── http
 │       │   │   │   └── typedCookies.ts
 │       │   │   ├── logging
@@ -424,6 +446,7 @@
 │       │   │   ├── services
 │       │   │   │   └── stream
 │       │   │   ├── validation
+│       │   │   │   ├── body.ts
 │       │   │   │   └── contentValidation.ts
 │       │   │   ├── vote
 │       │   │   │   └── stats.ts
@@ -468,10 +491,13 @@
 │       │   ├── shims
 │       │   │   ├── components
 │       │   │   │   └── TabNav.tsx
+│       │   │   ├── context
+│       │   │   │   └── LocaleContext.tsx
 │       │   │   ├── core
 │       │   │   │   └── db
 │       │   │   ├── db-core.ts
 │       │   │   ├── db-web.ts
+│       │   │   ├── e200-ambient.d.ts
 │       │   │   ├── features
 │       │   │   │   ├── context
 │       │   │   │   ├── graph
@@ -481,7 +507,8 @@
 │       │   │   │   ├── statement
 │       │   │   │   ├── stream
 │       │   │   │   ├── swipe
-│       │   │   │   └── user
+│       │   │   │   ├── user
+│       │   │   │   └── utils
 │       │   │   ├── models
 │       │   │   │   └── Vote.ts
 │       │   │   └── ui
@@ -514,6 +541,7 @@
 │       │       ├── email.ts
 │       │       ├── env.server.ts
 │       │       ├── env.shared.ts
+│       │       ├── env.ts
 │       │       ├── errors.ts
 │       │       ├── geo
 │       │       │   └── normalize.ts
@@ -535,6 +563,7 @@
 │       │       ├── publicOrigin.ts
 │       │       ├── rateLimit.ts
 │       │       ├── rateLimit.ts.bak.20250831183211
+│       │       ├── rateLimitHelpers.ts
 │       │       ├── rateLimiter.ts
 │       │       ├── redisPing.ts
 │       │       ├── serverBaseUrl.ts
@@ -645,6 +674,7 @@
 │       └── worker-client.ts
 ├── docker-compose.graphdb.yml
 ├── docker-compose.yml
+├── eDbtt-structure.txt
 ├── features
 │   ├── .DS_Store
 │   ├── ai
@@ -969,6 +999,7 @@
 │   │   └── projects
 │   │       └── [id].ts
 │   ├── config
+│   │   └── admin-config.ts
 │   ├── db-core
 │   │   ├── package.json
 │   │   └── src
@@ -1041,6 +1072,13 @@
 │   │   │   └── index.ts
 │   │   └── tsconfig.build.json
 │   ├── package.json
+│   ├── tri-mongo
+│   │   ├── index.d.ts
+│   │   ├── package.json
+│   │   ├── src
+│   │   │   └── index.ts
+│   │   ├── tsconfig.json
+│   │   └── tsup.config.ts
 │   └── ui
 │       ├── package.json
 │       ├── src
@@ -1102,6 +1140,13 @@
 │   ├── e150_bootstrap_content.sh
 │   ├── e150_seed.sh
 │   ├── ensureIndexes.ts
+│   ├── fix_vpm25.sh
+│   ├── helpers
+│   │   ├── apply_colors.js
+│   │   ├── bulk_rename_brand.js
+│   │   ├── extract_landing.sh
+│   │   ├── newsfeed_cron.js
+│   │   └── replace_zero_kb.js
 │   ├── hotfix_run.sh
 │   ├── kafka-consumer.js
 │   ├── kafka-producer.js
@@ -1130,6 +1175,8 @@
 │           └── votes.ts
 ├── tools
 │   ├── .DS_Store
+│   ├── net
+│   │   └── atlas-allow-fixed.sh
 │   └── reperatur
 │       ├── .DS_Store
 │       ├── 00-preflight.sh
@@ -1144,8 +1191,40 @@
 │       ├── 18-unresolved-imports.mjs
 │       ├── 19-ambient-decls-from-log.mjs
 │       ├── 20-run-all.sh
+│       ├── 21-e200-align-and-clean.mjs
+│       ├── 23-exclude-disabled-and-rerun.mjs
+│       ├── 24-e200-unblock.mjs
+│       ├── 25-e200-fixwave.mjs
+│       ├── 26-e200-realize-now.mjs
+│       ├── 27-e200-hardening.mjs
+│       ├── 28-e200-applyfixes.mjs
+│       ├── 31-e200-fix-39errs.mjs
+│       ├── 32-e200-fix-useguard-ai.mjs
+│       ├── 33-fix-aiProviders-sig.mjs
+│       ├── 34-e200-fix15.mjs
+│       ├── 35-e200-fix-13errs.mjs
+│       ├── 36-e200-fix-remaining.mjs
+│       ├── 37-e200-fix-tail.mjs
+│       ├── 40-sanity-e200.mjs
+│       ├── 41-lint-warnings-clean.mjs
+│       ├── 42-refactor-env-constants.mjs
+│       ├── 43-tighten-lint.mjs
+│       ├── 44-fix-eslint-config.mjs
+│       ├── 45-next-bundle-alias.mjs
+│       ├── 46-wire-features-core.mjs
+│       ├── 47-fix-ui-dbweb-alias.mjs
+│       ├── 48-fix-build-breakers.mjs
+│       ├── 49-fix-formatError-backref.mjs
+│       ├── 50-zap-backref.mjs
+│       ├── 52-buildfix-ts-batch.mjs
+│       ├── 53-fix-stream-schemas-orchestrator.mjs
+│       ├── 54-fix-stream-promptSchemas.mjs
 │       ├── 90-post.sh
 │       ├── README.md
+│       ├── RF@MacBook-Air-von-Sina VPM25 % pnpm run e200   > vpm25@ e200 
+│       │   └── Users
+│       │       └── RF
+│       │           └── VPM25 > pnpm run typecheck && pnpm run lint   > vpm25@ typecheck 
 │       ├── config.json
 │       ├── output
 │       │   └── patch-20251008-101908.diff
@@ -1184,8 +1263,9 @@
 ├── tsconfig.base.json.bak.1759919694
 ├── turbo.json
 ├── vpm25-structure.txt
+├── vpm25_script_bundle.zip
 └── worker
     └── factcheck
         └── worker.ts
 
-356 directories, 833 files
+375 directories, 894 files

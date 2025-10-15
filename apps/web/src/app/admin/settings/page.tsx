@@ -1,9 +1,12 @@
 "use client";
-import React, { useState } from "react";
-import { adminConfig } from "@config/admin-config";
+import { useState } from "react";
+import { adminConfig, type AdminConfig } from "@/config/admin-config";
+
+const num = (v: string) => (Number.isFinite(Number(v)) ? Number(v) : 0);
 
 export default function AdminSettingsPage() {
-  const [cfg, setCfg] = useState(adminConfig);
+ 
+;  const [cfg, setCfg] = useState<AdminConfig>(adminConfig);
   function num(v: string) { return Number(v) || 0; }
   return (
     <div className="p-6 max-w-2xl mx-auto">

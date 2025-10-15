@@ -1,4 +1,4 @@
-import ErrorLogModel from "@/models/ErrorLog";
+import { ErrorLogModel } from "@/models/ErrorLog";
 import ErrorTable from "./ErrorTable";
 
 export const dynamic = "force-dynamic";

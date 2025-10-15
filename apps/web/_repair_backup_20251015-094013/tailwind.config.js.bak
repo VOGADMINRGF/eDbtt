@@ -1,0 +1,31 @@
+const path = require("path");
+
+let uiColors = {};
+try {
+  // falls dein UI-Theme Farben exportiert
+  const uiTheme = require(path.resolve(__dirname, "../../packages/ui/theme.cjs.js"));
+  uiColors = uiTheme.colors ?? uiTheme.default?.colors ?? {};
+} catch {
+  // optional: still okay ohne UI-Theme
+}
+
+/** @type {import('tailwindcss').Config} */
+module.exports = {
+  darkMode: "class",
+  content: [
+    "./src/**/*.{js,ts,jsx,tsx,mdx}",
+    "../../packages/**/*.{js,ts,jsx,tsx,mdx}",
+    "../../features/**/*.{js,ts,jsx,tsx,mdx}",
+  ],
+  theme: {
+    extend: {
+      colors: {
+        ...uiColors,
+        coral: "#FF6F61",
+        turquoise: "#00B3A6",
+        indigo: "#4B0082",
+      },
+    },
+  },
+  plugins: [require("@tailwindcss/aspect-ratio")],
+};

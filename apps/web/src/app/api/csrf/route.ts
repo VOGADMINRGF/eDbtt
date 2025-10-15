@@ -1,34 +1,21 @@
-import { env } from "@/utils/env";
-// apps/web/src/app/api/csrf/route.ts
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
+import { randomBytes } from "node:crypto";
 
-const CSRF_COOKIE = "csrf-token";
-// Route handler runs on Node by default; no edge-only restrictions here.
-export async function GET(req: NextRequest) {
-  const res = NextResponse.json(null, {
-    status: 204,
-    headers: { "Cache-Control": "no-store" },
+export async function GET() {
+  const jar = await cookies();
+  let token = jar.get("csrf-token")?.value;
+  if (!token) token = randomBytes(24).toString("hex");
+
+  const res = NextResponse.json({ ok: true, token });
+  res.cookies.set("csrf-token", token, {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: false,   // in dev ok; prod -> true mit HTTPS
+    path: "/",
+    maxAge: 60 * 60
   });
-
-  let token = req.cookies.get(CSRF_COOKIE)?.value;
-  if (!token) {
-    // Create one if middleware hasn’t set it yet (e.g., calling this route directly)
-    // Use Web Crypto for portability
-    const bytes = new Uint8Array(16);
-    crypto.getRandomValues(bytes);
-    token = Buffer.from(bytes).toString("base64url");
-    res.cookies.set({
-      name: CSRF_COOKIE,
-      value: token,
-      httpOnly: true,
-      sameSite: "lax",
-      secure: true,
-      path: "/",
-      maxAge: 60 * 60 * 12, // 12h
-    });
-  }
-
-  // Expose the token via a response header so the client can echo it on state-changing calls.
-  res.headers.set(CSRF_HEADER, token);
+  res.headers.set("x-csrf-token", token);
+  res.headers.set("Cache-Control", "no-store");
   return res;
 }

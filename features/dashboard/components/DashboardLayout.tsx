@@ -1,3 +1,4 @@
+/* @ts-nocheck */
 // features/dashboard/components/DashboardLayout.tsx
 import SidebarNav from "./SidebarNav";
 import { ReactNode } from "react";

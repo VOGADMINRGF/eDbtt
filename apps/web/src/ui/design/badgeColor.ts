@@ -1,2 +1,2 @@
-export * from "../../shims/ui/design/badgeColor";
-export { badgeColors as default } from "../../shims/ui/design/badgeColor";
+export const badgeColors = { default: "gray", success: "green", warning: "yellow", danger: "red" };
+export default badgeColors;

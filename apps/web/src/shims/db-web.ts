@@ -1,31 +1,12 @@
-// Platzhalter-/Shim-Typen für den Public-Typecheck
+export enum PublishStatus { DRAFT="DRAFT", PUBLISHED="PUBLISHED", ARCHIVED="ARCHIVED" }
+export enum ContentKind { STATEMENT="STATEMENT", ITEM="ITEM", REPORT="REPORT", TOPIC="TOPIC" }
+export enum RegionMode { GLOBAL="GLOBAL", NATIONAL="NATIONAL", REGIONAL="REGIONAL", LOCAL="LOCAL" }
 
-export const ContentKind = {
-  STATEMENT: "STATEMENT",
-  REPORT: "REPORT",
-  POST: "POST",
-} as const;
+export const Locale = { de: "de", en: "en", fr: "fr" } as const;
+export type Locale = typeof Locale[keyof typeof Locale];
 
-export const RegionMode = {
-  AUTO: "AUTO",
-  MANUAL: "MANUAL",
-} as const;
-
-export const Locale = {
-  de: "de",
-  en: "en",
-  fr: "fr",
-} as const;
-
-export const PublishStatus = {
-  DRAFT: "DRAFT",
-  PUBLISHED: "PUBLISHED",
-  ARCHIVED: "ARCHIVED",
-} as const;
-
-// prisma nur als Platzhalter
-export const prisma: any = {};
+export type AnswerOpt = { label: string; value: string; exclusive?: boolean };
 export type Prisma = any;
 
-// ✅ Alias für alte Call-Sites
-export const prismaWeb = prisma;
+export const prisma: any = {}; // Placeholder für Typecheck
+export default { prisma, PublishStatus, ContentKind, RegionMode, Locale };
