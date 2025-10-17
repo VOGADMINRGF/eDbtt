@@ -1,3 +1,13 @@
-// re-export auf den vorhandenen Shim
-export * from "@/shims/core/db/triMongo";
-export { default } from "@/shims/core/db/triMongo";
+import * as tri from "@core/triMongo";
+const asFn = <T>(x:any)=> (typeof x==="function" ? x : (()=>x as T));
+export const coreConn  = asFn<any>((tri as any).coreConn  || (tri as any).getCoreConn  || (tri as any).core);
+export const votesConn = asFn<any>((tri as any).votesConn || (tri as any).getVotesConn || (tri as any).votes);
+export const piiConn   = asFn<any>((tri as any).piiConn   || (tri as any).getPiiConn   || (tri as any).pii);
+const dbOf = (c:any)=>{ const conn = typeof c==="function" ? c() : c; return (conn as any).db ?? conn; };
+export const coreDb  = () => dbOf(coreConn());
+export const votesDb = () => dbOf(votesConn());
+export const piiDb   = () => dbOf(piiConn());
+export const coreCol  = (name:string) => (tri as any).coreCol  ? (tri as any).coreCol(name)  : (coreDb()  as any).collection(name);
+export const votesCol = (name:string) => (tri as any).votesCol ? (tri as any).votesCol(name) : (votesDb() as any).collection(name);
+export const piiCol   = (name:string) => (tri as any).piiCol   ? (tri as any).piiCol(name)   : (piiDb()  as any).collection(name);
+export default { coreConn, votesConn, piiConn, coreDb, votesDb, piiDb, coreCol, votesCol, piiCol };

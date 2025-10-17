@@ -1,30 +1,32 @@
-export const runtime = "nodejs";
+import { NextRequest, NextResponse } from "next/server";
+import { extractV4 } from "@features/analyze/wrapper";
 
-import { NextResponse } from "next/server";
-import { analyzeContribution } from "@/features/analyze/analyzeContribution";
+export const dynamic = "force-dynamic";
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   try {
-    const body = await req.json().catch(() => null) as { text?: string } | null;
-    const text = (body?.text ?? "").trim();
-    if (!text) {
-      return NextResponse.json(
-        { ok: false, error: "text_required" },
-        { status: 400, headers: { "Cache-Control": "no-store" } }
-      );
+    const { text, maxClaims } = await req.json().catch(() => ({}));
+    if (!text || typeof text !== "string") {
+      return NextResponse.json({ error: "text missing" }, { status: 400 });
     }
+    // Heuristische Extraktion (kostenfrei, offline)
+    const data = extractV4(text);
+    const claims = Array.isArray(data?.claims) ? data.claims : [];
 
-    const data = await analyzeContribution(text);
-    // Immer exakt dieses Shape zurückgeben:
-    return NextResponse.json(
-      { ok: true, data },
-      { status: 200, headers: { "Cache-Control": "no-store" } }
-    );
-  } catch (err: any) {
-    console.error("[/api/contributions/analyze] failed:", err?.message || err);
-    return NextResponse.json(
-      { ok: false, error: "internal_error", detail: String(err?.message || err).slice(0, 1000) },
-      { status: 500, headers: { "Cache-Control": "no-store" } }
-    );
+    // Limit für /new, unbegrenzt für /analyze
+    const limited = typeof maxClaims === "number"
+      ? claims.slice(0, Math.max(1, maxClaims))
+      : claims;
+
+    // Default-Werte für UI
+    const withDefaults = limited.map((c: any) => ({
+      ...c,
+      impact: c.impact ?? 3,          // 1–5 Sterne (Relevanz intern)
+      scope:  c.scope  ?? 3,          // 1–5 Punkte (Gesellschaftlicher Umfang)
+    }));
+
+    return NextResponse.json({ ...data, claims: withDefaults });
+  } catch (e: any) {
+    return NextResponse.json({ error: e?.message || "fail" }, { status: 500 });
   }
 }

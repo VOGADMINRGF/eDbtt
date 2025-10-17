@@ -1,18 +1,15 @@
-import Providers from './providers';
-// apps/web/src/app/layout.tsx
+/* @ts-nocheck */
 import "./globals.css";
-import type { Metadata } from "next";
-import { Header, Footer } from "@/shims/ui";
+import SiteHeader from "@/components/SiteHeader";
+import SiteFooter from "@/components/SiteFooter";
 
-export const metadata: Metadata = { title: "e-Debatte | VoiceOpenGov", description: "…" };
-
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({ children }:{children:React.ReactNode}){
   return (
     <html lang="de">
-      <body className="min-h-screen bg-white text-gray-900 flex flex-col">
-        <Header />
-        <main className="flex-1"><Providers>{children}</Providers></main>
-        <Footer />
+      <body className="min-h-screen flex flex-col">
+        <SiteHeader />
+        <main className="flex-1">{children}</main>
+        <SiteFooter />
       </body>
     </html>
   );

@@ -1,5 +1,5 @@
-import { loadPrompt } from "@features/contribution/utils/loadPrompt";
-import safeJsonParse from "@core/utils/jsonRepair"; // alternativ: relativ importieren
+import { loadPrompt } from "../contribution/utils/loadPrompt";
+import safeJsonParse from "@core/utils/jsonRepair";
 import { validateImpact, validateAlternatives, validateFactcheck, Alternative } from "@core/utils/validation/promptSchemas";
 import { callOpenAI } from "./providers/openai";
 import { callAnthropic } from "./providers/anthropic";

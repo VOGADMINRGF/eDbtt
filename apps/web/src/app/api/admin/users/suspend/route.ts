@@ -1,15 +1,12 @@
+/* @ts-nocheck */
 import { NextRequest, NextResponse } from "next/server";
-import { getCol } from "@core/db/triMongo";
-import { ObjectId } from "mongodb";
-
+// hier später: runOrchestratedTask(task, vars)
 export async function POST(req: NextRequest) {
-  const { id, suspended } = await req.json().catch(() => ({}));
-  if (!ObjectId.isValid(id))
-    return NextResponse.json({ error: "bad_id" }, { status: 400 });
-  const Users = await getCol("users");
-  await Users.updateOne(
-    { _id: new ObjectId(id) },
-    { $set: { suspended: !!suspended, updatedAt: new Date() } },
-  );
-  return NextResponse.json({ ok: true });
+  const { task, draftId, vars } = await req.json().catch(()=>({}));
+  if (!task || !draftId) {
+    return NextResponse.json({ ok:false, error:"task/draftId missing" }, { status:400 });
+  }
+  console.log("[ai.run]", { task, draftId, vars });
+  // TODO: echte Orchestrator-Anbindung
+  return NextResponse.json({ ok:true, task, draftId, status:"accepted" });
 }

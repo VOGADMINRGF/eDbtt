@@ -1,26 +1,24 @@
-// apps/web/src/components/SiteHeader.tsx
-import { getCookie } from "@/lib/http/typedCookies";
+"use client";
+import { useState } from "react";
 
-function toVal(v: unknown): string | undefined {
-  return typeof v === "string" ? v : (v as any)?.value;
-}
-
-export default async function SiteHeader() {
-  // Cookie asynchron lesen (Helper kann string ODER { value } liefern)
-  const role = toVal(await getCookie("u_role")) ?? "guest";
-
+export default function SiteHeader(){
+  const [open,setOpen]=useState(false);
   return (
-    <header className="flex items-center justify-between px-4 py-3">
-      <div className="font-semibold">VoiceOpenGov</div>
-
-      <nav className="ml-auto flex items-center gap-4">
-        <span className="text-sm opacity-80">Role: {role}</span>
-        {role === "admin" && (
-          <a href="/admin" className="underline">
-            Admin
-          </a>
-        )}
-      </nav>
+    <header className="border-b bg-white">
+      <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
+        <a href="/" className="font-bold text-lg">VoiceOpenGov</a>
+        <button aria-label="Menu" className="md:hidden p-2 border rounded" onClick={()=>setOpen(x=>!x)}>☰</button>
+        <nav className="hidden md:flex gap-4 text-sm">
+          <a href="/contributions/new" className="hover:underline">Neu</a>
+          <a href="/contributions/analyze" className="hover:underline">Erweitert</a>
+        </nav>
+      </div>
+      {open && (
+        <nav className="md:hidden border-t px-4 py-2 flex flex-col gap-2 text-sm bg-white">
+          <a href="/contributions/new" className="py-1">Neu</a>
+          <a href="/contributions/analyze" className="py-1">Erweitert</a>
+        </nav>
+      )}
     </header>
   );
 }

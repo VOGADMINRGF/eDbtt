@@ -1,11 +1,26 @@
 {
   "extends": "../tsconfig.base.json",
   "compilerOptions": {
-    "composite": true,
-    "baseUrl": ".",
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
     "jsx": "react-jsx",
-    "skipLibCheck": true
+    "strict": true,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "esModuleInterop": true,
+    "isolatedModules": true,
+    "verbatimModuleSyntax": true,
+    "baseUrl": ".",
+    "paths": {
+      "@features/*": ["./*"],
+      "@core/*": ["../core/*"],
+      "@contribution/*": ["../contribution/*"],
+      "@packages/*": ["../packages/*"]
+    }
   },
-  "include": ["**/*.ts", "**/*.tsx"],
-  "exclude": ["node_modules", "dist"]
+  "include": ["**/*"],
+  "exclude": ["node_modules", "dist", "build"]
 }

@@ -1,7 +1,16 @@
-import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
-export function middleware(_req: NextRequest) {
-  if (_req.method === "OPTIONS") return NextResponse.next();
+import type { NextRequest } from "next/server";
+
+export function middleware(req: NextRequest) {
+  if (req.method === "OPTIONS") return NextResponse.next();
+  if (req.nextUrl.pathname === "/statements/new") {
+    const url = req.nextUrl.clone();
+    url.pathname = "/contributions/new";
+    return NextResponse.redirect(url);
+  }
   return NextResponse.next();
 }
-export const config = { matcher: ["/api/:path*"] };
+
+export const config = {
+  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
+};

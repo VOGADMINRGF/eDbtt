@@ -1,49 +1,27 @@
 {
-  "extends": "./tsconfig.json",
+  "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "baseUrl": ".",
-    "jsx": "react-jsx",
-    "strict": false,
-    "skipLibCheck": true,
+    "target": "ES2022",
+    "lib": ["ES2022","DOM"],
+    "jsx": "preserve",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "resolveJsonModule": true,
     "noEmit": true,
+    "strict": true,
+    "skipLibCheck": true,
+    "baseUrl": ".",
     "paths": {
       "@/*": ["src/*"],
-
+      "@components/*": ["src/components/*"],
+      "@config/*": ["src/config/*"],
       "@db/web": ["src/shims/db-web.ts"],
       "@db/core": ["src/shims/db-core.ts"],
-
-      "@core/db/triMongo": ["../../core/db/triMongo.ts"],
-      "@core/triMongo": ["../../core/db/triMongo.ts"],
-      "@core/*": ["../../core/*"],
-      "@core/mongoose": ["../../core/mongoose.ts"],
-
-      "@models/*": ["src/models/*"],
-      "@context/*": ["src/context/*"],
-      "@components/*": ["src/shims/components/*"]
+      "@core/triMongo": ["src/shims/core/db/triMongo.ts"],
+      "@features/*": ["src/shims/features/*"],
+      "@packages/*": ["src/shims/packages/*"]
     }
   },
-  "include": [
-    "src/app/(public)/**/*",
-    "src/app/[locale]/**/*",
-    "src/components/**/*",
-    "src/context/**/*",
-    "src/utils/**/*",
-    "src/types/**/*",
-    "src/shims/**/*",
-    "src/lib/**/*",
-    "src/models/**/*"
-  ],
-  "exclude": [
-    "src/_disabled",
-    "src/app/api",
-    "src/app/**/admin/**",
-    "src/app/**/dashboard/**",
-    "src/server",
-    "src/shims/features/**",
-    "**/*.test.*",
-    "**/*.spec.*",
-    ".next",
-    "node_modules",
-    "dist"
-  ]
+  "include": ["next-env.d.ts", "src/**/*.ts", "src/**/*.tsx"],
+  "exclude": ["node_modules", ".next", "dist", "build"]
 }

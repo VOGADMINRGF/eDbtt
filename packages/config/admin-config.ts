@@ -1,3 +1,4 @@
+// packages/config/admin-config.ts
 // Central runtime config with env fallbacks
 export interface PricingConfig {
   membershipMonthlyEUR: number;      // e.g., 5

@@ -78,7 +78,7 @@
     "nodemailer": "^7.0.6",
     "ol": "^10.6.1",
     "ol-mapbox-style": "^13.1.0",
-    "openai": "^6.2.0",
+    "openai": "^4.104.0",
     "pino": "^10.0.0",
     "qrcode": "^1.5.4",
     "react-beautiful-dnd": "^13.1.1",

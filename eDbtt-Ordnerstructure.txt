@@ -1,16 +1,16 @@
 .
 ├── .DS_Store
+├── .env.local
 ├── .envrc
 ├── .github
 │   ├── pull_request_template.md
 │   └── workflows
 │       └── e150-ci.yml
 ├── .gitignore
+├── .v3_stage
 ├── .zap
 │   └── rules.tsv
-├── README_VPM25_SCRIPT_BUNDLE.md
 ├── _incoming
-│   └── .envrc
 ├── apps
 │   ├── .DS_Store
 │   └── web
@@ -22,14 +22,39 @@
 │       ├── .tsbuildinfo.web
 │       ├── Dockerfile
 │       ├── README.md
+│       ├── _repair_backup_20251015-094013
+│       │   ├── SidebarNav.tsx.bak
+│       │   ├── app_api_admin_analytics_summary_route.ts.empty.bak
+│       │   ├── app_api_admin_errors_last24_route.ts.empty.bak
+│       │   ├── app_api_admin_streams_route.ts.empty.bak
+│       │   ├── app_api_ari_page.tsx.empty.bak
+│       │   ├── app_api_contributions_analytics_summary_route.ts.empty.bak
+│       │   ├── app_api_factcheck_enqueue_route.ts.empty.bak
+│       │   ├── app_api_factcheck_status_route.ts.empty.bak
+│       │   ├── app_api_geo_nuts_route.ts.empty.bak
+│       │   ├── app_api_health_elastic.ts.empty.bak
+│       │   ├── app_api_health_gemini.ts.empty.bak
+│       │   ├── app_api_health_graphdb.ts.empty.bak
+│       │   ├── app_api_health_llama3.ts.empty.bak
+│       │   ├── app_api_health_qdrant.ts.empty.bak
+│       │   ├── app_api_public_streams_route.ts.empty.bak
+│       │   ├── app_api_reports_[id]_route.ts.empty.bak
+│       │   ├── app_contributions_new_page.tsx.empty.bak
+│       │   ├── app_report_[id]_page.tsx.empty.bak
+│       │   ├── graph_syncStatementsToGraph.ts.empty.bak
+│       │   ├── package.json.bak
+│       │   ├── postcss.config.js.bak
+│       │   ├── tailwind.config.js.bak
+│       │   └── tsconfig.json.bak
 │       ├── eslint.config.js
 │       ├── i18n.ts
+│       ├── next
 │       ├── next-env.d.ts
 │       ├── next-env.d.ts.bak
 │       ├── next.config.ts
 │       ├── next.config.ts.bak
 │       ├── package.json
-│       ├── postcss.config.mjs
+│       ├── postcss.config.cjs
 │       ├── public
 │       │   ├── .DS_Store
 │       │   ├── dummy
@@ -82,6 +107,14 @@
 │       │   └── votes.ensureIndexes.ts
 │       ├── src
 │       │   ├── .DS_Store
+│       │   ├── __features_local_DISABLED__
+│       │   │   ├── analysis
+│       │   │   │   └── extract.ts
+│       │   │   ├── analyze
+│       │   │   ├── fact
+│       │   │   │   └── FactBadge.tsx
+│       │   │   └── newsfeed
+│       │   │       └── pipeline.ts
 │       │   ├── _disabled
 │       │   │   ├── admin
 │       │   │   │   ├── access
@@ -142,8 +175,11 @@
 │       │   ├── app
 │       │   │   ├── (admin)
 │       │   │   │   └── factcheck
+│       │   │   ├── (components)
 │       │   │   ├── (public)
 │       │   │   │   └── join
+│       │   │   ├── (styles)
+│       │   │   ├── .DS_Store
 │       │   │   ├── [locale]
 │       │   │   │   └── layout.tsx
 │       │   │   ├── admin
@@ -156,6 +192,7 @@
 │       │   │   │   ├── contribution
 │       │   │   │   ├── contributions
 │       │   │   │   ├── csrf
+│       │   │   │   ├── drafts
 │       │   │   │   ├── errors
 │       │   │   │   ├── events
 │       │   │   │   ├── export
@@ -166,6 +203,7 @@
 │       │   │   │   ├── health
 │       │   │   │   ├── items
 │       │   │   │   ├── map
+│       │   │   │   ├── news
 │       │   │   │   ├── public
 │       │   │   │   ├── quick-register
 │       │   │   │   ├── region
@@ -197,6 +235,7 @@
 │       │   │   │   ├── ContributionForm.tsx
 │       │   │   │   └── page.tsx
 │       │   │   ├── contributions
+│       │   │   │   ├── analyze
 │       │   │   │   ├── new
 │       │   │   │   └── page.tsx
 │       │   │   ├── daten
@@ -286,6 +325,7 @@
 │       │   │   └── verify
 │       │   │       └── page.tsx
 │       │   ├── components
+│       │   │   ├── ClaimCard.tsx
 │       │   │   ├── FAQTabs.tsx
 │       │   │   ├── Headline.tsx
 │       │   │   ├── IntroSection.tsx
@@ -300,8 +340,9 @@
 │       │   │   ├── QuickRegister.tsx
 │       │   │   ├── RegionSelector.tsx
 │       │   │   ├── SetBuilder.tsx
-│       │   │   ├── SidebarNav.tsx
+│       │   │   ├── SiteFooter.tsx
 │       │   │   ├── SiteHeader.tsx
+│       │   │   ├── Stepper.tsx
 │       │   │   ├── StreamForm.tsx
 │       │   │   ├── Stufenbalken.tsx
 │       │   │   ├── SupportBenefits.tsx
@@ -309,6 +350,14 @@
 │       │   │   ├── SwipeTeaser.tsx
 │       │   │   ├── TabNav.tsx
 │       │   │   ├── ThemaGrid.tsx
+│       │   │   ├── analyze
+│       │   │   │   ├── ActivityConsole.tsx
+│       │   │   │   ├── AnalyzeOverlay.tsx
+│       │   │   │   ├── AnalyzeUI.tsx
+│       │   │   │   └── useAnalyzeOverlay.ts
+│       │   │   ├── nav
+│       │   │   │   ├── SidebarNav.tsx
+│       │   │   │   └── SidebarNavClient.tsx
 │       │   │   ├── profile
 │       │   │   │   └── UserProfile.tsx
 │       │   │   ├── region
@@ -317,6 +366,7 @@
 │       │   │       └── ThemeProvider.tsx
 │       │   ├── config
 │       │   │   ├── accessControl.ts
+│       │   │   ├── admin-config.ts
 │       │   │   ├── apiRoutes.ts
 │       │   │   └── prompts.json
 │       │   ├── constants
@@ -368,11 +418,6 @@
 │       │   │       ├── wasm-worker-loader.mjs
 │       │   │       ├── wasm.d.ts
 │       │   │       └── wasm.js
-│       │   ├── features
-│       │   │   ├── fact
-│       │   │   │   └── FactBadge.tsx
-│       │   │   └── newsfeed
-│       │   │       └── pipeline.ts
 │       │   ├── graph
 │       │   │   ├── arangoRepo.ts
 │       │   │   ├── config.ts
@@ -393,6 +438,7 @@
 │       │   │   ├── access
 │       │   │   │   ├── acl.ts
 │       │   │   │   └── permissions.ts
+│       │   │   ├── analysis.ts
 │       │   │   ├── api.ts
 │       │   │   ├── audit.ts
 │       │   │   ├── auth
@@ -429,6 +475,7 @@
 │       │   │   │   └── provider.ts
 │       │   │   ├── http
 │       │   │   │   └── typedCookies.ts
+│       │   │   ├── llm.ts
 │       │   │   ├── logging
 │       │   │   │   └── pino.ts
 │       │   │   ├── neo4j.ts
@@ -454,6 +501,7 @@
 │       │   ├── middleware
 │       │   │   └── editorAuth.ts
 │       │   ├── middleware.ts
+│       │   ├── middleware.ts.bak
 │       │   ├── models
 │       │   │   ├── Contribution.ts
 │       │   │   ├── ErrorLog.ts
@@ -479,8 +527,25 @@
 │       │   │       └── Vote.ts
 │       │   ├── openapi
 │       │   │   └── v1.yaml
+│       │   ├── pipeline
+│       │   │   ├── manifest.ts
+│       │   │   ├── registry.ts
+│       │   │   ├── steps
+│       │   │   │   ├── analyze_gpt.ts
+│       │   │   │   ├── cache.ts
+│       │   │   │   ├── confirm.ts
+│       │   │   │   ├── factcheck_stub.ts
+│       │   │   │   ├── finalize.ts
+│       │   │   │   ├── heuristic.ts
+│       │   │   │   └── preprocess.ts
+│       │   │   ├── types.ts
+│       │   │   └── util.ts
 │       │   ├── prisma.ts
 │       │   ├── server
+│       │   │   ├── draftStore.ts
+│       │   │   ├── drafts.client.ts
+│       │   │   ├── drafts.ts
+│       │   │   ├── drafts.ts.bak
 │       │   │   ├── handlers
 │       │   │   │   └── contributions
 │       │   │   ├── health.ts
@@ -499,6 +564,7 @@
 │       │   │   ├── db-web.ts
 │       │   │   ├── e200-ambient.d.ts
 │       │   │   ├── features
+│       │   │   │   ├── analysis
 │       │   │   │   ├── context
 │       │   │   │   ├── graph
 │       │   │   │   ├── index.ts
@@ -511,9 +577,7 @@
 │       │   │   │   └── utils
 │       │   │   ├── models
 │       │   │   │   └── Vote.ts
-│       │   │   └── ui
-│       │   │       ├── design
-│       │   │       └── theme.ts
+│       │   │   └── ui.tsx
 │       │   ├── styles
 │       │   │   └── dashboard.css
 │       │   ├── types
@@ -527,7 +591,8 @@
 │       │   │   ├── overrides
 │       │   │   │   └── quickregister.d.ts
 │       │   │   ├── shims-public.d.ts
-│       │   │   └── shims.step.d.ts
+│       │   │   ├── shims.step.d.ts
+│       │   │   └── ui-shim.d.ts
 │       │   ├── ui
 │       │   │   └── design
 │       │   │       └── badgeColor.ts
@@ -546,7 +611,6 @@
 │       │       ├── geo
 │       │       │   └── normalize.ts
 │       │       ├── gptTranslator.ts
-│       │       ├── jsonRepair.ts
 │       │       ├── jwt.ts
 │       │       ├── lang.ts
 │       │       ├── log.ts
@@ -570,9 +634,10 @@
 │       │       ├── session.ts
 │       │       ├── tokens.ts
 │       │       ├── translationCache.ts
+│       │       ├── triMongo.ts
 │       │       ├── useTranslation.ts
 │       │       └── validation.ts
-│       ├── tailwind.config.js
+│       ├── tailwind.config.cjs
 │       ├── tests
 │       │   ├── admin.analytics.summary.test.ts
 │       │   ├── e2e
@@ -597,6 +662,7 @@
 │       └── types
 │           ├── sanitize-html.d.ts
 │           └── shims.d.ts
+├── apps.zip
 ├── core
 │   ├── .DS_Store
 │   ├── ari
@@ -672,9 +738,10 @@
 │   │       └── promptSchemas.ts
 │   └── web
 │       └── worker-client.ts
+├── core.zip
 ├── docker-compose.graphdb.yml
 ├── docker-compose.yml
-├── eDbtt-structure.txt
+├── eDbtt-Ordnerstructure.txt
 ├── features
 │   ├── .DS_Store
 │   ├── ai
@@ -686,6 +753,13 @@
 │   │   │   ├── mistral.ts
 │   │   │   └── openai.ts
 │   │   └── telemetry.ts
+│   ├── analyze
+│   │   ├── analyzeContribution.ts
+│   │   ├── analyzeContribution.ts.bak
+│   │   ├── analyzeText.ts
+│   │   ├── argumentation.ts
+│   │   ├── canon.ts
+│   │   └── wrapper.ts
 │   ├── auth
 │   │   ├── components
 │   │   │   ├── index.ts
@@ -992,6 +1066,7 @@
 │       │   ├── index.ts
 │       │   └── useVoteStream.ts
 │       └── index.ts
+├── features.zip
 ├── package.json
 ├── packages
 │   ├── analytics
@@ -1086,17 +1161,23 @@
 │       │   ├── constants
 │       │   │   └── languageOptions.ts
 │       │   ├── design
+│       │   │   ├── Avatar.tsx
+│       │   │   ├── AvatarFallback.tsx
+│       │   │   ├── AvatarImage.tsx
 │       │   │   ├── Badge.tsx
 │       │   │   ├── Button.tsx
+│       │   │   ├── Card.tsx
+│       │   │   ├── Input.tsx
 │       │   │   ├── LoadingOverlay.tsx
 │       │   │   ├── Modal.tsx
 │       │   │   ├── ModalConfirm.tsx
+│       │   │   ├── Separator.tsx
 │       │   │   ├── Spinner.tsx
 │       │   │   ├── Toast.tsx
 │       │   │   ├── badgeColor.ts
-│       │   │   └── badgeColors.ts
+│       │   │   ├── badgeColors.ts
+│       │   │   └── index.ts
 │       │   ├── index.ts
-│       │   ├── index.tsx
 │       │   ├── layout
 │       │   │   ├── Footer.tsx
 │       │   │   └── Header.tsx
@@ -1109,9 +1190,11 @@
 │       ├── tsconfig.json
 │       ├── tsconfig.tsbuildinfo
 │       └── tsup.config.ts
+├── packages.zip
 ├── pnpm-lock.yaml
 ├── pnpm-workspace.yaml
 ├── prisma
+│   ├── .DS_Store
 │   ├── core
 │   │   └── schema.prisma
 │   ├── migrations
@@ -1131,6 +1214,7 @@
 │       └── schema.prisma
 ├── scripts
 │   ├── absurlify.mjs
+│   ├── apply_vog_ux_pipeline.sh
 │   ├── build-feature-barrels.mjs
 │   ├── codemods
 │   │   ├── cookies-headers.ts
@@ -1139,8 +1223,20 @@
 │   ├── dropPartitionIndex.ts
 │   ├── e150_bootstrap_content.sh
 │   ├── e150_seed.sh
+│   ├── enable_consistency_flow.sh
+│   ├── enable_v3_workflow.sh
 │   ├── ensureIndexes.ts
+│   ├── final-patch.sh
+│   ├── fix-web-typecheck-2.sh
+│   ├── fix-web-typecheck-3.sh
+│   ├── fix-web-typecheck-4.sh
+│   ├── fix-web-typecheck.sh
+│   ├── fix_type_errors.sh
+│   ├── fix_v1_csrf_dynamic_apis.sh
+│   ├── fix_v1_landingeDbtt.sh
+│   ├── fix_v1_trimongo.sh
 │   ├── fix_vpm25.sh
+│   ├── fix_wire_v3_ai.sh
 │   ├── helpers
 │   │   ├── apply_colors.js
 │   │   ├── bulk_rename_brand.js
@@ -1148,6 +1244,8 @@
 │   │   ├── newsfeed_cron.js
 │   │   └── replace_zero_kb.js
 │   ├── hotfix_run.sh
+│   ├── install-analyze-pipeline.sh
+│   ├── integrate_v3_ai_into_v1.sh
 │   ├── kafka-consumer.js
 │   ├── kafka-producer.js
 │   ├── make-review-snapshot.mjs
@@ -1161,12 +1259,36 @@
 │   │   ├── e150_fix_relative_fetch.sh
 │   │   └── e150_quickcheck.sh
 │   ├── optional-prisma.js
+│   ├── patch-ui-shim.sh
 │   ├── seed.demo.data.ts
 │   ├── tsc_hotfix_e150.mjs
-│   └── verifyEnv.ts
+│   ├── verifyEnv.ts
+│   ├── vog_analysis_stepper_and_cache.sh
+│   ├── vog_apply_all.sh
+│   ├── vog_apply_ari_gpt.sh
+│   ├── vog_apply_workflow.sh
+│   ├── vog_fix_ssr_dynamic.sh
+│   ├── vog_fix_ts_inputs.sh
+│   ├── vog_flexible_pipeline.sh
+│   ├── vog_hotfix_build_sse.sh
+│   ├── vog_hotfix_focus_analyze.sh
+│   ├── vog_make_all_buildable.sh
+│   ├── vog_patch_admin_config.sh
+│   ├── vog_patch_ts_inputs_v2.sh
+│   ├── vog_patch_ts_inputs_v3.sh
+│   ├── vog_phase1_patch.sh
+│   ├── vog_phase2_api.sh
+│   ├── vog_phase3_ui.sh
+│   ├── vog_phase4_pages_hotfix.sh
+│   ├── vog_phase5_gpt5_orchestrate.sh
+│   ├── vog_run_dev.sh
+│   ├── vog_ui_apply.sh
+│   ├── wire_gpt_ai_strict.sh
+│   └── wire_vog_pipeline.sh
 ├── secrets
 │   └── mongo_keyfile
 ├── src
+│   ├── .DS_Store
 │   └── lib
 │       └── db
 │           ├── core.ts
@@ -1262,10 +1384,8 @@
 ├── tsconfig.base.json.bak.1759919096
 ├── tsconfig.base.json.bak.1759919694
 ├── turbo.json
-├── vpm25-structure.txt
-├── vpm25_script_bundle.zip
 └── worker
     └── factcheck
         └── worker.ts
 
-375 directories, 894 files
+388 directories, 1001 files

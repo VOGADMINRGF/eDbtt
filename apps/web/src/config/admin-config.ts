@@ -1,15 +1,3 @@
-export type AdminConfig = {
-  limits: { newsfeedMaxPerRun: number };
-  region: { defaultRegionKey: string };
-  features: string[];
-  roles: string[];
-};
-
-export const adminConfig: AdminConfig = {
-  limits: { newsfeedMaxPerRun: 50 },
-  region: { defaultRegionKey: "de-national" },
-  features: [],
-  roles: ["admin"],
-};
-
+export type { AdminConfig, PricingConfig, PipelineLimits, RegionPilot } from "../../../../packages/config/admin-config";
+export { adminConfig } from "../../../../packages/config/admin-config";
 export default adminConfig;

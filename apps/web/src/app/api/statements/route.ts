@@ -149,7 +149,7 @@ export async function POST(req: NextRequest) {
   const timeframe = body?.timeframe ? String(body.timeframe).slice(0, 120) : undefined;
 
   
-  const analysis = await analyzeContribution(text, [category]);
+  const analysis = await analyzeContribution(text);
   if (!category && analysis.subTopics?.length) category = analysis.subTopics[0];
   const now = new Date();
 

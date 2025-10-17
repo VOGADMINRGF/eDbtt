@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { analyzeContribution } from "@/features/analyze/analyzeContribution";
+import { analyzeContribution } from "@features/analyze/analyzeContribution";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";

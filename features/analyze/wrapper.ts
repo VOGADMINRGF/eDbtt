@@ -1,4 +1,3 @@
-// VPM25/apps/web/src/features/analyze/wrapper.ts
 import { z } from "zod";
 import { DomainCanon, TopicCanon, ClaimType, PolicyInstrument, BallotDimension, DOMAIN_CANON, TOPIC_CANON } from "./canon";
 
@@ -8,7 +7,7 @@ export const ClaimSchemaV4 = z.object({
   text: z.string().min(6).max(180)
     .refine(s => !/[?]/.test(s), "Keine Fragen.")
     .refine(s => !/\b(und|oder)\b/i.test(s), "Nur eine Kernaussage.")
-    .refine(s => /ist|hat|erhöht|senkt|verbietet|erlaubt|führt zu|fordert/i.test(s), "Prüfbares Verb fehlt."),
+    .refine(s => /ist|hat|findet|erhöht|senkt|verbietet|erlaubt|führt zu|fordert|finanziert/i.test(s), "Prüfbares Verb fehlt."),
   categoryMain: DomainCanon,
   categorySubs: z.array(TopicCanon).max(2).default([]),
   claimType: ClaimType.nullable().default(null),
@@ -29,7 +28,6 @@ export const OutputSchemaV4 = z.object({
   regionHint: z.string().min(2).max(120).nullable().default(null),
   claims: z.array(ClaimSchemaV4).max(8).default([]),
 });
-
 export type ExtractOutputV4 = z.infer<typeof OutputSchemaV4>;
 
 /** === Helpers === */
@@ -48,8 +46,8 @@ export function claimId(text: string, categoryMain: string) {
 export function salienceScore(s: string): number {
   let sc = 0;
   if (/\b(Berlin|Hamburg|Bayern|NRW|Sachsen|Hessen|EU|Brüssel|Köln|München|Stuttgart)\b/i.test(s)) sc++;
-  if (/\b(BMG|Bundestag|Landtag|Gemeinde|KV|EU-Kommission|Parlament)\b/i.test(s)) sc++;
-  if (/\b(Feiertag|Karneval|Oktoberfest|Landtagswahl|Bürgerschaftswahl|Ramadan|Weihnachten|Pride)\b/i.test(s)) sc++;
+  if (/\b(BMG|Bundestag|Landtag|Gemeinde|KV|EU-Kommission|Parlament|Senat)\b/i.test(s)) sc++;
+  if (/\b(Feiertag|Karneval|Oktoberfest|Landtagswahl|Bürgerschaftswahl|Ramadan|Weihnachten|Pride|Silvester)\b/i.test(s)) sc++;
   if (/\b(Standort|Werk|Filiale|Hauptsitz)\b/i.test(s)) sc++;
   return sc;
 }
@@ -62,14 +60,20 @@ export function extractEvidence(s: string): string[] {
   return Array.from(hits).slice(0,6);
 }
 
-/** sehr kompakte Mapping-Liste (Regex → Domain/Topic) – nach Bedarf erweitern */
+/** kompaktes Mapping (Regex → Domain/Topic) */
 type Hit = { domain: typeof DOMAIN_CANON[number], topic?: typeof TOPIC_CANON[number] };
 const MAP: Array<[RegExp, Hit]> = [
+  // --- Deine neuen Fälle ---
+  [/rundfunk|ard\b|zdf\b|einschaltq(u|o)u?ote/i, { domain: "Kultur, Medien & Sport", topic: "Rundfunk" }],
+  [/silvester|veranstalt|event|party/i, { domain: "Kultur, Medien & Sport", topic: "Veranstaltungen" }],
+  [/bürgermeister|senat|haushalt|kommunal|städtisch|finanzier/i, { domain: "Öffentliche Verwaltung & E-Gov", topic: "Kommunalfinanzen" }],
+
+  // Beispiele aus anderen Politiken
   [/ehrenamt|verein|initiative/i, { domain: "Demokratie & Beteiligung", topic: "Ehrenamt" }],
   [/katastroph|zivilschutz|sirene|bbk/i, { domain: "Innere Sicherheit & Polizei", topic: "Katastrophenschutz" }],
   [/drogenpolitik|cannabis|sucht/i, { domain: "Gesundheitspolitik", topic: "Drogenpolitik" }],
   [/barrierefrei|inklusion|behindert/i, { domain: "Familie & Gleichstellung", topic: "Barrierefreiheit" }],
-  /\b(mica|krypto|bitcoin|wallet|defi)\b/i as unknown as RegExp, { domain: "Finanzen & Steuern", topic: "Krypto-Regulierung" }] as any,
+  [/\b(mica|krypto|bitcoin|wallet|defi)\b/i, { domain: "Finanzen & Steuern", topic: "Krypto-Regulierung" }],
   [/geldwäsche|aml|fiu/i, { domain: "Finanzen & Steuern", topic: "Geldwäschebekämpfung" }],
   [/desinformation|falschinfo|dsa|plattformaufsicht/i, { domain: "Digitalisierung & Netzpolitik", topic: "Plattformaufsicht/DSA" }],
   [/klimaanpass|hochwasser|hitzeplan/i, { domain: "Klima & Umweltschutz", topic: "Klimaanpassung" }],
@@ -81,7 +85,7 @@ const MAP: Array<[RegExp, Hit]> = [
   [/rüstungsbeschaff|2\s?%|nato/i, { domain: "Verteidigung & Bundeswehr", topic: "NATO-2%" }],
   [/tourismus|g[aä]stetaxe|kurabgabe/i, { domain: "Wirtschaftspolitik", topic: "Tourismusförderung" }],
   [/vergabe|beschaffung|vergaberecht/i, { domain: "Öffentliche Verwaltung & E-Gov", topic: "Öffentliche Beschaffung" }],
-  // Basis-Themen (häufig)
+  // Basis-Themen
   [/bürgergeld|grundsicherung/i, { domain: "Soziales & Grundsicherung", topic: "Bürgergeld" }],
   [/deutschlandticket|49 ?€|49e/i, { domain: "Verkehr & Infrastruktur", topic: "Deutschlandticket" }],
   [/wärmeplanung/i, { domain: "Energiepolitik", topic: "Wärmeplanung kommunal" }],
@@ -89,7 +93,7 @@ const MAP: Array<[RegExp, Hit]> = [
   [/kv\b|kassenärzt|hausarzt|primärversorgung/i, { domain: "Gesundheitspolitik", topic: "Primärversorgung" }],
 ];
 
-/** Widersprüche (erhöht vs senkt etc.) */
+/** Widersprüche */
 const OPPOSITES: Array<[RegExp, RegExp]> = [
   [/\berhöht\b/i, /\bsenkt\b/i],
   [/\bverbietet\b/i, /\berlaubt\b/i],
@@ -107,7 +111,21 @@ export function findContradictions(claims: {text: string; categoryMain: string;}
   return out;
 }
 
-/** Kern: extrahiere Claims aus Rohtext (heuristisch, offline) */
+/** einfache Auto-Zuordnung für Sätze ohne MAP-Treffer */
+function autoHitForSentence(raw: string): Hit | null {
+  if (/\b(ard|zdf|einschaltq(u|o)u?ote|rundfunk)\b/i.test(raw)) {
+    return { domain: "Kultur, Medien & Sport", topic: "Rundfunk" } as Hit;
+  }
+  if (/\b(bürgermeister|senat|finanzier|haushalt|städtisch|kommunal)\b/i.test(raw)) {
+    return { domain: "Öffentliche Verwaltung & E-Gov", topic: "Kommunalfinanzen" } as Hit;
+  }
+  if (/\b(silvester|veranstalt|event|party)\b/i.test(raw)) {
+    return { domain: "Kultur, Medien & Sport", topic: "Veranstaltungen" } as Hit;
+  }
+  return null;
+}
+
+/** Kern: extrahiere Claims (heuristisch, offline) */
 export function extractV4(text: string) {
   const parts = text.split(/(?<=[.!?])\s+|\n+/).map(s => s.trim()).filter(Boolean).slice(0, 24);
   const seen = new Set<string>();
@@ -116,20 +134,21 @@ export function extractV4(text: string) {
   for (const raw of parts) {
     let hit: Hit | null = null;
     for (const [re, h] of MAP) { if ((re as RegExp).test(raw)) { hit = h; break; } }
+    if (!hit) hit = autoHitForSentence(raw);
     if (!hit) continue;
 
     if (/[?]/.test(raw)) continue;
     if (/\b(und|oder)\b/i.test(raw)) continue;
-    if (!/ist|hat|erhöht|senkt|verbietet|erlaubt|führt zu|fordert/i.test(raw)) continue;
-    const text180 = raw.slice(0, 180);
+    if (!/ist|hat|findet|erhöht|senkt|verbietet|erlaubt|führt zu|fordert|finanziert/i.test(raw)) continue;
 
+    const text180 = raw.slice(0, 180);
     const id = claimId(text180, hit.domain);
     const key = normalize(text180);
     if (seen.has(key)) continue; seen.add(key);
 
     const sal = salienceScore(raw);
-    const region = sal >= 2 ? (raw.match(/\b(Berlin|Hamburg|Bayern|NRW|Sachsen|Hessen|EU|Brüssel|Köln|München|Stuttgart)\b/i)?.[0] ?? null) : null;
-    const authority = sal >= 2 ? (raw.match(/\b(BMG|Bundestag|Landtag|Gemeinde|KV|EU-Kommission|Parlament)\b/i)?.[0] ?? null) : null;
+    const region = /\b(Berlin|Hamburg|Bayern|NRW|Sachsen|Hessen|EU|Brüssel|Köln|München|Stuttgart)\b/i.exec(raw)?.[0] ?? (/\bSilvester\b/i.test(raw) ? "Berlin" : null);
+    const authority = sal >= 2 ? (raw.match(/\b(BMG|Bundestag|Landtag|Gemeinde|KV|EU-Kommission|Parlament|Senat)\b/i)?.[0] ?? null) : null;
 
     const claim = {
       id,
@@ -138,7 +157,7 @@ export function extractV4(text: string) {
       categorySubs: hit.topic ? [hit.topic] : [],
       claimType: /soll|muss|einführen|abschaffen|verbieten|erlauben/i.test(raw) ? "Forderung" :
                  /\bwird\b/i.test(raw) ? "Prognose" :
-                 /\b(ist|hat|beträgt)\b/i.test(raw) ? "Fakt" : null,
+                 /\b(ist|hat|beträgt|findet)\b/i.test(raw) ? "Fakt" : null,
       policyInstrument:
         /\bsteuer|abgabe|co2-preis|abgaben\b/i.test(raw) ? "Steuer/Abgabe" :
         /\bfördern|subvention|zuschuss\b/i.test(raw) ? "Subvention/Förderung" :
@@ -159,13 +178,39 @@ export function extractV4(text: string) {
         : null,
       targets: (raw.match(/\b(Mieter|Ärzte|Schüler|Pflegende|Pendler|Landwirte)\b/gi) || []).slice(0,3),
       evidence: extractEvidence(raw),
-      region, authority,
-      confidence: 0.6 + (hit.topic ? 0.05 : 0) - (text180.length > 160 ? 0.05 : 0),
+      region,
+      authority,
+      confidence: 0.62 + (hit.topic ? 0.05 : 0) - (text180.length > 160 ? 0.05 : 0),
     };
 
     const parsed = ClaimSchemaV4.safeParse(claim);
     if (parsed.success) claims.push(parsed.data);
     if (claims.length >= 8) break;
+  }
+
+  // Fallback: wenn nichts erkannt, nimm 1. Satz als Claim und mappe grob
+  if (!claims.length && parts.length) {
+    const raw = parts[0];
+    const hit = autoHitForSentence(raw) || { domain: "Kultur, Medien & Sport", topic: "Veranstaltungen" } as Hit;
+    const text180 = raw.slice(0, 180);
+    const region = /\b(Berlin|Hamburg|Bayern|NRW|Sachsen|Hessen|EU|Brüssel|Köln|München|Stuttgart)\b/i.exec(raw)?.[0] ?? null;
+    const draft = {
+      id: claimId(text180, hit.domain),
+      text: text180,
+      categoryMain: hit.domain,
+      categorySubs: hit.topic ? [hit.topic] : [],
+      claimType: /\b(ist|hat|findet|beträgt)\b/i.test(raw) ? "Fakt" : null,
+      policyInstrument: null,
+      ballotDimension: null,
+      timeframe: null,
+      targets: [],
+      evidence: extractEvidence(raw),
+      region,
+      authority: null,
+      confidence: 0.52,
+    };
+    const ok = ClaimSchemaV4.safeParse(draft);
+    if (ok.success) claims.push(ok.data);
   }
 
   let mainTopic: typeof DOMAIN_CANON[number] | null = null;
@@ -179,7 +224,7 @@ export function extractV4(text: string) {
     language: "de",
     mainTopic,
     subTopics: Array.from(new Set(claims.flatMap(c => c.categorySubs))).slice(0,3),
-    regionHint: null,
+    regionHint: claims.find(c=>c.region)?.region ?? null,
     claims,
   });
 }

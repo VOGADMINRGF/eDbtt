@@ -88,8 +88,8 @@ importers:
         specifier: ^13.1.0
         version: 13.1.0(ol@10.6.1)
       openai:
-        specifier: ^6.2.0
-        version: 6.2.0(zod@4.1.11)
+        specifier: ^4.104.0
+        version: 4.104.0(zod@4.1.11)
       pino:
         specifier: ^10.0.0
         version: 10.0.0
@@ -4148,18 +4148,6 @@ packages:
     peerDependencies:
       ws: ^8.18.0
       zod: ^3.23.8
-    peerDependenciesMeta:
-      ws:
-        optional: true
-      zod:
-        optional: true
-
-  openai@6.2.0:
-    resolution: {integrity: sha512-qqjzHls7F5xkXNGy9P1Ei1rorI5LWupUUFWP66zPU8FlZbiITX8SFcHMKNZg/NATJ0LpIZcMUFxSwQmdeQPwSw==}
-    hasBin: true
-    peerDependencies:
-      ws: ^8.18.0
-      zod: ^3.25 || ^4.0
     peerDependenciesMeta:
       ws:
         optional: true
@@ -8278,7 +8266,7 @@ snapshots:
       '@typescript-eslint/parser': 8.44.1(eslint@9.14.0(jiti@2.6.0))(typescript@5.9.2)
       eslint: 9.14.0(jiti@2.6.0)
       eslint-import-resolver-node: 0.3.9
-      eslint-import-resolver-typescript: 3.10.1(eslint-plugin-import@2.32.0)(eslint@9.14.0(jiti@2.6.0))
+      eslint-import-resolver-typescript: 3.10.1(eslint-plugin-import@2.32.0(@typescript-eslint/parser@8.44.1(eslint@9.14.0(jiti@2.6.0))(typescript@5.9.2))(eslint@9.14.0(jiti@2.6.0)))(eslint@9.14.0(jiti@2.6.0))
       eslint-plugin-import: 2.32.0(@typescript-eslint/parser@8.44.1(eslint@9.14.0(jiti@2.6.0))(typescript@5.9.2))(eslint-import-resolver-typescript@3.10.1)(eslint@9.14.0(jiti@2.6.0))
       eslint-plugin-jsx-a11y: 6.10.2(eslint@9.14.0(jiti@2.6.0))
       eslint-plugin-react: 7.37.5(eslint@9.14.0(jiti@2.6.0))
@@ -8298,7 +8286,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  eslint-import-resolver-typescript@3.10.1(eslint-plugin-import@2.32.0)(eslint@9.14.0(jiti@2.6.0)):
+  eslint-import-resolver-typescript@3.10.1(eslint-plugin-import@2.32.0(@typescript-eslint/parser@8.44.1(eslint@9.14.0(jiti@2.6.0))(typescript@5.9.2))(eslint@9.14.0(jiti@2.6.0)))(eslint@9.14.0(jiti@2.6.0)):
     dependencies:
       '@nolyfill/is-core-module': 1.0.39
       debug: 4.4.3
@@ -8313,14 +8301,14 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  eslint-module-utils@2.12.1(@typescript-eslint/parser@8.44.1(eslint@9.14.0(jiti@2.6.0))(typescript@5.9.2))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.10.1)(eslint@9.14.0(jiti@2.6.0)):
+  eslint-module-utils@2.12.1(@typescript-eslint/parser@8.44.1(eslint@9.14.0(jiti@2.6.0))(typescript@5.9.2))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.10.1(eslint-plugin-import@2.32.0(@typescript-eslint/parser@8.44.1(eslint@9.14.0(jiti@2.6.0))(typescript@5.9.2))(eslint@9.14.0(jiti@2.6.0)))(eslint@9.14.0(jiti@2.6.0)))(eslint@9.14.0(jiti@2.6.0)):
     dependencies:
       debug: 3.2.7
     optionalDependencies:
       '@typescript-eslint/parser': 8.44.1(eslint@9.14.0(jiti@2.6.0))(typescript@5.9.2)
       eslint: 9.14.0(jiti@2.6.0)
       eslint-import-resolver-node: 0.3.9
-      eslint-import-resolver-typescript: 3.10.1(eslint-plugin-import@2.32.0)(eslint@9.14.0(jiti@2.6.0))
+      eslint-import-resolver-typescript: 3.10.1(eslint-plugin-import@2.32.0(@typescript-eslint/parser@8.44.1(eslint@9.14.0(jiti@2.6.0))(typescript@5.9.2))(eslint@9.14.0(jiti@2.6.0)))(eslint@9.14.0(jiti@2.6.0))
     transitivePeerDependencies:
       - supports-color
 
@@ -8335,7 +8323,7 @@ snapshots:
       doctrine: 2.1.0
       eslint: 9.14.0(jiti@2.6.0)
       eslint-import-resolver-node: 0.3.9
-      eslint-module-utils: 2.12.1(@typescript-eslint/parser@8.44.1(eslint@9.14.0(jiti@2.6.0))(typescript@5.9.2))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.10.1)(eslint@9.14.0(jiti@2.6.0))
+      eslint-module-utils: 2.12.1(@typescript-eslint/parser@8.44.1(eslint@9.14.0(jiti@2.6.0))(typescript@5.9.2))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.10.1(eslint-plugin-import@2.32.0(@typescript-eslint/parser@8.44.1(eslint@9.14.0(jiti@2.6.0))(typescript@5.9.2))(eslint@9.14.0(jiti@2.6.0)))(eslint@9.14.0(jiti@2.6.0)))(eslint@9.14.0(jiti@2.6.0))
       hasown: 2.0.2
       is-core-module: 2.16.1
       is-glob: 4.0.3
@@ -9584,10 +9572,6 @@ snapshots:
       zod: 4.1.11
     transitivePeerDependencies:
       - encoding
-
-  openai@6.2.0(zod@4.1.11):
-    optionalDependencies:
-      zod: 4.1.11
 
   openid-client@5.7.1:
     dependencies:

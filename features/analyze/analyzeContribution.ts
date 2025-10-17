@@ -1,17 +1,51 @@
-// apps/web/src/features/analyze/analyzeContribution.ts
+// VPM25/apps/web/src/features/analyze/analyzeContribution.ts
 import { z } from "zod";
-// Optional (empfohlen, damit das File nicht in Client-Bundles rutscht):
-// import "server-only";
+// import "server-only"; // optional, wenn nur auf Server genutzt
+
+/** ───────────────────────────── Schemas (rückwärtskompatibel) ───────────────────────────── */
+
+const OptionSchema = z.object({
+  label: z.string().min(1).max(120),
+  params: z.record(z.string(), z.any()).default({}),
+});
+
+const MetricSchema = z.object({
+  name: z.string().min(1).max(120),
+  target: z.string().min(1).max(120),
+});
 
 const ClaimSchema = z.object({
+  // bestehende Felder
   text: z.string().min(6).max(2000),
   categoryMain: z.string().min(2).max(80).nullable().optional(),
   categorySubs: z.array(z.string().min(2).max(80)).max(6).default([]),
   region: z.string().min(2).max(120).nullable().optional(),
   authority: z.string().min(2).max(160).nullable().optional(),
+
+  // neue optionale Felder (vollumfänglich, für Slider & Factcheck)
+  id: z.string().optional(),
+  claimType: z.enum(["Fakt", "Forderung", "Prognose", "Wertung"]).optional(),
+  policyInstrument: z.enum([
+    "Steuer/Abgabe","Subvention/Förderung","Verbot/Limit","Erlaubnis/Ausnahme",
+    "Transparenz/Reporting","Investition","Organisation/Prozess","Standard/Norm",
+  ]).optional(),
+  ballotDimension: z.enum(["Budget","Gesetz/Regel","Personal/Organisation","Infrastruktur","Symbol/Resolution"]).optional(),
+  timeframe: z.string().max(24).optional(),
+  targets: z.array(z.string().min(2).max(40)).max(3).optional(),
+  evidence: z.array(z.string().min(1).max(160)).max(6).optional(),
+
+  // aus der „VOG-fertig“-Variante
+  decisionMaker: z.string().max(160).optional(),
+  jurisdiction: z.enum(["kommunal","land","regional","national","eu","global","ÖRR"]).optional(),
+  options: z.array(OptionSchema).max(8).optional(),
+  metrics: z.array(MetricSchema).max(8).optional(),
+  verifiability: z.enum(["hoch","mittel","niedrig"]).optional(),
+  checks: z.array(z.string().min(2).max(140)).max(8).optional(),
+  relevance: z.number().int().min(1).max(5).optional(),
+  confidence: z.number().min(0).max(1).optional(),
 });
 
-const AnalyzeSchema = z.object({
+export const AnalyzeSchema = z.object({
   language: z.string().min(2).max(5).default("de"),
   mainTopic: z.string().min(2).max(80).nullable().optional(),
   subTopics: z.array(z.string().min(2).max(80)).max(10).default([]),
@@ -21,76 +55,121 @@ const AnalyzeSchema = z.object({
 
 export type AnalyzeResult = z.infer<typeof AnalyzeSchema>;
 
-const SYS = ``
- 
-Du bist ein strenger Extraktor für bürgerliche Eingaben in VoiceOpenGov (VOG).
+/** ───────────────────────────── Prompt-Builder (vereint beide Welten) ───────────────────────────── */
 
-Ziele (hart):
+function buildSystemPrompt() {
+  // Dein strenges Regelwerk + Shared JSON Constraints vereinigt.
+  return `
+Du bist ein strenger Extraktor für VoiceOpenGov (VOG). Antworte **ausschließlich** mit JSON.
+Ziel: wenige, präzise, abstimmbare Aussagen ("claims").
+
+Hart-Regeln:
 - MaxClaims: 8 (lieber 5–6 präzise).
-- Jede claim.text = genau EINE prüfbare Aussage (keine „und/oder“-Ketten).
-- 1–2 Sätze, ≤ 180 Zeichen. Keine Slogans/Fragen/Appelle.
-- Keine Duplikate (normalisiert: lowercased, ohne Satzzeichen/Stopwörter).
-- categoryMain MUSS ∈ DomainKanon (Tier-1). Fehlt Match → Claim verwerfen.
-- categorySubs optional (max 2), nur ∈ TopicKanon (Tier-2).
-- region/authority NUR bei klarer Salienz (siehe Regel), sonst null.
+- claim.text = genau EINE prüfbare Aussage (1–2 Sätze, ≤ 180 Zeichen, keine "und/oder").
+- Keine Duplikate (normalisiert).
+- categoryMain MUSS im DomainKanon liegen (Tier-1). categorySubs nur aus TopicKanon (Tier-2, max 2).
+- region/authority nur bei klarer Salienz.
+
+Konvertiere Fragen in **neutrale, entscheidbare Thesen** mit Zuständigkeit.
+Füge – wo sinnvoll – Optionen (3–5) und Metriken (2–3) hinzu.
+
+Zusatz-Attribute je Claim:
+- claimType ∈ {"Fakt","Forderung","Prognose","Wertung"}
+- policyInstrument, ballotDimension, timeframe, targets[], evidence[]
+- decisionMaker, jurisdiction
+- verifiability ∈ {"hoch","mittel","niedrig"}, checks[] (konkrete Quellen-Hooks)
+- relevance (1–5) nach Heuristik:
+  +2 wenn Entscheidung Budget auf kommunal/land betrifft
+  +1 hohe Öffentlichkeit (Medien/ÖRR)
+  −1 bei verifiability = "niedrig"
 
 DomainKanon (Tier-1, exakt benutzen):
-"Verfassung & Grundrechte","Demokratie & Beteiligung","Wahlen & Parteienrecht",
-"Parlamente & Verfahren","Föderalismus & Kommunen","Öffentliche Verwaltung & E-Gov",
-"Transparenz & Antikorruption","Innere Sicherheit & Polizei","Justiz & Rechtsstaat",
-"Außenpolitik & Diplomatie","EU-Politik","Entwicklung & Humanitäres",
-"Wirtschaftspolitik","Finanzen & Steuern","Arbeit & Beschäftigung","Soziales & Grundsicherung",
-"Rente & Alterssicherung","Gesundheitspolitik","Pflege","Bildung","Hochschule & Forschung",
-"Digitalisierung & Netzpolitik","Datenschutz & IT-Sicherheit","Familie & Gleichstellung",
-"Kinder & Jugend","Migration & Integration","Wohnen & Stadtentwicklung",
-"Verkehr & Infrastruktur","Energiepolitik","Klima & Umweltschutz",
-"Landwirtschaft","Verbraucherschutz","Tierschutz & Tierhaltung",
-"Kultur, Medien & Sport","Handel & Außenwirtschaft","Regionalentwicklung & Ländlicher Raum",
-"Bau & Planungsrecht","Kommunalpolitik","Verteidigung & Bundeswehr"
+"Kultur, Medien & Sport","Finanzen & Steuern","Kommunalpolitik","Föderalismus & Kommunen","Öffentliche Verwaltung & E-Gov","Transparenz & Antikorruption", "Demokratie & Beteiligung", "Wirtschaftspolitik", "Verkehr & Infrastruktur", "Energiepolitik", "Klima & Umweltschutz", "Wohnen & Stadtentwicklung", "Digitalisierung & Netzpolitik", "Datenschutz & IT-Sicherheit", "Bildung", "Gesundheitspolitik", "Soziales & Grundsicherung", "Justiz & Rechtsstaat", "Innere Sicherheit & Polizei", "EU-Politik" 
+(… ggf. ergänzt – bleibe konsistent)
 
-TopicKanon (Tier-2 – Auswahl, erweiterbar):
-"Meinungsfreiheit","Bürgerentscheide","Wahlrecht","Ausschüsse","Kommunalfinanzen",
-"Registermodernisierung","Lobbyregister","Cybercrime","Digitaljustiz","Sanktionen",
-"Binnenmarkt","Industriestrategie","Schuldenbremse","Mindestlohn","Zeitarbeit",
-"Bürgergeld","Kindergrundsicherung","Rentenniveau","Primärversorgung","KV",
-"Krankenhausplanung","GVSG","Notfallversorgung","Pflegepersonal","Lehrkräftemangel",
-"Open Science","Netzausbau","KI-Governance","Open Data","Digitale Identität",
-"DSGVO","Elterngeld","Jugendschutz","Asylverfahren","Staatsangehörigkeit",
-"Mietrecht","Sozialer Wohnungsbau","Deutschlandticket","Radwege",
-"Erneuerbare","Wasserstoff","CO₂-Bepreisung","Kreislaufwirtschaft",
-"Haltungsstufen","Produktsicherheit","Tiertransporte","Rundfunk",
-"CETA","Lieferketten","Breitband","Wärmeplanung kommunal","Bauordnung","Bürgerentscheid",
-"Ehrenamt","Zivilgesellschaft","Katastrophenschutz","Zivilschutz","Krisenvorsorge",
-"Drogenpolitik","Pandemievorsorge","Landarztquote","Behindertenrechte","Barrierefreiheit",
-"Geldwäschebekämpfung","Krypto-Regulierung","Bankenaufsicht","Plattformaufsicht/DSA",
-"Desinformation","Medienkompetenz digital","Klimaanpassung","Biodiversität","Lärmschutz",
-"Smart City","Obdachlosigkeit","Weiterbildung/Qualifizierung","Fachkräfteeinwanderung",
-"Wehrpflicht","Zivildienst","Rüstungsbeschaffung","NATO-2%","Tourismusförderung","Öffentliche Beschaffung"
-
-Zusatz-Attribute pro Claim:
-- claimType ∈ {"Fakt","Forderung","Prognose","Wertung"} (nur wenn klar)
-- policyInstrument ∈ {"Steuer/Abgabe","Subvention/Förderung","Verbot/Limit","Erlaubnis/Ausnahme","Transparenz/Reporting","Investition","Organisation/Prozess","Standard/Norm"}
-- ballotDimension ∈ {"Budget","Gesetz/Regel","Personal/Organisation","Infrastruktur","Symbol/Resolution"}
-- timeframe: "sofort" | "kurzfristig(<1J)" | "mittelfristig(1–3J)" | "langfristig(>3J)" | ISO (YYYY-MM), nur wenn explizit
-- targets (max 3, kurz: "Mieter","Ärzte","Schüler")
-- evidence: Ziffern/Prozente/Daten/§-Angaben (strings)
+TopicKanon (Tier-2 – Auswahl):
+"Kommunalfinanzen","Rundfunk","Medienkompetenz digital","Öffentliche Beschaffung","Smart City","Bürgerentscheid","Open Data","KI-Governance","Barrierefreiheit","Krisenvorsorge","Tourismusförderung","Veranstaltungen"
+(… erweiterbar; nutze nur existierende)
 
 Salienzregel für region/authority:
-Setze nur, wenn ≥2 Signale: (1) Ort/Region/EU/Feiertag/Ereignis, (2) Institution (BMG, KV, Gemeinde, Landtag, Bundestag, EU-Kommission),
-(3) lokales Ereignis/Firmenstandort, (4) Zeit-Ort-Kopplung.
+Setze nur bei ≥2 Signalen: Ort/Region/EU/Feiertag/Ereignis, benannte Institution, lokales Ereignis/Standort, Zeit-Ort-Kopplung.
 
 Qualitäts-Gate je Claim:
-1) Kernaussage-Verb (ist/hat/erhöht/senkt/verbietet/erlaubt/führt zu/fordert).
-2) ≤ 180 Zeichen. 3) Kein „und/oder“. 4) categoryMain ∈ DomainKanon.
-5) Nicht doppelt (normalisiert). 6) Keine reinen Stimmungswörter ohne Gehalt.
+1) Verb (ist/hat/erhöht/senkt/verbietet/erlaubt/fordert),
+2) ≤180 Zeichen, 3) keine "und/oder", 4) categoryMain im Kanon,
+5) keine Dublette, 6) kein reines Stimmungswort.
 
-Ausgabe: JSON mit language, mainTopic, subTopics, regionHint, claims[] (inkl. id, confidence).
-Regel: Leeres Array, wenn keine validen Claims (keine Halluzination).
+AUSGABE (JSON ONLY):
+{
+  "language":"de",
+  "mainTopic": "...",
+  "subTopics": ["..."],
+  "regionHint": null,
+  "claims": [
+    { /* ClaimSchema kompatibel (s.o.) */ }
+  ]
+}
+
+/* Kompatibilität:
+Falls du nach einem bestehenden 'Shared JSON' arbeitest (statements/alternatives/...),
+liefere TROTZDEM zusätzlich das Feld "claims" gemäß obiger Struktur.
+*/
 `;
+}
+
+/** ───────────────────────────── OpenAI Helper ───────────────────────────── */
+
 function jsonSchemaForOpenAI() {
-  // Chat Completions: erzwingt ein JSON-Objekt als Antwort
+  // zwingt JSON-only bei neueren Modellen
   return { type: "json_object" as const };
 }
+
+/** ───────────────────────────── Normalizer: Shared → AnalyzeResult ───────────────────────────── */
+
+function coerceToAnalyzeResult(parsed: any, fallbackText: string): AnalyzeResult {
+  // 1) Bevorzugt: bereits im gewünschten Format
+  const direct = AnalyzeSchema.safeParse(parsed);
+  if (direct.success) return direct.data;
+
+  // 2) Shared-Format (statements[]) → claims[]
+  const claimsFromShared =
+    Array.isArray(parsed?.statements)
+      ? (parsed.statements as any[]).map((s: any, i: number) => ({
+          id: s.id ?? `C${i + 1}`,
+          text: String(s.text ?? "").trim(),
+          categoryMain: (s.tags?.includes("Rundfunk") ? "Kultur, Medien & Sport" : null),
+          categorySubs: Array.isArray(s.tags) ? s.tags.slice(0, 2) : [],
+          region: null,
+          authority: null,
+          claimType: "Forderung",
+          jurisdiction: (parsed?.level as any) || "land",
+          relevance: 3,
+        })).filter(c => c.text)
+      : [];
+
+  if (claimsFromShared.length) {
+    const candidate = {
+      language: (parsed?.translations?.de ? "de" : "de"),
+      mainTopic: parsed?.topics?.[0] ?? null,
+      subTopics: parsed?.topics?.slice(1, 4) ?? [],
+      regionHint: null,
+      claims: claimsFromShared,
+    };
+    const ok = AnalyzeSchema.safeParse(candidate);
+    if (ok.success) return ok.data;
+  }
+
+  // 3) Fallback
+  return {
+    language: "de",
+    mainTopic: null,
+    subTopics: [],
+    regionHint: null,
+    claims: [{ text: fallbackText, categoryMain: null, categorySubs: [], region: null, authority: null }],
+  };
+}
+
+/** ───────────────────────────── Hauptfunktion ───────────────────────────── */
 
 export async function analyzeContribution(text: string): Promise<AnalyzeResult> {
   const model = process.env.OPENAI_MODEL || "gpt-4o-mini";
@@ -108,20 +187,17 @@ export async function analyzeContribution(text: string): Promise<AnalyzeResult> 
     body: JSON.stringify({
       model,
       messages: [
-        { role: "system", content: SYS },
+        { role: "system", content: buildSystemPrompt() },
         { role: "user", content: user },
       ],
-      // KEIN temperature/top_p mit Modellen nutzen, die nur Default erlauben
       response_format: jsonSchemaForOpenAI(),
+      temperature: 0.2,
     }),
   });
 
   const raw = await res.text();
-  if (!res.ok) {
-    throw new Error(`OpenAI ${res.status}${raw ? ` – ${raw}` : ""}`);
-  }
+  if (!res.ok) throw new Error(`OpenAI ${res.status}${raw ? ` – ${raw}` : ""}`);
 
-  // content herausziehen (falls Gateway → JSON string im "content")
   let content: unknown;
   try {
     const full = JSON.parse(raw);
@@ -130,47 +206,30 @@ export async function analyzeContribution(text: string): Promise<AnalyzeResult> 
     content = raw;
   }
 
-  // robustes JSON-Parse
-  let parsed: unknown = content;
+  let parsed: any = content;
   if (typeof content === "string") {
-    try {
-      parsed = JSON.parse(content);
-    } catch {
-      parsed = null;
-    }
+    try { parsed = JSON.parse(content); } catch { parsed = null; }
   }
 
-  let out: AnalyzeResult;
-  const safe = AnalyzeSchema.safeParse(parsed);
-  if (safe.success) {
-    out = safe.data;
-  } else {
-    // weicher Fallback: 1 Claim mit dem Rohtext
-    out = {
-      language: "de",
-      mainTopic: null,
-      subTopics: [],
-      regionHint: null,
-      claims: [
-        { text: user, categoryMain: null, categorySubs: [], region: null, authority: null },
-      ],
-    };
-  }
+  // Akzeptiere sowohl dein Format als auch das Shared-Format
+  let out = coerceToAnalyzeResult(parsed, user);
 
-  // Normalisieren + Trimmen + Deduplizieren
+  // Hygiene + Dedupe + Kürzung
+  const seen = new Set<string>();
   out.language = (out.language || "de").slice(0, 5);
   out.mainTopic ??= null;
   out.regionHint ??= null;
   out.subTopics ??= [];
 
-  const seen = new Set<string>();
   out.claims = (out.claims || [])
     .map(c => ({
+      ...c,
       text: (c.text || "").trim().replace(/\s+/g, " ").slice(0, 240),
       categoryMain: c.categoryMain ?? null,
-      categorySubs: c.categorySubs ?? [],
+      categorySubs: (c.categorySubs ?? []).slice(0, 2),
       region: c.region ?? null,
       authority: c.authority ?? null,
+      relevance: Math.max(1, Math.min(5, Math.round((c as any).relevance ?? 3))),
     }))
     .filter(c => {
       if (!c.text) return false;
@@ -186,3 +245,4 @@ export async function analyzeContribution(text: string): Promise<AnalyzeResult> 
 
   return out;
 }
+export type AnalyzeInput = z.infer<typeof AnalyzeSchema>;
