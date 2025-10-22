@@ -1,42 +1,41 @@
-export type AnthropicOptions = {
-  model?: string;
-  timeoutMs?: number;
-};
+export async function runAnthropic(
+  prompt: string,
+  opts: { json?: boolean; model?: string; system?: string; timeoutMs?: number } = {}
+) {
+  const key = process.env.ANTHROPIC_API_KEY;
+  const model = opts.model || process.env.ANTHROPIC_MODEL || "claude-3-5-sonnet-20240620";
+  if (!key) return { ok: false, text: "", skipped: true, error: "ANTHROPIC_API_KEY missing" };
 
-export async function callAnthropic(prompt: string, opts: AnthropicOptions = {}) {
-  const apiKey = process.env.ANTHROPIC_API_KEY as string | undefined;
-if (!apiKey) throw new Error("ANTHROPIC_API_KEY missing");
-
-  const model = opts.model || process.env.ANTHROPIC_MODEL || "claude-3-5-sonnet-latest";
-
-  const ctrl = new AbortController();
-  const id = setTimeout(() => ctrl.abort("timeout"), opts.timeoutMs ?? 22000);
-
-  try {
-    const res = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "x-api-key": apiKey,
-        "anthropic-version": "2023-06-01",
-        "content-type": "application/json",
-      },
-      body: JSON.stringify({
-        model,
-        system: "Return valid RFC8259 JSON only. No markdown. No prose.",
-        max_tokens: 4000,
-        temperature: 0,
-        messages: [{ role: "user", content: prompt }],
-      }),
-      signal: ctrl.signal,
-    });
-    if (!res.ok) {
-      const t = await res.text().catch(()=>"");
-      throw new Error(`Anthropic ${res.status}: ${t}`);
-    }
-    const data = await res.json();
-    const text = data?.content?.[0]?.text ?? data?.content?.[0]?.content ?? "";
-    return { text, raw: data };
-  } finally {
-    clearTimeout(id);
+  const body: any = {
+    model,
+    max_tokens: 1024,
+    messages: [{ role: "user", content: String(prompt || "") }],
+    ...(opts.system ? { system: String(opts.system) } : {}),
+  };
+  if (opts.json) {
+    body.system = `${opts.system ?? ""}\n\nDu MUSST ausschließlich gültiges JSON (RFC8259) ohne Fließtext zurückgeben.`;
   }
+
+  const t0 = Date.now();
+  const res = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      "x-api-key": key,
+      "anthropic-version": "2023-06-01",
+    },
+    body: JSON.stringify(body),
+    signal: opts.timeoutMs ? AbortSignal.timeout(opts.timeoutMs) : undefined,
+  });
+
+  if (!res.ok) {
+    const msgText = await res.text().catch(()=>String(res.status));
+    // Wenn Kontostand zu niedrig → als „skipped“ behandeln, kein harter Fehler
+    const skipped = /credit balance is too low/i.test(msgText) || res.status === 402 || res.status === 403 || res.status === 400;
+    return { ok:false, text:"", error:`Anthropic ${res.status} – ${msgText}`, ms: Date.now()-t0, skipped };
+  }
+
+  const data = await res.json();
+  const text = Array.isArray(data?.content) ? data.content.find((c: any) => c?.type === "text")?.text || "" : "";
+  return { ok: true, text: text || "", raw: data, ms: Date.now() - t0 };
 }

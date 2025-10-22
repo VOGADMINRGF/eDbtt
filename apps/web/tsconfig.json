@@ -2,7 +2,10 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "target": "ES2022",
-    "lib": ["ES2022", "DOM"],
+    "lib": [
+      "ES2022",
+      "DOM"
+    ],
     "jsx": "preserve",
     "module": "ESNext",
     "moduleResolution": "bundler",
@@ -12,44 +15,70 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "baseUrl": ".",
-
     "paths": {
-      "@/*": ["src/*"],
-      "@components/*": ["src/components/*"],
-      "@config/*": ["src/config/*"],
-
-      /* Shims im Web-App Scope */
-      "@db/web": ["src/shims/db-web.ts"],
-      "@db/core": ["src/shims/db-core.ts"],
-      "@core/triMongo": ["src/shims/core/db/triMongo.ts"],
-
-      /* Monorepo-Ordner am Repo-Root */
-      "@core/*": ["../../core/*"],
-      "@features/*": ["../../features/*"],
-      "@contribution/*": ["../../contribution/*"],
-      "@packages/*": ["../../packages/*"]
+      "@/*": [
+        "src/*"
+      ],
+      "@components/*": [
+        "src/components/*"
+      ],
+      "@config/*": [
+        "src/config/*"
+      ],
+      "@db/web": [
+        "src/shims/db-web.ts"
+      ],
+      "@db/core": [
+        "src/shims/db-core.ts"
+      ],
+      "@core/triMongo": [
+        "src/shims/core/db/triMongo.ts"
+      ],
+      "@core/*": [
+        "../../core/*"
+      ],
+      "@lib/*": [
+        "src/lib/*"
+      ],
+      "@/lib/*": [
+        "src/lib/*"
+      ],
+      "@contribution/*": [
+        "../../contribution/*"
+      ],
+      "@packages/*": [
+        "../../packages/*"
+      ],
+      "@/features/*": [
+        "../../features/*"
+      ],
+      "@features/*": [
+        "../../features/*"
+      ],
+      "@/core/*": [
+        "../../core/*"
+      ]
     },
-
-    "plugins": [{ "name": "next" }],
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
     "incremental": true,
     "allowJs": true,
     "esModuleInterop": true,
     "isolatedModules": true,
     "verbatimModuleSyntax": true
   },
-
   "include": [
     "next-env.d.ts",
     "src/**/*",
     ".next/types/**/*.ts",
-
-    /* Wichtig: externe Verzeichnisse EINBINDEN */
     "../../core/**/*",
     "../../features/**/*",
     "../../contribution/**/*",
     "../../packages/**/*"
   ],
-
   "exclude": [
     "node_modules",
     ".next",

@@ -1,0 +1,37 @@
+// features/ai/providers/openai.ts
+import OpenAI from "openai";
+export type OpenAIOptions = { timeoutMs?: number; forceJsonMode?: boolean; system?: string };
+
+const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
+export async function callOpenAI(prompt: string, opts: OpenAIOptions = {}): Promise<{ text: string; raw: any }> {
+  const model = process.env.OPENAI_MODEL || "gpt-5.0-mini";
+  const body: any = {
+    model,
+    input: prompt,
+    // KEIN temperature / KEIN response_format!
+    // JSON-Ausgabe via Responses API:
+    text: opts.forceJsonMode ? { format: { type: "json_object" } } : undefined,
+  };
+
+  const res = await client.responses.create(body, { timeout: opts.timeoutMs ?? Number(process.env.OPENAI_TIMEOUT_MS ?? 18000) });
+  const data: any = res;
+
+  let text = "";
+  if (typeof data.output_text === "string" && data.output_text) {
+    text = data.output_text;
+  } else if (Array.isArray(data.output)) {
+    const parts = data.output
+      .flatMap((it: any) => Array.isArray(it?.content) ? it.content : [])
+      .map((c: any) => (typeof c?.text === "string" ? c.text : ""))
+      .filter(Boolean);
+    if (parts.length) text = parts.join("\n");
+  }
+  return { text: text || "", raw: data };
+}
+
+export async function callOpenAIJson(prompt: string, maxOutputTokens = 1200) {
+  // maxOutputTokens wird bei Responses ggf. ignoriert – ok.
+  const { text, raw } = await callOpenAI(prompt, { forceJsonMode: true });
+  return { text, raw };
+}

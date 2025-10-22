@@ -52,7 +52,6 @@ async function askOpenAI(input: AskInput): Promise<string> {
     ],
     // Falls Objekt erzwungen wird – unsere Parser akzeptieren auch Arrays;
     // wenn es hakt, nimm die Zeile raus:
-    response_format: { type: "json_object" }
   };
   const res = await withTimeout(retry(async () => {
     const r = await fetch(`${openaiBase}/chat/completions`, {

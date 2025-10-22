@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { colors } from "@ui/theme";
+import { colors } from "@vog/ui/theme";
 
 export function MiniAccordion({ items }: { items: any[] }) {
   const [open, setOpen] = useState(-1);

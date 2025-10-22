@@ -1,3 +1,4 @@
+//apps/web/src/components/analyze/ActivityConsole.tsx
 "use client";
 export function ActivityConsole({ progress, logs, news }:{
   progress:number; logs:string[]; news:{title:string;url:string;relevance?:number}[];

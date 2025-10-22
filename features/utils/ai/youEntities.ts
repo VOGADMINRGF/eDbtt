@@ -97,7 +97,7 @@ Text:
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${process.env.LLM_ROUTER_KEY}` },
       body: JSON.stringify({
         model: 'gpt-4.1-mini', // oder mistral-small etc.
-        temperature: 0.1,
+        
         max_tokens: 400,
         messages: [{ role: 'user', content: prompt }],
       }),

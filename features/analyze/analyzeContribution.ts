@@ -1,248 +1,329 @@
-// VPM25/apps/web/src/features/analyze/analyzeContribution.ts
-import { z } from "zod";
-// import "server-only"; // optional, wenn nur auf Server genutzt
+import { needsClarify, clarifyForPrices } from "./clarify";
+import { callOpenAIJson } from "../ai/providers";
 
-/** ───────────────────────────── Schemas (rückwärtskompatibel) ───────────────────────────── */
+/* =======================
+ * Typen
+ * ======================= */
 
-const OptionSchema = z.object({
-  label: z.string().min(1).max(120),
-  params: z.record(z.string(), z.any()).default({}),
-});
+export type Claim = {
+  text: string;
+  categoryMain?: string | null;
+  categorySubs?: string[];
+  region?: string | null;
+  authority?: string | null;
+  canon?: string | null;
+  // v2 (optional, wenn Modell liefert)
+  specificity?: number;       // 0..1
+  needsClarify?: boolean;
+};
 
-const MetricSchema = z.object({
-  name: z.string().min(1).max(120),
-  target: z.string().min(1).max(120),
-});
+type Organ = {
+  level: "EU" | "Bund" | "Land" | "Kommune" | "Behörde";
+  name: string;
+  why: string;
+};
 
-const ClaimSchema = z.object({
-  // bestehende Felder
-  text: z.string().min(6).max(2000),
-  categoryMain: z.string().min(2).max(80).nullable().optional(),
-  categorySubs: z.array(z.string().min(2).max(80)).max(6).default([]),
-  region: z.string().min(2).max(120).nullable().optional(),
-  authority: z.string().min(2).max(160).nullable().optional(),
+type Trust = {
+  score: number;              // 0..1
+  reasons: string[];
+  riskFlags: string[];
+};
 
-  // neue optionale Felder (vollumfänglich, für Slider & Factcheck)
-  id: z.string().optional(),
-  claimType: z.enum(["Fakt", "Forderung", "Prognose", "Wertung"]).optional(),
-  policyInstrument: z.enum([
-    "Steuer/Abgabe","Subvention/Förderung","Verbot/Limit","Erlaubnis/Ausnahme",
-    "Transparenz/Reporting","Investition","Organisation/Prozess","Standard/Norm",
-  ]).optional(),
-  ballotDimension: z.enum(["Budget","Gesetz/Regel","Personal/Organisation","Infrastruktur","Symbol/Resolution"]).optional(),
-  timeframe: z.string().max(24).optional(),
-  targets: z.array(z.string().min(2).max(40)).max(3).optional(),
-  evidence: z.array(z.string().min(1).max(160)).max(6).optional(),
+type Newsroom = {
+  queries: string[];
+  angles: string[];
+  watch: string[];
+};
 
-  // aus der „VOG-fertig“-Variante
-  decisionMaker: z.string().max(160).optional(),
-  jurisdiction: z.enum(["kommunal","land","regional","national","eu","global","ÖRR"]).optional(),
-  options: z.array(OptionSchema).max(8).optional(),
-  metrics: z.array(MetricSchema).max(8).optional(),
-  verifiability: z.enum(["hoch","mittel","niedrig"]).optional(),
-  checks: z.array(z.string().min(2).max(140)).max(8).optional(),
-  relevance: z.number().int().min(1).max(5).optional(),
-  confidence: z.number().min(0).max(1).optional(),
-});
+type WeightsUpdated = {
+  specificity: number;
+  sources: number;
+  organ_alignment: number;
+  region_link: number;
+  feasibility: number;
+};
 
-export const AnalyzeSchema = z.object({
-  language: z.string().min(2).max(5).default("de"),
-  mainTopic: z.string().min(2).max(80).nullable().optional(),
-  subTopics: z.array(z.string().min(2).max(80)).max(10).default([]),
-  regionHint: z.string().nullable().optional(),
-  claims: z.array(ClaimSchema).min(1).max(20),
-});
+type ClarifyCTAFromModel = {
+  title?: string;
+  hint?: string;
+  options?: string[];
+} | null;
 
-export type AnalyzeResult = z.infer<typeof AnalyzeSchema>;
-
-/** ───────────────────────────── Prompt-Builder (vereint beide Welten) ───────────────────────────── */
-
-function buildSystemPrompt() {
-  // Dein strenges Regelwerk + Shared JSON Constraints vereinigt.
-  return `
-Du bist ein strenger Extraktor für VoiceOpenGov (VOG). Antworte **ausschließlich** mit JSON.
-Ziel: wenige, präzise, abstimmbare Aussagen ("claims").
-
-Hart-Regeln:
-- MaxClaims: 8 (lieber 5–6 präzise).
-- claim.text = genau EINE prüfbare Aussage (1–2 Sätze, ≤ 180 Zeichen, keine "und/oder").
-- Keine Duplikate (normalisiert).
-- categoryMain MUSS im DomainKanon liegen (Tier-1). categorySubs nur aus TopicKanon (Tier-2, max 2).
-- region/authority nur bei klarer Salienz.
-
-Konvertiere Fragen in **neutrale, entscheidbare Thesen** mit Zuständigkeit.
-Füge – wo sinnvoll – Optionen (3–5) und Metriken (2–3) hinzu.
-
-Zusatz-Attribute je Claim:
-- claimType ∈ {"Fakt","Forderung","Prognose","Wertung"}
-- policyInstrument, ballotDimension, timeframe, targets[], evidence[]
-- decisionMaker, jurisdiction
-- verifiability ∈ {"hoch","mittel","niedrig"}, checks[] (konkrete Quellen-Hooks)
-- relevance (1–5) nach Heuristik:
-  +2 wenn Entscheidung Budget auf kommunal/land betrifft
-  +1 hohe Öffentlichkeit (Medien/ÖRR)
-  −1 bei verifiability = "niedrig"
-
-DomainKanon (Tier-1, exakt benutzen):
-"Kultur, Medien & Sport","Finanzen & Steuern","Kommunalpolitik","Föderalismus & Kommunen","Öffentliche Verwaltung & E-Gov","Transparenz & Antikorruption", "Demokratie & Beteiligung", "Wirtschaftspolitik", "Verkehr & Infrastruktur", "Energiepolitik", "Klima & Umweltschutz", "Wohnen & Stadtentwicklung", "Digitalisierung & Netzpolitik", "Datenschutz & IT-Sicherheit", "Bildung", "Gesundheitspolitik", "Soziales & Grundsicherung", "Justiz & Rechtsstaat", "Innere Sicherheit & Polizei", "EU-Politik" 
-(… ggf. ergänzt – bleibe konsistent)
-
-TopicKanon (Tier-2 – Auswahl):
-"Kommunalfinanzen","Rundfunk","Medienkompetenz digital","Öffentliche Beschaffung","Smart City","Bürgerentscheid","Open Data","KI-Governance","Barrierefreiheit","Krisenvorsorge","Tourismusförderung","Veranstaltungen"
-(… erweiterbar; nutze nur existierende)
-
-Salienzregel für region/authority:
-Setze nur bei ≥2 Signalen: Ort/Region/EU/Feiertag/Ereignis, benannte Institution, lokales Ereignis/Standort, Zeit-Ort-Kopplung.
-
-Qualitäts-Gate je Claim:
-1) Verb (ist/hat/erhöht/senkt/verbietet/erlaubt/fordert),
-2) ≤180 Zeichen, 3) keine "und/oder", 4) categoryMain im Kanon,
-5) keine Dublette, 6) kein reines Stimmungswort.
-
-AUSGABE (JSON ONLY):
-{
-  "language":"de",
-  "mainTopic": "...",
-  "subTopics": ["..."],
-  "regionHint": null,
-  "claims": [
-    { /* ClaimSchema kompatibel (s.o.) */ }
-  ]
-}
-
-/* Kompatibilität:
-Falls du nach einem bestehenden 'Shared JSON' arbeitest (statements/alternatives/...),
-liefere TROTZDEM zusätzlich das Feld "claims" gemäß obiger Struktur.
-*/
-`;
-}
-
-/** ───────────────────────────── OpenAI Helper ───────────────────────────── */
-
-function jsonSchemaForOpenAI() {
-  // zwingt JSON-only bei neueren Modellen
-  return { type: "json_object" as const };
-}
-
-/** ───────────────────────────── Normalizer: Shared → AnalyzeResult ───────────────────────────── */
-
-function coerceToAnalyzeResult(parsed: any, fallbackText: string): AnalyzeResult {
-  // 1) Bevorzugt: bereits im gewünschten Format
-  const direct = AnalyzeSchema.safeParse(parsed);
-  if (direct.success) return direct.data;
-
-  // 2) Shared-Format (statements[]) → claims[]
-  const claimsFromShared =
-    Array.isArray(parsed?.statements)
-      ? (parsed.statements as any[]).map((s: any, i: number) => ({
-          id: s.id ?? `C${i + 1}`,
-          text: String(s.text ?? "").trim(),
-          categoryMain: (s.tags?.includes("Rundfunk") ? "Kultur, Medien & Sport" : null),
-          categorySubs: Array.isArray(s.tags) ? s.tags.slice(0, 2) : [],
-          region: null,
-          authority: null,
-          claimType: "Forderung",
-          jurisdiction: (parsed?.level as any) || "land",
-          relevance: 3,
-        })).filter(c => c.text)
-      : [];
-
-  if (claimsFromShared.length) {
-    const candidate = {
-      language: (parsed?.translations?.de ? "de" : "de"),
-      mainTopic: parsed?.topics?.[0] ?? null,
-      subTopics: parsed?.topics?.slice(1, 4) ?? [],
-      regionHint: null,
-      claims: claimsFromShared,
-    };
-    const ok = AnalyzeSchema.safeParse(candidate);
-    if (ok.success) return ok.data;
-  }
-
-  // 3) Fallback
-  return {
-    language: "de",
-    mainTopic: null,
-    subTopics: [],
-    regionHint: null,
-    claims: [{ text: fallbackText, categoryMain: null, categorySubs: [], region: null, authority: null }],
+export type AnalyzeResult = {
+  language: string | null;
+  mainTopic: string | null;
+  subTopics: string[];
+  regionHint: string | null;
+  claims: Claim[];
+  organs?: Organ[];           // v2
+  trust?: Trust;              // v2
+  newsroom?: Newsroom;        // v2
+  weightsUpdated?: WeightsUpdated; // v2
+  news: any[];
+  scoreHints: { baseWeight?: number; reasons?: string[] } | null;
+  // Für die UI belassen wir "cta" (type:"clarify", ask[], options[], quickSources[])
+  cta: any | null;
+  _meta: {
+    mode: "gpt" | "ari" | "error";
+    errors: string[] | null;
+    tookMs: number;
+    gptMs?: number;
+    ariMs?: number;
+    gptText: string | null;
   };
+};
+
+/* =======================
+ * Mini-Prompt (v2)
+ * ======================= */
+
+const MINI_PROMPT = String.raw`You are VOG Analyzer. Output STRICT JSON (RFC8259), no prose.
+Use the MANIFEST and RUBRIC to 1) extract claims, 2) map to political organs, 3) compute trust,
+4) emit an optional clarify CTA for generic price statements, 5) propose newsroom queries/angles.
+
+MANIFEST.topics_to_organs (DE/EU):
+- "Preise/Preiserhöhungen": EU-Kommission (DG COMP, DG ENER), Bund: BMWK; Behörden: Bundeskartellamt, BNetzA; Länder: Wirtschafts-/Verbraucherschutz-Min.; Kommune: Stadtrat (Tarife/ÖPNV).
+- "Lebensmittelpreise": BMEL; Behörden: BLE; Statistik: Destatis; EU: DG AGRI.
+- "Energie/Kraftstoff": BMWK, BMDV; BNetzA; EU: DG ENER.
+- "Mieten/Nebenkosten": BMI/BMWSB; Landesbau-/Mietrecht; Kommune: Mietspiegel, Stadtwerke.
+(Erweitere implizit mit gesundem Menschenverstand, aber bleib konservativ.)
+
+RUBRIC (0..1, additiv):
+- specificity (0.0..0.4) – je konkreter (Branche/Region/Preistyp), desto höher
+- sources (0.0..0.2) – valide Quellen/URLs (z.B. Destatis, Behörden)
+- organ_alignment (0.0..0.2) – passt Topic → zuständige Organe?
+- region_link (0.0..0.1) – erkennbare Region?
+- feasibility (0.0..0.1) – als Maßnahme/Abstimmung formulierbar?
+Total = sum; include reasons.
+
+CLARIFY rule:
+If statement is generic about “Preiserhöhungen/Preise” without subtype (Lebensmittel, Energie, Kraftstoff, Miete, Tarife),
+set needsClarify=true and propose options: ["Lebensmittelpreise","Energiepreise","Kraftstoffpreise","Mieten/Nebenkosten","ÖPNV/Telekom-Tarife"].
+
+FEEDBACK (editorSignals): summarize patterns and adjust weights slightly (±0.05 per strong pattern).
+No free-form text—return newWeights with the deltas applied.
+
+OUTPUT schema:
+{
+ "language": "de"|"en"|null,
+ "mainTopic": string|null,
+ "subTopics": string[],
+ "claims": [{
+   "text": string,
+   "categoryMain": string|null,
+   "categorySubs": string[],
+   "specificity": number,
+   "needsClarify": boolean
+ }],
+ "organs": [{"level":"EU"|"Bund"|"Land"|"Kommune"|"Behörde","name":string,"why":string}],
+ "trust": {"score": number, "reasons": string[], "riskFlags": string[]},
+ "clarifyCTA": null | {"title":string,"hint":string,"options":string[]},
+ "newsroom": {"queries": string[], "angles": string[], "watch": string[]},
+ "scoreHints": {"baseWeight": number, "reasons": string[]},
+ "weightsUpdated": {"specificity":number,"sources":number,"organ_alignment":number,"region_link":number,"feasibility":number}
 }
 
-/** ───────────────────────────── Hauptfunktion ───────────────────────────── */
+== TEXT ==
+<<<INPUT>>
 
-export async function analyzeContribution(text: string): Promise<AnalyzeResult> {
-  const model = process.env.OPENAI_MODEL || "gpt-4o-mini";
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) throw new Error("OPENAI_API_KEY missing");
+== EDITOR_SIGNALS_JSON ==
+<<<EDITOR>>`;
 
-  const user = text.slice(0, 8000);
+/* =======================
+ * Analyzer
+ * ======================= */
 
-  const res = await fetch("https://api.openai.com/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model,
-      messages: [
-        { role: "system", content: buildSystemPrompt() },
-        { role: "user", content: user },
-      ],
-      response_format: jsonSchemaForOpenAI(),
-      temperature: 0.2,
-    }),
-  });
+export async function analyzeContribution(
+  text: string,
+  opts: {
+    maxClaims?: number;
+    context?: { editorSignals?: any };
+    debug?: boolean;
+    // optionaler Hook für zukünftige ARI/Suche (siehe unten)
+    searchFn?: (queries: string[]) => Promise<{ news?: any[] }>;
+  } = {}
+): Promise<AnalyzeResult> {
+  const t0 = Date.now();
+  const errs: string[] = [];
+  const maxClaims = Math.max(1, Number(opts.maxClaims ?? 5));
 
-  const raw = await res.text();
-  if (!res.ok) throw new Error(`OpenAI ${res.status}${raw ? ` – ${raw}` : ""}`);
+  let outText = "";
+  let gptMs = 0;
 
-  let content: unknown;
+  // Prompt mit Editor-Signalen füllen
+  const prompt = MINI_PROMPT
+    .replace("<<<INPUT>>>", text)
+    .replace("<<<EDITOR>>>", JSON.stringify(opts?.context?.editorSignals ?? {}));
+
+  let parsed: any = {};
   try {
-    const full = JSON.parse(raw);
-    content = full?.choices?.[0]?.message?.content ?? "{}";
-  } catch {
-    content = raw;
+    const tCall0 = Date.now();
+    const { text: t } = await callOpenAIJson(prompt, 1600);
+    gptMs = Date.now() - tCall0;
+    outText = String(t || "");
+    parsed = JSON.parse(outText || "{}");
+  } catch (e: any) {
+    errs.push("GPT JSON parse failed: " + String(e?.message || e));
+    parsed = {};
   }
 
-  let parsed: any = content;
-  if (typeof content === "string") {
-    try { parsed = JSON.parse(content); } catch { parsed = null; }
+  // 🧹 Claims normalisieren (DE: „opinion“ → „Meinung“)
+  const claims: Claim[] = Array.isArray(parsed?.claims)
+    ? (parsed.claims as any[])
+        .slice(0, maxClaims)
+        .map((c): Claim => {
+          const rawCat = c?.categoryMain ?? null;
+          const catDE =
+            rawCat && String(rawCat).toLowerCase() === "opinion" ? "Meinung" : rawCat;
+          return {
+            text: String(c?.text || "").trim(),
+            categoryMain: catDE,
+            categorySubs: Array.isArray(c?.categorySubs) ? c.categorySubs : [],
+            region: c?.region ?? null,
+            authority: c?.authority ?? null,
+            canon: c?.canon ?? null,
+            specificity: typeof c?.specificity === "number" ? c.specificity : undefined,
+            needsClarify: Boolean(c?.needsClarify),
+          };
+        })
+        .filter((c) => c.text)
+    : [];
+
+  // (Optional) Heuristik: „Preiserhöhung“ → Wirtschaft/Preise
+  if (/preiserh[oö]hung/i.test(claims?.[0]?.text || "")) {
+    claims[0] = {
+      ...claims[0],
+      categoryMain: "Wirtschaft",
+      categorySubs: Array.from(new Set([...(claims[0].categorySubs || []), "Preise", "Tarife"])),
+    };
   }
 
-  // Akzeptiere sowohl dein Format als auch das Shared-Format
-  let out = coerceToAnalyzeResult(parsed, user);
+  // v2-Felder übernehmen, mit defensivem Fallback
+  const organs: Organ[] = Array.isArray(parsed?.organs) ? parsed.organs : [];
+  const trust: Trust | undefined = parsed?.trust && typeof parsed.trust === "object"
+    ? {
+        score: clamp01(Number(parsed.trust.score ?? 0)),
+        reasons: Array.isArray(parsed.trust.reasons) ? parsed.trust.reasons : [],
+        riskFlags: Array.isArray(parsed.trust.riskFlags) ? parsed.trust.riskFlags : [],
+      }
+    : undefined;
 
-  // Hygiene + Dedupe + Kürzung
-  const seen = new Set<string>();
-  out.language = (out.language || "de").slice(0, 5);
-  out.mainTopic ??= null;
-  out.regionHint ??= null;
-  out.subTopics ??= [];
+  const newsroom: Newsroom = {
+    queries: Array.isArray(parsed?.newsroom?.queries) ? parsed.newsroom.queries : [],
+    angles: Array.isArray(parsed?.newsroom?.angles) ? parsed.newsroom.angles : [],
+    watch: Array.isArray(parsed?.newsroom?.watch) ? parsed.newsroom.watch : [],
+  };
 
-  out.claims = (out.claims || [])
-    .map(c => ({
-      ...c,
-      text: (c.text || "").trim().replace(/\s+/g, " ").slice(0, 240),
-      categoryMain: c.categoryMain ?? null,
-      categorySubs: (c.categorySubs ?? []).slice(0, 2),
-      region: c.region ?? null,
-      authority: c.authority ?? null,
-      relevance: Math.max(1, Math.min(5, Math.round((c as any).relevance ?? 3))),
-    }))
-    .filter(c => {
-      if (!c.text) return false;
-      const k = `${c.text}|${c.categoryMain ?? ""}`.toLowerCase();
-      if (seen.has(k)) return false;
-      seen.add(k);
-      return true;
-    });
+  const weightsUpdated: WeightsUpdated | undefined =
+    parsed?.weightsUpdated && typeof parsed.weightsUpdated === "object"
+      ? {
+          specificity: Number(parsed.weightsUpdated.specificity ?? 0),
+          sources: Number(parsed.weightsUpdated.sources ?? 0),
+          organ_alignment: Number(parsed.weightsUpdated.organ_alignment ?? 0),
+          region_link: Number(parsed.weightsUpdated.region_link ?? 0),
+          feasibility: Number(parsed.weightsUpdated.feasibility ?? 0),
+        }
+      : undefined;
 
-  if (out.claims.length === 0) {
-    out.claims = [{ text: user, categoryMain: null, categorySubs: [], region: null, authority: null }];
+  // Klassische Felder (Kompatibilität zu v1)
+  const language = parsed?.language ?? null;
+  const mainTopic = parsed?.mainTopic ?? null;
+  const subTopics = Array.isArray(parsed?.subTopics) ? parsed.subTopics : [];
+  const regionHint = parsed?.regionHint ?? null; // falls Modell nichts liefert, bleibt null
+
+  // scoreHints: vom Modell übernehmen oder aus trust ableiten
+  let scoreHints: AnalyzeResult["scoreHints"] =
+    parsed?.scoreHints && typeof parsed.scoreHints === "object"
+      ? parsed.scoreHints
+      : null;
+
+  if (!scoreHints && trust) {
+    scoreHints = {
+      baseWeight: Math.round(clamp01(trust.score) * 5 * 10) / 10, // z.B. 0..5 in 0.1-Steps
+      reasons: trust.reasons || [],
+    };
   }
 
-  return out;
+  // News-Array (für UI bereits vorhanden) – bleibt leer, bis ARI/Suche angeschlossen ist
+  let news: any[] = Array.isArray(parsed?.news) ? parsed.news : [];
+
+  // Clarify-CTA: (a) Modell-Mapping → UI-Form, (b) Fallback via needsClarify/clarifyForPrices()
+  let cta: any = null;
+
+  // (a) Mapping aus clarifyCTA des Modells
+  const clarifyFromModel: ClarifyCTAFromModel = parsed?.clarifyCTA ?? null;
+  if (clarifyFromModel && Array.isArray(clarifyFromModel.options) && clarifyFromModel.options.length) {
+    const pricesPreset = clarifyForPrices?.() || { ask: [], options: [], quickSources: [] };
+    cta = {
+      type: "clarify",
+      ask: [
+        clarifyFromModel.title || "Bitte präzisieren: Welche Preise genau?",
+        clarifyFromModel.hint || "Konkreter = bessere Zuordnung, Faktencheck, Quellen.",
+        ...(pricesPreset.ask || []),
+      ].filter(Boolean),
+      options: clarifyFromModel.options.map((label: string, i: number) => ({ key: `opt${i + 1}`, label })),
+      quickSources: pricesPreset.quickSources || [],
+    };
+  } else {
+    // (b) Fallback-Heuristik
+    const first = claims?.[0];
+    if (first && needsClarify?.({ text: first.text, categoryMain: first.categoryMain, region: first.region })) {
+      cta = { type: "clarify", ...(clarifyForPrices?.() || {}) };
+    }
+  }
+
+  // Basisresultat ohne _meta
+  const resultBase: Omit<AnalyzeResult, "_meta"> = {
+    language,
+    mainTopic,
+    subTopics,
+    regionHint,
+    claims,
+    organs,
+    trust,
+    newsroom,
+    weightsUpdated,
+    news,
+    scoreHints,
+    cta,
+  };
+
+  // Optional: ARI/Suche jetzt oder später anschalten (GPT = Fallback)
+  // Wenn opts.searchFn gesetzt ist, nutzen wir newsroom.queries → suchen → news füllen und Mode kennzeichnen.
+  let ariMs: number | undefined;
+  if (opts.searchFn && Array.isArray(newsroom.queries) && newsroom.queries.length) {
+    const tAri0 = Date.now();
+    try {
+      const res = await opts.searchFn(newsroom.queries);
+      if (res?.news?.length) {
+        resultBase.news = res.news;
+      }
+      ariMs = Date.now() - tAri0;
+    } catch (e: any) {
+      errs.push("Search/ARI failed: " + String(e?.message || e));
+    }
+  }
+
+  // _meta sauber setzen
+  const meta: AnalyzeResult["_meta"] = {
+    mode: errs.length ? "error" : (ariMs ? "ari" : "gpt"),
+    errors: errs.length ? errs : null,
+    tookMs: Date.now() - t0,
+    gptMs,
+    ariMs,
+    gptText: opts.debug ? outText ?? null : null,
+  };
+
+  return { ...resultBase, _meta: meta };
 }
-export type AnalyzeInput = z.infer<typeof AnalyzeSchema>;
+
+/* =======================
+ * Helpers
+ * ======================= */
+
+function clamp01(x: number) {
+  if (Number.isNaN(x)) return 0;
+  if (x < 0) return 0;
+  if (x > 1) return 1;
+  return x;
+}

@@ -1,0 +1,65 @@
+// features/ai/providers/openai.ts
+type OpenAIOptions = {
+  timeoutMs?: number;
+  forceJsonMode?: boolean;
+  model?: string;
+};
+
+export async function callOpenAI(
+  prompt: string,
+  opts: OpenAIOptions = {}
+): Promise<{ text: string; raw: any }> {
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) throw new Error("OPENAI_API_KEY missing");
+
+  const model = opts.model || process.env.OPENAI_MODEL || "gpt-5.1";
+  const endpoint = process.env.OPENAI_BASE_URL || "https://api.openai.com/v1/responses";
+
+  const controller = new AbortController();
+  const timeout = Math.max(3000, opts.timeoutMs ?? 18000);
+  const t = setTimeout(() => controller.abort(), timeout);
+
+  // JSON erzwingen = im Prompt „format: json“ + im Body `text.format`
+  const wantsJSON = !!opts.forceJsonMode;
+  const userText = wantsJSON ? `format: json\n\n${prompt}` : prompt;
+
+  const body: any = {
+    model,
+    input: [
+      {
+        role: "user",
+        content: [{ type: "input_text", text: userText }],
+      },
+    ],
+    // KEIN temperature hier!
+  };
+  if (wantsJSON) body.text = { format: { type: "json_object" } };
+
+  const res = await fetch(endpoint, {
+    method: "POST",
+    signal: controller.signal,
+    headers: {
+      "content-type": "application/json",
+      authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify(body),
+  }).finally(() => clearTimeout(t));
+
+  if (!res.ok) {
+    const errText = await res.text().catch(() => "");
+    throw new Error(`OpenAI ${res.status} – ${errText}`);
+  }
+
+  const data = await res.json();
+
+  // Responses-API: bevorzugt `output_text`, sonst erstes Item
+  const text: string =
+    data.output_text ??
+    (Array.isArray(data.output) &&
+      data.output[0]?.content &&
+      Array.isArray(data.output[0].content) &&
+      data.output[0].content[0]?.text) ||
+    "";
+
+  return { text: text || "", raw: data };
+}

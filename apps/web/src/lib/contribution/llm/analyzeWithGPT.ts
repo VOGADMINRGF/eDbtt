@@ -1,6 +1,8 @@
-import { env } from "@/utils/env";
 // apps/web/src/lib/contribution/llm/analyzeWithGPT.ts
+import { callOpenAI } from "@features/ai/providers/openai";
 import { LLMAnalysisZ, type LLMAnalysis } from "@/lib/contribution/schema";
+
+const TIMEOUT_MS = Number(process.env.OPENAI_TIMEOUT_MS ?? 18000);
 
 function withTimeout<T>(p: Promise<T>, ms: number) {
   let t: NodeJS.Timeout;
@@ -16,51 +18,38 @@ export async function analyzeWithGPT(input: {
   userInterests?: string[];
   userRoles?: string[];
 }): Promise<LLMAnalysis> {
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) throw new Error("OPENAI_API_KEY missing");
+  if (!process.env.OPENAI_API_KEY) throw new Error("OPENAI_API_KEY missing");
 
-  const sys =
-    "You are an expert civic-tech analyzer. Return ONLY valid JSON in German keys. " +
-    "Schema: { region?: string|null, topics: [{name:string, confidence:number}], " +
-    "statements:[{text:string,type:'ja/nein'|'skala'|'frei',polarity:'niedrig'|'mittel'|'hoch'}], " +
+  // Kurze Instruktion + Schema (DE-Schlüssel)
+  const systemHint =
+    "Du bist ein präziser Civic-Tech-Analyzer. Antworte NUR mit gültigem JSON (RFC8259) mit deutschen Schlüsseln. " +
+    "Schema: { region?: string|null, topics:[{name:string, confidence:number}], " +
+    "statements:[{text:string, type:'ja/nein'|'skala'|'frei', polarity:'niedrig'|'mittel'|'hoch'}], " +
     "suggestions:string[], isNewContext:boolean }. " +
-    "confidence in 0..1. Keep statements concise. No explanations.";
+    "confidence in 0..1. Keine Erklärungen.";
 
-  const user = JSON.stringify({
+  const payload = {
     text: input.text,
     userProfile: {
       region: input.userRegion ?? null,
       interests: input.userInterests ?? [],
       roles: input.userRoles ?? [],
     },
-  });
+  };
 
-  const r = await withTimeout(
-    fetch(env.OPENAI_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        model: env.MODEL,
-        response_format: { type: "json_object" },
-        messages: [
-          { role: "system", content: sys },
-          { role: "user", content: user },
-        ],
-      }),
-    }),
-    env.TIMEOUT_MS,
+  // Responses-API: ein Prompt-String
+  const prompt = `${systemHint}\n\nINPUT:\n${JSON.stringify(payload)}`;
+
+  const { text } = await withTimeout(
+    callOpenAI(prompt, { forceJsonMode: true }),
+    TIMEOUT_MS
   );
 
-  if (!r.ok) {
-    const msg = await r.text().catch(() => String(r.status));
-    throw new Error(`OpenAI ${r.status}: ${msg}`);
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(text || "{}");
+  } catch {
+    throw new Error("OpenAI lieferte kein valides JSON.");
   }
-
-  const j = await r.json();
-  const raw = j?.choices?.[0]?.message?.content ?? "{}";
-  const parsed = JSON.parse(raw);
-  return LLMAnalysisZ.parse(parsed);
+  return LLLMAnalysisZ.parse(parsed);
 }

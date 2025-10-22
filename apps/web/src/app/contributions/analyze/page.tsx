@@ -1,103 +1,120 @@
-/* @ts-nocheck */
 "use client";
-import React, { useState } from "react";
+import React from "react";
+import AnalyzeResultCard from "@/components/analyze/AnalyzeResultCard";
+import NewsFeedPanel from "@/components/analyze/NewsFeedPanel";
+import { Button } from "@vog/ui";
 
-function ScopeDots({ value, onChange }: { value: number; onChange: (v:number)=>void }) {
-  return (
-    <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-      {[1,2,3,4,5].map((n) => (
-        <button key={n}
-          onClick={() => onChange(n)}
-          aria-label={`Gesellschaftlicher Umfang: ${n}`}
-          style={{
-            width: 14, height: 14, borderRadius: "50%",
-            background: n <= value
-              ? "linear-gradient(90deg, #14b8a6 0%, #60a5fa 100%)"
-              : "#e5e7eb",
-            boxShadow: n <= value ? "0 2px 6px rgba(20,184,166,.35)" : "none",
-            border: "none"
-          }}
-        />
-      ))}
-    </div>
-  );
-}
+type Res = {
+  language?: string; mainTopic?: string|null; subTopics?: string[];
+  regionHint?: string|null;
+  claims?: { text:string; categoryMain?:string|null; categorySubs?:string[]; region?:string|null; authority?:string|null }[];
+  followUps?: string[]; // optional: comes from clarify
+  news?: any[];
+  scoreHints?: { baseWeight?: number; reasons?: string[] };
+  _meta?: { picked?: string|null };
+};
 
-export default function AnalyzeContribution() {
-  const [text, setText] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<any>(null);
+export default function AnalyzePage(){
+  const [text,setText] = React.useState("");
+  const [busy,setBusy] = React.useState(false);
+  const [res,setRes] = React.useState<Res|null>(null);
+  const [debug,setDebug] = React.useState<any>(null);
 
-  const analyze = async () => {
-    if (!text.trim()) return;
-    setLoading(true);
-    try {
-      const r = await fetch("/api/contributions/analyze", {
-        method: "POST", headers: { "content-type": "application/json" },
-        body: JSON.stringify({ text }),
-      }).then(res => res.json());
-      r.claims = (r.claims || []).map((c:any)=>({ ...c, impact: c.impact ?? 3, scope: c.scope ?? 3 }));
-      setResult(r);
-    } finally { setLoading(false); }
-  };
+  async function analyze(opts:{clarify?:boolean} = {}){
+    setBusy(true);
+    try{
+      const url = "/api/contributions/analyze?mode=multi" + (opts.clarify ? "&clarify=1" : "");
+      const r = await fetch(url, { method:"POST", headers:{ "content-type":"application/json" }, body: JSON.stringify({ text, maxClaims: 6 }) });
+      const j = await r.json();
+      setRes(j);
+      setDebug(j);
+    } finally { setBusy(false); }
+  }
 
-  const update = (i:number, patch:Partial<any>) => {
-    setResult((prev:any) => {
-      const next = structuredClone(prev);
-      next.claims[i] = { ...next.claims[i], ...patch };
-      return next;
-    });
-  };
+  function useStatement(s:string){
+    // Weiterleitung in den Statement-Editor (leichter, bis der Editor steht).
+    const u = new URL("/statements/new", window.location.origin);
+    u.searchParams.set("text", s);
+    window.location.href = u.toString();
+  }
+
+  const headGrad = "bg-gradient-to-r from-cyan-500 via-sky-500 to-blue-600 bg-clip-text text-transparent";
 
   return (
-    <div style={{maxWidth:1100, margin:"0 auto", padding:20}}>
-      <h1 style={{fontSize:34, fontWeight:800, marginBottom:12}}>Beitrag erstellen & analysieren</h1>
+    <div className="container mx-auto max-w-6xl px-4 py-6">
+      <h1 className={`text-3xl font-extrabold tracking-tight mb-3 ${headGrad}`}>Beitrag erstellen & analysieren</h1>
+      <p className="text-sm opacity-80 mb-6">Schreibe dein Anliegen, starte die KI-Analyse, wähle eine Aussage und veröffentliche sie oder vertiefe mit Alternativen, Recherche und Faktencheck.</p>
 
-      <textarea
-        placeholder="Dein Text…"
-        value={text} onChange={(e)=>setText(e.target.value)}
-        style={{width:"100%", minHeight:180, border:"1px solid #e5e7eb", borderRadius:8, padding:12}}
-      />
-      <div style={{marginTop:10}}>
-        <button disabled={loading} onClick={analyze}
-          style={{padding:"8px 14px", background:"#111827", color:"#fff", borderRadius:8, opacity:loading?0.6:1}}>
-          {loading ? "Analysiere…" : "Analyse starten"}
-        </button>
-      </div>
-
-      {result?.claims?.length ? (
-        <div style={{marginTop:16}}>
-          <div style={{fontWeight:700, marginBottom:8}}>
-            Ergebnisse • Sprache: {result.language || "—"} • Hauptthema: {result.mainTopic || "—"}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Eingabe + Aktionen */}
+        <div className="lg:col-span-2 space-y-3">
+          <textarea
+            className="w-full min-h-[180px] rounded-2xl border p-4"
+            placeholder="Worum geht es? Was soll sich ändern? (z. B. Kostenloser Nahverkehr, bessere Straßenbahn-Anbindung …)"
+            value={text} onChange={e=>setText(e.target.value)}
+          />
+          <div className="flex flex-wrap gap-2">
+            <Button onClick={()=>analyze()} disabled={!text || busy}>Analyse starten</Button>
+            <Button variant="secondary" onClick={()=>analyze({clarify:true})} disabled={!text || busy}>Analyse + Klärungsfragen</Button>
           </div>
 
-          {result.claims.map((c:any,i:number)=>(
-            <div key={i} style={{border:"1px solid #e5e7eb", borderRadius:12, padding:12, marginBottom:12}}>
-              <div style={{fontWeight:700, marginBottom:6}}>Aussage {i+1}</div>
-              <div style={{marginBottom:6}}>{c.text}</div>
-              <div style={{color:"#6b7280", marginBottom:8}}>
-                Thema: <b>{c.categoryMain ?? "—"}</b>
-                {c.categorySubs?.length ? <> • Sub: {c.categorySubs.join(", ")}</> : null}
+          {/* Ergebnisse */}
+          {res && (
+            <div className="space-y-3">
+              <div className="rounded-2xl border p-4">
+                <div className="font-semibold">
+                  Ergebnisse • Sprache: {res.language ?? "—"} • Hauptthema: {res.mainTopic ?? "—"}
+                  {res._meta?.picked ? <> • Pipeline: {res._meta?.picked}</> : null}
+                </div>
               </div>
 
-              <div style={{display:"flex", gap:16, alignItems:"center", flexWrap:"wrap"}}>
-                <div>
-                  <div style={{fontSize:12, color:"#6b7280"}}>Relevanz</div>
-                  {[1,2,3,4,5].map(star => (
-                    <button key={star} onClick={()=>update(i, { impact: star })}
-                      style={{background:"transparent", border:"none", fontSize:20,
-                              color:(c.impact ?? 3) >= star ? "#f59e0b" : "#e5e7eb"}}>★</button>
-                  ))}
-                </div>
-                <div>
-                  <div style={{fontSize:12, color:"#6b7280"}}>Gesellschaftlicher Umfang</div>
-                  <ScopeDots value={c.scope ?? 3} onChange={(v)=>update(i,{scope:v})} />
-                </div>
+              <div className="space-y-3">
+                {(res.claims||[]).map((c,i)=>(
+                  <div key={i} className="space-y-2">
+                    <div className="text-sm opacity-70">Aussage {i+1}</div>
+                    <AnalyzeResultCard claim={c} onUse={useStatement}/>
+                  </div>
+                ))}
+                {(res.claims?.length??0)===0 && (
+                  <div className="rounded-2xl border p-4">Keine Aussagen erkannt. Probiere <b>Analyse + Klärungsfragen</b>.</div>
+                )}
               </div>
+
+              {/* Followups */}
+              {(res.followUps?.length ?? 0) > 0 && (
+                <div className="rounded-2xl border p-4">
+                  <div className="font-semibold mb-2">Klärungsfragen (optional):</div>
+                  <ul className="list-disc ml-5 space-y-1">{res.followUps!.map((q,i)=><li key={i}>{q}</li>)}</ul>
+                </div>
+              )}
+
+              {/* Debug/Meta */}
+              <details className="rounded-2xl border p-4">
+                <summary className="cursor-pointer font-medium">Debug / Meta</summary>
+                <pre className="mt-2 text-xs whitespace-pre-wrap">{JSON.stringify(debug, null, 2)}</pre>
+              </details>
             </div>
-          ))}
+          )}
         </div>
-      ) : null}
+
+        {/* Rechte Spalte: News / Orientierung */}
+        <div className="space-y-3">
+          <NewsFeedPanel
+            topic={res?.mainTopic || "ÖPNV"}
+            region={res?.regionHint || "DE:BE"}
+            keywords={res?.subTopics || []}
+          />
+          <div className="rounded-2xl border p-4">
+            <div className="font-semibold mb-2">Was ist der nächste Schritt?</div>
+            <ol className="list-decimal ml-5 space-y-1 text-sm">
+              <li>Aussage auswählen → <i>„Statement übernehmen“</i></li>
+              <li>Optional Alternativen vergleichen</li>
+              <li>Recherche öffnen & Belege sammeln</li>
+              <li>Faktencheck anstoßen oder veröffentlichen</li>
+            </ol>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

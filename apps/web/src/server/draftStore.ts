@@ -1,69 +1,85 @@
-// apps/web/src/server/draftStore.ts
-/* @ts-nocheck */
-import { randomUUID } from "crypto";
+import { MongoClient, Collection } from "mongodb";
 
-type Draft = {
+export type Draft = {
   id: string;
-  kind: "contribution";
+  kind: "contribution" | string;
   text: string;
   analysis?: any;
-  status?: "light"|"full";
-  createdAt?: string;
-  updatedAt?: string;
+  createdAt: string;
+  updatedAt: string;
+  _id?: any;
 };
 
-const USE_DB = String(process.env.VOG_USE_DB ?? "false") === "true";
+type Store = {
+  create(d: Omit<Draft, "id"|"createdAt"|"updatedAt">): Promise<Draft>;
+  patch(id: string, patch: Partial<Draft>): Promise<{ ok: boolean; id: string; draft: Draft|null }>;
+  get(id: string): Promise<Draft | null>;
+};
 
-// In-Memory Fallback
-const mem: Record<string, Draft> = {};
+function isoNow(){ return new Date().toISOString(); }
+function rid(){ return Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2); }
 
-// Mongo optional & nur auf Server dynamisch laden
-async function mongo() {
-  const { MongoClient } = await import("mongodb"); // lazy, server only
+/** --- Mongo-Implementierung --- */
+async function mongoCol(): Promise<Collection<Draft>> {
   const uri = process.env.MONGODB_URI!;
   const dbName = process.env.MONGODB_DB!;
   const client = new MongoClient(uri);
   await client.connect();
   return client.db(dbName).collection<Draft>("drafts");
 }
-
-export async function createDraft(input: Partial<Draft>) {
-  const doc: Draft = {
-    id: randomUUID(),
-    kind: "contribution",
-    text: input.text ?? "",
-    analysis: input.analysis ?? null,
-    status: input.status ?? "light",
-    createdAt: input.createdAt ?? new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  };
-
-  if (USE_DB) {
-    const col = await mongo();
-    await col.insertOne(doc as any);
-  } else {
-    mem[doc.id] = doc;
+const mongoStore: Store = {
+  async create(d) {
+    const col = await mongoCol();
+    const draft: Draft = { id: rid(), createdAt: isoNow(), updatedAt: isoNow(), ...d };
+    await col.insertOne(draft);
+    return draft;
+  },
+  async patch(id, patch) {
+    const col = await mongoCol();
+    const upd = { ...patch, updatedAt: isoNow() };
+    await col.updateOne({ id }, { $set: upd });
+    const draft = await col.findOne({ id });
+    return { ok: !!draft, id, draft: draft ?? null };
+    },
+  async get(id) {
+    const col = await mongoCol();
+    return await col.findOne({ id });
   }
-  return doc;
+};
+
+/** --- In-Memory-Implementierung (Dev-Fallback) --- */
+const g = globalThis as any;
+g.__VOG_DRAFTS__ ||= new Map<string, Draft>();
+const mem: Map<string, Draft> = g.__VOG_DRAFTS__;
+
+const memoryStore: Store = {
+  async create(d) {
+    const draft: Draft = { id: rid(), createdAt: isoNow(), updatedAt: isoNow(), ...d };
+    mem.set(draft.id, draft);
+    return draft;
+  },
+  async patch(id, patch) {
+    const cur = mem.get(id) || null;
+    if (!cur) return { ok: false, id, draft: null };
+    const next = { ...cur, ...patch, updatedAt: isoNow() };
+    mem.set(id, next);
+    return { ok: true, id, draft: next };
+  },
+  async get(id) { return mem.get(id) || null; }
+};
+
+/** --- Factory: Prod (Mongo) wenn ENV da, sonst Dev (Memory) --- */
+function pickStore(): Store {
+  const hasMongo = !!process.env.MONGODB_URI && !!process.env.MONGODB_DB;
+  return hasMongo ? mongoStore : memoryStore;
 }
 
+export async function createDraft(d: Omit<Draft, "id"|"createdAt"|"updatedAt">) {
+  return pickStore().create(d);
+}
+export async function patchDraft(id: string, patch: Partial<Draft>) {
+  return pickStore().patch(id, patch);
+}
 export async function getDraft(id: string) {
-  if (USE_DB) {
-    const col = await mongo();
-    return await col.findOne({ id });
-  }
-  return mem[id] ?? null;
-}
-
-export async function patchDraft(id: string, patch: any) {
-  if (USE_DB) {
-    const col = await mongo();
-    await col.updateOne({ id }, { $set: { ...patch, updatedAt: new Date().toISOString() } }, { upsert: false });
-    return await col.findOne({ id });
-  } else {
-    const curr = mem[id];
-    if (!curr) return null;
-    mem[id] = { ...curr, ...patch, updatedAt: new Date().toISOString() };
-    return mem[id];
-  }
+  return pickStore().get(id);
 }

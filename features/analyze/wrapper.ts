@@ -139,8 +139,8 @@ export function extractV4(text: string) {
 
     if (/[?]/.test(raw)) continue;
     if (/\b(und|oder)\b/i.test(raw)) continue;
-    if (!/ist|hat|findet|erhöht|senkt|verbietet|erlaubt|führt zu|fordert|finanziert/i.test(raw)) continue;
-
+    const VERB = /\b(ist|hat|erhöht|senkt|verbietet|erlaubt|führt zu|forder\w*|soll|muss|will|plant)\b/i;
+    if (!VERB.test(raw)) continue;
     const text180 = raw.slice(0, 180);
     const id = claimId(text180, hit.domain);
     const key = normalize(text180);

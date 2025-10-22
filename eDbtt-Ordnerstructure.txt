@@ -1,6 +1,5 @@
 .
 ├── .DS_Store
-├── .env.local
 ├── .envrc
 ├── .github
 │   ├── pull_request_template.md
@@ -46,6 +45,9 @@
 │       │   ├── postcss.config.js.bak
 │       │   ├── tailwind.config.js.bak
 │       │   └── tsconfig.json.bak
+│       ├── core
+│       │   └── feeds
+│       │       └── civic_feeds.de.json
 │       ├── eslint.config.js
 │       ├── i18n.ts
 │       ├── next
@@ -57,6 +59,9 @@
 │       ├── postcss.config.cjs
 │       ├── public
 │       │   ├── .DS_Store
+│       │   ├── .well-known
+│       │   │   └── appspecific
+│       │   │       └── com.chrome.devtools.json
 │       │   ├── dummy
 │       │   │   ├── dummy1.jpg
 │       │   │   ├── dummy10.jpg
@@ -185,6 +190,7 @@
 │       │   │   ├── admin
 │       │   │   │   └── settings
 │       │   │   ├── api
+│       │   │   │   ├── _diag
 │       │   │   │   ├── _echo
 │       │   │   │   ├── admin
 │       │   │   │   ├── ari
@@ -192,6 +198,7 @@
 │       │   │   │   ├── contribution
 │       │   │   │   ├── contributions
 │       │   │   │   ├── csrf
+│       │   │   │   ├── diag
 │       │   │   │   ├── drafts
 │       │   │   │   ├── errors
 │       │   │   │   ├── events
@@ -208,6 +215,7 @@
 │       │   │   │   ├── quick-register
 │       │   │   │   ├── region
 │       │   │   │   ├── reports
+│       │   │   │   ├── search
 │       │   │   │   ├── statements
 │       │   │   │   ├── stream
 │       │   │   │   ├── swipeStatements
@@ -282,6 +290,8 @@
 │       │   │   ├── not-found
 │       │   │   │   └── page.tsx
 │       │   │   ├── page.tsx
+│       │   │   ├── pipeline
+│       │   │   │   └── steps
 │       │   │   ├── presse
 │       │   │   │   └── page.tsx
 │       │   │   ├── profile
@@ -335,6 +345,7 @@
 │       │   │   ├── MiniFeed.tsx
 │       │   │   ├── PageWrapper.tsx
 │       │   │   ├── PasswordField.tsx
+│       │   │   ├── PipelineBox.tsx
 │       │   │   ├── QRCodeGenerator.tsx
 │       │   │   ├── QRCodeWizard.tsx
 │       │   │   ├── QuickRegister.tsx
@@ -418,6 +429,7 @@
 │       │   │       ├── wasm-worker-loader.mjs
 │       │   │       ├── wasm.d.ts
 │       │   │       └── wasm.js
+│       │   ├── features
 │       │   ├── graph
 │       │   │   ├── arangoRepo.ts
 │       │   │   ├── config.ts
@@ -450,7 +462,6 @@
 │       │   │   ├── contribution
 │       │   │   │   ├── analyze
 │       │   │   │   ├── analyzeAndTranslate.ts
-│       │   │   │   ├── analyzeContribution.ts
 │       │   │   │   ├── analyzeContributionHeuristic.ts
 │       │   │   │   ├── extractStatements.ts
 │       │   │   │   ├── llm
@@ -475,7 +486,6 @@
 │       │   │   │   └── provider.ts
 │       │   │   ├── http
 │       │   │   │   └── typedCookies.ts
-│       │   │   ├── llm.ts
 │       │   │   ├── logging
 │       │   │   │   └── pino.ts
 │       │   │   ├── neo4j.ts
@@ -501,7 +511,6 @@
 │       │   ├── middleware
 │       │   │   └── editorAuth.ts
 │       │   ├── middleware.ts
-│       │   ├── middleware.ts.bak
 │       │   ├── models
 │       │   │   ├── Contribution.ts
 │       │   │   ├── ErrorLog.ts
@@ -532,6 +541,7 @@
 │       │   │   ├── registry.ts
 │       │   │   ├── steps
 │       │   │   │   ├── analyze_gpt.ts
+│       │   │   │   ├── analyze_multi_llm.ts.bak.1761074821
 │       │   │   │   ├── cache.ts
 │       │   │   │   ├── confirm.ts
 │       │   │   │   ├── factcheck_stub.ts
@@ -545,7 +555,6 @@
 │       │   │   ├── draftStore.ts
 │       │   │   ├── drafts.client.ts
 │       │   │   ├── drafts.ts
-│       │   │   ├── drafts.ts.bak
 │       │   │   ├── handlers
 │       │   │   │   └── contributions
 │       │   │   ├── health.ts
@@ -699,6 +708,8 @@
 │   │   ├── trust.ts
 │   │   ├── types.ts
 │   │   └── version.ts
+│   ├── feeds
+│   │   └── civic_feeds.de.json
 │   ├── gpt
 │   │   ├── analyzeContribution.ts
 │   │   ├── parseAnalysisResponse.ts
@@ -744,22 +755,34 @@
 ├── eDbtt-Ordnerstructure.txt
 ├── features
 │   ├── .DS_Store
+│   ├── _internal
 │   ├── ai
 │   │   ├── health.ts
+│   │   ├── json.ts
 │   │   ├── orchestrator.ts
+│   │   ├── orchestrator_contrib.ts
 │   │   ├── providers
 │   │   │   ├── anthropic.ts
 │   │   │   ├── gemini.ts
 │   │   │   ├── mistral.ts
-│   │   │   └── openai.ts
+│   │   │   ├── openai.ts
+│   │   │   ├── openai.ts.bak
+│   │   │   └── openai.ts.bak.1760869541
+│   │   ├── providers.ts
+│   │   ├── sources
+│   │   │   └── youtube.ts
+│   │   ├── steps
+│   │   │   └── fetch_sources.ts
 │   │   └── telemetry.ts
 │   ├── analyze
 │   │   ├── analyzeContribution.ts
-│   │   ├── analyzeContribution.ts.bak
 │   │   ├── analyzeText.ts
 │   │   ├── argumentation.ts
 │   │   ├── canon.ts
-│   │   └── wrapper.ts
+│   │   ├── clarify.ts
+│   │   ├── wrapper.ts
+│   │   ├── wrapper.ts.bak.1760683291
+│   │   └── wrapper.ts.bak.1760714846
 │   ├── auth
 │   │   ├── components
 │   │   │   ├── index.ts
@@ -958,6 +981,9 @@
 │   │       └── index.ts
 │   ├── routing
 │   │   └── linkResolver.ts
+│   ├── search
+│   │   ├── ari.ts
+│   │   └── civic.ts
 │   ├── statement
 │   │   ├── .DS_Store
 │   │   ├── api.ts
@@ -1212,6 +1238,7 @@
 │   ├── seed.cjs
 │   └── web
 │       └── schema.prisma
+├── prisma.zip
 ├── scripts
 │   ├── absurlify.mjs
 │   ├── apply_vog_ux_pipeline.sh
@@ -1231,6 +1258,13 @@
 │   ├── fix-web-typecheck-3.sh
 │   ├── fix-web-typecheck-4.sh
 │   ├── fix-web-typecheck.sh
+│   ├── fix_all.sh
+│   ├── fix_openai_and_wrapper.sh
+│   ├── fix_openai_provider.sh
+│   ├── fix_openai_responses_api.sh
+│   ├── fix_openai_responses_api_v2.sh
+│   ├── fix_openai_responses_api_v3.sh
+│   ├── fix_openai_timeout_and_json.sh
 │   ├── fix_type_errors.sh
 │   ├── fix_v1_csrf_dynamic_apis.sh
 │   ├── fix_v1_landingeDbtt.sh
@@ -1261,19 +1295,52 @@
 │   ├── optional-prisma.js
 │   ├── patch-ui-shim.sh
 │   ├── seed.demo.data.ts
+│   ├── smoke_civic_search.sh
+│   ├── smoke_gpt.sh
+│   ├── smoke_gpt5.sh
+│   ├── smoke_multi.sh
+│   ├── smoke_test.sh
 │   ├── tsc_hotfix_e150.mjs
 │   ├── verifyEnv.ts
 │   ├── vog_analysis_stepper_and_cache.sh
+│   ├── vog_analyze_gpt_only_debug.sh
+│   ├── vog_analyze_gpt_plus.sh
+│   ├── vog_analyze_gpt_plus_v2.sh
+│   ├── vog_analyze_hotfix2.sh
+│   ├── vog_analyze_repair.sh
 │   ├── vog_apply_all.sh
 │   ├── vog_apply_ari_gpt.sh
+│   ├── vog_apply_civic_search_v2.sh
 │   ├── vog_apply_workflow.sh
+│   ├── vog_contrib_new_gate.sh
+│   ├── vog_diag_routes_and_analyze_fix.sh
+│   ├── vog_enable_clarify_cta.sh
+│   ├── vog_enable_multi_llm_pipeline.sh
+│   ├── vog_enterprise_analyze_full.sh
+│   ├── vog_enterprise_hardening_v3.sh
+│   ├── vog_fix_analyze.sh
+│   ├── vog_fix_analyze_route_ts.sh
+│   ├── vog_fix_diag_route.sh
+│   ├── vog_fix_features_alias.sh
+│   ├── vog_fix_gpt5_temperature.sh
+│   ├── vog_fix_import_path.sh
+│   ├── vog_fix_llm_providers_and_orchestrator.sh
+│   ├── vog_fix_multi_import.sh
+│   ├── vog_fix_responses_api.sh
 │   ├── vog_fix_ssr_dynamic.sh
+│   ├── vog_fix_step_dupes.sh
 │   ├── vog_fix_ts_inputs.sh
 │   ├── vog_flexible_pipeline.sh
+│   ├── vog_hotfix.sh
 │   ├── vog_hotfix_build_sse.sh
 │   ├── vog_hotfix_focus_analyze.sh
+│   ├── vog_install_analyzer.sh
 │   ├── vog_make_all_buildable.sh
+│   ├── vog_orchestrator_full.sh
 │   ├── vog_patch_admin_config.sh
+│   ├── vog_patch_analyze_and_feeds.sh
+│   ├── vog_patch_analyzer_and_ui.sh
+│   ├── vog_patch_civic_route_v2.sh
 │   ├── vog_patch_ts_inputs_v2.sh
 │   ├── vog_patch_ts_inputs_v3.sh
 │   ├── vog_phase1_patch.sh
@@ -1282,7 +1349,9 @@
 │   ├── vog_phase4_pages_hotfix.sh
 │   ├── vog_phase5_gpt5_orchestrate.sh
 │   ├── vog_run_dev.sh
+│   ├── vog_smoke_analyze.sh
 │   ├── vog_ui_apply.sh
+│   ├── vog_upgrade_ai_orchestrator.sh
 │   ├── wire_gpt_ai_strict.sh
 │   └── wire_vog_pipeline.sh
 ├── secrets
@@ -1290,6 +1359,7 @@
 ├── src
 │   ├── .DS_Store
 │   └── lib
+│       ├── .DS_Store
 │       └── db
 │           ├── core.ts
 │           ├── index.ts
@@ -1380,12 +1450,9 @@
 │       │   └── tsc-web.log
 │       └── run-all.ps1
 ├── tsconfig.base.json
-├── tsconfig.base.json.bak
-├── tsconfig.base.json.bak.1759919096
-├── tsconfig.base.json.bak.1759919694
 ├── turbo.json
 └── worker
     └── factcheck
         └── worker.ts
 
-388 directories, 1001 files
+403 directories, 1053 files

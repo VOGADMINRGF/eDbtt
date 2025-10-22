@@ -1,13 +1,15 @@
-import type { NextConfig } from "next";
-const origins = (process.env.NEXT_ALLOWED_DEV_ORIGINS ??
-  "http://localhost:3000,http://127.0.0.1:3000").split(",");
+import path from "path";
 
-const config: NextConfig = {
-  experimental: {
-    allowedDevOrigins: origins,
-    typedRoutes: true,
-    externalDir: true,
+const config = {
+  experimental: { externalDir: true, typedRoutes: true },
+  webpack: (cfg) => {
+    cfg.resolve.alias = {
+      ...(cfg.resolve.alias || {}),
+      "@features": path.join(__dirname, "../../features"),
+      "@core": path.join(__dirname, "../../core"),
+      "@packages": path.join(__dirname, "../../packages"),
+    };
+    return cfg;
   },
 };
 export default config;
-

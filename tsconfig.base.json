@@ -43,6 +43,12 @@
       ],
       "@db/web/*": [
         "./packages/db-web/src/*"
+      ],
+      "@packages/*": [
+        "packages/*"
+      ],
+      "@/*": [
+        "apps/web/src/*"
       ]
     },
     "types": [

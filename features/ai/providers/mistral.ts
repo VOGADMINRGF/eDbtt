@@ -1,42 +1,39 @@
-export type MistralOptions = {
-  model?: string;
-  timeoutMs?: number;
-};
-
-export async function callMistral(prompt: string, opts: MistralOptions = {}) {
-  const apiKey = process.env.MISTRAL_API_KEY as string | undefined;
-if (!apiKey) throw new Error("MISTRAL_API_KEY missing");
-
+export async function runMistral(
+  prompt: string,
+  opts: { json?: boolean; model?: string; system?: string; timeoutMs?: number } = {}
+) {
+  const key = process.env.MISTRAL_API_KEY;
   const model = opts.model || process.env.MISTRAL_MODEL || "mistral-large-latest";
+  if (!key) return { ok: false, text: "", skipped: true, error: "MISTRAL_API_KEY missing" };
 
-  const ctrl = new AbortController();
-  const id = setTimeout(() => ctrl.abort("timeout"), opts.timeoutMs ?? 18000);
-
-  try {
-    const res = await fetch("https://api.mistral.ai/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model,
-        temperature: 0,
-        messages: [
-          { role: "system", content: "Return valid RFC8259 JSON only. No markdown. No prose." },
-          { role: "user", content: prompt },
-        ],
-      }),
-      signal: ctrl.signal,
+  const t0 = Date.now();
+  const body: any = {
+    model,
+    messages: [
+      ...(opts.system ? [{ role: "system", content: String(opts.system) }] : []),
+      { role: "user", content: String(prompt || "") },
+    ],
+    max_tokens: 1024,
+  };
+  if (opts.json) {
+    body.messages.unshift({
+      role: "system",
+      content: "Gib ausschließlich gültiges JSON (RFC8259) ohne erklärenden Text zurück.",
     });
-    if (!res.ok) {
-      const t = await res.text().catch(()=>"");
-      throw new Error(`Mistral ${res.status}: ${t}`);
-    }
-    const data = await res.json();
-    const text = data.choices?.[0]?.message?.content ?? "";
-    return { text, raw: data };
-  } finally {
-    clearTimeout(id);
   }
+
+  const res = await fetch("https://api.mistral.ai/v1/chat/completions", {
+    method: "POST",
+    headers: { "content-type": "application/json", authorization: `Bearer ${key}` },
+    body: JSON.stringify(body),
+    signal: opts.timeoutMs ? AbortSignal.timeout(opts.timeoutMs) : undefined,
+  });
+
+  if (!res.ok) {
+    const msg = await res.text().catch(() => String(res.status));
+    return { ok: false, text: "", error: `Mistral ${res.status} – ${msg}`, ms: Date.now() - t0 };
+  }
+  const data = await res.json();
+  const text = data?.choices?.[0]?.message?.content ?? "";
+  return { ok: true, text: String(text || ""), raw: data, ms: Date.now() - t0 };
 }

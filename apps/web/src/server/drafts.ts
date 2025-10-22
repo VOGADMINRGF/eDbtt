@@ -1,23 +1,28 @@
+// apps/web/src/server/drafts.ts
 import "server-only";
 /* @ts-nocheck */
-import { coreCol } from "@core/triMongo";
+import { coreCol } from "@core/db/triMongo";
 import { ObjectId } from "mongodb";
 
-export async function createDraft(data:any) {
+export async function createDraft(data: any) {
   const col = await coreCol("drafts");
-  const res = await col.insertOne({ ...data, updatedAt: new Date() });
-  return { id: res.insertedId.toString(), data };
+  const now = new Date();
+  const doc = { ...data, createdAt: data?.createdAt ?? now, updatedAt: now };
+  const res = await col.insertOne(doc as any);
+  return { id: res.insertedId.toString(), ...doc };
 }
 
-export async function patchDraft(id:string, patch:any) {
+export async function patchDraft(id: string, patch: any) {
   const col = await coreCol("drafts");
-  await col.updateOne({ _id: new ObjectId(id) }, { $set: { ...patch, updatedAt: new Date() }});
+  const now = new Date();
+  await col.updateOne({ _id: new ObjectId(id) }, { $set: { ...patch, updatedAt: now } });
   const doc = await col.findOne({ _id: new ObjectId(id) });
-  return { id, data: doc };
+  if (!doc) throw new Error("not_found");
+  return { id, ...doc };
 }
 
-export async function getDraft(id:string) {
+export async function getDraft(id: string) {
   const col = await coreCol("drafts");
   const doc = await col.findOne({ _id: new ObjectId(id) });
-  return doc ? { id: doc._id.toString(), data: doc } : null;
+  return doc ? { id: doc._id.toString(), ...doc } : null;
 }

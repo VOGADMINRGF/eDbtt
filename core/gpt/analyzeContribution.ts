@@ -1,6 +1,7 @@
 // core/gpt/analyzeContribution.ts
 
 import { parseAnalysisOrThrow } from "./parseAnalysisResponse";
+import { queryAri } from "@core/ari/ariClient";
 import { AnyAnalysis } from "./schemas";
 
 import { loadPrompt } from "@features/contribution/utils/loadPrompt";

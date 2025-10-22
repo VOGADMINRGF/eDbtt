@@ -1,0 +1,21 @@
+{
+  "$schema": "https://voiceopengov.dev/schemas/civic_feeds_v1.json",
+  "version": 1,
+  "regions": {
+    "DE": {
+      "default": [
+        "https://www.tagesschau.de/xml/rss2"
+      ],
+      "verkehr": [
+        "https://www.tagesschau.de/xml/rss2"
+      ],
+      "berlin": [
+        "https://www.rbb24.de/content/rbb/r24/de/service/RSS/rbb24.xml"
+      ]
+    }
+  },
+  "notes": [
+    "Nur verifizierte, öffentlich erreichbare Feeds eintragen.",
+    "Für Berlin/ÖPNV sind weitere Fachfeeds möglich – bitte bewusst ergänzen (Presseportale, Stadt, Senat, Verbünde)."
+  ]
+}

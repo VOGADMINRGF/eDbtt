@@ -3,6 +3,10 @@ import type { ExtractOutputV4 } from "./wrapper";
 import { extractV4, findContradictions } from "./wrapper";
 import { stanceFor, DEMAND_MARKER, EVENTUALITY_MARKER, claimWeight } from "./argumentation";
 
+// === Typ-Aliasse aus dem Wrapper herausziehen
+type Domain = ExtractOutputV4["claims"][number]["categoryMain"];
+type Topic  = ExtractOutputV4["claims"][number]["categorySubs"][number];
+
 /** ===== Types für Report ===== */
 export type ExpertId = "journalist" | "political_scientist" | "sociologist" | "geoscientist" | "critic";
 export type ExpertAssessment = {
@@ -16,8 +20,8 @@ export type Thesis = {
   thesisId: string;
   claimId: string;
   text: string;
-  domain: string;
-  topic?: string;
+  domain: Domain;
+  topic?: Topic;
   policyInstrument?: string | null;
   stanceSummary: { pro: number; contra: number; neutral: number };
 };

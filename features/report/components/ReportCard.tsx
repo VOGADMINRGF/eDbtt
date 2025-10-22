@@ -14,7 +14,7 @@ import VoteBar from "@features/vote/components/VoteBar";
 import MiniLineChart from "@features/report/components/MiniLineChart";
 import VotingRuleBadge from "@features/vote/components/VotingRuleBadge";
 import { getNationalFlag, getLanguageName } from "@features/stream/utils/nationalFlag";
-import { badgeColors } from "@ui/design/badgeColor";
+import { badgeColors } from "@vog/ui";
 
 /* ──────────────────────────────────────────────────────────────────
  * Typen (V2 hinzugefügt)

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { colors } from "@ui/theme";
+import { colors } from "@vog/ui/theme";
 
 const faqTabs = [
   {

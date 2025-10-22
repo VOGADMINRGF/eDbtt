@@ -1,0 +1,16 @@
+{
+  "feeds": [
+    {
+      "url": "https://www.tagesschau.de/xml/rss2",
+      "region": "DE",
+      "kind": "news",
+      "trust": 0.9
+    },
+    {
+      "url": "https://www.berlin.de/presse/mitteilungen/index/feed",
+      "region": "DE:BE",
+      "kind": "gov",
+      "trust": 0.9
+    }
+  ]
+}

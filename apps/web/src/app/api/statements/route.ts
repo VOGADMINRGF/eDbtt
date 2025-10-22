@@ -1,4 +1,4 @@
-import { analyzeContribution } from "@/features/analyze/analyzeContribution";
+import { analyzeContribution } from "@features/analyze/analyzeContribution";
 const REQUIRE_LOGIN = process.env.REQUIRE_LOGIN === "1";
 export const runtime = "nodejs";
 
