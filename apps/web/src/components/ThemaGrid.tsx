@@ -1,6 +1,6 @@
 // apps/web/src/components/ThemaGrid.tsx
 import { type ReactNode } from "react";
-import { colors } from "@vog/ui/theme";
+import { colors } from "@packages/ui/src/theme";
 
 type Thema = {
   icon: ReactNode;

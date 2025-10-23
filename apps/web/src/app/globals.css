@@ -1,19 +1,30 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;/* VOG flow styles */
-:root{ --page-max: 920px; }
-.vog-container{ max-width:var(--page-max); margin:0 auto; padding:12px; }
-.vog-card{ border:1px solid #ddd; border-radius:8px; padding:12px; background:#fff; }
-.vog-muted{ color:#555; }
-.vog-stepper{ display:flex; flex-wrap:wrap; gap:8px; margin:12px 0; }
-.vog-step{ display:flex; align-items:center; gap:8px; padding:6px 10px; border-radius:999px; border:1px solid #ddd; background:#fafafa; font-size:14px }
-.vog-step[data-active="true"]{ border-color:#333; background:#f0f0f0; font-weight:600 }
-.vog-spinner{ width:18px; height:18px; border-radius:50%; border:2px solid #ccc; border-top-color:#333; animation:spin .8s linear infinite }
-@keyframes spin{ to{ transform:rotate(360deg) } }
-.vog-claims{ display:grid; gap:10px; }
-.vog-claim{ border:1px solid #eee; border-radius:8px; padding:10px; background:#fff }
-.vog-btn{ padding:8px 12px; border-radius:8px; border:1px solid #222; background:#111; color:#fff; cursor:pointer }
-.vog-btn[disabled]{ opacity:.5; cursor:default }
-.vog-btn--ghost{ background:#fff; color:#111; border-color:#ccc }
-.vog-row{ display:flex; gap:8px; flex-wrap:wrap; }
-textarea.vog-input{ width:100%; min-height:140px; font:inherit; padding:8px; border-radius:8px; border:1px solid #bbb; }
+@import "tailwindcss";
+@plugin "@tailwindcss/forms";
+@plugin "@tailwindcss/typography";
+@plugin "@tailwindcss/aspect-ratio";
+
+/* CI-Helpers */
+:root { --page-max: 1100px; }
+.container-vog { max-width: var(--page-max); margin: 0 auto; padding: 1rem; }
+.vog-head { 
+  font-size: clamp(1.875rem, 2vw + 1rem, 2.25rem); font-weight: 800; letter-spacing: -0.02em;
+  background: linear-gradient(90deg, #00E6D1 0%, #2196F3 100%);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.vog-card       { border-radius: 1rem; border: 1px solid rgba(226,232,240,.8); background: #fff; box-shadow: 0 8px 24px rgba(2,6,23,.06); }
+.vog-card-muted { border-radius: 1rem; border: 1px solid rgba(226,232,240,.8); background: rgba(248,250,252,.7); }
+.vog-btn        { display:inline-flex; align-items:center; justify-content:center; border-radius:1rem; padding:.625rem .875rem; font-size:.875rem; border:1px solid #CBD5E1; background:#fff; }
+.vog-btn:hover  { background:#F1F5F9; }
+.vog-btn-pri    { display:inline-flex; align-items:center; justify-content:center; border-radius:1rem; padding:.625rem 1rem; font-weight:600; font-size:.9rem; color:#fff; background: linear-gradient(90deg, #00E6D1 0%, #2196F3 100%); }
+.vog-btn-ghost  { display:inline-flex; align-items:center; justify-content:center; border-radius:1rem; padding:.5rem .75rem; font-size:.875rem; color:#334155; }
+.vog-chip       { display:inline-flex; align-items:center; border-radius:9999px; padding:.125rem .5rem; font-size:.75rem; border:1px solid #E2E8F0; background:#F8FAFC; color:#475569; }
+.vog-stepper    { display:flex; align-items:center; gap:.5rem; font-size:.75rem; color:#64748B;}
+.vog-stepper .dot{ width:.5rem; height:.5rem; border-radius:9999px; background:#CBD5E1;}
+.vog-stepper .dot.active{ background:#0EA5E9;}
+.vog-skeleton   { animation:pulse 1.5s ease-in-out infinite; background: #E2E8F0; border-radius:.375rem; }
+@keyframes pulse { 0%,100%{opacity:.6} 50%{opacity:1} }
+
+/* Fallback für line-clamp-2 */
+.tw-fallback-line-clamp-2{
+  display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;
+}

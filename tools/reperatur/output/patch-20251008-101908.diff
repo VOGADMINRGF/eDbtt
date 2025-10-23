@@ -3205,7 +3205,7 @@ index b1267230..80cff14d 100644
 @@ -1,26 +1,33 @@
 +// apps/web/src/components/ThemaGrid.tsx
 +import { type ReactNode } from "react";
- import { colors } from "@vog/ui/theme";
+ import { colors } from "@packages/ui/src/theme";
  
 -export function ThemaGrid({ items }) {
 +type Thema = {

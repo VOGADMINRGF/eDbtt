@@ -36,6 +36,20 @@
         "src/**/*",
         "tsconfig*.json",
         "package.json"
+      ],
+      "globalEnv": [
+        "NODE_ENV",
+        "OPENAI_API_KEY",
+        "ANTHROPIC_API_KEY",
+        "GEMINI_API_KEY",
+        "MISTRAL_API_KEY",
+        "WEB_POSTGRES_URI",
+        "CORE_MONGODB_URI",
+        "VOTES_MONGODB_URI",
+        "PII_MONGODB_URI",
+        "PUBLIC_BASE_URL",
+        "WEB_BASE_URL",
+        "JWT_SECRET"
       ]
     }
   }

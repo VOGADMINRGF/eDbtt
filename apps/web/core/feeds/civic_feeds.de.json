@@ -1,16 +1,36 @@
 {
   "feeds": [
-    {
-      "url": "https://www.tagesschau.de/xml/rss2",
-      "region": "DE",
-      "kind": "news",
-      "trust": 0.9
-    },
-    {
-      "url": "https://www.berlin.de/presse/mitteilungen/index/feed",
-      "region": "DE:BE",
-      "kind": "gov",
-      "trust": 0.9
-    }
+    { "url": "https://www.tagesschau.de/xml/rss2", "region": "DE", "scope": "national", "source_type": "public_broadcaster", "language": "de", "trust": 0.9 },
+    { "url": "https://rss.dw.com/rdf/rss-en-all", "region": "DE", "scope": "global", "source_type": "public_broadcaster", "language": "en", "trust": 0.9 },
+
+    { "url": "http://feeds.bbci.co.uk/news/world/rss.xml", "region": "GB", "scope": "global", "source_type": "public_broadcaster", "language": "en", "trust": 0.9 },
+    { "url": "https://www.theguardian.com/world/rss", "region": "GB", "scope": "global", "source_type": "newspaper", "language": "en", "trust": 0.85 },
+
+    { "url": "https://rss.nytimes.com/services/xml/rss/nyt/World.xml", "region": "US", "scope": "global", "source_type": "newspaper", "language": "en", "trust": 0.85 },
+    { "url": "https://feeds.npr.org/1004/rss.xml", "region": "US", "scope": "global", "source_type": "public_broadcaster", "language": "en", "trust": 0.9 },
+
+    { "url": "https://www.aljazeera.com/xml/rss/all.xml", "region": "QA", "scope": "global", "source_type": "broadcaster", "language": "en", "trust": 0.85 },
+
+    { "url": "https://www.europarl.europa.eu/rss/doc/press-releases/en.xml", "region": "EU", "scope": "eu", "source_type": "gov_press", "language": "en", "trust": 0.95 },
+
+    { "url": "https://www.berlin.de/presse/mitteilungen/index/feed", "region": "DE:BE", "scope": "state", "source_type": "region_press", "language": "de", "trust": 0.9 },
+
+    { "url": "https://www.project-syndicate.org/feeds/latest", "region": "GLOBAL", "scope": "global", "source_type": "magazine", "language": "en", "trust": 0.85 },
+    { "url": "https://www.foreignaffairs.com/rss.xml", "region": "US", "scope": "global", "source_type": "magazine", "language": "en", "trust": 0.85 },
+
+    { "url": "https://www.brookings.edu/feed/", "region": "US", "scope": "global", "source_type": "think_tank", "language": "en", "trust": 0.85 },
+    { "url": "https://www.chathamhouse.org/rss.xml", "region": "GB", "scope": "global", "source_type": "think_tank", "language": "en", "trust": 0.85 },
+    { "url": "https://www.bruegel.org/feeds/all", "region": "EU", "scope": "global", "source_type": "think_tank", "language": "en", "trust": 0.85 },
+
+    { "url": "https://www.hrw.org/rss/news", "region": "GLOBAL", "scope": "global", "source_type": "ngo", "language": "en", "trust": 0.8 },
+    { "url": "https://www.amnesty.org/en/feed/", "region": "GLOBAL", "scope": "global", "source_type": "ngo", "language": "en", "trust": 0.8 },
+    { "url": "https://www.transparency.org/en/rss", "region": "GLOBAL", "scope": "global", "source_type": "ngo", "language": "en", "trust": 0.8 },
+
+    { "url": "https://fullfact.org/rss/all.xml", "region": "GB", "scope": "global", "source_type": "factcheck", "language": "en", "trust": 0.9 },
+    { "url": "https://www.politifact.com/rss/factchecks/", "region": "US", "scope": "global", "source_type": "factcheck", "language": "en", "trust": 0.9 },
+    { "url": "https://www.snopes.com/feed/", "region": "US", "scope": "global", "source_type": "factcheck", "language": "en", "trust": 0.85 },
+
+    { "url": "https://www.nature.com/nature.rss", "region": "GLOBAL", "scope": "global", "source_type": "academic_journal", "language": "en", "trust": 0.85 },
+    { "url": "https://www.science.org/action/showFeed?type=etoc&feed=rss&jc=science", "region": "GLOBAL", "scope": "global", "source_type": "academic_journal", "language": "en", "trust": 0.85 }
   ]
 }

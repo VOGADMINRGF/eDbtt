@@ -1,6 +1,6 @@
 "use client";
 
-import { colors } from "@vog/ui/theme";
+import { colors } from "@packages/ui/src/theme";
 import { useState } from "react";
 
 // Zielgruppen-Tabs

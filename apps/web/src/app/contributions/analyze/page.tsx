@@ -1,120 +1,81 @@
 "use client";
 import React from "react";
-import AnalyzeResultCard from "@/components/analyze/AnalyzeResultCard";
+import SmartClaimCard from "@/components/analyze/SmartClaimCard";
+import ClarifyPanel from "@/components/analyze/ClarifyPanel";
 import NewsFeedPanel from "@/components/analyze/NewsFeedPanel";
-import { Button } from "@vog/ui";
+import StanceSpectrum from "@/components/analyze/StanceSpectrum";
+import ObjectionCollector from "@/components/analyze/ObjectionCollector";
+import CounterSynth from "@/components/analyze/CounterSynth";
+import AutopilotDialog from "@/components/analyze/AutopilotDialog";
 
-type Res = {
-  language?: string; mainTopic?: string|null; subTopics?: string[];
-  regionHint?: string|null;
-  claims?: { text:string; categoryMain?:string|null; categorySubs?:string[]; region?:string|null; authority?:string|null }[];
-  followUps?: string[]; // optional: comes from clarify
-  news?: any[];
-  scoreHints?: { baseWeight?: number; reasons?: string[] };
-  _meta?: { picked?: string|null };
-};
+type Claim={ text:string; categoryMain?:string|null; categorySubs?:string[]|null; region?:string|null; authority?:string|null };
+type Res={ language?:string; mainTopic?:string|null; subTopics?:string[]; regionHint?:string|null; claims?:Claim[]; followUps?:string[]; _meta?:{picked?:string|null} };
 
 export default function AnalyzePage(){
-  const [text,setText] = React.useState("");
-  const [busy,setBusy] = React.useState(false);
-  const [res,setRes] = React.useState<Res|null>(null);
-  const [debug,setDebug] = React.useState<any>(null);
+  const [text,setText]=React.useState("");
+  const [busy,setBusy]=React.useState(false);
+  const [res,setRes]=React.useState<Res|null>(null);
+  const [openAuto,setOpenAuto]=React.useState(false);
 
-  async function analyze(opts:{clarify?:boolean} = {}){
+  async function analyze(clarify:boolean){
     setBusy(true);
-    try{
-      const url = "/api/contributions/analyze?mode=multi" + (opts.clarify ? "&clarify=1" : "");
-      const r = await fetch(url, { method:"POST", headers:{ "content-type":"application/json" }, body: JSON.stringify({ text, maxClaims: 6 }) });
-      const j = await r.json();
-      setRes(j);
-      setDebug(j);
-    } finally { setBusy(false); }
+    const url="/api/contributions/analyze?mode=multi"+(clarify?"&clarify=1":"");
+    const r=await fetch(url,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({text, maxClaims:6})});
+    const j=await r.json(); setRes(j); setBusy(false);
   }
-
-  function useStatement(s:string){
-    // Weiterleitung in den Statement-Editor (leichter, bis der Editor steht).
-    const u = new URL("/statements/new", window.location.origin);
-    u.searchParams.set("text", s);
-    window.location.href = u.toString();
-  }
-
-  const headGrad = "bg-gradient-to-r from-cyan-500 via-sky-500 to-blue-600 bg-clip-text text-transparent";
+  function useStatement(s:string){ const u=new URL("/statements/new", window.location.origin); u.searchParams.set("text", s); window.location.href=u.toString(); }
 
   return (
-    <div className="container mx-auto max-w-6xl px-4 py-6">
-      <h1 className={`text-3xl font-extrabold tracking-tight mb-3 ${headGrad}`}>Beitrag erstellen & analysieren</h1>
-      <p className="text-sm opacity-80 mb-6">Schreibe dein Anliegen, starte die KI-Analyse, wähle eine Aussage und veröffentliche sie oder vertiefe mit Alternativen, Recherche und Faktencheck.</p>
-
+    <div className="container-vog">
+      <h1 className="vog-head mb-2">Beitrag erstellen &amp; analysieren (Pro)</h1>
+      <div className="text-sm text-slate-600 mb-4">Für Redaktion/Partner. Öffentlich besser: <a className="underline" href="/contributions/new">„Beitrag (schnell)“</a>.</div>
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Eingabe + Aktionen */}
         <div className="lg:col-span-2 space-y-3">
-          <textarea
-            className="w-full min-h-[180px] rounded-2xl border p-4"
-            placeholder="Worum geht es? Was soll sich ändern? (z. B. Kostenloser Nahverkehr, bessere Straßenbahn-Anbindung …)"
-            value={text} onChange={e=>setText(e.target.value)}
-          />
-          <div className="flex flex-wrap gap-2">
-            <Button onClick={()=>analyze()} disabled={!text || busy}>Analyse starten</Button>
-            <Button variant="secondary" onClick={()=>analyze({clarify:true})} disabled={!text || busy}>Analyse + Klärungsfragen</Button>
+          <div className="vog-card p-4">
+            <div className="vog-stepper mb-2"><span className="dot active"></span>Eingabe → <span className="dot"></span>Analyse → <span className="dot"></span>Auswahl → <span className="dot"></span>Feinschliff → <span className="dot"></span>Veröffentlichen</div>
+            <textarea className="w-full min-h-[180px] rounded-2xl border p-3" placeholder="Worum geht es?" value={text} onChange={e=>setText(e.target.value)} />
+            <div className="flex gap-2 mt-2">
+              <button className="vog-btn-pri" onClick={()=>analyze(false)} disabled={!text||busy}>Analyse starten</button>
+              <button className="vog-btn" onClick={()=>analyze(true)} disabled={!text||busy}>Analyse + Klärungsfragen</button>
+              <button className="vog-btn-ghost ml-auto" onClick={()=>setOpenAuto(true)}>Abbrechen – eDebatte übernimmt</button>
+            </div>
           </div>
 
-          {/* Ergebnisse */}
           {res && (
             <div className="space-y-3">
-              <div className="rounded-2xl border p-4">
-                <div className="font-semibold">
-                  Ergebnisse • Sprache: {res.language ?? "—"} • Hauptthema: {res.mainTopic ?? "—"}
-                  {res._meta?.picked ? <> • Pipeline: {res._meta?.picked}</> : null}
-                </div>
+              <div className="vog-card p-4">
+                <div className="font-semibold">Ergebnis • Sprache: {res.language ?? "—"} • Hauptthema: {res.mainTopic ?? "—"} {res._meta?.picked?<>• Pipeline: {res._meta?.picked}</>:null}</div>
               </div>
-
-              <div className="space-y-3">
-                {(res.claims||[]).map((c,i)=>(
-                  <div key={i} className="space-y-2">
-                    <div className="text-sm opacity-70">Aussage {i+1}</div>
-                    <AnalyzeResultCard claim={c} onUse={useStatement}/>
-                  </div>
-                ))}
-                {(res.claims?.length??0)===0 && (
-                  <div className="rounded-2xl border p-4">Keine Aussagen erkannt. Probiere <b>Analyse + Klärungsfragen</b>.</div>
-                )}
-              </div>
-
-              {/* Followups */}
-              {(res.followUps?.length ?? 0) > 0 && (
-                <div className="rounded-2xl border p-4">
-                  <div className="font-semibold mb-2">Klärungsfragen (optional):</div>
-                  <ul className="list-disc ml-5 space-y-1">{res.followUps!.map((q,i)=><li key={i}>{q}</li>)}</ul>
+              {(res.claims||[]).map((c,i)=>(
+                <div key={i} className="space-y-2">
+                  <div className="text-xs text-slate-500">Aussage {i+1}</div>
+                  <SmartClaimCard claim={c} onUse={useStatement}/>
                 </div>
-              )}
-
-              {/* Debug/Meta */}
-              <details className="rounded-2xl border p-4">
-                <summary className="cursor-pointer font-medium">Debug / Meta</summary>
-                <pre className="mt-2 text-xs whitespace-pre-wrap">{JSON.stringify(debug, null, 2)}</pre>
-              </details>
+              ))}
+              <ClarifyPanel questions={res.followUps}/>
+              {text && <>
+                <StanceSpectrum claimText={text}/>
+                <ObjectionCollector/>
+                <CounterSynth text={text}/>
+              </>}
             </div>
           )}
         </div>
 
-        {/* Rechte Spalte: News / Orientierung */}
         <div className="space-y-3">
-          <NewsFeedPanel
-            topic={res?.mainTopic || "ÖPNV"}
-            region={res?.regionHint || "DE:BE"}
-            keywords={res?.subTopics || []}
-          />
-          <div className="rounded-2xl border p-4">
-            <div className="font-semibold mb-2">Was ist der nächste Schritt?</div>
-            <ol className="list-decimal ml-5 space-y-1 text-sm">
-              <li>Aussage auswählen → <i>„Statement übernehmen“</i></li>
-              <li>Optional Alternativen vergleichen</li>
-              <li>Recherche öffnen & Belege sammeln</li>
-              <li>Faktencheck anstoßen oder veröffentlichen</li>
+          <NewsFeedPanel topic={res?.mainTopic||"Allgemein"} region={res?.regionHint||null} keywords={res?.subTopics||[]} />
+          <div className="vog-card p-4">
+            <div className="font-semibold mb-2">Nächste Schritte</div>
+            <ol className="list-decimal ml-5 text-sm space-y-1">
+              <li>Claim wählen (verifiziert/cluster/neu)</li>
+              <li>Fehlende Lager im Spektrum füllen (Coins)</li>
+              <li>Faktencheck/Belege ergänzen</li>
+              <li>Veröffentlichen</li>
             </ol>
           </div>
         </div>
       </div>
+      <AutopilotDialog open={openAuto} onClose={()=>setOpenAuto(false)} text={text}/>
     </div>
   );
 }

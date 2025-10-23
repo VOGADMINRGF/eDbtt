@@ -1,6 +1,6 @@
 "use client";
 import React from "react";
-import { colors } from "vog/ui/theme";
+import { colors } from "@packages/ui/src/theme";
 
 interface BadgeProps {
   text: string;
