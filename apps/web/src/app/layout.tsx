@@ -1,3 +1,7 @@
+// --- progressive-ui auto-imports (safe) ---
+import FetchInstrument from "@/lib/net/fetchInstrument";
+import PipelineHUD from "@/ui/PipelineHUD";
+// --- end progressive-ui auto-imports ---
 import "./globals.css";
 import type { ReactNode } from "react";
 import type { Metadata } from "next";
@@ -27,12 +31,15 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="de">
       <body className="bg-white text-gray-900 antialiased">
+      <FetchInstrument>
+        <PipelineHUD />
         <ClientProviders>
           <Header />
           <main className="min-h-screen">{children}</main>
           <Footer />
         </ClientProviders>
-      </body>
+            </FetchInstrument>
+  </body>
     </html>
   );
 }

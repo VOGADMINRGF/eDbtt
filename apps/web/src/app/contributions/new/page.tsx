@@ -1,43 +1,121 @@
 "use client";
 import React from "react";
+import InPlaceHUD from "@/ui/InPlaceHUD";
+import InlineClarify from "@/ui/InlineClarify";
 import StanceSpectrum from "@/components/analyze/StanceSpectrum";
 import ObjectionCollector from "@/components/analyze/ObjectionCollector";
 import CounterSynth from "@/components/analyze/CounterSynth";
 import NewsFeedPanel from "@/components/analyze/NewsFeedPanel";
+import ClaimPanelsGate from "@/ui/ClaimPanelsGate";
 
-export default function ContributionQuick(){
+type Claim = { id:string; text:string; ebene?: "EU"|"Bund"|"Land"|"Kommune"|null; ort?:string|null; zeitraum?:string|null; };
+
+export default function ContributionNewPage(){
   const [text,setText]=React.useState<string>(typeof window!=="undefined" ? (new URLSearchParams(window.location.search).get("text")||"") : "");
-  async function analyzeAndMove(){
-    const url="/api/contributions/analyze?mode=multi&clarify=1";
-    const r=await fetch(url,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({text, maxClaims:4})});
-    const j=await r.json(); const claim=(j?.claims?.[0]?.text||text||"").slice(0,500);
-    const u=new URL("/statements/new", window.location.origin); if(claim) u.searchParams.set("text", claim); window.location.href=u.toString();
+  const [analyzing,setAnalyzing]=React.useState(false);
+  const [hud,setHud]=React.useState<string[]>([]);
+  const [claims,setClaims]=React.useState<Claim[]>([]);
+  const [activeIdx,setActiveIdx]=React.useState(0);
+  const [showPanels,setShowPanels]=React.useState(false);
+  const [missing,setMissing]=React.useState<Array<"ebene"|"zeitraum"|"ort">>([]);
+
+// aktiv & sicher ableiten (mit deinen State-Namen)
+const activeClaim = claims[activeIdx] ?? null;
+const canShowPanels = showPanels && !analyzing && !!activeClaim?.text;
+
+// Index einklemmen, falls sich die Länge ändert
+React.useEffect(() => {
+  if (activeIdx > claims.length - 1) {
+    setActiveIdx(Math.max(0, claims.length - 1));
   }
+}, [claims.length, activeIdx]);;
+
+  function pushHud(s:string){ setHud(h=>[...h.slice(-6), s]); }
+
+  async function run(){
+    setAnalyzing(true); setHud([]); setClaims([]); setActiveIdx(0); setShowPanels(false);
+    pushHud("Vorprüfung…");
+    const payload={ text:String(text||"").slice(0,8000), maxClaims:6 };
+
+    pushHud("Analyse: Extraktion & Anreicherung…");
+    const r=await fetch("/api/claims/pipeline",{ method:"POST", headers:{ "content-type":"application/json" }, body: JSON.stringify(payload) });
+    const j=await r.json().catch(()=>({}));
+
+    const found:Claim[] = Array.isArray(j?.claims) ? j.claims.map((c:any)=>({
+      id: c?.id||"", text: String(c?.text||"").trim(),
+      ebene: c?.zustandigkeit?.ebene ?? c?.ebene ?? null,
+      ort: c?.ort ?? null, zeitraum: c?.zeitraum ?? null
+    })) : [];
+
+    if (!found.length && text.trim()) found.push({ id:"local", text:text.trim() });
+    setClaims(found); setActiveIdx(0);
+
+    const a=found[0]; const miss:Array<"ebene"|"zeitraum"|"ort">=[];
+    if (!a?.ebene) miss.push("ebene"); if (!a?.ort) miss.push("ort"); if (!a?.zeitraum) miss.push("zeitraum");
+    setMissing(miss);
+
+    pushHud(`Fertig: ${found.length} Claim(s) · ${((j?._meta?.tookMs||0)/1000).toFixed(1)}s`);
+    setAnalyzing(false);
+  }
+
+  function patchMissing(p:{ebene?:string|null; zeitraum?:string|null; ort?:string|null}){
+    setClaims(cs=>{ if (!cs.length) return cs; const x=[...cs]; const c={...x[0]};
+      if (p.ebene!==undefined) c.ebene=p.ebene as any;
+      if (p.zeitraum!==undefined) c.zeitraum=p.zeitraum??null;
+      if (p.ort!==undefined) c.ort=p.ort??null; x[0]=c; return x; });
+    setMissing(m=>{ const s=new Set(m); if (p.ebene!==undefined) s.delete("ebene"); if (p.zeitraum!==undefined) s.delete("zeitraum"); if (p.ort!==undefined) s.delete("ort"); return Array.from(s); });
+  }
+
+  function goQuick(){
+    const t=(activeClaim?.text||text||"").slice(0,500);
+    const u=new URL("/statements/new", window.location.origin); if (t) u.searchParams.set("text", t); window.location.href=u.toString();
+  }
+
+  // Klemme: falls sich claim-Länge ändert
+  React.useEffect(()=>{ if (activeIdx>claims.length-1) setActiveIdx(Math.max(0,claims.length-1)); },[claims.length,activeIdx]);
+
   return (
     <div className="container-vog">
       <h1 className="vog-head mb-4">Beitrag erstellen &amp; analysieren</h1>
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-4">
           <div className="vog-card p-4 space-y-3">
-            <textarea className="w-full min-h-[200px] rounded-2xl border p-3" placeholder="Schreibe deinen Beitrag/These…" value={text} onChange={e=>setText(e.target.value)}/>
-            <div className="flex gap-2">
-              <button className="vog-btn-pri" onClick={analyzeAndMove} disabled={!text}>Analyse starten</button>
-              <div className="vog-chip">Schnell-Flow</div>
+            <textarea className="w-full min-h-[220px] rounded-2xl border p-3"
+              placeholder="Schreibe deinen Beitrag/These…" value={text} onChange={e=>setText(e.target.value)} />
+            <InPlaceHUD log={hud} analyzing={analyzing} />
+            {activeClaim && !!missing.length && (<InlineClarify missing={missing} onSubmit={patchMissing}/>)}
+            <div className="flex gap-2 items-center">
+              <button className="vog-btn-pri" onClick={run} disabled={!text||analyzing}>{analyzing?"Analysiere…":"Analyse starten"}</button>
+              <button className="vog-btn" onClick={goQuick} disabled={!text}>Schnell-Flow</button>
+              {claims.length>0 && !showPanels && (<button className="vog-btn" onClick={()=>setShowPanels(true)}>Weiter: Alternativen & Einwände</button>)}
             </div>
+            {claims.length>1 && (
+              <div className="pt-2">
+                <div className="text-xs text-slate-500 mb-1">Gefundene Claims</div>
+                <div className="flex flex-wrap gap-2">
+                  {claims.map((c,i)=>(
+                    <button key={c.id||i} className={"vog-chip "+(i===activeIdx?"ring-2 ring-sky-400":"")}
+                      onClick={()=>setActiveIdx(i)} title={c.text}>Claim {i+1}</button>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
-          {text && (
-            <>
-              <StanceSpectrum claimText={text}/>
-              <ObjectionCollector/>
-              <CounterSynth text={text}/>
-            </>
-          )}
+          <ClaimPanelsGate show={canShowPanels}>
+  {() => (
+    <>
+      <StanceSpectrum claimText={activeClaim!.text} />
+      <ObjectionCollector />
+      <CounterSynth text={activeClaim!.text} />
+    </>
+  )}
+</ClaimPanelsGate>
         </div>
         <div className="space-y-3">
-          <NewsFeedPanel topic={"Allgemein"} region={null} keywords={text? [text] : []}/>
+          <NewsFeedPanel topic={"Allgemein"} region={null} keywords={activeClaim?.text?[activeClaim.text]:(text?[text]:[])} />
           <div className="vog-card p-4 text-sm">
             <div className="font-semibold mb-1">Hinweis</div>
-            Du kannst jederzeit abbrechen – <b>eDebatte</b> übernimmt auf Wunsch Redaktion &amp; Belege.
+            Wir bereiten Aussagen neutral auf; Belege werden vorgeschlagen und können geprüft werden.
           </div>
         </div>
       </div>

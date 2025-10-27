@@ -1,139 +1,92 @@
 import { NextRequest, NextResponse } from "next/server";
-import path from "node:path";
-import fs from "node:fs";
+import { decodeWithCharset, sniffCharsetFromHeaders, sniffCharsetFromXml } from "../../_utils/charset";
+import { XMLParser } from "fast-xml-parser";
+import he from "he";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-// Minimal-toleranter RSS/Atom-Parser (ohne extra deps)
-function textBetween(s:string, a:string, b:string) {
-  const i = s.indexOf(a); if (i<0) return "";
-  const j = s.indexOf(b, i + a.length); if (j<0) return "";
-  return s.slice(i + a.length, j);
-}
-function unescape(html:string) {
-  return html
-    .replace(/<!\[CDATA\[(.*?)\]\]>/gs, "$1")
-    .replace(/&amp;/g, "&")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&quot;/g, "\"")
-    .replace(/&#39;/g, "'");
-}
-function parseRss(xml:string) {
-  const items: any[] = [];
-  const rss = xml.includes("<rss") || xml.includes("<rdf");
-  const atom = xml.includes("<feed");
-  if (rss) {
-    const parts = xml.split(/<item[\s>]/g).slice(1);
-    for (const p of parts) {
-      const chunk = "<item" + p;
-      const title = unescape(textBetween(chunk, "<title>", "</title>")).trim();
-      let link = unescape(textBetween(chunk, "<link>", "</link>")).trim();
-      // Manche RSS haben <guid isPermaLink="true">…</guid>
-      if (!link) link = unescape(textBetween(chunk, "<guid>", "</guid>")).trim();
-      const desc = unescape(textBetween(chunk, "<description>", "</description>")).trim();
-      const pubDate = unescape(textBetween(chunk, "<pubDate>", "</pubDate>")).trim();
-      if (title || link) items.push({ title, url: link, summary: desc, date: pubDate });
-    }
-  } else if (atom) {
-    const parts = xml.split(/<entry[\s>]/g).slice(1);
-    for (const p of parts) {
-      const chunk = "<entry" + p;
-      const title = unescape(textBetween(chunk, "<title>", "</title>")).trim();
-      // <link href="..."/> oder <link>…</link>
-      let link = ""; 
-      const hrefMatch = chunk.match(/<link[^>]*href=["']([^"']+)["']/i);
-      if (hrefMatch) link = unescape(hrefMatch[1]);
-      if (!link) link = unescape(textBetween(chunk, "<link>", "</link>")).trim();
-      const summary = unescape(textBetween(chunk, "<summary>", "</summary>")).trim()
-        || unescape(textBetween(chunk, "<content>", "</content>")).trim();
-      const updated = unescape(textBetween(chunk, "<updated>", "</updated>")).trim()
-        || unescape(textBetween(chunk, "<published>", "</published>")).trim();
-      if (title || link) items.push({ title, url: link, summary, date: updated });
-    }
+type Req = { topic?: string; region?: string; keywords?: string[]; limit?: number };
+
+const FEEDS: string[] = [
+  "https://www.tagesschau.de/xml/rss2/",
+  "https://www.deutschlandfunk.de/nachrichten-108.xml",
+  "https://rss.golem.de/rss.php?feed=RSS2.0",
+];
+
+const LRU = new Map<string, { t: number; data: any }>();
+const TTL_MS = 60_000;
+
+function setCache(k: string, v: any) {
+  LRU.set(k, { t: Date.now(), data: v });
+  if (LRU.size > 64) {
+    const first = LRU.keys().next().value; LRU.delete(first);
   }
-  return items;
+}
+function getCache(k: string) {
+  const e = LRU.get(k);
+  if (!e) return null;
+  if (Date.now() - e.t > TTL_MS) { LRU.delete(k); return null; }
+  return e.data;
 }
 
-async function fetchText(url:string, timeoutMs=8000) {
-  const ctrl = new AbortController();
-  const t = setTimeout(()=>ctrl.abort(), timeoutMs);
-  try {
-    const res = await fetch(url, {
-      headers: { "user-agent": "VoiceOpenGov/1.0 (+civic-search)" },
-      signal: ctrl.signal
-    });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    return await res.text();
-  } finally { clearTimeout(t); }
+async function fetchTextSmart(url: string, signal: AbortSignal) {
+  const res = await fetch(url, { signal, next: { revalidate: 60 } });
+  const ab = await res.arrayBuffer();
+  const buf = Buffer.from(ab);
+  const cs = sniffCharsetFromHeaders(res.headers) || sniffCharsetFromXml(buf);
+  return decodeWithCharset(buf, cs || "utf-8");
 }
 
-// simple score: trust * keywordMatch * recency
-function scoreOf(item:any, trust=0.5, keywords:string[]=[]): number {
-  const hay = (item.title+" "+(item.summary||"")).toLowerCase();
-  const kwHits = keywords.reduce((n,kw)=> n + (hay.includes(String(kw).toLowerCase())?1:0), 0);
-  const kwFactor = kwHits === 0 ? 0.6 : Math.min(1, 0.6 + 0.2*kwHits);
-  let recency = 0.8;
-  if (item.date) {
-    const dt = new Date(item.date);
-    const ageDays = Math.max(0, (Date.now()-dt.getTime())/86400000);
-    recency = Math.exp(-ageDays/14); // 2 Wochen Halbwert
-  }
-  return +(trust * kwFactor * recency).toFixed(4);
+function parseRss(xml: string) {
+  const parser = new XMLParser({
+    ignoreAttributes: false,
+    attributeNamePrefix: "@_",
+    decodeHTMLchar: false,
+  });
+  const j = parser.parse(xml);
+  // RSS 2.0 oder Atom minimal unterstützen
+  const items =
+    j?.rss?.channel?.item ||
+    j?.feed?.entry ||
+    [];
+  return (Array.isArray(items) ? items : [items]).map((it: any) => ({
+    title: he.decode(String(it.title?.["#text"] ?? it.title ?? "").trim()),
+    link: String(it.link?.["@_href"] ?? it.link ?? it.guid ?? "").trim(),
+    score: 0.0,
+    source: (j?.rss?.channel?.title || j?.feed?.title || "").toString(),
+  })).filter(x => x.title && x.link);
 }
 
 export async function POST(req: NextRequest) {
-  const t0 = Date.now();
+  const body = (await req.json().catch(() => ({}))) as Req;
+  const key = JSON.stringify({ feeds: FEEDS, body });
+  const cached = getCache(key);
+  if (cached) return NextResponse.json(cached);
+
+  const ac = new AbortController();
+  const to = setTimeout(() => ac.abort(), 10_000);
+
   try {
-    const body = await req.json().catch(()=> ({}));
-    const topic = String(body.topic || "").trim();
-    const region = String(body.region || "").trim();  // z.B. "DE:BE"
-    const limit = Math.max(1, Math.min(50, Number(body.limit ?? 10)));
-    const keywords: string[] = Array.isArray(body.keywords) ? body.keywords.map(String) : [];
-
-    const FEEDS_PATH = path.join(process.cwd(), "core", "feeds", "civic_feeds.de.json");
-    if (!fs.existsSync(FEEDS_PATH)) {
-      return NextResponse.json({ ok:false, error:`feeds file not found: ${FEEDS_PATH}`, items:[], tookMs: Date.now()-t0 });
-    }
-    const cfg = JSON.parse(fs.readFileSync(FEEDS_PATH, "utf8"));
-    const feeds: Array<{url:string; region?:string; trust?:number; kind?:string}> = Array.isArray(cfg?.feeds) ? cfg.feeds : [];
-
-    const selected = feeds.filter(f => {
-      if (!f?.url) return false;
-      if (region && f.region && !f.region.startsWith(region)) return false;
-      return true;
+    const texts = await Promise.allSettled(FEEDS.map(u => fetchTextSmart(u, ac.signal)));
+    const items = texts.flatMap(r => {
+      if (r.status !== "fulfilled") return [];
+      try { return parseRss(r.value); } catch { return []; }
     });
 
-    const allItems: any[] = [];
-    const errors: string[] = [];
-    // parallel mit sanfter Fehlerbehandlung
-    await Promise.all(selected.map(async (f) => {
-      try {
-        const xml = await fetchText(f.url, 9000);
-        const items = parseRss(xml).slice(0, 50).map(it => ({
-          ...it,
-          score: scoreOf(it, Number(f.trust ?? 0.5), keywords.length? keywords : (topic? [topic] : [])),
-          source: f.url,
-          region: f.region ?? null,
-          kind: f.kind ?? null
-        }));
-        allItems.push(...items);
-      } catch (e:any) {
-        errors.push(`${f.url} → ${e?.message||String(e)}`);
-      }
-    }));
+    // naive scoring
+    const kw = (body.keywords||[]).map(s => s.toLowerCase());
+    const filtered = items.map(it => {
+      const hay = (it.title + " " + it.source).toLowerCase();
+      const hits = kw.length ? kw.reduce((n,k)=>n+(hay.includes(k)?1:0),0) : 0;
+      const score = kw.length ? Math.min(1, hits/kw.length) : 0.6;
+      return { ...it, score: Number(score.toFixed(2)) };
+    }).sort((a,b)=>b.score-a.score).slice(0, Math.max(3, Math.min(20, body.limit ?? 10)));
 
-    allItems.sort((a,b)=> (b.score||0)-(a.score||0));
-    const items = allItems.slice(0, limit);
-
-    return NextResponse.json({
-      ok: true,
-      items,
-      errors: errors.length? errors : null,
-      tookMs: Date.now()-t0
-    });
-  } catch (e:any) {
-    return NextResponse.json({ ok:false, error: e?.message || String(e), items:[], tookMs: Date.now()-t0 });
+    const out = { ok:true, items: filtered, errors: [] as string[] };
+    setCache(key, out);
+    return NextResponse.json(out);
+  } finally {
+    clearTimeout(to);
   }
 }

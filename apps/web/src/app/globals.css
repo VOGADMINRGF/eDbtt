@@ -1,3 +1,4 @@
+@import "../styles/vog-steps.css";
 @import "tailwindcss";
 @plugin "@tailwindcss/forms";
 @plugin "@tailwindcss/typography";
@@ -28,3 +29,9 @@
 .tw-fallback-line-clamp-2{
   display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;
 }
+
+/* VOG gating */
+body[data-analyzing="1"] [data-requires-analysis] { display: none; }
+body:not([data-analysis-ready="1"]) [data-requires-analysis] { display: none; }
+/* Simple skeleton */
+.skeleton { @apply animate-pulse rounded-xl bg-slate-200/70; }

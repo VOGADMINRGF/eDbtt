@@ -1,2 +1,2 @@
-export { analyzeContribution, AnalyzeSchema } from "@features/analyze/analyzeContribution";
-export type { AnalyzeInput } from "@features/analyze/analyzeContribution";
+// shim für ältere Importe
+export { analyzeContribution } from "../../../../../features/analyze/analyzeContribution";

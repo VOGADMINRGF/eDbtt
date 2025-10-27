@@ -1,0 +1,31 @@
+import { runOpenAI } from "../../features/ai/providers/openai";
+import { EDITOR_RATER_V1 } from "../prompts/editor_rater";
+import type { AtomicClaim, EditorialScore } from "./shared_types";
+
+export async function rateEditorial(claims: AtomicClaim[], timeoutMs=8000): Promise<{ ratings: Record<string, EditorialScore> }> {
+  if (!claims.length) return { ratings:{} };
+  const payload = { claims: claims.map(c=>({ text: c.text })) };
+  const prompt = EDITOR_RATER_V1.replace("<<<CLAIMS>>>", JSON.stringify(payload, null, 2));
+  const r = await runOpenAI(prompt, { json:true, timeoutMs });
+  if (!r.ok) return { ratings:{} };
+
+  let json:any=null; try{ json = JSON.parse(r.text||"{}"); }catch{ return { ratings:{} }; }
+  const out: Record<string, EditorialScore> = {};
+  const arr = Array.isArray(json?.ratings) ? json.ratings : [];
+  for (const row of arr) {
+    const t = String(row?.claim||"").trim();
+    if (!t) continue;
+    const s: EditorialScore = {
+      praezision: Number(row?.praezision ?? 0),
+      pruefbarkeit: Number(row?.pruefbarkeit ?? 0),
+      relevanz: Number(row?.relevanz ?? 0),
+      lesbarkeit: Number(row?.lesbarkeit ?? 0),
+      ausgewogenheit: Number(row?.ausgewogenheit ?? 0),
+      gruende: Array.isArray(row?.gruende) ? row.gruende.slice(0,5) : [],
+      total: 0
+    };
+    s.total = Math.max(0, Math.min(1, (s.praezision+s.pruefbarkeit+s.relevanz+s.lesbarkeit+s.ausgewogenheit)/5));
+    out[t] = s;
+  }
+  return { ratings: out };
+}

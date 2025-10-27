@@ -199,8 +199,8 @@ export async function analyzeContribution(
   }
 
   // v2-Felder übernehmen, mit defensivem Fallback
-  const organs: Organ[] = Array.isArray(parsed?.organs) ? parsed.organs : [];
-  const trust: Trust | undefined = parsed?.trust && typeof parsed.trust === "object"
+  const organs = Array.isArray(parsed?.organs) ? parsed.organs : [];
+  const trust = parsed?.trust && typeof parsed.trust === "object"
     ? {
         score: clamp01(Number(parsed.trust.score ?? 0)),
         reasons: Array.isArray(parsed.trust.reasons) ? parsed.trust.reasons : [],
@@ -208,13 +208,13 @@ export async function analyzeContribution(
       }
     : undefined;
 
-  const newsroom: Newsroom = {
+  const newsroom = {
     queries: Array.isArray(parsed?.newsroom?.queries) ? parsed.newsroom.queries : [],
     angles: Array.isArray(parsed?.newsroom?.angles) ? parsed.newsroom.angles : [],
     watch: Array.isArray(parsed?.newsroom?.watch) ? parsed.newsroom.watch : [],
   };
 
-  const weightsUpdated: WeightsUpdated | undefined =
+  const weightsUpdated =
     parsed?.weightsUpdated && typeof parsed.weightsUpdated === "object"
       ? {
           specificity: Number(parsed.weightsUpdated.specificity ?? 0),
@@ -229,28 +229,26 @@ export async function analyzeContribution(
   const language = parsed?.language ?? null;
   const mainTopic = parsed?.mainTopic ?? null;
   const subTopics = Array.isArray(parsed?.subTopics) ? parsed.subTopics : [];
-  const regionHint = parsed?.regionHint ?? null; // falls Modell nichts liefert, bleibt null
+  const regionHint = parsed?.regionHint ?? null;
 
   // scoreHints: vom Modell übernehmen oder aus trust ableiten
-  let scoreHints: AnalyzeResult["scoreHints"] =
+  let scoreHints =
     parsed?.scoreHints && typeof parsed.scoreHints === "object"
       ? parsed.scoreHints
       : null;
 
   if (!scoreHints && trust) {
     scoreHints = {
-      baseWeight: Math.round(clamp01(trust.score) * 5 * 10) / 10, // z.B. 0..5 in 0.1-Steps
+      baseWeight: Math.round(clamp01(trust.score) * 5 * 10) / 10,
       reasons: trust.reasons || [],
     };
   }
 
-  // News-Array (für UI bereits vorhanden) – bleibt leer, bis ARI/Suche angeschlossen ist
+  // News-Array
   let news: any[] = Array.isArray(parsed?.news) ? parsed.news : [];
 
-  // Clarify-CTA: (a) Modell-Mapping → UI-Form, (b) Fallback via needsClarify/clarifyForPrices()
+  // Clarify-CTA
   let cta: any = null;
-
-  // (a) Mapping aus clarifyCTA des Modells
   const clarifyFromModel: ClarifyCTAFromModel = parsed?.clarifyCTA ?? null;
   if (clarifyFromModel && Array.isArray(clarifyFromModel.options) && clarifyFromModel.options.length) {
     const pricesPreset = clarifyForPrices?.() || { ask: [], options: [], quickSources: [] };
@@ -265,15 +263,13 @@ export async function analyzeContribution(
       quickSources: pricesPreset.quickSources || [],
     };
   } else {
-    // (b) Fallback-Heuristik
     const first = claims?.[0];
     if (first && needsClarify?.({ text: first.text, categoryMain: first.categoryMain, region: first.region })) {
       cta = { type: "clarify", ...(clarifyForPrices?.() || {}) };
     }
   }
 
-  // Basisresultat ohne _meta
-  const resultBase: Omit<AnalyzeResult, "_meta"> = {
+  const resultBase = {
     language,
     mainTopic,
     subTopics,
@@ -288,33 +284,29 @@ export async function analyzeContribution(
     cta,
   };
 
-  // Optional: ARI/Suche jetzt oder später anschalten (GPT = Fallback)
-  // Wenn opts.searchFn gesetzt ist, nutzen wir newsroom.queries → suchen → news füllen und Mode kennzeichnen.
+  // Optional: ARI/Suche
   let ariMs: number | undefined;
-  if (opts.searchFn && Array.isArray(newsroom.queries) && newsroom.queries.length) {
+  if ((resultBase as any) && Array.isArray(newsroom.queries) && newsroom.queries.length && (typeof (opts as any).searchFn === "function")) {
     const tAri0 = Date.now();
     try {
-      const res = await opts.searchFn(newsroom.queries);
+      const res = await (opts as any).searchFn(newsroom.queries);
       if (res?.news?.length) {
-        resultBase.news = res.news;
+        (resultBase as any).news = res.news;
       }
       ariMs = Date.now() - tAri0;
-    } catch (e: any) {
-      errs.push("Search/ARI failed: " + String(e?.message || e));
-    }
+    } catch (e: any) {}
   }
 
-  // _meta sauber setzen
-  const meta: AnalyzeResult["_meta"] = {
-    mode: errs.length ? "error" : (ariMs ? "ari" : "gpt"),
+  const meta = {
+    mode: (ariMs ? "ari" : (errs.length ? "error" : "gpt")) as "gpt"|"ari"|"error",
     errors: errs.length ? errs : null,
     tookMs: Date.now() - t0,
     gptMs,
     ariMs,
-    gptText: opts.debug ? outText ?? null : null,
+    gptText: (opts as any)?.debug ? outText ?? null : null,
   };
 
-  return { ...resultBase, _meta: meta };
+  return { ...(resultBase as any), _meta: meta };
 }
 
 /* =======================

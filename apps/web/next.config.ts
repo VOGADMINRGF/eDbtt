@@ -13,3 +13,9 @@ const config = {
   },
 };
 export default config;
+
+// --- added by vog_preflight_bundle ---
+export const experimental = {
+  ...(typeof experimental!=="undefined" ? experimental : {}),
+  allowedDevOrigins: ["http://localhost:3000"],
+};

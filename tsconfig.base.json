@@ -23,6 +23,9 @@
       "@features/*": [
         "features/*"
       ],
+      "@/features/*": [
+        "features/*"
+      ],
       "@db-core": [
         "packages/db-core/src/client.ts"
       ],

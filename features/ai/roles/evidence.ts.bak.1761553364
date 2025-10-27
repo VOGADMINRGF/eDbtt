@@ -1,0 +1,28 @@
+import { runOpenAI } from "../../features/ai/providers/openai";
+import { EVIDENCE_V1 } from "../prompts/evidence";
+import type { AtomicClaim, EvidenceSlot } from "./shared_types";
+
+export async function makeEvidence(claims: AtomicClaim[], timeoutMs=9000): Promise<{ hints: Record<string, EvidenceSlot[]> }> {
+  if (!claims.length) return { hints:{} };
+  const payload = { claims: claims.map(c=>({ text: c.text })) };
+  const prompt = EVIDENCE_V1.replace("<<<CLAIMS>>>", JSON.stringify(payload, null, 2));
+  const r = await runOpenAI(prompt, { json:true, timeoutMs });
+  if (!r.ok) return { hints:{} };
+
+  let json:any=null; try{ json = JSON.parse(r.text||"{}"); }catch{ return { hints:{} }; }
+  const out: Record<string, EvidenceSlot[]> = {};
+  const arr = Array.isArray(json?.evidence) ? json.evidence : [];
+  for (const row of arr) {
+    const t = String(row?.claim||"").trim();
+    const hs = Array.isArray(row?.hints) ? row.hints : [];
+    out[t] = hs
+      .map((h:any)=>({
+        source_type: h?.source_type,
+        query: String(h?.query||"").slice(0,240),
+        erwartete_kennzahl: h?.erwartete_kennzahl ?? null,
+        jahr: h?.jahr ?? null
+      }))
+      .filter(h=>h.query);
+  }
+  return { hints: out };
+}

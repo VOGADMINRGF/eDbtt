@@ -1,0 +1,2 @@
+// shim: früherer Import-Pfad "@/features/analysis/extract"
+export { analyzeContribution } from "../../../../../features/analyze/analyzeContribution";
