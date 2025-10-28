@@ -20,7 +20,7 @@ export default function QualifyDialog({ open, onClose, clusterId }:{ open:boolea
           <button className="vog-btn w-full" disabled={loading} onClick={()=>start("std")}>Standard (7 Coins) – + Region + Summary</button>
           <button className="vog-btn w-full" disabled={loading} onClick={()=>start("pro")}>Pro (15 Coins) – + Faktencheck (3 Reviewer) + Merge-Vorschlag</button>
         </div>}
-      {msg && <div className="mt-3 text-sm" style="color:#065F46;background:#ECFDF5;border:1px solid #A7F3D0;border-radius:.75rem;padding:.5rem .75rem">{msg}</div>}
+      {msg && <div className="mt-3 text-sm" style={{ color:"#065F46", background:"#ECFDF5", border:"1px solid #A7F3D0", borderRadius:".75rem", padding:".5rem .75rem" }}>{msg}</div>}
       <div className="mt-3 flex justify-end"><button className="vog-btn-ghost" onClick={onClose}>Schließen</button></div>
     </div>
   </div>;

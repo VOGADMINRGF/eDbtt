@@ -1,0 +1,57 @@
+// Minimaler OpenAI-Provider (Responses API) – nutzt nur runOpenAI
+// NOTE: Erwartet OPENAI_API_KEY im Prozess.
+
+export async function runOpenAI(
+  prompt: string,
+  opts: { json?: boolean; maxOutputTokens?: number; system?: string; timeoutMs?: number } = {}
+): Promise<{ ok: boolean; text: string; raw?: any; usage?: any; ms?: number; error?: string; skipped?: boolean }> {
+  const key = process.env.OPENAI_API_KEY;
+  const model = process.env.OPENAI_MODEL || "gpt-5-2025-08-07";
+  if (!key) return { ok: false, text: "", skipped: true, error: "OPENAI_API_KEY missing" };
+
+  const body: any = {
+    model,
+    input: String(prompt || ""),
+    ...(opts.system ? { instructions: String(opts.system) } : {}),
+    ...(opts.json ? { text: { format: { type: "json_object" } } } : {}),
+    ...(opts.maxOutputTokens ? { max_output_tokens: Number(opts.maxOutputTokens) } : {}),
+    temperature: 0
+  };
+
+  const t0 = Date.now();
+  const controller = opts.timeoutMs ? new AbortController() : null;
+  let timeoutHandle: any = null;
+  if (controller && opts.timeoutMs) timeoutHandle = setTimeout(() => controller.abort(), opts.timeoutMs);
+
+  try{
+    const res = await fetch("https://api.openai.com/v1/responses", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+      signal: controller?.signal
+    });
+    if (timeoutHandle) clearTimeout(timeoutHandle);
+    if (!res.ok) {
+      const msg = await res.text().catch(()=> String(res.status));
+      return { ok:false, text:"", error:`OpenAI ${res.status} – ${msg}`, ms: Date.now()-t0 };
+    }
+    const data = await res.json();
+    let out = "";
+    if (typeof data?.text === "string" && data.text.trim()) out = data.text;
+    else if (Array.isArray(data?.output)) {
+      const parts = data.output
+        .flatMap((it:any)=> Array.isArray(it?.content) ? it.content : [])
+        .map((c:any)=> typeof c?.text === "string" ? c.text : "")
+        .filter(Boolean);
+      if (parts.length) out = parts.join("\n");
+    }
+    return { ok:true, text: out || "", raw:data, usage:data?.usage, ms: Date.now()-t0 };
+  }catch(e:any){
+    if (timeoutHandle) clearTimeout(timeoutHandle);
+    const msg = String(e?.message||e);
+    const isAbort = /AbortError/i.test(msg);
+    return { ok:false, text:"", error: isAbort ? "timeout" : msg, ms: Date.now()-t0 };
+  }
+}
+// compat alias
+export { runOpenAI as callOpenAI };

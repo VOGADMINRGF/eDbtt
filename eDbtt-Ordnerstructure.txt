@@ -195,6 +195,7 @@
 │       │   │   │   ├── _echo
 │       │   │   │   ├── _utils
 │       │   │   │   ├── admin
+│       │   │   │   ├── analyze
 │       │   │   │   ├── ari
 │       │   │   │   ├── auth
 │       │   │   │   ├── autopilot
@@ -417,6 +418,7 @@
 │       │   ├── core
 │       │   │   ├── factcheck
 │       │   │   │   └── triage.ts
+│       │   │   ├── gpt.ts
 │       │   │   └── utils
 │       │   │       └── errors.ts
 │       │   ├── db
@@ -460,9 +462,14 @@
 │       │   │       └── wasm.js
 │       │   ├── features
 │       │   │   ├── ai
-│       │   │   │   └── providers
-│       │   │   └── analysis
-│       │   │       └── extract.ts
+│       │   │   │   ├── orchestrator_claims.ts
+│       │   │   │   ├── orchestrator_many.ts
+│       │   │   │   ├── prompts
+│       │   │   │   ├── providers
+│       │   │   │   └── roles
+│       │   │   ├── analysis
+│       │   │   │   └── extract.ts
+│       │   │   └── analyze
 │       │   ├── graph
 │       │   │   ├── arangoRepo.ts
 │       │   │   ├── config.ts
@@ -532,7 +539,6 @@
 │       │   │   │   └── usage.ts.bak.1761465318
 │       │   │   ├── neo4j.ts
 │       │   │   ├── net
-│       │   │   │   ├── fetchInstrument.ts
 │       │   │   │   └── fetchInstrument.tsx
 │       │   │   ├── pii
 │       │   │   │   └── QuickSignup.ts
@@ -564,6 +570,7 @@
 │       │   │   ├── Contribution.ts
 │       │   │   ├── ErrorLog.ts
 │       │   │   ├── Vote.ts
+│       │   │   ├── adapters.ts
 │       │   │   ├── core
 │       │   │   │   ├── Contribution.ts
 │       │   │   │   ├── ErrorLog.ts
@@ -581,6 +588,7 @@
 │       │   │   ├── pii
 │       │   │   │   ├── UserDemographics.ts
 │       │   │   │   └── UserProfile.ts
+│       │   │   ├── statement.ts
 │       │   │   └── votes
 │       │   │       └── Vote.ts
 │       │   ├── openapi
@@ -640,6 +648,7 @@
 │       │   │   │   └── utils
 │       │   │   ├── models
 │       │   │   │   └── Vote.ts
+│       │   │   ├── react-icons-fi.tsx
 │       │   │   └── ui.tsx
 │       │   ├── store
 │       │   │   ├── pipeline.ts
@@ -833,6 +842,7 @@
 │   │   └── factcheckQueue.ts
 │   ├── schemas
 │   │   └── editor.ts
+│   ├── triMongo.ts
 │   ├── tsconfig.json
 │   ├── tsconfig.tsbuildinfo
 │   ├── utils
@@ -855,7 +865,8 @@
 │   │   ├── json.ts
 │   │   ├── orchestrator.ts
 │   │   ├── orchestrator_claims.ts
-│   │   ├── orchestrator_claims.ts.bak.1761553364
+│   │   ├── orchestrator_claims.ts.bak.1761616821
+│   │   ├── orchestrator_claims.ts.bak.1761616968
 │   │   ├── orchestrator_contrib.ts
 │   │   ├── prompts
 │   │   │   ├── assigner.ts
@@ -871,21 +882,21 @@
 │   │   ├── providers
 │   │   │   ├── anthropic.ts
 │   │   │   ├── gemini.ts
+│   │   │   ├── index.ts
 │   │   │   ├── mistral.ts
 │   │   │   ├── openai.ts
 │   │   │   ├── openai.ts.bak
 │   │   │   ├── openai.ts.bak.1760869541
-│   │   │   └── openai.ts.bak.1761391594
+│   │   │   ├── openai.ts.bak.1761391594
+│   │   │   ├── openai.ts.bak.1761616821
+│   │   │   └── openai.ts.bak.1761616968
 │   │   ├── providers.ts
 │   │   ├── roles
 │   │   │   ├── assigner.ts
-│   │   │   ├── assigner.ts.bak.1761553364
+│   │   │   ├── atomicize.ts
 │   │   │   ├── atomicizer.ts
-│   │   │   ├── atomicizer.ts.bak.1761553364
 │   │   │   ├── editor_rater.ts
-│   │   │   ├── editor_rater.ts.bak.1761553364
 │   │   │   ├── evidence.ts
-│   │   │   ├── evidence.ts.bak.1761553364
 │   │   │   ├── perspectives.ts
 │   │   │   ├── perspectives.ts.bak.1761553364
 │   │   │   ├── shared_types.ts
@@ -902,6 +913,7 @@
 │   │   ├── argumentation.ts
 │   │   ├── canon.ts
 │   │   ├── clarify.ts
+│   │   ├── composeVote.ts
 │   │   ├── wrapper.ts
 │   │   ├── wrapper.ts.bak.1760683291
 │   │   └── wrapper.ts.bak.1760714846
@@ -1338,6 +1350,7 @@
 │       ├── tsconfig.json
 │       ├── tsconfig.tsbuildinfo
 │       └── tsup.config.ts
+├── packages 2.zip
 ├── packages.zip
 ├── pnpm-lock.yaml
 ├── pnpm-workspace.yaml
@@ -1360,6 +1373,7 @@
 │   ├── seed.cjs
 │   └── web
 │       └── schema.prisma
+├── prisma.zip
 ├── scripts
 │   ├── absurlify.mjs
 │   ├── add_analysis_fallback_bundle.sh
@@ -1376,6 +1390,7 @@
 │   ├── e150_seed.sh
 │   ├── edebatte_full_onboarding.sh
 │   ├── edebatte_pitch_pack.sh
+│   ├── edebatte_setup_all.sh
 │   ├── edebatte_ui_full_patch.sh
 │   ├── enable_consistency_flow.sh
 │   ├── enable_v3_workflow.sh
@@ -1389,7 +1404,12 @@
 │   ├── fix_analyze_route_handoff.sh
 │   ├── fix_analyze_usage_bundle.sh
 │   ├── fix_features_aliases_and_shims.sh
+│   ├── fix_fetchInstrument_tsx.sh
+│   ├── fix_inlineclarify_and_turbo.sh
+│   ├── fix_inlineclarify_and_turbo_v2.sh
 │   ├── fix_layout_imports_progressive_safe.sh
+│   ├── fix_many_imports_and_turbo.sh
+│   ├── fix_many_imports_and_turbo_v2.sh
 │   ├── fix_openai_and_wrapper.sh
 │   ├── fix_openai_provider.sh
 │   ├── fix_openai_responses_api.sh
@@ -1432,12 +1452,15 @@
 │   │   ├── e150_fix_relative_fetch.sh
 │   │   └── e150_quickcheck.sh
 │   ├── optional-prisma.js
+│   ├── overwrite_analyze_route.sh
 │   ├── patch-ui-shim.sh
+│   ├── patch_analyze_route_macos.sh
 │   ├── patch_civic_charset_cache.sh
 │   ├── patch_pipeline_hud_safe.sh
 │   ├── patch_similar_route.sh
 │   ├── patch_ui_pipeline_hud.sh
 │   ├── seed.demo.data.ts
+│   ├── setup_atomic_pipeline.sh
 │   ├── setup_routes_text.sh
 │   ├── setup_text_and_translate.sh
 │   ├── smoke_civic_search.sh
@@ -1447,6 +1470,7 @@
 │   ├── smoke_test.sh
 │   ├── tsc_hotfix_e150.mjs
 │   ├── unify_features_layout.sh
+│   ├── upgrade_analyze_v2.sh
 │   ├── verifyEnv.ts
 │   ├── vog_all_in_bundle.sh
 │   ├── vog_analysis_stepper_and_cache.sh
@@ -1534,90 +1558,93 @@
 │   ├── .DS_Store
 │   ├── net
 │   │   └── atlas-allow-fixed.sh
-│   └── reperatur
-│       ├── .DS_Store
-│       ├── 00-preflight.sh
-│       ├── 10-trimongo.mjs
-│       ├── 11-imports-prisma.mjs
-│       ├── 12-next-dynamic.mjs
-│       ├── 13-redis-upstash.mjs
-│       ├── 14-mongoose-indexes.mjs
-│       ├── 15-paths-tsconfig.mjs
-│       ├── 16-fix-import-exports.mjs
-│       ├── 17-implicit-any.mjs
-│       ├── 18-unresolved-imports.mjs
-│       ├── 19-ambient-decls-from-log.mjs
-│       ├── 20-run-all.sh
-│       ├── 21-e200-align-and-clean.mjs
-│       ├── 23-exclude-disabled-and-rerun.mjs
-│       ├── 24-e200-unblock.mjs
-│       ├── 25-e200-fixwave.mjs
-│       ├── 26-e200-realize-now.mjs
-│       ├── 27-e200-hardening.mjs
-│       ├── 28-e200-applyfixes.mjs
-│       ├── 31-e200-fix-39errs.mjs
-│       ├── 32-e200-fix-useguard-ai.mjs
-│       ├── 33-fix-aiProviders-sig.mjs
-│       ├── 34-e200-fix15.mjs
-│       ├── 35-e200-fix-13errs.mjs
-│       ├── 36-e200-fix-remaining.mjs
-│       ├── 37-e200-fix-tail.mjs
-│       ├── 40-sanity-e200.mjs
-│       ├── 41-lint-warnings-clean.mjs
-│       ├── 42-refactor-env-constants.mjs
-│       ├── 43-tighten-lint.mjs
-│       ├── 44-fix-eslint-config.mjs
-│       ├── 45-next-bundle-alias.mjs
-│       ├── 46-wire-features-core.mjs
-│       ├── 47-fix-ui-dbweb-alias.mjs
-│       ├── 48-fix-build-breakers.mjs
-│       ├── 49-fix-formatError-backref.mjs
-│       ├── 50-zap-backref.mjs
-│       ├── 52-buildfix-ts-batch.mjs
-│       ├── 53-fix-stream-schemas-orchestrator.mjs
-│       ├── 54-fix-stream-promptSchemas.mjs
-│       ├── 90-post.sh
-│       ├── README.md
-│       ├── RF@MacBook-Air-von-Sina VPM25 % pnpm run e200   > vpm25@ e200 
-│       │   └── Users
-│       │       └── RF
-│       │           └── VPM25 > pnpm run typecheck && pnpm run lint   > vpm25@ typecheck 
-│       ├── config.json
-│       ├── output
-│       │   └── patch-20251008-101908.diff
-│       ├── reports
-│       │   ├── 10-trimongo-1759912520277-dry.log
-│       │   ├── 10-trimongo-1759912660507-dry.log
-│       │   ├── 10-trimongo-1759912758990-write.log
-│       │   ├── 10-trimongo-1759913392157-dry.log
-│       │   ├── 11-imports-prisma-1759912521060-dry.log
-│       │   ├── 11-imports-prisma-1759912661343-dry.log
-│       │   ├── 11-imports-prisma-1759913392902-dry.log
-│       │   ├── 12-next-dynamic-1759912521134-dry.log
-│       │   ├── 12-next-dynamic-1759912661416-dry.log
-│       │   ├── 12-next-dynamic-1759913392972-dry.log
-│       │   ├── 13-redis-upstash-1759912521267-dry.log
-│       │   ├── 13-redis-upstash-1759912661543-dry.log
-│       │   ├── 13-redis-upstash-1759913393096-dry.log
-│       │   ├── 14-mongoose-indexes-1759912521317-dry.log
-│       │   ├── 14-mongoose-indexes-1759912661592-dry.log
-│       │   ├── 14-mongoose-indexes-1759913393142-dry.log
-│       │   ├── 15-paths-tsconfig-1759912661902-dry.log
-│       │   ├── 15-paths-tsconfig-1759913393451-dry.log
-│       │   ├── 16-fix-import-exports-1759913700142-dry.log
-│       │   ├── 16-fix-import-exports-1759913845724-write.log
-│       │   ├── 17-implicit-any-1759913711429-dry.log
-│       │   ├── 17-implicit-any-1759913852419-write.log
-│       │   ├── 18-unresolved-imports-1759913431431-dry.log
-│       │   ├── tsc-20251008-101042.log
-│       │   ├── tsc-20251008-101549.log
-│       │   ├── tsc-20251008-101834.log
-│       │   └── tsc-web.log
-│       └── run-all.ps1
+│   ├── reperatur
+│   │   ├── .DS_Store
+│   │   ├── 00-preflight.sh
+│   │   ├── 10-trimongo.mjs
+│   │   ├── 11-imports-prisma.mjs
+│   │   ├── 12-next-dynamic.mjs
+│   │   ├── 13-redis-upstash.mjs
+│   │   ├── 14-mongoose-indexes.mjs
+│   │   ├── 15-paths-tsconfig.mjs
+│   │   ├── 16-fix-import-exports.mjs
+│   │   ├── 17-implicit-any.mjs
+│   │   ├── 18-unresolved-imports.mjs
+│   │   ├── 19-ambient-decls-from-log.mjs
+│   │   ├── 20-run-all.sh
+│   │   ├── 21-e200-align-and-clean.mjs
+│   │   ├── 23-exclude-disabled-and-rerun.mjs
+│   │   ├── 24-e200-unblock.mjs
+│   │   ├── 25-e200-fixwave.mjs
+│   │   ├── 26-e200-realize-now.mjs
+│   │   ├── 27-e200-hardening.mjs
+│   │   ├── 28-e200-applyfixes.mjs
+│   │   ├── 31-e200-fix-39errs.mjs
+│   │   ├── 32-e200-fix-useguard-ai.mjs
+│   │   ├── 33-fix-aiProviders-sig.mjs
+│   │   ├── 34-e200-fix15.mjs
+│   │   ├── 35-e200-fix-13errs.mjs
+│   │   ├── 36-e200-fix-remaining.mjs
+│   │   ├── 37-e200-fix-tail.mjs
+│   │   ├── 40-sanity-e200.mjs
+│   │   ├── 41-lint-warnings-clean.mjs
+│   │   ├── 42-refactor-env-constants.mjs
+│   │   ├── 43-tighten-lint.mjs
+│   │   ├── 44-fix-eslint-config.mjs
+│   │   ├── 45-next-bundle-alias.mjs
+│   │   ├── 46-wire-features-core.mjs
+│   │   ├── 47-fix-ui-dbweb-alias.mjs
+│   │   ├── 48-fix-build-breakers.mjs
+│   │   ├── 49-fix-formatError-backref.mjs
+│   │   ├── 50-zap-backref.mjs
+│   │   ├── 52-buildfix-ts-batch.mjs
+│   │   ├── 53-fix-stream-schemas-orchestrator.mjs
+│   │   ├── 54-fix-stream-promptSchemas.mjs
+│   │   ├── 90-post.sh
+│   │   ├── README.md
+│   │   ├── RF@MacBook-Air-von-Sina VPM25 % pnpm run e200   > vpm25@ e200 
+│   │   │   └── Users
+│   │   │       └── RF
+│   │   │           └── VPM25 > pnpm run typecheck && pnpm run lint   > vpm25@ typecheck 
+│   │   ├── config.json
+│   │   ├── output
+│   │   │   └── patch-20251008-101908.diff
+│   │   ├── reports
+│   │   │   ├── 10-trimongo-1759912520277-dry.log
+│   │   │   ├── 10-trimongo-1759912660507-dry.log
+│   │   │   ├── 10-trimongo-1759912758990-write.log
+│   │   │   ├── 10-trimongo-1759913392157-dry.log
+│   │   │   ├── 11-imports-prisma-1759912521060-dry.log
+│   │   │   ├── 11-imports-prisma-1759912661343-dry.log
+│   │   │   ├── 11-imports-prisma-1759913392902-dry.log
+│   │   │   ├── 12-next-dynamic-1759912521134-dry.log
+│   │   │   ├── 12-next-dynamic-1759912661416-dry.log
+│   │   │   ├── 12-next-dynamic-1759913392972-dry.log
+│   │   │   ├── 13-redis-upstash-1759912521267-dry.log
+│   │   │   ├── 13-redis-upstash-1759912661543-dry.log
+│   │   │   ├── 13-redis-upstash-1759913393096-dry.log
+│   │   │   ├── 14-mongoose-indexes-1759912521317-dry.log
+│   │   │   ├── 14-mongoose-indexes-1759912661592-dry.log
+│   │   │   ├── 14-mongoose-indexes-1759913393142-dry.log
+│   │   │   ├── 15-paths-tsconfig-1759912661902-dry.log
+│   │   │   ├── 15-paths-tsconfig-1759913393451-dry.log
+│   │   │   ├── 16-fix-import-exports-1759913700142-dry.log
+│   │   │   ├── 16-fix-import-exports-1759913845724-write.log
+│   │   │   ├── 17-implicit-any-1759913711429-dry.log
+│   │   │   ├── 17-implicit-any-1759913852419-write.log
+│   │   │   ├── 18-unresolved-imports-1759913431431-dry.log
+│   │   │   ├── tsc-20251008-101042.log
+│   │   │   ├── tsc-20251008-101549.log
+│   │   │   ├── tsc-20251008-101834.log
+│   │   │   └── tsc-web.log
+│   │   └── run-all.ps1
+│   └── repo-fixes
 ├── tsconfig.base.json
 ├── turbo.json
+├── types
+│   └── global-shims.d.ts
 └── worker
     └── factcheck
         └── worker.ts
 
-427 directories, 1194 files
+433 directories, 1215 files

@@ -1,5 +1,5 @@
 {
-  "name": "vpm25",
+  "name": "edebatte",
   "private": true,
   "packageManager": "pnpm@10.17.1",
   "workspaces": [
@@ -35,7 +35,8 @@
     "tc:web": "pnpm -C apps/web exec tsc --noEmit -p tsconfig.json",
     "lint:web": "pnpm -C apps/web exec eslint --cache --cache-location .eslintcache --config apps/web/eslint.config.js 'apps/web/src/**/*.{ts,tsx}'",
     "tc:web:w": "pnpm -C apps/web exec tsc -w -p tsconfig.json --noEmit",
-    "tc:web:watch": "pnpm -C apps/web exec tsc -w --noEmit -p tsconfig.json"
+    "tc:web:watch": "pnpm -C apps/web exec tsc -w --noEmit -p tsconfig.json",
+    "repo:fix": "node tools/repo-fixes/fix_all.mjs"
   },
   "pnpm": {
     "overrides": {
@@ -58,6 +59,7 @@
     "@prisma/client": "6.16.3",
     "@radix-ui/react-tooltip": "^1.2.8",
     "@upstash/redis": "^1.35.4",
+    "ajv": "^8.17.1",
     "arangojs": "^10.1.2",
     "axios": "^1.12.2",
     "bullmq": "^5.58.8",
@@ -86,7 +88,7 @@
     "qrcode": "^1.5.4",
     "react-beautiful-dnd": "^13.1.1",
     "react-hot-toast": "^2.6.0",
-    "react-icons": "^4.12.0",
+    "react-icons": "^5.5.0",
     "react-qr-code": "^2.0.18",
     "recharts": "^3.2.1",
     "redis": "^5.8.2",
@@ -107,6 +109,7 @@
     "@tailwindcss/forms": "^0.5.10",
     "@tailwindcss/postcss": "^4.1.14",
     "@tailwindcss/typography": "^0.5.19",
+    "@types/he": "^1.2.3",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/lodash": "^4.17.20",
     "@types/node": "^20.19.17",
@@ -127,8 +130,8 @@
     "tailwindcss": "^4.1.14",
     "ts-morph": "^27.0.0",
     "tsx": "^4.20.6",
-    "typescript": "^5.9.3",
-    "turbo": "2.5.10"
+    "turbo": "2.5.8",
+    "typescript": "^5.9.3"
   },
   "engines": {
     "node": "20.x"

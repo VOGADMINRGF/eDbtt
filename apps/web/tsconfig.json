@@ -23,7 +23,10 @@
         "src/components/*"
       ],
       "@config/*": [
-        "src/config/*"
+        "../../packages/config/*"
+      ],
+      "@/config/*": [
+        "../../packages/config/*"
       ],
       "@db/web": [
         "src/shims/db-web.ts"
@@ -32,7 +35,7 @@
         "src/shims/db-core.ts"
       ],
       "@core/triMongo": [
-        "src/shims/core/db/triMongo.ts"
+        "../../core/db/triMongo.ts"
       ],
       "@core/*": [
         "../../core/*"
@@ -47,6 +50,9 @@
         "../../contribution/*"
       ],
       "@packages/*": [
+        "../../packages/*"
+      ],
+      "@/packages/*": [
         "../../packages/*"
       ],
       "@/features/*": [
@@ -68,7 +74,7 @@
     "allowJs": true,
     "esModuleInterop": true,
     "isolatedModules": true,
-    "verbatimModuleSyntax": true
+    "verbatimModuleSyntax": false
   },
   "include": [
     "next-env.d.ts",

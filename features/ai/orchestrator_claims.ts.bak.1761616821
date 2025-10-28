@@ -1,0 +1,258 @@
+// features/ai/orchestrator.ts
+// Kombi-BEST-Version: V2 (Single-Claim) bevorzugt; V1 (Multi-Claims) als Legacy/Fallback.
+// Liefert:
+//  - orchestrateClaim(...)           → V2 OrchestrationResult (ein Claim)
+//  - orchestrateClaimsLegacy(...)    → V1 OrchestratorResult (mehrere Claims, legacy Map-Struktur)
+
+import { OrchestrationResultSchema, type OrchestrationResult, toLegacyOrchestratorResult, type LegacyOrchestratorResult, type AtomicClaim } from "./roles/shared_types";
+
+import { atomicize } from "./roles/atomicize";
+import { assignJurisdiction, assignZustaendigkeit } from "./roles/assigner";
+import { makeEvidenceHypotheses, makeEvidenceForClaims, makeEvidenceV1 } from "./roles/evidence";
+import { buildPerspectives, buildPerspectivesForClaims, makePerspectivesV1 } from "./roles/perspectives";
+import { rateDraft, rateClaims, rateEditorialV1 } from "./roles/rater";
+
+// ———————————————————————————————————————————————————————————
+// Helpers
+// ———————————————————————————————————————————————————————————
+
+async function withTimeout<T>(p: Promise<T>, ms: number, label: string): Promise<T> {
+  return await Promise.race([
+    p,
+    new Promise<T>((_, rej) => setTimeout(() => rej(new Error(`timeout:${label}`)), ms)),
+  ]);
+}
+
+function okOr<T>(p: Promise<T>, fallback: T): Promise<T> {
+  return p.catch(() => fallback);
+}
+
+// ———————————————————————————————————————————————————————————
+// V2: Single-Claim Orchestrierung (bevorzugt)
+// ———————————————————————————————————————————————————————————
+
+export async function orchestrateClaim(
+  input: string,
+  budget = { extractor: 1500, normalizer: 2500, assigner: 2000, editor: 3000, evidence: 1800, rater: 1600 }
+): Promise<OrchestrationResult> {
+  // 1) Extract + normalize
+  const { claims, meta } = await withTimeout(
+    atomicize(input, { timeoutMs: budget.normalizer, mode: "v2" }),
+    budget.normalizer,
+    "atomicizer"
+  );
+  const claim = (claims?.[0] as AtomicClaim) ?? null;
+  if (!claim) {
+    // minimaler Fallback: scheitere sauber
+    throw new Error("atomicizer:empty");
+  }
+
+  // fail-open UI: if missing → annotate for UI single-shot question
+  const needs: string | null =
+    (meta?.missing && meta.missing[0]) ||
+    (claim.ebene == null ? "zuständigkeit" : null) ||
+    (!claim.zeitraum ? "zeitraum" : null);
+
+  // 2) Parallel: Zuständigkeit, Perspektiven, Evidence
+  const [assign, perspectives, evidence] = await Promise.all([
+    okOr(
+      withTimeout(assignJurisdiction(claim.text, { timeoutMs: budget.assigner }), budget.assigner, "assigner"),
+      null
+    ),
+    okOr(
+      withTimeout(buildPerspectives(claim.text, { timeoutMs: budget.editor }), budget.editor, "perspectives"),
+      null
+    ),
+    okOr(
+      withTimeout(makeEvidenceHypotheses(claim.text, { timeoutMs: budget.evidence }), budget.evidence, "evidence"),
+      []
+    ),
+  ]);
+
+  if (assign) {
+    (claim as any).zuständigkeit = assign.zuständigkeit;
+    (claim as any).zuständigkeitsorgan = assign.zuständigkeitsorgan;
+    (claim as any).thema_key = assign.thema_key;
+  }
+
+  // 3) Rating
+  const score = await okOr(
+    withTimeout(rateDraft(claim.text, { timeoutMs: budget.rater }), budget.rater, "rater"),
+    {
+      präzision: 0.5,
+      prüfbarkeit: 0.5,
+      relevanz: 0.5,
+      lesbarkeit: 0.5,
+      ausgewogenheit: 0.5,
+      begründung: {
+        präzision: "timeout",
+        prüfbarkeit: "timeout",
+        relevanz: "timeout",
+        lesbarkeit: "timeout",
+        ausgewogenheit: "timeout",
+      },
+    } as any
+  );
+
+  // 4) Quality Gates
+  const quality = {
+    json_valid: true,
+    atomization_complete: !needs,
+    readability_b1_b2: claim.readability === "B1" || claim.readability === "B2",
+    jurisdiction_present: (claim as any).zuständigkeit && (claim as any).zuständigkeit !== "Unklar",
+    evidence_present: (evidence?.length ?? 0) > 0,
+  };
+
+  const result = {
+    claim,
+    evidence: evidence || [],
+    perspectives: perspectives || { pro: [], kontra: [], alternative: "" },
+    score,
+    quality,
+  };
+
+  // Typ-sicher zurückgeben
+  return OrchestrationResultSchema.parse(result);
+}
+
+// ———————————————————————————————————————————————————————————
+// V1: Multi-Claims Orchestrierung (Legacy-Pipeline)
+// ———————————————————————————————————————————————————————————
+
+type StepMeta = { name: string; ms: number; ok: boolean; note?: string };
+
+function stepTimeout<T>(p: Promise<T>, ms: number, name: string): Promise<{ ok: boolean; val?: T; ms: number; note?: string }> {
+  const t0 = Date.now();
+  return new Promise((resolve) => {
+    const to = setTimeout(() => resolve({ ok: false, ms: Date.now() - t0, note: name + " timeout" }), ms);
+    p.then((v) => {
+      clearTimeout(to);
+      resolve({ ok: true, val: v, ms: Date.now() - t0 });
+    }).catch(() => {
+      clearTimeout(to);
+      resolve({ ok: false, ms: Date.now() - t0, note: name + " error" });
+    });
+  });
+}
+
+export async function orchestrateClaimsLegacy(text: string, maxClaims = 6): Promise<LegacyOrchestratorResult> {
+  const t0 = Date.now();
+  const steps: StepMeta[] = [];
+
+  // Atomicize (erzwinge V1 für Multi-Claims)
+  const a = await stepTimeout(atomicize(text, { mode: "v1", maxClaims, timeoutMs: 15000 }), 16000, "atomicizer");
+  steps.push({ name: "atomicizer", ms: a.ms, ok: a.ok, note: a.note });
+
+  const claims: AtomicClaim[] = a.ok ? (a.val?.claims ?? []) : [];
+  if (!claims.length) {
+    return { claims: [], _meta: { ok: false, tookMs: Date.now() - t0, fallbackUsed: true, steps } } as LegacyOrchestratorResult;
+  }
+
+  // Parallel legacy-Schritte (Map-by-Text)
+  const [asg, ev, pv, rt] = await Promise.all([
+    stepTimeout(assignZustaendigkeit(claims, 12000), 13000, "assigner"),
+    stepTimeout(makeEvidenceV1(claims, 9000), 10000, "evidence"),
+    stepTimeout(makePerspectivesV1(claims, 9000), 10000, "perspectives"),
+    stepTimeout(rateEditorialV1(claims, 8000), 9000, "editor_rater"),
+  ]);
+
+  steps.push(
+    { name: "assigner", ms: asg.ms, ok: asg.ok, note: asg.note },
+    { name: "evidence", ms: ev.ms, ok: ev.ok, note: ev.note },
+    { name: "perspectives", ms: pv.ms, ok: pv.ok, note: pv.note },
+    { name: "editor_rater", ms: rt.ms, ok: rt.ok, note: rt.note }
+  );
+
+  const map = asg.ok ? (asg.val?.map ?? {}) : {};
+  const hints = ev.ok ? (ev.val?.hints ?? {}) : {};
+  const views = pv.ok ? (pv.val?.views ?? {}) : {};
+  const ratings = rt.ok ? (rt.val?.ratings ?? {}) : {};
+
+  // Enriched (legacy) zusammenbauen und ins V1-Envelope gießen
+  // Wir nutzen den Helper toLegacyOrchestratorResult aus shared_types, indem wir V2-Resultate je Claim bauen.
+  const legacyClaims = claims.map((c) => {
+    const z = map[c.text] ?? null;
+    return {
+      ...c,
+      zustandigkeit: z ? { ebene: z.ebene, organ: z.organ, begruendung: z.begruendung } : null,
+      evidence: hints[c.text] ?? [],
+      perspectives: views[c.text] ?? { pro: [], contra: [], alternative: [] },
+      editorial:
+        ratings[c.text] ??
+        { praezision: 0, pruefbarkeit: 0, relevanz: 0, lesbarkeit: 0, ausgewogenheit: 0, gruende: [], total: 0 },
+    };
+  });
+
+  const out: LegacyOrchestratorResult = {
+    claims: legacyClaims as any,
+    _meta: { ok: true, tookMs: Date.now() - t0, prompt_version: "v1", orchestrator_commit: null, steps },
+  };
+
+  return out;
+}
+
+// ———————————————————————————————————————————————————————————
+// Optional: Batch-Orchestrierung (V2) – mehrere Claims modern
+//  - nutzt Multi-APIs (buildPerspectivesForClaims, makeEvidenceForClaims, rateClaims)
+// ———————————————————————————————————————————————————————————
+
+export async function orchestrateClaimsV2(
+  text: string,
+  opts?: { maxClaims?: number; timeoutMs?: number }
+): Promise<OrchestrationResult[]> {
+  const a = await atomicize(text, { mode: "auto", maxClaims: opts?.maxClaims ?? 6, timeoutMs: opts?.timeoutMs ?? 2500 });
+  const claims = a.claims ?? [];
+  if (!claims.length) return [];
+
+  // Parallel für alle Claims:
+  const [perspMap, evidMap, scoreMap] = await Promise.all([
+    buildPerspectivesForClaims(claims, { timeoutMs: 2200 }),
+    makeEvidenceForClaims(claims, { timeoutMs: 2000 }),
+    rateClaims(claims, { timeoutMs: 2000 }),
+  ]);
+
+  // Jurisdiction (Single-Call pro Claim; hier seriell oder gezielt parallelisieren)
+  const assigned = await Promise.all(
+    claims.map((c) =>
+      okOr(assignJurisdiction(c.text, { timeoutMs: 1800 }), null).then((a) => ({ c, a }))
+    )
+  );
+
+  const results: OrchestrationResult[] = assigned.map(({ c, a }) => {
+    const patched = { ...c } as any;
+    if (a) {
+      patched.zuständigkeit = a.zuständigkeit;
+      patched.zuständigkeitsorgan = a.zuständigkeitsorgan;
+      patched.thema_key = a.thema_key;
+    }
+    const result: OrchestrationResult = {
+      claim: patched,
+      evidence: evidMap[c.canonical_id] ?? [],
+      perspectives: perspMap[c.canonical_id] ?? { pro: [], kontra: [], alternative: "" },
+      score: scoreMap[c.canonical_id] ?? {
+        präzision: 0.5,
+        prüfbarkeit: 0.5,
+        relevanz: 0.5,
+        lesbarkeit: 0.5,
+        ausgewogenheit: 0.5,
+        begründung: {
+          präzision: "n/a",
+          prüfbarkeit: "n/a",
+          relevanz: "n/a",
+          lesbarkeit: "n/a",
+          ausgewogenheit: "n/a",
+        },
+      },
+      quality: {
+        json_valid: true,
+        atomization_complete: true,
+        readability_b1_b2: c.readability === "B1" || c.readability === "B2",
+        jurisdiction_present: !!patched.zuständigkeit && patched.zuständigkeit !== "Unklar",
+        evidence_present: (evidMap[c.canonical_id]?.length ?? 0) > 0,
+      },
+    };
+    return OrchestrationResultSchema.parse(result);
+  });
+
+  return results;
+}

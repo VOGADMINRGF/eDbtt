@@ -7,7 +7,7 @@ export function useCivicSearch(p: Params, enabled = true) {
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState<string | undefined>();
-  const timer = useRef<any>();
+  const timer = useRef<any>(null);
   const ctrl = useRef<AbortController | null>(null);
   const lastKey = useRef<string>("");
 

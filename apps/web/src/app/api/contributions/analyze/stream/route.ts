@@ -101,6 +101,6 @@ export async function GET(req: NextRequest) {
     });
 
     // Inputs gehen als data in die Pipeline
-    await runPipeline({ text, data: inputs }, send, steps, signal as any);
+    await runPipeline({ text, data: inputs }, send, steps);
   });
 }

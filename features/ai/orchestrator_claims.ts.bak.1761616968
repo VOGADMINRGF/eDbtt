@@ -1,0 +1,109 @@
+import { runOpenAI } from "@features/ai/providers/openai";
+
+export type AtomicClaim = {
+  id: string;
+  text: string;
+  ebene?: "EU"|"Bund"|"Land"|"Kommune"|null;
+  ort?: string|null;
+  zeitraum?: string|null;
+};
+
+const EXTRACTOR_SYS = `Extrahiere bis zu 8 eigenständige, *atomare* Aussagen (1 Satz je Claim).
+Gib STRICT JSON zurück:
+{ "claims": [ { "text": "..." } ] }`;
+
+const ATOMIZER_SYS = `Forme eine Aussage in einen atomaren, klaren 1-Satz-Claim um.
+Ergänze – wenn aus Text ableitbar – { ebene: EU|Bund|Land|Kommune, ort, zeitraum }.
+Output STRICT JSON:
+{ "text": string, "ebene": "EU"|"Bund"|"Land"|"Kommune"|null, "ort": string|null, "zeitraum": string|null }`;
+
+function naiveSegmentGerman(s: string): string[] {
+  const t = s.replace(/\s+/g, " ").trim();
+  if (!t) return [];
+  const hard = t.split(/(?<=[\.\?\!])\s+|(?:darüber hinaus|außerdem|zusätzlich|so\s+sollten\s+wir|weiterhin)\s+/gi)
+                .map(x=>x.trim()).filter(Boolean);
+  const out: string[] = [];
+  const seen = new Set<string>();
+  for (const p of hard) {
+    const z = p.slice(0, 500);
+    const key = z.toLowerCase();
+    if (!seen.has(key) && z.length>3) { seen.add(key); out.push(z); }
+    if (out.length>=8) break;
+  }
+  return out.length ? out : [t.slice(0,500)];
+}
+
+async function withTimeout<T>(p:Promise<T>, ms:number): Promise<T> {
+  return await Promise.race([
+    p,
+    new Promise<T>((_r,rej)=> setTimeout(()=> rej(new Error("timeout")), ms))
+  ]);
+}
+
+export async function orchestrateClaimsPipeline(input: string) {
+  const t0 = Date.now();
+  const src = String(input||"").trim().slice(0, 8000);
+  if (!src) return { claims: [], _meta:{ ok:true, tookMs:0, prompt_version:"v2", note:"empty-input" } };
+
+  const ext = await runOpenAI(
+    `Text:\n"""${src}"""\n\nGib NUR das JSON-Objekt zurück.`,
+    { json:true, system: EXTRACTOR_SYS, timeoutMs: 2000 }
+  );
+
+  let candidates: string[] = [];
+  if (ext.ok) {
+    try {
+      const j = JSON.parse(ext.text||"{}");
+      const arr = Array.isArray(j?.claims) ? j.claims : [];
+      candidates = arr
+        .map((c:any)=> String(c?.text||"").trim())
+        .filter(Boolean)
+        .slice(0,8);
+    } catch {}
+  }
+  if (candidates.length===0) {
+    candidates = naiveSegmentGerman(src);
+  }
+
+  const atomCalls = candidates.map((c)=> withTimeout(
+    runOpenAI(
+      `Aussage:\n"""${c}"""\nGib NUR das JSON-Objekt.`,
+      { json:true, system: ATOMIZER_SYS, timeoutMs: 2500 }
+    ),
+    3000
+  ).then(res=>{
+    if (!res.ok) return null;
+    try{
+      const j = JSON.parse(res.text||"{}");
+      const text = String(j?.text||"").trim();
+      if (!text) return null;
+      return {
+        id: crypto.randomUUID?.() || Math.random().toString(36).slice(2),
+        text,
+        ebene: j?.ebene ?? null,
+        ort: j?.ort ?? null,
+        zeitraum: j?.zeitraum ?? null
+      } as AtomicClaim;
+    }catch{ return null; }
+  }).catch(()=> null));
+
+  const results = (await Promise.all(atomCalls)).filter(Boolean) as AtomicClaim[];
+
+  const uniq: AtomicClaim[] = [];
+  const seen = new Set<string>();
+  for (const c of results) {
+    const key = c.text.toLowerCase();
+    if (!seen.has(key)) { seen.add(key); uniq.push(c); }
+  }
+
+  return {
+    claims: uniq.slice(0,8),
+    _meta: {
+      ok: true,
+      tookMs: Date.now()-t0,
+      prompt_version: "v2",
+      model: process.env.OPENAI_MODEL||null,
+      orchestrator: "claims-fanout-v2"
+    }
+  };
+}

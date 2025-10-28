@@ -18,7 +18,7 @@ export default function AutopilotDialog({ open, onClose, text }:{ open:boolean; 
         <div className="space-y-3 text-sm text-slate-700">
           <p>Wir erstellen ein sauberes Statement, sammeln Belege und stoßen ggf. den Faktencheck an.</p>
           <button className="vog-btn-pri w-full" onClick={start} disabled={loading}>Autopilot starten</button>
-          {msg && <div className="text-sm" style="color:#065F46;background:#ECFDF5;border:1px solid #A7F3D0;border-radius:.75rem;padding:.5rem .75rem">{msg}</div>}
+          {msg && <div className="text-sm" style={{ color:"#065F46", background:"#ECFDF5", border:"1px solid #A7F3D0", borderRadius:".75rem", padding:".5rem .75rem" }}>{msg}</div>}
         </div>}
       <div className="mt-3 flex justify-end"><button className="vog-btn-ghost" onClick={onClose}>Schließen</button></div>
     </div>

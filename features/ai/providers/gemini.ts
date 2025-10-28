@@ -69,3 +69,6 @@ export async function runGemini(prompt: string, opts: GeminiRunOptions = {}) {
     return { ok:false, text:"", error:String(e) };
   }
 }
+
+// compat alias
+export { runGemini as callGemini };

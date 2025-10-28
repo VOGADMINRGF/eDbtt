@@ -39,3 +39,6 @@ export async function runAnthropic(
   const text = Array.isArray(data?.content) ? data.content.find((c: any) => c?.type === "text")?.text || "" : "";
   return { ok: true, text: text || "", raw: data, ms: Date.now() - t0 };
 }
+
+// compat alias
+export { runAnthropic as callAnthropic };

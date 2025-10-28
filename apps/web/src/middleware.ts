@@ -1,4 +1,6 @@
-import { NextRequest, NextResponse } from "next/server";
+// apps/web/src/middleware.ts
+import type { NextRequest } from "next/server";
+import { NextResponse } from "next/server";
 
 /** Zugriff für Journalist:innen/Editor:innen/Admins */
 export function middleware(req: NextRequest) {
@@ -11,5 +13,5 @@ export function middleware(req: NextRequest) {
       return NextResponse.redirect(url);
     }
   }
-  return NextResponse.next();
+  // nichts zurückgeben => Request läuft weiter
 }

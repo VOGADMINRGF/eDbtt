@@ -1,23 +1,68 @@
-import { runOpenAI } from "../providers/openai";
-import { ATOMICIZER_V1 } from "../prompts/atomicizer";
-import type { AtomicClaim } from "./shared_types";
+import { z } from "zod";
+import { callOpenAI } from "@features/ai/providers/openai";
 
-function normalize(s:string){ return s.normalize("NFKD").replace(/[\u0300-\u036f]/g,"").toLowerCase().trim(); }
-function hashId(s:string){ const t=normalize(s).slice(0,512); let h=0; for(let i=0;i<t.length;i++) h=(h*31+t.charCodeAt(i))>>>0; return "clm-"+h.toString(16); }
+// Atomare Aussage (minimales, stabiles Schema – Felder kannst du später erweitern)
+export const AtomicClaimZ = z.object({
+  text: z.string().min(6).max(500),
+  sachverhalt: z.string().nullable().optional(),
+  zeitraum: z.string().nullable().optional(),
+  ort: z.string().nullable().optional(),
+  ebene: z.enum(["EU","Bund","Land","Kommune","Global"]).nullable().optional(),
+  betroffene: z.array(z.string()).default([]),
+  messgroesse: z.string().nullable().optional(),
+  unsicherheiten: z.array(z.string()).default([]),
+});
 
-export async function atomicize(text:string, maxClaims=8, timeoutMs=15000){
-  const prompt = ATOMICIZER_V1.replace("<<<TEXT>>>", text.slice(0,8000));
-  const r = await runOpenAI(prompt, { json:true, timeoutMs });
-  if (!r.ok) return { claims:[], ms:r.ms, fallbackUsed:true };
+export type AtomicClaim = z.infer<typeof AtomicClaimZ>;
 
-  let json:any=null; try{ json=JSON.parse(r.text||"{}"); }catch{ return { claims:[], ms:r.ms, fallbackUsed:true }; }
-  const arr = Array.isArray(json?.claims)? json.claims : [];
-  const claims: AtomicClaim[] = arr.slice(0,maxClaims).map((c:any)=>({
-    id: hashId(String(c?.text||"").trim()),
-    text: String(c?.text||"").trim(),
-    sachverhalt: c?.sachverhalt??null, zeitraum:c?.zeitraum??null, ort:c?.ort??null,
-    ebene:c?.ebene??null, betroffene: Array.isArray(c?.betroffene)? c.betroffene.filter((x:any)=>x&&String(x).trim()).slice(0,6):[],
-    messgroesse:c?.messgroesse??null, unsicherheiten: Array.isArray(c?.unsicherheiten)? c.unsicherheiten.slice(0,6):[]
-  })).filter(c=>c.text);
-  return { claims, raw:r.raw, ms:r.ms, fallbackUsed:false };
+export type AtomicizeOpts = {
+  maxClaims?: number;       // Hard-Cap
+  timeoutMs?: number;       // Budget
+  providerModel?: string;   // optional override
+  jsonGuard?: boolean;      // JSON-Erzwingung (default true)
+};
+
+// Sehr kompakter Prompt – bewusst ohne Markdown, reines JSON
+function buildPrompt(text: string, maxClaims: number) {
+  return `
+Zerlege den folgenden Text in maximal ${maxClaims} atomare Aussagen.
+Jede Aussage passt in 1 Satz. Antworte als RFC8259-JSON:
+{"claims":[{"text":"...","sachverhalt":null,"zeitraum":null,"ort":null,"ebene":null,"betroffene":[],"messgroesse":null,"unsicherheiten":[]}, ...]}
+
+Text:
+${text}
+`.trim();
+}
+
+// Heuristik, falls LLM ausfällt (Punkt/Semikolon/Aufzählungen)
+function heuristicSplit(text: string, maxClaims: number): AtomicClaim[] {
+  const parts = text
+    .split(/(?:\n|[\.\!\?;]|•|- |\u2022|\u2219)/g)
+    .map(s => s.trim())
+    .filter(s => s.length >= 6)
+    .slice(0, maxClaims);
+
+  return parts.map(s => ({ text: s, sachverhalt: null, zeitraum: null, ort: null, ebene: null, betroffene: [], messgroesse: null, unsicherheiten: [] }));
+}
+
+export async function atomicize(text: string, opts: AtomicizeOpts = {}) {
+  const maxClaims = Math.max(1, Math.min(20, opts.maxClaims ?? 8));
+  const prompt = buildPrompt(text, maxClaims);
+
+  try {
+    const { text: out } = await callOpenAI(prompt, {
+      forceJsonMode: opts.jsonGuard ?? true,
+      timeoutMs: opts.timeoutMs ?? 15000,
+      model: opts.providerModel,
+      maxOutputTokens: 900,
+      system: "Emit only strict JSON. No markdown."
+    });
+    const parsed = JSON.parse(out || "{}");
+    const claims = Array.isArray(parsed?.claims) ? parsed.claims : [];
+    const clean = z.array(AtomicClaimZ).parse(claims);
+    return { ok: true as const, claims: clean, source: "llm" as const };
+  } catch {
+    // Fallback: deterministic split
+    return { ok: true as const, claims: heuristicSplit(text, maxClaims), source: "heuristic" as const };
+  }
 }

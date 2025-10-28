@@ -948,3 +948,6 @@ function TagSelector({
     </div>
   );
 }
+
+// named export for compatibility
+export { StreamListV3 as StreamList };

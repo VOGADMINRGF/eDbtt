@@ -37,3 +37,6 @@ export async function runMistral(
   const text = data?.choices?.[0]?.message?.content ?? "";
   return { ok: true, text: String(text || ""), raw: data, ms: Date.now() - t0 };
 }
+
+// compat alias
+export { runMistral as callMistral };

@@ -1,4 +1,3 @@
-import { coreDb } from "@core/triMongo";
-export async function connectDB() {
-  try { return await coreDb(); } catch { return null as any; }
-}
+// apps/web/src/lib/connectDB.ts
+import coreDb from "@core/triMongo";
+export default coreDb;

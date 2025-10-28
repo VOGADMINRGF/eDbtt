@@ -20,7 +20,7 @@ const TTL_MS = 60_000;
 function setCache(k: string, v: any) {
   LRU.set(k, { t: Date.now(), data: v });
   if (LRU.size > 64) {
-    const first = LRU.keys().next().value; LRU.delete(first);
+    const first = LRU.keys().next().value; if (first) LRU.delete(first as any);
   }
 }
 function getCache(k: string) {
@@ -42,7 +42,7 @@ function parseRss(xml: string) {
   const parser = new XMLParser({
     ignoreAttributes: false,
     attributeNamePrefix: "@_",
-    decodeHTMLchar: false,
+    /* decodeHTMLchar removed for type-compat */
   });
   const j = parser.parse(xml);
   // RSS 2.0 oder Atom minimal unterstützen

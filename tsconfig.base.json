@@ -56,6 +56,15 @@
     },
     "types": [
       "node"
-    ]
-  }
+    ],
+    "verbatimModuleSyntax": false,
+    "jsx": "react-jsx"
+  },
+  "exclude": [
+    "apps/web/scripts/**",
+    "**/__tests__/**",
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "features_2/**"
+  ]
 }
