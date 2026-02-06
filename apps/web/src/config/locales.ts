@@ -7,8 +7,9 @@ import {
   isSupportedLocale as isCoreSupportedLocale,
 } from "@core/locale/locales";
 
-type CoreSupportedLocale = (typeof SUPPORTED_LOCALES_BASE)[number];
-export type SupportedLocale = CoreSupportedLocale;
+export type CoreLocale = (typeof CORE_LOCALES_BASE)[number];
+export type ExtendedLocale = (typeof EXTENDED_LOCALES_BASE)[number];
+export type SupportedLocale = (typeof SUPPORTED_LOCALES_BASE)[number];
 
 export interface LocaleConfig {
   code: SupportedLocale;
@@ -58,10 +59,10 @@ export function getLocaleConfig(code: SupportedLocale): LocaleConfig {
   );
 }
 
-export function isCoreLocale(locale: string | null | undefined): locale is SupportedLocale {
+export function isCoreLocale(locale: string | null | undefined): locale is CoreLocale {
   return !!locale && (CORE_LOCALES as readonly string[]).includes(locale);
 }
 
-export function isExtendedLocale(locale: string | null | undefined): locale is SupportedLocale {
+export function isExtendedLocale(locale: string | null | undefined): locale is ExtendedLocale {
   return !!locale && (EXTENDED_LOCALES as readonly string[]).includes(locale);
 }

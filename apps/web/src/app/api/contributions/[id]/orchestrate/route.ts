@@ -38,14 +38,15 @@ function collectTopics(result: any) {
   return { topics: Array.from(topics), categories: Array.from(categories) };
 }
 
-export async function POST(req: NextRequest, ctx: { params: { id: string } }) {
+export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
   if (!isAuthorized(req)) {
     return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
   }
 
   let oid: ObjectId;
   try {
-    oid = new ObjectId(ctx.params.id);
+    const { id } = await ctx.params;
+    oid = new ObjectId(id);
   } catch {
     return NextResponse.json({ ok: false, error: "invalid_id" }, { status: 400 });
   }

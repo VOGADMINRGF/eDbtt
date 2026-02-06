@@ -17,6 +17,7 @@ export type AiPipelineName =
   | "report_summarize"
   | "content_translate"
   | "content_summarize_news"
+  | "admin_orchestrate"
   | "orchestrator_smoke"
   | "provider_probe"
   | "other";

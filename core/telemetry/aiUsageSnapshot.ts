@@ -113,6 +113,7 @@ const PIPELINE_LABELS: Record<AiPipelineName, string> = {
   report_summarize: "Reports",
   content_translate: "Übersetzung",
   content_summarize_news: "News-Summary",
+  admin_orchestrate: "Admin Orchestrate",
   orchestrator_smoke: "Orchestrator Smoke",
   provider_probe: "Provider Probe",
   other: "Andere",

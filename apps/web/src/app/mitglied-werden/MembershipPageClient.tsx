@@ -222,7 +222,7 @@ export function MembershipPageClient({ membershipPlan, edebattePlans }: Props) {
     const params = new URLSearchParams();
 
     if (!membershipActive && !oneTimeActive && withEdebate && selectedPlan) {
-      router.push(preorderHref(selectedPlan.id));
+      router.push(preorderHref(selectedPlan.id) as Parameters<typeof router.push>[0]);
       return;
     }
 

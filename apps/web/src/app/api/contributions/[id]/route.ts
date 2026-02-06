@@ -54,12 +54,12 @@ function mapContribution(doc: any) {
   };
 }
 
-export async function PATCH(req: NextRequest, ctx: { params: { id: string } }) {
+export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
   if (!isAuthorized(req)) {
     return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
   }
 
-  const id = ctx.params.id;
+  const { id } = await ctx.params;
   let oid: ObjectId;
   try {
     oid = new ObjectId(id);
@@ -88,12 +88,12 @@ export async function PATCH(req: NextRequest, ctx: { params: { id: string } }) {
   return NextResponse.json({ ok: true, item: mapContribution(updated) });
 }
 
-export async function DELETE(req: NextRequest, ctx: { params: { id: string } }) {
+export async function DELETE(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
   if (!isAuthorized(req)) {
     return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
   }
 
-  const id = ctx.params.id;
+  const { id } = await ctx.params;
   let oid: ObjectId;
   try {
     oid = new ObjectId(id);

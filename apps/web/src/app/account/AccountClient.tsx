@@ -64,6 +64,10 @@ export type EDebattePackageInfo = {
   nextBillingDate?: string | null;
   validFrom?: string | null;
   validTo?: string | null;
+  pledgeAmount?: number | null;
+  pledgeInterval?: "once" | "monthly" | "yearly" | null;
+  pledgeReference?: string | null;
+  pledgeConfirmedAt?: string | null;
 };
 
 export type UsageInfo = {

@@ -12,7 +12,7 @@ import {
   useAutoTranslateText,
 } from "@/lib/i18n/autoTranslate";
 import { UI_LANGS, type LanguageCode } from "@features/i18n/languages";
-import { CORE_LOCALES, getLocaleConfig, type SupportedLocale } from "@/config/locales";
+import { getLocaleConfig, isCoreLocale, type SupportedLocale } from "@/config/locales";
 import { useCurrentUser, clearCachedUser, primeCachedUser } from "@/hooks/auth";
 import type { AuthUser } from "@/hooks/auth";
 
@@ -95,9 +95,7 @@ export function SiteHeader({ initialUser }: { initialUser?: AuthUser | null }) {
     return mapTranslatableStrings(NAV_ITEMS, t, { namespace: "nav" });
   }, [activeLang, t]);
   const statusLabel = t("Auto-Übersetzung", "status.auto");
-  const localeOptions = UI_LANGS.filter((lang) =>
-    CORE_LOCALES.includes(lang.code as SupportedLocale),
-  ).map((lang) => {
+  const localeOptions = UI_LANGS.filter((lang) => isCoreLocale(lang.code)).map((lang) => {
     const cfg = getLocaleConfig(lang.code as SupportedLocale);
     return {
       code: lang.code,
