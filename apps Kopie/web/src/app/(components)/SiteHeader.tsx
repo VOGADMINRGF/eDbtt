@@ -169,7 +169,16 @@ export function SiteHeader({ initialUser }: { initialUser?: AuthUser | null }) {
               </div>
             )}
           </div>
-          {!user && (
+          {user ? (
+            <button
+              type="button"
+              onClick={handleLogout}
+              disabled={loggingOut}
+              className="hidden sm:inline-flex items-center rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm font-semibold text-slate-700 hover:border-rose-300 hover:text-rose-600 disabled:opacity-60"
+            >
+              {loggingOut ? "Logout …" : "Logout"}
+            </button>
+          ) : (
             <Link
               href="/login"
               className="hidden sm:inline-flex items-center rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm font-semibold text-slate-700 hover:border-sky-400 hover:text-sky-600"

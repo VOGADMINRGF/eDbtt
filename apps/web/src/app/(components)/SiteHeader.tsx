@@ -12,7 +12,7 @@ import {
   useAutoTranslateText,
 } from "@/lib/i18n/autoTranslate";
 import { UI_LANGS, type LanguageCode } from "@features/i18n/languages";
-import { getLocaleConfig, type SupportedLocale } from "@/config/locales";
+import { CORE_LOCALES, getLocaleConfig, type SupportedLocale } from "@/config/locales";
 import { useCurrentUser, clearCachedUser, primeCachedUser } from "@/hooks/auth";
 import type { AuthUser } from "@/hooks/auth";
 
@@ -95,7 +95,9 @@ export function SiteHeader({ initialUser }: { initialUser?: AuthUser | null }) {
     return mapTranslatableStrings(NAV_ITEMS, t, { namespace: "nav" });
   }, [activeLang, t]);
   const statusLabel = t("Auto-Übersetzung", "status.auto");
-  const localeOptions = UI_LANGS.map((lang) => {
+  const localeOptions = UI_LANGS.filter((lang) =>
+    CORE_LOCALES.includes(lang.code as SupportedLocale),
+  ).map((lang) => {
     const cfg = getLocaleConfig(lang.code as SupportedLocale);
     return {
       code: lang.code,
@@ -196,10 +198,10 @@ export function SiteHeader({ initialUser }: { initialUser?: AuthUser | null }) {
           </div>
           {!user && (
             <Link
-              href="/login"
-              className="hidden sm:inline-flex items-center rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm font-semibold text-slate-700 hover:border-sky-400 hover:text-sky-600"
+              href="/pricing"
+              className="btn btn-primary hidden sm:inline-flex items-center"
             >
-              {t("Login", "login")}
+              {t("Vorbestellen", "cta.preorder")}
             </Link>
           )}
           <button
@@ -338,11 +340,11 @@ export function SiteHeader({ initialUser }: { initialUser?: AuthUser | null }) {
                 </div>
               ) : (
               <Link
-                href="/login"
+                href="/pricing"
                 onClick={() => setMobileOpen(false)}
-                className="rounded-full border border-slate-200 bg-white px-4 py-2 text-center text-sm font-semibold text-slate-700 hover:border-sky-400 hover:text-sky-600"
+                className="btn btn-primary text-center"
               >
-                {t("Login", "login.mobile")}
+                {t("Vorbestellen", "cta.preorder.mobile")}
               </Link>
             )}
             </nav>

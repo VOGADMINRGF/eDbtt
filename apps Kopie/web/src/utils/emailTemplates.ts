@@ -10,7 +10,7 @@ type VerificationTemplateInput = {
 export function buildVerificationMail({ verifyUrl, displayName }: VerificationTemplateInput) {
   const greeting = displayName ? `Hallo ${displayName}` : "Hallo";
   const buttonStyle =
-    "display:inline-flex;padding:12px 20px;border-radius:999px;background:#0f172a;color:#fff;text-decoration:none;font-weight:700;letter-spacing:0.3px;font-size:15px;";
+    "display:inline-flex;padding:12px 20px;border-radius:9999px;background:#1a8cff;color:#fff;text-decoration:none;font-weight:700;letter-spacing:0.3px;font-size:15px;box-shadow:0 10px 24px rgba(26,140,255,0.25);";
 
   const cleanToken = (() => {
     const tokenPart = verifyUrl.split("token=").pop() ?? verifyUrl;
@@ -32,7 +32,7 @@ export function buildVerificationMail({ verifyUrl, displayName }: VerificationTe
         Alternativ kannst du den Code kopieren und im Browser eingeben:
       </td></tr>
       <tr><td>
-        <div style="font-size:18px;font-weight:800;letter-spacing:1px;background:#f8fafc;border-radius:14px;padding:14px 16px;display:inline-block;border:1px solid #e2e8f0;">
+        <div style="font-size:18px;font-weight:800;letter-spacing:1px;background:#f0f9ff;border-radius:14px;padding:14px 16px;display:inline-block;border:1px solid #bae6fd;">
           ${cleanToken}
         </div>
       </td></tr>

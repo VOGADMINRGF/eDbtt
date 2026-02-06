@@ -105,8 +105,8 @@ export default function PricingPage() {
                   </div>
                   <div className="mt-4 flex flex-wrap gap-2">
                     {plan.isFree ? (
-                      <a className="btn btn-ghost" href="/start">
-                        {t("Kostenfrei starten", `plan.${plan.id}.ctaFree`)}
+                      <a className="btn btn-ghost" href={preorderHref(plan.id)}>
+                        {t("Vormerken", `plan.${plan.id}.ctaFree`)}
                       </a>
                     ) : (
                       <a className="btn btn-primary" href={preorderHref(plan.id)}>

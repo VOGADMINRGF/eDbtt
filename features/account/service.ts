@@ -114,6 +114,10 @@ type UserDoc = {
     nextBillingDate?: Date | string | null;
     validFrom?: Date | string | null;
     validTo?: Date | string | null;
+    pledgeAmount?: number | null;
+    pledgeInterval?: "once" | "monthly" | "yearly" | null;
+    pledgeReference?: string | null;
+    pledgeConfirmedAt?: Date | string | null;
   };
 };
 
@@ -219,6 +223,10 @@ export async function getAccountOverview(userId: string): Promise<AccountOvervie
           nextBillingDate: toIsoDate(doc.edebatte?.nextBillingDate),
           validFrom: toIsoDate(doc.edebatte?.validFrom),
           validTo: toIsoDate(doc.edebatte?.validTo),
+          pledgeAmount: doc.edebatte?.pledgeAmount ?? null,
+          pledgeInterval: doc.edebatte?.pledgeInterval ?? null,
+          pledgeReference: doc.edebatte?.pledgeReference ?? null,
+          pledgeConfirmedAt: toIsoDate(doc.edebatte?.pledgeConfirmedAt),
         }
       : { package: "none", status: "none" };
 

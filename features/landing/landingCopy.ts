@@ -29,6 +29,7 @@ type LandingCopy = {
     howItWorks: string;
     origin: string;
     dossier: string;
+    pricing: string;
     attach: string;
     voice: string;
     voiceComingSoon: string;
@@ -116,6 +117,7 @@ export const LANDING_COPY: Record<Lang, LandingCopy> = {
       howItWorks: "So funktioniert's",
       origin: "Die Bewegung",
       dossier: "Dossier & Faktencheck",
+      pricing: "Preise",
       attach: "Anhang",
       voice: "Stimme",
       voiceComingSoon: "Sprachaufnahme kommt bald",
@@ -202,6 +204,7 @@ export const LANDING_COPY: Record<Lang, LandingCopy> = {
       howItWorks: "How it works",
       origin: "The movement",
       dossier: "Dossier & fact check",
+      pricing: "Pricing",
       attach: "Attach",
       voice: "Voice",
       voiceComingSoon: "Voice input coming soon",

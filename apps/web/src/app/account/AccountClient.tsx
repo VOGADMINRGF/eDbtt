@@ -224,9 +224,10 @@ export function AccountClient({ initialData, membershipNotice, welcomeNotice }: 
       {preorderNotice && (
         <div className="rounded-2xl border border-sky-200 bg-sky-50/80 px-4 py-3 text-sm text-slate-700 shadow-sm">
           <span className="font-semibold text-sky-700">Vorbestellt:</span> Wir haben dein eDebatte‑Paket reserviert.
-          Bei Vorkasse/2‑Jahres‑Option erhältst du eine E‑Mail mit Zahlungsdetails.
+          Dein Frühbucher‑Rabatt ist vorgemerkt; bei Vorkasse/2‑Jahres‑Option erhältst du eine E‑Mail mit Zahlungsdetails.
         </div>
       )}
+      <PreorderPledgeCard edebatte={data.edebatte} onRefresh={refreshOverview} />
 
       <ProfileAndPackageSection
         profile={data.profile}
@@ -298,6 +299,10 @@ function normalizeOverview(src: any): AccountOverview {
     nextBillingDate: src?.edebatte?.nextBillingDate ?? null,
     validFrom: src?.edebatte?.validFrom ?? null,
     validTo: src?.edebatte?.validTo ?? null,
+    pledgeAmount: src?.edebatte?.pledgeAmount ?? null,
+    pledgeInterval: src?.edebatte?.pledgeInterval ?? null,
+    pledgeReference: src?.edebatte?.pledgeReference ?? null,
+    pledgeConfirmedAt: src?.edebatte?.pledgeConfirmedAt ?? null,
   };
 
   const usage: UsageInfo = {
@@ -397,6 +402,130 @@ function MembershipBanner() {
         Dein eDebatte-Paket ist in deinem Konto hinterlegt. Sobald die App startet, erhältst du eine separate Bestätigung mit allen Details per
         E-Mail.
       </p>
+    </section>
+  );
+}
+
+function formatEdebatePackageLabel(value?: string | null) {
+  if (value === "basis") return "eDebatte Basis";
+  if (value === "start") return "eDebatte Start";
+  if (value === "pro") return "eDebatte Pro";
+  return "eDebatte";
+}
+
+function formatEuro(value: number) {
+  return new Intl.NumberFormat("de-DE", { style: "currency", currency: "EUR", minimumFractionDigits: 2 }).format(value);
+}
+
+function PreorderPledgeCard({
+  edebatte,
+  onRefresh,
+}: {
+  edebatte: EDebattePackageInfo;
+  onRefresh: () => void;
+}) {
+  const isPreorder = edebatte.status === "preorder";
+  const planLabel = formatEdebatePackageLabel(edebatte.package);
+  const [amount, setAmount] = useState<string>(() => (edebatte.pledgeAmount ? String(edebatte.pledgeAmount) : ""));
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+  const confirmed = Boolean(edebatte.pledgeConfirmedAt);
+
+  useEffect(() => {
+    if (edebatte.pledgeAmount && !confirmed) {
+      setAmount(String(edebatte.pledgeAmount));
+    }
+  }, [edebatte.pledgeAmount, confirmed]);
+
+  if (!isPreorder) return null;
+
+  if (confirmed) {
+    return (
+      <section className="rounded-3xl border border-emerald-100 bg-emerald-50/80 px-5 py-4 text-sm text-emerald-900 shadow-sm">
+        <p className="font-semibold">Vorbestellung verbindlich bestätigt</p>
+        <p className="mt-1 text-xs text-emerald-800">
+          Danke! Wir haben deine verbindliche Vorbestellung für {planLabel} notiert.
+          {edebatte.pledgeAmount !== null ? ` Betrag: ${formatEuro(edebatte.pledgeAmount)}.` : ""}{" "}
+          {edebatte.pledgeReference ? `Verwendungszweck: ${edebatte.pledgeReference}.` : ""}
+        </p>
+        <p className="mt-1 text-[11px] text-emerald-700">
+          Du hast eine E‑Mail mit den Überweisungsdaten erhalten. Mitgliedschaftsbeiträge laufen separat über voiceopengov.
+        </p>
+      </section>
+    );
+  }
+
+  return (
+    <section className="rounded-3xl border border-slate-100 bg-white/95 px-5 py-4 shadow-[0_16px_45px_rgba(15,23,42,0.08)]">
+      <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+        <div>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Vorbestellung</p>
+          <h3 className="mt-1 text-sm font-semibold text-slate-900">{planLabel} verbindlich abschließen</h3>
+          <p className="mt-1 text-xs text-slate-600">
+            Betrag eingeben, bestätigen – du erhältst danach eine E‑Mail mit den Überweisungsdaten.
+            Mitgliedschaftsbeiträge laufen separat über voiceopengov.
+          </p>
+        </div>
+      </div>
+
+      <form
+        className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end"
+        onSubmit={async (e) => {
+          e.preventDefault();
+          setError(null);
+          setSuccess(null);
+          const raw = amount.replace(",", ".").trim();
+          const value = Number(raw);
+          if (!Number.isFinite(value) || value <= 0) {
+            setError("Bitte gib einen gültigen Betrag ein.");
+            return;
+          }
+          setSubmitting(true);
+          try {
+            const res = await fetch("/api/edebatte/pledge", {
+              method: "POST",
+              headers: { "content-type": "application/json" },
+              body: JSON.stringify({ amount: value }),
+            });
+            const body = await res.json().catch(() => ({}));
+            if (!res.ok || !body?.ok) {
+              throw new Error(body?.error || body?.message || `HTTP ${res.status}`);
+            }
+            setSuccess("Bestätigung gespeichert. E‑Mail mit Zahlungsdetails ist raus.");
+            void onRefresh();
+          } catch (err: any) {
+            setError(err?.message || "Bestätigung fehlgeschlagen. Bitte erneut versuchen.");
+          } finally {
+            setSubmitting(false);
+          }
+        }}
+      >
+        <label className="flex w-full flex-col gap-1 text-xs text-slate-600">
+          Betrag (einmalig, EUR)
+          <input
+            type="number"
+            inputMode="decimal"
+            min={1}
+            step="0.01"
+            className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
+            placeholder="z.B. 49,00"
+            disabled={submitting}
+          />
+        </label>
+        <button
+          type="submit"
+          disabled={submitting}
+          className="inline-flex items-center justify-center rounded-full bg-slate-900 px-5 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-slate-800 disabled:opacity-60"
+        >
+          {submitting ? "Bestätige …" : "Verbindlich abschließen"}
+        </button>
+      </form>
+
+      {error && <p className="mt-2 text-xs text-red-600">{error}</p>}
+      {success && <p className="mt-2 text-xs text-emerald-700">{success}</p>}
     </section>
   );
 }
@@ -705,7 +834,7 @@ function getEDebatteLabel(pkg: EDebattePackage): string {
 function getEDebatteStatusLabel(info: EDebattePackageInfo): string {
   switch (info.status) {
     case "preorder":
-      return "Vorbestellt – Abrechnung startet erst zum Launch.";
+      return "Vorbestellt – Frühbucher‑Rabatt ist berücksichtigt, Abrechnung startet erst zum Launch.";
     case "active":
       return "Aktiv";
     case "canceled":
@@ -1396,7 +1525,7 @@ function AdvancedFeaturesSection({ features }: AdvancedFeaturesSectionProps) {
         <h2 id="account-advanced-heading" className="text-sm font-semibold tracking-tight text-slate-900">
           Erweiterte Funktionen (Pilotphase)
         </h2>
-        <span className="inline-flex items-center rounded-full bg-slate-900 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-100">
+        <span className="inline-flex items-center rounded-full bg-brand-grad px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-white shadow-sm">
           Early Access
         </span>
       </div>

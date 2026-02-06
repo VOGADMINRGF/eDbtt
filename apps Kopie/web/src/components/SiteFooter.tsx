@@ -2,10 +2,11 @@ import Link from "next/link";
 import { BRAND } from "@/lib/brand";
 
 const infoLinks = [
-  { href: "/ueber-uns", label: "Über Uns" },
-  { href: "/satzung", label: "Satzung (Entwurf)" },
-  { href: "/faq", label: "FAQ & Hilfe" },
+  { href: "/howtoworks/edebatte", label: "So funktioniert's" },
+  { href: "/howtoworks/bewegung", label: "Die Bewegung" },
+  { href: "/pricing", label: "Preise" },
   { href: "/transparenzbericht", label: "Transparenzbericht" },
+  { href: "/faq", label: "FAQ & Hilfe" },
 ];
 
 const platformLinks = [

@@ -26,9 +26,9 @@ const heroChips = [
 const heroButtons = [
   {
     id: "member",
-    href: "/mitglied-werden",
-    label_de: "Mitglied werden",
-    label_en: "Become a member",
+    href: "/pricing",
+    label_de: "Vorbestellung",
+    label_en: "Preorder",
     variant: "primary" as const,
   },
   {
@@ -206,9 +206,9 @@ const joinPanel = {
   buttons: [
     {
       id: "panel-member",
-      href: "/mitglied-werden",
-      label_de: "Mitglied werden",
-      label_en: "Become a member",
+      href: "/pricing",
+      label_de: "Vorbestellung",
+      label_en: "Preorder",
       primary: true,
     },
     {
@@ -302,7 +302,7 @@ export default function HowToWorksBewegungPage() {
           </ul>
           <p className="text-sm text-slate-700 leading-relaxed">{text(membershipSection, "outro")}</p>
           <div className="mt-3 flex flex-wrap gap-3">
-            <a href="/mitglied-werden" className="btn bg-brand-grad text-white shadow-soft">
+            <a href="/pricing" className="btn bg-brand-grad text-white shadow-soft">
               {text(heroButtons[0], "label")}
             </a>
           </div>

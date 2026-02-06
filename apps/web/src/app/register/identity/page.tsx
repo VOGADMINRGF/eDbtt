@@ -6,7 +6,8 @@ import QRCode from "qrcode";
 import { RegisterStepper } from "../RegisterStepper";
 
 type OtpPhase = "idle" | "loading" | "ready" | "verifying" | "success" | "error";
-type MethodTab = "otp";
+type EmailPhase = "idle" | "sending" | "sent" | "verifying" | "success" | "error";
+type MethodTab = "otp" | "email";
 
 function sanitizeNext(value: string | null) {
   if (!value) return null;
@@ -20,7 +21,7 @@ function sanitizeNext(value: string | null) {
 export default function IdentityStepPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [method] = useState<MethodTab>("otp");
+  const [method, setMethod] = useState<MethodTab>("otp");
 
   const [otpPhase, setOtpPhase] = useState<OtpPhase>("idle");
   const [otpMessage, setOtpMessage] = useState<string | null>(null);
@@ -36,17 +37,21 @@ export default function IdentityStepPage() {
     qr?: string;
   } | null>(null);
   const [otpCode, setOtpCode] = useState("");
+  const [emailPhase, setEmailPhase] = useState<EmailPhase>("idle");
+  const [emailMessage, setEmailMessage] = useState<string | null>(null);
+  const [emailCode, setEmailCode] = useState("");
   const nextAfterVerify = useMemo(
     () => sanitizeNext(searchParams.get("next")) ?? "/account?welcome=1",
     [searchParams],
   );
 
   useEffect(() => {
+    if (method !== "otp" || otpPhase !== "idle") return;
     // Auto-start OTP setup for smoother flow
     startOtpSetup().catch(() => {
       setOtpMessage("Konnte nicht starten – bitte erneut versuchen.");
     });
-  }, []);
+  }, [method, otpPhase]);
 
   useEffect(() => {
     return () => {
@@ -142,75 +147,153 @@ export default function IdentityStepPage() {
     }
   }
 
+  async function sendEmailCode() {
+    setEmailPhase("sending");
+    setEmailMessage(null);
+    try {
+      const res = await fetch("/api/auth/identity/email/start", { method: "POST" });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok || !body?.ok) throw new Error(body?.error || "SEND_FAILED");
+      setEmailPhase("sent");
+      setEmailMessage("Code gesendet. Bitte prüfe dein Postfach.");
+    } catch (err: any) {
+      setEmailPhase("error");
+      setEmailMessage(err?.message ?? "Versand fehlgeschlagen. Bitte erneut versuchen.");
+    }
+  }
+
+  async function verifyEmailCode() {
+    if (!emailCode.trim()) {
+      setEmailPhase("error");
+      setEmailMessage("Bitte den 6-stelligen Code eingeben.");
+      return;
+    }
+    setEmailPhase("verifying");
+    setEmailMessage(null);
+    try {
+      const res = await fetch("/api/auth/identity/email/verify", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ code: emailCode.replace(/\s+/g, ""), next: nextAfterVerify }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok || !body?.ok) {
+        const fallback = body?.error === "CODE_EXPIRED"
+          ? "Code abgelaufen. Bitte einen neuen senden."
+          : "Code ungültig. Bitte erneut versuchen.";
+        throw new Error(body?.message || fallback);
+      }
+      setEmailPhase("success");
+      setEmailMessage("E-Mail-Code bestätigt – danke für deine Registrierung. Wir leiten dich weiter …");
+      setTimeout(() => router.push(body?.next || nextAfterVerify), 1200);
+    } catch (err: any) {
+      setEmailPhase("error");
+      setEmailMessage(err?.message ?? "Code ungültig. Bitte erneut versuchen.");
+    }
+  }
+
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-6 p-6">
       <RegisterStepper current={3} />
       <header className="space-y-2">
-        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Schritt 3 · OTP</p>
-        <h1 className="text-2xl font-semibold text-slate-900">Schnell verifizieren mit Authenticator-App</h1>
+        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Schritt 3 · Identität</p>
+        <h1 className="text-2xl font-semibold text-slate-900">Identität sichern</h1>
         <p className="text-sm text-slate-600">
-          Wir nutzen eine Authenticator-App (TOTP), um Missbrauch vorzubeugen. Später können weitere Ident-Stufen wie
+          Wähle Authenticator-App (TOTP) oder E-Mail-Code, um Missbrauch vorzubeugen. Später können weitere Ident-Stufen wie
           eID hinzukommen – aktuell reicht dieser Schritt.
         </p>
       </header>
 
-      <section className="rounded-3xl border border-slate-200 bg-white/95 p-6 shadow-sm space-y-5">
-        <div className="space-y-2">
-          <h2 className="text-lg font-semibold text-slate-900">Authenticator-App (OTP)</h2>
-          <p className="text-sm text-slate-600">
-            Du kannst jede OTP-App verwenden (Aegis, Ente, Authy, Bitwarden, 1Password, Google Authenticator …). Nach
-            Aktivierung nutzt du denselben Code später auch bei der Anmeldung.
-          </p>
-        </div>
-        <div className="space-y-4">
-          <p className="text-sm text-slate-600">
-            Wir haben die Einrichtung bereits gestartet. Falls etwas schiefgeht, nutze den Button:
-          </p>
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="inline-flex rounded-full bg-slate-100 p-1 text-xs font-semibold">
           <button
             type="button"
-            onClick={startOtpSetup}
-            disabled={otpPhase === "loading" || otpPhase === "verifying"}
-            className="rounded-full bg-gradient-to-r from-sky-500 to-emerald-500 px-5 py-2 text-sm font-semibold text-white shadow disabled:opacity-60"
+            onClick={() => setMethod("otp")}
+            className={
+              "rounded-full px-3 py-1 " +
+              (method === "otp"
+                ? "bg-white text-slate-900 shadow-sm"
+                : "text-slate-500")
+            }
           >
-            {otpPhase === "loading" ? "Vorbereiten …" : "Neu starten"}
+            Authenticator-App
           </button>
+          <button
+            type="button"
+            onClick={() => setMethod("email")}
+            className={
+              "rounded-full px-3 py-1 " +
+              (method === "email"
+                ? "bg-white text-slate-900 shadow-sm"
+                : "text-slate-500")
+            }
+          >
+            E-Mail-Code
+          </button>
+        </div>
+        <p className="text-xs text-slate-500">
+          Alternativ kannst du dich per E-Mail-Code verifizieren.
+        </p>
+      </div>
 
-          {otpPhase !== "loading" && !otpData && (
-            <p className="text-sm text-rose-600">
-              Konnte keinen QR-Code abrufen. Bitte neu starten oder später erneut versuchen.
+      {method === "otp" && (
+        <section className="rounded-3xl border border-slate-200 bg-white/95 p-6 shadow-sm space-y-5">
+          <div className="space-y-2">
+            <h2 className="text-lg font-semibold text-slate-900">Authenticator-App (OTP)</h2>
+            <p className="text-sm text-slate-600">
+              Du kannst jede OTP-App verwenden (Aegis, Ente, Authy, Bitwarden, 1Password, Google Authenticator …). Nach
+              Aktivierung nutzt du denselben Code später auch bei der Anmeldung.
             </p>
-          )}
+          </div>
+          <div className="space-y-4">
+            <p className="text-sm text-slate-600">
+              Wir haben die Einrichtung bereits gestartet. Falls etwas schiefgeht, nutze den Button:
+            </p>
+            <button
+              type="button"
+              onClick={startOtpSetup}
+              disabled={otpPhase === "loading" || otpPhase === "verifying"}
+              className="rounded-full bg-gradient-to-r from-sky-500 to-emerald-500 px-5 py-2 text-sm font-semibold text-white shadow disabled:opacity-60"
+            >
+              {otpPhase === "loading" ? "Vorbereiten …" : "Neu starten"}
+            </button>
 
-          {otpData && otpData.qr && (
-            <div className="flex flex-col items-center gap-3 rounded-2xl border border-slate-100 bg-slate-50/70 p-4 text-center text-sm text-slate-700">
-              <img src={otpData.qr} alt="Authenticator QR-Code" className="h-40 w-40 rounded-lg border border-white shadow" />
-              <div>
-                <p>Secret-Key (falls du ihn manuell eingeben möchtest):</p>
-                <p className="font-mono text-xs text-slate-900">{otpData.secret}</p>
-              </div>
-              <div className="flex flex-wrap items-center justify-center gap-2">
-                <a
-                  href={otpData.otpauth}
-                  className="rounded-full border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-900"
-                >
-                  In Authenticator öffnen
-                </a>
-                <button
-                  type="button"
-                  onClick={() => copySecret(otpData.secret)}
-                  className="rounded-full border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-900"
-                >
-                  Secret kopieren
-                </button>
-              </div>
-              {copyMessage && <p className="text-xs text-emerald-600">{copyMessage}</p>}
-            </div>
-          )}
+            {otpPhase !== "loading" && !otpData && (
+              <p className="text-sm text-rose-600">
+                Konnte keinen QR-Code abrufen. Bitte neu starten oder später erneut versuchen.
+              </p>
+            )}
 
-          {otpData && (
-            <div className="space-y-2">
-              <label className="block text-sm font-semibold text-slate-700">
-                6-stelliger Code
+            {otpData && otpData.qr && (
+              <div className="flex flex-col items-center gap-3 rounded-2xl border border-slate-100 bg-slate-50/70 p-4 text-center text-sm text-slate-700">
+                <img src={otpData.qr} alt="Authenticator QR-Code" className="h-40 w-40 rounded-lg border border-white shadow" />
+                <div>
+                  <p>Secret-Key (falls du ihn manuell eingeben möchtest):</p>
+                  <p className="font-mono text-xs text-slate-900">{otpData.secret}</p>
+                </div>
+                <div className="flex flex-wrap items-center justify-center gap-2">
+                  <a
+                    href={otpData.otpauth}
+                    className="rounded-full border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-900"
+                  >
+                    In Authenticator öffnen
+                  </a>
+                  <button
+                    type="button"
+                    onClick={() => copySecret(otpData.secret)}
+                    className="rounded-full border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-900"
+                  >
+                    Secret kopieren
+                  </button>
+                </div>
+                {copyMessage && <p className="text-xs text-emerald-600">{copyMessage}</p>}
+              </div>
+            )}
+
+            {otpData && (
+              <div className="space-y-2">
+                <label className="block text-sm font-semibold text-slate-700">
+                  6-stelliger Code
                 <input
                   type="text"
                   value={otpCode}
@@ -218,62 +301,123 @@ export default function IdentityStepPage() {
                   placeholder="123 456"
                   className="mt-1 w-full rounded-2xl border border-slate-200 px-4 py-2 text-sm"
                   maxLength={9}
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
                 />
-              </label>
-              <button
-                type="button"
-                onClick={verifyOtpCode}
-                disabled={otpPhase === "verifying"}
-                className="rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-900 disabled:opacity-60"
+                </label>
+                <button
+                  type="button"
+                  onClick={verifyOtpCode}
+                  disabled={otpPhase === "verifying"}
+                  className="rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-900 disabled:opacity-60"
+                >
+                  {otpPhase === "verifying" ? "Prüfe Code …" : "Code bestätigen"}
+                </button>
+              </div>
+            )}
+
+            {otpMessage && (
+              <p
+                className={`text-sm ${
+                  otpPhase === "error"
+                    ? "text-rose-600"
+                    : otpPhase === "success"
+                      ? "text-emerald-600"
+                      : "text-slate-600"
+                }`}
               >
-                {otpPhase === "verifying" ? "Prüfe Code …" : "Code bestätigen"}
-              </button>
-            </div>
-          )}
+                {otpMessage}
+              </p>
+            )}
+          </div>
+        </section>
+      )}
 
-          {otpMessage && (
-            <p
-              className={`text-sm ${
-                otpPhase === "error"
-                  ? "text-rose-600"
-                  : otpPhase === "success"
-                    ? "text-emerald-600"
-                    : "text-slate-600"
-              }`}
-            >
-              {otpMessage}
+      {method === "email" && (
+        <section className="rounded-3xl border border-slate-200 bg-white/95 p-6 shadow-sm space-y-5">
+          <div className="space-y-2">
+            <h2 className="text-lg font-semibold text-slate-900">E-Mail-Code</h2>
+            <p className="text-sm text-slate-600">
+              Wir schicken dir einen 6-stelligen Code an deine registrierte E-Mail-Adresse. Du kannst danach direkt
+              weitergehen.
             </p>
-          )}
-        </div>
-      </section>
+          </div>
+          <div className="space-y-3">
+            <button
+              type="button"
+              onClick={sendEmailCode}
+              disabled={emailPhase === "sending"}
+              className="btn btn-ghost"
+            >
+              {emailPhase === "sending" ? "Sende …" : "Code per E-Mail senden"}
+            </button>
+            <label className="block text-sm font-semibold text-slate-700">
+              6-stelliger Code
+              <input
+                type="text"
+                value={emailCode}
+                onChange={(e) => setEmailCode(e.target.value)}
+                placeholder="123 456"
+                className="mt-1 w-full rounded-2xl border border-slate-200 px-4 py-2 text-sm"
+                maxLength={9}
+                inputMode="numeric"
+                autoComplete="one-time-code"
+              />
+            </label>
+            <button
+              type="button"
+              onClick={verifyEmailCode}
+              disabled={emailPhase === "verifying"}
+              className="btn btn-primary"
+            >
+              {emailPhase === "verifying" ? "Prüfe Code …" : "Code bestätigen"}
+            </button>
+            {emailMessage && (
+              <p
+                className={`text-sm ${
+                  emailPhase === "error"
+                    ? "text-rose-600"
+                    : emailPhase === "success"
+                      ? "text-emerald-600"
+                      : "text-slate-600"
+                }`}
+              >
+                {emailMessage}
+              </p>
+            )}
+          </div>
+        </section>
+      )}
 
-      <section className="rounded-2xl border border-slate-200 bg-white/90 p-4 text-sm text-slate-700 space-y-3">
-        <h3 className="font-semibold text-slate-900">Gerät wechseln oder später fortsetzen</h3>
-        <p>
-          Auf dem Handy ist der QR-Code unkomfortabel? Schick dir den Link per E-Mail oder überspringe den Schritt
-          jetzt und erledige ihn später im Profil.
-        </p>
-        <div className="flex flex-wrap gap-3">
-          <button
-            type="button"
-            onClick={sendResumeMail}
-            disabled={resumeState === "sending"}
-            className="rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-900 disabled:opacity-60"
-          >
-            {resumeState === "sending" ? "Sende …" : "Link per E-Mail senden"}
-          </button>
-          <button
-            type="button"
-            onClick={() => router.push("/account?welcome=1")}
-            className="rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white"
-          >
-            Schritt überspringen
-          </button>
-        </div>
-        {resumeMessage && (
-          <p className={`text-sm ${resumeState === "error" ? "text-rose-600" : "text-emerald-600"}`}>{resumeMessage}</p>
-        )}
-      </section>
+      {method === "otp" && (
+        <section className="rounded-2xl border border-slate-200 bg-white/90 p-4 text-sm text-slate-700 space-y-3">
+          <h3 className="font-semibold text-slate-900">Gerät wechseln oder später fortsetzen</h3>
+          <p>
+            Auf dem Handy ist der QR-Code unkomfortabel? Schick dir den Link per E-Mail oder überspringe den Schritt
+            jetzt und erledige ihn später im Profil.
+          </p>
+          <div className="flex flex-wrap gap-3">
+            <button
+              type="button"
+              onClick={sendResumeMail}
+              disabled={resumeState === "sending"}
+              className="btn btn-ghost disabled:opacity-60"
+            >
+              {resumeState === "sending" ? "Sende …" : "Link per E-Mail senden"}
+            </button>
+            <button
+              type="button"
+              onClick={() => router.push("/account?welcome=1")}
+              className="btn btn-primary"
+            >
+              Schritt überspringen
+            </button>
+          </div>
+          {resumeMessage && (
+            <p className={`text-sm ${resumeState === "error" ? "text-rose-600" : "text-emerald-600"}`}>{resumeMessage}</p>
+          )}
+        </section>
+      )}
 
       <section className="rounded-2xl border border-slate-200 bg-slate-50/80 p-4 text-sm text-slate-700 space-y-3">
         <h3 className="font-semibold text-slate-900">Warum dieser Aufwand?</h3>

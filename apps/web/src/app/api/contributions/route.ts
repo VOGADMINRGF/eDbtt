@@ -705,8 +705,15 @@ export async function GET(req: NextRequest) {
                 if (review && normalizeFilter(item.reviewStatus) !== review) return false;
                 if (source && normalizeFilter(item.source) !== source) return false;
                 if (search) {
-                  const hay = `${item.id} ${item.text} ${(item.analysis?.topics || []).join(" ")} ${(item.analysis?.categories || []).join(" ")}`
-                    .toLowerCase();
+                  const hay = (
+                    item.id +
+                    " " +
+                    item.text +
+                    " " +
+                    (item.analysis?.topics || []).join(" ") +
+                    " " +
+                    (item.analysis?.categories || []).join(" ")
+                  ).toLowerCase();
                   if (!hay.includes(search)) return false;
                 }
                 return true;
@@ -726,21 +733,42 @@ export async function GET(req: NextRequest) {
                   const snippet = item.text.length > 140 ? item.text.slice(0, 140) + "…" : item.text;
                   const topics = (item.analysis?.topics || []).slice(0, 3);
                   const cats = (item.analysis?.categories || []).slice(0, 2);
-                  return `
-                    <div class="row ${isActive ? "active" : ""}" data-id="${item.id}">
-                      <div class="row-title">${escapeHtml(snippet || "(kein Text)")}</div>
-                      <div class="row-meta">
-                        <span>ID: ${item.id.slice(-6)}</span>
-                        <span>Status: ${escapeHtml(item.status || "–")}</span>
-                        <span>Review: ${escapeHtml(item.reviewStatus || "–")}</span>
-                        <span>${item.createdAt ? new Date(item.createdAt).toLocaleDateString("de-DE") : ""}</span>
-                      </div>
-                      <div class="tag-list">
-                        ${topics.map((t) => `<span class="tag">${escapeHtml(t)}</span>`).join("")}
-                        ${cats.map((t) => `<span class="tag" style="background:#e0f2fe;">${escapeHtml(t)}</span>`).join("")}
-                      </div>
-                    </div>
-                  `;
+                  return (
+                    '<div class="row ' +
+                    (isActive ? "active" : "") +
+                    '" data-id="' +
+                    item.id +
+                    '">' +
+                    '<div class="row-title">' +
+                    escapeHtml(snippet || "(kein Text)") +
+                    "</div>" +
+                    '<div class="row-meta">' +
+                    "<span>ID: " +
+                    item.id.slice(-6) +
+                    "</span>" +
+                    "<span>Status: " +
+                    escapeHtml(item.status || "–") +
+                    "</span>" +
+                    "<span>Review: " +
+                    escapeHtml(item.reviewStatus || "–") +
+                    "</span>" +
+                    "<span>" +
+                    (item.createdAt ? new Date(item.createdAt).toLocaleDateString("de-DE") : "") +
+                    "</span>" +
+                    "</div>" +
+                    '<div class="tag-list">' +
+                    topics.map((t) => '<span class="tag">' + escapeHtml(t) + "</span>").join("") +
+                    cats
+                      .map(
+                        (t) =>
+                          '<span class="tag" style="background:#e0f2fe;">' +
+                          escapeHtml(t) +
+                          "</span>",
+                      )
+                      .join("") +
+                    "</div>" +
+                    "</div>"
+                  );
                 })
                 .join("");
 
@@ -762,51 +790,90 @@ export async function GET(req: NextRequest) {
               }
               const analysis = item.analysis || {};
               const orchestrator = analysis.orchestrator || {};
-              panel.innerHTML = `
-                <h2>Beitrag ${item.id.slice(-6)}</h2>
-                <div class="field">
-                  <label>Text</label>
-                  <textarea id="detailText" readonly>${escapeHtml(item.text)}</textarea>
-                </div>
-                <div class="field">
-                  <label>Themen (kommagetrennt)</label>
-                  <input id="detailTopics" value="${escapeHtml((analysis.topics || []).join(", "))}" />
-                </div>
-                <div class="field">
-                  <label>Kategorien / Schlagworte (kommagetrennt)</label>
-                  <input id="detailCategories" value="${escapeHtml((analysis.categories || []).join(", "))}" />
-                </div>
-                <div class="field">
-                  <label>Status</label>
-                  <select id="detailStatus">
-                    ${["pending_review", "pending", "review", "published", "archived"].map((s) => `<option value="${s}" ${item.status === s ? "selected" : ""}>${s}</option>`).join("")}
-                  </select>
-                </div>
-                <div class="field">
-                  <label>Review-Status</label>
-                  <select id="detailReview">
-                    ${["pending", "none", "queued", "in-review", "approved", "rejected", "archived"].map((s) => `<option value="${s}" ${item.reviewStatus === s ? "selected" : ""}>${s}</option>`).join("")}
-                  </select>
-                </div>
-                <div class="field">
-                  <label>AI-Orchestrator</label>
-                  <div class="row-meta" style="margin-bottom:6px;">
-                    <span>Status: ${escapeHtml(analysis.status || "–")}</span>
-                    <span>Run: ${analysis.lastRunAt ? new Date(analysis.lastRunAt).toLocaleString("de-DE") : "–"}</span>
-                  </div>
-                  <div class="row-meta">
-                    <span>Claims: ${orchestrator.claimsCount || 0}</span>
-                    <span>Questions: ${orchestrator.questionsCount || 0}</span>
-                    <span>Notes: ${orchestrator.notesCount || 0}</span>
-                  </div>
-                </div>
-                <div class="actions">
-                  <button class="btn-primary" id="saveBtn">Speichern</button>
-                  <button class="btn-ghost" id="archiveBtn">Archivieren</button>
-                  <button class="btn-warn" id="aiBtn">AI-Orchester starten</button>
-                  <button class="btn-danger" id="deleteBtn">Löschen</button>
-                </div>
-              `;
+              panel.innerHTML =
+                "<h2>Beitrag " +
+                item.id.slice(-6) +
+                "</h2>" +
+                '<div class="field">' +
+                "<label>Text</label>" +
+                '<textarea id="detailText" readonly>' +
+                escapeHtml(item.text) +
+                "</textarea>" +
+                "</div>" +
+                '<div class="field">' +
+                "<label>Themen (kommagetrennt)</label>" +
+                '<input id="detailTopics" value="' +
+                escapeHtml((analysis.topics || []).join(", ")) +
+                '" />' +
+                "</div>" +
+                '<div class="field">' +
+                "<label>Kategorien / Schlagworte (kommagetrennt)</label>" +
+                '<input id="detailCategories" value="' +
+                escapeHtml((analysis.categories || []).join(", ")) +
+                '" />' +
+                "</div>" +
+                '<div class="field">' +
+                "<label>Status</label>" +
+                '<select id="detailStatus">' +
+                ["pending_review", "pending", "review", "published", "archived"]
+                  .map(
+                    (s) =>
+                      '<option value="' +
+                      s +
+                      '" ' +
+                      (item.status === s ? "selected" : "") +
+                      ">" +
+                      s +
+                      "</option>",
+                  )
+                  .join("") +
+                "</select>" +
+                "</div>" +
+                '<div class="field">' +
+                "<label>Review-Status</label>" +
+                '<select id="detailReview">' +
+                ["pending", "none", "queued", "in-review", "approved", "rejected", "archived"]
+                  .map(
+                    (s) =>
+                      '<option value="' +
+                      s +
+                      '" ' +
+                      (item.reviewStatus === s ? "selected" : "") +
+                      ">" +
+                      s +
+                      "</option>",
+                  )
+                  .join("") +
+                "</select>" +
+                "</div>" +
+                '<div class="field">' +
+                "<label>AI-Orchestrator</label>" +
+                '<div class="row-meta" style="margin-bottom:6px;">' +
+                "<span>Status: " +
+                escapeHtml(analysis.status || "–") +
+                "</span>" +
+                "<span>Run: " +
+                (analysis.lastRunAt ? new Date(analysis.lastRunAt).toLocaleString("de-DE") : "–") +
+                "</span>" +
+                "</div>" +
+                '<div class="row-meta">' +
+                "<span>Claims: " +
+                (orchestrator.claimsCount || 0) +
+                "</span>" +
+                "<span>Questions: " +
+                (orchestrator.questionsCount || 0) +
+                "</span>" +
+                "<span>Notes: " +
+                (orchestrator.notesCount || 0) +
+                "</span>" +
+                "</div>" +
+                "</div>" +
+                '<div class="actions">' +
+                '<button class="btn-primary" id="saveBtn">Speichern</button>' +
+                '<button class="btn-ghost" id="archiveBtn">Archivieren</button>' +
+                '<button class="btn-warn" id="aiBtn">AI-Orchester starten</button>' +
+                '<button class="btn-danger" id="deleteBtn">Löschen</button>' +
+                "</div>";
 
               $("saveBtn").addEventListener("click", async () => {
                 const payload = {
@@ -853,7 +920,7 @@ export async function GET(req: NextRequest) {
 
             async function updateContribution(id, payload) {
               try {
-                const res = await fetch(`/api/contributions/${id}`, {
+                const res = await fetch("/api/contributions/" + id, {
                   method: "PATCH",
                   headers: headers(true),
                   body: JSON.stringify(payload),
@@ -870,7 +937,7 @@ export async function GET(req: NextRequest) {
 
             async function deleteContribution(id) {
               try {
-                const res = await fetch(`/api/contributions/${id}`, {
+                const res = await fetch("/api/contributions/" + id, {
                   method: "DELETE",
                   headers: headers(true),
                 });
@@ -889,7 +956,7 @@ export async function GET(req: NextRequest) {
             async function orchestrateContribution(id) {
               try {
                 toast("AI-Orchester läuft…");
-                const res = await fetch(`/api/contributions/${id}/orchestrate`, {
+                const res = await fetch("/api/contributions/" + id + "/orchestrate", {
                   method: "POST",
                   headers: headers(true),
                   body: JSON.stringify({ storeFull: false, applyTopics: true }),

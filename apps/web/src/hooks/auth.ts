@@ -27,6 +27,8 @@ type AuthState = {
 
 let cachedUser: AuthUser | null | undefined;
 let pending: Promise<AuthUser | null> | null = null;
+let lastRevalidate = 0;
+const REVALIDATE_MS = 15_000;
 
 async function fetchCurrentUser(): Promise<AuthUser | null> {
   const res = await fetch("/api/auth/me", { cache: "no-store" });
@@ -53,13 +55,33 @@ export function useCurrentUser(): AuthState {
   const [error, setError] = useState<string>();
 
   useEffect(() => {
+    let active = true;
+    const revalidate = async () => {
+      const now = Date.now();
+      if (now - lastRevalidate < REVALIDATE_MS) return;
+      lastRevalidate = now;
+      try {
+        const fresh = await fetchCurrentUser();
+        cachedUser = fresh ?? null;
+        pending = null;
+        if (!active) return;
+        setUser(fresh ?? null);
+        setLoading(false);
+      } catch (e: any) {
+        if (!active) return;
+        setError(e?.message || "auth_load_failed");
+      }
+    };
+
     if (cachedUser !== undefined) {
       setLoading(false);
       setUser(cachedUser ?? null);
-      return;
+      void revalidate();
+      return () => {
+        active = false;
+      };
     }
 
-    let active = true;
     getOrLoadUser()
       .then((u) => {
         if (!active) return;

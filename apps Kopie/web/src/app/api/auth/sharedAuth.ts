@@ -24,6 +24,10 @@ export type PiiUserCredentials = {
   twoFactorMethod?: TwoFactorMethod | null;
   otpSecret?: string | null;
   otpTempSecret?: string | null;
+  identityEmailCodeHash?: string | null;
+  identityEmailCodeExpiresAt?: Date | null;
+  identityEmailCodeAttempts?: number | null;
+  identityEmailCodeSentAt?: Date | null;
   recoveryCodes?: string[] | null;
   createdAt?: Date;
   updatedAt?: Date;

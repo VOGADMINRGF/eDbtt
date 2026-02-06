@@ -10,7 +10,7 @@ type VerificationTemplateInput = {
 export function buildVerificationMail({ verifyUrl, displayName }: VerificationTemplateInput) {
   const greeting = displayName ? `Hallo ${displayName}` : "Hallo";
   const buttonStyle =
-    "display:inline-flex;padding:12px 20px;border-radius:999px;background:#0f172a;color:#fff;text-decoration:none;font-weight:700;letter-spacing:0.3px;font-size:15px;";
+    "display:inline-flex;padding:12px 20px;border-radius:999px;background:#1a8cff;color:#fff;text-decoration:none;font-weight:700;letter-spacing:0.3px;font-size:15px;box-shadow:0 10px 24px rgba(26,140,255,0.25);";
 
   const cleanToken = (() => {
     const tokenPart = verifyUrl.split("token=").pop() ?? verifyUrl;
@@ -32,7 +32,7 @@ export function buildVerificationMail({ verifyUrl, displayName }: VerificationTe
         Alternativ kannst du den Code kopieren und im Browser eingeben:
       </td></tr>
       <tr><td>
-        <div style="font-size:18px;font-weight:800;letter-spacing:1px;background:#f8fafc;border-radius:14px;padding:14px 16px;display:inline-block;border:1px solid #e2e8f0;">
+        <div style="font-size:18px;font-weight:800;letter-spacing:1px;background:#f0f9ff;border-radius:14px;padding:14px 16px;display:inline-block;border:1px solid #bae6fd;">
           ${cleanToken}
         </div>
       </td></tr>
@@ -341,6 +341,40 @@ Falls du den Login nicht gestartet hast, kannst du diese Nachricht ignorieren.
   return { subject, html, text };
 }
 
+export function buildIdentityEmailCodeMail({ code }: { code: string }) {
+  const subject = "Dein Code zur Identitätsbestätigung";
+  const html = `
+    <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color:#0f172a;">
+      <tr><td style="padding:12px 0;">Hallo,</td></tr>
+      <tr><td style="padding:6px 0 12px 0; font-size:15px; line-height:1.5;">
+        dein Code zur Identitätsbestätigung lautet:
+      </td></tr>
+      <tr><td>
+        <div style="font-size:28px;font-weight:700;letter-spacing:4px;background:#f0f9ff;border-radius:12px;padding:12px 16px;display:inline-block;border:1px solid #bae6fd;">
+          ${code}
+        </div>
+      </td></tr>
+      <tr><td style="padding:10px 0 0 0; font-size:13px; color:#334155;">
+        Der Code ist nur wenige Minuten gültig. Falls du diesen Schritt nicht gestartet hast, kannst du diese Nachricht ignorieren.
+      </td></tr>
+      <tr><td style="padding:10px 0 0 0; font-size:14px; color:#0f172a; font-weight:600;">
+        – Dein eDebatte Team
+      </td></tr>
+    </table>
+  `;
+
+  const text = `Hallo,
+
+dein Code zur Identitätsbestätigung lautet: ${code}
+Der Code ist nur wenige Minuten gültig.
+
+Falls du diesen Schritt nicht gestartet hast, kannst du diese Nachricht ignorieren.
+
+– eDebatte Team`;
+
+  return { subject, html, text };
+}
+
 type MembershipMailInput = {
   firstName?: string | null;
   planLabel: string;
@@ -412,6 +446,130 @@ function formatIban(value?: string | null) {
   if (!value) return "n/a";
   const cleaned = value.replace(/\s+/g, "").toUpperCase();
   return cleaned.match(/.{1,4}/g)?.join(" ") ?? cleaned;
+}
+
+export function buildEdebatePreorderPledgeUserMail(args: {
+  displayName?: string | null;
+  planLabel: string;
+  amount: number;
+  reference: string;
+  bank: {
+    recipient: string;
+    iban: string;
+    bic?: string | null;
+    bankName?: string | null;
+    accountMode?: string | null;
+  };
+}) {
+  const greeting = args.displayName ? `Hallo ${args.displayName},` : "Hallo,";
+  const amount = formatEuro(args.amount);
+  const bankIban = formatIban(args.bank.iban);
+  const bankBic = args.bank.bic ?? "";
+  const bankName = args.bank.bankName ?? "";
+  const accountMode = args.bank.accountMode ?? "private_preUG";
+  const accountNote =
+    accountMode === "private_preUG"
+      ? "Hinweis: Aufbauphase (Privatkonto), keine Spendenquittung."
+      : "Hinweis: Geschäftskonto nach Gründung.";
+
+  const html = `
+    <p>${greeting}</p>
+    <p>danke für deine verbindliche Vorbestellung von <strong>${args.planLabel}</strong>.</p>
+    <p>Bitte überweise den Betrag <strong>${amount}</strong> einmalig mit folgendem Verwendungszweck:</p>
+    <p><strong>${args.reference}</strong></p>
+    <p>Bankverbindung:</p>
+    <ul>
+      <li><strong>Empfänger:</strong> ${args.bank.recipient}</li>
+      <li><strong>Bank:</strong> ${bankName || "n/a"}</li>
+      <li><strong>IBAN:</strong> ${bankIban}</li>
+      ${bankBic ? `<li><strong>BIC:</strong> ${bankBic}</li>` : ""}
+    </ul>
+    <p>${accountNote}</p>
+    <p>Mitgliedschaftsbeiträge laufen weiterhin ausschließlich über voiceopengov.</p>
+    <p>– Dein eDebatte Team</p>
+  `;
+
+  const text = `${greeting}
+
+danke für deine verbindliche Vorbestellung von ${args.planLabel}.
+Bitte überweise den Betrag ${amount} einmalig mit dem Verwendungszweck:
+${args.reference}
+
+Bankverbindung:
+Empfänger: ${args.bank.recipient}
+Bank: ${bankName || "n/a"}
+IBAN: ${bankIban}
+${bankBic ? `BIC: ${bankBic}` : ""}
+
+${accountNote}
+Mitgliedschaftsbeiträge laufen weiterhin ausschließlich über voiceopengov.
+
+– Dein eDebatte Team`;
+
+  return {
+    subject: `Verbindliche Vorbestellung: ${args.planLabel}`,
+    html,
+    text,
+  };
+}
+
+export function buildEdebatePreorderPledgeAdminMail(args: {
+  displayName?: string | null;
+  email: string;
+  userId: string;
+  planLabel: string;
+  amount: number;
+  reference: string;
+  bank: {
+    recipient: string;
+    iban: string;
+    bic?: string | null;
+    bankName?: string | null;
+    accountMode?: string | null;
+  };
+}) {
+  const amount = formatEuro(args.amount);
+  const bankIban = formatIban(args.bank.iban);
+  const bankBic = args.bank.bic ?? "";
+  const bankName = args.bank.bankName ?? "";
+
+  const html = `
+    <p>Neue verbindliche Vorbestellung (Software)</p>
+    <ul>
+      <li><strong>User:</strong> ${args.displayName || "–"} (${args.email})</li>
+      <li><strong>User-ID:</strong> ${args.userId}</li>
+      <li><strong>Paket:</strong> ${args.planLabel}</li>
+      <li><strong>Betrag:</strong> ${amount}</li>
+      <li><strong>Verwendungszweck:</strong> ${args.reference}</li>
+    </ul>
+    <p>Bankverbindung (zur Orientierung):</p>
+    <ul>
+      <li><strong>Empfänger:</strong> ${args.bank.recipient}</li>
+      <li><strong>Bank:</strong> ${bankName || "n/a"}</li>
+      <li><strong>IBAN:</strong> ${bankIban}</li>
+      ${bankBic ? `<li><strong>BIC:</strong> ${bankBic}</li>` : ""}
+    </ul>
+  `;
+
+  const text = `Neue verbindliche Vorbestellung (Software)
+
+User: ${args.displayName || "–"} (${args.email})
+User-ID: ${args.userId}
+Paket: ${args.planLabel}
+Betrag: ${amount}
+Verwendungszweck: ${args.reference}
+
+Bankverbindung (zur Orientierung):
+Empfänger: ${args.bank.recipient}
+Bank: ${bankName || "n/a"}
+IBAN: ${bankIban}
+${bankBic ? `BIC: ${bankBic}` : ""}`;
+
+  return {
+    subject: `Vorbestellung bestätigt: ${args.planLabel}`,
+    html,
+    text,
+  };
 }
 
 export function buildMembershipApplyUserMail(args: {

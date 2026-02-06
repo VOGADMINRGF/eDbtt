@@ -653,7 +653,7 @@ function getEDebatteLabel(pkg: EDebattePackage): string {
 function getEDebatteStatusLabel(info: EDebattePackageInfo): string {
   switch (info.status) {
     case "preorder":
-      return "Vorbestellt – Abrechnung startet erst zum Launch.";
+      return "Vorbestellt – Frühbucher‑Rabatt ist berücksichtigt, Abrechnung startet erst zum Launch.";
     case "active":
       return "Aktiv";
     case "canceled":
@@ -1361,7 +1361,7 @@ function AdvancedFeaturesSection({ features }: AdvancedFeaturesSectionProps) {
         <h2 id="account-advanced-heading" className="text-sm font-semibold tracking-tight text-slate-900">
           Erweiterte Funktionen (Pilotphase)
         </h2>
-        <span className="inline-flex items-center rounded-full bg-slate-900 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-100">
+        <span className="inline-flex items-center rounded-full bg-brand-grad px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-white shadow-sm">
           Early Access
         </span>
       </div>
