@@ -65,3 +65,6 @@ out
 
 # Prisma generated client (should be generated in CI)
 packages/**/src/generated/
+
+# Codex (generierte Reports)
+.codex/
