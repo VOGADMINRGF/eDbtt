@@ -222,7 +222,7 @@ function RegisterPageClient({ personCount = 1, searchParams }: RegisterPageClien
       <div>
         <h1 className="text-2xl font-semibold text-slate-900">Registrieren</h1>
         <p className="mt-1 text-sm text-slate-600">
-          Basisdaten anlegen, E-Mail bestätigen und anschließend deine Identität sichern – damit Citizen Votes fair bleiben.
+          Basisdaten anlegen, E-Mail bestätigen, Identität sichern – und optional direkt verbindlich vorbestellen.
         </p>
       </div>
 
@@ -506,6 +506,13 @@ function RegisterPageClient({ personCount = 1, searchParams }: RegisterPageClien
             <span>
               Persönliche Daten werden in einer eigenen PII-Zone gespeichert. Zahlungs- und Identitätsdaten verlassen nie
               unseren kontrollierten Bereich und werden nicht verkauft.
+            </span>
+          </li>
+          <li className="flex gap-2">
+            <span className="mt-1 h-1.5 w-1.5 rounded-full bg-emerald-500" />
+            <span>
+              Nach der Identitätsprüfung kannst du dein eDebatte-Paket verbindlich vorbestellen – inkl. Laufzeit und
+              Zahlungsdaten.
             </span>
           </li>
           <li className="flex gap-2">

@@ -2,55 +2,34 @@ type StepId = 1 | 2 | 3;
 
 const STEPS: { id: StepId; title: string; subtitle: string }[] = [
   { id: 1, title: "Konto", subtitle: "Basisdaten anlegen" },
-  { id: 2, title: "E-Mail", subtitle: "Adresse bestätigen" },
-  { id: 3, title: "OTP", subtitle: "OTP prüfen" },
+  { id: 2, title: "Verifikation", subtitle: "E-Mail & OTP" },
+  { id: 3, title: "Vorbestellung", subtitle: "Paket & Zahlungsdaten" },
 ];
 
 export function RegisterStepper({ current }: { current: StepId }) {
   return (
-    <ol className="flex flex-col gap-2 rounded-2xl bg-white/80 p-3 shadow-sm ring-1 ring-slate-200 md:flex-row md:gap-3">
-      {STEPS.map((step) => {
-        const isActive = step.id === current;
-        const isDone = step.id < current;
+    <div className="rounded-3xl border border-slate-200 bg-white/80 p-4 shadow-sm">
+      <div className="grid gap-3 md:grid-cols-3">
+        {STEPS.map((step) => {
+          const active = step.id === current;
+          const done = step.id < current;
 
-        return (
-          <li
-            key={step.id}
-            className="flex flex-1 items-center gap-3 rounded-xl px-3 py-2"
-          >
+          return (
             <div
+              key={step.id}
               className={[
-                "flex h-7 w-7 items-center justify-center rounded-full text-xs font-semibold",
-                isActive
-                  ? "bg-gradient-to-r from-sky-500 to-emerald-500 text-white shadow"
-                  : isDone
-                    ? "bg-emerald-50 text-emerald-800 ring-1 ring-emerald-200"
-                    : "bg-slate-100 text-slate-500",
+                "rounded-2xl border px-4 py-3",
+                active ? "border-sky-300 bg-sky-50" : done ? "border-emerald-200 bg-emerald-50/40" : "border-slate-200 bg-white",
               ].join(" ")}
-              aria-hidden
             >
-              {step.id}
-            </div>
-            <div className="min-w-0">
-              <p
-                className={[
-                  "text-xs font-semibold",
-                  isActive
-                    ? "text-slate-900"
-                    : isDone
-                      ? "text-emerald-800"
-                      : "text-slate-500",
-                ].join(" ")}
-              >
-                SCHRITT {step.id} / 3 · {step.title}
+              <p className="text-[11px] font-semibold tracking-[0.18em] text-slate-500">
+                SCHRITT {step.id} / {STEPS.length} · {step.title}
               </p>
-              <p className="truncate text-[11px] text-slate-500">
-                {step.subtitle}
-              </p>
+              <p className="mt-1 text-sm font-semibold text-slate-900">{step.subtitle}</p>
             </div>
-          </li>
-        );
-      })}
-    </ol>
+          );
+        })}
+      </div>
+    </div>
   );
 }

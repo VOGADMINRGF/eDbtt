@@ -1,0 +1,189 @@
+Files apps/web/.eslintcache and apps Kopie/web/.eslintcache differ
+Only in apps/web: .git
+Files apps/web/.next/dev/build-manifest.json and apps Kopie/web/.next/dev/build-manifest.json differ
+Only in apps Kopie/web/.next/dev/cache/images/zPm9fbHh8SddzqZGpfr0HzL-QgWbQidZ7ooq8-QvMus: 30.1768674548424.F8C6N1i1AjJ78HzEgL33yIUrNkjuG1NgbRIA6IPpiL8.Vy8iMTM5MWE1LTE5YWYzOTc5ZDJlIg.webp
+Only in apps/web/.next/dev/cache/images/zPm9fbHh8SddzqZGpfr0HzL-QgWbQidZ7ooq8-QvMus: 30.1769378851337.F8C6N1i1AjJ78HzEgL33yIUrNkjuG1NgbRIA6IPpiL8.Vy8iMTM5MWE1LTE5YWYzOTc5ZDJlIg.webp
+Files apps/web/.next/dev/cache/webpack/client-development/0.pack.gz and apps Kopie/web/.next/dev/cache/webpack/client-development/0.pack.gz differ
+Files apps/web/.next/dev/cache/webpack/client-development/10.pack.gz and apps Kopie/web/.next/dev/cache/webpack/client-development/10.pack.gz differ
+Files apps/web/.next/dev/cache/webpack/client-development/12.pack.gz and apps Kopie/web/.next/dev/cache/webpack/client-development/12.pack.gz differ
+Files apps/web/.next/dev/cache/webpack/client-development/13.pack.gz and apps Kopie/web/.next/dev/cache/webpack/client-development/13.pack.gz differ
+Files apps/web/.next/dev/cache/webpack/client-development/15.pack.gz and apps Kopie/web/.next/dev/cache/webpack/client-development/15.pack.gz differ
+Files apps/web/.next/dev/cache/webpack/client-development/16.pack.gz and apps Kopie/web/.next/dev/cache/webpack/client-development/16.pack.gz differ
+Files apps/web/.next/dev/cache/webpack/client-development/17.pack.gz and apps Kopie/web/.next/dev/cache/webpack/client-development/17.pack.gz differ
+Files apps/web/.next/dev/cache/webpack/client-development/18.pack.gz and apps Kopie/web/.next/dev/cache/webpack/client-development/18.pack.gz differ
+Files apps/web/.next/dev/cache/webpack/client-development/19.pack.gz and apps Kopie/web/.next/dev/cache/webpack/client-development/19.pack.gz differ
+Files apps/web/.next/dev/cache/webpack/client-development/20.pack.gz and apps Kopie/web/.next/dev/cache/webpack/client-development/20.pack.gz differ
+Files apps/web/.next/dev/cache/webpack/client-development/21.pack.gz and apps Kopie/web/.next/dev/cache/webpack/client-development/21.pack.gz differ
+Files apps/web/.next/dev/cache/webpack/client-development/22.pack.gz and apps Kopie/web/.next/dev/cache/webpack/client-development/22.pack.gz differ
+Files apps/web/.next/dev/cache/webpack/client-development/23.pack.gz and apps Kopie/web/.next/dev/cache/webpack/client-development/23.pack.gz differ
+Files apps/web/.next/dev/cache/webpack/client-development/24.pack.gz and apps Kopie/web/.next/dev/cache/webpack/client-development/24.pack.gz differ
+Files apps/web/.next/dev/cache/webpack/client-development/27.pack.gz and apps Kopie/web/.next/dev/cache/webpack/client-development/27.pack.gz differ
+Files apps/web/.next/dev/cache/webpack/client-development/29.pack.gz and apps Kopie/web/.next/dev/cache/webpack/client-development/29.pack.gz differ
+Files apps/web/.next/dev/cache/webpack/client-development/30.pack.gz and apps Kopie/web/.next/dev/cache/webpack/client-development/30.pack.gz differ
+Files apps/web/.next/dev/cache/webpack/client-development/31.pack.gz and apps Kopie/web/.next/dev/cache/webpack/client-development/31.pack.gz differ
+Files apps/web/.next/dev/cache/webpack/client-development/32.pack.gz and apps Kopie/web/.next/dev/cache/webpack/client-development/32.pack.gz differ
+Files apps/web/.next/dev/cache/webpack/client-development/33.pack.gz and apps Kopie/web/.next/dev/cache/webpack/client-development/33.pack.gz differ
+Files apps/web/.next/dev/cache/webpack/client-development/34.pack.gz and apps Kopie/web/.next/dev/cache/webpack/client-development/34.pack.gz differ
+Files apps/web/.next/dev/cache/webpack/client-development/35.pack.gz and apps Kopie/web/.next/dev/cache/webpack/client-development/35.pack.gz differ
+Files apps/web/.next/dev/cache/webpack/client-development/37.pack.gz and apps Kopie/web/.next/dev/cache/webpack/client-development/37.pack.gz differ
+Files apps/web/.next/dev/cache/webpack/client-development/38.pack.gz and apps Kopie/web/.next/dev/cache/webpack/client-development/38.pack.gz differ
+Files apps/web/.next/dev/cache/webpack/client-development/39.pack.gz and apps Kopie/web/.next/dev/cache/webpack/client-development/39.pack.gz differ
+Files apps/web/.next/dev/cache/webpack/client-development/4.pack.gz and apps Kopie/web/.next/dev/cache/webpack/client-development/4.pack.gz differ
+Files apps/web/.next/dev/cache/webpack/client-development/40.pack.gz and apps Kopie/web/.next/dev/cache/webpack/client-development/40.pack.gz differ
+Files apps/web/.next/dev/cache/webpack/client-development/5.pack.gz and apps Kopie/web/.next/dev/cache/webpack/client-development/5.pack.gz differ
+Files apps/web/.next/dev/cache/webpack/client-development/6.pack.gz and apps Kopie/web/.next/dev/cache/webpack/client-development/6.pack.gz differ
+Files apps/web/.next/dev/cache/webpack/client-development/7.pack.gz and apps Kopie/web/.next/dev/cache/webpack/client-development/7.pack.gz differ
+Files apps/web/.next/dev/cache/webpack/client-development/8.pack.gz and apps Kopie/web/.next/dev/cache/webpack/client-development/8.pack.gz differ
+Files apps/web/.next/dev/cache/webpack/client-development/9.pack.gz and apps Kopie/web/.next/dev/cache/webpack/client-development/9.pack.gz differ
+Files apps/web/.next/dev/cache/webpack/client-development/index.pack.gz and apps Kopie/web/.next/dev/cache/webpack/client-development/index.pack.gz differ
+Files apps/web/.next/dev/cache/webpack/client-development/index.pack.gz.old and apps Kopie/web/.next/dev/cache/webpack/client-development/index.pack.gz.old differ
+Files apps/web/.next/dev/cache/webpack/server-development/0.pack.gz and apps Kopie/web/.next/dev/cache/webpack/server-development/0.pack.gz differ
+Files apps/web/.next/dev/cache/webpack/server-development/1.pack.gz and apps Kopie/web/.next/dev/cache/webpack/server-development/1.pack.gz differ
+Files apps/web/.next/dev/cache/webpack/server-development/10.pack.gz and apps Kopie/web/.next/dev/cache/webpack/server-development/10.pack.gz differ
+Files apps/web/.next/dev/cache/webpack/server-development/11.pack.gz and apps Kopie/web/.next/dev/cache/webpack/server-development/11.pack.gz differ
+Files apps/web/.next/dev/cache/webpack/server-development/12.pack.gz and apps Kopie/web/.next/dev/cache/webpack/server-development/12.pack.gz differ
+Files apps/web/.next/dev/cache/webpack/server-development/13.pack.gz and apps Kopie/web/.next/dev/cache/webpack/server-development/13.pack.gz differ
+Files apps/web/.next/dev/cache/webpack/server-development/14.pack.gz and apps Kopie/web/.next/dev/cache/webpack/server-development/14.pack.gz differ
+Files apps/web/.next/dev/cache/webpack/server-development/17.pack.gz and apps Kopie/web/.next/dev/cache/webpack/server-development/17.pack.gz differ
+Files apps/web/.next/dev/cache/webpack/server-development/18.pack.gz and apps Kopie/web/.next/dev/cache/webpack/server-development/18.pack.gz differ
+Files apps/web/.next/dev/cache/webpack/server-development/19.pack.gz and apps Kopie/web/.next/dev/cache/webpack/server-development/19.pack.gz differ
+Files apps/web/.next/dev/cache/webpack/server-development/2.pack.gz and apps Kopie/web/.next/dev/cache/webpack/server-development/2.pack.gz differ
+Files apps/web/.next/dev/cache/webpack/server-development/20.pack.gz and apps Kopie/web/.next/dev/cache/webpack/server-development/20.pack.gz differ
+Files apps/web/.next/dev/cache/webpack/server-development/21.pack.gz and apps Kopie/web/.next/dev/cache/webpack/server-development/21.pack.gz differ
+Files apps/web/.next/dev/cache/webpack/server-development/23.pack.gz and apps Kopie/web/.next/dev/cache/webpack/server-development/23.pack.gz differ
+Files apps/web/.next/dev/cache/webpack/server-development/24.pack.gz and apps Kopie/web/.next/dev/cache/webpack/server-development/24.pack.gz differ
+Files apps/web/.next/dev/cache/webpack/server-development/25.pack.gz and apps Kopie/web/.next/dev/cache/webpack/server-development/25.pack.gz differ
+Files apps/web/.next/dev/cache/webpack/server-development/27.pack.gz and apps Kopie/web/.next/dev/cache/webpack/server-development/27.pack.gz differ
+Files apps/web/.next/dev/cache/webpack/server-development/28.pack.gz and apps Kopie/web/.next/dev/cache/webpack/server-development/28.pack.gz differ
+Files apps/web/.next/dev/cache/webpack/server-development/29.pack.gz and apps Kopie/web/.next/dev/cache/webpack/server-development/29.pack.gz differ
+Files apps/web/.next/dev/cache/webpack/server-development/3.pack.gz and apps Kopie/web/.next/dev/cache/webpack/server-development/3.pack.gz differ
+Files apps/web/.next/dev/cache/webpack/server-development/30.pack.gz and apps Kopie/web/.next/dev/cache/webpack/server-development/30.pack.gz differ
+Files apps/web/.next/dev/cache/webpack/server-development/31.pack.gz and apps Kopie/web/.next/dev/cache/webpack/server-development/31.pack.gz differ
+Files apps/web/.next/dev/cache/webpack/server-development/32.pack.gz and apps Kopie/web/.next/dev/cache/webpack/server-development/32.pack.gz differ
+Files apps/web/.next/dev/cache/webpack/server-development/33.pack.gz and apps Kopie/web/.next/dev/cache/webpack/server-development/33.pack.gz differ
+Files apps/web/.next/dev/cache/webpack/server-development/35.pack.gz and apps Kopie/web/.next/dev/cache/webpack/server-development/35.pack.gz differ
+Files apps/web/.next/dev/cache/webpack/server-development/37.pack.gz and apps Kopie/web/.next/dev/cache/webpack/server-development/37.pack.gz differ
+Files apps/web/.next/dev/cache/webpack/server-development/39.pack.gz and apps Kopie/web/.next/dev/cache/webpack/server-development/39.pack.gz differ
+Files apps/web/.next/dev/cache/webpack/server-development/4.pack.gz and apps Kopie/web/.next/dev/cache/webpack/server-development/4.pack.gz differ
+Files apps/web/.next/dev/cache/webpack/server-development/40.pack.gz and apps Kopie/web/.next/dev/cache/webpack/server-development/40.pack.gz differ
+Files apps/web/.next/dev/cache/webpack/server-development/41.pack.gz and apps Kopie/web/.next/dev/cache/webpack/server-development/41.pack.gz differ
+Files apps/web/.next/dev/cache/webpack/server-development/42.pack.gz and apps Kopie/web/.next/dev/cache/webpack/server-development/42.pack.gz differ
+Files apps/web/.next/dev/cache/webpack/server-development/43.pack.gz and apps Kopie/web/.next/dev/cache/webpack/server-development/43.pack.gz differ
+Files apps/web/.next/dev/cache/webpack/server-development/44.pack.gz and apps Kopie/web/.next/dev/cache/webpack/server-development/44.pack.gz differ
+Files apps/web/.next/dev/cache/webpack/server-development/45.pack.gz and apps Kopie/web/.next/dev/cache/webpack/server-development/45.pack.gz differ
+Files apps/web/.next/dev/cache/webpack/server-development/46.pack.gz and apps Kopie/web/.next/dev/cache/webpack/server-development/46.pack.gz differ
+Files apps/web/.next/dev/cache/webpack/server-development/47.pack.gz and apps Kopie/web/.next/dev/cache/webpack/server-development/47.pack.gz differ
+Files apps/web/.next/dev/cache/webpack/server-development/48.pack.gz and apps Kopie/web/.next/dev/cache/webpack/server-development/48.pack.gz differ
+Files apps/web/.next/dev/cache/webpack/server-development/49.pack.gz and apps Kopie/web/.next/dev/cache/webpack/server-development/49.pack.gz differ
+Files apps/web/.next/dev/cache/webpack/server-development/5.pack.gz and apps Kopie/web/.next/dev/cache/webpack/server-development/5.pack.gz differ
+Files apps/web/.next/dev/cache/webpack/server-development/50.pack.gz and apps Kopie/web/.next/dev/cache/webpack/server-development/50.pack.gz differ
+Files apps/web/.next/dev/cache/webpack/server-development/51.pack.gz and apps Kopie/web/.next/dev/cache/webpack/server-development/51.pack.gz differ
+Files apps/web/.next/dev/cache/webpack/server-development/52.pack.gz and apps Kopie/web/.next/dev/cache/webpack/server-development/52.pack.gz differ
+Files apps/web/.next/dev/cache/webpack/server-development/53.pack.gz and apps Kopie/web/.next/dev/cache/webpack/server-development/53.pack.gz differ
+Files apps/web/.next/dev/cache/webpack/server-development/54.pack.gz and apps Kopie/web/.next/dev/cache/webpack/server-development/54.pack.gz differ
+Files apps/web/.next/dev/cache/webpack/server-development/55.pack.gz and apps Kopie/web/.next/dev/cache/webpack/server-development/55.pack.gz differ
+Files apps/web/.next/dev/cache/webpack/server-development/56.pack.gz and apps Kopie/web/.next/dev/cache/webpack/server-development/56.pack.gz differ
+Files apps/web/.next/dev/cache/webpack/server-development/57.pack.gz and apps Kopie/web/.next/dev/cache/webpack/server-development/57.pack.gz differ
+Files apps/web/.next/dev/cache/webpack/server-development/58.pack.gz and apps Kopie/web/.next/dev/cache/webpack/server-development/58.pack.gz differ
+Files apps/web/.next/dev/cache/webpack/server-development/59.pack.gz and apps Kopie/web/.next/dev/cache/webpack/server-development/59.pack.gz differ
+Files apps/web/.next/dev/cache/webpack/server-development/6.pack.gz and apps Kopie/web/.next/dev/cache/webpack/server-development/6.pack.gz differ
+Files apps/web/.next/dev/cache/webpack/server-development/7.pack.gz and apps Kopie/web/.next/dev/cache/webpack/server-development/7.pack.gz differ
+Files apps/web/.next/dev/cache/webpack/server-development/8.pack.gz and apps Kopie/web/.next/dev/cache/webpack/server-development/8.pack.gz differ
+Files apps/web/.next/dev/cache/webpack/server-development/9.pack.gz and apps Kopie/web/.next/dev/cache/webpack/server-development/9.pack.gz differ
+Files apps/web/.next/dev/cache/webpack/server-development/index.pack.gz and apps Kopie/web/.next/dev/cache/webpack/server-development/index.pack.gz differ
+Files apps/web/.next/dev/cache/webpack/server-development/index.pack.gz.old and apps Kopie/web/.next/dev/cache/webpack/server-development/index.pack.gz.old differ
+Files apps/web/.next/dev/logs/next-development.log and apps Kopie/web/.next/dev/logs/next-development.log differ
+Files apps/web/.next/dev/prerender-manifest.json and apps Kopie/web/.next/dev/prerender-manifest.json differ
+Only in apps Kopie/web/.next/dev/server: _rsc_src_utils_rateLimit_ts.js
+Only in apps Kopie/web/.next/dev/server: app
+Files apps/web/.next/dev/server/app-paths-manifest.json and apps Kopie/web/.next/dev/server/app-paths-manifest.json differ
+Only in apps Kopie/web/.next/dev/server: edge-runtime-webpack.js
+Files apps/web/.next/dev/server/middleware-build-manifest.js and apps Kopie/web/.next/dev/server/middleware-build-manifest.js differ
+Files apps/web/.next/dev/server/middleware-manifest.json and apps Kopie/web/.next/dev/server/middleware-manifest.json differ
+Only in apps Kopie/web/.next/dev/server: middleware.js
+Only in apps Kopie/web/.next/dev/server: static
+Only in apps Kopie/web/.next/dev/server: vendor-chunks
+Only in apps Kopie/web/.next/dev/server: webpack-runtime.js
+Only in apps Kopie/web/.next/dev/static/chunks: app
+Only in apps Kopie/web/.next/dev/static/chunks: app-pages-internals.js
+Only in apps Kopie/web/.next/dev/static/chunks: main-app.js
+Only in apps Kopie/web/.next/dev/static/chunks: webpack.js
+Only in apps Kopie/web/.next/dev/static: css
+Only in apps Kopie/web/.next/dev/static: webpack
+Files apps/web/.next/dev/trace and apps Kopie/web/.next/dev/trace differ
+Only in apps Kopie/web/.next/dev/types: app
+Files apps/web/.next/dev/types/link.d.ts and apps Kopie/web/.next/dev/types/link.d.ts differ
+Files apps/web/.next/dev/types/routes.d.ts and apps Kopie/web/.next/dev/types/routes.d.ts differ
+Files apps/web/.next/dev/types/validator.ts and apps Kopie/web/.next/dev/types/validator.ts differ
+Files apps/web/config/routeAccess.json and apps Kopie/web/config/routeAccess.json differ
+Files apps/web/i18n.ts and apps Kopie/web/i18n.ts differ
+Files apps/web/src/app/(components)/HighlightedTextarea.tsx and apps Kopie/web/src/app/(components)/HighlightedTextarea.tsx differ
+Files apps/web/src/app/(components)/SiteHeader.tsx and apps Kopie/web/src/app/(components)/SiteHeader.tsx differ
+Files apps/web/src/app/.DS_Store and apps Kopie/web/src/app/.DS_Store differ
+Files apps/web/src/app/account/AccountClient.tsx and apps Kopie/web/src/app/account/AccountClient.tsx differ
+Files apps/web/src/app/agb/page.tsx and apps Kopie/web/src/app/agb/page.tsx differ
+Only in apps/web/src/app/api/auth: identity
+Only in apps/web/src/app/api/contributions: [id]
+Files apps/web/src/app/api/contributions/analyze/route.ts and apps Kopie/web/src/app/api/contributions/analyze/route.ts differ
+Files apps/web/src/app/api/contributions/route.ts and apps Kopie/web/src/app/api/contributions/route.ts differ
+Files apps/web/src/app/api/edebatte/package/route.ts and apps Kopie/web/src/app/api/edebatte/package/route.ts differ
+Only in apps/web/src/app/api/edebatte: pledge
+Files apps/web/src/app/api/edebatte/preorder/route.ts and apps Kopie/web/src/app/api/edebatte/preorder/route.ts differ
+Files apps/web/src/app/archiv/page.tsx and apps Kopie/web/src/app/archiv/page.tsx differ
+Files apps/web/src/app/barrierefreiheit/page.tsx and apps Kopie/web/src/app/barrierefreiheit/page.tsx differ
+Files apps/web/src/app/datenschutz/page.tsx and apps Kopie/web/src/app/datenschutz/page.tsx differ
+Files apps/web/src/app/datenschutz/strings.ts and apps Kopie/web/src/app/datenschutz/strings.ts differ
+Files apps/web/src/app/faq/page.tsx and apps Kopie/web/src/app/faq/page.tsx differ
+Files apps/web/src/app/faq/strings.ts and apps Kopie/web/src/app/faq/strings.ts differ
+Files apps/web/src/app/globals.css and apps Kopie/web/src/app/globals.css differ
+Files apps/web/src/app/homeStrings.ts and apps Kopie/web/src/app/homeStrings.ts differ
+Files apps/web/src/app/howtoworks/bewegung/page.tsx and apps Kopie/web/src/app/howtoworks/bewegung/page.tsx differ
+Files apps/web/src/app/howtoworks/edebatte/abstimmen/page.tsx and apps Kopie/web/src/app/howtoworks/edebatte/abstimmen/page.tsx differ
+Files apps/web/src/app/howtoworks/edebatte/dossier/page.tsx and apps Kopie/web/src/app/howtoworks/edebatte/dossier/page.tsx differ
+Files apps/web/src/app/howtoworks/edebatte/mandat/page.tsx and apps Kopie/web/src/app/howtoworks/edebatte/mandat/page.tsx differ
+Files apps/web/src/app/howtoworks/edebatte/page.tsx and apps Kopie/web/src/app/howtoworks/edebatte/page.tsx differ
+Files apps/web/src/app/impressum/page.tsx and apps Kopie/web/src/app/impressum/page.tsx differ
+Files apps/web/src/app/impressum/strings.ts and apps Kopie/web/src/app/impressum/strings.ts differ
+Files apps/web/src/app/ki-nutzung/page.tsx and apps Kopie/web/src/app/ki-nutzung/page.tsx differ
+Files apps/web/src/app/kontakt/KontaktForm.tsx and apps Kopie/web/src/app/kontakt/KontaktForm.tsx differ
+Only in apps/web/src/app/kontakt: KontaktPageClient.tsx
+Files apps/web/src/app/kontakt/page.tsx and apps Kopie/web/src/app/kontakt/page.tsx differ
+Files apps/web/src/app/mitglied-werden/MembershipPageClient.tsx and apps Kopie/web/src/app/mitglied-werden/MembershipPageClient.tsx differ
+Files apps/web/src/app/mitglied-werden/strings.ts and apps Kopie/web/src/app/mitglied-werden/strings.ts differ
+Files apps/web/src/app/nutzungsmodell/page.tsx and apps Kopie/web/src/app/nutzungsmodell/page.tsx differ
+Files apps/web/src/app/nutzungsmodell/strings.ts and apps Kopie/web/src/app/nutzungsmodell/strings.ts differ
+Files apps/web/src/app/pricing/page.tsx and apps Kopie/web/src/app/pricing/page.tsx differ
+Files apps/web/src/app/privacyStrings.ts and apps Kopie/web/src/app/privacyStrings.ts differ
+Files apps/web/src/app/privatsphaere/page.tsx and apps Kopie/web/src/app/privatsphaere/page.tsx differ
+Files apps/web/src/app/register/RegisterPageClient.tsx and apps Kopie/web/src/app/register/RegisterPageClient.tsx differ
+Files apps/web/src/app/register/RegisterStepper.tsx and apps Kopie/web/src/app/register/RegisterStepper.tsx differ
+Files apps/web/src/app/register/identity/page.tsx and apps Kopie/web/src/app/register/identity/page.tsx differ
+Files apps/web/src/app/register/preorder/page.tsx and apps Kopie/web/src/app/register/preorder/page.tsx differ
+Files apps/web/src/app/start/LandingStart.tsx and apps Kopie/web/src/app/start/LandingStart.tsx differ
+Files apps/web/src/app/start/page.tsx and apps Kopie/web/src/app/start/page.tsx differ
+Files apps/web/src/app/statements/page.tsx and apps Kopie/web/src/app/statements/page.tsx differ
+Files apps/web/src/app/team/page.tsx and apps Kopie/web/src/app/team/page.tsx differ
+Files apps/web/src/app/thema-einreichen/page.tsx and apps Kopie/web/src/app/thema-einreichen/page.tsx differ
+Files apps/web/src/app/transparenzbericht/page.tsx and apps Kopie/web/src/app/transparenzbericht/page.tsx differ
+Files apps/web/src/app/unterstuetzen/page.tsx and apps Kopie/web/src/app/unterstuetzen/page.tsx differ
+Files apps/web/src/app/unterstuetzen/strings.ts and apps Kopie/web/src/app/unterstuetzen/strings.ts differ
+Files apps/web/src/app/verhaltenskodex/page.tsx and apps Kopie/web/src/app/verhaltenskodex/page.tsx differ
+Files apps/web/src/app/widerrufsbelehrung/page.tsx and apps Kopie/web/src/app/widerrufsbelehrung/page.tsx differ
+Files apps/web/src/app/widerspruch/page.tsx and apps Kopie/web/src/app/widerspruch/page.tsx differ
+Files apps/web/src/components/IntroSection.tsx and apps Kopie/web/src/components/IntroSection.tsx differ
+Files apps/web/src/components/SiteFooter.tsx and apps Kopie/web/src/components/SiteFooter.tsx differ
+Files apps/web/src/components/landing/ExampleSnippetCard.tsx and apps Kopie/web/src/components/landing/ExampleSnippetCard.tsx differ
+Files apps/web/src/components/landing/ExamplesMarqueeRows.tsx and apps Kopie/web/src/components/landing/ExamplesMarqueeRows.tsx differ
+Only in apps/web/src/components/layout: PublicPageShell.tsx
+Files apps/web/src/components/privacy/CookieBanner.tsx and apps Kopie/web/src/components/privacy/CookieBanner.tsx differ
+Files apps/web/src/config/locales.ts and apps Kopie/web/src/config/locales.ts differ
+Files apps/web/src/features/pricing/components/PricingWidget_eDbtt.tsx and apps Kopie/web/src/features/pricing/components/PricingWidget_eDbtt.tsx differ
+Only in apps/web/src/lib/i18n: autoTranslate.ts
+Files apps/web/src/lib/i18n/contentLanguage.ts and apps Kopie/web/src/lib/i18n/contentLanguage.ts differ
+Files apps/web/src/lib/localization/getLocalizedField.ts and apps Kopie/web/src/lib/localization/getLocalizedField.ts differ
+Files apps/web/src/ui/ClarifyPanel.tsx and apps Kopie/web/src/ui/ClarifyPanel.tsx differ
+Files apps/web/src/utils/emailTemplates.ts and apps Kopie/web/src/utils/emailTemplates.ts differ
+Files apps/web/tsconfig.e150-smoke.json and apps Kopie/web/tsconfig.e150-smoke.json differ
+Only in apps Kopie/web: tsconfig.e150-smoke.tsbuildinfo
+Files apps/web/tsconfig.tsbuildinfo and apps Kopie/web/tsconfig.tsbuildinfo differ
+Only in apps Kopie/web: tsconfig.tsc-min.tsbuildinfo

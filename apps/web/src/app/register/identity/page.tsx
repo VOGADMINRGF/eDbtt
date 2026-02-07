@@ -40,9 +40,13 @@ export default function IdentityStepPage() {
   const [emailPhase, setEmailPhase] = useState<EmailPhase>("idle");
   const [emailMessage, setEmailMessage] = useState<string | null>(null);
   const [emailCode, setEmailCode] = useState("");
-  const nextAfterVerify = useMemo(
+  const finalNext = useMemo(
     () => sanitizeNext(searchParams.get("next")) ?? "/account?welcome=1",
     [searchParams],
+  );
+  const nextAfterVerify = useMemo(
+    () => `/register/preorder?next=${encodeURIComponent(finalNext)}`,
+    [finalNext],
   );
 
   useEffect(() => {
@@ -194,13 +198,13 @@ export default function IdentityStepPage() {
 
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-6 p-6">
-      <RegisterStepper current={3} />
+      <RegisterStepper current={2} />
       <header className="space-y-2">
-        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Schritt 3 · Identität</p>
+        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Schritt 2 · Verifikation</p>
         <h1 className="text-2xl font-semibold text-slate-900">Identität sichern</h1>
         <p className="text-sm text-slate-600">
-          Wähle Authenticator-App (TOTP) oder E-Mail-Code, um Missbrauch vorzubeugen. Später können weitere Ident-Stufen wie
-          eID hinzukommen – aktuell reicht dieser Schritt.
+          Wähle Authenticator-App (TOTP) oder E-Mail-Code, um Missbrauch vorzubeugen. Im nächsten Schritt kannst du optional
+          dein eDebatte-Paket verbindlich vorbestellen.
         </p>
       </header>
 
@@ -407,7 +411,7 @@ export default function IdentityStepPage() {
             </button>
             <button
               type="button"
-              onClick={() => router.push("/account?welcome=1")}
+              onClick={() => router.push(finalNext as Parameters<typeof router.push>[0])}
               className="btn btn-primary"
             >
               Schritt überspringen
@@ -424,7 +428,7 @@ export default function IdentityStepPage() {
         <ul className="list-disc pl-5 space-y-1">
           <li>Bürgerabstimmungen werden international beobachtet – starke Legitimation schützt Ergebnisse vor Manipulation.</li>
           <li>Doppelter Opt-in: Du bestätigst E-Mail und Identität, damit wir keine fremden Accounts freischalten.</li>
-          <li>Ab Mitte Januar kannst du Zahlungsanschrift & Bankeinzug komfortabel im Konto hinterlegen – die Legitimation hier sorgt dafür, dass wir diese Daten sicher zuordnen.</li>
+          <li>Nach der Identitätsprüfung kannst du Zahlungsdaten und die verbindliche Vorbestellung direkt erfassen.</li>
           <li>Familien- oder Teamkonten: Du kannst später in deinem Profil zusätzliche Personen einladen oder Gönner-E-Mails hinterlegen.</li>
         </ul>
         <p className="text-xs text-slate-500">

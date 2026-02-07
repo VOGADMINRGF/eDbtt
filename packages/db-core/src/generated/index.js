@@ -35,12 +35,12 @@ exports.Prisma = Prisma
 exports.$Enums = {}
 
 /**
- * Prisma Client JS version: 6.17.1
- * Query Engine version: 272a37d34178c2894197e17273bf937f25acdeac
+ * Prisma Client JS version: 6.16.3
+ * Query Engine version: bb420e667c1820a8c05a38023385f6cc7ef8e83a
  */
 Prisma.prismaVersion = {
-  client: "6.17.1",
-  engine: "272a37d34178c2894197e17273bf937f25acdeac"
+  client: "6.16.3",
+  engine: "bb420e667c1820a8c05a38023385f6cc7ef8e83a"
 }
 
 Prisma.PrismaClientKnownRequestError = PrismaClientKnownRequestError;
@@ -443,7 +443,7 @@ const config = {
       "value": "prisma-client-js"
     },
     "output": {
-      "value": "/Users/RF/VPM25/packages/db-core/src/generated",
+      "value": "/Users/RF/Arbeitsmappe/edebatte-org/packages/db-core/src/generated",
       "fromEnvVar": null
     },
     "config": {
@@ -457,15 +457,15 @@ const config = {
       }
     ],
     "previewFeatures": [],
-    "sourceFilePath": "/Users/RF/VPM25/prisma/core/schema.prisma",
+    "sourceFilePath": "/Users/RF/Arbeitsmappe/edebatte-org/prisma/core/schema.prisma",
     "isCustomOutput": true
   },
   "relativeEnvPaths": {
     "rootEnvPath": null
   },
   "relativePath": "../../../../prisma/core",
-  "clientVersion": "6.17.1",
-  "engineVersion": "272a37d34178c2894197e17273bf937f25acdeac",
+  "clientVersion": "6.16.3",
+  "engineVersion": "bb420e667c1820a8c05a38023385f6cc7ef8e83a",
   "datasourceNames": [
     "db"
   ],

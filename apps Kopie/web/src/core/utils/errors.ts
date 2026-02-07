@@ -1,1 +1,0 @@
-export function formatError(e: any): string { return (e && e.message) ? e.message : String(e); }

@@ -118,6 +118,9 @@ type UserDoc = {
     pledgeInterval?: "once" | "monthly" | "yearly" | null;
     pledgeReference?: string | null;
     pledgeConfirmedAt?: Date | string | null;
+    commitmentMonths?: number | null;
+    commitmentStartsAt?: Date | string | null;
+    commitmentEndsAt?: Date | string | null;
   };
 };
 
@@ -227,6 +230,9 @@ export async function getAccountOverview(userId: string): Promise<AccountOvervie
           pledgeInterval: doc.edebatte?.pledgeInterval ?? null,
           pledgeReference: doc.edebatte?.pledgeReference ?? null,
           pledgeConfirmedAt: toIsoDate(doc.edebatte?.pledgeConfirmedAt),
+          commitmentMonths: doc.edebatte?.commitmentMonths ?? null,
+          commitmentStartsAt: toIsoDate(doc.edebatte?.commitmentStartsAt),
+          commitmentEndsAt: toIsoDate(doc.edebatte?.commitmentEndsAt),
         }
       : { package: "none", status: "none" };
 

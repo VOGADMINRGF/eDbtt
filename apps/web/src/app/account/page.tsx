@@ -29,6 +29,9 @@ export default async function AccountPage({ searchParams }: Props) {
   const membershipNotice =
     typeof (params as any)?.membership === "string" &&
     (params as any).membership === "thanks";
+  const preorderNotice =
+    typeof (params as any)?.preorder === "string" &&
+    (params as any).preorder === "thanks";
   const welcomeNotice =
     typeof (params as any)?.welcome === "string" &&
     ["1", "true", "yes"].includes((params as any).welcome);
@@ -67,7 +70,12 @@ export default async function AccountPage({ searchParams }: Props) {
           )}
         </header>
 
-        <AccountClient initialData={overview} membershipNotice={membershipNotice} welcomeNotice={welcomeNotice} />
+        <AccountClient
+          initialData={overview}
+          membershipNotice={membershipNotice}
+          preorderNotice={preorderNotice}
+          welcomeNotice={welcomeNotice}
+        />
       </div>
     </main>
   );

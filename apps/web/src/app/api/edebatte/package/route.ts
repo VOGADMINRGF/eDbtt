@@ -31,6 +31,16 @@ export async function POST(req: NextRequest) {
   if (!["basis", "start", "pro"].includes(normalizedPackage)) {
     return NextResponse.json({ ok: false, error: "invalid_input" }, { status: 400 });
   }
+  if (normalizedPackage !== "basis") {
+    return NextResponse.json(
+      {
+        ok: false,
+        error: "requires_preorder",
+        message: "Für Start/Pro bitte zuerst verbindlich vorbestellen (Laufzeit & Bankdaten).",
+      },
+      { status: 400 },
+    );
+  }
 
   const Users = await coreCol("users");
   const userObjectId = new ObjectId(userId);
@@ -47,7 +57,7 @@ export async function POST(req: NextRequest) {
     {
       $set: {
         "edebatte.package": normalizedPackage,
-        "edebatte.status": "preorder",
+        "edebatte.status": "active",
         "edebatte.updatedAt": new Date(),
         "edebatte.preorderAt": new Date(),
         "edebatte.source": parsed.data.source || "self_service",
@@ -69,25 +79,17 @@ export async function POST(req: NextRequest) {
     [existing?.firstName, existing?.lastName].filter(Boolean).join(" ") ||
     "";
 
-  const isSame = currentPackage === normalizedPackage && currentStatus === "preorder";
+  const isSame = currentPackage === normalizedPackage && currentStatus === "active";
   if (to && !isSame) {
-    const planLabel =
-      normalizedPackage === "basis"
-        ? "eDebatte Basis"
-        : normalizedPackage === "start"
-          ? "eDebatte Start"
-          : "eDebatte Pro";
-
-    const subject = `Vorbestellung bestätigt: ${planLabel}`;
+    const subject = "eDebatte Basis aktiviert";
     const greeting = displayName ? `Hallo ${displayName},` : "Hallo,";
     const html = `
       <p>${greeting}</p>
-      <p>vielen Dank für deine Vorbestellung von <strong>${planLabel}</strong>. Wir haben deinen Status im Profil hinterlegt.</p>
-      <p><strong>Vorbestellung:</strong> −15% · <strong>Vorkasse:</strong> +10% · <strong>2 Jahre:</strong> +5% (max. 30%).</p>
-      <p>Wenn du Vorkasse oder eine 2‑Jahres‑Option nutzen möchtest, antworte kurz auf diese E‑Mail. Wir senden dir dann die Zahlungsdetails.</p>
-      <p>Danke für deine Unterstützung!<br/>Dein eDebatte‑Team</p>
+      <p>dein Paket <strong>eDebatte Basis</strong> ist jetzt aktiv.</p>
+      <p>Du kannst sofort swipen, lesen und dich in Themen einbringen.</p>
+      <p>– Dein eDebatte‑Team</p>
     `;
-    const text = `${greeting}\n\nVielen Dank für deine Vorbestellung von ${planLabel}. Wir haben deinen Status im Profil hinterlegt.\n\nVorbestellung: −15% · Vorkasse: +10% · 2 Jahre: +5% (max. 30%).\nWenn du Vorkasse oder eine 2‑Jahres‑Option nutzen möchtest, antworte kurz auf diese E‑Mail. Wir senden dir dann die Zahlungsdetails.\n\nDanke für deine Unterstützung!\nDein eDebatte‑Team`;
+    const text = `${greeting}\n\ndein Paket eDebatte Basis ist jetzt aktiv.\nDu kannst sofort swipen, lesen und dich in Themen einbringen.\n\n– Dein eDebatte‑Team`;
     await sendMail({ to, subject, html, text });
   }
 

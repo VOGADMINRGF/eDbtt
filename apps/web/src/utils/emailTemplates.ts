@@ -448,6 +448,129 @@ function formatIban(value?: string | null) {
   return cleaned.match(/.{1,4}/g)?.join(" ") ?? cleaned;
 }
 
+type EdebatePreorderMailInput = {
+  displayName?: string | null;
+  planLabel: string;
+  monthlyPrice: number;
+  commitmentMonths?: number;
+  ibanMasked?: string;
+  pledgeReference?: string;
+  accountUrl?: string;
+};
+
+const EURO_EDEB = new Intl.NumberFormat("de-DE", {
+  style: "currency",
+  currency: "EUR",
+  minimumFractionDigits: 2,
+});
+
+function formatEuroEdeb(amount: number) {
+  return EURO_EDEB.format(amount);
+}
+
+function formatIbanEdeb(iban: string) {
+  return iban.replace(/\s+/g, "").replace(/(.{4})/g, "$1 ").trim();
+}
+
+export function buildEdebatePreorderMail({
+  displayName,
+  planLabel,
+  monthlyPrice,
+  commitmentMonths,
+  ibanMasked,
+  pledgeReference,
+  accountUrl,
+}: EdebatePreorderMailInput) {
+  const greeting = displayName ? `Hallo ${displayName}` : "Hallo";
+  const amount = formatEuroEdeb(monthlyPrice);
+  const commitmentLabel = commitmentMonths ? `${commitmentMonths} Monate` : "keine Laufzeit";
+
+  const ibanLine = ibanMasked ? `<li><strong>IBAN:</strong> ${formatIbanEdeb(ibanMasked)}</li>` : "";
+  const refLine = pledgeReference ? `<li><strong>Referenz:</strong> ${pledgeReference}</li>` : "";
+
+  const accountBlock = accountUrl
+    ? `<p style="margin:12px 0 0 0;">
+        <a href="${accountUrl}" style="display:inline-flex;padding:10px 16px;border-radius:999px;background:#0f172a;color:#ffffff;text-decoration:none;font-weight:700;font-size:12px;">Zum Konto</a>
+      </p>`
+    : "";
+
+  const html = `
+    <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="font-family: system-ui, -apple-system, Segoe UI, sans-serif; color:#0f172a; background:#f8fafc; padding:24px;">
+      <tr>
+        <td align="center">
+          <table width="600" cellpadding="0" cellspacing="0" role="presentation" style="width:100%;max-width:600px;background:#ffffff;border:1px solid #e2e8f0;border-radius:20px;overflow:hidden;">
+            <tr>
+              <td style="padding:20px 24px;background:#0f172a;">
+                <div style="font-size:11px;letter-spacing:0.3em;text-transform:uppercase;color:#94a3b8;">eDebatte</div>
+                <div style="margin-top:6px;font-size:22px;font-weight:700;color:#ffffff;">Vorbestellung bestätigt</div>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:20px 24px;">
+                <p style="margin:0 0 10px 0;font-size:15px;">${greeting},</p>
+                <p style="margin:0 0 14px 0;font-size:14px;line-height:1.6;color:#334155;">
+                  danke für deine verbindliche Vorbestellung. Hier die Zusammenfassung:
+                </p>
+
+                <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:16px;">
+                  <tr>
+                    <td style="padding:14px;">
+                      <table width="100%" cellpadding="0" cellspacing="0" role="presentation">
+                        <tr>
+                          <td style="padding:6px 0;font-size:12px;color:#64748b;">Paket</td>
+                          <td style="padding:6px 0;font-size:14px;font-weight:600;text-align:right;color:#0f172a;">${planLabel}</td>
+                        </tr>
+                        <tr>
+                          <td style="padding:6px 0;font-size:12px;color:#64748b;">Preis</td>
+                          <td style="padding:6px 0;font-size:14px;font-weight:600;text-align:right;color:#0f172a;">${amount} / Monat</td>
+                        </tr>
+                        <tr>
+                          <td style="padding:6px 0;font-size:12px;color:#64748b;">Laufzeit</td>
+                          <td style="padding:6px 0;font-size:14px;font-weight:600;text-align:right;color:#0f172a;">${commitmentLabel}</td>
+                        </tr>
+                      </table>
+                    </td>
+                  </tr>
+                </table>
+
+                ${(ibanLine || refLine)
+                  ? `<ul style="margin:14px 0 0 16px;font-size:13px;color:#475569;line-height:1.6;">
+                      ${ibanLine}
+                      ${refLine}
+                    </ul>`
+                  : ""}
+
+                <p style="margin:14px 0 0 0;font-size:12px;color:#64748b;line-height:1.6;">
+                  Du findest deine Buchung jederzeit im Konto. Wenn du Rückfragen hast, antworte einfach auf diese E-Mail.
+                </p>
+
+                ${accountBlock}
+                <p style="margin:14px 0 0 0;font-size:13px;color:#0f172a;font-weight:600;">– Dein eDebatte Team</p>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  `;
+
+  const text = `${greeting},
+
+danke für deine verbindliche Vorbestellung.
+
+Paket: ${planLabel}
+Preis: ${amount} / Monat
+Laufzeit: ${commitmentLabel}
+${ibanMasked ? `IBAN: ${formatIbanEdeb(ibanMasked)}` : ""}
+${pledgeReference ? `Referenz: ${pledgeReference}` : ""}
+
+${accountUrl ? `Zum Konto: ${accountUrl}` : ""}
+
+– Dein eDebatte Team`;
+
+  return { subject: "eDebatte – Vorbestellung bestätigt", html, text };
+}
+
 export function buildEdebatePreorderPledgeUserMail(args: {
   displayName?: string | null;
   planLabel: string;

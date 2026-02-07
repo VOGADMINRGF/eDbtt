@@ -36,6 +36,9 @@ export type AccountEdebateInfo = {
   pledgeInterval?: "once" | "monthly" | "yearly" | null;
   pledgeReference?: string | null;
   pledgeConfirmedAt?: string | null;
+  commitmentMonths?: number | null;
+  commitmentStartsAt?: string | null;
+  commitmentEndsAt?: string | null;
 };
 
 export type AccountStats = {
