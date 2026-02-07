@@ -41,7 +41,7 @@ const NAV_ITEMS: NavItem[] = [
   {
     href: "/pricing",
     label: "Preise",
-    description: "Pakete, Vorbestellung und Mitgliedschaft.",
+    description: "Pakete, Vormerkung und Mitgliedschaft.",
   },
   {
     href: "/faq",
@@ -199,7 +199,7 @@ export function SiteHeader({ initialUser }: { initialUser?: AuthUser | null }) {
               href="/pricing"
               className="btn btn-primary hidden sm:inline-flex items-center"
             >
-              {t("Vorbestellen", "cta.preorder")}
+              {t("Vormerken", "cta.preorder")}
             </Link>
           )}
           <button
@@ -342,7 +342,7 @@ export function SiteHeader({ initialUser }: { initialUser?: AuthUser | null }) {
                 onClick={() => setMobileOpen(false)}
                 className="btn btn-primary text-center"
               >
-                {t("Vorbestellen", "cta.preorder.mobile")}
+                {t("Vormerken", "cta.preorder.mobile")}
               </Link>
             )}
             </nav>

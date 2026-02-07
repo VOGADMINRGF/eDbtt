@@ -15,14 +15,6 @@ export const PRELAUNCH_GATE_COPY: Record<
     submitCta: string;
     productsTitle: string;
     productsHint: string;
-    products: {
-      id: "donate" | "free" | "pro";
-      eyebrow: string;
-      title: string;
-      text: string;
-      note?: string;
-      cta: string;
-    }[];
     contactCta: string;
     later: string;
   }
@@ -43,35 +35,9 @@ export const PRELAUNCH_GATE_COPY: Record<
     submitTitle: "So zur Prüfung stellen",
     submitText: "Wir übernehmen dein Anliegen wie eingereicht und prüfen es vor Veröffentlichung.",
     submitCta: "Zur Prüfung einreichen",
-    productsTitle: "Vorbestellen / unterstützen",
+    productsTitle: "Pakete & Vormerkung",
     productsHint: "Wischen",
-    products: [
-      {
-        id: "donate",
-        eyebrow: "Spenden",
-        title: "Einfach unterstützen",
-        text: "Wenn du uns einfach etwas Gutes tun willst.",
-        note: "Einmalig oder flexibel, ganz frei.",
-        cta: "Spenden",
-      },
-      {
-        id: "free",
-        eyebrow: "Kostenfrei",
-        title: "Vormerken lassen",
-        text: "Ohne Zahlungsangaben. Früh dabei sein.",
-        note: "Kein Beitrag nötig.",
-        cta: "Kostenfrei vormerken",
-      },
-      {
-        id: "pro",
-        eyebrow: "Vorbestellung",
-        title: "Pro Jahreslizenz",
-        text: "Pro-Version als Jahreslizenz mit 25 % Nachlass.",
-        note: "Abrechnung erst zum Launch.",
-        cta: "Pro vorbestellen",
-      },
-    ],
-    contactCta: "Kontakt / Demo-Liste",
+    contactCta: "Kontakt / Vorfuehrliste",
     later: "Später",
   },
   en: {
@@ -89,34 +55,8 @@ export const PRELAUNCH_GATE_COPY: Record<
     submitTitle: "Submit as-is",
     submitText: "We take it as submitted and review it before publishing.",
     submitCta: "Submit for review",
-    productsTitle: "Pre-order / support",
+    productsTitle: "Packages & pre-signup",
     productsHint: "Swipe",
-    products: [
-      {
-        id: "donate",
-        eyebrow: "Donate",
-        title: "Just support us",
-        text: "If you simply want to do something good for us.",
-        note: "One-time or flexible, entirely up to you.",
-        cta: "Donate",
-      },
-      {
-        id: "free",
-        eyebrow: "Free",
-        title: "Get on the list",
-        text: "No payment details. Be in early.",
-        note: "No obligation.",
-        cta: "Free pre-signup",
-      },
-      {
-        id: "pro",
-        eyebrow: "Pre-order",
-        title: "Pro annual license",
-        text: "Pro version annual license with 25% discount.",
-        note: "Billing starts at launch.",
-        cta: "Pre-order Pro",
-      },
-    ],
     contactCta: "Contact / demo list",
     later: "Later",
   },

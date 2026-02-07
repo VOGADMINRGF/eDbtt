@@ -4,7 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import type { ChangeEvent, FormEvent } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { EDEBATTE_PACKAGES_WITH_NONE, EDEBATTE_PACKAGES } from "@/config/edebatte";
+import { EDEBATTE_PACKAGES_WITH_NONE } from "@/config/edebatte";
+import { EDEBATTE_PACKAGES_DE } from "@features/pricing";
 import type { UserRole } from "@/types/user";
 
 // Konsistente Button-Styles im eDebatte-Gradient-CI
@@ -192,7 +193,8 @@ export function AccountClient({ initialData, membershipNotice, preorderNotice, w
       )}
       {preorderNotice && (
         <div className="mb-4 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
-          Vorbestellung gespeichert. Du bekommst eine Bestätigung per E-Mail – und findest die Buchung unten in deiner Übersicht.
+          Vormerkung gespeichert. Wenn du eine E-Mail angegeben hast, senden wir dir eine Bestätigung. Die Vormerkung
+          erscheint unten in deiner Übersicht.
         </div>
       )}
 
@@ -367,9 +369,9 @@ function MembershipBanner() {
       aria-label="Bestätigung eDebatte-Paket"
       className="rounded-3xl border border-emerald-100 bg-emerald-50/80 px-4 py-3 text-sm text-emerald-900 shadow-sm"
     >
-      <p className="font-medium">Vielen Dank für deine Vorbestellung von eDebatte!</p>
+      <p className="font-medium">Vielen Dank für deine Vormerkung von eDebatte!</p>
       <p className="mt-1 text-xs text-emerald-800">
-        Dein eDebatte-Paket ist in deinem Konto hinterlegt. Sobald die App startet, erhältst du eine separate Bestätigung mit allen Details per
+        Dein eDebatte-Paket ist in deinem Konto hinterlegt. Sobald eDebatte startet, erhältst du eine separate Bestätigung mit allen Details per
         E-Mail.
       </p>
     </section>
@@ -668,19 +670,15 @@ type EDebattePackageCardProps = {
 };
 
 function getEDebatteLabel(pkg: EDebattePackage): string {
-  const labels: Record<EDebattePackage, string> = {
-    basis: "eDebatte Basis",
-    start: "eDebatte Start",
-    pro: "eDebatte Pro",
-    none: "Noch kein eDebatte-Paket",
-  };
-  return labels[pkg] ?? "Noch kein eDebatte-Paket";
+  if (pkg === "none") return "Noch kein eDebatte-Paket";
+  const found = EDEBATTE_PACKAGES_DE.find((plan) => plan.id === pkg);
+  return found?.titel ?? "Noch kein eDebatte-Paket";
 }
 
 function getEDebatteStatusLabel(info: EDebattePackageInfo): string {
   switch (info.status) {
     case "preorder":
-      return "Vorbestellt – Frühbucher‑Rabatt ist berücksichtigt, Abrechnung startet erst zum Launch.";
+      return "Vorgemerkt – unverbindlich, ohne Zahlung. Wir informieren dich zum Start.";
     case "active":
       return "Aktiv";
     case "canceled":
@@ -727,7 +725,7 @@ function EDebattePackageCard({ edebatte, usage, onRefresh }: EDebattePackageCard
               {isNone
                 ? "Noch nicht aktiviert"
                 : edebatte.status === "preorder"
-                ? "Vorbestellt"
+                ? "Vorgemerkt"
                 : edebatte.status === "active"
                 ? "Aktiv"
                 : "Gekündigt"}
@@ -811,30 +809,19 @@ type EDebatteChoice = {
   description: string;
 };
 
-const EDEBATTE_CHOICES: EDebatteChoice[] = EDEBATTE_PACKAGES.map((pkg) => {
-  switch (pkg) {
-    case "basis":
-      return {
-        id: "basis" as const,
-        name: "eDebatte Basis",
-        priceLabel: "0,00 € / Monat",
-        description: "Kostenfreier Einstieg: Inhalte ansehen, swipen, Community kennenlernen.",
-      };
-    case "start":
-      return {
-        id: "start" as const,
-        name: "eDebatte Start",
-        priceLabel: "9,90 € / Monat",
-        description: "Für alle, die regelmäßig mitbestimmen und eigene Vorschläge einbringen wollen.",
-      };
-    case "pro":
-      return {
-        id: "pro" as const,
-        name: "eDebatte Pro",
-        priceLabel: "29,00 € / Monat",
-        description: "Für Vielnutzer:innen, Initiativen und Organisationen mit erweiterten Kontingenten.",
-      };
-  }
+const EDEBATTE_CHOICES: EDebatteChoice[] = EDEBATTE_PACKAGES_DE.map((pkg) => {
+  const priceLabel =
+    pkg.preisMonat === 0
+      ? "Kostenfrei"
+      : pkg.preisMonat != null
+        ? `${formatEuro(pkg.preisMonat)} / Monat`
+        : "Preis folgt";
+  return {
+    id: pkg.id,
+    name: pkg.titel,
+    priceLabel,
+    description: pkg.beschreibungKurz,
+  };
 });
 
 function EDebattePackageModal({ currentPackage, onClose, onRefresh }: EDebattePackageModalProps) {
@@ -881,7 +868,7 @@ function EDebattePackageModal({ currentPackage, onClose, onRefresh }: EDebattePa
             <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-sky-600">eDebatte-Paket wählen</p>
             <h3 className="mt-1 text-sm font-semibold text-slate-900">Welches Paket möchtest du nutzen?</h3>
             <p className="mt-1 text-[11px] text-slate-500">
-              Hier siehst du, welche Pakete bereits beauftragt sind, was vorbestellt ist und was du zusätzlich buchen kannst.
+              Hier siehst du, welche Pakete bereits beauftragt sind, was vorgemerkt ist und was du zusätzlich buchen kannst.
             </p>
           </div>
           <button
@@ -907,7 +894,7 @@ function EDebattePackageModal({ currentPackage, onClose, onRefresh }: EDebattePa
               statusText = "Aktuelles Paket";
               statusClass = "inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-emerald-700 ring-1 ring-emerald-200";
             } else if (isCurrent && currentPackage.status === "preorder") {
-              statusText = "Vorbestellt";
+              statusText = "Vorgemerkt";
               statusClass = "inline-flex items-center rounded-full bg-sky-50 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-sky-700 ring-1 ring-sky-200";
             } else if (isCanceled) {
               statusText = "Zuletzt gekündigt";

@@ -140,7 +140,7 @@ const faqCategories: FaqCategory[] = [
         id: "mitmachen-4",
         question: "Wie kann ich in der Aufbauphase unterstützen?",
         answer:
-          "Du kannst dich registrieren, Mitglied werden, eine einmalige Gutschrift geben oder die eDebatte-Pakete vorbestellen. Ebenso wichtig sind Tests, Feedback und Weiterempfehlungen. Jede Form von Unterstützung hilft, die Bewegung und die Infrastruktur stabil aufzubauen.",
+          "Du kannst dich registrieren, Mitglied werden, eine einmalige Gutschrift geben oder die eDebatte-Pakete vormerken. Ebenso wichtig sind Tests, Feedback und Weiterempfehlungen. Jede Form von Unterstützung hilft, die Bewegung und die Infrastruktur stabil aufzubauen.",
       },
     ],
   },

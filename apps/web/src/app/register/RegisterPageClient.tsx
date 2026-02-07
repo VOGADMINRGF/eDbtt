@@ -222,7 +222,7 @@ function RegisterPageClient({ personCount = 1, searchParams }: RegisterPageClien
       <div>
         <h1 className="text-2xl font-semibold text-slate-900">Registrieren</h1>
         <p className="mt-1 text-sm text-slate-600">
-          Basisdaten anlegen, E-Mail bestätigen, Identität sichern – und optional direkt verbindlich vorbestellen.
+          Basisdaten anlegen, E-Mail bestätigen, Identität sichern – und optional direkt vormerken.
         </p>
       </div>
 
@@ -511,8 +511,7 @@ function RegisterPageClient({ personCount = 1, searchParams }: RegisterPageClien
           <li className="flex gap-2">
             <span className="mt-1 h-1.5 w-1.5 rounded-full bg-emerald-500" />
             <span>
-              Nach der Identitätsprüfung kannst du dein eDebatte-Paket verbindlich vorbestellen – inkl. Laufzeit und
-              Zahlungsdaten.
+              Nach der Identitätsprüfung kannst du dein eDebatte-Paket vormerken – unverbindlich und ohne Zahlung.
             </span>
           </li>
           <li className="flex gap-2">

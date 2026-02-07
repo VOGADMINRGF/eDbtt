@@ -204,7 +204,7 @@ export default function IdentityStepPage() {
         <h1 className="text-2xl font-semibold text-slate-900">Identität sichern</h1>
         <p className="text-sm text-slate-600">
           Wähle Authenticator-App (TOTP) oder E-Mail-Code, um Missbrauch vorzubeugen. Im nächsten Schritt kannst du optional
-          dein eDebatte-Paket verbindlich vorbestellen.
+          dein eDebatte-Paket vormerken.
         </p>
       </header>
 
@@ -428,7 +428,7 @@ export default function IdentityStepPage() {
         <ul className="list-disc pl-5 space-y-1">
           <li>Bürgerabstimmungen werden international beobachtet – starke Legitimation schützt Ergebnisse vor Manipulation.</li>
           <li>Doppelter Opt-in: Du bestätigst E-Mail und Identität, damit wir keine fremden Accounts freischalten.</li>
-          <li>Nach der Identitätsprüfung kannst du Zahlungsdaten und die verbindliche Vorbestellung direkt erfassen.</li>
+          <li>Nach der Identitätsprüfung kannst du dein Paket vormerken – unverbindlich und ohne Zahlung.</li>
           <li>Familien- oder Teamkonten: Du kannst später in deinem Profil zusätzliche Personen einladen oder Gönner-E-Mails hinterlegen.</li>
         </ul>
         <p className="text-xs text-slate-500">

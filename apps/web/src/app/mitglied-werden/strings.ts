@@ -13,7 +13,7 @@ const STRINGS = {
 
   transparencyTitle: { de: "Wichtiger Hinweis zur Transparenz" } as LocaleString,
   transparencyBody: {
-    de: "eDebatte befindet sich in der Gründungsphase. Deine Unterstützung hilft jetzt besonders – monatlich, einmalig oder als Vorbestellung der eDebatte. Bis zur Eintragung laufen Beiträge über PayPal oder bevorzugt per Überweisung an das Konto des Initiators und werden strikt projektbezogen verbucht. Wir stellen derzeit keine Spendenquittungen aus; Beiträge sind in der Regel nicht steuerlich absetzbar. Die Bewegung soll dauerhaft von vielen Menschen getragen werden – nach dem Prinzip „eine Person, eine Stimme“. Die eDebatte‑Pakete, inkl. eDebatte Basis (kostenfrei), sind unten beschrieben und frei kombinierbar.",
+    de: "eDebatte befindet sich in der Gründungsphase. Deine Unterstützung hilft jetzt besonders – monatlich, einmalig oder als Vormerkung der eDebatte. Bis zur Eintragung laufen Beiträge über PayPal oder bevorzugt per Überweisung an das Konto des Initiators und werden strikt projektbezogen verbucht. Wir stellen derzeit keine Spendenquittungen aus; Beiträge sind in der Regel nicht steuerlich absetzbar. Die Bewegung soll dauerhaft von vielen Menschen getragen werden – nach dem Prinzip „eine Person, eine Stimme“. Die eDebatte‑Pakete, inkl. eDebatte Basis (kostenfrei), sind unten beschrieben und frei kombinierbar.",
   } as LocaleString,
 
   enableTitle: { de: "Was du mit deiner Mitgliedschaft ermöglichst" } as LocaleString,
@@ -85,7 +85,7 @@ const STRINGS = {
     de: "Du hast einen einmaligen Betrag eingetragen, ohne eine laufende Mitgliedschaft zu wählen. Danke für deine Unterstützung – wir würden uns freuen, dich später als Mitglied zu begrüßen.",
   } as LocaleString,
   summaryButton: { de: "Weiter zum Antrag" } as LocaleString,
-  summaryButtonPreorder: { de: "Vorbestellen" } as LocaleString,
+  summaryButtonPreorder: { de: "Vormerken" } as LocaleString,
 
   finalTitle: { de: "Mehr als ein Beitrag – wie du noch mitmachen kannst" } as LocaleString,
   finalIntro: {

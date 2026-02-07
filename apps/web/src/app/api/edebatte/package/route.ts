@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
       {
         ok: false,
         error: "requires_preorder",
-        message: "Für Start/Pro bitte zuerst verbindlich vorbestellen (Laufzeit & Bankdaten).",
+        message: "Für Start/Pro bitte zuerst vormerken (unverbindlich, ohne Zahlung).",
       },
       { status: 400 },
     );

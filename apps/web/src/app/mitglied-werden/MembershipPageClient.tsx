@@ -188,7 +188,7 @@ export function MembershipPageClient({ membershipPlan, edebattePlans }: Props) {
   const membershipBaseTotal = effectivePerPerson * size; // Basisbetrag aus dem Rechner
   const hasApp = withEdebate && !!selectedPlan;
 
-  // App-Preise: Listenpreis pro Monat, Vorbestellung (−15 %), Jahrespreis (8 % Skonto)
+  // App-Preise: Listenpreis pro Monat, Vormerkung (−15 %), Jahrespreis (8 % Skonto)
   const appListMonthly = hasApp && selectedPlan ? Number(selectedPlan.listPrice.amount) : 0;
   const appListYearly = hasApp ? Math.round(appListMonthly * 12 * 0.92 * 100) / 100 : 0;
   const appPreorderMonthly = hasApp
@@ -405,14 +405,14 @@ export function MembershipPageClient({ membershipPlan, edebattePlans }: Props) {
             <div className="space-y-3">
               <div className="flex items-baseline justify-between gap-3">
                 <h2 className="text-sm font-semibold text-slate-900">
-                  eDebatte-Paket wählen (Vorbestellung!)
+                  eDebatte-Paket waehlen (Vormerkung)
                 </h2>
                 <p className="text-[11px] text-slate-500">
                   Preise sind Richtwerte während der Pilotphase.
                 </p>
               </div>
               <p className="text-[11px] text-slate-500">
-                Vorbestellung: −15% · Vorkasse: +10% · 2 Jahre: +5% (max. 30%)
+                Vormerkung: −15% Einfuehrungspreis (unverbindlich, ohne Zahlung)
               </p>
 
               <div className="grid gap-4 md:grid-cols-3">
@@ -470,7 +470,7 @@ export function MembershipPageClient({ membershipPlan, edebattePlans }: Props) {
                                       : `${listYearly.toFixed(2)} € / Jahr`}
                                   </span>{" "}
                                   <span className="rounded-full bg-sky-50 px-2 py-0.5 text-[10px] font-semibold text-sky-700 ring-1 ring-sky-200">
-                                    −{PREORDER_DISCOUNT}% Vorbestellung
+                                    −{PREORDER_DISCOUNT}% Vormerkung
                                   </span>
                                 </p>
                                 {billingInterval === "yearly" && (
@@ -484,7 +484,7 @@ export function MembershipPageClient({ membershipPlan, edebattePlans }: Props) {
                                   </>
                                 )}
                                 <p className="text-[11px] text-slate-600">
-                                  Vorbestellung ab:{" "}
+                                  Vormerkung ab:{" "}
                                   <span className="font-semibold text-slate-800">
                                     {billingInterval === "monthly"
                                       ? `${preorderMonthly.toFixed(2)} € / Monat`

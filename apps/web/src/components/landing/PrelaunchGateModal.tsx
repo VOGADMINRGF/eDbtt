@@ -3,6 +3,13 @@
 import * as React from "react";
 import type { Lang } from "@features/landing/landingCopy";
 import { PRELAUNCH_GATE_COPY } from "./prelaunchGateCopy";
+import { EDEBATTE_PACKAGES_DE, PACKAGE_STATUS_LABELS } from "@features/pricing";
+
+const CURRENCY = new Intl.NumberFormat("de-DE", {
+  style: "currency",
+  currency: "EUR",
+  minimumFractionDigits: 2,
+});
 
 type PrelaunchGateModalProps = {
   lang: Lang;
@@ -19,7 +26,7 @@ export function PrelaunchGateModal({
   onClose,
   onRefine,
   onSubmit,
-  preorderHref = "/mitglied-werden",
+  preorderHref = "/vormerken",
 }: PrelaunchGateModalProps) {
   if (!open) return null;
   const c = PRELAUNCH_GATE_COPY[lang];
@@ -91,41 +98,44 @@ export function PrelaunchGateModal({
                 <p className="text-[11px] text-slate-400">{c.productsHint}</p>
               </div>
               <div className="flex gap-4 overflow-x-auto pb-2 [-webkit-overflow-scrolling:touch] snap-x snap-mandatory">
-                {c.products.map((product) => {
-                  const isFree = product.id === "free";
-                  const isPro = product.id === "pro";
-                  const cardClassName = isFree
+                {EDEBATTE_PACKAGES_DE.map((pkg) => {
+                  const isFree = pkg.preisMonat === 0;
+                  const isHighlighted = pkg.hervorgehoben;
+                  const priceLabel = isFree
+                    ? "Kostenfrei"
+                    : pkg.preisMonat != null
+                      ? `${CURRENCY.format(pkg.preisMonat)} / Monat`
+                      : "Preis folgt";
+                  const cardClassName = isHighlighted
                     ? "rounded-2xl border border-sky-200 bg-white/95 p-5 shadow-sm ring-1 ring-sky-100"
                     : "rounded-2xl border border-slate-200 bg-white/80 p-5 shadow-sm";
-                  const ctaClassName = isPro
+                  const ctaClassName = isHighlighted
                     ? "inline-flex w-full items-center justify-center rounded-full bg-[linear-gradient(135deg,rgba(26,140,255,1),rgba(24,207,200,1))] px-4 py-2.5 text-sm font-extrabold text-white shadow-[0_10px_24px_rgba(24,165,255,0.25)] hover:opacity-95"
                     : isFree
                       ? "inline-flex w-full items-center justify-center rounded-full bg-slate-900 px-4 py-2.5 text-sm font-extrabold text-white shadow-sm hover:opacity-95"
                       : "inline-flex w-full items-center justify-center rounded-full border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-100";
                   return (
-                    <div
-                      key={product.id}
-                      className={`min-w-[240px] max-w-[280px] flex-1 snap-start ${cardClassName}`}
-                    >
-                      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
-                        {product.eyebrow}
-                      </p>
-                      <p className="mt-2 text-sm font-semibold text-slate-800">{product.title}</p>
-                      <p className="mt-2 text-sm text-slate-600">{product.text}</p>
-                      {product.note ? (
-                        <p className="mt-2 text-xs font-semibold text-slate-600">{product.note}</p>
-                      ) : null}
-                      {product.id === "free" ? (
-                        <button
-                          type="button"
-                          className={`${ctaClassName} mt-4`}
-                          onClick={onClose}
+                    <div key={pkg.id} className={`min-w-[240px] max-w-[280px] flex-1 snap-start ${cardClassName}`}>
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
+                          eDebatte
+                        </p>
+                        <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-600">
+                          {PACKAGE_STATUS_LABELS[pkg.status]}
+                        </span>
+                      </div>
+                      <p className="mt-2 text-sm font-semibold text-slate-800">{pkg.titel}</p>
+                      <p className="mt-2 text-sm text-slate-600">{pkg.beschreibungKurz}</p>
+                      <p className="mt-2 text-xs font-semibold text-slate-600">{priceLabel}</p>
+                      <a href={pkg.ctaHref || preorderHref} className={`${ctaClassName} mt-4`}>
+                        {pkg.ctaText} →
+                      </a>
+                      {pkg.sekundarCtaText && pkg.sekundarCtaHref && (
+                        <a
+                          href={pkg.sekundarCtaHref}
+                          className="mt-3 inline-flex text-xs font-semibold text-slate-600 underline-offset-4 hover:underline"
                         >
-                          {product.cta} →
-                        </button>
-                      ) : (
-                        <a href={preorderHref} className={`${ctaClassName} mt-4`}>
-                          {product.cta} →
+                          {pkg.sekundarCtaText}
                         </a>
                       )}
                     </div>

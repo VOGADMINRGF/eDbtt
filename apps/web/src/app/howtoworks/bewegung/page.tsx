@@ -28,7 +28,7 @@ const heroButtons = [
   {
     id: "member",
     href: "/pricing",
-    label_de: "Vorbestellung",
+    label_de: "Vormerkung",
     label_en: "Preorder",
     variant: "primary" as const,
   },
@@ -208,7 +208,7 @@ const joinPanel = {
     {
       id: "panel-member",
       href: "/pricing",
-      label_de: "Vorbestellung",
+      label_de: "Vormerkung",
       label_en: "Preorder",
       primary: true,
     },

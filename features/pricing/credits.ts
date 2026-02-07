@@ -1,9 +1,5 @@
 import { ACCESS_TIER_CONFIG, DEFAULT_EARN_RULES } from "./config";
-import type {
-  ContributionLevel,
-  EarnRule,
-  UsageState,
-} from "./types";
+import type { ContributionLevel, EarnRule, UsageState } from "./types";
 
 const ensureState = (state: UsageState): UsageState => ({
   ...state,
@@ -20,7 +16,7 @@ const ensureState = (state: UsageState): UsageState => ({
 export function applySwipesToCredits(
   state: UsageState,
   newSwipes: number,
-  rules: EarnRule[] = DEFAULT_EARN_RULES
+  rules: EarnRule[] = DEFAULT_EARN_RULES,
 ): UsageState {
   const next = ensureState(state);
   const total = Math.max(0, Math.floor(newSwipes));
@@ -33,8 +29,7 @@ export function applySwipesToCredits(
     if (rule.swipesPerCredit <= 0) return;
     const earned = Math.floor(remainingSwipes / rule.swipesPerCredit);
     if (earned > 0) {
-      updatedCredits[rule.level] =
-        (updatedCredits[rule.level] ?? 0) + earned;
+      updatedCredits[rule.level] = (updatedCredits[rule.level] ?? 0) + earned;
       remainingSwipes -= earned * rule.swipesPerCredit;
     }
   });
@@ -46,10 +41,7 @@ export function applySwipesToCredits(
   };
 }
 
-export function canPostContribution(
-  state: UsageState,
-  level: ContributionLevel
-): boolean {
+export function canPostContribution(state: UsageState, level: ContributionLevel): boolean {
   const cfg = ACCESS_TIER_CONFIG[state.tier];
   const limit = cfg.includedPerMonth[level] ?? 0;
   const used = state.includedUsed[level] ?? 0;
@@ -57,10 +49,7 @@ export function canPostContribution(
   return (state.credits[level] ?? 0) > 0;
 }
 
-export function consumeContribution(
-  state: UsageState,
-  level: ContributionLevel
-): UsageState {
+export function consumeContribution(state: UsageState, level: ContributionLevel): UsageState {
   const cfg = ACCESS_TIER_CONFIG[state.tier];
   const limit = cfg.includedPerMonth[level] ?? 0;
   const used = state.includedUsed[level] ?? 0;

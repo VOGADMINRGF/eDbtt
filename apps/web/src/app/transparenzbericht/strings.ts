@@ -71,7 +71,7 @@ export type TransparenzSection = {
               id: "konten",
               title: "3. Kontoführung in der Gründungsphase",
               paragraphs: [
-                "Bis zur Eintragung der eDebatte UG (haftungsbeschränkt) werden Mitgliedsbeiträge, einmalige Unterstützungen (Gutschriften) und eDebatte-Vorbestellungen über ein privates Konto von Ricky G. Fleischer entgegengenommen.",
+                "Bis zur Eintragung der eDebatte UG (haftungsbeschränkt) werden Mitgliedsbeiträge, einmalige Unterstützungen (Gutschriften) und eDebatte-Vormerkungen über ein privates Konto von Ricky G. Fleischer entgegengenommen.",
                 "Diese Gelder werden buchhalterisch strikt vom privaten Vermögen getrennt erfasst. Nach Eintragung der UG werden die Projektmittel sukzessive auf ein Geschäftskonto überführt.",
                 "Es werden aktuell keine Spendenquittungen ausgestellt. Beiträge sind in der Regel nicht steuerlich absetzbar. Sobald sich die rechtliche Struktur verfestigt, wird geprüft, ob und wie sich hier mittelfristig Verbesserungen erreichen lassen, ohne die Unabhängigkeit des Projekts zu gefährden.",
               ],
@@ -80,7 +80,7 @@ export type TransparenzSection = {
               id: "prioritaeten",
               title: "4. Prioritäten bei der Verwendung der ersten Gelder",
               paragraphs: [
-                "Die ersten eingehenden Gelder – egal ob als laufende Mitgliedsbeiträge, einmalige Gutschriften oder eDebatte-Preorders – werden konsequent nach klaren Prioritäten eingesetzt. Im Fokus stehen zunächst Stabilität und rechtliche Absicherung, nicht Marketing-Feuerwerke.",
+                "Die ersten eingehenden Gelder – egal ob als laufende Mitgliedsbeiträge, einmalige Gutschriften oder eDebatte-Vormerkungen – werden konsequent nach klaren Prioritäten eingesetzt. Im Fokus stehen zunächst Stabilität und rechtliche Absicherung, nicht Marketing-Feuerwerke.",
               ],
               bullets: [
                 [
@@ -137,12 +137,12 @@ export type TransparenzSection = {
                   "Musterstruktur „Einnahmen nach Quellen“:",
                   "• Laufende Mitgliedsbeiträge (monatlich/jährlich).",
                   "• Einmalige Gutschriften und Unterstützungen.",
-                  "• eDebatte-Preorders.",
+                  "• eDebatte-Vormerkungen.",
                   "• Sonstige Erlöse, z. B. Events, Formate oder Merch.",
                   "• Darstellung der Summen in einer einfachen Tabelle (Quelle, Betrag, Anteil in %).",
                   "",
                   "Einnahmen-Teil:",
-                  "• Aufschlüsselung nach Quelle (Mitgliedsbeiträge, Gutschriften, Preorders, sonstige Einnahmen).",
+                  "• Aufschlüsselung nach Quelle (Mitgliedsbeiträge, Gutschriften, Vormerkungen, sonstige Einnahmen).",
                   "• Verhältnis von laufenden zu einmaligen Einnahmen und Entwicklung im Jahresverlauf.",
                   "",
                   "Ausgaben-Teil:",
