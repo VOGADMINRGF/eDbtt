@@ -1,13 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
 import {
   EDEBATTE_PACKAGES_DE,
   PACKAGE_AUDIENCE_LABELS,
   PACKAGE_STATUS_LABELS,
-  type EDebattePackageDefinition,
-  type PackageAudience,
   type PackageStatus,
 } from "@features/pricing";
 
@@ -17,12 +14,6 @@ const CURRENCY = new Intl.NumberFormat("de-DE", {
   minimumFractionDigits: 2,
 });
 
-type PackagesGridProps = {
-  packages?: EDebattePackageDefinition[];
-  showTabs?: boolean;
-  className?: string;
-};
-
 const STATUS_CLASS: Record<PackageStatus, string> = {
   verfuegbar: "bg-emerald-50 text-emerald-700 ring-emerald-200",
   pilot: "bg-sky-50 text-sky-700 ring-sky-200",
@@ -30,130 +21,96 @@ const STATUS_CLASS: Record<PackageStatus, string> = {
   bald: "bg-slate-100 text-slate-600 ring-slate-200",
 };
 
-function isExternalHref(href: string) {
-  return href.startsWith("http://") || href.startsWith("https://");
+function cx(...classes: Array<string | false | null | undefined>) {
+  return classes.filter(Boolean).join(" ");
 }
 
-function formatPrice(pkg: EDebattePackageDefinition) {
+function priceLine(pkg: { preisMonat?: number; preisJahr?: number }) {
   if (pkg.preisMonat === 0) return "Kostenfrei";
-  if (typeof pkg.preisMonat === "number") {
-    return `${CURRENCY.format(pkg.preisMonat)} / Monat`;
-  }
+  if (typeof pkg.preisMonat === "number") return `${CURRENCY.format(pkg.preisMonat)} / Monat`;
+  if (typeof pkg.preisJahr === "number") return `${CURRENCY.format(pkg.preisJahr)} / Jahr`;
   return "Preis folgt";
 }
 
-export function PackagesGrid({ packages = EDEBATTE_PACKAGES_DE, showTabs = true, className }: PackagesGridProps) {
-  const audiences = useMemo(() => {
-    const values = Array.from(new Set(packages.map((pkg) => pkg.typ)));
-    return values as PackageAudience[];
-  }, [packages]);
-
-  const shouldShowTabs = showTabs && audiences.length > 1;
-  const [activeAudience, setActiveAudience] = useState<PackageAudience>(audiences[0] ?? "buerger");
-
-  const visiblePackages = shouldShowTabs
-    ? packages.filter((pkg) => pkg.typ === activeAudience)
-    : packages;
-
+function PackagesGrid() {
   return (
-    <section className={className}>
-      {shouldShowTabs && (
-        <div className="mb-6 inline-flex rounded-full border border-slate-200 bg-white p-1 text-xs font-semibold text-slate-600">
-          {audiences.map((audience) => {
-            const isActive = audience === activeAudience;
-            return (
-              <button
-                key={audience}
-                type="button"
-                onClick={() => setActiveAudience(audience)}
-                className={
-                  "rounded-full px-4 py-1.5 transition " +
-                  (isActive
-                    ? "bg-slate-900 text-white"
-                    : "text-slate-600 hover:bg-slate-100")
-                }
-              >
-                {audience === "buerger" ? "Fuer Buerger" : "Fuer Organisationen"}
-              </button>
-            );
-          })}
-        </div>
-      )}
+    <div className="grid gap-4 lg:grid-cols-3">
+      {EDEBATTE_PACKAGES_DE.map((pkg) => (
+        <div
+          key={pkg.id}
+          className={cx(
+            "rounded-3xl p-[1px] shadow-sm",
+            pkg.hervorgehoben
+              ? "bg-[linear-gradient(135deg,rgba(14,165,233,0.75),rgba(16,185,129,0.75))]"
+              : "bg-[linear-gradient(135deg,rgba(14,165,233,0.45),rgba(16,185,129,0.45))]",
+          )}
+        >
+          <article className="rounded-[22px] bg-white/95 p-6">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                  {PACKAGE_AUDIENCE_LABELS[pkg.typ]}
+                </p>
+                <h3 className="mt-1 text-xl font-semibold text-slate-900">{pkg.titel}</h3>
+              </div>
 
-      <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-        {visiblePackages.map((pkg) => {
-          const priceLabel = formatPrice(pkg);
-          const statusLabel = PACKAGE_STATUS_LABELS[pkg.status];
-          const statusClass = STATUS_CLASS[pkg.status];
-          const secondaryCta = pkg.sekundarCtaText && pkg.sekundarCtaHref;
-
-          return (
-            <article
-              key={pkg.id}
-              className={
-                "flex h-full flex-col rounded-3xl border border-slate-200 bg-white/95 p-5 shadow-sm " +
-                (pkg.hervorgehoben ? "ring-2 ring-sky-200" : "")
-              }
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
-                    {PACKAGE_AUDIENCE_LABELS[pkg.typ]}
-                  </p>
-                  <h3 className="mt-1 text-lg font-semibold text-slate-900">{pkg.titel}</h3>
-                </div>
-                <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] ring-1 ${statusClass}`}>
-                  {statusLabel}
+              <div className="flex flex-col items-end gap-2">
+                {pkg.hervorgehoben ? (
+                  <span className="inline-flex items-center rounded-full bg-sky-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-sky-700 ring-1 ring-sky-200">
+                    Empfohlen
+                  </span>
+                ) : null}
+                <span
+                  className={cx(
+                    "inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] ring-1",
+                    STATUS_CLASS[pkg.status],
+                  )}
+                >
+                  {PACKAGE_STATUS_LABELS[pkg.status]}
                 </span>
               </div>
+            </div>
 
-              <p className="mt-2 text-sm text-slate-600">{pkg.beschreibungKurz}</p>
+            <p className="mt-3 text-sm text-slate-600">{pkg.beschreibungKurz}</p>
 
-              <div className="mt-4 text-xl font-bold text-slate-900">{priceLabel}</div>
-              {pkg.preisJahr ? (
-                <p className="text-xs text-slate-500">{CURRENCY.format(pkg.preisJahr)} / Jahr</p>
+            <p className="mt-5 text-2xl font-extrabold tracking-tight text-slate-900">{priceLine(pkg)}</p>
+
+            <ul className="mt-4 space-y-2 text-sm text-slate-700">
+              {pkg.leistungen.slice(0, 4).map((item) => (
+                <li key={item} className="flex gap-2">
+                  <span className="mt-2 h-2 w-2 rounded-full bg-emerald-500" aria-hidden="true" />
+                  <span>{item}</span>
+                </li>
+              ))}
+            </ul>
+
+            <div className="mt-6 space-y-2">
+              <Link
+                href={pkg.ctaHref}
+                className="inline-flex w-full items-center justify-center rounded-full bg-[linear-gradient(135deg,#0ea5e9,#22c55e)] px-5 py-3 text-sm font-semibold text-white shadow-[0_10px_24px_rgba(14,165,233,0.25)] hover:opacity-90"
+              >
+                {pkg.ctaText}
+              </Link>
+
+              {pkg.sekundarCtaHref && pkg.sekundarCtaText ? (
+                <a
+                  href={pkg.sekundarCtaHref}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex w-full items-center justify-center rounded-full border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+                >
+                  {pkg.sekundarCtaText}
+                </a>
               ) : null}
+            </div>
 
-              <ul className="mt-4 space-y-2 text-sm text-slate-700">
-                {pkg.leistungen.map((item) => (
-                  <li key={item} className="flex gap-2">
-                    <span aria-hidden="true" className="mt-1 h-2 w-2 rounded-full bg-emerald-500" />
-                    <span>{item}</span>
-                  </li>
-                ))}
-              </ul>
-
-              <div className="mt-5 flex flex-col gap-2">
-                {isExternalHref(pkg.ctaHref) ? (
-                  <a
-                    href={pkg.ctaHref}
-                    className="inline-flex items-center justify-center rounded-full bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white hover:opacity-90"
-                  >
-                    {pkg.ctaText}
-                  </a>
-                ) : (
-                  <Link
-                    href={pkg.ctaHref}
-                    className="inline-flex items-center justify-center rounded-full bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white hover:opacity-90"
-                  >
-                    {pkg.ctaText}
-                  </Link>
-                )}
-                {secondaryCta && (
-                  <a
-                    href={pkg.sekundarCtaHref}
-                    className="text-center text-xs font-semibold text-slate-600 underline-offset-4 hover:underline"
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    {pkg.sekundarCtaText}
-                  </a>
-                )}
-              </div>
-            </article>
-          );
-        })}
-      </div>
-    </section>
+            <p className="mt-4 text-xs text-slate-500">Vormerkung = unverbindlich. Keine Zahlung, kein Abo.</p>
+          </article>
+        </div>
+      ))}
+    </div>
   );
 }
+
+export { PackagesGrid };
+export default PackagesGrid;
