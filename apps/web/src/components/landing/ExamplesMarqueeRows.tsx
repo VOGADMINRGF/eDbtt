@@ -119,10 +119,10 @@ export function ExamplesMarqueeRows(props: {
                 )}
               </div>
 
-              <div className="relative min-h-0 flex-1 overflow-hidden">
-                {/* softer edge masks */}
-                <div className="pointer-events-none absolute inset-y-0 left-0 w-14 bg-gradient-to-r from-slate-50/70 to-transparent" />
-                <div className="pointer-events-none absolute inset-y-0 right-0 w-14 bg-gradient-to-l from-slate-50/70 to-transparent" />
+              <div className="relative min-h-0 flex-1 overflow-hidden px-3 sm:px-4">
+                {/* softer edge masks (reduced so headlines don't look clipped) */}
+                <div className="pointer-events-none absolute inset-y-0 left-0 w-8 bg-gradient-to-r from-slate-50/45 via-slate-50/20 to-transparent" />
+                <div className="pointer-events-none absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-slate-50/45 via-slate-50/20 to-transparent" />
 
                 {doubled.length > 0 && (
                   <div
