@@ -28,8 +28,8 @@ Stand nach den letzten Codex-Runs:
   – keine Speicherung & UI-Anzeige.
 
 - **Part07 Graph & Reports**  
-  – Mongoose-`Report` repariert, aber  
-  – Knowledge-Graph-Schicht + E150-Sync fehlen.
+  – Graph-Schicht + E150-Sync aktiv,  
+  – Reports nutzen Graph-Daten (keine Mocks).
 
 - **Part08 Eventualities & DecisionTrees**  
   – keine Eventuality/DecisionTree-Strukturen in `AnalyzeResult`,  
