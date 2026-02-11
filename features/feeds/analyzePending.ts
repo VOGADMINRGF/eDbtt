@@ -12,17 +12,23 @@ import { createDraftFromAnalyzeResult } from "./voteDrafts";
 import { analyzeResultsCol, statementCandidatesCol } from "./db";
 
 type CandidateDoc = WithId<StatementCandidate>;
+type ProcessedCandidate = {
+  candidateId: string;
+  draftId?: string | null;
+  topic?: string | null;
+};
 
 export async function analyzePendingStatementCandidates(opts: {
   limit?: number;
   timeoutMs?: number;
-} = {}): Promise<{ analyzed: number; errors: number }> {
+} = {}): Promise<{ analyzed: number; errors: number; processed: ProcessedCandidate[] }> {
   const { limit = 10, timeoutMs = 30_000 } = opts;
   const candidateCol = await statementCandidatesCol();
   const resultCol = await analyzeResultsCol();
 
   let analyzed = 0;
   let errors = 0;
+  const processed: ProcessedCandidate[] = [];
   const started = Date.now();
 
   while (analyzed + errors < limit) {
@@ -103,9 +109,15 @@ export async function analyzePendingStatementCandidates(opts: {
         await syncNewsEvidenceForCandidate({ candidate, claims: syncedClaims });
       }
 
-      await createDraftFromAnalyzeResult(candidate, {
+      const draftId = await createDraftFromAnalyzeResult(candidate, {
         ...resultDoc,
         _id: analyzeResultId,
+      });
+
+      processed.push({
+        candidateId: candidate.id,
+        draftId: draftId?.toHexString?.() ?? String(draftId),
+        topic: candidate.topic ?? null,
       });
 
       analyzed += 1;
@@ -128,7 +140,7 @@ export async function analyzePendingStatementCandidates(opts: {
     }
   }
 
-  return { analyzed, errors };
+  return { analyzed, errors, processed };
 }
 
 function determineLocale(candidate: StatementCandidate): string {

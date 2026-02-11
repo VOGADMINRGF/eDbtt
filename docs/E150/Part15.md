@@ -88,3 +88,22 @@ Safe-Mode Checks (Membership/Payment):
 - Admin-Verbuchen (`mark-paid`) und Kündigung (`cancel`) funktionieren, setzen user.membership-Status korrekt.
 - Dunning-Job läuft trocken (keine Orders → no-op) und setzt bei Fälligkeit Reminder-Level / Auto-Cancel.
 - /account zeigt korrekten Status inkl. PaymentInfo (masked) ohne PII-Leak; Copy-Buttons ok.
+
+## PR-0009 (2026-02-11) - Pilot Backbone (Feeds + Factcheck Control + Minimal Graph)
+
+Ziel
+- Pilot-Backbone fuer Feeds → Kandidaten → Faktencheck → Graph/Dossier minimal herstellen und steuerbar machen.
+
+Changes
+- Pilot-Settings + Run-Receipts eingefuehrt: `core/pilot/*`.
+- Pull-Feeds Logik in Shared-Modul extrahiert: `apps/web/src/lib/feeds/pullFeeds.ts` (API nutzt es).
+- Admin-API fuer Pilot Settings + Run: `apps/web/src/app/api/admin/pilot/*`.
+- Admin-UI fuer Pilot-Control: `apps/web/src/app/admin/pilot/page.tsx` (inkl. Form + Run-Button).
+- Analyze-Pending erweitert, liefert verarbeitete Kandidaten (inkl. DraftId) zur Pipeline-Steuerung zurueck.
+- Doku: `docs/E150/Pilot.md`, Part14/Part07 aktualisiert.
+
+Verification
+- `./scripts/verify.sh` (PASS, Warnung: Node 20.x erwartet, aktuell v24.5.0)
+
+Next Steps
+- PR-0010 starten: Akquise-Dashboard.

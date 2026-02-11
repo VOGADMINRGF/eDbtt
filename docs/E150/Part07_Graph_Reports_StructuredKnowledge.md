@@ -21,6 +21,20 @@ Ziel:
 
 ---
 
+## Pilot Backbone (PR-0009)
+
+Minimaler End-to-End Pfad fuer Feeds → Faktencheck → Graph/Dossier:
+
+- Feeds ingestieren: `POST /api/feeds/pull`
+- Kandidaten analysieren: `POST /api/feeds/analyze-pending`
+- Faktencheck (Stufen 0/1/2): `POST /api/factcheck/enqueue`
+- Pilot-Steuerung: `GET/POST /api/admin/pilot/settings`, `POST /api/admin/pilot/run`
+
+Pilot-Settings (Admin):
+- `check_level` (0..2), `daily_budget`, `per_topic_budget`, `auto_run_enabled`, `max_items_per_feed`
+
+---
+
 ## 2. Warum ein Graph?
 
 Ein echtes Demokratie-Tool braucht:

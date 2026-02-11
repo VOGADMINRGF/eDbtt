@@ -19,6 +19,10 @@ Part14 ist damit der **operative Fahrplan** für Codex.
 
 Stand nach den letzten Codex-Runs:
 
+- **Pilot Backbone (PR-0009)**  
+  – Top-Prioritaet: Feeds → Kandidaten → Faktencheck → Graph/Dossier,  
+  – Admin-Settings fuer Level/Budget/Auto-Run.
+
 - **Part05 Orchestrator**  
   – Multi-Provider-Gerüst existiert (OpenAI, Anthropic, Mistral),  
   – Feinschliff bei Provider-Prompts & zusätzlicher Provider (Gemini) fehlt.

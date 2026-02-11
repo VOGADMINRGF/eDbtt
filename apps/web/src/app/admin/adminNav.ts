@@ -157,6 +157,12 @@ export const NAV_SECTIONS: NavSection[] = [
         keywords: ["feeds", "drafts"],
       },
       {
+        href: "/admin/pilot",
+        label: "Pilot Control",
+        description: "Feeds → Factcheck → Graph steuern",
+        keywords: ["pilot", "feeds", "factcheck", "graph"],
+      },
+      {
         href: "/admin/research/tasks",
         label: "Research Tasks",
         description: "Recherche-Aufgaben",
