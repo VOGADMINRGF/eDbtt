@@ -119,6 +119,10 @@ Langfristig (E200+):
 
 ### 4.3 Chat & Räume
 
+Pilot-Skeleton (PR-0013):
+- Nur Stubs fuer Chat/Live (keine Realtime-Provider, keine Keys).
+- Staff-only Platzhalter-Seiten, um spaetere Integration vorzubereiten.
+
 Angelehnt an einfache Systeme („Knuddels, aber 2025“):
 
 - öffentliche Themenräume (z.B. „Klima“, „Mieten“, „Europa“),

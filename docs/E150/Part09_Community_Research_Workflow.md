@@ -94,6 +94,15 @@ type ResearchContribution = {
   reviewStatus?: "pending" | "accepted" | "rejected" | "needs_changes";
   reviewComment?: string;
 };
+
+### 3.3 Strukturierte Community-Beitraege (Pilot PR-0011)
+
+Zusatzpfad fuer den Pilot:
+- ContributionType: `source` | `option` | `question` | `impact` | `view`
+- Status: `proposed` → `approved` oder `rejected`
+- Referenz: `topicId` oder `candidateId`
+
+Ziel: schnelle, moderierbare Inputs fuer Quellen, Optionen und offene Fragen.
 4. Wie entstehen ResearchTasks?
 4.1 Automatisch aus E150/E200 (system)
 Folgende Trigger erzeugen automatisch Tasks:

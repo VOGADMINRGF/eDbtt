@@ -107,3 +107,65 @@ Verification
 
 Next Steps
 - PR-0010 starten: Akquise-Dashboard.
+
+## PR-0010 (geplant) — Admin Akquise Dashboard
+
+Ziel
+- Staff-only Akquise-Dashboard fuer Regionen/Gemeinden mit Feed-Status und Top-Themen.
+
+Changes (geplant)
+- Minimaler Store fuer Feed-Status + Fetch-Runs.
+- Admin-Endpoint fuer Health-Check (PilotSettings Limits).
+- Admin-UI `/admin/acquisition` mit Test-Buttons.
+
+Verification
+- Nicht gelaufen (geplant: `./scripts/verify.sh`).
+
+Next Steps
+- PR-0011: Strukturierte Community-Beitraege.
+
+## PR-0011 (geplant) — Strukturierte Beitraege (Quellen/Optionen/Ansichten)
+
+Ziel
+- Community/Journos koennen Quellen, Optionen, Fragen, Folgen, Views vorschlagen (moderierebar).
+
+Changes (geplant)
+- Minimalmodell ContributionType + Status.
+- Public Create/List API + Admin Approve API.
+- Minimal-UI fuer Einreichung + Admin-Review.
+
+Verification
+- Nicht gelaufen (geplant: `./scripts/verify.sh`).
+
+Next Steps
+- PR-0012: Media-Ready Projekte.
+
+## PR-0012 (geplant) — Media Ready Projekte
+
+Ziel
+- Projekte mit 5–10 Themen, min. 5 Optionen je Thema, projektgebundene Ergebnisse.
+
+Changes (geplant)
+- Project/Topic/Option/Vote Modelle + API.
+- Admin-Projektverwaltung + Public Projektseite.
+
+Verification
+- Nicht gelaufen (geplant: `./scripts/verify.sh`).
+
+Next Steps
+- PR-0013: Live/Chat Skeleton.
+
+## PR-0013 (geplant) — Live + Chat Skeleton
+
+Ziel
+- Nur Skeleton fuer Live/Chat (Types + Stubs), keine echte Realtime-Infrastruktur.
+
+Changes (geplant)
+- Types: `LiveSession`, `ChatMessage`, `ModerationState`.
+- API-Stubs (501) + staff-only UI-Placeholder unter Flag.
+
+Verification
+- Nicht gelaufen (geplant: `./scripts/verify.sh`).
+
+Next Steps
+- Zurueck zu Pilot-Haertung oder naechstem Block aus Part14.

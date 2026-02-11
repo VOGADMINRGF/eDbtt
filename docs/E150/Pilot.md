@@ -48,3 +48,39 @@ Faktencheck + Dossier:
 Admin UI:
 - `/admin/pilot` (Pilot Control)
 - `/admin/feeds/drafts` (Draft Review)
+
+## Akquise-Dashboard (PR-0010)
+
+Ziel:
+- Staff-only Dashboard fuer Gemeinden/Regionen mit Feed-Status, Last-Fetch und Top-Themen.
+
+Datenfelder (minimal):
+- Region/Gemeinde, Feed-Count, Status, LastFetch, ItemCount, Error, Top-Themen (grob).
+
+Status-Logik (minimal):
+- ok: letzter Fetch erfolgreich und Items > 0
+- leer: Fetch ok, aber keine Items
+- fehlerhaft: letzter Fetch fehlgeschlagen
+
+## Beitragstypen + Moderation (PR-0011)
+
+Beitragstypen (minimal):
+- source, option, question, impact, view
+
+Moderationsstatus:
+- proposed, approved, rejected
+
+Ziel:
+- Community/Journos schlagen Beitraege vor, Staff gibt frei.
+
+## Phase 2: Media Ready Projekte (PR-0012)
+
+Ziel:
+- Projekte mit 5-10 Themen, pro Thema mind. 5 Optionen (Pflicht), Ergebnisse projektgebunden.
+- Community kann zusaetzliche Optionen vorschlagen (proposed).
+
+## Phase 3: Live + Chat Skeleton (PR-0013)
+
+Ziel:
+- Nur Skeleton: Types, Routes, UI-Stubs fuer Live/Chat.
+- Keine echte Realtime-Infrastruktur, keine Provider/Keys.

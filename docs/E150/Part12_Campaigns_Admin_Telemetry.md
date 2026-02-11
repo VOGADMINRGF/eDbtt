@@ -74,6 +74,16 @@ type CampaignSession = {
   expiresAt?: string;
   locationHint?: string; // "Rathaus-Foyer", "Betriebsversammlung"
 };
+
+### 2.4 Media Ready Projekte (PR-0012)
+
+Ergaenzung fuer Pilot-Phase 2:
+- Projekt mit 5–10 Themen (Pflicht), pro Thema mind. 5 Optionen.
+- Community-Optionen starten als `proposed` und muessen freigegeben werden.
+- Ergebnisse sind **projektgebunden**, nicht global vermischt.
+
+Minimalmodell (Skizze):
+- `Project`, `ProjectTopic`, `ProjectOption`, `ProjectVote`
 Teilnehmer:innen:
 
 scannen QR,

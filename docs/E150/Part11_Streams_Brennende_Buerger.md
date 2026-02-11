@@ -96,6 +96,13 @@ type StreamSession = {
   externalUrl: string;   // Twitch/YouTube-Link
   status: "scheduled" | "live" | "ended" | "canceled";
 };
+
+### 3.3 Live + Chat Skeleton (PR-0013)
+
+Nur Skeleton fuer spaetere Live/Chat-Infrastruktur:
+- Types: `LiveSession`, `ChatMessage`, `ModerationState`
+- API-Stubs liefern `501 Not Implemented`
+- UI-Stubs unter Flag, staff-only
 4. Vorbereitung eines Streams
 4.1 Themen-Karten
 Vor einem Stream generiert das System automatisch eine „Stream-Deck“-Struktur:
