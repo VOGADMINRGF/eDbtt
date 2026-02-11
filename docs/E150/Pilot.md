@@ -29,7 +29,7 @@ Hebel:
 
 - Admin: Settings, Pilot-Run, Freigaben.
 - Journalist: Review/Feinschliff von Drafts & Factcheck.
-- Community: Quellen, Behauptungen, Optionen, Folgen, offene Fragen (via Research/Contributions).
+- Community: Quellen, Behauptungen, Optionen, Folgen, offene Fragen (via Research + `/community/contributions`).
 
 ## Schnittstellen-Übersicht
 
@@ -38,15 +38,14 @@ Feeds & Kandidaten:
 - `POST /api/feeds/analyze-pending` (Kandidaten analysieren)
 
 Pilot Control:
-- `GET/POST /api/admin/pilot/settings` (Settings lesen/schreiben)
-- `POST /api/admin/pilot/run` (End-to-End Pilot-Lauf)
+- (geplant) `GET/POST /api/admin/pilot/settings` (Settings lesen/schreiben)
+- (geplant) `POST /api/admin/pilot/run` (End-to-End Pilot-Lauf)
 
 Faktencheck + Dossier:
 - `POST /api/factcheck/enqueue` (Faktencheck starten)
 - Dossier-Collections: `dossier_*` (Sources, Claims, Findings, Edges)
 
 Admin UI:
-- `/admin/pilot` (Pilot Control)
 - `/admin/feeds/drafts` (Draft Review)
 
 ## Akquise-Dashboard (PR-0010)
@@ -73,10 +72,19 @@ Moderationsstatus:
 Ziel:
 - Community/Journos schlagen Beitraege vor, Staff gibt frei.
 
+Public:
+- `/community/contributions` (Eingabe + freigegebene Liste)
+- `POST /api/community/contributions` (neuer Beitrag, status=proposed)
+- `GET /api/community/contributions?topicId=...` (freigegebene Beitraege)
+
+Admin:
+- `/admin/contributions` (Review)
+- `POST /api/admin/community/contributions/approve` (approve/reject)
+
 ## Phase 2: Media Ready Projekte (PR-0012)
 
 Ziel:
-- Projekte mit 5-10 Themen, pro Thema mind. 5 Optionen (Pflicht), Ergebnisse projektgebunden.
+- Projekte mit 3-5 Themen, pro Thema mind. 5 Optionen (Pflicht), Ergebnisse projektgebunden.
 - Community kann zusaetzliche Optionen vorschlagen (proposed).
 
 ## Phase 3: Live + Chat Skeleton (PR-0013)

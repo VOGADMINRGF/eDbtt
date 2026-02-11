@@ -380,6 +380,25 @@ Verification:
 Next Steps:
 - PR-0011: Strukturierte Community/Journo-Beitraege (Quellen/Optionen/Fragen) + Moderation.
 
+### PR-0011 (2026-02-11) – Strukturierte Community-Beitraege
+
+Ziel:
+- Strukturierte Beitraege fuer Quellen, Optionen, Fragen, Folgen und Ansichten mit Moderation.
+
+Changes:
+- Minimalmodell `core/communityContributions/*` (Type + Status + Referenz).
+- Public API `GET/POST /api/community/contributions`.
+- Admin API `GET /api/admin/community/contributions` + `POST /api/admin/community/contributions/approve`.
+- Public UI `/community/contributions` + Admin Review `/admin/contributions`.
+- Doku: `docs/E150/Pilot.md`, Part09 ergaenzt.
+
+Verification:
+- `pnpm -C apps/web run lint` (PASS; Warnung: Node 20.x erwartet, lokal v24.5.0)
+- `pnpm -C apps/web run typecheck` (PASS; Warnung: Node 20.x erwartet, lokal v24.5.0)
+
+Next Steps:
+- PR-0012: Media Ready Projekte.
+
 ### PR-0028 (2026-02-12) – Identity/Profile + Membership Admin CTA
 
 Ziel:

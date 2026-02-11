@@ -193,6 +193,12 @@ export const NAV_SECTIONS: NavSection[] = [
         keywords: ["support", "pledges", "crowdfunding"],
       },
       {
+        href: "/admin/contributions",
+        label: "Community Contributions",
+        description: "Vorschlaege moderieren",
+        keywords: ["contributions", "community", "moderation"],
+      },
+      {
         href: "/admin/reports",
         label: "Reports",
         description: "Topic- und Region-Reports",
