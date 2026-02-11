@@ -106,3 +106,46 @@ Verification
 
 Next Steps
 - Start PR-0001 via `scripts/codex-pr.sh 0001`.
+
+## PR-0001 (2026-02-11) — Part02 Baseline (XP/Levels/Gamification)
+
+Ziel
+- Part02-Baseline fuer XP/Levels/Gamification minimal herstellen: zentrale Level-/XP-Konfiguration, Shared Types, XP-Event-Hook (append-only) und Threshold-/Label-Mapping.
+
+Changes
+- Scope gegen `docs/E150/Part02_Roles_Levels_XP_Gamification.md` abgeglichen; minimaler Umsetzungsfokus auf:
+  - `config/levels.ts`
+  - `config/xp.ts`
+  - `config/engagement.ts`
+  - `features/user/engagement.ts`
+  - `features/user/xp.ts`
+  - `apps/web/src/models/game/UserGameStats.ts`
+  - `features/account/capabilities.ts`
+  - `apps/web/src/utils/accessTiers.ts`
+- `config/levels.ts` hinzugefuegt:
+  - Engagement-Level als Shared Type/Order.
+  - XP-Thresholds gemaess Part02.
+  - Label-Mapping fuer alle Level hinterlegt.
+- `config/xp.ts` hinzugefuegt:
+  - Baseline-XP-Eventwerte gemaess Part02 zentral konfiguriert.
+  - Shared `XpEventType` angelegt.
+- `config/engagement.ts` auf Re-Export der neuen zentralen Level-Config umgestellt (kompatibel fuer bestehende Imports).
+- `features/user/engagement.ts` erweitert:
+  - Shared `EngagementLevel` aus Config uebernommen.
+  - Helper: `isEngagementLevel`, `getEngagementLevelLabel`, `isEngagementLevelAtLeast`.
+  - `getEngagementLevel(xp)` bleibt zentrale Ableitung aus Thresholds.
+- Doppelte Level-Order-Logik entfernt und auf Shared Helper umgestellt in:
+  - `features/account/capabilities.ts`
+  - `apps/web/src/utils/accessTiers.ts`
+- `apps/web/src/models/game/UserGameStats.ts` von Stub auf Baseline-Hook umgesetzt:
+  - `awardXp(userId, amount, options)` mit append-only Event-Store `user_xp_events`.
+  - Idempotenz ueber `eventId` (`upsert` auf `userId + eventId`).
+  - Sofortige XP-/Level-Aktualisierung auf User-Feldern (`engagementXp`, `usage.xp`, `stats.xp`, `engagementLevel`, `stats.engagementLevel`).
+  - `rebuildXpFromHistory(userId)` fuer Rebuild aus Event-History.
+
+Verification
+- `./verify.sh` (FAIL: Datei im Repo nicht vorhanden)
+- `./scripts/verify.sh` (PASS: lint + typecheck erfolgreich)
+
+Next Steps
+- Swipe-/Research-/Stream-Hooks schrittweise auf den zentralen XP-Event-Hook (`UserGameStats.awardXp`) umstellen, um Part02-Append-Only-Pfad durchgaengig zu machen.

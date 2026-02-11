@@ -1,22 +1,38 @@
 // features/user/engagement.ts
 import {
   SWIPES_PER_CONTRIBUTION_CREDIT,
-  XP_PER_SWIPE,
 } from "../../config/credits";
-import { ENGAGEMENT_THRESHOLDS } from "../../config/engagement";
+import {
+  ENGAGEMENT_LEVEL_LABELS,
+  ENGAGEMENT_LEVELS,
+  ENGAGEMENT_THRESHOLDS,
+  type EngagementLevel,
+} from "../../config/levels";
 
-export type EngagementLevel =
-  | "interessiert"
-  | "engagiert"
-  | "begeistert"
-  | "brennend"
-  | "inspirierend"
-  | "leuchtend";
+export type { EngagementLevel } from "../../config/levels";
+
+export function isEngagementLevel(value: unknown): value is EngagementLevel {
+  return (
+    typeof value === "string" &&
+    (ENGAGEMENT_LEVELS as readonly string[]).includes(value)
+  );
+}
+
+export function getEngagementLevelLabel(level: EngagementLevel): string {
+  return ENGAGEMENT_LEVEL_LABELS[level];
+}
 
 export function getEngagementLevel(xp: number): EngagementLevel {
   const safeXp = Number.isFinite(xp) ? Math.max(0, Math.floor(xp)) : 0;
   const match = ENGAGEMENT_THRESHOLDS.find((entry) => safeXp >= entry.minXp);
   return match?.level ?? "interessiert";
+}
+
+export function isEngagementLevelAtLeast(
+  level: EngagementLevel,
+  required: EngagementLevel,
+): boolean {
+  return ENGAGEMENT_LEVELS.indexOf(level) >= ENGAGEMENT_LEVELS.indexOf(required);
 }
 
 export function swipesUntilNextCredit(totalSwipes: number): number {
