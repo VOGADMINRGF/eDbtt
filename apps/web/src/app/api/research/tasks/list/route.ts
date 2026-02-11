@@ -10,7 +10,14 @@ async function readCookie(name: string): Promise<string | undefined> {
 }
 
 export async function GET(req: NextRequest) {
+  const statusParam = req.nextUrl.searchParams.get("status");
+  const status = statusParam === "all" ? undefined : statusParam || "open";
   const level = req.nextUrl.searchParams.get("level") || undefined;
+  const tag = req.nextUrl.searchParams.get("tag") || undefined;
+  const kind = req.nextUrl.searchParams.get("kind") || undefined;
+  const sort = req.nextUrl.searchParams.get("sort") || undefined;
+  const limitParam = req.nextUrl.searchParams.get("limit");
+  const limit = limitParam ? Number(limitParam) : undefined;
   const userId = req.cookies.get("u_id")?.value ?? (await readCookie("u_id"));
   const verified = req.cookies.get("u_verified")?.value ?? (await readCookie("u_verified")) ?? "0";
 
@@ -32,7 +39,14 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const items = await listTasks({ status: "open", level: level as any });
+    const items = await listTasks({
+      status: status as any,
+      level: level as any,
+      tag,
+      kind: kind as any,
+      sort: sort as any,
+      limit,
+    });
     return NextResponse.json({ ok: true, items });
   } catch (err: any) {
     logger.error({ msg: "research.tasks.list_failed", err: err?.message });

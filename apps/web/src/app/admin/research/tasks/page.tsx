@@ -159,6 +159,22 @@ export default function ResearchTasksAdminPage() {
     }
   };
 
+  const updateFeedback = async (contributionId: string, helpful: boolean) => {
+    setError(null);
+    try {
+      const res = await fetch("/api/admin/research/contributions/feedback", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ contributionId, helpful }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(body?.error || res.statusText);
+      await loadTasks(selectedTaskId ?? undefined);
+    } catch (err: any) {
+      setError(err?.message ?? "Feedback fehlgeschlagen.");
+    }
+  };
+
   return (
     <main className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-8">
       <header className="flex items-center justify-between gap-4">
@@ -253,13 +269,14 @@ export default function ResearchTasksAdminPage() {
                   <th className="px-3 py-2">Author</th>
                   <th className="px-3 py-2">Summary</th>
                   <th className="px-3 py-2">Status</th>
+                  <th className="px-3 py-2">Feedback</th>
                   <th className="px-3 py-2"></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {contributions.length === 0 ? (
                   <tr>
-                    <td colSpan={4} className="px-3 py-4 text-center text-slate-500">
+                    <td colSpan={5} className="px-3 py-4 text-center text-slate-500">
                       Keine Contributions vorhanden.
                     </td>
                   </tr>
@@ -287,6 +304,13 @@ export default function ResearchTasksAdminPage() {
                         ) : null}
                       </td>
                       <td className="px-3 py-2 text-xs text-slate-500">{c.status ?? "submitted"}</td>
+                      <td className="px-3 py-2 text-xs text-slate-500">
+                        {typeof c.feedbackHelpful === "boolean"
+                          ? c.feedbackHelpful
+                            ? "hilfreich"
+                            : "nicht hilfreich"
+                          : "–"}
+                      </td>
                       <td className="px-3 py-2 text-right space-x-2">
                         <button
                           onClick={() => updateContribution(c.id!, "accepted")}
@@ -299,6 +323,18 @@ export default function ResearchTasksAdminPage() {
                           className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-1.5 text-xs font-semibold text-rose-700 hover:bg-rose-100"
                         >
                           Reject
+                        </button>
+                        <button
+                          onClick={() => updateFeedback(c.id!, true)}
+                          className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                        >
+                          Hilfreich
+                        </button>
+                        <button
+                          onClick={() => updateFeedback(c.id!, false)}
+                          className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                        >
+                          Nicht hilfreich
                         </button>
                       </td>
                     </tr>

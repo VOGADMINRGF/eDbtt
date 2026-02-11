@@ -45,6 +45,10 @@ export interface ResearchContribution {
   sources?: ResearchSourceLink[];
   status?: ResearchContributionStatus;
   reviewNote?: string;
+  feedbackHelpful?: boolean | null;
+  feedbackNote?: string | null;
+  feedbackBy?: string | null;
+  feedbackAt?: Date | string | null;
   createdAt?: Date | string;
   updatedAt?: Date | string;
   acceptedAt?: Date | string | null;

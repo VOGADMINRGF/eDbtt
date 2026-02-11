@@ -35,9 +35,7 @@ Stand nach den letzten Codex-Runs:
   – keine Eventuality/DecisionTree-Strukturen in `AnalyzeResult`,  
   – keine UI-Einbindung, keine Persistenz.
 
-- **Part09 Community Research Workflow**  
-  – keine `ResearchTask`/`ResearchContribution`-Modelle,  
-  – kein Research-Hub, keine XP-Anbindung.
+_Update:_ Block E (Part09 Research Workflow / R2) ist umgesetzt (Tasks/Contributions, Seeding, Filter, Feedback, Graph-Backflow).
 
 - **Part10 Responsibility Navigator**  
   – Responsibility nur als Text, ohne Directory/Navigator-UI/Graph-Edges.
@@ -219,6 +217,8 @@ Aufgaben:
 
 5. **Definition of Done**
    - Es existiert ein end-to-end Flow: offene Frage → Task → Community-Antwort → Review → Abschluss.
+
+Status: **Done (PR-0017)**.
 
 ---
 

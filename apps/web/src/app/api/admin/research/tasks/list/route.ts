@@ -8,15 +8,23 @@ export async function GET(req: NextRequest) {
   if (gate instanceof Response) return gate;
 
   const taskId = req.nextUrl.searchParams.get("taskId");
-  const status = req.nextUrl.searchParams.get("status") || undefined;
+  const statusParam = req.nextUrl.searchParams.get("status");
+  const status = statusParam === "all" ? undefined : statusParam || undefined;
   const level = req.nextUrl.searchParams.get("level") || undefined;
   const tag = req.nextUrl.searchParams.get("tag") || undefined;
+  const kind = req.nextUrl.searchParams.get("kind") || undefined;
+  const sort = req.nextUrl.searchParams.get("sort") || undefined;
+  const limitParam = req.nextUrl.searchParams.get("limit");
+  const limit = limitParam ? Number(limitParam) : undefined;
 
   try {
     const items = await listTasks({
       status: status as any,
       level: level as any,
       tag: tag || undefined,
+      kind: kind as any,
+      sort: sort as any,
+      limit,
     });
     const contributions = taskId ? await getContributionsByTaskId(taskId) : [];
     return NextResponse.json({ ok: true, items, contributions });

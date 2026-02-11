@@ -5,9 +5,11 @@ import type {
   ResearchContributionDoc,
   ResearchContributionStatus,
   ResearchTask,
+  ResearchTaskKind,
   ResearchTaskLevel,
   ResearchTaskStatus,
 } from "./types";
+import type { AnalyzeResult } from "@features/analyze/schemas";
 
 type ResearchTaskDoc = Omit<ResearchTask, "id"> & { _id: ObjectId };
 
@@ -15,6 +17,9 @@ type TaskFilter = {
   status?: ResearchTaskStatus;
   level?: ResearchTaskLevel;
   tag?: string;
+  kind?: ResearchTaskKind;
+  sort?: "newest" | "oldest" | "level" | "status";
+  limit?: number;
 };
 
 type SaveTaskInput = Omit<ResearchTask, "id" | "createdAt" | "updatedAt"> & { id?: string };
@@ -25,6 +30,22 @@ type UpdateContributionStatusInput = {
   contributionId: string;
   status: ResearchContributionStatus;
   reviewNote?: string;
+};
+
+type UpdateContributionFeedbackInput = {
+  contributionId: string;
+  feedbackHelpful?: boolean | null;
+  feedbackNote?: string | null;
+  feedbackBy?: string | null;
+};
+
+type SeedTasksInput = {
+  analysis: AnalyzeResult;
+  source?: ResearchTask["source"];
+  createdBy?: string | null;
+  level?: ResearchTaskLevel;
+  tags?: string[];
+  status?: ResearchTaskStatus;
 };
 
 async function researchTasksCol(): Promise<Collection<ResearchTaskDoc>> {
@@ -58,14 +79,44 @@ function buildTaskFilter(filter?: TaskFilter): Filter<ResearchTaskDoc> {
   if (filter?.status) query.status = filter.status;
   if (filter?.level) query.level = filter.level;
   if (filter?.tag) query.tags = { $in: [filter.tag] };
+  if (filter?.kind) query.kind = filter.kind;
   return query;
+}
+
+function buildTaskSort(filter?: TaskFilter): Record<string, 1 | -1> {
+  if (filter?.sort === "oldest") return { createdAt: 1 };
+  return { createdAt: -1 };
+}
+
+function normalizeLimit(limit?: number): number | undefined {
+  if (!limit || Number.isNaN(limit)) return undefined;
+  const safe = Math.min(Math.max(Math.floor(limit), 1), 200);
+  return safe > 0 ? safe : undefined;
 }
 
 export async function listTasks(filter?: TaskFilter): Promise<ResearchTask[]> {
   const col = await researchTasksCol();
   const query = buildTaskFilter(filter);
-  const docs = await col.find(query).sort({ createdAt: -1 }).toArray();
-  return docs.map(sanitizeTask);
+  const sort = buildTaskSort(filter);
+  const limit = normalizeLimit(filter?.limit);
+  const cursor = col.find(query).sort(sort);
+  if (limit) cursor.limit(limit);
+  const docs = await cursor.toArray();
+  let tasks = docs.map(sanitizeTask);
+  if (filter?.sort === "level") {
+    const order: Record<ResearchTaskLevel, number> = { basic: 1, advanced: 2, expert: 3 };
+    tasks = tasks.sort((a, b) => (order[a.level ?? "basic"] ?? 9) - (order[b.level ?? "basic"] ?? 9));
+  }
+  if (filter?.sort === "status") {
+    const order: Record<ResearchTaskStatus, number> = {
+      open: 1,
+      in_progress: 2,
+      completed: 3,
+      archived: 4,
+    };
+    tasks = tasks.sort((a, b) => (order[a.status ?? "open"] ?? 9) - (order[b.status ?? "open"] ?? 9));
+  }
+  return tasks;
 }
 
 export async function getTaskById(id: string): Promise<ResearchTask | null> {
@@ -136,6 +187,10 @@ export async function createContribution(input: CreateContributionInput): Promis
     sources: input.sources?.length ? input.sources : [],
     status: "submitted",
     reviewNote: input.reviewNote?.trim() || undefined,
+    feedbackHelpful: null,
+    feedbackNote: null,
+    feedbackBy: null,
+    feedbackAt: null,
     createdAt: now,
     updatedAt: now,
     acceptedAt: null,
@@ -144,6 +199,19 @@ export async function createContribution(input: CreateContributionInput): Promis
 
   await col.insertOne(doc);
   return sanitizeContribution(doc);
+}
+
+export async function getLatestContributionByAuthor(
+  authorId: string,
+): Promise<ResearchContribution | null> {
+  if (!ObjectId.isValid(authorId)) return null;
+  const col = await researchContributionsCol();
+  const doc = await col
+    .find({ authorId: new ObjectId(authorId) })
+    .sort({ createdAt: -1 })
+    .limit(1)
+    .next();
+  return doc ? sanitizeContribution(doc) : null;
 }
 
 export async function updateContributionStatus(
@@ -169,4 +237,117 @@ export async function updateContributionStatus(
   );
 
   return result.value ? sanitizeContribution(result.value) : null;
+}
+
+export async function updateContributionFeedback(
+  input: UpdateContributionFeedbackInput,
+): Promise<ResearchContribution | null> {
+  if (!ObjectId.isValid(input.contributionId)) return null;
+  const col = await researchContributionsCol();
+  const now = new Date();
+  const update: Partial<ResearchContributionDoc> = {
+    updatedAt: now,
+  };
+
+  if (typeof input.feedbackHelpful === "boolean") {
+    update.feedbackHelpful = input.feedbackHelpful;
+  }
+  if (input.feedbackNote !== undefined) {
+    update.feedbackNote = input.feedbackNote?.trim() || null;
+  }
+  if (input.feedbackBy !== undefined) {
+    update.feedbackBy = input.feedbackBy ?? null;
+  }
+  update.feedbackAt = now;
+
+  const result = await col.findOneAndUpdate(
+    { _id: new ObjectId(input.contributionId) },
+    { $set: update },
+    { returnDocument: "after", includeResultMetadata: true },
+  );
+
+  return result.value ? sanitizeContribution(result.value) : null;
+}
+
+export async function seedTasksFromAnalysis(input: SeedTasksInput): Promise<{
+  created: ResearchTask[];
+  skipped: number;
+}> {
+  const { analysis } = input;
+  const questions = Array.isArray(analysis.questions) ? analysis.questions : [];
+  const knots = Array.isArray(analysis.knots) ? analysis.knots : [];
+  const questionIds = questions.map((q) => q.id).filter(Boolean);
+  const knotIds = knots.map((k) => k.id).filter(Boolean);
+  if (questionIds.length === 0 && knotIds.length === 0) {
+    return { created: [], skipped: 0 };
+  }
+
+  const col = await researchTasksCol();
+  const conditions: Filter<ResearchTaskDoc>[] = [];
+  if (questionIds.length) conditions.push({ "source.questionId": { $in: questionIds } });
+  if (knotIds.length) conditions.push({ "source.knotId": { $in: knotIds } });
+  const existing = await col
+    .find(conditions.length ? { $or: conditions } : { _id: { $exists: false } })
+    .project({ "source.questionId": 1, "source.knotId": 1 })
+    .toArray();
+
+  const existingQuestionIds = new Set<string>();
+  const existingKnotIds = new Set<string>();
+  existing.forEach((doc) => {
+    const q = doc.source?.questionId;
+    const k = doc.source?.knotId;
+    if (q) existingQuestionIds.add(q);
+    if (k) existingKnotIds.add(k);
+  });
+
+  const created: ResearchTask[] = [];
+  let skipped = 0;
+
+  for (const question of questions) {
+    if (!question?.id) continue;
+    if (existingQuestionIds.has(question.id)) {
+      skipped += 1;
+      continue;
+    }
+    const tags = [...(input.tags ?? [])];
+    if (question.dimension) tags.push(question.dimension);
+    const task = await saveTask({
+      kind: "question",
+      title: question.text?.trim() || "Offene Frage",
+      description: question.dimension ? `Dimension: ${question.dimension}` : "",
+      level: input.level ?? "basic",
+      status: input.status ?? "open",
+      tags,
+      createdBy: input.createdBy ?? null,
+      source: {
+        ...(input.source ?? {}),
+        questionId: question.id,
+      },
+    });
+    created.push(task);
+  }
+
+  for (const knot of knots) {
+    if (!knot?.id) continue;
+    if (existingKnotIds.has(knot.id)) {
+      skipped += 1;
+      continue;
+    }
+    const task = await saveTask({
+      kind: "knot",
+      title: knot.label?.trim() || "Knoten",
+      description: knot.description?.trim() || "",
+      level: input.level ?? "basic",
+      status: input.status ?? "open",
+      tags: input.tags ?? [],
+      createdBy: input.createdBy ?? null,
+      source: {
+        ...(input.source ?? {}),
+        knotId: knot.id,
+      },
+    });
+    created.push(task);
+  }
+
+  return { created, skipped };
 }

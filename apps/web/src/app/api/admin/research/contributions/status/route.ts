@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { updateContributionStatus } from "@core/research";
+import { getTaskById, updateContributionStatus } from "@core/research";
+import { syncResearchContributionToGraph } from "@core/graph";
 import { logger } from "@/utils/logger";
 import { awardResearchXp } from "@features/account/service";
 import { requireAdminOrResponse } from "@/lib/server/auth/admin";
@@ -35,6 +36,18 @@ export async function POST(req: NextRequest) {
           err: err?.message,
         });
       });
+
+      const task = await getTaskById(updated.taskId).catch(() => null);
+      if (task) {
+        await syncResearchContributionToGraph({ task, contribution: updated }).catch((err) => {
+          logger.warn({
+            msg: "admin.research.graph_sync_failed",
+            contributionId,
+            taskId: updated.taskId,
+            err: err?.message,
+          });
+        });
+      }
     }
 
     logger.info({ msg: "admin.research.contribution.status_updated", contributionId, status });

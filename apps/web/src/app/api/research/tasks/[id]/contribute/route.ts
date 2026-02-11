@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { createContribution, getTaskById } from "@core/research";
+import { createContribution, getLatestContributionByAuthor, getTaskById } from "@core/research";
 import { logger } from "@/utils/logger";
 import { getCookie } from "@/lib/http/typedCookies";
 import { rateLimitOrThrow } from "@/utils/rateLimitHelpers";
@@ -40,6 +40,19 @@ export async function POST(req: NextRequest, context: any) {
   }
 
   try {
+    const COOLDOWN_MS = 10 * 60 * 1000;
+    const latest = await getLatestContributionByAuthor(userId);
+    if (latest?.createdAt) {
+      const last = new Date(latest.createdAt).getTime();
+      const now = Date.now();
+      if (!Number.isNaN(last) && now - last < COOLDOWN_MS) {
+        return NextResponse.json(
+          { ok: false, error: "cooldown", retryInMs: COOLDOWN_MS - (now - last) },
+          { status: 429 },
+        );
+      }
+    }
+
     const task = taskId ? await getTaskById(taskId) : null;
     if (!task || task.status === "archived") {
       return NextResponse.json({ ok: false, error: "not_found" }, { status: 404 });
