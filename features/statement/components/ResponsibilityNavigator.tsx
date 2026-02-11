@@ -12,6 +12,8 @@ type Props = {
 type ResolvedStep = {
   label: string;
   subline?: string;
+  hint?: string;
+  contactUrl?: string;
 };
 
 export function ResponsibilityNavigator({ paths = [], actors = [], statementTitle }: Props) {
@@ -28,16 +30,45 @@ export function ResponsibilityNavigator({ paths = [], actors = [], statementTitl
     return (paths ?? []).map((path) => {
       return (path.steps ?? []).map((step, idx) => {
         const actor = step.actorKey ? actorByKey.get(step.actorKey) : undefined;
-        const actorLabel = actor?.name ?? step.actorName ?? step.actorKey ?? "Unbekannter Akteur";
+        const stepAny = step as typeof step & {
+          displayName?: string;
+          description?: string;
+          processHint?: string;
+          contactUrl?: string;
+          relevance?: number | null;
+        };
+        const actorLabel =
+          actor?.name ?? stepAny.displayName ?? step.actorName ?? step.actorKey ?? "Unbekannter Akteur";
         const levelLabel = actor?.level ?? step.level;
         const roleLabel = actor?.role ?? step.role;
         const parts = [levelLabel, roleLabel, step.function].filter(Boolean).join(" · ");
+        const hint =
+          stepAny.processHint ??
+          stepAny.description ??
+          step.note ??
+          (typeof stepAny.relevance === "number"
+            ? `Relevanz ${(stepAny.relevance * 100).toFixed(0)}%`
+            : undefined);
         return {
           label: `${idx + 1}. ${actorLabel}`,
           subline: parts || undefined,
+          hint: hint || undefined,
+          contactUrl: stepAny.contactUrl ?? undefined,
         } satisfies ResolvedStep;
       });
     });
+  }, [actorByKey, paths]);
+
+  const levelStrip = useMemo(() => {
+    const levels = new Set<string>();
+    (paths ?? []).forEach((path) => {
+      (path.steps ?? []).forEach((step) => {
+        if (step.level) levels.add(step.level);
+        const actor = step.actorKey ? actorByKey.get(step.actorKey) : undefined;
+        if (actor?.level) levels.add(actor.level);
+      });
+    });
+    return [...levels];
   }, [actorByKey, paths]);
 
   const hasPaths = (paths?.length ?? 0) > 0;
@@ -82,7 +113,20 @@ export function ResponsibilityNavigator({ paths = [], actors = [], statementTitl
               {resolvedPaths.length === 0 ? (
                 <p className="text-sm text-slate-600">Keine Pfade vorhanden.</p>
               ) : (
-                resolvedPaths.map((steps, idx) => (
+                <div className="space-y-6">
+                  {levelStrip.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      {levelStrip.map((level) => (
+                        <span
+                          key={level}
+                          className="rounded-full border border-slate-200 bg-white px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-slate-600"
+                        >
+                          {level}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  {resolvedPaths.map((steps, idx) => (
                   <div key={idx} className="rounded-xl border border-slate-200 bg-slate-50 p-4">
                     <div className="mb-3 flex items-center justify-between">
                       <div className="text-sm font-semibold text-slate-700">Pfad {idx + 1}</div>
@@ -94,11 +138,25 @@ export function ResponsibilityNavigator({ paths = [], actors = [], statementTitl
                           {step.subline && (
                             <div className="text-xs text-slate-600">{step.subline}</div>
                           )}
+                          {step.hint && (
+                            <div className="mt-1 text-xs text-slate-500">{step.hint}</div>
+                          )}
+                          {step.contactUrl && (
+                            <a
+                              className="mt-1 inline-block text-xs text-sky-600 underline"
+                              href={step.contactUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                            >
+                              Kontakt &amp; Verfahren
+                            </a>
+                          )}
                         </li>
                       ))}
                     </ol>
                   </div>
-                ))
+                ))}
+                </div>
               )}
             </div>
           </div>
