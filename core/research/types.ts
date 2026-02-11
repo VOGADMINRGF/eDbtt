@@ -15,6 +15,7 @@ export interface ResearchTaskSource {
 
 export interface ResearchTask {
   id?: string;
+  seedKey?: string;
   kind?: ResearchTaskKind;
   source?: ResearchTaskSource;
   title: string;
@@ -43,6 +44,8 @@ export interface ResearchContribution {
   summary: string;
   details?: string;
   sources?: ResearchSourceLink[];
+  helpfulCount?: number;
+  notHelpfulCount?: number;
   status?: ResearchContributionStatus;
   reviewNote?: string;
   createdAt?: Date | string;

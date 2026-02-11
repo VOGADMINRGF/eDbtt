@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { getTaskById } from "@core/research";
+import { getTaskById, listContributionsByTaskId } from "@core/research";
 import { logger } from "@/utils/logger";
 import { getCookie } from "@/lib/http/typedCookies";
 
@@ -22,7 +22,11 @@ export async function GET(req: NextRequest, context: any) {
   try {
     const task = taskId ? await getTaskById(taskId) : null;
     if (!task) return NextResponse.json({ ok: false, error: "not_found" }, { status: 404 });
-    return NextResponse.json({ ok: true, task });
+    const contributions = await listContributionsByTaskId(taskId, {
+      status: "accepted",
+      limit: 5,
+    });
+    return NextResponse.json({ ok: true, task, contributions });
   } catch (err: any) {
     logger.error({ msg: "research.tasks.detail_failed", id: taskId, err: err?.message });
     return NextResponse.json({ ok: false, error: "server_error" }, { status: 500 });

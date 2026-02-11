@@ -16,7 +16,7 @@ Dieses Dokument bündelt, welche Pfade (Part00–Part15) noch offen sind und wel
 - **Part06 Themenkatalog & Zuständigkeiten:** Neu angelegt, 15 Hauptkategorien verbindlich; `TOPIC_CHOICES`-Abgleich in Profil/Onboarding/Filter offen.
 - **Part07 Graph & Reports (Block C):** Graph-Schicht + Report-Adapter aktiv; AnalyzeResult-Sync schreibt Claims/Notes/Questions/Knots/Eventualities in den Graph.
 - **Part08 Eventualities (Block D):** Eventuality-/DecisionTree-Typen, Analyzer-Prompts, Persistenz, UI (EventualityBoard) und API `/api/eventualities/analyze` umgesetzt.
-- **Part09 Research Workflow (Block E/R2):** Tasks/Contributions vorhanden; offen sind Seeding aus Questions/Knots, Filter/Sortierung, Contributor-Feedback, Rückfluss in Statements/Graph und Anti-Spam.
+- **Part09 Research Workflow (Block E/R2):** Seeding, Filter/Sortierung, Feedback, Graph-Rueckfluss und Cooldown umgesetzt.
 - **Part10 Responsibility Navigator (Block B):** Directory/Paths + Navigator + Admin-UI aktiv.
 - **Part11 Streams (Block F):** Modelle, Routes/UI und XP-Gating fehlen; Stream-Deck aus Reports/Graph steht aus.
 - **Part12 Campaigns (Block G):** Campaign/CampaignSession-Modelle, Admin-UI, QR-Flows und Reports fehlen.
@@ -39,14 +39,14 @@ Dieses Dokument bündelt, welche Pfade (Part00–Part15) noch offen sind und wel
 | **B – Consequences & Responsibility Navigator** | Part06/10 | **Done** | Graph/Persistenz fuer Consequences/Responsibilities aktiv; API-Routes `/api/responsibility/[id]`, `/api/consequence/[id]`; `ResponsibilityNavigator.tsx` zeigt Pfade/Level/Hints; Admin-Directory & Path-Editor unter `/admin/responsibility`. |
 | **C – Graph & Reports** | Part07 | **Done** | `core/graph/syncAnalyzeResult.ts` schreibt Claims/Notes/Questions/Knots/Eventualities in Neo4j; Report-Adapter in `core/graph/queries/reports.ts` + Admin-Reports nutzen echte Graph-Daten; `/admin/graph/impact` arbeitet mit Graph-Stats. |
 | **D – Eventualities / DecisionTree** | Part08 | **Done** | Typen `EventualityNode`/`DecisionTree` + Analyzer-Prompts aktiv; Persistenz via `core/eventualities/*`; UI `EventualityBoard.tsx` (AnalyzeWorkspace) + Admin-Eventualities; API `/api/eventualities/analyze`. |
-| **E (R2) – Research Workflow** | Part09 | **Offen** | Seeding aus Questions/Knots; Filter-/Sortier-API `/api/research/list`; Contributor-Feedback („Hilfreich?“-Rating); Rückfluss in Statements/Graph; Anti-Spam-Heuristik (Contributor-Cooldown). |
+| **E (R2) – Research Workflow** | Part09 | **Done** | Seeding aus Questions/Knots; Filter-/Sortier-API `/api/research/list`; Contributor-Feedback („Hilfreich?“-Rating); Graph-Rueckfluss; Cooldown aktiv. |
 | **F – Streams** | Part11 | **Offen** | Modelle `Stream`, `StreamSession`; UI `StreamDeck` mit XP-Gating; XP-Zuwachs für Teilnahme/Hosting. |
 | **G – Campaigns** | Part12 | **Offen** | Modelle `Campaign`, `CampaignSession`; Admin-UI + Statistik-View; QR-Flow `/campaign/[id]/join`; Reports/Erfolgsmessung. |
 | **H – I18N / A11y / Social** | Part13 | **Offen** | I18N-Infra (next-intl, Namespaces `common`, `admin`, `analyze`); A11y-Audit + „A11y Pass“ im Build; Basis-Chat/Community-Räume für Citizen Pro +. |
 
 ## Konkrete Next Steps
 
-1. **Block B erledigt** (Part06/10): Consequences/Responsibility-Navigator abgeschlossen.
+1. **Block E erledigt** (Part09): Research R2 abgeschlossen.
 3. **Block C & D erledigt** (Part07/08): Graph-Sync + Eventualities-Stack stehen.
 4. **Research R2 priorisieren** (Part09): Seeding, Filter, Contributor-Feedback, Rückfluss, Anti-Spam.
 5. **Block F/G/H** (Part11/12/13): Streams/Campaigns/I18N-A11y-Social, sobald Basis aus A–D steht.
@@ -217,7 +217,7 @@ Verification
 - `./scripts/verify.sh` (PASS, Warnung: Node 20.x erwartet, aktuell v24.5.0)
 
 Next Steps
-- Block B (Consequences/Responsibility Navigator).
+- Block E (Research R2) oder Block F/G/H gem. Part14.
 
 ## PR-0009 (Follow-up, 2026-02-11) - Block B Responsibility Navigator
 
@@ -232,4 +232,22 @@ Verification
 - `./scripts/verify.sh` (PASS, Warnung: Node 20.x erwartet, aktuell v24.5.0)
 
 Next Steps
-- Block F/G/H oder Research R2 gem. Part14 priorisieren.
+- Block E (Research R2) oder Block F/G/H gem. Part14 priorisieren.
+
+## PR-0009 (Follow-up, 2026-02-11) - Block E Research Workflow R2
+
+Ziel
+- Research R2 abschliessen: Seeding, Filter/Sortierung, Feedback, Graph-Rueckfluss, Cooldown.
+
+Changes
+- Auto-Seeding von Research-Tasks aus Questions/Knots (Analyze).
+- Neue API `/api/research/list` + Filter/Sortierung in `/api/research/tasks/list`.
+- Contributor-Feedback (Hilfreich/Nicht hilfreich) inkl. UI & Rate-Limit.
+- Graph-Rueckfluss fuer akzeptierte Contributions; Task-Status wird auf completed gesetzt.
+- Contributor-Cooldown vor neuer Einreichung.
+
+Verification
+- `./scripts/verify.sh` (PASS, Warnung: Node 20.x erwartet, aktuell v24.5.0)
+
+Next Steps
+- Block F/G/H oder weitere Pilot-Haertung nach Part14 priorisieren.

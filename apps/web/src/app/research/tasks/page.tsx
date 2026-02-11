@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, type FormEvent } from "react";
-import type { ResearchTask } from "@core/research";
+import type { ResearchContribution, ResearchTask } from "@core/research";
 
 interface SourceInput {
   label: string;
@@ -12,6 +12,7 @@ export default function ResearchTasksPage() {
   const [tasks, setTasks] = useState<ResearchTask[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [selectedTask, setSelectedTask] = useState<ResearchTask | null>(null);
+  const [acceptedContributions, setAcceptedContributions] = useState<ResearchContribution[]>([]);
   const [sources, setSources] = useState<SourceInput[]>([{ label: "", url: "" }]);
   const [summary, setSummary] = useState("");
   const [details, setDetails] = useState("");
@@ -40,12 +41,14 @@ export default function ResearchTasksPage() {
   const selectTask = async (id: string) => {
     setSelectedId(id);
     setSelectedTask(null);
+    setAcceptedContributions([]);
     setFeedback(null);
     try {
       const res = await fetch(`/api/research/tasks/${id}`, { cache: "no-store" });
       const body = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(body?.error || res.statusText);
       setSelectedTask(body.task ?? null);
+      setAcceptedContributions(body.contributions ?? []);
     } catch (err: any) {
       setFeedback(err?.message ?? "Konnte Aufgabe nicht laden.");
     }
@@ -84,6 +87,26 @@ export default function ResearchTasksPage() {
       setFeedback(err?.message ?? "Einreichung fehlgeschlagen.");
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const submitFeedback = async (contributionId: string, helpful: boolean) => {
+    setFeedback(null);
+    try {
+      const res = await fetch(`/api/research/contributions/${contributionId}/feedback`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ helpful }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(body?.error || res.statusText);
+      const updated = body.contribution as ResearchContribution;
+      setAcceptedContributions((prev) =>
+        prev.map((item) => (item.id === updated.id ? updated : item)),
+      );
+      setFeedback("Danke für dein Feedback.");
+    } catch (err: any) {
+      setFeedback(err?.message ?? "Feedback fehlgeschlagen.");
     }
   };
 
@@ -219,6 +242,7 @@ export default function ResearchTasksPage() {
                   onClick={() => {
                     setSelectedId(null);
                     setSelectedTask(null);
+                    setAcceptedContributions([]);
                   }}
                   className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
                 >
@@ -235,6 +259,56 @@ export default function ResearchTasksPage() {
             </form>
           ) : (
             <div className="px-4 py-4 text-sm text-slate-500">Keine Aufgabe ausgewählt.</div>
+          )}
+
+          {acceptedContributions.length > 0 && (
+            <div className="border-t border-slate-200 px-4 py-4">
+              <h3 className="text-sm font-semibold text-slate-900">Akzeptierte Contributions</h3>
+              <div className="mt-3 space-y-3">
+                {acceptedContributions.map((c) => (
+                  <div key={c.id} className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm">
+                    <div className="font-semibold text-slate-900">{c.summary}</div>
+                    {c.details && <div className="text-xs text-slate-600">{c.details}</div>}
+                    {c.sources?.length ? (
+                      <div className="mt-2 space-y-1 text-xs text-slate-500">
+                        {c.sources.map((s, idx) => (
+                          <div key={idx}>
+                            {s.url ? (
+                              <a className="text-sky-600 hover:underline" href={s.url} target="_blank" rel="noreferrer">
+                                {s.label || s.url}
+                              </a>
+                            ) : (
+                              s.label
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    ) : null}
+                    <div className="mt-3 flex items-center justify-between text-xs text-slate-500">
+                      <span>
+                        Hilfreich: {c.helpfulCount ?? 0} · Nicht hilfreich: {c.notHelpfulCount ?? 0}
+                      </span>
+                      <div className="space-x-2">
+                        <button
+                          type="button"
+                          onClick={() => submitFeedback(c.id!, true)}
+                          className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700 hover:bg-emerald-100"
+                        >
+                          Hilfreich
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => submitFeedback(c.id!, false)}
+                          className="rounded-full border border-rose-200 bg-rose-50 px-2.5 py-1 text-[11px] font-semibold text-rose-700 hover:bg-rose-100"
+                        >
+                          Nicht hilfreich
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
           )}
         </div>
       </div>

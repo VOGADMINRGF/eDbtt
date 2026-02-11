@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { createContribution, getTaskById } from "@core/research";
+import { createContribution, getTaskById, hasRecentContribution } from "@core/research";
 import { logger } from "@/utils/logger";
 import { getCookie } from "@/lib/http/typedCookies";
 import { rateLimitOrThrow } from "@/utils/rateLimitHelpers";
@@ -43,6 +43,14 @@ export async function POST(req: NextRequest, context: any) {
     const task = taskId ? await getTaskById(taskId) : null;
     if (!task || task.status === "archived") {
       return NextResponse.json({ ok: false, error: "not_found" }, { status: 404 });
+    }
+
+    const tooSoon = await hasRecentContribution(taskId, userId, 30);
+    if (tooSoon) {
+      return NextResponse.json(
+        { ok: false, error: "cooldown_active" },
+        { status: 429 },
+      );
     }
 
     const contribution = await createContribution({

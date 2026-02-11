@@ -13,6 +13,7 @@ import {
 import { rateLimitOrThrow } from "@/utils/rateLimitHelpers";
 import { syncAnalyzeResultToGraph } from "@core/graph";
 import { persistEventualitiesSnapshot } from "@core/eventualities";
+import { seedTasksFromAnalyze } from "@core/research";
 import { upsertRunReceipt } from "@/lib/db/runReceiptsRepo";
 import { maskUserId } from "@core/pii/redact";
 import type { ProviderMatrixEntry } from "@features/ai/orchestratorE150";
@@ -389,6 +390,21 @@ async function finalizeResultPayload(
     });
   });
 
+  seedTasksFromAnalyze({
+    contributionId: input.contributionId,
+    locale: input.locale,
+    createdBy: input.userId ?? null,
+    questions: result.questions ?? [],
+    knots: result.knots ?? [],
+    tags: deriveResearchTags(result),
+  }).catch((err) => {
+    logErrorSafe({
+      msg: "analyze.route.research_seed_failed",
+      contributionId: input.contributionId,
+      err: err instanceof Error ? err.message : String(err),
+    });
+  });
+
   return result;
 }
 
@@ -494,6 +510,17 @@ function normalizeAnalyzerError(error: unknown): NormalizedAnalyzerError {
       "AnalyzeContribution: Fehler im Analyzer. Bitte später erneut versuchen.",
     status: 502,
   };
+}
+
+function deriveResearchTags(result: AnalyzeResultWithMeta): string[] {
+  const tags = new Set<string>();
+  (result.claims ?? []).forEach((claim) => {
+    if (claim.topic) tags.add(String(claim.topic).toLowerCase());
+    if ((claim as any).domain) tags.add(String((claim as any).domain).toLowerCase());
+    const domains = Array.isArray((claim as any).domains) ? (claim as any).domains : [];
+    domains.forEach((d: string) => tags.add(String(d).toLowerCase()));
+  });
+  return [...tags].slice(0, 6);
 }
 
 const FALLBACK_ELIGIBLE_CODES = new Set([
