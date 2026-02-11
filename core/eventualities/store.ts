@@ -8,6 +8,14 @@ import type {
   ResponsibilityRecord,
   ScenarioOption,
 } from "@features/analyze/schemas";
+import {
+  ConsequenceRecordSchema,
+  DecisionTreeSchema,
+  EventualityNodeSchema,
+  ResponsibilityPathSchema,
+  ResponsibilityRecordSchema,
+} from "@features/analyze/schemas";
+import { logger } from "@core/observability/logger";
 import { maskUserId } from "@core/pii/redact";
 import {
   decisionTreesCol,
@@ -30,24 +38,54 @@ type PersistArgs = {
   userId?: string | null;
 };
 
+type StructuredPayload = {
+  nodes: EventualityNode[];
+  trees: DecisionTree[];
+  consequences: ConsequenceRecord[];
+  responsibilities: ResponsibilityRecord[];
+  responsibilityPaths: ResponsibilityPath[];
+  invalid: {
+    nodes: number;
+    trees: number;
+    consequences: number;
+    responsibilities: number;
+    paths: number;
+  };
+};
+
 export async function persistEventualitiesSnapshot({
   result,
   contributionId,
   locale,
   userId,
 }: PersistArgs): Promise<EventualitySnapshotDoc | null> {
-  const nodes = Array.isArray(result.eventualities) ? result.eventualities : [];
-  const trees = Array.isArray(result.decisionTrees) ? result.decisionTrees : [];
   const effectiveLocale = locale || result.language || "de";
-  const consequenceBundle = extractConsequenceBundle(result);
-  const responsibilityPaths = Array.isArray(result.responsibilityPaths) ? result.responsibilityPaths : [];
+  const payload = sanitizeStructuredPayload(result);
 
   const hasStructuredPayload =
-    nodes.length > 0 ||
-    trees.length > 0 ||
-    consequenceBundle.consequences.length > 0 ||
-    consequenceBundle.responsibilities.length > 0 ||
-    responsibilityPaths.length > 0;
+    payload.nodes.length > 0 ||
+    payload.trees.length > 0 ||
+    payload.consequences.length > 0 ||
+    payload.responsibilities.length > 0 ||
+    payload.responsibilityPaths.length > 0;
+
+  if (
+    payload.invalid.nodes > 0 ||
+    payload.invalid.trees > 0 ||
+    payload.invalid.consequences > 0 ||
+    payload.invalid.responsibilities > 0 ||
+    payload.invalid.paths > 0
+  ) {
+    logger.warn(
+      {
+        msg: "eventualities.payload.sanitized",
+        contributionId,
+        userIdMasked: maskUserId(userId),
+        dropped: payload.invalid,
+      },
+      "Dropped invalid eventuality payload items before persistence",
+    );
+  }
 
   if (!hasStructuredPayload) {
     await Promise.all([
@@ -71,8 +109,8 @@ export async function persistEventualitiesSnapshot({
 
   const now = new Date();
 
-  if (nodes.length) {
-    const docs: EventualityNodeDoc[] = nodes.map((node, idx) => ({
+  if (payload.nodes.length) {
+    const docs: EventualityNodeDoc[] = payload.nodes.map((node, idx) => ({
       contributionId,
       nodeId: ensureStableId(node.id, `${contributionId}:evt:${idx}`),
       statementId: node.statementId,
@@ -85,8 +123,8 @@ export async function persistEventualitiesSnapshot({
     await nodesCol.insertMany(docs, { ordered: false });
   }
 
-  if (trees.length) {
-    const docs: DecisionTreeDoc[] = trees.map((tree, idx) => ({
+  if (payload.trees.length) {
+    const docs: DecisionTreeDoc[] = payload.trees.map((tree, idx) => ({
       contributionId,
       treeId: ensureStableId(tree.id, `${contributionId}:tree:${tree.rootStatementId}:${idx}`),
       rootStatementId: tree.rootStatementId,
@@ -105,14 +143,14 @@ export async function persistEventualitiesSnapshot({
         locale: effectiveLocale,
         userHash: hashUserId(userId),
         userIdMasked: maskUserId(userId),
-        nodesCount: nodes.length,
-        treesCount: trees.length,
-        consequences: consequenceBundle.consequences,
-        responsibilities: consequenceBundle.responsibilities,
-        responsibilityPaths,
-        consequencesCount: consequenceBundle.consequences.length,
-        responsibilitiesCount: consequenceBundle.responsibilities.length,
-        pathsCount: responsibilityPaths.length,
+        nodesCount: payload.nodes.length,
+        treesCount: payload.trees.length,
+        consequences: payload.consequences,
+        responsibilities: payload.responsibilities,
+        responsibilityPaths: payload.responsibilityPaths,
+        consequencesCount: payload.consequences.length,
+        responsibilitiesCount: payload.responsibilities.length,
+        pathsCount: payload.responsibilityPaths.length,
         updatedAt: now,
       },
       $setOnInsert: {
@@ -243,13 +281,6 @@ function hashUserId(userId?: string | null): string | null {
   return crypto.createHash("sha1").update(userId).digest("hex");
 }
 
-function extractConsequenceBundle(result: AnalyzeResult) {
-  const bundle = result.consequences ?? null;
-  const consequences = Array.isArray(bundle?.consequences) ? bundle!.consequences : [];
-  const responsibilities = Array.isArray(bundle?.responsibilities) ? bundle!.responsibilities : [];
-  return { consequences, responsibilities };
-}
-
 function normalizeContributionId(value: ContributionIdInput): string {
   if (typeof value === "string") return value.trim();
   try {
@@ -257,4 +288,49 @@ function normalizeContributionId(value: ContributionIdInput): string {
   } catch {
     return String(value);
   }
+}
+
+function sanitizeStructuredPayload(result: AnalyzeResult): StructuredPayload {
+  const nodeResults = sanitizeList(result.eventualities, EventualityNodeSchema);
+  const treeResults = sanitizeList(result.decisionTrees, DecisionTreeSchema);
+  const consequenceBundle = result.consequences ?? null;
+  const consequences = sanitizeList(consequenceBundle?.consequences, ConsequenceRecordSchema);
+  const responsibilities = sanitizeList(consequenceBundle?.responsibilities, ResponsibilityRecordSchema);
+  const paths = sanitizeList(result.responsibilityPaths, ResponsibilityPathSchema);
+
+  return {
+    nodes: nodeResults.valid,
+    trees: treeResults.valid,
+    consequences: consequences.valid,
+    responsibilities: responsibilities.valid,
+    responsibilityPaths: paths.valid,
+    invalid: {
+      nodes: nodeResults.invalid,
+      trees: treeResults.invalid,
+      consequences: consequences.invalid,
+      responsibilities: responsibilities.invalid,
+      paths: paths.invalid,
+    },
+  };
+}
+
+function sanitizeList<T>(value: unknown, schema: { safeParse: (input: unknown) => { success: boolean; data?: T } }): {
+  valid: T[];
+  invalid: number;
+} {
+  if (!Array.isArray(value)) return { valid: [], invalid: 0 };
+
+  const valid: T[] = [];
+  let invalid = 0;
+
+  for (const item of value) {
+    const parsed = schema.safeParse(item);
+    if (parsed.success) {
+      valid.push(parsed.data as T);
+      continue;
+    }
+    invalid += 1;
+  }
+
+  return { valid, invalid };
 }

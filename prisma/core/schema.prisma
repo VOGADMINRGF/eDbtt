@@ -80,6 +80,12 @@ enum Triage {
   escalate
 }
 
+enum ScenarioOption {
+  pro
+  neutral
+  contra
+}
+
 // --- Stream & Source ---
 enum SourceKind {
   USER
@@ -437,4 +443,65 @@ model Finding {
   lastChecked           DateTime @default(now())
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
+}
+
+//
+// ---------- EVENTUALITIES ----------
+model EventualitySnapshot {
+  id                   String   @id @default(cuid())
+  contributionId       String   @unique
+  locale               String
+  userHash             String?
+  userIdMasked         String?
+  nodesCount           Int
+  treesCount           Int
+  consequences         Json?
+  responsibilities     Json?
+  responsibilityPaths  Json?
+  consequencesCount    Int?
+  responsibilitiesCount Int?
+  pathsCount           Int?
+  reviewed             Boolean  @default(false)
+  reviewedAt           DateTime?
+  reviewedBy           String?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  nodes EventualityNode[]
+  trees DecisionTree[]
+
+  @@index([reviewed, createdAt])
+  @@index([createdAt])
+}
+
+model EventualityNode {
+  id             String   @id @default(cuid())
+  contributionId String
+  nodeId         String   @unique
+  statementId    String
+  locale         String
+  option         ScenarioOption?
+  payload        Json
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  snapshot EventualitySnapshot @relation(fields: [contributionId], references: [contributionId], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([contributionId, statementId])
+  @@index([statementId, option])
+}
+
+model DecisionTree {
+  id              String   @id @default(cuid())
+  contributionId  String
+  treeId          String   @unique
+  rootStatementId String
+  locale          String
+  payload         Json
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  snapshot EventualitySnapshot @relation(fields: [contributionId], references: [contributionId], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([contributionId, rootStatementId])
 }

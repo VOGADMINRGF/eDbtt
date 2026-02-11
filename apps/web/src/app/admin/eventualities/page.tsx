@@ -30,7 +30,6 @@ export default function AdminEventualitiesPage() {
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<FilterOption>("open");
   const [searchTerm, setSearchTerm] = useState("");
-  const [pendingId, setPendingId] = useState<string | null>(null);
 
   useEffect(() => {
     let ignore = false;
@@ -91,29 +90,6 @@ export default function AdminEventualitiesPage() {
         return tsB - tsA;
       });
   }, [items, filter, searchTerm]);
-
-  const toggleReview = async (row: SnapshotRow, reviewed: boolean) => {
-    setPendingId(row.contributionId);
-    setError(null);
-    try {
-      const res = await fetch("/api/admin/eventualities/markReviewed", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ id: row.contributionId, reviewed }),
-      });
-      const body = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(body?.error || `HTTP ${res.status}`);
-      setItems((prev) =>
-        prev.map((entry) =>
-          entry.contributionId === row.contributionId ? { ...entry, ...body.snapshot } : entry,
-        ),
-      );
-    } catch (err: any) {
-      setError(err?.message ?? "Review-Status konnte nicht aktualisiert werden.");
-    } finally {
-      setPendingId(null);
-    }
-  };
 
   return (
     <main className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-8">
@@ -226,18 +202,6 @@ export default function AdminEventualitiesPage() {
                   <td className="px-4 py-3 text-xs text-slate-600">{formatDate(row.updatedAt)}</td>
                   <td className="px-4 py-3">
                     <div className="flex flex-col items-end gap-2 text-xs">
-                      <button
-                        type="button"
-                        disabled={pendingId === row.contributionId}
-                        onClick={() => toggleReview(row, !row.reviewed)}
-                        className={`rounded-full px-3 py-1 font-semibold transition ${
-                          row.reviewed
-                            ? "bg-amber-50 text-amber-700 hover:bg-amber-100"
-                            : "bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
-                        } ${pendingId === row.contributionId ? "opacity-50" : ""}`}
-                      >
-                        {row.reviewed ? "Review zurücksetzen" : "Review erledigt"}
-                      </button>
                       <Link
                         href={`/admin/eventualities/${encodeURIComponent(row.contributionId)}`}
                         className="text-slate-600 hover:text-slate-900 hover:underline"

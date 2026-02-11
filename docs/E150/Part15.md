@@ -169,3 +169,22 @@ Verification
 
 Next Steps
 - Zurueck zu Pilot-Haertung oder naechstem Block aus Part14.
+
+## PR-0004 (2026-02-11) - Block D Persist/Types (Eventualities)
+
+Ziel
+- Eventuality/DecisionTree Typen und Persistenz definieren.
+
+Changes
+- Service-Layer in `core/eventualities/store.ts` um strikte Laufzeitvalidierung und Sanitizing fuer Eventualities/DecisionTrees erweitert.
+- Prisma-Modelle + Enum fuer Eventualities/DecisionTrees in `prisma/core/schema.prisma` ergaenzt.
+- SQL-Migration fuer Eventuality-Persistenz unter `prisma/migrations/20260211093000_pr0004_eventualities_persist_types/migration.sql` hinzugefuegt.
+- Read-only API-Routen unter `apps/web/src/app/api/eventualities/` ergaenzt (List + Detail).
+- Admin-Eventualities-Liste auf read-only umgestellt (`apps/web/src/app/admin/eventualities/page.tsx`).
+- Root-Wrapper `verify.sh` hinzugefuegt (delegiert auf `./scripts/verify.sh`).
+
+Verification
+- `./verify.sh` (PASS, Warnung: Node 20.x erwartet, aktuell v24.5.0)
+
+Next Steps
+- Prisma-Client-Generierung fuer `@db-core` in der CI einplanen, sobald die neue Persistenz aktiv genutzt wird.
