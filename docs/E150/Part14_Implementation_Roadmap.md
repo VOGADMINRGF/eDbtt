@@ -25,9 +25,6 @@ Stand nach den letzten Codex-Runs (nur offene Punkte):
 - **Part07 Graph & Reports (Block C)**  
   – Public Report-Seite ist Placeholder; konsistente öffentliche Report-Ausgabe fehlt.
 
-- **Part11 Streams (Block F)**  
-  – Streams-Übersicht/Viewer fehlen; Deck-Adapter + Host-Panel teilweise vorhanden.
-
 - **Part12 Campaigns (Block G)**  
   – Operationalisierung: Seed-Run mit aktuellen Statements/Rooms fehlt.
 
@@ -210,7 +207,7 @@ Aufgaben:
 ### Block F – Part11: Streams & Brennende Bürger:innen
 
 **Ziel:** Streams sind technisch an Plattform, Reports und XP angebunden.
-**Status:** Partial (Deck-Adapter + Host-Deck-Panel vorhanden; Übersicht/Viewer fehlen).
+**Status:** Done.
 
 Aufgaben:
 

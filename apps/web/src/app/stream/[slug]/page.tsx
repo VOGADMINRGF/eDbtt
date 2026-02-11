@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { ObjectId } from "@core/db/triMongo";
 import { streamSessionsCol } from "@features/stream/db";
 import { resolveSessionStatus } from "@features/stream/types";
+import { StreamViewerClient } from "./StreamViewerClient";
 
 export const dynamic = "force-dynamic";
 
@@ -46,6 +47,7 @@ export default async function StreamDetail({
   const status = resolveSessionStatus(session);
   const startsAt = session.startsAt ? new Date(session.startsAt) : null;
   const playerUrl = (session as any)?.playerUrl ?? null;
+  const sessionId = (session._id as ObjectId)?.toHexString?.() ?? "";
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-[var(--brand-from)] via-white to-white pb-16">
@@ -83,48 +85,54 @@ export default async function StreamDetail({
           </div>
         </div>
 
-        {playerUrl && isEmbedUrl(playerUrl) && (
-          <div className="overflow-hidden rounded-3xl border border-slate-100 bg-white shadow-sm">
-            <div className="aspect-video w-full">
-              <iframe
-                title={`Stream ${session.title}`}
+        <div className="grid gap-6 lg:grid-cols-[2fr,1fr]">
+          <div className="space-y-6">
+            {playerUrl && isEmbedUrl(playerUrl) && (
+              <div className="overflow-hidden rounded-3xl border border-slate-100 bg-white shadow-sm">
+                <div className="aspect-video w-full">
+                  <iframe
+                    title={`Stream ${session.title}`}
+                    src={playerUrl}
+                    className="h-full w-full"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
+                    allowFullScreen
+                  />
+                </div>
+              </div>
+            )}
+
+            {playerUrl && !isEmbedUrl(playerUrl) && isVideoUrl(playerUrl) && (
+              <video
+                className="w-full rounded-3xl border border-slate-100 bg-white shadow-sm"
+                controls
+                preload="metadata"
                 src={playerUrl}
-                className="h-full w-full"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
-                allowFullScreen
               />
-            </div>
+            )}
+
+            {playerUrl && !isEmbedUrl(playerUrl) && !isVideoUrl(playerUrl) && (
+              <div className="rounded-2xl border border-slate-100 bg-white/90 p-4 text-sm text-slate-700">
+                <p className="font-semibold">Stream-Link</p>
+                <p className="mt-1 break-all">
+                  <a
+                    href={playerUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="font-semibold text-sky-600 underline underline-offset-4"
+                  >
+                    {playerUrl}
+                  </a>
+                </p>
+              </div>
+            )}
+
+            {session.description && (
+              <p className="text-base text-slate-700 md:text-lg">{session.description}</p>
+            )}
           </div>
-        )}
 
-        {playerUrl && !isEmbedUrl(playerUrl) && isVideoUrl(playerUrl) && (
-          <video
-            className="w-full rounded-3xl border border-slate-100 bg-white shadow-sm"
-            controls
-            preload="metadata"
-            src={playerUrl}
-          />
-        )}
-
-        {playerUrl && !isEmbedUrl(playerUrl) && !isVideoUrl(playerUrl) && (
-          <div className="rounded-2xl border border-slate-100 bg-white/90 p-4 text-sm text-slate-700">
-            <p className="font-semibold">Stream-Link</p>
-            <p className="mt-1 break-all">
-              <a
-                href={playerUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="font-semibold text-sky-600 underline underline-offset-4"
-              >
-                {playerUrl}
-              </a>
-            </p>
-          </div>
-        )}
-
-        {session.description && (
-          <p className="text-base text-slate-700 md:text-lg">{session.description}</p>
-        )}
+          {sessionId && <StreamViewerClient sessionId={sessionId} />}
+        </div>
       </section>
     </main>
   );

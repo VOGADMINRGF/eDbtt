@@ -18,7 +18,7 @@ Dieses Dokument bündelt, welche Pfade (Part00–Part15) noch offen sind und wel
 - **Part08 Eventualities (Block D):** Eventuality-/DecisionTree-Typen, Analyzer-Prompts, Persistenz, UI (EventualityBoard) und API `/api/eventualities/analyze` umgesetzt.
 - **Part09 Research Workflow (Block E/R2):** Seeding, Filter/Sortierung, Feedback, Graph-Rueckfluss und Cooldown umgesetzt.
 - **Part10 Responsibility Navigator (Block B):** Directory/Paths + Navigator + Admin-UI aktiv.
-- **Part11 Streams (Block F):** XP-Gating/XP-Awarding umgesetzt; Stream-Deck-Adapter + Host-Deck-Panel teilweise vorhanden, Übersicht/Viewer fehlen.
+- **Part11 Streams (Block F):** XP-Gating/XP-Awarding umgesetzt; Streams-UI (Uebersicht/Viewer/Host) + Deck-Adapter vorhanden, Live-Interaktion minimal via Agenda/Polls.
 - **Part12 Campaigns (Block G):** Modelle, Admin-UI, QR-Flows, Reports umgesetzt; Seed-Run für aktuelle Statements/Rooms ausstehend (Block G bleibt teilweise offen).
 - **Part13 I18N/A11y/Social (Block H):** Auto-Translate Hooks + Community-Räume umgesetzt; vollständiger A11y-Pass + zentrale I18N-Namespaces offen.
 - **Part14 Implementation Roadmap:** Dient als Arbeitsmodus; Block-Reihenfolge beachten.
@@ -40,14 +40,14 @@ Dieses Dokument bündelt, welche Pfade (Part00–Part15) noch offen sind und wel
 | **C – Graph & Reports** | Part07 | **Partial** | `core/graph/syncAnalyzeResult.ts` schreibt Claims/Notes/Questions/Knots/Eventualities in Neo4j; Report-Adapter in `core/graph/queries/reports.ts` + Admin-Reports nutzen echte Graph-Daten; `/admin/graph/impact` arbeitet mit Graph-Stats; Public Report-Seite noch Placeholder. |
 | **D – Eventualities / DecisionTree** | Part08 | **Done** | Typen `EventualityNode`/`DecisionTree` + Analyzer-Prompts aktiv; Persistenz via `core/eventualities/*`; UI `EventualityBoard.tsx` (AnalyzeWorkspace) + Admin-Eventualities; API `/api/eventualities/analyze`. |
 | **E (R2) – Research Workflow** | Part09 | **Done** | Seeding aus Questions/Knots; Filter-/Sortier-API `/api/research/list`; Contributor-Feedback („Hilfreich?“-Rating); Graph-Rueckfluss; Cooldown aktiv. |
-| **F – Streams** | Part11 | **Partial** | XP-Gating (Host) + XP-Awarding fuer Host/Votes aktiv; Deck-Adapter + Host-Deck-Panel vorhanden, Streams-Übersicht/Viewer fehlen. |
+| **F – Streams** | Part11 | **Done** | XP-Gating (Host) + XP-Awarding fuer Host/Votes aktiv; Streams-Uebersicht/Viewer/Host vorhanden; Deck-Adapter + Live-Interaktion (Agenda/Polls) aktiv. |
 | **G – Campaigns** | Part12 | **Partial** | Modelle `Campaign`, `CampaignSession` + Questions/Responses; Admin-UI + Statistik-View; QR-Flow `/:locale/:campaignSlug/:sessionCode`; Reports vorhanden; Seed-Run für aktuelle Statements/Rooms fehlt. |
 | **H – I18N / A11y / Social** | Part13 | **Partial** | Auto-Translate Hooks + Community-Räume aktiv; A11y-Pass + zentrale I18N-Namespaces offen. |
 
 ## Konkrete Next Steps
 
-1. **Block F abschließen:** Streams-UI (Übersicht/Host/Deck) nachziehen.
-2. **Block G operationalisieren:** Seed-Run für aktuelle Statements/Rooms ausführen.
+1. **Block G operationalisieren:** Seed-Run für aktuelle Statements/Rooms ausführen.
+2. **Block C nachziehen:** Public Report-Seite aus Graph-Daten anbieten.
 3. **Block H abschließen:** A11y-Pass auf Kernseiten + OG-Tags konsistent erweitern.
 
 ### Identity & Profile (aus Part00–04 abgeleitet)
@@ -232,7 +232,23 @@ Verification
 - `./scripts/verify.sh` (PASS, Warnung: Node 20.x erwartet, aktuell v24.5.0)
 
 Next Steps
-- Streams-Übersicht und Viewer-Seite nachziehen.
+- Viewer-Interaktion und `/streams`-Routen abgeschlossen (siehe Follow-up unten).
+
+## PR-0009 (Follow-up, 2026-02-11) - Block F Streams Viewer + Routes
+
+Ziel
+- Streams-Viewer mit Live-Interaktion bereitstellen und Routen-Alignment (`/streams`) herstellen.
+
+Changes
+- Alias-Routen `app/streams/*` auf bestehende Stream-Seiten gesetzt (Viewer/Host).
+- Viewer zeigt Live-Agenda mit Poll-Abstimmung + Live-Status.
+- Host bleibt unter `/dashboard/streams/:id` zugaenglich.
+
+Verification
+- `./scripts/verify.sh` (PASS, Warnung: Node 20.x erwartet, aktuell v24.5.0)
+
+Next Steps
+- Block G operationalisieren (Seed-Run).
 
 ## PR-0009 (Follow-up, 2026-02-11) - Block B Responsibility Navigator
 
