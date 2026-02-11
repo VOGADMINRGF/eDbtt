@@ -88,3 +88,22 @@ Safe-Mode Checks (Membership/Payment):
 - Admin-Verbuchen (`mark-paid`) und Kündigung (`cancel`) funktionieren, setzen user.membership-Status korrekt.
 - Dunning-Job läuft trocken (keine Orders → no-op) und setzt bei Fälligkeit Reminder-Level / Auto-Cancel.
 - /account zeigt korrekten Status inkl. PaymentInfo (masked) ohne PII-Leak; Copy-Buttons ok.
+
+## PR-0013 (2026-02-11) - Live/Chat Skeleton (Docs + Stubs)
+
+Ziel
+- Live/Chat Skeleton mit Types, API-Stubs und UI-Placeholders.
+- Sichtbar nur hinter Flag und staff-only.
+
+Changes
+- Types: `core/liveChat/*` (ChatMessage, LiveSession, ModerationState).
+- API-Stubs: `GET/POST /api/live`, `GET/POST /api/chat` (501 Not Implemented).
+- UI-Stubs: `/live`, `/chat` (flag-guarded, staff-only).
+- Doku: `docs/E150/Pilot.md` Phase 3 ergaenzt.
+
+Verification
+- `pnpm -C apps/web run lint` (PASS, Warnung: Node 20.x erwartet, aktuell v24.5.0)
+- `pnpm -C apps/web run typecheck` (PASS, Warnung: Node 20.x erwartet, aktuell v24.5.0)
+
+Next Steps
+- PR-0014 planen (falls weitere Live/Chat-Implementierung gewuenscht).
