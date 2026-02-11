@@ -94,6 +94,19 @@ type ResearchContribution = {
   reviewStatus?: "pending" | "accepted" | "rejected" | "needs_changes";
   reviewComment?: string;
 };
+### 3.3 Strukturierte Community-Beitraege (PR-0011)
+
+Neben ResearchTasks gibt es einen leichten Vorschlagskanal fuer:
+
+- source (Quelle / Beleg),
+- option (Alternative / Massnahme),
+- question (offene Frage),
+- impact (Folge / Wirkung),
+- view (Position / Perspektive).
+
+Status: proposed → approved/rejected.  
+Public-UI: `/community/contributions` (eingeben + freigegebene Liste).  
+Admin-Review: `/admin/contributions`.
 4. Wie entstehen ResearchTasks?
 4.1 Automatisch aus E150/E200 (system)
 Folgende Trigger erzeugen automatisch Tasks:
