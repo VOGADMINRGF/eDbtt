@@ -18,7 +18,7 @@ Dieses Dokument bündelt, welche Pfade (Part00–Part15) noch offen sind und wel
 - **Part08 Eventualities (Block D):** Eventuality-/DecisionTree-Typen, Analyzer-Prompts, Persistenz, UI (EventualityBoard) und API `/api/eventualities/analyze` umgesetzt.
 - **Part09 Research Workflow (Block E/R2):** Seeding, Filter/Sortierung, Feedback, Graph-Rueckfluss und Cooldown umgesetzt.
 - **Part10 Responsibility Navigator (Block B):** Directory/Paths + Navigator + Admin-UI aktiv.
-- **Part11 Streams (Block F):** XP-Gating/XP-Awarding umgesetzt; Streams-UI (Übersicht/Host/Deck) fehlt.
+- **Part11 Streams (Block F):** XP-Gating/XP-Awarding umgesetzt; Stream-Deck-Adapter + Host-Deck-Panel teilweise vorhanden, Übersicht/Viewer fehlen.
 - **Part12 Campaigns (Block G):** Modelle, Admin-UI, QR-Flows, Reports umgesetzt; Seed-Run für aktuelle Statements/Rooms ausstehend.
 - **Part13 I18N/A11y/Social (Block H):** Auto-Translate Hooks + Community-Räume umgesetzt; vollständiger A11y-Pass + zentrale I18N-Namespaces offen.
 - **Part14 Implementation Roadmap:** Dient als Arbeitsmodus; Block-Reihenfolge beachten.
@@ -40,7 +40,7 @@ Dieses Dokument bündelt, welche Pfade (Part00–Part15) noch offen sind und wel
 | **C – Graph & Reports** | Part07 | **Done** | `core/graph/syncAnalyzeResult.ts` schreibt Claims/Notes/Questions/Knots/Eventualities in Neo4j; Report-Adapter in `core/graph/queries/reports.ts` + Admin-Reports nutzen echte Graph-Daten; `/admin/graph/impact` arbeitet mit Graph-Stats. |
 | **D – Eventualities / DecisionTree** | Part08 | **Done** | Typen `EventualityNode`/`DecisionTree` + Analyzer-Prompts aktiv; Persistenz via `core/eventualities/*`; UI `EventualityBoard.tsx` (AnalyzeWorkspace) + Admin-Eventualities; API `/api/eventualities/analyze`. |
 | **E (R2) – Research Workflow** | Part09 | **Done** | Seeding aus Questions/Knots; Filter-/Sortier-API `/api/research/list`; Contributor-Feedback („Hilfreich?“-Rating); Graph-Rueckfluss; Cooldown aktiv. |
-| **F – Streams** | Part11 | **Partial** | XP-Gating (Host) + XP-Awarding fuer Host/Votes aktiv; Streams-UI (Übersicht/Host/Deck) fehlt. |
+| **F – Streams** | Part11 | **Partial** | XP-Gating (Host) + XP-Awarding fuer Host/Votes aktiv; Deck-Adapter + Host-Deck-Panel vorhanden, Streams-Übersicht/Viewer fehlen. |
 | **G – Campaigns** | Part12 | **Done** | Modelle `Campaign`, `CampaignSession` + Questions/Responses; Admin-UI + Statistik-View; QR-Flow `/:locale/:campaignSlug/:sessionCode`; Reports vorhanden. |
 | **H – I18N / A11y / Social** | Part13 | **Partial** | Auto-Translate Hooks + Community-Räume aktiv; A11y-Pass + zentrale I18N-Namespaces offen. |
 
@@ -217,6 +217,22 @@ Verification
 
 Next Steps
 - Block E (Research R2) oder Block F/G/H gem. Part14.
+
+## PR-0009 (Follow-up, 2026-02-11) - Block F Stream-Deck Adapter
+
+Ziel
+- Stream-Deck aus Statements/Graph-Report bereitstellen und im Host-Cockpit nutzbar machen.
+
+Changes
+- Deck-Adapter `core/streams/deck.ts` laedt Statements passend zu Topic/Region und Report-Summary.
+- API `GET /api/streams/sessions/[id]/deck` liefert Stream-Deck + Report-Snapshot.
+- Host-Cockpit zeigt Deck-Items + Report-Snapshot und kann Items zur Agenda hinzufuegen.
+
+Verification
+- `./scripts/verify.sh` (PASS, Warnung: Node 20.x erwartet, aktuell v24.5.0)
+
+Next Steps
+- Streams-Übersicht und Viewer-Seite nachziehen.
 
 ## PR-0009 (Follow-up, 2026-02-11) - Block B Responsibility Navigator
 

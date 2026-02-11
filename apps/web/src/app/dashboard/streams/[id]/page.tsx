@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 
 type AgendaItem = {
@@ -14,12 +14,38 @@ type AgendaItem = {
   publicAttribution: string;
 };
 
+type StreamDeckItem = {
+  id: string;
+  kind: "statement" | "context";
+  title: string;
+  summary?: string | null;
+  statementId?: string | null;
+};
+
+type StreamDeckSummary = {
+  statements: number;
+  eventualities: number;
+  consequences: number;
+  responsibilities: number;
+  byLevel: Array<{ level: string; responsibilityCount: number }>;
+};
+
+type StreamDeck = {
+  items: StreamDeckItem[];
+  reportSummary?: StreamDeckSummary | null;
+};
+
 export default function StreamCockpitPage() {
   const params = useParams<{ id: string }>();
   const [session, setSession] = useState<{ _id: string; title: string; description?: string | null } | null>(null);
   const [items, setItems] = useState<AgendaItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [deck, setDeck] = useState<StreamDeck | null>(null);
+  const [deckLoading, setDeckLoading] = useState(true);
+  const [deckError, setDeckError] = useState<string | null>(null);
+  const [deckRefreshing, setDeckRefreshing] = useState(false);
+  const deckLoaded = useRef(false);
   const [question, setQuestion] = useState("");
   const [pollOptions, setPollOptions] = useState("Ja\nNein");
   const [autofilling, setAutofilling] = useState(false);
@@ -52,6 +78,44 @@ export default function StreamCockpitPage() {
     }
     load();
     const timer = setInterval(load, 5000);
+    return () => {
+      ignore = true;
+      clearInterval(timer);
+    };
+  }, [params.id]);
+
+  useEffect(() => {
+    let ignore = false;
+    async function load() {
+      const isInitial = !deckLoaded.current;
+      if (isInitial) {
+        setDeckLoading(true);
+      } else {
+        setDeckRefreshing(true);
+      }
+      setDeckError(null);
+      try {
+        const res = await fetch(`/api/streams/sessions/${params.id}/deck`, { cache: "no-store" });
+        const body = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(body?.error || res.statusText);
+        if (!ignore) {
+          setDeck(body.deck ?? { items: [], reportSummary: null });
+          deckLoaded.current = true;
+        }
+      } catch (err: any) {
+        if (!ignore) setDeckError(err?.message ?? "Fehler beim Laden des Decks");
+      } finally {
+        if (!ignore) {
+          if (isInitial) {
+            setDeckLoading(false);
+          } else {
+            setDeckRefreshing(false);
+          }
+        }
+      }
+    }
+    load();
+    const timer = setInterval(load, 30000);
     return () => {
       ignore = true;
       clearInterval(timer);
@@ -91,6 +155,42 @@ export default function StreamCockpitPage() {
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ itemId, action }),
     });
+  }
+
+  async function addDeckItem(item: StreamDeckItem) {
+    setDeckError(null);
+    if (item.kind === "statement" && !item.statementId) {
+      setDeckError("Statement-ID fehlt.");
+      return;
+    }
+    const payload =
+      item.kind === "statement"
+        ? {
+            kind: "statement",
+            statementId: item.statementId,
+            description: item.title,
+            allowAnonymousVoting: true,
+            publicAttribution: "hidden",
+          }
+        : {
+            kind: "info",
+            description: item.title,
+            allowAnonymousVoting: true,
+            publicAttribution: "hidden",
+          };
+    try {
+      const res = await fetch(`/api/streams/sessions/${params.id}/agenda`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(body?.error || res.statusText);
+      }
+    } catch (err: any) {
+      setDeckError(err?.message ?? "Deck-Item konnte nicht zur Agenda hinzugefügt werden.");
+    }
   }
 
   function updateQrQuestion(index: number, patch: Partial<{ title: string; description: string; options: string }>) {
@@ -262,6 +362,82 @@ export default function StreamCockpitPage() {
                 </li>
               ))}
             </ul>
+          )}
+        </section>
+
+        <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm space-y-3">
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="text-sm font-semibold text-slate-900">Stream-Deck</h2>
+            <p className="text-xs text-slate-500">{deckRefreshing ? "Aktualisiere…" : "Auto-Refresh"}</p>
+          </div>
+          {deckError && <p className="text-xs text-rose-600">{deckError}</p>}
+          {deckLoading ? (
+            <p className="text-sm text-slate-500">Deck lädt …</p>
+          ) : deck?.items?.length ? (
+            <ul className="space-y-2 text-sm text-slate-700">
+              {deck.items.map((item) => {
+                const canAdd = item.kind !== "statement" || Boolean(item.statementId);
+                return (
+                  <li key={item.id} className="rounded-xl border border-slate-100 p-3 space-y-2">
+                    <div>
+                      <p className="font-semibold text-slate-900">{item.title}</p>
+                      {item.summary && <p className="text-xs text-slate-600">{item.summary}</p>}
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2 text-xs">
+                      <button
+                        className="rounded-full border border-slate-300 px-3 py-1 disabled:opacity-50"
+                        onClick={() => addDeckItem(item)}
+                        disabled={!canAdd}
+                      >
+                        Zur Agenda
+                      </button>
+                      {item.statementId && (
+                        <a className="text-slate-500 underline" href={`/statements/${item.statementId}`}>
+                          Statement öffnen
+                        </a>
+                      )}
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          ) : (
+            <p className="text-sm text-slate-500">Noch keine Karten gefunden.</p>
+          )}
+          {deck?.reportSummary && (
+            <div className="rounded-xl border border-slate-100 bg-slate-50/60 p-3 space-y-2">
+              <p className="text-xs font-semibold text-slate-500">Report-Snapshot</p>
+              <div className="grid grid-cols-2 gap-2 text-xs text-slate-600">
+                <div className="rounded-lg bg-white px-2 py-1">
+                  Statements <span className="font-semibold text-slate-900">{deck.reportSummary.statements}</span>
+                </div>
+                <div className="rounded-lg bg-white px-2 py-1">
+                  Eventualities{" "}
+                  <span className="font-semibold text-slate-900">{deck.reportSummary.eventualities}</span>
+                </div>
+                <div className="rounded-lg bg-white px-2 py-1">
+                  Consequences{" "}
+                  <span className="font-semibold text-slate-900">{deck.reportSummary.consequences}</span>
+                </div>
+                <div className="rounded-lg bg-white px-2 py-1">
+                  Responsibilities{" "}
+                  <span className="font-semibold text-slate-900">{deck.reportSummary.responsibilities}</span>
+                </div>
+              </div>
+              {deck.reportSummary.byLevel?.length ? (
+                <div className="space-y-1 text-xs text-slate-600">
+                  {deck.reportSummary.byLevel
+                    .slice()
+                    .sort((a, b) => b.responsibilityCount - a.responsibilityCount)
+                    .map((row) => (
+                      <div key={row.level} className="flex items-center justify-between">
+                        <span className="capitalize">{row.level}</span>
+                        <span className="font-semibold text-slate-900">{row.responsibilityCount}</span>
+                      </div>
+                    ))}
+                </div>
+              ) : null}
+            </div>
           )}
         </section>
 
