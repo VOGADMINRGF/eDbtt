@@ -266,3 +266,37 @@ Verification
 
 Next Steps
 - Block G (Campaigns) oder Block H (I18N/A11y/Social) nach Part14 priorisieren.
+
+## PR-0009 (Follow-up, 2026-02-11) - Block G Campaigns
+
+Ziel
+- Kampagnen/Session-Tracking einziehen, Admin-Verwaltung und Join-Flow bereitstellen.
+
+Changes
+- Campaign-Store korrigiert (Sessions mit ObjectId, Stats funktionieren).
+- Admin-API fuer Campaign-List/Save/Stats ergaenzt.
+- Admin-UI `/admin/campaigns` fuer Kampagnen-Setup + Session-Stats.
+- Public Join-Flow `/campaign/[id]/join` inkl. Session-Erfassung.
+
+Verification
+- `./scripts/verify.sh` (PASS, Warnung: Node 20.x erwartet, aktuell v24.5.0)
+
+Next Steps
+- Block H (I18N/A11y/Social) umsetzen.
+
+## PR-0009 (Follow-up, 2026-02-11) - Block H I18N/A11y/Social
+
+Ziel
+- Community-Rooms Skeleton liefern (Social) und neue UI-Strings auto-translate-fähig halten.
+
+Changes
+- Community Rooms/Message Store in `core/community/*` eingefuehrt.
+- Public APIs fuer Rooms/Messages (`/api/community/rooms`, `/api/community/rooms/[id]/messages`).
+- Admin API fuer Rooms-Setup (`/api/community/rooms/create`).
+- UI `/community/rooms` mit Auto-Translate Hooks, Accessible Labels und States.
+
+Verification
+- `./scripts/verify.sh` (PASS, Warnung: Node 20.x erwartet, aktuell v24.5.0)
+
+Next Steps
+- Naechsten offenen Block in Part14 priorisieren.
