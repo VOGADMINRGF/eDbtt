@@ -30,6 +30,9 @@ else
   echo "$out"
 fi
 
+echo "==> Clean apps/web .next"
+rm -rf "$ROOT/apps/web/.next" || true
+
 echo "==> Typecheck (repo-wide)"
 if ! out=$(pnpm -r run typecheck 2>&1); then
   echo "$out"

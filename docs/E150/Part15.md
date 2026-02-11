@@ -96,19 +96,13 @@ Ziel
 
 Changes
 - `AGENTS.md` mit Repo-Guardrails hinzugefuegt.
-- `verify.sh` und `verify-web.sh` fuer standardisierte Verification hinzugefuegt.
-- `codex-pr.sh` fuer standardisierte Codex-Runs hinzugefuegt.
+- `.codex/AGENTS.md` mit Codex-Defaults hinzugefuegt.
+- `scripts/verify.sh` und `scripts/verify-web.sh` fuer standardisierte Verification hinzugefuegt.
+- `scripts/codex-pr.sh` fuer standardisierte Codex-Runs hinzugefuegt.
 - `MASTERPLAN.md` und PR-Prompt-Dateien `pr-0001` bis `pr-0007` erstellt.
 
 Verification
-- `./verify.sh` (FAIL)
-- apps/web typecheck failed in `.next/dev/types/validator.ts` (missing modules):
-- `../../../src/app/beteiligungsplattform/page.js`
-- `../../../src/app/deutschland/[bundesland]/[bezirk]/[thema]/page.js`
-- `../../../src/app/deutschland/[bundesland]/[bezirk]/page.js`
-- `../../../src/app/deutschland/[bundesland]/page.js`
-- `../../../src/app/deutschland/page.js`
-- `../../../src/app/digitale-buergerbeteiligung/page.js`
+- `./scripts/verify.sh` (PASS)
 
 Next Steps
 - Start PR-0001 via `scripts/codex-pr.sh 0001`.

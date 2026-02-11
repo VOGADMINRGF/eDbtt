@@ -21,8 +21,9 @@ else
   PR_NUM="$PR_RAW"
 fi
 
-PROMPT="pr-${PR_NUM}.prompt.md"
-REPORT="pr-${PR_NUM}.last.md"
+PROMPT="$ROOT/.codex/drifts/pr-${PR_NUM}.prompt.md"
+REPORT="$ROOT/.codex/reports/pr-${PR_NUM}.last.md"
+mkdir -p "$ROOT/.codex/reports"
 
 if [[ ! -f "$PROMPT" ]]; then
   echo "Prompt file not found: $PROMPT" >&2
