@@ -300,3 +300,21 @@ Verification
 
 Next Steps
 - Naechsten offenen Block in Part14 priorisieren.
+
+## PR-0009 (Follow-up, 2026-02-11) - Block G Campaigns (QR + Report)
+
+Ziel
+- QR-Flow und Kampagnen-Report vervollstaendigen, Seed-Setup fuer aktuelle Beitraege erlauben.
+
+Changes
+- Campaign Questions/Responses eingefuehrt inkl. Store + Report-Aggregation.
+- Admin-APIs fuer Questions + Report ergaenzt.
+- Public APIs fuer Questions + Responses ergaenzt.
+- QR-UI unter `/:locale/:campaignSlug/:sessionCode` umgesetzt.
+- Seed-Script `scripts/seed-campaigns.mjs` fuer aktuelle Statements + Rooms.
+
+Verification
+- `./scripts/verify.sh` (PASS, Warnung: Node 20.x erwartet, aktuell v24.5.0)
+
+Next Steps
+- Seed-Script mit Admin-Cookie ausfuehren und erste Kampagnen/Rooms testen.

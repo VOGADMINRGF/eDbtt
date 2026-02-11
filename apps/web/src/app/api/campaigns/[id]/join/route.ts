@@ -49,6 +49,7 @@ export async function POST(
     userId,
     source: body?.source ?? "link",
     regionCode: body?.regionCode ?? null,
+    sessionCode: typeof body?.sessionCode === "string" ? body.sessionCode : null,
     meta: body?.meta ?? undefined,
   });
 
