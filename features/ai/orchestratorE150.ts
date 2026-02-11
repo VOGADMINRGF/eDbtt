@@ -1338,8 +1338,8 @@ function logProviderTelemetry(matrix: ProviderMatrixEntry[]) {
 /**
  * Orchestriert die E150-Analyse über mehrere Provider.
  *
- * Aktuell ist technisch nur OpenAI aktiv, die Struktur ist
- * jedoch von Anfang an auf Multi-Provider, Scoring und Health ausgelegt.
+ * Multi-Provider ist aktiv (je nach gesetzten Keys). Die Struktur ist auf
+ * parallele Provider, Scoring und Health ausgelegt.
  */
 export async function callE150Orchestrator(
   args: E150OrchestratorArgs,

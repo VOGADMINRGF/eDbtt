@@ -20,12 +20,12 @@ Part14 ist damit der **operative Fahrplan** für Codex.
 Stand nach den letzten Codex-Runs:
 
 - **Part05 Orchestrator**  
-  – Multi-Provider-Gerüst existiert (OpenAI, Anthropic, Mistral),  
-  – Feinschliff bei Provider-Prompts & zusätzlicher Provider (Gemini) fehlt.
+  – Multi-Provider aktiv (OpenAI, Anthropic, Mistral, Gemini, ARI),  
+  – Health/Scoring + Rollen-Prompts implementiert (laufender Feinschliff ok).
 
 - **Part06 Consequences & Fairness**  
-  – Konzepte vorhanden, aber keine vollständigen Typen/Modelle  
-  – keine Speicherung & UI-Anzeige.
+  – Consequences/Responsibility Typen + Graph-Sync vorhanden,  
+  – UI-Preview/Responsibility-Navigator vorhanden.
 
 - **Part07 Graph & Reports**  
   – Mongoose-`Report` repariert, aber  
@@ -40,7 +40,7 @@ Stand nach den letzten Codex-Runs:
   – kein Research-Hub, keine XP-Anbindung.
 
 - **Part10 Responsibility Navigator**  
-  – Responsibility nur als Text, ohne Directory/Navigator-UI/Graph-Edges.
+  – Directory/Paths + Navigator-UI + Graph-Edges vorhanden.
 
 - **Part11 Streams & „Brennende Bürger:innen“**  
   – Twitch-Overlay existiert extern,  

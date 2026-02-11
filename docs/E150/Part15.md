@@ -35,8 +35,8 @@ Dieses Dokument bündelt, welche Pfade (Part00–Part15) noch offen sind und wel
 
 | Block | Bezug | Status | Definition of Done |
 | --- | --- | --- | --- |
-| **A – Orchestrator (E150 Core Provider)** | Part05 | **Offen** | `@features/ai/orchestrator_gemini.ts` (Adapter + `ProviderMeta`), rollenspezifische Prompts (citizen, staff, institution), Health-/Score-Tracking in `orchestrator_health.ts`; SSE bleibt intakt. |
-| **B – Consequences & Responsibility Navigator** | Part06/10 | **Offen** | Prisma-Modelle `Consequence`, `Responsibility`, `ResponsibilityLink`; API-Routes `/api/responsibility/[id]`, `/api/consequence/[id]`; React-`ResponsibilityNavigator.tsx` mit Filter/Path-Tree/Score-Coloring; Admin-View fürs Mapping. |
+| **A – Orchestrator (E150 Core Provider)** | Part05 | **Done** | Multi-Provider aktiv (OpenAI/Anthropic/Mistral/Gemini/ARI), Rollen-Prompts + Health/Scoring implementiert; Telemetry aktiv. |
+| **B – Consequences & Responsibility Navigator** | Part06/10 | **Done** | Consequences/Responsibility Typen + Graph-Sync + UI-Preview/Navigator + Admin-Directory vorhanden. |
 | **C – Graph & Reports** | Part07 | **Offen** | `@features/graph/sync.ts` (AnalyzeResult → Graph), Graph-Store (Neo4j/Arango/Memgraph Connector), `/admin/graph/impact` mit echten Graph-Stats. |
 | **D – Eventualities / DecisionTree** | Part08 | **Offen** | Typen `Eventuality`, `DecisionTreeNode`; Analyzer-Prompts für „was passiert wenn …“; UI `EventualityBoard.tsx`; API `/api/eventualities/analyze`. |
 | **E (R2) – Research Workflow** | Part09 | **Offen** | Seeding aus Questions/Knots; Filter-/Sortier-API `/api/research/list`; Contributor-Feedback („Hilfreich?“-Rating); Rückfluss in Statements/Graph; Anti-Spam-Heuristik (Contributor-Cooldown). |
@@ -46,9 +46,9 @@ Dieses Dokument bündelt, welche Pfade (Part00–Part15) noch offen sind und wel
 
 ## Konkrete Next Steps
 
-1. **Starte mit Block A** (Part05): Gemini-Provider + rollenspezifische Prompts + Health/Score.
-2. **Danach Block B** (Part06/10): Consequence-/Responsibility-Modelle, Persistenz, Navigator-UI & Admin.
-3. **Block C & D parallel planen** (Part07/08): Graph-Sync plus Eventualities-Typen/Prompts/UI.
+1. **Starte mit Block C** (Part07): Graph-Sync + echte Daten in Reports.
+2. **Danach Block D** (Part08): Eventualities/DecisionTrees in AnalyzeResult, DB, Graph und UI.
+3. **Research R2 priorisieren** (Part09): Seeding, Filter, Contributor-Feedback, Rückfluss, Anti-Spam.
 4. **Research R2 priorisieren** (Part09): Seeding, Filter, Contributor-Feedback, Rückfluss, Anti-Spam.
 5. **Block F/G/H** (Part11/12/13): Streams/Campaigns/I18N-A11y-Social, sobald Basis aus A–D steht.
 
@@ -82,9 +82,25 @@ Offene Tasks:
    - `/profile` als öffentliche Visitenkarte, die nur freigegebene Felder zeigt.  
    - Hinweis im UI: „Du siehst dein Profil so, wie andere es sehen.“
 
-Diese Liste ist verbindlich für die nächsten Codex-Runs. Bei jedem Run den aktuell offenen Block aus Part14 wählen und die „Definition of Done“ erfüllen, bevor zum nächsten Pfad gewechselt wird. Sobald ein Block abgeschlossen ist, den Status im obigen Table auf **Done** setzen; aktuell sind alle Blöcke offen, d. h. es ist noch nichts erledigt.
+Diese Liste ist verbindlich für die nächsten Codex-Runs. Bei jedem Run den aktuell offenen Block aus Part14 wählen und die „Definition of Done“ erfüllen, bevor zum nächsten Pfad gewechselt wird. Sobald ein Block abgeschlossen ist, den Status im obigen Table auf **Done** setzen; aktuell sind Block A und B erledigt, die restlichen Blöcke sind offen.
 
 Safe-Mode Checks (Membership/Payment):
 - Admin-Verbuchen (`mark-paid`) und Kündigung (`cancel`) funktionieren, setzen user.membership-Status korrekt.
 - Dunning-Job läuft trocken (keine Orders → no-op) und setzt bei Fälligkeit Reminder-Level / Auto-Cancel.
 - /account zeigt korrekten Status inkl. PaymentInfo (masked) ohne PII-Leak; Copy-Buttons ok.
+
+## PR-0014 (2026-02-11) - Block A/B Status-Alignment
+
+Ziel
+- Dokumentation auf aktuellen Stand bringen, damit die naechsten Runs Block C/D fokussieren.
+
+Changes
+- Part14-Overview angepasst (Block A/B als umgesetzt markiert).
+- Part15 Status-Tabelle + Next Steps auf Block C/D ausgerichtet.
+
+Verification
+- `pnpm -C apps/web run lint` (PASS, Warnung: Node 20.x erwartet, aktuell v24.5.0)
+- `pnpm -C apps/web run typecheck` (PASS, Warnung: Node 20.x erwartet, aktuell v24.5.0)
+
+Next Steps
+- Block C starten (Graph-Sync + Reports echte Daten).
