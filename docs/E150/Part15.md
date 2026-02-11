@@ -88,3 +88,20 @@ Safe-Mode Checks (Membership/Payment):
 - Admin-Verbuchen (`mark-paid`) und Kündigung (`cancel`) funktionieren, setzen user.membership-Status korrekt.
 - Dunning-Job läuft trocken (keine Orders → no-op) und setzt bei Fälligkeit Reminder-Level / Auto-Cancel.
 - /account zeigt korrekten Status inkl. PaymentInfo (masked) ohne PII-Leak; Copy-Buttons ok.
+
+## PR-0010 (2026-02-11) - Admin Akquise Dashboard
+
+Ziel
+- Staff-only Akquise-Dashboard fuer Regionen/Gemeinden mit Feed-Status, Last-Fetch und Top-Themen.
+
+Changes
+- Minimaler Store fuer Acquisition-Feeds + Fetch-Runs (`core/acquisition/*`).
+- Admin-API `GET/POST /api/admin/acquisition` fuer Listen + Test-Fetch.
+- Admin-UI `/admin/acquisition` mit Regionen-Tabelle und Fetch-Run Summary.
+- Pilot-Doku (`docs/E150/Pilot.md`) und Part12-Admin-Abschnitt ergaenzt.
+
+Verification
+- `./scripts/verify.sh` (PASS, Warnung: Node 20.x erwartet, aktuell v24.5.0)
+
+Next Steps
+- PR-0011 starten: Strukturierte Community/Journo-Beitraege.

@@ -157,6 +157,12 @@ export const NAV_SECTIONS: NavSection[] = [
         keywords: ["feeds", "drafts"],
       },
       {
+        href: "/admin/acquisition",
+        label: "Akquise Dashboard",
+        description: "Regionen, Feeds, Status",
+        keywords: ["acquisition", "feeds", "regions", "outreach"],
+      },
+      {
         href: "/admin/research/tasks",
         label: "Research Tasks",
         description: "Recherche-Aufgaben",
