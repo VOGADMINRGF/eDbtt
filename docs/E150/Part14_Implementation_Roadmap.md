@@ -17,46 +17,25 @@ Part14 ist damit der **operative Fahrplan** für Codex.
 
 ## 2. Überblick: Noch offene Lücken
 
-Stand nach den letzten Codex-Runs:
+Stand nach den letzten Codex-Runs (nur offene Punkte):
 
 - **Pilot Backbone (PR-0009)**  
-  – Top-Prioritaet: Feeds → Kandidaten → Faktencheck → Graph/Dossier,  
-  – Admin-Settings fuer Level/Budget/Auto-Run.
+  – Basis steht; offene Punkte: Akquise-Dashboard (PR-0010) + Pilot-Härtung.
 
-- **Part05 Orchestrator**  
-  – Multi-Provider-Gerüst existiert (OpenAI, Anthropic, Mistral),  
-  – Feinschliff bei Provider-Prompts & zusätzlicher Provider (Gemini) fehlt.
+- **Part05 Orchestrator (Block A)**  
+  – Gemini-Provider fehlt, Health/Telemetry-Scoring fehlt.
 
-- **Part06 Consequences & Fairness**  
-  – Konzepte vorhanden, aber keine vollständigen Typen/Modelle  
-  – keine Speicherung & UI-Anzeige.
+- **Part07 Graph & Reports (Block C)**  
+  – Public Report-Seite ist Placeholder; konsistente öffentliche Report-Ausgabe fehlt.
 
-- **Part07 Graph & Reports**  
-  – Mongoose-`Report` repariert, aber  
-  – Knowledge-Graph-Schicht + E150-Sync fehlen.
+- **Part11 Streams (Block F)**  
+  – Streams-UI/Host-Deck fehlen (Übersicht, Host-Panel, Deck-Adapter).
 
-- **Part08 Eventualities & DecisionTrees**  
-  – keine Eventuality/DecisionTree-Strukturen in `AnalyzeResult`,  
-  – keine UI-Einbindung, keine Persistenz.
+- **Part12 Campaigns (Block G)**  
+  – Operationalisierung: Seed-Run mit aktuellen Statements/Rooms fehlt.
 
-- **Part09 Community Research Workflow**  
-  – keine `ResearchTask`/`ResearchContribution`-Modelle,  
-  – kein Research-Hub, keine XP-Anbindung.
-
-- **Part10 Responsibility Navigator**  
-  – Responsibility nur als Text, ohne Directory/Navigator-UI/Graph-Edges.
-
-- **Part11 Streams & „Brennende Bürger:innen“**  
-  – Twitch-Overlay existiert extern,  
-  – keine integrierte Stream-Logik (Model, Routen, XP).
-
-- **Part12 Campaigns (jenseits Telemetry)**  
-  – AI-Telemetry umgesetzt,  
-  – Campaign-Modelle, QR-Sessions, Kampagnen-Reports fehlen.
-
-- **Part13 I18N, A11y, Community/Social**  
-  – UI ist DE-first,  
-  – keine echte I18N-Infra, kein Raum/Chat-System, A11y nur teilweise bedacht.
+- **Part13 I18N/A11y/Social (Block H)**  
+  – A11y-Pass + OG/Sharing für weitere Seiten + zentrale I18N-Namespaces offen.
 
 ---
 
@@ -93,6 +72,7 @@ Codex SOLL Part14 so verwenden:
 ### Block A – Part05 Orchestrator: Feinschliff Multi-Provider
 
 **Ziel:** Orchestrator erfüllt vollständig die Anforderungen aus Part05.
+**Status:** Partial (Gemini + Telemetry-Health fehlen).
 
 Aufgaben:
 
@@ -121,6 +101,7 @@ Aufgaben:
 ### Block B – Part06 & Part10: Consequences & Responsibility Navigator
 
 **Ziel:** Folgen + Zuständigkeiten sind als erste Bürger:innen-sichtbare Schicht implementiert.
+**Status:** Done.
 
 Aufgaben:
 
@@ -151,6 +132,7 @@ Aufgaben:
 ### Block C – Part07: Graph & Reports – Basisintegration
 
 **Ziel:** E150-Daten landen in einer konsistenten Graph-Schicht und fließen in Reports.
+**Status:** Done (Public Report-Seite ist noch Placeholder).
 
 Aufgaben:
 
@@ -175,6 +157,7 @@ Aufgaben:
 ### Block D – Part08: Eventualities & DecisionTrees
 
 **Ziel:** „Was-wäre-wenn“-Logik ist im System sichtbar (Modell + UI).
+**Status:** Done.
 
 Aufgaben:
 
@@ -202,6 +185,7 @@ Aufgaben:
 ### Block E – Part09: Community Research Workflow
 
 **Ziel:** Offene Fragen werden zu ResearchTasks, die Community kann systematisch mitarbeiten.
+**Status:** Done.
 
 Aufgaben:
 
@@ -229,6 +213,7 @@ Aufgaben:
 ### Block F – Part11: Streams & Brennende Bürger:innen
 
 **Ziel:** Streams sind technisch an Plattform, Reports und XP angebunden.
+**Status:** Partial (UI/Host-Deck fehlen).
 
 Aufgaben:
 
@@ -255,6 +240,7 @@ Aufgaben:
 ### Block G – Part12: Campaigns & QR-Sessions
 
 **Ziel:** Gemeinden/Organisationen können Kampagnen mit QR-Code fahren und Reports erhalten.
+**Status:** Done (Seed-Run fehlt).
 
 Aufgaben:
 
@@ -280,6 +266,7 @@ Aufgaben:
 ### Block H – Part13: I18N, A11y & Community/Social Basis
 
 **Ziel:** Plattform ist mehrsprachig vorbereitet, a11y-freundlich und hat minimale soziale Features.
+**Status:** Partial (A11y-Pass + I18N-Namespaces + Sharing offen).
 
 Aufgaben:
 

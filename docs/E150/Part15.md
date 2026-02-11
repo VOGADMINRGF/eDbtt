@@ -11,20 +11,20 @@ Dieses Dokument bündelt, welche Pfade (Part00–Part15) noch offen sind und wel
 - **Part02 Rollen / XP / Gamification:** XP-Anbindung benötigt noch Research-/Streams-/Campaign-Hooks (siehe Blöcke E, F, G); Profil-Freischaltungen pro Engagement-Level dokumentiert, UI-Gating offen.
 - **Part03 Access Tiers & Pricing:** Grundlogik aktiv; Profil-Pakete (profileBasic/Pro/Premium) als Darstellungs-Dimension ergänzt, Mapping zu Tiers umzusetzen.
 - **Part04 B2G/B2B Modelle:** Begriffe mit Profil-Paket-Namen harmonisiert; warten auf Campaigns/Streams-Implementierung (Block F/G) für echten Pilotbetrieb.
-- **Part05 Orchestrator (Block A):** Gemini-Provider aktiv; rollenspezifische Prompts + Health/Score-Heuristik umgesetzt.
+- **Part05 Orchestrator (Block A):** Rollenspezifische Prompts + Role-Fit-Scoring umgesetzt; Gemini-Provider + Health/Telemetry-Scoring fehlen.
 - **Part06 Consequences (Block B):** Konsequenzen/Responsibility-Store + Navigator-UI + APIs umgesetzt.  
 - **Part06 Themenkatalog & Zuständigkeiten:** Neu angelegt, 15 Hauptkategorien verbindlich; `TOPIC_CHOICES`-Abgleich in Profil/Onboarding/Filter offen.
-- **Part07 Graph & Reports (Block C):** Graph-Schicht + Report-Adapter aktiv; AnalyzeResult-Sync schreibt Claims/Notes/Questions/Knots/Eventualities in den Graph.
+- **Part07 Graph & Reports (Block C):** Graph-Sync + Admin-Reports aktiv; Public Report-Seite ist noch Placeholder.
 - **Part08 Eventualities (Block D):** Eventuality-/DecisionTree-Typen, Analyzer-Prompts, Persistenz, UI (EventualityBoard) und API `/api/eventualities/analyze` umgesetzt.
 - **Part09 Research Workflow (Block E/R2):** Seeding, Filter/Sortierung, Feedback, Graph-Rueckfluss und Cooldown umgesetzt.
 - **Part10 Responsibility Navigator (Block B):** Directory/Paths + Navigator + Admin-UI aktiv.
-- **Part11 Streams (Block F):** Streams-Stack aktiv; XP-Gating/XP-Awarding fuer Hosting & Teilnahme umgesetzt.
-- **Part12 Campaigns (Block G):** Campaign/CampaignSession-Modelle, Admin-UI, QR-Flows und Reports fehlen.
-- **Part13 I18N/A11y/Social (Block H):** Übersetzungs-Infra, A11y-Pass und minimale Community-Räume/Chat fehlen.
+- **Part11 Streams (Block F):** XP-Gating/XP-Awarding umgesetzt; Streams-UI (Übersicht/Host/Deck) fehlt.
+- **Part12 Campaigns (Block G):** Modelle, Admin-UI, QR-Flows, Reports umgesetzt; Seed-Run für aktuelle Statements/Rooms ausstehend.
+- **Part13 I18N/A11y/Social (Block H):** Auto-Translate Hooks + Community-Räume umgesetzt; vollständiger A11y-Pass + zentrale I18N-Namespaces offen.
 - **Part14 Implementation Roadmap:** Dient als Arbeitsmodus; Block-Reihenfolge beachten.
 - **Part15 Codex Safe Mode:** Leitplanken aktiv; keine offenen Tasks, aber stets befolgen.
 
-## Aktueller Stand (März 2025)
+## Archiv: Aktueller Stand (März 2025)
 
 - `/contributions/new` rendert wieder mit SiteShell, Citizen-Core-Text und sauberem Login-Redirect statt JSON-403; Credits/Gating basieren auf `AccountOverview`.
 - Login & Registrierung schreiben Name + Kontakt direkt in `pii.user_profiles` (givenName/familyName, birthDate ready), sodass Mitgliedsanträge nicht mehr ohne PII bleiben.
@@ -35,21 +35,21 @@ Dieses Dokument bündelt, welche Pfade (Part00–Part15) noch offen sind und wel
 
 | Block | Bezug | Status | Definition of Done |
 | --- | --- | --- | --- |
-| **A – Orchestrator (E150 Core Provider)** | Part05 | **Done** | Provider inkl. Gemini aktiv; rollenspezifische Prompt-Templates in `features/ai/orchestratorE150.ts`; Score nutzt Role-Fit + Health/Latency; SSE bleibt intakt. |
+| **A – Orchestrator (E150 Core Provider)** | Part05 | **Partial** | Rollenspezifische Prompt-Templates + Role-Fit-Scoring aktiv; Gemini-Provider + Health/Telemetry-Scoring fehlen. |
 | **B – Consequences & Responsibility Navigator** | Part06/10 | **Done** | Graph/Persistenz fuer Consequences/Responsibilities aktiv; API-Routes `/api/responsibility/[id]`, `/api/consequence/[id]`; `ResponsibilityNavigator.tsx` zeigt Pfade/Level/Hints; Admin-Directory & Path-Editor unter `/admin/responsibility`. |
 | **C – Graph & Reports** | Part07 | **Done** | `core/graph/syncAnalyzeResult.ts` schreibt Claims/Notes/Questions/Knots/Eventualities in Neo4j; Report-Adapter in `core/graph/queries/reports.ts` + Admin-Reports nutzen echte Graph-Daten; `/admin/graph/impact` arbeitet mit Graph-Stats. |
 | **D – Eventualities / DecisionTree** | Part08 | **Done** | Typen `EventualityNode`/`DecisionTree` + Analyzer-Prompts aktiv; Persistenz via `core/eventualities/*`; UI `EventualityBoard.tsx` (AnalyzeWorkspace) + Admin-Eventualities; API `/api/eventualities/analyze`. |
 | **E (R2) – Research Workflow** | Part09 | **Done** | Seeding aus Questions/Knots; Filter-/Sortier-API `/api/research/list`; Contributor-Feedback („Hilfreich?“-Rating); Graph-Rueckfluss; Cooldown aktiv. |
-| **F – Streams** | Part11 | **Done** | Stream-Sessions + Dashboard aktiv; XP-Gating (Host) + XP-Awarding fuer Host/Votes in Streams. |
-| **G – Campaigns** | Part12 | **Offen** | Modelle `Campaign`, `CampaignSession`; Admin-UI + Statistik-View; QR-Flow `/campaign/[id]/join`; Reports/Erfolgsmessung. |
-| **H – I18N / A11y / Social** | Part13 | **Offen** | I18N-Infra (next-intl, Namespaces `common`, `admin`, `analyze`); A11y-Audit + „A11y Pass“ im Build; Basis-Chat/Community-Räume für Citizen Pro +. |
+| **F – Streams** | Part11 | **Partial** | XP-Gating (Host) + XP-Awarding fuer Host/Votes aktiv; Streams-UI (Übersicht/Host/Deck) fehlt. |
+| **G – Campaigns** | Part12 | **Done** | Modelle `Campaign`, `CampaignSession` + Questions/Responses; Admin-UI + Statistik-View; QR-Flow `/:locale/:campaignSlug/:sessionCode`; Reports vorhanden. |
+| **H – I18N / A11y / Social** | Part13 | **Partial** | Auto-Translate Hooks + Community-Räume aktiv; A11y-Pass + zentrale I18N-Namespaces offen. |
 
 ## Konkrete Next Steps
 
-1. **Block E erledigt** (Part09): Research R2 abgeschlossen.
-3. **Block C & D erledigt** (Part07/08): Graph-Sync + Eventualities-Stack stehen.
-4. **Research R2 priorisieren** (Part09): Seeding, Filter, Contributor-Feedback, Rückfluss, Anti-Spam.
-5. **Block F/G/H** (Part11/12/13): Streams/Campaigns/I18N-A11y-Social, sobald Basis aus A–D steht.
+1. **Block A finalisieren:** Gemini-Provider + Health/Telemetry-Scoring ergänzen.
+2. **Block F abschließen:** Streams-UI (Übersicht/Host/Deck) nachziehen.
+3. **Block G operationalisieren:** Seed-Run für aktuelle Statements/Rooms ausführen.
+4. **Block H abschließen:** A11y-Pass auf Kernseiten + OG-Tags konsistent erweitern.
 
 ### Identity & Profile (aus Part00–04 abgeleitet)
 
@@ -81,7 +81,7 @@ Offene Tasks:
    - `/profile` als öffentliche Visitenkarte, die nur freigegebene Felder zeigt.  
    - Hinweis im UI: „Du siehst dein Profil so, wie andere es sehen.“
 
-Diese Liste ist verbindlich für die nächsten Codex-Runs. Bei jedem Run den aktuell offenen Block aus Part14 wählen und die „Definition of Done“ erfüllen, bevor zum nächsten Pfad gewechselt wird. Sobald ein Block abgeschlossen ist, den Status im obigen Table auf **Done** setzen; aktuell sind alle Blöcke offen, d. h. es ist noch nichts erledigt.
+Diese Liste ist verbindlich für die nächsten Codex-Runs. Bei jedem Run den aktuell offenen Block aus Part14 wählen und die „Definition of Done“ erfüllen, bevor zum nächsten Pfad gewechselt wird. Die Status-Tabelle oben ist die einzige Quelle für „Done/Partial/Offen“ und muss bei Änderungen aktualisiert werden.
 
 Safe-Mode Checks (Membership/Payment):
 - Admin-Verbuchen (`mark-paid`) und Kündigung (`cancel`) funktionieren, setzen user.membership-Status korrekt.
