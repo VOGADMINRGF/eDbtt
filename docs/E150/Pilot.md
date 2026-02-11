@@ -91,4 +91,9 @@ Ziel:
 
 Ziel:
 - Nur Skeleton: Types, Routes, UI-Stubs fuer Live/Chat.
-- Keine echte Realtime-Infrastruktur, keine Provider/Keys.
+- Keine Realtime-Infrastruktur, keine Provider/Keys.
+- Flag-guarded und staff-only sichtbar.
+
+Guardrails:
+- Keine externen Provider oder Keys einbauen.
+- Keine Persistent-Layer-Implementierung, nur Platzhalter.

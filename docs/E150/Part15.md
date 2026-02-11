@@ -569,3 +569,22 @@ Verification:
 
 Next Steps:
 - Type Hygiene in `page.tsx` weiter reduzieren (umfangreicher Nachlauf).
+
+### PR-0013 (2026-02-11) – Live/Chat Skeleton (Docs + Stubs)
+
+Ziel:
+- Live/Chat Skeleton mit Types, API-Stubs und UI-Placeholders.
+- Sichtbar nur hinter Flag und staff-only.
+
+Changes:
+- Types: `core/liveChat/*` (ChatMessage, LiveSession, ModerationState).
+- API-Stubs: `GET/POST /api/live`, `GET/POST /api/chat` (501 Not Implemented).
+- UI-Stubs: `/live`, `/chat` (flag-guarded, staff-only).
+- Doku: `docs/E150/Pilot.md` Phase 3 ergaenzt.
+
+Verification:
+- `pnpm -C apps/web run lint` (PASS; Warnung: Node 20.x erwartet, lokal v24.5.0)
+- `pnpm -C apps/web run typecheck` (PASS; Warnung: Node 20.x erwartet, lokal v24.5.0)
+
+Next Steps:
+- Optional: Live/Chat Features nur bei Bedarf weiter ausbauen (keine Provider/Keys).

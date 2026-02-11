@@ -23,12 +23,14 @@ function detectLocale(): SupportedLocale {
   const cookieStore = cookies();
   const cookieLang = cookieStore.get("lang")?.value;
   if (cookieLang && isSupportedLocale(cookieLang)) return cookieLang;
+
   const acceptLanguage = headers().get("accept-language");
   if (acceptLanguage) {
     const primary = acceptLanguage.split(",")[0]?.split(";")[0]?.trim();
     const candidate = primary?.slice(0, 2);
     if (candidate && isSupportedLocale(candidate)) return candidate;
   }
+
   return DEFAULT_LOCALE;
 }
 
@@ -67,6 +69,8 @@ function t(entry: { de: string; en: string }, locale: SupportedLocale) {
 
 export default function ChatPage() {
   const locale = detectLocale();
+  const localeKey = locale === "en" ? "en" : "de";
+
   return (
     <main className="mx-auto flex max-w-3xl flex-col gap-6 px-4 py-12">
       <header className="space-y-2">
@@ -83,7 +87,7 @@ export default function ChatPage() {
       <section className="rounded-2xl border border-slate-200 bg-white p-5 text-sm shadow-sm">
         <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{t(COPY.nextTitle, locale)}</p>
         <ul className="mt-2 list-disc space-y-1 pl-5 text-slate-700">
-          {COPY.nextItems[locale === "en" ? "en" : "de"].map((item) => (
+          {COPY.nextItems[localeKey].map((item) => (
             <li key={item}>{item}</li>
           ))}
         </ul>
@@ -100,3 +104,4 @@ export default function ChatPage() {
     </main>
   );
 }
+
