@@ -102,7 +102,10 @@ export function StreamViewerClient({ sessionId }: { sessionId: string }) {
   }
 
   return (
-    <div className="rounded-3xl border border-slate-100 bg-white/95 p-5 shadow-sm space-y-4">
+    <div
+      className="rounded-3xl border border-slate-100 bg-white/95 p-5 shadow-sm space-y-4"
+      aria-busy={loading}
+    >
       <div className="flex items-center justify-between">
         <div>
           <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Live-Interaktion</p>
@@ -117,8 +120,16 @@ export function StreamViewerClient({ sessionId }: { sessionId: string }) {
         </span>
       </div>
 
-      {loading && <p className="text-sm text-slate-500">Laedt Live-Daten...</p>}
-      {!loading && error && <p className="text-sm text-rose-600">{error}</p>}
+      {loading && (
+        <p className="text-sm text-slate-500" aria-live="polite">
+          Laedt Live-Daten...
+        </p>
+      )}
+      {!loading && error && (
+        <p className="text-sm text-rose-600" aria-live="polite">
+          {error}
+        </p>
+      )}
       {!loading && !error && !item && (
         <p className="text-sm text-slate-600">Aktuell keine Live-Agenda.</p>
       )}
@@ -155,9 +166,15 @@ export function StreamViewerClient({ sessionId }: { sessionId: string }) {
                 );
               })}
               {voteStatus === "sent" && (
-                <p className="text-xs text-emerald-600">Danke! Deine Stimme ({lastChoice}) ist gespeichert.</p>
+                <p className="text-xs text-emerald-600" aria-live="polite">
+                  Danke! Deine Stimme ({lastChoice}) ist gespeichert.
+                </p>
               )}
-              {voteStatus === "error" && voteError && <p className="text-xs text-rose-600">{voteError}</p>}
+              {voteStatus === "error" && voteError && (
+                <p className="text-xs text-rose-600" aria-live="polite">
+                  {voteError}
+                </p>
+              )}
             </div>
           ) : (
             <p className="text-sm text-slate-600">

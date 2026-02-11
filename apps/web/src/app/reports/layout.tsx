@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import { BRAND } from "@/lib/brand";
 
-const title = `Streams – ${BRAND.name}`;
-const description = "Live-Streams mit Agenda, Abstimmungen und Report-Kontext.";
+const title = `Reports – ${BRAND.name}`;
+const description = "Oeffentliche Reports und Graph-Auswertungen zu Themen und Regionen.";
 
 export const metadata: Metadata = {
   title,
@@ -10,7 +10,7 @@ export const metadata: Metadata = {
   openGraph: {
     title,
     description,
-    url: `${BRAND.baseUrl}/stream`,
+    url: `${BRAND.baseUrl}/reports`,
     siteName: BRAND.name,
     type: "website",
   },
@@ -21,6 +21,6 @@ export const metadata: Metadata = {
   },
 };
 
-export default function StreamLayout({ children }: { children: React.ReactNode }) {
+export default function ReportsLayout({ children }: { children: React.ReactNode }) {
   return children;
 }

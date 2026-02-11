@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useLocale } from "@/context/LocaleContext";
+import { useAutoTranslateText } from "@/lib/i18n/autoTranslate";
 
 type TopicStat = {
   topic: string;
@@ -17,8 +19,10 @@ type SampleStatement = {
 };
 
 export default function TopicReportPage() {
+  const { locale } = useLocale();
+  const t = useAutoTranslateText({ locale, namespace: "reports-topic" });
   const [topic, setTopic] = useState("");
-  const [locale, setLocale] = useState("");
+  const [reportLocale, setReportLocale] = useState("");
   const [stats, setStats] = useState<TopicStat[]>([]);
   const [statements, setStatements] = useState<SampleStatement[]>([]);
   const [loading, setLoading] = useState(false);
@@ -30,14 +34,14 @@ export default function TopicReportPage() {
     try {
       const params = new URLSearchParams();
       if (topic.trim()) params.set("topic", topic.trim());
-      if (locale.trim()) params.set("locale", locale.trim());
+      if (reportLocale.trim()) params.set("locale", reportLocale.trim());
       const res = await fetch(`/api/reports/topic?${params.toString()}`, { cache: "no-store" });
       const body = await res.json();
       if (!res.ok || !body?.ok) throw new Error(body?.error ?? res.statusText);
       setStats(body.stats ?? []);
       setStatements(body.sampleStatements ?? []);
     } catch (err: any) {
-      setError(err?.message ?? "Report konnte nicht geladen werden.");
+      setError(err?.message ?? t("Report konnte nicht geladen werden.", "error.load"));
       setStats([]);
       setStatements([]);
     } finally {
@@ -54,11 +58,13 @@ export default function TopicReportPage() {
     <main className="mx-auto flex max-w-5xl flex-col gap-8 px-4 py-8">
       <header className="space-y-2">
         <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-          Reports · Topic
+          {t("Reports · Topic", "header.kicker")}
         </p>
-        <h1 className="text-3xl font-bold text-slate-900">Topic & Responsibility Report</h1>
+        <h1 className="text-3xl font-bold text-slate-900">
+          {t("Topic & Responsibility Report", "header.title")}
+        </h1>
         <p className="text-sm text-slate-600">
-          Aggregierte Statements aus dem Graph. Filter optional nach Topic/Locale.
+          {t("Aggregierte Statements aus dem Graph. Filter optional nach Topic/Locale.", "header.subtitle")}
         </p>
       </header>
 
@@ -71,21 +77,21 @@ export default function TopicReportPage() {
           }}
         >
           <label className="text-sm text-slate-600">
-            Topic
+            {t("Topic", "form.topic.label")}
             <input
               className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-sky-400 focus:outline-none"
               value={topic}
               onChange={(e) => setTopic(e.target.value)}
-              placeholder="z.B. Energie"
+              placeholder={t("z.B. Energie", "form.topic.placeholder")}
             />
           </label>
           <label className="text-sm text-slate-600">
-            Locale
+            {t("Locale", "form.locale.label")}
             <input
               className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-sky-400 focus:outline-none"
-              value={locale}
-              onChange={(e) => setLocale(e.target.value)}
-              placeholder="de, en, ..."
+              value={reportLocale}
+              onChange={(e) => setReportLocale(e.target.value)}
+              placeholder={t("de, en, ...", "form.locale.placeholder")}
             />
           </label>
           <div className="flex items-end">
@@ -94,27 +100,36 @@ export default function TopicReportPage() {
               className="w-full rounded-full bg-slate-900 px-5 py-2 text-sm font-semibold text-white disabled:opacity-60"
               disabled={loading}
             >
-              {loading ? "Lade …" : "Report aktualisieren"}
+              {loading ? t("Lade …", "form.loading") : t("Report aktualisieren", "form.submit")}
             </button>
           </div>
         </form>
-        {error && <p className="mt-2 text-sm text-rose-600">{error}</p>}
+        {error && (
+          <p className="mt-2 text-sm text-rose-600" aria-live="polite">
+            {error}
+          </p>
+        )}
       </section>
 
       <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-        <h2 className="text-lg font-semibold text-slate-900">Responsibility Überblick</h2>
+        <h2 className="text-lg font-semibold text-slate-900">
+          {t("Responsibility Überblick", "stats.title")}
+        </h2>
         {stats.length === 0 ? (
           <p className="mt-2 text-sm text-slate-500">
-            Keine Daten für diesen Filter. Prüfe Topic/Locale oder synchronisiere neue Analysen.
+            {t(
+              "Keine Daten für diesen Filter. Prüfe Topic/Locale oder synchronisiere neue Analysen.",
+              "stats.empty",
+            )}
           </p>
         ) : (
           <div className="mt-3 overflow-x-auto">
             <table className="min-w-full divide-y divide-slate-100 text-sm">
               <thead className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
                 <tr>
-                  <th className="px-3 py-2">Topic</th>
-                  <th className="px-3 py-2">Responsibility</th>
-                  <th className="px-3 py-2">Statements</th>
+                  <th className="px-3 py-2">{t("Topic", "table.topic")}</th>
+                  <th className="px-3 py-2">{t("Responsibility", "table.responsibility")}</th>
+                  <th className="px-3 py-2">{t("Statements", "table.statements")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -132,9 +147,11 @@ export default function TopicReportPage() {
       </section>
 
       <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-        <h2 className="text-lg font-semibold text-slate-900">Beispiel-Statements</h2>
+        <h2 className="text-lg font-semibold text-slate-900">
+          {t("Beispiel-Statements", "examples.title")}
+        </h2>
         {statements.length === 0 ? (
-          <p className="text-sm text-slate-500">Keine Statements verfügbar.</p>
+          <p className="text-sm text-slate-500">{t("Keine Statements verfügbar.", "examples.empty")}</p>
         ) : (
           <div className="mt-3 space-y-3">
             {statements.map((stmt) => (

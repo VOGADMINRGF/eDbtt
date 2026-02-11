@@ -1,10 +1,12 @@
 // apps/web/src/app/stream/[slug]/page.tsx
 import Link from "next/link";
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { ObjectId } from "@core/db/triMongo";
 import { streamSessionsCol } from "@features/stream/db";
 import { resolveSessionStatus } from "@features/stream/types";
 import { StreamViewerClient } from "./StreamViewerClient";
+import { BRAND } from "@/lib/brand";
 
 export const dynamic = "force-dynamic";
 
@@ -24,14 +26,8 @@ function isEmbedUrl(value: string) {
   );
 }
 
-export default async function StreamDetail({
-  params,
-}: {
-  params: Promise<{ slug: string }>;
-}) {
-  const { slug } = await params;
+async function loadSession(slug: string) {
   const sessions = await streamSessionsCol();
-
   const query: Record<string, any> = {
     visibility: { $in: ["public", "unlisted"] },
   };
@@ -40,8 +36,53 @@ export default async function StreamDetail({
   } else {
     query.slug = slug;
   }
+  return sessions.findOne(query);
+}
 
-  const session = await sessions.findOne(query);
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}): Promise<Metadata> {
+  const { slug } = await params;
+  const session = await loadSession(slug);
+  if (!session) {
+    return {
+      title: `Stream – ${BRAND.name}`,
+      description: BRAND.tagline_de,
+    };
+  }
+  const title = `${session.title} – Stream – ${BRAND.name}`;
+  const description =
+    session.description?.trim() || "Live-Stream mit Agenda, Abstimmungen und Report-Kontext.";
+  const sessionId = (session._id as ObjectId)?.toHexString?.() ?? "";
+  const url = `${BRAND.baseUrl}/stream/${sessionId}`;
+
+  return {
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      url,
+      siteName: BRAND.name,
+      type: "video.other",
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+    },
+  };
+}
+
+export default async function StreamDetail({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}) {
+  const { slug } = await params;
+  const session = await loadSession(slug);
   if (!session) return notFound();
 
   const status = resolveSessionStatus(session);

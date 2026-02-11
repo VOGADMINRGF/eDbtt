@@ -60,6 +60,8 @@ export default function CampaignsAdminPage() {
   const [campaigns, setCampaigns] = useState<CampaignRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [seedStatus, setSeedStatus] = useState<string | null>(null);
+  const [seeding, setSeeding] = useState(false);
   const [filter, setFilter] = useState<CampaignStatus | "all">("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [formOpen, setFormOpen] = useState(false);
@@ -163,6 +165,38 @@ export default function CampaignsAdminPage() {
     }
   };
 
+  const runSeed = async () => {
+    setSeeding(true);
+    setSeedStatus(null);
+    setError(null);
+    try {
+      const res = await fetch("/api/admin/campaigns/seed", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ statementLimit: 6, roomLimit: 4 }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok || !body?.ok) {
+        throw new Error(body?.error || res.statusText);
+      }
+      const result = body.result;
+      if (result?.status === "already_seeded") {
+        setSeedStatus("Seed bereits vorhanden.");
+      } else if (result?.status === "seeded") {
+        setSeedStatus(
+          `Seed erstellt (${result.createdQuestions} Fragen aus ${result.statementCount} Statements, ${result.roomCount} Raeumen).`,
+        );
+      } else {
+        setSeedStatus("Seed uebersprungen (keine Daten).");
+      }
+      await loadCampaigns();
+    } catch (err: any) {
+      setSeedStatus(err?.message ?? "Seed fehlgeschlagen.");
+    } finally {
+      setSeeding(false);
+    }
+  };
+
   return (
     <main className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-8">
       <header className="flex items-center justify-between gap-4">
@@ -171,16 +205,30 @@ export default function CampaignsAdminPage() {
           <h1 className="text-2xl font-bold text-slate-900">Campaign Control</h1>
           <p className="text-sm text-slate-600">Kampagnen planen, Sessions zählen und Status pflegen.</p>
         </div>
-        <button
-          onClick={() => openForm()}
-          className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-slate-800"
-        >
-          Neue Kampagne
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={runSeed}
+            className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:border-slate-300 disabled:opacity-60"
+            disabled={seeding}
+          >
+            {seeding ? "Seed läuft…" : "Seed aktuelle Inhalte"}
+          </button>
+          <button
+            onClick={() => openForm()}
+            className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-slate-800"
+          >
+            Neue Kampagne
+          </button>
+        </div>
       </header>
 
       {error && (
         <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-2 text-sm text-rose-700">{error}</div>
+      )}
+      {seedStatus && (
+        <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm text-slate-700" aria-live="polite">
+          {seedStatus}
+        </div>
       )}
 
       <div className="flex flex-wrap items-center gap-3">

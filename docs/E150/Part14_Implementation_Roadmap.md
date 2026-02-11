@@ -22,12 +22,6 @@ Stand nach den letzten Codex-Runs (nur offene Punkte):
 - **Pilot Backbone (PR-0009)**  
   – Basis steht; offene Punkte: Akquise-Dashboard (PR-0010) + Pilot-Härtung.
 
-- **Part07 Graph & Reports (Block C)**  
-  – Public Report-Seite ist Placeholder; konsistente öffentliche Report-Ausgabe fehlt.
-
-- **Part12 Campaigns (Block G)**  
-  – Operationalisierung: Seed-Run mit aktuellen Statements/Rooms fehlt.
-
 - **Part13 I18N/A11y/Social (Block H)**  
   – A11y-Pass + OG/Sharing für weitere Seiten + zentrale I18N-Namespaces offen.
 
@@ -126,7 +120,7 @@ Aufgaben:
 ### Block C – Part07: Graph & Reports – Basisintegration
 
 **Ziel:** E150-Daten landen in einer konsistenten Graph-Schicht und fließen in Reports.
-**Status:** Partial (Public Report-Seite ist noch Placeholder).
+**Status:** Done.
 
 Aufgaben:
 
@@ -234,7 +228,7 @@ Aufgaben:
 ### Block G – Part12: Campaigns & QR-Sessions
 
 **Ziel:** Gemeinden/Organisationen können Kampagnen mit QR-Code fahren und Reports erhalten.
-**Status:** Partial (Seed-Run fehlt).
+**Status:** Done.
 
 Aufgaben:
 
