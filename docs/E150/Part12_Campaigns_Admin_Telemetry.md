@@ -218,6 +218,12 @@ Streams
 
 Moderationshistorie.
 
+Akquise (Pilot)
+
+- Regionen/Gemeinden-Übersicht mit Feed-Status,
+- Last-Fetch + ItemCount + Top-Themen,
+- Test-Fetch für schnelle Machbarkeitschecks.
+
 Telemetry & Health
 
 KI-Provider,
