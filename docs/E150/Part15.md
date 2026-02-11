@@ -14,12 +14,12 @@ Dieses Dokument bündelt, welche Pfade (Part00–Part15) noch offen sind und wel
 - **Part05 Orchestrator (Block A):** Rollenspezifische Prompts + Role-Fit-Scoring umgesetzt; Gemini-Provider integriert; Health-Scoring basiert auf Telemetry + In-Memory-Metriken.
 - **Part06 Consequences (Block B):** Konsequenzen/Responsibility-Store + Navigator-UI + APIs umgesetzt.  
 - **Part06 Themenkatalog & Zuständigkeiten:** Neu angelegt, 15 Hauptkategorien verbindlich; `TOPIC_CHOICES`-Abgleich in Profil/Onboarding/Filter offen.
-- **Part07 Graph & Reports (Block C):** Graph-Sync + Admin-Reports aktiv; Public Report-Seite ist noch Placeholder.
+- **Part07 Graph & Reports (Block C):** Graph-Sync + Admin-Reports aktiv; Public Report-Seite ist noch Placeholder (Block C bleibt teilweise offen).
 - **Part08 Eventualities (Block D):** Eventuality-/DecisionTree-Typen, Analyzer-Prompts, Persistenz, UI (EventualityBoard) und API `/api/eventualities/analyze` umgesetzt.
 - **Part09 Research Workflow (Block E/R2):** Seeding, Filter/Sortierung, Feedback, Graph-Rueckfluss und Cooldown umgesetzt.
 - **Part10 Responsibility Navigator (Block B):** Directory/Paths + Navigator + Admin-UI aktiv.
 - **Part11 Streams (Block F):** XP-Gating/XP-Awarding umgesetzt; Stream-Deck-Adapter + Host-Deck-Panel teilweise vorhanden, Übersicht/Viewer fehlen.
-- **Part12 Campaigns (Block G):** Modelle, Admin-UI, QR-Flows, Reports umgesetzt; Seed-Run für aktuelle Statements/Rooms ausstehend.
+- **Part12 Campaigns (Block G):** Modelle, Admin-UI, QR-Flows, Reports umgesetzt; Seed-Run für aktuelle Statements/Rooms ausstehend (Block G bleibt teilweise offen).
 - **Part13 I18N/A11y/Social (Block H):** Auto-Translate Hooks + Community-Räume umgesetzt; vollständiger A11y-Pass + zentrale I18N-Namespaces offen.
 - **Part14 Implementation Roadmap:** Dient als Arbeitsmodus; Block-Reihenfolge beachten.
 - **Part15 Codex Safe Mode:** Leitplanken aktiv; keine offenen Tasks, aber stets befolgen.
@@ -37,11 +37,11 @@ Dieses Dokument bündelt, welche Pfade (Part00–Part15) noch offen sind und wel
 | --- | --- | --- | --- |
 | **A – Orchestrator (E150 Core Provider)** | Part05 | **Done** | Rollenspezifische Prompt-Templates + Role-Fit-Scoring aktiv; Gemini-Provider integriert; Health-Scoring nutzt Telemetry + In-Memory-Metriken. |
 | **B – Consequences & Responsibility Navigator** | Part06/10 | **Done** | Graph/Persistenz fuer Consequences/Responsibilities aktiv; API-Routes `/api/responsibility/[id]`, `/api/consequence/[id]`; `ResponsibilityNavigator.tsx` zeigt Pfade/Level/Hints; Admin-Directory & Path-Editor unter `/admin/responsibility`. |
-| **C – Graph & Reports** | Part07 | **Done** | `core/graph/syncAnalyzeResult.ts` schreibt Claims/Notes/Questions/Knots/Eventualities in Neo4j; Report-Adapter in `core/graph/queries/reports.ts` + Admin-Reports nutzen echte Graph-Daten; `/admin/graph/impact` arbeitet mit Graph-Stats. |
+| **C – Graph & Reports** | Part07 | **Partial** | `core/graph/syncAnalyzeResult.ts` schreibt Claims/Notes/Questions/Knots/Eventualities in Neo4j; Report-Adapter in `core/graph/queries/reports.ts` + Admin-Reports nutzen echte Graph-Daten; `/admin/graph/impact` arbeitet mit Graph-Stats; Public Report-Seite noch Placeholder. |
 | **D – Eventualities / DecisionTree** | Part08 | **Done** | Typen `EventualityNode`/`DecisionTree` + Analyzer-Prompts aktiv; Persistenz via `core/eventualities/*`; UI `EventualityBoard.tsx` (AnalyzeWorkspace) + Admin-Eventualities; API `/api/eventualities/analyze`. |
 | **E (R2) – Research Workflow** | Part09 | **Done** | Seeding aus Questions/Knots; Filter-/Sortier-API `/api/research/list`; Contributor-Feedback („Hilfreich?“-Rating); Graph-Rueckfluss; Cooldown aktiv. |
 | **F – Streams** | Part11 | **Partial** | XP-Gating (Host) + XP-Awarding fuer Host/Votes aktiv; Deck-Adapter + Host-Deck-Panel vorhanden, Streams-Übersicht/Viewer fehlen. |
-| **G – Campaigns** | Part12 | **Done** | Modelle `Campaign`, `CampaignSession` + Questions/Responses; Admin-UI + Statistik-View; QR-Flow `/:locale/:campaignSlug/:sessionCode`; Reports vorhanden. |
+| **G – Campaigns** | Part12 | **Partial** | Modelle `Campaign`, `CampaignSession` + Questions/Responses; Admin-UI + Statistik-View; QR-Flow `/:locale/:campaignSlug/:sessionCode`; Reports vorhanden; Seed-Run für aktuelle Statements/Rooms fehlt. |
 | **H – I18N / A11y / Social** | Part13 | **Partial** | Auto-Translate Hooks + Community-Räume aktiv; A11y-Pass + zentrale I18N-Namespaces offen. |
 
 ## Konkrete Next Steps

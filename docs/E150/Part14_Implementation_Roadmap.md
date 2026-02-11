@@ -129,7 +129,7 @@ Aufgaben:
 ### Block C – Part07: Graph & Reports – Basisintegration
 
 **Ziel:** E150-Daten landen in einer konsistenten Graph-Schicht und fließen in Reports.
-**Status:** Done (Public Report-Seite ist noch Placeholder).
+**Status:** Partial (Public Report-Seite ist noch Placeholder).
 
 Aufgaben:
 
@@ -237,7 +237,7 @@ Aufgaben:
 ### Block G – Part12: Campaigns & QR-Sessions
 
 **Ziel:** Gemeinden/Organisationen können Kampagnen mit QR-Code fahren und Reports erhalten.
-**Status:** Done (Seed-Run fehlt).
+**Status:** Partial (Seed-Run fehlt).
 
 Aufgaben:
 
