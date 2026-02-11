@@ -7,6 +7,7 @@ import { streamAgendaCol, streamSessionsCol } from "@features/stream/db";
 import { VoteModel } from "@/models/votes/Vote";
 import { createHash } from "crypto";
 import { resolveSessionStatus } from "@features/stream/types";
+import UserGameStats from "src/models/game/UserGameStats";
 
 function hashSession(input: string) {
   return createHash("sha256").update(input).digest("hex").slice(0, 40);
@@ -75,6 +76,18 @@ export async function POST(
     },
     { upsert: true },
   );
+
+  try {
+    if (userId) {
+      const eventId = `stream:vote:${id}:${agendaItemId}:${userId}`;
+      await UserGameStats.awardXp(userId, 1, {
+        eventId,
+        timezone: "Europe/Berlin",
+      });
+    }
+  } catch (err) {
+    console.error("[gamify] stream vote awardXp failed:", err);
+  }
 
   return NextResponse.json({ ok: true });
 }

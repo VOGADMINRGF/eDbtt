@@ -18,7 +18,7 @@ Dieses Dokument bündelt, welche Pfade (Part00–Part15) noch offen sind und wel
 - **Part08 Eventualities (Block D):** Eventuality-/DecisionTree-Typen, Analyzer-Prompts, Persistenz, UI (EventualityBoard) und API `/api/eventualities/analyze` umgesetzt.
 - **Part09 Research Workflow (Block E/R2):** Seeding, Filter/Sortierung, Feedback, Graph-Rueckfluss und Cooldown umgesetzt.
 - **Part10 Responsibility Navigator (Block B):** Directory/Paths + Navigator + Admin-UI aktiv.
-- **Part11 Streams (Block F):** Modelle, Routes/UI und XP-Gating fehlen; Stream-Deck aus Reports/Graph steht aus.
+- **Part11 Streams (Block F):** Streams-Stack aktiv; XP-Gating/XP-Awarding fuer Hosting & Teilnahme umgesetzt.
 - **Part12 Campaigns (Block G):** Campaign/CampaignSession-Modelle, Admin-UI, QR-Flows und Reports fehlen.
 - **Part13 I18N/A11y/Social (Block H):** Übersetzungs-Infra, A11y-Pass und minimale Community-Räume/Chat fehlen.
 - **Part14 Implementation Roadmap:** Dient als Arbeitsmodus; Block-Reihenfolge beachten.
@@ -40,7 +40,7 @@ Dieses Dokument bündelt, welche Pfade (Part00–Part15) noch offen sind und wel
 | **C – Graph & Reports** | Part07 | **Done** | `core/graph/syncAnalyzeResult.ts` schreibt Claims/Notes/Questions/Knots/Eventualities in Neo4j; Report-Adapter in `core/graph/queries/reports.ts` + Admin-Reports nutzen echte Graph-Daten; `/admin/graph/impact` arbeitet mit Graph-Stats. |
 | **D – Eventualities / DecisionTree** | Part08 | **Done** | Typen `EventualityNode`/`DecisionTree` + Analyzer-Prompts aktiv; Persistenz via `core/eventualities/*`; UI `EventualityBoard.tsx` (AnalyzeWorkspace) + Admin-Eventualities; API `/api/eventualities/analyze`. |
 | **E (R2) – Research Workflow** | Part09 | **Done** | Seeding aus Questions/Knots; Filter-/Sortier-API `/api/research/list`; Contributor-Feedback („Hilfreich?“-Rating); Graph-Rueckfluss; Cooldown aktiv. |
-| **F – Streams** | Part11 | **Offen** | Modelle `Stream`, `StreamSession`; UI `StreamDeck` mit XP-Gating; XP-Zuwachs für Teilnahme/Hosting. |
+| **F – Streams** | Part11 | **Done** | Stream-Sessions + Dashboard aktiv; XP-Gating (Host) + XP-Awarding fuer Host/Votes in Streams. |
 | **G – Campaigns** | Part12 | **Offen** | Modelle `Campaign`, `CampaignSession`; Admin-UI + Statistik-View; QR-Flow `/campaign/[id]/join`; Reports/Erfolgsmessung. |
 | **H – I18N / A11y / Social** | Part13 | **Offen** | I18N-Infra (next-intl, Namespaces `common`, `admin`, `analyze`); A11y-Audit + „A11y Pass“ im Build; Basis-Chat/Community-Räume für Citizen Pro +. |
 
@@ -250,4 +250,19 @@ Verification
 - `./scripts/verify.sh` (PASS, Warnung: Node 20.x erwartet, aktuell v24.5.0)
 
 Next Steps
-- Block F/G/H oder weitere Pilot-Haertung nach Part14 priorisieren.
+- Block F abgeschlossen; weiter mit Block G/H nach Part14.
+
+## PR-0009 (Follow-up, 2026-02-11) - Block F Streams
+
+Ziel
+- Streams-Teilnahme/Hosting mit XP-Gating und XP-Awarding vervollstaendigen.
+
+Changes
+- XP-Awarding fuer Stream-Hosts bei Session-Erstellung.
+- XP-Awarding fuer Stream-Votes (Teilnahme) mit idempotenten Event-IDs.
+
+Verification
+- `./scripts/verify.sh` (PASS, Warnung: Node 20.x erwartet, aktuell v24.5.0)
+
+Next Steps
+- Block G (Campaigns) oder Block H (I18N/A11y/Social) nach Part14 priorisieren.

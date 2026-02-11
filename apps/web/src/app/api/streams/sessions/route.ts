@@ -15,6 +15,7 @@ import { enforceStreamHost, requireCreatorContext } from "../utils";
 import { TOPIC_CHOICES } from "@features/interests/topics";
 import { applyAutofilledAgendaToSession } from "@core/streams/agenda";
 import { rateLimitOrThrow } from "@/utils/rateLimitHelpers";
+import UserGameStats from "src/models/game/UserGameStats";
 
 const CreateSessionBodySchema = z.object({
   title: z.string().min(1),
@@ -128,6 +129,16 @@ export async function POST(req: NextRequest) {
   const col = await streamSessionsCol();
   const result = await col.insertOne(doc);
   const sessionId = result.insertedId.toHexString();
+
+  try {
+    const eventId = `stream:host:${sessionId}:${ctx.userId}`;
+    await UserGameStats.awardXp(ctx.userId, 5, {
+      eventId,
+      timezone: "Europe/Berlin",
+    });
+  } catch (err) {
+    console.error("[gamify] stream host awardXp failed:", err);
+  }
 
   let autofillError: string | null = null;
   if (body.autofillAgenda) {
