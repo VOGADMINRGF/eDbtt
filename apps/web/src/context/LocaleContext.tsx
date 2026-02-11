@@ -70,6 +70,7 @@ export function LocaleProvider({
     persistLocale(next);
     syncUrl(next);
     updateHtmlAttrs(next);
+    void syncPreferredLocale(next);
   }, []);
 
   const value = useMemo(
@@ -124,6 +125,19 @@ function updateHtmlAttrs(locale: SupportedLocale) {
   try {
     document.documentElement.lang = locale;
     document.documentElement.dir = "ltr";
+  } catch {
+    /* ignore */
+  }
+}
+
+async function syncPreferredLocale(locale: SupportedLocale) {
+  if (typeof window === "undefined") return;
+  try {
+    await fetch("/api/account/settings", {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ preferredLocale: locale }),
+    });
   } catch {
     /* ignore */
   }

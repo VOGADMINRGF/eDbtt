@@ -53,8 +53,16 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       <body className="min-h-screen bg-gradient-to-b from-[var(--brand-from)] via-white to-white text-neutral-900 antialiased">
         <LocaleProvider initialLocale={initialLocale}>
           <div className="flex min-h-screen flex-col">
+            <a
+              href="#main-content"
+              className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-white focus:px-3 focus:py-2 focus:text-sm focus:font-semibold focus:text-slate-900 focus:shadow"
+            >
+              Skip to content
+            </a>
             <SiteHeader initialUser={initialUser} />
-            <main className="flex-1">{children}</main>
+            <main id="main-content" className="flex-1">
+              {children}
+            </main>
             <SiteFooter />
             <div className="h-[env(safe-area-inset-bottom)]" />
             <AnalyticsTracker />

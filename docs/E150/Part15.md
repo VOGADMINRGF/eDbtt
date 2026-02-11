@@ -318,3 +318,19 @@ Verification
 
 Next Steps
 - Seed-Script mit Admin-Cookie ausfuehren und erste Kampagnen/Rooms testen.
+
+## PR-0009 (Follow-up, 2026-02-11) - Block H I18N/A11y/Sharing
+
+Ziel
+- I18N-Profile-Sync, A11y-Basics und Sharing-Meta fuer Statements/Reports nachziehen.
+
+Changes
+- Locale-Switch synced `preferredLocale` via `/api/account/settings`.
+- Skip-to-content Links + `main` Anker im Root-Layout und Locale-Layout.
+- OG/Twitter-Metadata fuer Statements und Reports ergänzt.
+
+Verification
+- `./scripts/verify.sh` (PASS, Warnung: Node 20.x erwartet, aktuell v24.5.0)
+
+Next Steps
+- Admin-Cookie bereitstellen, damit Seed-Script laufen kann.
