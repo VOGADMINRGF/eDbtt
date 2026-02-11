@@ -12,6 +12,7 @@ import {
   ConsequencesPreviewCard,
   ResponsibilityPreviewCard,
 } from "@features/statement/components/StatementImpactPreview";
+import EventualityBoard from "@/components/eventualities/EventualityBoard";
 import type {
   AnalyzeResult,
   ConsequenceRecord,
@@ -2533,34 +2534,11 @@ export default function AnalyzeWorkspace({
                   <summary className="cursor-pointer text-sm font-semibold text-slate-800">
                     Eventualitaeten &amp; Entscheidungsbaeume
                   </summary>
-                  {eventualities.length === 0 && decisionTrees.length === 0 ? (
-                    <p className="mt-2 text-sm text-slate-500">Noch keine Eventualitaeten oder Decision Trees vorhanden.</p>
-                  ) : (
-                    <div className="mt-2 space-y-3 text-sm text-slate-700">
-                      {eventualities.length > 0 && (
-                        <div>
-                          <p className="text-xs font-semibold uppercase text-slate-500">Eventualitaeten</p>
-                          <ul className="mt-1 list-disc space-y-1 pl-4">
-                            {eventualities.map((e, idx) => {
-                              const key = e.id ?? `ev-${idx}`;
-                              const text = translateText(`eventuality:${key}:text`, e.narrative || e.label || "");
-                              return <li key={key}>{text}</li>;
-                            })}
-                          </ul>
-                        </div>
-                      )}
-                      {decisionTrees.length > 0 && (
-                        <div>
-                          <p className="text-xs font-semibold uppercase text-slate-500">Decision Trees</p>
-                          <ul className="mt-1 list-disc space-y-1 pl-4">
-                            {decisionTrees.map((d, idx) => (
-                              <li key={d.id ?? `dt-${idx}`}>Decision Tree fuer Statement {d.rootStatementId}</li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
-                    </div>
-                  )}
+                  <EventualityBoard
+                    eventualities={eventualities}
+                    decisionTrees={decisionTrees}
+                    translateText={translateText}
+                  />
                 </details>
 
                 <details

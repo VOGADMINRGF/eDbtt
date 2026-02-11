@@ -14,8 +14,8 @@ Dieses Dokument bündelt, welche Pfade (Part00–Part15) noch offen sind und wel
 - **Part05 Orchestrator (Block A):** Gemini-Provider, rollenspezifische Prompts und Health/Score fehlen noch.
 - **Part06 Consequences (Block B):** Modelle, Persistenz und UI (Responsibility Navigator) stehen aus.  
 - **Part06 Themenkatalog & Zuständigkeiten:** Neu angelegt, 15 Hauptkategorien verbindlich; `TOPIC_CHOICES`-Abgleich in Profil/Onboarding/Filter offen.
-- **Part07 Graph & Reports (Block C):** Zentrale Graph-Schicht und Report-Adapter fehlen; AnalyzeResult-Sync offen.
-- **Part08 Eventualities (Block D):** Eventuality-/DecisionTree-Typen, Analyzer-Prompts, Persistenz und UI fehlen.
+- **Part07 Graph & Reports (Block C):** Graph-Schicht + Report-Adapter aktiv; AnalyzeResult-Sync schreibt Claims/Notes/Questions/Knots/Eventualities in den Graph.
+- **Part08 Eventualities (Block D):** Eventuality-/DecisionTree-Typen, Analyzer-Prompts, Persistenz, UI (EventualityBoard) und API `/api/eventualities/analyze` umgesetzt.
 - **Part09 Research Workflow (Block E/R2):** Tasks/Contributions vorhanden; offen sind Seeding aus Questions/Knots, Filter/Sortierung, Contributor-Feedback, Rückfluss in Statements/Graph und Anti-Spam.
 - **Part10 Responsibility Navigator (Block B):** Directory/Paths und Frontend-Navigator müssen aufgebaut werden.
 - **Part11 Streams (Block F):** Modelle, Routes/UI und XP-Gating fehlen; Stream-Deck aus Reports/Graph steht aus.
@@ -37,8 +37,8 @@ Dieses Dokument bündelt, welche Pfade (Part00–Part15) noch offen sind und wel
 | --- | --- | --- | --- |
 | **A – Orchestrator (E150 Core Provider)** | Part05 | **Offen** | `@features/ai/orchestrator_gemini.ts` (Adapter + `ProviderMeta`), rollenspezifische Prompts (citizen, staff, institution), Health-/Score-Tracking in `orchestrator_health.ts`; SSE bleibt intakt. |
 | **B – Consequences & Responsibility Navigator** | Part06/10 | **Offen** | Prisma-Modelle `Consequence`, `Responsibility`, `ResponsibilityLink`; API-Routes `/api/responsibility/[id]`, `/api/consequence/[id]`; React-`ResponsibilityNavigator.tsx` mit Filter/Path-Tree/Score-Coloring; Admin-View fürs Mapping. |
-| **C – Graph & Reports** | Part07 | **Offen** | `@features/graph/sync.ts` (AnalyzeResult → Graph), Graph-Store (Neo4j/Arango/Memgraph Connector), `/admin/graph/impact` mit echten Graph-Stats. |
-| **D – Eventualities / DecisionTree** | Part08 | **Offen** | Typen `Eventuality`, `DecisionTreeNode`; Analyzer-Prompts für „was passiert wenn …“; UI `EventualityBoard.tsx`; API `/api/eventualities/analyze`. |
+| **C – Graph & Reports** | Part07 | **Done** | `core/graph/syncAnalyzeResult.ts` schreibt Claims/Notes/Questions/Knots/Eventualities in Neo4j; Report-Adapter in `core/graph/queries/reports.ts` + Admin-Reports nutzen echte Graph-Daten; `/admin/graph/impact` arbeitet mit Graph-Stats. |
+| **D – Eventualities / DecisionTree** | Part08 | **Done** | Typen `EventualityNode`/`DecisionTree` + Analyzer-Prompts aktiv; Persistenz via `core/eventualities/*`; UI `EventualityBoard.tsx` (AnalyzeWorkspace) + Admin-Eventualities; API `/api/eventualities/analyze`. |
 | **E (R2) – Research Workflow** | Part09 | **Offen** | Seeding aus Questions/Knots; Filter-/Sortier-API `/api/research/list`; Contributor-Feedback („Hilfreich?“-Rating); Rückfluss in Statements/Graph; Anti-Spam-Heuristik (Contributor-Cooldown). |
 | **F – Streams** | Part11 | **Offen** | Modelle `Stream`, `StreamSession`; UI `StreamDeck` mit XP-Gating; XP-Zuwachs für Teilnahme/Hosting. |
 | **G – Campaigns** | Part12 | **Offen** | Modelle `Campaign`, `CampaignSession`; Admin-UI + Statistik-View; QR-Flow `/campaign/[id]/join`; Reports/Erfolgsmessung. |
@@ -48,7 +48,7 @@ Dieses Dokument bündelt, welche Pfade (Part00–Part15) noch offen sind und wel
 
 1. **Starte mit Block A** (Part05): Gemini-Provider + rollenspezifische Prompts + Health/Score.
 2. **Danach Block B** (Part06/10): Consequence-/Responsibility-Modelle, Persistenz, Navigator-UI & Admin.
-3. **Block C & D parallel planen** (Part07/08): Graph-Sync plus Eventualities-Typen/Prompts/UI.
+3. **Block C & D erledigt** (Part07/08): Graph-Sync + Eventualities-Stack stehen.
 4. **Research R2 priorisieren** (Part09): Seeding, Filter, Contributor-Feedback, Rückfluss, Anti-Spam.
 5. **Block F/G/H** (Part11/12/13): Streams/Campaigns/I18N-A11y-Social, sobald Basis aus A–D steht.
 
@@ -188,3 +188,19 @@ Verification
 
 Next Steps
 - Prisma-Client-Generierung fuer `@db-core` in der CI einplanen, sobald die neue Persistenz aktiv genutzt wird.
+
+## PR-0009 (Follow-up, 2026-02-11) - Block C/D Closeout
+
+Ziel
+- Graph- und Eventualities-Stack vervollstaendigen (Notes-Sync, EventualityBoard, API).
+
+Changes
+- Graph-Sync schreibt Notes als eigene Nodes und verknuepft sie mit dem Source-Node.
+- UI-Komponente `EventualityBoard.tsx` fuer Eventualitaeten/DecisionTrees eingefuehrt und in AnalyzeWorkspace verdrahtet.
+- API `POST /api/eventualities/analyze` fuer Eventuality-/DecisionTree-Auszug hinzugefuegt.
+
+Verification
+- `./scripts/verify.sh` (PASS, Warnung: Node 20.x erwartet, aktuell v24.5.0)
+
+Next Steps
+- Block A (Orchestrator) und danach Block B (Consequences/Responsibility Navigator).

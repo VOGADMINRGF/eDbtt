@@ -51,6 +51,18 @@ export async function syncAnalyzeResultToGraph({ result, locale, sourceId }: Syn
     label: knot.label,
     description: knot.description,
   }));
+  const notesPayload = (result.notes ?? []).map((note, index) => ({
+    id: note.id || `${resolvedSourceId}-note-${index}`,
+    text: note.text,
+    kind: note.kind ?? null,
+    locale: locale ?? result.language ?? "de",
+  }));
+  const questionsPayload = (result.questions ?? []).map((question, index) => ({
+    id: question.id || `${resolvedSourceId}-question-${index}`,
+    text: question.text,
+    dimension: question.dimension ?? null,
+    locale: locale ?? result.language ?? "de",
+  }));
 
   const localeForGraph = locale ?? result.language ?? "de";
   const eventualityArtifacts = collectEventualityGraphArtifacts(result, localeForGraph);
@@ -121,6 +133,41 @@ export async function syncAnalyzeResultToGraph({ result, locale, sourceId }: Syn
           MERGE (source)-[:FEATURES]->(k)
           `,
           { knots: knotsPayload, sourceId: resolvedSourceId },
+        ),
+      );
+    }
+
+    if (notesPayload.length > 0) {
+      await session.executeWrite((tx) =>
+        tx.run(
+          `
+          UNWIND $notes AS note
+          MERGE (n:Note {id: note.id})
+          SET n.text = note.text,
+              n.kind = note.kind,
+              n.locale = note.locale,
+              n.updatedAt = timestamp()
+          MERGE (source:Source {id: $sourceId})
+          MERGE (source)-[:HAS_NOTE]->(n)
+          `,
+          { notes: notesPayload, sourceId: resolvedSourceId },
+        ),
+      );
+    }
+
+    if (questionsPayload.length > 0) {
+      await session.executeWrite((tx) =>
+        tx.run(
+          `
+          UNWIND $questions AS question
+          MERGE (q:Question {id: question.id})
+          SET q.text = question.text,
+              q.dimension = question.dimension,
+              q.locale = question.locale
+          MERGE (source:Source {id: $sourceId})
+          MERGE (source)-[:RAISES_QUESTION]->(q)
+          `,
+          { questions: questionsPayload, sourceId: resolvedSourceId },
         ),
       );
     }
