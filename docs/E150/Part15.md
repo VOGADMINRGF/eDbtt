@@ -11,7 +11,7 @@ Dieses Dokument bündelt, welche Pfade (Part00–Part15) noch offen sind und wel
 - **Part02 Rollen / XP / Gamification:** XP-Anbindung benötigt noch Research-/Streams-/Campaign-Hooks (siehe Blöcke E, F, G); Profil-Freischaltungen pro Engagement-Level dokumentiert, UI-Gating offen.
 - **Part03 Access Tiers & Pricing:** Grundlogik aktiv; Profil-Pakete (profileBasic/Pro/Premium) als Darstellungs-Dimension ergänzt, Mapping zu Tiers umzusetzen.
 - **Part04 B2G/B2B Modelle:** Begriffe mit Profil-Paket-Namen harmonisiert; warten auf Campaigns/Streams-Implementierung (Block F/G) für echten Pilotbetrieb.
-- **Part05 Orchestrator (Block A):** Rollenspezifische Prompts + Role-Fit-Scoring umgesetzt; Gemini-Provider + Health/Telemetry-Scoring fehlen.
+- **Part05 Orchestrator (Block A):** Rollenspezifische Prompts + Role-Fit-Scoring umgesetzt; Gemini-Provider integriert; Health-Scoring basiert auf Telemetry + In-Memory-Metriken.
 - **Part06 Consequences (Block B):** Konsequenzen/Responsibility-Store + Navigator-UI + APIs umgesetzt.  
 - **Part06 Themenkatalog & Zuständigkeiten:** Neu angelegt, 15 Hauptkategorien verbindlich; `TOPIC_CHOICES`-Abgleich in Profil/Onboarding/Filter offen.
 - **Part07 Graph & Reports (Block C):** Graph-Sync + Admin-Reports aktiv; Public Report-Seite ist noch Placeholder.
@@ -35,7 +35,7 @@ Dieses Dokument bündelt, welche Pfade (Part00–Part15) noch offen sind und wel
 
 | Block | Bezug | Status | Definition of Done |
 | --- | --- | --- | --- |
-| **A – Orchestrator (E150 Core Provider)** | Part05 | **Partial** | Rollenspezifische Prompt-Templates + Role-Fit-Scoring aktiv; Gemini-Provider + Health/Telemetry-Scoring fehlen. |
+| **A – Orchestrator (E150 Core Provider)** | Part05 | **Done** | Rollenspezifische Prompt-Templates + Role-Fit-Scoring aktiv; Gemini-Provider integriert; Health-Scoring nutzt Telemetry + In-Memory-Metriken. |
 | **B – Consequences & Responsibility Navigator** | Part06/10 | **Done** | Graph/Persistenz fuer Consequences/Responsibilities aktiv; API-Routes `/api/responsibility/[id]`, `/api/consequence/[id]`; `ResponsibilityNavigator.tsx` zeigt Pfade/Level/Hints; Admin-Directory & Path-Editor unter `/admin/responsibility`. |
 | **C – Graph & Reports** | Part07 | **Done** | `core/graph/syncAnalyzeResult.ts` schreibt Claims/Notes/Questions/Knots/Eventualities in Neo4j; Report-Adapter in `core/graph/queries/reports.ts` + Admin-Reports nutzen echte Graph-Daten; `/admin/graph/impact` arbeitet mit Graph-Stats. |
 | **D – Eventualities / DecisionTree** | Part08 | **Done** | Typen `EventualityNode`/`DecisionTree` + Analyzer-Prompts aktiv; Persistenz via `core/eventualities/*`; UI `EventualityBoard.tsx` (AnalyzeWorkspace) + Admin-Eventualities; API `/api/eventualities/analyze`. |
@@ -46,10 +46,9 @@ Dieses Dokument bündelt, welche Pfade (Part00–Part15) noch offen sind und wel
 
 ## Konkrete Next Steps
 
-1. **Block A finalisieren:** Gemini-Provider + Health/Telemetry-Scoring ergänzen.
-2. **Block F abschließen:** Streams-UI (Übersicht/Host/Deck) nachziehen.
-3. **Block G operationalisieren:** Seed-Run für aktuelle Statements/Rooms ausführen.
-4. **Block H abschließen:** A11y-Pass auf Kernseiten + OG-Tags konsistent erweitern.
+1. **Block F abschließen:** Streams-UI (Übersicht/Host/Deck) nachziehen.
+2. **Block G operationalisieren:** Seed-Run für aktuelle Statements/Rooms ausführen.
+3. **Block H abschließen:** A11y-Pass auf Kernseiten + OG-Tags konsistent erweitern.
 
 ### Identity & Profile (aus Part00–04 abgeleitet)
 

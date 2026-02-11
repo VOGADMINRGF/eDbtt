@@ -12,7 +12,7 @@
  * liefert „nur“ Roh-JSON-Text zurück (plus Meta-Informationen).
  */
 
-import { recordAiTelemetry } from "@features/ai/telemetry";
+import { recordAiTelemetry, getProviderHealthFromTelemetry } from "@features/ai/telemetry";
 import { logAiUsage } from "@core/telemetry/aiUsage";
 import type { AiErrorKind, AiPipelineName } from "@core/telemetry/aiUsageTypes";
 import { callOpenAI as askOpenAI } from "@features/ai/providers/openai";
@@ -694,15 +694,28 @@ function resolveProviderHealth(profile: ProviderProfile): {
   score: number;
 } {
   if (!profile.metricId) {
+    const telemetry = getProviderHealthFromTelemetry(profile.name);
+    if (telemetry) {
+      return deriveHealthFromScore(telemetry.score, true);
+    }
     return { state: "unknown", score: 0.5 };
   }
 
-  const raw = clamp(healthScore(profile.metricId), 0, 1);
+  const metricScore = clamp(healthScore(profile.metricId), 0, 1);
+  const telemetry = getProviderHealthFromTelemetry(profile.metricId);
+  const blendedScore = telemetry
+    ? clamp01(metricScore * 0.35 + telemetry.score * 0.65)
+    : metricScore;
 
-  if (raw >= 0.75) return { state: "healthy", score: raw };
-  if (raw >= 0.45) return { state: "degraded", score: raw };
-  if (raw > 0) return { state: "down", score: raw };
-  return { state: "unknown", score: raw };
+  return deriveHealthFromScore(blendedScore, Boolean(telemetry));
+}
+
+function deriveHealthFromScore(score: number, hasTelemetry: boolean) {
+  if (!hasTelemetry && score === 0.5) return { state: "unknown" as ProviderHealthState, score };
+  if (score >= 0.75) return { state: "healthy" as ProviderHealthState, score };
+  if (score >= 0.45) return { state: "degraded" as ProviderHealthState, score };
+  if (score > 0) return { state: "down" as ProviderHealthState, score };
+  return { state: "unknown" as ProviderHealthState, score };
 }
 
 const probeCache = new Map<
@@ -1741,6 +1754,7 @@ export async function callE150Orchestrator(
       provider: outcome.provider,
       model: success?.modelName,
       success: outcome.ok,
+      jsonOk: outcome.ok,
       retries: 0,
       durationMs: outcome.durationMs,
       tokensIn: success?.tokensIn,

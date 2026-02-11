@@ -9,6 +9,7 @@ export type AiTelemetryEvent = {
   provider: string;
   model?: string;
   success: boolean;
+  jsonOk?: boolean;
   retries: number;
   durationMs?: number;
   tokensIn?: number;
@@ -35,6 +36,8 @@ export type AiTelemetrySummary = {
 
 const MAX_EVENTS = Number(process.env.AI_TELEMETRY_BUFFER_MAX ?? 1000);
 const buffer: AiTelemetryEvent[] = [];
+const DEFAULT_HEALTH_WINDOW_MS = Number(process.env.AI_HEALTH_WINDOW_MS ?? 6 * 60 * 60 * 1000);
+const DEFAULT_MIN_SAMPLES = Number(process.env.AI_HEALTH_MIN_SAMPLES ?? 6);
 
 let customSink: ((event: AiTelemetryEvent) => Promise<void> | void) | null = null;
 
@@ -52,6 +55,7 @@ export async function recordAiTelemetry(
     provider: event.provider,
     model: event.model,
     success: event.success,
+    jsonOk: event.jsonOk,
     retries: event.retries ?? 0,
     durationMs: event.durationMs,
     tokensIn: event.tokensIn,
@@ -125,5 +129,72 @@ export function summarizeTelemetry(events: AiTelemetryEvent[] = buffer): AiTelem
       avgDurationMs: formatAvg(bucket.durationSum, bucket.calls),
       fallbackRate: formatRate(bucket.fallback, bucket.calls),
     })),
+  };
+}
+
+export type ProviderHealthSnapshot = {
+  provider: string;
+  score: number;
+  successRate: number;
+  jsonOkRate: number;
+  p95Ms: number;
+  sampleSize: number;
+};
+
+function clamp01(value: number): number {
+  if (Number.isNaN(value)) return 0;
+  return Math.min(1, Math.max(0, value));
+}
+
+function p95Of(arr: number[]): number {
+  const sorted = [...arr].sort((a, b) => a - b);
+  const idx = Math.max(0, Math.floor(sorted.length * 0.95) - 1);
+  return sorted[idx] ?? 0;
+}
+
+function toNumber(value: unknown, fallback: number): number {
+  const num = typeof value === "string" ? Number(value) : typeof value === "number" ? value : NaN;
+  return Number.isFinite(num) ? num : fallback;
+}
+
+export function getProviderHealthFromTelemetry(
+  provider: string,
+  opts?: { windowMs?: number; minSamples?: number; limit?: number },
+): ProviderHealthSnapshot | null {
+  const windowMs = opts?.windowMs ?? DEFAULT_HEALTH_WINDOW_MS;
+  const minSamples = opts?.minSamples ?? DEFAULT_MIN_SAMPLES;
+  const limit = opts?.limit ?? 400;
+  const now = Date.now();
+
+  const events = recentEvents(limit).filter(
+    (entry) =>
+      entry.provider === provider &&
+      (windowMs <= 0 || now - entry.ts <= windowMs),
+  );
+
+  if (events.length < minSamples) return null;
+
+  const successCount = events.filter((e) => e.success).length;
+  const jsonOkCount = events.filter((e) => e.jsonOk).length;
+  const durations = events.map((e) => e.durationMs ?? 0).filter((value) => value > 0);
+  const p95Ms = durations.length ? p95Of(durations) : 2000;
+
+  const successRate = successCount / events.length;
+  const jsonOkRate = jsonOkCount / events.length;
+
+  const wAvail = toNumber(process.env.AI_SCORE_W_AVAIL, 0.45);
+  const wJson = toNumber(process.env.AI_SCORE_W_JSON, 0.35);
+  const wLat = toNumber(process.env.AI_SCORE_W_LAT, 0.2);
+  const latencyScore = 1 / (1 + p95Ms / 1000);
+
+  const score = clamp01(wAvail * successRate + wJson * jsonOkRate + wLat * latencyScore);
+
+  return {
+    provider,
+    score,
+    successRate,
+    jsonOkRate,
+    p95Ms,
+    sampleSize: events.length,
   };
 }

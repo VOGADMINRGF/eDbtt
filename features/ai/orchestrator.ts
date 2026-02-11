@@ -15,11 +15,13 @@ export function afterCall(id: string, ms: number, ok: boolean, jsonOk: boolean) 
 
 export function healthScore(id: string): number {
   const m = METRICS[id] ?? { ok: 0, fail: 0, jsonOk: 0, p95ms: [] as number[] };
-  const total = Math.max(1, m.ok + m.fail);
+  const total = m.ok + m.fail;
+  if (total === 0) return 0.5;
   const succ = m.ok / total;
   const json = m.ok ? m.jsonOk / m.ok : 0;
   const p95 = m.p95ms.length ? p95Of(m.p95ms) : 2000;
-  return succ * 0.6 + json * 0.3 + (1 / (1 + p95)) * 0.1;
+  const latencyScore = 1 / (1 + p95 / 1000);
+  return succ * 0.6 + json * 0.3 + latencyScore * 0.1;
 }
 
 function p95Of(arr: number[]): number {

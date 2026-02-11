@@ -22,9 +22,6 @@ Stand nach den letzten Codex-Runs (nur offene Punkte):
 - **Pilot Backbone (PR-0009)**  
   – Basis steht; offene Punkte: Akquise-Dashboard (PR-0010) + Pilot-Härtung.
 
-- **Part05 Orchestrator (Block A)**  
-  – Gemini-Provider fehlt, Health/Telemetry-Scoring fehlt.
-
 - **Part07 Graph & Reports (Block C)**  
   – Public Report-Seite ist Placeholder; konsistente öffentliche Report-Ausgabe fehlt.
 
@@ -72,7 +69,7 @@ Codex SOLL Part14 so verwenden:
 ### Block A – Part05 Orchestrator: Feinschliff Multi-Provider
 
 **Ziel:** Orchestrator erfüllt vollständig die Anforderungen aus Part05.
-**Status:** Partial (Gemini + Telemetry-Health fehlen).
+**Status:** Done.
 
 Aufgaben:
 
