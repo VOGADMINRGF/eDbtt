@@ -643,6 +643,10 @@ function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
 }
 
+function clamp01(value: number): number {
+  return clamp(value, 0, 1);
+}
+
 function sleep(ms: number, signal?: AbortSignal): Promise<void> {
   if (ms <= 0) return Promise.resolve();
   return new Promise<void>((resolve, reject) => {
@@ -876,29 +880,59 @@ async function runProviderProbeCached(
 
 function scoreCandidate(
   provider: ProviderProfile,
-  rawText: string,
+  parsed: AnalyzeResult,
   durationMs: number,
 ): number {
-  // Simple Heuristik:
-  // - gültiges JSON wird höher gewichtet
-  // - kürzere Laufzeit leicht bevorzugt
-  let jsonOk = false;
-  try {
-    JSON.parse(rawText);
-    jsonOk = true;
-  } catch {
-    // egal – analyzeContribution wird später strikt validieren
-  }
+  // Heuristik:
+  // - Role-Fit: passende Felder muessen vorhanden sein
+  // - Health: Fehlerrate/JSON-Erfolg/Latency via in-memory metrics
+  // - Speed: kuerzere Laufzeit leicht bevorzugt
 
   const base = provider.weight;
-  const jsonBonus = jsonOk ? 0.5 : 0;
+  const roleFit = scoreRoleFit(provider.role, parsed);
+  const roleBonus = roleFit * 0.35;
   const speedBonus =
     durationMs > 0 ? Math.min(0.5, Math.max(0, 8_000 - durationMs) / 8_000) : 0;
   const { state, score } = resolveProviderHealth(provider);
   const healthBoost = score * 0.25;
   const healthPenalty = state === "down" ? 0.3 : state === "degraded" ? 0.1 : 0;
 
-  return base + jsonBonus + speedBonus + healthBoost - healthPenalty;
+  return base + roleBonus + speedBonus + healthBoost - healthPenalty;
+}
+
+function scoreRoleFit(role: ProviderRole, parsed: AnalyzeResult): number {
+  const claims = parsed.claims?.length ?? 0;
+  const notes = parsed.notes?.length ?? 0;
+  const questions = parsed.questions?.length ?? 0;
+  const knots = parsed.knots?.length ?? 0;
+  const eventualities = parsed.eventualities?.length ?? 0;
+  const decisionTrees = parsed.decisionTrees?.length ?? 0;
+  const consequences = parsed.consequences?.consequences?.length ?? 0;
+  const responsibilities = parsed.consequences?.responsibilities?.length ?? 0;
+
+  switch (role) {
+    case "structure":
+      return clamp01(claims / Math.max(1, Math.min(LIMITS.claims, 6)));
+    case "context":
+      return clamp01((notes + consequences + responsibilities) / 6);
+    case "questions":
+      return clamp01(questions / Math.max(1, Math.min(LIMITS.questions, 4)));
+    case "knots":
+      return clamp01(knots / Math.max(1, Math.min(LIMITS.knots, 3)));
+    case "mixed": {
+      const axes = [
+        clamp01(claims / Math.max(1, Math.min(LIMITS.claims, 5))),
+        clamp01(notes / Math.max(1, Math.min(LIMITS.notes, 4))),
+        clamp01(questions / Math.max(1, Math.min(LIMITS.questions, 4))),
+        clamp01(knots / Math.max(1, Math.min(LIMITS.knots, 3))),
+        clamp01((eventualities + decisionTrees) / 4),
+      ];
+      const sum = axes.reduce((acc, v) => acc + v, 0);
+      return clamp01(sum / axes.length);
+    }
+    default:
+      return 0.2;
+  }
 }
 
 async function runProvider(
@@ -1087,7 +1121,9 @@ function buildPrompt(
 }
 
 function buildRoleGuidance(role: ProviderRole, promptHint?: string): string | null {
-  if (promptHint) return promptHint;
+  const base = ROLE_PROMPTS[role] ?? "";
+  if (promptHint) return base ? `${base}\n${promptHint}` : promptHint;
+  if (base) return base;
   switch (role) {
     case "structure":
       return [
@@ -1127,6 +1163,39 @@ const LIMITS = {
   consequences: 8,
   responsibilities: 8,
   reportList: 7,
+};
+
+const ROLE_PROMPTS: Record<ProviderRole, string> = {
+  structure: [
+    "Role: STRUCTURE.",
+    "Goal: produce clean, atomic claims grounded in the text.",
+    "Each claim must be a single verifiable assertion and include topic/responsibility when possible.",
+    "Keep claims concise and avoid editorializing.",
+  ].join("\n"),
+  context: [
+    "Role: CONTEXT.",
+    "Goal: capture background notes, stakeholders, and factual context grounded in the source.",
+    "Include consequences/responsibilities only if directly supported by the text.",
+    "Avoid speculation or policy advocacy.",
+  ].join("\n"),
+  questions: [
+    "Role: QUESTIONS.",
+    "Goal: list the most critical unanswered questions for citizens, grounded in the text.",
+    "Focus on finance, legal, impact, and accountability dimensions.",
+    "Questions must be short, neutral, and directly motivated by the source.",
+  ].join("\n"),
+  knots: [
+    "Role: KNOTS.",
+    "Goal: identify tensions/trade-offs (conflict knots) in 1-2 sentences each.",
+    "Each knot should name the conflict and the competing pressures.",
+    "Only include knots supported by the source text.",
+  ].join("\n"),
+  mixed: [
+    "Role: MIXED.",
+    "Goal: produce a balanced response across claims, context notes, questions, knots, and (if hinted) eventualities.",
+    "Ensure all fields are grounded in the text; avoid speculation.",
+    "If no evidence for a section, return an empty array for that section.",
+  ].join("\n"),
 };
 
 function sanitizeJsonText(raw: string): string {
@@ -1519,7 +1588,7 @@ export async function callE150Orchestrator(
       return { outcome: failure };
     }
 
-    const score = scoreCandidate(profile, validation.jsonText, current.durationMs);
+    const score = scoreCandidate(profile, validation.parsed, current.durationMs);
     const success: ProviderSuccess = {
       ...current,
       rawText: validation.jsonText,

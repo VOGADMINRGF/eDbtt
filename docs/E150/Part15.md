@@ -11,7 +11,7 @@ Dieses Dokument bündelt, welche Pfade (Part00–Part15) noch offen sind und wel
 - **Part02 Rollen / XP / Gamification:** XP-Anbindung benötigt noch Research-/Streams-/Campaign-Hooks (siehe Blöcke E, F, G); Profil-Freischaltungen pro Engagement-Level dokumentiert, UI-Gating offen.
 - **Part03 Access Tiers & Pricing:** Grundlogik aktiv; Profil-Pakete (profileBasic/Pro/Premium) als Darstellungs-Dimension ergänzt, Mapping zu Tiers umzusetzen.
 - **Part04 B2G/B2B Modelle:** Begriffe mit Profil-Paket-Namen harmonisiert; warten auf Campaigns/Streams-Implementierung (Block F/G) für echten Pilotbetrieb.
-- **Part05 Orchestrator (Block A):** Gemini-Provider, rollenspezifische Prompts und Health/Score fehlen noch.
+- **Part05 Orchestrator (Block A):** Gemini-Provider aktiv; rollenspezifische Prompts + Health/Score-Heuristik umgesetzt.
 - **Part06 Consequences (Block B):** Modelle, Persistenz und UI (Responsibility Navigator) stehen aus.  
 - **Part06 Themenkatalog & Zuständigkeiten:** Neu angelegt, 15 Hauptkategorien verbindlich; `TOPIC_CHOICES`-Abgleich in Profil/Onboarding/Filter offen.
 - **Part07 Graph & Reports (Block C):** Graph-Schicht + Report-Adapter aktiv; AnalyzeResult-Sync schreibt Claims/Notes/Questions/Knots/Eventualities in den Graph.
@@ -35,7 +35,7 @@ Dieses Dokument bündelt, welche Pfade (Part00–Part15) noch offen sind und wel
 
 | Block | Bezug | Status | Definition of Done |
 | --- | --- | --- | --- |
-| **A – Orchestrator (E150 Core Provider)** | Part05 | **Offen** | `@features/ai/orchestrator_gemini.ts` (Adapter + `ProviderMeta`), rollenspezifische Prompts (citizen, staff, institution), Health-/Score-Tracking in `orchestrator_health.ts`; SSE bleibt intakt. |
+| **A – Orchestrator (E150 Core Provider)** | Part05 | **Done** | Provider inkl. Gemini aktiv; rollenspezifische Prompt-Templates in `features/ai/orchestratorE150.ts`; Score nutzt Role-Fit + Health/Latency; SSE bleibt intakt. |
 | **B – Consequences & Responsibility Navigator** | Part06/10 | **Offen** | Prisma-Modelle `Consequence`, `Responsibility`, `ResponsibilityLink`; API-Routes `/api/responsibility/[id]`, `/api/consequence/[id]`; React-`ResponsibilityNavigator.tsx` mit Filter/Path-Tree/Score-Coloring; Admin-View fürs Mapping. |
 | **C – Graph & Reports** | Part07 | **Done** | `core/graph/syncAnalyzeResult.ts` schreibt Claims/Notes/Questions/Knots/Eventualities in Neo4j; Report-Adapter in `core/graph/queries/reports.ts` + Admin-Reports nutzen echte Graph-Daten; `/admin/graph/impact` arbeitet mit Graph-Stats. |
 | **D – Eventualities / DecisionTree** | Part08 | **Done** | Typen `EventualityNode`/`DecisionTree` + Analyzer-Prompts aktiv; Persistenz via `core/eventualities/*`; UI `EventualityBoard.tsx` (AnalyzeWorkspace) + Admin-Eventualities; API `/api/eventualities/analyze`. |
@@ -46,8 +46,7 @@ Dieses Dokument bündelt, welche Pfade (Part00–Part15) noch offen sind und wel
 
 ## Konkrete Next Steps
 
-1. **Starte mit Block A** (Part05): Gemini-Provider + rollenspezifische Prompts + Health/Score.
-2. **Danach Block B** (Part06/10): Consequence-/Responsibility-Modelle, Persistenz, Navigator-UI & Admin.
+1. **Starte mit Block B** (Part06/10): Consequence-/Responsibility-Modelle, Persistenz, Navigator-UI & Admin.
 3. **Block C & D erledigt** (Part07/08): Graph-Sync + Eventualities-Stack stehen.
 4. **Research R2 priorisieren** (Part09): Seeding, Filter, Contributor-Feedback, Rückfluss, Anti-Spam.
 5. **Block F/G/H** (Part11/12/13): Streams/Campaigns/I18N-A11y-Social, sobald Basis aus A–D steht.
@@ -203,4 +202,19 @@ Verification
 - `./scripts/verify.sh` (PASS, Warnung: Node 20.x erwartet, aktuell v24.5.0)
 
 Next Steps
-- Block A (Orchestrator) und danach Block B (Consequences/Responsibility Navigator).
+- Block B (Consequences/Responsibility Navigator).
+
+## PR-0009 (Follow-up, 2026-02-11) - Block A Orchestrator
+
+Ziel
+- Orchestrator mit rollenspezifischen Prompts und Role-Fit-Scoring vervollstaendigen.
+
+Changes
+- Prompt-Templates pro ProviderRole (structure/context/questions/knots/mixed) in `features/ai/orchestratorE150.ts`.
+- Scoring nutzt Role-Fit + Health/Latency fuer bessere Provider-Auswahl.
+
+Verification
+- `./scripts/verify.sh` (PASS, Warnung: Node 20.x erwartet, aktuell v24.5.0)
+
+Next Steps
+- Block B (Consequences/Responsibility Navigator).
