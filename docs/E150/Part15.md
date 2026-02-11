@@ -88,3 +88,27 @@ Safe-Mode Checks (Membership/Payment):
 - Admin-Verbuchen (`mark-paid`) und Kündigung (`cancel`) funktionieren, setzen user.membership-Status korrekt.
 - Dunning-Job läuft trocken (keine Orders → no-op) und setzt bei Fälligkeit Reminder-Level / Auto-Cancel.
 - /account zeigt korrekten Status inkl. PaymentInfo (masked) ohne PII-Leak; Copy-Buttons ok.
+
+## PR-0000 (2026-02-11) — Codex Control Plane
+
+Ziel
+- Codex-Workflow und Guardrails fuer E150-PRs standardisieren.
+
+Changes
+- `AGENTS.md` mit Repo-Guardrails hinzugefuegt.
+- `verify.sh` und `verify-web.sh` fuer standardisierte Verification hinzugefuegt.
+- `codex-pr.sh` fuer standardisierte Codex-Runs hinzugefuegt.
+- `MASTERPLAN.md` und PR-Prompt-Dateien `pr-0001` bis `pr-0007` erstellt.
+
+Verification
+- `./verify.sh` (FAIL)
+- apps/web typecheck failed in `.next/dev/types/validator.ts` (missing modules):
+- `../../../src/app/beteiligungsplattform/page.js`
+- `../../../src/app/deutschland/[bundesland]/[bezirk]/[thema]/page.js`
+- `../../../src/app/deutschland/[bundesland]/[bezirk]/page.js`
+- `../../../src/app/deutschland/[bundesland]/page.js`
+- `../../../src/app/deutschland/page.js`
+- `../../../src/app/digitale-buergerbeteiligung/page.js`
+
+Next Steps
+- Start PR-0001 via `scripts/codex-pr.sh 0001`.
