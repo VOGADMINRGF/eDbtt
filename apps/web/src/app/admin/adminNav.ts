@@ -157,6 +157,12 @@ export const NAV_SECTIONS: NavSection[] = [
         keywords: ["feeds", "drafts"],
       },
       {
+        href: "/admin/projects",
+        label: "Media Projects",
+        description: "Projekte mit Themen und Optionen",
+        keywords: ["projects", "media", "options"],
+      },
+      {
         href: "/admin/research/tasks",
         label: "Research Tasks",
         description: "Recherche-Aufgaben",

@@ -84,6 +84,23 @@ Fokus auf Fragen dieser Kampagne,
 
 optional Registrierung oder leichte Pseudonymisierung (z.B. nur E-Mail oder SMS).
 
+2.4 Media Ready Projekte (PR-0012)
+Kurzfristige Projekte fuer Medienpartner:
+- 5-10 Themen pro Projekt, pro Thema mind. 5 Optionen (Pflicht).
+- Community-Optionen sind moeglich, aber moderiert (proposed → approved).
+- Ergebnisse sind strikt projektgebunden (keine globale Vermischung).
+
+Admin:
+- `GET/POST /api/admin/media-projects`
+- `POST /api/admin/media-projects/options` (approve/reject)
+- UI: `/admin/projects`
+
+Public:
+- `GET /api/media-projects`
+- `GET /api/media-projects/:projectId`
+- `POST /api/media-projects/:projectId/vote`
+- `POST /api/media-projects/:projectId/topics/:topicId/options`
+
 3. Admin Console
 3.1 Rollen
 staff – Plattform-Admin / Redaktionsleitung.

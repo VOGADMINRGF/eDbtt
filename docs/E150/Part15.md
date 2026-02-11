@@ -88,3 +88,24 @@ Safe-Mode Checks (Membership/Payment):
 - Admin-Verbuchen (`mark-paid`) und Kündigung (`cancel`) funktionieren, setzen user.membership-Status korrekt.
 - Dunning-Job läuft trocken (keine Orders → no-op) und setzt bei Fälligkeit Reminder-Level / Auto-Cancel.
 - /account zeigt korrekten Status inkl. PaymentInfo (masked) ohne PII-Leak; Copy-Buttons ok.
+
+## PR-0012 (2026-02-11) - Media Ready Projekte (Topics + Min-Optionen + Ergebnisse)
+
+Ziel
+- Projekte mit 5-10 Themen, pro Thema mind. 5 Optionen (Pflicht), Ergebnisse projektgebunden.
+- Community kann zusaetzliche Optionen vorschlagen (moderiert).
+
+Changes
+- Neue Stores fuer Projekte/Themen/Optionen: `core/mediaProjects/*`.
+- Admin-API `GET/POST /api/admin/media-projects` + Moderation `POST /api/admin/media-projects/options`.
+- Public API `GET /api/media-projects`, `GET /api/media-projects/:projectId`, `POST /api/media-projects/:projectId/vote`,
+  `POST /api/media-projects/:projectId/topics/:topicId/options`.
+- Admin-UI `/admin/projects` + Public Pages `/projects` und `/projects/[id]`.
+- Doku: `docs/E150/Pilot.md`, `docs/E150/Part12_Campaigns_Admin_Telemetry.md`.
+
+Verification
+- `pnpm -C apps/web run lint` (PASS, Warnung: Node 20.x erwartet, aktuell v24.5.0)
+- `pnpm -C apps/web run typecheck` (PASS, Warnung: Node 20.x erwartet, aktuell v24.5.0)
+
+Next Steps
+- PR-0013 starten: Live/Chat Skeleton.
