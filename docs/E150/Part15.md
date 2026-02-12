@@ -1,19 +1,22 @@
 # E150 Master Spec – Part 15: Offene Pfade & Restarbeiten
 
+> Status-Hinweis (2026-02-12): Dieses Part ist eine Spezifikation/Zusammenfassung. Der verbindliche Aufgabenstand liegt in `docs/E150/OpenTasks.md`. Keine neuen Runs aus diesem Part ableiten.
+
+
 ## Zweck
 
-Dieses Dokument bündelt, welche Pfade (Part00–Part15) noch offen sind und welche Bestandteile erledigt werden müssen. Es verweist auf die Blöcke aus Part14, damit der nächste Run gezielt die Lücken schließen kann. Zusätzlich verweist es auf `docs/E150/OpenTasks.md` (kanonischer Aufgabenstand) und `docs/E150/Pflichtenheft.md` (verbindlicher Lieferrahmen für interne und externe Umsetzung).
+Dieses Dokument dient als Status-Zusammenfassung der Pfade (Part00–Part15). Es ist **kein** Run-Plan. Der verbindliche Aufgabenstand liegt in `docs/E150/OpenTasks.md`, der Lieferrahmen in `docs/E150/Pflichtenheft.md`.
 
 ## Status-Übersicht der Pfade 00–15
 
-- **Part00 Foundations / PII:** PII-Guardrails plus Klarname-Trennung (givenName/familyName) und Privacy-Flags dokumentiert; Migration/Aufsplitten alter Felder offen (siehe Identity & Profile Tasks).
+- **Part00 Foundations / PII:** PII-Guardrails plus Klarname-Trennung (givenName/familyName) und Privacy-Flags dokumentiert; Alt-Migration optional.
 - **Part01 Systemvision / Governance:** Leitplanken + 15 Themenkategorien als Backbone verankert.
 - **Part02 Rollen / XP / Gamification:** XP-Anbindung fuer Research/Streams/Campaigns aktiv; Profil-Freischaltungen pro Engagement-Level im Profil-UI wirksam.
 - **Part03 Access Tiers & Pricing:** Grundlogik aktiv; Profil-Pakete als Darstellungs-Dimension vorhanden und an Tiers gemappt (basic/pro/premium).
 - **Part04 B2G/B2B Modelle:** Begriffe mit Profil-Paket-Namen harmonisiert; Campaigns/Streams als Betriebsbasis aktiv.
 - **Part05 Orchestrator (Block A):** Gemini-Provider aktiv, rollenspezifische Prompts (citizen/staff/institution) und Health/Score-Tracking umgesetzt.
 - **Part06 Consequences (Block B):** Modelle, Persistenz, API und UI fuer Responsibility/Consequences umgesetzt.  
-- **Part06 Themenkatalog & Zuständigkeiten:** Neu angelegt, 15 Hauptkategorien verbindlich; `TOPIC_CHOICES`-Abgleich in Profil/Onboarding/Filter offen.
+- **Part06 Themenkatalog & Zuständigkeiten:** 15 Hauptkategorien verbindlich; `TOPIC_CHOICES`-Abgleich in Profil/Onboarding/Filter umgesetzt.
 - **Part07 Graph & Reports (Block C):** Graph-Sync + Neo4j-Connector aktiv; Admin-Impact-Reports nutzen echte Graph-Daten.
 - **Part08 Eventualities (Block D):** Eventuality-/DecisionTree-Typen, Persistenz, Admin-UI und Analyze-API implementiert.
 - **Part09 Research Workflow (Block E/R2):** R2 umgesetzt: Seeding aus Questions/Knots, Filter/Sortierung, Contributor-Feedback, Graph-Backflow und Anti-Spam-Cooldown.
@@ -45,14 +48,15 @@ Dieses Dokument bündelt, welche Pfade (Part00–Part15) noch offen sind und wel
 | **H – I18N / A11y / Social** | Part13 | **Done** | I18N-Infra aktiv, A11y-Seite vorhanden, Community/Chat-Skeleton ergänzt. |
 | **I – Unterstuetzen/Crowdfunding** | Part12/14 | **Done** | Support pro Campaign/Projekt live: Pledge + Zahlungsreferenz + Admin mark-paid + oeffentlicher Fortschritt, ohne Einfluss auf Votes/XP/Credits. |
 
-## Konkrete Next Steps
+## Historische Abfolge (abgeschlossen)
+
+Die folgenden Punkte dokumentieren die abgeschlossene Reihenfolge der Bloecke. Keine neuen Runs hieraus ableiten; `docs/E150/OpenTasks.md` ist kanonisch.
 
 1. **Block A erledigt** (Part05): Gemini-Provider + rollenspezifische Prompts + Health/Score (PR-0018).
 2. **Block B erledigt** (Part06/10): Consequences/Responsibility inkl. API, Navigator-UI, Admin (PR-0019).
 3. **Block C/D erledigt** (Part07/08): Graph-Sync & Eventualities/DecisionTrees (PR-0020).
 4. **Block F/G/H erledigt (MVP)** (Part11/12/13): Streams/Campaigns/I18N-A11y-Social (PR-0020).
 5. **Block I erledigt** (Part12/14): Unterstuetzen/Crowdfunding End-to-End (PR-0030).
-6. **Danach Fokus:** Block F/H-Polish (Stream-Kit, I18N/A11y/Social-Haertung) und QA/Analytics-Vertiefung.
 
 ## Verbindliche Steuerdateien
 
@@ -73,12 +77,12 @@ Dieses Dokument bündelt, welche Pfade (Part00–Part15) noch offen sind und wel
 
 ### Identity & Profile (aus Part00–04 abgeleitet)
 
-Offene Tasks:
+Status (Zusammenfassung):
 
 1. **PII-Schema um Vor-/Nachname erweitern**  
    - `pii.users.personal.givenName` + `familyName` aktiv.  
    - `displayName` wird nur als Ableitung genutzt; PII-Split via `ensureBasicPiiProfile` erfolgt bei Login/Register/Membership.  
-   - Alt-Migration (historische `name`-Felder) optional offen, falls Bestandsdaten migriert werden muessen.
+   - Alt-Migration (historische `name`-Felder) optional, falls Bestandsdaten migriert werden muessen.
 
 2. **Profil-Datenstruktur in Core einführen**  
    - `core.users.profile` mit `headline`, `bio`, `avatarStyle`, `topTopics[]`, `publicFlags.*`, `publicLocation`, `publicShareId`.  
@@ -101,7 +105,7 @@ Offene Tasks:
    - `/profile` leitet auf public Share-View (`/profile/[shareId]`) oder auf Account, wenn kein Share aktiv.  
    - Hinweis im UI bleibt: „Du siehst dein Profil so, wie andere es sehen.“
 
-Diese Liste ist verbindlich für die nächsten Codex-Runs. Bei jedem Run den aktuell offenen Block aus Part14 wählen und die „Definition of Done“ erfüllen, bevor zum nächsten Pfad gewechselt wird. Sobald ein Block abgeschlossen ist, den Status im obigen Table auf **Done** setzen.
+Diese Liste ist eine Zusammenfassung. Offener Arbeitsstand und Prioritaeten stehen ausschliesslich in `docs/E150/OpenTasks.md`.
 
 ### Block M – Membership Apply (Restpunkte)
 

@@ -1,5 +1,8 @@
 # E150 Master Spec – Part 15: Codex Safe Mode
 
+> Status-Hinweis (2026-02-12): Dieses Part ist eine Spezifikation/Zusammenfassung. Der verbindliche Aufgabenstand liegt in `docs/E150/OpenTasks.md`. Keine neuen Runs aus diesem Part ableiten.
+
+
 ## 1. Zweck
 
 Dieses Dokument definiert einen **Safe Mode** für Codex-Arbeiten im Repo  

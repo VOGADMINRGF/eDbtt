@@ -1,4 +1,7 @@
 Part 00 – Foundations, PII & Security Framework
+
+> Status-Hinweis (2026-02-12): Dieses Part ist eine Spezifikation/Zusammenfassung. Der verbindliche Aufgabenstand liegt in `docs/E150/OpenTasks.md`. Keine neuen Runs aus diesem Part ableiten.
+
 0.0 Zweck dieses Parts
 
 Part 00 definiert den Sicherheits- und Datenschutz-Unterbau von eDebatte / eDebatte.

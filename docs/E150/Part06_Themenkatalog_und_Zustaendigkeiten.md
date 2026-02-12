@@ -1,5 +1,8 @@
 # E150 Master Spec – Part 6: Themenkatalog & Zuständigkeiten
 
+> Status-Hinweis (2026-02-12): Dieses Part ist eine Spezifikation/Zusammenfassung. Der verbindliche Aufgabenstand liegt in `docs/E150/OpenTasks.md`. Keine neuen Runs aus diesem Part ableiten.
+
+
 ## 1. Zweck
 
 Dieser Part bündelt den verbindlichen Themenkatalog mit 15 Hauptkategorien. Alle Profil-Themen, Onboarding-Interessen und Filter in Streams/Reports leiten sich daraus ab. Die Kategorien orientieren sich an realen Zuständigkeiten (Ministerien, Kommunen, EU), damit Bürger:innen schneller verstehen, wer für welches Thema verantwortlich ist.

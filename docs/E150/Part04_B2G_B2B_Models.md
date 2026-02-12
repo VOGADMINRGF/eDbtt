@@ -1,5 +1,8 @@
 # E150 Master Spec – Part 4: B2G & B2B Models
 
+> Status-Hinweis (2026-02-12): Dieses Part ist eine Spezifikation/Zusammenfassung. Der verbindliche Aufgabenstand liegt in `docs/E150/OpenTasks.md`. Keine neuen Runs aus diesem Part ableiten.
+
+
 ## 1. Zweck dieses Parts
 
 Dieser Part definiert alle **B2G- (Behörden/Gemeinden/Landkreise)**  

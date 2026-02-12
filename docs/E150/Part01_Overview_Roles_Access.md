@@ -1,5 +1,8 @@
 # E150 – Part 1: Overview, Roles, Access & Usage
 
+> Status-Hinweis (2026-02-12): Dieses Part ist eine Spezifikation/Zusammenfassung. Der verbindliche Aufgabenstand liegt in `docs/E150/OpenTasks.md`. Keine neuen Runs aus diesem Part ableiten.
+
+
 Dieses Dokument ist die **zentrale Übersicht** über Rollen, Zugänge, Levels und Nutzung der Plattform eDebatte / eDebatte.  
 Es dient als **Single Source of Truth** für Implementierung (Codex), UX, Pricing und spätere Governance.
 

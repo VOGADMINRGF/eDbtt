@@ -1,5 +1,8 @@
 # E150 – Auth & 2FA (Kurznotiz, Run B2C)
 
+> Status-Hinweis (2026-02-12): Dieses Part ist eine Spezifikation/Zusammenfassung. Der verbindliche Aufgabenstand liegt in `docs/E150/OpenTasks.md`. Keine neuen Runs aus diesem Part ableiten.
+
+
 ## Kanonische Endpoints
 - `POST /api/auth/login` – Username/Passwort → ggf. 2FA-Challenge (email/totp).
 - `POST /api/auth/verify-2fa` – prüft 6-stelligen Code (E-Mail oder TOTP). Fehlercodes: `invalid_code`, `challenge_missing`, `challenge_expired`, `method_mismatch`.

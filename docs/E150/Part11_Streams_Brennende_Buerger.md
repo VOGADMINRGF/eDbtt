@@ -1,5 +1,8 @@
 # E150 Master Spec – Part 11: Streams & „Brennende Bürger:innen“
 
+> Status-Hinweis (2026-02-12): Dieses Part ist eine Spezifikation/Zusammenfassung. Der verbindliche Aufgabenstand liegt in `docs/E150/OpenTasks.md`. Keine neuen Runs aus diesem Part ableiten.
+
+
 ## 1. Zweck dieses Dokuments
 
 Part11 beschreibt das **Streaming- und Live-Format** von eDebatte / eDebatte:

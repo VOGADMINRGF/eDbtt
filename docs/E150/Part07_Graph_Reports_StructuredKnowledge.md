@@ -1,5 +1,8 @@
 # E150 Master Spec – Part 7: Graph, Reports & Structured Knowledge
 
+> Status-Hinweis (2026-02-12): Dieses Part ist eine Spezifikation/Zusammenfassung. Der verbindliche Aufgabenstand liegt in `docs/E150/OpenTasks.md`. Keine neuen Runs aus diesem Part ableiten.
+
+
 ## 1. Zweck dieses Dokuments
 
 Part 07 definiert die **Wissensstruktur**, die eDebatte/eDebatte langfristig ermöglicht:

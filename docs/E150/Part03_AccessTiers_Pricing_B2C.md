@@ -1,5 +1,8 @@
 # E150 Master Spec – Part 3: Access Tiers & Pricing (B2C)
 
+> Status-Hinweis (2026-02-12): Dieses Part ist eine Spezifikation/Zusammenfassung. Der verbindliche Aufgabenstand liegt in `docs/E150/OpenTasks.md`. Keine neuen Runs aus diesem Part ableiten.
+
+
 ## 1. Zweck dieses Parts
 
 Dieser Part beschreibt **alle B2C-Zugangsmodelle (Tiers)** und das vollständige **Pricing-Modell für Endnutzer:innen** der Plattform eDebatte / eDebatte.
