@@ -71,6 +71,17 @@ function serializeSession(doc: CampaignSessionDoc) {
   };
 }
 
+function deriveStatus(
+  status: CampaignSessionDoc["status"] | undefined,
+  startsAt: Date | null | undefined,
+  endsAt: Date | null | undefined,
+  now = new Date(),
+): CampaignSessionDoc["status"] {
+  if (endsAt && endsAt.getTime() <= now.getTime()) return "ended";
+  if (startsAt && startsAt.getTime() <= now.getTime()) return "live";
+  return status ?? "planned";
+}
+
 export async function GET(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
   const staff = await getStaffContext(req);
   if (staff.response) return staff.response;
@@ -129,6 +140,7 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
     createdAt: now,
     updatedAt: now,
   };
+  sessionDoc.status = deriveStatus(sessionDoc.status, sessionDoc.startsAt, sessionDoc.endsAt, now);
 
   const sessionsCol = await campaignSessionsCol();
   const result = await sessionsCol.insertOne(sessionDoc);
@@ -186,6 +198,14 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
   if (Object.keys(patch).length === 0) return badRequest("empty_patch");
 
   patch.updatedAt = new Date();
+  if (!patch.status) {
+    patch.status = deriveStatus(
+      undefined,
+      patch.startsAt,
+      patch.endsAt,
+      patch.updatedAt,
+    );
+  }
 
   const sessionsCol = await campaignSessionsCol();
   const updated = await sessionsCol.findOneAndUpdate(

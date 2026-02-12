@@ -49,6 +49,8 @@ export default function AdminCampaignDetailPage() {
   const [sessionEndsAt, setSessionEndsAt] = useState("");
   const [reportSourceFilter, setReportSourceFilter] = useState("all");
   const [reportSessionFilter, setReportSessionFilter] = useState("all");
+  const [reportStartDate, setReportStartDate] = useState("");
+  const [reportEndDate, setReportEndDate] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -232,6 +234,17 @@ export default function AdminCampaignDetailPage() {
           (row) => (row.sessionId ?? "none") === reportSessionFilter,
         );
 
+  const filteredJoinRows = (report?.joinsByDay ?? []).filter((row) => {
+    if (!reportStartDate && !reportEndDate) return true;
+    if (reportStartDate && row.date < reportStartDate) return false;
+    if (reportEndDate && row.date > reportEndDate) return false;
+    return true;
+  });
+
+  const maxJoinCount = Math.max(1, ...filteredJoinRows.map((row) => row.count));
+  const maxSourceCount = Math.max(1, ...filteredSources.map((row) => row.count));
+  const maxSessionCount = Math.max(1, ...filteredSessions.map((row) => row.count));
+
   const exportCsv = () => {
     if (!report || !campaign) return;
     const lines: string[] = [];
@@ -241,7 +254,7 @@ export default function AdminCampaignDetailPage() {
     lines.push("");
     lines.push("JoinsByDay");
     lines.push("date,count");
-    report.joinsByDay.forEach((row) => {
+    filteredJoinRows.forEach((row) => {
       lines.push(`${row.date},${row.count}`);
     });
     lines.push("");
@@ -483,7 +496,7 @@ export default function AdminCampaignDetailPage() {
                 <Metric label="Letzte Teilnahme" value={report.lastJoinedAt ?? "–"} />
                 <Metric
                   label="Tage (letzte 14)"
-                  value={report.joinsByDay.reduce((acc, row) => acc + row.count, 0).toString()}
+                  value={filteredJoinRows.reduce((acc, row) => acc + row.count, 0).toString()}
                 />
               </div>
             ) : (
@@ -491,6 +504,20 @@ export default function AdminCampaignDetailPage() {
             )}
             {report ? (
               <div className="mt-4 flex flex-wrap items-center gap-3 text-sm">
+                <input
+                  type="date"
+                  value={reportStartDate}
+                  onChange={(e) => setReportStartDate(e.target.value)}
+                  aria-label="Startdatum"
+                  className="rounded-full border border-slate-300 bg-white px-3 py-2 text-xs"
+                />
+                <input
+                  type="date"
+                  value={reportEndDate}
+                  onChange={(e) => setReportEndDate(e.target.value)}
+                  aria-label="Enddatum"
+                  className="rounded-full border border-slate-300 bg-white px-3 py-2 text-xs"
+                />
                 <select
                   value={reportSourceFilter}
                   onChange={(e) => setReportSourceFilter(e.target.value)}
@@ -529,7 +556,7 @@ export default function AdminCampaignDetailPage() {
               <div className="mt-4 grid gap-2 text-sm">
                 <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Quellen</p>
                 {filteredSources.map((row) => (
-                  <BarRow key={row.source} label={row.source} value={row.count} />
+                  <BarRow key={row.source} label={row.source} value={row.count} max={maxSourceCount} />
                 ))}
               </div>
             ) : null}
@@ -537,18 +564,25 @@ export default function AdminCampaignDetailPage() {
               <div className="mt-4 grid gap-2 text-sm">
                 <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Sessions</p>
                 {filteredSessions.map((row, idx) => (
-                  <BarRow key={`${row.sessionId ?? "none"}-${idx}`} label={row.label} value={row.count} />
+                  <BarRow
+                    key={`${row.sessionId ?? "none"}-${idx}`}
+                    label={row.label}
+                    value={row.count}
+                    max={maxSessionCount}
+                  />
                 ))}
               </div>
             ) : null}
-            {report?.joinsByDay?.length ? (
+            {filteredJoinRows.length ? (
               <div className="mt-4 overflow-hidden rounded-xl border border-slate-200">
                 <div className="grid grid-cols-7 items-end gap-1 bg-slate-50 px-4 py-3 sm:grid-cols-14">
-                  {report.joinsByDay.map((row) => (
+                  {filteredJoinRows.map((row) => (
                     <div key={`bar-${row.date}`} className="flex flex-col items-center gap-1">
                       <div
                         className="w-full rounded-sm bg-slate-900/80"
-                        style={{ height: `${Math.max(6, row.count * 6)}px` }}
+                        style={{
+                          height: `${Math.max(6, Math.round((row.count / maxJoinCount) * 60))}px`,
+                        }}
                         title={`${row.date}: ${row.count}`}
                       />
                       <span className="text-[10px] text-slate-500">{row.date.slice(5)}</span>
@@ -563,7 +597,7 @@ export default function AdminCampaignDetailPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
-                    {report.joinsByDay.map((row) => (
+                    {filteredJoinRows.map((row) => (
                       <tr key={row.date}>
                         <td className="px-3 py-2 text-slate-700">{row.date}</td>
                         <td className="px-3 py-2 text-slate-700">{row.count}</td>
@@ -607,8 +641,9 @@ function Metric({ label, value }: { label: string; value: string }) {
   );
 }
 
-function BarRow({ label, value }: { label: string; value: number }) {
-  const width = Math.min(100, Math.max(5, value));
+function BarRow({ label, value, max }: { label: string; value: number; max: number }) {
+  const normalized = max > 0 ? (value / max) * 100 : 0;
+  const width = Math.min(100, Math.max(5, normalized));
   return (
     <div className="flex items-center gap-3">
       <div className="w-32 text-xs text-slate-600">{label}</div>

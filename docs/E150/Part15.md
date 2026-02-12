@@ -251,6 +251,22 @@ Verification:
 Next Steps:
 - Optional: Report-Chart-Skalen normalisieren und CSV-Filter verfeinern.
 
+### PR-0027 (2026-02-12) – Report Filters + Auto Session Status
+
+Ziel:
+- Report-Chart-Skalen normalisieren, CSV-Filter verfeinern und Auto-Status fuer Sessions.
+
+Changes:
+- Report-UI: Datumsfilter + normalisierte Balken-Skalen + CSV-Export berücksichtigt Filter.
+- Sessions: Auto-live/auto-ended Logik basierend auf Start/Ende.
+
+Verification:
+- `pnpm -C apps/web run lint` (PASS)
+- `pnpm -C apps/web run typecheck` (PASS)
+
+Next Steps:
+- Optional: Status-Automation mit cron/batch prüfen (z.B. nightly sync).
+
 Safe-Mode Checks (Membership/Payment):
 - Admin-Verbuchen (`mark-paid`) und Kündigung (`cancel`) funktionieren, setzen user.membership-Status korrekt.
 - Dunning-Job läuft trocken (keine Orders → no-op) und setzt bei Fälligkeit Reminder-Level / Auto-Cancel.
