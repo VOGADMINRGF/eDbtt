@@ -4,10 +4,10 @@ import { campaignsCol } from "@features/campaign/db";
 import { ObjectId } from "@core/db/triMongo";
 import { BRAND } from "@/lib/brand";
 
-type PageProps = { params: { id: string } };
+type PageProps = { params: Promise<{ id: string }> };
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  const id = params.id;
+  const { id } = await params;
   if (!ObjectId.isValid(id)) {
     return {
       title: "Campaign",
@@ -36,7 +36,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 }
 
 export default async function CampaignPage({ params }: PageProps) {
-  const id = params.id;
+  const { id } = await params;
   if (!ObjectId.isValid(id)) {
     return (
       <main className="mx-auto flex max-w-3xl flex-col gap-4 px-4 py-12">
