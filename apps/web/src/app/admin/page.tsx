@@ -48,6 +48,10 @@ export default function AdminDashboardPage() {
             router.replace("/login?next=/admin");
             return;
           }
+          if (body?.error === "two_factor_setup_required") {
+            router.replace("/auth/2fa-setup?next=/admin");
+            return;
+          }
           if (active) setError("Kein Zugriff auf das Admin-Dashboard.");
           return;
         }

@@ -38,14 +38,15 @@ Feeds & Kandidaten:
 - `POST /api/feeds/analyze-pending` (Kandidaten analysieren)
 
 Pilot Control:
-- (geplant) `GET/POST /api/admin/pilot/settings` (Settings lesen/schreiben)
-- (geplant) `POST /api/admin/pilot/run` (End-to-End Pilot-Lauf)
+- `GET/POST /api/admin/pilot/settings` (Settings lesen/schreiben; Change-Receipts in `pilotSettingsChanges`)
+- `POST /api/admin/pilot/run` (End-to-End Pilot-Lauf: pull → analyze-pending)
 
 Faktencheck + Dossier:
 - `POST /api/factcheck/enqueue` (Faktencheck starten)
 - Dossier-Collections: `dossier_*` (Sources, Claims, Findings, Edges)
 
 Admin UI:
+- `/admin/pilot` (Pilot Control Plane)
 - `/admin/feeds/drafts` (Draft Review)
 
 ## Akquise-Dashboard (PR-0010)

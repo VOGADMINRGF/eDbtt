@@ -19,16 +19,18 @@ export async function requireAdminOrResponse(req: NextRequest) {
 
 async function gateAdmin(req: NextRequest): Promise<SessionUser | Response> {
   const user = await getSessionUser(req);
-  const requiresTwoFactor = userRequiresTwoFactor(user);
-  const hasTwoFactor = sessionHasPassedTwoFactor(user);
   const sessionValid = user?.sessionValid ?? false;
+  const isAdmin = userIsAdminDashboard(user);
+  const hasTwoFactorSetup = userRequiresTwoFactor(user);
+  const hasTwoFactor = sessionHasPassedTwoFactor(user);
 
   logGate(req?.nextUrl?.pathname ?? "unknown", {
     userId: user?._id ? String(user._id) : null,
     email: maskEmail((user as any)?.email),
     roles: (user as any)?.roles || (user as any)?.role,
     sessionValid,
-    requiresTwoFactor,
+    isAdmin,
+    hasTwoFactorSetup,
     hasTwoFactor,
   });
 
@@ -36,12 +38,17 @@ async function gateAdmin(req: NextRequest): Promise<SessionUser | Response> {
     return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
   }
 
-  if (requiresTwoFactor && !hasTwoFactor) {
-    return NextResponse.json({ ok: false, error: "two_factor_required" }, { status: 403 });
+  if (!isAdmin) {
+    return NextResponse.json({ ok: false, error: "forbidden" }, { status: 403 });
   }
 
-  if (!userIsAdminDashboard(user)) {
-    return NextResponse.json({ ok: false, error: "forbidden" }, { status: 403 });
+  // Admin access requires 2FA setup + a session that has passed 2FA.
+  if (!hasTwoFactorSetup) {
+    return NextResponse.json({ ok: false, error: "two_factor_setup_required" }, { status: 403 });
+  }
+
+  if (!hasTwoFactor) {
+    return NextResponse.json({ ok: false, error: "two_factor_required" }, { status: 403 });
   }
 
   return user;

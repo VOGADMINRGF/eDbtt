@@ -17,9 +17,10 @@ export const metadata = {
 
 export default async function AdminLayout({ children }: Props) {
   const user = await getSessionUser();
-  const requiresTwoFactor = userRequiresTwoFactor(user);
-  const hasTwoFactor = sessionHasPassedTwoFactor(user);
   const sessionValid = user?.sessionValid ?? false;
+  const isAdmin = userIsAdminDashboard(user);
+  const hasTwoFactorSetup = userRequiresTwoFactor(user);
+  const hasTwoFactor = sessionHasPassedTwoFactor(user);
 
   logGate({
     path: "/admin",
@@ -27,7 +28,8 @@ export default async function AdminLayout({ children }: Props) {
     email: maskEmail((user as any)?.email),
     roles: (user as any)?.roles || (user as any)?.role,
     sessionValid,
-    requiresTwoFactor,
+    isAdmin,
+    hasTwoFactorSetup,
     hasTwoFactor,
   });
 
@@ -35,12 +37,16 @@ export default async function AdminLayout({ children }: Props) {
     redirect(`/login?next=${encodeURIComponent("/admin")}`);
   }
 
-  if (requiresTwoFactor && !hasTwoFactor) {
-    redirect(`/login?next=${encodeURIComponent("/admin")}`);
+  if (!isAdmin) {
+    redirect("/");
   }
 
-  if (!userIsAdminDashboard(user)) {
-    redirect("/");
+  if (!hasTwoFactorSetup) {
+    redirect(`/auth/2fa-setup?next=${encodeURIComponent("/admin")}`);
+  }
+
+  if (!hasTwoFactor) {
+    redirect(`/login?next=${encodeURIComponent("/admin")}`);
   }
 
   return (

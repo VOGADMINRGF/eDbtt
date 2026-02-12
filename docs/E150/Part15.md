@@ -34,11 +34,11 @@ Status basiert auf Repo-Evidenz (Dateien/Routes/Modelle). Offener Arbeitsstand b
 
 | Drift | Ziel | Evidenz im Repo | Status | Naechster Schritt |
 | --- | --- | --- | --- | --- |
-| PR-0009 | Pilot Backbone (Feeds → Kandidaten → Faktencheck → Graph/Dossier) | Kein `docs/E150/Pilot.md`, keine `PilotSettings`/Kandidaten-Modelle/Routes gefunden | Missing | Als Pilot-Paket neu umsetzen |
-| PR-0010 | Admin Akquise Dashboard (Feeds/Regionen) | Kein `/admin/acquisition`, keine `AcquisitionFeedSource`/`FetchRun`-Modelle | Missing | Admin-Akquise-UI + Fetch-Health implementieren |
-| PR-0011 | Offene Beitraege (Quelle/Option/Frage) | Contributions-API existiert, aber kein Pilot-Flow mit Moderation/Owner-Freigabe | Partial | Contribution-Flow auf Pilot-Kandidaten erweitern |
+| PR-0009 | Pilot Backbone (Feeds → Kandidaten → Faktencheck → Graph/Dossier) | `docs/E150/Pilot.md`, `/api/feeds/pull`, `/api/feeds/analyze-pending`, `features/feeds/*`, `/admin/feeds/drafts`, `/api/factcheck/enqueue`, `/admin/pilot`, `/api/admin/pilot/settings`, `/api/admin/pilot/run`, `core/pilotSettings/*` | Implemented | Monitoring/Polish |
+| PR-0010 | Admin Akquise Dashboard (Feeds/Regionen) | `/admin/acquisition`, `/api/admin/acquisition`, `core/acquisition/*` | Implemented | Monitoring/Polish |
+| PR-0011 | Offene Beitraege (Quelle/Option/Frage) | `/community/contributions`, `/admin/contributions`, `/api/community/contributions`, `/api/admin/community/contributions*`, `core/communityContributions/*` | Implemented | Monitoring/Polish |
 | PR-0012 | Media Ready Projekte (3–5 Themen, min 5 Optionen) | Projekt-Modelle + API/Pages aktiv | Implemented | Monitoring/Polish |
-| PR-0013 | Live/Chat Skeleton | `/chat` existiert, aber kein `/live` und keine 501-Stubs | Partial | Live-Routes/Types/501-Stubs ergänzen |
+| PR-0013 | Live/Chat Skeleton | `/live`, `/api/live`, `/api/chat`, `core/liveChat/*` | Implemented | Monitoring/Polish |
 | PR-0030 | Unterstuetzen/Crowdfunding | `/support/[slug]`, `/admin/support` + Support-API vorhanden | Implemented | Nur Monitoring/Polish |
 
 ## Aktueller Stand (Februar 2026)

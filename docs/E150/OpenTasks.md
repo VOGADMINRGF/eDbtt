@@ -28,16 +28,21 @@ Diese Liste ist die kanonische Umsetzungsliste fuer alle vorhandenen Drift-Promp
 
 | Drift | Scope | Status | Naechster Run |
 | --- | --- | --- | --- |
-| PR-0009 | Pilot Backbone (Feeds → Kandidaten → Faktencheck → Graph/Dossier) | Missing | Implementieren + Pilot.md anlegen |
-| PR-0010 | Admin Akquise Dashboard (Feeds/Regionen) | Missing | /admin/acquisition + Fetch-Health |
-| PR-0011 | Offene Beitraege (Quelle/Option/Frage, Moderation) | Partial | Contribution-Flow auf Pilot erweitern |
+| PR-0009 | Pilot Backbone (Feeds → Kandidaten → Faktencheck → Graph/Dossier) | Done | - |
+| PR-0010 | Admin Akquise Dashboard (Feeds/Regionen) | Done | - |
+| PR-0011 | Offene Beitraege (Quelle/Option/Frage, Moderation) | Done | - |
 | PR-0012 | Media Ready Projekte (3–5 Themen, min 5 Optionen) | Done | Monitoring/Polish |
-| PR-0013 | Live/Chat Skeleton | Partial | /live + API-Stubs (501) |
+| PR-0013 | Live/Chat Skeleton | Done | - |
 | PR-0030 | Unterstuetzen/Crowdfunding | Implemented | Monitoring/Polish |
 
 ## Aktive Aufgaben
 
-Aktive Pflicht-Tasks sind die Drift-Prompts PR-0009, PR-0010, PR-0011 und PR-0013 (siehe Tabelle oben). Optionales Nachlauf-Polish siehe unten.
+Aktiver Pflicht-Task ist: **Pro Self-Serve** (Organisationen koennen nach 2FA ohne Kontaktaufnahme starten).
+
+Ziel (MVP):
+- `/dashboard/projects/new` funktioniert fuer eDebatte Pro (3-5 Themen), ohne Staff-Rolle.
+- 2FA ist Pflicht fuer Pro-Operativpfade (Project/Agenda/Faktencheck/Contributions-Admin).
+- Pricing/Add-ons werden als Usage/Receipt erfasst (ohne Payment-Provider).
 
 ### 1) Nachlauf (optional)
 

@@ -7,6 +7,7 @@ import { sendMail } from "@/utils/mailer";
 import { buildTwoFactorCodeMail } from "@/utils/emailTemplates";
 import { logAuthEvent } from "@core/telemetry/authEvents";
 import { ensureBasicPiiProfile } from "@core/pii/userProfileService";
+import { ensureEnvSuperadminSeed } from "@/lib/server/auth/superadminSeed";
 import {
   applySessionCookies,
   CREDENTIAL_COLLECTION,
@@ -101,6 +102,17 @@ export async function POST(req: NextRequest) {
 
   if (!identifier || !password) {
     return NextResponse.json({ error: "invalid_input" }, { status: 400 });
+  }
+
+  // Dev/staging convenience: if SUPERADMIN_* is configured and the user tries to login as that email,
+  // ensure the account exists before checking credentials.
+  try {
+    const superEmail = (process.env.SUPERADMIN_EMAIL ?? "").trim().toLowerCase();
+    if (superEmail && identifier === superEmail) {
+      await ensureEnvSuperadminSeed();
+    }
+  } catch (err) {
+    console.warn("[auth.login] ensureEnvSuperadminSeed failed", err);
   }
 
   const credsCol = await piiCol<PiiUserCredentials>(CREDENTIAL_COLLECTION);

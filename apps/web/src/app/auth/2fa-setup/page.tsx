@@ -1,13 +1,22 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import QRCode from "qrcode";
 
 export default function TwoFASetup() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [otpauth, setOtpauth] = useState<string>();
   const [qr, setQr] = useState<string>();
   const [code, setCode] = useState("");
   const [msg, setMsg] = useState<string>();
   const [ok, setOk] = useState(false);
+
+  const nextPath = useMemo(() => {
+    const raw = searchParams?.get("next") ?? "";
+    if (raw.startsWith("/") && !raw.startsWith("//")) return raw;
+    return "/account";
+  }, [searchParams]);
 
   useEffect(() => {
     (async () => {
@@ -31,8 +40,13 @@ export default function TwoFASetup() {
       body: JSON.stringify({ code }),
     });
     const j = await r.json();
-    if (r.ok) setOk(true);
-    else setMsg(j?.error || "Verifizierung fehlgeschlagen");
+    if (r.ok) {
+      setOk(true);
+      // Let the success copy render briefly, then continue.
+      setTimeout(() => router.replace(nextPath), 400);
+    } else {
+      setMsg(j?.error || "Verifizierung fehlgeschlagen");
+    }
   }
 
   return (

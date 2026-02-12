@@ -1,8 +1,11 @@
 import type { Metadata } from "next";
 import { cookies, headers } from "next/headers";
 import Link from "next/link";
+import { notFound, redirect } from "next/navigation";
 import { BRAND } from "@/lib/brand";
 import { DEFAULT_LOCALE, isSupportedLocale, type SupportedLocale } from "@/config/locales";
+import { getSessionUser } from "@/lib/server/auth/sessionUser";
+import { userIsAdminDashboard } from "@/lib/server/auth/roles";
 
 export const metadata: Metadata = {
   title: "Community Chat",
@@ -67,7 +70,16 @@ function t(entry: { de: string; en: string }, locale: SupportedLocale) {
   return locale === "en" ? entry.en : entry.de;
 }
 
-export default function ChatPage() {
+export default async function ChatPage() {
+  if (process.env.LIVE_CHAT_ENABLED !== "true") {
+    notFound();
+  }
+
+  const user = await getSessionUser();
+  if (!user || !userIsAdminDashboard(user)) {
+    redirect("/");
+  }
+
   const locale = detectLocale();
   const localeKey = locale === "en" ? "en" : "de";
 
@@ -104,4 +116,3 @@ export default function ChatPage() {
     </main>
   );
 }
-

@@ -163,6 +163,12 @@ export const NAV_SECTIONS: NavSection[] = [
         keywords: ["feeds", "drafts"],
       },
       {
+        href: "/admin/pilot",
+        label: "Pilot Control",
+        description: "Settings + Run Buttons",
+        keywords: ["pilot", "settings", "budget", "feeds", "factcheck"],
+      },
+      {
         href: "/admin/acquisition",
         label: "Akquise Dashboard",
         description: "Regionen, Feeds, Status",
