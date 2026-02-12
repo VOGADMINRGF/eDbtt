@@ -32,8 +32,8 @@ export default function ResetPage() {
       setOkMsg(
         "Wenn die E-Mail bei uns existiert, haben wir dir einen Link geschickt.",
       );
-    } catch (e: any) {
-      setMsg(e.message);
+    } catch (e: unknown) {
+      setMsg(e instanceof Error ? e.message : "Fehler");
     } finally {
       setBusy(false);
     }
@@ -53,8 +53,8 @@ export default function ResetPage() {
       const j = await r.json();
       if (!r.ok) throw new Error(j?.error || "Fehler");
       setOkMsg("Passwort gesetzt. Du kannst dich jetzt einloggen.");
-    } catch (e: any) {
-      setMsg(e.message);
+    } catch (e: unknown) {
+      setMsg(e instanceof Error ? e.message : "Fehler");
     } finally {
       setBusy(false);
     }
@@ -77,7 +77,8 @@ export default function ResetPage() {
           {okMsg && <p className="text-green-700 text-sm">{okMsg}</p>}
           <button
             disabled={busy}
-            className="bg-black text-white rounded px-4 py-2 disabled:opacity-50"
+            className="btn btn-primary disabled:opacity-50"
+            type="submit"
           >
             {busy ? "…" : "Setzen"}
           </button>
@@ -102,7 +103,8 @@ export default function ResetPage() {
         {okMsg && <p className="text-green-700 text-sm">{okMsg}</p>}
         <button
           disabled={busy}
-          className="bg-black text-white rounded px-4 py-2 disabled:opacity-50"
+          className="btn btn-primary disabled:opacity-50"
+          type="submit"
         >
           {busy ? "…" : "Link anfordern"}
         </button>

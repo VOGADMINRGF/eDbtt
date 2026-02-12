@@ -41,8 +41,8 @@ export default function OnboardingLocation() {
       const j = await r.json();
       if (!r.ok) throw new Error(j?.error || "HTTP " + r.status);
       router.push(wantsVerified ? "/auth/2fa-setup" : "/");
-    } catch (e: any) {
-      setMsg(e.message);
+    } catch (e: unknown) {
+      setMsg(e instanceof Error ? e.message : "Speichern nicht moeglich.");
     } finally {
       setBusy(false);
     }
@@ -80,7 +80,8 @@ export default function OnboardingLocation() {
         {msg && <p className="text-red-600 text-sm">{msg}</p>}
         <button
           disabled={busy}
-          className="bg-black text-white rounded px-4 py-2 disabled:opacity-50"
+          className="btn btn-primary disabled:opacity-50"
+          type="submit"
         >
           {busy ? "…" : "Weiter"}
         </button>

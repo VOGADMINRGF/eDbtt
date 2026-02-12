@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 type Summary = {
   totalUsers: number;
@@ -53,8 +54,8 @@ export default function AdminDashboardPage() {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const body = (await res.json()) as { data: Summary };
         if (active) setData(body.data);
-      } catch (err: any) {
-        if (active) setError(err?.message || "load_failed");
+      } catch (err: unknown) {
+        if (active) setError(getErrorMessage(err));
       } finally {
         if (active) setLoading(false);
       }
@@ -69,6 +70,14 @@ export default function AdminDashboardPage() {
 
   return (
     <div className="space-y-6">
+      <header className="rounded-3xl bg-white/90 p-5 shadow ring-1 ring-slate-100">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Admin Dashboard</p>
+        <h1 className="mt-1 text-2xl font-semibold text-slate-900">Steuerzentrale</h1>
+        <p className="mt-2 text-sm text-slate-600">
+          Überblick über Nutzer, Inhalte, Graph, Telemetrie und operative Warteschlangen.
+        </p>
+      </header>
+
       <section className="grid gap-3 md:grid-cols-2 lg:grid-cols-5">
         {renderCard("User gesamt", data?.totalUsers, loading, nf, undefined, "/admin/users")}
         {renderCard("Neue User (30d)", newUsers30d, loading, nf, undefined, "/admin/users?createdDays=30")}
@@ -142,7 +151,14 @@ export default function AdminDashboardPage() {
         </div>
         {error && (
           <p className="mt-3 text-sm text-rose-600">
-            Fehler beim Laden: {error} <button className="underline" onClick={() => location.reload()}>Neu laden</button>
+            Fehler beim Laden: {error}{" "}
+            <button
+              type="button"
+              className="font-semibold underline underline-offset-2"
+              onClick={() => location.reload()}
+            >
+              Neu laden
+            </button>
           </p>
         )}
       </section>
@@ -201,10 +217,46 @@ export default function AdminDashboardPage() {
           <LinkCard title="Graph Health" href="/admin/graph/health" description="Health KPIs & Repairs" />
           <LinkCard title="Report Assets" href="/admin/reports/assets" description="Revisionen & Freigabe" />
           <LinkCard title="Audit Logs" href="/admin/audit" description="Mutationen & Nachvollziehbarkeit" />
+          <LinkCard title="Support Ledger" href="/admin/support" description="Pledges, Paid, CSV Export" />
+          <LinkCard title="Campaign Desk" href="/admin/campaigns" description="Kampagnenstatus und Sessionfluss" />
+          <LinkCard title="Factcheck Desk" href="/admin/factcheck" description="Editoriale Freigaben und Checks" />
+          <LinkCard title="Identity Desk" href="/admin/identity" description="Verification-Level und Abdeckung" />
+        </div>
+      </section>
+
+      <section className="space-y-3">
+        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Weitere Bereiche</p>
+        <div className="flex flex-wrap gap-2">
+          {[
+            { href: "/admin/analytics", label: "Analytics" },
+            { href: "/admin/errors", label: "Errors" },
+            { href: "/admin/eventualities", label: "Eventualities" },
+            { href: "/admin/memberships", label: "Memberships" },
+            { href: "/admin/newsletter", label: "Newsletter" },
+            { href: "/admin/orgs", label: "Orgs" },
+            { href: "/admin/pitch", label: "Pitch" },
+            { href: "/admin/reports", label: "Reports" },
+            { href: "/admin/responsibility", label: "Responsibility" },
+            { href: "/admin/settings", label: "Settings" },
+            { href: "/admin/users", label: "Users" },
+          ].map((entry) => (
+            <Link
+              key={entry.href}
+              href={entry.href}
+              className="rounded-full bg-white/90 px-3 py-1.5 text-xs font-semibold text-slate-700 ring-1 ring-slate-200 transition hover:ring-sky-200"
+            >
+              {entry.label}
+            </Link>
+          ))}
         </div>
       </section>
     </div>
   );
+}
+
+function getErrorMessage(err: unknown): string {
+  if (err instanceof Error && err.message) return err.message;
+  return "load_failed";
 }
 
 function renderCard(
@@ -228,9 +280,9 @@ function renderCard(
   );
   if (href) {
     return (
-      <a href={href} className="block transition hover:-translate-y-0.5">
+      <Link href={href} className="block transition hover:-translate-y-0.5">
         {content}
-      </a>
+      </Link>
     );
   }
   return content;
@@ -258,12 +310,12 @@ function SkeletonBars() {
 
 function LinkCard({ title, description, href }: { title: string; description: string; href: string }) {
   return (
-    <a
+    <Link
       href={href}
       className="rounded-3xl bg-white/90 p-4 shadow ring-1 ring-slate-100 transition hover:-translate-y-0.5 hover:ring-sky-200"
     >
       <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">{title}</p>
       <p className="mt-2 text-sm text-slate-700">{description}</p>
-    </a>
+    </Link>
   );
 }

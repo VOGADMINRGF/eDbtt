@@ -30,6 +30,7 @@
     "postinstall": "pnpm -w run prisma:gen:web",
     "check:web": "pnpm -w exec tsc --noEmit -p apps/web/tsconfig.public.json",
     "check:repo": "pnpm -w exec tsc --noEmit -p tsconfig.base.json",
+    "check:pages": "node scripts/check-page-contracts.mjs",
     "lint:fix:web": "bash ./scripts/lint-fix.sh",
     "lint:clean": "node tools/reperatur/41-lint-warnings-clean.mjs",
     "typecheck": "pnpm -w exec tsc --noEmit -p apps/web/tsconfig.json",

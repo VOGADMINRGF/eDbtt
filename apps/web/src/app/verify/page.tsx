@@ -73,11 +73,15 @@ export default function VerifyPage() {
           serverNext ||
           (qpNext ? decodeURIComponent(qpNext) : "/login?verified=1");
         router.replace(next);
-      } catch (err: any) {
+      } catch (err: unknown) {
+        const message =
+          err instanceof Error && err.message
+            ? err.message
+            : "Unbekannter Fehler";
         setErrMsg(
-          err?.name === "AbortError"
+          err instanceof Error && err.name === "AbortError"
             ? "Zeitüberschreitung. Bitte erneut versuchen."
-            : err?.message || "Unbekannter Fehler",
+            : message,
         );
       } finally {
         setBusy(false);
@@ -175,7 +179,7 @@ export default function VerifyPage() {
           <button
             type="submit"
             disabled={busy}
-            className="bg-black text-white rounded px-4 py-2 disabled:opacity-50"
+            className="btn btn-primary disabled:opacity-50"
           >
             {busy ? "…" : "Verifizieren"}
           </button>

@@ -2,6 +2,7 @@
 import { redirect } from "next/navigation";
 import { AccountClient } from "./AccountClient";
 import { getAccountOverview } from "@features/account/service";
+import type { AccountOverview } from "@features/account/types";
 import { readSession } from "@/utils/session";
 
 export const metadata = {
@@ -11,6 +12,22 @@ export const metadata = {
 type Props = {
   searchParams?: Record<string, string | string[] | undefined>;
 };
+
+function readParam(
+  params: Record<string, string | string[] | undefined>,
+  key: string,
+): string | undefined {
+  const value = params[key];
+  if (typeof value === "string") return value;
+  if (Array.isArray(value)) return value[0];
+  return undefined;
+}
+
+function getDisplayName(overview: AccountOverview): string | undefined {
+  const value = overview.displayName ?? undefined;
+  const trimmed = value?.trim();
+  return trimmed ? trimmed : undefined;
+}
 
 export default async function AccountPage({ searchParams }: Props) {
   const params = await Promise.resolve(searchParams ?? {});
@@ -26,23 +43,18 @@ export default async function AccountPage({ searchParams }: Props) {
     redirect(`/login?next=${encodeURIComponent("/account")}`);
   }
 
-  const membershipNotice =
-    typeof (params as any)?.membership === "string" &&
-    (params as any).membership === "thanks";
-  const preorderNotice =
-    typeof (params as any)?.preorder === "string" &&
-    (params as any).preorder === "thanks";
-  const welcomeNotice =
-    typeof (params as any)?.welcome === "string" &&
-    ["1", "true", "yes"].includes((params as any).welcome);
+  const membershipNotice = readParam(params, "membership") === "thanks";
+  const preorderNotice = readParam(params, "preorder") === "thanks";
+  const welcomeParam = readParam(params, "welcome");
+  const welcomeNotice = Boolean(welcomeParam && ["1", "true", "yes"].includes(welcomeParam));
 
-  const displayName: string | undefined = (overview as any)?.profile?.displayName || (overview as any)?.displayName;
+  const displayName = getDisplayName(overview);
   const firstName = displayName?.trim().split(" ").filter(Boolean)[0] ?? undefined;
-  const hasPackage = (overview as any)?.edebatte?.status && (overview as any).edebatte.status !== "none";
-  const roleCount = Array.isArray((overview as any)?.roles) ? (overview as any).roles.length : 0;
-  const verificationLevel = (overview as any)?.verificationLevel ?? "none";
-  const preferredLocale = (overview as any)?.preferredLocale ?? "de";
-  const publicProfileReady = Boolean((overview as any)?.publicProfile?.bio) && Boolean((overview as any)?.publicProfile?.city);
+  const hasPackage = overview.edebatte?.status ? overview.edebatte.status !== "none" : false;
+  const roleCount = overview.roles.length;
+  const verificationLevel = overview.verificationLevel ?? "none";
+  const preferredLocale = overview.preferredLocale ?? "de";
+  const publicProfileReady = Boolean(overview.publicProfile?.bio) && Boolean(overview.publicProfile?.city);
 
   const accountHighlights = [
     {

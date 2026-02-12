@@ -57,7 +57,7 @@ export default function TwoFASetup() {
               onChange={(e) => setCode(e.target.value)}
             />
             {msg && <p className="text-red-600 text-sm">{msg}</p>}
-            <button className="bg-black text-white rounded px-4 py-2">
+            <button className="btn btn-primary" type="submit">
               Bestätigen
             </button>
           </form>
