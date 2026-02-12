@@ -75,6 +75,15 @@ Die folgenden Punkte dokumentieren die abgeschlossene Reihenfolge der Bloecke. K
 - `docs/E150/OpenTasks.md` wurde als kanonisches Aufgabenboard angelegt.
 - `docs/E150/Pflichtenheft.md` wurde als verbindlicher Liefer- und Abnahmerahmen ergaenzt.
 
+## Optionaler Nachlauf (kanonisch in OpenTasks)
+
+- Social Preview: OG-Defaults aktiv; Detailseiten wie Reports/Archiv noch sukzessive erweitern.
+- Page Contracts (CI): `missing-h1`-Allowlist schrittweise abbauen.
+- Type Hygiene (Pages): restliche `any`-Verwendungen in `page.tsx` reduzieren.
+- Admin Navigation: Kontextaktionen (Massenaktionen/Drilldown) erweitern.
+- Swipes Analytics: Vote-Aggregationen fuer Admin-Reports verfeinern.
+- Public Profile Polish: Avatar/Cover Upload + Impact-Ansicht fuer Buerger:innen.
+
 ### Identity & Profile (aus Part00–04 abgeleitet)
 
 Status (Zusammenfassung):

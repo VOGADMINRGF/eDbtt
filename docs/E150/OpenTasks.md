@@ -35,7 +35,7 @@ Ist/Unerledigt:
 
 | Bereich | Ist | Unerledigt |
 | --- | --- | --- |
-| Social Preview | OG-Defaults im Root-Layout aktiv | Detailseiten sukzessive erweitern |
+| Social Preview | OG-Defaults im Root-Layout + Dossier-Detail aktiv | Report-/Archiv-Detailseiten sukzessive erweitern |
 | Page Contracts (CI) | `scripts/check-page-contracts.mjs` aktiv im Web-Build (Headline/Button-Regeln) | `missing-h1`-Allowlist von 38 Seiten schrittweise abbauen |
 | Type Hygiene (Pages) | Kernseiten `account`, `admin`, Auth-Flow nachgezogen | Restliche `any`-Verwendungen in `page.tsx` systematisch reduzieren |
 | Admin Navigation | Hubs + Direktzugriff + Zusatzbereiche im Dashboard vorhanden | Kontextaktionen (Massenaktionen/Drilldown) gezielt erweitern |

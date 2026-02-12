@@ -19,6 +19,13 @@ type UserDoc = {
   newsletterOptIn?: boolean | null;
 };
 
+type SwipeVoteDoc = {
+  _id?: ObjectId;
+  userId?: string;
+  decision?: string;
+  createdAt?: Date;
+};
+
 export async function GET(req: NextRequest) {
   const gate = await requireAdminOrResponse(req);
   if (gate instanceof Response) return gate;
@@ -85,6 +92,23 @@ export async function GET(req: NextRequest) {
     ])
     .toArray();
 
+  const swipeVotesCol = await getCol<SwipeVoteDoc>("swipe_votes");
+  const swipeTotal = await swipeVotesCol.countDocuments({});
+  const swipeUniqueUsersRaw = await swipeVotesCol.distinct("userId");
+  const swipeUniqueUsers = swipeUniqueUsersRaw.filter(Boolean).length;
+  const swipeLast30Days = await swipeVotesCol
+    .aggregate([
+      { $match: { createdAt: { $gte: since } } },
+      {
+        $group: {
+          _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
+          count: { $sum: 1 },
+        },
+      },
+      { $sort: { _id: 1 } },
+    ])
+    .toArray();
+
   const [orgsTotal, reportAssetsTotal, pendingRepairs, editorialAgg] = await Promise.all([
     (await orgsCol()).countDocuments({ $or: [{ archivedAt: { $exists: false } }, { archivedAt: null }] }),
     (await reportAssetsCol()).countDocuments({}),
@@ -109,6 +133,11 @@ export async function GET(req: NextRequest) {
     packages: packageAgg.map((p) => ({ code: p._id, count: p.count })),
     roles: rolesAgg.map((r) => ({ role: r._id, count: r.count })),
     registrationsLast30Days: registrations.map((r) => ({ date: r._id, count: r.count })),
+    swipes: {
+      total: swipeTotal,
+      uniqueUsers: swipeUniqueUsers,
+      last30Days: swipeLast30Days.map((r) => ({ date: r._id, count: r.count })),
+    },
     orgsTotal,
     reportAssetsTotal,
     pendingGraphRepairs: pendingRepairs,

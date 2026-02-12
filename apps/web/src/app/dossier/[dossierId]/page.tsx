@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import type { Metadata } from "next";
 import Link from "next/link";
 import { getCol, ObjectId } from "@core/db/triMongo";
 import {
@@ -11,6 +12,7 @@ import {
 } from "@features/dossier/db";
 import { findDossierByAnyId } from "@features/dossier/lookup";
 import { selectEffectiveFindings } from "@features/dossier/effective";
+import { BRAND } from "@/lib/brand";
 
 export const dynamic = "force-dynamic";
 
@@ -38,6 +40,44 @@ function formatDate(value?: Date | null) {
   const d = value instanceof Date ? value : new Date(value);
   if (Number.isNaN(d.getTime())) return null;
   return d.toLocaleDateString("de-DE", { year: "numeric", month: "short", day: "2-digit" });
+}
+
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const { dossierId } = await params;
+  const url = `${BRAND.baseUrl}/dossier/${encodeURIComponent(dossierId)}`;
+
+  const dossier = await findDossierByAnyId(dossierId);
+  if (dossier) {
+    const title = dossier.title ?? "Dossier";
+    const description = dossier.title
+      ? `Dossier zu ${dossier.title}`
+      : "Dossier, Quellen und offene Fragen auf eDebatte.";
+    return {
+      title,
+      description,
+      openGraph: { title, description, url, siteName: BRAND.name },
+      twitter: { title, description },
+    };
+  }
+
+  const proposal = await loadStatementProposalById(dossierId);
+  if (proposal) {
+    const title = proposal.title ?? "Statement";
+    const description = proposal.text.slice(0, 160);
+    return {
+      title,
+      description,
+      openGraph: { title, description, url, siteName: BRAND.name },
+      twitter: { title, description },
+    };
+  }
+
+  return {
+    title: "Dossier",
+    description: "Dossier, Quellen und offene Fragen auf eDebatte.",
+    openGraph: { title: "Dossier", description: "Dossier, Quellen und offene Fragen auf eDebatte.", url, siteName: BRAND.name },
+    twitter: { title: "Dossier", description: "Dossier, Quellen und offene Fragen auf eDebatte." },
+  };
 }
 
 const statusStyles: Record<string, string> = {

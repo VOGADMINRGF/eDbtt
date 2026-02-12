@@ -7,6 +7,11 @@ type Summary = {
   packages: { code: string; count: number }[];
   roles: { role: string; count: number }[];
   registrationsLast30Days: { date: string; count: number }[];
+  swipes?: {
+    total: number;
+    uniqueUsers: number;
+    last30Days: { date: string; count: number }[];
+  };
 };
 
 export default function AdminAnalyticsPage() {
@@ -70,6 +75,34 @@ export default function AdminAnalyticsPage() {
               </div>
             ))}
         </div>
+      </section>
+
+      <section className="rounded-3xl bg-white/90 p-4 shadow ring-1 ring-slate-100">
+        <h2 className="text-sm font-semibold text-slate-900">Swipes (30 Tage)</h2>
+        <div className="mt-3 flex items-end gap-1">
+          {loading && <SkeletonBars />}
+          {!loading &&
+            data?.swipes?.last30Days?.map((d) => (
+              <div key={d.date} className="flex flex-col items-center gap-1">
+                <div
+                  className="w-4 rounded-full bg-gradient-to-t from-slate-800 via-slate-700 to-slate-500"
+                  style={{ height: `${Math.max(6, d.count * 4)}px` }}
+                  title={`${d.date}: ${d.count}`}
+                />
+                <span className="text-[10px] text-slate-400">{d.date.slice(5)}</span>
+              </div>
+            ))}
+        </div>
+        {!loading && data?.swipes && (
+          <div className="mt-3 flex flex-wrap gap-2 text-[11px] text-slate-600">
+            <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1">
+              Total: <span className="font-semibold text-slate-800">{data.swipes.total}</span>
+            </span>
+            <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1">
+              Unique Nutzer: <span className="font-semibold text-slate-800">{data.swipes.uniqueUsers}</span>
+            </span>
+          </div>
+        )}
       </section>
 
       <section className="grid gap-4 lg:grid-cols-2">
