@@ -29,6 +29,8 @@ type Responsibility = {
   text: string;        // Kurzbeschreibung der Verantwortung
   relevance: number;   // 0–1, wie wichtig in diesem Kontext
 };
+```
+
 Part10 baut hierauf auf und ergänzt:
 
 Navigationslogik (Pfad von lokal → global),

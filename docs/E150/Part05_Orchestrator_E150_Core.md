@@ -117,6 +117,8 @@ type AnalyzeResult = {
   knots: KnotRecord[];
   // spätere Erweiterungen (Eventualitäten, Consequences etc.) in Part06/Part08
 };
+```
+
 3.2 Orchestrator-spezifische Typen
 ts
 Code kopieren

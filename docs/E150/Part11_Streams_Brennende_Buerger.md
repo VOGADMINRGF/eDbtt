@@ -96,8 +96,10 @@ type StreamSession = {
   externalUrl: string;   // Twitch/YouTube-Link
   status: "scheduled" | "live" | "ended" | "canceled";
 };
-4. Vorbereitung eines Streams
-4.1 Themen-Karten
+```
+
+## 4. Vorbereitung eines Streams
+### 4.1 Themen-Karten
 Vor einem Stream generiert das System automatisch eine „Stream-Deck“-Struktur:
 
 aus Graph & Reports:
@@ -122,7 +124,7 @@ Karten zu deaktivieren,
 
 eigene Karten hinzuzufügen.
 
-4.2 Checkliste für Hosts
+### 4.2 Checkliste für Hosts
 Mindestens:
 
 Thema/Region geprüft,
@@ -133,8 +135,8 @@ Moderations-Tools verstanden (Mute, Ban, Slowmode für Chat),
 
 Option: Co-Host / Moderator:in benannt.
 
-5. In-Stream-Interaktion
-5.1 Viewer-Seite (Companion UI)
+## 5. In-Stream-Interaktion
+### 5.1 Viewer-Seite (Companion UI)
 Zuschauer:innen sehen:
 
 eingebettetes Video,
@@ -149,7 +151,7 @@ Schaltfläche „Was-wäre-wenn?“-Fragen,
 
 Feld für Fragen (mit Upvotes).
 
-5.2 Swipes im Stream
+### 5.2 Swipes im Stream
 Swipes zählen wie normale Swipes (XP, Credits),
 
 zusätzlich:
@@ -164,7 +166,7 @@ Pro Stream begrenztes Swipe-Budget (Anti-Spam),
 
 Rate-Limits je User.
 
-5.3 Fragen & Eventualitäten
+### 5.3 Fragen & Eventualitäten
 User können Fragen vorschlagen,
 
 Host/Mod-Team können sie:
@@ -183,8 +185,8 @@ in ResearchTasks (Part09),
 
 in spätere Reports.
 
-6. Nachbereitung des Streams
-6.1 Automatischer Stream-Report
+## 6. Nachbereitung des Streams
+### 6.1 Automatischer Stream-Report
 Enthält:
 
 Anzahl Zuschauer:innen (falls verfügbar),
@@ -197,12 +199,12 @@ Stimmungsbild im Zeitverlauf,
 
 XP-Zuwachs Host & Community.
 
-6.2 Integration in Graph & Reports
+### 6.2 Integration in Graph & Reports
 neue Claims/Fragen/Knoten/Eventualitäten werden als Nodes & Edges gespeichert,
 
 Topic-/Region-Reports werden aktualisiert (oder beim nächsten Rebuild neu generiert).
 
-6.3 Clips & Social
+### 6.3 Clips & Social
 kurze Text-Zusammenfassung,
 
 optional:
@@ -211,8 +213,8 @@ Social-Snippets (Statements + Link zum Report),
 
 später: Auto-Clips (wenn rechtlich/technisch möglich).
 
-7. Moderation & Sicherheit
-7.1 Community-Richtlinien
+## 7. Moderation & Sicherheit
+### 7.1 Community-Richtlinien
 Verbindlich:
 
 kein Hass, Rassismus, Sexismus,
@@ -223,7 +225,7 @@ keine Werbung,
 
 keine parteipolitischen Kampagnen im Sinne klassischer Wahlwerbung.
 
-7.2 Moderations-Tools
+### 7.2 Moderations-Tools
 Für Host/Mods:
 
 User stummschalten,
@@ -234,22 +236,22 @@ User melden,
 
 Stream bei schweren Verstößen sofort beenden („Panic Button“).
 
-7.3 Automatische Filter
+### 7.3 Automatische Filter
 Textfilter für Chat (Hatewords, Beleidigungen),
 
 optional KI-Unterstützung (Hinweis „Message riskant“),
 
 aber Entscheidungen bleiben bei Menschen.
 
-8. XP & Monetarisierung
-8.1 XP-Vergabe
+## 8. XP & Monetarisierung
+### 8.1 XP-Vergabe
 Stream hosten: +200 XP (Baseline)
 
 besonders erfolgreiche Streams:
 
 Bonus je nach Zuschauerzahl & Interaktion (konfigurierbar).
 
-8.2 Abo/Plan-Abhängigkeit
+### 8.2 Abo/Plan-Abhängigkeit
 Bestimmte Stream-Typen:
 
 z.B. Kampagnen-Streams nur mit citizenPro/Ultra oder B2G/B2B-Plan,
@@ -258,14 +260,14 @@ Normale Community-Streams:
 
 gratis, aber Level-Gate (Brennend).
 
-8.3 Keine direkte Geldverteilung
+### 8.3 Keine direkte Geldverteilung
 keine Trinkgeld-Funktion,
 
 kein direktes „Streamer verdient an Votes“,
 
 Fokus: Ehrenamt & gemeinwohlorientierte Motivation.
 
-9. Codex-Anweisungen (kompakt)
+## 9. Codex-Anweisungen (kompakt)
 Codex MUSS:
 
 Models für StreamSession und zugehörige Tabellen anlegen.
@@ -300,8 +302,8 @@ PII, Fairness, Neutralität beachten (keine Empfehlungen, kein Tracking-Wildwuch
 
 Part11 baut damit auf allen vorherigen Parts auf und macht sie „live erlebbar“.
 
-10. Stream-Kit (Overlay, QR, Agenda)
-10.1 Funktion (Skizze)
+## 10. Stream-Kit (Overlay, QR, Agenda)
+### 10.1 Funktion (Skizze)
 Das Stream-Kit ist ein produktiver Baukasten fuer sachliche Debattenformate:
 
 - Overlay fuer OBS/Browser-Source mit aktuellem Tagespunkt.
@@ -318,7 +320,7 @@ type StreamKitState = {
 };
 ```
 
-10.2 Ist/Unerledigt
+### 10.2 Ist/Unerledigt
 
 | Bereich | Ist | Unerledigt |
 | --- | --- | --- |
@@ -327,14 +329,14 @@ type StreamKitState = {
 | Host-Flow | Host-Checks und Session-UI vorhanden | 1-Klick "Aktiver Tagespunkt" + Overlay-Sync fehlt |
 | Community-Input | Poll/Vote-Interaktion vorhanden | Strukturierte Queue fuer Quellen/Optionen im Live-Flow fehlt |
 
-11. Streamer-werden Seite
-11.1 Funktion (Skizze)
+## 11. Streamer-werden Seite
+### 11.1 Funktion (Skizze)
 
 - Eigene Onboarding-Seite fuer Streamer mit Gating, Setup und Moderationsregeln.
 - Fokus auf Debattenformat statt Entertainment-Format.
 - Enthalten: technische Checkliste, Rollenrechte, Moderationsstandards, Beispielablauf.
 
-11.2 Ist/Unerledigt
+### 11.2 Ist/Unerledigt
 
 | Bereich | Ist | Unerledigt |
 | --- | --- | --- |

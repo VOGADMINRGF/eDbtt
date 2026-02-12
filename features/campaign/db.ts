@@ -1,14 +1,24 @@
 import { coreCol, ObjectId, type ObjectId as ObjectIdType } from "@core/db/triMongo";
-import type { CampaignDoc, CampaignParticipantDoc, CampaignSessionDoc } from "./types";
+import type {
+  CampaignDoc,
+  CampaignParticipantDoc,
+  CampaignSessionDoc,
+  SupportCampaignDoc,
+  SupportPledgeDoc,
+} from "./types";
 
 const CAMPAIGN_COLLECTION = "campaigns";
 const SESSION_COLLECTION = "campaign_sessions";
 const PARTICIPANT_COLLECTION = "campaign_participants";
+const SUPPORT_CAMPAIGN_COLLECTION = "support_campaigns";
+const SUPPORT_PLEDGE_COLLECTION = "support_pledges";
 
 const ensured = {
   campaigns: false,
   sessions: false,
   participants: false,
+  supportCampaigns: false,
+  supportPledges: false,
 };
 
 async function ensureCampaignIndexes() {
@@ -37,6 +47,24 @@ async function ensureParticipantIndexes() {
   ensured.participants = true;
 }
 
+async function ensureSupportCampaignIndexes() {
+  if (ensured.supportCampaigns) return;
+  const col = await coreCol<SupportCampaignDoc>(SUPPORT_CAMPAIGN_COLLECTION);
+  await col.createIndex({ slug: 1 }, { unique: true });
+  await col.createIndex({ status: 1, createdAt: -1 });
+  await col.createIndex({ targetType: 1, targetId: 1 });
+  ensured.supportCampaigns = true;
+}
+
+async function ensureSupportPledgeIndexes() {
+  if (ensured.supportPledges) return;
+  const col = await coreCol<SupportPledgeDoc>(SUPPORT_PLEDGE_COLLECTION);
+  await col.createIndex({ supportCampaignId: 1, createdAt: -1 });
+  await col.createIndex({ supportCampaignId: 1, status: 1, createdAt: -1 });
+  await col.createIndex({ paymentReference: 1 }, { unique: true });
+  ensured.supportPledges = true;
+}
+
 export async function campaignsCol() {
   await ensureCampaignIndexes();
   return coreCol<CampaignDoc>(CAMPAIGN_COLLECTION);
@@ -50,6 +78,16 @@ export async function campaignSessionsCol() {
 export async function campaignParticipantsCol() {
   await ensureParticipantIndexes();
   return coreCol<CampaignParticipantDoc>(PARTICIPANT_COLLECTION);
+}
+
+export async function supportCampaignsCol() {
+  await ensureSupportCampaignIndexes();
+  return coreCol<SupportCampaignDoc>(SUPPORT_CAMPAIGN_COLLECTION);
+}
+
+export async function supportPledgesCol() {
+  await ensureSupportPledgeIndexes();
+  return coreCol<SupportPledgeDoc>(SUPPORT_PLEDGE_COLLECTION);
 }
 
 export function toObjectId(id: string | ObjectIdType): ObjectId {

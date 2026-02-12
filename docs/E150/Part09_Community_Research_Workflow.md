@@ -73,11 +73,12 @@ type ResearchTask = {
   createdAt: string;
   updatedAt?: string;
 };
-3.2 ResearchContribution
+```
+
+### 3.2 ResearchContribution
 Ein Community-Mitglied kann eine oder mehrere Antworten/Quellen liefern:
 
-ts
-Code kopieren
+```ts
 type ResearchContribution = {
   id: string;
   taskId: string;
@@ -94,8 +95,10 @@ type ResearchContribution = {
   reviewStatus?: "pending" | "accepted" | "rejected" | "needs_changes";
   reviewComment?: string;
 };
-4. Wie entstehen ResearchTasks?
-4.1 Automatisch aus E150/E200 (system)
+```
+
+## 4. Wie entstehen ResearchTasks?
+### 4.1 Automatisch aus E150/E200 (system)
 Folgende Trigger erzeugen automatisch Tasks:
 
 Statement mit vielen Swipes, aber:
@@ -112,7 +115,7 @@ B2G/B2B-Kampagne, deren Fragen vertieft werden sollen:
 
 z.B. „Welche Kosten hat Option A in den letzten 10 Jahren verursacht?“
 
-4.2 Durch User
+### 4.2 Durch User
 Brennende/Inspirierende Bürger:innen können:
 
 aus einem Statement heraus auf „Research-Aufgabe erstellen“ klicken,
@@ -334,32 +337,30 @@ Mechanismen für „Frage bereits in Arbeit“ anzeigen,
 
 Unklarheiten nicht einfach verwerfen.
 
-## 9.5 Offene Aufgaben / Phase 2
+## 9.5 Phase 2 Abschlussstatus (R2 done)
 
-Die erste Implementierungsrunde (Part09 – Phase 1) deckt Domain-Modelle, Admin-UI,
-User-Board und XP-Awarding ab. Folgende Punkte bleiben explizit offen:
+Stand: R2 ist umgesetzt (Seeding, Filter/Sortierung, Contributor-Feedback, Graph-Backflow, Cooldowns).
+Diese Liste bleibt als Betriebs- und Weiterentwicklungsreferenz erhalten:
 
 1. Seeding „Key Research Tasks“
    - Aus offenen Questions/Knots/Eventualities werden initiale ResearchTasks erzeugt.
-   - Ziel: Navigator- und Impact-Daten praktisch nutzbar machen, ohne manuelle Erfassung.
+   - Betriebspunkt: Dedupe und Backfill regelmaessig pruefen.
 
 2. Research Board – Filter & Sortierung
    - Filter nach Level (Beginner/Intermediate/Expert), Tags, Topic, Region.
-   - Sortierung z.B. nach „neueste“, „dringend“, „meiste offenen Contributions“.
+   - Betriebspunkt: Filtersets bei neuen Topics/Regionen mitpflegen.
 
 3. Feedback für Contributors
    - Review-Status + Review-Notizen für eingereichte Contributions sichtbar machen.
-   - Leichte Benachrichtigungen (z.B. Badge, Hinweis im Profil oder einfache Notification-Liste).
+   - Betriebspunkt: UX fuer Benachrichtigungen iterativ verbessern.
 
 4. Rückfluss in Statements & Graph
-   - Akzeptierte ResearchContributions sollen:
-     - an Statements/Eventualities angehängt werden (z.B. zusätzliche Quellen, Fakten),
-     - in den Graph (Knowledge/Impact) einfließen für spätere Reports.
+   - Akzeptierte ResearchContributions an Statements/Eventualities anhängen und in den Graph uebernehmen.
+   - Betriebspunkt: Backflow-Monitoring in Reports behalten.
 
 5. Anti-Spam / Abuse-Schutz
-   - Rate Limits oder Cooldowns pro User/Task.
-   - Evtl. Mindest-Engagement-Level für bestimmte Task-Level.
-   - Eindeutige Audit-Logs für Moderation.
+   - Rate Limits/Cooldowns pro User/Task.
+   - Betriebspunkt: Moderationslogs und Schwellenwerte regelmaessig nachschaerfen.
 
 
 10. B2G/B2B-Anbindung (Part04)

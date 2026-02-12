@@ -56,10 +56,24 @@ export default async function CampaignPage({ params }: PageProps) {
             Kampagne ist derzeit nicht aktiv.
           </span>
         )}
+        {campaign.supportEnabled && campaign.supportSlug ? (
+          <Link
+            href={`/support/${encodeURIComponent(campaign.supportSlug)}`}
+            className="rounded-full border border-emerald-300 bg-emerald-50 px-5 py-2 text-sm font-semibold text-emerald-800"
+          >
+            Unterstuetzen
+          </Link>
+        ) : null}
         <Link href="/stream" className="text-sm font-semibold text-slate-600 hover:text-slate-900">
           Zurueck zu Streams
         </Link>
       </div>
+
+      {campaign.supportEnabled && campaign.supportSlug ? (
+        <p className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
+          Unterstuetzung dient nur der Transparenz und Ermöglichung: keine Stimmen, keine XP, keine Credits.
+        </p>
+      ) : null}
     </main>
   );
 }

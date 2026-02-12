@@ -56,6 +56,8 @@ type GraphNode = {
   updatedAt?: string;
   metadata?: Record<string, any>;
 };
+```
+
 3.2 Kanten (Edges)
 ts
 Code kopieren

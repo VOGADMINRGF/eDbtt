@@ -11,6 +11,8 @@ type CampaignDetail = {
   regionCode: string | null;
   topicKey: string | null;
   status: "draft" | "active" | "paused" | "ended";
+  supportEnabled: boolean;
+  supportSlug: string | null;
   startsAt: string | null;
   endsAt: string | null;
   createdAt: string;
@@ -616,6 +618,23 @@ export default function AdminCampaignDetailPage() {
             <Link href="/admin/campaigns" className="font-semibold text-slate-500">
               Zurück zur Liste
             </Link>
+          </div>
+          <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
+            Support: {campaign.supportEnabled && campaign.supportSlug ? (
+              <span>
+                aktiv ·{" "}
+                <Link href={`/support/${encodeURIComponent(campaign.supportSlug)}`} className="font-semibold text-emerald-700">
+                  /support/{campaign.supportSlug}
+                </Link>
+              </span>
+            ) : (
+              <span>
+                nicht aktiv ·{" "}
+                <Link href="/admin/support" className="font-semibold text-slate-900">
+                  in Admin Support aktivieren
+                </Link>
+              </span>
+            )}
           </div>
         </>
       )}

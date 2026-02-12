@@ -33,7 +33,9 @@ type Campaign = {
   maxParticipantsHint?: number;
   qrCodeSlug: string;         // für QR-Sessions
 };
-2.2 Kampagnen-Inhalte
+```
+
+### 2.2 Kampagnen-Inhalte
 Jede Campaign besteht aus:
 
 einer oder mehreren Fragen (Statements/Contributions),
@@ -46,8 +48,7 @@ Streams,
 
 ResearchTasks.
 
-ts
-Code kopieren
+```ts
 type CampaignQuestion = {
   id: string;
   campaignId: string;
@@ -55,7 +56,9 @@ type CampaignQuestion = {
   order: number;
   isMandatory: boolean;
 };
-2.3 QR-Sessions
+```
+
+### 2.3 QR-Sessions
 Für jede Kampagne können QR-Sessions generiert werden:
 
 z.B. für Wartesaal im Rathaus,
@@ -64,8 +67,7 @@ Firmenveranstaltungen,
 
 Stadtfeste.
 
-ts
-Code kopieren
+```ts
 type CampaignSession = {
   id: string;
   campaignId: string;
@@ -74,6 +76,8 @@ type CampaignSession = {
   expiresAt?: string;
   locationHint?: string; // "Rathaus-Foyer", "Betriebsversammlung"
 };
+```
+
 Teilnehmer:innen:
 
 scannen QR,
@@ -158,21 +162,21 @@ Ist/Unerledigt:
 
 | Bereich | Ist | Unerledigt |
 | --- | --- | --- |
-| Campaign-Basis | Campaign/Session/QR/Report vorhanden | Support-Feld am Campaign-Modell fehlt |
-| Zahlungslogik | Membership-Referenzlogik vorhanden (Pattern) | Eigene Support-Pledge-Referenzen + Admin mark-paid fehlen |
-| Public-UI | Campaign-Pages vorhanden | `/support/[slug]` und Campaign-CTA fehlen |
-| Admin-UI | Campaign-Admin vorhanden | `/admin/support` inkl. Pledge-Verbuchung/Export fehlt |
-| Governance | Trennung von Voting und Geld ist Leitlinie | Sichtbarer Hinweis in allen Support-Flows noch umzusetzen |
+| Campaign-Basis | `SupportCampaign`/`SupportPledge` Modelle + Collection-Indexes vorhanden | Optional: owner-gesteuerte Aktivierung ohne Staff-API |
+| Zahlungslogik | Zahlungsreferenz `CF-xxxxxx`, Statusflow `waiting_payment -> paid/canceled` aktiv | Optional: Guided Payment UX im Public Flow |
+| Public-UI | `/support/[slug]` inkl. Progress, Pledge-Form, Zahlungsinfo aktiv | Optional: Feineres Social-Proof/Region-Filter |
+| Admin-UI | `/admin/support` und `/admin/support/[id]` mit mark-paid/cancel + CSV aktiv | Optional: Bulk-Action fuer Pledges |
+| Governance | Sichtbarer Hinweis in Support- und Campaign-UI aktiv | Optional: Zusatzhinweis in weiteren Funnel-Seiten |
 
-3. Admin Console
-3.1 Rollen
+## 3. Admin Console
+### 3.1 Rollen
 staff – Plattform-Admin / Redaktionsleitung.
 
 orgAdmin – Admin einer Organisation (Gemeinde/Firma).
 
 council (optional) – inhaltliche Aufsicht.
 
-3.2 Admin-Bereiche
+### 3.2 Admin-Bereiche
 User & Orgs
 
 Account-Übersicht,
@@ -221,8 +225,8 @@ Zugriffspfade,
 
 Einstellbare Retention-Zeiten.
 
-4. Telemetry (AI & Plattform)
-4.1 AI Telemetry (E150-Stufe)
+## 4. Telemetry (AI & Plattform)
+### 4.1 AI Telemetry (E150-Stufe)
 Bereits in Code vorhanden (siehe Codex-Änderungen):
 
 features/ai/telemetry.ts
@@ -255,7 +259,7 @@ Fallback-Heatmap,
 
 Liste letzter Fehler-Events (PII-maskiert).
 
-4.2 Plattform-Telemetrie
+### 4.2 Plattform-Telemetrie
 Daten, die nicht personenbeziehbar ausgewertet werden:
 
 Anzahl Swipes pro Zeitraum,
@@ -278,8 +282,8 @@ Kapazitätsplanung,
 
 B2G/B2B-Reporting (aggregiert, anonymisiert).
 
-5. Kampagnen-Reporting
-5.1 Standard-Report für B2G/B2B
+## 5. Kampagnen-Reporting
+### 5.1 Standard-Report für B2G/B2B
 Enthält:
 
 Teilnehmerzahl gesamt,
@@ -294,22 +298,22 @@ offene Fragen (ResearchTasks),
 
 regionale / demografische Segmente (nur wenn datenschutzkonform).
 
-5.2 Export-Formate
+### 5.2 Export-Formate
 Web-Dashboard,
 
 PDF,
 
 JSON (für Weiterverarbeitung intern).
 
-6. Grenzen & Datenschutz
-6.1 Keine Tracking-Orgie
+## 6. Grenzen & Datenschutz
+### 6.1 Keine Tracking-Orgie
 Keine individuellen Click-Profile,
 
 Keine Third-Party-Tracker,
 
 Telemetry nur in aggregierter Form.
 
-6.2 Kampagnen-Datenschutz
+### 6.2 Kampagnen-Datenschutz
 Für B2G-Kampagnen: klare Hinweise
 
 Zweck,
@@ -320,7 +324,7 @@ Ansprechpartner.
 
 Anonymisierte Auswertung wo möglich.
 
-7. Codex-Anweisungen (kompakt)
+## 7. Codex-Anweisungen (kompakt)
 Codex MUSS:
 
 Models für Campaign, CampaignQuestion, CampaignSession implementieren.

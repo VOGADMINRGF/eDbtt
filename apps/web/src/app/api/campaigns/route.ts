@@ -13,6 +13,8 @@ type CampaignResponse = {
   regionCode: string | null;
   topicKey: string | null;
   status: CampaignStatus;
+  supportEnabled: boolean;
+  supportSlug: string | null;
   startsAt: string | null;
   endsAt: string | null;
   createdAt: string;
@@ -28,6 +30,8 @@ function serializeCampaign(doc: CampaignDoc, participants = 0): CampaignResponse
     regionCode: doc.regionCode ?? null,
     topicKey: doc.topicKey ?? null,
     status: doc.status,
+    supportEnabled: Boolean(doc.supportEnabled),
+    supportSlug: doc.supportSlug ?? null,
     startsAt: doc.startsAt ? doc.startsAt.toISOString() : null,
     endsAt: doc.endsAt ? doc.endsAt.toISOString() : null,
     createdAt: doc.createdAt.toISOString(),
@@ -95,6 +99,8 @@ export async function POST(req: NextRequest) {
     regionCode: typeof body?.regionCode === "string" ? body.regionCode.trim() : null,
     topicKey: typeof body?.topicKey === "string" ? body.topicKey.trim() : null,
     status,
+    supportEnabled: false,
+    supportSlug: null,
     startsAt: body?.startsAt ? new Date(body.startsAt) : null,
     endsAt: body?.endsAt ? new Date(body.endsAt) : null,
     createdAt: now,

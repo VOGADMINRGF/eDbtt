@@ -65,6 +65,8 @@ type ConsequenceBundle = {
   consequences: Consequence[];
   responsibilities: Responsibility[];
 };
+```
+
 Integration in AnalyzeResult (E200):
 
 ts

@@ -14,6 +14,8 @@ type CampaignResponse = {
   regionCode: string | null;
   topicKey: string | null;
   status: CampaignStatus;
+  supportEnabled: boolean;
+  supportSlug: string | null;
   startsAt: string | null;
   endsAt: string | null;
   createdAt: string;
@@ -29,6 +31,8 @@ function serializeCampaign(doc: CampaignDoc, participants = 0): CampaignResponse
     regionCode: doc.regionCode ?? null,
     topicKey: doc.topicKey ?? null,
     status: doc.status,
+    supportEnabled: Boolean(doc.supportEnabled),
+    supportSlug: doc.supportSlug ?? null,
     startsAt: doc.startsAt ? doc.startsAt.toISOString() : null,
     endsAt: doc.endsAt ? doc.endsAt.toISOString() : null,
     createdAt: doc.createdAt.toISOString(),
@@ -84,6 +88,8 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
   if (typeof body?.description === "string") patch.description = body.description.trim();
   if (typeof body?.regionCode === "string") patch.regionCode = body.regionCode.trim();
   if (typeof body?.topicKey === "string") patch.topicKey = body.topicKey.trim();
+  if (typeof body?.supportEnabled === "boolean") patch.supportEnabled = body.supportEnabled;
+  if (typeof body?.supportSlug === "string") patch.supportSlug = body.supportSlug.trim() || null;
   if (body?.status === "draft" || body?.status === "active" || body?.status === "paused" || body?.status === "ended") {
     patch.status = body.status;
   }

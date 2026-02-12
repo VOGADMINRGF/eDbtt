@@ -67,6 +67,8 @@ type EventualityNode = {
   responsibilities: Responsibility[];
   children: EventualityNode[];
 };
+```
+
 3.2 DecisionTree
 ts
 Code kopieren

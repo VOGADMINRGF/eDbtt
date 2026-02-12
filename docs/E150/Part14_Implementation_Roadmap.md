@@ -34,7 +34,7 @@ Stand nach den letzten Codex-Runs:
 _Update:_ Block E (Part09 Research Workflow / R2) ist umgesetzt (Tasks/Contributions, Seeding, Filter, Feedback, Graph-Backflow).
 
 - **Part10 Responsibility Navigator**  
-  – Responsibility nur als Text, ohne Directory/Navigator-UI/Graph-Edges.
+  – Directory/Navigator-UI und Responsibility-APIs sind umgesetzt (Block B done).
 
 - **Part11 Streams & „Brennende Bürger:innen“**  
   – Stream-Modelle, Agenda/Overlay, Routen und XP-Gating vorhanden.
@@ -44,6 +44,9 @@ _Update:_ Block E (Part09 Research Workflow / R2) ist umgesetzt (Tasks/Contribut
 
 - **Part13 I18N, A11y, Community/Social**  
   – I18N-Infra aktiv, A11y-Seite vorhanden, Community/Chat-Skeleton ergänzt.
+
+- **Steuerung/Transparenz**
+  – Offene Arbeit liegt kanonisch in `docs/E150/OpenTasks.md`; Scope/Abnahme fuer interne und externe Umsetzung liegt in `docs/E150/Pflichtenheft.md`.
 
 ---
 
@@ -315,7 +318,7 @@ Aufgaben:
 
 **Ziel:** Kampagnen/Projekte koennen zweckgebundene Unterstuetzung einsammeln, sichtbar machen und administrativ verbuchen.
 
-Status: **Open**.
+Status: **Done (PR-0030, 2026-02-12)**.
 
 Aufgaben:
 
@@ -343,9 +346,9 @@ Ist/Unerledigt:
 
 | Bereich | Ist | Unerledigt |
 | --- | --- | --- |
-| Campaign-Backbone | Campaign-Modelle, Join/QR, Reports aktiv | SupportCampaign/SupportPledge fehlen |
-| Zahlungsprinzip | Membership-Referenz + mark-paid Pattern vorhanden | Eigene Support-Referenzen und Support-Admin fehlen |
-| Produkt-UX | Beteiligungs- und Campaign-UI vorhanden | `/support/[slug]` und Unterstuetzen-CTA fehlen |
+| Campaign-Backbone | Campaign-Modelle, Join/QR, Reports + SupportCampaign/SupportPledge aktiv | Optional: weitere Target-Typen produktiv nutzen |
+| Zahlungsprinzip | Zahlungsreferenz + mark-paid/cancel + Admin-CSV aktiv | Optional: Guided Payment UX |
+| Produkt-UX | `/support/[slug]`, Campaign-CTA und `/admin/support` aktiv | Optional: owner-self-service Aktivierung |
 
 ---
 

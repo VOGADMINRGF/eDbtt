@@ -2,7 +2,7 @@
 
 ## Zweck
 
-Dieses Dokument bündelt, welche Pfade (Part00–Part15) noch offen sind und welche Bestandteile erledigt werden müssen. Es verweist auf die Blöcke aus Part14, damit der nächste Run gezielt die Lücken schließen kann.
+Dieses Dokument bündelt, welche Pfade (Part00–Part15) noch offen sind und welche Bestandteile erledigt werden müssen. Es verweist auf die Blöcke aus Part14, damit der nächste Run gezielt die Lücken schließen kann. Zusätzlich verweist es auf `docs/E150/OpenTasks.md` (kanonischer Aufgabenstand) und `docs/E150/Pflichtenheft.md` (verbindlicher Lieferrahmen für interne und externe Umsetzung).
 
 ## Status-Übersicht der Pfade 00–15
 
@@ -19,12 +19,12 @@ Dieses Dokument bündelt, welche Pfade (Part00–Part15) noch offen sind und wel
 - **Part09 Research Workflow (Block E/R2):** R2 umgesetzt: Seeding aus Questions/Knots, Filter/Sortierung, Contributor-Feedback, Graph-Backflow und Anti-Spam-Cooldown.
 - **Part10 Responsibility Navigator (Block B):** Directory/Paths + Navigator + Admin-UI vorhanden.
 - **Part11 Streams (Block F):** Stream-Modelle, Routes/UI, Agenda/Overlay und XP-Gating vorhanden.
-- **Part12 Campaigns (Block G):** Campaign-Modelle, Admin-UI, Join/QR-Flow (MVP) implementiert; Unterstuetzen/Crowdfunding pro Projekt noch offen.
+- **Part12 Campaigns (Block G + I):** Campaign-Modelle, Admin-UI, Join/QR-Flow (MVP) plus Unterstuetzen/Crowdfunding-Flow implementiert.
 - **Part13 I18N/A11y/Social (Block H):** I18N-Infra aktiv, A11y-Seiten vorhanden, Community/Chat-Skeleton ergänzt.
 - **Part14 Implementation Roadmap:** Dient als Arbeitsmodus; Block-Reihenfolge beachten.
 - **Part15 Codex Safe Mode:** Leitplanken aktiv; keine offenen Tasks, aber stets befolgen.
 
-## Aktueller Stand (März 2025)
+## Aktueller Stand (Februar 2026)
 
 - `/contributions/new` rendert wieder mit SiteShell, Citizen-Core-Text und sauberem Login-Redirect statt JSON-403; Credits/Gating basieren auf `AccountOverview`.
 - Login & Registrierung schreiben Name + Kontakt direkt in `pii.user_profiles` (givenName/familyName, birthDate ready), sodass Mitgliedsanträge nicht mehr ohne PII bleiben.
@@ -43,7 +43,7 @@ Dieses Dokument bündelt, welche Pfade (Part00–Part15) noch offen sind und wel
 | **F – Streams** | Part11 | **Done** | Stream-Modelle + Sessions/Agenda/Overlay, UI, XP-Gating & Host-Checks vorhanden. |
 | **G – Campaigns** | Part12 | **Done** | Campaign-Modelle + Admin-UI, `/campaign/[id]/join` + Join-API (MVP). |
 | **H – I18N / A11y / Social** | Part13 | **Done** | I18N-Infra aktiv, A11y-Seite vorhanden, Community/Chat-Skeleton ergänzt. |
-| **I – Unterstuetzen/Crowdfunding** | Part12/14 | **Open** | Support pro Campaign/Projekt: Pledge + Zahlungsreferenz + Admin mark-paid + oeffentlicher Fortschritt, ohne Einfluss auf Votes/XP/Credits. |
+| **I – Unterstuetzen/Crowdfunding** | Part12/14 | **Done** | Support pro Campaign/Projekt live: Pledge + Zahlungsreferenz + Admin mark-paid + oeffentlicher Fortschritt, ohne Einfluss auf Votes/XP/Credits. |
 
 ## Konkrete Next Steps
 
@@ -51,8 +51,25 @@ Dieses Dokument bündelt, welche Pfade (Part00–Part15) noch offen sind und wel
 2. **Block B erledigt** (Part06/10): Consequences/Responsibility inkl. API, Navigator-UI, Admin (PR-0019).
 3. **Block C/D erledigt** (Part07/08): Graph-Sync & Eventualities/DecisionTrees (PR-0020).
 4. **Block F/G/H erledigt (MVP)** (Part11/12/13): Streams/Campaigns/I18N-A11y-Social (PR-0020).
-5. **Block I starten** (Part12/14): Unterstuetzen/Crowdfunding als eigener transparenter Produktpfad.
-6. **Danach Fokus:** Stabilisierung, QA, Reports/Analytics-Vertiefung und UX-Polish der neuen Flows.
+5. **Block I erledigt** (Part12/14): Unterstuetzen/Crowdfunding End-to-End (PR-0030).
+6. **Danach Fokus:** Block F/H-Polish (Stream-Kit, I18N/A11y/Social-Haertung) und QA/Analytics-Vertiefung.
+
+## Verbindliche Steuerdateien
+
+1. `docs/E150/OpenTasks.md`
+   - Single Source of Truth fuer offene Arbeitspakete, Status und Reihenfolge.
+2. `docs/E150/Pflichtenheft.md`
+   - Pflichtenheft mit Scope, Definition of Done und Abnahmeregeln pro Bereich.
+3. `docs/E150/Part14_Implementation_Roadmap.md`
+   - Technische Blockreihenfolge inklusive DoD.
+4. `docs/E150/Part15_Codex_Safe_Mode.md`
+   - Safe-Mode-Guardrails inklusive Profilregeln fuer Ausnahme-Runs.
+
+## Doku-Hygiene (2026-02-12)
+
+- Part14/Part15/Part09 wurden auf konsistente Statusaussagen abgeglichen.
+- `docs/E150/OpenTasks.md` wurde als kanonisches Aufgabenboard angelegt.
+- `docs/E150/Pflichtenheft.md` wurde als verbindlicher Liefer- und Abnahmerahmen ergaenzt.
 
 ### Identity & Profile (aus Part00–04 abgeleitet)
 
@@ -107,10 +124,10 @@ Ist/Unerledigt:
 
 | Bereich | Ist | Unerledigt |
 | --- | --- | --- |
-| Campaign-Infrastruktur | Campaign/QR/Report-Basis vorhanden | SupportCampaign/SupportPledge fehlen |
-| Zahlungsprinzip | Membership-Referenzlogik + mark-paid vorhanden | Support-eigene Zahlungsreferenzen/Status-Flow fehlen |
-| Public-Produkt | Campaign-Pages vorhanden | `/support/[slug]` + Campaign-CTA fehlen |
-| Admin-Betrieb | Admin-Rahmen fuer Campaigns vorhanden | `/admin/support` + Export/Filter fehlen |
+| Campaign-Infrastruktur | SupportCampaign/SupportPledge + Indexes aktiv | Optional: weitere Target-Typen live nutzen |
+| Zahlungsprinzip | Zahlungsreferenz + mark-paid/cancel aktiv | Optional: Guided Payment UX |
+| Public-Produkt | `/support/[slug]` + Campaign-CTA aktiv | Optional: erweiterte Trust-/Transparenzmodule |
+| Admin-Betrieb | `/admin/support` + Detail + CSV aktiv | Optional: Bulk-Verbuchung |
 
 ## PR-Log
 
@@ -340,13 +357,23 @@ Verification:
 Next Steps:
 - Optional: Payment-UX weiter polieren (Modal/Guided Flow).
 
-### PR-0030 (geplant) – Block I Unterstuetzen/Crowdfunding
+### PR-0030 (2026-02-12) – Block I Unterstuetzen/Crowdfunding
 
 Ziel:
 - Eigene Unterstuetzen-Logik fuer Kampagnen/Projekte live schalten.
 
-Geplanter Scope:
-- SupportCampaign/SupportPledge Modell.
-- Public `/support/[slug]` und CTA auf `/campaign/[id]`.
-- Admin `/admin/support` inkl. `mark-paid`.
-- Sichtbare Leitregel in UI: kein Einfluss auf Votes/XP/Credits.
+Changes:
+- `SupportCampaign`/`SupportPledge` eingefuehrt (inkl. Indexes, Zahlungsreferenz `CF-xxxxxx`).
+- Public APIs: `POST /api/support/campaigns`, `GET /api/support/campaigns/[slug]`, `POST /api/support/campaigns/[slug]/pledges`.
+- Public UI: `/support/[slug]` mit Progress, Pledge-Form und Zahlungsanweisung.
+- Admin APIs: `GET /api/admin/support/campaigns`, `GET /api/admin/support/campaigns/[id]`, `PATCH /api/admin/support/pledges/[id]` plus CSV-Export.
+- Admin UI: `/admin/support` und `/admin/support/[id]` fuer Verbuchung/Monitoring.
+- Campaign-Integration: CTA `Unterstuetzen` auf `/campaign/[id]`, wenn Support aktiv.
+- Sichtbare Leitregel in UI: Unterstuetzung beeinflusst keine Votes/XP/Credits.
+
+Verification:
+- `pnpm -C apps/web run lint` (PASS)
+- `pnpm -C apps/web run typecheck` (PASS)
+
+Next Steps:
+- PR-0031: Stream-Kit Overlay/QR/Agenda + "Streamer werden" produktisieren.

@@ -175,6 +175,12 @@ export const NAV_SECTIONS: NavSection[] = [
         keywords: ["campaigns", "sessions", "qr"],
       },
       {
+        href: "/admin/support",
+        label: "Support",
+        description: "Pledges & mark-paid",
+        keywords: ["support", "pledges", "crowdfunding"],
+      },
+      {
         href: "/admin/reports",
         label: "Reports",
         description: "Topic- und Region-Reports",
