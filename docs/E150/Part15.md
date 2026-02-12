@@ -87,13 +87,11 @@ Diese Liste ist verbindlich für die nächsten Codex-Runs. Bei jedem Run den akt
 ### Block M – Membership Apply (Restpunkte)
 
 Stand:
-- Admin-Statuspflege und Payment-CTAs sind vorhanden.
-- Household-Invites respektieren gesperrte Memberships.
-- Telemetry-Events fuer Statuswechsel aktiv.
+- Admin-Statuspflege + Verbuchen/Kuendigen aktualisieren User-Snapshot und Events.
+- Household-Invites respektieren gesperrte Memberships; Pending-Invites werden im Admin-Overview angezeigt.
+- Payment-CTAs im Account aktiv.
 
-Offen:
-- Vollstaendiger Household-Lock/Monitoring (Events, Auswertung, Dunning-Ausloeser).
-- Payment-Modal/CTA-Flow weiter verfeinern (sichtbarer CTA + Helper-UX).
+Status: Done.
 
 ## PR-Log
 
@@ -304,3 +302,21 @@ Verification:
 
 Next Steps:
 - Block M: Household-Lock/Monitoring/Events und Payment-CTA/Flows ausbauen.
+
+### PR-0029 (2026-02-12) – Block M Complete (Household Lock + Monitoring)
+
+Ziel:
+- Household-Lock/Monitoring/Events finalisieren und Payment-CTA-Flow abrunden.
+
+Changes:
+- Membership-Apply blockt household_locked Accounts.
+- Admin-Statuswechsel spiegelt auf User-Snapshot und revoked Pending-Invites.
+- Membership-Overview zeigt Pending-Invites und erweitert Monitoring.
+- Household-Invites werden bei Lock/Cancel revokiert.
+
+Verification:
+- `pnpm -C apps/web run lint` (PASS)
+- `pnpm -C apps/web run typecheck` (PASS)
+
+Next Steps:
+- Optional: Payment-UX weiter polieren (Modal/Guided Flow).

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { ObjectId, coreCol } from "@core/db/triMongo";
+import { ObjectId, coreCol, piiCol } from "@core/db/triMongo";
 import type { MembershipApplication } from "@core/memberships/types";
 import { requireAdminOrResponse } from "@/lib/server/auth/admin";
 import { logMembershipCancelled } from "@core/telemetry/identityEvents";
@@ -53,6 +53,12 @@ export async function POST(
         updatedAt: now,
       },
     },
+  );
+
+  const invitesCol = await piiCol("household_invites");
+  await invitesCol.updateMany(
+    { membershipId: application._id, status: "pending" },
+    { $set: { status: "revoked", updatedAt: now, expiresAt: now } },
   );
 
   await logMembershipCancelled({

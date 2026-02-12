@@ -12,6 +12,29 @@ type MembershipRow = {
   createdAt: string | null;
 };
 
+type WaitingItem = {
+  coreUserId: string;
+  householdSize: number;
+  amountPerPeriod: number;
+  membershipAmountPerMonth?: number;
+  rhythm: string;
+  paymentReference?: string;
+  firstDueAt?: string;
+  dunningLevel?: number;
+  pendingInvites?: number;
+  createdAt?: string;
+  _id?: string;
+};
+
+type Overview = {
+  activeCount: number;
+  waitingPaymentCount: number;
+  cancelledLast30: number;
+  totalMonthlyVolumeActive: number;
+  pendingInviteCount?: number;
+  waiting: WaitingItem[];
+};
+
 const STATUS_OPTIONS = [
   "submitted",
   "pending",
@@ -25,8 +48,10 @@ const STATUS_OPTIONS = [
 
 export default function AdminMembershipsPage() {
   const [items, setItems] = useState<MembershipRow[]>([]);
+  const [overview, setOverview] = useState<Overview | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [overviewError, setOverviewError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState<MembershipRow | null>(null);
   const [saving, setSaving] = useState(false);
@@ -40,14 +65,28 @@ export default function AdminMembershipsPage() {
   async function load() {
     setLoading(true);
     setError(null);
-    const res = await fetch("/api/admin/memberships", { cache: "no-store" });
-    const body = await res.json().catch(() => ({}));
-    if (!res.ok || !body?.ok) {
-      setError(body?.error || "Konnte Mitgliedschaften nicht laden");
+    setOverviewError(null);
+
+    const [listRes, overviewRes] = await Promise.all([
+      fetch("/api/admin/memberships", { cache: "no-store" }),
+      fetch("/api/admin/memberships/overview", { cache: "no-store" }),
+    ]);
+
+    const listBody = await listRes.json().catch(() => ({}));
+    if (!listRes.ok || !listBody?.ok) {
+      setError(listBody?.error || "Konnte Mitgliedschaften nicht laden");
       setLoading(false);
       return;
     }
-    setItems(body.items || []);
+    setItems(listBody.items || []);
+
+    const overviewBody = await overviewRes.json().catch(() => ({}));
+    if (overviewRes.ok && overviewBody?.overview) {
+      setOverview(overviewBody.overview as Overview);
+    } else {
+      setOverviewError(overviewBody?.error || "Konnte Übersicht nicht laden");
+    }
+
     setLoading(false);
   }
 
@@ -73,6 +112,18 @@ export default function AdminMembershipsPage() {
     setSaving(false);
   }
 
+  async function markPaid(id?: string) {
+    if (!id) return;
+    await fetch(`/api/admin/memberships/${id}/mark-paid`, { method: "POST" });
+    load();
+  }
+
+  async function cancelMembership(id?: string) {
+    if (!id) return;
+    await fetch(`/api/admin/memberships/${id}/cancel`, { method: "POST" });
+    load();
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-2 rounded-3xl bg-white/90 p-4 shadow ring-1 ring-slate-100">
@@ -94,6 +145,90 @@ export default function AdminMembershipsPage() {
       {error && (
         <div className="rounded-3xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
           {error}
+        </div>
+      )}
+      {overviewError && (
+        <div className="rounded-3xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          {overviewError}
+        </div>
+      )}
+
+      {overview && (
+        <div className="space-y-4">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+            <Stat label="Aktive Mitgliedschaften" value={overview.activeCount} />
+            <Stat label="Offene Zahlungen" value={overview.waitingPaymentCount} />
+            <Stat label="Stornos (30 Tage)" value={overview.cancelledLast30} />
+            <Stat label="Monatsvolumen (aktiv)" value={`${overview.totalMonthlyVolumeActive.toFixed(2)} €`} />
+            <Stat label="Offene Household-Invites" value={overview.pendingInviteCount ?? 0} />
+          </div>
+
+          <div className="rounded-3xl border border-slate-200 bg-white/90 p-4 shadow-sm">
+            <div className="flex items-center justify-between gap-2">
+              <h2 className="text-sm font-semibold text-slate-900">Offene Zahlungen</h2>
+              <button
+                type="button"
+                onClick={load}
+                className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700"
+              >
+                Aktualisieren
+              </button>
+            </div>
+            <div className="mt-3 overflow-x-auto">
+              <table className="min-w-full text-sm text-slate-800">
+                <thead>
+                  <tr className="text-left text-[11px] uppercase tracking-wide text-slate-500">
+                    <th className="px-2 py-2">Betrag</th>
+                    <th className="px-2 py-2">Rhythmus</th>
+                    <th className="px-2 py-2">Haushalt</th>
+                    <th className="px-2 py-2">Due</th>
+                    <th className="px-2 py-2">Dunning</th>
+                    <th className="px-2 py-2">Invites</th>
+                    <th className="px-2 py-2">Ref</th>
+                    <th className="px-2 py-2">Aktion</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {overview.waiting.length === 0 && (
+                    <tr>
+                      <td className="px-2 py-3 text-slate-500" colSpan={8}>
+                        Keine offenen Zahlungen.
+                      </td>
+                    </tr>
+                  )}
+                  {overview.waiting.map((item) => (
+                    <tr key={item.paymentReference} className="border-t border-slate-100">
+                      <td className="px-2 py-2">{(item.membershipAmountPerMonth ?? item.amountPerPeriod).toFixed(2)} €</td>
+                      <td className="px-2 py-2">{item.rhythm}</td>
+                      <td className="px-2 py-2">{item.householdSize}</td>
+                      <td className="px-2 py-2">
+                        {item.firstDueAt ? new Date(item.firstDueAt).toLocaleDateString("de-DE") : "n/a"}
+                      </td>
+                      <td className="px-2 py-2">{item.dunningLevel ?? 0}</td>
+                      <td className="px-2 py-2">{item.pendingInvites ?? 0}</td>
+                      <td className="px-2 py-2">{item.paymentReference}</td>
+                      <td className="px-2 py-2 space-x-2">
+                        <button
+                          type="button"
+                          onClick={() => markPaid((item as any)._id)}
+                          className="rounded-full bg-emerald-500 px-3 py-1 text-xs font-semibold text-white"
+                        >
+                          Verbuchen
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => cancelMembership((item as any)._id)}
+                          className="rounded-full border border-red-300 px-3 py-1 text-xs font-semibold text-red-700"
+                        >
+                          Kündigen
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
       )}
 
@@ -208,6 +343,15 @@ export default function AdminMembershipsPage() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function Stat({ label, value }: { label: string; value: string | number }) {
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white/90 p-4 shadow-sm">
+      <p className="text-[11px] uppercase tracking-wide text-slate-500">{label}</p>
+      <p className="text-xl font-semibold text-slate-900">{value}</p>
     </div>
   );
 }

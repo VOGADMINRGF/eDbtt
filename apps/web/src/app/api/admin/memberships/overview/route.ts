@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { coreCol } from "@core/db/triMongo";
+import { coreCol, piiCol } from "@core/db/triMongo";
 import type { MembershipApplication } from "@core/memberships/types";
 import { requireAdminOrResponse } from "@/lib/server/auth/admin";
 
@@ -56,6 +56,18 @@ export async function GET(req: NextRequest) {
     .limit(50)
     .toArray();
 
+  const invitesCol = await piiCol("household_invites");
+  const inviteCounts = await invitesCol
+    .aggregate<{ _id: any; total: number }>([
+      { $match: { status: "pending" } },
+      { $group: { _id: "$membershipId", total: { $sum: 1 } } },
+    ])
+    .toArray();
+  const inviteCountByMembership = new Map(
+    inviteCounts.map((row) => [String(row._id), row.total]),
+  );
+  const pendingInviteCount = inviteCounts.reduce((sum, row) => sum + (row.total ?? 0), 0);
+
   const recentRaw = await Applications.find(
     {},
     { projection: { _id: 1, status: 1, membershipAmountPerMonth: 1, updatedAt: 1 } },
@@ -82,7 +94,11 @@ export async function GET(req: NextRequest) {
       waitingPaymentCount,
       cancelledLast30,
       totalMonthlyVolumeActive,
-      waiting,
+      waiting: waiting.map((item) => ({
+        ...item,
+        pendingInvites: inviteCountByMembership.get(String(item._id)) ?? 0,
+      })),
+      pendingInviteCount,
       recentEvents,
     },
   });

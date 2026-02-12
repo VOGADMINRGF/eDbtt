@@ -12,6 +12,7 @@ type WaitingItem = {
   paymentReference?: string;
   firstDueAt?: string;
   dunningLevel?: number;
+  pendingInvites?: number;
   createdAt?: string;
   _id?: string;
 };
@@ -21,6 +22,7 @@ type Overview = {
   waitingPaymentCount: number;
   cancelledLast30: number;
   totalMonthlyVolumeActive: number;
+  pendingInviteCount?: number;
   waiting: WaitingItem[];
 };
 
@@ -83,6 +85,7 @@ export default function AdminMembershipsPage() {
               label="Monatsvolumen (aktiv)"
               value={`${overview.totalMonthlyVolumeActive.toFixed(2)} €`}
             />
+            <Stat label="Offene Household-Invites" value={overview.pendingInviteCount ?? 0} />
           </div>
 
           <div className="rounded-2xl border border-slate-200 bg-white/90 p-4 shadow-sm">
@@ -106,13 +109,14 @@ export default function AdminMembershipsPage() {
                     <th className="px-2 py-2">Due</th>
                     <th className="px-2 py-2">Dunning</th>
                     <th className="px-2 py-2">Ref</th>
+                    <th className="px-2 py-2">Invites</th>
                     <th className="px-2 py-2">Aktion</th>
                   </tr>
                 </thead>
                 <tbody>
                   {overview.waiting.length === 0 && (
                     <tr>
-                      <td className="px-2 py-3 text-slate-500" colSpan={7}>
+                      <td className="px-2 py-3 text-slate-500" colSpan={8}>
                         Keine offenen Zahlungen.
                       </td>
                     </tr>
@@ -129,6 +133,7 @@ export default function AdminMembershipsPage() {
                       </td>
                       <td className="px-2 py-2">{item.dunningLevel ?? 0}</td>
                       <td className="px-2 py-2">{item.paymentReference}</td>
+                      <td className="px-2 py-2">{item.pendingInvites ?? 0}</td>
                       <td className="px-2 py-2 space-x-2">
                         <button
                           type="button"

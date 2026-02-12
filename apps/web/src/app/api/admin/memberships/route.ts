@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { coreCol, ObjectId } from "@core/db/triMongo";
+import { coreCol, ObjectId, piiCol } from "@core/db/triMongo";
 import type { MembershipApplication, MembershipStatus } from "@core/memberships/types";
 import { requireAdminOrResponse } from "@/lib/server/auth/admin";
 import { logMembershipStatusUpdated } from "@core/telemetry/identityEvents";
@@ -93,6 +93,14 @@ export async function PATCH(req: NextRequest) {
     { _id: application.coreUserId },
     { $set: membershipUpdate },
   );
+
+  if (status === "cancelled" || status === "household_locked") {
+    const invitesCol = await piiCol("household_invites");
+    await invitesCol.updateMany(
+      { membershipId: application._id, status: "pending" },
+      { $set: { status: "revoked", updatedAt: now, expiresAt: now } },
+    );
+  }
 
   await logMembershipStatusUpdated({
     userId: String(application.coreUserId),

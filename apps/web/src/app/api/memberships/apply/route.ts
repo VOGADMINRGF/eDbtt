@@ -265,6 +265,7 @@ export async function POST(req: NextRequest) {
         name: 1,
         emailVerified: 1,
         verification: 1,
+        membership: 1,
         "profile.publicFlags": 1,
         "profile.publicShareId": 1,
         publicFlags: 1,
@@ -273,6 +274,9 @@ export async function POST(req: NextRequest) {
   );
   if (!user || user.emailVerified === false) {
     return NextResponse.json({ ok: false, error: "email_not_verified" }, { status: 403 });
+  }
+  if ((user as any)?.membership?.status === "household_locked") {
+    return NextResponse.json({ ok: false, error: "household_locked" }, { status: 403 });
   }
 
   const microTransferCode = createMicroTransferCode();
