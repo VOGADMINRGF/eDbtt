@@ -43,13 +43,13 @@ export async function getSessionUser(req?: NextRequest): Promise<SessionUser | n
   const sessionTwoFactorAuthenticated =
     session?.tfa ?? (cookieTwoFactor === "1" ? true : cookieTwoFactor === "0" ? false : undefined);
 
-  const normalizedRoles = payloadRoles.length
-    ? payloadRoles
-    : Array.isArray(user.roles)
-      ? user.roles.map((r: any) => (typeof r === "string" ? r : r?.role)).filter(Boolean)
-      : user.role
-        ? [user.role]
-        : [];
+  // DB is source of truth for roles (session roles can be stale after role changes).
+  const dbRoles = Array.isArray(user.roles)
+    ? user.roles.map((r: any) => (typeof r === "string" ? r : r?.role)).filter(Boolean)
+    : user.role
+      ? [user.role]
+      : [];
+  const normalizedRoles = dbRoles.length ? dbRoles : payloadRoles;
 
   const verificationDefaults = ensureVerificationDefaults((user as any).verification);
   const twoFA = (user as any)?.verification?.twoFA;
