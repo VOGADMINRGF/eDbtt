@@ -12,12 +12,12 @@ Dieses Dokument bündelt, welche Pfade (Part00–Part15) noch offen sind und wel
 - **Part03 Access Tiers & Pricing:** Grundlogik aktiv; Profil-Pakete (profileBasic/Pro/Premium) als Darstellungs-Dimension ergänzt, Mapping zu Tiers umzusetzen.
 - **Part04 B2G/B2B Modelle:** Begriffe mit Profil-Paket-Namen harmonisiert; warten auf Campaigns/Streams-Implementierung (Block F/G) für echten Pilotbetrieb.
 - **Part05 Orchestrator (Block A):** Gemini-Provider aktiv, rollenspezifische Prompts (citizen/staff/institution) und Health/Score-Tracking umgesetzt.
-- **Part06 Consequences (Block B):** Modelle, Persistenz und UI (Responsibility Navigator) stehen aus.  
+- **Part06 Consequences (Block B):** Modelle, Persistenz, API und UI fuer Responsibility/Consequences umgesetzt.  
 - **Part06 Themenkatalog & Zuständigkeiten:** Neu angelegt, 15 Hauptkategorien verbindlich; `TOPIC_CHOICES`-Abgleich in Profil/Onboarding/Filter offen.
 - **Part07 Graph & Reports (Block C):** Zentrale Graph-Schicht und Report-Adapter fehlen; AnalyzeResult-Sync offen.
 - **Part08 Eventualities (Block D):** Eventuality-/DecisionTree-Typen, Analyzer-Prompts, Persistenz und UI fehlen.
 - **Part09 Research Workflow (Block E/R2):** R2 umgesetzt: Seeding aus Questions/Knots, Filter/Sortierung, Contributor-Feedback, Graph-Backflow und Anti-Spam-Cooldown.
-- **Part10 Responsibility Navigator (Block B):** Directory/Paths und Frontend-Navigator müssen aufgebaut werden.
+- **Part10 Responsibility Navigator (Block B):** Directory/Paths + Navigator + Admin-UI vorhanden.
 - **Part11 Streams (Block F):** Modelle, Routes/UI und XP-Gating fehlen; Stream-Deck aus Reports/Graph steht aus.
 - **Part12 Campaigns (Block G):** Campaign/CampaignSession-Modelle, Admin-UI, QR-Flows und Reports fehlen.
 - **Part13 I18N/A11y/Social (Block H):** Übersetzungs-Infra, A11y-Pass und minimale Community-Räume/Chat fehlen.
@@ -36,7 +36,7 @@ Dieses Dokument bündelt, welche Pfade (Part00–Part15) noch offen sind und wel
 | Block | Bezug | Status | Definition of Done |
 | --- | --- | --- | --- |
 | **A – Orchestrator (E150 Core Provider)** | Part05 | **Done** | Gemini-Provider aktiv, rollenspezifische Prompts (citizen, staff, institution), Health-/Score-Tracking in `orchestrator_health.ts`; SSE bleibt intakt. |
-| **B – Consequences & Responsibility Navigator** | Part06/10 | **Offen** | Prisma-Modelle `Consequence`, `Responsibility`, `ResponsibilityLink`; API-Routes `/api/responsibility/[id]`, `/api/consequence/[id]`; React-`ResponsibilityNavigator.tsx` mit Filter/Path-Tree/Score-Coloring; Admin-View fürs Mapping. |
+| **B – Consequences & Responsibility Navigator** | Part06/10 | **Done** | Modelle + Persistenz + API (`/api/responsibility/[id]`, `/api/consequence/[id]`); `ResponsibilityNavigator.tsx` + Admin-Views fuer Directory/Paths. |
 | **C – Graph & Reports** | Part07 | **Offen** | `@features/graph/sync.ts` (AnalyzeResult → Graph), Graph-Store (Neo4j/Arango/Memgraph Connector), `/admin/graph/impact` mit echten Graph-Stats. |
 | **D – Eventualities / DecisionTree** | Part08 | **Offen** | Typen `Eventuality`, `DecisionTreeNode`; Analyzer-Prompts für „was passiert wenn …“; UI `EventualityBoard.tsx`; API `/api/eventualities/analyze`. |
 | **E (R2) – Research Workflow** | Part09 | **Done** | Seeding aus Questions/Knots (Admin-Seed); Filter-/Sortier-API (`/api/research/list` + `/api/research/tasks/list`); Contributor-Feedback („Hilfreich?“); Graph-Backflow bei akzeptierten Beiträgen; Anti-Spam-Cooldown. |
@@ -47,7 +47,7 @@ Dieses Dokument bündelt, welche Pfade (Part00–Part15) noch offen sind und wel
 ## Konkrete Next Steps
 
 1. **Block A erledigt** (Part05): Gemini-Provider + rollenspezifische Prompts + Health/Score (PR-0018).
-2. **Block B** (Part06/10): Consequence-/Responsibility-Modelle, Persistenz, Navigator-UI & Admin.
+2. **Block B erledigt** (Part06/10): Consequences/Responsibility inkl. API, Navigator-UI, Admin (PR-0019).
 3. **Block C & D parallel planen** (Part07/08): Graph-Sync plus Eventualities-Typen/Prompts/UI.
 4. **Research R2 abgeschlossen** (Part09): Seeding, Filter, Contributor-Feedback, Rückfluss, Anti-Spam (PR-0017).
 5. **Block F/G/H** (Part11/12/13): Streams/Campaigns/I18N-A11y-Social, sobald Basis aus A–D steht.
@@ -119,6 +119,23 @@ Verification:
 
 Next Steps:
 - Block B (Consequences & Responsibility Navigator) starten.
+
+### PR-0019 (2026-02-12) – Block B Consequences & Responsibility
+
+Ziel:
+- Block B abschliessen (Consequences/Responsibility inkl. API und Navigator).
+
+Changes:
+- API-Endpunkte `/api/consequence/[id]` und `/api/responsibility/[id]` hinzugefuegt.
+- Responsibility/Consequences aus Snapshots/Directory abrufbar gemacht.
+- Block B in der Doku als erledigt markiert.
+
+Verification:
+- `pnpm -C apps/web run lint` (PASS)
+- `pnpm -C apps/web run typecheck` (PASS)
+
+Next Steps:
+- Block C (Graph & Reports) starten.
 
 Safe-Mode Checks (Membership/Payment):
 - Admin-Verbuchen (`mark-paid`) und Kündigung (`cancel`) funktionieren, setzen user.membership-Status korrekt.

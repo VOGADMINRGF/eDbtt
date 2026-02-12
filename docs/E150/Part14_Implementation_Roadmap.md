@@ -23,8 +23,7 @@ Stand nach den letzten Codex-Runs:
   – Block A ist abgeschlossen (Gemini-Provider, Rollen-Guidance, Health/Score).
 
 - **Part06 Consequences & Fairness**  
-  – Konzepte vorhanden, aber keine vollständigen Typen/Modelle  
-  – keine Speicherung & UI-Anzeige.
+  – Block B ist abgeschlossen (Modelle, Persistenz, API, UI/Navigator).
 
 - **Part07 Graph & Reports**  
   – Mongoose-`Report` repariert, aber  
@@ -116,6 +115,8 @@ Aufgaben:
 ### Block B – Part06 & Part10: Consequences & Responsibility Navigator
 
 **Ziel:** Folgen + Zuständigkeiten sind als erste Bürger:innen-sichtbare Schicht implementiert.
+
+**Status:** Done (PR-0019, 2026-02-12). Abschnitt bleibt als Referenz.
 
 Aufgaben:
 
