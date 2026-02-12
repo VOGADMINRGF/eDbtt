@@ -3,8 +3,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { coreCol } from "@core/db/db/triMongo";
 
 import { isOrgType } from "@/models/org";
+import { requireAdminOrResponse } from "@/lib/server/auth/admin";
 
 export async function POST(req: NextRequest) {
+  const gate = await requireAdminOrResponse(req);
+  if (gate instanceof Response) return gate;
+
   const { id, name, type } = await req.json().catch(() => ({}));
   if (!name)
     return NextResponse.json({ error: "name_required" }, { status: 400 });
