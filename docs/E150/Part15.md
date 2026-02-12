@@ -219,6 +219,22 @@ Verification:
 Next Steps:
 - QR-Session-Report UI mit Filter/Export ergaenzen.
 
+### PR-0025 (2026-02-12) – Campaign Report UI + Session Status
+
+Ziel:
+- Report-UI mit Filter/Export und Session-Statuspflege ergaenzen.
+
+Changes:
+- Admin-Campaign-Detail: Filter + CSV-Export fuer Report-Segmente.
+- Sessions: Status-Updates via Admin-UI (planned/live/ended).
+
+Verification:
+- `pnpm -C apps/web run lint` (PASS)
+- `pnpm -C apps/web run typecheck` (PASS)
+
+Next Steps:
+- Session-Statuspflege um Start/End-Zeitfelder erweitern.
+
 Safe-Mode Checks (Membership/Payment):
 - Admin-Verbuchen (`mark-paid`) und Kündigung (`cancel`) funktionieren, setzen user.membership-Status korrekt.
 - Dunning-Job läuft trocken (keine Orders → no-op) und setzt bei Fälligkeit Reminder-Level / Auto-Cancel.

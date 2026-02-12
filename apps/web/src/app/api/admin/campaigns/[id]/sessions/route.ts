@@ -152,3 +152,49 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
     qrCode: code,
   });
 }
+
+export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
+  const staff = await getStaffContext(req);
+  if (staff.response) return staff.response;
+
+  const { id } = await ctx.params;
+  const campaignId = resolveId(String(id ?? ""));
+  if (!campaignId) return badRequest("invalid_id");
+
+  let body: any = null;
+  try {
+    body = await req.json();
+  } catch {
+    return badRequest("invalid_json");
+  }
+
+  const sessionId = resolveId(String(body?.sessionId ?? ""));
+  if (!sessionId) return badRequest("invalid_session_id");
+
+  const patch: Partial<CampaignSessionDoc> = {};
+  if (typeof body?.label === "string") patch.label = body.label.trim();
+  if (body?.status === "planned" || body?.status === "live" || body?.status === "ended") {
+    patch.status = body.status;
+  }
+  if (body?.startsAt !== undefined) {
+    patch.startsAt = body.startsAt ? new Date(body.startsAt) : null;
+  }
+  if (body?.endsAt !== undefined) {
+    patch.endsAt = body.endsAt ? new Date(body.endsAt) : null;
+  }
+
+  if (Object.keys(patch).length === 0) return badRequest("empty_patch");
+
+  patch.updatedAt = new Date();
+
+  const sessionsCol = await campaignSessionsCol();
+  const updated = await sessionsCol.findOneAndUpdate(
+    { _id: sessionId, campaignId },
+    { $set: patch },
+    { returnDocument: "after" },
+  );
+
+  if (!updated) return NextResponse.json({ ok: false, error: "not_found" }, { status: 404 });
+
+  return NextResponse.json({ ok: true, session: serializeSession(updated) });
+}

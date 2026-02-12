@@ -45,6 +45,8 @@ export default function AdminCampaignDetailPage() {
   const [qrCode, setQrCode] = useState<string | null>(null);
   const [sessions, setSessions] = useState<CampaignSession[]>([]);
   const [sessionLabel, setSessionLabel] = useState("");
+  const [reportSourceFilter, setReportSourceFilter] = useState("all");
+  const [reportSessionFilter, setReportSessionFilter] = useState("all");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -161,6 +163,75 @@ export default function AdminCampaignDetailPage() {
     } finally {
       setSessionBusy(false);
     }
+  };
+
+  const updateSessionStatus = async (sessionId: string, status: CampaignSession["status"]) => {
+    if (!campaign) return;
+    setSessionBusy(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/admin/campaigns/${encodeURIComponent(campaign.id)}/sessions`, {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ sessionId, status }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(body?.error || `HTTP ${res.status}`);
+      setSessions((prev) => prev.map((s) => (s.id === sessionId ? { ...s, ...body.session } : s)));
+    } catch (err: any) {
+      setError(err?.message ?? "Session-Status konnte nicht aktualisiert werden.");
+    } finally {
+      setSessionBusy(false);
+    }
+  };
+
+  const sourcesList = report?.bySource?.map((row) => row.source) ?? [];
+  const sessionsList = report?.bySession?.map((row) => row.sessionId ?? "none") ?? [];
+
+  const filteredSources =
+    reportSourceFilter === "all"
+      ? report?.bySource ?? []
+      : (report?.bySource ?? []).filter((row) => row.source === reportSourceFilter);
+
+  const filteredSessions =
+    reportSessionFilter === "all"
+      ? report?.bySession ?? []
+      : (report?.bySession ?? []).filter(
+          (row) => (row.sessionId ?? "none") === reportSessionFilter,
+        );
+
+  const exportCsv = () => {
+    if (!report || !campaign) return;
+    const lines: string[] = [];
+    lines.push(`Campaign,${campaign.title.replace(/,/g, " ")}`);
+    lines.push(`Participants,${report.participants}`);
+    lines.push(`LastJoinedAt,${report.lastJoinedAt ?? ""}`);
+    lines.push("");
+    lines.push("JoinsByDay");
+    lines.push("date,count");
+    report.joinsByDay.forEach((row) => {
+      lines.push(`${row.date},${row.count}`);
+    });
+    lines.push("");
+    lines.push("Sources");
+    lines.push("source,count");
+    filteredSources.forEach((row) => {
+      lines.push(`${row.source},${row.count}`);
+    });
+    lines.push("");
+    lines.push("Sessions");
+    lines.push("sessionId,label,count");
+    filteredSessions.forEach((row) => {
+      lines.push(`${row.sessionId ?? ""},${row.label ?? ""},${row.count}`);
+    });
+    const csv = lines.join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `campaign-report-${campaign.id}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
   };
 
   const updateStatus = async (status: CampaignDetail["status"]) => {
@@ -302,7 +373,20 @@ export default function AdminCampaignDetailPage() {
                     {sessions.map((session) => (
                       <tr key={session.id}>
                         <td className="px-3 py-2 text-slate-700">{session.label ?? "Session"}</td>
-                        <td className="px-3 py-2 text-slate-600">{session.status}</td>
+                        <td className="px-3 py-2 text-slate-600">
+                          <select
+                            value={session.status}
+                            onChange={(e) =>
+                              updateSessionStatus(session.id, e.target.value as CampaignSession["status"])
+                            }
+                            aria-label="Session Status"
+                            className="rounded-md border border-slate-200 bg-white px-2 py-1 text-xs"
+                          >
+                            <option value="planned">planned</option>
+                            <option value="live">live</option>
+                            <option value="ended">ended</option>
+                          </select>
+                        </td>
                         <td className="px-3 py-2 text-slate-600">
                           <div>{session.startsAt ?? "–"}</div>
                           {session.qrCode ? (
@@ -338,18 +422,54 @@ export default function AdminCampaignDetailPage() {
             ) : (
               <p className="mt-3 text-sm text-slate-600">Reportdaten sind derzeit nicht verfügbar.</p>
             )}
-            {report?.bySource?.length ? (
+            {report ? (
+              <div className="mt-4 flex flex-wrap items-center gap-3 text-sm">
+                <select
+                  value={reportSourceFilter}
+                  onChange={(e) => setReportSourceFilter(e.target.value)}
+                  aria-label="Source Filter"
+                  className="rounded-full border border-slate-300 bg-white px-3 py-2 text-xs"
+                >
+                  <option value="all">Alle Quellen</option>
+                  {sourcesList.map((source) => (
+                    <option key={source} value={source}>
+                      {source}
+                    </option>
+                  ))}
+                </select>
+                <select
+                  value={reportSessionFilter}
+                  onChange={(e) => setReportSessionFilter(e.target.value)}
+                  aria-label="Session Filter"
+                  className="rounded-full border border-slate-300 bg-white px-3 py-2 text-xs"
+                >
+                  <option value="all">Alle Sessions</option>
+                  {sessionsList.map((sessionId) => (
+                    <option key={sessionId} value={sessionId}>
+                      {sessionId === "none" ? "ohne Session" : sessionId}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  onClick={exportCsv}
+                  className="rounded-full bg-slate-900 px-4 py-2 text-xs font-semibold text-white"
+                >
+                  CSV Export
+                </button>
+              </div>
+            ) : null}
+            {filteredSources.length ? (
               <div className="mt-4 grid gap-2 text-sm">
                 <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Quellen</p>
-                {report.bySource.map((row) => (
+                {filteredSources.map((row) => (
                   <BarRow key={row.source} label={row.source} value={row.count} />
                 ))}
               </div>
             ) : null}
-            {report?.bySession?.length ? (
+            {filteredSessions.length ? (
               <div className="mt-4 grid gap-2 text-sm">
                 <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Sessions</p>
-                {report.bySession.map((row, idx) => (
+                {filteredSessions.map((row, idx) => (
                   <BarRow key={`${row.sessionId ?? "none"}-${idx}`} label={row.label} value={row.count} />
                 ))}
               </div>
