@@ -18,6 +18,7 @@ export interface CampaignDoc {
 export interface CampaignSessionDoc {
   _id?: ObjectId;
   campaignId: ObjectId;
+  label?: string | null;
   status: "planned" | "live" | "ended";
   startsAt?: Date | null;
   endsAt?: Date | null;
@@ -28,6 +29,7 @@ export interface CampaignSessionDoc {
 export interface CampaignParticipantDoc {
   _id?: ObjectId;
   campaignId: ObjectId;
+  sessionId?: ObjectId | null;
   userId?: string | null;
   anonHash?: string | null;
   joinedAt: Date;

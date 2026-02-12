@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "node:crypto";
-import { campaignsCol, campaignParticipantsCol, toObjectId } from "@features/campaign/db";
+import {
+  campaignsCol,
+  campaignParticipantsCol,
+  campaignSessionsCol,
+  toObjectId,
+} from "@features/campaign/db";
 import { ObjectId } from "@core/db/triMongo";
 
 export const runtime = "nodejs";
@@ -41,11 +46,21 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
   const userId = req.cookies.get("u_id")?.value ?? null;
   const ip = (req.headers.get("x-forwarded-for") || "local").split(",")[0].trim();
   const anonHash = userId ? null : hashAnon(`${ip}:${req.headers.get("user-agent") ?? ""}`);
+  const sessionIdRaw = typeof body?.sessionId === "string" ? body.sessionId : null;
+  const sessionId =
+    sessionIdRaw && ObjectId.isValid(sessionIdRaw) ? toObjectId(sessionIdRaw) : null;
+  let effectiveSessionId: ObjectId | null = null;
+  if (sessionId) {
+    const sessions = await campaignSessionsCol();
+    const exists = await sessions.findOne({ _id: sessionId, campaignId });
+    if (exists) effectiveSessionId = sessionId;
+  }
 
   const participants = await campaignParticipantsCol();
   const now = new Date();
   const payload = {
     campaignId,
+    ...(effectiveSessionId ? { sessionId: effectiveSessionId } : {}),
     userId: userId ?? undefined,
     anonHash: anonHash ?? undefined,
     source: typeof body?.source === "string" ? body.source : "web",

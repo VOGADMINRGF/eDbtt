@@ -23,6 +23,7 @@ async function ensureSessionIndexes() {
   if (ensured.sessions) return;
   const col = await coreCol<CampaignSessionDoc>(SESSION_COLLECTION);
   await col.createIndex({ campaignId: 1, createdAt: -1 });
+  await col.createIndex({ campaignId: 1, status: 1 });
   ensured.sessions = true;
 }
 
@@ -30,6 +31,7 @@ async function ensureParticipantIndexes() {
   if (ensured.participants) return;
   const col = await coreCol<CampaignParticipantDoc>(PARTICIPANT_COLLECTION);
   await col.createIndex({ campaignId: 1, joinedAt: -1 });
+  await col.createIndex({ campaignId: 1, sessionId: 1 });
   await col.createIndex({ campaignId: 1, userId: 1 }, { unique: true, sparse: true });
   await col.createIndex({ campaignId: 1, anonHash: 1 }, { unique: true, sparse: true });
   ensured.participants = true;

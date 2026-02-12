@@ -172,6 +172,23 @@ Verification:
 Next Steps:
 - Campaign-Reports erweitern (Charts/Segmente) und QR-Codes mit Sessions verknuepfen.
 
+### PR-0022 (2026-02-12) – Campaign Sessions + Segment Reports
+
+Ziel:
+- Sessions + Segment-Reports fuer Campaigns fertigziehen und QR-Join sauber abbilden.
+
+Changes:
+- Campaign-Sessions API + QR-Codes pro Session.
+- Campaign-Report mit Quellen- und Session-Segmenten.
+- QR-Resolve erweitert fuer Campaign-Session-Links.
+
+Verification:
+- `pnpm -C apps/web run lint` (PASS)
+- `pnpm -C apps/web run typecheck` (PASS)
+
+Next Steps:
+- Charts/Visualisierung weiter verfeinern und Session-Statuspflege (live/ended) ergaenzen.
+
 Safe-Mode Checks (Membership/Payment):
 - Admin-Verbuchen (`mark-paid`) und Kündigung (`cancel`) funktionieren, setzen user.membership-Status korrekt.
 - Dunning-Job läuft trocken (keine Orders → no-op) und setzt bei Fälligkeit Reminder-Level / Auto-Cancel.

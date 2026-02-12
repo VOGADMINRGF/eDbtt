@@ -24,6 +24,9 @@ export default async function QRScanPage({ params }: any) {
   if (data.targetType === "campaign") {
     return <RedirectToCampaign id={data.targetIds[0]} />;
   }
+  if (data.targetType === "campaign_session") {
+    return <RedirectToCampaign id={data.targetIds[0]} sessionId={data.targetIds[1]} />;
+  }
   if (data.targetType === "set") {
     const code = data.targetIds?.[0];
     if (!code) return notFound();
@@ -49,10 +52,11 @@ function RedirectToStream({ id }: any) {
   // Stream-Komponente einbinden
   return <div>Stream ID: {id}</div>;
 }
-function RedirectToCampaign({ id }: any) {
+function RedirectToCampaign({ id, sessionId }: any) {
+  const query = sessionId ? `?session=${encodeURIComponent(sessionId)}` : "";
   return (
     <div>
-      Kampagne ID: {id} – <a href={`/campaign/${id}/join`}>Zur Teilnahme</a>
+      Kampagne ID: {id} – <a href={`/campaign/${id}/join${query}`}>Zur Teilnahme</a>
     </div>
   );
 }

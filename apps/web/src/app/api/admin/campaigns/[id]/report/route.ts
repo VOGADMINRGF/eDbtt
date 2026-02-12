@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ObjectId } from "@core/db/triMongo";
-import { campaignsCol, campaignParticipantsCol, toObjectId } from "@features/campaign/db";
+import {
+  campaignsCol,
+  campaignParticipantsCol,
+  campaignSessionsCol,
+  toObjectId,
+} from "@features/campaign/db";
 import { getStaffContext } from "@/app/api/admin/eventualities/helpers";
 
 export const runtime = "nodejs";
@@ -58,6 +63,38 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ id: string 
 
   const lastJoinedAt = joins.length > 0 ? joins[0].toISOString() : null;
 
+  const sourcesAgg = await participantsCol
+    .aggregate([
+      { $match: { campaignId } },
+      {
+        $group: {
+          _id: { $ifNull: ["$source", "unknown"] },
+          count: { $sum: 1 },
+        },
+      },
+      { $sort: { count: -1 } },
+    ])
+    .toArray();
+
+  const sessionsAgg = await participantsCol
+    .aggregate([
+      { $match: { campaignId } },
+      {
+        $group: {
+          _id: { $ifNull: ["$sessionId", null] },
+          count: { $sum: 1 },
+        },
+      },
+      { $sort: { count: -1 } },
+    ])
+    .toArray();
+
+  const sessionsCol = await campaignSessionsCol();
+  const sessions = await sessionsCol.find({ campaignId }).toArray();
+  const sessionLabelById = new Map(
+    sessions.map((session) => [session._id?.toString() ?? "", session.label ?? "Session"]),
+  );
+
   return NextResponse.json({
     ok: true,
     report: {
@@ -65,6 +102,18 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ id: string 
       participants: joins.length,
       lastJoinedAt,
       joinsByDay: bucketByDay(joins, 14),
+      bySource: sourcesAgg.map((entry) => ({
+        source: entry?._id ?? "unknown",
+        count: entry?.count ?? 0,
+      })),
+      bySession: sessionsAgg.map((entry) => {
+        const id = entry?._id ? entry._id.toString() : "none";
+        return {
+          sessionId: entry?._id ? entry._id.toString() : null,
+          label: entry?._id ? sessionLabelById.get(id) ?? "Session" : "ohne Session",
+          count: entry?.count ?? 0,
+        };
+      }),
     },
   });
 }

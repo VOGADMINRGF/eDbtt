@@ -44,6 +44,23 @@ export async function GET(req: NextRequest) {
       }
     }
   }
+  if (target?.targetType === "campaign_session") {
+    const [campaignId, sessionId] = target?.targetIds ?? [];
+    if (campaignId && ObjectId.isValid(campaignId)) {
+      const campaigns = await campaignsCol();
+      const campaign = await campaigns.findOne({ _id: new ObjectId(campaignId) });
+      if (campaign) {
+        return NextResponse.json({
+          success: true,
+          data: {
+            targetType: "campaign_session",
+            targetIds: [campaignId, sessionId].filter(Boolean),
+            title: campaign.title ?? null,
+          },
+        });
+      }
+    }
+  }
 
   return NextResponse.json({ success: false, error: "not_found" }, { status: 404 });
 }

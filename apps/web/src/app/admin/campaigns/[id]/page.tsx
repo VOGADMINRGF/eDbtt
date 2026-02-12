@@ -22,6 +22,19 @@ type CampaignReport = {
   participants: number;
   lastJoinedAt: string | null;
   joinsByDay: Array<{ date: string; count: number }>;
+  bySource?: Array<{ source: string; count: number }>;
+  bySession?: Array<{ sessionId: string | null; label: string; count: number }>;
+};
+
+type CampaignSession = {
+  id: string;
+  label: string | null;
+  status: "planned" | "live" | "ended";
+  startsAt: string | null;
+  endsAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  qrCode?: string | null;
 };
 
 export default function AdminCampaignDetailPage() {
@@ -30,10 +43,13 @@ export default function AdminCampaignDetailPage() {
   const [campaign, setCampaign] = useState<CampaignDetail | null>(null);
   const [report, setReport] = useState<CampaignReport | null>(null);
   const [qrCode, setQrCode] = useState<string | null>(null);
+  const [sessions, setSessions] = useState<CampaignSession[]>([]);
+  const [sessionLabel, setSessionLabel] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [qrBusy, setQrBusy] = useState(false);
+  const [sessionBusy, setSessionBusy] = useState(false);
 
   useEffect(() => {
     if (!campaignId) return;
@@ -87,8 +103,21 @@ export default function AdminCampaignDetailPage() {
         if (!ignore) setQrCode(null);
       }
     }
+    async function loadSessions() {
+      try {
+        const res = await fetch(`/api/admin/campaigns/${encodeURIComponent(campaignId)}/sessions`, {
+          cache: "no-store",
+        });
+        const body = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(body?.error || `HTTP ${res.status}`);
+        if (!ignore) setSessions(Array.isArray(body?.sessions) ? body.sessions : []);
+      } catch {
+        if (!ignore) setSessions([]);
+      }
+    }
     loadReport();
     loadQr();
+    loadSessions();
     return () => {
       ignore = true;
     };
@@ -109,6 +138,28 @@ export default function AdminCampaignDetailPage() {
       setError(err?.message ?? "QR-Code konnte nicht erzeugt werden.");
     } finally {
       setQrBusy(false);
+    }
+  };
+
+  const createSession = async () => {
+    if (!campaign) return;
+    setSessionBusy(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/admin/campaigns/${encodeURIComponent(campaign.id)}/sessions`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ label: sessionLabel }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(body?.error || `HTTP ${res.status}`);
+      const nextSession = body?.session ? { ...body.session, qrCode: body.qrCode ?? null } : null;
+      setSessions((prev) => [nextSession, ...prev].filter(Boolean));
+      setSessionLabel("");
+    } catch (err: any) {
+      setError(err?.message ?? "Session konnte nicht erstellt werden.");
+    } finally {
+      setSessionBusy(false);
     }
   };
 
@@ -220,6 +271,60 @@ export default function AdminCampaignDetailPage() {
           </section>
 
           <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Sessions</p>
+            <div className="mt-3 flex flex-wrap items-center gap-3 text-sm">
+              <input
+                value={sessionLabel}
+                onChange={(e) => setSessionLabel(e.target.value)}
+                placeholder="Session-Label (optional)"
+                aria-label="Session-Label"
+                className="flex-1 rounded-full border border-slate-300 bg-white px-4 py-2 text-sm text-slate-700 shadow-sm sm:max-w-xs"
+              />
+              <button
+                onClick={createSession}
+                disabled={sessionBusy}
+                className="rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white"
+              >
+                Session anlegen
+              </button>
+            </div>
+            {sessions.length > 0 ? (
+              <div className="mt-4 overflow-hidden rounded-xl border border-slate-200">
+                <table className="min-w-full divide-y divide-slate-200 text-xs">
+                  <thead className="bg-slate-50 text-left uppercase tracking-wide text-slate-500">
+                    <tr>
+                      <th className="px-3 py-2">Label</th>
+                      <th className="px-3 py-2">Status</th>
+                      <th className="px-3 py-2">Start</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {sessions.map((session) => (
+                      <tr key={session.id}>
+                        <td className="px-3 py-2 text-slate-700">{session.label ?? "Session"}</td>
+                        <td className="px-3 py-2 text-slate-600">{session.status}</td>
+                        <td className="px-3 py-2 text-slate-600">
+                          <div>{session.startsAt ?? "–"}</div>
+                          {session.qrCode ? (
+                            <a
+                              href={`/qr/${encodeURIComponent(session.qrCode)}`}
+                              className="text-xs font-semibold text-slate-700 hover:text-slate-900"
+                            >
+                              QR: {session.qrCode}
+                            </a>
+                          ) : null}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <p className="mt-3 text-sm text-slate-600">Noch keine Sessions.</p>
+            )}
+          </section>
+
+          <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
             <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Campaign Report</p>
             {report ? (
               <div className="mt-3 grid gap-4 text-sm sm:grid-cols-3">
@@ -233,6 +338,22 @@ export default function AdminCampaignDetailPage() {
             ) : (
               <p className="mt-3 text-sm text-slate-600">Reportdaten sind derzeit nicht verfügbar.</p>
             )}
+            {report?.bySource?.length ? (
+              <div className="mt-4 grid gap-2 text-sm">
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Quellen</p>
+                {report.bySource.map((row) => (
+                  <BarRow key={row.source} label={row.source} value={row.count} />
+                ))}
+              </div>
+            ) : null}
+            {report?.bySession?.length ? (
+              <div className="mt-4 grid gap-2 text-sm">
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Sessions</p>
+                {report.bySession.map((row, idx) => (
+                  <BarRow key={`${row.sessionId ?? "none"}-${idx}`} label={row.label} value={row.count} />
+                ))}
+              </div>
+            ) : null}
             {report?.joinsByDay?.length ? (
               <div className="mt-4 overflow-hidden rounded-xl border border-slate-200">
                 <table className="min-w-full divide-y divide-slate-200 text-xs">
@@ -283,6 +404,19 @@ function Metric({ label, value }: { label: string; value: string }) {
     <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
       <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{label}</p>
       <p className="text-lg font-semibold text-slate-900">{value}</p>
+    </div>
+  );
+}
+
+function BarRow({ label, value }: { label: string; value: number }) {
+  const width = Math.min(100, Math.max(5, value));
+  return (
+    <div className="flex items-center gap-3">
+      <div className="w-32 text-xs text-slate-600">{label}</div>
+      <div className="flex-1 rounded-full bg-slate-100">
+        <div className="h-2 rounded-full bg-slate-900" style={{ width: `${width}%` }} />
+      </div>
+      <div className="text-xs font-semibold text-slate-700">{value}</div>
     </div>
   );
 }
