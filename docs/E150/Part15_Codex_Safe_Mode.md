@@ -132,7 +132,6 @@ Jeder Codex-Run folgt diesem Muster:
   - **keine halb fertigen Großänderungen** hinterlassen,
   - in „Next Steps“ vermerken, was versucht wurde.
 
-- **Wenn eine Aufgabe mehr als 6 Dateien erfordert:**
 - **Wenn eine Aufgabe mehr Dateien als das aktive Profil erfordert:**
   - Aufteilen in mehrere Teil-Runs (z.B. „Schritt 1/3“), oder
   - bei Doku-/mechanischen Paketen explizit auf `DOCS_BUNDLE` bzw. `MECHANICAL_BUNDLE` umstellen,
