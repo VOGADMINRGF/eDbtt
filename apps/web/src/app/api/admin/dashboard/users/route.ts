@@ -188,6 +188,11 @@ export async function PATCH(req: NextRequest) {
   }
   if (body.packageCode !== undefined) {
     update["membership.edebatte.planKey"] = body.packageCode;
+    // Keep legacy/user-facing package state in sync with membership snapshot.
+    // Account overview prefers users.edebatte.* for rendering.
+    update["edebatte.package"] = body.packageCode;
+    update["edebatte.status"] = body.packageCode ? "active" : "none";
+    update["edebatte.updatedAt"] = new Date();
   }
   if (body.membershipStatus !== undefined) {
     update["membership.status"] = body.membershipStatus;

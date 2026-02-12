@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ObjectId, getCol } from "@core/db/triMongo";
 import { requireAdminOrResponse } from "@/lib/server/auth/admin";
+import { ensureEnvSuperadminSeed } from "@/lib/server/auth/superadminSeed";
 import { orgsCol } from "@features/org/db";
 import { editorialItemsCol } from "@features/editorial/db";
 import { reportAssetsCol } from "@features/reportsAssets/db";
@@ -22,8 +23,10 @@ export async function GET(req: NextRequest) {
   const gate = await requireAdminOrResponse(req);
   if (gate instanceof Response) return gate;
 
+  // Bootstrap "fixed" superadmin from env (dev/staging convenience).
+  await ensureEnvSuperadminSeed().catch((err) => console.warn("[admin.summary] ensureEnvSuperadminSeed failed", err));
+
   const users = await getCol<UserDoc>("users");
-  await ensureSuperadminSeed(users);
   const now = new Date();
   const since = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
 
@@ -120,20 +123,4 @@ export async function GET(req: NextRequest) {
   };
 
   return NextResponse.json({ data });
-}
-
-async function ensureSuperadminSeed(users: any) {
-  const superEmail = process.env.SUPERADMIN_EMAIL;
-  if (!superEmail) return;
-  const doc = await users.findOne({ email: superEmail });
-  if (!doc) return;
-  const roles = Array.isArray(doc.roles) ? doc.roles : [];
-  if (roles.includes("superadmin")) return;
-  await users.updateOne(
-    { _id: doc._id },
-    {
-      $set: { roles: Array.from(new Set([...roles, "superadmin"])) },
-      $currentDate: { updatedAt: true },
-    },
-  );
 }
