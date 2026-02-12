@@ -119,6 +119,51 @@ Rollen-Gating (Admin-Only):
 - Admin-Endpoints in diesem Block sind **staff-only** (siehe `requireAdminOrResponse`).
 - Public Join bleibt offen (`/campaign/[id]/join`), QR-Targets werden nur durch Admins erzeugt.
 
+### 2.6 Unterstuetzen (Crowdfunding) pro Kampagne/Projekt
+
+Funktion (Skizze):
+
+- Jede Campaign kann optional als `SupportCampaign` freigeschaltet werden (`supportEnabled`, `supportSlug`).
+- Nutzer:innen erstellen `SupportPledge` mit Betrag und erhalten eine Zahlungsreferenz (`CF-xxxxxx`).
+- Nach Zahlungseingang markiert Admin den Pledge als `paid`.
+- Fortschritt ist oeffentlich sichtbar (nur aggregiert / anonymisiert), ohne Einfluss auf Stimmen oder XP.
+
+Minimalmodell (Zielbild):
+
+```ts
+type SupportCampaign = {
+  id: string;
+  targetType: "campaign" | "project" | "question";
+  targetId: string;
+  slug: string;
+  title: string;
+  goalCents: number;
+  status: "draft" | "active" | "closed";
+};
+
+type SupportPledge = {
+  id: string;
+  supportCampaignId: string;
+  amountCents: number;
+  status: "waiting_payment" | "paid" | "canceled";
+  paymentReference: string; // CF-xxxxxx
+  isAnonymous: boolean;
+  publicName?: string | null;
+  publicRegionCode?: string | null;
+  createdAt: string;
+};
+```
+
+Ist/Unerledigt:
+
+| Bereich | Ist | Unerledigt |
+| --- | --- | --- |
+| Campaign-Basis | Campaign/Session/QR/Report vorhanden | Support-Feld am Campaign-Modell fehlt |
+| Zahlungslogik | Membership-Referenzlogik vorhanden (Pattern) | Eigene Support-Pledge-Referenzen + Admin mark-paid fehlen |
+| Public-UI | Campaign-Pages vorhanden | `/support/[slug]` und Campaign-CTA fehlen |
+| Admin-UI | Campaign-Admin vorhanden | `/admin/support` inkl. Pledge-Verbuchung/Export fehlt |
+| Governance | Trennung von Voting und Geld ist Leitlinie | Sichtbarer Hinweis in allen Support-Flows noch umzusetzen |
+
 3. Admin Console
 3.1 Rollen
 staff – Plattform-Admin / Redaktionsleitung.

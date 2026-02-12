@@ -293,6 +293,26 @@ Institutionen nutzen Kampagnen für eigene Themenfelder (z.B. Stadtentwicklung, 
 
 Evidence-Graph (E150-Qualität) wird immer erzeugt, aber die Darstellungstiefe hängt vom Tier ab.
 
+### 4.5 Unterstuetzen & Crowdfunding
+
+Leitregel:
+Unterstuetzen darf niemals Stimme, XP, Credits oder Prioritaet kaufen.
+
+| Feature | public | basis | erweitert | premium | instBasic | instPremium | staff |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Projekt/Kampagne unterstuetzen | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ |
+| Unterstuetzung sichtbar machen (anonymisiert) | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ |
+| Crowdfunding fuer eigenes Projekt starten | ✖ | ✖ | optional (owner) | optional (owner) | orgAdmin | orgAdmin | ✔ |
+| Pledge auf paid setzen (Admin) | ✖ | ✖ | ✖ | ✖ | ✖ | ✖ | ✔ |
+
+Ist/Unerledigt:
+
+| Bereich | Ist | Unerledigt |
+| --- | --- | --- |
+| Leitregel | "1 Person = 1 Stimme" und Anti-Kauf-Logik klar gesetzt | Produktweit sichtbarer Crowdfunding-Hinweis je Flow fehlt |
+| Campaign-Fokus | Campaigns/QR/Reports vorhanden | Support-Slug + Support-CTA pro Campaign fehlt |
+| Betriebsmodell | Membership-Referenz/mark-paid Pattern vorhanden | Eigenes Support-Pledge-Modell und Admin-Verbuchen fehlt |
+
 ---
 
 ## 5. Swipes, Contributions & Credits

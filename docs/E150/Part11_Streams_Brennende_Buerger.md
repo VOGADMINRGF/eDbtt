@@ -299,3 +299,45 @@ B2G/B2B-spezifische Stream-Typen berücksichtigen.
 PII, Fairness, Neutralität beachten (keine Empfehlungen, kein Tracking-Wildwuchs).
 
 Part11 baut damit auf allen vorherigen Parts auf und macht sie „live erlebbar“.
+
+10. Stream-Kit (Overlay, QR, Agenda)
+10.1 Funktion (Skizze)
+Das Stream-Kit ist ein produktiver Baukasten fuer sachliche Debattenformate:
+
+- Overlay fuer OBS/Browser-Source mit aktuellem Tagespunkt.
+- QR-Wechsel pro Tagespunkt (Audience landet direkt am richtigen Interaktionsziel).
+- Agenda-Vorlagen mit klaren Interaktionsmodi (Frage, Quelle, Option, Folge).
+- Host-Panel zum Umschalten des aktiven Tagespunkts ohne Layoutwechsel.
+
+```ts
+type StreamKitState = {
+  streamSessionId: string;
+  activeAgendaItemId: string | null;
+  qrTarget: string | null;
+  mode: "question" | "source" | "option" | "impact";
+};
+```
+
+10.2 Ist/Unerledigt
+
+| Bereich | Ist | Unerledigt |
+| --- | --- | --- |
+| Stream-Session | Sessions/Agenda/Overlay-Basis vorhanden | Stream-Kit Overlay-URL pro Session fehlt |
+| QR-Integration | QR fuer Campaigns/Sessions vorhanden | Dynamischer QR pro Agenda-Item im Stream fehlt |
+| Host-Flow | Host-Checks und Session-UI vorhanden | 1-Klick "Aktiver Tagespunkt" + Overlay-Sync fehlt |
+| Community-Input | Poll/Vote-Interaktion vorhanden | Strukturierte Queue fuer Quellen/Optionen im Live-Flow fehlt |
+
+11. Streamer-werden Seite
+11.1 Funktion (Skizze)
+
+- Eigene Onboarding-Seite fuer Streamer mit Gating, Setup und Moderationsregeln.
+- Fokus auf Debattenformat statt Entertainment-Format.
+- Enthalten: technische Checkliste, Rollenrechte, Moderationsstandards, Beispielablauf.
+
+11.2 Ist/Unerledigt
+
+| Bereich | Ist | Unerledigt |
+| --- | --- | --- |
+| Rollen/Gating | Engagement-/Plan-Gates sind definiert | Eigene `/howtoworks/streamer` bzw. `/streamer/werden` Seite fehlt |
+| Setup-Guide | Regeln sind in Part11 beschrieben | Praktische Schrittfolge (OBS, QR, Agenda, Moderation) fehlt als Produktseite |
+| Produktpositionierung | Zielbild "sachlicher Demokratie-Stream" vorhanden | Sichtbarer Leittext im Frontend fehlt |

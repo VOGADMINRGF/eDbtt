@@ -222,6 +222,32 @@ Live-Discovery: „Welche Unterargumente fehlen?“
 Der Graph generiert also Themenkarten, die Streamer nutzen können,
 damit der Austausch strukturiert bleibt.
 
+7.1 Graph-Randinfo in SwipeCards (leise, einklappbar)
+Funktion (Skizze):
+
+- SwipeCards bekommen ein kleines, standardmaessig eingeklapptes Randpanel.
+- Panel beantwortet: "Warum sehe ich das?" und zeigt 2-3 verwandte Relationen.
+- Kein Bewertungs-Signal, nur Kontext-Signal.
+
+```ts
+type SwipeCardContextPanel = {
+  reason: string; // z.B. "Thema Klima > Mobilitaet, hohe Aktivitaet in Region"
+  related: Array<{
+    nodeId: string;
+    relation: "supports" | "contradicts" | "refines";
+    title: string;
+  }>;
+};
+```
+
+Ist/Unerledigt:
+
+| Bereich | Ist | Unerledigt |
+| --- | --- | --- |
+| Graph-Basis | Claims/Questions/Knots/Eventualities werden im Graph verknuepft | SwipeCard-spezifische Context-Payload fehlt |
+| UI-Struktur | Swipe-Flow existiert | Kontext-Accordion mit "Warum sehe ich das?" fehlt |
+| Explainability | Prinzip "neutral und nachvollziehbar" definiert | Leichte Graph-Randinfo im Produkt noch nicht ausgerollt |
+
 8. Konsistenzregeln (E150.7.x)
 E150.7.1 – Graph ist streng neutral
 Keine Gewichtung, nur Struktur.

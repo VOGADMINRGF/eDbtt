@@ -19,7 +19,7 @@ Dieses Dokument bündelt, welche Pfade (Part00–Part15) noch offen sind und wel
 - **Part09 Research Workflow (Block E/R2):** R2 umgesetzt: Seeding aus Questions/Knots, Filter/Sortierung, Contributor-Feedback, Graph-Backflow und Anti-Spam-Cooldown.
 - **Part10 Responsibility Navigator (Block B):** Directory/Paths + Navigator + Admin-UI vorhanden.
 - **Part11 Streams (Block F):** Stream-Modelle, Routes/UI, Agenda/Overlay und XP-Gating vorhanden.
-- **Part12 Campaigns (Block G):** Campaign-Modelle, Admin-UI, Join/QR-Flow (MVP) implementiert.
+- **Part12 Campaigns (Block G):** Campaign-Modelle, Admin-UI, Join/QR-Flow (MVP) implementiert; Unterstuetzen/Crowdfunding pro Projekt noch offen.
 - **Part13 I18N/A11y/Social (Block H):** I18N-Infra aktiv, A11y-Seiten vorhanden, Community/Chat-Skeleton ergänzt.
 - **Part14 Implementation Roadmap:** Dient als Arbeitsmodus; Block-Reihenfolge beachten.
 - **Part15 Codex Safe Mode:** Leitplanken aktiv; keine offenen Tasks, aber stets befolgen.
@@ -43,6 +43,7 @@ Dieses Dokument bündelt, welche Pfade (Part00–Part15) noch offen sind und wel
 | **F – Streams** | Part11 | **Done** | Stream-Modelle + Sessions/Agenda/Overlay, UI, XP-Gating & Host-Checks vorhanden. |
 | **G – Campaigns** | Part12 | **Done** | Campaign-Modelle + Admin-UI, `/campaign/[id]/join` + Join-API (MVP). |
 | **H – I18N / A11y / Social** | Part13 | **Done** | I18N-Infra aktiv, A11y-Seite vorhanden, Community/Chat-Skeleton ergänzt. |
+| **I – Unterstuetzen/Crowdfunding** | Part12/14 | **Open** | Support pro Campaign/Projekt: Pledge + Zahlungsreferenz + Admin mark-paid + oeffentlicher Fortschritt, ohne Einfluss auf Votes/XP/Credits. |
 
 ## Konkrete Next Steps
 
@@ -50,7 +51,8 @@ Dieses Dokument bündelt, welche Pfade (Part00–Part15) noch offen sind und wel
 2. **Block B erledigt** (Part06/10): Consequences/Responsibility inkl. API, Navigator-UI, Admin (PR-0019).
 3. **Block C/D erledigt** (Part07/08): Graph-Sync & Eventualities/DecisionTrees (PR-0020).
 4. **Block F/G/H erledigt (MVP)** (Part11/12/13): Streams/Campaigns/I18N-A11y-Social (PR-0020).
-5. **Nächster Fokus:** Stabilisierung, QA, Reports/Analytics-Vertiefung und UX-Polish der neuen Flows.
+5. **Block I starten** (Part12/14): Unterstuetzen/Crowdfunding als eigener transparenter Produktpfad.
+6. **Danach Fokus:** Stabilisierung, QA, Reports/Analytics-Vertiefung und UX-Polish der neuen Flows.
 
 ### Identity & Profile (aus Part00–04 abgeleitet)
 
@@ -92,6 +94,23 @@ Stand:
 - Payment-CTAs im Account aktiv.
 
 Status: Done.
+
+### Block I – Unterstuetzen/Crowdfunding (neu)
+
+Funktion (Skizze):
+- Campaign/Projekt kann optional ein Support-Ziel haben.
+- Nutzer:innen erstellen Pledges und erhalten Zahlungsreferenz.
+- Admin verbucht Zahlung, Fortschritt wird aggregiert angezeigt.
+- Harte Leitregel: keine Stimme, keine XP, keine Prioritaet gegen Geld.
+
+Ist/Unerledigt:
+
+| Bereich | Ist | Unerledigt |
+| --- | --- | --- |
+| Campaign-Infrastruktur | Campaign/QR/Report-Basis vorhanden | SupportCampaign/SupportPledge fehlen |
+| Zahlungsprinzip | Membership-Referenzlogik + mark-paid vorhanden | Support-eigene Zahlungsreferenzen/Status-Flow fehlen |
+| Public-Produkt | Campaign-Pages vorhanden | `/support/[slug]` + Campaign-CTA fehlen |
+| Admin-Betrieb | Admin-Rahmen fuer Campaigns vorhanden | `/admin/support` + Export/Filter fehlen |
 
 ## PR-Log
 
@@ -320,3 +339,14 @@ Verification:
 
 Next Steps:
 - Optional: Payment-UX weiter polieren (Modal/Guided Flow).
+
+### PR-0030 (geplant) – Block I Unterstuetzen/Crowdfunding
+
+Ziel:
+- Eigene Unterstuetzen-Logik fuer Kampagnen/Projekte live schalten.
+
+Geplanter Scope:
+- SupportCampaign/SupportPledge Modell.
+- Public `/support/[slug]` und CTA auf `/campaign/[id]`.
+- Admin `/admin/support` inkl. `mark-paid`.
+- Sichtbare Leitregel in UI: kein Einfluss auf Votes/XP/Credits.

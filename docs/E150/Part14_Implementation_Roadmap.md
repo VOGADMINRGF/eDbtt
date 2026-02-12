@@ -311,6 +311,44 @@ Aufgaben:
 
 ---
 
+### Block I – Unterstuetzen/Crowdfunding (ohne Payment-Integration)
+
+**Ziel:** Kampagnen/Projekte koennen zweckgebundene Unterstuetzung einsammeln, sichtbar machen und administrativ verbuchen.
+
+Status: **Open**.
+
+Aufgaben:
+
+1. **Modelle**
+   - `SupportCampaign` (targetType, targetId, slug, goal, status).
+   - `SupportPledge` (amount, status, paymentReference, anonym/public flags).
+
+2. **Public-Flow**
+   - `/support/[slug]` mit Zielbetrag, Fortschritt, letzten Unterstuetzungen.
+   - Pledge-Erstellung mit Zahlungsreferenz (`CF-xxxxxx`), kein direkter Payment-Provider.
+
+3. **Campaign-Integration**
+   - CTA "Unterstuetzen" auf Campaign/Projekt, wenn `supportEnabled`.
+   - Optionaler Owner/Staff-CTA "Unterstuetzen aktivieren".
+
+4. **Admin-Flow**
+   - `/admin/support` + Detailseite fuer Pledges.
+   - Statuswechsel `waiting_payment -> paid|canceled`, Export/Filter.
+
+5. **Definition of Done**
+   - End-to-End: Pledge erzeugen, Zahlungsreferenz anzeigen, Admin markiert paid, Fortschritt aktualisiert.
+   - Sichtbarer Hinweis in UI: Unterstuetzung aendert keine Stimmen/XP/Credits.
+
+Ist/Unerledigt:
+
+| Bereich | Ist | Unerledigt |
+| --- | --- | --- |
+| Campaign-Backbone | Campaign-Modelle, Join/QR, Reports aktiv | SupportCampaign/SupportPledge fehlen |
+| Zahlungsprinzip | Membership-Referenz + mark-paid Pattern vorhanden | Eigene Support-Referenzen und Support-Admin fehlen |
+| Produkt-UX | Beteiligungs- und Campaign-UI vorhanden | `/support/[slug]` und Unterstuetzen-CTA fehlen |
+
+---
+
 ## 5. Definition of Done – Gesamt
 
 E150 gilt als **„Phase 1 vollständig implementiert“**, wenn:
@@ -322,6 +360,7 @@ E150 gilt als **„Phase 1 vollständig implementiert“**, wenn:
 - Research-Workflow produktiv nutzbar ist (Block E).  
 - Streams & Campaigns für erste Pilotkunden (B2G/B2B) lauffähig sind (Blöcke F & G).  
 - I18N, A11y und Community-Features die Mindestanforderungen erfüllen (Block H).  
+- Unterstuetzen/Crowdfunding pro Projekt als transparenter Zusatzpfad funktioniert (Block I).  
 
 ---
 
@@ -330,7 +369,7 @@ E150 gilt als **„Phase 1 vollständig implementiert“**, wenn:
 Wenn du einen neuen „Großlauf“ startest, reicht z.B.:
 
 > „Nutze Part14 als Roadmap.  
->  Wähle den nächsten noch nicht abgeschlossenen Block (A–H) und arbeite ihn so weit wie möglich ab.  
+>  Wähle den nächsten noch nicht abgeschlossenen Block (A–I) und arbeite ihn so weit wie möglich ab.  
 >  Halte dich an Arbeitsmodus, Prioritäten und Definition-of-Done aus Part14.“
 
 Damit muss **nicht jedes Mal alles neu bestätigt werden**, und Codex weiß trotzdem genau,
