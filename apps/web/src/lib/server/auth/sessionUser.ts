@@ -17,6 +17,15 @@ export type SessionUser = {
   sessionValid?: boolean;
 };
 
+function splitRoleTokens(value: unknown): string[] {
+  if (typeof value !== "string") return [];
+  // Support legacy/manual formats like "admin,superadmin".
+  return value
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
 export async function getSessionUser(req?: NextRequest): Promise<SessionUser | null> {
   const session = await readSessionPayload(req);
   const sessionUid = session?.uid && ObjectId.isValid(session.uid) ? session.uid : null;
@@ -45,10 +54,10 @@ export async function getSessionUser(req?: NextRequest): Promise<SessionUser | n
 
   // DB is source of truth for roles (session roles can be stale after role changes).
   const dbRoles = Array.isArray(user.roles)
-    ? user.roles.map((r: any) => (typeof r === "string" ? r : r?.role)).filter(Boolean)
-    : user.role
-      ? [user.role]
-      : [];
+    ? user.roles
+        .flatMap((r: any) => (typeof r === "string" ? splitRoleTokens(r) : splitRoleTokens(r?.role)))
+        .filter(Boolean)
+    : splitRoleTokens(user.role);
   const normalizedRoles = dbRoles.length ? dbRoles : payloadRoles;
 
   const verificationDefaults = ensureVerificationDefaults((user as any).verification);

@@ -12,6 +12,7 @@ type UserDoc = {
   _id: ObjectId;
   email?: string | null;
   name?: string | null;
+  role?: string | null;
   profile?: {
     avatarUrl?: string | null;
     avatarStyle?: "initials" | "abstract" | "emoji" | null;
@@ -24,6 +25,14 @@ type UserDoc = {
   usage?: { xp?: number | null; contributionCredits?: number | null };
   vogMembershipStatus?: string | null;
 };
+
+function splitRoleTokens(value: unknown): string[] {
+  if (typeof value !== "string") return [];
+  return value
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
 
 export async function GET() {
   const noStore = { headers: { "Cache-Control": "no-store" } };
@@ -39,9 +48,10 @@ export async function GET() {
 
     if (!doc) return NextResponse.json({ user: null }, { status: 401, ...noStore });
 
-    const roles = Array.isArray(doc.roles)
-      ? doc.roles.map((r: any) => (typeof r === "string" ? r : r?.role)).filter(Boolean)
+    const rolesFromArray = Array.isArray(doc.roles)
+      ? doc.roles.flatMap((r: any) => (typeof r === "string" ? splitRoleTokens(r) : splitRoleTokens(r?.role))).filter(Boolean)
       : [];
+    const roles = rolesFromArray.length ? rolesFromArray : splitRoleTokens(doc.role);
 
     const xp = doc.engagementXp ?? doc.stats?.xp ?? doc.usage?.xp ?? 0;
     const engagementLevel = doc.stats?.engagementLevel || getEngagementLevel(xp ?? 0);
