@@ -19,8 +19,12 @@ Codex soll **alle hier definierten Regeln als harte Leitplanken** behandeln.
 ## 2. Grundprinzipien
 
 1. **Kleine Schritte, nie Monster-PRs**
-   - Maximal **6 Dateien pro Run** ändern.
-   - Ideal: **1–3 Dateien** pro Run.
+   - Profilgesteuerte Dateigrenzen statt pauschaler Großlaeufe:
+     - `SAFE_MODE_PROFILE=STANDARD` -> maximal **6 Dateien** pro Run.
+     - `SAFE_MODE_PROFILE=DOCS_BUNDLE` -> maximal **12 Dateien**, aber nur `docs/**`.
+     - `SAFE_MODE_PROFILE=MECHANICAL_BUNDLE` -> maximal **10 Dateien**, nur mechanische Aenderungen (Rename/Typen/Exports) und Pflicht-Checks `lint + typecheck`.
+   - Ohne Profil-Header gilt immer `STANDARD`.
+   - Ideal bleibt: **1-3 Dateien** pro Run.
    - Kein globales „einmal alles anfassen“.
 
 2. **Nur arbeiten, wenn der Auftrag sehr konkret ist**
@@ -38,6 +42,11 @@ Codex soll **alle hier definierten Regeln als harte Leitplanken** behandeln.
      - Änderung abbrechen,
      - TODO in „Next Steps“ notieren,
      - keine riskanten Groß-Refactorings starten.
+
+5. **Profil-Header ist Pflicht fuer Ausnahmen**
+   - Jeder Drift mit `DOCS_BUNDLE` oder `MECHANICAL_BUNDLE` muss oben explizit den Profil-Header setzen.
+   - Fehlt der Header, wird der Run als `STANDARD` behandelt.
+   - Niemals mehr als 12 Dateien pro Run ohne expliziten, begruendeten Drift-Header.
 
 ---
 
@@ -105,7 +114,7 @@ Jeder Codex-Run folgt diesem Muster:
    - Änderungen lokal halten.
 
 3. **Änderungen durchführen:**
-   - Max. 6 Dateien ändern.
+   - Dateigrenze gemaess `SAFE_MODE_PROFILE` einhalten (`STANDARD`/`DOCS_BUNDLE`/`MECHANICAL_BUNDLE`).
    - Kein wildes Suchen/Ersetzen über das gesamte Repo.
    - Kein Neuorganisieren von Ordnerstrukturen.
 
@@ -124,8 +133,10 @@ Jeder Codex-Run folgt diesem Muster:
   - in „Next Steps“ vermerken, was versucht wurde.
 
 - **Wenn eine Aufgabe mehr als 6 Dateien erfordert:**
-  - Aufteilen in mehrere Teil-Runs (z.B. „Schritt 1/3“),
-  - im Code/Kommentar kenntlich machen, wo die Grenze ist.
+- **Wenn eine Aufgabe mehr Dateien als das aktive Profil erfordert:**
+  - Aufteilen in mehrere Teil-Runs (z.B. „Schritt 1/3“), oder
+  - bei Doku-/mechanischen Paketen explizit auf `DOCS_BUNDLE` bzw. `MECHANICAL_BUNDLE` umstellen,
+  - im Output kenntlich machen, warum das Profil genutzt wurde.
 
 - **Wenn es mehrere mögliche Interpretationen gibt:**
   - Die **konservativste, stabilste** Variante wählen,
