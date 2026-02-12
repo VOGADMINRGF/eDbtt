@@ -43,6 +43,7 @@ export type KnownRouteId =
   | "admin_feeds"
   | "admin_evidence"
   | "admin_audit"
+  | "admin_api_root"
   | "admin_api_orgs"
   | "admin_api_editorial"
   | "admin_api_reports_assets"
@@ -432,6 +433,14 @@ export const DEFAULT_ROUTE_POLICIES: RoutePolicy[] = [
     routeId: "admin_audit",
     pathPattern: "/admin/audit",
     label: "Admin · Audit",
+    defaultGroups: ["staff", "admin"],
+    allowAnonymous: false,
+    locked: true,
+  },
+  {
+    routeId: "admin_api_root",
+    pathPattern: "/api/admin",
+    label: "Admin API · Root",
     defaultGroups: ["staff", "admin"],
     allowAnonymous: false,
     locked: true,
