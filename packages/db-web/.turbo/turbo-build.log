@@ -1,5 +1,4 @@
 
-
 > @db/web@1.0.0 build /Users/RF/Arbeitsmappe/edebatte-org/packages/db-web
 > tsc -p tsconfig.build.json && node ./scripts/copy-generated.mjs
 

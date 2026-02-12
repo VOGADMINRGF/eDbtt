@@ -27,6 +27,20 @@ Dieses Dokument dient als Status-Zusammenfassung der Pfade (Part00–Part15). Es
 - **Part14 Implementation Roadmap:** Dient als Arbeitsmodus; Block-Reihenfolge beachten.
 - **Part15 Codex Safe Mode:** Leitplanken aktiv; keine offenen Tasks, aber stets befolgen.
 
+## Drift-Plan Audit (2026-02-12)
+
+Diese Liste spiegelt alle vorhandenen Drift-Prompts aus `.codex/drifts/`.  
+Status basiert auf Repo-Evidenz (Dateien/Routes/Modelle). Offener Arbeitsstand bleibt in `docs/E150/OpenTasks.md`.
+
+| Drift | Ziel | Evidenz im Repo | Status | Naechster Schritt |
+| --- | --- | --- | --- | --- |
+| PR-0009 | Pilot Backbone (Feeds → Kandidaten → Faktencheck → Graph/Dossier) | Kein `docs/E150/Pilot.md`, keine `PilotSettings`/Kandidaten-Modelle/Routes gefunden | Missing | Als Pilot-Paket neu umsetzen |
+| PR-0010 | Admin Akquise Dashboard (Feeds/Regionen) | Kein `/admin/acquisition`, keine `AcquisitionFeedSource`/`FetchRun`-Modelle | Missing | Admin-Akquise-UI + Fetch-Health implementieren |
+| PR-0011 | Offene Beitraege (Quelle/Option/Frage) | Contributions-API existiert, aber kein Pilot-Flow mit Moderation/Owner-Freigabe | Partial | Contribution-Flow auf Pilot-Kandidaten erweitern |
+| PR-0012 | Media Ready Projekte (3–5 Themen, min 5 Optionen) | Projekt-Modelle + API/Pages aktiv | Implemented | Monitoring/Polish |
+| PR-0013 | Live/Chat Skeleton | `/chat` existiert, aber kein `/live` und keine 501-Stubs | Partial | Live-Routes/Types/501-Stubs ergänzen |
+| PR-0030 | Unterstuetzen/Crowdfunding | `/support/[slug]`, `/admin/support` + Support-API vorhanden | Implemented | Nur Monitoring/Polish |
+
 ## Aktueller Stand (Februar 2026)
 
 - `/contributions/new` rendert wieder mit SiteShell, Citizen-Core-Text und sauberem Login-Redirect statt JSON-403; Credits/Gating basieren auf `AccountOverview`.
@@ -324,6 +338,24 @@ Verification:
 
 Next Steps:
 - Optional: Status-Automation mit cron/batch prüfen (z.B. nightly sync).
+
+### PR-0037 (2026-02-12) – Media Ready Projekte (3–5 Themen)
+
+Ziel:
+- Projekte mit 3–5 Themen, mindestens 5 Optionen je Thema und projektbezogenen Ergebnissen.
+
+Changes:
+- Projekt-Modelle + Collections in triMongo eingefuehrt (Projects + Votes).
+- Admin-Projekte: Liste + Detailfreigabe fuer vorgeschlagene Optionen.
+- Public-Projektseite: Abstimmen, Ergebnisanzeige, Option vorschlagen.
+- ProjectForm erweitert: 3–5 Themen, min. 5 Optionen enforced.
+
+Verification:
+- `pnpm -C apps/web run lint` (PASS)
+- `pnpm -C apps/web run typecheck` (PASS)
+
+Next Steps:
+- PR-0011/PR-0013 backlog weiter abbauen (Contributions/Live Skeleton).
 
 Safe-Mode Checks (Membership/Payment):
 - Admin-Verbuchen (`mark-paid`) und Kündigung (`cancel`) funktionieren, setzen user.membership-Status korrekt.

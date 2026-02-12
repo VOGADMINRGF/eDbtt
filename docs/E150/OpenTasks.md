@@ -22,9 +22,22 @@ Stand: 2026-02-12
 | I | Unterstuetzen/Crowdfunding | Done | - | End-to-End SupportCampaign/SupportPledge live |
 | M | Membership Apply | Done | - | Betrieb + Monitoring |
 
+## Drift Backlog (aus .codex/drifts)
+
+Diese Liste ist die kanonische Umsetzungsliste fuer alle vorhandenen Drift-Prompts.
+
+| Drift | Scope | Status | Naechster Run |
+| --- | --- | --- | --- |
+| PR-0009 | Pilot Backbone (Feeds → Kandidaten → Faktencheck → Graph/Dossier) | Missing | Implementieren + Pilot.md anlegen |
+| PR-0010 | Admin Akquise Dashboard (Feeds/Regionen) | Missing | /admin/acquisition + Fetch-Health |
+| PR-0011 | Offene Beitraege (Quelle/Option/Frage, Moderation) | Partial | Contribution-Flow auf Pilot erweitern |
+| PR-0012 | Media Ready Projekte (3–5 Themen, min 5 Optionen) | Done | Monitoring/Polish |
+| PR-0013 | Live/Chat Skeleton | Partial | /live + API-Stubs (501) |
+| PR-0030 | Unterstuetzen/Crowdfunding | Implemented | Monitoring/Polish |
+
 ## Aktive Aufgaben
 
-Aktuell keine Pflicht-Tasks offen. Optionales Nachlauf-Polish siehe unten.
+Aktive Pflicht-Tasks sind die Drift-Prompts PR-0009, PR-0010, PR-0011 und PR-0013 (siehe Tabelle oben). Optionales Nachlauf-Polish siehe unten.
 
 ### 1) Nachlauf (optional)
 

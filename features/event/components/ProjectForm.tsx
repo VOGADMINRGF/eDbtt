@@ -2,8 +2,31 @@
 "use client";
 
 import * as React from "react";
-import type { Project, ProjectStatus } from "../types/ProjectType";
+import Link from "next/link";
+import type { Project, ProjectOption, ProjectStatus, ProjectTopic } from "../types/ProjectType";
 import { safeRandomId } from "@core/utils/random";
+
+const MIN_TOPICS = 3;
+const MAX_TOPICS = 5;
+const MIN_OPTIONS = 5;
+
+function createOption(label = ""): ProjectOption {
+  return {
+    id: safeRandomId(),
+    label,
+    status: "approved",
+    createdAt: new Date().toISOString(),
+  };
+}
+
+function createTopic(): ProjectTopic {
+  return {
+    id: safeRandomId(),
+    title: "",
+    description: "",
+    options: Array.from({ length: MIN_OPTIONS }, () => createOption()),
+  };
+}
 
 export default function ProjectForm() {
   const [name, setName] = React.useState("");
@@ -11,13 +34,17 @@ export default function ProjectForm() {
   const [startDate, setStartDate] = React.useState("");
   const [endDate, setEndDate] = React.useState("");
   const [region, setRegion] = React.useState("");
-  // TODO: später aus Auth / Account ziehen
+  // TODO: spaeter aus Auth / Account ziehen
   const [organizerIds] = React.useState<string[]>(["user-xyz"]);
   const [status, setStatus] = React.useState<ProjectStatus>("planned");
+  const [topics, setTopics] = React.useState<ProjectTopic[]>(() =>
+    Array.from({ length: MIN_TOPICS }, () => createTopic()),
+  );
 
   const [saving, setSaving] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [success, setSuccess] = React.useState<string | null>(null);
+  const [createdId, setCreatedId] = React.useState<string | null>(null);
 
   const nameId = React.useId();
   const descriptionId = React.useId();
@@ -33,12 +60,84 @@ export default function ProjectForm() {
     setEndDate("");
     setRegion("");
     setStatus("planned");
+    setTopics(Array.from({ length: MIN_TOPICS }, () => createTopic()));
+  };
+
+  const updateTopic = (topicId: string, patch: Partial<ProjectTopic>) => {
+    setTopics((prev) => prev.map((topic) => (topic.id === topicId ? { ...topic, ...patch } : topic)));
+  };
+
+  const updateOption = (topicId: string, optionId: string, label: string) => {
+    setTopics((prev) =>
+      prev.map((topic) =>
+        topic.id !== topicId
+          ? topic
+          : {
+              ...topic,
+              options: topic.options.map((opt) => (opt.id === optionId ? { ...opt, label } : opt)),
+            },
+      ),
+    );
+  };
+
+  const addTopic = () => {
+    setTopics((prev) => (prev.length >= MAX_TOPICS ? prev : [...prev, createTopic()]));
+  };
+
+  const removeTopic = (topicId: string) => {
+    setTopics((prev) => (prev.length <= MIN_TOPICS ? prev : prev.filter((topic) => topic.id !== topicId)));
+  };
+
+  const addOption = (topicId: string) => {
+    setTopics((prev) =>
+      prev.map((topic) =>
+        topic.id !== topicId ? topic : { ...topic, options: [...topic.options, createOption()] },
+      ),
+    );
+  };
+
+  const removeOption = (topicId: string, optionId: string) => {
+    setTopics((prev) =>
+      prev.map((topic) => {
+        if (topic.id !== topicId) return topic;
+        if (topic.options.length <= MIN_OPTIONS) return topic;
+        return {
+          ...topic,
+          options: topic.options.filter((opt) => opt.id !== optionId),
+        };
+      }),
+    );
+  };
+
+  const normalizeTopics = () => {
+    const normalized = topics.map((topic) => ({
+      ...topic,
+      title: topic.title.trim(),
+      description: topic.description?.trim() || "",
+      options: topic.options
+        .map((opt) => ({ ...opt, label: opt.label.trim() }))
+        .filter((opt) => opt.label.length > 0),
+    }));
+
+    if (normalized.length < MIN_TOPICS || normalized.length > MAX_TOPICS) {
+      return { error: `Bitte lege ${MIN_TOPICS} bis ${MAX_TOPICS} Themen an.` } as const;
+    }
+
+    for (const topic of normalized) {
+      if (!topic.title) return { error: "Jedes Thema braucht einen Titel." } as const;
+      if (topic.options.length < MIN_OPTIONS) {
+        return { error: `Jedes Thema braucht mindestens ${MIN_OPTIONS} Optionen.` } as const;
+      }
+    }
+
+    return { topics: normalized } as const;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setSuccess(null);
+    setCreatedId(null);
     setSaving(true);
 
     const trimmedName = name.trim();
@@ -48,8 +147,15 @@ export default function ProjectForm() {
       return;
     }
 
+    const normalized = normalizeTopics();
+    if ("error" in normalized) {
+      setSaving(false);
+      setError(normalized.error);
+      return;
+    }
+
     const newProject: Project = {
-      id: safeRandomId(), // Server kann die ID ignorieren und selbst setzen, wenn gewünscht
+      id: safeRandomId(), // Server kann die ID ignorieren und selbst setzen, wenn gewuenscht
       name: trimmedName,
       description: description.trim(),
       startDate,
@@ -57,6 +163,7 @@ export default function ProjectForm() {
       region: region || undefined,
       organizerIds,
       status,
+      topics: normalized.topics,
       createdAt: new Date().toISOString(),
     };
 
@@ -75,6 +182,8 @@ export default function ProjectForm() {
         throw new Error(data?.error || "Projekt konnte nicht gespeichert werden.");
       }
 
+      const projectId = data?.project?.id ?? null;
+      setCreatedId(projectId);
       setSuccess("Projekt wurde gespeichert.");
       resetForm();
     } catch (err: any) {
@@ -87,10 +196,15 @@ export default function ProjectForm() {
   return (
     <form
       onSubmit={handleSubmit}
-      className="mx-auto max-w-2xl space-y-6 px-4 py-8"
+      className="mx-auto max-w-3xl space-y-8 px-4 py-8"
       aria-label="Projekt oder Event anlegen"
     >
-      <h2 className="text-2xl font-bold text-coral">Projekt/Event erstellen</h2>
+      <header className="space-y-2">
+        <h2 className="text-2xl font-bold text-coral">Projekt/Event erstellen</h2>
+        <p className="text-sm text-slate-600">
+          Lege 3 bis 5 Themen an. Pro Thema werden mindestens 5 feste Optionen benoetigt.
+        </p>
+      </header>
 
       {error && (
         <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
@@ -98,98 +212,195 @@ export default function ProjectForm() {
         </p>
       )}
       {success && (
-        <p className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
+        <div className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
           {success}
-        </p>
+          {createdId ? (
+            <span className="ml-2">
+              <Link href={`/projects/${createdId}`} className="font-semibold underline">
+                Projekt oeffnen
+              </Link>
+            </span>
+          ) : null}
+        </div>
       )}
 
-      <div className="space-y-1">
-        <label className="block text-sm font-medium text-slate-700" htmlFor={nameId}>
-          Projektname
-        </label>
-        <input
-          type="text"
-          required
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          id={nameId}
-          className="w-full rounded border px-3 py-2 text-sm text-slate-900 outline-none focus:border-coral focus:ring-2 focus:ring-coral/20"
-        />
-      </div>
-
-      <div className="space-y-1">
-        <label className="block text-sm font-medium text-slate-700" htmlFor={descriptionId}>
-          Beschreibung
-        </label>
-        <textarea
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          id={descriptionId}
-          className="w-full rounded border px-3 py-2 text-sm text-slate-900 outline-none focus:border-coral focus:ring-2 focus:ring-coral/20"
-          rows={4}
-        />
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-2">
+      <section className="grid gap-4">
         <div className="space-y-1">
-          <label className="block text-sm font-medium text-slate-700" htmlFor={startId}>
-            Startdatum
+          <label className="block text-sm font-medium text-slate-700" htmlFor={nameId}>
+            Projektname
           </label>
           <input
-            type="date"
-            value={startDate}
-            onChange={(e) => setStartDate(e.target.value)}
-            id={startId}
+            type="text"
+            required
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            id={nameId}
             className="w-full rounded border px-3 py-2 text-sm text-slate-900 outline-none focus:border-coral focus:ring-2 focus:ring-coral/20"
           />
         </div>
+
         <div className="space-y-1">
-          <label className="block text-sm font-medium text-slate-700" htmlFor={endId}>
-            Enddatum (optional)
+          <label className="block text-sm font-medium text-slate-700" htmlFor={descriptionId}>
+            Beschreibung
+          </label>
+          <textarea
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            id={descriptionId}
+            className="w-full rounded border px-3 py-2 text-sm text-slate-900 outline-none focus:border-coral focus:ring-2 focus:ring-coral/20"
+            rows={4}
+          />
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-2">
+          <div className="space-y-1">
+            <label className="block text-sm font-medium text-slate-700" htmlFor={startId}>
+              Startdatum
+            </label>
+            <input
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              id={startId}
+              className="w-full rounded border px-3 py-2 text-sm text-slate-900 outline-none focus:border-coral focus:ring-2 focus:ring-coral/20"
+            />
+          </div>
+          <div className="space-y-1">
+            <label className="block text-sm font-medium text-slate-700" htmlFor={endId}>
+              Enddatum (optional)
+            </label>
+            <input
+              type="date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              id={endId}
+              className="w-full rounded border px-3 py-2 text-sm text-slate-900 outline-none focus:border-coral focus:ring-2 focus:ring-coral/20"
+            />
+          </div>
+        </div>
+
+        <div className="space-y-1">
+          <label className="block text-sm font-medium text-slate-700" htmlFor={regionId}>
+            Region (optional)
           </label>
           <input
-            type="date"
-            value={endDate}
-            onChange={(e) => setEndDate(e.target.value)}
-            id={endId}
+            type="text"
+            value={region}
+            onChange={(e) => setRegion(e.target.value)}
+            id={regionId}
             className="w-full rounded border px-3 py-2 text-sm text-slate-900 outline-none focus:border-coral focus:ring-2 focus:ring-coral/20"
           />
         </div>
-      </div>
 
-      <div className="space-y-1">
-        <label className="block text-sm font-medium text-slate-700" htmlFor={regionId}>
-          Region (optional)
-        </label>
-        <input
-          type="text"
-          value={region}
-          onChange={(e) => setRegion(e.target.value)}
-          id={regionId}
-          className="w-full rounded border px-3 py-2 text-sm text-slate-900 outline-none focus:border-coral focus:ring-2 focus:ring-coral/20"
-        />
-      </div>
+        <div className="space-y-1">
+          <label className="block text-sm font-medium text-slate-700" htmlFor={statusId}>
+            Status
+          </label>
+          <select
+            value={status}
+            onChange={(e) => setStatus(e.target.value as ProjectStatus)}
+            id={statusId}
+            className="w-full rounded border px-3 py-2 text-sm text-slate-900 outline-none focus:border-coral focus:ring-2 focus:ring-coral/20"
+          >
+            <option value="planned">Geplant</option>
+            <option value="active">Aktiv</option>
+            <option value="completed">Abgeschlossen</option>
+            <option value="archived">Archiviert</option>
+          </select>
+        </div>
+      </section>
 
-      <div className="space-y-1">
-        <label className="block text-sm font-medium text-slate-700" htmlFor={statusId}>
-          Status
-        </label>
-        <select
-          value={status}
-          onChange={(e) => setStatus(e.target.value as ProjectStatus)}
-          id={statusId}
-          className="w-full rounded border px-3 py-2 text-sm text-slate-900 outline-none focus:border-coral focus:ring-2 focus:ring-coral/20"
-        >
-          <option value="planned">Geplant</option>
-          <option value="active">Aktiv</option>
-          <option value="completed">Abgeschlossen</option>
-          <option value="archived">Archiviert</option>
-        </select>
-      </div>
+      <section className="space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <h3 className="text-lg font-semibold text-slate-900">Themenpaket</h3>
+            <p className="text-xs text-slate-500">{topics.length} von {MIN_TOPICS} bis {MAX_TOPICS} Themen</p>
+          </div>
+          <button
+            type="button"
+            onClick={addTopic}
+            disabled={topics.length >= MAX_TOPICS}
+            className="rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:border-slate-300 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            Thema hinzufuegen
+          </button>
+        </div>
+
+        {topics.map((topic, index) => (
+          <div key={topic.id} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <h4 className="text-sm font-semibold text-slate-900">Thema {index + 1}</h4>
+              <button
+                type="button"
+                onClick={() => removeTopic(topic.id)}
+                disabled={topics.length <= MIN_TOPICS}
+                className="text-xs font-semibold text-rose-600 hover:text-rose-700 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Entfernen
+              </button>
+            </div>
+
+            <div className="mt-3 space-y-3">
+              <div className="space-y-1">
+                <label className="block text-xs font-medium text-slate-600">Titel</label>
+                <input
+                  type="text"
+                  value={topic.title}
+                  onChange={(e) => updateTopic(topic.id, { title: e.target.value })}
+                  className="w-full rounded border px-3 py-2 text-sm text-slate-900"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="block text-xs font-medium text-slate-600">Beschreibung (optional)</label>
+                <textarea
+                  value={topic.description ?? ""}
+                  onChange={(e) => updateTopic(topic.id, { description: e.target.value })}
+                  className="w-full rounded border px-3 py-2 text-sm text-slate-900"
+                  rows={2}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold text-slate-700">Optionen</span>
+                  <button
+                    type="button"
+                    onClick={() => addOption(topic.id)}
+                    className="text-xs font-semibold text-slate-600 hover:text-slate-900"
+                  >
+                    Option hinzufuegen
+                  </button>
+                </div>
+
+                {topic.options.map((opt, optIndex) => (
+                  <div key={opt.id} className="flex items-center gap-2">
+                    <span className="text-xs text-slate-400">{optIndex + 1}</span>
+                    <input
+                      type="text"
+                      value={opt.label}
+                      onChange={(e) => updateOption(topic.id, opt.id, e.target.value)}
+                      className="flex-1 rounded border px-3 py-2 text-sm text-slate-900"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removeOption(topic.id, opt.id)}
+                      disabled={topic.options.length <= MIN_OPTIONS}
+                      className="text-xs font-semibold text-rose-600 hover:text-rose-700 disabled:cursor-not-allowed disabled:opacity-40"
+                    >
+                      Entfernen
+                    </button>
+                  </div>
+                ))}
+                <p className="text-[11px] text-slate-400">Mindestens {MIN_OPTIONS} Optionen pro Thema.</p>
+              </div>
+            </div>
+          </div>
+        ))}
+      </section>
 
       <p className="text-xs text-slate-500">
-        Organisator:innen werden später automatisch aus dem Account-Kontext
-        übernommen.
+        Organisator:innen werden spaeter automatisch aus dem Account-Kontext uebernommen.
       </p>
 
       <button
@@ -197,7 +408,7 @@ export default function ProjectForm() {
         disabled={saving}
         className="rounded bg-coral px-6 py-3 font-semibold text-white shadow hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-coral/40 disabled:cursor-not-allowed disabled:opacity-60"
       >
-        {saving ? "Speichere…" : "Projekt speichern"}
+        {saving ? "Speichere..." : "Projekt speichern"}
       </button>
     </form>
   );
