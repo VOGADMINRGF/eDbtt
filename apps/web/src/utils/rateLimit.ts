@@ -22,21 +22,23 @@ function sweep(now: number) {
   }
 }
 
-// runtime-agnostisches Hashing (PII-Schutz)
+// Runtime-agnostisches Hashing (PII-Schutz) ohne Node-only Imports.
 async function hashKey(key: string, salt = ""): Promise<string> {
-  const data = new TextEncoder().encode(salt + key);
-  // WebCrypto verfügbar?
-  if (typeof crypto !== "undefined" && "subtle" in crypto) {
-    const buf = await crypto.subtle.digest("SHA-256", data);
+  const data = new TextEncoder().encode(`${salt}${key}`);
+  const webcrypto = globalThis.crypto;
+  if (webcrypto?.subtle) {
+    const buf = await webcrypto.subtle.digest("SHA-256", data);
     return [...new Uint8Array(buf)]
       .map((b) => b.toString(16).padStart(2, "0"))
       .join("");
   }
-  // Node-Fallback
-
-  // @ts-ignore
-  const { createHash } = await import("crypto");
-  return createHash("sha256").update(data).digest("hex");
+  // Sehr alter Runtime-Fallback: deterministischer, leichter Hash ohne Krypto.
+  let hash = 2166136261;
+  for (const byte of data) {
+    hash ^= byte;
+    hash = Math.imul(hash, 16777619);
+  }
+  return `f${(hash >>> 0).toString(16).padStart(8, "0")}`;
 }
 
 export type RateLimitResult = {

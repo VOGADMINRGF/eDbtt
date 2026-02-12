@@ -75,7 +75,22 @@
         "STORAGE_*",
         "YOU_*",
         "YOUCOM_*",
-        "OPENAI_*"
+        "OPENAI_*",
+        "ARI_*",
+        "E150_*",
+        "ANTHROPIC_*",
+        "GEMINI_*",
+        "MISTRAL_*",
+        "BULK_*",
+        "FAST_*",
+        "HEAVY_*",
+        "STRONG_*",
+        "REFINE_*",
+        "ARCHIVE_*",
+        "*_NOTIFY_TO",
+        "SUPERADMIN_*",
+        "DEV_BYPASS_AUTH",
+        "LOG_LEVEL"
       ]
     },
     "lint": {

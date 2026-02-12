@@ -1,13 +1,12 @@
-// apps/web/src/middleware.ts
 import { NextRequest, NextResponse } from "next/server";
 import { rateLimitHeaders } from "@/utils/rateLimitHelpers";
 import { rateLimitPublic } from "@/utils/publicRateLimit";
 
 const EMBED_RATE_LIMIT = { limit: 60, windowMs: 60 * 1000 };
-export async function middleware(req: NextRequest) {
+
+export async function proxy(req: NextRequest) {
   const pathname = req.nextUrl.pathname;
 
-  // Statics und Next-Interna durchlassen
   if (pathname.startsWith("/_next") || pathname.startsWith("/favicon") || pathname.startsWith("/static")) {
     return allowNext();
   }
@@ -20,12 +19,10 @@ export async function middleware(req: NextRequest) {
     return allowNext();
   }
 
-  // Nur /api/* prüfen
   if (!pathname.startsWith("/api")) {
     return allowNext();
   }
 
-  // Auth-Endpoints immer durchlassen
   if (pathname.startsWith("/api/auth")) {
     return allowNext();
   }
@@ -65,7 +62,6 @@ function allowNext() {
   return (NextResponse as any).next();
 }
 
-// Nur echte Seiten, keine statics
 export const config = {
   matcher: ["/api/:path*", "/embed/dossier/:path*"],
 };

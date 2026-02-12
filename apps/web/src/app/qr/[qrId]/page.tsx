@@ -2,12 +2,16 @@ import { notFound } from "next/navigation";
 import { publicOrigin } from "@/utils/publicOrigin";
 import { QuestionSetClient } from "./QuestionSetClient";
 
-export default async function QRScanPage({ params }: any) {
-  const { qrId } = params;
+type PageProps = {
+  params: Promise<{ qrId: string }>;
+};
+
+export default async function QRScanPage({ params }: PageProps) {
+  const { qrId } = await params;
 
   // Call to API (server or client) to resolve QR-Entry
   const base = process.env.NEXT_PUBLIC_API_URL || publicOrigin();
-  const res = await fetch(`${base}/api/qr/resolve?qrId=${qrId}`, { cache: "no-store" });
+  const res = await fetch(`${base}/api/qr/resolve?qrId=${encodeURIComponent(qrId)}`, { cache: "no-store" });
   const { success, data } = await res.json();
   if (!success || !data) return notFound();
 

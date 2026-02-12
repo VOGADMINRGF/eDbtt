@@ -1,5 +1,6 @@
 // apps/web/src/utils/rateLimiter.ts
 import { createClient } from "redis";
+import { rateLimit as rateLimitUnified } from "./rateLimit";
 
 type RLResult = {
   ok: boolean;
@@ -43,25 +44,14 @@ export async function rateLimit(
     return { ok: true, remaining, resetSec };
   }
 
-  // Memory Fallback (dev only)
-  const g = global as any;
-  g.__rl ||= new Map<string, { count: number; resetAt: number }>();
-  const key = `${bucket}:${ip}`;
-  const b = g.__rl.get(key);
-  const until = Date.now() + windowSec * 1000;
-  if (!b || Date.now() > b.resetAt) {
-    g.__rl.set(key, { count: 1, resetAt: until });
-    return { ok: true, remaining: limitPerWindow - 1, resetSec };
-  }
-  b.count++;
-  const remaining = Math.max(0, limitPerWindow - b.count);
-  if (b.count > limitPerWindow) {
-    return {
-      ok: false,
-      remaining: 0,
-      resetSec,
-      retryAfterSec: Math.ceil((b.resetAt - Date.now()) / 1000),
-    };
-  }
-  return { ok: true, remaining, resetSec };
+  // Einheitlicher In-Memory-Fallback ueber die zentrale RL-Implementierung.
+  const unified = await rateLimitUnified(`${bucket}:${ip}`, limitPerWindow, windowSec * 1000, {
+    salt: "legacy-rateLimiter",
+  });
+  return {
+    ok: unified.ok,
+    remaining: unified.remaining,
+    resetSec: Math.ceil(unified.resetAt / 1000),
+    retryAfterSec: unified.ok ? undefined : Math.ceil(unified.retryIn / 1000),
+  };
 }
