@@ -101,17 +101,6 @@ export async function POST(req: NextRequest) {
       },
     };
 
-    await Users.updateOne(
-      { _id: user._id },
-      {
-        $set: {
-          verification: nextVerification,
-          role: "verified",
-          updatedAt: now,
-        },
-      },
-    );
-
     await credsCol.updateOne(
       { _id: creds._id },
       {
@@ -146,11 +135,29 @@ export async function POST(req: NextRequest) {
       ? baseRoles
       : [...baseRoles, "verified" as UserRole];
 
+    const privileged = nextRoles.some((r: any) => {
+      const value = typeof r === "string" ? r : r?.role;
+      return value === "admin" || value === "superadmin";
+    });
+    const nextPrimaryRole = privileged ? userDoc.role : ("verified" as const);
+
+    await Users.updateOne(
+      { _id: user._id },
+      {
+        $set: {
+          verification: nextVerification,
+          role: nextPrimaryRole,
+          roles: nextRoles,
+          updatedAt: now,
+        },
+      },
+    );
+
     const sessionUser: CoreUserAuthSnapshot = {
       ...userDoc,
       _id: user._id,
       verification: nextVerification,
-      role: "verified",
+      role: nextPrimaryRole,
       roles: nextRoles,
     };
     await applySessionCookies(sessionUser);
