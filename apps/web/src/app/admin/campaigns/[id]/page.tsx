@@ -243,6 +243,11 @@ export default function AdminCampaignDetailPage() {
     return true;
   });
 
+  const filteredSourceTotal = filteredSources.reduce((acc, row) => acc + row.count, 0);
+  const filteredSessionTotal = filteredSessions.reduce((acc, row) => acc + row.count, 0);
+  const topSources = [...filteredSources].sort((a, b) => b.count - a.count).slice(0, 5);
+  const topSessions = [...filteredSessions].sort((a, b) => b.count - a.count).slice(0, 5);
+
   const maxJoinCount = Math.max(1, ...filteredJoinRows.map((row) => row.count));
   const maxSourceCount = Math.max(1, ...filteredSources.map((row) => row.count));
   const maxSessionCount = Math.max(1, ...filteredSessions.map((row) => row.count));
@@ -378,6 +383,12 @@ export default function AdminCampaignDetailPage() {
               ) : (
                 <span className="text-slate-600">Kein QR-Code vorhanden.</span>
               )}
+              <a
+                href={`/campaign/${encodeURIComponent(campaign.id)}/join`}
+                className="font-semibold text-slate-700 hover:text-slate-900"
+              >
+                /campaign/{campaign.id}/join
+              </a>
               <button
                 onClick={generateQr}
                 disabled={qrBusy}
@@ -385,6 +396,20 @@ export default function AdminCampaignDetailPage() {
               >
                 {qrCode ? "QR neu generieren" : "QR generieren"}
               </button>
+            </div>
+            <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-slate-600">
+              <span>Status: {campaign.status}</span>
+              <span>·</span>
+              <Link href={`/campaign/${encodeURIComponent(campaign.id)}`} className="font-semibold text-slate-700">
+                Öffentliche Seite
+              </Link>
+              <span>·</span>
+              <Link
+                href={`/admin/support?campaignId=${encodeURIComponent(campaign.id)}`}
+                className="font-semibold text-slate-700"
+              >
+                Support verwalten
+              </Link>
             </div>
           </section>
 
@@ -547,11 +572,39 @@ export default function AdminCampaignDetailPage() {
                   ))}
                 </select>
                 <button
+                  onClick={() => {
+                    setReportStartDate("");
+                    setReportEndDate("");
+                    setReportSourceFilter("all");
+                    setReportSessionFilter("all");
+                  }}
+                  className="rounded-full border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700"
+                >
+                  Filter zurücksetzen
+                </button>
+                <button
                   onClick={exportCsv}
                   className="rounded-full bg-slate-900 px-4 py-2 text-xs font-semibold text-white"
                 >
                   CSV Export
                 </button>
+              </div>
+            ) : null}
+            {report ? (
+              <p className="mt-2 text-[11px] text-slate-500">
+                Hinweis: Export übernimmt die aktiven Filter (Datum/Quelle/Session).
+              </p>
+            ) : null}
+            {(topSources.length || topSessions.length) ? (
+              <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                <ComparePanel title="Top Quellen" total={filteredSourceTotal} rows={topSources.map((row) => ({
+                  label: row.source,
+                  count: row.count,
+                }))} />
+                <ComparePanel title="Top Sessions" total={filteredSessionTotal} rows={topSessions.map((row) => ({
+                  label: row.label,
+                  count: row.count,
+                }))} />
               </div>
             ) : null}
             {filteredSources.length ? (
@@ -630,7 +683,7 @@ export default function AdminCampaignDetailPage() {
             ) : (
               <span>
                 nicht aktiv ·{" "}
-                <Link href="/admin/support" className="font-semibold text-slate-900">
+                <Link href={`/admin/support?campaignId=${encodeURIComponent(campaign.id)}`} className="font-semibold text-slate-900">
                   in Admin Support aktivieren
                 </Link>
               </span>
@@ -670,6 +723,40 @@ function BarRow({ label, value, max }: { label: string; value: number; max: numb
         <div className="h-2 rounded-full bg-slate-900" style={{ width: `${width}%` }} />
       </div>
       <div className="text-xs font-semibold text-slate-700">{value}</div>
+    </div>
+  );
+}
+
+function ComparePanel({
+  title,
+  total,
+  rows,
+}: {
+  title: string;
+  total: number;
+  rows: Array<{ label: string | null; count: number }>;
+}) {
+  const safeTotal = total > 0 ? total : rows.reduce((acc, row) => acc + row.count, 0) || 1;
+  return (
+    <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-xs">
+      <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">{title}</p>
+      {rows.length === 0 ? (
+        <p className="mt-2 text-slate-500">Keine Daten im aktuellen Filter.</p>
+      ) : (
+        <ul className="mt-2 space-y-2">
+          {rows.map((row, idx) => {
+            const pct = Math.round((row.count / safeTotal) * 100);
+            return (
+              <li key={`${row.label ?? "row"}-${idx}`} className="flex items-center justify-between gap-3">
+                <span className="text-slate-700">{row.label ?? "—"}</span>
+                <span className="text-slate-600">
+                  {row.count} · {pct}%
+                </span>
+              </li>
+            );
+          })}
+        </ul>
+      )}
     </div>
   );
 }

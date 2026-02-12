@@ -10,16 +10,25 @@ type AgendaItem = {
   customQuestion?: string | null;
   description?: string | null;
   pollOptions?: string[];
+  qrTarget?: string | null;
   allowAnonymousVoting: boolean;
   publicAttribution: string;
 };
 
 export default function StreamCockpitPage() {
   const params = useParams<{ id: string }>();
-  const [session, setSession] = useState<{ _id: string; title: string; description?: string | null } | null>(null);
+  const [session, setSession] = useState<{
+    _id: string;
+    title: string;
+    slug?: string | null;
+    description?: string | null;
+  } | null>(null);
   const [items, setItems] = useState<AgendaItem[]>([]);
+  const [qrDraftByItem, setQrDraftByItem] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [origin, setOrigin] = useState("");
   const [question, setQuestion] = useState("");
   const [pollOptions, setPollOptions] = useState("Ja\nNein");
   const [autofilling, setAutofilling] = useState(false);
@@ -33,6 +42,10 @@ export default function StreamCockpitPage() {
   const [qrCreating, setQrCreating] = useState(false);
 
   useEffect(() => {
+    setOrigin(window.location.origin);
+  }, []);
+
+  useEffect(() => {
     let ignore = false;
     async function load() {
       setLoading(true);
@@ -42,7 +55,17 @@ export default function StreamCockpitPage() {
         if (!res.ok) throw new Error(body?.error || res.statusText);
         if (!ignore) {
           setSession(body.session);
-          setItems(body.items ?? []);
+          const nextItems: AgendaItem[] = body.items ?? [];
+          setItems(nextItems);
+          setQrDraftByItem((prev) => {
+            const next = { ...prev };
+            nextItems.forEach((item) => {
+              if (!(item._id in next)) {
+                next[item._id] = item.qrTarget ?? "";
+              }
+            });
+            return next;
+          });
         }
       } catch (err: any) {
         if (!ignore) setError(err?.message ?? "Fehler beim Laden der Agenda");
@@ -59,6 +82,15 @@ export default function StreamCockpitPage() {
   }, [params.id]);
 
   const liveItem = useMemo(() => items.find((item) => item.status === "live"), [items]);
+  const publicStreamPath = useMemo(() => {
+    const slug = session?.slug?.trim();
+    if (slug) return `/stream/${slug}`;
+    return `/stream/${params.id}`;
+  }, [params.id, session?.slug]);
+  const overlayPath = useMemo(() => `/overlay/stream/${params.id}`, [params.id]);
+  const activeQrTarget =
+    liveItem?.qrTarget?.trim() ||
+    (liveItem?._id ? `${publicStreamPath}?agendaItemId=${liveItem._id}` : publicStreamPath);
 
   async function addQuestion(kind: "question" | "poll") {
     const payload: any = {
@@ -85,12 +117,36 @@ export default function StreamCockpitPage() {
     }
   }
 
-  async function updateItem(itemId: string, action: string) {
-    await fetch(`/api/streams/sessions/${params.id}/agenda`, {
+  async function updateItem(itemId: string, action: string, qrTarget?: string) {
+    setError(null);
+    setNotice(null);
+    const res = await fetch(`/api/streams/sessions/${params.id}/agenda`, {
       method: "PATCH",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ itemId, action }),
+      body: JSON.stringify({ itemId, action, qrTarget }),
     });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      throw new Error(body?.error || "Aktion fehlgeschlagen.");
+    }
+  }
+
+  async function saveQrTarget(itemId: string) {
+    try {
+      await updateItem(itemId, "set_qr_target", qrDraftByItem[itemId] ?? "");
+      setNotice("QR-Ziel gespeichert.");
+    } catch (err: any) {
+      setError(err?.message ?? "QR-Ziel konnte nicht gespeichert werden.");
+    }
+  }
+
+  async function copyText(value: string, label: string) {
+    try {
+      await navigator.clipboard.writeText(value);
+      setNotice(`${label} kopiert.`);
+    } catch {
+      setError(`${label} konnte nicht kopiert werden.`);
+    }
   }
 
   function updateQrQuestion(index: number, patch: Partial<{ title: string; description: string; options: string }>) {
@@ -215,6 +271,59 @@ export default function StreamCockpitPage() {
       </header>
 
       {error && <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-2 text-sm text-rose-700">{error}</div>}
+      {notice && (
+        <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm text-emerald-700">
+          {notice}
+        </div>
+      )}
+
+      <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm space-y-3">
+        <h2 className="text-sm font-semibold text-slate-900">Stream-Kit</h2>
+        <div className="grid gap-3 md:grid-cols-3">
+          <div className="rounded-xl border border-slate-100 p-3 text-xs">
+            <p className="font-semibold text-slate-900">Overlay URL</p>
+            <p className="mt-1 break-all text-slate-600">{origin ? `${origin}${overlayPath}` : overlayPath}</p>
+            <div className="mt-2 flex gap-2">
+              <a className="rounded-full border border-slate-300 px-3 py-1" href={overlayPath} target="_blank" rel="noreferrer">
+                Öffnen
+              </a>
+              <button
+                className="rounded-full border border-slate-300 px-3 py-1"
+                onClick={() => copyText(origin ? `${origin}${overlayPath}` : overlayPath, "Overlay URL")}
+              >
+                Kopieren
+              </button>
+            </div>
+          </div>
+          <div className="rounded-xl border border-slate-100 p-3 text-xs">
+            <p className="font-semibold text-slate-900">Viewer URL</p>
+            <p className="mt-1 break-all text-slate-600">
+              {origin ? `${origin}${publicStreamPath}` : publicStreamPath}
+            </p>
+            <div className="mt-2 flex gap-2">
+              <a className="rounded-full border border-slate-300 px-3 py-1" href={publicStreamPath} target="_blank" rel="noreferrer">
+                Öffnen
+              </a>
+              <button
+                className="rounded-full border border-slate-300 px-3 py-1"
+                onClick={() => copyText(origin ? `${origin}${publicStreamPath}` : publicStreamPath, "Viewer URL")}
+              >
+                Kopieren
+              </button>
+            </div>
+          </div>
+          <div className="rounded-xl border border-slate-100 p-3 text-xs">
+            <p className="font-semibold text-slate-900">Aktives QR-Ziel</p>
+            <p className="mt-1 break-all text-slate-600">{activeQrTarget}</p>
+            <button
+              className="mt-2 rounded-full border border-slate-300 px-3 py-1"
+              onClick={() => copyText(origin ? `${origin}${activeQrTarget}` : activeQrTarget, "QR-Ziel")}
+            >
+              Kopieren
+            </button>
+          </div>
+        </div>
+      </section>
 
       <div className="grid gap-4 lg:grid-cols-3">
         <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm space-y-3">
@@ -241,22 +350,59 @@ export default function StreamCockpitPage() {
                   <p className="text-xs text-slate-500 mb-2">Status: {item.status}</p>
                   <div className="flex flex-wrap gap-2 text-xs">
                     <button
-                      className="rounded-full border border-slate-300 px-3 py-1"
-                      onClick={() => updateItem(item._id, "go_live")}
+                      className="rounded-full border border-slate-900 bg-slate-900 px-3 py-1 text-white"
+                      onClick={async () => {
+                        try {
+                          await updateItem(item._id, "go_live");
+                          setNotice("Aktiver Tagespunkt aktualisiert.");
+                        } catch (err: any) {
+                          setError(err?.message ?? "Aktivieren fehlgeschlagen.");
+                        }
+                      }}
                     >
-                      Live
+                      Aktiv setzen
                     </button>
                     <button
                       className="rounded-full border border-slate-300 px-3 py-1"
-                      onClick={() => updateItem(item._id, "skip")}
+                      onClick={async () => {
+                        try {
+                          await updateItem(item._id, "skip");
+                          setNotice("Item wurde übersprungen.");
+                        } catch (err: any) {
+                          setError(err?.message ?? "Aktion fehlgeschlagen.");
+                        }
+                      }}
                     >
                       Skip
                     </button>
                     <button
                       className="rounded-full border border-slate-300 px-3 py-1"
-                      onClick={() => updateItem(item._id, "archive")}
+                      onClick={async () => {
+                        try {
+                          await updateItem(item._id, "archive");
+                          setNotice("Item wurde archiviert.");
+                        } catch (err: any) {
+                          setError(err?.message ?? "Aktion fehlgeschlagen.");
+                        }
+                      }}
                     >
                       Archiv
+                    </button>
+                  </div>
+                  <div className="mt-3 flex flex-wrap items-center gap-2">
+                    <input
+                      className="min-w-[240px] flex-1 rounded-xl border border-slate-200 px-3 py-2 text-xs"
+                      placeholder={`/qr/${qrCode ?? "deinCode"} oder ${publicStreamPath}?agendaItemId=${item._id}`}
+                      value={qrDraftByItem[item._id] ?? ""}
+                      onChange={(e) =>
+                        setQrDraftByItem((prev) => ({ ...prev, [item._id]: e.target.value }))
+                      }
+                    />
+                    <button
+                      className="rounded-full border border-slate-300 px-3 py-1 text-xs"
+                      onClick={() => saveQrTarget(item._id)}
+                    >
+                      QR-Ziel speichern
                     </button>
                   </div>
                 </li>

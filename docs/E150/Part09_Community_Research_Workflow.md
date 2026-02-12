@@ -362,6 +362,32 @@ Diese Liste bleibt als Betriebs- und Weiterentwicklungsreferenz erhalten:
    - Rate Limits/Cooldowns pro User/Task.
    - Betriebspunkt: Moderationslogs und Schwellenwerte regelmaessig nachschaerfen.
 
+## 9.6 Betriebsmetriken (Appendix)
+
+Ziel: Betrieb messbar machen, ohne neue PII zu speichern.  
+Alle Metriken aggregiert, anonymisiert und pro Zeitraum auswertbar.
+
+Pflicht-Metriken:
+
+- **Backlog**: offene ResearchTasks pro Topic/Region/Schwierigkeitsgrad.
+- **Durchlaufzeit**: Median von `open -> done` und `open -> review`.
+- **Review-Quote**: Anteil `accepted` vs. `rejected` vs. `needs_changes`.
+- **Contributor-Quote**: aktive Contributor pro Woche/Monat.
+- **Source-Qualitaet**: Anteil mit gueltigen Quellenlinks.
+- **Backflow**: Anteil akzeptierter Contributions, die in Graph/Reports landen.
+
+Optionale Metriken:
+
+- **Spam/Abuse**: Rate-Limit Treffer und Review-Abbrueche.
+- **Themen-Dichte**: ResearchTasks pro Topic vs. Claims/Statements.
+- **B2G/B2B**: Tasks mit org_only-Visibility vs. public.
+
+Reporting-Format:
+
+- Admin-Dashboard (tages-/wochenbasiert),
+- CSV-Export fuer interne Analyse,
+- Alerts bei Ausreissern (z. B. Backlog > Schwellwert).
+
 
 10. B2G/B2B-Anbindung (Part04)
 10.1 Gemeinden

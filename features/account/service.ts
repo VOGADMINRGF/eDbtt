@@ -5,7 +5,9 @@ import { ensureVerificationDefaults } from "@core/auth/verificationTypes";
 import { getUserPaymentProfile } from "@core/db/pii/userPaymentProfiles";
 import { getUserSignature } from "@core/db/pii/userSignatures";
 import type { AccessTier } from "@features/pricing/types";
+import { ACCOUNT_FEATURE_INTEREST_KEYS } from "./types";
 import type {
+  AccountFeatureInterestKey,
   AccountOverview,
   AccountEdebateInfo,
   AccountProfile,
@@ -71,6 +73,7 @@ type UserDoc = {
   settings?: {
     preferredLocale?: string | null;
     newsletterOptIn?: boolean;
+    featureInterests?: string[];
   };
   membership?: {
     status?: MembershipStatus;
@@ -258,6 +261,7 @@ export async function getAccountOverview(userId: string): Promise<AccountOvervie
     stats,
     preferredLocale,
     newsletterOptIn: doc.settings?.newsletterOptIn ?? false,
+    featureInterests: sanitizeFeatureInterests(doc.settings?.featureInterests ?? []),
     emailVerified: doc.verifiedEmail ?? doc.emailVerified ?? false,
     verificationLevel: verification.level,
     verificationMethods: verification.methods,
@@ -300,6 +304,14 @@ export async function updateAccountSettings(
   }
   if (typeof patch.newsletterOptIn === "boolean") {
     setOps["settings.newsletterOptIn"] = patch.newsletterOptIn;
+  }
+  if (patch.featureInterests !== undefined) {
+    const next = sanitizeFeatureInterests(patch.featureInterests);
+    if (next.length > 0) {
+      setOps["settings.featureInterests"] = next;
+    } else {
+      setOps["settings.featureInterests"] = [];
+    }
   }
 
   if (Object.keys(setOps).length > 0) {
@@ -643,6 +655,20 @@ function deriveStats(doc: UserDoc): AccountStats {
 function normalizeLocale(value?: string | null) {
   if (typeof value === "string" && isSupportedLocale(value)) return value;
   return DEFAULT_LOCALE;
+}
+
+function sanitizeFeatureInterests(
+  values: readonly string[] | readonly AccountFeatureInterestKey[] | null | undefined,
+): AccountFeatureInterestKey[] {
+  if (!Array.isArray(values)) return [];
+  const allowed = new Set<string>(ACCOUNT_FEATURE_INTEREST_KEYS);
+  const unique = new Set<AccountFeatureInterestKey>();
+  for (const value of values) {
+    const normalized = String(value ?? "").trim();
+    if (!allowed.has(normalized)) continue;
+    unique.add(normalized as AccountFeatureInterestKey);
+  }
+  return Array.from(unique);
 }
 
 function derivePricingTier(doc: UserDoc, tier: AccessTier): PricingTier {

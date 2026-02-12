@@ -98,6 +98,8 @@ export async function POST(
 
   const agendaCol = await streamAgendaCol();
   const now = new Date();
+  const qrTargetRaw = typeof body?.qrTarget === "string" ? body.qrTarget.trim() : null;
+  const qrTarget = qrTargetRaw ? qrTargetRaw.slice(0, 1000) : null;
   const doc: StreamAgendaItemDoc = {
     sessionId: new ObjectId(id),
     creatorId: ctx.userId,
@@ -111,6 +113,7 @@ export async function POST(
     pollOptions: Array.isArray(body?.pollOptions)
       ? (body!.pollOptions!.map((opt: any) => String(opt)).filter(Boolean) as string[])
       : [],
+    qrTarget,
     allowAnonymousVoting: body?.allowAnonymousVoting ?? true,
     publicAttribution: (body?.publicAttribution as StreamAttributionMode) ?? "hidden",
     createdAt: now,
@@ -146,11 +149,17 @@ export async function PATCH(
     return NextResponse.json({ ok: false, error: "forbidden" }, { status: 403 });
   }
 
-  const body = (await req.json().catch(() => null)) as { itemId?: string; action?: string } | null;
+  const body = (await req.json().catch(() => null)) as {
+    itemId?: string;
+    action?: string;
+    qrTarget?: string | null;
+  } | null;
   const itemId = body?.itemId;
   if (!itemId) return NextResponse.json({ ok: false, error: "item_required" }, { status: 400 });
 
-  const action = (body?.action as "go_live" | "skip" | "archive" | "end_session") ?? "archive";
+  const action =
+    (body?.action as "go_live" | "skip" | "archive" | "end_session" | "set_qr_target") ?? "archive";
+  const itemFilter = { _id: new ObjectId(itemId), sessionId: new ObjectId(id) };
   const agendaCol = await streamAgendaCol();
   const now = new Date();
 
@@ -170,7 +179,7 @@ export async function PATCH(
       { $set: { status: "archived", archivedAt: now } },
     );
     await agendaCol.updateOne(
-      { _id: new ObjectId(itemId) },
+      itemFilter,
       { $set: { status: "live", activeSince: now, updatedAt: now } },
     );
     const sessions = await streamSessionsCol();
@@ -187,12 +196,16 @@ export async function PATCH(
     );
   } else if (action === "skip") {
     await agendaCol.updateOne(
-      { _id: new ObjectId(itemId) },
+      itemFilter,
       { $set: { status: "skipped", archivedAt: now, updatedAt: now } },
     );
+  } else if (action === "set_qr_target") {
+    const qrTargetRaw = typeof body?.qrTarget === "string" ? body.qrTarget.trim() : "";
+    const qrTarget = qrTargetRaw ? qrTargetRaw.slice(0, 1000) : null;
+    await agendaCol.updateOne(itemFilter, { $set: { qrTarget, updatedAt: now } });
   } else {
     await agendaCol.updateOne(
-      { _id: new ObjectId(itemId) },
+      itemFilter,
       { $set: { status: "archived", archivedAt: now, updatedAt: now } },
     );
   }

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 
 type SupportCampaignRow = {
@@ -23,6 +24,7 @@ function formatEuro(cents: number) {
 }
 
 export default function AdminSupportPage() {
+  const searchParams = useSearchParams();
   const [items, setItems] = useState<SupportCampaignRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -54,6 +56,11 @@ export default function AdminSupportPage() {
   useEffect(() => {
     load();
   }, [load]);
+
+  useEffect(() => {
+    const prefill = searchParams?.get("campaignId");
+    if (prefill) setCampaignId(prefill);
+  }, [searchParams]);
 
   const sorted = useMemo(
     () => [...items].sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt)),
@@ -196,7 +203,20 @@ export default function AdminSupportPage() {
                   <tr key={row.id} className="border-b border-slate-100">
                     <td className="px-3 py-2">
                       <div className="font-medium text-slate-900">{row.title}</div>
-                      <div className="text-xs text-slate-500">{row.targetType}: {row.targetId}</div>
+                      <div className="text-xs text-slate-500">
+                        {row.targetType}: {row.targetId}
+                        {row.targetType === "campaign" ? (
+                          <>
+                            {" · "}
+                            <Link
+                              href={`/admin/campaigns/${encodeURIComponent(row.targetId)}`}
+                              className="font-semibold text-slate-700 hover:text-slate-900"
+                            >
+                              Campaign öffnen
+                            </Link>
+                          </>
+                        ) : null}
+                      </div>
                     </td>
                     <td className="px-3 py-2 text-slate-700">{row.slug}</td>
                     <td className="px-3 py-2 text-slate-700">{row.status}</td>

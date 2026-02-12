@@ -1,5 +1,22 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { campaignsCol } from "@features/campaign/db";
+import { BRAND } from "@/lib/brand";
+
+export const metadata: Metadata = {
+  title: "Campaigns",
+  description: "Aktive Kampagnen, Beteiligung und QR-Teilnahmen bei eDebatte.",
+  openGraph: {
+    title: "Campaigns",
+    description: "Aktive Kampagnen, Beteiligung und QR-Teilnahmen bei eDebatte.",
+    url: `${BRAND.baseUrl}/campaign`,
+    siteName: BRAND.name,
+  },
+  twitter: {
+    title: "Campaigns",
+    description: "Aktive Kampagnen, Beteiligung und QR-Teilnahmen bei eDebatte.",
+  },
+};
 
 export default async function CampaignIndexPage() {
   const col = await campaignsCol();

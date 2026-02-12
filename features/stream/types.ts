@@ -37,6 +37,7 @@ export interface StreamAgendaItemDoc {
   customQuestion?: string | null;
   description?: string | null;
   pollOptions?: string[];
+  qrTarget?: string | null;
   allowAnonymousVoting: boolean;
   publicAttribution: StreamAttributionMode;
   activeSince?: Date | null;
@@ -51,6 +52,7 @@ export interface StreamOverlayItem {
   title: string;
   body?: string | null;
   pollOptions?: string[];
+  qrTarget?: string | null;
   allowAnonymousVoting: boolean;
   publicAttribution: StreamAttributionMode;
   pollTotals?: Record<string, number>;

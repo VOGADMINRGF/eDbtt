@@ -4,6 +4,9 @@ import type { EngagementLevel } from "@features/user/engagement";
 import type { AccessTier } from "@features/pricing/types";
 import type { TopicKey } from "@features/interests/topics";
 
+export const ACCOUNT_FEATURE_INTEREST_KEYS = ["streams", "hostRights", "chat"] as const;
+export type AccountFeatureInterestKey = (typeof ACCOUNT_FEATURE_INTEREST_KEYS)[number];
+
 export type MembershipStatus =
   | "none"
   | "submitted"
@@ -169,6 +172,7 @@ export type AccountOverview = {
   verification?: UserVerification;
   paymentProfile?: AccountPaymentProfile | null;
   signature?: AccountSignatureInfo | null;
+  featureInterests?: AccountFeatureInterestKey[];
   createdAt?: Date | string | null;
   lastLoginAt?: Date | string | null;
 };
@@ -177,6 +181,7 @@ export type AccountSettingsUpdate = {
   displayName?: string | null;
   preferredLocale?: SupportedLocale;
   newsletterOptIn?: boolean;
+  featureInterests?: AccountFeatureInterestKey[];
 };
 
 export type AccountProfileUpdate = {

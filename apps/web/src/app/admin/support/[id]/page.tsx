@@ -11,6 +11,8 @@ type SupportCampaignDetail = {
   description: string | null;
   status: "draft" | "active" | "closed";
   goalCents: number;
+  targetType?: "campaign" | "project" | "question";
+  targetId?: string | null;
 };
 
 type SupportPledge = {
@@ -114,6 +116,14 @@ export default function AdminSupportDetailPage() {
         <Link href="/admin/support" className="font-semibold text-slate-700 hover:text-slate-900">
           Zurueck zu Support
         </Link>
+        {data?.supportCampaign?.targetType === "campaign" && data.supportCampaign.targetId ? (
+          <Link
+            href={`/admin/campaigns/${encodeURIComponent(data.supportCampaign.targetId)}`}
+            className="font-semibold text-slate-700 hover:text-slate-900"
+          >
+            Zur Campaign
+          </Link>
+        ) : null}
         {data?.supportCampaign?.slug ? (
           <Link
             href={`/support/${encodeURIComponent(data.supportCampaign.slug)}`}

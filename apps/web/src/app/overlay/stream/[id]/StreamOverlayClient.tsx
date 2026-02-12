@@ -10,6 +10,7 @@ type OverlayItem = {
   body?: string | null;
   pollOptions?: string[];
   pollTotals?: Record<string, number>;
+  qrTarget?: string | null;
   allowAnonymousVoting: boolean;
   publicAttribution: StreamAttributionMode;
 };
@@ -18,6 +19,7 @@ type OverlayResponse = {
   ok: boolean;
   session?: { title: string; description?: string | null; status?: StreamSessionStatus };
   items?: OverlayItem[];
+  activeQrTarget?: string | null;
   error?: string;
 };
 
@@ -95,7 +97,12 @@ export function StreamOverlayClient({ sessionId }: { sessionId: string }) {
         )}
       </main>
       <footer className="p-6 text-right text-sm uppercase tracking-wide text-white/70">
-        {item?.publicAttribution === "public" ? "Öffentliche Abstimmung" : "Anonyme Abstimmung"}
+        <span>{item?.publicAttribution === "public" ? "Öffentliche Abstimmung" : "Anonyme Abstimmung"}</span>
+        {data?.activeQrTarget && (
+          <span className="ml-4 normal-case tracking-normal text-white/80">
+            QR: {data.activeQrTarget}
+          </span>
+        )}
       </footer>
     </div>
   );

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { updateAccountSettings } from "@features/account/service";
 import type { AccountSettingsUpdate } from "@features/account/types";
+import { ACCOUNT_FEATURE_INTEREST_KEYS } from "@features/account/types";
 import { isSupportedLocale } from "@core/locale/locales";
 import { readSession } from "@/utils/session";
 
@@ -24,6 +25,10 @@ const schema = z.object({
     .refine((val) => isSupportedLocale(val), { message: "locale_invalid" })
     .optional(),
   newsletterOptIn: z.boolean().optional(),
+  featureInterests: z
+    .array(z.enum(ACCOUNT_FEATURE_INTEREST_KEYS))
+    .max(ACCOUNT_FEATURE_INTEREST_KEYS.length)
+    .optional(),
 });
 
 export async function PATCH(req: NextRequest) {
@@ -50,6 +55,7 @@ export async function PATCH(req: NextRequest) {
         ? (parsed.data.preferredLocale as AccountSettingsUpdate["preferredLocale"])
         : undefined,
     newsletterOptIn: parsed.data.newsletterOptIn,
+    featureInterests: parsed.data.featureInterests,
   };
 
   const overview = await updateAccountSettings(userId, payload);

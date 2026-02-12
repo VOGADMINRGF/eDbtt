@@ -7,6 +7,8 @@ import Link from "next/link";
 import { EDEBATTE_PACKAGES_WITH_NONE } from "@/config/edebatte";
 import { canEditTopTopics } from "@features/account/capabilities";
 import { EDEBATTE_PACKAGES_DE } from "@features/pricing";
+import type { AccountFeatureInterestKey } from "@features/account/types";
+import { TOPIC_CHOICES, type TopicKey } from "@features/interests/topics";
 import type { UserRole } from "@/types/user";
 import type { EngagementLevel } from "@features/user/engagement";
 
@@ -58,7 +60,11 @@ export type PublicProfileData = {
   bio?: string | null;
   tagline?: string | null;
   avatarStyle?: "initials" | "abstract" | "emoji";
-  topTopics?: string[];
+  topTopics?: Array<{
+    key: TopicKey;
+    title: string;
+    statement?: string | null;
+  }>;
   engagementLevel?: EngagementLevel | null;
   showRealName: boolean;
   showCity: boolean;
@@ -134,6 +140,36 @@ export type FeatureFlags = {
   chatEnabled: boolean;
 };
 
+const FEATURE_INTEREST_OPTIONS: Array<{
+  key: AccountFeatureInterestKey;
+  title: string;
+  description: string;
+}> = [
+  {
+    key: "streams",
+    title: "Streams & Sessions",
+    description: "Eigene Streams und thematische Sessions für deine Community.",
+  },
+  {
+    key: "hostRights",
+    title: "Host-Rechte",
+    description: "Moderation und Host-Freigabe für größere oder wiederkehrende Formate.",
+  },
+  {
+    key: "chat",
+    title: "Chat & Kollaboration",
+    description: "Erweiterte Chat-Funktionen und kollaborative Arbeitsräume.",
+  },
+];
+
+const ACCOUNT_SECTION_LINKS = [
+  { id: "account-core-heading", label: "Profil" },
+  { id: "account-public-heading", label: "Oeffentlich" },
+  { id: "account-membership-heading", label: "Mitgliedschaft" },
+  { id: "account-security-heading", label: "Sicherheit" },
+  { id: "account-advanced-heading", label: "Pilot-Funktionen" },
+] as const;
+
 export type AccountOverview = {
   profile: ProfileData;
   publicProfile: PublicProfileData;
@@ -154,6 +190,7 @@ export type AccountOverview = {
   payment: PaymentInfo;
   signature: SignatureInfo;
   features: FeatureFlags;
+  featureInterests: AccountFeatureInterestKey[];
 };
 
 type NormalizedOverview = AccountOverview;
@@ -201,6 +238,8 @@ export function AccountClient({ initialData, membershipNotice, preorderNotice, w
         </div>
       )}
 
+      <AccountQuickNav />
+
       <ProfileAndPackageSection
         profile={data.profile}
         edebatte={data.edebatte}
@@ -219,12 +258,40 @@ export function AccountClient({ initialData, membershipNotice, preorderNotice, w
 
       <SecurityAndPaymentSection security={data.security} payment={data.payment} signature={data.signature} membership={data.membership} />
 
-      <AdvancedFeaturesSection features={data.features} />
+      <AdvancedFeaturesSection
+        features={data.features}
+        featureInterests={data.featureInterests}
+        onRefresh={refreshOverview}
+      />
     </div>
   );
 }
 
 export default AccountClient;
+
+function AccountQuickNav() {
+  return (
+    <nav
+      aria-label="Schnellnavigation Konto"
+      className="rounded-2xl bg-white/95 px-3 py-3 shadow-[0_10px_30px_rgba(15,23,42,0.08)] ring-1 ring-slate-100"
+    >
+      <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+        Direkt zu
+      </p>
+      <div className="flex flex-wrap gap-2">
+        {ACCOUNT_SECTION_LINKS.map((section) => (
+          <a
+            key={section.id}
+            href={`#${section.id}`}
+            className="inline-flex items-center rounded-full bg-slate-50 px-3 py-1.5 text-[11px] font-semibold text-slate-700 ring-1 ring-slate-200 transition hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-sky-200"
+          >
+            {section.label}
+          </a>
+        ))}
+      </div>
+    </nav>
+  );
+}
 
 function normalizeOverview(src: any): AccountOverview {
   const paymentProfile = src?.paymentProfile ?? null;
@@ -232,14 +299,30 @@ function normalizeOverview(src: any): AccountOverview {
   const publicProfileSource = src?.publicProfile ?? {};
   const publicLocation = src?.profile?.publicLocation ?? {};
   const topTopicsSource = publicProfileSource?.topTopics ?? src?.profile?.topTopics ?? [];
-  const topTopics: string[] = Array.isArray(topTopicsSource)
+  const topTopics: PublicProfileData["topTopics"] = Array.isArray(topTopicsSource)
     ? topTopicsSource
         .map((topic: any) => {
           if (!topic) return null;
-          if (typeof topic === "string") return topic;
-          return topic.title ?? topic.key ?? null;
+          const candidateKey = String(typeof topic === "string" ? topic : topic.key ?? topic.title ?? "")
+            .trim()
+            .toLowerCase();
+          const known = TOPIC_CHOICES.find(
+            (entry) => entry.key === candidateKey || entry.label.toLowerCase() === candidateKey,
+          );
+          if (!known) return null;
+          const statement =
+            typeof topic === "object" && typeof topic.statement === "string"
+              ? topic.statement.trim().slice(0, 140)
+              : null;
+          return {
+            key: known.key,
+            title: known.label,
+            statement: statement && statement.length > 0 ? statement : null,
+          };
         })
-        .filter((topic: string | null): topic is string => Boolean(topic))
+        .filter(
+          (topic): topic is { key: TopicKey; title: string; statement: string | null } => Boolean(topic),
+        )
     : [];
 
   const profile: ProfileData = {
@@ -350,6 +433,13 @@ function normalizeOverview(src: any): AccountOverview {
     hostRightsEnabled: Boolean(src?.features?.hostRightsEnabled),
     chatEnabled: Boolean(src?.features?.chatEnabled),
   };
+  const featureInterests = Array.isArray(src?.featureInterests)
+    ? src.featureInterests
+        .map((value: unknown) => String(value ?? "").trim())
+        .filter((value: string): value is AccountFeatureInterestKey =>
+          FEATURE_INTEREST_OPTIONS.some((option) => option.key === value),
+        )
+    : [];
 
   return {
     profile,
@@ -365,6 +455,7 @@ function normalizeOverview(src: any): AccountOverview {
     payment,
     signature,
     features,
+    featureInterests,
   };
 }
 
@@ -493,6 +584,24 @@ function ProfileCard({ profile, onRefresh }: ProfileCardProps) {
   const [saveMsg, setSaveMsg] = useState<string | null>(null);
   const avatarInputRef = useRef<HTMLInputElement | null>(null);
   const coverInputRef = useRef<HTMLInputElement | null>(null);
+  const avatarPreviewUrlRef = useRef<string | null>(null);
+  const coverPreviewUrlRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    setDraft(profile);
+  }, [profile]);
+
+  useEffect(() => {
+    return () => {
+      if (avatarPreviewUrlRef.current) URL.revokeObjectURL(avatarPreviewUrlRef.current);
+      if (coverPreviewUrlRef.current) URL.revokeObjectURL(coverPreviewUrlRef.current);
+    };
+  }, []);
+
+  const hasChanges =
+    draft.displayName !== profile.displayName ||
+    draft.preferredLocale !== profile.preferredLocale ||
+    draft.newsletterOptIn !== profile.newsletterOptIn;
 
   const handleFieldChange = (patch: Partial<ProfileData>) => {
     setDraft((prev) => ({ ...prev, ...patch }));
@@ -512,6 +621,8 @@ function ProfileCard({ profile, onRefresh }: ProfileCardProps) {
 
     // TODO: An API zum Upload anbinden.
     const previewUrl = URL.createObjectURL(file);
+    if (avatarPreviewUrlRef.current) URL.revokeObjectURL(avatarPreviewUrlRef.current);
+    avatarPreviewUrlRef.current = previewUrl;
     setDraft((prev) => ({ ...prev, avatarUrl: previewUrl }));
   };
 
@@ -521,11 +632,17 @@ function ProfileCard({ profile, onRefresh }: ProfileCardProps) {
 
     // TODO: An API zum Upload anbinden.
     const previewUrl = URL.createObjectURL(file);
+    if (coverPreviewUrlRef.current) URL.revokeObjectURL(coverPreviewUrlRef.current);
+    coverPreviewUrlRef.current = previewUrl;
     setDraft((prev) => ({ ...prev, coverUrl: previewUrl }));
   };
 
   const handleSubmit = (event: FormEvent) => {
     event.preventDefault();
+    if (!hasChanges) {
+      setSaveMsg("Keine Aenderung");
+      return;
+    }
     setSaving(true);
     setSaveMsg(null);
     fetch("/api/account/settings", {
@@ -544,7 +661,7 @@ function ProfileCard({ profile, onRefresh }: ProfileCardProps) {
       })
       .catch((err) => {
         console.warn("[account] settings update failed", err);
-        setSaveMsg("Speichern fehlgeschlagen");
+        setSaveMsg("Speichern fehlgeschlagen. Bitte erneut versuchen.");
       })
       .finally(() => setSaving(false));
   };
@@ -658,10 +775,14 @@ function ProfileCard({ profile, onRefresh }: ProfileCardProps) {
         </div>
 
         <div className="mt-5 flex justify-end">
-          <button type="submit" className={primaryButtonClass} disabled={saving}>
+          <button type="submit" className={primaryButtonClass} disabled={saving || !hasChanges}>
             {saving ? "Speichert …" : "Änderungen speichern"}
           </button>
-          {saveMsg && <p className="ml-3 text-xs text-slate-500">{saveMsg}</p>}
+          {saveMsg && (
+            <p className="ml-3 text-xs text-slate-500" role="status" aria-live="polite">
+              {saveMsg}
+            </p>
+          )}
         </div>
       </div>
     </form>
@@ -834,12 +955,20 @@ const EDEBATTE_CHOICES: EDebatteChoice[] = EDEBATTE_PACKAGES_DE.map((pkg) => {
 });
 
 function EDebattePackageModal({ currentPackage, onClose, onRefresh }: EDebattePackageModalProps) {
+  const closeButtonRef = useRef<HTMLButtonElement | null>(null);
+
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
     };
     window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    closeButtonRef.current?.focus();
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+      document.body.style.overflow = previousOverflow;
+    };
   }, [onClose]);
 
   const handleSelect = (choiceId: EDebattePackage) => {
@@ -869,18 +998,25 @@ function EDebattePackageModal({ currentPackage, onClose, onRefresh }: EDebattePa
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 px-4 backdrop-blur-sm" onClick={onClose}>
       <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="edebatte-package-modal-title"
+        aria-describedby="edebatte-package-modal-description"
         className="w-full max-w-lg rounded-3xl bg-white/98 p-5 shadow-[0_32px_90px_rgba(15,23,42,0.45)] ring-1 ring-slate-200 sm:p-6"
         onClick={(e) => e.stopPropagation()}
       >
         <header className="flex items-start justify-between gap-3">
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-sky-600">eDebatte-Paket wählen</p>
-            <h3 className="mt-1 text-sm font-semibold text-slate-900">Welches Paket möchtest du nutzen?</h3>
-            <p className="mt-1 text-[11px] text-slate-500">
+            <h3 id="edebatte-package-modal-title" className="mt-1 text-sm font-semibold text-slate-900">
+              Welches Paket möchtest du nutzen?
+            </h3>
+            <p id="edebatte-package-modal-description" className="mt-1 text-[11px] text-slate-500">
               Hier siehst du, welche Pakete bereits beauftragt sind, was vorgemerkt ist und was du zusätzlich buchen kannst.
             </p>
           </div>
           <button
+            ref={closeButtonRef}
             type="button"
             onClick={onClose}
             className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-slate-100 text-xs font-semibold text-slate-500 hover:bg-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-200"
@@ -988,33 +1124,68 @@ function PublicProfileCard({ initial, onRefresh }: PublicProfileCardProps) {
   const [saveMsg, setSaveMsg] = useState<string | null>(null);
   const canShowTopTopics = canEditTopTopics(draft.engagementLevel ?? "interessiert");
 
+  useEffect(() => {
+    setDraft(initial);
+  }, [initial]);
+
   const handleFieldChange = (patch: Partial<PublicProfileData>) => {
     setDraft((prev) => ({ ...prev, ...patch }));
   };
 
+  const selectedTopTopicKeys = (draft.topTopics ?? []).map((topic) => topic.key);
+  const updateTopTopics = (keys: TopicKey[]) => {
+    const nextTopics = keys.map((key) => {
+      const current = draft.topTopics?.find((topic) => topic.key === key);
+      const option = TOPIC_CHOICES.find((topic) => topic.key === key);
+      return {
+        key,
+        title: option?.label ?? current?.title ?? key,
+        statement: current?.statement ?? null,
+      };
+    });
+    handleFieldChange({ topTopics: nextTopics });
+  };
+
+  const toggleTopTopic = (key: TopicKey, checked: boolean) => {
+    if (!checked) {
+      updateTopTopics(selectedTopTopicKeys.filter((topicKey) => topicKey !== key));
+      return;
+    }
+    if (selectedTopTopicKeys.includes(key)) return;
+    if (selectedTopTopicKeys.length >= 3) return;
+    updateTopTopics([...selectedTopTopicKeys, key]);
+  };
+
+  const createProfilePayload = (profile: PublicProfileData) => ({
+    bio: profile.bio ?? "",
+    tagline: profile.tagline ?? "",
+    city: profile.city ?? null,
+    region: profile.region ?? null,
+    countryCode: profile.countryCode ?? null,
+    showRealName: profile.showRealName,
+    showCity: profile.showCity,
+    showStats: profile.showStats,
+    showJoinDate: profile.showJoinDate,
+    showEngagementLevel: profile.showEngagementLevel,
+    showMembership: profile.showMembership,
+    topTopics: canShowTopTopics ? (profile.topTopics ?? []).slice(0, 3).map((topic) => ({ key: topic.key })) : undefined,
+  });
+
+  const hasChanges = JSON.stringify(createProfilePayload(draft)) !== JSON.stringify(createProfilePayload(initial));
+
   const handleSubmit = (event: FormEvent) => {
     event.preventDefault();
+    if (!hasChanges) {
+      setSaveMsg("Keine Aenderung");
+      return;
+    }
     setSaving(true);
     setSaveMsg(null);
+    const payload = createProfilePayload(draft);
     fetch("/api/account/profile", {
       method: "PATCH",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        bio: draft.bio,
-        tagline: draft.tagline,
-        city: draft.city,
-        region: draft.region,
-        countryCode: draft.countryCode,
-        showRealName: draft.showRealName,
-        showCity: draft.showCity,
-        showStats: draft.showStats,
-        showJoinDate: draft.showJoinDate,
-        showEngagementLevel: draft.showEngagementLevel,
-        showMembership: draft.showMembership,
-        topTopics: canShowTopTopics
-          ? draft.topTopics?.map((topic) => ({ key: topic }))
-          : undefined,
-      }),
+      body: JSON.stringify(payload),
     })
       .then((res) => {
         if (!res.ok) throw new Error("Speichern fehlgeschlagen");
@@ -1023,12 +1194,12 @@ function PublicProfileCard({ initial, onRefresh }: PublicProfileCardProps) {
       })
       .catch((err) => {
         console.warn("[account] public profile update failed", err);
-        setSaveMsg("Speichern fehlgeschlagen");
+        setSaveMsg("Speichern fehlgeschlagen. Bitte erneut versuchen.");
       })
       .finally(() => setSaving(false));
   };
 
-  const location = [draft.city, draft.region, draft.countryCode].filter(Boolean).join(" · ");
+  const locationSummary = [draft.city, draft.region, draft.countryCode].filter(Boolean).join(" · ");
 
   return (
     <form onSubmit={handleSubmit} className="rounded-3xl bg-white/95 p-5 shadow-[0_18px_55px_rgba(15,23,42,0.08)] ring-1 ring-slate-100 sm:p-6">
@@ -1061,51 +1232,115 @@ function PublicProfileCard({ initial, onRefresh }: PublicProfileCardProps) {
             />
           </div>
 
-          <div className="space-y-2">
-            <p className="text-xs font-medium text-slate-700">Sichtbarkeit</p>
+          <fieldset className="space-y-2">
+            <legend className="text-xs font-medium text-slate-700">Sichtbarkeit</legend>
             <div className="grid gap-2 sm:grid-cols-2">
               <ToggleRow label="Realnamen in öffentlichen Profilen anzeigen" checked={draft.showRealName} onChange={(value) => handleFieldChange({ showRealName: value })} />
               <ToggleRow label="Stadt / Region anzeigen" checked={draft.showCity} onChange={(value) => handleFieldChange({ showCity: value })} />
               <ToggleRow label="Anonymisierte Statistiken anzeigen" checked={draft.showStats} onChange={(value) => handleFieldChange({ showStats: value })} />
+              <ToggleRow label="Beitrittsdatum anzeigen" checked={draft.showJoinDate} onChange={(value) => handleFieldChange({ showJoinDate: value })} />
+              <ToggleRow label="Engagement-Level anzeigen" checked={draft.showEngagementLevel} onChange={(value) => handleFieldChange({ showEngagementLevel: value })} />
               <ToggleRow label="Mitgliedschaft bei eDebatte anzeigen" checked={draft.showMembership} onChange={(value) => handleFieldChange({ showMembership: value })} />
             </div>
-          </div>
+          </fieldset>
         </div>
 
         <div className="space-y-4">
           <div className="space-y-1">
             <p className="text-xs font-medium text-slate-700">Ort (für öffentliche Anzeige)</p>
-            <p className="text-sm text-slate-800">{location || "Noch kein öffentlicher Ort hinterlegt."}</p>
+            <p className="text-sm text-slate-800">{locationSummary || "Noch kein öffentlicher Ort hinterlegt."}</p>
             <p className="text-[11px] text-slate-400">Die genaue Anschrift wird nie öffentlich angezeigt – nur Stadt, Region und Land, sofern du das möchtest.</p>
           </div>
 
-          <div className="space-y-2">
-            <p className="text-xs font-medium text-slate-700">Top-Themen (Auszug)</p>
-            <div className="flex flex-wrap gap-1.5">
-              {canShowTopTopics ? (
-                draft.topTopics && draft.topTopics.length > 0 ? (
-                  draft.topTopics.slice(0, 6).map((topic) => (
-                    <span key={topic} className="inline-flex items-center rounded-full bg-sky-50 px-2.5 py-1 text-[11px] font-medium text-sky-800 ring-1 ring-sky-100">
-                      {topic}
-                    </span>
-                  ))
-                ) : (
-                  <p className="text-[11px] text-slate-400">Deine Top-Themen werden angezeigt, sobald du dich aktiver mit Inhalten beschäftigst.</p>
-                )
-              ) : (
-                <p className="text-[11px] text-slate-400">Top-Themen werden erst ab Engagement-Level „engagiert“ sichtbar.</p>
-              )}
+          <div className="grid gap-3 sm:grid-cols-3">
+            <div className="space-y-1 sm:col-span-1">
+              <label htmlFor="public-city" className="text-xs font-medium text-slate-700">
+                Stadt
+              </label>
+              <input
+                id="public-city"
+                className="w-full rounded-xl border border-slate-200 bg-slate-50/70 px-3 py-2 text-sm text-slate-900 focus:border-sky-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-sky-100"
+                value={draft.city ?? ""}
+                onChange={(event) => handleFieldChange({ city: event.target.value })}
+                placeholder="z. B. Köln"
+              />
+            </div>
+            <div className="space-y-1 sm:col-span-1">
+              <label htmlFor="public-region" className="text-xs font-medium text-slate-700">
+                Region / Bundesland
+              </label>
+              <input
+                id="public-region"
+                className="w-full rounded-xl border border-slate-200 bg-slate-50/70 px-3 py-2 text-sm text-slate-900 focus:border-sky-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-sky-100"
+                value={draft.region ?? ""}
+                onChange={(event) => handleFieldChange({ region: event.target.value })}
+                placeholder="z. B. NRW"
+              />
+            </div>
+            <div className="space-y-1 sm:col-span-1">
+              <label htmlFor="public-country" className="text-xs font-medium text-slate-700">
+                Land (Code)
+              </label>
+              <input
+                id="public-country"
+                className="w-full rounded-xl border border-slate-200 bg-slate-50/70 px-3 py-2 text-sm uppercase text-slate-900 focus:border-sky-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-sky-100"
+                value={draft.countryCode ?? ""}
+                onChange={(event) => handleFieldChange({ countryCode: event.target.value.toUpperCase() })}
+                placeholder="DE"
+                maxLength={8}
+              />
             </div>
           </div>
+
+          <fieldset className="space-y-2">
+            <legend className="text-xs font-medium text-slate-700">Top-Themen (max. 3)</legend>
+            {canShowTopTopics ? (
+              <>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {TOPIC_CHOICES.map((topic) => {
+                    const checked = selectedTopTopicKeys.includes(topic.key);
+                    const limitReached = selectedTopTopicKeys.length >= 3;
+                    const disabled = !checked && limitReached;
+                    return (
+                      <label
+                        key={topic.key}
+                        className={`inline-flex items-start gap-2 rounded-2xl px-3 py-2 text-[11px] ring-1 ${
+                          checked
+                            ? "bg-sky-50 text-sky-800 ring-sky-100"
+                            : "bg-slate-50/80 text-slate-700 ring-slate-100"
+                        } ${disabled ? "opacity-60" : ""}`}
+                      >
+                        <input
+                          type="checkbox"
+                          className="mt-[2px] h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+                          checked={checked}
+                          disabled={disabled}
+                          onChange={(event) => toggleTopTopic(topic.key, event.target.checked)}
+                        />
+                        <span>{topic.label}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+                <p className="text-[11px] text-slate-500">{selectedTopTopicKeys.length} von 3 Themen gewählt.</p>
+              </>
+            ) : (
+              <p className="text-[11px] text-slate-400">Top-Themen werden erst ab Engagement-Level „engagiert“ freigeschaltet.</p>
+            )}
+          </fieldset>
         </div>
       </div>
 
       <div className="mt-5 flex justify-end">
         <div className="flex items-center gap-3">
-          <button type="submit" className={primaryButtonClass} disabled={saving}>
+          <button type="submit" className={primaryButtonClass} disabled={saving || !hasChanges}>
             {saving ? "Speichert …" : "Öffentliches Profil speichern"}
           </button>
-          {saveMsg && <p className="text-xs text-slate-500">{saveMsg}</p>}
+          {saveMsg && (
+            <p className="text-xs text-slate-500" role="status" aria-live="polite">
+              {saveMsg}
+            </p>
+          )}
         </div>
       </div>
     </form>
@@ -1248,7 +1483,8 @@ function RolesCard({ roles }: RolesCardProps) {
           ))
         ) : (
           <div className="rounded-2xl bg-slate-50/80 px-3 py-2 text-[11px] text-slate-500">
-            Noch keine Sonderrolle hinterlegt. Für Moderation/Team-Zugänge bitte das Team kontaktieren.
+            Noch keine Sonderrolle hinterlegt. Hinterlege unten bei „Erweiterte Funktionen“ deine
+            Interessen, damit passende Freigaben in deinem Profil vorgemerkt werden.
           </div>
         )}
         {hasSuperadmin && (
@@ -1403,9 +1639,48 @@ function PaymentAndSignatureCard({ payment, signature, membership }: PaymentAndS
 
 type AdvancedFeaturesSectionProps = {
   features: FeatureFlags;
+  featureInterests: AccountFeatureInterestKey[];
+  onRefresh: () => void;
 };
 
-function AdvancedFeaturesSection({ features }: AdvancedFeaturesSectionProps) {
+function AdvancedFeaturesSection({ features, featureInterests, onRefresh }: AdvancedFeaturesSectionProps) {
+  const [draftInterests, setDraftInterests] = useState<AccountFeatureInterestKey[]>(featureInterests);
+  const [saving, setSaving] = useState(false);
+  const [saveMsg, setSaveMsg] = useState<string | null>(null);
+
+  useEffect(() => {
+    setDraftInterests(featureInterests);
+  }, [featureInterests]);
+
+  const toggleInterest = (key: AccountFeatureInterestKey, checked: boolean) => {
+    setDraftInterests((prev) => {
+      if (checked) {
+        return Array.from(new Set<AccountFeatureInterestKey>([...prev, key]));
+      }
+      return prev.filter((item) => item !== key);
+    });
+  };
+
+  const saveInterests = async () => {
+    setSaving(true);
+    setSaveMsg(null);
+    try {
+      const res = await fetch("/api/account/settings", {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ featureInterests: draftInterests }),
+      });
+      if (!res.ok) throw new Error("Speichern fehlgeschlagen");
+      setSaveMsg("Interessen gespeichert");
+      onRefresh();
+    } catch (error) {
+      console.warn("[account] feature interests update failed", error);
+      setSaveMsg("Speichern fehlgeschlagen");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
     <section aria-labelledby="account-advanced-heading" className="space-y-3">
       <div className="flex items-center justify-between gap-2">
@@ -1416,23 +1691,37 @@ function AdvancedFeaturesSection({ features }: AdvancedFeaturesSectionProps) {
           Early Access
         </span>
       </div>
+      <p className="text-xs text-slate-500">
+        Hinterlege hier direkt im Profil, für welche Pilot-Funktionen du dich vormerken möchtest.
+      </p>
 
       <div className="grid gap-4 md:grid-cols-3">
-        <FeatureCard
-          title="Streams &amp; Sessions"
-          description="Eigene Streams und thematische Sessions für deine Community – inklusive strukturierter Abstimmungen."
-          enabled={features.streamsEnabled}
-        />
-        <FeatureCard
-          title="Host-Rechte"
-          description="Moderations- und Host-Rechte für größere Runden oder wiederkehrende Formate."
-          enabled={features.hostRightsEnabled}
-        />
-        <FeatureCard
-          title="Chat &amp; Kollaboration"
-          description="Erweiterte Chat-Funktionen, Kollaborationsräume und begleitende Diskussionen zu Abstimmungen."
-          enabled={features.chatEnabled}
-        />
+        {FEATURE_INTEREST_OPTIONS.map((feature) => (
+          <FeatureCard
+            key={feature.key}
+            title={feature.title}
+            description={feature.description}
+            enabled={
+              feature.key === "streams"
+                ? features.streamsEnabled
+                : feature.key === "hostRights"
+                  ? features.hostRightsEnabled
+                  : features.chatEnabled
+            }
+            interested={draftInterests.includes(feature.key)}
+            onInterestChange={(checked) => toggleInterest(feature.key, checked)}
+          />
+        ))}
+      </div>
+      <div className="flex flex-wrap items-center justify-end gap-3">
+        <button type="button" className={primaryButtonClass} disabled={saving} onClick={saveInterests}>
+          {saving ? "Speichert …" : "Interessen speichern"}
+        </button>
+        {saveMsg && (
+          <p className="text-xs text-slate-500" role="status" aria-live="polite">
+            {saveMsg}
+          </p>
+        )}
       </div>
     </section>
   );
@@ -1442,14 +1731,28 @@ type FeatureCardProps = {
   title: string;
   description: string;
   enabled: boolean;
+  interested: boolean;
+  onInterestChange: (checked: boolean) => void;
 };
 
-function FeatureCard({ title, description, enabled }: FeatureCardProps) {
+function FeatureCard({ title, description, enabled, interested, onInterestChange }: FeatureCardProps) {
+  const checkboxId = `feature-interest-${title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`;
+
   return (
     <article className="flex h-full flex-col justify-between rounded-3xl bg-white/95 p-4 text-xs shadow-[0_18px_55px_rgba(15,23,42,0.08)] ring-1 ring-slate-100 sm:p-5">
       <div className="space-y-2">
         <p className="text-[11px] font-semibold text-slate-800">{title}</p>
         <p className="text-[11px] text-slate-500">{description}</p>
+        <label htmlFor={checkboxId} className="mt-2 inline-flex items-start gap-2 text-[11px] text-slate-700">
+          <input
+            id={checkboxId}
+            type="checkbox"
+            className="mt-[2px] h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+            checked={interested}
+            onChange={(event) => onInterestChange(event.target.checked)}
+          />
+          <span>Für mein Profil vormerken</span>
+        </label>
       </div>
       <div className="mt-3 flex items-center justify-between gap-2">
         <span
@@ -1461,9 +1764,7 @@ function FeatureCard({ title, description, enabled }: FeatureCardProps) {
         >
           {enabled ? "freigeschaltet" : "Pilot / bald verfügbar"}
         </span>
-        <Link href="/kontakt" className="text-[10px] font-semibold text-sky-700 underline-offset-2 hover:underline">
-          Interesse melden
-        </Link>
+        <span className="text-[10px] font-semibold text-slate-500">{interested ? "vorgemerkt" : "optional"}</span>
       </div>
     </article>
   );

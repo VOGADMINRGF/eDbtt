@@ -14,6 +14,13 @@ Part11 beschreibt das **Streaming- und Live-Format** von eDebatte / eDebatte:
 Ziel:  
 Streams sollen **Demokratie-Abende** werden – keine Shitstorms.
 
+### 1.1 Pfad-Referenzen (MVP, 2026-02-12)
+
+- Public: `/stream`, `/stream/[slug]`
+- Host/Admin: `/dashboard/streams`, `/dashboard/streams/[id]`
+- Overlay: `/overlay/stream/[id]`
+- Onboarding: `/howtoworks/streamer`, `/streamer/werden`
+
 ---
 
 ## 2. Rollen & Gating
@@ -324,9 +331,9 @@ type StreamKitState = {
 
 | Bereich | Ist | Unerledigt |
 | --- | --- | --- |
-| Stream-Session | Sessions/Agenda/Overlay-Basis vorhanden | Stream-Kit Overlay-URL pro Session fehlt |
-| QR-Integration | QR fuer Campaigns/Sessions vorhanden | Dynamischer QR pro Agenda-Item im Stream fehlt |
-| Host-Flow | Host-Checks und Session-UI vorhanden | 1-Klick "Aktiver Tagespunkt" + Overlay-Sync fehlt |
+| Stream-Session | Sessions/Agenda/Overlay-Basis vorhanden; Overlay-URL + Viewer-Link je Session im Host-Dashboard | Optional: Session-Vorlagen pro Formattyp |
+| QR-Integration | QR fuer Campaigns/Sessions vorhanden; `qrTarget` je Agenda-Item mit Overlay-Sync | Optional: automatische QR-Bildrendition pro Item |
+| Host-Flow | Host-Checks + 1-Klick "Aktiv setzen" im Cockpit und Live-Sync aktiv | Optional: strukturierte Queue fuer Quellen/Optionen |
 | Community-Input | Poll/Vote-Interaktion vorhanden | Strukturierte Queue fuer Quellen/Optionen im Live-Flow fehlt |
 
 ## 11. Streamer-werden Seite
@@ -340,6 +347,6 @@ type StreamKitState = {
 
 | Bereich | Ist | Unerledigt |
 | --- | --- | --- |
-| Rollen/Gating | Engagement-/Plan-Gates sind definiert | Eigene `/howtoworks/streamer` bzw. `/streamer/werden` Seite fehlt |
-| Setup-Guide | Regeln sind in Part11 beschrieben | Praktische Schrittfolge (OBS, QR, Agenda, Moderation) fehlt als Produktseite |
-| Produktpositionierung | Zielbild "sachlicher Demokratie-Stream" vorhanden | Sichtbarer Leittext im Frontend fehlt |
+| Rollen/Gating | Engagement-/Plan-Gates sind definiert; Produktseite `/howtoworks/streamer` + Alias `/streamer/werden` aktiv | Optional: separates Rollen-FAQ fuer Institutionen |
+| Setup-Guide | Praktische Schrittfolge (OBS, QR, Agenda, Moderation) als Produktseite vorhanden | Optional: Screencast-/Bildstrecke |
+| Produktpositionierung | Leittext "sachlicher Debattenmodus" sichtbar im Frontend | Optional: A/B-Test fuer Conversion zur Stream-Erstellung |

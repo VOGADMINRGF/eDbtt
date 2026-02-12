@@ -61,11 +61,11 @@ type CampaignQuestion = {
 ### 2.3 QR-Sessions
 Für jede Kampagne können QR-Sessions generiert werden:
 
-z.B. für Wartesaal im Rathaus,
+z.B.:
 
-Firmenveranstaltungen,
-
-Stadtfeste.
+- Wartesaal im Rathaus,
+- Firmenveranstaltungen,
+- Stadtfeste.
 
 ```ts
 type CampaignSession = {
@@ -80,13 +80,18 @@ type CampaignSession = {
 
 Teilnehmer:innen:
 
-scannen QR,
+- scannen QR,
+- landen in einer reduzierten UI,
+- Fokus auf Fragen dieser Kampagne,
+- optional Registrierung oder leichte Pseudonymisierung (z.B. nur E-Mail oder SMS).
 
-landen in einer reduzierten UI:
+Ist/Unerledigt (QR, 2026-02-12):
 
-Fokus auf Fragen dieser Kampagne,
-
-optional Registrierung oder leichte Pseudonymisierung (z.B. nur E-Mail oder SMS).
+| Bereich | Ist | Unerledigt |
+| --- | --- | --- |
+| QR-Resolve | `/qr/[qrId]` leitet auf Campaign/Session Join | Optional: QR-Scan-Tracking (anonym) |
+| Landing-Text | QR-Landing mit klarer Teilnahme-CTA aktiv | Optional: Lokale Hinweise (z.B. Rathaus) |
+| Session-Links | `/campaign/[id]/join?session=...` aktiv | Optional: Session-Label direkt im Join anzeigen |
 
 ### 2.4 Implementierungsstand (Pfad-Referenzen, 2026-02-12)
 
@@ -108,6 +113,9 @@ Aktuell umgesetzt (MVP):
   - `GET /api/admin/campaigns/[id]/report`
 - **QR-Resolve**
   - `/qr/[qrId]` → `GET /api/qr/resolve` (targetType: `campaign` | `campaign_session`)
+
+Hinweis:
+- Report-Filter und Vergleichsansichten sind im Admin-UI angelegt (PR-0032).
 
 ### 2.5 QR-Session-Reporting & Rollen-Gating (MVP)
 

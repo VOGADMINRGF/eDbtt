@@ -377,3 +377,77 @@ Verification:
 
 Next Steps:
 - PR-0031: Stream-Kit Overlay/QR/Agenda + "Streamer werden" produktisieren.
+
+### PR-0031 (2026-02-12) – Block F Stream-Kit Produktisierung
+
+Ziel:
+- Stream-Kit fuer produktiven Host-Betrieb vervollstaendigen (Overlay-/Viewer-Links, dynamisches QR-Ziel, Streamer-Onboarding).
+
+Changes:
+- Stream-Agenda erweitert um `qrTarget` pro Item; Host kann Zielpfad pro Tagespunkt speichern.
+- Host-Cockpit (`/dashboard/streams/[id]`) zeigt Stream-Kit-Panel mit Overlay-URL, Viewer-URL und aktivem QR-Ziel inkl. Copy-Aktionen.
+- 1-Klick "Aktiv setzen" im Agenda-Flow geschaerft; Overlay synchronisiert das aktive `qrTarget`.
+- Overlay-Feed und Overlay-Client zeigen aktives QR-Ziel fuer OBS/Regie transparent an.
+- Streamer-Onboarding als Produktseite unter `/howtoworks/streamer` plus Alias `/streamer/werden` hinzugefuegt.
+- Streams-Dashboard verlinkt auf Streamer-Guide und zeigt Overlay-/Viewer-Quicklinks pro Session.
+
+Verification:
+- `pnpm -C apps/web run lint` (PASS)
+- `pnpm -C apps/web run typecheck` (PASS)
+
+Next Steps:
+- PR-0032: Block G Campaign-UX/Reporting-Polish (CTA-Kontext, Report-Filter, Admin-Cross-Linking).
+
+### PR-0032 (2026-02-12) – Block G Campaign-UX/Reporting-Polish
+
+Ziel:
+- Campaign-CTA kontextsensitiv machen, Report-UX vereinheitlichen und Admin-Support-Cross-Linking schliessen.
+
+Changes:
+- Public Campaign-CTA nutzt Status-konforme Labels; Support-Hinweis bleibt sichtbar ohne Stimmrechtswirkung.
+- QR-Landing fuer Campaigns zeigt klare Teilnahme-CTA und konsistente Hinweise.
+- Admin-Campaign: Report-Filter-Reset, Vergleichsansicht (Top Quellen/Sessions) und Export-Hinweis ergaenzt.
+- Admin-Campaign/Support verlinken sich wechselseitig (Prefill + Direktlink).
+
+Verification:
+- `pnpm -C apps/web run lint` (PASS)
+- `pnpm -C apps/web run typecheck` (PASS)
+
+Next Steps:
+- PR-0033: Block H I18N/A11y/Social Produktreife.
+
+### PR-0033 (2026-02-12) – Block H I18N/A11y/Social Produktreife
+
+Ziel:
+- Skeleton-Pfade von Community/Chat in produktive Mindestpfade bringen, inkl. I18N-Fallbacks, A11y-Verbesserungen und konsistenten OG-Metadaten.
+
+Changes:
+- Community- und Chat-Seiten mit serverseitigem Locale-Fallback und zweisprachiger Copy erweitert.
+- OG-Metadaten fuer `/community` und `/chat` ergänzt, inkl. konsistenten Descriptions.
+- Community-UX mit Leitplanken, Links zu Verhaltenskodex und Barrierefreiheit klarer gemacht.
+- Chat-UX mit Status- und Next-Step-Abschnitt, strukturierter Liste und A11y-orientierter Copy geschärft.
+
+Verification:
+- `pnpm -C apps/web run lint` (PASS)
+- `pnpm -C apps/web run typecheck` (PASS)
+
+Next Steps:
+- Docs-only: Doku- und Strukturhygiene (Part09 Appendix, Part11/12 Fliesstext).
+
+### PR-0034 (2026-02-12) – Docs Hygiene + OG Meta Polish
+
+Ziel:
+- Doku-Hygiene abschliessen (Part09 Appendix, Part11/12 Text harmonisieren) und OG-Metadaten auf Campaign-Seiten nachziehen.
+
+Changes:
+- Part09 um Betriebsmetriken-Appendix ergaenzt.
+- Part11/Part12 mit konsistenteren Kurzpfaden/QR-Checklisten harmonisiert.
+- Campaign-Seiten mit OG-Metadaten erweitert (`/campaign` und `/campaign/[id]`).
+- OpenTasks: keine Pflicht-Tasks mehr offen, optionales Polish bleibt.
+
+Verification:
+- `pnpm -C apps/web run lint` (PASS)
+- `pnpm -C apps/web run typecheck` (PASS)
+
+Next Steps:
+- Optional: weitere OG-Metadaten fuer Detailseiten (Dossiers/Reports) ergaenzen.

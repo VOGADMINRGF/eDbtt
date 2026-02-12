@@ -1,8 +1,39 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { campaignsCol } from "@features/campaign/db";
 import { ObjectId } from "@core/db/triMongo";
+import { BRAND } from "@/lib/brand";
 
 type PageProps = { params: { id: string } };
+
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const id = params.id;
+  if (!ObjectId.isValid(id)) {
+    return {
+      title: "Campaign",
+      description: "Kampagnen und Beteiligung bei eDebatte.",
+    };
+  }
+  const col = await campaignsCol();
+  const campaign = await col.findOne({ _id: new ObjectId(id) });
+  const title = campaign?.title ?? "Campaign";
+  const description = campaign?.description ?? "Beteiligung und Abstimmung auf eDebatte.";
+  const url = `${BRAND.baseUrl}/campaign/${encodeURIComponent(id)}`;
+  return {
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      url,
+      siteName: BRAND.name,
+    },
+    twitter: {
+      title,
+      description,
+    },
+  };
+}
 
 export default async function CampaignPage({ params }: PageProps) {
   const id = params.id;
@@ -26,6 +57,17 @@ export default async function CampaignPage({ params }: PageProps) {
     );
   }
 
+  const statusLabel =
+    campaign.status === "active"
+      ? "Aktiv"
+      : campaign.status === "paused"
+        ? "Pausiert"
+        : campaign.status === "ended"
+          ? "Beendet"
+          : "In Vorbereitung";
+  const canJoin = campaign.status === "active";
+  const canSupport = Boolean(campaign.supportEnabled && campaign.supportSlug);
+
   return (
     <main className="mx-auto flex max-w-3xl flex-col gap-6 px-4 py-12">
       <header className="space-y-2">
@@ -36,7 +78,7 @@ export default async function CampaignPage({ params }: PageProps) {
 
       <section className="rounded-2xl border border-slate-200 bg-white p-4 text-sm shadow-sm">
         <div className="grid gap-3 sm:grid-cols-2">
-          <Detail label="Status" value={campaign.status} />
+          <Detail label="Status" value={statusLabel} />
           <Detail label="Region" value={campaign.regionCode ?? "–"} />
           <Detail label="Topic" value={campaign.topicKey ?? "–"} />
           <Detail label="Zeitfenster" value={formatRange(campaign.startsAt, campaign.endsAt)} />
@@ -44,7 +86,7 @@ export default async function CampaignPage({ params }: PageProps) {
       </section>
 
       <div className="flex flex-wrap items-center gap-3">
-        {campaign.status === "active" ? (
+        {canJoin ? (
           <Link
             href={`/campaign/${encodeURIComponent(id)}/join`}
             className="rounded-full bg-slate-900 px-5 py-2 text-sm font-semibold text-white"
@@ -53,10 +95,14 @@ export default async function CampaignPage({ params }: PageProps) {
           </Link>
         ) : (
           <span className="rounded-full bg-slate-100 px-4 py-2 text-sm text-slate-600">
-            Kampagne ist derzeit nicht aktiv.
+            {campaign.status === "paused"
+              ? "Kampagne ist gerade pausiert."
+              : campaign.status === "ended"
+                ? "Kampagne ist beendet."
+                : "Kampagne ist noch nicht aktiv."}
           </span>
         )}
-        {campaign.supportEnabled && campaign.supportSlug ? (
+        {canSupport ? (
           <Link
             href={`/support/${encodeURIComponent(campaign.supportSlug)}`}
             className="rounded-full border border-emerald-300 bg-emerald-50 px-5 py-2 text-sm font-semibold text-emerald-800"
@@ -69,7 +115,7 @@ export default async function CampaignPage({ params }: PageProps) {
         </Link>
       </div>
 
-      {campaign.supportEnabled && campaign.supportSlug ? (
+      {canSupport ? (
         <p className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
           Unterstuetzung dient nur der Transparenz und Ermöglichung: keine Stimmen, keine XP, keine Credits.
         </p>

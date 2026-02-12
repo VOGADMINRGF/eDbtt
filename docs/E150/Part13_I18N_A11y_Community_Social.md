@@ -145,6 +145,23 @@ Regeln:
 
 ---
 
+## 5. Status (PR-0033)
+
+Ist umgesetzt:
+
+- Community- und Chat-Seiten als produktive Mindestpfade mit klarer Copy.
+- I18N-Fallback auf Basis von Locale (Cookie/Accept-Language) fuer Community/Chat.
+- OG-Metadaten auf Skeleton-Pfaden konsistent ergaenzt.
+- A11y-Verbesserungen: klare Sektionen, Listen, Leitplanken-Block, Links zu Verhaltenskodex und Barrierefreiheit.
+
+Noch offen (optional):
+
+- OG-Metadaten auf weiteren Detailseiten ergaenzen (z.B. Dossier, Reports).
+- Community-Raeume mit echten Themen/Regionen und Moderations-Queues verbinden.
+- Sichtbare Melde- und Moderations-UI fuer Chat/Community.
+
+---
+
 ## 5. Jugend- & Diskriminierungsschutz
 
 ### 5.1 Filter

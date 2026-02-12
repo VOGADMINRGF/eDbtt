@@ -1,50 +1,177 @@
+import type { Metadata } from "next";
+import { cookies, headers } from "next/headers";
 import Link from "next/link";
+import { BRAND } from "@/lib/brand";
+import { DEFAULT_LOCALE, isSupportedLocale, type SupportedLocale } from "@/config/locales";
+
+export const metadata: Metadata = {
+  title: "Community",
+  description: "Raeume und Austausch fuer sachliche Debatten, Moderation und Themenarbeit.",
+  openGraph: {
+    title: "Community",
+    description: "Raeume und Austausch fuer sachliche Debatten, Moderation und Themenarbeit.",
+    url: `${BRAND.baseUrl}/community`,
+    siteName: BRAND.name,
+  },
+  twitter: {
+    title: "Community",
+    description: "Raeume und Austausch fuer sachliche Debatten, Moderation und Themenarbeit.",
+  },
+};
+
+function detectLocale(): SupportedLocale {
+  const cookieStore = cookies();
+  const cookieLang = cookieStore.get("lang")?.value;
+  if (cookieLang && isSupportedLocale(cookieLang)) return cookieLang;
+  const acceptLanguage = headers().get("accept-language");
+  if (acceptLanguage) {
+    const primary = acceptLanguage.split(",")[0]?.split(";")[0]?.trim();
+    const candidate = primary?.slice(0, 2);
+    if (candidate && isSupportedLocale(candidate)) return candidate;
+  }
+  return DEFAULT_LOCALE;
+}
+
+const COPY = {
+  kicker: {
+    de: "Community",
+    en: "Community",
+  },
+  title: {
+    de: "Raeume & Austausch",
+    en: "Rooms & Exchange",
+  },
+  lead: {
+    de: "Raeume fuer konstruktive Debatten. Fokus auf Themen, klare Moderation, keine Echokammern.",
+    en: "Rooms for constructive debate. Focus on topics, clear moderation, no echo chambers.",
+  },
+  hint: {
+    de: "Sprache kannst du im Header umstellen. Inhalte folgen dem gleichen Neutralitaetsstandard wie Reports.",
+    en: "You can switch language in the header. Content follows the same neutrality standard as reports.",
+  },
+  rulesTitle: {
+    de: "Leitplanken",
+    en: "Guardrails",
+  },
+  rulesBody: {
+    de: "Offen fuer Fragen, Quellen und Optionen. Keine Hetze, keine Personalisierung.",
+    en: "Open for questions, sources, and options. No hate, no personal attacks.",
+  },
+  actionStream: {
+    de: "Zu den Streams",
+    en: "Go to streams",
+  },
+  actionCampaigns: {
+    de: "Campaigns ansehen",
+    en: "Browse campaigns",
+  },
+  actionCode: {
+    de: "Verhaltenskodex",
+    en: "Code of conduct",
+  },
+  actionA11y: {
+    de: "Barrierefreiheit",
+    en: "Accessibility",
+  },
+  roomLabel: {
+    de: "Raum",
+    en: "Room",
+  },
+  rooms: [
+    {
+      id: "citizen",
+      title: { de: "Buerger:innen Lounge", en: "Citizen lounge" },
+      description: {
+        de: "Offener Raum fuer Updates, Fragen und Koordination.",
+        en: "Open room for updates, questions, and coordination.",
+      },
+    },
+    {
+      id: "staff",
+      title: { de: "Redaktion & Staff", en: "Editorial & staff" },
+      description: {
+        de: "Koordination von Research, Eventualitaeten und Campaign-Updates.",
+        en: "Coordination of research, eventualities, and campaign updates.",
+      },
+    },
+  ],
+};
+
+function t(entry: { de: string; en: string }, locale: SupportedLocale) {
+  return locale === "en" ? entry.en : entry.de;
+}
 
 export default function CommunityPage() {
+  const locale = detectLocale();
   return (
     <main className="mx-auto flex max-w-4xl flex-col gap-6 px-4 py-12">
       <header className="space-y-2">
-        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Community</p>
-        <h1 className="text-3xl font-bold text-slate-900">Räume & Austausch</h1>
-        <p className="text-sm text-slate-600">
-          Basis-Struktur für Community-Räume. Inhalte folgen iterativ, sobald die Streams und Campaigns live sind.
-        </p>
+        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{t(COPY.kicker, locale)}</p>
+        <h1 className="text-3xl font-bold text-slate-900">{t(COPY.title, locale)}</h1>
+        <p className="text-sm text-slate-600">{t(COPY.lead, locale)}</p>
+        <p className="text-xs text-slate-500">{t(COPY.hint, locale)}</p>
       </header>
 
       <section className="grid gap-4 md:grid-cols-2">
-        <RoomCard
-          title="Buerger:innen Lounge"
-          description="Offener Raum für kurze Updates, Fragen und Koordination."
-          href="/chat"
-        />
-        <RoomCard
-          title="Redaktion & Staff"
-          description="Koordination von Research, Eventualitäten und Campaign-Updates."
-          href="/chat"
-        />
+        {COPY.rooms.map((room) => (
+          <RoomCard
+            key={room.id}
+            id={room.id}
+            title={t(room.title, locale)}
+            description={t(room.description, locale)}
+            label={t(COPY.roomLabel, locale)}
+            href="/chat"
+          />
+        ))}
       </section>
 
-      <div className="flex gap-4 text-sm">
-        <Link href="/stream" className="font-semibold text-slate-600 hover:text-slate-900">
-          Zu den Streams
+      <section className="rounded-2xl border border-slate-200 bg-white p-4 text-sm shadow-sm">
+        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{t(COPY.rulesTitle, locale)}</p>
+        <p className="mt-2 text-sm text-slate-700">{t(COPY.rulesBody, locale)}</p>
+      </section>
+
+      <div className="flex flex-wrap gap-3 text-sm">
+        <Link href="/stream" className="font-semibold text-slate-700">
+          {t(COPY.actionStream, locale)}
         </Link>
-        <Link href="/campaign" className="font-semibold text-slate-500 hover:text-slate-700">
-          Campaigns ansehen
+        <Link href="/campaign" className="font-semibold text-slate-600 hover:text-slate-900">
+          {t(COPY.actionCampaigns, locale)}
+        </Link>
+        <Link href="/verhaltenskodex" className="font-semibold text-slate-600 hover:text-slate-900">
+          {t(COPY.actionCode, locale)}
+        </Link>
+        <Link href="/barrierefreiheit" className="font-semibold text-slate-600 hover:text-slate-900">
+          {t(COPY.actionA11y, locale)}
         </Link>
       </div>
     </main>
   );
 }
 
-function RoomCard({ title, description, href }: { title: string; description: string; href: string }) {
+function RoomCard({
+  id,
+  title,
+  description,
+  label,
+  href,
+}: {
+  id: string;
+  title: string;
+  description: string;
+  label: string;
+  href: string;
+}) {
+  const descId = `${id}-desc`;
   return (
     <Link
       href={href}
+      aria-describedby={descId}
+      aria-label={`${label}: ${title}`}
       className="rounded-2xl border border-slate-200 bg-white p-5 text-sm shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
     >
-      <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Room</p>
+      <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{label}</p>
       <h2 className="mt-2 text-lg font-semibold text-slate-900">{title}</h2>
-      <p className="mt-2 text-slate-600">{description}</p>
+      <p id={descId} className="mt-2 text-slate-600">{description}</p>
     </Link>
   );
 }

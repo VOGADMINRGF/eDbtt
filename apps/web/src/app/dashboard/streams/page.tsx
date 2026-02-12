@@ -131,6 +131,12 @@ export default function StreamsDashboardPage() {
         <p className="text-sm text-slate-600">
           Verwalte deine Live-Streams, Agenda und Polls. Nutze das OBS-Overlay für sendefertige Anzeigen.
         </p>
+        <p className="mt-2 text-xs text-slate-500">
+          Onboarding:{" "}
+          <Link href="/howtoworks/streamer" className="font-semibold text-sky-700 underline">
+            Wie werde ich Streamer:in?
+          </Link>
+        </p>
       </header>
 
       <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm space-y-3">
@@ -226,6 +232,14 @@ export default function StreamsDashboardPage() {
                   <p className="text-xs text-slate-500">
                     {session.isLive ? "Live" : "Offline"} · {session.visibility}
                   </p>
+                  <div className="mt-2 flex flex-wrap gap-2 text-xs">
+                    <Link href={`/stream/${session._id}`} className="text-sky-700 underline">
+                      Viewer
+                    </Link>
+                    <Link href={`/overlay/stream/${session._id}`} className="text-sky-700 underline">
+                      Overlay
+                    </Link>
+                  </div>
                 </div>
                 <Link
                   href={`/dashboard/streams/${session._id}`}

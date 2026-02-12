@@ -53,6 +53,7 @@ export async function GET(
     title: item.customQuestion || item.description || "Live-Thema",
     body: item.description ?? null,
     pollOptions: item.pollOptions ?? [],
+    qrTarget: item.qrTarget ?? null,
     allowAnonymousVoting: item.allowAnonymousVoting,
     publicAttribution: item.publicAttribution,
     pollTotals: pollTotals.get(item._id?.toHexString?.() ?? "") ?? {},
@@ -68,6 +69,7 @@ export async function GET(
       status: sessionStatus,
     },
     items: overlayItems,
+    activeQrTarget: overlayItems[0]?.qrTarget ?? null,
     updatedAt: new Date().toISOString(),
   });
 }

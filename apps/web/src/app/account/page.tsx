@@ -39,6 +39,29 @@ export default async function AccountPage({ searchParams }: Props) {
   const displayName: string | undefined = (overview as any)?.profile?.displayName || (overview as any)?.displayName;
   const firstName = displayName?.trim().split(" ").filter(Boolean)[0] ?? undefined;
   const hasPackage = (overview as any)?.edebatte?.status && (overview as any).edebatte.status !== "none";
+  const roleCount = Array.isArray((overview as any)?.roles) ? (overview as any).roles.length : 0;
+  const verificationLevel = (overview as any)?.verificationLevel ?? "none";
+  const preferredLocale = (overview as any)?.preferredLocale ?? "de";
+  const publicProfileReady = Boolean((overview as any)?.publicProfile?.bio) && Boolean((overview as any)?.publicProfile?.city);
+
+  const accountHighlights = [
+    {
+      label: "eDebatte-Paket",
+      value: hasPackage ? "Aktiv oder vorgemerkt" : "Noch nicht gewählt",
+    },
+    {
+      label: "Verifikation",
+      value: verificationLevel === "strong" ? "Vollständig" : verificationLevel === "soft" ? "Basis" : "Offen",
+    },
+    {
+      label: "Öffentliches Profil",
+      value: publicProfileReady ? "Vorbereitet" : "Teilweise ausgefüllt",
+    },
+    {
+      label: "Sprache",
+      value: preferredLocale === "en" ? "English" : "Deutsch",
+    },
+  ];
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-white py-8 md:py-10">
@@ -63,6 +86,18 @@ export default async function AccountPage({ searchParams }: Props) {
             Verwalte deinen Zugang zu eDebatte und dein gewähltes eDebatte-Paket <strong>(Basis, Start oder Pro)</strong>. Hier kannst du
             Profilangaben, Sprache und Benachrichtigungen anpassen.
           </p>
+          <p className="text-[11px] text-slate-500">
+            {roleCount > 0 ? `${roleCount} aktive Rolle(n)` : "Standard-Rolle aktiv"} · Details in
+            „Mitgliedschaft & Rollen“.
+          </p>
+          <ul className="grid gap-2 pt-1 sm:grid-cols-2 lg:grid-cols-4" aria-label="Konto-Status">
+            {accountHighlights.map((item) => (
+              <li key={item.label} className="rounded-2xl bg-white/90 px-3 py-2 text-[11px] ring-1 ring-slate-200">
+                <p className="font-semibold uppercase tracking-[0.12em] text-slate-500">{item.label}</p>
+                <p className="mt-1 text-slate-800">{item.value}</p>
+              </li>
+            ))}
+          </ul>
           {!hasPackage && (
             <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">
               Nächster Schritt: Wähle dein eDebatte-Paket (Basis, Start oder Pro).

@@ -68,16 +68,20 @@ export default function CampaignJoinPage() {
                 Session: <span className="font-semibold text-slate-800">{sessionId}</span>
               </p>
             )}
+            <p className="text-slate-500">Du kannst jetzt zur Kampagne wechseln oder Streams ansehen.</p>
           </div>
         )}
         {state === "error" && <p className="text-rose-600">{message ?? "Teilnahme fehlgeschlagen."}</p>}
       </section>
 
       <div className="flex flex-wrap items-center gap-3 text-sm">
-        <Link href={`/campaign/${encodeURIComponent(campaignId)}`} className="font-semibold text-slate-700">
-          Zurueck zur Kampagne
+        <Link
+          href={`/campaign/${encodeURIComponent(campaignId)}`}
+          className="rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white"
+        >
+          Zur Kampagne
         </Link>
-        <Link href="/stream" className="font-semibold text-slate-500 hover:text-slate-700">
+        <Link href="/stream" className="rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700">
           Streams ansehen
         </Link>
       </div>
