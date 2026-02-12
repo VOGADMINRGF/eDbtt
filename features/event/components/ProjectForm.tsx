@@ -28,14 +28,14 @@ function createTopic(): ProjectTopic {
   };
 }
 
-export default function ProjectForm() {
+type ProjectFormProps = { creatorId: string };
+
+export default function ProjectForm({ creatorId }: ProjectFormProps) {
   const [name, setName] = React.useState("");
   const [description, setDescription] = React.useState("");
   const [startDate, setStartDate] = React.useState("");
   const [endDate, setEndDate] = React.useState("");
   const [region, setRegion] = React.useState("");
-  // TODO: spaeter aus Auth / Account ziehen
-  const [organizerIds] = React.useState<string[]>(["user-xyz"]);
   const [status, setStatus] = React.useState<ProjectStatus>("planned");
   const [topics, setTopics] = React.useState<ProjectTopic[]>(() =>
     Array.from({ length: MIN_TOPICS }, () => createTopic()),
@@ -161,7 +161,7 @@ export default function ProjectForm() {
       startDate,
       endDate: endDate || undefined,
       region: region || undefined,
-      organizerIds,
+      organizerIds: [creatorId],
       status,
       topics: normalized.topics,
       createdAt: new Date().toISOString(),

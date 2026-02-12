@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
+import { ObjectId, coreCol } from "@core/db/triMongo";
 import { safeRandomId } from "@core/utils/random";
 import { projectsCol } from "@features/project/db";
 import type { ProjectDoc, ProjectOption, ProjectTopic, ProjectStatus } from "@features/project/types";
-import { getStaffContext } from "@/app/api/admin/eventualities/helpers";
+import { getSessionUser } from "@/lib/server/auth/sessionUser";
+import { sessionHasPassedTwoFactor, userRequiresTwoFactor } from "@/lib/server/auth/twoFactor";
+import { userIsAdminDashboard } from "@/lib/server/auth/roles";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -13,6 +16,36 @@ const MIN_OPTIONS = 5;
 
 function badRequest(message: string) {
   return NextResponse.json({ ok: false, error: message }, { status: 400 });
+}
+
+async function gateProjectCreator(req: NextRequest) {
+  const user = await getSessionUser(req);
+  if (!user || !user.sessionValid) {
+    return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
+  }
+
+  if (userRequiresTwoFactor(user) && !sessionHasPassedTwoFactor(user)) {
+    return NextResponse.json({ ok: false, error: "two_factor_required" }, { status: 403 });
+  }
+
+  if (userIsAdminDashboard(user)) {
+    return { userId: String(user._id) };
+  }
+
+  const Users = await coreCol("users");
+  const row = await Users.findOne(
+    { _id: new ObjectId(String(user._id)) },
+    { projection: { edebatte: 1, roles: 1, role: 1 } },
+  );
+  const pkg = (row as any)?.edebatte?.package;
+  const status = (row as any)?.edebatte?.status;
+  const roles = Array.isArray((row as any)?.roles) ? (row as any)?.roles : (row as any)?.role ? [(row as any).role] : [];
+  const isOrgAdmin = roles.includes("org_admin");
+
+  if (pkg === "pro" && status === "active") return { userId: String(user._id) };
+  if (isOrgAdmin && status === "active") return { userId: String(user._id) };
+
+  return NextResponse.json({ ok: false, error: "forbidden" }, { status: 403 });
 }
 
 function normalizeTopic(topic: any): ProjectTopic | null {
@@ -41,8 +74,8 @@ function normalizeTopic(topic: any): ProjectTopic | null {
 }
 
 export async function POST(req: NextRequest) {
-  const staff = await getStaffContext(req);
-  if (staff.response) return staff.response;
+  const gate = await gateProjectCreator(req);
+  if (gate instanceof Response) return gate;
 
   let body: Record<string, any> | null = null;
   try {
@@ -90,12 +123,12 @@ export async function POST(req: NextRequest) {
       options: topic.options.map((opt) => ({
         ...opt,
         createdAt: now,
-        createdBy: staff.context?.userId ?? null,
+        createdBy: gate.userId ?? null,
       })),
       createdAt: now,
       updatedAt: now,
     })),
-    createdBy: staff.context?.userId ?? null,
+    createdBy: gate.userId ?? null,
     createdAt: now,
     updatedAt: now,
   };
