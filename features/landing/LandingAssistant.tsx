@@ -200,9 +200,10 @@ export default function LandingAssistant({
   const [files, setFiles] = React.useState<File[]>([]);
   const [botTrap, setBotTrap] = React.useState("");
 
-  const [human, setHuman] = React.useState(() => createHumanChallenge());
-  const [humanAnswer, setHumanAnswer] = React.useState("");
-  const [humanError, setHumanError] = React.useState<string | null>(null);
+// SSR must render deterministic content; randomize only after mount.
+const [human, setHuman] = React.useState<{ a: number; b: number }>({ a: 5, b: 1 });
+const [humanAnswer, setHumanAnswer] = React.useState("");
+const [humanError, setHumanError] = React.useState<string | null>(null);
 
   const [modalOpen, setModalOpen] = React.useState(false);
 
@@ -263,6 +264,10 @@ export default function LandingAssistant({
     } catch {
       setSpeechSupported(false);
     }
+  }, []);
+
+  React.useEffect(() => {
+    setHuman(createHumanChallenge());
   }, []);
 
   const trimmed = text.trim();
