@@ -2,7 +2,8 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 import { NextRequest, NextResponse } from "next/server";
-import { coreCol } from "@core/db/triMongo";
+import { ObjectId, coreCol } from "@core/db/triMongo";
+import { campaignsCol } from "@features/campaign/db";
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
@@ -22,6 +23,26 @@ export async function GET(req: NextRequest) {
         title: set.title ?? null,
       },
     });
+  }
+
+  const targetsCol = await coreCol("qr_targets");
+  const target = await targetsCol.findOne({ code: qrId, status: "active" });
+  if (target?.targetType === "campaign") {
+    const campaignId = target?.targetIds?.[0];
+    if (campaignId && ObjectId.isValid(campaignId)) {
+      const campaigns = await campaignsCol();
+      const campaign = await campaigns.findOne({ _id: new ObjectId(campaignId) });
+      if (campaign) {
+        return NextResponse.json({
+          success: true,
+          data: {
+            targetType: "campaign",
+            targetIds: [campaignId],
+            title: campaign.title ?? null,
+          },
+        });
+      }
+    }
   }
 
   return NextResponse.json({ success: false, error: "not_found" }, { status: 404 });

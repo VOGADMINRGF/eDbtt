@@ -155,6 +155,23 @@ Verification:
 Next Steps:
 - QA/UX-Polish fuer Campaigns & Community, danach Block-E2 (Operationalisierung/Seed-Pipelines).
 
+### PR-0021 (2026-02-12) – Campaign Reports + QR Mapping + A11y Polish
+
+Ziel:
+- Kampagnen-Reports/Analytics, QR-Mapping und A11y-Details nachziehen.
+
+Changes:
+- Campaign-Report-API (Teilnahmen + Joins pro Tag) + Admin-Report-Panel.
+- QR-Targets fuer Campaigns inkl. Resolve-Flow + Join-Redirect.
+- A11y-Polish fuer neue Admin-Suchfelder.
+
+Verification:
+- `pnpm -C apps/web run lint` (PASS)
+- `pnpm -C apps/web run typecheck` (PASS)
+
+Next Steps:
+- Campaign-Reports erweitern (Charts/Segmente) und QR-Codes mit Sessions verknuepfen.
+
 Safe-Mode Checks (Membership/Payment):
 - Admin-Verbuchen (`mark-paid`) und Kündigung (`cancel`) funktionieren, setzen user.membership-Status korrekt.
 - Dunning-Job läuft trocken (keine Orders → no-op) und setzt bei Fälligkeit Reminder-Level / Auto-Cancel.
