@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { ObjectId, coreCol } from "@core/db/triMongo";
 import type { MembershipApplication } from "@core/memberships/types";
 import { requireAdminOrResponse } from "@/lib/server/auth/admin";
+import { logMembershipCancelled } from "@core/telemetry/identityEvents";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -53,6 +54,14 @@ export async function POST(
       },
     },
   );
+
+  await logMembershipCancelled({
+    userId: String(application.coreUserId),
+    membershipId: String(application._id),
+    reason,
+  }).catch((err) => {
+    console.error("[membership.cancel] logMembershipCancelled failed", err);
+  });
 
   return NextResponse.json({ ok: true });
 }

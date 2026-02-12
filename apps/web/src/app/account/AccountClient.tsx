@@ -5,8 +5,10 @@ import type { ChangeEvent, FormEvent } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { EDEBATTE_PACKAGES_WITH_NONE } from "@/config/edebatte";
+import { canEditTopTopics } from "@features/account/capabilities";
 import { EDEBATTE_PACKAGES_DE } from "@features/pricing";
 import type { UserRole } from "@/types/user";
+import type { EngagementLevel } from "@features/user/engagement";
 
 // Konsistente Button-Styles im eDebatte-Gradient-CI
 const primaryButtonClass =
@@ -57,6 +59,7 @@ export type PublicProfileData = {
   tagline?: string | null;
   avatarStyle?: "initials" | "abstract" | "emoji";
   topTopics?: string[];
+  engagementLevel?: EngagementLevel | null;
   showRealName: boolean;
   showCity: boolean;
   showStats: boolean;
@@ -207,7 +210,12 @@ export function AccountClient({ initialData, membershipNotice, preorderNotice, w
 
       <PublicProfileSection publicProfile={data.publicProfile} onRefresh={refreshOverview} />
 
-      <MembershipAndRolesSection membership={data.membership} roles={data.roles} />
+      <MembershipAndRolesSection
+        membership={data.membership}
+        roles={data.roles}
+        membershipStatus={data.membershipSnapshot?.status ?? null}
+        paymentReference={data.membershipSnapshot?.paymentReference ?? null}
+      />
 
       <SecurityAndPaymentSection security={data.security} payment={data.payment} signature={data.signature} membership={data.membership} />
 
@@ -252,6 +260,7 @@ function normalizeOverview(src: any): AccountOverview {
     tagline: publicProfileSource?.tagline ?? src?.profile?.tagline ?? "",
     avatarStyle: publicProfileSource?.avatarStyle ?? src?.profile?.avatarStyle ?? "initials",
     topTopics,
+    engagementLevel: src?.stats?.engagementLevel ?? null,
     showRealName: Boolean(publicProfileSource?.showRealName ?? profileFlags.showRealName),
     showCity: Boolean(publicProfileSource?.showCity ?? profileFlags.showCity),
     showStats: Boolean(publicProfileSource?.showStats ?? profileFlags.showStats),
@@ -977,6 +986,7 @@ function PublicProfileCard({ initial, onRefresh }: PublicProfileCardProps) {
   const [draft, setDraft] = useState<PublicProfileData>(initial);
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState<string | null>(null);
+  const canShowTopTopics = canEditTopTopics(draft.engagementLevel ?? "interessiert");
 
   const handleFieldChange = (patch: Partial<PublicProfileData>) => {
     setDraft((prev) => ({ ...prev, ...patch }));
@@ -1001,6 +1011,9 @@ function PublicProfileCard({ initial, onRefresh }: PublicProfileCardProps) {
         showJoinDate: draft.showJoinDate,
         showEngagementLevel: draft.showEngagementLevel,
         showMembership: draft.showMembership,
+        topTopics: canShowTopTopics
+          ? draft.topTopics?.map((topic) => ({ key: topic }))
+          : undefined,
       }),
     })
       .then((res) => {
@@ -1069,14 +1082,18 @@ function PublicProfileCard({ initial, onRefresh }: PublicProfileCardProps) {
           <div className="space-y-2">
             <p className="text-xs font-medium text-slate-700">Top-Themen (Auszug)</p>
             <div className="flex flex-wrap gap-1.5">
-              {draft.topTopics && draft.topTopics.length > 0 ? (
-                draft.topTopics.slice(0, 6).map((topic) => (
-                  <span key={topic} className="inline-flex items-center rounded-full bg-sky-50 px-2.5 py-1 text-[11px] font-medium text-sky-800 ring-1 ring-sky-100">
-                    {topic}
-                  </span>
-                ))
+              {canShowTopTopics ? (
+                draft.topTopics && draft.topTopics.length > 0 ? (
+                  draft.topTopics.slice(0, 6).map((topic) => (
+                    <span key={topic} className="inline-flex items-center rounded-full bg-sky-50 px-2.5 py-1 text-[11px] font-medium text-sky-800 ring-1 ring-sky-100">
+                      {topic}
+                    </span>
+                  ))
+                ) : (
+                  <p className="text-[11px] text-slate-400">Deine Top-Themen werden angezeigt, sobald du dich aktiver mit Inhalten beschäftigst.</p>
+                )
               ) : (
-                <p className="text-[11px] text-slate-400">Deine Top-Themen werden angezeigt, sobald du dich aktiver mit Inhalten beschäftigst.</p>
+                <p className="text-[11px] text-slate-400">Top-Themen werden erst ab Engagement-Level „engagiert“ sichtbar.</p>
               )}
             </div>
           </div>
@@ -1122,9 +1139,11 @@ function ToggleRow({ label, checked, onChange }: ToggleRowProps) {
 type MembershipAndRolesSectionProps = {
   membership: MembershipInfo;
   roles: RoleInfo[];
+  membershipStatus?: string | null;
+  paymentReference?: string | null;
 };
 
-function MembershipAndRolesSection({ membership, roles }: MembershipAndRolesSectionProps) {
+function MembershipAndRolesSection({ membership, roles, membershipStatus, paymentReference }: MembershipAndRolesSectionProps) {
   return (
     <section aria-labelledby="account-membership-heading" className="space-y-4">
       <div className="flex flex-col gap-1">
@@ -1135,7 +1154,7 @@ function MembershipAndRolesSection({ membership, roles }: MembershipAndRolesSect
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
-        <VOGMembershipCard membership={membership} />
+        <VOGMembershipCard membership={membership} membershipStatus={membershipStatus} paymentReference={paymentReference} />
         <RolesCard roles={roles} />
       </div>
     </section>
@@ -1144,11 +1163,15 @@ function MembershipAndRolesSection({ membership, roles }: MembershipAndRolesSect
 
 type VOGMembershipCardProps = {
   membership: MembershipInfo;
+  membershipStatus?: string | null;
+  paymentReference?: string | null;
 };
 
-function VOGMembershipCard({ membership }: VOGMembershipCardProps) {
+function VOGMembershipCard({ membership, membershipStatus, paymentReference }: VOGMembershipCardProps) {
   const title = membership.label || "Mitgliedschaft eDebatte";
   const status = membership.statusLabel || (membership.isMember ? "Aktiv" : "Noch nicht Mitglied");
+  const isWaitingPayment = membershipStatus === "waiting_payment";
+  const paymentHint = paymentReference ? `Verwendungszweck: ${paymentReference}` : null;
   const badgeClass = membership.isMember
     ? "inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-emerald-700 ring-1 ring-emerald-200"
     : "inline-flex items-center rounded-full bg-amber-50 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-amber-700 ring-1 ring-amber-200";
@@ -1163,6 +1186,13 @@ function VOGMembershipCard({ membership }: VOGMembershipCardProps) {
       </div>
       {membership.contributionLabel && <p className="mt-1 text-xs text-slate-700">Beitrag: {membership.contributionLabel}</p>}
 
+      {isWaitingPayment && (
+        <div className="mt-3 rounded-2xl border border-amber-200 bg-amber-50/70 px-3 py-2 text-[11px] text-amber-800">
+          Zahlung ausstehend. Bitte pruefe dein Zahlungsprofil und die Beitragsreferenz.
+          {paymentHint ? <p className="mt-1 font-semibold">{paymentHint}</p> : null}
+        </div>
+      )}
+
       <p className="mt-3 text-[11px] text-slate-400">
         eDebatte finanziert sich unabhängig durch viele kleine Beiträge. Details findest du im Transparenzbericht.
       </p>
@@ -1171,6 +1201,11 @@ function VOGMembershipCard({ membership }: VOGMembershipCardProps) {
         <Link href="/mitglied-werden" className={primaryButtonSmallClass}>
           {membership.isMember ? "Mitgliedschaft verwalten" : "Mitglied werden"}
         </Link>
+        {isWaitingPayment && (
+          <Link href="/account/payment" className={secondaryLightButtonClass}>
+            Zahlungsprofil oeffnen
+          </Link>
+        )}
         <Link href="/transparenz" className={secondaryLightButtonClass}>
           Transparenzbericht
         </Link>

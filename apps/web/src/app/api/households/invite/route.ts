@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { ObjectId, piiCol } from "@core/db/triMongo";
+import { ObjectId, coreCol, piiCol } from "@core/db/triMongo";
 import { z } from "zod";
 import type { HouseholdInvite } from "@core/pii/households/types";
 import { safeRandomId } from "@core/utils/random";
+import type { MembershipApplication } from "@core/memberships/types";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -35,6 +36,17 @@ export async function POST(req: NextRequest) {
 
   const now = new Date();
   const membershipObjectId = new ObjectId(parsed.data.membershipId);
+  const Applications = await coreCol<MembershipApplication>("membership_applications");
+  const application = await Applications.findOne({
+    _id: membershipObjectId,
+    coreUserId: new ObjectId(userId),
+  });
+  if (!application) {
+    return NextResponse.json({ ok: false, error: "membership_not_found" }, { status: 404 });
+  }
+  if (["cancelled", "household_locked", "rejected"].includes(application.status)) {
+    return NextResponse.json({ ok: false, error: "membership_locked" }, { status: 409 });
+  }
   const invitesCol = await piiCol<HouseholdInvite>("household_invites");
 
   const invites: HouseholdInvite[] = parsed.data.members.map((m) => ({

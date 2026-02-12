@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { ObjectId, coreCol, piiCol } from "@core/db/triMongo";
 import type { MembershipApplication } from "@core/memberships/types";
 import { requireAdminOrResponse } from "@/lib/server/auth/admin";
+import { logMembershipPaid } from "@core/telemetry/identityEvents";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -68,6 +69,15 @@ export async function POST(
       },
     },
   );
+
+  await logMembershipPaid({
+    userId: String(application.coreUserId),
+    membershipId: String(application._id),
+    amountPerPeriod: application.amountPerPeriod,
+    rhythm: application.rhythm,
+  }).catch((err) => {
+    console.error("[membership.mark-paid] logMembershipPaid failed", err);
+  });
 
   return NextResponse.json({ ok: true });
 }

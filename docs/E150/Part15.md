@@ -8,9 +8,9 @@ Dieses Dokument bündelt, welche Pfade (Part00–Part15) noch offen sind und wel
 
 - **Part00 Foundations / PII:** PII-Guardrails plus Klarname-Trennung (givenName/familyName) und Privacy-Flags dokumentiert; Migration/Aufsplitten alter Felder offen (siehe Identity & Profile Tasks).
 - **Part01 Systemvision / Governance:** Leitplanken + 15 Themenkategorien als Backbone verankert.
-- **Part02 Rollen / XP / Gamification:** XP-Anbindung benötigt noch Research-/Streams-/Campaign-Hooks (siehe Blöcke E, F, G); Profil-Freischaltungen pro Engagement-Level dokumentiert, UI-Gating offen.
-- **Part03 Access Tiers & Pricing:** Grundlogik aktiv; Profil-Pakete (profileBasic/Pro/Premium) als Darstellungs-Dimension ergänzt, Mapping zu Tiers umzusetzen.
-- **Part04 B2G/B2B Modelle:** Begriffe mit Profil-Paket-Namen harmonisiert; warten auf Campaigns/Streams-Implementierung (Block F/G) für echten Pilotbetrieb.
+- **Part02 Rollen / XP / Gamification:** XP-Anbindung fuer Research/Streams/Campaigns aktiv; Profil-Freischaltungen pro Engagement-Level im Profil-UI wirksam.
+- **Part03 Access Tiers & Pricing:** Grundlogik aktiv; Profil-Pakete als Darstellungs-Dimension vorhanden und an Tiers gemappt (basic/pro/premium).
+- **Part04 B2G/B2B Modelle:** Begriffe mit Profil-Paket-Namen harmonisiert; Campaigns/Streams als Betriebsbasis aktiv.
 - **Part05 Orchestrator (Block A):** Gemini-Provider aktiv, rollenspezifische Prompts (citizen/staff/institution) und Health/Score-Tracking umgesetzt.
 - **Part06 Consequences (Block B):** Modelle, Persistenz, API und UI fuer Responsibility/Consequences umgesetzt.  
 - **Part06 Themenkatalog & Zuständigkeiten:** Neu angelegt, 15 Hauptkategorien verbindlich; `TOPIC_CHOICES`-Abgleich in Profil/Onboarding/Filter offen.
@@ -57,32 +57,43 @@ Dieses Dokument bündelt, welche Pfade (Part00–Part15) noch offen sind und wel
 Offene Tasks:
 
 1. **PII-Schema um Vor-/Nachname erweitern**  
-   - `pii.users.personal.givenName` + `familyName` einführen.  
-   - Alle alten Felder `name` o.ä. in Migration aufsplitten.  
-   - Core-User `displayName` so anpassen, dass er nie direkt PII speichert, sondern nur ein abgeleitetes Label.
+   - `pii.users.personal.givenName` + `familyName` aktiv.  
+   - `displayName` wird nur als Ableitung genutzt; PII-Split via `ensureBasicPiiProfile` erfolgt bei Login/Register/Membership.  
+   - Alt-Migration (historische `name`-Felder) optional offen, falls Bestandsdaten migriert werden muessen.
 
 2. **Profil-Datenstruktur in Core einführen**  
-   - `core.users.profile` mit: `headline`, `bio`, `avatarStyle`, `topTopics[]` (max. 3 aus 15 Hauptkategorien), `publicFlags.*` (siehe Part00).  
-   - API-Routen für `/api/account/profile` (GET/PATCH).
+   - `core.users.profile` mit `headline`, `bio`, `avatarStyle`, `topTopics[]`, `publicFlags.*`, `publicLocation`, `publicShareId`.  
+   - API `/api/account/profile` (GET/PATCH) aktiv.
 
 3. **TOPIC_CHOICES an 15 Kategorien ausrichten**  
-   - Zentrale Definition `TOPIC_CHOICES` in `features/interests/topics.ts`.  
-   - Verwendung in Profil-Editor, Onboarding, Filter-Komponenten.
+   - Zentrale Definition `TOPIC_CHOICES` in `features/interests/topics.ts` ist konsistent.  
+   - Verwendung in Profil-API/Streams-Topics aktiv.
 
 4. **Profil-Freischaltungen nach Engagement-Level umsetzen**  
-   - UI-Gating im Profil-Editor: Top-Themen erst ab Level „engagiert“, Highlight-Beitrag + Styles ab „begeistert“.  
+   - UI-Gating im Profil: Top-Themen erst ab Level „engagiert“.  
    - Gamification-Logik nutzt nur XP, niemals personenbezogene PII.
 
 5. **Profil-Pakete und Pricing verknüpfen**  
-   - Mapping Access Tier → Profil-Paket wie in Part03.  
-   - B2C / B2B / B2G verwenden die gleichen Paketnamen (`profileBasic`, `profilePro`, `profilePremium`).
+   - Mapping Access Tier → Profil-Paket aktiv (`basic`/`pro`/`premium`).  
+   - Paketnamen sind vereinheitlicht (basic/pro/premium) und werden ueberall genutzt.
 
 6. **Account-/Profil-Seiten aufräumen**  
-   - `/account` als private Einstellungsseite (PII-gebunden, nicht öffentlich).  
-   - `/profile` als öffentliche Visitenkarte, die nur freigegebene Felder zeigt.  
-   - Hinweis im UI: „Du siehst dein Profil so, wie andere es sehen.“
+   - `/account` bleibt private Einstellungsseite (PII-gebunden).  
+   - `/profile` leitet auf public Share-View (`/profile/[shareId]`) oder auf Account, wenn kein Share aktiv.  
+   - Hinweis im UI bleibt: „Du siehst dein Profil so, wie andere es sehen.“
 
 Diese Liste ist verbindlich für die nächsten Codex-Runs. Bei jedem Run den aktuell offenen Block aus Part14 wählen und die „Definition of Done“ erfüllen, bevor zum nächsten Pfad gewechselt wird. Sobald ein Block abgeschlossen ist, den Status im obigen Table auf **Done** setzen.
+
+### Block M – Membership Apply (Restpunkte)
+
+Stand:
+- Admin-Statuspflege und Payment-CTAs sind vorhanden.
+- Household-Invites respektieren gesperrte Memberships.
+- Telemetry-Events fuer Statuswechsel aktiv.
+
+Offen:
+- Vollstaendiger Household-Lock/Monitoring (Events, Auswertung, Dunning-Ausloeser).
+- Payment-Modal/CTA-Flow weiter verfeinern (sichtbarer CTA + Helper-UX).
 
 ## PR-Log
 
@@ -271,3 +282,25 @@ Safe-Mode Checks (Membership/Payment):
 - Admin-Verbuchen (`mark-paid`) und Kündigung (`cancel`) funktionieren, setzen user.membership-Status korrekt.
 - Dunning-Job läuft trocken (keine Orders → no-op) und setzt bei Fälligkeit Reminder-Level / Auto-Cancel.
 - /account zeigt korrekten Status inkl. PaymentInfo (masked) ohne PII-Leak; Copy-Buttons ok.
+
+### PR-0028 (2026-02-12) – Identity/Profile + Membership Admin CTA
+
+Ziel:
+- Identity/Profile-Aufgaben finalisieren, XP-Hooks fuer Streams/Campaigns setzen, Membership-Admin/CTA ergaenzen.
+
+Changes:
+- XP: Streams-Session-Votes und Campaign-Joins vergeben XP idempotent.
+- /profile leitet auf public share view oder zurueck auf /account.
+- Public-Profile Top-Themen an Engagement-Level „engagiert“ gekoppelt.
+- Admin: Membership-Statusliste in /admin/memberships + API-Gate fuer Memberships.
+- Membership-Status-Updates spiegeln sich in User-Snapshot + Telemetry-Events.
+- Household-Invites blockieren bei gesperrten Memberships.
+- Account: Payment-CTA bei waiting_payment.
+- Part14 R2-Status konsolidiert, Identity/Profile-Status angepasst.
+
+Verification:
+- `pnpm -C apps/web run lint` (PASS)
+- `pnpm -C apps/web run typecheck` (PASS)
+
+Next Steps:
+- Block M: Household-Lock/Monitoring/Events und Payment-CTA/Flows ausbauen.

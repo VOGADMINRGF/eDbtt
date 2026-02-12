@@ -9,6 +9,9 @@ export type IdentityEventName =
   | "identity_otb_confirm"
   | "identity_strong_completed"
   | "membership_apply_submitted"
+  | "membership_status_updated"
+  | "membership_paid"
+  | "membership_cancelled"
   | "household_invite_sent";
 
 export type IdentityFunnelSnapshot = {
@@ -36,6 +39,9 @@ const EMPTY_TOTALS: Record<IdentityEventName, number> = {
   identity_otb_confirm: 0,
   identity_strong_completed: 0,
   membership_apply_submitted: 0,
+  membership_status_updated: 0,
+  membership_paid: 0,
+  membership_cancelled: 0,
   household_invite_sent: 0,
 };
 
@@ -57,6 +63,32 @@ export async function logMembershipApplySubmitted(meta: {
   householdSize: number;
 }) {
   await logIdentityEvent("membership_apply_submitted", { userId: meta.userId, meta });
+}
+
+export async function logMembershipStatusUpdated(meta: {
+  userId: string;
+  membershipId: string;
+  status: string;
+  reason?: string;
+}) {
+  await logIdentityEvent("membership_status_updated", { userId: meta.userId, meta });
+}
+
+export async function logMembershipPaid(meta: {
+  userId: string;
+  membershipId: string;
+  amountPerPeriod?: number;
+  rhythm?: string;
+}) {
+  await logIdentityEvent("membership_paid", { userId: meta.userId, meta });
+}
+
+export async function logMembershipCancelled(meta: {
+  userId: string;
+  membershipId: string;
+  reason?: string;
+}) {
+  await logIdentityEvent("membership_cancelled", { userId: meta.userId, meta });
 }
 
 export async function logHouseholdInviteSent(meta: {

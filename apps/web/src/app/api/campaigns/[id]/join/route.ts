@@ -7,6 +7,7 @@ import {
   toObjectId,
 } from "@features/campaign/db";
 import { ObjectId } from "@core/db/triMongo";
+import UserGameStats from "src/models/game/UserGameStats";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -68,11 +69,23 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
   };
 
   if (userId) {
-    await participants.updateOne(
+    const participantUpdate = await participants.updateOne(
       { campaignId, userId },
       { $setOnInsert: payload },
       { upsert: true },
     );
+
+    if (participantUpdate.upsertedId) {
+      try {
+        const eventId = `campaign-join:${campaignId.toHexString()}:${userId}`;
+        await UserGameStats.awardXp(String(userId), 2, {
+          eventId,
+          timezone: "Europe/Berlin",
+        });
+      } catch (err) {
+        console.error("[campaign.join] awardXp failed", err);
+      }
+    }
   } else if (anonHash) {
     await participants.updateOne(
       { campaignId, anonHash },

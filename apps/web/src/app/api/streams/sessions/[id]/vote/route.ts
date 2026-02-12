@@ -7,6 +7,7 @@ import { streamAgendaCol, streamSessionsCol } from "@features/stream/db";
 import { VoteModel } from "@/models/votes/Vote";
 import { createHash } from "crypto";
 import { resolveSessionStatus } from "@features/stream/types";
+import UserGameStats from "src/models/game/UserGameStats";
 
 function hashSession(input: string) {
   return createHash("sha256").update(input).digest("hex").slice(0, 40);
@@ -53,7 +54,7 @@ export async function POST(
   const ua = req.headers.get("user-agent") ?? "unknown";
   const sessionHash = item.allowAnonymousVoting ? hashSession(`${ip}|${ua}|${id}`) : hashSession(userId ?? `${ip}|${ua}`);
   const Vote = await VoteModel();
-  await Vote.updateOne(
+  const voteUpdate = await Vote.updateOne(
     {
       streamSessionId: id,
       agendaItemId,
@@ -75,6 +76,18 @@ export async function POST(
     },
     { upsert: true },
   );
+
+  if (userId && voteUpdate.upsertedId) {
+    try {
+      const eventId = `stream-vote:${id}:${agendaItemId}:${userId}`;
+      await UserGameStats.awardXp(String(userId), 1, {
+        eventId,
+        timezone: "Europe/Berlin",
+      });
+    } catch (err) {
+      console.error("[stream.vote] awardXp failed", err);
+    }
+  }
 
   return NextResponse.json({ ok: true });
 }

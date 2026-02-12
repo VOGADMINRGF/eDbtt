@@ -338,17 +338,13 @@ wo er weiterzumachen hat.
 
 ### Block R2 – Research Workflow, Phase 2 (Part09.5)
 
-Status: Phase 1 umgesetzt (Tasks, Contributions, XP, Admin + Board).
+Status: Umgesetzt (Seeding, Filter/Sortierung, Contributor-Feedback, Graph-Backflow, Cooldowns).
 
-Offen:
-- R2.1: Seeding aus Questions/Knots/Eventualities
-- R2.2: Filter/Sortierung Research Board (Level, Tags, Neueste)
-- R2.3: Contributor-Feedback (Status + Review-Notizen, einfache Notifications)
-- R2.4: Rückfluss in Statements/Graph (akzeptierte Contributions → Knowledge/Impact)
-- R2.5: Anti-Spam-Maßnahmen (Rate Limits, Cooldowns, min. Engagement-Level)
+Hinweis:
+- Part15 führt den aktuellen Detailstand und PR-Logs.
 
 ### Block M – Membership Apply (Snapshot & Payment)
-Update: Admin mark-paid/cancel, Overview-API + Dashboard, Dunning-Script (Reminder 1/2/final), Rhythmus yearly, PaymentInfo/Copy im Account. Offene Punkte: echtes Household-Lock/Objekt, Monitoring/Events, ggf. Payment-Modal/CTA verfeinern.
+Update: Admin mark-paid/cancel, Overview-API + Dashboard, Dunning-Script (Reminder 1/2/final), Rhythmus yearly, PaymentInfo/Copy im Account. Admin-Statusliste + einfache CTA im Account vorhanden. Household-Invite checkt Lock-Status; Telemetry-Events fuer Membership-Status gesetzt. Offene Punkte: vollstaendiges Household-Lock/Monitoring, Payment-Modal/CTA weiter verfeinern.
 
 Status: Baseline implementiert.
 
