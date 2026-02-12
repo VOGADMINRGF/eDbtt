@@ -235,6 +235,22 @@ Verification:
 Next Steps:
 - Session-Statuspflege um Start/End-Zeitfelder erweitern.
 
+### PR-0026 (2026-02-12) – Campaign Session Times + Report Charts
+
+Ziel:
+- Session-Zeiten pflegen und Report-Charts ergaenzen.
+
+Changes:
+- Session-Start/End-Zeitfelder im Admin-UI hinzugefuegt.
+- Report-UI mit Balken-Chart fuer Joins pro Tag ergaenzt.
+
+Verification:
+- `pnpm -C apps/web run lint` (PASS)
+- `pnpm -C apps/web run typecheck` (PASS)
+
+Next Steps:
+- Optional: Report-Chart-Skalen normalisieren und CSV-Filter verfeinern.
+
 Safe-Mode Checks (Membership/Payment):
 - Admin-Verbuchen (`mark-paid`) und Kündigung (`cancel`) funktionieren, setzen user.membership-Status korrekt.
 - Dunning-Job läuft trocken (keine Orders → no-op) und setzt bei Fälligkeit Reminder-Level / Auto-Cancel.

@@ -45,6 +45,8 @@ export default function AdminCampaignDetailPage() {
   const [qrCode, setQrCode] = useState<string | null>(null);
   const [sessions, setSessions] = useState<CampaignSession[]>([]);
   const [sessionLabel, setSessionLabel] = useState("");
+  const [sessionStartsAt, setSessionStartsAt] = useState("");
+  const [sessionEndsAt, setSessionEndsAt] = useState("");
   const [reportSourceFilter, setReportSourceFilter] = useState("all");
   const [reportSessionFilter, setReportSessionFilter] = useState("all");
   const [loading, setLoading] = useState(true);
@@ -151,13 +153,19 @@ export default function AdminCampaignDetailPage() {
       const res = await fetch(`/api/admin/campaigns/${encodeURIComponent(campaign.id)}/sessions`, {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ label: sessionLabel }),
+        body: JSON.stringify({
+          label: sessionLabel,
+          ...(sessionStartsAt ? { startsAt: sessionStartsAt } : {}),
+          ...(sessionEndsAt ? { endsAt: sessionEndsAt } : {}),
+        }),
       });
       const body = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(body?.error || `HTTP ${res.status}`);
       const nextSession = body?.session ? { ...body.session, qrCode: body.qrCode ?? null } : null;
       setSessions((prev) => [nextSession, ...prev].filter(Boolean));
       setSessionLabel("");
+      setSessionStartsAt("");
+      setSessionEndsAt("");
     } catch (err: any) {
       setError(err?.message ?? "Session konnte nicht erstellt werden.");
     } finally {
@@ -180,6 +188,30 @@ export default function AdminCampaignDetailPage() {
       setSessions((prev) => prev.map((s) => (s.id === sessionId ? { ...s, ...body.session } : s)));
     } catch (err: any) {
       setError(err?.message ?? "Session-Status konnte nicht aktualisiert werden.");
+    } finally {
+      setSessionBusy(false);
+    }
+  };
+
+  const updateSessionTimes = async (sessionId: string, startsAt: string, endsAt: string) => {
+    if (!campaign) return;
+    setSessionBusy(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/admin/campaigns/${encodeURIComponent(campaign.id)}/sessions`, {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          sessionId,
+          startsAt: startsAt || null,
+          endsAt: endsAt || null,
+        }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(body?.error || `HTTP ${res.status}`);
+      setSessions((prev) => prev.map((s) => (s.id === sessionId ? { ...s, ...body.session } : s)));
+    } catch (err: any) {
+      setError(err?.message ?? "Session-Zeiten konnten nicht aktualisiert werden.");
     } finally {
       setSessionBusy(false);
     }
@@ -351,6 +383,20 @@ export default function AdminCampaignDetailPage() {
                 aria-label="Session-Label"
                 className="flex-1 rounded-full border border-slate-300 bg-white px-4 py-2 text-sm text-slate-700 shadow-sm sm:max-w-xs"
               />
+              <input
+                type="datetime-local"
+                value={sessionStartsAt}
+                onChange={(e) => setSessionStartsAt(e.target.value)}
+                aria-label="Session Start"
+                className="rounded-full border border-slate-300 bg-white px-3 py-2 text-xs text-slate-700"
+              />
+              <input
+                type="datetime-local"
+                value={sessionEndsAt}
+                onChange={(e) => setSessionEndsAt(e.target.value)}
+                aria-label="Session Ende"
+                className="rounded-full border border-slate-300 bg-white px-3 py-2 text-xs text-slate-700"
+              />
               <button
                 onClick={createSession}
                 disabled={sessionBusy}
@@ -366,7 +412,7 @@ export default function AdminCampaignDetailPage() {
                     <tr>
                       <th className="px-3 py-2">Label</th>
                       <th className="px-3 py-2">Status</th>
-                      <th className="px-3 py-2">Start</th>
+                      <th className="px-3 py-2">Zeit</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
@@ -388,7 +434,27 @@ export default function AdminCampaignDetailPage() {
                           </select>
                         </td>
                         <td className="px-3 py-2 text-slate-600">
-                          <div>{session.startsAt ?? "–"}</div>
+                          <div className="flex flex-col gap-2">
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="datetime-local"
+                                value={session.startsAt ?? ""}
+                                onChange={(e) =>
+                                  updateSessionTimes(session.id, e.target.value, session.endsAt ?? "")
+                                }
+                                aria-label="Session Startzeit"
+                                className="rounded-md border border-slate-200 bg-white px-2 py-1 text-xs"
+                              />
+                              <input
+                                type="datetime-local"
+                                value={session.endsAt ?? ""}
+                                onChange={(e) =>
+                                  updateSessionTimes(session.id, session.startsAt ?? "", e.target.value)
+                                }
+                                aria-label="Session Endzeit"
+                                className="rounded-md border border-slate-200 bg-white px-2 py-1 text-xs"
+                              />
+                            </div>
                           {session.qrCode ? (
                             <a
                               href={`/qr/${encodeURIComponent(session.qrCode)}`}
@@ -397,6 +463,7 @@ export default function AdminCampaignDetailPage() {
                               QR: {session.qrCode}
                             </a>
                           ) : null}
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -476,6 +543,18 @@ export default function AdminCampaignDetailPage() {
             ) : null}
             {report?.joinsByDay?.length ? (
               <div className="mt-4 overflow-hidden rounded-xl border border-slate-200">
+                <div className="grid grid-cols-7 items-end gap-1 bg-slate-50 px-4 py-3 sm:grid-cols-14">
+                  {report.joinsByDay.map((row) => (
+                    <div key={`bar-${row.date}`} className="flex flex-col items-center gap-1">
+                      <div
+                        className="w-full rounded-sm bg-slate-900/80"
+                        style={{ height: `${Math.max(6, row.count * 6)}px` }}
+                        title={`${row.date}: ${row.count}`}
+                      />
+                      <span className="text-[10px] text-slate-500">{row.date.slice(5)}</span>
+                    </div>
+                  ))}
+                </div>
                 <table className="min-w-full divide-y divide-slate-200 text-xs">
                   <thead className="bg-slate-50 text-left uppercase tracking-wide text-slate-500">
                     <tr>
