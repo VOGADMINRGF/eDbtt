@@ -6,4 +6,3 @@ export * from "./domain/helpers";
 // reine Logik/Typen (client-safe)
 export * from "./types";
 export * from "./config";
-export * from "./credits";

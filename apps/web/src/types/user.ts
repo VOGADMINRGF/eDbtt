@@ -2,14 +2,19 @@ export type UserRole =
   | "guest"
   | "user"
   | "verified"
+  | "editor"
+  | "journalist"
+  | "redaktion"
   | "moderator"
+  | "staff"
   | "admin"
   | "ngo"
   | "politics"
   | "legitimized"
+  | "owner"
   | "premium"
-  | "superadmin";
+  | "superadmin"
+  | "kurator"
+  | "creator";
 
-// Dashboard-Gates
-export const ADMIN_DASHBOARD_ROLES: UserRole[] = ["admin", "superadmin"];
 export const SUPERADMIN_ONLY_ROLES: UserRole[] = ["superadmin"];
