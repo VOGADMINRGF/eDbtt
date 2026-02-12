@@ -189,6 +189,36 @@ Verification:
 Next Steps:
 - Charts/Visualisierung weiter verfeinern und Session-Statuspflege (live/ended) ergaenzen.
 
+### PR-0023 (2026-02-12) – Docs Path Update (Campaigns)
+
+Ziel:
+- Dokumentationspfade fuer Campaigns/QR/Reports aktualisieren.
+
+Changes:
+- Part12 um aktuelle UI/API/QR-Pfade ergaenzt.
+
+Verification:
+- `pnpm -C apps/web run lint` (PASS)
+- `pnpm -C apps/web run typecheck` (PASS)
+
+Next Steps:
+- Part12 um QR-Session-Reporting und Rollen-Gating erweitern.
+
+### PR-0024 (2026-02-12) – Part12 QR-Reporting + Roles
+
+Ziel:
+- QR-Session-Reporting und Rollen-Gating in Part12 dokumentieren.
+
+Changes:
+- Part12 um Reporting- und Gating-Abschnitt erweitert.
+
+Verification:
+- `pnpm -C apps/web run lint` (PASS)
+- `pnpm -C apps/web run typecheck` (PASS)
+
+Next Steps:
+- QR-Session-Report UI mit Filter/Export ergaenzen.
+
 Safe-Mode Checks (Membership/Payment):
 - Admin-Verbuchen (`mark-paid`) und Kündigung (`cancel`) funktionieren, setzen user.membership-Status korrekt.
 - Dunning-Job läuft trocken (keine Orders → no-op) und setzt bei Fälligkeit Reminder-Level / Auto-Cancel.

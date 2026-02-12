@@ -84,6 +84,41 @@ Fokus auf Fragen dieser Kampagne,
 
 optional Registrierung oder leichte Pseudonymisierung (z.B. nur E-Mail oder SMS).
 
+### 2.4 Implementierungsstand (Pfad-Referenzen, 2026-02-12)
+
+Aktuell umgesetzt (MVP):
+
+- **Admin UI**
+  - `/admin/campaigns`
+  - `/admin/campaigns/[id]`
+- **Public UI**
+  - `/campaign`
+  - `/campaign/[id]`
+  - `/campaign/[id]/join?session=<sessionId>`
+- **APIs**
+  - `GET/POST /api/campaigns`
+  - `GET/PATCH /api/campaigns/[id]`
+  - `POST /api/campaigns/[id]/join`
+  - `GET/POST /api/admin/campaigns/[id]/sessions` (inkl. QR-Code)
+  - `GET/POST /api/admin/campaigns/[id]/qr` (Campaign-QR)
+  - `GET /api/admin/campaigns/[id]/report`
+- **QR-Resolve**
+  - `/qr/[qrId]` → `GET /api/qr/resolve` (targetType: `campaign` | `campaign_session`)
+
+### 2.5 QR-Session-Reporting & Rollen-Gating (MVP)
+
+Reporting (Session- und Quellen-Segmente):
+
+- `GET /api/admin/campaigns/[id]/report`
+  - Teilnehmerzahl gesamt
+  - Join-Volumen pro Tag (letzte 14 Tage)
+  - Segmente nach `source` und `sessionId`
+
+Rollen-Gating (Admin-Only):
+
+- Admin-Endpoints in diesem Block sind **staff-only** (siehe `requireAdminOrResponse`).
+- Public Join bleibt offen (`/campaign/[id]/join`), QR-Targets werden nur durch Admins erzeugt.
+
 3. Admin Console
 3.1 Rollen
 staff – Plattform-Admin / Redaktionsleitung.
