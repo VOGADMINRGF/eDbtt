@@ -10,6 +10,8 @@ export type SwipeScopeLevel = "Bund" | "Land" | "Kommune" | "EU";
 export type SwipeItem = {
   id: string; // Statement-ID
   title: string;
+  /** Optionaler Volltext fuer Detail-/Dossier-Ansicht und Swipe-Excerpt. */
+  text?: string;
   category: string;
   level: SwipeScopeLevel;
   topicTags: string[];

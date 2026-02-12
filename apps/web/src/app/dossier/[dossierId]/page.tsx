@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import { getCol, ObjectId } from "@core/db/triMongo";
 import {
   dossierClaimsCol,
   dossierFindingsCol,
@@ -16,6 +17,21 @@ export const dynamic = "force-dynamic";
 type PageProps = {
   params: Promise<{ dossierId: string }>;
 };
+
+type ProposalDoc = {
+  _id: ObjectId;
+  title?: string | null;
+  text: string;
+  topic?: string | null;
+  responsibility?: string | null;
+  createdAt?: Date;
+};
+
+async function loadStatementProposalById(proposalId: string) {
+  if (!ObjectId.isValid(proposalId)) return null;
+  const col = await getCol<ProposalDoc>("statement_proposals");
+  return col.findOne({ _id: new ObjectId(proposalId) });
+}
 
 function formatDate(value?: Date | null) {
   if (!value) return null;
@@ -54,12 +70,68 @@ const verdictLabels: Record<string, string> = {
 export default async function DossierViewerPage({ params }: PageProps) {
   const { dossierId } = await params;
 
-  let dossier = await findDossierByAnyId(dossierId);
+  const dossier = await findDossierByAnyId(dossierId);
   if (!dossier) {
-    return notFound();
-  }
+    const proposal = await loadStatementProposalById(dossierId);
+    if (!proposal) return notFound();
 
-  if (!dossier) return notFound();
+    return (
+      <main className="min-h-screen bg-gradient-to-b from-[var(--brand-from)] via-white to-white pb-16">
+        <section className="mx-auto max-w-5xl px-4 py-16 space-y-10">
+          <header className="space-y-4">
+            <div className="space-y-2">
+              <p className="text-xs font-semibold uppercase tracking-wide text-sky-700">Dossier (in Aufbau)</p>
+              <h1 className="text-3xl md:text-4xl font-extrabold leading-tight text-slate-900">
+                {proposal.title ?? "Statement"}
+              </h1>
+              <p className="text-sm text-slate-600 max-w-2xl">
+                Für dieses Statement existiert noch kein Dossier. Du kannst es analysieren, um Claims, Quellen und offene Fragen zu erzeugen.
+              </p>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-3">
+              <Link
+                href={`/swipes/${encodeURIComponent(dossierId)}`}
+                className="rounded-full bg-slate-900 px-5 py-2 text-sm font-semibold text-white"
+              >
+                Zur Swipe-Karte
+              </Link>
+              <Link
+                href="/swipes"
+                className="rounded-full bg-slate-100 px-5 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-200"
+              >
+                Alle Swipes
+              </Link>
+              <Link
+                href={`/statements/new?prefill=${encodeURIComponent(proposal.text)}`}
+                className="rounded-full border border-slate-200 bg-white px-5 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+              >
+                Analyse starten
+              </Link>
+            </div>
+          </header>
+
+          <section className="rounded-3xl border border-slate-200 bg-white/95 p-6 shadow-sm">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Statement</p>
+            <p className="mt-3 whitespace-pre-line text-base leading-relaxed text-slate-900">{proposal.text}</p>
+            <div className="mt-5 flex flex-wrap gap-2 text-[11px] text-slate-600">
+              <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1">
+                Topic: <span className="font-semibold text-slate-800">{proposal.topic ?? "–"}</span>
+              </span>
+              <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1">
+                Zuständigkeit: <span className="font-semibold text-slate-800">{proposal.responsibility ?? "–"}</span>
+              </span>
+              {proposal.createdAt ? (
+                <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1">
+                  Eingereicht: <span className="font-semibold text-slate-800">{formatDate(proposal.createdAt) ?? "–"}</span>
+                </span>
+              ) : null}
+            </div>
+          </section>
+        </section>
+      </main>
+    );
+  }
 
   const dossierKey = dossier.dossierId;
   const [claims, sources, findings, openQuestions, edges, revisions] = await Promise.all([

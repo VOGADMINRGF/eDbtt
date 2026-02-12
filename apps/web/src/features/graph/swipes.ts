@@ -15,9 +15,13 @@ export async function recordSwipeVoteInGraph(payload: SwipeVotePayload): Promise
   const targetLabel = payload.eventualityId ? "Eventuality" : "Statement";
   const targetId = payload.eventualityId ?? payload.statementId;
 
+  const otherRelLabels = ["AGREES_WITH", "DISAGREES_WITH", "NEUTRAL_TOWARDS"].filter((l) => l !== relLabel);
+
   const cypher = `
     MERGE (u:User {id: $userId})
     MERGE (s:${targetLabel} {id: $targetId})
+    OPTIONAL MATCH (u)-[old:${otherRelLabels.join("|")}]->(s)
+    DELETE old
     MERGE (u)-[r:${relLabel}]->(s)
     SET r.source = $source,
         r.updatedAt = datetime(),

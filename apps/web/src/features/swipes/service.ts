@@ -110,6 +110,7 @@ function mapProposalToSwipe(proposal: ProposalDoc): SwipeItem {
   return {
     id: String(proposal._id ?? ""),
     title,
+    text: proposal.text,
     category: topic || "Statement",
     level: scope,
     topicTags: topic ? [topic] : [],

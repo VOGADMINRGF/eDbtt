@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import type { EDebattePackage, SwipeItem, Eventuality, SwipeDecision, SwipeFeedFilter } from "@/features/swipes/types";
 import StatementCard, { type StatementVote } from "@/components/statements/StatementCard";
 
@@ -73,6 +74,162 @@ const secondaryChipClass =
 const subtleTextLinkClass =
   "text-[11px] font-medium text-slate-500 underline-offset-2 hover:text-slate-900 hover:underline";
 
+function isInteractiveTarget(target: EventTarget | null) {
+  if (!(target instanceof Element)) return false;
+  return Boolean(
+    target.closest(
+      "button,a,input,textarea,select,summary,[role='button'],[role='link'],[data-swipe-no-drag]",
+    ),
+  );
+}
+
+type SwipeableCardShellProps = {
+  onRequestActive: () => void;
+  onOpen: () => void;
+  onSwipeDecision: (decision: SwipeDecision) => void;
+  children: React.ReactNode;
+};
+
+function SwipeableCardShell({ onRequestActive, onOpen, onSwipeDecision, children }: SwipeableCardShellProps) {
+  const ref = useRef<HTMLDivElement | null>(null);
+  const startRef = useRef<{ x: number; y: number } | null>(null);
+  const didDragRef = useRef(false);
+  const suppressNextClickRef = useRef(false);
+
+  const [dragX, setDragX] = useState(0);
+  const [dragging, setDragging] = useState(false);
+
+  const reset = useCallback(() => {
+    startRef.current = null;
+    didDragRef.current = false;
+    setDragging(false);
+    setDragX(0);
+  }, []);
+
+  const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (e.button !== 0) return;
+    if (isInteractiveTarget(e.target)) return;
+    startRef.current = { x: e.clientX, y: e.clientY };
+    didDragRef.current = false;
+    suppressNextClickRef.current = false;
+    (e.currentTarget as HTMLDivElement).setPointerCapture(e.pointerId);
+  };
+
+  const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    const start = startRef.current;
+    if (!start) return;
+    const dx = e.clientX - start.x;
+    const dy = e.clientY - start.y;
+    const absX = Math.abs(dx);
+    const absY = Math.abs(dy);
+
+    if (!didDragRef.current) {
+      if (absX < 6 && absY < 6) return;
+      // Vertical scroll gesture: don't hijack; also suppress click-open.
+      if (absY > absX) {
+        suppressNextClickRef.current = true;
+        reset();
+        return;
+      }
+      didDragRef.current = true;
+      setDragging(true);
+    }
+
+    // When actively swiping, prevent "ghost click" and keep motion smooth.
+    suppressNextClickRef.current = true;
+    e.preventDefault();
+    setDragX(dx);
+  };
+
+  const handlePointerEnd = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!startRef.current) return;
+    const commitThreshold = 120;
+    const dx = dragX;
+    const didDrag = didDragRef.current;
+
+    startRef.current = null;
+    didDragRef.current = false;
+    setDragging(false);
+
+    if (didDrag) {
+      suppressNextClickRef.current = true;
+    }
+
+    if (didDrag && Math.abs(dx) >= commitThreshold) {
+      const decision: SwipeDecision = dx > 0 ? "agree" : "disagree";
+      const width = ref.current?.getBoundingClientRect().width ?? 340;
+      // Animate out, then commit.
+      setDragX(Math.sign(dx) * (width * 1.15));
+      window.setTimeout(() => {
+        setDragX(0);
+        onSwipeDecision(decision);
+      }, 160);
+      return;
+    }
+
+    setDragX(0);
+    try {
+      (e.currentTarget as HTMLDivElement).releasePointerCapture(e.pointerId);
+    } catch {
+      // noop
+    }
+  };
+
+  const handleClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (suppressNextClickRef.current) {
+      suppressNextClickRef.current = false;
+      return;
+    }
+    if (isInteractiveTarget(e.target)) return;
+    onOpen();
+  };
+
+  const commitThreshold = 120;
+  const clampedRotate = Math.max(-9, Math.min(9, dragX / 32));
+  const hint: SwipeDecision | null = Math.abs(dragX) < 24 ? null : dragX > 0 ? "agree" : "disagree";
+  const overlayOpacity = Math.min(1, Math.abs(dragX) / commitThreshold);
+
+  return (
+    <div
+      ref={ref}
+      className="relative touch-pan-y select-none cursor-grab active:cursor-grabbing"
+      onPointerDownCapture={() => onRequestActive()}
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerEnd}
+      onPointerCancel={reset}
+      onClick={handleClick}
+      style={{
+        transform: dragX ? `translateX(${dragX}px) rotate(${clampedRotate}deg)` : undefined,
+        transition: dragging ? "none" : "transform 170ms cubic-bezier(0.2, 0.9, 0.2, 1)",
+      }}
+    >
+      {hint && (
+        <div
+          className={`pointer-events-none absolute inset-0 rounded-3xl ring-1 ${
+            hint === "agree" ? "bg-emerald-50 ring-emerald-200" : "bg-rose-50 ring-rose-200"
+          }`}
+          style={{ opacity: overlayOpacity * 0.6 }}
+        />
+      )}
+      {hint && (
+        <div
+          className={`pointer-events-none absolute top-4 ${
+            hint === "agree" ? "left-4" : "right-4"
+          } rounded-full px-3 py-1 text-[11px] font-semibold shadow-sm ${
+            hint === "agree" ? "bg-emerald-600 text-white" : "bg-rose-600 text-white"
+          }`}
+          style={{ opacity: Math.min(1, 0.35 + overlayOpacity * 0.65) }}
+        >
+          {hint === "agree" ? "Zustimmen" : "Ablehnen"}
+        </div>
+      )}
+
+      {children}
+    </div>
+  );
+}
+
 /** ------------------------
  * Haupt-Component
  * ----------------------- */
@@ -85,6 +242,7 @@ type SwipesClientProps = {
 };
 
 export function SwipesClient({ edebattePackage, initialTopic = "", focusStatementId, variant = "full" }: SwipesClientProps) {
+  const router = useRouter();
   const [topicQuery, setTopicQuery] = useState(variant === "solo" ? "" : initialTopic);
   const [activeLevel, setActiveLevel] = useState<"ALL" | "Bund" | "Land" | "Kommune" | "EU">("ALL");
   const [selectedSwipe, setSelectedSwipe] = useState<SwipeItem | null>(null);
@@ -95,10 +253,25 @@ export function SwipesClient({ edebattePackage, initialTopic = "", focusStatemen
   const [flashDecision, setFlashDecision] = useState<{ id: string; decision: SwipeDecision } | null>(null);
   const [screenFlash, setScreenFlash] = useState<SwipeDecision | null>(null);
   const [lastAction, setLastAction] = useState<{ item: SwipeItem; decision: SwipeDecision; index: number; removed: boolean } | null>(null);
+  const [liveMessage, setLiveMessage] = useState("");
+  const liveTimerRef = useRef<number | null>(null);
 
   const isBasic = edebattePackage === "basis" || edebattePackage === "none";
   const isStartOrPro = edebattePackage === "start" || edebattePackage === "pro";
   const isSolo = variant === "solo";
+
+  const openDossier = useCallback(
+    (statementId: string) => {
+      router.push(`/dossier/${encodeURIComponent(statementId)}`);
+    },
+    [router],
+  );
+
+  const announce = useCallback((message: string) => {
+    setLiveMessage(message);
+    if (liveTimerRef.current) window.clearTimeout(liveTimerRef.current);
+    liveTimerRef.current = window.setTimeout(() => setLiveMessage(""), 1400);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -126,26 +299,6 @@ export function SwipesClient({ edebattePackage, initialTopic = "", focusStatemen
 
   const filteredSwipes = useMemo(() => items, [items]);
 
-  useEffect(() => {
-    const handleKey = (e: KeyboardEvent) => {
-      if (!filteredSwipes.length) return;
-      const current = filteredSwipes[activeIndex] ?? filteredSwipes[0];
-      if (!current) return;
-      if (e.key === "ArrowLeft") {
-        e.preventDefault();
-        handleDecision(current, "disagree");
-      } else if (e.key === "ArrowRight") {
-        e.preventDefault();
-        handleDecision(current, "agree");
-      } else if (e.key === "ArrowUp" || e.key === "ArrowDown") {
-        e.preventDefault();
-        handleDecision(current, "neutral");
-      }
-    };
-    window.addEventListener("keydown", handleKey);
-    return () => window.removeEventListener("keydown", handleKey);
-  }, [filteredSwipes, activeIndex]);
-
   const handleOpenEventualities = async (item: SwipeItem) => {
     setSelectedSwipe(item);
     const evts = await fetchEventualities(item.id);
@@ -159,13 +312,21 @@ export function SwipesClient({ edebattePackage, initialTopic = "", focusStatemen
     setEventualities(null);
   };
 
-  const handleDecision = (item: SwipeItem, decision: SwipeDecision) => {
+  const handleDecision = useCallback((item: SwipeItem, decision: SwipeDecision, idxOverride?: number) => {
     setFlashDecision({ id: item.id, decision });
     setScreenFlash(decision);
     postSwipeVote({ statementId: item.id, decision }).catch(() => {});
     const shouldRemove = isBasic;
-    const idx = filteredSwipes.findIndex((s) => s.id === item.id);
+    const idx = typeof idxOverride === "number" ? idxOverride : filteredSwipes.findIndex((s) => s.id === item.id);
     setLastAction({ item, decision, index: idx >= 0 ? idx : 0, removed: shouldRemove });
+    announce(
+      decision === "agree"
+        ? "Zustimmung gespeichert."
+        : decision === "disagree"
+          ? "Ablehnung gespeichert."
+          : "Neutral gespeichert.",
+    );
+
     if (shouldRemove) {
       setTimeout(() => {
         setItems((prev) => prev.filter((s) => s.id !== item.id));
@@ -176,10 +337,46 @@ export function SwipesClient({ edebattePackage, initialTopic = "", focusStatemen
         }
       }, 250);
     } else {
-      setTimeout(() => setFlashDecision(null), 250);
+      const nextIdx = idx >= 0 ? Math.min(idx + 1, Math.max(filteredSwipes.length - 1, 0)) : 0;
+      setTimeout(() => {
+        setFlashDecision(null);
+        if (filteredSwipes[nextIdx]) {
+          setActiveIndex(nextIdx);
+          const nextId = filteredSwipes[nextIdx]?.id;
+          if (nextId) {
+            const el = document.querySelector(`[data-statement-id="${nextId}"]`);
+            (el as HTMLElement | null)?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+          }
+        }
+      }, 240);
     }
     setTimeout(() => setScreenFlash(null), 320);
-  };
+  }, [announce, filteredSwipes, isBasic]);
+
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      if (!filteredSwipes.length) return;
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      const t = e.target as HTMLElement | null;
+      if (t?.isContentEditable) return;
+      const tag = t?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+      const current = filteredSwipes[activeIndex] ?? filteredSwipes[0];
+      if (!current) return;
+      if (e.key === "ArrowLeft") {
+        e.preventDefault();
+        handleDecision(current, "disagree", activeIndex);
+      } else if (e.key === "ArrowRight") {
+        e.preventDefault();
+        handleDecision(current, "agree", activeIndex);
+      } else if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+        e.preventDefault();
+        handleDecision(current, "neutral", activeIndex);
+      }
+    };
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, [filteredSwipes, activeIndex, handleDecision]);
 
   const handleUndo = () => {
     if (!lastAction) return;
@@ -197,8 +394,46 @@ export function SwipesClient({ edebattePackage, initialTopic = "", focusStatemen
     setLastAction(null);
   };
 
+  const swipeCards = filteredSwipes.map((item, idx) => {
+    const cardText = item.text ?? item.title ?? "";
+    const isActiveCard = idx === activeIndex;
+    const badgeRight = item.evidenceCount ? `${item.evidenceCount} Belege` : undefined;
+    return (
+      <SwipeableCardShell
+        key={item.id}
+        onRequestActive={() => setActiveIndex(idx)}
+        onOpen={() => openDossier(item.id)}
+        onSwipeDecision={(decision) => handleDecision(item, decision, idx)}
+      >
+        <StatementCard
+          variant="swipe"
+          statementId={item.id}
+          title={item.title}
+          text={cardText}
+          mainCategory={item.category}
+          jurisdiction={item.level}
+          topic={item.domainLabel}
+          tags={item.topicTags}
+          metaRight={item.responsibilityLabel}
+          currentVote={flashDecision?.id === item.id ? mapDecisionToVote(flashDecision.decision) : null}
+          flashDecision={flashDecision?.id === item.id ? mapDecisionToVote(flashDecision.decision) : null}
+          onVoteChange={(vote) => handleDecision(item, mapVoteToDecision(vote), idx)}
+          className={isActiveCard ? "ring-2 ring-sky-200" : ""}
+          isActive={isActiveCard}
+          showOpenLink
+          onOpenDetails={() => openDossier(item.id)}
+          onOpenEventualities={item.hasEventualities && !isBasic ? () => handleOpenEventualities(item) : undefined}
+          badgeRight={badgeRight}
+        />
+      </SwipeableCardShell>
+    );
+  });
+
   return (
     <div className={`mx-auto flex flex-col gap-6 px-4 pt-10 ${isSolo ? "max-w-3xl" : "max-w-6xl"}`}>
+      <div className="sr-only" aria-live="polite" aria-atomic="true">
+        {liveMessage}
+      </div>
       {screenFlash && (
         <div
           className={`pointer-events-none fixed inset-0 z-40 transition-opacity duration-200 ${
@@ -242,36 +477,7 @@ export function SwipesClient({ edebattePackage, initialTopic = "", focusStatemen
               ctaLabel="Alle Swipes öffnen"
             />
           ) : (
-            filteredSwipes.map((item, idx) => (
-              <StatementCard
-                key={item.id}
-                variant="swipe"
-                statementId={item.id}
-                title={item.title}
-                text={
-                  item.title ??
-                  (item as any).summary ??
-                  (item as any).text ??
-                  (item as any).statement?.text ??
-                  (item as any).claim?.text ??
-                  (item as any).eventuality?.text ??
-                  ""
-                }
-                mainCategory={item.category}
-                jurisdiction={item.level}
-                topic={item.domainLabel}
-                tags={item.topicTags}
-                currentVote={flashDecision?.id === item.id ? mapDecisionToVote(flashDecision.decision) : null}
-                flashDecision={flashDecision?.id === item.id ? mapDecisionToVote(flashDecision.decision) : null}
-                onVoteChange={(vote) => handleDecision(item, mapVoteToDecision(vote))}
-                className={idx === activeIndex ? "ring-2 ring-sky-200" : ""}
-                isActive={idx === activeIndex}
-                onOpenEventualities={
-                  item.hasEventualities && !isBasic ? () => handleOpenEventualities(item) : undefined
-                }
-                badgeRight={item.evidenceCount ? `${item.evidenceCount} Belege` : undefined}
-              />
-            ))
+            swipeCards
           )}
         </div>
       ) : (
@@ -293,36 +499,7 @@ export function SwipesClient({ edebattePackage, initialTopic = "", focusStatemen
             ) : filteredSwipes.length === 0 ? (
               <EmptyState />
             ) : (
-              filteredSwipes.map((item, idx) => (
-                <StatementCard
-                  key={item.id}
-                  variant="swipe"
-                  statementId={item.id}
-                  title={item.title}
-                  text={
-                    item.title ??
-                    (item as any).summary ??
-                    (item as any).text ??
-                    (item as any).statement?.text ??
-                    (item as any).claim?.text ??
-                    (item as any).eventuality?.text ??
-                    ""
-                  }
-                  mainCategory={item.category}
-                  jurisdiction={item.level}
-                  topic={item.domainLabel}
-                  tags={item.topicTags}
-                  currentVote={flashDecision?.id === item.id ? mapDecisionToVote(flashDecision.decision) : null}
-                  flashDecision={flashDecision?.id === item.id ? mapDecisionToVote(flashDecision.decision) : null}
-                  onVoteChange={(vote) => handleDecision(item, mapVoteToDecision(vote))}
-                  className={idx === activeIndex ? "ring-2 ring-sky-200" : ""}
-                  isActive={idx === activeIndex}
-                  onOpenEventualities={
-                    item.hasEventualities && !isBasic ? () => handleOpenEventualities(item) : undefined
-                  }
-                  badgeRight={item.evidenceCount ? `${item.evidenceCount} Belege` : undefined}
-                />
-              ))
+              swipeCards
             )}
           </div>
 
@@ -375,6 +552,17 @@ function SwipesHeader({ edebattePackage, isBasic, isStartOrPro }: SwipesHeaderPr
         <span className="bg-gradient-to-r from-sky-500 via-cyan-500 to-emerald-500 bg-clip-text text-transparent">Swipes</span> – schnelle, faire Entscheidungen.
       </h1>
       <p className="max-w-2xl text-sm text-slate-600">Links/rechts entscheiden, Quellen prüfen, später vertiefen – die Karten können aus deinen Analysen oder aktuellen Themen gespeist werden.</p>
+      <div className="flex flex-wrap items-center gap-2">
+        <Link href="/statements/new" className={primaryChipClass}>
+          Neues Statement analysieren
+        </Link>
+        <Link href="/contributions/new" className={secondaryChipClass}>
+          Beitrag einreichen
+        </Link>
+        <Link href="/account" className={subtleTextLinkClass}>
+          Profil
+        </Link>
+      </div>
       <p className="flex flex-wrap items-center gap-2 text-[11px] text-slate-500">
         <span>
           Aktiver Modus: <span className="font-semibold text-slate-800">{pkgLabel}</span>
@@ -386,7 +574,7 @@ function SwipesHeader({ edebattePackage, isBasic, isStartOrPro }: SwipesHeaderPr
         Eventualitäten stehen dir in eDebatte Start und Pro vollständig zur Verfügung.
       </p>
       <p className="text-[11px] text-slate-500">
-        Hinweis: Links = Ablehnen, Rechts = Zustimmen, Pfeil hoch oder Tippen = Neutral. Nach jedem Swipe kannst du kurz rückgängig machen.
+        Hinweis: Ziehen/Wischen links = Ablehnen, rechts = Zustimmen. Pfeil hoch oder runter (oder Button) = Neutral. Tippen/Klicken auf eine Karte öffnet das Dossier.
       </p>
     </header>
   );

@@ -60,6 +60,10 @@ export function StatementCard({
   children,
   showVoteButtons = true,
 }: StatementCardProps) {
+  const normalizedTitle = (title ?? "").trim();
+  const normalizedText = text.trim();
+  const showSwipeExcerpt = variant === "swipe" && Boolean(normalizedText) && normalizedText !== normalizedTitle;
+
   const voteButtons = useMemo(
     () => [
       { id: "reject" as StatementVote, label: "Ablehnen", icon: "👎", activeClass: "border-rose-500/60 bg-rose-50 text-rose-800" },
@@ -80,6 +84,7 @@ export function StatementCard({
     <article
       className={`relative flex flex-col gap-3 rounded-3xl bg-white/95 p-4 ring-1 transition ${cardTone} ${className}`}
       aria-label={`Statement ${statementId}`}
+      data-statement-id={statementId}
     >
       <header className="flex items-start justify-between gap-3">
         <div className="space-y-1">
@@ -101,6 +106,7 @@ export function StatementCard({
             <button
               type="button"
               onClick={onOpenDetails}
+              data-swipe-no-drag
               className="text-[10px] font-semibold text-slate-500 underline-offset-2 hover:text-slate-800"
             >
               Karte öffnen
@@ -125,6 +131,12 @@ export function StatementCard({
         <div className="text-sm leading-relaxed text-slate-800 whitespace-pre-line">{text}</div>
       )}
 
+      {showSwipeExcerpt && (
+        <div className="text-sm leading-relaxed text-slate-800 whitespace-pre-line">
+          <p className="line-clamp-4">{text}</p>
+        </div>
+      )}
+
       {children}
 
       {(showVoteButtons || onOpenEventualities) && (
@@ -138,6 +150,7 @@ export function StatementCard({
                     key={opt.id}
                     type="button"
                     onClick={() => onVoteChange?.(opt.id)}
+                    data-swipe-no-drag
                     className={`flex items-center gap-2 rounded-full border px-3 py-1.5 text-[12px] font-semibold shadow-sm transition ${
                       active ? opt.activeClass : "border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100"
                     }`}
@@ -154,6 +167,7 @@ export function StatementCard({
             <button
               type="button"
               onClick={onOpenEventualities}
+              data-swipe-no-drag
               className="text-[11px] font-semibold text-sky-700 underline-offset-2 hover:underline"
             >
               Varianten ansehen
