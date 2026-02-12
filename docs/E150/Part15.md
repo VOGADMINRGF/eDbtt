@@ -45,7 +45,8 @@ Status basiert auf Repo-Evidenz (Dateien/Routes/Modelle). Offener Arbeitsstand b
 
 - `/contributions/new` rendert wieder mit SiteShell, Citizen-Core-Text und sauberem Login-Redirect statt JSON-403; Credits/Gating basieren auf `AccountOverview`.
 - Login & Registrierung schreiben Name + Kontakt direkt in `pii.user_profiles` (givenName/familyName, birthDate ready), sodass Mitgliedsanträge nicht mehr ohne PII bleiben.
-- `/mitglied-werden` + `/mitglied-antrag` decken die drei B2C-Produkte (Basis 0 €, Pro 14,99 €, Premium 34,99 €) ab inkl. Checkbox für den 25%-Rabatt.
+- `/pricing` ist die kanonische Landing fuer Pakete/Preise/Add-ons; `/mitglied-werden` ist Legacy und redirectet auf `/pricing`.
+- `/mitglied-antrag` bleibt der Mitgliedschafts-Antrag (Wizard, Pflichtfelder, Bankdaten/Verwendungszweck, optional 25%-Rabatt je nach Rule).
 - `/api/membership/apply` erstellt einen Antrag (`membership_applications`), aktualisiert `users.membership.lastApplication`, speichert Adresse/Birthdate/Telefon in PII und verschickt Bankdaten + Verwendungszweck per Mail.
 
 ## Run-Plan nach Part15 (Block-Status & Definition of Done)

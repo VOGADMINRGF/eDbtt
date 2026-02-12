@@ -1433,8 +1433,8 @@ function VOGMembershipCard({ membership, membershipStatus, paymentReference }: V
       </p>
 
       <div className="mt-4 flex flex-wrap gap-2">
-        <Link href="/mitglied-werden" className={primaryButtonSmallClass}>
-          {membership.isMember ? "Mitgliedschaft verwalten" : "Mitglied werden"}
+        <Link href="/pricing" className={primaryButtonSmallClass}>
+          {membership.isMember ? "Paket & Preise" : "Paket waehlen"}
         </Link>
         {isWaitingPayment && (
           <Link href="/account/payment" className={secondaryLightButtonClass}>

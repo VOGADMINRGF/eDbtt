@@ -152,10 +152,10 @@ function ContributionGate({ variant, overview }: ContributionGateProps) {
             Weiter swipen
           </a>
           <a
-            href="/mitglied-werden"
+            href="/pricing"
             className="flex-1 rounded-full border border-slate-200 px-5 py-3 text-center font-semibold text-slate-700"
           >
-            Mehr erfahren
+            Pakete & Preise
           </a>
         </div>
       </div>

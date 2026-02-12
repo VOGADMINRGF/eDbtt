@@ -11,14 +11,14 @@ export default function SiteHeader(){
         <nav className="hidden md:flex gap-4 text-sm">
           <a href="/howtoworks/edebatte/dossier" className="hover:underline">Dossier &amp; Faktencheck</a>
           <a href="/swipes" className="hover:underline">Abstimmen</a>
-          <a href="/mitglied-werden" className="hover:underline">Mitmachen</a>
+          <a href="/pricing" className="hover:underline">Preise</a>
         </nav>
       </div>
       {open && (
         <nav className="md:hidden border-t px-4 py-2 flex flex-col gap-2 text-sm bg-white">
           <a href="/howtoworks/edebatte/dossier" className="py-1">Dossier &amp; Faktencheck</a>
           <a href="/swipes" className="py-1">Abstimmen</a>
-          <a href="/mitglied-werden" className="py-1">Mitmachen</a>
+          <a href="/pricing" className="py-1">Preise</a>
         </nav>
       )}
     </header>

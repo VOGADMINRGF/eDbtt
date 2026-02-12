@@ -12,9 +12,13 @@ Kontext / Stand:
     - apps/web/src/components/layout/HeaderLoginInline.tsx → kompakter Header-Login.
     - apps/web/src/app/(components)/SiteHeader.tsx → bindet HeaderLoginInline ein.
   - eine zentrale Pricing-Konfiguration:
-    - apps/web/src/config/pricing.ts → VOG_MEMBERSHIP_PLAN, eDebatte-Tiers basis/erweitert/premium, MEMBER_DISCOUNT, calcDiscountedPrice etc.
+    - apps/web/src/config/pricing.ts → VOG_MEMBERSHIP_PLAN, EDEBATTE_PLANS (abgeleitet), MEMBER_DISCOUNT, calcDiscountedPrice etc.
+    - features/pricing/** → AccessTiers/FeatureMatrix/Limits + Marketing-Pakete (de)
   - angepasste Seiten:
-    - /mitglied-werden, /nutzungsmodell, /mitglied-antrag nutzen die neuen B2C-Pläne und die 25 %-Goodie-Logik (min Betrag, min Laufzeit, 6-Monats-Fenster).
+    - /pricing ist kanonisch fuer Pakete/Preise/Add-ons.
+    - /mitglied-werden ist Legacy und redirectet auf /pricing.
+    - /mitglied-antrag ist der Mitgliedschafts-Antrag (Wizard).
+    - /nutzungsmodell ist optional/legacy und soll nicht Quelle neuer Flows sein.
   - Docs:
     - docs/E150/membership_pricing.md
     - docs/E150/Part01_Systemvision_Mission_Governance.md

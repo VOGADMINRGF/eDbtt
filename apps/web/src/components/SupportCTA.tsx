@@ -3,7 +3,7 @@ export default function SupportCTA() {
   return (
     <div className="text-center">
       <a
-        href="/mitglied-werden"
+        href="/pricing"
         className="inline-block bg-coral text-white px-6 py-3 rounded font-semibold hover:opacity-90 transition"
       >
         Jetzt unterstützen

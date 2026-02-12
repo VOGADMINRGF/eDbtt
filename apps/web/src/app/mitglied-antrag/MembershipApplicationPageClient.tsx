@@ -73,7 +73,7 @@ export function MembershipApplicationPageClient() {
     setDraft(loadMembershipDraft());
   }, []);
 
-  // --- Query-Params aus /mitglied-werden ------------------------------------
+  // --- Query-Params aus Legacy-Flow (/mitglied-werden) -----------------------
 
   const initialAmount: number = React.useMemo(() => {
     const raw = searchParams.get("betrag");
@@ -1016,12 +1016,16 @@ export function MembershipApplicationPageClient() {
                   Beitrag-Rechner zurück.
                 </p>
               </div>
-              <Link
-                href="/mitglied-werden"
+              <button
+                type="button"
+                onClick={() => {
+                  setStep(1);
+                  window.scrollTo({ top: 0, behavior: "smooth" });
+                }}
                 className="inline-flex items-center justify-center rounded-full border border-sky-400 bg-white px-4 py-2 text-xs font-semibold text-sky-800 hover:bg-sky-50"
               >
-                Zum Beitrag-Rechner
-              </Link>
+                Rechner oben anpassen
+              </button>
             </aside>
           </div>
 

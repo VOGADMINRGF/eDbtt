@@ -73,7 +73,7 @@ function getPublicOrigin() {
 }
 
 function getMembershipUrl(origin: string) {
-  return `${origin.replace(/\/$/, "")}/mitglied-werden`;
+  return `${origin.replace(/\/$/, "")}/pricing`;
 }
 
 function buildConfirmMail(opts: {
@@ -100,8 +100,8 @@ function buildConfirmMail(opts: {
       <a href="${confirmUrl}">${confirmUrl}</a>
     </p>
     <p>Mit deinen Updates halten wir dich über neue Abstimmungen, Funktionen und Beteiligungsmöglichkeiten auf dem Laufenden.</p>
-    <p>Wenn du unsere Arbeit langfristig stärken möchtest, kannst du jederzeit
-      <a href="${membershipUrl}">Mitglied werden</a> oder uns auch anonym unterstützen.</p>
+    <p>Wenn du unsere Arbeit langfristig stärken möchtest, findest du hier Pakete, Preise und Möglichkeiten zur Unterstützung:
+      <a href="${membershipUrl}">Pakete &amp; Preise</a>.</p>
     <p>Falls du dich nicht selbst eingetragen hast, kannst du diese Nachricht ignorieren.</p>
     <p>– Dein Team von eDebatte</p>
   `;

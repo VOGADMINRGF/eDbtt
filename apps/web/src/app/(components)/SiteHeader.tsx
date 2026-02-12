@@ -34,11 +34,6 @@ const NAV_ITEMS: NavItem[] = [
     description: "Positionen bewerten und Mehrheiten sichtbar machen.",
   },
   {
-    href: "/mitglied-werden",
-    label: "Mitmachen",
-    description: "Mitgliedschaft und Beteiligung bei eDebatte starten.",
-  },
-  {
     href: "/pricing",
     label: "Preise",
     description: "Pakete, Vormerkung und Mitgliedschaft.",
@@ -309,7 +304,7 @@ export function SiteHeader({ initialUser }: { initialUser?: AuthUser | null }) {
               ))}
 
               <Link
-                href="/mitglied-werden"
+                href="/pricing"
                 onClick={() => setMobileOpen(false)}
                 className="mt-2 rounded-full bg-gradient-to-r from-sky-500 to-emerald-500 px-4 py-2 text-center text-sm font-semibold text-white shadow-[0_10px_25px_rgba(56,189,248,0.4)]"
               >

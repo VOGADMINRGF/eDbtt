@@ -48,7 +48,7 @@ export default function AboutRickyPage() {
                 eDebatte entdecken
               </a>
               <a
-                href="/mitglied-werden"
+                href="/pricing"
                 className="inline-flex items-center justify-center rounded-full border border-slate-600 bg-slate-950/60 px-4 py-2 text-sm font-medium text-slate-100 hover:border-cyan-400 hover:text-cyan-200"
               >
                 Mitmachen &amp; unterstützen
@@ -193,10 +193,10 @@ export default function AboutRickyPage() {
               </p>
               <div className="mt-3 flex flex-wrap gap-3">
                 <a
-                  href="/mitglied-werden"
+                  href="/pricing"
                   className="inline-flex flex-1 items-center justify-center rounded-full bg-cyan-400 px-4 py-2 text-xs font-medium text-slate-950 hover:bg-cyan-300"
                 >
-                  Mitmachen
+                  Pakete &amp; Preise
                 </a>
                 <a
                   href="/kontakt"

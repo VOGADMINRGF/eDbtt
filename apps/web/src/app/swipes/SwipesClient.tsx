@@ -607,8 +607,8 @@ function SwipesToolbar({ topicQuery, onTopicChange, activeLevel, onLevelChange, 
             }`}
           />
           {isBasic ? (
-            <Link href="/mitglied-werden" className={primaryChipClass}>
-              Themensuche in eDebatte Start freischalten
+            <Link href="/pricing" className={primaryChipClass}>
+              Themensuche in Start freischalten
             </Link>
           ) : (
             <Link href="/swipes/saved" className={secondaryChipClass}>
@@ -687,8 +687,9 @@ function EventualitiesPanel({ selectedSwipe, eventualities, isBasic }: Eventuali
       <p className="mt-3 text-[10px] text-slate-400">Du kannst jede Eventualität separat bewerten. Später können daraus konkrete Szenarien und Beschlussvarianten gebaut werden.</p>
       {isBasic && (
         <p className="mt-2 text-[10px] text-slate-400">
-          In eDebatte Start fließen deine Bewertungen direkt in Entscheidungsvarianten ein. <Link href="/mitglied-werden" className="underline">
-            Mehr zu eDebatte Start
+          In eDebatte Start fließen deine Bewertungen direkt in Entscheidungsvarianten ein.{" "}
+          <Link href="/pricing" className="underline">
+            Mehr zu Paketen & Preisen
           </Link>
         </p>
       )}

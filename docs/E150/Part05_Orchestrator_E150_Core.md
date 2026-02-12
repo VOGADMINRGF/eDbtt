@@ -529,6 +529,6 @@ Part05 ist damit der technische Kern von E150.
 Part06 (Consequences & Fairness) und Part08 (Eventualitäten & Konsens) bauen darauf auf, um die Analyse nicht nur strukturiert, sondern auch gesellschaftlich klug auswertbar zu machen.
 
 Membership-/Haushaltsfluss (Kurz):
-- Wizard (/mitglied-werden → /mitglied-antrag) erzeugt MembershipApplication (Order) mit PaymentInfo (bank_transfer) und optionaler eDebatte-Vorbestellung; user.membership-Snapshot spiegelt Status/Rhythmus/Household/PaymentInfo.
+- Wizard (canonical: `/pricing` → `/mitglied-antrag`; legacy: `/mitglied-werden` redirect) erzeugt MembershipApplication (Order) mit PaymentInfo (bank_transfer) und optionaler eDebatte-Vorbestellung; user.membership-Snapshot spiegelt Status/Rhythmus/Household/PaymentInfo.
 - Admin-Aktionen: mark-paid → active; cancel → household_locked; Dunning-Script (Reminder 1/2/final) nutzt firstDueAt/dunningLevel.
 - /account zeigt Status-Badge + Zahlungsinfos; kein PII-Leak (IBAN nur masked).

@@ -81,7 +81,7 @@ export default function UnterstuetzenPage() {
         </p>
 
         <div className="text-center">
-          <a href="/mitglied-werden" className="btn bg-brand-grad text-white shadow-soft">
+          <a href="/pricing" className="btn bg-brand-grad text-white shadow-soft">
             {strings.cta}
           </a>
         </div>

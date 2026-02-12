@@ -346,13 +346,18 @@ Part 03 bildet die Grundlage für:
 - Part 12 (Admin & Telemetrie),
 - Part 13 (I18N & Social/Community Features),
 - sowie alle Feature Gates im User-Modell (Part 02).
-## eDebatte Mitgliedschaft (Basis/Pro/Premium)
 
-- `/mitglied-werden` präsentiert die drei B2C-Produkte:
-  - **Basis (0 €)** – CitizenBasic, XP → Contribution Credits.
-  - **Pro (14,99 €/Monat)** – mehr Credits, Insights, Stream-Aktivierung.
-  - **Premium (34,99 €/Monat)** – unbegrenzte Contributions, priorisierte Betreuung.
-- Mitglieder können den 25-%-Mitgliederrabatt auf eDebatte Pro/Premium aktivieren (Checkbox „Ich bin Mitglied …“).
-- `/mitglied-antrag` erzwingt Login und sammelt Pflichtfelder (Vor-/Nachname, Adresse inkl. PLZ, Land, Geburtsdatum, Telefon optional).
-- Nach dem Submit zeigt der Client sofort Bank-Details + Verwendungszweck an und der API-Endpunkt `/api/membership/apply` verschickt dieselben Infos per Mail.
-- Mitgliedsstatus in `users.membership` → `pending` (inkl. `lastApplication`-Snapshot), PII liegt in `pii.user_profiles`.
+## eDebatte Pakete & Mitgliedschaft
+
+Canonical: `/pricing` (Pakete/Preise/Add-ons) und `/mitglied-antrag` (Mitgliedschafts-Antrag).
+
+- `/pricing` ist die kanonische Landing fuer:
+  - Pakete (z.B. Basis/Start/Pro) inkl. Vormerkung
+  - Add-ons (z.B. Zusatzthemen, Agenda/Umfragen pro Teilnehmer, optionale Faktencheck-/Contributions-Hilfe)
+- `/mitglied-werden` ist **Legacy** und redirectet auf `/pricing` (keine neuen Flows darauf aufbauen).
+- `/mitglied-antrag` ist der Mitgliedschafts-Antrag (Wizard):
+  - erzwingt Login und sammelt Pflichtfelder (Vor-/Nachname, Adresse inkl. PLZ, Land, Geburtsdatum; Telefon optional)
+  - nach Submit: UI zeigt Bank-Details + Verwendungszweck; `/api/membership/apply` verschickt dieselben Infos per Mail
+- Mitgliedsstatus in `users.membership`:
+  - `pending` nach Antrag (inkl. `lastApplication`-Snapshot)
+  - PII liegt in `pii.user_profiles`

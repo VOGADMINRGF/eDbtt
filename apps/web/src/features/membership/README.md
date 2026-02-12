@@ -13,7 +13,8 @@ Dieses Modul gehört ausschließlich zur eDebatte-Bewegung – also zur ideellen
 
 ## Integration (Ausblick)
 
-- **Landing & /mitglied-werden**: nutzen diesen Rechner, um Beiträge vorzuschlagen.
+- **Landing & /pricing**: nutzt diesen Rechner indirekt (Mitgliedschaft/Unterstuetzung wird dort erklärt).
+- **Legacy**: `/mitglied-werden` ist nur noch Redirect auf `/pricing` (keine neuen Flows darauf aufbauen).
 - **features/user**: VoG-Status kann später als Badge/Feld gespeichert werden (optional).
 - **Checkout**: `/api/support/intent` oder zukünftige Zahlungsanbieter laufen hier zusammen.
 
