@@ -451,3 +451,21 @@ Verification:
 
 Next Steps:
 - Optional: weitere OG-Metadaten fuer Detailseiten (Dossiers/Reports) ergaenzen.
+
+### PR-0035 (2026-02-12) – Swipes End-to-End Persistence
+
+Ziel:
+- Swipes ohne Mock-Daten betreiben, Votes dauerhaft speichern, Eventualitaeten aus dem Graph ziehen.
+
+Changes:
+- Swipe-Feed nutzt ausschliesslich `statement_proposals`; Mock-Deck entfernt.
+- Eventualitaeten werden aus `eventuality_nodes` nach `statementId` geladen.
+- Swipe-Votes werden in `swipe_votes` persistiert (Upsert pro User/Statement/Eventualitaet).
+- OpenTasks: optionaler Swipes-Backlog auf Analytics reduziert.
+
+Verification:
+- `pnpm -C apps/web run lint` (PASS)
+- `pnpm -C apps/web run typecheck` (PASS)
+
+Next Steps:
+- Optional: Vote-Aggregationen/Analytics fuer Admin-Reports vorbereiten.

@@ -7,80 +7,12 @@ import type {
   EventualitiesResponse,
   Eventuality,
   SwipeVotePayload,
+  SwipeDecision,
 } from "./types";
 import { recordSwipeVoteInGraph } from "@/features/graph/swipes";
 import { getCol } from "@core/db/triMongo";
-
-// TODO: An tri-mongo / E150 anbinden. Aktuell: Mock-Daten.
-
-const MOCK_SWIPES: SwipeItem[] = [
-  {
-    id: "1",
-    title: "Soll Social-Media automatisch beleidigende Kommentare ausblenden?",
-    category: "Moderation",
-    level: "Bund",
-    topicTags: ["Digitale Räume", "Hassrede"],
-    evidenceCount: 4,
-    responsibilityLabel: "Zuständigkeit: Bund",
-    domainLabel: "Digitale Räume",
-    hasEventualities: true,
-    eventualitiesCount: 3,
-  },
-  {
-    id: "2",
-    title: "Brauchen Pflegekräfte bundesweit einheitliche Personalstandards?",
-    category: "Pflege",
-    level: "Bund",
-    topicTags: ["Gesundheit", "Arbeitswelt"],
-    evidenceCount: 3,
-    responsibilityLabel: "Zuständigkeit: Bund",
-    domainLabel: "Pflege",
-    hasEventualities: true,
-    eventualitiesCount: 2,
-  },
-  {
-    id: "3",
-    title: "Soll der ÖPNV bis 2030 in Städten gebührenfrei werden?",
-    category: "Mobilität",
-    level: "Kommune",
-    topicTags: ["Klima", "Städte"],
-    evidenceCount: 5,
-    responsibilityLabel: "Zuständigkeit: Kommune",
-    domainLabel: "Mobilität",
-    hasEventualities: false,
-    eventualitiesCount: 0,
-  },
-];
-
-const MOCK_EVENTUALITIES: Record<string, Eventuality[]> = {
-  "1": [
-    {
-      id: "1a",
-      title: "Ausblenden nur bei wiederholten Verstößen nach manueller Prüfung",
-      shortLabel: "Nur bei Wiederholung",
-    },
-    {
-      id: "1b",
-      title: "Nur Kennzeichnung statt Ausblenden, damit Kontext sichtbar bleibt",
-      shortLabel: "Kennzeichnung statt Löschung",
-    },
-    {
-      id: "1c",
-      title: "Kein automatisches Ausblenden, aber einfache Meldefunktion für Nutzer:innen",
-      shortLabel: "Melden statt Algorithmus",
-    },
-  ],
-  "2": [
-    {
-      id: "2a",
-      title: "Bundeseinheitliche Mindeststandards, Details durch Länder/Kassen",
-    },
-    {
-      id: "2b",
-      title: "Regionale Modelle statt bundesweiter Standards, aber Transparenzpflicht",
-    },
-  ],
-};
+import { eventualityNodesCol } from "@core/eventualities/db";
+import type { EventualityNodeDoc } from "@core/eventualities/types";
 
 type ProposalDoc = {
   _id?: any;
@@ -92,6 +24,17 @@ type ProposalDoc = {
   importance?: number | null;
   status?: string;
   createdAt?: Date;
+};
+
+type SwipeVoteDoc = {
+  _id?: any;
+  userId: string;
+  statementId: string;
+  eventualityId: string | null;
+  decision: SwipeDecision;
+  source: "swipes";
+  createdAt: Date;
+  updatedAt: Date;
 };
 
 function deriveScopeLevel(responsibility?: string | null): SwipeItem["level"] {
@@ -121,6 +64,23 @@ function mapProposalToSwipe(proposal: ProposalDoc): SwipeItem {
     eventualitiesCount: 0,
   };
 }
+
+async function loadEventualityCounts(statementIds: string[]) {
+  if (!statementIds.length) return {};
+  const col = await eventualityNodesCol();
+  const rows = await col
+    .aggregate([{ $match: { statementId: { $in: statementIds } } }, { $group: { _id: "$statementId", count: { $sum: 1 } } }])
+    .toArray();
+  return rows.reduce<Record<string, number>>((acc, row) => {
+    acc[String(row._id)] = row.count ?? 0;
+    return acc;
+  }, {});
+}
+
+async function swipeVotesCol() {
+  return getCol<SwipeVoteDoc>("swipe_votes");
+}
+
 export async function getSwipeFeed(req: SwipeFeedRequest): Promise<SwipeFeedResponse> {
   // Filter rudimentär auf Basis der Mock-Daten
   const { filter } = req;
@@ -134,7 +94,7 @@ export async function getSwipeFeed(req: SwipeFeedRequest): Promise<SwipeFeedResp
     .limit(req.limit ?? 20)
     .toArray();
 
-  let items = proposalDocs.length > 0 ? proposalDocs.map(mapProposalToSwipe) : MOCK_SWIPES;
+  let items = proposalDocs.length > 0 ? proposalDocs.map(mapProposalToSwipe) : [];
 
   if (statementId) {
     items = items.filter((item) => item.id === statementId);
@@ -152,17 +112,56 @@ export async function getSwipeFeed(req: SwipeFeedRequest): Promise<SwipeFeedResp
     items = items.filter((item) => item.level === level);
   }
 
+  if (items.length > 0) {
+    const counts = await loadEventualityCounts(items.map((item) => item.id));
+    items = items.map((item) => {
+      const count = counts[item.id] ?? 0;
+      return {
+        ...item,
+        hasEventualities: count > 0,
+        eventualitiesCount: count,
+      };
+    });
+  }
+
   return { items, nextCursor: null };
 }
 
 export async function getEventualitiesForStatement(req: EventualitiesRequest): Promise<EventualitiesResponse> {
-  const eventualities = MOCK_EVENTUALITIES[req.statementId] ?? [];
+  const col = await eventualityNodesCol();
+  const nodes = await col
+    .find<EventualityNodeDoc>({ statementId: req.statementId })
+    .sort({ createdAt: 1 })
+    .toArray();
+  const eventualities: Eventuality[] = nodes.map((doc) => ({
+    id: doc.nodeId,
+    title: doc.payload?.label ?? "Eventualitaet",
+    description: doc.payload?.narrative ?? undefined,
+  }));
   return { statementId: req.statementId, eventualities };
 }
 
 export async function recordSwipeVote(payload: SwipeVotePayload): Promise<void> {
-  // TODO: Votes in Mongo speichern. Aktuell nur Graph-Stub + Log.
-  console.log("[swipes] vote", payload);
+  const now = new Date();
+  const col = await swipeVotesCol();
+  await col.updateOne(
+    {
+      userId: payload.userId,
+      statementId: payload.statementId,
+      eventualityId: payload.eventualityId ?? null,
+      source: payload.source,
+    },
+    {
+      $set: {
+        decision: payload.decision,
+        updatedAt: now,
+      },
+      $setOnInsert: {
+        createdAt: now,
+      },
+    },
+    { upsert: true },
+  );
   try {
     await recordSwipeVoteInGraph(payload);
   } catch (err) {
