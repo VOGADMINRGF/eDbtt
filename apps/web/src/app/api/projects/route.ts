@@ -24,7 +24,11 @@ async function gateProjectCreator(req: NextRequest) {
     return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
   }
 
-  if (userRequiresTwoFactor(user) && !sessionHasPassedTwoFactor(user)) {
+  if (!userRequiresTwoFactor(user)) {
+    return NextResponse.json({ ok: false, error: "two_factor_setup_required" }, { status: 403 });
+  }
+
+  if (!sessionHasPassedTwoFactor(user)) {
     return NextResponse.json({ ok: false, error: "two_factor_required" }, { status: 403 });
   }
 

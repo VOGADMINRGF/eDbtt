@@ -4,6 +4,7 @@ import type {
   AiPipelineName,
   AiProviderName,
 } from "@core/telemetry/aiUsageTypes";
+import { requireAdminOrResponse } from "@/lib/server/auth/admin";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -32,6 +33,9 @@ function normalizePipeline(value: string | null): AiPipelineName | undefined {
 }
 
 export async function GET(req: NextRequest) {
+  const gate = await requireAdminOrResponse(req);
+  if (gate instanceof Response) return gate;
+
   try {
     const { searchParams } = new URL(req.url);
     const snapshot = await getUsageSnapshot({

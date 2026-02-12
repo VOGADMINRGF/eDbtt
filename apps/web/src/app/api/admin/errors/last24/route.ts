@@ -1,3 +1,14 @@
-import { NextResponse } from "next/server";
-export async function GET()  { return NextResponse.json({ ok:false, reason:"not-implemented" }, { status: 501 }); }
-export async function POST() { return NextResponse.json({ ok:false, reason:"not-implemented" }, { status: 501 }); }
+import { NextRequest, NextResponse } from "next/server";
+import { requireAdminOrResponse } from "@/lib/server/auth/admin";
+
+export async function GET(req: NextRequest) {
+  const gate = await requireAdminOrResponse(req);
+  if (gate instanceof Response) return gate;
+  return NextResponse.json({ ok: false, reason: "not-implemented" }, { status: 501 });
+}
+
+export async function POST(req: NextRequest) {
+  const gate = await requireAdminOrResponse(req);
+  if (gate instanceof Response) return gate;
+  return NextResponse.json({ ok: false, reason: "not-implemented" }, { status: 501 });
+}

@@ -1,4 +1,5 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import { requireAdminOrResponse } from "@/lib/server/auth/admin";
 
 async function seedPrismaAdjacency() {
   const client = await getPrismaClient();
@@ -34,7 +35,10 @@ async function seedNeo4j() {
   }
 }
 
-export async function POST() {
+export async function POST(req: NextRequest) {
+  const gate = await requireAdminOrResponse(req);
+  if (gate instanceof Response) return gate;
+
   try {
     const neo = await seedNeo4j();
     if (neo) return NextResponse.json(neo);

@@ -1,7 +1,11 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { coreCol } from "@core/db/triMongo";
+import { requireAdminOrResponse } from "@/lib/server/auth/admin";
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const gate = await requireAdminOrResponse(req);
+  if (gate instanceof Response) return gate;
+
   const col = await coreCol("statements");
   const since = new Date(Date.now() - 30 * 24 * 3600 * 1000);
   const agg = await col

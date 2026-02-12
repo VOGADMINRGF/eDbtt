@@ -2,9 +2,13 @@ import { ObjectId } from "@core/db/triMongo";
 import { NextRequest, NextResponse } from "next/server";
 import { getCol } from "@core/db/db/triMongo";
 import { coreCol } from "@core/db/db/triMongo";
+import { requireAdminOrResponse } from "@/lib/server/auth/admin";
 
 
 export async function GET(req: NextRequest) {
+  const gate = await requireAdminOrResponse(req);
+  if (gate instanceof Response) return gate;
+
   const id = new URL(req.url).searchParams.get("id");
   if (!id || !ObjectId.isValid(id))
     return NextResponse.json({ error: "bad_id" }, { status: 400 });

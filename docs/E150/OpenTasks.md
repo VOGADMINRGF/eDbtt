@@ -37,12 +37,10 @@ Diese Liste ist die kanonische Umsetzungsliste fuer alle vorhandenen Drift-Promp
 
 ## Aktive Aufgaben
 
-Aktiver Pflicht-Task ist: **Pro Self-Serve** (Organisationen koennen nach 2FA ohne Kontaktaufnahme starten).
+Aktuell sind keine Pflicht-Tasks offen.
 
-Ziel (MVP):
-- `/dashboard/projects/new` funktioniert fuer eDebatte Pro (3-5 Themen), ohne Staff-Rolle.
-- 2FA ist Pflicht fuer Pro-Operativpfade (Project/Agenda/Faktencheck/Contributions-Admin).
-- Pricing/Add-ons werden als Usage/Receipt erfasst (ohne Payment-Provider).
+Letzter Pflicht-Task (erledigt):
+- **Pro Self-Serve**: Organisationen koennen nach 2FA ohne Kontaktaufnahme starten (`/dashboard/projects/new` + `/api/projects`).
 
 ### 1) Nachlauf (optional)
 

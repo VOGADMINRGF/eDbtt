@@ -11,8 +11,11 @@ async function ensureProAccess() {
     redirect("/login?next=/dashboard/projects/new");
   }
 
-  // 2FA-Pflicht, wenn fuer den Account aktiviert
-  if (userRequiresTwoFactor(user) && !sessionHasPassedTwoFactor(user)) {
+  // Pro self-serve requires 2FA setup + a session that has passed 2FA.
+  if (!userRequiresTwoFactor(user)) {
+    redirect("/auth/2fa-setup?next=/dashboard/projects/new");
+  }
+  if (!sessionHasPassedTwoFactor(user)) {
     redirect("/login?next=/dashboard/projects/new");
   }
 

@@ -1,7 +1,11 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { coreCol, votesCol, piiCol } from "@core/db/triMongo";
+import { requireAdminOrResponse } from "@/lib/server/auth/admin";
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const gate = await requireAdminOrResponse(req);
+  if (gate instanceof Response) return gate;
+
   const out: any = { ok: true, services: [] as any[] };
 
   async function check(name: string, fn: () => Promise<any>) {
