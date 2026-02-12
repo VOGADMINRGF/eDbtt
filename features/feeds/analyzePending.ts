@@ -56,6 +56,7 @@ export async function analyzePendingStatementCandidates(opts: {
         text,
         locale,
         pipeline: "feeds_to_statementCandidate",
+        audienceRole: "staff",
       });
 
       const resultDoc: StatementCandidateAnalyzeResultDoc = {

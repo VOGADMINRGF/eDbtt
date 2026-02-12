@@ -26,6 +26,7 @@ export interface ContributionAnalysisRequest {
   region?: string; // optional explizit
   userId?: string | null; // optional, falls aus Session nicht gelesen wird
   translateTo?: string[]; // z.B. ["de","en"]
+  audienceRole?: "citizen" | "staff" | "institution";
 }
 
 export interface AnalyzedStatement {

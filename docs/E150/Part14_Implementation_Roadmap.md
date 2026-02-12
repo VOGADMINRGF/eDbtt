@@ -20,8 +20,7 @@ Part14 ist damit der **operative Fahrplan** für Codex.
 Stand nach den letzten Codex-Runs:
 
 - **Part05 Orchestrator**  
-  – Multi-Provider-Gerüst existiert (OpenAI, Anthropic, Mistral),  
-  – Feinschliff bei Provider-Prompts & zusätzlicher Provider (Gemini) fehlt.
+  – Block A ist abgeschlossen (Gemini-Provider, Rollen-Guidance, Health/Score).
 
 - **Part06 Consequences & Fairness**  
   – Konzepte vorhanden, aber keine vollständigen Typen/Modelle  
@@ -87,6 +86,8 @@ Codex SOLL Part14 so verwenden:
 ### Block A – Part05 Orchestrator: Feinschliff Multi-Provider
 
 **Ziel:** Orchestrator erfüllt vollständig die Anforderungen aus Part05.
+
+**Status:** Done (PR-0018, 2026-02-12). Abschnitt bleibt als Referenz.
 
 Aufgaben:
 

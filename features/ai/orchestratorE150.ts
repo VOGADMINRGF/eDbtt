@@ -23,7 +23,7 @@ import { anthropicProbe } from "./providers/anthropic";
 import { callMistral as askMistral } from "@features/ai/providers/mistral";
 import { callGemini as askGemini } from "@features/ai/providers/gemini";
 import { callAriLLM as askAri } from "@features/ai/providers/ari_llm";
-import { healthScore } from "@features/ai/orchestrator";
+import { healthScore, type ProviderId } from "@features/ai/orchestrator_health";
 import { PROVIDER_CAPABILITIES, providerSupports } from "./e150/providers";
 import { AnalyzeResultSchema, type AnalyzeResult } from "@features/analyze/schemas";
 import { parseJsonLoose } from "@features/analyze/llmJson";
@@ -57,6 +57,7 @@ export type E150OrchestratorArgs = {
   systemPrompt: string;
   userPrompt: string;
   locale?: string | null;
+  audienceRole?: AudienceRole;
   maxClaims?: number;
   maxTokens?: number;
   /**
@@ -83,6 +84,8 @@ export type E150OrchestratorArgs = {
   };
 };
 
+export type AudienceRole = "citizen" | "staff" | "institution";
+
 type ProviderRole =
   | "structure"
   | "context"
@@ -100,7 +103,7 @@ type ProviderProfile = {
   enabled: () => boolean;
   disabledReason?: () => string | null;
   call: (args: ProviderCallArgs) => Promise<ProviderCallResult>;
-  metricId?: string;
+  metricId?: ProviderId;
   promptHint?: string;
   capabilities: ("core_analysis" | "impact" | "responsibility" | "report" | "search")[];
   strictJson?: boolean;
@@ -921,7 +924,13 @@ async function runProvider(
   const started = Date.now();
   const baseMaxTokens = Math.min(args.maxTokens ?? profile.maxTokens, profile.maxTokens);
   const baseTimeoutMs = args.timeoutMs ?? profile.timeoutMs;
-  const prompt = buildPrompt(args.systemPrompt, args.userPrompt, profile);
+  const prompt = buildPrompt(
+    args.systemPrompt,
+    args.userPrompt,
+    profile,
+    args.audienceRole,
+    args.locale,
+  );
   const outerSignal = args.outerSignal;
   let attemptAbortReason: CancelReason | "timeout" | null = null;
 
@@ -1073,11 +1082,15 @@ function buildPrompt(
   system: string | undefined,
   user: string | undefined,
   profile: ProviderProfile,
+  audienceRole?: AudienceRole,
+  locale?: string | null,
 ): string {
   const sections: string[] = [];
   if (system?.trim()) sections.push(system.trim());
   const roleGuidance = buildRoleGuidance(profile.role, profile.promptHint);
   if (roleGuidance) sections.push("", roleGuidance);
+  const audienceGuidance = buildAudienceGuidance(audienceRole, locale);
+  if (audienceGuidance) sections.push("", audienceGuidance);
   if (user?.trim()) sections.push("", user.trim());
   sections.push("", "Return ONLY valid JSON (RFC8259). No Markdown, no commentary.");
   sections.push(
@@ -1112,6 +1125,21 @@ function buildRoleGuidance(role: ProviderRole, promptHint?: string): string | nu
     default:
       return null;
   }
+}
+
+function buildAudienceGuidance(
+  audienceRole?: AudienceRole,
+  locale?: string | null,
+): string | null {
+  if (!audienceRole) return null;
+  const localeHint = locale ? `Locale: ${locale}. Use language appropriate for this locale.` : null;
+  const roleGuidance =
+    audienceRole === "citizen"
+      ? "Audience: citizen. Use clear, plain language and avoid jargon."
+      : audienceRole === "staff"
+        ? "Audience: staff. Use precise operational language and focus on verifiable facts."
+        : "Audience: institution. Use formal tone and emphasize legal/financial implications.";
+  return localeHint ? `${roleGuidance} ${localeHint}` : roleGuidance;
 }
 
 /* ------------------------------------------------------------------------- */

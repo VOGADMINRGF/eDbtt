@@ -1,5 +1,5 @@
 // features/ai/providers/openai.ts
-import { withMetrics } from "../orchestrator";
+import { withMetrics } from "../orchestrator_health";
 import { ANALYZE_JSON_SCHEMA } from "@features/analyze/schemas";
 
 // ——— Low-level Responses API ———

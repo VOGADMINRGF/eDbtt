@@ -1,5 +1,5 @@
 // features/ai/providers/mistral.ts
-import { withMetrics } from "../orchestrator";
+import { withMetrics } from "../orchestrator_health";
 
 const API_BASE = (process.env.MISTRAL_BASE_URL || "https://api.mistral.ai").replace(
   /\/+$/,

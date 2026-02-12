@@ -73,6 +73,7 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
     locale,
     ...(maxClaims ? { maxClaims } : {}),
     pipeline: "admin_orchestrate",
+    audienceRole: "staff",
   });
 
   const now = new Date();

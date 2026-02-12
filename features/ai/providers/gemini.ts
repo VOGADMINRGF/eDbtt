@@ -1,5 +1,5 @@
 // features/ai/providers/gemini.ts
-import { withMetrics } from "../orchestrator";
+import { withMetrics } from "../orchestrator_health";
 
 const API_BASE =
   process.env.GOOGLE_GENAI_BASE_URL || "https://generativelanguage.googleapis.com";

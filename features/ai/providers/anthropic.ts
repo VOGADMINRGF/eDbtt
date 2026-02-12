@@ -1,5 +1,5 @@
 // features/ai/providers/anthropic.ts
-import { withMetrics } from "../orchestrator";
+import { withMetrics } from "../orchestrator_health";
 import type { AiErrorKind } from "@core/telemetry/aiUsageTypes";
 
 const API_BASE = (process.env.ANTHROPIC_BASE_URL || "https://api.anthropic.com").replace(

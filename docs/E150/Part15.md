@@ -11,7 +11,7 @@ Dieses Dokument bündelt, welche Pfade (Part00–Part15) noch offen sind und wel
 - **Part02 Rollen / XP / Gamification:** XP-Anbindung benötigt noch Research-/Streams-/Campaign-Hooks (siehe Blöcke E, F, G); Profil-Freischaltungen pro Engagement-Level dokumentiert, UI-Gating offen.
 - **Part03 Access Tiers & Pricing:** Grundlogik aktiv; Profil-Pakete (profileBasic/Pro/Premium) als Darstellungs-Dimension ergänzt, Mapping zu Tiers umzusetzen.
 - **Part04 B2G/B2B Modelle:** Begriffe mit Profil-Paket-Namen harmonisiert; warten auf Campaigns/Streams-Implementierung (Block F/G) für echten Pilotbetrieb.
-- **Part05 Orchestrator (Block A):** Gemini-Provider, rollenspezifische Prompts und Health/Score fehlen noch.
+- **Part05 Orchestrator (Block A):** Gemini-Provider aktiv, rollenspezifische Prompts (citizen/staff/institution) und Health/Score-Tracking umgesetzt.
 - **Part06 Consequences (Block B):** Modelle, Persistenz und UI (Responsibility Navigator) stehen aus.  
 - **Part06 Themenkatalog & Zuständigkeiten:** Neu angelegt, 15 Hauptkategorien verbindlich; `TOPIC_CHOICES`-Abgleich in Profil/Onboarding/Filter offen.
 - **Part07 Graph & Reports (Block C):** Zentrale Graph-Schicht und Report-Adapter fehlen; AnalyzeResult-Sync offen.
@@ -35,7 +35,7 @@ Dieses Dokument bündelt, welche Pfade (Part00–Part15) noch offen sind und wel
 
 | Block | Bezug | Status | Definition of Done |
 | --- | --- | --- | --- |
-| **A – Orchestrator (E150 Core Provider)** | Part05 | **Offen** | `@features/ai/orchestrator_gemini.ts` (Adapter + `ProviderMeta`), rollenspezifische Prompts (citizen, staff, institution), Health-/Score-Tracking in `orchestrator_health.ts`; SSE bleibt intakt. |
+| **A – Orchestrator (E150 Core Provider)** | Part05 | **Done** | Gemini-Provider aktiv, rollenspezifische Prompts (citizen, staff, institution), Health-/Score-Tracking in `orchestrator_health.ts`; SSE bleibt intakt. |
 | **B – Consequences & Responsibility Navigator** | Part06/10 | **Offen** | Prisma-Modelle `Consequence`, `Responsibility`, `ResponsibilityLink`; API-Routes `/api/responsibility/[id]`, `/api/consequence/[id]`; React-`ResponsibilityNavigator.tsx` mit Filter/Path-Tree/Score-Coloring; Admin-View fürs Mapping. |
 | **C – Graph & Reports** | Part07 | **Offen** | `@features/graph/sync.ts` (AnalyzeResult → Graph), Graph-Store (Neo4j/Arango/Memgraph Connector), `/admin/graph/impact` mit echten Graph-Stats. |
 | **D – Eventualities / DecisionTree** | Part08 | **Offen** | Typen `Eventuality`, `DecisionTreeNode`; Analyzer-Prompts für „was passiert wenn …“; UI `EventualityBoard.tsx`; API `/api/eventualities/analyze`. |
@@ -46,8 +46,8 @@ Dieses Dokument bündelt, welche Pfade (Part00–Part15) noch offen sind und wel
 
 ## Konkrete Next Steps
 
-1. **Starte mit Block A** (Part05): Gemini-Provider + rollenspezifische Prompts + Health/Score.
-2. **Danach Block B** (Part06/10): Consequence-/Responsibility-Modelle, Persistenz, Navigator-UI & Admin.
+1. **Block A erledigt** (Part05): Gemini-Provider + rollenspezifische Prompts + Health/Score (PR-0018).
+2. **Block B** (Part06/10): Consequence-/Responsibility-Modelle, Persistenz, Navigator-UI & Admin.
 3. **Block C & D parallel planen** (Part07/08): Graph-Sync plus Eventualities-Typen/Prompts/UI.
 4. **Research R2 abgeschlossen** (Part09): Seeding, Filter, Contributor-Feedback, Rückfluss, Anti-Spam (PR-0017).
 5. **Block F/G/H** (Part11/12/13): Streams/Campaigns/I18N-A11y-Social, sobald Basis aus A–D steht.
@@ -102,6 +102,23 @@ Verification:
 
 Next Steps:
 - Block F (Streams) starten, sobald Block A–D konsistent im Code/Docs sind.
+
+### PR-0018 (2026-02-12) – Block A Orchestrator (Roles + Health)
+
+Ziel:
+- Orchestrator Block A abschliessen (Gemini-Provider, Rollen-Guidance, Health/Score).
+
+Changes:
+- Audience-Role Guidance fuer citizen/staff/institution in den Orchestrator aufgenommen.
+- Health/Score-Tracking zentralisiert und Provider (inkl. Gemini) mit Metrics verdrahtet.
+- Orchestrator-Callsites fuer Analyse mit explizitem Audience-Role konfiguriert.
+
+Verification:
+- `pnpm -C apps/web run lint` (PASS)
+- `pnpm -C apps/web run typecheck` (PASS)
+
+Next Steps:
+- Block B (Consequences & Responsibility Navigator) starten.
 
 Safe-Mode Checks (Membership/Payment):
 - Admin-Verbuchen (`mark-paid`) und Kündigung (`cancel`) funktionieren, setzen user.membership-Status korrekt.

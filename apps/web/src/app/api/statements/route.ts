@@ -183,7 +183,11 @@ export async function POST(req: NextRequest) {
   const timeframe = body?.timeframe ? String(body.timeframe).slice(0, 120) : undefined;
 
   
-  const analysis = await analyzeContribution({ text, locale: language });
+  const analysis = await analyzeContribution({
+    text,
+    locale: language,
+    audienceRole: "citizen",
+  });
   if (!category) {
     const firstTopic = analysis.claims.find((c) => c.topic)?.topic;
     if (firstTopic) category = firstTopic;

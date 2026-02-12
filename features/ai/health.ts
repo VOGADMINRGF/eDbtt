@@ -4,7 +4,7 @@
 // - Circuit states: closed | open | half-open (with exponential backoff)
 // - Dynamic scoring to sort providers for hedge/sequence runs
 
-export type ProviderId = "openai" | "anthropic" | "mistral" | "gemini";
+export type ProviderId = "openai" | "anthropic" | "mistral" | "gemini" | "ari";
 type CircuitState = "closed" | "open" | "half-open";
 type FailureReason = "timeout" | "http" | "json" | "validation" | "unknown";
 
@@ -216,12 +216,13 @@ class HealthRegistry {
       anthropic: this.get("anthropic"),
       mistral: this.get("mistral"),
       gemini: this.get("gemini"),
+      ari: this.get("ari"),
     };
     return {
       now: NOW(),
       cfg,
       providers: obj,
-      order: this.bestOrder(["openai", "anthropic", "mistral", "gemini"]),
+      order: this.bestOrder(["openai", "anthropic", "mistral", "gemini", "ari"]),
     };
   }
 }
@@ -281,7 +282,7 @@ export function resetMetrics() {
 // Persistenz-Hooks (leichtgewichtig)
 export function toJSON(){ return Health.snapshot(); }
 export function fromJSON(snap: any){
-  const ids: ProviderId[] = ["openai","anthropic","mistral","gemini"];
+  const ids: ProviderId[] = ["openai","anthropic","mistral","gemini","ari"];
   for (const id of ids) {
     const src = snap?.providers?.[id]; if (!src) continue;
     const dst = Health.get(id);

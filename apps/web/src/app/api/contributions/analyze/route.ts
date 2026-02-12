@@ -335,6 +335,7 @@ async function runAnalyzeJob(input: AnalyzeJobInput): Promise<AnalyzeResultWithM
     text: input.text,
     locale: input.locale,
     maxClaims: input.maxClaims,
+    audienceRole: "citizen",
   });
   return finalizeAnalyzeResult(analyzed);
 }

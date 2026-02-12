@@ -91,6 +91,7 @@ export async function POST(req: NextRequest) {
     const analysisReq: ContributionAnalysisRequest = {
       text,
       region: region ?? undefined,
+      audienceRole: "citizen",
     };
     const analysis = await analyzeContribution(analysisReq);
 

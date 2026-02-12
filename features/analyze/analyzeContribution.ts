@@ -18,6 +18,7 @@ export type { AnalyzeResult } from "./schemas";
 export type AnalyzeInput = {
   text: string;
   locale?: string; // "de" | "en" | ...
+  audienceRole?: "citizen" | "staff" | "institution";
   maxClaims?: number;
   pipeline?: AiPipelineName;
   domain?: string;
@@ -540,6 +541,7 @@ export async function analyzeContribution(
       systemPrompt: buildSystemPrompt(language),
       userPrompt: buildUserPrompt(sourceText, language, maxClaims),
       locale: language,
+      audienceRole: input.audienceRole ?? "citizen",
       maxClaims,
       maxTokens: 2600,
       validateRaw: (rawText: string) => validateAnalyzeRaw(rawText, sourceText),

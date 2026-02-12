@@ -376,6 +376,7 @@ export async function POST(req: NextRequest) {
           locale: lang,
           pipeline: "factcheck" as any,
           maxClaims: MAX_CLAIMS,
+          audienceRole: "staff",
         });
       } catch (err: any) {
         analysisError = err?.message ?? "analyze_failed";
