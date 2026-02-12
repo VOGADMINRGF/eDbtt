@@ -6,5 +6,10 @@ export default async function AdminDossierPage({
   params: Promise<{ dossierId: string }>;
 }) {
   const { dossierId } = await params;
-  return <AdminDossierClient dossierId={dossierId} />;
+  return (
+    <main className="min-h-screen bg-white">
+      <h1 className="sr-only">Admin Dossier</h1>
+      <AdminDossierClient dossierId={dossierId} />
+    </main>
+  );
 }

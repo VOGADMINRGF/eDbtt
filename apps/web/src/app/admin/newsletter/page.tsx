@@ -105,6 +105,7 @@ export default function AdminNewsletterPage() {
 
   return (
     <div className="space-y-4">
+      <h1 className="sr-only">Admin Newsletter</h1>
       {accessError && (
         <div className="rounded-3xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
           {accessError}

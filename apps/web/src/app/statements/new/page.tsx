@@ -12,15 +12,18 @@ export default async function StatementNewPage({
   const initialText = draft?.text ?? prefill;
 
   return (
-    <AnalyzeWorkspace
-      mode="statement"
-      defaultLevel={1}
-      storageKey="vog_statement_draft_v1"
-      analyzeEndpoint="/api/contributions/analyze"
-      saveEndpoint="/api/contributions/save"
-      finalizeEndpoint="/api/contributions/finalize"
-      afterFinalizeNavigateTo="/swipes"
-      initialText={initialText}
-    />
+    <main className="min-h-screen bg-white">
+      <h1 className="sr-only">Statement einreichen</h1>
+      <AnalyzeWorkspace
+        mode="statement"
+        defaultLevel={1}
+        storageKey="vog_statement_draft_v1"
+        analyzeEndpoint="/api/contributions/analyze"
+        saveEndpoint="/api/contributions/save"
+        finalizeEndpoint="/api/contributions/finalize"
+        afterFinalizeNavigateTo="/swipes"
+        initialText={initialText}
+      />
+    </main>
   );
 }

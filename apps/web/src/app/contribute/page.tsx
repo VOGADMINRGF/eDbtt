@@ -12,8 +12,18 @@ export default async function ContributePage({
   if (draftId) {
     const draft = await getDraft(draftId).catch(() => null);
     const draftText = draft?.text ?? initialText;
-    return <SmartContribution initialText={draftText} />;
+    return (
+      <main className="min-h-screen bg-white">
+        <h1 className="sr-only">Beitrag erfassen</h1>
+        <SmartContribution initialText={draftText} />
+      </main>
+    );
   }
 
-  return <SmartContribution initialText={initialText} />;
+  return (
+    <main className="min-h-screen bg-white">
+      <h1 className="sr-only">Beitrag erfassen</h1>
+      <SmartContribution initialText={initialText} />
+    </main>
+  );
 }

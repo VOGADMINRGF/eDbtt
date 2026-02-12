@@ -2,6 +2,23 @@
 
 import { colors } from "../theme";
 import { useState } from "react";
+import type { ChangeEvent, FormEvent } from "react";
+
+type PresseForm = {
+  name: string;
+  email: string;
+  medium: string;
+  message: string;
+};
+
+type InfoTile = {
+  icon: string;
+  title: string;
+  subtitle: string;
+  href: string;
+  color: string;
+  shadow: string;
+};
 
 // Zielgruppen-Tabs
 const tabItems = [
@@ -64,7 +81,7 @@ const tabItems = [
 
 export default function PressePage() {
   // Kontaktformular-Logik
-  const [form, setForm] = useState({
+  const [form, setForm] = useState<PresseForm>({
     name: "",
     email: "",
     medium: "",
@@ -72,10 +89,10 @@ export default function PressePage() {
   });
   const [sent, setSent] = useState(false);
 
-  const handleChange = (e: any) =>
-    setForm((prev: any) => ({ ...prev, [e.target.name]: e.target.value }));
+  const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+    setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
 
-  const handleSubmit = (e: any) => {
+  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     // Hier ggf. an /api/contact senden
     setSent(true);
@@ -83,9 +100,11 @@ export default function PressePage() {
 
   // Tabs State
   const [tab, setTab] = useState(0);
+  const tiles = (infoTiles as InfoTile[]) ?? [];
 
   return (
     <main className="max-w-3xl mx-auto px-4 py-16 space-y-12">
+      <h1 className="sr-only">Presse</h1>
       {/* Headline */}
       <h2
         className="text-2xl md:text-3xl font-bold text-center mb-8 mt-16"
@@ -96,7 +115,7 @@ export default function PressePage() {
 
       {/* Info-Kacheln */}
       <section className="grid grid-cols-1 md:grid-cols-3 gap-6 justify-center mb-12">
-        {infoTiles.map(({ icon, title, subtitle, href, color, shadow }: any) => (
+        {tiles.map(({ icon, title, subtitle, href, color, shadow }) => (
           <a
             href={href}
             key={title}

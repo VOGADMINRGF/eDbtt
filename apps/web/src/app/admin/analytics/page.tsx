@@ -54,6 +54,7 @@ export default function AdminAnalyticsPage() {
 
   return (
     <div className="space-y-6">
+      <h1 className="sr-only">Admin Analytics</h1>
       {error && (
         <div className="rounded-3xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
           {error}

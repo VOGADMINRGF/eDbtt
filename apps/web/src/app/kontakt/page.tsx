@@ -12,5 +12,10 @@ export default function KontaktPage({
   const error = searchParams?.error;
   const challenge = pickHumanChallenge();
 
-  return <KontaktPageClient sent={sent} error={error} challenge={challenge} />;
+  return (
+    <main className="min-h-screen bg-white">
+      <h1 className="sr-only">Kontakt</h1>
+      <KontaktPageClient sent={sent} error={error} challenge={challenge} />
+    </main>
+  );
 }

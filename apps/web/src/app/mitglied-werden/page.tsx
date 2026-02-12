@@ -14,6 +14,7 @@ export default function MitgliedWerdenPage() {
       className="min-h-screen bg-gradient-to-b from-[var(--brand-from)] via-white to-white pb-16"
       aria-label="eDebatte Mitgliedschaft"
     >
+      <h1 className="sr-only">Mitglied werden</h1>
       <section
         className="mx-auto max-w-5xl px-4 py-16 space-y-10"
         aria-labelledby="membership-hero-title"

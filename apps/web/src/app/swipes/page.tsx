@@ -20,6 +20,7 @@ export default async function SwipesPage({ searchParams }: Props) {
   if (!userId) {
     return (
       <main className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-white pb-14">
+        <h1 className="sr-only">Swipes</h1>
         <SwipesClient edebattePackage="none" initialTopic={typeof searchParams?.topic === "string" ? searchParams.topic : ""} />
       </main>
     );
@@ -32,6 +33,7 @@ export default async function SwipesPage({ searchParams }: Props) {
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-white pb-14">
+      <h1 className="sr-only">Swipes</h1>
       <SwipesClient edebattePackage={edebattePkg} initialTopic={initialTopic} />
     </main>
   );

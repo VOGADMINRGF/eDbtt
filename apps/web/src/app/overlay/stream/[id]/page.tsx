@@ -6,5 +6,10 @@ export default async function StreamOverlayPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  return <StreamOverlayClient sessionId={id} />;
+  return (
+    <main className="min-h-screen">
+      <h1 className="sr-only">Stream Overlay</h1>
+      <StreamOverlayClient sessionId={id} />
+    </main>
+  );
 }

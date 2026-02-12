@@ -23,5 +23,10 @@ export default async function ContributionNewPage() {
     redirect(`/login?next=${encodeURIComponent("/contributions/new")}`);
   }
 
-  return <ContributionNewClient initialOverview={overview} />;
+  return (
+    <main className="min-h-screen bg-white">
+      <h1 className="sr-only">Beitrag analysieren</h1>
+      <ContributionNewClient initialOverview={overview} />
+    </main>
+  );
 }

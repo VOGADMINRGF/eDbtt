@@ -126,6 +126,7 @@ export default function AdminMembershipsPage() {
 
   return (
     <div className="space-y-4">
+      <h1 className="sr-only">Admin Mitgliedschaften</h1>
       <div className="flex flex-wrap items-center gap-2 rounded-3xl bg-white/90 p-4 shadow ring-1 ring-slate-100">
         <input
           value={query}

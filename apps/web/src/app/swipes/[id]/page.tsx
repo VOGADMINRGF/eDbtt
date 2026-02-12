@@ -34,6 +34,7 @@ export default async function SwipeDetailPage({ params }: Props) {
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-white pb-12">
+      <h1 className="sr-only">Swipe-Karte</h1>
       <SwipesClient edebattePackage={edebattePkg} focusStatementId={id} variant="solo" />
     </main>
   );

@@ -78,7 +78,7 @@ Die folgenden Punkte dokumentieren die abgeschlossene Reihenfolge der Bloecke. K
 ## Optionaler Nachlauf (kanonisch in OpenTasks)
 
 - Social Preview: OG-Defaults aktiv; Detailseiten wie Reports/Archiv noch sukzessive erweitern.
-- Page Contracts (CI): `missing-h1`-Allowlist schrittweise abbauen.
+- Page Contracts (CI): `missing-h1`-Allowlist abgebaut; optional nur noch bei neuen Checks relevant.
 - Type Hygiene (Pages): restliche `any`-Verwendungen in `page.tsx` reduzieren.
 - Admin Navigation: Kontextaktionen (Massenaktionen/Drilldown) erweitern.
 - Swipes Analytics: Vote-Aggregationen fuer Admin-Reports verfeinern.
@@ -482,3 +482,21 @@ Verification:
 
 Next Steps:
 - Optional: Vote-Aggregationen/Analytics fuer Admin-Reports vorbereiten.
+
+### PR-0036 (2026-02-12) – Page Contracts Cleanup
+
+Ziel:
+- `missing-h1`-Allowlist auf 0 bringen und Seiten semantisch sauber machen.
+
+Changes:
+- Alle zuvor allowlisteten Pages haben jetzt ein `<h1>` (sichtbar oder sr-only).
+- Redirect-/Legacy-Seiten liefern semantischen Fallback-Content.
+- `missing-h1`-Allowlist geleert; Page-Contracts sind nun strikt.
+
+Verification:
+- `node scripts/check-page-contracts.mjs` (PASS)
+- `pnpm -C apps/web run lint` (PASS)
+- `pnpm -C apps/web run typecheck` (PASS)
+
+Next Steps:
+- Type Hygiene in `page.tsx` weiter reduzieren (umfangreicher Nachlauf).

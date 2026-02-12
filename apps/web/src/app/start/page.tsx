@@ -53,5 +53,10 @@ export default async function StartPage() {
     { label: "HEIMATREGION", items: homeRegion },
   ];
 
-  return <LandingStart blocks={blocks} geo={geo} />;
+  return (
+    <main className="min-h-screen">
+      <h1 className="sr-only">Start</h1>
+      <LandingStart blocks={blocks} geo={geo} />
+    </main>
+  );
 }
