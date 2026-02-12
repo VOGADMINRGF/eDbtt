@@ -26,12 +26,10 @@ Stand nach den letzten Codex-Runs:
   – Block B ist abgeschlossen (Modelle, Persistenz, API, UI/Navigator).
 
 - **Part07 Graph & Reports**  
-  – Mongoose-`Report` repariert, aber  
-  – Knowledge-Graph-Schicht + E150-Sync fehlen.
+  – Graph-Sync + Neo4j-Connector vorhanden, Admin-Reports nutzen Graph-Daten.
 
 - **Part08 Eventualities & DecisionTrees**  
-  – keine Eventuality/DecisionTree-Strukturen in `AnalyzeResult`,  
-  – keine UI-Einbindung, keine Persistenz.
+  – Eventuality/DecisionTree-Strukturen, Persistenz und Admin-UI vorhanden.
 
 _Update:_ Block E (Part09 Research Workflow / R2) ist umgesetzt (Tasks/Contributions, Seeding, Filter, Feedback, Graph-Backflow).
 
@@ -39,16 +37,13 @@ _Update:_ Block E (Part09 Research Workflow / R2) ist umgesetzt (Tasks/Contribut
   – Responsibility nur als Text, ohne Directory/Navigator-UI/Graph-Edges.
 
 - **Part11 Streams & „Brennende Bürger:innen“**  
-  – Twitch-Overlay existiert extern,  
-  – keine integrierte Stream-Logik (Model, Routen, XP).
+  – Stream-Modelle, Agenda/Overlay, Routen und XP-Gating vorhanden.
 
 - **Part12 Campaigns (jenseits Telemetry)**  
-  – AI-Telemetry umgesetzt,  
-  – Campaign-Modelle, QR-Sessions, Kampagnen-Reports fehlen.
+  – Campaign-Modelle, Admin-UI und Join-Flow (MVP) implementiert.
 
 - **Part13 I18N, A11y, Community/Social**  
-  – UI ist DE-first,  
-  – keine echte I18N-Infra, kein Raum/Chat-System, A11y nur teilweise bedacht.
+  – I18N-Infra aktiv, A11y-Seite vorhanden, Community/Chat-Skeleton ergänzt.
 
 ---
 
@@ -148,6 +143,8 @@ Aufgaben:
 
 **Ziel:** E150-Daten landen in einer konsistenten Graph-Schicht und fließen in Reports.
 
+Status: **Done (PR-0020, 2026-02-12)**. Abschnitt bleibt als Referenz.
+
 Aufgaben:
 
 1. **Graph-Abstraktion**
@@ -171,6 +168,8 @@ Aufgaben:
 ### Block D – Part08: Eventualities & DecisionTrees
 
 **Ziel:** „Was-wäre-wenn“-Logik ist im System sichtbar (Modell + UI).
+
+Status: **Done (PR-0020, 2026-02-12)**. Abschnitt bleibt als Referenz.
 
 Aufgaben:
 
@@ -228,6 +227,8 @@ Status: **Done (PR-0017)**.
 
 **Ziel:** Streams sind technisch an Plattform, Reports und XP angebunden.
 
+Status: **Done (PR-0020, 2026-02-12)**. Abschnitt bleibt als Referenz.
+
 Aufgaben:
 
 1. **Modelle**
@@ -254,6 +255,8 @@ Aufgaben:
 
 **Ziel:** Gemeinden/Organisationen können Kampagnen mit QR-Code fahren und Reports erhalten.
 
+Status: **Done (MVP, PR-0020, 2026-02-12)**. Abschnitt bleibt als Referenz.
+
 Aufgaben:
 
 1. **Modelle**
@@ -278,6 +281,8 @@ Aufgaben:
 ### Block H – Part13: I18N, A11y & Community/Social Basis
 
 **Ziel:** Plattform ist mehrsprachig vorbereitet, a11y-freundlich und hat minimale soziale Features.
+
+Status: **Done (Skeleton, PR-0020, 2026-02-12)**. Abschnitt bleibt als Referenz.
 
 Aufgaben:
 

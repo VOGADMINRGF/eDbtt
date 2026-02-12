@@ -14,13 +14,13 @@ Dieses Dokument bündelt, welche Pfade (Part00–Part15) noch offen sind und wel
 - **Part05 Orchestrator (Block A):** Gemini-Provider aktiv, rollenspezifische Prompts (citizen/staff/institution) und Health/Score-Tracking umgesetzt.
 - **Part06 Consequences (Block B):** Modelle, Persistenz, API und UI fuer Responsibility/Consequences umgesetzt.  
 - **Part06 Themenkatalog & Zuständigkeiten:** Neu angelegt, 15 Hauptkategorien verbindlich; `TOPIC_CHOICES`-Abgleich in Profil/Onboarding/Filter offen.
-- **Part07 Graph & Reports (Block C):** Zentrale Graph-Schicht und Report-Adapter fehlen; AnalyzeResult-Sync offen.
-- **Part08 Eventualities (Block D):** Eventuality-/DecisionTree-Typen, Analyzer-Prompts, Persistenz und UI fehlen.
+- **Part07 Graph & Reports (Block C):** Graph-Sync + Neo4j-Connector aktiv; Admin-Impact-Reports nutzen echte Graph-Daten.
+- **Part08 Eventualities (Block D):** Eventuality-/DecisionTree-Typen, Persistenz, Admin-UI und Analyze-API implementiert.
 - **Part09 Research Workflow (Block E/R2):** R2 umgesetzt: Seeding aus Questions/Knots, Filter/Sortierung, Contributor-Feedback, Graph-Backflow und Anti-Spam-Cooldown.
 - **Part10 Responsibility Navigator (Block B):** Directory/Paths + Navigator + Admin-UI vorhanden.
-- **Part11 Streams (Block F):** Modelle, Routes/UI und XP-Gating fehlen; Stream-Deck aus Reports/Graph steht aus.
-- **Part12 Campaigns (Block G):** Campaign/CampaignSession-Modelle, Admin-UI, QR-Flows und Reports fehlen.
-- **Part13 I18N/A11y/Social (Block H):** Übersetzungs-Infra, A11y-Pass und minimale Community-Räume/Chat fehlen.
+- **Part11 Streams (Block F):** Stream-Modelle, Routes/UI, Agenda/Overlay und XP-Gating vorhanden.
+- **Part12 Campaigns (Block G):** Campaign-Modelle, Admin-UI, Join/QR-Flow (MVP) implementiert.
+- **Part13 I18N/A11y/Social (Block H):** I18N-Infra aktiv, A11y-Seiten vorhanden, Community/Chat-Skeleton ergänzt.
 - **Part14 Implementation Roadmap:** Dient als Arbeitsmodus; Block-Reihenfolge beachten.
 - **Part15 Codex Safe Mode:** Leitplanken aktiv; keine offenen Tasks, aber stets befolgen.
 
@@ -37,20 +37,20 @@ Dieses Dokument bündelt, welche Pfade (Part00–Part15) noch offen sind und wel
 | --- | --- | --- | --- |
 | **A – Orchestrator (E150 Core Provider)** | Part05 | **Done** | Gemini-Provider aktiv, rollenspezifische Prompts (citizen, staff, institution), Health-/Score-Tracking in `orchestrator_health.ts`; SSE bleibt intakt. |
 | **B – Consequences & Responsibility Navigator** | Part06/10 | **Done** | Modelle + Persistenz + API (`/api/responsibility/[id]`, `/api/consequence/[id]`); `ResponsibilityNavigator.tsx` + Admin-Views fuer Directory/Paths. |
-| **C – Graph & Reports** | Part07 | **Offen** | `@features/graph/sync.ts` (AnalyzeResult → Graph), Graph-Store (Neo4j/Arango/Memgraph Connector), `/admin/graph/impact` mit echten Graph-Stats. |
-| **D – Eventualities / DecisionTree** | Part08 | **Offen** | Typen `Eventuality`, `DecisionTreeNode`; Analyzer-Prompts für „was passiert wenn …“; UI `EventualityBoard.tsx`; API `/api/eventualities/analyze`. |
+| **C – Graph & Reports** | Part07 | **Done** | `core/graph/syncAnalyzeResult.ts` (AnalyzeResult → Graph), Neo4j-Connector, `/admin/graph/impact` mit echten Graph-Stats. |
+| **D – Eventualities / DecisionTree** | Part08 | **Done** | Typen `Eventuality`/`DecisionTree`, Persistenz + Admin-UI, API `/api/eventualities/analyze`. |
 | **E (R2) – Research Workflow** | Part09 | **Done** | Seeding aus Questions/Knots (Admin-Seed); Filter-/Sortier-API (`/api/research/list` + `/api/research/tasks/list`); Contributor-Feedback („Hilfreich?“); Graph-Backflow bei akzeptierten Beiträgen; Anti-Spam-Cooldown. |
-| **F – Streams** | Part11 | **Offen** | Modelle `Stream`, `StreamSession`; UI `StreamDeck` mit XP-Gating; XP-Zuwachs für Teilnahme/Hosting. |
-| **G – Campaigns** | Part12 | **Offen** | Modelle `Campaign`, `CampaignSession`; Admin-UI + Statistik-View; QR-Flow `/campaign/[id]/join`; Reports/Erfolgsmessung. |
-| **H – I18N / A11y / Social** | Part13 | **Offen** | I18N-Infra (next-intl, Namespaces `common`, `admin`, `analyze`); A11y-Audit + „A11y Pass“ im Build; Basis-Chat/Community-Räume für Citizen Pro +. |
+| **F – Streams** | Part11 | **Done** | Stream-Modelle + Sessions/Agenda/Overlay, UI, XP-Gating & Host-Checks vorhanden. |
+| **G – Campaigns** | Part12 | **Done** | Campaign-Modelle + Admin-UI, `/campaign/[id]/join` + Join-API (MVP). |
+| **H – I18N / A11y / Social** | Part13 | **Done** | I18N-Infra aktiv, A11y-Seite vorhanden, Community/Chat-Skeleton ergänzt. |
 
 ## Konkrete Next Steps
 
 1. **Block A erledigt** (Part05): Gemini-Provider + rollenspezifische Prompts + Health/Score (PR-0018).
 2. **Block B erledigt** (Part06/10): Consequences/Responsibility inkl. API, Navigator-UI, Admin (PR-0019).
-3. **Block C & D parallel planen** (Part07/08): Graph-Sync plus Eventualities-Typen/Prompts/UI.
-4. **Research R2 abgeschlossen** (Part09): Seeding, Filter, Contributor-Feedback, Rückfluss, Anti-Spam (PR-0017).
-5. **Block F/G/H** (Part11/12/13): Streams/Campaigns/I18N-A11y-Social, sobald Basis aus A–D steht.
+3. **Block C/D erledigt** (Part07/08): Graph-Sync & Eventualities/DecisionTrees (PR-0020).
+4. **Block F/G/H erledigt (MVP)** (Part11/12/13): Streams/Campaigns/I18N-A11y-Social (PR-0020).
+5. **Nächster Fokus:** Stabilisierung, QA, Reports/Analytics-Vertiefung und UX-Polish der neuen Flows.
 
 ### Identity & Profile (aus Part00–04 abgeleitet)
 
@@ -136,6 +136,24 @@ Verification:
 
 Next Steps:
 - Block C (Graph & Reports) starten.
+
+### PR-0020 (2026-02-12) – Blocks C–H Alignment (Graph/Eventualities/Streams/Campaigns/I18N)
+
+Ziel:
+- Block C–H auf den aktuellen Code-Stand bringen (Graph-Sync, Eventualities-API, Streams, Campaigns, Community-Skeleton).
+
+Changes:
+- Block C: Graph-Sync + Impact-Reports als done dokumentiert.
+- Block D: `/api/eventualities/analyze` als Admin-Analyze-Entry hinzugefuegt.
+- Block G: Campaign-MVP (Modelle, Admin-UI, Join-Flow) umgesetzt.
+- Block H: Community/Chat-Skeleton ergaenzt.
+
+Verification:
+- `pnpm -C apps/web run lint` (PASS)
+- `pnpm -C apps/web run typecheck` (PASS)
+
+Next Steps:
+- QA/UX-Polish fuer Campaigns & Community, danach Block-E2 (Operationalisierung/Seed-Pipelines).
 
 Safe-Mode Checks (Membership/Payment):
 - Admin-Verbuchen (`mark-paid`) und Kündigung (`cancel`) funktionieren, setzen user.membership-Status korrekt.
