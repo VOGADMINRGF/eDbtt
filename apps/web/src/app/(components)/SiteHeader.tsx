@@ -22,16 +22,54 @@ type NavItem = {
   description: string;
 };
 
-const NAV_ITEMS: NavItem[] = [
+type NavSection = NavItem & { id: string; items: NavItem[] };
+
+const NAV_SECTIONS: NavSection[] = [
   {
+    id: "how",
     href: "/howtoworks/edebatte",
     label: "So funktionierts",
     description: "Abstimmen · Einreichen · Präsentieren",
+    items: [
+      {
+        href: "/howtoworks/edebatte/abstimmen",
+        label: "Abstimmen",
+        description: "Positionen bewerten und Mehrheiten sichtbar machen.",
+      },
+      {
+        href: "/thema-einreichen",
+        label: "Einreichen",
+        description: "Themen, Hinweise und Perspektiven einspeisen.",
+      },
+      {
+        href: "/howtoworks/streamer",
+        label: "Präsentieren",
+        description: "Streams, Agenda und Moderation sauber aufsetzen.",
+      },
+    ],
   },
   {
-    href: "/howtoworks/bewegung",
+    id: "about",
+    href: "/ueber-uns",
     label: "Über uns",
     description: "Die Bewegung · Transparenzbericht · FAQ & Hilfe",
+    items: [
+      {
+        href: "/howtoworks/bewegung",
+        label: "Die Bewegung",
+        description: "Vision, Auftrag und Grundprinzipien.",
+      },
+      {
+        href: "/transparenzbericht",
+        label: "Transparenzbericht",
+        description: "Finanzierung, Prioritäten und Aufbauphase.",
+      },
+      {
+        href: "/faq",
+        label: "FAQ & Hilfe",
+        description: "Antworten und Support im Überblick.",
+      },
+    ],
   },
 ];
 
@@ -49,6 +87,7 @@ export function SiteHeader({ initialUser }: { initialUser?: AuthUser | null }) {
   const { user } = useCurrentUser();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [localeOpen, setLocaleOpen] = useState(false);
+  const [navOpen, setNavOpen] = useState<string | null>(null);
   const router = useRouter();
   const pathname = usePathname();
   const [loggingOut, setLoggingOut] = useState(false);
@@ -70,9 +109,12 @@ export function SiteHeader({ initialUser }: { initialUser?: AuthUser | null }) {
     locale: activeLang as SupportedLocale,
     namespace: "site-header",
   });
-  const navItems = useMemo(() => {
-    if (activeLang === "de" || activeLang === "en") return NAV_ITEMS;
-    return mapTranslatableStrings(NAV_ITEMS, t, { namespace: "nav" });
+  const navSections = useMemo(() => {
+    if (activeLang === "de") return NAV_SECTIONS;
+    return NAV_SECTIONS.map((section) => ({
+      ...mapTranslatableStrings(section, t, { namespace: "nav" }),
+      items: section.items.map((item) => mapTranslatableStrings(item, t, { namespace: "nav" })),
+    }));
   }, [activeLang, t]);
   const statusLabel = t("Auto-Übersetzung", "status.auto");
   const localeOptions = UI_LANGS.filter((lang) => isCoreLocale(lang.code)).map((lang) => {
@@ -92,6 +134,10 @@ export function SiteHeader({ initialUser }: { initialUser?: AuthUser | null }) {
 
   useEffect(() => {
     if (!mobileOpen) setLocaleOpen(false);
+  }, [mobileOpen]);
+
+  useEffect(() => {
+    if (!mobileOpen) setNavOpen(null);
   }, [mobileOpen]);
 
   const handleLocaleSelect = (next: LanguageCode) => {
@@ -132,6 +178,73 @@ export function SiteHeader({ initialUser }: { initialUser?: AuthUser | null }) {
             eDebatte
           </span>
         </Link>
+
+        {/* Desktop Navigation */}
+        <nav className="hidden items-center gap-2 lg:flex" aria-label={t("Hauptnavigation", "aria.main-nav")}>
+          {navSections.map((section) => {
+            const isOpen = navOpen === section.id;
+            return (
+              <div
+                key={section.id}
+                className="relative"
+                onMouseEnter={() => setNavOpen(section.id)}
+                onMouseLeave={() => setNavOpen(null)}
+              >
+                <button
+                  type="button"
+                  aria-expanded={isOpen}
+                  aria-haspopup="true"
+                  onClick={() => setNavOpen((prev) => (prev === section.id ? null : section.id))}
+                  className="inline-flex items-center gap-2 rounded-full border border-transparent px-3 py-1.5 text-sm font-semibold text-slate-700 hover:border-sky-200 hover:text-sky-700"
+                >
+                  <span>{section.label}</span>
+                  <svg
+                    aria-hidden="true"
+                    className={`h-4 w-4 transition-transform ${isOpen ? "rotate-180" : ""}`}
+                    viewBox="0 0 24 24"
+                    fill="none"
+                  >
+                    <path
+                      d="M6 9l6 6 6-6"
+                      stroke="currentColor"
+                      strokeWidth={1.6}
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </button>
+
+                {isOpen && (
+                  <div className="absolute left-0 mt-2 w-72 rounded-3xl border border-slate-200 bg-white p-3 shadow-xl">
+                    <Link
+                      href={section.href}
+                      className="block rounded-2xl border border-slate-200 bg-slate-50/80 px-3 py-2 text-sm font-semibold text-slate-800 hover:border-sky-300"
+                    >
+                      <span className="block">{section.label}</span>
+                      <span className="mt-0.5 block text-[11px] font-normal text-slate-600">
+                        {section.description}
+                      </span>
+                    </Link>
+                    <div className="mt-2 space-y-2">
+                      {section.items.map((item) => (
+                        <Link
+                          key={item.href}
+                          href={item.href}
+                          className="block rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 hover:border-sky-300 hover:bg-sky-50"
+                        >
+                          <span className="block text-sm font-semibold">{item.label}</span>
+                          <span className="mt-0.5 block text-[11px] font-normal text-slate-600">
+                            {item.description}
+                          </span>
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </nav>
 
         {/* Rechts: Avatar/Account + Hamburger */}
         <div className="flex items-center gap-3">
@@ -175,16 +288,20 @@ export function SiteHeader({ initialUser }: { initialUser?: AuthUser | null }) {
             )}
           </div>
           {!user && (
-            <Link
-              href="/login"
-              className="hidden items-center gap-2 rounded-full bg-gradient-to-r from-sky-500 to-emerald-500 px-4 py-2 text-left text-white shadow-[0_10px_25px_rgba(56,189,248,0.4)] sm:inline-flex"
-              aria-label={t("Mitmachen – Unverbindlich Vormerken", "cta.join")}
-            >
-              <span className="text-sm font-semibold">{t("Mitmachen", "cta.join")}</span>
-              <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/80">
-                {t("Unverbindlich Vormerken", "cta.preorder")}
-              </span>
-            </Link>
+            <div className="hidden items-center gap-2 sm:flex">
+              <Link
+                href="/login"
+                className="inline-flex items-center rounded-full border border-slate-200 bg-white px-4 py-1.5 text-xs font-semibold uppercase tracking-wide text-slate-700 hover:border-sky-300 hover:text-sky-700"
+              >
+                {t("Login", "cta.login")}
+              </Link>
+              <Link
+                href="/register"
+                className="inline-flex items-center rounded-full bg-gradient-to-r from-sky-500 to-emerald-500 px-4 py-1.5 text-xs font-semibold uppercase tracking-wide text-white shadow-[0_10px_25px_rgba(56,189,248,0.4)]"
+              >
+                {t("Registrieren", "cta.register")}
+              </Link>
+            </div>
           )}
           <button
             type="button"
@@ -276,32 +393,54 @@ export function SiteHeader({ initialUser }: { initialUser?: AuthUser | null }) {
               aria-label={t("Mobile Navigation", "aria.mobile-nav")}
               className="flex flex-col gap-2 text-sm font-semibold text-slate-800"
             >
-              {navItems.map((item) => (
-                <Link
-                  key={item.label}
-                  href={item.href}
-                  onClick={() => setMobileOpen(false)}
-                  className="rounded-2xl border border-slate-200 bg-slate-50/80 px-3 py-2 text-left hover:border-sky-300 hover:bg-sky-50"
-                >
-                  <span className="block text-sm font-semibold">
-                    {item.label}
-                  </span>
-                  <span className="mt-0.5 block text-[11px] font-normal text-slate-600">
-                    {item.description}
-                  </span>
-                </Link>
+              {navSections.map((section) => (
+                <div key={section.id} className="rounded-3xl border border-slate-200 bg-white p-3">
+                  <Link
+                    href={section.href}
+                    onClick={() => setMobileOpen(false)}
+                    className="block rounded-2xl border border-slate-200 bg-slate-50/80 px-3 py-2 text-left hover:border-sky-300 hover:bg-sky-50"
+                  >
+                    <span className="block text-sm font-semibold">{section.label}</span>
+                    <span className="mt-0.5 block text-[11px] font-normal text-slate-600">
+                      {section.description}
+                    </span>
+                  </Link>
+                  <div className="mt-2 grid gap-2">
+                    {section.items.map((item) => (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        onClick={() => setMobileOpen(false)}
+                        className="rounded-2xl border border-slate-200 bg-white px-3 py-2 text-left text-sm text-slate-700 hover:border-sky-300 hover:bg-sky-50"
+                      >
+                        <span className="block text-sm font-semibold">{item.label}</span>
+                        <span className="mt-0.5 block text-[11px] font-normal text-slate-600">
+                          {item.description}
+                        </span>
+                      </Link>
+                    ))}
+                  </div>
+                </div>
               ))}
 
-              <Link
-                href="/login"
-                onClick={() => setMobileOpen(false)}
-                className="mt-2 rounded-2xl bg-gradient-to-r from-sky-500 to-emerald-500 px-4 py-2 text-center text-sm font-semibold text-white shadow-[0_10px_25px_rgba(56,189,248,0.4)]"
-              >
-                <span className="block text-sm font-semibold">{t("Mitmachen", "cta.join")}</span>
-                <span className="block text-[10px] font-semibold uppercase tracking-[0.2em] text-white/80">
-                  {t("Unverbindlich Vormerken", "cta.preorder.mobile")}
-                </span>
-              </Link>
+              {!user && (
+                <div className="mt-2 grid grid-cols-2 gap-2">
+                  <Link
+                    href="/login"
+                    onClick={() => setMobileOpen(false)}
+                    className="rounded-full border border-slate-200 bg-white px-4 py-2 text-center text-sm font-semibold text-slate-700 hover:border-sky-300 hover:text-sky-700"
+                  >
+                    {t("Login", "cta.login.mobile")}
+                  </Link>
+                  <Link
+                    href="/register"
+                    onClick={() => setMobileOpen(false)}
+                    className="rounded-full bg-gradient-to-r from-sky-500 to-emerald-500 px-4 py-2 text-center text-sm font-semibold text-white shadow-[0_10px_25px_rgba(56,189,248,0.4)]"
+                  >
+                    {t("Registrieren", "cta.register.mobile")}
+                  </Link>
+                </div>
+              )}
 
               {user ? (
                 <div className="flex flex-col gap-2">
