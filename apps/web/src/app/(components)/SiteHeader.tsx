@@ -24,29 +24,14 @@ type NavItem = {
 
 const NAV_ITEMS: NavItem[] = [
   {
-    href: "/howtoworks/edebatte/dossier",
-    label: "Dossier & Faktencheck",
-    description: "Quellen, Claims und offene Fragen nachvollziehen.",
+    href: "/howtoworks/edebatte",
+    label: "So funktionierts",
+    description: "Abstimmen · Einreichen · Präsentieren",
   },
   {
-    href: "/swipes",
-    label: "Abstimmen",
-    description: "Positionen bewerten und Mehrheiten sichtbar machen.",
-  },
-  {
-    href: "/pricing",
-    label: "Preise",
-    description: "Pakete, Vormerkung und Mitgliedschaft.",
-  },
-  {
-    href: "/faq",
-    label: "FAQ",
-    description: "Antworten zur Plattform und Methodik.",
-  },
-  {
-    href: "/kontakt",
-    label: "Kontakt",
-    description: "Support, Presse und Anfragen.",
+    href: "/howtoworks/bewegung",
+    label: "Über uns",
+    description: "Die Bewegung · Transparenzbericht · FAQ & Hilfe",
   },
 ];
 
@@ -191,10 +176,14 @@ export function SiteHeader({ initialUser }: { initialUser?: AuthUser | null }) {
           </div>
           {!user && (
             <Link
-              href="/pricing"
-              className="btn btn-primary hidden sm:inline-flex items-center"
+              href="/login"
+              className="hidden items-center gap-2 rounded-full bg-gradient-to-r from-sky-500 to-emerald-500 px-4 py-2 text-left text-white shadow-[0_10px_25px_rgba(56,189,248,0.4)] sm:inline-flex"
+              aria-label={t("Mitmachen – Unverbindlich Vormerken", "cta.join")}
             >
-              {t("Vormerken", "cta.preorder")}
+              <span className="text-sm font-semibold">{t("Mitmachen", "cta.join")}</span>
+              <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/80">
+                {t("Unverbindlich Vormerken", "cta.preorder")}
+              </span>
             </Link>
           )}
           <button
@@ -304,11 +293,14 @@ export function SiteHeader({ initialUser }: { initialUser?: AuthUser | null }) {
               ))}
 
               <Link
-                href="/pricing"
+                href="/login"
                 onClick={() => setMobileOpen(false)}
-                className="mt-2 rounded-full bg-gradient-to-r from-sky-500 to-emerald-500 px-4 py-2 text-center text-sm font-semibold text-white shadow-[0_10px_25px_rgba(56,189,248,0.4)]"
+                className="mt-2 rounded-2xl bg-gradient-to-r from-sky-500 to-emerald-500 px-4 py-2 text-center text-sm font-semibold text-white shadow-[0_10px_25px_rgba(56,189,248,0.4)]"
               >
-                {t("Mitmachen", "cta.join")}
+                <span className="block text-sm font-semibold">{t("Mitmachen", "cta.join")}</span>
+                <span className="block text-[10px] font-semibold uppercase tracking-[0.2em] text-white/80">
+                  {t("Unverbindlich Vormerken", "cta.preorder.mobile")}
+                </span>
               </Link>
 
               {user ? (
