@@ -182,3 +182,37 @@ Safe Mode regelt NUR **WIE** Codex daran arbeitet, nicht **WAS** E150 inhaltlich
 
 Codex soll Safe Mode als „Guardrails“ verstehen, die **immer gelten**,  
 egal, für welchen Part (00–14) ein Run gerade arbeitet.
+
+---
+
+## 9. Lokal-Umgebung & .envrc (verbindlich)
+
+Regeln, damit Logins/Session-Debug nicht wieder entgleisen:
+
+- **.envrc nur minimal**:
+  - nur `dotenv_if_exists` und `export` verwenden,
+  - **keine** `node`, `pnpm`, `python` oder andere Commands direkt in `.envrc`.
+- **Automatisierung nur per Script**:
+  - z.B. `scripts/atlas-auto-ip.sh`,
+  - optional via Flag (`ATLAS_AUTO_IP=1`) triggern.
+
+Ziel: `.envrc` bleibt deterministisch und ohne Seiteneffekte.
+
+---
+
+## 10. Auth/Session Quick-Checks (verbindlich)
+
+Tests, die sofort die Ursache zeigen:
+
+- `GET /api/auth/me`
+  - `200` = Session ok
+  - `401` = Session fehlt/ungültig
+- `GET /api/admin/system/ping`
+  - `200` = Admin-Session ok
+  - `401/403` = Session/Role/2FA Problem
+- **admin-gate Log** ist die Quelle der Wahrheit (zeigt Role, 2FA, Session).
+
+Optional (empfohlen):
+- **Dev-only Debug-Endpoint** `GET /api/auth/debug`
+  - Ausgabe: `NODE_ENV`, Cookie `session_token` vorhanden (ja/nein), JWT-Secret gesetzt (ja/nein), `host`, `x-forwarded-proto`.
+  - Nur in `development` erlauben; in `production` hart sperren.

@@ -89,6 +89,9 @@ Die folgenden Punkte dokumentieren die abgeschlossene Reihenfolge der Bloecke. K
 - Part14/Part15/Part09 wurden auf konsistente Statusaussagen abgeglichen.
 - `docs/E150/OpenTasks.md` wurde als kanonisches Aufgabenboard angelegt.
 - `docs/E150/Pflichtenheft.md` wurde als verbindlicher Liefer- und Abnahmerahmen ergaenzt.
+- **Lokal-Guardrails**: `.envrc` bleibt minimal (nur `dotenv_if_exists` + `export`, keine Commands).  
+  Login/Session-Checks erfolgen immer ueber `GET /api/auth/me` und `GET /api/admin/system/ping`.  
+  Optionaler Dev-Debug-Endpoint (`/api/auth/debug`) ist erlaubt, aber nur in `development`.
 
 ## Optionaler Nachlauf (kanonisch in OpenTasks)
 
