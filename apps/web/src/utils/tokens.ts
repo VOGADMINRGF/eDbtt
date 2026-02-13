@@ -17,7 +17,18 @@ export async function createToken(
   const tokenHash = sha256(raw);
   const col = await piiCol("tokens");
   const expiresAt = new Date(Date.now() + ttlMinutes * 60_000);
-  await col.createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 });
+  try {
+    await col.createIndex(
+      { expiresAt: 1 },
+      { expireAfterSeconds: 0, name: "expires_ttl" },
+    );
+  } catch (err: any) {
+    // Ignore when the TTL index already exists under a different name/options.
+    const code = err?.code ?? err?.codeName;
+    if (!(code === 85 || code === "IndexOptionsConflict")) {
+      throw err;
+    }
+  }
   await col.insertOne({
     userId,
     type,
