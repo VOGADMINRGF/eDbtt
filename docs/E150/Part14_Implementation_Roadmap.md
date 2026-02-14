@@ -257,6 +257,35 @@ Aufgaben:
 
 ---
 
+### Block F2 – Creator-Cockpit (Deliberation Mode)
+
+**Ziel:** Live-Streams liefern strukturierte Ergebnisse (Optionen, Quellen, offene Fragen, Follow-up).
+
+Status: **Planned (MVP in kleinen Runs)**.
+
+Aufgaben:
+
+1. **Session-State**
+   - `StreamSession.deliberation` (Phase, Runde, Timer, letzter Update).
+
+2. **Cockpit-UI**
+   - Phase wechseln, Timer starten, Runde erhöhen.
+
+3. **Moderations-Queue (MVP)**
+   - Eingänge manuell markieren: Behauptung/Quelle/Frage/Option/Auswirkung.
+
+4. **Live-Dossier-Board (MVP)**
+   - Optionen + Pro/Contra + Quellen + offene Fragen sichtbar.
+
+5. **Follow-up-Tracker (MVP)**
+   - Status-Tafel inkl. 7/30/90 Tage Erinnerungen (minimal).
+
+**Definition of Done**
+- Phasensteuerung + Timer sind im Stream-Cockpit nutzbar.
+- Ergebnisse sind als Board sichtbar, auch ohne externe Chat-Integration.
+
+---
+
 ### Block G – Part12: Campaigns & QR-Sessions
 
 **Ziel:** Gemeinden/Organisationen können Kampagnen mit QR-Code fahren und Reports erhalten.

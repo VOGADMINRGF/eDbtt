@@ -5,6 +5,24 @@ export type StreamAgendaKind = "statement" | "question" | "poll" | "info";
 export type StreamAgendaStatus = "queued" | "live" | "archived" | "skipped";
 export type StreamSessionStatus = "draft" | "scheduled" | "live" | "ended" | "cancelled";
 export type StreamAttributionMode = "hidden" | "creator_only" | "public";
+export type StreamDeliberationPhase =
+  | "mandate"
+  | "input"
+  | "round_a"
+  | "round_b"
+  | "round_c"
+  | "plenum"
+  | "vote"
+  | "follow_up";
+
+export interface StreamDeliberationState {
+  enabled: boolean;
+  phase: StreamDeliberationPhase;
+  round: number;
+  roundEndsAt?: Date | null;
+  updatedAt?: Date | null;
+  updatedBy?: string | null;
+}
 
 export interface StreamSessionDoc {
   _id?: ObjectId;
@@ -18,6 +36,7 @@ export interface StreamSessionDoc {
   visibility: StreamVisibility;
   status?: StreamSessionStatus;
   isLive: boolean;
+  deliberation?: StreamDeliberationState | null;
   createdAt: Date;
   updatedAt: Date;
   startedAt?: Date | null;

@@ -15,6 +15,25 @@ type AgendaItem = {
   publicAttribution: string;
 };
 
+type DeliberationState = {
+  enabled: boolean;
+  phase: string;
+  round: number;
+  roundEndsAt?: string | null;
+  updatedAt?: string | null;
+};
+
+const DELIBERATION_PHASES = [
+  { key: "mandate", label: "Mandat" },
+  { key: "input", label: "Input" },
+  { key: "round_a", label: "Runde A" },
+  { key: "round_b", label: "Runde B" },
+  { key: "round_c", label: "Runde C" },
+  { key: "plenum", label: "Plenum" },
+  { key: "vote", label: "Abstimmung" },
+  { key: "follow_up", label: "Follow-up" },
+] as const;
+
 export default function StreamCockpitPage() {
   const params = useParams<{ id: string }>();
   const [session, setSession] = useState<{
@@ -25,6 +44,10 @@ export default function StreamCockpitPage() {
   } | null>(null);
   const [items, setItems] = useState<AgendaItem[]>([]);
   const [qrDraftByItem, setQrDraftByItem] = useState<Record<string, string>>({});
+  const [deliberation, setDeliberation] = useState<DeliberationState | null>(null);
+  const [delibNotice, setDelibNotice] = useState<string | null>(null);
+  const [delibError, setDelibError] = useState<string | null>(null);
+  const [roundMinutes, setRoundMinutes] = useState("5");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -67,6 +90,15 @@ export default function StreamCockpitPage() {
             return next;
           });
         }
+        const delibRes = await fetch(`/api/streams/sessions/${params.id}/deliberation`, {
+          cache: "no-store",
+        });
+        const delibBody = await delibRes.json().catch(() => ({}));
+        if (!ignore) {
+          if (delibRes.ok && delibBody?.state) {
+            setDeliberation(delibBody.state);
+          }
+        }
       } catch (err: any) {
         if (!ignore) setError(err?.message ?? "Fehler beim Laden der Agenda");
       } finally {
@@ -91,6 +123,11 @@ export default function StreamCockpitPage() {
   const activeQrTarget =
     liveItem?.qrTarget?.trim() ||
     (liveItem?._id ? `${publicStreamPath}?agendaItemId=${liveItem._id}` : publicStreamPath);
+  const phaseLabel =
+    DELIBERATION_PHASES.find((p) => p.key === deliberation?.phase)?.label ?? "Mandat";
+  const roundEndsLabel = deliberation?.roundEndsAt
+    ? new Date(deliberation.roundEndsAt).toLocaleTimeString("de-DE")
+    : "—";
 
   async function addQuestion(kind: "question" | "poll") {
     const payload: any = {
@@ -128,6 +165,31 @@ export default function StreamCockpitPage() {
     if (!res.ok) {
       const body = await res.json().catch(() => ({}));
       throw new Error(body?.error || "Aktion fehlgeschlagen.");
+    }
+  }
+
+  async function updateDeliberation(patch: {
+    enabled?: boolean;
+    phase?: string;
+    round?: number;
+    roundMinutes?: number | null;
+  }) {
+    setDelibNotice(null);
+    setDelibError(null);
+    try {
+      const res = await fetch(`/api/streams/sessions/${params.id}/deliberation`, {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(patch),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(body?.error || "Aktion fehlgeschlagen.");
+      }
+      if (body?.state) setDeliberation(body.state);
+      setDelibNotice("Deliberation aktualisiert.");
+    } catch (err: any) {
+      setDelibError(err?.message ?? "Deliberation konnte nicht aktualisiert werden.");
     }
   }
 
@@ -321,6 +383,99 @@ export default function StreamCockpitPage() {
             >
               Kopieren
             </button>
+          </div>
+        </div>
+      </section>
+
+      <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm space-y-3">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <h2 className="text-sm font-semibold text-slate-900">Deliberation Mode</h2>
+            <p className="text-xs text-slate-500">
+              Phasen, Runden und Timer fuer strukturierte Live-Debatten.
+            </p>
+          </div>
+          <button
+            className={`rounded-full px-3 py-1 text-xs font-semibold ${
+              deliberation?.enabled
+                ? "border border-emerald-300 bg-emerald-50 text-emerald-700"
+                : "border border-slate-300 bg-white text-slate-600"
+            }`}
+            onClick={() => updateDeliberation({ enabled: !deliberation?.enabled })}
+          >
+            {deliberation?.enabled ? "Aktiv" : "Inaktiv"}
+          </button>
+        </div>
+
+        {delibError && <p className="text-xs text-rose-600">{delibError}</p>}
+        {delibNotice && <p className="text-xs text-emerald-600">{delibNotice}</p>}
+
+        <div className="grid gap-3 lg:grid-cols-3">
+          <div className="rounded-xl border border-slate-100 p-3 text-xs">
+            <p className="font-semibold text-slate-900">Aktuelle Phase</p>
+            <p className="mt-1 text-slate-600">{phaseLabel}</p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {DELIBERATION_PHASES.map((phase) => (
+                <button
+                  key={phase.key}
+                  className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold ${
+                    deliberation?.phase === phase.key
+                      ? "border-slate-900 bg-slate-900 text-white"
+                      : "border-slate-300 text-slate-600"
+                  }`}
+                  onClick={() => updateDeliberation({ phase: phase.key, enabled: true })}
+                >
+                  {phase.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="rounded-xl border border-slate-100 p-3 text-xs">
+            <p className="font-semibold text-slate-900">Runde</p>
+            <p className="mt-1 text-slate-600">Runde {deliberation?.round ?? 1}</p>
+            <div className="mt-3 flex items-center gap-2">
+              <button
+                className="rounded-full border border-slate-300 px-3 py-1"
+                onClick={() =>
+                  updateDeliberation({ round: Math.max(1, (deliberation?.round ?? 1) - 1) })
+                }
+              >
+                −
+              </button>
+              <button
+                className="rounded-full border border-slate-900 bg-slate-900 px-3 py-1 text-white"
+                onClick={() => updateDeliberation({ round: (deliberation?.round ?? 1) + 1 })}
+              >
+                +
+              </button>
+            </div>
+          </div>
+
+          <div className="rounded-xl border border-slate-100 p-3 text-xs">
+            <p className="font-semibold text-slate-900">Timer</p>
+            <p className="mt-1 text-slate-600">Ende: {roundEndsLabel}</p>
+            <div className="mt-3 flex items-center gap-2">
+              <input
+                className="w-16 rounded-full border border-slate-200 px-2 py-1 text-xs text-slate-700"
+                value={roundMinutes}
+                onChange={(e) => setRoundMinutes(e.target.value)}
+                inputMode="numeric"
+              />
+              <span className="text-[11px] text-slate-500">Min</span>
+              <button
+                className="rounded-full border border-slate-900 bg-slate-900 px-3 py-1 text-white"
+                onClick={() => updateDeliberation({ roundMinutes: Number(roundMinutes) || 0 })}
+              >
+                Start
+              </button>
+              <button
+                className="rounded-full border border-slate-300 px-3 py-1"
+                onClick={() => updateDeliberation({ roundMinutes: 0 })}
+              >
+                Stop
+              </button>
+            </div>
           </div>
         </div>
       </section>

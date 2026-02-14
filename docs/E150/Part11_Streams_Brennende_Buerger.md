@@ -195,6 +195,54 @@ in ResearchTasks (Part09),
 
 in spätere Reports.
 
+---
+
+## 5.4 Creator-Cockpit: Deliberation Mode (Leitlinien-Erweiterung)
+
+Ziel: Der Livestream bleibt schnell und unterhaltsam, erzeugt aber am Ende
+**Optionen + Begründungen + offene Fragen + Quellen + Auswirkungen** – inkl. Follow-up.
+
+Prinzip: Chat wird in **strukturierte Bausteine** überführt
+(Behauptung, Quelle, Frage, Option, Auswirkung).
+
+### 5.4.1 Phasen (Taktung)
+
+1. **Mandat klären (30–60s)**
+   - Worum geht es? Was passiert mit dem Ergebnis?
+2. **Input-Phase (2–4 Min.)**
+   - Chat liefert Rohmaterial, Mods sortieren in Bausteine.
+3. **Mini-Runden (3–5 Runden, je 5–7 Min.)**
+   - Runde A: realistische Optionen
+   - Runde B: Auswirkungen/Trade-offs
+   - Runde C: Fragen/Belege fehlen
+4. **Plenum (2–3 Min.)**
+   - Kurzfassung pro Option (Kernargumente, Quelle, offene Frage)
+5. **Abstimmung (30–90s)**
+   - Optionen finalisieren (mind. 5), Voting mit Mehrheitsregel
+6. **Follow-up (30s)**
+   - Status-Tafel: eingereicht → in Prüfung → angenommen/teilweise/abgelehnt
+
+### 5.4.2 Creator-Cockpit (Module)
+
+1. **Stream-Cockpit**
+   - Thema, Mandat, Regeln, Timersteuerung je Phase
+2. **Moderations-Queue**
+   - 1‑Klick-Zuordnung zu Bausteinen, Duplikate/Spam-Hinweise
+3. **Kleingruppen-Manager**
+   - rotierende Mini-Panels, Redezeit-Ampel, Notfall-Stummschalten
+4. **Live-Dossier-Board (public)**
+   - Optionen + Pro/Contra + Quellen + offene Fragen sichtbar
+5. **Abstimmung & Export**
+   - Voting-Widget + Ergebnis-Link/Dossier-Export
+6. **Follow-up-Tracker**
+   - Erinnerungen 7/30/90 Tage, Status-Updates mit Begründung
+
+### 5.4.3 Technische Leitplanken
+
+- OBS/Overlay bleibt Browser-Source, kein eigener Video-Host.
+- Chat-Integration (Twitch/YouTube) nur als Adapter, nicht als Hard-Abhängigkeit.
+- Im MVP: **Phasensteuerung + Timer + Moderations-Queue + Live-Board** reichen aus.
+
 ## 6. Nachbereitung des Streams
 ### 6.1 Automatischer Stream-Report
 Enthält:

@@ -57,6 +57,7 @@ Ist/Unerledigt:
 | Admin Navigation | Hubs + Direktzugriff + Zusatzbereiche im Dashboard vorhanden | Kontextaktionen (Massenaktionen/Drilldown) gezielt erweitern |
 | Swipes End-to-End | Swipe-Feed aus `statement_proposals`, Votes in `swipe_votes`, Eventualities aus `eventuality_nodes` | Optional: Vote-Aggregationen/Analytics fuer Admin-Reports |
 | Public Profile Polish | Public Profile Flags + ShareId vorhanden | Avatar/Cover Upload API anbinden, Impact-Ansicht fuer Buerger:innen implementieren |
+| Stream Deliberation Cockpit | Stream-Cockpit + Agenda + Overlay vorhanden | Phasensteuerung/Timer, Moderations-Queue (MVP), Live-Dossier-Board, Follow-up-Tracker |
 
 ## Arbeitsregel fuer jeden Run
 
