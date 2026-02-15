@@ -33,6 +33,22 @@ type ModerationQueueItem = {
   createdAt?: string | null;
 };
 
+type LiveBoardOption = {
+  id: string;
+  title: string;
+  pros: string[];
+  cons: string[];
+  sources: string[];
+  openQuestions: string[];
+};
+
+type LiveBoardState = {
+  title: string;
+  summary?: string | null;
+  options: LiveBoardOption[];
+  updatedAt?: string | null;
+};
+
 const DELIBERATION_PHASES = [
   { key: "mandate", label: "Mandat" },
   { key: "input", label: "Input" },
@@ -74,6 +90,14 @@ export default function StreamCockpitPage() {
   const [queueDraftText, setQueueDraftText] = useState("");
   const [queueDraftSource, setQueueDraftSource] = useState("");
   const [queueDraftNotes, setQueueDraftNotes] = useState("");
+  const [liveBoard, setLiveBoard] = useState<LiveBoardState>({
+    title: "Live-Dossier",
+    summary: "",
+    options: [],
+  });
+  const [boardLoading, setBoardLoading] = useState(true);
+  const [boardError, setBoardError] = useState<string | null>(null);
+  const [boardNotice, setBoardNotice] = useState<string | null>(null);
   const [roundMinutes, setRoundMinutes] = useState("5");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -111,11 +135,37 @@ export default function StreamCockpitPage() {
     }
   }
 
+  async function fetchLiveBoard(sessionId: string) {
+    setBoardError(null);
+    try {
+      const res = await fetch(`/api/streams/sessions/${sessionId}/live-board`, {
+        cache: "no-store",
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(body?.error || res.statusText);
+      if (body?.state) {
+        setLiveBoard({
+          title: body.state.title ?? "Live-Dossier",
+          summary: body.state.summary ?? "",
+          options: Array.isArray(body.state.options) ? body.state.options : [],
+          updatedAt: body.state.updatedAt ?? null,
+        });
+      } else {
+        setLiveBoard((prev) => ({ ...prev }));
+      }
+    } catch (err: any) {
+      setBoardError(err?.message ?? "Live-Dossier-Board konnte nicht geladen werden.");
+    } finally {
+      setBoardLoading(false);
+    }
+  }
+
   useEffect(() => {
     let ignore = false;
     async function load() {
       setLoading(true);
       setQueueLoading(true);
+      setBoardLoading(true);
       try {
         const res = await fetch(`/api/streams/sessions/${params.id}/agenda`, { cache: "no-store" });
         const body = await res.json().catch(() => ({}));
@@ -145,6 +195,7 @@ export default function StreamCockpitPage() {
         }
         if (!ignore) {
           await fetchQueue(params.id);
+          await fetchLiveBoard(params.id);
         }
       } catch (err: any) {
         if (!ignore) setError(err?.message ?? "Fehler beim Laden der Agenda");
@@ -234,6 +285,72 @@ export default function StreamCockpitPage() {
       await fetchQueue(params.id);
     } catch (err: any) {
       setQueueError(err?.message ?? "Queue-Status konnte nicht gesetzt werden.");
+    }
+  }
+
+  function updateBoardOption(id: string, patch: Partial<LiveBoardOption>) {
+    setLiveBoard((prev) => ({
+      ...prev,
+      options: prev.options.map((opt) => (opt.id === id ? { ...opt, ...patch } : opt)),
+    }));
+  }
+
+  function updateBoardList(id: string, key: "pros" | "cons" | "sources" | "openQuestions", value: string) {
+    const nextList = value
+      .split("\n")
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .slice(0, 12);
+    updateBoardOption(id, { [key]: nextList } as Partial<LiveBoardOption>);
+  }
+
+  function addBoardOption() {
+    setLiveBoard((prev) => {
+      const nextId = typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `opt_${Date.now()}`;
+      return {
+        ...prev,
+        options: [
+          ...prev.options,
+          { id: nextId, title: "Neue Option", pros: [], cons: [], sources: [], openQuestions: [] },
+        ].slice(0, 7),
+      };
+    });
+  }
+
+  function removeBoardOption(id: string) {
+    setLiveBoard((prev) => ({
+      ...prev,
+      options: prev.options.filter((opt) => opt.id !== id),
+    }));
+  }
+
+  async function saveLiveBoard() {
+    setBoardError(null);
+    setBoardNotice(null);
+    try {
+      const payload = {
+        title: liveBoard.title?.trim() || "Live-Dossier",
+        summary: liveBoard.summary?.trim() || "",
+        options: liveBoard.options,
+      };
+      const res = await fetch(`/api/streams/sessions/${params.id}/live-board`, {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ state: payload }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(body?.error || "Live-Dossier konnte nicht gespeichert werden.");
+      if (body?.state) {
+        setLiveBoard({
+          title: body.state.title ?? payload.title,
+          summary: body.state.summary ?? payload.summary,
+          options: Array.isArray(body.state.options) ? body.state.options : payload.options,
+          updatedAt: body.state.updatedAt ?? null,
+        });
+      }
+      setBoardNotice("Live-Dossier gespeichert.");
+    } catch (err: any) {
+      setBoardError(err?.message ?? "Live-Dossier konnte nicht gespeichert werden.");
     }
   }
 
@@ -725,6 +842,132 @@ export default function StreamCockpitPage() {
             >
               In Queue aufnehmen
             </button>
+          </div>
+        </div>
+      </section>
+
+      <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="text-sm font-semibold text-slate-900">Live-Dossier-Board</h2>
+            <p className="text-xs text-slate-500">
+              Kurze Optionslage inkl. Pro/Contra, Quellen und offenen Fragen – öffentlich sichtbar.
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2 text-xs">
+            {boardLoading && <span className="text-slate-400">lädt…</span>}
+            {liveBoard.updatedAt && (
+              <span className="text-slate-500">
+                Stand:{" "}
+                {new Date(liveBoard.updatedAt).toLocaleString("de-DE", { dateStyle: "short", timeStyle: "short" })}
+              </span>
+            )}
+            <button
+              className="rounded-full border border-slate-300 px-3 py-1 text-slate-700"
+              onClick={addBoardOption}
+            >
+              Option hinzufügen
+            </button>
+            <button
+              className="rounded-full border border-slate-900 bg-slate-900 px-3 py-1 text-white"
+              onClick={saveLiveBoard}
+            >
+              Speichern
+            </button>
+          </div>
+        </div>
+
+        {boardError && <p className="text-xs text-rose-600">{boardError}</p>}
+        {boardNotice && <p className="text-xs text-emerald-600">{boardNotice}</p>}
+
+        <div className="grid gap-4 lg:grid-cols-3">
+          <div className="lg:col-span-1 space-y-3">
+            <label className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Titel</label>
+            <input
+              className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs"
+              value={liveBoard.title}
+              onChange={(e) => setLiveBoard((prev) => ({ ...prev, title: e.target.value }))}
+            />
+            <label className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Kurzfassung</label>
+            <textarea
+              className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs"
+              rows={5}
+              value={liveBoard.summary ?? ""}
+              onChange={(e) => setLiveBoard((prev) => ({ ...prev, summary: e.target.value }))}
+              placeholder="1–2 Sätze, was die Lage ist und worüber abgestimmt wird."
+            />
+          </div>
+
+          <div className="lg:col-span-2 space-y-3">
+            {liveBoard.options.length === 0 ? (
+              <p className="text-sm text-slate-500">
+                Noch keine Optionen. Erstelle 3–5 Optionen, um das Live‑Dossier zu füllen.
+              </p>
+            ) : (
+              liveBoard.options.map((opt, index) => (
+                <div key={opt.id} className="rounded-xl border border-slate-100 p-3 space-y-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <p className="text-xs font-semibold text-slate-500">Option {index + 1}</p>
+                    <button
+                      className="rounded-full border border-slate-300 px-3 py-1 text-xs text-slate-600"
+                      onClick={() => removeBoardOption(opt.id)}
+                    >
+                      Entfernen
+                    </button>
+                  </div>
+                  <input
+                    className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold"
+                    value={opt.title}
+                    onChange={(e) => updateBoardOption(opt.id, { title: e.target.value })}
+                    placeholder="Optionstitel"
+                  />
+                  <div className="grid gap-3 md:grid-cols-2">
+                    <div className="space-y-1">
+                      <label className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Pro</label>
+                      <textarea
+                        className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs"
+                        rows={3}
+                        value={opt.pros.join("\n")}
+                        onChange={(e) => updateBoardList(opt.id, "pros", e.target.value)}
+                        placeholder="je Zeile ein Argument"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Contra</label>
+                      <textarea
+                        className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs"
+                        rows={3}
+                        value={opt.cons.join("\n")}
+                        onChange={(e) => updateBoardList(opt.id, "cons", e.target.value)}
+                        placeholder="je Zeile ein Risiko"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Quellen</label>
+                      <textarea
+                        className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs"
+                        rows={3}
+                        value={opt.sources.join("\n")}
+                        onChange={(e) => updateBoardList(opt.id, "sources", e.target.value)}
+                        placeholder="URL pro Zeile"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                        Offene Fragen
+                      </label>
+                      <textarea
+                        className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs"
+                        rows={3}
+                        value={opt.openQuestions.join("\n")}
+                        onChange={(e) => updateBoardList(opt.id, "openQuestions", e.target.value)}
+                        placeholder="je Zeile eine offene Frage"
+                      />
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </div>
       </section>

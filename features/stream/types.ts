@@ -39,6 +39,7 @@ export interface StreamSessionDoc {
   status?: StreamSessionStatus;
   isLive: boolean;
   deliberation?: StreamDeliberationState | null;
+  liveBoard?: StreamLiveBoardState | null;
   createdAt: Date;
   updatedAt: Date;
   startedAt?: Date | null;
@@ -83,6 +84,23 @@ export interface StreamOverlayState {
   sessionId: ObjectId;
   items: StreamOverlayItem[];
   updatedAt: Date;
+}
+
+export interface StreamLiveBoardOption {
+  id: string;
+  title: string;
+  pros: string[];
+  cons: string[];
+  sources: string[];
+  openQuestions: string[];
+}
+
+export interface StreamLiveBoardState {
+  title: string;
+  summary?: string | null;
+  options: StreamLiveBoardOption[];
+  updatedAt?: Date | null;
+  updatedBy?: string | null;
 }
 
 export interface StreamModerationQueueItemDoc {

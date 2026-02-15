@@ -200,6 +200,25 @@ Verification:
 Next Steps:
 - Live-Dossier-Board + Follow-up-Tracker anbinden.
 
+### PR-0035 (2026-02-15) – Live-Dossier-Board (MVP)
+
+Ziel:
+- Live-Dossier-Board im Stream-Cockpit editierbar machen und im Public-Stream anzeigen.
+
+Changes:
+- `liveBoard` State in Stream-Session-Model ergänzt.
+- API: `/api/streams/sessions/[id]/live-board` (GET/PATCH).
+- Cockpit-UI: Board-Editor mit Optionen, Pro/Contra, Quellen, offenen Fragen.
+- Public-UI: Live-Dossier-Board auf `/stream/[slug]`.
+
+Verification:
+- `pnpm lint` (PASS)
+- `pnpm -C apps/web build` (PASS)
+- `./scripts/verify.sh` (PASS)
+
+Next Steps:
+- Follow-up-Tracker + Kleingruppen/Call-ins.
+
 ### PR-0017 (2026-02-11) – Block E Research R2
 
 Ziel:
