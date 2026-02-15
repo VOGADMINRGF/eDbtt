@@ -1,9 +1,17 @@
 // apps/web/src/app/stream/[slug]/page.tsx
 import Link from "next/link";
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { ObjectId } from "@core/db/triMongo";
 import { streamSessionsCol } from "@features/stream/db";
-import { resolveSessionStatus } from "@features/stream/types";
+import {
+  resolveSessionStatus,
+  type StreamFollowUpState,
+  type StreamFollowUpUpdate,
+  type StreamLiveBoardOption,
+  type StreamLiveBoardState,
+  type StreamSessionDoc,
+} from "@features/stream/types";
 
 export const dynamic = "force-dynamic";
 
@@ -23,15 +31,9 @@ function isEmbedUrl(value: string) {
   );
 }
 
-export default async function StreamDetail({
-  params,
-}: {
-  params: Promise<{ slug: string }>;
-}) {
-  const { slug } = await params;
+async function fetchSessionBySlug(slug: string, projection?: Record<string, 1 | 0>) {
   const sessions = await streamSessionsCol();
-
-  const query: Record<string, any> = {
+  const query: Record<string, unknown> = {
     visibility: { $in: ["public", "unlisted"] },
   };
   if (isObjectId(slug)) {
@@ -39,19 +41,99 @@ export default async function StreamDetail({
   } else {
     query.slug = slug;
   }
+  return (await sessions.findOne(query, projection ? { projection } : undefined)) as StreamSessionDoc | null;
+}
 
-  const session = await sessions.findOne(query);
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}): Promise<Metadata> {
+  const { slug } = await params;
+  const session = await fetchSessionBySlug(slug, {
+    title: 1,
+    description: 1,
+    topicKey: 1,
+    regionCode: 1,
+  });
+  if (!session) {
+    return {
+      title: "Stream nicht gefunden",
+      description: "Der angefragte Stream ist nicht verfügbar.",
+      robots: { index: false },
+    };
+  }
+  const title = `${session.title} · Stream`;
+  const description =
+    session.description ??
+    `Live-Stream zu ${session.topicKey ?? "aktuellen Themen"}${session.regionCode ? ` in ${session.regionCode}` : ""}.`;
+  return {
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      type: "video.other",
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+    },
+  };
+}
+
+export default async function StreamDetail({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}) {
+  const { slug } = await params;
+  const session = await fetchSessionBySlug(slug);
   if (!session) return notFound();
 
   const status = resolveSessionStatus(session);
   const startsAt = session.startsAt ? new Date(session.startsAt) : null;
-  const playerUrl = (session as any)?.playerUrl ?? null;
-  const liveBoard = (session as any)?.liveBoard ?? null;
-  const followUp = (session as any)?.followUp ?? null;
-  const recordingAllowed = Boolean((session as any)?.recordingAllowed);
-  const requireVerifiedParticipants = (session as any)?.requireVerifiedParticipants !== false;
-  const supportEnabled = Boolean((session as any)?.supportEnabled);
-  const supportBlind = Boolean((session as any)?.supportBlind);
+  const playerUrl = session.playerUrl ?? null;
+  const liveBoard: StreamLiveBoardState | null = session.liveBoard ?? null;
+  const followUp: StreamFollowUpState | null = session.followUp ?? null;
+  const recordingAllowed = Boolean(session.recordingAllowed);
+  const requireVerifiedParticipants = session.requireVerifiedParticipants !== false;
+  const supportEnabled = Boolean(session.supportEnabled);
+  const supportBlind = Boolean(session.supportBlind);
+  const hideViewerCount = session.hideViewerCount !== false;
+  const policyCards = [
+    requireVerifiedParticipants && {
+      title: "Teilnahme nur verifiziert",
+      body: "Abstimmungen und Einreichungen sind nur mit verifiziertem Konto moeglich.",
+      ctaLabel: "Verifizierung starten",
+      ctaHref: "/verify",
+      tone: "amber",
+    },
+    recordingAllowed && {
+      title: "Mitschnitt erlaubt",
+      body: "Dieser Stream darf aufgezeichnet und nachbereitet werden.",
+      tone: "slate",
+    },
+    supportEnabled && {
+      title: supportBlind ? "Support (blind)" : "Support aktiv",
+      body: supportBlind
+        ? "Unterstuetzung laeuft im Hintergrund, ohne oeffentliche Anzeige."
+        : "Unterstuetzung ist sichtbar und kann die Nachbereitung foerdern.",
+      tone: "emerald",
+    },
+    hideViewerCount && {
+      title: "Zuschauerzahl verborgen",
+      body: "Die Zuschauerzahl ist fuer die Oeffentlichkeit ausgeblendet.",
+      tone: "neutral",
+    },
+  ].filter(Boolean) as Array<{
+    title: string;
+    body: string;
+    tone: "amber" | "slate" | "emerald" | "neutral";
+    ctaLabel?: string;
+    ctaHref?: string;
+  }>;
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-[var(--brand-from)] via-white to-white pb-16">
@@ -142,6 +224,42 @@ export default async function StreamDetail({
           <p className="text-base text-slate-700 md:text-lg">{session.description}</p>
         )}
 
+        {policyCards.length > 0 && (
+          <section className="rounded-3xl border border-slate-100 bg-white p-6 shadow-sm space-y-4">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Leitlinien</p>
+              <h2 className="text-xl font-bold text-slate-900">Hinweise zum Stream</h2>
+            </div>
+            <div className="grid gap-3 md:grid-cols-2">
+              {policyCards.map((item, idx) => (
+                <div
+                  key={`${item.title}-${idx}`}
+                  className={`rounded-2xl border px-4 py-3 text-sm ${
+                    item.tone === "amber"
+                      ? "border-amber-200 bg-amber-50 text-amber-900"
+                      : item.tone === "emerald"
+                        ? "border-emerald-200 bg-emerald-50 text-emerald-900"
+                        : item.tone === "slate"
+                          ? "border-slate-200 bg-slate-50 text-slate-800"
+                          : "border-slate-200 bg-white text-slate-700"
+                  }`}
+                >
+                  <p className="font-semibold">{item.title}</p>
+                  <p className="mt-1 text-xs text-slate-600">{item.body}</p>
+                  {item.ctaLabel && item.ctaHref && (
+                    <Link
+                      href={item.ctaHref}
+                      className="mt-2 inline-flex items-center rounded-full border border-slate-200 bg-white px-3 py-1 text-[11px] font-semibold text-slate-700 hover:border-slate-300"
+                    >
+                      {item.ctaLabel}
+                    </Link>
+                  )}
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
         {supportEnabled && !supportBlind && (
           <section className="rounded-3xl border border-slate-100 bg-white p-6 shadow-sm space-y-3">
             <div>
@@ -169,7 +287,7 @@ export default async function StreamDetail({
               {liveBoard.summary && <p className="text-sm text-slate-600">{liveBoard.summary}</p>}
             </div>
             <div className="grid gap-4 md:grid-cols-2">
-              {liveBoard.options.map((opt: any, index: number) => (
+              {liveBoard.options.map((opt: StreamLiveBoardOption, index: number) => (
                 <div key={opt.id ?? index} className="rounded-2xl border border-slate-100 p-4 space-y-3">
                   <h3 className="text-lg font-semibold text-slate-900">{opt.title}</h3>
                   <div className="grid gap-3 text-sm text-slate-700">
@@ -242,7 +360,7 @@ export default async function StreamDetail({
               )}
             </div>
             <div className="space-y-3">
-              {followUp.updates.map((update: any, idx: number) => (
+              {followUp.updates.map((update: StreamFollowUpUpdate, idx: number) => (
                 <div key={update.id ?? idx} className="rounded-2xl border border-slate-100 p-4">
                   <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
                     <span className="rounded-full bg-slate-100 px-2 py-0.5 font-semibold text-slate-700">

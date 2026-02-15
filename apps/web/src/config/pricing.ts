@@ -1,4 +1,4 @@
-import { EDEBATTE_PACKAGES_DE, type EDebattePackageId, toEdebatePlanId } from "@features/pricing";
+import { getPackagesByIds, PRIVATE_PACKAGE_IDS, type EDebattePackageId, toEdebatePlanId } from "@features/pricing";
 
 export type BillingInterval = "month" | "year";
 
@@ -34,7 +34,7 @@ export const VOG_MEMBERSHIP_PLAN: VOGMembershipPlan = {
   suggestedPerPersonPerMonth: 5.63,
 };
 
-export const EDEBATTE_PLANS: EDebattePlan[] = EDEBATTE_PACKAGES_DE.map((pkg) => ({
+export const EDEBATTE_PLANS: EDebattePlan[] = getPackagesByIds(PRIVATE_PACKAGE_IDS).map((pkg) => ({
   id: toEdebatePlanId(pkg.id) as EDebattePlanId,
   label: pkg.titel,
   description: pkg.beschreibungKurz,

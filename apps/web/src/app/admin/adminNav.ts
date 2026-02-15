@@ -187,6 +187,12 @@ export const NAV_SECTIONS: NavSection[] = [
         keywords: ["campaigns", "sessions", "qr"],
       },
       {
+        href: "/admin/media",
+        label: "Media & TV",
+        description: "QR-Sets, Live-Trends, NPS",
+        keywords: ["media", "tv", "qr", "nps", "live"],
+      },
+      {
         href: "/admin/projects",
         label: "Projekte",
         description: "Themenpakete & Optionen",

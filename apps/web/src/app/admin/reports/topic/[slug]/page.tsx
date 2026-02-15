@@ -29,15 +29,21 @@ export default function TopicReportPage() {
       setError(null);
       try {
         const res = await fetch(`/api/admin/reports/topic/${encodeURIComponent(topicSlug)}`, { cache: "no-store" });
-        const json = (await res.json()) as TopicReportResponse;
-        if (!res.ok || !json.ok) {
-          throw new Error((json as any)?.error || res.statusText);
+        const json = await res.json().catch(() => null);
+        if (!isTopicReportResponse(json)) {
+          throw new Error(res.statusText);
+        }
+        if (!res.ok) {
+          throw new Error(res.statusText);
+        }
+        if (json.ok === false) {
+          throw new Error(json.error || res.statusText);
         }
         if (!ignore) setSummary(json.summary);
-      } catch (err: any) {
+      } catch (err: unknown) {
         if (!ignore) {
           setSummary(null);
-          setError(err?.message ?? "Topic-Report konnte nicht geladen werden.");
+          setError(getErrorMessage(err, "Topic-Report konnte nicht geladen werden."));
         }
       } finally {
         if (!ignore) setLoading(false);
@@ -119,4 +125,13 @@ function KpiCard({ label, value }: { label: string; value: number }) {
       <p className="text-2xl font-bold text-slate-900">{value}</p>
     </div>
   );
+}
+
+function getErrorMessage(err: unknown, fallback: string) {
+  if (err instanceof Error && err.message) return err.message;
+  return fallback;
+}
+
+function isTopicReportResponse(value: unknown): value is TopicReportResponse {
+  return Boolean(value) && typeof value === "object" && "ok" in value;
 }

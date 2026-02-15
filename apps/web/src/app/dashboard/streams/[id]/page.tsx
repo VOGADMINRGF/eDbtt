@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
+import QRCode from "qrcode";
 
 type AgendaItem = {
   _id: string;
@@ -20,6 +21,8 @@ type DeliberationState = {
   phase: string;
   round: number;
   roundEndsAt?: string | null;
+  fairnessMode?: "off" | "rotation";
+  rotationIntervalMinutes?: number | null;
   updatedAt?: string | null;
 };
 
@@ -155,6 +158,7 @@ export default function StreamCockpitPage() {
   const [settingsError, setSettingsError] = useState<string | null>(null);
   const [settingsNotice, setSettingsNotice] = useState<string | null>(null);
   const [roundMinutes, setRoundMinutes] = useState("5");
+  const [rotationMinutes, setRotationMinutes] = useState("7");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -169,11 +173,19 @@ export default function StreamCockpitPage() {
   const [qrError, setQrError] = useState<string | null>(null);
   const [qrNotice, setQrNotice] = useState<string | null>(null);
   const [qrCode, setQrCode] = useState<string | null>(null);
+  const [qrImage, setQrImage] = useState<string | null>(null);
+  const [qrImageError, setQrImageError] = useState<string | null>(null);
   const [qrCreating, setQrCreating] = useState(false);
 
   useEffect(() => {
     setOrigin(window.location.origin);
   }, []);
+
+  useEffect(() => {
+    if (typeof deliberation?.rotationIntervalMinutes === "number") {
+      setRotationMinutes(String(deliberation.rotationIntervalMinutes));
+    }
+  }, [deliberation?.rotationIntervalMinutes]);
 
   async function fetchQueue(sessionId: string) {
     setQueueError(null);
@@ -362,6 +374,18 @@ export default function StreamCockpitPage() {
   const roundEndsLabel = deliberation?.roundEndsAt
     ? new Date(deliberation.roundEndsAt).toLocaleTimeString("de-DE")
     : "—";
+
+  useEffect(() => {
+    if (!activeQrTarget) return;
+    const fullTarget = origin ? `${origin}${activeQrTarget}` : activeQrTarget;
+    setQrImageError(null);
+    QRCode.toDataURL(fullTarget, { width: 200, margin: 1 })
+      .then((dataUrl) => setQrImage(dataUrl))
+      .catch(() => {
+        setQrImage(null);
+        setQrImageError("QR konnte nicht erzeugt werden.");
+      });
+  }, [activeQrTarget, origin]);
 
   async function addQueueItem() {
     setQueueError(null);
@@ -646,6 +670,8 @@ export default function StreamCockpitPage() {
     phase?: string;
     round?: number;
     roundMinutes?: number | null;
+    fairnessMode?: "off" | "rotation";
+    rotationMinutes?: number | null;
   }) {
     setDelibNotice(null);
     setDelibError(null);
@@ -702,6 +728,24 @@ export default function StreamCockpitPage() {
       }
       next[index] = { ...target, publicAttribution: nextValue };
       return next;
+    });
+  }
+
+  const sessionTemplates = [
+    { id: "townhall", label: "Townhall (60 Min)", roundMinutes: 7, rotationMinutes: 5 },
+    { id: "kompakt", label: "Kurzformat (20 Min)", roundMinutes: 4, rotationMinutes: 3 },
+    { id: "dossier", label: "Dossier-Update (15 Min)", roundMinutes: 3, rotationMinutes: 0 },
+  ] as const;
+
+  function applyTemplate(template: { roundMinutes: number; rotationMinutes: number }) {
+    setRoundMinutes(String(template.roundMinutes));
+    setRotationMinutes(String(template.rotationMinutes));
+    updateDeliberation({
+      enabled: true,
+      phase: "mandate",
+      roundMinutes: template.roundMinutes,
+      fairnessMode: template.rotationMinutes > 0 ? "rotation" : "off",
+      rotationMinutes: template.rotationMinutes,
     });
   }
 
@@ -856,6 +900,12 @@ export default function StreamCockpitPage() {
             >
               Kopieren
             </button>
+            {qrImageError && <p className="mt-2 text-[11px] text-rose-600">{qrImageError}</p>}
+            {qrImage && (
+              <div className="mt-3 inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white p-2">
+                <img src={qrImage} alt="QR Code" className="h-24 w-24" />
+              </div>
+            )}
           </div>
         </div>
       </section>
@@ -1037,6 +1087,72 @@ export default function StreamCockpitPage() {
               </button>
             </div>
           </div>
+
+          <div className="rounded-xl border border-slate-100 p-3 text-xs">
+            <p className="font-semibold text-slate-900">Fairness/Rotation</p>
+            <p className="mt-1 text-slate-600">
+              {deliberation?.fairnessMode === "rotation" ? "Rotation aktiv" : "Rotation inaktiv"}
+            </p>
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <button
+                className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                  deliberation?.fairnessMode === "rotation"
+                    ? "border border-emerald-300 bg-emerald-50 text-emerald-700"
+                    : "border border-slate-300 bg-white text-slate-600"
+                }`}
+                onClick={() =>
+                  updateDeliberation({
+                    fairnessMode: deliberation?.fairnessMode === "rotation" ? "off" : "rotation",
+                  })
+                }
+              >
+                {deliberation?.fairnessMode === "rotation" ? "Rotation an" : "Rotation aus"}
+              </button>
+              <div className="flex items-center gap-2">
+                <input
+                  className="w-16 rounded-full border border-slate-200 px-2 py-1 text-xs text-slate-700"
+                  value={rotationMinutes}
+                  onChange={(e) => setRotationMinutes(e.target.value)}
+                  inputMode="numeric"
+                />
+                <span className="text-[11px] text-slate-500">Min</span>
+                <button
+                  className="rounded-full border border-slate-900 bg-slate-900 px-3 py-1 text-white"
+                  onClick={() =>
+                    updateDeliberation({
+                      rotationMinutes: Number(rotationMinutes) || 0,
+                      fairnessMode: "rotation",
+                    })
+                  }
+                >
+                  Setzen
+                </button>
+              </div>
+            </div>
+            <p className="mt-2 text-[11px] text-slate-500">
+              Rotation verteilt Redezeit gleichmäßiger (manuell moderiert).
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm space-y-3">
+        <div>
+          <h2 className="text-sm font-semibold text-slate-900">Session-Vorlagen</h2>
+          <p className="text-xs text-slate-500">
+            Schnellstart fuer typische Formate (passt du spaeter an).
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {sessionTemplates.map((tpl) => (
+            <button
+              key={tpl.id}
+              className="rounded-full border border-slate-300 px-3 py-1 text-xs font-semibold text-slate-700 hover:border-sky-300"
+              onClick={() => applyTemplate(tpl)}
+            >
+              {tpl.label}
+            </button>
+          ))}
         </div>
       </section>
 

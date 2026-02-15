@@ -4,9 +4,11 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import {
-  EDEBATTE_PACKAGES_DE,
   PACKAGE_AUDIENCE_LABELS,
   PACKAGE_STATUS_LABELS,
+  getPackagesByIds,
+  PILOT_PACKAGE_IDS,
+  PRIVATE_PACKAGE_IDS,
   type EDebattePackageId,
   type PackageStatus,
 } from "@features/pricing";
@@ -60,11 +62,16 @@ export default function VormerkenPage() {
 
   const nextParam = useMemo(() => sanitizeNext(searchParams.get("next")), [searchParams]);
 
+  const privatePackages = useMemo(() => getPackagesByIds(PRIVATE_PACKAGE_IDS), []);
+  const pilotPackages = useMemo(() => getPackagesByIds(PILOT_PACKAGE_IDS), []);
+  const allPackages = useMemo(() => [...privatePackages, ...pilotPackages], [privatePackages, pilotPackages]);
+
   const initialPackage = useMemo(() => {
     const raw = searchParams.get("paket");
-    if (raw === "basis" || raw === "start" || raw === "pro") return raw;
-    return (EDEBATTE_PACKAGES_DE[0]?.id ?? "basis") as EDebattePackageId;
-  }, [searchParams]);
+    const found = allPackages.find((pkg) => pkg.id === raw);
+    if (found) return found.id;
+    return (privatePackages[0]?.id ?? "basis") as EDebattePackageId;
+  }, [searchParams, allPackages, privatePackages]);
 
   const [selectedPackageId, setSelectedPackageId] = useState<EDebattePackageId>(initialPackage);
   const [email, setEmail] = useState("");
@@ -75,8 +82,8 @@ export default function VormerkenPage() {
   const [success, setSuccess] = useState<{ planLabel: string } | null>(null);
 
   const selectedPackage = useMemo(
-    () => EDEBATTE_PACKAGES_DE.find((pkg) => pkg.id === selectedPackageId) ?? EDEBATTE_PACKAGES_DE[0] ?? null,
-    [selectedPackageId],
+    () => allPackages.find((pkg) => pkg.id === selectedPackageId) ?? privatePackages[0] ?? null,
+    [selectedPackageId, allPackages, privatePackages],
   );
 
   const targetAfterSuccess = nextParam ? withPreorderFlag(nextParam) : "/pricing";
@@ -146,42 +153,123 @@ export default function VormerkenPage() {
               </p>
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-2">
-              {EDEBATTE_PACKAGES_DE.map((pkg) => {
-                const isSelected = pkg.id === selectedPackageId;
-                return (
-                  <div
-                    key={pkg.id}
-                    className={cx(
-                      "rounded-3xl p-[1px] shadow-sm",
-                      isSelected
-                        ? "bg-[linear-gradient(135deg,rgba(14,165,233,0.8),rgba(16,185,129,0.8))]"
-                        : "bg-[linear-gradient(135deg,rgba(14,165,233,0.45),rgba(16,185,129,0.45))]",
-                    )}
-                  >
-                    <button
-                      type="button"
-                      onClick={() => setSelectedPackageId(pkg.id)}
+            <div className="space-y-6">
+              <div className="rounded-3xl border border-slate-200 bg-white/80 p-4 text-sm text-slate-700">
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Privat</p>
+                <p className="mt-1">Basis, Start &amp; Pro – für Bürger:innen und Initiativen.</p>
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                {privatePackages.map((pkg) => {
+                  const isSelected = pkg.id === selectedPackageId;
+                  return (
+                    <div
+                      key={pkg.id}
                       className={cx(
-                        "group relative w-full rounded-[22px] bg-white/95 p-5 text-left transition",
-                        isSelected ? "ring-2 ring-sky-100" : "hover:shadow",
+                        "rounded-3xl p-[1px] shadow-sm",
+                        isSelected
+                          ? "bg-[linear-gradient(135deg,rgba(14,165,233,0.8),rgba(16,185,129,0.8))]"
+                          : "bg-[linear-gradient(135deg,rgba(14,165,233,0.45),rgba(16,185,129,0.45))]",
                       )}
-                      aria-pressed={isSelected}
                     >
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-                            {PACKAGE_AUDIENCE_LABELS[pkg.typ]}
-                          </p>
-                          <p className="mt-1 text-lg font-semibold text-slate-900">{pkg.titel}</p>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedPackageId(pkg.id)}
+                        className={cx(
+                          "group relative w-full rounded-[22px] bg-white/95 p-5 text-left transition",
+                          isSelected ? "ring-2 ring-sky-100" : "hover:shadow",
+                        )}
+                        aria-pressed={isSelected}
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                              {PACKAGE_AUDIENCE_LABELS[pkg.typ]}
+                            </p>
+                            <p className="mt-1 text-lg font-semibold text-slate-900">{pkg.titel}</p>
+                          </div>
+
+                          <div className="flex flex-col items-end gap-2">
+                            {pkg.hervorgehoben ? (
+                              <span className="inline-flex items-center rounded-full bg-sky-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-sky-700 ring-1 ring-sky-200">
+                                Empfohlen
+                              </span>
+                            ) : null}
+                            <span
+                              className={cx(
+                                "inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] ring-1",
+                                STATUS_CLASS[pkg.status],
+                              )}
+                            >
+                              {PACKAGE_STATUS_LABELS[pkg.status]}
+                            </span>
+                          </div>
                         </div>
 
-                        <div className="flex flex-col items-end gap-2">
-                          {pkg.hervorgehoben ? (
-                            <span className="inline-flex items-center rounded-full bg-sky-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-sky-700 ring-1 ring-sky-200">
-                              Empfohlen
-                            </span>
-                          ) : null}
+                        <p className="mt-3 text-sm text-slate-600">{pkg.beschreibungKurz}</p>
+
+                        <p className="mt-4 text-base font-semibold text-slate-900">{priceLabel(pkg)}</p>
+
+                        <ul className="mt-3 space-y-1 text-sm text-slate-700">
+                          {pkg.leistungen.slice(0, 3).map((item) => (
+                            <li key={item} className="flex gap-2">
+                              <span className="mt-2 h-2 w-2 rounded-full bg-emerald-500" aria-hidden="true" />
+                              <span>{item}</span>
+                            </li>
+                          ))}
+                        </ul>
+
+                        <div className="mt-4 flex items-center justify-between text-xs text-slate-500">
+                          <span>{isSelected ? "Ausgewählt" : "Auswählen"}</span>
+                          <span
+                            className={cx(
+                              "inline-flex h-6 w-6 items-center justify-center rounded-full border text-sm font-bold",
+                              isSelected ? "border-sky-300 bg-sky-50 text-sky-700" : "border-slate-200 text-slate-400",
+                            )}
+                            aria-hidden="true"
+                          >
+                            ✓
+                          </span>
+                        </div>
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div className="rounded-3xl border border-slate-200 bg-white/80 p-4 text-sm text-slate-700">
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">B2G / B2B Pilot</p>
+                <p className="mt-1">12-Wochen-Pilot für Verwaltungen, Medien und Organisationen.</p>
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                {pilotPackages.map((pkg) => {
+                  const isSelected = pkg.id === selectedPackageId;
+                  return (
+                    <div
+                      key={pkg.id}
+                      className={cx(
+                        "rounded-3xl p-[1px] shadow-sm",
+                        isSelected
+                          ? "bg-[linear-gradient(135deg,rgba(14,165,233,0.8),rgba(16,185,129,0.8))]"
+                          : "bg-[linear-gradient(135deg,rgba(14,165,233,0.45),rgba(16,185,129,0.45))]",
+                      )}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => setSelectedPackageId(pkg.id)}
+                        className={cx(
+                          "group relative w-full rounded-[22px] bg-white/95 p-5 text-left transition",
+                          isSelected ? "ring-2 ring-sky-100" : "hover:shadow",
+                        )}
+                        aria-pressed={isSelected}
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                              {pkg.zielgruppe}
+                            </p>
+                            <p className="mt-1 text-lg font-semibold text-slate-900">{pkg.titel}</p>
+                          </div>
+
                           <span
                             className={cx(
                               "inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] ring-1",
@@ -191,37 +279,35 @@ export default function VormerkenPage() {
                             {PACKAGE_STATUS_LABELS[pkg.status]}
                           </span>
                         </div>
-                      </div>
 
-                      <p className="mt-3 text-sm text-slate-600">{pkg.beschreibungKurz}</p>
+                        <p className="mt-3 text-sm text-slate-600">{pkg.beschreibungKurz}</p>
 
-                      <p className="mt-4 text-base font-semibold text-slate-900">{priceLabel(pkg)}</p>
+                        <ul className="mt-3 space-y-1 text-sm text-slate-700">
+                          {pkg.leistungen.slice(0, 3).map((item) => (
+                            <li key={item} className="flex gap-2">
+                              <span className="mt-2 h-2 w-2 rounded-full bg-emerald-500" aria-hidden="true" />
+                              <span>{item}</span>
+                            </li>
+                          ))}
+                        </ul>
 
-                      <ul className="mt-3 space-y-1 text-sm text-slate-700">
-                        {pkg.leistungen.slice(0, 3).map((item) => (
-                          <li key={item} className="flex gap-2">
-                            <span className="mt-2 h-2 w-2 rounded-full bg-emerald-500" aria-hidden="true" />
-                            <span>{item}</span>
-                          </li>
-                        ))}
-                      </ul>
-
-                      <div className="mt-4 flex items-center justify-between text-xs text-slate-500">
-                        <span>{isSelected ? "Ausgewählt" : "Auswählen"}</span>
-                        <span
-                          className={cx(
-                            "inline-flex h-6 w-6 items-center justify-center rounded-full border text-sm font-bold",
-                            isSelected ? "border-sky-300 bg-sky-50 text-sky-700" : "border-slate-200 text-slate-400",
-                          )}
-                          aria-hidden="true"
-                        >
-                          ✓
-                        </span>
-                      </div>
-                    </button>
-                  </div>
-                );
-              })}
+                        <div className="mt-4 flex items-center justify-between text-xs text-slate-500">
+                          <span>{isSelected ? "Ausgewählt" : "Auswählen"}</span>
+                          <span
+                            className={cx(
+                              "inline-flex h-6 w-6 items-center justify-center rounded-full border text-sm font-bold",
+                              isSelected ? "border-sky-300 bg-sky-50 text-sky-700" : "border-slate-200 text-slate-400",
+                            )}
+                            aria-hidden="true"
+                          >
+                            ✓
+                          </span>
+                        </div>
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
 
             <div className="rounded-3xl border border-slate-200 bg-white/85 p-5 text-sm text-slate-700 shadow-sm">

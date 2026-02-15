@@ -59,7 +59,7 @@ export const EDEBATTE_PACKAGES_DE: EDebattePackageDefinition[] = [
     beschreibungKurz:
       "Fuer Organisationen, Teams und Pilot-Partner: Themenpakete, Agenda/Umfragen und optionale Faktencheck-Unterstuetzung.",
     leistungen: [
-      "3-5 Themen pro Projekt (je Thema min. 5 Optionen)",
+      "5-10 Themen pro Projekt (je Thema min. 5 Optionen)",
       "Zusatzthemen: 1,99 EUR je Thema (Add-on, nur mit Pro)",
       "Agenda & Umfragen: max. 2,99 EUR pro Teilnehmer (preisstaffelbar)",
       "Optional: Faktencheck-Stufen (0/1/2) mit Budget- und Freigabehebeln",
@@ -70,6 +70,42 @@ export const EDEBATTE_PACKAGES_DE: EDebattePackageDefinition[] = [
     ctaHref: "/vormerken?paket=pro",
     sekundarCtaText: "Ueber Startnext unterstuetzen",
     sekundarCtaHref: "https://startnext.com/mehrheit",
+  },
+  {
+    id: "pilot-b2g",
+    titel: "B2G Pilot (Kommunen)",
+    zielgruppe: "Verwaltungen, Kommunen, Genossenschaften",
+    typ: "organisation",
+    status: "pilot",
+    beschreibungKurz:
+      "12-Wochen-Pilot fuer kommunale Beteiligung: 5–10 Themen, klare Verantwortungen, QR-Events & Reports.",
+    leistungen: [
+      "Pilotlauf 12 Wochen (5–10 Themen, min. 5 Optionen)",
+      "Pilot-Charter + Transparenzbericht",
+      "QR-Events & geschlossene Sitzungen",
+      "Reports & Export fuer Verwaltungsteams",
+      "Optional: Faktencheck/Moderation nach Budget",
+    ],
+    ctaText: "Pilot anmelden",
+    ctaHref: "/vormerken?paket=pilot-b2g",
+  },
+  {
+    id: "pilot-b2b",
+    titel: "B2B Pilot (Medien & Teams)",
+    zielgruppe: "Medien, Unternehmen, Verbaende",
+    typ: "organisation",
+    status: "pilot",
+    beschreibungKurz:
+      "Pilot fuer Medienformate & Team-Formate: QR pro Frage, Live-Trends, NPS und Dossier-Export.",
+    leistungen: [
+      "QR-Set pro Sendung/Artikel (bis 10 Fragen)",
+      "Live-Trends & Auswertungen (NPS, Tendenzen)",
+      "Themen-Streams inkl. Dossier-Board",
+      "Skript-Import (MVP) + strukturierte Fragen",
+      "Optional: Faktencheck/Research-Support",
+    ],
+    ctaText: "Pilot anmelden",
+    ctaHref: "/vormerken?paket=pilot-b2b",
   },
 ];
 

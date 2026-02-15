@@ -23,16 +23,30 @@ const VOTE_MAP: { value: VoteVal; icon: string; label: string; color: string }[]
 
 type Alt = { text: string; type: keyof typeof TYPE_CONFIG | string };
 type Statement = {
+  id?: string;
+  _id?: string;
+  statementId?: string;
+  dossierId?: string;
   title?: string;
   statement?: string;
   plainStatement?: string;
   translations?: Record<string, { title?: string }>;
+  scope?: "hauptthema" | "unterthema" | "kampagne" | string;
+  topicKey?: string;
   regionScope?: unknown[];
   tags?: string[];
   category?: string;
   votes?: Record<string, number>;
   impactLogic?: unknown[];
   alternatives?: Alt[];
+  related?: { label?: string; relation?: string; href?: string; id?: string; title?: string; kind?: string }[];
+  relatedStatements?: { id?: string; title?: string; relation?: string }[];
+  graphContext?: { related?: { label?: string; relation?: string; href?: string; id?: string; title?: string }[] };
+  contextPanel?: {
+    reason?: string;
+    related?: { label: string; relation?: string; href?: string }[];
+    dossierHref?: string;
+  };
   accessibilityStatus?: string;
   barrierescore?: number;
   aiAnnotations?: {
@@ -69,6 +83,48 @@ export default function SwipeCard({
   const barrierescore = statement.barrierescore;
   const accessibilityStatus = statement.accessibilityStatus;
   const ai = statement.aiAnnotations || {};
+  const contextPanel = statement.contextPanel;
+  const derivedRelatedRaw =
+    contextPanel?.related ??
+    statement.related ??
+    statement.relatedStatements?.map((r) => ({
+      label: r.title,
+      relation: r.relation,
+      id: r.id,
+    })) ??
+    statement.graphContext?.related ??
+    [];
+  const related = derivedRelatedRaw
+    .map((item: any) => ({
+      label: item.label ?? item.title ?? item.name,
+      relation: item.relation ?? item.kind ?? item.type,
+      href: item.href ?? (item.id ? `/dossier/${encodeURIComponent(item.id)}` : undefined),
+    }))
+    .filter((item: any) => item.label);
+  const autoDossierId =
+    statement.dossierId ?? statement.statementId ?? statement.id ?? statement._id;
+  const autoDossierHref = autoDossierId ? `/dossier/${encodeURIComponent(String(autoDossierId))}` : undefined;
+  const fallbackReason =
+    contextPanel?.reason ||
+    (statement.topicKey
+      ? `Thema: ${statement.topicKey}`
+      : statement.category || (statement.tags?.length ?? 0) > 0
+        ? `Einordnung: ${statement.category ? statement.category : "Thema"}${statement.tags?.length ? ` · Tags: ${statement.tags.join(", ")}` : ""}`
+        : undefined);
+  const scopeLabel =
+    statement.scope === "hauptthema"
+      ? "Hauptthema"
+      : statement.scope === "unterthema"
+        ? "Unterthema"
+        : statement.scope
+          ? String(statement.scope)
+          : undefined;
+  const hasContext =
+    Boolean(scopeLabel) ||
+    Boolean(contextPanel?.reason) ||
+    Boolean(fallbackReason) ||
+    Boolean(contextPanel?.dossierHref || autoDossierHref) ||
+    related.length > 0;
   const hasAI =
     ai &&
     (ai.toxicity != null ||
@@ -103,6 +159,11 @@ export default function SwipeCard({
             {t}
           </span>
         ))}
+        {scopeLabel && (
+          <span className="px-3 py-1 rounded-full bg-slate-100 text-slate-700 text-xs font-semibold">
+            {scopeLabel}
+          </span>
+        )}
         {statement.category && (
           <span className="px-3 py-1 rounded-full bg-gray-200 text-gray-700 text-xs font-semibold">
             {statement.category}
@@ -211,6 +272,51 @@ export default function SwipeCard({
           {ai.sentiment != null && <>Stimmung: {ai.sentiment} </>}
           {Array.isArray(ai.subjectAreas) && ai.subjectAreas.length > 0 && <>Themen: {ai.subjectAreas.join(", ")}</>}
         </div>
+      )}
+
+      {/* Kontext / Graph-Randinfo */}
+      {hasContext && (
+        <details className="mt-4 rounded-2xl border border-slate-200 bg-slate-50/70 px-4 py-3 text-sm text-slate-700">
+          <summary className="cursor-pointer list-none font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-300 rounded-lg px-1 py-0.5">
+            Warum sehe ich das?
+          </summary>
+          <div className="mt-2 space-y-2">
+            {fallbackReason && (
+              <p className="text-sm text-slate-700">{fallbackReason}</p>
+            )}
+            {related.length > 0 && (
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Verwandte Punkte</p>
+                <ul className="mt-1 space-y-1">
+                  {related.map((item, idx) => (
+                    <li key={`${item.label}-${idx}`} className="flex items-center justify-between gap-2 text-sm">
+                      {item.href ? (
+                        <a className="font-semibold text-sky-700 underline" href={item.href}>
+                          {item.label}
+                        </a>
+                      ) : (
+                        <span className="font-semibold text-slate-800">{item.label}</span>
+                      )}
+                      {item.relation && (
+                        <span className="rounded-full bg-white px-2 py-0.5 text-[11px] font-semibold text-slate-600">
+                          {item.relation}
+                        </span>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {(contextPanel?.dossierHref || autoDossierHref) && (
+              <a
+                href={contextPanel?.dossierHref ?? autoDossierHref}
+                className="inline-flex items-center rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-700 hover:border-slate-300"
+              >
+                Dossier öffnen
+              </a>
+            )}
+          </div>
+        </details>
       )}
 
       {/* Hinweis / CTA */}

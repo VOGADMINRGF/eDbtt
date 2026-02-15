@@ -94,10 +94,10 @@ export default function SupportCampaignPage() {
         const body = await res.json().catch(() => ({}));
         if (!res.ok) throw new Error(body?.error || `HTTP ${res.status}`);
         if (!ignore) setData(body as SupportResponse);
-      } catch (err: any) {
+      } catch (err: unknown) {
         if (!ignore) {
           setData(null);
-          setError(err?.message ?? "Support-Seite konnte nicht geladen werden.");
+          setError(getErrorMessage(err, "Support-Seite konnte nicht geladen werden."));
         }
       } finally {
         if (!ignore) setLoading(false);
@@ -136,8 +136,8 @@ export default function SupportCampaignPage() {
       const refreshed = await fetch(`/api/support/campaigns/${encodeURIComponent(slug)}`, { cache: "no-store" });
       const refreshedBody = await refreshed.json().catch(() => null);
       if (refreshed.ok && refreshedBody?.ok) setData(refreshedBody as SupportResponse);
-    } catch (err: any) {
-      setError(err?.message ?? "Unterstuetzung konnte nicht angelegt werden.");
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, "Unterstuetzung konnte nicht angelegt werden."));
     } finally {
       setSubmitting(false);
     }
@@ -243,6 +243,14 @@ export default function SupportCampaignPage() {
                 ) : (
                   <p className="mt-1">Zahlungsdaten sind momentan nicht konfiguriert. Bitte Admin kontaktieren.</p>
                 )}
+                <div className="mt-3 rounded-lg border border-emerald-200 bg-white/70 px-3 py-2 text-xs text-emerald-900">
+                  <p className="font-semibold uppercase tracking-wide text-emerald-700">So geht es weiter</p>
+                  <ol className="mt-1 space-y-1">
+                    <li>1. Nutze den Verwendungszweck exakt wie oben angegeben.</li>
+                    <li>2. Ueberweise den Betrag innerhalb von 7 Tagen.</li>
+                    <li>3. Nach Zahlung wird dein Support automatisch als „bezahlt“ markiert.</li>
+                  </ol>
+                </div>
               </div>
             ) : null}
           </section>
@@ -270,4 +278,10 @@ export default function SupportCampaignPage() {
       </Link>
     </main>
   );
+}
+
+function getErrorMessage(err: unknown, fallback: string) {
+  if (err instanceof Error && err.message) return err.message;
+  if (typeof err === "string") return err;
+  return fallback;
 }

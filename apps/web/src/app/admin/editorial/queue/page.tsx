@@ -37,6 +37,9 @@ export default function AdminEditorialQueuePage() {
   const [data, setData] = useState<EditorialResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkStatus, setBulkStatus] = useState<string>("review");
+  const [bulkBusy, setBulkBusy] = useState(false);
 
   useEffect(() => {
     const qParam = searchParams.get("q") ?? "";
@@ -70,8 +73,8 @@ export default function AdminEditorialQueuePage() {
         }
         const body = (await res.json()) as EditorialResponse;
         if (active) setData(body);
-      } catch (err: any) {
-        if (active) setError(err?.message ?? "editorial_load_failed");
+      } catch (err: unknown) {
+        if (active) setError(getErrorMessage(err, "editorial_load_failed"));
       } finally {
         if (active) setLoading(false);
       }
@@ -86,6 +89,55 @@ export default function AdminEditorialQueuePage() {
     if (!data) return 1;
     return Math.max(1, Math.ceil(data.total / data.pageSize));
   }, [data]);
+
+  const allSelected = useMemo(() => {
+    if (!data?.items?.length) return false;
+    return data.items.every((item) => selectedIds.has(item.id));
+  }, [data?.items, selectedIds]);
+
+  const toggleAll = (checked: boolean) => {
+    if (!data?.items) return;
+    if (!checked) {
+      setSelectedIds(new Set());
+      return;
+    }
+    setSelectedIds(new Set(data.items.map((item) => item.id)));
+  };
+
+  const toggleOne = (id: string, checked: boolean) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (checked) next.add(id);
+      else next.delete(id);
+      return next;
+    });
+  };
+
+  const applyBulkStatus = async () => {
+    if (!selectedIds.size) return;
+    setBulkBusy(true);
+    setError(null);
+    try {
+      for (const id of Array.from(selectedIds)) {
+        const res = await fetch(`/api/admin/editorial/items/${encodeURIComponent(id)}/status`, {
+          method: "PATCH",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ status: bulkStatus }),
+        });
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({}));
+          throw new Error(body?.error || "bulk_status_failed");
+        }
+      }
+      setSelectedIds(new Set());
+      setPage(1);
+      setStatus(bulkStatus);
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, "bulk_status_failed"));
+    } finally {
+      setBulkBusy(false);
+    }
+  };
 
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-8">
@@ -125,6 +177,34 @@ export default function AdminEditorialQueuePage() {
         />
       </div>
 
+      {selectedIds.size > 0 && (
+        <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm">
+          <div className="flex flex-wrap items-center gap-3">
+            <span className="text-xs text-slate-600">
+              {selectedIds.size} ausgewählt
+            </span>
+            <select
+              value={bulkStatus}
+              onChange={(e) => setBulkStatus(e.target.value)}
+              className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs"
+            >
+              {STATUS_OPTIONS.map((entry) => (
+                <option key={entry} value={entry}>
+                  {entry}
+                </option>
+              ))}
+            </select>
+            <button
+              className="rounded-full border border-slate-900 bg-slate-900 px-3 py-1 text-xs font-semibold text-white disabled:opacity-50"
+              onClick={applyBulkStatus}
+              disabled={bulkBusy}
+            >
+              {bulkBusy ? "Wird gesetzt…" : "Status anwenden"}
+            </button>
+          </div>
+        </div>
+      )}
+
       {error && (
         <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
           {error}
@@ -135,6 +215,14 @@ export default function AdminEditorialQueuePage() {
         <table className="min-w-full divide-y divide-slate-200 text-sm">
           <thead className="bg-slate-50">
             <tr>
+              <th className="px-4 py-3 text-left font-semibold text-slate-600">
+                <input
+                  type="checkbox"
+                  checked={allSelected}
+                  onChange={(e) => toggleAll(e.target.checked)}
+                  aria-label="Alle auswählen"
+                />
+              </th>
               <th className="px-4 py-3 text-left font-semibold text-slate-600">Titel</th>
               <th className="px-4 py-3 text-left font-semibold text-slate-600">Status</th>
               <th className="px-4 py-3 text-left font-semibold text-slate-600">Topic</th>
@@ -145,14 +233,14 @@ export default function AdminEditorialQueuePage() {
           <tbody className="divide-y divide-slate-100">
             {loading && (
               <tr>
-                <td colSpan={5} className="px-4 py-6 text-center text-slate-500">
+                <td colSpan={6} className="px-4 py-6 text-center text-slate-500">
                   Laedt Queue...
                 </td>
               </tr>
             )}
             {!loading && data?.items?.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-4 py-6 text-center text-slate-500">
+                <td colSpan={6} className="px-4 py-6 text-center text-slate-500">
                   Keine Items gefunden.
                 </td>
               </tr>
@@ -160,6 +248,14 @@ export default function AdminEditorialQueuePage() {
             {!loading &&
               data?.items?.map((item) => (
                 <tr key={item.id}>
+                  <td className="px-4 py-3">
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.has(item.id)}
+                      onChange={(e) => toggleOne(item.id, e.target.checked)}
+                      aria-label={`Auswählen ${item.title ?? item.id}`}
+                    />
+                  </td>
                   <td className="px-4 py-3">
                     <Link
                       href={`/admin/editorial/items/${item.id}`}
@@ -204,4 +300,10 @@ export default function AdminEditorialQueuePage() {
       </div>
     </div>
   );
+}
+
+function getErrorMessage(err: unknown, fallback: string) {
+  if (err instanceof Error && err.message) return err.message;
+  if (typeof err === "string") return err;
+  return fallback;
 }

@@ -25,6 +25,7 @@ export async function GET() {
     startsAt: session.startsAt ? new Date(session.startsAt).toISOString() : null,
     playerUrl: (session as any)?.playerUrl ?? null,
     visibility: session.visibility,
+    hideViewerCount: (session as any)?.hideViewerCount !== false,
     createdAt: (session.createdAt ?? new Date()).toISOString(),
   }));
 

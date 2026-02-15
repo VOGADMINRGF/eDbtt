@@ -257,7 +257,11 @@ export function SwipesClient({ edebattePackage, initialTopic = "", focusStatemen
   const liveTimerRef = useRef<number | null>(null);
 
   const isBasic = edebattePackage === "basis" || edebattePackage === "none";
-  const isStartOrPro = edebattePackage === "start" || edebattePackage === "pro";
+  const isStartOrPro =
+    edebattePackage === "start" ||
+    edebattePackage === "pro" ||
+    edebattePackage === "pilot-b2g" ||
+    edebattePackage === "pilot-b2b";
   const isSolo = variant === "solo";
 
   const openDossier = useCallback(
@@ -543,6 +547,10 @@ function SwipesHeader({ edebattePackage, isBasic, isStartOrPro }: SwipesHeaderPr
       ? "eDebatte Start"
       : edebattePackage === "pro"
       ? "eDebatte Pro"
+      : edebattePackage === "pilot-b2g"
+      ? "Pilot B2G"
+      : edebattePackage === "pilot-b2b"
+      ? "Pilot B2B"
       : "ohne eDebatte-Paket";
 
   return (

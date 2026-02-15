@@ -1,4 +1,5 @@
 // apps/web/src/app/report/page.tsx
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getServerUser } from "@/lib/auth/getServerUser";
 import ReportPage from "@features/report/components/ReportPage";
@@ -8,6 +9,24 @@ import UserHydrator, {
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
+
+export const metadata: Metadata = {
+  title: "Reports – eDebatte",
+  description:
+    "Deine Reports zu Dossiers, Themen und Kampagnen. Verifizierte Accounts sehen den vollständigen Export.",
+  openGraph: {
+    title: "Reports – eDebatte",
+    description:
+      "Deine Reports zu Dossiers, Themen und Kampagnen. Verifizierte Accounts sehen den vollständigen Export.",
+    type: "website",
+  },
+  twitter: {
+    card: "summary",
+    title: "Reports – eDebatte",
+    description:
+      "Deine Reports zu Dossiers, Themen und Kampagnen. Verifizierte Accounts sehen den vollständigen Export.",
+  },
+};
 
 /** Server→Client User-Shape sicher mappen (id oder _id) */
 type UserLike = {

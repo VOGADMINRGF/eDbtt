@@ -5,8 +5,9 @@ import useUser from "@features/user/context/UserContext";
 import StreamList from "@features/stream/components/StreamList";
 
 export default function StreamPage() {
-  const { user } = useUser();
+  const { user, role } = useUser();
   const needsVerification = user && user.verification !== "legitimized";
+  const canSeeViews = ["admin", "superadmin", "moderator", "creator"].includes(role);
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-[var(--brand-from)] via-white to-white pb-16">
@@ -65,7 +66,7 @@ export default function StreamPage() {
         )}
 
         <div className="rounded-3xl border border-slate-100 bg-white/95 p-4 shadow-[0_20px_60px_rgba(15,23,42,0.08)] md:p-6">
-          <StreamList />
+          <StreamList showViews={canSeeViews} />
         </div>
       </section>
     </main>

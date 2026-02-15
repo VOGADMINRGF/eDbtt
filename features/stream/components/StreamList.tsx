@@ -57,6 +57,7 @@ export type StreamItem = {
   imageUrl?: string;
   href?: string;
   data?: any;
+  hideViewerCount?: boolean;
 
   // v1-Kompat: optionale Felder, falls Backend diese liefert
   status?: "Live" | "Geplant" | "Replay" | "Vergangen" | string;
@@ -249,7 +250,7 @@ export default function StreamListV3({
   const [activeTag, setActiveTag] = useState<string | undefined>(defaultFilterTag || undefined);
   const [activeKind, setActiveKind] = useState<string | undefined>(defaultFilterKind || undefined);
   const [domainFilter, setDomainFilter] = useState<DomainFilter>("all");
-  const showViewerStats = showViews || Boolean(admin || presseView || politikView || ngoView);
+  const showViewerStats = showViews;
 
   const sentinelRef = useRef<HTMLDivElement | null>(null);
   const abortRef = useRef<AbortController | null>(null);
@@ -406,6 +407,12 @@ export default function StreamListV3({
           status: raw.status ?? (raw.isLive ? "Live" : undefined),
           topic: raw.topicKey ?? raw.topic ?? undefined,
           region: raw.regionCode ?? raw.region ?? undefined,
+          stats: raw.stats
+            ? { likes: raw.stats?.likes, comments: raw.stats?.comments, views: raw.stats?.views }
+            : raw.views || raw.viewerCount
+              ? { views: raw.views ?? raw.viewerCount }
+              : undefined,
+          hideViewerCount: raw.hideViewerCount !== false,
           data: raw,
         });
 
@@ -527,7 +534,7 @@ export default function StreamListV3({
             </div>
 
             <div className="flex items-center gap-2 shrink-0">
-              <SortSelect sort={sort} setSort={setSort} language={language} />
+              <SortSelect sort={sort} setSort={setSort} language={language} allowViewsSort={showViewerStats} />
               <Button
                 type="button"
                 variant="ghost"
@@ -606,10 +613,11 @@ export default function StreamListV3({
       {/* Liste */}
       <ul className="grid grid-cols-1 gap-3">
         {visibleItems.map((item, idx) => {
+          const showViewsForItem = showViewerStats || item.hideViewerCount === false;
           const node = renderItem ? (
             renderItem(item)
           ) : (
-            <DefaultStreamCard item={item} onClick={onItemClick} showViews={showViewerStats} />
+            <DefaultStreamCard item={item} onClick={onItemClick} showViews={showViewsForItem} />
           );
 
           return (
@@ -715,6 +723,9 @@ function DefaultStreamCard({
   showViews: boolean;
 }) {
   const dateLabel = useMemo(() => fmtDate(item.createdAt), [item.createdAt]);
+  const hasLikes = typeof item.stats?.likes === "number";
+  const hasComments = typeof item.stats?.comments === "number";
+  const hasViews = showViews && typeof item.stats?.views === "number";
   const Wrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     if (item.href) {
       return (
@@ -787,17 +798,21 @@ function DefaultStreamCard({
           </CardContent>
         )}
 
-        {(item.stats?.likes || item.stats?.comments || (showViews && item.stats?.views)) && (
+        {(hasLikes || hasComments || hasViews) && (
           <CardFooter className="flex items-center gap-4 text-xs text-muted-foreground">
-            <span className="inline-flex items-center gap-1">
-              <ThumbsUp className="h-3.5 w-3.5" />
-              {nfmt(item.stats?.likes)}
-            </span>
-            <span className="inline-flex items-center gap-1">
-              <MessageSquare className="h-3.5 w-3.5" />
-              {nfmt(item.stats?.comments)}
-            </span>
-            {showViews && (
+            {hasLikes && (
+              <span className="inline-flex items-center gap-1">
+                <ThumbsUp className="h-3.5 w-3.5" />
+                {nfmt(item.stats?.likes)}
+              </span>
+            )}
+            {hasComments && (
+              <span className="inline-flex items-center gap-1">
+                <MessageSquare className="h-3.5 w-3.5" />
+                {nfmt(item.stats?.comments)}
+              </span>
+            )}
+            {hasViews && (
               <span className="inline-flex items-center gap-1">
                 <Eye className="h-3.5 w-3.5" />
                 {nfmt(item.stats?.views)}
@@ -865,10 +880,12 @@ function SortSelect({
   sort,
   setSort,
   language = "de",
+  allowViewsSort = false,
 }: {
   sort: SortKey;
   setSort: (k: SortKey) => void;
   language?: "de" | "en";
+  allowViewsSort?: boolean;
 }) {
   return (
     <div className="inline-flex items-center gap-1">
@@ -920,18 +937,20 @@ function SortSelect({
         <ThumbsUp className="h-4 w-4" />
         {language === "en" ? "Likes" : "Likes"}
       </Button>
-      <Button
-        type="button"
-        size="sm"
-        variant={sort === "most_viewed" ? "primary" : "secondary"}
-        onClick={() => setSort("most_viewed")}
-        aria-pressed={sort === "most_viewed"}
-        className="gap-1"
-        title={language === "en" ? "Most views" : "Meiste Views"}
-      >
-        <Eye className="h-4 w-4" />
-        {language === "en" ? "Views" : "Views"}
-      </Button>
+      {allowViewsSort && (
+        <Button
+          type="button"
+          size="sm"
+          variant={sort === "most_viewed" ? "primary" : "secondary"}
+          onClick={() => setSort("most_viewed")}
+          aria-pressed={sort === "most_viewed"}
+          className="gap-1"
+          title={language === "en" ? "Most views" : "Meiste Views"}
+        >
+          <Eye className="h-4 w-4" />
+          {language === "en" ? "Views" : "Views"}
+        </Button>
+      )}
     </div>
   );
 }

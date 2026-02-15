@@ -29,15 +29,21 @@ export default function RegionReportPage() {
       setError(null);
       try {
         const res = await fetch(`/api/admin/reports/region/${encodeURIComponent(regionId)}`, { cache: "no-store" });
-        const json = (await res.json()) as RegionReportResponse;
-        if (!res.ok || !json.ok) {
-          throw new Error((json as any)?.error || res.statusText);
+        const json = await res.json().catch(() => null);
+        if (!isRegionReportResponse(json)) {
+          throw new Error(res.statusText);
+        }
+        if (!res.ok) {
+          throw new Error(res.statusText);
+        }
+        if (json.ok === false) {
+          throw new Error(json.error || res.statusText);
         }
         if (!ignore) setSummary(json.summary);
-      } catch (err: any) {
+      } catch (err: unknown) {
         if (!ignore) {
           setSummary(null);
-          setError(err?.message ?? "Region-Report konnte nicht geladen werden.");
+          setError(getErrorMessage(err, "Region-Report konnte nicht geladen werden."));
         }
       } finally {
         if (!ignore) setLoading(false);
@@ -119,4 +125,13 @@ function KpiCard({ label, value }: { label: string; value: number }) {
       <p className="text-2xl font-bold text-slate-900">{value}</p>
     </div>
   );
+}
+
+function getErrorMessage(err: unknown, fallback: string) {
+  if (err instanceof Error && err.message) return err.message;
+  return fallback;
+}
+
+function isRegionReportResponse(value: unknown): value is RegionReportResponse {
+  return Boolean(value) && typeof value === "object" && "ok" in value;
 }

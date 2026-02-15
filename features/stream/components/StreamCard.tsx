@@ -199,6 +199,7 @@ export default function StreamCard(props: StreamCardProps) {
             topic={topic}
             language={language}
             viewers={viewers}
+            showViewers={showViewers}
             trailerUrl={trailerUrl}
             image={image}
             description={description}
@@ -324,7 +325,7 @@ export default function StreamCard(props: StreamCardProps) {
             <div className="text-xs text-gray-400 text-right mt-1">
               {region} · {topic} · <span className="uppercase">{language}</span>
               <br />
-              {viewers} Beteiligte
+              {showViewers ? `${viewers ?? 0} Beteiligte` : "Zuschauer verborgen"}
               {date && (
                 <span className="block text-[10px] text-gray-300">
                   {new Date(date).toLocaleDateString("de-DE")}
@@ -344,6 +345,7 @@ export default function StreamCard(props: StreamCardProps) {
           topic={topic}
           language={language}
           viewers={viewers}
+          showViewers={showViewers}
           trailerUrl={trailerUrl}
           image={image}
           description={description}

@@ -37,7 +37,7 @@ Status basiert auf Repo-Evidenz (Dateien/Routes/Modelle). Offener Arbeitsstand b
 | PR-0009 | Pilot Backbone (Feeds → Kandidaten → Faktencheck → Graph/Dossier) | `docs/E150/Pilot.md`, `/api/feeds/pull`, `/api/feeds/analyze-pending`, `features/feeds/*`, `/admin/feeds/drafts`, `/api/factcheck/enqueue`, `/admin/pilot`, `/api/admin/pilot/settings`, `/api/admin/pilot/run`, `core/pilotSettings/*` | Implemented | Monitoring/Polish |
 | PR-0010 | Admin Akquise Dashboard (Feeds/Regionen) | `/admin/acquisition`, `/api/admin/acquisition`, `core/acquisition/*` | Implemented | Monitoring/Polish |
 | PR-0011 | Offene Beitraege (Quelle/Option/Frage) | `/community/contributions`, `/admin/contributions`, `/api/community/contributions`, `/api/admin/community/contributions*`, `core/communityContributions/*` | Implemented | Monitoring/Polish |
-| PR-0012 | Media Ready Projekte (3–5 Themen, min 5 Optionen) | Projekt-Modelle + API/Pages aktiv | Implemented | Monitoring/Polish |
+| PR-0012 | Media Ready Projekte (5–10 Themen, min 5 Optionen) | Projekt-Modelle + API/Pages aktiv | Implemented | Monitoring/Polish |
 | PR-0013 | Live/Chat Skeleton | `/live`, `/api/live`, `/api/chat`, `core/liveChat/*` | Implemented | Monitoring/Polish |
 | PR-0030 | Unterstuetzen/Crowdfunding | `/support/[slug]`, `/admin/support` + Support-API vorhanden | Implemented | Nur Monitoring/Polish |
 | PR-0010B | DecisionArchitecture v2.0 (Part16) – Publishing Pack + Drift-Validator | `docs/E150/Part16_Digitale_Entscheidungsarchitektur.md`, `/[locale]/referenzarchitektur`, `apps/web/public/docs/DecisionArchitecture_v2_0.docx`, `scripts/validate-decision-architecture.ts` | Implemented | Monitoring/Polish |
@@ -96,9 +96,9 @@ Die folgenden Punkte dokumentieren die abgeschlossene Reihenfolge der Bloecke. K
 
 ## Optionaler Nachlauf (kanonisch in OpenTasks)
 
-- Social Preview: OG-Defaults aktiv; Detailseiten wie Reports/Archiv noch sukzessive erweitern.
+- Social Preview: OG-Defaults aktiv; Reports/Stream/Profil ergaenzt, weitere Detailseiten sukzessive erweitern.
 - Page Contracts (CI): `missing-h1`-Allowlist abgebaut; optional nur noch bei neuen Checks relevant.
-- Type Hygiene (Pages): restliche `any`-Verwendungen in `page.tsx` reduzieren.
+- Type Hygiene (Pages): restliche `any`-Verwendungen in Admin-Detailseiten reduzieren.
 - Admin Navigation: Kontextaktionen (Massenaktionen/Drilldown) erweitern.
 - Swipes Analytics: Vote-Aggregationen fuer Admin-Reports verfeinern.
 - Public Profile Polish: Avatar/Cover Upload + Impact-Ansicht fuer Buerger:innen.
@@ -255,6 +255,86 @@ Verification:
 
 Next Steps:
 - Optional: Auto-Rotation/Fairness-Logik + Stage/Voice-Integration.
+
+### PR-0038 (2026-02-15) – SwipeCards Context + Viewer-Gating
+
+Ziel:
+- SwipeCards mit leiser Graph-Randinfo ergaenzen und Viewer-Counts rollenbasiert verbergen.
+
+Changes:
+- SwipeCard: Context-Accordion "Warum sehe ich das?" + optionale Relation-Links/Dossier-CTA.
+- SwipeCard: Scope-Badge fuer Haupt-/Unterthema optional.
+- Stream-UI: Zuschauerzahlen nur fuer Admin/Creator/Mods sichtbar; Public nur wenn `hideViewerCount=false`.
+- StreamCard/Modal: Viewer-Counts rollenbasiert ausblendbar.
+
+Verification:
+- `pnpm lint` (PASS)
+- `pnpm -C apps/web build` (PASS)
+- `./scripts/verify.sh` (PASS)
+
+Next Steps:
+- Optional: Relation-Mapping aus Graph-API, Dossier-Link aus Statements ableiten.
+
+### PR-0039 (2026-02-15) – Optional Polish Batch
+
+Ziel:
+- Optionalen Nachlauf effizient abbauen (Social Preview, QR-UX, Support-UX, Stream-Kit QR).
+
+Changes:
+- Report/Reports: Metadata fuer Social Preview ergaenzt.
+- Stream/Profil: Metadata fuer Social Preview ergaenzt.
+- QR Landing: Redirects + Session-Label + Hinweise bereinigt, keine Dummy-Komponenten.
+- QR Resolve: Scan-Tracking in `qr_scans` erfasst.
+- Support: Guided-Payment-Hinweise nach Pledge ergänzt.
+- Stream-Kit: QR-Bildrendition im Cockpit.
+- Stream-Kit: Session-Vorlagen im Cockpit.
+- Admin Dashboard: Schnellaktionen fuer zentrale Warteschlangen.
+- Editorial Queue: Bulk-Status fuer Massenaktionen.
+- Content Hub: Swipe-Analytics (Counts) im KPI-Block + Admin-Swipes-Report (30d-Timeseries).
+- Public Profile: Avatar/Cover Upload via Profil-API + Anzeige im Public Profile.
+- Deliberation: Fairness/Rotation-Controls im Stream-Cockpit.
+- Admin Detailseiten: Error/Impact/Report-Views + Report-Assets typisiert (weniger `any`).
+
+Verification:
+- `pnpm lint` (PASS)
+- `pnpm -C apps/web typecheck` (PASS)
+
+Next Steps:
+- Remaining optional items: Type-Hygiene-Rest in Admin-Detailseiten, Admin-Massenaktionen, Swipes Detail-Reports, weitere Social-Preview-Details (Support/QR).
+
+### PR-0040 (2026-02-15) – Media/TV QR Studio (MVP)
+
+Ziel:
+- QR-Studios fuer TV/Events: Set-Builder + Live-Trend-Auswertung fuer QR-Fragen.
+
+Changes:
+- Admin-UI `/admin/media`: QR-Set Builder (bis 10 Fragen), Presets (Tendenz/Ja-Nein/NPS), QR-Link + Preview.
+- Admin-API `/api/admin/qr/sets/summary`: Live-Auswertung mit Counts pro Frage/Option.
+- QR-Set API: erweiterte Limits (bis 10 Fragen, bis 12 Optionen) + Relaxed Public-Attribution.
+
+Verification:
+- `pnpm lint` (PASS)
+- `pnpm -C apps/web run typecheck` (PASS)
+
+Next Steps:
+- Optional: CSV/Export, Datei-Upload fuer Scripts, Snapshot/Reporting.
+
+### PR-0041 (2026-02-15) – Pricing Segmente + Pilotpakete
+
+Ziel:
+- /pricing klar nach Zielgruppen trennen: Privat (Basis/Start/Pro) und Pilotpakete (B2G/B2B).
+
+Changes:
+- Neue Pilotpakete (B2G/B2B) inkl. Vormerkung hinzugefuegt.
+- /pricing in Zielgruppen-Segmente gegliedert; Add-ons auf 5–10 Themen ausgerichtet.
+- /vormerken um Pilotpakete erweitert; Prelaunch/Account/Register bleiben auf Privat-Pakete fokussiert.
+
+Verification:
+- `pnpm lint` (PASS)
+- `pnpm -C apps/web run typecheck` (PASS)
+
+Next Steps:
+- Optional: Pilotpakete mit separatem Aktivierungslink/Onboarding-Flow.
 
 ### PR-0017 (2026-02-11) – Block E Research R2
 
@@ -437,16 +517,16 @@ Verification:
 Next Steps:
 - Optional: Status-Automation mit cron/batch prüfen (z.B. nightly sync).
 
-### PR-0037 (2026-02-12) – Media Ready Projekte (3–5 Themen)
+### PR-0037 (2026-02-12) – Media Ready Projekte (5–10 Themen)
 
 Ziel:
-- Projekte mit 3–5 Themen, mindestens 5 Optionen je Thema und projektbezogenen Ergebnissen.
+- Projekte mit 5–10 Themen, mindestens 5 Optionen je Thema und projektbezogenen Ergebnissen.
 
 Changes:
 - Projekt-Modelle + Collections in triMongo eingefuehrt (Projects + Votes).
 - Admin-Projekte: Liste + Detailfreigabe fuer vorgeschlagene Optionen.
 - Public-Projektseite: Abstimmen, Ergebnisanzeige, Option vorschlagen.
-- ProjectForm erweitert: 3–5 Themen, min. 5 Optionen enforced.
+- ProjectForm erweitert: 5–10 Themen, min. 5 Optionen enforced.
 
 Verification:
 - `pnpm -C apps/web run lint` (PASS)

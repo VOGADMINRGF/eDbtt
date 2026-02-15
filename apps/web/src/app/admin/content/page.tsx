@@ -18,6 +18,9 @@ type ContentMetrics = {
     evidenceClaims: number;
     evidenceItems: number;
     evidenceLinks: number;
+    swipeVotes: number;
+    swipeVotes30d: number;
+    statementSwipes: number;
   };
   topics: {
     human: Array<{ topic: string; count: number }>;
@@ -193,6 +196,9 @@ export default function AdminContentHubPage() {
           <MetricCard label="Evidence Claims" value={metrics?.totals.evidenceClaims} loading={loading} />
           <MetricCard label="Evidence Items" value={metrics?.totals.evidenceItems} loading={loading} />
           <MetricCard label="Evidence Links" value={metrics?.totals.evidenceLinks} loading={loading} />
+          <MetricCard label="Swipe Votes" value={metrics?.totals.swipeVotes} loading={loading} />
+          <MetricCard label="Swipe Votes (30d)" value={metrics?.totals.swipeVotes30d} loading={loading} />
+          <MetricCard label="Statement Swipes" value={metrics?.totals.statementSwipes} loading={loading} />
           <MetricCard
             label="Graph Statements"
             value={graph?.totalStatements}

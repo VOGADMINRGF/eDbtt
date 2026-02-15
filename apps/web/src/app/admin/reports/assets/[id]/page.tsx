@@ -47,15 +47,17 @@ export default function AdminReportAssetDetailPage() {
           router.replace(`/login?next=/admin/reports/assets/${assetId}`);
           return;
         }
-        const body = await res.json().catch(() => ({}));
-        if (!res.ok || !body?.ok) throw new Error(body?.error || "load_failed");
+        const body = await res.json().catch(() => null);
+        if (!isOkResponse(body)) throw new Error("load_failed");
+        if (!res.ok) throw new Error(res.statusText);
+        if (body.ok === false) throw new Error(body.error || "load_failed");
         if (active) {
           setAsset(body.asset ?? null);
           setRevisions(body.revisions ?? []);
           setStatus(body.asset?.status ?? "");
         }
-      } catch (err: any) {
-        if (active) setError(err?.message ?? "load_failed");
+      } catch (err: unknown) {
+        if (active) setError(getErrorMessage(err, "load_failed"));
       }
     }
     if (assetId) load();
@@ -72,11 +74,13 @@ export default function AdminReportAssetDetailPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status, reason: statusReason }),
       });
-      const body = await res.json().catch(() => ({}));
-      if (!res.ok || !body?.ok) throw new Error(body?.error || "status_failed");
+      const body = await res.json().catch(() => null);
+      if (!isOkResponse(body)) throw new Error("status_failed");
+      if (!res.ok) throw new Error(res.statusText);
+      if (body.ok === false) throw new Error(body.error || "status_failed");
       setStatusReason("");
-    } catch (err: any) {
-      setError(err?.message ?? "status_failed");
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, "status_failed"));
     }
   };
 
@@ -95,11 +99,13 @@ export default function AdminReportAssetDetailPage() {
           },
         }),
       });
-      const body = await res.json().catch(() => ({}));
-      if (!res.ok || !body?.ok) throw new Error(body?.error || "revision_failed");
+      const body = await res.json().catch(() => null);
+      if (!isOkResponse(body)) throw new Error("revision_failed");
+      if (!res.ok) throw new Error(res.statusText);
+      if (body.ok === false) throw new Error(body.error || "revision_failed");
       setRevisionNote("");
-    } catch (err: any) {
-      setError(err?.message ?? "revision_failed");
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, "revision_failed"));
     }
   };
 
@@ -111,11 +117,13 @@ export default function AdminReportAssetDetailPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ changeNote: publishNote }),
       });
-      const body = await res.json().catch(() => ({}));
-      if (!res.ok || !body?.ok) throw new Error(body?.error || "publish_failed");
+      const body = await res.json().catch(() => null);
+      if (!isOkResponse(body)) throw new Error("publish_failed");
+      if (!res.ok) throw new Error(res.statusText);
+      if (body.ok === false) throw new Error(body.error || "publish_failed");
       setPublishNote("");
-    } catch (err: any) {
-      setError(err?.message ?? "publish_failed");
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, "publish_failed"));
     }
   };
 
@@ -234,4 +242,20 @@ export default function AdminReportAssetDetailPage() {
       </section>
     </div>
   );
+}
+
+type OkResponse = {
+  ok: boolean;
+  error?: string;
+  asset?: AssetDetail;
+  revisions?: RevisionItem[];
+};
+
+function isOkResponse(value: unknown): value is OkResponse {
+  return Boolean(value) && typeof value === "object" && "ok" in value;
+}
+
+function getErrorMessage(err: unknown, fallback: string) {
+  if (err instanceof Error && err.message) return err.message;
+  return fallback;
 }

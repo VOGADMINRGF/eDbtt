@@ -15,6 +15,8 @@ export async function GET(req: NextRequest) {
 
   const contributionsCol = await coreCol("contributions");
   const statementsCol = await coreCol("statements");
+  const swipeVotesCol = await coreCol("swipe_votes");
+  const statementSwipesCol = await coreCol("statement_swipes");
   const evidenceClaims = await evidenceClaimsCol();
   const evidenceItems = await evidenceItemsCol();
   const evidenceLinks = await evidenceLinksCol();
@@ -34,6 +36,9 @@ export async function GET(req: NextRequest) {
     evidenceLinksTotal,
     humanTopics,
     aiTopics,
+    swipeVotesTotal,
+    swipeVotes30d,
+    statementSwipesTotal,
   ] = await Promise.all([
     contributionsCol.countDocuments({}),
     contributionsCol.countDocuments({ createdAt: { $gte: since } }),
@@ -69,6 +74,9 @@ export async function GET(req: NextRequest) {
         { $limit: TOPIC_LIMIT },
       ])
       .toArray(),
+    swipeVotesCol.countDocuments({}),
+    swipeVotesCol.countDocuments({ createdAt: { $gte: since } }),
+    statementSwipesCol.countDocuments({}),
   ]);
 
   return NextResponse.json({
@@ -81,6 +89,9 @@ export async function GET(req: NextRequest) {
       evidenceClaims: evidenceClaimsTotal,
       evidenceItems: evidenceItemsTotal,
       evidenceLinks: evidenceLinksTotal,
+      swipeVotes: swipeVotesTotal,
+      swipeVotes30d,
+      statementSwipes: statementSwipesTotal,
     },
     topics: {
       human: humanTopics.map((entry: any) => ({ topic: entry._id, count: entry.count })),

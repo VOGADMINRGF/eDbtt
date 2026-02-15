@@ -10,8 +10,8 @@ import { userIsAdminDashboard } from "@/lib/server/auth/roles";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const MIN_TOPICS = 3;
-const MAX_TOPICS = 5;
+const MIN_TOPICS = 5;
+const MAX_TOPICS = 10;
 const MIN_OPTIONS = 5;
 
 function badRequest(message: string) {

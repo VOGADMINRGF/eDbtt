@@ -60,6 +60,8 @@ type UserDoc = {
     bio?: string | null;
     tagline?: string | null;
     avatarStyle?: "initials" | "abstract" | "emoji" | null;
+    avatarUrl?: string | null;
+    coverUrl?: string | null;
     topTopics?: Array<{ key?: string; title?: string; statement?: string | null }>;
     publicLocation?: {
       city?: string | null;
@@ -351,6 +353,12 @@ export async function updateAccountProfile(
   if (patch.avatarStyle !== undefined) {
     setOps["profile.avatarStyle"] = patch.avatarStyle ?? null;
   }
+  if (patch.avatarUrl !== undefined) {
+    setOps["profile.avatarUrl"] = patch.avatarUrl?.trim() || null;
+  }
+  if (patch.coverUrl !== undefined) {
+    setOps["profile.coverUrl"] = patch.coverUrl?.trim() || null;
+  }
 
   if (patch.topTopics !== undefined) {
     const topics = patch.topTopics === null ? [] : sanitizeTopTopics(patch.topTopics ?? []);
@@ -439,9 +447,19 @@ function normalizeLocationField(value?: string | null) {
   return trimmed.length ? trimmed : null;
 }
 
-function normalizeEdebatePackage(value?: string | null): "basis" | "start" | "pro" | "none" {
+function normalizeEdebatePackage(
+  value?: string | null,
+): "basis" | "start" | "pro" | "pilot-b2g" | "pilot-b2b" | "none" {
   const cleaned = (value ?? "").replace(/^edb-/, "").toLowerCase();
-  if (cleaned === "basis" || cleaned === "start" || cleaned === "pro") return cleaned;
+  if (
+    cleaned === "basis" ||
+    cleaned === "start" ||
+    cleaned === "pro" ||
+    cleaned === "pilot-b2g" ||
+    cleaned === "pilot-b2b"
+  ) {
+    return cleaned;
+  }
   return "none";
 }
 
@@ -486,6 +504,8 @@ function deriveProfile(doc: UserDoc): AccountProfile {
     bio: doc.profile?.bio?.trim() || null,
     tagline: doc.profile?.tagline?.trim() || null,
     avatarStyle: doc.profile?.avatarStyle ?? null,
+    avatarUrl: doc.profile?.avatarUrl ?? null,
+    coverUrl: doc.profile?.coverUrl ?? null,
     topTopics: sanitizeTopTopics(doc.profile?.topTopics ?? []),
     publicFlags: normalizePublicFlags(doc.profile?.publicFlags ?? doc.publicFlags),
     publicLocation: normalizePublicLocation(doc.profile?.publicLocation ?? null) ?? undefined,
@@ -502,6 +522,8 @@ function derivePublicProfile(doc: UserDoc): PublicProfileSnapshot {
     bio: profile.bio ?? null,
     tagline: profile.tagline ?? null,
     avatarStyle: profile.avatarStyle ?? null,
+    avatarUrl: profile.avatarUrl ?? null,
+    coverUrl: profile.coverUrl ?? null,
     topTopics: profile.topTopics ?? [],
     city: location.city ?? null,
     region: location.region ?? null,

@@ -6,8 +6,8 @@ import Link from "next/link";
 import type { Project, ProjectOption, ProjectStatus, ProjectTopic } from "../types/ProjectType";
 import { safeRandomId } from "@core/utils/random";
 
-const MIN_TOPICS = 3;
-const MAX_TOPICS = 5;
+const MIN_TOPICS = 5;
+const MAX_TOPICS = 10;
 const MIN_OPTIONS = 5;
 
 function createOption(label = ""): ProjectOption {
@@ -202,7 +202,7 @@ export default function ProjectForm({ creatorId }: ProjectFormProps) {
       <header className="space-y-2">
         <h2 className="text-2xl font-bold text-coral">Projekt/Event erstellen</h2>
         <p className="text-sm text-slate-600">
-          Lege 3 bis 5 Themen an. Pro Thema werden mindestens 5 feste Optionen benoetigt.
+          Lege 5 bis 10 Themen an. Pro Thema werden mindestens 5 feste Optionen benoetigt.
         </p>
       </header>
 

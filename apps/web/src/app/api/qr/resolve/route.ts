@@ -5,6 +5,24 @@ import { NextRequest, NextResponse } from "next/server";
 import { ObjectId, coreCol } from "@core/db/triMongo";
 import { campaignsCol } from "@features/campaign/db";
 
+async function logScan(args: { code: string; targetType: string; targetIds: string[]; req: NextRequest }) {
+  try {
+    const scans = await coreCol("qr_scans");
+    const ip = args.req.headers.get("x-forwarded-for") ?? args.req.headers.get("x-real-ip") ?? null;
+    const userAgent = args.req.headers.get("user-agent") ?? null;
+    await scans.insertOne({
+      code: args.code,
+      targetType: args.targetType,
+      targetIds: args.targetIds,
+      ip,
+      userAgent,
+      createdAt: new Date(),
+    });
+  } catch {
+    // Tracking darf keine Fehler werfen
+  }
+}
+
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const qrId = searchParams.get("qrId")?.trim();
@@ -15,6 +33,7 @@ export async function GET(req: NextRequest) {
   const setsCol = await coreCol("qr_question_sets");
   const set = await setsCol.findOne({ code: qrId, status: "active" });
   if (set) {
+    void logScan({ code: qrId, targetType: "set", targetIds: [set.code], req });
     return NextResponse.json({
       success: true,
       data: {
@@ -33,6 +52,7 @@ export async function GET(req: NextRequest) {
       const campaigns = await campaignsCol();
       const campaign = await campaigns.findOne({ _id: new ObjectId(campaignId) });
       if (campaign) {
+        void logScan({ code: qrId, targetType: "campaign", targetIds: [campaignId], req });
         return NextResponse.json({
           success: true,
           data: {
@@ -50,6 +70,7 @@ export async function GET(req: NextRequest) {
       const campaigns = await campaignsCol();
       const campaign = await campaigns.findOne({ _id: new ObjectId(campaignId) });
       if (campaign) {
+        void logScan({ code: qrId, targetType: "campaign_session", targetIds: [campaignId, sessionId].filter(Boolean), req });
         return NextResponse.json({
           success: true,
           data: {

@@ -3,8 +3,8 @@
 import Link from "next/link";
 import {
   EDEBATTE_PACKAGES_DE,
-  PACKAGE_AUDIENCE_LABELS,
   PACKAGE_STATUS_LABELS,
+  type EDebattePackageDefinition,
   type PackageStatus,
 } from "@features/pricing";
 
@@ -32,10 +32,15 @@ function priceLine(pkg: { preisMonat?: number; preisJahr?: number }) {
   return "Preis folgt";
 }
 
-function PackagesGrid() {
+type PackagesGridProps = {
+  packages?: EDebattePackageDefinition[];
+};
+
+function PackagesGrid({ packages }: PackagesGridProps) {
+  const items = packages ?? EDEBATTE_PACKAGES_DE;
   return (
     <div className="grid gap-4 lg:grid-cols-3">
-      {EDEBATTE_PACKAGES_DE.map((pkg) => (
+      {items.map((pkg) => (
         <div
           key={pkg.id}
           className={cx(
@@ -49,7 +54,7 @@ function PackagesGrid() {
             <div className="flex items-start justify-between gap-3">
               <div>
                 <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-                  {PACKAGE_AUDIENCE_LABELS[pkg.typ]}
+                  {pkg.zielgruppe}
                 </p>
                 <h3 className="mt-1 text-xl font-semibold text-slate-900">{pkg.titel}</h3>
               </div>

@@ -9,7 +9,7 @@ import { requireCreatorContext } from "../../streams/utils";
 const QuestionSchema = z.object({
   title: z.string().min(3).max(200),
   description: z.string().max(800).optional(),
-  options: z.array(z.string().min(1).max(120)).min(2).max(8),
+  options: z.array(z.string().min(1).max(120)).min(2).max(12),
   publicAttribution: z.enum(["public", "hidden"]).optional(),
 });
 
@@ -17,7 +17,7 @@ const CreateSetSchema = z.object({
   title: z.string().min(3).max(140).optional(),
   streamSessionId: z.string().min(1).optional(),
   organizationId: z.string().min(1).optional(),
-  questions: z.array(QuestionSchema).min(1).max(5),
+  questions: z.array(QuestionSchema).min(1).max(10),
 });
 
 const CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789";
@@ -63,15 +63,6 @@ export async function POST(req: NextRequest) {
 
   if (questions.some((q) => q.options.length < 2)) {
     return NextResponse.json({ ok: false, error: "options_required" }, { status: 400 });
-  }
-
-  const publicCount = questions.filter((q) => q.publicAttribution === "public").length;
-  const hiddenCount = questions.length - publicCount;
-  if (publicCount > 3) {
-    return NextResponse.json({ ok: false, error: "public_limit_exceeded" }, { status: 400 });
-  }
-  if (questions.length >= 5 && hiddenCount < 2) {
-    return NextResponse.json({ ok: false, error: "anonymous_minimum" }, { status: 400 });
   }
 
   const code = await generateUniqueCode();

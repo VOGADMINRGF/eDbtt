@@ -66,10 +66,13 @@ export default function AdminReportAssetsPage() {
           const body = await res.json().catch(() => ({}));
           throw new Error(body?.error || res.statusText);
         }
-        const body = (await res.json()) as AssetResponse;
+        const body = (await res.json().catch(() => null)) as AssetResponse | null;
+        if (!body) {
+          throw new Error("assets_load_failed");
+        }
         if (active) setData(body);
-      } catch (err: any) {
-        if (active) setError(err?.message ?? "assets_load_failed");
+      } catch (err: unknown) {
+        if (active) setError(getErrorMessage(err, "assets_load_failed"));
       } finally {
         if (active) setLoading(false);
       }
@@ -107,8 +110,8 @@ export default function AdminReportAssetsPage() {
       setCreateRegion("");
       setCreateSlug("");
       setPage(1);
-    } catch (err: any) {
-      setError(err?.message ?? "create_failed");
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, "create_failed"));
     }
   };
 
@@ -278,4 +281,9 @@ export default function AdminReportAssetsPage() {
       </div>
     </div>
   );
+}
+
+function getErrorMessage(err: unknown, fallback: string) {
+  if (err instanceof Error && err.message) return err.message;
+  return fallback;
 }

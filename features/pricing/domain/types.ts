@@ -1,6 +1,6 @@
 export type PackageStatus = "verfuegbar" | "pilot" | "vormerkung" | "bald";
 export type PackageAudience = "buerger" | "organisation";
-export type EDebattePackageId = "basis" | "start" | "pro";
+export type EDebattePackageId = "basis" | "start" | "pro" | "pilot-b2g" | "pilot-b2b";
 
 export type EDebattePackageDefinition = {
   id: EDebattePackageId;

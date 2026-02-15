@@ -1,7 +1,7 @@
 // features/swipes/types.ts
 
 // eDebatte-Paket aus Account-Kontext
-export type EDebattePackage = "basis" | "start" | "pro" | "none";
+export type EDebattePackage = "basis" | "start" | "pro" | "pilot-b2g" | "pilot-b2b" | "none";
 
 export type SwipeDecision = "agree" | "neutral" | "disagree";
 

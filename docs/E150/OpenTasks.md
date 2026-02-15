@@ -31,7 +31,7 @@ Diese Liste ist die kanonische Umsetzungsliste fuer alle vorhandenen Drift-Promp
 | PR-0009 | Pilot Backbone (Feeds → Kandidaten → Faktencheck → Graph/Dossier) | Done | - |
 | PR-0010 | Admin Akquise Dashboard (Feeds/Regionen) | Done | - |
 | PR-0011 | Offene Beitraege (Quelle/Option/Frage, Moderation) | Done | - |
-| PR-0012 | Media Ready Projekte (3–5 Themen, min 5 Optionen) | Done | Monitoring/Polish |
+| PR-0012 | Media Ready Projekte (5–10 Themen, min 5 Optionen) | Done | Monitoring/Polish |
 | PR-0013 | Live/Chat Skeleton | Done | - |
 | PR-0030 | Unterstuetzen/Crowdfunding | Implemented | Monitoring/Polish |
 | PR-0010B | DecisionArchitecture v2.0 (Part16) – Publishing Pack + Drift-Validator | Done | - |
@@ -54,17 +54,18 @@ Ist/Unerledigt:
 
 | Bereich | Ist | Unerledigt |
 | --- | --- | --- |
-| Social Preview | OG-Defaults im Root-Layout + Dossier-Detail aktiv | Report-/Archiv-Detailseiten sukzessive erweitern |
+| Social Preview | OG-Defaults im Root-Layout + Dossier-Detail + Report Hub/Report/Topic Metadata + Stream/Profil-Metadata | Weitere Detailseiten (Support/QR/Admin) sukzessive erweitern |
 | Page Contracts (CI) | `scripts/check-page-contracts.mjs` aktiv; `missing-h1`-Allowlist abgebaut (0) | optional: weitere Semantik-Checks nur falls Bedarf |
-| Type Hygiene (Pages) | Kernseiten `account`, `admin`, Auth-Flow nachgezogen | Restliche `any`-Verwendungen in `page.tsx` systematisch reduzieren |
-| Admin Navigation | Hubs + Direktzugriff + Zusatzbereiche im Dashboard vorhanden | Kontextaktionen (Massenaktionen/Drilldown) gezielt erweitern |
-| Swipes End-to-End | Swipe-Feed aus `statement_proposals`, Votes in `swipe_votes`, Eventualities aus `eventuality_nodes` | Optional: Vote-Aggregationen/Analytics fuer Admin-Reports |
-| SwipeCards Context | Graph-Basis + Swipe-Flow vorhanden | Graph-Randinfo/Context-Accordion "Warum sehe ich das?" fehlt |
-| Campaign QR Polish | `/qr/[qrId]` + Session-Join aktiv | Optional: QR-Scan-Tracking, lokale Hinweise, Session-Label im Join |
-| Support UX Polish | `/support/[slug]` + Admin-Flow aktiv | Optional: Guided Payment UX, Social-Proof/Region-Filter, Bulk-Action |
-| Public Profile Polish | Public Profile Flags + ShareId vorhanden | Avatar/Cover Upload API anbinden, Impact-Ansicht fuer Buerger:innen implementieren |
-| Stream Deliberation Cockpit | Stream-Cockpit + Agenda + Overlay + Deliberation-Phasen/Timer + Moderations-Queue (MVP) + Live-Dossier-Board + Follow-up-Tracker + Call-ins vorhanden | Optional: fairness-Logik/Rotation/Auto-Auswahl |
-| Stream-Kit Polish | Overlay/Viewer/QR-Target aktiv | Optional: Session-Vorlagen pro Formattyp, strukturierte Queue, QR-Bildrendition |
+| Type Hygiene (Pages) | Kernseiten `account`, `admin`, Auth-Flow + QR/Stream/Support/Reports bereinigt; Admin-Report/Errors/Impact/Report-Assets typisiert | Restliche `any`-Verwendungen in Admin-Detailseiten systematisch reduzieren |
+| Admin Navigation | Hubs + Direktzugriff + Schnellaktionen + Bulk-Status in Editorial Queue | Optional: weitere Drilldowns |
+| Swipes End-to-End | Swipe-Feed aus `statement_proposals`, Votes in `swipe_votes` + Content-KPI-Analytics + Admin-Swipes-Report + 30d-Timeseries | Optional: Detail-Drilldowns |
+| SwipeCards Context | Graph-Randinfo/Context-Accordion "Warum sehe ich das?" vorhanden (optional via `contextPanel`) | Optional: Relation-Mapping/Auto-Quelle aus Graph-API |
+| Campaign QR Polish | `/qr/[qrId]` verbessert + QR-Scan-Tracking aktiv | Optional: QR-Scan-Dashboards |
+| Support UX Polish | `/support/[slug]` Guided-Payment-Hinweise ergänzt | Optional: Social-Proof/Region-Filter, Bulk-Action |
+| Public Profile Polish | Public Profile Flags + ShareId + Avatar/Cover Upload API + Impact-Ansicht | Optional: Medien-Moderation/Rate-Limits |
+| Stream Deliberation Cockpit | Stream-Cockpit + Agenda + Overlay + Deliberation-Phasen/Timer + Moderations-Queue (MVP) + Live-Dossier-Board + Follow-up-Tracker + Call-ins + Fairness/Rotation | Optional: Auto-Auswahl/Rotation-Logik |
+| Stream-Kit Polish | Overlay/Viewer/QR-Target aktiv + QR-Bildrendition + Session-Vorlagen | Optional: strukturierte Queue |
+| Media/TV QR Studio | Admin-QR-Studio fuer TV/Events (QR-Set Builder + Live-Trends) | Optional: Script-Upload als Datei, Export/Snapshot |
 
 ## Arbeitsregel fuer jeden Run
 

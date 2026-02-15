@@ -3,7 +3,7 @@
 import * as React from "react";
 import type { Lang } from "@features/landing/landingCopy";
 import { PRELAUNCH_GATE_COPY } from "./prelaunchGateCopy";
-import { EDEBATTE_PACKAGES_DE, PACKAGE_STATUS_LABELS } from "@features/pricing";
+import { PACKAGE_STATUS_LABELS, getPackagesByIds, PRIVATE_PACKAGE_IDS } from "@features/pricing";
 
 const CURRENCY = new Intl.NumberFormat("de-DE", {
   style: "currency",
@@ -98,7 +98,7 @@ export function PrelaunchGateModal({
                 <p className="text-[11px] text-slate-400">{c.productsHint}</p>
               </div>
               <div className="flex gap-4 overflow-x-auto pb-2 [-webkit-overflow-scrolling:touch] snap-x snap-mandatory">
-                {EDEBATTE_PACKAGES_DE.map((pkg) => {
+                {getPackagesByIds(PRIVATE_PACKAGE_IDS).map((pkg) => {
                   const isFree = pkg.preisMonat === 0;
                   const isHighlighted = pkg.hervorgehoben;
                   const priceLabel = isFree

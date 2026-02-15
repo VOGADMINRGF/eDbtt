@@ -40,11 +40,24 @@ const statementField = z
   ])
   .optional();
 
+const imageField = z
+  .union([
+    z
+      .string()
+      .trim()
+      .max(200000, "too_long"),
+    z.literal("").transform(() => null),
+    z.null(),
+  ])
+  .optional();
+
 const schema = z.object({
   headline: textField(3, 140),
   bio: textField(10, 800),
   tagline: textField(2, 140),
   avatarStyle: z.enum(["initials", "abstract", "emoji"]).nullish(),
+  avatarUrl: imageField,
+  coverUrl: imageField,
   city: locationField(120),
   region: locationField(120),
   countryCode: locationField(8),
@@ -114,6 +127,8 @@ export async function PATCH(req: NextRequest) {
     bio: parsed.data.bio !== undefined ? parsed.data.bio : undefined,
     tagline: parsed.data.tagline !== undefined ? parsed.data.tagline : undefined,
     avatarStyle: parsed.data.avatarStyle !== undefined ? parsed.data.avatarStyle ?? null : undefined,
+    avatarUrl: parsed.data.avatarUrl !== undefined ? parsed.data.avatarUrl ?? null : undefined,
+    coverUrl: parsed.data.coverUrl !== undefined ? parsed.data.coverUrl ?? null : undefined,
     topTopics:
       parsed.data.topTopics === undefined
         ? undefined

@@ -6,7 +6,12 @@ import Image from "next/image";
 import Link from "next/link";
 import { EDEBATTE_PACKAGES_WITH_NONE } from "@/config/edebatte";
 import { canEditTopTopics } from "@features/account/capabilities";
-import { EDEBATTE_PACKAGES_DE } from "@features/pricing";
+import {
+  EDEBATTE_PACKAGES_DE,
+  getPackagesByIds,
+  PRIVATE_PACKAGE_IDS,
+  type EDebattePackageDefinition,
+} from "@features/pricing";
 import type { AccountFeatureInterestKey } from "@features/account/types";
 import { TOPIC_CHOICES, type TopicKey } from "@features/interests/topics";
 import type { UserRole } from "@/types/user";
@@ -60,6 +65,8 @@ export type PublicProfileData = {
   bio?: string | null;
   tagline?: string | null;
   avatarStyle?: "initials" | "abstract" | "emoji";
+  avatarUrl?: string | null;
+  coverUrl?: string | null;
   topTopics?: Array<{
     key: TopicKey;
     title: string;
@@ -75,7 +82,7 @@ export type PublicProfileData = {
   shareId?: string | null;
 };
 
-export type EDebattePackage = "basis" | "start" | "pro" | "none";
+export type EDebattePackage = "basis" | "start" | "pro" | "pilot-b2g" | "pilot-b2b" | "none";
 
 export type EDebattePackageInfo = {
   package: EDebattePackage;
@@ -342,6 +349,8 @@ function normalizeOverview(src: any): AccountOverview {
     bio: publicProfileSource?.bio ?? src?.profile?.bio ?? "",
     tagline: publicProfileSource?.tagline ?? src?.profile?.tagline ?? "",
     avatarStyle: publicProfileSource?.avatarStyle ?? src?.profile?.avatarStyle ?? "initials",
+    avatarUrl: publicProfileSource?.avatarUrl ?? src?.profile?.avatarUrl ?? null,
+    coverUrl: publicProfileSource?.coverUrl ?? src?.profile?.coverUrl ?? null,
     topTopics,
     engagementLevel: src?.stats?.engagementLevel ?? null,
     showRealName: Boolean(publicProfileSource?.showRealName ?? profileFlags.showRealName),
@@ -615,26 +624,59 @@ function ProfileCard({ profile, onRefresh }: ProfileCardProps) {
     coverInputRef.current?.click();
   };
 
+  const uploadProfileImage = async (kind: "avatarUrl" | "coverUrl", file: File) => {
+    if (file.size > 600_000) {
+      setSaveMsg("Bild zu groß. Bitte unter 600 KB bleiben.");
+      return;
+    }
+    setSaving(true);
+    setSaveMsg(null);
+    const reader = new FileReader();
+    reader.onload = async () => {
+      const dataUrl = typeof reader.result === "string" ? reader.result : "";
+      if (!dataUrl) {
+        setSaving(false);
+        setSaveMsg("Bild konnte nicht geladen werden.");
+        return;
+      }
+      setDraft((prev) => ({ ...prev, [kind]: dataUrl }));
+      try {
+        const res = await fetch("/api/account/profile", {
+          method: "PATCH",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ [kind]: dataUrl }),
+        });
+        if (!res.ok) throw new Error("Upload fehlgeschlagen");
+        setSaveMsg(kind === "avatarUrl" ? "Profilfoto aktualisiert." : "Titelbild aktualisiert.");
+        onRefresh();
+      } catch (err) {
+        console.warn("[account] upload failed", err);
+        setSaveMsg("Upload fehlgeschlagen. Bitte erneut versuchen.");
+      } finally {
+        setSaving(false);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
   const handleAvatarChange = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
-
-    // TODO: An API zum Upload anbinden.
     const previewUrl = URL.createObjectURL(file);
     if (avatarPreviewUrlRef.current) URL.revokeObjectURL(avatarPreviewUrlRef.current);
     avatarPreviewUrlRef.current = previewUrl;
     setDraft((prev) => ({ ...prev, avatarUrl: previewUrl }));
+    void uploadProfileImage("avatarUrl", file);
   };
 
   const handleCoverChange = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
-
-    // TODO: An API zum Upload anbinden.
     const previewUrl = URL.createObjectURL(file);
     if (coverPreviewUrlRef.current) URL.revokeObjectURL(coverPreviewUrlRef.current);
     coverPreviewUrlRef.current = previewUrl;
     setDraft((prev) => ({ ...prev, coverUrl: previewUrl }));
+    void uploadProfileImage("coverUrl", file);
   };
 
   const handleSubmit = (event: FormEvent) => {
@@ -939,7 +981,17 @@ type EDebatteChoice = {
   description: string;
 };
 
-const EDEBATTE_CHOICES: EDebatteChoice[] = EDEBATTE_PACKAGES_DE.map((pkg) => {
+type PrivatePackageId = (typeof PRIVATE_PACKAGE_IDS)[number];
+
+function isPrivatePackage(
+  pkg: EDebattePackageDefinition,
+): pkg is EDebattePackageDefinition & { id: PrivatePackageId } {
+  return pkg.id === "basis" || pkg.id === "start" || pkg.id === "pro";
+}
+
+const EDEBATTE_CHOICES: EDebatteChoice[] = getPackagesByIds(PRIVATE_PACKAGE_IDS)
+  .filter(isPrivatePackage)
+  .map((pkg) => {
   const priceLabel =
     pkg.preisMonat === 0
       ? "Kostenfrei"

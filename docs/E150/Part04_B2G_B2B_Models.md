@@ -119,7 +119,7 @@ Staff kann ORG_ULTRA für Test und Governance besitzen.
 
 **Pilotphase (kostenlos):**
 
-- 3–5 Themen / Jahr kostenfrei  
+- 5–10 Themen pro Pilot (12 Wochen) kostenfrei  
 - einfache Community-Beteiligung  
 - Nutzung der Basis-Tools  
 - Nutzung des KnowledgeGraph-Auszuges (reduziert)

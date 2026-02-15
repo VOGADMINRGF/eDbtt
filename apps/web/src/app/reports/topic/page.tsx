@@ -1,6 +1,22 @@
 "use client";
 
+import type { Metadata } from "next";
 import { useEffect, useState } from "react";
+
+export const metadata: Metadata = {
+  title: "Topic Report – eDebatte",
+  description: "Aggregierte Topics und Responsibility-Statistiken für schnelle Analyse.",
+  openGraph: {
+    title: "Topic Report – eDebatte",
+    description: "Aggregierte Topics und Responsibility-Statistiken für schnelle Analyse.",
+    type: "website",
+  },
+  twitter: {
+    card: "summary",
+    title: "Topic Report – eDebatte",
+    description: "Aggregierte Topics und Responsibility-Statistiken für schnelle Analyse.",
+  },
+};
 
 type TopicStat = {
   topic: string;
@@ -36,8 +52,8 @@ export default function TopicReportPage() {
       if (!res.ok || !body?.ok) throw new Error(body?.error ?? res.statusText);
       setStats(body.stats ?? []);
       setStatements(body.sampleStatements ?? []);
-    } catch (err: any) {
-      setError(err?.message ?? "Report konnte nicht geladen werden.");
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, "Report konnte nicht geladen werden."));
       setStats([]);
       setStatements([]);
     } finally {
@@ -154,4 +170,10 @@ export default function TopicReportPage() {
       </section>
     </main>
   );
+}
+
+function getErrorMessage(err: unknown, fallback: string) {
+  if (err instanceof Error && err.message) return err.message;
+  if (typeof err === "string") return err;
+  return fallback;
 }

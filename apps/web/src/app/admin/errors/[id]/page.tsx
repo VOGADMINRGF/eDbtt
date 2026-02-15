@@ -13,7 +13,7 @@ type ErrorRow = {
   path?: string | null;
   timestamp?: string | null;
   createdAt?: string | null;
-  ctx?: any;
+  ctx?: Record<string, unknown> | null;
 };
 
 type ApiResponse = {
@@ -48,8 +48,8 @@ export default function AdminErrorDetailPage() {
           setItem(body.item);
           setRelated(Array.isArray(body.related) ? body.related : []);
         }
-      } catch (err: any) {
-        if (active) setError(err?.message ?? "Fehler beim Laden");
+      } catch (err: unknown) {
+        if (active) setError(getErrorMessage(err, "Fehler beim Laden"));
       } finally {
         if (active) setLoading(false);
       }
@@ -74,8 +74,8 @@ export default function AdminErrorDetailPage() {
         throw new Error(body?.error || res.statusText);
       }
       setItem(body.item);
-    } catch (err: any) {
-      setError(err?.message ?? "Update fehlgeschlagen");
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, "Update fehlgeschlagen"));
     } finally {
       setSaving(false);
     }
@@ -92,14 +92,14 @@ export default function AdminErrorDetailPage() {
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ traceId: item.traceId, resolved: nextResolved }),
       });
-      const body = await res.json().catch(() => ({}));
+      const body = (await res.json().catch(() => ({}))) as { ok?: boolean; error?: string };
       if (!res.ok || !body?.ok) {
         throw new Error(body?.error || res.statusText);
       }
       setItem((prev) => (prev ? { ...prev, resolved: nextResolved } : prev));
       setRelated((prev) => prev.map((row) => ({ ...row, resolved: nextResolved })));
-    } catch (err: any) {
-      setError(err?.message ?? "Trace-Update fehlgeschlagen");
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, "Trace-Update fehlgeschlagen"));
     } finally {
       setTraceSaving(false);
     }
@@ -208,6 +208,11 @@ export default function AdminErrorDetailPage() {
       )}
     </main>
   );
+}
+
+function getErrorMessage(err: unknown, fallback: string) {
+  if (err instanceof Error && err.message) return err.message;
+  return fallback;
 }
 
 function LevelBadge({ level }: { level: "info" | "warn" | "error" }) {

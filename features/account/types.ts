@@ -25,7 +25,7 @@ export type PricingTier =
   | "staff"
   | "custom";
 
-export type EDebattePackage = "basis" | "start" | "pro" | "none";
+export type EDebattePackage = "basis" | "start" | "pro" | "pilot-b2g" | "pilot-b2b" | "none";
 export type EDebatteStatus = "none" | "preorder" | "active" | "canceled";
 
 export type AccountEdebateInfo = {
@@ -87,6 +87,8 @@ export type AccountProfile = {
   bio?: string | null;
   tagline?: string | null;
   avatarStyle?: "initials" | "abstract" | "emoji" | null;
+  avatarUrl?: string | null;
+  coverUrl?: string | null;
   topTopics?: ProfileTopTopic[];
   publicFlags?: ProfilePublicFlags;
   publicLocation?: {
@@ -103,6 +105,8 @@ export type PublicProfileSnapshot = {
   bio?: string | null;
   tagline?: string | null;
   avatarStyle?: "initials" | "abstract" | "emoji" | null;
+  avatarUrl?: string | null;
+  coverUrl?: string | null;
   topTopics?: ProfileTopTopic[];
   city?: string | null;
   region?: string | null;
@@ -189,6 +193,8 @@ export type AccountProfileUpdate = {
   bio?: string | null;
   tagline?: string | null;
   avatarStyle?: "initials" | "abstract" | "emoji" | null;
+  avatarUrl?: string | null;
+  coverUrl?: string | null;
   topTopics?: { key: TopicKey; statement?: string | null }[] | null;
   publicFlags?: ProfilePublicFlags | null;
   publicLocation?: {

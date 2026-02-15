@@ -45,15 +45,21 @@ export default function ImpactInspectorPage() {
         const res = await fetch(`/api/admin/impact/by-contribution?id=${encodeURIComponent(contributionId)}`, {
           cache: "no-store",
         });
-        const data = (await res.json()) as ApiResponse;
-        if (!res.ok || !data.ok) {
-          throw new Error((data as any)?.error || res.statusText);
+        const data = await res.json().catch(() => null);
+        if (!isApiResponse(data)) {
+          throw new Error(res.statusText);
+        }
+        if (!res.ok) {
+          throw new Error(res.statusText);
+        }
+        if (data.ok === false) {
+          throw new Error(data.error || res.statusText);
         }
         if (!ignore) setImpact(data.impact);
-      } catch (err: any) {
+      } catch (err: unknown) {
         if (!ignore) {
           setImpact(null);
-          setError(err?.message ?? "Impact-Daten konnten nicht geladen werden.");
+          setError(getErrorMessage(err, "Impact-Daten konnten nicht geladen werden."));
         }
       } finally {
         if (!ignore) setLoading(false);
@@ -206,4 +212,13 @@ function EventualityList({ impact }: { impact: ImpactSnapshot }) {
       )}
     </div>
   );
+}
+
+function getErrorMessage(err: unknown, fallback: string) {
+  if (err instanceof Error && err.message) return err.message;
+  return fallback;
+}
+
+function isApiResponse(value: unknown): value is ApiResponse {
+  return Boolean(value) && typeof value === "object" && "ok" in value;
 }

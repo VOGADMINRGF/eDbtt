@@ -29,6 +29,8 @@ export interface StreamDeliberationState {
   phase: StreamDeliberationPhase;
   round: number;
   roundEndsAt?: Date | null;
+  fairnessMode?: "off" | "rotation";
+  rotationIntervalMinutes?: number | null;
   updatedAt?: Date | null;
   updatedBy?: string | null;
 }

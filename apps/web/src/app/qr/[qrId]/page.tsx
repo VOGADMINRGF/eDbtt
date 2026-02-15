@@ -1,9 +1,21 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { publicOrigin } from "@/utils/publicOrigin";
 import { QuestionSetClient } from "./QuestionSetClient";
 
 type PageProps = {
   params: Promise<{ qrId: string }>;
+};
+
+type QrResolved = {
+  targetType: "statement" | "contribution" | "stream" | "campaign" | "campaign_session" | "set" | "custom" | string;
+  targetIds: string[];
+  title?: string | null;
+  meta?: Record<string, string | number | boolean | null>;
+};
+
+type QrResolveResponse = {
+  success: boolean;
+  data?: QrResolved | null;
 };
 
 export default async function QRScanPage({ params }: PageProps) {
@@ -12,18 +24,25 @@ export default async function QRScanPage({ params }: PageProps) {
   // Call to API (server or client) to resolve QR-Entry
   const base = process.env.NEXT_PUBLIC_API_URL || publicOrigin();
   const res = await fetch(`${base}/api/qr/resolve?qrId=${encodeURIComponent(qrId)}`, { cache: "no-store" });
-  const { success, data } = await res.json();
-  if (!success || !data) return notFound();
+  const body = (await res.json().catch(() => ({}))) as QrResolveResponse;
+  if (!body?.success || !body?.data) return notFound();
+  const data = body.data;
 
   // Route je nach Typ
   if (data.targetType === "statement") {
-    return <RedirectToStatement id={data.targetIds[0]} />;
+    const id = data.targetIds?.[0];
+    if (!id) return notFound();
+    return redirect(`/statements/${encodeURIComponent(id)}`);
   }
   if (data.targetType === "contribution") {
-    return <RedirectToContribution id={data.targetIds[0]} />;
+    const id = data.targetIds?.[0];
+    if (!id) return notFound();
+    return redirect(`/contribute?source=qr&target=${encodeURIComponent(id)}`);
   }
   if (data.targetType === "stream") {
-    return <RedirectToStream id={data.targetIds[0]} />;
+    const id = data.targetIds?.[0];
+    if (!id) return notFound();
+    return redirect(`/stream/${encodeURIComponent(id)}`);
   }
   if (data.targetType === "campaign") {
     return <CampaignQrLanding id={data.targetIds[0]} title={data.title} />;
@@ -41,20 +60,6 @@ export default async function QRScanPage({ params }: PageProps) {
   }
 
   return notFound();
-}
-
-// Dummy-Komponenten für das Beispiel
-function RedirectToStatement({ id }: any) {
-  // Hier Voting-Komponente rendern
-  return <div>Statement Voting für ID: {id}</div>;
-}
-function RedirectToContribution({ id }: any) {
-  // Beitrag anzeigen
-  return <div>Beitrag ID: {id}</div>;
-}
-function RedirectToStream({ id }: any) {
-  // Stream-Komponente einbinden
-  return <div>Stream ID: {id}</div>;
 }
 function CampaignQrLanding({
   id,
@@ -78,9 +83,12 @@ function CampaignQrLanding({
 
       <section className="rounded-2xl border border-slate-200 bg-white p-4 text-sm shadow-sm">
         {sessionId ? (
-          <p className="text-slate-600">
-            Session: <span className="font-semibold text-slate-800">{sessionId}</span>
-          </p>
+          <div className="space-y-1 text-slate-600">
+            <p>
+              Session: <span className="font-semibold text-slate-800">{sessionId}</span>
+            </p>
+            <p className="text-xs text-slate-500">Hinweis: QR-Session kann lokal aushaengen oder im Stream eingebunden sein.</p>
+          </div>
         ) : (
           <p className="text-slate-600">Keine Session-ID übergeben.</p>
         )}
@@ -107,7 +115,18 @@ function CampaignQrLanding({
     </main>
   );
 }
-function CustomFlow({ data }: any) {
-  // Individueller Flow
-  return <div>Individuelle Aktion: {JSON.stringify(data)}</div>;
+
+function CustomFlow({ data }: { data: QrResolved }) {
+  return (
+    <main className="mx-auto flex max-w-2xl flex-col gap-4 px-4 py-10">
+      <h1 className="text-xl font-semibold text-slate-900">Individuelle Aktion</h1>
+      <p className="text-sm text-slate-600">
+        Dieser QR-Code fuehrt zu einem benutzerdefinierten Flow. Bitte folge den Hinweisen der
+        Veranstaltung oder Organisation.
+      </p>
+      <pre className="rounded-2xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600">
+        {JSON.stringify({ targetType: data.targetType, meta: data.meta ?? null }, null, 2)}
+      </pre>
+    </main>
+  );
 }

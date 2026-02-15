@@ -18,6 +18,14 @@ export function getEdebatePackageById(id: string) {
   return EDEBATTE_PACKAGES_DE.find((pkg) => pkg.id === id) ?? null;
 }
 
+export const PRIVATE_PACKAGE_IDS = ["basis", "start", "pro"] as const;
+export const PILOT_PACKAGE_IDS = ["pilot-b2g", "pilot-b2b"] as const;
+
+export function getPackagesByIds(ids: readonly EDebattePackageId[]) {
+  const wanted = new Set(ids);
+  return EDEBATTE_PACKAGES_DE.filter((pkg) => wanted.has(pkg.id));
+}
+
 export function toEdebatePlanId(id: EDebattePackageId) {
   return `edb-${id}` as const;
 }

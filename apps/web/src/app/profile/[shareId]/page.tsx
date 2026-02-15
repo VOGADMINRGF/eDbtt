@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { coreCol } from "@core/db/triMongo";
 import { getEngagementLevel } from "@features/user/engagement";
@@ -12,6 +13,8 @@ type UserDoc = {
     headline?: string | null;
     bio?: string | null;
     tagline?: string | null;
+    avatarUrl?: string | null;
+    coverUrl?: string | null;
     publicLocation?: {
       city?: string | null;
       region?: string | null;
@@ -45,14 +48,18 @@ type UserDoc = {
   };
 };
 
-export default async function PublicProfilePage({
-  params,
-}: {
-  params: Promise<{ shareId: string }>;
-}) {
-  const { shareId } = await params;
+type PublicFlags = {
+  showRealName?: boolean;
+  showCity?: boolean;
+  showJoinDate?: boolean;
+  showEngagementLevel?: boolean;
+  showStats?: boolean;
+  showMembership?: boolean;
+};
+
+async function fetchPublicProfile(shareId: string) {
   const Users = await coreCol<UserDoc>("users");
-  const user = await Users.findOne(
+  return Users.findOne(
     { "profile.publicShareId": shareId },
     {
       projection: {
@@ -65,22 +72,93 @@ export default async function PublicProfilePage({
       },
     },
   );
+}
+
+function resolveFlags(user: UserDoc): PublicFlags {
+  return (user.profile?.publicFlags ?? user.publicFlags ?? {}) as PublicFlags;
+}
+
+function resolveDisplayName(user: UserDoc, flags: PublicFlags) {
+  if (flags.showRealName) {
+    return user.profile?.displayName?.trim() || user.name?.trim() || "Mitglied bei eDebatte";
+  }
+  return "Mitglied bei eDebatte";
+}
+
+function resolveProfileSummary(user: UserDoc, flags: PublicFlags) {
+  const displayName = resolveDisplayName(user, flags);
+  const headline = user.profile?.headline?.trim() || null;
+  const tagline = user.profile?.tagline?.trim() || null;
+  const bio = user.profile?.bio?.trim() || null;
+  const description =
+    headline ||
+    tagline ||
+    bio ||
+    "Profil einer verifizierten Person in der eDebatte-Community.";
+  return { displayName, headline, tagline, bio, description };
+}
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ shareId: string }>;
+}): Promise<Metadata> {
+  const { shareId } = await params;
+  const user = await fetchPublicProfile(shareId);
+  if (!user) {
+    return {
+      title: "Profil nicht gefunden",
+      description: "Dieses Profil ist nicht vorhanden oder nicht freigegeben.",
+      robots: { index: false },
+    };
+  }
+
+  const flags = resolveFlags(user);
+  if (!flags.showMembership) {
+    return {
+      title: "Profil nicht verfuegbar",
+      description: "Dieses Profil ist derzeit nicht oeffentlich sichtbar.",
+      robots: { index: false },
+    };
+  }
+
+  const { displayName, description } = resolveProfileSummary(user, flags);
+  return {
+    title: `${displayName} · Profil`,
+    description,
+    openGraph: {
+      title: `${displayName} · Profil`,
+      description,
+      type: "profile",
+    },
+    twitter: {
+      card: "summary",
+      title: `${displayName} · Profil`,
+      description,
+    },
+  };
+}
+
+export default async function PublicProfilePage({
+  params,
+}: {
+  params: Promise<{ shareId: string }>;
+}) {
+  const { shareId } = await params;
+  const user = await fetchPublicProfile(shareId);
 
   if (!user) {
     notFound();
   }
 
-  const flags = user.profile?.publicFlags ?? user.publicFlags ?? {};
+  const flags = resolveFlags(user);
   if (!flags.showMembership) {
     notFound();
   }
 
-  const displayName = flags.showRealName
-    ? user.profile?.displayName?.trim() || user.name?.trim() || "Mitglied bei eDebatte"
-    : "Mitglied bei eDebatte";
-  const headline = user.profile?.headline?.trim() || null;
-  const tagline = user.profile?.tagline?.trim() || null;
-  const bio = user.profile?.bio?.trim() || null;
+  const { displayName, headline, tagline, bio } = resolveProfileSummary(user, flags);
+  const avatarUrl = user.profile?.avatarUrl ?? null;
+  const coverUrl = user.profile?.coverUrl ?? null;
   const location = user.profile?.publicLocation
     ? [user.profile.publicLocation.city, user.profile.publicLocation.region, user.profile.publicLocation.countryCode]
         .filter(Boolean)
@@ -109,10 +187,20 @@ export default async function PublicProfilePage({
   return (
     <main className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-white py-10">
       <div className="mx-auto max-w-3xl space-y-6 px-4">
-        <section className="rounded-3xl bg-white/95 p-6 shadow-[0_18px_55px_rgba(15,23,42,0.08)] ring-1 ring-slate-100">
-          <div className="flex flex-wrap items-center gap-4">
-            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-slate-900 text-2xl font-semibold text-white">
-              {getInitials(displayName)}
+        <section className="overflow-hidden rounded-3xl bg-white/95 shadow-[0_18px_55px_rgba(15,23,42,0.08)] ring-1 ring-slate-100">
+          <div className="relative h-28 w-full bg-gradient-to-r from-sky-500 via-cyan-500 to-emerald-500">
+            {coverUrl && (
+              <img src={coverUrl} alt="Cover" className="h-full w-full object-cover" />
+            )}
+            <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-black/20" />
+          </div>
+          <div className="flex flex-wrap items-center gap-4 px-6 pb-6 pt-0 -mt-8">
+            <div className="relative flex h-16 w-16 items-center justify-center rounded-full border-4 border-white bg-slate-900 text-2xl font-semibold text-white shadow">
+              {avatarUrl ? (
+                <img src={avatarUrl} alt={displayName} className="h-full w-full rounded-full object-cover" />
+              ) : (
+                getInitials(displayName)
+              )}
             </div>
             <div className="flex-1">
               <p className="text-xs uppercase tracking-wide text-slate-500">Öffentliches Profil</p>
@@ -126,7 +214,7 @@ export default async function PublicProfilePage({
           </div>
 
           {(headline || bio) && (
-            <div className="mt-5 space-y-2">
+            <div className="px-6 pb-6 space-y-2">
               {headline && <p className="text-lg font-semibold text-slate-900">{headline}</p>}
               {bio && <p className="text-sm leading-relaxed text-slate-700">{bio}</p>}
             </div>

@@ -82,6 +82,33 @@ export default function AdminDashboardPage() {
         </p>
       </header>
 
+      <section className="rounded-3xl bg-white/90 p-4 shadow ring-1 ring-slate-100">
+        <div className="flex items-center justify-between">
+          <h2 className="text-sm font-semibold text-slate-900">Schnellaktionen</h2>
+          <span className="text-xs text-slate-500">Direkte Wege zu den wichtigsten Warteschlangen</span>
+        </div>
+        <div className="mt-3 grid gap-2 md:grid-cols-2 lg:grid-cols-4">
+          {[
+            { label: "Editorial Triage", href: "/admin/editorial/queue?status=triage" },
+            { label: "Graph Repairs", href: "/admin/graph/repairs?status=pending" },
+            { label: "Report Assets", href: "/admin/reports/assets" },
+            { label: "Support Ledger", href: "/admin/support" },
+            { label: "Research Tasks", href: "/admin/research/tasks" },
+            { label: "Eventualities", href: "/admin/eventualities" },
+            { label: "Access Center", href: "/admin/access" },
+            { label: "Content Hub", href: "/admin/content" },
+          ].map((entry) => (
+            <Link
+              key={entry.href}
+              href={entry.href}
+              className="rounded-2xl border border-slate-200 bg-slate-50/80 px-3 py-2 text-xs font-semibold text-slate-700 transition hover:border-sky-200 hover:text-slate-900"
+            >
+              {entry.label}
+            </Link>
+          ))}
+        </div>
+      </section>
+
       <section className="grid gap-3 md:grid-cols-2 lg:grid-cols-5">
         {renderCard("User gesamt", data?.totalUsers, loading, nf, undefined, "/admin/users")}
         {renderCard("Neue User (30d)", newUsers30d, loading, nf, undefined, "/admin/users?createdDays=30")}
@@ -223,6 +250,7 @@ export default function AdminDashboardPage() {
           <LinkCard title="Audit Logs" href="/admin/audit" description="Mutationen & Nachvollziehbarkeit" />
           <LinkCard title="Support Ledger" href="/admin/support" description="Pledges, Paid, CSV Export" />
           <LinkCard title="Campaign Desk" href="/admin/campaigns" description="Kampagnenstatus und Sessionfluss" />
+          <LinkCard title="Swipe Analytics" href="/admin/swipes" description="Swipe Votes & Top Statements" />
           <LinkCard title="Factcheck Desk" href="/admin/factcheck" description="Editoriale Freigaben und Checks" />
           <LinkCard title="Identity Desk" href="/admin/identity" description="Verification-Level und Abdeckung" />
         </div>
@@ -242,6 +270,7 @@ export default function AdminDashboardPage() {
             { href: "/admin/reports", label: "Reports" },
             { href: "/admin/responsibility", label: "Responsibility" },
             { href: "/admin/settings", label: "Settings" },
+            { href: "/admin/swipes", label: "Swipes" },
             { href: "/admin/users", label: "Users" },
           ].map((entry) => (
             <Link

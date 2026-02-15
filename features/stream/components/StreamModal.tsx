@@ -22,15 +22,16 @@ interface Props {
   id: string;
   title: string;
   status: string;
-  region: string;
-  topic: string;
+  region?: string;
+  topic?: string;
   language: string;
-  viewers: number;
+  viewers?: number;
+  showViewers?: boolean;
   trailerUrl?: string;
   image?: string;
-  description: string;
+  description?: string;
   statements?: Statement[];
-  userId: string;
+  userHash?: string;
   onClose: () => void;
 }
 
@@ -42,11 +43,12 @@ export default function StreamModal({
   topic,
   language,
   viewers,
+  showViewers = false,
   trailerUrl,
   image,
   description,
   statements,
-  userId,
+  userHash,
   onClose,
 }: Props) {
   const [currentStatementIndex, setCurrentStatementIndex] = useState(0);
@@ -106,13 +108,15 @@ export default function StreamModal({
 
       {/* Beschreibung & Metadaten */}
       <div className="mb-2">
-        <p className="text-gray-700">{description}</p>
+        {description && <p className="text-gray-700">{description}</p>}
         <div className="mt-2 flex flex-wrap gap-2 text-xs text-gray-500">
-          <span>{region}</span>
-          <span>· {topic}</span>
-          <span>· Sprache: {language}</span>
+          {region && <span>{region}</span>}
+          {topic && <span>{region ? "· " : ""}{topic}</span>}
+          <span>{region || topic ? "· " : ""}Sprache: {language}</span>
         </div>
-        <div className="text-xs text-gray-500">{viewers} Zuschauer:innen</div>
+        <div className="text-xs text-gray-500">
+          {showViewers ? `${viewers ?? 0} Zuschauer:innen` : "Zuschauer verborgen"}
+        </div>
       </div>
 
       {/* Statements & Swipe Integration */}
@@ -120,7 +124,7 @@ export default function StreamModal({
         <div className="mt-4 border-t pt-4">
           <SwipeCard
             statement={statements[currentStatementIndex]}
-            userId={userId}
+            userHash={userHash}
           />
           <button
             onClick={handleNextStatement}

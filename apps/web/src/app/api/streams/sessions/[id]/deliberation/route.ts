@@ -28,6 +28,11 @@ function normalizeState(state?: StreamDeliberationState | null): StreamDeliberat
     phase: state?.phase && PHASES.includes(state.phase) ? state.phase : "mandate",
     round: typeof state?.round === "number" && state.round > 0 ? Math.floor(state.round) : 1,
     roundEndsAt: state?.roundEndsAt ?? null,
+    fairnessMode: state?.fairnessMode === "rotation" ? "rotation" : "off",
+    rotationIntervalMinutes:
+      typeof state?.rotationIntervalMinutes === "number" && Number.isFinite(state.rotationIntervalMinutes)
+        ? Math.max(0, Math.round(state.rotationIntervalMinutes))
+        : null,
     updatedAt: state?.updatedAt ?? null,
     updatedBy: state?.updatedBy ?? null,
   };
@@ -96,6 +101,8 @@ export async function PATCH(
     phase?: StreamDeliberationPhase;
     round?: number;
     roundMinutes?: number | null;
+    fairnessMode?: "off" | "rotation";
+    rotationMinutes?: number | null;
   } | null;
 
   const current = normalizeState(session.deliberation);
@@ -108,6 +115,8 @@ export async function PATCH(
         ? Math.floor(body.round)
         : current.round,
     roundEndsAt: current.roundEndsAt ?? null,
+    fairnessMode: body?.fairnessMode === "rotation" ? "rotation" : current.fairnessMode ?? "off",
+    rotationIntervalMinutes: current.rotationIntervalMinutes ?? null,
     updatedAt: new Date(),
     updatedBy: ctx.userId,
   };
@@ -120,6 +129,12 @@ export async function PATCH(
     }
   } else if (body?.roundMinutes === null) {
     next.roundEndsAt = null;
+  }
+
+  if (typeof body?.rotationMinutes === "number" && Number.isFinite(body.rotationMinutes)) {
+    next.rotationIntervalMinutes = body.rotationMinutes <= 0 ? null : Math.round(body.rotationMinutes);
+  } else if (body?.rotationMinutes === null) {
+    next.rotationIntervalMinutes = null;
   }
 
   const col = await streamSessionsCol();
