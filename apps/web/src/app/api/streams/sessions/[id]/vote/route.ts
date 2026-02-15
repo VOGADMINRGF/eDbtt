@@ -46,7 +46,16 @@ export async function POST(
   }
 
   const userId = req.cookies.get("u_id")?.value ?? null;
-  if (item.publicAttribution === "public" && !userId) {
+  const verified = req.cookies.get("u_verified")?.value === "1";
+  const requireVerified = (session as any)?.requireVerifiedParticipants !== false;
+  if (requireVerified) {
+    if (!userId) {
+      return NextResponse.json({ ok: false, error: "login_required" }, { status: 401 });
+    }
+    if (!verified) {
+      return NextResponse.json({ ok: false, error: "verification_required" }, { status: 403 });
+    }
+  } else if (item.publicAttribution === "public" && !userId) {
     return NextResponse.json({ ok: false, error: "login_required" }, { status: 401 });
   }
 

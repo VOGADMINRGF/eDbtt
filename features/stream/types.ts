@@ -48,6 +48,11 @@ export interface StreamSessionDoc {
   deliberation?: StreamDeliberationState | null;
   liveBoard?: StreamLiveBoardState | null;
   followUp?: StreamFollowUpState | null;
+  supportEnabled?: boolean | null;
+  supportBlind?: boolean | null;
+  recordingAllowed?: boolean | null;
+  requireVerifiedParticipants?: boolean | null;
+  hideViewerCount?: boolean | null;
   createdAt: Date;
   updatedAt: Date;
   startedAt?: Date | null;

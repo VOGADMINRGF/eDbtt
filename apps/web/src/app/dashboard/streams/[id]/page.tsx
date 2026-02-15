@@ -72,6 +72,14 @@ type CallInItem = {
   status: "invited" | "ready" | "live" | "removed";
 };
 
+type StreamSettings = {
+  supportEnabled: boolean;
+  supportBlind: boolean;
+  recordingAllowed: boolean;
+  requireVerifiedParticipants: boolean;
+  hideViewerCount: boolean;
+};
+
 const DELIBERATION_PHASES = [
   { key: "mandate", label: "Mandat" },
   { key: "input", label: "Input" },
@@ -136,6 +144,16 @@ export default function StreamCockpitPage() {
   const [callInHandle, setCallInHandle] = useState("");
   const [callInChannel, setCallInChannel] = useState("");
   const [callInNotes, setCallInNotes] = useState("");
+  const [streamSettings, setStreamSettings] = useState<StreamSettings>({
+    supportEnabled: false,
+    supportBlind: false,
+    recordingAllowed: false,
+    requireVerifiedParticipants: true,
+    hideViewerCount: true,
+  });
+  const [settingsLoading, setSettingsLoading] = useState(true);
+  const [settingsError, setSettingsError] = useState<string | null>(null);
+  const [settingsNotice, setSettingsNotice] = useState<string | null>(null);
   const [roundMinutes, setRoundMinutes] = useState("5");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -238,6 +256,28 @@ export default function StreamCockpitPage() {
     }
   }
 
+  async function fetchSettings(sessionId: string) {
+    setSettingsError(null);
+    try {
+      const res = await fetch(`/api/streams/sessions/${sessionId}/settings`, { cache: "no-store" });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(body?.error || res.statusText);
+      if (body?.settings) {
+        setStreamSettings({
+          supportEnabled: Boolean(body.settings.supportEnabled),
+          supportBlind: Boolean(body.settings.supportBlind),
+          recordingAllowed: Boolean(body.settings.recordingAllowed),
+          requireVerifiedParticipants: body.settings.requireVerifiedParticipants !== false,
+          hideViewerCount: body.settings.hideViewerCount !== false,
+        });
+      }
+    } catch (err: any) {
+      setSettingsError(err?.message ?? "Stream-Einstellungen konnten nicht geladen werden.");
+    } finally {
+      setSettingsLoading(false);
+    }
+  }
+
   useEffect(() => {
     let ignore = false;
     async function load() {
@@ -246,6 +286,7 @@ export default function StreamCockpitPage() {
       setBoardLoading(true);
       setFollowUpLoading(true);
       setCallInsLoading(true);
+      setSettingsLoading(true);
       try {
         const res = await fetch(`/api/streams/sessions/${params.id}/agenda`, { cache: "no-store" });
         const body = await res.json().catch(() => ({}));
@@ -278,6 +319,7 @@ export default function StreamCockpitPage() {
           await fetchLiveBoard(params.id);
           await fetchFollowUp(params.id);
           await fetchCallIns(params.id);
+          await fetchSettings(params.id);
         }
       } catch (err: any) {
         if (!ignore) setError(err?.message ?? "Fehler beim Laden der Agenda");
@@ -542,6 +584,24 @@ export default function StreamCockpitPage() {
     }
   }
 
+  async function updateStreamSettings(patch: Partial<StreamSettings>) {
+    setSettingsError(null);
+    setSettingsNotice(null);
+    try {
+      const res = await fetch(`/api/streams/sessions/${params.id}/settings`, {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(patch),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(body?.error || "Einstellungen konnten nicht gespeichert werden.");
+      setStreamSettings((prev) => ({ ...prev, ...patch }));
+      setSettingsNotice("Stream-Einstellungen gespeichert.");
+    } catch (err: any) {
+      setSettingsError(err?.message ?? "Einstellungen konnten nicht gespeichert werden.");
+    }
+  }
+
   async function addQuestion(kind: "question" | "poll") {
     const payload: any = {
       kind,
@@ -797,6 +857,93 @@ export default function StreamCockpitPage() {
               Kopieren
             </button>
           </div>
+        </div>
+      </section>
+
+      <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm space-y-3">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="text-sm font-semibold text-slate-900">Stream-Einstellungen</h2>
+            <p className="text-xs text-slate-500">
+              Support, Verifizierung, Mitschnitt und Sichtbarkeit steuern.
+            </p>
+          </div>
+          {settingsLoading && <span className="text-xs text-slate-400">lädt…</span>}
+        </div>
+        {settingsError && <p className="text-xs text-rose-600">{settingsError}</p>}
+        {settingsNotice && <p className="text-xs text-emerald-600">{settingsNotice}</p>}
+
+        <div className="grid gap-3 md:grid-cols-2">
+          <button
+            className={`rounded-xl border px-3 py-3 text-left text-sm ${
+              streamSettings.supportEnabled
+                ? "border-emerald-300 bg-emerald-50 text-emerald-800"
+                : "border-slate-200 bg-white text-slate-700"
+            }`}
+            onClick={() => updateStreamSettings({ supportEnabled: !streamSettings.supportEnabled })}
+          >
+            <p className="font-semibold">Support aktivieren</p>
+            <p className="text-xs text-slate-500">
+              Unterstuetzen-CTA kann zugeschaltet werden (optional blind).
+            </p>
+          </button>
+          <button
+            className={`rounded-xl border px-3 py-3 text-left text-sm ${
+              streamSettings.supportBlind
+                ? "border-amber-300 bg-amber-50 text-amber-800"
+                : "border-slate-200 bg-white text-slate-700"
+            }`}
+            onClick={() => updateStreamSettings({ supportBlind: !streamSettings.supportBlind })}
+            disabled={!streamSettings.supportEnabled}
+          >
+            <p className="font-semibold">Support blind schalten</p>
+            <p className="text-xs text-slate-500">
+              Support laeuft im Hintergrund, ohne oeffentliche Anzeige.
+            </p>
+          </button>
+          <button
+            className={`rounded-xl border px-3 py-3 text-left text-sm ${
+              streamSettings.recordingAllowed
+                ? "border-slate-900 bg-slate-900 text-white"
+                : "border-slate-200 bg-white text-slate-700"
+            }`}
+            onClick={() => updateStreamSettings({ recordingAllowed: !streamSettings.recordingAllowed })}
+          >
+            <p className="font-semibold">Mitschnitt erlaubt</p>
+            <p className="text-xs text-slate-500">
+              Erlaubt Aufzeichnung und Nachbereitung (rechtliche Hinweise beachten).
+            </p>
+          </button>
+          <button
+            className={`rounded-xl border px-3 py-3 text-left text-sm ${
+              streamSettings.requireVerifiedParticipants
+                ? "border-rose-300 bg-rose-50 text-rose-800"
+                : "border-slate-200 bg-white text-slate-700"
+            }`}
+            onClick={() =>
+              updateStreamSettings({
+                requireVerifiedParticipants: !streamSettings.requireVerifiedParticipants,
+              })
+            }
+          >
+            <p className="font-semibold">Teilnahme nur verifiziert</p>
+            <p className="text-xs text-slate-500">
+              Abstimmungen/Interaktion nur nach Verifizierung.
+            </p>
+          </button>
+          <button
+            className={`rounded-xl border px-3 py-3 text-left text-sm ${
+              streamSettings.hideViewerCount
+                ? "border-slate-300 bg-slate-50 text-slate-800"
+                : "border-slate-200 bg-white text-slate-700"
+            }`}
+            onClick={() => updateStreamSettings({ hideViewerCount: !streamSettings.hideViewerCount })}
+          >
+            <p className="font-semibold">Zuschauerzahl verstecken</p>
+            <p className="text-xs text-slate-500">
+              Sichtbar nur fuer Creator/Admin/Mods.
+            </p>
+          </button>
         </div>
       </section>
 

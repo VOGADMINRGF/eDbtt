@@ -48,6 +48,10 @@ export default async function StreamDetail({
   const playerUrl = (session as any)?.playerUrl ?? null;
   const liveBoard = (session as any)?.liveBoard ?? null;
   const followUp = (session as any)?.followUp ?? null;
+  const recordingAllowed = Boolean((session as any)?.recordingAllowed);
+  const requireVerifiedParticipants = (session as any)?.requireVerifiedParticipants !== false;
+  const supportEnabled = Boolean((session as any)?.supportEnabled);
+  const supportBlind = Boolean((session as any)?.supportBlind);
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-[var(--brand-from)] via-white to-white pb-16">
@@ -82,6 +86,16 @@ export default async function StreamDetail({
             <span className="rounded-full border border-slate-200 bg-white px-3 py-1">
               Status: {status}
             </span>
+            {requireVerifiedParticipants && (
+              <span className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-amber-800">
+                Verifizierung erforderlich
+              </span>
+            )}
+            {recordingAllowed && (
+              <span className="rounded-full border border-slate-200 bg-white px-3 py-1">
+                Mitschnitt erlaubt
+              </span>
+            )}
           </div>
         </div>
 
@@ -126,6 +140,25 @@ export default async function StreamDetail({
 
         {session.description && (
           <p className="text-base text-slate-700 md:text-lg">{session.description}</p>
+        )}
+
+        {supportEnabled && !supportBlind && (
+          <section className="rounded-3xl border border-slate-100 bg-white p-6 shadow-sm space-y-3">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Support</p>
+              <h2 className="text-xl font-bold text-slate-900">Unterstützen</h2>
+              <p className="text-sm text-slate-600">
+                Unterstütze die Moderation und Nachbereitung dieses Streams. Keine Stimme,
+                keine Priorität – nur Transparenz.
+              </p>
+            </div>
+            <Link
+              href="/unterstuetzen"
+              className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700 hover:border-slate-300"
+            >
+              Unterstützen
+            </Link>
+          </section>
         )}
 
         {liveBoard?.options?.length ? (

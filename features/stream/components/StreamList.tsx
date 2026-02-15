@@ -98,6 +98,7 @@ export type V2Props = {
   disableInfiniteScroll?: boolean;
   defaultFilterTag?: string;
   defaultFilterKind?: string;
+  showViews?: boolean;
 };
 
 /** v1-Props (Kompatibilität) */
@@ -217,6 +218,7 @@ export default function StreamListV3({
   disableInfiniteScroll = false,
   defaultFilterTag,
   defaultFilterKind,
+  showViews = false,
 
   /* v1 */
   user,
@@ -247,6 +249,7 @@ export default function StreamListV3({
   const [activeTag, setActiveTag] = useState<string | undefined>(defaultFilterTag || undefined);
   const [activeKind, setActiveKind] = useState<string | undefined>(defaultFilterKind || undefined);
   const [domainFilter, setDomainFilter] = useState<DomainFilter>("all");
+  const showViewerStats = showViews || Boolean(admin || presseView || politikView || ngoView);
 
   const sentinelRef = useRef<HTMLDivElement | null>(null);
   const abortRef = useRef<AbortController | null>(null);
@@ -606,7 +609,7 @@ export default function StreamListV3({
           const node = renderItem ? (
             renderItem(item)
           ) : (
-            <DefaultStreamCard item={item} onClick={onItemClick} />
+            <DefaultStreamCard item={item} onClick={onItemClick} showViews={showViewerStats} />
           );
 
           return (
@@ -705,9 +708,11 @@ function FilterPill({
 function DefaultStreamCard({
   item,
   onClick,
+  showViews,
 }: {
   item: StreamItem;
   onClick?: (i: StreamItem) => void;
+  showViews: boolean;
 }) {
   const dateLabel = useMemo(() => fmtDate(item.createdAt), [item.createdAt]);
   const Wrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -782,7 +787,7 @@ function DefaultStreamCard({
           </CardContent>
         )}
 
-        {(item.stats?.likes || item.stats?.comments || item.stats?.views) && (
+        {(item.stats?.likes || item.stats?.comments || (showViews && item.stats?.views)) && (
           <CardFooter className="flex items-center gap-4 text-xs text-muted-foreground">
             <span className="inline-flex items-center gap-1">
               <ThumbsUp className="h-3.5 w-3.5" />
@@ -792,10 +797,12 @@ function DefaultStreamCard({
               <MessageSquare className="h-3.5 w-3.5" />
               {nfmt(item.stats?.comments)}
             </span>
-            <span className="inline-flex items-center gap-1">
-              <Eye className="h-3.5 w-3.5" />
-              {nfmt(item.stats?.views)}
-            </span>
+            {showViews && (
+              <span className="inline-flex items-center gap-1">
+                <Eye className="h-3.5 w-3.5" />
+                {nfmt(item.stats?.views)}
+              </span>
+            )}
           </CardFooter>
         )}
       </Card>
