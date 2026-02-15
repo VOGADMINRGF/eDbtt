@@ -7,6 +7,12 @@ export type StreamSessionStatus = "draft" | "scheduled" | "live" | "ended" | "ca
 export type StreamAttributionMode = "hidden" | "creator_only" | "public";
 export type StreamModerationItemKind = "claim" | "source" | "question" | "option" | "impact";
 export type StreamModerationItemStatus = "queued" | "approved" | "rejected";
+export type StreamFollowUpStatus =
+  | "submitted"
+  | "in_review"
+  | "accepted"
+  | "partial"
+  | "rejected";
 export type StreamDeliberationPhase =
   | "mandate"
   | "input"
@@ -40,6 +46,7 @@ export interface StreamSessionDoc {
   isLive: boolean;
   deliberation?: StreamDeliberationState | null;
   liveBoard?: StreamLiveBoardState | null;
+  followUp?: StreamFollowUpState | null;
   createdAt: Date;
   updatedAt: Date;
   startedAt?: Date | null;
@@ -99,6 +106,21 @@ export interface StreamLiveBoardState {
   title: string;
   summary?: string | null;
   options: StreamLiveBoardOption[];
+  updatedAt?: Date | null;
+  updatedBy?: string | null;
+}
+
+export interface StreamFollowUpUpdate {
+  id: string;
+  status: StreamFollowUpStatus;
+  note: string;
+  link?: string | null;
+  createdAt: Date;
+}
+
+export interface StreamFollowUpState {
+  updates: StreamFollowUpUpdate[];
+  nextReminderAt?: Date | null;
   updatedAt?: Date | null;
   updatedBy?: string | null;
 }

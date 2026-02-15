@@ -49,6 +49,20 @@ type LiveBoardState = {
   updatedAt?: string | null;
 };
 
+type FollowUpUpdate = {
+  id: string;
+  status: "submitted" | "in_review" | "accepted" | "partial" | "rejected";
+  note: string;
+  link?: string | null;
+  createdAt?: string | null;
+};
+
+type FollowUpState = {
+  updates: FollowUpUpdate[];
+  nextReminderAt?: string | null;
+  updatedAt?: string | null;
+};
+
 const DELIBERATION_PHASES = [
   { key: "mandate", label: "Mandat" },
   { key: "input", label: "Input" },
@@ -98,6 +112,13 @@ export default function StreamCockpitPage() {
   const [boardLoading, setBoardLoading] = useState(true);
   const [boardError, setBoardError] = useState<string | null>(null);
   const [boardNotice, setBoardNotice] = useState<string | null>(null);
+  const [followUp, setFollowUp] = useState<FollowUpState>({ updates: [], nextReminderAt: null });
+  const [followUpLoading, setFollowUpLoading] = useState(true);
+  const [followUpError, setFollowUpError] = useState<string | null>(null);
+  const [followUpNotice, setFollowUpNotice] = useState<string | null>(null);
+  const [followUpStatus, setFollowUpStatus] = useState<FollowUpUpdate["status"]>("submitted");
+  const [followUpNote, setFollowUpNote] = useState("");
+  const [followUpLink, setFollowUpLink] = useState("");
   const [roundMinutes, setRoundMinutes] = useState("5");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -160,12 +181,37 @@ export default function StreamCockpitPage() {
     }
   }
 
+  async function fetchFollowUp(sessionId: string) {
+    setFollowUpError(null);
+    try {
+      const res = await fetch(`/api/streams/sessions/${sessionId}/follow-up`, {
+        cache: "no-store",
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(body?.error || res.statusText);
+      if (body?.state) {
+        setFollowUp({
+          updates: Array.isArray(body.state.updates) ? body.state.updates : [],
+          nextReminderAt: body.state.nextReminderAt ?? null,
+          updatedAt: body.state.updatedAt ?? null,
+        });
+      } else {
+        setFollowUp((prev) => ({ ...prev }));
+      }
+    } catch (err: any) {
+      setFollowUpError(err?.message ?? "Follow-up konnte nicht geladen werden.");
+    } finally {
+      setFollowUpLoading(false);
+    }
+  }
+
   useEffect(() => {
     let ignore = false;
     async function load() {
       setLoading(true);
       setQueueLoading(true);
       setBoardLoading(true);
+      setFollowUpLoading(true);
       try {
         const res = await fetch(`/api/streams/sessions/${params.id}/agenda`, { cache: "no-store" });
         const body = await res.json().catch(() => ({}));
@@ -196,6 +242,7 @@ export default function StreamCockpitPage() {
         if (!ignore) {
           await fetchQueue(params.id);
           await fetchLiveBoard(params.id);
+          await fetchFollowUp(params.id);
         }
       } catch (err: any) {
         if (!ignore) setError(err?.message ?? "Fehler beim Laden der Agenda");
@@ -352,6 +399,62 @@ export default function StreamCockpitPage() {
     } catch (err: any) {
       setBoardError(err?.message ?? "Live-Dossier konnte nicht gespeichert werden.");
     }
+  }
+
+  async function saveFollowUpState(next: FollowUpState) {
+    setFollowUpError(null);
+    setFollowUpNotice(null);
+    try {
+      const res = await fetch(`/api/streams/sessions/${params.id}/follow-up`, {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ state: next }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(body?.error || "Follow-up konnte nicht gespeichert werden.");
+      if (body?.state) {
+        setFollowUp({
+          updates: Array.isArray(body.state.updates) ? body.state.updates : next.updates,
+          nextReminderAt: body.state.nextReminderAt ?? next.nextReminderAt ?? null,
+          updatedAt: body.state.updatedAt ?? null,
+        });
+      } else {
+        setFollowUp(next);
+      }
+      setFollowUpNotice("Follow-up aktualisiert.");
+    } catch (err: any) {
+      setFollowUpError(err?.message ?? "Follow-up konnte nicht gespeichert werden.");
+    }
+  }
+
+  async function addFollowUpUpdate() {
+    const note = followUpNote.trim();
+    if (!note) {
+      setFollowUpError("Bitte einen Status-Text angeben.");
+      return;
+    }
+    const nowIso = new Date().toISOString();
+    const next: FollowUpState = {
+      ...followUp,
+      updates: [
+        {
+          id: typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `fu_${Date.now()}`,
+          status: followUpStatus,
+          note,
+          link: followUpLink.trim() || null,
+          createdAt: nowIso,
+        },
+        ...followUp.updates,
+      ].slice(0, 50),
+    };
+    await saveFollowUpState(next);
+    setFollowUpNote("");
+    setFollowUpLink("");
+  }
+
+  async function setFollowUpReminder(days: number) {
+    const nextDate = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString();
+    await saveFollowUpState({ ...followUp, nextReminderAt: nextDate });
   }
 
   async function addQuestion(kind: "question" | "poll") {
@@ -967,6 +1070,132 @@ export default function StreamCockpitPage() {
                   </div>
                 </div>
               ))
+            )}
+          </div>
+        </div>
+      </section>
+
+      <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="text-sm font-semibold text-slate-900">Follow-up Tracker</h2>
+            <p className="text-xs text-slate-500">
+              Status-Updates nach der Abstimmung (eingereicht → Prüfung → angenommen/teilweise/abgelehnt).
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2 text-xs">
+            {followUpLoading && <span className="text-slate-400">lädt…</span>}
+            {followUp.updatedAt && (
+              <span className="text-slate-500">
+                Stand:{" "}
+                {new Date(followUp.updatedAt).toLocaleString("de-DE", {
+                  dateStyle: "short",
+                  timeStyle: "short",
+                })}
+              </span>
+            )}
+          </div>
+        </div>
+
+        {followUpError && <p className="text-xs text-rose-600">{followUpError}</p>}
+        {followUpNotice && <p className="text-xs text-emerald-600">{followUpNotice}</p>}
+
+        <div className="grid gap-4 lg:grid-cols-3">
+          <div className="space-y-3 rounded-xl border border-slate-100 p-3">
+            <label className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Status</label>
+            <select
+              className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs"
+              value={followUpStatus}
+              onChange={(e) => setFollowUpStatus(e.target.value as FollowUpUpdate["status"])}
+            >
+              <option value="submitted">Eingereicht</option>
+              <option value="in_review">In Prüfung</option>
+              <option value="accepted">Angenommen</option>
+              <option value="partial">Teilweise</option>
+              <option value="rejected">Abgelehnt</option>
+            </select>
+            <label className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Update-Text</label>
+            <textarea
+              className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs"
+              rows={4}
+              value={followUpNote}
+              onChange={(e) => setFollowUpNote(e.target.value)}
+              placeholder="Was ist seit dem letzten Stand passiert?"
+            />
+            <label className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Link (optional)</label>
+            <input
+              className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs"
+              placeholder="https://..."
+              value={followUpLink}
+              onChange={(e) => setFollowUpLink(e.target.value)}
+            />
+            <button
+              className="w-full rounded-full border border-slate-900 bg-slate-900 px-3 py-2 text-xs font-semibold text-white"
+              onClick={addFollowUpUpdate}
+            >
+              Update hinzufügen
+            </button>
+            <div className="pt-2 text-xs text-slate-500">
+              Erinnerung:
+              <div className="mt-2 flex flex-wrap gap-2">
+                {[7, 30, 90].map((days) => (
+                  <button
+                    key={days}
+                    className="rounded-full border border-slate-300 px-3 py-1"
+                    onClick={() => setFollowUpReminder(days)}
+                  >
+                    +{days} Tage
+                  </button>
+                ))}
+              </div>
+              {followUp.nextReminderAt && (
+                <p className="mt-2 text-slate-600">
+                  Nächste Erinnerung:{" "}
+                  {new Date(followUp.nextReminderAt).toLocaleDateString("de-DE", {
+                    dateStyle: "medium",
+                  })}
+                </p>
+              )}
+            </div>
+          </div>
+
+          <div className="lg:col-span-2 space-y-3">
+            {followUp.updates.length === 0 ? (
+              <p className="text-sm text-slate-500">Noch keine Follow-up Updates.</p>
+            ) : (
+              <ul className="space-y-2">
+                {followUp.updates.map((update) => (
+                  <li key={update.id} className="rounded-xl border border-slate-100 p-3">
+                    <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
+                      <span className="rounded-full bg-slate-100 px-2 py-0.5 font-semibold text-slate-700">
+                        {update.status === "submitted"
+                          ? "Eingereicht"
+                          : update.status === "in_review"
+                            ? "In Prüfung"
+                            : update.status === "accepted"
+                              ? "Angenommen"
+                              : update.status === "partial"
+                                ? "Teilweise"
+                                : "Abgelehnt"}
+                      </span>
+                      {update.createdAt && (
+                        <span className="text-slate-500">
+                          {new Date(update.createdAt).toLocaleString("de-DE", {
+                            dateStyle: "short",
+                            timeStyle: "short",
+                          })}
+                        </span>
+                      )}
+                    </div>
+                    <p className="mt-2 text-sm text-slate-800">{update.note}</p>
+                    {update.link && (
+                      <a className="mt-2 block text-xs text-sky-700 underline" href={update.link} target="_blank" rel="noreferrer">
+                        {update.link}
+                      </a>
+                    )}
+                  </li>
+                ))}
+              </ul>
             )}
           </div>
         </div>

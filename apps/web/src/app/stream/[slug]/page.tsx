@@ -47,6 +47,7 @@ export default async function StreamDetail({
   const startsAt = session.startsAt ? new Date(session.startsAt) : null;
   const playerUrl = (session as any)?.playerUrl ?? null;
   const liveBoard = (session as any)?.liveBoard ?? null;
+  const followUp = (session as any)?.followUp ?? null;
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-[var(--brand-from)] via-white to-white pb-16">
@@ -189,6 +190,54 @@ export default async function StreamDetail({
                       </div>
                     )}
                   </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        ) : null}
+
+        {followUp?.updates?.length ? (
+          <section className="rounded-3xl border border-slate-100 bg-white p-6 shadow-sm space-y-4">
+            <div className="space-y-2">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Follow-up</p>
+              <h2 className="text-2xl font-bold text-slate-900">Status & Wirkung</h2>
+              {followUp.nextReminderAt && (
+                <p className="text-xs text-slate-500">
+                  Nächste Erinnerung:{" "}
+                  {new Date(followUp.nextReminderAt).toLocaleDateString("de-DE", { dateStyle: "medium" })}
+                </p>
+              )}
+            </div>
+            <div className="space-y-3">
+              {followUp.updates.map((update: any, idx: number) => (
+                <div key={update.id ?? idx} className="rounded-2xl border border-slate-100 p-4">
+                  <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
+                    <span className="rounded-full bg-slate-100 px-2 py-0.5 font-semibold text-slate-700">
+                      {update.status === "submitted"
+                        ? "Eingereicht"
+                        : update.status === "in_review"
+                          ? "In Prüfung"
+                          : update.status === "accepted"
+                            ? "Angenommen"
+                            : update.status === "partial"
+                              ? "Teilweise"
+                              : "Abgelehnt"}
+                    </span>
+                    {update.createdAt && (
+                      <span className="text-slate-500">
+                        {new Date(update.createdAt).toLocaleString("de-DE", {
+                          dateStyle: "short",
+                          timeStyle: "short",
+                        })}
+                      </span>
+                    )}
+                  </div>
+                  <p className="mt-2 text-sm text-slate-700">{update.note}</p>
+                  {update.link && (
+                    <a className="mt-2 block text-xs text-sky-700 underline" href={update.link} target="_blank" rel="noreferrer">
+                      {update.link}
+                    </a>
+                  )}
                 </div>
               ))}
             </div>

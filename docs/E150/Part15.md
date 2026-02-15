@@ -219,6 +219,25 @@ Verification:
 Next Steps:
 - Follow-up-Tracker + Kleingruppen/Call-ins.
 
+### PR-0036 (2026-02-15) – Follow-up Tracker (MVP)
+
+Ziel:
+- Status-Updates nach Stream-Abstimmung erfassen und öffentlich anzeigen.
+
+Changes:
+- `followUp` State in Stream-Session-Model ergänzt.
+- API: `/api/streams/sessions/[id]/follow-up` (GET/PATCH).
+- Cockpit-UI: Follow-up Editor + Reminder (7/30/90 Tage).
+- Public-UI: Follow-up Timeline auf `/stream/[slug]`.
+
+Verification:
+- `pnpm lint` (PASS)
+- `pnpm -C apps/web build` (PASS)
+- `./scripts/verify.sh` (PASS)
+
+Next Steps:
+- Kleingruppen/Call-ins MVP.
+
 ### PR-0017 (2026-02-11) – Block E Research R2
 
 Ziel:
