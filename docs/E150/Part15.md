@@ -182,6 +182,24 @@ Verification:
 Next Steps:
 - Optional: PDF/1‑Pager-Varianten ergänzen, Grafik-Slots mit realen Diagrammen füllen.
 
+### PR-0034 (2026-02-15) – Stream Moderations-Queue (MVP)
+
+Ziel:
+- Moderations-Queue im Stream-Cockpit bereitstellen (Bausteine sammeln, taggen, freigeben).
+
+Changes:
+- `stream_moderation_queue` Collection + Indexes.
+- API: `/api/streams/sessions/[id]/moderation-queue` (GET/POST/PATCH).
+- Stream-Cockpit: Moderations-Queue UI mit Status, Filtern, Freigabe/Ablehnung.
+
+Verification:
+- `pnpm lint` (PASS)
+- `pnpm -C apps/web build` (PASS)
+- `./scripts/verify.sh` (PASS)
+
+Next Steps:
+- Live-Dossier-Board + Follow-up-Tracker anbinden.
+
 ### PR-0017 (2026-02-11) – Block E Research R2
 
 Ziel:

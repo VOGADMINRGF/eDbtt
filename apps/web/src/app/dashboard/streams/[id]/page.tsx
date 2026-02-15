@@ -23,6 +23,16 @@ type DeliberationState = {
   updatedAt?: string | null;
 };
 
+type ModerationQueueItem = {
+  _id: string;
+  kind: "claim" | "source" | "question" | "option" | "impact";
+  text: string;
+  sourceUrl?: string | null;
+  notes?: string | null;
+  status: "queued" | "approved" | "rejected";
+  createdAt?: string | null;
+};
+
 const DELIBERATION_PHASES = [
   { key: "mandate", label: "Mandat" },
   { key: "input", label: "Input" },
@@ -33,6 +43,14 @@ const DELIBERATION_PHASES = [
   { key: "vote", label: "Abstimmung" },
   { key: "follow_up", label: "Follow-up" },
 ] as const;
+
+const QUEUE_KIND_LABELS: Record<ModerationQueueItem["kind"], string> = {
+  claim: "Behauptung",
+  source: "Quelle",
+  question: "Frage",
+  option: "Option",
+  impact: "Auswirkung",
+};
 
 export default function StreamCockpitPage() {
   const params = useParams<{ id: string }>();
@@ -47,6 +65,15 @@ export default function StreamCockpitPage() {
   const [deliberation, setDeliberation] = useState<DeliberationState | null>(null);
   const [delibNotice, setDelibNotice] = useState<string | null>(null);
   const [delibError, setDelibError] = useState<string | null>(null);
+  const [queueItems, setQueueItems] = useState<ModerationQueueItem[]>([]);
+  const [queueLoading, setQueueLoading] = useState(true);
+  const [queueError, setQueueError] = useState<string | null>(null);
+  const [queueNotice, setQueueNotice] = useState<string | null>(null);
+  const [queueFilter, setQueueFilter] = useState<"all" | "queued" | "approved" | "rejected">("all");
+  const [queueDraftKind, setQueueDraftKind] = useState<ModerationQueueItem["kind"]>("claim");
+  const [queueDraftText, setQueueDraftText] = useState("");
+  const [queueDraftSource, setQueueDraftSource] = useState("");
+  const [queueDraftNotes, setQueueDraftNotes] = useState("");
   const [roundMinutes, setRoundMinutes] = useState("5");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -68,10 +95,27 @@ export default function StreamCockpitPage() {
     setOrigin(window.location.origin);
   }, []);
 
+  async function fetchQueue(sessionId: string) {
+    setQueueError(null);
+    try {
+      const res = await fetch(`/api/streams/sessions/${sessionId}/moderation-queue`, {
+        cache: "no-store",
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(body?.error || res.statusText);
+      setQueueItems(body?.items ?? []);
+    } catch (err: any) {
+      setQueueError(err?.message ?? "Moderations-Queue konnte nicht geladen werden.");
+    } finally {
+      setQueueLoading(false);
+    }
+  }
+
   useEffect(() => {
     let ignore = false;
     async function load() {
       setLoading(true);
+      setQueueLoading(true);
       try {
         const res = await fetch(`/api/streams/sessions/${params.id}/agenda`, { cache: "no-store" });
         const body = await res.json().catch(() => ({}));
@@ -99,6 +143,9 @@ export default function StreamCockpitPage() {
             setDeliberation(delibBody.state);
           }
         }
+        if (!ignore) {
+          await fetchQueue(params.id);
+        }
       } catch (err: any) {
         if (!ignore) setError(err?.message ?? "Fehler beim Laden der Agenda");
       } finally {
@@ -119,6 +166,18 @@ export default function StreamCockpitPage() {
     if (slug) return `/stream/${slug}`;
     return `/stream/${params.id}`;
   }, [params.id, session?.slug]);
+  const queueCounts = useMemo(() => {
+    return {
+      all: queueItems.length,
+      queued: queueItems.filter((item) => item.status === "queued").length,
+      approved: queueItems.filter((item) => item.status === "approved").length,
+      rejected: queueItems.filter((item) => item.status === "rejected").length,
+    };
+  }, [queueItems]);
+  const visibleQueueItems = useMemo(() => {
+    if (queueFilter === "all") return queueItems;
+    return queueItems.filter((item) => item.status === queueFilter);
+  }, [queueItems, queueFilter]);
   const overlayPath = useMemo(() => `/overlay/stream/${params.id}`, [params.id]);
   const activeQrTarget =
     liveItem?.qrTarget?.trim() ||
@@ -128,6 +187,55 @@ export default function StreamCockpitPage() {
   const roundEndsLabel = deliberation?.roundEndsAt
     ? new Date(deliberation.roundEndsAt).toLocaleTimeString("de-DE")
     : "—";
+
+  async function addQueueItem() {
+    setQueueError(null);
+    setQueueNotice(null);
+    const payload = {
+      kind: queueDraftKind,
+      text: queueDraftText.trim(),
+      sourceUrl: queueDraftSource.trim() || null,
+      notes: queueDraftNotes.trim() || null,
+    };
+    if (!payload.text) {
+      setQueueError("Bitte einen Inhalt für die Queue angeben.");
+      return;
+    }
+    try {
+      const res = await fetch(`/api/streams/sessions/${params.id}/moderation-queue`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(body?.error || "Queue-Item konnte nicht erstellt werden.");
+      setQueueDraftText("");
+      setQueueDraftSource("");
+      setQueueDraftNotes("");
+      setQueueNotice("Queue-Item erstellt.");
+      await fetchQueue(params.id);
+    } catch (err: any) {
+      setQueueError(err?.message ?? "Queue-Item konnte nicht erstellt werden.");
+    }
+  }
+
+  async function updateQueueStatus(itemId: string, status: "queued" | "approved" | "rejected") {
+    setQueueError(null);
+    setQueueNotice(null);
+    try {
+      const res = await fetch(`/api/streams/sessions/${params.id}/moderation-queue`, {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ itemId, status }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(body?.error || "Status konnte nicht gesetzt werden.");
+      setQueueNotice("Queue-Status aktualisiert.");
+      await fetchQueue(params.id);
+    } catch (err: any) {
+      setQueueError(err?.message ?? "Queue-Status konnte nicht gesetzt werden.");
+    }
+  }
 
   async function addQuestion(kind: "question" | "poll") {
     const payload: any = {
@@ -476,6 +584,147 @@ export default function StreamCockpitPage() {
                 Stop
               </button>
             </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="text-sm font-semibold text-slate-900">Moderations-Queue</h2>
+            <p className="text-xs text-slate-500">
+              Eingehende Bausteine sammeln, taggen und freigeben.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2 text-xs">
+            {(["all", "queued", "approved", "rejected"] as const).map((key) => (
+              <button
+                key={key}
+                className={`rounded-full border px-3 py-1 font-semibold ${
+                  queueFilter === key ? "border-slate-900 bg-slate-900 text-white" : "border-slate-300 text-slate-600"
+                }`}
+                onClick={() => setQueueFilter(key)}
+              >
+                {key === "all" ? "Alle" : key === "queued" ? "Offen" : key === "approved" ? "Freigegeben" : "Abgelehnt"}{" "}
+                ({queueCounts[key]})
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {queueError && <p className="text-xs text-rose-600">{queueError}</p>}
+        {queueNotice && <p className="text-xs text-emerald-600">{queueNotice}</p>}
+
+        <div className="grid gap-4 lg:grid-cols-3">
+          <div className="lg:col-span-2 space-y-3">
+            {queueLoading ? (
+              <p className="text-sm text-slate-500">Queue wird geladen…</p>
+            ) : visibleQueueItems.length === 0 ? (
+              <p className="text-sm text-slate-500">Keine Einträge in dieser Ansicht.</p>
+            ) : (
+              <ul className="space-y-2">
+                {visibleQueueItems.map((item) => (
+                  <li key={item._id} className="rounded-xl border border-slate-100 p-3">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div className="flex flex-wrap items-center gap-2 text-xs">
+                        <span className="rounded-full bg-slate-100 px-2 py-0.5 font-semibold text-slate-700">
+                          {QUEUE_KIND_LABELS[item.kind]}
+                        </span>
+                        <span
+                          className={`rounded-full px-2 py-0.5 font-semibold ${
+                            item.status === "approved"
+                              ? "bg-emerald-100 text-emerald-700"
+                              : item.status === "rejected"
+                                ? "bg-rose-100 text-rose-700"
+                                : "bg-amber-100 text-amber-700"
+                          }`}
+                        >
+                          {item.status === "approved" ? "Freigegeben" : item.status === "rejected" ? "Abgelehnt" : "Offen"}
+                        </span>
+                      </div>
+                      <div className="flex flex-wrap gap-2 text-xs">
+                        {item.status !== "approved" && (
+                          <button
+                            className="rounded-full border border-emerald-300 px-3 py-1 text-emerald-700"
+                            onClick={() => updateQueueStatus(item._id, "approved")}
+                          >
+                            Freigeben
+                          </button>
+                        )}
+                        {item.status !== "rejected" && (
+                          <button
+                            className="rounded-full border border-rose-300 px-3 py-1 text-rose-700"
+                            onClick={() => updateQueueStatus(item._id, "rejected")}
+                          >
+                            Ablehnen
+                          </button>
+                        )}
+                        {item.status !== "queued" && (
+                          <button
+                            className="rounded-full border border-slate-300 px-3 py-1 text-slate-600"
+                            onClick={() => updateQueueStatus(item._id, "queued")}
+                          >
+                            Zurücksetzen
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                    <p className="mt-2 text-sm text-slate-800">{item.text}</p>
+                    {item.sourceUrl && (
+                      <a className="mt-2 block text-xs text-sky-700 underline" href={item.sourceUrl} target="_blank" rel="noreferrer">
+                        Quelle öffnen
+                      </a>
+                    )}
+                    {item.notes && <p className="mt-2 text-xs text-slate-500">{item.notes}</p>}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+
+          <div className="space-y-3 rounded-xl border border-slate-100 p-3">
+            <h3 className="text-xs font-semibold text-slate-900">Neuer Queue-Eintrag</h3>
+            <label className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Baustein</label>
+            <select
+              className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs"
+              value={queueDraftKind}
+              onChange={(e) => setQueueDraftKind(e.target.value as ModerationQueueItem["kind"])}
+            >
+              {Object.entries(QUEUE_KIND_LABELS).map(([key, label]) => (
+                <option key={key} value={key}>
+                  {label}
+                </option>
+              ))}
+            </select>
+            <label className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Inhalt</label>
+            <textarea
+              className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs"
+              rows={4}
+              placeholder="Kurzer, klarer Bausteintext"
+              value={queueDraftText}
+              onChange={(e) => setQueueDraftText(e.target.value)}
+            />
+            <label className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Quelle (optional)</label>
+            <input
+              className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs"
+              placeholder="https://..."
+              value={queueDraftSource}
+              onChange={(e) => setQueueDraftSource(e.target.value)}
+            />
+            <label className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Notiz (optional)</label>
+            <textarea
+              className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs"
+              rows={2}
+              placeholder="Moderationsnotiz"
+              value={queueDraftNotes}
+              onChange={(e) => setQueueDraftNotes(e.target.value)}
+            />
+            <button
+              className="w-full rounded-full border border-slate-900 bg-slate-900 px-3 py-2 text-xs font-semibold text-white"
+              onClick={addQueueItem}
+            >
+              In Queue aufnehmen
+            </button>
           </div>
         </div>
       </section>

@@ -5,6 +5,8 @@ export type StreamAgendaKind = "statement" | "question" | "poll" | "info";
 export type StreamAgendaStatus = "queued" | "live" | "archived" | "skipped";
 export type StreamSessionStatus = "draft" | "scheduled" | "live" | "ended" | "cancelled";
 export type StreamAttributionMode = "hidden" | "creator_only" | "public";
+export type StreamModerationItemKind = "claim" | "source" | "question" | "option" | "impact";
+export type StreamModerationItemStatus = "queued" | "approved" | "rejected";
 export type StreamDeliberationPhase =
   | "mandate"
   | "input"
@@ -80,6 +82,19 @@ export interface StreamOverlayItem {
 export interface StreamOverlayState {
   sessionId: ObjectId;
   items: StreamOverlayItem[];
+  updatedAt: Date;
+}
+
+export interface StreamModerationQueueItemDoc {
+  _id?: ObjectId;
+  sessionId: ObjectId;
+  creatorId: string;
+  kind: StreamModerationItemKind;
+  text: string;
+  sourceUrl?: string | null;
+  notes?: string | null;
+  status: StreamModerationItemStatus;
+  createdAt: Date;
   updatedAt: Date;
 }
 
