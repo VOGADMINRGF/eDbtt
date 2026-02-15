@@ -313,8 +313,8 @@ Ist/Unerledigt:
 | Bereich | Ist | Unerledigt |
 | --- | --- | --- |
 | Leitregel | "1 Person = 1 Stimme" und Anti-Kauf-Logik klar gesetzt | Produktweit sichtbarer Crowdfunding-Hinweis je Flow fehlt |
-| Campaign-Fokus | Campaigns/QR/Reports vorhanden | Support-Slug + Support-CTA pro Campaign fehlt |
-| Betriebsmodell | Membership-Referenz/mark-paid Pattern vorhanden | Eigenes Support-Pledge-Modell und Admin-Verbuchen fehlt |
+| Campaign-Fokus | Campaigns/QR/Reports + Support-Slug/Support-CTA pro Campaign aktiv | Optional: owner-self-service Aktivierung ohne Staff-API |
+| Betriebsmodell | SupportCampaign/SupportPledge + Admin mark-paid/cancel + CSV aktiv | Optional: Guided Payment UX + Social-Proof-Filter |
 
 ---
 

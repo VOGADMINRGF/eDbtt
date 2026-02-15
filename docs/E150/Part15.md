@@ -40,7 +40,7 @@ Status basiert auf Repo-Evidenz (Dateien/Routes/Modelle). Offener Arbeitsstand b
 | PR-0012 | Media Ready Projekte (3–5 Themen, min 5 Optionen) | Projekt-Modelle + API/Pages aktiv | Implemented | Monitoring/Polish |
 | PR-0013 | Live/Chat Skeleton | `/live`, `/api/live`, `/api/chat`, `core/liveChat/*` | Implemented | Monitoring/Polish |
 | PR-0030 | Unterstuetzen/Crowdfunding | `/support/[slug]`, `/admin/support` + Support-API vorhanden | Implemented | Nur Monitoring/Polish |
-| PR-0010B | DecisionArchitecture v2.0 (Part16) – Publishing Pack + Drift-Validator | `docs/E150/Part16_Digitale_Entscheidungsarchitektur.md`, `docs/E150/PR-0010B_DriftControl_DecisionArchitecture_Publishing.md` | Planned | Publishing Pack + Validator implementieren |
+| PR-0010B | DecisionArchitecture v2.0 (Part16) – Publishing Pack + Drift-Validator | `docs/E150/Part16_Digitale_Entscheidungsarchitektur.md`, `/[locale]/referenzarchitektur`, `apps/web/public/docs/DecisionArchitecture_v2_0.docx`, `scripts/validate-decision-architecture.ts` | Implemented | Monitoring/Polish |
 
 ## Aktueller Stand (Februar 2026)
 
@@ -162,6 +162,25 @@ Ist/Unerledigt:
 | Admin-Betrieb | `/admin/support` + Detail + CSV aktiv | Optional: Bulk-Verbuchung |
 
 ## PR-Log
+
+### PR-0010B (2026-02-15) – DecisionArchitecture v2.0 Publishing Pack
+
+Ziel:
+- Referenzarchitektur veröffentlichen: Landingpage, Downloads, Drift-Validator, ohne Volltext-Doppel.
+
+Changes:
+- `apps/web/public/docs/DecisionArchitecture_v2_0.docx` hinzugefügt.
+- Landingpage `/[locale]/referenzarchitektur` inkl. Content-SSOT, TOC, FAQ, Downloads.
+- Validator `scripts/validate-decision-architecture.ts` + Wiring in `scripts/verify.sh`.
+- Navigation-Link in Header ergänzt.
+
+Verification:
+- `pnpm lint` (PASS)
+- `pnpm -C apps/web build` (PASS)
+- `./scripts/verify.sh` (PASS)
+
+Next Steps:
+- Optional: PDF/1‑Pager-Varianten ergänzen, Grafik-Slots mit realen Diagrammen füllen.
 
 ### PR-0017 (2026-02-11) – Block E Research R2
 

@@ -34,20 +34,16 @@ Diese Liste ist die kanonische Umsetzungsliste fuer alle vorhandenen Drift-Promp
 | PR-0012 | Media Ready Projekte (3–5 Themen, min 5 Optionen) | Done | Monitoring/Polish |
 | PR-0013 | Live/Chat Skeleton | Done | - |
 | PR-0030 | Unterstuetzen/Crowdfunding | Implemented | Monitoring/Polish |
-| PR-0010B | DecisionArchitecture v2.0 (Part16) – Publishing Pack + Drift-Validator | Planned | Docs/Publishing |
+| PR-0010B | DecisionArchitecture v2.0 (Part16) – Publishing Pack + Drift-Validator | Done | - |
 
 ## Aktive Aufgaben
 
 Aktive Pflicht-Tasks:
 
-1. **PR-0010B – DecisionArchitecture v2.0 (Part16) als Referenzdokument veröffentlichen**
-   - Single Source of Truth: `docs/E150/Part16_Digitale_Entscheidungsarchitektur.md`
-   - Publishing Pack (Downloads + neutrale Landingpage)
-   - Validator gegen Parallelstrukturen
-   - Steuerdatei: `docs/E150/PR-0010B_DriftControl_DecisionArchitecture_Publishing.md`
+- **Keine** (Stand: 2026-02-15). Pflicht-Backlog ist abgearbeitet.
 
 Letzter Pflicht-Task (erledigt):
-- **Pro Self-Serve**: Organisationen koennen nach 2FA ohne Kontaktaufnahme starten (`/dashboard/projects/new` + `/api/projects`).
+- **PR-0010B**: DecisionArchitecture v2.0 Publishing Pack + Drift-Validator (Landingpage, Downloads, Validator).
 
 ### 1) Nachlauf (optional)
 
@@ -63,8 +59,12 @@ Ist/Unerledigt:
 | Type Hygiene (Pages) | Kernseiten `account`, `admin`, Auth-Flow nachgezogen | Restliche `any`-Verwendungen in `page.tsx` systematisch reduzieren |
 | Admin Navigation | Hubs + Direktzugriff + Zusatzbereiche im Dashboard vorhanden | Kontextaktionen (Massenaktionen/Drilldown) gezielt erweitern |
 | Swipes End-to-End | Swipe-Feed aus `statement_proposals`, Votes in `swipe_votes`, Eventualities aus `eventuality_nodes` | Optional: Vote-Aggregationen/Analytics fuer Admin-Reports |
+| SwipeCards Context | Graph-Basis + Swipe-Flow vorhanden | Graph-Randinfo/Context-Accordion "Warum sehe ich das?" fehlt |
+| Campaign QR Polish | `/qr/[qrId]` + Session-Join aktiv | Optional: QR-Scan-Tracking, lokale Hinweise, Session-Label im Join |
+| Support UX Polish | `/support/[slug]` + Admin-Flow aktiv | Optional: Guided Payment UX, Social-Proof/Region-Filter, Bulk-Action |
 | Public Profile Polish | Public Profile Flags + ShareId vorhanden | Avatar/Cover Upload API anbinden, Impact-Ansicht fuer Buerger:innen implementieren |
-| Stream Deliberation Cockpit | Stream-Cockpit + Agenda + Overlay vorhanden | Phasensteuerung/Timer, Moderations-Queue (MVP), Live-Dossier-Board, Follow-up-Tracker |
+| Stream Deliberation Cockpit | Stream-Cockpit + Agenda + Overlay + Deliberation-Phasen/Timer vorhanden | Moderations-Queue (MVP), Live-Dossier-Board, Follow-up-Tracker, Kleingruppen/Call-ins |
+| Stream-Kit Polish | Overlay/Viewer/QR-Target aktiv | Optional: Session-Vorlagen pro Formattyp, strukturierte Queue, QR-Bildrendition |
 
 ## Arbeitsregel fuer jeden Run
 
