@@ -34,10 +34,17 @@ Diese Liste ist die kanonische Umsetzungsliste fuer alle vorhandenen Drift-Promp
 | PR-0012 | Media Ready Projekte (3–5 Themen, min 5 Optionen) | Done | Monitoring/Polish |
 | PR-0013 | Live/Chat Skeleton | Done | - |
 | PR-0030 | Unterstuetzen/Crowdfunding | Implemented | Monitoring/Polish |
+| PR-0010B | DecisionArchitecture v2.0 (Part16) – Publishing Pack + Drift-Validator | Planned | Docs/Publishing |
 
 ## Aktive Aufgaben
 
-Aktuell sind keine Pflicht-Tasks offen.
+Aktive Pflicht-Tasks:
+
+1. **PR-0010B – DecisionArchitecture v2.0 (Part16) als Referenzdokument veröffentlichen**
+   - Single Source of Truth: `docs/E150/Part16_Digitale_Entscheidungsarchitektur.md`
+   - Publishing Pack (Downloads + neutrale Landingpage)
+   - Validator gegen Parallelstrukturen
+   - Steuerdatei: `docs/E150/PR-0010B_DriftControl_DecisionArchitecture_Publishing.md`
 
 Letzter Pflicht-Task (erledigt):
 - **Pro Self-Serve**: Organisationen koennen nach 2FA ohne Kontaktaufnahme starten (`/dashboard/projects/new` + `/api/projects`).

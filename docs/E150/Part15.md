@@ -40,6 +40,7 @@ Status basiert auf Repo-Evidenz (Dateien/Routes/Modelle). Offener Arbeitsstand b
 | PR-0012 | Media Ready Projekte (3–5 Themen, min 5 Optionen) | Projekt-Modelle + API/Pages aktiv | Implemented | Monitoring/Polish |
 | PR-0013 | Live/Chat Skeleton | `/live`, `/api/live`, `/api/chat`, `core/liveChat/*` | Implemented | Monitoring/Polish |
 | PR-0030 | Unterstuetzen/Crowdfunding | `/support/[slug]`, `/admin/support` + Support-API vorhanden | Implemented | Nur Monitoring/Polish |
+| PR-0010B | DecisionArchitecture v2.0 (Part16) – Publishing Pack + Drift-Validator | `docs/E150/Part16_Digitale_Entscheidungsarchitektur.md`, `docs/E150/PR-0010B_DriftControl_DecisionArchitecture_Publishing.md` | Planned | Publishing Pack + Validator implementieren |
 
 ## Aktueller Stand (Februar 2026)
 

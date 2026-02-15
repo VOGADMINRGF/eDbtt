@@ -51,6 +51,10 @@ _Update:_ Block E (Part09 Research Workflow / R2) ist umgesetzt (Tasks/Contribut
 - **Steuerung/Transparenz**
   – Offene Arbeit liegt kanonisch in `docs/E150/OpenTasks.md`; Scope/Abnahme fuer interne und externe Umsetzung liegt in `docs/E150/Pflichtenheft.md`.
 
+- **Part16 Referenzdokument (DecisionArchitecture)**
+  – Ein publikationsfaehiges Referenzdokument inkl. Publishing Pack (Downloads + neutrale Landingpage) und Validator gegen Parallelstrukturen.
+  – Umsetzung ist als Drift **PR-0010B** in `docs/E150/OpenTasks.md` gesteuert.
+
 ---
 
 ## 3. Arbeitsmodus für Codex (Autopilot)

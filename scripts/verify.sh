@@ -12,6 +12,9 @@ pnpm -C apps/web run lint
 # 2) Page contracts (H1/button semantics)
 node ./scripts/check-page-contracts.mjs
 
+# 2b) Decision Architecture drift validator
+node --import tsx ./scripts/validate-decision-architecture.ts
+
 # 3) Typecheck
 #
 # Next can generate `.next/types/...` that influence TS results. Clean it to avoid stale types.
@@ -24,4 +27,3 @@ else
 fi
 
 echo "[verify] PASS"
-

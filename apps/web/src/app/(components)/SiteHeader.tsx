@@ -46,6 +46,11 @@ const NAV_SECTIONS: NavSection[] = [
         label: "Präsentieren",
         description: "Streams, Agenda und Moderation sauber aufsetzen.",
       },
+      {
+        href: "/referenzarchitektur",
+        label: "Referenzarchitektur",
+        description: "DecisionArchitecture v2.0 als Referenz",
+      },
     ],
   },
   {
@@ -116,6 +121,11 @@ export function SiteHeader({ initialUser }: { initialUser?: AuthUser | null }) {
       items: section.items.map((item) => mapTranslatableStrings(item, t, { namespace: "nav" })),
     }));
   }, [activeLang, t]);
+
+  const resolveHref = (href: string) => {
+    if (href === "/referenzarchitektur") return `/${activeLang}${href}`;
+    return href;
+  };
   const statusLabel = t("Auto-Übersetzung", "status.auto");
   const localeOptions = UI_LANGS.filter((lang) => isCoreLocale(lang.code)).map((lang) => {
     const cfg = getLocaleConfig(lang.code as SupportedLocale);
@@ -217,7 +227,7 @@ export function SiteHeader({ initialUser }: { initialUser?: AuthUser | null }) {
                 {isOpen && (
                   <div className="absolute left-0 mt-2 w-72 rounded-3xl border border-slate-200 bg-white p-3 shadow-xl">
                     <Link
-                      href={section.href}
+                      href={resolveHref(section.href)}
                       className="block rounded-2xl border border-slate-200 bg-slate-50/80 px-3 py-2 text-sm font-semibold text-slate-800 hover:border-sky-300"
                     >
                       <span className="block">{section.label}</span>
@@ -229,7 +239,7 @@ export function SiteHeader({ initialUser }: { initialUser?: AuthUser | null }) {
                       {section.items.map((item) => (
                         <Link
                           key={item.href}
-                          href={item.href}
+                          href={resolveHref(item.href)}
                           className="block rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 hover:border-sky-300 hover:bg-sky-50"
                         >
                           <span className="block text-sm font-semibold">{item.label}</span>
@@ -396,7 +406,7 @@ export function SiteHeader({ initialUser }: { initialUser?: AuthUser | null }) {
               {navSections.map((section) => (
                 <div key={section.id} className="rounded-3xl border border-slate-200 bg-white p-3">
                   <Link
-                    href={section.href}
+                    href={resolveHref(section.href)}
                     onClick={() => setMobileOpen(false)}
                     className="block rounded-2xl border border-slate-200 bg-slate-50/80 px-3 py-2 text-left hover:border-sky-300 hover:bg-sky-50"
                   >
@@ -409,7 +419,7 @@ export function SiteHeader({ initialUser }: { initialUser?: AuthUser | null }) {
                     {section.items.map((item) => (
                       <Link
                         key={item.href}
-                        href={item.href}
+                        href={resolveHref(item.href)}
                         onClick={() => setMobileOpen(false)}
                         className="rounded-2xl border border-slate-200 bg-white px-3 py-2 text-left text-sm text-slate-700 hover:border-sky-300 hover:bg-sky-50"
                       >
