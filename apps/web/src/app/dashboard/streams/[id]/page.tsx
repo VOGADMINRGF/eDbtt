@@ -63,6 +63,15 @@ type FollowUpState = {
   updatedAt?: string | null;
 };
 
+type CallInItem = {
+  _id: string;
+  name: string;
+  handle?: string | null;
+  channel?: string | null;
+  notes?: string | null;
+  status: "invited" | "ready" | "live" | "removed";
+};
+
 const DELIBERATION_PHASES = [
   { key: "mandate", label: "Mandat" },
   { key: "input", label: "Input" },
@@ -119,6 +128,14 @@ export default function StreamCockpitPage() {
   const [followUpStatus, setFollowUpStatus] = useState<FollowUpUpdate["status"]>("submitted");
   const [followUpNote, setFollowUpNote] = useState("");
   const [followUpLink, setFollowUpLink] = useState("");
+  const [callIns, setCallIns] = useState<CallInItem[]>([]);
+  const [callInsLoading, setCallInsLoading] = useState(true);
+  const [callInsError, setCallInsError] = useState<string | null>(null);
+  const [callInsNotice, setCallInsNotice] = useState<string | null>(null);
+  const [callInName, setCallInName] = useState("");
+  const [callInHandle, setCallInHandle] = useState("");
+  const [callInChannel, setCallInChannel] = useState("");
+  const [callInNotes, setCallInNotes] = useState("");
   const [roundMinutes, setRoundMinutes] = useState("5");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -205,6 +222,22 @@ export default function StreamCockpitPage() {
     }
   }
 
+  async function fetchCallIns(sessionId: string) {
+    setCallInsError(null);
+    try {
+      const res = await fetch(`/api/streams/sessions/${sessionId}/call-ins`, {
+        cache: "no-store",
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(body?.error || res.statusText);
+      setCallIns(Array.isArray(body?.items) ? body.items : []);
+    } catch (err: any) {
+      setCallInsError(err?.message ?? "Call-ins konnten nicht geladen werden.");
+    } finally {
+      setCallInsLoading(false);
+    }
+  }
+
   useEffect(() => {
     let ignore = false;
     async function load() {
@@ -212,6 +245,7 @@ export default function StreamCockpitPage() {
       setQueueLoading(true);
       setBoardLoading(true);
       setFollowUpLoading(true);
+      setCallInsLoading(true);
       try {
         const res = await fetch(`/api/streams/sessions/${params.id}/agenda`, { cache: "no-store" });
         const body = await res.json().catch(() => ({}));
@@ -243,6 +277,7 @@ export default function StreamCockpitPage() {
           await fetchQueue(params.id);
           await fetchLiveBoard(params.id);
           await fetchFollowUp(params.id);
+          await fetchCallIns(params.id);
         }
       } catch (err: any) {
         if (!ignore) setError(err?.message ?? "Fehler beim Laden der Agenda");
@@ -455,6 +490,56 @@ export default function StreamCockpitPage() {
   async function setFollowUpReminder(days: number) {
     const nextDate = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString();
     await saveFollowUpState({ ...followUp, nextReminderAt: nextDate });
+  }
+
+  async function addCallIn() {
+    setCallInsError(null);
+    setCallInsNotice(null);
+    const payload = {
+      name: callInName.trim(),
+      handle: callInHandle.trim() || null,
+      channel: callInChannel.trim() || null,
+      notes: callInNotes.trim() || null,
+    };
+    if (!payload.name) {
+      setCallInsError("Bitte einen Namen für den Call-in angeben.");
+      return;
+    }
+    try {
+      const res = await fetch(`/api/streams/sessions/${params.id}/call-ins`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(body?.error || "Call-in konnte nicht erstellt werden.");
+      setCallInName("");
+      setCallInHandle("");
+      setCallInChannel("");
+      setCallInNotes("");
+      setCallInsNotice("Call-in hinzugefügt.");
+      await fetchCallIns(params.id);
+    } catch (err: any) {
+      setCallInsError(err?.message ?? "Call-in konnte nicht erstellt werden.");
+    }
+  }
+
+  async function updateCallInStatus(itemId: string, status: CallInItem["status"]) {
+    setCallInsError(null);
+    setCallInsNotice(null);
+    try {
+      const res = await fetch(`/api/streams/sessions/${params.id}/call-ins`, {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ itemId, status }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(body?.error || "Status konnte nicht gesetzt werden.");
+      setCallInsNotice("Call-in Status aktualisiert.");
+      await fetchCallIns(params.id);
+    } catch (err: any) {
+      setCallInsError(err?.message ?? "Call-in Status konnte nicht gesetzt werden.");
+    }
   }
 
   async function addQuestion(kind: "question" | "poll") {
@@ -1193,6 +1278,129 @@ export default function StreamCockpitPage() {
                         {update.link}
                       </a>
                     )}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
+      </section>
+
+      <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="text-sm font-semibold text-slate-900">Call-ins & Kleingruppen</h2>
+            <p className="text-xs text-slate-500">
+              Einladungen verwalten und Live-Status steuern (rotierend, fair, nachvollziehbar).
+            </p>
+          </div>
+          {callInsLoading && <span className="text-xs text-slate-400">lädt…</span>}
+        </div>
+
+        {callInsError && <p className="text-xs text-rose-600">{callInsError}</p>}
+        {callInsNotice && <p className="text-xs text-emerald-600">{callInsNotice}</p>}
+
+        <div className="grid gap-4 lg:grid-cols-3">
+          <div className="space-y-3 rounded-xl border border-slate-100 p-3">
+            <label className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Name</label>
+            <input
+              className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs"
+              value={callInName}
+              onChange={(e) => setCallInName(e.target.value)}
+              placeholder="Teilnehmer:in"
+            />
+            <label className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Handle (optional)</label>
+            <input
+              className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs"
+              value={callInHandle}
+              onChange={(e) => setCallInHandle(e.target.value)}
+              placeholder="@name"
+            />
+            <label className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Kanal/Call (optional)</label>
+            <input
+              className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs"
+              value={callInChannel}
+              onChange={(e) => setCallInChannel(e.target.value)}
+              placeholder="Discord Stage / Zoom / etc."
+            />
+            <label className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Notiz</label>
+            <textarea
+              className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs"
+              rows={3}
+              value={callInNotes}
+              onChange={(e) => setCallInNotes(e.target.value)}
+              placeholder="Rolle, Gruppe, Hintergrund"
+            />
+            <button
+              className="w-full rounded-full border border-slate-900 bg-slate-900 px-3 py-2 text-xs font-semibold text-white"
+              onClick={addCallIn}
+            >
+              Call-in hinzufügen
+            </button>
+          </div>
+
+          <div className="lg:col-span-2 space-y-3">
+            {callIns.length === 0 ? (
+              <p className="text-sm text-slate-500">Noch keine Call-ins.</p>
+            ) : (
+              <ul className="space-y-2">
+                {callIns.map((item) => (
+                  <li key={item._id} className="rounded-xl border border-slate-100 p-3 space-y-2">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div>
+                        <p className="text-sm font-semibold text-slate-900">{item.name}</p>
+                        <p className="text-xs text-slate-500">
+                          {item.handle ? `@${item.handle.replace(/^@/, "")}` : "ohne Handle"}{" "}
+                          {item.channel ? `• ${item.channel}` : ""}
+                        </p>
+                      </div>
+                      <span
+                        className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
+                          item.status === "live"
+                            ? "bg-emerald-100 text-emerald-700"
+                            : item.status === "ready"
+                              ? "bg-amber-100 text-amber-700"
+                              : item.status === "removed"
+                                ? "bg-rose-100 text-rose-700"
+                                : "bg-slate-100 text-slate-600"
+                        }`}
+                      >
+                        {item.status === "live"
+                          ? "Live"
+                          : item.status === "ready"
+                            ? "Bereit"
+                            : item.status === "removed"
+                              ? "Entfernt"
+                              : "Eingeladen"}
+                      </span>
+                    </div>
+                    {item.notes && <p className="text-xs text-slate-500">{item.notes}</p>}
+                    <div className="flex flex-wrap gap-2 text-xs">
+                      <button
+                        className="rounded-full border border-slate-300 px-3 py-1"
+                        onClick={() => updateCallInStatus(item._id, "invited")}
+                      >
+                        Eingeladen
+                      </button>
+                      <button
+                        className="rounded-full border border-amber-300 px-3 py-1 text-amber-700"
+                        onClick={() => updateCallInStatus(item._id, "ready")}
+                      >
+                        Bereit
+                      </button>
+                      <button
+                        className="rounded-full border border-emerald-300 px-3 py-1 text-emerald-700"
+                        onClick={() => updateCallInStatus(item._id, "live")}
+                      >
+                        Live
+                      </button>
+                      <button
+                        className="rounded-full border border-rose-300 px-3 py-1 text-rose-700"
+                        onClick={() => updateCallInStatus(item._id, "removed")}
+                      >
+                        Entfernen
+                      </button>
+                    </div>
                   </li>
                 ))}
               </ul>

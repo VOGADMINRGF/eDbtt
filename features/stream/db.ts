@@ -3,16 +3,19 @@ import type {
   StreamSessionDoc,
   StreamAgendaItemDoc,
   StreamModerationQueueItemDoc,
+  StreamCallInDoc,
 } from "./types";
 
 const SESSION_COLLECTION = "stream_sessions";
 const AGENDA_COLLECTION = "stream_agenda_items";
 const MODERATION_COLLECTION = "stream_moderation_queue";
+const CALLIN_COLLECTION = "stream_callins";
 
 const ensured = {
   sessions: false,
   agenda: false,
   moderation: false,
+  callins: false,
 };
 
 async function ensureSessionIndexes() {
@@ -39,6 +42,14 @@ async function ensureModerationIndexes() {
   ensured.moderation = true;
 }
 
+async function ensureCallInIndexes() {
+  if (ensured.callins) return;
+  const col = await coreCol<StreamCallInDoc>(CALLIN_COLLECTION);
+  await col.createIndex({ sessionId: 1, createdAt: -1 });
+  await col.createIndex({ sessionId: 1, status: 1 });
+  ensured.callins = true;
+}
+
 export async function streamSessionsCol() {
   await ensureSessionIndexes();
   return coreCol<StreamSessionDoc>(SESSION_COLLECTION);
@@ -52,6 +63,11 @@ export async function streamAgendaCol() {
 export async function streamModerationQueueCol() {
   await ensureModerationIndexes();
   return coreCol<StreamModerationQueueItemDoc>(MODERATION_COLLECTION);
+}
+
+export async function streamCallInsCol() {
+  await ensureCallInIndexes();
+  return coreCol<StreamCallInDoc>(CALLIN_COLLECTION);
 }
 
 export function toObjectId(id: string | ObjectIdType): ObjectId {

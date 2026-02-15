@@ -13,6 +13,7 @@ export type StreamFollowUpStatus =
   | "accepted"
   | "partial"
   | "rejected";
+export type StreamCallInStatus = "invited" | "ready" | "live" | "removed";
 export type StreamDeliberationPhase =
   | "mandate"
   | "input"
@@ -123,6 +124,19 @@ export interface StreamFollowUpState {
   nextReminderAt?: Date | null;
   updatedAt?: Date | null;
   updatedBy?: string | null;
+}
+
+export interface StreamCallInDoc {
+  _id?: ObjectId;
+  sessionId: ObjectId;
+  creatorId: string;
+  name: string;
+  handle?: string | null;
+  channel?: string | null;
+  notes?: string | null;
+  status: StreamCallInStatus;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export interface StreamModerationQueueItemDoc {

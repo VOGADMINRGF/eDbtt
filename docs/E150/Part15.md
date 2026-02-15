@@ -238,6 +238,24 @@ Verification:
 Next Steps:
 - Kleingruppen/Call-ins MVP.
 
+### PR-0037 (2026-02-15) – Call-ins & Kleingruppen (MVP)
+
+Ziel:
+- Call-ins im Stream-Cockpit verwalten (Einladung, Bereitschaft, Live-Status).
+
+Changes:
+- `stream_callins` Collection + Indexes.
+- API: `/api/streams/sessions/[id]/call-ins` (GET/POST/PATCH).
+- Cockpit-UI: Call-in Manager inkl. Statussteuerung.
+
+Verification:
+- `pnpm lint` (PASS)
+- `pnpm -C apps/web build` (PASS)
+- `./scripts/verify.sh` (PASS)
+
+Next Steps:
+- Optional: Auto-Rotation/Fairness-Logik + Stage/Voice-Integration.
+
 ### PR-0017 (2026-02-11) – Block E Research R2
 
 Ziel:

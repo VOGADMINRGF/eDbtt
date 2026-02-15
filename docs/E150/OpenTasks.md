@@ -63,7 +63,7 @@ Ist/Unerledigt:
 | Campaign QR Polish | `/qr/[qrId]` + Session-Join aktiv | Optional: QR-Scan-Tracking, lokale Hinweise, Session-Label im Join |
 | Support UX Polish | `/support/[slug]` + Admin-Flow aktiv | Optional: Guided Payment UX, Social-Proof/Region-Filter, Bulk-Action |
 | Public Profile Polish | Public Profile Flags + ShareId vorhanden | Avatar/Cover Upload API anbinden, Impact-Ansicht fuer Buerger:innen implementieren |
-| Stream Deliberation Cockpit | Stream-Cockpit + Agenda + Overlay + Deliberation-Phasen/Timer + Moderations-Queue (MVP) + Live-Dossier-Board + Follow-up-Tracker vorhanden | Kleingruppen/Call-ins |
+| Stream Deliberation Cockpit | Stream-Cockpit + Agenda + Overlay + Deliberation-Phasen/Timer + Moderations-Queue (MVP) + Live-Dossier-Board + Follow-up-Tracker + Call-ins vorhanden | Optional: fairness-Logik/Rotation/Auto-Auswahl |
 | Stream-Kit Polish | Overlay/Viewer/QR-Target aktiv | Optional: Session-Vorlagen pro Formattyp, strukturierte Queue, QR-Bildrendition |
 
 ## Arbeitsregel fuer jeden Run
