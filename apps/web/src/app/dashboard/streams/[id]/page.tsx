@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { useParams } from "next/navigation";
 import QRCode from "qrcode";
 
@@ -82,6 +83,13 @@ type StreamSettings = {
   requireVerifiedParticipants: boolean;
   hideViewerCount: boolean;
 };
+
+type IdentityDocMeta = {
+  documentType: "id_card" | "passport";
+  updatedAt?: string | null;
+};
+
+type EmailPhase = "idle" | "sending" | "sent" | "verifying" | "success" | "error";
 
 const DELIBERATION_PHASES = [
   { key: "mandate", label: "Mandat" },
@@ -176,6 +184,16 @@ export default function StreamCockpitPage() {
   const [qrImage, setQrImage] = useState<string | null>(null);
   const [qrImageError, setQrImageError] = useState<string | null>(null);
   const [qrCreating, setQrCreating] = useState(false);
+  const [identityDoc, setIdentityDoc] = useState<IdentityDocMeta | null>(null);
+  const [identityDocLoading, setIdentityDocLoading] = useState(true);
+  const [identityDocError, setIdentityDocError] = useState<string | null>(null);
+  const [verificationLevel, setVerificationLevel] = useState<string | null>(null);
+  const [verificationLoading, setVerificationLoading] = useState(true);
+  const [emailPhase, setEmailPhase] = useState<EmailPhase>("idle");
+  const [emailCode, setEmailCode] = useState("");
+  const [emailMessage, setEmailMessage] = useState<string | null>(null);
+  const [tutorialActive, setTutorialActive] = useState(false);
+  const [tutorialSeconds, setTutorialSeconds] = useState(180);
 
   useEffect(() => {
     setOrigin(window.location.origin);
@@ -186,6 +204,59 @@ export default function StreamCockpitPage() {
       setRotationMinutes(String(deliberation.rotationIntervalMinutes));
     }
   }, [deliberation?.rotationIntervalMinutes]);
+
+  useEffect(() => {
+    let active = true;
+    async function loadPreStreamStatus() {
+      setIdentityDocLoading(true);
+      setVerificationLoading(true);
+      setIdentityDocError(null);
+      setEmailMessage(null);
+      try {
+        const [docRes, overviewRes] = await Promise.all([
+          fetch("/api/account/identity-document?meta=1", { cache: "no-store" }),
+          fetch("/api/account/overview", { cache: "no-store" }),
+        ]);
+        const docBody = await docRes.json().catch(() => ({}));
+        const overviewBody = await overviewRes.json().catch(() => ({}));
+        if (active) {
+          if (docRes.ok && docBody?.ok) {
+            setIdentityDoc(docBody?.doc ?? null);
+          } else {
+            setIdentityDocError(docBody?.error || "Identitätsstatus konnte nicht geladen werden.");
+          }
+          if (overviewRes.ok && overviewBody?.overview) {
+            setVerificationLevel(overviewBody.overview?.verificationLevel ?? null);
+          }
+        }
+      } catch (err: any) {
+        if (active) {
+          setIdentityDocError(err?.message ?? "Identitätsstatus konnte nicht geladen werden.");
+        }
+      } finally {
+        if (active) {
+          setIdentityDocLoading(false);
+          setVerificationLoading(false);
+        }
+      }
+    }
+    loadPreStreamStatus();
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!tutorialActive) return;
+    if (tutorialSeconds <= 0) {
+      setTutorialActive(false);
+      return;
+    }
+    const timer = window.setInterval(() => {
+      setTutorialSeconds((prev) => (prev > 0 ? prev - 1 : 0));
+    }, 1000);
+    return () => window.clearInterval(timer);
+  }, [tutorialActive, tutorialSeconds]);
 
   async function fetchQueue(sessionId: string) {
     setQueueError(null);
@@ -839,12 +910,81 @@ export default function StreamCockpitPage() {
     }
   }
 
+  const verificationOk = verificationLevel === "soft" || verificationLevel === "strong";
+  const preStreamReady = Boolean(identityDoc) && verificationOk;
+  const emailBusy = emailPhase === "sending" || emailPhase === "verifying";
+  const emailCodeReady = emailCode.trim().length === 6;
+  const tutorialMinutes = Math.floor(tutorialSeconds / 60);
+  const tutorialSecondsRest = tutorialSeconds % 60;
+  const tutorialProgress = Math.min(1, Math.max(0, 1 - tutorialSeconds / 180));
+
+  async function sendEmailCode() {
+    setEmailPhase("sending");
+    setEmailMessage(null);
+    try {
+      const res = await fetch("/api/auth/identity/email/start", { method: "POST" });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok || !body?.ok) {
+        const message =
+          body?.error === "email_not_verified"
+            ? "Bitte zuerst deine E-Mail verifizieren."
+            : body?.error || "Versand fehlgeschlagen.";
+        throw new Error(message);
+      }
+      setEmailPhase("sent");
+      setEmailMessage("Code gesendet. Bitte Postfach prüfen.");
+    } catch (err: any) {
+      setEmailPhase("error");
+      setEmailMessage(err?.message ?? "Versand fehlgeschlagen.");
+    }
+  }
+
+  async function verifyEmailCode() {
+    if (!emailCode.trim()) {
+      setEmailPhase("error");
+      setEmailMessage("Bitte den 6-stelligen Code eingeben.");
+      return;
+    }
+    setEmailPhase("verifying");
+    setEmailMessage(null);
+    try {
+      const res = await fetch("/api/auth/identity/email/verify", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ code: emailCode.replace(/\s+/g, ""), next: `/dashboard/streams/${params.id}` }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok || !body?.ok) {
+        const fallback =
+          body?.error === "CODE_EXPIRED"
+            ? "Code abgelaufen. Bitte neuen Code senden."
+            : "Code ungültig.";
+        throw new Error(body?.message || fallback);
+      }
+      setVerificationLevel("soft");
+      setEmailPhase("success");
+      setEmailMessage("E-Mail-Code bestätigt.");
+    } catch (err: any) {
+      setEmailPhase("error");
+      setEmailMessage(err?.message ?? "Verifizierung fehlgeschlagen.");
+    }
+  }
+
+  function startTutorial() {
+    setTutorialSeconds(180);
+    setTutorialActive(true);
+  }
+
+  function stopTutorial() {
+    setTutorialActive(false);
+  }
+
   return (
     <main className="flex flex-col gap-6 px-4 py-8">
       <header>
         <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Stream Cockpit</p>
-        <h1 className="text-2xl font-bold text-slate-900">{session?.title ?? "Session"}</h1>
-        <p className="text-sm text-slate-600">
+        <h1 className="text-2xl font-bold text-[rgb(var(--fg))]">{session?.title ?? "Session"}</h1>
+        <p className="text-sm text-[rgb(var(--muted))]">
           Steuere hier Fragen, Statements und Polls. Das OBS-Overlay aktualisiert sich automatisch.
         </p>
       </header>
@@ -856,53 +996,220 @@ export default function StreamCockpitPage() {
         </div>
       )}
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm space-y-3">
-        <h2 className="text-sm font-semibold text-slate-900">Stream-Kit</h2>
+      <section className="rounded-2xl border border-amber-200 bg-amber-50/60 p-4 shadow-sm space-y-4">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="space-y-1">
+            <h2 className="text-sm font-semibold text-amber-900">Pre-Stream: Identity Check</h2>
+            <p className="text-xs text-amber-800">
+              Ausweis/Pass, E-Mail-Code und ein kurzes Tutorial – damit Streams sicher und gut geführt starten.
+            </p>
+          </div>
+          <span
+            className={
+              preStreamReady
+                ? "inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-emerald-700 ring-1 ring-emerald-200"
+                : "inline-flex items-center rounded-full bg-amber-50 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-amber-700 ring-1 ring-amber-200"
+            }
+          >
+            {preStreamReady ? "bereit" : "offen"}
+          </span>
+        </div>
+
+        <div className="grid gap-3 lg:grid-cols-[1fr_1fr_1.2fr]">
+          <div className="rounded-xl border border-amber-100 bg-[rgb(var(--card))] p-4 text-xs space-y-2">
+            <div className="flex items-center justify-between">
+              <p className="font-semibold text-[rgb(var(--fg))]">1) Ausweis / Pass</p>
+              <span
+                className={
+                  identityDoc
+                    ? "rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-emerald-700"
+                    : "rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-amber-700"
+                }
+              >
+                {identityDoc ? "ok" : "fehlt"}
+              </span>
+            </div>
+            {identityDocLoading ? (
+              <p className="text-slate-500">Status wird geladen …</p>
+            ) : identityDocError ? (
+              <p className="text-rose-600">{identityDocError}</p>
+            ) : identityDoc ? (
+              <p className="text-[rgb(var(--muted))]">
+                Hinterlegt: {identityDoc.documentType === "passport" ? "Reisepass" : "Personalausweis"}
+                {identityDoc.updatedAt ? ` · aktualisiert ${new Date(identityDoc.updatedAt).toLocaleDateString("de-DE")}` : ""}
+              </p>
+            ) : (
+              <p className="text-[rgb(var(--muted))]">Bitte im Profil hochladen.</p>
+            )}
+            <Link
+              href="/account"
+              className="inline-flex w-fit rounded-full border border-amber-200 px-3 py-1 text-[11px] font-semibold text-amber-800"
+            >
+              Upload im Profil
+            </Link>
+          </div>
+
+          <div className="rounded-xl border border-amber-100 bg-[rgb(var(--card))] p-4 text-xs space-y-2">
+            <div className="flex items-center justify-between">
+              <p className="font-semibold text-[rgb(var(--fg))]">2) E-Mail-Code</p>
+              <span
+                className={
+                  verificationOk
+                    ? "rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-emerald-700"
+                    : "rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-amber-700"
+                }
+              >
+                {verificationOk ? "ok" : "offen"}
+              </span>
+            </div>
+            {verificationLoading ? (
+              <p className="text-slate-500">Status wird geladen …</p>
+            ) : verificationOk ? (
+              <p className="text-emerald-700">Bestätigt – du bist für Streams verifiziert.</p>
+            ) : (
+              <>
+                <p className="text-[rgb(var(--muted))]">Bitte vor dem Stream einmal bestätigen (Code gültig für 10 Minuten).</p>
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={sendEmailCode}
+                    className="rounded-full border border-amber-200 px-3 py-1 text-[11px] font-semibold text-amber-800"
+                    disabled={emailBusy}
+                  >
+                    {emailPhase === "sending" ? "Sende …" : "Code senden"}
+                  </button>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={6}
+                    value={emailCode}
+                    onChange={(event) => setEmailCode(event.target.value.replace(/\D/g, ""))}
+                    placeholder="123456"
+                    className="w-24 rounded-full border border-amber-200 bg-[rgb(var(--card))] px-3 py-1 text-[11px] text-[rgb(var(--muted))]"
+                    disabled={emailBusy}
+                  />
+                  <button
+                    type="button"
+                    onClick={verifyEmailCode}
+                    className="rounded-full bg-amber-600 px-3 py-1 text-[11px] font-semibold text-white"
+                    disabled={emailBusy || !emailCodeReady}
+                  >
+                    {emailPhase === "verifying" ? "Prüfe …" : "Bestätigen"}
+                  </button>
+                </div>
+                {emailMessage && <p className="text-[11px] text-slate-500">{emailMessage}</p>}
+              </>
+            )}
+          </div>
+
+          <div className="rounded-xl border border-amber-100 bg-[rgb(var(--card))] p-4 text-xs space-y-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <p className="font-semibold text-[rgb(var(--fg))]">3) 3-Minuten-Tutorial</p>
+                <p className="mt-1 text-[rgb(var(--muted))]">
+                  Kurzer Onboarding-Block für die ersten 3 Minuten, damit das Publikum direkt weiß, wie es mitmacht.
+                </p>
+              </div>
+              <span
+                className={
+                  tutorialActive
+                    ? "rounded-full bg-sky-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-sky-700"
+                    : "rounded-full bg-slate-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-500"
+                }
+              >
+                {tutorialActive ? "läuft" : "bereit"}
+              </span>
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={startTutorial}
+                className="rounded-full border border-amber-200 px-3 py-1 text-[11px] font-semibold text-amber-800"
+                disabled={tutorialActive}
+              >
+                Tutorial starten
+              </button>
+              <button
+                type="button"
+                onClick={stopTutorial}
+                className="rounded-full border border-[rgb(var(--border))] px-3 py-1 text-[11px] font-semibold text-[rgb(var(--muted))]"
+                disabled={!tutorialActive}
+              >
+                Stoppen
+              </button>
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex items-center justify-between text-[11px] text-slate-500">
+                <span>Countdown</span>
+                <span>
+                  {tutorialMinutes}:{String(tutorialSecondsRest).padStart(2, "0")}
+                </span>
+              </div>
+              <div className="h-2 w-full overflow-hidden rounded-full bg-amber-100">
+                <div
+                  className="h-full rounded-full bg-amber-500 transition-all"
+                  style={{ width: `${tutorialProgress * 100}%` }}
+                />
+              </div>
+              <div className="grid gap-1 text-[11px] text-[rgb(var(--muted))]">
+                <span>1) Begrüßung + Thema in 20 Sekunden.</span>
+                <span>2) Beteiligung erklären: Fragen, Abstimmungen, Quellen.</span>
+                <span>3) Erste Mini-Frage starten, damit alle reinkommen.</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm space-y-3">
+        <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Stream-Kit</h2>
         <div className="grid gap-3 md:grid-cols-3">
-          <div className="rounded-xl border border-slate-100 p-3 text-xs">
-            <p className="font-semibold text-slate-900">Overlay URL</p>
-            <p className="mt-1 break-all text-slate-600">{origin ? `${origin}${overlayPath}` : overlayPath}</p>
+          <div className="rounded-xl border border-[rgb(var(--border))] p-3 text-xs">
+            <p className="font-semibold text-[rgb(var(--fg))]">Overlay URL</p>
+            <p className="mt-1 break-all text-[rgb(var(--muted))]">{origin ? `${origin}${overlayPath}` : overlayPath}</p>
             <div className="mt-2 flex gap-2">
-              <a className="rounded-full border border-slate-300 px-3 py-1" href={overlayPath} target="_blank" rel="noreferrer">
+              <a className="rounded-full border border-[rgb(var(--border))] px-3 py-1" href={overlayPath} target="_blank" rel="noreferrer">
                 Öffnen
               </a>
               <button
-                className="rounded-full border border-slate-300 px-3 py-1"
+                className="rounded-full border border-[rgb(var(--border))] px-3 py-1"
                 onClick={() => copyText(origin ? `${origin}${overlayPath}` : overlayPath, "Overlay URL")}
               >
                 Kopieren
               </button>
             </div>
           </div>
-          <div className="rounded-xl border border-slate-100 p-3 text-xs">
-            <p className="font-semibold text-slate-900">Viewer URL</p>
-            <p className="mt-1 break-all text-slate-600">
+          <div className="rounded-xl border border-[rgb(var(--border))] p-3 text-xs">
+            <p className="font-semibold text-[rgb(var(--fg))]">Viewer URL</p>
+            <p className="mt-1 break-all text-[rgb(var(--muted))]">
               {origin ? `${origin}${publicStreamPath}` : publicStreamPath}
             </p>
             <div className="mt-2 flex gap-2">
-              <a className="rounded-full border border-slate-300 px-3 py-1" href={publicStreamPath} target="_blank" rel="noreferrer">
+              <a className="rounded-full border border-[rgb(var(--border))] px-3 py-1" href={publicStreamPath} target="_blank" rel="noreferrer">
                 Öffnen
               </a>
               <button
-                className="rounded-full border border-slate-300 px-3 py-1"
+                className="rounded-full border border-[rgb(var(--border))] px-3 py-1"
                 onClick={() => copyText(origin ? `${origin}${publicStreamPath}` : publicStreamPath, "Viewer URL")}
               >
                 Kopieren
               </button>
             </div>
           </div>
-          <div className="rounded-xl border border-slate-100 p-3 text-xs">
-            <p className="font-semibold text-slate-900">Aktives QR-Ziel</p>
-            <p className="mt-1 break-all text-slate-600">{activeQrTarget}</p>
+          <div className="rounded-xl border border-[rgb(var(--border))] p-3 text-xs">
+            <p className="font-semibold text-[rgb(var(--fg))]">Aktives QR-Ziel</p>
+            <p className="mt-1 break-all text-[rgb(var(--muted))]">{activeQrTarget}</p>
             <button
-              className="mt-2 rounded-full border border-slate-300 px-3 py-1"
+              className="mt-2 rounded-full border border-[rgb(var(--border))] px-3 py-1"
               onClick={() => copyText(origin ? `${origin}${activeQrTarget}` : activeQrTarget, "QR-Ziel")}
             >
               Kopieren
             </button>
             {qrImageError && <p className="mt-2 text-[11px] text-rose-600">{qrImageError}</p>}
             {qrImage && (
-              <div className="mt-3 inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white p-2">
+              <div className="mt-3 inline-flex items-center justify-center rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-2">
                 <img src={qrImage} alt="QR Code" className="h-24 w-24" />
               </div>
             )}
@@ -910,10 +1217,10 @@ export default function StreamCockpitPage() {
         </div>
       </section>
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm space-y-3">
+      <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h2 className="text-sm font-semibold text-slate-900">Stream-Einstellungen</h2>
+            <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Stream-Einstellungen</h2>
             <p className="text-xs text-slate-500">
               Support, Verifizierung, Mitschnitt und Sichtbarkeit steuern.
             </p>
@@ -928,7 +1235,7 @@ export default function StreamCockpitPage() {
             className={`rounded-xl border px-3 py-3 text-left text-sm ${
               streamSettings.supportEnabled
                 ? "border-emerald-300 bg-emerald-50 text-emerald-800"
-                : "border-slate-200 bg-white text-slate-700"
+                : "border-[rgb(var(--border))] bg-[rgb(var(--card))] text-[rgb(var(--muted))]"
             }`}
             onClick={() => updateStreamSettings({ supportEnabled: !streamSettings.supportEnabled })}
           >
@@ -941,7 +1248,7 @@ export default function StreamCockpitPage() {
             className={`rounded-xl border px-3 py-3 text-left text-sm ${
               streamSettings.supportBlind
                 ? "border-amber-300 bg-amber-50 text-amber-800"
-                : "border-slate-200 bg-white text-slate-700"
+                : "border-[rgb(var(--border))] bg-[rgb(var(--card))] text-[rgb(var(--muted))]"
             }`}
             onClick={() => updateStreamSettings({ supportBlind: !streamSettings.supportBlind })}
             disabled={!streamSettings.supportEnabled}
@@ -954,8 +1261,8 @@ export default function StreamCockpitPage() {
           <button
             className={`rounded-xl border px-3 py-3 text-left text-sm ${
               streamSettings.recordingAllowed
-                ? "border-slate-900 bg-slate-900 text-white"
-                : "border-slate-200 bg-white text-slate-700"
+                ? "border-[rgb(var(--border))] bg-slate-900 text-white"
+                : "border-[rgb(var(--border))] bg-[rgb(var(--card))] text-[rgb(var(--muted))]"
             }`}
             onClick={() => updateStreamSettings({ recordingAllowed: !streamSettings.recordingAllowed })}
           >
@@ -968,7 +1275,7 @@ export default function StreamCockpitPage() {
             className={`rounded-xl border px-3 py-3 text-left text-sm ${
               streamSettings.requireVerifiedParticipants
                 ? "border-rose-300 bg-rose-50 text-rose-800"
-                : "border-slate-200 bg-white text-slate-700"
+                : "border-[rgb(var(--border))] bg-[rgb(var(--card))] text-[rgb(var(--muted))]"
             }`}
             onClick={() =>
               updateStreamSettings({
@@ -984,8 +1291,8 @@ export default function StreamCockpitPage() {
           <button
             className={`rounded-xl border px-3 py-3 text-left text-sm ${
               streamSettings.hideViewerCount
-                ? "border-slate-300 bg-slate-50 text-slate-800"
-                : "border-slate-200 bg-white text-slate-700"
+                ? "border-[rgb(var(--border))] bg-[rgb(var(--bg))] text-slate-800"
+                : "border-[rgb(var(--border))] bg-[rgb(var(--card))] text-[rgb(var(--muted))]"
             }`}
             onClick={() => updateStreamSettings({ hideViewerCount: !streamSettings.hideViewerCount })}
           >
@@ -997,10 +1304,10 @@ export default function StreamCockpitPage() {
         </div>
       </section>
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm space-y-3">
+      <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm space-y-3">
         <div className="flex items-center justify-between gap-3">
           <div>
-            <h2 className="text-sm font-semibold text-slate-900">Deliberation Mode</h2>
+            <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Deliberation Mode</h2>
             <p className="text-xs text-slate-500">
               Phasen, Runden und Timer fuer strukturierte Live-Debatten.
             </p>
@@ -1009,7 +1316,7 @@ export default function StreamCockpitPage() {
             className={`rounded-full px-3 py-1 text-xs font-semibold ${
               deliberation?.enabled
                 ? "border border-emerald-300 bg-emerald-50 text-emerald-700"
-                : "border border-slate-300 bg-white text-slate-600"
+                : "border border-[rgb(var(--border))] bg-[rgb(var(--card))] text-[rgb(var(--muted))]"
             }`}
             onClick={() => updateDeliberation({ enabled: !deliberation?.enabled })}
           >
@@ -1021,17 +1328,17 @@ export default function StreamCockpitPage() {
         {delibNotice && <p className="text-xs text-emerald-600">{delibNotice}</p>}
 
         <div className="grid gap-3 lg:grid-cols-3">
-          <div className="rounded-xl border border-slate-100 p-3 text-xs">
-            <p className="font-semibold text-slate-900">Aktuelle Phase</p>
-            <p className="mt-1 text-slate-600">{phaseLabel}</p>
+          <div className="rounded-xl border border-[rgb(var(--border))] p-3 text-xs">
+            <p className="font-semibold text-[rgb(var(--fg))]">Aktuelle Phase</p>
+            <p className="mt-1 text-[rgb(var(--muted))]">{phaseLabel}</p>
             <div className="mt-3 flex flex-wrap gap-2">
               {DELIBERATION_PHASES.map((phase) => (
                 <button
                   key={phase.key}
                   className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold ${
                     deliberation?.phase === phase.key
-                      ? "border-slate-900 bg-slate-900 text-white"
-                      : "border-slate-300 text-slate-600"
+                      ? "border-[rgb(var(--border))] bg-slate-900 text-white"
+                      : "border-[rgb(var(--border))] text-[rgb(var(--muted))]"
                   }`}
                   onClick={() => updateDeliberation({ phase: phase.key, enabled: true })}
                 >
@@ -1041,12 +1348,12 @@ export default function StreamCockpitPage() {
             </div>
           </div>
 
-          <div className="rounded-xl border border-slate-100 p-3 text-xs">
-            <p className="font-semibold text-slate-900">Runde</p>
-            <p className="mt-1 text-slate-600">Runde {deliberation?.round ?? 1}</p>
+          <div className="rounded-xl border border-[rgb(var(--border))] p-3 text-xs">
+            <p className="font-semibold text-[rgb(var(--fg))]">Runde</p>
+            <p className="mt-1 text-[rgb(var(--muted))]">Runde {deliberation?.round ?? 1}</p>
             <div className="mt-3 flex items-center gap-2">
               <button
-                className="rounded-full border border-slate-300 px-3 py-1"
+                className="rounded-full border border-[rgb(var(--border))] px-3 py-1"
                 onClick={() =>
                   updateDeliberation({ round: Math.max(1, (deliberation?.round ?? 1) - 1) })
                 }
@@ -1054,7 +1361,7 @@ export default function StreamCockpitPage() {
                 −
               </button>
               <button
-                className="rounded-full border border-slate-900 bg-slate-900 px-3 py-1 text-white"
+                className="rounded-full border border-[rgb(var(--border))] bg-slate-900 px-3 py-1 text-white"
                 onClick={() => updateDeliberation({ round: (deliberation?.round ?? 1) + 1 })}
               >
                 +
@@ -1062,25 +1369,25 @@ export default function StreamCockpitPage() {
             </div>
           </div>
 
-          <div className="rounded-xl border border-slate-100 p-3 text-xs">
-            <p className="font-semibold text-slate-900">Timer</p>
-            <p className="mt-1 text-slate-600">Ende: {roundEndsLabel}</p>
+          <div className="rounded-xl border border-[rgb(var(--border))] p-3 text-xs">
+            <p className="font-semibold text-[rgb(var(--fg))]">Timer</p>
+            <p className="mt-1 text-[rgb(var(--muted))]">Ende: {roundEndsLabel}</p>
             <div className="mt-3 flex items-center gap-2">
               <input
-                className="w-16 rounded-full border border-slate-200 px-2 py-1 text-xs text-slate-700"
+                className="w-16 rounded-full border border-[rgb(var(--border))] px-2 py-1 text-xs text-[rgb(var(--muted))]"
                 value={roundMinutes}
                 onChange={(e) => setRoundMinutes(e.target.value)}
                 inputMode="numeric"
               />
               <span className="text-[11px] text-slate-500">Min</span>
               <button
-                className="rounded-full border border-slate-900 bg-slate-900 px-3 py-1 text-white"
+                className="rounded-full border border-[rgb(var(--border))] bg-slate-900 px-3 py-1 text-white"
                 onClick={() => updateDeliberation({ roundMinutes: Number(roundMinutes) || 0 })}
               >
                 Start
               </button>
               <button
-                className="rounded-full border border-slate-300 px-3 py-1"
+                className="rounded-full border border-[rgb(var(--border))] px-3 py-1"
                 onClick={() => updateDeliberation({ roundMinutes: 0 })}
               >
                 Stop
@@ -1088,9 +1395,9 @@ export default function StreamCockpitPage() {
             </div>
           </div>
 
-          <div className="rounded-xl border border-slate-100 p-3 text-xs">
-            <p className="font-semibold text-slate-900">Fairness/Rotation</p>
-            <p className="mt-1 text-slate-600">
+          <div className="rounded-xl border border-[rgb(var(--border))] p-3 text-xs">
+            <p className="font-semibold text-[rgb(var(--fg))]">Fairness/Rotation</p>
+            <p className="mt-1 text-[rgb(var(--muted))]">
               {deliberation?.fairnessMode === "rotation" ? "Rotation aktiv" : "Rotation inaktiv"}
             </p>
             <div className="mt-3 flex flex-wrap items-center gap-2">
@@ -1098,7 +1405,7 @@ export default function StreamCockpitPage() {
                 className={`rounded-full px-3 py-1 text-xs font-semibold ${
                   deliberation?.fairnessMode === "rotation"
                     ? "border border-emerald-300 bg-emerald-50 text-emerald-700"
-                    : "border border-slate-300 bg-white text-slate-600"
+                    : "border border-[rgb(var(--border))] bg-[rgb(var(--card))] text-[rgb(var(--muted))]"
                 }`}
                 onClick={() =>
                   updateDeliberation({
@@ -1110,14 +1417,14 @@ export default function StreamCockpitPage() {
               </button>
               <div className="flex items-center gap-2">
                 <input
-                  className="w-16 rounded-full border border-slate-200 px-2 py-1 text-xs text-slate-700"
+                  className="w-16 rounded-full border border-[rgb(var(--border))] px-2 py-1 text-xs text-[rgb(var(--muted))]"
                   value={rotationMinutes}
                   onChange={(e) => setRotationMinutes(e.target.value)}
                   inputMode="numeric"
                 />
                 <span className="text-[11px] text-slate-500">Min</span>
                 <button
-                  className="rounded-full border border-slate-900 bg-slate-900 px-3 py-1 text-white"
+                  className="rounded-full border border-[rgb(var(--border))] bg-slate-900 px-3 py-1 text-white"
                   onClick={() =>
                     updateDeliberation({
                       rotationMinutes: Number(rotationMinutes) || 0,
@@ -1136,9 +1443,9 @@ export default function StreamCockpitPage() {
         </div>
       </section>
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm space-y-3">
+      <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm space-y-3">
         <div>
-          <h2 className="text-sm font-semibold text-slate-900">Session-Vorlagen</h2>
+          <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Session-Vorlagen</h2>
           <p className="text-xs text-slate-500">
             Schnellstart fuer typische Formate (passt du spaeter an).
           </p>
@@ -1147,7 +1454,7 @@ export default function StreamCockpitPage() {
           {sessionTemplates.map((tpl) => (
             <button
               key={tpl.id}
-              className="rounded-full border border-slate-300 px-3 py-1 text-xs font-semibold text-slate-700 hover:border-sky-300"
+              className="rounded-full border border-[rgb(var(--border))] px-3 py-1 text-xs font-semibold text-[rgb(var(--muted))] hover:border-sky-300"
               onClick={() => applyTemplate(tpl)}
             >
               {tpl.label}
@@ -1156,10 +1463,10 @@ export default function StreamCockpitPage() {
         </div>
       </section>
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm space-y-4">
+      <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h2 className="text-sm font-semibold text-slate-900">Moderations-Queue</h2>
+            <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Moderations-Queue</h2>
             <p className="text-xs text-slate-500">
               Eingehende Bausteine sammeln, taggen und freigeben.
             </p>
@@ -1169,7 +1476,7 @@ export default function StreamCockpitPage() {
               <button
                 key={key}
                 className={`rounded-full border px-3 py-1 font-semibold ${
-                  queueFilter === key ? "border-slate-900 bg-slate-900 text-white" : "border-slate-300 text-slate-600"
+                  queueFilter === key ? "border-[rgb(var(--border))] bg-slate-900 text-white" : "border-[rgb(var(--border))] text-[rgb(var(--muted))]"
                 }`}
                 onClick={() => setQueueFilter(key)}
               >
@@ -1192,10 +1499,10 @@ export default function StreamCockpitPage() {
             ) : (
               <ul className="space-y-2">
                 {visibleQueueItems.map((item) => (
-                  <li key={item._id} className="rounded-xl border border-slate-100 p-3">
+                  <li key={item._id} className="rounded-xl border border-[rgb(var(--border))] p-3">
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <div className="flex flex-wrap items-center gap-2 text-xs">
-                        <span className="rounded-full bg-slate-100 px-2 py-0.5 font-semibold text-slate-700">
+                        <span className="rounded-full bg-slate-100 px-2 py-0.5 font-semibold text-[rgb(var(--muted))]">
                           {QUEUE_KIND_LABELS[item.kind]}
                         </span>
                         <span
@@ -1229,7 +1536,7 @@ export default function StreamCockpitPage() {
                         )}
                         {item.status !== "queued" && (
                           <button
-                            className="rounded-full border border-slate-300 px-3 py-1 text-slate-600"
+                            className="rounded-full border border-[rgb(var(--border))] px-3 py-1 text-[rgb(var(--muted))]"
                             onClick={() => updateQueueStatus(item._id, "queued")}
                           >
                             Zurücksetzen
@@ -1250,11 +1557,11 @@ export default function StreamCockpitPage() {
             )}
           </div>
 
-          <div className="space-y-3 rounded-xl border border-slate-100 p-3">
-            <h3 className="text-xs font-semibold text-slate-900">Neuer Queue-Eintrag</h3>
+          <div className="space-y-3 rounded-xl border border-[rgb(var(--border))] p-3">
+            <h3 className="text-xs font-semibold text-[rgb(var(--fg))]">Neuer Queue-Eintrag</h3>
             <label className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Baustein</label>
             <select
-              className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs"
+              className="w-full rounded-xl border border-[rgb(var(--border))] px-3 py-2 text-xs"
               value={queueDraftKind}
               onChange={(e) => setQueueDraftKind(e.target.value as ModerationQueueItem["kind"])}
             >
@@ -1266,7 +1573,7 @@ export default function StreamCockpitPage() {
             </select>
             <label className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Inhalt</label>
             <textarea
-              className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs"
+              className="w-full rounded-xl border border-[rgb(var(--border))] px-3 py-2 text-xs"
               rows={4}
               placeholder="Kurzer, klarer Bausteintext"
               value={queueDraftText}
@@ -1274,21 +1581,21 @@ export default function StreamCockpitPage() {
             />
             <label className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Quelle (optional)</label>
             <input
-              className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs"
+              className="w-full rounded-xl border border-[rgb(var(--border))] px-3 py-2 text-xs"
               placeholder="https://..."
               value={queueDraftSource}
               onChange={(e) => setQueueDraftSource(e.target.value)}
             />
             <label className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Notiz (optional)</label>
             <textarea
-              className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs"
+              className="w-full rounded-xl border border-[rgb(var(--border))] px-3 py-2 text-xs"
               rows={2}
               placeholder="Moderationsnotiz"
               value={queueDraftNotes}
               onChange={(e) => setQueueDraftNotes(e.target.value)}
             />
             <button
-              className="w-full rounded-full border border-slate-900 bg-slate-900 px-3 py-2 text-xs font-semibold text-white"
+              className="w-full rounded-full border border-[rgb(var(--border))] bg-slate-900 px-3 py-2 text-xs font-semibold text-white"
               onClick={addQueueItem}
             >
               In Queue aufnehmen
@@ -1297,10 +1604,10 @@ export default function StreamCockpitPage() {
         </div>
       </section>
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm space-y-4">
+      <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h2 className="text-sm font-semibold text-slate-900">Live-Dossier-Board</h2>
+            <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Live-Dossier-Board</h2>
             <p className="text-xs text-slate-500">
               Kurze Optionslage inkl. Pro/Contra, Quellen und offenen Fragen – öffentlich sichtbar.
             </p>
@@ -1314,13 +1621,13 @@ export default function StreamCockpitPage() {
               </span>
             )}
             <button
-              className="rounded-full border border-slate-300 px-3 py-1 text-slate-700"
+              className="rounded-full border border-[rgb(var(--border))] px-3 py-1 text-[rgb(var(--muted))]"
               onClick={addBoardOption}
             >
               Option hinzufügen
             </button>
             <button
-              className="rounded-full border border-slate-900 bg-slate-900 px-3 py-1 text-white"
+              className="rounded-full border border-[rgb(var(--border))] bg-slate-900 px-3 py-1 text-white"
               onClick={saveLiveBoard}
             >
               Speichern
@@ -1335,13 +1642,13 @@ export default function StreamCockpitPage() {
           <div className="lg:col-span-1 space-y-3">
             <label className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Titel</label>
             <input
-              className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs"
+              className="w-full rounded-xl border border-[rgb(var(--border))] px-3 py-2 text-xs"
               value={liveBoard.title}
               onChange={(e) => setLiveBoard((prev) => ({ ...prev, title: e.target.value }))}
             />
             <label className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Kurzfassung</label>
             <textarea
-              className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs"
+              className="w-full rounded-xl border border-[rgb(var(--border))] px-3 py-2 text-xs"
               rows={5}
               value={liveBoard.summary ?? ""}
               onChange={(e) => setLiveBoard((prev) => ({ ...prev, summary: e.target.value }))}
@@ -1356,18 +1663,18 @@ export default function StreamCockpitPage() {
               </p>
             ) : (
               liveBoard.options.map((opt, index) => (
-                <div key={opt.id} className="rounded-xl border border-slate-100 p-3 space-y-3">
+                <div key={opt.id} className="rounded-xl border border-[rgb(var(--border))] p-3 space-y-3">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <p className="text-xs font-semibold text-slate-500">Option {index + 1}</p>
                     <button
-                      className="rounded-full border border-slate-300 px-3 py-1 text-xs text-slate-600"
+                      className="rounded-full border border-[rgb(var(--border))] px-3 py-1 text-xs text-[rgb(var(--muted))]"
                       onClick={() => removeBoardOption(opt.id)}
                     >
                       Entfernen
                     </button>
                   </div>
                   <input
-                    className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold"
+                    className="w-full rounded-xl border border-[rgb(var(--border))] px-3 py-2 text-sm font-semibold"
                     value={opt.title}
                     onChange={(e) => updateBoardOption(opt.id, { title: e.target.value })}
                     placeholder="Optionstitel"
@@ -1376,7 +1683,7 @@ export default function StreamCockpitPage() {
                     <div className="space-y-1">
                       <label className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Pro</label>
                       <textarea
-                        className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs"
+                        className="w-full rounded-xl border border-[rgb(var(--border))] px-3 py-2 text-xs"
                         rows={3}
                         value={opt.pros.join("\n")}
                         onChange={(e) => updateBoardList(opt.id, "pros", e.target.value)}
@@ -1386,7 +1693,7 @@ export default function StreamCockpitPage() {
                     <div className="space-y-1">
                       <label className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Contra</label>
                       <textarea
-                        className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs"
+                        className="w-full rounded-xl border border-[rgb(var(--border))] px-3 py-2 text-xs"
                         rows={3}
                         value={opt.cons.join("\n")}
                         onChange={(e) => updateBoardList(opt.id, "cons", e.target.value)}
@@ -1396,7 +1703,7 @@ export default function StreamCockpitPage() {
                     <div className="space-y-1">
                       <label className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Quellen</label>
                       <textarea
-                        className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs"
+                        className="w-full rounded-xl border border-[rgb(var(--border))] px-3 py-2 text-xs"
                         rows={3}
                         value={opt.sources.join("\n")}
                         onChange={(e) => updateBoardList(opt.id, "sources", e.target.value)}
@@ -1408,7 +1715,7 @@ export default function StreamCockpitPage() {
                         Offene Fragen
                       </label>
                       <textarea
-                        className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs"
+                        className="w-full rounded-xl border border-[rgb(var(--border))] px-3 py-2 text-xs"
                         rows={3}
                         value={opt.openQuestions.join("\n")}
                         onChange={(e) => updateBoardList(opt.id, "openQuestions", e.target.value)}
@@ -1423,10 +1730,10 @@ export default function StreamCockpitPage() {
         </div>
       </section>
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm space-y-4">
+      <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h2 className="text-sm font-semibold text-slate-900">Follow-up Tracker</h2>
+            <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Follow-up Tracker</h2>
             <p className="text-xs text-slate-500">
               Status-Updates nach der Abstimmung (eingereicht → Prüfung → angenommen/teilweise/abgelehnt).
             </p>
@@ -1449,10 +1756,10 @@ export default function StreamCockpitPage() {
         {followUpNotice && <p className="text-xs text-emerald-600">{followUpNotice}</p>}
 
         <div className="grid gap-4 lg:grid-cols-3">
-          <div className="space-y-3 rounded-xl border border-slate-100 p-3">
+          <div className="space-y-3 rounded-xl border border-[rgb(var(--border))] p-3">
             <label className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Status</label>
             <select
-              className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs"
+              className="w-full rounded-xl border border-[rgb(var(--border))] px-3 py-2 text-xs"
               value={followUpStatus}
               onChange={(e) => setFollowUpStatus(e.target.value as FollowUpUpdate["status"])}
             >
@@ -1464,7 +1771,7 @@ export default function StreamCockpitPage() {
             </select>
             <label className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Update-Text</label>
             <textarea
-              className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs"
+              className="w-full rounded-xl border border-[rgb(var(--border))] px-3 py-2 text-xs"
               rows={4}
               value={followUpNote}
               onChange={(e) => setFollowUpNote(e.target.value)}
@@ -1472,13 +1779,13 @@ export default function StreamCockpitPage() {
             />
             <label className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Link (optional)</label>
             <input
-              className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs"
+              className="w-full rounded-xl border border-[rgb(var(--border))] px-3 py-2 text-xs"
               placeholder="https://..."
               value={followUpLink}
               onChange={(e) => setFollowUpLink(e.target.value)}
             />
             <button
-              className="w-full rounded-full border border-slate-900 bg-slate-900 px-3 py-2 text-xs font-semibold text-white"
+              className="w-full rounded-full border border-[rgb(var(--border))] bg-slate-900 px-3 py-2 text-xs font-semibold text-white"
               onClick={addFollowUpUpdate}
             >
               Update hinzufügen
@@ -1489,7 +1796,7 @@ export default function StreamCockpitPage() {
                 {[7, 30, 90].map((days) => (
                   <button
                     key={days}
-                    className="rounded-full border border-slate-300 px-3 py-1"
+                    className="rounded-full border border-[rgb(var(--border))] px-3 py-1"
                     onClick={() => setFollowUpReminder(days)}
                   >
                     +{days} Tage
@@ -1497,7 +1804,7 @@ export default function StreamCockpitPage() {
                 ))}
               </div>
               {followUp.nextReminderAt && (
-                <p className="mt-2 text-slate-600">
+                <p className="mt-2 text-[rgb(var(--muted))]">
                   Nächste Erinnerung:{" "}
                   {new Date(followUp.nextReminderAt).toLocaleDateString("de-DE", {
                     dateStyle: "medium",
@@ -1513,9 +1820,9 @@ export default function StreamCockpitPage() {
             ) : (
               <ul className="space-y-2">
                 {followUp.updates.map((update) => (
-                  <li key={update.id} className="rounded-xl border border-slate-100 p-3">
+                  <li key={update.id} className="rounded-xl border border-[rgb(var(--border))] p-3">
                     <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
-                      <span className="rounded-full bg-slate-100 px-2 py-0.5 font-semibold text-slate-700">
+                      <span className="rounded-full bg-slate-100 px-2 py-0.5 font-semibold text-[rgb(var(--muted))]">
                         {update.status === "submitted"
                           ? "Eingereicht"
                           : update.status === "in_review"
@@ -1549,10 +1856,10 @@ export default function StreamCockpitPage() {
         </div>
       </section>
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm space-y-4">
+      <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h2 className="text-sm font-semibold text-slate-900">Call-ins & Kleingruppen</h2>
+            <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Call-ins & Kleingruppen</h2>
             <p className="text-xs text-slate-500">
               Einladungen verwalten und Live-Status steuern (rotierend, fair, nachvollziehbar).
             </p>
@@ -1564,38 +1871,38 @@ export default function StreamCockpitPage() {
         {callInsNotice && <p className="text-xs text-emerald-600">{callInsNotice}</p>}
 
         <div className="grid gap-4 lg:grid-cols-3">
-          <div className="space-y-3 rounded-xl border border-slate-100 p-3">
+          <div className="space-y-3 rounded-xl border border-[rgb(var(--border))] p-3">
             <label className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Name</label>
             <input
-              className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs"
+              className="w-full rounded-xl border border-[rgb(var(--border))] px-3 py-2 text-xs"
               value={callInName}
               onChange={(e) => setCallInName(e.target.value)}
               placeholder="Teilnehmer:in"
             />
             <label className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Handle (optional)</label>
             <input
-              className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs"
+              className="w-full rounded-xl border border-[rgb(var(--border))] px-3 py-2 text-xs"
               value={callInHandle}
               onChange={(e) => setCallInHandle(e.target.value)}
               placeholder="@name"
             />
             <label className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Kanal/Call (optional)</label>
             <input
-              className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs"
+              className="w-full rounded-xl border border-[rgb(var(--border))] px-3 py-2 text-xs"
               value={callInChannel}
               onChange={(e) => setCallInChannel(e.target.value)}
               placeholder="Discord Stage / Zoom / etc."
             />
             <label className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Notiz</label>
             <textarea
-              className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs"
+              className="w-full rounded-xl border border-[rgb(var(--border))] px-3 py-2 text-xs"
               rows={3}
               value={callInNotes}
               onChange={(e) => setCallInNotes(e.target.value)}
               placeholder="Rolle, Gruppe, Hintergrund"
             />
             <button
-              className="w-full rounded-full border border-slate-900 bg-slate-900 px-3 py-2 text-xs font-semibold text-white"
+              className="w-full rounded-full border border-[rgb(var(--border))] bg-slate-900 px-3 py-2 text-xs font-semibold text-white"
               onClick={addCallIn}
             >
               Call-in hinzufügen
@@ -1608,10 +1915,10 @@ export default function StreamCockpitPage() {
             ) : (
               <ul className="space-y-2">
                 {callIns.map((item) => (
-                  <li key={item._id} className="rounded-xl border border-slate-100 p-3 space-y-2">
+                  <li key={item._id} className="rounded-xl border border-[rgb(var(--border))] p-3 space-y-2">
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <div>
-                        <p className="text-sm font-semibold text-slate-900">{item.name}</p>
+                        <p className="text-sm font-semibold text-[rgb(var(--fg))]">{item.name}</p>
                         <p className="text-xs text-slate-500">
                           {item.handle ? `@${item.handle.replace(/^@/, "")}` : "ohne Handle"}{" "}
                           {item.channel ? `• ${item.channel}` : ""}
@@ -1625,7 +1932,7 @@ export default function StreamCockpitPage() {
                               ? "bg-amber-100 text-amber-700"
                               : item.status === "removed"
                                 ? "bg-rose-100 text-rose-700"
-                                : "bg-slate-100 text-slate-600"
+                                : "bg-slate-100 text-[rgb(var(--muted))]"
                         }`}
                       >
                         {item.status === "live"
@@ -1640,7 +1947,7 @@ export default function StreamCockpitPage() {
                     {item.notes && <p className="text-xs text-slate-500">{item.notes}</p>}
                     <div className="flex flex-wrap gap-2 text-xs">
                       <button
-                        className="rounded-full border border-slate-300 px-3 py-1"
+                        className="rounded-full border border-[rgb(var(--border))] px-3 py-1"
                         onClick={() => updateCallInStatus(item._id, "invited")}
                       >
                         Eingeladen
@@ -1673,11 +1980,11 @@ export default function StreamCockpitPage() {
       </section>
 
       <div className="grid gap-4 lg:grid-cols-3">
-        <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm space-y-3">
+        <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm space-y-3">
           <div className="flex items-center justify-between gap-3">
-            <h2 className="text-sm font-semibold text-slate-900">Agenda</h2>
+            <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Agenda</h2>
             <button
-              className="rounded-full border border-slate-300 px-3 py-1 text-xs font-semibold"
+              className="rounded-full border border-[rgb(var(--border))] px-3 py-1 text-xs font-semibold"
               onClick={autofillAgenda}
               disabled={autofilling}
             >
@@ -1690,14 +1997,14 @@ export default function StreamCockpitPage() {
           {loading ? (
             <p className="text-sm text-slate-500">Lädt …</p>
           ) : (
-            <ul className="space-y-2 text-sm text-slate-700">
+            <ul className="space-y-2 text-sm text-[rgb(var(--muted))]">
               {items.map((item) => (
-                <li key={item._id} className="rounded-xl border border-slate-100 p-3">
-                  <p className="font-semibold text-slate-900">{item.customQuestion || item.description || item.kind}</p>
+                <li key={item._id} className="rounded-xl border border-[rgb(var(--border))] p-3">
+                  <p className="font-semibold text-[rgb(var(--fg))]">{item.customQuestion || item.description || item.kind}</p>
                   <p className="text-xs text-slate-500 mb-2">Status: {item.status}</p>
                   <div className="flex flex-wrap gap-2 text-xs">
                     <button
-                      className="rounded-full border border-slate-900 bg-slate-900 px-3 py-1 text-white"
+                      className="rounded-full border border-[rgb(var(--border))] bg-slate-900 px-3 py-1 text-white"
                       onClick={async () => {
                         try {
                           await updateItem(item._id, "go_live");
@@ -1710,7 +2017,7 @@ export default function StreamCockpitPage() {
                       Aktiv setzen
                     </button>
                     <button
-                      className="rounded-full border border-slate-300 px-3 py-1"
+                      className="rounded-full border border-[rgb(var(--border))] px-3 py-1"
                       onClick={async () => {
                         try {
                           await updateItem(item._id, "skip");
@@ -1723,7 +2030,7 @@ export default function StreamCockpitPage() {
                       Skip
                     </button>
                     <button
-                      className="rounded-full border border-slate-300 px-3 py-1"
+                      className="rounded-full border border-[rgb(var(--border))] px-3 py-1"
                       onClick={async () => {
                         try {
                           await updateItem(item._id, "archive");
@@ -1738,7 +2045,7 @@ export default function StreamCockpitPage() {
                   </div>
                   <div className="mt-3 flex flex-wrap items-center gap-2">
                     <input
-                      className="min-w-[240px] flex-1 rounded-xl border border-slate-200 px-3 py-2 text-xs"
+                      className="min-w-[240px] flex-1 rounded-xl border border-[rgb(var(--border))] px-3 py-2 text-xs"
                       placeholder={`/qr/${qrCode ?? "deinCode"} oder ${publicStreamPath}?agendaItemId=${item._id}`}
                       value={qrDraftByItem[item._id] ?? ""}
                       onChange={(e) =>
@@ -1746,7 +2053,7 @@ export default function StreamCockpitPage() {
                       }
                     />
                     <button
-                      className="rounded-full border border-slate-300 px-3 py-1 text-xs"
+                      className="rounded-full border border-[rgb(var(--border))] px-3 py-1 text-xs"
                       onClick={() => saveQrTarget(item._id)}
                     >
                       QR-Ziel speichern
@@ -1758,11 +2065,11 @@ export default function StreamCockpitPage() {
           )}
         </section>
 
-        <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm space-y-3">
-          <h2 className="text-sm font-semibold text-slate-900">Live</h2>
+        <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm space-y-3">
+          <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Live</h2>
           {liveItem ? (
             <div>
-              <p className="text-xl font-semibold text-slate-900">{liveItem.customQuestion || liveItem.description}</p>
+              <p className="text-xl font-semibold text-[rgb(var(--fg))]">{liveItem.customQuestion || liveItem.description}</p>
               {liveItem.kind === "poll" && (
                 <ul className="mt-3 space-y-2">
                   {(liveItem.pollOptions ?? []).map((opt) => (
@@ -1783,10 +2090,10 @@ export default function StreamCockpitPage() {
           )}
         </section>
 
-        <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm space-y-3">
-          <h2 className="text-sm font-semibold text-slate-900">Neues Item</h2>
+        <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm space-y-3">
+          <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Neues Item</h2>
           <textarea
-            className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+            className="w-full rounded-xl border border-[rgb(var(--border))] px-3 py-2 text-sm"
             placeholder="Frage oder Statement"
             rows={4}
             value={question}
@@ -1794,20 +2101,20 @@ export default function StreamCockpitPage() {
           />
           <label className="text-xs font-semibold text-slate-500">Poll-Optionen (eine pro Zeile)</label>
           <textarea
-            className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+            className="w-full rounded-xl border border-[rgb(var(--border))] px-3 py-2 text-sm"
             rows={3}
             value={pollOptions}
             onChange={(e) => setPollOptions(e.target.value)}
           />
           <div className="flex flex-wrap gap-2">
             <button
-              className="rounded-full border border-slate-300 px-3 py-1 text-sm"
+              className="rounded-full border border-[rgb(var(--border))] px-3 py-1 text-sm"
               onClick={() => addQuestion("question")}
             >
               Frage anlegen
             </button>
             <button
-              className="rounded-full border border-slate-900 bg-slate-900 px-3 py-1 text-sm text-white"
+              className="rounded-full border border-[rgb(var(--border))] bg-slate-900 px-3 py-1 text-sm text-white"
               onClick={() => addQuestion("poll")}
             >
               Poll anlegen
@@ -1815,11 +2122,11 @@ export default function StreamCockpitPage() {
           </div>
         </section>
 
-        <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm space-y-3">
+        <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm space-y-3">
           <div className="flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-slate-900">QR Fragen-Set</h2>
+            <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">QR Fragen-Set</h2>
             <button
-              className="rounded-full border border-slate-300 px-3 py-1 text-xs font-semibold"
+              className="rounded-full border border-[rgb(var(--border))] px-3 py-1 text-xs font-semibold"
               onClick={addQrQuestion}
               disabled={qrQuestions.length >= 5}
             >
@@ -1829,13 +2136,13 @@ export default function StreamCockpitPage() {
           {qrError && <p className="text-xs text-rose-600">{qrError}</p>}
           {qrNotice && <p className="text-xs text-emerald-600">{qrNotice}</p>}
           {qrCode && (
-            <p className="text-xs text-slate-600">
+            <p className="text-xs text-[rgb(var(--muted))]">
               QR-Link: <a className="underline" href={`/qr/${qrCode}`}>{`/qr/${qrCode}`}</a>
             </p>
           )}
           <div className="space-y-3">
             {qrQuestions.map((q, idx) => (
-              <div key={idx} className="rounded-xl border border-slate-100 p-3 space-y-2">
+              <div key={idx} className="rounded-xl border border-[rgb(var(--border))] p-3 space-y-2">
                 <div className="flex items-center justify-between">
                   <p className="text-xs font-semibold text-slate-500">Frage {idx + 1}</p>
                   <button
@@ -1846,13 +2153,13 @@ export default function StreamCockpitPage() {
                   </button>
                 </div>
                 <input
-                  className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+                  className="w-full rounded-xl border border-[rgb(var(--border))] px-3 py-2 text-sm"
                   placeholder="Frage"
                   value={q.title}
                   onChange={(e) => updateQrQuestion(idx, { title: e.target.value })}
                 />
                 <textarea
-                  className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+                  className="w-full rounded-xl border border-[rgb(var(--border))] px-3 py-2 text-sm"
                   placeholder="Eventualitäten / Optionen (eine pro Zeile)"
                   rows={3}
                   value={q.options}
@@ -1862,7 +2169,7 @@ export default function StreamCockpitPage() {
             ))}
           </div>
           <button
-            className="rounded-full border border-slate-900 bg-slate-900 px-4 py-2 text-sm text-white"
+            className="rounded-full border border-[rgb(var(--border))] bg-slate-900 px-4 py-2 text-sm text-white"
             onClick={createQrSet}
             disabled={qrCreating}
           >

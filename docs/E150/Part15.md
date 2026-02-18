@@ -729,6 +729,40 @@ Verification:
 Next Steps:
 - Optional: Vote-Aggregationen/Analytics fuer Admin-Reports vorbereiten.
 
+### PR-0037 (2026-02-18) – Stream Identity Check & Pre-Stream Tutorial
+
+Ziel:
+- Identity-Check fuer Streams (Ausweis/Pass-Upload mit Vorder/Rueckseite).
+- Pre-Stream E-Mail-Code-Bestaetigung plus 3-Minuten-Tutorial im Cockpit.
+
+Changes:
+- PII: `user_identity_documents` plus API `GET/POST/DELETE /api/account/identity-document`.
+- Account: Identity-Check-Card mit Upload & kleiner Vorschau (nur intern sichtbar).
+- Stream-Cockpit: Pre-Stream-Panel fuer ID-Status, E-Mail-Code, Tutorial-Countdown.
+
+Verification:
+- Not run (nicht angefragt).
+
+Next Steps:
+- Optional: Stream-Start hart blocken, bis Identity-Check abgeschlossen ist.
+
+### PR-0038 (2026-02-18) – Identity UX Polish
+
+Ziel:
+- Identity-Check mit klarerem Status, Privacy-Hinweis und besserer Upload-UX.
+- Pre-Stream Panel als Checkliste mit Ready-Status und Tutorial-Steuerung.
+
+Changes:
+- Account: neue Identity-Check-Card mit Typ-Auswahl (Cards), Status-Badge, Vorschau-Markierung und Datei-Feedback.
+- Stream-Cockpit: Checkliste mit Ready-Status, optimierte E-Mail-Code-Steuerung, Tutorial-Status.
+- API: groessere Image-Data-URL-Limits fuer Uploads.
+
+Verification:
+- Not run (nicht angefragt).
+
+Next Steps:
+- Optional: Uploads auf verschluesseltes Storage auslagern (PII-Hardening).
+
 ### PR-0036 (2026-02-12) – Page Contracts Cleanup
 
 Ziel:
