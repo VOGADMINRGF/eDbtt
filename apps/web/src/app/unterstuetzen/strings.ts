@@ -8,8 +8,8 @@ const STRINGS = {
     en: "Unterstützen",
   },
   heroIntro: {
-    de: "eDebatte ist eine gemeinwohlorientierte Plattform – unabhängig, datensicher und demokratisch. Deine Unterstützung macht politische Teilhabe möglich.",
-    en: "eDebatte ist eine gemeinwohlorientierte Plattform – unabhängig, datensicher und demokratisch. Deine Unterstützung macht politische Teilhabe möglich.",
+    de: "eDebatte ist eine gemeinwohlorientierte Plattform – unabhängig, datensicher und demokratisch. Die Unterstützung läuft über VoiceOpenGov, die Initiative hinter eDebatte.",
+    en: "eDebatte ist eine gemeinwohlorientierte Plattform – unabhängig, datensicher und demokratisch. Die Unterstützung läuft über VoiceOpenGov, die Initiative hinter eDebatte.",
   },
   whyTitle: {
     de: "Warum unterstützen?",
@@ -28,19 +28,19 @@ const STRINGS = {
     ],
   },
   membershipTitle: {
-    de: "Mitgliedschaften",
-    en: "Mitgliedschaften",
+    de: "So unterstützt du die Initiative",
+    en: "So unterstützt du die Initiative",
   },
   membershipList: {
     de: [
-      "10 €/Monat – Zugang zu Reports & Beteiligungsformaten",
-      "25 €/Monat – Engagiert, inkl. Community-Formate",
-      "50 €/Monat – Fördermitgliedschaft",
+      "Unterstützung läuft über VoiceOpenGov (Initiative hinter eDebatte).",
+      "Einmalig oder regelmäßig – ohne Stimmvorteile.",
+      "Keine Spendenquittung in der Aufbauphase.",
     ],
     en: [
-      "10 €/Monat – Zugang zu Reports & Beteiligungsformaten",
-      "25 €/Monat – Engagiert, inkl. Community-Formate",
-      "50 €/Monat – Fördermitgliedschaft",
+      "Unterstützung läuft über VoiceOpenGov (Initiative hinter eDebatte).",
+      "Einmalig oder regelmäßig – ohne Stimmvorteile.",
+      "Keine Spendenquittung in der Aufbauphase.",
     ],
   },
   bundlesNotePrefix: {
@@ -48,12 +48,12 @@ const STRINGS = {
     en: "Für Plattform-Kontingente (Beiträge, Swipes, Bundles) siehe",
   },
   bundlesNoteSuffix: {
-    de: ". Die VoG-Mitgliedschaft bleibt davon getrennt.",
-    en: ". Die VoG-Mitgliedschaft bleibt davon getrennt.",
+    de: ". Die VoiceOpenGov-Unterstützung bleibt davon getrennt.",
+    en: ". Die VoiceOpenGov-Unterstützung bleibt davon getrennt.",
   },
   cta: {
-    de: "Jetzt unterstützen",
-    en: "Jetzt unterstützen",
+    de: "Bankdaten anzeigen",
+    en: "Bankdaten anzeigen",
   },
 } as const satisfies Record<string, Entry<string | string[]>>;
 

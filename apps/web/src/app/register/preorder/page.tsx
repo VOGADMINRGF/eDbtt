@@ -1,9 +1,10 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { RegisterStepper } from "../RegisterStepper";
 import { EDEBATTE_PLANS } from "@/config/pricing";
+import { BANK_DETAILS } from "@/config/banking";
 
 type PackageId = "basis" | "start" | "pro";
 
@@ -33,6 +34,10 @@ function withPreorderFlag(nextUrl: string) {
   } catch {
     return nextUrl;
   }
+}
+
+function formatEuro(value: number) {
+  return new Intl.NumberFormat("de-DE", { style: "currency", currency: "EUR" }).format(value);
 }
 
 const PLAN_OPTIONS: PlanOption[] = EDEBATTE_PLANS.map((plan) => {
@@ -65,11 +70,23 @@ export default function PreorderPage() {
   const [busy, setBusy] = useState(false);
   const [errMsg, setErrMsg] = useState<string | null>(null);
   const [success, setSuccess] = useState<{ planLabel: string } | null>(null);
+  const [pledgeAmount, setPledgeAmount] = useState("");
+  const [pledgeBusy, setPledgeBusy] = useState(false);
+  const [pledgeError, setPledgeError] = useState<string | null>(null);
+  const [pledgeResult, setPledgeResult] = useState<{ amount: number; reference: string } | null>(null);
 
   const selectedPlanInfo = PLAN_OPTIONS.find((p) => p.id === selectedPlan) ?? PLAN_OPTIONS[0];
 
   const successNext = withPreorderFlag(nextParam);
   const pushRoute = (href: string) => router.push(href as Parameters<typeof router.push>[0]);
+
+  useEffect(() => {
+    if (!success) return;
+    const defaultAmount = selectedPlanInfo?.monthlyPrice > 0 ? selectedPlanInfo.monthlyPrice : 25;
+    setPledgeAmount(defaultAmount.toFixed(2).replace(".", ","));
+    setPledgeResult(null);
+    setPledgeError(null);
+  }, [success, selectedPlanInfo]);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -104,6 +121,36 @@ export default function PreorderPage() {
     }
   }
 
+  async function submitPledge(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setPledgeError(null);
+    setPledgeResult(null);
+
+    const numericAmount = Number(pledgeAmount.replace(",", "."));
+    if (!Number.isFinite(numericAmount) || numericAmount <= 0) {
+      setPledgeError("Bitte einen gueltigen Betrag eingeben.");
+      return;
+    }
+
+    setPledgeBusy(true);
+    try {
+      const res = await fetch("/api/edebatte/pledge", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ amount: numericAmount }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok || !body?.ok) {
+        throw new Error(body?.error || body?.message || "Zahlungszusage fehlgeschlagen");
+      }
+      setPledgeResult(body.pledge ?? null);
+    } catch (err: any) {
+      setPledgeError(err?.message ?? "Zahlungszusage fehlgeschlagen");
+    } finally {
+      setPledgeBusy(false);
+    }
+  }
+
   if (success) {
     return (
       <div className="mx-auto flex max-w-3xl flex-col gap-6 p-6">
@@ -123,13 +170,64 @@ export default function PreorderPage() {
             </button>
             <button
               type="button"
-              className="rounded-full border border-emerald-200 bg-white px-4 py-2 text-sm font-semibold text-emerald-700 hover:bg-emerald-100"
+              className="rounded-full border border-emerald-200 bg-[rgb(var(--card))] px-4 py-2 text-sm font-semibold text-emerald-700 hover:bg-emerald-100"
               onClick={() => setSuccess(null)}
             >
               Weitere Vormerkung
             </button>
           </div>
         </div>
+
+        <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm">
+          <div className="space-y-2">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+              Optional · Verbindlich
+            </p>
+            <h2 className="text-lg font-semibold text-[rgb(var(--fg))]">Verbindliche Zahlungszusage</h2>
+            <p className="text-sm text-[rgb(var(--muted))]">
+              Wenn du statt einer unverbindlichen Vormerkung bereits jetzt Geld zur Verfuegung stellen
+              moechtest, kannst du hier eine einmalige Zahlungszusage anlegen.
+            </p>
+          </div>
+
+          <form className="mt-4 grid gap-3 sm:grid-cols-[1fr_auto]" onSubmit={submitPledge}>
+            <label className="grid gap-1 text-sm">
+              Betrag in EUR
+              <input
+                value={pledgeAmount}
+                onChange={(event) => setPledgeAmount(event.target.value)}
+                inputMode="decimal"
+                className="rounded-xl border border-[rgb(var(--border))] px-3 py-2"
+                placeholder="25,00"
+                required
+              />
+            </label>
+            <button
+              type="submit"
+              disabled={pledgeBusy}
+              className="mt-5 h-fit rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-60"
+            >
+              {pledgeBusy ? "Wird angelegt …" : "Zahlungszusage anlegen"}
+            </button>
+          </form>
+
+          {pledgeError ? <p className="mt-3 text-sm text-rose-600">{pledgeError}</p> : null}
+
+          {pledgeResult ? (
+            <div className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900">
+              <p className="font-semibold">Verwendungszweck: {pledgeResult.reference}</p>
+              <p className="mt-1">Betrag: {formatEuro(pledgeResult.amount)}</p>
+              <p className="mt-2 text-emerald-900/80">Bankverbindung:</p>
+              <p className="text-emerald-900/80">
+                Empfaenger: {BANK_DETAILS.recipient} · IBAN: {BANK_DETAILS.iban}
+                {BANK_DETAILS.bic ? ` · BIC: ${BANK_DETAILS.bic}` : ""}
+              </p>
+              <p className="mt-2 text-[11px] text-emerald-900/70">
+                Hinweis: Spenden und Mitgliedsbeitraege laufen weiterhin ueber VoiceOpenGov.
+              </p>
+            </div>
+          ) : null}
+        </section>
       </div>
     );
   }
@@ -140,18 +238,18 @@ export default function PreorderPage() {
 
       <header className="space-y-2">
         <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Schritt 3 · Vormerkung</p>
-        <h1 className="text-2xl font-semibold text-slate-900">eDebatte-Paket vormerken</h1>
-        <p className="text-sm text-slate-600">
+        <h1 className="text-2xl font-semibold text-[rgb(var(--fg))]">eDebatte-Paket vormerken</h1>
+        <p className="text-sm text-[rgb(var(--muted))]">
           Die Vormerkung ist unverbindlich und ohne Zahlung. Du kannst sie jederzeit im Konto anpassen.
         </p>
       </header>
 
-      <section className="space-y-4 rounded-3xl border border-slate-200 bg-white/95 p-5 shadow-sm">
+      <section className="space-y-4 rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm">
         <div className="space-y-2">
-          <p className="text-sm font-semibold text-slate-900">Moechtest du dein Paket jetzt vormerken?</p>
+          <p className="text-sm font-semibold text-[rgb(var(--fg))]">Moechtest du dein Paket jetzt vormerken?</p>
 
           <div className="grid gap-2 md:grid-cols-2">
-            <label className="flex items-start gap-3 rounded-2xl border border-slate-200 bg-slate-50/70 px-4 py-3 text-sm">
+            <label className="flex items-start gap-3 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-4 py-3 text-sm">
               <input
                 type="radio"
                 name="preorder-choice"
@@ -159,12 +257,12 @@ export default function PreorderPage() {
                 onChange={() => setWantsPreorder(true)}
               />
               <span>
-                <span className="block font-semibold text-slate-900">Ja, vormerken</span>
+                <span className="block font-semibold text-[rgb(var(--fg))]">Ja, vormerken</span>
                 <span className="block text-xs text-slate-500">Wir merken dein Wunschpaket vor.</span>
               </span>
             </label>
 
-            <label className="flex items-start gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm">
+            <label className="flex items-start gap-3 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-3 text-sm">
               <input
                 type="radio"
                 name="preorder-choice"
@@ -172,7 +270,7 @@ export default function PreorderPage() {
                 onChange={() => setWantsPreorder(false)}
               />
               <span>
-                <span className="block font-semibold text-slate-900">Spaeter entscheiden</span>
+                <span className="block font-semibold text-[rgb(var(--fg))]">Spaeter entscheiden</span>
                 <span className="block text-xs text-slate-500">Du kannst jederzeit nachholen.</span>
               </span>
             </label>
@@ -182,7 +280,7 @@ export default function PreorderPage() {
         {wantsPreorder ? (
           <form onSubmit={handleSubmit} className="space-y-5">
             <div className="space-y-3">
-              <p className="text-sm font-semibold text-slate-900">Paket waehlen</p>
+              <p className="text-sm font-semibold text-[rgb(var(--fg))]">Paket waehlen</p>
               <div className="grid gap-3 md:grid-cols-3">
                 {PLAN_OPTIONS.map((plan) => (
                   <button
@@ -192,13 +290,13 @@ export default function PreorderPage() {
                     className={[
                       "rounded-2xl border px-3 py-3 text-left text-sm transition",
                       selectedPlan === plan.id
-                        ? "border-sky-300 bg-sky-50 text-slate-900 shadow-sm"
-                        : "border-slate-200 bg-white text-slate-700 hover:border-sky-200",
+                        ? "border-sky-300 bg-sky-50 text-[rgb(var(--fg))] shadow-sm"
+                        : "border-[rgb(var(--border))] bg-[rgb(var(--card))] text-[rgb(var(--muted))] hover:border-sky-200",
                     ].join(" ")}
                   >
                     <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{plan.label}</p>
-                    <p className="mt-2 text-xs text-slate-600">{plan.description}</p>
-                    <p className="mt-3 text-sm font-semibold text-slate-900">
+                    <p className="mt-2 text-xs text-[rgb(var(--muted))]">{plan.description}</p>
+                    <p className="mt-3 text-sm font-semibold text-[rgb(var(--fg))]">
                       {plan.isFree ? "Kostenfrei" : `${plan.monthlyPrice.toFixed(2)} € / Monat`}
                     </p>
                   </button>
@@ -218,7 +316,7 @@ export default function PreorderPage() {
               </button>
               <button
                 type="button"
-                className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+                className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-2 text-sm font-semibold text-[rgb(var(--muted))] hover:bg-[rgb(var(--bg))]"
                 onClick={() => pushRoute(nextParam)}
               >
                 Ohne Vormerkung weiter
@@ -236,7 +334,7 @@ export default function PreorderPage() {
             </button>
             <button
               type="button"
-              className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+              className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-2 text-sm font-semibold text-[rgb(var(--muted))] hover:bg-[rgb(var(--bg))]"
               onClick={() => setWantsPreorder(true)}
             >
               Doch vormerken

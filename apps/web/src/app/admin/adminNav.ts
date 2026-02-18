@@ -68,12 +68,6 @@ export const NAV_SECTIONS: NavSection[] = [
         keywords: ["users", "roles", "access tier"],
       },
       {
-        href: "/admin/memberships",
-        label: "Mitgliedschaften",
-        description: "Status & Antraege",
-        keywords: ["memberships", "status", "payment"],
-      },
-      {
         href: "/admin/access",
         label: "Access Center",
         description: "Seitenzugriffe verwalten",

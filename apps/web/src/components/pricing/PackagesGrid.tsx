@@ -18,7 +18,7 @@ const STATUS_CLASS: Record<PackageStatus, string> = {
   verfuegbar: "bg-emerald-50 text-emerald-700 ring-emerald-200",
   pilot: "bg-sky-50 text-sky-700 ring-sky-200",
   vormerkung: "bg-amber-50 text-amber-700 ring-amber-200",
-  bald: "bg-slate-100 text-slate-600 ring-slate-200",
+  bald: "bg-slate-100 text-[rgb(var(--muted))] ring-slate-200",
 };
 
 function cx(...classes: Array<string | false | null | undefined>) {
@@ -50,13 +50,13 @@ function PackagesGrid({ packages }: PackagesGridProps) {
               : "bg-[linear-gradient(135deg,rgba(14,165,233,0.45),rgba(16,185,129,0.45))]",
           )}
         >
-          <article className="rounded-[22px] bg-white/95 p-6">
+          <article className="rounded-[22px] bg-[rgb(var(--card))] p-6">
             <div className="flex items-start justify-between gap-3">
               <div>
                 <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
                   {pkg.zielgruppe}
                 </p>
-                <h3 className="mt-1 text-xl font-semibold text-slate-900">{pkg.titel}</h3>
+                <h3 className="mt-1 text-xl font-semibold text-[rgb(var(--fg))]">{pkg.titel}</h3>
               </div>
 
               <div className="flex flex-col items-end gap-2">
@@ -76,11 +76,11 @@ function PackagesGrid({ packages }: PackagesGridProps) {
               </div>
             </div>
 
-            <p className="mt-3 text-sm text-slate-600">{pkg.beschreibungKurz}</p>
+            <p className="mt-3 text-sm text-[rgb(var(--muted))]">{pkg.beschreibungKurz}</p>
 
-            <p className="mt-5 text-2xl font-extrabold tracking-tight text-slate-900">{priceLine(pkg)}</p>
+            <p className="mt-5 text-2xl font-extrabold tracking-tight text-[rgb(var(--fg))]">{priceLine(pkg)}</p>
 
-            <ul className="mt-4 space-y-2 text-sm text-slate-700">
+            <ul className="mt-4 space-y-2 text-sm text-[rgb(var(--muted))]">
               {pkg.leistungen.slice(0, 4).map((item) => (
                 <li key={item} className="flex gap-2">
                   <span className="mt-2 h-2 w-2 rounded-full bg-emerald-500" aria-hidden="true" />
@@ -98,18 +98,31 @@ function PackagesGrid({ packages }: PackagesGridProps) {
               </Link>
 
               {pkg.sekundarCtaHref && pkg.sekundarCtaText ? (
-                <a
-                  href={pkg.sekundarCtaHref}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex w-full items-center justify-center rounded-full border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50"
-                >
-                  {pkg.sekundarCtaText}
-                </a>
+                pkg.sekundarCtaHref.startsWith("http") ? (
+                  <a
+                    href={pkg.sekundarCtaHref}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex w-full items-center justify-center rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-5 py-3 text-sm font-semibold text-[rgb(var(--muted))] hover:bg-[rgb(var(--bg))]"
+                  >
+                    {pkg.sekundarCtaText}
+                  </a>
+                ) : (
+                  <Link
+                    href={pkg.sekundarCtaHref}
+                    className="inline-flex w-full items-center justify-center rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-5 py-3 text-sm font-semibold text-[rgb(var(--muted))] hover:bg-[rgb(var(--bg))]"
+                  >
+                    {pkg.sekundarCtaText}
+                  </Link>
+                )
               ) : null}
             </div>
 
-            <p className="mt-4 text-xs text-slate-500">Vormerkung = unverbindlich. Keine Zahlung, kein Abo.</p>
+            <p className="mt-4 text-xs text-slate-500">
+              {pkg.id.startsWith("b2b_") || pkg.id.startsWith("b2g_")
+                ? "Vormerkung = unverbindlich. Wir klaeren Setup, Umfang und Starttermin."
+                : "Vormerkung = unverbindlich. Keine Zahlung, kein Abo."}
+            </p>
           </article>
         </div>
       ))}

@@ -74,17 +74,17 @@ export default function AdminDashboardPage() {
 
   return (
     <div className="space-y-6">
-      <header className="rounded-3xl bg-white/90 p-5 shadow ring-1 ring-slate-100">
+      <header className="rounded-3xl bg-[rgb(var(--card))] p-5 shadow ring-1 ring-slate-100">
         <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Admin Dashboard</p>
-        <h1 className="mt-1 text-2xl font-semibold text-slate-900">Steuerzentrale</h1>
-        <p className="mt-2 text-sm text-slate-600">
+        <h1 className="mt-1 text-2xl font-semibold text-[rgb(var(--fg))]">Steuerzentrale</h1>
+        <p className="mt-2 text-sm text-[rgb(var(--muted))]">
           Überblick über Nutzer, Inhalte, Graph, Telemetrie und operative Warteschlangen.
         </p>
       </header>
 
-      <section className="rounded-3xl bg-white/90 p-4 shadow ring-1 ring-slate-100">
+      <section className="rounded-3xl bg-[rgb(var(--card))] p-4 shadow ring-1 ring-slate-100">
         <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-slate-900">Schnellaktionen</h2>
+          <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Schnellaktionen</h2>
           <span className="text-xs text-slate-500">Direkte Wege zu den wichtigsten Warteschlangen</span>
         </div>
         <div className="mt-3 grid gap-2 md:grid-cols-2 lg:grid-cols-4">
@@ -101,7 +101,7 @@ export default function AdminDashboardPage() {
             <Link
               key={entry.href}
               href={entry.href}
-              className="rounded-2xl border border-slate-200 bg-slate-50/80 px-3 py-2 text-xs font-semibold text-slate-700 transition hover:border-sky-200 hover:text-slate-900"
+              className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-xs font-semibold text-[rgb(var(--muted))] transition hover:border-sky-200 hover:text-[rgb(var(--fg))]"
             >
               {entry.label}
             </Link>
@@ -130,37 +130,37 @@ export default function AdminDashboardPage() {
       </section>
 
       <section className="grid gap-4 lg:grid-cols-2">
-        <div className="rounded-3xl bg-white/90 p-4 shadow ring-1 ring-slate-100">
-          <h2 className="text-sm font-semibold text-slate-900">Paket-Verteilung</h2>
+        <div className="rounded-3xl bg-[rgb(var(--card))] p-4 shadow ring-1 ring-slate-100">
+          <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Paket-Verteilung</h2>
           <div className="mt-2 space-y-2">
             {loading && <SkeletonLines lines={4} />}
             {!loading &&
               data?.packages?.map((p) => (
-                <div key={p.code} className="flex items-center justify-between rounded-xl bg-slate-50 px-3 py-2 text-sm">
+                <div key={p.code} className="flex items-center justify-between rounded-xl bg-[rgb(var(--bg))] px-3 py-2 text-sm">
                   <span className="font-medium text-slate-800">{p.code || "none"}</span>
-                  <span className="text-slate-700">{nf.format(p.count)}</span>
+                  <span className="text-[rgb(var(--muted))]">{nf.format(p.count)}</span>
                 </div>
               ))}
           </div>
         </div>
 
-        <div className="rounded-3xl bg-white/90 p-4 shadow ring-1 ring-slate-100">
-          <h2 className="text-sm font-semibold text-slate-900">Rollen-Verteilung</h2>
+        <div className="rounded-3xl bg-[rgb(var(--card))] p-4 shadow ring-1 ring-slate-100">
+          <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Rollen-Verteilung</h2>
           <div className="mt-2 space-y-2">
             {loading && <SkeletonLines lines={4} />}
             {!loading &&
               data?.roles?.map((r) => (
-                <div key={r.role} className="flex items-center justify-between rounded-xl bg-slate-50 px-3 py-2 text-sm">
+                <div key={r.role} className="flex items-center justify-between rounded-xl bg-[rgb(var(--bg))] px-3 py-2 text-sm">
                   <span className="font-medium text-slate-800">{r.role}</span>
-                  <span className="text-slate-700">{nf.format(r.count)}</span>
+                  <span className="text-[rgb(var(--muted))]">{nf.format(r.count)}</span>
                 </div>
               ))}
           </div>
         </div>
       </section>
 
-      <section className="rounded-3xl bg-white/90 p-4 shadow ring-1 ring-slate-100">
-        <h2 className="text-sm font-semibold text-slate-900">Registrierungen (letzte 30 Tage)</h2>
+      <section className="rounded-3xl bg-[rgb(var(--card))] p-4 shadow ring-1 ring-slate-100">
+        <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Registrierungen (letzte 30 Tage)</h2>
         <div className="mt-3 flex items-end gap-1 min-h-[80px]">
           {loading && <SkeletonBars />}
           {!loading && data?.registrationsLast30Days?.length === 0 && (
@@ -263,7 +263,6 @@ export default function AdminDashboardPage() {
             { href: "/admin/analytics", label: "Analytics" },
             { href: "/admin/errors", label: "Errors" },
             { href: "/admin/eventualities", label: "Eventualities" },
-            { href: "/admin/memberships", label: "Memberships" },
             { href: "/admin/newsletter", label: "Newsletter" },
             { href: "/admin/orgs", label: "Orgs" },
             { href: "/admin/pitch", label: "Pitch" },
@@ -276,7 +275,7 @@ export default function AdminDashboardPage() {
             <Link
               key={entry.href}
               href={entry.href}
-              className="rounded-full bg-white/90 px-3 py-1.5 text-xs font-semibold text-slate-700 ring-1 ring-slate-200 transition hover:ring-sky-200"
+              className="rounded-full bg-[rgb(var(--card))] px-3 py-1.5 text-xs font-semibold text-[rgb(var(--muted))] ring-1 ring-slate-200 transition hover:ring-sky-200"
             >
               {entry.label}
             </Link>
@@ -301,12 +300,12 @@ function renderCard(
   href?: string,
 ) {
   const content = (
-    <div className="rounded-3xl bg-white/90 p-4 shadow ring-1 ring-slate-100 hover:ring-sky-200">
+    <div className="rounded-3xl bg-[rgb(var(--card))] p-4 shadow ring-1 ring-slate-100 hover:ring-sky-200">
       <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">{title}</p>
       {loading ? (
         <div className="mt-2 h-6 w-16 animate-pulse rounded bg-slate-100" />
       ) : (
-        <p className="mt-1 text-2xl font-semibold text-slate-900">{nf.format(value ?? 0)}</p>
+        <p className="mt-1 text-2xl font-semibold text-[rgb(var(--fg))]">{nf.format(value ?? 0)}</p>
       )}
       {subtitle && <p className="mt-1 text-[11px] text-slate-400">{subtitle}</p>}
     </div>
@@ -345,10 +344,10 @@ function LinkCard({ title, description, href }: { title: string; description: st
   return (
     <Link
       href={href}
-      className="rounded-3xl bg-white/90 p-4 shadow ring-1 ring-slate-100 transition hover:-translate-y-0.5 hover:ring-sky-200"
+      className="rounded-3xl bg-[rgb(var(--card))] p-4 shadow ring-1 ring-slate-100 transition hover:-translate-y-0.5 hover:ring-sky-200"
     >
       <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">{title}</p>
-      <p className="mt-2 text-sm text-slate-700">{description}</p>
+      <p className="mt-2 text-sm text-[rgb(var(--muted))]">{description}</p>
     </Link>
   );
 }

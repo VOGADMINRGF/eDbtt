@@ -46,19 +46,19 @@ export function MembershipCalculator_VOG() {
   }, [household]);
 
   return (
-    <section className="rounded-2xl border border-slate-200 bg-white/90 p-6 shadow-sm space-y-5">
+    <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-6 shadow-sm space-y-5">
       <header>
-        <h2 className="text-xl font-semibold text-slate-900">
-          Beitrag berechnen – eDebatte
+        <h2 className="text-xl font-semibold text-[rgb(var(--fg))]">
+          Beitrag berechnen – VoiceOpenGov
         </h2>
-        <p className="text-sm text-slate-600">
+        <p className="text-sm text-[rgb(var(--muted))]">
           Empfehlung: 1 % von (Haushaltsnetto – Miete), mindestens 5,63 € pro
           Person ab 16 Jahren – dieser Betrag entspricht dem sozial verträglichen Minimum (ALG&nbsp;II/Bürgergeld).
         </p>
       </header>
 
       <div className="grid gap-4 md:grid-cols-2">
-        <label className="text-sm font-medium text-slate-700">
+        <label className="text-sm font-medium text-[rgb(var(--muted))]">
           Haushaltsnetto (€)
           <input
             type="number"
@@ -66,11 +66,11 @@ export function MembershipCalculator_VOG() {
             step="0.01"
             value={netIncome}
             onChange={(e) => setNetIncome(e.target.value)}
-            className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2"
+            className="mt-1 w-full rounded-xl border border-[rgb(var(--border))] px-3 py-2"
             placeholder="z. B. 2400"
           />
         </label>
-        <label className="text-sm font-medium text-slate-700">
+        <label className="text-sm font-medium text-[rgb(var(--muted))]">
           Warmmiete (€)
           <input
             type="number"
@@ -78,7 +78,7 @@ export function MembershipCalculator_VOG() {
             step="0.01"
             value={rent}
             onChange={(e) => setRent(e.target.value)}
-            className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2"
+            className="mt-1 w-full rounded-xl border border-[rgb(var(--border))] px-3 py-2"
             placeholder="z. B. 900"
           />
         </label>
@@ -86,7 +86,7 @@ export function MembershipCalculator_VOG() {
 
       <div className="grid gap-4 md:grid-cols-2">
         <div>
-          <div className="text-sm font-medium text-slate-700">Vorschlag</div>
+          <div className="text-sm font-medium text-[rgb(var(--muted))]">Vorschlag</div>
           <p className="text-2xl font-semibold text-emerald-600 mt-1">
             {formatEuro(suggestion)} €
           </p>
@@ -99,8 +99,8 @@ export function MembershipCalculator_VOG() {
           </button>
         </div>
         <div>
-          <div className="text-sm font-medium text-slate-700">Rhythmus</div>
-          <div className="mt-2 inline-flex rounded-full border border-slate-200 bg-slate-50 p-1">
+          <div className="text-sm font-medium text-[rgb(var(--muted))]">Rhythmus</div>
+          <div className="mt-2 inline-flex rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-1">
             {RHYTHM_OPTIONS.map((option) => (
               <button
                 key={option}
@@ -109,7 +109,7 @@ export function MembershipCalculator_VOG() {
                 className={`rounded-full px-3 py-1 text-sm ${
                   rhythm === option
                     ? "bg-emerald-500 text-white"
-                    : "text-slate-600"
+                    : "text-[rgb(var(--muted))]"
                 }`}
               >
                 {option === "monthly" ? "monatlich" : "einmalig"}
@@ -120,7 +120,7 @@ export function MembershipCalculator_VOG() {
       </div>
 
       <div>
-        <div className="text-sm font-medium text-slate-700">Betrag pro Person / Mitglied</div>
+        <div className="text-sm font-medium text-[rgb(var(--muted))]">Betrag pro Person</div>
         <div className="mt-2 flex flex-wrap gap-2">
           {plan.presets.map((preset) => (
             <button
@@ -130,7 +130,7 @@ export function MembershipCalculator_VOG() {
               className={`rounded-full border px-3 py-1 text-sm ${
                 amount === preset
                   ? "border-emerald-500 text-emerald-600"
-                  : "border-slate-300 text-slate-600 hover:bg-slate-50"
+                  : "border-[rgb(var(--border))] text-[rgb(var(--muted))] hover:bg-[rgb(var(--bg))]"
               }`}
             >
               {formatEuro(preset)} €
@@ -143,15 +143,15 @@ export function MembershipCalculator_VOG() {
               step="0.01"
               value={amount}
               onChange={(e) => setAmount(Math.max(0, Number(e.target.value) || 0))}
-              className="w-28 rounded-full border border-slate-300 px-3 py-1.5"
+              className="w-28 rounded-full border border-[rgb(var(--border))] px-3 py-1.5"
             />
-            <span className="text-sm text-slate-600">€</span>
+            <span className="text-sm text-[rgb(var(--muted))]">€</span>
           </div>
         </div>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
-        <label className="text-sm font-medium text-slate-700">
+        <label className="text-sm font-medium text-[rgb(var(--muted))]">
           Haushaltsgröße (≥ 16 Jahre)
           <input
             type="number"
@@ -161,24 +161,24 @@ export function MembershipCalculator_VOG() {
             onChange={(e) =>
               setHousehold(Math.max(1, Math.floor(Number(e.target.value)) || 1))
             }
-            className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2"
+            className="mt-1 w-full rounded-xl border border-[rgb(var(--border))] px-3 py-2"
           />
         </label>
-        <label className="text-sm font-medium text-slate-700">
+        <label className="text-sm font-medium text-[rgb(var(--muted))]">
           Fähigkeiten (optional)
           <input
             value={skills}
             onChange={(e) => setSkills(e.target.value)}
-            className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2"
+            className="mt-1 w-full rounded-xl border border-[rgb(var(--border))] px-3 py-2"
             placeholder="Moderation, Design, Tech ..."
           />
         </label>
       </div>
 
       {household > 1 && (
-        <div className="rounded-2xl border border-slate-200 bg-white/80 p-4">
+        <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4">
           <div className="text-sm font-semibold text-slate-800">
-            E-Mail je Mitglied (≥ 16 Jahre)
+            E-Mail je Person (≥ 16 Jahre)
           </div>
           <p className="text-xs text-slate-500">
             Damit jede Person ihre eigene Bestätigung erhält.
@@ -197,7 +197,7 @@ export function MembershipCalculator_VOG() {
                     return next;
                   })
                 }
-                className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm"
+                className="w-full rounded-xl border border-[rgb(var(--border))] px-3 py-2 text-sm"
               />
             ))}
           </div>
@@ -210,8 +210,8 @@ export function MembershipCalculator_VOG() {
           <strong>{formatEuro(total)} €</strong>{" "}
           {rhythm === "monthly" ? "/ Monat" : "einmalig"}
         </div>
-        <div className="text-slate-600">
-          Der Rechner setzt beim späteren Support-Intent den vorgeschlagenen Betrag & Haushaltsgröße.
+        <div className="text-[rgb(var(--muted))]">
+          Wenn du später eine verbindliche Zahlungszusage machst, wird dieser Betrag genutzt.
         </div>
       </footer>
     </section>

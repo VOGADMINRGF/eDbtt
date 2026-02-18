@@ -5,8 +5,11 @@ import { useMemo } from "react";
 import { BRAND } from "@/lib/brand";
 import { useLocale } from "@/context/LocaleContext";
 import { mapTranslatableStrings, useAutoTranslateText } from "@/lib/i18n/autoTranslate";
+import ThemeToggle from "@/components/ThemeToggle";
+import ReadingModeToggle from "@/components/ReadingModeToggle";
 
 const infoLinks = [
+  { href: "/ueber-uns", label: "Über uns" },
   { href: "/howtoworks/edebatte", label: "So funktioniert's" },
   { href: "/howtoworks/bewegung", label: "Die Bewegung" },
   { href: "/pricing", label: "Preise" },
@@ -33,37 +36,46 @@ const legalLinks = [
 
 const currentYear = new Date().getFullYear();
 
+const FOOTER_BG = "bg-[rgb(var(--bg))] text-[rgb(var(--fg))]";
+const TOP_BORDER = "border-t border-[rgb(var(--border))]";
+const SOFT_RULE = "h-px w-full bg-gradient-to-r from-[rgb(var(--grad-from))] to-transparent opacity-40";
+
 export default function SiteFooter() {
   const { locale } = useLocale();
   const t = useAutoTranslateText({ locale, namespace: "site-footer" });
+
+  const isNative = locale === "de" || locale === "en";
+
   const info = useMemo(() => {
-    if (locale === "de" || locale === "en") return infoLinks;
+    if (isNative) return infoLinks;
     return mapTranslatableStrings(infoLinks, t, { namespace: "infoLinks" });
-  }, [locale, t]);
+  }, [isNative, t]);
+
   const platform = useMemo(() => {
-    if (locale === "de" || locale === "en") return platformLinks;
+    if (isNative) return platformLinks;
     return mapTranslatableStrings(platformLinks, t, { namespace: "platformLinks" });
-  }, [locale, t]);
+  }, [isNative, t]);
+
   const legal = useMemo(() => {
-    if (locale === "de" || locale === "en") return legalLinks;
+    if (isNative) return legalLinks;
     return mapTranslatableStrings(legalLinks, t, { namespace: "legalLinks" });
-  }, [locale, t]);
+  }, [isNative, t]);
+
   const taglineBase = locale === "en" ? BRAND.tagline_en : BRAND.tagline_de;
   const tagline = t(taglineBase, "tagline");
+
   const brandCopy = t(
     "Infrastruktur statt Parteiprogramm: eDebatte bündelt Dossiers, Abstimmungen und Umsetzungs-Tracking für nachvollziehbare Entscheidungen.",
     "brand.copy",
   );
+  const donationLabel = t("Spenden:", "donation.label");
 
   return (
-    <footer
-      className="mt-16 border-t border-slate-200 bg-slate-50/80"
-      role="contentinfo"
-    >
+    <footer className={`mt-16 ${TOP_BORDER} ${FOOTER_BG}`} role="contentinfo">
       <div className="mx-auto max-w-6xl px-4 py-10">
         <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-4">
           {/* Brand / Claim */}
-          <div>
+          <div className="space-y-3">
             <Link
               href="/"
               className="inline-flex text-lg font-extrabold tracking-tight"
@@ -76,12 +88,17 @@ export default function SiteFooter() {
             >
               {BRAND.name}
             </Link>
-            <p className="mt-2 text-sm font-semibold text-slate-900">
-              {tagline}
-            </p>
-            <p className="mt-3 text-sm leading-relaxed text-slate-600">
-              {brandCopy}
-            </p>
+
+            <p className="text-sm font-semibold text-[rgb(var(--fg))]">{tagline}</p>
+
+            <div className={SOFT_RULE} />
+
+            <p className="text-sm leading-relaxed text-[rgb(var(--muted))]">{brandCopy}</p>
+
+            <div className="flex flex-wrap gap-2 pt-2">
+              <ThemeToggle />
+              <ReadingModeToggle />
+            </div>
           </div>
 
           {/* Über eDebatte */}
@@ -106,14 +123,29 @@ export default function SiteFooter() {
           />
         </div>
 
-        <div className="mt-8 border-t border-slate-200/70 pt-6 text-xs text-slate-500 md:flex md:items-center md:justify-between">
+        <div className="mt-8 border-t border-[rgb(var(--border))] pt-6 text-xs text-[rgb(var(--muted))] md:flex md:items-center md:justify-between md:gap-6">
           <p>© {currentYear} {BRAND.name}</p>
-          <p className="mt-2 text-[11px] text-slate-500 md:mt-0">
-            {t("Kontakt:", "contact.label")}{" "}
-            <a className="font-semibold text-slate-600 hover:text-slate-900" href={`mailto:${BRAND.contactEmail}`}>
-              {BRAND.contactEmail}
-            </a>
-          </p>
+
+          <div className="mt-2 flex flex-col gap-1 text-[11px] text-[rgb(var(--muted))] md:mt-0 md:items-end">
+            <p>
+              {t("Kontakt:", "contact.label")}{" "}
+              <a
+                className="font-semibold text-[rgb(var(--fg))] underline decoration-[rgb(var(--border))] underline-offset-4 hover:decoration-[rgb(var(--grad-from))]"
+                href={`mailto:${BRAND.contactEmail}`}
+              >
+                {BRAND.contactEmail}
+              </a>
+            </p>
+            <p>
+              {donationLabel}{" "}
+              <a
+                className="font-semibold text-[rgb(var(--fg))] underline decoration-[rgb(var(--border))] underline-offset-4 hover:decoration-[rgb(var(--grad-from))]"
+                href="/unterstuetzen"
+              >
+                VoiceOpenGov
+              </a>
+            </p>
+          </div>
         </div>
       </div>
     </footer>
@@ -129,13 +161,13 @@ type FooterNavProps = {
 function FooterNav({ title, ariaLabel, links }: FooterNavProps) {
   return (
     <nav aria-label={ariaLabel}>
-      <p className="text-sm font-semibold text-slate-900">{title}</p>
-      <ul className="mt-3 space-y-2 text-sm text-slate-600">
+      <p className="text-sm font-semibold text-[rgb(var(--fg))]">{title}</p>
+      <ul className="mt-3 space-y-2 text-sm text-[rgb(var(--muted))]">
         {links.map((link) => (
           <li key={`${link.href}-${link.label}`}>
             <Link
               href={link.href}
-              className="transition hover:text-slate-900 hover:underline hover:underline-offset-4"
+              className="transition hover:text-[rgb(var(--fg))] hover:underline hover:underline-offset-4 hover:decoration-[rgb(var(--grad-from))]"
             >
               {link.label}
             </Link>
