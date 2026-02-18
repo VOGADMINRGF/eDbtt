@@ -14,7 +14,7 @@ import type {
   StreamSessionStatus,
 } from "@features/stream/types";
 import { resolveSessionStatus } from "@features/stream/types";
-import { enforceStreamHost, requireCreatorContext } from "../../../utils";
+import { enforceStreamHost, enforceStreamIdentityReady, requireCreatorContext } from "../../../utils";
 import { rateLimitOrThrow } from "@/utils/rateLimitHelpers";
 
 async function loadSession(sessionId: string) {
@@ -174,6 +174,8 @@ export async function PATCH(
       { $set: { status: "archived", archivedAt: now, updatedAt: now } },
     );
   } else if (action === "go_live") {
+    const identityGate = await enforceStreamIdentityReady(ctx.userId);
+    if (identityGate) return identityGate;
     await agendaCol.updateMany(
       { sessionId: new ObjectId(id), status: "live" },
       { $set: { status: "archived", archivedAt: now } },

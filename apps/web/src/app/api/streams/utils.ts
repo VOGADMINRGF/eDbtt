@@ -1,7 +1,7 @@
 import { getCookie } from "@/lib/http/typedCookies";
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
-import { assertStreamHostAllowed, buildStreamHostContext } from "@core/streams/access";
+import { assertStreamHostAllowed, buildStreamHostContext, checkStreamIdentityReady } from "@core/streams/access";
 
 const CREATOR_ROLES = new Set([
   "admin",
@@ -67,4 +67,13 @@ export async function enforceStreamHost(ctx: CreatorContext): Promise<Response |
       { status: 403 },
     );
   }
+}
+
+export async function enforceStreamIdentityReady(userId: string): Promise<Response | null> {
+  const gate = await checkStreamIdentityReady(userId);
+  if (gate.ok) return null;
+  return NextResponse.json(
+    { ok: false, error: "STREAM_IDENTITY_REQUIRED", reason: gate.reason },
+    { status: 403 },
+  );
 }

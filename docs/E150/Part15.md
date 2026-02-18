@@ -763,6 +763,18 @@ Verification:
 Next Steps:
 - Optional: Uploads auf verschluesseltes Storage auslagern (PII-Hardening).
 
+### PR-0039 (2026-02-18) – Stream Live Guard
+
+Ziel:
+- Stream-Start serverseitig blocken, bis Ausweis/Pass hinterlegt und E-Mail-Code bestaetigt ist.
+
+Changes:
+- Guard in `/api/streams/sessions/[id]/agenda` fuer `go_live`.
+- Neue Identity-Check-Helper in `core/streams/access.ts` und API-Utils.
+
+Verification:
+- Not run (nicht angefragt).
+
 ### PR-0036 (2026-02-12) – Page Contracts Cleanup
 
 Ziel:
