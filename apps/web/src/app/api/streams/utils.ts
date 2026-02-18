@@ -72,8 +72,9 @@ export async function enforceStreamHost(ctx: CreatorContext): Promise<Response |
 export async function enforceStreamIdentityReady(userId: string): Promise<Response | null> {
   const gate = await checkStreamIdentityReady(userId);
   if (gate.ok) return null;
+  const reason = "reason" in gate ? gate.reason : "unknown";
   return NextResponse.json(
-    { ok: false, error: "STREAM_IDENTITY_REQUIRED", reason: gate.reason },
+    { ok: false, error: "STREAM_IDENTITY_REQUIRED", reason },
     { status: 403 },
   );
 }

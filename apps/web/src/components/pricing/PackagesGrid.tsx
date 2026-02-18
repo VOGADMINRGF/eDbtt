@@ -38,8 +38,10 @@ type PackagesGridProps = {
 
 function PackagesGrid({ packages }: PackagesGridProps) {
   const items = packages ?? EDEBATTE_PACKAGES_DE;
+  const gridColsClass =
+    items.length === 1 ? "lg:grid-cols-1" : items.length === 2 ? "lg:grid-cols-2" : "lg:grid-cols-3";
   return (
-    <div className="grid gap-4 lg:grid-cols-3">
+    <div className={`grid gap-4 ${gridColsClass}`}>
       {items.map((pkg) => (
         <div
           key={pkg.id}

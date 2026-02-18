@@ -69,10 +69,10 @@ const primaryChipClass =
   "inline-flex items-center rounded-full bg-gradient-to-r from-sky-500 via-cyan-500 to-emerald-500 px-3 py-1.5 text-[11px] font-semibold text-white shadow-[0_8px_22px_rgba(14,116,144,0.35)] transition hover:brightness-105 focus:outline-none focus:ring-2 focus:ring-sky-200";
 
 const secondaryChipClass =
-  "inline-flex items-center rounded-full bg-white/95 px-3 py-1.5 text-[11px] font-semibold text-slate-800 shadow-sm ring-1 ring-slate-200 transition hover:bg-white focus:outline-none focus:ring-2 focus:ring-sky-200";
+  "inline-flex items-center rounded-full bg-[rgb(var(--card))] px-3 py-1.5 text-[11px] font-semibold text-slate-800 shadow-sm ring-1 ring-slate-200 transition hover:bg-[rgb(var(--card))] focus:outline-none focus:ring-2 focus:ring-sky-200";
 
 const subtleTextLinkClass =
-  "text-[11px] font-medium text-slate-500 underline-offset-2 hover:text-slate-900 hover:underline";
+  "text-[11px] font-medium text-slate-500 underline-offset-2 hover:text-[rgb(var(--fg))] hover:underline";
 
 function isInteractiveTarget(target: EventTarget | null) {
   if (!(target instanceof Element)) return false;
@@ -260,8 +260,10 @@ export function SwipesClient({ edebattePackage, initialTopic = "", focusStatemen
   const isStartOrPro =
     edebattePackage === "start" ||
     edebattePackage === "pro" ||
-    edebattePackage === "pilot-b2g" ||
-    edebattePackage === "pilot-b2b";
+    edebattePackage === "b2b_basis" ||
+    edebattePackage === "b2b_pro" ||
+    edebattePackage === "b2g_basis" ||
+    edebattePackage === "b2g_pro";
   const isSolo = variant === "solo";
 
   const openDossier = useCallback(
@@ -473,7 +475,7 @@ export function SwipesClient({ edebattePackage, initialTopic = "", focusStatemen
             </div>
           )}
           {loading ? (
-            <div className="rounded-3xl bg-slate-50/80 p-4 text-sm text-slate-500 ring-1 ring-dashed ring-slate-200">Lade Swipes …</div>
+            <div className="rounded-3xl bg-[rgb(var(--bg))] p-4 text-sm text-slate-500 ring-1 ring-dashed ring-slate-200">Lade Swipes …</div>
           ) : filteredSwipes.length === 0 ? (
             <EmptyState
               message="Diese Swipe-Karte wurde nicht gefunden oder ist nicht freigeschaltet."
@@ -499,7 +501,7 @@ export function SwipesClient({ edebattePackage, initialTopic = "", focusStatemen
               </div>
             )}
             {loading ? (
-              <div className="rounded-3xl bg-slate-50/80 p-4 text-sm text-slate-500 ring-1 ring-dashed ring-slate-200">Lade Swipes …</div>
+              <div className="rounded-3xl bg-[rgb(var(--bg))] p-4 text-sm text-slate-500 ring-1 ring-dashed ring-slate-200">Lade Swipes …</div>
             ) : filteredSwipes.length === 0 ? (
               <EmptyState />
             ) : (
@@ -524,7 +526,7 @@ export function SwipesClient({ edebattePackage, initialTopic = "", focusStatemen
 
 function SoloHeader({ statementId }: { statementId?: string }) {
   return (
-    <header className="flex items-center justify-between gap-3 rounded-3xl bg-white/95 px-4 py-3 shadow-[0_12px_40px_rgba(15,23,42,0.08)] ring-1 ring-slate-100">
+    <header className="flex items-center justify-between gap-3 rounded-3xl bg-[rgb(var(--card))] px-4 py-3 shadow-[0_12px_40px_rgba(15,23,42,0.08)] ring-1 ring-slate-100">
       <Link href="/swipes" className={secondaryChipClass}>
         Alle Swipes anzeigen
       </Link>
@@ -547,19 +549,23 @@ function SwipesHeader({ edebattePackage, isBasic, isStartOrPro }: SwipesHeaderPr
       ? "eDebatte Start"
       : edebattePackage === "pro"
       ? "eDebatte Pro"
-      : edebattePackage === "pilot-b2g"
-      ? "Pilot B2G"
-      : edebattePackage === "pilot-b2b"
-      ? "Pilot B2B"
+      : edebattePackage === "b2b_basis"
+      ? "B2B Basis"
+      : edebattePackage === "b2b_pro"
+      ? "B2B Pro"
+      : edebattePackage === "b2g_basis"
+      ? "B2G Basis"
+      : edebattePackage === "b2g_pro"
+      ? "B2G Pro"
       : "ohne eDebatte-Paket";
 
   return (
     <header className="space-y-3">
       <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-sky-600">Swipes</p>
-      <h1 className="text-2xl font-semibold leading-tight text-slate-900 md:text-3xl">
+      <h1 className="text-2xl font-semibold leading-tight text-[rgb(var(--fg))] md:text-3xl">
         <span className="bg-gradient-to-r from-sky-500 via-cyan-500 to-emerald-500 bg-clip-text text-transparent">Swipes</span> – schnelle, faire Entscheidungen.
       </h1>
-      <p className="max-w-2xl text-sm text-slate-600">Links/rechts entscheiden, Quellen prüfen, später vertiefen – die Karten können aus deinen Analysen oder aktuellen Themen gespeist werden.</p>
+      <p className="max-w-2xl text-sm text-[rgb(var(--muted))]">Links/rechts entscheiden, Quellen prüfen, später vertiefen – die Karten können aus deinen Analysen oder aktuellen Themen gespeist werden.</p>
       <div className="flex flex-wrap items-center gap-2">
         <Link href="/statements/new" className={primaryChipClass}>
           Neues Statement analysieren
@@ -579,7 +585,7 @@ function SwipesHeader({ edebattePackage, isBasic, isStartOrPro }: SwipesHeaderPr
         {isStartOrPro && <span>· Nutze Suche &amp; Filter, um Themen wie <em>„Badeverbot Hunde“</em> oder <em>„Pflegepersonal“</em> zu vertiefen.</span>}
       </p>
       <p className="text-[11px] text-slate-500">
-        Eventualitäten stehen dir in eDebatte Start und Pro vollständig zur Verfügung.
+        Eventualitaeten stehen dir in eDebatte Start/Pro sowie in B2B/B2G-Paketen vollstaendig zur Verfuegung.
       </p>
       <p className="text-[11px] text-slate-500">
         Hinweis: Ziehen/Wischen links = Ablehnen, rechts = Zustimmen. Pfeil hoch oder runter (oder Button) = Neutral. Tippen/Klicken auf eine Karte öffnet das Dossier.
@@ -600,9 +606,9 @@ type SwipesToolbarProps = {
 
 function SwipesToolbar({ topicQuery, onTopicChange, activeLevel, onLevelChange, isBasic }: SwipesToolbarProps) {
   return (
-    <section className="flex flex-col gap-3 rounded-3xl bg-white/95 p-3 shadow-[0_18px_55px_rgba(15,23,42,0.08)] ring-1 ring-slate-100 md:flex-row md:items-center md:justify-between md:p-4">
+    <section className="flex flex-col gap-3 rounded-3xl bg-[rgb(var(--card))] p-3 shadow-[0_18px_55px_rgba(15,23,42,0.08)] ring-1 ring-slate-100 md:flex-row md:items-center md:justify-between md:p-4">
       <div className="flex-1">
-        <label className="block text-[11px] font-medium text-slate-700">Thema oder Stichwort</label>
+        <label className="block text-[11px] font-medium text-[rgb(var(--muted))]">Thema oder Stichwort</label>
         <div className="mt-1 flex items-center gap-2">
           <input
             type="text"
@@ -610,8 +616,8 @@ function SwipesToolbar({ topicQuery, onTopicChange, activeLevel, onLevelChange, 
             onChange={(e) => onTopicChange(e.target.value)}
             placeholder={isBasic ? "Themensuche in eDebatte Start freischalten …" : "z.B. Badeverbot Hunde, Pflegepersonal, Klimaschutz"}
             disabled={isBasic}
-            className={`w-full rounded-full border px-3 py-1.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-200 ${
-              isBasic ? "cursor-not-allowed border-slate-200 bg-slate-50 text-slate-400" : "border-slate-200 bg-slate-50 hover:bg-white"
+            className={`w-full rounded-full border px-3 py-1.5 text-sm text-[rgb(var(--fg))] focus:outline-none focus:ring-2 focus:ring-sky-200 ${
+              isBasic ? "cursor-not-allowed border-[rgb(var(--border))] bg-[rgb(var(--bg))] text-slate-400" : "border-[rgb(var(--border))] bg-[rgb(var(--bg))] hover:bg-[rgb(var(--card))]"
             }`}
           />
           {isBasic ? (
@@ -627,7 +633,7 @@ function SwipesToolbar({ topicQuery, onTopicChange, activeLevel, onLevelChange, 
       </div>
 
       <div className="flex flex-wrap items-center gap-2 pt-1 md:pt-0">
-        <span className="text-[11px] font-medium text-slate-700">Ebene:</span>
+        <span className="text-[11px] font-medium text-[rgb(var(--muted))]">Ebene:</span>
         {["ALL", "Kommune", "Land", "Bund", "EU"].map((level) => {
           const isActive = activeLevel === level;
           return (
@@ -638,7 +644,7 @@ function SwipesToolbar({ topicQuery, onTopicChange, activeLevel, onLevelChange, 
               className={
                 isActive
                   ? "inline-flex items-center rounded-full bg-slate-900 px-3 py-1.5 text-[11px] font-semibold text-white shadow-sm"
-                  : "inline-flex items-center rounded-full bg-slate-100 px-3 py-1.5 text-[11px] font-medium text-slate-700 hover:bg-slate-200"
+                  : "inline-flex items-center rounded-full bg-slate-100 px-3 py-1.5 text-[11px] font-medium text-[rgb(var(--muted))] hover:bg-slate-200"
               }
             >
               {level === "ALL" ? "Alle" : level}
@@ -793,7 +799,7 @@ function MobileEventualitiesOverlay({ selectedSwipe, eventualities, isBasic, onC
 
 function EmptyState({ message, ctaHref, ctaLabel }: { message?: string; ctaHref?: string; ctaLabel?: string }) {
   return (
-    <div className="rounded-3xl bg-slate-50/80 p-4 text-sm text-slate-500 ring-1 ring-dashed ring-slate-200">
+    <div className="rounded-3xl bg-[rgb(var(--bg))] p-4 text-sm text-slate-500 ring-1 ring-dashed ring-slate-200">
       {message ?? "Aktuell gibt es zu deiner Auswahl keine Swipes. Probiere einen anderen Suchbegriff, eine andere Ebene – oder entdecke neue Themen auf der Startseite."}
       {ctaHref && ctaLabel && (
         <div className="mt-2">

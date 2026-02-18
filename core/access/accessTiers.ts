@@ -2,8 +2,10 @@ import { SWIPES_PER_CONTRIBUTION_CREDIT } from "../../config/credits";
 import type { AccessTier } from "@features/pricing/types";
 export type { AccessTier } from "@features/pricing/types";
 import { LIMITS } from "@features/pricing/limits";
+import { PRIVATE_PACKAGE_IDS } from "@features/pricing/domain/helpers";
 
-export type EDebattePackageCode = "basis" | "start" | "pro" | "none";
+type PrivatePackageId = (typeof PRIVATE_PACKAGE_IDS)[number];
+export type EDebattePackageCode = PrivatePackageId | "none";
 
 export interface AccessTierConfigEntry {
   label: string;

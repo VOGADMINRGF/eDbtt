@@ -449,14 +449,19 @@ function normalizeLocationField(value?: string | null) {
 
 function normalizeEdebatePackage(
   value?: string | null,
-): "basis" | "start" | "pro" | "pilot-b2g" | "pilot-b2b" | "none" {
+): "basis" | "start" | "pro" | "b2b_basis" | "b2b_pro" | "b2g_basis" | "b2g_pro" | "none" {
   const cleaned = (value ?? "").replace(/^edb-/, "").toLowerCase();
+  // Legacy: map Pilot-IDs to the new B2B/B2G basis packages.
+  if (cleaned === "pilot-b2g") return "b2g_basis";
+  if (cleaned === "pilot-b2b") return "b2b_basis";
   if (
     cleaned === "basis" ||
     cleaned === "start" ||
     cleaned === "pro" ||
-    cleaned === "pilot-b2g" ||
-    cleaned === "pilot-b2b"
+    cleaned === "b2b_basis" ||
+    cleaned === "b2b_pro" ||
+    cleaned === "b2g_basis" ||
+    cleaned === "b2g_pro"
   ) {
     return cleaned;
   }

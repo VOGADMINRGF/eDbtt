@@ -1,4 +1,4 @@
-import { getPackagesByIds, PRIVATE_PACKAGE_IDS, type EDebattePackageId, toEdebatePlanId } from "@features/pricing";
+import { getPackagesByIds, PRIVATE_PACKAGE_IDS, toEdebatePlanId } from "@features/pricing";
 
 export type BillingInterval = "month" | "year";
 
@@ -9,7 +9,8 @@ export type VOGMembershipPlan = {
   suggestedPerPersonPerMonth: number;
 };
 
-export type EDebattePlanId = `edb-${EDebattePackageId}`;
+type PrivatePackageId = (typeof PRIVATE_PACKAGE_IDS)[number];
+export type EDebattePlanId = `edb-${PrivatePackageId}`;
 
 export type EDebattePlan = {
   id: EDebattePlanId;

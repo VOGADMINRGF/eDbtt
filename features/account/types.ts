@@ -25,7 +25,15 @@ export type PricingTier =
   | "staff"
   | "custom";
 
-export type EDebattePackage = "basis" | "start" | "pro" | "pilot-b2g" | "pilot-b2b" | "none";
+export type EDebattePackage =
+  | "basis"
+  | "start"
+  | "pro"
+  | "b2b_basis"
+  | "b2b_pro"
+  | "b2g_basis"
+  | "b2g_pro"
+  | "none";
 export type EDebatteStatus = "none" | "preorder" | "active" | "canceled";
 
 export type AccountEdebateInfo = {

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { getEdebatePackageLabel } from "@/config/edebatte";
 
 type Summary = {
   totalUsers: number;
@@ -137,7 +138,7 @@ export default function AdminDashboardPage() {
             {!loading &&
               data?.packages?.map((p) => (
                 <div key={p.code} className="flex items-center justify-between rounded-xl bg-[rgb(var(--bg))] px-3 py-2 text-sm">
-                  <span className="font-medium text-slate-800">{p.code || "none"}</span>
+                  <span className="font-medium text-slate-800">{getEdebatePackageLabel(p.code || "none")}</span>
                   <span className="text-[rgb(var(--muted))]">{nf.format(p.count)}</span>
                 </div>
               ))}

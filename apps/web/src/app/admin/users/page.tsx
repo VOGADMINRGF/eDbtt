@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { EDEBATTE_PACKAGES_WITH_NONE } from "@/config/edebatte";
+import { EDEBATTE_PACKAGES_WITH_NONE, getEdebatePackageLabel } from "@/config/edebatte";
 import { ACCESS_TIER_CONFIG } from "@core/access/accessTiers";
 import type { AccessTier } from "@features/pricing/types";
 
@@ -205,17 +205,17 @@ export default function AdminUsersPage() {
   return (
     <div className="space-y-4">
       <h1 className="sr-only">Admin Nutzer</h1>
-      <div className="flex flex-wrap items-center gap-2 rounded-3xl bg-white/90 p-4 shadow ring-1 ring-slate-100">
+      <div className="flex flex-wrap items-center gap-2 rounded-3xl bg-[rgb(var(--card))] p-4 shadow ring-1 ring-slate-100">
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Suche (E-Mail / Name)"
-          className="w-48 rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-sm focus:border-sky-300 focus:outline-none"
+          className="w-48 rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-1.5 text-sm focus:border-sky-300 focus:outline-none"
         />
         <select
           value={role}
           onChange={(e) => setRole(e.target.value)}
-          className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm"
+          className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-1.5 text-sm"
         >
           <option value="">Rolle: alle</option>
           <option value="user">user</option>
@@ -226,19 +226,19 @@ export default function AdminUsersPage() {
         <select
           value={pkg}
           onChange={(e) => setPkg(e.target.value)}
-          className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm"
+          className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-1.5 text-sm"
         >
           <option value="">Paket: alle</option>
           {EDEBATTE_PACKAGES_WITH_NONE.map((p) => (
             <option key={p} value={p}>
-              {p}
+              {getEdebatePackageLabel(p)}
             </option>
           ))}
         </select>
         <select
           value={newsletter}
           onChange={(e) => setNewsletter(e.target.value)}
-          className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm"
+          className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-1.5 text-sm"
         >
           <option value="">Newsletter: alle</option>
           <option value="true">nur Opt-in</option>
@@ -250,7 +250,7 @@ export default function AdminUsersPage() {
           value={activeDays}
           onChange={(e) => setActiveDays(e.target.value ? Number(e.target.value) : "")}
           placeholder="Aktiv in letzten Tagen"
-          className="w-44 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm"
+          className="w-44 rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-1.5 text-sm"
         />
         <input
           type="number"
@@ -258,7 +258,7 @@ export default function AdminUsersPage() {
           value={createdDays}
           onChange={(e) => setCreatedDays(e.target.value ? Number(e.target.value) : "")}
           placeholder="Neu in letzten Tagen"
-          className="w-44 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm"
+          className="w-44 rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-1.5 text-sm"
         />
         <button
           type="button"
@@ -269,17 +269,17 @@ export default function AdminUsersPage() {
         </button>
       </div>
 
-      <div className="overflow-hidden rounded-3xl bg-white/90 shadow ring-1 ring-slate-100">
+      <div className="overflow-hidden rounded-3xl bg-[rgb(var(--card))] shadow ring-1 ring-slate-100">
         <table className="min-w-full divide-y divide-slate-100 text-sm">
-          <thead className="bg-slate-50">
+          <thead className="bg-[rgb(var(--bg))]">
             <tr>
-              <th className="px-3 py-2 text-left font-semibold text-slate-700">E-Mail</th>
-              <th className="px-3 py-2 text-left font-semibold text-slate-700">Name</th>
-              <th className="px-3 py-2 text-left font-semibold text-slate-700">Rollen</th>
-              <th className="px-3 py-2 text-left font-semibold text-slate-700">Tier</th>
-              <th className="px-3 py-2 text-left font-semibold text-slate-700">Paket</th>
-              <th className="px-3 py-2 text-left font-semibold text-slate-700">Newsletter</th>
-              <th className="px-3 py-2 text-left font-semibold text-slate-700">Erstellt</th>
+              <th className="px-3 py-2 text-left font-semibold text-[rgb(var(--muted))]">E-Mail</th>
+              <th className="px-3 py-2 text-left font-semibold text-[rgb(var(--muted))]">Name</th>
+              <th className="px-3 py-2 text-left font-semibold text-[rgb(var(--muted))]">Rollen</th>
+              <th className="px-3 py-2 text-left font-semibold text-[rgb(var(--muted))]">Tier</th>
+              <th className="px-3 py-2 text-left font-semibold text-[rgb(var(--muted))]">Paket</th>
+              <th className="px-3 py-2 text-left font-semibold text-[rgb(var(--muted))]">Newsletter</th>
+              <th className="px-3 py-2 text-left font-semibold text-[rgb(var(--muted))]">Erstellt</th>
               <th />
             </tr>
           </thead>
@@ -293,32 +293,34 @@ export default function AdminUsersPage() {
             )}
             {!loading &&
               data?.items?.map((u) => (
-                <tr key={u.id} className="hover:bg-slate-50">
+                <tr key={u.id} className="hover:bg-[rgb(var(--bg))]">
                   <td className="px-3 py-2">{u.email}</td>
                   <td className="px-3 py-2">{u.name ?? "—"}</td>
                   <td className="px-3 py-2">
                     <div className="flex flex-wrap gap-1">
                       {u.roles.map((r) => (
-                        <span key={r} className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-700">
+                        <span key={r} className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-[rgb(var(--muted))]">
                           {r}
                         </span>
                       ))}
                     </div>
                   </td>
                   <td className="px-3 py-2">
-                    <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-700">
+                    <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-[rgb(var(--muted))]">
                       {u.accessTier ?? "—"}
                     </span>
                   </td>
                   <td className="px-3 py-2">
-                    <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-700">{u.packageCode ?? "none"}</span>
+                    <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-[rgb(var(--muted))]">
+                      {getEdebatePackageLabel(u.packageCode ?? "none")}
+                    </span>
                   </td>
                   <td className="px-3 py-2">
                     <span className="rounded-full px-2 py-0.5 text-xs font-semibold" style={{ background: u.newsletterOptIn ? "#ecfdf3" : "#f8fafc", color: u.newsletterOptIn ? "#15803d" : "#475569" }}>
                       {u.newsletterOptIn ? "Opt-in" : "Kein Opt-in"}
                     </span>
                   </td>
-                  <td className="px-3 py-2 text-slate-600">{u.createdAt?.slice(0, 10) ?? "—"}</td>
+                  <td className="px-3 py-2 text-[rgb(var(--muted))]">{u.createdAt?.slice(0, 10) ?? "—"}</td>
                   <td className="px-3 py-2 text-right">
                     <button
                       type="button"
@@ -334,7 +336,7 @@ export default function AdminUsersPage() {
         </table>
       </div>
 
-      <div className="flex items-center justify-between text-sm text-slate-600">
+      <div className="flex items-center justify-between text-sm text-[rgb(var(--muted))]">
         <span>
           Seite {page} / {totalPages}
         </span>
@@ -343,7 +345,7 @@ export default function AdminUsersPage() {
             type="button"
             disabled={page <= 1}
             onClick={() => setPage((p) => Math.max(1, p - 1))}
-            className="rounded-full border border-slate-200 px-3 py-1 disabled:opacity-50"
+            className="rounded-full border border-[rgb(var(--border))] px-3 py-1 disabled:opacity-50"
           >
             Zurück
           </button>
@@ -351,7 +353,7 @@ export default function AdminUsersPage() {
             type="button"
             disabled={page >= totalPages}
             onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-            className="rounded-full border border-slate-200 px-3 py-1 disabled:opacity-50"
+            className="rounded-full border border-[rgb(var(--border))] px-3 py-1 disabled:opacity-50"
           >
             Weiter
           </button>
@@ -360,23 +362,23 @@ export default function AdminUsersPage() {
 
       {selected && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 px-4 backdrop-blur-sm">
-          <div className="w-full max-w-lg rounded-3xl bg-white p-5 shadow-[0_32px_90px_rgba(15,23,42,0.45)] ring-1 ring-slate-200 space-y-3">
+          <div className="w-full max-w-lg rounded-3xl bg-[rgb(var(--card))] p-5 shadow-[0_32px_90px_rgba(15,23,42,0.45)] ring-1 ring-slate-200 space-y-3">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Bearbeiten</p>
-                <p className="text-sm font-semibold text-slate-900">{selected.email}</p>
+                <p className="text-sm font-semibold text-[rgb(var(--fg))]">{selected.email}</p>
               </div>
               <button
                 type="button"
                 onClick={() => setSelected(null)}
-                className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-sm font-semibold text-slate-600 hover:bg-slate-200"
+                className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-sm font-semibold text-[rgb(var(--muted))] hover:bg-slate-200"
               >
                 ✕
               </button>
             </div>
 
             <div className="space-y-2">
-              <label className="text-xs font-semibold text-slate-700">Rollen</label>
+              <label className="text-xs font-semibold text-[rgb(var(--muted))]">Rollen</label>
               <div className="flex flex-wrap gap-2">
                 {["user", "moderator", "admin", "staff", "creator", ...(isSuperadmin ? ["superadmin"] : [])].map((r) => {
                   const active = selected.roles.includes(r);
@@ -395,7 +397,7 @@ export default function AdminUsersPage() {
                         );
                       }}
                       className={`rounded-full px-3 py-1 text-xs font-semibold ${
-                        active ? "bg-sky-100 text-sky-800 ring-1 ring-sky-200" : "bg-slate-100 text-slate-700"
+                        active ? "bg-sky-100 text-sky-800 ring-1 ring-sky-200" : "bg-slate-100 text-[rgb(var(--muted))]"
                       }`}
                     >
                       {r}
@@ -406,7 +408,7 @@ export default function AdminUsersPage() {
             </div>
 
             <div className="space-y-2">
-              <label className="text-xs font-semibold text-slate-700">Access Tier</label>
+              <label className="text-xs font-semibold text-[rgb(var(--muted))]">Access Tier</label>
               <select
                 value={selected.accessTier ?? "citizenBasic"}
                 onChange={(e) =>
@@ -419,7 +421,7 @@ export default function AdminUsersPage() {
                       : prev,
                   )
                 }
-                className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm"
+                className="w-full rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-sm"
               >
                 {ACCESS_TIER_OPTIONS.map((tier) => (
                   <option key={tier} value={tier}>
@@ -430,25 +432,25 @@ export default function AdminUsersPage() {
             </div>
 
             <div className="space-y-2">
-              <label className="text-xs font-semibold text-slate-700">Paket</label>
+              <label className="text-xs font-semibold text-[rgb(var(--muted))]">Paket</label>
               <select
                 value={selected.packageCode ?? "none"}
                 onChange={(e) =>
                   setSelected((prev) => (prev ? { ...prev, packageCode: e.target.value === "none" ? null : e.target.value } : prev))
                 }
-                className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm"
+                className="w-full rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-sm"
               >
                 {EDEBATTE_PACKAGES_WITH_NONE.map((p) => (
                   <option key={p} value={p}>
-                    {p}
+                    {getEdebatePackageLabel(p)}
                   </option>
                 ))}
               </select>
             </div>
 
             <div className="space-y-2">
-              <label className="text-xs font-semibold text-slate-700">Newsletter</label>
-              <label className="inline-flex items-center gap-2 text-sm text-slate-700">
+              <label className="text-xs font-semibold text-[rgb(var(--muted))]">Newsletter</label>
+              <label className="inline-flex items-center gap-2 text-sm text-[rgb(var(--muted))]">
                 <input
                   type="checkbox"
                   checked={selected.newsletterOptIn}
@@ -462,7 +464,7 @@ export default function AdminUsersPage() {
               <button
                 type="button"
                 onClick={() => setSelected(null)}
-                className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700"
+                className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-2 text-sm font-semibold text-[rgb(var(--muted))]"
               >
                 Abbrechen
               </button>
@@ -481,56 +483,56 @@ export default function AdminUsersPage() {
 
       {createOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 px-4 backdrop-blur-sm">
-          <div className="w-full max-w-lg rounded-3xl bg-white p-5 shadow-[0_32px_90px_rgba(15,23,42,0.45)] ring-1 ring-slate-200 space-y-3">
+          <div className="w-full max-w-lg rounded-3xl bg-[rgb(var(--card))] p-5 shadow-[0_32px_90px_rgba(15,23,42,0.45)] ring-1 ring-slate-200 space-y-3">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Neuer Nutzer</p>
-                <p className="text-sm font-semibold text-slate-900">Account anlegen</p>
+                <p className="text-sm font-semibold text-[rgb(var(--fg))]">Account anlegen</p>
               </div>
               <button
                 type="button"
                 onClick={() => setCreateOpen(false)}
-                className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-sm font-semibold text-slate-600 hover:bg-slate-200"
+                className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-sm font-semibold text-[rgb(var(--muted))] hover:bg-slate-200"
               >
                 ✕
               </button>
             </div>
 
             <div className="space-y-2">
-              <label className="text-xs font-semibold text-slate-700">E-Mail</label>
+              <label className="text-xs font-semibold text-[rgb(var(--muted))]">E-Mail</label>
               <input
                 value={createForm.email}
                 onChange={(e) => setCreateForm((prev) => ({ ...prev, email: e.target.value }))}
-                className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm"
+                className="w-full rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-sm"
                 placeholder="user@example.org"
               />
             </div>
 
             <div className="space-y-2">
-              <label className="text-xs font-semibold text-slate-700">Name</label>
+              <label className="text-xs font-semibold text-[rgb(var(--muted))]">Name</label>
               <input
                 value={createForm.name}
                 onChange={(e) => setCreateForm((prev) => ({ ...prev, name: e.target.value }))}
-                className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm"
+                className="w-full rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-sm"
                 placeholder="Vor- und Nachname"
               />
             </div>
 
             <div className="space-y-2">
-              <label className="text-xs font-semibold text-slate-700">Initiales Passwort</label>
+              <label className="text-xs font-semibold text-[rgb(var(--muted))]">Initiales Passwort</label>
               <div className="flex items-center gap-2">
                 <input
                   type="password"
                   value={createForm.password}
                   onChange={(e) => setCreateForm((prev) => ({ ...prev, password: e.target.value }))}
-                  className="flex-1 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm"
+                  className="flex-1 rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-sm"
                   placeholder={createForm.sendPasswordLink ? "wird automatisch erzeugt" : "min. 12 Zeichen, Zahl & Sonderzeichen"}
                   disabled={createForm.sendPasswordLink}
                 />
                 <button
                   type="button"
                   onClick={() => setCreateForm((prev) => ({ ...prev, password: generatePassword() }))}
-                  className="rounded-full border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700"
+                  className="rounded-full border border-[rgb(var(--border))] px-3 py-2 text-xs font-semibold text-[rgb(var(--muted))]"
                   disabled={createForm.sendPasswordLink}
                 >
                   Generieren
@@ -544,7 +546,7 @@ export default function AdminUsersPage() {
             </div>
 
             <div className="space-y-2">
-              <label className="text-xs font-semibold text-slate-700">Rollen</label>
+              <label className="text-xs font-semibold text-[rgb(var(--muted))]">Rollen</label>
               <div className="flex flex-wrap gap-2">
                 {["user", "moderator", "admin", "staff", "creator", ...(isSuperadmin ? ["superadmin"] : [])].map(
                   (r) => {
@@ -560,7 +562,7 @@ export default function AdminUsersPage() {
                           }));
                         }}
                         className={`rounded-full px-3 py-1 text-xs font-semibold ${
-                          active ? "bg-sky-100 text-sky-800 ring-1 ring-sky-200" : "bg-slate-100 text-slate-700"
+                          active ? "bg-sky-100 text-sky-800 ring-1 ring-sky-200" : "bg-slate-100 text-[rgb(var(--muted))]"
                         }`}
                       >
                         {r}
@@ -572,11 +574,11 @@ export default function AdminUsersPage() {
             </div>
 
             <div className="space-y-2">
-              <label className="text-xs font-semibold text-slate-700">Access Tier</label>
+              <label className="text-xs font-semibold text-[rgb(var(--muted))]">Access Tier</label>
               <select
                 value={createForm.accessTier}
                 onChange={(e) => setCreateForm((prev) => ({ ...prev, accessTier: e.target.value as AccessTier }))}
-                className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm"
+                className="w-full rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-sm"
               >
                 {ACCESS_TIER_OPTIONS.map((tier) => (
                   <option key={tier} value={tier}>
@@ -587,8 +589,8 @@ export default function AdminUsersPage() {
             </div>
 
             <div className="space-y-2">
-              <label className="text-xs font-semibold text-slate-700">Newsletter</label>
-              <label className="inline-flex items-center gap-2 text-sm text-slate-700">
+              <label className="text-xs font-semibold text-[rgb(var(--muted))]">Newsletter</label>
+              <label className="inline-flex items-center gap-2 text-sm text-[rgb(var(--muted))]">
                 <input
                   type="checkbox"
                   checked={createForm.newsletterOptIn}
@@ -599,8 +601,8 @@ export default function AdminUsersPage() {
             </div>
 
             <div className="space-y-2">
-              <label className="text-xs font-semibold text-slate-700">E-Mail Verifikation</label>
-              <label className="inline-flex items-center gap-2 text-sm text-slate-700">
+              <label className="text-xs font-semibold text-[rgb(var(--muted))]">E-Mail Verifikation</label>
+              <label className="inline-flex items-center gap-2 text-sm text-[rgb(var(--muted))]">
                 <input
                   type="checkbox"
                   checked={createForm.sendVerification}
@@ -611,8 +613,8 @@ export default function AdminUsersPage() {
             </div>
 
             <div className="space-y-2">
-              <label className="text-xs font-semibold text-slate-700">Passwort setzen</label>
-              <label className="inline-flex items-center gap-2 text-sm text-slate-700">
+              <label className="text-xs font-semibold text-[rgb(var(--muted))]">Passwort setzen</label>
+              <label className="inline-flex items-center gap-2 text-sm text-[rgb(var(--muted))]">
                 <input
                   type="checkbox"
                   checked={createForm.sendPasswordLink}
@@ -634,7 +636,7 @@ export default function AdminUsersPage() {
               <button
                 type="button"
                 onClick={() => setCreateOpen(false)}
-                className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700"
+                className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-2 text-sm font-semibold text-[rgb(var(--muted))]"
               >
                 Abbrechen
               </button>

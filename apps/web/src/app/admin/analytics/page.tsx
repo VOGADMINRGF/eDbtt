@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { getEdebatePackageLabel } from "@/config/edebatte";
 
 type Summary = {
   packages: { code: string; count: number }[];
@@ -60,8 +61,8 @@ export default function AdminAnalyticsPage() {
           {error}
         </div>
       )}
-      <section className="rounded-3xl bg-white/90 p-4 shadow ring-1 ring-slate-100">
-        <h2 className="text-sm font-semibold text-slate-900">Registrierungen (30 Tage)</h2>
+      <section className="rounded-3xl bg-[rgb(var(--card))] p-4 shadow ring-1 ring-slate-100">
+        <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Registrierungen (30 Tage)</h2>
         <div className="mt-3 flex items-end gap-1">
           {loading && <SkeletonBars />}
           {!loading &&
@@ -78,8 +79,8 @@ export default function AdminAnalyticsPage() {
         </div>
       </section>
 
-      <section className="rounded-3xl bg-white/90 p-4 shadow ring-1 ring-slate-100">
-        <h2 className="text-sm font-semibold text-slate-900">Swipes (30 Tage)</h2>
+      <section className="rounded-3xl bg-[rgb(var(--card))] p-4 shadow ring-1 ring-slate-100">
+        <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Swipes (30 Tage)</h2>
         <div className="mt-3 flex items-end gap-1">
           {loading && <SkeletonBars />}
           {!loading &&
@@ -95,11 +96,11 @@ export default function AdminAnalyticsPage() {
             ))}
         </div>
         {!loading && data?.swipes && (
-          <div className="mt-3 flex flex-wrap gap-2 text-[11px] text-slate-600">
-            <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1">
+          <div className="mt-3 flex flex-wrap gap-2 text-[11px] text-[rgb(var(--muted))]">
+            <span className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-1">
               Total: <span className="font-semibold text-slate-800">{data.swipes.total}</span>
             </span>
-            <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1">
+            <span className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-1">
               Unique Nutzer: <span className="font-semibold text-slate-800">{data.swipes.uniqueUsers}</span>
             </span>
           </div>
@@ -107,29 +108,29 @@ export default function AdminAnalyticsPage() {
       </section>
 
       <section className="grid gap-4 lg:grid-cols-2">
-        <div className="rounded-3xl bg-white/90 p-4 shadow ring-1 ring-slate-100">
-          <h2 className="text-sm font-semibold text-slate-900">Paket-Verteilung</h2>
+        <div className="rounded-3xl bg-[rgb(var(--card))] p-4 shadow ring-1 ring-slate-100">
+          <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Paket-Verteilung</h2>
           <div className="mt-2 space-y-2">
             {loading && <SkeletonLines lines={4} />}
             {!loading &&
               data?.packages?.map((p) => (
-                <div key={p.code} className="flex items-center justify-between rounded-xl bg-slate-50 px-3 py-2 text-sm">
-                  <span className="font-medium text-slate-800">{p.code || "none"}</span>
-                  <span className="text-slate-700">{p.count}</span>
+                <div key={p.code} className="flex items-center justify-between rounded-xl bg-[rgb(var(--bg))] px-3 py-2 text-sm">
+                  <span className="font-medium text-slate-800">{getEdebatePackageLabel(p.code || "none")}</span>
+                  <span className="text-[rgb(var(--muted))]">{p.count}</span>
                 </div>
               ))}
           </div>
         </div>
 
-        <div className="rounded-3xl bg-white/90 p-4 shadow ring-1 ring-slate-100">
-          <h2 className="text-sm font-semibold text-slate-900">Rollen-Verteilung</h2>
+        <div className="rounded-3xl bg-[rgb(var(--card))] p-4 shadow ring-1 ring-slate-100">
+          <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Rollen-Verteilung</h2>
           <div className="mt-2 space-y-2">
             {loading && <SkeletonLines lines={4} />}
             {!loading &&
               data?.roles?.map((r) => (
-                <div key={r.role} className="flex items-center justify-between rounded-xl bg-slate-50 px-3 py-2 text-sm">
+                <div key={r.role} className="flex items-center justify-between rounded-xl bg-[rgb(var(--bg))] px-3 py-2 text-sm">
                   <span className="font-medium text-slate-800">{r.role}</span>
-                  <span className="text-slate-700">{r.count}</span>
+                  <span className="text-[rgb(var(--muted))]">{r.count}</span>
                 </div>
               ))}
           </div>
