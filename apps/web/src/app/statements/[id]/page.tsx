@@ -90,7 +90,7 @@ export default async function StatementPage({
       />
 
       {doc.analysis?.summary && (
-        <section className="bg-white border rounded-xl p-4">
+        <section className="bg-[rgb(var(--card))] border rounded-xl p-4">
           <h2 className="font-semibold mb-2">Analyse</h2>
           <pre className="text-sm whitespace-pre-wrap">
             {doc.analysis.summary}

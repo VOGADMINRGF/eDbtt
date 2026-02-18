@@ -118,33 +118,33 @@ export default function AdminEventualitiesPage() {
   return (
     <main className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-8">
       <header className="space-y-2">
-        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Admin · Eventualitäten</p>
-        <h1 className="text-2xl font-bold text-slate-900">Eventualitäten-Snapshots</h1>
-        <p className="text-sm text-slate-600">
+        <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Admin · Eventualitäten</p>
+        <h1 className="text-2xl font-bold text-[rgb(var(--fg))]">Eventualitäten-Snapshots</h1>
+        <p className="text-sm text-[rgb(var(--muted))]">
           Übersicht über alle gespeicherten Eventualitäten pro Beitrag. Filtere offene Reviews, prüfe
           DecisionTrees und springe direkt in die Detailansicht.
         </p>
       </header>
 
-      <section className="grid gap-4 rounded-3xl border border-slate-200 bg-white/80 p-4 text-sm shadow-sm sm:grid-cols-4">
-        <SnapshotMetric label="Snapshots" value={summary.total.toString()} accent="text-slate-900" />
+      <section className="grid gap-4 rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 text-sm shadow-sm sm:grid-cols-4">
+        <SnapshotMetric label="Snapshots" value={summary.total.toString()} accent="text-[rgb(var(--fg))]" />
         <SnapshotMetric label="Offen" value={summary.open.toString()} accent="text-amber-600" />
         <SnapshotMetric label="Review ok" value={summary.reviewed.toString()} accent="text-emerald-600" />
         <SnapshotMetric
           label="Nodes · Trees"
           value={`${summary.nodes} · ${summary.trees}`}
-          accent="text-slate-700"
+          accent="text-[rgb(var(--muted))]"
         />
       </section>
 
       <div className="flex flex-wrap items-center gap-3">
-        <div className="flex gap-2 rounded-full border border-slate-200 bg-white px-3 py-2 text-sm">
+        <div className="flex gap-2 rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm">
           {FILTERS.map((entry) => (
             <button
               key={entry.value}
               onClick={() => setFilter(entry.value)}
               className={`rounded-full px-3 py-1 font-semibold transition ${
-                filter === entry.value ? "bg-slate-900 text-white" : "text-slate-600 hover:text-slate-900"
+                filter === entry.value ? "bg-slate-900 text-white" : "text-[rgb(var(--muted))] hover:text-[rgb(var(--fg))]"
               }`}
             >
               {entry.label}
@@ -157,7 +157,7 @@ export default function AdminEventualitiesPage() {
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           placeholder="Contribution-ID oder Nutzer:in suchen…"
-          className="flex-1 rounded-full border border-slate-300 bg-white px-4 py-2 text-sm text-slate-700 shadow-sm sm:max-w-xs"
+          className="flex-1 rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-2 text-sm text-[rgb(var(--muted))] shadow-sm sm:max-w-xs"
         />
       </div>
 
@@ -165,9 +165,9 @@ export default function AdminEventualitiesPage() {
         <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</div>
       )}
 
-      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <table className="min-w-full divide-y divide-slate-200 text-sm">
-          <thead className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+      <div className="overflow-hidden rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] shadow-sm">
+        <table className="min-w-full divide-y divide-[rgb(var(--border))] text-sm">
+          <thead className="bg-[rgb(var(--bg))] text-left text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
             <tr>
               <th className="px-4 py-3">Contribution</th>
               <th className="px-4 py-3">Locale & Nutzer</th>
@@ -177,17 +177,17 @@ export default function AdminEventualitiesPage() {
               <th className="px-4 py-3 text-right">Aktionen</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100">
+          <tbody className="divide-y divide-[rgb(var(--border))]">
             {loading && (
               <tr>
-                <td colSpan={6} className="px-4 py-6 text-center text-slate-500">
+                <td colSpan={6} className="px-4 py-6 text-center text-[rgb(var(--muted))]">
                   Lädt Snapshots …
                 </td>
               </tr>
             )}
             {!loading && filtered.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-4 py-6 text-center text-slate-500">
+                <td colSpan={6} className="px-4 py-6 text-center text-[rgb(var(--muted))]">
                   Keine Snapshots für die aktuellen Filter gefunden.
                 </td>
               </tr>
@@ -198,32 +198,32 @@ export default function AdminEventualitiesPage() {
                   <td className="px-4 py-3">
                     <Link
                       href={`/admin/eventualities/${encodeURIComponent(row.contributionId)}`}
-                      className="font-semibold text-slate-900 hover:underline"
+                      className="font-semibold text-[rgb(var(--fg))] hover:underline"
                     >
                       {row.contributionId}
                     </Link>
-                    <p className="text-xs text-slate-500">
+                    <p className="text-xs text-[rgb(var(--muted))]">
                       Erstellt {formatDate(row.createdAt)} · Update {formatDate(row.updatedAt)}
                     </p>
                   </td>
-                  <td className="px-4 py-3 text-xs text-slate-600">
-                    <div className="font-semibold text-slate-800">{row.locale ?? "–"}</div>
-                    <div className="text-[11px] text-slate-500">User #{row.userIdMasked ?? "—"}</div>
+                  <td className="px-4 py-3 text-xs text-[rgb(var(--muted))]">
+                    <div className="font-semibold text-[rgb(var(--fg))]">{row.locale ?? "–"}</div>
+                    <div className="text-[11px] text-[rgb(var(--muted))]">User #{row.userIdMasked ?? "—"}</div>
                   </td>
                   <td className="px-4 py-3">
-                    <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
+                    <span className="rounded-full bg-[rgb(var(--bg))] px-3 py-1 text-xs font-semibold text-[rgb(var(--muted))]">
                       {row.nodesCount} · {row.treesCount}
                     </span>
                   </td>
                   <td className="px-4 py-3">
                     <ReviewBadge reviewed={row.reviewed} />
                     {row.reviewedBy && (
-                      <p className="text-[11px] text-slate-500">
+                      <p className="text-[11px] text-[rgb(var(--muted))]">
                         von {row.reviewedBy} · {formatDate(row.reviewedAt)}
                       </p>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-xs text-slate-600">{formatDate(row.updatedAt)}</td>
+                  <td className="px-4 py-3 text-xs text-[rgb(var(--muted))]">{formatDate(row.updatedAt)}</td>
                   <td className="px-4 py-3">
                     <div className="flex flex-col items-end gap-2 text-xs">
                       <button
@@ -240,7 +240,7 @@ export default function AdminEventualitiesPage() {
                       </button>
                       <Link
                         href={`/admin/eventualities/${encodeURIComponent(row.contributionId)}`}
-                        className="text-slate-600 hover:text-slate-900 hover:underline"
+                        className="text-[rgb(var(--muted))] hover:text-[rgb(var(--fg))] hover:underline"
                       >
                         Details
                       </Link>
@@ -265,9 +265,9 @@ function SnapshotMetric({
   accent?: string;
 }) {
   return (
-    <div className="rounded-2xl border border-slate-100 bg-white/70 p-3">
-      <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{label}</p>
-      <p className={`text-2xl font-bold ${accent ?? "text-slate-900"}`}>{value}</p>
+    <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-3">
+      <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">{label}</p>
+      <p className={`text-2xl font-bold ${accent ?? "text-[rgb(var(--fg))]"}`}>{value}</p>
     </div>
   );
 }

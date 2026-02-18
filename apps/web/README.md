@@ -43,3 +43,12 @@ Relevant variables for the contact form and protections:
 - `MAIL_FROM`, `SMTP_URL` oder `SMTP_HOST`/`SMTP_PORT`/`SMTP_USER`/`SMTP_PASS`/`SMTP_SECURE` – SMTP Versand
 - `CONTACT_LOG_SALT` – Salt zum Hashen von IPs in Kontakt-Logs
 - `TURNSTILE_SECRET_KEY` und `NEXT_PUBLIC_TURNSTILE_SITE_KEY` – aktivieren Cloudflare Turnstile Schutz
+
+## Theme Tokens
+
+Neue Seiten sollen keine festen Hell/Dunkel-Farben setzen. Nutze stattdessen:
+
+- `bg-[rgb(var(--bg))]` für Seitenhintergründe.
+- `.surface` für Karten/Flächen (zusammen mit `rounded-*`, `p-*`).
+- `.muted` für Sekundärtext.
+- `.headline-grad` für Headlines mit CI-Gradient.

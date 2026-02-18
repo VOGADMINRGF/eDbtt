@@ -19,10 +19,10 @@ export function ExamplesCarouselsMobile(props: {
       {props.blocks.map((block) => (
         <section key={block.label}>
           <div className="mb-3 flex items-center justify-between px-1">
-            <div className="text-[11px] font-semibold tracking-[0.22em] text-black/45">
+            <div className="text-[11px] font-semibold tracking-[0.22em] text-[rgb(var(--muted))]">
               {labelForBucket(block.label, props.lang)}
             </div>
-            <div className="text-[11px] text-black/35">{t.cards.swipe}</div>
+            <div className="text-[11px] text-[rgb(var(--muted))] opacity-70">{t.cards.swipe}</div>
           </div>
 
           <div className="flex gap-4 overflow-x-auto pb-2 [-webkit-overflow-scrolling:touch]">

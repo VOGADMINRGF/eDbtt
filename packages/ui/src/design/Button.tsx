@@ -19,7 +19,7 @@ const VARIANT: Record<ButtonVariant, string> = {
   primary:
     "bg-[#00B3A6] text-white hover:opacity-95 focus-visible:outline-[#00B3A6]",
   secondary:
-    "bg-white text-neutral-800 border border-neutral-300 hover:bg-neutral-50 focus-visible:outline-neutral-800",
+    "bg-[rgb(var(--card))] text-neutral-800 border border-neutral-300 hover:bg-neutral-50 focus-visible:outline-neutral-800",
   ghost:
     "bg-transparent text-neutral-700 hover:bg-neutral-100 focus-visible:outline-neutral-700",
   link:

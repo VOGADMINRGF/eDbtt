@@ -7,7 +7,7 @@ export default function AlternativeCard({ alternative }) {
   const voteHandler = (type) => setVotes(prev => ({ ...prev, [type]: prev[type] + 1 }));
 
   return (
-    <div className="bg-white shadow-sm rounded-lg p-4 my-2">
+    <div className="bg-[rgb(var(--card))] shadow-sm rounded-lg p-4 my-2">
       <h5>{alternative.option}</h5>
       <p>{alternative.impact}</p>
       <div className="flex gap-2 mt-2">

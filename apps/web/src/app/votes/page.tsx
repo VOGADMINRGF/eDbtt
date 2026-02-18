@@ -11,9 +11,9 @@ export default async function VotesPage() {
   return (
     <main className="mx-auto min-h-screen max-w-5xl px-4 py-8 space-y-6">
       <header className="space-y-2">
-        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Evidenz · Abstimmungen</p>
-        <h1 className="text-3xl font-semibold text-slate-900">Öffentliche Abstimmungen &amp; Umfragevorlagen</h1>
-        <p className="text-sm text-slate-600">
+        <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Evidenz · Abstimmungen</p>
+        <h1 className="text-3xl font-semibold text-[rgb(var(--fg))]">Öffentliche Abstimmungen &amp; Umfragevorlagen</h1>
+        <p className="text-sm text-[rgb(var(--muted))]">
           Diese Abstimmungen wurden redaktionell geprüft. Jede Vorlage verlinkt auf belegte Aussagen, damit du direkt
           sehen kannst, welche Quellen und Entscheidungen dahinter stehen. eDebatte macht Quellen, Minderheitenberichte
           und Datenpakete sichtbar, damit Politik, Verbände und Medien belastbare Entscheidungen begleiten können.
@@ -21,18 +21,18 @@ export default async function VotesPage() {
       </header>
       <div className="grid gap-4 md:grid-cols-2">
         {items.map((vote) => (
-          <article key={vote.id} className="rounded-3xl border border-slate-200 bg-white/90 p-5 shadow-sm space-y-3">
-            <div className="flex items-center justify-between text-xs text-slate-500">
-              <span className="rounded-full bg-slate-100 px-3 py-1 font-semibold text-slate-700">
+          <article key={vote.id} className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm space-y-3">
+            <div className="flex items-center justify-between text-xs text-[rgb(var(--muted))]">
+              <span className="rounded-full bg-[rgb(var(--bg))] px-3 py-1 font-semibold text-[rgb(var(--muted))]">
                 {vote.regionLabel || vote.regionCode || "GLOBAL"}
               </span>
               <span>{new Date(vote.createdAt).toLocaleDateString("de-DE")}</span>
             </div>
             <div>
-              <h2 className="text-lg font-semibold text-slate-900">{vote.title}</h2>
-              {vote.summary && <p className="text-sm text-slate-600 mt-2">{vote.summary}</p>}
+              <h2 className="text-lg font-semibold text-[rgb(var(--fg))]">{vote.title}</h2>
+              {vote.summary && <p className="text-sm text-[rgb(var(--muted))] mt-2">{vote.summary}</p>}
             </div>
-            <div className="text-xs text-slate-500">
+            <div className="text-xs text-[rgb(var(--muted))]">
               <p>Eingehende Aussagen: {vote.claimCount ?? vote.claims.length}</p>
               <p>Status: {vote.status === "published" ? "Veröffentlicht" : vote.status}</p>
             </div>

@@ -771,6 +771,7 @@ Ziel:
 Changes:
 - Guard in `/api/streams/sessions/[id]/agenda` fuer `go_live`.
 - Neue Identity-Check-Helper in `core/streams/access.ts` und API-Utils.
+- Cockpit: `go_live` wird bei fehlender Identity blockiert und Fehlermeldung geklärt.
 
 Verification:
 - Not run (nicht angefragt).

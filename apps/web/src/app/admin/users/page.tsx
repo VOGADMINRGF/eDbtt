@@ -39,6 +39,8 @@ export default function AdminUsersPage() {
   const [activeDays, setActiveDays] = useState<number | "">("");
   const [createdDays, setCreatedDays] = useState<number | "">("");
   const [isSuperadmin, setIsSuperadmin] = useState(false);
+  const [viewerRoles, setViewerRoles] = useState<string[]>([]);
+  const [viewerTier, setViewerTier] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [data, setData] = useState<UsersResponse | null>(null);
   const [loading, setLoading] = useState(false);
@@ -47,6 +49,7 @@ export default function AdminUsersPage() {
   const [createOpen, setCreateOpen] = useState(false);
   const [createLoading, setCreateLoading] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
+  const [importInfo, setImportInfo] = useState<string | null>(null);
   const [refreshToken, setRefreshToken] = useState(0);
   const [accessError, setAccessError] = useState<string | null>(null);
   const [createForm, setCreateForm] = useState({
@@ -91,13 +94,21 @@ export default function AdminUsersPage() {
       }
       const body = await res.json().catch(() => ({}));
       const roles: string[] = Array.isArray(body?.user?.roles) ? body.user.roles : [];
-      if (alive) setIsSuperadmin(roles.includes("superadmin"));
+      if (alive) {
+        setIsSuperadmin(roles.includes("superadmin"));
+        setViewerRoles(roles);
+        setViewerTier(body?.user?.accessTier ?? null);
+      }
     }
     loadMe();
     return () => {
       alive = false;
     };
   }, [router]);
+
+  const isInstitution = viewerTier?.startsWith("institution") ?? false;
+  const canCreate = isInstitution;
+  const canImport = viewerRoles.includes("admin") || viewerRoles.includes("superadmin");
 
   useEffect(() => {
     let active = true;
@@ -205,7 +216,7 @@ export default function AdminUsersPage() {
   return (
     <div className="space-y-4">
       <h1 className="sr-only">Admin Nutzer</h1>
-      <div className="flex flex-wrap items-center gap-2 rounded-3xl bg-[rgb(var(--card))] p-4 shadow ring-1 ring-slate-100">
+      <div className="flex flex-wrap items-center gap-2 rounded-3xl bg-[rgb(var(--card))] p-4 shadow ring-1 ring-[rgb(var(--border))]">
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
@@ -262,15 +273,38 @@ export default function AdminUsersPage() {
         />
         <button
           type="button"
-          onClick={() => setCreateOpen(true)}
-          className="rounded-full bg-slate-900 px-4 py-1.5 text-sm font-semibold text-white"
+          onClick={() => {
+            if (!canCreate) return;
+            setCreateOpen(true);
+          }}
+          className="rounded-full bg-gradient-to-r from-[rgb(var(--grad-from))] to-[rgb(var(--grad-to))] px-4 py-1.5 text-sm font-semibold text-white disabled:opacity-60"
+          disabled={!canCreate}
+          title={canCreate ? "Nutzer anlegen" : "Nur B2B/B2G dürfen Nutzer hinzufügen"}
         >
           + Nutzer anlegen
         </button>
+        <button
+          type="button"
+          onClick={() => {
+            if (!canImport) return;
+            setImportInfo("Import ist vorbereitet – Endpoint folgt.");
+          }}
+          className="rounded-full border border-[rgb(var(--border))] px-4 py-1.5 text-sm font-semibold text-[rgb(var(--muted))] disabled:opacity-60"
+          disabled={!canImport}
+          title={canImport ? "Import (Admin)" : "Nur Admin darf importieren"}
+        >
+          Import (Admin)
+        </button>
       </div>
+      {importInfo && <p className="text-xs text-[rgb(var(--muted))]">{importInfo}</p>}
+      {!canCreate && (
+        <p className="text-xs text-[rgb(var(--muted))]">
+          Hinweis: Nutzer hinzufügen ist nur für B2B/B2G freigeschaltet.
+        </p>
+      )}
 
-      <div className="overflow-hidden rounded-3xl bg-[rgb(var(--card))] shadow ring-1 ring-slate-100">
-        <table className="min-w-full divide-y divide-slate-100 text-sm">
+      <div className="overflow-hidden rounded-3xl bg-[rgb(var(--card))] shadow ring-1 ring-[rgb(var(--border))]">
+        <table className="min-w-full divide-y divide-[rgb(var(--border))] text-sm">
           <thead className="bg-[rgb(var(--bg))]">
             <tr>
               <th className="px-3 py-2 text-left font-semibold text-[rgb(var(--muted))]">E-Mail</th>
@@ -283,10 +317,10 @@ export default function AdminUsersPage() {
               <th />
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100">
+          <tbody className="divide-y divide-[rgb(var(--border))]">
             {loading && (
               <tr>
-                <td colSpan={8} className="px-3 py-4 text-center text-slate-500">
+                <td colSpan={8} className="px-3 py-4 text-center text-[rgb(var(--muted))]">
                   Lädt …
                 </td>
               </tr>
@@ -299,19 +333,19 @@ export default function AdminUsersPage() {
                   <td className="px-3 py-2">
                     <div className="flex flex-wrap gap-1">
                       {u.roles.map((r) => (
-                        <span key={r} className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-[rgb(var(--muted))]">
+                        <span key={r} className="rounded-full bg-[rgb(var(--bg))] px-2 py-0.5 text-xs text-[rgb(var(--muted))]">
                           {r}
                         </span>
                       ))}
                     </div>
                   </td>
                   <td className="px-3 py-2">
-                    <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-[rgb(var(--muted))]">
+                    <span className="rounded-full bg-[rgb(var(--bg))] px-2 py-0.5 text-xs text-[rgb(var(--muted))]">
                       {u.accessTier ?? "—"}
                     </span>
                   </td>
                   <td className="px-3 py-2">
-                    <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-[rgb(var(--muted))]">
+                    <span className="rounded-full bg-[rgb(var(--bg))] px-2 py-0.5 text-xs text-[rgb(var(--muted))]">
                       {getEdebatePackageLabel(u.packageCode ?? "none")}
                     </span>
                   </td>
@@ -362,16 +396,16 @@ export default function AdminUsersPage() {
 
       {selected && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 px-4 backdrop-blur-sm">
-          <div className="w-full max-w-lg rounded-3xl bg-[rgb(var(--card))] p-5 shadow-[0_32px_90px_rgba(15,23,42,0.45)] ring-1 ring-slate-200 space-y-3">
+          <div className="w-full max-w-lg rounded-3xl bg-[rgb(var(--card))] p-5 shadow-[0_32px_90px_rgba(15,23,42,0.45)] ring-1 ring-[rgb(var(--border))] space-y-3">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Bearbeiten</p>
+                <p className="text-xs uppercase tracking-[0.18em] text-[rgb(var(--muted))]">Bearbeiten</p>
                 <p className="text-sm font-semibold text-[rgb(var(--fg))]">{selected.email}</p>
               </div>
               <button
                 type="button"
                 onClick={() => setSelected(null)}
-                className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-sm font-semibold text-[rgb(var(--muted))] hover:bg-slate-200"
+                className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-[rgb(var(--bg))] text-sm font-semibold text-[rgb(var(--muted))] hover:bg-[rgb(var(--bg))]"
               >
                 ✕
               </button>
@@ -397,7 +431,7 @@ export default function AdminUsersPage() {
                         );
                       }}
                       className={`rounded-full px-3 py-1 text-xs font-semibold ${
-                        active ? "bg-sky-100 text-sky-800 ring-1 ring-sky-200" : "bg-slate-100 text-[rgb(var(--muted))]"
+                        active ? "bg-sky-100 text-sky-800 ring-1 ring-sky-200" : "bg-[rgb(var(--bg))] text-[rgb(var(--muted))]"
                       }`}
                     >
                       {r}
@@ -483,16 +517,16 @@ export default function AdminUsersPage() {
 
       {createOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 px-4 backdrop-blur-sm">
-          <div className="w-full max-w-lg rounded-3xl bg-[rgb(var(--card))] p-5 shadow-[0_32px_90px_rgba(15,23,42,0.45)] ring-1 ring-slate-200 space-y-3">
+          <div className="w-full max-w-lg rounded-3xl bg-[rgb(var(--card))] p-5 shadow-[0_32px_90px_rgba(15,23,42,0.45)] ring-1 ring-[rgb(var(--border))] space-y-3">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Neuer Nutzer</p>
+                <p className="text-xs uppercase tracking-[0.18em] text-[rgb(var(--muted))]">Neuer Nutzer</p>
                 <p className="text-sm font-semibold text-[rgb(var(--fg))]">Account anlegen</p>
               </div>
               <button
                 type="button"
                 onClick={() => setCreateOpen(false)}
-                className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-sm font-semibold text-[rgb(var(--muted))] hover:bg-slate-200"
+                className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-[rgb(var(--bg))] text-sm font-semibold text-[rgb(var(--muted))] hover:bg-[rgb(var(--bg))]"
               >
                 ✕
               </button>
@@ -539,7 +573,7 @@ export default function AdminUsersPage() {
                 </button>
               </div>
               {createForm.sendPasswordLink && (
-                <p className="text-[11px] text-slate-500">
+                <p className="text-[11px] text-[rgb(var(--muted))]">
                   Passwort wird per Link gesetzt; ein Platzhalter wird serverseitig erzeugt.
                 </p>
               )}
@@ -562,7 +596,7 @@ export default function AdminUsersPage() {
                           }));
                         }}
                         className={`rounded-full px-3 py-1 text-xs font-semibold ${
-                          active ? "bg-sky-100 text-sky-800 ring-1 ring-sky-200" : "bg-slate-100 text-[rgb(var(--muted))]"
+                          active ? "bg-sky-100 text-sky-800 ring-1 ring-sky-200" : "bg-[rgb(var(--bg))] text-[rgb(var(--muted))]"
                         }`}
                       >
                         {r}

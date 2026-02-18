@@ -61,8 +61,8 @@ export default function AdminMembershipsPage() {
     <main className="mx-auto max-w-6xl px-4 py-8">
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-xs uppercase tracking-wide text-slate-500">Admin</p>
-          <h1 className="text-2xl font-bold text-slate-900">Mitgliedschaften</h1>
+          <p className="text-xs uppercase tracking-wide text-[rgb(var(--muted))]">Admin</p>
+          <h1 className="text-2xl font-bold text-[rgb(var(--fg))]">Mitgliedschaften</h1>
         </div>
         <Link href="/dashboard/admin" className="text-sm text-sky-600 underline">
           Zurück
@@ -88,21 +88,21 @@ export default function AdminMembershipsPage() {
             <Stat label="Offene Household-Invites" value={overview.pendingInviteCount ?? 0} />
           </div>
 
-          <div className="rounded-2xl border border-slate-200 bg-white/90 p-4 shadow-sm">
+          <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm">
             <div className="flex items-center justify-between gap-2">
-              <h2 className="text-lg font-semibold text-slate-900">Offene Zahlungen</h2>
+              <h2 className="text-lg font-semibold text-[rgb(var(--fg))]">Offene Zahlungen</h2>
               <button
                 type="button"
                 onClick={load}
-                className="rounded-full border border-slate-300 px-3 py-1 text-sm font-semibold text-slate-700 hover:border-sky-400"
+                className="rounded-full border border-[rgb(var(--border))] px-3 py-1 text-sm font-semibold text-[rgb(var(--muted))] hover:border-sky-400"
               >
                 Aktualisieren
               </button>
             </div>
             <div className="mt-3 overflow-x-auto">
-              <table className="min-w-full text-sm text-slate-800">
+              <table className="min-w-full text-sm text-[rgb(var(--fg))]">
                 <thead>
-                  <tr className="text-left text-xs uppercase tracking-wide text-slate-500">
+                  <tr className="text-left text-xs uppercase tracking-wide text-[rgb(var(--muted))]">
                     <th className="px-2 py-2">Betrag</th>
                     <th className="px-2 py-2">Rhythmus</th>
                     <th className="px-2 py-2">Haushalt</th>
@@ -116,13 +116,13 @@ export default function AdminMembershipsPage() {
                 <tbody>
                   {overview.waiting.length === 0 && (
                     <tr>
-                      <td className="px-2 py-3 text-slate-500" colSpan={8}>
+                      <td className="px-2 py-3 text-[rgb(var(--muted))]" colSpan={8}>
                         Keine offenen Zahlungen.
                       </td>
                     </tr>
                   )}
                   {overview.waiting.map((item) => (
-                    <tr key={item.paymentReference} className="border-t border-slate-100">
+                    <tr key={item.paymentReference} className="border-t border-[rgb(var(--border))]">
                       <td className="px-2 py-2">
                         {(item.membershipAmountPerMonth ?? item.amountPerPeriod).toFixed(2)} €
                       </td>
@@ -158,7 +158,7 @@ export default function AdminMembershipsPage() {
           </div>
         </div>
       ) : (
-        <p className="mt-4 text-sm text-slate-600">Lade Daten …</p>
+        <p className="mt-4 text-sm text-[rgb(var(--muted))]">Lade Daten …</p>
       )}
     </main>
   );
@@ -166,9 +166,9 @@ export default function AdminMembershipsPage() {
 
 function Stat({ label, value }: { label: string; value: string | number }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white/90 p-4 shadow-sm">
-      <p className="text-xs uppercase tracking-wide text-slate-500">{label}</p>
-      <p className="text-2xl font-semibold text-slate-900">{value}</p>
+    <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm">
+      <p className="text-xs uppercase tracking-wide text-[rgb(var(--muted))]">{label}</p>
+      <p className="text-2xl font-semibold text-[rgb(var(--fg))]">{value}</p>
     </div>
   );
 }

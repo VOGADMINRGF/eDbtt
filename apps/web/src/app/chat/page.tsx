@@ -86,19 +86,19 @@ export default async function ChatPage() {
   return (
     <main className="mx-auto flex max-w-3xl flex-col gap-6 px-4 py-12">
       <header className="space-y-2">
-        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{t(COPY.kicker, locale)}</p>
-        <h1 className="text-3xl font-bold text-slate-900">{t(COPY.title, locale)}</h1>
-        <p className="text-sm text-slate-600">{t(COPY.lead, locale)}</p>
+        <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">{t(COPY.kicker, locale)}</p>
+        <h1 className="text-3xl font-bold text-[rgb(var(--fg))]">{t(COPY.title, locale)}</h1>
+        <p className="text-sm text-[rgb(var(--muted))]">{t(COPY.lead, locale)}</p>
       </header>
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-5 text-sm shadow-sm">
-        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{t(COPY.statusTitle, locale)}</p>
-        <p className="mt-2 text-slate-700">{t(COPY.statusBody, locale)}</p>
+      <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 text-sm shadow-sm">
+        <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">{t(COPY.statusTitle, locale)}</p>
+        <p className="mt-2 text-[rgb(var(--muted))]">{t(COPY.statusBody, locale)}</p>
       </section>
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-5 text-sm shadow-sm">
-        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{t(COPY.nextTitle, locale)}</p>
-        <ul className="mt-2 list-disc space-y-1 pl-5 text-slate-700">
+      <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 text-sm shadow-sm">
+        <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">{t(COPY.nextTitle, locale)}</p>
+        <ul className="mt-2 list-disc space-y-1 pl-5 text-[rgb(var(--muted))]">
           {COPY.nextItems[localeKey].map((item) => (
             <li key={item}>{item}</li>
           ))}
@@ -106,10 +106,10 @@ export default async function ChatPage() {
       </section>
 
       <div className="flex gap-4 text-sm">
-        <Link href="/community" className="font-semibold text-slate-600 hover:text-slate-900">
+        <Link href="/community" className="font-semibold text-[rgb(var(--muted))] hover:text-[rgb(var(--fg))]">
           {t(COPY.actionRooms, locale)}
         </Link>
-        <Link href="/stream" className="font-semibold text-slate-500 hover:text-slate-700">
+        <Link href="/stream" className="font-semibold text-[rgb(var(--muted))] hover:text-[rgb(var(--muted))]">
           {t(COPY.actionStreams, locale)}
         </Link>
       </div>

@@ -83,15 +83,15 @@ export default async function EvidenceRegionPage({
   return (
     <main className="mx-auto flex min-h-[80vh] max-w-5xl flex-col gap-6 px-4 py-10">
       <header className="space-y-2">
-        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Evidence · Region</p>
-        <h1 className="text-2xl font-bold text-slate-900">
+        <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Evidence · Region</p>
+        <h1 className="text-2xl font-bold text-[rgb(var(--fg))]">
           Evidence-Claims für {regionName} ({regionParam})
         </h1>
-        <p className="text-sm text-slate-600">
+        <p className="text-sm text-[rgb(var(--muted))]">
           Hier findest du die aktuell erfassten Aussagen aus Feeds und Contributions für diese Region. Wähle
           Locale, Pipeline oder Zeitraum, um die Liste einzugrenzen.
         </p>
-        <div className="rounded-2xl border border-slate-200 bg-white/80 p-4 text-sm text-slate-600">
+        <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 text-sm text-[rgb(var(--muted))]">
           Evidence-Claims entstehen aus automatisierter Analyse (Block B) und werden redaktionell geprüft. Jede
           Aussage kann Evidence-Items (z. B. News-Artikel) und Entscheidungen (Abstimmungen) verknüpft haben – zusammen ergibt sich der
           Evidence-Graph.
@@ -109,14 +109,14 @@ export default async function EvidenceRegionPage({
       </section>
 
       {summary.topics.length > 0 && (
-        <section className="rounded-3xl border border-slate-200 bg-white/90 p-4 shadow-sm">
+        <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm">
           <div className="mb-3 flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-slate-900">Top-Themen in {regionName}</h2>
-            <span className="text-[11px] text-slate-400">nach Anzahl der Claims</span>
+            <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Top-Themen in {regionName}</h2>
+            <span className="text-[11px] text-[rgb(var(--muted))]">nach Anzahl der Claims</span>
           </div>
           <div className="flex flex-wrap gap-2">
             {summary.topics.map((topic) => (
-              <span key={topic.topicKey} className="rounded-full border border-slate-200 px-3 py-1 text-xs text-slate-600">
+              <span key={topic.topicKey} className="rounded-full border border-[rgb(var(--border))] px-3 py-1 text-xs text-[rgb(var(--muted))]">
                 {topic.topicKey || "Allgemein"} · {topic.claimCount}
               </span>
             ))}
@@ -124,13 +124,13 @@ export default async function EvidenceRegionPage({
         </section>
       )}
 
-      <form className="flex flex-wrap items-center gap-3 border border-slate-200 bg-white px-4 py-3 rounded-2xl">
-        <div className="flex flex-col text-sm text-slate-600">
+      <form className="flex flex-wrap items-center gap-3 border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-3 rounded-2xl">
+        <div className="flex flex-col text-sm text-[rgb(var(--muted))]">
           <label className="text-xs uppercase font-medium">Locale</label>
           <select
             name="locale"
             defaultValue={localeParam}
-            className="rounded-full border border-slate-300 bg-white px-4 py-1 text-sm"
+            className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-1 text-sm"
           >
             {LOCALE_OPTIONS.map((opt) => (
               <option key={opt} value={opt}>
@@ -139,24 +139,24 @@ export default async function EvidenceRegionPage({
             ))}
           </select>
         </div>
-        <div className="flex flex-col text-sm text-slate-600">
+        <div className="flex flex-col text-sm text-[rgb(var(--muted))]">
           <label className="text-xs uppercase font-medium">Pipeline</label>
           <select
             name="pipeline"
             defaultValue={pipelineParam}
-            className="rounded-full border border-slate-300 bg-white px-4 py-1 text-sm"
+            className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-1 text-sm"
           >
             <option value="all">Alle</option>
             <option value="feeds_to_statementCandidate">Feeds</option>
             <option value="contribution_analyze">Beiträge</option>
           </select>
         </div>
-        <div className="flex flex-col text-sm text-slate-600">
+        <div className="flex flex-col text-sm text-[rgb(var(--muted))]">
           <label className="text-xs uppercase font-medium">Zeitraum</label>
           <select
             name="timeRange"
             defaultValue={timeRangeParam}
-            className="rounded-full border border-slate-300 bg-white px-4 py-1 text-sm"
+            className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-1 text-sm"
           >
             <option value="30d">Letzte 30 Tage</option>
             <option value="90d">Letzte 90 Tage</option>
@@ -164,20 +164,20 @@ export default async function EvidenceRegionPage({
             <option value="all">Gesamter Zeitraum</option>
           </select>
         </div>
-        <div className="flex flex-col flex-1 text-sm text-slate-600">
+        <div className="flex flex-col flex-1 text-sm text-[rgb(var(--muted))]">
           <label className="text-xs uppercase font-medium">Suche</label>
           <input
             name="q"
             defaultValue={textQuery}
             placeholder="Claim durchsuchen"
-            className="rounded-full border border-slate-300 bg-white px-4 py-1 text-sm"
+            className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-1 text-sm"
           />
         </div>
         <button className="rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white">Filtern</button>
       </form>
 
       {items.length === 0 ? (
-        <div className="rounded-2xl border border-slate-200 bg-slate-50/80 px-6 py-8 text-center text-sm text-slate-600">
+        <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-6 py-8 text-center text-sm text-[rgb(var(--muted))]">
           Für diese Region liegen aktuell noch keine bestätigten Claims vor. Schau später wieder vorbei – neue
           Feeds und Auswertungen landen automatisch hier.
         </div>
@@ -189,7 +189,7 @@ export default async function EvidenceRegionPage({
         </section>
       )}
 
-      <footer className="text-xs text-slate-500">
+      <footer className="text-xs text-[rgb(var(--muted))]">
         Hinweise: Evidence-Graph Beta. Claims entstehen automatisiert (Feeds/Analyze) und werden redaktionell geprüft.
       </footer>
     </main>
@@ -198,10 +198,10 @@ export default async function EvidenceRegionPage({
 
 function SummaryCard({ label, value, hint }: { label: string; value: number; hint?: string }) {
   return (
-    <div className="rounded-3xl border border-slate-200 bg-white/90 p-4 shadow-sm">
-      <p className="text-xs uppercase tracking-wide text-slate-500">{label}</p>
-      <p className="mt-1 text-2xl font-semibold text-slate-900">{value.toLocaleString("de-DE")}</p>
-      {hint && <p className="text-xs text-slate-500">{hint}</p>}
+    <div className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm">
+      <p className="text-xs uppercase tracking-wide text-[rgb(var(--muted))]">{label}</p>
+      <p className="mt-1 text-2xl font-semibold text-[rgb(var(--fg))]">{value.toLocaleString("de-DE")}</p>
+      {hint && <p className="text-xs text-[rgb(var(--muted))]">{hint}</p>}
     </div>
   );
 }
@@ -219,12 +219,12 @@ function ClaimCard({ entry }: { entry: EvidenceClaimWithMeta }) {
     : null;
 
   return (
-    <article className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm space-y-3">
-      <p className="text-sm text-slate-800">{claim.text}</p>
-      <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500">
-        <span className="rounded-full bg-slate-100 px-3 py-1 font-semibold">{claim.sourceType}</span>
+    <article className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm space-y-3">
+      <p className="text-sm text-[rgb(var(--fg))]">{claim.text}</p>
+      <div className="flex flex-wrap items-center gap-3 text-xs text-[rgb(var(--muted))]">
+        <span className="rounded-full bg-[rgb(var(--bg))] px-3 py-1 font-semibold">{claim.sourceType}</span>
         <span className="rounded-full bg-emerald-50 px-3 py-1 font-semibold text-emerald-700">{badge}</span>
-        {decisionMeta && <span className="text-slate-400">{decisionMeta}</span>}
+        {decisionMeta && <span className="text-[rgb(var(--muted))]">{decisionMeta}</span>}
         <span>Locale {claim.locale}</span>
         <span>Pipeline {claim.meta?.pipeline ?? "n/a"}</span>
         <span>
@@ -256,13 +256,13 @@ function NewsSources({ sources }: { sources?: EvidenceClaimWithMeta["evidenceIte
       .slice(0, 5) ?? [];
   if (!items.length) return null;
   return (
-    <div className="rounded-2xl border border-slate-100 bg-slate-50/70 px-3 py-2 text-xs text-slate-600 space-y-2">
-      <div className="font-semibold text-slate-800">Quellen aus Medienberichten</div>
+    <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-xs text-[rgb(var(--muted))] space-y-2">
+      <div className="font-semibold text-[rgb(var(--fg))]">Quellen aus Medienberichten</div>
       <ul className="space-y-1">
         {items.map((item) => (
           <li key={item._id.toString()} className="flex flex-col gap-1">
-            <div className="text-[11px] uppercase text-slate-400">{item.publisher}</div>
-            <div className="text-sm text-slate-800">{item.shortTitle}</div>
+            <div className="text-[11px] uppercase text-[rgb(var(--muted))]">{item.publisher}</div>
+            <div className="text-sm text-[rgb(var(--fg))]">{item.shortTitle}</div>
             <div className="flex items-center gap-2 text-[11px]">
               <span>{item.shortSummary.slice(0, 160)}</span>
               <a
@@ -277,7 +277,7 @@ function NewsSources({ sources }: { sources?: EvidenceClaimWithMeta["evidenceIte
           </li>
         ))}
       </ul>
-      <p className="text-[11px] text-slate-400">
+      <p className="text-[11px] text-[rgb(var(--muted))]">
         Hinweis: Die Inhalte der verlinkten Quellen stammen von den jeweiligen Medienanbietern.
       </p>
     </div>

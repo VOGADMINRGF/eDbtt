@@ -5,168 +5,191 @@ import { useLocale } from "@/context/LocaleContext";
 import { resolveLocalizedField } from "@/lib/localization/getLocalizedField";
 import { useAutoTranslateText } from "@/lib/i18n/autoTranslate";
 
+/**
+ * Dark-Design (CI blau→türkis) für /howtoworks/bewegung
+ * - Inhalt angepasst an deine Klarstellung:
+ *   1) kostenfreie Eintragung bei VoiceOpenGov (Bekenntnis + optional Spende)
+ *   2) eDebatte-Pakete (Basis/Pro) sind Nutzungspakete, keine „Fördermitgliedschaft“
+ *   3) Abstimmungen bleiben frei; kostenpflichtig sind Nutzung/Workflows (Streams, proaktive Einreichungen, Sichtung, KI/Redaktion)
+ *   4) Zusätze als Aufpreis (Faktencheck, Dossier, Lektüre/Review, Streams etc.)
+ */
+
+const HEADLINE_GRAD = "headline-grad";
+const SOFT_RULE =
+  "h-px w-full bg-gradient-to-r from-[rgb(var(--grad-from))] to-transparent opacity-40";
+const PAGE_BG = "min-h-screen bg-[rgb(var(--bg))] text-[rgb(var(--fg))]";
+
+const CARD =
+  "surface rounded-2xl p-5 shadow-[0_18px_60px_rgba(2,6,23,0.35)]";
+const SUBCARD =
+  "surface rounded-xl p-4 bg-[color-mix(in_oklab,rgb(var(--card))_85%,rgb(var(--bg))_15%)]";
+const CHIP =
+  "inline-flex items-center gap-2 rounded-full border border-[rgb(var(--border))] bg-[color-mix(in_oklab,rgb(var(--card))_70%,rgb(var(--bg))_30%)] px-3 py-1 text-xs font-medium text-[rgb(var(--fg))]";
+const BUTTON_PRIMARY =
+  "inline-flex items-center justify-center rounded-full bg-gradient-to-r from-[rgb(var(--grad-from))] to-[rgb(var(--grad-to))] px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-black/10 hover:brightness-110";
+const BUTTON_GHOST =
+  "inline-flex items-center justify-center rounded-full border border-[rgb(var(--border))] bg-[color-mix(in_oklab,rgb(var(--card))_75%,transparent)] px-4 py-2 text-sm font-semibold text-[rgb(var(--fg))] hover:border-[rgb(var(--grad-from))] hover:text-[rgb(var(--grad-from))]";
+
+function SectionTitle({
+  children,
+  id,
+  lead,
+}: {
+  children: React.ReactNode;
+  id?: string;
+  lead?: string;
+}) {
+  return (
+    <div className="space-y-2">
+      <h2 id={id} className={`text-2xl font-extrabold tracking-tight ${HEADLINE_GRAD}`}>
+        {children}
+      </h2>
+      <div className={SOFT_RULE} />
+      {lead ? <p className="muted text-sm leading-relaxed">{lead}</p> : null}
+    </div>
+  );
+}
+
 const heroCopy = {
-  title_de: "VoiceOpenGov – die Initiative. eDebatte – das Werkzeug.",
-  title_en: "VoiceOpenGov — the initiative. eDebatte — the tool.",
+  title_de: "VoiceOpenGov – die Bewegung. eDebatte – das Werkzeug.",
+  title_en: "VoiceOpenGov — the movement. eDebatte — the tool.",
   lead_de:
-    "VoiceOpenGov ist eine überparteiliche Initiative für moderne Bürgerbeteiligung. eDebatte ist die Plattform, die Beteiligung alltagstauglich macht: Anliegen einreichen, Fakten prüfen, Optionen vergleichen, entscheiden – und Wirkung nachvollziehbar begleiten.",
+    "VoiceOpenGov ist ein überparteiliches Bekenntnis zu fairen Verfahren und direkter, nachvollziehbarer Beteiligung. eDebatte macht das praktisch: Beiträge strukturieren, Fakten prüfen, Optionen vergleichen, entscheiden – und Wirkung dokumentieren.",
   lead_en:
-    "VoiceOpenGov is a non-partisan initiative for modern civic participation. eDebatte is the platform that makes participation everyday practice: submit concerns, verify facts, compare options, decide — and track impact.",
+    "VoiceOpenGov is a non-partisan commitment to fair procedures and transparent participation. eDebatte makes it practical: structure contributions, verify facts, compare options, decide — and document impact.",
   secondary_de:
-    "Wir sind keine Partei, keine Liste und kein neues Lager. VoiceOpenGov versteht sich als weltweites Bündnis für faire Verfahren: transparent, nachvollziehbar, evidenzbasiert – wichtiger als Parteitaktik oder Lagerlogik.",
+    "Wir sind keine Partei und kein Lager. Entscheidend ist nicht, wer am lautesten ist, sondern ob ein Ergebnis nachvollziehbar zustande kam – mit Quellen, offenen Fragen, Alternativen und dokumentierten Minderheitenpositionen.",
   secondary_en:
-    "We are not a party, not a list, and not a new faction. VoiceOpenGov is a global alliance for fair procedures — transparent, traceable, evidence-based — more important than party tactics or camp logic.",
+    "We are not a party and not a camp. What matters is not who is loudest, but whether outcomes are traceable — with sources, open questions, alternatives and documented minority positions.",
 };
 
 const heroChips = [
   { id: "chip-1", label_de: "eine Person, eine Stimme", label_en: "one person, one vote" },
-  { id: "chip-2", label_de: "Satzung schützt vor Fremdinteressen", label_en: "Statutes guard against outside interests" },
-  { id: "chip-3", label_de: "Transparente Verfahren statt Hinterzimmer", label_en: "Transparent procedures instead of backroom deals" },
+  { id: "chip-2", label_de: "Regeln sind offen & überprüfbar", label_en: "rules are open & auditable" },
+  { id: "chip-3", label_de: "Dossiers statt Gerüchte", label_en: "dossiers instead of rumors" },
 ];
 
 const heroButtons = [
-  {
-    id: "member",
-    href: "/pricing",
-    label_de: "Vormerkung",
-    label_en: "Preorder",
-    variant: "primary" as const,
-  },
-  {
-    id: "app",
-    href: "/howtoworks/edebatte",
-    label_de: "Mehr zur eDebatte-App",
-    label_en: "More about the eDebatte app",
-    variant: "secondary" as const,
-  },
+  { id: "member", href: "/pricing", label_de: "Pakete ansehen", label_en: "See packages", primary: true },
+  { id: "app", href: "/howtoworks/edebatte", label_de: "Mehr zur eDebatte", label_en: "More about eDebatte", primary: false },
 ];
 
 const independenceSection = {
-  title_de: "Keine Partei. Kein Lager. Gesellschaft im Mittelpunkt.",
-  title_en: "No party. No camp. Society at the center.",
+  title_de: "Unabhängig. Überparteilich. Gesellschaft im Mittelpunkt.",
+  title_en: "Independent. Non-partisan. Society first.",
   paragraphs: [
     {
       id: "ind-1",
       body_de:
-        "Wir sind keine Partei und wollen es auch nicht werden. eDebatte versteht sich als unabhängige Bürgerbewegung und als weltweites Bündnis für aktive Beteiligung – jenseits von Schubladen wie „links“, „rechts“, „grün“, „liberal“ oder „Mitte“. Im Mittelpunkt steht nur eines: die Gesellschaft als Ganzes.",
+        "VoiceOpenGov ist keine Partei, keine Liste und kein neues Lager. Es ist eine Bewegung, die Verfahren wieder sichtbar macht: Was wird behauptet? Was ist belegt? Was ist offen? Welche Optionen gibt es – und welche Folgen hätten sie?",
       body_en:
-        "We are not a party and we do not intend to become one. eDebatte is an independent civic movement and a worldwide alliance for participation – beyond labels like left, right, green, liberal, or center. The only focus is society as a whole.",
+        "VoiceOpenGov is not a party, not a list, and not a new camp. It's a movement to make procedures visible again: what's claimed, what's evidenced, what's open, what options exist, and what consequences they have.",
     },
     {
       id: "ind-2",
       body_de:
-        "Unser Ziel ist, gemeinsam neue faire Strukturen zu schaffen – auf kommunaler, nationaler, europäischer und weltweiter Ebene. Wir glauben daran, dass gut vorbereitete Entscheidungen mit einer klaren Zwei-Drittel-Mehrheit stärker sind als kurzfristige Stimmungspolitik oder Fraktionszwang.",
+        "Unser Ziel ist Beteiligung, die handhabbar wird: nicht mehr Texte, sondern bessere Entscheidungsakten. Das stärkt die Akzeptanz – auch dann, wenn eine eigene Position am Ende nicht gewinnt.",
       body_en:
-        "Our goal is to build new fair structures together – locally, nationally, across Europe, and globally. Well-prepared decisions with a clear two-thirds majority are more resilient than short-term mood politics or caucus discipline.",
+        "Our goal is participation that becomes manageable: not more text, but better decision files. This strengthens acceptance — even if one's own position doesn't win.",
     },
     {
       id: "ind-3",
       body_de:
-        "Damit das funktioniert, muss die Bewegung unabhängig bleiben. Unsere Satzung legt fest: keine Partei, kein Konzern, kein Lobbyverband und kein anonymer Geldgeber dürfen die Regeln nach ihren Interessen verbiegen.",
+        "Unabhängigkeit ist dabei Grundbedingung: Stimmrecht ist nicht käuflich. Geld kann Infrastruktur und Arbeit finanzieren – aber nicht Einfluss auf Ergebnisse.",
       body_en:
-        "To make that possible, the movement has to remain independent. Our statutes guarantee that no party, corporation, lobby group, or anonymous donor can bend the rules to serve their interests.",
+        "Independence is a prerequisite: voting power cannot be bought. Money can fund infrastructure and work — not influence outcomes.",
     },
   ],
 };
 
-const membershipSection = {
-  title_de: "Mitglied werden – damit die Bewegung leben kann",
-  title_en: "Become a member – keep the movement alive",
-  intro_de:
-    "eDebatte wird ausschließlich von Mitgliedern und privaten Unterstützer:innen getragen – typischerweise ab 5,63 € monatlich. Es gibt keine versteckte Konzernfinanzierung und keine Parteikasse im Hintergrund. Wenn wir Server, Weiterentwicklung, Moderation und Bildungsformate stemmen, dann nur durch freiwillige Beiträge und Zeitspenden.",
-  intro_en:
-    "eDebatte is funded solely by members and individual supporters – typically starting at €5.63 per month. There is no hidden corporate money and no party treasury. Servers, development, moderation, and education exist because people contribute money and time.",
-  outro_de:
-    "Mitgliedschaft bedeutet: Du hältst die Infrastruktur mit am Leben, kaufst dir damit aber kein zusätzliches Stimmrecht. Alle Abstimmungen folgen strikt dem Prinzip „eine Person, eine Stimme“ – unabhängig von Einkommen, Parteibuch oder Spendenhöhe.",
-  outro_en:
-    "Membership means you keep the infrastructure alive without buying more voting power. Every vote follows the strict rule of one person, one vote – regardless of income, party membership, or donation size.",
+const joinModel = {
+  title_de: "Mitmachen: zwei Wege – kostenloses Bekenntnis oder eDebatte nutzen",
+  title_en: "Join: two ways — free commitment or using eDebatte",
+  cards: [
+    {
+      id: "join-vog",
+      title_de: "1) Kostenlos eintragen bei VoiceOpenGov",
+      title_en: "1) Register with VoiceOpenGov (free)",
+      body_de:
+        "Die Eintragung ist kostenfrei. Sie gibt der Bewegung Rückenwind: sichtbar machen, wie viele Menschen faire Verfahren und direkte Beteiligung unterstützen. Wer möchte, kann freiwillig spenden – ohne Vorteile beim Stimmrecht.",
+      body_en:
+        "Registration is free. It strengthens the movement by showing how many people support fair procedures and transparent participation. Optional donations are possible — without voting advantages.",
+      bullets_de: [
+        "Kostenfrei: Bekenntnis und Sichtbarkeit.",
+        "Freiwillige Spende möglich – ohne Gegenleistung beim Abstimmen.",
+        "Stimmrecht bleibt immer gleich: eine Person, eine Stimme.",
+      ],
+      bullets_en: [
+        "Free: commitment and visibility.",
+        "Optional donation — without voting perks.",
+        "Voting power stays equal: one person, one vote.",
+      ],
+      ctaHref: "https://voiceopengov.org",
+      ctaLabel_de: "Zur Initiative",
+      ctaLabel_en: "Go to initiative",
+    },
+    {
+      id: "join-edebatte",
+      title_de: "2) eDebatte nutzen (Basis/Pro)",
+      title_en: "2) Use eDebatte (Base/Pro)",
+      body_de:
+        "Die Abstimmungen bleiben grundsätzlich offen und fair. Kosten entstehen dort, wo echte Arbeit anfällt: Sichtung, Moderation, Redaktion, KI-gestützte Strukturierung und laufender Betrieb. Dafür gibt es Nutzungspakete.",
+      body_en:
+        "Voting stays open and fair. Costs arise where real work happens: review, moderation, editorial work, AI-assisted structuring and ongoing operations. That is covered by usage packages.",
+      bullets_de: [
+        "Basis (z. B. 9,99 €): aktive Nutzung, Beiträge proaktiv einreichen, Streams/Format-Begleitung möglich.",
+        "Pro (z. B. 29,99 €): für intensive Nutzung – täglich Themen regional sauber einreichen und zur Abstimmung bringen.",
+        "Zusätze gegen Aufpreis: Faktencheck, Dossiererstellung, Lektüre/Review, Streams/Medienpakete usw.",
+      ],
+      bullets_en: [
+        "Base (e.g., €9.99): active usage, submit contributions proactively, streaming/topic formats possible.",
+        "Pro (e.g., €29.99): for heavy usage — submit regional issues regularly and bring them to a vote.",
+        "Add-ons (paid): fact-checks, dossiers, review/editing, streaming/media packages, etc.",
+      ],
+      ctaHref: "/pricing",
+      ctaLabel_de: "Pakete ansehen",
+      ctaLabel_en: "See packages",
+    },
+  ],
 };
-
-const membershipList = [
-  {
-    id: "mem-1",
-    body_de: "Du hältst die Plattform technisch am Laufen – für dich und alle anderen.",
-    body_en: "You keep the platform running – for yourself and everyone else.",
-  },
-  {
-    id: "mem-2",
-    body_de:
-      "Du sicherst die Unabhängigkeit von Parteien, Lobbystrukturen und kurzfristigen Interessen.",
-    body_en:
-      "You protect the movement from parties, lobby structures, and short-lived interests.",
-  },
-  {
-    id: "mem-3",
-    body_de:
-      "Du ermöglichst, dass Kommunen, Initiativen und Schulen das Werkzeug kostenfrei testen können.",
-    body_en:
-      "You enable municipalities, initiatives, and schools to test the toolkit free of charge.",
-  },
-];
 
 const cooperationBlocks = [
   {
     id: "coop-politics",
-    title_de: "Kooperationen mit Politik & Institutionen",
-    title_en: "Cooperation with politics & institutions",
+    title_de: "Kooperation mit Kommunen, Politik und Institutionen",
+    title_en: "Cooperation with municipalities, politics & institutions",
     body_de:
-      "eDebatte und die App eDebatte verstehen sich nicht als Konkurrenz zu bestehenden Parteien oder Vertretungen, sondern als zusätzliche, unabhängige Ebene. Wir liefern aktuelle Meinungsbilder, strukturierte Dossiers und aufbereitete Entscheidungsgrundlagen, damit gewählte Vertreter:innen besser entscheiden können – transparent und überprüfbar.",
+      "eDebatte ist keine Konkurrenz zu gewählten Vertretungen, sondern eine unabhängige Entscheidungsvorbereitung: strukturierte Akten, nachvollziehbare Faktenlage, saubere Fragestellungen, Optionen und Auswirkungen. So können Gremien besser entscheiden – und Bürger:innen sehen, wie ein Ergebnis zustande kam.",
     body_en:
-      "eDebatte and the eDebatte app are not competitors to existing parties or parliaments. We add an independent layer: current sentiment, structured dossiers, and actionable recommendations so elected officials can decide transparently and accountably.",
-    bullets: [
-      {
-        id: "coop-politics-1",
-        body_de:
-          "Parteien, Fraktionen und Mandatsträger:innen können unsere Dossiers nutzen, ohne Einfluss zu kaufen.",
-        body_en:
-          "Parties, caucuses, and elected officials can use the dossiers without buying influence.",
-      },
-      {
-        id: "coop-politics-2",
-        body_de:
-          "Empfehlungen kommen immer mit Quellen, Unsicherheiten, Minderheitsberichten und Datenpaketen – keine „Sprachregelungen“, sondern Entscheidungsgrundlagen.",
-        body_en:
-          "Recommendations include sources, uncertainties, and minority reports – real decision support instead of talking points.",
-      },
-      {
-        id: "coop-politics-3",
-        body_de:
-          "Kooperation heißt: gemeinsam lernen, was funktioniert, und es auf weitere Regionen übertragen.",
-        body_en:
-          "Cooperation means learning together what works and scaling it to other regions.",
-      },
+      "eDebatte is not a competitor to elected bodies, but an independent decision-prep layer: structured files, traceable evidence, clear questions, options and impacts. This helps decisions — and keeps the path visible.",
+    bullets_de: [
+      "Institutionen nutzen Dossiers, ohne Einfluss zu kaufen: Stimmrecht bleibt gleich.",
+      "Empfehlungen kommen mit Quellen, Unsicherheiten, offenen Fragen und Minderheitenpositionen.",
+      "Kooperation heißt: gemeinsam testen, was funktioniert – und transparent in Regionen übertragen.",
+    ],
+    bullets_en: [
+      "Institutions can use dossiers without buying influence: voting power stays equal.",
+      "Recommendations include sources, uncertainty, open questions and minority positions.",
+      "Cooperation means testing what works and scaling transparently to regions.",
     ],
   },
   {
     id: "coop-media",
-    title_de: "Journalismus – vom Zuschauen zum Mitgestalten",
-    title_en: "Journalism – from observing to co-creating",
+    title_de: "Journalismus: vom Kommentieren zur überprüfbaren Begleitung",
+    title_en: "Journalism: from commentary to verifiable accompaniment",
     body_de:
-      "Das alte Bild „Politik entscheidet, das Volk darf wählen, der Journalismus berichtet darüber“ ist für viele Krisen zu langsam und zu oberflächlich geworden. Wir wünschen uns kritischen Journalismus, der redaktionell mitgestaltet, Fragen sauber aufbereitet und von Anfang an in Auswertung und Einordnung hineingeht – lokal, investigativ und transparent.",
+      "Viele Krisen sind schneller als Pressekonferenz, Kommentar und Nachberichterstattung. Wir wollen kritischen Journalismus, der früh einsteigt: Fragen sauber setzt, Quellen offenlegt, Widersprüche sichtbar macht und Dossiers als öffentlichen Prüfpfad nutzt – lokal, investigativ, transparent.",
     body_en:
-      "The old logic – politics decides, people vote, journalism comments – is too slow for current crises. We want critical journalism to join from the very beginning: asking questions, investigating locally, explaining data.",
-    bullets: [
-      {
-        id: "coop-media-1",
-        body_de:
-          "Reporter:innen sehen, welche Themen Menschen vor Ort wirklich beschäftigen – inklusive Quellen, Gegenargumenten und offenen Fragen.",
-        body_en:
-          "Reporters see which topics matter locally – with sources, counter-arguments, and open questions.",
-      },
-      {
-        id: "coop-media-2",
-        body_de:
-          "Jede Vorlage liefert eine Schablone für Beiträge, Podcasts oder Streams – mit klaren Fragestellungen und nachvollziehbaren Quellen.",
-        body_en:
-          "Each template comes with ready-to-use question sets for articles, podcasts, or streams.",
-      },
-      {
-        id: "coop-media-3",
-        body_de:
-          "Faktenlage und Verfahren sind offen einsehbar, die Bewertung bleibt bei der Redaktion – kritische Distanz ausdrücklich erwünscht.",
-        body_en:
-          "Facts and procedures stay open; the editorial assessment remains independent – critical distance encouraged.",
-      },
+      "Many crises move faster than press conferences and post-hoc commentary. We want critical journalism to join early: set questions cleanly, disclose sources, surface contradictions and use dossiers as a public audit trail — local, investigative, transparent.",
+    bullets_de: [
+      "Redaktionen sehen, welche Themen vor Ort wirklich brennen – inklusive Quellen, Gegenargumenten und offenen Fragen.",
+      "Jede Vorlage liefert Fragengerüste und Datenpakete für Beiträge, Podcasts oder Live-Formate.",
+      "Verfahren bleibt offen einsehbar, die Bewertung bleibt redaktionell – kritische Distanz ist ausdrücklich erwünscht.",
+    ],
+    bullets_en: [
+      "Newsrooms see what matters locally — with sources, counter-arguments and open questions.",
+      "Each template provides question sets and data packages for articles, podcasts or live formats.",
+      "Procedures stay open; editorial assessment remains independent — critical distance encouraged.",
     ],
   },
 ];
@@ -175,63 +198,49 @@ const joinPanel = {
   title_de: "Mitmachen & Kooperation",
   title_en: "Participate & cooperate",
   intro_de:
-    "Ohne Mitglieder, Unterstützer:innen und Partner funktioniert das alles nicht. Wenn dich die Idee überzeugt, kannst du auf drei Arten einsteigen – als Bürger:in, als Verband/Verein oder als Redaktion/Creator:",
+    "Wenn dich die Idee überzeugt, kannst du als Bürger:in einsteigen, als Kommune/Organisation pilotieren oder als Redaktion/Creator Themen begleiten – jeweils mit klaren Rollen und transparenten Verfahren.",
   intro_en:
-    "None of this works without members, supporters, and partners. If the idea resonates with you, there are three ways to join – as a citizen, an elected body, or a newsroom/creator:",
+    "If the idea resonates, join as a citizen, pilot as a municipality/organisation, or participate as a newsroom/creator — with clear roles and transparent procedures.",
   segments: [
     {
       id: "segment-citizen",
       label_de: "Für Bürger:innen",
       label_en: "For citizens",
       body_de:
-        "Mitglied werden, Anliegen einbringen, an Abstimmungen teilnehmen – und als Creator Themen, Streams oder Regionen begleiten.",
-      body_en: "Become a member, file concerns, take part in votes.",
+        "Kostenfrei bei VoiceOpenGov eintragen – und auf eDebatte Anliegen einreichen, abstimmen oder Themen begleiten.",
+      body_en:
+        "Register for free with VoiceOpenGov — and use eDebatte to submit concerns, vote, or accompany topics.",
     },
     {
       id: "segment-politics",
-      label_de: "Für Politik, Verbände & Vereine",
-      label_en: "For politics & associations",
+      label_de: "Für Kommunen & Organisationen",
+      label_en: "For municipalities & organisations",
       body_de:
-        "Aufbereitete Entscheidungsgrundlagen nutzen, Verfahren gemeinsam testen und in Regionen skalieren.",
-      body_en: "Use dossiers and sentiment data, test the procedures together, scale them regionally.",
+        "Pilot starten: 5–10 Themen, klare Metriken, saubere Akten und Rückkopplung in bestehende Beschlusswege.",
+      body_en:
+        "Run a pilot: 5–10 topics, clear metrics, clean decision files and feedback into existing processes.",
     },
     {
       id: "segment-media",
-      label_de: "Für Journalist:innen & Creator",
-      label_en: "For journalists & creators",
+      label_de: "Für Medien & Creator",
+      label_en: "For media & creators",
       body_de:
-        "Redaktionell mitgestalten: Faktenchecks, Fragenschablonen und Daten für Beiträge, Podcasts oder Streams.",
-      body_en: "Current topics, question templates, and data for articles, podcasts, or live formats.",
+        "Dossiers und Prüfpfade redaktionell begleiten, Streams/Beiträge mit Quellen und Daten fundieren.",
+      body_en:
+        "Accompany dossiers editorially and support streams/content with sources and data.",
     },
   ],
   buttons: [
-    {
-      id: "panel-member",
-      href: "/pricing",
-      label_de: "Vormerkung",
-      label_en: "Preorder",
-      primary: true,
-    },
-    {
-      id: "panel-politics",
-      href: "/team?focus=politik",
-      label_de: "Für Politik & Verbände",
-      label_en: "For politics & associations",
-      primary: false,
-    },
-    {
-      id: "panel-media",
-      href: "/team?focus=medien",
-      label_de: "Für Journalist:innen & Creator",
-      label_en: "For journalists & creators",
-      primary: false,
-    },
+    { id: "panel-vog", href: "https://voiceopengov.org", label_de: "Kostenfrei eintragen", label_en: "Register free", primary: true },
+    { id: "panel-pricing", href: "/pricing", label_de: "Pakete ansehen", label_en: "See packages", primary: false },
+    { id: "panel-team", href: "/kontakt", label_de: "Kooperation anfragen", label_en: "Request cooperation", primary: false },
   ],
 };
 
 export default function HowToWorksBewegungPage() {
   const { locale } = useLocale();
   const t = useAutoTranslateText({ locale, namespace: "howtoworks-bewegung" });
+
   const text = React.useCallback(
     (entry: Record<string, any>, key: string) => {
       const base = resolveLocalizedField(entry, key, locale);
@@ -241,89 +250,117 @@ export default function HowToWorksBewegungPage() {
     [locale, t],
   );
 
+  const pick = React.useCallback(
+    (entry: any, key: string) => {
+      const isEn = String(locale ?? "de").slice(0, 2) === "en";
+      return isEn ? entry[`${key}_en`] ?? entry[`${key}_de`] : entry[`${key}_de`] ?? entry[`${key}_en`];
+    },
+    [locale],
+  );
+
   return (
-    <main className="relative min-h-screen overflow-x-hidden bg-slate-50 pb-16">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(80%_50%_at_50%_0%,rgba(56,189,248,0.18),transparent_60%),radial-gradient(60%_50%_at_85%_10%,rgba(14,165,233,0.16),transparent_55%),radial-gradient(60%_50%_at_15%_12%,rgba(45,212,191,0.14),transparent_55%)]" />
-      <section className="relative mx-auto max-w-5xl px-4 py-14 space-y-10 sm:py-16">
-        <header className="space-y-4">
-          <h1 className="headline-grad text-4xl font-extrabold leading-tight">
+    <main className={PAGE_BG}>
+      <section className="mx-auto max-w-5xl px-4 py-14 sm:px-6 lg:px-8 space-y-10">
+        {/* HERO */}
+        <header className="space-y-6">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className={CHIP}>
+              <span className="h-1.5 w-1.5 rounded-full bg-sky-400" />
+              VoiceOpenGov
+            </span>
+            <span className={CHIP}>
+              <span className="h-1.5 w-1.5 rounded-full bg-teal-300" />
+              eDebatte
+            </span>
+            <span className={CHIP}>
+              <span className="h-1.5 w-1.5 rounded-full bg-cyan-300/90" />
+              Dossiers
+            </span>
+          </div>
+
+          <h1 className={`text-4xl font-extrabold leading-tight tracking-tight ${HEADLINE_GRAD}`}>
             {text(heroCopy, "title")}
           </h1>
-          <div className="rounded-[40px] border border-transparent bg-gradient-to-br from-sky-50 via-white to-cyan-50/80 p-1 shadow-[0_25px_80px_rgba(15,23,42,0.08)]">
-            <div className="rounded-[36px] bg-white/90 p-6 space-y-4">
-              <p className="text-lg text-slate-700">{text(heroCopy, "lead")}</p>
-              <p className="text-sm text-slate-600">{text(heroCopy, "secondary")}</p>
-              <a
-                href="https://voiceopengov.org"
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white/70 px-4 py-2 text-sm font-semibold text-slate-800 shadow-sm backdrop-blur hover:bg-white"
-              >
-                {t("Mehr zur Initiative auf voiceopengov.org →", "cta.voiceopengov")}
-              </a>
-              <div className="mt-4 flex flex-wrap gap-3 text-xs font-medium text-slate-700">
-                {heroChips.map((chip) => (
-                  <span
-                    key={chip.id}
-                    className="rounded-full border px-3 py-1 shadow-sm"
-                    style={{ borderColor: "var(--chip-border)", background: "rgba(14,165,233,0.08)" }}
-                  >
-                    {text(chip, "label")}
-                  </span>
-                ))}
-              </div>
-              <div className="mt-5 flex flex-wrap gap-3">
-                {heroButtons.map((btn) => (
-                  <a
-                    key={btn.id}
-                    href={btn.href}
-                    className={
-                      btn.variant === "primary" ? "btn btn-primary" : "btn btn-ghost"
-                    }
-                  >
-                    {text(btn, "label")}
-                  </a>
-                ))}
-              </div>
+
+          <div className={CARD}>
+            <p className="text-lg text-[rgb(var(--fg))]">{text(heroCopy, "lead")}</p>
+            <p className="mt-3 text-sm text-[rgb(var(--muted))]">{text(heroCopy, "secondary")}</p>
+
+            <div className="mt-5 flex flex-wrap gap-2">
+              {heroChips.map((chip) => (
+                <span key={chip.id} className={CHIP}>
+                  <span className="h-1.5 w-1.5 rounded-full bg-cyan-300/90" />
+                  {text(chip, "label")}
+                </span>
+              ))}
+            </div>
+
+            <div className="mt-5 flex flex-wrap gap-3">
+              {heroButtons.map((btn) => (
+                <a key={btn.id} href={btn.href} className={btn.primary ? BUTTON_PRIMARY : BUTTON_GHOST}>
+                  {text(btn, "label")}
+                </a>
+              ))}
             </div>
           </div>
         </header>
 
-        <section className="rounded-3xl border border-slate-100 bg-white p-6 shadow-[0_20px_60px_rgba(15,23,42,0.04)] space-y-4">
-          <h2 className="text-2xl font-bold text-slate-900">{text(independenceSection, "title")}</h2>
-          {independenceSection.paragraphs.map((paragraph) => (
-            <p key={paragraph.id} className="text-sm text-slate-700 leading-relaxed">
-              {text(paragraph, "body")}
-            </p>
-          ))}
-        </section>
-
-        <section className="rounded-3xl border border-slate-100 bg-white/95 p-6 shadow-[0_20px_60px_rgba(15,23,42,0.04)] space-y-4">
-          <h2 className="text-xl font-semibold text-slate-900">{text(membershipSection, "title")}</h2>
-          <p className="text-sm text-slate-700 leading-relaxed">{text(membershipSection, "intro")}</p>
-          <ul className="list-disc space-y-1 pl-5 text-sm text-slate-700">
-            {membershipList.map((item) => (
-              <li key={item.id}>{text(item, "body")}</li>
+        {/* INDEPENDENCE */}
+        <section className={CARD}>
+          <SectionTitle lead={pick(independenceSection, "title")}>{pick(independenceSection, "title")}</SectionTitle>
+          <div className="mt-4 space-y-3">
+            {independenceSection.paragraphs.map((p) => (
+              <p key={p.id} className="text-sm leading-relaxed text-[rgb(var(--muted))]">
+                {text(p, "body")}
+              </p>
             ))}
-          </ul>
-          <p className="text-sm text-slate-700 leading-relaxed">{text(membershipSection, "outro")}</p>
-          <div className="mt-3 flex flex-wrap gap-3">
-            <a href="/pricing" className="btn btn-primary">
-              {text(heroButtons[0], "label")}
-            </a>
           </div>
         </section>
 
-        <section className="rounded-3xl border border-slate-100 bg-white p-6 shadow-[0_20px_60px_rgba(15,23,42,0.04)]">
+        {/* JOIN MODEL */}
+        <section className="space-y-4">
+          <SectionTitle>{pick(joinModel, "title")}</SectionTitle>
+          <div className="grid gap-4 lg:grid-cols-2">
+            {joinModel.cards.map((c) => (
+              <div key={c.id} className={CARD}>
+                <h3 className={`text-xl font-extrabold ${HEADLINE_GRAD}`}>
+                  {String(locale ?? "de").startsWith("en") ? c.title_en : c.title_de}
+                </h3>
+                <div className={SOFT_RULE + " mt-2"} />
+                <p className="mt-3 text-sm leading-relaxed text-[rgb(var(--muted))]">
+                  {String(locale ?? "de").startsWith("en") ? c.body_en : c.body_de}
+                </p>
+                <ul className="mt-4 list-disc space-y-2 pl-5 text-sm leading-relaxed text-[rgb(var(--muted))]">
+                  {(String(locale ?? "de").startsWith("en") ? c.bullets_en : c.bullets_de).map((it) => (
+                    <li key={it}>{it}</li>
+                  ))}
+                </ul>
+                <div className="mt-5">
+                  <a href={c.ctaHref} className={BUTTON_PRIMARY}>
+                    {String(locale ?? "de").startsWith("en") ? c.ctaLabel_en : c.ctaLabel_de}
+                  </a>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* COOPERATION + JOIN PANEL */}
+        <section className={CARD}>
           <div className="grid gap-8 lg:grid-cols-2">
-            <div className="space-y-6">
+            <div className="space-y-8">
               {cooperationBlocks.map((block) => (
                 <div key={block.id} className="space-y-3">
-                  <h2 className="text-lg font-semibold text-slate-900">{text(block, "title")}</h2>
-                  <p className="text-sm text-slate-700 leading-relaxed">{text(block, "body")}</p>
-                  <ul className="list-disc space-y-2 pl-5 text-sm text-slate-700">
-                    {block.bullets.map((bullet) => (
-                      <li key={bullet.id}>{text(bullet, "body")}</li>
+                  <h2 className={`text-2xl font-extrabold ${HEADLINE_GRAD}`}>
+                    {String(locale ?? "de").startsWith("en") ? block.title_en : block.title_de}
+                  </h2>
+                  <div className={SOFT_RULE} />
+                  <p className="text-sm leading-relaxed text-[rgb(var(--muted))]">
+                    {String(locale ?? "de").startsWith("en") ? block.body_en : block.body_de}
+                  </p>
+                  <ul className="list-disc space-y-2 pl-5 text-sm leading-relaxed text-[rgb(var(--muted))]">
+                    {(String(locale ?? "de").startsWith("en") ? block.bullets_en : block.bullets_de).map((it) => (
+                      <li key={it}>{it}</li>
                     ))}
                   </ul>
                 </div>
@@ -331,30 +368,32 @@ export default function HowToWorksBewegungPage() {
             </div>
 
             <div className="flex">
-              <div className="flex w-full flex-col justify-between rounded-2xl border border-slate-100 bg-slate-50/70 p-5 shadow-sm">
-                <div className="space-y-2">
-                  <h3 className="text-base font-semibold text-slate-900">{text(joinPanel, "title")}</h3>
-                  <p className="text-sm text-slate-700 leading-relaxed">{text(joinPanel, "intro")}</p>
-                </div>
-                <div className="mt-4 space-y-3 text-xs text-slate-600">
-                  {joinPanel.segments.map((segment) => (
-                    <p key={segment.id}>
-                      <span className="font-semibold text-slate-800">{text(segment, "label")}</span>: {text(segment, "body")}
-                    </p>
+              <div className={CARD + " w-full"}>
+                <h3 className={`text-xl font-extrabold ${HEADLINE_GRAD}`}>
+                  {String(locale ?? "de").startsWith("en") ? joinPanel.title_en : joinPanel.title_de}
+                </h3>
+                <div className={SOFT_RULE + " mt-2"} />
+                <p className="mt-3 text-sm leading-relaxed text-[rgb(var(--muted))]">
+                  {String(locale ?? "de").startsWith("en") ? joinPanel.intro_en : joinPanel.intro_de}
+                </p>
+
+                <div className="mt-4 space-y-3 text-sm text-[rgb(var(--muted))]">
+                  {joinPanel.segments.map((seg) => (
+                    <div key={seg.id} className={SUBCARD}>
+                      <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
+                        {String(locale ?? "de").startsWith("en") ? seg.label_en : seg.label_de}
+                      </p>
+                      <p className="mt-2 leading-relaxed">
+                        {String(locale ?? "de").startsWith("en") ? seg.body_en : seg.body_de}
+                      </p>
+                    </div>
                   ))}
                 </div>
+
                 <div className="mt-5 flex flex-wrap gap-3">
                   {joinPanel.buttons.map((btn) => (
-                    <a
-                      key={btn.id}
-                      href={btn.href}
-                      className={
-                        btn.primary
-                          ? "btn btn-primary"
-                          : "btn btn-ghost text-sm"
-                      }
-                    >
-                      {text(btn, "label")}
+                    <a key={btn.id} href={btn.href} className={btn.primary ? BUTTON_PRIMARY : BUTTON_GHOST}>
+                      {String(locale ?? "de").startsWith("en") ? btn.label_en : btn.label_de}
                     </a>
                   ))}
                 </div>

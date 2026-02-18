@@ -51,19 +51,19 @@ export function E150Workbench() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-sky-50 via-emerald-50 to-emerald-100">
       {/* Kopf + Mode-Switch */}
-      <header className="border-b border-slate-200 bg-white/70 backdrop-blur">
+      <header className="border-b border-[rgb(var(--border))] bg-[rgb(var(--card))] backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
-          <h1 className="text-lg font-semibold text-slate-900">
+          <h1 className="text-lg font-semibold text-[rgb(var(--fg))]">
             Neuen Beitrag analysieren (E150)
           </h1>
-          <div className="inline-flex rounded-full bg-slate-100 p-1 text-xs font-semibold">
+          <div className="inline-flex rounded-full bg-[rgb(var(--bg))] p-1 text-xs font-semibold">
             <button
               type="button"
               onClick={() => setMode("citizen")}
               className={`px-3 py-1 rounded-full ${
                 mode === "citizen"
-                  ? "bg-white shadow text-slate-900"
-                  : "text-slate-500"
+                  ? "bg-[rgb(var(--card))] shadow text-[rgb(var(--fg))]"
+                  : "text-[rgb(var(--muted))]"
               }`}
             >
               Bürger-Ansicht
@@ -73,8 +73,8 @@ export function E150Workbench() {
               onClick={() => setMode("editor")}
               className={`px-3 py-1 rounded-full ${
                 mode === "editor"
-                  ? "bg-white shadow text-slate-900"
-                  : "text-slate-500"
+                  ? "bg-[rgb(var(--card))] shadow text-[rgb(var(--fg))]"
+                  : "text-[rgb(var(--muted))]"
               }`}
             >
               Redaktion
@@ -84,8 +84,8 @@ export function E150Workbench() {
               onClick={() => setMode("report")}
               className={`px-3 py-1 rounded-full ${
                 mode === "report"
-                  ? "bg-white shadow text-slate-900"
-                  : "text-slate-500"
+                  ? "bg-[rgb(var(--card))] shadow text-[rgb(var(--fg))]"
+                  : "text-[rgb(var(--muted))]"
               }`}
             >
               Themen-Report
@@ -124,7 +124,7 @@ export function E150Workbench() {
         )}
 
         {!result && (
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-[rgb(var(--muted))]">
             Hinweis: Nach der Analyse erscheinen hier Statements,
             Evidenz-Slots, Fragen & Themenknoten – je nach gewählter Ansicht.
           </p>

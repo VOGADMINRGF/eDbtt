@@ -119,9 +119,9 @@ export default function AdminReportAssetsPage() {
     <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-8">
       <header className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Admin · Reports</p>
-          <h1 className="text-2xl font-bold text-slate-900">Report Assets</h1>
-          <p className="text-sm text-slate-600">Assets anlegen, revisionieren und publizieren.</p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Admin · Reports</p>
+          <h1 className="text-2xl font-bold text-[rgb(var(--fg))]">Report Assets</h1>
+          <p className="text-sm text-[rgb(var(--muted))]">Assets anlegen, revisionieren und publizieren.</p>
         </div>
         <button
           className="rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white"
@@ -132,13 +132,13 @@ export default function AdminReportAssetsPage() {
       </header>
 
       {createOpen && (
-        <section className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
-          <h2 className="text-sm font-semibold text-slate-900">Neues Asset</h2>
+        <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm">
+          <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Neues Asset</h2>
           <div className="mt-3 grid gap-3 md:grid-cols-4">
             <select
               value={createKind}
               onChange={(e) => setCreateKind(e.target.value as (typeof KIND_OPTIONS)[number])}
-              className="rounded-2xl border border-slate-200 px-3 py-2 text-sm"
+              className="rounded-2xl border border-[rgb(var(--border))] px-3 py-2 text-sm"
             >
               {KIND_OPTIONS.map((opt) => (
                 <option key={opt} value={opt}>
@@ -150,19 +150,19 @@ export default function AdminReportAssetsPage() {
               value={createTopic}
               onChange={(e) => setCreateTopic(e.target.value)}
               placeholder="Topic Key"
-              className="rounded-2xl border border-slate-200 px-3 py-2 text-sm"
+              className="rounded-2xl border border-[rgb(var(--border))] px-3 py-2 text-sm"
             />
             <input
               value={createRegion}
               onChange={(e) => setCreateRegion(e.target.value)}
               placeholder="Region Code"
-              className="rounded-2xl border border-slate-200 px-3 py-2 text-sm"
+              className="rounded-2xl border border-[rgb(var(--border))] px-3 py-2 text-sm"
             />
             <input
               value={createSlug}
               onChange={(e) => setCreateSlug(e.target.value)}
               placeholder="Slug"
-              className="rounded-2xl border border-slate-200 px-3 py-2 text-sm"
+              className="rounded-2xl border border-[rgb(var(--border))] px-3 py-2 text-sm"
             />
           </div>
           <button
@@ -178,7 +178,7 @@ export default function AdminReportAssetsPage() {
         <select
           value={kind}
           onChange={(e) => setKind(e.target.value)}
-          className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm"
+          className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-2 text-sm"
         >
           <option value="all">Alle Kinds</option>
           {KIND_OPTIONS.map((opt) => (
@@ -190,7 +190,7 @@ export default function AdminReportAssetsPage() {
         <select
           value={status}
           onChange={(e) => setStatus(e.target.value)}
-          className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm"
+          className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-2 text-sm"
         >
           <option value="all">Alle Status</option>
           {STATUS_OPTIONS.map((opt) => (
@@ -203,7 +203,7 @@ export default function AdminReportAssetsPage() {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Suche (topic, region, slug)"
-          className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm"
+          className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-2 text-sm"
         />
       </div>
 
@@ -213,28 +213,28 @@ export default function AdminReportAssetsPage() {
         </div>
       )}
 
-      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <table className="min-w-full divide-y divide-slate-200 text-sm">
-          <thead className="bg-slate-50">
+      <div className="overflow-hidden rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] shadow-sm">
+        <table className="min-w-full divide-y divide-[rgb(var(--border))] text-sm">
+          <thead className="bg-[rgb(var(--bg))]">
             <tr>
-              <th className="px-4 py-3 text-left font-semibold text-slate-600">Key</th>
-              <th className="px-4 py-3 text-left font-semibold text-slate-600">Kind</th>
-              <th className="px-4 py-3 text-left font-semibold text-slate-600">Status</th>
-              <th className="px-4 py-3 text-left font-semibold text-slate-600">Rev</th>
-              <th className="px-4 py-3 text-left font-semibold text-slate-600">Updated</th>
+              <th className="px-4 py-3 text-left font-semibold text-[rgb(var(--muted))]">Key</th>
+              <th className="px-4 py-3 text-left font-semibold text-[rgb(var(--muted))]">Kind</th>
+              <th className="px-4 py-3 text-left font-semibold text-[rgb(var(--muted))]">Status</th>
+              <th className="px-4 py-3 text-left font-semibold text-[rgb(var(--muted))]">Rev</th>
+              <th className="px-4 py-3 text-left font-semibold text-[rgb(var(--muted))]">Updated</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100">
+          <tbody className="divide-y divide-[rgb(var(--border))]">
             {loading && (
               <tr>
-                <td colSpan={5} className="px-4 py-6 text-center text-slate-500">
+                <td colSpan={5} className="px-4 py-6 text-center text-[rgb(var(--muted))]">
                   Laedt Assets...
                 </td>
               </tr>
             )}
             {!loading && data?.items?.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-4 py-6 text-center text-slate-500">
+                <td colSpan={5} className="px-4 py-6 text-center text-[rgb(var(--muted))]">
                   Keine Assets gefunden.
                 </td>
               </tr>
@@ -245,24 +245,24 @@ export default function AdminReportAssetsPage() {
                   <td className="px-4 py-3">
                     <Link
                       href={`/admin/reports/assets/${asset.id}`}
-                      className="font-semibold text-slate-900 hover:underline"
+                      className="font-semibold text-[rgb(var(--fg))] hover:underline"
                     >
                       {asset.key.topicKey || asset.key.regionCode || asset.key.slug || asset.id.slice(-6)}
                     </Link>
                   </td>
-                  <td className="px-4 py-3 text-slate-600">{asset.kind}</td>
-                  <td className="px-4 py-3 text-slate-600">{asset.status}</td>
-                  <td className="px-4 py-3 text-slate-600">{asset.currentRev}</td>
-                  <td className="px-4 py-3 text-slate-600">{asset.updatedAt?.slice(0, 10) ?? "—"}</td>
+                  <td className="px-4 py-3 text-[rgb(var(--muted))]">{asset.kind}</td>
+                  <td className="px-4 py-3 text-[rgb(var(--muted))]">{asset.status}</td>
+                  <td className="px-4 py-3 text-[rgb(var(--muted))]">{asset.currentRev}</td>
+                  <td className="px-4 py-3 text-[rgb(var(--muted))]">{asset.updatedAt?.slice(0, 10) ?? "—"}</td>
                 </tr>
               ))}
           </tbody>
         </table>
       </div>
 
-      <div className="flex items-center justify-between text-xs text-slate-500">
+      <div className="flex items-center justify-between text-xs text-[rgb(var(--muted))]">
         <button
-          className="rounded-full border border-slate-200 px-3 py-1 disabled:opacity-50"
+          className="rounded-full border border-[rgb(var(--border))] px-3 py-1 disabled:opacity-50"
           disabled={page <= 1}
           onClick={() => setPage((prev) => Math.max(1, prev - 1))}
         >
@@ -272,7 +272,7 @@ export default function AdminReportAssetsPage() {
           Seite {page} / {totalPages}
         </span>
         <button
-          className="rounded-full border border-slate-200 px-3 py-1 disabled:opacity-50"
+          className="rounded-full border border-[rgb(var(--border))] px-3 py-1 disabled:opacity-50"
           disabled={page >= totalPages}
           onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
         >

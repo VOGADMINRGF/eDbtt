@@ -8,7 +8,7 @@ export default function InPlaceHUD({ log, analyzing }:{ log:string[]; analyzing:
           <div key={i} className={"px-2 py-0.5 rounded-full border "+(analyzing?"bg-sky-50":"bg-emerald-50")}>{t}</div>
         ))}
       </div>
-      {log?.length>0 && <ul className="text-xs text-slate-600 list-disc ml-5">{log.slice(-7).map((l,i)=><li key={i}>{l}</li>)}</ul>}
+      {log?.length>0 && <ul className="text-xs text-[rgb(var(--muted))] list-disc ml-5">{log.slice(-7).map((l,i)=><li key={i}>{l}</li>)}</ul>}
     </div>
   );
 }

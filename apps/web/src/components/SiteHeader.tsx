@@ -4,7 +4,7 @@ import { useState } from "react";
 export default function SiteHeader(){
   const [open,setOpen]=useState(false);
   return (
-    <header className="border-b bg-white">
+    <header className="border-b bg-[rgb(var(--card))]">
       <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
         <a href="/" className="font-bold text-lg">eDebatte</a>
         <button aria-label="Menu" className="md:hidden p-2 border rounded" onClick={()=>setOpen(x=>!x)}>☰</button>
@@ -15,7 +15,7 @@ export default function SiteHeader(){
         </nav>
       </div>
       {open && (
-        <nav className="md:hidden border-t px-4 py-2 flex flex-col gap-2 text-sm bg-white">
+        <nav className="md:hidden border-t px-4 py-2 flex flex-col gap-2 text-sm bg-[rgb(var(--card))]">
           <a href="/howtoworks/edebatte/dossier" className="py-1">Dossier &amp; Faktencheck</a>
           <a href="/swipes" className="py-1">Abstimmen</a>
           <a href="/pricing" className="py-1">Preise</a>

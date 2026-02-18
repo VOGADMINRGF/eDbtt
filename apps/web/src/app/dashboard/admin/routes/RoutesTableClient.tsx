@@ -30,7 +30,7 @@ function badgeClasses(access: RouteAccess): string {
     case "auth":
       return "bg-amber-50 text-amber-800 border border-amber-100";
     case "system":
-      return "bg-slate-900 text-slate-50 border border-slate-700";
+      return "bg-slate-900 text-slate-50 border border-[rgb(var(--border))]";
     case "public":
     default:
       return "bg-emerald-50 text-emerald-700 border border-emerald-100";
@@ -116,7 +116,7 @@ export default function RoutesTableClient({ initialRows }: Props) {
   return (
     <>
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-        <p className="text-xs text-slate-600">
+        <p className="text-xs text-[rgb(var(--muted))]">
           Access, Kommentare und Link-Infos pro Route. Änderungen werden in{" "}
           <code>config/routeAccess.json</code> gespeichert. Löschen entfernt die
           jeweilige <code>page.tsx</code>.
@@ -132,25 +132,25 @@ export default function RoutesTableClient({ initialRows }: Props) {
       </div>
 
       {status && (
-        <p className="mt-2 text-xs text-slate-700" aria-live="polite">
+        <p className="mt-2 text-xs text-[rgb(var(--muted))]" aria-live="polite">
           {status}
         </p>
       )}
 
-      <div className="mt-4 overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm">
+      <div className="mt-4 overflow-x-auto rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] shadow-sm">
         <table className="min-w-full text-left text-sm">
-          <thead className="bg-slate-50">
+          <thead className="bg-[rgb(var(--bg))]">
             <tr>
-              <th className="px-3 py-2 font-semibold text-slate-700">Route</th>
-              <th className="px-3 py-2 font-semibold text-slate-700">Access</th>
-              <th className="px-3 py-2 font-semibold text-slate-700">
+              <th className="px-3 py-2 font-semibold text-[rgb(var(--muted))]">Route</th>
+              <th className="px-3 py-2 font-semibold text-[rgb(var(--muted))]">Access</th>
+              <th className="px-3 py-2 font-semibold text-[rgb(var(--muted))]">
                 Kommentar
               </th>
-              <th className="px-3 py-2 font-semibold text-slate-700">
+              <th className="px-3 py-2 font-semibold text-[rgb(var(--muted))]">
                 Links (→ / ←)
               </th>
-              <th className="px-3 py-2 font-semibold text-slate-700">Datei</th>
-              <th className="px-3 py-2 font-semibold text-slate-700">
+              <th className="px-3 py-2 font-semibold text-[rgb(var(--muted))]">Datei</th>
+              <th className="px-3 py-2 font-semibold text-[rgb(var(--muted))]">
                 Aktionen
               </th>
             </tr>
@@ -158,8 +158,8 @@ export default function RoutesTableClient({ initialRows }: Props) {
           <tbody>
             {rows.map((r) => (
               <React.Fragment key={r.file}>
-                <tr className="border-t border-slate-100 align-top">
-                  <td className="px-3 py-2 font-mono text-xs text-slate-900">
+                <tr className="border-t border-[rgb(var(--border))] align-top">
+                  <td className="px-3 py-2 font-mono text-xs text-[rgb(var(--fg))]">
                     {r.route}
                   </td>
                   <td className="px-3 py-2">
@@ -169,7 +169,7 @@ export default function RoutesTableClient({ initialRows }: Props) {
                         onChange={(e) =>
                           updateAccess(r.route, e.target.value as RouteAccess)
                         }
-                        className="rounded-full border border-slate-200 bg-white px-2 py-1 text-xs text-slate-900 outline-none focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
+                        className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-2 py-1 text-xs text-[rgb(var(--fg))] outline-none focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
                       >
                         <option value="public">public</option>
                         <option value="auth">auth</option>
@@ -194,10 +194,10 @@ export default function RoutesTableClient({ initialRows }: Props) {
                         updateComment(r.route, e.target.value)
                       }
                       placeholder="Kommentar / Notizen"
-                      className="w-full rounded border border-slate-200 bg-slate-50 px-2 py-1 text-xs text-slate-900 outline-none focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
+                      className="w-full rounded border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-2 py-1 text-xs text-[rgb(var(--fg))] outline-none focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
                     />
                   </td>
-                  <td className="px-3 py-2 text-xs text-slate-700">
+                  <td className="px-3 py-2 text-xs text-[rgb(var(--muted))]">
                     <div className="flex items-center gap-2">
                       <span>
                         → {r.outgoingCount} / ← {r.incomingCount}
@@ -210,21 +210,21 @@ export default function RoutesTableClient({ initialRows }: Props) {
                               expandedRoute === r.route ? null : r.route,
                             )
                           }
-                          className="rounded-full border border-slate-200 px-2 py-0.5 text-[11px] text-slate-700 hover:border-sky-400"
+                          className="rounded-full border border-[rgb(var(--border))] px-2 py-0.5 text-[11px] text-[rgb(var(--muted))] hover:border-sky-400"
                         >
                           Details
                         </button>
                       )}
                     </div>
                   </td>
-                  <td className="px-3 py-2 font-mono text-[11px] text-slate-500">
+                  <td className="px-3 py-2 font-mono text-[11px] text-[rgb(var(--muted))]">
                     {r.file}
                   </td>
                   <td className="px-3 py-2">
                     <div className="flex flex-wrap items-center gap-2">
                       <a
                         href={r.route}
-                        className="rounded-full border border-slate-200 px-2 py-0.5 text-[11px] text-slate-700 hover:border-sky-400"
+                        className="rounded-full border border-[rgb(var(--border))] px-2 py-0.5 text-[11px] text-[rgb(var(--muted))] hover:border-sky-400"
                         target="_blank"
                         rel="noreferrer"
                       >
@@ -242,18 +242,18 @@ export default function RoutesTableClient({ initialRows }: Props) {
                 </tr>
 
                 {expandedRoute === r.route && (
-                  <tr className="border-t border-slate-100 bg-slate-50/60">
+                  <tr className="border-t border-[rgb(var(--border))] bg-[rgb(var(--bg))]">
                     <td
                       colSpan={6}
-                      className="px-4 py-3 text-xs text-slate-700"
+                      className="px-4 py-3 text-xs text-[rgb(var(--muted))]"
                     >
                       <div className="grid gap-4 md:grid-cols-2">
                         <div>
-                          <p className="mb-1 font-semibold text-slate-800">
+                          <p className="mb-1 font-semibold text-[rgb(var(--fg))]">
                             Verlinkt nach (Outgoing)
                           </p>
                           {r.outgoing.length === 0 ? (
-                            <p className="text-slate-500">Keine internen Links.</p>
+                            <p className="text-[rgb(var(--muted))]">Keine internen Links.</p>
                           ) : (
                             <ul className="space-y-1">
                               {r.outgoing.map((t) => (
@@ -266,11 +266,11 @@ export default function RoutesTableClient({ initialRows }: Props) {
                           )}
                         </div>
                         <div>
-                          <p className="mb-1 font-semibold text-slate-800">
+                          <p className="mb-1 font-semibold text-[rgb(var(--fg))]">
                             Verlinkt von (Incoming)
                           </p>
                           {r.incoming.length === 0 ? (
-                            <p className="text-slate-500">
+                            <p className="text-[rgb(var(--muted))]">
                               Keine gefundenen Quell-Routen.
                             </p>
                           ) : (

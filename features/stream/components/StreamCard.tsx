@@ -92,7 +92,7 @@ export default function StreamCard(props: StreamCardProps) {
   // *** MOBILE: Blockstruktur ***
   if (isMobileDevice) {
     return (
-      <div className="rounded-2xl shadow-md bg-white overflow-hidden border mb-5 w-full flex flex-col">
+      <div className="rounded-2xl shadow-md bg-[rgb(var(--card))] overflow-hidden border mb-5 w-full flex flex-col">
         {/* Titel */}
         <h3 className="font-bold text-coral text-lg px-4 pt-3 pb-2">{titleToShow}</h3>
         {/* Bild */}
@@ -144,7 +144,7 @@ export default function StreamCard(props: StreamCardProps) {
             className={`block font-bold px-3 py-1 rounded-full shadow text-center hover:scale-105 transition ${
               beitragVerfuegbar
                 ? "bg-indigo-600 text-white"
-                : "bg-white border-2 border-gray-300 text-gray-400 cursor-not-allowed"
+                : "bg-[rgb(var(--card))] border-2 border-gray-300 text-gray-400 cursor-not-allowed"
             }`}
             style={beitragVerfuegbar ? {} : { pointerEvents: "none", opacity: 0.5 }}
             aria-disabled={!beitragVerfuegbar}
@@ -215,7 +215,7 @@ export default function StreamCard(props: StreamCardProps) {
   return (
     <>
       <div
-        className="rounded-2xl shadow-md bg-white overflow-hidden hover:shadow-lg transition-all border mb-5 flex flex-row w-full relative"
+        className="rounded-2xl shadow-md bg-[rgb(var(--card))] overflow-hidden hover:shadow-lg transition-all border mb-5 flex flex-row w-full relative"
         style={{ minHeight: CARD_HEIGHT, maxHeight: CARD_HEIGHT }}
         onMouseEnter={() => { if (trailerUrl) setShowTrailer(true); }}
         onMouseLeave={() => {
@@ -288,7 +288,7 @@ export default function StreamCard(props: StreamCardProps) {
                 className={`font-bold px-3 py-1 rounded-full shadow hover:scale-105 transition ${
                   beitragVerfuegbar
                     ? "bg-indigo-600 text-white"
-                    : "bg-white border-2 border-gray-300 text-gray-400 cursor-not-allowed"
+                    : "bg-[rgb(var(--card))] border-2 border-gray-300 text-gray-400 cursor-not-allowed"
                 }`}
                 style={beitragVerfuegbar ? {} : { pointerEvents: "none", opacity: 0.5 }}
                 aria-disabled={!beitragVerfuegbar}

@@ -61,7 +61,7 @@ export default function AdminAnalyticsPage() {
           {error}
         </div>
       )}
-      <section className="rounded-3xl bg-[rgb(var(--card))] p-4 shadow ring-1 ring-slate-100">
+      <section className="rounded-3xl bg-[rgb(var(--card))] p-4 shadow ring-1 ring-[rgb(var(--border))]">
         <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Registrierungen (30 Tage)</h2>
         <div className="mt-3 flex items-end gap-1">
           {loading && <SkeletonBars />}
@@ -73,13 +73,13 @@ export default function AdminAnalyticsPage() {
                   style={{ height: `${Math.max(6, d.count * 6)}px` }}
                   title={`${d.date}: ${d.count}`}
                 />
-                <span className="text-[10px] text-slate-400">{d.date.slice(5)}</span>
+                <span className="text-[10px] text-[rgb(var(--muted))]">{d.date.slice(5)}</span>
               </div>
             ))}
         </div>
       </section>
 
-      <section className="rounded-3xl bg-[rgb(var(--card))] p-4 shadow ring-1 ring-slate-100">
+      <section className="rounded-3xl bg-[rgb(var(--card))] p-4 shadow ring-1 ring-[rgb(var(--border))]">
         <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Swipes (30 Tage)</h2>
         <div className="mt-3 flex items-end gap-1">
           {loading && <SkeletonBars />}
@@ -91,45 +91,45 @@ export default function AdminAnalyticsPage() {
                   style={{ height: `${Math.max(6, d.count * 4)}px` }}
                   title={`${d.date}: ${d.count}`}
                 />
-                <span className="text-[10px] text-slate-400">{d.date.slice(5)}</span>
+                <span className="text-[10px] text-[rgb(var(--muted))]">{d.date.slice(5)}</span>
               </div>
             ))}
         </div>
         {!loading && data?.swipes && (
           <div className="mt-3 flex flex-wrap gap-2 text-[11px] text-[rgb(var(--muted))]">
             <span className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-1">
-              Total: <span className="font-semibold text-slate-800">{data.swipes.total}</span>
+              Total: <span className="font-semibold text-[rgb(var(--fg))]">{data.swipes.total}</span>
             </span>
             <span className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-1">
-              Unique Nutzer: <span className="font-semibold text-slate-800">{data.swipes.uniqueUsers}</span>
+              Unique Nutzer: <span className="font-semibold text-[rgb(var(--fg))]">{data.swipes.uniqueUsers}</span>
             </span>
           </div>
         )}
       </section>
 
       <section className="grid gap-4 lg:grid-cols-2">
-        <div className="rounded-3xl bg-[rgb(var(--card))] p-4 shadow ring-1 ring-slate-100">
+        <div className="rounded-3xl bg-[rgb(var(--card))] p-4 shadow ring-1 ring-[rgb(var(--border))]">
           <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Paket-Verteilung</h2>
           <div className="mt-2 space-y-2">
             {loading && <SkeletonLines lines={4} />}
             {!loading &&
               data?.packages?.map((p) => (
                 <div key={p.code} className="flex items-center justify-between rounded-xl bg-[rgb(var(--bg))] px-3 py-2 text-sm">
-                  <span className="font-medium text-slate-800">{getEdebatePackageLabel(p.code || "none")}</span>
+                  <span className="font-medium text-[rgb(var(--fg))]">{getEdebatePackageLabel(p.code || "none")}</span>
                   <span className="text-[rgb(var(--muted))]">{p.count}</span>
                 </div>
               ))}
           </div>
         </div>
 
-        <div className="rounded-3xl bg-[rgb(var(--card))] p-4 shadow ring-1 ring-slate-100">
+        <div className="rounded-3xl bg-[rgb(var(--card))] p-4 shadow ring-1 ring-[rgb(var(--border))]">
           <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Rollen-Verteilung</h2>
           <div className="mt-2 space-y-2">
             {loading && <SkeletonLines lines={4} />}
             {!loading &&
               data?.roles?.map((r) => (
                 <div key={r.role} className="flex items-center justify-between rounded-xl bg-[rgb(var(--bg))] px-3 py-2 text-sm">
-                  <span className="font-medium text-slate-800">{r.role}</span>
+                  <span className="font-medium text-[rgb(var(--fg))]">{r.role}</span>
                   <span className="text-[rgb(var(--muted))]">{r.count}</span>
                 </div>
               ))}
@@ -144,7 +144,7 @@ function SkeletonLines({ lines }: { lines: number }) {
   return (
     <div className="space-y-2">
       {Array.from({ length: lines }).map((_, i) => (
-        <div key={i} className="h-6 animate-pulse rounded bg-slate-100" />
+        <div key={i} className="h-6 animate-pulse rounded bg-[rgb(var(--bg))]" />
       ))}
     </div>
   );
@@ -154,7 +154,7 @@ function SkeletonBars() {
   return (
     <div className="flex items-end gap-1">
       {Array.from({ length: 12 }).map((_, i) => (
-        <div key={i} className="w-4 rounded-full bg-slate-100" style={{ height: `${10 + i * 2}px` }} />
+        <div key={i} className="w-4 rounded-full bg-[rgb(var(--bg))]" style={{ height: `${10 + i * 2}px` }} />
       ))}
     </div>
   );

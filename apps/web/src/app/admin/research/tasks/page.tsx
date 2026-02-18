@@ -179,9 +179,9 @@ export default function ResearchTasksAdminPage() {
     <main className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-8">
       <header className="flex items-center justify-between gap-4">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Research</p>
-          <h1 className="text-2xl font-bold text-slate-900">Research Tasks</h1>
-          <p className="text-sm text-slate-600">Aufgaben anlegen, Contributions prüfen und XP vergeben.</p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Research</p>
+          <h1 className="text-2xl font-bold text-[rgb(var(--fg))]">Research Tasks</h1>
+          <p className="text-sm text-[rgb(var(--muted))]">Aufgaben anlegen, Contributions prüfen und XP vergeben.</p>
         </div>
         <button
           onClick={() => openForm()}
@@ -195,9 +195,9 @@ export default function ResearchTasksAdminPage() {
         <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-2 text-sm text-rose-700">{error}</div>
       )}
 
-      <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <table className="min-w-full divide-y divide-slate-200 text-sm">
-          <thead className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+      <div className="overflow-x-auto rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] shadow-sm">
+        <table className="min-w-full divide-y divide-[rgb(var(--border))] text-sm">
+          <thead className="bg-[rgb(var(--bg))] text-left text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
             <tr>
               <th className="px-4 py-3">Titel</th>
               <th className="px-4 py-3">Kind</th>
@@ -207,34 +207,34 @@ export default function ResearchTasksAdminPage() {
               <th className="px-4 py-3"></th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100">
+          <tbody className="divide-y divide-[rgb(var(--border))]">
             {loading ? (
               <tr>
-                <td colSpan={6} className="px-4 py-6 text-center text-slate-500">
+                <td colSpan={6} className="px-4 py-6 text-center text-[rgb(var(--muted))]">
                   Lädt …
                 </td>
               </tr>
             ) : (
               tasks.map((task) => (
-                <tr key={task.id} className={selectedTaskId === task.id ? "bg-slate-50" : ""}>
+                <tr key={task.id} className={selectedTaskId === task.id ? "bg-[rgb(var(--bg))]" : ""}>
                   <td className="px-4 py-3">
-                    <div className="font-semibold text-slate-900">{task.title}</div>
-                    {task.description && <div className="text-xs text-slate-500">{task.description}</div>}
+                    <div className="font-semibold text-[rgb(var(--fg))]">{task.title}</div>
+                    {task.description && <div className="text-xs text-[rgb(var(--muted))]">{task.description}</div>}
                   </td>
-                  <td className="px-4 py-3 text-xs text-slate-500">{task.kind ?? "custom"}</td>
-                  <td className="px-4 py-3 text-xs text-slate-500">{task.level ?? "basic"}</td>
-                  <td className="px-4 py-3 text-xs text-slate-500">{task.status ?? "open"}</td>
-                  <td className="px-4 py-3 text-xs text-slate-500">{task.tags?.join(", ") ?? "–"}</td>
+                  <td className="px-4 py-3 text-xs text-[rgb(var(--muted))]">{task.kind ?? "custom"}</td>
+                  <td className="px-4 py-3 text-xs text-[rgb(var(--muted))]">{task.level ?? "basic"}</td>
+                  <td className="px-4 py-3 text-xs text-[rgb(var(--muted))]">{task.status ?? "open"}</td>
+                  <td className="px-4 py-3 text-xs text-[rgb(var(--muted))]">{task.tags?.join(", ") ?? "–"}</td>
                   <td className="px-4 py-3 text-right space-x-2">
                     <button
                       onClick={() => openForm(task)}
-                      className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                      className="rounded-lg border border-[rgb(var(--border))] px-3 py-1.5 text-xs font-semibold text-[rgb(var(--muted))] hover:bg-[rgb(var(--bg))]"
                     >
                       Bearbeiten
                     </button>
                     <button
                       onClick={() => selectTask(task.id!)}
-                      className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                      className="rounded-lg border border-[rgb(var(--border))] px-3 py-1.5 text-xs font-semibold text-[rgb(var(--muted))] hover:bg-[rgb(var(--bg))]"
                     >
                       Beiträge
                     </button>
@@ -247,24 +247,24 @@ export default function ResearchTasksAdminPage() {
       </div>
 
       {selectedTask && (
-        <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm">
           <div className="mb-4 flex items-center justify-between">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Contributions</p>
-              <h2 className="text-lg font-semibold text-slate-900">{selectedTask.title}</h2>
-              <p className="text-xs text-slate-500">{selectedTask.description}</p>
+              <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Contributions</p>
+              <h2 className="text-lg font-semibold text-[rgb(var(--fg))]">{selectedTask.title}</h2>
+              <p className="text-xs text-[rgb(var(--muted))]">{selectedTask.description}</p>
             </div>
             <button
               onClick={clearSelection}
-              className="text-xs font-semibold text-slate-500 hover:text-slate-700"
+              className="text-xs font-semibold text-[rgb(var(--muted))] hover:text-[rgb(var(--muted))]"
             >
               schließen
             </button>
           </div>
 
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-slate-200 text-sm">
-              <thead className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+            <table className="min-w-full divide-y divide-[rgb(var(--border))] text-sm">
+              <thead className="bg-[rgb(var(--bg))] text-left text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
                 <tr>
                   <th className="px-3 py-2">Author</th>
                   <th className="px-3 py-2">Summary</th>
@@ -273,22 +273,22 @@ export default function ResearchTasksAdminPage() {
                   <th className="px-3 py-2"></th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-[rgb(var(--border))]">
                 {contributions.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="px-3 py-4 text-center text-slate-500">
+                    <td colSpan={5} className="px-3 py-4 text-center text-[rgb(var(--muted))]">
                       Keine Contributions vorhanden.
                     </td>
                   </tr>
                 ) : (
                   contributions.map((c) => (
                     <tr key={c.id}>
-                      <td className="px-3 py-2 text-xs text-slate-500">{c.authorId}</td>
+                      <td className="px-3 py-2 text-xs text-[rgb(var(--muted))]">{c.authorId}</td>
                       <td className="px-3 py-2">
-                        <div className="font-semibold text-slate-900">{c.summary}</div>
-                        {c.details && <div className="text-xs text-slate-500">{c.details}</div>}
+                        <div className="font-semibold text-[rgb(var(--fg))]">{c.summary}</div>
+                        {c.details && <div className="text-xs text-[rgb(var(--muted))]">{c.details}</div>}
                         {c.sources?.length ? (
-                          <div className="mt-1 space-y-1 text-xs text-slate-500">
+                          <div className="mt-1 space-y-1 text-xs text-[rgb(var(--muted))]">
                             {c.sources.map((s, idx) => (
                               <div key={idx}>
                                 {s.url ? (
@@ -303,8 +303,8 @@ export default function ResearchTasksAdminPage() {
                           </div>
                         ) : null}
                       </td>
-                      <td className="px-3 py-2 text-xs text-slate-500">{c.status ?? "submitted"}</td>
-                      <td className="px-3 py-2 text-xs text-slate-500">
+                      <td className="px-3 py-2 text-xs text-[rgb(var(--muted))]">{c.status ?? "submitted"}</td>
+                      <td className="px-3 py-2 text-xs text-[rgb(var(--muted))]">
                         {typeof c.feedbackHelpful === "boolean"
                           ? c.feedbackHelpful
                             ? "hilfreich"
@@ -326,13 +326,13 @@ export default function ResearchTasksAdminPage() {
                         </button>
                         <button
                           onClick={() => updateFeedback(c.id!, true)}
-                          className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                          className="rounded-lg border border-[rgb(var(--border))] px-3 py-1.5 text-xs font-semibold text-[rgb(var(--muted))] hover:bg-[rgb(var(--bg))]"
                         >
                           Hilfreich
                         </button>
                         <button
                           onClick={() => updateFeedback(c.id!, false)}
-                          className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                          className="rounded-lg border border-[rgb(var(--border))] px-3 py-1.5 text-xs font-semibold text-[rgb(var(--muted))] hover:bg-[rgb(var(--bg))]"
                         >
                           Nicht hilfreich
                         </button>
@@ -348,21 +348,21 @@ export default function ResearchTasksAdminPage() {
 
       {formOpen && (
         <div className="fixed inset-0 z-20 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-2xl rounded-2xl bg-white p-6 shadow-xl">
+          <div className="w-full max-w-2xl rounded-2xl bg-[rgb(var(--card))] p-6 shadow-xl">
             <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-slate-900">
+              <h2 className="text-lg font-semibold text-[rgb(var(--fg))]">
                 {formState.id ? "Task bearbeiten" : "Neue Task anlegen"}
               </h2>
-              <button onClick={() => setFormOpen(false)} className="text-sm font-semibold text-slate-500 hover:text-slate-700">
+              <button onClick={() => setFormOpen(false)} className="text-sm font-semibold text-[rgb(var(--muted))] hover:text-[rgb(var(--muted))]">
                 schließen
               </button>
             </div>
 
             <form className="space-y-4" onSubmit={handleSubmit}>
               <div className="space-y-1">
-                <label className="text-sm font-semibold text-slate-700">Titel</label>
+                <label className="text-sm font-semibold text-[rgb(var(--muted))]">Titel</label>
                 <input
-                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-slate-400 focus:outline-none"
+                  className="w-full rounded-lg border border-[rgb(var(--border))] px-3 py-2 text-sm focus:border-[rgb(var(--border))] focus:outline-none"
                   value={formState.title}
                   onChange={(e) => setFormState((s) => ({ ...s, title: e.target.value }))}
                   required
@@ -370,9 +370,9 @@ export default function ResearchTasksAdminPage() {
               </div>
 
               <div className="space-y-1">
-                <label className="text-sm font-semibold text-slate-700">Beschreibung</label>
+                <label className="text-sm font-semibold text-[rgb(var(--muted))]">Beschreibung</label>
                 <textarea
-                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-slate-400 focus:outline-none"
+                  className="w-full rounded-lg border border-[rgb(var(--border))] px-3 py-2 text-sm focus:border-[rgb(var(--border))] focus:outline-none"
                   rows={3}
                   value={formState.description}
                   onChange={(e) => setFormState((s) => ({ ...s, description: e.target.value }))}
@@ -381,9 +381,9 @@ export default function ResearchTasksAdminPage() {
 
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                 <div className="space-y-1">
-                  <label className="text-sm font-semibold text-slate-700">Kind</label>
+                  <label className="text-sm font-semibold text-[rgb(var(--muted))]">Kind</label>
                   <select
-                    className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-slate-400 focus:outline-none"
+                    className="w-full rounded-lg border border-[rgb(var(--border))] px-3 py-2 text-sm focus:border-[rgb(var(--border))] focus:outline-none"
                     value={formState.kind}
                     onChange={(e) => setFormState((s) => ({ ...s, kind: e.target.value }))}
                   >
@@ -396,9 +396,9 @@ export default function ResearchTasksAdminPage() {
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-sm font-semibold text-slate-700">Level</label>
+                  <label className="text-sm font-semibold text-[rgb(var(--muted))]">Level</label>
                   <select
-                    className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-slate-400 focus:outline-none"
+                    className="w-full rounded-lg border border-[rgb(var(--border))] px-3 py-2 text-sm focus:border-[rgb(var(--border))] focus:outline-none"
                     value={formState.level}
                     onChange={(e) => setFormState((s) => ({ ...s, level: e.target.value }))}
                   >
@@ -411,9 +411,9 @@ export default function ResearchTasksAdminPage() {
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-sm font-semibold text-slate-700">Status</label>
+                  <label className="text-sm font-semibold text-[rgb(var(--muted))]">Status</label>
                   <select
-                    className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-slate-400 focus:outline-none"
+                    className="w-full rounded-lg border border-[rgb(var(--border))] px-3 py-2 text-sm focus:border-[rgb(var(--border))] focus:outline-none"
                     value={formState.status}
                     onChange={(e) => setFormState((s) => ({ ...s, status: e.target.value }))}
                   >
@@ -428,17 +428,17 @@ export default function ResearchTasksAdminPage() {
 
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div className="space-y-1">
-                  <label className="text-sm font-semibold text-slate-700">Tags (comma separated)</label>
+                  <label className="text-sm font-semibold text-[rgb(var(--muted))]">Tags (comma separated)</label>
                   <input
-                    className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-slate-400 focus:outline-none"
+                    className="w-full rounded-lg border border-[rgb(var(--border))] px-3 py-2 text-sm focus:border-[rgb(var(--border))] focus:outline-none"
                     value={formState.tags}
                     onChange={(e) => setFormState((s) => ({ ...s, tags: e.target.value }))}
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-sm font-semibold text-slate-700">Hinweise (eine pro Zeile)</label>
+                  <label className="text-sm font-semibold text-[rgb(var(--muted))]">Hinweise (eine pro Zeile)</label>
                   <textarea
-                    className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-slate-400 focus:outline-none"
+                    className="w-full rounded-lg border border-[rgb(var(--border))] px-3 py-2 text-sm focus:border-[rgb(var(--border))] focus:outline-none"
                     rows={2}
                     value={formState.hints}
                     onChange={(e) => setFormState((s) => ({ ...s, hints: e.target.value }))}
@@ -450,7 +450,7 @@ export default function ResearchTasksAdminPage() {
                 <button
                   type="button"
                   onClick={() => setFormOpen(false)}
-                  className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+                  className="rounded-lg border border-[rgb(var(--border))] px-4 py-2 text-sm font-semibold text-[rgb(var(--muted))] hover:bg-[rgb(var(--bg))]"
                 >
                   Abbrechen
                 </button>

@@ -61,7 +61,7 @@ export default function ReportingWidget({
 
   // Beispiel: Advanced KPI-Box + Chart für die wichtigsten Kennzahlen
   return (
-    <div className="bg-white rounded-xl shadow p-6 mb-8">
+    <div className="bg-[rgb(var(--card))] rounded-xl shadow p-6 mb-8">
       <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-4 gap-3">
         <div>
           <h3 className="text-xl font-bold mb-1">Monatsreporting {region && <span>({region})</span>}</h3>

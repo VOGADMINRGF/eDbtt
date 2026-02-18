@@ -38,10 +38,10 @@ function doneLabelForStep(key: string) {
 }
 
 const stateColors: Record<StepState, string> = {
-  running: "bg-sky-50 text-sky-700 ring-sky-100",
-  done: "bg-emerald-50 text-emerald-700 ring-emerald-100",
-  empty: "bg-slate-50 text-slate-600 ring-slate-200",
-  failed: "bg-rose-50 text-rose-700 ring-rose-100",
+  running: "bg-sky-50 text-sky-700 ring-sky-100 dark:bg-sky-500/15 dark:text-sky-200 dark:ring-sky-400/30",
+  done: "bg-emerald-50 text-emerald-700 ring-emerald-100 dark:bg-emerald-500/15 dark:text-emerald-200 dark:ring-emerald-400/30",
+  empty: "bg-[rgb(var(--bg))] text-[rgb(var(--muted))] ring-[rgb(var(--border))]",
+  failed: "bg-rose-50 text-rose-700 ring-rose-100 dark:bg-rose-500/15 dark:text-rose-200 dark:ring-rose-400/30",
 };
 
 const stateLabelBase: Record<StepState, string> = {
@@ -65,21 +65,21 @@ function StepPill({
   return (
     <div
       className={[
-        "shrink-0 rounded-2xl border border-slate-200/70 bg-white/80 shadow-sm ring-1 ring-white/40 backdrop-blur",
+        "shrink-0 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] shadow-sm ring-1 ring-white/40 backdrop-blur",
         compact ? "px-3 py-2" : "px-4 py-3",
       ].join(" ")}
     >
       <div className={compact ? "grid grid-cols-[auto_1fr] gap-x-2 gap-y-1 items-center" : "flex items-center gap-3"}>
         <span
           className={[
-            "flex items-center justify-center rounded-full bg-slate-100 text-slate-700 ring-1 ring-inset ring-slate-200",
+            "flex items-center justify-center rounded-full bg-[rgb(var(--bg))] text-[rgb(var(--muted))] ring-1 ring-inset ring-[rgb(var(--border))]",
             compact ? "h-5 w-5 text-[10px] font-semibold" : "h-7 w-7 text-[12px] font-semibold",
           ].join(" ")}
         >
           {idx + 1}
         </span>
 
-        <span className={compact ? "text-[11px] font-semibold text-slate-800" : "text-sm font-semibold text-slate-800"}>
+        <span className={compact ? "text-[11px] font-semibold text-[rgb(var(--fg))]" : "text-sm font-semibold text-[rgb(var(--fg))]"}>
           {label}
         </span>
 
@@ -108,12 +108,12 @@ function ProviderBadge({ row }: { row: ProviderMatrixEntry }) {
 
   const cls =
     status === "ok"
-      ? "bg-emerald-50 text-emerald-700 ring-emerald-100"
+      ? "bg-emerald-50 text-emerald-700 ring-emerald-100 dark:bg-emerald-500/15 dark:text-emerald-200 dark:ring-emerald-400/30"
       : status === "running"
-      ? "bg-sky-50 text-sky-700 ring-sky-100"
+      ? "bg-sky-50 text-sky-700 ring-sky-100 dark:bg-sky-500/15 dark:text-sky-200 dark:ring-sky-400/30"
       : status === "failed"
-      ? "bg-rose-50 text-rose-700 ring-rose-100"
-      : "bg-slate-50 text-slate-600 ring-slate-200";
+      ? "bg-rose-50 text-rose-700 ring-rose-100 dark:bg-rose-500/15 dark:text-rose-200 dark:ring-rose-400/30"
+      : "bg-[rgb(var(--bg))] text-[rgb(var(--muted))] ring-[rgb(var(--border))]";
 
   const metaParts: string[] = [];
   if (row.model) metaParts.push(row.model);
@@ -121,13 +121,13 @@ function ProviderBadge({ row }: { row: ProviderMatrixEntry }) {
   if (dur) metaParts.push(dur);
 
   return (
-    <div className="flex flex-wrap items-center gap-2 rounded-xl border border-slate-200/70 bg-white/70 px-3 py-2 text-[11px] text-slate-700">
-      <span className="font-semibold text-slate-900">{row.provider}</span>
+    <div className="flex flex-wrap items-center gap-2 rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-[11px] text-[rgb(var(--muted))]">
+      <span className="font-semibold text-[rgb(var(--fg))]">{row.provider}</span>
       <span className={["inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ring-1 ring-inset", cls].join(" ")}>
         {status}
       </span>
-      {metaParts.length ? <span className="text-slate-500">{metaParts.join(" · ")}</span> : null}
-      {row.reason ? <span className="text-slate-500">· {row.reason}</span> : null}
+      {metaParts.length ? <span className="text-[rgb(var(--muted))]">{metaParts.join(" · ")}</span> : null}
+      {row.reason ? <span className="text-[rgb(var(--muted))]">· {row.reason}</span> : null}
     </div>
   );
 }
@@ -146,7 +146,7 @@ export default function AnalyzeProgress({
 
   return (
     <div className="w-full space-y-2">
-      <div className="md:hidden text-[10px] text-slate-500 px-1">Swipe für Status</div>
+      <div className="md:hidden text-[10px] text-[rgb(var(--muted))] px-1">Swipe für Status</div>
       <div className="md:hidden">
         <div className="flex gap-2 overflow-x-auto pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {steps.map((s, idx) => (
@@ -162,8 +162,8 @@ export default function AnalyzeProgress({
       </div>
 
       {hasProviders ? (
-        <details className="mt-3 rounded-2xl border border-slate-200/70 bg-white/60 px-4 py-3 shadow-sm ring-1 ring-white/40 backdrop-blur">
-          <summary className="cursor-pointer select-none text-[11px] font-semibold uppercase tracking-wide text-slate-600 hover:text-slate-900">
+        <details className="mt-3 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-3 shadow-sm ring-1 ring-white/40 backdrop-blur">
+          <summary className="cursor-pointer select-none text-[11px] font-semibold uppercase tracking-wide text-[rgb(var(--muted))] hover:text-[rgb(var(--fg))]">
             Provider / Telemetrie
           </summary>
           <div className="mt-3 space-y-2">

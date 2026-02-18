@@ -21,7 +21,7 @@ export default function SidebarNavAdmin() {
   }, []);
 
   return (
-    <aside className="w-56 bg-white shadow flex flex-col gap-1 p-4 dark:bg-neutral-900">
+    <aside className="w-56 bg-[rgb(var(--card))] shadow flex flex-col gap-1 p-4 dark:bg-neutral-900">
       <div className="mb-4 font-bold text-xl">Admin</div>
       {NAV.map((nav) => {
         const active = pathname?.startsWith(nav.href);

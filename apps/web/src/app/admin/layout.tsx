@@ -50,23 +50,23 @@ export default async function AdminLayout({ children }: Props) {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-white">
+    <div className="min-h-screen bg-[rgb(var(--bg))]">
       <div className="mx-auto flex max-w-6xl gap-6 px-4 py-8">
-        <aside className="hidden w-72 shrink-0 flex-col gap-3 rounded-3xl bg-white/90 p-4 shadow-[0_18px_45px_rgba(15,23,42,0.06)] ring-1 ring-slate-100 md:flex">
+        <aside className="hidden w-72 shrink-0 flex-col gap-3 rounded-3xl bg-[rgb(var(--card))] p-4 shadow-[0_18px_45px_rgba(15,23,42,0.06)] ring-1 ring-[rgb(var(--border))] md:flex">
           <AdminSidebar userEmail={maskEmail(user.email ?? null)} />
         </aside>
 
         <main className="flex-1 space-y-6">
-          <header className="flex flex-wrap items-center justify-between gap-3 rounded-3xl bg-white/90 px-4 py-3 shadow-[0_10px_30px_rgba(15,23,42,0.05)] ring-1 ring-slate-100">
+          <header className="flex flex-wrap items-center justify-between gap-3 rounded-3xl bg-[rgb(var(--card))] px-4 py-3 shadow-[0_10px_30px_rgba(15,23,42,0.05)] ring-1 ring-[rgb(var(--border))]">
             <div>
               <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-sky-600">Admin Dashboard</p>
-              <h1 className="text-xl font-semibold text-slate-900">Kontrolle & Insights</h1>
+              <h1 className="text-xl font-semibold text-[rgb(var(--fg))]">Kontrolle & Insights</h1>
             </div>
             <div className="flex items-center gap-2">
               <AdminSearchButton />
               <Link
                 href="/"
-                className="inline-flex items-center rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm font-semibold text-slate-700 hover:border-sky-300 hover:text-sky-700"
+                className="inline-flex items-center rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-1.5 text-sm font-semibold text-[rgb(var(--muted))] hover:border-sky-300 hover:text-sky-700"
               >
                 Zurück zur App
               </Link>

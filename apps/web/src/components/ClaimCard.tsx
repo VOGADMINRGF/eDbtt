@@ -1,7 +1,7 @@
 /* @ts-nocheck */
 export default function ClaimCard({ claim, onImpact }:{ claim:any; onImpact:(n:number)=>void }) {
     return (
-      <div className="border rounded-lg p-3 bg-white">
+      <div className="border rounded-lg p-3 bg-[rgb(var(--card))]">
         <div className="font-semibold">Aussage</div>
         <div className="mt-1">{claim.text}</div>
         <div className="text-gray-500 text-sm mt-1">Thema: <b>{claim.categoryMain ?? "—"}</b></div>

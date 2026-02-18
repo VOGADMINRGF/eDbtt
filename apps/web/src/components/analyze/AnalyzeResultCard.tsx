@@ -7,7 +7,7 @@ export default function AnalyzeResultCard({ claim, onUse }:{ claim: Claim; onUse
   return (
     <div className="vog-card p-4 space-y-3">
       <div className="font-medium">{claim.text}</div>
-      <div className="text-sm text-slate-600">
+      <div className="text-sm text-[rgb(var(--muted))]">
         {claim.categoryMain ? <>Thema: <b>{claim.categoryMain}</b>{subs?<> · Sub: {subs}</>:null}</> : "—"}
         {claim.region ? <> · Region: {claim.region}</> : null}
       </div>

@@ -166,18 +166,18 @@ export default function AccessCenterPage() {
     <main className="mx-auto flex max-w-5xl flex-col gap-6 px-4 py-8">
       <header className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Access Center</p>
-          <h1 className="text-2xl font-bold text-slate-900">Seitenzugriffe verwalten</h1>
-          <p className="text-sm text-slate-600">
+          <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Access Center</p>
+          <h1 className="text-2xl font-bold text-[rgb(var(--fg))]">Seitenzugriffe verwalten</h1>
+          <p className="text-sm text-[rgb(var(--muted))]">
             Definiere, welche Gruppen und Nutzer einzelne Seiten sehen dürfen. Änderungen wirken sofort.
           </p>
         </div>
-        <div className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-3 py-2 shadow-sm">
+        <div className="flex items-center gap-2 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 shadow-sm">
           <svg
             aria-hidden
             viewBox="0 0 20 20"
             fill="none"
-            className="h-4 w-4 text-slate-400"
+            className="h-4 w-4 text-[rgb(var(--muted))]"
           >
             <path
               d="m14.5 14.5 3 3"
@@ -192,11 +192,11 @@ export default function AccessCenterPage() {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Suchen (Route, Pfad, Gruppe, Status)"
-            className="w-64 bg-transparent text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none"
+            className="w-64 bg-transparent text-sm text-[rgb(var(--fg))] placeholder:text-[rgb(var(--muted))] focus:outline-none"
           />
         </div>
       </header>
-      <div className="flex items-center justify-between text-xs text-slate-500">
+      <div className="flex items-center justify-between text-xs text-[rgb(var(--muted))]">
         <span>{filteredRoutes.length} Seitenregeln</span>
         {totalPages > 1 && (
           <div className="flex items-center gap-2">
@@ -204,7 +204,7 @@ export default function AccessCenterPage() {
               type="button"
               onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={page <= 1}
-              className="rounded-full border border-slate-200 px-3 py-1 font-semibold text-slate-700 disabled:opacity-50"
+              className="rounded-full border border-[rgb(var(--border))] px-3 py-1 font-semibold text-[rgb(var(--muted))] disabled:opacity-50"
             >
               Zurück
             </button>
@@ -215,7 +215,7 @@ export default function AccessCenterPage() {
               type="button"
               onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
               disabled={page >= totalPages}
-              className="rounded-full border border-slate-200 px-3 py-1 font-semibold text-slate-700 disabled:opacity-50"
+              className="rounded-full border border-[rgb(var(--border))] px-3 py-1 font-semibold text-[rgb(var(--muted))] disabled:opacity-50"
             >
               Weiter
             </button>
@@ -227,9 +227,9 @@ export default function AccessCenterPage() {
         <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-2 text-sm text-rose-700">{error}</div>
       )}
 
-      <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <table className="min-w-full divide-y divide-slate-200 text-sm">
-          <thead className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+      <div className="overflow-x-auto rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] shadow-sm">
+        <table className="min-w-full divide-y divide-[rgb(var(--border))] text-sm">
+          <thead className="bg-[rgb(var(--bg))] text-left text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
             <tr>
               <th className="px-4 py-3">Route</th>
               <th className="px-4 py-3">Pfad</th>
@@ -239,16 +239,16 @@ export default function AccessCenterPage() {
               <th className="px-4 py-3 text-right">Aktionen</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100">
+          <tbody className="divide-y divide-[rgb(var(--border))]">
             {loading ? (
               <tr>
-                <td colSpan={6} className="px-4 py-6 text-center text-slate-500">
+                <td colSpan={6} className="px-4 py-6 text-center text-[rgb(var(--muted))]">
                   Lädt …
                 </td>
               </tr>
             ) : filteredRoutes.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-4 py-6 text-center text-slate-500">
+                <td colSpan={6} className="px-4 py-6 text-center text-[rgb(var(--muted))]">
                   Keine Treffer für „{query}“.
                 </td>
               </tr>
@@ -256,15 +256,15 @@ export default function AccessCenterPage() {
               pageRoutes.map((route) => (
                 <tr key={route.routeId}>
                   <td className="px-4 py-3">
-                    <div className="font-semibold text-slate-900">{route.label}</div>
-                    <div className="text-xs text-slate-500">{route.routeId}</div>
+                    <div className="font-semibold text-[rgb(var(--fg))]">{route.label}</div>
+                    <div className="text-xs text-[rgb(var(--muted))]">{route.routeId}</div>
                     {route.locked && (
-                      <span className="mt-1 inline-flex rounded-full bg-slate-200 px-2 py-0.5 text-[11px] text-slate-700">
+                      <span className="mt-1 inline-flex rounded-full bg-[rgb(var(--bg))] px-2 py-0.5 text-[11px] text-[rgb(var(--muted))]">
                         locked
                       </span>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-xs text-slate-500">
+                  <td className="px-4 py-3 text-xs text-[rgb(var(--muted))]">
                     <div className="flex items-center gap-2">
                       <span>{route.pathPattern}</span>
                       <a
@@ -305,7 +305,7 @@ export default function AccessCenterPage() {
                     </div>
                   </td>
                   <td className="px-4 py-3">
-                    <label className="inline-flex items-center gap-2 text-xs font-semibold text-slate-600">
+                    <label className="inline-flex items-center gap-2 text-xs font-semibold text-[rgb(var(--muted))]">
                       <input
                         type="checkbox"
                         disabled={route.locked}
@@ -325,7 +325,7 @@ export default function AccessCenterPage() {
                     </label>
                   </td>
                   <td className="px-4 py-3 text-center">
-                    <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
+                    <span className="rounded-full bg-[rgb(var(--bg))] px-3 py-1 text-xs font-semibold text-[rgb(var(--muted))]">
                       {route.overrides}
                     </span>
                   </td>
@@ -346,7 +346,7 @@ export default function AccessCenterPage() {
                             setError(err?.message ?? "Aktion fehlgeschlagen");
                           }
                         }}
-                        className="text-xs font-semibold text-slate-600 underline-offset-2 hover:underline disabled:opacity-50"
+                        className="text-xs font-semibold text-[rgb(var(--muted))] underline-offset-2 hover:underline disabled:opacity-50"
                       >
                         {route.routeId.startsWith("custom:") ? "Entfernen" : "Zuruecksetzen"}
                       </button>
@@ -359,18 +359,18 @@ export default function AccessCenterPage() {
         </table>
       </div>
 
-      <section className="rounded-3xl bg-white/90 p-4 shadow ring-1 ring-slate-100">
+      <section className="rounded-3xl bg-[rgb(var(--card))] p-4 shadow ring-1 ring-[rgb(var(--border))]">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+            <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
               Unverwaltete Seiten
             </p>
-            <h2 className="text-sm font-semibold text-slate-900">Route-Index</h2>
-            <p className="text-xs text-slate-500">
+            <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Route-Index</h2>
+            <p className="text-xs text-[rgb(var(--muted))]">
               Seiten, die noch keine Access-Policy besitzen. Hinzufuegen erzeugt eine Custom-Policy.
             </p>
           </div>
-          <span className="text-xs text-slate-500">
+          <span className="text-xs text-[rgb(var(--muted))]">
             {inventoryLoading ? "laedt" : `${filteredUnmanaged.length} Eintraege`}
           </span>
         </div>
@@ -383,18 +383,18 @@ export default function AccessCenterPage() {
 
         <div className="mt-3 space-y-2">
           {filteredUnmanaged.length === 0 && !inventoryLoading && (
-            <div className="rounded-2xl border border-slate-100 bg-slate-50 px-3 py-2 text-sm text-slate-500">
+            <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-sm text-[rgb(var(--muted))]">
               Keine weiteren Seiten gefunden.
             </div>
           )}
           {filteredUnmanaged.map((item) => (
             <div
               key={item.path}
-              className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-slate-100 px-3 py-2 text-sm"
+              className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-[rgb(var(--border))] px-3 py-2 text-sm"
             >
               <div>
-                <div className="font-semibold text-slate-900">{item.path}</div>
-                <div className="text-[11px] text-slate-500">{item.file}</div>
+                <div className="font-semibold text-[rgb(var(--fg))]">{item.path}</div>
+                <div className="text-[11px] text-[rgb(var(--muted))]">{item.file}</div>
               </div>
               <div className="flex items-center gap-2">
                 <a
@@ -414,7 +414,7 @@ export default function AccessCenterPage() {
                       setError(err?.message ?? "Policy konnte nicht angelegt werden");
                     }
                   }}
-                  className="rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-700 hover:border-sky-200 hover:text-sky-700"
+                  className="rounded-full border border-[rgb(var(--border))] px-3 py-1 text-xs font-semibold text-[rgb(var(--muted))] hover:border-sky-200 hover:text-sky-700"
                 >
                   Hinzufuegen
                 </button>

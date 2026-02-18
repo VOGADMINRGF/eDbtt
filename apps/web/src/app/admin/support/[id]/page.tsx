@@ -105,21 +105,21 @@ export default function AdminSupportDetailPage() {
   return (
     <main className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-8">
       <header className="space-y-2">
-        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Admin · Support Detail</p>
-        <h1 className="text-2xl font-bold text-slate-900">{data?.supportCampaign?.title ?? "Support Campaign"}</h1>
-        <p className="text-sm text-slate-600">
+        <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Admin · Support Detail</p>
+        <h1 className="text-2xl font-bold text-[rgb(var(--fg))]">{data?.supportCampaign?.title ?? "Support Campaign"}</h1>
+        <p className="text-sm text-[rgb(var(--muted))]">
           Verbuchen, stornieren und transparent reporten. Keine Stimmen, keine XP, keine Credits.
         </p>
       </header>
 
       <div className="flex flex-wrap items-center gap-3 text-sm">
-        <Link href="/admin/support" className="font-semibold text-slate-700 hover:text-slate-900">
+        <Link href="/admin/support" className="font-semibold text-[rgb(var(--muted))] hover:text-[rgb(var(--fg))]">
           Zurueck zu Support
         </Link>
         {data?.supportCampaign?.targetType === "campaign" && data.supportCampaign.targetId ? (
           <Link
             href={`/admin/campaigns/${encodeURIComponent(data.supportCampaign.targetId)}`}
-            className="font-semibold text-slate-700 hover:text-slate-900"
+            className="font-semibold text-[rgb(var(--muted))] hover:text-[rgb(var(--fg))]"
           >
             Zur Campaign
           </Link>
@@ -137,38 +137,38 @@ export default function AdminSupportDetailPage() {
       {error ? <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</div> : null}
 
       {loading ? (
-        <section className="rounded-2xl border border-slate-200 bg-white p-6 text-sm text-slate-500">Laedt …</section>
+        <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-6 text-sm text-[rgb(var(--muted))]">Laedt …</section>
       ) : null}
 
       {data ? (
         <>
-          <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm">
             <div className="flex flex-wrap items-end justify-between gap-3">
               <div>
-                <p className="text-xs uppercase tracking-wide text-slate-500">Raised</p>
-                <p className="text-xl font-semibold text-slate-900">
+                <p className="text-xs uppercase tracking-wide text-[rgb(var(--muted))]">Raised</p>
+                <p className="text-xl font-semibold text-[rgb(var(--fg))]">
                   {formatEuro(data.totals.raisedCents)} von {formatEuro(data.totals.goalCents)}
                 </p>
               </div>
-              <div className="text-sm font-semibold text-slate-700">{pct}%</div>
+              <div className="text-sm font-semibold text-[rgb(var(--muted))]">{pct}%</div>
             </div>
-            <div className="mt-2 h-3 overflow-hidden rounded-full bg-slate-100">
+            <div className="mt-2 h-3 overflow-hidden rounded-full bg-[rgb(var(--bg))]">
               <div className="h-full rounded-full bg-emerald-500" style={{ width: `${pct}%` }} />
             </div>
-            <p className="mt-2 text-sm text-slate-600">
+            <p className="mt-2 text-sm text-[rgb(var(--muted))]">
               Offen: {formatEuro(data.totals.waitingCents)} · Storniert: {formatEuro(data.totals.canceledCents)} ·
               Pledges: {data.totals.totalPledges}
             </p>
           </section>
 
-          <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm">
             <div className="mb-3 flex flex-wrap items-center gap-2">
               {(["all", "waiting_payment", "paid", "canceled"] as const).map((item) => (
                 <button
                   key={item}
                   onClick={() => setStatusFilter(item)}
                   className={`rounded-full px-3 py-1 text-xs font-semibold ${
-                    statusFilter === item ? "bg-slate-900 text-white" : "bg-slate-100 text-slate-700"
+                    statusFilter === item ? "bg-slate-900 text-white" : "bg-[rgb(var(--bg))] text-[rgb(var(--muted))]"
                   }`}
                 >
                   {item}
@@ -181,7 +181,7 @@ export default function AdminSupportDetailPage() {
                     "_blank",
                   )
                 }
-                className="ml-auto rounded-full border border-slate-300 px-3 py-1 text-xs font-semibold text-slate-700"
+                className="ml-auto rounded-full border border-[rgb(var(--border))] px-3 py-1 text-xs font-semibold text-[rgb(var(--muted))]"
               >
                 CSV Export
               </button>
@@ -189,7 +189,7 @@ export default function AdminSupportDetailPage() {
 
             <div className="overflow-x-auto">
               <table className="min-w-full text-sm">
-                <thead className="border-b border-slate-200 text-left text-xs uppercase tracking-wide text-slate-500">
+                <thead className="border-b border-[rgb(var(--border))] text-left text-xs uppercase tracking-wide text-[rgb(var(--muted))]">
                   <tr>
                     <th className="px-3 py-2">Ref</th>
                     <th className="px-3 py-2">Betrag</th>
@@ -202,18 +202,18 @@ export default function AdminSupportDetailPage() {
                 <tbody>
                   {data.pledges.length === 0 ? (
                     <tr>
-                      <td className="px-3 py-4 text-slate-500" colSpan={6}>
+                      <td className="px-3 py-4 text-[rgb(var(--muted))]" colSpan={6}>
                         Keine Pledges im aktuellen Filter.
                       </td>
                     </tr>
                   ) : null}
                   {data.pledges.map((row) => (
-                    <tr key={row.id} className="border-b border-slate-100">
-                      <td className="px-3 py-2 font-mono text-xs text-slate-700">{row.paymentReference}</td>
-                      <td className="px-3 py-2 text-slate-900">{formatEuro(row.amountCents)}</td>
-                      <td className="px-3 py-2 text-slate-700">{row.status}</td>
-                      <td className="px-3 py-2 text-slate-700">{row.isAnonymous ? "Anonym" : row.publicName || "—"}</td>
-                      <td className="px-3 py-2 text-slate-500">{new Date(row.createdAt).toLocaleString("de-DE")}</td>
+                    <tr key={row.id} className="border-b border-[rgb(var(--border))]">
+                      <td className="px-3 py-2 font-mono text-xs text-[rgb(var(--muted))]">{row.paymentReference}</td>
+                      <td className="px-3 py-2 text-[rgb(var(--fg))]">{formatEuro(row.amountCents)}</td>
+                      <td className="px-3 py-2 text-[rgb(var(--muted))]">{row.status}</td>
+                      <td className="px-3 py-2 text-[rgb(var(--muted))]">{row.isAnonymous ? "Anonym" : row.publicName || "—"}</td>
+                      <td className="px-3 py-2 text-[rgb(var(--muted))]">{new Date(row.createdAt).toLocaleString("de-DE")}</td>
                       <td className="px-3 py-2 text-right">
                         {row.status === "waiting_payment" ? (
                           <div className="inline-flex items-center gap-2">
@@ -233,7 +233,7 @@ export default function AdminSupportDetailPage() {
                             </button>
                           </div>
                         ) : (
-                          <span className="text-xs text-slate-400">—</span>
+                          <span className="text-xs text-[rgb(var(--muted))]">—</span>
                         )}
                       </td>
                     </tr>

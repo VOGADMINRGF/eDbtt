@@ -21,7 +21,7 @@ export default function RightSidebar({ news = [], className }: Props) {
   return (
     <aside
       className={clsx(
-        "bg-white border border-neutral-200 rounded-2xl shadow p-4 sm:p-5",
+        "bg-[rgb(var(--card))] border border-neutral-200 rounded-2xl shadow p-4 sm:p-5",
         "flex flex-col gap-4",
         className
       )}

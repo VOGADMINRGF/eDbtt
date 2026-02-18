@@ -130,11 +130,11 @@ export default function AdminReportAssetDetailPage() {
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-8">
       <header className="space-y-1">
-        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Admin · Report Asset</p>
-        <h1 className="text-2xl font-bold text-slate-900">
+        <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Admin · Report Asset</p>
+        <h1 className="text-2xl font-bold text-[rgb(var(--fg))]">
           {asset?.key?.topicKey || asset?.key?.regionCode || asset?.key?.slug || "Asset"}
         </h1>
-        <p className="text-sm text-slate-600">Status: {asset?.status ?? "—"}</p>
+        <p className="text-sm text-[rgb(var(--muted))]">Status: {asset?.status ?? "—"}</p>
       </header>
 
       {error && (
@@ -143,13 +143,13 @@ export default function AdminReportAssetDetailPage() {
         </div>
       )}
 
-      <section className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
-        <h2 className="text-sm font-semibold text-slate-900">Status</h2>
+      <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm">
+        <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Status</h2>
         <div className="mt-3 grid gap-3 md:grid-cols-3">
           <select
             value={status}
             onChange={(e) => setStatus(e.target.value)}
-            className="rounded-2xl border border-slate-200 px-3 py-2 text-sm"
+            className="rounded-2xl border border-[rgb(var(--border))] px-3 py-2 text-sm"
           >
             {STATUS_OPTIONS.map((opt) => (
               <option key={opt} value={opt}>
@@ -161,7 +161,7 @@ export default function AdminReportAssetDetailPage() {
             value={statusReason}
             onChange={(e) => setStatusReason(e.target.value)}
             placeholder="Reason"
-            className="rounded-2xl border border-slate-200 px-3 py-2 text-sm"
+            className="rounded-2xl border border-[rgb(var(--border))] px-3 py-2 text-sm"
           />
           <button
             className="rounded-2xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white"
@@ -172,32 +172,32 @@ export default function AdminReportAssetDetailPage() {
         </div>
       </section>
 
-      <section className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
-        <h2 className="text-sm font-semibold text-slate-900">Revision erstellen</h2>
+      <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm">
+        <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Revision erstellen</h2>
         <div className="mt-3 grid gap-3 md:grid-cols-2">
           <input
             value={revisionNote}
             onChange={(e) => setRevisionNote(e.target.value)}
             placeholder="Change note"
-            className="rounded-2xl border border-slate-200 px-3 py-2 text-sm"
+            className="rounded-2xl border border-[rgb(var(--border))] px-3 py-2 text-sm"
           />
           <input
             value={revisionHeadline}
             onChange={(e) => setRevisionHeadline(e.target.value)}
             placeholder="Headline"
-            className="rounded-2xl border border-slate-200 px-3 py-2 text-sm"
+            className="rounded-2xl border border-[rgb(var(--border))] px-3 py-2 text-sm"
           />
           <input
             value={revisionSummary}
             onChange={(e) => setRevisionSummary(e.target.value)}
             placeholder="Summary"
-            className="rounded-2xl border border-slate-200 px-3 py-2 text-sm"
+            className="rounded-2xl border border-[rgb(var(--border))] px-3 py-2 text-sm"
           />
           <textarea
             value={revisionBody}
             onChange={(e) => setRevisionBody(e.target.value)}
             placeholder="Body Markdown"
-            className="h-28 rounded-2xl border border-slate-200 px-3 py-2 text-sm"
+            className="h-28 rounded-2xl border border-[rgb(var(--border))] px-3 py-2 text-sm"
           />
         </div>
         <button
@@ -208,14 +208,14 @@ export default function AdminReportAssetDetailPage() {
         </button>
       </section>
 
-      <section className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
-        <h2 className="text-sm font-semibold text-slate-900">Publish</h2>
+      <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm">
+        <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Publish</h2>
         <div className="mt-3 grid gap-3 md:grid-cols-2">
           <input
             value={publishNote}
             onChange={(e) => setPublishNote(e.target.value)}
             placeholder="Change note"
-            className="rounded-2xl border border-slate-200 px-3 py-2 text-sm"
+            className="rounded-2xl border border-[rgb(var(--border))] px-3 py-2 text-sm"
           />
           <button
             className="rounded-2xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white"
@@ -226,16 +226,16 @@ export default function AdminReportAssetDetailPage() {
         </div>
       </section>
 
-      <section className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
-        <h2 className="text-sm font-semibold text-slate-900">Revisionen</h2>
+      <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm">
+        <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Revisionen</h2>
         <div className="mt-3 space-y-2 text-sm">
           {revisions.map((rev) => (
-            <div key={rev.id} className="rounded-2xl border border-slate-200 px-3 py-2">
+            <div key={rev.id} className="rounded-2xl border border-[rgb(var(--border))] px-3 py-2">
               <div className="flex items-center justify-between">
                 <span className="font-semibold">Rev {rev.rev}</span>
-                <span className="text-xs text-slate-500">{rev.createdAt?.slice(0, 10)}</span>
+                <span className="text-xs text-[rgb(var(--muted))]">{rev.createdAt?.slice(0, 10)}</span>
               </div>
-              <div className="text-xs text-slate-500">{rev.changeNote}</div>
+              <div className="text-xs text-[rgb(var(--muted))]">{rev.changeNote}</div>
             </div>
           ))}
         </div>

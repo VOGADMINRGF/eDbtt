@@ -84,7 +84,7 @@ export default function EngagementStats({
   const maxSeg = useMemo(() => (segments.length ? Math.max(...segments.map((s) => s.value)) : 0), [segments]);
 
   return (
-    <div className="w-full rounded-2xl border border-gray-200 bg-white">
+    <div className="w-full rounded-2xl border border-gray-200 bg-[rgb(var(--card))]">
       {/* Header */}
       <div className="flex items-center justify-between border-b border-gray-200 p-4">
         <div>

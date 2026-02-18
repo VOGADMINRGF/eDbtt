@@ -3,7 +3,7 @@ import demoReports from "@features/report/data/demoReports";
 
 export default function DemoDossierPage() {
   return (
-    <main className="min-h-screen bg-white">
+    <main className="min-h-screen bg-[rgb(var(--card))]">
       <h1 className="sr-only">Demo Dossier</h1>
       <ReportPage initial={demoReports} />
     </main>

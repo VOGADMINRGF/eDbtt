@@ -11,7 +11,7 @@ export default function ObjectionCollector(){
     <div className="vog-card p-4 space-y-2">
       <div className="flex items-center justify-between">
         <div className="font-semibold">Einwände & Argumente</div>
-        <div className="text-xs text-slate-600">Coverage: {coverage}/3</div>
+        <div className="text-xs text-[rgb(var(--muted))]">Coverage: {coverage}/3</div>
       </div>
       <div className="flex gap-2">
         <select className="border rounded-xl px-2 py-1 text-sm" value={pol} onChange={e=>setPol(e.target.value as any)}>

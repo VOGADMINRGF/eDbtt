@@ -43,12 +43,12 @@ export function ResponsibilityNavigator({ paths = [], actors = [], statementTitl
   const hasPaths = (paths?.length ?? 0) > 0;
 
   return (
-    <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+    <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm">
       <div className="flex items-center justify-between gap-4">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Responsibility</p>
-          <h2 className="text-lg font-bold text-slate-900">Zuständigkeitsnavigator</h2>
-          <p className="text-sm text-slate-600">Visualisiert Responsibility Paths aus der Analyse.</p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Responsibility</p>
+          <h2 className="text-lg font-bold text-[rgb(var(--fg))]">Zuständigkeitsnavigator</h2>
+          <p className="text-sm text-[rgb(var(--muted))]">Visualisiert Responsibility Paths aus der Analyse.</p>
         </div>
         <button
           onClick={() => setOpen(true)}
@@ -59,20 +59,20 @@ export function ResponsibilityNavigator({ paths = [], actors = [], statementTitl
         </button>
       </div>
       {!hasPaths && (
-        <p className="mt-3 text-sm text-slate-600">Keine Responsibility Paths vorhanden.</p>
+        <p className="mt-3 text-sm text-[rgb(var(--muted))]">Keine Responsibility Paths vorhanden.</p>
       )}
 
       {open && (
         <div className="fixed inset-0 z-30 flex items-center justify-center bg-black/50 px-4 py-6">
-          <div className="relative w-full max-w-4xl overflow-hidden rounded-2xl bg-white shadow-2xl">
-            <div className="flex items-start justify-between border-b border-slate-200 px-6 py-4">
+          <div className="relative w-full max-w-4xl overflow-hidden rounded-2xl bg-[rgb(var(--card))] shadow-2xl">
+            <div className="flex items-start justify-between border-b border-[rgb(var(--border))] px-6 py-4">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Navigator</p>
-                <h3 className="text-xl font-bold text-slate-900">{statementTitle || "Statement"}</h3>
+                <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Navigator</p>
+                <h3 className="text-xl font-bold text-[rgb(var(--fg))]">{statementTitle || "Statement"}</h3>
               </div>
               <button
                 onClick={() => setOpen(false)}
-                className="text-sm font-semibold text-slate-600 hover:text-slate-900"
+                className="text-sm font-semibold text-[rgb(var(--muted))] hover:text-[rgb(var(--fg))]"
               >
                 schließen
               </button>
@@ -80,19 +80,19 @@ export function ResponsibilityNavigator({ paths = [], actors = [], statementTitl
 
             <div className="max-h-[70vh] space-y-6 overflow-y-auto px-6 py-4">
               {resolvedPaths.length === 0 ? (
-                <p className="text-sm text-slate-600">Keine Pfade vorhanden.</p>
+                <p className="text-sm text-[rgb(var(--muted))]">Keine Pfade vorhanden.</p>
               ) : (
                 resolvedPaths.map((steps, idx) => (
-                  <div key={idx} className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                  <div key={idx} className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4">
                     <div className="mb-3 flex items-center justify-between">
-                      <div className="text-sm font-semibold text-slate-700">Pfad {idx + 1}</div>
+                      <div className="text-sm font-semibold text-[rgb(var(--muted))]">Pfad {idx + 1}</div>
                     </div>
                     <ol className="space-y-2">
                       {steps.map((step, stepIdx) => (
-                        <li key={stepIdx} className="rounded-lg bg-white p-3 shadow-sm">
-                          <div className="font-semibold text-slate-900">{step.label}</div>
+                        <li key={stepIdx} className="rounded-lg bg-[rgb(var(--card))] p-3 shadow-sm">
+                          <div className="font-semibold text-[rgb(var(--fg))]">{step.label}</div>
                           {step.subline && (
-                            <div className="text-xs text-slate-600">{step.subline}</div>
+                            <div className="text-xs text-[rgb(var(--muted))]">{step.subline}</div>
                           )}
                         </li>
                       ))}

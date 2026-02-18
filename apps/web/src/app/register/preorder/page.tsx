@@ -180,7 +180,7 @@ export default function PreorderPage() {
 
         <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm">
           <div className="space-y-2">
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+            <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
               Optional · Verbindlich
             </p>
             <h2 className="text-lg font-semibold text-[rgb(var(--fg))]">Verbindliche Zahlungszusage</h2>
@@ -237,7 +237,7 @@ export default function PreorderPage() {
       <RegisterStepper current={3} />
 
       <header className="space-y-2">
-        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Schritt 3 · Vormerkung</p>
+        <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Schritt 3 · Vormerkung</p>
         <h1 className="text-2xl font-semibold text-[rgb(var(--fg))]">eDebatte-Paket vormerken</h1>
         <p className="text-sm text-[rgb(var(--muted))]">
           Die Vormerkung ist unverbindlich und ohne Zahlung. Du kannst sie jederzeit im Konto anpassen.
@@ -258,7 +258,7 @@ export default function PreorderPage() {
               />
               <span>
                 <span className="block font-semibold text-[rgb(var(--fg))]">Ja, vormerken</span>
-                <span className="block text-xs text-slate-500">Wir merken dein Wunschpaket vor.</span>
+                <span className="block text-xs text-[rgb(var(--muted))]">Wir merken dein Wunschpaket vor.</span>
               </span>
             </label>
 
@@ -271,7 +271,7 @@ export default function PreorderPage() {
               />
               <span>
                 <span className="block font-semibold text-[rgb(var(--fg))]">Spaeter entscheiden</span>
-                <span className="block text-xs text-slate-500">Du kannst jederzeit nachholen.</span>
+                <span className="block text-xs text-[rgb(var(--muted))]">Du kannst jederzeit nachholen.</span>
               </span>
             </label>
           </div>
@@ -294,7 +294,7 @@ export default function PreorderPage() {
                         : "border-[rgb(var(--border))] bg-[rgb(var(--card))] text-[rgb(var(--muted))] hover:border-sky-200",
                     ].join(" ")}
                   >
-                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{plan.label}</p>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">{plan.label}</p>
                     <p className="mt-2 text-xs text-[rgb(var(--muted))]">{plan.description}</p>
                     <p className="mt-3 text-sm font-semibold text-[rgb(var(--fg))]">
                       {plan.isFree ? "Kostenfrei" : `${plan.monthlyPrice.toFixed(2)} € / Monat`}

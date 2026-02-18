@@ -538,7 +538,7 @@ export default function StreamListV3({
               <Button
                 type="button"
                 variant="ghost"
-                className="border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 px-3 py-1.5 text-sm"
+                className="border border-[rgb(var(--border))] bg-[rgb(var(--card))] text-[rgb(var(--muted))] hover:bg-[rgb(var(--bg))] px-3 py-1.5 text-sm"
                 onClick={refresh}
                 disabled={loading}
                 aria-label={language === "en" ? "Refresh" : "Aktualisieren"}
@@ -761,7 +761,7 @@ function DefaultStreamCard({
       <div className="flex flex-wrap items-center gap-1.5">
         <TagIcon className="h-3.5 w-3.5 opacity-60" />
         {item.tags.map((t) => (
-          <Badge key={t} className="bg-white text-slate-600 ring-1 ring-slate-200">
+          <Badge key={t} className="bg-[rgb(var(--card))] text-[rgb(var(--muted))] ring-1 ring-[rgb(var(--border))]">
             {t}
           </Badge>
         ))}
@@ -976,7 +976,7 @@ function TagSelector({
               "cursor-pointer select-none whitespace-nowrap px-3 py-0.5 text-xs transition",
               active
                 ? "bg-neutral-900 text-white ring-0"
-                : "bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50"
+                : "bg-[rgb(var(--card))] text-[rgb(var(--muted))] ring-1 ring-[rgb(var(--border))] hover:bg-[rgb(var(--bg))]"
             )}
             onClick={() => onSelect(t)}
           >

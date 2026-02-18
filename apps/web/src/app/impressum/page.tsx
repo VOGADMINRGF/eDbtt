@@ -15,9 +15,9 @@ export default function ImpressumPage() {
       : mapTranslatableStrings(sourceStrings, t, { namespace: "impressum" });
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-[var(--brand-from)] via-white to-white pb-16">
+    <main className="min-h-screen bg-[rgb(var(--bg))] pb-16">
       <section className="mx-auto max-w-5xl px-4 pt-14">
-        <div className="rounded-3xl bg-white/90 p-6 shadow-[0_24px_70px_rgba(15,23,42,0.08)] ring-1 ring-slate-100 md:p-10">
+        <div className="rounded-3xl bg-[rgb(var(--card))] p-6 shadow-[0_24px_70px_rgba(15,23,42,0.08)] ring-1 ring-[rgb(var(--border))] md:p-10">
           <header className="space-y-3 text-center">
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-sky-600">
               Rechtliches
@@ -25,14 +25,14 @@ export default function ImpressumPage() {
             <h1 className="headline-grad text-3xl font-extrabold leading-tight md:text-4xl">
               {strings.title}
             </h1>
-            <p className="text-sm leading-relaxed text-slate-700 md:text-base">
+            <p className="text-sm leading-relaxed text-[rgb(var(--muted))] md:text-base">
               {strings.intro}
             </p>
           </header>
 
           <div className="mt-8 grid gap-4 md:grid-cols-2">
-            <div className="space-y-2 rounded-2xl border border-slate-100 bg-slate-50/70 p-4 text-sm text-slate-800">
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+            <div className="space-y-2 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4 text-sm text-[rgb(var(--fg))]">
+              <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
                 {strings.responsibleTitle}
               </p>
               <p className="whitespace-pre-line">{strings.responsibleBody}</p>
@@ -47,16 +47,16 @@ export default function ImpressumPage() {
               </p>
             </div>
 
-            <div className="space-y-2 rounded-2xl border border-slate-100 bg-slate-50/70 p-4 text-sm text-slate-800">
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+            <div className="space-y-2 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4 text-sm text-[rgb(var(--fg))]">
+              <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
                 {strings.legalTitle}
               </p>
               <p className="whitespace-pre-line">{strings.legalBody}</p>
             </div>
           </div>
 
-          <div className="mt-4 rounded-2xl border border-slate-100 bg-white p-5 text-sm text-slate-800 shadow-sm">
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+          <div className="mt-4 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 text-sm text-[rgb(var(--fg))] shadow-sm">
+            <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
               {strings.disclaimerTitle}
             </p>
             <p className="mt-2 whitespace-pre-line">{strings.disclaimerBody}</p>

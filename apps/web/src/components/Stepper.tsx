@@ -7,7 +7,7 @@ export default function Stepper({ step }: { step:number }) {
           const active = step === idx;
           return (
             <div key={label}
-                 className={`px-3 py-1 rounded-full border text-sm ${active ? "bg-black text-white" : "bg-white"}`}>
+                 className={`px-3 py-1 rounded-full border text-sm ${active ? "bg-black text-white" : "bg-[rgb(var(--card))]"}`}>
               {label}
             </div>
           );

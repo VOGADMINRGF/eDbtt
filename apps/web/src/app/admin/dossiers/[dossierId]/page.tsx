@@ -7,7 +7,7 @@ export default async function AdminDossierPage({
 }) {
   const { dossierId } = await params;
   return (
-    <main className="min-h-screen bg-white">
+    <main className="min-h-screen bg-[rgb(var(--card))]">
       <h1 className="sr-only">Admin Dossier</h1>
       <AdminDossierClient dossierId={dossierId} />
     </main>

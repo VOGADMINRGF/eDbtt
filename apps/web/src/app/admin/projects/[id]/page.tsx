@@ -78,15 +78,15 @@ export default function AdminProjectDetailPage() {
 
   return (
     <main className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-8">
-      {loading && <p className="text-sm text-slate-500">Projekt wird geladen...</p>}
-      {!loading && !project && <p className="text-sm text-slate-500">Projekt nicht gefunden.</p>}
+      {loading && <p className="text-sm text-[rgb(var(--muted))]">Projekt wird geladen...</p>}
+      {!loading && !project && <p className="text-sm text-[rgb(var(--muted))]">Projekt nicht gefunden.</p>}
 
       {project && (
         <>
           <header className="space-y-2">
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Admin · Projekt</p>
-            <h1 className="text-2xl font-bold text-slate-900">{project.title}</h1>
-            {project.description && <p className="text-sm text-slate-600">{project.description}</p>}
+            <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Admin · Projekt</p>
+            <h1 className="text-2xl font-bold text-[rgb(var(--fg))]">{project.title}</h1>
+            {project.description && <p className="text-sm text-[rgb(var(--muted))]">{project.description}</p>}
           </header>
 
           {error && (
@@ -97,22 +97,22 @@ export default function AdminProjectDetailPage() {
 
           <section className="space-y-4">
             {project.topics.map((topic) => (
-              <div key={topic.id} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+              <div key={topic.id} className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div>
-                    <h2 className="text-lg font-semibold text-slate-900">{topic.title}</h2>
-                    {topic.description && <p className="text-sm text-slate-500">{topic.description}</p>}
+                    <h2 className="text-lg font-semibold text-[rgb(var(--fg))]">{topic.title}</h2>
+                    {topic.description && <p className="text-sm text-[rgb(var(--muted))]">{topic.description}</p>}
                   </div>
-                  <span className="text-xs text-slate-500">{topic.totalVotes} Stimmen</span>
+                  <span className="text-xs text-[rgb(var(--muted))]">{topic.totalVotes} Stimmen</span>
                 </div>
 
                 <div className="mt-4 grid gap-2">
                   {topic.options.map((opt) => (
                     <div
                       key={opt.id}
-                      className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-200 px-3 py-2"
+                      className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-[rgb(var(--border))] px-3 py-2"
                     >
-                      <div className="flex items-center gap-2 text-sm text-slate-800">
+                      <div className="flex items-center gap-2 text-sm text-[rgb(var(--fg))]">
                         <span>{opt.label}</span>
                         {opt.status === "proposed" && (
                           <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-700">
@@ -120,7 +120,7 @@ export default function AdminProjectDetailPage() {
                           </span>
                         )}
                       </div>
-                      <div className="flex items-center gap-3 text-xs text-slate-500">
+                      <div className="flex items-center gap-3 text-xs text-[rgb(var(--muted))]">
                         <span>{opt.votes} Stimmen</span>
                         {opt.status === "proposed" && (
                           <button

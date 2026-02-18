@@ -87,32 +87,32 @@ export default function ImpactInspectorPage() {
   return (
     <main className="mx-auto flex max-w-5xl flex-col gap-6 px-4 py-8">
       <header className="space-y-1">
-        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Admin · Impact Inspector</p>
-        <h1 className="text-2xl font-bold text-slate-900">Contribution {contributionId}</h1>
-        <p className="text-sm text-slate-600">
+        <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Admin · Impact Inspector</p>
+        <h1 className="text-2xl font-bold text-[rgb(var(--fg))]">Contribution {contributionId}</h1>
+        <p className="text-sm text-[rgb(var(--muted))]">
           Snapshot der zuletzt gespeicherten Impact-Daten (Eventualitäten, Konsequenzen, Zuständigkeiten).
         </p>
       </header>
-      <section className="rounded-2xl border border-slate-200 bg-white/95 p-4 shadow-sm">
+      <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 className="text-sm font-semibold text-slate-900">Weitere Impact-Ansichten</h2>
-          <p className="text-xs text-slate-500">Verlinkt aktuelle Graph-/Report-Seiten.</p>
+          <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Weitere Impact-Ansichten</h2>
+          <p className="text-xs text-[rgb(var(--muted))]">Verlinkt aktuelle Graph-/Report-Seiten.</p>
         </div>
         <div className="mt-3 flex flex-wrap gap-3">
           <Link
             href="/admin/graph/impact"
-            className="inline-flex items-center gap-2 rounded-full border border-slate-200 px-4 py-1.5 text-sm font-semibold text-slate-700 hover:border-slate-300 hover:bg-slate-50"
+            className="inline-flex items-center gap-2 rounded-full border border-[rgb(var(--border))] px-4 py-1.5 text-sm font-semibold text-[rgb(var(--muted))] hover:border-[rgb(var(--border))] hover:bg-[rgb(var(--bg))]"
           >
             Graph Impact öffnen →
           </Link>
         </div>
-        <p className="mt-2 text-[11px] text-slate-500">
+        <p className="mt-2 text-[11px] text-[rgb(var(--muted))]">
           Topic-/Region-Verlinkung folgt, sobald der Inspector Metadaten wie topicSlug/regionId zuverlässig liefert.
         </p>
       </section>
 
       {loading && (
-        <div className="rounded-2xl border border-slate-200 bg-white px-4 py-6 text-sm text-slate-500 shadow-sm">
+        <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-6 text-sm text-[rgb(var(--muted))] shadow-sm">
           Lädt Impact-Daten …
         </div>
       )}
@@ -126,17 +126,17 @@ export default function ImpactInspectorPage() {
       {!loading && !error && impact && (
         <>
           {!hasImpactData && (
-            <div className="rounded-2xl border border-slate-200 bg-white px-4 py-6 text-sm text-slate-500 shadow-sm">
+            <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-6 text-sm text-[rgb(var(--muted))] shadow-sm">
               Für diese Contribution liegen derzeit keine persistierten Impact-Daten vor.
             </div>
           )}
 
           {hasImpactData && (
             <>
-              <section className="space-y-4 rounded-3xl border border-slate-200 bg-white/90 p-4 shadow-sm">
+              <section className="space-y-4 rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm">
                 <div className="flex items-center justify-between">
-                  <h2 className="text-sm font-semibold text-slate-900">Eventualitäten & DecisionTrees</h2>
-                  <span className="text-xs text-slate-500">
+                  <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Eventualitäten & DecisionTrees</h2>
+                  <span className="text-xs text-[rgb(var(--muted))]">
                     {impact.eventualities.length} Eventualitäten · {impact.decisionTrees.length} DecisionTrees
                   </span>
                 </div>
@@ -165,25 +165,25 @@ export default function ImpactInspectorPage() {
 
 function EventualityList({ impact }: { impact: ImpactSnapshot }) {
   if (!impact.eventualities.length && !impact.decisionTrees.length) {
-    return <p className="text-sm text-slate-500">Keine Eventualitäten oder Entscheidungsbäume vorhanden.</p>;
+    return <p className="text-sm text-[rgb(var(--muted))]">Keine Eventualitäten oder Entscheidungsbäume vorhanden.</p>;
   }
 
   return (
     <div className="space-y-5">
       {impact.decisionTrees.length > 0 && (
         <div className="space-y-2">
-          <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500">DecisionTrees</h3>
+          <h3 className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">DecisionTrees</h3>
           <div className="space-y-3">
             {impact.decisionTrees.map((tree) => (
-              <div key={tree.rootStatementId} className="rounded-xl border border-slate-100 bg-slate-50 px-3 py-2">
-                <p className="text-sm font-semibold text-slate-800">Statement {tree.rootStatementId}</p>
-                <ul className="mt-1 text-xs text-slate-600">
+              <div key={tree.rootStatementId} className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2">
+                <p className="text-sm font-semibold text-[rgb(var(--fg))]">Statement {tree.rootStatementId}</p>
+                <ul className="mt-1 text-xs text-[rgb(var(--muted))]">
                   {(["pro", "neutral", "contra"] as const).map((option) => {
                     const node = tree.options?.[option];
                     if (!node) return null;
                     return (
                       <li key={`${tree.rootStatementId}-${option}`} className="mt-1">
-                        <span className="font-semibold uppercase text-slate-500">{option}</span>: {node.narrative}
+                        <span className="font-semibold uppercase text-[rgb(var(--muted))]">{option}</span>: {node.narrative}
                       </li>
                     );
                   })}
@@ -196,15 +196,15 @@ function EventualityList({ impact }: { impact: ImpactSnapshot }) {
 
       {impact.eventualities.length > 0 && (
         <div className="space-y-2">
-          <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500">Freistehende Eventualitäten</h3>
+          <h3 className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Freistehende Eventualitäten</h3>
           <div className="space-y-2">
             {impact.eventualities.map((evt) => (
-              <div key={evt.id} className="rounded-xl border border-slate-100 bg-white px-3 py-2 text-sm text-slate-700">
-                <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+              <div key={evt.id} className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm text-[rgb(var(--muted))]">
+                <div className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
                   Statement {evt.statementId} · {evt.stance ?? "neutral"}
                 </div>
-                <p className="font-semibold text-slate-900">{evt.label}</p>
-                <p className="text-slate-600">{evt.narrative}</p>
+                <p className="font-semibold text-[rgb(var(--fg))]">{evt.label}</p>
+                <p className="text-[rgb(var(--muted))]">{evt.narrative}</p>
               </div>
             ))}
           </div>

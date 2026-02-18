@@ -17,7 +17,7 @@ export default function TopicBoard({ topics }: { topics: Topic[] }) {
       {topics.map((t) => (
         <div
           key={t.id}
-          className="rounded-2xl border border-neutral-200 bg-white/60 p-4 shadow-sm"
+          className="rounded-2xl border border-neutral-200 bg-[rgb(var(--card))] p-4 shadow-sm"
         >
           <div className="mb-2 flex items-center justify-between">
             <div className="text-sm font-semibold text-neutral-900">

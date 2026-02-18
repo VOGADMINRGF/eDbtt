@@ -97,7 +97,7 @@ export default function AdminDraftDetailPage() {
 
   if (loading) {
     return (
-      <div className="p-6 text-sm text-slate-500">
+      <div className="p-6 text-sm text-[rgb(var(--muted))]">
         Lädt Draft <span className="font-mono">{params.id}</span> …
       </div>
     );
@@ -116,17 +116,17 @@ export default function AdminDraftDetailPage() {
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-8">
       <div className="flex flex-col gap-2">
-        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+        <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
           Admin · Draft Detail
         </p>
-        <h1 className="text-2xl font-bold text-slate-900">{draft.title}</h1>
-        <div className="flex flex-wrap items-center gap-2 text-sm text-slate-600">
+        <h1 className="text-2xl font-bold text-[rgb(var(--fg))]">{draft.title}</h1>
+        <div className="flex flex-wrap items-center gap-2 text-sm text-[rgb(var(--muted))]">
           <StatusBadge status={draft.status} />
-          <span className="text-slate-400">·</span>
+          <span className="text-[rgb(var(--muted))]">·</span>
           <span>{draft.regionName ?? "Global/Offen"}</span>
           {draft.sourceUrl && (
             <>
-              <span className="text-slate-400">·</span>
+              <span className="text-[rgb(var(--muted))]">·</span>
               <a href={draft.sourceUrl} target="_blank" className="text-sky-600 hover:underline" rel="noreferrer">
                 Quelle öffnen
               </a>
@@ -136,45 +136,45 @@ export default function AdminDraftDetailPage() {
       </div>
 
       <div className="flex flex-col gap-4 lg:flex-row">
-        <section className="flex-1 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-          <h2 className="text-sm font-semibold text-slate-900">Original – Feed</h2>
-          <p className="mt-2 text-xs text-slate-500">
+        <section className="flex-1 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm">
+          <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Original – Feed</h2>
+          <p className="mt-2 text-xs text-[rgb(var(--muted))]">
             Locale {candidate.sourceLocale ?? "unbekannt"} · Region {candidate.regionCode ?? "Global"}
           </p>
-          <div className="mt-4 space-y-3 text-sm text-slate-700">
+          <div className="mt-4 space-y-3 text-sm text-[rgb(var(--muted))]">
             <div>
-              <p className="font-semibold text-slate-900">Titel</p>
+              <p className="font-semibold text-[rgb(var(--fg))]">Titel</p>
               <p>{candidate.sourceTitle ?? "—"}</p>
             </div>
             <div>
-              <p className="font-semibold text-slate-900">Zusammenfassung</p>
+              <p className="font-semibold text-[rgb(var(--fg))]">Zusammenfassung</p>
               <p>{candidate.sourceSummary ?? "—"}</p>
             </div>
             <div>
-              <p className="font-semibold text-slate-900">Inhalt</p>
+              <p className="font-semibold text-[rgb(var(--fg))]">Inhalt</p>
               <p className="whitespace-pre-line">{candidate.sourceContent ?? "—"}</p>
             </div>
           </div>
         </section>
 
-        <section className="flex-1 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm space-y-3">
-          <h2 className="text-sm font-semibold text-slate-900">Draft</h2>
-          <p className="text-xs text-slate-500">
+        <section className="flex-1 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm space-y-3">
+          <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Draft</h2>
+          <p className="text-xs text-[rgb(var(--muted))]">
             Claims aus der Analyse (Top 3), Summary und Meta-Daten.
           </p>
-          <div className="space-y-3 text-sm text-slate-700">
+          <div className="space-y-3 text-sm text-[rgb(var(--muted))]">
             <div>
-              <p className="font-semibold text-slate-900">Summary</p>
+              <p className="font-semibold text-[rgb(var(--fg))]">Summary</p>
               <p>{draft.summary ?? "—"}</p>
             </div>
             <div>
-              <p className="font-semibold text-slate-900">Claims</p>
+              <p className="font-semibold text-[rgb(var(--fg))]">Claims</p>
               <ul className="mt-2 space-y-2">
                 {draft.claims?.map((claim: any) => (
-                  <li key={claim.id} className="rounded-lg border border-slate-100 bg-slate-50/70 p-2">
-                    <p className="font-medium text-slate-900">{claim.title ?? claim.text}</p>
-                    <p className="text-xs text-slate-600">{claim.text}</p>
-                    <p className="text-[11px] text-slate-500">
+                  <li key={claim.id} className="rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-2">
+                    <p className="font-medium text-[rgb(var(--fg))]">{claim.title ?? claim.text}</p>
+                    <p className="text-xs text-[rgb(var(--muted))]">{claim.text}</p>
+                    <p className="text-[11px] text-[rgb(var(--muted))]">
                       Zuständigkeit: {claim.responsibility ?? "n/a"} · Topic {claim.topic ?? "—"}
                     </p>
                   </li>
@@ -185,7 +185,7 @@ export default function AdminDraftDetailPage() {
 
           <div className="flex flex-wrap gap-2 pt-3">
             <button
-              className="btn border border-slate-300 bg-white px-4 py-2 text-sm"
+              className="btn border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-2 text-sm"
               disabled={actionLoading}
               onClick={() => mutateStatus("review")}
             >
@@ -209,55 +209,55 @@ export default function AdminDraftDetailPage() {
         </section>
       </div>
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm space-y-4">
+      <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm space-y-4">
         <header>
-          <h2 className="text-sm font-semibold text-slate-900">Analyse – Claims & Notizen</h2>
-          <p className="text-xs text-slate-500">
+          <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Analyse – Claims & Notizen</h2>
+          <p className="text-xs text-[rgb(var(--muted))]">
             Vollständiges Analyse-Resultat zur Nachvollziehbarkeit der automatischen Drafts.
           </p>
         </header>
         <div className="grid gap-4 lg:grid-cols-2">
           <div className="space-y-2">
-            <h3 className="text-xs uppercase text-slate-500">Alle Claims</h3>
-            <ul className="space-y-2 text-sm text-slate-700">
+            <h3 className="text-xs uppercase text-[rgb(var(--muted))]">Alle Claims</h3>
+            <ul className="space-y-2 text-sm text-[rgb(var(--muted))]">
               {analyzeResult.claims.map((claim: any) => (
-                <li key={claim.id} className="rounded border border-slate-100 p-2">
-                  <p className="font-semibold text-slate-900">{claim.title ?? claim.text}</p>
-                  <p className="text-xs text-slate-600">{claim.text}</p>
+                <li key={claim.id} className="rounded border border-[rgb(var(--border))] p-2">
+                  <p className="font-semibold text-[rgb(var(--fg))]">{claim.title ?? claim.text}</p>
+                  <p className="text-xs text-[rgb(var(--muted))]">{claim.text}</p>
                 </li>
               ))}
             </ul>
           </div>
-          <div className="space-y-4 text-sm text-slate-700">
+          <div className="space-y-4 text-sm text-[rgb(var(--muted))]">
             <div>
-              <h3 className="text-xs uppercase text-slate-500">Notes</h3>
+              <h3 className="text-xs uppercase text-[rgb(var(--muted))]">Notes</h3>
               <ul className="space-y-2">
                 {analyzeResult.notes.map((note: any) => (
-                  <li key={note.id} className="rounded border border-slate-100 p-2">
-                    <p className="text-xs font-semibold uppercase text-slate-500">{note.kind}</p>
+                  <li key={note.id} className="rounded border border-[rgb(var(--border))] p-2">
+                    <p className="text-xs font-semibold uppercase text-[rgb(var(--muted))]">{note.kind}</p>
                     <p>{note.text}</p>
                   </li>
                 ))}
               </ul>
             </div>
             <div>
-              <h3 className="text-xs uppercase text-slate-500">Fragen</h3>
+              <h3 className="text-xs uppercase text-[rgb(var(--muted))]">Fragen</h3>
               <ul className="space-y-2">
                 {analyzeResult.questions.map((question: any) => (
-                  <li key={question.id} className="rounded border border-slate-100 p-2">
-                    <p className="font-semibold text-slate-900">{question.dimension ?? "Frage"}</p>
+                  <li key={question.id} className="rounded border border-[rgb(var(--border))] p-2">
+                    <p className="font-semibold text-[rgb(var(--fg))]">{question.dimension ?? "Frage"}</p>
                     <p>{question.text}</p>
                   </li>
                 ))}
               </ul>
             </div>
             <div>
-              <h3 className="text-xs uppercase text-slate-500">Knoten</h3>
+              <h3 className="text-xs uppercase text-[rgb(var(--muted))]">Knoten</h3>
               <ul className="space-y-2">
                 {analyzeResult.knots.map((knot: any) => (
-                  <li key={knot.id} className="rounded border border-slate-100 p-2">
-                    <p className="font-semibold text-slate-900">{knot.label}</p>
-                    <p className="text-xs text-slate-600">{knot.description}</p>
+                  <li key={knot.id} className="rounded border border-[rgb(var(--border))] p-2">
+                    <p className="font-semibold text-[rgb(var(--fg))]">{knot.label}</p>
+                    <p className="text-xs text-[rgb(var(--muted))]">{knot.description}</p>
                   </li>
                 ))}
               </ul>
@@ -271,13 +271,13 @@ export default function AdminDraftDetailPage() {
 
 function StatusBadge({ status }: { status: string }) {
   const colors: Record<string, string> = {
-    draft: "bg-slate-100 text-slate-800",
+    draft: "bg-[rgb(var(--bg))] text-[rgb(var(--fg))]",
     review: "bg-amber-100 text-amber-800",
     published: "bg-emerald-100 text-emerald-800",
     discarded: "bg-rose-100 text-rose-800",
   };
   return (
-    <span className={`rounded-full px-3 py-1 text-xs font-semibold ${colors[status] ?? "bg-slate-100"}`}>
+    <span className={`rounded-full px-3 py-1 text-xs font-semibold ${colors[status] ?? "bg-[rgb(var(--bg))]"}`}>
       {status}
     </span>
   );

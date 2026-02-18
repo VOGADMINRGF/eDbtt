@@ -49,7 +49,7 @@ export default function StatementDetailClient({
   }, [stats]);
 
   return (
-    <section className="bg-white border rounded-xl p-4 space-y-4">
+    <section className="bg-[rgb(var(--card))] border rounded-xl p-4 space-y-4">
       <div className="flex items-center gap-3">
         <div className="flex-1">
           <div className="h-3 w-full bg-neutral-100 rounded overflow-hidden">

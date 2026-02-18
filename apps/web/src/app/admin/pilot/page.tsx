@@ -154,35 +154,35 @@ export default function AdminPilotPage() {
 
   return (
     <div className="space-y-6">
-      <header className="rounded-3xl bg-white/90 p-5 shadow ring-1 ring-slate-100">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Pilot</p>
-        <h1 className="mt-1 text-2xl font-semibold text-slate-900">Pilot Control Plane</h1>
-        <p className="mt-2 text-sm text-slate-600">
+      <header className="rounded-3xl bg-[rgb(var(--card))] p-5 shadow ring-1 ring-[rgb(var(--border))]">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[rgb(var(--muted))]">Pilot</p>
+        <h1 className="mt-1 text-2xl font-semibold text-[rgb(var(--fg))]">Pilot Control Plane</h1>
+        <p className="mt-2 text-sm text-[rgb(var(--muted))]">
           Settings fuer Feeds, Kandidaten und Faktencheck. Ziel: Kostenkontrolle und reproduzierbare Runs.
         </p>
       </header>
 
       {error && <p className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</p>}
 
-      <section className="rounded-3xl bg-white/90 p-4 shadow ring-1 ring-slate-100">
+      <section className="rounded-3xl bg-[rgb(var(--card))] p-4 shadow ring-1 ring-[rgb(var(--border))]">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 className="text-sm font-semibold text-slate-900">Settings</h2>
-          <div className="text-xs text-slate-500">
+          <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Settings</h2>
+          <div className="text-xs text-[rgb(var(--muted))]">
             {updatedHint ? `Zuletzt aktualisiert: ${updatedHint}` : "Noch keine Aktualisierung protokolliert."}
           </div>
         </div>
 
-        {loading && <p className="mt-3 text-sm text-slate-500">Lade Settings ...</p>}
+        {loading && <p className="mt-3 text-sm text-[rgb(var(--muted))]">Lade Settings ...</p>}
 
         {!loading && settings && (
           <div className="mt-4 grid gap-4 md:grid-cols-2">
             <div>
-              <label className="block text-sm font-medium text-slate-700" htmlFor="checkLevel">
+              <label className="block text-sm font-medium text-[rgb(var(--muted))]" htmlFor="checkLevel">
                 Faktencheck-Level
               </label>
               <select
                 id="checkLevel"
-                className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm"
+                className="mt-1 w-full rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm"
                 value={settings.checkLevel}
                 onChange={(e) => setSettings({ ...settings, checkLevel: Number(e.target.value) as 0 | 1 | 2 })}
               >
@@ -193,12 +193,12 @@ export default function AdminPilotPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700" htmlFor="maxItemsPerFeed">
+              <label className="block text-sm font-medium text-[rgb(var(--muted))]" htmlFor="maxItemsPerFeed">
                 Max Items pro Feed
               </label>
               <input
                 id="maxItemsPerFeed"
-                className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm"
+                className="mt-1 w-full rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm"
                 inputMode="numeric"
                 value={settings.maxItemsPerFeed}
                 onChange={(e) => setSettings({ ...settings, maxItemsPerFeed: toNumberOrZero(e.target.value) })}
@@ -206,35 +206,35 @@ export default function AdminPilotPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700" htmlFor="dailyBudget">
+              <label className="block text-sm font-medium text-[rgb(var(--muted))]" htmlFor="dailyBudget">
                 Daily Budget (Units)
               </label>
               <input
                 id="dailyBudget"
-                className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm"
+                className="mt-1 w-full rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm"
                 inputMode="numeric"
                 value={settings.dailyBudget}
                 onChange={(e) => setSettings({ ...settings, dailyBudget: toNumberOrZero(e.target.value) })}
               />
-              <p className="mt-1 text-xs text-slate-500">MVP: Budget wird gespeichert, Enforcement folgt.</p>
+              <p className="mt-1 text-xs text-[rgb(var(--muted))]">MVP: Budget wird gespeichert, Enforcement folgt.</p>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700" htmlFor="perTopicBudget">
+              <label className="block text-sm font-medium text-[rgb(var(--muted))]" htmlFor="perTopicBudget">
                 Per-Topic Budget (Units)
               </label>
               <input
                 id="perTopicBudget"
-                className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm"
+                className="mt-1 w-full rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm"
                 inputMode="numeric"
                 value={settings.perTopicBudget}
                 onChange={(e) => setSettings({ ...settings, perTopicBudget: toNumberOrZero(e.target.value) })}
               />
-              <p className="mt-1 text-xs text-slate-500">MVP: Budget wird gespeichert, Enforcement folgt.</p>
+              <p className="mt-1 text-xs text-[rgb(var(--muted))]">MVP: Budget wird gespeichert, Enforcement folgt.</p>
             </div>
 
             <div className="md:col-span-2">
-              <label className="inline-flex items-center gap-2 text-sm text-slate-700">
+              <label className="inline-flex items-center gap-2 text-sm text-[rgb(var(--muted))]">
                 <input
                   type="checkbox"
                   checked={settings.autoRunEnabled}
@@ -254,7 +254,7 @@ export default function AdminPilotPage() {
                 {saving ? "Speichere ..." : "Settings speichern"}
               </button>
 
-              <Link href="/admin/feeds/drafts" className="text-sm font-semibold text-slate-600 hover:text-slate-900">
+              <Link href="/admin/feeds/drafts" className="text-sm font-semibold text-[rgb(var(--muted))] hover:text-[rgb(var(--fg))]">
                 Zu Drafts
               </Link>
             </div>
@@ -262,9 +262,9 @@ export default function AdminPilotPage() {
         )}
       </section>
 
-      <section className="rounded-3xl bg-white/90 p-4 shadow ring-1 ring-slate-100">
-        <h2 className="text-sm font-semibold text-slate-900">Quick Actions</h2>
-        <p className="mt-1 text-sm text-slate-600">Manuelle Runs fuer Feeds und Analyze-Pending (MVP).</p>
+      <section className="rounded-3xl bg-[rgb(var(--card))] p-4 shadow ring-1 ring-[rgb(var(--border))]">
+        <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Quick Actions</h2>
+        <p className="mt-1 text-sm text-[rgb(var(--muted))]">Manuelle Runs fuer Feeds und Analyze-Pending (MVP).</p>
 
         <div className="mt-3 flex flex-wrap gap-2">
           <button
@@ -277,23 +277,23 @@ export default function AdminPilotPage() {
           <button
             type="button"
             onClick={runFeedsPull}
-            className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:border-sky-200 hover:text-slate-900"
+            className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-2 text-sm font-semibold text-[rgb(var(--muted))] hover:border-sky-200 hover:text-[rgb(var(--fg))]"
           >
             Feeds pull
           </button>
           <button
             type="button"
             onClick={runAnalyzePending}
-            className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:border-sky-200 hover:text-slate-900"
+            className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-2 text-sm font-semibold text-[rgb(var(--muted))] hover:border-sky-200 hover:text-[rgb(var(--fg))]"
           >
             Analyze pending
           </button>
         </div>
 
         {lastAction && (
-          <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Letztes Ergebnis</p>
-            <pre className="mt-2 max-h-60 overflow-auto text-xs text-slate-800">
+          <div className="mt-4 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-4 py-3">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[rgb(var(--muted))]">Letztes Ergebnis</p>
+            <pre className="mt-2 max-h-60 overflow-auto text-xs text-[rgb(var(--fg))]">
               {JSON.stringify(lastAction.ok ? lastAction.data : { error: lastAction.error, data: lastAction.data }, null, 2)}
             </pre>
           </div>

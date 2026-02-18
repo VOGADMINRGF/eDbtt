@@ -118,68 +118,68 @@ export default function AdminPitchPage() {
 
   return (
     <div className="space-y-6">
-      <header className="rounded-3xl border border-slate-200 bg-white/90 p-5 shadow-sm space-y-2">
-        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Admin - Pitch Studio</p>
-        <h1 className="text-2xl font-semibold text-slate-900">Region Pitch Builder</h1>
-        <p className="text-sm text-slate-600">
+      <header className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm space-y-2">
+        <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Admin - Pitch Studio</p>
+        <h1 className="text-2xl font-semibold text-[rgb(var(--fg))]">Region Pitch Builder</h1>
+        <p className="text-sm text-[rgb(var(--muted))]">
           Region auswaehlen, Pull + Analyze anstossen und eine teilbare Landing generieren.
         </p>
       </header>
 
       <section className="grid gap-4 lg:grid-cols-3">
-        <div className="rounded-3xl border border-slate-200 bg-white/90 p-5 shadow-sm space-y-4 lg:col-span-2">
+        <div className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm space-y-4 lg:col-span-2">
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-1">
-              <label className="text-xs font-semibold uppercase text-slate-500">Region</label>
+              <label className="text-xs font-semibold uppercase text-[rgb(var(--muted))]">Region</label>
               <input
                 value={regionCode}
                 onChange={(e) => setRegionCode(e.target.value)}
                 placeholder="DE:BE:11000"
-                className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+                className="w-full rounded-xl border border-[rgb(var(--border))] px-3 py-2 text-sm"
               />
             </div>
             <div className="space-y-1">
-              <label className="text-xs font-semibold uppercase text-slate-500">Scope</label>
+              <label className="text-xs font-semibold uppercase text-[rgb(var(--muted))]">Scope</label>
               <select
                 value={scope}
                 onChange={(e) => setScope(e.target.value as "de" | "global")}
-                className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+                className="w-full rounded-xl border border-[rgb(var(--border))] px-3 py-2 text-sm"
               >
                 <option value="de">de</option>
                 <option value="global">global</option>
               </select>
             </div>
             <div className="space-y-1">
-              <label className="text-xs font-semibold uppercase text-slate-500">Max Feeds</label>
+              <label className="text-xs font-semibold uppercase text-[rgb(var(--muted))]">Max Feeds</label>
               <input
                 type="number"
                 min={1}
                 max={100}
                 value={maxFeeds}
                 onChange={(e) => setMaxFeeds(Number(e.target.value))}
-                className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+                className="w-full rounded-xl border border-[rgb(var(--border))] px-3 py-2 text-sm"
               />
             </div>
             <div className="space-y-1">
-              <label className="text-xs font-semibold uppercase text-slate-500">Items pro Feed</label>
+              <label className="text-xs font-semibold uppercase text-[rgb(var(--muted))]">Items pro Feed</label>
               <input
                 type="number"
                 min={1}
                 max={50}
                 value={maxItemsPerFeed}
                 onChange={(e) => setMaxItemsPerFeed(Number(e.target.value))}
-                className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+                className="w-full rounded-xl border border-[rgb(var(--border))] px-3 py-2 text-sm"
               />
             </div>
             <div className="space-y-1">
-              <label className="text-xs font-semibold uppercase text-slate-500">Analyze Limit</label>
+              <label className="text-xs font-semibold uppercase text-[rgb(var(--muted))]">Analyze Limit</label>
               <input
                 type="number"
                 min={1}
                 max={50}
                 value={analyzeLimit}
                 onChange={(e) => setAnalyzeLimit(Number(e.target.value))}
-                className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+                className="w-full rounded-xl border border-[rgb(var(--border))] px-3 py-2 text-sm"
               />
             </div>
           </div>
@@ -195,7 +195,7 @@ export default function AdminPitchPage() {
             <button
               onClick={handleLoadSummary}
               disabled={loading}
-              className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 disabled:opacity-50"
+              className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-2 text-sm font-semibold text-[rgb(var(--muted))] disabled:opacity-50"
             >
               Nur Summary laden
             </button>
@@ -205,13 +205,13 @@ export default function AdminPitchPage() {
               </Link>
             )}
           </div>
-          {status && <p className="text-xs text-slate-500">Status: {status}</p>}
+          {status && <p className="text-xs text-[rgb(var(--muted))]">Status: {status}</p>}
         </div>
 
-        <div className="rounded-3xl border border-slate-200 bg-white/90 p-5 shadow-sm space-y-3">
-          <h2 className="text-sm font-semibold text-slate-900">Summary</h2>
+        <div className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm space-y-3">
+          <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Summary</h2>
           {summary ? (
-            <div className="space-y-2 text-xs text-slate-600">
+            <div className="space-y-2 text-xs text-[rgb(var(--muted))]">
               <p>Region: {summary.regionKey ?? regionCode}</p>
               <p>Claims: {summary.claimCount}</p>
               <p>Decisions: {summary.decisionCount}</p>
@@ -224,24 +224,24 @@ export default function AdminPitchPage() {
               </p>
             </div>
           ) : (
-            <p className="text-sm text-slate-500">Noch keine Summary geladen.</p>
+            <p className="text-sm text-[rgb(var(--muted))]">Noch keine Summary geladen.</p>
           )}
         </div>
       </section>
 
       <section className="grid gap-4 lg:grid-cols-2">
-        <div className="rounded-3xl border border-slate-200 bg-white/90 p-5 shadow-sm space-y-3">
-          <h2 className="text-sm font-semibold text-slate-900">Aktuelle Ereignisse</h2>
+        <div className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm space-y-3">
+          <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Aktuelle Ereignisse</h2>
           {!summary || summary.feedItems.length === 0 ? (
-            <p className="text-sm text-slate-500">Keine Feed-Items.</p>
+            <p className="text-sm text-[rgb(var(--muted))]">Keine Feed-Items.</p>
           ) : (
             <ul className="space-y-2 text-sm">
               {summary.feedItems.map((item) => (
                 <li
                   key={item.id}
-                  className="rounded-2xl border border-slate-100 bg-slate-50/80 px-4 py-3"
+                  className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-4 py-3"
                 >
-                  <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500">
+                  <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-[rgb(var(--muted))]">
                     <span className="font-semibold uppercase">
                       {item.source ?? "Quelle"}
                     </span>
@@ -249,7 +249,7 @@ export default function AdminPitchPage() {
                       <span>{new Date(item.publishedAt).toLocaleDateString("de-DE")}</span>
                     )}
                   </div>
-                  <div className="font-semibold text-slate-900">
+                  <div className="font-semibold text-[rgb(var(--fg))]">
                     {item.url ? (
                       <a href={item.url} className="hover:underline">
                         {item.title}
@@ -264,16 +264,16 @@ export default function AdminPitchPage() {
           )}
         </div>
 
-        <div className="rounded-3xl border border-slate-200 bg-white/90 p-5 shadow-sm space-y-3">
-          <h2 className="text-sm font-semibold text-slate-900">Themencluster</h2>
+        <div className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm space-y-3">
+          <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Themencluster</h2>
           {!summary || summary.topics.length === 0 ? (
-            <p className="text-sm text-slate-500">Keine Themen vorhanden.</p>
+            <p className="text-sm text-[rgb(var(--muted))]">Keine Themen vorhanden.</p>
           ) : (
             <div className="flex flex-wrap gap-2">
               {summary.topics.map((topic) => (
                 <span
                   key={topic.topicKey}
-                  className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs text-slate-600"
+                  className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-1 text-xs text-[rgb(var(--muted))]"
                 >
                   {topic.topicKey || "allgemein"} - {topic.claimCount}
                 </span>

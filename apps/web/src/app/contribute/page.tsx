@@ -13,7 +13,7 @@ export default async function ContributePage({
     const draft = await getDraft(draftId).catch(() => null);
     const draftText = draft?.text ?? initialText;
     return (
-      <main className="min-h-screen bg-white">
+      <main className="min-h-screen bg-[rgb(var(--card))]">
         <h1 className="sr-only">Beitrag erfassen</h1>
         <SmartContribution initialText={draftText} />
       </main>
@@ -21,7 +21,7 @@ export default async function ContributePage({
   }
 
   return (
-    <main className="min-h-screen bg-white">
+    <main className="min-h-screen bg-[rgb(var(--card))]">
       <h1 className="sr-only">Beitrag erfassen</h1>
       <SmartContribution initialText={initialText} />
     </main>

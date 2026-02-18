@@ -217,11 +217,11 @@ function RegisterPageClient({ personCount = 1, searchParams }: RegisterPageClien
   }
 
   return (
-    <div className="space-y-8 rounded-[32px] bg-white/80 p-6 shadow-[0_20px_60px_rgba(15,23,42,0.08)] ring-1 ring-slate-100">
+    <div className="space-y-8 rounded-[32px] bg-[rgb(var(--card))] p-6 shadow-[0_20px_60px_rgba(15,23,42,0.08)] ring-1 ring-[rgb(var(--border))]">
       <RegisterStepper current={1} />
       <div>
-        <h1 className="text-2xl font-semibold text-slate-900">Registrieren</h1>
-        <p className="mt-1 text-sm text-slate-600">
+        <h1 className="text-2xl font-semibold text-[rgb(var(--fg))]">Registrieren</h1>
+        <p className="mt-1 text-sm text-[rgb(var(--muted))]">
           Basisdaten anlegen, E-Mail bestätigen, Identität sichern – und optional direkt vormerken.
         </p>
       </div>
@@ -236,7 +236,7 @@ function RegisterPageClient({ personCount = 1, searchParams }: RegisterPageClien
         </div>
       )}
 
-      <form onSubmit={onSubmit} className="space-y-4 rounded-3xl border border-slate-100 bg-white/95 p-5 shadow-sm">
+      <form onSubmit={onSubmit} className="space-y-4 rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm">
         <div className="absolute left-[-9999px] top-auto h-0 w-0 overflow-hidden" aria-hidden="true">
           <label htmlFor="hp_register">Bitte leer lassen</label>
           <input
@@ -251,13 +251,13 @@ function RegisterPageClient({ personCount = 1, searchParams }: RegisterPageClien
         </div>
         <div className="grid gap-3 md:grid-cols-2">
           <div className="space-y-1">
-            <label htmlFor="firstName" className="text-xs font-medium text-slate-700">
+            <label htmlFor="firstName" className="text-xs font-medium text-[rgb(var(--muted))]">
               Vorname
             </label>
             <input
               id="firstName"
               name="firstName"
-              className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
+              className="w-full rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm text-[rgb(var(--fg))] outline-none focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
               value={firstName}
               onChange={(e) => setFirstName(e.target.value)}
               autoComplete="given-name"
@@ -267,13 +267,13 @@ function RegisterPageClient({ personCount = 1, searchParams }: RegisterPageClien
             />
           </div>
           <div className="space-y-1">
-            <label htmlFor="lastName" className="text-xs font-medium text-slate-700">
+            <label htmlFor="lastName" className="text-xs font-medium text-[rgb(var(--muted))]">
               Nachname
             </label>
             <input
               id="lastName"
               name="lastName"
-              className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
+              className="w-full rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm text-[rgb(var(--fg))] outline-none focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
               value={lastName}
               onChange={(e) => setLastName(e.target.value)}
               autoComplete="family-name"
@@ -286,13 +286,13 @@ function RegisterPageClient({ personCount = 1, searchParams }: RegisterPageClien
 
         <div className="grid gap-3 md:grid-cols-2">
           <div className="space-y-1">
-            <label htmlFor="title" className="text-xs font-medium text-slate-700">
+            <label htmlFor="title" className="text-xs font-medium text-[rgb(var(--muted))]">
               Titel (optional)
             </label>
             <input
               id="title"
               name="title"
-              className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
+              className="w-full rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm text-[rgb(var(--fg))] outline-none focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Dr., Prof., ..."
@@ -301,13 +301,13 @@ function RegisterPageClient({ personCount = 1, searchParams }: RegisterPageClien
             />
           </div>
           <div className="space-y-1">
-            <label htmlFor="pronouns" className="text-xs font-medium text-slate-700">
+            <label htmlFor="pronouns" className="text-xs font-medium text-[rgb(var(--muted))]">
               Pronomen (optional)
             </label>
             <input
               id="pronouns"
               name="pronouns"
-              className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
+              className="w-full rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm text-[rgb(var(--fg))] outline-none focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
               value={pronouns}
               onChange={(e) => setPronouns(e.target.value)}
               placeholder="sie/ihr, er/ihm, ..."
@@ -318,7 +318,7 @@ function RegisterPageClient({ personCount = 1, searchParams }: RegisterPageClien
         </div>
 
         <div className="space-y-1">
-          <label htmlFor={useNativeDate ? "birthDateNative" : "birthDate"} className="text-xs font-medium text-slate-700">
+          <label htmlFor={useNativeDate ? "birthDateNative" : "birthDate"} className="text-xs font-medium text-[rgb(var(--muted))]">
             Geburtsdatum
           </label>
           <input
@@ -328,7 +328,7 @@ function RegisterPageClient({ personCount = 1, searchParams }: RegisterPageClien
             type="date"
             className={
               useNativeDate
-                ? "w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
+                ? "w-full rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm text-[rgb(var(--fg))] outline-none focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
                 : "sr-only"
             }
             value={birthDateIso ?? ""}
@@ -345,7 +345,7 @@ function RegisterPageClient({ personCount = 1, searchParams }: RegisterPageClien
                 id="birthDate"
                 name="birthDate"
                 type="text"
-                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
+                className="w-full rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm text-[rgb(var(--fg))] outline-none focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
                 value={birthDate}
                 onChange={(e) => setBirthDate(sanitizeBirthDateInput(e.target.value))}
                 required
@@ -359,7 +359,7 @@ function RegisterPageClient({ personCount = 1, searchParams }: RegisterPageClien
               <button
                 type="button"
                 onClick={openDatePicker}
-                className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full border border-slate-200 bg-white px-2 py-1 text-xs shadow-sm"
+                className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-2 py-1 text-xs shadow-sm"
                 aria-label="Datum auswählen"
                 title="Datum auswählen"
               >
@@ -367,16 +367,16 @@ function RegisterPageClient({ personCount = 1, searchParams }: RegisterPageClien
               </button>
             </div>
           )}
-          <p className="text-[11px] text-slate-500">Für faire Citizen Votes: Teilnahme ab 16 Jahren.</p>
+          <p className="text-[11px] text-[rgb(var(--muted))]">Für faire Citizen Votes: Teilnahme ab 16 Jahren.</p>
         </div>
 
         <div className="space-y-1">
-          <label htmlFor="email" className="text-xs font-medium text-slate-700">
+          <label htmlFor="email" className="text-xs font-medium text-[rgb(var(--muted))]">
             E-Mail
           </label>
           <input
             id="email"
-            className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
+            className="w-full rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm text-[rgb(var(--fg))] outline-none focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
             type="email"
             name="email"
             placeholder="person@example.org"
@@ -390,13 +390,13 @@ function RegisterPageClient({ personCount = 1, searchParams }: RegisterPageClien
         </div>
 
         <div className="space-y-1">
-          <label className="text-xs font-medium text-slate-700" htmlFor="password">
+          <label className="text-xs font-medium text-[rgb(var(--muted))]" htmlFor="password">
             Passwort
           </label>
           <div className="relative">
             <input
               id="password"
-              className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 pr-12 text-sm text-slate-900 outline-none focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
+              className="w-full rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 pr-12 text-sm text-[rgb(var(--fg))] outline-none focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
               type={showPwd ? "text" : "password"}
               name="password"
               placeholder="Passwort (≥12, Zahl & Sonderzeichen)"
@@ -412,7 +412,7 @@ function RegisterPageClient({ personCount = 1, searchParams }: RegisterPageClien
             <button
               type="button"
               onClick={() => setShowPwd((v) => !v)}
-              className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full border border-slate-200 bg-white px-2 py-1 text-xs"
+              className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-2 py-1 text-xs"
               tabIndex={-1}
             >
               {showPwd ? "Verbergen" : "Anzeigen"}
@@ -420,7 +420,7 @@ function RegisterPageClient({ personCount = 1, searchParams }: RegisterPageClien
           </div>
           <p
             id="pw-help"
-            className={`text-xs ${okPwd(password) ? "text-emerald-600" : "text-slate-500"}`}
+            className={`text-xs ${okPwd(password) ? "text-emerald-600" : "text-[rgb(var(--muted))]"}`}
           >
             Anforderungen: min. 12 Zeichen, mind. eine Zahl und ein Sonderzeichen.
           </p>
@@ -438,9 +438,9 @@ function RegisterPageClient({ personCount = 1, searchParams }: RegisterPageClien
         )}
 
         <div className="space-y-1">
-          <label className="text-xs font-medium text-slate-700">Bevorzugte Sprache</label>
+          <label className="text-xs font-medium text-[rgb(var(--muted))]">Bevorzugte Sprache</label>
           <select
-            className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
+            className="w-full rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm text-[rgb(var(--fg))] outline-none focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
             value={preferredLocale}
             onChange={(e) => setPreferredLocale(e.target.value)}
             disabled={busy}
@@ -453,7 +453,7 @@ function RegisterPageClient({ personCount = 1, searchParams }: RegisterPageClien
           </select>
         </div>
 
-        <label className="flex items-center gap-2 text-xs text-slate-600">
+        <label className="flex items-center gap-2 text-xs text-[rgb(var(--muted))]">
           <input
             type="checkbox"
             checked={newsletterOptIn}
@@ -476,7 +476,7 @@ function RegisterPageClient({ personCount = 1, searchParams }: RegisterPageClien
             }}
           />
           {humanNote && (
-            <p className="text-xs text-slate-600" aria-live="polite">
+            <p className="text-xs text-[rgb(var(--muted))]" aria-live="polite">
               {humanNote}
             </p>
           )}
@@ -491,8 +491,8 @@ function RegisterPageClient({ personCount = 1, searchParams }: RegisterPageClien
         </button>
       </form>
 
-      <section className="rounded-3xl border border-slate-200 bg-white/90 p-5 text-sm text-slate-700 shadow-sm">
-        <h2 className="text-base font-semibold text-slate-900">Warum diese Schritte?</h2>
+      <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 text-sm text-[rgb(var(--muted))] shadow-sm">
+        <h2 className="text-base font-semibold text-[rgb(var(--fg))]">Warum diese Schritte?</h2>
         <ul className="mt-3 space-y-2 text-xs md:text-sm">
           <li className="flex gap-2">
             <span className="mt-1 h-1.5 w-1.5 rounded-full bg-emerald-500" />
@@ -524,9 +524,9 @@ function RegisterPageClient({ personCount = 1, searchParams }: RegisterPageClien
         </ul>
       </section>
 
-      <p className="text-sm text-slate-600">
+      <p className="text-sm text-[rgb(var(--muted))]">
         Schon ein Konto?{" "}
-        <Link className="font-semibold text-slate-900 underline" href="/login">
+        <Link className="font-semibold text-[rgb(var(--fg))] underline" href="/login">
           Login
         </Link>
       </p>

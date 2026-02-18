@@ -223,9 +223,9 @@ export default function AdminEditorialItemPage() {
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-8">
       <header className="space-y-1">
-        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Admin · Editorial Item</p>
-        <h1 className="text-2xl font-bold text-slate-900">{item?.intake?.title ?? "Editorial Item"}</h1>
-        <p className="text-sm text-slate-600">Status: {item?.status ?? "—"}</p>
+        <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Admin · Editorial Item</p>
+        <h1 className="text-2xl font-bold text-[rgb(var(--fg))]">{item?.intake?.title ?? "Editorial Item"}</h1>
+        <p className="text-sm text-[rgb(var(--muted))]">Status: {item?.status ?? "—"}</p>
       </header>
 
       {error && (
@@ -234,13 +234,13 @@ export default function AdminEditorialItemPage() {
         </div>
       )}
 
-      <section className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
-        <h2 className="text-sm font-semibold text-slate-900">Status & Assignment</h2>
+      <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm">
+        <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Status & Assignment</h2>
         <div className="mt-3 grid gap-3 md:grid-cols-3">
           <select
             value={status}
             onChange={(e) => setStatus(e.target.value)}
-            className="rounded-2xl border border-slate-200 px-3 py-2 text-sm"
+            className="rounded-2xl border border-[rgb(var(--border))] px-3 py-2 text-sm"
           >
             {STATUS_OPTIONS.map((opt) => (
               <option key={opt} value={opt}>
@@ -252,7 +252,7 @@ export default function AdminEditorialItemPage() {
             value={statusReason}
             onChange={(e) => setStatusReason(e.target.value)}
             placeholder="Reason"
-            className="rounded-2xl border border-slate-200 px-3 py-2 text-sm"
+            className="rounded-2xl border border-[rgb(var(--border))] px-3 py-2 text-sm"
           />
           <button
             className="rounded-2xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white"
@@ -266,55 +266,55 @@ export default function AdminEditorialItemPage() {
             value={assignOwner}
             onChange={(e) => setAssignOwner(e.target.value)}
             placeholder="Owner UserId"
-            className="rounded-2xl border border-slate-200 px-3 py-2 text-sm"
+            className="rounded-2xl border border-[rgb(var(--border))] px-3 py-2 text-sm"
           />
           <input
             value={assignDueAt}
             onChange={(e) => setAssignDueAt(e.target.value)}
             placeholder="DueAt (ISO)"
-            className="rounded-2xl border border-slate-200 px-3 py-2 text-sm"
+            className="rounded-2xl border border-[rgb(var(--border))] px-3 py-2 text-sm"
           />
           <input
             value={assignSla}
             onChange={(e) => setAssignSla(e.target.value)}
             placeholder="SLA hours"
-            className="rounded-2xl border border-slate-200 px-3 py-2 text-sm"
+            className="rounded-2xl border border-[rgb(var(--border))] px-3 py-2 text-sm"
           />
         </div>
         <button
-          className="mt-3 rounded-2xl border border-slate-200 px-4 py-2 text-sm"
+          className="mt-3 rounded-2xl border border-[rgb(var(--border))] px-4 py-2 text-sm"
           onClick={handleAssign}
         >
           Assignment speichern
         </button>
       </section>
 
-      <section className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
-        <h2 className="text-sm font-semibold text-slate-900">Revision erstellen</h2>
+      <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm">
+        <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Revision erstellen</h2>
         <div className="mt-3 grid gap-3 md:grid-cols-2">
           <input
             value={revisionNote}
             onChange={(e) => setRevisionNote(e.target.value)}
             placeholder="Change note"
-            className="rounded-2xl border border-slate-200 px-3 py-2 text-sm"
+            className="rounded-2xl border border-[rgb(var(--border))] px-3 py-2 text-sm"
           />
           <input
             value={revisionHeadline}
             onChange={(e) => setRevisionHeadline(e.target.value)}
             placeholder="Headline"
-            className="rounded-2xl border border-slate-200 px-3 py-2 text-sm"
+            className="rounded-2xl border border-[rgb(var(--border))] px-3 py-2 text-sm"
           />
           <input
             value={revisionSummary}
             onChange={(e) => setRevisionSummary(e.target.value)}
             placeholder="Summary"
-            className="rounded-2xl border border-slate-200 px-3 py-2 text-sm"
+            className="rounded-2xl border border-[rgb(var(--border))] px-3 py-2 text-sm"
           />
           <textarea
             value={revisionBody}
             onChange={(e) => setRevisionBody(e.target.value)}
             placeholder="Body Markdown"
-            className="h-28 rounded-2xl border border-slate-200 px-3 py-2 text-sm"
+            className="h-28 rounded-2xl border border-[rgb(var(--border))] px-3 py-2 text-sm"
           />
         </div>
         <button
@@ -325,20 +325,20 @@ export default function AdminEditorialItemPage() {
         </button>
       </section>
 
-      <section className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
-        <h2 className="text-sm font-semibold text-slate-900">Publish</h2>
+      <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm">
+        <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Publish</h2>
         <div className="mt-3 grid gap-3 md:grid-cols-2">
           <input
             value={publishNote}
             onChange={(e) => setPublishNote(e.target.value)}
             placeholder="Change note"
-            className="rounded-2xl border border-slate-200 px-3 py-2 text-sm"
+            className="rounded-2xl border border-[rgb(var(--border))] px-3 py-2 text-sm"
           />
           <input
             value={publishUrl}
             onChange={(e) => setPublishUrl(e.target.value)}
             placeholder="Public URL (optional)"
-            className="rounded-2xl border border-slate-200 px-3 py-2 text-sm"
+            className="rounded-2xl border border-[rgb(var(--border))] px-3 py-2 text-sm"
           />
         </div>
         <button
@@ -349,25 +349,25 @@ export default function AdminEditorialItemPage() {
         </button>
       </section>
 
-      <section className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
-        <h2 className="text-sm font-semibold text-slate-900">Sources</h2>
+      <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm">
+        <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Sources</h2>
         <div className="mt-3 grid gap-3 md:grid-cols-3">
           <input
             value={sourceUrl}
             onChange={(e) => setSourceUrl(e.target.value)}
             placeholder="URL"
-            className="rounded-2xl border border-slate-200 px-3 py-2 text-sm"
+            className="rounded-2xl border border-[rgb(var(--border))] px-3 py-2 text-sm"
           />
           <input
             value={sourceTitle}
             onChange={(e) => setSourceTitle(e.target.value)}
             placeholder="Titel"
-            className="rounded-2xl border border-slate-200 px-3 py-2 text-sm"
+            className="rounded-2xl border border-[rgb(var(--border))] px-3 py-2 text-sm"
           />
           <select
             value={sourceReliability}
             onChange={(e) => setSourceReliability(e.target.value)}
-            className="rounded-2xl border border-slate-200 px-3 py-2 text-sm"
+            className="rounded-2xl border border-[rgb(var(--border))] px-3 py-2 text-sm"
           >
             {"unknown,low,medium,high".split(",").map((v) => (
               <option key={v} value={v}>
@@ -384,13 +384,13 @@ export default function AdminEditorialItemPage() {
         </button>
         <div className="mt-4 space-y-2 text-sm">
           {sources.map((source) => (
-            <div key={source.id} className="flex items-center justify-between rounded-2xl border border-slate-200 px-3 py-2">
+            <div key={source.id} className="flex items-center justify-between rounded-2xl border border-[rgb(var(--border))] px-3 py-2">
               <div>
-                <div className="font-semibold text-slate-900">{source.title || source.url}</div>
-                <div className="text-xs text-slate-500">{source.reliability ?? "unknown"}</div>
+                <div className="font-semibold text-[rgb(var(--fg))]">{source.title || source.url}</div>
+                <div className="text-xs text-[rgb(var(--muted))]">{source.reliability ?? "unknown"}</div>
               </div>
               <button
-                className="rounded-full border border-slate-200 px-3 py-1 text-xs"
+                className="rounded-full border border-[rgb(var(--border))] px-3 py-1 text-xs"
                 onClick={() => handleSourceRemove(source.id)}
               >
                 Entfernen
@@ -400,26 +400,26 @@ export default function AdminEditorialItemPage() {
         </div>
       </section>
 
-      <section className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
-        <h2 className="text-sm font-semibold text-slate-900">Revisionen</h2>
+      <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm">
+        <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Revisionen</h2>
         <div className="mt-3 space-y-2 text-sm">
           {revisions.map((rev) => (
-            <div key={rev.id} className="rounded-2xl border border-slate-200 px-3 py-2">
+            <div key={rev.id} className="rounded-2xl border border-[rgb(var(--border))] px-3 py-2">
               <div className="flex items-center justify-between">
                 <span className="font-semibold">Rev {rev.rev}</span>
-                <span className="text-xs text-slate-500">{rev.createdAt?.slice(0, 10)}</span>
+                <span className="text-xs text-[rgb(var(--muted))]">{rev.createdAt?.slice(0, 10)}</span>
               </div>
-              <div className="text-xs text-slate-500">{rev.changeNote}</div>
+              <div className="text-xs text-[rgb(var(--muted))]">{rev.changeNote}</div>
             </div>
           ))}
         </div>
-        <div className="mt-3 text-xs text-slate-500">
+        <div className="mt-3 text-xs text-[rgb(var(--muted))]">
           Audit Trail: <Link href={auditLink} className="underline">Audit ansehen</Link>
         </div>
       </section>
 
       {loading && (
-        <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-500">
+        <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-3 text-sm text-[rgb(var(--muted))]">
           Laedt Item...
         </div>
       )}

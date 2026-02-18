@@ -21,5 +21,5 @@ export default function ReferenzarchitekturLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return <div className="min-h-screen bg-slate-50 text-slate-900">{children}</div>;
+  return <div className="min-h-screen bg-[rgb(var(--bg))] text-[rgb(var(--fg))]">{children}</div>;
 }

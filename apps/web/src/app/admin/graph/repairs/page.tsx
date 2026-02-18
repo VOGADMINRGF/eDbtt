@@ -148,9 +148,9 @@ export default function AdminGraphRepairsPage() {
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-8">
       <header className="space-y-1">
-        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Admin · Graph</p>
-        <h1 className="text-2xl font-bold text-slate-900">Repairs</h1>
-        <p className="text-sm text-slate-600">Tickets anlegen, pruefen und anwenden.</p>
+        <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Admin · Graph</p>
+        <h1 className="text-2xl font-bold text-[rgb(var(--fg))]">Repairs</h1>
+        <p className="text-sm text-[rgb(var(--muted))]">Tickets anlegen, pruefen und anwenden.</p>
       </header>
 
       {error && (
@@ -159,26 +159,26 @@ export default function AdminGraphRepairsPage() {
         </div>
       )}
 
-      <section className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
-        <h2 className="text-sm font-semibold text-slate-900">Merge Suggest</h2>
+      <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm">
+        <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Merge Suggest</h2>
         <div className="mt-3 grid gap-3 md:grid-cols-3">
           <input
             value={mergeA}
             onChange={(e) => setMergeA(e.target.value)}
             placeholder="Node A ID"
-            className="rounded-2xl border border-slate-200 px-3 py-2 text-sm"
+            className="rounded-2xl border border-[rgb(var(--border))] px-3 py-2 text-sm"
           />
           <input
             value={mergeB}
             onChange={(e) => setMergeB(e.target.value)}
             placeholder="Node B ID"
-            className="rounded-2xl border border-slate-200 px-3 py-2 text-sm"
+            className="rounded-2xl border border-[rgb(var(--border))] px-3 py-2 text-sm"
           />
           <input
             value={mergeReason}
             onChange={(e) => setMergeReason(e.target.value)}
             placeholder="Reason"
-            className="rounded-2xl border border-slate-200 px-3 py-2 text-sm"
+            className="rounded-2xl border border-[rgb(var(--border))] px-3 py-2 text-sm"
           />
         </div>
         <button className="mt-3 rounded-2xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white" onClick={handleMerge}>
@@ -186,26 +186,26 @@ export default function AdminGraphRepairsPage() {
         </button>
       </section>
 
-      <section className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
-        <h2 className="text-sm font-semibold text-slate-900">Relink</h2>
+      <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm">
+        <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Relink</h2>
         <div className="mt-3 grid gap-3 md:grid-cols-3">
           <input
             value={relinkFrom}
             onChange={(e) => setRelinkFrom(e.target.value)}
             placeholder="From ID"
-            className="rounded-2xl border border-slate-200 px-3 py-2 text-sm"
+            className="rounded-2xl border border-[rgb(var(--border))] px-3 py-2 text-sm"
           />
           <input
             value={relinkTo}
             onChange={(e) => setRelinkTo(e.target.value)}
             placeholder="To ID"
-            className="rounded-2xl border border-slate-200 px-3 py-2 text-sm"
+            className="rounded-2xl border border-[rgb(var(--border))] px-3 py-2 text-sm"
           />
           <input
             value={relinkReason}
             onChange={(e) => setRelinkReason(e.target.value)}
             placeholder="Reason"
-            className="rounded-2xl border border-slate-200 px-3 py-2 text-sm"
+            className="rounded-2xl border border-[rgb(var(--border))] px-3 py-2 text-sm"
           />
         </div>
         <button className="mt-3 rounded-2xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white" onClick={handleRelink}>
@@ -213,12 +213,12 @@ export default function AdminGraphRepairsPage() {
         </button>
       </section>
 
-      <section className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
+      <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm">
         <div className="flex flex-wrap items-center gap-3">
           <select
             value={type}
             onChange={(e) => setType(e.target.value)}
-            className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm"
+            className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-2 text-sm"
           >
             <option value="all">Alle Typen</option>
             <option value="merge_suggest">merge_suggest</option>
@@ -227,7 +227,7 @@ export default function AdminGraphRepairsPage() {
           <select
             value={status}
             onChange={(e) => setStatus(e.target.value)}
-            className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm"
+            className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-2 text-sm"
           >
             <option value="all">Alle Status</option>
             <option value="pending">pending</option>
@@ -235,27 +235,27 @@ export default function AdminGraphRepairsPage() {
             <option value="rejected">rejected</option>
           </select>
         </div>
-        <div className="mt-4 overflow-hidden rounded-2xl border border-slate-200">
-          <table className="min-w-full divide-y divide-slate-200 text-sm">
-            <thead className="bg-slate-50">
+        <div className="mt-4 overflow-hidden rounded-2xl border border-[rgb(var(--border))]">
+          <table className="min-w-full divide-y divide-[rgb(var(--border))] text-sm">
+            <thead className="bg-[rgb(var(--bg))]">
               <tr>
-                <th className="px-4 py-3 text-left font-semibold text-slate-600">Type</th>
-                <th className="px-4 py-3 text-left font-semibold text-slate-600">Payload</th>
-                <th className="px-4 py-3 text-left font-semibold text-slate-600">Status</th>
-                <th className="px-4 py-3 text-left font-semibold text-slate-600">Aktion</th>
+                <th className="px-4 py-3 text-left font-semibold text-[rgb(var(--muted))]">Type</th>
+                <th className="px-4 py-3 text-left font-semibold text-[rgb(var(--muted))]">Payload</th>
+                <th className="px-4 py-3 text-left font-semibold text-[rgb(var(--muted))]">Status</th>
+                <th className="px-4 py-3 text-left font-semibold text-[rgb(var(--muted))]">Aktion</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-[rgb(var(--border))]">
               {loading && (
                 <tr>
-                  <td colSpan={4} className="px-4 py-6 text-center text-slate-500">
+                  <td colSpan={4} className="px-4 py-6 text-center text-[rgb(var(--muted))]">
                     Laedt Repairs...
                   </td>
                 </tr>
               )}
               {!loading && data?.items?.length === 0 && (
                 <tr>
-                  <td colSpan={4} className="px-4 py-6 text-center text-slate-500">
+                  <td colSpan={4} className="px-4 py-6 text-center text-[rgb(var(--muted))]">
                     Keine Tickets.
                   </td>
                 </tr>
@@ -263,22 +263,22 @@ export default function AdminGraphRepairsPage() {
               {!loading &&
                 data?.items?.map((item) => (
                   <tr key={item.id}>
-                    <td className="px-4 py-3 text-slate-600">{item.type}</td>
-                    <td className="px-4 py-3 text-slate-600">
+                    <td className="px-4 py-3 text-[rgb(var(--muted))]">{item.type}</td>
+                    <td className="px-4 py-3 text-[rgb(var(--muted))]">
                       {JSON.stringify(item.payload)}
                     </td>
-                    <td className="px-4 py-3 text-slate-600">{item.status}</td>
+                    <td className="px-4 py-3 text-[rgb(var(--muted))]">{item.status}</td>
                     <td className="px-4 py-3">
                       {item.status === "pending" && (
                         <div className="flex gap-2">
                           <button
-                            className="rounded-full border border-slate-200 px-3 py-1 text-xs"
+                            className="rounded-full border border-[rgb(var(--border))] px-3 py-1 text-xs"
                             onClick={() => handleApply(item.id)}
                           >
                             Apply
                           </button>
                           <button
-                            className="rounded-full border border-slate-200 px-3 py-1 text-xs"
+                            className="rounded-full border border-[rgb(var(--border))] px-3 py-1 text-xs"
                             onClick={() => handleReject(item.id)}
                           >
                             Reject
@@ -293,9 +293,9 @@ export default function AdminGraphRepairsPage() {
         </div>
       </section>
 
-      <div className="flex items-center justify-between text-xs text-slate-500">
+      <div className="flex items-center justify-between text-xs text-[rgb(var(--muted))]">
         <button
-          className="rounded-full border border-slate-200 px-3 py-1 disabled:opacity-50"
+          className="rounded-full border border-[rgb(var(--border))] px-3 py-1 disabled:opacity-50"
           disabled={page <= 1}
           onClick={() => setPage((prev) => Math.max(1, prev - 1))}
         >
@@ -305,7 +305,7 @@ export default function AdminGraphRepairsPage() {
           Seite {page} / {Math.max(1, Math.ceil((data?.total ?? 1) / (data?.pageSize ?? 1)))}
         </span>
         <button
-          className="rounded-full border border-slate-200 px-3 py-1 disabled:opacity-50"
+          className="rounded-full border border-[rgb(var(--border))] px-3 py-1 disabled:opacity-50"
           disabled={page >= totalPages}
           onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
         >

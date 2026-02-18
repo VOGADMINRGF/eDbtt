@@ -74,7 +74,7 @@ export default function UserAdminList({
           {filteredUsers.map((user) => (
             <div
               key={user._id}
-              className="border border-gray-200 rounded-lg p-4 bg-white shadow-sm flex flex-col gap-1"
+              className="border border-gray-200 rounded-lg p-4 bg-[rgb(var(--card))] shadow-sm flex flex-col gap-1"
             >
               <div className="flex items-center gap-2 mb-2">
                 <span className="font-semibold">{user.username}</span>

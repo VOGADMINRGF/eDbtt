@@ -103,44 +103,44 @@ export default function AdminSupportPage() {
   return (
     <main className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-8">
       <header className="space-y-2">
-        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Admin · Support</p>
-        <h1 className="text-2xl font-bold text-slate-900">Unterstuetzen verwalten</h1>
-        <p className="text-sm text-slate-600">
+        <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Admin · Support</p>
+        <h1 className="text-2xl font-bold text-[rgb(var(--fg))]">Unterstuetzen verwalten</h1>
+        <p className="text-sm text-[rgb(var(--muted))]">
           Pledge-Verbuchung und Fortschritt sind transparent, ohne Einfluss auf Votes, XP oder Credits.
         </p>
       </header>
 
       {error ? <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</div> : null}
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-        <h2 className="text-lg font-semibold text-slate-900">Support-Campaign anlegen</h2>
+      <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm">
+        <h2 className="text-lg font-semibold text-[rgb(var(--fg))]">Support-Campaign anlegen</h2>
         <form className="mt-3 grid gap-3 md:grid-cols-4" onSubmit={createCampaign}>
           <input
             value={campaignId}
             onChange={(e) => setCampaignId(e.target.value)}
             placeholder="Campaign ID"
-            className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
+            className="rounded-lg border border-[rgb(var(--border))] px-3 py-2 text-sm"
             required
           />
           <input
             value={slug}
             onChange={(e) => setSlug(e.target.value)}
             placeholder="Slug (z.B. koeln-klima)"
-            className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
+            className="rounded-lg border border-[rgb(var(--border))] px-3 py-2 text-sm"
             required
           />
           <input
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder="Titel"
-            className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
+            className="rounded-lg border border-[rgb(var(--border))] px-3 py-2 text-sm"
             required
           />
           <input
             value={goalEuro}
             onChange={(e) => setGoalEuro(e.target.value)}
             placeholder="Ziel in EUR"
-            className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
+            className="rounded-lg border border-[rgb(var(--border))] px-3 py-2 text-sm"
             required
           />
           <div className="md:col-span-4">
@@ -155,14 +155,14 @@ export default function AdminSupportPage() {
         </form>
       </section>
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+      <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm">
         <div className="mb-3 flex items-center gap-2 text-sm">
-          <span className="text-slate-600">Status:</span>
+          <span className="text-[rgb(var(--muted))]">Status:</span>
           {(["all", "active", "draft", "closed"] as const).map((item) => (
             <button
               key={item}
               onClick={() => setStatusFilter(item)}
-              className={`rounded-full px-3 py-1 font-semibold ${statusFilter === item ? "bg-slate-900 text-white" : "bg-slate-100 text-slate-700"}`}
+              className={`rounded-full px-3 py-1 font-semibold ${statusFilter === item ? "bg-slate-900 text-white" : "bg-[rgb(var(--bg))] text-[rgb(var(--muted))]"}`}
             >
               {item}
             </button>
@@ -171,7 +171,7 @@ export default function AdminSupportPage() {
 
         <div className="overflow-x-auto">
           <table className="min-w-full text-sm">
-            <thead className="border-b border-slate-200 text-left text-xs uppercase tracking-wide text-slate-500">
+            <thead className="border-b border-[rgb(var(--border))] text-left text-xs uppercase tracking-wide text-[rgb(var(--muted))]">
               <tr>
                 <th className="px-3 py-2">Titel</th>
                 <th className="px-3 py-2">Slug</th>
@@ -186,31 +186,31 @@ export default function AdminSupportPage() {
             <tbody>
               {loading ? (
                 <tr>
-                  <td className="px-3 py-4 text-slate-500" colSpan={8}>
+                  <td className="px-3 py-4 text-[rgb(var(--muted))]" colSpan={8}>
                     Laedt …
                   </td>
                 </tr>
               ) : null}
               {!loading && sorted.length === 0 ? (
                 <tr>
-                  <td className="px-3 py-4 text-slate-500" colSpan={8}>
+                  <td className="px-3 py-4 text-[rgb(var(--muted))]" colSpan={8}>
                     Keine Support-Campaigns vorhanden.
                   </td>
                 </tr>
               ) : null}
               {!loading &&
                 sorted.map((row) => (
-                  <tr key={row.id} className="border-b border-slate-100">
+                  <tr key={row.id} className="border-b border-[rgb(var(--border))]">
                     <td className="px-3 py-2">
-                      <div className="font-medium text-slate-900">{row.title}</div>
-                      <div className="text-xs text-slate-500">
+                      <div className="font-medium text-[rgb(var(--fg))]">{row.title}</div>
+                      <div className="text-xs text-[rgb(var(--muted))]">
                         {row.targetType}: {row.targetId}
                         {row.targetType === "campaign" ? (
                           <>
                             {" · "}
                             <Link
                               href={`/admin/campaigns/${encodeURIComponent(row.targetId)}`}
-                              className="font-semibold text-slate-700 hover:text-slate-900"
+                              className="font-semibold text-[rgb(var(--muted))] hover:text-[rgb(var(--fg))]"
                             >
                               Campaign öffnen
                             </Link>
@@ -218,14 +218,14 @@ export default function AdminSupportPage() {
                         ) : null}
                       </div>
                     </td>
-                    <td className="px-3 py-2 text-slate-700">{row.slug}</td>
-                    <td className="px-3 py-2 text-slate-700">{row.status}</td>
-                    <td className="px-3 py-2 text-slate-700">{formatEuro(row.goalCents)}</td>
+                    <td className="px-3 py-2 text-[rgb(var(--muted))]">{row.slug}</td>
+                    <td className="px-3 py-2 text-[rgb(var(--muted))]">{row.status}</td>
+                    <td className="px-3 py-2 text-[rgb(var(--muted))]">{formatEuro(row.goalCents)}</td>
                     <td className="px-3 py-2 text-emerald-700">{formatEuro(row.raisedCents)}</td>
                     <td className="px-3 py-2 text-amber-700">{formatEuro(row.waitingCents)}</td>
-                    <td className="px-3 py-2 text-slate-700">{row.pledges}</td>
+                    <td className="px-3 py-2 text-[rgb(var(--muted))]">{row.pledges}</td>
                     <td className="px-3 py-2 text-right">
-                      <Link href={`/admin/support/${encodeURIComponent(row.id)}`} className="font-semibold text-slate-700 hover:text-slate-900">
+                      <Link href={`/admin/support/${encodeURIComponent(row.id)}`} className="font-semibold text-[rgb(var(--muted))] hover:text-[rgb(var(--fg))]">
                         Details
                       </Link>
                     </td>

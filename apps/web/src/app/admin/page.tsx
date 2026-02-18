@@ -75,18 +75,18 @@ export default function AdminDashboardPage() {
 
   return (
     <div className="space-y-6">
-      <header className="rounded-3xl bg-[rgb(var(--card))] p-5 shadow ring-1 ring-slate-100">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Admin Dashboard</p>
+      <header className="rounded-3xl bg-[rgb(var(--card))] p-5 shadow ring-1 ring-[rgb(var(--border))]">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[rgb(var(--muted))]">Admin Dashboard</p>
         <h1 className="mt-1 text-2xl font-semibold text-[rgb(var(--fg))]">Steuerzentrale</h1>
         <p className="mt-2 text-sm text-[rgb(var(--muted))]">
           Überblick über Nutzer, Inhalte, Graph, Telemetrie und operative Warteschlangen.
         </p>
       </header>
 
-      <section className="rounded-3xl bg-[rgb(var(--card))] p-4 shadow ring-1 ring-slate-100">
+      <section className="rounded-3xl bg-[rgb(var(--card))] p-4 shadow ring-1 ring-[rgb(var(--border))]">
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Schnellaktionen</h2>
-          <span className="text-xs text-slate-500">Direkte Wege zu den wichtigsten Warteschlangen</span>
+          <span className="text-xs text-[rgb(var(--muted))]">Direkte Wege zu den wichtigsten Warteschlangen</span>
         </div>
         <div className="mt-3 grid gap-2 md:grid-cols-2 lg:grid-cols-4">
           {[
@@ -131,28 +131,28 @@ export default function AdminDashboardPage() {
       </section>
 
       <section className="grid gap-4 lg:grid-cols-2">
-        <div className="rounded-3xl bg-[rgb(var(--card))] p-4 shadow ring-1 ring-slate-100">
+        <div className="rounded-3xl bg-[rgb(var(--card))] p-4 shadow ring-1 ring-[rgb(var(--border))]">
           <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Paket-Verteilung</h2>
           <div className="mt-2 space-y-2">
             {loading && <SkeletonLines lines={4} />}
             {!loading &&
               data?.packages?.map((p) => (
                 <div key={p.code} className="flex items-center justify-between rounded-xl bg-[rgb(var(--bg))] px-3 py-2 text-sm">
-                  <span className="font-medium text-slate-800">{getEdebatePackageLabel(p.code || "none")}</span>
+                  <span className="font-medium text-[rgb(var(--fg))]">{getEdebatePackageLabel(p.code || "none")}</span>
                   <span className="text-[rgb(var(--muted))]">{nf.format(p.count)}</span>
                 </div>
               ))}
           </div>
         </div>
 
-        <div className="rounded-3xl bg-[rgb(var(--card))] p-4 shadow ring-1 ring-slate-100">
+        <div className="rounded-3xl bg-[rgb(var(--card))] p-4 shadow ring-1 ring-[rgb(var(--border))]">
           <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Rollen-Verteilung</h2>
           <div className="mt-2 space-y-2">
             {loading && <SkeletonLines lines={4} />}
             {!loading &&
               data?.roles?.map((r) => (
                 <div key={r.role} className="flex items-center justify-between rounded-xl bg-[rgb(var(--bg))] px-3 py-2 text-sm">
-                  <span className="font-medium text-slate-800">{r.role}</span>
+                  <span className="font-medium text-[rgb(var(--fg))]">{r.role}</span>
                   <span className="text-[rgb(var(--muted))]">{nf.format(r.count)}</span>
                 </div>
               ))}
@@ -160,12 +160,12 @@ export default function AdminDashboardPage() {
         </div>
       </section>
 
-      <section className="rounded-3xl bg-[rgb(var(--card))] p-4 shadow ring-1 ring-slate-100">
+      <section className="rounded-3xl bg-[rgb(var(--card))] p-4 shadow ring-1 ring-[rgb(var(--border))]">
         <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Registrierungen (letzte 30 Tage)</h2>
         <div className="mt-3 flex items-end gap-1 min-h-[80px]">
           {loading && <SkeletonBars />}
           {!loading && data?.registrationsLast30Days?.length === 0 && (
-            <p className="text-sm text-slate-400">Noch keine Registrierungen im betrachteten Zeitraum.</p>
+            <p className="text-sm text-[rgb(var(--muted))]">Noch keine Registrierungen im betrachteten Zeitraum.</p>
           )}
           {!loading &&
             data?.registrationsLast30Days &&
@@ -177,7 +177,7 @@ export default function AdminDashboardPage() {
                   style={{ height: `${Math.max(6, d.count * 6)}px` }}
                   title={`${d.date}: ${d.count}`}
                 />
-                <span className="text-[10px] text-slate-400">{d.date.slice(5)}</span>
+                <span className="text-[10px] text-[rgb(var(--muted))]">{d.date.slice(5)}</span>
               </div>
             ))}
         </div>
@@ -232,7 +232,7 @@ export default function AdminDashboardPage() {
       </section>
 
       <section className="space-y-3">
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Admin Hubs</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[rgb(var(--muted))]">Admin Hubs</p>
         <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
           <LinkCard title="People Hub" href="/admin/people" description="User, Rollen, Newsletter & Regeln" />
           <LinkCard title="Content Hub" href="/admin/content" description="Evidence, Graph, Feeds & Reports" />
@@ -242,7 +242,7 @@ export default function AdminDashboardPage() {
       </section>
 
       <section className="space-y-3">
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Direktzugriff</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[rgb(var(--muted))]">Direktzugriff</p>
         <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
           <LinkCard title="Access Center" href="/admin/access" description="Seitenzugriffe verwalten" />
           <LinkCard title="Editorial Queue" href="/admin/editorial/queue" description="Triage, Review, Publish" />
@@ -258,7 +258,7 @@ export default function AdminDashboardPage() {
       </section>
 
       <section className="space-y-3">
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Weitere Bereiche</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[rgb(var(--muted))]">Weitere Bereiche</p>
         <div className="flex flex-wrap gap-2">
           {[
             { href: "/admin/analytics", label: "Analytics" },
@@ -276,7 +276,7 @@ export default function AdminDashboardPage() {
             <Link
               key={entry.href}
               href={entry.href}
-              className="rounded-full bg-[rgb(var(--card))] px-3 py-1.5 text-xs font-semibold text-[rgb(var(--muted))] ring-1 ring-slate-200 transition hover:ring-sky-200"
+              className="rounded-full bg-[rgb(var(--card))] px-3 py-1.5 text-xs font-semibold text-[rgb(var(--muted))] ring-1 ring-[rgb(var(--border))] transition hover:ring-sky-200"
             >
               {entry.label}
             </Link>
@@ -301,14 +301,14 @@ function renderCard(
   href?: string,
 ) {
   const content = (
-    <div className="rounded-3xl bg-[rgb(var(--card))] p-4 shadow ring-1 ring-slate-100 hover:ring-sky-200">
-      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">{title}</p>
+    <div className="rounded-3xl bg-[rgb(var(--card))] p-4 shadow ring-1 ring-[rgb(var(--border))] hover:ring-sky-200">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">{title}</p>
       {loading ? (
-        <div className="mt-2 h-6 w-16 animate-pulse rounded bg-slate-100" />
+        <div className="mt-2 h-6 w-16 animate-pulse rounded bg-[rgb(var(--bg))]" />
       ) : (
         <p className="mt-1 text-2xl font-semibold text-[rgb(var(--fg))]">{nf.format(value ?? 0)}</p>
       )}
-      {subtitle && <p className="mt-1 text-[11px] text-slate-400">{subtitle}</p>}
+      {subtitle && <p className="mt-1 text-[11px] text-[rgb(var(--muted))]">{subtitle}</p>}
     </div>
   );
   if (href) {
@@ -325,7 +325,7 @@ function SkeletonLines({ lines }: { lines: number }) {
   return (
     <div className="space-y-2">
       {Array.from({ length: lines }).map((_, i) => (
-        <div key={i} className="h-6 animate-pulse rounded bg-slate-100" />
+        <div key={i} className="h-6 animate-pulse rounded bg-[rgb(var(--bg))]" />
       ))}
     </div>
   );
@@ -335,7 +335,7 @@ function SkeletonBars() {
   return (
     <div className="flex items-end gap-1">
       {Array.from({ length: 12 }).map((_, i) => (
-        <div key={i} className="w-4 rounded-full bg-slate-100" style={{ height: `${10 + i * 2}px` }} />
+        <div key={i} className="w-4 rounded-full bg-[rgb(var(--bg))]" style={{ height: `${10 + i * 2}px` }} />
       ))}
     </div>
   );
@@ -345,9 +345,9 @@ function LinkCard({ title, description, href }: { title: string; description: st
   return (
     <Link
       href={href}
-      className="rounded-3xl bg-[rgb(var(--card))] p-4 shadow ring-1 ring-slate-100 transition hover:-translate-y-0.5 hover:ring-sky-200"
+      className="rounded-3xl bg-[rgb(var(--card))] p-4 shadow ring-1 ring-[rgb(var(--border))] transition hover:-translate-y-0.5 hover:ring-sky-200"
     >
-      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">{title}</p>
+      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">{title}</p>
       <p className="mt-2 text-sm text-[rgb(var(--muted))]">{description}</p>
     </Link>
   );

@@ -201,7 +201,7 @@ export default function ProjectForm({ creatorId }: ProjectFormProps) {
     >
       <header className="space-y-2">
         <h2 className="text-2xl font-bold text-coral">Projekt/Event erstellen</h2>
-        <p className="text-sm text-slate-600">
+        <p className="text-sm text-[rgb(var(--muted))]">
           Lege 5 bis 10 Themen an. Pro Thema werden mindestens 5 feste Optionen benoetigt.
         </p>
       </header>
@@ -226,7 +226,7 @@ export default function ProjectForm({ creatorId }: ProjectFormProps) {
 
       <section className="grid gap-4">
         <div className="space-y-1">
-          <label className="block text-sm font-medium text-slate-700" htmlFor={nameId}>
+          <label className="block text-sm font-medium text-[rgb(var(--muted))]" htmlFor={nameId}>
             Projektname
           </label>
           <input
@@ -235,26 +235,26 @@ export default function ProjectForm({ creatorId }: ProjectFormProps) {
             value={name}
             onChange={(e) => setName(e.target.value)}
             id={nameId}
-            className="w-full rounded border px-3 py-2 text-sm text-slate-900 outline-none focus:border-coral focus:ring-2 focus:ring-coral/20"
+            className="w-full rounded border px-3 py-2 text-sm text-[rgb(var(--fg))] outline-none focus:border-coral focus:ring-2 focus:ring-coral/20"
           />
         </div>
 
         <div className="space-y-1">
-          <label className="block text-sm font-medium text-slate-700" htmlFor={descriptionId}>
+          <label className="block text-sm font-medium text-[rgb(var(--muted))]" htmlFor={descriptionId}>
             Beschreibung
           </label>
           <textarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             id={descriptionId}
-            className="w-full rounded border px-3 py-2 text-sm text-slate-900 outline-none focus:border-coral focus:ring-2 focus:ring-coral/20"
+            className="w-full rounded border px-3 py-2 text-sm text-[rgb(var(--fg))] outline-none focus:border-coral focus:ring-2 focus:ring-coral/20"
             rows={4}
           />
         </div>
 
         <div className="grid gap-4 md:grid-cols-2">
           <div className="space-y-1">
-            <label className="block text-sm font-medium text-slate-700" htmlFor={startId}>
+            <label className="block text-sm font-medium text-[rgb(var(--muted))]" htmlFor={startId}>
               Startdatum
             </label>
             <input
@@ -262,11 +262,11 @@ export default function ProjectForm({ creatorId }: ProjectFormProps) {
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
               id={startId}
-              className="w-full rounded border px-3 py-2 text-sm text-slate-900 outline-none focus:border-coral focus:ring-2 focus:ring-coral/20"
+              className="w-full rounded border px-3 py-2 text-sm text-[rgb(var(--fg))] outline-none focus:border-coral focus:ring-2 focus:ring-coral/20"
             />
           </div>
           <div className="space-y-1">
-            <label className="block text-sm font-medium text-slate-700" htmlFor={endId}>
+            <label className="block text-sm font-medium text-[rgb(var(--muted))]" htmlFor={endId}>
               Enddatum (optional)
             </label>
             <input
@@ -274,13 +274,13 @@ export default function ProjectForm({ creatorId }: ProjectFormProps) {
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
               id={endId}
-              className="w-full rounded border px-3 py-2 text-sm text-slate-900 outline-none focus:border-coral focus:ring-2 focus:ring-coral/20"
+              className="w-full rounded border px-3 py-2 text-sm text-[rgb(var(--fg))] outline-none focus:border-coral focus:ring-2 focus:ring-coral/20"
             />
           </div>
         </div>
 
         <div className="space-y-1">
-          <label className="block text-sm font-medium text-slate-700" htmlFor={regionId}>
+          <label className="block text-sm font-medium text-[rgb(var(--muted))]" htmlFor={regionId}>
             Region (optional)
           </label>
           <input
@@ -288,19 +288,19 @@ export default function ProjectForm({ creatorId }: ProjectFormProps) {
             value={region}
             onChange={(e) => setRegion(e.target.value)}
             id={regionId}
-            className="w-full rounded border px-3 py-2 text-sm text-slate-900 outline-none focus:border-coral focus:ring-2 focus:ring-coral/20"
+            className="w-full rounded border px-3 py-2 text-sm text-[rgb(var(--fg))] outline-none focus:border-coral focus:ring-2 focus:ring-coral/20"
           />
         </div>
 
         <div className="space-y-1">
-          <label className="block text-sm font-medium text-slate-700" htmlFor={statusId}>
+          <label className="block text-sm font-medium text-[rgb(var(--muted))]" htmlFor={statusId}>
             Status
           </label>
           <select
             value={status}
             onChange={(e) => setStatus(e.target.value as ProjectStatus)}
             id={statusId}
-            className="w-full rounded border px-3 py-2 text-sm text-slate-900 outline-none focus:border-coral focus:ring-2 focus:ring-coral/20"
+            className="w-full rounded border px-3 py-2 text-sm text-[rgb(var(--fg))] outline-none focus:border-coral focus:ring-2 focus:ring-coral/20"
           >
             <option value="planned">Geplant</option>
             <option value="active">Aktiv</option>
@@ -313,23 +313,23 @@ export default function ProjectForm({ creatorId }: ProjectFormProps) {
       <section className="space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div>
-            <h3 className="text-lg font-semibold text-slate-900">Themenpaket</h3>
-            <p className="text-xs text-slate-500">{topics.length} von {MIN_TOPICS} bis {MAX_TOPICS} Themen</p>
+            <h3 className="text-lg font-semibold text-[rgb(var(--fg))]">Themenpaket</h3>
+            <p className="text-xs text-[rgb(var(--muted))]">{topics.length} von {MIN_TOPICS} bis {MAX_TOPICS} Themen</p>
           </div>
           <button
             type="button"
             onClick={addTopic}
             disabled={topics.length >= MAX_TOPICS}
-            className="rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:border-slate-300 disabled:cursor-not-allowed disabled:opacity-60"
+            className="rounded-full border border-[rgb(var(--border))] px-4 py-2 text-sm font-semibold text-[rgb(var(--muted))] hover:border-[rgb(var(--border))] disabled:cursor-not-allowed disabled:opacity-60"
           >
             Thema hinzufuegen
           </button>
         </div>
 
         {topics.map((topic, index) => (
-          <div key={topic.id} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+          <div key={topic.id} className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm">
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <h4 className="text-sm font-semibold text-slate-900">Thema {index + 1}</h4>
+              <h4 className="text-sm font-semibold text-[rgb(var(--fg))]">Thema {index + 1}</h4>
               <button
                 type="button"
                 onClick={() => removeTopic(topic.id)}
@@ -342,32 +342,32 @@ export default function ProjectForm({ creatorId }: ProjectFormProps) {
 
             <div className="mt-3 space-y-3">
               <div className="space-y-1">
-                <label className="block text-xs font-medium text-slate-600">Titel</label>
+                <label className="block text-xs font-medium text-[rgb(var(--muted))]">Titel</label>
                 <input
                   type="text"
                   value={topic.title}
                   onChange={(e) => updateTopic(topic.id, { title: e.target.value })}
-                  className="w-full rounded border px-3 py-2 text-sm text-slate-900"
+                  className="w-full rounded border px-3 py-2 text-sm text-[rgb(var(--fg))]"
                 />
               </div>
 
               <div className="space-y-1">
-                <label className="block text-xs font-medium text-slate-600">Beschreibung (optional)</label>
+                <label className="block text-xs font-medium text-[rgb(var(--muted))]">Beschreibung (optional)</label>
                 <textarea
                   value={topic.description ?? ""}
                   onChange={(e) => updateTopic(topic.id, { description: e.target.value })}
-                  className="w-full rounded border px-3 py-2 text-sm text-slate-900"
+                  className="w-full rounded border px-3 py-2 text-sm text-[rgb(var(--fg))]"
                   rows={2}
                 />
               </div>
 
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold text-slate-700">Optionen</span>
+                  <span className="text-xs font-semibold text-[rgb(var(--muted))]">Optionen</span>
                   <button
                     type="button"
                     onClick={() => addOption(topic.id)}
-                    className="text-xs font-semibold text-slate-600 hover:text-slate-900"
+                    className="text-xs font-semibold text-[rgb(var(--muted))] hover:text-[rgb(var(--fg))]"
                   >
                     Option hinzufuegen
                   </button>
@@ -375,12 +375,12 @@ export default function ProjectForm({ creatorId }: ProjectFormProps) {
 
                 {topic.options.map((opt, optIndex) => (
                   <div key={opt.id} className="flex items-center gap-2">
-                    <span className="text-xs text-slate-400">{optIndex + 1}</span>
+                    <span className="text-xs text-[rgb(var(--muted))]">{optIndex + 1}</span>
                     <input
                       type="text"
                       value={opt.label}
                       onChange={(e) => updateOption(topic.id, opt.id, e.target.value)}
-                      className="flex-1 rounded border px-3 py-2 text-sm text-slate-900"
+                      className="flex-1 rounded border px-3 py-2 text-sm text-[rgb(var(--fg))]"
                     />
                     <button
                       type="button"
@@ -392,14 +392,14 @@ export default function ProjectForm({ creatorId }: ProjectFormProps) {
                     </button>
                   </div>
                 ))}
-                <p className="text-[11px] text-slate-400">Mindestens {MIN_OPTIONS} Optionen pro Thema.</p>
+                <p className="text-[11px] text-[rgb(var(--muted))]">Mindestens {MIN_OPTIONS} Optionen pro Thema.</p>
               </div>
             </div>
           </div>
         ))}
       </section>
 
-      <p className="text-xs text-slate-500">
+      <p className="text-xs text-[rgb(var(--muted))]">
         Organisator:innen werden spaeter automatisch aus dem Account-Kontext uebernommen.
       </p>
 

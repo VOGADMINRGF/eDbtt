@@ -112,15 +112,15 @@ export default function AdminErrorDetailPage() {
   return (
     <main className="mx-auto flex max-w-5xl flex-col gap-6 px-4 py-8">
       <header className="space-y-2">
-        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Admin · System</p>
-        <h1 className="text-2xl font-bold text-slate-900">Error Detail</h1>
-        <p className="text-sm text-slate-600">
+        <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Admin · System</p>
+        <h1 className="text-2xl font-bold text-[rgb(var(--fg))]">Error Detail</h1>
+        <p className="text-sm text-[rgb(var(--muted))]">
           Trace-Kontext und Metadaten zum ausgewählten Error.
         </p>
       </header>
 
       {loading && (
-        <div className="rounded-2xl border border-slate-200 bg-white px-4 py-6 text-sm text-slate-500 shadow-sm">
+        <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-6 text-sm text-[rgb(var(--muted))] shadow-sm">
           Lädt …
         </div>
       )}
@@ -133,12 +133,12 @@ export default function AdminErrorDetailPage() {
 
       {!loading && item && (
         <>
-          <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm space-y-3">
+          <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm space-y-3">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <LevelBadge level={item.level ?? "info"} />
-                <p className="mt-2 text-lg font-semibold text-slate-900">{item.message}</p>
-                <p className="text-xs text-slate-500">
+                <p className="mt-2 text-lg font-semibold text-[rgb(var(--fg))]">{item.message}</p>
+                <p className="text-xs text-[rgb(var(--muted))]">
                   {formatDate(item.timestamp || item.createdAt)} · {item.path ?? "—"}
                 </p>
               </div>
@@ -146,7 +146,7 @@ export default function AdminErrorDetailPage() {
                 <button
                   onClick={toggleResolved}
                   disabled={saving}
-                  className="rounded-full border border-slate-200 px-4 py-1.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-60"
+                  className="rounded-full border border-[rgb(var(--border))] px-4 py-1.5 text-sm font-semibold text-[rgb(var(--muted))] hover:bg-[rgb(var(--bg))] disabled:opacity-60"
                 >
                   {item.resolved ? "Als offen markieren" : "Als erledigt markieren"}
                 </button>
@@ -154,7 +154,7 @@ export default function AdminErrorDetailPage() {
                   <button
                     onClick={toggleTraceResolved}
                     disabled={traceSaving}
-                    className="rounded-full border border-slate-200 px-4 py-1.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-60"
+                    className="rounded-full border border-[rgb(var(--border))] px-4 py-1.5 text-sm font-semibold text-[rgb(var(--muted))] hover:bg-[rgb(var(--bg))] disabled:opacity-60"
                   >
                     {item.resolved ? "Trace öffnen" : "Trace erledigen"}
                   </button>
@@ -162,41 +162,41 @@ export default function AdminErrorDetailPage() {
               </div>
             </div>
 
-            <div className="grid gap-3 text-sm text-slate-700 md:grid-cols-2">
+            <div className="grid gap-3 text-sm text-[rgb(var(--muted))] md:grid-cols-2">
               <div>
-                <p className="text-xs uppercase text-slate-400">Trace ID</p>
+                <p className="text-xs uppercase text-[rgb(var(--muted))]">Trace ID</p>
                 <p>{item.traceId ?? "—"}</p>
               </div>
               <div>
-                <p className="text-xs uppercase text-slate-400">Status</p>
+                <p className="text-xs uppercase text-[rgb(var(--muted))]">Status</p>
                 <p>{item.resolved ? "Erledigt" : "Offen"}</p>
               </div>
             </div>
 
             {item.ctx && (
-              <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-700">
+              <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3 text-xs text-[rgb(var(--muted))]">
                 <pre className="whitespace-pre-wrap">{JSON.stringify(item.ctx, null, 2)}</pre>
               </div>
             )}
           </section>
 
           {relatedRows.length > 0 && (
-            <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-              <h2 className="text-sm font-semibold text-slate-900">Trace-Verlauf</h2>
+            <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm">
+              <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Trace-Verlauf</h2>
               <div className="mt-3 space-y-2">
                 {relatedRows.map((row) => (
                   <Link
                     key={row._id}
                     href={`/admin/errors/${encodeURIComponent(row._id)}`}
-                    className="block rounded-xl border border-slate-100 px-3 py-2 text-sm text-slate-800 hover:border-sky-200 hover:bg-sky-50"
+                    className="block rounded-xl border border-[rgb(var(--border))] px-3 py-2 text-sm text-[rgb(var(--fg))] hover:border-sky-200 hover:bg-sky-50"
                   >
                     <div className="flex items-center justify-between gap-2">
-                      <span className="font-semibold text-slate-900">
+                      <span className="font-semibold text-[rgb(var(--fg))]">
                         {row.message.length > 120 ? `${row.message.slice(0, 120)}…` : row.message}
                       </span>
-                      <span className="text-xs text-slate-500">{formatDate(row.timestamp || row.createdAt)}</span>
+                      <span className="text-xs text-[rgb(var(--muted))]">{formatDate(row.timestamp || row.createdAt)}</span>
                     </div>
-                    <div className="text-[11px] text-slate-500">
+                    <div className="text-[11px] text-[rgb(var(--muted))]">
                       {row.level ?? "info"} · {row.path ?? "—"}
                     </div>
                   </Link>
@@ -221,7 +221,7 @@ function LevelBadge({ level }: { level: "info" | "warn" | "error" }) {
       ? "bg-rose-100 text-rose-700"
       : level === "warn"
       ? "bg-amber-100 text-amber-800"
-      : "bg-slate-100 text-slate-700";
+      : "bg-[rgb(var(--bg))] text-[rgb(var(--muted))]";
   return (
     <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold uppercase ${styles}`}>
       {level}

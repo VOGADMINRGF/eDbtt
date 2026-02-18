@@ -82,7 +82,7 @@ export default function ReportList({ initial, query = "", tag = "" }: Props) {
 
       {/* Liste */}
       {items.length === 0 ? (
-        <p className="text-sm text-slate-500">
+        <p className="text-sm text-[rgb(var(--muted))]">
           Keine Reports gefunden{q ? ` für „${q}“` : ""}{activeTag ? ` (Tag: ${activeTag})` : ""}.
         </p>
       ) : (

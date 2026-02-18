@@ -136,28 +136,28 @@ export default async function StreamDetail({
   }>;
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-[var(--brand-from)] via-white to-white pb-16">
+    <main className="min-h-screen bg-[rgb(var(--bg))] pb-16">
       <section className="mx-auto max-w-4xl px-4 py-12 space-y-8">
         <div className="space-y-3">
           <Link href="/stream" className="text-xs font-semibold uppercase tracking-[0.2em] text-sky-600">
             Zur Übersicht
           </Link>
-          <h1 className="text-3xl font-extrabold text-slate-900 md:text-4xl">
+          <h1 className="text-3xl font-extrabold text-[rgb(var(--fg))] md:text-4xl">
             {session.title}
           </h1>
-          <div className="flex flex-wrap gap-3 text-xs text-slate-600">
+          <div className="flex flex-wrap gap-3 text-xs text-[rgb(var(--muted))]">
             {session.regionCode && (
-              <span className="rounded-full border border-slate-200 bg-white px-3 py-1">
+              <span className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-1">
                 Region: {session.regionCode}
               </span>
             )}
             {session.topicKey && (
-              <span className="rounded-full border border-slate-200 bg-white px-3 py-1">
+              <span className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-1">
                 Thema: {session.topicKey}
               </span>
             )}
             {startsAt && (
-              <span className="rounded-full border border-slate-200 bg-white px-3 py-1">
+              <span className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-1">
                 Start:{" "}
                 {new Intl.DateTimeFormat("de-DE", {
                   dateStyle: "medium",
@@ -165,7 +165,7 @@ export default async function StreamDetail({
                 }).format(startsAt)}
               </span>
             )}
-            <span className="rounded-full border border-slate-200 bg-white px-3 py-1">
+            <span className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-1">
               Status: {status}
             </span>
             {requireVerifiedParticipants && (
@@ -174,7 +174,7 @@ export default async function StreamDetail({
               </span>
             )}
             {recordingAllowed && (
-              <span className="rounded-full border border-slate-200 bg-white px-3 py-1">
+              <span className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-1">
                 Mitschnitt erlaubt
               </span>
             )}
@@ -182,7 +182,7 @@ export default async function StreamDetail({
         </div>
 
         {playerUrl && isEmbedUrl(playerUrl) && (
-          <div className="overflow-hidden rounded-3xl border border-slate-100 bg-white shadow-sm">
+          <div className="overflow-hidden rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] shadow-sm">
             <div className="aspect-video w-full">
               <iframe
                 title={`Stream ${session.title}`}
@@ -197,7 +197,7 @@ export default async function StreamDetail({
 
         {playerUrl && !isEmbedUrl(playerUrl) && isVideoUrl(playerUrl) && (
           <video
-            className="w-full rounded-3xl border border-slate-100 bg-white shadow-sm"
+            className="w-full rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] shadow-sm"
             controls
             preload="metadata"
             src={playerUrl}
@@ -205,7 +205,7 @@ export default async function StreamDetail({
         )}
 
         {playerUrl && !isEmbedUrl(playerUrl) && !isVideoUrl(playerUrl) && (
-          <div className="rounded-2xl border border-slate-100 bg-white/90 p-4 text-sm text-slate-700">
+          <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 text-sm text-[rgb(var(--muted))]">
             <p className="font-semibold">Stream-Link</p>
             <p className="mt-1 break-all">
               <a
@@ -221,14 +221,14 @@ export default async function StreamDetail({
         )}
 
         {session.description && (
-          <p className="text-base text-slate-700 md:text-lg">{session.description}</p>
+          <p className="text-base text-[rgb(var(--muted))] md:text-lg">{session.description}</p>
         )}
 
         {policyCards.length > 0 && (
-          <section className="rounded-3xl border border-slate-100 bg-white p-6 shadow-sm space-y-4">
+          <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-6 shadow-sm space-y-4">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Leitlinien</p>
-              <h2 className="text-xl font-bold text-slate-900">Hinweise zum Stream</h2>
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[rgb(var(--muted))]">Leitlinien</p>
+              <h2 className="text-xl font-bold text-[rgb(var(--fg))]">Hinweise zum Stream</h2>
             </div>
             <div className="grid gap-3 md:grid-cols-2">
               {policyCards.map((item, idx) => (
@@ -240,16 +240,16 @@ export default async function StreamDetail({
                       : item.tone === "emerald"
                         ? "border-emerald-200 bg-emerald-50 text-emerald-900"
                         : item.tone === "slate"
-                          ? "border-slate-200 bg-slate-50 text-slate-800"
-                          : "border-slate-200 bg-white text-slate-700"
+                          ? "border-[rgb(var(--border))] bg-[rgb(var(--bg))] text-[rgb(var(--fg))]"
+                          : "border-[rgb(var(--border))] bg-[rgb(var(--card))] text-[rgb(var(--muted))]"
                   }`}
                 >
                   <p className="font-semibold">{item.title}</p>
-                  <p className="mt-1 text-xs text-slate-600">{item.body}</p>
+                  <p className="mt-1 text-xs text-[rgb(var(--muted))]">{item.body}</p>
                   {item.ctaLabel && item.ctaHref && (
                     <Link
                       href={item.ctaHref}
-                      className="mt-2 inline-flex items-center rounded-full border border-slate-200 bg-white px-3 py-1 text-[11px] font-semibold text-slate-700 hover:border-slate-300"
+                      className="mt-2 inline-flex items-center rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-1 text-[11px] font-semibold text-[rgb(var(--muted))] hover:border-[rgb(var(--border))]"
                     >
                       {item.ctaLabel}
                     </Link>
@@ -261,18 +261,18 @@ export default async function StreamDetail({
         )}
 
         {supportEnabled && !supportBlind && (
-          <section className="rounded-3xl border border-slate-100 bg-white p-6 shadow-sm space-y-3">
+          <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-6 shadow-sm space-y-3">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Support</p>
-              <h2 className="text-xl font-bold text-slate-900">Unterstützen</h2>
-              <p className="text-sm text-slate-600">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[rgb(var(--muted))]">Support</p>
+              <h2 className="text-xl font-bold text-[rgb(var(--fg))]">Unterstützen</h2>
+              <p className="text-sm text-[rgb(var(--muted))]">
                 Unterstütze die Moderation und Nachbereitung dieses Streams. Keine Stimme,
                 keine Priorität – nur Transparenz.
               </p>
             </div>
             <Link
               href="/unterstuetzen"
-              className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700 hover:border-slate-300"
+              className="inline-flex items-center justify-center rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-2 text-xs font-semibold text-[rgb(var(--muted))] hover:border-[rgb(var(--border))]"
             >
               Unterstützen
             </Link>
@@ -280,17 +280,17 @@ export default async function StreamDetail({
         )}
 
         {liveBoard?.options?.length ? (
-          <section className="rounded-3xl border border-slate-100 bg-white p-6 shadow-sm space-y-4">
+          <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-6 shadow-sm space-y-4">
             <div className="space-y-2">
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Live-Dossier</p>
-              <h2 className="text-2xl font-bold text-slate-900">{liveBoard.title ?? "Live-Dossier"}</h2>
-              {liveBoard.summary && <p className="text-sm text-slate-600">{liveBoard.summary}</p>}
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[rgb(var(--muted))]">Live-Dossier</p>
+              <h2 className="text-2xl font-bold text-[rgb(var(--fg))]">{liveBoard.title ?? "Live-Dossier"}</h2>
+              {liveBoard.summary && <p className="text-sm text-[rgb(var(--muted))]">{liveBoard.summary}</p>}
             </div>
             <div className="grid gap-4 md:grid-cols-2">
               {liveBoard.options.map((opt: StreamLiveBoardOption, index: number) => (
-                <div key={opt.id ?? index} className="rounded-2xl border border-slate-100 p-4 space-y-3">
-                  <h3 className="text-lg font-semibold text-slate-900">{opt.title}</h3>
-                  <div className="grid gap-3 text-sm text-slate-700">
+                <div key={opt.id ?? index} className="rounded-2xl border border-[rgb(var(--border))] p-4 space-y-3">
+                  <h3 className="text-lg font-semibold text-[rgb(var(--fg))]">{opt.title}</h3>
+                  <div className="grid gap-3 text-sm text-[rgb(var(--muted))]">
                     {Array.isArray(opt.pros) && opt.pros.length > 0 && (
                       <div>
                         <p className="text-xs font-semibold uppercase tracking-wide text-emerald-600">Pro</p>
@@ -313,7 +313,7 @@ export default async function StreamDetail({
                     )}
                     {Array.isArray(opt.sources) && opt.sources.length > 0 && (
                       <div>
-                        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Quellen</p>
+                        <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Quellen</p>
                         <ul className="mt-1 space-y-1">
                           {opt.sources.map((item: string, idx: number) => (
                             <li key={idx}>
@@ -348,12 +348,12 @@ export default async function StreamDetail({
         ) : null}
 
         {followUp?.updates?.length ? (
-          <section className="rounded-3xl border border-slate-100 bg-white p-6 shadow-sm space-y-4">
+          <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-6 shadow-sm space-y-4">
             <div className="space-y-2">
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Follow-up</p>
-              <h2 className="text-2xl font-bold text-slate-900">Status & Wirkung</h2>
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[rgb(var(--muted))]">Follow-up</p>
+              <h2 className="text-2xl font-bold text-[rgb(var(--fg))]">Status & Wirkung</h2>
               {followUp.nextReminderAt && (
-                <p className="text-xs text-slate-500">
+                <p className="text-xs text-[rgb(var(--muted))]">
                   Nächste Erinnerung:{" "}
                   {new Date(followUp.nextReminderAt).toLocaleDateString("de-DE", { dateStyle: "medium" })}
                 </p>
@@ -361,9 +361,9 @@ export default async function StreamDetail({
             </div>
             <div className="space-y-3">
               {followUp.updates.map((update: StreamFollowUpUpdate, idx: number) => (
-                <div key={update.id ?? idx} className="rounded-2xl border border-slate-100 p-4">
+                <div key={update.id ?? idx} className="rounded-2xl border border-[rgb(var(--border))] p-4">
                   <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
-                    <span className="rounded-full bg-slate-100 px-2 py-0.5 font-semibold text-slate-700">
+                    <span className="rounded-full bg-[rgb(var(--bg))] px-2 py-0.5 font-semibold text-[rgb(var(--muted))]">
                       {update.status === "submitted"
                         ? "Eingereicht"
                         : update.status === "in_review"
@@ -375,7 +375,7 @@ export default async function StreamDetail({
                               : "Abgelehnt"}
                     </span>
                     {update.createdAt && (
-                      <span className="text-slate-500">
+                      <span className="text-[rgb(var(--muted))]">
                         {new Date(update.createdAt).toLocaleString("de-DE", {
                           dateStyle: "short",
                           timeStyle: "short",
@@ -383,7 +383,7 @@ export default async function StreamDetail({
                       </span>
                     )}
                   </div>
-                  <p className="mt-2 text-sm text-slate-700">{update.note}</p>
+                  <p className="mt-2 text-sm text-[rgb(var(--muted))]">{update.note}</p>
                   {update.link && (
                     <a className="mt-2 block text-xs text-sky-700 underline" href={update.link} target="_blank" rel="noreferrer">
                       {update.link}

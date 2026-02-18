@@ -23,7 +23,7 @@ function addFallbackButton(ta: HTMLElement, onClick: ()=>void){
   btn.id = "vog-inline-trigger";
   btn.type = "button";
   btn.textContent = "Analyse starten (inline)";
-  btn.className = "mt-2 inline-flex items-center rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm hover:bg-slate-50";
+  btn.className = "mt-2 inline-flex items-center rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-1.5 text-sm hover:bg-[rgb(var(--bg))]";
   ta.insertAdjacentElement("afterend", btn);
   btn.addEventListener("click", onClick);
 }

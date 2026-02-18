@@ -18,7 +18,7 @@ interface UsageKPI {
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 py-4">
         {usageKPIs.map((kpi, i) => (
           <div key={i} className={`
-            rounded-xl shadow p-4 bg-white border-l-4
+            rounded-xl shadow p-4 bg-[rgb(var(--card))] border-l-4
             ${kpi.type === "cost" ? "border-l-red-400" : "border-l-violet-400"}`}>
             <div className="text-xs text-gray-500">{kpi.label}</div>
             <div className="text-xl font-bold">{kpi.value}</div>

@@ -146,7 +146,7 @@ export default function StatementForm({ onSubmit, onCancel }: Props) {
   return (
     <form
       onSubmit={handleSubmit}
-      className="mx-auto mt-10 max-w-xl bg-white p-8 rounded-2xl shadow-2xl"
+      className="mx-auto mt-10 max-w-xl bg-[rgb(var(--card))] p-8 rounded-2xl shadow-2xl"
       aria-label="Neues Statement einreichen"
     >
       <h2 className="text-2xl mb-6 font-bold">Neues Statement einreichen</h2>

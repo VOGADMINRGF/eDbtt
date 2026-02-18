@@ -35,7 +35,7 @@ export function ZettelColumn({
     <aside className={`col-sticky ${width} hidden lg:block ${className}`}>
       <div className="space-y-3">
         {items.length === 0 && (
-          <div className="rounded-xl border bg-white/70 p-3 text-[13px] text-neutral-500">
+          <div className="rounded-xl border bg-[rgb(var(--card))] p-3 text-[13px] text-neutral-500">
             Noch nichts – starte die Analyse.
           </div>
         )}

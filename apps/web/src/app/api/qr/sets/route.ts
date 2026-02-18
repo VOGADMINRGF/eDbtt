@@ -40,11 +40,11 @@ async function generateUniqueCode() {
   throw new Error("code_generation_failed");
 }
 
+const PUBLIC_MAX_QUESTIONS = 5;
+const PUBLIC_MAX_OPTIONS = 5;
+
 export async function POST(req: NextRequest) {
   const ctx = await requireCreatorContext(req);
-  if (!ctx) {
-    return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
-  }
 
   const raw = await req.json().catch(() => null);
   const parsed = CreateSetSchema.safeParse(raw);
@@ -65,17 +65,34 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: false, error: "options_required" }, { status: 400 });
   }
 
+  if (!ctx) {
+    if (parsed.data.organizationId || parsed.data.streamSessionId) {
+      return NextResponse.json({ ok: false, error: "forbidden" }, { status: 403 });
+    }
+    if (questions.length > PUBLIC_MAX_QUESTIONS) {
+      return NextResponse.json({ ok: false, error: "question_limit_exceeded" }, { status: 400 });
+    }
+    if (questions.some((q) => q.options.length > PUBLIC_MAX_OPTIONS)) {
+      return NextResponse.json({ ok: false, error: "options_limit_exceeded" }, { status: 400 });
+    }
+    questions.forEach((q) => {
+      q.publicAttribution = "hidden";
+      q.allowAnonymousVoting = true;
+    });
+  }
+
   const code = await generateUniqueCode();
   const now = new Date();
 
   const doc = {
     code,
-    creatorId: ctx.userId,
-    organizationId: parsed.data.organizationId ?? null,
-    streamSessionId: parsed.data.streamSessionId ?? null,
+    creatorId: ctx?.userId ?? null,
+    organizationId: ctx ? parsed.data.organizationId ?? null : null,
+    streamSessionId: ctx ? parsed.data.streamSessionId ?? null : null,
     title: parsed.data.title ?? null,
     questions,
     status: "active",
+    source: ctx ? "creator" : "public_qr_studio",
     createdAt: now,
     updatedAt: now,
   };

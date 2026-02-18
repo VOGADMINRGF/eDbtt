@@ -63,22 +63,22 @@ export function MicroTransferVerificationForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-3 rounded-2xl bg-slate-50/80 px-3 py-3 ring-1 ring-slate-100">
-      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-600">
+    <form onSubmit={handleSubmit} className="space-y-3 rounded-2xl bg-[rgb(var(--bg))] px-3 py-3 ring-1 ring-[rgb(var(--border))]">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
         0,01 €-Verifikation
       </p>
-      <p className="text-xs text-slate-600">
+      <p className="text-xs text-[rgb(var(--muted))]">
         Wir überweisen dir 0,01 € mit einem TAN-Code im Verwendungszweck. Sobald der Betrag
         eingegangen ist, gib den Code hier ein.
       </p>
       {paymentReference && (
-        <p className="text-[11px] text-slate-500">
+        <p className="text-[11px] text-[rgb(var(--muted))]">
           Beitrags-Verwendungszweck: <span className="font-semibold">{paymentReference}</span>
         </p>
       )}
 
       <div className="space-y-1">
-        <label htmlFor="microTransferCode" className="text-[11px] font-medium text-slate-700">
+        <label htmlFor="microTransferCode" className="text-[11px] font-medium text-[rgb(var(--muted))]">
           TAN-Code
         </label>
         <input
@@ -87,7 +87,7 @@ export function MicroTransferVerificationForm({
           inputMode="numeric"
           pattern="[0-9]{6}"
           maxLength={6}
-          className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 shadow-inner focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100"
+          className="w-full rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm text-[rgb(var(--fg))] shadow-inner focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100"
           value={code}
           onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
           placeholder="6-stelliger Code"

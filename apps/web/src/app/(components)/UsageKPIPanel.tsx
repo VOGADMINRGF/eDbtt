@@ -18,7 +18,7 @@ const toneStyles: Record<Tone, string> = {
   warning:
     "from-amber-50/90 via-white to-yellow-50 border border-amber-100 text-amber-900 shadow-[0_15px_35px_rgba(251,191,36,0.15)]",
   default:
-    "from-white via-slate-50 to-slate-100 border border-slate-100 text-slate-900 shadow-[0_15px_35px_rgba(15,23,42,0.08)]",
+    "from-white via-slate-50 to-slate-100 border border-[rgb(var(--border))] text-[rgb(var(--fg))] shadow-[0_15px_35px_rgba(15,23,42,0.08)]",
 };
 
 function trendBadge(trendPct?: number) {
@@ -41,16 +41,16 @@ export function UsageKPIPanel({ items }: { items: UsageKPI[] }) {
           <div
             className={`relative overflow-hidden rounded-3xl bg-gradient-to-br p-5 transition hover:scale-[1.01] ${toneStyles[item.tone ?? "default"]}`}
           >
-            <div className="absolute -right-6 -top-6 h-20 w-20 rounded-full bg-white/40 blur-2xl" />
-            <div className="absolute -left-6 -bottom-6 h-16 w-16 rounded-full bg-white/30 blur-xl" />
+            <div className="absolute -right-6 -top-6 h-20 w-20 rounded-full bg-[rgb(var(--card))] blur-2xl" />
+            <div className="absolute -left-6 -bottom-6 h-16 w-16 rounded-full bg-[rgb(var(--card))] blur-xl" />
             <div className="relative flex flex-col gap-2">
-              <div className="flex items-start gap-2 text-xs font-semibold uppercase tracking-wider text-slate-500">
+              <div className="flex items-start gap-2 text-xs font-semibold uppercase tracking-wider text-[rgb(var(--muted))]">
                 <span>{item.label}</span>
                 {trendBadge(item.trendPct)}
               </div>
               <div className="text-3xl font-bold">{item.value}</div>
               {item.hint && (
-                <p className="text-[11px] text-slate-600">{item.hint}</p>
+                <p className="text-[11px] text-[rgb(var(--muted))]">{item.hint}</p>
               )}
             </div>
           </div>

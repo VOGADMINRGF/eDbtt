@@ -127,11 +127,11 @@ export default function MapClient({ locale = "de" }: { locale?: string }) {
   return (
     <div className="relative h-full w-full">
       <div id={containerId} style={{ width: "100%", height: "100%" }} />
-      <div className="pointer-events-none absolute left-3 top-3 flex w-72 flex-col gap-2 rounded-2xl border border-white/60 bg-white/90 p-3 text-xs shadow-lg">
+      <div className="pointer-events-none absolute left-3 top-3 flex w-72 flex-col gap-2 rounded-2xl border border-white/60 bg-[rgb(var(--card))] p-3 text-xs shadow-lg">
         <div className="flex items-center justify-between">
-          <span className="text-[11px] font-semibold uppercase text-slate-500">Zeitraum</span>
+          <span className="text-[11px] font-semibold uppercase text-[rgb(var(--muted))]">Zeitraum</span>
           <select
-            className="pointer-events-auto rounded-full border border-slate-200 px-3 py-1 text-xs"
+            className="pointer-events-auto rounded-full border border-[rgb(var(--border))] px-3 py-1 text-xs"
             value={timeRange}
             onChange={(e) => setTimeRange(e.target.value as TimeRangeKey)}
           >
@@ -141,29 +141,29 @@ export default function MapClient({ locale = "de" }: { locale?: string }) {
             <option value="all">Gesamter Zeitraum</option>
           </select>
         </div>
-        <p className="text-[11px] text-slate-500">{rangeInfo.label}</p>
-        <div className="text-[11px] font-semibold uppercase text-slate-500">Top-Regionen</div>
+        <p className="text-[11px] text-[rgb(var(--muted))]">{rangeInfo.label}</p>
+        <div className="text-[11px] font-semibold uppercase text-[rgb(var(--muted))]">Top-Regionen</div>
         <div className="pointer-events-auto space-y-1">
           {topRegions.length === 0 ? (
-            <p className="text-[11px] text-slate-400">Noch keine Daten.</p>
+            <p className="text-[11px] text-[rgb(var(--muted))]">Noch keine Daten.</p>
           ) : (
             topRegions.map((region) => (
-              <div key={region.id} className="flex items-center justify-between rounded-xl bg-slate-100/80 px-2 py-1">
+              <div key={region.id} className="flex items-center justify-between rounded-xl bg-[rgb(var(--bg))] px-2 py-1">
                 <div className="flex flex-col">
-                  <span className="text-xs font-semibold text-slate-800">{region.regionName}</span>
-                  <span className="text-[10px] text-slate-500">{region.regionCode}</span>
+                  <span className="text-xs font-semibold text-[rgb(var(--fg))]">{region.regionName}</span>
+                  <span className="text-[10px] text-[rgb(var(--muted))]">{region.regionCode}</span>
                 </div>
                 <div className="text-right">
-                  <span className="block text-xs font-semibold text-slate-900">{region.claimCount}</span>
-                  <span className="text-[10px] text-slate-500">Claims</span>
+                  <span className="block text-xs font-semibold text-[rgb(var(--fg))]">{region.claimCount}</span>
+                  <span className="text-[10px] text-[rgb(var(--muted))]">Claims</span>
                 </div>
               </div>
             ))
           )}
         </div>
         <div>
-          <p className="text-[11px] font-semibold uppercase text-slate-500">Legende</p>
-          <div className="mt-1 flex items-center gap-2 text-[11px] text-slate-500">
+          <p className="text-[11px] font-semibold uppercase text-[rgb(var(--muted))]">Legende</p>
+          <div className="mt-1 flex items-center gap-2 text-[11px] text-[rgb(var(--muted))]">
             <span className="inline-flex h-3 w-3 rounded-full bg-slate-300" />
             wenige Claims
             <span className="ml-auto inline-flex h-4 w-4 rounded-full bg-slate-900" />

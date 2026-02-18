@@ -131,7 +131,7 @@ export default function ContributionForm({ user }) {
   ];
 
   return (
-    <form onSubmit={handleSubmit} className="max-w-2xl mx-auto mt-8 bg-white p-8 rounded-xl shadow-lg space-y-6">
+    <form onSubmit={handleSubmit} className="max-w-2xl mx-auto mt-8 bg-[rgb(var(--card))] p-8 rounded-xl shadow-lg space-y-6">
       <h2 className="text-2xl font-bold mb-4 text-coral">Neuen Beitrag erstellen</h2>
 
       {/* Spracheinstellung */}
@@ -285,12 +285,12 @@ export default function ContributionForm({ user }) {
                 }}>Neuen Beitrag erstellen</button>
                 <a href="/contributions" className="underline text-indigo-700">Zur Übersicht</a>
               </div>
-              <pre className="text-xs mt-2 bg-white p-2 rounded border max-h-64 overflow-auto">{JSON.stringify(result, null, 2)}</pre>
+              <pre className="text-xs mt-2 bg-[rgb(var(--card))] p-2 rounded border max-h-64 overflow-auto">{JSON.stringify(result, null, 2)}</pre>
             </>
           ) : (
             <>
               <b className="text-coral">Ein Fehler ist aufgetreten!</b>
-              <pre className="text-xs mt-2 bg-white p-2 rounded border max-h-64 overflow-auto">{JSON.stringify(result, null, 2)}</pre>
+              <pre className="text-xs mt-2 bg-[rgb(var(--card))] p-2 rounded border max-h-64 overflow-auto">{JSON.stringify(result, null, 2)}</pre>
             </>
           )}
         </div>

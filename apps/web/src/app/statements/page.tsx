@@ -45,10 +45,10 @@ const structureItems = [
 
 export default function StatementsPage() {
   return (
-    <main className="min-h-screen bg-gradient-to-b from-[var(--brand-from)] via-white to-white pb-16">
+    <main className="min-h-screen bg-[rgb(var(--bg))] pb-16">
       <section className="mx-auto max-w-5xl px-4 py-16 space-y-10">
         <header className="space-y-4">
-          <p className="text-xs uppercase tracking-[0.2em] text-slate-500">
+          <p className="text-xs uppercase tracking-[0.2em] text-[rgb(var(--muted))]">
             Statements &amp; Debatte
           </p>
           <h1
@@ -62,7 +62,7 @@ export default function StatementsPage() {
           >
             Wie eDebatte aus Anliegen belastbare Entscheidungen macht
           </h1>
-          <p className="text-base md:text-lg text-slate-700 leading-relaxed">
+          <p className="text-base md:text-lg text-[rgb(var(--muted))] leading-relaxed">
             Statements sind das Herz der Plattform: klare, prüfbare Aussagen mit
             nachvollziehbarer Evidenz. Sie sind die Grundlage für Dossiers,
             Diskussionen und Abstimmungen – offen, fair und transparent.
@@ -76,7 +76,7 @@ export default function StatementsPage() {
             </Link>
             <Link
               href="/thema-einreichen"
-              className="btn border border-slate-300 bg-white/80 hover:bg-white"
+              className="btn border border-[rgb(var(--border))] bg-[rgb(var(--card))] hover:bg-[rgb(var(--card))]"
             >
               Ablauf verstehen
             </Link>
@@ -87,51 +87,51 @@ export default function StatementsPage() {
           {steps.map((step) => (
             <article
               key={step.title}
-              className="rounded-2xl border border-slate-100 bg-white/95 p-4 shadow-sm"
+              className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm"
             >
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+              <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
                 {step.title}
               </p>
-              <p className="mt-2 text-sm text-slate-700">{step.body}</p>
+              <p className="mt-2 text-sm text-[rgb(var(--muted))]">{step.body}</p>
             </article>
           ))}
         </section>
 
         <section className="grid gap-6 md:grid-cols-[1.1fr_0.9fr]">
-          <div className="rounded-3xl border border-slate-100 bg-slate-50/70 p-6 space-y-4">
-            <h2 className="text-lg font-semibold text-slate-900">
+          <div className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-6 space-y-4">
+            <h2 className="text-lg font-semibold text-[rgb(var(--fg))]">
               So sieht ein Statement aus
             </h2>
             <div className="space-y-3">
               {structureItems.map((item) => (
                 <div key={item.title} className="space-y-1">
-                  <p className="text-sm font-semibold text-slate-900">
+                  <p className="text-sm font-semibold text-[rgb(var(--fg))]">
                     {item.title}
                   </p>
-                  <p className="text-sm text-slate-700">{item.body}</p>
+                  <p className="text-sm text-[rgb(var(--muted))]">{item.body}</p>
                 </div>
               ))}
             </div>
           </div>
 
-          <div className="rounded-3xl border border-slate-100 bg-white p-6 space-y-4 shadow-sm">
-            <h2 className="text-lg font-semibold text-slate-900">Demo-Vorschau</h2>
-            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 space-y-2">
-              <p className="text-xs uppercase tracking-wide text-slate-500">
+          <div className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-6 space-y-4 shadow-sm">
+            <h2 className="text-lg font-semibold text-[rgb(var(--fg))]">Demo-Vorschau</h2>
+            <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4 space-y-2">
+              <p className="text-xs uppercase tracking-wide text-[rgb(var(--muted))]">
                 Statement
               </p>
-              <p className="text-sm font-semibold text-slate-900">
+              <p className="text-sm font-semibold text-[rgb(var(--fg))]">
                 Tempo 30 vor Schulen soll ab 2026 verpflichtend gelten.
               </p>
-              <div className="flex flex-wrap gap-2 text-[11px] text-slate-600">
-                <span className="rounded-full bg-white px-2 py-0.5 border border-slate-200">
+              <div className="flex flex-wrap gap-2 text-[11px] text-[rgb(var(--muted))]">
+                <span className="rounded-full bg-[rgb(var(--card))] px-2 py-0.5 border border-[rgb(var(--border))]">
                   Zuständigkeit: Kommune
                 </span>
-                <span className="rounded-full bg-white px-2 py-0.5 border border-slate-200">
+                <span className="rounded-full bg-[rgb(var(--card))] px-2 py-0.5 border border-[rgb(var(--border))]">
                   Zeitbezug: ab 2026
                 </span>
               </div>
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-[rgb(var(--muted))]">
                 Quellen, Gegenpositionen und Unsicherheiten folgen im Dossier.
               </p>
             </div>
@@ -144,13 +144,13 @@ export default function StatementsPage() {
           </div>
         </section>
 
-        <section className="rounded-3xl border border-slate-100 bg-white/95 p-6 md:p-8 shadow-[0_18px_60px_rgba(15,23,42,0.06)]">
+        <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-6 md:p-8 shadow-[0_18px_60px_rgba(15,23,42,0.06)]">
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div className="space-y-2">
-              <h2 className="text-xl font-semibold text-slate-900">
+              <h2 className="text-xl font-semibold text-[rgb(var(--fg))]">
                 Bereit, dein Anliegen einzureichen?
               </h2>
-              <p className="text-sm text-slate-700">
+              <p className="text-sm text-[rgb(var(--muted))]">
                 Reiche dein Anliegen ein und forme es in wenigen Minuten zu
                 einer prüfbaren Aussage.
               </p>

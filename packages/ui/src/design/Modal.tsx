@@ -19,7 +19,7 @@ export default function Modal({
   if (!isOpen) return null;
   return (
     <div className="fixed inset-0 z-[1000] bg-black/40 flex items-center justify-center">
-      <div className={`bg-white rounded-2xl shadow-lg p-4 max-w-lg w-full ${className ?? ""}`}>
+      <div className={`bg-[rgb(var(--card))] rounded-2xl shadow-lg p-4 max-w-lg w-full ${className ?? ""}`}>
         <div className="flex items-center justify-between mb-2">
           <div className="font-bold text-lg">{title}</div>
           {onClose && (

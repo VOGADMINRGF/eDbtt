@@ -24,9 +24,11 @@ export default async function ContributionNewPage() {
   }
 
   return (
-    <main className="min-h-screen bg-white">
+    <main className="min-h-screen bg-[rgb(var(--bg))]">
       <h1 className="sr-only">Beitrag analysieren</h1>
-      <ContributionNewClient initialOverview={overview} />
+      <div className="mx-auto w-full max-w-5xl px-4 py-10">
+        <ContributionNewClient initialOverview={overview} />
+      </div>
     </main>
   );
 }

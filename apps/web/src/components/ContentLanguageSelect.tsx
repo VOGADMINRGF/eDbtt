@@ -11,12 +11,12 @@ export default function ContentLanguageSelect({
   onChange: (v: LanguageCode) => void;
 }) {
   return (
-    <label className="flex items-center gap-2 text-[11px] text-slate-600">
-      <span className="font-semibold uppercase tracking-wide text-slate-500">Language</span>
+    <label className="flex items-center gap-2 text-[11px] text-[rgb(var(--muted))]">
+      <span className="font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Language</span>
       <select
         value={value}
         onChange={(e) => onChange(e.target.value as LanguageCode)}
-        className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-[11px] text-slate-800"
+        className="rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-2 py-1 text-[11px] text-[rgb(var(--fg))]"
       >
         {UI_LANGS.map((l) => (
           <option key={l.code} value={l.code}>

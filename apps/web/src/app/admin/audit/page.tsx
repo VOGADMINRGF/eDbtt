@@ -81,16 +81,16 @@ export default function AdminAuditPage() {
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-8">
       <header className="space-y-1">
-        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Admin · Audit</p>
-        <h1 className="text-2xl font-bold text-slate-900">Audit Events</h1>
-        <p className="text-sm text-slate-600">Alle Mutationen und Administrative Eingriffe.</p>
+        <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Admin · Audit</p>
+        <h1 className="text-2xl font-bold text-[rgb(var(--fg))]">Audit Events</h1>
+        <p className="text-sm text-[rgb(var(--muted))]">Alle Mutationen und Administrative Eingriffe.</p>
       </header>
 
       <div className="flex flex-wrap items-center gap-3">
         <select
           value={scope}
           onChange={(e) => setScope(e.target.value)}
-          className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm"
+          className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-2 text-sm"
         >
           <option value="all">Alle Scopes</option>
           {SCOPE_OPTIONS.map((opt) => (
@@ -103,7 +103,7 @@ export default function AdminAuditPage() {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Suche (action, target)"
-          className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm"
+          className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-2 text-sm"
         />
       </div>
 
@@ -113,28 +113,28 @@ export default function AdminAuditPage() {
         </div>
       )}
 
-      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <table className="min-w-full divide-y divide-slate-200 text-sm">
-          <thead className="bg-slate-50">
+      <div className="overflow-hidden rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] shadow-sm">
+        <table className="min-w-full divide-y divide-[rgb(var(--border))] text-sm">
+          <thead className="bg-[rgb(var(--bg))]">
             <tr>
-              <th className="px-4 py-3 text-left font-semibold text-slate-600">Zeit</th>
-              <th className="px-4 py-3 text-left font-semibold text-slate-600">Scope</th>
-              <th className="px-4 py-3 text-left font-semibold text-slate-600">Action</th>
-              <th className="px-4 py-3 text-left font-semibold text-slate-600">Target</th>
-              <th className="px-4 py-3 text-left font-semibold text-slate-600">Actor</th>
+              <th className="px-4 py-3 text-left font-semibold text-[rgb(var(--muted))]">Zeit</th>
+              <th className="px-4 py-3 text-left font-semibold text-[rgb(var(--muted))]">Scope</th>
+              <th className="px-4 py-3 text-left font-semibold text-[rgb(var(--muted))]">Action</th>
+              <th className="px-4 py-3 text-left font-semibold text-[rgb(var(--muted))]">Target</th>
+              <th className="px-4 py-3 text-left font-semibold text-[rgb(var(--muted))]">Actor</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100">
+          <tbody className="divide-y divide-[rgb(var(--border))]">
             {loading && (
               <tr>
-                <td colSpan={5} className="px-4 py-6 text-center text-slate-500">
+                <td colSpan={5} className="px-4 py-6 text-center text-[rgb(var(--muted))]">
                   Laedt Audit...
                 </td>
               </tr>
             )}
             {!loading && data?.items?.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-4 py-6 text-center text-slate-500">
+                <td colSpan={5} className="px-4 py-6 text-center text-[rgb(var(--muted))]">
                   Keine Events gefunden.
                 </td>
               </tr>
@@ -142,23 +142,23 @@ export default function AdminAuditPage() {
             {!loading &&
               data?.items?.map((entry) => (
                 <tr key={entry.id}>
-                  <td className="px-4 py-3 text-slate-600">{entry.at?.slice(0, 19) ?? "—"}</td>
-                  <td className="px-4 py-3 text-slate-600">{entry.scope}</td>
-                  <td className="px-4 py-3 text-slate-900">{entry.action}</td>
-                  <td className="px-4 py-3 text-slate-600">
+                  <td className="px-4 py-3 text-[rgb(var(--muted))]">{entry.at?.slice(0, 19) ?? "—"}</td>
+                  <td className="px-4 py-3 text-[rgb(var(--muted))]">{entry.scope}</td>
+                  <td className="px-4 py-3 text-[rgb(var(--fg))]">{entry.action}</td>
+                  <td className="px-4 py-3 text-[rgb(var(--muted))]">
                     {entry.target?.type}
                     {entry.target?.id ? ` · ${entry.target.id}` : ""}
                   </td>
-                  <td className="px-4 py-3 text-slate-500">{entry.actor?.userId ?? "—"}</td>
+                  <td className="px-4 py-3 text-[rgb(var(--muted))]">{entry.actor?.userId ?? "—"}</td>
                 </tr>
               ))}
           </tbody>
         </table>
       </div>
 
-      <div className="flex items-center justify-between text-xs text-slate-500">
+      <div className="flex items-center justify-between text-xs text-[rgb(var(--muted))]">
         <button
-          className="rounded-full border border-slate-200 px-3 py-1 disabled:opacity-50"
+          className="rounded-full border border-[rgb(var(--border))] px-3 py-1 disabled:opacity-50"
           disabled={page <= 1}
           onClick={() => setPage((prev) => Math.max(1, prev - 1))}
         >
@@ -168,7 +168,7 @@ export default function AdminAuditPage() {
           Seite {page} / {totalPages}
         </span>
         <button
-          className="rounded-full border border-slate-200 px-3 py-1 disabled:opacity-50"
+          className="rounded-full border border-[rgb(var(--border))] px-3 py-1 disabled:opacity-50"
           disabled={page >= totalPages}
           onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
         >

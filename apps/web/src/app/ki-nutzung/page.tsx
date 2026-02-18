@@ -21,7 +21,7 @@ export default function KiNutzungPage() {
       </header>
 
       <section className="space-y-3">
-        <h2 className="text-2xl font-semibold text-slate-900">{t("Eingesetzte Provider", "providers.title")}</h2>
+        <h2 className="text-2xl font-semibold text-[rgb(var(--fg))]">{t("Eingesetzte Provider", "providers.title")}</h2>
         <p className="text-gray-700">
           {t(
             "Aktuell nutzen wir unter anderem Modelle von OpenAI, Anthropic, Mistral und – wo verfügbar – Gemini. Die konkrete Liste kann sich ändern, wenn wir bessere oder sicherere Alternativen finden.",
@@ -31,7 +31,7 @@ export default function KiNutzungPage() {
       </section>
 
       <section className="space-y-3">
-        <h2 className="text-2xl font-semibold text-slate-900">{t("Wofür wir KI einsetzen", "usage.title")}</h2>
+        <h2 className="text-2xl font-semibold text-[rgb(var(--fg))]">{t("Wofür wir KI einsetzen", "usage.title")}</h2>
         <ul className="list-disc space-y-2 pl-6 text-gray-700">
           <li>{t("Analyse und Strukturierung von Beiträgen, Kontextkarten und Stellungnahmen.", "usage.item1")}</li>
           <li>{t("Übersetzungen und sprachliche Vereinheitlichung.", "usage.item2")}</li>
@@ -40,7 +40,7 @@ export default function KiNutzungPage() {
       </section>
 
       <section className="space-y-3">
-        <h2 className="text-2xl font-semibold text-slate-900">{t("Leitplanken", "guidelines.title")}</h2>
+        <h2 className="text-2xl font-semibold text-[rgb(var(--fg))]">{t("Leitplanken", "guidelines.title")}</h2>
         <ul className="list-disc space-y-2 pl-6 text-gray-700">
           <li>{t("Grundsatz: minimale personenbezogene Daten und transparente Dokumentation.", "guidelines.item1")}</li>
           <li>{t("Klare Schutzregeln gegen Missbrauch; sensible Felder werden maskiert oder entfernt.", "guidelines.item2")}</li>

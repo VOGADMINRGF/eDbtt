@@ -30,7 +30,7 @@ function InlineProcessOverlay({stage, note}:{stage:number; note:string|null}) {
   ];
   const active = Math.min(stage, steps.length - 1);
   return (
-    <div className="pointer-events-none absolute inset-0 rounded-2xl bg-white/70 backdrop-blur-sm
+    <div className="pointer-events-none absolute inset-0 rounded-2xl bg-[rgb(var(--card))] backdrop-blur-sm
                     flex flex-col items-center justify-center gap-2 text-sm">
       <div className="animate-spin h-5 w-5 rounded-full border-2 border-black/20 border-t-black" />
       <div className="font-medium">{steps[active]}</div>
@@ -138,7 +138,7 @@ export default function AnalyzeShell() {
       </div>
 
       {thanks && (
-        <div className="mt-4 rounded-xl border bg-white p-4 text-sm text-neutral-700">
+        <div className="mt-4 rounded-xl border bg-[rgb(var(--card))] p-4 text-sm text-neutral-700">
           Danke! Wir haben deinen Text in überprüfbare Bausteine zerlegt. Unten siehst du erste
           Vorschläge als Statement-Karten. Wenn etwas fehlt oder unklar ist, kannst du es gleich anpassen.
         </div>

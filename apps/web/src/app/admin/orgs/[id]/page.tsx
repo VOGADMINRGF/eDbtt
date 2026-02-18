@@ -196,12 +196,12 @@ export default function AdminOrgDetailPage() {
     <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-8">
       <header className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Admin · Orgs</p>
-          <h1 className="text-2xl font-bold text-slate-900">{org?.name ?? "Organisation"}</h1>
-          <p className="text-sm text-slate-600">Slug: {org?.slug ?? "—"}</p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Admin · Orgs</p>
+          <h1 className="text-2xl font-bold text-[rgb(var(--fg))]">{org?.name ?? "Organisation"}</h1>
+          <p className="text-sm text-[rgb(var(--muted))]">Slug: {org?.slug ?? "—"}</p>
         </div>
         <button
-          className="rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold"
+          className="rounded-full border border-[rgb(var(--border))] px-4 py-2 text-sm font-semibold"
           onClick={handleArchiveToggle}
           disabled={statusLoading}
         >
@@ -215,19 +215,19 @@ export default function AdminOrgDetailPage() {
         </div>
       )}
 
-      <section className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
-        <h2 className="text-sm font-semibold text-slate-900">Mitglieder einladen</h2>
+      <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm">
+        <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Mitglieder einladen</h2>
         <div className="mt-3 grid gap-3 md:grid-cols-3">
           <input
             value={inviteEmail}
             onChange={(e) => setInviteEmail(e.target.value)}
             placeholder="E-Mail"
-            className="rounded-2xl border border-slate-200 px-3 py-2 text-sm"
+            className="rounded-2xl border border-[rgb(var(--border))] px-3 py-2 text-sm"
           />
           <select
             value={inviteRole}
             onChange={(e) => setInviteRole(e.target.value as (typeof ROLE_OPTIONS)[number])}
-            className="rounded-2xl border border-slate-200 px-3 py-2 text-sm"
+            className="rounded-2xl border border-[rgb(var(--border))] px-3 py-2 text-sm"
           >
             {ROLE_OPTIONS.map((role) => (
               <option key={role} value={role}>
@@ -245,37 +245,37 @@ export default function AdminOrgDetailPage() {
         </div>
       </section>
 
-      <section className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
+      <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm">
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-          <h2 className="text-sm font-semibold text-slate-900">Mitglieder</h2>
+          <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Mitglieder</h2>
           <input
             value={memberQuery}
             onChange={(e) => setMemberQuery(e.target.value)}
             placeholder="Suchen"
-            className="rounded-2xl border border-slate-200 px-3 py-2 text-sm"
+            className="rounded-2xl border border-[rgb(var(--border))] px-3 py-2 text-sm"
           />
         </div>
-        <div className="mt-4 overflow-hidden rounded-2xl border border-slate-200">
-          <table className="min-w-full divide-y divide-slate-200 text-sm">
-            <thead className="bg-slate-50">
+        <div className="mt-4 overflow-hidden rounded-2xl border border-[rgb(var(--border))]">
+          <table className="min-w-full divide-y divide-[rgb(var(--border))] text-sm">
+            <thead className="bg-[rgb(var(--bg))]">
               <tr>
-                <th className="px-4 py-3 text-left font-semibold text-slate-600">Person</th>
-                <th className="px-4 py-3 text-left font-semibold text-slate-600">Rolle</th>
-                <th className="px-4 py-3 text-left font-semibold text-slate-600">Status</th>
-                <th className="px-4 py-3 text-left font-semibold text-slate-600">Aktionen</th>
+                <th className="px-4 py-3 text-left font-semibold text-[rgb(var(--muted))]">Person</th>
+                <th className="px-4 py-3 text-left font-semibold text-[rgb(var(--muted))]">Rolle</th>
+                <th className="px-4 py-3 text-left font-semibold text-[rgb(var(--muted))]">Status</th>
+                <th className="px-4 py-3 text-left font-semibold text-[rgb(var(--muted))]">Aktionen</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-[rgb(var(--border))]">
               {memberLoading && (
                 <tr>
-                  <td colSpan={4} className="px-4 py-6 text-center text-slate-500">
+                  <td colSpan={4} className="px-4 py-6 text-center text-[rgb(var(--muted))]">
                     Laedt Mitglieder...
                   </td>
                 </tr>
               )}
               {!memberLoading && filteredMembers.length === 0 && (
                 <tr>
-                  <td colSpan={4} className="px-4 py-6 text-center text-slate-500">
+                  <td colSpan={4} className="px-4 py-6 text-center text-[rgb(var(--muted))]">
                     Keine Mitglieder gefunden.
                   </td>
                 </tr>
@@ -284,15 +284,15 @@ export default function AdminOrgDetailPage() {
                 filteredMembers.map((member) => (
                   <tr key={member.id}>
                     <td className="px-4 py-3">
-                      <div className="font-semibold text-slate-900">
+                      <div className="font-semibold text-[rgb(var(--fg))]">
                         {member.name || member.email || member.invitedEmail || "—"}
                       </div>
-                      <div className="text-xs text-slate-500">{member.email ?? member.invitedEmail ?? ""}</div>
+                      <div className="text-xs text-[rgb(var(--muted))]">{member.email ?? member.invitedEmail ?? ""}</div>
                     </td>
                     <td className="px-4 py-3">
                       <select
                         defaultValue={member.role}
-                        className="rounded-full border border-slate-200 px-3 py-1 text-xs"
+                        className="rounded-full border border-[rgb(var(--border))] px-3 py-1 text-xs"
                         onChange={(e) => handleMemberUpdate(member.id, { role: e.target.value })}
                       >
                         {ROLE_OPTIONS.map((role) => (
@@ -305,7 +305,7 @@ export default function AdminOrgDetailPage() {
                     <td className="px-4 py-3">
                       <select
                         defaultValue={member.status}
-                        className="rounded-full border border-slate-200 px-3 py-1 text-xs"
+                        className="rounded-full border border-[rgb(var(--border))] px-3 py-1 text-xs"
                         onChange={(e) => handleMemberUpdate(member.id, { status: e.target.value })}
                       >
                         {STATUS_OPTIONS.map((status) => (
@@ -315,12 +315,12 @@ export default function AdminOrgDetailPage() {
                         ))}
                       </select>
                       {member.inviteExpiresAt && (
-                        <div className="text-[10px] text-slate-400">bis {member.inviteExpiresAt.slice(0, 10)}</div>
+                        <div className="text-[10px] text-[rgb(var(--muted))]">bis {member.inviteExpiresAt.slice(0, 10)}</div>
                       )}
                     </td>
                     <td className="px-4 py-3">
                       <button
-                        className="rounded-full border border-slate-200 px-3 py-1 text-xs"
+                        className="rounded-full border border-[rgb(var(--border))] px-3 py-1 text-xs"
                         onClick={() => handleDisable(member.id)}
                         disabled={statusLoading}
                       >
@@ -335,7 +335,7 @@ export default function AdminOrgDetailPage() {
       </section>
 
       {loading && (
-        <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-500">
+        <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-3 text-sm text-[rgb(var(--muted))]">
           Laedt Organisation...
         </div>
       )}

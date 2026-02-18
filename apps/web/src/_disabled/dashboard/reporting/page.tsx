@@ -45,7 +45,7 @@ export default function ReportingDashboard() {
       <h2 className="text-xl font-bold text-coral">Report-Analyse</h2>
 
       <div className="overflow-x-auto">
-        <table className="min-w-full bg-white shadow rounded">
+        <table className="min-w-full bg-[rgb(var(--card))] shadow rounded">
           <thead>
             <tr className="text-left bg-gray-100">
               <th className="p-3">Titel</th>

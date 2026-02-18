@@ -73,15 +73,15 @@ export default function IdentityTelemetryPage() {
   return (
     <main className="mx-auto flex max-w-4xl flex-col gap-6 px-4 py-8">
       <header className="space-y-1">
-        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Admin · Telemetry</p>
-        <h1 className="text-2xl font-bold text-slate-900">Identity Funnel</h1>
-        <p className="text-sm text-slate-600">
+        <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Admin · Telemetry</p>
+        <h1 className="text-2xl font-bold text-[rgb(var(--fg))]">Identity Funnel</h1>
+        <p className="text-sm text-[rgb(var(--muted))]">
           Aggregierte Identity-Events aus dem Core. Nutze den Zeitraum, um Drop-offs im Registrierungs-Funnel zu erkennen.
         </p>
       </header>
 
       <section className="flex flex-wrap items-center gap-3">
-        <label className="text-sm font-medium text-slate-800" htmlFor="range">
+        <label className="text-sm font-medium text-[rgb(var(--fg))]" htmlFor="range">
           Zeitraum
         </label>
         <select
@@ -91,7 +91,7 @@ export default function IdentityTelemetryPage() {
             const next = RANGE_OPTIONS.find((opt) => opt.value === event.target.value) ?? RANGE_OPTIONS[1];
             setRange(next);
           }}
-          className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
+          className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm text-[rgb(var(--fg))] shadow-sm focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
         >
           {RANGE_OPTIONS.map((option) => (
             <option key={option.value} value={option.value}>
@@ -99,8 +99,8 @@ export default function IdentityTelemetryPage() {
             </option>
           ))}
         </select>
-        <span className="text-xs text-slate-500">{formatDateRange(snapshot)}</span>
-        {loading && <span className="text-sm text-slate-600">Lädt …</span>}
+        <span className="text-xs text-[rgb(var(--muted))]">{formatDateRange(snapshot)}</span>
+        {loading && <span className="text-sm text-[rgb(var(--muted))]">Lädt …</span>}
         {error && (
           <span className="text-sm text-rose-600" role="alert">
             {error}
@@ -109,15 +109,15 @@ export default function IdentityTelemetryPage() {
       </section>
 
       {!loading && !error && snapshot === null && (
-        <section className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-6 text-sm text-slate-700">
-          <p className="font-semibold text-slate-900">Keine Daten geladen</p>
+        <section className="rounded-2xl border border-dashed border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-4 py-6 text-sm text-[rgb(var(--muted))]">
+          <p className="font-semibold text-[rgb(var(--fg))]">Keine Daten geladen</p>
           <p>Wähle oben einen Zeitraum, um einen Snapshot zu laden.</p>
         </section>
       )}
 
       {noData && !loading && !error && snapshot && (
-        <section className="rounded-2xl border border-dashed border-slate-200 bg-white px-4 py-6 text-sm text-slate-700">
-          <p className="font-semibold text-slate-900">Keine Events im Zeitraum</p>
+        <section className="rounded-2xl border border-dashed border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-6 text-sm text-[rgb(var(--muted))]">
+          <p className="font-semibold text-[rgb(var(--fg))]">Keine Events im Zeitraum</p>
           <p>Für den ausgewählten Zeitraum liegen keine Identity-Events vor.</p>
         </section>
       )}
@@ -126,19 +126,19 @@ export default function IdentityTelemetryPage() {
         {FUNNEL_ORDER.map((step) => (
           <div
             key={step.key}
-            className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
+            className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm"
           >
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{step.label}</p>
-            <p className="text-3xl font-bold text-slate-900">
+            <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">{step.label}</p>
+            <p className="text-3xl font-bold text-[rgb(var(--fg))]">
               {totals[step.key] ?? 0}
             </p>
-            <p className="mt-1 text-xs text-slate-600">{step.key.replace("identity_", "").replace(/_/g, " → ")}</p>
+            <p className="mt-1 text-xs text-[rgb(var(--muted))]">{step.key.replace("identity_", "").replace(/_/g, " → ")}</p>
           </div>
         ))}
       </section>
 
-      <section className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
-        <p className="font-semibold text-slate-900">Interpretation</p>
+      <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4 text-sm text-[rgb(var(--muted))]">
+        <p className="font-semibold text-[rgb(var(--fg))]">Interpretation</p>
         <p>
           Werte sind simple Event-Zählungen. Für exakte Conversion-Raten bitte beachten, dass Benutzer mehrere Events in kurzer Folge
           triggern können. Die Daten liefern eine grobe Orientierung für Bottlenecks im Funnel (z.B. E-Mail-Bestätigung vs. OTB).

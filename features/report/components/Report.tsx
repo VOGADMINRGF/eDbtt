@@ -17,7 +17,7 @@ export default function Report() {
   if (!report) return <div>Report nicht gefunden.</div>;
 
   return (
-    <div className="p-6 max-w-3xl mx-auto bg-white rounded-2xl shadow">
+    <div className="p-6 max-w-3xl mx-auto bg-[rgb(var(--card))] rounded-2xl shadow">
       <h2 className="font-bold text-2xl mb-2">{report.title}</h2>
       <div className="mb-2 text-sm text-gray-400">{report.region} · {report.topic} · {report.language}</div>
       <p className="mb-4">{report.description}</p>

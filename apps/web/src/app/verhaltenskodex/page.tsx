@@ -26,7 +26,7 @@ export default function VerhaltenskodexPage() {
           <li>{t("Quellen sauber angeben und Aussagen nachvollziehbar belegen.", "rule.sources")}</li>
           <li>{t("Moderation schützt faire Regeln und greift bei Verstößen ein.", "rule.moderation")}</li>
         </ul>
-        <p className="text-sm text-slate-600 text-center">
+        <p className="text-sm text-[rgb(var(--muted))] text-center">
           {t("Für Fragen oder Meldungen erreichst du uns über", "contact.prefix")}{" "}
           <a className="text-coral underline" href="/kontakt">
             /kontakt

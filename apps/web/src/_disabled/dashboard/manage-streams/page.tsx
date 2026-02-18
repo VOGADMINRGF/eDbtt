@@ -48,7 +48,7 @@ export default function ManageStreamsPage() {
           {filteredStreams.map((stream) => (
             <div
               key={stream.id}
-              className="border border-gray-200 rounded-lg p-4 bg-white shadow-sm"
+              className="border border-gray-200 rounded-lg p-4 bg-[rgb(var(--card))] shadow-sm"
             >
               <h2 className="text-xl font-semibold text-foreground mb-1">
                 {stream.title}

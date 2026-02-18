@@ -17,7 +17,7 @@ export function AnalyzeOverlay({ steps, text, activeSentenceIndex }:{
               {steps.map(s => (
                 <div key={s.id} className="flex items-center gap-2 text-sm">
                   <div className={
-                    s.status === "running" ? "w-2 h-2 rounded-full bg-white animate-pulse" :
+                    s.status === "running" ? "w-2 h-2 rounded-full bg-[rgb(var(--card))] animate-pulse" :
                     s.status === "done"    ? "w-2 h-2 rounded-full bg-green-400" :
                     s.status === "error"   ? "w-2 h-2 rounded-full bg-red-400"   :
                                              "w-2 h-2 rounded-full bg-gray-400"
@@ -26,7 +26,7 @@ export function AnalyzeOverlay({ steps, text, activeSentenceIndex }:{
                 </div>
               ))}
             </div>
-            <div className="bg-white text-black rounded-lg p-3 text-sm overflow-hidden">
+            <div className="bg-[rgb(var(--card))] text-black rounded-lg p-3 text-sm overflow-hidden">
               <AnimatePresence initial={false}>
                 <motion.div
                   key={activeSentenceIndex}

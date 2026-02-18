@@ -96,7 +96,7 @@ function Filters(props: {
 }) {
   return (
     <form
-      className="grid gap-2 rounded-2xl border border-slate-200 bg-white/80 p-3 text-xs text-slate-600 sm:grid-cols-2 lg:flex lg:flex-wrap lg:items-center lg:gap-3"
+      className="grid gap-2 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-3 text-xs text-[rgb(var(--muted))] sm:grid-cols-2 lg:flex lg:flex-wrap lg:items-center lg:gap-3"
       method="get"
     >
       <label className="flex flex-col gap-1">
@@ -104,7 +104,7 @@ function Filters(props: {
         <select
           name="range"
           defaultValue={props.range}
-          className="rounded-lg border border-slate-200 bg-white px-2 py-1"
+          className="rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-2 py-1"
         >
           <option value="day">Heute</option>
           <option value="week">7 Tage</option>
@@ -117,7 +117,7 @@ function Filters(props: {
         <select
           name="provider"
           defaultValue={props.provider}
-          className="rounded-lg border border-slate-200 bg-white px-2 py-1"
+          className="rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-2 py-1"
         >
           {PROVIDER_OPTIONS.map((opt) => (
             <option key={opt.value} value={opt.value}>
@@ -131,7 +131,7 @@ function Filters(props: {
         <select
           name="pipeline"
           defaultValue={props.pipeline}
-          className="rounded-lg border border-slate-200 bg-white px-2 py-1"
+          className="rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-2 py-1"
         >
           {PIPELINE_OPTIONS.map((opt) => (
             <option key={opt.value} value={opt.value}>
@@ -147,7 +147,7 @@ function Filters(props: {
           name="region"
           defaultValue={props.region}
           placeholder="z.B. Berlin oder EU"
-          className="rounded-lg border border-slate-200 bg-white px-2 py-1"
+          className="rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-2 py-1"
         />
       </label>
       <div className="flex items-end">
@@ -165,7 +165,7 @@ function Filters(props: {
 function RecentEventsTable({ events }: { events: RecentEvent[] }) {
   if (!events.length) {
     return (
-      <p className="text-xs text-slate-500">
+      <p className="text-xs text-[rgb(var(--muted))]">
         Noch keine Telemetrieevents vorhanden. Die Liste füllt sich automatisch,
         sobald AI-Aufrufe geloggt werden.
       </p>
@@ -173,10 +173,10 @@ function RecentEventsTable({ events }: { events: RecentEvent[] }) {
   }
 
   return (
-    <div className="overflow-x-auto rounded-2xl border border-slate-100 bg-white shadow-sm">
-      <table className="min-w-full text-left text-xs text-slate-600">
+    <div className="overflow-x-auto rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] shadow-sm">
+      <table className="min-w-full text-left text-xs text-[rgb(var(--muted))]">
         <thead>
-          <tr className="border-b border-slate-100 bg-slate-50 text-[11px] uppercase">
+          <tr className="border-b border-[rgb(var(--border))] bg-[rgb(var(--bg))] text-[11px] uppercase">
             <th className="px-4 py-2 font-semibold">Zeit</th>
             <th className="px-4 py-2 font-semibold">Pipeline</th>
             <th className="px-4 py-2 font-semibold">Provider</th>
@@ -191,7 +191,7 @@ function RecentEventsTable({ events }: { events: RecentEvent[] }) {
         </thead>
         <tbody>
           {events.map((event) => (
-            <tr key={event.timestamp} className="border-b border-slate-50 last:border-none">
+            <tr key={event.timestamp} className="border-b border-[rgb(var(--border))] last:border-none">
               <td className="px-4 py-2">
                 {new Date(event.timestamp).toLocaleString("de-DE", {
                   hour: "2-digit",
@@ -233,17 +233,17 @@ function RecentEventsTable({ events }: { events: RecentEvent[] }) {
                 )}
               </td>
               <td className="px-4 py-2 text-right">
-                <details className="text-[11px] text-slate-600">
+                <details className="text-[11px] text-[rgb(var(--muted))]">
                   <summary className="cursor-pointer text-sky-700 underline-offset-2 hover:underline">Details</summary>
                   <div className="mt-1 space-y-1 text-left">
                     {event.model && <div>Modell: {event.model}</div>}
                     <div>Tokens In/Out: {event.tokensInput ?? 0} / {event.tokensOutput ?? 0}</div>
                     <div>Dauer: {event.durationMs} ms</div>
                     {event.promptSnippet && (
-                      <pre className="max-h-24 overflow-y-auto rounded bg-slate-50 p-2 text-[10px] text-slate-700">{event.promptSnippet}</pre>
+                      <pre className="max-h-24 overflow-y-auto rounded bg-[rgb(var(--bg))] p-2 text-[10px] text-[rgb(var(--muted))]">{event.promptSnippet}</pre>
                     )}
                     {event.responseSnippet && (
-                      <pre className="max-h-24 overflow-y-auto rounded bg-slate-50 p-2 text-[10px] text-slate-700">{event.responseSnippet}</pre>
+                      <pre className="max-h-24 overflow-y-auto rounded bg-[rgb(var(--bg))] p-2 text-[10px] text-[rgb(var(--muted))]">{event.responseSnippet}</pre>
                     )}
                     {event.rawError && <div className="text-rose-600">{event.rawError}</div>}
                   </div>
@@ -283,13 +283,13 @@ export default async function UsageDashboardPage({ searchParams }: PageProps) {
     <main className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-emerald-50 pb-16">
       <section className="mx-auto max-w-5xl px-4 py-12 space-y-6">
         <header className="space-y-1">
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+          <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
             Telemetrie
           </p>
-          <h1 className="text-3xl font-bold text-slate-900">
+          <h1 className="text-3xl font-bold text-[rgb(var(--fg))]">
             AI-Verbräuche & Kosten im Blick
           </h1>
-          <p className="text-sm text-slate-600">
+          <p className="text-sm text-[rgb(var(--muted))]">
             Read-only Übersicht. Alle Kennzahlen stammen aus dem internen
             Usage-Log und werden regelmäßig aggregiert.
           </p>
@@ -304,7 +304,7 @@ export default async function UsageDashboardPage({ searchParams }: PageProps) {
 
         <UsageKPIPanel items={tiles} />
 
-        <p className="text-xs text-slate-500">
+        <p className="text-xs text-[rgb(var(--muted))]">
           Letzte Aktualisierung:{" "}
           {new Date(updatedAt).toLocaleString("de-DE", {
             dateStyle: "short",
@@ -314,10 +314,10 @@ export default async function UsageDashboardPage({ searchParams }: PageProps) {
 
         <section className="space-y-3">
           <div className="flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-slate-800">
+            <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">
               Letzte AI-Anfragen
             </h2>
-            <span className="text-xs text-slate-500">
+            <span className="text-xs text-[rgb(var(--muted))]">
               {snapshot?.filters?.provider
                 ? `Provider: ${snapshot.filters.provider}`
                 : "Quelle: ai_usage (triMongo core)"}

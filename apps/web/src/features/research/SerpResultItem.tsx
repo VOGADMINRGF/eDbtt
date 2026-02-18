@@ -37,11 +37,11 @@ export function SerpResultItem({
   const visible = host ? `${host}${result.breadcrumb ? ` › ${result.breadcrumb}` : ""}` : result.breadcrumb || "";
 
   const containerClass =
-    view === "cards" ? "rounded-xl border border-slate-200 bg-white p-3 shadow-sm space-y-1" : "py-2";
+    view === "cards" ? "rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-3 shadow-sm space-y-1" : "py-2";
 
-  const metaClass = "flex items-center gap-2 text-[11px] text-slate-600";
+  const metaClass = "flex items-center gap-2 text-[11px] text-[rgb(var(--muted))]";
   const titleClass = "block text-sm font-semibold text-sky-700 hover:underline";
-  const snippetClass = "text-[12px] leading-relaxed text-slate-700";
+  const snippetClass = "text-[12px] leading-relaxed text-[rgb(var(--muted))]";
 
   const Wrap = isRealUrl(result.url) ? "a" : "div";
   const wrapProps = isRealUrl(result.url)
@@ -54,12 +54,12 @@ export function SerpResultItem({
         {result.faviconUrl && isRealUrl(result.url) ? (
           <img src={result.faviconUrl} alt={host || displaySite} className="h-4 w-4 rounded" />
         ) : (
-          <div className="flex h-4 w-4 items-center justify-center rounded bg-slate-100 text-[9px] font-semibold text-slate-700">
+          <div className="flex h-4 w-4 items-center justify-center rounded bg-[rgb(var(--bg))] text-[9px] font-semibold text-[rgb(var(--muted))]">
             {initial}
           </div>
         )}
-        <span className="font-semibold text-slate-700">{displaySite}</span>
-        {visible ? <span className="text-slate-400">· {visible}</span> : null}
+        <span className="font-semibold text-[rgb(var(--muted))]">{displaySite}</span>
+        {visible ? <span className="text-[rgb(var(--muted))]">· {visible}</span> : null}
       </div>
 
       <Wrap {...wrapProps} className={titleClass}>
@@ -67,7 +67,7 @@ export function SerpResultItem({
       </Wrap>
 
       {result.snippet ? <p className={snippetClass + " line-clamp-3"}>{result.snippet}</p> : null}
-      {result.publishedAt ? <p className="text-[10px] text-slate-500">Aktualisiert: {result.publishedAt}</p> : null}
+      {result.publishedAt ? <p className="text-[10px] text-[rgb(var(--muted))]">Aktualisiert: {result.publishedAt}</p> : null}
     </div>
   );
 }

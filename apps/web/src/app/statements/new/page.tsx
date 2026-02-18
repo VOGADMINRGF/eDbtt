@@ -12,7 +12,7 @@ export default async function StatementNewPage({
   const initialText = draft?.text ?? prefill;
 
   return (
-    <main className="min-h-screen bg-white">
+    <main className="min-h-screen bg-[rgb(var(--card))]">
       <h1 className="sr-only">Statement einreichen</h1>
       <AnalyzeWorkspace
         mode="statement"

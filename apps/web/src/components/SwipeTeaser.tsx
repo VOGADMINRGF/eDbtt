@@ -29,7 +29,7 @@ export default function SwipeTeaser() {
           {TEASERS.map((t) => (
             <article
               key={t.title}
-              className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm hover:shadow-md transition"
+              className="rounded-2xl border border-neutral-200 bg-[rgb(var(--card))] p-5 shadow-sm hover:shadow-md transition"
             >
               <h3 className="text-lg font-semibold text-gray-900">{t.title}</h3>
               <ul className="mt-3 space-y-2 text-sm text-gray-700">

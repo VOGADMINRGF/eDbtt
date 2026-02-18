@@ -60,9 +60,9 @@ export default function AdminGraphHealthPage() {
   return (
     <div className="mx-auto flex max-w-5xl flex-col gap-6 px-4 py-8">
       <header className="space-y-1">
-        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Admin · Graph</p>
-        <h1 className="text-2xl font-bold text-slate-900">Graph Health</h1>
-        <p className="text-sm text-slate-600">Uebersicht ueber Knoten, Pfade und Reparatur-Backlog.</p>
+        <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Admin · Graph</p>
+        <h1 className="text-2xl font-bold text-[rgb(var(--fg))]">Graph Health</h1>
+        <p className="text-sm text-[rgb(var(--muted))]">Uebersicht ueber Knoten, Pfade und Reparatur-Backlog.</p>
       </header>
 
       {error && (
@@ -80,9 +80,9 @@ export default function AdminGraphHealthPage() {
         {renderCard("Unlinked Evidence", summary?.unlinkedEvidence, loading, nf)}
       </section>
 
-      <section className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
-        <h2 className="text-sm font-semibold text-slate-900">Meta</h2>
-        <div className="mt-2 text-sm text-slate-600">
+      <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm">
+        <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Meta</h2>
+        <div className="mt-2 text-sm text-[rgb(var(--muted))]">
           <p>Generated: {meta?.generatedAt ?? "—"}</p>
           <p>Window: {meta?.windowDays ?? "—"} Tage</p>
           <p>Source: {meta?.source ?? "—"}</p>
@@ -93,7 +93,7 @@ export default function AdminGraphHealthPage() {
       <div className="flex items-center gap-3">
         <Link
           href="/admin/graph/repairs"
-          className="rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold"
+          className="rounded-full border border-[rgb(var(--border))] px-4 py-2 text-sm font-semibold"
         >
           Repairs oeffnen
         </Link>
@@ -104,12 +104,12 @@ export default function AdminGraphHealthPage() {
 
 function renderCard(label: string, value: number | undefined, loading: boolean, nf: Intl.NumberFormat) {
   return (
-    <div className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
-      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">{label}</p>
+    <div className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">{label}</p>
       {loading ? (
-        <div className="mt-2 h-6 w-16 animate-pulse rounded bg-slate-100" />
+        <div className="mt-2 h-6 w-16 animate-pulse rounded bg-[rgb(var(--bg))]" />
       ) : (
-        <p className="mt-1 text-2xl font-semibold text-slate-900">{nf.format(value ?? 0)}</p>
+        <p className="mt-1 text-2xl font-semibold text-[rgb(var(--fg))]">{nf.format(value ?? 0)}</p>
       )}
     </div>
   );

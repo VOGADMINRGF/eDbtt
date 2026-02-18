@@ -77,21 +77,21 @@ export default function AdminCampaignsPage() {
   return (
     <main className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-8">
       <header className="space-y-2">
-        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Admin · Campaigns</p>
-        <h1 className="text-2xl font-bold text-slate-900">Campaign Hub</h1>
-        <p className="text-sm text-slate-600">
+        <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Admin · Campaigns</p>
+        <h1 className="text-2xl font-bold text-[rgb(var(--fg))]">Campaign Hub</h1>
+        <p className="text-sm text-[rgb(var(--muted))]">
           Kampagnen verwalten, Status checken und Teilnehmerzahlen verfolgen.
         </p>
       </header>
 
       <div className="flex flex-wrap items-center gap-3">
-        <div className="flex gap-2 rounded-full border border-slate-200 bg-white px-3 py-2 text-sm">
+        <div className="flex gap-2 rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm">
           {FILTERS.map((entry) => (
             <button
               key={entry.value}
               onClick={() => setFilter(entry.value)}
               className={`rounded-full px-3 py-1 font-semibold transition ${
-                filter === entry.value ? "bg-slate-900 text-white" : "text-slate-600 hover:text-slate-900"
+                filter === entry.value ? "bg-slate-900 text-white" : "text-[rgb(var(--muted))] hover:text-[rgb(var(--fg))]"
               }`}
             >
               {entry.label}
@@ -105,7 +105,7 @@ export default function AdminCampaignsPage() {
           onChange={(e) => setSearchTerm(e.target.value)}
           placeholder="Titel, Region oder Topic suchen…"
           aria-label="Kampagnen durchsuchen"
-          className="flex-1 rounded-full border border-slate-300 bg-white px-4 py-2 text-sm text-slate-700 shadow-sm sm:max-w-xs"
+          className="flex-1 rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-2 text-sm text-[rgb(var(--muted))] shadow-sm sm:max-w-xs"
         />
       </div>
 
@@ -113,9 +113,9 @@ export default function AdminCampaignsPage() {
         <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</div>
       )}
 
-      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <table className="min-w-full divide-y divide-slate-200 text-sm">
-          <thead className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+      <div className="overflow-hidden rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] shadow-sm">
+        <table className="min-w-full divide-y divide-[rgb(var(--border))] text-sm">
+          <thead className="bg-[rgb(var(--bg))] text-left text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
             <tr>
               <th className="px-4 py-3">Campaign</th>
               <th className="px-4 py-3">Region · Topic</th>
@@ -124,17 +124,17 @@ export default function AdminCampaignsPage() {
               <th className="px-4 py-3 text-right">Aktion</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100">
+          <tbody className="divide-y divide-[rgb(var(--border))]">
             {loading && (
               <tr>
-                <td colSpan={5} className="px-4 py-6 text-center text-slate-500">
+                <td colSpan={5} className="px-4 py-6 text-center text-[rgb(var(--muted))]">
                   Lädt Kampagnen …
                 </td>
               </tr>
             )}
             {!loading && filtered.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-4 py-6 text-center text-slate-500">
+                <td colSpan={5} className="px-4 py-6 text-center text-[rgb(var(--muted))]">
                   Keine Kampagnen gefunden.
                 </td>
               </tr>
@@ -143,20 +143,20 @@ export default function AdminCampaignsPage() {
               filtered.map((row) => (
                 <tr key={row.id}>
                   <td className="px-4 py-3">
-                    <div className="font-semibold text-slate-800">{row.title}</div>
-                    <div className="text-xs text-slate-500">{row.description ?? "Ohne Beschreibung"}</div>
+                    <div className="font-semibold text-[rgb(var(--fg))]">{row.title}</div>
+                    <div className="text-xs text-[rgb(var(--muted))]">{row.description ?? "Ohne Beschreibung"}</div>
                   </td>
-                  <td className="px-4 py-3 text-slate-600">
+                  <td className="px-4 py-3 text-[rgb(var(--muted))]">
                     {row.regionCode ?? "–"} · {row.topicKey ?? "–"}
                   </td>
                   <td className="px-4 py-3">
                     <StatusPill status={row.status} />
                   </td>
-                  <td className="px-4 py-3 text-slate-700">{row.participants}</td>
+                  <td className="px-4 py-3 text-[rgb(var(--muted))]">{row.participants}</td>
                   <td className="px-4 py-3 text-right">
                     <Link
                       href={`/admin/campaigns/${encodeURIComponent(row.id)}`}
-                      className="text-sm font-semibold text-slate-700 hover:text-slate-900"
+                      className="text-sm font-semibold text-[rgb(var(--muted))] hover:text-[rgb(var(--fg))]"
                     >
                       Details
                     </Link>
@@ -172,10 +172,10 @@ export default function AdminCampaignsPage() {
 
 function StatusPill({ status }: { status: CampaignRow["status"] }) {
   const map: Record<CampaignRow["status"], string> = {
-    draft: "bg-slate-100 text-slate-600",
+    draft: "bg-[rgb(var(--bg))] text-[rgb(var(--muted))]",
     active: "bg-emerald-100 text-emerald-700",
     paused: "bg-amber-100 text-amber-700",
-    ended: "bg-slate-200 text-slate-700",
+    ended: "bg-[rgb(var(--bg))] text-[rgb(var(--muted))]",
   };
   return <span className={`rounded-full px-3 py-1 text-xs font-semibold ${map[status]}`}>{status}</span>;
 }

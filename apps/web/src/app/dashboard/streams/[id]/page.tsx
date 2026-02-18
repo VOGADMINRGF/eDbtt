@@ -187,7 +187,7 @@ export default function StreamCockpitPage() {
   const [identityDoc, setIdentityDoc] = useState<IdentityDocMeta | null>(null);
   const [identityDocLoading, setIdentityDocLoading] = useState(true);
   const [identityDocError, setIdentityDocError] = useState<string | null>(null);
-  const [verificationLevel, setVerificationLevel] = useState<string | null>(null);
+  const [verificationMethods, setVerificationMethods] = useState<string[]>([]);
   const [verificationLoading, setVerificationLoading] = useState(true);
   const [emailPhase, setEmailPhase] = useState<EmailPhase>("idle");
   const [emailCode, setEmailCode] = useState("");
@@ -226,7 +226,11 @@ export default function StreamCockpitPage() {
             setIdentityDocError(docBody?.error || "Identitätsstatus konnte nicht geladen werden.");
           }
           if (overviewRes.ok && overviewBody?.overview) {
-            setVerificationLevel(overviewBody.overview?.verificationLevel ?? null);
+            setVerificationMethods(
+              Array.isArray(overviewBody.overview?.verificationMethods)
+                ? overviewBody.overview.verificationMethods
+                : [],
+            );
           }
         }
       } catch (err: any) {
@@ -732,6 +736,9 @@ export default function StreamCockpitPage() {
     });
     if (!res.ok) {
       const body = await res.json().catch(() => ({}));
+      if (body?.error === "STREAM_IDENTITY_REQUIRED") {
+        throw new Error("Stream-Start blockiert: Bitte Ausweis/Pass und E-Mail-Code bestätigen.");
+      }
       throw new Error(body?.error || "Aktion fehlgeschlagen.");
     }
   }
@@ -910,7 +917,7 @@ export default function StreamCockpitPage() {
     }
   }
 
-  const verificationOk = verificationLevel === "soft" || verificationLevel === "strong";
+  const verificationOk = verificationMethods.includes("email_code");
   const preStreamReady = Boolean(identityDoc) && verificationOk;
   const emailBusy = emailPhase === "sending" || emailPhase === "verifying";
   const emailCodeReady = emailCode.trim().length === 6;
@@ -961,7 +968,7 @@ export default function StreamCockpitPage() {
             : "Code ungültig.";
         throw new Error(body?.message || fallback);
       }
-      setVerificationLevel("soft");
+      setVerificationMethods((prev) => Array.from(new Set([...prev, "email_code"])));
       setEmailPhase("success");
       setEmailMessage("E-Mail-Code bestätigt.");
     } catch (err: any) {
@@ -982,7 +989,7 @@ export default function StreamCockpitPage() {
   return (
     <main className="flex flex-col gap-6 px-4 py-8">
       <header>
-        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Stream Cockpit</p>
+        <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Stream Cockpit</p>
         <h1 className="text-2xl font-bold text-[rgb(var(--fg))]">{session?.title ?? "Session"}</h1>
         <p className="text-sm text-[rgb(var(--muted))]">
           Steuere hier Fragen, Statements und Polls. Das OBS-Overlay aktualisiert sich automatisch.
@@ -1030,7 +1037,7 @@ export default function StreamCockpitPage() {
               </span>
             </div>
             {identityDocLoading ? (
-              <p className="text-slate-500">Status wird geladen …</p>
+              <p className="text-[rgb(var(--muted))]">Status wird geladen …</p>
             ) : identityDocError ? (
               <p className="text-rose-600">{identityDocError}</p>
             ) : identityDoc ? (
@@ -1063,7 +1070,7 @@ export default function StreamCockpitPage() {
               </span>
             </div>
             {verificationLoading ? (
-              <p className="text-slate-500">Status wird geladen …</p>
+              <p className="text-[rgb(var(--muted))]">Status wird geladen …</p>
             ) : verificationOk ? (
               <p className="text-emerald-700">Bestätigt – du bist für Streams verifiziert.</p>
             ) : (
@@ -1097,7 +1104,7 @@ export default function StreamCockpitPage() {
                     {emailPhase === "verifying" ? "Prüfe …" : "Bestätigen"}
                   </button>
                 </div>
-                {emailMessage && <p className="text-[11px] text-slate-500">{emailMessage}</p>}
+                {emailMessage && <p className="text-[11px] text-[rgb(var(--muted))]">{emailMessage}</p>}
               </>
             )}
           </div>
@@ -1114,7 +1121,7 @@ export default function StreamCockpitPage() {
                 className={
                   tutorialActive
                     ? "rounded-full bg-sky-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-sky-700"
-                    : "rounded-full bg-slate-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-500"
+                    : "rounded-full bg-[rgb(var(--bg))] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--muted))]"
                 }
               >
                 {tutorialActive ? "läuft" : "bereit"}
@@ -1141,7 +1148,7 @@ export default function StreamCockpitPage() {
             </div>
 
             <div className="space-y-2">
-              <div className="flex items-center justify-between text-[11px] text-slate-500">
+              <div className="flex items-center justify-between text-[11px] text-[rgb(var(--muted))]">
                 <span>Countdown</span>
                 <span>
                   {tutorialMinutes}:{String(tutorialSecondsRest).padStart(2, "0")}
@@ -1221,11 +1228,11 @@ export default function StreamCockpitPage() {
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Stream-Einstellungen</h2>
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-[rgb(var(--muted))]">
               Support, Verifizierung, Mitschnitt und Sichtbarkeit steuern.
             </p>
           </div>
-          {settingsLoading && <span className="text-xs text-slate-400">lädt…</span>}
+          {settingsLoading && <span className="text-xs text-[rgb(var(--muted))]">lädt…</span>}
         </div>
         {settingsError && <p className="text-xs text-rose-600">{settingsError}</p>}
         {settingsNotice && <p className="text-xs text-emerald-600">{settingsNotice}</p>}
@@ -1240,7 +1247,7 @@ export default function StreamCockpitPage() {
             onClick={() => updateStreamSettings({ supportEnabled: !streamSettings.supportEnabled })}
           >
             <p className="font-semibold">Support aktivieren</p>
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-[rgb(var(--muted))]">
               Unterstuetzen-CTA kann zugeschaltet werden (optional blind).
             </p>
           </button>
@@ -1254,7 +1261,7 @@ export default function StreamCockpitPage() {
             disabled={!streamSettings.supportEnabled}
           >
             <p className="font-semibold">Support blind schalten</p>
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-[rgb(var(--muted))]">
               Support laeuft im Hintergrund, ohne oeffentliche Anzeige.
             </p>
           </button>
@@ -1267,7 +1274,7 @@ export default function StreamCockpitPage() {
             onClick={() => updateStreamSettings({ recordingAllowed: !streamSettings.recordingAllowed })}
           >
             <p className="font-semibold">Mitschnitt erlaubt</p>
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-[rgb(var(--muted))]">
               Erlaubt Aufzeichnung und Nachbereitung (rechtliche Hinweise beachten).
             </p>
           </button>
@@ -1284,20 +1291,20 @@ export default function StreamCockpitPage() {
             }
           >
             <p className="font-semibold">Teilnahme nur verifiziert</p>
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-[rgb(var(--muted))]">
               Abstimmungen/Interaktion nur nach Verifizierung.
             </p>
           </button>
           <button
             className={`rounded-xl border px-3 py-3 text-left text-sm ${
               streamSettings.hideViewerCount
-                ? "border-[rgb(var(--border))] bg-[rgb(var(--bg))] text-slate-800"
+                ? "border-[rgb(var(--border))] bg-[rgb(var(--bg))] text-[rgb(var(--fg))]"
                 : "border-[rgb(var(--border))] bg-[rgb(var(--card))] text-[rgb(var(--muted))]"
             }`}
             onClick={() => updateStreamSettings({ hideViewerCount: !streamSettings.hideViewerCount })}
           >
             <p className="font-semibold">Zuschauerzahl verstecken</p>
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-[rgb(var(--muted))]">
               Sichtbar nur fuer Creator/Admin/Mods.
             </p>
           </button>
@@ -1308,7 +1315,7 @@ export default function StreamCockpitPage() {
         <div className="flex items-center justify-between gap-3">
           <div>
             <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Deliberation Mode</h2>
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-[rgb(var(--muted))]">
               Phasen, Runden und Timer fuer strukturierte Live-Debatten.
             </p>
           </div>
@@ -1379,7 +1386,7 @@ export default function StreamCockpitPage() {
                 onChange={(e) => setRoundMinutes(e.target.value)}
                 inputMode="numeric"
               />
-              <span className="text-[11px] text-slate-500">Min</span>
+              <span className="text-[11px] text-[rgb(var(--muted))]">Min</span>
               <button
                 className="rounded-full border border-[rgb(var(--border))] bg-slate-900 px-3 py-1 text-white"
                 onClick={() => updateDeliberation({ roundMinutes: Number(roundMinutes) || 0 })}
@@ -1422,7 +1429,7 @@ export default function StreamCockpitPage() {
                   onChange={(e) => setRotationMinutes(e.target.value)}
                   inputMode="numeric"
                 />
-                <span className="text-[11px] text-slate-500">Min</span>
+                <span className="text-[11px] text-[rgb(var(--muted))]">Min</span>
                 <button
                   className="rounded-full border border-[rgb(var(--border))] bg-slate-900 px-3 py-1 text-white"
                   onClick={() =>
@@ -1436,7 +1443,7 @@ export default function StreamCockpitPage() {
                 </button>
               </div>
             </div>
-            <p className="mt-2 text-[11px] text-slate-500">
+            <p className="mt-2 text-[11px] text-[rgb(var(--muted))]">
               Rotation verteilt Redezeit gleichmäßiger (manuell moderiert).
             </p>
           </div>
@@ -1446,7 +1453,7 @@ export default function StreamCockpitPage() {
       <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm space-y-3">
         <div>
           <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Session-Vorlagen</h2>
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-[rgb(var(--muted))]">
             Schnellstart fuer typische Formate (passt du spaeter an).
           </p>
         </div>
@@ -1467,7 +1474,7 @@ export default function StreamCockpitPage() {
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Moderations-Queue</h2>
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-[rgb(var(--muted))]">
               Eingehende Bausteine sammeln, taggen und freigeben.
             </p>
           </div>
@@ -1493,16 +1500,16 @@ export default function StreamCockpitPage() {
         <div className="grid gap-4 lg:grid-cols-3">
           <div className="lg:col-span-2 space-y-3">
             {queueLoading ? (
-              <p className="text-sm text-slate-500">Queue wird geladen…</p>
+              <p className="text-sm text-[rgb(var(--muted))]">Queue wird geladen…</p>
             ) : visibleQueueItems.length === 0 ? (
-              <p className="text-sm text-slate-500">Keine Einträge in dieser Ansicht.</p>
+              <p className="text-sm text-[rgb(var(--muted))]">Keine Einträge in dieser Ansicht.</p>
             ) : (
               <ul className="space-y-2">
                 {visibleQueueItems.map((item) => (
                   <li key={item._id} className="rounded-xl border border-[rgb(var(--border))] p-3">
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <div className="flex flex-wrap items-center gap-2 text-xs">
-                        <span className="rounded-full bg-slate-100 px-2 py-0.5 font-semibold text-[rgb(var(--muted))]">
+                        <span className="rounded-full bg-[rgb(var(--bg))] px-2 py-0.5 font-semibold text-[rgb(var(--muted))]">
                           {QUEUE_KIND_LABELS[item.kind]}
                         </span>
                         <span
@@ -1544,13 +1551,13 @@ export default function StreamCockpitPage() {
                         )}
                       </div>
                     </div>
-                    <p className="mt-2 text-sm text-slate-800">{item.text}</p>
+                    <p className="mt-2 text-sm text-[rgb(var(--fg))]">{item.text}</p>
                     {item.sourceUrl && (
                       <a className="mt-2 block text-xs text-sky-700 underline" href={item.sourceUrl} target="_blank" rel="noreferrer">
                         Quelle öffnen
                       </a>
                     )}
-                    {item.notes && <p className="mt-2 text-xs text-slate-500">{item.notes}</p>}
+                    {item.notes && <p className="mt-2 text-xs text-[rgb(var(--muted))]">{item.notes}</p>}
                   </li>
                 ))}
               </ul>
@@ -1559,7 +1566,7 @@ export default function StreamCockpitPage() {
 
           <div className="space-y-3 rounded-xl border border-[rgb(var(--border))] p-3">
             <h3 className="text-xs font-semibold text-[rgb(var(--fg))]">Neuer Queue-Eintrag</h3>
-            <label className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Baustein</label>
+            <label className="text-[11px] font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Baustein</label>
             <select
               className="w-full rounded-xl border border-[rgb(var(--border))] px-3 py-2 text-xs"
               value={queueDraftKind}
@@ -1571,7 +1578,7 @@ export default function StreamCockpitPage() {
                 </option>
               ))}
             </select>
-            <label className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Inhalt</label>
+            <label className="text-[11px] font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Inhalt</label>
             <textarea
               className="w-full rounded-xl border border-[rgb(var(--border))] px-3 py-2 text-xs"
               rows={4}
@@ -1579,14 +1586,14 @@ export default function StreamCockpitPage() {
               value={queueDraftText}
               onChange={(e) => setQueueDraftText(e.target.value)}
             />
-            <label className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Quelle (optional)</label>
+            <label className="text-[11px] font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Quelle (optional)</label>
             <input
               className="w-full rounded-xl border border-[rgb(var(--border))] px-3 py-2 text-xs"
               placeholder="https://..."
               value={queueDraftSource}
               onChange={(e) => setQueueDraftSource(e.target.value)}
             />
-            <label className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Notiz (optional)</label>
+            <label className="text-[11px] font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Notiz (optional)</label>
             <textarea
               className="w-full rounded-xl border border-[rgb(var(--border))] px-3 py-2 text-xs"
               rows={2}
@@ -1608,14 +1615,14 @@ export default function StreamCockpitPage() {
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Live-Dossier-Board</h2>
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-[rgb(var(--muted))]">
               Kurze Optionslage inkl. Pro/Contra, Quellen und offenen Fragen – öffentlich sichtbar.
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2 text-xs">
-            {boardLoading && <span className="text-slate-400">lädt…</span>}
+            {boardLoading && <span className="text-[rgb(var(--muted))]">lädt…</span>}
             {liveBoard.updatedAt && (
-              <span className="text-slate-500">
+              <span className="text-[rgb(var(--muted))]">
                 Stand:{" "}
                 {new Date(liveBoard.updatedAt).toLocaleString("de-DE", { dateStyle: "short", timeStyle: "short" })}
               </span>
@@ -1640,13 +1647,13 @@ export default function StreamCockpitPage() {
 
         <div className="grid gap-4 lg:grid-cols-3">
           <div className="lg:col-span-1 space-y-3">
-            <label className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Titel</label>
+            <label className="text-[11px] font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Titel</label>
             <input
               className="w-full rounded-xl border border-[rgb(var(--border))] px-3 py-2 text-xs"
               value={liveBoard.title}
               onChange={(e) => setLiveBoard((prev) => ({ ...prev, title: e.target.value }))}
             />
-            <label className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Kurzfassung</label>
+            <label className="text-[11px] font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Kurzfassung</label>
             <textarea
               className="w-full rounded-xl border border-[rgb(var(--border))] px-3 py-2 text-xs"
               rows={5}
@@ -1658,14 +1665,14 @@ export default function StreamCockpitPage() {
 
           <div className="lg:col-span-2 space-y-3">
             {liveBoard.options.length === 0 ? (
-              <p className="text-sm text-slate-500">
+              <p className="text-sm text-[rgb(var(--muted))]">
                 Noch keine Optionen. Erstelle 3–5 Optionen, um das Live‑Dossier zu füllen.
               </p>
             ) : (
               liveBoard.options.map((opt, index) => (
                 <div key={opt.id} className="rounded-xl border border-[rgb(var(--border))] p-3 space-y-3">
                   <div className="flex flex-wrap items-center justify-between gap-2">
-                    <p className="text-xs font-semibold text-slate-500">Option {index + 1}</p>
+                    <p className="text-xs font-semibold text-[rgb(var(--muted))]">Option {index + 1}</p>
                     <button
                       className="rounded-full border border-[rgb(var(--border))] px-3 py-1 text-xs text-[rgb(var(--muted))]"
                       onClick={() => removeBoardOption(opt.id)}
@@ -1681,7 +1688,7 @@ export default function StreamCockpitPage() {
                   />
                   <div className="grid gap-3 md:grid-cols-2">
                     <div className="space-y-1">
-                      <label className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Pro</label>
+                      <label className="text-[11px] font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Pro</label>
                       <textarea
                         className="w-full rounded-xl border border-[rgb(var(--border))] px-3 py-2 text-xs"
                         rows={3}
@@ -1691,7 +1698,7 @@ export default function StreamCockpitPage() {
                       />
                     </div>
                     <div className="space-y-1">
-                      <label className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Contra</label>
+                      <label className="text-[11px] font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Contra</label>
                       <textarea
                         className="w-full rounded-xl border border-[rgb(var(--border))] px-3 py-2 text-xs"
                         rows={3}
@@ -1701,7 +1708,7 @@ export default function StreamCockpitPage() {
                       />
                     </div>
                     <div className="space-y-1">
-                      <label className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Quellen</label>
+                      <label className="text-[11px] font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Quellen</label>
                       <textarea
                         className="w-full rounded-xl border border-[rgb(var(--border))] px-3 py-2 text-xs"
                         rows={3}
@@ -1711,7 +1718,7 @@ export default function StreamCockpitPage() {
                       />
                     </div>
                     <div className="space-y-1">
-                      <label className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                      <label className="text-[11px] font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
                         Offene Fragen
                       </label>
                       <textarea
@@ -1734,14 +1741,14 @@ export default function StreamCockpitPage() {
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Follow-up Tracker</h2>
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-[rgb(var(--muted))]">
               Status-Updates nach der Abstimmung (eingereicht → Prüfung → angenommen/teilweise/abgelehnt).
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2 text-xs">
-            {followUpLoading && <span className="text-slate-400">lädt…</span>}
+            {followUpLoading && <span className="text-[rgb(var(--muted))]">lädt…</span>}
             {followUp.updatedAt && (
-              <span className="text-slate-500">
+              <span className="text-[rgb(var(--muted))]">
                 Stand:{" "}
                 {new Date(followUp.updatedAt).toLocaleString("de-DE", {
                   dateStyle: "short",
@@ -1757,7 +1764,7 @@ export default function StreamCockpitPage() {
 
         <div className="grid gap-4 lg:grid-cols-3">
           <div className="space-y-3 rounded-xl border border-[rgb(var(--border))] p-3">
-            <label className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Status</label>
+            <label className="text-[11px] font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Status</label>
             <select
               className="w-full rounded-xl border border-[rgb(var(--border))] px-3 py-2 text-xs"
               value={followUpStatus}
@@ -1769,7 +1776,7 @@ export default function StreamCockpitPage() {
               <option value="partial">Teilweise</option>
               <option value="rejected">Abgelehnt</option>
             </select>
-            <label className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Update-Text</label>
+            <label className="text-[11px] font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Update-Text</label>
             <textarea
               className="w-full rounded-xl border border-[rgb(var(--border))] px-3 py-2 text-xs"
               rows={4}
@@ -1777,7 +1784,7 @@ export default function StreamCockpitPage() {
               onChange={(e) => setFollowUpNote(e.target.value)}
               placeholder="Was ist seit dem letzten Stand passiert?"
             />
-            <label className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Link (optional)</label>
+            <label className="text-[11px] font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Link (optional)</label>
             <input
               className="w-full rounded-xl border border-[rgb(var(--border))] px-3 py-2 text-xs"
               placeholder="https://..."
@@ -1790,7 +1797,7 @@ export default function StreamCockpitPage() {
             >
               Update hinzufügen
             </button>
-            <div className="pt-2 text-xs text-slate-500">
+            <div className="pt-2 text-xs text-[rgb(var(--muted))]">
               Erinnerung:
               <div className="mt-2 flex flex-wrap gap-2">
                 {[7, 30, 90].map((days) => (
@@ -1816,13 +1823,13 @@ export default function StreamCockpitPage() {
 
           <div className="lg:col-span-2 space-y-3">
             {followUp.updates.length === 0 ? (
-              <p className="text-sm text-slate-500">Noch keine Follow-up Updates.</p>
+              <p className="text-sm text-[rgb(var(--muted))]">Noch keine Follow-up Updates.</p>
             ) : (
               <ul className="space-y-2">
                 {followUp.updates.map((update) => (
                   <li key={update.id} className="rounded-xl border border-[rgb(var(--border))] p-3">
                     <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
-                      <span className="rounded-full bg-slate-100 px-2 py-0.5 font-semibold text-[rgb(var(--muted))]">
+                      <span className="rounded-full bg-[rgb(var(--bg))] px-2 py-0.5 font-semibold text-[rgb(var(--muted))]">
                         {update.status === "submitted"
                           ? "Eingereicht"
                           : update.status === "in_review"
@@ -1834,7 +1841,7 @@ export default function StreamCockpitPage() {
                                 : "Abgelehnt"}
                       </span>
                       {update.createdAt && (
-                        <span className="text-slate-500">
+                        <span className="text-[rgb(var(--muted))]">
                           {new Date(update.createdAt).toLocaleString("de-DE", {
                             dateStyle: "short",
                             timeStyle: "short",
@@ -1842,7 +1849,7 @@ export default function StreamCockpitPage() {
                         </span>
                       )}
                     </div>
-                    <p className="mt-2 text-sm text-slate-800">{update.note}</p>
+                    <p className="mt-2 text-sm text-[rgb(var(--fg))]">{update.note}</p>
                     {update.link && (
                       <a className="mt-2 block text-xs text-sky-700 underline" href={update.link} target="_blank" rel="noreferrer">
                         {update.link}
@@ -1860,11 +1867,11 @@ export default function StreamCockpitPage() {
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Call-ins & Kleingruppen</h2>
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-[rgb(var(--muted))]">
               Einladungen verwalten und Live-Status steuern (rotierend, fair, nachvollziehbar).
             </p>
           </div>
-          {callInsLoading && <span className="text-xs text-slate-400">lädt…</span>}
+          {callInsLoading && <span className="text-xs text-[rgb(var(--muted))]">lädt…</span>}
         </div>
 
         {callInsError && <p className="text-xs text-rose-600">{callInsError}</p>}
@@ -1872,28 +1879,28 @@ export default function StreamCockpitPage() {
 
         <div className="grid gap-4 lg:grid-cols-3">
           <div className="space-y-3 rounded-xl border border-[rgb(var(--border))] p-3">
-            <label className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Name</label>
+            <label className="text-[11px] font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Name</label>
             <input
               className="w-full rounded-xl border border-[rgb(var(--border))] px-3 py-2 text-xs"
               value={callInName}
               onChange={(e) => setCallInName(e.target.value)}
               placeholder="Teilnehmer:in"
             />
-            <label className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Handle (optional)</label>
+            <label className="text-[11px] font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Handle (optional)</label>
             <input
               className="w-full rounded-xl border border-[rgb(var(--border))] px-3 py-2 text-xs"
               value={callInHandle}
               onChange={(e) => setCallInHandle(e.target.value)}
               placeholder="@name"
             />
-            <label className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Kanal/Call (optional)</label>
+            <label className="text-[11px] font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Kanal/Call (optional)</label>
             <input
               className="w-full rounded-xl border border-[rgb(var(--border))] px-3 py-2 text-xs"
               value={callInChannel}
               onChange={(e) => setCallInChannel(e.target.value)}
               placeholder="Discord Stage / Zoom / etc."
             />
-            <label className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Notiz</label>
+            <label className="text-[11px] font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Notiz</label>
             <textarea
               className="w-full rounded-xl border border-[rgb(var(--border))] px-3 py-2 text-xs"
               rows={3}
@@ -1911,7 +1918,7 @@ export default function StreamCockpitPage() {
 
           <div className="lg:col-span-2 space-y-3">
             {callIns.length === 0 ? (
-              <p className="text-sm text-slate-500">Noch keine Call-ins.</p>
+              <p className="text-sm text-[rgb(var(--muted))]">Noch keine Call-ins.</p>
             ) : (
               <ul className="space-y-2">
                 {callIns.map((item) => (
@@ -1919,7 +1926,7 @@ export default function StreamCockpitPage() {
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <div>
                         <p className="text-sm font-semibold text-[rgb(var(--fg))]">{item.name}</p>
-                        <p className="text-xs text-slate-500">
+                        <p className="text-xs text-[rgb(var(--muted))]">
                           {item.handle ? `@${item.handle.replace(/^@/, "")}` : "ohne Handle"}{" "}
                           {item.channel ? `• ${item.channel}` : ""}
                         </p>
@@ -1932,7 +1939,7 @@ export default function StreamCockpitPage() {
                               ? "bg-amber-100 text-amber-700"
                               : item.status === "removed"
                                 ? "bg-rose-100 text-rose-700"
-                                : "bg-slate-100 text-[rgb(var(--muted))]"
+                                : "bg-[rgb(var(--bg))] text-[rgb(var(--muted))]"
                         }`}
                       >
                         {item.status === "live"
@@ -1944,7 +1951,7 @@ export default function StreamCockpitPage() {
                               : "Eingeladen"}
                       </span>
                     </div>
-                    {item.notes && <p className="text-xs text-slate-500">{item.notes}</p>}
+                    {item.notes && <p className="text-xs text-[rgb(var(--muted))]">{item.notes}</p>}
                     <div className="flex flex-wrap gap-2 text-xs">
                       <button
                         className="rounded-full border border-[rgb(var(--border))] px-3 py-1"
@@ -1995,16 +2002,16 @@ export default function StreamCockpitPage() {
             <p className="text-xs text-rose-600">{autofillError}</p>
           )}
           {loading ? (
-            <p className="text-sm text-slate-500">Lädt …</p>
+            <p className="text-sm text-[rgb(var(--muted))]">Lädt …</p>
           ) : (
             <ul className="space-y-2 text-sm text-[rgb(var(--muted))]">
               {items.map((item) => (
                 <li key={item._id} className="rounded-xl border border-[rgb(var(--border))] p-3">
                   <p className="font-semibold text-[rgb(var(--fg))]">{item.customQuestion || item.description || item.kind}</p>
-                  <p className="text-xs text-slate-500 mb-2">Status: {item.status}</p>
+                  <p className="text-xs text-[rgb(var(--muted))] mb-2">Status: {item.status}</p>
                   <div className="flex flex-wrap gap-2 text-xs">
                     <button
-                      className="rounded-full border border-[rgb(var(--border))] bg-slate-900 px-3 py-1 text-white"
+                      className="rounded-full border border-[rgb(var(--border))] bg-slate-900 px-3 py-1 text-white disabled:cursor-not-allowed disabled:opacity-50"
                       onClick={async () => {
                         try {
                           await updateItem(item._id, "go_live");
@@ -2013,8 +2020,9 @@ export default function StreamCockpitPage() {
                           setError(err?.message ?? "Aktivieren fehlgeschlagen.");
                         }
                       }}
+                      disabled={!preStreamReady}
                     >
-                      Aktiv setzen
+                      {preStreamReady ? "Aktiv setzen" : "Identity Check offen"}
                     </button>
                     <button
                       className="rounded-full border border-[rgb(var(--border))] px-3 py-1"
@@ -2073,7 +2081,7 @@ export default function StreamCockpitPage() {
               {liveItem.kind === "poll" && (
                 <ul className="mt-3 space-y-2">
                   {(liveItem.pollOptions ?? []).map((opt) => (
-                    <li key={opt} className="rounded-lg bg-slate-100 px-3 py-2 text-sm">
+                    <li key={opt} className="rounded-lg bg-[rgb(var(--bg))] px-3 py-2 text-sm">
                       {opt}
                     </li>
                   ))}
@@ -2086,7 +2094,7 @@ export default function StreamCockpitPage() {
               </p>
             </div>
           ) : (
-            <p className="text-sm text-slate-500">Noch kein Item live.</p>
+            <p className="text-sm text-[rgb(var(--muted))]">Noch kein Item live.</p>
           )}
         </section>
 
@@ -2099,7 +2107,7 @@ export default function StreamCockpitPage() {
             value={question}
             onChange={(e) => setQuestion(e.target.value)}
           />
-          <label className="text-xs font-semibold text-slate-500">Poll-Optionen (eine pro Zeile)</label>
+          <label className="text-xs font-semibold text-[rgb(var(--muted))]">Poll-Optionen (eine pro Zeile)</label>
           <textarea
             className="w-full rounded-xl border border-[rgb(var(--border))] px-3 py-2 text-sm"
             rows={3}
@@ -2144,9 +2152,9 @@ export default function StreamCockpitPage() {
             {qrQuestions.map((q, idx) => (
               <div key={idx} className="rounded-xl border border-[rgb(var(--border))] p-3 space-y-2">
                 <div className="flex items-center justify-between">
-                  <p className="text-xs font-semibold text-slate-500">Frage {idx + 1}</p>
+                  <p className="text-xs font-semibold text-[rgb(var(--muted))]">Frage {idx + 1}</p>
                   <button
-                    className="text-xs underline text-slate-500"
+                    className="text-xs underline text-[rgb(var(--muted))]"
                     onClick={() => toggleQrVisibility(idx)}
                   >
                     {q.publicAttribution === "public" ? "Nicht anonym" : "Anonym"}

@@ -173,7 +173,7 @@ const Editor = React.forwardRef<HTMLTextAreaElement, {
   busy?: boolean;
 }>(({ value, onChange, onKeyDown, busy }, ref) => {
   return (
-    <div className="rounded-2xl border border-slate-200/80 bg-white/80 shadow-sm p-3 md:p-4">
+    <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] shadow-sm p-3 md:p-4">
       <textarea
         ref={ref}
         value={value}
@@ -181,9 +181,9 @@ const Editor = React.forwardRef<HTMLTextAreaElement, {
         onKeyDown={onKeyDown}
         placeholder="Schreibe frei – wir extrahieren Kernaussagen… (Cmd/Ctrl+Enter = Analysieren)"
         rows={10}
-        className="w-full resize-none rounded-xl border border-slate-200/80 px-3 py-2 outline-none focus:ring-2 focus:ring-sky-300"
+        className="w-full resize-none rounded-xl border border-[rgb(var(--border))] px-3 py-2 outline-none focus:ring-2 focus:ring-sky-300"
       />
-      <div className="mt-2 flex items-center justify-between text-xs text-slate-500">
+      <div className="mt-2 flex items-center justify-between text-xs text-[rgb(var(--muted))]">
         <span>{value.trim().length} Zeichen</span>
         <label className="inline-flex items-center gap-2">
           <input type="checkbox" className="accent-sky-500" defaultChecked />
@@ -220,14 +220,14 @@ function StatementToolbar({
   onSortChange: (v: "original" | "short" | "long") => void;
 }) {
   return (
-    <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-slate-600">
+    <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-[rgb(var(--muted))]">
       <label className="flex items-center gap-2">
         <span className="font-semibold">Filter</span>
         <input
           value={filter}
           onChange={(e) => onFilterChange(e.target.value)}
           placeholder="Stichwort suchen"
-          className="rounded-lg border border-slate-200 px-2 py-1 text-sm outline-none focus:ring-2 focus:ring-sky-200"
+          className="rounded-lg border border-[rgb(var(--border))] px-2 py-1 text-sm outline-none focus:ring-2 focus:ring-sky-200"
         />
       </label>
       <label className="flex items-center gap-2">
@@ -235,7 +235,7 @@ function StatementToolbar({
         <select
           value={sortOrder}
           onChange={(e) => onSortChange(e.target.value as "original" | "short" | "long")}
-          className="rounded-lg border border-slate-200 px-2 py-1 text-sm outline-none focus:ring-2 focus:ring-sky-200"
+          className="rounded-lg border border-[rgb(var(--border))] px-2 py-1 text-sm outline-none focus:ring-2 focus:ring-sky-200"
         >
           <option value="original">Originalreihenfolge</option>
           <option value="short">Kürzeste zuerst</option>
@@ -248,15 +248,15 @@ function StatementToolbar({
 
 function Section({ title, items }: { title: string; items: Item[] }) {
   return (
-    <div className="rounded-2xl border border-slate-200/80 bg-white/70 shadow-sm p-3">
-      <div className="text-xs font-semibold text-slate-600 mb-2">{title}</div>
+    <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] shadow-sm p-3">
+      <div className="text-xs font-semibold text-[rgb(var(--muted))] mb-2">{title}</div>
       <ul className="space-y-2">
         {items.map(it => (
-          <li key={it.id} className="text-sm p-2 rounded-lg border border-slate-200/70 bg-white/60">
+          <li key={it.id} className="text-sm p-2 rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--card))]">
             {it.text}
           </li>
         ))}
-        {items.length === 0 && <li className="text-xs text-slate-500">Noch nichts vorhanden.</li>}
+        {items.length === 0 && <li className="text-xs text-[rgb(var(--muted))]">Noch nichts vorhanden.</li>}
       </ul>
     </div>
   );
@@ -264,12 +264,12 @@ function Section({ title, items }: { title: string; items: Item[] }) {
 
 function ChipBar({ title, items, variant = "solid" }: { title?: string; items: Item[]; variant?: "solid" | "soft" }) {
   return (
-    <div className={`rounded-2xl border ${variant === "solid" ? "bg-sky-50/60" : "bg-slate-50/60"} border-slate-200/80 p-3 shadow-sm`}>
-      {title && <div className="text-xs font-semibold text-slate-600 mb-2">{title}</div>}
+    <div className={`rounded-2xl border ${variant === "solid" ? "bg-sky-50/60" : "bg-[rgb(var(--bg))]"} border-[rgb(var(--border))] p-3 shadow-sm`}>
+      {title && <div className="text-xs font-semibold text-[rgb(var(--muted))] mb-2">{title}</div>}
       <div className="flex flex-wrap gap-2">
         {items.length ? items.map(it => (
           <span key={it.id} className="pill">{it.text}</span>
-        )) : <span className="text-xs text-slate-500">Noch keine Einträge.</span>}
+        )) : <span className="text-xs text-[rgb(var(--muted))]">Noch keine Einträge.</span>}
       </div>
     </div>
   );
@@ -287,9 +287,9 @@ function StatementList({
   return (
     <div className={className}>
       {statements.map((s) => (
-        <article key={s.id} className="rounded-2xl border border-slate-200/80 bg-white/80 shadow-sm p-3 md:p-4 mb-3">
-          <h3 className="font-semibold text-slate-900 text-sm leading-5">{s.rep?.text}</h3>
-          <dl className="mt-2 grid grid-cols-2 gap-2 text-xs text-slate-600">
+        <article key={s.id} className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] shadow-sm p-3 md:p-4 mb-3">
+          <h3 className="font-semibold text-[rgb(var(--fg))] text-sm leading-5">{s.rep?.text}</h3>
+          <dl className="mt-2 grid grid-cols-2 gap-2 text-xs text-[rgb(var(--muted))]">
             {s.rep?.sachverhalt && (<><dt className="font-medium">Sachverhalt</dt><dd>{s.rep.sachverhalt}</dd></>)}
             {s.rep?.zeitraum && (<><dt className="font-medium">Zeitraum</dt><dd>{s.rep.zeitraum}</dd></>)}
             {s.rep?.ort && (<><dt className="font-medium">Ort</dt><dd>{s.rep.ort}</dd></>)}
@@ -297,7 +297,7 @@ function StatementList({
         </article>
       ))}
       {!statements.length && (
-        <div className="text-xs text-slate-500">
+        <div className="text-xs text-[rgb(var(--muted))]">
           {emptyHint ?? "Noch keine Statements – schreibe Text und klicke „Erneut analysieren“."}
         </div>
       )}

@@ -18,7 +18,7 @@ const STATUS_CLASS: Record<PackageStatus, string> = {
   verfuegbar: "bg-emerald-50 text-emerald-700 ring-emerald-200",
   pilot: "bg-sky-50 text-sky-700 ring-sky-200",
   vormerkung: "bg-amber-50 text-amber-700 ring-amber-200",
-  bald: "bg-slate-100 text-[rgb(var(--muted))] ring-slate-200",
+  bald: "bg-[rgb(var(--bg))] text-[rgb(var(--muted))] ring-[rgb(var(--border))]",
 };
 
 function cx(...classes: Array<string | false | null | undefined>) {
@@ -55,7 +55,7 @@ function PackagesGrid({ packages }: PackagesGridProps) {
           <article className="rounded-[22px] bg-[rgb(var(--card))] p-6">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
                   {pkg.zielgruppe}
                 </p>
                 <h3 className="mt-1 text-xl font-semibold text-[rgb(var(--fg))]">{pkg.titel}</h3>
@@ -120,7 +120,7 @@ function PackagesGrid({ packages }: PackagesGridProps) {
               ) : null}
             </div>
 
-            <p className="mt-4 text-xs text-slate-500">
+            <p className="mt-4 text-xs text-[rgb(var(--muted))]">
               {pkg.id.startsWith("b2b_") || pkg.id.startsWith("b2g_")
                 ? "Vormerkung = unverbindlich. Wir klaeren Setup, Umfang und Starttermin."
                 : "Vormerkung = unverbindlich. Keine Zahlung, kein Abo."}

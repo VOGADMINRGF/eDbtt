@@ -32,8 +32,8 @@ export function VoteButtons({ statementId }: Props) {
   }
 
   return (
-    <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-4">
-      <p className="text-sm font-semibold text-slate-900">Deine Stimme</p>
+    <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4">
+      <p className="text-sm font-semibold text-[rgb(var(--fg))]">Deine Stimme</p>
       <div className="mt-3 flex flex-wrap gap-2">
         <button
           type="button"
@@ -53,7 +53,7 @@ export function VoteButtons({ statementId }: Props) {
         </button>
         <button
           type="button"
-          className="rounded-full bg-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 disabled:opacity-50"
+          className="rounded-full bg-[rgb(var(--bg))] px-4 py-2 text-sm font-semibold text-[rgb(var(--muted))] disabled:opacity-50"
           disabled={status === "submitting"}
           onClick={() => cast("skip")}
         >
@@ -63,7 +63,7 @@ export function VoteButtons({ statementId }: Props) {
       {message && (
         <p
           className={`mt-2 text-sm ${
-            status === "success" ? "text-emerald-600" : status === "error" ? "text-rose-600" : "text-slate-600"
+            status === "success" ? "text-emerald-600" : status === "error" ? "text-rose-600" : "text-[rgb(var(--muted))]"
           }`}
         >
           {message}

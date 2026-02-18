@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import AnalyzeWorkspace from "@/components/analyze/AnalyzeWorkspace";
+import AnalyzeWorkspace, { type UseCaseAccess, type UseCaseId } from "@/components/analyze/AnalyzeWorkspace";
 import type { AccountOverview } from "@features/account/types";
 import { getAccessTierConfigForUser, getUserAccessTier, hasUnlimitedContributions } from "@core/access/accessTiers";
 import type { VerificationLevel } from "@core/auth/verificationTypes";
@@ -24,6 +24,48 @@ function deriveGateFromOverview(overview?: AccountOverview | null): GateState {
   const hasCredits = (overview.stats?.contributionCredits ?? 0) > 0;
   const allowed = hasUnlimitedContributions(tier) || (tierLimit > 0 && hasCredits);
   return { status: allowed ? "allowed" : "blocked", overview };
+}
+
+function deriveUseCaseAccess(overview?: AccountOverview | null): UseCaseAccess {
+  const roles = (overview?.roles ?? []).map((r) => String(r).toLowerCase());
+  const tier = overview ? getUserAccessTier(overview) : "citizenBasic";
+  const isStaff = roles.some((r) => ["admin", "superadmin", "staff", "moderator"].includes(r));
+  const isMedia = roles.some((r) =>
+    ["redaktion", "editor", "journalist", "journalism", "media", "presse", "tv"].includes(r),
+  );
+  const isAgenda =
+    roles.some((r) =>
+      ["verwaltung", "agenda", "org", "org_admin", "org_manager", "ngo", "politics", "party", "b2b", "b2g"].includes(r),
+    ) || tier.startsWith("institution");
+
+  let allowed: UseCaseId[] = ["civic"];
+  let note = "Dein Bereich ist festgelegt. Fuer andere Use Cases brauchst du das passende Paket.";
+
+  if (isStaff) {
+    allowed = ["civic", "journalism", "agenda"];
+    note = "Staff-Zugang: alle Use Cases sind freigeschaltet.";
+  } else if (isMedia) {
+    allowed = ["journalism"];
+    note = "Journalismus/Medien: Zugriff nur fuer journalistische Formate.";
+  } else if (isAgenda) {
+    allowed = ["agenda"];
+    note = "Verwaltung/Organisation: Zugriff nur fuer Agenda- und Verwaltungsformate.";
+  } else {
+    allowed = ["civic"];
+    note = "Buergerbereich: Zugriff fuer Beitraege und Projekte.";
+  }
+
+  return {
+    allowed,
+    note,
+    lockLabels: {
+      civic: "Buerger-Bereich",
+      journalism: "Nur Journalismus/Medien",
+      agenda: "Nur Verwaltung/Organisationen",
+    },
+    ctaHref: "/pricing",
+    ctaLabel: "Upgrade",
+  };
 }
 
 export function ContributionNewClient({ initialOverview }: ContributionNewClientProps) {
@@ -69,7 +111,7 @@ export function ContributionNewClient({ initialOverview }: ContributionNewClient
 
   if (gate.status === "loading") {
     return (
-      <main className="mx-auto max-w-4xl px-4 py-12 text-center text-slate-500">
+      <main className="mx-auto max-w-4xl px-4 py-12 text-center text-[rgb(var(--muted))]">
         Lade dein Profil …
       </main>
     );
@@ -81,10 +123,13 @@ export function ContributionNewClient({ initialOverview }: ContributionNewClient
     return <ContributionGate variant="blocked" overview={gate.overview} />;
   }
 
+  const overview = gate.overview;
+  const useCaseAccess = deriveUseCaseAccess(overview);
+
   return (
     <AnalyzeWorkspace
       mode="contribution"
-      defaultLevel={2}
+      defaultLevel={1}
       storageKey="vog_contribution_draft_v2"
       analyzeEndpoint="/api/contributions/analyze"
       saveEndpoint="/api/contributions/save"
@@ -92,6 +137,8 @@ export function ContributionNewClient({ initialOverview }: ContributionNewClient
       afterFinalizeNavigateTo="/swipes"
       verificationLevel={verificationLevel}
       verificationStatus={levelStatus}
+      authorName={overview?.displayName ?? overview?.profile?.headline ?? ""}
+      useCaseAccess={useCaseAccess}
     />
   );
 }
@@ -124,12 +171,12 @@ function ContributionGate({ variant, overview }: ContributionGateProps) {
 
   return (
     <main className="mx-auto max-w-4xl px-4 py-12">
-      <div className="space-y-6 rounded-4xl border border-slate-200 bg-white/95 p-8 shadow-xl">
+      <div className="space-y-6 rounded-4xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-8 shadow-xl">
         <div>
-          <p className="text-xs uppercase tracking-wide text-slate-500">Citizen Core Journey</p>
-          <h1 className="mt-2 text-3xl font-semibold text-slate-900">{title}</h1>
-          <p className="mt-3 text-base text-slate-600">{description}</p>
-          <p className="mt-2 text-sm text-slate-500">
+          <p className="text-xs uppercase tracking-wide text-[rgb(var(--muted))]">Citizen Core Journey</p>
+          <h1 className="mt-2 text-3xl font-semibold text-[rgb(var(--fg))]">{title}</h1>
+          <p className="mt-3 text-base text-[rgb(var(--muted))]">{description}</p>
+          <p className="mt-2 text-sm text-[rgb(var(--muted))]">
             Beim Abschicken eines Beitrags im Free-Plan wird genau 1 Contribution-Credit verbraucht.
           </p>
         </div>
@@ -153,7 +200,7 @@ function ContributionGate({ variant, overview }: ContributionGateProps) {
           </a>
           <a
             href="/pricing"
-            className="flex-1 rounded-full border border-slate-200 px-5 py-3 text-center font-semibold text-slate-700"
+            className="flex-1 rounded-full border border-[rgb(var(--border))] px-5 py-3 text-center font-semibold text-[rgb(var(--muted))]"
           >
             Pakete & Preise
           </a>
@@ -165,10 +212,10 @@ function ContributionGate({ variant, overview }: ContributionGateProps) {
 
 function StatBox({ label, value, hint }: { label: string; value: string | number; hint?: string }) {
   return (
-    <div className="rounded-3xl border border-slate-100 bg-slate-50/80 p-4">
-      <p className="text-xs uppercase tracking-wide text-slate-500">{label}</p>
-      <p className="text-xl font-semibold text-slate-900">{value}</p>
-      {hint && <p className="text-xs text-slate-500">{hint}</p>}
+    <div className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4">
+      <p className="text-xs uppercase tracking-wide text-[rgb(var(--muted))]">{label}</p>
+      <p className="text-xl font-semibold text-[rgb(var(--fg))]">{value}</p>
+      {hint && <p className="text-xs text-[rgb(var(--muted))]">{hint}</p>}
     </div>
   );
 }

@@ -43,12 +43,12 @@ export default function ContributionsAnalyzeLevel3Page() {
       <div className="container-vog py-8">
         <header className="mb-6 text-center">
           <h1 className="vog-head mb-2">Themen-Reports & Wissensstände</h1>
-          <p className="max-w-3xl mx-auto text-sm text-slate-600">
+          <p className="max-w-3xl mx-auto text-sm text-[rgb(var(--muted))]">
             Hier bündelt eDebatte Aussagen, Belege und offene Fragen zu zentralen Knoten
             (z.B. Tierschutz ↔ Agrarwirtschaft). Diese Ebene ist für Reports, Politik, Medien und
             Forschung gedacht.
           </p>
-          <p className="mt-2 text-[11px] text-slate-400">
+          <p className="mt-2 text-[11px] text-[rgb(var(--muted))]">
             Die Daten stammen aus Bürger-Beiträgen (Stufe 1), strukturierten Analysen (Stufe 2), Newsfeeds und
             weiteren Quellen.
           </p>
@@ -58,21 +58,21 @@ export default function ContributionsAnalyzeLevel3Page() {
           {MOCK_TOPICS.map((t) => (
             <article
               key={t.id}
-              className="rounded-3xl bg-white/95 border border-slate-100 shadow-sm p-4 sm:p-5 flex flex-col gap-3"
+              className="rounded-3xl bg-[rgb(var(--card))] border border-[rgb(var(--border))] shadow-sm p-4 sm:p-5 flex flex-col gap-3"
             >
               <header className="flex items-start justify-between gap-2">
                 <div>
-                  <h2 className="text-sm font-semibold text-slate-900 mb-1">
+                  <h2 className="text-sm font-semibold text-[rgb(var(--fg))] mb-1">
                     {t.label}
                   </h2>
-                  <p className="text-xs text-slate-600">{t.description}</p>
+                  <p className="text-xs text-[rgb(var(--muted))]">{t.description}</p>
                 </div>
-                <span className="text-[10px] text-slate-400">
+                <span className="text-[10px] text-[rgb(var(--muted))]">
                   Stand: {t.lastUpdated}
                 </span>
               </header>
 
-              <dl className="grid grid-cols-3 gap-2 text-[11px] text-slate-600">
+              <dl className="grid grid-cols-3 gap-2 text-[11px] text-[rgb(var(--muted))]">
                 <div className="rounded-2xl bg-sky-50 px-3 py-2">
                   <dt className="text-[10px] uppercase text-sky-700 mb-0.5">
                     Aussagen
@@ -93,7 +93,7 @@ export default function ContributionsAnalyzeLevel3Page() {
                 </div>
               </dl>
 
-              <div className="flex items-center justify-between text-[11px] text-slate-500">
+              <div className="flex items-center justify-between text-[11px] text-[rgb(var(--muted))]">
                 <div>
                   Fokus-Länder: {t.countries.join(", ")}
                 </div>

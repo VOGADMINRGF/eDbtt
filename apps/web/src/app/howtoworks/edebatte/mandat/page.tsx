@@ -65,7 +65,7 @@ export default function MandatPage() {
   );
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-[var(--brand-from)] via-white to-white pb-16">
+    <main className="min-h-screen bg-[rgb(var(--bg))] pb-16">
       <section className="mx-auto max-w-5xl px-4 py-16 space-y-10">
         <header className="space-y-4">
           <p className="text-xs font-semibold uppercase tracking-wide text-sky-700">
@@ -74,8 +74,8 @@ export default function MandatPage() {
           <h1 className="headline-grad text-4xl font-extrabold leading-tight">
             {text(hero, "title")}
           </h1>
-          <p className="text-lg text-slate-700">{text(hero, "lead")}</p>
-          <div className="flex flex-wrap gap-2 text-xs font-medium text-slate-700">
+          <p className="text-lg text-[rgb(var(--muted))]">{text(hero, "lead")}</p>
+          <div className="flex flex-wrap gap-2 text-xs font-medium text-[rgb(var(--muted))]">
             {heroChips.map((chip, idx) => (
               <span
                 key={chip}
@@ -96,7 +96,7 @@ export default function MandatPage() {
           </div>
         </header>
 
-        <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white/90 shadow-sm">
+        <div className="overflow-hidden rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] shadow-sm">
           <div className="aspect-[16/9]">
             <img
               src={heroImage.src}
@@ -107,23 +107,23 @@ export default function MandatPage() {
           </div>
         </div>
 
-        <section className="rounded-2xl border border-slate-200 bg-white/90 p-4 shadow-sm">
-          <h2 className="text-base font-semibold text-slate-900">{text(overview, "title")}</h2>
-          <p className="mt-2 text-sm text-slate-700">{text(overview, "body")}</p>
+        <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm">
+          <h2 className="text-base font-semibold text-[rgb(var(--fg))]">{text(overview, "title")}</h2>
+          <p className="mt-2 text-sm text-[rgb(var(--muted))]">{text(overview, "body")}</p>
         </section>
 
         <section className="grid gap-4 md:grid-cols-2">
-          <article className="rounded-2xl border border-slate-200 bg-white/90 p-4 shadow-sm">
-            <h2 className="text-base font-semibold text-slate-900">{text(features, "title")}</h2>
-            <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-slate-700">
+          <article className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm">
+            <h2 className="text-base font-semibold text-[rgb(var(--fg))]">{text(features, "title")}</h2>
+            <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-[rgb(var(--muted))]">
               {features.items_de.map((item, idx) => (
                 <li key={item}>{t(item, `features.${idx}`)}</li>
               ))}
             </ul>
           </article>
-          <article className="rounded-2xl border border-slate-200 bg-white/90 p-4 shadow-sm">
-            <h2 className="text-base font-semibold text-slate-900">{text(outputs, "title")}</h2>
-            <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-slate-700">
+          <article className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm">
+            <h2 className="text-base font-semibold text-[rgb(var(--fg))]">{text(outputs, "title")}</h2>
+            <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-[rgb(var(--muted))]">
               {outputs.items_de.map((item, idx) => (
                 <li key={item}>{t(item, `outputs.${idx}`)}</li>
               ))}
@@ -131,9 +131,9 @@ export default function MandatPage() {
           </article>
         </section>
 
-        <section className="rounded-2xl border border-slate-200 bg-white/90 p-4 shadow-sm">
-          <h2 className="text-base font-semibold text-slate-900">{text(example, "title")}</h2>
-          <p className="mt-2 text-sm text-slate-700">{text(example, "body")}</p>
+        <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm">
+          <h2 className="text-base font-semibold text-[rgb(var(--fg))]">{text(example, "title")}</h2>
+          <p className="mt-2 text-sm text-[rgb(var(--muted))]">{text(example, "body")}</p>
         </section>
       </section>
     </main>

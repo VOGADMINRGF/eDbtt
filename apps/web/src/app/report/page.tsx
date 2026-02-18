@@ -64,8 +64,8 @@ export default async function Page() {
         <div className="mx-auto flex max-w-5xl flex-col gap-6 px-4">
           <header className="space-y-2">
             <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-sky-600">Reports</p>
-            <h1 className="text-2xl font-semibold text-slate-900 md:text-3xl">Deine Reports</h1>
-            <p className="text-sm text-slate-600">Berichte zu Dossiers, Themen und Kampagnen. Verifizierte Accounts sehen den vollständigen Export.</p>
+            <h1 className="text-2xl font-semibold text-[rgb(var(--fg))] md:text-3xl">Deine Reports</h1>
+            <p className="text-sm text-[rgb(var(--muted))]">Berichte zu Dossiers, Themen und Kampagnen. Verifizierte Accounts sehen den vollständigen Export.</p>
           </header>
           <ReportPage initial={initial} />
         </div>

@@ -40,7 +40,7 @@ export default function SetBuilder({ selected, onChange }: Props) {
                     ref={prov.innerRef}
                     {...prov.draggableProps}
                     {...prov.dragHandleProps}
-                    className="border p-2 mb-2 rounded bg-white shadow flex justify-between items-center"
+                    className="border p-2 mb-2 rounded bg-[rgb(var(--card))] shadow flex justify-between items-center"
                   >
                     <span className="font-medium">
                       {item.title || item.topic || "Ohne Titel"}

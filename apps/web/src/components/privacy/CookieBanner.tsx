@@ -78,15 +78,15 @@ export function CookieBanner({ strings, initialConsent }: CookieBannerProps) {
 
   return (
     <div className="pointer-events-none fixed bottom-4 left-0 right-0 z-50 flex justify-center px-3">
-      <div className="pointer-events-auto w-full max-w-4xl rounded-2xl border border-emerald-100 bg-white/95 shadow-[0_20px_60px_rgba(16,185,129,0.18)] backdrop-blur">
+      <div className="pointer-events-auto w-full max-w-4xl rounded-2xl border border-emerald-100 bg-[rgb(var(--card))] shadow-[0_20px_60px_rgba(16,185,129,0.18)] backdrop-blur">
         <div className="grid gap-4 p-4 md:grid-cols-[1.4fr_1fr] md:p-6">
           <div className="space-y-2">
             <div className="inline-flex items-center rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-800">
               {copy.banner.title}
             </div>
-            <p className="text-sm text-slate-700">{copy.banner.lead}</p>
-            <p className="text-[11px] text-slate-600">{copy.dialog.aiUsageBody}</p>
-            <div className="flex flex-wrap gap-4 text-xs text-slate-600">
+            <p className="text-sm text-[rgb(var(--muted))]">{copy.banner.lead}</p>
+            <p className="text-[11px] text-[rgb(var(--muted))]">{copy.dialog.aiUsageBody}</p>
+            <div className="flex flex-wrap gap-4 text-xs text-[rgb(var(--muted))]">
               <Link href="/datenschutz" className="font-semibold text-emerald-700 underline underline-offset-2">
                 {copy.banner.links.privacy}
               </Link>
@@ -104,7 +104,7 @@ export function CookieBanner({ strings, initialConsent }: CookieBannerProps) {
               <p className="text-xs font-semibold text-emerald-900">{copy.banner.essentialTitle}</p>
               <p className="text-xs text-emerald-800">{copy.banner.essentialBody}</p>
             </div>
-            <div className="space-y-2 rounded-lg border border-white/40 bg-white/70 p-3">
+            <div className="space-y-2 rounded-lg border border-white/40 bg-[rgb(var(--card))] p-3">
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <p className="text-xs font-semibold text-emerald-900">{copy.banner.analyticsTitle}</p>
@@ -118,7 +118,7 @@ export function CookieBanner({ strings, initialConsent }: CookieBannerProps) {
                     onChange={(e) => setAnalyticsOptIn(e.target.checked)}
                   />
                   <div className="h-6 w-11 rounded-full bg-emerald-200 transition peer-checked:bg-emerald-500" />
-                  <div className="absolute left-1 top-1 h-4 w-4 rounded-full bg-white shadow transition peer-checked:translate-x-5" />
+                  <div className="absolute left-1 top-1 h-4 w-4 rounded-full bg-[rgb(var(--card))] shadow transition peer-checked:translate-x-5" />
                 </label>
               </div>
               {settingsOpen && (
@@ -137,7 +137,7 @@ export function CookieBanner({ strings, initialConsent }: CookieBannerProps) {
               </button>
               <button
                 type="button"
-                className="flex-1 rounded-full border border-emerald-300 bg-white px-4 py-2 text-emerald-800 hover:bg-emerald-50"
+                className="flex-1 rounded-full border border-emerald-300 bg-[rgb(var(--card))] px-4 py-2 text-emerald-800 hover:bg-emerald-50"
                 onClick={() => persistConsent({ essential: true, analytics: false })}
               >
                 {copy.banner.buttons.onlyEssential}
@@ -151,7 +151,7 @@ export function CookieBanner({ strings, initialConsent }: CookieBannerProps) {
               </button>
             </div>
             {settingsOpen && (
-              <div className="space-y-1 rounded-lg bg-white/60 p-3 text-[11px] text-emerald-800">
+              <div className="space-y-1 rounded-lg bg-[rgb(var(--card))] p-3 text-[11px] text-emerald-800">
                 <p className="font-semibold">{copy.dialog.title}</p>
                 <p>{copy.dialog.aiUsageBody}</p>
               </div>

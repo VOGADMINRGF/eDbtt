@@ -46,16 +46,16 @@ export function HeaderLoginInline({ redirectTo }: { redirectTo?: string }) {
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="rounded-full border border-slate-200 px-4 py-1 text-slate-700 transition hover:bg-slate-100"
+        className="rounded-full border border-[rgb(var(--border))] px-4 py-1 text-[rgb(var(--muted))] transition hover:bg-[rgb(var(--bg))]"
       >
         Login
       </button>
       {open && (
-        <div className="absolute right-0 mt-2 w-72 rounded-2xl border border-slate-200 bg-white p-4 text-sm shadow-xl">
+        <div className="absolute right-0 mt-2 w-72 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 text-sm shadow-xl">
           {step === "credentials" && (
             <form onSubmit={handleCredentials} className="space-y-3">
               <input
-                className="w-full rounded-md border border-slate-300 px-3 py-2"
+                className="w-full rounded-md border border-[rgb(var(--border))] px-3 py-2"
                 placeholder="E-Mail oder Nickname"
                 value={identifier}
                 onChange={(e) => setIdentifier(e.target.value)}
@@ -63,7 +63,7 @@ export function HeaderLoginInline({ redirectTo }: { redirectTo?: string }) {
                 required
               />
               <input
-                className="w-full rounded-md border border-slate-300 px-3 py-2"
+                className="w-full rounded-md border border-[rgb(var(--border))] px-3 py-2"
                 placeholder="Passwort"
                 type="password"
                 value={password}
@@ -84,13 +84,13 @@ export function HeaderLoginInline({ redirectTo }: { redirectTo?: string }) {
 
           {step === "twofactor" && (
             <form onSubmit={handleCode} className="space-y-3">
-              <p className="text-slate-700">
+              <p className="text-[rgb(var(--muted))]">
                 {method === "email"
                   ? "Wir haben dir einen 6-stelligen Code per E-Mail gesendet."
                   : "Bitte Code aus deiner Authenticator-App eingeben."}
               </p>
               <input
-                className="w-full rounded-md border border-slate-300 px-3 py-2"
+                className="w-full rounded-md border border-[rgb(var(--border))] px-3 py-2"
                 placeholder="Sicherheitscode"
                 value={code}
                 onChange={(e) => setCode(e.target.value)}
@@ -109,7 +109,7 @@ export function HeaderLoginInline({ redirectTo }: { redirectTo?: string }) {
                 </button>
                 <button
                   type="button"
-                  className="rounded-md border border-slate-300 px-3 py-2 text-slate-700"
+                  className="rounded-md border border-[rgb(var(--border))] px-3 py-2 text-[rgb(var(--muted))]"
                   onClick={reset}
                 >
                   Zurück

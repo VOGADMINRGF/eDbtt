@@ -54,9 +54,9 @@ export default function AdminProjectsPage() {
   return (
     <main className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-8">
       <header className="space-y-2">
-        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Admin · Projekte</p>
-        <h1 className="text-2xl font-bold text-slate-900">Projekt-Backbone</h1>
-        <p className="text-sm text-slate-600">Themenpakete und Optionen verwalten.</p>
+        <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Admin · Projekte</p>
+        <h1 className="text-2xl font-bold text-[rgb(var(--fg))]">Projekt-Backbone</h1>
+        <p className="text-sm text-[rgb(var(--muted))]">Themenpakete und Optionen verwalten.</p>
       </header>
 
       <div className="flex flex-wrap items-center gap-3">
@@ -66,7 +66,7 @@ export default function AdminProjectsPage() {
           onChange={(e) => setSearchTerm(e.target.value)}
           placeholder="Titel oder Region suchen..."
           aria-label="Projekte durchsuchen"
-          className="flex-1 rounded-full border border-slate-300 bg-white px-4 py-2 text-sm text-slate-700 shadow-sm sm:max-w-xs"
+          className="flex-1 rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-2 text-sm text-[rgb(var(--muted))] shadow-sm sm:max-w-xs"
         />
         <Link
           href="/dashboard/projects/new"
@@ -80,9 +80,9 @@ export default function AdminProjectsPage() {
         <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</div>
       )}
 
-      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <table className="min-w-full divide-y divide-slate-200 text-sm">
-          <thead className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+      <div className="overflow-hidden rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] shadow-sm">
+        <table className="min-w-full divide-y divide-[rgb(var(--border))] text-sm">
+          <thead className="bg-[rgb(var(--bg))] text-left text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
             <tr>
               <th className="px-4 py-3">Projekt</th>
               <th className="px-4 py-3">Region</th>
@@ -92,17 +92,17 @@ export default function AdminProjectsPage() {
               <th className="px-4 py-3 text-right">Aktion</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100">
+          <tbody className="divide-y divide-[rgb(var(--border))]">
             {loading && (
               <tr>
-                <td colSpan={6} className="px-4 py-6 text-center text-slate-500">
+                <td colSpan={6} className="px-4 py-6 text-center text-[rgb(var(--muted))]">
                   Laedt Projekte ...
                 </td>
               </tr>
             )}
             {!loading && filtered.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-4 py-6 text-center text-slate-500">
+                <td colSpan={6} className="px-4 py-6 text-center text-[rgb(var(--muted))]">
                   Keine Projekte gefunden.
                 </td>
               </tr>
@@ -111,17 +111,17 @@ export default function AdminProjectsPage() {
               filtered.map((row) => (
                 <tr key={row.id}>
                   <td className="px-4 py-3">
-                    <div className="font-semibold text-slate-800">{row.title}</div>
-                    <div className="text-xs text-slate-500">{new Date(row.createdAt).toLocaleDateString()}</div>
+                    <div className="font-semibold text-[rgb(var(--fg))]">{row.title}</div>
+                    <div className="text-xs text-[rgb(var(--muted))]">{new Date(row.createdAt).toLocaleDateString()}</div>
                   </td>
-                  <td className="px-4 py-3 text-slate-600">{row.regionCode ?? "–"}</td>
-                  <td className="px-4 py-3 text-slate-700">{row.topicsCount}</td>
-                  <td className="px-4 py-3 text-slate-700">{row.proposedOptions}</td>
-                  <td className="px-4 py-3 text-slate-700">{row.status}</td>
+                  <td className="px-4 py-3 text-[rgb(var(--muted))]">{row.regionCode ?? "–"}</td>
+                  <td className="px-4 py-3 text-[rgb(var(--muted))]">{row.topicsCount}</td>
+                  <td className="px-4 py-3 text-[rgb(var(--muted))]">{row.proposedOptions}</td>
+                  <td className="px-4 py-3 text-[rgb(var(--muted))]">{row.status}</td>
                   <td className="px-4 py-3 text-right">
                     <Link
                       href={`/admin/projects/${encodeURIComponent(row.id)}`}
-                      className="text-sm font-semibold text-slate-700 hover:text-slate-900"
+                      className="text-sm font-semibold text-[rgb(var(--muted))] hover:text-[rgb(var(--fg))]"
                     >
                       Details
                     </Link>

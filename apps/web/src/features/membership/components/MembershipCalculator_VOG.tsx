@@ -177,10 +177,10 @@ export function MembershipCalculator_VOG() {
 
       {household > 1 && (
         <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4">
-          <div className="text-sm font-semibold text-slate-800">
+          <div className="text-sm font-semibold text-[rgb(var(--fg))]">
             E-Mail je Person (≥ 16 Jahre)
           </div>
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-[rgb(var(--muted))]">
             Damit jede Person ihre eigene Bestätigung erhält.
           </p>
           <div className="mt-3 space-y-2">

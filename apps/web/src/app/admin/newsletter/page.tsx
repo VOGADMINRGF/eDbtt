@@ -111,18 +111,18 @@ export default function AdminNewsletterPage() {
           {accessError}
         </div>
       )}
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-3xl bg-white/90 p-4 shadow ring-1 ring-slate-100">
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-3xl bg-[rgb(var(--card))] p-4 shadow ring-1 ring-[rgb(var(--border))]">
         <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Newsletter</p>
-          <h2 className="text-lg font-semibold text-slate-900">Abonnenten</h2>
-          <p className="text-sm text-slate-600">{loading ? "Lade ..." : `${items.length} Einträge`}</p>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">Newsletter</p>
+          <h2 className="text-lg font-semibold text-[rgb(var(--fg))]">Abonnenten</h2>
+          <p className="text-sm text-[rgb(var(--muted))]">{loading ? "Lade ..." : `${items.length} Einträge`}</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Suche (E-Mail / Name)"
-            className="w-56 rounded-full border border-slate-200 bg-slate-50 px-3 py-2 text-sm focus:border-sky-300 focus:outline-none"
+            className="w-56 rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-sm focus:border-sky-300 focus:outline-none"
           />
           <button
             type="button"
@@ -135,20 +135,20 @@ export default function AdminNewsletterPage() {
         </div>
       </div>
 
-      <div className="rounded-3xl bg-white/90 p-4 shadow ring-1 ring-slate-100">
-        <p className="text-sm font-semibold text-slate-900">Abonnent hinzufügen</p>
+      <div className="rounded-3xl bg-[rgb(var(--card))] p-4 shadow ring-1 ring-[rgb(var(--border))]">
+        <p className="text-sm font-semibold text-[rgb(var(--fg))]">Abonnent hinzufügen</p>
         <div className="mt-2 flex flex-wrap gap-2">
           <input
             value={newEmail}
             onChange={(e) => setNewEmail(e.target.value)}
             placeholder="E-Mail"
-            className="w-56 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm focus:border-sky-300 focus:outline-none"
+            className="w-56 rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-sm focus:border-sky-300 focus:outline-none"
           />
           <input
             value={newName}
             onChange={(e) => setNewName(e.target.value)}
             placeholder="Name (optional)"
-            className="w-48 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm focus:border-sky-300 focus:outline-none"
+            className="w-48 rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-sm focus:border-sky-300 focus:outline-none"
           />
           <button
             type="button"
@@ -166,30 +166,30 @@ export default function AdminNewsletterPage() {
         {error && <p className="mt-2 text-sm text-rose-600">{error}</p>}
       </div>
 
-      <div className="overflow-hidden rounded-3xl bg-white/90 shadow ring-1 ring-slate-100">
-        <table className="min-w-full divide-y divide-slate-100 text-sm">
-          <thead className="bg-slate-50">
+      <div className="overflow-hidden rounded-3xl bg-[rgb(var(--card))] shadow ring-1 ring-[rgb(var(--border))]">
+        <table className="min-w-full divide-y divide-[rgb(var(--border))] text-sm">
+          <thead className="bg-[rgb(var(--bg))]">
             <tr>
-              <th className="px-3 py-2 text-left font-semibold text-slate-700">E-Mail</th>
-              <th className="px-3 py-2 text-left font-semibold text-slate-700">Name</th>
-              <th className="px-3 py-2 text-left font-semibold text-slate-700">Erstellt</th>
+              <th className="px-3 py-2 text-left font-semibold text-[rgb(var(--muted))]">E-Mail</th>
+              <th className="px-3 py-2 text-left font-semibold text-[rgb(var(--muted))]">Name</th>
+              <th className="px-3 py-2 text-left font-semibold text-[rgb(var(--muted))]">Erstellt</th>
               <th />
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100">
+          <tbody className="divide-y divide-[rgb(var(--border))]">
             {loading && (
               <tr>
-                <td colSpan={4} className="px-3 py-4 text-center text-slate-500">
+                <td colSpan={4} className="px-3 py-4 text-center text-[rgb(var(--muted))]">
                   Lädt …
                 </td>
               </tr>
             )}
             {!loading &&
               filteredItems.map((i) => (
-                <tr key={i.email} className="hover:bg-slate-50">
+                <tr key={i.email} className="hover:bg-[rgb(var(--bg))]">
                   <td className="px-3 py-2">{i.email}</td>
                   <td className="px-3 py-2">{i.name ?? "—"}</td>
-                  <td className="px-3 py-2 text-slate-600">{i.createdAt?.slice(0, 10) ?? "—"}</td>
+                  <td className="px-3 py-2 text-[rgb(var(--muted))]">{i.createdAt?.slice(0, 10) ?? "—"}</td>
                   <td className="px-3 py-2 text-right">
                     <button
                       type="button"
@@ -205,7 +205,7 @@ export default function AdminNewsletterPage() {
           </tbody>
         </table>
         {!loading && filteredItems.length === 0 && (
-          <p className="px-3 py-4 text-center text-sm text-slate-500">Keine Treffer.</p>
+          <p className="px-3 py-4 text-center text-sm text-[rgb(var(--muted))]">Keine Treffer.</p>
         )}
       </div>
     </div>

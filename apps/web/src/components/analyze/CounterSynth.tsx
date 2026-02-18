@@ -8,7 +8,7 @@ export default function CounterSynth({ text }:{ text:string }){
     <div className="vog-card p-4 space-y-2">
       <div className="font-semibold">Quick-Essenz</div>
       <div className="text-sm">{essence}</div>
-      <div className="text-xs text-slate-600">Confidence: {confidence} · Dissent: {dissent.length} offen</div>
+      <div className="text-xs text-[rgb(var(--muted))]">Confidence: {confidence} · Dissent: {dissent.length} offen</div>
       <ul className="text-xs list-disc ml-5">{dissent.map(d=><li key={d.id}>{d.title} – {d.status}</li>)}</ul>
     </div>
   );

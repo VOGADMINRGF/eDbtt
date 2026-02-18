@@ -5,7 +5,7 @@ import Link from "next/link";
 
 export default function Header() {
   return (
-    <header className="border-b bg-white">
+    <header className="border-b bg-[rgb(var(--card))]">
       <div className="mx-auto max-w-6xl px-4 py-3 flex items-center justify-between">
         <Link href="/" className="font-bold text-lg">eDebatte</Link>
         <nav className="flex gap-4 text-sm">

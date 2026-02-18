@@ -17,7 +17,7 @@ export function ThemaGrid({ items }: { items: Thema[] }) {
         <a
           key={item.href}
           href={item.href || "#"}
-          className="block p-5 rounded-2xl shadow-lg bg-white border transition hover:bg-indigo-50"
+          className="block p-5 rounded-2xl shadow-lg bg-[rgb(var(--card))] border transition hover:bg-indigo-50"
           style={{
             borderColor: item.color ?? colors.indigo,
             color: item.color ?? colors.indigo,

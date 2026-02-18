@@ -148,7 +148,7 @@ export default function SwipeCard({
   }
 
   return (
-    <div className="bg-white rounded-3xl shadow-lg p-7 max-w-2xl mx-auto my-10 relative">
+    <div className="bg-[rgb(var(--card))] rounded-3xl shadow-lg p-7 max-w-2xl mx-auto my-10 relative">
       {/* Header: Tags & Kategorie */}
       <div className="flex gap-2 mb-2 flex-wrap">
         {statement.tags?.map((t, i) => (
@@ -160,7 +160,7 @@ export default function SwipeCard({
           </span>
         ))}
         {scopeLabel && (
-          <span className="px-3 py-1 rounded-full bg-slate-100 text-slate-700 text-xs font-semibold">
+          <span className="px-3 py-1 rounded-full bg-[rgb(var(--bg))] text-[rgb(var(--muted))] text-xs font-semibold">
             {scopeLabel}
           </span>
         )}
@@ -208,7 +208,7 @@ export default function SwipeCard({
           <button
             key={btn.value}
             className={clsx(
-              "w-48 h-16 flex items-center justify-center border-2 rounded-full font-bold text-lg gap-2 bg-white",
+              "w-48 h-16 flex items-center justify-center border-2 rounded-full font-bold text-lg gap-2 bg-[rgb(var(--card))]",
               btn.color,
               mainVote === btn.value && "scale-110 shadow-md"
             )}
@@ -243,7 +243,7 @@ export default function SwipeCard({
                       className={clsx(
                         "w-8 h-8 rounded-full border-2 text-lg font-bold flex items-center justify-center",
                         v.color,
-                        altVotes[idx] === v.value ? "bg-gray-200 scale-110" : "bg-white"
+                        altVotes[idx] === v.value ? "bg-gray-200 scale-110" : "bg-[rgb(var(--card))]"
                       )}
                       onClick={() => handleAltVote(idx, v.value)}
                     >
@@ -276,17 +276,17 @@ export default function SwipeCard({
 
       {/* Kontext / Graph-Randinfo */}
       {hasContext && (
-        <details className="mt-4 rounded-2xl border border-slate-200 bg-slate-50/70 px-4 py-3 text-sm text-slate-700">
-          <summary className="cursor-pointer list-none font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-300 rounded-lg px-1 py-0.5">
+        <details className="mt-4 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-4 py-3 text-sm text-[rgb(var(--muted))]">
+          <summary className="cursor-pointer list-none font-semibold text-[rgb(var(--fg))] focus:outline-none focus:ring-2 focus:ring-[rgb(var(--border))] rounded-lg px-1 py-0.5">
             Warum sehe ich das?
           </summary>
           <div className="mt-2 space-y-2">
             {fallbackReason && (
-              <p className="text-sm text-slate-700">{fallbackReason}</p>
+              <p className="text-sm text-[rgb(var(--muted))]">{fallbackReason}</p>
             )}
             {related.length > 0 && (
               <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Verwandte Punkte</p>
+                <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Verwandte Punkte</p>
                 <ul className="mt-1 space-y-1">
                   {related.map((item, idx) => (
                     <li key={`${item.label}-${idx}`} className="flex items-center justify-between gap-2 text-sm">
@@ -295,10 +295,10 @@ export default function SwipeCard({
                           {item.label}
                         </a>
                       ) : (
-                        <span className="font-semibold text-slate-800">{item.label}</span>
+                        <span className="font-semibold text-[rgb(var(--fg))]">{item.label}</span>
                       )}
                       {item.relation && (
-                        <span className="rounded-full bg-white px-2 py-0.5 text-[11px] font-semibold text-slate-600">
+                        <span className="rounded-full bg-[rgb(var(--card))] px-2 py-0.5 text-[11px] font-semibold text-[rgb(var(--muted))]">
                           {item.relation}
                         </span>
                       )}
@@ -310,7 +310,7 @@ export default function SwipeCard({
             {(contextPanel?.dossierHref || autoDossierHref) && (
               <a
                 href={contextPanel?.dossierHref ?? autoDossierHref}
-                className="inline-flex items-center rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-700 hover:border-slate-300"
+                className="inline-flex items-center rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-1 text-xs font-semibold text-[rgb(var(--muted))] hover:border-[rgb(var(--border))]"
               >
                 Dossier öffnen
               </a>

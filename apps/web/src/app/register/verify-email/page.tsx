@@ -132,15 +132,15 @@ export default function VerifyEmailPage() {
     <div className="mx-auto flex max-w-2xl flex-col gap-6 p-6">
       <RegisterStepper current={2} />
       <header className="space-y-2">
-        <h1 className="text-2xl font-semibold text-slate-900">Schritt 2 · E-Mail bestätigen</h1>
-        <p className="text-sm text-slate-600">
+        <h1 className="text-2xl font-semibold text-[rgb(var(--fg))]">Schritt 2 · E-Mail bestätigen</h1>
+        <p className="text-sm text-[rgb(var(--muted))]">
           Wir haben dir einen Bestätigungslink {emailParam && `an ${emailParam}`} geschickt. Der Link ist{" "}
           {TOKEN_VALIDITY_HOURS} Stunden gültig. Öffne die E-Mail und bestätige den Link oder gib den Sicherheitscode
           hier ein.
         </p>
       </header>
 
-      <section className="rounded-3xl border border-slate-200 bg-white/90 p-6 shadow-sm">
+      <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-6 shadow-sm">
         <form
           onSubmit={(e) => {
             e.preventDefault();
@@ -148,11 +148,11 @@ export default function VerifyEmailPage() {
           }}
           className="space-y-4"
         >
-          <label className="block text-sm font-semibold text-slate-700">
+          <label className="block text-sm font-semibold text-[rgb(var(--muted))]">
             Verifizierungs-Code
             <input
               type="text"
-              className="mt-1 w-full rounded-2xl border border-slate-200 px-4 py-2 text-sm"
+              className="mt-1 w-full rounded-2xl border border-[rgb(var(--border))] px-4 py-2 text-sm"
               value={token}
               onChange={(e) => setToken(e.target.value)}
               placeholder="Token aus der E-Mail"
@@ -162,7 +162,7 @@ export default function VerifyEmailPage() {
           {message && (
             <p
               className={`text-sm ${
-                state === "error" ? "text-rose-600" : state === "success" ? "text-emerald-600" : "text-slate-600"
+                state === "error" ? "text-rose-600" : state === "success" ? "text-emerald-600" : "text-[rgb(var(--muted))]"
               }`}
             >
               {message}
@@ -188,7 +188,7 @@ export default function VerifyEmailPage() {
         </form>
       </section>
 
-      <section className="rounded-2xl border border-slate-200 bg-slate-50/80 p-4 text-sm text-slate-600">
+      <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4 text-sm text-[rgb(var(--muted))]">
         <p>Kein Zugriff auf dein Postfach?</p>
         <ul className="mt-2 list-disc pl-5">
           <li>Prüfe auch Spam-Ordner.</li>

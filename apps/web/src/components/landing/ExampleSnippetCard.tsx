@@ -14,11 +14,11 @@ const EU_FLAG = String.fromCodePoint(0x1f1ea, 0x1f1fa);
 const REGION_PLACE = "🏘️";
 
 const TOPIC_TONES = [
-  "border-sky-200/80 bg-sky-100/70 text-sky-700",
-  "border-cyan-200/80 bg-cyan-100/70 text-cyan-700",
-  "border-indigo-200/80 bg-indigo-100/70 text-indigo-700",
-  "border-blue-200/80 bg-blue-100/70 text-blue-700",
-  "border-teal-200/80 bg-teal-100/70 text-teal-700",
+  "border-sky-400 dark:border-sky-400/35 dark:bg-sky-500/15 dark:text-sky-200",
+  "border-cyan-400 dark:border-cyan-400/35 dark:bg-cyan-500/15 dark:text-cyan-200",
+  "border-indigo-400 dark:border-indigo-400/35 dark:bg-indigo-500/15 dark:text-indigo-200",
+  "border-blue-400 dark:border-blue-400/35 dark:bg-blue-500/15 dark:text-blue-200",
+  "border-teal-400 dark:border-teal-400/35 dark:bg-teal-500/15 dark:text-teal-200",
 ];
 
 function stableHash(input: string) {
@@ -174,11 +174,12 @@ export function ExampleSnippetCard(props: {
   return (
     <div
       className={[
-        "rounded-2xl border border-white/60 bg-gradient-to-br from-white/95 via-white/90 to-sky-50/80",
-        "shadow-[0_12px_40px_rgba(15,23,42,0.12)]",
+        "rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))]",
+        "shadow-[0_12px_40px_rgba(2,6,23,0.18)]",
         "px-4 py-3",
-        "backdrop-blur-[3px]",
-        interactive ? "transition hover:-translate-y-[1px] hover:shadow-[0_18px_50px_rgba(15,23,42,0.16)]" : "",
+        interactive
+          ? "transition hover:-translate-y-[1px] hover:shadow-[0_18px_50px_rgba(2,6,23,0.28)]"
+          : "",
         interactive ? "pointer-events-auto" : "pointer-events-none",
         interactive ? "cursor-pointer" : "",
       ].join(" ")}
@@ -203,7 +204,7 @@ export function ExampleSnippetCard(props: {
       }}
     >
       <div className="mb-2 flex flex-wrap items-center gap-2">
-        <span className="inline-flex items-center gap-2 rounded-full border border-black/10 bg-white/85 px-2.5 py-1 text-[11px] font-semibold text-black/65">
+        <span className="inline-flex items-center gap-2 rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-2.5 py-1 text-[11px] font-semibold text-[rgb(var(--fg))]">
           {badge.kind === "crest" ? (
             <StateCrestBadge regionCode={badge.regionCode} size={14} className="shrink-0" />
           ) : (
@@ -212,10 +213,10 @@ export function ExampleSnippetCard(props: {
           <span>{badge.label}</span>
         </span>
         <span
-          className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-semibold ${
+          className={`inline-flex items-center gap-1.5 rounded-full border bg-[rgb(var(--card))] px-2.5 py-1 text-[11px] font-semibold text-[rgb(var(--fg))] ${
             isVote
-              ? "border-sky-200 bg-sky-100 text-sky-700"
-              : "border-cyan-200 bg-cyan-100 text-cyan-700"
+              ? "border-sky-400 dark:border-sky-400/35 dark:bg-sky-500/15 dark:text-sky-200"
+              : "border-cyan-400 dark:border-cyan-400/35 dark:bg-cyan-500/15 dark:text-cyan-200"
           }`}
         >
           <LandingKindIcon kind={isVote ? "vote" : "topic"} className="h-3.5 w-3.5" />
@@ -224,7 +225,7 @@ export function ExampleSnippetCard(props: {
         {topics.slice(0, compact ? 1 : 2).map((topic) => (
           <span
             key={topic}
-            className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-semibold ${topicTone(
+            className={`inline-flex items-center rounded-full border bg-[rgb(var(--card))] px-2.5 py-1 text-[11px] font-semibold text-[rgb(var(--fg))] ${topicTone(
               topic,
             )}`}
           >
@@ -233,9 +234,9 @@ export function ExampleSnippetCard(props: {
         ))}
       </div>
 
-      <div className="line-clamp-2 text-sm font-semibold text-black/80">{title}</div>
+      <div className="line-clamp-2 text-sm font-semibold text-[rgb(var(--fg))]">{title}</div>
 
-      <div className="mt-2 flex items-center justify-between text-[11px] text-black/45">
+      <div className="mt-2 flex items-center justify-between text-[11px] text-[rgb(var(--muted))]">
         <div className="flex items-center gap-3">
           {participants && (
             <span>

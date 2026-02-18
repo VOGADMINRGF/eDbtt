@@ -10,16 +10,16 @@ export default function StreamPage() {
   const canSeeViews = ["admin", "superadmin", "moderator", "creator"].includes(role);
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-[var(--brand-from)] via-white to-white pb-16">
+    <main className="min-h-screen bg-[rgb(var(--bg))] pb-16">
       <section className="mx-auto max-w-6xl px-4 py-12 space-y-6">
         <header className="space-y-3">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-sky-600">
             Live &amp; Replay
           </p>
-          <h1 className="text-3xl font-extrabold text-slate-900 md:text-4xl">
+          <h1 className="text-3xl font-extrabold text-[rgb(var(--fg))] md:text-4xl">
             Streams zu aktuellen Themen
           </h1>
-          <p className="text-sm text-slate-600 md:text-base">
+          <p className="text-sm text-[rgb(var(--muted))] md:text-base">
             Schau live rein, diskutier mit und verfolge die wichtigsten Fragen im Kontext der
             aktuellen Debatten.
           </p>
@@ -41,7 +41,7 @@ export default function StreamPage() {
               </Link>
               <Link
                 href="/register?next=/stream"
-                className="inline-flex items-center justify-center rounded-full border border-sky-200 bg-white px-4 py-2 text-xs font-semibold text-sky-700 hover:border-sky-300"
+                className="inline-flex items-center justify-center rounded-full border border-sky-200 bg-[rgb(var(--card))] px-4 py-2 text-xs font-semibold text-sky-700 hover:border-sky-300"
               >
                 Konto anlegen
               </Link>
@@ -58,14 +58,14 @@ export default function StreamPage() {
             </p>
             <Link
               href="/verify?next=/stream"
-              className="mt-3 inline-flex items-center justify-center rounded-full border border-amber-200 bg-white px-4 py-2 text-xs font-semibold text-amber-900 hover:border-amber-300"
+              className="mt-3 inline-flex items-center justify-center rounded-full border border-amber-200 bg-[rgb(var(--card))] px-4 py-2 text-xs font-semibold text-amber-900 hover:border-amber-300"
             >
               Verifizierung starten
             </Link>
           </div>
         )}
 
-        <div className="rounded-3xl border border-slate-100 bg-white/95 p-4 shadow-[0_20px_60px_rgba(15,23,42,0.08)] md:p-6">
+        <div className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-[0_20px_60px_rgba(15,23,42,0.08)] md:p-6">
           <StreamList showViews={canSeeViews} />
         </div>
       </section>

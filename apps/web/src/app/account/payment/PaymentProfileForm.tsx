@@ -58,18 +58,18 @@ export function PaymentProfileForm({ initial }: PaymentProfileFormProps) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-3 rounded-2xl bg-slate-50/80 px-3 py-3 ring-1 ring-slate-100">
-      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-600">Bankverbindung ändern</p>
+    <form onSubmit={handleSubmit} className="space-y-3 rounded-2xl bg-[rgb(var(--bg))] px-3 py-3 ring-1 ring-[rgb(var(--border))]">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">Bankverbindung ändern</p>
 
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="space-y-1">
-          <label htmlFor="holderName" className="text-[11px] font-medium text-slate-700">
+          <label htmlFor="holderName" className="text-[11px] font-medium text-[rgb(var(--muted))]">
             Kontoinhaber:in
           </label>
           <input
             id="holderName"
             name="holderName"
-            className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 shadow-inner focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100"
+            className="w-full rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm text-[rgb(var(--fg))] shadow-inner focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100"
             value={holderName}
             onChange={(e) => setHolderName(e.target.value)}
             placeholder={initial?.holderName ?? "Vor- und Nachname / Organisation"}
@@ -78,13 +78,13 @@ export function PaymentProfileForm({ initial }: PaymentProfileFormProps) {
         </div>
 
         <div className="space-y-1">
-          <label htmlFor="bic" className="text-[11px] font-medium text-slate-700">
+          <label htmlFor="bic" className="text-[11px] font-medium text-[rgb(var(--muted))]">
             BIC (optional)
           </label>
           <input
             id="bic"
             name="bic"
-            className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 shadow-inner focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100"
+            className="w-full rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm text-[rgb(var(--fg))] shadow-inner focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100"
             value={bic}
             onChange={(e) => setBic(e.target.value)}
             placeholder="z.B. COLSDE33"
@@ -93,7 +93,7 @@ export function PaymentProfileForm({ initial }: PaymentProfileFormProps) {
       </div>
 
       <div className="space-y-1">
-        <label htmlFor="iban" className="text-[11px] font-medium text-slate-700">
+        <label htmlFor="iban" className="text-[11px] font-medium text-[rgb(var(--muted))]">
           IBAN
         </label>
         <input
@@ -101,13 +101,13 @@ export function PaymentProfileForm({ initial }: PaymentProfileFormProps) {
           name="iban"
           inputMode="text"
           autoComplete="off"
-          className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 shadow-inner focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100"
+          className="w-full rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm text-[rgb(var(--fg))] shadow-inner focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100"
           value={iban}
           onChange={(e) => setIban(e.target.value)}
           placeholder={initial?.ibanMasked ?? "DE00 0000 0000 0000 0000 00"}
           required
         />
-        <p className="text-[11px] text-slate-500">IBAN wird geprüft und nur maskiert gespeichert.</p>
+        <p className="text-[11px] text-[rgb(var(--muted))]">IBAN wird geprüft und nur maskiert gespeichert.</p>
       </div>
 
       {message && <p className="text-[11px] font-medium text-emerald-700">{message}</p>}

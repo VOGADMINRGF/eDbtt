@@ -69,16 +69,16 @@ export default function TopicReportPage() {
   return (
     <main className="mx-auto flex max-w-5xl flex-col gap-8 px-4 py-8">
       <header className="space-y-2">
-        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+        <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
           Reports · Topic
         </p>
-        <h1 className="text-3xl font-bold text-slate-900">Topic & Responsibility Report</h1>
-        <p className="text-sm text-slate-600">
+        <h1 className="text-3xl font-bold text-[rgb(var(--fg))]">Topic & Responsibility Report</h1>
+        <p className="text-sm text-[rgb(var(--muted))]">
           Aggregierte Statements aus dem Graph. Filter optional nach Topic/Locale.
         </p>
       </header>
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+      <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm">
         <form
           className="grid gap-4 md:grid-cols-3"
           onSubmit={(e) => {
@@ -86,19 +86,19 @@ export default function TopicReportPage() {
             loadReport();
           }}
         >
-          <label className="text-sm text-slate-600">
+          <label className="text-sm text-[rgb(var(--muted))]">
             Topic
             <input
-              className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-sky-400 focus:outline-none"
+              className="mt-1 w-full rounded-lg border border-[rgb(var(--border))] px-3 py-2 text-sm focus:border-sky-400 focus:outline-none"
               value={topic}
               onChange={(e) => setTopic(e.target.value)}
               placeholder="z.B. Energie"
             />
           </label>
-          <label className="text-sm text-slate-600">
+          <label className="text-sm text-[rgb(var(--muted))]">
             Locale
             <input
-              className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-sky-400 focus:outline-none"
+              className="mt-1 w-full rounded-lg border border-[rgb(var(--border))] px-3 py-2 text-sm focus:border-sky-400 focus:outline-none"
               value={locale}
               onChange={(e) => setLocale(e.target.value)}
               placeholder="de, en, ..."
@@ -117,28 +117,28 @@ export default function TopicReportPage() {
         {error && <p className="mt-2 text-sm text-rose-600">{error}</p>}
       </section>
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-        <h2 className="text-lg font-semibold text-slate-900">Responsibility Überblick</h2>
+      <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm">
+        <h2 className="text-lg font-semibold text-[rgb(var(--fg))]">Responsibility Überblick</h2>
         {stats.length === 0 ? (
-          <p className="mt-2 text-sm text-slate-500">
+          <p className="mt-2 text-sm text-[rgb(var(--muted))]">
             Keine Daten für diesen Filter. Prüfe Topic/Locale oder synchronisiere neue Analysen.
           </p>
         ) : (
           <div className="mt-3 overflow-x-auto">
-            <table className="min-w-full divide-y divide-slate-100 text-sm">
-              <thead className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+            <table className="min-w-full divide-y divide-[rgb(var(--border))] text-sm">
+              <thead className="bg-[rgb(var(--bg))] text-left text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
                 <tr>
                   <th className="px-3 py-2">Topic</th>
                   <th className="px-3 py-2">Responsibility</th>
                   <th className="px-3 py-2">Statements</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-[rgb(var(--border))]">
                 {stats.map((row, idx) => (
                   <tr key={`${row.topic}-${row.responsibility}-${idx}`}>
                     <td className="px-3 py-2">{row.topic}</td>
                     <td className="px-3 py-2">{row.responsibility}</td>
-                    <td className="px-3 py-2 font-semibold text-slate-900">{row.statements}</td>
+                    <td className="px-3 py-2 font-semibold text-[rgb(var(--fg))]">{row.statements}</td>
                   </tr>
                 ))}
               </tbody>
@@ -147,22 +147,22 @@ export default function TopicReportPage() {
         )}
       </section>
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-        <h2 className="text-lg font-semibold text-slate-900">Beispiel-Statements</h2>
+      <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm">
+        <h2 className="text-lg font-semibold text-[rgb(var(--fg))]">Beispiel-Statements</h2>
         {statements.length === 0 ? (
-          <p className="text-sm text-slate-500">Keine Statements verfügbar.</p>
+          <p className="text-sm text-[rgb(var(--muted))]">Keine Statements verfügbar.</p>
         ) : (
           <div className="mt-3 space-y-3">
             {statements.map((stmt) => (
               <article
                 key={stmt.id}
-                className="rounded-xl border border-slate-100 bg-slate-50/80 p-3 text-sm text-slate-700"
+                className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3 text-sm text-[rgb(var(--muted))]"
               >
-                <div className="flex flex-wrap justify-between gap-2 text-xs text-slate-500">
+                <div className="flex flex-wrap justify-between gap-2 text-xs text-[rgb(var(--muted))]">
                   <span>Topic: {stmt.topic ?? "–"}</span>
                   <span>Zuständigkeit: {stmt.responsibility ?? "–"}</span>
                 </div>
-                <p className="mt-1 text-slate-800">{stmt.text}</p>
+                <p className="mt-1 text-[rgb(var(--fg))]">{stmt.text}</p>
               </article>
             ))}
           </div>

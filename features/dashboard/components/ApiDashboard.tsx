@@ -81,7 +81,7 @@ export default function ApiDashboard() {
   };
 
   return (
-    <div className="bg-white rounded-xl p-6 shadow">
+    <div className="bg-[rgb(var(--card))] rounded-xl p-6 shadow">
       <div className="flex justify-between items-center mb-4">
         <div className="text-xl font-bold">API & Service Dashboard</div>
         <button

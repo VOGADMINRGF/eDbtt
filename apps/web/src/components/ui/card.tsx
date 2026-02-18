@@ -1,7 +1,7 @@
 import * as React from "react";
 
 export function Card({ className = "", ...props }: React.HTMLAttributes<HTMLDivElement>) {
-  return <div className={`rounded-xl bg-white/70 ring-1 ring-black/5 backdrop-blur ${className}`} {...props} />;
+  return <div className={`rounded-xl bg-[rgb(var(--card))] ring-1 ring-black/5 backdrop-blur ${className}`} {...props} />;
 }
 export function CardHeader({ className = "", ...props }: React.HTMLAttributes<HTMLDivElement>) {
   return <div className={`px-4 pt-4 ${className}`} {...props} />;

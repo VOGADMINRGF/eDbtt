@@ -8,7 +8,7 @@ export default function PipelineHUD(){
   if (!show) return null;
 
   return (
-    <div className="fixed top-4 right-4 z-[60] rounded-xl bg-white/90 backdrop-blur shadow-lg border border-gray-200 p-3 w-[320px]">
+    <div className="fixed top-4 right-4 z-[60] rounded-xl bg-[rgb(var(--card))] backdrop-blur shadow-lg border border-gray-200 p-3 w-[320px]">
       <div className="text-sm font-medium mb-2">Analyse läuft…</div>
       <ul className="space-y-2">
         {steps.map((s) => {

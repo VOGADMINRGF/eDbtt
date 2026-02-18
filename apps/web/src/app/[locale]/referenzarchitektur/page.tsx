@@ -15,17 +15,17 @@ export default async function ReferenzarchitekturPage({
 
   return (
     <main className="mx-auto max-w-5xl px-4 py-12 sm:px-6 lg:px-8">
-      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Referenzarchitektur</p>
-        <h1 className="mt-2 text-3xl font-semibold tracking-tight text-slate-900">
+      <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-6 shadow-sm">
+        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[rgb(var(--muted))]">Referenzarchitektur</p>
+        <h1 className="mt-2 text-3xl font-semibold tracking-tight text-[rgb(var(--fg))]">
           {content.title}
         </h1>
-        <p className="mt-2 max-w-2xl text-sm text-slate-600">{content.subtitle}</p>
+        <p className="mt-2 max-w-2xl text-sm text-[rgb(var(--muted))]">{content.subtitle}</p>
         <div className="mt-4 flex flex-wrap items-center gap-3">
           <span className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700">
             {content.disclaimer}
           </span>
-          <span className="text-xs text-slate-500">Version {content.version} · {content.docDate}</span>
+          <span className="text-xs text-[rgb(var(--muted))]">Version {content.version} · {content.docDate}</span>
         </div>
         <div className="mt-6 flex flex-wrap gap-3">
           {downloads.map((dl) => (
@@ -42,20 +42,20 @@ export default async function ReferenzarchitekturPage({
 
       <section className="mt-8 grid gap-3 md:grid-cols-3">
         {["Grafik-Slot A", "Grafik-Slot B", "Grafik-Slot C"].map((label) => (
-          <div key={label} className="rounded-2xl border border-dashed border-slate-300 bg-white/80 p-4 text-sm text-slate-500">
+          <div key={label} className="rounded-2xl border border-dashed border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 text-sm text-[rgb(var(--muted))]">
             {label} – Platzhalter für Diagramm
           </div>
         ))}
       </section>
 
-      <section className="mt-10 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-        <h2 className="text-sm font-semibold text-slate-900">Inhalt</h2>
+      <section className="mt-10 rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm">
+        <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Inhalt</h2>
         <div className="mt-3 flex flex-wrap gap-2">
           {content.toc.map((item) => (
             <a
               key={item.id}
               href={`#${item.id}`}
-              className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-700 hover:border-sky-300"
+              className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-1 text-xs font-semibold text-[rgb(var(--muted))] hover:border-sky-300"
             >
               {item.label}
             </a>
@@ -68,9 +68,9 @@ export default async function ReferenzarchitekturPage({
           const section = content.sections[item.id as keyof typeof content.sections];
           if (!section) return null;
           return (
-            <section key={item.id} id={item.id} className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-              <h3 className="text-lg font-semibold text-slate-900">{section.title}</h3>
-              <div className="mt-3 space-y-2 text-sm text-slate-700">
+            <section key={item.id} id={item.id} className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-6 shadow-sm">
+              <h3 className="text-lg font-semibold text-[rgb(var(--fg))]">{section.title}</h3>
+              <div className="mt-3 space-y-2 text-sm text-[rgb(var(--muted))]">
                 {section.body.map((line, idx) => (
                   <p key={idx}>{line}</p>
                 ))}
@@ -80,21 +80,21 @@ export default async function ReferenzarchitekturPage({
         })}
       </div>
 
-      <section className="mt-10 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h2 className="text-lg font-semibold text-slate-900">Kurz-FAQ</h2>
+      <section className="mt-10 rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-6 shadow-sm">
+        <h2 className="text-lg font-semibold text-[rgb(var(--fg))]">Kurz-FAQ</h2>
         <div className="mt-4 space-y-4">
           {content.faqShort.map((item, idx) => (
-            <div key={idx} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-              <p className="text-sm font-semibold text-slate-900">{item.q}</p>
-              <p className="mt-1 text-sm text-slate-700">{item.a}</p>
+            <div key={idx} className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-4 py-3">
+              <p className="text-sm font-semibold text-[rgb(var(--fg))]">{item.q}</p>
+              <p className="mt-1 text-sm text-[rgb(var(--muted))]">{item.a}</p>
             </div>
           ))}
         </div>
       </section>
 
-      <section id="downloads" className="mt-10 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h2 className="text-lg font-semibold text-slate-900">Downloads</h2>
-        <p className="mt-2 text-sm text-slate-600">
+      <section id="downloads" className="mt-10 rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-6 shadow-sm">
+        <h2 className="text-lg font-semibold text-[rgb(var(--fg))]">Downloads</h2>
+        <p className="mt-2 text-sm text-[rgb(var(--muted))]">
           Vollfassung als DOCX. Die Landingpage enthält nur Auszüge.
         </p>
         <div className="mt-4 flex flex-wrap gap-3">
@@ -102,7 +102,7 @@ export default async function ReferenzarchitekturPage({
             <a
               key={dl.href}
               href={dl.href}
-              className="rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-800"
+              className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-2 text-sm font-semibold text-[rgb(var(--fg))]"
             >
               {dl.label}
             </a>
@@ -110,9 +110,9 @@ export default async function ReferenzarchitekturPage({
         </div>
       </section>
 
-      <section id="feedback" className="mt-10 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h2 className="text-lg font-semibold text-slate-900">Feedback / Kontakt</h2>
-        <p className="mt-2 text-sm text-slate-700">
+      <section id="feedback" className="mt-10 rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-6 shadow-sm">
+        <h2 className="text-lg font-semibold text-[rgb(var(--fg))]">Feedback / Kontakt</h2>
+        <p className="mt-2 text-sm text-[rgb(var(--muted))]">
           Hinweise, Korrekturen und Ergänzungen sind willkommen. Bitte die Vollfassung
           referenzieren und konkrete Abschnitts-IDs nennen.
         </p>

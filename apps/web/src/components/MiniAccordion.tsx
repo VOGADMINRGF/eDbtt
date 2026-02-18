@@ -6,7 +6,7 @@ export function MiniAccordion({ items }: { items: any[] }) {
   return (
     <div className="space-y-2">
       {items.map((item: any, idx: number) => (
-        <div key={idx} className="rounded-lg border bg-white/90 shadow">
+        <div key={idx} className="rounded-lg border bg-[rgb(var(--card))] shadow">
           <button
             onClick={() => setOpen(open === idx ? -1 : idx)}
             className="w-full text-left flex items-center px-4 py-3 font-semibold"

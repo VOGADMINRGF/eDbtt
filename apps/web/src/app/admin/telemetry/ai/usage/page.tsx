@@ -54,15 +54,15 @@ export default function AiUsageTelemetryPage() {
   return (
     <main className="mx-auto flex max-w-5xl flex-col gap-6 px-4 py-8">
       <header className="space-y-1">
-        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Admin · Telemetry · AI</p>
-        <h1 className="text-2xl font-bold text-slate-900">AI Usage</h1>
-        <p className="text-sm text-slate-600">
+        <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Admin · Telemetry · AI</p>
+        <h1 className="text-2xl font-bold text-[rgb(var(--fg))]">AI Usage</h1>
+        <p className="text-sm text-[rgb(var(--muted))]">
           Kosten-, Token- und Call-Übersicht pro Provider und Pipeline. Daten basieren auf den täglichen Aggregaten im Core.
         </p>
       </header>
 
       <section className="flex flex-wrap items-center gap-3">
-        <label className="text-sm font-medium text-slate-800" htmlFor="range">
+        <label className="text-sm font-medium text-[rgb(var(--fg))]" htmlFor="range">
           Zeitraum
         </label>
         <select
@@ -72,7 +72,7 @@ export default function AiUsageTelemetryPage() {
             const next = RANGE_OPTIONS.find((opt) => opt.value === event.target.value) ?? RANGE_OPTIONS[1];
             setRange(next);
           }}
-          className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
+          className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm text-[rgb(var(--fg))] shadow-sm focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
         >
           {RANGE_OPTIONS.map((option) => (
             <option key={option.value} value={option.value}>
@@ -80,13 +80,13 @@ export default function AiUsageTelemetryPage() {
             </option>
           ))}
         </select>
-        {loading && <span className="text-sm text-slate-600">Lädt …</span>}
+        {loading && <span className="text-sm text-[rgb(var(--muted))]">Lädt …</span>}
         {error && <span className="text-sm text-rose-600">{error}</span>}
       </section>
 
       {!loading && !error && snapshot === null && (
-        <section className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-6 text-sm text-slate-700">
-          <p className="font-semibold text-slate-900">Noch kein Snapshot geladen</p>
+        <section className="rounded-2xl border border-dashed border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-4 py-6 text-sm text-[rgb(var(--muted))]">
+          <p className="font-semibold text-[rgb(var(--fg))]">Noch kein Snapshot geladen</p>
           <p>Wähle einen Zeitraum, um die AI-Nutzungsdaten abzurufen.</p>
         </section>
       )}
@@ -108,14 +108,14 @@ export default function AiUsageTelemetryPage() {
       )}
 
       {snapshot && !hasData && (
-        <section className="rounded-2xl border border-dashed border-slate-200 bg-white px-4 py-6 text-sm text-slate-700">
-          <p className="font-semibold text-slate-900">Keine Events im Zeitraum</p>
+        <section className="rounded-2xl border border-dashed border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-6 text-sm text-[rgb(var(--muted))]">
+          <p className="font-semibold text-[rgb(var(--fg))]">Keine Events im Zeitraum</p>
           <p>Es wurden keine AI-Usage-Events für den gewählten Zeitraum gefunden.</p>
         </section>
       )}
 
-      <section className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
-        <p className="font-semibold text-slate-900">Hinweise</p>
+      <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4 text-sm text-[rgb(var(--muted))]">
+        <p className="font-semibold text-[rgb(var(--fg))]">Hinweise</p>
         <ul className="list-disc space-y-1 pl-5">
           <li>Basis sind Tages-Aggregate (`ai_usage_daily`). Einzelne Ausreißer in den Raw-Events können daher geglättet sein.</li>
           <li>Fehler zählen alle Events mit `success = false` im gewählten Zeitraum.</li>
@@ -128,9 +128,9 @@ export default function AiUsageTelemetryPage() {
 
 function UsageTile({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-      <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{label}</p>
-      <p className="text-3xl font-bold text-slate-900">{value}</p>
+    <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm">
+      <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">{label}</p>
+      <p className="text-3xl font-bold text-[rgb(var(--fg))]">{value}</p>
     </div>
   );
 }
@@ -142,13 +142,13 @@ type UsageTableProps = {
 
 function UsageTable({ title, rows }: UsageTableProps) {
   return (
-    <section className="rounded-2xl border border-slate-200 bg-white shadow-sm">
-      <div className="border-b border-slate-100 px-4 py-3">
-        <p className="text-sm font-semibold text-slate-900">{title}</p>
+    <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] shadow-sm">
+      <div className="border-b border-[rgb(var(--border))] px-4 py-3">
+        <p className="text-sm font-semibold text-[rgb(var(--fg))]">{title}</p>
       </div>
       <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-slate-100 text-sm">
-          <thead className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+        <table className="min-w-full divide-y divide-[rgb(var(--border))] text-sm">
+          <thead className="bg-[rgb(var(--bg))] text-left text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
             <tr>
               <th className="px-4 py-2">Name</th>
               <th className="px-4 py-2">Tokens</th>
@@ -157,10 +157,10 @@ function UsageTable({ title, rows }: UsageTableProps) {
               <th className="px-4 py-2">Fehlerquote</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100">
+          <tbody className="divide-y divide-[rgb(var(--border))]">
             {rows.length === 0 && (
               <tr>
-                <td className="px-4 py-3 text-sm text-slate-600" colSpan={5}>
+                <td className="px-4 py-3 text-sm text-[rgb(var(--muted))]" colSpan={5}>
                   Keine Zeilen für den gewählten Zeitraum.
                 </td>
               </tr>
@@ -169,7 +169,7 @@ function UsageTable({ title, rows }: UsageTableProps) {
               const errorRate = row.calls ? (row.errors / row.calls) * 100 : 0;
               return (
                 <tr key={row.key}>
-                  <td className="px-4 py-2 font-semibold text-slate-900">{row.label}</td>
+                  <td className="px-4 py-2 font-semibold text-[rgb(var(--fg))]">{row.label}</td>
                   <td className="px-4 py-2">{formatNumber(row.tokens)}</td>
                   <td className="px-4 py-2">{formatCurrency(row.costEur)}</td>
                   <td className="px-4 py-2">{formatNumber(row.calls)}</td>

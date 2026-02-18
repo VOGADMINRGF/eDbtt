@@ -99,7 +99,7 @@ export default function AdminEventualityDetailPage() {
 
   if (loading) {
     return (
-      <div className="px-4 py-20 text-center text-slate-500">
+      <div className="px-4 py-20 text-center text-[rgb(var(--muted))]">
         Lädt Eventualitäten …
       </div>
     );
@@ -115,7 +115,7 @@ export default function AdminEventualityDetailPage() {
           <button
             type="button"
             onClick={() => router.back()}
-            className="text-sm font-semibold text-slate-600 hover:text-slate-900"
+            className="text-sm font-semibold text-[rgb(var(--muted))] hover:text-[rgb(var(--fg))]"
           >
             Zurück
           </button>
@@ -132,28 +132,28 @@ export default function AdminEventualityDetailPage() {
     <main className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-8">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Admin · Eventualitäten</p>
-          <h1 className="text-2xl font-bold text-slate-900">Snapshot {snapshot.contributionId}</h1>
-          <p className="text-sm text-slate-600">
+          <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Admin · Eventualitäten</p>
+          <h1 className="text-2xl font-bold text-[rgb(var(--fg))]">Snapshot {snapshot.contributionId}</h1>
+          <p className="text-sm text-[rgb(var(--muted))]">
             Locale {snapshot.locale ?? "–"} · User #{snapshot.userIdMasked ?? "—"} · Erstellt{" "}
             {formatDate(snapshot.createdAt)}
           </p>
         </div>
-        <Link href="/admin/eventualities" className="text-sm font-semibold text-slate-600 hover:text-slate-900">
+        <Link href="/admin/eventualities" className="text-sm font-semibold text-[rgb(var(--muted))] hover:text-[rgb(var(--fg))]">
           ← Zurück zur Übersicht
         </Link>
       </div>
 
-      <section className="grid gap-4 rounded-3xl border border-slate-200 bg-white/80 p-4 shadow-sm sm:grid-cols-3">
+      <section className="grid gap-4 rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm sm:grid-cols-3">
         <SnapshotBadge label="Nodes" value={snapshot.nodesCount} />
         <SnapshotBadge label="DecisionTrees" value={snapshot.treesCount} />
-        <div className="rounded-2xl border border-slate-100 bg-white/70 p-3">
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Review-Status</p>
+        <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-3">
+          <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Review-Status</p>
           <p className={`text-lg font-bold ${snapshot.reviewed ? "text-emerald-600" : "text-amber-600"}`}>
             {snapshot.reviewed ? "Review OK" : "Offen"}
           </p>
           {snapshot.reviewedBy && (
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-[rgb(var(--muted))]">
               von {snapshot.reviewedBy} – {formatDate(snapshot.reviewedAt)}
             </p>
           )}
@@ -173,20 +173,20 @@ export default function AdminEventualityDetailPage() {
       </section>
 
       {decisionTrees.length > 0 && (
-        <section className="space-y-3 rounded-3xl border border-slate-200 bg-white/90 p-5 shadow-sm">
+        <section className="space-y-3 rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-slate-900">Decision Trees</h2>
-            <p className="text-xs uppercase tracking-wide text-slate-500">Pro / Neutral / Contra</p>
+            <h2 className="text-lg font-semibold text-[rgb(var(--fg))]">Decision Trees</h2>
+            <p className="text-xs uppercase tracking-wide text-[rgb(var(--muted))]">Pro / Neutral / Contra</p>
           </div>
           <div className="space-y-4">
             {decisionTrees.map((tree) => (
-              <div key={tree.rootStatementId} className="rounded-2xl border border-slate-100 bg-slate-50/70 p-4">
+              <div key={tree.rootStatementId} className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4">
                 <div className="mb-3 flex flex-wrap items-center justify-between gap-2 text-sm">
                   <div>
-                    <p className="text-xs uppercase tracking-wide text-slate-500">Statement</p>
-                    <p className="font-semibold text-slate-900">{tree.rootStatementId}</p>
+                    <p className="text-xs uppercase tracking-wide text-[rgb(var(--muted))]">Statement</p>
+                    <p className="font-semibold text-[rgb(var(--fg))]">{tree.rootStatementId}</p>
                   </div>
-                  <p className="text-xs text-slate-500">
+                  <p className="text-xs text-[rgb(var(--muted))]">
                     erstellt {formatDate(tree.createdAt)} · locale {tree.locale ?? snapshot.locale ?? "–"}
                   </p>
                 </div>
@@ -198,14 +198,14 @@ export default function AdminEventualityDetailPage() {
       )}
 
       {eventualities.length > 0 && (
-        <section className="space-y-3 rounded-3xl border border-slate-200 bg-white/90 p-5 shadow-sm">
+        <section className="space-y-3 rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-slate-900">Freistehende Eventualitäten</h2>
-            <p className="text-xs uppercase tracking-wide text-slate-500">Gruppiert nach Statement</p>
+            <h2 className="text-lg font-semibold text-[rgb(var(--fg))]">Freistehende Eventualitäten</h2>
+            <p className="text-xs uppercase tracking-wide text-[rgb(var(--muted))]">Gruppiert nach Statement</p>
           </div>
           {Array.from(fallbackBuckets.entries()).map(([statementId, buckets]) => (
-            <div key={statementId} className="rounded-2xl border border-slate-100 bg-slate-50/60 p-4">
-              <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+            <div key={statementId} className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4">
+              <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
                 Statement {statementId}
               </div>
               <FallbackGrid buckets={buckets} />
@@ -215,7 +215,7 @@ export default function AdminEventualityDetailPage() {
       )}
 
       {eventualities.length === 0 && decisionTrees.length === 0 && (
-        <div className="rounded-2xl border border-slate-200 bg-white px-4 py-6 text-sm text-slate-600 shadow-sm">
+        <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-6 text-sm text-[rgb(var(--muted))] shadow-sm">
           Dieser Beitrag enthält aktuell keine Eventualitäten.
         </div>
       )}
@@ -225,9 +225,9 @@ export default function AdminEventualityDetailPage() {
 
 function SnapshotBadge({ label, value }: { label: string; value: number }) {
   return (
-    <div className="rounded-2xl border border-slate-100 bg-white/70 p-3">
-      <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{label}</p>
-      <p className="text-2xl font-bold text-slate-900">{value}</p>
+    <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-3">
+      <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">{label}</p>
+      <p className="text-2xl font-bold text-[rgb(var(--fg))]">{value}</p>
     </div>
   );
 }
@@ -239,11 +239,11 @@ function ScenarioGrid({ tree }: { tree: DecisionTree }) {
       {order.map((key) => {
         const node = tree.options?.[key];
         return (
-          <div key={key} className="rounded-2xl border border-white bg-white p-3 shadow-sm">
-            <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+          <div key={key} className="rounded-2xl border border-white bg-[rgb(var(--card))] p-3 shadow-sm">
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
               {key === "pro" ? "Pro" : key === "contra" ? "Contra" : "Neutral"}
             </p>
-            {node ? <EventualityCard node={node} /> : <p className="text-xs text-slate-400">Kein Szenario</p>}
+            {node ? <EventualityCard node={node} /> : <p className="text-xs text-[rgb(var(--muted))]">Kein Szenario</p>}
           </div>
         );
       })}
@@ -256,14 +256,14 @@ function FallbackGrid({ buckets }: { buckets: ScenarioBuckets }) {
   return (
     <div className="grid gap-3 md:grid-cols-3">
       {order.map((key) => (
-        <div key={key} className="rounded-2xl border border-white bg-white p-3 shadow-sm">
-          <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+        <div key={key} className="rounded-2xl border border-white bg-[rgb(var(--card))] p-3 shadow-sm">
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
             {key === "pro" ? "Pro" : key === "contra" ? "Contra" : "Neutral"}
           </p>
           {buckets[key].length === 0 ? (
-            <p className="text-xs text-slate-400">Keine Angaben</p>
+            <p className="text-xs text-[rgb(var(--muted))]">Keine Angaben</p>
           ) : (
-            <ul className="mt-1 list-disc space-y-1 pl-4 text-xs text-slate-600">
+            <ul className="mt-1 list-disc space-y-1 pl-4 text-xs text-[rgb(var(--muted))]">
               {buckets[key].map((node) => (
                 <li key={node.id}>{node.narrative}</li>
               ))}
@@ -272,9 +272,9 @@ function FallbackGrid({ buckets }: { buckets: ScenarioBuckets }) {
         </div>
       ))}
       {buckets.other.length > 0 && (
-        <div className="md:col-span-3 rounded-2xl border border-white bg-white p-3 shadow-sm">
-          <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Weitere Szenarien</p>
-          <ul className="mt-1 list-disc space-y-1 pl-4 text-xs text-slate-600">
+        <div className="md:col-span-3 rounded-2xl border border-white bg-[rgb(var(--card))] p-3 shadow-sm">
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Weitere Szenarien</p>
+          <ul className="mt-1 list-disc space-y-1 pl-4 text-xs text-[rgb(var(--muted))]">
             {buckets.other.map((node) => (
               <li key={node.id}>{node.narrative}</li>
             ))}
@@ -287,11 +287,11 @@ function FallbackGrid({ buckets }: { buckets: ScenarioBuckets }) {
 
 function EventualityCard({ node }: { node: EventualityNode }) {
   return (
-    <div className="space-y-2 text-sm text-slate-700">
-      <p className="font-medium text-slate-900">{node.label}</p>
-      <p className="text-slate-700">{node.narrative}</p>
+    <div className="space-y-2 text-sm text-[rgb(var(--muted))]">
+      <p className="font-medium text-[rgb(var(--fg))]">{node.label}</p>
+      <p className="text-[rgb(var(--muted))]">{node.narrative}</p>
       {node.consequences?.length ? (
-        <div className="text-[11px] text-slate-500">
+        <div className="text-[11px] text-[rgb(var(--muted))]">
           Folgen:
           <ul className="mt-1 list-disc space-y-1 pl-4">
             {node.consequences.slice(0, 3).map((cons) => (
@@ -301,7 +301,7 @@ function EventualityCard({ node }: { node: EventualityNode }) {
         </div>
       ) : null}
       {node.responsibilities?.length ? (
-        <div className="text-[11px] text-slate-500">
+        <div className="text-[11px] text-[rgb(var(--muted))]">
           Zuständigkeiten:
           <ul className="mt-1 list-disc space-y-1 pl-4">
             {node.responsibilities.slice(0, 3).map((resp) => (
@@ -311,15 +311,15 @@ function EventualityCard({ node }: { node: EventualityNode }) {
         </div>
       ) : null}
       {node.children?.length ? (
-        <div className="rounded-lg border border-slate-100 bg-slate-50/60 p-2">
-          <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Unteräste</p>
-          <ul className="mt-1 list-disc space-y-1 pl-4 text-[11px] text-slate-600">
+        <div className="rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-2">
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Unteräste</p>
+          <ul className="mt-1 list-disc space-y-1 pl-4 text-[11px] text-[rgb(var(--muted))]">
             {node.children.slice(0, 3).map((child) => (
               <li key={child.id}>{child.narrative}</li>
             ))}
           </ul>
           {node.children.length > 3 && (
-            <p className="mt-1 text-[10px] text-slate-400">+{node.children.length - 3} weitere</p>
+            <p className="mt-1 text-[10px] text-[rgb(var(--muted))]">+{node.children.length - 3} weitere</p>
           )}
         </div>
       ) : null}

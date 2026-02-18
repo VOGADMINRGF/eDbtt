@@ -174,7 +174,7 @@ function TrustBadge({
         </span>
       </Tooltip.Trigger>
       <Tooltip.Content
-        className="z-50 rounded-lg px-4 py-3 bg-white shadow-lg border text-neutral-900 max-w-xs text-xs"
+        className="z-50 rounded-lg px-4 py-3 bg-[rgb(var(--card))] shadow-lg border text-neutral-900 max-w-xs text-xs"
         sideOffset={6}
         align="center"
       >
@@ -359,7 +359,7 @@ export default function ReportCard({
       <article
         id={exportId}
         aria-label="Report Card"
-        className="relative bg-white rounded-2xl shadow-card max-w-2xl mx-auto my-10 overflow-visible transition-all border border-gray-200"
+        className="relative bg-[rgb(var(--card))] rounded-2xl shadow-card max-w-2xl mx-auto my-10 overflow-visible transition-all border border-gray-200"
       >
         {/* STATUS, TREND, TRUST */}
         <div className="absolute top-4 right-4 flex gap-2 z-10">
@@ -570,7 +570,7 @@ export default function ReportCard({
           </button>
 
           <button
-            className="bg-white border border-coral text-coral rounded-full px-4 py-3 font-bold flex items-center gap-2 shadow-button"
+            className="bg-[rgb(var(--card))] border border-coral text-coral rounded-full px-4 py-3 font-bold flex items-center gap-2 shadow-button"
             onClick={() =>
               onShare
                 ? onShare(report)
@@ -581,28 +581,28 @@ export default function ReportCard({
           </button>
 
           <button
-            className="bg-white border border-indigo-200 text-indigo-700 rounded-full px-4 py-3 font-bold flex items-center gap-2 shadow-button"
+            className="bg-[rgb(var(--card))] border border-indigo-200 text-indigo-700 rounded-full px-4 py-3 font-bold flex items-center gap-2 shadow-button"
             onClick={() => (onEdit ? onEdit(report) : alert("Bald verfügbar: Statement ergänzen!"))}
           >
             <FiEdit3 /> Statement ergänzen
           </button>
 
           <button
-            className="bg-white border border-indigo-200 text-indigo-700 rounded-full px-4 py-3 font-bold flex items-center gap-2 shadow-button"
+            className="bg-[rgb(var(--card))] border border-indigo-200 text-indigo-700 rounded-full px-4 py-3 font-bold flex items-center gap-2 shadow-button"
             onClick={() => exportAsPDFPNG(exportId, "pdf")}
           >
             <FiDownload /> Export PDF
           </button>
 
           <button
-            className="bg-white border border-indigo-200 text-indigo-700 rounded-full px-4 py-3 font-bold flex items-center gap-2 shadow-button"
+            className="bg-[rgb(var(--card))] border border-indigo-200 text-indigo-700 rounded-full px-4 py-3 font-bold flex items-center gap-2 shadow-button"
             onClick={() => exportAsPDFPNG(exportId, "png")}
           >
             <FiDownload /> Export PNG
           </button>
 
           <button
-            className="bg-white border border-neutral-300 text-indigo-700 rounded-full px-4 py-3 font-bold flex items-center gap-2 shadow-button"
+            className="bg-[rgb(var(--card))] border border-neutral-300 text-indigo-700 rounded-full px-4 py-3 font-bold flex items-center gap-2 shadow-button"
             title="Bookmark/Favorit (in Entwicklung)"
             type="button"
           >
@@ -610,7 +610,7 @@ export default function ReportCard({
           </button>
 
           <button
-            className="bg-white border border-neutral-300 text-red-600 rounded-full px-4 py-3 font-bold flex items-center gap-2 shadow-button"
+            className="bg-[rgb(var(--card))] border border-neutral-300 text-red-600 rounded-full px-4 py-3 font-bold flex items-center gap-2 shadow-button"
             title="Melden (in Entwicklung)"
             type="button"
           >

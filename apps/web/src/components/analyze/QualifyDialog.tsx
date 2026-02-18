@@ -14,7 +14,7 @@ export default function QualifyDialog({ open, onClose, clusterId }:{ open:boolea
   return <div className="fixed inset-0 z-50 bg-black/30 flex items-center justify-center p-4">
     <div className="vog-card p-4 max-w-md w-full">
       <div className="font-semibold mb-2">Qualifizieren (Coins)</div>
-      {!FLAGS.ENABLE_COINS ? <div className="text-sm text-slate-600">Coin-System deaktiviert.</div> :
+      {!FLAGS.ENABLE_COINS ? <div className="text-sm text-[rgb(var(--muted))]">Coin-System deaktiviert.</div> :
         <div className="space-y-2">
           <button className="vog-btn w-full" disabled={loading} onClick={()=>start("mini")}>Mini (3 Coins) – Kategorien + 2 Quellen</button>
           <button className="vog-btn w-full" disabled={loading} onClick={()=>start("std")}>Standard (7 Coins) – + Region + Summary</button>

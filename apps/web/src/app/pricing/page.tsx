@@ -16,7 +16,7 @@ export default function PricingPage() {
 
       <section className="relative mx-auto max-w-6xl px-4 py-12 lg:py-16">
         <header className="max-w-3xl space-y-3">
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Pakete</p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Pakete</p>
           <h1 className="text-4xl font-extrabold tracking-tight text-[rgb(var(--fg))]">Pakete & Preise</h1>
           <p className="text-sm leading-relaxed text-[rgb(var(--muted))]">
             Wir unterscheiden klar zwischen Privatpersonen und professionellen Organisationen. Privatpakete kannst du
@@ -49,7 +49,7 @@ export default function PricingPage() {
         <section className="mt-10 space-y-4">
           <div className="flex flex-wrap items-end justify-between gap-3">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Privat</p>
+              <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Privat</p>
               <h2 className="text-2xl font-bold text-[rgb(var(--fg))]">Basis, Start &amp; Pro</h2>
               <p className="text-sm text-[rgb(var(--muted))]">
                 Für Bürger:innen, Initiativen und Teams – mit klaren Features und transparenten Add-ons.
@@ -65,7 +65,7 @@ export default function PricingPage() {
         <section className="mt-14 space-y-6">
           <div className="flex flex-wrap items-end justify-between gap-3">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Professionell</p>
+              <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Professionell</p>
               <h2 className="text-2xl font-bold text-[rgb(var(--fg))]">B2B &amp; B2G Pakete</h2>
               <p className="text-sm text-[rgb(var(--muted))]">
                 Für Verwaltungen, Medien, Verbaende und Unternehmen: Basis &amp; Pro mit klaren Rollen, Reports und
@@ -79,7 +79,7 @@ export default function PricingPage() {
           <div className="space-y-4">
             <div className="flex flex-wrap items-end justify-between gap-3">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">B2B</p>
+                <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">B2B</p>
                 <h3 className="text-lg font-semibold text-[rgb(var(--fg))]">Organisationen &amp; Unternehmen</h3>
                 <p className="text-sm text-[rgb(var(--muted))]">
                   Teams, Redaktionen, Verbaende: Projekt-Setup, Rollen und klare Exporte.
@@ -92,7 +92,7 @@ export default function PricingPage() {
           <div className="space-y-4">
             <div className="flex flex-wrap items-end justify-between gap-3">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">B2G</p>
+                <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">B2G</p>
                 <h3 className="text-lg font-semibold text-[rgb(var(--fg))]">Kommunen &amp; Verwaltungen</h3>
                 <p className="text-sm text-[rgb(var(--muted))]">
                   Kommunale Bereiche, Admin-Steuerung und Reports fuer Verwaltungen.
@@ -147,7 +147,7 @@ export default function PricingPage() {
               },
             ].map((b) => (
               <div key={b.title} className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 text-sm shadow-sm">
-                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{b.title}</p>
+                <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">{b.title}</p>
                 <p className="mt-2 text-[rgb(var(--muted))]">{b.text}</p>
               </div>
             ))}
@@ -156,7 +156,7 @@ export default function PricingPage() {
           <div className="mt-4 rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Szenarien</p>
+                <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Szenarien</p>
                 <h3 className="text-lg font-semibold text-[rgb(var(--fg))]">Wofür brauche ich das?</h3>
                 <p className="mt-1 text-sm text-[rgb(var(--muted))]">
                   Je nach Umfeld kannst du B2B/B2G-Pakete unterschiedlich einsetzen. Hier die häufigsten Szenarien – klar
@@ -195,7 +195,7 @@ export default function PricingPage() {
                 <div key={card.title} className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm">
                   <div className="flex items-center justify-between gap-3">
                     <p className="text-sm font-semibold text-[rgb(var(--fg))]">{card.title}</p>
-                    <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
+                    <span className="rounded-full bg-[rgb(var(--bg))] px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
                       {card.tag}
                     </span>
                   </div>
@@ -213,14 +213,14 @@ export default function PricingPage() {
           </p>
           <div className="mt-4 overflow-hidden rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] shadow-sm">
             <table className="min-w-full text-left text-sm">
-              <thead className="bg-[rgb(var(--bg))] text-xs font-semibold uppercase tracking-wide text-slate-500">
+              <thead className="bg-[rgb(var(--bg))] text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
                 <tr>
                   <th className="px-4 py-3">Baustein</th>
                   <th className="px-4 py-3">Preis</th>
                   <th className="px-4 py-3">Hinweis</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-[rgb(var(--border))]">
                 <tr>
                   <td className="px-4 py-3 font-medium text-[rgb(var(--fg))]">Zusatzthema (Projekt)</td>
                   <td className="px-4 py-3 text-[rgb(var(--muted))]">1,99 EUR je Thema</td>
@@ -262,7 +262,7 @@ export default function PricingPage() {
             },
           ].map((b) => (
             <div key={b.title} className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 text-sm shadow-sm">
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{b.title}</p>
+              <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">{b.title}</p>
               <p className="mt-2 text-[rgb(var(--muted))]">{b.text}</p>
             </div>
           ))}

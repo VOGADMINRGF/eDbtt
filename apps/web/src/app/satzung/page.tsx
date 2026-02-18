@@ -440,24 +440,24 @@ export default function SatzungPage() {
           <p className="text-xs font-semibold uppercase tracking-[0.25em] text-sky-600">
             Governance
           </p>
-          <h1 className="text-3xl md:text-4xl font-bold text-slate-900">
+          <h1 className="text-3xl md:text-4xl font-bold text-[rgb(var(--fg))]">
             eDebatte – Governance-Charta
           </h1>
-          <p className="text-sm md:text-base text-slate-600 max-w-2xl mx-auto">
+          <p className="text-sm md:text-base text-[rgb(var(--muted))] max-w-2xl mx-auto">
             Arbeitsfassung der Satzung / Grundordnung für die Dachorganisation
             von eDebatte.
           </p>
         </header>
 
         {/* Inhaltsverzeichnis */}
-        <nav className="bg-white/95 border border-slate-100 rounded-3xl p-5 md:p-6 shadow-[0_18px_45px_rgba(15,23,42,0.06)]">
+        <nav className="bg-[rgb(var(--card))] border border-[rgb(var(--border))] rounded-3xl p-5 md:p-6 shadow-[0_18px_45px_rgba(15,23,42,0.06)]">
           <div className="flex items-center justify-between gap-4 mb-3">
-            <h2 className="font-semibold text-slate-900">Inhaltsverzeichnis</h2>
+            <h2 className="font-semibold text-[rgb(var(--fg))]">Inhaltsverzeichnis</h2>
             <span className="text-[11px] px-2 py-1 rounded-full bg-sky-50 text-sky-700 font-medium">
               {sections.length} Abschnitte
             </span>
           </div>
-          <ol className="list-decimal pl-5 space-y-1.5 text-sm text-slate-700">
+          <ol className="list-decimal pl-5 space-y-1.5 text-sm text-[rgb(var(--muted))]">
             {sections.map((s) => (
               <li key={s.id}>
                 <a
@@ -472,15 +472,15 @@ export default function SatzungPage() {
         </nav>
 
         {/* Abschnitte */}
-        <section className="space-y-6 text-slate-700">
+        <section className="space-y-6 text-[rgb(var(--muted))]">
           {sections.map(({ id, title, content }) => (
             <article
               key={id}
               id={id}
-              className="bg-white/95 border border-slate-100 border-l-4 border-l-sky-500/80 p-4 md:p-6 rounded-3xl shadow-sm scroll-mt-28"
+              className="bg-[rgb(var(--card))] border border-[rgb(var(--border))] border-l-4 border-l-sky-500/80 p-4 md:p-6 rounded-3xl shadow-sm scroll-mt-28"
             >
               <div className="flex items-center justify-between gap-3 mb-2">
-                <h2 className="font-semibold text-slate-900">{title}</h2>
+                <h2 className="font-semibold text-[rgb(var(--fg))]">{title}</h2>
                 {id === "praeambel" && (
                   <span className="text-[11px] px-2 py-1 rounded-full bg-sky-50 text-sky-700 font-medium">
                     Grundgedanke
@@ -495,7 +495,7 @@ export default function SatzungPage() {
         </section>
 
         <footer className="text-center space-y-3">
-          <p className="text-xs text-slate-500 max-w-2xl mx-auto">
+          <p className="text-xs text-[rgb(var(--muted))] max-w-2xl mx-auto">
             Hinweis: Diese Fassung ist ein konzeptioneller Entwurf. Für die
             konkrete juristische Ausgestaltung müssen ggf. ergänzende Dokumente
             erstellt und fachlich geprüft werden.

@@ -25,13 +25,13 @@ const primaryButtonSmallClass =
   "inline-flex items-center justify-center rounded-full bg-gradient-to-r from-sky-500 via-cyan-500 to-emerald-500 px-3 py-1.5 text-[11px] font-semibold text-white shadow-[0_8px_22px_rgba(14,116,144,0.32)] transition hover:brightness-105 focus:outline-none focus:ring-2 focus:ring-sky-200";
 
 const secondaryLightButtonClass =
-  "inline-flex items-center justify-center rounded-full bg-[rgb(var(--card))] px-3 py-1.5 text-[11px] font-semibold text-slate-800 shadow-sm ring-1 ring-slate-200 transition hover:bg-[rgb(var(--card))] focus:outline-none focus:ring-2 focus:ring-sky-200";
+  "inline-flex items-center justify-center rounded-full bg-[rgb(var(--card))] px-3 py-1.5 text-[11px] font-semibold text-[rgb(var(--fg))] shadow-sm ring-1 ring-[rgb(var(--border))] transition hover:bg-[rgb(var(--card))] focus:outline-none focus:ring-2 focus:ring-sky-200";
 
 const ghostDarkButtonClass =
-  "inline-flex items-center justify-center rounded-full bg-slate-900/90 px-3 py-1.5 text-[11px] font-semibold text-slate-50 shadow-sm transition hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-500";
+  "inline-flex items-center justify-center rounded-full bg-slate-900/90 px-3 py-1.5 text-[11px] font-semibold text-slate-50 shadow-sm transition hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-[rgb(var(--border))]";
 
 const subtleLinkClass =
-  "text-[11px] font-medium text-slate-500 underline-offset-2 hover:text-[rgb(var(--fg))] hover:underline";
+  "text-[11px] font-medium text-[rgb(var(--muted))] underline-offset-2 hover:text-[rgb(var(--fg))] hover:underline";
 
 const EURO = new Intl.NumberFormat("de-DE", {
   style: "currency",
@@ -295,9 +295,9 @@ function AccountQuickNav() {
   return (
     <nav
       aria-label="Schnellnavigation Konto"
-      className="rounded-2xl bg-[rgb(var(--card))] px-3 py-3 shadow-[0_10px_30px_rgba(15,23,42,0.08)] ring-1 ring-slate-100"
+      className="rounded-2xl bg-[rgb(var(--card))] px-3 py-3 shadow-[0_10px_30px_rgba(15,23,42,0.08)] ring-1 ring-[rgb(var(--border))]"
     >
-      <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+      <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-[rgb(var(--muted))]">
         Direkt zu
       </p>
       <div className="flex flex-wrap gap-2">
@@ -305,7 +305,7 @@ function AccountQuickNav() {
           <a
             key={section.id}
             href={`#${section.id}`}
-            className="inline-flex items-center rounded-full bg-[rgb(var(--bg))] px-3 py-1.5 text-[11px] font-semibold text-[rgb(var(--muted))] ring-1 ring-slate-200 transition hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-sky-200"
+            className="inline-flex items-center rounded-full bg-[rgb(var(--bg))] px-3 py-1.5 text-[11px] font-semibold text-[rgb(var(--muted))] ring-1 ring-[rgb(var(--border))] transition hover:bg-[rgb(var(--bg))] focus:outline-none focus:ring-2 focus:ring-sky-200"
           >
             {section.label}
           </a>
@@ -582,7 +582,7 @@ function ProfileAndPackageSection({ profile, edebatte, usage, onRefresh }: Profi
         <h2 id="account-core-heading" className="text-sm font-semibold tracking-tight text-[rgb(var(--fg))]">
           Profil &amp; eDebatte-Paket
         </h2>
-        <p className="text-xs text-slate-500">Passe dein Profil an und behalte dein gewähltes eDebatte-Paket im Blick.</p>
+        <p className="text-xs text-[rgb(var(--muted))]">Passe dein Profil an und behalte dein gewähltes eDebatte-Paket im Blick.</p>
       </div>
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,2.1fr)_minmax(0,1.6fr)]">
@@ -732,7 +732,7 @@ function ProfileCard({ profile, onRefresh }: ProfileCardProps) {
       .join("") || "VO";
 
   return (
-    <form onSubmit={handleSubmit} className="overflow-hidden rounded-3xl bg-[rgb(var(--card))] shadow-[0_22px_65px_rgba(15,23,42,0.10)] ring-1 ring-slate-100">
+    <form onSubmit={handleSubmit} className="overflow-hidden rounded-3xl bg-[rgb(var(--card))] shadow-[0_22px_65px_rgba(15,23,42,0.10)] ring-1 ring-[rgb(var(--border))]">
       {/* Cover / Hintergrund */}
       <div className="relative h-28 w-full bg-gradient-to-r from-sky-500 via-cyan-500 to-emerald-500">
         {draft.coverUrl && <Image src={draft.coverUrl} alt="Profil-Hintergrundbild" fill sizes="100vw" className="object-cover" />}
@@ -758,7 +758,7 @@ function ProfileCard({ profile, onRefresh }: ProfileCardProps) {
             <button
               type="button"
               onClick={handleAvatarClick}
-              className="relative inline-flex h-20 w-20 items-center justify-center rounded-full border-4 border-white bg-slate-100 text-lg font-semibold text-[rgb(var(--muted))] shadow-[0_12px_35px_rgba(15,23,42,0.25)] focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-300"
+              className="relative inline-flex h-20 w-20 items-center justify-center rounded-full border-4 border-white bg-[rgb(var(--bg))] text-lg font-semibold text-[rgb(var(--muted))] shadow-[0_12px_35px_rgba(15,23,42,0.25)] focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-300"
               aria-label="Profilfoto ändern"
             >
               {draft.avatarUrl ? (
@@ -773,9 +773,9 @@ function ProfileCard({ profile, onRefresh }: ProfileCardProps) {
             <input ref={avatarInputRef} type="file" accept="image/*" className="sr-only" onChange={handleAvatarChange} />
 
             <div className="mt-6">
-              <p className="text-xs font-semibold uppercase tracking-[0.15em] text-slate-500">Profil</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.15em] text-[rgb(var(--muted))]">Profil</p>
               <h3 className="text-lg font-semibold text-[rgb(var(--fg))]">{draft.displayName || "Dein Anzeigename"}</h3>
-              <p className="text-xs text-slate-500">{draft.email}</p>
+              <p className="text-xs text-[rgb(var(--muted))]">{draft.email}</p>
             </div>
           </div>
         </div>
@@ -793,14 +793,14 @@ function ProfileCard({ profile, onRefresh }: ProfileCardProps) {
               value={draft.displayName}
               onChange={(event) => handleFieldChange({ displayName: event.target.value })}
             />
-            <p className="text-[11px] text-slate-400">So wirst du in der Plattform und in öffentlichen Profilen angezeigt.</p>
+            <p className="text-[11px] text-[rgb(var(--muted))]">So wirst du in der Plattform und in öffentlichen Profilen angezeigt.</p>
           </div>
 
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="space-y-1">
               <span className="text-xs font-medium text-[rgb(var(--muted))]">E-Mail-Adresse</span>
               <p className="truncate text-sm text-[rgb(var(--muted))]">{draft.email}</p>
-              <p className="text-[11px] text-slate-400">Änderungen der E-Mail-Adresse sind aus Sicherheitsgründen nur über den Support möglich.</p>
+              <p className="text-[11px] text-[rgb(var(--muted))]">Änderungen der E-Mail-Adresse sind aus Sicherheitsgründen nur über den Support möglich.</p>
             </div>
 
             <div className="space-y-1">
@@ -836,7 +836,7 @@ function ProfileCard({ profile, onRefresh }: ProfileCardProps) {
             {saving ? "Speichert …" : "Änderungen speichern"}
           </button>
           {saveMsg && (
-            <p className="ml-3 text-xs text-slate-500" role="status" aria-live="polite">
+            <p className="ml-3 text-xs text-[rgb(var(--muted))]" role="status" aria-live="polite">
               {saveMsg}
             </p>
           )}
@@ -900,7 +900,7 @@ function EDebattePackageCard({ edebatte, usage, onRefresh }: EDebattePackageCard
 
   return (
     <>
-      <section className="flex h-full flex-col justify-between rounded-3xl bg-slate-900 text-slate-50 shadow-[0_22px_65px_rgba(15,23,42,0.65)] ring-1 ring-slate-800">
+      <section className="flex h-full flex-col justify-between rounded-3xl bg-slate-900 text-slate-50 shadow-[0_22px_65px_rgba(15,23,42,0.65)] ring-1 ring-[rgb(var(--border))]">
         <div className="flex flex-1 flex-col gap-4 px-5 pb-5 pt-4 sm:px-6 sm:pt-5">
           <div className="flex items-start justify-between gap-3">
             <div>
@@ -923,7 +923,7 @@ function EDebattePackageCard({ edebatte, usage, onRefresh }: EDebattePackageCard
             {isNone ? "Du kannst jederzeit ein eDebatte-Paket wählen – vom kostenlosen Einstieg (Basis) bis zum Pro-Paket." : statusLabel}
           </p>
           {(pledgeAmount || edebatte.commitmentMonths || edebatte.pledgeReference) && (
-            <p className="text-[11px] text-slate-400">
+            <p className="text-[11px] text-[rgb(var(--muted))]">
               {pledgeAmount ? `Gebucht: ${pledgeAmount} / ${pledgeIntervalLabel}` : null}
               {edebatte.commitmentMonths ? ` · Laufzeit: ${edebatte.commitmentMonths} Monate` : null}
               {edebatte.pledgeReference ? ` · Ref: ${edebatte.pledgeReference}` : null}
@@ -937,7 +937,7 @@ function EDebattePackageCard({ edebatte, usage, onRefresh }: EDebattePackageCard
               <>
                 <p className="text-slate-200">{swipeLimitText}</p>
                 {usage.xpLevelLabel && (
-                  <p className="mt-1 text-[11px] text-slate-400">
+                  <p className="mt-1 text-[11px] text-[rgb(var(--muted))]">
                     Engagement-Level: <span className="font-semibold">{usage.xpLevelLabel}</span>
                   </p>
                 )}
@@ -945,7 +945,7 @@ function EDebattePackageCard({ edebatte, usage, onRefresh }: EDebattePackageCard
             )}
 
             {!isNone && (edebatte.nextBillingDate || edebatte.validFrom || edebatte.validTo) && (
-              <p className="mt-2 text-[11px] text-slate-400">
+              <p className="mt-2 text-[11px] text-[rgb(var(--muted))]">
                 {edebatte.validFrom && (
                   <>
                     gültig ab <span className="font-medium">{edebatte.validFrom}</span>
@@ -1069,7 +1069,7 @@ function EDebattePackageModal({ currentPackage, onClose, onRefresh }: EDebattePa
         aria-modal="true"
         aria-labelledby="edebatte-package-modal-title"
         aria-describedby="edebatte-package-modal-description"
-        className="w-full max-w-lg rounded-3xl bg-[rgb(var(--card))] p-5 shadow-[0_32px_90px_rgba(15,23,42,0.45)] ring-1 ring-slate-200 sm:p-6"
+        className="w-full max-w-lg rounded-3xl bg-[rgb(var(--card))] p-5 shadow-[0_32px_90px_rgba(15,23,42,0.45)] ring-1 ring-[rgb(var(--border))] sm:p-6"
         onClick={(e) => e.stopPropagation()}
       >
         <header className="flex items-start justify-between gap-3">
@@ -1078,7 +1078,7 @@ function EDebattePackageModal({ currentPackage, onClose, onRefresh }: EDebattePa
             <h3 id="edebatte-package-modal-title" className="mt-1 text-sm font-semibold text-[rgb(var(--fg))]">
               Welches Paket möchtest du nutzen?
             </h3>
-            <p id="edebatte-package-modal-description" className="mt-1 text-[11px] text-slate-500">
+            <p id="edebatte-package-modal-description" className="mt-1 text-[11px] text-[rgb(var(--muted))]">
               Hier siehst du, welche Pakete bereits beauftragt sind, was vorgemerkt ist und was du zusätzlich buchen kannst.
             </p>
           </div>
@@ -1086,7 +1086,7 @@ function EDebattePackageModal({ currentPackage, onClose, onRefresh }: EDebattePa
             ref={closeButtonRef}
             type="button"
             onClick={onClose}
-            className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-slate-100 text-xs font-semibold text-slate-500 hover:bg-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-200"
+            className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-[rgb(var(--bg))] text-xs font-semibold text-[rgb(var(--muted))] hover:bg-[rgb(var(--bg))] focus:outline-none focus:ring-2 focus:ring-sky-200"
             aria-label="Auswahl schließen"
           >
             ✕
@@ -1100,7 +1100,7 @@ function EDebattePackageModal({ currentPackage, onClose, onRefresh }: EDebattePa
 
             let statusText: string | null = null;
             let statusClass =
-              "inline-flex items-center rounded-full bg-slate-100 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]";
+              "inline-flex items-center rounded-full bg-[rgb(var(--bg))] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]";
 
             if (isCurrent && currentPackage.status === "active") {
               statusText = "Aktuelles Paket";
@@ -1116,11 +1116,11 @@ function EDebattePackageModal({ currentPackage, onClose, onRefresh }: EDebattePa
             const disabled = isCurrent;
 
             return (
-              <article key={choice.id} className="flex items-center justify-between gap-3 rounded-2xl bg-[rgb(var(--bg))] px-3 py-3 ring-1 ring-slate-100 sm:px-4">
+              <article key={choice.id} className="flex items-center justify-between gap-3 rounded-2xl bg-[rgb(var(--bg))] px-3 py-3 ring-1 ring-[rgb(var(--border))] sm:px-4">
                 <div className="space-y-1">
                   <p className="text-xs font-semibold text-[rgb(var(--fg))]">{choice.name}</p>
-                  <p className="text-[11px] text-slate-500">{choice.description}</p>
-                  <p className="text-[11px] font-medium text-slate-800">{choice.priceLabel}</p>
+                  <p className="text-[11px] text-[rgb(var(--muted))]">{choice.description}</p>
+                  <p className="text-[11px] font-medium text-[rgb(var(--fg))]">{choice.priceLabel}</p>
                   {statusText && (
                     <div className="mt-1">
                       <span className={statusClass}>{statusText}</span>
@@ -1134,7 +1134,7 @@ function EDebattePackageModal({ currentPackage, onClose, onRefresh }: EDebattePa
                     disabled={disabled}
                     className={
                       disabled
-                        ? "inline-flex items-center justify-center rounded-full bg-slate-200 px-3 py-1.5 text-[11px] font-semibold text-slate-500 cursor-default"
+                        ? "inline-flex items-center justify-center rounded-full bg-[rgb(var(--bg))] px-3 py-1.5 text-[11px] font-semibold text-[rgb(var(--muted))] cursor-default"
                         : primaryButtonSmallClass
                     }
                   >
@@ -1172,7 +1172,7 @@ function PublicProfileSection({ publicProfile, onRefresh }: PublicProfileSection
         <h2 id="account-public-heading" className="text-sm font-semibold tracking-tight text-[rgb(var(--fg))]">
           Öffentliches Profil &amp; Privatsphäre
         </h2>
-        <p className="text-xs text-slate-500">Steuere, wie du in öffentlichen Übersichten, Diskussionen und Streams angezeigt wirst.</p>
+        <p className="text-xs text-[rgb(var(--muted))]">Steuere, wie du in öffentlichen Übersichten, Diskussionen und Streams angezeigt wirst.</p>
       </div>
 
       <PublicProfileCard initial={publicProfile} onRefresh={onRefresh} />
@@ -1269,7 +1269,7 @@ function PublicProfileCard({ initial, onRefresh }: PublicProfileCardProps) {
   const locationSummary = [draft.city, draft.region, draft.countryCode].filter(Boolean).join(" · ");
 
   return (
-    <form onSubmit={handleSubmit} className="rounded-3xl bg-[rgb(var(--card))] p-5 shadow-[0_18px_55px_rgba(15,23,42,0.08)] ring-1 ring-slate-100 sm:p-6">
+    <form onSubmit={handleSubmit} className="rounded-3xl bg-[rgb(var(--card))] p-5 shadow-[0_18px_55px_rgba(15,23,42,0.08)] ring-1 ring-[rgb(var(--border))] sm:p-6">
       <div className="grid gap-5 md:grid-cols-[minmax(0,1.6fr)_minmax(0,1.4fr)]">
         <div className="space-y-4">
           <div className="space-y-1">
@@ -1315,8 +1315,8 @@ function PublicProfileCard({ initial, onRefresh }: PublicProfileCardProps) {
         <div className="space-y-4">
           <div className="space-y-1">
             <p className="text-xs font-medium text-[rgb(var(--muted))]">Ort (für öffentliche Anzeige)</p>
-            <p className="text-sm text-slate-800">{locationSummary || "Noch kein öffentlicher Ort hinterlegt."}</p>
-            <p className="text-[11px] text-slate-400">Die genaue Anschrift wird nie öffentlich angezeigt – nur Stadt, Region und Land, sofern du das möchtest.</p>
+            <p className="text-sm text-[rgb(var(--fg))]">{locationSummary || "Noch kein öffentlicher Ort hinterlegt."}</p>
+            <p className="text-[11px] text-[rgb(var(--muted))]">Die genaue Anschrift wird nie öffentlich angezeigt – nur Stadt, Region und Land, sofern du das möchtest.</p>
           </div>
 
           <div className="grid gap-3 sm:grid-cols-3">
@@ -1374,7 +1374,7 @@ function PublicProfileCard({ initial, onRefresh }: PublicProfileCardProps) {
                         className={`inline-flex items-start gap-2 rounded-2xl px-3 py-2 text-[11px] ring-1 ${
                           checked
                             ? "bg-sky-50 text-sky-800 ring-sky-100"
-                            : "bg-[rgb(var(--bg))] text-[rgb(var(--muted))] ring-slate-100"
+                            : "bg-[rgb(var(--bg))] text-[rgb(var(--muted))] ring-[rgb(var(--border))]"
                         } ${disabled ? "opacity-60" : ""}`}
                       >
                         <input
@@ -1389,10 +1389,10 @@ function PublicProfileCard({ initial, onRefresh }: PublicProfileCardProps) {
                     );
                   })}
                 </div>
-                <p className="text-[11px] text-slate-500">{selectedTopTopicKeys.length} von 3 Themen gewählt.</p>
+                <p className="text-[11px] text-[rgb(var(--muted))]">{selectedTopTopicKeys.length} von 3 Themen gewählt.</p>
               </>
             ) : (
-              <p className="text-[11px] text-slate-400">Top-Themen werden erst ab Engagement-Level „engagiert“ freigeschaltet.</p>
+              <p className="text-[11px] text-[rgb(var(--muted))]">Top-Themen werden erst ab Engagement-Level „engagiert“ freigeschaltet.</p>
             )}
           </fieldset>
         </div>
@@ -1404,7 +1404,7 @@ function PublicProfileCard({ initial, onRefresh }: PublicProfileCardProps) {
             {saving ? "Speichert …" : "Öffentliches Profil speichern"}
           </button>
           {saveMsg && (
-            <p className="text-xs text-slate-500" role="status" aria-live="polite">
+            <p className="text-xs text-[rgb(var(--muted))]" role="status" aria-live="polite">
               {saveMsg}
             </p>
           )}
@@ -1452,7 +1452,7 @@ function MembershipAndRolesSection({ membership, roles, membershipStatus, paymen
         <h2 id="account-membership-heading" className="text-sm font-semibold tracking-tight text-[rgb(var(--fg))]">
           Mitgliedschaft &amp; Rollen
         </h2>
-        <p className="text-xs text-slate-500">Überblick über deine Rolle bei eDebatte und deine Mitgliedschaft.</p>
+        <p className="text-xs text-[rgb(var(--muted))]">Überblick über deine Rolle bei eDebatte und deine Mitgliedschaft.</p>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
@@ -1479,11 +1479,11 @@ function VOGMembershipCard({ membership, membershipStatus, paymentReference }: V
     : "inline-flex items-center rounded-full bg-amber-50 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-amber-700 ring-1 ring-amber-200";
 
   return (
-    <section className="rounded-3xl bg-[rgb(var(--card))] p-5 shadow-[0_18px_55px_rgba(15,23,42,0.08)] ring-1 ring-slate-100 sm:p-6">
+    <section className="rounded-3xl bg-[rgb(var(--card))] p-5 shadow-[0_18px_55px_rgba(15,23,42,0.08)] ring-1 ring-[rgb(var(--border))] sm:p-6">
       <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-sky-600">Mitgliedschaft</p>
       <h3 className="mt-1 text-sm font-semibold text-[rgb(var(--fg))]">{title}</h3>
       <div className="mt-1 flex items-center gap-2">
-        <span className="text-xs text-slate-500">{status}</span>
+        <span className="text-xs text-[rgb(var(--muted))]">{status}</span>
         <span className={badgeClass}>{membership.isMember ? "aktiv" : "optional"}</span>
       </div>
       {membership.contributionLabel && <p className="mt-1 text-xs text-[rgb(var(--muted))]">Beitrag: {membership.contributionLabel}</p>}
@@ -1495,7 +1495,7 @@ function VOGMembershipCard({ membership, membershipStatus, paymentReference }: V
         </div>
       )}
 
-      <p className="mt-3 text-[11px] text-slate-400">
+      <p className="mt-3 text-[11px] text-[rgb(var(--muted))]">
         eDebatte finanziert sich unabhängig durch viele kleine Beiträge. Details findest du im Transparenzbericht.
       </p>
 
@@ -1524,7 +1524,7 @@ function RolesCard({ roles }: RolesCardProps) {
   const hasSuperadmin = roles.some((r) => r.role === "superadmin" || r.label === "superadmin");
 
   return (
-    <section className="rounded-3xl bg-[rgb(var(--card))] p-5 shadow-[0_18px_55px_rgba(15,23,42,0.08)] ring-1 ring-slate-100 sm:p-6">
+    <section className="rounded-3xl bg-[rgb(var(--card))] p-5 shadow-[0_18px_55px_rgba(15,23,42,0.08)] ring-1 ring-[rgb(var(--border))] sm:p-6">
       <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[rgb(var(--muted))]">Rollen &amp; Zugänge</p>
       <h3 className="mt-1 text-sm font-semibold text-[rgb(var(--fg))]">Aktive Rollen</h3>
 
@@ -1533,10 +1533,10 @@ function RolesCard({ roles }: RolesCardProps) {
           roles.map((role) => (
             <div key={role.id} className="flex items-start justify-between gap-3 rounded-2xl bg-[rgb(var(--bg))] px-3 py-2">
               <div>
-                <p className="text-xs font-medium text-slate-800">{role.label}</p>
-                {role.description && <p className="text-[11px] text-slate-500">{role.description}</p>}
+                <p className="text-xs font-medium text-[rgb(var(--fg))]">{role.label}</p>
+                {role.description && <p className="text-[11px] text-[rgb(var(--muted))]">{role.description}</p>}
                 {role.role && (
-                  <p className="text-[10px] text-slate-400">
+                  <p className="text-[10px] text-[rgb(var(--muted))]">
                     Systemrolle: <span className="font-semibold">{role.role}</span>
                   </p>
                 )}
@@ -1549,7 +1549,7 @@ function RolesCard({ roles }: RolesCardProps) {
             </div>
           ))
         ) : (
-          <div className="rounded-2xl bg-[rgb(var(--bg))] px-3 py-2 text-[11px] text-slate-500">
+          <div className="rounded-2xl bg-[rgb(var(--bg))] px-3 py-2 text-[11px] text-[rgb(var(--muted))]">
             Noch keine Sonderrolle hinterlegt. Hinterlege unten bei „Erweiterte Funktionen“ deine
             Interessen, damit passende Freigaben in deinem Profil vorgemerkt werden.
           </div>
@@ -1582,7 +1582,7 @@ function SecurityAndPaymentSection({ security, payment, signature, membership }:
         <h2 id="account-security-heading" className="text-sm font-semibold tracking-tight text-[rgb(var(--fg))]">
           Sicherheit &amp; Zahlung
         </h2>
-        <p className="text-xs text-slate-500">Login-Schutz, Zahlungsdaten und digitale Unterschrift im Überblick.</p>
+        <p className="text-xs text-[rgb(var(--muted))]">Login-Schutz, Zahlungsdaten und digitale Unterschrift im Überblick.</p>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
@@ -1603,7 +1603,7 @@ function SecurityCard({ security }: SecurityCardProps) {
   const emailOk = security.emailVerified === undefined ? true : Boolean(security.emailVerified);
   const twoFaOk = security.twoFactorEnabled === undefined ? true : Boolean(security.twoFactorEnabled);
   return (
-    <section className="rounded-3xl bg-[rgb(var(--card))] p-5 shadow-[0_18px_55px_rgba(15,23,42,0.08)] ring-1 ring-slate-100 sm:p-6">
+    <section className="rounded-3xl bg-[rgb(var(--card))] p-5 shadow-[0_18px_55px_rgba(15,23,42,0.08)] ring-1 ring-[rgb(var(--border))] sm:p-6">
       <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[rgb(var(--muted))]">Sicherheit</p>
       <h3 className="mt-1 text-sm font-semibold text-[rgb(var(--fg))]">Aktueller Zustand</h3>
 
@@ -1611,12 +1611,12 @@ function SecurityCard({ security }: SecurityCardProps) {
         <StatusRow label="E-Mail verifiziert" positive={emailOk} />
         <StatusRow label="2-Faktor-Authentifizierung" positive={twoFaOk} />
         {security.lastLoginAt && (
-          <p className="text-[11px] text-slate-500">
+          <p className="text-[11px] text-[rgb(var(--muted))]">
             Letzter Login: <span className="font-medium">{security.lastLoginAt}</span>
           </p>
         )}
-        {security.loginHint && <p className="text-[11px] text-slate-400">{security.loginHint}</p>}
-        <p className="text-[11px] text-slate-400">{identPilot}</p>
+        {security.loginHint && <p className="text-[11px] text-[rgb(var(--muted))]">{security.loginHint}</p>}
+        <p className="text-[11px] text-[rgb(var(--muted))]">{identPilot}</p>
       </div>
 
       <div className="mt-4 flex flex-wrap gap-2">
@@ -1766,7 +1766,7 @@ function IdentityCheckCard() {
   }
 
   return (
-    <section className="rounded-3xl bg-[rgb(var(--card))] p-5 shadow-[0_18px_55px_rgba(15,23,42,0.08)] ring-1 ring-slate-100 sm:p-6">
+    <section className="rounded-3xl bg-[rgb(var(--card))] p-5 shadow-[0_18px_55px_rgba(15,23,42,0.08)] ring-1 ring-[rgb(var(--border))] sm:p-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-amber-600">Identity Check</p>
@@ -1778,33 +1778,33 @@ function IdentityCheckCard() {
       <div className="mt-4 grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
         <div className="space-y-3 text-xs text-[rgb(var(--muted))]">
           {loading ? (
-            <p className="text-[11px] text-slate-500">Status wird geladen …</p>
+            <p className="text-[11px] text-[rgb(var(--muted))]">Status wird geladen …</p>
           ) : (
             <>
-              <p className="text-[11px] text-slate-500">
+              <p className="text-[11px] text-[rgb(var(--muted))]">
                 Wir speichern dein Dokument ausschließlich für die Stream-Verifizierung. Öffentliche Profile zeigen nur
                 einen Status, keine Bilder.
               </p>
               {updatedAtLabel && (
-                <p className="text-[11px] text-slate-500">Zuletzt aktualisiert: {updatedAtLabel}</p>
+                <p className="text-[11px] text-[rgb(var(--muted))]">Zuletzt aktualisiert: {updatedAtLabel}</p>
               )}
               {doc ? (
                 <div className="flex flex-wrap gap-3">
                   <div className="space-y-1">
-                    <p className="text-[10px] font-semibold text-slate-500">Vorderseite</p>
+                    <p className="text-[10px] font-semibold text-[rgb(var(--muted))]">Vorderseite</p>
                     <div className="relative">
                       <img
                         src={doc.frontImage}
                         alt="Ausweis Vorderseite"
                         className="h-20 w-32 rounded-lg border border-[rgb(var(--border))] object-cover"
                       />
-                      <span className="absolute inset-0 flex items-center justify-center rounded-lg bg-white/70 text-[9px] font-semibold uppercase tracking-[0.16em] text-slate-500">
+                      <span className="absolute inset-0 flex items-center justify-center rounded-lg bg-[rgb(var(--card))] text-[9px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
                         Vorschau
                       </span>
                     </div>
                   </div>
                   <div className="space-y-1">
-                    <p className="text-[10px] font-semibold text-slate-500">
+                    <p className="text-[10px] font-semibold text-[rgb(var(--muted))]">
                       Rückseite {doc.documentType === "passport" ? "(optional)" : ""}
                     </p>
                     {doc.backImage ? (
@@ -1814,19 +1814,19 @@ function IdentityCheckCard() {
                           alt="Ausweis Rückseite"
                           className="h-20 w-32 rounded-lg border border-[rgb(var(--border))] object-cover"
                         />
-                        <span className="absolute inset-0 flex items-center justify-center rounded-lg bg-white/70 text-[9px] font-semibold uppercase tracking-[0.16em] text-slate-500">
+                        <span className="absolute inset-0 flex items-center justify-center rounded-lg bg-[rgb(var(--card))] text-[9px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
                           Vorschau
                         </span>
                       </div>
                     ) : (
-                      <div className="flex h-20 w-32 items-center justify-center rounded-lg border border-dashed border-[rgb(var(--border))] bg-[rgb(var(--bg))] text-[10px] text-slate-400">
+                      <div className="flex h-20 w-32 items-center justify-center rounded-lg border border-dashed border-[rgb(var(--border))] bg-[rgb(var(--bg))] text-[10px] text-[rgb(var(--muted))]">
                         nicht hinterlegt
                       </div>
                     )}
                   </div>
                 </div>
               ) : (
-                <p className="text-[11px] text-slate-500">
+                <p className="text-[11px] text-[rgb(var(--muted))]">
                   Hinterlege einen Personalausweis oder Reisepass, damit deine Streams freigegeben werden können.
                 </p>
               )}
@@ -1842,7 +1842,7 @@ function IdentityCheckCard() {
                 className={`cursor-pointer rounded-xl border px-3 py-2 text-[11px] ${
                   docType === "id_card"
                     ? "border-sky-200 bg-sky-50 text-sky-700"
-                    : "border-[rgb(var(--border))] bg-white text-slate-600"
+                    : "border-[rgb(var(--border))] bg-[rgb(var(--card))] text-[rgb(var(--muted))]"
                 }`}
               >
                 <input
@@ -1854,14 +1854,14 @@ function IdentityCheckCard() {
                   onChange={() => setDocType("id_card")}
                   disabled={saving}
                 />
-                <p className="font-semibold text-slate-900">Personalausweis</p>
-                <p className="text-[10px] text-slate-500">Vorder- & Rückseite</p>
+                <p className="font-semibold text-[rgb(var(--fg))]">Personalausweis</p>
+                <p className="text-[10px] text-[rgb(var(--muted))]">Vorder- & Rückseite</p>
               </label>
               <label
                 className={`cursor-pointer rounded-xl border px-3 py-2 text-[11px] ${
                   docType === "passport"
                     ? "border-sky-200 bg-sky-50 text-sky-700"
-                    : "border-[rgb(var(--border))] bg-white text-slate-600"
+                    : "border-[rgb(var(--border))] bg-[rgb(var(--card))] text-[rgb(var(--muted))]"
                 }`}
               >
                 <input
@@ -1873,8 +1873,8 @@ function IdentityCheckCard() {
                   onChange={() => setDocType("passport")}
                   disabled={saving}
                 />
-                <p className="font-semibold text-slate-900">Reisepass</p>
-                <p className="text-[10px] text-slate-500">Vorderseite reicht</p>
+                <p className="font-semibold text-[rgb(var(--fg))]">Reisepass</p>
+                <p className="text-[10px] text-[rgb(var(--muted))]">Vorderseite reicht</p>
               </label>
             </div>
           </div>
@@ -1891,7 +1891,7 @@ function IdentityCheckCard() {
               />
             </label>
             {frontFile && (
-              <p className="text-[10px] text-slate-500">
+              <p className="text-[10px] text-[rgb(var(--muted))]">
                 Ausgewählt: {frontFile.name} · {formatBytes(frontFile.size)}
               </p>
             )}
@@ -1909,17 +1909,17 @@ function IdentityCheckCard() {
               />
             </label>
             {backFile && (
-              <p className="text-[10px] text-slate-500">
+              <p className="text-[10px] text-[rgb(var(--muted))]">
                 Ausgewählt: {backFile.name} · {formatBytes(backFile.size)}
               </p>
             )}
           </div>
 
-          <p className="text-[10px] text-slate-400">
+          <p className="text-[10px] text-[rgb(var(--muted))]">
             Akzeptiert: JPG/PNG · max {MAX_FILE_LABEL} pro Datei · {docTypeLabel}
           </p>
 
-          {message && <p className="text-[11px] text-slate-500">{message}</p>}
+          {message && <p className="text-[11px] text-[rgb(var(--muted))]">{message}</p>}
 
           <div className="flex flex-wrap gap-2">
             <button
@@ -1981,7 +1981,7 @@ function PaymentAndSignatureCard({ payment, signature, membership }: PaymentAndS
     (membership && (membership.contributionLabel || membership.statusLabel)) || null;
 
   return (
-    <section className="rounded-3xl bg-[rgb(var(--card))] p-5 shadow-[0_18px_55px_rgba(15,23,42,0.08)] ring-1 ring-slate-100 sm:p-6">
+    <section className="rounded-3xl bg-[rgb(var(--card))] p-5 shadow-[0_18px_55px_rgba(15,23,42,0.08)] ring-1 ring-[rgb(var(--border))] sm:p-6">
       <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[rgb(var(--muted))]">Zahlung &amp; Unterschrift</p>
       <h3 className="mt-1 text-sm font-semibold text-[rgb(var(--fg))]">Standardkonto &amp; digitale Unterschrift</h3>
 
@@ -1990,7 +1990,7 @@ function PaymentAndSignatureCard({ payment, signature, membership }: PaymentAndS
           <p className="text-[11px] font-medium text-[rgb(var(--muted))]">Standardkonto für Beiträge</p>
           <p className="text-[11px] text-[rgb(var(--muted))]">{hasIban ? `${payment.accountHolder ?? ""} · ${payment.ibanMasked}` : "Noch kein Konto hinterlegt."}</p>
           {(payment.note || contribution) && (
-            <p className="text-[11px] text-slate-400">
+            <p className="text-[11px] text-[rgb(var(--muted))]">
               {contribution ? `Aktuelle Rate: ${contribution}` : null}
               {payment.note ? ` · ${payment.note}` : null}
             </p>
@@ -2002,7 +2002,7 @@ function PaymentAndSignatureCard({ payment, signature, membership }: PaymentAndS
           <p className="text-[11px] text-[rgb(var(--muted))]">
             {signature.hasSignature ? `Hinterlegt · zuletzt aktualisiert am ${signature.updatedAt ?? "–"}` : "Noch keine digitale Unterschrift hinterlegt."}
           </p>
-          <p className="text-[11px] text-slate-400">
+          <p className="text-[11px] text-[rgb(var(--muted))]">
             Pilot: Auf Mobilgeräten kannst du deine Unterschrift direkt erfassen (Finger/Tablet). Für bestimmte Abstimmungen oder Mandatsvergaben kann sie hilfreich sein. Ident (Bank-Check / eID) rüsten wir gerade nach, damit du dich ohne Papieraufwand legitimieren kannst.
           </p>
         </div>
@@ -2078,7 +2078,7 @@ function AdvancedFeaturesSection({ features, featureInterests, onRefresh }: Adva
           Early Access
         </span>
       </div>
-      <p className="text-xs text-slate-500">
+      <p className="text-xs text-[rgb(var(--muted))]">
         Hinterlege hier direkt im Profil, für welche Pilot-Funktionen du dich vormerken möchtest.
       </p>
 
@@ -2105,7 +2105,7 @@ function AdvancedFeaturesSection({ features, featureInterests, onRefresh }: Adva
           {saving ? "Speichert …" : "Interessen speichern"}
         </button>
         {saveMsg && (
-          <p className="text-xs text-slate-500" role="status" aria-live="polite">
+          <p className="text-xs text-[rgb(var(--muted))]" role="status" aria-live="polite">
             {saveMsg}
           </p>
         )}
@@ -2126,10 +2126,10 @@ function FeatureCard({ title, description, enabled, interested, onInterestChange
   const checkboxId = `feature-interest-${title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`;
 
   return (
-    <article className="flex h-full flex-col justify-between rounded-3xl bg-[rgb(var(--card))] p-4 text-xs shadow-[0_18px_55px_rgba(15,23,42,0.08)] ring-1 ring-slate-100 sm:p-5">
+    <article className="flex h-full flex-col justify-between rounded-3xl bg-[rgb(var(--card))] p-4 text-xs shadow-[0_18px_55px_rgba(15,23,42,0.08)] ring-1 ring-[rgb(var(--border))] sm:p-5">
       <div className="space-y-2">
-        <p className="text-[11px] font-semibold text-slate-800">{title}</p>
-        <p className="text-[11px] text-slate-500">{description}</p>
+        <p className="text-[11px] font-semibold text-[rgb(var(--fg))]">{title}</p>
+        <p className="text-[11px] text-[rgb(var(--muted))]">{description}</p>
         <label htmlFor={checkboxId} className="mt-2 inline-flex items-start gap-2 text-[11px] text-[rgb(var(--muted))]">
           <input
             id={checkboxId}
@@ -2146,12 +2146,12 @@ function FeatureCard({ title, description, enabled, interested, onInterestChange
           className={
             enabled
               ? "inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-emerald-700 ring-1 ring-emerald-200"
-              : "inline-flex items-center rounded-full bg-slate-100 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500 ring-1 ring-slate-200"
+              : "inline-flex items-center rounded-full bg-[rgb(var(--bg))] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))] ring-1 ring-[rgb(var(--border))]"
           }
         >
           {enabled ? "freigeschaltet" : "Pilot / bald verfügbar"}
         </span>
-        <span className="text-[10px] font-semibold text-slate-500">{interested ? "vorgemerkt" : "optional"}</span>
+        <span className="text-[10px] font-semibold text-[rgb(var(--muted))]">{interested ? "vorgemerkt" : "optional"}</span>
       </div>
     </article>
   );

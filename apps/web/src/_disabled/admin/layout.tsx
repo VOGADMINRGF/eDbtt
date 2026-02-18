@@ -27,7 +27,7 @@ export default async function AdminLayout({
 
   return (
     <ThemeProvider>
-      <div className="min-h-screen flex bg-white text-black dark:bg-neutral-900 dark:text-neutral-100">
+      <div className="min-h-screen flex bg-[rgb(var(--card))] text-black dark:bg-neutral-900 dark:text-neutral-100">
         <SidebarNav />
         <main className="flex-1 p-6">{children}</main>
       </div>

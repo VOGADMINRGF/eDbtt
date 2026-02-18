@@ -65,9 +65,9 @@ export function ExamplesBackdrop(props: {
       ].join(" ")}
     >
       {/* Neutral, cool brand light */}
-      <div className="pointer-events-none absolute inset-0 edb-backdrop-glow bg-[radial-gradient(900px_520px_at_30%_0%,rgba(26,140,255,0.2),transparent_55%),radial-gradient(900px_520px_at_72%_0%,rgba(24,207,200,0.18),transparent_55%)]" />
-      <div className="pointer-events-none absolute inset-0 edb-backdrop-waves bg-[linear-gradient(120deg,rgba(26,140,255,0.08),transparent_45%),linear-gradient(300deg,rgba(24,207,200,0.08),transparent_45%)]" />
-      <div className="pointer-events-none absolute inset-0 bg-white/35" />
+      <div className="pointer-events-none absolute inset-0 edb-backdrop-glow bg-[radial-gradient(900px_520px_at_30%_0%,rgba(26,140,255,0.16),transparent_55%),radial-gradient(900px_520px_at_72%_0%,rgba(24,207,200,0.14),transparent_55%)]" />
+      <div className="pointer-events-none absolute inset-0 edb-backdrop-waves bg-[linear-gradient(120deg,rgba(26,140,255,0.05),transparent_45%),linear-gradient(300deg,rgba(24,207,200,0.05),transparent_45%)]" />
+      <div className="pointer-events-none absolute inset-0 bg-[rgb(var(--bg))]" />
 
       <div className="relative mx-auto w-full px-6 py-10">
         <div className="grid grid-cols-1 gap-10 lg:grid-cols-2">
@@ -77,8 +77,8 @@ export function ExamplesBackdrop(props: {
               <section key={b.label} className="relative">
                 <div className="mb-3 flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <span className="h-[2px] w-6 rounded-full bg-gradient-to-r from-sky-400/70 to-cyan-400/70" />
-                    <div className="text-[11px] font-semibold tracking-[0.22em] text-black/50">
+                    <span className="h-[2px] w-6 rounded-full bg-gradient-to-r from-[rgb(var(--grad-from))] to-[rgb(var(--grad-to))] opacity-70" />
+                    <div className="text-[11px] font-semibold tracking-[0.22em] text-[rgb(var(--muted))]">
                       {labelForBucket(b.label, props.lang)}
                     </div>
                   </div>

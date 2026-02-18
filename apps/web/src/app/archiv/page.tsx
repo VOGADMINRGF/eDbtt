@@ -34,10 +34,10 @@ const archiveNotes = [
 
 export default function ArchivPage() {
   return (
-    <main className="min-h-screen bg-gradient-to-b from-[var(--brand-from)] via-white to-white pb-16">
+    <main className="min-h-screen bg-[rgb(var(--bg))] pb-16">
       <section className="mx-auto max-w-5xl px-4 py-16 space-y-10">
         <header className="space-y-4">
-          <p className="text-xs uppercase tracking-[0.2em] text-slate-500">
+          <p className="text-xs uppercase tracking-[0.2em] text-[rgb(var(--muted))]">
             Archiv
           </p>
           <h1
@@ -51,7 +51,7 @@ export default function ArchivPage() {
           >
             Nachvollziehbare Entscheidungen – dauerhaft archiviert
           </h1>
-          <p className="text-base md:text-lg text-slate-700 leading-relaxed">
+          <p className="text-base md:text-lg text-[rgb(var(--muted))] leading-relaxed">
             Das Archiv bündelt geprüfte Themen, Dossiers und Entscheidungen. Es
             ist die öffentliche Wissensbasis für direkte Demokratie – klar
             strukturiert, versioniert und dauerhaft einsehbar.
@@ -62,12 +62,12 @@ export default function ArchivPage() {
           {archiveBlocks.map((block) => (
             <article
               key={block.title}
-              className="rounded-2xl border border-slate-100 bg-white/95 p-4 shadow-sm"
+              className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm"
             >
-              <h2 className="text-base font-semibold text-slate-900">
+              <h2 className="text-base font-semibold text-[rgb(var(--fg))]">
                 {block.title}
               </h2>
-              <p className="mt-2 text-sm text-slate-700">{block.body}</p>
+              <p className="mt-2 text-sm text-[rgb(var(--muted))]">{block.body}</p>
               <Link
                 href={block.href}
                 className="mt-3 inline-flex text-sm font-semibold text-sky-700 underline underline-offset-2"
@@ -79,21 +79,21 @@ export default function ArchivPage() {
         </section>
 
         <section className="grid gap-6 md:grid-cols-[1.1fr_0.9fr]">
-          <div className="rounded-3xl border border-slate-100 bg-slate-50/70 p-6 space-y-4">
-            <h2 className="text-lg font-semibold text-slate-900">
+          <div className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-6 space-y-4">
+            <h2 className="text-lg font-semibold text-[rgb(var(--fg))]">
               Was ins Archiv kommt
             </h2>
-            <ul className="space-y-2 text-sm text-slate-700">
+            <ul className="space-y-2 text-sm text-[rgb(var(--muted))]">
               {archiveNotes.map((item) => (
                 <li key={item}>{item}</li>
               ))}
             </ul>
           </div>
-          <div className="rounded-3xl border border-slate-100 bg-white p-6 space-y-4 shadow-sm">
-            <h2 className="text-lg font-semibold text-slate-900">
+          <div className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-6 space-y-4 shadow-sm">
+            <h2 className="text-lg font-semibold text-[rgb(var(--fg))]">
               Reports für Organisationen
             </h2>
-            <p className="text-sm text-slate-700">
+            <p className="text-sm text-[rgb(var(--muted))]">
               Detaillierte Reports sind ein Angebot für Organisationen und
               Redaktionen im geschlossenen Bereich. Im Archiv findest du die
               öffentliche, nachvollziehbare Übersicht.
@@ -107,13 +107,13 @@ export default function ArchivPage() {
           </div>
         </section>
 
-        <section className="rounded-3xl border border-slate-100 bg-white/95 p-6 md:p-8 shadow-[0_18px_60px_rgba(15,23,42,0.06)]">
+        <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-6 md:p-8 shadow-[0_18px_60px_rgba(15,23,42,0.06)]">
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div className="space-y-2">
-              <h2 className="text-xl font-semibold text-slate-900">
+              <h2 className="text-xl font-semibold text-[rgb(var(--fg))]">
                 Thema einreichen oder mitentscheiden
               </h2>
-              <p className="text-sm text-slate-700">
+              <p className="text-sm text-[rgb(var(--muted))]">
                 Du kannst jederzeit neue Themen einbringen oder laufende
                 Abstimmungen begleiten.
               </p>
@@ -127,7 +127,7 @@ export default function ArchivPage() {
               </Link>
               <Link
                 href="/abstimmungen"
-                className="btn border border-slate-300 bg-white/80 hover:bg-white"
+                className="btn border border-[rgb(var(--border))] bg-[rgb(var(--card))] hover:bg-[rgb(var(--card))]"
               >
                 Abstimmungen ansehen
               </Link>

@@ -43,19 +43,19 @@ export default async function EvidenceTopicPage({
   return (
     <main className="mx-auto flex max-w-5xl flex-col gap-4 px-4 py-10">
       <header className="space-y-1">
-        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Evidence · Topic</p>
-        <h1 className="text-2xl font-bold text-slate-900">
+        <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Evidence · Topic</p>
+        <h1 className="text-2xl font-bold text-[rgb(var(--fg))]">
           Claims zu {topicKey} – {regionName}
         </h1>
       </header>
       <section className="space-y-3">
         {items.length === 0 ? (
-          <p className="text-sm text-slate-600">Keine Claims für diese Kombination gefunden.</p>
+          <p className="text-sm text-[rgb(var(--muted))]">Keine Claims für diese Kombination gefunden.</p>
         ) : (
           items.map((entry) => (
-            <article key={entry.claim._id.toHexString()} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-              <p className="text-sm text-slate-900">{entry.claim.text}</p>
-              <p className="text-xs text-slate-500">
+            <article key={entry.claim._id.toHexString()} className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm">
+              <p className="text-sm text-[rgb(var(--fg))]">{entry.claim.text}</p>
+              <p className="text-xs text-[rgb(var(--muted))]">
                 {entry.claim.sourceType} · Pipeline {entry.claim.meta?.pipeline ?? "n/a"}
               </p>
             </article>

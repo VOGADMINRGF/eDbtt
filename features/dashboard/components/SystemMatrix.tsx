@@ -94,7 +94,7 @@ export default function SystemMatrix() {
   }, [systems.length]);
 
   return (
-    <div className="p-4 rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900">
+    <div className="p-4 rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-[rgb(var(--card))] dark:bg-neutral-900">
       <div className="mb-3 flex items-center justify-between gap-3 flex-wrap">
         <div className="text-sm font-semibold">System Matrix</div>
         <div className="flex items-center gap-2 text-sm">
@@ -196,7 +196,7 @@ function SystemCard({ sys }: { sys: SystemStatus }) {
 
   return (
     <div
-      className={`rounded-lg shadow p-4 bg-white dark:bg-neutral-900 border-2 ${border}`}
+      className={`rounded-lg shadow p-4 bg-[rgb(var(--card))] dark:bg-neutral-900 border-2 ${border}`}
       role="status"
       aria-label={`${sys.name} ${sys.status}`}
     >

@@ -43,11 +43,11 @@ export default function OrchestratorTelemetryPage() {
   return (
     <main className="mx-auto flex max-w-3xl flex-col gap-6 px-4 py-8">
       <header>
-        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+        <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
           Admin · Telemetry · AI
         </p>
-        <h1 className="text-2xl font-bold text-slate-900">Orchestrator-Status</h1>
-        <p className="text-sm text-slate-600">
+        <h1 className="text-2xl font-bold text-[rgb(var(--fg))]">Orchestrator-Status</h1>
+        <p className="text-sm text-[rgb(var(--muted))]">
           Teste, welche Provider aktuell erreichbar sind und wie lange sie brauchen.
           Ergebnisse werden nicht gespeichert – für langfristige Zahlen siehe{" "}
           <Link href="/dashboard/usage" className="text-sky-600 underline">
@@ -66,7 +66,7 @@ export default function OrchestratorTelemetryPage() {
           {loading ? "Test läuft …" : "Smoke-Test ausführen"}
         </button>
         <button
-          className="rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-800 hover:bg-slate-50"
+          className="rounded-full border border-[rgb(var(--border))] px-4 py-2 text-sm font-semibold text-[rgb(var(--fg))] hover:bg-[rgb(var(--bg))]"
           onClick={() => runSmoke("full")}
           disabled={loading}
         >
@@ -76,11 +76,11 @@ export default function OrchestratorTelemetryPage() {
       </div>
 
       {data && (
-        <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm space-y-3">
-          <div className="text-sm text-slate-600">
+        <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm space-y-3">
+          <div className="text-sm text-[rgb(var(--muted))]">
             <p>
               Best Provider:{" "}
-              <span className="font-semibold text-slate-900">
+              <span className="font-semibold text-[rgb(var(--fg))]">
                 {data.bestProviderId ?? "—"}
               </span>
             </p>
@@ -92,8 +92,8 @@ export default function OrchestratorTelemetryPage() {
             </p>
           </div>
 
-          <table className="min-w-full divide-y divide-slate-100 text-sm">
-            <thead className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+          <table className="min-w-full divide-y divide-[rgb(var(--border))] text-sm">
+            <thead className="bg-[rgb(var(--bg))] text-left text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
               <tr>
                 <th className="px-3 py-2">Provider</th>
                 <th className="px-3 py-2">Status</th>
@@ -101,13 +101,13 @@ export default function OrchestratorTelemetryPage() {
                 <th className="px-3 py-2">Fehlermeldung</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-[rgb(var(--border))]">
               {data.results.map((result) => (
                 <tr key={result.providerId}>
-                  <td className="px-3 py-2 font-semibold text-slate-900">{result.providerId}</td>
+                  <td className="px-3 py-2 font-semibold text-[rgb(var(--fg))]">{result.providerId}</td>
                   <td className="px-3 py-2">
                     {result.state === "disabled" ? (
-                      <span className="text-slate-500">⏸ deaktiviert (lokal)</span>
+                      <span className="text-[rgb(var(--muted))]">⏸ deaktiviert (lokal)</span>
                     ) : result.state === "skipped" ? (
                       <span className="text-amber-600">⤼ übersprungen</span>
                     ) : result.ok ? (
@@ -117,7 +117,7 @@ export default function OrchestratorTelemetryPage() {
                     )}
                   </td>
                   <td className="px-3 py-2">{result.durationMs}</td>
-                  <td className="px-3 py-2 text-xs text-slate-500">
+                  <td className="px-3 py-2 text-xs text-[rgb(var(--muted))]">
                     {result.errorMessage ?? "—"}
                   </td>
                 </tr>

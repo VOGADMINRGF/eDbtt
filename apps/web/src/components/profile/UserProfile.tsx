@@ -31,15 +31,15 @@ export default function UserProfile() {
 
   if (status === "loading") {
     return (
-      <section className="rounded-3xl border border-slate-200 bg-white/80 p-6 text-center text-slate-500 shadow-sm">
+      <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-6 text-center text-[rgb(var(--muted))] shadow-sm">
         Profil wird geladen …
       </section>
     );
   }
   if (status === "anon") {
     return (
-      <section className="rounded-3xl border border-slate-200 bg-white/90 p-6 text-center shadow-sm">
-        <p className="text-lg font-semibold text-slate-900">Bitte melde dich an, um dein Profil zu sehen.</p>
+      <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-6 text-center shadow-sm">
+        <p className="text-lg font-semibold text-[rgb(var(--fg))]">Bitte melde dich an, um dein Profil zu sehen.</p>
         <a
           href="/login"
           className="mt-4 inline-flex items-center justify-center rounded-full bg-brand-grad px-6 py-3 text-white font-semibold shadow-md"
@@ -78,19 +78,19 @@ export default function UserProfile() {
 
   return (
     <div className="space-y-8">
-      <section className="rounded-4xl border border-slate-200 bg-white/95 p-6 shadow-sm">
+      <section className="rounded-4xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-6 shadow-sm">
         <div className="flex flex-wrap items-center gap-4">
           <div className="flex h-16 w-16 items-center justify-center rounded-full bg-slate-900 text-2xl font-semibold text-white">
             {getInitials(displayName)}
           </div>
           <div className="flex-1">
-            <p className="text-xs uppercase tracking-wide text-slate-500">Citizen Core Journey</p>
-            <h1 className="text-3xl font-semibold text-slate-900">{displayName}</h1>
-            <p className="text-sm text-slate-500">{data.email}</p>
+            <p className="text-xs uppercase tracking-wide text-[rgb(var(--muted))]">Citizen Core Journey</p>
+            <h1 className="text-3xl font-semibold text-[rgb(var(--fg))]">{displayName}</h1>
+            <p className="text-sm text-[rgb(var(--muted))]">{data.email}</p>
           </div>
-          <div className="rounded-2xl border border-slate-200 px-4 py-2 text-sm text-slate-700">
+          <div className="rounded-2xl border border-[rgb(var(--border))] px-4 py-2 text-sm text-[rgb(var(--muted))]">
             <div>Aktiver Plan: <span className="font-semibold">{plan}</span></div>
-            <div className="text-xs text-slate-500">Profil-Paket: {profilePackage}</div>
+            <div className="text-xs text-[rgb(var(--muted))]">Profil-Paket: {profilePackage}</div>
           </div>
         </div>
 
@@ -122,42 +122,42 @@ export default function UserProfile() {
           </a>
           <a
             href="/contributions/new"
-            className="flex-1 rounded-full border border-slate-200 px-6 py-3 text-center font-semibold text-slate-700"
+            className="flex-1 rounded-full border border-[rgb(var(--border))] px-6 py-3 text-center font-semibold text-[rgb(var(--muted))]"
           >
             Neue Contribution starten
           </a>
         </div>
       </section>
 
-      <section className="rounded-4xl border border-slate-200 bg-white/90 p-6 shadow-sm">
-        <h2 className="text-2xl font-semibold text-slate-900">Profil & Sichtbarkeit</h2>
+      <section className="rounded-4xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-6 shadow-sm">
+        <h2 className="text-2xl font-semibold text-[rgb(var(--fg))]">Profil & Sichtbarkeit</h2>
         {hasPublicContent ? (
-          <div className="mt-4 space-y-3 text-sm text-slate-700">
+          <div className="mt-4 space-y-3 text-sm text-[rgb(var(--muted))]">
             {profile.headline && (
-              <p className="text-base font-semibold text-slate-900">{profile.headline}</p>
+              <p className="text-base font-semibold text-[rgb(var(--fg))]">{profile.headline}</p>
             )}
-            {profile.bio && <p className="text-slate-700">{profile.bio}</p>}
+            {profile.bio && <p className="text-[rgb(var(--muted))]">{profile.bio}</p>}
             {topTopics.length > 0 && (
               <div>
-                <p className="text-xs uppercase tracking-wide text-slate-500">Top-Themen</p>
+                <p className="text-xs uppercase tracking-wide text-[rgb(var(--muted))]">Top-Themen</p>
                 <div className="mt-2 grid gap-2 md:grid-cols-2">
                   {topTopics.map((topic) => (
                     <div
                       key={topic.key}
-                      className="rounded-2xl border border-slate-100 bg-slate-50/80 p-3"
+                      className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3"
                     >
-                      <p className="text-sm font-semibold text-slate-900">{topic.title}</p>
-                      {topic.statement && <p className="text-xs text-slate-600">{topic.statement}</p>}
+                      <p className="text-sm font-semibold text-[rgb(var(--fg))]">{topic.title}</p>
+                      {topic.statement && <p className="text-xs text-[rgb(var(--muted))]">{topic.statement}</p>}
                     </div>
                   ))}
                 </div>
               </div>
             )}
             {showEngagementLevel && (
-              <p className="text-xs text-slate-500">Engagement-Level: {stats.engagementLevel}</p>
+              <p className="text-xs text-[rgb(var(--muted))]">Engagement-Level: {stats.engagementLevel}</p>
             )}
             {showJoinDate && data.createdAt && (
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-[rgb(var(--muted))]">
                 Mitglied seit {new Date(data.createdAt).toLocaleDateString("de-DE")}
               </p>
             )}
@@ -173,25 +173,25 @@ export default function UserProfile() {
             )}
           </div>
         ) : (
-          <p className="mt-2 text-sm text-slate-600">Es sind noch keine öffentlichen Angaben hinterlegt.</p>
+          <p className="mt-2 text-sm text-[rgb(var(--muted))]">Es sind noch keine öffentlichen Angaben hinterlegt.</p>
         )}
       </section>
 
-      <section className="rounded-4xl border border-slate-200 bg-white/90 p-6 shadow-sm">
-        <h2 className="text-2xl font-semibold text-slate-900">Deine nächsten Ziele</h2>
-        <ul className="mt-4 space-y-3 text-sm text-slate-600">
+      <section className="rounded-4xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-6 shadow-sm">
+        <h2 className="text-2xl font-semibold text-[rgb(var(--fg))]">Deine nächsten Ziele</h2>
+        <ul className="mt-4 space-y-3 text-sm text-[rgb(var(--muted))]">
           <li>• Noch {stats.nextCreditIn} Swipes bis zum nächsten Contribution-Credit.</li>
           <li>• citizenPremium, citizenPro oder citizenUltra schalten unbegrenzte Contributions frei.</li>
           <li>• Level-Aufstieg bringt dir mehr Sichtbarkeit innerhalb der E150-Journey.</li>
         </ul>
       </section>
 
-      <section className="rounded-4xl border border-slate-200 bg-white/60 p-6 shadow-inner">
-        <h3 className="text-xl font-semibold text-slate-900">Impact deiner Statements</h3>
-        <p className="mt-2 text-sm text-slate-600">
+      <section className="rounded-4xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-6 shadow-inner">
+        <h3 className="text-xl font-semibold text-[rgb(var(--fg))]">Impact deiner Statements</h3>
+        <p className="mt-2 text-sm text-[rgb(var(--muted))]">
           Demnächst zeigen wir dir hier, wo deine Beiträge eingeflossen sind (Reports, Streams, Kampagnen).
         </p>
-        <p className="mt-1 text-sm text-slate-500">TODO: Impact-Ansicht für Bürger:innen implementieren.</p>
+        <p className="mt-1 text-sm text-[rgb(var(--muted))]">TODO: Impact-Ansicht für Bürger:innen implementieren.</p>
       </section>
     </div>
   );
@@ -199,10 +199,10 @@ export default function UserProfile() {
 
 function StatCard({ label, value, hint }: { label: string; value: string | number; hint?: string }) {
   return (
-    <div className="rounded-3xl border border-slate-100 bg-slate-50/80 p-4">
-      <p className="text-xs uppercase tracking-wide text-slate-500">{label}</p>
-      <p className="text-2xl font-semibold text-slate-900">{value}</p>
-      {hint && <p className="text-xs text-slate-500">{hint}</p>}
+    <div className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4">
+      <p className="text-xs uppercase tracking-wide text-[rgb(var(--muted))]">{label}</p>
+      <p className="text-2xl font-semibold text-[rgb(var(--fg))]">{value}</p>
+      {hint && <p className="text-xs text-[rgb(var(--muted))]">{hint}</p>}
     </div>
   );
 }

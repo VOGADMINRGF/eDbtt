@@ -309,9 +309,9 @@ export default function AdminCampaignDetailPage() {
   return (
     <main className="mx-auto flex max-w-4xl flex-col gap-6 px-4 py-8">
       <header className="space-y-2">
-        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Admin · Campaign</p>
-        <h1 className="text-2xl font-bold text-slate-900">Campaign Detail</h1>
-        <p className="text-sm text-slate-600">
+        <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Admin · Campaign</p>
+        <h1 className="text-2xl font-bold text-[rgb(var(--fg))]">Campaign Detail</h1>
+        <p className="text-sm text-[rgb(var(--muted))]">
           Status und Teilnehmerzahlen verwalten. Status-Updates wirken sofort auf den Join-Endpoint.
         </p>
       </header>
@@ -321,19 +321,19 @@ export default function AdminCampaignDetailPage() {
       )}
 
       {loading && (
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 text-sm text-slate-500">Lädt …</div>
+        <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-6 text-sm text-[rgb(var(--muted))]">Lädt …</div>
       )}
 
       {campaign && (
         <>
-          <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
-                <h2 className="text-xl font-semibold text-slate-900">{campaign.title}</h2>
-                <p className="text-sm text-slate-600">{campaign.description ?? "Keine Beschreibung."}</p>
+                <h2 className="text-xl font-semibold text-[rgb(var(--fg))]">{campaign.title}</h2>
+                <p className="text-sm text-[rgb(var(--muted))]">{campaign.description ?? "Keine Beschreibung."}</p>
               </div>
-              <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm">
-                Teilnehmer: <span className="font-semibold text-slate-900">{campaign.participants}</span>
+              <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-4 py-2 text-sm">
+                Teilnehmer: <span className="font-semibold text-[rgb(var(--fg))]">{campaign.participants}</span>
               </div>
             </div>
             <div className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
@@ -346,8 +346,8 @@ export default function AdminCampaignDetailPage() {
             </div>
           </section>
 
-          <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Status</p>
+          <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm">
+            <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Status</p>
             <div className="mt-2 flex flex-wrap items-center gap-3">
               {(["draft", "active", "paused", "ended"] as CampaignDetail["status"][]).map((status) => (
                 <button
@@ -357,35 +357,35 @@ export default function AdminCampaignDetailPage() {
                   className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
                     campaign.status === status
                       ? "bg-slate-900 text-white"
-                      : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                      : "bg-[rgb(var(--bg))] text-[rgb(var(--muted))] hover:bg-[rgb(var(--bg))]"
                   }`}
                 >
                   {status}
                 </button>
               ))}
             </div>
-            {saving && <p className="mt-2 text-xs text-slate-500">Speichert …</p>}
+            {saving && <p className="mt-2 text-xs text-[rgb(var(--muted))]">Speichert …</p>}
           </section>
 
-          <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">QR & Join</p>
+          <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm">
+            <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">QR & Join</p>
             <div className="mt-2 flex flex-wrap items-center gap-3 text-sm">
               {qrCode ? (
                 <>
-                  <span className="rounded-full bg-slate-100 px-3 py-1 font-semibold text-slate-700">{qrCode}</span>
+                  <span className="rounded-full bg-[rgb(var(--bg))] px-3 py-1 font-semibold text-[rgb(var(--muted))]">{qrCode}</span>
                   <a
                     href={`/qr/${encodeURIComponent(qrCode)}`}
-                    className="font-semibold text-slate-700 hover:text-slate-900"
+                    className="font-semibold text-[rgb(var(--muted))] hover:text-[rgb(var(--fg))]"
                   >
                     /qr/{qrCode}
                   </a>
                 </>
               ) : (
-                <span className="text-slate-600">Kein QR-Code vorhanden.</span>
+                <span className="text-[rgb(var(--muted))]">Kein QR-Code vorhanden.</span>
               )}
               <a
                 href={`/campaign/${encodeURIComponent(campaign.id)}/join`}
-                className="font-semibold text-slate-700 hover:text-slate-900"
+                className="font-semibold text-[rgb(var(--muted))] hover:text-[rgb(var(--fg))]"
               >
                 /campaign/{campaign.id}/join
               </a>
@@ -397,45 +397,45 @@ export default function AdminCampaignDetailPage() {
                 {qrCode ? "QR neu generieren" : "QR generieren"}
               </button>
             </div>
-            <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-slate-600">
+            <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-[rgb(var(--muted))]">
               <span>Status: {campaign.status}</span>
               <span>·</span>
-              <Link href={`/campaign/${encodeURIComponent(campaign.id)}`} className="font-semibold text-slate-700">
+              <Link href={`/campaign/${encodeURIComponent(campaign.id)}`} className="font-semibold text-[rgb(var(--muted))]">
                 Öffentliche Seite
               </Link>
               <span>·</span>
               <Link
                 href={`/admin/support?campaignId=${encodeURIComponent(campaign.id)}`}
-                className="font-semibold text-slate-700"
+                className="font-semibold text-[rgb(var(--muted))]"
               >
                 Support verwalten
               </Link>
             </div>
           </section>
 
-          <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Sessions</p>
+          <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm">
+            <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Sessions</p>
             <div className="mt-3 flex flex-wrap items-center gap-3 text-sm">
               <input
                 value={sessionLabel}
                 onChange={(e) => setSessionLabel(e.target.value)}
                 placeholder="Session-Label (optional)"
                 aria-label="Session-Label"
-                className="flex-1 rounded-full border border-slate-300 bg-white px-4 py-2 text-sm text-slate-700 shadow-sm sm:max-w-xs"
+                className="flex-1 rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-2 text-sm text-[rgb(var(--muted))] shadow-sm sm:max-w-xs"
               />
               <input
                 type="datetime-local"
                 value={sessionStartsAt}
                 onChange={(e) => setSessionStartsAt(e.target.value)}
                 aria-label="Session Start"
-                className="rounded-full border border-slate-300 bg-white px-3 py-2 text-xs text-slate-700"
+                className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-xs text-[rgb(var(--muted))]"
               />
               <input
                 type="datetime-local"
                 value={sessionEndsAt}
                 onChange={(e) => setSessionEndsAt(e.target.value)}
                 aria-label="Session Ende"
-                className="rounded-full border border-slate-300 bg-white px-3 py-2 text-xs text-slate-700"
+                className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-xs text-[rgb(var(--muted))]"
               />
               <button
                 onClick={createSession}
@@ -446,34 +446,34 @@ export default function AdminCampaignDetailPage() {
               </button>
             </div>
             {sessions.length > 0 ? (
-              <div className="mt-4 overflow-hidden rounded-xl border border-slate-200">
-                <table className="min-w-full divide-y divide-slate-200 text-xs">
-                  <thead className="bg-slate-50 text-left uppercase tracking-wide text-slate-500">
+              <div className="mt-4 overflow-hidden rounded-xl border border-[rgb(var(--border))]">
+                <table className="min-w-full divide-y divide-[rgb(var(--border))] text-xs">
+                  <thead className="bg-[rgb(var(--bg))] text-left uppercase tracking-wide text-[rgb(var(--muted))]">
                     <tr>
                       <th className="px-3 py-2">Label</th>
                       <th className="px-3 py-2">Status</th>
                       <th className="px-3 py-2">Zeit</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100">
+                  <tbody className="divide-y divide-[rgb(var(--border))]">
                     {sessions.map((session) => (
                       <tr key={session.id}>
-                        <td className="px-3 py-2 text-slate-700">{session.label ?? "Session"}</td>
-                        <td className="px-3 py-2 text-slate-600">
+                        <td className="px-3 py-2 text-[rgb(var(--muted))]">{session.label ?? "Session"}</td>
+                        <td className="px-3 py-2 text-[rgb(var(--muted))]">
                           <select
                             value={session.status}
                             onChange={(e) =>
                               updateSessionStatus(session.id, e.target.value as CampaignSession["status"])
                             }
                             aria-label="Session Status"
-                            className="rounded-md border border-slate-200 bg-white px-2 py-1 text-xs"
+                            className="rounded-md border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-2 py-1 text-xs"
                           >
                             <option value="planned">planned</option>
                             <option value="live">live</option>
                             <option value="ended">ended</option>
                           </select>
                         </td>
-                        <td className="px-3 py-2 text-slate-600">
+                        <td className="px-3 py-2 text-[rgb(var(--muted))]">
                           <div className="flex flex-col gap-2">
                             <div className="flex items-center gap-2">
                               <input
@@ -483,7 +483,7 @@ export default function AdminCampaignDetailPage() {
                                   updateSessionTimes(session.id, e.target.value, session.endsAt ?? "")
                                 }
                                 aria-label="Session Startzeit"
-                                className="rounded-md border border-slate-200 bg-white px-2 py-1 text-xs"
+                                className="rounded-md border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-2 py-1 text-xs"
                               />
                               <input
                                 type="datetime-local"
@@ -492,13 +492,13 @@ export default function AdminCampaignDetailPage() {
                                   updateSessionTimes(session.id, session.startsAt ?? "", e.target.value)
                                 }
                                 aria-label="Session Endzeit"
-                                className="rounded-md border border-slate-200 bg-white px-2 py-1 text-xs"
+                                className="rounded-md border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-2 py-1 text-xs"
                               />
                             </div>
                           {session.qrCode ? (
                             <a
                               href={`/qr/${encodeURIComponent(session.qrCode)}`}
-                              className="text-xs font-semibold text-slate-700 hover:text-slate-900"
+                              className="text-xs font-semibold text-[rgb(var(--muted))] hover:text-[rgb(var(--fg))]"
                             >
                               QR: {session.qrCode}
                             </a>
@@ -511,12 +511,12 @@ export default function AdminCampaignDetailPage() {
                 </table>
               </div>
             ) : (
-              <p className="mt-3 text-sm text-slate-600">Noch keine Sessions.</p>
+              <p className="mt-3 text-sm text-[rgb(var(--muted))]">Noch keine Sessions.</p>
             )}
           </section>
 
-          <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Campaign Report</p>
+          <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm">
+            <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Campaign Report</p>
             {report ? (
               <div className="mt-3 grid gap-4 text-sm sm:grid-cols-3">
                 <Metric label="Teilnahmen" value={report.participants.toString()} />
@@ -527,7 +527,7 @@ export default function AdminCampaignDetailPage() {
                 />
               </div>
             ) : (
-              <p className="mt-3 text-sm text-slate-600">Reportdaten sind derzeit nicht verfügbar.</p>
+              <p className="mt-3 text-sm text-[rgb(var(--muted))]">Reportdaten sind derzeit nicht verfügbar.</p>
             )}
             {report ? (
               <div className="mt-4 flex flex-wrap items-center gap-3 text-sm">
@@ -536,20 +536,20 @@ export default function AdminCampaignDetailPage() {
                   value={reportStartDate}
                   onChange={(e) => setReportStartDate(e.target.value)}
                   aria-label="Startdatum"
-                  className="rounded-full border border-slate-300 bg-white px-3 py-2 text-xs"
+                  className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-xs"
                 />
                 <input
                   type="date"
                   value={reportEndDate}
                   onChange={(e) => setReportEndDate(e.target.value)}
                   aria-label="Enddatum"
-                  className="rounded-full border border-slate-300 bg-white px-3 py-2 text-xs"
+                  className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-xs"
                 />
                 <select
                   value={reportSourceFilter}
                   onChange={(e) => setReportSourceFilter(e.target.value)}
                   aria-label="Source Filter"
-                  className="rounded-full border border-slate-300 bg-white px-3 py-2 text-xs"
+                  className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-xs"
                 >
                   <option value="all">Alle Quellen</option>
                   {sourcesList.map((source) => (
@@ -562,7 +562,7 @@ export default function AdminCampaignDetailPage() {
                   value={reportSessionFilter}
                   onChange={(e) => setReportSessionFilter(e.target.value)}
                   aria-label="Session Filter"
-                  className="rounded-full border border-slate-300 bg-white px-3 py-2 text-xs"
+                  className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-xs"
                 >
                   <option value="all">Alle Sessions</option>
                   {sessionsList.map((sessionId) => (
@@ -578,7 +578,7 @@ export default function AdminCampaignDetailPage() {
                     setReportSourceFilter("all");
                     setReportSessionFilter("all");
                   }}
-                  className="rounded-full border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700"
+                  className="rounded-full border border-[rgb(var(--border))] px-3 py-2 text-xs font-semibold text-[rgb(var(--muted))]"
                 >
                   Filter zurücksetzen
                 </button>
@@ -591,7 +591,7 @@ export default function AdminCampaignDetailPage() {
               </div>
             ) : null}
             {report ? (
-              <p className="mt-2 text-[11px] text-slate-500">
+              <p className="mt-2 text-[11px] text-[rgb(var(--muted))]">
                 Hinweis: Export übernimmt die aktiven Filter (Datum/Quelle/Session).
               </p>
             ) : null}
@@ -609,7 +609,7 @@ export default function AdminCampaignDetailPage() {
             ) : null}
             {filteredSources.length ? (
               <div className="mt-4 grid gap-2 text-sm">
-                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Quellen</p>
+                <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Quellen</p>
                 {filteredSources.map((row) => (
                   <BarRow key={row.source} label={row.source} value={row.count} max={maxSourceCount} />
                 ))}
@@ -617,7 +617,7 @@ export default function AdminCampaignDetailPage() {
             ) : null}
             {filteredSessions.length ? (
               <div className="mt-4 grid gap-2 text-sm">
-                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Sessions</p>
+                <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Sessions</p>
                 {filteredSessions.map((row, idx) => (
                   <BarRow
                     key={`${row.sessionId ?? "none"}-${idx}`}
@@ -629,8 +629,8 @@ export default function AdminCampaignDetailPage() {
               </div>
             ) : null}
             {filteredJoinRows.length ? (
-              <div className="mt-4 overflow-hidden rounded-xl border border-slate-200">
-                <div className="grid grid-cols-7 items-end gap-1 bg-slate-50 px-4 py-3 sm:grid-cols-14">
+              <div className="mt-4 overflow-hidden rounded-xl border border-[rgb(var(--border))]">
+                <div className="grid grid-cols-7 items-end gap-1 bg-[rgb(var(--bg))] px-4 py-3 sm:grid-cols-14">
                   {filteredJoinRows.map((row) => (
                     <div key={`bar-${row.date}`} className="flex flex-col items-center gap-1">
                       <div
@@ -640,22 +640,22 @@ export default function AdminCampaignDetailPage() {
                         }}
                         title={`${row.date}: ${row.count}`}
                       />
-                      <span className="text-[10px] text-slate-500">{row.date.slice(5)}</span>
+                      <span className="text-[10px] text-[rgb(var(--muted))]">{row.date.slice(5)}</span>
                     </div>
                   ))}
                 </div>
-                <table className="min-w-full divide-y divide-slate-200 text-xs">
-                  <thead className="bg-slate-50 text-left uppercase tracking-wide text-slate-500">
+                <table className="min-w-full divide-y divide-[rgb(var(--border))] text-xs">
+                  <thead className="bg-[rgb(var(--bg))] text-left uppercase tracking-wide text-[rgb(var(--muted))]">
                     <tr>
                       <th className="px-3 py-2">Datum</th>
                       <th className="px-3 py-2">Joins</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100">
+                  <tbody className="divide-y divide-[rgb(var(--border))]">
                     {filteredJoinRows.map((row) => (
                       <tr key={row.date}>
-                        <td className="px-3 py-2 text-slate-700">{row.date}</td>
-                        <td className="px-3 py-2 text-slate-700">{row.count}</td>
+                        <td className="px-3 py-2 text-[rgb(var(--muted))]">{row.date}</td>
+                        <td className="px-3 py-2 text-[rgb(var(--muted))]">{row.count}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -665,14 +665,14 @@ export default function AdminCampaignDetailPage() {
           </section>
 
           <div className="flex gap-4 text-sm">
-            <Link href={`/campaign/${encodeURIComponent(campaign.id)}`} className="font-semibold text-slate-700">
+            <Link href={`/campaign/${encodeURIComponent(campaign.id)}`} className="font-semibold text-[rgb(var(--muted))]">
               Öffentliche Seite
             </Link>
-            <Link href="/admin/campaigns" className="font-semibold text-slate-500">
+            <Link href="/admin/campaigns" className="font-semibold text-[rgb(var(--muted))]">
               Zurück zur Liste
             </Link>
           </div>
-          <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
+          <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3 text-sm text-[rgb(var(--muted))]">
             Support: {campaign.supportEnabled && campaign.supportSlug ? (
               <span>
                 aktiv ·{" "}
@@ -683,7 +683,7 @@ export default function AdminCampaignDetailPage() {
             ) : (
               <span>
                 nicht aktiv ·{" "}
-                <Link href={`/admin/support?campaignId=${encodeURIComponent(campaign.id)}`} className="font-semibold text-slate-900">
+                <Link href={`/admin/support?campaignId=${encodeURIComponent(campaign.id)}`} className="font-semibold text-[rgb(var(--fg))]">
                   in Admin Support aktivieren
                 </Link>
               </span>
@@ -698,17 +698,17 @@ export default function AdminCampaignDetailPage() {
 function Detail({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{label}</p>
-      <p className="text-sm text-slate-800">{value}</p>
+      <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">{label}</p>
+      <p className="text-sm text-[rgb(var(--fg))]">{value}</p>
     </div>
   );
 }
 
 function Metric({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
-      <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{label}</p>
-      <p className="text-lg font-semibold text-slate-900">{value}</p>
+    <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-4 py-3">
+      <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">{label}</p>
+      <p className="text-lg font-semibold text-[rgb(var(--fg))]">{value}</p>
     </div>
   );
 }
@@ -718,11 +718,11 @@ function BarRow({ label, value, max }: { label: string; value: number; max: numb
   const width = Math.min(100, Math.max(5, normalized));
   return (
     <div className="flex items-center gap-3">
-      <div className="w-32 text-xs text-slate-600">{label}</div>
-      <div className="flex-1 rounded-full bg-slate-100">
+      <div className="w-32 text-xs text-[rgb(var(--muted))]">{label}</div>
+      <div className="flex-1 rounded-full bg-[rgb(var(--bg))]">
         <div className="h-2 rounded-full bg-slate-900" style={{ width: `${width}%` }} />
       </div>
-      <div className="text-xs font-semibold text-slate-700">{value}</div>
+      <div className="text-xs font-semibold text-[rgb(var(--muted))]">{value}</div>
     </div>
   );
 }
@@ -738,18 +738,18 @@ function ComparePanel({
 }) {
   const safeTotal = total > 0 ? total : rows.reduce((acc, row) => acc + row.count, 0) || 1;
   return (
-    <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-xs">
-      <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">{title}</p>
+    <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-4 py-3 text-xs">
+      <p className="text-[11px] font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">{title}</p>
       {rows.length === 0 ? (
-        <p className="mt-2 text-slate-500">Keine Daten im aktuellen Filter.</p>
+        <p className="mt-2 text-[rgb(var(--muted))]">Keine Daten im aktuellen Filter.</p>
       ) : (
         <ul className="mt-2 space-y-2">
           {rows.map((row, idx) => {
             const pct = Math.round((row.count / safeTotal) * 100);
             return (
               <li key={`${row.label ?? "row"}-${idx}`} className="flex items-center justify-between gap-3">
-                <span className="text-slate-700">{row.label ?? "—"}</span>
-                <span className="text-slate-600">
+                <span className="text-[rgb(var(--muted))]">{row.label ?? "—"}</span>
+                <span className="text-[rgb(var(--muted))]">
                   {row.count} · {pct}%
                 </span>
               </li>

@@ -16,7 +16,7 @@ export default function UserDashboard({ user }: UserDashboardProps) {
   if (!user) return <div>Bitte einloggen.</div>;
 
   return (
-    <div className="max-w-lg mx-auto my-8 p-6 rounded-xl bg-white shadow">
+    <div className="max-w-lg mx-auto my-8 p-6 rounded-xl bg-[rgb(var(--card))] shadow">
       <h1 className="text-2xl font-bold mb-2">Willkommen, {user.username}!</h1>
       <div className="mb-4">
         <div className="flex items-center gap-2">

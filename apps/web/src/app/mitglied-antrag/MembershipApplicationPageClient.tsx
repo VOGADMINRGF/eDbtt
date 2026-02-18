@@ -732,11 +732,11 @@ export function MembershipApplicationPageClient() {
     const next = query ? `/mitglied-antrag?${query}` : "/mitglied-antrag";
 
     return (
-      <div className="space-y-6 rounded-3xl border border-sky-100 bg-white/90 p-6 shadow-xl">
-        <h1 className="text-2xl font-extrabold leading-tight text-slate-900">
+      <div className="space-y-6 rounded-3xl border border-sky-100 bg-[rgb(var(--card))] p-6 shadow-xl">
+        <h1 className="text-2xl font-extrabold leading-tight text-[rgb(var(--fg))]">
           Mitgliedschaft – bitte zuerst einloggen oder registrieren
         </h1>
-        <p className="text-sm text-slate-700">
+        <p className="text-sm text-[rgb(var(--muted))]">
           Um eine Mitgliedschaft abzuschließen, brauchst du ein persönliches Konto. So können wir
           deine Stimme eindeutig zuordnen und dir die notwendigen Unterlagen zusenden.
         </p>
@@ -775,7 +775,7 @@ export function MembershipApplicationPageClient() {
   return (
     <form
       onSubmit={handleSubmit}
-      className="space-y-8 rounded-3xl border border-sky-100 bg-white/95 p-6 shadow-[0_24px_80px_rgba(15,23,42,0.12)]"
+      className="space-y-8 rounded-3xl border border-sky-100 bg-[rgb(var(--card))] p-6 shadow-[0_24px_80px_rgba(15,23,42,0.12)]"
     >
       <div className="absolute left-[-9999px] top-auto h-0 w-0 overflow-hidden" aria-hidden="true">
         <label htmlFor="hp_membership">Bitte leer lassen</label>
@@ -789,20 +789,20 @@ export function MembershipApplicationPageClient() {
           onChange={(e) => setHpMembership(e.target.value)}
         />
       </div>
-      <div className="rounded-3xl border border-slate-100 bg-white/95 p-5 shadow-[0_20px_70px_rgba(15,23,42,0.08)] md:p-6">
+      <div className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-[0_20px_70px_rgba(15,23,42,0.08)] md:p-6">
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div>
-            <h1 className="text-2xl font-extrabold leading-tight text-slate-900 md:text-3xl">
+            <h1 className="text-2xl font-extrabold leading-tight text-[rgb(var(--fg))] md:text-3xl">
               Mitgliedschaft abschließen
             </h1>
-            <p className="mt-1 text-sm text-slate-700">
+            <p className="mt-1 text-sm text-[rgb(var(--muted))]">
               Mit deinem Beitrag unterstützt du eDebatte, die direktdemokratische Bewegung.
               eDebatte ist unser Werkzeug für die digitale Infrastruktur, die wir gemeinsam
               aufbauen.
             </p>
           </div>
-          <div className="text-xs text-slate-500">
-            <p className="font-semibold text-slate-700">
+          <div className="text-xs text-[rgb(var(--muted))]">
+            <p className="font-semibold text-[rgb(var(--muted))]">
               Schritt {step} von {steps.length}
             </p>
             <p className="mt-1">Bearbeitungszeit: ca. 3 Minuten</p>
@@ -810,7 +810,7 @@ export function MembershipApplicationPageClient() {
         </div>
 
         <div className="mt-4 space-y-3">
-          <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100">
+          <div className="h-2 w-full overflow-hidden rounded-full bg-[rgb(var(--bg))]">
             <div
               className="h-full rounded-full bg-gradient-to-r from-sky-500 via-cyan-400 to-emerald-400 transition-all duration-300"
               style={{ width: `${stepProgress}%` }}
@@ -837,8 +837,8 @@ export function MembershipApplicationPageClient() {
                     isActive
                       ? "border-sky-300 bg-sky-50 text-sky-900 shadow-sm"
                       : canNavigate
-                        ? "border-slate-100 bg-white text-slate-600 hover:border-sky-200"
-                        : "border-slate-100 bg-slate-50 text-slate-400"
+                        ? "border-[rgb(var(--border))] bg-[rgb(var(--card))] text-[rgb(var(--muted))] hover:border-sky-200"
+                        : "border-[rgb(var(--border))] bg-[rgb(var(--bg))] text-[rgb(var(--muted))]"
                   }`}
                   aria-current={isActive ? "step" : undefined}
                 >
@@ -847,8 +847,8 @@ export function MembershipApplicationPageClient() {
                       isActive
                         ? "bg-sky-600 text-white"
                         : canNavigate
-                          ? "bg-slate-100 text-slate-600"
-                          : "bg-slate-200 text-slate-500"
+                          ? "bg-[rgb(var(--bg))] text-[rgb(var(--muted))]"
+                          : "bg-[rgb(var(--bg))] text-[rgb(var(--muted))]"
                     }`}
                   >
                     {item.id}
@@ -857,7 +857,7 @@ export function MembershipApplicationPageClient() {
                     <span className="block text-[11px] font-semibold uppercase tracking-wide">
                       {item.title}
                     </span>
-                    <span className="block text-[11px] text-slate-500">{item.hint}</span>
+                    <span className="block text-[11px] text-[rgb(var(--muted))]">{item.hint}</span>
                   </span>
                 </button>
               );
@@ -880,14 +880,14 @@ export function MembershipApplicationPageClient() {
           )}
 
           <div className="grid gap-4 md:grid-cols-[1.6fr_1fr]">
-            <div className="relative overflow-hidden rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
+            <div className="relative overflow-hidden rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm">
               <div className="pointer-events-none absolute -right-24 -top-24 h-56 w-56 rounded-full bg-sky-100/70 blur-3xl" />
               <div className="pointer-events-none absolute bottom-0 right-0 h-48 w-48 rounded-full bg-emerald-100/70 blur-3xl" />
               <div className="relative space-y-4">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
-                    <h2 className="text-sm font-semibold text-slate-900">Beitrag pro Person</h2>
-                    <p className="text-xs text-slate-600">
+                    <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Beitrag pro Person</h2>
+                    <p className="text-xs text-[rgb(var(--muted))]">
                       Frei wählbar, mindestens {formatEuro(MIN_CONTRIBUTION_PER_PERSON)} pro Person
                       und Monat.
                     </p>
@@ -899,7 +899,7 @@ export function MembershipApplicationPageClient() {
 
                 <div className="grid gap-4 md:grid-cols-[1.1fr_0.9fr]">
                   <div className="space-y-3">
-                    <label className="text-xs font-medium text-slate-700">
+                    <label className="text-xs font-medium text-[rgb(var(--muted))]">
                       Betrag pro Person / Monat
                     </label>
                     <div className="flex flex-wrap items-center gap-2">
@@ -918,13 +918,13 @@ export function MembershipApplicationPageClient() {
                             }
                             setContributionPerPerson(parsed);
                           }}
-                          className="w-36 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm text-slate-900 outline-none focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
+                          className="w-36 rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-2 text-sm text-[rgb(var(--fg))] outline-none focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
                         />
-                        <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[11px] text-slate-500">
+                        <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[11px] text-[rgb(var(--muted))]">
                           € / Person
                         </span>
                       </div>
-                      <span className="text-[11px] text-slate-500">
+                      <span className="text-[11px] text-[rgb(var(--muted))]">
                         Mindestbetrag {formatEuro(MIN_CONTRIBUTION_PER_PERSON)}
                       </span>
                     </div>
@@ -951,7 +951,7 @@ export function MembershipApplicationPageClient() {
                             className={`rounded-full border px-3 py-1 text-xs font-semibold shadow-sm transition ${
                               isActive
                                 ? "border-sky-500 bg-sky-500 text-white"
-                                : "border-slate-200 bg-white text-slate-700 hover:border-sky-300"
+                                : "border-[rgb(var(--border))] bg-[rgb(var(--card))] text-[rgb(var(--muted))] hover:border-sky-300"
                             }`}
                           >
                             {formatEuro(amount)}
@@ -965,19 +965,19 @@ export function MembershipApplicationPageClient() {
                         {formatEuro(MIN_CONTRIBUTION_PER_PERSON)} betragen.
                       </p>
                     )}
-                    <p className="text-[11px] text-slate-500">
+                    <p className="text-[11px] text-[rgb(var(--muted))]">
                       Dein Beitrag skaliert automatisch mit der Haushaltsgröße. Du kannst ihn
                       jederzeit anpassen.
                     </p>
                   </div>
 
-                  <div className="rounded-2xl border border-slate-100 bg-slate-50/70 p-4">
-                    <p className="text-xs text-slate-500">Haushalt gesamt</p>
-                    <p className="text-2xl font-bold text-slate-900">
+                  <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4">
+                    <p className="text-xs text-[rgb(var(--muted))]">Haushalt gesamt</p>
+                    <p className="text-2xl font-bold text-[rgb(var(--fg))]">
                       {formatEuro(membershipAmountPerMonth)}
                     </p>
-                    <p className="text-[11px] text-slate-500">{householdSize} Person(en)</p>
-                    <div className="mt-3 space-y-1 text-xs text-slate-600">
+                    <p className="text-[11px] text-[rgb(var(--muted))]">{householdSize} Person(en)</p>
+                    <div className="mt-3 space-y-1 text-xs text-[rgb(var(--muted))]">
                       <div>Mitgliedschaft: {formatEuro(membershipAmountPerMonth)} / Monat</div>
                       {edbEnabled ? (
                         <div>
@@ -987,7 +987,7 @@ export function MembershipApplicationPageClient() {
                       ) : (
                         <div>eDebatte: nicht gewählt</div>
                       )}
-                      <div className="pt-1 font-semibold text-slate-800">
+                      <div className="pt-1 font-semibold text-[rgb(var(--fg))]">
                         Gesamt: {formatEuro(amountPerPeriod)} {rhythmLabel}
                       </div>
                     </div>
@@ -1009,7 +1009,7 @@ export function MembershipApplicationPageClient() {
                 rhythmLabel={rhythmLabel}
                 contributionPerPerson={validatedContributionPerPerson}
               />
-              <div className="rounded-xl border border-white/60 bg-white/70 p-3 text-xs text-sky-900">
+              <div className="rounded-xl border border-white/60 bg-[rgb(var(--card))] p-3 text-xs text-sky-900">
                 <p className="font-semibold">Rechner anpassen?</p>
                 <p className="mt-1">
                   Wenn du Haushaltsgröße oder Rhythmus ändern möchtest, spring kurz zum
@@ -1022,7 +1022,7 @@ export function MembershipApplicationPageClient() {
                   setStep(1);
                   window.scrollTo({ top: 0, behavior: "smooth" });
                 }}
-                className="inline-flex items-center justify-center rounded-full border border-sky-400 bg-white px-4 py-2 text-xs font-semibold text-sky-800 hover:bg-sky-50"
+                className="inline-flex items-center justify-center rounded-full border border-sky-400 bg-[rgb(var(--card))] px-4 py-2 text-xs font-semibold text-sky-800 hover:bg-sky-50"
               >
                 Rechner oben anpassen
               </button>
@@ -1051,9 +1051,9 @@ export function MembershipApplicationPageClient() {
       {step === 2 && (
         <section className="space-y-4">
           <div className="grid gap-4 md:grid-cols-[1.6fr_1fr]">
-            <div className="space-y-4 rounded-2xl border border-slate-100 bg-slate-50/60 p-4">
-              <h2 className="text-sm font-semibold text-slate-900">Haushalt</h2>
-              <p className="text-xs text-slate-600">
+            <div className="space-y-4 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4">
+              <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Haushalt</h2>
+              <p className="text-xs text-[rgb(var(--muted))]">
                 Du kannst hier alle Personen erfassen, für die dieser Beitrag gelten soll. Für die
                 Hauptperson benötigen wir Vor- und Nachnamen. Für weitere Personen sind die Daten
                 optional – E-Mail nur angeben, wenn sie später selbst Zugang zur Plattform erhalten
@@ -1066,10 +1066,10 @@ export function MembershipApplicationPageClient() {
                   return (
                     <div
                       key={m.id}
-                      className="space-y-3 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm"
+                      className="space-y-3 rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-3 text-sm"
                     >
                       <div className="flex items-center justify-between gap-2">
-                        <p className="font-semibold text-slate-900">
+                        <p className="font-semibold text-[rgb(var(--fg))]">
                           {isPrimary
                             ? "Hauptperson / Antragsteller:in"
                             : `Weitere Person ${idx + 1}`}
@@ -1080,7 +1080,7 @@ export function MembershipApplicationPageClient() {
                             onChange={(e) =>
                               updateMember(m.id, { role: e.target.value as MemberRole })
                             }
-                            className="rounded-full border border-slate-300 bg-slate-50 px-3 py-1 text-xs text-slate-700"
+                            className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-1 text-xs text-[rgb(var(--muted))]"
                           >
                             <option value="primary">Hauptperson</option>
                             <option value="adult">Erwachsene Person</option>
@@ -1090,7 +1090,7 @@ export function MembershipApplicationPageClient() {
                             <button
                               type="button"
                               onClick={() => removeMember(m.id)}
-                              className="text-[11px] font-semibold text-slate-400 hover:text-red-500"
+                              className="text-[11px] font-semibold text-[rgb(var(--muted))] hover:text-red-500"
                             >
                               Entfernen
                             </button>
@@ -1100,7 +1100,7 @@ export function MembershipApplicationPageClient() {
 
                       <div className="grid gap-3 md:grid-cols-2">
                         <div className="space-y-1">
-                          <label className="block text-xs font-medium text-slate-700">
+                          <label className="block text-xs font-medium text-[rgb(var(--muted))]">
                             Vorname{isPrimary && " *"}
                           </label>
                           <input
@@ -1109,11 +1109,11 @@ export function MembershipApplicationPageClient() {
                             onChange={(e) =>
                               updateMember(m.id, { givenName: e.target.value })
                             }
-                            className="w-full rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-900 outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
+                            className="w-full rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-1.5 text-sm text-[rgb(var(--fg))] outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
                           />
                         </div>
                         <div className="space-y-1">
-                          <label className="block text-xs font-medium text-slate-700">
+                          <label className="block text-xs font-medium text-[rgb(var(--muted))]">
                             Nachname{isPrimary && " *"}
                           </label>
                           <input
@@ -1122,14 +1122,14 @@ export function MembershipApplicationPageClient() {
                             onChange={(e) =>
                               updateMember(m.id, { familyName: e.target.value })
                             }
-                            className="w-full rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-900 outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
+                            className="w-full rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-1.5 text-sm text-[rgb(var(--fg))] outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
                           />
                         </div>
                       </div>
 
                       <div className="grid gap-3 md:grid-cols-2">
                         <div className="space-y-1">
-                          <label className="block text-xs font-medium text-slate-700">
+                          <label className="block text-xs font-medium text-[rgb(var(--muted))]">
                             Geburtsdatum (optional)
                           </label>
                           <input
@@ -1138,18 +1138,18 @@ export function MembershipApplicationPageClient() {
                             onChange={(e) =>
                               updateMember(m.id, { birthDate: e.target.value })
                             }
-                            className="w-full rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-900 outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
+                            className="w-full rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-1.5 text-sm text-[rgb(var(--fg))] outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
                           />
                         </div>
                         <div className="space-y-1">
-                          <label className="block text-xs font-medium text-slate-700">
+                          <label className="block text-xs font-medium text-[rgb(var(--muted))]">
                             E-Mail für Einladung (optional)
                           </label>
                           <input
                             type="email"
                             value={m.email}
                             onChange={(e) => updateMember(m.id, { email: e.target.value })}
-                            className="w-full rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-900 outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
+                            className="w-full rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-1.5 text-sm text-[rgb(var(--fg))] outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
                             placeholder={
                               isPrimary
                                 ? "Adresse der Antragsteller:in, falls abweichend"
@@ -1167,20 +1167,20 @@ export function MembershipApplicationPageClient() {
                 <button
                   type="button"
                   onClick={addMember}
-                  className="inline-flex items-center justify-center rounded-full border border-slate-300 bg-white px-4 py-1.5 text-xs font-semibold text-slate-700 hover:border-sky-400 hover:text-sky-700"
+                  className="inline-flex items-center justify-center rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-1.5 text-xs font-semibold text-[rgb(var(--muted))] hover:border-sky-400 hover:text-sky-700"
                 >
                   Weitere Person hinzufügen
                 </button>
               )}
 
-              <p className="text-[11px] text-slate-500">
+              <p className="text-[11px] text-[rgb(var(--muted))]">
                 Haushaltsgröße laut Rechner: {householdSize}. Wenn du merkst, dass sich die Anzahl
                 ändert, kannst du im Rechner noch einmal anpassen und dann den Antrag neu öffnen.
               </p>
             </div>
 
-            <aside className="space-y-3 rounded-2xl border border-slate-100 bg-white/90 p-4 text-sm text-slate-700 md:sticky md:top-6">
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+            <aside className="space-y-3 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 text-sm text-[rgb(var(--muted))] md:sticky md:top-6">
+              <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
                 Übersicht
               </p>
               <ContributionSummary
@@ -1194,7 +1194,7 @@ export function MembershipApplicationPageClient() {
                 rhythmLabel={rhythmLabel}
                 contributionPerPerson={validatedContributionPerPerson}
               />
-              <p className="text-[11px] text-slate-500">
+              <p className="text-[11px] text-[rgb(var(--muted))]">
                 Tipp: E-Mail-Adressen nur angeben, wenn die Person selbst eingeladen werden soll.
               </p>
             </aside>
@@ -1204,7 +1204,7 @@ export function MembershipApplicationPageClient() {
             <button
               type="button"
               onClick={() => setStep(1)}
-              className="inline-flex items-center justify-center rounded-full border border-slate-300 bg-white px-4 py-2 text-xs font-semibold text-slate-700 hover:border-sky-400 hover:text-sky-700"
+              className="inline-flex items-center justify-center rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-2 text-xs font-semibold text-[rgb(var(--muted))] hover:border-sky-400 hover:text-sky-700"
             >
               Zurück
             </button>
@@ -1227,16 +1227,16 @@ export function MembershipApplicationPageClient() {
         <section className="space-y-4">
           <div className="grid gap-4 md:grid-cols-[1.6fr_1fr]">
             <div className="space-y-4">
-              <section className="space-y-4 rounded-2xl border border-slate-100 bg-slate-50/60 p-4">
-                <h2 className="text-sm font-semibold text-slate-900">
+              <section className="space-y-4 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4">
+                <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">
                   Zahlung &amp; rechtliche Hinweise
                 </h2>
 
-                <div className="space-y-3 rounded-xl border border-slate-200 bg-white px-4 py-3">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                <div className="space-y-3 rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-3">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
                     Zahlungsart
                   </p>
-                  <p className="text-sm text-slate-700">
+                  <p className="text-sm text-[rgb(var(--muted))]">
                     Der Beitrag wird per Überweisung/Dauerauftrag auf unser Konto gezahlt. Nutze
                     bitte den Verwendungszweck aus der Bestätigungsmail, damit wir die Zahlung
                     eindeutig zuordnen können. Lastschrift ist für später geplant.
@@ -1244,7 +1244,7 @@ export function MembershipApplicationPageClient() {
 
                   <div className="mt-3 space-y-3 text-sm">
                     <div className="space-y-1">
-                      <label className="block text-xs font-medium text-slate-700">
+                      <label className="block text-xs font-medium text-[rgb(var(--muted))]">
                         Name für die Zahlungszuordnung *
                       </label>
                       <input
@@ -1254,11 +1254,11 @@ export function MembershipApplicationPageClient() {
                           billingNameTouched.current = true;
                           updatePayment({ billingName: e.target.value });
                         }}
-                        className="w-full rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-900 outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
+                        className="w-full rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-1.5 text-sm text-[rgb(var(--fg))] outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
                       />
                     </div>
                     <div className="space-y-1">
-                      <label className="block text-xs font-medium text-slate-700">
+                      <label className="block text-xs font-medium text-[rgb(var(--muted))]">
                         IBAN für 0,01 €-Verifikation *
                       </label>
                       <input
@@ -1267,17 +1267,17 @@ export function MembershipApplicationPageClient() {
                         autoComplete="iban"
                         value={payment.iban}
                         onChange={(e) => updatePayment({ iban: e.target.value.toUpperCase() })}
-                        className="w-full rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-900 outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
+                        className="w-full rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-1.5 text-sm text-[rgb(var(--fg))] outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
                         placeholder="DE00 0000 0000 0000 0000 00"
                       />
-                      <p className="text-[11px] text-slate-500">
+                      <p className="text-[11px] text-[rgb(var(--muted))]">
                         Wir überweisen dir in den nächsten Tagen 0,01 € mit einem TAN-Code im
                         Verwendungszweck. Den Code gibst du später im Zahlungsprofil ein.
                       </p>
                     </div>
                     <div className="grid gap-3 md:grid-cols-2">
                       <div className="space-y-1">
-                        <label className="block text-xs font-medium text-slate-700">
+                        <label className="block text-xs font-medium text-[rgb(var(--muted))]">
                           Straße &amp; Hausnummer (optional)
                         </label>
                         <div className="relative">
@@ -1285,23 +1285,23 @@ export function MembershipApplicationPageClient() {
                             type="text"
                             value={geoQuery || payment.street}
                             onChange={(e) => handleGeoInput(e.target.value)}
-                            className="w-full rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-900 outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
+                            className="w-full rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-1.5 text-sm text-[rgb(var(--fg))] outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
                             placeholder="z. B. Musterstraße 12"
                           />
                           {geoLoading && (
-                            <p className="mt-1 text-[11px] text-slate-500">Suche Adressen …</p>
+                            <p className="mt-1 text-[11px] text-[rgb(var(--muted))]">Suche Adressen …</p>
                           )}
                           {!geoLoading && geoSuggestions.length > 0 && (
-                            <ul className="absolute z-10 mt-1 w-full divide-y divide-slate-100 rounded-xl border border-slate-200 bg-white text-sm text-slate-800 shadow-lg">
+                            <ul className="absolute z-10 mt-1 w-full divide-y divide-[rgb(var(--border))] rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] text-sm text-[rgb(var(--fg))] shadow-lg">
                               {geoSuggestions.map((s) => (
                                 <li key={s.id}>
                                   <button
                                     type="button"
                                     onClick={() => applyGeoSuggestion(s)}
-                                    className="flex w-full flex-col px-3 py-2 text-left hover:bg-slate-50"
+                                    className="flex w-full flex-col px-3 py-2 text-left hover:bg-[rgb(var(--bg))]"
                                   >
-                                    <span className="text-slate-900">{s.label}</span>
-                                    <span className="text-[11px] text-slate-500">
+                                    <span className="text-[rgb(var(--fg))]">{s.label}</span>
+                                    <span className="text-[11px] text-[rgb(var(--muted))]">
                                       {[s.postalCode, s.city].filter(Boolean).join(" ")}
                                     </span>
                                   </button>
@@ -1312,7 +1312,7 @@ export function MembershipApplicationPageClient() {
                         </div>
                       </div>
                       <div className="space-y-1">
-                        <label className="block text-xs font-medium text-slate-700">
+                        <label className="block text-xs font-medium text-[rgb(var(--muted))]">
                           PLZ &amp; Ort (optional)
                         </label>
                         <div className="flex gap-2">
@@ -1320,31 +1320,31 @@ export function MembershipApplicationPageClient() {
                             type="text"
                             value={payment.postalCode}
                             onChange={(e) => updatePayment({ postalCode: e.target.value })}
-                            className="w-24 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-900 outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
+                            className="w-24 rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-1.5 text-sm text-[rgb(var(--fg))] outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
                             placeholder="PLZ"
                           />
                           <input
                             type="text"
                             value={payment.city}
                             onChange={(e) => updatePayment({ city: e.target.value })}
-                            className="flex-1 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-900 outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
+                            className="flex-1 rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-1.5 text-sm text-[rgb(var(--fg))] outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
                             placeholder="Ort"
                           />
                         </div>
                       </div>
                     </div>
                     <div className="space-y-1">
-                      <label className="block text-xs font-medium text-slate-700">
+                      <label className="block text-xs font-medium text-[rgb(var(--muted))]">
                         Land (optional)
                       </label>
                       <input
                         type="text"
                         value={payment.country}
                         onChange={(e) => updatePayment({ country: e.target.value })}
-                        className="w-full rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-900 outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
+                        className="w-full rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-1.5 text-sm text-[rgb(var(--fg))] outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
                       />
                     </div>
-                    <p className="text-xs text-slate-600">
+                    <p className="text-xs text-[rgb(var(--muted))]">
                       Wichtig: Die Freischaltung erfolgt nach der 0,01 €-Verifikation. Bis dahin
                       bleibt der Status auf „prüfen“. Du erhältst eine E-Mail mit den nächsten
                       Schritten.
@@ -1352,8 +1352,8 @@ export function MembershipApplicationPageClient() {
                   </div>
                 </div>
 
-                <div className="space-y-3 rounded-xl border border-slate-200 bg-white px-4 py-3 text-xs text-slate-700">
-                  <p className="font-semibold text-slate-900">Rechtliche Hinweise</p>
+                <div className="space-y-3 rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-3 text-xs text-[rgb(var(--muted))]">
+                  <p className="font-semibold text-[rgb(var(--fg))]">Rechtliche Hinweise</p>
 
                   <label className="flex items-start gap-2">
                     <input
@@ -1362,7 +1362,7 @@ export function MembershipApplicationPageClient() {
                       onChange={(e) =>
                         setLegal((p) => ({ ...p, transparency: e.target.checked }))
                       }
-                      className="mt-[2px] h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+                      className="mt-[2px] h-4 w-4 rounded border-[rgb(var(--border))] text-sky-600 focus:ring-sky-500"
                     />
                     <span>
                       Ich habe den Transparenz-Hinweis gelesen und akzeptiere, dass eDebatte
@@ -1376,7 +1376,7 @@ export function MembershipApplicationPageClient() {
                       type="checkbox"
                       checked={legal.statute}
                       onChange={(e) => setLegal((p) => ({ ...p, statute: e.target.checked }))}
-                      className="mt-[2px] h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+                      className="mt-[2px] h-4 w-4 rounded border-[rgb(var(--border))] text-sky-600 focus:ring-sky-500"
                     />
                     <span>
                       Ich erkenne die aktuelle{" "}
@@ -1398,7 +1398,7 @@ export function MembershipApplicationPageClient() {
                       onChange={(e) =>
                         setLegal((p) => ({ ...p, householdAuthority: e.target.checked }))
                       }
-                      className="mt-[2px] h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+                      className="mt-[2px] h-4 w-4 rounded border-[rgb(var(--border))] text-sky-600 focus:ring-sky-500"
                     />
                     <span>
                       Ich bestätige, dass ich für alle hier angegebenen Haushaltsmitglieder im
@@ -1467,7 +1467,7 @@ export function MembershipApplicationPageClient() {
                     <button
                       type="button"
                       onClick={() => setStep(2)}
-                      className="inline-flex items-center justify-center rounded-full border border-slate-300 bg-white px-4 py-2 text-xs font-semibold text-slate-700 hover:border-sky-400 hover:text-sky-700"
+                      className="inline-flex items-center justify-center rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-2 text-xs font-semibold text-[rgb(var(--muted))] hover:border-sky-400 hover:text-sky-700"
                     >
                       Zurück
                     </button>
@@ -1489,14 +1489,14 @@ export function MembershipApplicationPageClient() {
                       <button
                         type="button"
                         onClick={() => router.push("/account")}
-                        className="inline-flex items-center justify-center rounded-full border border-slate-300 bg-white px-4 py-2 text-xs font-semibold text-slate-700 hover:border-sky-400 hover:text-sky-700"
+                        className="inline-flex items-center justify-center rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-2 text-xs font-semibold text-[rgb(var(--muted))] hover:border-sky-400 hover:text-sky-700"
                       >
                         Zur Konto-Übersicht
                       </button>
                       <button
                         type="button"
                         onClick={() => router.push("/")}
-                        className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-xs font-semibold text-slate-600 hover:border-sky-300 hover:text-sky-700"
+                        className="inline-flex items-center justify-center rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-4 py-2 text-xs font-semibold text-[rgb(var(--muted))] hover:border-sky-300 hover:text-sky-700"
                       >
                         Zur Startseite
                       </button>
@@ -1506,8 +1506,8 @@ export function MembershipApplicationPageClient() {
               </section>
             </div>
 
-            <aside className="space-y-3 rounded-2xl border border-slate-100 bg-white/90 p-4 text-sm text-slate-700 md:sticky md:top-6">
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+            <aside className="space-y-3 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 text-sm text-[rgb(var(--muted))] md:sticky md:top-6">
+              <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
                 Übersicht
               </p>
               <ContributionSummary
@@ -1521,7 +1521,7 @@ export function MembershipApplicationPageClient() {
                 rhythmLabel={rhythmLabel}
                 contributionPerPerson={validatedContributionPerPerson}
               />
-              <p className="text-[11px] text-slate-500">
+              <p className="text-[11px] text-[rgb(var(--muted))]">
                 Nach dem Absenden erhältst du deine Zahlungsdaten per E-Mail.
               </p>
             </aside>
@@ -1567,14 +1567,14 @@ function ContributionSummary({
         : "/ Monat";
   return (
     <div className="space-y-3">
-      <div className="rounded-xl border border-slate-100 bg-white/70 px-3 py-2">
-        <p className="text-[11px] uppercase tracking-wide text-slate-500">Gesamtbeitrag</p>
-        <p className="text-xl font-semibold text-slate-900">
+      <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2">
+        <p className="text-[11px] uppercase tracking-wide text-[rgb(var(--muted))]">Gesamtbeitrag</p>
+        <p className="text-xl font-semibold text-[rgb(var(--fg))]">
           {formatEuro(amountPerPeriod)}{" "}
-          <span className="text-xs font-medium text-slate-500">{rhythmLabel}</span>
+          <span className="text-xs font-medium text-[rgb(var(--muted))]">{rhythmLabel}</span>
         </p>
       </div>
-      <div className="space-y-1 text-xs text-slate-600">
+      <div className="space-y-1 text-xs text-[rgb(var(--muted))]">
         <div>Beitrag pro Person: {formatEuro(contributionPerPerson)} {basisSuffix}</div>
         <div>
           Haushalt: {householdSize} Person(en) · {formatEuro(membershipAmountPerMonth)} {basisSuffix}

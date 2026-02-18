@@ -76,13 +76,13 @@ export default function AdminContributionsPage() {
     <main className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-8">
       <header className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Admin · Contributions</p>
-          <h1 className="text-2xl font-bold text-slate-900">Beitraege Review</h1>
-          <p className="text-sm text-slate-600">Vorschlaege freigeben oder ablehnen.</p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Admin · Contributions</p>
+          <h1 className="text-2xl font-bold text-[rgb(var(--fg))]">Beitraege Review</h1>
+          <p className="text-sm text-[rgb(var(--muted))]">Vorschlaege freigeben oder ablehnen.</p>
         </div>
         <button
           onClick={load}
-          className="rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700"
+          className="rounded-full border border-[rgb(var(--border))] px-4 py-2 text-sm font-semibold text-[rgb(var(--muted))]"
           disabled={loading}
         >
           Aktualisieren
@@ -95,23 +95,23 @@ export default function AdminContributionsPage() {
         </div>
       )}
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-        {loading && <p className="text-sm text-slate-500">Lädt …</p>}
+      <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm">
+        {loading && <p className="text-sm text-[rgb(var(--muted))]">Lädt …</p>}
         {!loading && items.length === 0 && (
-          <p className="text-sm text-slate-500">Keine offenen Beitraege.</p>
+          <p className="text-sm text-[rgb(var(--muted))]">Keine offenen Beitraege.</p>
         )}
         <div className="space-y-3">
           {items.map((item) => (
-            <article key={item.id} className="rounded-xl border border-slate-100 bg-slate-50/70 p-3 text-sm">
-              <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
-                <span className="rounded-full bg-white px-2 py-1">{item.type}</span>
+            <article key={item.id} className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3 text-sm">
+              <div className="flex flex-wrap items-center gap-2 text-xs text-[rgb(var(--muted))]">
+                <span className="rounded-full bg-[rgb(var(--card))] px-2 py-1">{item.type}</span>
                 {item.topicId && <span>Topic: {item.topicId}</span>}
                 {item.candidateId && <span>Kandidat: {item.candidateId}</span>}
                 <span>Status: {item.status}</span>
                 <span>Erstellt: {formatDate(item.createdAt ?? null)}</span>
               </div>
-              <p className="mt-2 font-semibold text-slate-900">{item.title || "Beitrag"}</p>
-              {item.body && <p className="mt-1 text-slate-700">{item.body}</p>}
+              <p className="mt-2 font-semibold text-[rgb(var(--fg))]">{item.title || "Beitrag"}</p>
+              {item.body && <p className="mt-1 text-[rgb(var(--muted))]">{item.body}</p>}
               {item.url && (
                 <a className="mt-2 inline-block text-xs text-sky-600 underline" href={item.url} target="_blank" rel="noreferrer">
                   Quelle öffnen

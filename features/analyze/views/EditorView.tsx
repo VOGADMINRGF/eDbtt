@@ -41,7 +41,7 @@ export function EditorView({ result }: Props) {
     >
       {/* LINKS: Notes mit Mini-Comment-Funktion */}
       <aside className="space-y-2">
-        <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+        <h3 className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
           Kontext (Notizen)
         </h3>
         {notes.map((note, idx) => (
@@ -58,7 +58,7 @@ export function EditorView({ result }: Props) {
 
       {/* MITTE: vollständige StatementCards */}
       <section className="space-y-3">
-        <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+        <h3 className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
           Abgeleitete Statements (Claims)
         </h3>
         {claims.map((c, idx) => (
@@ -73,7 +73,7 @@ export function EditorView({ result }: Props) {
       {/* RECHTS: Fragen & Knoten mit Inline-Kommentar */}
       <aside className="space-y-4">
         <div>
-          <h3 className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500">
+          <h3 className="mb-1 text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
             Fragen zum Weiterdenken
           </h3>
           <div className="space-y-2">
@@ -91,19 +91,19 @@ export function EditorView({ result }: Props) {
         </div>
 
         <div>
-          <h3 className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500">
+          <h3 className="mb-1 text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
             Knoten (Themenhubs)
           </h3>
-          <ul className="space-y-1 text-[11px] text-slate-600">
+          <ul className="space-y-1 text-[11px] text-[rgb(var(--muted))]">
             {knots.map((k) => (
               <li
                 key={k.id}
-                className="rounded-xl border border-slate-100 bg-white/70 px-3 py-2"
+                className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2"
               >
-                <div className="text-[11px] font-semibold text-slate-700">
+                <div className="text-[11px] font-semibold text-[rgb(var(--muted))]">
                   {k.label || "Unbenannter Knoten"}
                 </div>
-                <div className="text-[10px] text-slate-500">
+                <div className="text-[10px] text-[rgb(var(--muted))]">
                   {k.description}
                 </div>
                 <div className="mt-1 text-[10px] text-emerald-700">
@@ -141,15 +141,15 @@ function EditableCard({
   }
 
   return (
-    <div className="rounded-2xl border border-slate-100 bg-white/80 p-2 text-[11px] text-slate-700 shadow-sm">
+    <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-2 text-[11px] text-[rgb(var(--muted))] shadow-sm">
       <div className="mb-1 flex items-center justify-between gap-2">
-        <span className="font-semibold text-slate-600">
+        <span className="font-semibold text-[rgb(var(--muted))]">
           {title}
         </span>
         <button
           type="button"
           onClick={() => setOpen((v) => !v)}
-          className="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[10px] text-slate-500 hover:bg-slate-100"
+          className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-2 py-0.5 text-[10px] text-[rgb(var(--muted))] hover:bg-[rgb(var(--bg))]"
           title="Kurzkommentar an Redaktion"
         >
           ✏
@@ -172,7 +172,7 @@ function EditableCard({
                 setDraft("");
                 setOpen(false);
               }}
-              className="rounded-full px-2 py-0.5 text-[10px] text-slate-400 hover:bg-slate-50"
+              className="rounded-full px-2 py-0.5 text-[10px] text-[rgb(var(--muted))] hover:bg-[rgb(var(--bg))]"
             >
               Abbrechen
             </button>

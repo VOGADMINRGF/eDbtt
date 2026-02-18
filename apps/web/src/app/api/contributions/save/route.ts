@@ -13,6 +13,8 @@ const DraftSaveSchema = z.object({
   textPrepared: z.string().optional(),
   locale: z.string().optional(),
   source: z.string().optional(),
+  authorName: z.string().max(160).optional(),
+  useCase: z.enum(["civic", "journalism", "agenda"]).optional(),
   analysis: z.unknown().optional(),
 });
 
@@ -22,6 +24,8 @@ type ContributionDraftDoc = {
   text: string;
   locale?: string;
   source?: string;
+  authorName?: string | null;
+  useCase?: "civic" | "journalism" | "agenda" | null;
   analysis?: unknown;
   status: "draft" | "finalized";
   createdAt: Date;
@@ -69,6 +73,8 @@ export async function POST(req: NextRequest) {
           text: normalizedText,
           locale: body.locale ?? null,
           source: body.source ?? null,
+          authorName: body.authorName ?? null,
+          useCase: body.useCase ?? null,
           analysis: body.analysis ?? null,
           status: "draft",
           updatedAt: now,
@@ -94,6 +100,8 @@ export async function POST(req: NextRequest) {
     text: normalizedText,
     locale: body.locale ?? undefined,
     source: body.source ?? undefined,
+    authorName: body.authorName ?? null,
+    useCase: body.useCase ?? null,
     analysis: body.analysis ?? undefined,
     status: "draft",
     createdAt: now,

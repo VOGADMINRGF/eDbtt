@@ -60,15 +60,15 @@ export default function RegionReportPage() {
   return (
     <main className="mx-auto flex max-w-5xl flex-col gap-6 px-4 py-8">
       <header className="space-y-1">
-        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Admin · Region Report</p>
-        <h1 className="text-2xl font-bold text-slate-900">Region Impact · {regionId}</h1>
-        <p className="text-sm text-slate-600">
+        <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Admin · Region Report</p>
+        <h1 className="text-2xl font-bold text-[rgb(var(--fg))]">Region Impact · {regionId}</h1>
+        <p className="text-sm text-[rgb(var(--muted))]">
           Kennzahlen für Statements in Region {regionId}. Zeigt Impact-Dichte und Zuständigkeits-Ebenen.
         </p>
       </header>
 
       {loading && (
-        <div className="rounded-2xl border border-slate-200 bg-white px-4 py-6 text-sm text-slate-500 shadow-sm">
+        <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-6 text-sm text-[rgb(var(--muted))] shadow-sm">
           Lädt Region-Report …
         </div>
       )}
@@ -89,23 +89,23 @@ export default function RegionReportPage() {
           </section>
 
           {summary.byLevel?.length > 0 && (
-            <section className="rounded-3xl border border-slate-200 bg-white/95 p-4 shadow-sm">
+            <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm">
               <div className="flex items-center justify-between">
-                <h2 className="text-sm font-semibold text-slate-900">Ebene / Verantwortungen</h2>
-                <span className="text-xs text-slate-500">Graph-Aggregate</span>
+                <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Ebene / Verantwortungen</h2>
+                <span className="text-xs text-[rgb(var(--muted))]">Graph-Aggregate</span>
               </div>
-              <table className="mt-3 min-w-full divide-y divide-slate-200 text-sm">
-                <thead className="bg-slate-50">
+              <table className="mt-3 min-w-full divide-y divide-[rgb(var(--border))] text-sm">
+                <thead className="bg-[rgb(var(--bg))]">
                   <tr>
-                    <th className="px-4 py-2 text-left font-semibold text-slate-600">Ebene</th>
-                    <th className="px-4 py-2 text-left font-semibold text-slate-600">Responsibility Steps</th>
+                    <th className="px-4 py-2 text-left font-semibold text-[rgb(var(--muted))]">Ebene</th>
+                    <th className="px-4 py-2 text-left font-semibold text-[rgb(var(--muted))]">Responsibility Steps</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody className="divide-y divide-[rgb(var(--border))]">
                   {summary.byLevel.map((entry) => (
                     <tr key={entry.level}>
-                      <td className="px-4 py-2 font-semibold text-slate-800">{entry.level}</td>
-                      <td className="px-4 py-2 text-slate-700">{entry.responsibilityCount}</td>
+                      <td className="px-4 py-2 font-semibold text-[rgb(var(--fg))]">{entry.level}</td>
+                      <td className="px-4 py-2 text-[rgb(var(--muted))]">{entry.responsibilityCount}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -120,9 +120,9 @@ export default function RegionReportPage() {
 
 function KpiCard({ label, value }: { label: string; value: number }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white/95 p-4 shadow-sm">
-      <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{label}</p>
-      <p className="text-2xl font-bold text-slate-900">{value}</p>
+    <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm">
+      <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">{label}</p>
+      <p className="text-2xl font-bold text-[rgb(var(--fg))]">{value}</p>
     </div>
   );
 }

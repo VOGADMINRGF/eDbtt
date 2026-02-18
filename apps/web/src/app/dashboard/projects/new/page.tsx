@@ -43,7 +43,7 @@ export default async function NewProjectPage() {
   const { userId } = await ensureProAccess();
 
   return (
-    <main className="min-h-screen bg-slate-50">
+    <main className="min-h-screen bg-[rgb(var(--bg))]">
       <section className="mx-auto max-w-4xl py-10">
         <h1 className="sr-only">Neues Projekt</h1>
         <ProjectForm creatorId={userId} />

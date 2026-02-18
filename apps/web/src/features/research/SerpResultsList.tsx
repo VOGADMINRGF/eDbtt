@@ -22,7 +22,7 @@ export function SerpResultsList({
   }
 
   return (
-    <div className="divide-y divide-slate-200">
+    <div className="divide-y divide-[rgb(var(--border))]">
       {results.map((res, i) => (
         <div key={(res.url || "no-url") + res.title + i} className="px-0">
           <SerpResultItem result={res} view="serp" />

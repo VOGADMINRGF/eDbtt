@@ -70,10 +70,10 @@ export default function WiderspruchPage() {
           <p className="text-xs font-semibold uppercase tracking-[0.25em] text-sky-600">
             {t("Rechtliches", "kicker")}
           </p>
-          <h1 className="text-3xl md:text-4xl font-bold text-slate-900">
+          <h1 className="text-3xl md:text-4xl font-bold text-[rgb(var(--fg))]">
             {t("Widerspruch & Kündigung", "title")}
           </h1>
-          <p className="text-sm md:text-base text-slate-600 max-w-2xl mx-auto">
+          <p className="text-sm md:text-base text-[rgb(var(--muted))] max-w-2xl mx-auto">
             {t(
               "Hier kannst du einfach der Nutzung deiner Daten widersprechen oder deine Mitgliedschaft bzw. dein Paket kündigen. Ohne Begründung, ohne Hürden.",
               "lead",
@@ -84,17 +84,17 @@ export default function WiderspruchPage() {
         {/* Schnellaktionen */}
         <section
           aria-labelledby="quick-actions-heading"
-          className="bg-white/95 border border-slate-100 rounded-3xl p-5 md:p-6 shadow-[0_18px_45px_rgba(15,23,42,0.06)]"
+          className="bg-[rgb(var(--card))] border border-[rgb(var(--border))] rounded-3xl p-5 md:p-6 shadow-[0_18px_45px_rgba(15,23,42,0.06)]"
         >
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between mb-4">
             <div>
               <h2
                 id="quick-actions-heading"
-                className="text-base font-semibold text-slate-900"
+                className="text-base font-semibold text-[rgb(var(--fg))]"
               >
                 {t("Direkt widersprechen oder kündigen", "quick.title")}
               </h2>
-              <p className="mt-1 text-sm text-slate-600">
+              <p className="mt-1 text-sm text-[rgb(var(--muted))]">
                 {t(
                   "Die Buttons öffnen dein Mail-Programm mit einer vorausgefüllten Nachricht. Du kannst den Text vor dem Senden jederzeit anpassen.",
                   "quick.body",
@@ -109,10 +109,10 @@ export default function WiderspruchPage() {
               className="group flex flex-col justify-between rounded-2xl border border-sky-100 bg-sky-50/60 px-4 py-3 text-left shadow-sm transition hover:border-sky-300 hover:bg-sky-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-400"
             >
               <div>
-                <p className="text-sm font-semibold text-slate-900">
+                <p className="text-sm font-semibold text-[rgb(var(--fg))]">
                   {t("Mitgliedschaft / Paket kündigen", "quick.cancel.title")}
                 </p>
-                <p className="mt-1 text-xs text-slate-600">
+                <p className="mt-1 text-xs text-[rgb(var(--muted))]">
                   {t(
                     "Beendet deine Mitgliedschaft oder dein gebuchtes Paket. Wir bestätigen dir die Kündigung per E-Mail.",
                     "quick.cancel.body",
@@ -126,13 +126,13 @@ export default function WiderspruchPage() {
 
             <a
               href={`mailto:${CONTACT_MAIL}?subject=${subjectData}&body=${bodyData}`}
-              className="group flex flex-col justify-between rounded-2xl border border-slate-200 bg-white px-4 py-3 text-left shadow-sm transition hover:border-slate-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-400"
+              className="group flex flex-col justify-between rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-3 text-left shadow-sm transition hover:border-[rgb(var(--border))] focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-400"
             >
               <div>
-                <p className="text-sm font-semibold text-slate-900">
+                <p className="text-sm font-semibold text-[rgb(var(--fg))]">
                   {t("Widerspruch gegen Datenverarbeitung", "quick.data.title")}
                 </p>
-                <p className="mt-1 text-xs text-slate-600">
+                <p className="mt-1 text-xs text-[rgb(var(--muted))]">
                   {t(
                     "Du kannst z. B. Newsletter, Statistik-Auswertungen oder dein Konto betreffen lassen.",
                     "quick.data.body",
@@ -149,16 +149,16 @@ export default function WiderspruchPage() {
         {/* Selbst erledigen (systemseitig) */}
         <section
           aria-labelledby="self-service-heading"
-          className="bg-white/95 border border-slate-100 rounded-3xl p-5 md:p-6 shadow-[0_18px_45px_rgba(15,23,42,0.06)] space-y-4"
+          className="bg-[rgb(var(--card))] border border-[rgb(var(--border))] rounded-3xl p-5 md:p-6 shadow-[0_18px_45px_rgba(15,23,42,0.06)] space-y-4"
         >
           <div className="flex flex-col gap-2">
             <h2
               id="self-service-heading"
-              className="text-base font-semibold text-slate-900"
+              className="text-base font-semibold text-[rgb(var(--fg))]"
             >
               {t("Direkt hier erledigen (eingeloggt)", "self.title")}
             </h2>
-            <p className="text-sm text-slate-600">
+            <p className="text-sm text-[rgb(var(--muted))]">
               {t(
                 "Wenn du eingeloggt bist, kannst du hier dein Konto herunterstufen oder zur Löschung vormerken. Bei der Löschung fragen wir dein Passwort ab und melden dich danach ab.",
                 "self.body",
@@ -210,7 +210,7 @@ export default function WiderspruchPage() {
             }}
           >
             <div className="grid gap-3 md:grid-cols-2">
-              <label className="flex items-start gap-2 rounded-2xl border border-slate-200 bg-slate-50/60 p-3 text-sm text-slate-700">
+              <label className="flex items-start gap-2 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3 text-sm text-[rgb(var(--muted))]">
                 <input
                   type="radio"
                   name="selfAction"
@@ -220,10 +220,10 @@ export default function WiderspruchPage() {
                   className="mt-1 h-4 w-4 text-sky-600"
                 />
                 <div>
-                  <p className="font-semibold text-slate-900">
+                  <p className="font-semibold text-[rgb(var(--fg))]">
                     {t("Mitgliedschaft beenden", "self.option.cancel.title")}
                   </p>
-                  <p className="text-xs text-slate-600">
+                  <p className="text-xs text-[rgb(var(--muted))]">
                     {t(
                       "Status wird beendet, Beiträge gestoppt, Haushalt gesperrt.",
                       "self.option.cancel.body",
@@ -232,7 +232,7 @@ export default function WiderspruchPage() {
                 </div>
               </label>
 
-              <label className="flex items-start gap-2 rounded-2xl border border-slate-200 bg-white p-3 text-sm text-slate-700">
+              <label className="flex items-start gap-2 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-3 text-sm text-[rgb(var(--muted))]">
                 <input
                   type="radio"
                   name="selfAction"
@@ -242,10 +242,10 @@ export default function WiderspruchPage() {
                   className="mt-1 h-4 w-4 text-sky-600"
                 />
                 <div>
-                  <p className="font-semibold text-slate-900">
+                  <p className="font-semibold text-[rgb(var(--fg))]">
                     {t("Account-Löschung anstoßen", "self.option.delete.title")}
                   </p>
-                  <p className="text-xs text-slate-600">
+                  <p className="text-xs text-[rgb(var(--muted))]">
                     {t(
                       "Markiert dein Konto zur Löschung (inkl. Kündigung von Paketen) – wir melden dich danach ab.",
                       "self.option.delete.body",
@@ -257,13 +257,13 @@ export default function WiderspruchPage() {
 
             {selfAction === "delete_account" && (
               <div className="space-y-1">
-                <label className="block text-xs font-semibold text-slate-700" htmlFor="deletePassword">
+                <label className="block text-xs font-semibold text-[rgb(var(--muted))]" htmlFor="deletePassword">
                   {t("Passwort zur Bestätigung", "self.password.label")}
                 </label>
                 <input
                   id="deletePassword"
                   type="password"
-                  className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-900 outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
+                  className="w-full rounded-xl border border-[rgb(var(--border))] px-3 py-2 text-sm text-[rgb(var(--fg))] outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder={t("Passwort eingeben", "self.password.placeholder")}
@@ -274,7 +274,7 @@ export default function WiderspruchPage() {
               </div>
             )}
 
-            <label className="flex items-start gap-2 rounded-2xl border border-slate-200 bg-slate-50/70 p-3 text-sm text-slate-700">
+            <label className="flex items-start gap-2 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3 text-sm text-[rgb(var(--muted))]">
               <input
                 type="checkbox"
                 checked={ack}
@@ -290,11 +290,11 @@ export default function WiderspruchPage() {
             </label>
 
             <div className="space-y-1">
-              <label className="block text-xs font-semibold text-slate-700">
+              <label className="block text-xs font-semibold text-[rgb(var(--muted))]">
                 {t("Optionaler Hinweis", "self.note.label")}
               </label>
               <textarea
-                className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-900 outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
+                className="w-full rounded-xl border border-[rgb(var(--border))] px-3 py-2 text-sm text-[rgb(var(--fg))] outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
                 rows={3}
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
@@ -332,12 +332,12 @@ export default function WiderspruchPage() {
         {/* Erläuterungen in einfacher Sprache */}
         <section
           aria-labelledby="info-heading"
-          className="space-y-4 text-slate-700"
+          className="space-y-4 text-[rgb(var(--muted))]"
         >
-          <h2 id="info-heading" className="text-base font-semibold text-slate-900">
+          <h2 id="info-heading" className="text-base font-semibold text-[rgb(var(--fg))]">
             {t("Was du hier tun kannst", "info.title")}
           </h2>
-          <div className="bg-white/95 border border-slate-100 rounded-3xl p-5 md:p-6 shadow-sm">
+          <div className="bg-[rgb(var(--card))] border border-[rgb(var(--border))] rounded-3xl p-5 md:p-6 shadow-sm">
             <ul className="list-disc pl-5 space-y-2 text-sm leading-relaxed">
               <li>
                 <span className="font-semibold">
@@ -380,11 +380,11 @@ export default function WiderspruchPage() {
         {/* Alternative Kontaktwege */}
         <section
           aria-labelledby="alt-contact-heading"
-          className="space-y-3 text-slate-700"
+          className="space-y-3 text-[rgb(var(--muted))]"
         >
           <h2
             id="alt-contact-heading"
-            className="text-base font-semibold text-slate-900"
+            className="text-base font-semibold text-[rgb(var(--fg))]"
           >
             {t("Alternative Kontaktwege", "alt.title")}
           </h2>
@@ -402,7 +402,7 @@ export default function WiderspruchPage() {
               {CONTACT_MAIL}
             </a>
           </p>
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-[rgb(var(--muted))]">
             {t(
               "Bitte gib immer die E-Mail-Adresse an, mit der du bei eDebatte registriert bist. So können wir dein Konto eindeutig zuordnen.",
               "alt.note",

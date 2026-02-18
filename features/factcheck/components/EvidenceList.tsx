@@ -29,7 +29,7 @@ export function EvidenceList({ items }: { items: Evidence[] }) {
   return (
     <div className="grid sm:grid-cols-3 gap-3">
       <Block title="Pro" arr={groups.FOR} color="text-emerald-700"/>
-      <Block title="Neutral" arr={groups.NEUTRAL} color="text-slate-600"/>
+      <Block title="Neutral" arr={groups.NEUTRAL} color="text-[rgb(var(--muted))]"/>
       <Block title="Contra" arr={groups.AGAINST} color="text-rose-700"/>
     </div>
   );

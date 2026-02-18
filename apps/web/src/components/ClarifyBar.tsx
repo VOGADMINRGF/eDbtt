@@ -26,7 +26,7 @@ export default function ClarifyBar({
           <button
             key={i}
             onClick={() => onAccept(h)}
-            className="rounded-full bg-white/90 px-3 py-1 text-sm shadow-sm ring-1 ring-black/5 hover:bg-black/5"
+            className="rounded-full bg-[rgb(var(--card))] px-3 py-1 text-sm shadow-sm ring-1 ring-black/5 hover:bg-black/5"
             title={`Konfidenz: ${((h.confidence ?? 0) * 100) | 0}%`}
           >
             Claim #{h.index + 1}: Zuständigkeit → {h.proposal}

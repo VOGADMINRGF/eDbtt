@@ -5,7 +5,6 @@ import { useMemo } from "react";
 import { BRAND } from "@/lib/brand";
 import { useLocale } from "@/context/LocaleContext";
 import { mapTranslatableStrings, useAutoTranslateText } from "@/lib/i18n/autoTranslate";
-import ThemeToggle from "@/components/ThemeToggle";
 import ReadingModeToggle from "@/components/ReadingModeToggle";
 
 const infoLinks = [
@@ -96,7 +95,6 @@ export default function SiteFooter() {
             <p className="text-sm leading-relaxed text-[rgb(var(--muted))]">{brandCopy}</p>
 
             <div className="flex flex-wrap gap-2 pt-2">
-              <ThemeToggle />
               <ReadingModeToggle />
             </div>
           </div>

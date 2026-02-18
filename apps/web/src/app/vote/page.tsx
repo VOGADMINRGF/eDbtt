@@ -14,7 +14,7 @@ const graphLegend = [
 
 export default function VotePage() {
   return (
-    <main className="min-h-screen bg-gradient-to-b from-[var(--brand-from)] via-white to-white pb-16">
+    <main className="min-h-screen bg-[rgb(var(--bg))] pb-16">
       <section className="mx-auto max-w-4xl px-4 py-16 space-y-10">
         <header className="space-y-4">
           <h1
@@ -27,12 +27,12 @@ export default function VotePage() {
           >
             Abstimmen – fair, nachvollziehbar, wirksam
           </h1>
-          <div className="rounded-3xl border border-slate-200 bg-white/90 p-6 shadow-sm">
-            <p className="text-lg text-slate-700">
+          <div className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-6 shadow-sm">
+            <p className="text-lg text-[rgb(var(--muted))]">
               In 20 Sekunden liest du eine klar formulierte Vorlage mit Pro & Contra, gibst eine geheime Stimme ab
               und siehst sofort Ergebnis, Quorum, Beteiligung und Minderheitenbericht. Regeln und Methodik sind von Anfang an öffentlich.
             </p>
-            <div className="mt-4 flex flex-wrap gap-3 text-xs font-medium text-slate-700">
+            <div className="mt-4 flex flex-wrap gap-3 text-xs font-medium text-[rgb(var(--muted))]">
               {["Beteiligung: live", "Quorum transparent", "Methoden verlinkt"].map((chip) => (
                 <span
                   key={chip}
@@ -47,8 +47,8 @@ export default function VotePage() {
         </header>
 
         <section className="space-y-3">
-          <h2 className="text-lg font-semibold text-slate-900">So läuft eine Abstimmung</h2>
-          <ol className="list-decimal space-y-2 pl-6 text-sm text-slate-700">
+          <h2 className="text-lg font-semibold text-[rgb(var(--fg))]">So läuft eine Abstimmung</h2>
+          <ol className="list-decimal space-y-2 pl-6 text-sm text-[rgb(var(--muted))]">
             {steps.map((step) => (
               <li key={step}>{step}</li>
             ))}
@@ -56,13 +56,13 @@ export default function VotePage() {
         </section>
 
         <section className="space-y-3">
-          <h2 className="text-lg font-semibold text-slate-900">Evidenz-Graph – so liest du ihn</h2>
-          <p className="text-sm text-slate-700">
+          <h2 className="text-lg font-semibold text-[rgb(var(--fg))]">Evidenz-Graph – so liest du ihn</h2>
+          <p className="text-sm text-[rgb(var(--muted))]">
             Aussagen werden mit Belegen gestützt, Gegenbelege zeigen Grenzen. Daraus entsteht eine begründete Entscheidung.
             Pfeile zeigen, worauf sich etwas stützt; jede Kante verweist auf eine Quelle.
           </p>
-          <div className="rounded-2xl border border-slate-200 bg-white/90 p-4">
-            <div className="flex flex-wrap gap-3 text-xs font-medium text-slate-700">
+          <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4">
+            <div className="flex flex-wrap gap-3 text-xs font-medium text-[rgb(var(--muted))]">
               {graphLegend.map((item) => (
                 <span
                   key={item.label}
@@ -77,7 +77,7 @@ export default function VotePage() {
                 </span>
               ))}
             </div>
-            <div className="mt-4 space-y-2 rounded-xl bg-gradient-to-r from-slate-50 to-white p-4 text-xs text-slate-600">
+            <div className="mt-4 space-y-2 rounded-xl bg-gradient-to-r from-slate-50 to-white p-4 text-xs text-[rgb(var(--muted))]">
               <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
                 <div className="rounded-full bg-sky-100 px-3 py-2 font-semibold text-sky-700">
                   Aussage
@@ -111,8 +111,8 @@ export default function VotePage() {
         </section>
 
         <section className="space-y-3">
-          <h2 className="text-lg font-semibold text-slate-900">Regeln – kurz vorgestellt</h2>
-          <ul className="list-disc space-y-2 pl-5 text-sm text-slate-700">
+          <h2 className="text-lg font-semibold text-[rgb(var(--fg))]">Regeln – kurz vorgestellt</h2>
+          <ul className="list-disc space-y-2 pl-5 text-sm text-[rgb(var(--muted))]">
             <li>Quorum 10 % (Standard). Grundsatzthemen erfordern 2/3 Mehrheit.</li>
             <li>Minderheitenbericht wird automatisch erstellt.</li>
             <li>Prüfprotokoll hält Ergebnis, Beteiligung, Quorum, Vertrauen fest.</li>
@@ -120,12 +120,12 @@ export default function VotePage() {
         </section>
 
         <section className="space-y-3">
-          <h2 className="text-lg font-semibold text-slate-900">Los geht’s</h2>
+          <h2 className="text-lg font-semibold text-[rgb(var(--fg))]">Los geht’s</h2>
           <div className="flex flex-wrap gap-3">
             <a href="/statements" className="btn bg-brand-grad text-white shadow-soft">
               Statements ansehen
             </a>
-            <a href="/contributions/new" className="btn border border-slate-300 bg-white">
+            <a href="/contributions/new" className="btn border border-[rgb(var(--border))] bg-[rgb(var(--card))]">
               Eigenes Anliegen starten
             </a>
           </div>

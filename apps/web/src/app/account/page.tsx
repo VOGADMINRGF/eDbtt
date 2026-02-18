@@ -81,11 +81,11 @@ export default async function AccountPage({ searchParams }: Props) {
         <header className="space-y-2 md:space-y-3">
           <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-sky-600">Konto &amp; eDebatte</p>
 
-          <h1 className="text-2xl font-semibold leading-tight text-slate-900 md:text-3xl">
+          <h1 className="text-2xl font-semibold leading-tight text-[rgb(var(--fg))] md:text-3xl">
             {firstName ? (
               <>
                 <span className="bg-gradient-to-r from-sky-500 via-cyan-500 to-emerald-500 bg-clip-text text-transparent">{firstName}</span>
-                <span className="text-slate-900">, dein Profil &amp; dein eDebatte-Paket</span>
+                <span className="text-[rgb(var(--fg))]">, dein Profil &amp; dein eDebatte-Paket</span>
               </>
             ) : (
               <span className="bg-gradient-to-r from-sky-500 via-cyan-500 to-emerald-500 bg-clip-text text-transparent">
@@ -94,24 +94,24 @@ export default async function AccountPage({ searchParams }: Props) {
             )}
           </h1>
 
-          <p className="max-w-2xl text-xs md:text-sm text-slate-600">
+          <p className="max-w-2xl text-xs md:text-sm text-[rgb(var(--muted))]">
             Verwalte deinen Zugang zu eDebatte und dein gewähltes eDebatte-Paket <strong>(Basis, Start oder Pro)</strong>. Hier kannst du
             Profilangaben, Sprache und Benachrichtigungen anpassen.
           </p>
-          <p className="text-[11px] text-slate-500">
+          <p className="text-[11px] text-[rgb(var(--muted))]">
             {roleCount > 0 ? `${roleCount} aktive Rolle(n)` : "Standard-Rolle aktiv"} · Details in
             „Mitgliedschaft & Rollen“.
           </p>
           <ul className="grid gap-2 pt-1 sm:grid-cols-2 lg:grid-cols-4" aria-label="Konto-Status">
             {accountHighlights.map((item) => (
-              <li key={item.label} className="rounded-2xl bg-white/90 px-3 py-2 text-[11px] ring-1 ring-slate-200">
-                <p className="font-semibold uppercase tracking-[0.12em] text-slate-500">{item.label}</p>
-                <p className="mt-1 text-slate-800">{item.value}</p>
+              <li key={item.label} className="rounded-2xl bg-[rgb(var(--card))] px-3 py-2 text-[11px] ring-1 ring-[rgb(var(--border))]">
+                <p className="font-semibold uppercase tracking-[0.12em] text-[rgb(var(--muted))]">{item.label}</p>
+                <p className="mt-1 text-[rgb(var(--fg))]">{item.value}</p>
               </li>
             ))}
           </ul>
           {!hasPackage && (
-            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
               Nächster Schritt: Wähle dein eDebatte-Paket (Basis, Start oder Pro).
             </p>
           )}

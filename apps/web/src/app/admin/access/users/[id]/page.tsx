@@ -107,10 +107,10 @@ export default function AccessUserDetailPage() {
   return (
     <main className="mx-auto flex max-w-4xl flex-col gap-6 px-4 py-8">
       <header>
-        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Access Center</p>
-        <h1 className="text-2xl font-bold text-slate-900">Override für Nutzer</h1>
+        <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Access Center</p>
+        <h1 className="text-2xl font-bold text-[rgb(var(--fg))]">Override für Nutzer</h1>
         {user && (
-          <div className="mt-2 text-sm text-slate-600">
+          <div className="mt-2 text-sm text-[rgb(var(--muted))]">
             {user.name} · {user.email ?? "keine E-Mail"} · Rolle: {user.role ?? "user"}
           </div>
         )}
@@ -118,13 +118,13 @@ export default function AccessUserDetailPage() {
 
       {error && <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-2 text-sm text-rose-700">{error}</div>}
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm space-y-3">
-        <h2 className="text-sm font-semibold text-slate-900">Neuen Override hinzufügen</h2>
+      <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm space-y-3">
+        <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Neuen Override hinzufügen</h2>
         <div className="grid gap-3 md:grid-cols-2">
-          <label className="text-xs font-semibold text-slate-500">
+          <label className="text-xs font-semibold text-[rgb(var(--muted))]">
             Route
             <select
-              className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+              className="mt-1 w-full rounded-xl border border-[rgb(var(--border))] px-3 py-2 text-sm"
               value={routeId}
               onChange={(e) => setRouteId(e.target.value as RouteId)}
             >
@@ -135,10 +135,10 @@ export default function AccessUserDetailPage() {
               ))}
             </select>
           </label>
-          <label className="text-xs font-semibold text-slate-500">
+          <label className="text-xs font-semibold text-[rgb(var(--muted))]">
             Modus
             <select
-              className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+              className="mt-1 w-full rounded-xl border border-[rgb(var(--border))] px-3 py-2 text-sm"
               value={mode}
               onChange={(e) => setMode(e.target.value as UserRouteOverride["mode"])}
             >
@@ -147,19 +147,19 @@ export default function AccessUserDetailPage() {
             </select>
           </label>
         </div>
-        <label className="text-xs font-semibold text-slate-500">
+        <label className="text-xs font-semibold text-[rgb(var(--muted))]">
           Reason
           <input
-            className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+            className="mt-1 w-full rounded-xl border border-[rgb(var(--border))] px-3 py-2 text-sm"
             value={reason}
             onChange={(e) => setReason(e.target.value)}
           />
         </label>
-        <label className="text-xs font-semibold text-slate-500">
+        <label className="text-xs font-semibold text-[rgb(var(--muted))]">
           Expiry (optional)
           <input
             type="datetime-local"
-            className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+            className="mt-1 w-full rounded-xl border border-[rgb(var(--border))] px-3 py-2 text-sm"
             value={expiresAt}
             onChange={(e) => setExpiresAt(e.target.value)}
           />
@@ -172,27 +172,27 @@ export default function AccessUserDetailPage() {
         </button>
       </section>
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-        <h2 className="text-sm font-semibold text-slate-900">Aktive Overrides</h2>
+      <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm">
+        <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Aktive Overrides</h2>
         {loading ? (
-          <p className="text-sm text-slate-500">Lädt …</p>
+          <p className="text-sm text-[rgb(var(--muted))]">Lädt …</p>
         ) : overrides.length === 0 ? (
-          <p className="text-sm text-slate-500">Keine individuellen Overrides vorhanden.</p>
+          <p className="text-sm text-[rgb(var(--muted))]">Keine individuellen Overrides vorhanden.</p>
         ) : (
-          <ul className="space-y-3 text-sm text-slate-700">
+          <ul className="space-y-3 text-sm text-[rgb(var(--muted))]">
             {overrides.map((item) => (
-              <li key={item.routeId} className="rounded-xl border border-slate-100 p-3">
+              <li key={item.routeId} className="rounded-xl border border-[rgb(var(--border))] p-3">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="font-semibold text-slate-900">{item.routeId}</p>
-                    <p className="text-xs text-slate-500">
+                    <p className="font-semibold text-[rgb(var(--fg))]">{item.routeId}</p>
+                    <p className="text-xs text-[rgb(var(--muted))]">
                       Mode: {item.mode} · {item.reason ?? "kein Grund"}{" "}
                       {item.expiresAt ? `· bis ${new Date(item.expiresAt).toLocaleString()}` : ""}
                     </p>
                   </div>
                   <div className="flex gap-2 text-xs">
                     <button
-                      className="rounded-full border border-slate-300 px-3 py-1"
+                      className="rounded-full border border-[rgb(var(--border))] px-3 py-1"
                       onClick={() =>
                         changeOverride(item.routeId, {
                           mode: item.mode === "allow" ? "deny" : "allow",

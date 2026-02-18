@@ -9,7 +9,7 @@ export function Tabs({ tabs, value, onChange }: { tabs: Tab[]; value: string; on
         <button key={t.id}
           role="tab" aria-selected={value===t.id}
           onClick={()=>onChange(t.id)}
-          className={`rounded-xl border px-3 py-1.5 text-sm ${value===t.id ? "bg-cyan-50 border-cyan-200 text-cyan-900" : "bg-white"}`}>
+          className={`rounded-xl border px-3 py-1.5 text-sm ${value===t.id ? "bg-cyan-50 border-cyan-200 text-cyan-900" : "bg-[rgb(var(--card))]"}`}>
           {t.label}
         </button>
       ))}

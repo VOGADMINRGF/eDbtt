@@ -14,12 +14,12 @@ export default function InlineAnalyzeFeed({items}:{items:FeedItem[]}) {
       {items.map((it,idx)=>{
         if (it.type==="choices") {
           return (
-            <div key={idx} className="rounded-xl border border-slate-200 bg-white shadow p-3">
-              <div className="text-sm font-medium text-slate-800 mb-2">{it.title}</div>
+            <div key={idx} className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] shadow p-3">
+              <div className="text-sm font-medium text-[rgb(var(--fg))] mb-2">{it.title}</div>
               <div className="flex flex-col gap-2">
                 {it.items.map((t,i)=>(
                   <button key={i} onClick={()=>it.onPick(i)}
-                    className="text-left rounded-lg border border-slate-200 hover:bg-slate-50 px-3 py-2 text-sm">
+                    className="text-left rounded-lg border border-[rgb(var(--border))] hover:bg-[rgb(var(--bg))] px-3 py-2 text-sm">
                     {t}
                   </button>
                 ))}
@@ -30,9 +30,9 @@ export default function InlineAnalyzeFeed({items}:{items:FeedItem[]}) {
         const tone = it.type==="error" ? "border-rose-200 bg-rose-50"
                   : it.type==="success" ? "border-emerald-200 bg-emerald-50"
                   : it.type==="step" ? "border-sky-200 bg-sky-50"
-                  : "border-slate-200 bg-white";
+                  : "border-[rgb(var(--border))] bg-[rgb(var(--card))]";
         return (
-          <div key={idx} className={`rounded-xl border ${tone} shadow p-3 text-sm text-slate-800`}>
+          <div key={idx} className={`rounded-xl border ${tone} shadow p-3 text-sm text-[rgb(var(--fg))]`}>
             {it.text}
           </div>
         );

@@ -101,11 +101,11 @@ export default function AiTelemetryDashboard() {
   return (
     <main className="mx-auto flex max-w-5xl flex-col gap-8 px-4 py-8">
       <header className="space-y-2">
-        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+        <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
           Admin · Telemetry · AI
         </p>
-        <h1 className="text-3xl font-bold text-slate-900">Orchestrator-Telemetrie</h1>
-        <p className="text-sm text-slate-600">
+        <h1 className="text-3xl font-bold text-[rgb(var(--fg))]">Orchestrator-Telemetrie</h1>
+        <p className="text-sm text-[rgb(var(--muted))]">
           Live-Sicht auf die letzten Provider-Aufrufe. Enthält nur technische Metriken –
           keine Rohtexte oder PII.
         </p>
@@ -131,12 +131,12 @@ export default function AiTelemetryDashboard() {
           ].map((card) => (
             <article
               key={card.label}
-              className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
+              className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm"
             >
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+              <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
                 {card.label}
               </p>
-              <p className="mt-2 text-2xl font-bold text-slate-900">
+              <p className="mt-2 text-2xl font-bold text-[rgb(var(--fg))]">
                 {typeof card.value === "number"
                   ? numberFormatter.format(card.value)
                   : card.value}
@@ -147,10 +147,10 @@ export default function AiTelemetryDashboard() {
       )}
 
       {providerStats.length > 0 && (
-        <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <h2 className="text-lg font-semibold text-slate-900">Provider-Übersicht</h2>
-          <table className="mt-4 min-w-full divide-y divide-slate-100 text-sm">
-            <thead className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+        <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm">
+          <h2 className="text-lg font-semibold text-[rgb(var(--fg))]">Provider-Übersicht</h2>
+          <table className="mt-4 min-w-full divide-y divide-[rgb(var(--border))] text-sm">
+            <thead className="bg-[rgb(var(--bg))] text-left text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
               <tr>
                 <th className="px-3 py-2">Provider</th>
                 <th className="px-3 py-2">Calls</th>
@@ -159,11 +159,11 @@ export default function AiTelemetryDashboard() {
                 <th className="px-3 py-2">Fallback</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-[rgb(var(--border))]">
               {providerStats.map((provider) => (
                 <tr key={provider.provider}>
-                  <td className="px-3 py-2 font-semibold text-slate-900">{provider.provider}</td>
-                  <td className="px-3 py-2 text-slate-600">
+                  <td className="px-3 py-2 font-semibold text-[rgb(var(--fg))]">{provider.provider}</td>
+                  <td className="px-3 py-2 text-[rgb(var(--muted))]">
                     {numberFormatter.format(provider.calls)}
                   </td>
                   <td className="px-3 py-2">{provider.successRate}%</td>
@@ -177,13 +177,13 @@ export default function AiTelemetryDashboard() {
       )}
 
       {data?.events && data.events.length > 0 && (
-        <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <h2 className="text-lg font-semibold text-slate-900">Letzte Aufrufe</h2>
+        <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm">
+          <h2 className="text-lg font-semibold text-[rgb(var(--fg))]">Letzte Aufrufe</h2>
           <div className="mt-3 flex flex-wrap items-center gap-3 text-sm">
             <select
               value={providerFilter}
               onChange={(e) => setProviderFilter(e.target.value)}
-              className="rounded-xl border border-slate-200 bg-white px-3 py-2 shadow-sm"
+              className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 shadow-sm"
             >
               <option value="">Provider: alle</option>
               {providers.map((p) => (
@@ -195,7 +195,7 @@ export default function AiTelemetryDashboard() {
             <select
               value={pipelineFilter}
               onChange={(e) => setPipelineFilter(e.target.value)}
-              className="rounded-xl border border-slate-200 bg-white px-3 py-2 shadow-sm"
+              className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 shadow-sm"
             >
               <option value="">Pipeline: alle</option>
               {pipelines.map((p) => (
@@ -207,19 +207,19 @@ export default function AiTelemetryDashboard() {
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value as any)}
-              className="rounded-xl border border-slate-200 bg-white px-3 py-2 shadow-sm"
+              className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 shadow-sm"
             >
               <option value="all">Status: alle</option>
               <option value="ok">nur OK</option>
               <option value="error">nur Fehler</option>
             </select>
-            <span className="text-xs text-slate-500">
+            <span className="text-xs text-[rgb(var(--muted))]">
               {filteredEvents.length} von {data.events.length} (max 50)
             </span>
           </div>
           <div className="mt-4 overflow-x-auto">
-            <table className="min-w-full divide-y divide-slate-100 text-sm">
-              <thead className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+            <table className="min-w-full divide-y divide-[rgb(var(--border))] text-sm">
+              <thead className="bg-[rgb(var(--bg))] text-left text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
                 <tr>
                   <th className="px-3 py-2">Zeit</th>
                   <th className="px-3 py-2">Provider</th>
@@ -229,15 +229,15 @@ export default function AiTelemetryDashboard() {
                   <th className="px-3 py-2">Status</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-[rgb(var(--border))]">
                 {filteredEvents.map((event) => (
                   <tr key={`${event.provider}-${event.ts}-${event.pipeline}`}>
-                    <td className="px-3 py-2 text-slate-500">
+                    <td className="px-3 py-2 text-[rgb(var(--muted))]">
                       {dateFormatter.format(new Date(event.ts))}
                     </td>
-                    <td className="px-3 py-2 font-medium text-slate-900">{event.provider}</td>
-                    <td className="px-3 py-2 text-slate-600">{event.pipeline}</td>
-                    <td className="px-3 py-2 text-slate-600">{event.model ?? "—"}</td>
+                    <td className="px-3 py-2 font-medium text-[rgb(var(--fg))]">{event.provider}</td>
+                    <td className="px-3 py-2 text-[rgb(var(--muted))]">{event.pipeline}</td>
+                    <td className="px-3 py-2 text-[rgb(var(--muted))]">{event.model ?? "—"}</td>
                     <td className="px-3 py-2">
                       {event.durationMs != null ? `${event.durationMs} ms` : "—"}
                     </td>

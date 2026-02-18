@@ -200,24 +200,24 @@ export default function IdentityStepPage() {
     <div className="mx-auto flex max-w-3xl flex-col gap-6 p-6">
       <RegisterStepper current={2} />
       <header className="space-y-2">
-        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Schritt 2 · Verifikation</p>
-        <h1 className="text-2xl font-semibold text-slate-900">Identität sichern</h1>
-        <p className="text-sm text-slate-600">
+        <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Schritt 2 · Verifikation</p>
+        <h1 className="text-2xl font-semibold text-[rgb(var(--fg))]">Identität sichern</h1>
+        <p className="text-sm text-[rgb(var(--muted))]">
           Wähle Authenticator-App (TOTP) oder E-Mail-Code, um Missbrauch vorzubeugen. Im nächsten Schritt kannst du optional
           dein eDebatte-Paket vormerken.
         </p>
       </header>
 
       <div className="flex flex-wrap items-center gap-3">
-        <div className="inline-flex rounded-full bg-slate-100 p-1 text-xs font-semibold">
+        <div className="inline-flex rounded-full bg-[rgb(var(--bg))] p-1 text-xs font-semibold">
           <button
             type="button"
             onClick={() => setMethod("otp")}
             className={
               "rounded-full px-3 py-1 " +
               (method === "otp"
-                ? "bg-white text-slate-900 shadow-sm"
-                : "text-slate-500")
+                ? "bg-[rgb(var(--card))] text-[rgb(var(--fg))] shadow-sm"
+                : "text-[rgb(var(--muted))]")
             }
           >
             Authenticator-App
@@ -228,29 +228,29 @@ export default function IdentityStepPage() {
             className={
               "rounded-full px-3 py-1 " +
               (method === "email"
-                ? "bg-white text-slate-900 shadow-sm"
-                : "text-slate-500")
+                ? "bg-[rgb(var(--card))] text-[rgb(var(--fg))] shadow-sm"
+                : "text-[rgb(var(--muted))]")
             }
           >
             E-Mail-Code
           </button>
         </div>
-        <p className="text-xs text-slate-500">
+        <p className="text-xs text-[rgb(var(--muted))]">
           Alternativ kannst du dich per E-Mail-Code verifizieren.
         </p>
       </div>
 
       {method === "otp" && (
-        <section className="rounded-3xl border border-slate-200 bg-white/95 p-6 shadow-sm space-y-5">
+        <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-6 shadow-sm space-y-5">
           <div className="space-y-2">
-            <h2 className="text-lg font-semibold text-slate-900">Authenticator-App (OTP)</h2>
-            <p className="text-sm text-slate-600">
+            <h2 className="text-lg font-semibold text-[rgb(var(--fg))]">Authenticator-App (OTP)</h2>
+            <p className="text-sm text-[rgb(var(--muted))]">
               Du kannst jede OTP-App verwenden (Aegis, Ente, Authy, Bitwarden, 1Password, Google Authenticator …). Nach
               Aktivierung nutzt du denselben Code später auch bei der Anmeldung.
             </p>
           </div>
           <div className="space-y-4">
-            <p className="text-sm text-slate-600">
+            <p className="text-sm text-[rgb(var(--muted))]">
               Wir haben die Einrichtung bereits gestartet. Falls etwas schiefgeht, nutze den Button:
             </p>
             <button
@@ -269,23 +269,23 @@ export default function IdentityStepPage() {
             )}
 
             {otpData && otpData.qr && (
-              <div className="flex flex-col items-center gap-3 rounded-2xl border border-slate-100 bg-slate-50/70 p-4 text-center text-sm text-slate-700">
+              <div className="flex flex-col items-center gap-3 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4 text-center text-sm text-[rgb(var(--muted))]">
                 <img src={otpData.qr} alt="Authenticator QR-Code" className="h-40 w-40 rounded-lg border border-white shadow" />
                 <div>
                   <p>Secret-Key (falls du ihn manuell eingeben möchtest):</p>
-                  <p className="font-mono text-xs text-slate-900">{otpData.secret}</p>
+                  <p className="font-mono text-xs text-[rgb(var(--fg))]">{otpData.secret}</p>
                 </div>
                 <div className="flex flex-wrap items-center justify-center gap-2">
                   <a
                     href={otpData.otpauth}
-                    className="rounded-full border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-900"
+                    className="rounded-full border border-[rgb(var(--border))] px-3 py-1.5 text-xs font-semibold text-[rgb(var(--fg))]"
                   >
                     In Authenticator öffnen
                   </a>
                   <button
                     type="button"
                     onClick={() => copySecret(otpData.secret)}
-                    className="rounded-full border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-900"
+                    className="rounded-full border border-[rgb(var(--border))] px-3 py-1.5 text-xs font-semibold text-[rgb(var(--fg))]"
                   >
                     Secret kopieren
                   </button>
@@ -296,14 +296,14 @@ export default function IdentityStepPage() {
 
             {otpData && (
               <div className="space-y-2">
-                <label className="block text-sm font-semibold text-slate-700">
+                <label className="block text-sm font-semibold text-[rgb(var(--muted))]">
                   6-stelliger Code
                 <input
                   type="text"
                   value={otpCode}
                   onChange={(e) => setOtpCode(e.target.value)}
                   placeholder="123 456"
-                  className="mt-1 w-full rounded-2xl border border-slate-200 px-4 py-2 text-sm"
+                  className="mt-1 w-full rounded-2xl border border-[rgb(var(--border))] px-4 py-2 text-sm"
                   maxLength={9}
                   inputMode="numeric"
                   autoComplete="one-time-code"
@@ -313,7 +313,7 @@ export default function IdentityStepPage() {
                   type="button"
                   onClick={verifyOtpCode}
                   disabled={otpPhase === "verifying"}
-                  className="rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-900 disabled:opacity-60"
+                  className="rounded-full border border-[rgb(var(--border))] px-4 py-2 text-sm font-semibold text-[rgb(var(--fg))] disabled:opacity-60"
                 >
                   {otpPhase === "verifying" ? "Prüfe Code …" : "Code bestätigen"}
                 </button>
@@ -327,7 +327,7 @@ export default function IdentityStepPage() {
                     ? "text-rose-600"
                     : otpPhase === "success"
                       ? "text-emerald-600"
-                      : "text-slate-600"
+                      : "text-[rgb(var(--muted))]"
                 }`}
               >
                 {otpMessage}
@@ -338,10 +338,10 @@ export default function IdentityStepPage() {
       )}
 
       {method === "email" && (
-        <section className="rounded-3xl border border-slate-200 bg-white/95 p-6 shadow-sm space-y-5">
+        <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-6 shadow-sm space-y-5">
           <div className="space-y-2">
-            <h2 className="text-lg font-semibold text-slate-900">E-Mail-Code</h2>
-            <p className="text-sm text-slate-600">
+            <h2 className="text-lg font-semibold text-[rgb(var(--fg))]">E-Mail-Code</h2>
+            <p className="text-sm text-[rgb(var(--muted))]">
               Wir schicken dir einen 6-stelligen Code an deine registrierte E-Mail-Adresse. Du kannst danach direkt
               weitergehen.
             </p>
@@ -355,14 +355,14 @@ export default function IdentityStepPage() {
             >
               {emailPhase === "sending" ? "Sende …" : "Code per E-Mail senden"}
             </button>
-            <label className="block text-sm font-semibold text-slate-700">
+            <label className="block text-sm font-semibold text-[rgb(var(--muted))]">
               6-stelliger Code
               <input
                 type="text"
                 value={emailCode}
                 onChange={(e) => setEmailCode(e.target.value)}
                 placeholder="123 456"
-                className="mt-1 w-full rounded-2xl border border-slate-200 px-4 py-2 text-sm"
+                className="mt-1 w-full rounded-2xl border border-[rgb(var(--border))] px-4 py-2 text-sm"
                 maxLength={9}
                 inputMode="numeric"
                 autoComplete="one-time-code"
@@ -383,7 +383,7 @@ export default function IdentityStepPage() {
                     ? "text-rose-600"
                     : emailPhase === "success"
                       ? "text-emerald-600"
-                      : "text-slate-600"
+                      : "text-[rgb(var(--muted))]"
                 }`}
               >
                 {emailMessage}
@@ -394,8 +394,8 @@ export default function IdentityStepPage() {
       )}
 
       {method === "otp" && (
-        <section className="rounded-2xl border border-slate-200 bg-white/90 p-4 text-sm text-slate-700 space-y-3">
-          <h3 className="font-semibold text-slate-900">Gerät wechseln oder später fortsetzen</h3>
+        <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 text-sm text-[rgb(var(--muted))] space-y-3">
+          <h3 className="font-semibold text-[rgb(var(--fg))]">Gerät wechseln oder später fortsetzen</h3>
           <p>
             Auf dem Handy ist der QR-Code unkomfortabel? Schick dir den Link per E-Mail oder überspringe den Schritt
             jetzt und erledige ihn später im Profil.
@@ -423,15 +423,15 @@ export default function IdentityStepPage() {
         </section>
       )}
 
-      <section className="rounded-2xl border border-slate-200 bg-slate-50/80 p-4 text-sm text-slate-700 space-y-3">
-        <h3 className="font-semibold text-slate-900">Warum dieser Aufwand?</h3>
+      <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4 text-sm text-[rgb(var(--muted))] space-y-3">
+        <h3 className="font-semibold text-[rgb(var(--fg))]">Warum dieser Aufwand?</h3>
         <ul className="list-disc pl-5 space-y-1">
           <li>Bürgerabstimmungen werden international beobachtet – starke Legitimation schützt Ergebnisse vor Manipulation.</li>
           <li>Doppelter Opt-in: Du bestätigst E-Mail und Identität, damit wir keine fremden Accounts freischalten.</li>
           <li>Nach der Identitätsprüfung kannst du dein Paket vormerken – unverbindlich und ohne Zahlung.</li>
           <li>Familien- oder Teamkonten: Du kannst später in deinem Profil zusätzliche Personen einladen oder Gönner-E-Mails hinterlegen.</li>
         </ul>
-        <p className="text-xs text-slate-500">
+        <p className="text-xs text-[rgb(var(--muted))]">
           Alle Schritte laufen in der eDebatte-Infrastruktur – keine Datenweitergabe an Dritte, kein Vendor-Lock-in auf eine bestimmte App.
         </p>
       </section>

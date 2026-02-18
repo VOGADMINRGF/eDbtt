@@ -31,7 +31,7 @@ export default function StatementCard({
   }, [c.text]);
 
   return (
-    <li className="rounded-xl border border-black/5 bg-white/90 p-4 shadow-sm backdrop-blur-md">
+    <li className="rounded-xl border border-black/5 bg-[rgb(var(--card))] p-4 shadow-sm backdrop-blur-md">
       <div className="mb-2 text-[11px]">
         <span className="inline-flex items-center gap-1 rounded-full bg-black/5 px-2 py-[2px]">
           <span className="h-[6px] w-[6px] rounded-full bg-cyan-500/70" />

@@ -43,25 +43,25 @@ export default function AdminSidebar({ userEmail }: { userEmail?: string | null 
     <div className="flex h-full flex-col gap-4">
       <div>
         <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-sky-600">Admin</p>
-        <p className="text-sm font-semibold text-slate-900">eDebatte</p>
-        <p className="text-xs text-slate-500 truncate">{userEmail ?? "admin"}</p>
+        <p className="text-sm font-semibold text-[rgb(var(--fg))]">eDebatte</p>
+        <p className="text-xs text-[rgb(var(--muted))] truncate">{userEmail ?? "admin"}</p>
       </div>
 
-      <div className="rounded-2xl border border-slate-200 bg-white/95 px-3 py-2">
+      <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2">
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Suchen (z.B. users, reports, telemetry)"
-          className="w-full bg-transparent text-xs text-slate-700 placeholder:text-slate-400 focus:outline-none"
+          className="w-full bg-transparent text-xs text-[rgb(var(--muted))] placeholder:text-[rgb(var(--muted))] focus:outline-none"
           aria-label="Admin Navigation durchsuchen"
         />
-        <p className="mt-1 text-[11px] text-slate-400">{summaryLabel}</p>
+        <p className="mt-1 text-[11px] text-[rgb(var(--muted))]">{summaryLabel}</p>
       </div>
 
-      <nav className="flex-1 space-y-4 overflow-y-auto pr-1 text-sm font-semibold text-slate-800">
+      <nav className="flex-1 space-y-4 overflow-y-auto pr-1 text-sm font-semibold text-[rgb(var(--fg))]">
         {filteredSections.map((section) => (
           <div key={section.title}>
-            <p className="mb-2 text-[11px] uppercase tracking-[0.18em] text-slate-400">{section.title}</p>
+            <p className="mb-2 text-[11px] uppercase tracking-[0.18em] text-[rgb(var(--muted))]">{section.title}</p>
             <div className="space-y-2">
               {section.items.map((item) => {
                 const match = item.match ?? "prefix";
@@ -75,13 +75,13 @@ export default function AdminSidebar({ userEmail }: { userEmail?: string | null 
                     href={item.href}
                     className={`block rounded-2xl border px-3 py-2 transition ${
                       active
-                        ? "border-sky-200 bg-sky-50 text-slate-900"
-                        : "border-slate-100 hover:border-sky-200 hover:bg-sky-50"
+                        ? "border-sky-200 bg-sky-50 text-[rgb(var(--fg))]"
+                        : "border-[rgb(var(--border))] hover:border-sky-200 hover:bg-sky-50"
                     }`}
                   >
-                    <div className="text-sm font-semibold text-slate-900">{item.label}</div>
+                    <div className="text-sm font-semibold text-[rgb(var(--fg))]">{item.label}</div>
                     {item.description && (
-                      <div className="text-[11px] text-slate-500">{item.description}</div>
+                      <div className="text-[11px] text-[rgb(var(--muted))]">{item.description}</div>
                     )}
                   </Link>
                 );
@@ -90,7 +90,7 @@ export default function AdminSidebar({ userEmail }: { userEmail?: string | null 
           </div>
         ))}
         {filteredSections.length === 0 && (
-          <div className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-500">
+          <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-xs text-[rgb(var(--muted))]">
             Keine Treffer. Andere Begriffe probieren.
           </div>
         )}

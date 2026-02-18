@@ -29,7 +29,7 @@ export default function LoginPage() {
               key={r.id}
               onClick={() => setRole(r.id)}
               className={`
-                flex flex-col items-start border-2 rounded-2xl px-6 py-6 bg-white
+                flex flex-col items-start border-2 rounded-2xl px-6 py-6 bg-[rgb(var(--card))]
                 transition-all duration-200
                 border-gray-200
                 shadow-md

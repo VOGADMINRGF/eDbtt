@@ -54,20 +54,20 @@ export default function EvidenceItemsAdminPage() {
   return (
     <div className="mx-auto flex max-w-5xl flex-col gap-6 px-4 py-8">
       <header className="space-y-1">
-        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Admin · Evidence Items</p>
-        <h1 className="text-2xl font-bold text-slate-900">Quellen &amp; News</h1>
-        <p className="text-sm text-slate-600">
+        <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Admin · Evidence Items</p>
+        <h1 className="text-2xl font-bold text-[rgb(var(--fg))]">Quellen &amp; News</h1>
+        <p className="text-sm text-[rgb(var(--muted))]">
           Übersicht aller eingehenden News-Quellen. Nur Metadaten/Kurztexte werden gespeichert.
         </p>
       </header>
 
-      <div className="flex flex-wrap gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600">
+      <div className="flex flex-wrap gap-3 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-3 text-sm text-[rgb(var(--muted))]">
         <label className="flex flex-col">
           <span className="text-[11px] uppercase font-semibold">Publisher</span>
           <input
             value={publisherFilter}
             onChange={(e) => setPublisherFilter(e.target.value)}
-            className="rounded-full border border-slate-300 px-3 py-1 text-sm"
+            className="rounded-full border border-[rgb(var(--border))] px-3 py-1 text-sm"
             placeholder="z.B. Tagesschau"
           />
         </label>
@@ -76,7 +76,7 @@ export default function EvidenceItemsAdminPage() {
           <select
             value={kindFilter}
             onChange={(e) => setKindFilter(e.target.value)}
-            className="rounded-full border border-slate-300 px-3 py-1 text-sm"
+            className="rounded-full border border-[rgb(var(--border))] px-3 py-1 text-sm"
           >
             <option value="all">Alle</option>
             <option value="news_article">News</option>
@@ -90,7 +90,7 @@ export default function EvidenceItemsAdminPage() {
           <select
             value={activeFilter}
             onChange={(e) => setActiveFilter(e.target.value)}
-            className="rounded-full border border-slate-300 px-3 py-1 text-sm"
+            className="rounded-full border border-[rgb(var(--border))] px-3 py-1 text-sm"
           >
             <option value="true">Nur aktive</option>
             <option value="false">Nur deaktivierte</option>
@@ -101,9 +101,9 @@ export default function EvidenceItemsAdminPage() {
 
       {error && <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-2 text-sm text-rose-700">{error}</div>}
 
-      <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <table className="min-w-full divide-y divide-slate-100 text-sm">
-          <thead className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+      <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] shadow-sm">
+        <table className="min-w-full divide-y divide-[rgb(var(--border))] text-sm">
+          <thead className="bg-[rgb(var(--bg))] text-left text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
             <tr>
               <th className="px-4 py-3">Publisher</th>
               <th className="px-4 py-3">Titel</th>
@@ -113,24 +113,24 @@ export default function EvidenceItemsAdminPage() {
               <th className="px-4 py-3">Status</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100">
+          <tbody className="divide-y divide-[rgb(var(--border))]">
             {loading ? (
               <tr>
-                <td colSpan={6} className="px-4 py-6 text-center text-slate-500">
+                <td colSpan={6} className="px-4 py-6 text-center text-[rgb(var(--muted))]">
                   Lädt …
                 </td>
               </tr>
             ) : (
               items.map((item) => (
                 <tr key={item._id}>
-                  <td className="px-4 py-3 font-medium text-slate-900">{item.publisher}</td>
+                  <td className="px-4 py-3 font-medium text-[rgb(var(--fg))]">{item.publisher}</td>
                   <td className="px-4 py-3">
                     <Link href={`/admin/evidence/items/${item._id}`} className="text-sky-600 underline">
                       {item.shortTitle}
                     </Link>
                   </td>
                   <td className="px-4 py-3">{item.sourceKind}</td>
-                  <td className="px-4 py-3 text-xs text-slate-500">
+                  <td className="px-4 py-3 text-xs text-[rgb(var(--muted))]">
                     {item.regionCode ?? "–"} / {item.locale ?? "–"}
                   </td>
                   <td className="px-4 py-3">{item.linkedClaims ?? 0}</td>

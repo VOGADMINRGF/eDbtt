@@ -42,7 +42,7 @@ export default function AnalyticsBox({
   if (!analytics) return <div className="text-gray-400 py-6">Keine Analytics verfügbar.</div>;
 
   return (
-    <div className="bg-white rounded-xl shadow p-6 mb-8">
+    <div className="bg-[rgb(var(--card))] rounded-xl shadow p-6 mb-8">
       <h3 className="text-lg font-bold mb-2">Analytics</h3>
       <ul className="space-y-1 text-sm mb-4">
         <li><b>Streams insgesamt:</b> {analytics.streamCount ?? "-"}</li>

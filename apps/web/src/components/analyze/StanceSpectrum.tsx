@@ -19,14 +19,14 @@ export default function StanceSpectrum({ claimText }:{ claimText:string }){
     <div className="vog-card p-4 space-y-3">
       <div className="flex items-center justify-between">
         <div className="font-semibold">Lager-Spektrum</div>
-        <div className="text-xs text-slate-600">Coverage: {Math.round(data.coverageScore*5)}/5 · Balance: {data.symmetry.toFixed(2)}</div>
+        <div className="text-xs text-[rgb(var(--muted))]">Coverage: {Math.round(data.coverageScore*5)}/5 · Balance: {data.symmetry.toFixed(2)}</div>
       </div>
       <div className="flex flex-wrap gap-2">
         {order.map(s=>(
           <button key={s} onClick={()=>setActive(s)} className="vog-chip" style={active===s?{borderColor:"#0EA5E9",color:"#0EA5E9"}:{}}>{s}</button>
         ))}
       </div>
-      <div className="text-sm text-slate-700">
+      <div className="text-sm text-[rgb(var(--muted))]">
         {vMap[active] ? (
           <div className="space-y-2">
             <div><b>These:</b> {vMap[active].thesis}</div>

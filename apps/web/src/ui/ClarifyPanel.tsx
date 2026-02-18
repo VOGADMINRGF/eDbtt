@@ -114,10 +114,10 @@ export default function ClarifyPanel({
 
   return (
     <div className="space-y-3">
-      <div className="text-slate-500 text-sm">Optional präzisieren (für bessere Ergebnisse):</div>
+      <div className="text-[rgb(var(--muted))] text-sm">Optional präzisieren (für bessere Ergebnisse):</div>
 
       <div className="space-y-2">
-        <div className="text-xs text-slate-500">EBENE/ZUSTÄNDIGKEIT <span className="text-slate-400">(Mehrfach möglich)</span></div>
+        <div className="text-xs text-[rgb(var(--muted))]">EBENE/ZUSTÄNDIGKEIT <span className="text-[rgb(var(--muted))]">(Mehrfach möglich)</span></div>
         {["eu","bund","land","kommune"].map(k=>(
           <button
             type="button"
@@ -138,7 +138,7 @@ export default function ClarifyPanel({
       </div>
 
       <div className="space-y-2">
-        <div className="text-xs text-slate-500">ORT/REGION <span className="text-slate-400">(Mehrfach möglich)</span></div>
+        <div className="text-xs text-[rgb(var(--muted))]">ORT/REGION <span className="text-[rgb(var(--muted))]">(Mehrfach möglich)</span></div>
         <button
           className={chip(v.regions!.includes("bundesweit"))}
           type="button"
@@ -210,7 +210,7 @@ export default function ClarifyPanel({
       </div>
 
       <div className="space-y-2">
-        <div className="text-xs text-slate-500">ZEITRAUM</div>
+        <div className="text-xs text-[rgb(var(--muted))]">ZEITRAUM</div>
         {[
           ["aktuell","Aktuell"],
           ["letzte12","Letzte 12 Monate"],
@@ -230,7 +230,7 @@ export default function ClarifyPanel({
       </div>
 
       <div className="space-y-2">
-        <div className="text-xs text-slate-500">BETROFFENE</div>
+        <div className="text-xs text-[rgb(var(--muted))]">BETROFFENE</div>
         {[
           ["buerger","Bürger*innen"],
           ["unternehmen","Unternehmen"],
@@ -257,7 +257,7 @@ export default function ClarifyPanel({
       </div>
 
       <div className="space-y-2">
-        <div className="text-xs text-slate-500">HALTUNG (optional)</div>
+        <div className="text-xs text-[rgb(var(--muted))]">HALTUNG (optional)</div>
         {["pro","neutral","contra","unsicher"].map(k=>(
           <button
             type="button"

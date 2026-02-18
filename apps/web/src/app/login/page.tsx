@@ -29,7 +29,7 @@ export default function LoginPage() {
       />
 
       {/* Zusätzlicher Hinweis unter dem Formular */}
-      <p className="mt-4 text-center text-xs text-slate-500">
+      <p className="mt-4 text-center text-xs text-[rgb(var(--muted))]">
         Noch kein Konto?{" "}
         <Link href={registerHref} className="font-semibold text-sky-600 underline">
           Jetzt registrieren

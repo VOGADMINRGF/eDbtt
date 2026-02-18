@@ -8,12 +8,14 @@ type HighlightedTextareaProps = {
   analyzing: boolean;
   placeholder?: string;
   rows?: number;
+  readOnly?: boolean;
+  disabled?: boolean;
   textareaClassName?: string;
   overlayClassName?: string;
 };
 
 const baseTextareaClass =
-  "relative z-10 w-full rounded-lg border border-slate-200 bg-transparent px-3 py-2 text-sm leading-relaxed text-slate-900 shadow-inner focus:bg-white focus:outline-none focus:ring-2 focus:ring-sky-300";
+  "relative z-10 w-full rounded-lg border border-[rgb(var(--border))] bg-transparent px-3 py-2 text-sm leading-relaxed text-[rgb(var(--fg))] shadow-inner focus:bg-[rgb(var(--card))] focus:outline-none focus:ring-2 focus:ring-sky-300";
 
 const baseOverlayClass =
   "pointer-events-none absolute inset-0 overflow-hidden rounded-lg px-3 py-2 text-sm leading-relaxed font-sans text-transparent marker-mask";
@@ -28,6 +30,8 @@ export function HighlightedTextarea({
   analyzing,
   placeholder,
   rows = 12,
+  readOnly = false,
+  disabled = false,
   textareaClassName,
   overlayClassName,
 }: HighlightedTextareaProps) {
@@ -93,6 +97,8 @@ export function HighlightedTextarea({
         placeholder={placeholder}
         onChange={(e) => onChange(e.target.value)}
         onScroll={handleScroll}
+        readOnly={readOnly}
+        disabled={disabled}
       />
     </div>
   );

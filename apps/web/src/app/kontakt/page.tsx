@@ -13,7 +13,7 @@ export default function KontaktPage({
   const challenge = pickHumanChallenge();
 
   return (
-    <main className="min-h-screen bg-white">
+    <main className="min-h-screen bg-[rgb(var(--card))]">
       <h1 className="sr-only">Kontakt</h1>
       <KontaktPageClient sent={sent} error={error} challenge={challenge} />
     </main>

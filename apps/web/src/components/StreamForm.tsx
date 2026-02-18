@@ -19,7 +19,7 @@ export default function StreamForm({ stream = {}, onSave, onCancel }: any) {
 
   return (
     <form
-      className="bg-white p-6 rounded-xl shadow-xl mb-6"
+      className="bg-[rgb(var(--card))] p-6 rounded-xl shadow-xl mb-6"
       onSubmit={handleSubmit}
     >
       <h2 className="font-semibold text-lg mb-4">

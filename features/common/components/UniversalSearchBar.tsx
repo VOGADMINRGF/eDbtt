@@ -55,7 +55,7 @@ export default function UniversalSearchBar() {
         onChange={e => handleSearch(e.target.value)}
       />
       {showDropdown && (
-        <div className="absolute left-0 right-0 mt-2 bg-white border border-neutral-200 rounded-xl shadow-xl z-50 max-h-96 overflow-y-auto">
+        <div className="absolute left-0 right-0 mt-2 bg-[rgb(var(--card))] border border-neutral-200 rounded-xl shadow-xl z-50 max-h-96 overflow-y-auto">
           {loading && <div className="p-4 text-sm text-gray-400">Suche …</div>}
           {/* Streams */}
           {results.streams.length > 0 && (

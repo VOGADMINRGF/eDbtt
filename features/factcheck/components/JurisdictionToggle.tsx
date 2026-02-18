@@ -15,7 +15,7 @@ export default function JurisdictionToggle({
         <button
           key={k}
           onClick={() => onChange(k)}
-          className={`px-3 py-1 text-xs ${value===k ? "bg-indigo-600 text-white" : "bg-white"}`}
+          className={`px-3 py-1 text-xs ${value===k ? "bg-indigo-600 text-white" : "bg-[rgb(var(--card))]"}`}
           type="button"
         >
           {label}

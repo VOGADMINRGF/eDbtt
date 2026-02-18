@@ -199,18 +199,18 @@ export default function FaqPage() {
   }
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-[var(--brand-from)] via-white to-white pb-16">
+    <main className="min-h-screen bg-[rgb(var(--bg))] pb-16">
       <section className="mx-auto max-w-5xl px-4 pt-14">
-        <div className="rounded-3xl bg-white/90 p-6 shadow-[0_24px_70px_rgba(15,23,42,0.08)] ring-1 ring-slate-100 md:p-10">
+        <div className="rounded-3xl bg-[rgb(var(--card))] p-6 shadow-[0_24px_70px_rgba(15,23,42,0.08)] ring-1 ring-[rgb(var(--border))] md:p-10">
           {/* Hero */}
           <header className="space-y-3 text-center">
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-sky-600">
               {t("FAQ & How it works", "hero.overline")}
             </p>
-            <h1 className="text-3xl font-extrabold leading-tight text-slate-900 md:text-4xl">
+            <h1 className="text-3xl font-extrabold leading-tight text-[rgb(var(--fg))] md:text-4xl">
               {t("eDebatte – kurz erklärt", "hero.title")}
             </h1>
-            <p className="text-sm leading-relaxed text-slate-700 md:text-base">
+            <p className="text-sm leading-relaxed text-[rgb(var(--muted))] md:text-base">
               {t(
                 "Hier erfährst du, was eDebatte als Bewegung ist, wie eDebatte als Werkzeug funktioniert, wer mitmachen kann und wie wir mit Daten und Finanzierung umgehen.",
                 "hero.lead",
@@ -220,11 +220,11 @@ export default function FaqPage() {
 
           {/* How it works – 3 Schritte */}
           <section className="mt-8 space-y-4">
-            <div className="rounded-2xl bg-sky-50/70 p-4 text-sm text-slate-800 md:p-6">
-              <h2 className="text-base font-semibold text-slate-900 md:text-lg">
+            <div className="rounded-2xl bg-sky-50/70 p-4 text-sm text-[rgb(var(--fg))] md:p-6">
+              <h2 className="text-base font-semibold text-[rgb(var(--fg))] md:text-lg">
                 {t("In drei Schritten von der Idee zur Entscheidung", "steps.title")}
               </h2>
-              <p className="mt-1 text-xs text-slate-700 md:text-sm">
+              <p className="mt-1 text-xs text-[rgb(var(--muted))] md:text-sm">
                 {t(
                   "Die Idee hinter eDebatte und eDebatte: Themen werden strukturiert vorbereitet, inhaltlich geprüft und anschließend fair, nachvollziehbar und datenschutzfreundlich entschieden.",
                   "steps.lead",
@@ -235,20 +235,20 @@ export default function FaqPage() {
                 {steps.map((step) => (
                   <div
                     key={step.title}
-                    className="flex flex-col rounded-2xl border border-slate-100 bg-white p-4 shadow-sm"
+                    className="flex flex-col rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm"
                   >
                     <div className="inline-flex items-center gap-2 text-[11px] font-semibold text-sky-600">
                       <span className="inline-flex h-5 items-center rounded-full bg-sky-50 px-2">
                         {step.badge}
                       </span>
                     </div>
-                    <h3 className="mt-2 text-sm font-semibold text-slate-900">
+                    <h3 className="mt-2 text-sm font-semibold text-[rgb(var(--fg))]">
                       {step.title}
                     </h3>
-                    <p className="text-xs font-medium text-slate-700">
+                    <p className="text-xs font-medium text-[rgb(var(--muted))]">
                       {step.subtitle}
                     </p>
-                    <p className="mt-2 text-xs leading-relaxed text-slate-700 md:text-sm">
+                    <p className="mt-2 text-xs leading-relaxed text-[rgb(var(--muted))] md:text-sm">
                       {step.description}
                     </p>
                   </div>
@@ -257,11 +257,11 @@ export default function FaqPage() {
             </div>
 
             {/* Mini-Evidenz-Graph-Erklärung im Stil von /vote */}
-            <div className="rounded-2xl border border-slate-100 bg-white p-4 text-sm text-slate-800 shadow-[0_16px_40px_rgba(15,23,42,0.06)] md:p-6">
-              <h2 className="text-base font-semibold text-slate-900 md:text-lg">
+            <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 text-sm text-[rgb(var(--fg))] shadow-[0_16px_40px_rgba(15,23,42,0.06)] md:p-6">
+              <h2 className="text-base font-semibold text-[rgb(var(--fg))] md:text-lg">
                 {t("Evidenz-Graph – so liest du ihn", "graph.title")}
               </h2>
-              <p className="mt-1 text-xs text-slate-700 md:text-sm">
+              <p className="mt-1 text-xs text-[rgb(var(--muted))] md:text-sm">
                 {t(
                   "Aussagen werden mit Belegen gestützt, Gegenbelege zeigen Grenzen. Daraus entsteht eine begründete Entscheidung – nicht nur eine Zahl am Ende der Abstimmung.",
                   "graph.lead",
@@ -278,7 +278,7 @@ export default function FaqPage() {
                   {t("Entscheidung", "graph.legend.decision")}
                 </span>
               </div>
-              <p className="mt-3 text-xs leading-relaxed text-slate-700 md:text-sm">
+              <p className="mt-3 text-xs leading-relaxed text-[rgb(var(--muted))] md:text-sm">
                 {t(
                   "Jede Aussage verweist auf Quellen. Belege sammeln heißt: Studien, Daten, Erfahrungsberichte – alles mit nachvollziehbarer Herkunft. Gegenpositionen markieren Widersprüche, offene Fragen oder Unsicherheiten. Die Entscheidung am Ende verweist sichtbar auf diese Grundlage – und kann später erneut überprüft werden.",
                   "graph.body",
@@ -300,8 +300,8 @@ export default function FaqPage() {
                     className={[
                       "rounded-full border px-4 py-2 text-xs font-semibold transition",
                       isActive
-                        ? "border-slate-900 bg-white text-slate-900 shadow-sm"
-                        : "border-slate-200 bg-white/70 text-slate-500 hover:border-slate-300 hover:text-slate-800",
+                        ? "border-[rgb(var(--border))] bg-[rgb(var(--card))] text-[rgb(var(--fg))] shadow-sm"
+                        : "border-[rgb(var(--border))] bg-[rgb(var(--card))] text-[rgb(var(--muted))] hover:border-[rgb(var(--border))] hover:text-[rgb(var(--fg))]",
                     ].join(" ")}
                   >
                     {cat.label}
@@ -310,21 +310,21 @@ export default function FaqPage() {
               })}
             </div>
 
-            <div className="mt-6 mx-auto max-w-3xl rounded-2xl border border-slate-100 bg-white p-4 shadow-[0_18px_45px_rgba(15,23,42,0.08)] md:p-6">
+            <div className="mt-6 mx-auto max-w-3xl rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-[0_18px_45px_rgba(15,23,42,0.08)] md:p-6">
               <ul className="space-y-3">
                 {activeCategory.faqs.map((item) => {
                   const isOpen = item.id === openQuestionId;
                   return (
                     <li
                       key={item.id}
-                      className="rounded-xl border border-slate-100 bg-slate-50/60 p-3 text-sm text-slate-800 md:p-4"
+                      className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3 text-sm text-[rgb(var(--fg))] md:p-4"
                     >
                       <button
                         type="button"
                         onClick={() => setOpenQuestionId(isOpen ? "" : item.id)}
                         className="flex w-full items-center justify-between gap-3 text-left"
                       >
-                        <span className="font-semibold text-slate-900">
+                        <span className="font-semibold text-[rgb(var(--fg))]">
                           {item.question}
                         </span>
                         <span
@@ -332,7 +332,7 @@ export default function FaqPage() {
                             "inline-flex h-6 w-6 items-center justify-center rounded-full border text-xs font-bold transition",
                             isOpen
                               ? "rotate-90 border-sky-500 text-sky-600"
-                              : "border-slate-300 text-slate-500",
+                              : "border-[rgb(var(--border))] text-[rgb(var(--muted))]",
                           ].join(" ")}
                           aria-hidden="true"
                         >
@@ -341,7 +341,7 @@ export default function FaqPage() {
                       </button>
 
                       {isOpen && (
-                        <div className="mt-2 border-t border-slate-100 pt-2 text-xs leading-relaxed text-slate-800 md:text-sm">
+                        <div className="mt-2 border-t border-[rgb(var(--border))] pt-2 text-xs leading-relaxed text-[rgb(var(--fg))] md:text-sm">
                           {item.answer.split("\n").map((line, idx) => (
                             <p key={idx} className={idx > 0 ? "mt-1" : ""}>
                               {line}
@@ -357,7 +357,7 @@ export default function FaqPage() {
           </section>
 
           {/* Footer-CTA */}
-          <section className="mt-10 flex flex-col gap-3 text-center text-xs text-slate-600 md:text-sm">
+          <section className="mt-10 flex flex-col gap-3 text-center text-xs text-[rgb(var(--muted))] md:text-sm">
             <p>
               {t("Noch eine Frage offen? Melde dich jederzeit über das", "footer.lead")}{" "}
               <Link

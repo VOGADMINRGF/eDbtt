@@ -101,16 +101,16 @@ export default function AcquisitionAdminPage() {
     <main className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-8">
       <header className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Admin · Akquise</p>
-          <h1 className="text-2xl font-bold text-slate-900">Akquise Dashboard</h1>
-          <p className="text-sm text-slate-600">
+          <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Admin · Akquise</p>
+          <h1 className="text-2xl font-bold text-[rgb(var(--fg))]">Akquise Dashboard</h1>
+          <p className="text-sm text-[rgb(var(--muted))]">
             Feed-Status, Regionen und Top-Themen fuer Outreach & Pilot.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <button
             onClick={load}
-            className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:border-slate-300 disabled:opacity-60"
+            className="rounded-lg border border-[rgb(var(--border))] px-4 py-2 text-sm font-semibold text-[rgb(var(--muted))] hover:border-[rgb(var(--border))] disabled:opacity-60"
             disabled={loading}
           >
             Aktualisieren
@@ -131,27 +131,27 @@ export default function AcquisitionAdminPage() {
         </div>
       )}
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-        <h2 className="text-sm font-semibold text-slate-900">Letzter Fetch-Run</h2>
+      <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm">
+        <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Letzter Fetch-Run</h2>
         {!latestRun ? (
-          <p className="mt-2 text-sm text-slate-500">Noch kein Fetch-Run gespeichert.</p>
+          <p className="mt-2 text-sm text-[rgb(var(--muted))]">Noch kein Fetch-Run gespeichert.</p>
         ) : (
-          <div className="mt-3 grid gap-2 text-sm text-slate-600 md:grid-cols-4">
+          <div className="mt-3 grid gap-2 text-sm text-[rgb(var(--muted))] md:grid-cols-4">
             <div>
-              <div className="text-xs text-slate-500">Gestartet</div>
-              <div className="font-semibold text-slate-900">{formatDate(latestRun.startedAt)}</div>
+              <div className="text-xs text-[rgb(var(--muted))]">Gestartet</div>
+              <div className="font-semibold text-[rgb(var(--fg))]">{formatDate(latestRun.startedAt)}</div>
             </div>
             <div>
-              <div className="text-xs text-slate-500">Beendet</div>
-              <div className="font-semibold text-slate-900">{formatDate(latestRun.finishedAt ?? null)}</div>
+              <div className="text-xs text-[rgb(var(--muted))]">Beendet</div>
+              <div className="font-semibold text-[rgb(var(--fg))]">{formatDate(latestRun.finishedAt ?? null)}</div>
             </div>
             <div>
-              <div className="text-xs text-slate-500">Feeds</div>
-              <div className="font-semibold text-slate-900">{latestRun.totalFeeds}</div>
+              <div className="text-xs text-[rgb(var(--muted))]">Feeds</div>
+              <div className="font-semibold text-[rgb(var(--fg))]">{latestRun.totalFeeds}</div>
             </div>
             <div>
-              <div className="text-xs text-slate-500">OK / Empty / Error</div>
-              <div className="font-semibold text-slate-900">
+              <div className="text-xs text-[rgb(var(--muted))]">OK / Empty / Error</div>
+              <div className="font-semibold text-[rgb(var(--fg))]">
                 {latestRun.okFeeds} / {latestRun.emptyFeeds} / {latestRun.errorFeeds}
               </div>
             </div>
@@ -159,20 +159,20 @@ export default function AcquisitionAdminPage() {
         )}
       </section>
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+      <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm">
         <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-slate-900">Regionen & Feed-Status</h2>
-          <span className="text-xs text-slate-500">{regions.length} Regionen</span>
+          <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Regionen & Feed-Status</h2>
+          <span className="text-xs text-[rgb(var(--muted))]">{regions.length} Regionen</span>
         </div>
 
-        {loading && <p className="mt-4 text-sm text-slate-500">Lädt …</p>}
+        {loading && <p className="mt-4 text-sm text-[rgb(var(--muted))]">Lädt …</p>}
         {!loading && !hasRegions && (
-          <p className="mt-4 text-sm text-slate-500">Keine Feed-Regionen gefunden.</p>
+          <p className="mt-4 text-sm text-[rgb(var(--muted))]">Keine Feed-Regionen gefunden.</p>
         )}
         {!loading && hasRegions && (
           <div className="mt-4 overflow-x-auto">
-            <table className="min-w-full divide-y divide-slate-100 text-sm">
-              <thead className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+            <table className="min-w-full divide-y divide-[rgb(var(--border))] text-sm">
+              <thead className="bg-[rgb(var(--bg))] text-left text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
                 <tr>
                   <th className="px-3 py-2">Region</th>
                   <th className="px-3 py-2">Feeds</th>
@@ -181,18 +181,18 @@ export default function AcquisitionAdminPage() {
                   <th className="px-3 py-2">Top-Themen</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-[rgb(var(--border))]">
                 {regions.map((region) => (
                   <tr key={region.regionCode}>
-                    <td className="px-3 py-2 font-semibold text-slate-900">{region.regionCode}</td>
+                    <td className="px-3 py-2 font-semibold text-[rgb(var(--fg))]">{region.regionCode}</td>
                     <td className="px-3 py-2">{region.feedCount}</td>
-                    <td className="px-3 py-2 text-slate-600">{formatDate(region.lastFetchedAt ?? null)}</td>
+                    <td className="px-3 py-2 text-[rgb(var(--muted))]">{formatDate(region.lastFetchedAt ?? null)}</td>
                     <td className="px-3 py-2">
                       <span className={`rounded-full px-3 py-1 text-xs font-semibold ${statusBadge(region.status)}`}>
                         {region.status}
                       </span>
                     </td>
-                    <td className="px-3 py-2 text-slate-600">
+                    <td className="px-3 py-2 text-[rgb(var(--muted))]">
                       {region.topTopics?.length ? region.topTopics.join(", ") : "—"}
                     </td>
                   </tr>

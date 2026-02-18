@@ -189,26 +189,26 @@ export default function AdminMediaPage() {
   return (
     <main className="mx-auto flex max-w-6xl flex-col gap-8 px-4 py-8">
       <header className="space-y-2">
-        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Admin · Media &amp; TV</p>
-        <h1 className="text-2xl font-bold text-slate-900">QR Studio &amp; Live-Trends</h1>
-        <p className="text-sm text-slate-600">
+        <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Admin · Media &amp; TV</p>
+        <h1 className="text-2xl font-bold text-[rgb(var(--fg))]">QR Studio &amp; Live-Trends</h1>
+        <p className="text-sm text-[rgb(var(--muted))]">
           Erstelle QR-Fragen-Sets fuer Veranstaltungen, TV-Formate oder Leserbrief-Aktionen.
           Pro Frage ein QR – oder ein geschlossenes Set mit allen Fragen in einer Sitzung.
         </p>
       </header>
 
-      <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm space-y-4">
+      <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h2 className="text-lg font-semibold text-slate-900">QR-Set erstellen</h2>
-            <p className="text-sm text-slate-600">
+            <h2 className="text-lg font-semibold text-[rgb(var(--fg))]">QR-Set erstellen</h2>
+            <p className="text-sm text-[rgb(var(--muted))]">
               Erstellt eine Sitzung mit bis zu 10 Fragen. Jede Zeile wird eine Frage.
             </p>
           </div>
           {createdCode && (
-            <div className="text-sm text-slate-700">
+            <div className="text-sm text-[rgb(var(--muted))]">
               <span className="font-semibold">Aktiver Code:</span>{" "}
-              <span className="rounded-full bg-slate-100 px-3 py-1 font-semibold text-slate-800">
+              <span className="rounded-full bg-[rgb(var(--bg))] px-3 py-1 font-semibold text-[rgb(var(--fg))]">
                 {createdCode}
               </span>
             </div>
@@ -217,56 +217,56 @@ export default function AdminMediaPage() {
 
         <div className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
           <div className="space-y-3">
-            <label className="grid gap-1 text-sm font-medium text-slate-700">
+            <label className="grid gap-1 text-sm font-medium text-[rgb(var(--muted))]">
               Titel (optional)
               <input
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="z.B. TV-Talkrunde: Wohnpolitik"
-                className="rounded-2xl border border-slate-200 px-3 py-2 text-sm"
+                className="rounded-2xl border border-[rgb(var(--border))] px-3 py-2 text-sm"
               />
             </label>
 
-            <label className="grid gap-1 text-sm font-medium text-slate-700">
+            <label className="grid gap-1 text-sm font-medium text-[rgb(var(--muted))]">
               Agenda / Script (jede Zeile eine Frage)
               <textarea
                 value={scriptInput}
                 onChange={(e) => setScriptInput(e.target.value)}
                 rows={4}
                 placeholder="- Soll die Stadt mehr Radwege bauen?\n- Wie bewerten Sie den Vorschlag?"
-                className="rounded-2xl border border-slate-200 px-3 py-2 text-sm"
+                className="rounded-2xl border border-[rgb(var(--border))] px-3 py-2 text-sm"
               />
             </label>
             <button
               type="button"
-              className="w-fit rounded-full border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+              className="w-fit rounded-full border border-[rgb(var(--border))] px-4 py-2 text-xs font-semibold text-[rgb(var(--muted))] hover:bg-[rgb(var(--bg))]"
               onClick={handleAdoptScript}
             >
               Aus Script uebernehmen
             </button>
 
-            <label className="grid gap-1 text-sm font-medium text-slate-700">
+            <label className="grid gap-1 text-sm font-medium text-[rgb(var(--muted))]">
               Fragenliste (max. 10, je Zeile eine Frage)
               <textarea
                 value={questionsInput}
                 onChange={(e) => setQuestionsInput(e.target.value)}
                 rows={6}
                 placeholder="Frage 1\nFrage 2\nFrage 3"
-                className="rounded-2xl border border-slate-200 px-3 py-2 text-sm"
+                className="rounded-2xl border border-[rgb(var(--border))] px-3 py-2 text-sm"
               />
             </label>
-            <p className="text-xs text-slate-500">{draftQuestions.length} von 10 Fragen vorbereitet.</p>
+            <p className="text-xs text-[rgb(var(--muted))]">{draftQuestions.length} von 10 Fragen vorbereitet.</p>
           </div>
 
           <div className="space-y-4">
-            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 space-y-3">
-              <p className="text-sm font-semibold text-slate-800">Antwort-Optionen</p>
-              <label className="grid gap-1 text-sm text-slate-700">
+            <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4 space-y-3">
+              <p className="text-sm font-semibold text-[rgb(var(--fg))]">Antwort-Optionen</p>
+              <label className="grid gap-1 text-sm text-[rgb(var(--muted))]">
                 Preset
                 <select
                   value={presetId}
                   onChange={(e) => setPresetId(e.target.value)}
-                  className="rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm"
+                  className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm"
                 >
                   {OPTION_PRESETS.map((preset) => (
                     <option key={preset.id} value={preset.id}>
@@ -275,19 +275,19 @@ export default function AdminMediaPage() {
                   ))}
                 </select>
               </label>
-              <label className="grid gap-1 text-sm text-slate-700">
+              <label className="grid gap-1 text-sm text-[rgb(var(--muted))]">
                 Eigene Optionen (Komma-getrennt, optional)
                 <input
                   value={customOptions}
                   onChange={(e) => setCustomOptions(e.target.value)}
                   placeholder="Ja, Nein, Enthaltung"
-                  className="rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm"
+                  className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm"
                 />
               </label>
-              <p className="text-xs text-slate-500">Aktive Optionen: {options.join(", ")}</p>
+              <p className="text-xs text-[rgb(var(--muted))]">Aktive Optionen: {options.join(", ")}</p>
             </div>
 
-            <label className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm">
+            <label className="flex items-center gap-3 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm">
               <input
                 type="checkbox"
                 checked={publicAttribution}
@@ -312,8 +312,8 @@ export default function AdminMediaPage() {
             </button>
 
             {createdCode && (
-              <div className="rounded-2xl border border-slate-200 bg-white p-4 text-sm text-slate-700 space-y-3">
-                <p className="font-semibold text-slate-900">QR-Link bereit</p>
+              <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 text-sm text-[rgb(var(--muted))] space-y-3">
+                <p className="font-semibold text-[rgb(var(--fg))]">QR-Link bereit</p>
                 <p>
                   Link:{" "}
                   <Link href={`/qr/${createdCode}`} className="font-semibold text-sky-600 underline">
@@ -321,7 +321,7 @@ export default function AdminMediaPage() {
                   </Link>
                 </p>
                 {qrImage && (
-                  <img src={qrImage} alt="QR Code" className="h-28 w-28 rounded-xl border border-slate-200" />
+                  <img src={qrImage} alt="QR Code" className="h-28 w-28 rounded-xl border border-[rgb(var(--border))]" />
                 )}
               </div>
             )}
@@ -329,18 +329,18 @@ export default function AdminMediaPage() {
         </div>
       </section>
 
-      <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm space-y-4">
+      <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h2 className="text-lg font-semibold text-slate-900">Live-Auswertung</h2>
-            <p className="text-sm text-slate-600">
+            <h2 className="text-lg font-semibold text-[rgb(var(--fg))]">Live-Auswertung</h2>
+            <p className="text-sm text-[rgb(var(--muted))]">
               Trends in Echtzeit fuer TV, Events oder Leserbriefe. Code eingeben und aktualisieren.
             </p>
           </div>
           <button
             type="button"
             onClick={() => loadSummary()}
-            className="rounded-full border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+            className="rounded-full border border-[rgb(var(--border))] px-4 py-2 text-xs font-semibold text-[rgb(var(--muted))] hover:bg-[rgb(var(--bg))]"
             disabled={summaryLoading}
           >
             {summaryLoading ? "Laedt…" : "Aktualisieren"}
@@ -352,7 +352,7 @@ export default function AdminMediaPage() {
             value={summaryCode}
             onChange={(e) => setSummaryCode(e.target.value)}
             placeholder="QR Code (z.B. A1b2C3d4)"
-            className="flex-1 rounded-full border border-slate-200 px-4 py-2 text-sm"
+            className="flex-1 rounded-full border border-[rgb(var(--border))] px-4 py-2 text-sm"
           />
           <button
             type="button"
@@ -371,30 +371,30 @@ export default function AdminMediaPage() {
 
         {summary?.ok && summary.questions ? (
           <div className="space-y-4">
-            <div className="rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3 text-sm text-slate-700">
-              <p className="font-semibold text-slate-900">
+            <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-4 py-3 text-sm text-[rgb(var(--muted))]">
+              <p className="font-semibold text-[rgb(var(--fg))]">
                 {summary.set?.title ?? "QR-Set"} · Gesamtstimmen: {summary.totalVotes ?? 0}
               </p>
             </div>
             {summary.questions.map((q) => (
-              <div key={q.id} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm space-y-2">
+              <div key={q.id} className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm space-y-2">
                 <div>
-                  <p className="text-sm font-semibold text-slate-900">{q.title}</p>
-                  {q.description && <p className="text-xs text-slate-500">{q.description}</p>}
-                  <p className="text-xs text-slate-500">Stimmen: {q.totalVotes}</p>
+                  <p className="text-sm font-semibold text-[rgb(var(--fg))]">{q.title}</p>
+                  {q.description && <p className="text-xs text-[rgb(var(--muted))]">{q.description}</p>}
+                  <p className="text-xs text-[rgb(var(--muted))]">Stimmen: {q.totalVotes}</p>
                 </div>
                 <div className="space-y-2">
                   {q.options.map((opt) => {
                     const pct = q.totalVotes > 0 ? Math.round((opt.count / q.totalVotes) * 100) : 0;
                     return (
                       <div key={opt.label} className="space-y-1">
-                        <div className="flex items-center justify-between text-xs text-slate-600">
+                        <div className="flex items-center justify-between text-xs text-[rgb(var(--muted))]">
                           <span>{opt.label}</span>
                           <span>
                             {opt.count} · {pct}%
                           </span>
                         </div>
-                        <div className="h-2 rounded-full bg-slate-100">
+                        <div className="h-2 rounded-full bg-[rgb(var(--bg))]">
                           <div
                             className="h-2 rounded-full bg-sky-500"
                             style={{ width: `${pct}%` }}
@@ -408,7 +408,7 @@ export default function AdminMediaPage() {
             ))}
           </div>
         ) : (
-          <p className="text-sm text-slate-500">Noch keine Auswertung geladen.</p>
+          <p className="text-sm text-[rgb(var(--muted))]">Noch keine Auswertung geladen.</p>
         )}
       </section>
     </main>

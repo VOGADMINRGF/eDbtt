@@ -78,7 +78,7 @@ export default function StreamsPanel() {
   const topProviders = metrics?.topProviders ?? [];
 
   return (
-    <div className="rounded-2xl border border-neutral-200 dark:border-neutral-800 p-4 bg-white dark:bg-neutral-900">
+    <div className="rounded-2xl border border-neutral-200 dark:border-neutral-800 p-4 bg-[rgb(var(--card))] dark:bg-neutral-900">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div className="text-sm font-medium">Streams Monitor</div>
         <div className="flex items-center gap-2 text-sm">
@@ -178,7 +178,7 @@ export default function StreamsPanel() {
 
 function Kpi({ title, value, loading }: { title: string; value: number; loading?: boolean }) {
   return (
-    <div className="rounded-2xl border border-neutral-200 dark:border-neutral-800 p-4 bg-white dark:bg-neutral-900">
+    <div className="rounded-2xl border border-neutral-200 dark:border-neutral-800 p-4 bg-[rgb(var(--card))] dark:bg-neutral-900">
       <div className="text-sm text-neutral-500">{title}</div>
       <div className="text-2xl font-bold tabular-nums">
         {loading ? "…" : value}

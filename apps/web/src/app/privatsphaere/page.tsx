@@ -9,17 +9,17 @@ export default function PrivatsphaerePage() {
   const t = useAutoTranslateText({ locale, namespace: "privatsphaere" });
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-[var(--brand-from)] via-white to-white pb-16">
+    <main className="min-h-screen bg-[rgb(var(--bg))] pb-16">
       <section className="mx-auto max-w-5xl px-4 pt-14">
-        <div className="rounded-3xl bg-white/90 p-6 shadow-[0_24px_70px_rgba(15,23,42,0.08)] ring-1 ring-slate-100 md:p-10">
+        <div className="rounded-3xl bg-[rgb(var(--card))] p-6 shadow-[0_24px_70px_rgba(15,23,42,0.08)] ring-1 ring-[rgb(var(--border))] md:p-10">
           <header className="space-y-3 text-center">
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-sky-600">
               {t("Privatsphaere", "kicker")}
             </p>
-            <h1 className="text-3xl font-extrabold leading-tight text-slate-900 md:text-4xl">
+            <h1 className="text-3xl font-extrabold leading-tight text-[rgb(var(--fg))] md:text-4xl">
               {t("Privatsphaere & Datensicherheit", "title")}
             </h1>
-            <p className="text-sm leading-relaxed text-slate-700 md:text-base">
+            <p className="text-sm leading-relaxed text-[rgb(var(--muted))] md:text-base">
               {t(
                 "Auf dieser Seite findest du die wichtigsten Wege zu Datenschutz, Widerspruch und Kontosicherheit. So gelangst du schnell dorthin, wo du Entscheidungen treffen oder Hilfe bekommen kannst.",
                 "lead",
@@ -28,8 +28,8 @@ export default function PrivatsphaerePage() {
           </header>
 
           <div className="mt-8 grid gap-4">
-            <div className="rounded-2xl border border-slate-100 bg-slate-50/70 p-4 text-sm text-slate-800">
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+            <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4 text-sm text-[rgb(var(--fg))]">
+              <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
                 {t("Schnellzugriff", "quick.title")}
               </p>
               <div className="mt-3 grid gap-3 md:grid-cols-3">
@@ -54,8 +54,8 @@ export default function PrivatsphaerePage() {
               </div>
             </div>
 
-            <div className="rounded-2xl border border-slate-100 bg-white p-4 text-sm text-slate-800 shadow-sm">
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+            <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 text-sm text-[rgb(var(--fg))] shadow-sm">
+              <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
                 {t("Transparenz & Kontrolle", "control.title")}
               </p>
               <p className="mt-2">
@@ -82,10 +82,10 @@ function LinkCard({ href, label, body }: { href: string; label: string; body: st
   return (
     <Link
       href={href}
-      className="rounded-2xl border border-slate-100 bg-white px-4 py-3 text-left text-sm text-slate-700 shadow-sm transition hover:border-slate-200 hover:text-slate-900"
+      className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-3 text-left text-sm text-[rgb(var(--muted))] shadow-sm transition hover:border-[rgb(var(--border))] hover:text-[rgb(var(--fg))]"
     >
       <p className="font-semibold">{label}</p>
-      <p className="mt-1 text-xs text-slate-500">{body}</p>
+      <p className="mt-1 text-xs text-[rgb(var(--muted))]">{body}</p>
     </Link>
   );
 }

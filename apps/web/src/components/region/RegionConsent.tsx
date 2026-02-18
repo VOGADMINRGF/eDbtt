@@ -39,7 +39,7 @@ export default function RegionConsent({
     <div
       className={`fixed inset-0 z-50 flex items-center justify-center bg-black/40 ${className}`}
     >
-      <div className="bg-white dark:bg-neutral-900 rounded-2xl shadow-xl p-6 w-[min(94vw,560px)]">
+      <div className="bg-[rgb(var(--card))] dark:bg-neutral-900 rounded-2xl shadow-xl p-6 w-[min(94vw,560px)]">
         <h2 className="text-xl font-semibold mb-2">
           Standort für lokale Inhalte verwenden?
         </h2>

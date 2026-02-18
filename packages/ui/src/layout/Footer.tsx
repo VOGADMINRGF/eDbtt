@@ -26,7 +26,7 @@ const currentYear = new Date().getFullYear();
 export default function SiteFooter() {
   return (
     <footer
-      className="mt-16 border-t border-slate-200 bg-slate-50/80"
+      className="mt-16 border-t border-[rgb(var(--border))] bg-[rgb(var(--bg))]"
       role="contentinfo"
     >
       <div className="mx-auto max-w-6xl px-4 py-10">
@@ -45,10 +45,10 @@ export default function SiteFooter() {
             >
               eDebatte
             </Link>
-            <p className="mt-2 text-sm font-semibold text-slate-900">
+            <p className="mt-2 text-sm font-semibold text-[rgb(var(--fg))]">
               Offene Infrastruktur für direkte Demokratie.
             </p>
-            <p className="mt-3 text-sm leading-relaxed text-slate-600">
+            <p className="mt-3 text-sm leading-relaxed text-[rgb(var(--muted))]">
               Keine Partei, kein Verein – wir finanzieren uns über
               Mitgliedsbeiträge und faire Nutzungsentgelte, nicht über
               Spendenquittungen oder versteckte Werbung.
@@ -77,9 +77,9 @@ export default function SiteFooter() {
           />
         </div>
 
-        <div className="mt-8 border-t border-slate-200/70 pt-6 text-xs text-slate-500 md:flex md:items-center md:justify-between">
+        <div className="mt-8 border-t border-[rgb(var(--border))] pt-6 text-xs text-[rgb(var(--muted))] md:flex md:items-center md:justify-between">
           <p>© {currentYear} eDebatte</p>
-          <p className="mt-2 text-[11px] text-slate-500 md:mt-0">
+          <p className="mt-2 text-[11px] text-[rgb(var(--muted))] md:mt-0">
             Beta-Version – wir entwickeln diese Infrastruktur gemeinsam weiter.
           </p>
         </div>
@@ -97,13 +97,13 @@ type FooterNavProps = {
 function FooterNav({ title, ariaLabel, links }: FooterNavProps) {
   return (
     <nav aria-label={ariaLabel}>
-      <p className="text-sm font-semibold text-slate-900">{title}</p>
-      <ul className="mt-3 space-y-2 text-sm text-slate-600">
+      <p className="text-sm font-semibold text-[rgb(var(--fg))]">{title}</p>
+      <ul className="mt-3 space-y-2 text-sm text-[rgb(var(--muted))]">
         {links.map((link) => (
           <li key={link.href}>
             <Link
               href={link.href}
-              className="transition hover:text-slate-900 hover:underline hover:underline-offset-4"
+              className="transition hover:text-[rgb(var(--fg))] hover:underline hover:underline-offset-4"
             >
               {link.label}
             </Link>

@@ -1,579 +1,491 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { useLocale } from "@/context/LocaleContext";
 import { resolveLocalizedField } from "@/lib/localization/getLocalizedField";
 import { useAutoTranslateText } from "@/lib/i18n/autoTranslate";
 
-const heroCopy = {
-  title_de: "So funktioniert eDebatte",
-  title_en: "How eDebatte works",
+/**
+ * /howtoworks/edebatte
+ * Methodisch-wissenschaftliche Seite (Referenzarchitektur)
+ * - Fokus: Informationsarchitektur + Governance + Auditierbarkeit
+ * - Bottom-up: Themenagenda aus der Bevölkerung; Kommune/Verwaltung moderiert; Fachstellen/Wissenschaft prüfen;
+ *   Journalismus begleitet regional; private Unterstützung je Thema möglich.
+ * - Interne Links via <Link />
+ * - Auto-Translate nur für nicht de/en (stabile Basisformulierungen)
+ */
+
+const HEADLINE_GRAD = "headline-grad";
+const SOFT_RULE =
+  "h-px w-full bg-gradient-to-r from-[rgb(var(--grad-from))] to-transparent opacity-40";
+const PAGE_BG = "min-h-screen bg-[rgb(var(--bg))] text-[rgb(var(--fg))]";
+
+const CARD =
+  "surface rounded-2xl p-5 shadow-[0_18px_60px_rgba(2,6,23,0.35)]";
+const SUBCARD =
+  "surface rounded-xl p-4 bg-[color-mix(in_oklab,rgb(var(--card))_85%,rgb(var(--bg))_15%)]";
+const CHIP =
+  "inline-flex items-center gap-2 rounded-full border border-[rgb(var(--border))] bg-[color-mix(in_oklab,rgb(var(--card))_70%,rgb(var(--bg))_30%)] px-3 py-1 text-xs font-medium text-[rgb(var(--fg))]";
+
+const BUTTON_PRIMARY =
+  "inline-flex items-center justify-center rounded-full bg-gradient-to-r from-[rgb(var(--grad-from))] to-[rgb(var(--grad-to))] px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-black/10 hover:brightness-110";
+const BUTTON_GHOST =
+  "inline-flex items-center justify-center rounded-full border border-[rgb(var(--border))] bg-[color-mix(in_oklab,rgb(var(--card))_75%,transparent)] px-4 py-2 text-sm font-semibold text-[rgb(var(--fg))] hover:border-[rgb(var(--grad-from))] hover:text-[rgb(var(--grad-from))]";
+
+function SectionTitle({
+  children,
+  id,
+  lead,
+}: {
+  children: React.ReactNode;
+  id?: string;
+  lead?: string;
+}) {
+  return (
+    <div className="space-y-2">
+      <h2 id={id} className={`text-2xl font-extrabold tracking-tight ${HEADLINE_GRAD}`}>
+        {children}
+      </h2>
+      <div className={SOFT_RULE} />
+      {lead ? <p className="muted text-sm leading-relaxed">{lead}</p> : null}
+    </div>
+  );
+}
+
+type Localized = Record<string, unknown>;
+
+const hero = {
+  id: "hero",
+  title_de: "Digitale Entscheidungsarchitektur",
+  title_en: "Digital decision architecture",
   lead_de:
-    "eDebatte ist die App, mit der wir Anliegen aus Alltagssprache in nachvollziehbare Abstimmungsfragen übersetzen: Fakten sammeln, Pro & Contra sichtbar machen, abstimmen, Umsetzung begleiten.",
+    "eDebatte beschreibt und implementiert eine Referenzarchitektur, die öffentliche Beiträge in nachvollziehbare Entscheidungsakten überführt: trennscharf, revisionsfähig, prüfbar — und anschlussfähig an Zuständigkeiten, Gremienlogiken und reale Umsetzungsprozesse.",
   lead_en:
-    "eDebatte is the app that translates everyday concerns into transparent voting templates: gather facts, show pros and cons, vote securely, and follow through on implementation.",
+    "eDebatte defines and implements a reference architecture that turns public input into traceable decision files: precise, revisable, verifiable — and compatible with responsibilities, committee logics, and real implementation processes.",
   secondary_de:
-    "Die App bleibt neutral: gleiche Regeln für alle Themen, klare Abläufe und ein offenes Prüfprotokoll. Kommune, Organisation, Parlament oder Initiative – alle arbeiten mit denselben Verfahren.",
+    "Wichtig: Das Verfahren ersetzt keine formalen Beschluss- oder Konsultationswege. Es schafft eine belastbare Informations- und Governance-Struktur, damit Beteiligung verarbeitbar wird — mit sichtbarer Unsicherheit, Alternativenpflicht und dokumentierter Rückkopplung.",
   secondary_en:
-    "The app stays neutral: same rules for every topic, transparent processes, and an open audit log. Municipalities, organisations, parliaments, or initiatives all work with the same playbook.",
+    "Important: the procedure does not replace formal decision or consultation paths. It provides a robust information and governance structure so participation becomes processable — with visible uncertainty, mandatory alternatives, and documented feedback.",
 };
 
 const heroChips = [
-  {
-    id: "chip-structure",
-    label_de: "strukturierte Vorlagen statt Chaos-Debatten",
-    label_en: "structured templates instead of chaos debates",
-  },
-  { id: "chip-sources", label_de: "Quellen offen gelegt", label_en: "sources laid open" },
-  { id: "chip-results", label_de: "Ergebnisse reproduzierbar", label_en: "results reproducible" },
+  { id: "chip-ia", label_de: "Informationsarchitektur", label_en: "Information architecture" },
+  { id: "chip-governance", label_de: "Governance-Modell", label_en: "Governance model" },
+  { id: "chip-audit", label_de: "Auditierbarkeit & Versionierung", label_en: "Auditability & versioning" },
+  { id: "chip-rueck", label_de: "Rückkopplungspflicht", label_en: "Feedback obligation" },
 ];
 
 const heroButtons = [
-  {
-    id: "cta-statements",
-    href: "/start",
-    label_de: "Anliegen einreichen",
-    label_en: "Submit a concern",
-    primary: true,
-  },
-  {
-    id: "cta-movement",
-    href: "/howtoworks/bewegung",
-    label_de: "Mehr über die Bewegung",
-    label_en: "More about the movement",
-    primary: false,
-  },
+  { id: "cta-start", href: "/start", label_de: "Anliegen einreichen", label_en: "Submit a concern", primary: true },
+  { id: "cta-vormerken", href: "/vormerken", label_de: "Pilot vormerken", label_en: "Register pilot interest", primary: false },
+  { id: "cta-kontakt", href: "/kontakt", label_de: "Kontakt", label_en: "Contact", primary: false },
 ];
 
-const roleSpotlightHeading = {
-  title_de: "Rollen & Schwerpunkte",
-  title_en: "Roles & focus areas",
+const framing = {
+  id: "framing",
+  title_de: "Einordnung und Anspruch",
+  title_en: "Positioning and scope",
+  p1_de:
+    "Moderne Beteiligung scheitert selten an „zu wenig Meinung“, sondern an fehlender Verarbeitbarkeit: Textwolken vermischen Behauptung, Erfahrung, Werturteil und Vorschlag. eDebatte setzt deshalb beim blinden Fleck an: Informationsarchitektur als demokratierelevante Infrastruktur.",
+  p1_en:
+    "Modern participation rarely fails due to ‘too little opinion’, but due to low processability: text clouds mix claims, experience, values, and proposals. eDebatte therefore targets the blind spot: information architecture as democracy-relevant infrastructure.",
+  p2_de:
+    "Ziel ist nicht eine „richtige“ politische Option, sondern ein belastbarer Weg, wie Optionen strukturiert, begründet, geprüft und abgestimmt werden können — sodass Mehrheiten begründbar bleiben und Minderheiten sichtbar dokumentiert sind.",
+  p2_en:
+    "The goal is not to prescribe the ‘correct’ political option, but to provide a robust way to structure, justify, review, and vote on options — so majorities remain explainable and minorities are visibly documented.",
+};
+
+const blocks = {
+  id: "blocks",
+  title_de: "Fünf Bausteine der Entscheidungsakte",
+  title_en: "Five building blocks of a decision file",
   lead_de:
-    "Für jede Rolle zeigen wir Schwerpunkt, Funktionen und ein kurzes Fallbeispiel.",
+    "Unstrukturierter Diskurs wird in wiederverwendbare Arbeitseinheiten übersetzt. Die Stärke liegt nicht in einer Liste, sondern in der Trennung — und der späteren Verknüpfung zu einer Akte.",
   lead_en:
-    "Each role includes a focus, core functions, and a short case example.",
+    "Unstructured discourse is translated into reusable work units. The strength is not a list, but separation — and later linking into a decision file.",
 };
 
-const roleSpotlightLabels = {
-  focus_de: "Schwerpunkt",
-  focus_en: "Focus",
-  functions_de: "Funktionen",
-  functions_en: "Core functions",
-  outputs_de: "Ergebnisse",
-  outputs_en: "Outputs",
-  example_de: "Fallbeispiel",
-  example_en: "Case example",
-  details_de: "Mehr Details",
-  details_en: "More details",
-};
-
-const roleSpotlights = [
+const blockItems = [
   {
-    id: "rolle-buerger",
-    title_de: "Bürger:innen",
-    title_en: "Citizens",
-    image: "/dummy/dummy1.jpg",
-    imageAlt: "Platzhalter Illustration für Bürger:innen",
-    focus_de:
-      "Mitreden, mitentscheiden und als Creator Themen, Streams oder Regionen begleiten.",
-    focus_en:
-      "Participate, decide, and act as a creator for topics, streams, or regions.",
-    functions_de: [
-      "Abstimmungen mit geheimer Stimme und klaren Quoren.",
-      "Anliegen einreichen und Varianten vergleichen.",
-      "Themen, Streams oder Regionen als Creator kuratieren.",
-      "Pro/Contra und Quellen in Alltagssprache prüfen.",
-      "Minderheitenbericht und Ergebnis nachvollziehen.",
-    ],
-    functions_en: [
-      "Vote with a secret ballot and clear quorums.",
-      "Submit concerns and compare variants.",
-      "Curate topics, streams, or regions as a creator.",
-      "Review pro/contra and sources in plain language.",
-      "Track minority reports and results.",
-    ],
-    outputs_de: [
-      "Dokumentierte Mehrheiten und Minderheiten.",
-      "Transparente Quellenlage.",
-      "Mandat für die nächste Umsetzung.",
-      "Creator-Formate mit Community-Bezug.",
-    ],
-    outputs_en: [
-      "Documented majorities and minorities.",
-      "Transparent source base.",
-      "A mandate for implementation.",
-      "Creator formats with community relevance.",
-    ],
-    example_de:
-      "Stadtteil-Stream: Bürger:innen sammeln Quellen, moderieren ein Thema und begleiten die Abstimmung ihrer Region. Ergebnis und Wirkung bleiben öffentlich nachvollziehbar.",
-    example_en:
-      "Neighborhood stream: citizens gather sources, moderate a topic, and follow the vote in their region. Outcome and impact stay publicly traceable.",
-    ctaLabel_de: "Mehr zu Abstimmen & Ergebnis",
-    ctaLabel_en: "More about voting & results",
-    ctaHref: "/howtoworks/edebatte/abstimmen",
+    id: "b-claim",
+    label_de: "Behauptung",
+    label_en: "Claim",
+    explainer_de: "Ein prüfbarer Satz, der als Kernaussage geführt wird (mit Statuslogik).",
+    explainer_en: "A verifiable statement tracked as a core claim (with status logic).",
   },
   {
-    id: "rolle-vereine",
-    title_de: "Vereine, Verbände & Journalist:innen",
-    title_en: "Associations, federations & journalists",
-    image: "/dummy/dummy2.jpg",
-    imageAlt: "Platzhalter Illustration für Vereine und Journalist:innen",
-    focus_de: "Mitglieder beteiligen und Themen redaktionell einordnen.",
-    focus_en: "Engage members and contribute editorially.",
-    functions_de: [
-      "Mitgliederbefragungen und interne Abstimmungen aufsetzen.",
-      "Dossiers strukturieren und Quellen verlinken.",
-      "Faktenchecks koordinieren und Gegenpositionen sichtbar machen.",
-      "Redaktionelle Beiträge, Podcasts oder Streams mit Daten anreichern.",
-      "Exporte und Einbettungen für Mitgliederportale nutzen.",
-    ],
-    functions_en: [
-      "Set up member surveys and internal votes.",
-      "Structure dossiers and link sources.",
-      "Coordinate fact-checks and surface counter-positions.",
-      "Enrich editorial pieces, podcasts, or streams with data.",
-      "Use exports and embeds for member portals.",
-    ],
-    outputs_de: [
-      "Dossiers mit klarer Quellenlage für Mitglieder und Öffentlichkeit.",
-      "Redaktionell nutzbare Daten, Zitate und Grafiken.",
-      "Nachvollziehbare Streitpunkte und Unsicherheiten.",
-      "Material für Artikel, Podcasts und Streams.",
-    ],
-    outputs_en: [
-      "Dossiers with clear sources for members and the public.",
-      "Editorial-ready data, quotes, and visuals.",
-      "Transparent points of debate and uncertainty.",
-      "Material for articles, podcasts, and streams.",
-    ],
-    example_de:
-      "Wohnraum: Ein Verband befragt Mitglieder, Journalist:innen erstellen ein Dossier und begleiten das Thema redaktionell.",
-    example_en:
-      "Housing: an association surveys members, journalists create a dossier and cover the topic editorially.",
-    ctaLabel_de: "Mehr zu Dossier & Faktencheck",
-    ctaLabel_en: "More about dossiers & fact-checking",
-    ctaHref: "/howtoworks/edebatte/dossier",
+    id: "b-source",
+    label_de: "Quelle",
+    label_en: "Source",
+    explainer_de: "Beleg mit Kontext: Gesetz, Studie, Datensatz, Bericht — oder markierte Lücke.",
+    explainer_en: "Evidence with context: law, study, dataset, report — or a marked gap.",
   },
   {
-    id: "rolle-verwaltung",
-    title_de: "Verwaltung & Repräsentant:innen",
-    title_en: "Administration & representatives",
-    image: "/dummy/dummy3.jpg",
-    imageAlt: "Platzhalter Illustration für Verwaltung und Repräsentant:innen",
-    focus_de: "Entscheidungsgrundlagen schaffen, Mandat sichern, Umsetzung steuern.",
-    focus_en: "Prepare decision-ready data, secure mandates, guide implementation.",
-    functions_de: [
-      "Umfragen starten und Regeln transparent machen.",
-      "Daten, Quellen und Wirkungen als Entscheidungsgrundlage aufbereiten.",
-      "Mandate und Zuständigkeiten veröffentlichen.",
-      "Meilensteine, Risiken und Fortschritt dokumentieren.",
-      "Wirkung und Kennzahlen offen nachverfolgen.",
-    ],
-    functions_en: [
-      "Launch surveys and make rules transparent.",
-      "Prepare data, sources, and impacts as decision support.",
-      "Publish mandates and responsibilities.",
-      "Document milestones, risks, and progress.",
-      "Track impact and metrics openly.",
-    ],
-    outputs_de: [
-      "Aufbereitete Entscheidungsgrundlagen als Datenpakete.",
-      "Öffentlicher Umsetzungsplan.",
-      "Transparente Rechenschaft und Fortschritt.",
-      "Lernbasis für nächste Entscheidungen.",
-    ],
-    outputs_en: [
-      "Decision-ready data packages.",
-      "A public implementation plan.",
-      "Transparent accountability and progress.",
-      "A learning base for next decisions.",
-    ],
-    example_de:
-      "Energieeffizienz-Programm: Die Verwaltung bereitet Daten auf, erhält ein Mandat und veröffentlicht Meilensteine sowie Wirkungskennzahlen.",
-    example_en:
-      "Energy-efficiency program: the administration prepares data, receives a mandate, and publishes milestones plus impact metrics.",
-    ctaLabel_de: "Mehr zu Mandat & Umsetzung",
-    ctaLabel_en: "More about mandate & implementation",
-    ctaHref: "/howtoworks/edebatte/mandat",
+    id: "b-question",
+    label_de: "Prüffrage",
+    label_en: "Check question",
+    explainer_de: "Ein offener Klärpunkt mit Entscheidungsrelevanz (priorisiert, nachgeführt).",
+    explainer_en: "An open clarification point relevant for decisions (prioritized, tracked).",
+  },
+  {
+    id: "b-option",
+    label_de: "Handlungsoption",
+    label_en: "Action option",
+    explainer_de: "Eine umsetzbare Alternative (mindestens zwei), inkl. Voraussetzungen und Zuständigkeit.",
+    explainer_en: "An implementable alternative (at least two), incl. prerequisites and responsibility.",
+  },
+  {
+    id: "b-impact",
+    label_de: "Auswirkung",
+    label_en: "Impact",
+    explainer_de: "Folgenprofil je Option (mind. sozial/ökologisch), plus Kosten, Recht, Risiken, Zeithorizont.",
+    explainer_en: "Impact profile per option (min. social/ecological), plus cost, law, risks, time horizon.",
   },
 ];
 
-const steps = [
+const process = {
+  id: "process",
+  title_de: "Prozess: vom Beitrag zum Mandat",
+  title_en: "Process: from input to mandate",
+  lead_de:
+    "Das Verfahren trennt Erkundung von Entscheidung. Erst wird strukturiert und geprüft, dann werden Optionen fixiert und abgestimmt; danach folgt Rückkopplung, Umsetzung und Revision.",
+  lead_en:
+    "The procedure separates exploration from decision. First structure and review, then fix options and vote; afterwards: feedback, implementation, and revision.",
+};
+
+const processSteps = [
   {
-    id: "step-1",
-    text_de: "Anliegen einreichen: Ziel, Region, Zuständigkeit, kurze Begründung.",
-    text_en: "Submit a concern: goal, region, responsibility, short rationale.",
+    id: "p1",
+    title_de: "Einreichung",
+    title_en: "Submission",
+    text_de: "Ein Anliegen wird als Rohbeitrag erfasst (Ziel, Region, Kontext, erste Hinweise).",
+    text_en: "A concern is captured as raw input (goal, region, context, initial hints).",
   },
   {
-    id: "step-2",
-    text_de: "Fakten sammeln: Quellen, Daten, Gegenpositionen – alles verlinkt.",
-    text_en: "Collect facts: sources, data, counter-positions – all linked.",
+    id: "p2",
+    title_de: "Check",
+    title_en: "Check",
+    text_de: "Trennung in Behauptungen, Quellen, Prüffragen; Dubletten werden zusammengeführt.",
+    text_en: "Separate into claims, sources, check questions; merge duplicates.",
   },
   {
-    id: "step-3",
-    text_de: "Debatte: Pro & Contra werden gleich behandelt, Identität bleibt geschützt.",
-    text_en: "Debate: pro & contra receive equal space, identity stays protected.",
+    id: "p3",
+    title_de: "Dossier",
+    title_en: "Dossier",
+    text_de: "Verdichtung: Quellenstatus, Gegenpositionen, Optionen und Auswirkungsprofile werden vergleichbar gemacht.",
+    text_en: "Consolidation: evidence status, counter-positions, options and impact profiles become comparable.",
   },
   {
-    id: "step-4",
-    text_de: "Abstimmen: geheime Stimme, Quorum & Mehrheiten transparent.",
-    text_en: "Vote: secret ballot, transparent quorum and majorities.",
+    id: "p4",
+    title_de: "Beteiligung",
+    title_en: "Participation",
+    text_de: "Abstimmung über dokumentierte Optionen — mit Quorum/Fristen nach Tragweite.",
+    text_en: "Vote on documented options — with quorum/deadlines by impact.",
   },
   {
-    id: "step-5",
-    text_de: "Umsetzen: Ergebnis mit Mandat, Plan, Risiken und Prüfprotokoll begleiten.",
-    text_en: "Implement: accompany the result with mandate, plan, risks, and an audit log.",
+    id: "p5",
+    title_de: "Mandat, Rückkopplung, Umsetzung",
+    title_en: "Mandate, feedback, implementation",
+    text_de: "Zuständigkeit, Plan und Fortschritt werden in der Akte geführt; Änderungen bleiben versioniert.",
+    text_en: "Responsibility, plan and progress are tracked in the file; changes remain versioned.",
   },
 ];
 
-const evidenceLegend = [
+const roles = {
+  id: "roles",
+  title_de: "Rollenmodell: Verantwortung sichtbar machen",
+  title_en: "Role model: making responsibility visible",
+  lead_de:
+    "Die Agenda entsteht von unten: Themen und Beobachtungen kommen aus der Bevölkerung und der Nutzung. Institutionen stärken die Qualität, indem sie strukturieren, prüfen, koordinieren und Rückkopplung verbindlich leisten.",
+  lead_en:
+    "The agenda is bottom-up: topics and observations originate from citizens and users. Institutions strengthen quality by structuring, reviewing, coordinating, and providing binding feedback.",
+};
+
+const roleCards = [
   {
-    id: "legend-1",
-    label_de: "Aussage",
-    label_en: "Statement",
-    color: "#0ea5e9",
-    explainer_de: "klarer Satz, der später abgestimmt wird",
-    explainer_en: "clear sentence that will be voted on later",
+    id: "r-citizens",
+    title_de: "Einreichende (Bürger:innen / Nutzer:innen)",
+    title_en: "Submitters (citizens / users)",
+    text_de:
+      "Benennen Bedarf und Betroffenheit, liefern Hinweise, Quellen und präzisieren Behauptungen. Ihr Beitrag wird als prüfbare Einheit geführt — nicht als flüchtiger Kommentar.",
+    text_en:
+      "Describe needs and affectedness, provide hints and sources, refine claims. Contributions are tracked as verifiable units — not ephemeral comments.",
   },
   {
-    id: "legend-2",
-    label_de: "Beleg",
-    label_en: "Evidence",
-    color: "#10b981",
-    explainer_de: "Studien, Daten, Erfahrungen mit Quelle",
-    explainer_en: "studies, data, lived experience with a source",
+    id: "r-moderation",
+    title_de: "Struktur-Moderation / Redaktion (z. B. Kommune, Initiative)",
+    title_en: "Structure moderation / editorial (e.g., municipality, initiative)",
+    text_de:
+      "Sichert Formqualität ohne Inhaltszensur: Trennung der Bausteine, Dublettenlogik, Dossierpflege, Veröffentlichungstexte. Ziel ist Verarbeitbarkeit, nicht Deutungshoheit.",
+    text_en:
+      "Ensures form quality without censoring content: separates building blocks, handles duplicates, maintains dossiers, publishes summaries. The goal is processability, not narrative control.",
   },
   {
-    id: "legend-3",
-    label_de: "Gegenbeleg",
-    label_en: "Counter-evidence",
-    color: "#f97316",
-    explainer_de: "zeigt Grenzen oder Widersprüche",
-    explainer_en: "shows limits or contradictions",
+    id: "r-expert",
+    title_de: "Fachstellen & Wissenschaft (ggf. Ressorts/Ministerien)",
+    title_en: "Expert units & academia (incl. departments/ministries where relevant)",
+    text_de:
+      "Prüfen strittige Kernaussagen, ordnen Quellen ein, ergänzen Risiken, Rechtsrahmen, Umsetzbarkeit und Messpunkte. So wird aus Debatte eine belastbare Entscheidungsgrundlage.",
+    text_en:
+      "Review disputed core claims, contextualize sources, add risks, legal frames, feasibility and metrics. This turns debate into decision-grade input.",
   },
   {
-    id: "legend-4",
-    label_de: "Entscheidung",
-    label_en: "Decision",
-    color: "#8b5cf6",
-    explainer_de: "zeigt, wie aus Evidenz ein Mandat wird",
-    explainer_en: "shows how evidence turns into a mandate",
+    id: "r-admin",
+    title_de: "Verwaltung / Umsetzungskoordination",
+    title_en: "Administration / implementation coordination",
+    text_de:
+      "Übersetzt Mandate in Aufgabenpakete (wer, was, bis wann), führt Monitoring und dokumentiert Rückkopplung: Übernahme, Nicht-Übernahme und Gründe.",
+    text_en:
+      "Translates mandates into task packages (who, what, by when), monitors progress and documents feedback: adoption, non-adoption, and reasons.",
+  },
+  {
+    id: "r-media",
+    title_de: "Journalismus & Zivilgesellschaft (regional)",
+    title_en: "Journalism & civil society (regional)",
+    text_de:
+      "Macht Relevanz sichtbar, begleitet Dossiers und übersetzt Akten in öffentliche Einordnung. So entsteht wieder regionale Berichterstattung, die nicht an Empörung, sondern an Prüfpfaden hängt.",
+    text_en:
+      "Surfaces relevance, accompanies dossiers and translates files into public context. This enables regional reporting anchored in audit trails rather than outrage cycles.",
   },
 ];
 
-const stepsHeading = {
-  title_de: "Der Ablauf – in fünf Schritten",
-  title_en: "The process – in five steps",
+const integrity = {
+  id: "integrity",
+  title_de: "Integrität, Auditierbarkeit, Versionierung",
+  title_en: "Integrity, auditability, versioning",
+  lead_de:
+    "Entscheidungsakten sind nur dann vertrauensfähig, wenn Änderungen rekonstruierbar sind: wer hat was wann warum geändert — und worauf bezieht sich die Änderung (Behauptung, Quelle, Option, Auswirkung).",
+  lead_en:
+    "Decision files are trustworthy only if changes are reconstructible: who changed what, when, why — and what the change refers to (claim, source, option, impact).",
+  bullets_de: [
+    "Sichtbare Unsicherheit: fehlende Quellen sind markiert, nicht kaschiert.",
+    "Alternativenpflicht: Abstimmung setzt echte Optionen voraus (oder begründete Ausnahme).",
+    "Proportionalität: Prüfintensität steigt mit Tragweite und Risiko.",
+    "Minderheitsvotum: Gegenpositionen bleiben Bestandteil der Akte.",
+  ],
+  bullets_en: [
+    "Visible uncertainty: missing sources are marked, not hidden.",
+    "Mandatory alternatives: voting requires real options (or a justified exception).",
+    "Proportionality: review intensity scales with impact and risk.",
+    "Minority record: dissent remains part of the file.",
+  ],
 };
 
-const exampleCopy = {
-  title_de: "Der einfachste Einstieg – ein Beispiel",
-  title_en: "Easiest starting point – one example",
-  body_de:
-    "„Sicherer Schulweg“: Eine Mutter schlägt vor, vor der Schule Tempo 30 ganztägig einzuführen. Wir zerlegen das Anliegen in prüfbare Aussagen (Unfalllage, Verkehrsfluss, Alternativen), sammeln Quellen und zeigen Gegenpositionen. Danach entscheidet die Gemeinschaft – mit klaren Regeln.",
-  body_en:
-    "\"Safe route to school\": a parent proposes a 30 km/h zone all day. We break the concern into verifiable statements (accidents, traffic flow, alternatives), collect sources, show counter-arguments. Then the community decides – with clear rules.",
-};
-
-const evidenceHeading = {
-  title_de: "Evidenz-Graph & Fact-Checking – in Alltagssprache",
-  title_en: "Evidence graph & fact-checking – in everyday language",
+const support = {
+  id: "support",
+  title_de: "Pilot, Skalierung und private Unterstützung je Thema",
+  title_en: "Pilot, scaling, and private support per topic",
+  p1_de:
+    "Ein Pilot ist ein kontrolliertes Lernformat (z. B. 12 Wochen, 5–10 Themen) mit klaren Metriken: Durchlaufzeiten, Quellenstatus je Behauptung, Anteil geklärter Prüffragen, Optionenanzahl, Auswirkungsprofile sowie Rückkopplungs- und Umsetzungsquote.",
+  p1_en:
+    "A pilot is a controlled learning format (e.g., 12 weeks, 5–10 topics) with clear metrics: cycle times, evidence status per claim, share of resolved check questions, number of options, impact profiles, and feedback/implementation rates.",
+  p2_de:
+    "Zusätzlich kann jedes Thema von Privatpersonen oder Partnern unterstützt werden — nicht um Ergebnisse zu kaufen, sondern um Strukturarbeit zu ermöglichen (z. B. Quellenarbeit, Faktenprüfung, Dossierpflege).",
+  p2_en:
+    "In addition, each topic can be supported by private persons or partners — not to buy outcomes, but to enable the structural work (e.g., source work, fact checking, dossier maintenance).",
 };
 
 export default function HowToWorksEDebattePage() {
   const { locale } = useLocale();
   const t = useAutoTranslateText({ locale, namespace: "howtoworks-edebatte" });
+
+  const lang = String(locale ?? "de").slice(0, 2);
+  const isNative = lang === "de" || lang === "en";
+
   const text = React.useCallback(
-    (entry: Record<string, any>, key: string) => {
-      const base = resolveLocalizedField(entry, key, locale);
-      const hint = entry?.id ? `${entry.id}.${key}` : key;
-      return t(base, hint);
+    (entry: Localized, key: string) => {
+      const base = resolveLocalizedField(entry as Record<string, any>, key, locale);
+      if (isNative) return String(base ?? "");
+      const hint = (entry as any)?.id ? `${String((entry as any).id)}.${key}` : key;
+      return t(String(base ?? ""), hint);
     },
-    [locale, t],
-  );
-  const list = React.useCallback(
-    (entry: Record<string, unknown>, key: string) => {
-      const normalized = String(locale ?? "de").slice(0, 2);
-      const localizedKey = `${key}_${normalized}`;
-      const value = entry[localizedKey] ?? entry[`${key}_de`];
-      if (!Array.isArray(value)) return [];
-      if (locale === "de" || locale === "en") return value;
-      return value.map((item, idx) =>
-        typeof item === "string"
-          ? t(item, `${(entry as { id?: string })?.id ?? key}.${key}.${idx}`)
-          : item,
-      );
-    },
-    [locale, t],
+    [locale, t, isNative],
   );
 
+  const pick = (de: string, en: string) => (lang === "en" ? en : de);
+
   return (
-    <main className="min-h-screen bg-gradient-to-b from-[var(--brand-from)] via-white to-white pb-16">
-      <section className="mx-auto max-w-5xl px-4 py-16 space-y-10">
-        <header className="space-y-4">
-          <h1 className="headline-grad text-4xl font-extrabold leading-tight">
-            {text(heroCopy, "title")}
+    <main className={PAGE_BG}>
+      <section className="mx-auto max-w-5xl px-4 py-14 sm:px-6 lg:px-8 space-y-10">
+        {/* HERO */}
+        <header className="space-y-6">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className={CHIP}>
+              <span className="h-1.5 w-1.5 rounded-full bg-sky-400" />
+              Check
+            </span>
+            <span className={CHIP}>
+              <span className="h-1.5 w-1.5 rounded-full bg-teal-300" />
+              Dossier
+            </span>
+            <span className={CHIP}>
+              <span className="h-1.5 w-1.5 rounded-full bg-violet-300" />
+              Beteiligung
+            </span>
+          </div>
+
+          <h1 className={`text-4xl font-extrabold leading-tight tracking-tight ${HEADLINE_GRAD}`}>
+            {text(hero, "title")}
           </h1>
-          <div className="rounded-[40px] border border-transparent bg-gradient-to-br from-sky-50 via-white to-emerald-50/60 p-1 shadow-[0_25px_80px_rgba(15,23,42,0.08)]">
-            <div className="rounded-[36px] bg-white/90 p-6 space-y-4">
-              <p className="text-lg text-slate-700">{text(heroCopy, "lead")}</p>
-              <p className="text-sm text-slate-600">{text(heroCopy, "secondary")}</p>
-              <div className="mt-4 flex flex-wrap gap-3 text-xs font-medium text-slate-700">
-                {heroChips.map((chip) => (
-                  <span
-                    key={chip.id}
-                    className="rounded-full border px-3 py-1 shadow-sm"
-                    style={{ borderColor: "var(--chip-border)", background: "rgba(14,165,233,0.08)" }}
-                  >
-                    {text(chip, "label")}
-                  </span>
-                ))}
-              </div>
-              <div className="mt-5 flex flex-wrap gap-3">
-                {heroButtons.map((btn) => (
-                  <a
-                    key={btn.id}
-                    href={btn.href}
-                    className={btn.primary ? "btn btn-primary" : "btn btn-ghost"}
-                  >
-                    {text(btn, "label")}
-                  </a>
-                ))}
-              </div>
+
+          <div className={CARD}>
+            <p className="text-lg text-[rgb(var(--fg))]">{text(hero, "lead")}</p>
+            <p className="mt-3 text-sm leading-relaxed text-[rgb(var(--muted))]">
+              {text(hero, "secondary")}
+            </p>
+
+            <div className="mt-5 flex flex-wrap gap-2">
+              {heroChips.map((chip) => (
+                <span key={chip.id} className={CHIP}>
+                  <span className="h-1.5 w-1.5 rounded-full bg-cyan-300/90" />
+                  {text(chip, "label")}
+                </span>
+              ))}
+            </div>
+
+            <div className="mt-5 flex flex-wrap gap-3">
+              {heroButtons.map((btn) => (
+                <Link
+                  key={btn.id}
+                  href={btn.href}
+                  className={btn.primary ? BUTTON_PRIMARY : BUTTON_GHOST}
+                >
+                  {text(btn, "label")}
+                </Link>
+              ))}
             </div>
           </div>
         </header>
 
-        <section className="space-y-3">
-          <h2 className="text-lg font-semibold text-slate-900">{text(stepsHeading, "title")}</h2>
-          <ol className="list-decimal space-y-2 pl-6 text-sm text-slate-700">
-            {steps.map((step) => (
-              <li key={step.id}>{text(step, "text")}</li>
+        {/* FRAMING */}
+        <section className={CARD} id="einordnung">
+          <SectionTitle lead={pick(framing.p1_de, framing.p1_en)}>
+            {text(framing, "title")}
+          </SectionTitle>
+          <p className="mt-4 text-sm leading-relaxed text-[rgb(var(--muted))]">
+            {pick(framing.p2_de, framing.p2_en)}
+          </p>
+        </section>
+
+        {/* FIVE BLOCKS */}
+        <section className={CARD} id="bausteine">
+          <SectionTitle lead={text(blocks, "lead")}>
+            {text(blocks, "title")}
+          </SectionTitle>
+
+          <div className="mt-4 grid gap-3 md:grid-cols-2">
+            {blockItems.map((it) => (
+              <div key={it.id} className={SUBCARD}>
+                <h3 className={`text-lg font-extrabold ${HEADLINE_GRAD}`}>
+                  {text(it, "label")}
+                </h3>
+                <p className="mt-1 text-sm leading-relaxed text-[rgb(var(--muted))]">
+                  {text(it, "explainer")}
+                </p>
+              </div>
+            ))}
+          </div>
+
+          <div className={`mt-4 ${SUBCARD}`}>
+            <p className="text-sm leading-relaxed text-[rgb(var(--muted))]">
+              {pick(
+                "Kernidee: erst Trennung (prüfbar machen), dann Verknüpfung (Akte bilden). So wird aus vielen Beiträgen eine strukturierte Abwägung — und nicht nur ein Stimmungsbild.",
+                "Core idea: separate first (make verifiable), then link (form a file). This turns many inputs into structured weighing — not just sentiment.",
+              )}
+            </p>
+          </div>
+        </section>
+
+        {/* PROCESS */}
+        <section className={CARD} id="prozess">
+          <SectionTitle lead={text(process, "lead")}>
+            {text(process, "title")}
+          </SectionTitle>
+
+          <ol className="mt-4 space-y-3">
+            {processSteps.map((s, idx) => (
+              <li key={s.id} className={SUBCARD}>
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
+                      {pick("Station", "Stage")} {idx + 1}
+                    </p>
+                    <h3 className={`text-lg font-extrabold ${HEADLINE_GRAD}`}>
+                      {pick(s.title_de, s.title_en)}
+                    </h3>
+                    <p className="mt-1 text-sm leading-relaxed text-[rgb(var(--muted))]">
+                      {pick(s.text_de, s.text_en)}
+                    </p>
+                  </div>
+                </div>
+              </li>
             ))}
           </ol>
         </section>
 
-        <section className="grid gap-4 lg:grid-cols-2">
-          <div className="rounded-2xl border border-slate-200 bg-white/90 p-4 shadow-sm space-y-2">
-            <h3 className="text-sm font-semibold text-slate-800">Was eDebatte leistet</h3>
-            <ul className="mt-2 list-disc space-y-1 pl-4 text-[13px] text-slate-600">
-              <li>Strukturierte Analyse (Aussagen, Notizen, Fragen, Verknüpfungen) mit klarem Quellbezug.</li>
-              <li>Verlinkte Quellen mit Versionierung, automatische Hinweise bei toten Links.</li>
-              <li>Moderationswerkzeuge, Rollen & Rechte (Bürger:innen, Redaktion, Partner).</li>
-              <li>Abstimmungsmodul mit Quorum, Mehrheiten, Prüfprotokoll und Export.</li>
-              <li>Versionierung, um Vorlagen bei neuen Fakten erneut laufen zu lassen.</li>
-            </ul>
-          </div>
-          <div className="rounded-2xl border border-slate-200 bg-white/90 p-4 shadow-sm space-y-2">
-            <h3 className="text-sm font-semibold text-slate-800">Wer setzt es um?</h3>
-            <p className="mt-2 text-[13px] text-slate-600">
-              Grundsätzlich soll eDebatte immer von der jeweils zuständigen Einheit betrieben werden – Kommune,
-              Parlament, Organisation oder Verband. Dort werden Moderator:innen benannt, die für Betrieb, Transparenz
-              und Auswertung zuständig sind.
-            </p>
-            <p className="mt-2 text-[13px] text-slate-600">
-              Wo es vor Ort noch keine eigene Struktur gibt, kann eDebatte den Betrieb vorübergehend übernehmen:
-              mit klaren Regeln, Schulungen und Moderation, bis eine Region ihre eigenen Vertreter:innen bestimmt hat.
-              eDebatte lässt sich auch als neutrale Plattform mit identischem Sicherheits- und Regelset betreiben – unabhängig
-              von einzelnen Personen.
-            </p>
-          </div>
-        </section>
+        {/* ROLES */}
+        <section className={CARD} id="rollen">
+          <SectionTitle lead={text(roles, "lead")}>
+            {text(roles, "title")}
+          </SectionTitle>
 
-        <section className="space-y-4" aria-labelledby="role-spotlight-heading">
-          <div className="space-y-2">
-            <h2
-              id="role-spotlight-heading"
-              className="text-lg font-semibold text-slate-900"
-            >
-              {text(roleSpotlightHeading, "title")}
-            </h2>
-            <p className="text-sm text-slate-600">{text(roleSpotlightHeading, "lead")}</p>
-          </div>
-          <div className="grid gap-4">
-            {roleSpotlights.map((role) => (
-              <article
-                key={role.id}
-                id={role.id}
-                className="scroll-mt-24 rounded-2xl border border-slate-200 bg-white/90 p-4 shadow-sm"
-              >
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div className="space-y-2">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                      {text(roleSpotlightLabels, "focus")}
-                    </p>
-                    <h3 className="text-base font-semibold text-slate-900">
-                      {text(role, "title")}
-                    </h3>
-                    <p className="text-sm text-slate-700">
-                      {text(role, "focus")}
-                    </p>
-                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 pt-2">
-                      {text(roleSpotlightLabels, "functions")}
-                    </p>
-                    <ul className="list-disc space-y-1 pl-5 text-sm text-slate-700">
-                      {list(role, "functions").map((item) => (
-                        <li key={item}>{item}</li>
-                      ))}
-                    </ul>
-                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 pt-2">
-                      {text(roleSpotlightLabels, "outputs")}
-                    </p>
-                    <ul className="list-disc space-y-1 pl-5 text-sm text-slate-700">
-                      {list(role, "outputs").map((item) => (
-                        <li key={item}>{item}</li>
-                      ))}
-                    </ul>
-                  </div>
-                  <div className="space-y-2">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                      {text(roleSpotlightLabels, "example")}
-                    </p>
-                    <p className="text-sm text-slate-700">{text(role, "example")}</p>
-                    <a
-                      href={role.ctaHref}
-                      className="inline-flex items-center gap-2 text-sm font-semibold text-sky-700"
-                    >
-                      {text(role, "ctaLabel")}
-                      <span aria-hidden="true">→</span>
-                    </a>
-                    <div className="mt-3 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 shadow-sm">
-                      <div className="aspect-[16/9]">
-                        <img
-                          src={role.image}
-                          alt={t(role.imageAlt, `${role.id}.imageAlt`)}
-                          className="h-full w-full object-cover"
-                          loading="lazy"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </article>
+          <div className="mt-4 grid gap-3 md:grid-cols-2">
+            {roleCards.map((r) => (
+              <div key={r.id} className={SUBCARD}>
+                <h3 className={`text-lg font-extrabold ${HEADLINE_GRAD}`}>
+                  {pick(r.title_de, r.title_en)}
+                </h3>
+                <p className="mt-1 text-sm leading-relaxed text-[rgb(var(--muted))]">
+                  {pick(r.text_de, r.text_en)}
+                </p>
+              </div>
             ))}
           </div>
-        </section>
 
-        <section className="space-y-3">
-          <h2 className="text-lg font-semibold text-slate-900">{text(exampleCopy, "title")}</h2>
-          <p className="text-sm text-slate-700">{text(exampleCopy, "body")}</p>
-        </section>
-
-        <section id="evidenz" className="space-y-3">
-          <h2 className="text-lg font-semibold text-slate-900">{text(evidenceHeading, "title")}</h2>
-          <p className="text-sm text-slate-700">
-            Jede Aussage, jeder Beleg und jede Entscheidung hängen zusammen. Der Evidenz-Graph zeigt diese Verbindung
-            als leicht lesbares Netz. Pfeile zeigen, worauf sich etwas stützt, Farben markieren den Typ der Information.
-          </p>
-          <div className="rounded-3xl border border-transparent bg-gradient-to-br from-white via-slate-50 to-sky-50 p-[1px] shadow-[0_20px_60px_rgba(15,23,42,0.06)]">
-            <div className="rounded-[calc(1.5rem-1px)] bg-white/95 p-4">
-              <div className="flex flex-wrap gap-3 text-xs font-semibold text-slate-700">
-                {evidenceLegend.map((item) => (
-                  <span
-                    key={item.id}
-                    className="inline-flex items-center gap-2 rounded-full border px-3 py-1"
-                    style={{ borderColor: item.color, color: item.color }}
-                  >
-                    <span className="inline-block h-2.5 w-2.5 rounded-full" style={{ backgroundColor: item.color }} />
-                    {text(item, "label")}
-                  </span>
-                ))}
-              </div>
-              <div className="mt-4 grid gap-3 md:grid-cols-2">
-                {evidenceLegend.map((item) => (
-                  <article
-                    key={item.id}
-                    className="rounded-2xl border border-slate-100 bg-gradient-to-br from-white to-slate-50/70 p-4 text-sm text-slate-700"
-                    style={{ borderColor: item.color + "33" }}
-                  >
-                    <h3 className="text-sm font-semibold text-slate-900">{text(item, "label")}</h3>
-                    <p className="mt-1">{text(item, "explainer")}</p>
-                  </article>
-                ))}
-              </div>
-              <p className="mt-4 text-xs text-slate-600">
-                Die Community prüft Auffälligkeiten gemeinsam mit Kurator:innen sowie verifizierten Expert:innen.
-                Jede Korrektur bleibt sichtbar – nichts wird nachträglich gelöscht.
-              </p>
-            </div>
+          <div className="mt-5 flex flex-wrap gap-3">
+            <Link href="/vormerken" className={BUTTON_PRIMARY}>
+              {pick("Pilot vormerken", "Register pilot interest")}
+            </Link>
+            <Link href="/howtoworks/bewegung" className={BUTTON_GHOST}>
+              {pick("Bewegung & Prinzipien", "Movement & principles")}
+            </Link>
           </div>
         </section>
 
-        <section className="space-y-3">
-          <h2 className="text-lg font-semibold text-slate-900">Faktenprüfung & Vertrauenswert – Alltagssprache</h2>
-          <ul className="list-disc space-y-2 pl-5 text-sm text-slate-700">
-            <li>Wer prüft? Community, Kurator:innen und verifizierte Expert:innen.</li>
-            <li>Was misst der Vertrauenswert? Mischung aus Quellenqualität, Plausibilität und Konsensbreite.</li>
-            <li>Fehlerkultur: Korrekturen bleiben sichtbar, nichts wird versteckt.</li>
+        {/* INTEGRITY */}
+        <section className={CARD} id="integritaet">
+          <SectionTitle lead={text(integrity, "lead")}>
+            {text(integrity, "title")}
+          </SectionTitle>
+
+          <ul className="mt-4 list-disc space-y-2 pl-5 text-sm leading-relaxed text-[rgb(var(--muted))]">
+            {(lang === "en" ? integrity.bullets_en : integrity.bullets_de).map((b, i) => (
+              <li key={`integrity-${i}`}>{b}</li>
+            ))}
           </ul>
         </section>
 
-        <section className="space-y-3">
-          <h2 className="text-lg font-semibold text-slate-900">Warum das fair ist</h2>
-          <ul className="list-disc space-y-2 pl-5 text-sm text-slate-700">
-            <li>Gleiche Regeln für Darstellung von Pro & Contra.</li>
-            <li>Geheime Stimmabgabe; öffentlich sind nur Aggregate.</li>
-            <li>Offene Methodik – keine nachträglichen Anpassungen.</li>
-            <li>Minderheitenbericht gehört zum Standard.</li>
-          </ul>
-        </section>
+        {/* SUPPORT */}
+        <section className={CARD} id="pilot">
+          <SectionTitle lead={pick(support.p1_de, support.p1_en)}>
+            {text(support, "title")}
+          </SectionTitle>
 
-        <section className="space-y-3">
-          <h2 className="text-lg font-semibold text-slate-900">Regeln – kurz & klar</h2>
-          <ul className="list-disc space-y-2 pl-5 text-sm text-slate-700">
-            <li>Quorum (Standard): 10 % der stimmberechtigten Einheit.</li>
-            <li>Mehrheiten: Grundordnung/hohe Budgets → 2/3; Operatives → einfache Mehrheit.</li>
-            <li>Bindungswirkung: intern verbindlich; extern adressieren wir zuständige Stellen mit Begründung.</li>
-            <li>Barrierearm: klare Sprache, mobil-tauglich, symmetrische Darstellung.</li>
-          </ul>
-        </section>
-
-        <section className="space-y-3">
-          <h2 className="text-lg font-semibold text-slate-900">Nach der Abstimmung</h2>
-          <ul className="list-disc space-y-2 pl-5 text-sm text-slate-700">
-            <li>Mandat & Zuständigkeit: Wer setzt um? Mit welchen Partnern?</li>
-            <li>Plan: Meilensteine, Budget, Risiken – öffentlich trackbar.</li>
-            <li>Wirkung: Kennzahlen & Lerneffekte fließen in die nächste Vorlage ein.</li>
-          </ul>
-        </section>
-
-        <section className="space-y-3">
-          <h2 className="text-lg font-semibold text-slate-900">Journalistische Einbindung – Werkzeug für kritische Berichte</h2>
-          <p className="text-sm text-slate-700 leading-relaxed">
-            eDebatte zeigt, welche Themen brennen, wie die Argumente verteilt sind und wo noch offene Fragen liegen.
-            Journalist:innen nutzen das als Startpunkt – die Bewertung bleibt bei ihnen.
+          <p className="mt-4 text-sm leading-relaxed text-[rgb(var(--muted))]">
+            {pick(support.p2_de, support.p2_en)}
           </p>
-          <ul className="list-disc space-y-2 pl-5 text-sm text-slate-700">
-            <li>Schablonen mit relevanten Fragestellungen für Beiträge, Podcasts oder Streams.</li>
-            <li>Faktenlage und Verfahren offen einsehbar, Bewertung bleibt redaktionell.</li>
-            <li>Exporte ermöglichen eigene Auswertungen ohne Re-Identifikation.</li>
-          </ul>
-        </section>
 
-        <section className="space-y-3">
-          <h2 className="text-lg font-semibold text-slate-900">Ausblick – Wirkung & Vertrauenswert 2.0</h2>
-          <ul className="list-disc space-y-2 pl-5 text-sm text-slate-700">
-            <li>Impact-Dashboards zeigen Beteiligung & Wirkung über Zeit.</li>
-            <li>Vertrauenswert 2.0: graphbasierte Maße (Quellgüte, Widersprüche, Korrekturen, Community-Prüfung).</li>
-            <li>Prüfpakete: geprüfte Skripte und Daten für externe Nachrechnungen.</li>
-          </ul>
-        </section>
-
-        <section className="rounded-3xl border border-slate-200 bg-white/90 p-6 shadow-sm space-y-3">
-          <h2 className="text-lg font-semibold text-slate-900">Mit eDebatte starten</h2>
-          <p className="text-sm text-slate-700 leading-relaxed">
-            Du möchtest ein Anliegen einreichen oder eDebatte für deine Organisation testen? So kannst du loslegen:
-          </p>
-          <div className="flex flex-wrap gap-3">
-            <a href="/start" className="btn btn-primary">
-              Anliegen einreichen
-            </a>
-            <a href="/howtoworks/bewegung" className="btn btn-ghost">
-              Mehr über die Bewegung
-            </a>
-            <a href="/team" className="btn btn-ghost">
-              Kooperation & Team
-            </a>
+          <div className="mt-5 flex flex-wrap gap-3">
+            <Link href="/vormerken" className={BUTTON_PRIMARY}>
+              {pick("Pilot & Themen vormerken", "Register pilot & topics")}
+            </Link>
+            <Link href="/start" className={BUTTON_GHOST}>
+              {pick("Anliegen einreichen", "Submit a concern")}
+            </Link>
+            <Link href="/kontakt" className={BUTTON_GHOST}>
+              {pick("Kontakt aufnehmen", "Contact")}
+            </Link>
           </div>
         </section>
       </section>

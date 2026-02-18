@@ -66,7 +66,7 @@ export default function EvidenceClaimDetailPage() {
     }
   }
 
-  if (loading) return <div className="p-6 text-sm text-slate-500">Lädt Claim …</div>;
+  if (loading) return <div className="p-6 text-sm text-[rgb(var(--muted))]">Lädt Claim …</div>;
   if (error || !data) return <div className="p-6 text-sm text-rose-600">{error ?? "Claim nicht gefunden."}</div>;
 
   const claim = data.claim;
@@ -76,43 +76,43 @@ export default function EvidenceClaimDetailPage() {
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-8">
       <header className="space-y-1">
-        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Evidence · Claim</p>
-        <h1 className="text-2xl font-bold text-slate-900">{claim.text.slice(0, 200)}</h1>
-        <p className="text-sm text-slate-600">
+        <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Evidence · Claim</p>
+        <h1 className="text-2xl font-bold text-[rgb(var(--fg))]">{claim.text.slice(0, 200)}</h1>
+        <p className="text-sm text-[rgb(var(--muted))]">
           Region {claim.regionCode ?? "Global"} · Locale {claim.locale} · Source {claim.sourceType}
         </p>
       </header>
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm space-y-3">
-        <h2 className="text-sm font-semibold text-slate-900">Claim bearbeiten</h2>
-        <label className="text-xs font-medium uppercase text-slate-500">Claim-Text</label>
+      <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm space-y-3">
+        <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Claim bearbeiten</h2>
+        <label className="text-xs font-medium uppercase text-[rgb(var(--muted))]">Claim-Text</label>
         <textarea
-          className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+          className="w-full rounded-xl border border-[rgb(var(--border))] px-3 py-2 text-sm"
           rows={4}
           value={form.claimText}
           onChange={(e) => setForm((prev) => ({ ...prev, claimText: e.target.value }))}
         />
         <div className="grid gap-3 md:grid-cols-3">
           <div>
-            <label className="text-xs font-medium uppercase text-slate-500">Topic</label>
+            <label className="text-xs font-medium uppercase text-[rgb(var(--muted))]">Topic</label>
             <input
-              className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+              className="w-full rounded-xl border border-[rgb(var(--border))] px-3 py-2 text-sm"
               value={form.topicKey}
               onChange={(e) => setForm((prev) => ({ ...prev, topicKey: e.target.value }))}
             />
           </div>
           <div>
-            <label className="text-xs font-medium uppercase text-slate-500">Region</label>
+            <label className="text-xs font-medium uppercase text-[rgb(var(--muted))]">Region</label>
             <input
-              className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+              className="w-full rounded-xl border border-[rgb(var(--border))] px-3 py-2 text-sm"
               value={form.regionCode}
               onChange={(e) => setForm((prev) => ({ ...prev, regionCode: e.target.value }))}
             />
           </div>
           <div>
-            <label className="text-xs font-medium uppercase text-slate-500">Visibility</label>
+            <label className="text-xs font-medium uppercase text-[rgb(var(--muted))]">Visibility</label>
             <select
-              className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+              className="w-full rounded-xl border border-[rgb(var(--border))] px-3 py-2 text-sm"
               value={form.visibility}
               onChange={(e) => setForm((prev) => ({ ...prev, visibility: e.target.value }))}
             >
@@ -131,14 +131,14 @@ export default function EvidenceClaimDetailPage() {
         </button>
       </section>
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm space-y-3">
-        <h2 className="text-sm font-semibold text-slate-900">Links / Evidence</h2>
+      <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm space-y-3">
+        <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Links / Evidence</h2>
         {links.length === 0 ? (
-          <p className="text-sm text-slate-500">Noch keine Belege verknüpft.</p>
+          <p className="text-sm text-[rgb(var(--muted))]">Noch keine Belege verknüpft.</p>
         ) : (
-          <ul className="space-y-2 text-sm text-slate-700">
+          <ul className="space-y-2 text-sm text-[rgb(var(--muted))]">
             {links.map((link: any) => (
-              <li key={link._id} className="rounded border border-slate-100 p-2">
+              <li key={link._id} className="rounded border border-[rgb(var(--border))] p-2">
                 Relation: {link.relation}
               </li>
             ))}
@@ -146,33 +146,33 @@ export default function EvidenceClaimDetailPage() {
         )}
       </section>
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm space-y-3">
-        <h2 className="text-sm font-semibold text-slate-900">Decisions</h2>
+      <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm space-y-3">
+        <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Decisions</h2>
         {decisions.length === 0 ? (
-          <p className="text-sm text-slate-500">Noch keine Entscheidungen erfasst.</p>
+          <p className="text-sm text-[rgb(var(--muted))]">Noch keine Entscheidungen erfasst.</p>
         ) : (
-          <ul className="space-y-2 text-sm text-slate-700">
+          <ul className="space-y-2 text-sm text-[rgb(var(--muted))]">
             {decisions.map((decision: any) => (
-              <li key={decision._id} className="rounded border border-slate-100 p-2">
-                <p className="font-semibold text-slate-900">
+              <li key={decision._id} className="rounded border border-[rgb(var(--border))] p-2">
+                <p className="font-semibold text-[rgb(var(--fg))]">
                   {Math.round(decision.outcome.yesShare * 100)}% Ja · {Math.round(decision.outcome.noShare * 100)}% Nein
                 </p>
-                <p className="text-xs text-slate-500">Majority {decision.outcome.majorityKind}</p>
+                <p className="text-xs text-[rgb(var(--muted))]">Majority {decision.outcome.majorityKind}</p>
               </li>
             ))}
           </ul>
         )}
       </section>
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm space-y-3">
-        <h2 className="text-sm font-semibold text-slate-900">Verknüpfte Quellen</h2>
+      <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm space-y-3">
+        <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Verknüpfte Quellen</h2>
         {data.evidenceItems?.length ? (
-          <ul className="space-y-2 text-sm text-slate-700">
+          <ul className="space-y-2 text-sm text-[rgb(var(--muted))]">
             {data.evidenceItems.map((item: any) => (
-              <li key={item._id} className="rounded border border-slate-100 p-2">
-                <div className="font-semibold text-slate-900">{item.publisher}</div>
+              <li key={item._id} className="rounded border border-[rgb(var(--border))] p-2">
+                <div className="font-semibold text-[rgb(var(--fg))]">{item.publisher}</div>
                 <p>{item.shortTitle}</p>
-                <p className="text-xs text-slate-500">
+                <p className="text-xs text-[rgb(var(--muted))]">
                   {item.sourceKind} · {item.publishedAt ? new Date(item.publishedAt).toLocaleDateString("de-DE") : "—"}
                 </p>
                 <a href={item.url} target="_blank" rel="noreferrer" className="text-sky-600 underline text-xs">
@@ -182,7 +182,7 @@ export default function EvidenceClaimDetailPage() {
             ))}
           </ul>
         ) : (
-          <p className="text-sm text-slate-500">Keine aktiven Quellen verknüpft.</p>
+          <p className="text-sm text-[rgb(var(--muted))]">Keine aktiven Quellen verknüpft.</p>
         )}
       </section>
     </div>

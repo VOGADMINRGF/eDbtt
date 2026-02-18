@@ -195,40 +195,40 @@ export default function DemoFactcheckPage() {
 
   return (
     <div className="mx-auto max-w-4xl p-6 space-y-4">
-      <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm space-y-3">
-        <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+      <div className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm space-y-3">
+        <div className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
           Demo - Factcheck
         </div>
-        <h1 className="text-2xl font-semibold text-slate-900">
+        <h1 className="text-2xl font-semibold text-[rgb(var(--fg))]">
           Schnellpruefung mit Demo-Daten
         </h1>
-        <p className="text-sm text-slate-600">
+        <p className="text-sm text-[rgb(var(--muted))]">
           Fuer Screenshots: stabiler Flow ohne echte Inhalte. Ergebnisdaten sind
           reproduzierbar.
         </p>
       </div>
 
-      <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm space-y-3">
+      <div className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm space-y-3">
         <textarea
-          className="w-full rounded-2xl border border-slate-200 p-3 text-sm"
+          className="w-full rounded-2xl border border-[rgb(var(--border))] p-3 text-sm"
           rows={5}
           placeholder="Text fuer Factcheck... (min. 20 Zeichen)"
           value={input}
           onChange={(e) => setInput(e.target.value)}
         />
         <div className="flex flex-wrap items-center gap-3">
-          <div className="flex rounded-full border border-slate-200 bg-slate-50 p-1 text-xs font-semibold text-slate-600">
+          <div className="flex rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-1 text-xs font-semibold text-[rgb(var(--muted))]">
             <button
               type="button"
               onClick={() => setMode("ai")}
-              className={`rounded-full px-3 py-1 ${mode === "ai" ? "bg-white text-slate-900" : ""}`}
+              className={`rounded-full px-3 py-1 ${mode === "ai" ? "bg-[rgb(var(--card))] text-[rgb(var(--fg))]" : ""}`}
             >
               KI
             </button>
             <button
               type="button"
               onClick={() => setMode("manual")}
-              className={`rounded-full px-3 py-1 ${mode === "manual" ? "bg-white text-slate-900" : ""}`}
+              className={`rounded-full px-3 py-1 ${mode === "manual" ? "bg-[rgb(var(--card))] text-[rgb(var(--fg))]" : ""}`}
             >
               Manuell
             </button>
@@ -247,7 +247,7 @@ export default function DemoFactcheckPage() {
                 {loading ? "Wird geprueft..." : "Factcheck starten"}
               </button>
               <button
-                className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 disabled:opacity-50"
+                className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-2 text-sm font-semibold text-[rgb(var(--muted))] disabled:opacity-50"
                 disabled={sending}
                 onClick={() => {
                   void handleSendAiToEditorial();
@@ -257,27 +257,27 @@ export default function DemoFactcheckPage() {
               </button>
             </>
           )}
-          {jobId && <div className="text-xs text-slate-500">JobID: {jobId}</div>}
-          {status && <div className="text-xs text-slate-500">Status: {status}</div>}
+          {jobId && <div className="text-xs text-[rgb(var(--muted))]">JobID: {jobId}</div>}
+          {status && <div className="text-xs text-[rgb(var(--muted))]">Status: {status}</div>}
         </div>
 
         {error && <div className="text-sm text-red-600">Fehler: {error}</div>}
-        {manualStatus && <div className="text-xs text-slate-500">{manualStatus}</div>}
+        {manualStatus && <div className="text-xs text-[rgb(var(--muted))]">{manualStatus}</div>}
       </div>
 
       {mode === "ai" && (done || demoAiReady) && aiClaims && (
         <div className="space-y-3">
-          <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
+          <h3 className="text-sm font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
             KI-Ergebnis (Status Redaktion: offen)
           </h3>
           <div className="grid gap-3 md:grid-cols-2">
             {aiClaims.map((c: any) => (
               <div
                 key={c.id}
-                className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm"
+                className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm"
               >
-                <div className="text-sm font-medium text-slate-900">{c.text}</div>
-                <div className="mt-2 text-xs text-slate-600">
+                <div className="text-sm font-medium text-[rgb(var(--fg))]">{c.text}</div>
+                <div className="mt-2 text-xs text-[rgb(var(--muted))]">
                   Konsens: {VERDICT_LABELS[c.verdict as Verdict] ?? "unklar"} (
                   {Math.round((c.confidence ?? 0) * 100)}%)
                 </div>
@@ -289,14 +289,14 @@ export default function DemoFactcheckPage() {
 
       {mode === "manual" && (
         <div className="space-y-4">
-          <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm space-y-3">
-            <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
+          <div className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm space-y-3">
+            <h3 className="text-sm font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
               Manuelle Eingabe (immer Redaktion prueft)
             </h3>
             <div className="space-y-2">
-              <label className="text-xs font-semibold uppercase text-slate-500">Claim</label>
+              <label className="text-xs font-semibold uppercase text-[rgb(var(--muted))]">Claim</label>
               <textarea
-                className="w-full rounded-2xl border border-slate-200 p-3 text-sm"
+                className="w-full rounded-2xl border border-[rgb(var(--border))] p-3 text-sm"
                 rows={3}
                 value={manualClaim}
                 onChange={(e) => setManualClaim(e.target.value)}
@@ -305,11 +305,11 @@ export default function DemoFactcheckPage() {
             </div>
             <div className="grid gap-3 md:grid-cols-2">
               <div className="space-y-2">
-                <label className="text-xs font-semibold uppercase text-slate-500">Verdict</label>
+                <label className="text-xs font-semibold uppercase text-[rgb(var(--muted))]">Verdict</label>
                 <select
                   value={manualVerdict}
                   onChange={(e) => setManualVerdict(e.target.value as Verdict)}
-                  className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+                  className="w-full rounded-xl border border-[rgb(var(--border))] px-3 py-2 text-sm"
                 >
                   {Object.entries(VERDICT_LABELS).map(([key, label]) => (
                     <option key={key} value={key}>
@@ -319,30 +319,30 @@ export default function DemoFactcheckPage() {
                 </select>
               </div>
               <div className="space-y-2">
-                <label className="text-xs font-semibold uppercase text-slate-500">Confidence</label>
+                <label className="text-xs font-semibold uppercase text-[rgb(var(--muted))]">Confidence</label>
                 <input
                   type="number"
                   min={0}
                   max={100}
                   value={manualConfidence}
                   onChange={(e) => setManualConfidence(Number(e.target.value))}
-                  className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+                  className="w-full rounded-xl border border-[rgb(var(--border))] px-3 py-2 text-sm"
                 />
               </div>
             </div>
             <div className="space-y-2">
-              <label className="text-xs font-semibold uppercase text-slate-500">Hinweis</label>
+              <label className="text-xs font-semibold uppercase text-[rgb(var(--muted))]">Hinweis</label>
               <input
                 value={manualNote}
                 onChange={(e) => setManualNote(e.target.value)}
-                className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+                className="w-full rounded-xl border border-[rgb(var(--border))] px-3 py-2 text-sm"
                 placeholder="Notiz fuer Redaktion"
               />
             </div>
             <div className="space-y-2">
-              <label className="text-xs font-semibold uppercase text-slate-500">Quellen (optional)</label>
+              <label className="text-xs font-semibold uppercase text-[rgb(var(--muted))]">Quellen (optional)</label>
               <textarea
-                className="w-full rounded-2xl border border-slate-200 p-3 text-sm"
+                className="w-full rounded-2xl border border-[rgb(var(--border))] p-3 text-sm"
                 rows={2}
                 value={manualSources}
                 onChange={(e) => setManualSources(e.target.value)}
@@ -359,22 +359,22 @@ export default function DemoFactcheckPage() {
               </button>
               {editingId && (
                 <button
-                  className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700"
+                  className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-2 text-sm font-semibold text-[rgb(var(--muted))]"
                   onClick={resetManualForm}
                 >
                   Abbrechen
                 </button>
               )}
-              <span className="text-xs text-slate-500">Status Redaktion: offen</span>
+              <span className="text-xs text-[rgb(var(--muted))]">Status Redaktion: offen</span>
             </div>
           </div>
 
           <div className="space-y-3">
-            <h4 className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+            <h4 className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
               Eingereichte manuelle Checks
             </h4>
             {manualEntries.length === 0 ? (
-              <div className="rounded-2xl border border-slate-200 bg-slate-50/80 px-4 py-3 text-sm text-slate-500">
+              <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-4 py-3 text-sm text-[rgb(var(--muted))]">
                 Noch keine manuellen Eintraege.
               </div>
             ) : (
@@ -382,22 +382,22 @@ export default function DemoFactcheckPage() {
                 {manualEntries.map((entry) => (
                   <div
                     key={entry.id}
-                    className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm space-y-2"
+                    className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm space-y-2"
                   >
-                    <div className="text-sm font-medium text-slate-900">{entry.claim}</div>
-                    <div className="text-xs text-slate-600">
+                    <div className="text-sm font-medium text-[rgb(var(--fg))]">{entry.claim}</div>
+                    <div className="text-xs text-[rgb(var(--muted))]">
                       Verdict: {VERDICT_LABELS[entry.verdict]} (
                       {Math.round((entry.confidence ?? 0) * 100)}%)
                     </div>
                     {entry.note && (
-                      <div className="text-xs text-slate-500">Notiz: {entry.note}</div>
+                      <div className="text-xs text-[rgb(var(--muted))]">Notiz: {entry.note}</div>
                     )}
                     {entry.sources && entry.sources.length > 0 && (
-                      <div className="text-xs text-slate-500">
+                      <div className="text-xs text-[rgb(var(--muted))]">
                         Quellen: {entry.sources.join(", ")}
                       </div>
                     )}
-                    <div className="flex items-center justify-between text-xs text-slate-500">
+                    <div className="flex items-center justify-between text-xs text-[rgb(var(--muted))]">
                       <span>Status Redaktion: offen</span>
                       <button
                         className="font-semibold text-sky-600 underline"

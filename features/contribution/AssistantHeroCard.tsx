@@ -80,7 +80,7 @@ export default function AssistantHeroCard() {
   const ctaHref = useMemo(() => `/contribute`, []);
 
   return (
-    <div className="overflow-hidden rounded-3xl border border-emerald-100 bg-white/90 shadow-[0_16px_60px_rgba(16,185,129,0.18)]">
+    <div className="overflow-hidden rounded-3xl border border-emerald-100 bg-[rgb(var(--card))] shadow-[0_16px_60px_rgba(16,185,129,0.18)]">
       <div className="space-y-4 p-4">
         <div className="flex items-center justify-between">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700">Schnell-Check</p>
@@ -116,7 +116,7 @@ export default function AssistantHeroCard() {
                 fallbackPath: buildPrefillUrl("/contribute", text),
               });
             }}
-            className="inline-flex items-center justify-center rounded-full border border-emerald-200 bg-white px-4 py-2 text-sm font-semibold text-emerald-800 hover:bg-emerald-50"
+            className="inline-flex items-center justify-center rounded-full border border-emerald-200 bg-[rgb(var(--card))] px-4 py-2 text-sm font-semibold text-emerald-800 hover:bg-emerald-50"
           >
             Im Messenger öffnen
           </a>
@@ -140,7 +140,7 @@ export default function AssistantHeroCard() {
                           fallbackPath: buildPrefillUrl("/contributions/new", c),
                         });
                       }}
-                      className="block rounded-lg bg-white/80 px-2 py-1 hover:bg-white hover:underline"
+                      className="block rounded-lg bg-[rgb(var(--card))] px-2 py-1 hover:bg-[rgb(var(--card))] hover:underline"
                     >
                       {c}
                     </a>
@@ -152,7 +152,7 @@ export default function AssistantHeroCard() {
               <p className="text-[11px] font-semibold uppercase tracking-wide text-emerald-700">Offene Fragen</p>
               <ul className="mt-1 space-y-1">
                 {preview.questions.map((q, idx) => (
-                  <li key={idx} className="rounded-lg bg-white/80 px-2 py-1">
+                  <li key={idx} className="rounded-lg bg-[rgb(var(--card))] px-2 py-1">
                     {q}
                   </li>
                 ))}
@@ -174,7 +174,7 @@ export default function AssistantHeroCard() {
                           fallbackPath: buildPrefillUrl("/contributions/new", o),
                         });
                       }}
-                      className="block rounded-lg bg-white/80 px-2 py-1 hover:bg-white hover:underline"
+                      className="block rounded-lg bg-[rgb(var(--card))] px-2 py-1 hover:bg-[rgb(var(--card))] hover:underline"
                     >
                       {o}
                     </a>

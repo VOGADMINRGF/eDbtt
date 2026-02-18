@@ -15,6 +15,7 @@ import { UI_LANGS, type LanguageCode } from "@features/i18n/languages";
 import { getLocaleConfig, isCoreLocale, type SupportedLocale } from "@/config/locales";
 import { useCurrentUser, clearCachedUser, primeCachedUser } from "@/hooks/auth";
 import type { AuthUser } from "@/hooks/auth";
+import ThemeToggle from "@/components/ThemeToggle";
 
 type NavItem = {
   href: string;
@@ -23,6 +24,19 @@ type NavItem = {
 };
 
 type NavSection = NavItem & { id: string; items: NavItem[] };
+
+const NAV_LINKS: Array<{ id: string; href: string; label: string }> = [
+  {
+    id: "how",
+    href: "/pricing",
+    label: "Vorbestellung eDebatte",
+  },
+  {
+    id: "about",
+    href: "/howtoworks/bewegung",
+    label: "Zur Bewegung",
+  },
+];
 
 const NAV_SECTIONS: NavSection[] = [
   {
@@ -92,7 +106,6 @@ export function SiteHeader({ initialUser }: { initialUser?: AuthUser | null }) {
   const { user } = useCurrentUser();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [localeOpen, setLocaleOpen] = useState(false);
-  const [navOpen, setNavOpen] = useState<string | null>(null);
   const router = useRouter();
   const pathname = usePathname();
   const [loggingOut, setLoggingOut] = useState(false);
@@ -114,6 +127,10 @@ export function SiteHeader({ initialUser }: { initialUser?: AuthUser | null }) {
     locale: activeLang as SupportedLocale,
     namespace: "site-header",
   });
+  const navLinks = useMemo(() => {
+    if (activeLang === "de") return NAV_LINKS;
+    return NAV_LINKS.map((item) => mapTranslatableStrings(item, t, { namespace: "nav" }));
+  }, [activeLang, t]);
   const navSections = useMemo(() => {
     if (activeLang === "de") return NAV_SECTIONS;
     return NAV_SECTIONS.map((section) => ({
@@ -146,10 +163,6 @@ export function SiteHeader({ initialUser }: { initialUser?: AuthUser | null }) {
     if (!mobileOpen) setLocaleOpen(false);
   }, [mobileOpen]);
 
-  useEffect(() => {
-    if (!mobileOpen) setNavOpen(null);
-  }, [mobileOpen]);
-
   const handleLocaleSelect = (next: LanguageCode) => {
     setContentLang(next);
     setLocale(next as SupportedLocale);
@@ -172,7 +185,7 @@ export function SiteHeader({ initialUser }: { initialUser?: AuthUser | null }) {
   };
 
   return (
-    <header className="sticky top-0 z-40 border-b border-slate-100/80 bg-white/90 backdrop-blur-md">
+    <header className="sticky top-0 z-40 border-b border-[rgb(var(--border))] bg-[rgb(var(--bg))] backdrop-blur-md">
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3">
         {/* Logo / Brand */}
         <Link href="/" className="flex items-center gap-2">
@@ -191,69 +204,15 @@ export function SiteHeader({ initialUser }: { initialUser?: AuthUser | null }) {
 
         {/* Desktop Navigation */}
         <nav className="hidden items-center gap-2 lg:flex" aria-label={t("Hauptnavigation", "aria.main-nav")}>
-          {navSections.map((section) => {
-            const isOpen = navOpen === section.id;
-            return (
-              <div
-                key={section.id}
-                className="relative"
-                onMouseEnter={() => setNavOpen(section.id)}
-                onMouseLeave={() => setNavOpen(null)}
-              >
-                <button
-                  type="button"
-                  aria-expanded={isOpen}
-                  aria-haspopup="true"
-                  onClick={() => setNavOpen((prev) => (prev === section.id ? null : section.id))}
-                  className="inline-flex items-center gap-2 rounded-full border border-transparent px-3 py-1.5 text-sm font-semibold text-slate-700 hover:border-sky-200 hover:text-sky-700"
-                >
-                  <span>{section.label}</span>
-                  <svg
-                    aria-hidden="true"
-                    className={`h-4 w-4 transition-transform ${isOpen ? "rotate-180" : ""}`}
-                    viewBox="0 0 24 24"
-                    fill="none"
-                  >
-                    <path
-                      d="M6 9l6 6 6-6"
-                      stroke="currentColor"
-                      strokeWidth={1.6}
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                </button>
-
-                {isOpen && (
-                  <div className="absolute left-0 mt-2 w-72 rounded-3xl border border-slate-200 bg-white p-3 shadow-xl">
-                    <Link
-                      href={resolveHref(section.href)}
-                      className="block rounded-2xl border border-slate-200 bg-slate-50/80 px-3 py-2 text-sm font-semibold text-slate-800 hover:border-sky-300"
-                    >
-                      <span className="block">{section.label}</span>
-                      <span className="mt-0.5 block text-[11px] font-normal text-slate-600">
-                        {section.description}
-                      </span>
-                    </Link>
-                    <div className="mt-2 space-y-2">
-                      {section.items.map((item) => (
-                        <Link
-                          key={item.href}
-                          href={resolveHref(item.href)}
-                          className="block rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 hover:border-sky-300 hover:bg-sky-50"
-                        >
-                          <span className="block text-sm font-semibold">{item.label}</span>
-                          <span className="mt-0.5 block text-[11px] font-normal text-slate-600">
-                            {item.description}
-                          </span>
-                        </Link>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            );
-          })}
+          {navLinks.map((item) => (
+            <Link
+              key={item.id}
+              href={resolveHref(item.href)}
+              className="inline-flex items-center gap-2 rounded-full border border-transparent px-3 py-1.5 text-sm font-semibold text-[rgb(var(--muted))] hover:border-[rgb(var(--border))] hover:text-[rgb(var(--fg))]"
+            >
+              <span>{item.label}</span>
+            </Link>
+          ))}
         </nav>
 
         {/* Rechts: Avatar/Account + Hamburger */}
@@ -265,7 +224,7 @@ export function SiteHeader({ initialUser }: { initialUser?: AuthUser | null }) {
                 aria-label={t(`Sprache wählen (aktuell ${activeLocaleConfig.label})`, "aria.locale")}
                 aria-expanded={localeOpen}
                 onClick={() => setLocaleOpen((v) => !v)}
-                className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-slate-600 hover:border-sky-300 hover:text-sky-600"
+                className="inline-flex items-center gap-2 rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))] hover:border-[rgb(var(--grad-from))] hover:text-[rgb(var(--fg))]"
               >
                 <span aria-hidden="true" className="text-base">
                   {activeLocaleConfig.flagEmoji || "🏳️"}
@@ -273,25 +232,25 @@ export function SiteHeader({ initialUser }: { initialUser?: AuthUser | null }) {
                 <span>{localeLabel}</span>
               </button>
               {translationPending && (
-                <span className="rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-amber-700">
+                <span className="rounded-full border border-amber-300/60 bg-amber-200/20 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-amber-700">
                   {statusLabel}
                 </span>
               )}
             </div>
             {localeOpen && (
-              <div className="absolute right-0 mt-2 w-44 rounded-2xl border border-slate-200 bg-white p-2 shadow-lg">
+              <div className="absolute right-0 mt-2 w-44 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-2 shadow-lg">
                 {localeOptions.map((lang) => (
                   <button
                     key={lang.code}
                     type="button"
                     onClick={() => handleLocaleSelect(lang.code)}
-                    className="flex w-full items-center justify-between rounded-xl px-2 py-1 text-[11px] font-semibold text-slate-700 hover:bg-slate-50"
+                    className="flex w-full items-center justify-between rounded-xl px-2 py-1 text-[11px] font-semibold text-[rgb(var(--muted))] hover:bg-[color-mix(in_oklab,rgb(var(--card))_85%,rgb(var(--bg))_15%)] hover:text-[rgb(var(--fg))]"
                   >
                     <span className="inline-flex items-center gap-2">
                       <span aria-hidden="true">{lang.flag}</span>
                       <span className="uppercase">{lang.code}</span>
                     </span>
-                    <span className="text-[10px] text-slate-400">{lang.label}</span>
+                    <span className="text-[10px] text-[rgb(var(--muted))]">{lang.label}</span>
                   </button>
                 ))}
               </div>
@@ -301,7 +260,7 @@ export function SiteHeader({ initialUser }: { initialUser?: AuthUser | null }) {
             <div className="hidden items-center gap-2 sm:flex">
               <Link
                 href="/login"
-                className="inline-flex items-center rounded-full border border-slate-200 bg-white px-4 py-1.5 text-xs font-semibold uppercase tracking-wide text-slate-700 hover:border-sky-300 hover:text-sky-700"
+                className="inline-flex items-center rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-1.5 text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))] hover:border-[rgb(var(--grad-from))] hover:text-[rgb(var(--fg))]"
               >
                 {t("Login", "cta.login")}
               </Link>
@@ -321,11 +280,11 @@ export function SiteHeader({ initialUser }: { initialUser?: AuthUser | null }) {
                 : t("Navigation öffnen", "aria.navigation")
             }
             onClick={() => setMobileOpen((v) => !v)}
-            className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-300/80 bg-white/90 text-sm font-semibold text-slate-700 shadow-sm hover:border-sky-300"
+            className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] text-sm font-semibold text-[rgb(var(--muted))] shadow-sm hover:border-[rgb(var(--grad-from))] hover:text-[rgb(var(--fg))]"
           >
             {user ? (
               avatarUrl ? (
-                <span className="inline-flex h-9 w-9 items-center justify-center overflow-hidden rounded-full border border-slate-200 bg-slate-100 shadow-sm">
+                <span className="inline-flex h-9 w-9 items-center justify-center overflow-hidden rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--bg))] shadow-sm">
                   <span
                     aria-hidden="true"
                     className="h-full w-full bg-cover bg-center"
@@ -333,7 +292,7 @@ export function SiteHeader({ initialUser }: { initialUser?: AuthUser | null }) {
                   />
                 </span>
               ) : (
-                <span className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-slate-50 text-sm font-semibold text-slate-700 shadow-sm">
+                <span className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--bg))] text-sm font-semibold text-[rgb(var(--fg))] shadow-sm">
                   {avatarLabel}
                 </span>
               )
@@ -361,57 +320,28 @@ export function SiteHeader({ initialUser }: { initialUser?: AuthUser | null }) {
 
       {/* Mobile-Drawer */}
       {mobileOpen && (
-        <div className="border-t border-slate-100/80 bg-white/95">
+        <div className="border-t border-[rgb(var(--border))] bg-[rgb(var(--bg))]">
           <div className="mx-auto max-w-6xl px-4 py-4 space-y-4">
             <div className="flex items-center justify-between">
-              <span className="text-xs uppercase tracking-wide text-slate-500">
+              <span className="text-xs uppercase tracking-wide headline-grad">
                 {t("Navigation", "mobile.nav")}
               </span>
-              <button
-                type="button"
-                aria-label={t(`Sprache wählen (aktuell ${activeLocaleConfig.label})`, "aria.locale.mobile")}
-                aria-expanded={localeOpen}
-                onClick={() => setLocaleOpen((v) => !v)}
-                className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-slate-500 hover:border-sky-300 hover:text-sky-600"
-              >
-                <span className="inline-flex items-center gap-2">
-                  <span aria-hidden="true">{activeLocaleConfig.flagEmoji || "🏳️"}</span>
-                  <span>{localeLabel}</span>
-                </span>
-              </button>
+              <ThemeToggle variant="icon" />
             </div>
-            {localeOpen && (
-              <div className="grid grid-cols-2 gap-2">
-                {localeOptions.map((lang) => (
-                  <button
-                    key={lang.code}
-                    type="button"
-                    onClick={() => handleLocaleSelect(lang.code)}
-                    className="flex items-center justify-between rounded-xl border border-slate-200 bg-white px-3 py-2 text-[11px] font-semibold text-slate-700 hover:border-sky-300 hover:text-sky-600"
-                  >
-                    <span className="inline-flex items-center gap-2">
-                      <span aria-hidden="true">{lang.flag}</span>
-                      <span className="uppercase">{lang.code}</span>
-                    </span>
-                    <span className="text-[10px] text-slate-400">{lang.label}</span>
-                  </button>
-                ))}
-              </div>
-            )}
 
             <nav
               aria-label={t("Mobile Navigation", "aria.mobile-nav")}
-              className="flex flex-col gap-2 text-sm font-semibold text-slate-800"
+              className="flex flex-col gap-2 text-sm font-semibold text-[rgb(var(--fg))]"
             >
               {navSections.map((section) => (
-                <div key={section.id} className="rounded-3xl border border-slate-200 bg-white p-3">
+                <div key={section.id} className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-3">
                   <Link
                     href={resolveHref(section.href)}
                     onClick={() => setMobileOpen(false)}
-                    className="block rounded-2xl border border-slate-200 bg-slate-50/80 px-3 py-2 text-left hover:border-sky-300 hover:bg-sky-50"
+                    className="block rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-left hover:border-[rgb(var(--grad-from))]"
                   >
-                    <span className="block text-sm font-semibold">{section.label}</span>
-                    <span className="mt-0.5 block text-[11px] font-normal text-slate-600">
+                    <span className="block text-sm font-semibold headline-grad">{section.label}</span>
+                    <span className="mt-0.5 block text-[11px] font-normal text-[rgb(var(--muted))]">
                       {section.description}
                     </span>
                   </Link>
@@ -421,10 +351,10 @@ export function SiteHeader({ initialUser }: { initialUser?: AuthUser | null }) {
                         key={item.href}
                         href={resolveHref(item.href)}
                         onClick={() => setMobileOpen(false)}
-                        className="rounded-2xl border border-slate-200 bg-white px-3 py-2 text-left text-sm text-slate-700 hover:border-sky-300 hover:bg-sky-50"
+                        className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-left text-sm text-[rgb(var(--fg))] hover:border-[rgb(var(--grad-from))]"
                       >
                         <span className="block text-sm font-semibold">{item.label}</span>
-                        <span className="mt-0.5 block text-[11px] font-normal text-slate-600">
+                        <span className="mt-0.5 block text-[11px] font-normal text-[rgb(var(--muted))]">
                           {item.description}
                         </span>
                       </Link>
@@ -438,7 +368,7 @@ export function SiteHeader({ initialUser }: { initialUser?: AuthUser | null }) {
                   <Link
                     href="/login"
                     onClick={() => setMobileOpen(false)}
-                    className="rounded-full border border-slate-200 bg-white px-4 py-2 text-center text-sm font-semibold text-slate-700 hover:border-sky-300 hover:text-sky-700"
+                    className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-2 text-center text-sm font-semibold text-[rgb(var(--muted))] hover:border-[rgb(var(--grad-from))] hover:text-[rgb(var(--fg))]"
                   >
                     {t("Login", "cta.login.mobile")}
                   </Link>
@@ -457,7 +387,7 @@ export function SiteHeader({ initialUser }: { initialUser?: AuthUser | null }) {
                   <Link
                     href="/account"
                     onClick={() => setMobileOpen(false)}
-                    className="rounded-full border border-slate-200 bg-white px-4 py-2 text-center text-sm font-semibold text-slate-700 hover:border-sky-400 hover:text-sky-600"
+                    className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-2 text-center text-sm font-semibold text-[rgb(var(--muted))] hover:border-[rgb(var(--grad-from))] hover:text-[rgb(var(--fg))]"
                   >
                     {t("Mein Konto", "account")}
                   </Link>
@@ -465,7 +395,7 @@ export function SiteHeader({ initialUser }: { initialUser?: AuthUser | null }) {
                     type="button"
                     onClick={handleLogout}
                     disabled={loggingOut}
-                    className="rounded-full border border-slate-200 bg-white px-4 py-2 text-center text-sm font-semibold text-slate-700 hover:border-rose-300 hover:text-rose-600 disabled:opacity-60"
+                    className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-2 text-center text-sm font-semibold text-[rgb(var(--muted))] hover:border-rose-300 hover:text-rose-500 disabled:opacity-60"
                   >
                     {loggingOut
                       ? t("Abmelden …", "logout.pending")
@@ -473,14 +403,14 @@ export function SiteHeader({ initialUser }: { initialUser?: AuthUser | null }) {
                   </button>
                 </div>
               ) : (
-              <Link
-                href="/pricing"
-                onClick={() => setMobileOpen(false)}
-                className="btn btn-primary text-center"
-              >
-                {t("Vormerken", "cta.preorder.mobile")}
-              </Link>
-            )}
+                <Link
+                  href="/pricing"
+                  onClick={() => setMobileOpen(false)}
+                  className="btn btn-primary text-center"
+                >
+                  {t("Vormerken", "cta.preorder.mobile")}
+                </Link>
+              )}
             </nav>
           </div>
         </div>

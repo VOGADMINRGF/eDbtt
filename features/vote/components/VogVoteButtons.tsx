@@ -59,9 +59,9 @@ export default function VogVoteButtons({ value, onChange, size = "md" }: Props) 
     <div className="relative inline-flex flex-wrap items-center gap-2" role="radiogroup" aria-label="Bewertung">
       {showFlash ? (
         <div className="pointer-events-none absolute -top-6 left-0 right-0 flex justify-center">
-          <div className="rounded-full bg-white/90 px-3 py-1 text-sm shadow-sm">
+          <div className="rounded-full bg-[rgb(var(--card))] px-3 py-1 text-sm shadow-sm">
             {OPTS.find((o) => o.id === flash)?.icon}{" "}
-            <span className="text-[11px] font-semibold text-slate-700">
+            <span className="text-[11px] font-semibold text-[rgb(var(--muted))]">
               {OPTS.find((o) => o.id === flash)?.label}
             </span>
           </div>
@@ -83,10 +83,10 @@ export default function VogVoteButtons({ value, onChange, size = "md" }: Props) 
               sizeClasses,
               active
                 ? opt.activeClass
-                : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50",
+                : "border-[rgb(var(--border))] bg-[rgb(var(--card))] text-[rgb(var(--muted))] hover:bg-[rgb(var(--bg))]",
             ].join(" ")}
           >
-            <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-slate-100 text-xs">
+            <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-[rgb(var(--bg))] text-xs">
               {opt.icon}
             </span>
             <span>{opt.label}</span>

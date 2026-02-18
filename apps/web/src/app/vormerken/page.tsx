@@ -25,7 +25,7 @@ const STATUS_CLASS: Record<PackageStatus, string> = {
   verfuegbar: "bg-emerald-50 text-emerald-700 ring-emerald-200",
   pilot: "bg-sky-50 text-sky-700 ring-sky-200",
   vormerkung: "bg-amber-50 text-amber-700 ring-amber-200",
-  bald: "bg-slate-100 text-[rgb(var(--muted))] ring-slate-200",
+  bald: "bg-[rgb(var(--bg))] text-[rgb(var(--muted))] ring-[rgb(var(--border))]",
 };
 
 function cx(...classes: Array<string | false | null | undefined>) {
@@ -103,7 +103,7 @@ function modulesToNoteLine(selected: ModuleId[]) {
 function InfoCard(props: { eyebrow: string; title?: string; children: React.ReactNode }) {
   return (
     <div className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm">
-      <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{props.eyebrow}</p>
+      <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">{props.eyebrow}</p>
       {props.title ? <p className="mt-2 text-sm font-semibold text-[rgb(var(--fg))]">{props.title}</p> : null}
       <div className="mt-2 text-sm leading-relaxed text-[rgb(var(--muted))]">{props.children}</div>
     </div>
@@ -124,7 +124,7 @@ function PackageGrid(props: {
   return (
     <div className="space-y-3">
       <div className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 text-sm text-[rgb(var(--muted))]">
-        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{label}</p>
+        <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">{label}</p>
         <p className="mt-1">{description}</p>
       </div>
 
@@ -153,7 +153,7 @@ function PackageGrid(props: {
               >
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                    <p className="text-[11px] font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
                       {PACKAGE_AUDIENCE_LABELS[pkg.typ]}
                     </p>
                     <p className="mt-1 text-lg font-semibold text-[rgb(var(--fg))]">{pkg.titel}</p>
@@ -189,12 +189,12 @@ function PackageGrid(props: {
                   ))}
                 </ul>
 
-                <div className="mt-4 flex items-center justify-between text-xs text-slate-500">
+                <div className="mt-4 flex items-center justify-between text-xs text-[rgb(var(--muted))]">
                   <span>{isSelected ? "Ausgewählt" : "Auswählen"}</span>
                   <span
                     className={cx(
                       "inline-flex h-6 w-6 items-center justify-center rounded-full border text-sm font-bold",
-                      isSelected ? "border-sky-300 bg-sky-50 text-sky-700" : "border-[rgb(var(--border))] text-slate-400",
+                      isSelected ? "border-sky-300 bg-sky-50 text-sky-700" : "border-[rgb(var(--border))] text-[rgb(var(--muted))]",
                     )}
                     aria-hidden="true"
                   >
@@ -308,7 +308,7 @@ export default function VormerkenPage() {
 
       <section className="relative mx-auto max-w-6xl px-4 py-12 lg:py-16">
         <header className="max-w-3xl">
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Vormerkung</p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Vormerkung</p>
           <h1 className="mt-2 text-4xl font-extrabold tracking-tight text-[rgb(var(--fg))]">
             Paket &amp; Module vormerken
           </h1>
@@ -319,11 +319,11 @@ export default function VormerkenPage() {
 
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
             <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-3 text-xs text-[rgb(var(--muted))]">
-              <p className="font-semibold text-slate-800">Privat</p>
+              <p className="font-semibold text-[rgb(var(--fg))]">Privat</p>
               <p className="mt-1">Für Bürger:innen, Initiativen, lokale Gruppen.</p>
             </div>
             <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-3 text-xs text-[rgb(var(--muted))]">
-              <p className="font-semibold text-slate-800">Organisation/Verwaltung</p>
+              <p className="font-semibold text-[rgb(var(--fg))]">Organisation/Verwaltung</p>
               <p className="mt-1">B2B/B2G: Basis &amp; Pro + optionale Module (Setup nach Freigabe).</p>
             </div>
           </div>
@@ -396,7 +396,7 @@ export default function VormerkenPage() {
                           <span
                             className={cx(
                               "inline-flex h-6 w-6 items-center justify-center rounded-full border text-sm font-bold",
-                              checked ? "border-sky-300 bg-[rgb(var(--card))] text-sky-700" : "border-[rgb(var(--border))] text-slate-400",
+                              checked ? "border-sky-300 bg-[rgb(var(--card))] text-sky-700" : "border-[rgb(var(--border))] text-[rgb(var(--muted))]",
                             )}
                             aria-hidden="true"
                           >
@@ -446,7 +446,7 @@ export default function VormerkenPage() {
                   <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4">
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Ausgewählt</p>
+                        <p className="text-[11px] font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Ausgewählt</p>
                         <p className="mt-1 text-lg font-semibold text-[rgb(var(--fg))]">{selectedPackage.titel}</p>
                         <p className="mt-1 text-sm text-[rgb(var(--muted))]">{PACKAGE_AUDIENCE_LABELS[selectedPackage.typ]}</p>
                       </div>
@@ -518,7 +518,7 @@ export default function VormerkenPage() {
                     className="min-h-[110px] w-full rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm text-[rgb(var(--fg))] outline-none focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
                     placeholder="Worauf sollen wir achten, wenn wir dich kontaktieren?"
                   />
-                  <p className="text-xs text-slate-500">
+                  <p className="text-xs text-[rgb(var(--muted))]">
                     Hinweis: Ausgewählte Module werden automatisch in der Vormerkung notiert.
                   </p>
                 </div>
@@ -562,7 +562,7 @@ export default function VormerkenPage() {
                   ) : null}
                 </div>
 
-                <p className="mt-4 text-xs leading-relaxed text-slate-500">
+                <p className="mt-4 text-xs leading-relaxed text-[rgb(var(--muted))]">
                   Unverbindlich: keine Zahlung, kein Abo. Wir nutzen die Angaben nur, um dich zum Start zu informieren und
                   Onboarding sinnvoll zu planen.
                 </p>

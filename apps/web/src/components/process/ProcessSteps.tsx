@@ -19,7 +19,7 @@ const STAGES = [
 export default function ProcessSteps({ stage, busy, note, className = "" }: ProcessStepsProps) {
   const pct = Math.max(0, Math.min(1, stage / (STAGES.length - 1)));
   return (
-    <div className={`mt-4 rounded-2xl border bg-white/90 backdrop-blur p-3 ${className}`}>
+    <div className={`mt-4 rounded-2xl border bg-[rgb(var(--card))] backdrop-blur p-3 ${className}`}>
       <div className="flex items-center justify-between">
         <div className="text-sm font-medium">Analyse-Prozess</div>
         <div className="text-xs text-neutral-500">
@@ -44,7 +44,7 @@ export default function ProcessSteps({ stage, busy, note, className = "" }: Proc
                     ? "bg-black text-white border-black"
                     : active
                     ? "bg-black/80 text-white border-black/80"
-                    : "bg-white text-black border-black/20",
+                    : "bg-[rgb(var(--card))] text-black border-black/20",
                 ].join(" ")}
               >
                 {done ? "✓" : i + 1}

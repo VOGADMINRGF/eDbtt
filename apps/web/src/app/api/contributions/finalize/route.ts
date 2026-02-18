@@ -16,6 +16,8 @@ const FinalizeSchema = z.object({
 type DraftDoc = {
   _id: ObjectId;
   authorId: string;
+  authorName?: string | null;
+  useCase?: "civic" | "journalism" | "agenda" | null;
   analysis?: any;
   status?: "draft" | "finalized";
   proposalIds?: string[];
@@ -25,6 +27,8 @@ type ProposalDoc = {
   _id?: ObjectId;
   draftId: ObjectId;
   authorId: string;
+  authorName?: string | null;
+  useCase?: "civic" | "journalism" | "agenda" | null;
   claimId: string;
   text: string;
   title?: string | null;
@@ -82,6 +86,8 @@ export async function POST(req: NextRequest) {
     const insertDocs: ProposalDoc[] = selectedClaims.map((claim: any) => ({
       draftId: draftOid,
       authorId: draft.authorId,
+      authorName: draft.authorName ?? null,
+      useCase: draft.useCase ?? null,
       claimId: String(claim.id),
       text: String(claim.text ?? ""),
       title: claim.title ?? null,

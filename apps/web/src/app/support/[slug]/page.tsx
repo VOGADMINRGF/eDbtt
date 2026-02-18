@@ -146,45 +146,45 @@ export default function SupportCampaignPage() {
   return (
     <main className="mx-auto flex w-full max-w-4xl flex-col gap-6 px-4 py-10">
       <header className="space-y-2">
-        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Unterstuetzen</p>
-        <h1 className="text-3xl font-bold text-slate-900">{data?.supportCampaign?.title ?? "Support"}</h1>
-        <p className="text-sm text-slate-600">
+        <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Unterstuetzen</p>
+        <h1 className="text-3xl font-bold text-[rgb(var(--fg))]">{data?.supportCampaign?.title ?? "Support"}</h1>
+        <p className="text-sm text-[rgb(var(--muted))]">
           {data?.supportCampaign?.description ?? "Hilf mit, dieses Projekt transparent und unabhaengig zu tragen."}
         </p>
       </header>
 
       {loading ? (
-        <section className="rounded-2xl border border-slate-200 bg-white p-6 text-sm text-slate-500">Laedt …</section>
+        <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-6 text-sm text-[rgb(var(--muted))]">Laedt …</section>
       ) : null}
 
       {error ? <section className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</section> : null}
 
       {data ? (
         <>
-          <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm">
             <div className="mb-3 flex flex-wrap items-end justify-between gap-3">
               <div>
-                <p className="text-xs uppercase tracking-wide text-slate-500">Fortschritt</p>
-                <p className="text-xl font-semibold text-slate-900">
+                <p className="text-xs uppercase tracking-wide text-[rgb(var(--muted))]">Fortschritt</p>
+                <p className="text-xl font-semibold text-[rgb(var(--fg))]">
                   {formatEuro(data.progress.raisedCents)} von {formatEuro(data.progress.goalCents)}
                 </p>
               </div>
-              <p className="text-sm font-semibold text-slate-700">{pctLabel}</p>
+              <p className="text-sm font-semibold text-[rgb(var(--muted))]">{pctLabel}</p>
             </div>
-            <div className="h-3 overflow-hidden rounded-full bg-slate-100">
+            <div className="h-3 overflow-hidden rounded-full bg-[rgb(var(--bg))]">
               <div
                 className="h-full rounded-full bg-emerald-500 transition-all"
                 style={{ width: `${Math.min(100, Math.round((data.progress.pct || 0) * 100))}%` }}
               />
             </div>
-            <p className="mt-3 text-sm text-slate-600">
+            <p className="mt-3 text-sm text-[rgb(var(--muted))]">
               Zusagen gesamt: {data.progress.totalPledges} · offen: {formatEuro(data.progress.waitingCents)}
             </p>
           </section>
 
-          <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-            <h2 className="text-lg font-semibold text-slate-900">Unterstuetzen</h2>
-            <p className="mt-1 text-sm text-slate-600">
+          <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm">
+            <h2 className="text-lg font-semibold text-[rgb(var(--fg))]">Unterstuetzen</h2>
+            <p className="mt-1 text-sm text-[rgb(var(--muted))]">
               Unterstuetzung kauft keine Stimme, keine XP und keine Credits.
             </p>
             <form className="mt-4 grid gap-3" onSubmit={submitPledge}>
@@ -194,7 +194,7 @@ export default function SupportCampaignPage() {
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
                   inputMode="decimal"
-                  className="rounded-lg border border-slate-300 px-3 py-2"
+                  className="rounded-lg border border-[rgb(var(--border))] px-3 py-2"
                   placeholder="25"
                   required
                 />
@@ -210,13 +210,13 @@ export default function SupportCampaignPage() {
                   <input
                     value={publicName}
                     onChange={(e) => setPublicName(e.target.value)}
-                    className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                    className="rounded-lg border border-[rgb(var(--border))] px-3 py-2 text-sm"
                     placeholder="Anzeigename"
                   />
                   <input
                     value={publicRegionCode}
                     onChange={(e) => setPublicRegionCode(e.target.value)}
-                    className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                    className="rounded-lg border border-[rgb(var(--border))] px-3 py-2 text-sm"
                     placeholder="Region/Kuerzel"
                   />
                 </div>
@@ -243,7 +243,7 @@ export default function SupportCampaignPage() {
                 ) : (
                   <p className="mt-1">Zahlungsdaten sind momentan nicht konfiguriert. Bitte Admin kontaktieren.</p>
                 )}
-                <div className="mt-3 rounded-lg border border-emerald-200 bg-white/70 px-3 py-2 text-xs text-emerald-900">
+                <div className="mt-3 rounded-lg border border-emerald-200 bg-[rgb(var(--card))] px-3 py-2 text-xs text-emerald-900">
                   <p className="font-semibold uppercase tracking-wide text-emerald-700">So geht es weiter</p>
                   <ol className="mt-1 space-y-1">
                     <li>1. Nutze den Verwendungszweck exakt wie oben angegeben.</li>
@@ -255,17 +255,17 @@ export default function SupportCampaignPage() {
             ) : null}
           </section>
 
-          <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-            <h2 className="text-lg font-semibold text-slate-900">Letzte Unterstuetzungen</h2>
+          <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm">
+            <h2 className="text-lg font-semibold text-[rgb(var(--fg))]">Letzte Unterstuetzungen</h2>
             <ul className="mt-3 space-y-2 text-sm">
-              {data.recentPledges.length === 0 ? <li className="text-slate-500">Noch keine Eintraege.</li> : null}
+              {data.recentPledges.length === 0 ? <li className="text-[rgb(var(--muted))]">Noch keine Eintraege.</li> : null}
               {data.recentPledges.map((row) => (
-                <li key={row.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-slate-100 px-3 py-2">
-                  <span className="text-slate-700">
+                <li key={row.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[rgb(var(--border))] px-3 py-2">
+                  <span className="text-[rgb(var(--muted))]">
                     {row.publicName}
                     {row.publicRegionCode ? ` (${row.publicRegionCode})` : ""}
                   </span>
-                  <span className="font-semibold text-slate-900">{formatEuro(row.amountCents)}</span>
+                  <span className="font-semibold text-[rgb(var(--fg))]">{formatEuro(row.amountCents)}</span>
                 </li>
               ))}
             </ul>
@@ -273,7 +273,7 @@ export default function SupportCampaignPage() {
         </>
       ) : null}
 
-      <Link href="/campaign" className="text-sm font-semibold text-slate-600 hover:text-slate-900">
+      <Link href="/campaign" className="text-sm font-semibold text-[rgb(var(--muted))] hover:text-[rgb(var(--fg))]">
         Zurueck zu Kampagnen
       </Link>
     </main>

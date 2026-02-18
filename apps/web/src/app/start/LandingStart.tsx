@@ -192,7 +192,7 @@ export default function LandingStart({ blocks, geo }: LandingStartProps) {
   );
 
   return (
-    <section className="relative h-[100svh] min-h-screen overflow-hidden bg-slate-50">
+    <section className="relative h-[100svh] min-h-screen overflow-hidden bg-[rgb(var(--bg))]">
       <ExamplesMarqueeRows
         blocks={liveBlocks}
         lang={lang}

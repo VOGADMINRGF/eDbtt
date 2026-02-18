@@ -21,7 +21,7 @@ export default function AnalyzeToolbar({
   className = "",
 }: Props) {
   return (
-    <div className={`sticky top-16 z-20 mt-3 rounded-2xl border bg-white/95 backdrop-blur px-3 py-2 shadow-sm ${className}`}>
+    <div className={`sticky top-16 z-20 mt-3 rounded-2xl border bg-[rgb(var(--card))] backdrop-blur px-3 py-2 shadow-sm ${className}`}>
       <div className="flex flex-wrap items-center gap-3">
         <label className="text-sm">maxClaims</label>
         <input

@@ -14,7 +14,7 @@ export default function VideoPlayer({ src, title = "Trailer", poster }: VideoPla
         Dein Browser unterstützt dieses Videoformat nicht.
       </video>
       {title && (
-        <div className="bg-white text-gray-600 p-2 border-t">
+        <div className="bg-[rgb(var(--card))] text-gray-600 p-2 border-t">
           🎬 {title}
         </div>
       )}

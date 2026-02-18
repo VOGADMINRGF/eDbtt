@@ -7,10 +7,10 @@ export const metadata: Metadata = {
 
 export default function ThemaEinreichenPage() {
   return (
-    <main className="min-h-screen bg-gradient-to-b from-[var(--brand-from)] via-white to-white pb-16">
+    <main className="min-h-screen bg-[rgb(var(--bg))] pb-16">
       <section className="mx-auto max-w-5xl px-4 py-16 space-y-10">
         <header className="space-y-4">
-          <p className="text-xs uppercase tracking-[0.2em] text-slate-500">
+          <p className="text-xs uppercase tracking-[0.2em] text-[rgb(var(--muted))]">
             Thema einreichen
           </p>
           <h1
@@ -24,7 +24,7 @@ export default function ThemaEinreichenPage() {
           >
             So wird aus deinem Anliegen ein prüfbares Thema
           </h1>
-          <p className="text-base md:text-lg text-slate-700 leading-relaxed">
+          <p className="text-base md:text-lg text-[rgb(var(--muted))] leading-relaxed">
             Du reichst dein Thema als klaren, prüfbaren Vorschlag ein. Wir helfen
             dir dabei, es in Statements, Zuständigkeiten und einen Zeitbezug zu
             strukturieren. Danach kannst du alles noch anpassen, bevor es in die
@@ -39,7 +39,7 @@ export default function ThemaEinreichenPage() {
             </Link>
             <Link
               href="/faq"
-              className="btn border border-slate-300 bg-white/80 hover:bg-white"
+              className="btn border border-[rgb(var(--border))] bg-[rgb(var(--card))] hover:bg-[rgb(var(--card))]"
             >
               FAQ ansehen
             </Link>
@@ -67,22 +67,22 @@ export default function ThemaEinreichenPage() {
           ].map((item) => (
             <div
               key={item.title}
-              className="rounded-2xl border border-slate-100 bg-white/95 p-4 shadow-sm"
+              className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm"
             >
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+              <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
                 {item.title}
               </p>
-              <p className="mt-2 text-sm text-slate-700">{item.body}</p>
+              <p className="mt-2 text-sm text-[rgb(var(--muted))]">{item.body}</p>
             </div>
           ))}
         </section>
 
         <section className="grid gap-6 md:grid-cols-[1.1fr_0.9fr]">
-          <div className="rounded-3xl border border-slate-100 bg-slate-50/70 p-6 space-y-4">
-            <h2 className="text-lg font-semibold text-slate-900">
+          <div className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-6 space-y-4">
+            <h2 className="text-lg font-semibold text-[rgb(var(--fg))]">
               So sollte dein Beitrag aufgebaut sein
             </h2>
-            <ul className="space-y-2 text-sm text-slate-700">
+            <ul className="space-y-2 text-sm text-[rgb(var(--muted))]">
               <li>
                 <strong>Kernaussage:</strong> Was soll konkret passieren oder
                 entschieden werden?
@@ -102,11 +102,11 @@ export default function ThemaEinreichenPage() {
             </ul>
           </div>
 
-          <div className="rounded-3xl border border-slate-100 bg-white p-6 space-y-4 shadow-sm">
-            <h2 className="text-lg font-semibold text-slate-900">
+          <div className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-6 space-y-4 shadow-sm">
+            <h2 className="text-lg font-semibold text-[rgb(var(--fg))]">
               Gut zu wissen
             </h2>
-            <ul className="space-y-2 text-sm text-slate-700">
+            <ul className="space-y-2 text-sm text-[rgb(var(--muted))]">
               <li>Bitte keine personenbezogenen Daten einreichen.</li>
               <li>Formuliere sachlich und überprüfbar.</li>
               <li>
@@ -120,13 +120,13 @@ export default function ThemaEinreichenPage() {
           </div>
         </section>
 
-        <section className="rounded-3xl border border-slate-100 bg-white/95 p-6 md:p-8 shadow-[0_18px_60px_rgba(15,23,42,0.06)]">
+        <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-6 md:p-8 shadow-[0_18px_60px_rgba(15,23,42,0.06)]">
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div className="space-y-2">
-              <h2 className="text-xl font-semibold text-slate-900">
+              <h2 className="text-xl font-semibold text-[rgb(var(--fg))]">
                 Bereit, dein Thema einzureichen?
               </h2>
-              <p className="text-sm text-slate-700">
+              <p className="text-sm text-[rgb(var(--muted))]">
                 Reiche dein Anliegen ein und strukturiere es in wenigen
                 Minuten.
               </p>

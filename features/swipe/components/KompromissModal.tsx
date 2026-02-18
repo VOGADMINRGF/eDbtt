@@ -16,7 +16,7 @@ export default function KompromissModal({ alternatives, onClose, onSelect }) {
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-2xl p-6 max-w-md w-full relative"
+        className="bg-[rgb(var(--card))] rounded-2xl p-6 max-w-md w-full relative"
         onClick={e => e.stopPropagation()}
         style={{ outline: "2px solid #e7e7ef" }}
       >

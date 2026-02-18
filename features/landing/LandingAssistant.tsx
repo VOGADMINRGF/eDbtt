@@ -80,7 +80,7 @@ function AccentWord({
 
   return (
     <span
-      className="font-extrabold text-slate-900 supports-[background-clip:text]:text-transparent supports-[background-clip:text]:bg-clip-text"
+      className="font-extrabold text-[rgb(var(--fg))] supports-[background-clip:text]:text-transparent supports-[background-clip:text]:bg-clip-text"
       style={{
         backgroundImage: gradient,
         WebkitBackgroundClip: "text",
@@ -533,10 +533,10 @@ const [humanError, setHumanError] = React.useState<string | null>(null);
 
   return (
     <div className="w-full max-w-3xl">
-      <div className="rounded-3xl border border-black/10 bg-white/85 p-6 shadow-[0_30px_80px_rgba(15,23,42,0.18)] backdrop-blur-md sm:p-8">
-        <p className="text-[12px] font-semibold tracking-[0.18em] text-slate-500">{t.brand}</p>
+      <div className="rounded-3xl border border-[rgb(var(--border))] bg-[color-mix(in_oklab,rgb(var(--card))_85%,rgb(var(--bg))_15%)] p-6 text-[rgb(var(--fg))] shadow-[0_30px_80px_rgba(2,6,23,0.22)] backdrop-blur-md sm:p-8">
+        <p className="text-[12px] font-semibold tracking-[0.18em] text-[rgb(var(--muted))]">{t.brand}</p>
 
-        <h1 className="mt-2 text-balance text-3xl font-semibold leading-[1.05] tracking-tight text-slate-900 sm:text-4xl lg:text-5xl">
+        <h1 className="mt-2 text-balance text-3xl font-semibold leading-[1.05] tracking-tight text-[rgb(var(--fg))] sm:text-4xl lg:text-5xl">
           <span className="block">
             {t.headline.line1Lead} <AccentWord scheme="opinion">{t.headline.line1Accent}</AccentWord>{" "}
             {t.headline.line1Tail}
@@ -548,7 +548,7 @@ const [humanError, setHumanError] = React.useState<string | null>(null);
           </span>
         </h1>
 
-        <p className="mt-3 max-w-2xl text-pretty text-sm leading-6 text-slate-600 sm:text-base">
+        <p className="mt-3 max-w-2xl text-pretty text-sm leading-6 text-[rgb(var(--muted))] sm:text-base">
           {t.subline}
         </p>
 
@@ -560,15 +560,15 @@ const [humanError, setHumanError] = React.useState<string | null>(null);
           </label>
         </div>
 
-        <div className="mt-5 rounded-2xl bg-[linear-gradient(135deg,rgba(26,140,255,0.55),rgba(139,92,246,0.45),rgba(24,207,200,0.55))] p-[1px] shadow-[0_18px_40px_rgba(15,23,42,0.12)]">
-          <div className="rounded-2xl bg-white/92 shadow-[inset_0_1px_0_rgba(255,255,255,0.6)]">
+        <div className="mt-5 rounded-2xl bg-[linear-gradient(135deg,rgba(26,140,255,0.45),rgba(139,92,246,0.35),rgba(24,207,200,0.45))] p-[1px] shadow-[0_18px_40px_rgba(2,6,23,0.16)]">
+          <div className="rounded-2xl bg-[color-mix(in_oklab,rgb(var(--card))_92%,rgb(var(--bg))_8%)] shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
             <label htmlFor={inputId} className="sr-only">
               {t.inputLabel}
             </label>
 
             <textarea
               id={inputId}
-              className="w-full min-h-[120px] resize-none border-0 bg-transparent px-4 py-3 text-[15px] text-slate-900 outline-none shadow-none placeholder:text-slate-400 focus-visible:ring-2 focus-visible:ring-sky-200 sm:min-h-[150px]"
+              className="w-full min-h-[120px] resize-none border-0 bg-transparent px-4 py-3 text-[15px] text-[rgb(var(--fg))] outline-none shadow-none placeholder:text-[rgb(var(--muted))] focus-visible:ring-2 focus-visible:ring-[rgb(var(--grad-from))] sm:min-h-[150px]"
               rows={3}
               placeholder={t.placeholder}
               value={text}
@@ -580,7 +580,7 @@ const [humanError, setHumanError] = React.useState<string | null>(null);
               aria-describedby={describedBy}
               aria-invalid={error ? true : undefined}
             />
-            <p id={minCharsId} className="px-4 pb-2 text-[11px] text-slate-500" aria-live="polite">
+            <p id={minCharsId} className="px-4 pb-2 text-[11px] text-[rgb(var(--muted))]" aria-live="polite">
               {remainingChars > 0 ? t.form.minCharsHint(remainingChars) : t.form.minCharsOk}
             </p>
 
@@ -590,7 +590,7 @@ const [humanError, setHumanError] = React.useState<string | null>(null);
                 {/* Attachments shortcut (WhatsApp-like) */}
                 <button
                   type="button"
-                  className="inline-flex items-center justify-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 active:translate-y-[0.5px]"
+                  className="inline-flex items-center justify-center gap-2 rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm font-medium text-[rgb(var(--muted))] shadow-sm transition hover:bg-[color-mix(in_oklab,rgb(var(--card))_85%,rgb(var(--bg))_15%)] hover:text-[rgb(var(--fg))] active:translate-y-[0.5px]"
                   onClick={() => fileInputRef.current?.click()}
                   disabled={loading}
                   aria-label={t.form.attachmentsLabel}
@@ -605,8 +605,8 @@ const [humanError, setHumanError] = React.useState<string | null>(null);
                   className={[
                     "inline-flex items-center justify-center gap-2 rounded-full border px-3 py-2 text-sm font-medium shadow-sm transition active:translate-y-[0.5px]",
                     voiceActive
-                      ? "border-sky-200 bg-sky-100 text-sky-700"
-                      : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50",
+                      ? "border-[rgb(var(--grad-from))] bg-[color-mix(in_oklab,rgb(var(--grad-from))_18%,transparent)] text-[rgb(var(--grad-from))]"
+                      : "border-[rgb(var(--border))] bg-[rgb(var(--card))] text-[rgb(var(--muted))] hover:bg-[color-mix(in_oklab,rgb(var(--card))_85%,rgb(var(--bg))_15%)] hover:text-[rgb(var(--fg))]",
                     !speechSupported ? "opacity-50" : "",
                   ].join(" ")}
                   onClick={toggleVoice}
@@ -623,7 +623,7 @@ const [humanError, setHumanError] = React.useState<string | null>(null);
                   <button
                     type="button"
                     onClick={() => setShowContext((v) => !v)}
-                    className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 active:translate-y-[0.5px]"
+                    className="inline-flex items-center justify-center rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-2 text-sm font-medium text-[rgb(var(--muted))] shadow-sm transition hover:bg-[color-mix(in_oklab,rgb(var(--card))_85%,rgb(var(--bg))_15%)] hover:text-[rgb(var(--fg))] active:translate-y-[0.5px]"
                   >
                     {showContext ? t.buttons.contextLess : t.buttons.contextMore}
                   </button>
@@ -635,7 +635,7 @@ const [humanError, setHumanError] = React.useState<string | null>(null);
                 onClick={handleSubmitRequest}
                 disabled={loading}
                 aria-disabled={!canSubmit}
-                className={`inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-sky-500 to-cyan-400 px-5 py-2.5 text-sm font-semibold text-white shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200 ${
+                className={`inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-[rgb(var(--grad-from))] to-[rgb(var(--grad-to))] px-5 py-2.5 text-sm font-semibold text-white shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--grad-from))] ${
                   !canSubmit ? "opacity-70" : "hover:opacity-95 active:translate-y-[0.5px]"
                 } ${loading ? "opacity-60" : ""}`}
                 aria-label={loading ? t.buttons.starting : t.buttons.start}
@@ -660,8 +660,8 @@ const [humanError, setHumanError] = React.useState<string | null>(null);
 
         {/* Attachments + HumanCheck row */}
         <div className="mt-4 grid gap-3 sm:grid-cols-2">
-          <div className="rounded-2xl border border-slate-200 bg-white/80 px-4 py-3">
-            <label htmlFor={fileInputId} className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">
+          <div className="rounded-2xl border border-[rgb(var(--border))] bg-[color-mix(in_oklab,rgb(var(--card))_88%,rgb(var(--bg))_12%)] px-4 py-3">
+            <label htmlFor={fileInputId} className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
               {t.form.attachmentsLabel}
             </label>
             <input
@@ -670,7 +670,7 @@ const [humanError, setHumanError] = React.useState<string | null>(null);
               type="file"
               multiple
               accept={FILE_ACCEPT}
-              className="mt-2 block w-full text-xs text-slate-600"
+              className="mt-2 block w-full text-xs text-[rgb(var(--muted))]"
               aria-describedby={
                 [
                   t.form.attachmentsHint ? attachmentsHintId : null,
@@ -683,14 +683,14 @@ const [humanError, setHumanError] = React.useState<string | null>(null);
               onChange={handleFilesChange}
             />
             {t.form.attachmentsHint ? (
-              <p id={attachmentsHintId} className="mt-2 text-[11px] text-slate-500">
+              <p id={attachmentsHintId} className="mt-2 text-[11px] text-[rgb(var(--muted))]">
                 {t.form.attachmentsHint}
               </p>
             ) : null}
-            <p id={attachmentsRulesId} className="mt-1 text-[11px] text-slate-500">
+            <p id={attachmentsRulesId} className="mt-1 text-[11px] text-[rgb(var(--muted))]">
               {t.form.attachmentsRules}
             </p>
-            <p className={`mt-1 text-[11px] ${nearLimit ? "text-amber-600" : "text-slate-500"}`}>
+            <p className={`mt-1 text-[11px] ${nearLimit ? "text-amber-600" : "text-[rgb(var(--muted))]"}`}>
               {t.form.attachmentsTotal(totalLabel)}
               {nearLimit ? ` · ${t.form.attachmentsWarn}` : ""}
             </p>
@@ -700,7 +700,7 @@ const [humanError, setHumanError] = React.useState<string | null>(null);
               </p>
             ) : null}
             {files.length > 0 && (
-              <ul className="mt-2 space-y-1 text-[11px] text-slate-500">
+              <ul className="mt-2 space-y-1 text-[11px] text-[rgb(var(--muted))]">
                 {files.map((file) => (
                   <li key={`${file.name}-${file.size}`}>{file.name}</li>
                 ))}
@@ -708,11 +708,11 @@ const [humanError, setHumanError] = React.useState<string | null>(null);
             )}
           </div>
 
-          <div className="rounded-2xl border border-slate-200 bg-white/80 px-4 py-3">
-            <label htmlFor={humanInputId} className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">
+          <div className="rounded-2xl border border-[rgb(var(--border))] bg-[color-mix(in_oklab,rgb(var(--card))_88%,rgb(var(--bg))_12%)] px-4 py-3">
+            <label htmlFor={humanInputId} className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
               {t.form.humanLabel}
             </label>
-            <p id={humanHintId} className="mt-2 text-xs font-semibold text-slate-700">
+            <p id={humanHintId} className="mt-2 text-xs font-semibold text-[rgb(var(--fg))]">
               {t.form.humanQuestion(human.a, human.b)}
             </p>
             <input
@@ -728,8 +728,10 @@ const [humanError, setHumanError] = React.useState<string | null>(null);
                 if (humanError) setHumanError(null);
                 setHumanAnswer(event.target.value);
               }}
-              className={`mt-2 w-full rounded-xl border bg-white px-3 py-2 text-sm text-slate-900 ${
-                humanError ? "border-rose-300 focus-visible:ring-2 focus-visible:ring-rose-200" : "border-slate-200"
+              className={`mt-2 w-full rounded-xl border bg-[rgb(var(--card))] px-3 py-2 text-sm text-[rgb(var(--fg))] ${
+                humanError
+                  ? "border-rose-300 focus-visible:ring-2 focus-visible:ring-rose-200"
+                  : "border-[rgb(var(--border))]"
               }`}
             />
             {humanError ? (
@@ -744,7 +746,7 @@ const [humanError, setHumanError] = React.useState<string | null>(null);
                 setHumanAnswer("");
                 setHumanError(null);
               }}
-              className="mt-2 inline-flex items-center text-[11px] font-semibold text-slate-600 hover:text-slate-800"
+              className="mt-2 inline-flex items-center text-[11px] font-semibold text-[rgb(var(--muted))] hover:text-[rgb(var(--fg))]"
             >
               {t.form.humanRefresh}
             </button>
@@ -753,20 +755,20 @@ const [humanError, setHumanError] = React.useState<string | null>(null);
 
         {/* Context (only after user wrote text and opted in) */}
         {hasText && showContext && (
-          <div className="mt-3 rounded-2xl border border-slate-200 bg-white/80 p-4">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">{t.context.title}</p>
-            <p className="mt-1 text-sm text-slate-600">{t.context.description}</p>
+          <div className="mt-3 rounded-2xl border border-[rgb(var(--border))] bg-[color-mix(in_oklab,rgb(var(--card))_88%,rgb(var(--bg))_12%)] p-4">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[rgb(var(--muted))]">{t.context.title}</p>
+            <p className="mt-1 text-sm text-[rgb(var(--muted))]">{t.context.description}</p>
 
             <div className="mt-3 grid gap-3 sm:grid-cols-2">
               <div className="space-y-1">
-                <label className="text-[12px] font-semibold text-slate-700" htmlFor={`${inputId}-role`}>
+                <label className="text-[12px] font-semibold text-[rgb(var(--fg))]" htmlFor={`${inputId}-role`}>
                   {t.context.roleLabel}
                 </label>
                 <select
                   id={`${inputId}-role`}
                   value={role}
                   onChange={(event) => setRole(event.target.value)}
-                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900"
+                  className="w-full rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm text-[rgb(var(--fg))]"
                 >
                   <option value="">{t.form.contextAny}</option>
                   {t.context.roles.map((r) => (
@@ -783,20 +785,20 @@ const [humanError, setHumanError] = React.useState<string | null>(null);
                     value={roleOther}
                     onChange={(event) => setRoleOther(event.target.value)}
                     placeholder={t.context.roleOtherPlaceholder}
-                    className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900"
+                    className="mt-2 w-full rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm text-[rgb(var(--fg))]"
                   />
                 )}
               </div>
 
               <div className="space-y-1">
-                <label className="text-[12px] font-semibold text-slate-700" htmlFor={`${inputId}-level`}>
+                <label className="text-[12px] font-semibold text-[rgb(var(--fg))]" htmlFor={`${inputId}-level`}>
                   {t.context.levelLabel}
                 </label>
                 <select
                   id={`${inputId}-level`}
                   value={level}
                   onChange={(event) => setLevel(event.target.value)}
-                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900"
+                  className="w-full rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm text-[rgb(var(--fg))]"
                 >
                   <option value="">{t.form.contextAny}</option>
                   {t.context.levels.map((l) => (
@@ -825,25 +827,25 @@ const [humanError, setHumanError] = React.useState<string | null>(null);
         <div className="mt-5 flex flex-wrap items-center gap-2">
           <a
             href="/howtoworks/edebatte"
-            className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 active:translate-y-[0.5px]"
+            className="inline-flex items-center justify-center rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-2 text-sm font-medium text-[rgb(var(--muted))] shadow-sm transition hover:bg-[color-mix(in_oklab,rgb(var(--card))_85%,rgb(var(--bg))_15%)] hover:text-[rgb(var(--fg))] active:translate-y-[0.5px]"
           >
             {t.buttons.howItWorks}
           </a>
           <a
             href="/howtoworks/bewegung"
-            className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 active:translate-y-[0.5px]"
+            className="inline-flex items-center justify-center rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-2 text-sm font-medium text-[rgb(var(--muted))] shadow-sm transition hover:bg-[color-mix(in_oklab,rgb(var(--card))_85%,rgb(var(--bg))_15%)] hover:text-[rgb(var(--fg))] active:translate-y-[0.5px]"
           >
             {t.buttons.origin}
           </a>
           <a
             href="/howtoworks/edebatte/dossier"
-            className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 active:translate-y-[0.5px]"
+            className="inline-flex items-center justify-center rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-2 text-sm font-medium text-[rgb(var(--muted))] shadow-sm transition hover:bg-[color-mix(in_oklab,rgb(var(--card))_85%,rgb(var(--bg))_15%)] hover:text-[rgb(var(--fg))] active:translate-y-[0.5px]"
           >
             {t.buttons.dossier}
           </a>
           <a
             href="/pricing"
-            className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 active:translate-y-[0.5px]"
+            className="inline-flex items-center justify-center rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-2 text-sm font-medium text-[rgb(var(--muted))] shadow-sm transition hover:bg-[color-mix(in_oklab,rgb(var(--card))_85%,rgb(var(--bg))_15%)] hover:text-[rgb(var(--fg))] active:translate-y-[0.5px]"
           >
             {t.buttons.pricing}
           </a>
@@ -861,7 +863,7 @@ const [humanError, setHumanError] = React.useState<string | null>(null);
           <div className="absolute inset-0 flex items-center justify-center p-4">
             <div
               ref={modalRef}
-              className="w-full max-w-xl rounded-3xl border border-black/10 bg-white/95 p-6 shadow-2xl"
+              className="w-full max-w-xl rounded-3xl border border-[rgb(var(--border))] bg-[color-mix(in_oklab,rgb(var(--card))_92%,rgb(var(--bg))_8%)] p-6 text-[rgb(var(--fg))] shadow-2xl"
               role="dialog"
               aria-modal="true"
               aria-labelledby={modalTitleId}
@@ -869,18 +871,18 @@ const [humanError, setHumanError] = React.useState<string | null>(null);
             >
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <p className="text-[11px] font-semibold tracking-[0.18em] text-slate-500">{t.brand}</p>
-                  <h2 id={modalTitleId} className="mt-2 text-xl font-extrabold text-slate-900">
+                  <p className="text-[11px] font-semibold tracking-[0.18em] text-[rgb(var(--muted))]">{t.brand}</p>
+                  <h2 id={modalTitleId} className="mt-2 text-xl font-extrabold text-[rgb(var(--fg))]">
                     {t.modal.title}
                   </h2>
-                  <p id={modalDescId} className="mt-2 text-sm text-slate-600">
+                  <p id={modalDescId} className="mt-2 text-sm text-[rgb(var(--muted))]">
                     {t.modal.text}
                   </p>
                 </div>
                 <button
                   type="button"
                   onClick={closeModal}
-                  className="rounded-full px-3 py-2 text-sm font-semibold text-slate-500 hover:bg-slate-100"
+                  className="rounded-full px-3 py-2 text-sm font-semibold text-[rgb(var(--muted))] hover:bg-[rgb(var(--bg))]"
                   aria-label={t.modal.closeLabel}
                 >
                   ✕
@@ -895,21 +897,21 @@ const [humanError, setHumanError] = React.useState<string | null>(null);
                     const input = document.getElementById(inputId) as HTMLTextAreaElement | null;
                     input?.focus();
                   }}
-                  className="inline-flex items-center justify-center rounded-full bg-slate-900 px-4 py-2.5 text-sm font-extrabold text-white shadow-sm hover:opacity-95"
+                  className="inline-flex items-center justify-center rounded-full bg-[rgb(var(--fg))] px-4 py-2.5 text-sm font-extrabold text-[rgb(var(--bg))] shadow-sm hover:opacity-95"
                 >
                   {t.modal.ctaAnother}
                 </button>
 
                 <a
                   href="/pricing"
-                  className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-100"
+                  className="inline-flex items-center justify-center rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-2.5 text-sm font-semibold text-[rgb(var(--muted))] hover:bg-[color-mix(in_oklab,rgb(var(--card))_85%,rgb(var(--bg))_15%)] hover:text-[rgb(var(--fg))]"
                 >
                   {t.modal.ctaMember}
                 </a>
 
                 <a
                   href="/pricing"
-                  className="sm:col-span-2 inline-flex items-center justify-center rounded-full bg-[linear-gradient(135deg,rgba(26,140,255,1),rgba(24,207,200,1))] px-4 py-2.5 text-sm font-extrabold text-white shadow-[0_10px_24px_rgba(24,165,255,0.25)] hover:opacity-95"
+                  className="sm:col-span-2 inline-flex items-center justify-center rounded-full bg-gradient-to-r from-[rgb(var(--grad-from))] to-[rgb(var(--grad-to))] px-4 py-2.5 text-sm font-extrabold text-white shadow-[0_10px_24px_rgba(24,165,255,0.25)] hover:opacity-95"
                 >
                   {t.modal.ctaSupport}
                 </a>

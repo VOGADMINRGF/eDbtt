@@ -176,29 +176,29 @@ export default function AdminSearchButton() {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm font-semibold text-slate-700 hover:border-sky-300 hover:text-sky-700"
+        className="inline-flex items-center gap-2 rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-1.5 text-sm font-semibold text-[rgb(var(--muted))] hover:border-sky-300 hover:text-sky-700"
       >
         Suche
-        <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] text-slate-500">
+        <span className="rounded-full bg-[rgb(var(--bg))] px-2 py-0.5 text-[11px] text-[rgb(var(--muted))]">
           Cmd+K
         </span>
       </button>
 
       {open && (
         <div className="fixed inset-0 z-50 flex items-start justify-center bg-slate-900/40 px-4 py-16 backdrop-blur-sm">
-          <div className="w-full max-w-3xl overflow-hidden rounded-3xl bg-white shadow-[0_28px_80px_rgba(15,23,42,0.4)] ring-1 ring-slate-200">
-            <div className="flex items-center gap-3 border-b border-slate-100 px-4 py-3">
+          <div className="w-full max-w-3xl overflow-hidden rounded-3xl bg-[rgb(var(--card))] shadow-[0_28px_80px_rgba(15,23,42,0.4)] ring-1 ring-[rgb(var(--border))]">
+            <div className="flex items-center gap-3 border-b border-[rgb(var(--border))] px-4 py-3">
               <input
                 ref={inputRef}
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Suche in Navigation und Seiten (z.B. reports, users, /admin/...)"
-                className="flex-1 bg-transparent text-sm text-slate-700 focus:outline-none"
+                className="flex-1 bg-transparent text-sm text-[rgb(var(--muted))] focus:outline-none"
               />
               <button
                 type="button"
                 onClick={() => setOpen(false)}
-                className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600"
+                className="rounded-full bg-[rgb(var(--bg))] px-3 py-1 text-xs font-semibold text-[rgb(var(--muted))]"
               >
                 Schliessen
               </button>
@@ -209,7 +209,7 @@ export default function AdminSearchButton() {
                 <div className="space-y-4">
                   {NAV_SECTIONS.map((section) => (
                     <div key={section.title}>
-                      <p className="text-[11px] uppercase tracking-[0.18em] text-slate-400">
+                      <p className="text-[11px] uppercase tracking-[0.18em] text-[rgb(var(--muted))]">
                         {section.title}
                       </p>
                       <div className="mt-2 grid gap-2 md:grid-cols-2">
@@ -218,11 +218,11 @@ export default function AdminSearchButton() {
                             key={item.href}
                             href={item.href}
                             onClick={() => setOpen(false)}
-                            className="rounded-2xl border border-slate-100 px-3 py-2 text-sm text-slate-800 hover:border-sky-200 hover:bg-sky-50"
+                            className="rounded-2xl border border-[rgb(var(--border))] px-3 py-2 text-sm text-[rgb(var(--fg))] hover:border-sky-200 hover:bg-sky-50"
                           >
-                            <div className="font-semibold text-slate-900">{item.label}</div>
+                            <div className="font-semibold text-[rgb(var(--fg))]">{item.label}</div>
                             {item.description && (
-                              <div className="text-[11px] text-slate-500">{item.description}</div>
+                              <div className="text-[11px] text-[rgb(var(--muted))]">{item.description}</div>
                             )}
                           </Link>
                         ))}
@@ -236,10 +236,10 @@ export default function AdminSearchButton() {
                 <div className="space-y-4">
                   <section>
                     <div className="flex items-center justify-between">
-                      <p className="text-[11px] uppercase tracking-[0.18em] text-slate-400">
+                      <p className="text-[11px] uppercase tracking-[0.18em] text-[rgb(var(--muted))]">
                         Navigation
                       </p>
-                      <span className="text-[11px] text-slate-400">
+                      <span className="text-[11px] text-[rgb(var(--muted))]">
                         {filteredNavItems.length} Treffer
                       </span>
                     </div>
@@ -249,14 +249,14 @@ export default function AdminSearchButton() {
                           key={item.href}
                           href={item.href}
                           onClick={() => setOpen(false)}
-                          className="rounded-2xl border border-slate-100 px-3 py-2 text-sm text-slate-800 hover:border-sky-200 hover:bg-sky-50"
+                          className="rounded-2xl border border-[rgb(var(--border))] px-3 py-2 text-sm text-[rgb(var(--fg))] hover:border-sky-200 hover:bg-sky-50"
                         >
-                          <div className="font-semibold text-slate-900">{item.label}</div>
-                          <div className="text-[11px] text-slate-500">{item.href}</div>
+                          <div className="font-semibold text-[rgb(var(--fg))]">{item.label}</div>
+                          <div className="text-[11px] text-[rgb(var(--muted))]">{item.href}</div>
                         </Link>
                       ))}
                       {filteredNavItems.length === 0 && (
-                        <div className="rounded-2xl border border-slate-100 px-3 py-2 text-sm text-slate-500">
+                        <div className="rounded-2xl border border-[rgb(var(--border))] px-3 py-2 text-sm text-[rgb(var(--muted))]">
                           Keine Treffer in der Navigation.
                         </div>
                       )}
@@ -265,16 +265,16 @@ export default function AdminSearchButton() {
 
                   <section>
                     <div className="flex items-center justify-between">
-                      <p className="text-[11px] uppercase tracking-[0.18em] text-slate-400">
+                      <p className="text-[11px] uppercase tracking-[0.18em] text-[rgb(var(--muted))]">
                         Admin Daten
                       </p>
-                      <span className="text-[11px] text-slate-400">
+                      <span className="text-[11px] text-[rgb(var(--muted))]">
                         {dataLoading ? "laedt" : `${dataResults.length} Treffer`}
                       </span>
                     </div>
                     <div className="mt-2 space-y-3">
                       {!canSearchData && (
-                        <div className="rounded-2xl border border-slate-100 px-3 py-2 text-sm text-slate-500">
+                        <div className="rounded-2xl border border-[rgb(var(--border))] px-3 py-2 text-sm text-[rgb(var(--muted))]">
                           Mindestens 2 Zeichen für Datensuche.
                         </div>
                       )}
@@ -282,10 +282,10 @@ export default function AdminSearchButton() {
                         groupedDataResults.map(([group, items]) => (
                           <div key={group} className="space-y-2">
                             <div className="flex items-center justify-between">
-                              <p className="text-[11px] uppercase tracking-[0.18em] text-slate-400">
+                              <p className="text-[11px] uppercase tracking-[0.18em] text-[rgb(var(--muted))]">
                                 {group}
                               </p>
-                              <span className="text-[11px] text-slate-400">
+                              <span className="text-[11px] text-[rgb(var(--muted))]">
                                 {items.length}
                               </span>
                             </div>
@@ -295,27 +295,27 @@ export default function AdminSearchButton() {
                                   key={item.id}
                                   href={item.href}
                                   onClick={() => setOpen(false)}
-                                  className="flex items-center justify-between rounded-2xl border border-slate-100 px-3 py-2 text-sm text-slate-800 hover:border-sky-200 hover:bg-sky-50"
+                                  className="flex items-center justify-between rounded-2xl border border-[rgb(var(--border))] px-3 py-2 text-sm text-[rgb(var(--fg))] hover:border-sky-200 hover:bg-sky-50"
                                 >
                                   <div>
-                                    <div className="font-semibold text-slate-900">
+                                    <div className="font-semibold text-[rgb(var(--fg))]">
                                       {item.label}
                                     </div>
                                     {item.description && (
-                                      <div className="text-[11px] text-slate-500">
+                                      <div className="text-[11px] text-[rgb(var(--muted))]">
                                         {item.description}
                                       </div>
                                     )}
                                   </div>
                                   {item.badge && (
-                                    <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] text-slate-500">
+                                    <span className="rounded-full bg-[rgb(var(--bg))] px-2 py-0.5 text-[11px] text-[rgb(var(--muted))]">
                                       {item.badge}
                                     </span>
                                   )}
                                 </Link>
                               ))}
                               {items.length === 0 && !dataLoading && (
-                                <div className="rounded-2xl border border-slate-100 px-3 py-2 text-sm text-slate-500">
+                                <div className="rounded-2xl border border-[rgb(var(--border))] px-3 py-2 text-sm text-[rgb(var(--muted))]">
                                   Keine Treffer in {group}.
                                 </div>
                               )}
@@ -323,7 +323,7 @@ export default function AdminSearchButton() {
                           </div>
                         ))}
                       {canSearchData && !dataLoading && groupedDataResults.length === 0 && (
-                        <div className="rounded-2xl border border-slate-100 px-3 py-2 text-sm text-slate-500">
+                        <div className="rounded-2xl border border-[rgb(var(--border))] px-3 py-2 text-sm text-[rgb(var(--muted))]">
                           Keine Treffer in Admin-Daten.
                         </div>
                       )}
@@ -332,10 +332,10 @@ export default function AdminSearchButton() {
 
                   <section>
                     <div className="flex items-center justify-between">
-                      <p className="text-[11px] uppercase tracking-[0.18em] text-slate-400">
+                      <p className="text-[11px] uppercase tracking-[0.18em] text-[rgb(var(--muted))]">
                         Seitenindex
                       </p>
-                      <span className="text-[11px] text-slate-400">
+                      <span className="text-[11px] text-[rgb(var(--muted))]">
                         {loading ? "laedt" : `${filteredInventory.length} Treffer`}
                       </span>
                     </div>
@@ -345,19 +345,19 @@ export default function AdminSearchButton() {
                           key={`${item.kind}-${item.path}`}
                           href={item.path}
                           onClick={() => setOpen(false)}
-                          className="flex items-center justify-between rounded-2xl border border-slate-100 px-3 py-2 text-sm text-slate-800 hover:border-sky-200 hover:bg-sky-50"
+                          className="flex items-center justify-between rounded-2xl border border-[rgb(var(--border))] px-3 py-2 text-sm text-[rgb(var(--fg))] hover:border-sky-200 hover:bg-sky-50"
                         >
                           <div>
-                            <div className="font-semibold text-slate-900">{item.path}</div>
-                            <div className="text-[11px] text-slate-500">{item.file}</div>
+                            <div className="font-semibold text-[rgb(var(--fg))]">{item.path}</div>
+                            <div className="text-[11px] text-[rgb(var(--muted))]">{item.file}</div>
                           </div>
-                          <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] text-slate-500">
+                          <span className="rounded-full bg-[rgb(var(--bg))] px-2 py-0.5 text-[11px] text-[rgb(var(--muted))]">
                             {item.kind}
                           </span>
                         </a>
                       ))}
                       {!loading && filteredInventory.length === 0 && (
-                        <div className="rounded-2xl border border-slate-100 px-3 py-2 text-sm text-slate-500">
+                        <div className="rounded-2xl border border-[rgb(var(--border))] px-3 py-2 text-sm text-[rgb(var(--muted))]">
                           Keine Treffer im Seitenindex.
                         </div>
                       )}

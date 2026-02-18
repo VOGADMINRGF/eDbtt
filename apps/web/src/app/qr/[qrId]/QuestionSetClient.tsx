@@ -74,7 +74,7 @@ export function QuestionSetClient({ code }: { code: string }) {
   }
 
   if (loading) {
-    return <div className="p-6 text-sm text-slate-500">Fragen werden geladen …</div>;
+    return <div className="p-6 text-sm text-[rgb(var(--muted))]">Fragen werden geladen …</div>;
   }
   if (error || !data?.set) {
     return <div className="p-6 text-sm text-rose-600">Fragen-Set nicht gefunden.</div>;
@@ -85,20 +85,20 @@ export function QuestionSetClient({ code }: { code: string }) {
   return (
     <main className="mx-auto max-w-3xl px-4 py-10 space-y-6">
       <header className="space-y-2">
-        <p className="text-xs uppercase tracking-wide text-slate-500">QR Fragen-Set</p>
-        <h1 className="text-2xl font-bold text-slate-900">{data.set.title ?? "Abstimmung"}</h1>
-        {notice && <p className="text-sm text-slate-700">{notice}</p>}
+        <p className="text-xs uppercase tracking-wide text-[rgb(var(--muted))]">QR Fragen-Set</p>
+        <h1 className="text-2xl font-bold text-[rgb(var(--fg))]">{data.set.title ?? "Abstimmung"}</h1>
+        {notice && <p className="text-sm text-[rgb(var(--muted))]">{notice}</p>}
       </header>
 
       {questions.length === 0 ? (
-        <p className="text-sm text-slate-600">Noch keine Fragen hinterlegt.</p>
+        <p className="text-sm text-[rgb(var(--muted))]">Noch keine Fragen hinterlegt.</p>
       ) : (
         <div className="space-y-4">
           {questions.map((q) => (
-            <section key={q.id} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm space-y-3">
+            <section key={q.id} className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm space-y-3">
               <div>
-                <p className="text-base font-semibold text-slate-900">{q.title}</p>
-                {q.description && <p className="text-sm text-slate-600">{q.description}</p>}
+                <p className="text-base font-semibold text-[rgb(var(--fg))]">{q.title}</p>
+                {q.description && <p className="text-sm text-[rgb(var(--muted))]">{q.description}</p>}
                 {q.publicAttribution === "public" && (
                   <p className="text-xs text-amber-700">
                     Hinweis: Diese Abstimmung ist nicht anonym.
@@ -109,7 +109,7 @@ export function QuestionSetClient({ code }: { code: string }) {
                 {(q.options ?? []).map((opt) => (
                   <button
                     key={opt}
-                    className="rounded-full border border-slate-300 px-3 py-1 text-sm text-slate-700 hover:bg-slate-50"
+                    className="rounded-full border border-[rgb(var(--border))] px-3 py-1 text-sm text-[rgb(var(--muted))] hover:bg-[rgb(var(--bg))]"
                     onClick={() => vote(q.id, opt)}
                   >
                     {opt}

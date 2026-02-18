@@ -176,7 +176,7 @@ export default function PressePage() {
           ))}
         </div>
         <div
-          className="bg-white/90 p-6 rounded-2xl shadow-lg border border-gray-100 text-gray-800 min-h-[120px]"
+          className="bg-[rgb(var(--card))] p-6 rounded-2xl shadow-lg border border-gray-100 text-gray-800 min-h-[120px]"
           id={`tabpanel-${tab}`}
           role="tabpanel"
         >
@@ -185,7 +185,7 @@ export default function PressePage() {
       </section>
 
       {/* Pressemitteilung */}
-      <article className="relative bg-white/90 p-8 rounded-2xl shadow-xl border border-gray-100 max-w-prose mx-auto leading-relaxed">
+      <article className="relative bg-[rgb(var(--card))] p-8 rounded-2xl shadow-xl border border-gray-100 max-w-prose mx-auto leading-relaxed">
         <div className="absolute left-2 top-6 flex items-center">
           <span
             className="h-4 w-4 rounded-full"
@@ -265,7 +265,7 @@ export default function PressePage() {
       </div>
 
       {/* Download-Bereich */}
-      <section className="bg-white rounded-xl p-8 my-8 text-center shadow border border-gray-100 space-y-3 max-w-2xl mx-auto">
+      <section className="bg-[rgb(var(--card))] rounded-xl p-8 my-8 text-center shadow border border-gray-100 space-y-3 max-w-2xl mx-auto">
         <h3
           className="text-lg font-semibold mb-3"
           style={{ color: colors.indigo }}
@@ -331,7 +331,7 @@ export default function PressePage() {
       </section>
 
       {/* Direkter Pressekontakt (inkl. Kontaktformular) */}
-      <section className="bg-white rounded-xl p-8 mt-12 text-center shadow border border-gray-100 space-y-4 max-w-lg mx-auto">
+      <section className="bg-[rgb(var(--card))] rounded-xl p-8 mt-12 text-center shadow border border-gray-100 space-y-4 max-w-lg mx-auto">
         <div className="flex justify-center mb-1">
           <span className="text-2xl text-coral">📰</span>
         </div>

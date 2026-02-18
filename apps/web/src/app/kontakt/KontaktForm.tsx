@@ -154,12 +154,12 @@ export default function KontaktForm({ sent, error, challenge }: Props) {
   return (
     <section
       id="kontaktformular"
-      className="mt-6 rounded-2xl border border-slate-100 bg-white p-5 shadow-sm ring-1 ring-slate-100"
+      className="mt-6 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm ring-1 ring-[rgb(var(--border))]"
     >
-      <h2 className="text-base font-semibold text-slate-900 text-center">
+      <h2 className="text-base font-semibold text-[rgb(var(--fg))] text-center">
         {t("Kontaktformular", "title")}
       </h2>
-      <p className="mt-1 text-center text-xs text-slate-600">
+      <p className="mt-1 text-center text-xs text-[rgb(var(--muted))]">
         {t("Wir routen dein Anliegen intern an die passende Stelle.", "lead")}
       </p>
       {sent && (
@@ -206,14 +206,14 @@ export default function KontaktForm({ sent, error, challenge }: Props) {
         </div>
 
         <div>
-          <label htmlFor="category" className="block text-xs font-semibold text-slate-700">
+          <label htmlFor="category" className="block text-xs font-semibold text-[rgb(var(--muted))]">
             {t("Worum geht es?", "category.label")}
           </label>
           <select
             id="category"
             name="category"
             required
-            className="mt-1 block w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
+            className="mt-1 block w-full rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm text-[rgb(var(--fg))] shadow-sm outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
           >
             <option value="">{t("Bitte auswählen …", "category.placeholder")}</option>
             <option value="juristisch">{t("Juristische / rechtliche Anfrage", "category.legal")}</option>
@@ -227,7 +227,7 @@ export default function KontaktForm({ sent, error, challenge }: Props) {
 
         <div className="grid gap-3 md:grid-cols-2">
           <div className="space-y-1">
-            <label htmlFor="name" className="block text-xs font-semibold text-slate-700">
+            <label htmlFor="name" className="block text-xs font-semibold text-[rgb(var(--muted))]">
               {t("Name", "name.label")}
             </label>
             <input
@@ -236,11 +236,11 @@ export default function KontaktForm({ sent, error, challenge }: Props) {
               type="text"
               autoComplete="name"
               required
-              className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-900 outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
+              className="w-full rounded-xl border border-[rgb(var(--border))] px-3 py-2 text-sm text-[rgb(var(--fg))] outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
             />
           </div>
           <div className="space-y-1">
-            <label htmlFor="email" className="block text-xs font-semibold text-slate-700">
+            <label htmlFor="email" className="block text-xs font-semibold text-[rgb(var(--muted))]">
               {t("E-Mail", "email.label")}
             </label>
             <input
@@ -249,13 +249,13 @@ export default function KontaktForm({ sent, error, challenge }: Props) {
               type="email"
               autoComplete="email"
               required
-              className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-900 outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
+              className="w-full rounded-xl border border-[rgb(var(--border))] px-3 py-2 text-sm text-[rgb(var(--fg))] outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
             />
           </div>
         </div>
 
         <div className="space-y-1">
-          <label htmlFor="phone" className="block text-xs font-semibold text-slate-700">
+          <label htmlFor="phone" className="block text-xs font-semibold text-[rgb(var(--muted))]">
             {t("Telefon (optional)", "phone.label")}
           </label>
           <input
@@ -263,7 +263,7 @@ export default function KontaktForm({ sent, error, challenge }: Props) {
             name="phone"
             type="tel"
             autoComplete="tel"
-          className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-900 outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
+          className="w-full rounded-xl border border-[rgb(var(--border))] px-3 py-2 text-sm text-[rgb(var(--fg))] outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
           placeholder={t(
             "Wenn du einen Rückruf wünschst, gib bitte eine Nummer an.",
             "phone.placeholder",
@@ -272,21 +272,21 @@ export default function KontaktForm({ sent, error, challenge }: Props) {
       </div>
 
       <div className="space-y-1">
-        <label htmlFor="subject" className="block text-xs font-semibold text-slate-700">
+        <label htmlFor="subject" className="block text-xs font-semibold text-[rgb(var(--muted))]">
           {t("Betreff (optional)", "subject.label")}
         </label>
           <input
             id="subject"
             name="subject"
             type="text"
-          className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-900 outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
+          className="w-full rounded-xl border border-[rgb(var(--border))] px-3 py-2 text-sm text-[rgb(var(--fg))] outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
           placeholder={t("Worum geht es in einem Satz?", "subject.placeholder")}
           maxLength={200}
         />
       </div>
 
       <div className="space-y-1">
-        <label htmlFor="message" className="block text-xs font-semibold text-slate-700">
+        <label htmlFor="message" className="block text-xs font-semibold text-[rgb(var(--muted))]">
           {t("Nachricht", "message.label")}
         </label>
           <textarea
@@ -294,20 +294,20 @@ export default function KontaktForm({ sent, error, challenge }: Props) {
             name="message"
             required
           rows={6}
-          className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-900 outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
+          className="w-full rounded-xl border border-[rgb(var(--border))] px-3 py-2 text-sm text-[rgb(var(--fg))] outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
           placeholder={t("Wie können wir dir helfen?", "message.placeholder")}
           maxLength={5000}
         />
       </div>
 
-      <div className="space-y-3 rounded-xl border border-slate-200 bg-gradient-to-br from-slate-50 via-white to-slate-50 px-4 py-4 shadow-sm">
+      <div className="space-y-3 rounded-xl border border-[rgb(var(--border))] bg-gradient-to-br from-slate-50 via-white to-slate-50 px-4 py-4 shadow-sm">
         <div className="flex flex-col gap-1">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--muted))]">
             {t("Human Check", "human.title")}
           </p>
-          <p className="text-sm text-slate-700">
+          <p className="text-sm text-[rgb(var(--muted))]">
             {t("Bitte den", "human.copy.lead")}{" "}
-            <span className="font-semibold text-slate-900">
+            <span className="font-semibold text-[rgb(var(--fg))]">
               {t("blauen Kreis", "human.copy.shape")}
             </span>{" "}
             {t(
@@ -320,7 +320,7 @@ export default function KontaktForm({ sent, error, challenge }: Props) {
           <div className="grid gap-3 md:grid-cols-2">
             <div className="space-y-2">
               <div className="flex items-center justify-between gap-3">
-                <p className="text-[11px] font-semibold text-slate-600">
+                <p className="text-[11px] font-semibold text-[rgb(var(--muted))]">
                   {t("Klickcheck", "human.clickcheck")}
                 </p>
                 <button
@@ -345,7 +345,7 @@ export default function KontaktForm({ sent, error, challenge }: Props) {
                         `shape.${shape.value}.hint`,
                       )})`}
                     />
-                    <div className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-3 py-2 shadow-sm transition hover:border-sky-200 hover:shadow-md peer-checked:border-sky-500 peer-checked:ring-2 peer-checked:ring-sky-100">
+                    <div className="flex items-center gap-3 rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 shadow-sm transition hover:border-sky-200 hover:shadow-md peer-checked:border-sky-500 peer-checked:ring-2 peer-checked:ring-sky-100">
                       <span className="flex h-10 w-10 items-center justify-center">
                         {shape.shape === "circle" && (
                           <span className={`block h-8 w-8 rounded-full ${shape.gradient} shadow-inner`} />
@@ -361,10 +361,10 @@ export default function KontaktForm({ sent, error, challenge }: Props) {
                         )}
                       </span>
                       <div className="leading-tight">
-                        <div className="text-sm font-semibold text-slate-900">
+                        <div className="text-sm font-semibold text-[rgb(var(--fg))]">
                           {t(shape.label, `shape.${shape.value}.label`)}
                         </div>
-                        <div className="text-[11px] text-slate-500">
+                        <div className="text-[11px] text-[rgb(var(--muted))]">
                           {t(shape.hint, `shape.${shape.value}.hint`)}{" "}
                           {shape.value === "kreis"
                             ? t("(anklicken)", "shape.pick")
@@ -378,10 +378,10 @@ export default function KontaktForm({ sent, error, challenge }: Props) {
             </div>
 
             <div className="space-y-2">
-              <label htmlFor="humanAnswer" className="text-[11px] font-semibold text-slate-600">
+              <label htmlFor="humanAnswer" className="text-[11px] font-semibold text-[rgb(var(--muted))]">
                 {t("Kurze Schreibfrage", "human.short.title")}
               </label>
-              <p className="text-[11px] text-slate-600">
+              <p className="text-[11px] text-[rgb(var(--muted))]">
                 {t(
                   "Schreibe die Farbe des angeklickten Kreises ins Feld (Tipp: blau).",
                   "human.short.hint",
@@ -393,7 +393,7 @@ export default function KontaktForm({ sent, error, challenge }: Props) {
                 type="text"
                 autoComplete="off"
                 required
-                className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-900 outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
+                className="w-full rounded-xl border border-[rgb(var(--border))] px-3 py-2 text-sm text-[rgb(var(--fg))] outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
                 placeholder={t('Bitte "blau" eintragen', "human.short.placeholder")}
               />
             </div>
@@ -401,8 +401,8 @@ export default function KontaktForm({ sent, error, challenge }: Props) {
         </div>
 
         {showTurnstile && (
-          <div className="rounded-xl border border-slate-200 bg-slate-50/60 px-3 py-3">
-            <p className="text-[11px] text-slate-600">
+          <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-3">
+            <p className="text-[11px] text-[rgb(var(--muted))]">
               {t("Kurze Bestätigung, dass du kein Bot bist:", "turnstile.prompt")}
             </p>
             <div ref={widgetRef} className="mt-2" aria-live="polite" />
@@ -414,9 +414,9 @@ export default function KontaktForm({ sent, error, challenge }: Props) {
             id="newsletterOptIn"
             name="newsletterOptIn"
             type="checkbox"
-            className="mt-0.5 h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+            className="mt-0.5 h-4 w-4 rounded border-[rgb(var(--border))] text-sky-600 focus:ring-sky-500"
           />
-          <label htmlFor="newsletterOptIn" className="text-[11px] leading-snug text-slate-600">
+          <label htmlFor="newsletterOptIn" className="text-[11px] leading-snug text-[rgb(var(--muted))]">
             {t(
               "Ich möchte gelegentlich Updates und Informationen zu eDebatte erhalten (Newsletter). Du kannst dich jederzeit wieder abmelden.",
               "newsletter.optin",
@@ -424,7 +424,7 @@ export default function KontaktForm({ sent, error, challenge }: Props) {
           </label>
         </div>
 
-        <p className="text-[11px] text-slate-500">
+        <p className="text-[11px] text-[rgb(var(--muted))]">
           {t(
             "Mit dem Absenden erklärst du dich einverstanden, dass wir deine Angaben zur Bearbeitung deiner Anfrage verarbeiten. Vollständige Datenschutz-Hinweise folgen nach Gesellschaftseintragung.",
             "legal.copy",

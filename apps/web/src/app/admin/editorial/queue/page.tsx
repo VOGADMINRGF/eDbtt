@@ -142,20 +142,20 @@ export default function AdminEditorialQueuePage() {
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-8">
       <header className="space-y-1">
-        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Admin · Redaktion</p>
-        <h1 className="text-2xl font-bold text-slate-900">Editorial Queue</h1>
-        <p className="text-sm text-slate-600">
+        <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Admin · Redaktion</p>
+        <h1 className="text-2xl font-bold text-[rgb(var(--fg))]">Editorial Queue</h1>
+        <p className="text-sm text-[rgb(var(--muted))]">
           Triage, Review und Freigaben zentral steuern.
         </p>
       </header>
 
       <div className="flex flex-wrap items-center gap-3">
-        <div className="flex flex-wrap gap-2 rounded-full border border-slate-200 bg-white px-3 py-2">
+        <div className="flex flex-wrap gap-2 rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2">
           {STATUS_OPTIONS.map((entry) => (
             <button
               key={entry}
               className={`rounded-full px-3 py-1 text-sm font-medium transition ${
-                status === entry ? "bg-slate-900 text-white" : "text-slate-600 hover:text-slate-900"
+                status === entry ? "bg-slate-900 text-white" : "text-[rgb(var(--muted))] hover:text-[rgb(var(--fg))]"
               }`}
               onClick={() => setStatus(entry)}
             >
@@ -167,26 +167,26 @@ export default function AdminEditorialQueuePage() {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Suche (Titel, Summary)"
-          className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm"
+          className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-2 text-sm"
         />
         <input
           value={orgId}
           onChange={(e) => setOrgId(e.target.value)}
           placeholder="Org ID (optional)"
-          className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm"
+          className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-2 text-sm"
         />
       </div>
 
       {selectedIds.size > 0 && (
-        <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm">
+        <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-4 py-3 text-sm">
           <div className="flex flex-wrap items-center gap-3">
-            <span className="text-xs text-slate-600">
+            <span className="text-xs text-[rgb(var(--muted))]">
               {selectedIds.size} ausgewählt
             </span>
             <select
               value={bulkStatus}
               onChange={(e) => setBulkStatus(e.target.value)}
-              className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs"
+              className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-1 text-xs"
             >
               {STATUS_OPTIONS.map((entry) => (
                 <option key={entry} value={entry}>
@@ -195,7 +195,7 @@ export default function AdminEditorialQueuePage() {
               ))}
             </select>
             <button
-              className="rounded-full border border-slate-900 bg-slate-900 px-3 py-1 text-xs font-semibold text-white disabled:opacity-50"
+              className="rounded-full border border-[rgb(var(--border))] bg-slate-900 px-3 py-1 text-xs font-semibold text-white disabled:opacity-50"
               onClick={applyBulkStatus}
               disabled={bulkBusy}
             >
@@ -211,11 +211,11 @@ export default function AdminEditorialQueuePage() {
         </div>
       )}
 
-      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <table className="min-w-full divide-y divide-slate-200 text-sm">
-          <thead className="bg-slate-50">
+      <div className="overflow-hidden rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] shadow-sm">
+        <table className="min-w-full divide-y divide-[rgb(var(--border))] text-sm">
+          <thead className="bg-[rgb(var(--bg))]">
             <tr>
-              <th className="px-4 py-3 text-left font-semibold text-slate-600">
+              <th className="px-4 py-3 text-left font-semibold text-[rgb(var(--muted))]">
                 <input
                   type="checkbox"
                   checked={allSelected}
@@ -223,24 +223,24 @@ export default function AdminEditorialQueuePage() {
                   aria-label="Alle auswählen"
                 />
               </th>
-              <th className="px-4 py-3 text-left font-semibold text-slate-600">Titel</th>
-              <th className="px-4 py-3 text-left font-semibold text-slate-600">Status</th>
-              <th className="px-4 py-3 text-left font-semibold text-slate-600">Topic</th>
-              <th className="px-4 py-3 text-left font-semibold text-slate-600">Owner</th>
-              <th className="px-4 py-3 text-left font-semibold text-slate-600">Updated</th>
+              <th className="px-4 py-3 text-left font-semibold text-[rgb(var(--muted))]">Titel</th>
+              <th className="px-4 py-3 text-left font-semibold text-[rgb(var(--muted))]">Status</th>
+              <th className="px-4 py-3 text-left font-semibold text-[rgb(var(--muted))]">Topic</th>
+              <th className="px-4 py-3 text-left font-semibold text-[rgb(var(--muted))]">Owner</th>
+              <th className="px-4 py-3 text-left font-semibold text-[rgb(var(--muted))]">Updated</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100">
+          <tbody className="divide-y divide-[rgb(var(--border))]">
             {loading && (
               <tr>
-                <td colSpan={6} className="px-4 py-6 text-center text-slate-500">
+                <td colSpan={6} className="px-4 py-6 text-center text-[rgb(var(--muted))]">
                   Laedt Queue...
                 </td>
               </tr>
             )}
             {!loading && data?.items?.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-4 py-6 text-center text-slate-500">
+                <td colSpan={6} className="px-4 py-6 text-center text-[rgb(var(--muted))]">
                   Keine Items gefunden.
                 </td>
               </tr>
@@ -259,29 +259,29 @@ export default function AdminEditorialQueuePage() {
                   <td className="px-4 py-3">
                     <Link
                       href={`/admin/editorial/items/${item.id}`}
-                      className="font-semibold text-slate-900 hover:underline"
+                      className="font-semibold text-[rgb(var(--fg))] hover:underline"
                     >
                       {item.title ?? "(ohne Titel)"}
                     </Link>
-                    <p className="text-xs text-slate-500">{item.summary ?? ""}</p>
+                    <p className="text-xs text-[rgb(var(--muted))]">{item.summary ?? ""}</p>
                   </td>
                   <td className="px-4 py-3">
-                    <span className="rounded-full bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-700">
+                    <span className="rounded-full bg-[rgb(var(--bg))] px-2 py-1 text-xs font-semibold text-[rgb(var(--muted))]">
                       {item.status}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-slate-600">{item.topicKey ?? "—"}</td>
-                  <td className="px-4 py-3 text-slate-600">{item.ownerUserId ? item.ownerUserId.slice(-6) : "—"}</td>
-                  <td className="px-4 py-3 text-slate-600">{item.updatedAt?.slice(0, 10) ?? "—"}</td>
+                  <td className="px-4 py-3 text-[rgb(var(--muted))]">{item.topicKey ?? "—"}</td>
+                  <td className="px-4 py-3 text-[rgb(var(--muted))]">{item.ownerUserId ? item.ownerUserId.slice(-6) : "—"}</td>
+                  <td className="px-4 py-3 text-[rgb(var(--muted))]">{item.updatedAt?.slice(0, 10) ?? "—"}</td>
                 </tr>
               ))}
           </tbody>
         </table>
       </div>
 
-      <div className="flex items-center justify-between text-xs text-slate-500">
+      <div className="flex items-center justify-between text-xs text-[rgb(var(--muted))]">
         <button
-          className="rounded-full border border-slate-200 px-3 py-1 disabled:opacity-50"
+          className="rounded-full border border-[rgb(var(--border))] px-3 py-1 disabled:opacity-50"
           disabled={page <= 1}
           onClick={() => setPage((prev) => Math.max(1, prev - 1))}
         >
@@ -291,7 +291,7 @@ export default function AdminEditorialQueuePage() {
           Seite {page} / {totalPages}
         </span>
         <button
-          className="rounded-full border border-slate-200 px-3 py-1 disabled:opacity-50"
+          className="rounded-full border border-[rgb(var(--border))] px-3 py-1 disabled:opacity-50"
           disabled={page >= totalPages}
           onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
         >

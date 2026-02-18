@@ -99,6 +99,9 @@ export async function GET(req: NextRequest) {
       { email: { $regex: q, $options: "i" } },
       { name: { $regex: q, $options: "i" } },
     ];
+    if (ObjectId.isValid(q)) {
+      filter.$or.push({ _id: new ObjectId(q) });
+    }
   }
   if (role) {
     filter.$or = filter.$or || [];

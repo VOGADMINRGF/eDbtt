@@ -140,24 +140,24 @@ export default function AdminErrorsPage() {
   return (
     <main className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-8">
       <header className="space-y-1">
-        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Admin · System</p>
-        <h1 className="text-2xl font-bold text-slate-900">Error Logs</h1>
-        <p className="text-sm text-slate-600">
+        <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Admin · System</p>
+        <h1 className="text-2xl font-bold text-[rgb(var(--fg))]">Error Logs</h1>
+        <p className="text-sm text-[rgb(var(--muted))]">
           Systemweite Fehler und Trace-IDs. Filtere nach Level oder Trace, um Ursache und Kontext zu finden.
         </p>
       </header>
 
-      <section className="flex flex-wrap items-center gap-3 rounded-3xl bg-white/90 p-4 shadow ring-1 ring-slate-100">
+      <section className="flex flex-wrap items-center gap-3 rounded-3xl bg-[rgb(var(--card))] p-4 shadow ring-1 ring-[rgb(var(--border))]">
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Suche (Message, TraceId, Pfad)"
-          className="w-64 rounded-full border border-slate-200 bg-slate-50 px-3 py-2 text-sm focus:border-sky-300 focus:outline-none"
+          className="w-64 rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-sm focus:border-sky-300 focus:outline-none"
         />
         <select
           value={level}
           onChange={(e) => setLevel(e.target.value)}
-          className="rounded-full border border-slate-200 bg-white px-3 py-2 text-sm"
+          className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm"
         >
           {LEVEL_OPTIONS.map((opt) => (
             <option key={opt.value} value={opt.value}>
@@ -168,7 +168,7 @@ export default function AdminErrorsPage() {
         <select
           value={resolved}
           onChange={(e) => setResolved(e.target.value)}
-          className="rounded-full border border-slate-200 bg-white px-3 py-2 text-sm"
+          className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm"
         >
           {RESOLVED_OPTIONS.map((opt) => (
             <option key={opt.value} value={opt.value}>
@@ -183,7 +183,7 @@ export default function AdminErrorsPage() {
         >
           Anwenden
         </button>
-        {loading && <span className="text-sm text-slate-500">Lade …</span>}
+        {loading && <span className="text-sm text-[rgb(var(--muted))]">Lade …</span>}
       </section>
 
       {error && (
@@ -192,9 +192,9 @@ export default function AdminErrorsPage() {
         </div>
       )}
 
-      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <table className="min-w-full divide-y divide-slate-200 text-sm">
-          <thead className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+      <div className="overflow-hidden rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] shadow-sm">
+        <table className="min-w-full divide-y divide-[rgb(var(--border))] text-sm">
+          <thead className="bg-[rgb(var(--bg))] text-left text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
             <tr>
               <th className="px-4 py-3">Zeit</th>
               <th className="px-4 py-3">Level</th>
@@ -204,17 +204,17 @@ export default function AdminErrorsPage() {
               <th className="px-4 py-3 text-right">Aktionen</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100">
+          <tbody className="divide-y divide-[rgb(var(--border))]">
             {loading && (
               <tr>
-                <td colSpan={6} className="px-4 py-6 text-center text-slate-500">
+                <td colSpan={6} className="px-4 py-6 text-center text-[rgb(var(--muted))]">
                   Lädt …
                 </td>
               </tr>
             )}
             {!loading && (!data?.items || data.items.length === 0) && (
               <tr>
-                <td colSpan={6} className="px-4 py-6 text-center text-slate-500">
+                <td colSpan={6} className="px-4 py-6 text-center text-[rgb(var(--muted))]">
                   Keine Errors gefunden.
                 </td>
               </tr>
@@ -222,15 +222,15 @@ export default function AdminErrorsPage() {
             {!loading &&
               data?.items?.map((row) => (
                 <tr key={row._id ?? `${row.traceId}-${row.timestamp}`}>
-                  <td className="px-4 py-3 text-xs text-slate-600">
+                  <td className="px-4 py-3 text-xs text-[rgb(var(--muted))]">
                     {formatDate(row.timestamp || row.createdAt)}
                   </td>
                   <td className="px-4 py-3">
                     <LevelBadge level={row.level ?? "info"} />
                   </td>
-                  <td className="px-4 py-3 text-slate-800">{row.message}</td>
-                  <td className="px-4 py-3 text-xs text-slate-500">{row.path ?? "—"}</td>
-                  <td className="px-4 py-3 text-xs text-slate-500">{row.traceId ?? "—"}</td>
+                  <td className="px-4 py-3 text-[rgb(var(--fg))]">{row.message}</td>
+                  <td className="px-4 py-3 text-xs text-[rgb(var(--muted))]">{row.path ?? "—"}</td>
+                  <td className="px-4 py-3 text-xs text-[rgb(var(--muted))]">{row.traceId ?? "—"}</td>
                   <td className="px-4 py-3 text-right">
                     <div className="flex justify-end gap-2">
                       {row._id && (
@@ -244,7 +244,7 @@ export default function AdminErrorsPage() {
                       <button
                         type="button"
                         onClick={() => toggleResolved(row, !row.resolved)}
-                        className="text-xs font-semibold text-slate-600 hover:text-slate-900"
+                        className="text-xs font-semibold text-[rgb(var(--muted))] hover:text-[rgb(var(--fg))]"
                       >
                         {row.resolved ? "Öffnen" : "Erledigen"}
                       </button>
@@ -257,7 +257,7 @@ export default function AdminErrorsPage() {
       </div>
 
       {totalPages > 1 && (
-        <div className="flex items-center justify-between text-sm text-slate-600">
+        <div className="flex items-center justify-between text-sm text-[rgb(var(--muted))]">
           <span>
             Seite {page} / {totalPages} · {data?.total ?? 0} Einträge
           </span>
@@ -266,7 +266,7 @@ export default function AdminErrorsPage() {
               type="button"
               onClick={() => changePage(Math.max(1, page - 1))}
               disabled={page <= 1}
-              className="rounded-full border border-slate-200 px-3 py-1 font-semibold text-slate-700 disabled:opacity-50"
+              className="rounded-full border border-[rgb(var(--border))] px-3 py-1 font-semibold text-[rgb(var(--muted))] disabled:opacity-50"
             >
               Zurück
             </button>
@@ -274,7 +274,7 @@ export default function AdminErrorsPage() {
               type="button"
               onClick={() => changePage(Math.min(totalPages, page + 1))}
               disabled={page >= totalPages}
-              className="rounded-full border border-slate-200 px-3 py-1 font-semibold text-slate-700 disabled:opacity-50"
+              className="rounded-full border border-[rgb(var(--border))] px-3 py-1 font-semibold text-[rgb(var(--muted))] disabled:opacity-50"
             >
               Weiter
             </button>
@@ -291,7 +291,7 @@ function LevelBadge({ level }: { level: "info" | "warn" | "error" }) {
       ? "bg-rose-100 text-rose-700"
       : level === "warn"
       ? "bg-amber-100 text-amber-800"
-      : "bg-slate-100 text-slate-700";
+      : "bg-[rgb(var(--bg))] text-[rgb(var(--muted))]";
   return (
     <span className={`rounded-full px-2 py-0.5 text-xs font-semibold uppercase ${styles}`}>
       {level}

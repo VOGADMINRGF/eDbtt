@@ -85,7 +85,7 @@ export function StreamOverlayClient({ sessionId }: { sessionId: string }) {
                         <span>{opt}</span>
                         <span>{pct}%</span>
                       </div>
-                      <div className="h-3 w-full rounded-full bg-white/20">
+                      <div className="h-3 w-full rounded-full bg-[rgb(var(--card))]">
                         <div className="h-full rounded-full bg-sky-400" style={{ width: `${pct}%` }} />
                       </div>
                     </div>

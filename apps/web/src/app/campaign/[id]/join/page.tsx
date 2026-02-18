@@ -48,27 +48,27 @@ export default function CampaignJoinPage() {
   return (
     <main className="mx-auto flex max-w-2xl flex-col gap-6 px-4 py-12">
       <header className="space-y-2">
-        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Campaign</p>
-        <h1 className="text-2xl font-bold text-slate-900">Teilnahme</h1>
-        <p className="text-sm text-slate-600">
+        <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Campaign</p>
+        <h1 className="text-2xl font-bold text-[rgb(var(--fg))]">Teilnahme</h1>
+        <p className="text-sm text-[rgb(var(--muted))]">
           Wir registrieren deine Teilnahme und leiten dich anschliessend weiter.
         </p>
       </header>
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-4 text-sm shadow-sm">
-        {state === "loading" && <p className="text-slate-600">Teilnahme wird gespeichert…</p>}
+      <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 text-sm shadow-sm">
+        {state === "loading" && <p className="text-[rgb(var(--muted))]">Teilnahme wird gespeichert…</p>}
         {state === "success" && (
           <div className="space-y-2">
             <p className="font-semibold text-emerald-700">Teilnahme gespeichert.</p>
             {participants !== null && (
-              <p className="text-slate-600">Aktuelle Teilnehmerzahl: {participants}</p>
+              <p className="text-[rgb(var(--muted))]">Aktuelle Teilnehmerzahl: {participants}</p>
             )}
             {sessionId && (
-              <p className="text-slate-600">
-                Session: <span className="font-semibold text-slate-800">{sessionId}</span>
+              <p className="text-[rgb(var(--muted))]">
+                Session: <span className="font-semibold text-[rgb(var(--fg))]">{sessionId}</span>
               </p>
             )}
-            <p className="text-slate-500">Du kannst jetzt zur Kampagne wechseln oder Streams ansehen.</p>
+            <p className="text-[rgb(var(--muted))]">Du kannst jetzt zur Kampagne wechseln oder Streams ansehen.</p>
           </div>
         )}
         {state === "error" && <p className="text-rose-600">{message ?? "Teilnahme fehlgeschlagen."}</p>}
@@ -81,7 +81,7 @@ export default function CampaignJoinPage() {
         >
           Zur Kampagne
         </Link>
-        <Link href="/stream" className="rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700">
+        <Link href="/stream" className="rounded-full border border-[rgb(var(--border))] px-4 py-2 text-sm font-semibold text-[rgb(var(--muted))]">
           Streams ansehen
         </Link>
       </div>

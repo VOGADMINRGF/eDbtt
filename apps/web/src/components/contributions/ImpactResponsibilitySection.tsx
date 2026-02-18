@@ -34,15 +34,15 @@ export function ImpactSection({ impacts, onChange }: ImpactSectionProps) {
 
   if (impacts.length > 0) {
     return (
-      <ul className="space-y-2 text-sm text-slate-800">
+      <ul className="space-y-2 text-sm text-[rgb(var(--fg))]">
         {impacts.map((impact, idx) => (
-          <li key={`${impact.type}-${idx}`} className="flex items-start gap-2 rounded-xl bg-slate-50 px-3 py-2">
-            <span className="mt-0.5 inline-flex h-6 w-6 items-center justify-center rounded-full bg-slate-200 text-[11px] font-semibold text-slate-700">
+          <li key={`${impact.type}-${idx}`} className="flex items-start gap-2 rounded-xl bg-[rgb(var(--bg))] px-3 py-2">
+            <span className="mt-0.5 inline-flex h-6 w-6 items-center justify-center rounded-full bg-[rgb(var(--bg))] text-[11px] font-semibold text-[rgb(var(--muted))]">
               {idx + 1}
             </span>
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{impact.type || "Folge"}</p>
-              <p className="text-sm text-slate-800">{impact.description}</p>
+              <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">{impact.type || "Folge"}</p>
+              <p className="text-sm text-[rgb(var(--fg))]">{impact.description}</p>
             </div>
           </li>
         ))}
@@ -52,21 +52,21 @@ export function ImpactSection({ impacts, onChange }: ImpactSectionProps) {
 
   return (
     <div className="space-y-3">
-      <p className="text-sm text-slate-600">Noch kein automatischer Vorschlag. Du kannst mögliche Folgen ergänzen.</p>
+      <p className="text-sm text-[rgb(var(--muted))]">Noch kein automatischer Vorschlag. Du kannst mögliche Folgen ergänzen.</p>
       {drafts.map((draft, idx) => (
-        <div key={idx} className="rounded-xl border border-slate-200 bg-white/90 p-3 shadow-sm space-y-2">
+        <div key={idx} className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-3 shadow-sm space-y-2">
           <input
             value={draft.type}
             onChange={(e) => update(idx, { type: e.target.value })}
             placeholder="Kategorie (z.B. rechtlich, gesellschaftlich)"
-            className="w-full rounded-lg border border-slate-200 px-3 py-1.5 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-200"
+            className="w-full rounded-lg border border-[rgb(var(--border))] px-3 py-1.5 text-sm text-[rgb(var(--fg))] focus:outline-none focus:ring-2 focus:ring-sky-200"
           />
           <textarea
             value={draft.description}
             onChange={(e) => update(idx, { description: e.target.value })}
             placeholder="Mögliche Folge beschreiben…"
             rows={2}
-            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-200"
+            className="w-full rounded-lg border border-[rgb(var(--border))] px-3 py-2 text-sm text-[rgb(var(--fg))] focus:outline-none focus:ring-2 focus:ring-sky-200"
           />
         </div>
       ))}
@@ -74,7 +74,7 @@ export function ImpactSection({ impacts, onChange }: ImpactSectionProps) {
         <button
           type="button"
           onClick={addRow}
-          className="rounded-full border border-slate-300 px-3 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+          className="rounded-full border border-[rgb(var(--border))] px-3 py-1 text-xs font-semibold text-[rgb(var(--muted))] hover:bg-[rgb(var(--bg))]"
         >
           weitere Folge
         </button>
@@ -123,15 +123,15 @@ export function ResponsibilitySection({ actors, onChange }: ResponsibilitySectio
 
   if (actors.length > 0) {
     return (
-      <ul className="space-y-2 text-sm text-slate-800">
+      <ul className="space-y-2 text-sm text-[rgb(var(--fg))]">
         {actors.map((actor, idx) => (
-          <li key={`${actor.level}-${idx}`} className="flex items-start gap-2 rounded-xl bg-slate-50 px-3 py-2">
-            <span className="mt-0.5 inline-flex h-6 w-6 items-center justify-center rounded-full bg-slate-200 text-[11px] font-semibold text-slate-700">
+          <li key={`${actor.level}-${idx}`} className="flex items-start gap-2 rounded-xl bg-[rgb(var(--bg))] px-3 py-2">
+            <span className="mt-0.5 inline-flex h-6 w-6 items-center justify-center rounded-full bg-[rgb(var(--bg))] text-[11px] font-semibold text-[rgb(var(--muted))]">
               {idx + 1}
             </span>
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{actor.level || "Zuständigkeit"}</p>
-              <p className="text-sm text-slate-800">{actor.hint}</p>
+              <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">{actor.level || "Zuständigkeit"}</p>
+              <p className="text-sm text-[rgb(var(--fg))]">{actor.hint}</p>
             </div>
           </li>
         ))}
@@ -141,21 +141,21 @@ export function ResponsibilitySection({ actors, onChange }: ResponsibilitySectio
 
   return (
     <div className="space-y-3">
-      <p className="text-sm text-slate-600">Noch kein automatischer Vorschlag. Du kannst mögliche Zuständigkeiten ergänzen.</p>
+      <p className="text-sm text-[rgb(var(--muted))]">Noch kein automatischer Vorschlag. Du kannst mögliche Zuständigkeiten ergänzen.</p>
       {drafts.map((draft, idx) => (
-        <div key={idx} className="rounded-xl border border-slate-200 bg-white/90 p-3 shadow-sm space-y-2">
+        <div key={idx} className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-3 shadow-sm space-y-2">
           <input
             value={draft.level}
             onChange={(e) => update(idx, { level: e.target.value })}
             placeholder='Ebene (z.B. "Bund", "Land", "Kommune")'
-            className="w-full rounded-lg border border-slate-200 px-3 py-1.5 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-200"
+            className="w-full rounded-lg border border-[rgb(var(--border))] px-3 py-1.5 text-sm text-[rgb(var(--fg))] focus:outline-none focus:ring-2 focus:ring-sky-200"
           />
           <textarea
             value={draft.hint}
             onChange={(e) => update(idx, { hint: e.target.value })}
             placeholder="Hinweis oder zuständiger Akteur…"
             rows={2}
-            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-200"
+            className="w-full rounded-lg border border-[rgb(var(--border))] px-3 py-2 text-sm text-[rgb(var(--fg))] focus:outline-none focus:ring-2 focus:ring-sky-200"
           />
         </div>
       ))}
@@ -163,7 +163,7 @@ export function ResponsibilitySection({ actors, onChange }: ResponsibilitySectio
         <button
           type="button"
           onClick={addRow}
-          className="rounded-full border border-slate-300 px-3 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+          className="rounded-full border border-[rgb(var(--border))] px-3 py-1 text-xs font-semibold text-[rgb(var(--muted))] hover:bg-[rgb(var(--bg))]"
         >
           weitere Zuständigkeit
         </button>

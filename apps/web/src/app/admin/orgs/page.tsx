@@ -105,11 +105,11 @@ export default function AdminOrgsPage() {
     <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-8">
       <header className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+          <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
             Admin · Organisationen
           </p>
-          <h1 className="text-2xl font-bold text-slate-900">Orgs & Teams</h1>
-          <p className="text-sm text-slate-600">Organisationen anlegen, verwalten und Teams steuern.</p>
+          <h1 className="text-2xl font-bold text-[rgb(var(--fg))]">Orgs & Teams</h1>
+          <p className="text-sm text-[rgb(var(--muted))]">Organisationen anlegen, verwalten und Teams steuern.</p>
         </div>
         <button
           className="rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white"
@@ -120,20 +120,20 @@ export default function AdminOrgsPage() {
       </header>
 
       {createOpen && (
-        <section className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
-          <h2 className="text-sm font-semibold text-slate-900">Neue Organisation</h2>
+        <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm">
+          <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Neue Organisation</h2>
           <div className="mt-3 grid gap-3 md:grid-cols-3">
             <input
               value={createName}
               onChange={(e) => setCreateName(e.target.value)}
               placeholder="Name"
-              className="rounded-2xl border border-slate-200 px-3 py-2 text-sm"
+              className="rounded-2xl border border-[rgb(var(--border))] px-3 py-2 text-sm"
             />
             <input
               value={createSlug}
               onChange={(e) => setCreateSlug(e.target.value)}
               placeholder="Slug (optional)"
-              className="rounded-2xl border border-slate-200 px-3 py-2 text-sm"
+              className="rounded-2xl border border-[rgb(var(--border))] px-3 py-2 text-sm"
             />
             <button
               className="rounded-2xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white"
@@ -147,15 +147,15 @@ export default function AdminOrgsPage() {
       )}
 
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-2">
+        <div className="flex items-center gap-2 rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2">
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Suche nach Name oder Slug"
-            className="w-64 bg-transparent text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none"
+            className="w-64 bg-transparent text-sm text-[rgb(var(--muted))] placeholder:text-[rgb(var(--muted))] focus:outline-none"
           />
         </div>
-        <span className="text-xs text-slate-500">{data?.total ?? 0} Orgs</span>
+        <span className="text-xs text-[rgb(var(--muted))]">{data?.total ?? 0} Orgs</span>
       </div>
 
       {error && (
@@ -164,27 +164,27 @@ export default function AdminOrgsPage() {
         </div>
       )}
 
-      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <table className="min-w-full divide-y divide-slate-200 text-sm">
-          <thead className="bg-slate-50">
+      <div className="overflow-hidden rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] shadow-sm">
+        <table className="min-w-full divide-y divide-[rgb(var(--border))] text-sm">
+          <thead className="bg-[rgb(var(--bg))]">
             <tr>
-              <th className="px-4 py-3 text-left font-semibold text-slate-600">Organisation</th>
-              <th className="px-4 py-3 text-left font-semibold text-slate-600">Slug</th>
-              <th className="px-4 py-3 text-left font-semibold text-slate-600">Status</th>
-              <th className="px-4 py-3 text-left font-semibold text-slate-600">Aktualisiert</th>
+              <th className="px-4 py-3 text-left font-semibold text-[rgb(var(--muted))]">Organisation</th>
+              <th className="px-4 py-3 text-left font-semibold text-[rgb(var(--muted))]">Slug</th>
+              <th className="px-4 py-3 text-left font-semibold text-[rgb(var(--muted))]">Status</th>
+              <th className="px-4 py-3 text-left font-semibold text-[rgb(var(--muted))]">Aktualisiert</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100">
+          <tbody className="divide-y divide-[rgb(var(--border))]">
             {loading && (
               <tr>
-                <td colSpan={4} className="px-4 py-6 text-center text-slate-500">
+                <td colSpan={4} className="px-4 py-6 text-center text-[rgb(var(--muted))]">
                   Laedt Organisationen...
                 </td>
               </tr>
             )}
             {!loading && data?.items?.length === 0 && (
               <tr>
-                <td colSpan={4} className="px-4 py-6 text-center text-slate-500">
+                <td colSpan={4} className="px-4 py-6 text-center text-[rgb(var(--muted))]">
                   Keine Organisationen gefunden.
                 </td>
               </tr>
@@ -195,31 +195,31 @@ export default function AdminOrgsPage() {
                   <td className="px-4 py-3">
                     <Link
                       href={`/admin/orgs/${org.id}`}
-                      className="font-semibold text-slate-900 hover:underline"
+                      className="font-semibold text-[rgb(var(--fg))] hover:underline"
                     >
                       {org.name}
                     </Link>
                   </td>
-                  <td className="px-4 py-3 text-slate-600">{org.slug || "—"}</td>
+                  <td className="px-4 py-3 text-[rgb(var(--muted))]">{org.slug || "—"}</td>
                   <td className="px-4 py-3">
                     <span
                       className={`rounded-full px-2 py-1 text-xs font-semibold ${
-                        org.archivedAt ? "bg-slate-100 text-slate-500" : "bg-emerald-100 text-emerald-800"
+                        org.archivedAt ? "bg-[rgb(var(--bg))] text-[rgb(var(--muted))]" : "bg-emerald-100 text-emerald-800"
                       }`}
                     >
                       {org.archivedAt ? "archiviert" : "aktiv"}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-slate-600">{org.updatedAt?.slice(0, 10) ?? "—"}</td>
+                  <td className="px-4 py-3 text-[rgb(var(--muted))]">{org.updatedAt?.slice(0, 10) ?? "—"}</td>
                 </tr>
               ))}
           </tbody>
         </table>
       </div>
 
-      <div className="flex items-center justify-between text-xs text-slate-500">
+      <div className="flex items-center justify-between text-xs text-[rgb(var(--muted))]">
         <button
-          className="rounded-full border border-slate-200 px-3 py-1 disabled:opacity-50"
+          className="rounded-full border border-[rgb(var(--border))] px-3 py-1 disabled:opacity-50"
           disabled={page <= 1}
           onClick={() => setPage((prev) => Math.max(1, prev - 1))}
         >
@@ -229,7 +229,7 @@ export default function AdminOrgsPage() {
           Seite {page} / {totalPages}
         </span>
         <button
-          className="rounded-full border border-slate-200 px-3 py-1 disabled:opacity-50"
+          className="rounded-full border border-[rgb(var(--border))] px-3 py-1 disabled:opacity-50"
           disabled={page >= totalPages}
           onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
         >

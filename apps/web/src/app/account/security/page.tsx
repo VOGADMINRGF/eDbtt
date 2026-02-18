@@ -84,17 +84,17 @@ export default function SecurityPage() {
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-6 p-6">
       <header className="space-y-2">
-        <h1 className="text-2xl font-semibold text-slate-900">Sicherheit &amp; 2-Faktor</h1>
-        <p className="text-sm text-slate-600">
+        <h1 className="text-2xl font-semibold text-[rgb(var(--fg))]">Sicherheit &amp; 2-Faktor</h1>
+        <p className="text-sm text-[rgb(var(--muted))]">
           Hier kannst du eine Zwei-Faktor-Authentifizierung mit einer Authenticator-App einrichten
           (z.B. FreeOTP, Microsoft Authenticator, 1Password, …).
         </p>
       </header>
 
-      <section className="space-y-4 rounded-3xl border border-slate-200 bg-white/90 p-6 shadow-sm">
-        <h2 className="text-lg font-semibold text-slate-900">Authenticator-App (TOTP)</h2>
+      <section className="space-y-4 rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-6 shadow-sm">
+        <h2 className="text-lg font-semibold text-[rgb(var(--fg))]">Authenticator-App (TOTP)</h2>
 
-        {loading && <p className="text-sm text-slate-600">Status wird geladen …</p>}
+        {loading && <p className="text-sm text-[rgb(var(--muted))]">Status wird geladen …</p>}
 
         {totp.status === "success" && status.enabled && (
           <div className="rounded-2xl bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
@@ -113,16 +113,16 @@ export default function SecurityPage() {
           </button>
         )}
 
-        {totp.status === "loading" && <p className="text-sm text-slate-600">Starte …</p>}
+        {totp.status === "loading" && <p className="text-sm text-[rgb(var(--muted))]">Starte …</p>}
 
         {(totp.status === "ready" || totp.status === "verifying") && (
           <div className="space-y-4">
-            <p className="text-sm text-slate-600">
+            <p className="text-sm text-[rgb(var(--muted))]">
               1. Öffne deine Authenticator-App und füge einen neuen Eintrag hinzu. <br />
               2. Wähle &quot;Manuell hinzufügen&quot; und trage <strong>Secret</strong> und{" "}
               <strong>Issuer</strong> ein.
             </p>
-            <div className="rounded-xl bg-slate-50 p-3 text-xs font-mono text-slate-700">
+            <div className="rounded-xl bg-[rgb(var(--bg))] p-3 text-xs font-mono text-[rgb(var(--muted))]">
               <div>Issuer: {("issuer" in totp ? totp.issuer : "eDebatte")}</div>
               {totp.status === "ready" && "secret" in totp && (
                 <div className="mt-1 break-all">Secret: {totp.secret}</div>
@@ -131,7 +131,7 @@ export default function SecurityPage() {
             {/* Wenn du magst: später QR-Code aus `otpauth` bauen */}
 
             <form onSubmit={verifyTotp} className="space-y-3">
-              <label className="block text-sm text-slate-700">
+              <label className="block text-sm text-[rgb(var(--muted))]">
                 3. Gib den 6-stelligen Code aus der App ein:
               </label>
               <input

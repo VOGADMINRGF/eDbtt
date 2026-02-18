@@ -69,10 +69,10 @@ const primaryChipClass =
   "inline-flex items-center rounded-full bg-gradient-to-r from-sky-500 via-cyan-500 to-emerald-500 px-3 py-1.5 text-[11px] font-semibold text-white shadow-[0_8px_22px_rgba(14,116,144,0.35)] transition hover:brightness-105 focus:outline-none focus:ring-2 focus:ring-sky-200";
 
 const secondaryChipClass =
-  "inline-flex items-center rounded-full bg-[rgb(var(--card))] px-3 py-1.5 text-[11px] font-semibold text-slate-800 shadow-sm ring-1 ring-slate-200 transition hover:bg-[rgb(var(--card))] focus:outline-none focus:ring-2 focus:ring-sky-200";
+  "inline-flex items-center rounded-full bg-[rgb(var(--card))] px-3 py-1.5 text-[11px] font-semibold text-[rgb(var(--fg))] shadow-sm ring-1 ring-[rgb(var(--border))] transition hover:bg-[rgb(var(--card))] focus:outline-none focus:ring-2 focus:ring-sky-200";
 
 const subtleTextLinkClass =
-  "text-[11px] font-medium text-slate-500 underline-offset-2 hover:text-[rgb(var(--fg))] hover:underline";
+  "text-[11px] font-medium text-[rgb(var(--muted))] underline-offset-2 hover:text-[rgb(var(--fg))] hover:underline";
 
 function isInteractiveTarget(target: EventTarget | null) {
   if (!(target instanceof Element)) return false;
@@ -475,7 +475,7 @@ export function SwipesClient({ edebattePackage, initialTopic = "", focusStatemen
             </div>
           )}
           {loading ? (
-            <div className="rounded-3xl bg-[rgb(var(--bg))] p-4 text-sm text-slate-500 ring-1 ring-dashed ring-slate-200">Lade Swipes …</div>
+            <div className="rounded-3xl bg-[rgb(var(--bg))] p-4 text-sm text-[rgb(var(--muted))] ring-1 ring-dashed ring-[rgb(var(--border))]">Lade Swipes …</div>
           ) : filteredSwipes.length === 0 ? (
             <EmptyState
               message="Diese Swipe-Karte wurde nicht gefunden oder ist nicht freigeschaltet."
@@ -501,7 +501,7 @@ export function SwipesClient({ edebattePackage, initialTopic = "", focusStatemen
               </div>
             )}
             {loading ? (
-              <div className="rounded-3xl bg-[rgb(var(--bg))] p-4 text-sm text-slate-500 ring-1 ring-dashed ring-slate-200">Lade Swipes …</div>
+              <div className="rounded-3xl bg-[rgb(var(--bg))] p-4 text-sm text-[rgb(var(--muted))] ring-1 ring-dashed ring-[rgb(var(--border))]">Lade Swipes …</div>
             ) : filteredSwipes.length === 0 ? (
               <EmptyState />
             ) : (
@@ -526,11 +526,11 @@ export function SwipesClient({ edebattePackage, initialTopic = "", focusStatemen
 
 function SoloHeader({ statementId }: { statementId?: string }) {
   return (
-    <header className="flex items-center justify-between gap-3 rounded-3xl bg-[rgb(var(--card))] px-4 py-3 shadow-[0_12px_40px_rgba(15,23,42,0.08)] ring-1 ring-slate-100">
+    <header className="flex items-center justify-between gap-3 rounded-3xl bg-[rgb(var(--card))] px-4 py-3 shadow-[0_12px_40px_rgba(15,23,42,0.08)] ring-1 ring-[rgb(var(--border))]">
       <Link href="/swipes" className={secondaryChipClass}>
         Alle Swipes anzeigen
       </Link>
-      {statementId && <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Karte #{statementId}</span>}
+      {statementId && <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[rgb(var(--muted))]">Karte #{statementId}</span>}
     </header>
   );
 }
@@ -577,17 +577,17 @@ function SwipesHeader({ edebattePackage, isBasic, isStartOrPro }: SwipesHeaderPr
           Profil
         </Link>
       </div>
-      <p className="flex flex-wrap items-center gap-2 text-[11px] text-slate-500">
+      <p className="flex flex-wrap items-center gap-2 text-[11px] text-[rgb(var(--muted))]">
         <span>
-          Aktiver Modus: <span className="font-semibold text-slate-800">{pkgLabel}</span>
+          Aktiver Modus: <span className="font-semibold text-[rgb(var(--fg))]">{pkgLabel}</span>
         </span>
         {isBasic && <span>· Du siehst einen offenen Stream. In eDebatte Start kannst du gezielt nach Themen suchen und Varianten vergleichen.</span>}
         {isStartOrPro && <span>· Nutze Suche &amp; Filter, um Themen wie <em>„Badeverbot Hunde“</em> oder <em>„Pflegepersonal“</em> zu vertiefen.</span>}
       </p>
-      <p className="text-[11px] text-slate-500">
+      <p className="text-[11px] text-[rgb(var(--muted))]">
         Eventualitaeten stehen dir in eDebatte Start/Pro sowie in B2B/B2G-Paketen vollstaendig zur Verfuegung.
       </p>
-      <p className="text-[11px] text-slate-500">
+      <p className="text-[11px] text-[rgb(var(--muted))]">
         Hinweis: Ziehen/Wischen links = Ablehnen, rechts = Zustimmen. Pfeil hoch oder runter (oder Button) = Neutral. Tippen/Klicken auf eine Karte öffnet das Dossier.
       </p>
     </header>
@@ -606,7 +606,7 @@ type SwipesToolbarProps = {
 
 function SwipesToolbar({ topicQuery, onTopicChange, activeLevel, onLevelChange, isBasic }: SwipesToolbarProps) {
   return (
-    <section className="flex flex-col gap-3 rounded-3xl bg-[rgb(var(--card))] p-3 shadow-[0_18px_55px_rgba(15,23,42,0.08)] ring-1 ring-slate-100 md:flex-row md:items-center md:justify-between md:p-4">
+    <section className="flex flex-col gap-3 rounded-3xl bg-[rgb(var(--card))] p-3 shadow-[0_18px_55px_rgba(15,23,42,0.08)] ring-1 ring-[rgb(var(--border))] md:flex-row md:items-center md:justify-between md:p-4">
       <div className="flex-1">
         <label className="block text-[11px] font-medium text-[rgb(var(--muted))]">Thema oder Stichwort</label>
         <div className="mt-1 flex items-center gap-2">
@@ -617,7 +617,7 @@ function SwipesToolbar({ topicQuery, onTopicChange, activeLevel, onLevelChange, 
             placeholder={isBasic ? "Themensuche in eDebatte Start freischalten …" : "z.B. Badeverbot Hunde, Pflegepersonal, Klimaschutz"}
             disabled={isBasic}
             className={`w-full rounded-full border px-3 py-1.5 text-sm text-[rgb(var(--fg))] focus:outline-none focus:ring-2 focus:ring-sky-200 ${
-              isBasic ? "cursor-not-allowed border-[rgb(var(--border))] bg-[rgb(var(--bg))] text-slate-400" : "border-[rgb(var(--border))] bg-[rgb(var(--bg))] hover:bg-[rgb(var(--card))]"
+              isBasic ? "cursor-not-allowed border-[rgb(var(--border))] bg-[rgb(var(--bg))] text-[rgb(var(--muted))]" : "border-[rgb(var(--border))] bg-[rgb(var(--bg))] hover:bg-[rgb(var(--card))]"
             }`}
           />
           {isBasic ? (
@@ -644,7 +644,7 @@ function SwipesToolbar({ topicQuery, onTopicChange, activeLevel, onLevelChange, 
               className={
                 isActive
                   ? "inline-flex items-center rounded-full bg-slate-900 px-3 py-1.5 text-[11px] font-semibold text-white shadow-sm"
-                  : "inline-flex items-center rounded-full bg-slate-100 px-3 py-1.5 text-[11px] font-medium text-[rgb(var(--muted))] hover:bg-slate-200"
+                  : "inline-flex items-center rounded-full bg-[rgb(var(--bg))] px-3 py-1.5 text-[11px] font-medium text-[rgb(var(--muted))] hover:bg-[rgb(var(--bg))]"
               }
             >
               {level === "ALL" ? "Alle" : level}
@@ -667,18 +667,18 @@ type EventualitiesPanelProps = {
 function EventualitiesPanel({ selectedSwipe, eventualities, isBasic }: EventualitiesPanelProps) {
   if (!selectedSwipe) {
     return (
-      <aside className="rounded-3xl bg-slate-900 text-slate-50 p-4 shadow-[0_22px_65px_rgba(15,23,42,0.65)] ring-1 ring-slate-800">
+      <aside className="rounded-3xl bg-slate-900 text-slate-50 p-4 shadow-[0_22px_65px_rgba(15,23,42,0.65)] ring-1 ring-[rgb(var(--border))]">
         <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-sky-400">Eventualitäten</p>
         <h3 className="mt-2 text-sm font-semibold text-white">Varianten zu deinen Swipes</h3>
         <p className="mt-2 text-[11px] text-slate-300">Wähle links eine Karte mit Eventualitäten aus, um alternative Vorschläge und Varianten zu sehen.</p>
-        {isBasic && <p className="mt-3 text-[11px] text-slate-400">In eDebatte Start kannst du verschiedene Varianten direkt gegeneinander abwägen und bewerten.</p>}
+        {isBasic && <p className="mt-3 text-[11px] text-[rgb(var(--muted))]">In eDebatte Start kannst du verschiedene Varianten direkt gegeneinander abwägen und bewerten.</p>}
       </aside>
     );
   }
 
   if (!eventualities || eventualities.length === 0) {
     return (
-      <aside className="rounded-3xl bg-slate-900 text-slate-50 p-4 shadow-[0_22px_65px_rgba(15,23,42,0.65)] ring-1 ring-slate-800">
+      <aside className="rounded-3xl bg-slate-900 text-slate-50 p-4 shadow-[0_22px_65px_rgba(15,23,42,0.65)] ring-1 ring-[rgb(var(--border))]">
         <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-sky-400">Eventualitäten</p>
         <h3 className="mt-2 text-sm font-semibold text-white">{selectedSwipe.title}</h3>
         <p className="mt-2 text-[11px] text-slate-300">Für dieses Statement sind noch keine Eventualitäten erfasst.</p>
@@ -687,7 +687,7 @@ function EventualitiesPanel({ selectedSwipe, eventualities, isBasic }: Eventuali
   }
 
   return (
-    <aside className="rounded-3xl bg-slate-900 text-slate-50 p-4 shadow-[0_22px_65px_rgba(15,23,42,0.65)] ring-1 ring-slate-800">
+    <aside className="rounded-3xl bg-slate-900 text-slate-50 p-4 shadow-[0_22px_65px_rgba(15,23,42,0.65)] ring-1 ring-[rgb(var(--border))]">
       <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-sky-400">Eventualitäten</p>
       <h3 className="mt-2 text-sm font-semibold text-white">Varianten zu:</h3>
       <p className="mt-1 text-[11px] text-slate-200">{selectedSwipe.title}</p>
@@ -698,9 +698,9 @@ function EventualitiesPanel({ selectedSwipe, eventualities, isBasic }: Eventuali
         ))}
       </div>
 
-      <p className="mt-3 text-[10px] text-slate-400">Du kannst jede Eventualität separat bewerten. Später können daraus konkrete Szenarien und Beschlussvarianten gebaut werden.</p>
+      <p className="mt-3 text-[10px] text-[rgb(var(--muted))]">Du kannst jede Eventualität separat bewerten. Später können daraus konkrete Szenarien und Beschlussvarianten gebaut werden.</p>
       {isBasic && (
-        <p className="mt-2 text-[10px] text-slate-400">
+        <p className="mt-2 text-[10px] text-[rgb(var(--muted))]">
           In eDebatte Start fließen deine Bewertungen direkt in Entscheidungsvarianten ein.{" "}
           <Link href="/pricing" className="underline">
             Mehr zu Paketen & Preisen
@@ -736,7 +736,7 @@ function EventualityRow({ eventuality, statementId }: EventualityRowProps) {
         <button
           type="button"
           onClick={() => handleDecision("neutral")}
-          className="inline-flex flex-[0.9] items-center justify-center rounded-full bg-slate-700 px-2 py-1 text-[10px] font-semibold text-slate-50 hover:bg-slate-600 focus:outline-none focus:ring-1 focus:ring-slate-400"
+          className="inline-flex flex-[0.9] items-center justify-center rounded-full bg-slate-700 px-2 py-1 text-[10px] font-semibold text-slate-50 hover:bg-slate-600 focus:outline-none focus:ring-1 focus:ring-[rgb(var(--border))]"
         >
           Unentschieden
         </button>
@@ -772,7 +772,7 @@ function MobileEventualitiesOverlay({ selectedSwipe, eventualities, isBasic, onC
 
   return (
     <div className="fixed inset-0 z-40 flex items-end bg-slate-900/40 px-2 pb-4 backdrop-blur-sm md:hidden">
-      <div className="w-full max-h-[75vh] rounded-3xl bg-slate-900 p-4 text-slate-50 shadow-[0_32px_90px_rgba(15,23,42,0.6)] ring-1 ring-slate-700">
+      <div className="w-full max-h-[75vh] rounded-3xl bg-slate-900 p-4 text-slate-50 shadow-[0_32px_90px_rgba(15,23,42,0.6)] ring-1 ring-[rgb(var(--border))]">
         <div className="mb-2 flex items-center justify-between gap-2">
           <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-sky-400">Eventualitäten</p>
           <button
@@ -784,7 +784,7 @@ function MobileEventualitiesOverlay({ selectedSwipe, eventualities, isBasic, onC
           </button>
         </div>
         <p className="text-[11px] text-slate-200">{selectedSwipe.title}</p>
-        {isBasic && <p className="mt-2 text-[11px] text-slate-400">In eDebatte Start kannst du verschiedene Varianten direkt gegeneinander abwägen. Aktuell siehst du nur eine Vorschau.</p>}
+        {isBasic && <p className="mt-2 text-[11px] text-[rgb(var(--muted))]">In eDebatte Start kannst du verschiedene Varianten direkt gegeneinander abwägen. Aktuell siehst du nur eine Vorschau.</p>}
         <div className="mt-3 space-y-2 overflow-y-auto pr-1">
           {eventualities.map((evt) => (
             <EventualityRow key={evt.id} eventuality={evt} statementId={selectedSwipe.id} />
@@ -799,7 +799,7 @@ function MobileEventualitiesOverlay({ selectedSwipe, eventualities, isBasic, onC
 
 function EmptyState({ message, ctaHref, ctaLabel }: { message?: string; ctaHref?: string; ctaLabel?: string }) {
   return (
-    <div className="rounded-3xl bg-[rgb(var(--bg))] p-4 text-sm text-slate-500 ring-1 ring-dashed ring-slate-200">
+    <div className="rounded-3xl bg-[rgb(var(--bg))] p-4 text-sm text-[rgb(var(--muted))] ring-1 ring-dashed ring-[rgb(var(--border))]">
       {message ?? "Aktuell gibt es zu deiner Auswahl keine Swipes. Probiere einen anderen Suchbegriff, eine andere Ebene – oder entdecke neue Themen auf der Startseite."}
       {ctaHref && ctaLabel && (
         <div className="mt-2">

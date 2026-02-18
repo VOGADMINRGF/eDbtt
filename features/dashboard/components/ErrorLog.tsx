@@ -29,7 +29,7 @@ interface ErrorEntry {
   
   export default function ErrorLog() {
     return (
-      <table className="w-full text-left border border-gray-200 bg-white rounded-xl shadow">
+      <table className="w-full text-left border border-gray-200 bg-[rgb(var(--card))] rounded-xl shadow">
         <thead>
           <tr className="bg-gray-50">
             <th className="px-4 py-2">Code</th>

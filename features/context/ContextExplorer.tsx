@@ -197,7 +197,7 @@ export default function ContextExplorer({
   }
 
   return (
-    <div className="w-full rounded-2xl border border-gray-200 bg-white">
+    <div className="w-full rounded-2xl border border-gray-200 bg-[rgb(var(--card))]">
       {/* Header */}
       <div className="flex items-center gap-2 border-b border-gray-200 p-3">
         <h3 className="text-sm font-semibold tracking-tight">Kontext-Explorer</h3>

@@ -169,7 +169,7 @@ export default function DossierPage() {
     "text-base font-semibold text-transparent bg-clip-text bg-gradient-to-r from-sky-800 via-cyan-700 to-teal-700";
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-[var(--brand-from)] via-white to-white pb-16">
+    <main className="min-h-screen bg-[rgb(var(--bg))] pb-16">
       <section className="mx-auto max-w-5xl px-4 py-16 space-y-10">
         <header className="space-y-4">
           <p className="text-xs font-semibold uppercase tracking-wide text-sky-700">
@@ -178,9 +178,9 @@ export default function DossierPage() {
           <h1 className="headline-grad text-4xl font-extrabold leading-tight">
             {text(hero, "title")}
           </h1>
-          <p className="text-lg text-slate-700">{text(hero, "lead")}</p>
+          <p className="text-lg text-[rgb(var(--muted))]">{text(hero, "lead")}</p>
 
-          <div className="flex flex-wrap gap-2 text-xs font-medium text-slate-700">
+          <div className="flex flex-wrap gap-2 text-xs font-medium text-[rgb(var(--muted))]">
             {heroChips.map((chip, idx) => (
               <span
                 key={chip}
@@ -202,7 +202,7 @@ export default function DossierPage() {
           </div>
         </header>
 
-        <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white/90 shadow-sm">
+        <div className="overflow-hidden rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] shadow-sm">
           <div className="aspect-[16/9]">
             <img
               src={heroImage.src}
@@ -215,9 +215,9 @@ export default function DossierPage() {
 
         <section className="grid gap-4 md:grid-cols-2">
           {introBlocks.map((block) => (
-            <article key={block.id} className="rounded-2xl border border-slate-200 bg-white/90 p-4 shadow-sm">
+            <article key={block.id} className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm">
               <h2 className={sectionTitleClass}>{text(block, "title")}</h2>
-              <p className="mt-2 text-sm text-slate-700">{text(block, "body")}</p>
+              <p className="mt-2 text-sm text-[rgb(var(--muted))]">{text(block, "body")}</p>
             </article>
           ))}
         </section>
@@ -226,8 +226,8 @@ export default function DossierPage() {
           <h2 className={sectionTitleClass}>{text(visuals, "title")}</h2>
           <div className="grid gap-4 md:grid-cols-2">
             {visuals.items_de.map((v, idx) => (
-              <article key={v.title} className="rounded-2xl border border-slate-200 bg-white/90 p-4 shadow-sm">
-                <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
+              <article key={v.title} className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm">
+                <div className="overflow-hidden rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))]">
                   <img
                     src={v.imgSrc}
                     alt={t(v.imgAlt, `visuals.${idx}.alt`)}
@@ -235,10 +235,10 @@ export default function DossierPage() {
                     loading="lazy"
                   />
                 </div>
-                <h3 className="mt-3 text-sm font-semibold text-slate-900">
+                <h3 className="mt-3 text-sm font-semibold text-[rgb(var(--fg))]">
                   {t(v.title, `visuals.${idx}.title`)}
                 </h3>
-                <p className="mt-1 text-sm text-slate-700">
+                <p className="mt-1 text-sm text-[rgb(var(--muted))]">
                   {t(v.body, `visuals.${idx}.body`)}
                 </p>
               </article>
@@ -247,17 +247,17 @@ export default function DossierPage() {
         </section>
 
         <section className="grid gap-4 md:grid-cols-2">
-          <article className="rounded-2xl border border-slate-200 bg-white/90 p-4 shadow-sm">
+          <article className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm">
             <h2 className={sectionTitleClass}>{text(features, "title")}</h2>
-            <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-slate-700">
+            <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-[rgb(var(--muted))]">
               {features.items_de.map((item, idx) => (
                 <li key={item}>{t(item, `features.${idx}`)}</li>
               ))}
             </ul>
           </article>
-          <article className="rounded-2xl border border-slate-200 bg-white/90 p-4 shadow-sm">
+          <article className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm">
             <h2 className={sectionTitleClass}>{text(outputs, "title")}</h2>
-            <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-slate-700">
+            <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-[rgb(var(--muted))]">
               {outputs.items_de.map((item, idx) => (
                 <li key={item}>{t(item, `outputs.${idx}`)}</li>
               ))}
@@ -266,19 +266,19 @@ export default function DossierPage() {
         </section>
 
         <section className="grid gap-4 md:grid-cols-2">
-          <article className="rounded-2xl border border-slate-200 bg-white/90 p-4 shadow-sm">
+          <article className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm">
             <h2 className={sectionTitleClass}>{text(safeguards, "title")}</h2>
-            <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-slate-700">
+            <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-[rgb(var(--muted))]">
               {safeguards.items_de.map((item, idx) => (
                 <li key={item}>{t(item, `safeguards.${idx}`)}</li>
               ))}
             </ul>
           </article>
-          <article className="rounded-2xl border border-slate-200 bg-white/90 p-4 shadow-sm">
+          <article className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm">
             <h2 className={sectionTitleClass}>{text(example, "title")}</h2>
-            <p className="mt-2 text-sm text-slate-700">{text(example, "body")}</p>
+            <p className="mt-2 text-sm text-[rgb(var(--muted))]">{text(example, "body")}</p>
 
-            <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600">
+            <div className="mt-4 rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3 text-xs text-[rgb(var(--muted))]">
               {t(
                 "Hinweis: Ein Dossier ist kein Wahrheitsurteil. Es zeigt transparent, was belegt ist – und was noch offen bleibt.",
                 "note.dossier",
@@ -287,10 +287,10 @@ export default function DossierPage() {
           </article>
         </section>
 
-        <section className="rounded-2xl border border-slate-200 bg-white/90 p-4 shadow-sm">
+        <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm">
           <h2 className={sectionTitleClass}>{text(roadmap, "title")}</h2>
-          <p className="mt-2 text-sm text-slate-700">{text(roadmap, "body")}</p>
-          <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-slate-700">
+          <p className="mt-2 text-sm text-[rgb(var(--muted))]">{text(roadmap, "body")}</p>
+          <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-[rgb(var(--muted))]">
             {roadmap.items.map((item) => (
               <li key={item.id}>
                 <span>{text(item, "label")}</span>

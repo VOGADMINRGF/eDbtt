@@ -8,7 +8,7 @@ const STEPS: { id: StepId; title: string; subtitle: string }[] = [
 
 export function RegisterStepper({ current }: { current: StepId }) {
   return (
-    <div className="rounded-3xl border border-slate-200 bg-white/80 p-4 shadow-sm">
+    <div className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm">
       <div className="grid gap-3 md:grid-cols-3">
         {STEPS.map((step) => {
           const active = step.id === current;
@@ -19,13 +19,13 @@ export function RegisterStepper({ current }: { current: StepId }) {
               key={step.id}
               className={[
                 "rounded-2xl border px-4 py-3",
-                active ? "border-sky-300 bg-sky-50" : done ? "border-emerald-200 bg-emerald-50/40" : "border-slate-200 bg-white",
+                active ? "border-sky-300 bg-sky-50" : done ? "border-emerald-200 bg-emerald-50/40" : "border-[rgb(var(--border))] bg-[rgb(var(--card))]",
               ].join(" ")}
             >
-              <p className="text-[11px] font-semibold tracking-[0.18em] text-slate-500">
+              <p className="text-[11px] font-semibold tracking-[0.18em] text-[rgb(var(--muted))]">
                 SCHRITT {step.id} / {STEPS.length} · {step.title}
               </p>
-              <p className="mt-1 text-sm font-semibold text-slate-900">{step.subtitle}</p>
+              <p className="mt-1 text-sm font-semibold text-[rgb(var(--fg))]">{step.subtitle}</p>
             </div>
           );
         })}

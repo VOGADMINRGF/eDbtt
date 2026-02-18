@@ -45,24 +45,30 @@ const TRACE_MODE_STYLE: Record<
 > = {
   verbatim: {
     label: "Wörtlich",
-    chipClass: "bg-sky-50 text-sky-700 ring-sky-100",
-    markClass: "bg-sky-100 text-slate-900 ring-sky-200/60",
+    chipClass:
+      "bg-sky-50 text-sky-700 ring-sky-100 dark:bg-sky-500/15 dark:text-sky-200 dark:ring-sky-400/30",
+    markClass:
+      "bg-sky-100 text-[rgb(var(--fg))] ring-sky-200/60 dark:bg-sky-500/20 dark:text-sky-100 dark:ring-sky-400/30",
   },
   paraphrase: {
     label: "Paraphrase",
-    chipClass: "bg-amber-50 text-amber-700 ring-amber-100",
-    markClass: "bg-amber-100 text-slate-900 ring-amber-200/60",
+    chipClass:
+      "bg-amber-50 text-amber-700 ring-amber-100 dark:bg-amber-500/15 dark:text-amber-200 dark:ring-amber-400/30",
+    markClass:
+      "bg-amber-100 text-[rgb(var(--fg))] ring-amber-200/60 dark:bg-amber-500/20 dark:text-amber-100 dark:ring-amber-400/30",
   },
   inference: {
     label: "Ableitung",
-    chipClass: "bg-rose-50 text-rose-700 ring-rose-100",
-    markClass: "bg-rose-100 text-slate-900 ring-rose-200/60",
+    chipClass:
+      "bg-rose-50 text-rose-700 ring-rose-100 dark:bg-rose-500/15 dark:text-rose-200 dark:ring-rose-400/30",
+    markClass:
+      "bg-rose-100 text-[rgb(var(--fg))] ring-rose-200/60 dark:bg-rose-500/20 dark:text-rose-100 dark:ring-rose-400/30",
   },
 };
 
 function TinyPill({
   children,
-  className = "ring-slate-200 text-slate-700",
+  className = "ring-[rgb(var(--border))] text-[rgb(var(--muted))]",
 }: {
   children: React.ReactNode;
   className?: string;
@@ -116,7 +122,7 @@ const FLOW_OPTIONS = [
     label: "Editorial",
     description: "Tiefe Einordnung, Wirkung, Knoten und fertige Redaktion.",
     defaultLevel: 4 as 1 | 2 | 3 | 4,
-    maxClaims: 12,
+    maxClaims: 30,
     openPanels: {
       notes: true,
       questions: true,
@@ -128,91 +134,6 @@ const FLOW_OPTIONS = [
     allowTrace: true,
     allowResearch: true,
   },
-] as const;
-
-const ACTION_VERBS = [
-  "soll",
-  "sollte",
-  "muss",
-  "fordern",
-  "abschaffen",
-  "einfuehren",
-  "erhoehen",
-  "senken",
-  "foerdern",
-  "verbieten",
-  "erlauben",
-  "regeln",
-  "investieren",
-  "ausbauen",
-  "reformieren",
-  "reduzieren",
-  "starken",
-  "stutzen",
-  "kuerzen",
-];
-
-const ACTOR_HINTS = [
-  "regierung",
-  "bund",
-  "land",
-  "kommune",
-  "stadt",
-  "gemeinde",
-  "parlament",
-  "bundestag",
-  "eu",
-  "ministerium",
-  "behoerde",
-  "agentur",
-  "unternehmen",
-  "verband",
-  "buerger",
-  "buergerinnen",
-];
-
-const TIME_HINTS = [
-  "bis",
-  "ab",
-  "seit",
-  "jahr",
-  "monat",
-  "woche",
-  "tag",
-  "frist",
-  "sofort",
-  "heute",
-  "morgen",
-  "naechst",
-  "quartal",
-  "halbjahr",
-  "202",
-  "203",
-];
-
-const EVIDENCE_HINTS = [
-  "laut",
-  "studie",
-  "bericht",
-  "statistik",
-  "daten",
-  "quelle",
-  "beleg",
-  "analyse",
-  "umfrage",
-  "fakten",
-];
-
-const TOPIC_HINTS = [
-  { label: "Klima & Energie", keywords: ["klima", "co2", "energie", "strom", "gas", "erneuerbar", "emission"] },
-  { label: "Gesundheit & Pflege", keywords: ["gesund", "krankenhaus", "pflege", "medizin", "patient"] },
-  { label: "Bildung", keywords: ["schule", "bildung", "uni", "hochschule", "kita", "lehr"] },
-  { label: "Wirtschaft", keywords: ["wirtschaft", "unternehmen", "arbeit", "lohn", "steuer", "inflation", "preise", "markt"] },
-  { label: "Soziales & Wohnen", keywords: ["rente", "sozial", "wohnung", "miete", "familie", "kind"] },
-  { label: "Demokratie & Medien", keywords: ["demokr", "parlament", "wahl", "medien", "presse", "lobby", "transparenz"] },
-  { label: "Sicherheit", keywords: ["polizei", "sicherheit", "kriminal", "terror", "verteidigung", "bundeswehr"] },
-  { label: "Migration", keywords: ["migration", "flucht", "asyl", "integration", "grenze"] },
-  { label: "Digitales", keywords: ["digital", "daten", "ki", "algorithmus", "plattform", "cyber", "it", "online"] },
 ] as const;
 
 type FlowId = (typeof FLOW_OPTIONS)[number]["id"];
@@ -310,6 +231,16 @@ type ProviderMatrixEntry = {
   reason?: string | null;
 };
 
+export type UseCaseId = "civic" | "journalism" | "agenda";
+
+export type UseCaseAccess = {
+  allowed: UseCaseId[];
+  note?: string;
+  lockLabels?: Partial<Record<UseCaseId, string>>;
+  ctaHref?: string;
+  ctaLabel?: string;
+};
+
 type AnalyzeWorkspaceProps = {
   mode: "contribution" | "statement";
   defaultLevel?: 1 | 2 | 3 | 4;
@@ -321,6 +252,8 @@ type AnalyzeWorkspaceProps = {
   verificationLevel?: VerificationLevel;
   verificationStatus?: "loading" | "ok" | "login_required" | "error";
   initialText?: string;
+  authorName?: string | null;
+  useCaseAccess?: UseCaseAccess;
 };
 
 const BASE_STEPS: AnalyzeStepState[] = [
@@ -337,6 +270,8 @@ type DraftStorage = {
   localDraftId?: string | null;
   savedAt?: string | null;
   evidenceInput?: string | null;
+  authorName?: string | null;
+  useCase?: UseCaseId;
 };
 
 function mapAiNoteToSection(raw: any, idx: number): NoteSection | null {
@@ -446,6 +381,26 @@ function dedupeQuestions(qs: QuestionCard[]): QuestionCard[] {
   return out;
 }
 
+function normalizeStatementKey(text: string) {
+  return text
+    .toLowerCase()
+    .replace(/[^a-z0-9äöüß]+/gi, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function dedupeStatements(items: StatementEntry[]): StatementEntry[] {
+  const seen = new Set<string>();
+  const out: StatementEntry[] = [];
+  for (const item of items) {
+    const key = normalizeStatementKey(item.text || "");
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    out.push(item);
+  }
+  return out;
+}
+
 function computeStepStatesFromData(params: {
   notes: NoteSection[];
   statements: StatementEntry[];
@@ -503,31 +458,6 @@ function prepareText(raw: string): { original: string; prepared: string; ratio: 
   const ratio =
     original.length > 0 ? Math.max(0, Math.round(((original.length - prepared.length) / original.length) * 100)) : 0;
   return { original, prepared, ratio };
-}
-
-function detectTopics(text: string) {
-  if (!text) return [];
-  const lower = text.toLowerCase();
-  return TOPIC_HINTS.filter((topic) => topic.keywords.some((kw) => lower.includes(kw))).map((topic) => topic.label);
-}
-
-function buildCommunityPrompt(params: {
-  preparedText: string;
-  report: any;
-  statements: StatementEntry[];
-  questions: QuestionCard[];
-}) {
-  const questionFromAi = params.questions[0]?.body?.trim();
-  if (questionFromAi) return questionFromAi;
-  const primaryStatement = params.statements[0]?.text?.trim();
-  if (primaryStatement) return `Wie bewertet ihr die Aussage: "${primaryStatement}"?`;
-  const summary =
-    params.report && typeof params.report.summary === "string" ? params.report.summary.trim() : "";
-  if (summary) return `Welche Perspektive fehlt in dieser Einordnung: "${summary}"?`;
-  if (params.preparedText.trim()) {
-    return "Welche Perspektiven oder Fakten fehlen hier? Wer sollte gehoert werden?";
-  }
-  return "";
 }
 
 function buildArticleDraft(params: {
@@ -601,6 +531,26 @@ function defaultFlowForLevel(level?: number): FlowId {
   return "editorial";
 }
 
+function countWords(text: string) {
+  const trimmed = text.trim();
+  return trimmed ? trimmed.split(/\s+/).length : 0;
+}
+
+function countSentences(text: string) {
+  const trimmed = text.trim();
+  return trimmed ? trimmed.split(/[.!?]+/).filter((s) => s.trim().length > 0).length : 0;
+}
+
+function inferFlowFromText(preparedText: string): FlowId {
+  const trimmed = preparedText.trim();
+  if (!trimmed) return "express";
+  const words = countWords(trimmed);
+  const sentences = countSentences(trimmed);
+  if (words >= 220 || sentences >= 10) return "editorial";
+  if (words >= 80 || sentences >= 4) return "guided";
+  return "express";
+}
+
 function hashLocalDraft(text: string) {
   let hash = 0;
   for (let i = 0; i < text.length; i += 1) {
@@ -624,7 +574,7 @@ function InlineEditableText({ value, onChange }: { value: string; onChange: (v: 
         <button
           type="button"
           onClick={() => setIsEditing(true)}
-          className="rounded-full border border-slate-200 px-3 py-1 text-[11px] font-semibold text-slate-600 hover:border-slate-300"
+          className="rounded-full border border-[rgb(var(--border))] px-3 py-1 text-[11px] font-semibold text-[rgb(var(--muted))] hover:border-[rgb(var(--border))]"
         >
           Statement bearbeiten
         </button>
@@ -640,12 +590,12 @@ function InlineEditableText({ value, onChange }: { value: string; onChange: (v: 
   return (
     <div className="space-y-2">
       <textarea
-        className="w-full rounded-lg border border-sky-200 bg-white px-3 py-2 text-sm leading-relaxed text-slate-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-sky-300"
+        className="w-full rounded-lg border border-sky-200 bg-[rgb(var(--card))] px-3 py-2 text-sm leading-relaxed text-[rgb(var(--fg))] shadow-sm focus:outline-none focus:ring-2 focus:ring-sky-300"
         rows={3}
         value={draft}
         onChange={(e) => setDraft(e.target.value)}
       />
-      <div className="flex items-center justify-between text-[11px] text-slate-500">
+      <div className="flex items-center justify-between text-[11px] text-[rgb(var(--muted))]">
         <span>Änderungen werden beim Speichern übernommen.</span>
         <div className="flex items-center gap-3">
           <button type="button" onClick={() => setIsEditing(false)} className="hover:underline">
@@ -671,6 +621,8 @@ export default function AnalyzeWorkspace({
   verificationLevel,
   verificationStatus,
   initialText,
+  authorName: initialAuthorName,
+  useCaseAccess,
 }: AnalyzeWorkspaceProps) {
   const router = useRouter();
   const { locale } = useLocale();
@@ -686,6 +638,20 @@ export default function AnalyzeWorkspace({
   const [maxClaims, setMaxClaims] = React.useState<number>(initialFlowConfig.maxClaims);
   const [openPanels, setOpenPanels] = React.useState<Record<PanelKey, boolean>>(initialFlowConfig.openPanels);
   const [text, setText] = React.useState(initialText ?? "");
+  const allowedUseCases = React.useMemo<UseCaseId[]>(() => {
+    const allowed = useCaseAccess?.allowed;
+    if (Array.isArray(allowed) && allowed.length > 0) return allowed;
+    return mode === "statement" ? ["journalism"] : ["civic", "journalism", "agenda"];
+  }, [useCaseAccess?.allowed, mode]);
+  const defaultUseCase: UseCaseId = mode === "statement" ? "journalism" : "civic";
+  const resolvedDefaultUseCase = allowedUseCases.includes(defaultUseCase)
+    ? defaultUseCase
+    : allowedUseCases[0] ?? defaultUseCase;
+  const [useCase, setUseCase] = React.useState<UseCaseId>(resolvedDefaultUseCase);
+  const [authorName, setAuthorName] = React.useState(initialAuthorName ?? "");
+  const [confirmUnderstanding, setConfirmUnderstanding] = React.useState(false);
+  const [deepResearchInfo, setDeepResearchInfo] = React.useState<string | null>(null);
+  const [deepResearchBusy, setDeepResearchBusy] = React.useState(false);
   const [evidenceInput, setEvidenceInput] = React.useState("");
   const [notes, setNotes] = React.useState<NoteSection[]>([]);
   const [questions, setQuestions] = React.useState<QuestionCard[]>([]);
@@ -730,8 +696,6 @@ export default function AnalyzeWorkspace({
   const [researchView, setResearchView] = React.useState<"serp" | "cards">("serp");
   const [translations, setTranslations] = React.useState<Record<string, string>>({});
   const [flowInfo, setFlowInfo] = React.useState<string | null>(null);
-  const [communityDraft, setCommunityDraft] = React.useState<string>("");
-  const [communityEdited, setCommunityEdited] = React.useState(false);
   const [articleDraft, setArticleDraft] = React.useState<string>("");
   const [articleDraftEdited, setArticleDraftEdited] = React.useState(false);
 
@@ -739,6 +703,52 @@ export default function AnalyzeWorkspace({
   const allowTrace = flowConfig.allowTrace;
   const allowResearch = flowConfig.allowResearch;
   const flowIsLite = !allowTrace && !allowResearch;
+  const isJournalism = useCase === "journalism";
+  const isAgenda = useCase === "agenda";
+  const textLocked = isJournalism && analysisStatus !== "idle";
+  const authorLabel = authorName.trim();
+  const useCaseLabel =
+    useCase === "journalism"
+      ? "Medien/Agenturen"
+      : useCase === "agenda"
+        ? "Verwaltung/Agenda"
+        : "Buerger & Projekte";
+  const useCaseLockLabels = useCaseAccess?.lockLabels ?? {};
+  const defaultUseCaseNote =
+    allowedUseCases.length >= 3
+      ? ""
+      : "Dein Bereich ist festgelegt. Fuer andere Use Cases brauchst du das passende Paket.";
+  const useCaseNote = useCaseAccess?.note ?? defaultUseCaseNote;
+  const useCaseCtaHref = useCaseAccess?.ctaHref ?? "/pricing";
+  const useCaseCtaLabel = useCaseAccess?.ctaLabel ?? "Paket waehlen";
+  const isUseCaseAllowed = (id: UseCaseId) => allowedUseCases.includes(id);
+  const lockLabelFor = (id: UseCaseId) =>
+    useCaseLockLabels[id] ?? "Nur mit passendem Paket.";
+  const useCaseOptions: Array<{ id: UseCaseId; title: string; text: string }> = [
+    {
+      id: "civic",
+      title: "Buerger & Projekte",
+      text: "Einfacher Einstieg: Kernaussagen, Fragen und Wirkung.",
+    },
+    {
+      id: "journalism",
+      title: "Medien & Agenturen",
+      text: "Mit Herkunft/Pruefplan, Draft und redaktionellem Audit.",
+    },
+    {
+      id: "agenda",
+      title: "Verwaltung & Agenda",
+      text: "Zustaendigkeiten, Folgen und Umsetzungslogik.",
+    },
+  ];
+  const contextCount = notes.length + (report?.summary ? 1 : 0);
+  const responsibilityCount =
+    responsibilities.length +
+    responsibilityPaths.length +
+    (impactAndResponsibility.responsibleActors?.length ?? 0);
+  const consequenceCount =
+    consequences.length + (impactAndResponsibility.impacts?.length ?? 0);
+  const authorBadge = authorLabel ? `Verfasser: ${authorLabel}` : undefined;
 
   const translationItems = React.useMemo<TranslationItem[]>(() => {
     if (contentLang === baseLang) return [];
@@ -933,8 +943,6 @@ export default function AnalyzeWorkspace({
   const researchRunRef = React.useRef(0);
   const ctaRef = React.useRef<HTMLDivElement | null>(null);
   const workspaceRef = React.useRef<HTMLDivElement | null>(null);
-  const communityRef = React.useRef<HTMLDivElement | null>(null);
-  const articleRef = React.useRef<HTMLDivElement | null>(null);
   function makeKey(
     preparedTextValue: string,
     statementList: Array<{ id?: string; text?: string }>,
@@ -954,108 +962,33 @@ export default function AnalyzeWorkspace({
   const prepared = React.useMemo(() => prepareText(text), [text]);
   const preparedText = prepared.prepared;
   const preparedRatio = prepared.ratio;
-  const liveFeedback = React.useMemo(() => {
-    const trimmed = preparedText.trim();
-    const lower = trimmed.toLowerCase();
-    const words = trimmed ? trimmed.split(/\s+/).length : 0;
-    const sentences = trimmed ? trimmed.split(/[.!?]+/).filter((s) => s.trim().length > 0).length : 0;
-    const avgWordsPerSentence = sentences > 0 ? Math.round(words / sentences) : words;
-    const actionHits = ACTION_VERBS.filter((verb) => lower.includes(verb));
-    const actorHits = ACTOR_HINTS.filter((actor) => lower.includes(actor));
-    const timeHits = TIME_HINTS.filter((hint) => lower.includes(hint));
-    const evidenceHits = EVIDENCE_HINTS.filter((hint) => lower.includes(hint));
-    const hasNumber = /\d/.test(trimmed);
-    const hasQuestion = /\?/.test(trimmed);
-    const topics = detectTopics(trimmed);
-    let score = 35;
-    if (sentences >= 2) score += 10;
-    if (sentences >= 4) score += 5;
-    if (actionHits.length) score += 15;
-    if (actorHits.length) score += 10;
-    if (hasNumber) score += 8;
-    if (timeHits.length) score += 6;
-    if (evidenceHits.length) score += 6;
-    if (hasQuestion) score += 4;
-    if (avgWordsPerSentence > 28) score -= 8;
-    if (avgWordsPerSentence > 38) score -= 8;
-    if (words > 280) score -= 6;
-    if (words < 14) score -= 8;
-    score = Math.max(20, Math.min(100, score));
-    const missingSignals: string[] = [];
-    if (!actionHits.length) missingSignals.push("konkrete Forderung/Verb");
-    if (!actorHits.length) missingSignals.push("klarer Akteur");
-    if (!hasNumber) missingSignals.push("Zahl/Bezug");
-    if (!timeHits.length) missingSignals.push("Zeitbezug");
-    if (!evidenceHits.length) missingSignals.push("Quelle/Beleg");
-    let lengthHint = "";
-    if (words > 320) lengthHint = "Sehr lang – evtl. kuerzen oder in Abschnitte teilen.";
-    else if (words > 200) lengthHint = "Lang – evtl. auf das Wichtigste fokussieren.";
-    else if (words < 20 && trimmed) lengthHint = "Kurz – mit 1-2 Saetzen Kontext ergaenzen.";
-    return {
-      trimmed,
-      words,
-      sentences,
-      avgWordsPerSentence,
-      actionHits,
-      actorHits,
-      timeHits,
-      evidenceHits,
-      hasNumber,
-      hasQuestion,
-      topics,
-      score,
-      missingSignals,
-      lengthHint,
-    };
-  }, [preparedText]);
-  const coach = React.useMemo(() => {
-    if (!liveFeedback.trimmed) {
-      return {
-        title: "Starte mit 2-4 Saetzen.",
-        body: "Sag kurz, was dich stoert oder was sich aendern soll. Dann koennen wir es sauber strukturieren.",
-        tips: ["Wer soll handeln?", "Was genau soll passieren?", "Warum ist es wichtig?"],
-      };
-    }
-    if (analysisStatus === "running") {
-      return {
-        title: "Analyse laeuft …",
-        body: "Ich baue Kernaussagen, Fragen und Wirkung auf. Kurz warten.",
-        tips: ["Wenn du Quellen hast, kannst du sie im Pruefplan speichern."],
-      };
-    }
-    if (analysisStatus === "error") {
-      return {
-        title: "Analyse gestoppt.",
-        body: "Dein Text bleibt erhalten. Versuche es kurz, klar, ohne lange Schachtelsaetze.",
-        tips: ["Saetze kuerzen", "Eine Aussage pro Satz", "Optional auf Guided wechseln"],
-      };
-    }
-    if (analysisStatus === "empty") {
-      return {
-        title: "Noch keine Kernaussagen.",
-        body: "Formuliere klarere Einzel-Statements, dann klappt die Ableitung besser.",
-        tips: ["Aktiv-Verb nutzen", "Akteur benennen", "Zeitrahmen ergaenzen"],
-      };
-    }
-    if (analysisStatus === "success" && statements.length > 0) {
-      const suggestion = liveFeedback.missingSignals.slice(0, 2).map((m) => `Ergaenze ${m}.`);
-      const baseTips = suggestion.length
-        ? suggestion
-        : ["Waehle die besten Statements aus.", "Nutze den Pruefplan fuer Quellen."];
-      return {
-        title: "Bereit fuer den naechsten Schritt.",
-        body: `Du hast ${statements.length} Statements. Entscheide: schnell einreichen oder redaktionell vertiefen.`,
-        tips: baseTips.slice(0, 3),
-      };
-    }
-    return {
-      title: "Bereit fuer die Analyse.",
-      body: "Starte die Analyse, um Kernaussagen und den Flow aufzubauen.",
-      tips: ["Kernaussage + Kontext reichen fuer den Start."],
-    };
-  }, [analysisStatus, liveFeedback.missingSignals, liveFeedback.trimmed, statements.length]);
+  const autoFlow = React.useMemo(() => inferFlowFromText(preparedText), [preparedText]);
 
   const progressPlacement = <AnalyzeProgress steps={steps} providerMatrix={providerMatrix} compact />;
+
+  React.useEffect(() => {
+    if (analysisStatus === "running") return;
+    if (flow === autoFlow) return;
+    const config = FLOW_OPTIONS.find((opt) => opt.id === autoFlow) ?? FLOW_OPTIONS[0];
+    setFlow(config.id);
+    setViewLevel(config.defaultLevel);
+    setMaxClaims(config.maxClaims);
+    setOpenPanels(config.openPanels);
+    if (!config.allowTrace && !config.allowResearch) {
+      setInsightTab("input");
+      setTraceResult(null);
+      setTraceError(null);
+      setResearchGuidance(null);
+      setResearchError(null);
+      setEvidenceInput("");
+    }
+  }, [analysisStatus, autoFlow, flow]);
+
+  React.useEffect(() => {
+    if (!allowedUseCases.includes(useCase)) {
+      setUseCase(allowedUseCases[0] ?? useCase);
+    }
+  }, [allowedUseCases, useCase]);
 
   React.useEffect(() => {
     if (!storageKey) return;
@@ -1075,10 +1008,14 @@ export default function AnalyzeWorkspace({
       if (parsed.draftId) setDraftId(parsed.draftId);
       if (parsed.localDraftId) setLocalDraftId(parsed.localDraftId);
       if (parsed.savedAt) setSavedAt(parsed.savedAt);
+      if (parsed.authorName) setAuthorName(parsed.authorName);
+      if (parsed.useCase && allowedUseCases.includes(parsed.useCase)) {
+        setUseCase(parsed.useCase);
+      }
     } catch {
       // ignore
     }
-  }, [storageKey, initialText]);
+  }, [storageKey, initialText, allowedUseCases]);
 
   React.useEffect(() => {
     try {
@@ -1110,13 +1047,15 @@ export default function AnalyzeWorkspace({
       localDraftId,
       savedAt,
       evidenceInput,
+      authorName: authorName?.trim() || null,
+      useCase,
     };
     try {
       window.localStorage.setItem(storageKey, JSON.stringify(payload));
     } catch {
       // ignore
     }
-  }, [storageKey, text, draftId, localDraftId, savedAt, evidenceInput]);
+  }, [storageKey, text, draftId, localDraftId, savedAt, evidenceInput, authorName, useCase]);
 
   // Persist UI prefs for research view
   React.useEffect(() => {
@@ -1132,17 +1071,6 @@ export default function AnalyzeWorkspace({
     const timer = window.setTimeout(() => setFlowInfo(null), 4000);
     return () => window.clearTimeout(timer);
   }, [flowInfo]);
-
-  React.useEffect(() => {
-    if (communityEdited) return;
-    const next = buildCommunityPrompt({
-      preparedText,
-      report,
-      statements,
-      questions,
-    });
-    setCommunityDraft(next);
-  }, [communityEdited, preparedText, report, statements, questions]);
 
   React.useEffect(() => {
     if (articleDraftEdited) return;
@@ -1165,6 +1093,10 @@ export default function AnalyzeWorkspace({
     });
   }, [hasManualSelection, statements]);
 
+  React.useEffect(() => {
+    setConfirmUnderstanding(false);
+  }, [preparedText, statements.length, useCase]);
+
   const analyzeButtonLabel =
     analysisStatus === "running"
       ? analyzeButtonTexts.running
@@ -1172,30 +1104,50 @@ export default function AnalyzeWorkspace({
       ? analyzeButtonTexts.retry
       : analyzeButtonTexts.start;
 
-  const levelCompletion = React.useMemo(
-    () => ({
-      1: Boolean(report?.summary || statements.length > 0),
-      2: statements.length > 0,
-      3: Boolean(
-        (impactAndResponsibility.impacts?.length ?? 0) > 0 ||
-          (impactAndResponsibility.responsibleActors?.length ?? 0) > 0 ||
-          responsibilityPaths.length > 0,
-      ),
-      4: Boolean(notes.length || questions.length || knots.length || eventualities.length || decisionTrees.length || report),
-    }),
-    [
-      decisionTrees.length,
-      eventualities.length,
-      impactAndResponsibility.impacts,
-      impactAndResponsibility.responsibleActors,
-      knots.length,
-      notes.length,
-      questions.length,
-      report,
-      responsibilityPaths.length,
-      statements.length,
-    ],
-  );
+  const outputClassification = React.useMemo(() => {
+    if (analysisStatus !== "success") {
+      return {
+        label: "Noch keine Einstufung",
+        hint: "Starte die Analyse, um eine Einordnung zu erhalten.",
+        variant: "neutral" as const,
+      };
+    }
+    const hasContext = notes.length > 0 || knots.length > 0 || Boolean(report?.summary);
+    const hasQuestions = questions.length > 0;
+    const hasImpact =
+      consequences.length > 0 || (impactAndResponsibility.impacts?.length ?? 0) > 0;
+    const isDossier = totalStatements >= 4 && (hasContext || hasQuestions || hasImpact);
+    return {
+      label: isDossier ? "Dossier-Kandidat" : "Statement-Kandidat",
+      hint: isDossier
+        ? "Geeignet fuer Dossier/Redaktion – vertiefte Aufbereitung empfohlen."
+        : "Geeignet fuer Statements/Abstimmung – schnelle Einreichung moeglich.",
+      variant: isDossier ? ("dossier" as const) : ("statement" as const),
+    };
+  }, [
+    analysisStatus,
+    consequences.length,
+    impactAndResponsibility.impacts,
+    knots.length,
+    notes.length,
+    questions.length,
+    report?.summary,
+    totalStatements,
+  ]);
+
+  const authorFeedback = React.useMemo(() => {
+    if (analysisStatus !== "success") {
+      return "Starte die Analyse, um Feedback zur Verarbeitbarkeit zu erhalten.";
+    }
+    const tips: string[] = [];
+    if (totalStatements < 2) tips.push("Mehr klare Einzel-Statements wuerden helfen.");
+    if (questions.length === 0) tips.push("Offene Fragen fehlen noch.");
+    if (!notes.length && !knots.length && !report?.summary) tips.push("Kontext fehlt noch.");
+    if (!tips.length) {
+      return "Gute Basis. Du kannst die Statements auswaehlen und einreichen oder in die Redaktion ueberfuehren.";
+    }
+    return tips.join(" ");
+  }, [analysisStatus, knots.length, notes.length, questions.length, report?.summary, totalStatements]);
 
   const requiredLevel =
     verificationLevel && mode === "contribution"
@@ -1231,6 +1183,79 @@ export default function AnalyzeWorkspace({
   const guidanceError = insightTab === "input" ? traceError : researchError;
   const hasGuidance = insightTab === "input" ? Boolean(guidance) : Boolean(researchGuidance);
   const hasResearchSources = Boolean(researchGuidance?.sources && researchGuidance.sources.length > 0);
+  const hasStatements = totalStatements > 0;
+  const hasNotes = notes.length > 0;
+  const hasQuestions = questions.length > 0;
+  const hasKnots = knots.length > 0;
+  const hasEventualities = eventualities.length > 0 || decisionTrees.length > 0;
+  const hasConsequencesBlock =
+    consequences.length > 0 ||
+    responsibilities.length > 0 ||
+    responsibilityPaths.length > 0 ||
+    (impactAndResponsibility.impacts?.length ?? 0) > 0 ||
+    (impactAndResponsibility.responsibleActors?.length ?? 0) > 0;
+  const hasReport =
+    Boolean(report?.summary) ||
+    Boolean(report?.keyConflicts?.length) ||
+    Boolean(report?.facts?.local?.length) ||
+    Boolean(report?.facts?.international?.length) ||
+    Boolean(report?.takeaways?.length);
+  const hasAnyResults =
+    hasStatements ||
+    hasNotes ||
+    hasQuestions ||
+    hasKnots ||
+    hasEventualities ||
+    hasConsequencesBlock ||
+    hasReport ||
+    Boolean(editorialAudit) ||
+    Boolean(evidenceGraph) ||
+    Boolean(runReceipt);
+  const showProgress = !flowIsLite && (analysisStatus !== "idle" || hasAnyResults);
+  const showOutputSection = analysisStatus === "success" || hasAnyResults;
+  const showInsights = analysisStatus === "success" && (allowTrace || allowResearch) && hasStatements;
+
+  const deepResearchHints = React.useMemo(() => {
+    if (!researchGuidance) return [] as string[];
+    const hints: string[] = [];
+    if (researchGuidance.queries?.length) {
+      hints.push(`Gezielte Suchanfragen pruefen (${researchGuidance.queries.length})`);
+    }
+    if (researchGuidance.sources?.length) {
+      hints.push(`Quellentypen vertiefen (${researchGuidance.sources.length})`);
+    }
+    if (researchGuidance.risks?.length) {
+      hints.push(`Risiken/Fehlinformationen klaeren (${researchGuidance.risks.length})`);
+    }
+    if (researchGuidance.stakeholders?.length) {
+      hints.push(`Stakeholder-Positionen ergaenzen (${researchGuidance.stakeholders.length})`);
+    }
+    if (researchGuidance.focus?.length) {
+      hints.push(`Fokusfelder absichern (${researchGuidance.focus.length})`);
+    }
+    return hints;
+  }, [researchGuidance]);
+  const hasResearchRun =
+    Boolean(report?.facts?.local?.length) ||
+    Boolean(report?.facts?.international?.length) ||
+    Boolean(
+      Array.isArray((runReceipt as any)?.steps) &&
+        (runReceipt as any).steps.some((step: any) =>
+          String(step?.kind || step?.phase || step?.tag || "")
+            .toLowerCase()
+            .includes("research"),
+        ),
+    ) ||
+    Boolean(
+      Array.isArray((runReceipt as any)?.phases) &&
+        (runReceipt as any).phases.some((phase: any) =>
+          String(phase?.kind || phase?.name || "")
+            .toLowerCase()
+            .includes("research"),
+        ),
+    );
+  const showDeepResearch =
+    insightTab === "recherche" && hasResearchRun && Boolean(researchGuidance) && deepResearchHints.length > 0;
 
   const gatingMessage =
     verificationStatus === "login_required"
@@ -1240,22 +1265,6 @@ export default function AnalyzeWorkspace({
       : !meetsLevel && requiredLevel
       ? `Für diese Ansicht benötigst du mindestens Verifizierungs-Level "${requiredLevel}".`
       : null;
-
-  const handleFlowChange = (nextId: FlowId) => {
-    const config = FLOW_OPTIONS.find((opt) => opt.id === nextId) ?? FLOW_OPTIONS[0];
-    setFlow(config.id);
-    setViewLevel(config.defaultLevel);
-    setMaxClaims(config.maxClaims);
-    setOpenPanels(config.openPanels);
-    if (!config.allowTrace && !config.allowResearch) {
-      setInsightTab("input");
-      setTraceResult(null);
-      setTraceError(null);
-      setResearchGuidance(null);
-      setResearchError(null);
-      setEvidenceInput("");
-    }
-  };
 
   const togglePanel = (key: PanelKey, isOpen?: boolean) => {
     setOpenPanels((prev) => ({
@@ -1281,6 +1290,8 @@ export default function AnalyzeWorkspace({
         textPrepared: preparedText,
         locale,
         source: mode === "statement" ? "statement_new" : "contribution_new",
+        authorName: authorName?.trim() || undefined,
+        useCase,
         analysis: {
           claims: statements,
           notes,
@@ -1344,6 +1355,8 @@ export default function AnalyzeWorkspace({
     text,
     consequences,
     localDraftId,
+    authorName,
+    useCase,
   ]);
 
   const handleFinalize = React.useCallback(async () => {
@@ -1353,6 +1366,10 @@ export default function AnalyzeWorkspace({
     }
     if (selectedClaimIds.length === 0) {
       setFinalizeInfo("Bitte wähle mindestens ein Statement aus.");
+      return;
+    }
+    if (!confirmUnderstanding) {
+      setFinalizeInfo("Bitte bestaetige, dass die Kernaussagen korrekt verstanden wurden.");
       return;
     }
 
@@ -1379,7 +1396,47 @@ export default function AnalyzeWorkspace({
     } finally {
       setIsFinalizing(false);
     }
-  }, [afterFinalizeNavigateTo, draftId, finalizeEndpoint, mode, selectedClaimIds]);
+  }, [afterFinalizeNavigateTo, confirmUnderstanding, draftId, finalizeEndpoint, mode, selectedClaimIds]);
+
+  const handleDeepResearch = React.useCallback(async () => {
+    if (!preparedText.trim()) {
+      setDeepResearchInfo("Bitte zuerst einen Text erfassen.");
+      return;
+    }
+    setDeepResearchBusy(true);
+    setDeepResearchInfo(null);
+    try {
+      const claims = statements.map((s) => ({
+        id: s.id,
+        text: s.text,
+        domain: s.domain ?? null,
+        domains: Array.isArray((s as any)?.domains) ? (s as any).domains : null,
+      }));
+      const res = await fetch("/api/factcheck/enqueue", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          text: preparedText,
+          language: locale,
+          claims,
+          withSerp: true,
+        }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        if (res.status === 403) {
+          setDeepResearchInfo("Tiefenrecherche ist fuer ProPilot/Redaktion freigeschaltet.");
+          return;
+        }
+        throw new Error(body?.message || body?.error || "Tiefenrecherche fehlgeschlagen");
+      }
+      setDeepResearchInfo("Tiefenrecherche gestartet. Ergebnis folgt im Dossier.");
+    } catch (err: any) {
+      setDeepResearchInfo(err?.message ?? "Tiefenrecherche fehlgeschlagen");
+    } finally {
+      setDeepResearchBusy(false);
+    }
+  }, [locale, preparedText, statements]);
 
   const fetchResearchGuidance = React.useCallback(
     async (claimsOverride?: Array<{ id?: string; text?: string; domain?: string | null; domains?: string[] | null }>) => {
@@ -1519,7 +1576,9 @@ export default function AnalyzeWorkspace({
       const mappedNotes = rawNotes.map(mapAiNoteToSection).filter((x): x is NoteSection => x !== null);
       const mappedQuestions = rawQuestions.map(mapAiQuestionToCard).filter((x): x is QuestionCard => x !== null);
       const mappedKnots = rawKnots.map(mapAiKnotToCard).filter((x): x is KnotCard => x !== null);
-      const mappedStatements = rawClaims.map(mapAiClaimToStatement).filter((x): x is StatementEntry => x !== null);
+      const mappedStatements = dedupeStatements(
+        rawClaims.map(mapAiClaimToStatement).filter((x): x is StatementEntry => x !== null),
+      );
 
       const impactBlock = (result as any)?.impactAndResponsibility;
       const impactAndResponsibilityLocal: ImpactAndResponsibility = {
@@ -1780,18 +1839,6 @@ export default function AnalyzeWorkspace({
     }
   }, []);
 
-  const handleRegenerateCommunity = React.useCallback(() => {
-    const next = buildCommunityPrompt({
-      preparedText,
-      report,
-      statements,
-      questions,
-    });
-    setCommunityDraft(next);
-    setCommunityEdited(false);
-    setFlowInfo("Community-Frage aktualisiert.");
-  }, [preparedText, questions, report, statements]);
-
   const handleRegenerateArticle = React.useCallback(() => {
     const next = buildArticleDraft({
       preparedText,
@@ -1802,7 +1849,7 @@ export default function AnalyzeWorkspace({
     });
     setArticleDraft(next);
     setArticleDraftEdited(false);
-    setFlowInfo("Artikel-Entwurf aktualisiert.");
+    setFlowInfo("Entwurf aktualisiert.");
   }, [knots, preparedText, questions, report, statements]);
 
   const toggleSelected = (id: string) => {
@@ -1815,29 +1862,8 @@ export default function AnalyzeWorkspace({
     router.push(finalizeRedirectTo as any);
   }, [finalizeRedirectTo, router]);
 
-  const scrollToNextLevel = () => {
-    const order: Array<1 | 2 | 3 | 4> = [1, 2, 3, 4];
-    const currentIndex = order.indexOf(viewLevel);
-    const nextIncomplete = order.slice(currentIndex + 1).find((lvl) => !levelCompletion[lvl]);
-    const target = nextIncomplete ?? (viewLevel < 4 ? ((viewLevel + 1) as 1 | 2 | 3 | 4) : null);
-    if (target) {
-      setViewLevel(target);
-      workspaceRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-      return;
-    }
-    ctaRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
-  };
-
-  const scrollToCommunity = () => {
-    communityRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-  };
-
-  const scrollToArticle = () => {
-    articleRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-  };
-
   return (
-    <div ref={workspaceRef} className="min-h-[calc(100vh-64px)] bg-[linear-gradient(180deg,#e9f6ff_0%,#c0f8ff_45%,#a4fcec_100%)]">
+    <div ref={workspaceRef} className="min-h-[calc(100vh-64px)] bg-[rgb(var(--bg))]">
       <div className={["container-vog max-w-none px-4 space-y-4 pt-6", totalStatements > 0 ? "pb-40" : "pb-24"].join(" ")}>
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div className="space-y-2">
@@ -1858,13 +1884,20 @@ export default function AnalyzeWorkspace({
                 </>
               )}
             </h1>
-            <p className="text-xs text-slate-600">
-              {flowIsLite
-                ? "Express: schnelle Kernaussagen, ohne Pruefplan oder externe Fakten."
-                : `${flowConfig.label}: ${flowConfig.description} Keine externen Fakten.`}
+            <p className="text-xs text-[rgb(var(--muted))]">
+              Auto-Flow: <span className="font-semibold text-[rgb(var(--muted))]">{flowConfig.label}</span> ·{" "}
+              {flowConfig.description}
             </p>
+            <div className="flex flex-wrap gap-2 text-[10px] text-[rgb(var(--muted))]">
+              <span className="inline-flex rounded-full bg-[rgb(var(--card))] px-2 py-1 ring-1 ring-inset ring-[rgb(var(--border))]">
+                {allowResearch ? "Pruefplan an" : "Pruefplan aus"}
+              </span>
+              <span className="inline-flex rounded-full bg-[rgb(var(--card))] px-2 py-1 ring-1 ring-inset ring-[rgb(var(--border))]">
+                {flowIsLite ? "Schnellstart" : "Vertieft"}
+              </span>
+            </div>
           </div>
-          <div className="flex flex-col items-start gap-2 text-[11px] text-slate-500 sm:items-end">
+          <div className="flex flex-col items-start gap-2 text-[11px] text-[rgb(var(--muted))] sm:items-end">
             <span>
               UI: <span className="font-medium uppercase">{locale || "-"}</span>
             </span>
@@ -1872,93 +1905,12 @@ export default function AnalyzeWorkspace({
           </div>
         </div>
 
-        <div className="rounded-2xl border border-slate-200/70 bg-white/70 px-4 py-3 shadow-sm ring-1 ring-white/40 backdrop-blur">
-          <div className="flex items-center justify-between gap-3">
-            <div className="space-y-0.5">
-              <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Flow</div>
-              <div className="text-[11px] text-slate-600">Waehle Tempo, Tiefe und Output.</div>
-            </div>
-
-            <span className="hidden sm:inline-flex rounded-full bg-slate-100 px-2 py-1 text-[10px] font-semibold text-slate-600 ring-1 ring-inset ring-slate-200">
-              Level {viewLevel}/4
-            </span>
-          </div>
-
-          <div className="mt-3 grid gap-2 sm:grid-cols-3">
-            {FLOW_OPTIONS.map((opt) => {
-              const active = flow === opt.id;
-              return (
-                <button
-                  key={opt.id}
-                  type="button"
-                  onClick={() => handleFlowChange(opt.id)}
-                  className={[
-                    "rounded-2xl border px-3 py-2 text-left transition",
-                    active
-                      ? "border-sky-200 bg-gradient-to-r from-sky-500/10 via-cyan-500/10 to-emerald-500/10"
-                      : "border-slate-200 bg-white/80 hover:border-slate-300",
-                  ].join(" ")}
-                  aria-pressed={active}
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-sm font-semibold text-slate-800">{opt.label}</span>
-                    {active ? (
-                      <span className="rounded-full bg-sky-500 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-white">
-                        aktiv
-                      </span>
-                    ) : null}
-                  </div>
-                  <p className="mt-1 text-[11px] text-slate-600">{opt.description}</p>
-                  <div className="mt-2 flex flex-wrap gap-1 text-[10px] text-slate-600">
-                    <span className="rounded-full bg-slate-100 px-2 py-0.5">Level {opt.defaultLevel}</span>
-                    <span className="rounded-full bg-slate-100 px-2 py-0.5">max {opt.maxClaims}</span>
-                    <span className="rounded-full bg-slate-100 px-2 py-0.5">
-                      {opt.allowResearch ? "Pruefplan an" : "Pruefplan aus"}
-                    </span>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-
-          <div className="mt-2 flex flex-wrap items-center gap-2 text-[10px] text-slate-500">
-            <span className="inline-flex rounded-full bg-white/70 px-2 py-1 ring-1 ring-inset ring-slate-200">
-              {flowConfig.label}
-            </span>
-            <span className="inline-flex rounded-full bg-white/70 px-2 py-1 ring-1 ring-inset ring-slate-200">
-              max. {maxClaims} Kernaussagen
-            </span>
-            <span className="inline-flex rounded-full bg-white/70 px-2 py-1 ring-1 ring-inset ring-slate-200">
-              {allowResearch ? "Pruefplan aktiv" : "Pruefplan aus"}
-            </span>
-          </div>
-        </div>
-
         <div className="max-w-4xl mx-auto space-y-5">
-          {flowIsLite ? (
-            <div className="rounded-2xl border border-slate-200 bg-white/95 p-4 shadow-sm">
-              <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Express-Flow</div>
-              <p className="mt-1 text-sm text-slate-700">
-                Max. {maxClaims} Kernaussagen. Schnell, ohne Pruefplan oder externe Fakten.
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Fortschritt</span>
-                <span className="text-[10px] text-slate-500">
-                  Kontext · Kernaussagen · Fragen · Wirkung · Zustaendigkeit
-                </span>
-              </div>
-              <div className="w-full">{progressPlacement}</div>
-            </div>
-          )}
-
-          <div className="rounded-2xl border border-slate-200 bg-white/95 p-4 shadow-sm space-y-4">
+          <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm space-y-4">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
-                <h2 className="text-sm font-semibold text-slate-800">Dein Text</h2>
-                <p className="text-[11px] text-slate-500">
+                <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Dein Text</h2>
+                <p className="text-[11px] text-[rgb(var(--muted))]">
                   {flowIsLite
                     ? "Kurz und klar. Wir nutzen nur deinen Text."
                     : "Dieser Text bildet die Basis fuer Kernaussagen, Fragen und Wirkung."}
@@ -1971,200 +1923,20 @@ export default function AnalyzeWorkspace({
               onChange={setText}
               analyzing={analysisStatus === "running"}
               rows={14}
+              readOnly={textLocked}
             />
-
-            <div className="grid gap-3 md:grid-cols-2">
-              <div className="rounded-xl border border-slate-200/70 bg-white/80 p-3 shadow-sm">
-                <div className="flex items-center justify-between gap-2">
-                  <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Echtzeit-Feedback</p>
-                  <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-600">
-                    Score {liveFeedback.score}
-                  </span>
-                </div>
-                <div className="mt-2 h-2 w-full rounded-full bg-slate-100">
-                  <div
-                    className="h-2 rounded-full bg-gradient-to-r from-sky-400 via-cyan-400 to-emerald-400"
-                    style={{ width: `${liveFeedback.score}%` }}
-                  />
-                </div>
-
-                {!liveFeedback.trimmed ? (
-                  <p className="mt-2 text-[11px] text-slate-500">
-                    Schreibe ein paar Saetze, dann analysiere ich Klarheit, Akteure und Kontext.
-                  </p>
-                ) : (
-                  <>
-                    <div className="mt-3 flex flex-wrap items-center gap-2 text-[11px] text-slate-600">
-                      <span>{liveFeedback.words} Woerter</span>
-                      <span>{liveFeedback.sentences} Saetze</span>
-                      <span>Durchschnitt {liveFeedback.avgWordsPerSentence} Woerter/Satz</span>
-                    </div>
-
-                    <div className="mt-2 flex flex-wrap gap-2 text-[10px]">
-                      <TinyPill
-                        className={
-                          liveFeedback.actionHits.length
-                            ? "bg-emerald-50 text-emerald-700 ring-emerald-100"
-                            : "bg-slate-100 text-slate-500 ring-slate-200"
-                        }
-                      >
-                        Verb
-                      </TinyPill>
-                      <TinyPill
-                        className={
-                          liveFeedback.actorHits.length
-                            ? "bg-emerald-50 text-emerald-700 ring-emerald-100"
-                            : "bg-slate-100 text-slate-500 ring-slate-200"
-                        }
-                      >
-                        Akteur
-                      </TinyPill>
-                      <TinyPill
-                        className={
-                          liveFeedback.hasNumber
-                            ? "bg-emerald-50 text-emerald-700 ring-emerald-100"
-                            : "bg-slate-100 text-slate-500 ring-slate-200"
-                        }
-                      >
-                        Zahl
-                      </TinyPill>
-                      <TinyPill
-                        className={
-                          liveFeedback.timeHits.length
-                            ? "bg-emerald-50 text-emerald-700 ring-emerald-100"
-                            : "bg-slate-100 text-slate-500 ring-slate-200"
-                        }
-                      >
-                        Zeit
-                      </TinyPill>
-                      <TinyPill
-                        className={
-                          liveFeedback.evidenceHits.length
-                            ? "bg-emerald-50 text-emerald-700 ring-emerald-100"
-                            : "bg-slate-100 text-slate-500 ring-slate-200"
-                        }
-                      >
-                        Beleg
-                      </TinyPill>
-                      <TinyPill
-                        className={
-                          liveFeedback.hasQuestion
-                            ? "bg-amber-50 text-amber-700 ring-amber-100"
-                            : "bg-slate-100 text-slate-500 ring-slate-200"
-                        }
-                      >
-                        Frage
-                      </TinyPill>
-                    </div>
-
-                    {liveFeedback.topics.length ? (
-                      <div className="mt-2 flex flex-wrap gap-1 text-[10px]">
-                        {liveFeedback.topics.map((topic) => (
-                          <TinyPill key={topic} className="bg-sky-50 text-sky-700 ring-sky-100">
-                            {topic}
-                          </TinyPill>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="mt-2 text-[11px] text-slate-500">Noch kein klares Thema erkannt.</p>
-                    )}
-
-                    {liveFeedback.missingSignals.length ? (
-                      <p className="mt-2 text-[11px] text-slate-500">
-                        Fehlt evtl.: {liveFeedback.missingSignals.slice(0, 3).join(", ")}.
-                      </p>
-                    ) : null}
-                    {liveFeedback.lengthHint ? (
-                      <p className="mt-2 text-[11px] text-slate-500">{liveFeedback.lengthHint}</p>
-                    ) : null}
-                  </>
-                )}
-              </div>
-
-              <div className="rounded-xl border border-slate-200/70 bg-white/80 p-3 shadow-sm">
-                <div className="flex items-center gap-2">
-                  <span className="flex h-7 w-7 items-center justify-center rounded-full bg-sky-500 text-[11px] font-bold text-white">
-                    EDB
-                  </span>
-                  <div>
-                    <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Flow Coach</p>
-                    <p className="text-[11px] text-slate-500">Guided durch Schnellstart, Deep-Dive &amp; Redaktion.</p>
-                  </div>
-                </div>
-
-                <div className="mt-3 rounded-xl bg-slate-50 px-3 py-2 text-[11px] text-slate-700">
-                  <p className="font-semibold text-slate-900">{coach.title}</p>
-                  <p className="mt-1 text-slate-600">{coach.body}</p>
-                </div>
-
-                <div className="mt-2 flex flex-wrap gap-2 text-[10px] text-slate-600">
-                  {coach.tips.map((tip) => (
-                    <TinyPill key={tip} className="bg-white text-slate-600 ring-slate-200">
-                      {tip}
-                    </TinyPill>
-                  ))}
-                </div>
-
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {preparedText.trim() ? (
-                    <button
-                      type="button"
-                      onClick={handleAnalyze}
-                      disabled={analyzeDisabled || analyzing}
-                      className="rounded-full bg-slate-900 px-3 py-1.5 text-[11px] font-semibold text-white shadow-sm hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
-                    >
-                      {analysisStatus === "running" ? "Analyse laeuft" : "Analyse starten"}
-                    </button>
-                  ) : null}
-                  {totalStatements > 0 ? (
-                    flowIsLite ? (
-                      <button
-                        type="button"
-                        onClick={() => handleFlowChange("guided")}
-                        className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-[11px] font-semibold text-slate-700 hover:bg-slate-50"
-                      >
-                        Zu Guided wechseln
-                      </button>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={scrollToNextLevel}
-                        className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-[11px] font-semibold text-slate-700 hover:bg-slate-50"
-                      >
-                        Weiter im Flow
-                      </button>
-                    )
-                  ) : null}
-                  {communityDraft.trim() ? (
-                    <button
-                      type="button"
-                      onClick={scrollToCommunity}
-                      className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-[11px] font-semibold text-slate-700 hover:bg-slate-50"
-                    >
-                      Community-Frage
-                    </button>
-                  ) : null}
-                  {articleDraft.trim() ? (
-                    <button
-                      type="button"
-                      onClick={scrollToArticle}
-                      className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-[11px] font-semibold text-slate-700 hover:bg-slate-50"
-                    >
-                      Artikel-Entwurf
-                    </button>
-                  ) : null}
-                </div>
-              </div>
+            <div className="rounded-xl border border-dashed border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-[11px] text-[rgb(var(--muted))]">
+              Echtzeit-Feedback erscheint hier, sobald die Live-Analyse stabil verfuegbar ist.
             </div>
 
             {allowResearch && (
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-semibold text-slate-800">Recherche-Input (optional)</h3>
-                  <span className="text-[11px] text-slate-500">Links oder Stichpunkte</span>
+                  <h3 className="text-sm font-semibold text-[rgb(var(--fg))]">Recherche-Input (optional)</h3>
+                  <span className="text-[11px] text-[rgb(var(--muted))]">Links oder Stichpunkte</span>
                 </div>
                 <textarea
-                  className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm leading-relaxed text-slate-800 shadow-sm focus:outline-none focus:ring-2 focus:ring-sky-200"
+                  className="w-full rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm leading-relaxed text-[rgb(var(--fg))] shadow-sm focus:outline-none focus:ring-2 focus:ring-sky-200"
                   rows={4}
                   value={evidenceInput}
                   onChange={(event) => setEvidenceInput(event.target.value)}
@@ -2173,49 +1945,40 @@ export default function AnalyzeWorkspace({
               </div>
             )}
 
-            <div className="rounded-xl bg-slate-50/80 px-3 py-2 text-[11px] text-slate-600 ring-1 ring-inset ring-slate-200">
+            <div className="rounded-xl bg-[rgb(var(--bg))] px-3 py-2 text-[11px] text-[rgb(var(--muted))] ring-1 ring-inset ring-[rgb(var(--border))]">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <span>
-                  Entwurf: <span className="font-semibold text-slate-900">{buildDraftLabel(draftId, localDraftId)}</span>
+                  Entwurf: <span className="font-semibold text-[rgb(var(--fg))]">{buildDraftLabel(draftId, localDraftId)}</span>
                 </span>
                 <span>
-                  zuletzt gespeichert: <span className="font-semibold text-slate-900">{formatDateLabel(savedAt)}</span>
+                  zuletzt gespeichert: <span className="font-semibold text-[rgb(var(--fg))]">{formatDateLabel(savedAt)}</span>
                 </span>
               </div>
             </div>
 
-            <div className="flex flex-col items-center gap-2 text-[11px] text-slate-500">
+            <div className="flex flex-col items-center gap-2 text-[11px] text-[rgb(var(--muted))]">
               <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1">
                 <span>{text.length} Zeichen</span>
                 <span>Aufbereitet: ~{preparedRatio}% kürzer (spart Zeit & Coins)</span>
               </div>
 
-              <div className="grid w-full gap-2 sm:flex sm:w-auto sm:flex-row sm:justify-center">
-                <button
-                  type="button"
-                  onClick={handleAnalyze}
-                  disabled={analyzeDisabled || analyzing}
-                  className="w-full rounded-full bg-gradient-to-r from-sky-500 via-cyan-500 to-emerald-500 px-5 py-2.5 text-sm font-semibold text-white shadow-md hover:brightness-105 focus:outline-none focus:ring-2 focus:ring-sky-200 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
-                >
-                  {analyzeButtonLabel}
-                </button>
-
+              <div className="flex w-full justify-center">
                 <button
                   type="button"
                   onClick={saveDraftSnapshot}
                   disabled={isSaving || !preparedText.trim()}
-                  className="w-full rounded-full border border-slate-300 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-60 sm:w-auto"
+                  className="w-full rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-5 py-2.5 text-sm font-semibold text-[rgb(var(--muted))] hover:bg-[rgb(var(--bg))] disabled:opacity-60 sm:w-auto"
                 >
                   {isSaving ? "Speichere …" : "Speichern"}
                 </button>
               </div>
 
               {error ? (
-                <span className="inline-flex items-center rounded-full bg-rose-50 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-rose-700 ring-1 ring-rose-100">
+                <span className="inline-flex items-center rounded-full bg-rose-50 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-rose-700 ring-1 ring-rose-100 dark:bg-rose-500/15 dark:text-rose-200 dark:ring-rose-400/30">
                   Fehler
                 </span>
               ) : info ? (
-                <span className="inline-flex items-center rounded-full bg-amber-50 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-amber-700 ring-1 ring-amber-100">
+                <span className="inline-flex items-center rounded-full bg-amber-50 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-amber-700 ring-1 ring-amber-100 dark:bg-amber-500/15 dark:text-amber-200 dark:ring-amber-400/30">
                   Hinweis
                 </span>
               ) : null}
@@ -2224,41 +1987,53 @@ export default function AnalyzeWorkspace({
             </div>
 
             {error && (
-              <div className="mt-2 rounded-lg bg-rose-50 px-3 py-2 text-[11px] text-rose-700 space-y-1">
+              <div className="mt-2 rounded-lg bg-rose-50 px-3 py-2 text-[11px] text-rose-700 space-y-1 dark:bg-rose-500/15 dark:text-rose-200">
                 <p>{error}</p>
               </div>
             )}
             {saveInfo && (
-              <p className="mt-2 rounded-lg bg-emerald-50 px-3 py-2 text-[11px] text-emerald-700">{saveInfo}</p>
+              <p className="mt-2 rounded-lg bg-emerald-50 px-3 py-2 text-[11px] text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-200">{saveInfo}</p>
             )}
             {info && (
-              <p className="mt-2 rounded-lg bg-slate-50 px-3 py-2 text-[11px] text-slate-700">{info}</p>
+              <p className="mt-2 rounded-lg bg-[rgb(var(--bg))] px-3 py-2 text-[11px] text-[rgb(var(--muted))]">{info}</p>
             )}
             {flowInfo && (
-              <p className="mt-2 rounded-lg bg-sky-50 px-3 py-2 text-[11px] text-sky-700">{flowInfo}</p>
+              <p className="mt-2 rounded-lg bg-sky-50 px-3 py-2 text-[11px] text-sky-700 dark:bg-sky-500/15 dark:text-sky-200">{flowInfo}</p>
             )}
           </div>
 
+          {showProgress && (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Fortschritt</span>
+                <span className="text-[10px] text-[rgb(var(--muted))]">
+                  Kontext · Kernaussagen · Fragen · Wirkung · Zustaendigkeit
+                </span>
+              </div>
+              <div className="w-full">{progressPlacement}</div>
+            </div>
+          )}
+
           <div className="space-y-4">
             {viewLevel <= 2 && (
-              <div className="rounded-xl border border-slate-200 bg-white/95 p-4 shadow-sm">
+              <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm">
                 {viewLevel === 1 && (
-                  <div className="mb-4 rounded-2xl border border-slate-100 bg-slate-50 px-3 py-2">
-                    <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Schnellblick</p>
+                  <div className="mb-4 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2">
+                    <p className="text-[11px] font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Schnellblick</p>
                     {report?.summary ? (
-                      <p className="mt-1 text-sm text-slate-800">{translateText("report:summary", report.summary)}</p>
+                      <p className="mt-1 text-sm text-[rgb(var(--fg))]">{translateText("report:summary", report.summary)}</p>
                     ) : (
-                      <p className="mt-1 text-sm text-slate-500">Noch keine Zusammenfassung vorhanden.</p>
+                      <p className="mt-1 text-sm text-[rgb(var(--muted))]">Noch keine Zusammenfassung vorhanden.</p>
                     )}
                   </div>
                 )}
 
                 <div className="mb-3 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-                  <h2 className="text-base font-semibold leading-tight text-slate-800">
+                  <h2 className="text-base font-semibold leading-tight text-[rgb(var(--fg))]">
                     {viewLevel === 1 ? "Top-Kernaussagen" : "Alle Kernaussagen"}
                   </h2>
 
-                  <div className="text-[11px] text-slate-500">
+                  <div className="text-[11px] text-[rgb(var(--muted))]">
                     {totalStatements > 0
                       ? viewLevel === 1
                         ? `${totalStatements} gesamt (Top ${Math.min(MAX_LEVEL1_STATEMENTS, totalStatements)})`
@@ -2305,22 +2080,29 @@ export default function AnalyzeWorkspace({
                         topic={s.topic || undefined}
                         tags={tags}
                         source="ai"
+                        badgeRight={authorBadge}
                         showVoteButtons={false}
                       >
                         <div className="space-y-3">
                           {showOriginal && (
-                            <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                            <div className="text-[11px] font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
                               Original ({baseLang.toUpperCase()})
                             </div>
                           )}
-                          <InlineEditableText
-                            value={s.text}
-                            onChange={(val) =>
-                              setStatements((prev) =>
-                                prev.map((entry) => (entry.id === s.id ? { ...entry, text: val } : entry)),
-                              )
-                            }
-                          />
+                          {isJournalism ? (
+                            <div className="rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-2 py-2 text-[11px] text-[rgb(var(--muted))]">
+                              Text bleibt fixiert fuer journalistische Beitraege.
+                            </div>
+                          ) : (
+                            <InlineEditableText
+                              value={s.text}
+                              onChange={(val) =>
+                                setStatements((prev) =>
+                                  prev.map((entry) => (entry.id === s.id ? { ...entry, text: val } : entry)),
+                                )
+                              }
+                            />
+                          )}
                           <div className="flex flex-wrap items-center gap-2">
                             {modeMeta && <TinyPill className={modeMeta.chipClass}>{modeMeta.label}</TinyPill>}
                             {primaryTags.map((t) => (
@@ -2328,7 +2110,7 @@ export default function AnalyzeWorkspace({
                             ))}
                             {extraTags.length > 0 && (
                               <details className="group">
-                                <summary className="cursor-pointer select-none text-[10px] font-semibold text-slate-600 hover:text-slate-800">
+                                <summary className="cursor-pointer select-none text-[10px] font-semibold text-[rgb(var(--muted))] hover:text-[rgb(var(--fg))]">
                                   Details
                                 </summary>
                                 <div className="mt-2 flex flex-wrap items-center gap-2">
@@ -2340,21 +2122,21 @@ export default function AnalyzeWorkspace({
                             )}
                           </div>
                           {attribution && (
-                            <details className="mt-2 rounded-lg border border-slate-200/70 bg-white/40 p-2">
-                              <summary className="cursor-pointer select-none text-xs font-semibold text-slate-700 hover:text-slate-900">
+                            <details className="mt-2 rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-2">
+                              <summary className="cursor-pointer select-none text-xs font-semibold text-[rgb(var(--muted))] hover:text-[rgb(var(--fg))]">
                                 Herkunft & Begründung
                               </summary>
 
                               <div className="mt-2 space-y-2 text-xs">
-                                {attribution.why && <div className="text-slate-700">{attribution.why}</div>}
+                                {attribution.why && <div className="text-[rgb(var(--muted))]">{attribution.why}</div>}
 
                                 {Array.isArray(attribution.quotes) && attribution.quotes.length > 0 && (
                                   <div className="space-y-1">
-                                    <div className="text-[11px] font-semibold text-slate-600">Zitate</div>
-                                    <ul className="list-disc pl-5 text-slate-700">
+                                    <div className="text-[11px] font-semibold text-[rgb(var(--muted))]">Zitate</div>
+                                    <ul className="list-disc pl-5 text-[rgb(var(--muted))]">
                                       {attribution.quotes.map((quote, idx) => (
                                         <li key={`${s.id}-quote-${idx}`}>
-                                          <span className="text-slate-800">{quote}</span>
+                                          <span className="text-[rgb(var(--fg))]">{quote}</span>
                                         </li>
                                       ))}
                                     </ul>
@@ -2377,12 +2159,12 @@ export default function AnalyzeWorkspace({
                                 }
                               />
                             )}
-                            <label className="inline-flex items-center gap-2 text-[11px] text-slate-600">
+                            <label className="inline-flex items-center gap-2 text-[11px] text-[rgb(var(--muted))]">
                               <input
                                 type="checkbox"
                                 checked={selectedClaimIds.includes(s.id)}
                                 onChange={() => toggleSelected(s.id)}
-                                className="h-4 w-4 rounded border-slate-300 text-sky-600"
+                                className="h-4 w-4 rounded border-[rgb(var(--border))] text-sky-600"
                               />
                               In Vorschlag uebernehmen
                             </label>
@@ -2393,7 +2175,7 @@ export default function AnalyzeWorkspace({
                   })}
 
                   {!totalStatements && !info && (
-                    <p className="text-sm text-slate-500">
+                    <p className="text-sm text-[rgb(var(--muted))]">
                       Noch keine Statements vorhanden. Sie erscheinen nur, wenn die Analyse erfolgreich war.
                     </p>
                   )}
@@ -2404,11 +2186,11 @@ export default function AnalyzeWorkspace({
             {viewLevel === 3 && (
               <div className="space-y-3">
                 <div className="grid gap-3 lg:grid-cols-2">
-                  <div className="rounded-xl border border-slate-200 bg-white/95 p-4 shadow-sm">
+                  <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm">
                     <div className="mb-2 flex items-center justify-between">
-                      <h3 className="text-sm font-semibold text-slate-800">Moegliche Folgen</h3>
+                      <h3 className="text-sm font-semibold text-[rgb(var(--fg))]">Moegliche Folgen</h3>
                       {impactAndResponsibility.impacts?.length ? (
-                        <span className="text-[11px] text-slate-500">{impactAndResponsibility.impacts.length} Vorschlaege</span>
+                        <span className="text-[11px] text-[rgb(var(--muted))]">{impactAndResponsibility.impacts.length} Vorschlaege</span>
                       ) : null}
                     </div>
                     <ImpactSection
@@ -2416,11 +2198,11 @@ export default function AnalyzeWorkspace({
                       onChange={(next) => setImpactAndResponsibility((prev) => ({ ...prev, impacts: next }))}
                     />
                   </div>
-                  <div className="rounded-xl border border-slate-200 bg-white/95 p-4 shadow-sm">
+                  <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm">
                     <div className="mb-2 flex items-center justify-between">
-                      <h3 className="text-sm font-semibold text-slate-800">Wer waere zustaendig?</h3>
+                      <h3 className="text-sm font-semibold text-[rgb(var(--fg))]">Wer waere zustaendig?</h3>
                       {impactAndResponsibility.responsibleActors?.length ? (
-                        <span className="text-[11px] text-slate-500">
+                        <span className="text-[11px] text-[rgb(var(--muted))]">
                           {impactAndResponsibility.responsibleActors.length} Vorschlaege
                         </span>
                       ) : null}
@@ -2444,16 +2226,14 @@ export default function AnalyzeWorkspace({
 
             {viewLevel === 4 && (
               <div className="space-y-3">
-                <details
-                  open={openPanels.notes}
-                  onToggle={(event) => togglePanel("notes", (event.target as HTMLDetailsElement).open)}
-                  className="rounded-2xl border border-slate-200 bg-white/95 p-4 shadow-sm"
-                >
-                  <summary className="cursor-pointer text-sm font-semibold text-slate-800">Kontext (Notizen)</summary>
-                  {notes.length === 0 ? (
-                    <p className="mt-2 text-sm text-slate-500">Noch keine Notizen vorhanden.</p>
-                  ) : (
-                    <ul className="mt-2 space-y-2 text-sm text-slate-700">
+                {hasNotes && (
+                  <details
+                    open={openPanels.notes}
+                    onToggle={(event) => togglePanel("notes", (event.target as HTMLDetailsElement).open)}
+                    className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm"
+                  >
+                    <summary className="cursor-pointer text-sm font-semibold text-[rgb(var(--fg))]">Kontext (Notizen)</summary>
+                    <ul className="mt-2 space-y-2 text-sm text-[rgb(var(--muted))]">
                       {notes.map((note, idx) => {
                         const key = note.id ?? `note-${idx}`;
                         const title = note.title
@@ -2461,26 +2241,24 @@ export default function AnalyzeWorkspace({
                           : `Notiz ${idx + 1}`;
                         const body = translateText(`note:${key}:body`, note.body);
                         return (
-                          <li key={key} className="rounded-xl bg-slate-50 px-3 py-2">
-                            <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">{title}</p>
-                            <p className="text-sm text-slate-800">{body}</p>
+                          <li key={key} className="rounded-xl bg-[rgb(var(--bg))] px-3 py-2">
+                            <p className="text-[11px] font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">{title}</p>
+                            <p className="text-sm text-[rgb(var(--fg))]">{body}</p>
                           </li>
                         );
                       })}
                     </ul>
-                  )}
-                </details>
+                  </details>
+                )}
 
-                <details
-                  open={openPanels.questions}
-                  onToggle={(event) => togglePanel("questions", (event.target as HTMLDetailsElement).open)}
-                  className="rounded-2xl border border-slate-200 bg-white/95 p-4 shadow-sm"
-                >
-                  <summary className="cursor-pointer text-sm font-semibold text-slate-800">Fragen zum Weiterdenken</summary>
-                  {questions.length === 0 ? (
-                    <p className="mt-2 text-sm text-slate-500">Noch keine Fragen vorhanden.</p>
-                  ) : (
-                    <ul className="mt-2 space-y-2 text-sm text-slate-700">
+                {hasQuestions && (
+                  <details
+                    open={openPanels.questions}
+                    onToggle={(event) => togglePanel("questions", (event.target as HTMLDetailsElement).open)}
+                    className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm"
+                  >
+                    <summary className="cursor-pointer text-sm font-semibold text-[rgb(var(--fg))]">Fragen zum Weiterdenken</summary>
+                    <ul className="mt-2 space-y-2 text-sm text-[rgb(var(--muted))]">
                       {questions.map((q, idx) => {
                         const key = q.id ?? `q-${idx}`;
                         const label = q.label
@@ -2488,26 +2266,24 @@ export default function AnalyzeWorkspace({
                           : `Frage ${idx + 1}`;
                         const body = translateText(`question:${key}:body`, q.body);
                         return (
-                          <li key={key} className="rounded-xl bg-slate-50 px-3 py-2">
-                            <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">{label}</p>
-                            <p className="text-sm text-slate-800">{body}</p>
+                          <li key={key} className="rounded-xl bg-[rgb(var(--bg))] px-3 py-2">
+                            <p className="text-[11px] font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">{label}</p>
+                            <p className="text-sm text-[rgb(var(--fg))]">{body}</p>
                           </li>
                         );
                       })}
                     </ul>
-                  )}
-                </details>
+                  </details>
+                )}
 
-                <details
-                  open={openPanels.knots}
-                  onToggle={(event) => togglePanel("knots", (event.target as HTMLDetailsElement).open)}
-                  className="rounded-2xl border border-slate-200 bg-white/95 p-4 shadow-sm"
-                >
-                  <summary className="cursor-pointer text-sm font-semibold text-slate-800">Knoten (Themenschwerpunkte)</summary>
-                  {knots.length === 0 ? (
-                    <p className="mt-2 text-sm text-slate-500">Noch keine Knoten vorhanden.</p>
-                  ) : (
-                    <ul className="mt-2 space-y-2 text-sm text-slate-700">
+                {hasKnots && (
+                  <details
+                    open={openPanels.knots}
+                    onToggle={(event) => togglePanel("knots", (event.target as HTMLDetailsElement).open)}
+                    className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm"
+                  >
+                    <summary className="cursor-pointer text-sm font-semibold text-[rgb(var(--fg))]">Knoten (Themenschwerpunkte)</summary>
+                    <ul className="mt-2 space-y-2 text-sm text-[rgb(var(--muted))]">
                       {knots.map((k, idx) => {
                         const key = k.id ?? `k-${idx}`;
                         const title = k.title
@@ -2515,31 +2291,29 @@ export default function AnalyzeWorkspace({
                           : `Knoten ${idx + 1}`;
                         const body = translateText(`knot:${key}:body`, k.body);
                         return (
-                          <li key={key} className="rounded-xl bg-slate-50 px-3 py-2">
-                            <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">{title}</p>
-                            <p className="text-sm text-slate-800">{body}</p>
+                          <li key={key} className="rounded-xl bg-[rgb(var(--bg))] px-3 py-2">
+                            <p className="text-[11px] font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">{title}</p>
+                            <p className="text-sm text-[rgb(var(--fg))]">{body}</p>
                           </li>
                         );
                       })}
                     </ul>
-                  )}
-                </details>
+                  </details>
+                )}
 
-                <details
-                  open={openPanels.eventualities}
-                  onToggle={(event) => togglePanel("eventualities", (event.target as HTMLDetailsElement).open)}
-                  className="rounded-2xl border border-slate-200 bg-white/95 p-4 shadow-sm"
-                >
-                  <summary className="cursor-pointer text-sm font-semibold text-slate-800">
-                    Eventualitaeten &amp; Entscheidungsbaeume
-                  </summary>
-                  {eventualities.length === 0 && decisionTrees.length === 0 ? (
-                    <p className="mt-2 text-sm text-slate-500">Noch keine Eventualitaeten oder Decision Trees vorhanden.</p>
-                  ) : (
-                    <div className="mt-2 space-y-3 text-sm text-slate-700">
+                {hasEventualities && (
+                  <details
+                    open={openPanels.eventualities}
+                    onToggle={(event) => togglePanel("eventualities", (event.target as HTMLDetailsElement).open)}
+                    className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm"
+                  >
+                    <summary className="cursor-pointer text-sm font-semibold text-[rgb(var(--fg))]">
+                      Eventualitaeten &amp; Entscheidungsbaeume
+                    </summary>
+                    <div className="mt-2 space-y-3 text-sm text-[rgb(var(--muted))]">
                       {eventualities.length > 0 && (
                         <div>
-                          <p className="text-xs font-semibold uppercase text-slate-500">Eventualitaeten</p>
+                          <p className="text-xs font-semibold uppercase text-[rgb(var(--muted))]">Eventualitaeten</p>
                           <ul className="mt-1 list-disc space-y-1 pl-4">
                             {eventualities.map((e, idx) => {
                               const key = e.id ?? `ev-${idx}`;
@@ -2551,7 +2325,7 @@ export default function AnalyzeWorkspace({
                       )}
                       {decisionTrees.length > 0 && (
                         <div>
-                          <p className="text-xs font-semibold uppercase text-slate-500">Decision Trees</p>
+                          <p className="text-xs font-semibold uppercase text-[rgb(var(--muted))]">Decision Trees</p>
                           <ul className="mt-1 list-disc space-y-1 pl-4">
                             {decisionTrees.map((d, idx) => (
                               <li key={d.id ?? `dt-${idx}`}>Decision Tree fuer Statement {d.rootStatementId}</li>
@@ -2560,37 +2334,41 @@ export default function AnalyzeWorkspace({
                         </div>
                       )}
                     </div>
-                  )}
-                </details>
+                  </details>
+                )}
 
-                <details
-                  open={openPanels.consequences}
-                  onToggle={(event) => togglePanel("consequences", (event.target as HTMLDetailsElement).open)}
-                  className="rounded-2xl border border-slate-200 bg-white/95 p-4 shadow-sm"
-                >
-                  <summary className="cursor-pointer text-sm font-semibold text-slate-800">Folgen &amp; Zustaendigkeiten</summary>
-                  <div className="mt-3 space-y-3">
-                    <ConsequencesPreviewCard consequences={consequences} responsibilities={responsibilities} />
-                    <ResponsibilityPreviewCard
-                      responsibilities={responsibilities}
-                      paths={responsibilityPaths}
-                      showPathOverlay
-                    />
-                  </div>
-                </details>
+                {hasConsequencesBlock && (
+                  <details
+                    open={openPanels.consequences}
+                    onToggle={(event) => togglePanel("consequences", (event.target as HTMLDetailsElement).open)}
+                    className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm"
+                  >
+                    <summary className="cursor-pointer text-sm font-semibold text-[rgb(var(--fg))]">
+                      Folgen &amp; Zustaendigkeiten
+                    </summary>
+                    <div className="mt-3 space-y-3">
+                      <ConsequencesPreviewCard consequences={consequences} responsibilities={responsibilities} />
+                      <ResponsibilityPreviewCard
+                        responsibilities={responsibilities}
+                        paths={responsibilityPaths}
+                        showPathOverlay
+                      />
+                    </div>
+                  </details>
+                )}
 
-                <details
-                  open={openPanels.report}
-                  onToggle={(event) => togglePanel("report", (event.target as HTMLDetailsElement).open)}
-                  className="rounded-2xl border border-slate-200 bg-white/95 p-4 shadow-sm"
-                >
-                  <summary className="cursor-pointer text-sm font-semibold text-slate-800">Bericht</summary>
-                  {report ? (
-                    <div className="mt-3 space-y-3 text-sm text-slate-800">
-                      {report.summary && <p>{translateText("report:summary", report.summary)}</p>}
-                      {Array.isArray(report.keyConflicts) && report.keyConflicts.length > 0 && (
+                {hasReport && (
+                  <details
+                    open={openPanels.report}
+                    onToggle={(event) => togglePanel("report", (event.target as HTMLDetailsElement).open)}
+                    className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm"
+                  >
+                    <summary className="cursor-pointer text-sm font-semibold text-[rgb(var(--fg))]">Bericht</summary>
+                    <div className="mt-3 space-y-3 text-sm text-[rgb(var(--fg))]">
+                      {report?.summary && <p>{translateText("report:summary", report.summary)}</p>}
+                      {Array.isArray(report?.keyConflicts) && report.keyConflicts.length > 0 && (
                         <div>
-                          <p className="text-xs font-semibold uppercase text-slate-500">Konfliktlinien</p>
+                          <p className="text-xs font-semibold uppercase text-[rgb(var(--muted))]">Konfliktlinien</p>
                           <ul className="mt-1 list-disc space-y-1 pl-4">
                             {report.keyConflicts.map((c: string, idx: number) => (
                               <li key={`${c}-${idx}`}>{translateText(`report:key:${idx}`, c)}</li>
@@ -2598,10 +2376,10 @@ export default function AnalyzeWorkspace({
                           </ul>
                         </div>
                       )}
-                      {report.facts && (
+                      {report?.facts && (
                         <div className="grid gap-3 md:grid-cols-2">
                           <div>
-                            <p className="text-xs font-semibold uppercase text-slate-500">Fakten (lokal)</p>
+                            <p className="text-xs font-semibold uppercase text-[rgb(var(--muted))]">Fakten (lokal)</p>
                             <ul className="mt-1 list-disc space-y-1 pl-4">
                               {(report.facts.local ?? []).map((f: string, idx: number) => (
                                 <li key={`f-l-${idx}`}>{translateText(`report:fact:local:${idx}`, f)}</li>
@@ -2609,7 +2387,7 @@ export default function AnalyzeWorkspace({
                             </ul>
                           </div>
                           <div>
-                            <p className="text-xs font-semibold uppercase text-slate-500">Fakten (international)</p>
+                            <p className="text-xs font-semibold uppercase text-[rgb(var(--muted))]">Fakten (international)</p>
                             <ul className="mt-1 list-disc space-y-1 pl-4">
                               {(report.facts.international ?? []).map((f: string, idx: number) => (
                                 <li key={`f-i-${idx}`}>{translateText(`report:fact:intl:${idx}`, f)}</li>
@@ -2618,9 +2396,9 @@ export default function AnalyzeWorkspace({
                           </div>
                         </div>
                       )}
-                      {Array.isArray(report.takeaways) && report.takeaways.length > 0 && (
+                      {Array.isArray(report?.takeaways) && report.takeaways.length > 0 && (
                         <div>
-                          <p className="text-xs font-semibold uppercase text-slate-500">Takeaways</p>
+                          <p className="text-xs font-semibold uppercase text-[rgb(var(--muted))]">Takeaways</p>
                           <ul className="mt-1 list-disc space-y-1 pl-4">
                             {report.takeaways.map((c: string, idx: number) => (
                               <li key={`t-${idx}`}>{translateText(`report:takeaway:${idx}`, c)}</li>
@@ -2629,10 +2407,8 @@ export default function AnalyzeWorkspace({
                         </div>
                       )}
                     </div>
-                  ) : (
-                    <p className="mt-2 text-sm text-slate-500">Noch kein Bericht vorhanden.</p>
-                  )}
-                </details>
+                  </details>
+                )}
 
                 {editorialAudit && <EditorialAuditPanel audit={editorialAudit} />}
                 {evidenceGraph && <EvidenceGraphPanel graph={evidenceGraph} />}
@@ -2641,122 +2417,90 @@ export default function AnalyzeWorkspace({
             )}
           </div>
 
-          <div className="grid gap-4 lg:grid-cols-2">
-            <div ref={communityRef} className="rounded-2xl border border-slate-200 bg-white/95 p-4 shadow-sm">
+          {showOutputSection && (
+            <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm space-y-3">
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Community</p>
-                  <h3 className="mt-1 text-sm font-semibold text-slate-800">Offene Frage an Community / Dachverbaende</h3>
-                  <p className="text-[11px] text-slate-500">
-                    Sammle Perspektiven oder Fakten, bevor du final einreichst.
+                  <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Weiterverarbeitung</p>
+                  <h3 className="mt-1 text-sm font-semibold text-[rgb(var(--fg))]">Orchestrierung &amp; Uebergang</h3>
+                  <p className="text-[11px] text-[rgb(var(--muted))]">
+                    Einordnung, Feedback und ein bearbeitbarer Entwurf fuer die Redaktion.
                   </p>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => handleCopy(communityDraft, "Community-Frage")}
-                  disabled={!communityDraft.trim()}
-                  className="rounded-full border border-slate-200 bg-white px-3 py-1 text-[11px] font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-60"
+                <span
+                  className={[
+                    "rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide ring-1 ring-inset",
+                    outputClassification.variant === "dossier"
+                      ? "bg-emerald-50 text-emerald-700 ring-emerald-100 dark:bg-emerald-500/15 dark:text-emerald-200 dark:ring-emerald-400/30"
+                      : outputClassification.variant === "statement"
+                      ? "bg-sky-50 text-sky-700 ring-sky-100 dark:bg-sky-500/15 dark:text-sky-200 dark:ring-sky-400/30"
+                      : "bg-[rgb(var(--bg))] text-[rgb(var(--muted))] ring-[rgb(var(--border))]",
+                  ].join(" ")}
                 >
-                  Kopieren
-                </button>
+                  {outputClassification.label}
+                </span>
               </div>
 
-              <textarea
-                className="mt-3 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm leading-relaxed text-slate-800 shadow-sm focus:outline-none focus:ring-2 focus:ring-sky-200"
-                rows={5}
-                value={communityDraft}
-                onChange={(event) => {
-                  setCommunityDraft(event.target.value);
-                  setCommunityEdited(true);
-                }}
-                placeholder="Formuliere eine offene Frage, z.B. 'Welche Auswirkungen seht ihr auf ...?'"
-              />
+              <p className="text-[11px] text-[rgb(var(--muted))]">{outputClassification.hint}</p>
 
-              <div className="mt-2 flex flex-wrap gap-2 text-[11px]">
-                <button
-                  type="button"
-                  onClick={handleRegenerateCommunity}
-                  className="rounded-full border border-slate-200 bg-white px-3 py-1 text-[11px] font-semibold text-slate-700 hover:bg-slate-50"
-                >
-                  Neu generieren
-                </button>
-                {questions.length ? (
-                  <span className="inline-flex items-center rounded-full bg-slate-100 px-2 py-1 text-[10px] text-slate-600">
-                    {Math.min(questions.length, 3)} KI-Fragen verfuegbar
-                  </span>
-                ) : null}
+              <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-[11px] text-[rgb(var(--muted))]">
+                <p className="text-[10px] font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Feedback an Verfasser</p>
+                <p className="mt-1">{authorFeedback}</p>
               </div>
 
-              {questions.length ? (
-                <div className="mt-3 space-y-2 text-[11px] text-slate-700">
-                  <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">KI-Vorschlaege</p>
-                  <ul className="space-y-1">
-                    {questions.slice(0, 3).map((q, idx) => {
-                      const key = q.id ?? `q-${idx}`;
-                      const body = translateText(`question:${key}:body`, q.body);
-                      return (
-                        <li key={q.id ?? `community-q-${idx}`} className="rounded-lg bg-slate-50 px-2 py-1">
-                          {body}
-                        </li>
-                      );
-                    })}
-                  </ul>
-                </div>
-              ) : null}
-            </div>
-
-            <div ref={articleRef} className="rounded-2xl border border-slate-200 bg-white/95 p-4 shadow-sm">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Redaktion</p>
-                  <h3 className="mt-1 text-sm font-semibold text-slate-800">Artikel-Entwurf</h3>
-                  <p className="text-[11px] text-slate-500">
-                    Ein vorstrukturierter Entwurf, den du nur noch abnicken oder bearbeiten kannst.
+              <div className="space-y-2">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
+                    KI-Entwurf (bearbeitbar)
                   </p>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => handleCopy(articleDraft, "Entwurf")}
+                      disabled={!articleDraft.trim()}
+                      className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-1 text-[11px] font-semibold text-[rgb(var(--muted))] hover:bg-[rgb(var(--bg))] disabled:opacity-60"
+                    >
+                      Kopieren
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleRegenerateArticle}
+                      disabled={!preparedText.trim()}
+                      className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-1 text-[11px] font-semibold text-[rgb(var(--muted))] hover:bg-[rgb(var(--bg))] disabled:opacity-60"
+                    >
+                      Entwurf aktualisieren
+                    </button>
+                  </div>
                 </div>
-                <div className="flex flex-wrap gap-2">
-                  <button
-                    type="button"
-                    onClick={() => handleCopy(articleDraft, "Artikel-Entwurf")}
-                    disabled={!articleDraft.trim()}
-                    className="rounded-full border border-slate-200 bg-white px-3 py-1 text-[11px] font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-60"
-                  >
-                    Kopieren
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleRegenerateArticle}
-                    className="rounded-full border border-slate-200 bg-white px-3 py-1 text-[11px] font-semibold text-slate-700 hover:bg-slate-50"
-                  >
-                    Neu generieren
-                  </button>
-                </div>
-              </div>
 
-              <textarea
-                className="mt-3 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm leading-relaxed text-slate-800 shadow-sm focus:outline-none focus:ring-2 focus:ring-sky-200"
-                rows={10}
-                value={articleDraft}
-                onChange={(event) => {
-                  setArticleDraft(event.target.value);
-                  setArticleDraftEdited(true);
-                }}
-                placeholder="Starte mit einer Analyse, um einen Entwurf zu generieren."
-              />
+                {articleDraft.trim() ? (
+                  <textarea
+                    className="w-full rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm leading-relaxed text-[rgb(var(--fg))] shadow-sm focus:outline-none focus:ring-2 focus:ring-sky-200"
+                    rows={10}
+                    value={articleDraft}
+                    onChange={(event) => {
+                      setArticleDraft(event.target.value);
+                      setArticleDraftEdited(true);
+                    }}
+                  />
+                ) : (
+                  <p className="text-[11px] text-[rgb(var(--muted))]">Starte die Analyse, um einen Entwurf zu erzeugen.</p>
+                )}
 
-              <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] text-slate-500">
-                <span>Nutze den Entwurf fuer redaktionelle Abstimmung oder Einreichung.</span>
+                <p className="text-[11px] text-[rgb(var(--muted))]">
+                  Der Entwurf ist der Ausgangspunkt fuer eine saubere redaktionelle Bearbeitung.
+                </p>
               </div>
             </div>
-          </div>
+          )}
 
-          {(allowTrace || allowResearch) && (
+          {showInsights && (
             <div className="space-y-4">
-              <div className="rounded-xl border border-slate-200 bg-white/95 p-4 shadow-sm">
+              <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Einordnung & naechste Schritte</p>
-                    <p className="text-[11px] text-slate-500">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Einordnung & naechste Schritte</p>
+                    <p className="text-[11px] text-[rgb(var(--muted))]">
                       Vorschlaege und Pruefplan basieren nur auf deinem Input.
                     </p>
                   </div>
@@ -2764,21 +2508,21 @@ export default function AnalyzeWorkspace({
                     type="button"
                     onClick={handleTrace}
                     disabled={traceDisabled}
-                    className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-[11px] font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+                    className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-1.5 text-[11px] font-semibold text-[rgb(var(--muted))] hover:bg-[rgb(var(--bg))] disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     {traceButtonLabel}
                   </button>
                 </div>
 
                 <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
-                  <div className="inline-flex items-center rounded-full bg-slate-100 p-1 text-[11px]">
+                  <div className="inline-flex items-center rounded-full bg-[rgb(var(--bg))] p-1 text-[11px]">
                     <button
                       type="button"
                       onClick={() => setInsightTab("input")}
                       disabled={!allowTrace}
                       className={[
                         "rounded-full px-3 py-1 transition",
-                        insightTab === "input" ? "bg-white text-slate-900 shadow-sm" : "text-slate-600 hover:text-slate-900",
+                        insightTab === "input" ? "bg-[rgb(var(--card))] text-[rgb(var(--fg))] shadow-sm" : "text-[rgb(var(--muted))] hover:text-[rgb(var(--fg))]",
                         !allowTrace ? "cursor-not-allowed opacity-60" : "",
                       ].join(" ")}
                       aria-pressed={insightTab === "input"}
@@ -2791,7 +2535,7 @@ export default function AnalyzeWorkspace({
                       disabled={!allowResearch}
                       className={[
                         "rounded-full px-3 py-1 transition",
-                        insightTab === "recherche" ? "bg-white text-slate-900 shadow-sm" : "text-slate-600 hover:text-slate-900",
+                        insightTab === "recherche" ? "bg-[rgb(var(--card))] text-[rgb(var(--fg))] shadow-sm" : "text-[rgb(var(--muted))] hover:text-[rgb(var(--fg))]",
                         !allowResearch ? "cursor-not-allowed opacity-60" : "",
                       ].join(" ")}
                       aria-pressed={insightTab === "recherche"}
@@ -2801,41 +2545,47 @@ export default function AnalyzeWorkspace({
                   </div>
 
                   {insightTab === "input" && statements.length === 0 ? (
-                    <span className="text-[11px] text-slate-500">Fuer "Aus Input" erst Analyse starten.</span>
+                    <span className="text-[11px] text-[rgb(var(--muted))]">Fuer "Aus Input" erst Analyse starten.</span>
                   ) : null}
                 </div>
 
                 {guidanceError && <p className="mt-2 text-[11px] font-semibold text-rose-600">{guidanceError}</p>}
 
                 {!hasGuidance && !guidanceError ? (
-                  <p className="mt-2 text-[11px] text-slate-500">
+                  <p className="mt-2 text-[11px] text-[rgb(var(--muted))]">
                     {insightTab === "input"
                       ? "Erzeuge Herkunftshinweise und einen Pruefplan auf Basis deiner Kernaussagen (Statements)."
                       : "Erzeuge einen Pruefplan / Recherche-Hinweise - ohne externe Fakten zu uebernehmen."}
                   </p>
                 ) : null}
 
+                {insightTab === "recherche" && !hasResearchRun ? (
+                  <p className="mt-2 text-[11px] text-[rgb(var(--muted))]">
+                    Recherche zuerst ausfuehren – danach zeigen wir, ob Tiefenrecherche noch Mehrwert bringt.
+                  </p>
+                ) : null}
+
                 {insightTab === "input" && guidance ? (
-                  <div className="mt-3 space-y-3 text-[11px] text-slate-700">
+                  <div className="mt-3 space-y-3 text-[11px] text-[rgb(var(--muted))]">
                     {guidance.concern ? (
                       <div>
-                        <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Anliegen</p>
-                        <p className="mt-1 text-sm text-slate-800">{guidance.concern}</p>
+                        <p className="text-[11px] font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Anliegen</p>
+                        <p className="mt-1 text-sm text-[rgb(var(--fg))]">{guidance.concern}</p>
                       </div>
                     ) : null}
 
                     {guidance.scopeHints?.levels?.length ? (
                       <div>
-                        <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Ebenen</p>
+                        <p className="text-[11px] font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Ebenen</p>
                         <div className="mt-1 flex flex-wrap gap-1">
                           {guidance.scopeHints.levels.map((lvl) => (
-                            <span key={lvl} className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] text-slate-600">
+                            <span key={lvl} className="rounded-full bg-[rgb(var(--bg))] px-2 py-0.5 text-[10px] text-[rgb(var(--muted))]">
                               {lvl}
                             </span>
                           ))}
                         </div>
                         {guidance.scopeHints.why ? (
-                          <p className="mt-1 text-[11px] text-slate-600">{guidance.scopeHints.why}</p>
+                          <p className="mt-1 text-[11px] text-[rgb(var(--muted))]">{guidance.scopeHints.why}</p>
                         ) : null}
                       </div>
                     ) : null}
@@ -2853,11 +2603,11 @@ export default function AnalyzeWorkspace({
                           const items = guidance.istStandChecklist[key] ?? [];
                           if (!items.length) return null;
                           return (
-                            <div key={key} className="rounded-lg border border-slate-100 bg-slate-50 px-2 py-2">
-                              <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">{label}</p>
+                            <div key={key} className="rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-2 py-2">
+                              <p className="text-[10px] font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">{label}</p>
                               <ul className="mt-1 space-y-1">
                                 {items.map((item) => (
-                                  <li key={item} className="text-[11px] text-slate-700">
+                                  <li key={item} className="text-[11px] text-[rgb(var(--muted))]">
                                     {item}
                                   </li>
                                 ))}
@@ -2871,14 +2621,14 @@ export default function AnalyzeWorkspace({
                     {(guidance.proFrames?.length || guidance.contraFrames?.length) ? (
                       <div className="grid gap-3 md:grid-cols-2">
                         {guidance.proFrames?.length ? (
-                          <div className="rounded-lg border border-slate-100 bg-slate-50 px-2 py-2">
-                            <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Pro-Frames</p>
+                          <div className="rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-2 py-2">
+                            <p className="text-[10px] font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Pro-Frames</p>
                             <ul className="mt-1 space-y-1">
                               {guidance.proFrames.map((frame, idx) => (
                                 <li key={`${frame.frame}-${idx}`}>
-                                  <span className="font-semibold text-slate-700">{frame.frame}</span>
+                                  <span className="font-semibold text-[rgb(var(--muted))]">{frame.frame}</span>
                                   {frame.stakeholders?.length ? (
-                                    <span className="text-slate-500"> · {frame.stakeholders.join(", ")}</span>
+                                    <span className="text-[rgb(var(--muted))]"> · {frame.stakeholders.join(", ")}</span>
                                   ) : null}
                                 </li>
                               ))}
@@ -2886,14 +2636,14 @@ export default function AnalyzeWorkspace({
                           </div>
                         ) : null}
                         {guidance.contraFrames?.length ? (
-                          <div className="rounded-lg border border-slate-100 bg-slate-50 px-2 py-2">
-                            <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Contra-Frames</p>
+                          <div className="rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-2 py-2">
+                            <p className="text-[10px] font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Contra-Frames</p>
                             <ul className="mt-1 space-y-1">
                               {guidance.contraFrames.map((frame, idx) => (
                                 <li key={`${frame.frame}-${idx}`}>
-                                  <span className="font-semibold text-slate-700">{frame.frame}</span>
+                                  <span className="font-semibold text-[rgb(var(--muted))]">{frame.frame}</span>
                                   {frame.stakeholders?.length ? (
-                                    <span className="text-slate-500"> · {frame.stakeholders.join(", ")}</span>
+                                    <span className="text-[rgb(var(--muted))]"> · {frame.stakeholders.join(", ")}</span>
                                   ) : null}
                                 </li>
                               ))}
@@ -2905,8 +2655,8 @@ export default function AnalyzeWorkspace({
 
                     {guidance.alternatives?.length ? (
                       <div>
-                        <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Alternativen</p>
-                        <ul className="mt-1 list-disc space-y-1 pl-4 text-[11px] text-slate-700">
+                        <p className="text-[11px] font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Alternativen</p>
+                        <ul className="mt-1 list-disc space-y-1 pl-4 text-[11px] text-[rgb(var(--muted))]">
                           {guidance.alternatives.map((alt) => (
                             <li key={alt}>{alt}</li>
                           ))}
@@ -2916,8 +2666,8 @@ export default function AnalyzeWorkspace({
 
                     {guidance.searchQueries?.length ? (
                       <div>
-                        <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Suchbegriffe</p>
-                        <ul className="mt-1 list-disc space-y-1 pl-4 text-[11px] text-slate-700">
+                        <p className="text-[11px] font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Suchbegriffe</p>
+                        <ul className="mt-1 list-disc space-y-1 pl-4 text-[11px] text-[rgb(var(--muted))]">
                           {guidance.searchQueries.map((query) => (
                             <li key={query}>{query}</li>
                           ))}
@@ -2927,10 +2677,10 @@ export default function AnalyzeWorkspace({
 
                     {guidance.sourceTypes?.length ? (
                       <div>
-                        <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Quellentypen</p>
+                        <p className="text-[11px] font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Quellentypen</p>
                         <div className="mt-1 flex flex-wrap gap-1">
                           {guidance.sourceTypes.map((source) => (
-                            <span key={source} className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] text-slate-600">
+                            <span key={source} className="rounded-full bg-[rgb(var(--bg))] px-2 py-0.5 text-[10px] text-[rgb(var(--muted))]">
                               {source}
                             </span>
                           ))}
@@ -2941,11 +2691,11 @@ export default function AnalyzeWorkspace({
                 ) : null}
 
                 {insightTab === "recherche" && researchGuidance ? (
-                  <div className="mt-3 space-y-3 text-[11px] text-slate-700">
+                  <div className="mt-3 space-y-3 text-[11px] text-[rgb(var(--muted))]">
                     {hasResearchSources ? (
                       <div className="space-y-2">
                         <div className="flex flex-wrap items-center gap-2 text-[11px]">
-                          <span className="font-semibold text-slate-700">Darstellung:</span>
+                          <span className="font-semibold text-[rgb(var(--muted))]">Darstellung:</span>
                           {(["serp", "cards"] as const).map((v) => (
                             <button
                               key={v}
@@ -2954,7 +2704,7 @@ export default function AnalyzeWorkspace({
                               className={`rounded-full px-2.5 py-1 text-[11px] ${
                                 researchView === v
                                   ? "bg-slate-800 text-white"
-                                  : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                                  : "bg-[rgb(var(--bg))] text-[rgb(var(--muted))] hover:bg-[rgb(var(--bg))]"
                               }`}
                             >
                               {v === "serp" ? "SERP" : "Cards"}
@@ -2978,10 +2728,10 @@ export default function AnalyzeWorkspace({
 
                     {researchGuidance.focus?.length ? (
                       <div>
-                        <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Fokus</p>
+                        <p className="text-[11px] font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Fokus</p>
                         <div className="mt-1 flex flex-wrap gap-1">
                           {researchGuidance.focus.map((item) => (
-                            <span key={item} className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] text-slate-600">
+                            <span key={item} className="rounded-full bg-[rgb(var(--bg))] px-2 py-0.5 text-[10px] text-[rgb(var(--muted))]">
                               {item}
                             </span>
                           ))}
@@ -2991,8 +2741,8 @@ export default function AnalyzeWorkspace({
 
                     {researchGuidance.stakeholders?.length ? (
                       <div>
-                        <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Stakeholder</p>
-                        <ul className="mt-1 list-disc space-y-1 pl-4 text-[11px] text-slate-700">
+                        <p className="text-[11px] font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Stakeholder</p>
+                        <ul className="mt-1 list-disc space-y-1 pl-4 text-[11px] text-[rgb(var(--muted))]">
                           {researchGuidance.stakeholders.map((s) => (
                             <li key={s}>{s}</li>
                           ))}
@@ -3002,8 +2752,8 @@ export default function AnalyzeWorkspace({
 
                     {researchGuidance.sources?.length ? (
                       <div>
-                        <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Quellen-Typen</p>
-                        <ul className="mt-1 list-disc space-y-1 pl-4 text-[11px] text-slate-700">
+                        <p className="text-[11px] font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Quellen-Typen</p>
+                        <ul className="mt-1 list-disc space-y-1 pl-4 text-[11px] text-[rgb(var(--muted))]">
                           {researchGuidance.sources.map((s) => (
                             <li key={s}>{s}</li>
                           ))}
@@ -3013,8 +2763,8 @@ export default function AnalyzeWorkspace({
 
                     {researchGuidance.queries?.length ? (
                       <div>
-                        <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Suchanfragen</p>
-                        <ul className="mt-1 list-disc space-y-1 pl-4 text-[11px] text-slate-700">
+                        <p className="text-[11px] font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Suchanfragen</p>
+                        <ul className="mt-1 list-disc space-y-1 pl-4 text-[11px] text-[rgb(var(--muted))]">
                           {researchGuidance.queries.map((q) => (
                             <li key={q}>{q}</li>
                           ))}
@@ -3025,9 +2775,9 @@ export default function AnalyzeWorkspace({
                     {researchGuidance.feeds?.length || researchGuidance.risks?.length ? (
                       <div className="grid gap-3 md:grid-cols-2">
                         {researchGuidance.feeds?.length ? (
-                          <div className="rounded-lg border border-slate-100 bg-slate-50 px-2 py-2">
-                            <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Feeds</p>
-                            <ul className="mt-1 list-disc space-y-1 pl-4 text-[11px] text-slate-700">
+                          <div className="rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-2 py-2">
+                            <p className="text-[10px] font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Feeds</p>
+                            <ul className="mt-1 list-disc space-y-1 pl-4 text-[11px] text-[rgb(var(--muted))]">
                               {researchGuidance.feeds.map((f) => (
                                 <li key={f}>{f}</li>
                               ))}
@@ -3035,9 +2785,9 @@ export default function AnalyzeWorkspace({
                           </div>
                         ) : null}
                         {researchGuidance.risks?.length ? (
-                          <div className="rounded-lg border border-slate-100 bg-slate-50 px-2 py-2">
-                            <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Risiken</p>
-                            <ul className="mt-1 list-disc space-y-1 pl-4 text-[11px] text-slate-700">
+                          <div className="rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-2 py-2">
+                            <p className="text-[10px] font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Risiken</p>
+                            <ul className="mt-1 list-disc space-y-1 pl-4 text-[11px] text-[rgb(var(--muted))]">
                               {(researchGuidance.risks ?? []).map((r) => (
                                 <li key={r}>{r}</li>
                               ))}
@@ -3048,27 +2798,184 @@ export default function AnalyzeWorkspace({
                     ) : null}
                   </div>
                 ) : null}
+
+                {showDeepResearch ? (
+                  <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50/70 px-3 py-3 text-[11px] text-amber-900 dark:border-amber-400/40 dark:bg-amber-500/10 dark:text-amber-200">
+                    <p className="text-[10px] font-semibold uppercase tracking-wide text-amber-700 dark:text-amber-200">
+                      Tiefenrecherche (20 EUR)
+                    </p>
+                    <p className="mt-1">
+                      Optional: startet ARI-Search + Faktencheck-Queue und unterstuetzt die Redaktion.
+                    </p>
+                    {deepResearchHints.length > 0 ? (
+                      <ul className="mt-2 list-disc space-y-1 pl-4">
+                        {deepResearchHints.map((hint) => (
+                          <li key={hint}>{hint}</li>
+                        ))}
+                      </ul>
+                    ) : null}
+                    <button
+                      type="button"
+                      onClick={handleDeepResearch}
+                      disabled={deepResearchBusy}
+                      className="mt-3 rounded-full bg-amber-500 px-3 py-1.5 text-[11px] font-semibold text-white shadow hover:opacity-90 disabled:opacity-60"
+                    >
+                      {deepResearchBusy ? "Startet..." : "Tiefenrecherche starten"}
+                    </button>
+                    {deepResearchInfo && (
+                      <p className="mt-2 text-[11px] text-amber-900 dark:text-amber-100">{deepResearchInfo}</p>
+                    )}
+                  </div>
+                ) : null}
               </div>
             </div>
           )}
+        </div>
+
+        <div className="max-w-4xl mx-auto">
+          <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-4 shadow-sm space-y-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Analyse starten</p>
+                <p className="text-[11px] text-[rgb(var(--muted))]">
+                  Waehle deinen Bereich – die Analyse startet sofort mit dem passenden Ablauf.
+                </p>
+                {useCaseNote ? (
+                  <p className="mt-1 text-[11px] text-[rgb(var(--muted))]">{useCaseNote}</p>
+                ) : null}
+              </div>
+              <span className="rounded-full bg-[rgb(var(--bg))] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
+                {useCaseLabel}
+              </span>
+            </div>
+
+            <div className="grid gap-2 sm:grid-cols-3">
+              {useCaseOptions.map((item) => {
+                const active = useCase === item.id;
+                const allowed = isUseCaseAllowed(item.id);
+                const lockLabel = lockLabelFor(item.id);
+                const isDisabled = analyzeDisabled;
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    aria-pressed={active && allowed}
+                    aria-disabled={!allowed || isDisabled}
+                    onClick={() => {
+                      if (!allowed) {
+                        setFlowInfo(lockLabel);
+                        return;
+                      }
+                      if (isDisabled) return;
+                      setUseCase(item.id);
+                      void handleAnalyze();
+                    }}
+                    className={[
+                      "group rounded-2xl border px-3 py-3 text-left transition shadow-sm",
+                      active && allowed
+                        ? "border-sky-200 bg-gradient-to-r from-sky-500/10 via-cyan-500/10 to-emerald-500/10"
+                        : "border-[rgb(var(--border))] bg-[rgb(var(--card))]",
+                      allowed ? "hover:border-sky-200 hover:shadow-md" : "cursor-not-allowed opacity-60",
+                      isDisabled ? "opacity-70" : "",
+                    ].join(" ")}
+                    disabled={isDisabled}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-sm font-semibold text-[rgb(var(--fg))]">{item.title}</p>
+                      <span className="rounded-full bg-[rgb(var(--bg))] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
+                        {analyzeButtonLabel}
+                      </span>
+                    </div>
+                    <p className="mt-1 text-[11px] text-[rgb(var(--muted))]">{item.text}</p>
+                    {!allowed ? (
+                      <div className="mt-2 flex items-center justify-between text-[10px] text-[rgb(var(--muted))]">
+                        <span className="font-semibold uppercase tracking-wide">{lockLabel}</span>
+                        <a href={useCaseCtaHref} className="font-semibold underline underline-offset-4">
+                          {useCaseCtaLabel}
+                        </a>
+                      </div>
+                    ) : null}
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="grid gap-3 md:grid-cols-2">
+              <label className="grid gap-1 text-[11px] font-semibold text-[rgb(var(--muted))]">
+                Verfasser (optional)
+                <input
+                  value={authorName}
+                  onChange={(event) => setAuthorName(event.target.value)}
+                  className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm text-[rgb(var(--fg))] shadow-sm focus:border-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                  placeholder="z.B. Redaktion XY, Fachbereich, Name"
+                />
+                <span className="text-[11px] text-[rgb(var(--muted))]">
+                  Wir zeigen den Verfasser bei der Abstimmung und im Dossier, wenn angegeben.
+                </span>
+              </label>
+
+              <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-3 text-[11px] text-[rgb(var(--muted))]">
+                <p className="font-semibold text-[rgb(var(--fg))]">Abstimmung mit Verfasser</p>
+                <label className="mt-2 flex items-start gap-2">
+                  <input
+                    type="checkbox"
+                    className="mt-[2px] h-4 w-4 rounded border-[rgb(var(--border))] text-sky-600 focus:ring-sky-500"
+                    checked={confirmUnderstanding}
+                    onChange={(event) => setConfirmUnderstanding(event.target.checked)}
+                    disabled={statements.length === 0}
+                  />
+                  <span>
+                    Ich bestaetige, dass die Kernaussagen korrekt verstanden wurden.
+                    {statements.length === 0 ? " (Analyse zuerst starten)" : ""}
+                  </span>
+                </label>
+              </div>
+            </div>
+
+            <div className="grid gap-3 md:grid-cols-2">
+              <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-3 text-[11px] text-[rgb(var(--muted))]">
+                <p className="text-[10px] font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Extraktion</p>
+                <div className="mt-2 grid gap-1 text-[11px]">
+                  <span>Kernaussagen: {statements.length}</span>
+                  <span>Kontext: {contextCount}</span>
+                  <span>Fragen: {questions.length}</span>
+                  <span>Wirkung: {consequenceCount}</span>
+                  <span>Zustaendigkeit: {responsibilityCount}</span>
+                </div>
+              </div>
+            </div>
+
+            {isJournalism && (
+              <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-[11px] text-[rgb(var(--muted))]">
+                Text bleibt unveraendert. Claims werden abgeleitet, aber nicht umgeschrieben. Optionaler Faktencheck und
+                QR/Dossier-Export nach Freigabe (kostenpflichtig).
+              </div>
+            )}
+            {isAgenda && (
+              <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-[11px] text-[rgb(var(--muted))]">
+                Agenda-Upload ist im Pilot-Setup vorgesehen. Wir schlagen Umfragen vor und spielen wechselnde Fragen fuer
+                Streams/Veranstaltungen aus.
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
       {totalStatements > 0 ? (
         <div ref={ctaRef} className="fixed bottom-3 left-0 right-0 z-30 px-3">
-          <div className="mx-auto flex max-w-3xl flex-wrap items-center justify-between gap-3 rounded-2xl bg-white/95 px-3 py-2 shadow-[0_18px_45px_rgba(15,23,42,0.12)] ring-1 ring-slate-200">
+          <div className="mx-auto flex max-w-3xl flex-wrap items-center justify-between gap-3 rounded-2xl bg-[rgb(var(--card))] px-3 py-2 shadow-[0_18px_45px_rgba(15,23,42,0.12)] ring-1 ring-[rgb(var(--border))]">
             <div className="min-w-[180px]">
-              <p className="text-xs font-semibold text-slate-900">
+              <p className="text-xs font-semibold text-[rgb(var(--fg))]">
                 {selectedClaimIds.length} von {totalStatements} ausgewählt
               </p>
-              <p className="text-[11px] text-slate-500">Wähle, welche Statements eingereicht werden.</p>
+              <p className="text-[11px] text-[rgb(var(--muted))]">Wähle, welche Statements eingereicht werden.</p>
             </div>
             <div className="flex flex-1 flex-wrap items-center justify-end gap-2">
               <button
                 type="button"
                 onClick={saveDraftSnapshot}
                 disabled={isSaving || !preparedText.trim()}
-                className="rounded-full border border-slate-300 px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-60"
+                className="rounded-full border border-[rgb(var(--border))] px-4 py-2 text-xs font-semibold text-[rgb(var(--muted))] hover:bg-[rgb(var(--bg))] disabled:opacity-60"
               >
                 Speichern
               </button>
@@ -3083,7 +2990,7 @@ export default function AnalyzeWorkspace({
             </div>
           </div>
           {finalizeInfo && (
-            <div className="mx-auto mt-2 max-w-3xl rounded-2xl bg-emerald-50 px-3 py-2 text-xs text-emerald-700 ring-1 ring-emerald-100">
+            <div className="mx-auto mt-2 max-w-3xl rounded-2xl bg-emerald-50 px-3 py-2 text-xs text-emerald-700 ring-1 ring-emerald-100 dark:bg-emerald-500/15 dark:text-emerald-200 dark:ring-emerald-400/30">
               {finalizeInfo}
             </div>
           )}

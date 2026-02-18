@@ -21,21 +21,21 @@ export default async function DemoLayout({ children }: Props) {
   if (!isDemoUser(user)) notFound();
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/80 backdrop-blur">
+    <div className="min-h-screen bg-[rgb(var(--bg))]">
+      <header className="sticky top-0 z-40 border-b border-[rgb(var(--border))] bg-[rgb(var(--card))] backdrop-blur">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-3">
           <div className="flex items-center gap-3">
             <span className="rounded-full bg-slate-900 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-white">
               Demo
             </span>
-            <span className="text-xs text-slate-500">nur Demo-Daten - Screenshot Studio</span>
+            <span className="text-xs text-[rgb(var(--muted))]">nur Demo-Daten - Screenshot Studio</span>
           </div>
-          <nav className="flex flex-wrap gap-2 text-xs font-semibold text-slate-600">
+          <nav className="flex flex-wrap gap-2 text-xs font-semibold text-[rgb(var(--muted))]">
             {DEMO_NAV.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
-                className="rounded-full border border-slate-200 bg-white px-3 py-1 hover:border-slate-300 hover:text-slate-900"
+                className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-1 hover:border-[rgb(var(--border))] hover:text-[rgb(var(--fg))]"
               >
                 {item.label}
               </Link>

@@ -21,7 +21,7 @@ export default function StreamViewToggle({ onChange }: Props) {
       <button
         onClick={() => toggle("grid")}
         className={`px-3 py-2 flex items-center gap-1 ${
-          view === "grid" ? "bg-coral text-white" : "bg-white text-gray-600"
+          view === "grid" ? "bg-coral text-white" : "bg-[rgb(var(--card))] text-gray-600"
         }`}
         title="Rasteransicht"
       >
@@ -30,7 +30,7 @@ export default function StreamViewToggle({ onChange }: Props) {
       <button
         onClick={() => toggle("list")}
         className={`px-3 py-2 flex items-center gap-1 ${
-          view === "list" ? "bg-coral text-white" : "bg-white text-gray-600"
+          view === "list" ? "bg-coral text-white" : "bg-[rgb(var(--card))] text-gray-600"
         }`}
         title="Listenansicht"
       >

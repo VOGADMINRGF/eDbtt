@@ -146,8 +146,8 @@ export function HumanCheck({
 
   if (isCompact && !isOpen && status !== "solved") {
     return (
-      <div className="space-y-2 rounded-xl border border-slate-200 bg-white/95 p-4 text-xs text-slate-600 shadow-sm">
-        <p className="text-sm font-semibold text-slate-900">Kurze Bestätigung</p>
+      <div className="space-y-2 rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 text-xs text-[rgb(var(--muted))] shadow-sm">
+        <p className="text-sm font-semibold text-[rgb(var(--fg))]">Kurze Bestätigung</p>
         <p>
           Kurzer Anti-Spam-Check. Öffne die Aufgabe nur, wenn du das Formular absenden willst.
         </p>
@@ -167,7 +167,7 @@ export function HumanCheck({
       <div
         className={`space-y-2 rounded-xl border p-4 text-xs ${
           isCompact
-            ? "border-slate-200 bg-white/95 text-slate-600 shadow-sm"
+            ? "border-[rgb(var(--border))] bg-[rgb(var(--card))] text-[rgb(var(--muted))] shadow-sm"
             : "border-emerald-100 bg-emerald-50/70 text-emerald-800"
         }`}
       >
@@ -180,14 +180,14 @@ export function HumanCheck({
     <div
       className={`space-y-3 rounded-xl border p-4 ${
         isCompact
-          ? "border-slate-200 bg-white/95 shadow-sm"
+          ? "border-[rgb(var(--border))] bg-[rgb(var(--card))] shadow-sm"
           : "border-emerald-100 bg-emerald-50/70"
       }`}
     >
       <div className="flex items-center justify-between gap-2">
         <p
           className={`text-sm font-semibold ${
-            isCompact ? "text-slate-900" : "text-emerald-900"
+            isCompact ? "text-[rgb(var(--fg))]" : "text-emerald-900"
           }`}
         >
           Kurze Bestätigung: Bist du ein Mensch?
@@ -195,14 +195,14 @@ export function HumanCheck({
         {status === "solved" && (
           <span
             className={`text-xs font-semibold ${
-              isCompact ? "text-slate-600" : "text-emerald-700"
+              isCompact ? "text-[rgb(var(--muted))]" : "text-emerald-700"
             }`}
           >
             ✓ geprüft
           </span>
         )}
       </div>
-      <p className={`text-xs ${isCompact ? "text-slate-600" : "text-emerald-800"}`}>
+      <p className={`text-xs ${isCompact ? "text-[rgb(var(--muted))]" : "text-emerald-800"}`}>
         Wir schützen Formulare vor Spam. Kein Tracking, nur ein kleiner Check: Bitte rechne die Aufgabe und lass das versteckte
         Feld leer.
       </p>
@@ -221,13 +221,13 @@ export function HumanCheck({
       <div
         className={`flex items-center gap-3 rounded-lg border px-3 py-2 ${
           isCompact
-            ? "border-slate-200 bg-slate-50/60"
-            : "border-emerald-200 bg-white/70"
+            ? "border-[rgb(var(--border))] bg-[rgb(var(--bg))]"
+            : "border-emerald-200 bg-[rgb(var(--card))]"
         }`}
       >
         <span
           className={`text-sm font-semibold ${
-            isCompact ? "text-slate-900" : "text-emerald-900"
+            isCompact ? "text-[rgb(var(--fg))]" : "text-emerald-900"
           }`}
         >
           {puzzle.first} + {puzzle.second} =
@@ -250,9 +250,9 @@ export function HumanCheck({
             e.stopPropagation();
             if (status !== "checking") void handleVerify();
           }}
-          className={`w-24 rounded-lg border bg-white px-3 py-2 text-sm outline-none ${
+          className={`w-24 rounded-lg border bg-[rgb(var(--card))] px-3 py-2 text-sm outline-none ${
             isCompact
-              ? "border-slate-200 text-slate-900 focus:border-slate-400 focus:ring-2 focus:ring-slate-100"
+              ? "border-[rgb(var(--border))] text-[rgb(var(--fg))] focus:border-[rgb(var(--border))] focus:ring-2 focus:ring-[rgb(var(--border))]"
               : "border-emerald-200 text-emerald-900 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
           }`}
           aria-label="Ergebnis eintragen"
@@ -274,7 +274,7 @@ export function HumanCheck({
       </div>
 
       {message && (
-        <p className={`text-xs ${isCompact ? "text-slate-600" : "text-emerald-700"}`}>
+        <p className={`text-xs ${isCompact ? "text-[rgb(var(--muted))]" : "text-emerald-700"}`}>
           {message}
         </p>
       )}

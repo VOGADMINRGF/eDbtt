@@ -52,7 +52,7 @@ export default function LocaleSwitcher() {
     <div className="relative text-sm" data-locale-switcher-root>
       <button
         type="button"
-        className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white/80 px-3 py-1 text-slate-700 shadow-sm transition hover:border-slate-300"
+        className="inline-flex items-center gap-1 rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-1 text-[rgb(var(--muted))] shadow-sm transition hover:border-[rgb(var(--border))]"
         onClick={() => setOpen((prev) => !prev)}
         aria-haspopup="menu"
         aria-expanded={open}
@@ -65,7 +65,7 @@ export default function LocaleSwitcher() {
       </button>
 
       {open && (
-        <div className="absolute right-0 z-30 mt-2 w-40 rounded-xl border border-slate-200 bg-white p-2 text-sm shadow-lg">
+        <div className="absolute right-0 z-30 mt-2 w-40 rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-2 text-sm shadow-lg">
           <ul className="space-y-1">
             {SUPPORTED_LOCALES.map((code: SupportedLocale) => {
               const option = LOCALE_CONFIG.find((cfg) => cfg.code === code);
@@ -77,7 +77,7 @@ export default function LocaleSwitcher() {
                     onClick={() => handleSelect(code)}
                     className={[
                       "flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left transition",
-                      active ? "bg-slate-100 font-semibold text-slate-900" : "text-slate-600 hover:bg-slate-50",
+                      active ? "bg-[rgb(var(--bg))] font-semibold text-[rgb(var(--fg))]" : "text-[rgb(var(--muted))] hover:bg-[rgb(var(--bg))]",
                     ].join(" ")}
                   >
                     <span role="img" aria-hidden="true">

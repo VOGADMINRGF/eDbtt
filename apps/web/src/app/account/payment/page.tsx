@@ -39,16 +39,16 @@ export default async function PaymentPage() {
       <div className="mx-auto max-w-3xl space-y-6 px-4">
         <header className="space-y-2">
           <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-sky-600">Zahlungsprofil</p>
-          <h1 className="text-2xl font-semibold text-slate-900">Standardkonto &amp; Zahlungsart</h1>
-          <p className="text-sm text-slate-600">
+          <h1 className="text-2xl font-semibold text-[rgb(var(--fg))]">Standardkonto &amp; Zahlungsart</h1>
+          <p className="text-sm text-[rgb(var(--muted))]">
             Hinterlegte Bankverbindung für Beiträge und Abrechnungen. Du kannst dein Standardkonto hier aktualisieren; bei Fragen helfen wir dir im Support.
           </p>
         </header>
 
-        <section className="space-y-4 rounded-3xl bg-white/95 p-5 shadow-[0_18px_55px_rgba(15,23,42,0.08)] ring-1 ring-slate-100">
-          <div className="space-y-1 rounded-2xl bg-slate-50/80 px-3 py-2">
-            <p className="text-[11px] font-medium text-slate-700">Standardkonto</p>
-            <p className="text-sm text-slate-800">
+        <section className="space-y-4 rounded-3xl bg-[rgb(var(--card))] p-5 shadow-[0_18px_55px_rgba(15,23,42,0.08)] ring-1 ring-[rgb(var(--border))]">
+          <div className="space-y-1 rounded-2xl bg-[rgb(var(--bg))] px-3 py-2">
+            <p className="text-[11px] font-medium text-[rgb(var(--muted))]">Standardkonto</p>
+            <p className="text-sm text-[rgb(var(--fg))]">
               {iban ? (
                 <>
                   {holder ? `${holder} · ` : ""}
@@ -60,7 +60,7 @@ export default async function PaymentPage() {
               )}
             </p>
             {(contribution || note) && (
-              <p className="text-[11px] text-slate-500">
+              <p className="text-[11px] text-[rgb(var(--muted))]">
                 {contribution ? `Aktuelle Rate: ${contribution}` : null}
                 {note ? ` · ${note}` : null}
               </p>
@@ -75,9 +75,9 @@ export default async function PaymentPage() {
             paymentReference={paymentReference}
           />
 
-          <div className="space-y-1 rounded-2xl bg-slate-50/80 px-3 py-2">
-            <p className="text-[11px] font-medium text-slate-700">Bevorzugte Zahlungsart</p>
-            <p className="text-sm text-slate-800">Aktuell Bankeinzug / Überweisung. Weitere Optionen (z.B. Karte) folgen.</p>
+          <div className="space-y-1 rounded-2xl bg-[rgb(var(--bg))] px-3 py-2">
+            <p className="text-[11px] font-medium text-[rgb(var(--muted))]">Bevorzugte Zahlungsart</p>
+            <p className="text-sm text-[rgb(var(--fg))]">Aktuell Bankeinzug / Überweisung. Weitere Optionen (z.B. Karte) folgen.</p>
           </div>
 
           <div className="rounded-2xl bg-slate-900/90 px-4 py-3 text-[11px] text-slate-100">

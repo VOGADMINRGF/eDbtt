@@ -13,7 +13,7 @@ export function AnalyzeBar({
   count?: number;
 }) {
   return (
-    <div className="fixed inset-x-0 bottom-0 z-40 border-t bg-white/90 backdrop-blur supports-[backdrop-filter]:bg-white/70">
+    <div className="fixed inset-x-0 bottom-0 z-40 border-t bg-[rgb(var(--card))] backdrop-blur supports-[backdrop-filter]:bg-[rgb(var(--card))]">
       <div className="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
         <div className="text-sm text-gray-600">
           {busy ? "Analysiere…" : "Bereit"} · {count ?? 0} Zeichen · Tipp: Cmd/Ctrl + Enter

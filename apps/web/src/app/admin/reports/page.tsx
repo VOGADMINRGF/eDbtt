@@ -24,17 +24,17 @@ export default function AdminReportsPage() {
   return (
     <main className="mx-auto flex max-w-5xl flex-col gap-6 px-4 py-8">
       <header className="space-y-1">
-        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Admin · Reports</p>
-        <h1 className="text-2xl font-bold text-slate-900">Reports Explorer</h1>
-        <p className="text-sm text-slate-600">
+        <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Admin · Reports</p>
+        <h1 className="text-2xl font-bold text-[rgb(var(--fg))]">Reports Explorer</h1>
+        <p className="text-sm text-[rgb(var(--muted))]">
           Gezielter Einstieg in Topic- und Region-Reports. Optional kannst du das oeffentliche Archiv oeffnen.
         </p>
       </header>
 
       <section className="grid gap-4 lg:grid-cols-2">
-        <div className="rounded-3xl bg-white/90 p-4 shadow ring-1 ring-slate-100">
-          <h2 className="text-sm font-semibold text-slate-900">Topic Report</h2>
-          <p className="mt-1 text-sm text-slate-600">
+        <div className="rounded-3xl bg-[rgb(var(--card))] p-4 shadow ring-1 ring-[rgb(var(--border))]">
+          <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Topic Report</h2>
+          <p className="mt-1 text-sm text-[rgb(var(--muted))]">
             Topic-Slug eingeben und den Impact-Report oeffnen.
           </p>
           <form
@@ -48,7 +48,7 @@ export default function AdminReportsPage() {
               value={topicSlug}
               onChange={(e) => setTopicSlug(e.target.value)}
               placeholder="z.B. klima, bildung, energie"
-              className="flex-1 rounded-full border border-slate-200 bg-slate-50 px-3 py-2 text-sm"
+              className="flex-1 rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-sm"
             />
             <button
               type="button"
@@ -60,9 +60,9 @@ export default function AdminReportsPage() {
           </form>
         </div>
 
-        <div className="rounded-3xl bg-white/90 p-4 shadow ring-1 ring-slate-100">
-          <h2 className="text-sm font-semibold text-slate-900">Region Report</h2>
-          <p className="mt-1 text-sm text-slate-600">
+        <div className="rounded-3xl bg-[rgb(var(--card))] p-4 shadow ring-1 ring-[rgb(var(--border))]">
+          <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Region Report</h2>
+          <p className="mt-1 text-sm text-[rgb(var(--muted))]">
             Region-ID eingeben und den Report laden.
           </p>
           <form
@@ -76,7 +76,7 @@ export default function AdminReportsPage() {
               value={regionId}
               onChange={(e) => setRegionId(e.target.value)}
               placeholder="z.B. 1, berlin, de-berlin"
-              className="flex-1 rounded-full border border-slate-200 bg-slate-50 px-3 py-2 text-sm"
+              className="flex-1 rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-sm"
             />
             <button
               type="button"
@@ -89,17 +89,17 @@ export default function AdminReportsPage() {
         </div>
       </section>
 
-      <section className="rounded-3xl bg-white/90 p-4 shadow ring-1 ring-slate-100">
+      <section className="rounded-3xl bg-[rgb(var(--card))] p-4 shadow ring-1 ring-[rgb(var(--border))]">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-sm font-semibold text-slate-900">Archiv (oeffentlich)</h2>
-            <p className="text-sm text-slate-600">
+            <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Archiv (oeffentlich)</h2>
+            <p className="text-sm text-[rgb(var(--muted))]">
               Oeffnet die oeffentliche Archiv-Uebersicht.
             </p>
           </div>
           <Link
             href="/archiv"
-            className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm font-semibold text-slate-700 hover:border-sky-200 hover:text-sky-700"
+            className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-1.5 text-sm font-semibold text-[rgb(var(--muted))] hover:border-sky-200 hover:text-sky-700"
           >
             Zu /archiv
           </Link>

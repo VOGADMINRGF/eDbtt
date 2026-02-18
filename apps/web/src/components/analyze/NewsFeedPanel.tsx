@@ -22,7 +22,7 @@ export default function NewsFeedPanel({ topic, region, keywords=[] as string[] }
       <div className="font-semibold mb-2">Aktuelle Recherche</div>
       {loading && !items && <div className="vog-skeleton h-4 w-40" />}
       {(!items || items.length===0) ? (
-        <div className="text-sm text-slate-600">
+        <div className="text-sm text-[rgb(var(--muted))]">
           Keine Treffer aus konfigurierten Quellen.
           {errors?.length ? <details className="text-xs mt-2"><summary>Details</summary>
             <ul className="list-disc ml-4">{errors.map((e,i)=><li key={i}>{e}</li>)}</ul></details> : null}
@@ -31,9 +31,9 @@ export default function NewsFeedPanel({ topic, region, keywords=[] as string[] }
         <ul className="space-y-2">
           {items.map((it,i)=>(
             <li key={i}>
-              <a href={it.url} target="_blank" className="block rounded-xl border border-slate-200 p-3 hover:bg-slate-50">
+              <a href={it.url} target="_blank" className="block rounded-xl border border-[rgb(var(--border))] p-3 hover:bg-[rgb(var(--bg))]">
                 <div className="font-medium tw-fallback-line-clamp-2">{it.title}</div>
-                <div className="text-xs text-slate-500 mt-1">
+                <div className="text-xs text-[rgb(var(--muted))] mt-1">
                   {(it.source ?? (()=>{try{return new URL(it.url).host}catch{return ""}})())}
                   {typeof it.score==="number" ? ` · Score ${it.score.toFixed(2)}` : ""}
                 </div>

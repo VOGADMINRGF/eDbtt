@@ -47,7 +47,7 @@ export default function UserManagement() {
     <section className="space-y-6">
       <h2 className="text-xl font-bold text-coral">Benutzerverwaltung</h2>
 
-      <table className="w-full bg-white rounded shadow">
+      <table className="w-full bg-[rgb(var(--card))] rounded shadow">
         <thead>
           <tr className="bg-gray-100 text-left">
             <th className="p-3">Name</th>

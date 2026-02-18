@@ -15,6 +15,8 @@ import { CookieBanner } from "@/components/privacy/CookieBanner";
 import { AnalyticsTracker } from "@/components/privacy/AnalyticsTracker";
 import { CONSENT_COOKIE_NAME, LEGACY_CONSENT_COOKIE_NAME, parseConsentCookie } from "@/lib/privacy/consent";
 import SiteFooter from "@/components/SiteFooter";
+import { ThemeProvider } from "@/components/providers/theme-provider";
+import { ReadingModeProvider } from "@/components/providers/reading-mode-provider";
 
 export const metadata: Metadata = {
   metadataBase: new URL(BRAND.baseUrl),
@@ -49,18 +51,22 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const initialUser = await loadServerUser(cookieStore);
 
   return (
-    <html lang={initialLocale} className="h-full">
-      <body className="min-h-screen bg-gradient-to-b from-[var(--brand-from)] via-white to-white text-neutral-900 antialiased">
-        <LocaleProvider initialLocale={initialLocale}>
-          <div className="flex min-h-screen flex-col">
-            <SiteHeader initialUser={initialUser} />
-            <main className="flex-1">{children}</main>
-            <SiteFooter />
-            <div className="h-[env(safe-area-inset-bottom)]" />
-            <AnalyticsTracker />
-            <CookieBanner strings={privacyStrings} initialConsent={initialConsent} />
-          </div>
-        </LocaleProvider>
+    <html lang={initialLocale} className="h-full dark" suppressHydrationWarning>
+      <body className="min-h-screen antialiased">
+        <ThemeProvider>
+          <ReadingModeProvider>
+            <LocaleProvider initialLocale={initialLocale}>
+              <div className="flex min-h-screen flex-col">
+                <SiteHeader initialUser={initialUser} />
+                <main className="flex-1">{children}</main>
+                <SiteFooter />
+                <div className="h-[env(safe-area-inset-bottom)]" />
+                <AnalyticsTracker />
+                <CookieBanner strings={privacyStrings} initialConsent={initialConsent} />
+              </div>
+            </LocaleProvider>
+          </ReadingModeProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

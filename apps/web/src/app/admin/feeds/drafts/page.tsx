@@ -68,25 +68,25 @@ export default function AdminFeedDraftsPage() {
   return (
     <div className="mx-auto flex min-h-[80vh] max-w-6xl flex-col gap-6 px-4 py-8">
       <header className="space-y-1">
-        <p className="text-sm font-semibold uppercase tracking-wide text-slate-500">
+        <p className="text-sm font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
           Admin · Feed-Pipeline
         </p>
-        <h1 className="text-2xl font-bold text-slate-900">Drafts aus Feeds</h1>
-        <p className="text-sm text-slate-600">
+        <h1 className="text-2xl font-bold text-[rgb(var(--fg))]">Drafts aus Feeds</h1>
+        <p className="text-sm text-[rgb(var(--muted))]">
           Übersicht über alle automatisch erzeugten Drafts. Filtere nach Status oder Region und öffne die
           Detailansicht für Reviews & Veröffentlichung.
         </p>
       </header>
 
       <div className="flex flex-wrap items-center gap-3">
-        <div className="flex flex-wrap gap-2 rounded-full border border-slate-200 bg-white px-3 py-2">
+        <div className="flex flex-wrap gap-2 rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2">
           {STATUS_FILTERS.map((entry) => (
             <button
               key={entry.value}
               className={`rounded-full px-3 py-1 text-sm font-medium transition ${
                 statusFilter === entry.value
                   ? "bg-slate-900 text-white"
-                  : "text-slate-600 hover:text-slate-900"
+                  : "text-[rgb(var(--muted))] hover:text-[rgb(var(--fg))]"
               }`}
               onClick={() => setStatusFilter(entry.value)}
             >
@@ -98,7 +98,7 @@ export default function AdminFeedDraftsPage() {
         <select
           value={regionFilter}
           onChange={(e) => setRegionFilter(e.target.value)}
-          className="rounded-full border border-slate-300 bg-white px-4 py-2 text-sm text-slate-700 shadow-sm"
+          className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-2 text-sm text-[rgb(var(--muted))] shadow-sm"
         >
           {REGION_FILTERS.map((opt) => (
             <option key={opt.value} value={opt.value}>
@@ -114,29 +114,29 @@ export default function AdminFeedDraftsPage() {
         </div>
       )}
 
-      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <table className="min-w-full divide-y divide-slate-200 text-sm">
-          <thead className="bg-slate-50">
+      <div className="overflow-hidden rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] shadow-sm">
+        <table className="min-w-full divide-y divide-[rgb(var(--border))] text-sm">
+          <thead className="bg-[rgb(var(--bg))]">
             <tr>
-              <th className="px-4 py-3 text-left font-semibold text-slate-600">Titel</th>
-              <th className="px-4 py-3 text-left font-semibold text-slate-600">Status</th>
-              <th className="px-4 py-3 text-left font-semibold text-slate-600">Region</th>
-              <th className="px-4 py-3 text-left font-semibold text-slate-600">Quelle</th>
-              <th className="px-4 py-3 text-left font-semibold text-slate-600">Analyse</th>
-              <th className="px-4 py-3 text-left font-semibold text-slate-600">Pipeline</th>
+              <th className="px-4 py-3 text-left font-semibold text-[rgb(var(--muted))]">Titel</th>
+              <th className="px-4 py-3 text-left font-semibold text-[rgb(var(--muted))]">Status</th>
+              <th className="px-4 py-3 text-left font-semibold text-[rgb(var(--muted))]">Region</th>
+              <th className="px-4 py-3 text-left font-semibold text-[rgb(var(--muted))]">Quelle</th>
+              <th className="px-4 py-3 text-left font-semibold text-[rgb(var(--muted))]">Analyse</th>
+              <th className="px-4 py-3 text-left font-semibold text-[rgb(var(--muted))]">Pipeline</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100">
+          <tbody className="divide-y divide-[rgb(var(--border))]">
             {loading && (
               <tr>
-                <td colSpan={6} className="px-4 py-6 text-center text-slate-500">
+                <td colSpan={6} className="px-4 py-6 text-center text-[rgb(var(--muted))]">
                   Lädt Drafts …
                 </td>
               </tr>
             )}
             {!loading && items.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-4 py-6 text-center text-slate-500">
+                <td colSpan={6} className="px-4 py-6 text-center text-[rgb(var(--muted))]">
                   Keine Drafts für die aktuellen Filter gefunden.
                 </td>
               </tr>
@@ -147,11 +147,11 @@ export default function AdminFeedDraftsPage() {
                   <td className="px-4 py-3">
                     <Link
                       href={`/admin/feeds/drafts/${draft.id}`}
-                      className="font-semibold text-slate-900 hover:underline"
+                      className="font-semibold text-[rgb(var(--fg))] hover:underline"
                     >
                       {draft.title}
                     </Link>
-                    <p className="text-xs text-slate-500">
+                    <p className="text-xs text-[rgb(var(--muted))]">
                       {formatDate(draft.createdAt)} · ID {draft.id.slice(-6)}
                     </p>
                   </td>
@@ -159,8 +159,8 @@ export default function AdminFeedDraftsPage() {
                     <StatusBadge status={draft.status} />
                   </td>
                   <td className="px-4 py-3">
-                    <p className="font-medium text-slate-800">{draft.regionName ?? "–"}</p>
-                    <p className="text-xs text-slate-500">{draft.regionCode ?? "—"}</p>
+                    <p className="font-medium text-[rgb(var(--fg))]">{draft.regionName ?? "–"}</p>
+                    <p className="text-xs text-[rgb(var(--muted))]">{draft.regionCode ?? "—"}</p>
                   </td>
                   <td className="px-4 py-3">
                     {draft.sourceUrl ? (
@@ -173,13 +173,13 @@ export default function AdminFeedDraftsPage() {
                         {extractDomain(draft.sourceUrl)}
                       </a>
                     ) : (
-                      <span className="text-slate-400">–</span>
+                      <span className="text-[rgb(var(--muted))]">–</span>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-sm text-slate-600">
+                  <td className="px-4 py-3 text-sm text-[rgb(var(--muted))]">
                     {draft.analyzeCompletedAt ? formatDate(draft.analyzeCompletedAt) : "offen"}
                   </td>
-                  <td className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  <td className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
                     {draft.pipeline}
                   </td>
                 </tr>
@@ -193,7 +193,7 @@ export default function AdminFeedDraftsPage() {
 
 function StatusBadge({ status }: { status: VoteDraftStatus }) {
   const colors: Record<VoteDraftStatus, string> = {
-    draft: "bg-slate-100 text-slate-800",
+    draft: "bg-[rgb(var(--bg))] text-[rgb(var(--fg))]",
     review: "bg-amber-100 text-amber-800",
     published: "bg-emerald-100 text-emerald-800",
     discarded: "bg-rose-100 text-rose-800",

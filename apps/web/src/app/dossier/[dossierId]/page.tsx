@@ -87,10 +87,10 @@ const statusStyles: Record<string, string> = {
   refutes: "border-rose-200 bg-rose-50 text-rose-800",
   mixed: "border-sky-200 bg-sky-50 text-sky-800",
   unclear: "border-amber-200 bg-amber-50 text-amber-800",
-  open: "border-slate-200 bg-slate-50 text-slate-700",
-  in_review: "border-slate-200 bg-slate-50 text-slate-700",
+  open: "border-[rgb(var(--border))] bg-[rgb(var(--bg))] text-[rgb(var(--muted))]",
+  in_review: "border-[rgb(var(--border))] bg-[rgb(var(--bg))] text-[rgb(var(--muted))]",
   answered: "border-emerald-200 bg-emerald-50 text-emerald-800",
-  closed: "border-slate-200 bg-slate-50 text-slate-700",
+  closed: "border-[rgb(var(--border))] bg-[rgb(var(--bg))] text-[rgb(var(--muted))]",
 };
 
 const claimKindLabels: Record<string, string> = {
@@ -116,15 +116,15 @@ export default async function DossierViewerPage({ params }: PageProps) {
     if (!proposal) return notFound();
 
     return (
-      <main className="min-h-screen bg-gradient-to-b from-[var(--brand-from)] via-white to-white pb-16">
+      <main className="min-h-screen bg-[rgb(var(--bg))] pb-16">
         <section className="mx-auto max-w-5xl px-4 py-16 space-y-10">
           <header className="space-y-4">
             <div className="space-y-2">
               <p className="text-xs font-semibold uppercase tracking-wide text-sky-700">Dossier (in Aufbau)</p>
-              <h1 className="text-3xl md:text-4xl font-extrabold leading-tight text-slate-900">
+              <h1 className="text-3xl md:text-4xl font-extrabold leading-tight text-[rgb(var(--fg))]">
                 {proposal.title ?? "Statement"}
               </h1>
-              <p className="text-sm text-slate-600 max-w-2xl">
+              <p className="text-sm text-[rgb(var(--muted))] max-w-2xl">
                 Für dieses Statement existiert noch kein Dossier. Du kannst es analysieren, um Claims, Quellen und offene Fragen zu erzeugen.
               </p>
             </div>
@@ -138,32 +138,32 @@ export default async function DossierViewerPage({ params }: PageProps) {
               </Link>
               <Link
                 href="/swipes"
-                className="rounded-full bg-slate-100 px-5 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-200"
+                className="rounded-full bg-[rgb(var(--bg))] px-5 py-2 text-sm font-semibold text-[rgb(var(--muted))] hover:bg-[rgb(var(--bg))]"
               >
                 Alle Swipes
               </Link>
               <Link
                 href={`/statements/new?prefill=${encodeURIComponent(proposal.text)}`}
-                className="rounded-full border border-slate-200 bg-white px-5 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+                className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-5 py-2 text-sm font-semibold text-[rgb(var(--muted))] hover:bg-[rgb(var(--bg))]"
               >
                 Analyse starten
               </Link>
             </div>
           </header>
 
-          <section className="rounded-3xl border border-slate-200 bg-white/95 p-6 shadow-sm">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Statement</p>
-            <p className="mt-3 whitespace-pre-line text-base leading-relaxed text-slate-900">{proposal.text}</p>
-            <div className="mt-5 flex flex-wrap gap-2 text-[11px] text-slate-600">
-              <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1">
-                Topic: <span className="font-semibold text-slate-800">{proposal.topic ?? "–"}</span>
+          <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-6 shadow-sm">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[rgb(var(--muted))]">Statement</p>
+            <p className="mt-3 whitespace-pre-line text-base leading-relaxed text-[rgb(var(--fg))]">{proposal.text}</p>
+            <div className="mt-5 flex flex-wrap gap-2 text-[11px] text-[rgb(var(--muted))]">
+              <span className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-1">
+                Topic: <span className="font-semibold text-[rgb(var(--fg))]">{proposal.topic ?? "–"}</span>
               </span>
-              <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1">
-                Zuständigkeit: <span className="font-semibold text-slate-800">{proposal.responsibility ?? "–"}</span>
+              <span className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-1">
+                Zuständigkeit: <span className="font-semibold text-[rgb(var(--fg))]">{proposal.responsibility ?? "–"}</span>
               </span>
               {proposal.createdAt ? (
-                <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1">
-                  Eingereicht: <span className="font-semibold text-slate-800">{formatDate(proposal.createdAt) ?? "–"}</span>
+                <span className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-1">
+                  Eingereicht: <span className="font-semibold text-[rgb(var(--fg))]">{formatDate(proposal.createdAt) ?? "–"}</span>
                 </span>
               ) : null}
             </div>
@@ -214,27 +214,27 @@ export default async function DossierViewerPage({ params }: PageProps) {
   };
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-[var(--brand-from)] via-white to-white pb-16">
+    <main className="min-h-screen bg-[rgb(var(--bg))] pb-16">
       <section className="mx-auto max-w-5xl px-4 py-16 space-y-10">
         <header className="space-y-3">
           <p className="text-xs font-semibold uppercase tracking-wide text-sky-700">Dossier Viewer</p>
-          <h1 className="text-3xl md:text-4xl font-extrabold leading-tight text-slate-900">
+          <h1 className="text-3xl md:text-4xl font-extrabold leading-tight text-[rgb(var(--fg))]">
             {dossier.title ?? "Dossier"}
           </h1>
-          <p className="text-sm text-slate-600">
+          <p className="text-sm text-[rgb(var(--muted))]">
             Statement-ID: <span className="font-mono">{dossier.statementId}</span>
           </p>
-          <div className="flex flex-wrap gap-3 text-xs text-slate-600">
-            <span className="rounded-full border border-slate-200 bg-white px-3 py-1">
+          <div className="flex flex-wrap gap-3 text-xs text-[rgb(var(--muted))]">
+            <span className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-1">
               Status: {dossier.status ?? "active"}
             </span>
             {dossier.lastFactcheckedAt ? (
-              <span className="rounded-full border border-slate-200 bg-white px-3 py-1">
+              <span className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-1">
                 Letzter Factcheck: {formatDate(dossier.lastFactcheckedAt) ?? "-"}
               </span>
             ) : null}
           </div>
-          <nav className="flex flex-wrap gap-2 text-xs text-slate-600">
+          <nav className="flex flex-wrap gap-2 text-xs text-[rgb(var(--muted))]">
             {[
               { id: "claims", label: "Claims" },
               { id: "sources", label: "Quellen" },
@@ -243,7 +243,7 @@ export default async function DossierViewerPage({ params }: PageProps) {
               { id: "questions", label: "Offene Fragen" },
               { id: "revisions", label: "Verlauf" },
             ].map((item) => (
-              <a key={item.id} href={`#${item.id}`} className="rounded-full border border-slate-200 bg-white px-3 py-1">
+              <a key={item.id} href={`#${item.id}`} className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-1">
                 {item.label}
               </a>
             ))}
@@ -259,23 +259,23 @@ export default async function DossierViewerPage({ params }: PageProps) {
           ].map((item) => (
             <div
               key={item.label}
-              className="rounded-2xl border border-slate-200 bg-white/90 p-4 text-sm shadow-sm"
+              className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 text-sm shadow-sm"
             >
-              <div className="text-xs uppercase tracking-wide text-slate-500">{item.label}</div>
-              <div className="mt-1 text-2xl font-semibold text-slate-900">{item.value}</div>
+              <div className="text-xs uppercase tracking-wide text-[rgb(var(--muted))]">{item.label}</div>
+              <div className="mt-1 text-2xl font-semibold text-[rgb(var(--fg))]">{item.value}</div>
             </div>
           ))}
         </section>
 
         <section id="claims" className="space-y-4 scroll-mt-24">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-slate-900">Claims</h2>
+            <h2 className="text-lg font-semibold text-[rgb(var(--fg))]">Claims</h2>
             <Link href={`/api/dossiers/${encodeURIComponent(dossierKey)}`} className="text-xs text-sky-700 underline">
               Daten anzeigen
             </Link>
           </div>
           {claims.length === 0 ? (
-            <div className="rounded-2xl border border-slate-200 bg-white/90 p-4 text-sm text-slate-600">
+            <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 text-sm text-[rgb(var(--muted))]">
               Noch keine Claims erfasst.
             </div>
           ) : (
@@ -283,20 +283,20 @@ export default async function DossierViewerPage({ params }: PageProps) {
               {claims.map((claim) => (
                 <article
                   key={claim.claimId}
-                  className="rounded-2xl border border-slate-200 bg-white/90 p-4 shadow-sm"
+                  className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm"
                 >
                   <div className="flex flex-wrap items-center gap-2 text-xs">
-                    <span className="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-slate-700">
+                    <span className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-2 py-0.5 text-[rgb(var(--muted))]">
                       {claimKindLabels[claim.kind] ?? claim.kind}
                     </span>
                     <span className={`rounded-full border px-2 py-0.5 ${statusStyles[claim.status] ?? statusStyles.open}`}>
                       {claim.status}
                     </span>
                   </div>
-                  <p className="mt-2 text-sm text-slate-800">{claim.text}</p>
+                  <p className="mt-2 text-sm text-[rgb(var(--fg))]">{claim.text}</p>
 
                   {Array.isArray(claim.uncertaintyNotes) && claim.uncertaintyNotes.length > 0 ? (
-                    <ul className="mt-2 list-disc pl-5 text-xs text-slate-600 space-y-1">
+                    <ul className="mt-2 list-disc pl-5 text-xs text-[rgb(var(--muted))] space-y-1">
                       {claim.uncertaintyNotes.map((note) => (
                         <li key={note}>{note}</li>
                       ))}
@@ -304,8 +304,8 @@ export default async function DossierViewerPage({ params }: PageProps) {
                   ) : null}
 
                   {claim.evidenceIndicator?.reasons?.length ? (
-                    <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600">
-                      <div className="font-semibold text-slate-700">
+                    <div className="mt-3 rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3 text-xs text-[rgb(var(--muted))]">
+                      <div className="font-semibold text-[rgb(var(--muted))]">
                         Evidenz-Indikator: {claim.evidenceIndicator.score.toFixed(2)}
                       </div>
                       <ul className="mt-1 list-disc pl-5 space-y-1">
@@ -322,9 +322,9 @@ export default async function DossierViewerPage({ params }: PageProps) {
         </section>
 
         <section id="sources" className="space-y-4 scroll-mt-24">
-          <h2 className="text-lg font-semibold text-slate-900">Quellen</h2>
+          <h2 className="text-lg font-semibold text-[rgb(var(--fg))]">Quellen</h2>
           {sources.length === 0 ? (
-            <div className="rounded-2xl border border-slate-200 bg-white/90 p-4 text-sm text-slate-600">
+            <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 text-sm text-[rgb(var(--muted))]">
               Noch keine Quellen dokumentiert.
             </div>
           ) : (
@@ -332,21 +332,21 @@ export default async function DossierViewerPage({ params }: PageProps) {
               {sources.map((source) => (
                 <article
                   key={source.sourceId}
-                  className="rounded-2xl border border-slate-200 bg-white/90 p-4 shadow-sm"
+                  className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm"
                 >
-                  <div className="flex flex-wrap items-center gap-2 text-xs text-slate-600">
-                    <span className="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5">
+                  <div className="flex flex-wrap items-center gap-2 text-xs text-[rgb(var(--muted))]">
+                    <span className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-2 py-0.5">
                       {source.type}
                     </span>
                     {source.publisher ? <span>{source.publisher}</span> : null}
                     {source.publishedAt ? <span>{formatDate(source.publishedAt)}</span> : null}
                   </div>
-                  <h3 className="mt-2 text-sm font-semibold text-slate-900">
+                  <h3 className="mt-2 text-sm font-semibold text-[rgb(var(--fg))]">
                     <a href={source.url} className="underline underline-offset-2" target="_blank" rel="noreferrer">
                       {source.title}
                     </a>
                   </h3>
-                  {source.snippet ? <p className="mt-2 text-xs text-slate-600">{source.snippet}</p> : null}
+                  {source.snippet ? <p className="mt-2 text-xs text-[rgb(var(--muted))]">{source.snippet}</p> : null}
                 </article>
               ))}
             </div>
@@ -354,9 +354,9 @@ export default async function DossierViewerPage({ params }: PageProps) {
         </section>
 
         <section id="findings" className="space-y-4 scroll-mt-24">
-          <h2 className="text-lg font-semibold text-slate-900">Findings</h2>
+          <h2 className="text-lg font-semibold text-[rgb(var(--fg))]">Findings</h2>
           {effectiveFindings.length === 0 ? (
-            <div className="rounded-2xl border border-slate-200 bg-white/90 p-4 text-sm text-slate-600">
+            <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 text-sm text-[rgb(var(--muted))]">
               Noch keine Findings vorhanden.
             </div>
           ) : (
@@ -366,33 +366,33 @@ export default async function DossierViewerPage({ params }: PageProps) {
                 return (
                   <article
                     key={finding.findingId}
-                    className="rounded-2xl border border-slate-200 bg-white/90 p-4 shadow-sm"
+                    className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm"
                   >
-                    <div className="flex flex-wrap items-center gap-2 text-xs text-slate-600">
+                    <div className="flex flex-wrap items-center gap-2 text-xs text-[rgb(var(--muted))]">
                       <span className={`rounded-full border px-2 py-0.5 ${statusStyles[finding.verdict] ?? statusStyles.open}`}>
                         {verdictLabels[finding.verdict] ?? finding.verdict}
                       </span>
                       {finding.updatedAt ? <span>Stand: {formatDate(finding.updatedAt)}</span> : null}
                     </div>
-                    {claim ? <p className="mt-2 text-sm text-slate-800">{claim.text}</p> : null}
+                    {claim ? <p className="mt-2 text-sm text-[rgb(var(--fg))]">{claim.text}</p> : null}
                     {finding.rationale?.length ? (
-                      <ul className="mt-2 list-disc pl-5 text-xs text-slate-600 space-y-1">
+                      <ul className="mt-2 list-disc pl-5 text-xs text-[rgb(var(--muted))] space-y-1">
                         {finding.rationale.map((item) => (
                           <li key={item}>{item}</li>
                         ))}
                       </ul>
                     ) : null}
                     {finding.citations?.length ? (
-                      <div className="mt-3 space-y-2 text-xs text-slate-600">
+                      <div className="mt-3 space-y-2 text-xs text-[rgb(var(--muted))]">
                         {finding.citations.map((cite, idx) => {
                           const source = sourceById.get(cite.sourceId);
                           return (
-                            <div key={`${finding.findingId}-cite-${idx}`} className="rounded-lg border border-slate-200 bg-slate-50 p-2">
-                              <div className="font-semibold text-slate-700">
+                            <div key={`${finding.findingId}-cite-${idx}`} className="rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-2">
+                              <div className="font-semibold text-[rgb(var(--muted))]">
                                 {source?.title ?? "Quelle"}
                               </div>
-                              {cite.quote ? <div className="mt-1 text-slate-600">"{cite.quote}"</div> : null}
-                              {cite.locator ? <div className="text-[11px] text-slate-500">{cite.locator}</div> : null}
+                              {cite.quote ? <div className="mt-1 text-[rgb(var(--muted))]">"{cite.quote}"</div> : null}
+                              {cite.locator ? <div className="text-[11px] text-[rgb(var(--muted))]">{cite.locator}</div> : null}
                             </div>
                           );
                         })}
@@ -407,7 +407,7 @@ export default async function DossierViewerPage({ params }: PageProps) {
 
         <section id="graph" className="space-y-4 scroll-mt-24">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-slate-900">Evidenz-Graph</h2>
+            <h2 className="text-lg font-semibold text-[rgb(var(--fg))]">Evidenz-Graph</h2>
             <Link
               href={`/api/dossiers/${encodeURIComponent(dossierKey)}/graph`}
               className="text-xs text-sky-700 underline"
@@ -416,7 +416,7 @@ export default async function DossierViewerPage({ params }: PageProps) {
             </Link>
           </div>
           {edges.length === 0 ? (
-            <div className="rounded-2xl border border-slate-200 bg-white/90 p-4 text-sm text-slate-600">
+            <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 text-sm text-[rgb(var(--muted))]">
               Noch keine Graph-Edges erfasst.
             </div>
           ) : (
@@ -424,20 +424,20 @@ export default async function DossierViewerPage({ params }: PageProps) {
               {edges.map((edge) => (
                 <article
                   key={edge.edgeId}
-                  className="rounded-2xl border border-slate-200 bg-white/90 p-4 text-sm shadow-sm"
+                  className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 text-sm shadow-sm"
                 >
-                  <div className="text-xs uppercase tracking-wide text-slate-500">{edge.rel}</div>
-                  <div className="mt-2 text-slate-800">
-                    <span className="font-semibold text-slate-900">
+                  <div className="text-xs uppercase tracking-wide text-[rgb(var(--muted))]">{edge.rel}</div>
+                  <div className="mt-2 text-[rgb(var(--fg))]">
+                    <span className="font-semibold text-[rgb(var(--fg))]">
                       {nodeLabel(edge.fromType, edge.fromId)}
                     </span>{" "}
-                    <span className="text-slate-500">{relLabels[edge.rel] ?? edge.rel}</span>{" "}
-                    <span className="font-semibold text-slate-900">
+                    <span className="text-[rgb(var(--muted))]">{relLabels[edge.rel] ?? edge.rel}</span>{" "}
+                    <span className="font-semibold text-[rgb(var(--fg))]">
                       {nodeLabel(edge.toType, edge.toId)}
                     </span>
                   </div>
                   {edge.justification ? (
-                    <p className="mt-2 text-xs text-slate-600">{edge.justification}</p>
+                    <p className="mt-2 text-xs text-[rgb(var(--muted))]">{edge.justification}</p>
                   ) : null}
                 </article>
               ))}
@@ -446,9 +446,9 @@ export default async function DossierViewerPage({ params }: PageProps) {
         </section>
 
         <section id="questions" className="space-y-4 scroll-mt-24">
-          <h2 className="text-lg font-semibold text-slate-900">Offene Fragen</h2>
+          <h2 className="text-lg font-semibold text-[rgb(var(--fg))]">Offene Fragen</h2>
           {openQuestions.length === 0 ? (
-            <div className="rounded-2xl border border-slate-200 bg-white/90 p-4 text-sm text-slate-600">
+            <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 text-sm text-[rgb(var(--muted))]">
               Noch keine offenen Fragen erfasst.
             </div>
           ) : (
@@ -456,15 +456,15 @@ export default async function DossierViewerPage({ params }: PageProps) {
               {openQuestions.map((q) => (
                 <article
                   key={q.questionId}
-                  className="rounded-2xl border border-slate-200 bg-white/90 p-4 shadow-sm"
+                  className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm"
                 >
-                  <div className="flex flex-wrap items-center gap-2 text-xs text-slate-600">
+                  <div className="flex flex-wrap items-center gap-2 text-xs text-[rgb(var(--muted))]">
                     <span className={`rounded-full border px-2 py-0.5 ${statusStyles[q.status] ?? statusStyles.open}`}>
                       {q.status}
                     </span>
                     {q.responsibility?.label ? <span>{q.responsibility.label}</span> : null}
                   </div>
-                  <p className="mt-2 text-sm text-slate-800">{q.text}</p>
+                  <p className="mt-2 text-sm text-[rgb(var(--fg))]">{q.text}</p>
                 </article>
               ))}
             </div>
@@ -472,9 +472,9 @@ export default async function DossierViewerPage({ params }: PageProps) {
         </section>
 
         <section id="revisions" className="space-y-4 scroll-mt-24">
-          <h2 className="text-lg font-semibold text-slate-900">Verlauf</h2>
+          <h2 className="text-lg font-semibold text-[rgb(var(--fg))]">Verlauf</h2>
           {revisions.length === 0 ? (
-            <div className="rounded-2xl border border-slate-200 bg-white/90 p-4 text-sm text-slate-600">
+            <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 text-sm text-[rgb(var(--muted))]">
               Noch keine Revisionen vorhanden.
             </div>
           ) : (
@@ -482,21 +482,21 @@ export default async function DossierViewerPage({ params }: PageProps) {
               {revisions.map((rev) => (
                 <article
                   key={rev.revId}
-                  className="rounded-2xl border border-slate-200 bg-white/90 p-4 text-sm shadow-sm"
+                  className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 text-sm shadow-sm"
                 >
-                  <div className="flex flex-wrap items-center gap-2 text-xs text-slate-600">
-                    <span className="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5">
+                  <div className="flex flex-wrap items-center gap-2 text-xs text-[rgb(var(--muted))]">
+                    <span className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-2 py-0.5">
                       {rev.entityType}
                     </span>
-                    <span className="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5">
+                    <span className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-2 py-0.5">
                       {rev.action}
                     </span>
-                    <span className="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5">
+                    <span className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-2 py-0.5">
                       {rev.byRole}
                     </span>
                     <span>{formatDate(rev.timestamp)}</span>
                   </div>
-                  <p className="mt-2 text-slate-800">{rev.diffSummary}</p>
+                  <p className="mt-2 text-[rgb(var(--fg))]">{rev.diffSummary}</p>
                 </article>
               ))}
             </div>

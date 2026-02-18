@@ -18,7 +18,7 @@ type OrgMember = NonNullable<Organization> extends { members: infer M }
 
 export default function OrgDashboard({ org }: OrgDashboardProps) {
   if (!org) {
-    return <div className="max-w-xl mx-auto my-8 p-6 bg-white shadow rounded-xl">Keine Organisation ausgewählt.</div>;
+    return <div className="max-w-xl mx-auto my-8 p-6 bg-[rgb(var(--card))] shadow rounded-xl">Keine Organisation ausgewählt.</div>;
   }
 
   const premium = isOrgPremium(org);
@@ -26,7 +26,7 @@ export default function OrgDashboard({ org }: OrgDashboardProps) {
   const members = Array.isArray(org.members) ? org.members : [];
 
   return (
-    <div className="max-w-xl mx-auto my-8 p-6 bg-white shadow rounded-xl">
+    <div className="max-w-xl mx-auto my-8 p-6 bg-[rgb(var(--card))] shadow rounded-xl">
       <header className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold">{org.name}</h1>

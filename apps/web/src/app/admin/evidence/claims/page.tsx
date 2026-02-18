@@ -66,9 +66,9 @@ export default function EvidenceClaimsAdminPage() {
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-8">
       <header className="space-y-1">
-        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Admin · Evidence</p>
-        <h1 className="text-2xl font-bold text-slate-900">Aussagen im Evidence-Graph</h1>
-        <p className="text-sm text-slate-600">
+        <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Admin · Evidence</p>
+        <h1 className="text-2xl font-bold text-[rgb(var(--fg))]">Aussagen im Evidence-Graph</h1>
+        <p className="text-sm text-[rgb(var(--muted))]">
           Filtere Claims aus allen Pipelines und öffne die Details zur Überprüfung oder Korrektur.
         </p>
       </header>
@@ -77,7 +77,7 @@ export default function EvidenceClaimsAdminPage() {
         <select
           value={region}
           onChange={(e) => setRegion(e.target.value)}
-          className="rounded-full border border-slate-300 bg-white px-4 py-2 text-sm text-slate-700 shadow-sm"
+          className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-2 text-sm text-[rgb(var(--muted))] shadow-sm"
         >
           {REGION_FILTERS.map((opt) => (
             <option key={opt.value} value={opt.value}>
@@ -89,7 +89,7 @@ export default function EvidenceClaimsAdminPage() {
         <select
           value={locale}
           onChange={(e) => setLocale(e.target.value)}
-          className="rounded-full border border-slate-300 bg-white px-4 py-2 text-sm text-slate-700 shadow-sm"
+          className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-2 text-sm text-[rgb(var(--muted))] shadow-sm"
         >
           {LOCALE_FILTERS.map((loc) => (
             <option key={loc} value={loc}>
@@ -101,7 +101,7 @@ export default function EvidenceClaimsAdminPage() {
         <select
           value={sourceType}
           onChange={(e) => setSourceType(e.target.value)}
-          className="rounded-full border border-slate-300 bg-white px-4 py-2 text-sm text-slate-700 shadow-sm"
+          className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-2 text-sm text-[rgb(var(--muted))] shadow-sm"
         >
           {SOURCE_TYPES.map((opt) => (
             <option key={opt.value} value={opt.value}>
@@ -114,7 +114,7 @@ export default function EvidenceClaimsAdminPage() {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Suche im Claim-Text"
-          className="flex-1 rounded-full border border-slate-300 bg-white px-4 py-2 text-sm text-slate-700 shadow-sm"
+          className="flex-1 rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-2 text-sm text-[rgb(var(--muted))] shadow-sm"
         />
       </div>
 
@@ -122,50 +122,50 @@ export default function EvidenceClaimsAdminPage() {
         <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</div>
       )}
 
-      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <table className="min-w-full divide-y divide-slate-200 text-sm">
-          <thead className="bg-slate-50">
+      <div className="overflow-hidden rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] shadow-sm">
+        <table className="min-w-full divide-y divide-[rgb(var(--border))] text-sm">
+          <thead className="bg-[rgb(var(--bg))]">
             <tr>
-              <th className="px-4 py-3 text-left font-semibold text-slate-600">Claim</th>
-              <th className="px-4 py-3 text-left font-semibold text-slate-600">Region</th>
-              <th className="px-4 py-3 text-left font-semibold text-slate-600">Locale</th>
-              <th className="px-4 py-3 text-left font-semibold text-slate-600">Quelle</th>
-              <th className="px-4 py-3 text-left font-semibold text-slate-600">Decisions</th>
+              <th className="px-4 py-3 text-left font-semibold text-[rgb(var(--muted))]">Claim</th>
+              <th className="px-4 py-3 text-left font-semibold text-[rgb(var(--muted))]">Region</th>
+              <th className="px-4 py-3 text-left font-semibold text-[rgb(var(--muted))]">Locale</th>
+              <th className="px-4 py-3 text-left font-semibold text-[rgb(var(--muted))]">Quelle</th>
+              <th className="px-4 py-3 text-left font-semibold text-[rgb(var(--muted))]">Decisions</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100">
+          <tbody className="divide-y divide-[rgb(var(--border))]">
             {loading && (
               <tr>
-                <td colSpan={5} className="px-4 py-6 text-center text-slate-500">
+                <td colSpan={5} className="px-4 py-6 text-center text-[rgb(var(--muted))]">
                   Lädt …
                 </td>
               </tr>
             )}
             {!loading && items.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-4 py-6 text-center text-slate-500">
+                <td colSpan={5} className="px-4 py-6 text-center text-[rgb(var(--muted))]">
                   Keine Claims gefunden.
                 </td>
               </tr>
             )}
             {!loading &&
               items.map((row) => (
-                <tr key={row.id} className="hover:bg-slate-50">
+                <tr key={row.id} className="hover:bg-[rgb(var(--bg))]">
                   <td className="px-4 py-3">
-                    <Link href={`/admin/evidence/claims/${row.id}`} className="font-semibold text-slate-900 hover:underline">
+                    <Link href={`/admin/evidence/claims/${row.id}`} className="font-semibold text-[rgb(var(--fg))] hover:underline">
                       {row.claimText?.slice(0, 120) ?? "(ohne Text)"}
                     </Link>
-                    <p className="text-xs text-slate-500">
+                    <p className="text-xs text-[rgb(var(--muted))]">
                       {row.pipeline ?? "—"} · {formatDate(row.createdAt)}
                     </p>
                   </td>
                   <td className="px-4 py-3">
-                    <p className="font-medium text-slate-800">{row.regionName ?? "Global"}</p>
-                    <p className="text-xs text-slate-500">{row.regionCode ?? "—"}</p>
+                    <p className="font-medium text-[rgb(var(--fg))]">{row.regionName ?? "Global"}</p>
+                    <p className="text-xs text-[rgb(var(--muted))]">{row.regionCode ?? "—"}</p>
                   </td>
-                  <td className="px-4 py-3 text-xs font-semibold uppercase text-slate-600">{row.locale}</td>
-                  <td className="px-4 py-3 capitalize text-slate-700">{row.sourceType}</td>
-                  <td className="px-4 py-3 text-xs text-slate-600">
+                  <td className="px-4 py-3 text-xs font-semibold uppercase text-[rgb(var(--muted))]">{row.locale}</td>
+                  <td className="px-4 py-3 capitalize text-[rgb(var(--muted))]">{row.sourceType}</td>
+                  <td className="px-4 py-3 text-xs text-[rgb(var(--muted))]">
                     {row.decisionsSummary?.total || 0} · {row.decisionsSummary?.latestOutcome ?? "—"}
                   </td>
                 </tr>

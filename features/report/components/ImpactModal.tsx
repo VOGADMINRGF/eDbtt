@@ -3,7 +3,7 @@ export default function ImpactModal({ statement, onClose }) {
     // Demo: später API für echte Impacts/Alternativen
     return (
       <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center">
-        <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-8 relative">
+        <div className="bg-[rgb(var(--card))] rounded-2xl shadow-2xl max-w-lg w-full p-8 relative">
           <button className="absolute top-2 right-4 text-lg" onClick={onClose}>×</button>
           <div className="text-lg font-bold mb-4">{statement.title}</div>
           {/* Impacts/Alternativen */}

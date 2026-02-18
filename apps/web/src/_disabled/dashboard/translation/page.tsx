@@ -24,7 +24,7 @@ export default function TranslationDashboard() {
       <h2 className="text-xl font-bold text-coral">
         Sprach- & Übersetzungsstatus
       </h2>
-      <table className="w-full text-sm bg-white rounded shadow border">
+      <table className="w-full text-sm bg-[rgb(var(--card))] rounded shadow border">
         <thead>
           <tr className="bg-gray-100 text-left">
             <th className="p-3">Pfad</th>

@@ -68,7 +68,7 @@ export default function DashboardPage() {
           <Link
             key={link.href}
             href={link.href}
-            className="p-4 border rounded hover:shadow bg-white transition text-center"
+            className="p-4 border rounded hover:shadow bg-[rgb(var(--card))] transition text-center"
           >
             <h2 className="text-lg font-semibold text-coral">{link.label}</h2>
           </Link>

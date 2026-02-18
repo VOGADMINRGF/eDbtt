@@ -108,11 +108,11 @@ export default function AdminAiHubPage() {
     <main className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-8">
       <header className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[rgb(var(--muted))]">
             Admin · Telemetry · AI
           </p>
-          <h1 className="text-2xl font-bold text-slate-900">AI Übersicht</h1>
-          <p className="text-sm text-slate-600">
+          <h1 className="text-2xl font-bold text-[rgb(var(--fg))]">AI Übersicht</h1>
+          <p className="text-sm text-[rgb(var(--muted))]">
             Smoke-Tests, Kosten & Tokens, Provider-Health – alles auf einen Blick. Daten basieren auf
             deinen bestehenden Telemetry-APIs.
           </p>
@@ -120,32 +120,32 @@ export default function AdminAiHubPage() {
         <div className="flex flex-wrap gap-2">
           <Link
             href="/admin/telemetry/ai/usage"
-            className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm font-semibold text-slate-700 hover:border-sky-300 hover:text-sky-700"
+            className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-1.5 text-sm font-semibold text-[rgb(var(--muted))] hover:border-sky-300 hover:text-sky-700"
           >
             Detail: Usage
           </Link>
           <Link
             href="/admin/telemetry/ai/dashboard"
-            className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm font-semibold text-slate-700 hover:border-sky-300 hover:text-sky-700"
+            className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-1.5 text-sm font-semibold text-[rgb(var(--muted))] hover:border-sky-300 hover:text-sky-700"
           >
             Live Events
           </Link>
           <Link
             href="/admin/telemetry/ai/orchestrator"
-            className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm font-semibold text-slate-700 hover:border-sky-300 hover:text-sky-700"
+            className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-1.5 text-sm font-semibold text-[rgb(var(--muted))] hover:border-sky-300 hover:text-sky-700"
           >
             Orchestrator Health
           </Link>
           <Link
             href="/admin/telemetry/ai/flow"
-            className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm font-semibold text-slate-700 hover:border-sky-300 hover:text-sky-700"
+            className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-1.5 text-sm font-semibold text-[rgb(var(--muted))] hover:border-sky-300 hover:text-sky-700"
           >
             Flow Health
           </Link>
         </div>
       </header>
 
-      <section className="flex flex-wrap items-center gap-3 text-sm text-slate-700">
+      <section className="flex flex-wrap items-center gap-3 text-sm text-[rgb(var(--muted))]">
         <label className="font-semibold" htmlFor="range">
           Zeitraum
         </label>
@@ -153,7 +153,7 @@ export default function AdminAiHubPage() {
           id="range"
           value={range}
           onChange={(e) => setRange(e.target.value)}
-          className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
+          className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm shadow-sm focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
         >
           {RANGE_OPTIONS.map((opt) => (
             <option key={opt.value} value={opt.value}>
@@ -161,7 +161,7 @@ export default function AdminAiHubPage() {
             </option>
           ))}
         </select>
-        {loading && <span className="text-slate-500">Lädt …</span>}
+        {loading && <span className="text-[rgb(var(--muted))]">Lädt …</span>}
       </section>
 
       {error && (
@@ -198,13 +198,13 @@ export default function AdminAiHubPage() {
       </section>
 
       <section className="grid gap-4 lg:grid-cols-3">
-        <div className="lg:col-span-2 space-y-3 rounded-3xl bg-white/90 p-4 shadow ring-1 ring-slate-100">
+        <div className="lg:col-span-2 space-y-3 rounded-3xl bg-[rgb(var(--card))] p-4 shadow ring-1 ring-[rgb(var(--border))]">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
                 Provider / Pipelines
               </p>
-              <h2 className="text-lg font-semibold text-slate-900">Top-Linien (30d)</h2>
+              <h2 className="text-lg font-semibold text-[rgb(var(--fg))]">Top-Linien (30d)</h2>
             </div>
             <Link
               href="/admin/telemetry/ai/usage"
@@ -213,7 +213,7 @@ export default function AdminAiHubPage() {
               zur Usage-Ansicht
             </Link>
           </div>
-          {loading && <p className="text-sm text-slate-600">Lädt …</p>}
+          {loading && <p className="text-sm text-[rgb(var(--muted))]">Lädt …</p>}
           {!loading && hasUsage && (
             <div className="grid gap-3 md:grid-cols-2">
               <UsageList title="Provider" rows={usage?.byProvider ?? []} />
@@ -221,19 +221,19 @@ export default function AdminAiHubPage() {
             </div>
           )}
           {!loading && !hasUsage && (
-            <p className="text-sm text-slate-600">Keine Usage-Daten im Zeitraum.</p>
+            <p className="text-sm text-[rgb(var(--muted))]">Keine Usage-Daten im Zeitraum.</p>
           )}
         </div>
 
-        <div className="space-y-3 rounded-3xl bg-white/90 p-4 shadow ring-1 ring-slate-100">
+        <div className="space-y-3 rounded-3xl bg-[rgb(var(--card))] p-4 shadow ring-1 ring-[rgb(var(--border))]">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
                 Smoke Test
               </p>
-              <h2 className="text-lg font-semibold text-slate-900">Provider Check</h2>
+              <h2 className="text-lg font-semibold text-[rgb(var(--fg))]">Provider Check</h2>
               {lastSmokeAt && (
-                <p className="text-xs text-slate-500">Zuletzt: {new Date(lastSmokeAt).toLocaleString("de-DE")}</p>
+                <p className="text-xs text-[rgb(var(--muted))]">Zuletzt: {new Date(lastSmokeAt).toLocaleString("de-DE")}</p>
               )}
             </div>
             <button
@@ -245,19 +245,19 @@ export default function AdminAiHubPage() {
               {smoking ? "läuft …" : "Jetzt testen"}
             </button>
           </div>
-          {!smoke && <p className="text-sm text-slate-600">Starte einen Smoke-Test.</p>}
+          {!smoke && <p className="text-sm text-[rgb(var(--muted))]">Starte einen Smoke-Test.</p>}
           {smoke && (
             <div className="space-y-2">
               <p className="text-sm">
                 Best Provider:{" "}
-                <span className="font-semibold text-slate-900">{smoke.bestProviderId ?? "—"}</span>
+                <span className="font-semibold text-[rgb(var(--fg))]">{smoke.bestProviderId ?? "—"}</span>
               </p>
               <div className="space-y-1">
                 {smoke.results.slice(0, 4).map((r) => (
                   <div key={r.providerId} className="flex items-center justify-between text-sm">
                     <div className="flex flex-col">
-                      <span className="font-semibold text-slate-800">{r.providerId}</span>
-                      <span className="text-[11px] text-slate-500">{r.durationMs} ms</span>
+                      <span className="font-semibold text-[rgb(var(--fg))]">{r.providerId}</span>
+                      <span className="text-[11px] text-[rgb(var(--muted))]">{r.durationMs} ms</span>
                     </div>
                     <span className={r.ok ? "text-emerald-600" : "text-rose-600"}>
                       {r.state === "disabled"
@@ -282,13 +282,13 @@ export default function AdminAiHubPage() {
         </div>
       </section>
 
-      <section className="rounded-3xl bg-white/90 p-4 shadow ring-1 ring-slate-100">
+      <section className="rounded-3xl bg-[rgb(var(--card))] p-4 shadow ring-1 ring-[rgb(var(--border))]">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
               Letzte Events
             </p>
-            <h2 className="text-lg font-semibold text-slate-900">Quick-Glance</h2>
+            <h2 className="text-lg font-semibold text-[rgb(var(--fg))]">Quick-Glance</h2>
           </div>
           <Link
             href="/admin/telemetry/ai/dashboard"
@@ -297,20 +297,20 @@ export default function AdminAiHubPage() {
             Live-Log
           </Link>
         </div>
-        {loading && <p className="text-sm text-slate-600">Lädt …</p>}
+        {loading && <p className="text-sm text-[rgb(var(--muted))]">Lädt …</p>}
         {!loading && lastEvents.length === 0 && (
-          <p className="text-sm text-slate-600">Keine Events gefunden.</p>
+          <p className="text-sm text-[rgb(var(--muted))]">Keine Events gefunden.</p>
         )}
         {!loading && lastEvents.length > 0 && (
           <div className="mt-3 space-y-2">
             {lastEvents.map((ev) => (
               <div
                 key={`${ev.provider}-${ev.ts}`}
-                className="flex items-center justify-between rounded-2xl bg-slate-50 px-3 py-2 text-sm"
+                className="flex items-center justify-between rounded-2xl bg-[rgb(var(--bg))] px-3 py-2 text-sm"
               >
                 <div className="flex flex-col">
-                  <span className="font-semibold text-slate-900">{ev.provider}</span>
-                  <span className="text-xs text-slate-500">
+                  <span className="font-semibold text-[rgb(var(--fg))]">{ev.provider}</span>
+                  <span className="text-xs text-[rgb(var(--muted))]">
                     {new Date(ev.ts).toLocaleString("de-DE")}
                   </span>
                 </div>
@@ -328,12 +328,12 @@ export default function AdminAiHubPage() {
 
 function StatCard({ title, value, loading }: { title: string; value: string; loading: boolean }) {
   return (
-    <div className="rounded-3xl bg-white/90 p-4 shadow ring-1 ring-slate-100">
-      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">{title}</p>
+    <div className="rounded-3xl bg-[rgb(var(--card))] p-4 shadow ring-1 ring-[rgb(var(--border))]">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">{title}</p>
       {loading ? (
-        <div className="mt-2 h-6 w-20 animate-pulse rounded bg-slate-100" />
+        <div className="mt-2 h-6 w-20 animate-pulse rounded bg-[rgb(var(--bg))]" />
       ) : (
-        <p className="mt-1 text-2xl font-semibold text-slate-900">{value}</p>
+        <p className="mt-1 text-2xl font-semibold text-[rgb(var(--fg))]">{value}</p>
       )}
     </div>
   );
@@ -347,27 +347,27 @@ function UsageList({
   rows: NonNullable<AiUsageBreakdownSnapshot["byProvider"]>;
 }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
-      <p className="text-sm font-semibold text-slate-900">{title}</p>
+    <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-3 shadow-sm">
+      <p className="text-sm font-semibold text-[rgb(var(--fg))]">{title}</p>
       <div className="mt-2 space-y-1">
         {rows.slice(0, 5).map((row) => {
           const errorRate = row.calls ? (row.errors / row.calls) * 100 : 0;
           return (
             <div
               key={row.key}
-              className="flex items-center justify-between rounded-xl bg-slate-50 px-3 py-1.5 text-sm"
+              className="flex items-center justify-between rounded-xl bg-[rgb(var(--bg))] px-3 py-1.5 text-sm"
             >
               <div className="flex flex-col">
-                <span className="font-semibold text-slate-900">{row.label}</span>
-                <span className="text-[11px] text-slate-500">
+                <span className="font-semibold text-[rgb(var(--fg))]">{row.label}</span>
+                <span className="text-[11px] text-[rgb(var(--muted))]">
                   {nf.format(row.calls)} Calls · {errorRate.toFixed(1)}% Fehler
                 </span>
               </div>
-              <span className="text-sm font-semibold text-slate-800">{cf.format(row.costEur)}</span>
+              <span className="text-sm font-semibold text-[rgb(var(--fg))]">{cf.format(row.costEur)}</span>
             </div>
           );
         })}
-        {rows.length === 0 && <p className="text-sm text-slate-600">Keine Daten.</p>}
+        {rows.length === 0 && <p className="text-sm text-[rgb(var(--muted))]">Keine Daten.</p>}
       </div>
     </div>
   );

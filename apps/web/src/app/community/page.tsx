@@ -106,10 +106,10 @@ export default function CommunityPage() {
   return (
     <main className="mx-auto flex max-w-4xl flex-col gap-6 px-4 py-12">
       <header className="space-y-2">
-        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{t(COPY.kicker, locale)}</p>
-        <h1 className="text-3xl font-bold text-slate-900">{t(COPY.title, locale)}</h1>
-        <p className="text-sm text-slate-600">{t(COPY.lead, locale)}</p>
-        <p className="text-xs text-slate-500">{t(COPY.hint, locale)}</p>
+        <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">{t(COPY.kicker, locale)}</p>
+        <h1 className="text-3xl font-bold text-[rgb(var(--fg))]">{t(COPY.title, locale)}</h1>
+        <p className="text-sm text-[rgb(var(--muted))]">{t(COPY.lead, locale)}</p>
+        <p className="text-xs text-[rgb(var(--muted))]">{t(COPY.hint, locale)}</p>
       </header>
 
       <section className="grid gap-4 md:grid-cols-2">
@@ -125,22 +125,22 @@ export default function CommunityPage() {
         ))}
       </section>
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-4 text-sm shadow-sm">
-        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{t(COPY.rulesTitle, locale)}</p>
-        <p className="mt-2 text-sm text-slate-700">{t(COPY.rulesBody, locale)}</p>
+      <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 text-sm shadow-sm">
+        <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">{t(COPY.rulesTitle, locale)}</p>
+        <p className="mt-2 text-sm text-[rgb(var(--muted))]">{t(COPY.rulesBody, locale)}</p>
       </section>
 
       <div className="flex flex-wrap gap-3 text-sm">
-        <Link href="/stream" className="font-semibold text-slate-700">
+        <Link href="/stream" className="font-semibold text-[rgb(var(--muted))]">
           {t(COPY.actionStream, locale)}
         </Link>
-        <Link href="/campaign" className="font-semibold text-slate-600 hover:text-slate-900">
+        <Link href="/campaign" className="font-semibold text-[rgb(var(--muted))] hover:text-[rgb(var(--fg))]">
           {t(COPY.actionCampaigns, locale)}
         </Link>
-        <Link href="/verhaltenskodex" className="font-semibold text-slate-600 hover:text-slate-900">
+        <Link href="/verhaltenskodex" className="font-semibold text-[rgb(var(--muted))] hover:text-[rgb(var(--fg))]">
           {t(COPY.actionCode, locale)}
         </Link>
-        <Link href="/barrierefreiheit" className="font-semibold text-slate-600 hover:text-slate-900">
+        <Link href="/barrierefreiheit" className="font-semibold text-[rgb(var(--muted))] hover:text-[rgb(var(--fg))]">
           {t(COPY.actionA11y, locale)}
         </Link>
       </div>
@@ -167,11 +167,11 @@ function RoomCard({
       href={href}
       aria-describedby={descId}
       aria-label={`${label}: ${title}`}
-      className="rounded-2xl border border-slate-200 bg-white p-5 text-sm shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+      className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 text-sm shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
     >
-      <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{label}</p>
-      <h2 className="mt-2 text-lg font-semibold text-slate-900">{title}</h2>
-      <p id={descId} className="mt-2 text-slate-600">{description}</p>
+      <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">{label}</p>
+      <h2 className="mt-2 text-lg font-semibold text-[rgb(var(--fg))]">{title}</h2>
+      <p id={descId} className="mt-2 text-[rgb(var(--muted))]">{description}</p>
     </Link>
   );
 }

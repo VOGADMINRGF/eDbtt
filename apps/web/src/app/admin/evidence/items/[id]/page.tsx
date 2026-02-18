@@ -61,15 +61,15 @@ export default function EvidenceItemDetailPage() {
     }
   }
 
-  if (loading) return <div className="p-6 text-sm text-slate-500">Lädt Quelle …</div>;
+  if (loading) return <div className="p-6 text-sm text-[rgb(var(--muted))]">Lädt Quelle …</div>;
   if (error || !data) return <div className="p-6 text-sm text-rose-600">{error ?? "Quelle nicht gefunden."}</div>;
 
   return (
     <div className="mx-auto flex max-w-4xl flex-col gap-6 px-4 py-8">
       <header>
-        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Admin · Evidence Item</p>
-        <h1 className="text-2xl font-bold text-slate-900">{data.shortTitle}</h1>
-        <p className="text-sm text-slate-600">
+        <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Admin · Evidence Item</p>
+        <h1 className="text-2xl font-bold text-[rgb(var(--fg))]">{data.shortTitle}</h1>
+        <p className="text-sm text-[rgb(var(--muted))]">
           {data.publisher} · {data.sourceKind} ·{" "}
           {data.publishedAt ? new Date(data.publishedAt).toLocaleDateString("de-DE") : "Datum unbekannt"}
         </p>
@@ -78,55 +78,55 @@ export default function EvidenceItemDetailPage() {
         </a>
       </header>
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm space-y-3">
-        <h2 className="text-sm font-semibold text-slate-900">Metadaten</h2>
-        <dl className="grid gap-3 text-sm text-slate-700 md:grid-cols-2">
+      <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm space-y-3">
+        <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Metadaten</h2>
+        <dl className="grid gap-3 text-sm text-[rgb(var(--muted))] md:grid-cols-2">
           <div>
-            <dt className="text-xs uppercase text-slate-500">Publisher</dt>
+            <dt className="text-xs uppercase text-[rgb(var(--muted))]">Publisher</dt>
             <dd>{data.publisher}</dd>
           </div>
           <div>
-            <dt className="text-xs uppercase text-slate-500">Locale / Region</dt>
+            <dt className="text-xs uppercase text-[rgb(var(--muted))]">Locale / Region</dt>
             <dd>
               {data.locale ?? "–"} / {data.regionCode ?? "–"}
             </dd>
           </div>
           <div>
-            <dt className="text-xs uppercase text-slate-500">Status</dt>
+            <dt className="text-xs uppercase text-[rgb(var(--muted))]">Status</dt>
             <dd>{form.isActive ? "aktiv" : "deaktiviert"}</dd>
           </div>
           <div>
-            <dt className="text-xs uppercase text-slate-500">Verknüpfte Claims</dt>
+            <dt className="text-xs uppercase text-[rgb(var(--muted))]">Verknüpfte Claims</dt>
             <dd>{data.linkedClaims ?? 0}</dd>
           </div>
         </dl>
       </section>
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm space-y-3">
-        <h2 className="text-sm font-semibold text-slate-900">Bearbeiten</h2>
-        <label className="text-xs font-medium uppercase text-slate-500">Kurztitel</label>
+      <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm space-y-3">
+        <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Bearbeiten</h2>
+        <label className="text-xs font-medium uppercase text-[rgb(var(--muted))]">Kurztitel</label>
         <input
-          className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+          className="w-full rounded-xl border border-[rgb(var(--border))] px-3 py-2 text-sm"
           value={form.shortTitle}
           onChange={(e) => setForm((prev) => ({ ...prev, shortTitle: e.target.value }))}
         />
-        <label className="text-xs font-medium uppercase text-slate-500">Kurzfassung</label>
+        <label className="text-xs font-medium uppercase text-[rgb(var(--muted))]">Kurzfassung</label>
         <textarea
-          className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+          className="w-full rounded-xl border border-[rgb(var(--border))] px-3 py-2 text-sm"
           rows={4}
           value={form.shortSummary}
           onChange={(e) => setForm((prev) => ({ ...prev, shortSummary: e.target.value }))}
         />
-        <label className="text-xs font-medium uppercase text-slate-500">Snippet</label>
+        <label className="text-xs font-medium uppercase text-[rgb(var(--muted))]">Snippet</label>
         <textarea
-          className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+          className="w-full rounded-xl border border-[rgb(var(--border))] px-3 py-2 text-sm"
           rows={2}
           value={form.quoteSnippet}
           onChange={(e) => setForm((prev) => ({ ...prev, quoteSnippet: e.target.value }))}
         />
-        <label className="text-xs font-medium uppercase text-slate-500">Lizenzhinweis</label>
+        <label className="text-xs font-medium uppercase text-[rgb(var(--muted))]">Lizenzhinweis</label>
         <select
-          className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+          className="w-full rounded-xl border border-[rgb(var(--border))] px-3 py-2 text-sm"
           value={form.licenseHint}
           onChange={(e) => setForm((prev) => ({ ...prev, licenseHint: e.target.value }))}
         >
@@ -137,7 +137,7 @@ export default function EvidenceItemDetailPage() {
           <option value="paywalled">Paywall</option>
           <option value="restricted">Restricted</option>
         </select>
-        <label className="flex items-center gap-2 text-sm text-slate-600">
+        <label className="flex items-center gap-2 text-sm text-[rgb(var(--muted))]">
           <input
             type="checkbox"
             checked={form.isActive}

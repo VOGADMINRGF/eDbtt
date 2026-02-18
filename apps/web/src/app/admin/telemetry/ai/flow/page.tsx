@@ -83,39 +83,39 @@ export default function FlowHealthPage() {
     <main className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-8">
       <header className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[rgb(var(--muted))]">
             Admin / Telemetry / AI
           </p>
-          <h1 className="text-2xl font-bold text-slate-900">
+          <h1 className="text-2xl font-bold text-[rgb(var(--fg))]">
             Flow Health (Feeds {" > "} Orchestrator {" > "} Swipe {" > "} Factcheck)
           </h1>
-          <p className="text-sm text-slate-600">
+          <p className="text-sm text-[rgb(var(--muted))]">
             Eine Seite, die dir sofort zeigt, wo der Flow haengt. Auto-refresh alle ~6s.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Link
             href="/admin/telemetry/ai/orchestrator"
-            className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm font-semibold text-slate-700 hover:border-sky-300 hover:text-sky-700"
+            className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-1.5 text-sm font-semibold text-[rgb(var(--muted))] hover:border-sky-300 hover:text-sky-700"
           >
             Orchestrator Smoke
           </Link>
           <Link
             href="/admin/feeds/drafts"
-            className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm font-semibold text-slate-700 hover:border-sky-300 hover:text-sky-700"
+            className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-1.5 text-sm font-semibold text-[rgb(var(--muted))] hover:border-sky-300 hover:text-sky-700"
           >
             Feed Drafts
           </Link>
           <Link
             href="/swipes"
-            className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm font-semibold text-slate-700 hover:border-sky-300 hover:text-sky-700"
+            className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-1.5 text-sm font-semibold text-[rgb(var(--muted))] hover:border-sky-300 hover:text-sky-700"
           >
             Swipe
           </Link>
         </div>
       </header>
 
-      {loading && <div className="text-sm text-slate-600">Laedt ...</div>}
+      {loading && <div className="text-sm text-[rgb(var(--muted))]">Laedt ...</div>}
       {error && (
         <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
           {error}
@@ -157,7 +157,7 @@ export default function FlowHealthPage() {
             <section className="grid gap-4 lg:grid-cols-2">
               {data.feeds.latest.candidateError && (
                 <Card title="Letzter Candidate-Error">
-                  <p className="text-sm font-semibold text-slate-900">
+                  <p className="text-sm font-semibold text-[rgb(var(--fg))]">
                     {data.feeds.latest.candidateError.sourceTitle}
                   </p>
                   <a
@@ -168,15 +168,15 @@ export default function FlowHealthPage() {
                   >
                     Quelle oeffnen
                   </a>
-                  <pre className="mt-3 whitespace-pre-wrap rounded-xl bg-slate-50 p-3 text-xs text-slate-700">
+                  <pre className="mt-3 whitespace-pre-wrap rounded-xl bg-[rgb(var(--bg))] p-3 text-xs text-[rgb(var(--muted))]">
 {data.feeds.latest.candidateError.analyzeError ?? "-"}
                   </pre>
                 </Card>
               )}
               {data.factcheck?.lastError && (
                 <Card title="Letzter Factcheck-Error">
-                  <p className="text-xs text-slate-600">Job: {data.factcheck.lastError.jobId ?? "-"}</p>
-                  <pre className="mt-3 whitespace-pre-wrap rounded-xl bg-slate-50 p-3 text-xs text-slate-700">
+                  <p className="text-xs text-[rgb(var(--muted))]">Job: {data.factcheck.lastError.jobId ?? "-"}</p>
+                  <pre className="mt-3 whitespace-pre-wrap rounded-xl bg-[rgb(var(--bg))] p-3 text-xs text-[rgb(var(--muted))]">
 {data.factcheck.lastError.error ?? "-"}
                   </pre>
                 </Card>
@@ -184,8 +184,8 @@ export default function FlowHealthPage() {
             </section>
           )}
 
-          <section className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">
+          <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
               Quick Actions (curl-aequivalent)
             </p>
             <div className="mt-3 grid gap-3 md:grid-cols-2">
@@ -230,20 +230,20 @@ function Kpi({
   warn?: boolean;
   ok?: boolean;
 }) {
-  const tone = ok ? "border-emerald-200 bg-emerald-50" : warn ? "border-amber-200 bg-amber-50" : "border-slate-200 bg-white";
+  const tone = ok ? "border-emerald-200 bg-emerald-50" : warn ? "border-amber-200 bg-amber-50" : "border-[rgb(var(--border))] bg-[rgb(var(--card))]";
   return (
     <div className={`rounded-3xl border p-4 shadow-sm ${tone}`}>
-      <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">{title}</div>
-      <div className="mt-1 text-3xl font-bold text-slate-900">{value}</div>
-      {hint && <div className="mt-1 text-xs text-slate-600">{hint}</div>}
+      <div className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">{title}</div>
+      <div className="mt-1 text-3xl font-bold text-[rgb(var(--fg))]">{value}</div>
+      {hint && <div className="mt-1 text-xs text-[rgb(var(--muted))]">{hint}</div>}
     </div>
   );
 }
 
 function Card({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <div className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
-      <div className="text-sm font-semibold text-slate-900">{title}</div>
+    <div className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm">
+      <div className="text-sm font-semibold text-[rgb(var(--fg))]">{title}</div>
       <div className="mt-3">{children}</div>
     </div>
   );
@@ -251,10 +251,10 @@ function Card({ title, children }: { title: string; children: ReactNode }) {
 
 function ActionCard({ title, desc, cmd }: { title: string; desc: string; cmd: string }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-      <div className="text-sm font-semibold text-slate-900">{title}</div>
-      <div className="mt-1 text-xs text-slate-600">{desc}</div>
-      <pre className="mt-3 overflow-auto rounded-xl bg-white p-3 text-xs text-slate-800">
+    <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4">
+      <div className="text-sm font-semibold text-[rgb(var(--fg))]">{title}</div>
+      <div className="mt-1 text-xs text-[rgb(var(--muted))]">{desc}</div>
+      <pre className="mt-3 overflow-auto rounded-xl bg-[rgb(var(--card))] p-3 text-xs text-[rgb(var(--fg))]">
 {cmd}
       </pre>
     </div>

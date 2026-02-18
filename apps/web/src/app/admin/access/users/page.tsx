@@ -54,14 +54,14 @@ export default function AccessUsersPage() {
   return (
     <main className="mx-auto flex max-w-4xl flex-col gap-6 px-4 py-8">
       <header>
-        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Access Center</p>
-        <h1 className="text-2xl font-bold text-slate-900">User Overrides</h1>
-        <p className="text-sm text-slate-600">Suche eine Person und passe individuelle Route-Rechte an.</p>
+        <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Access Center</p>
+        <h1 className="text-2xl font-bold text-[rgb(var(--fg))]">User Overrides</h1>
+        <p className="text-sm text-[rgb(var(--muted))]">Suche eine Person und passe individuelle Route-Rechte an.</p>
       </header>
 
-      <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+      <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm">
         <input
-          className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+          className="w-full rounded-xl border border-[rgb(var(--border))] px-3 py-2 text-sm"
           placeholder="Name oder E-Mail suchen"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
@@ -71,19 +71,19 @@ export default function AccessUsersPage() {
       {error && <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-2 text-sm text-rose-700">{error}</div>}
 
       <div className="space-y-2">
-        {loading && query && <p className="text-sm text-slate-500">Suche …</p>}
+        {loading && query && <p className="text-sm text-[rgb(var(--muted))]">Suche …</p>}
         {!loading &&
           users.map((user) => (
             <Link
               key={user._id}
               href={`/admin/access/users/${user._id}`}
-              className="flex items-center justify-between rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm"
+              className="flex items-center justify-between rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-3 shadow-sm"
             >
               <div>
-                <p className="font-semibold text-slate-900">{user.name ?? "N/A"}</p>
-                <p className="text-xs text-slate-500">{user.email ?? "ohne E-Mail"}</p>
+                <p className="font-semibold text-[rgb(var(--fg))]">{user.name ?? "N/A"}</p>
+                <p className="text-xs text-[rgb(var(--muted))]">{user.email ?? "ohne E-Mail"}</p>
               </div>
-              <span className="text-xs uppercase text-slate-500">{user.role ?? "user"}</span>
+              <span className="text-xs uppercase text-[rgb(var(--muted))]">{user.role ?? "user"}</span>
             </Link>
           ))}
       </div>

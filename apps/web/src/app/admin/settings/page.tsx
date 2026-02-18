@@ -14,7 +14,7 @@ export default function AdminSettingsPage() {
   return (
     <div className="mx-auto max-w-2xl p-6">
       <h1 className="text-2xl font-bold">Admin - Einstellungen</h1>
-      <p className="mt-1 text-sm text-slate-600">Kosten und Limits live justieren.</p>
+      <p className="mt-1 text-sm text-[rgb(var(--muted))]">Kosten und Limits live justieren.</p>
 
       <section className="mt-6 space-y-4">
         <div>
@@ -128,7 +128,7 @@ export default function AdminSettingsPage() {
       <button type="button" className="btn btn-primary mt-6 rounded px-4 py-2">
         Speichern (env-basiert)
       </button>
-      <p className="mt-2 text-xs text-slate-500">
+      <p className="mt-2 text-xs text-[rgb(var(--muted))]">
         Hinweis: Werte werden aus ENV gelesen. Persistenz via Admin-API ergaenzen.
       </p>
     </div>

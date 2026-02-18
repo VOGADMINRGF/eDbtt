@@ -12,7 +12,7 @@ export function ProgressLog() {
   }, []);
 
   return (
-    <div className="mt-3 rounded border p-3 bg-white">
+    <div className="mt-3 rounded border p-3 bg-[rgb(var(--card))]">
       <div className="font-semibold mb-2">Analyse-Prozess</div>
       {steps.length === 0 ? (
         <div className="text-sm text-gray-500">Keine Schritte.</div>

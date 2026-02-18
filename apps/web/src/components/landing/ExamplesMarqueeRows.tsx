@@ -82,9 +82,9 @@ export function ExamplesMarqueeRows(props: {
   return (
     <div ref={ref} className="absolute inset-0 z-0 overflow-hidden">
       {/* calmer backdrop (less “heavy white overlay”) */}
-      <div className="pointer-events-none absolute inset-0 edb-backdrop-glow bg-[radial-gradient(900px_520px_at_30%_0%,rgba(26,140,255,0.18),transparent_58%),radial-gradient(900px_520px_at_72%_0%,rgba(24,207,200,0.16),transparent_58%)]" />
-      <div className="pointer-events-none absolute inset-0 edb-backdrop-waves bg-[linear-gradient(120deg,rgba(26,140,255,0.06),transparent_48%),linear-gradient(300deg,rgba(24,207,200,0.06),transparent_48%)]" />
-      <div className="pointer-events-none absolute inset-0 bg-white/25" />
+      <div className="pointer-events-none absolute inset-0 edb-backdrop-glow bg-[radial-gradient(900px_520px_at_30%_0%,rgba(26,140,255,0.16),transparent_58%),radial-gradient(900px_520px_at_72%_0%,rgba(24,207,200,0.14),transparent_58%)]" />
+      <div className="pointer-events-none absolute inset-0 edb-backdrop-waves bg-[linear-gradient(120deg,rgba(26,140,255,0.05),transparent_48%),linear-gradient(300deg,rgba(24,207,200,0.05),transparent_48%)]" />
+      <div className="pointer-events-none absolute inset-0 bg-[rgb(var(--bg))]" />
 
       {/* tighter vertical rhythm */}
       <div className="relative mx-auto grid h-[100svh] min-h-screen w-full grid-rows-[repeat(5,minmax(0,1fr))] gap-3 overflow-hidden px-3 pt-14 pb-5 sm:gap-4 sm:px-6">
@@ -105,15 +105,15 @@ export function ExamplesMarqueeRows(props: {
               {/* Slim header (no “bar” look) */}
               <div className="mb-1 flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
                 <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                  <span className="text-[10px] font-semibold uppercase tracking-[0.22em] text-slate-500">
+                  <span className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[rgb(var(--muted))]">
                     {label}
                   </span>
-                  <span className="text-[10px] text-slate-400">•</span>
-                  <span className="text-[10px] text-slate-400">{route}</span>
+                  <span className="text-[10px] text-[rgb(var(--muted))] opacity-70">•</span>
+                  <span className="text-[10px] text-[rgb(var(--muted))] opacity-70">{route}</span>
                 </div>
 
                 {hint && (
-                  <div className="text-[10px] text-slate-400">
+                  <div className="text-[10px] text-[rgb(var(--muted))] opacity-70">
                     {hint}
                   </div>
                 )}
@@ -121,8 +121,8 @@ export function ExamplesMarqueeRows(props: {
 
               <div className="relative min-h-0 flex-1 overflow-hidden px-3 sm:px-4">
                 {/* softer edge masks (reduced so headlines don't look clipped) */}
-                <div className="pointer-events-none absolute inset-y-0 left-0 w-8 bg-gradient-to-r from-slate-50/45 via-slate-50/20 to-transparent" />
-                <div className="pointer-events-none absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-slate-50/45 via-slate-50/20 to-transparent" />
+                <div className="pointer-events-none absolute inset-y-0 left-0 w-8 bg-gradient-to-r from-[rgb(var(--bg))]/80 via-[rgb(var(--bg))]/40 to-transparent" />
+                <div className="pointer-events-none absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-[rgb(var(--bg))]/80 via-[rgb(var(--bg))]/40 to-transparent" />
 
                 {doubled.length > 0 && (
                   <div

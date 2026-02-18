@@ -79,10 +79,10 @@ export default function ContributionForm() {
   return (
     <form
       onSubmit={handleSubmit}
-      className="bg-white p-8 rounded-2xl shadow-xl max-w-2xl mx-auto mt-10 space-y-4"
+      className="bg-[rgb(var(--card))] p-8 rounded-2xl shadow-xl max-w-2xl mx-auto mt-10 space-y-4"
     >
       <h2 className="text-2xl font-bold">Neuen Beitrag verfassen</h2>
-      <p className="text-sm text-slate-600">
+      <p className="text-sm text-[rgb(var(--muted))]">
         Wir prüfen Behauptung, sammeln Quellen und zeigen offene Fragen sowie fehlende Perspektiven.
       </p>
       <input

@@ -40,8 +40,8 @@ export default async function CampaignPage({ params }: PageProps) {
   if (!ObjectId.isValid(id)) {
     return (
       <main className="mx-auto flex max-w-3xl flex-col gap-4 px-4 py-12">
-        <h1 className="text-2xl font-bold text-slate-900">Campaign nicht gefunden</h1>
-        <p className="text-slate-600">Ungültige ID.</p>
+        <h1 className="text-2xl font-bold text-[rgb(var(--fg))]">Campaign nicht gefunden</h1>
+        <p className="text-[rgb(var(--muted))]">Ungültige ID.</p>
       </main>
     );
   }
@@ -51,8 +51,8 @@ export default async function CampaignPage({ params }: PageProps) {
   if (!campaign) {
     return (
       <main className="mx-auto flex max-w-3xl flex-col gap-4 px-4 py-12">
-        <h1 className="text-2xl font-bold text-slate-900">Campaign nicht gefunden</h1>
-        <p className="text-slate-600">Diese Kampagne existiert nicht oder wurde entfernt.</p>
+        <h1 className="text-2xl font-bold text-[rgb(var(--fg))]">Campaign nicht gefunden</h1>
+        <p className="text-[rgb(var(--muted))]">Diese Kampagne existiert nicht oder wurde entfernt.</p>
       </main>
     );
   }
@@ -71,12 +71,12 @@ export default async function CampaignPage({ params }: PageProps) {
   return (
     <main className="mx-auto flex max-w-3xl flex-col gap-6 px-4 py-12">
       <header className="space-y-2">
-        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Campaign</p>
-        <h1 className="text-3xl font-bold text-slate-900">{campaign.title}</h1>
-        <p className="text-sm text-slate-600">{campaign.description ?? "Keine Beschreibung hinterlegt."}</p>
+        <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Campaign</p>
+        <h1 className="text-3xl font-bold text-[rgb(var(--fg))]">{campaign.title}</h1>
+        <p className="text-sm text-[rgb(var(--muted))]">{campaign.description ?? "Keine Beschreibung hinterlegt."}</p>
       </header>
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-4 text-sm shadow-sm">
+      <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 text-sm shadow-sm">
         <div className="grid gap-3 sm:grid-cols-2">
           <Detail label="Status" value={statusLabel} />
           <Detail label="Region" value={campaign.regionCode ?? "–"} />
@@ -94,7 +94,7 @@ export default async function CampaignPage({ params }: PageProps) {
             Teilnahme starten
           </Link>
         ) : (
-          <span className="rounded-full bg-slate-100 px-4 py-2 text-sm text-slate-600">
+          <span className="rounded-full bg-[rgb(var(--bg))] px-4 py-2 text-sm text-[rgb(var(--muted))]">
             {campaign.status === "paused"
               ? "Kampagne ist gerade pausiert."
               : campaign.status === "ended"
@@ -110,7 +110,7 @@ export default async function CampaignPage({ params }: PageProps) {
             Unterstuetzen
           </Link>
         ) : null}
-        <Link href="/stream" className="text-sm font-semibold text-slate-600 hover:text-slate-900">
+        <Link href="/stream" className="text-sm font-semibold text-[rgb(var(--muted))] hover:text-[rgb(var(--fg))]">
           Zurueck zu Streams
         </Link>
       </div>
@@ -127,8 +127,8 @@ export default async function CampaignPage({ params }: PageProps) {
 function Detail({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{label}</p>
-      <p className="text-sm text-slate-800">{value}</p>
+      <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">{label}</p>
+      <p className="text-sm text-[rgb(var(--fg))]">{value}</p>
     </div>
   );
 }

@@ -309,7 +309,7 @@ export default function AdminDossierClient({ dossierId }: { dossierId: string })
   }
 
   if (loading) {
-    return <div className="mx-auto max-w-6xl px-4 py-8 text-sm text-slate-500">Lade Dossier...</div>;
+    return <div className="mx-auto max-w-6xl px-4 py-8 text-sm text-[rgb(var(--muted))]">Lade Dossier...</div>;
   }
 
   if (error || !bundle) {
@@ -323,10 +323,10 @@ export default function AdminDossierClient({ dossierId }: { dossierId: string })
   return (
     <main className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-8">
       <header className="space-y-2">
-        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Admin · Dossiers</p>
-        <h1 className="text-2xl font-bold text-slate-900">{bundle.dossier?.title ?? "Dossier"}</h1>
-        <div className="flex flex-wrap items-center gap-3 text-xs text-slate-600">
-          <span className="rounded-full border border-slate-200 bg-white px-3 py-1">
+        <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Admin · Dossiers</p>
+        <h1 className="text-2xl font-bold text-[rgb(var(--fg))]">{bundle.dossier?.title ?? "Dossier"}</h1>
+        <div className="flex flex-wrap items-center gap-3 text-xs text-[rgb(var(--muted))]">
+          <span className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-1">
             ID: <span className="font-mono">{dossierKey}</span>
           </span>
           <Link href={`/dossier/${encodeURIComponent(dossierKey)}`} className="underline">
@@ -341,22 +341,22 @@ export default function AdminDossierClient({ dossierId }: { dossierId: string })
         </div>
         {message ? <div className="text-xs text-emerald-600">{message}</div> : null}
         {error ? <div className="text-xs text-rose-600">{error}</div> : null}
-        {busy ? <div className="text-xs text-slate-500">Aktion laeuft...</div> : null}
+        {busy ? <div className="text-xs text-[rgb(var(--muted))]">Aktion laeuft...</div> : null}
       </header>
 
-      <section className="rounded-3xl bg-white/90 p-4 shadow ring-1 ring-slate-100">
-        <h2 className="text-sm font-semibold text-slate-900">Neue Claim</h2>
+      <section className="rounded-3xl bg-[rgb(var(--card))] p-4 shadow ring-1 ring-[rgb(var(--border))]">
+        <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Neue Claim</h2>
         <div className="mt-3 grid gap-2 md:grid-cols-4">
           <input
             value={newClaim.text}
             onChange={(e) => setNewClaim((prev) => ({ ...prev, text: e.target.value }))}
             placeholder="Claim-Text"
-            className="md:col-span-2 rounded-lg border border-slate-200 px-3 py-2 text-sm"
+            className="md:col-span-2 rounded-lg border border-[rgb(var(--border))] px-3 py-2 text-sm"
           />
           <select
             value={newClaim.kind}
             onChange={(e) => setNewClaim((prev) => ({ ...prev, kind: e.target.value }))}
-            className="rounded-lg border border-slate-200 px-3 py-2 text-sm"
+            className="rounded-lg border border-[rgb(var(--border))] px-3 py-2 text-sm"
           >
             {CLAIM_KINDS.map((k) => (
               <option key={k} value={k}>{k}</option>
@@ -365,7 +365,7 @@ export default function AdminDossierClient({ dossierId }: { dossierId: string })
           <select
             value={newClaim.status}
             onChange={(e) => setNewClaim((prev) => ({ ...prev, status: e.target.value }))}
-            className="rounded-lg border border-slate-200 px-3 py-2 text-sm"
+            className="rounded-lg border border-[rgb(var(--border))] px-3 py-2 text-sm"
           >
             {CLAIM_STATUSES.map((s) => (
               <option key={s} value={s}>{s}</option>
@@ -380,12 +380,12 @@ export default function AdminDossierClient({ dossierId }: { dossierId: string })
         </button>
       </section>
 
-      <section className="rounded-3xl bg-white/90 p-4 shadow ring-1 ring-slate-100">
-        <h2 className="text-sm font-semibold text-slate-900">Claims bearbeiten</h2>
+      <section className="rounded-3xl bg-[rgb(var(--card))] p-4 shadow ring-1 ring-[rgb(var(--border))]">
+        <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Claims bearbeiten</h2>
         <div className="mt-3 space-y-3">
           {bundle.claims.map((claim) => (
-            <div key={claim.claimId} className="rounded-2xl border border-slate-200 p-3">
-              <div className="text-xs text-slate-500">{claim.claimId}</div>
+            <div key={claim.claimId} className="rounded-2xl border border-[rgb(var(--border))] p-3">
+              <div className="text-xs text-[rgb(var(--muted))]">{claim.claimId}</div>
               <textarea
                 value={claim.text}
                 onChange={(e) => {
@@ -396,7 +396,7 @@ export default function AdminDossierClient({ dossierId }: { dossierId: string })
                       : prev,
                   );
                 }}
-                className="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                className="mt-2 w-full rounded-lg border border-[rgb(var(--border))] px-3 py-2 text-sm"
                 rows={2}
               />
               <div className="mt-2 flex flex-wrap gap-2">
@@ -410,7 +410,7 @@ export default function AdminDossierClient({ dossierId }: { dossierId: string })
                         : prev,
                     );
                   }}
-                  className="rounded-lg border border-slate-200 px-2 py-1 text-xs"
+                  className="rounded-lg border border-[rgb(var(--border))] px-2 py-1 text-xs"
                 >
                   {CLAIM_KINDS.map((k) => (
                     <option key={k} value={k}>{k}</option>
@@ -426,7 +426,7 @@ export default function AdminDossierClient({ dossierId }: { dossierId: string })
                         : prev,
                     );
                   }}
-                  className="rounded-lg border border-slate-200 px-2 py-1 text-xs"
+                  className="rounded-lg border border-[rgb(var(--border))] px-2 py-1 text-xs"
                 >
                   {CLAIM_STATUSES.map((s) => (
                     <option key={s} value={s}>{s}</option>
@@ -444,31 +444,31 @@ export default function AdminDossierClient({ dossierId }: { dossierId: string })
         </div>
       </section>
 
-      <section className="rounded-3xl bg-white/90 p-4 shadow ring-1 ring-slate-100">
-        <h2 className="text-sm font-semibold text-slate-900">Neue Quelle</h2>
+      <section className="rounded-3xl bg-[rgb(var(--card))] p-4 shadow ring-1 ring-[rgb(var(--border))]">
+        <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Neue Quelle</h2>
         <div className="mt-3 grid gap-2 md:grid-cols-5">
           <input
             value={newSource.url}
             onChange={(e) => setNewSource((prev) => ({ ...prev, url: e.target.value }))}
             placeholder="URL"
-            className="md:col-span-2 rounded-lg border border-slate-200 px-3 py-2 text-sm"
+            className="md:col-span-2 rounded-lg border border-[rgb(var(--border))] px-3 py-2 text-sm"
           />
           <input
             value={newSource.title}
             onChange={(e) => setNewSource((prev) => ({ ...prev, title: e.target.value }))}
             placeholder="Titel"
-            className="rounded-lg border border-slate-200 px-3 py-2 text-sm"
+            className="rounded-lg border border-[rgb(var(--border))] px-3 py-2 text-sm"
           />
           <input
             value={newSource.publisher}
             onChange={(e) => setNewSource((prev) => ({ ...prev, publisher: e.target.value }))}
             placeholder="Publisher"
-            className="rounded-lg border border-slate-200 px-3 py-2 text-sm"
+            className="rounded-lg border border-[rgb(var(--border))] px-3 py-2 text-sm"
           />
           <select
             value={newSource.type}
             onChange={(e) => setNewSource((prev) => ({ ...prev, type: e.target.value }))}
-            className="rounded-lg border border-slate-200 px-3 py-2 text-sm"
+            className="rounded-lg border border-[rgb(var(--border))] px-3 py-2 text-sm"
           >
             {SOURCE_TYPES.map((t) => (
               <option key={t} value={t}>{t}</option>
@@ -479,7 +479,7 @@ export default function AdminDossierClient({ dossierId }: { dossierId: string })
           value={newSource.snippet}
           onChange={(e) => setNewSource((prev) => ({ ...prev, snippet: e.target.value }))}
           placeholder="Snippet (optional)"
-          className="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+          className="mt-2 w-full rounded-lg border border-[rgb(var(--border))] px-3 py-2 text-sm"
         />
         <button
           onClick={createSource}
@@ -489,12 +489,12 @@ export default function AdminDossierClient({ dossierId }: { dossierId: string })
         </button>
       </section>
 
-      <section className="rounded-3xl bg-white/90 p-4 shadow ring-1 ring-slate-100">
-        <h2 className="text-sm font-semibold text-slate-900">Quellen klassifizieren</h2>
+      <section className="rounded-3xl bg-[rgb(var(--card))] p-4 shadow ring-1 ring-[rgb(var(--border))]">
+        <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Quellen klassifizieren</h2>
         <div className="mt-3 space-y-3">
           {bundle.sources.map((source) => (
-            <div key={source.sourceId} className="rounded-2xl border border-slate-200 p-3">
-              <div className="text-xs text-slate-500">{source.sourceId}</div>
+            <div key={source.sourceId} className="rounded-2xl border border-[rgb(var(--border))] p-3">
+              <div className="text-xs text-[rgb(var(--muted))]">{source.sourceId}</div>
               <div className="mt-2 grid gap-2 md:grid-cols-4">
                 <input
                   value={source.url}
@@ -506,7 +506,7 @@ export default function AdminDossierClient({ dossierId }: { dossierId: string })
                         : prev,
                     );
                   }}
-                  className="md:col-span-2 rounded-lg border border-slate-200 px-3 py-2 text-xs"
+                  className="md:col-span-2 rounded-lg border border-[rgb(var(--border))] px-3 py-2 text-xs"
                 />
                 <input
                   value={source.title}
@@ -518,7 +518,7 @@ export default function AdminDossierClient({ dossierId }: { dossierId: string })
                         : prev,
                     );
                   }}
-                  className="rounded-lg border border-slate-200 px-3 py-2 text-xs"
+                  className="rounded-lg border border-[rgb(var(--border))] px-3 py-2 text-xs"
                 />
                 <input
                   value={source.publisher}
@@ -530,7 +530,7 @@ export default function AdminDossierClient({ dossierId }: { dossierId: string })
                         : prev,
                     );
                   }}
-                  className="rounded-lg border border-slate-200 px-3 py-2 text-xs"
+                  className="rounded-lg border border-[rgb(var(--border))] px-3 py-2 text-xs"
                 />
               </div>
               <div className="mt-2 flex flex-wrap gap-2">
@@ -544,7 +544,7 @@ export default function AdminDossierClient({ dossierId }: { dossierId: string })
                         : prev,
                     );
                   }}
-                  className="rounded-lg border border-slate-200 px-2 py-1 text-xs"
+                  className="rounded-lg border border-[rgb(var(--border))] px-2 py-1 text-xs"
                 >
                   {SOURCE_TYPES.map((t) => (
                     <option key={t} value={t}>{t}</option>
@@ -562,19 +562,19 @@ export default function AdminDossierClient({ dossierId }: { dossierId: string })
         </div>
       </section>
 
-      <section className="rounded-3xl bg-white/90 p-4 shadow ring-1 ring-slate-100">
-        <h2 className="text-sm font-semibold text-slate-900">Neue offene Frage</h2>
+      <section className="rounded-3xl bg-[rgb(var(--card))] p-4 shadow ring-1 ring-[rgb(var(--border))]">
+        <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Neue offene Frage</h2>
         <div className="mt-3 grid gap-2 md:grid-cols-4">
           <input
             value={newQuestion.text}
             onChange={(e) => setNewQuestion((prev) => ({ ...prev, text: e.target.value }))}
             placeholder="Frage"
-            className="md:col-span-2 rounded-lg border border-slate-200 px-3 py-2 text-sm"
+            className="md:col-span-2 rounded-lg border border-[rgb(var(--border))] px-3 py-2 text-sm"
           />
           <select
             value={newQuestion.status}
             onChange={(e) => setNewQuestion((prev) => ({ ...prev, status: e.target.value }))}
-            className="rounded-lg border border-slate-200 px-3 py-2 text-sm"
+            className="rounded-lg border border-[rgb(var(--border))] px-3 py-2 text-sm"
           >
             {QUESTION_STATUSES.map((s) => (
               <option key={s} value={s}>{s}</option>
@@ -589,12 +589,12 @@ export default function AdminDossierClient({ dossierId }: { dossierId: string })
         </button>
       </section>
 
-      <section className="rounded-3xl bg-white/90 p-4 shadow ring-1 ring-slate-100">
-        <h2 className="text-sm font-semibold text-slate-900">Offene Fragen bearbeiten</h2>
+      <section className="rounded-3xl bg-[rgb(var(--card))] p-4 shadow ring-1 ring-[rgb(var(--border))]">
+        <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Offene Fragen bearbeiten</h2>
         <div className="mt-3 space-y-3">
           {bundle.openQuestions.map((q) => (
-            <div key={q.questionId} className="rounded-2xl border border-slate-200 p-3">
-              <div className="text-xs text-slate-500">{q.questionId}</div>
+            <div key={q.questionId} className="rounded-2xl border border-[rgb(var(--border))] p-3">
+              <div className="text-xs text-[rgb(var(--muted))]">{q.questionId}</div>
               <textarea
                 value={q.text}
                 onChange={(e) => {
@@ -605,7 +605,7 @@ export default function AdminDossierClient({ dossierId }: { dossierId: string })
                       : prev,
                   );
                 }}
-                className="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                className="mt-2 w-full rounded-lg border border-[rgb(var(--border))] px-3 py-2 text-sm"
                 rows={2}
               />
               <div className="mt-2 flex items-center gap-2">
@@ -619,7 +619,7 @@ export default function AdminDossierClient({ dossierId }: { dossierId: string })
                         : prev,
                     );
                   }}
-                  className="rounded-lg border border-slate-200 px-2 py-1 text-xs"
+                  className="rounded-lg border border-[rgb(var(--border))] px-2 py-1 text-xs"
                 >
                   {QUESTION_STATUSES.map((s) => (
                     <option key={s} value={s}>{s}</option>
@@ -637,13 +637,13 @@ export default function AdminDossierClient({ dossierId }: { dossierId: string })
         </div>
       </section>
 
-      <section className="rounded-3xl bg-white/90 p-4 shadow ring-1 ring-slate-100">
-        <h2 className="text-sm font-semibold text-slate-900">Graph Edge anlegen</h2>
+      <section className="rounded-3xl bg-[rgb(var(--card))] p-4 shadow ring-1 ring-[rgb(var(--border))]">
+        <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Graph Edge anlegen</h2>
         <div className="mt-3 grid gap-2 md:grid-cols-5">
           <select
             value={newEdge.fromType}
             onChange={(e) => setNewEdge((prev) => ({ ...prev, fromType: e.target.value }))}
-            className="rounded-lg border border-slate-200 px-3 py-2 text-sm"
+            className="rounded-lg border border-[rgb(var(--border))] px-3 py-2 text-sm"
           >
             {NODE_TYPES.map((t) => (
               <option key={t} value={t}>{t}</option>
@@ -653,12 +653,12 @@ export default function AdminDossierClient({ dossierId }: { dossierId: string })
             value={newEdge.fromId}
             onChange={(e) => setNewEdge((prev) => ({ ...prev, fromId: e.target.value }))}
             placeholder="fromId"
-            className="rounded-lg border border-slate-200 px-3 py-2 text-sm"
+            className="rounded-lg border border-[rgb(var(--border))] px-3 py-2 text-sm"
           />
           <select
             value={newEdge.toType}
             onChange={(e) => setNewEdge((prev) => ({ ...prev, toType: e.target.value }))}
-            className="rounded-lg border border-slate-200 px-3 py-2 text-sm"
+            className="rounded-lg border border-[rgb(var(--border))] px-3 py-2 text-sm"
           >
             {NODE_TYPES.map((t) => (
               <option key={t} value={t}>{t}</option>
@@ -668,12 +668,12 @@ export default function AdminDossierClient({ dossierId }: { dossierId: string })
             value={newEdge.toId}
             onChange={(e) => setNewEdge((prev) => ({ ...prev, toId: e.target.value }))}
             placeholder="toId"
-            className="rounded-lg border border-slate-200 px-3 py-2 text-sm"
+            className="rounded-lg border border-[rgb(var(--border))] px-3 py-2 text-sm"
           />
           <select
             value={newEdge.rel}
             onChange={(e) => setNewEdge((prev) => ({ ...prev, rel: e.target.value }))}
-            className="rounded-lg border border-slate-200 px-3 py-2 text-sm"
+            className="rounded-lg border border-[rgb(var(--border))] px-3 py-2 text-sm"
           >
             {EDGE_RELS.map((r) => (
               <option key={r} value={r}>{r}</option>
@@ -688,13 +688,13 @@ export default function AdminDossierClient({ dossierId }: { dossierId: string })
         </button>
       </section>
 
-      <section className="rounded-3xl bg-white/90 p-4 shadow ring-1 ring-slate-100">
-        <h2 className="text-sm font-semibold text-slate-900">Finding override (Editor)</h2>
+      <section className="rounded-3xl bg-[rgb(var(--card))] p-4 shadow ring-1 ring-[rgb(var(--border))]">
+        <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Finding override (Editor)</h2>
         <div className="mt-3 grid gap-2 md:grid-cols-3">
           <select
             value={newFinding.claimId}
             onChange={(e) => setNewFinding((prev) => ({ ...prev, claimId: e.target.value }))}
-            className="rounded-lg border border-slate-200 px-3 py-2 text-sm"
+            className="rounded-lg border border-[rgb(var(--border))] px-3 py-2 text-sm"
           >
             {bundle.claims.map((claim) => (
               <option key={claim.claimId} value={claim.claimId}>
@@ -705,7 +705,7 @@ export default function AdminDossierClient({ dossierId }: { dossierId: string })
           <select
             value={newFinding.verdict}
             onChange={(e) => setNewFinding((prev) => ({ ...prev, verdict: e.target.value }))}
-            className="rounded-lg border border-slate-200 px-3 py-2 text-sm"
+            className="rounded-lg border border-[rgb(var(--border))] px-3 py-2 text-sm"
           >
             {FINDING_VERDICTS.map((v) => (
               <option key={v} value={v}>{v}</option>
@@ -716,7 +716,7 @@ export default function AdminDossierClient({ dossierId }: { dossierId: string })
           value={newFinding.rationale}
           onChange={(e) => setNewFinding((prev) => ({ ...prev, rationale: e.target.value }))}
           placeholder="Rationale (eine Zeile pro Punkt)"
-          className="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+          className="mt-2 w-full rounded-lg border border-[rgb(var(--border))] px-3 py-2 text-sm"
           rows={3}
         />
         <button
@@ -727,16 +727,16 @@ export default function AdminDossierClient({ dossierId }: { dossierId: string })
         </button>
       </section>
 
-      <section className="rounded-3xl bg-white/90 p-4 shadow ring-1 ring-slate-100">
-        <h2 className="text-sm font-semibold text-slate-900">Findings bearbeiten (Pipeline + Editor)</h2>
+      <section className="rounded-3xl bg-[rgb(var(--card))] p-4 shadow ring-1 ring-[rgb(var(--border))]">
+        <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Findings bearbeiten (Pipeline + Editor)</h2>
         <div className="mt-3 space-y-3 text-sm">
           {rawFindings.map((finding) => {
             const claim = claimMap.get(finding.claimId);
             const rationaleText = Array.isArray(finding.rationale) ? finding.rationale.join("\n") : "";
             return (
-              <div key={finding.findingId} className="rounded-2xl border border-slate-200 p-3">
-                <div className="text-xs text-slate-500">{finding.producedBy ?? "pipeline"}</div>
-                <div className="font-semibold text-slate-900">{claim?.text ?? finding.claimId}</div>
+              <div key={finding.findingId} className="rounded-2xl border border-[rgb(var(--border))] p-3">
+                <div className="text-xs text-[rgb(var(--muted))]">{finding.producedBy ?? "pipeline"}</div>
+                <div className="font-semibold text-[rgb(var(--fg))]">{claim?.text ?? finding.claimId}</div>
                 <div className="mt-2 flex flex-wrap gap-2">
                   <select
                     value={finding.verdict}
@@ -753,7 +753,7 @@ export default function AdminDossierClient({ dossierId }: { dossierId: string })
                           : prev,
                       );
                     }}
-                    className="rounded-lg border border-slate-200 px-2 py-1 text-xs"
+                    className="rounded-lg border border-[rgb(var(--border))] px-2 py-1 text-xs"
                   >
                     {FINDING_VERDICTS.map((v) => (
                       <option key={v} value={v}>{v}</option>
@@ -784,7 +784,7 @@ export default function AdminDossierClient({ dossierId }: { dossierId: string })
                         : prev,
                     );
                   }}
-                  className="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-xs"
+                  className="mt-2 w-full rounded-lg border border-[rgb(var(--border))] px-3 py-2 text-xs"
                   rows={3}
                 />
               </div>
@@ -793,16 +793,16 @@ export default function AdminDossierClient({ dossierId }: { dossierId: string })
         </div>
       </section>
 
-      <section className="rounded-3xl bg-white/90 p-4 shadow ring-1 ring-slate-100">
-        <h2 className="text-sm font-semibold text-slate-900">Vorschlaege (Queue)</h2>
+      <section className="rounded-3xl bg-[rgb(var(--card))] p-4 shadow ring-1 ring-[rgb(var(--border))]">
+        <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Vorschlaege (Queue)</h2>
         <div className="mt-3 space-y-3">
           {suggestions.length === 0 ? (
-            <div className="text-sm text-slate-500">Keine Vorschlaege offen.</div>
+            <div className="text-sm text-[rgb(var(--muted))]">Keine Vorschlaege offen.</div>
           ) : (
             suggestions.map((s) => (
-              <div key={s.suggestionId} className="rounded-2xl border border-slate-200 p-3 text-sm">
-                <div className="text-xs text-slate-500">{s.type} · {s.status}</div>
-                <pre className="mt-2 whitespace-pre-wrap text-xs text-slate-700">
+              <div key={s.suggestionId} className="rounded-2xl border border-[rgb(var(--border))] p-3 text-sm">
+                <div className="text-xs text-[rgb(var(--muted))]">{s.type} · {s.status}</div>
+                <pre className="mt-2 whitespace-pre-wrap text-xs text-[rgb(var(--muted))]">
                   {JSON.stringify(s.payload, null, 2)}
                 </pre>
                 {s.status === "pending" ? (
@@ -827,17 +827,17 @@ export default function AdminDossierClient({ dossierId }: { dossierId: string })
         </div>
       </section>
 
-      <section className="rounded-3xl bg-white/90 p-4 shadow ring-1 ring-slate-100">
-        <h2 className="text-sm font-semibold text-slate-900">Einsprueche</h2>
+      <section className="rounded-3xl bg-[rgb(var(--card))] p-4 shadow ring-1 ring-[rgb(var(--border))]">
+        <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Einsprueche</h2>
         <div className="mt-3 space-y-3">
           {disputes.length === 0 ? (
-            <div className="text-sm text-slate-500">Keine Einsprueche offen.</div>
+            <div className="text-sm text-[rgb(var(--muted))]">Keine Einsprueche offen.</div>
           ) : (
             disputes.map((d) => (
-              <div key={d.disputeId} className="rounded-2xl border border-slate-200 p-3 text-sm">
-                <div className="text-xs text-slate-500">{d.entityType} · {d.status}</div>
-                <div className="mt-1 font-semibold text-slate-900">{d.reason}</div>
-                <div className="text-xs text-slate-600">{d.requestedChange}</div>
+              <div key={d.disputeId} className="rounded-2xl border border-[rgb(var(--border))] p-3 text-sm">
+                <div className="text-xs text-[rgb(var(--muted))]">{d.entityType} · {d.status}</div>
+                <div className="mt-1 font-semibold text-[rgb(var(--fg))]">{d.reason}</div>
+                <div className="text-xs text-[rgb(var(--muted))]">{d.requestedChange}</div>
                 {d.status === "open" ? (
                   <div className="mt-2 flex gap-2">
                     <button
@@ -860,33 +860,33 @@ export default function AdminDossierClient({ dossierId }: { dossierId: string })
         </div>
       </section>
 
-      <section className="rounded-3xl bg-white/90 p-4 shadow ring-1 ring-slate-100">
-        <h2 className="text-sm font-semibold text-slate-900">Verlauf</h2>
+      <section className="rounded-3xl bg-[rgb(var(--card))] p-4 shadow ring-1 ring-[rgb(var(--border))]">
+        <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Verlauf</h2>
         <div className="mt-3 space-y-2 text-sm">
           {revisions.length === 0 ? (
-            <div className="text-sm text-slate-500">Keine Revisionen.</div>
+            <div className="text-sm text-[rgb(var(--muted))]">Keine Revisionen.</div>
           ) : (
             revisions.map((rev) => (
-              <div key={rev.revId} className="rounded-2xl border border-slate-200 p-3">
-                <div className="text-xs text-slate-500">{rev.entityType} · {rev.action} · {rev.byRole}</div>
-                <div className="mt-1 text-slate-800">{rev.diffSummary}</div>
-                <div className="mt-1 text-xs text-slate-400">{formatDate(rev.timestamp)}</div>
+              <div key={rev.revId} className="rounded-2xl border border-[rgb(var(--border))] p-3">
+                <div className="text-xs text-[rgb(var(--muted))]">{rev.entityType} · {rev.action} · {rev.byRole}</div>
+                <div className="mt-1 text-[rgb(var(--fg))]">{rev.diffSummary}</div>
+                <div className="mt-1 text-xs text-[rgb(var(--muted))]">{formatDate(rev.timestamp)}</div>
               </div>
             ))
           )}
         </div>
       </section>
 
-      <section className="rounded-3xl bg-white/90 p-4 shadow ring-1 ring-slate-100">
-        <h2 className="text-sm font-semibold text-slate-900">Quellen-Index (Helper)</h2>
-        <div className="mt-3 text-xs text-slate-600">
+      <section className="rounded-3xl bg-[rgb(var(--card))] p-4 shadow ring-1 ring-[rgb(var(--border))]">
+        <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Quellen-Index (Helper)</h2>
+        <div className="mt-3 text-xs text-[rgb(var(--muted))]">
           {bundle.sources.map((source) => (
             <div key={source.sourceId}>
               <span className="font-mono">{source.sourceId}</span> · {source.title}
             </div>
           ))}
         </div>
-        <div className="mt-3 text-xs text-slate-600">
+        <div className="mt-3 text-xs text-[rgb(var(--muted))]">
           {bundle.claims.map((claim) => (
             <div key={claim.claimId}>
               <span className="font-mono">{claim.claimId}</span> · {claim.text.slice(0, 80)}

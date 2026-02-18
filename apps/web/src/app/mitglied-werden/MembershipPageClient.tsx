@@ -298,19 +298,19 @@ export function MembershipPageClient({ membershipPlan, edebattePlans }: Props) {
     <>
       {/* Hero / Einordnung */}
       <section className="rounded-[40px] border border-transparent bg-gradient-to-br from-sky-50 via-white to-emerald-50/50 p-1 shadow-[0_25px_80px_rgba(15,23,42,0.08)]">
-        <div className="space-y-6 rounded-[36px] bg-white/95 p-6 md:p-8">
+        <div className="space-y-6 rounded-[36px] bg-[rgb(var(--card))] p-6 md:p-8">
           <header className="space-y-3">
             <h1 className="headline-grad text-3xl font-extrabold leading-tight md:text-4xl">
               {strings.heroTitle}
             </h1>
-            <p className="text-sm leading-relaxed text-slate-700 md:text-base">
+            <p className="text-sm leading-relaxed text-[rgb(var(--muted))] md:text-base">
               {strings.heroIntro}
             </p>
             <a
               href="https://voiceopengov.org"
               target="_blank"
               rel="noreferrer"
-              className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white/80 px-4 py-2 text-xs font-semibold text-slate-700 shadow-sm hover:bg-white"
+              className="inline-flex items-center gap-2 rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-2 text-xs font-semibold text-[rgb(var(--muted))] shadow-sm hover:bg-[rgb(var(--card))]"
             >
               Mehr zur Initiative auf voiceopengov.org →
             </a>
@@ -326,11 +326,11 @@ export function MembershipPageClient({ membershipPlan, edebattePlans }: Props) {
 
           <div className="grid gap-4 md:grid-cols-2">
             {/* Was du ermöglichst */}
-            <div className="space-y-2 rounded-2xl border border-slate-100 bg-slate-50/70 p-4">
-              <h2 className="text-sm font-semibold text-slate-900">
+            <div className="space-y-2 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4">
+              <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">
                 {strings.enableTitle}
               </h2>
-              <ul className="mt-1 list-disc space-y-1 pl-4 text-xs text-slate-700 md:text-sm">
+              <ul className="mt-1 list-disc space-y-1 pl-4 text-xs text-[rgb(var(--muted))] md:text-sm">
                 {strings.enableList.map((item) => (
                   <li key={item}>{item}</li>
                 ))}
@@ -338,14 +338,14 @@ export function MembershipPageClient({ membershipPlan, edebattePlans }: Props) {
             </div>
 
             {/* Mitgliedsstufen */}
-            <div className="space-y-2 rounded-2xl border border-slate-100 bg-slate-50/70 p-4">
-              <h2 className="text-sm font-semibold text-slate-900">
+            <div className="space-y-2 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4">
+              <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">
                 {strings.tiersTitle}
               </h2>
-              <p className="text-xs text-slate-700 md:text-sm">
+              <p className="text-xs text-[rgb(var(--muted))] md:text-sm">
                 {strings.tiersIntro}
               </p>
-              <ul className="mt-2 space-y-1 text-xs text-slate-700 md:text-sm">
+              <ul className="mt-2 space-y-1 text-xs text-[rgb(var(--muted))] md:text-sm">
                 {strings.tiersList.map((item) => (
                   <li key={item} dangerouslySetInnerHTML={{ __html: item }} />
                 ))}
@@ -390,7 +390,7 @@ export function MembershipPageClient({ membershipPlan, edebattePlans }: Props) {
                   und Live-Formaten. Auch ohne Mitgliedschaft möglich – App‑Paket
                   und Mitgliedschaft werden separat ausgewählt und abgerechnet.
                   <br />
-                  <span className="text-[11px] text-slate-600">
+                  <span className="text-[11px] text-[rgb(var(--muted))]">
                     Empfehlung: pro Haushalt mindestens eDebatte Start oder Pro; jedes
                     Haushaltsmitglied kann später Basis nutzen und individuell upgraden.
                   </span>
@@ -404,14 +404,14 @@ export function MembershipPageClient({ membershipPlan, edebattePlans }: Props) {
           {withEdebate && (
             <div className="space-y-3">
               <div className="flex items-baseline justify-between gap-3">
-                <h2 className="text-sm font-semibold text-slate-900">
+                <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">
                   eDebatte-Paket waehlen (Vormerkung)
                 </h2>
-                <p className="text-[11px] text-slate-500">
+                <p className="text-[11px] text-[rgb(var(--muted))]">
                   Preise sind Richtwerte während der Pilotphase.
                 </p>
               </div>
-              <p className="text-[11px] text-slate-500">
+              <p className="text-[11px] text-[rgb(var(--muted))]">
                 Vormerkung: −15% Einfuehrungspreis (unverbindlich, ohne Zahlung)
               </p>
 
@@ -442,29 +442,29 @@ export function MembershipPageClient({ membershipPlan, edebattePlans }: Props) {
                           "rounded-2xl p-[1.5px] shadow-[0_18px_45px_rgba(15,23,42,0.08)] " +
                           (isSelected
                             ? "bg-gradient-to-r from-sky-400 via-cyan-400 to-emerald-400"
-                            : "bg-slate-100/80")
+                            : "bg-[rgb(var(--bg))]")
                         }
                       >
-                        <article className="flex h-full flex-col rounded-[15px] border border-white/80 bg-white/95 p-4 text-sm text-slate-800">
+                        <article className="flex h-full flex-col rounded-[15px] border border-white/80 bg-[rgb(var(--card))] p-4 text-sm text-[rgb(var(--fg))]">
                           {isSelected && (
                             <div className="mb-2 flex justify-end">
                               <StatusBadge>Ausgewählt</StatusBadge>
                             </div>
                           )}
                           <div className="flex items-center justify-between gap-2">
-                            <h3 className="text-sm font-semibold text-slate-900">
+                            <h3 className="text-sm font-semibold text-[rgb(var(--fg))]">
                               {plan.label}
                             </h3>
                           </div>
-                          <p className="mt-1 text-xs text-slate-700">
+                          <p className="mt-1 text-xs text-[rgb(var(--muted))]">
                             {plan.description}
                           </p>
                           <div className="mt-3 space-y-1 text-xs">
                             {listMonthly > 0 ? (
                               <>
-                                <p className="text-slate-700">
+                                <p className="text-[rgb(var(--muted))]">
                                   Listenpreis:{" "}
-                                  <span className="font-medium text-slate-400 line-through">
+                                  <span className="font-medium text-[rgb(var(--muted))] line-through">
                                     {billingInterval === "monthly"
                                       ? `${listMonthly.toFixed(2)} € / Monat`
                                       : `${listYearly.toFixed(2)} € / Jahr`}
@@ -475,17 +475,17 @@ export function MembershipPageClient({ membershipPlan, edebattePlans }: Props) {
                                 </p>
                                 {billingInterval === "yearly" && (
                                   <>
-                                    <span className="block text-[11px] text-slate-500">
+                                    <span className="block text-[11px] text-[rgb(var(--muted))]">
                                       (inkl. 8 % Skonto)
                                     </span>
-                                    <span className="block text-[11px] text-slate-500">
+                                    <span className="block text-[11px] text-[rgb(var(--muted))]">
                                       Basis: {listMonthly.toFixed(2)} € / Monat
                                     </span>
                                   </>
                                 )}
-                                <p className="text-[11px] text-slate-600">
+                                <p className="text-[11px] text-[rgb(var(--muted))]">
                                   Vormerkung ab:{" "}
-                                  <span className="font-semibold text-slate-800">
+                                  <span className="font-semibold text-[rgb(var(--fg))]">
                                     {billingInterval === "monthly"
                                       ? `${preorderMonthly.toFixed(2)} € / Monat`
                                       : `${preorderYearly.toFixed(2)} € / Jahr (~${(preorderYearly / 12).toFixed(2)} € / Monat)`}
@@ -493,7 +493,7 @@ export function MembershipPageClient({ membershipPlan, edebattePlans }: Props) {
                                 </p>
                               </>
                             ) : (
-                              <p className="text-slate-700">Kostenfrei</p>
+                              <p className="text-[rgb(var(--muted))]">Kostenfrei</p>
                             )}
                           </div>
                         </article>
@@ -505,12 +505,12 @@ export function MembershipPageClient({ membershipPlan, edebattePlans }: Props) {
 
               {/* Billing-Interval-Toggle */}
               <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
-                <p className="text-[11px] text-slate-600">
+                <p className="text-[11px] text-[rgb(var(--muted))]">
                   Bei jährlicher Zahlung gibt es{" "}
                   <span className="font-semibold">8 % Skonto</span> auf den
                   App-Preis.
                 </p>
-                <div className="inline-flex rounded-full bg-slate-100 p-1 text-xs font-semibold">
+                <div className="inline-flex rounded-full bg-[rgb(var(--bg))] p-1 text-xs font-semibold">
                   <button
                     type="button"
                     onClick={() => {
@@ -520,8 +520,8 @@ export function MembershipPageClient({ membershipPlan, edebattePlans }: Props) {
                     className={
                       "rounded-full px-3 py-1 " +
                       (billingInterval === "monthly"
-                        ? "bg-white text-slate-900 shadow-sm"
-                        : "text-slate-500")
+                        ? "bg-[rgb(var(--card))] text-[rgb(var(--fg))] shadow-sm"
+                        : "text-[rgb(var(--muted))]")
                     }
                   >
                     monatlich
@@ -535,8 +535,8 @@ export function MembershipPageClient({ membershipPlan, edebattePlans }: Props) {
                     className={
                       "rounded-full px-3 py-1 " +
                       (billingInterval === "yearly"
-                        ? "bg-white text-slate-900 shadow-sm"
-                        : "text-slate-500")
+                        ? "bg-[rgb(var(--card))] text-[rgb(var(--fg))] shadow-sm"
+                        : "text-[rgb(var(--muted))]")
                     }
                   >
                     jährlich (−8 %)
@@ -550,12 +550,12 @@ export function MembershipPageClient({ membershipPlan, edebattePlans }: Props) {
 
       {/* Beitrag berechnen */}
       <section className="mt-6 rounded-[32px] bg-gradient-to-br from-sky-50 via-white to-emerald-50/60 p-[1.5px] shadow-[0_24px_80px_rgba(15,23,42,0.10)]">
-        <div className="space-y-6 rounded-[28px] border border-white/70 bg-white/95 p-6 md:p-8">
+        <div className="space-y-6 rounded-[28px] border border-white/70 bg-[rgb(var(--card))] p-6 md:p-8">
           <header className="space-y-1">
-            <h2 className="text-lg font-semibold text-slate-900 md:text-xl">
+            <h2 className="text-lg font-semibold text-[rgb(var(--fg))] md:text-xl">
               {strings.calculatorTitle}
             </h2>
-            <p className="text-xs text-slate-600 md:text-sm">
+            <p className="text-xs text-[rgb(var(--muted))] md:text-sm">
               {strings.calculatorIntro}
             </p>
           </header>
@@ -565,26 +565,26 @@ export function MembershipPageClient({ membershipPlan, edebattePlans }: Props) {
             <div className="space-y-4">
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-1">
-                  <label className="text-xs font-medium text-slate-700">
+                  <label className="text-xs font-medium text-[rgb(var(--muted))]">
                     {strings.householdNetLabel}
                   </label>
                   <input
                     type="number"
                     inputMode="decimal"
-                    className="w-full rounded-xl border border-slate-200 bg-slate-50/60 px-3 py-2 text-sm text-slate-900 outline-none focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
+                    className="w-full rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-sm text-[rgb(var(--fg))] outline-none focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
                     placeholder={strings.householdNetPlaceholder}
                     value={householdNet}
                     onChange={(e) => setHouseholdNet(e.target.value)}
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-xs font-medium text-slate-700">
+                  <label className="text-xs font-medium text-[rgb(var(--muted))]">
                     {strings.warmRentLabel}
                   </label>
                   <input
                     type="number"
                     inputMode="decimal"
-                    className="w-full rounded-xl border border-slate-200 bg-slate-50/60 px-3 py-2 text-sm text-slate-900 outline-none focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
+                    className="w-full rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-sm text-[rgb(var(--fg))] outline-none focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
                     placeholder={strings.warmRentPlaceholder}
                     value={warmRent}
                     onChange={(e) => setWarmRent(e.target.value)}
@@ -595,13 +595,13 @@ export function MembershipPageClient({ membershipPlan, edebattePlans }: Props) {
               {/* Vorschlag */}
               <div className="flex flex-wrap items-baseline justify-between gap-3">
                 <div>
-                  <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                  <p className="text-xs font-medium uppercase tracking-wide text-[rgb(var(--muted))]">
                     {strings.suggestionTitle}
                   </p>
-                  <p className="text-2xl font-semibold text-slate-900">
+                  <p className="text-2xl font-semibold text-[rgb(var(--fg))]">
                     {formatEuro(suggestedPerPerson)}
                   </p>
-                  <p className="text-[11px] text-slate-500">
+                  <p className="text-[11px] text-[rgb(var(--muted))]">
                     {strings.suggestionNote} (
                     {formatEuro(
                       membershipPlan.suggestedPerPersonPerMonth,
@@ -620,7 +620,7 @@ export function MembershipPageClient({ membershipPlan, edebattePlans }: Props) {
 
               {/* Beitrag pro Person */}
               <div className="space-y-2">
-                <label className="text-xs font-medium text-slate-700">
+                <label className="text-xs font-medium text-[rgb(var(--muted))]">
                   {strings.perPersonLabel}
                 </label>
                 <div className="flex flex-wrap items-center gap-2">
@@ -644,7 +644,7 @@ export function MembershipPageClient({ membershipPlan, edebattePlans }: Props) {
                             if (isSuggested) {
                               return "rounded-full border px-[1px] py-[1px] text-xs font-semibold shadow-sm transition border-transparent bg-gradient-to-r from-sky-400 via-cyan-400 to-emerald-400";
                             }
-                            return "rounded-full border px-3 py-1 text-xs font-semibold shadow-sm transition border-slate-200 bg-white text-slate-700 hover:border-sky-300";
+                            return "rounded-full border px-3 py-1 text-xs font-semibold shadow-sm transition border-[rgb(var(--border))] bg-[rgb(var(--card))] text-[rgb(var(--muted))] hover:border-sky-300";
                           })()
                         }
                       >
@@ -652,7 +652,7 @@ export function MembershipPageClient({ membershipPlan, edebattePlans }: Props) {
                           className={
                             !hasAmount &&
                             amount === membershipPlan.suggestedPerPersonPerMonth
-                              ? "block rounded-full bg-white px-2 py-0.5 text-slate-900"
+                              ? "block rounded-full bg-[rgb(var(--card))] px-2 py-0.5 text-[rgb(var(--fg))]"
                               : ""
                           }
                         >
@@ -666,13 +666,13 @@ export function MembershipPageClient({ membershipPlan, edebattePlans }: Props) {
                       type="number"
                       inputMode="decimal"
                       step="0.01"
-                      className="w-36 rounded-full border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
+                      className="w-36 rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm text-[rgb(var(--fg))] outline-none focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
                       value={amountPerPerson ?? ""}
                       onChange={(e) =>
                         setAmountPerPerson(parseEuro(e.target.value))
                       }
                     />
-                    <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[11px] text-slate-500">
+                    <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[11px] text-[rgb(var(--muted))]">
                       {strings.perPersonCustomSuffix}
                     </span>
                   </div>
@@ -682,13 +682,13 @@ export function MembershipPageClient({ membershipPlan, edebattePlans }: Props) {
               {/* Haushaltsgröße & Rhythmus */}
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-1">
-                  <label className="text-xs font-medium text-slate-700">
+                  <label className="text-xs font-medium text-[rgb(var(--muted))]">
                     {strings.householdSizeLabel}
                   </label>
                   <input
                     type="number"
                     min={1}
-                    className="w-full rounded-xl border border-slate-200 bg-slate-50/60 px-3 py-2 text-sm text-slate-900 outline-none focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
+                    className="w-full rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-sm text-[rgb(var(--fg))] outline-none focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
                     value={householdSize}
                     onChange={(e) =>
                       setHouseholdSize(
@@ -698,7 +698,7 @@ export function MembershipPageClient({ membershipPlan, edebattePlans }: Props) {
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-xs font-medium text-slate-700">
+                  <label className="text-xs font-medium text-[rgb(var(--muted))]">
                     {strings.rhythmLabel}
                   </label>
                   <div className="flex gap-2">
@@ -710,7 +710,7 @@ export function MembershipPageClient({ membershipPlan, edebattePlans }: Props) {
                         if (isActive) {
                           return "flex-1 rounded-full border px-3 py-1.5 text-xs font-semibold border-sky-500 bg-sky-500 text-white";
                         }
-                        return "flex-1 rounded-full border px-3 py-1.5 text-xs font-semibold border-slate-200 bg-white text-slate-700 hover:border-sky-300";
+                        return "flex-1 rounded-full border px-3 py-1.5 text-xs font-semibold border-[rgb(var(--border))] bg-[rgb(var(--card))] text-[rgb(var(--muted))] hover:border-sky-300";
                       })()}
                     >
                       {strings.rhythmMonthly}
@@ -723,7 +723,7 @@ export function MembershipPageClient({ membershipPlan, edebattePlans }: Props) {
                         if (isActive) {
                           return "flex-1 rounded-full border px-3 py-1.5 text-xs font-semibold border-sky-500 bg-sky-500 text-white";
                         }
-                        return "flex-1 rounded-full border px-3 py-1.5 text-xs font-semibold border-slate-200 bg-white text-slate-700 hover:border-sky-300";
+                        return "flex-1 rounded-full border px-3 py-1.5 text-xs font-semibold border-[rgb(var(--border))] bg-[rgb(var(--card))] text-[rgb(var(--muted))] hover:border-sky-300";
                       })()}
                     >
                       {strings.rhythmYearly}
@@ -740,13 +740,13 @@ export function MembershipPageClient({ membershipPlan, edebattePlans }: Props) {
                         if (isSuggested) {
                           return "flex-1 rounded-full border px-[1px] py-[1px] text-xs font-semibold border-transparent bg-gradient-to-r from-sky-400 via-cyan-400 to-emerald-400";
                         }
-                        return "flex-1 rounded-full border px-3 py-1.5 text-xs font-semibold border-slate-200 bg-white text-slate-700 hover:border-sky-300";
+                        return "flex-1 rounded-full border px-3 py-1.5 text-xs font-semibold border-[rgb(var(--border))] bg-[rgb(var(--card))] text-[rgb(var(--muted))] hover:border-sky-300";
                       })()}
                     >
                       <span
                         className={
                           rhythm === null
-                            ? "block rounded-full bg-white px-1.5 py-0.5 text-slate-900"
+                            ? "block rounded-full bg-[rgb(var(--card))] px-1.5 py-0.5 text-[rgb(var(--fg))]"
                             : ""
                         }
                       >
@@ -759,11 +759,11 @@ export function MembershipPageClient({ membershipPlan, edebattePlans }: Props) {
             </div>
 
             {/* Rechte Spalte: Zusammenfassung */}
-            <div className="space-y-4 rounded-2xl border border-slate-100 bg-slate-50/80 p-4 md:p-5">
-              <h3 className="text-sm font-semibold text-slate-900">
+            <div className="space-y-4 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4 md:p-5">
+              <h3 className="text-sm font-semibold text-[rgb(var(--fg))]">
                 {strings.summaryTitle}
               </h3>
-              <dl className="space-y-1 text-xs text-slate-700 md:text-sm">
+              <dl className="space-y-1 text-xs text-[rgb(var(--muted))] md:text-sm">
                 <div className="flex justify-between gap-3">
                   <dt>{strings.summaryPerPerson}</dt>
                   <dd className="font-medium">
@@ -803,7 +803,7 @@ export function MembershipPageClient({ membershipPlan, edebattePlans }: Props) {
                     <dt>eDebatte-Paket:</dt>
                     <dd className="text-right">
                       {`eDebatte ${selectedPlan.label.replace(/^eDebatte\s+/i, "")}`}
-                      <span className="mt-1 block text-[11px] text-slate-500">
+                      <span className="mt-1 block text-[11px] text-[rgb(var(--muted))]">
                         {billingInterval === "monthly"
                           ? "Abrechnung monatlich."
                           : "Abrechnung jährlich (inkl. 8 % Skonto auf den App-Preis)."}{" "}
@@ -848,7 +848,7 @@ export function MembershipPageClient({ membershipPlan, edebattePlans }: Props) {
                         type="button"
                         aria-label="Beitrag entfernen"
                         onClick={removeMembership}
-                        className="rounded-full px-2 text-[11px] font-semibold text-slate-400 transition hover:bg-rose-50 hover:text-rose-600"
+                        className="rounded-full px-2 text-[11px] font-semibold text-[rgb(var(--muted))] transition hover:bg-rose-50 hover:text-rose-600"
                       >
                         ×
                       </button>
@@ -880,7 +880,7 @@ export function MembershipPageClient({ membershipPlan, edebattePlans }: Props) {
                             type="button"
                             aria-label="eDebatte-Paket entfernen"
                             onClick={removeEdebate}
-                            className="rounded-full px-2 text-[11px] font-semibold text-slate-400 transition hover:bg-rose-50 hover:text-rose-600"
+                            className="rounded-full px-2 text-[11px] font-semibold text-[rgb(var(--muted))] transition hover:bg-rose-50 hover:text-rose-600"
                           >
                             ×
                           </button>
@@ -893,7 +893,7 @@ export function MembershipPageClient({ membershipPlan, edebattePlans }: Props) {
                       </p>
                     )}
                     {billingInterval === "yearly" && (
-                      <p className="text-[11px] text-slate-700">
+                      <p className="text-[11px] text-[rgb(var(--muted))]">
                         Jährliche Zahlung inkl. 8 % Skonto auf den App-Preis
                       </p>
                     )}
@@ -920,7 +920,7 @@ export function MembershipPageClient({ membershipPlan, edebattePlans }: Props) {
                         </p>
                       )}
                       {yearlyComponents > 0 && monthlyComponents > 0 && (
-                        <p className="text-[11px] text-slate-700">
+                        <p className="text-[11px] text-[rgb(var(--muted))]">
                           Richtwert umgelegt: {formatEuro(totalMonthly)} pro Monat.
                         </p>
                       )}
@@ -987,23 +987,23 @@ function ToggleCard({ active, label, description, onClick }: ToggleCardProps) {
       type="button"
       onClick={onClick}
       className={[
-        "flex flex-col rounded-2xl border bg-white p-4 text-left text-sm shadow-sm transition",
+        "flex flex-col rounded-2xl border bg-[rgb(var(--card))] p-4 text-left text-sm shadow-sm transition",
         active
           ? "border-emerald-500 ring-2 ring-emerald-200"
-          : "border-slate-200 hover:border-emerald-300 hover:shadow-md",
+          : "border-[rgb(var(--border))] hover:border-emerald-300 hover:shadow-md",
       ].join(" ")}
     >
       <div className="mb-2 flex items-center justify-between gap-2">
-        <span className="font-semibold text-slate-900">{label}</span>
+        <span className="font-semibold text-[rgb(var(--fg))]">{label}</span>
         {active ? (
           <StatusBadge>Aktiv</StatusBadge>
         ) : (
-          <span className="inline-flex items-center rounded-full bg-slate-100 px-3 py-1 text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+          <span className="inline-flex items-center rounded-full bg-[rgb(var(--bg))] px-3 py-1 text-[10px] font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
             Optional
           </span>
         )}
       </div>
-      <p className="text-xs text-slate-700">{description}</p>
+      <p className="text-xs text-[rgb(var(--muted))]">{description}</p>
     </button>
   );
 }
