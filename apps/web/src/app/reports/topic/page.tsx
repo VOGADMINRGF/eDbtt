@@ -1,22 +1,5 @@
 "use client";
-
-import type { Metadata } from "next";
 import { useEffect, useState } from "react";
-
-export const metadata: Metadata = {
-  title: "Topic Report – eDebatte",
-  description: "Aggregierte Topics und Responsibility-Statistiken für schnelle Analyse.",
-  openGraph: {
-    title: "Topic Report – eDebatte",
-    description: "Aggregierte Topics und Responsibility-Statistiken für schnelle Analyse.",
-    type: "website",
-  },
-  twitter: {
-    card: "summary",
-    title: "Topic Report – eDebatte",
-    description: "Aggregierte Topics und Responsibility-Statistiken für schnelle Analyse.",
-  },
-};
 
 type TopicStat = {
   topic: string;
