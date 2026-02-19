@@ -9,7 +9,7 @@ type PresentationContribution = {
   streamId?: string;
 };
 
-type PresentationVoteOption = { id: string; label: string; type?: string };
+type PresentationVoteOption = { id: string; label: string; type?: string; evidenceLevel?: EvidenceLevel };
 
 type PresentationMajority = { id: string; pct: number };
 
@@ -18,6 +18,7 @@ type PresentationOption = {
   label: string;
   type?: string;
   touchesStatements?: string[];
+  evidenceLevel?: EvidenceLevel;
 };
 
 type PresentationCluster = { label: string; count: number };
@@ -36,14 +37,26 @@ type PresentationHero = {
   participation?: string;
 };
 
+type EvidenceLevel = "none" | "linked" | "multi";
+
 type PresentationTraceability = {
   streamsToStatements?: Record<string, string[]>;
   contributionsToStatements?: Record<string, string[]>;
 };
 
+type PresentationOpenQuestion = {
+  id: string;
+  text: string;
+  status?: "open" | "in_review" | "answered" | "closed";
+  responsible?: string;
+  supportActors?: string[];
+  lastUpdate?: string;
+};
+
 type PresentationPayload = {
   topic?: PresentationTopic;
   hero?: PresentationHero;
+  viewerRole?: "citizen" | "organization";
   inputs?: Record<string, unknown>;
   statementStats?: {
     total?: number;
@@ -59,6 +72,7 @@ type PresentationPayload = {
     majorityDemo?: PresentationMajority[];
   };
   traceability?: PresentationTraceability;
+  openQuestions?: PresentationOpenQuestion[];
 };
 
 type PresentationNote = {
@@ -74,6 +88,7 @@ type PresentationResult = {
   voteOptions: PresentationVoteOption[];
   majorityDemo: PresentationMajority[];
   traceability: PresentationTraceability;
+  openQuestions: PresentationOpenQuestion[];
 };
 
 function mergeUniqueById<T extends { id: string }>(items: T[]) {
@@ -108,6 +123,7 @@ export function getPresentation(dossier: Dossier): PresentationResult {
   const voteOptions: PresentationVoteOption[] = [];
   const majorityDemo: PresentationMajority[] = [];
   const traceability: PresentationTraceability = {};
+  const openQuestions: PresentationOpenQuestion[] = [];
 
   for (const note of notes) {
     if (note.kind !== "presentation" || !note.text) continue;
@@ -149,6 +165,7 @@ export function getPresentation(dossier: Dossier): PresentationResult {
           ...(parsed.traceability.contributionsToStatements ?? {}),
         };
       }
+      if (Array.isArray(parsed.openQuestions)) openQuestions.push(...parsed.openQuestions);
 
       const inputStreams = parsed.inputs?.streams;
       if (Array.isArray(inputStreams)) {
@@ -196,6 +213,7 @@ export function getPresentation(dossier: Dossier): PresentationResult {
     voteOptions: mergedVoteOptions,
     majorityDemo: mergedMajorityDemo,
     traceability,
+    openQuestions,
   };
 }
 
@@ -209,4 +227,5 @@ export type {
   PresentationPayload,
   PresentationTraceability,
   PresentationHero,
+  PresentationOpenQuestion,
 };

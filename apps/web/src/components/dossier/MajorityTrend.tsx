@@ -1,27 +1,18 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 
 type VoteOption = { id: string; label: string };
 
 type MajorityDemo = { id: string; pct: number };
 
 type MajorityTrendProps = {
-  dossierId: string;
   options: VoteOption[];
   majorityDemo: MajorityDemo[];
+  savedOptionId: string | null;
 };
 
-export function MajorityTrend({ dossierId, options, majorityDemo }: MajorityTrendProps) {
-  const storageKey = `dossierVote:${dossierId}`;
-  const [userVote, setUserVote] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const stored = window.localStorage.getItem(storageKey);
-    if (stored) setUserVote(stored);
-  }, [storageKey]);
-
+export function MajorityTrend({ options, majorityDemo, savedOptionId }: MajorityTrendProps) {
   const majorityById = useMemo(() => {
     const map = new Map<string, number>();
     for (const item of majorityDemo) map.set(item.id, item.pct);
@@ -42,13 +33,13 @@ export function MajorityTrend({ dossierId, options, majorityDemo }: MajorityTren
   }, [options, majorityById]);
 
   const userRelation = useMemo(() => {
-    if (!userVote) return null;
-    const userPct = majorityById.get(userVote);
+    if (!savedOptionId) return null;
+    const userPct = majorityById.get(savedOptionId);
     if (userPct === undefined) return null;
     if (userPct === stats.max) return "Ihre Auswahl entspricht der höchsten Tendenz.";
     if (userPct < stats.max) return "Ihre Auswahl liegt aktuell unter der höchsten Tendenz.";
     return "Ihre Auswahl liegt aktuell über der höchsten Tendenz.";
-  }, [userVote, majorityById, stats.max]);
+  }, [savedOptionId, majorityById, stats.max]);
 
   return (
     <div className="vog-card p-5 space-y-4">
@@ -65,7 +56,7 @@ export function MajorityTrend({ dossierId, options, majorityDemo }: MajorityTren
         {sortedOptions.map((option) => {
           const pct = majorityById.get(option.id) ?? 0;
           const isTop = stats.topOption === option.id;
-          const isUser = userVote === option.id;
+          const isUser = savedOptionId === option.id;
           return (
             <div key={`trend-${option.id}`} className="space-y-2">
               <div className="flex items-center justify-between text-[11px] text-[rgb(var(--muted))]">

@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link";
 import type { Dossier } from "@features/dossier";
 import DossierLayout from "./DossierLayout";
@@ -6,6 +8,7 @@ import DecisionSpace from "./DecisionSpace";
 import InputsPanel from "./InputsPanel";
 import VotePanel from "./VotePanel";
 import MajorityTrend from "./MajorityTrend";
+import { useDecisionState } from "./useDecisionState";
 import {
   SECTION_TITLES,
   STATUS_LABELS,
@@ -34,6 +37,7 @@ type OptionCard = {
   statementCount: number;
   evidenceCount: number;
   evidenceDensity: number;
+  evidenceLevel: "none" | "linked" | "multi";
   budgetRange: string;
   riskProfile: string;
   clusterLabel?: string;
@@ -65,6 +69,13 @@ const OPTION_RISK: Record<string, string> = {
   "opt-c": "mittel",
   "opt-d": "niedrig",
   "opt-f": "niedrig",
+};
+
+const QUESTION_STATUS_LABELS: Record<string, string> = {
+  open: "Offen",
+  in_review: "In Klärung",
+  answered: "Beantwortet",
+  closed: "Delegiert",
 };
 
 function formatDate(value?: string | null) {
@@ -180,8 +191,11 @@ function mergeClusters(defaultClusters: PresentationCluster[], derivedClusters: 
 
 export function DossierViewer({ dossier }: { dossier: Dossier }) {
   const { meta, analyze, voteConfig } = dossier;
-  const { presentation, streams, contributions, voteOptions, majorityDemo, traceability } =
+  const { presentation, streams, contributions, voteOptions, majorityDemo, traceability, openQuestions } =
     getPresentation(dossier);
+  const { selectedOptionId, savedOptionId, setSelectedOptionId, saveSelection, saveNotice } =
+    useDecisionState(meta.id);
+  const viewerRole = presentation.viewerRole ?? "citizen";
 
   const derivedStats = deriveStatementStats(analyze.claims);
   const statementStats = presentation.statementStats ?? derivedStats;
@@ -204,6 +218,11 @@ export function DossierViewer({ dossier }: { dossier: Dossier }) {
   const sources = dossier.sourceSet.length ? dossier.sourceSet : analyze.runReceipt?.sourceSet ?? [];
 
   const statementTitleById = new Map(analyze.claims.map((claim) => [claim.id, claim.title ?? claim.id]));
+
+  const questionsForDisplay =
+    openQuestions.length > 0
+      ? openQuestions
+      : analyze.questions.map((q) => ({ id: q.id, text: q.text }));
 
   const optionStatementIds = new Map<string, string[]>();
   for (const claim of analyze.claims) {
@@ -295,6 +314,8 @@ export function DossierViewer({ dossier }: { dossier: Dossier }) {
     const chips = DIMENSIONS.filter((dim) => dimensionCounts[dim.key] > 0).map((dim) => dim.label);
 
     const clusterLabel = Array.from(clusterCounts.entries()).sort((a, b) => b[1] - a[1])[0]?.[0];
+    const computedLevel =
+      evidenceCount === 0 ? "none" : evidenceCount > 1 ? "multi" : "linked";
 
     return {
       id: vote.id,
@@ -307,6 +328,7 @@ export function DossierViewer({ dossier }: { dossier: Dossier }) {
       statementCount: statementIds.length,
       evidenceCount,
       evidenceDensity: 0,
+      evidenceLevel: full?.evidenceLevel ?? computedLevel,
       budgetRange: OPTION_BUDGET[vote.id] ?? "—",
       riskProfile: OPTION_RISK[vote.id] ?? "mittel",
       clusterLabel,
@@ -362,6 +384,8 @@ export function DossierViewer({ dossier }: { dossier: Dossier }) {
     id: claim.id,
     label: claim.title ?? claim.id,
     cluster: inferClusterFromClaim(claim),
+    importance: claim.importance,
+    domain: claim.domain,
   }));
 
   const graphNodes = analyze.evidenceGraph?.nodes ?? [];
@@ -404,7 +428,7 @@ export function DossierViewer({ dossier }: { dossier: Dossier }) {
         </div>
       </div>
       <p className="max-w-2xl text-lg text-[rgb(var(--muted))]">
-        {analyze.sourceText ?? "Fragestellung des Dossiers."} Dieses Demonstrationsdossier zeigt die E150-Entscheidungsakte: strukturierte Statements, normierter Optionenraum, Evidenzverknüpfung und Zuständigkeitswege.
+        {analyze.sourceText ?? "Fragestellung des Dossiers."} Dieses Demonstrationsdossier zeigt eine digitale Entscheidungsakte: strukturierte Statements, normierter Optionenraum, Evidenzverknüpfung und Zuständigkeitswege.
       </p>
       <p className="text-sm text-[rgb(var(--muted))]">
         Die Abstimmungsdarstellung ist in dieser Demo simuliert und dient der Veranschaulichung der Beteiligungsebene.
@@ -467,7 +491,12 @@ export function DossierViewer({ dossier }: { dossier: Dossier }) {
         <div className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
           {SECTION_TITLES.options}
         </div>
-        <DecisionSpace options={matrixOptions} ctaHref="#vote" />
+        <DecisionSpace
+          options={matrixOptions}
+          ctaHref="#vote"
+          selectedOptionId={selectedOptionId}
+          onSelect={(optionId) => setSelectedOptionId(optionId)}
+        />
       </section>
 
       <section id="vote" className="space-y-4">
@@ -475,8 +504,26 @@ export function DossierViewer({ dossier }: { dossier: Dossier }) {
           Abstimmung & Mehrheitsdynamik
         </div>
         <div className="grid gap-4 lg:grid-cols-[1fr_1.1fr]">
-          <VotePanel dossierId={meta.id} options={votingOptions} />
-          <MajorityTrend dossierId={meta.id} options={votingOptions} majorityDemo={majority} />
+          {viewerRole === "organization" ? (
+            <div className="vog-card p-5 space-y-2">
+              <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
+                Bürgerabstimmung
+              </p>
+              <p className="text-sm text-[rgb(var(--muted))]">
+                Diese Ansicht zeigt die Bürgerabstimmung. Organisationen und Verwaltungen nehmen nicht als Einzelstimme teil.
+              </p>
+            </div>
+          ) : (
+            <VotePanel
+              options={votingOptions}
+              selectedOptionId={selectedOptionId}
+              savedOptionId={savedOptionId}
+              onSelect={setSelectedOptionId}
+              onSave={saveSelection}
+              saveNotice={saveNotice}
+            />
+          )}
+          <MajorityTrend options={votingOptions} majorityDemo={majority} savedOptionId={savedOptionId} />
         </div>
       </section>
     </>
@@ -499,6 +546,14 @@ export function DossierViewer({ dossier }: { dossier: Dossier }) {
 
   const afterLeft = (
     <>
+      <section className="space-y-2 border-t border-[rgb(var(--border))] pt-8">
+        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[rgb(var(--muted))]">
+          Argumentationslandschaft
+        </p>
+        <p className="text-sm text-[rgb(var(--muted))]">
+          Einordnung der Kernpositionen, Teilaspekte, Spannungsfelder und offenen Fragen.
+        </p>
+      </section>
       <section className="space-y-4">
         <div className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
           {SECTION_TITLES.clusters}
@@ -638,13 +693,13 @@ export function DossierViewer({ dossier }: { dossier: Dossier }) {
           {SECTION_TITLES.methodology}
         </div>
         <div className="text-sm text-[rgb(var(--fg))]">
-          Das Dossier folgt dem E150-Schema: strukturierte Statements, normierter Optionenraum, Evidenzverknüpfung und Zuständigkeitswege. Die Visualisierung dient der Transparenz von Konfliktlinien und Mehrheitsdynamiken.
+          Das Dossier folgt einer standardisierten Entscheidungsstruktur: strukturierte Statements, normierter Optionenraum, Evidenzverknüpfung und Zuständigkeitswege. Die Visualisierung dient der Transparenz von Konfliktlinien und Mehrheitsdynamiken.
         </div>
-        <div className="text-sm text-[rgb(var(--fg))]">Analysemodus: {analyze.mode}</div>
+        <div className="text-sm text-[rgb(var(--fg))]">Analysemodus: Strukturierter Analysemodus</div>
         <div className="text-sm text-[rgb(var(--fg))]">Sprache: {analyze.language.toUpperCase()}</div>
         {analyze.runReceipt ? (
           <>
-            <div className="text-sm text-[rgb(var(--fg))]">Analyse-Pipeline: {analyze.runReceipt.pipelineVersion}</div>
+            <div className="text-sm text-[rgb(var(--fg))]">Analyse-Pipeline: Standardisierte Analysepipeline</div>
             <div className="text-sm text-[rgb(var(--fg))]">Protokoll: {analyze.runReceipt.id}</div>
             <div className="text-sm text-[rgb(var(--fg))]">Erstellt: {formatDate(analyze.runReceipt.createdAt)}</div>
           </>
@@ -688,11 +743,38 @@ export function DossierViewer({ dossier }: { dossier: Dossier }) {
         <div className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
           {SECTION_TITLES.questions}
         </div>
-        <ul className="space-y-2 text-sm text-[rgb(var(--fg))]">
-          {analyze.questions.map((q) => (
-            <li key={q.id}>{q.text}</li>
-          ))}
-        </ul>
+        <div className="space-y-3">
+          {questionsForDisplay.map((q) => {
+            const status = (q as { status?: string }).status ?? "open";
+            const responsible = (q as { responsible?: string }).responsible;
+            const supportActors = (q as { supportActors?: string[] }).supportActors ?? [];
+            const lastUpdate = (q as { lastUpdate?: string }).lastUpdate;
+            return (
+              <div key={q.id} className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <span className="text-[11px] font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
+                    {QUESTION_STATUS_LABELS[status] ?? "Offen"}
+                  </span>
+                  {lastUpdate ? (
+                    <span className="text-[11px] text-[rgb(var(--muted))]">Stand: {formatDate(lastUpdate)}</span>
+                  ) : null}
+                </div>
+                <p className="text-sm text-[rgb(var(--fg))]">{q.text}</p>
+                {responsible ? (
+                  <p className="text-[11px] text-[rgb(var(--muted))]">Zuständig: {responsible}</p>
+                ) : null}
+                {supportActors.length ? (
+                  <p className="text-[11px] text-[rgb(var(--muted))]">
+                    Unterstützend: {supportActors.join(", ")}
+                  </p>
+                ) : null}
+              </div>
+            );
+          })}
+        </div>
+        <p className="text-[11px] text-[rgb(var(--muted))]">
+          Anfragen an Behörden werden durch die Plattform koordiniert und dokumentiert.
+        </p>
       </section>
 
       <section className="vog-card p-5 space-y-3">

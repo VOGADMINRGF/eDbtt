@@ -8,6 +8,8 @@ type ClaimNode = {
   id: string;
   label: string;
   cluster?: string;
+  importance?: number;
+  domain?: string | null;
 };
 
 type SourceNode = {
@@ -61,6 +63,21 @@ const CLUSTER_STYLES: Record<string, string> = {
   "Klima/Energie": "border-emerald-400/40 bg-emerald-400/10",
   "Bauzeit/Übergang": "border-violet-400/40 bg-violet-400/10",
 };
+
+function claimStyle(claim: ClaimNode) {
+  const label = claim.label.toLowerCase();
+  if (label.includes("kooperation") || claim.domain === "verwaltung") {
+    return "border-violet-400/40 bg-violet-400/10";
+  }
+  if (claim.importance === 5) {
+    return "border-sky-400/40 bg-sky-400/10";
+  }
+  return "border-teal-400/40 bg-teal-400/10";
+}
+
+function optionStyle() {
+  return "border-amber-400/40 bg-amber-400/10";
+}
 
 function resolveEdges(edges: GraphEdge[], claimIds: Set<string>, sourceIds: Set<string>) {
   const resolved: EvidenceEdge[] = [];
@@ -281,6 +298,28 @@ export function EvidenceField({ options, claims, sources, edges, optionLinks }: 
             <p className="text-[11px] text-[rgb(var(--muted))]">Fokus: {activeLabel}</p>
           ) : null}
         </div>
+        <div className="flex flex-wrap items-center gap-2 text-[10px] text-[rgb(var(--muted))]">
+          <span className="inline-flex items-center gap-1">
+            <span className="h-2 w-2 rounded-full bg-sky-400/70" />
+            Kernposition
+          </span>
+          <span className="inline-flex items-center gap-1">
+            <span className="h-2 w-2 rounded-full bg-teal-400/70" />
+            Teilaspekt
+          </span>
+          <span className="inline-flex items-center gap-1">
+            <span className="h-2 w-2 rounded-full bg-amber-400/70" />
+            Entscheidungsdimension
+          </span>
+          <span className="inline-flex items-center gap-1">
+            <span className="h-2 w-2 rounded-full bg-violet-400/70" />
+            Governance
+          </span>
+          <span className="inline-flex items-center gap-1">
+            <span className="h-2 w-2 rounded-full bg-slate-400/70" />
+            Quelle
+          </span>
+        </div>
         {focused ? (
           <button
             type="button"
@@ -306,9 +345,9 @@ export function EvidenceField({ options, claims, sources, edges, optionLinks }: 
                   onClick={() => setFocused((prev) => (prev?.id === option.id && prev.type === "option" ? null : { type: "option", id: option.id }))}
                   onMouseEnter={() => setHovered({ type: "option", id: option.id })}
                   onMouseLeave={() => setHovered(null)}
-                  className={`w-full rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-left text-sm text-[rgb(var(--fg))] transition ${
+                  className={`w-full rounded-xl border px-3 py-2 text-left text-sm text-[rgb(var(--fg))] transition ${
                     isActive ? "opacity-100" : "opacity-40"
-                  }`}
+                  } ${optionStyle()}`}
                 >
                   {option.label}
                 </button>
@@ -323,6 +362,7 @@ export function EvidenceField({ options, claims, sources, edges, optionLinks }: 
             {claims.map((claim) => {
               const isActive = activeSets.claims.has(claim.id);
               const clusterClass = claim.cluster ? CLUSTER_STYLES[claim.cluster] : "";
+              const baseClass = claimStyle(claim);
               return (
                 <button
                   key={claim.id}
@@ -333,7 +373,7 @@ export function EvidenceField({ options, claims, sources, edges, optionLinks }: 
                   onMouseLeave={() => setHovered(null)}
                   className={`w-full rounded-xl border px-3 py-2 text-left text-sm text-[rgb(var(--fg))] transition ${
                     isActive ? "opacity-100" : "opacity-40"
-                  } ${clusterClass || "border-[rgb(var(--border))] bg-[rgb(var(--bg))]"}`}
+                  } ${clusterClass || baseClass}`}
                 >
                   {claim.label}
                 </button>
@@ -355,7 +395,7 @@ export function EvidenceField({ options, claims, sources, edges, optionLinks }: 
                   onClick={() => setFocused((prev) => (prev?.id === source.id && prev.type === "source" ? null : { type: "source", id: source.id }))}
                   onMouseEnter={() => setHovered({ type: "source", id: source.id })}
                   onMouseLeave={() => setHovered(null)}
-                  className={`w-full rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-left text-sm text-[rgb(var(--fg))] transition ${
+                  className={`w-full rounded-xl border border-slate-400/40 bg-slate-400/10 px-3 py-2 text-left text-sm text-[rgb(var(--fg))] transition ${
                     isActive ? "opacity-100" : "opacity-40"
                   }`}
                 >

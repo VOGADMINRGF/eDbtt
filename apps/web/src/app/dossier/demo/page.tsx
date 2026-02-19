@@ -4,7 +4,7 @@ import { DossierViewer } from "@/components/dossier/DossierViewer";
 
 export const metadata: Metadata = {
   title: "Dossier-Demo – Schulentwicklung",
-  description: "Demonstrationsdossier einer normierten digitalen Entscheidungsakte (E150).",
+  description: "Demonstrationsdossier einer standardisierten digitalen Entscheidungsakte.",
 };
 
 export default function DossierDemoPage() {

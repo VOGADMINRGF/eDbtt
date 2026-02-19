@@ -1,4 +1,5 @@
 import Link from "next/link";
+import EvidenceStatus from "./EvidenceStatus";
 import { OPTION_TYPE_LABELS } from "./labels";
 
 type Dimension = {
@@ -18,6 +19,7 @@ type OptionCard = {
   statementCount: number;
   evidenceCount: number;
   evidenceDensity: number;
+  evidenceLevel: "none" | "linked" | "multi";
   budgetRange: string;
   riskProfile: string;
   clusterLabel?: string;
@@ -27,6 +29,8 @@ type OptionCard = {
 type OptionMatrixProps = {
   options: OptionCard[];
   ctaHref?: string;
+  selectedOptionId?: string | null;
+  onSelect?: (optionId: string) => void;
 };
 
 const RADAR_SIZE = 72;
@@ -50,19 +54,39 @@ function renderRadarPoints(dimensions: Dimension[]) {
   return points.join(" ");
 }
 
-export function OptionMatrix({ options, ctaHref = "#vote" }: OptionMatrixProps) {
+export function OptionMatrix({
+  options,
+  ctaHref = "#vote",
+  selectedOptionId,
+  onSelect,
+}: OptionMatrixProps) {
   return (
     <section className="space-y-4">
       <div className="grid gap-4">
         {options.map((option) => (
           <article
             key={option.id}
-            className="vog-card p-5 shadow-soft transition hover:-translate-y-0.5"
+            className={`vog-card p-5 shadow-soft transition hover:-translate-y-0.5 ${
+              selectedOptionId === option.id
+                ? "border-[rgb(var(--grad-from))] ring-1 ring-[rgb(var(--grad-from))]"
+                : ""
+            }`}
+            role="button"
+            tabIndex={0}
+            aria-pressed={selectedOptionId === option.id}
+            onClick={() => onSelect?.(option.id)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                onSelect?.(option.id);
+              }
+            }}
           >
             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
               <div className="space-y-3">
                 <div className="flex flex-wrap items-center gap-2 text-[11px] text-[rgb(var(--muted))]">
                   <span className="vog-chip">{OPTION_TYPE_LABELS[option.type ?? "custom"] ?? "Maßnahme"}</span>
+                  {selectedOptionId === option.id ? <span className="vog-chip">Vorauswahl</span> : null}
                 </div>
                 <div>
                   <h3 className="text-lg font-semibold text-[rgb(var(--fg))]">{option.label}</h3>
@@ -92,18 +116,7 @@ export function OptionMatrix({ options, ctaHref = "#vote" }: OptionMatrixProps) 
                     <span>Tendenz: {option.majorityPct}%</span>
                   ) : null}
                 </div>
-                <div className="space-y-1">
-                  <div className="flex items-center justify-between text-[10px] text-[rgb(var(--muted))]">
-                    <span>Evidenzdichte</span>
-                    <span>{Math.round(option.evidenceDensity * 100)}%</span>
-                  </div>
-                  <div className="h-2 w-full rounded-full bg-[rgb(var(--border))]">
-                    <div
-                      className="h-2 rounded-full bg-brand-grad transition-all duration-500"
-                      style={{ width: `${option.evidenceDensity * 100}%` }}
-                    />
-                  </div>
-                </div>
+                <EvidenceStatus level={option.evidenceLevel} density={option.evidenceDensity} />
                 <Link
                   href={ctaHref}
                   className="text-xs font-semibold text-[rgb(var(--fg))] underline"

@@ -11,6 +11,7 @@ type OptionCard = {
   statementCount: number;
   evidenceCount: number;
   evidenceDensity: number;
+  evidenceLevel: "none" | "linked" | "multi";
   budgetRange: string;
   riskProfile: string;
   clusterLabel?: string;
@@ -20,10 +21,19 @@ type OptionCard = {
 type DecisionSpaceProps = {
   options: OptionCard[];
   ctaHref?: string;
+  selectedOptionId?: string | null;
+  onSelect?: (optionId: string) => void;
 };
 
-export function DecisionSpace({ options, ctaHref }: DecisionSpaceProps) {
-  return <OptionMatrix options={options} ctaHref={ctaHref} />;
+export function DecisionSpace({ options, ctaHref, selectedOptionId, onSelect }: DecisionSpaceProps) {
+  return (
+    <OptionMatrix
+      options={options}
+      ctaHref={ctaHref}
+      selectedOptionId={selectedOptionId}
+      onSelect={onSelect}
+    />
+  );
 }
 
 export default DecisionSpace;
