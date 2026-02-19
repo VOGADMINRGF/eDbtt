@@ -286,19 +286,23 @@ export function EvidenceField({ options, claims, sources, edges, optionLinks }: 
       ref={containerRef}
       className="relative rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-6 shadow-soft"
     >
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
+      <div className="flex flex-wrap items-start justify-between gap-3 md:flex-nowrap">
+        <div className="min-w-0">
           <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
             Evidenzfeld
           </p>
           <p className="text-sm text-[rgb(var(--muted))]">
             Verknüpfungen zwischen Optionen, Statements und Quellen.
           </p>
-          {activeLabel ? (
-            <p className="text-[11px] text-[rgb(var(--muted))]">Fokus: {activeLabel}</p>
-          ) : null}
+          <p
+            className={`min-h-[16px] truncate text-[11px] text-[rgb(var(--muted))] ${
+              activeLabel ? "opacity-100" : "opacity-0"
+            }`}
+          >
+            Fokus: {activeLabel ?? "—"}
+          </p>
         </div>
-        <div className="flex min-h-[32px] items-center gap-4 overflow-x-auto text-[10px] text-[rgb(var(--muted))]">
+        <div className="flex min-h-[32px] items-center gap-4 overflow-x-auto text-[10px] text-[rgb(var(--muted))] md:shrink-0">
           <span className="inline-flex items-center gap-1 whitespace-nowrap">
             <span className="h-2 w-2 rounded-full bg-sky-400/70" />
             Kernposition
@@ -320,15 +324,19 @@ export function EvidenceField({ options, claims, sources, edges, optionLinks }: 
             Quelle
           </span>
         </div>
-        {focused ? (
-          <button
-            type="button"
-            onClick={() => setFocused(null)}
-            className="text-xs font-semibold text-[rgb(var(--fg))] underline"
-          >
-            Fokus zurücksetzen
-          </button>
-        ) : null}
+        <div className="min-h-[16px] md:shrink-0">
+          {focused ? (
+            <button
+              type="button"
+              onClick={() => setFocused(null)}
+              className="text-xs font-semibold text-[rgb(var(--fg))] underline"
+            >
+              Fokus zurücksetzen
+            </button>
+          ) : (
+            <span className="text-xs text-transparent">Fokus zurücksetzen</span>
+          )}
+        </div>
       </div>
 
       <div className="relative mt-6 grid gap-6 lg:grid-cols-[1.1fr_1.3fr_1.1fr]">
