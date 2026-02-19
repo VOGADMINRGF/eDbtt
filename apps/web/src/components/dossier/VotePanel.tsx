@@ -1,20 +1,16 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 
 type VoteOption = { id: string; label: string };
-
-type MajorityDemo = { id: string; pct: number };
 
 type VotePanelProps = {
   dossierId: string;
   options: VoteOption[];
-  majorityDemo: MajorityDemo[];
 };
 
-export function VotePanel({ dossierId, options, majorityDemo }: VotePanelProps) {
+export function VotePanel({ dossierId, options }: VotePanelProps) {
   const storageKey = `dossierVote:${dossierId}`;
-  const [selected, setSelected] = useState<string | null>(null);
   const [pending, setPending] = useState<string | null>(null);
   const [saved, setSaved] = useState<string | null>(null);
 
@@ -22,42 +18,24 @@ export function VotePanel({ dossierId, options, majorityDemo }: VotePanelProps) 
     if (typeof window === "undefined") return;
     const stored = window.localStorage.getItem(storageKey);
     if (stored) {
-      setSelected(stored);
       setPending(stored);
       setSaved(stored);
     }
   }, [storageKey]);
 
-  const majorityById = useMemo(() => {
-    const map = new Map<string, number>();
-    for (const item of majorityDemo) map.set(item.id, item.pct);
-    return map;
-  }, [majorityDemo]);
-
-  const topOption = useMemo(() => {
-    let best: MajorityDemo | null = null;
-    for (const item of majorityDemo) {
-      if (!best || item.pct > best.pct) best = item;
-    }
-    return best?.id ?? null;
-  }, [majorityDemo]);
-
   const saveVote = () => {
     if (!pending || typeof window === "undefined") return;
     window.localStorage.setItem(storageKey, pending);
     setSaved(pending);
-    setSelected(pending);
   };
 
   return (
     <div className="vog-card p-5 space-y-4">
       <div className="space-y-1">
         <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
-          Abstimmung (Demo)
+          Abstimmung
         </p>
-        <p className="text-sm text-[rgb(var(--muted))]">
-          Die Abstimmungsdarstellung ist in dieser Demo simuliert und dient der Veranschaulichung der Beteiligungsebene.
-        </p>
+        <p className="text-sm text-[rgb(var(--muted))]">Stimme für eine Option im Entscheidungsraum.</p>
       </div>
 
       <div className="space-y-3">
@@ -95,37 +73,6 @@ export function VotePanel({ dossierId, options, majorityDemo }: VotePanelProps) 
       >
         Stimme speichern
       </button>
-
-      <div className="space-y-2">
-        <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
-          Mehrheitstendenz (Demonstration)
-        </p>
-        <p className="text-[11px] text-[rgb(var(--muted))]">
-          In der Demo werden aggregierte Werte simuliert.
-        </p>
-        <div className="space-y-2">
-          {options.map((option) => {
-            const pct = majorityById.get(option.id) ?? 0;
-            return (
-              <div key={`majority-${option.id}`} className="space-y-1">
-                <div className="flex items-center justify-between text-[11px] text-[rgb(var(--muted))]">
-                  <span className="font-semibold text-[rgb(var(--fg))]">{option.label}</span>
-                  <span>{pct}%</span>
-                </div>
-                <div className="h-2 w-full rounded-full bg-[rgb(var(--border))]">
-                  <div
-                    className="h-2 rounded-full bg-brand-grad"
-                    style={{ width: `${pct}%` }}
-                  />
-                </div>
-                {topOption === option.id ? (
-                  <span className="text-[10px] text-[rgb(var(--muted))]">Höchste Tendenz</span>
-                ) : null}
-              </div>
-            );
-          })}
-        </div>
-      </div>
     </div>
   );
 }

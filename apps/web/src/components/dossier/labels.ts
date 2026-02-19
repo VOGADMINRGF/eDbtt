@@ -8,7 +8,7 @@ export const STATUS_LABELS: Record<string, string> = {
 export const VOTE_POLICY_LABELS: Record<string, string> = {
   quick: "Kurz",
   standard: "Standard",
-  civic: "Bürgerbeteiligung",
+  civic: "Bürgerbeteiligung (Civic)",
 };
 
 export const STANCE_LABELS: Record<string, string> = {

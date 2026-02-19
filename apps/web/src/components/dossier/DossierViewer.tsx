@@ -1,62 +1,44 @@
 import Link from "next/link";
 import type { Dossier } from "@features/dossier";
-import DossierPageShell from "./DossierPageShell";
-import GraphCanvas from "./GraphCanvas";
+import DossierLayout from "./DossierLayout";
+import EvidenceField from "./EvidenceField";
+import OptionMatrix from "./OptionMatrix";
 import VotePanel from "./VotePanel";
+import MajorityTrend from "./MajorityTrend";
 import {
   SECTION_TITLES,
   STATUS_LABELS,
   STANCE_LABELS,
   VOTE_POLICY_LABELS,
-  OPTION_TYPE_LABELS,
   JURISDICTION_LABELS,
 } from "./labels";
+import {
+  getPresentation,
+  type PresentationCluster,
+  type PresentationOption,
+  type PresentationVoteOption,
+} from "./presentation";
 
-type PresentationStream = { id: string; title: string; date: string };
+type DimensionKey = "haushalt" | "paedagogik" | "klima" | "bauzeit";
 
-type PresentationContribution = {
-  id: string;
-  title: string;
-  date: string;
-  streamId?: string;
-};
+type DimensionMeta = { key: DimensionKey; label: string };
 
-type PresentationVoteOption = { id: string; label: string };
-
-type PresentationMajority = { id: string; pct: number };
-
-type PresentationOption = {
+type OptionCard = {
   id: string;
   label: string;
   type?: string;
-  touchesStatements?: string[];
+  narrative: string;
+  touches: string[];
+  dimensions: { key: string; label: string; value: number }[];
+  chips: string[];
 };
 
-type PresentationCluster = { label: string; count: number };
-
-type PresentationPayload = {
-  topic?: { id?: string; label?: string; municipality?: string; windowDays?: number };
-  inputs?: Record<string, unknown>;
-  statementStats?: {
-    total?: number;
-    pro?: number;
-    neutral?: number;
-    contra?: number;
-    clusters?: PresentationCluster[];
-  };
-  clusters?: PresentationCluster[];
-  options?: PresentationOption[];
-  vote?: {
-    options?: PresentationVoteOption[];
-    majorityDemo?: PresentationMajority[];
-  };
-};
-
-type PresentationNote = {
-  id?: string;
-  text?: string;
-  kind?: string | null;
-};
+const DIMENSIONS: DimensionMeta[] = [
+  { key: "haushalt", label: "Haushalt" },
+  { key: "paedagogik", label: "Pädagogik" },
+  { key: "klima", label: "Klima" },
+  { key: "bauzeit", label: "Bauzeit" },
+];
 
 function formatDate(value?: string | null) {
   if (!value) return "-";
@@ -68,49 +50,6 @@ function formatDate(value?: string | null) {
 function labelList(items?: string[] | null) {
   if (!items || items.length === 0) return "-";
   return items.join(", ");
-}
-
-function parsePresentationNotes(notes: PresentationNote[]) {
-  const result: PresentationPayload = {};
-  const options: PresentationOption[] = [];
-  const streams: PresentationStream[] = [];
-  const contributions: PresentationContribution[] = [];
-  const voteOptions: PresentationVoteOption[] = [];
-  const majorityDemo: PresentationMajority[] = [];
-
-  for (const note of notes) {
-    if (note.kind !== "presentation" || !note.text) continue;
-    try {
-      const parsed = JSON.parse(note.text) as PresentationPayload;
-      if (parsed.topic) result.topic = parsed.topic;
-      if (parsed.inputs) result.inputs = { ...result.inputs, ...parsed.inputs };
-      if (parsed.statementStats) result.statementStats = parsed.statementStats;
-      if (parsed.clusters) result.clusters = parsed.clusters;
-      if (Array.isArray(parsed.options)) options.push(...parsed.options);
-      if (parsed.vote?.options) voteOptions.push(...parsed.vote.options);
-      if (parsed.vote?.majorityDemo) majorityDemo.push(...parsed.vote.majorityDemo);
-
-      const inputStreams = parsed.inputs?.streams;
-      if (Array.isArray(inputStreams)) {
-        for (const stream of inputStreams) streams.push(stream as PresentationStream);
-      }
-
-      const inputContrib = parsed.inputs?.contributions;
-      if (Array.isArray(inputContrib)) {
-        for (const contrib of inputContrib) contributions.push(contrib as PresentationContribution);
-      }
-    } catch {
-      continue;
-    }
-  }
-
-  return {
-    presentation: { ...result, options: options.length ? options : result.options },
-    streams,
-    contributions,
-    voteOptions,
-    majorityDemo,
-  };
 }
 
 function deriveStatementStats(claims: Dossier["analyze"]["claims"]) {
@@ -128,41 +67,6 @@ function deriveStatementStats(claims: Dossier["analyze"]["claims"]) {
   return { total, pro, neutral, contra };
 }
 
-function buildOptionTouches(claims: Dossier["analyze"]["claims"]) {
-  const touches = new Map<string, string[]>();
-  for (const claim of claims) {
-    const touchLabel = claim.title ?? claim.id;
-    const options = claim.debateFrame?.options ?? [];
-    for (const option of options) {
-      const list = touches.get(option.id) ?? [];
-      if (!list.includes(touchLabel)) list.push(touchLabel);
-      touches.set(option.id, list);
-    }
-  }
-  return touches;
-}
-
-function groupOption(option: PresentationOption) {
-  const label = option.label.toLowerCase();
-  if (option.type === "reform_strong" || option.type === "reform_moderate" || option.type === "status_quo") {
-    return "reform";
-  }
-  if (option.type === "pilot") return "pilot";
-  if (label.includes("kooperation")) return "kooperation";
-  if (label.includes("gutachten") || label.includes("vorab")) return "vorarbeiten";
-  return "weitere";
-}
-
-const OPTION_GROUP_LABELS: Record<string, string> = {
-  reform: "Reform (stark/moderat)",
-  pilot: "Pilot & Übergang",
-  kooperation: "Kooperation",
-  vorarbeiten: "Vorarbeiten (Gutachten)",
-  weitere: "Weitere Optionen",
-};
-
-const OPTION_GROUP_ORDER = ["reform", "pilot", "kooperation", "vorarbeiten", "weitere"];
-
 function getInputValue(inputs: Record<string, unknown> | undefined, keys: string[]) {
   if (!inputs) return undefined;
   for (const key of keys) {
@@ -172,17 +76,128 @@ function getInputValue(inputs: Record<string, unknown> | undefined, keys: string
   return undefined;
 }
 
+function normalizeText(value?: string | null) {
+  return (value ?? "").toLowerCase();
+}
+
+function inferClusterFromClaim(claim: Dossier["analyze"]["claims"][number]) {
+  const haystack = `${claim.title ?? ""} ${claim.domain ?? ""} ${(claim.domains ?? []).join(" ")}`;
+  const text = normalizeText(haystack);
+  if (text.includes("haushalt") || text.includes("kosten") || text.includes("finanz")) {
+    return "Kosten/Haushalt";
+  }
+  if (text.includes("pädagog") || text.includes("raum") || text.includes("bildung")) {
+    return "Pädagogik/Raumkonzept";
+  }
+  if (text.includes("klima") || text.includes("energie") || text.includes("co₂") || text.includes("co2")) {
+    return "Klima/Energie";
+  }
+  if (text.includes("bau") || text.includes("übergang") || text.includes("infrastruktur")) {
+    return "Bauzeit/Übergang";
+  }
+  return undefined;
+}
+
+function inferDimensionsFromClaim(claim: Dossier["analyze"]["claims"][number]) {
+  const dimensions = new Set<DimensionKey>();
+  const haystack = `${claim.title ?? ""} ${claim.domain ?? ""} ${(claim.domains ?? []).join(" ")}`;
+  const text = normalizeText(haystack);
+
+  if (text.includes("haushalt") || text.includes("kosten") || text.includes("finanz")) {
+    dimensions.add("haushalt");
+  }
+  if (text.includes("pädagog") || text.includes("raum") || text.includes("bildung")) {
+    dimensions.add("paedagogik");
+  }
+  if (text.includes("klima") || text.includes("energie") || text.includes("co₂") || text.includes("co2")) {
+    dimensions.add("klima");
+  }
+  if (text.includes("bau") || text.includes("übergang") || text.includes("infrastruktur") || text.includes("brandschutz")) {
+    dimensions.add("bauzeit");
+  }
+
+  return dimensions;
+}
+
+function optionNarrative(optionType?: string) {
+  switch (optionType) {
+    case "reform_strong":
+      return "Struktureller Eingriff mit hoher Wirkung und klarer Priorisierung.";
+    case "reform_moderate":
+      return "Teilmodernisierung mit gestufter Umsetzung und reduzierten Risiken.";
+    case "pilot":
+      return "Zeitlich befristete Übergangslösung zur Stabilisierung des Betriebs.";
+    case "custom":
+      return "Flankierende Maßnahme zur Vorbereitung und Absicherung der Entscheidung.";
+    default:
+      return "Kontextabhängige Maßnahme im Rahmen der Entscheidungsarchitektur.";
+  }
+}
+
+function buildOptionCards(
+  options: PresentationOption[],
+  claims: Dossier["analyze"]["claims"],
+  optionStatementIds: Map<string, string[]>,
+  optionTouchedTitles: Map<string, string[]>,
+) {
+  const claimById = new Map(claims.map((claim) => [claim.id, claim]));
+
+  return options.map((option) => {
+    const statementIds = option.touchesStatements?.length
+      ? option.touchesStatements
+      : optionStatementIds.get(option.id) ?? [];
+
+    const touchTitles = optionTouchedTitles.get(option.id) ?? [];
+
+    const dimensionCounts: Record<DimensionKey, number> = {
+      haushalt: 0,
+      paedagogik: 0,
+      klima: 0,
+      bauzeit: 0,
+    };
+
+    for (const statementId of statementIds) {
+      const claim = claimById.get(statementId);
+      if (!claim) continue;
+      const dims = inferDimensionsFromClaim(claim);
+      for (const dim of dims) dimensionCounts[dim] += 1;
+    }
+
+    const dimensions = DIMENSIONS.map((dim) => {
+      const count = dimensionCounts[dim.key];
+      const value = count > 0 ? Math.min(0.9, 0.25 + count * 0.2) : 0.2;
+      return { key: dim.key, label: dim.label, value };
+    });
+
+    const chips = DIMENSIONS.filter((dim) => dimensionCounts[dim.key] > 0).map((dim) => dim.label);
+
+    return {
+      id: option.id,
+      label: option.label,
+      type: option.type,
+      narrative: optionNarrative(option.type),
+      touches: touchTitles,
+      dimensions,
+      chips,
+    } satisfies OptionCard;
+  });
+}
+
+function mergeClusters(defaultClusters: PresentationCluster[], derivedClusters: PresentationCluster[]) {
+  if (defaultClusters.length) return defaultClusters;
+  return derivedClusters;
+}
+
 export function DossierViewer({ dossier }: { dossier: Dossier }) {
   const { meta, analyze, voteConfig } = dossier;
-  const { presentation, streams, contributions, voteOptions, majorityDemo } = parsePresentationNotes(
-    analyze.notes ?? [],
-  );
-
-  const statementTitleById = new Map(analyze.claims.map((claim) => [claim.id, claim.title ?? claim.id]));
+  const { presentation, streams, contributions, voteOptions, majorityDemo } = getPresentation(dossier);
 
   const derivedStats = deriveStatementStats(analyze.claims);
   const statementStats = presentation.statementStats ?? derivedStats;
-  const clusters = presentation.clusters ?? presentation.statementStats?.clusters ?? [];
+  const clusters = mergeClusters(
+    presentation.clusters ?? [],
+    presentation.statementStats?.clusters ?? [],
+  );
 
   const inputs = presentation.inputs ?? {};
   const timeWindow =
@@ -197,35 +212,60 @@ export function DossierViewer({ dossier }: { dossier: Dossier }) {
 
   const sources = dossier.sourceSet.length ? dossier.sourceSet : analyze.runReceipt?.sourceSet ?? [];
 
-  const optionTouches = buildOptionTouches(analyze.claims);
-  const optionTouchedById = new Map<string, string[]>();
+  const statementTitleById = new Map(analyze.claims.map((claim) => [claim.id, claim.title ?? claim.id]));
+
+  const optionStatementIds = new Map<string, string[]>();
+  for (const claim of analyze.claims) {
+    const options = claim.debateFrame?.options ?? [];
+    for (const option of options) {
+      const list = optionStatementIds.get(option.id) ?? [];
+      list.push(claim.id);
+      optionStatementIds.set(option.id, list);
+    }
+  }
+
+  const optionTouchedTitles = new Map<string, string[]>();
+  for (const [optionId, ids] of optionStatementIds.entries()) {
+    optionTouchedTitles.set(
+      optionId,
+      ids.map((id) => statementTitleById.get(id) ?? id),
+    );
+  }
 
   for (const option of presentation.options ?? []) {
     if (option.touchesStatements?.length) {
-      optionTouchedById.set(
+      optionTouchedTitles.set(
         option.id,
         option.touchesStatements.map((id) => statementTitleById.get(id) ?? id),
       );
     }
   }
 
-  for (const [optionId, titles] of optionTouches.entries()) {
-    if (!optionTouchedById.has(optionId)) optionTouchedById.set(optionId, titles);
-  }
-
-  const votingOptions = voteOptions.length
+  const optionCatalog = presentation.options ?? [];
+  const votingOptions: PresentationVoteOption[] = voteOptions.length
     ? voteOptions
-    : (presentation.options ?? []).map((option) => ({ id: option.id, label: option.label }));
+    : presentation.vote?.options?.length
+      ? presentation.vote.options
+      : optionCatalog.map((option) => ({ id: option.id, label: option.label }));
 
-  const groupedOptions = votingOptions.reduce<Record<string, PresentationOption[]>>((acc, option) => {
-    const fullOption =
-      (presentation.options ?? []).find((item) => item.id === option.id) ??
-      ({ id: option.id, label: option.label } as PresentationOption);
-    const key = groupOption(fullOption);
-    if (!acc[key]) acc[key] = [];
-    acc[key].push(fullOption);
-    return acc;
-  }, {});
+  const majority = majorityDemo.length
+    ? majorityDemo
+    : presentation.vote?.majorityDemo ?? votingOptions.map((opt) => ({ id: opt.id, pct: 0 }));
+
+  const matrixOptions = buildOptionCards(
+    votingOptions.map((vote) => {
+      const full = optionCatalog.find((item) => item.id === vote.id);
+      return {
+        id: vote.id,
+        label: vote.label,
+        type: full?.type,
+        touchesStatements: full?.touchesStatements,
+      } as PresentationOption;
+    }),
+    analyze.claims,
+    optionStatementIds,
+    optionTouchedTitles,
+  );
 
   const coreClaims = analyze.claims.filter((claim) => claim.importance === 5);
   const secondaryClaims = analyze.claims.filter((claim) => claim.importance !== 5);
@@ -239,7 +279,11 @@ export function DossierViewer({ dossier }: { dossier: Dossier }) {
     { label: "Stand", value: formatDate(meta.updatedAt ?? meta.createdAt) },
   ];
 
-  const claimNodes = analyze.claims.map((claim) => ({ id: claim.id, label: claim.title ?? claim.id }));
+  const claimNodes = analyze.claims.map((claim) => ({
+    id: claim.id,
+    label: claim.title ?? claim.id,
+    cluster: inferClusterFromClaim(claim),
+  }));
   const graphNodes = analyze.evidenceGraph?.nodes ?? [];
   const sourceNodes = graphNodes
     .filter((node) => node.type === "evidence")
@@ -247,14 +291,40 @@ export function DossierViewer({ dossier }: { dossier: Dossier }) {
 
   const graphEdges = analyze.evidenceGraph?.edges ?? [];
 
-  const left = (
+  const header = (
+    <header className="space-y-4 border-b border-[rgb(var(--border))] pb-8">
+      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[rgb(var(--muted))]">
+        Dossier (Demonstrationsfall)
+      </p>
+      <h1 className="font-serif text-4xl font-semibold leading-tight text-[rgb(var(--fg))] md:text-6xl">
+        {meta.title}
+      </h1>
+      <p className="max-w-2xl text-lg text-[rgb(var(--muted))]">
+        {analyze.sourceText ?? "Fragestellung des Dossiers."} Dieses Demonstrationsdossier zeigt die E150-Entscheidungsakte: strukturierte Statements, normierter Optionenraum, Evidenzverknüpfung und Zuständigkeitswege.
+      </p>
+      <p className="text-sm text-[rgb(var(--muted))]">
+        Die Abstimmungsdarstellung ist in dieser Demo simuliert und dient der Veranschaulichung der Beteiligungsebene.
+      </p>
+      <div className="flex flex-wrap gap-2 text-[11px] text-[rgb(var(--muted))]">
+        {metaChips.map((chip) => (
+          <span key={`${chip.label}-${chip.value}`} className="vog-chip">
+            {chip.label}: <span className="font-semibold text-[rgb(var(--fg))]">{chip.value}</span>
+          </span>
+        ))}
+      </div>
+    </header>
+  );
+
+  const mainLeft = (
     <>
       <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Link
           href={streams[0] ? `/streams/${streams[0].id}` : "/dossier/demo"}
           className="vog-card p-4 space-y-2 transition hover:shadow-soft"
         >
-          <div className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Themenströme</div>
+          <div className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
+            Themenströme
+          </div>
           <div className="text-2xl font-semibold text-[rgb(var(--fg))]">{streamCount || "-"}</div>
           <div className="text-[11px] text-[rgb(var(--muted))]">Alle Themenströme anzeigen</div>
         </Link>
@@ -268,7 +338,9 @@ export function DossierViewer({ dossier }: { dossier: Dossier }) {
         </Link>
         <div className="vog-card p-4 space-y-2">
           <div className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Statements</div>
-          <div className="text-2xl font-semibold text-[rgb(var(--fg))]">{statementStats.total ?? derivedStats.total}</div>
+          <div className="text-2xl font-semibold text-[rgb(var(--fg))]">
+            {statementStats.total ?? derivedStats.total}
+          </div>
           <div className="text-[11px] text-[rgb(var(--muted))]">
             Pro/Neutral/Contra: {statementStats.pro ?? derivedStats.pro}/
             {statementStats.neutral ?? derivedStats.neutral}/{statementStats.contra ?? derivedStats.contra}
@@ -329,62 +401,64 @@ export function DossierViewer({ dossier }: { dossier: Dossier }) {
 
       <section className="space-y-4">
         <div className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
-          {SECTION_TITLES.graph}
+          {SECTION_TITLES.options}
         </div>
-        <GraphCanvas claims={claimNodes} sources={sourceNodes} edges={graphEdges} />
-        <div className="text-[11px] text-[rgb(var(--muted))]">
-          Statements: {analyze.evidenceGraph?.summary.claimCount ?? claimNodes.length} · Quellen: {analyze.evidenceGraph?.summary.evidenceCount ?? sourceNodes.length} · Kanten: {graphEdges.length}
-        </div>
+        <OptionMatrix options={matrixOptions} />
       </section>
 
       <section className="space-y-4">
         <div className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
-          {SECTION_TITLES.options}
+          Abstimmung & Mehrheitsdynamik
         </div>
-        <VotePanel
-          dossierId={meta.id}
-          options={votingOptions}
-          majorityDemo={majorityDemo.length ? majorityDemo : votingOptions.map((opt) => ({ id: opt.id, pct: 0 }))}
-        />
-        {OPTION_GROUP_ORDER.filter((key) => groupedOptions[key]?.length).map((groupKey) => (
-          <div key={groupKey} className="space-y-3">
-            <h3 className="text-sm font-semibold text-[rgb(var(--fg))]">{OPTION_GROUP_LABELS[groupKey]}</h3>
-            <div className="grid gap-3">
-              {groupedOptions[groupKey].map((option) => (
-                <div key={option.id} className="vog-card p-4 space-y-2">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="vog-chip">{option.label}</span>
-                    <span className="vog-chip">{OPTION_TYPE_LABELS[option.type ?? "custom"] ?? "Maßnahme"}</span>
-                  </div>
-                  <div className="text-[11px] text-[rgb(var(--muted))]">
-                    Berührt Statements: {labelList(optionTouchedById.get(option.id) ?? null)}
-                  </div>
-                </div>
-              ))}
-            </div>
+        <div className="grid gap-4 lg:grid-cols-[1fr_1.1fr]">
+          <VotePanel dossierId={meta.id} options={votingOptions} />
+          <MajorityTrend dossierId={meta.id} options={votingOptions} majorityDemo={majority} />
+        </div>
+      </section>
+    </>
+  );
+
+  const fullWidth = (
+    <section className="space-y-4">
+      <div className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
+        Evidenz-Topologie
+      </div>
+      <EvidenceField claims={claimNodes} sources={sourceNodes} edges={graphEdges} />
+    </section>
+  );
+
+  const afterLeft = (
+    <>
+      <section className="space-y-4">
+        <div className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
+          {SECTION_TITLES.clusters}
+        </div>
+        {clusters.length ? (
+          <div className="flex flex-wrap gap-2 text-[11px] text-[rgb(var(--muted))]">
+            {clusters.map((cluster) => (
+              <span key={cluster.label} className="vog-chip">
+                {cluster.label} ({cluster.count})
+              </span>
+            ))}
           </div>
-        ))}
+        ) : (
+          <p className="text-sm text-[rgb(var(--muted))]">Keine Cluster hinterlegt.</p>
+        )}
+        {analyze.knots.length ? (
+          <div className="space-y-2 text-sm text-[rgb(var(--fg))]">
+            {analyze.knots.map((knot) => (
+              <div key={knot.id} className="vog-card p-4">
+                <p className="text-sm font-semibold">{knot.label}</p>
+                <p className="text-sm text-[rgb(var(--muted))]">{knot.description}</p>
+              </div>
+            ))}
+          </div>
+        ) : null}
       </section>
 
       <section className="space-y-4">
-        <div className="space-y-2">
-          <div className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
-            {SECTION_TITLES.statements}
-          </div>
-          {clusters.length ? (
-            <div className="space-y-2">
-              <div className="text-[11px] font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
-                {SECTION_TITLES.clusters}
-              </div>
-              <div className="flex flex-wrap gap-2 text-[11px] text-[rgb(var(--muted))]">
-                {clusters.map((cluster) => (
-                  <span key={cluster.label} className="vog-chip">
-                    {cluster.label} ({cluster.count})
-                  </span>
-                ))}
-              </div>
-            </div>
-          ) : null}
+        <div className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
+          {SECTION_TITLES.statements}
         </div>
 
         <div className="space-y-4">
@@ -398,9 +472,7 @@ export function DossierViewer({ dossier }: { dossier: Dossier }) {
                   <span className="vog-chip">Zuständigkeit: {claim.responsibility ?? "-"}</span>
                 </div>
                 <div>
-                  <p className="text-base font-semibold text-[rgb(var(--fg))]">
-                    {claim.title ?? "Statement"}
-                  </p>
+                  <p className="text-base font-semibold text-[rgb(var(--fg))]">{claim.title ?? "Statement"}</p>
                   <p className="mt-2 text-sm text-[rgb(var(--muted))]">{claim.text}</p>
                 </div>
               </article>
@@ -418,9 +490,7 @@ export function DossierViewer({ dossier }: { dossier: Dossier }) {
                   <span className="vog-chip">Wichtigkeit: {claim.importance ?? "-"}</span>
                   <span className="vog-chip">Zuständigkeit: {claim.responsibility ?? "-"}</span>
                 </div>
-                <p className="text-sm font-semibold text-[rgb(var(--fg))]">
-                  {claim.title ?? "Statement"}
-                </p>
+                <p className="text-sm font-semibold text-[rgb(var(--fg))]">{claim.title ?? "Statement"}</p>
                 <p className="text-sm text-[rgb(var(--muted))]">{claim.text}</p>
               </article>
             ))}
@@ -470,7 +540,7 @@ export function DossierViewer({ dossier }: { dossier: Dossier }) {
     </>
   );
 
-  const right = (
+  const sidebar = (
     <>
       <section className="vog-card p-5 space-y-2">
         <div className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
@@ -498,7 +568,7 @@ export function DossierViewer({ dossier }: { dossier: Dossier }) {
           {SECTION_TITLES.methodology}
         </div>
         <div className="text-sm text-[rgb(var(--fg))]">
-          Methodische Hinweise: Das Dossier folgt dem E150-Schema und dokumentiert Statements, Optionen und Evidenzbezüge nachvollziehbar.
+          Das Dossier folgt dem E150-Schema: strukturierte Statements, normierter Optionenraum, Evidenzverknüpfung und Zuständigkeitswege. Die Visualisierung dient der Transparenz von Konfliktlinien und Mehrheitsdynamiken.
         </div>
         <div className="text-sm text-[rgb(var(--fg))]">Analysemodus: {analyze.mode}</div>
         <div className="text-sm text-[rgb(var(--fg))]">Sprache: {analyze.language.toUpperCase()}</div>
@@ -539,7 +609,11 @@ export function DossierViewer({ dossier }: { dossier: Dossier }) {
           Verknüpfte Statements: {analyze.evidenceGraph?.summary.linkedClaimCount ?? "-"}
         </div>
       </section>
+    </>
+  );
 
+  const afterSidebar = (
+    <>
       <section className="vog-card p-5 space-y-3">
         <div className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
           {SECTION_TITLES.questions}
@@ -572,16 +646,13 @@ export function DossierViewer({ dossier }: { dossier: Dossier }) {
   );
 
   return (
-    <DossierPageShell
-      eyebrow="Dossier (Demonstrationsfall)"
-      title={meta.title}
-      lead={
-        `${analyze.sourceText ?? "Fragestellung des Dossiers."} Dieses Demonstrationsdossier zeigt die E150-Entscheidungsakte mit strukturierten Statements, Optionenraum, Evidenzbezügen und Zuständigkeitswegen.`
-      }
-      note="Die Abstimmungsdarstellung ist in dieser Demo simuliert und dient der Veranschaulichung der Beteiligungsebene."
-      metaChips={metaChips}
-      left={left}
-      right={right}
+    <DossierLayout
+      header={header}
+      mainLeft={mainLeft}
+      sidebar={sidebar}
+      fullWidth={fullWidth}
+      afterLeft={afterLeft}
+      afterSidebar={afterSidebar}
     />
   );
 }
