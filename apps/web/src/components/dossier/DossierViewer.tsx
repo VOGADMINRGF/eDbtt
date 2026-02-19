@@ -1,6 +1,8 @@
+import Link from "next/link";
 import type { Dossier } from "@features/dossier";
 import DossierPageShell from "./DossierPageShell";
-import GraphMindmap from "./GraphMindmap";
+import GraphCanvas from "./GraphCanvas";
+import VotePanel from "./VotePanel";
 import {
   SECTION_TITLES,
   STATUS_LABELS,
@@ -9,6 +11,19 @@ import {
   OPTION_TYPE_LABELS,
   JURISDICTION_LABELS,
 } from "./labels";
+
+type PresentationStream = { id: string; title: string; date: string };
+
+type PresentationContribution = {
+  id: string;
+  title: string;
+  date: string;
+  streamId?: string;
+};
+
+type PresentationVoteOption = { id: string; label: string };
+
+type PresentationMajority = { id: string; pct: number };
 
 type PresentationOption = {
   id: string;
@@ -20,7 +35,7 @@ type PresentationOption = {
 type PresentationCluster = { label: string; count: number };
 
 type PresentationPayload = {
-  topic?: { id?: string; label?: string; municipality?: string };
+  topic?: { id?: string; label?: string; municipality?: string; windowDays?: number };
   inputs?: Record<string, unknown>;
   statementStats?: {
     total?: number;
@@ -31,6 +46,10 @@ type PresentationPayload = {
   };
   clusters?: PresentationCluster[];
   options?: PresentationOption[];
+  vote?: {
+    options?: PresentationVoteOption[];
+    majorityDemo?: PresentationMajority[];
+  };
 };
 
 type PresentationNote = {
@@ -54,23 +73,44 @@ function labelList(items?: string[] | null) {
 function parsePresentationNotes(notes: PresentationNote[]) {
   const result: PresentationPayload = {};
   const options: PresentationOption[] = [];
+  const streams: PresentationStream[] = [];
+  const contributions: PresentationContribution[] = [];
+  const voteOptions: PresentationVoteOption[] = [];
+  const majorityDemo: PresentationMajority[] = [];
 
   for (const note of notes) {
     if (note.kind !== "presentation" || !note.text) continue;
     try {
       const parsed = JSON.parse(note.text) as PresentationPayload;
       if (parsed.topic) result.topic = parsed.topic;
-      if (parsed.inputs) result.inputs = parsed.inputs;
+      if (parsed.inputs) result.inputs = { ...result.inputs, ...parsed.inputs };
       if (parsed.statementStats) result.statementStats = parsed.statementStats;
       if (parsed.clusters) result.clusters = parsed.clusters;
       if (Array.isArray(parsed.options)) options.push(...parsed.options);
+      if (parsed.vote?.options) voteOptions.push(...parsed.vote.options);
+      if (parsed.vote?.majorityDemo) majorityDemo.push(...parsed.vote.majorityDemo);
+
+      const inputStreams = parsed.inputs?.streams;
+      if (Array.isArray(inputStreams)) {
+        for (const stream of inputStreams) streams.push(stream as PresentationStream);
+      }
+
+      const inputContrib = parsed.inputs?.contributions;
+      if (Array.isArray(inputContrib)) {
+        for (const contrib of inputContrib) contributions.push(contrib as PresentationContribution);
+      }
     } catch {
       continue;
     }
   }
 
-  if (options.length) result.options = options;
-  return result;
+  return {
+    presentation: { ...result, options: options.length ? options : result.options },
+    streams,
+    contributions,
+    voteOptions,
+    majorityDemo,
+  };
 }
 
 function deriveStatementStats(claims: Dossier["analyze"]["claims"]) {
@@ -134,7 +174,10 @@ function getInputValue(inputs: Record<string, unknown> | undefined, keys: string
 
 export function DossierViewer({ dossier }: { dossier: Dossier }) {
   const { meta, analyze, voteConfig } = dossier;
-  const presentation = parsePresentationNotes(analyze.notes ?? []);
+  const { presentation, streams, contributions, voteOptions, majorityDemo } = parsePresentationNotes(
+    analyze.notes ?? [],
+  );
+
   const statementTitleById = new Map(analyze.claims.map((claim) => [claim.id, claim.title ?? claim.id]));
 
   const derivedStats = deriveStatementStats(analyze.claims);
@@ -142,50 +185,47 @@ export function DossierViewer({ dossier }: { dossier: Dossier }) {
   const clusters = presentation.clusters ?? presentation.statementStats?.clusters ?? [];
 
   const inputs = presentation.inputs ?? {};
-  const streams = getInputValue(inputs, ["streams"]) ?? "-";
-  const contributions = getInputValue(inputs, ["beiträge", "beitraege", "contributions"]) ?? "-";
-  const zeitfenster = getInputValue(inputs, ["zeitfenster", "updatedWindow"]) ?? "-";
+  const timeWindow =
+    getInputValue(inputs, ["zeitfenster", "updatedWindow"]) ??
+    (presentation.topic?.windowDays ? `${presentation.topic.windowDays} Tage` : "-");
+
+  const rawStreamCount = getInputValue(inputs, ["streams"]);
+  const rawContributionCount = getInputValue(inputs, ["beiträge", "beitraege", "contributions"]);
+  const streamCount = streams.length || (typeof rawStreamCount === "number" ? rawStreamCount : 0);
+  const contributionCount =
+    contributions.length || (typeof rawContributionCount === "number" ? rawContributionCount : 0);
 
   const sources = dossier.sourceSet.length ? dossier.sourceSet : analyze.runReceipt?.sourceSet ?? [];
 
   const optionTouches = buildOptionTouches(analyze.claims);
-  const optionPool = new Map<string, PresentationOption>();
   const optionTouchedById = new Map<string, string[]>();
 
   for (const option of presentation.options ?? []) {
-    optionPool.set(option.id, option);
     if (option.touchesStatements?.length) {
-      const titles = option.touchesStatements
-        .map((id) => statementTitleById.get(id) ?? id)
-        .filter((item) => Boolean(item));
-      optionTouchedById.set(option.id, titles as string[]);
-    }
-  }
-
-  for (const claim of analyze.claims) {
-    const options = claim.debateFrame?.options ?? [];
-    for (const option of options) {
-      if (!optionPool.has(option.id)) {
-        optionPool.set(option.id, { id: option.id, label: option.label, type: option.type });
-      }
+      optionTouchedById.set(
+        option.id,
+        option.touchesStatements.map((id) => statementTitleById.get(id) ?? id),
+      );
     }
   }
 
   for (const [optionId, titles] of optionTouches.entries()) {
-    if (!optionTouchedById.has(optionId)) {
-      optionTouchedById.set(optionId, titles);
-    }
+    if (!optionTouchedById.has(optionId)) optionTouchedById.set(optionId, titles);
   }
 
-  const groupedOptions = Array.from(optionPool.values()).reduce<Record<string, PresentationOption[]>>(
-    (acc, option) => {
-      const key = groupOption(option);
-      if (!acc[key]) acc[key] = [];
-      acc[key].push(option);
-      return acc;
-    },
-    {},
-  );
+  const votingOptions = voteOptions.length
+    ? voteOptions
+    : (presentation.options ?? []).map((option) => ({ id: option.id, label: option.label }));
+
+  const groupedOptions = votingOptions.reduce<Record<string, PresentationOption[]>>((acc, option) => {
+    const fullOption =
+      (presentation.options ?? []).find((item) => item.id === option.id) ??
+      ({ id: option.id, label: option.label } as PresentationOption);
+    const key = groupOption(fullOption);
+    if (!acc[key]) acc[key] = [];
+    acc[key].push(fullOption);
+    return acc;
+  }, {});
 
   const coreClaims = analyze.claims.filter((claim) => claim.importance === 5);
   const secondaryClaims = analyze.claims.filter((claim) => claim.importance !== 5);
@@ -195,21 +235,37 @@ export function DossierViewer({ dossier }: { dossier: Dossier }) {
     { label: "Status", value: STATUS_LABELS[meta.status] ?? meta.status },
     { label: "Geltungsbereich", value: JURISDICTION_LABELS[meta.jurisdiction] ?? meta.jurisdiction },
     { label: "Region", value: meta.region ?? "-" },
-    { label: "Zeitfenster", value: String(zeitfenster) },
+    { label: "Zeitfenster", value: String(timeWindow) },
     { label: "Stand", value: formatDate(meta.updatedAt ?? meta.createdAt) },
   ];
+
+  const claimNodes = analyze.claims.map((claim) => ({ id: claim.id, label: claim.title ?? claim.id }));
+  const graphNodes = analyze.evidenceGraph?.nodes ?? [];
+  const sourceNodes = graphNodes
+    .filter((node) => node.type === "evidence")
+    .map((node) => ({ id: node.id, label: node.label }));
+
+  const graphEdges = analyze.evidenceGraph?.edges ?? [];
 
   const left = (
     <>
       <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="vog-card p-4 space-y-2">
-          <div className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Streams</div>
-          <div className="text-2xl font-semibold text-[rgb(var(--fg))]">{streams as string}</div>
-        </div>
-        <div className="vog-card p-4 space-y-2">
+        <Link
+          href={streams[0] ? `/streams/${streams[0].id}` : "/dossier/demo"}
+          className="vog-card p-4 space-y-2 transition hover:shadow-soft"
+        >
+          <div className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Themenströme</div>
+          <div className="text-2xl font-semibold text-[rgb(var(--fg))]">{streamCount || "-"}</div>
+          <div className="text-[11px] text-[rgb(var(--muted))]">Alle Themenströme anzeigen</div>
+        </Link>
+        <Link
+          href={contributions[0] ? `/beitraege/${contributions[0].id}` : "/dossier/demo"}
+          className="vog-card p-4 space-y-2 transition hover:shadow-soft"
+        >
           <div className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Beiträge</div>
-          <div className="text-2xl font-semibold text-[rgb(var(--fg))]">{contributions as string}</div>
-        </div>
+          <div className="text-2xl font-semibold text-[rgb(var(--fg))]">{contributionCount || "-"}</div>
+          <div className="text-[11px] text-[rgb(var(--muted))]">Alle Beiträge anzeigen</div>
+        </Link>
         <div className="vog-card p-4 space-y-2">
           <div className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Statements</div>
           <div className="text-2xl font-semibold text-[rgb(var(--fg))]">{statementStats.total ?? derivedStats.total}</div>
@@ -224,10 +280,72 @@ export function DossierViewer({ dossier }: { dossier: Dossier }) {
         </div>
       </section>
 
+      <section className="grid gap-4 md:grid-cols-[1.1fr_0.9fr]">
+        <div className="vog-card p-5 space-y-3">
+          <div className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Material</div>
+          <div className="space-y-3">
+            <div className="space-y-2">
+              <p className="text-sm font-semibold text-[rgb(var(--fg))]">Themenströme</p>
+              <div className="space-y-2 text-sm">
+                {streams.length ? (
+                  streams.map((stream) => (
+                    <Link
+                      key={stream.id}
+                      href={`/streams/${stream.id}`}
+                      className="block rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-[rgb(var(--fg))]"
+                    >
+                      <div className="text-sm font-semibold">{stream.title}</div>
+                      <div className="text-[11px] text-[rgb(var(--muted))]">{formatDate(stream.date)}</div>
+                    </Link>
+                  ))
+                ) : (
+                  <p className="text-sm text-[rgb(var(--muted))]">Keine Themenströme hinterlegt.</p>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="vog-card p-5 space-y-3">
+          <div className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Beiträge</div>
+          <div className="space-y-2 text-sm">
+            {contributions.length ? (
+              contributions.map((item) => (
+                <Link
+                  key={item.id}
+                  href={`/beitraege/${item.id}`}
+                  className="block rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-[rgb(var(--fg))]"
+                >
+                  <div className="text-sm font-semibold">{item.title}</div>
+                  <div className="text-[11px] text-[rgb(var(--muted))]">{formatDate(item.date)}</div>
+                </Link>
+              ))
+            ) : (
+              <p className="text-sm text-[rgb(var(--muted))]">Keine Beiträge hinterlegt.</p>
+            )}
+          </div>
+        </div>
+      </section>
+
+      <section className="space-y-4">
+        <div className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
+          {SECTION_TITLES.graph}
+        </div>
+        <GraphCanvas claims={claimNodes} sources={sourceNodes} edges={graphEdges} />
+        <div className="text-[11px] text-[rgb(var(--muted))]">
+          Statements: {analyze.evidenceGraph?.summary.claimCount ?? claimNodes.length} · Quellen: {analyze.evidenceGraph?.summary.evidenceCount ?? sourceNodes.length} · Kanten: {graphEdges.length}
+        </div>
+      </section>
+
       <section className="space-y-4">
         <div className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
           {SECTION_TITLES.options}
         </div>
+        <VotePanel
+          dossierId={meta.id}
+          options={votingOptions}
+          majorityDemo={majorityDemo.length ? majorityDemo : votingOptions.map((opt) => ({ id: opt.id, pct: 0 }))}
+        />
         {OPTION_GROUP_ORDER.filter((key) => groupedOptions[key]?.length).map((groupKey) => (
           <div key={groupKey} className="space-y-3">
             <h3 className="text-sm font-semibold text-[rgb(var(--fg))]">{OPTION_GROUP_LABELS[groupKey]}</h3>
@@ -236,9 +354,7 @@ export function DossierViewer({ dossier }: { dossier: Dossier }) {
                 <div key={option.id} className="vog-card p-4 space-y-2">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="vog-chip">{option.label}</span>
-                    <span className="vog-chip">
-                      {OPTION_TYPE_LABELS[option.type ?? "custom"] ?? "Maßnahme"}
-                    </span>
+                    <span className="vog-chip">{OPTION_TYPE_LABELS[option.type ?? "custom"] ?? "Maßnahme"}</span>
                   </div>
                   <div className="text-[11px] text-[rgb(var(--muted))]">
                     Berührt Statements: {labelList(optionTouchedById.get(option.id) ?? null)}
@@ -314,15 +430,6 @@ export function DossierViewer({ dossier }: { dossier: Dossier }) {
 
       <section className="space-y-4">
         <div className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
-          {SECTION_TITLES.evidence}
-        </div>
-        <div className="vog-card p-5">
-          <GraphMindmap nodes={analyze.evidenceGraph?.nodes} edges={analyze.evidenceGraph?.edges} summary={analyze.evidenceGraph?.summary} />
-        </div>
-      </section>
-
-      <section className="space-y-4">
-        <div className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
           {SECTION_TITLES.report}
         </div>
         <div className="vog-card p-5 space-y-4">
@@ -371,19 +478,17 @@ export function DossierViewer({ dossier }: { dossier: Dossier }) {
         </div>
         <div className="text-sm text-[rgb(var(--fg))]">Status: {STATUS_LABELS[meta.status] ?? meta.status}</div>
         <div className="text-sm text-[rgb(var(--fg))]">
-          Zuständigkeit: {JURISDICTION_LABELS[meta.jurisdiction] ?? meta.jurisdiction}
+          Zuständigkeitsbereich: {JURISDICTION_LABELS[meta.jurisdiction] ?? meta.jurisdiction}
         </div>
         <div className="text-sm text-[rgb(var(--fg))]">Region: {meta.region ?? "-"}</div>
-        <div className="text-sm text-[rgb(var(--fg))]">Zeitfenster: {zeitfenster as string}</div>
+        <div className="text-sm text-[rgb(var(--fg))]">Zeitfenster: {timeWindow as string}</div>
         <div className="text-sm text-[rgb(var(--fg))]">Letztes Update: {formatDate(meta.updatedAt ?? meta.createdAt)}</div>
         {voteConfig ? (
           <>
             <div className="text-sm text-[rgb(var(--fg))]">
               Abstimmungsmodus: {VOTE_POLICY_LABELS[voteConfig.policy] ?? voteConfig.policy}
             </div>
-            <div className="text-sm text-[rgb(var(--fg))]">
-              Mindestoptionen: {voteConfig.minOptions}
-            </div>
+            <div className="text-sm text-[rgb(var(--fg))]">Mindestoptionen: {voteConfig.minOptions}</div>
           </>
         ) : null}
       </section>
@@ -392,11 +497,14 @@ export function DossierViewer({ dossier }: { dossier: Dossier }) {
         <div className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
           {SECTION_TITLES.methodology}
         </div>
+        <div className="text-sm text-[rgb(var(--fg))]">
+          Methodische Hinweise: Das Dossier folgt dem E150-Schema und dokumentiert Statements, Optionen und Evidenzbezüge nachvollziehbar.
+        </div>
         <div className="text-sm text-[rgb(var(--fg))]">Analysemodus: {analyze.mode}</div>
         <div className="text-sm text-[rgb(var(--fg))]">Sprache: {analyze.language.toUpperCase()}</div>
         {analyze.runReceipt ? (
           <>
-            <div className="text-sm text-[rgb(var(--fg))]">Pipeline: {analyze.runReceipt.pipelineVersion}</div>
+            <div className="text-sm text-[rgb(var(--fg))]">Analyse-Pipeline: {analyze.runReceipt.pipelineVersion}</div>
             <div className="text-sm text-[rgb(var(--fg))]">Protokoll: {analyze.runReceipt.id}</div>
             <div className="text-sm text-[rgb(var(--fg))]">Erstellt: {formatDate(analyze.runReceipt.createdAt)}</div>
           </>
@@ -425,12 +533,8 @@ export function DossierViewer({ dossier }: { dossier: Dossier }) {
         <div className="text-sm text-[rgb(var(--fg))]">
           Statements: {analyze.evidenceGraph?.summary.claimCount ?? analyze.claims.length}
         </div>
-        <div className="text-sm text-[rgb(var(--fg))]">
-          Quellen: {analyze.evidenceGraph?.summary.evidenceCount ?? sources.length}
-        </div>
-        <div className="text-sm text-[rgb(var(--fg))]">
-          Kanten: {analyze.evidenceGraph?.edges.length ?? 0}
-        </div>
+        <div className="text-sm text-[rgb(var(--fg))]">Quellen: {analyze.evidenceGraph?.summary.evidenceCount ?? sources.length}</div>
+        <div className="text-sm text-[rgb(var(--fg))]">Kanten: {graphEdges.length}</div>
         <div className="text-sm text-[rgb(var(--fg))]">
           Verknüpfte Statements: {analyze.evidenceGraph?.summary.linkedClaimCount ?? "-"}
         </div>
@@ -471,8 +575,10 @@ export function DossierViewer({ dossier }: { dossier: Dossier }) {
     <DossierPageShell
       eyebrow="Dossier (Demonstrationsfall)"
       title={meta.title}
-      lead={analyze.sourceText ?? undefined}
-      note="Demonstrationsdossier zur Darstellung der E150-Entscheidungsakte."
+      lead={
+        `${analyze.sourceText ?? "Fragestellung des Dossiers."} Dieses Demonstrationsdossier zeigt die E150-Entscheidungsakte mit strukturierten Statements, Optionenraum, Evidenzbezügen und Zuständigkeitswegen.`
+      }
+      note="Die Abstimmungsdarstellung ist in dieser Demo simuliert und dient der Veranschaulichung der Beteiligungsebene."
       metaChips={metaChips}
       left={left}
       right={right}

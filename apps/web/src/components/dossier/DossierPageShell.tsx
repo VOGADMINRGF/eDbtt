@@ -27,7 +27,7 @@ export function DossierPageShell({
         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[rgb(var(--muted))]">
           {eyebrow}
         </p>
-        <h1 className="text-4xl font-semibold leading-tight text-[rgb(var(--fg))] md:text-5xl">
+        <h1 className="font-serif text-4xl font-semibold leading-tight text-[rgb(var(--fg))] md:text-5xl">
           {title}
         </h1>
         {lead ? (
