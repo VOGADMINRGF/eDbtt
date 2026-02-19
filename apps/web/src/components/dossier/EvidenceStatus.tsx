@@ -24,7 +24,10 @@ function levelClass(level: EvidenceLevel) {
   return "border-emerald-400/40 bg-emerald-400/10";
 }
 
-export function EvidenceStatus({ level, density }: EvidenceStatusProps) {
+export function EvidenceStatus({ level, density: _density }: EvidenceStatusProps) {
+  const densityLabel =
+    level === "none" ? "0 (keine direkte Quelle)" : level === "linked" ? "1 (Einzelquelle)" : "2+ (mehrere Quellen)";
+
   return (
     <div className="space-y-2">
       <span
@@ -36,7 +39,7 @@ export function EvidenceStatus({ level, density }: EvidenceStatusProps) {
       <p className="text-[10px] text-[rgb(var(--muted))]">
         Evidenzdichte beschreibt, wie viele Quellen direkt mit dieser Option verknüpft sind.
       </p>
-      <p className="text-[10px] text-[rgb(var(--muted))]">Evidenzdichte: {Math.round(density * 100)}%</p>
+      <p className="text-[10px] text-[rgb(var(--muted))]">Evidenzdichte: {densityLabel}</p>
     </div>
   );
 }

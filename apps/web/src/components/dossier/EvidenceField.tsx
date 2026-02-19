@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 
 type OptionNode = { id: string; label: string };
 
@@ -62,6 +62,13 @@ const CLUSTER_STYLES: Record<string, string> = {
   "Pädagogik/Raumkonzept": "border-sky-400/40 bg-sky-400/10",
   "Klima/Energie": "border-emerald-400/40 bg-emerald-400/10",
   "Bauzeit/Übergang": "border-violet-400/40 bg-violet-400/10",
+};
+
+const NODE_CLAMP_STYLE: CSSProperties = {
+  display: "-webkit-box",
+  WebkitLineClamp: 3,
+  WebkitBoxOrient: "vertical",
+  overflow: "hidden",
 };
 
 function claimStyle(claim: ClaimNode) {
@@ -167,6 +174,14 @@ export function EvidenceField({ options, claims, sources, edges, optionLinks }: 
 
     return { claimsByOption, optionsByClaim, sourcesByClaim, claimsBySource };
   }, [optionLinks, evidenceEdges]);
+
+  const evidenceCountByClaim = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const edge of evidenceEdges) {
+      map.set(edge.claimId, (map.get(edge.claimId) ?? 0) + 1);
+    }
+    return map;
+  }, [evidenceEdges]);
 
   const active = focused ?? hovered;
 
@@ -281,6 +296,9 @@ export function EvidenceField({ options, claims, sources, edges, optionLinks }: 
         : sources.find((source) => source.id === active.id)?.label
     : null;
 
+  const activeEvidenceCount =
+    active?.type === "claim" ? evidenceCountByClaim.get(active.id) ?? 0 : null;
+
   return (
     <section
       ref={containerRef}
@@ -300,6 +318,13 @@ export function EvidenceField({ options, claims, sources, edges, optionLinks }: 
             }`}
           >
             Fokus: {activeLabel ?? "—"}
+          </p>
+          <p
+            className={`min-h-[16px] text-[11px] text-[rgb(var(--muted))] ${
+              active?.type === "claim" ? "opacity-100" : "opacity-0"
+            }`}
+          >
+            Verknüpfte Quellen: {activeEvidenceCount ?? 0}
           </p>
         </div>
         <div className="flex min-h-[32px] items-center gap-4 overflow-x-auto text-[10px] text-[rgb(var(--muted))] md:shrink-0">
@@ -357,7 +382,9 @@ export function EvidenceField({ options, claims, sources, edges, optionLinks }: 
                     isActive ? "opacity-100" : "opacity-40"
                   } ${optionStyle()}`}
                 >
-                  {option.label}
+                  <span className="block min-h-[3.75rem] leading-snug" style={NODE_CLAMP_STYLE}>
+                    {option.label}
+                  </span>
                 </button>
               );
             })}
@@ -371,6 +398,8 @@ export function EvidenceField({ options, claims, sources, edges, optionLinks }: 
               const isActive = activeSets.claims.has(claim.id);
               const clusterClass = claim.cluster ? CLUSTER_STYLES[claim.cluster] : "";
               const baseClass = claimStyle(claim);
+              const evidenceCount = evidenceCountByClaim.get(claim.id) ?? 0;
+              const evidenceLabel = evidenceCount > 1 ? "2+" : String(evidenceCount);
               return (
                 <button
                   key={claim.id}
@@ -383,7 +412,14 @@ export function EvidenceField({ options, claims, sources, edges, optionLinks }: 
                     isActive ? "opacity-100" : "opacity-40"
                   } ${clusterClass || baseClass}`}
                 >
-                  {claim.label}
+                  <div className="flex items-start justify-between gap-2">
+                    <span className="block min-h-[3.75rem] leading-snug" style={NODE_CLAMP_STYLE}>
+                      {claim.label}
+                    </span>
+                    <span className="shrink-0 rounded-full border border-[rgb(var(--border))] px-2 py-0.5 text-[10px] text-[rgb(var(--muted))]">
+                      Evidenz: {evidenceLabel}
+                    </span>
+                  </div>
                 </button>
               );
             })}
@@ -407,7 +443,9 @@ export function EvidenceField({ options, claims, sources, edges, optionLinks }: 
                     isActive ? "opacity-100" : "opacity-40"
                   }`}
                 >
-                  {source.label}
+                  <span className="block min-h-[3.75rem] leading-snug" style={NODE_CLAMP_STYLE}>
+                    {source.label}
+                  </span>
                 </button>
               );
             })}

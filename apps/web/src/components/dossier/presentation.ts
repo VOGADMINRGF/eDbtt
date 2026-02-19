@@ -13,6 +13,8 @@ type PresentationVoteOption = { id: string; label: string; type?: string; eviden
 
 type PresentationMajority = { id: string; pct: number };
 
+type PresentationVoteHistory = { date: string; text: string };
+
 type PresentationOption = {
   id: string;
   label: string;
@@ -47,7 +49,7 @@ type PresentationTraceability = {
 type PresentationOpenQuestion = {
   id: string;
   text: string;
-  status?: "open" | "in_review" | "answered" | "closed";
+  status?: "open" | "in_review" | "answered" | "closed" | "offen" | "in_pruefung" | "beantwortet" | "delegiert";
   responsible?: string;
   supportActors?: string[];
   lastUpdate?: string;
@@ -70,6 +72,9 @@ type PresentationPayload = {
   vote?: {
     options?: PresentationVoteOption[];
     majorityDemo?: PresentationMajority[];
+    totalVotes?: number;
+    updatedAt?: string;
+    history?: PresentationVoteHistory[];
   };
   traceability?: PresentationTraceability;
   openQuestions?: PresentationOpenQuestion[];
@@ -153,6 +158,9 @@ export function getPresentation(dossier: Dossier): PresentationResult {
       if (parsed.statementStats) result.statementStats = parsed.statementStats;
       if (parsed.clusters) result.clusters = parsed.clusters;
       if (Array.isArray(parsed.options)) options.push(...parsed.options);
+      if (parsed.vote) {
+        result.vote = { ...(result.vote ?? {}), ...parsed.vote };
+      }
       if (parsed.vote?.options) voteOptions.push(...parsed.vote.options);
       if (parsed.vote?.majorityDemo) majorityDemo.push(...parsed.vote.majorityDemo);
       if (parsed.traceability) {
@@ -201,6 +209,7 @@ export function getPresentation(dossier: Dossier): PresentationResult {
     ...result,
     options: mergedOptions.length ? mergedOptions : result.options,
     vote: {
+      ...(result.vote ?? {}),
       options: mergedVoteOptions.length ? mergedVoteOptions : result.vote?.options,
       majorityDemo: mergedMajorityDemo.length ? mergedMajorityDemo : result.vote?.majorityDemo,
     },
@@ -222,6 +231,7 @@ export type {
   PresentationContribution,
   PresentationVoteOption,
   PresentationMajority,
+  PresentationVoteHistory,
   PresentationOption,
   PresentationCluster,
   PresentationPayload,

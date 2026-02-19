@@ -68,7 +68,7 @@ export default function ResetPage() {
           <input
             type="password"
             placeholder="Neues Passwort"
-            className="w-full border rounded px-3 py-2"
+            className="w-full border rounded px-3 py-2 text-slate-900 placeholder:text-slate-400"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
@@ -94,7 +94,7 @@ export default function ResetPage() {
         <input
           type="email"
           placeholder="E-Mail"
-          className="w-full border rounded px-3 py-2"
+          className="w-full border rounded px-3 py-2 text-slate-900 placeholder:text-slate-400"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           required

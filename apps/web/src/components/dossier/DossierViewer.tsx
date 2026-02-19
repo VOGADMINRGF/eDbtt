@@ -7,7 +7,9 @@ import EvidenceField from "./EvidenceField";
 import DecisionSpace from "./DecisionSpace";
 import InputsPanel from "./InputsPanel";
 import VotePanel from "./VotePanel";
-import MajorityTrend from "./MajorityTrend";
+import ParticipationStatus from "./ParticipationStatus";
+import LegitimacyPanel, { type LegitimacyMetric, type LegitimacyStatus } from "./LegitimacyPanel";
+import TransparencyPanel from "./TransparencyPanel";
 import { useDecisionState } from "./useDecisionState";
 import {
   SECTION_TITLES,
@@ -108,6 +110,17 @@ function formatDate(value?: string | null) {
 function labelList(items?: string[] | null) {
   if (!items || items.length === 0) return "-";
   return items.join(", ");
+}
+
+function clampScore(value: number) {
+  return Math.max(0, Math.min(100, Math.round(value)));
+}
+
+function formatLanguage(value?: string | null) {
+  if (!value) return "-";
+  if (value.toLowerCase() === "de") return "Deutsch";
+  if (value.toLowerCase() === "en") return "Englisch";
+  return value.toUpperCase();
 }
 
 function deriveStatementStats(claims: Dossier["analyze"]["claims"]) {
@@ -231,9 +244,12 @@ export function DossierViewer({ dossier }: { dossier: Dossier }) {
   const { meta, analyze, voteConfig } = dossier;
   const { presentation, streams, contributions, voteOptions, majorityDemo, traceability, openQuestions } =
     getPresentation(dossier);
-  const { selectedOptionId, savedOptionId, setSelectedOptionId, saveSelection, saveNotice } =
+  const { selectedOptionId, savedOptionId, savedAt, setSelectedOptionId, saveSelection, saveNotice } =
     useDecisionState(meta.id);
   const viewerRole = presentation.viewerRole ?? "citizen";
+  const isCitizen = viewerRole === "citizen";
+  const displaySavedOptionId = isCitizen ? savedOptionId : null;
+  const displaySavedAt = isCitizen ? savedAt : null;
 
   const derivedStats = deriveStatementStats(analyze.claims);
   const statementStats = presentation.statementStats ?? derivedStats;
@@ -420,7 +436,7 @@ export function DossierViewer({ dossier }: { dossier: Dossier }) {
   const metaChips = [
     { label: "Thema", value: presentation.topic?.label ?? "-" },
     { label: "Status", value: STATUS_LABELS[meta.status] ?? meta.status },
-    { label: "Geltungsbereich", value: JURISDICTION_LABELS[meta.jurisdiction] ?? meta.jurisdiction },
+    { label: "Zuständigkeitsebene", value: JURISDICTION_LABELS[meta.jurisdiction] ?? meta.jurisdiction },
     { label: "Region", value: meta.region ?? "-" },
     { label: "Zeitfenster", value: String(timeWindow) },
     { label: "Stand", value: formatDate(meta.updatedAt ?? meta.createdAt) },
@@ -431,7 +447,7 @@ export function DossierViewer({ dossier }: { dossier: Dossier }) {
   const heroBudget = presentation.hero?.budgetRange ?? "30–50 Mio €";
   const heroParticipation =
     presentation.hero?.participation ??
-    `Bürgerbeteiligung (Civic, ${voteConfig?.minOptions ?? 5} Optionen)`;
+    `Bürgerbeteiligung (mindestens ${voteConfig?.minOptions ?? 5} Optionen)`;
 
   const claimNodes = analyze.claims.map((claim) => ({
     id: claim.id,
@@ -448,50 +464,173 @@ export function DossierViewer({ dossier }: { dossier: Dossier }) {
 
   const graphEdges = analyze.evidenceGraph?.edges ?? [];
 
+  const evidenceSummary = analyze.evidenceGraph?.summary;
+  const claimCount = evidenceSummary?.claimCount ?? analyze.claims.length;
+  const linkedClaimCount = evidenceSummary?.linkedClaimCount ?? 0;
+  const unlinkedClaimCount =
+    evidenceSummary?.unlinkedClaimCount ?? Math.max(0, claimCount - linkedClaimCount);
+
+  const evidenceIndex = clampScore(
+    (claimCount ? (linkedClaimCount / claimCount) * 70 : 0) +
+      Math.min(20, sources.length * 5) -
+      (claimCount ? (unlinkedClaimCount / claimCount) * 20 : 0),
+  );
+
+  const questionsWithStatus = questionsForDisplay.filter((q) => (q as { status?: string }).status);
+  const totalQuestions = questionsForDisplay.length;
+  const answeredQuestions = questionsForDisplay.filter((q) => {
+    const status = (q as { status?: string }).status;
+    return status === "beantwortet" || status === "answered";
+  }).length;
+  const inReviewQuestions = questionsForDisplay.filter((q) => {
+    const status = (q as { status?: string }).status;
+    return status === "in_pruefung" || status === "in_review" || status === "delegiert";
+  }).length;
+
+  const clarificationIndex = clampScore(
+    totalQuestions === 0
+      ? 90
+      : questionsWithStatus.length
+        ? (answeredQuestions / totalQuestions) * 70 + (inReviewQuestions / totalQuestions) * 15 + 15
+        : 100 - Math.min(80, totalQuestions * 12),
+  );
+
+  const missingPerspectiveCount = analyze.missingPerspectives?.length ?? 0;
+  const participationCandidateCount = analyze.participationCandidates?.length ?? 0;
+  const perspectivesIndex = clampScore(60 + participationCandidateCount * 8 - missingPerspectiveCount * 15);
+
+  const transparencyIndex = clampScore(
+    (analyze.runReceipt ? 35 : 0) +
+      Math.min(30, sources.filter((src) => src.publisher && src.canonicalUrl).length * 10) +
+      (meta.createdAt && meta.updatedAt ? 10 : 0) +
+      (analyze.runReceipt?.promptVersion || analyze.runReceipt?.snapshotId ? 15 : 0) +
+      (analyze.runReceipt?.contentPolicy ? 10 : 0),
+  );
+
+  let legitimacyStatus: LegitimacyStatus = {
+    label: "vorläufig",
+    text: "Dokumentationsstand: vorläufig (Grundlage im Aufbau).",
+    tone: "neutral",
+  };
+
+  if (clarificationIndex < 50 || totalQuestions > 0) {
+    legitimacyStatus = {
+      label: "in Klärung",
+      text: "Dokumentationsstand: in Klärung (offene Fragen vorhanden).",
+      tone: "warning",
+    };
+  } else if (evidenceIndex >= 60 && transparencyIndex >= 70 && clarificationIndex >= 50) {
+    legitimacyStatus = {
+      label: "abstimmungsreif",
+      text: "Dokumentationsstand: abstimmungsreif (ausreichende Beleglage und Protokolltiefe).",
+      tone: "positive",
+    };
+  } else if (transparencyIndex >= 70 && evidenceIndex < 60) {
+    legitimacyStatus = {
+      label: "dokumentiert",
+      text: "Dokumentationsstand: dokumentiert (Transparenz gegeben, Beleglage ausbaufähig).",
+      tone: "neutral",
+    };
+  }
+
+  const legitimacyMetrics: LegitimacyMetric[] = [
+    {
+      key: "evidenz",
+      label: "Evidenz (Beleglage)",
+      value: evidenceIndex,
+      description: "Wie viele Aussagen sind mit Quellen verknüpft?",
+    },
+    {
+      key: "klaerung",
+      label: "Klärung (offene Punkte)",
+      value: clarificationIndex,
+      description: "Welche Fragen sind noch offen oder in Bearbeitung?",
+    },
+    {
+      key: "perspektiven",
+      label: "Perspektiven (Beteiligung)",
+      value: perspectivesIndex,
+      description: "Welche Gruppen sollten mitreden oder eingebunden werden?",
+    },
+    {
+      key: "transparenz",
+      label: "Transparenz (Protokoll)",
+      value: transparencyIndex,
+      description: "Ist nachvollziehbar, wie das Ergebnis entstanden ist?",
+    },
+  ];
+
   const header = (
     <header className="space-y-6 border-b border-[rgb(var(--border))] pb-8">
-      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[rgb(var(--muted))]">
-        Dossier (Demonstrationsfall)
-      </p>
-      <div className="space-y-2">
-        <p className="text-sm uppercase tracking-[0.3em] text-[rgb(var(--muted))]">
-          Kommunale Bildungsinfrastruktur
-        </p>
-        <h1 className="font-serif text-4xl font-semibold leading-tight text-[rgb(var(--fg))] md:text-6xl">
-          Sanierung oder Neubau einer bestehenden Schule
-        </h1>
-      </div>
-      <div className="text-[11px] text-[rgb(var(--muted))]">[ Kontext · Evidenz · Optionen · Beteiligung ]</div>
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-3">
-          <p className="text-[11px] uppercase tracking-wide text-[rgb(var(--muted))]">Impact-Level</p>
-          <p className="text-sm font-semibold text-[rgb(var(--fg))]">{heroImpact}</p>
+      <div className="grid gap-8 lg:grid-cols-[1.6fr_1fr]">
+        <div className="space-y-6">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[rgb(var(--muted))]">
+            Dossier (Demonstrationsfall)
+          </p>
+          <div className="space-y-2">
+            <p className="text-sm uppercase tracking-[0.3em] text-[rgb(var(--muted))]">
+              Kommunale Bildungsinfrastruktur
+            </p>
+            <h1 className="font-serif text-4xl font-semibold leading-tight text-[rgb(var(--fg))] md:text-6xl">
+              Sanierung oder Neubau einer bestehenden Schule
+            </h1>
+          </div>
+          <div className="text-[11px] text-[rgb(var(--muted))]">[ Kontext · Evidenz · Optionen · Beteiligung ]</div>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-3">
+              <p className="text-[11px] uppercase tracking-wide text-[rgb(var(--muted))]">Wirkungsniveau</p>
+              <p className="text-sm font-semibold text-[rgb(var(--fg))]">{heroImpact}</p>
+            </div>
+            <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-3">
+              <p className="text-[11px] uppercase tracking-wide text-[rgb(var(--muted))]">Entscheidungsrelevanz</p>
+              <p className="text-sm font-semibold text-[rgb(var(--fg))]">{heroRelevance}</p>
+            </div>
+            <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-3">
+              <p className="text-[11px] uppercase tracking-wide text-[rgb(var(--muted))]">Budgetdimension</p>
+              <p className="text-sm font-semibold text-[rgb(var(--fg))]">{heroBudget}</p>
+            </div>
+            <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-3">
+              <p className="text-[11px] uppercase tracking-wide text-[rgb(var(--muted))]">Abstimmungsmodus</p>
+              <p className="text-sm font-semibold text-[rgb(var(--fg))]">{heroParticipation}</p>
+            </div>
+          </div>
+          <p className="max-w-2xl text-lg text-[rgb(var(--muted))]">
+            {analyze.sourceText ?? "Fragestellung des Dossiers."} Dieses Demonstrationsdossier zeigt eine digitale Entscheidungsakte: strukturierte Statements, normierter Optionenraum, Evidenzverknüpfung und Zuständigkeitswege.
+          </p>
+          <p className="text-sm text-[rgb(var(--muted))]">
+            Die Abstimmungsdarstellung ist in dieser Demo simuliert und dient der Veranschaulichung der Beteiligungsebene.
+          </p>
+          <div className="flex flex-wrap gap-2 text-[11px] text-[rgb(var(--muted))]">
+            {metaChips.map((chip) => (
+              <span key={`${chip.label}-${chip.value}`} className="vog-chip">
+                {chip.label}: <span className="font-semibold text-[rgb(var(--fg))]">{chip.value}</span>
+              </span>
+            ))}
+          </div>
         </div>
-        <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-3">
-          <p className="text-[11px] uppercase tracking-wide text-[rgb(var(--muted))]">Entscheidungsrelevanz</p>
-          <p className="text-sm font-semibold text-[rgb(var(--fg))]">{heroRelevance}</p>
+        <div className="space-y-4">
+          <div className={`rounded-xl border p-4 ${legitimacyStatus.tone === "positive" ? "border-emerald-400/40 bg-emerald-400/10" : legitimacyStatus.tone === "warning" ? "border-amber-400/40 bg-amber-400/10" : "border-[rgb(var(--border))] bg-[rgb(var(--card))]"}`}>
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
+              Dokumentationsstand
+            </p>
+            <p className="text-sm font-semibold text-[rgb(var(--fg))]">{legitimacyStatus.label}</p>
+            <p className="text-[11px] text-[rgb(var(--muted))]">{legitimacyStatus.text}</p>
+          </div>
+          <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 space-y-2">
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
+              Status & Protokoll
+            </p>
+            <div className="text-sm text-[rgb(var(--fg))]">
+              Analyseverfahren: {analyze.runReceipt?.pipelineVersion ?? "Strukturiertes Analyseverfahren"}
+            </div>
+            <div className="text-sm text-[rgb(var(--fg))]">
+              Stand: {formatDate(meta.updatedAt ?? meta.createdAt)}
+            </div>
+            <div className="text-[11px] text-[rgb(var(--muted))]">
+              Sprache: {formatLanguage(analyze.language)}
+            </div>
+          </div>
         </div>
-        <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-3">
-          <p className="text-[11px] uppercase tracking-wide text-[rgb(var(--muted))]">Budgetdimension</p>
-          <p className="text-sm font-semibold text-[rgb(var(--fg))]">{heroBudget}</p>
-        </div>
-        <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-3">
-          <p className="text-[11px] uppercase tracking-wide text-[rgb(var(--muted))]">Abstimmungsmodus</p>
-          <p className="text-sm font-semibold text-[rgb(var(--fg))]">{heroParticipation}</p>
-        </div>
-      </div>
-      <p className="max-w-2xl text-lg text-[rgb(var(--muted))]">
-        {analyze.sourceText ?? "Fragestellung des Dossiers."} Dieses Demonstrationsdossier zeigt eine digitale Entscheidungsakte: strukturierte Statements, normierter Optionenraum, Evidenzverknüpfung und Zuständigkeitswege.
-      </p>
-      <p className="text-sm text-[rgb(var(--muted))]">
-        Die Abstimmungsdarstellung ist in dieser Demo simuliert und dient der Veranschaulichung der Beteiligungsebene.
-      </p>
-      <div className="flex flex-wrap gap-2 text-[11px] text-[rgb(var(--muted))]">
-        {metaChips.map((chip) => (
-          <span key={`${chip.label}-${chip.value}`} className="vog-chip">
-            {chip.label}: <span className="font-semibold text-[rgb(var(--fg))]">{chip.value}</span>
-          </span>
-        ))}
       </div>
     </header>
   );
@@ -552,6 +691,16 @@ export function DossierViewer({ dossier }: { dossier: Dossier }) {
         />
       </section>
 
+      <LegitimacyPanel
+        metrics={legitimacyMetrics}
+        status={legitimacyStatus}
+        footnote={
+          <p className="text-[11px] text-[rgb(var(--muted))]">
+            Die Werte dienen der Einordnung im Demo-Dossier und ersetzen keine fachliche Prüfung.
+          </p>
+        }
+      />
+
       <section id="vote" className="space-y-4">
         <div className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
           Abstimmung & Mehrheitsdynamik
@@ -576,7 +725,16 @@ export function DossierViewer({ dossier }: { dossier: Dossier }) {
               saveNotice={saveNotice}
             />
           )}
-          <MajorityTrend options={votingOptions} majorityDemo={majority} savedOptionId={savedOptionId} />
+          <ParticipationStatus
+            options={votingOptions}
+            majorityDemo={majority}
+            savedOptionId={displaySavedOptionId}
+            savedAt={displaySavedAt}
+            totalVotes={presentation.vote?.totalVotes}
+            updatedAt={presentation.vote?.updatedAt}
+            history={presentation.vote?.history}
+            showUserVote={isCitizen}
+          />
         </div>
       </section>
     </>
@@ -726,7 +884,7 @@ export function DossierViewer({ dossier }: { dossier: Dossier }) {
         </div>
         <div className="text-sm text-[rgb(var(--fg))]">Status: {STATUS_LABELS[meta.status] ?? meta.status}</div>
         <div className="text-sm text-[rgb(var(--fg))]">
-          Zuständigkeitsbereich: {JURISDICTION_LABELS[meta.jurisdiction] ?? meta.jurisdiction}
+          Zuständigkeitsebene: {JURISDICTION_LABELS[meta.jurisdiction] ?? meta.jurisdiction}
         </div>
         <div className="text-sm text-[rgb(var(--fg))]">Region: {meta.region ?? "-"}</div>
         <div className="text-sm text-[rgb(var(--fg))]">Zeitfenster: {timeWindow as string}</div>
@@ -740,39 +898,12 @@ export function DossierViewer({ dossier }: { dossier: Dossier }) {
           </>
         ) : null}
       </section>
-
-      <section className="vog-card p-5 space-y-2">
-        <div className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
-          {SECTION_TITLES.methodology}
-        </div>
-        <div className="text-sm text-[rgb(var(--fg))]">
-          Das Dossier folgt einer standardisierten Entscheidungsstruktur: strukturierte Statements, normierter Optionenraum, Evidenzverknüpfung und Zuständigkeitswege. Die Visualisierung dient der Transparenz von Konfliktlinien und Mehrheitsdynamiken.
-        </div>
-        <div className="text-sm text-[rgb(var(--fg))]">Analysemodus: Strukturierter Analysemodus</div>
-        <div className="text-sm text-[rgb(var(--fg))]">Sprache: {analyze.language.toUpperCase()}</div>
-        {analyze.runReceipt ? (
-          <>
-            <div className="text-sm text-[rgb(var(--fg))]">Analyse-Pipeline: Standardisierte Analysepipeline</div>
-            <div className="text-sm text-[rgb(var(--fg))]">Protokoll: {analyze.runReceipt.id}</div>
-            <div className="text-sm text-[rgb(var(--fg))]">Erstellt: {formatDate(analyze.runReceipt.createdAt)}</div>
-          </>
-        ) : (
-          <div className="text-sm text-[rgb(var(--muted))]">Kein Analyseprotokoll vorhanden.</div>
-        )}
-      </section>
-
-      <section className="vog-card p-5 space-y-3">
-        <div className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
-          {SECTION_TITLES.sources}
-        </div>
-        <ul className="space-y-2 text-sm text-[rgb(var(--fg))]">
-          {sources.map((src, idx) => (
-            <li key={`${src.canonicalUrl}-${idx}`}>
-              {src.title ?? src.canonicalUrl} <span className="text-[rgb(var(--muted))]">({src.publisher ?? "-"})</span>
-            </li>
-          ))}
-        </ul>
-      </section>
+      <TransparencyPanel
+        sources={sources}
+        runReceipt={analyze.runReceipt}
+        createdAt={meta.createdAt}
+        updatedAt={meta.updatedAt}
+      />
 
       <section className="vog-card p-5 space-y-2">
         <div className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">

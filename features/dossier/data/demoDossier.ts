@@ -373,7 +373,7 @@ export const demoDossier: Dossier = {
             impactLevel: "Hoch",
             relevance: "10–20 Jahre",
             budgetRange: "30–50 Mio €",
-            participation: "Bürgerbeteiligung (Civic, 5 Optionen)",
+            participation: "Bürgerbeteiligung (mindestens 5 Optionen)",
           },
           viewerRole: "citizen",
           inputs: {
@@ -439,6 +439,14 @@ export const demoDossier: Dossier = {
               { id: "opt-c", pct: 31 },
               { id: "opt-d", pct: 9 },
               { id: "opt-f", pct: 10 },
+            ],
+            totalVotes: 284,
+            updatedAt: "2026-02-22",
+            history: [
+              { date: "2026-02-19", text: "Dossierstart und Eröffnung der Beteiligung" },
+              { date: "2026-02-20", text: "Neue Quelle hinzugefügt" },
+              { date: "2026-02-21", text: "Frage delegiert an die zuständige Stelle" },
+              { date: "2026-02-22", text: "Mehrheitslage aktualisiert" },
             ],
           },
           traceability: {
@@ -840,7 +848,7 @@ export const demoDossier: Dossier = {
     runReceipt: {
       id: "rr-demo-school-2026",
       createdAt: CREATED_AT,
-      pipelineVersion: "Standardisierte Analysepipeline",
+      pipelineVersion: "Standardisiertes Analyseverfahren",
       provider: "demo",
       model: "demo",
       promptVersion: "pr-0035",
