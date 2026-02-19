@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { Dossier } from "@features/dossier";
 import DossierLayout from "./DossierLayout";
 import EvidenceField from "./EvidenceField";
@@ -17,11 +18,13 @@ import {
   STANCE_LABELS,
   VOTE_POLICY_LABELS,
   JURISDICTION_LABELS,
+  UI_DE,
 } from "./labels";
 import {
   getPresentation,
   type PresentationCluster,
   type PresentationVoteOption,
+  type PresentationOrigin,
 } from "./presentation";
 
 type DimensionKey = "haushalt" | "paedagogik" | "klima" | "bauzeit";
@@ -90,15 +93,34 @@ const QUESTION_STATUS_LABELS: Record<string, string> = {
 };
 
 const QUESTION_STATUS_STYLES: Record<string, string> = {
-  offen: "border-amber-400/40 bg-amber-400/10 text-amber-200",
-  in_pruefung: "border-sky-400/40 bg-sky-400/10 text-sky-100",
-  beantwortet: "border-emerald-400/40 bg-emerald-400/10 text-emerald-100",
-  delegiert: "border-slate-400/40 bg-slate-400/10 text-slate-100",
-  open: "border-amber-400/40 bg-amber-400/10 text-amber-200",
-  in_review: "border-sky-400/40 bg-sky-400/10 text-sky-100",
-  answered: "border-emerald-400/40 bg-emerald-400/10 text-emerald-100",
-  closed: "border-slate-400/40 bg-slate-400/10 text-slate-100",
+  offen: "border-slate-500/45 bg-slate-500/10 text-[rgb(var(--fg))]",
+  in_pruefung: "border-violet-500/45 bg-violet-500/12 text-[rgb(var(--fg))]",
+  beantwortet: "border-emerald-500/45 bg-emerald-500/12 text-[rgb(var(--fg))]",
+  delegiert: "border-slate-400/45 bg-slate-400/10 text-[rgb(var(--fg))]",
+  open: "border-slate-500/45 bg-slate-500/10 text-[rgb(var(--fg))]",
+  in_review: "border-violet-500/45 bg-violet-500/12 text-[rgb(var(--fg))]",
+  answered: "border-emerald-500/45 bg-emerald-500/12 text-[rgb(var(--fg))]",
+  closed: "border-slate-400/45 bg-slate-400/10 text-[rgb(var(--fg))]",
 };
+
+const QUESTION_STATUS_ACCENT: Record<string, string> = {
+  offen: "border-l-2 border-l-slate-400/70",
+  in_pruefung: "border-l-2 border-l-violet-500/70",
+  beantwortet: "border-l-2 border-l-emerald-500/70",
+  delegiert: "border-l-2 border-l-slate-400/70",
+  open: "border-l-2 border-l-slate-400/70",
+  in_review: "border-l-2 border-l-violet-500/70",
+  answered: "border-l-2 border-l-emerald-500/70",
+  closed: "border-l-2 border-l-slate-400/70",
+};
+
+const ROLE_LABELS = {
+  citizen: "Bürgersicht",
+  organization: "Organisation",
+  administration: "Verwaltung",
+  journalist: "Journalismus",
+  research: "Forschung",
+} as const;
 
 function formatDate(value?: string | null) {
   if (!value) return "-";
@@ -223,6 +245,58 @@ function formatDimensionLine(chips: string[]) {
   if (mapped.length === 1) return `${mapped[0]}`;
   return mapped.join(" · ");
 }
+
+function statementLineClass(stance?: string | null) {
+  if (stance === "pro") return "border-l-2 border-l-teal-600/70";
+  if (stance === "contra") return "border-l-2 border-l-teal-500/55";
+  return "border-l-2 border-l-teal-400/45";
+}
+
+function renderOriginIcon(kind: PresentationOrigin["kind"], asset?: string) {
+  if (asset) {
+    return <img src={asset} alt="" className="h-full w-full object-contain" />;
+  }
+  if (kind === "community") {
+    return (
+      <svg viewBox="0 0 24 24" aria-hidden="true" className="h-full w-full">
+        <path d="M12 12c2.8 0 5-2.2 5-5s-2.2-5-5-5-5 2.2-5 5 2.2 5 5 5Z" fill="currentColor" />
+        <path d="M4 21c0-3.9 3.6-7 8-7s8 3.1 8 7" fill="none" stroke="currentColor" strokeWidth="2" />
+      </svg>
+    );
+  }
+  if (kind === "association") {
+    return (
+      <svg viewBox="0 0 24 24" aria-hidden="true" className="h-full w-full">
+        <path d="M8 12a4 4 0 0 1 4-4h4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+        <path d="M16 12a4 4 0 0 1-4 4H8" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+        <path d="M14 8h4v4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      </svg>
+    );
+  }
+  if (kind === "media") {
+    return (
+      <svg viewBox="0 0 24 24" aria-hidden="true" className="h-full w-full">
+        <rect x="4" y="4" width="16" height="16" rx="2" fill="none" stroke="currentColor" strokeWidth="2" />
+        <path d="M8 8h8M8 12h8M8 16h6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      </svg>
+    );
+  }
+  return (
+    <svg viewBox="0 0 64 64" aria-hidden="true" className="h-full w-full">
+      <path d="M12 10h40v20c0 16-12 26-20 30-8-4-20-14-20-30V10z" fill="none" stroke="currentColor" strokeWidth="4" />
+    </svg>
+  );
+}
+
+function orderOrigins(origins: PresentationOrigin[], fallbackAdmin?: PresentationOrigin) {
+  const list = origins.length ? [...origins] : [];
+  if (!list.find((origin) => origin.kind === "administration") && fallbackAdmin) {
+    list.unshift(fallbackAdmin);
+  }
+  const order: PresentationOrigin["kind"][] = ["administration", "community", "association", "media"];
+  return list.sort((a, b) => order.indexOf(a.kind) - order.indexOf(b.kind));
+}
+
 function buildEvidenceLinks(claimIds: Set<string>, sourceIds: Set<string>, edges: Dossier["analyze"]["evidenceGraph"]["edges"]) {
   const links: EvidenceLink[] = [];
   for (const edge of edges) {
@@ -248,8 +322,95 @@ export function DossierViewer({ dossier }: { dossier: Dossier }) {
     useDecisionState(meta.id);
   const viewerRole = presentation.viewerRole ?? "citizen";
   const isCitizen = viewerRole === "citizen";
+  const roleLabel = ROLE_LABELS[viewerRole] ?? viewerRole;
+  const canEditOrigins = viewerRole === "admin" || viewerRole === "staff";
+  const canTriggerClarification =
+    viewerRole === "organization" || viewerRole === "administration" || viewerRole === "journalist";
   const displaySavedOptionId = isCitizen ? savedOptionId : null;
   const displaySavedAt = isCitizen ? savedAt : null;
+  const recommendation = presentation.recommendation ?? {};
+  const allowedRecommendationRoles = recommendation.allowedRoles ?? ["organization", "administration", "journalist"];
+  const canSeeRecommendation = allowedRecommendationRoles.includes(viewerRole);
+  const fallbackAdminOrigin = presentation.emblem
+    ? {
+        kind: "administration" as const,
+        label: presentation.emblem.label ?? "Verwaltung",
+        subtitle: presentation.emblem.subtitle ?? "Gemeinde (Verwaltung)",
+        asset: presentation.emblem.asset,
+      }
+    : undefined;
+  const orderedOrigins = orderOrigins(presentation.origins ?? [], fallbackAdminOrigin);
+  const loopOrigins = useMemo(
+    () => (orderedOrigins.length ? [...orderedOrigins, ...orderedOrigins, ...orderedOrigins] : []),
+    [orderedOrigins],
+  );
+  const carouselRef = useRef<HTMLDivElement | null>(null);
+  const [activeCarouselIndex, setActiveCarouselIndex] = useState(0);
+
+  const primaryOriginIndex = useMemo(() => {
+    if (!orderedOrigins.length) return 0;
+    const explicit = orderedOrigins.findIndex((origin) => origin.primary);
+    if (explicit >= 0) return explicit;
+    const adminIndex = orderedOrigins.findIndex((origin) => origin.kind === "administration");
+    if (adminIndex >= 0) return adminIndex;
+    return 0;
+  }, [orderedOrigins]);
+
+  const primaryLoopIndex = useMemo(() => {
+    const base = orderedOrigins.length;
+    return base ? primaryOriginIndex + base : 0;
+  }, [orderedOrigins.length, primaryOriginIndex]);
+
+  useEffect(() => {
+    const container = carouselRef.current;
+    if (!container || loopOrigins.length === 0) return;
+
+    if (!canEditOrigins) {
+      setActiveCarouselIndex(primaryLoopIndex);
+      requestAnimationFrame(() => {
+        const target = container.querySelector<HTMLElement>(`[data-carousel-index="${primaryLoopIndex}"]`);
+        if (target) target.scrollIntoView({ behavior: "auto", inline: "center", block: "nearest" });
+      });
+      return;
+    }
+
+    const updateActive = () => {
+      const cards = Array.from(container.querySelectorAll<HTMLElement>("[data-carousel-index]"));
+      if (!cards.length) return;
+      const center = container.scrollLeft + container.clientWidth / 2;
+      let bestIndex = 0;
+      let bestDistance = Number.POSITIVE_INFINITY;
+      for (const card of cards) {
+        const idx = Number(card.dataset.carouselIndex ?? 0);
+        const cardCenter = card.offsetLeft + card.offsetWidth / 2;
+        const distance = Math.abs(cardCenter - center);
+        if (distance < bestDistance) {
+          bestDistance = distance;
+          bestIndex = idx;
+        }
+      }
+      setActiveCarouselIndex(bestIndex);
+    };
+
+    const handleScroll = () => {
+      const third = container.scrollWidth / 3;
+      if (third > 0) {
+        if (container.scrollLeft < third * 0.5) container.scrollLeft += third;
+        if (container.scrollLeft > third * 1.5) container.scrollLeft -= third;
+      }
+      updateActive();
+    };
+
+    container.scrollLeft = container.scrollWidth / 3;
+    updateActive();
+
+    container.addEventListener("scroll", handleScroll, { passive: true });
+    window.addEventListener("resize", updateActive);
+    return () => {
+      container.removeEventListener("scroll", handleScroll);
+      window.removeEventListener("resize", updateActive);
+    };
+  }, [loopOrigins.length, canEditOrigins, primaryLoopIndex]);
 
   const derivedStats = deriveStatementStats(analyze.claims);
   const statementStats = presentation.statementStats ?? derivedStats;
@@ -312,11 +473,28 @@ export function DossierViewer({ dossier }: { dossier: Dossier }) {
   }
 
   const optionCatalog = presentation.options ?? [];
-  const votingOptions: PresentationVoteOption[] = voteOptions.length
+  const baseVotingOptions: PresentationVoteOption[] = voteOptions.length
     ? voteOptions
     : presentation.vote?.options?.length
       ? presentation.vote.options
       : optionCatalog.map((option) => ({ id: option.id, label: option.label, type: option.type }));
+
+  const voteOptionMap = new Map(baseVotingOptions.map((item) => [item.id, item]));
+  for (const option of optionCatalog) {
+    if (voteOptionMap.size >= 5) break;
+    if (!voteOptionMap.has(option.id)) {
+      voteOptionMap.set(option.id, { id: option.id, label: option.label, type: option.type });
+    }
+  }
+  if (voteOptionMap.size < 5) {
+    for (const optionId of optionStatementIds.keys()) {
+      if (voteOptionMap.size >= 5) break;
+      if (!voteOptionMap.has(optionId)) {
+        voteOptionMap.set(optionId, { id: optionId, label: optionId, type: "custom" });
+      }
+    }
+  }
+  const votingOptions: PresentationVoteOption[] = Array.from(voteOptionMap.values());
 
   const majority = majorityDemo.length
     ? majorityDemo
@@ -436,8 +614,8 @@ export function DossierViewer({ dossier }: { dossier: Dossier }) {
   const metaChips = [
     { label: "Thema", value: presentation.topic?.label ?? "-" },
     { label: "Status", value: STATUS_LABELS[meta.status] ?? meta.status },
-    { label: "Zuständigkeitsebene", value: JURISDICTION_LABELS[meta.jurisdiction] ?? meta.jurisdiction },
-    { label: "Region", value: meta.region ?? "-" },
+    { label: UI_DE.level, value: JURISDICTION_LABELS[meta.jurisdiction] ?? meta.jurisdiction },
+    { label: UI_DE.municipalityRegion, value: meta.region ?? "-" },
     { label: "Zeitfenster", value: String(timeWindow) },
     { label: "Stand", value: formatDate(meta.updatedAt ?? meta.createdAt) },
   ];
@@ -448,6 +626,9 @@ export function DossierViewer({ dossier }: { dossier: Dossier }) {
   const heroParticipation =
     presentation.hero?.participation ??
     `Bürgerbeteiligung (mindestens ${voteConfig?.minOptions ?? 5} Optionen)`;
+  const analysisMethodText = analyze.runReceipt?.pipelineVersion
+    ? `Analyseverfahren: ${analyze.runReceipt.pipelineVersion}`
+    : UI_DE.analysisMethod;
 
   const claimNodes = analyze.claims.map((claim) => ({
     id: claim.id,
@@ -458,9 +639,10 @@ export function DossierViewer({ dossier }: { dossier: Dossier }) {
   }));
 
   const graphNodes = analyze.evidenceGraph?.nodes ?? [];
+  const sourceExcerpts = presentation.sourceExcerpts ?? {};
   const sourceNodes = graphNodes
     .filter((node) => node.type === "evidence")
-    .map((node) => ({ id: node.id, label: node.label }));
+    .map((node) => ({ id: node.id, label: node.label, excerpt: sourceExcerpts[node.id], url: node.url }));
 
   const graphEdges = analyze.evidenceGraph?.edges ?? [];
 
@@ -561,21 +743,21 @@ export function DossierViewer({ dossier }: { dossier: Dossier }) {
   ];
 
   const header = (
-    <header className="space-y-6 border-b border-[rgb(var(--border))] pb-8">
+    <header className="space-y-8 border-b border-[rgb(var(--border))] pb-10">
       <div className="grid gap-8 lg:grid-cols-[1.6fr_1fr]">
         <div className="space-y-6">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[rgb(var(--muted))]">
             Dossier (Demonstrationsfall)
           </p>
-          <div className="space-y-2">
+          <div className="space-y-3">
             <p className="text-sm uppercase tracking-[0.3em] text-[rgb(var(--muted))]">
               Kommunale Bildungsinfrastruktur
             </p>
-            <h1 className="font-serif text-4xl font-semibold leading-tight text-[rgb(var(--fg))] md:text-6xl">
+            <h1 className="headline-grad text-5xl font-extrabold leading-[1.02] tracking-tight md:text-7xl">
               Sanierung oder Neubau einer bestehenden Schule
             </h1>
           </div>
-          <div className="text-[11px] text-[rgb(var(--muted))]">[ Kontext · Evidenz · Optionen · Beteiligung ]</div>
+          <div className="text-[11px] uppercase tracking-[0.18em] text-[rgb(var(--muted))]">[ Kontext · Evidenz · Optionen · Beteiligung ]</div>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-3">
               <p className="text-[11px] uppercase tracking-wide text-[rgb(var(--muted))]">Wirkungsniveau</p>
@@ -594,10 +776,10 @@ export function DossierViewer({ dossier }: { dossier: Dossier }) {
               <p className="text-sm font-semibold text-[rgb(var(--fg))]">{heroParticipation}</p>
             </div>
           </div>
-          <p className="max-w-2xl text-lg text-[rgb(var(--muted))]">
-            {analyze.sourceText ?? "Fragestellung des Dossiers."} Dieses Demonstrationsdossier zeigt eine digitale Entscheidungsakte: strukturierte Statements, normierter Optionenraum, Evidenzverknüpfung und Zuständigkeitswege.
+          <p className="max-w-prose text-lg leading-relaxed text-[rgb(var(--muted))]">
+            {analyze.sourceText ?? "Fragestellung des Dossiers."} Dieses Demonstrationsdossier zeigt eine digitale Entscheidungsakte: strukturierte Kernaussagen, normierter Optionenraum, Evidenzverknüpfung und Zuständigkeitswege.
           </p>
-          <p className="text-sm text-[rgb(var(--muted))]">
+          <p className="text-sm leading-relaxed text-[rgb(var(--muted))]">
             Die Abstimmungsdarstellung ist in dieser Demo simuliert und dient der Veranschaulichung der Beteiligungsebene.
           </p>
           <div className="flex flex-wrap gap-2 text-[11px] text-[rgb(var(--muted))]">
@@ -608,8 +790,8 @@ export function DossierViewer({ dossier }: { dossier: Dossier }) {
             ))}
           </div>
         </div>
-        <div className="space-y-4">
-          <div className={`rounded-xl border p-4 ${legitimacyStatus.tone === "positive" ? "border-emerald-400/40 bg-emerald-400/10" : legitimacyStatus.tone === "warning" ? "border-amber-400/40 bg-amber-400/10" : "border-[rgb(var(--border))] bg-[rgb(var(--card))]"}`}>
+        <div className="flex h-full flex-col gap-4">
+          <div className={`rounded-xl border p-4 ${legitimacyStatus.tone === "positive" ? "border-teal-600/35 bg-teal-600/8" : legitimacyStatus.tone === "warning" ? "border-[rgb(var(--border))] bg-[rgb(var(--card))]" : "border-[rgb(var(--border))] bg-[rgb(var(--card))]"}`}>
             <p className="text-[11px] font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
               Dokumentationsstand
             </p>
@@ -620,9 +802,7 @@ export function DossierViewer({ dossier }: { dossier: Dossier }) {
             <p className="text-[11px] font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
               Status & Protokoll
             </p>
-            <div className="text-sm text-[rgb(var(--fg))]">
-              Analyseverfahren: {analyze.runReceipt?.pipelineVersion ?? "Strukturiertes Analyseverfahren"}
-            </div>
+            <div className="text-sm text-[rgb(var(--fg))]">{analysisMethodText}</div>
             <div className="text-sm text-[rgb(var(--fg))]">
               Stand: {formatDate(meta.updatedAt ?? meta.createdAt)}
             </div>
@@ -630,6 +810,83 @@ export function DossierViewer({ dossier }: { dossier: Dossier }) {
               Sprache: {formatLanguage(analyze.language)}
             </div>
           </div>
+          {orderedOrigins.length ? (
+            <div className="flex min-h-[220px] flex-1 flex-col items-center justify-center gap-4 text-center">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[rgb(var(--muted))]">
+                Initiatoren & Träger
+              </p>
+              <div className="w-full">
+                <div className="relative mx-auto max-w-[360px] overflow-hidden">
+                  <div
+                    ref={carouselRef}
+                    className={`hide-scrollbar flex w-full snap-x snap-mandatory items-stretch gap-4 overflow-x-auto px-6 py-4 ${
+                      canEditOrigins ? "" : "pointer-events-none"
+                    }`}
+                    aria-label="Initiatoren-Karussell"
+                    style={{
+                      WebkitMaskImage:
+                        "linear-gradient(90deg, transparent 0%, black 14%, black 86%, transparent 100%)",
+                      maskImage:
+                        "linear-gradient(90deg, transparent 0%, black 14%, black 86%, transparent 100%)",
+                    }}
+                  >
+                    {loopOrigins.map((origin, index) => {
+                      const loopLen = loopOrigins.length;
+                      const distance = Math.min(
+                        Math.abs(index - activeCarouselIndex),
+                        Math.abs(index - activeCarouselIndex + loopLen),
+                        Math.abs(index - activeCarouselIndex - loopLen),
+                      );
+                      const isActive = index === activeCarouselIndex;
+                      const curve = Math.max(0, 1 - distance / 2.6);
+                      const offset = Math.round(curve * 16);
+                      const scale = isActive ? 1.08 : distance === 1 ? 0.95 : 0.88;
+                      const opacity = isActive ? 1 : distance === 1 ? 0.65 : 0.35;
+                      const showPrimary = !canEditOrigins && index === primaryLoopIndex;
+                      return (
+                        <div
+                          key={`${origin.kind}-${origin.label ?? index}-${index}`}
+                          data-carousel-index={index}
+                          className={`relative snap-center rounded-2xl border bg-[rgb(var(--card))] px-4 py-4 text-center shadow-soft transition-transform duration-300 cursor-pointer ${
+                            isActive || showPrimary
+                              ? "min-w-[240px] border-[rgb(var(--grad-from))] ring-1 ring-[rgb(var(--grad-from))] ring-offset-0 z-10"
+                              : "min-w-[190px] border-[rgb(var(--border))]"
+                          }`}
+                          style={{
+                            transform: `translateY(${offset}px) scale(${scale})`,
+                            opacity,
+                            backgroundImage: isActive
+                              ? "radial-gradient(circle_at_top, rgba(14,165,233,0.12), rgba(15,23,42,0.05))"
+                              : undefined,
+                          }}
+                          onClick={(event) => {
+                            if (!canEditOrigins) return;
+                            const card = event.currentTarget;
+                            card.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+                          }}
+                        >
+                          <div
+                            className={`mx-auto flex items-center justify-center rounded-full bg-[rgb(var(--bg))] text-[rgb(var(--fg))] ${
+                              isActive ? "h-24 w-24" : "h-16 w-16"
+                            }`}
+                          >
+                            {renderOriginIcon(origin.kind, origin.asset)}
+                          </div>
+                          <p className="mt-2 text-sm font-semibold text-[rgb(var(--fg))]">{origin.label ?? "—"}</p>
+                          <p className="text-[11px] text-[rgb(var(--muted))]">{origin.subtitle ?? "—"}</p>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+              <div className="max-w-md space-y-1 text-[11px] text-[rgb(var(--muted))]">
+                <p>Übernimmt die Verwaltung das Thema, liegt dort die Federführung.</p>
+                <p>Weitere Akteure können Community, Verbände/Vereine und Medien sein.</p>
+                <p>Wird kein Status vergeben, orientiert sich die Einordnung an der ursprünglichen Hauptquelle des Themas.</p>
+              </div>
+            </div>
+          ) : null}
         </div>
       </div>
     </header>
@@ -639,7 +896,7 @@ export function DossierViewer({ dossier }: { dossier: Dossier }) {
     <>
       <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Link
-          href={streams[0] ? `/streams/${streams[0].id}` : "/dossier/demo"}
+          href="#streams"
           className="vog-card p-4 space-y-2 transition hover:shadow-soft"
         >
           <div className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
@@ -649,7 +906,7 @@ export function DossierViewer({ dossier }: { dossier: Dossier }) {
           <div className="text-[11px] text-[rgb(var(--muted))]">Alle Themenströme anzeigen</div>
         </Link>
         <Link
-          href={contributions[0] ? `/beitraege/${contributions[0].id}` : "/dossier/demo"}
+          href="#beitraege"
           className="vog-card p-4 space-y-2 transition hover:shadow-soft"
         >
           <div className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Beiträge</div>
@@ -657,7 +914,7 @@ export function DossierViewer({ dossier }: { dossier: Dossier }) {
           <div className="text-[11px] text-[rgb(var(--muted))]">Alle Beiträge anzeigen</div>
         </Link>
         <div className="vog-card p-4 space-y-2">
-          <div className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Statements</div>
+          <div className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">{UI_DE.coreStatements}</div>
           <div className="text-2xl font-semibold text-[rgb(var(--fg))]">
             {statementStats.total ?? derivedStats.total}
           </div>
@@ -688,6 +945,7 @@ export function DossierViewer({ dossier }: { dossier: Dossier }) {
           ctaHref="#vote"
           selectedOptionId={selectedOptionId}
           onSelect={(optionId) => setSelectedOptionId(optionId)}
+          optionRanking={majorityMap}
         />
       </section>
 
@@ -706,25 +964,17 @@ export function DossierViewer({ dossier }: { dossier: Dossier }) {
           Abstimmung & Mehrheitsdynamik
         </div>
         <div className="grid gap-4 lg:grid-cols-[1fr_1.1fr]">
-          {viewerRole === "organization" ? (
-            <div className="vog-card p-5 space-y-2">
-              <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
-                Bürgerabstimmung
-              </p>
-              <p className="text-sm text-[rgb(var(--muted))]">
-                Organisationen stimmen nicht ab. Sie strukturieren, moderieren oder dokumentieren Entscheidungsprozesse.
-              </p>
-            </div>
-          ) : (
-            <VotePanel
-              options={votingOptions}
-              selectedOptionId={selectedOptionId}
-              savedOptionId={savedOptionId}
-              onSelect={setSelectedOptionId}
-              onSave={saveSelection}
-              saveNotice={saveNotice}
-            />
-          )}
+          <VotePanel
+            options={votingOptions}
+            selectedOptionId={selectedOptionId}
+            savedOptionId={savedOptionId}
+            onSelect={setSelectedOptionId}
+            onSave={saveSelection}
+            saveNotice={saveNotice}
+            savedAt={savedAt}
+            canVote={isCitizen}
+            roleLabel={roleLabel}
+          />
           <ParticipationStatus
             options={votingOptions}
             majorityDemo={majority}
@@ -751,6 +1001,7 @@ export function DossierViewer({ dossier }: { dossier: Dossier }) {
         sources={sourceNodes}
         edges={graphEdges}
         optionLinks={optionLinks}
+        optionRanking={majorityMap}
       />
     </section>
   );
@@ -761,6 +1012,7 @@ export function DossierViewer({ dossier }: { dossier: Dossier }) {
         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[rgb(var(--muted))]">
           Argumentationslandschaft
         </p>
+        <div className="h-1 w-16 rounded-full bg-brand-grad opacity-80" />
         <p className="text-sm text-[rgb(var(--muted))]">
           Einordnung der Kernpositionen, Teilaspekte, Spannungsfelder und offenen Fragen.
         </p>
@@ -769,6 +1021,7 @@ export function DossierViewer({ dossier }: { dossier: Dossier }) {
         <div className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
           {SECTION_TITLES.clusters}
         </div>
+        <div className="h-1 w-12 rounded-full bg-brand-grad opacity-70" />
         {clusters.length ? (
           <div className="flex flex-wrap gap-2 text-[11px] text-[rgb(var(--muted))]">
             {clusters.map((cluster) => (
@@ -796,19 +1049,24 @@ export function DossierViewer({ dossier }: { dossier: Dossier }) {
         <div className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
           {SECTION_TITLES.statements}
         </div>
+        <div className="h-1 w-12 rounded-full bg-brand-grad opacity-70" />
 
         <div className="space-y-4">
           <div className="text-sm font-semibold text-[rgb(var(--fg))]">Kernpositionen</div>
           <div className="grid gap-3">
             {coreClaims.map((claim) => (
-              <article key={claim.id} id={`stmt-${claim.id}`} className="vog-card p-5 space-y-3">
+              <article
+                key={claim.id}
+                id={`stmt-${claim.id}`}
+                className={`vog-card p-5 space-y-3 ${statementLineClass(claim.stance)}`}
+              >
                 <div className="flex flex-wrap items-center gap-2 text-[11px] text-[rgb(var(--muted))]">
                   <span className="vog-chip">Position: {STANCE_LABELS[claim.stance ?? ""] ?? "-"}</span>
                   <span className="vog-chip">Wichtigkeit: {claim.importance ?? "-"}</span>
                   <span className="vog-chip">Zuständigkeit: {claim.responsibility ?? "-"}</span>
                 </div>
                 <div>
-                  <p className="text-base font-semibold text-[rgb(var(--fg))]">{claim.title ?? "Statement"}</p>
+                  <p className="text-base font-semibold text-[rgb(var(--fg))]">{claim.title ?? "Kernaussage"}</p>
                   <p className="mt-2 text-sm text-[rgb(var(--muted))]">{claim.text}</p>
                 </div>
               </article>
@@ -820,13 +1078,17 @@ export function DossierViewer({ dossier }: { dossier: Dossier }) {
           <div className="text-sm font-semibold text-[rgb(var(--fg))]">Teilaspekte</div>
           <div className="grid gap-3">
             {secondaryClaims.map((claim) => (
-              <article key={claim.id} id={`stmt-${claim.id}`} className="vog-card p-5 space-y-2">
+              <article
+                key={claim.id}
+                id={`stmt-${claim.id}`}
+                className={`vog-card p-5 space-y-2 ${statementLineClass(claim.stance)}`}
+              >
                 <div className="flex flex-wrap items-center gap-2 text-[11px] text-[rgb(var(--muted))]">
                   <span className="vog-chip">Position: {STANCE_LABELS[claim.stance ?? ""] ?? "-"}</span>
                   <span className="vog-chip">Wichtigkeit: {claim.importance ?? "-"}</span>
                   <span className="vog-chip">Zuständigkeit: {claim.responsibility ?? "-"}</span>
                 </div>
-                <p className="text-sm font-semibold text-[rgb(var(--fg))]">{claim.title ?? "Statement"}</p>
+                <p className="text-sm font-semibold text-[rgb(var(--fg))]">{claim.title ?? "Kernaussage"}</p>
                 <p className="text-sm text-[rgb(var(--muted))]">{claim.text}</p>
               </article>
             ))}
@@ -838,6 +1100,7 @@ export function DossierViewer({ dossier }: { dossier: Dossier }) {
         <div className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
           {SECTION_TITLES.report}
         </div>
+        <div className="h-1 w-12 rounded-full bg-brand-grad opacity-70" />
         <div className="vog-card p-5 space-y-4">
           <p className="text-sm text-[rgb(var(--fg))]">{analyze.report.summary ?? "-"}</p>
           <div className="text-[11px] text-[rgb(var(--muted))]">
@@ -853,6 +1116,7 @@ export function DossierViewer({ dossier }: { dossier: Dossier }) {
         <div className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
           {SECTION_TITLES.decisionTrees}
         </div>
+        <div className="h-1 w-12 rounded-full bg-brand-grad opacity-70" />
         <div className="grid gap-4">
           {analyze.decisionTrees.map((tree) => (
             <div key={tree.id ?? tree.rootStatementId} className="vog-card p-5 space-y-3">
@@ -873,6 +1137,44 @@ export function DossierViewer({ dossier }: { dossier: Dossier }) {
           ))}
         </div>
       </section>
+
+      <section className="space-y-4">
+        <div className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
+          Empfehlung (Kurzansicht)
+        </div>
+        <div className="h-1 w-12 rounded-full bg-brand-grad opacity-70" />
+        <div className="vog-card p-5 space-y-3">
+          <p className="text-[11px] text-[rgb(var(--muted))]">
+            Transparenzhinweis: Die Empfehlung basiert auf Evidenzlage, Klärungsstand, Perspektiven und Zuständigkeiten.
+          </p>
+          {canSeeRecommendation ? (
+            <>
+              <p className="text-sm leading-relaxed text-[rgb(var(--fg))]">
+                {recommendation.fullText ??
+                  "Konsolidierte Empfehlung: Eine gestufte Hybridlösung (Teilneubau + Bestand) mit vorgelagertem Gutachtenpaket bietet im aktuellen Dokumentationsstand das robusteste Verhältnis aus Umsetzbarkeit, Belastungssteuerung und Nachvollziehbarkeit."}
+              </p>
+              <div className="flex flex-wrap items-center gap-2">
+                <button type="button" className="btn btn-ghost text-xs">
+                  {recommendation.ctaLabel ?? "Vollständige Empfehlung öffnen"}
+                </button>
+                <span className="text-[11px] text-[rgb(var(--muted))]">
+                  {recommendation.ctaHint ?? "Zugriff limitiert auf berechtigte Gruppen und Lizenzstufen."}
+                </span>
+              </div>
+            </>
+          ) : (
+            <>
+              <p className="text-sm text-[rgb(var(--fg))] line-clamp-3 opacity-70 blur-[1.2px]">
+                {recommendation.teaser ??
+                  "In der Kurzansicht wird eine konsolidierte Empfehlung angedeutet, die die Ergebnisse des Dossiers zusammenführt. Die vollständige Begründung umfasst Gewichtungen, Abwägungen und eine formalisierte Entscheidungsmatrix."}
+              </p>
+              <p className="text-[11px] text-[rgb(var(--muted))]">
+                Vollzugang ist limitiert und in dieser Rollenansicht („{roleLabel}“) nicht freigeschaltet.
+              </p>
+            </>
+          )}
+        </div>
+      </section>
     </>
   );
 
@@ -884,7 +1186,7 @@ export function DossierViewer({ dossier }: { dossier: Dossier }) {
         </div>
         <div className="text-sm text-[rgb(var(--fg))]">Status: {STATUS_LABELS[meta.status] ?? meta.status}</div>
         <div className="text-sm text-[rgb(var(--fg))]">
-          Zuständigkeitsebene: {JURISDICTION_LABELS[meta.jurisdiction] ?? meta.jurisdiction}
+          {UI_DE.level}: {JURISDICTION_LABELS[meta.jurisdiction] ?? meta.jurisdiction}
         </div>
         <div className="text-sm text-[rgb(var(--fg))]">Region: {meta.region ?? "-"}</div>
         <div className="text-sm text-[rgb(var(--fg))]">Zeitfenster: {timeWindow as string}</div>
@@ -895,6 +1197,9 @@ export function DossierViewer({ dossier }: { dossier: Dossier }) {
               Abstimmungsmodus: {VOTE_POLICY_LABELS[voteConfig.policy] ?? voteConfig.policy}
             </div>
             <div className="text-sm text-[rgb(var(--fg))]">Mindestoptionen: {voteConfig.minOptions}</div>
+            <div className="text-sm text-[rgb(var(--fg))]">
+              {UI_DE.communityOptions}: {voteConfig.allowCommunityOptions ? "aktiv" : "deaktiviert"}
+            </div>
           </>
         ) : null}
       </section>
@@ -910,12 +1215,12 @@ export function DossierViewer({ dossier }: { dossier: Dossier }) {
           Evidenz-Überblick
         </div>
         <div className="text-sm text-[rgb(var(--fg))]">
-          Statements: {analyze.evidenceGraph?.summary.claimCount ?? analyze.claims.length}
+          Kernaussagen: {analyze.evidenceGraph?.summary.claimCount ?? analyze.claims.length}
         </div>
         <div className="text-sm text-[rgb(var(--fg))]">Quellen: {analyze.evidenceGraph?.summary.evidenceCount ?? sources.length}</div>
         <div className="text-sm text-[rgb(var(--fg))]">Kanten: {graphEdges.length}</div>
         <div className="text-sm text-[rgb(var(--fg))]">
-          Verknüpfte Statements: {analyze.evidenceGraph?.summary.linkedClaimCount ?? "-"}
+          Verknüpfte Kernaussagen: {analyze.evidenceGraph?.summary.linkedClaimCount ?? "-"}
         </div>
       </section>
     </>
@@ -933,8 +1238,29 @@ export function DossierViewer({ dossier }: { dossier: Dossier }) {
             const responsible = (q as { responsible?: string }).responsible;
             const supportActors = (q as { supportActors?: string[] }).supportActors ?? [];
             const lastUpdate = (q as { lastUpdate?: string }).lastUpdate;
+            const resolution = (q as { resolution?: string }).resolution;
+            const sourceNote = (q as { sourceNote?: string }).sourceNote;
+            const coordination =
+              responsible && /amt|behörde|dienststelle|ministerium|kammer/i.test(responsible)
+                ? "Behörde/Fachstelle"
+                : responsible
+                  ? "Plattform/Community"
+                  : "Plattform";
+            const statusNote =
+              status === "beantwortet" || status === "answered"
+                ? "Antwort dokumentiert."
+                : status === "in_pruefung" || status === "in_review"
+                  ? "Anfrage gestellt, Rückmeldung ausstehend."
+                  : status === "delegiert" || status === "closed"
+                    ? "Zuständigkeit delegiert, Klärung läuft."
+                    : "Noch keine Antwort dokumentiert.";
             return (
-              <div key={q.id} className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
+              <div
+                key={q.id}
+                className={`rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3 ${
+                  QUESTION_STATUS_ACCENT[status] ?? ""
+                }`}
+              >
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <span
                     className={`inline-flex items-center rounded-full border px-2 py-1 text-[10px] font-semibold uppercase tracking-wide ${
@@ -947,22 +1273,50 @@ export function DossierViewer({ dossier }: { dossier: Dossier }) {
                     <span className="text-[11px] text-[rgb(var(--muted))]">Stand: {formatDate(lastUpdate)}</span>
                   ) : null}
                 </div>
-                <p className="text-sm text-[rgb(var(--fg))]">{q.text}</p>
-                {responsible ? (
-                  <p className="text-[11px] text-[rgb(var(--muted))]">Zuständig für Klärung: {responsible}</p>
-                ) : null}
-                {supportActors.length ? (
+                <div className="mt-4 space-y-2">
+                  <p className="text-sm text-[rgb(var(--fg))]">{q.text}</p>
+                  <p className="text-[11px] text-[rgb(var(--muted))]">{statusNote}</p>
+                  {resolution ? (
+                    <p className="text-[11px] text-[rgb(var(--muted))]">
+                      Antwortdokumentation: {resolution}
+                    </p>
+                  ) : null}
+                  {sourceNote ? (
+                    <p className="text-[11px] text-[rgb(var(--muted))]">Hinweis: {sourceNote}</p>
+                  ) : null}
+                  {responsible ? (
+                    <p className="text-[11px] text-[rgb(var(--muted))]">
+                      Zuständig für Klärung: {responsible}
+                    </p>
+                  ) : null}
                   <p className="text-[11px] text-[rgb(var(--muted))]">
-                    Unterstützend: {supportActors.join(", ")}
+                    Zuständigkeitstyp: {coordination}
                   </p>
-                ) : null}
+                  {supportActors.length ? (
+                    <p className="text-[11px] text-[rgb(var(--muted))]">
+                      Unterstützend: {supportActors.join(", ")}
+                    </p>
+                  ) : null}
+                </div>
               </div>
             );
           })}
         </div>
         <p className="text-[11px] text-[rgb(var(--muted))]">
-          Anfragen an Behörden werden durch die Plattform koordiniert und dokumentiert.
+          Antworten können aus Fachbehörden, Gutachten oder lokalen Quellen stammen. Anfragen werden durch die Plattform koordiniert und dokumentiert.
         </p>
+        {canTriggerClarification ? (
+          <div className="flex flex-wrap items-center gap-2">
+            <button type="button" className="btn btn-ghost text-xs">
+              Klärung anstoßen
+            </button>
+            <span className="text-[11px] text-[rgb(var(--muted))]">Anfragen an Behörden stellt die Plattform.</span>
+          </div>
+        ) : (
+          <span className="text-[11px] text-[rgb(var(--muted))]">
+            Klärung anstoßen ist in dieser Rollenansicht nicht freigeschaltet.
+          </span>
+        )}
       </section>
 
       <section className="vog-card p-5 space-y-3">

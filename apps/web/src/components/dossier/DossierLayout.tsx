@@ -18,22 +18,22 @@ export function DossierLayout({
   afterSidebar,
 }: DossierLayoutProps) {
   return (
-    <section className="space-y-12">
+    <section className="space-y-16">
       {header}
 
-      <div className="grid gap-10 lg:grid-cols-[1.7fr_1fr]">
-        <div className="space-y-10">{mainLeft}</div>
-        <aside className="space-y-6 lg:sticky lg:top-6 lg:self-start">{sidebar}</aside>
+      <div className="grid gap-12 lg:grid-cols-[1.7fr_1fr]">
+        <div className="space-y-12">{mainLeft}</div>
+        <aside className="space-y-8 lg:sticky lg:top-8 lg:self-start">{sidebar}</aside>
       </div>
 
       {fullWidth ? (
-        <div className="space-y-6">{fullWidth}</div>
+        <div className="space-y-8">{fullWidth}</div>
       ) : null}
 
       {afterLeft || afterSidebar ? (
-        <div className="grid gap-10 lg:grid-cols-[1.7fr_1fr]">
-          <div className="space-y-10">{afterLeft}</div>
-          <aside className="space-y-6 lg:sticky lg:top-6 lg:self-start">{afterSidebar}</aside>
+        <div className="grid gap-12 lg:grid-cols-[1.7fr_1fr]">
+          <div className="space-y-12">{afterLeft}</div>
+          <aside className="space-y-8 lg:sticky lg:top-8 lg:self-start">{afterSidebar}</aside>
         </div>
       ) : null}
     </section>

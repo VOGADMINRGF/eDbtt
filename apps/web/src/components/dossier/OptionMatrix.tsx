@@ -36,6 +36,7 @@ type OptionMatrixProps = {
   ctaHref?: string;
   selectedOptionId?: string | null;
   onSelect?: (optionId: string) => void;
+  optionRanking?: Map<string, number>;
 };
 
 const RADAR_SIZE = 72;
@@ -64,14 +65,33 @@ export function OptionMatrix({
   ctaHref = "#vote",
   selectedOptionId,
   onSelect,
+  optionRanking,
 }: OptionMatrixProps) {
+  const hasRanking =
+    optionRanking && Array.from(optionRanking.values()).some((value) => value > 0);
+  const rankedOptions = hasRanking
+    ? [...options].sort(
+        (a, b) => (optionRanking?.get(b.id) ?? 0) - (optionRanking?.get(a.id) ?? 0),
+      )
+    : options;
+
   return (
     <section className="space-y-4">
       <div className="grid gap-4">
-        {options.map((option) => (
+        {rankedOptions.map((option, index) => {
+          const rank = hasRanking ? index : null;
+          const rankClass =
+            rank === 0
+              ? "border-teal-700/45"
+              : rank === 1
+                ? "border-teal-700/35"
+                : rank === 2
+                  ? "border-teal-700/25"
+                  : "";
+          return (
           <article
             key={option.id}
-            className={`vog-card p-5 shadow-soft transition hover:-translate-y-0.5 ${
+            className={`vog-card rounded-xl p-5 shadow-soft transition ${rankClass} ${
               selectedOptionId === option.id
                 ? "border-[rgb(var(--grad-from))] ring-1 ring-[rgb(var(--grad-from))]"
                 : ""
@@ -92,6 +112,7 @@ export function OptionMatrix({
                 <div className="flex flex-wrap items-center gap-2 text-[11px] text-[rgb(var(--muted))]">
                   <span className="vog-chip">{OPTION_TYPE_LABELS[option.type ?? "custom"] ?? "Maßnahme"}</span>
                   {selectedOptionId === option.id ? <span className="vog-chip">Vorauswahl</span> : null}
+                  {rank !== null ? <span className="vog-chip">Rang {rank + 1}</span> : null}
                 </div>
                 <div className="min-h-[64px]">
                   <h3 className="text-lg font-semibold text-[rgb(var(--fg))]">{option.label}</h3>
@@ -112,7 +133,7 @@ export function OptionMatrix({
                   <p className="text-[11px] text-[rgb(var(--muted))]">{option.dimensionNote}</p>
                 ) : null}
                 <div className="text-[11px] text-[rgb(var(--muted))]">
-                  Berührt Statements: {option.touches.length ? option.touches.join(", ") : "-"}
+                  Berührt Kernaussagen: {option.touches.length ? option.touches.join(", ") : "-"}
                 </div>
                 <div className="min-h-[72px] space-y-1 text-[11px] text-[rgb(var(--muted))]">
                   <p>Wirkungsdimensionen: {option.dimensionLine}</p>
@@ -136,6 +157,12 @@ export function OptionMatrix({
                   height={RADAR_SIZE}
                   viewBox={`0 0 ${RADAR_SIZE} ${RADAR_SIZE}`}
                 >
+                  <defs>
+                    <linearGradient id={`radar-grad-${option.id}`} x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stopColor="rgba(56,189,248,0.38)" />
+                      <stop offset="100%" stopColor="rgba(45,212,191,0.22)" />
+                    </linearGradient>
+                  </defs>
                   <circle
                     cx={RADAR_CENTER}
                     cy={RADAR_CENTER}
@@ -161,7 +188,7 @@ export function OptionMatrix({
                   })}
                   <polygon
                     points={renderRadarPoints(option.dimensions)}
-                    fill="rgba(56,189,248,0.18)"
+                    fill={`url(#radar-grad-${option.id})`}
                     stroke="rgba(56,189,248,0.6)"
                     strokeWidth="1.2"
                   />
@@ -169,7 +196,8 @@ export function OptionMatrix({
               </div>
             </div>
           </article>
-        ))}
+          );
+        })}
       </div>
     </section>
   );

@@ -28,6 +28,10 @@ export const demoDossier: Dossier = {
     status: "draft",
     createdAt: CREATED_AT,
     updatedAt: CREATED_AT,
+    revision: {
+      rev: 6,
+      lastChangeAt: "2026-02-22T10:30:00.000Z",
+    },
   },
   analyze: {
     mode: "E150",
@@ -373,9 +377,54 @@ export const demoDossier: Dossier = {
             impactLevel: "Hoch",
             relevance: "10–20 Jahre",
             budgetRange: "30–50 Mio €",
-            participation: "Bürgerbeteiligung (mindestens 5 Optionen)",
+            participation: "Bürgerbeteiligung (mindestens 3 Optionen)",
+          },
+          emblem: {
+            label: "Beispielstadt",
+            subtitle: "Stadtwappen (Demo)",
+            asset: "/media/wappen-beispielstadt.svg",
+            initiative: "gemeinsam",
+          },
+          origins: [
+            {
+              kind: "administration",
+              label: "Beispielstadt",
+              subtitle: "Kommune/Verwaltung",
+              asset: "/media/wappen-beispielstadt.svg",
+              primary: true,
+            },
+            {
+              kind: "community",
+              label: "Bürgerinitiative",
+              subtitle: "Community",
+            },
+            {
+              kind: "association",
+              label: "Regionalverband",
+              subtitle: "Dachverband/Verein",
+            },
+            {
+              kind: "media",
+              label: "Lokale Presse",
+              subtitle: "Medienbezug",
+            },
+          ],
+          sourceExcerpts: {
+            "src-1":
+              "Auszug (Demo): Haushaltsentwurf 2026 sieht eine mittelfristige Investitionslinie für Bildung vor.",
+            "src-2":
+              "Auszug (Demo): Baukostenindex 2025 zeigt weiterhin erhöhte Preissteigerungen im Hochbau.",
           },
           viewerRole: "citizen",
+          recommendation: {
+            allowedRoles: ["organization", "administration", "journalist"],
+            teaser:
+              "In der Kurzansicht wird eine konsolidierte Empfehlung angedeutet. Die vollständige Begründung enthält Gewichtungen, Abwägungen und die vollständige Entscheidungsmatrix.",
+            fullText:
+              "Konsolidierte Empfehlung (Demo): Priorisierung einer Hybridlösung mit vorgelagertem Gutachtenpaket und gestufter Umsetzung, da diese Variante derzeit die beste Balance aus baulicher Umsetzbarkeit, Haushaltsbelastung und Protokolltiefe erreicht.",
+            ctaLabel: "Vollständige Empfehlung öffnen",
+            ctaHint: "Zugriff limitiert auf berechtigte Gruppen und Lizenzstufen.",
+          },
           inputs: {
             streams: [
               {
@@ -486,6 +535,9 @@ export const demoDossier: Dossier = {
               responsible: "Bauamt",
               supportActors: ["Brandschutzdienststelle"],
               lastUpdate: "2026-02-08",
+              resolution:
+                "Vorprüfung durch das Bauamt liegt vor; Risikokategorien und Maßnahmenempfehlungen wurden dokumentiert.",
+              sourceNote: "Interner Prüfvermerk (Demo).",
             },
           ],
         }),
@@ -908,6 +960,66 @@ export const demoDossier: Dossier = {
     minOptions: 5,
     allowCommunityOptions: true,
   },
+  auditTrail: [
+    {
+      id: "aud-1",
+      at: "2026-02-19T08:12:00.000Z",
+      actorRole: "system",
+      actorLabel: "Analysepipeline",
+      action: "Dossier erstellt",
+      targetType: "dossier",
+      note: "Initiale Strukturierung auf Basis der Eingabe.",
+    },
+    {
+      id: "aud-2",
+      at: "2026-02-20T09:10:00.000Z",
+      actorRole: "staff",
+      actorLabel: "Redaktion",
+      action: "Quelle ergänzt",
+      targetType: "source",
+      targetId: "src-2",
+      note: "Baukostenindex 2025 ergänzt.",
+    },
+    {
+      id: "aud-3",
+      at: "2026-02-21T14:22:00.000Z",
+      actorRole: "community",
+      actorLabel: "Bürgerinitiative",
+      action: "Einspruch eingereicht",
+      targetType: "claim",
+      targetId: "stmt-2",
+      note: "Kostenannahmen zum Neubau sind zu präzisieren.",
+    },
+    {
+      id: "aud-4",
+      at: "2026-02-22T10:30:00.000Z",
+      actorRole: "admin",
+      actorLabel: "Dossierleitung",
+      action: "Status geprüft",
+      targetType: "dossier",
+      note: "Dokumentationsstand auf „in Klärung“ bestätigt.",
+    },
+  ],
+  corrections: [
+    {
+      id: "corr-1",
+      createdAt: "2026-02-21T14:22:00.000Z",
+      kind: "objection",
+      targetType: "claim",
+      targetId: "stmt-2",
+      summary: "Kostenannahmen zum Neubau sind zu präzisieren (Angebotsstand unklar).",
+      status: "open",
+    },
+    {
+      id: "corr-2",
+      createdAt: "2026-02-20T11:05:00.000Z",
+      kind: "correction",
+      targetType: "source",
+      targetId: "src-1",
+      summary: "Haushaltsentwurf ergänzt um aktualisierten Investitionsrahmen.",
+      status: "accepted",
+    },
+  ],
 };
 
 export default demoDossier;

@@ -20,8 +20,8 @@ type LegitimacyPanelProps = {
 };
 
 function toneClass(tone?: LegitimacyStatus["tone"]) {
-  if (tone === "positive") return "border-emerald-400/40 bg-emerald-400/10";
-  if (tone === "warning") return "border-amber-400/40 bg-amber-400/10";
+  if (tone === "positive") return "border-teal-600/35 bg-teal-600/8";
+  if (tone === "warning") return "border-[rgb(var(--border))] bg-[rgb(var(--card))]";
   return "border-[rgb(var(--border))] bg-[rgb(var(--card))]";
 }
 
@@ -30,7 +30,7 @@ export function LegitimacyPanel({ metrics, status, footnote }: LegitimacyPanelPr
     <section className="vog-card p-5 space-y-5">
       <div className="space-y-1">
         <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
-          Legitimitäts-Panel
+          Legitimitätsübersicht
         </p>
         <p className="text-sm text-[rgb(var(--muted))]">
           Übersicht über Beleglage, Klärungsstand, Perspektiven und Transparenz.
@@ -45,10 +45,7 @@ export function LegitimacyPanel({ metrics, status, footnote }: LegitimacyPanelPr
               <span>{Math.round(metric.value)}%</span>
             </div>
             <div className="h-2 w-full rounded-full bg-[rgb(var(--border))]">
-              <div
-                className="h-2 rounded-full bg-brand-grad transition-all duration-700"
-                style={{ width: `${Math.round(metric.value)}%` }}
-              />
+              <div className="h-2 rounded-full bg-brand-grad transition-all duration-700" style={{ width: `${Math.round(metric.value)}%` }} />
             </div>
             <p className="text-[11px] text-[rgb(var(--muted))]">{metric.description}</p>
           </div>

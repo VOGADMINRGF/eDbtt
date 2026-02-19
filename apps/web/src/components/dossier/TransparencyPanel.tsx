@@ -1,4 +1,5 @@
 import type { Dossier } from "@features/dossier";
+import { UI_DE } from "./labels";
 
 type TransparencyPanelProps = {
   sources: Dossier["sourceSet"];
@@ -34,13 +35,13 @@ export function TransparencyPanel({ sources, runReceipt, createdAt, updatedAt }:
         Transparenz & Protokoll
       </div>
       <div className="space-y-1 text-sm text-[rgb(var(--fg))]">
-        <div>Analyseverfahren: {runReceipt?.pipelineVersion ?? "Strukturiertes Analyseverfahren"}</div>
+        <div>{runReceipt?.pipelineVersion ? `Analyseverfahren: ${runReceipt.pipelineVersion}` : UI_DE.analysisMethod}</div>
         <div>Verfahrensversion: {runReceipt?.promptVersion ?? "—"}</div>
         <div>Protokoll-ID: {runReceipt?.id ?? "—"}</div>
         <div>Dokumentationsstand: {runReceipt?.snapshotId ?? "—"}</div>
       </div>
       <div className="text-[11px] text-[rgb(var(--muted))]">
-        Erstellt: {formatDate(createdAt)} · Aktualisiert: {formatDate(updatedAt ?? createdAt)}
+        {UI_DE.created}: {formatDate(createdAt)} · {UI_DE.updated}: {formatDate(updatedAt ?? createdAt)}
       </div>
       <div className="text-[11px] text-[rgb(var(--muted))]">{dataPolicyText(runReceipt?.contentPolicy)}</div>
       <div className="pt-2 text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Quellen</div>

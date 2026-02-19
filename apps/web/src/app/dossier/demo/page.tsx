@@ -9,8 +9,8 @@ export const metadata: Metadata = {
 
 export default function DossierDemoPage() {
   return (
-    <main className="min-h-screen bg-[radial-gradient(circle_at_top,rgb(248,250,252)_0%,rgb(241,245,249)_45%,rgb(226,232,240)_100%)] dark:bg-[radial-gradient(circle_at_top,rgb(15,23,42)_0%,rgb(2,6,23)_45%,rgb(2,6,23)_100%)]">
-      <div className="mx-auto w-full max-w-[1400px] px-8 py-16">
+    <main className="dossier-editorial min-h-screen bg-[radial-gradient(circle_at_top,var(--dossier-top)_0%,var(--dossier-mid)_45%,var(--dossier-bottom)_100%)] text-[rgb(var(--fg))]">
+      <div className="mx-auto w-full max-w-screen-2xl px-6 py-18 lg:px-10">
         <DossierViewer dossier={demoDossier} />
       </div>
     </main>

@@ -9,7 +9,20 @@ type VotePanelProps = {
   onSelect: (optionId: string) => void;
   onSave: () => void;
   saveNotice: boolean;
+  savedAt?: string | null;
+  canVote?: boolean;
+  roleLabel?: string;
 };
+
+function formatDateTime(value?: string | null) {
+  if (!value) return "-";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return new Intl.DateTimeFormat("de-DE", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(date);
+}
 
 export function VotePanel({
   options,
@@ -18,6 +31,9 @@ export function VotePanel({
   onSelect,
   onSave,
   saveNotice,
+  savedAt,
+  canVote = true,
+  roleLabel,
 }: VotePanelProps) {
   const showPreselect = selectedOptionId && selectedOptionId !== savedOptionId;
   const isSaved = selectedOptionId && selectedOptionId === savedOptionId;
@@ -44,6 +60,7 @@ export function VotePanel({
               name="vote"
               value={option.id}
               checked={selectedOptionId === option.id}
+              disabled={!canVote}
               onChange={() => onSelect(option.id)}
             />
             <span>{option.label}</span>
@@ -66,15 +83,23 @@ export function VotePanel({
         type="button"
         className="btn btn-primary w-full"
         onClick={onSave}
-        disabled={!selectedOptionId || selectedOptionId === savedOptionId}
+        disabled={!canVote || !selectedOptionId || selectedOptionId === savedOptionId}
       >
         {isSaved ? "✔ Stimme gespeichert" : "Stimme speichern"}
       </button>
 
+      {!canVote ? (
+        <p className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-[11px] text-[rgb(var(--muted))]">
+          Abstimmen ist Bürgerinnen und Bürgern vorbehalten. In der Rollenansicht „{roleLabel ?? "Organisation"}“
+          werden Materialien bereitgestellt und Prozesse moderiert.
+        </p>
+      ) : null}
+
       {saveNotice ? (
-        <div className="flex items-center gap-2 text-[11px] text-[rgb(var(--muted))]">
+        <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-[11px] text-[rgb(var(--muted))]">
           <span className="text-[rgb(var(--fg))]">✓</span>
-          <span>Deine Stimme wurde registriert (Demonstration).</span>
+          <span className="ml-1">Stimme gespeichert · Danke</span>
+          {savedAt ? <span className="ml-1">({formatDateTime(savedAt)})</span> : null}
         </div>
       ) : null}
       {isSaved ? (

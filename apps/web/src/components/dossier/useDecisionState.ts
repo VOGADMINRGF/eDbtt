@@ -28,7 +28,7 @@ export function useDecisionState(dossierId: string): DecisionState {
       setSavedOptionId(stored);
     }
     if (storedAt) setSavedAt(storedAt);
-  }, [storageKey]);
+  }, [storageKey, timeKey]);
 
   const saveSelection = () => {
     if (!selectedOptionId || typeof window === "undefined") return;

@@ -37,18 +37,39 @@ export const JURISDICTION_LABELS: Record<string, string> = {
   global: "International",
 };
 
+export const UI_DE = {
+  levelMunicipal: "Ebene: Kommune",
+  level: "Ebene",
+  municipalityRegion: "Kommune/Region",
+  created: "Erstellt",
+  updated: "Aktualisiert",
+  analysisMethod: "Analyseverfahren: Standardisierte Dossieranalyse",
+  voteMode: "Abstimmungsmodus: Bürgerbeteiligung",
+  minOptions: "Mindestoptionen",
+  communityOptions: "Community-Optionen",
+  methodProtocol: "Methode & Protokoll",
+  evidence: "Evidenz",
+  evidenceField: "Evidenzfeld",
+  coreStatements: "Kernaussagen",
+  decisionPaths: "Entscheidungswege",
+  scenarios: "Szenarien",
+  material: "Material",
+  streams: "Themenströme",
+  contributions: "Beiträge",
+} as const;
+
 export const SECTION_TITLES = {
   options: "Optionenraum",
-  statements: "Statement-Landschaft",
+  statements: "Kernaussagen-Landschaft",
   evidence: "Evidenz & Quellen",
   report: "Berichtszusammenfassung",
-  decisionTrees: "Entscheidungsbäume",
+  decisionTrees: "Entscheidungswege",
   metadata: "Akte",
-  methodology: "Methodik & Protokoll",
+  methodology: "Methode & Protokoll",
   sources: "Quellen",
   questions: "Offene Fragen",
   responsibilityPaths: "Verantwortungswege",
-  graph: "Evidenz-Mindmap",
+  graph: "Evidenzfeld",
   clusters: "Cluster & Spannungen",
 };
 

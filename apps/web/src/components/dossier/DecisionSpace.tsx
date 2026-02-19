@@ -28,15 +28,23 @@ type DecisionSpaceProps = {
   ctaHref?: string;
   selectedOptionId?: string | null;
   onSelect?: (optionId: string) => void;
+  optionRanking?: Map<string, number>;
 };
 
-export function DecisionSpace({ options, ctaHref, selectedOptionId, onSelect }: DecisionSpaceProps) {
+export function DecisionSpace({
+  options,
+  ctaHref,
+  selectedOptionId,
+  onSelect,
+  optionRanking,
+}: DecisionSpaceProps) {
   return (
     <OptionMatrix
       options={options}
       ctaHref={ctaHref}
       selectedOptionId={selectedOptionId}
       onSelect={onSelect}
+      optionRanking={optionRanking}
     />
   );
 }

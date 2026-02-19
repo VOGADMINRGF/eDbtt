@@ -318,6 +318,12 @@ export const RunReceiptSourceSchema = z
     publisher: z.string().optional(),
     publisherKey: z.string().optional(),
     sourceClass: z.string().optional(),
+    sourceType: z.enum(["gov", "research", "media", "community", "other"]).optional(),
+    timeRange: z.string().optional(),
+    location: z.string().optional(),
+    audience: z.string().optional(),
+    assumptions: z.array(z.string()).optional(),
+    conflicts: z.string().optional(),
     fetchedAt: z.string().optional(),
     title: z.string().optional(),
   })
@@ -480,10 +486,23 @@ export const StatementRecordSchema = z.object({
   // NEU: mehrere redaktionelle Domains möglich (Multi-Tag); domain bleibt kompatibel als "primäre" Domain
   domains: z.array(z.string()).nullable().optional(),
   stance: z.enum(["pro", "neutral", "contra"]).nullable().optional(),
+  statementType: z.enum(["fact", "interpretation", "value", "question"]).nullable().optional(),
   debateFrame: DebateFrameSchema.optional(),
 });
 
 export type StatementRecord = z.infer<typeof StatementRecordSchema>;
+
+export const FindingRecordSchema = z
+  .object({
+    id: z.string(),
+    claimId: z.string(),
+    sourceId: z.string(),
+    finding: z.enum(["supports", "contradicts", "unclear", "mentions"]),
+    rationale: z.string().optional(),
+    excerptRef: z.string().optional(),
+  })
+  .strict();
+export type FindingRecord = z.infer<typeof FindingRecordSchema>;
 
 /* ---------- Notes / Fragen / Knoten ---------- */
 
@@ -673,6 +692,7 @@ export const AnalyzeResultSchema = z.object({
   sourceText: z.string().nullable(),
   language: z.string(),
   claims: z.array(StatementRecordSchema),
+  findings: z.array(FindingRecordSchema).default([]),
   notes: z.array(NoteRecordSchema),
   questions: z.array(QuestionRecordSchema),
   missingPerspectives: z.array(MissingPerspectiveSchema).default([]),

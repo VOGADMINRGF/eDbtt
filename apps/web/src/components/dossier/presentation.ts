@@ -39,7 +39,39 @@ type PresentationHero = {
   participation?: string;
 };
 
+type PresentationEmblem = {
+  label?: string;
+  subtitle?: string;
+  asset?: string;
+  initiative?: "volk" | "verwaltung" | "gemeinsam";
+};
+
 type EvidenceLevel = "none" | "linked" | "multi";
+
+type PresentationRole =
+  | "citizen"
+  | "organization"
+  | "administration"
+  | "admin"
+  | "staff"
+  | "journalist"
+  | "research";
+
+type PresentationOrigin = {
+  kind: "administration" | "community" | "association" | "media";
+  label?: string;
+  subtitle?: string;
+  asset?: string;
+  primary?: boolean;
+};
+
+type PresentationRecommendation = {
+  allowedRoles?: PresentationRole[];
+  teaser?: string;
+  fullText?: string;
+  ctaLabel?: string;
+  ctaHint?: string;
+};
 
 type PresentationTraceability = {
   streamsToStatements?: Record<string, string[]>;
@@ -53,12 +85,18 @@ type PresentationOpenQuestion = {
   responsible?: string;
   supportActors?: string[];
   lastUpdate?: string;
+  resolution?: string;
+  sourceNote?: string;
 };
 
 type PresentationPayload = {
   topic?: PresentationTopic;
   hero?: PresentationHero;
-  viewerRole?: "citizen" | "organization";
+  emblem?: PresentationEmblem;
+  origins?: PresentationOrigin[];
+  viewerRole?: PresentationRole;
+  recommendation?: PresentationRecommendation;
+  sourceExcerpts?: Record<string, string>;
   inputs?: Record<string, unknown>;
   statementStats?: {
     total?: number;
@@ -154,6 +192,16 @@ export function getPresentation(dossier: Dossier): PresentationResult {
       }
 
       if (parsed.hero) result.hero = { ...result.hero, ...parsed.hero };
+      if (parsed.emblem) result.emblem = { ...result.emblem, ...parsed.emblem };
+      if (Array.isArray(parsed.origins)) {
+        result.origins = [...(result.origins ?? []), ...parsed.origins];
+      }
+      if (parsed.recommendation) {
+        result.recommendation = { ...(result.recommendation ?? {}), ...parsed.recommendation };
+      }
+      if (parsed.sourceExcerpts) {
+        result.sourceExcerpts = { ...(result.sourceExcerpts ?? {}), ...parsed.sourceExcerpts };
+      }
       if (parsed.inputs) result.inputs = { ...(result.inputs ?? {}), ...parsed.inputs };
       if (parsed.statementStats) result.statementStats = parsed.statementStats;
       if (parsed.clusters) result.clusters = parsed.clusters;
@@ -237,5 +285,9 @@ export type {
   PresentationPayload,
   PresentationTraceability,
   PresentationHero,
+  PresentationEmblem,
+  PresentationOrigin,
+  PresentationRole,
+  PresentationRecommendation,
   PresentationOpenQuestion,
 };

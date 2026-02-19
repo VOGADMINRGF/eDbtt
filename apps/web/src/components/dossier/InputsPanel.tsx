@@ -18,7 +18,7 @@ function renderStatementHint(ids: string[] | undefined, statementTitleById: Map<
   if (!ids || ids.length === 0) return "Keine Zuordnung";
   const titles = ids.map((id) => statementTitleById.get(id) ?? id);
   const preview = titles.slice(0, 2).join(", ");
-  return `${titles.length} Statements${preview ? ` · ${preview}` : ""}`;
+  return `${titles.length} Kernaussagen${preview ? ` · ${preview}` : ""}`;
 }
 
 export function InputsPanel({ streams, contributions, traceability, statementTitleById }: InputsPanelProps) {
@@ -27,7 +27,7 @@ export function InputsPanel({ streams, contributions, traceability, statementTit
 
   return (
     <section className="grid gap-4 md:grid-cols-[1.1fr_0.9fr]">
-      <div className="vog-card p-5 space-y-3">
+      <div id="streams" className="vog-card p-5 space-y-3">
         <div className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Material</div>
         <div className="space-y-3">
           <div className="space-y-2">
@@ -55,7 +55,7 @@ export function InputsPanel({ streams, contributions, traceability, statementTit
         </div>
       </div>
 
-      <div className="vog-card p-5 space-y-3">
+      <div id="beitraege" className="vog-card p-5 space-y-3">
         <div className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Beiträge</div>
         <div className="space-y-2 text-sm">
           {contributions.length ? (

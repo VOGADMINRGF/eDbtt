@@ -6,21 +6,21 @@ type EvidenceStatusProps = {
 };
 
 const LEVEL_LABELS: Record<EvidenceLevel, string> = {
-  none: "Keine direkte Quellenverknüpfung",
+  none: "Noch ohne Beleg",
   linked: "Direkt belegt",
   multi: "Mehrfach belegt",
 };
 
 const LEVEL_DESCRIPTIONS: Record<EvidenceLevel, string> = {
   none:
-    "Für diese Option liegt derzeit keine direkte Quellenverknüpfung im Dossier vor. Sie basiert auf Struktur- oder Prozessüberlegungen.",
+    "Für diese Option liegt derzeit keine direkte Quellenverknüpfung im Dossier vor. Sie basiert aktuell auf Struktur- oder Prozessüberlegungen.",
   linked: "Diese Option ist mit mindestens einer Quelle im Dossier verknüpft.",
   multi: "Mehrere Quellen stützen diese Option im Dossier.",
 };
 
 function levelClass(level: EvidenceLevel) {
   if (level === "none") return "border-slate-400/40 bg-slate-400/10";
-  if (level === "linked") return "border-sky-400/40 bg-sky-400/10";
+  if (level === "linked") return "border-teal-600/35 bg-teal-600/10";
   return "border-emerald-400/40 bg-emerald-400/10";
 }
 
@@ -40,6 +40,11 @@ export function EvidenceStatus({ level, density: _density }: EvidenceStatusProps
         Evidenzdichte beschreibt, wie viele Quellen direkt mit dieser Option verknüpft sind.
       </p>
       <p className="text-[10px] text-[rgb(var(--muted))]">Evidenzdichte: {densityLabel}</p>
+      {level === "none" ? (
+        <p className="text-[10px] text-[rgb(var(--muted))]">
+          Material kann vorgeschlagen werden; die Plattform prüft und verknüpft geeignete Quellen.
+        </p>
+      ) : null}
     </div>
   );
 }

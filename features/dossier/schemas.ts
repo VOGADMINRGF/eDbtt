@@ -107,6 +107,12 @@ export const DossierMetaSchema = z
     owner: z.string().optional(),
     createdAt: z.string(),
     updatedAt: z.string().optional(),
+    revision: z
+      .object({
+        rev: z.number().int().nonnegative(),
+        lastChangeAt: z.string(),
+      })
+      .optional(),
   })
   .strict();
 export type DossierMeta = z.infer<typeof DossierMetaSchema>;
@@ -136,6 +142,37 @@ export const DossierSchema = z
     analyze: AnalyzeResultSchema,
     sourceSet: z.array(RunReceiptSourceSchema).default([]),
     voteConfig: VoteConfigSchema.optional(),
+    auditTrail: z
+      .array(
+        z
+          .object({
+            id: z.string().min(1),
+            at: z.string().min(1),
+            actorRole: z.string().min(1),
+            actorLabel: z.string().min(1).optional(),
+            action: z.string().min(1),
+            targetType: z.string().min(1),
+            targetId: z.string().min(1).optional(),
+            note: z.string().min(1).optional(),
+          })
+          .strict(),
+      )
+      .optional(),
+    corrections: z
+      .array(
+        z
+          .object({
+            id: z.string().min(1),
+            createdAt: z.string().min(1),
+            kind: z.enum(["correction", "objection"]),
+            targetType: z.enum(["claim", "source", "question"]),
+            targetId: z.string().min(1),
+            summary: z.string().min(1),
+            status: z.enum(["open", "accepted", "rejected"]),
+          })
+          .strict(),
+      )
+      .optional(),
   })
   .strict();
 export type Dossier = z.infer<typeof DossierSchema>;
