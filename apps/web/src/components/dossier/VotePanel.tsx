@@ -20,6 +20,7 @@ export function VotePanel({
   saveNotice,
 }: VotePanelProps) {
   const showPreselect = selectedOptionId && selectedOptionId !== savedOptionId;
+  const isSaved = selectedOptionId && selectedOptionId === savedOptionId;
 
   return (
     <div className="vog-card p-5 space-y-4">
@@ -67,7 +68,7 @@ export function VotePanel({
         onClick={onSave}
         disabled={!selectedOptionId || selectedOptionId === savedOptionId}
       >
-        Stimme speichern
+        {isSaved ? "✔ Stimme gespeichert" : "Stimme speichern"}
       </button>
 
       {saveNotice ? (
@@ -75,6 +76,11 @@ export function VotePanel({
           <span className="text-[rgb(var(--fg))]">✓</span>
           <span>Deine Stimme wurde registriert (Demonstration).</span>
         </div>
+      ) : null}
+      {isSaved ? (
+        <p className="text-[11px] text-[rgb(var(--muted))]">
+          Du kannst deine Stimme innerhalb des Zeitfensters ändern.
+        </p>
       ) : null}
     </div>
   );

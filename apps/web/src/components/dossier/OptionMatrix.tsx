@@ -20,6 +20,10 @@ type OptionCard = {
   evidenceCount: number;
   evidenceDensity: number;
   evidenceLevel: "none" | "linked" | "multi";
+  evidenceScore: number;
+  dimensionLine: string;
+  clarifiedCount: number;
+  questionTotal: number;
   budgetRange: string;
   riskProfile: string;
   clusterLabel?: string;
@@ -110,15 +114,11 @@ export function OptionMatrix({
                 <div className="text-[11px] text-[rgb(var(--muted))]">
                   Berührt Statements: {option.touches.length ? option.touches.join(", ") : "-"}
                 </div>
-                <div className="min-h-[40px] flex flex-wrap gap-3 text-[11px] text-[rgb(var(--muted))]">
-                  <span>Statements: {option.statementCount}</span>
-                  <span>Evidenz: {option.evidenceCount}</span>
-                  <span>Budget: {option.budgetRange}</span>
-                  <span>Risiko: {option.riskProfile}</span>
-                  {option.clusterLabel ? <span>Cluster: {option.clusterLabel}</span> : null}
-                  {typeof option.majorityPct === "number" ? (
-                    <span>Tendenz: {option.majorityPct}%</span>
-                  ) : null}
+                <div className="min-h-[72px] space-y-1 text-[11px] text-[rgb(var(--muted))]">
+                  <p>Wirkungsdimensionen: {option.dimensionLine}</p>
+                  <p>Evidenzdichte: {option.evidenceScore}</p>
+                  <p>Verknüpfte Aussagen: {option.statementCount}</p>
+                  <p>Offene Fragen geklärt: {option.clarifiedCount} / {option.questionTotal || 0}</p>
                 </div>
                 <div className="min-h-[96px]">
                   <EvidenceStatus level={option.evidenceLevel} density={option.evidenceDensity} />

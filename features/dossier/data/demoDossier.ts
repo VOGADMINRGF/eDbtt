@@ -458,7 +458,7 @@ export const demoDossier: Dossier = {
             {
               id: "q1",
               text: "Wie entwickeln sich die Schülerzahlen in den kommenden 10 Jahren?",
-              status: "open",
+              status: "offen",
               responsible: "Statistikamt",
               supportActors: ["Schulamt", "Landesbildungsbehörde"],
               lastUpdate: "2026-02-19",
@@ -466,7 +466,7 @@ export const demoDossier: Dossier = {
             {
               id: "q2",
               text: "Welche Förderprogramme laufen innerhalb der nächsten 24 Monate aus?",
-              status: "in_review",
+              status: "in_pruefung",
               responsible: "Landesbildungsbehörde",
               supportActors: ["Kämmerei"],
               lastUpdate: "2026-02-12",
@@ -474,7 +474,7 @@ export const demoDossier: Dossier = {
             {
               id: "q3",
               text: "Welche baulichen Risiken bestehen im Bestand (Statik, Schadstoffe, Brandschutz)?",
-              status: "answered",
+              status: "beantwortet",
               responsible: "Bauamt",
               supportActors: ["Brandschutzdienststelle"],
               lastUpdate: "2026-02-08",

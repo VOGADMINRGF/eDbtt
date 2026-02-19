@@ -38,6 +38,10 @@ type OptionCard = {
   evidenceCount: number;
   evidenceDensity: number;
   evidenceLevel: "none" | "linked" | "multi";
+  evidenceScore: number;
+  dimensionLine: string;
+  clarifiedCount: number;
+  questionTotal: number;
   budgetRange: string;
   riskProfile: string;
   clusterLabel?: string;
@@ -73,10 +77,25 @@ const OPTION_RISK: Record<string, string> = {
 };
 
 const QUESTION_STATUS_LABELS: Record<string, string> = {
+  offen: "Offen",
+  in_pruefung: "In Prüfung",
+  beantwortet: "Beantwortet",
+  delegiert: "Delegiert",
   open: "Offen",
   in_review: "In Klärung",
   answered: "Beantwortet",
   closed: "Delegiert",
+};
+
+const QUESTION_STATUS_STYLES: Record<string, string> = {
+  offen: "border-amber-400/40 bg-amber-400/10 text-amber-200",
+  in_pruefung: "border-sky-400/40 bg-sky-400/10 text-sky-100",
+  beantwortet: "border-emerald-400/40 bg-emerald-400/10 text-emerald-100",
+  delegiert: "border-slate-400/40 bg-slate-400/10 text-slate-100",
+  open: "border-amber-400/40 bg-amber-400/10 text-amber-200",
+  in_review: "border-sky-400/40 bg-sky-400/10 text-sky-100",
+  answered: "border-emerald-400/40 bg-emerald-400/10 text-emerald-100",
+  closed: "border-slate-400/40 bg-slate-400/10 text-slate-100",
 };
 
 function formatDate(value?: string | null) {
@@ -184,6 +203,13 @@ function dimensionNoteForOption(label: string, type?: string, chipCount = 0) {
   }
   return "Querschnittsthema ohne dominante Entscheidungsdimension.";
 }
+
+function formatDimensionLine(chips: string[]) {
+  const mapped = chips.map((chip) => (chip === "Haushalt" ? "Budget" : chip));
+  if (!mapped.includes("Risiko")) mapped.push("Risiko");
+  if (mapped.length === 1) return `${mapped[0]}`;
+  return mapped.join(" · ");
+}
 function buildEvidenceLinks(claimIds: Set<string>, sourceIds: Set<string>, edges: Dossier["analyze"]["evidenceGraph"]["edges"]) {
   const links: EvidenceLink[] = [];
   for (const edge of edges) {
@@ -235,6 +261,12 @@ export function DossierViewer({ dossier }: { dossier: Dossier }) {
     openQuestions.length > 0
       ? openQuestions
       : analyze.questions.map((q) => ({ id: q.id, text: q.text }));
+
+  const clarifiedCount = questionsForDisplay.filter((q) => {
+    const status = (q as { status?: string }).status;
+    return status === "beantwortet" || status === "answered";
+  }).length;
+  const questionTotal = questionsForDisplay.length;
 
   const optionStatementIds = new Map<string, string[]>();
   for (const claim of analyze.claims) {
@@ -330,6 +362,9 @@ export function DossierViewer({ dossier }: { dossier: Dossier }) {
     const computedLevel =
       evidenceCount === 0 ? "none" : evidenceCount > 1 ? "multi" : "linked";
 
+    const evidenceScore = evidenceCount === 0 ? 0 : evidenceCount === 1 ? 1 : 2;
+    const dimensionLine = formatDimensionLine(chips);
+
     return {
       id: vote.id,
       label: vote.label,
@@ -342,6 +377,10 @@ export function DossierViewer({ dossier }: { dossier: Dossier }) {
       evidenceCount,
       evidenceDensity: 0,
       evidenceLevel: full?.evidenceLevel ?? computedLevel,
+      evidenceScore,
+      dimensionLine,
+      clarifiedCount,
+      questionTotal,
       budgetRange: OPTION_BUDGET[vote.id] ?? "—",
       riskProfile: OPTION_RISK[vote.id] ?? "mittel",
       clusterLabel,
@@ -524,7 +563,7 @@ export function DossierViewer({ dossier }: { dossier: Dossier }) {
                 Bürgerabstimmung
               </p>
               <p className="text-sm text-[rgb(var(--muted))]">
-                Diese Ansicht zeigt die Bürgerabstimmung. Organisationen und Verwaltungen nehmen nicht als Einzelstimme teil.
+                Organisationen stimmen nicht ab. Sie strukturieren, moderieren oder dokumentieren Entscheidungsprozesse.
               </p>
             </div>
           ) : (
@@ -766,7 +805,11 @@ export function DossierViewer({ dossier }: { dossier: Dossier }) {
             return (
               <div key={q.id} className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <span className="text-[11px] font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
+                  <span
+                    className={`inline-flex items-center rounded-full border px-2 py-1 text-[10px] font-semibold uppercase tracking-wide ${
+                      QUESTION_STATUS_STYLES[status] ?? "border-[rgb(var(--border))] bg-[rgb(var(--bg))] text-[rgb(var(--fg))]"
+                    }`}
+                  >
                     {QUESTION_STATUS_LABELS[status] ?? "Offen"}
                   </span>
                   {lastUpdate ? (
@@ -775,7 +818,7 @@ export function DossierViewer({ dossier }: { dossier: Dossier }) {
                 </div>
                 <p className="text-sm text-[rgb(var(--fg))]">{q.text}</p>
                 {responsible ? (
-                  <p className="text-[11px] text-[rgb(var(--muted))]">Zuständig: {responsible}</p>
+                  <p className="text-[11px] text-[rgb(var(--muted))]">Zuständig für Klärung: {responsible}</p>
                 ) : null}
                 {supportActors.length ? (
                   <p className="text-[11px] text-[rgb(var(--muted))]">

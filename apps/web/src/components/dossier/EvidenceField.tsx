@@ -353,7 +353,7 @@ export function EvidenceField({ options, claims, sources, edges, optionLinks }: 
                   onClick={() => setFocused((prev) => (prev?.id === option.id && prev.type === "option" ? null : { type: "option", id: option.id }))}
                   onMouseEnter={() => setHovered({ type: "option", id: option.id })}
                   onMouseLeave={() => setHovered(null)}
-                  className={`w-full rounded-xl border px-3 py-2 text-left text-sm text-[rgb(var(--fg))] transition ${
+                  className={`w-full rounded-xl border px-3 py-2 text-left text-sm text-[rgb(var(--fg))] transition-opacity duration-200 ${
                     isActive ? "opacity-100" : "opacity-40"
                   } ${optionStyle()}`}
                 >
@@ -379,7 +379,7 @@ export function EvidenceField({ options, claims, sources, edges, optionLinks }: 
                   onClick={() => setFocused((prev) => (prev?.id === claim.id && prev.type === "claim" ? null : { type: "claim", id: claim.id }))}
                   onMouseEnter={() => setHovered({ type: "claim", id: claim.id })}
                   onMouseLeave={() => setHovered(null)}
-                  className={`w-full rounded-xl border px-3 py-2 text-left text-sm text-[rgb(var(--fg))] transition ${
+                  className={`w-full rounded-xl border px-3 py-2 text-left text-sm text-[rgb(var(--fg))] transition-opacity duration-200 ${
                     isActive ? "opacity-100" : "opacity-40"
                   } ${clusterClass || baseClass}`}
                 >
@@ -403,7 +403,7 @@ export function EvidenceField({ options, claims, sources, edges, optionLinks }: 
                   onClick={() => setFocused((prev) => (prev?.id === source.id && prev.type === "source" ? null : { type: "source", id: source.id }))}
                   onMouseEnter={() => setHovered({ type: "source", id: source.id })}
                   onMouseLeave={() => setHovered(null)}
-                  className={`w-full rounded-xl border border-slate-400/40 bg-slate-400/10 px-3 py-2 text-left text-sm text-[rgb(var(--fg))] transition ${
+                  className={`w-full rounded-xl border border-slate-400/40 bg-slate-400/10 px-3 py-2 text-left text-sm text-[rgb(var(--fg))] transition-opacity duration-200 ${
                     isActive ? "opacity-100" : "opacity-40"
                   }`}
                 >
@@ -443,6 +443,7 @@ export function EvidenceField({ options, claims, sources, edges, optionLinks }: 
               strokeWidth={width}
               strokeDasharray={dash}
               opacity={opacity}
+              style={{ transition: "opacity 200ms ease" }}
             />
           );
         })}
@@ -452,6 +453,18 @@ export function EvidenceField({ options, claims, sources, edges, optionLinks }: 
         <span className="vog-chip">Linienstärke: Evidenzgewicht</span>
         <span className="vog-chip">Durchgezogen: stützt</span>
         <span className="vog-chip">Gestrichelt: erwähnt</span>
+      </div>
+      <div className="mt-4 text-xs text-[rgb(var(--muted))]">
+        <p className="font-semibold text-[rgb(var(--fg))]">Evidenzdichte</p>
+        <ul className="list-disc space-y-1 pl-4">
+          <li>0 = Keine verknüpfte Quelle</li>
+          <li>1 = Einzelquelle</li>
+          <li>2+ = Mehrere unabhängige Quellen</li>
+        </ul>
+        <p className="mt-2">Je höher die Evidenzdichte, desto besser ist eine Aussage belegt.</p>
+        <p className="mt-2 text-[11px] text-[rgb(var(--muted))]">
+          Farben helfen, Argumenttypen schneller zu erkennen.
+        </p>
       </div>
     </section>
   );

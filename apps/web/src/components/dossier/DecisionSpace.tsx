@@ -12,10 +12,15 @@ type OptionCard = {
   evidenceCount: number;
   evidenceDensity: number;
   evidenceLevel: "none" | "linked" | "multi";
+  evidenceScore: number;
+  dimensionLine: string;
+  clarifiedCount: number;
+  questionTotal: number;
   budgetRange: string;
   riskProfile: string;
   clusterLabel?: string;
   majorityPct?: number;
+  dimensionNote?: string;
 };
 
 type DecisionSpaceProps = {
