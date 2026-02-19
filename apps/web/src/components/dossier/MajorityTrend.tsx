@@ -37,6 +37,10 @@ export function MajorityTrend({ dossierId, options, majorityDemo }: MajorityTren
     return { max, min, spread, topOption };
   }, [majorityDemo]);
 
+  const sortedOptions = useMemo(() => {
+    return [...options].sort((a, b) => (majorityById.get(b.id) ?? 0) - (majorityById.get(a.id) ?? 0));
+  }, [options, majorityById]);
+
   const userRelation = useMemo(() => {
     if (!userVote) return null;
     const userPct = majorityById.get(userVote);
@@ -58,7 +62,7 @@ export function MajorityTrend({ dossierId, options, majorityDemo }: MajorityTren
       </div>
 
       <div className="space-y-3">
-        {options.map((option) => {
+        {sortedOptions.map((option) => {
           const pct = majorityById.get(option.id) ?? 0;
           const isTop = stats.topOption === option.id;
           const isUser = userVote === option.id;
@@ -70,7 +74,7 @@ export function MajorityTrend({ dossierId, options, majorityDemo }: MajorityTren
               </div>
               <div className="relative h-2 w-full rounded-full bg-[rgb(var(--border))]">
                 <div
-                  className="h-2 rounded-full bg-brand-grad transition-all duration-500"
+                  className="h-2 rounded-full bg-brand-grad transition-all duration-700 ease-out"
                   style={{ width: `${pct}%` }}
                 />
                 {isTop ? (

@@ -1,7 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { EDGE_KIND_LABELS } from "./labels";
+import { useEffect, useMemo, useRef, useState } from "react";
+
+type OptionNode = { id: string; label: string };
 
 type ClaimNode = {
   id: string;
@@ -21,6 +22,8 @@ type GraphEdge = {
   weight?: number;
 };
 
+type OptionLink = { optionId: string; claimId: string };
+
 type EvidenceEdge = {
   id: string;
   claimId: string;
@@ -29,11 +32,28 @@ type EvidenceEdge = {
   weight?: number;
 };
 
+type Line = {
+  id: string;
+  fromKey: string;
+  toKey: string;
+  kind?: string;
+  weight?: number;
+  type: "option" | "evidence";
+  x1: number;
+  y1: number;
+  x2: number;
+  y2: number;
+};
+
 type EvidenceFieldProps = {
+  options: OptionNode[];
   claims: ClaimNode[];
   sources: SourceNode[];
   edges: GraphEdge[];
+  optionLinks: OptionLink[];
 };
+
+type ActiveNode = { type: "option" | "claim" | "source"; id: string } | null;
 
 const CLUSTER_STYLES: Record<string, string> = {
   "Kosten/Haushalt": "border-amber-400/40 bg-amber-400/10",
@@ -73,45 +93,189 @@ function resolveEdges(edges: GraphEdge[], claimIds: Set<string>, sourceIds: Set<
 }
 
 function weightToWidth(weight?: number) {
-  if (typeof weight !== "number") return 2;
-  return Math.max(2, Math.round(weight * 6));
+  if (typeof weight !== "number") return 1.5;
+  return Math.max(1.5, Math.round(weight * 6));
 }
 
-function edgeStyle(kind?: string) {
-  if (kind === "supports") return "border-emerald-400/40 bg-emerald-400/10";
-  if (kind === "mentions") return "border-slate-400/40 bg-slate-400/10";
-  return "border-[rgb(var(--border))] bg-[rgb(var(--bg))]";
+function nodeKey(type: "option" | "claim" | "source", id: string) {
+  return `${type}-${id}`;
 }
 
-export function EvidenceField({ claims, sources, edges }: EvidenceFieldProps) {
-  const [hovered, setHovered] = useState<string | null>(null);
-  const [focused, setFocused] = useState<string | null>(null);
+function edgeStroke(kind?: string) {
+  if (kind === "supports") return "rgba(45,212,191,0.7)";
+  if (kind === "mentions") return "rgba(148,163,184,0.6)";
+  return "rgba(148,163,184,0.4)";
+}
+
+function edgeDash(kind?: string) {
+  if (kind === "mentions") return "4 4";
+  return undefined;
+}
+
+export function EvidenceField({ options, claims, sources, edges, optionLinks }: EvidenceFieldProps) {
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const [lines, setLines] = useState<Line[]>([]);
+  const [hovered, setHovered] = useState<ActiveNode>(null);
+  const [focused, setFocused] = useState<ActiveNode>(null);
 
   const claimIds = useMemo(() => new Set(claims.map((claim) => claim.id)), [claims]);
   const sourceIds = useMemo(() => new Set(sources.map((source) => source.id)), [sources]);
 
-  const resolvedEdges = useMemo(
-    () => resolveEdges(edges, claimIds, sourceIds),
-    [edges, claimIds, sourceIds],
-  );
+  const evidenceEdges = useMemo(() => resolveEdges(edges, claimIds, sourceIds), [edges, claimIds, sourceIds]);
 
-  const activeClaim = focused ?? hovered;
-  const activeLabel = claims.find((claim) => claim.id === activeClaim)?.label ?? null;
-  const visibleEdges = activeClaim
-    ? resolvedEdges.filter((edge) => edge.claimId === activeClaim)
-    : resolvedEdges;
+  const maps = useMemo(() => {
+    const claimsByOption = new Map<string, string[]>();
+    const optionsByClaim = new Map<string, string[]>();
+    for (const link of optionLinks) {
+      const claimList = claimsByOption.get(link.optionId) ?? [];
+      claimList.push(link.claimId);
+      claimsByOption.set(link.optionId, claimList);
 
-  const visibleSourceIds = new Set(visibleEdges.map((edge) => edge.sourceId));
+      const optionList = optionsByClaim.get(link.claimId) ?? [];
+      optionList.push(link.optionId);
+      optionsByClaim.set(link.claimId, optionList);
+    }
+
+    const sourcesByClaim = new Map<string, string[]>();
+    const claimsBySource = new Map<string, string[]>();
+    for (const link of evidenceEdges) {
+      const sourceList = sourcesByClaim.get(link.claimId) ?? [];
+      sourceList.push(link.sourceId);
+      sourcesByClaim.set(link.claimId, sourceList);
+
+      const claimList = claimsBySource.get(link.sourceId) ?? [];
+      claimList.push(link.claimId);
+      claimsBySource.set(link.sourceId, claimList);
+    }
+
+    return { claimsByOption, optionsByClaim, sourcesByClaim, claimsBySource };
+  }, [optionLinks, evidenceEdges]);
+
+  const active = focused ?? hovered;
+
+  const activeSets = useMemo(() => {
+    if (!active) {
+      return {
+        options: new Set(options.map((opt) => opt.id)),
+        claims: new Set(claims.map((claim) => claim.id)),
+        sources: new Set(sources.map((source) => source.id)),
+      };
+    }
+
+    const activeOptions = new Set<string>();
+    const activeClaims = new Set<string>();
+    const activeSources = new Set<string>();
+
+    if (active.type === "option") {
+      activeOptions.add(active.id);
+      const claimIdsForOption = maps.claimsByOption.get(active.id) ?? [];
+      claimIdsForOption.forEach((id) => activeClaims.add(id));
+      claimIdsForOption.forEach((claimId) => {
+        (maps.sourcesByClaim.get(claimId) ?? []).forEach((sourceId) => activeSources.add(sourceId));
+      });
+    }
+
+    if (active.type === "claim") {
+      activeClaims.add(active.id);
+      (maps.optionsByClaim.get(active.id) ?? []).forEach((optionId) => activeOptions.add(optionId));
+      (maps.sourcesByClaim.get(active.id) ?? []).forEach((sourceId) => activeSources.add(sourceId));
+    }
+
+    if (active.type === "source") {
+      activeSources.add(active.id);
+      (maps.claimsBySource.get(active.id) ?? []).forEach((claimId) => activeClaims.add(claimId));
+      (maps.claimsBySource.get(active.id) ?? []).forEach((claimId) => {
+        (maps.optionsByClaim.get(claimId) ?? []).forEach((optionId) => activeOptions.add(optionId));
+      });
+    }
+
+    return { options: activeOptions, claims: activeClaims, sources: activeSources };
+  }, [active, claims, options, sources, maps]);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const update = () => {
+      const box = container.getBoundingClientRect();
+      const next: Line[] = [];
+
+      for (const link of optionLinks) {
+        const fromKey = nodeKey("option", link.optionId);
+        const toKey = nodeKey("claim", link.claimId);
+        const fromEl = container.querySelector<HTMLElement>(`[data-node-id="${fromKey}"]`);
+        const toEl = container.querySelector<HTMLElement>(`[data-node-id="${toKey}"]`);
+        if (!fromEl || !toEl) continue;
+        const fromRect = fromEl.getBoundingClientRect();
+        const toRect = toEl.getBoundingClientRect();
+        next.push({
+          id: `opt-${link.optionId}-${link.claimId}`,
+          fromKey,
+          toKey,
+          type: "option",
+          x1: fromRect.right - box.left,
+          y1: fromRect.top - box.top + fromRect.height / 2,
+          x2: toRect.left - box.left,
+          y2: toRect.top - box.top + toRect.height / 2,
+        });
+      }
+
+      for (const link of evidenceEdges) {
+        const fromKey = nodeKey("claim", link.claimId);
+        const toKey = nodeKey("source", link.sourceId);
+        const fromEl = container.querySelector<HTMLElement>(`[data-node-id="${fromKey}"]`);
+        const toEl = container.querySelector<HTMLElement>(`[data-node-id="${toKey}"]`);
+        if (!fromEl || !toEl) continue;
+        const fromRect = fromEl.getBoundingClientRect();
+        const toRect = toEl.getBoundingClientRect();
+        next.push({
+          id: `edge-${link.claimId}-${link.sourceId}`,
+          fromKey,
+          toKey,
+          type: "evidence",
+          kind: link.kind,
+          weight: link.weight,
+          x1: fromRect.right - box.left,
+          y1: fromRect.top - box.top + fromRect.height / 2,
+          x2: toRect.left - box.left,
+          y2: toRect.top - box.top + toRect.height / 2,
+        });
+      }
+
+      setLines(next);
+    };
+
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(container);
+    window.addEventListener("resize", update);
+
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", update);
+    };
+  }, [optionLinks, evidenceEdges]);
+
+  const activeLabel = active
+    ? active.type === "option"
+      ? options.find((opt) => opt.id === active.id)?.label
+      : active.type === "claim"
+        ? claims.find((claim) => claim.id === active.id)?.label
+        : sources.find((source) => source.id === active.id)?.label
+    : null;
 
   return (
-    <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-6 shadow-soft">
+    <section
+      ref={containerRef}
+      className="relative rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-6 shadow-soft"
+    >
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
             Evidenzfeld
           </p>
           <p className="text-sm text-[rgb(var(--muted))]">
-            Beziehungen zwischen Statements und Quellen im Fokus.
+            Verknüpfungen zwischen Optionen, Statements und Quellen.
           </p>
           {activeLabel ? (
             <p className="text-[11px] text-[rgb(var(--muted))]">Fokus: {activeLabel}</p>
@@ -128,21 +292,44 @@ export function EvidenceField({ claims, sources, edges }: EvidenceFieldProps) {
         ) : null}
       </div>
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-[1.2fr_1fr_1.1fr]">
+      <div className="relative mt-6 grid gap-6 lg:grid-cols-[1.1fr_1.3fr_1.1fr]">
         <div className="space-y-3">
-          <div className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
-            Statements
+          <div className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Optionen</div>
+          <div className="space-y-2">
+            {options.map((option) => {
+              const isActive = activeSets.options.has(option.id);
+              return (
+                <button
+                  key={option.id}
+                  type="button"
+                  data-node-id={nodeKey("option", option.id)}
+                  onClick={() => setFocused((prev) => (prev?.id === option.id && prev.type === "option" ? null : { type: "option", id: option.id }))}
+                  onMouseEnter={() => setHovered({ type: "option", id: option.id })}
+                  onMouseLeave={() => setHovered(null)}
+                  className={`w-full rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-left text-sm text-[rgb(var(--fg))] transition ${
+                    isActive ? "opacity-100" : "opacity-40"
+                  }`}
+                >
+                  {option.label}
+                </button>
+              );
+            })}
           </div>
+        </div>
+
+        <div className="space-y-3">
+          <div className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Statements</div>
           <div className="space-y-2">
             {claims.map((claim) => {
-              const isActive = !activeClaim || activeClaim === claim.id;
+              const isActive = activeSets.claims.has(claim.id);
               const clusterClass = claim.cluster ? CLUSTER_STYLES[claim.cluster] : "";
               return (
                 <button
                   key={claim.id}
                   type="button"
-                  onClick={() => setFocused((prev) => (prev === claim.id ? null : claim.id))}
-                  onMouseEnter={() => setHovered(claim.id)}
+                  data-node-id={nodeKey("claim", claim.id)}
+                  onClick={() => setFocused((prev) => (prev?.id === claim.id && prev.type === "claim" ? null : { type: "claim", id: claim.id }))}
+                  onMouseEnter={() => setHovered({ type: "claim", id: claim.id })}
                   onMouseLeave={() => setHovered(null)}
                   className={`w-full rounded-xl border px-3 py-2 text-left text-sm text-[rgb(var(--fg))] transition ${
                     isActive ? "opacity-100" : "opacity-40"
@@ -156,62 +343,67 @@ export function EvidenceField({ claims, sources, edges }: EvidenceFieldProps) {
         </div>
 
         <div className="space-y-3">
-          <div className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
-            Verknüpfungen
-          </div>
-          <div className="space-y-2">
-            {visibleEdges.length ? (
-              visibleEdges.map((edge) => (
-                <div
-                  key={edge.id}
-                  className={`rounded-xl border px-3 py-2 ${edgeStyle(edge.kind)}`}
-                >
-                  <div className="flex items-center gap-2 text-[11px] text-[rgb(var(--muted))]">
-                    <span
-                      className="inline-block rounded-full bg-[rgb(var(--muted))]"
-                      style={{ width: 22, height: weightToWidth(edge.weight) }}
-                    />
-                    <span className="font-semibold text-[rgb(var(--fg))]">
-                      {EDGE_KIND_LABELS[edge.kind ?? "mentions"] ?? edge.kind ?? "verknüpft"}
-                    </span>
-                    {typeof edge.weight === "number" ? (
-                      <span className="text-[10px]">Gewicht {edge.weight.toFixed(2)}</span>
-                    ) : null}
-                  </div>
-                </div>
-              ))
-            ) : (
-              <p className="text-sm text-[rgb(var(--muted))]">Keine Verknüpfungen gefunden.</p>
-            )}
-          </div>
-        </div>
-
-        <div className="space-y-3">
-          <div className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
-            Quellen
-          </div>
+          <div className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Quellen</div>
           <div className="space-y-2">
             {sources.map((source) => {
-              const isVisible = !activeClaim || visibleSourceIds.has(source.id);
+              const isActive = activeSets.sources.has(source.id);
               return (
-                <div
+                <button
                   key={source.id}
-                  className={`rounded-xl border px-3 py-2 text-sm text-[rgb(var(--fg))] transition ${
-                    isVisible ? "opacity-100" : "opacity-40"
-                  } border-[rgb(var(--border))] bg-[rgb(var(--bg))]`}
+                  type="button"
+                  data-node-id={nodeKey("source", source.id)}
+                  onClick={() => setFocused((prev) => (prev?.id === source.id && prev.type === "source" ? null : { type: "source", id: source.id }))}
+                  onMouseEnter={() => setHovered({ type: "source", id: source.id })}
+                  onMouseLeave={() => setHovered(null)}
+                  className={`w-full rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-left text-sm text-[rgb(var(--fg))] transition ${
+                    isActive ? "opacity-100" : "opacity-40"
+                  }`}
                 >
                   {source.label}
-                </div>
+                </button>
               );
             })}
           </div>
         </div>
       </div>
 
+      <svg className="pointer-events-none absolute inset-0 h-full w-full">
+        {lines.map((line) => {
+          const fromActive = line.fromKey.startsWith("option-")
+            ? activeSets.options.has(line.fromKey.replace("option-", ""))
+            : line.fromKey.startsWith("claim-")
+              ? activeSets.claims.has(line.fromKey.replace("claim-", ""))
+              : activeSets.sources.has(line.fromKey.replace("source-", ""));
+          const toActive = line.toKey.startsWith("option-")
+            ? activeSets.options.has(line.toKey.replace("option-", ""))
+            : line.toKey.startsWith("claim-")
+              ? activeSets.claims.has(line.toKey.replace("claim-", ""))
+              : activeSets.sources.has(line.toKey.replace("source-", ""));
+          const isActive = fromActive && toActive;
+          const opacity = active ? (isActive ? 0.9 : 0.08) : 0.4;
+          const stroke = line.type === "option" ? "rgba(148,163,184,0.4)" : edgeStroke(line.kind);
+          const dash = line.type === "option" ? "3 4" : edgeDash(line.kind);
+          const width = line.type === "option" ? 1.5 : weightToWidth(line.weight);
+          return (
+            <line
+              key={line.id}
+              x1={line.x1}
+              y1={line.y1}
+              x2={line.x2}
+              y2={line.y2}
+              stroke={stroke}
+              strokeWidth={width}
+              strokeDasharray={dash}
+              opacity={opacity}
+            />
+          );
+        })}
+      </svg>
+
       <div className="mt-5 flex flex-wrap gap-3 text-[11px] text-[rgb(var(--muted))]">
-        <span className="vog-chip">stützt</span>
-        <span className="vog-chip">erwähnt</span>
-        <span className="vog-chip">Gewichtung: Strichstärke</span>
+        <span className="vog-chip">Linienstärke: Evidenzgewicht</span>
+        <span className="vog-chip">Durchgezogen: stützt</span>
+        <span className="vog-chip">Gestrichelt: erwähnt</span>
       </div>
     </section>
   );

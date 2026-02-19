@@ -1,29 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import demoDossier from "@features/dossier/data/demoDossier";
-
-type PresentationContribution = { id: string; title: string; date: string; streamId?: string };
-
-type PresentationNote = { kind?: string | null; text?: string };
-
-type PresentationPayload = {
-  inputs?: { contributions?: PresentationContribution[] };
-};
-
-function findContribution(id: string): PresentationContribution | null {
-  for (const note of demoDossier.analyze.notes as PresentationNote[]) {
-    if (note.kind !== "presentation" || !note.text) continue;
-    try {
-      const parsed = JSON.parse(note.text) as PresentationPayload;
-      if (!parsed.inputs?.contributions) continue;
-      const match = parsed.inputs.contributions.find((entry) => entry.id === id);
-      if (match) return match;
-    } catch {
-      continue;
-    }
-  }
-  return null;
-}
+import { getPresentation } from "@/components/dossier/presentation";
 
 function formatDate(value: string) {
   const d = new Date(value);
@@ -33,11 +11,17 @@ function formatDate(value: string) {
 
 export default async function ContributionDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const contribution = findContribution(id);
+  const { contributions, traceability } = getPresentation(demoDossier);
+  const contribution = contributions.find((entry) => entry.id === id);
   if (!contribution) return notFound();
 
+  const statementTitleById = new Map(
+    demoDossier.analyze.claims.map((claim) => [claim.id, claim.title ?? claim.id]),
+  );
+  const statementIds = traceability.contributionsToStatements?.[contribution.id] ?? [];
+
   return (
-    <main className="dark min-h-screen bg-[radial-gradient(circle_at_top,rgb(15,23,42)_0%,rgb(2,6,23)_45%,rgb(2,6,23)_100%)]">
+    <main className="min-h-screen bg-[radial-gradient(circle_at_top,rgb(248,250,252)_0%,rgb(241,245,249)_45%,rgb(226,232,240)_100%)] dark:bg-[radial-gradient(circle_at_top,rgb(15,23,42)_0%,rgb(2,6,23)_45%,rgb(2,6,23)_100%)]">
       <div className="mx-auto w-full max-w-3xl px-6 py-12">
         <Link href="/dossier/demo" className="text-xs text-[rgb(var(--muted))] underline">
           Zurück zum Dossier
@@ -54,6 +38,27 @@ export default async function ContributionDetailPage({ params }: { params: Promi
               Zum zugehörigen Themenstrom
             </Link>
           ) : null}
+          <div className="space-y-2">
+            <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
+              Verknüpfte Statements
+            </p>
+            {statementIds.length ? (
+              <ul className="space-y-1 text-sm">
+                {statementIds.map((statementId) => (
+                  <li key={statementId}>
+                    <Link
+                      href={`/dossier/demo#stmt-${statementId}`}
+                      className="text-[rgb(var(--fg))] underline"
+                    >
+                      {statementTitleById.get(statementId) ?? statementId}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-sm text-[rgb(var(--muted))]">Keine Statements zugeordnet.</p>
+            )}
+          </div>
           <p className="text-sm text-[rgb(var(--muted))]">
             Dieser Beitrag ist Teil der Demonstration und dient der Nachvollziehbarkeit der Eingangsebene.
           </p>

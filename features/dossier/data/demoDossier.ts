@@ -361,59 +361,69 @@ export const demoDossier: Dossier = {
         id: "note-inputs",
         kind: "presentation",
         text: JSON.stringify({
-          topic: { label: "Schulentwicklung", municipality: "Beispielstadt", windowDays: 90 },
+          topic: { label: "Schulentwicklung", kommune: "Beispielstadt", zeitfensterTage: 90 },
+          hero: {
+            impactLevel: "Hoch",
+            relevance: "10–20 Jahre",
+            budgetRange: "30–50 Mio €",
+            participation: "Bürgerbeteiligung (Civic, 5 Optionen)",
+          },
           inputs: {
             streams: [
               {
                 id: "st-001",
-                title: "Ausschuss: Grundsatzdebatte Schulstandort",
-                date: "2026-01-18",
+                titel: "Ausschuss: Grundsatzdebatte Schulstandort",
+                datum: "2026-01-18",
               },
               {
                 id: "st-002",
-                title: "Bürgerforum: Raumprogramm & Ganztag",
-                date: "2026-02-02",
+                titel: "Bürgerforum: Raumprogramm & Ganztag",
+                datum: "2026-02-02",
               },
               {
                 id: "st-003",
-                title: "Haushaltshearing: Investitionsrahmen 2026–2030",
-                date: "2026-02-10",
+                titel: "Haushaltshearing: Investitionsrahmen 2026–2030",
+                datum: "2026-02-10",
               },
             ],
-            contributions: [
+            beitraege: [
               {
                 id: "cb-101",
-                title: "Elternvertretung: Anforderungen Ganztag",
-                date: "2026-02-03",
+                titel: "Elternvertretung: Anforderungen Ganztag",
+                datum: "2026-02-03",
                 streamId: "st-002",
               },
               {
                 id: "cb-102",
-                title: "Schulleitung: Raumkonzept & Barrierefreiheit",
-                date: "2026-02-03",
+                titel: "Schulleitung: Raumkonzept & Barrierefreiheit",
+                datum: "2026-02-03",
                 streamId: "st-002",
               },
               {
                 id: "cb-103",
-                title: "Bauamt: Risikobericht Bestand",
-                date: "2026-01-25",
+                titel: "Bauamt: Risikobericht Bestand",
+                datum: "2026-01-25",
                 streamId: "st-001",
               },
               {
                 id: "cb-104",
-                title: "Kämmerei: Investitions- und Betriebskosten",
-                date: "2026-02-11",
+                titel: "Kämmerei: Investitions- und Betriebskosten",
+                datum: "2026-02-11",
                 streamId: "st-003",
               },
             ],
           },
           vote: {
             options: [
-              { id: "opt-a", label: "Vollständige Bestandssanierung" },
-              { id: "opt-b", label: "Kompletter Neubau" },
-              { id: "opt-c", label: "Hybridlösung (Teilneubau + Bestand)" },
-              { id: "opt-d", label: "Modulbau als Übergangslösung" },
-              { id: "opt-f", label: "Phasenplanung + Ausweichflächen + Fördermittelkalender" },
+              { id: "opt-a", label: "Vollständige Bestandssanierung", type: "reform_strong" },
+              { id: "opt-b", label: "Kompletter Neubau", type: "reform_strong" },
+              { id: "opt-c", label: "Hybridlösung (Teilneubau + Bestand)", type: "reform_moderate" },
+              { id: "opt-d", label: "Modulbau als Übergangslösung", type: "pilot" },
+              {
+                id: "opt-f",
+                label: "Phasenplanung + Ausweichflächen + Fördermittelkalender",
+                type: "custom",
+              },
             ],
             majorityDemo: [
               { id: "opt-a", pct: 22 },
@@ -422,6 +432,19 @@ export const demoDossier: Dossier = {
               { id: "opt-d", pct: 9 },
               { id: "opt-f", pct: 10 },
             ],
+          },
+          traceability: {
+            streamsToStatements: {
+              "st-001": ["stmt-1", "stmt-4"],
+              "st-002": ["stmt-6", "stmt-7"],
+              "st-003": ["stmt-5", "stmt-3"],
+            },
+            contributionsToStatements: {
+              "cb-101": ["stmt-7"],
+              "cb-102": ["stmt-6"],
+              "cb-103": ["stmt-4"],
+              "cb-104": ["stmt-5"],
+            },
           },
         }),
       },

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { OPTION_TYPE_LABELS } from "./labels";
 
 type Dimension = {
@@ -14,10 +15,18 @@ type OptionCard = {
   touches: string[];
   dimensions: Dimension[];
   chips: string[];
+  statementCount: number;
+  evidenceCount: number;
+  evidenceDensity: number;
+  budgetRange: string;
+  riskProfile: string;
+  clusterLabel?: string;
+  majorityPct?: number;
 };
 
 type OptionMatrixProps = {
   options: OptionCard[];
+  ctaHref?: string;
 };
 
 const RADAR_SIZE = 72;
@@ -41,7 +50,7 @@ function renderRadarPoints(dimensions: Dimension[]) {
   return points.join(" ");
 }
 
-export function OptionMatrix({ options }: OptionMatrixProps) {
+export function OptionMatrix({ options, ctaHref = "#vote" }: OptionMatrixProps) {
   return (
     <section className="space-y-4">
       <div className="grid gap-4">
@@ -73,6 +82,34 @@ export function OptionMatrix({ options }: OptionMatrixProps) {
                 <div className="text-[11px] text-[rgb(var(--muted))]">
                   Berührt Statements: {option.touches.length ? option.touches.join(", ") : "-"}
                 </div>
+                <div className="flex flex-wrap gap-3 text-[11px] text-[rgb(var(--muted))]">
+                  <span>Statements: {option.statementCount}</span>
+                  <span>Evidenz: {option.evidenceCount}</span>
+                  <span>Budget: {option.budgetRange}</span>
+                  <span>Risiko: {option.riskProfile}</span>
+                  {option.clusterLabel ? <span>Cluster: {option.clusterLabel}</span> : null}
+                  {typeof option.majorityPct === "number" ? (
+                    <span>Tendenz: {option.majorityPct}%</span>
+                  ) : null}
+                </div>
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between text-[10px] text-[rgb(var(--muted))]">
+                    <span>Evidenzdichte</span>
+                    <span>{Math.round(option.evidenceDensity * 100)}%</span>
+                  </div>
+                  <div className="h-2 w-full rounded-full bg-[rgb(var(--border))]">
+                    <div
+                      className="h-2 rounded-full bg-brand-grad transition-all duration-500"
+                      style={{ width: `${option.evidenceDensity * 100}%` }}
+                    />
+                  </div>
+                </div>
+                <Link
+                  href={ctaHref}
+                  className="text-xs font-semibold text-[rgb(var(--fg))] underline"
+                >
+                  Diese Option wählen
+                </Link>
               </div>
               <div className="flex items-center justify-start md:justify-end">
                 <svg

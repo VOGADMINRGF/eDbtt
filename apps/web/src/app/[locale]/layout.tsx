@@ -19,7 +19,7 @@ export default async function LocaleLayout({
   if (!localeValue || !locales.includes(localeValue as any)) notFound();
 
   return (
-    <html lang={localeValue} className="h-full dark" suppressHydrationWarning>
+    <html lang={localeValue} className="h-full" suppressHydrationWarning>
       <body className="min-h-screen antialiased">
         <ThemeProvider>
           <ReadingModeProvider>

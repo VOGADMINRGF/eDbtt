@@ -2,7 +2,8 @@ import Link from "next/link";
 import type { Dossier } from "@features/dossier";
 import DossierLayout from "./DossierLayout";
 import EvidenceField from "./EvidenceField";
-import OptionMatrix from "./OptionMatrix";
+import DecisionSpace from "./DecisionSpace";
+import InputsPanel from "./InputsPanel";
 import VotePanel from "./VotePanel";
 import MajorityTrend from "./MajorityTrend";
 import {
@@ -15,7 +16,6 @@ import {
 import {
   getPresentation,
   type PresentationCluster,
-  type PresentationOption,
   type PresentationVoteOption,
 } from "./presentation";
 
@@ -31,7 +31,18 @@ type OptionCard = {
   touches: string[];
   dimensions: { key: string; label: string; value: number }[];
   chips: string[];
+  statementCount: number;
+  evidenceCount: number;
+  evidenceDensity: number;
+  budgetRange: string;
+  riskProfile: string;
+  clusterLabel?: string;
+  majorityPct?: number;
 };
+
+type OptionLink = { optionId: string; claimId: string };
+
+type EvidenceLink = { claimId: string; sourceId: string; weight?: number; kind?: string };
 
 const DIMENSIONS: DimensionMeta[] = [
   { key: "haushalt", label: "Haushalt" },
@@ -39,6 +50,22 @@ const DIMENSIONS: DimensionMeta[] = [
   { key: "klima", label: "Klima" },
   { key: "bauzeit", label: "Bauzeit" },
 ];
+
+const OPTION_BUDGET: Record<string, string> = {
+  "opt-a": "26–32 Mio €",
+  "opt-b": "45–55 Mio €",
+  "opt-c": "32–40 Mio €",
+  "opt-d": "8–12 Mio €",
+  "opt-f": "2–4 Mio €",
+};
+
+const OPTION_RISK: Record<string, string> = {
+  "opt-a": "mittel",
+  "opt-b": "hoch",
+  "opt-c": "mittel",
+  "opt-d": "niedrig",
+  "opt-f": "niedrig",
+};
 
 function formatDate(value?: string | null) {
   if (!value) return "-";
@@ -134,53 +161,16 @@ function optionNarrative(optionType?: string) {
   }
 }
 
-function buildOptionCards(
-  options: PresentationOption[],
-  claims: Dossier["analyze"]["claims"],
-  optionStatementIds: Map<string, string[]>,
-  optionTouchedTitles: Map<string, string[]>,
-) {
-  const claimById = new Map(claims.map((claim) => [claim.id, claim]));
-
-  return options.map((option) => {
-    const statementIds = option.touchesStatements?.length
-      ? option.touchesStatements
-      : optionStatementIds.get(option.id) ?? [];
-
-    const touchTitles = optionTouchedTitles.get(option.id) ?? [];
-
-    const dimensionCounts: Record<DimensionKey, number> = {
-      haushalt: 0,
-      paedagogik: 0,
-      klima: 0,
-      bauzeit: 0,
-    };
-
-    for (const statementId of statementIds) {
-      const claim = claimById.get(statementId);
-      if (!claim) continue;
-      const dims = inferDimensionsFromClaim(claim);
-      for (const dim of dims) dimensionCounts[dim] += 1;
+function buildEvidenceLinks(claimIds: Set<string>, sourceIds: Set<string>, edges: Dossier["analyze"]["evidenceGraph"]["edges"]) {
+  const links: EvidenceLink[] = [];
+  for (const edge of edges) {
+    if (claimIds.has(edge.from) && sourceIds.has(edge.to)) {
+      links.push({ claimId: edge.from, sourceId: edge.to, weight: edge.weight, kind: edge.kind });
+    } else if (claimIds.has(edge.to) && sourceIds.has(edge.from)) {
+      links.push({ claimId: edge.to, sourceId: edge.from, weight: edge.weight, kind: edge.kind });
     }
-
-    const dimensions = DIMENSIONS.map((dim) => {
-      const count = dimensionCounts[dim.key];
-      const value = count > 0 ? Math.min(0.9, 0.25 + count * 0.2) : 0.2;
-      return { key: dim.key, label: dim.label, value };
-    });
-
-    const chips = DIMENSIONS.filter((dim) => dimensionCounts[dim.key] > 0).map((dim) => dim.label);
-
-    return {
-      id: option.id,
-      label: option.label,
-      type: option.type,
-      narrative: optionNarrative(option.type),
-      touches: touchTitles,
-      dimensions,
-      chips,
-    } satisfies OptionCard;
-  });
+  }
+  return links;
 }
 
 function mergeClusters(defaultClusters: PresentationCluster[], derivedClusters: PresentationCluster[]) {
@@ -190,7 +180,8 @@ function mergeClusters(defaultClusters: PresentationCluster[], derivedClusters: 
 
 export function DossierViewer({ dossier }: { dossier: Dossier }) {
   const { meta, analyze, voteConfig } = dossier;
-  const { presentation, streams, contributions, voteOptions, majorityDemo } = getPresentation(dossier);
+  const { presentation, streams, contributions, voteOptions, majorityDemo, traceability } =
+    getPresentation(dossier);
 
   const derivedStats = deriveStatementStats(analyze.claims);
   const statementStats = presentation.statementStats ?? derivedStats;
@@ -246,26 +237,107 @@ export function DossierViewer({ dossier }: { dossier: Dossier }) {
     ? voteOptions
     : presentation.vote?.options?.length
       ? presentation.vote.options
-      : optionCatalog.map((option) => ({ id: option.id, label: option.label }));
+      : optionCatalog.map((option) => ({ id: option.id, label: option.label, type: option.type }));
 
   const majority = majorityDemo.length
     ? majorityDemo
     : presentation.vote?.majorityDemo ?? votingOptions.map((opt) => ({ id: opt.id, pct: 0 }));
 
-  const matrixOptions = buildOptionCards(
-    votingOptions.map((vote) => {
-      const full = optionCatalog.find((item) => item.id === vote.id);
-      return {
-        id: vote.id,
-        label: vote.label,
-        type: full?.type,
-        touchesStatements: full?.touchesStatements,
-      } as PresentationOption;
-    }),
-    analyze.claims,
-    optionStatementIds,
-    optionTouchedTitles,
+  const majorityMap = new Map(majority.map((item) => [item.id, item.pct]));
+
+  const claimIds = new Set(analyze.claims.map((claim) => claim.id));
+  const sourceIds = new Set(
+    (analyze.evidenceGraph?.nodes ?? []).filter((node) => node.type === "evidence").map((node) => node.id),
   );
+
+  const evidenceLinks = analyze.evidenceGraph?.edges
+    ? buildEvidenceLinks(claimIds, sourceIds, analyze.evidenceGraph.edges)
+    : [];
+
+  const evidenceCountByClaim = new Map<string, number>();
+  for (const link of evidenceLinks) {
+    evidenceCountByClaim.set(link.claimId, (evidenceCountByClaim.get(link.claimId) ?? 0) + 1);
+  }
+
+  const optionCards: OptionCard[] = votingOptions.map((vote) => {
+    const full = optionCatalog.find((item) => item.id === vote.id);
+    const statementIds = full?.touchesStatements?.length
+      ? full.touchesStatements
+      : optionStatementIds.get(vote.id) ?? [];
+    const touches = optionTouchedTitles.get(vote.id) ?? [];
+
+    const dimensionCounts: Record<DimensionKey, number> = {
+      haushalt: 0,
+      paedagogik: 0,
+      klima: 0,
+      bauzeit: 0,
+    };
+
+    const clusterCounts = new Map<string, number>();
+    let evidenceCount = 0;
+
+    for (const statementId of statementIds) {
+      const claim = analyze.claims.find((item) => item.id === statementId);
+      if (!claim) continue;
+      const dims = inferDimensionsFromClaim(claim);
+      for (const dim of dims) dimensionCounts[dim] += 1;
+      const cluster = inferClusterFromClaim(claim);
+      if (cluster) clusterCounts.set(cluster, (clusterCounts.get(cluster) ?? 0) + 1);
+      evidenceCount += evidenceCountByClaim.get(statementId) ?? 0;
+    }
+
+    const dimensions = DIMENSIONS.map((dim) => {
+      const count = dimensionCounts[dim.key];
+      const value = count > 0 ? Math.min(0.9, 0.25 + count * 0.2) : 0.2;
+      return { key: dim.key, label: dim.label, value };
+    });
+
+    const chips = DIMENSIONS.filter((dim) => dimensionCounts[dim.key] > 0).map((dim) => dim.label);
+
+    const clusterLabel = Array.from(clusterCounts.entries()).sort((a, b) => b[1] - a[1])[0]?.[0];
+
+    return {
+      id: vote.id,
+      label: vote.label,
+      type: full?.type ?? vote.type,
+      narrative: optionNarrative(full?.type ?? vote.type),
+      touches,
+      dimensions,
+      chips,
+      statementCount: statementIds.length,
+      evidenceCount,
+      evidenceDensity: 0,
+      budgetRange: OPTION_BUDGET[vote.id] ?? "—",
+      riskProfile: OPTION_RISK[vote.id] ?? "mittel",
+      clusterLabel,
+      majorityPct: majorityMap.get(vote.id),
+    };
+  });
+
+  const maxEvidence = optionCards.reduce((max, card) => Math.max(max, card.evidenceCount), 0);
+  const matrixOptions = optionCards.map((card) => ({
+    ...card,
+    evidenceDensity: maxEvidence > 0 ? card.evidenceCount / maxEvidence : 0,
+  }));
+
+  const optionLinkSet = new Set<string>();
+  const optionLinks: OptionLink[] = [];
+  for (const [optionId, ids] of optionStatementIds.entries()) {
+    for (const claimId of ids) {
+      const key = `${optionId}:${claimId}`;
+      if (optionLinkSet.has(key)) continue;
+      optionLinkSet.add(key);
+      optionLinks.push({ optionId, claimId });
+    }
+  }
+  for (const option of presentation.options ?? []) {
+    for (const claimId of option.touchesStatements ?? []) {
+      const key = `${option.id}:${claimId}`;
+      if (optionLinkSet.has(key)) continue;
+      optionLinkSet.add(key);
+      optionLinks.push({ optionId: option.id, claimId });
+    }
+  }
 
   const coreClaims = analyze.claims.filter((claim) => claim.importance === 5);
   const secondaryClaims = analyze.claims.filter((claim) => claim.importance !== 5);
@@ -279,11 +351,19 @@ export function DossierViewer({ dossier }: { dossier: Dossier }) {
     { label: "Stand", value: formatDate(meta.updatedAt ?? meta.createdAt) },
   ];
 
+  const heroImpact = presentation.hero?.impactLevel ?? "Hoch";
+  const heroRelevance = presentation.hero?.relevance ?? "10–20 Jahre";
+  const heroBudget = presentation.hero?.budgetRange ?? "30–50 Mio €";
+  const heroParticipation =
+    presentation.hero?.participation ??
+    `Bürgerbeteiligung (Civic, ${voteConfig?.minOptions ?? 5} Optionen)`;
+
   const claimNodes = analyze.claims.map((claim) => ({
     id: claim.id,
     label: claim.title ?? claim.id,
     cluster: inferClusterFromClaim(claim),
   }));
+
   const graphNodes = analyze.evidenceGraph?.nodes ?? [];
   const sourceNodes = graphNodes
     .filter((node) => node.type === "evidence")
@@ -292,13 +372,37 @@ export function DossierViewer({ dossier }: { dossier: Dossier }) {
   const graphEdges = analyze.evidenceGraph?.edges ?? [];
 
   const header = (
-    <header className="space-y-4 border-b border-[rgb(var(--border))] pb-8">
+    <header className="space-y-6 border-b border-[rgb(var(--border))] pb-8">
       <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[rgb(var(--muted))]">
         Dossier (Demonstrationsfall)
       </p>
-      <h1 className="font-serif text-4xl font-semibold leading-tight text-[rgb(var(--fg))] md:text-6xl">
-        {meta.title}
-      </h1>
+      <div className="space-y-2">
+        <p className="text-sm uppercase tracking-[0.3em] text-[rgb(var(--muted))]">
+          Kommunale Bildungsinfrastruktur
+        </p>
+        <h1 className="font-serif text-4xl font-semibold leading-tight text-[rgb(var(--fg))] md:text-6xl">
+          Sanierung oder Neubau einer bestehenden Schule
+        </h1>
+      </div>
+      <div className="text-[11px] text-[rgb(var(--muted))]">[ Kontext · Evidenz · Optionen · Beteiligung ]</div>
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-3">
+          <p className="text-[11px] uppercase tracking-wide text-[rgb(var(--muted))]">Impact-Level</p>
+          <p className="text-sm font-semibold text-[rgb(var(--fg))]">{heroImpact}</p>
+        </div>
+        <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-3">
+          <p className="text-[11px] uppercase tracking-wide text-[rgb(var(--muted))]">Entscheidungsrelevanz</p>
+          <p className="text-sm font-semibold text-[rgb(var(--fg))]">{heroRelevance}</p>
+        </div>
+        <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-3">
+          <p className="text-[11px] uppercase tracking-wide text-[rgb(var(--muted))]">Budgetdimension</p>
+          <p className="text-sm font-semibold text-[rgb(var(--fg))]">{heroBudget}</p>
+        </div>
+        <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-3">
+          <p className="text-[11px] uppercase tracking-wide text-[rgb(var(--muted))]">Abstimmungsmodus</p>
+          <p className="text-sm font-semibold text-[rgb(var(--fg))]">{heroParticipation}</p>
+        </div>
+      </div>
       <p className="max-w-2xl text-lg text-[rgb(var(--muted))]">
         {analyze.sourceText ?? "Fragestellung des Dossiers."} Dieses Demonstrationsdossier zeigt die E150-Entscheidungsakte: strukturierte Statements, normierter Optionenraum, Evidenzverknüpfung und Zuständigkeitswege.
       </p>
@@ -352,61 +456,21 @@ export function DossierViewer({ dossier }: { dossier: Dossier }) {
         </div>
       </section>
 
-      <section className="grid gap-4 md:grid-cols-[1.1fr_0.9fr]">
-        <div className="vog-card p-5 space-y-3">
-          <div className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Material</div>
-          <div className="space-y-3">
-            <div className="space-y-2">
-              <p className="text-sm font-semibold text-[rgb(var(--fg))]">Themenströme</p>
-              <div className="space-y-2 text-sm">
-                {streams.length ? (
-                  streams.map((stream) => (
-                    <Link
-                      key={stream.id}
-                      href={`/streams/${stream.id}`}
-                      className="block rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-[rgb(var(--fg))]"
-                    >
-                      <div className="text-sm font-semibold">{stream.title}</div>
-                      <div className="text-[11px] text-[rgb(var(--muted))]">{formatDate(stream.date)}</div>
-                    </Link>
-                  ))
-                ) : (
-                  <p className="text-sm text-[rgb(var(--muted))]">Keine Themenströme hinterlegt.</p>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="vog-card p-5 space-y-3">
-          <div className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Beiträge</div>
-          <div className="space-y-2 text-sm">
-            {contributions.length ? (
-              contributions.map((item) => (
-                <Link
-                  key={item.id}
-                  href={`/beitraege/${item.id}`}
-                  className="block rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-[rgb(var(--fg))]"
-                >
-                  <div className="text-sm font-semibold">{item.title}</div>
-                  <div className="text-[11px] text-[rgb(var(--muted))]">{formatDate(item.date)}</div>
-                </Link>
-              ))
-            ) : (
-              <p className="text-sm text-[rgb(var(--muted))]">Keine Beiträge hinterlegt.</p>
-            )}
-          </div>
-        </div>
-      </section>
+      <InputsPanel
+        streams={streams}
+        contributions={contributions}
+        traceability={traceability}
+        statementTitleById={statementTitleById}
+      />
 
       <section className="space-y-4">
         <div className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
           {SECTION_TITLES.options}
         </div>
-        <OptionMatrix options={matrixOptions} />
+        <DecisionSpace options={matrixOptions} ctaHref="#vote" />
       </section>
 
-      <section className="space-y-4">
+      <section id="vote" className="space-y-4">
         <div className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
           Abstimmung & Mehrheitsdynamik
         </div>
@@ -423,7 +487,13 @@ export function DossierViewer({ dossier }: { dossier: Dossier }) {
       <div className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
         Evidenz-Topologie
       </div>
-      <EvidenceField claims={claimNodes} sources={sourceNodes} edges={graphEdges} />
+      <EvidenceField
+        options={votingOptions.map((opt) => ({ id: opt.id, label: opt.label }))}
+        claims={claimNodes}
+        sources={sourceNodes}
+        edges={graphEdges}
+        optionLinks={optionLinks}
+      />
     </section>
   );
 
@@ -465,7 +535,7 @@ export function DossierViewer({ dossier }: { dossier: Dossier }) {
           <div className="text-sm font-semibold text-[rgb(var(--fg))]">Kernpositionen</div>
           <div className="grid gap-3">
             {coreClaims.map((claim) => (
-              <article key={claim.id} className="vog-card p-5 space-y-3">
+              <article key={claim.id} id={`stmt-${claim.id}`} className="vog-card p-5 space-y-3">
                 <div className="flex flex-wrap items-center gap-2 text-[11px] text-[rgb(var(--muted))]">
                   <span className="vog-chip">Position: {STANCE_LABELS[claim.stance ?? ""] ?? "-"}</span>
                   <span className="vog-chip">Wichtigkeit: {claim.importance ?? "-"}</span>
@@ -484,7 +554,7 @@ export function DossierViewer({ dossier }: { dossier: Dossier }) {
           <div className="text-sm font-semibold text-[rgb(var(--fg))]">Teilaspekte</div>
           <div className="grid gap-3">
             {secondaryClaims.map((claim) => (
-              <article key={claim.id} className="vog-card p-5 space-y-2">
+              <article key={claim.id} id={`stmt-${claim.id}`} className="vog-card p-5 space-y-2">
                 <div className="flex flex-wrap items-center gap-2 text-[11px] text-[rgb(var(--muted))]">
                   <span className="vog-chip">Position: {STANCE_LABELS[claim.stance ?? ""] ?? "-"}</span>
                   <span className="vog-chip">Wichtigkeit: {claim.importance ?? "-"}</span>

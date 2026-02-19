@@ -51,7 +51,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const initialUser = await loadServerUser(cookieStore);
 
   return (
-    <html lang={initialLocale} className="h-full dark" suppressHydrationWarning>
+    <html lang={initialLocale} className="h-full" suppressHydrationWarning>
       <body className="min-h-screen antialiased">
         <ThemeProvider>
           <ReadingModeProvider>
