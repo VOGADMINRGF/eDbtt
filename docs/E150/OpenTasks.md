@@ -73,7 +73,7 @@ Ein normiertes `DossierSchema` einführen, das:
 | DS-01 | `features/dossier/schemas.ts` mit `DossierSchema` Wrapper erstellen | Offen |
 | DS-02 | Adapter `buildDossierFromAnalyze()` implementieren | Offen |
 | DS-03 | Whitepaper-Hook im E150-Docs verankern (Part07) | Offen |
-| DS-04 | Optional: Route `/dossier/[id]` prüfen | Optional |
+| DS-04 | Optional: Route `/dossier/[id]` (Read-only Viewer, keine Migration) prüfen | Optional |
 
 ### Zielbild
 

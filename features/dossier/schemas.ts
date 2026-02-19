@@ -96,6 +96,7 @@ export const DossierCountsSchema = z
   .strict();
 export type DossierCounts = z.infer<typeof DossierCountsSchema>;
 
+// Normative Dossier wrapper (Legitimation 2.0)
 export const DossierMetaSchema = z
   .object({
     id: z.string(),
@@ -129,6 +130,7 @@ export const DossierSchema = z
   .strict();
 export type Dossier = z.infer<typeof DossierSchema>;
 
+// Persistence/DB doc schema (legacy storage shape)
 export const DossierDocSchema = z
   .object({
     dossierId: z.string().min(1),

@@ -11,6 +11,9 @@ export function buildDossierFromAnalyze(args: {
   voteConfig?: Dossier["voteConfig"];
 }): Dossier {
   const now = new Date().toISOString();
+  const sourceSet = Array.isArray(args.analyze.runReceipt?.sourceSet)
+    ? args.analyze.runReceipt!.sourceSet
+    : [];
 
   return {
     meta: {
@@ -24,7 +27,7 @@ export function buildDossierFromAnalyze(args: {
       updatedAt: now,
     },
     analyze: args.analyze,
-    sourceSet: args.analyze.runReceipt?.sourceSet ?? [],
+    sourceSet,
     ...(args.voteConfig ? { voteConfig: args.voteConfig } : {}),
   };
 }
