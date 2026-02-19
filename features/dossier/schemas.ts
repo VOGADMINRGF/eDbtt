@@ -111,13 +111,23 @@ export const DossierMetaSchema = z
   .strict();
 export type DossierMeta = z.infer<typeof DossierMetaSchema>;
 
+export const VotePolicySchema = z.enum(["quick", "standard", "civic"]);
+export type VotePolicy = z.infer<typeof VotePolicySchema>;
+
 export const VoteConfigSchema = z
   .object({
     enabled: z.boolean().default(false),
-    minOptions: z.number().int().min(2).default(5),
+    policy: VotePolicySchema.default("civic"),
+    minOptions: z.number().int().min(2).optional(),
     allowCommunityOptions: z.boolean().default(true),
   })
-  .strict();
+  .strict()
+  .transform((config) => ({
+    ...config,
+    minOptions:
+      config.minOptions ??
+      (config.policy === "quick" ? 2 : config.policy === "standard" ? 3 : 5),
+  }));
 export type VoteConfig = z.infer<typeof VoteConfigSchema>;
 
 export const DossierSchema = z
