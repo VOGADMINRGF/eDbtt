@@ -24,6 +24,7 @@ type OptionCard = {
   riskProfile: string;
   clusterLabel?: string;
   majorityPct?: number;
+  dimensionNote?: string;
 };
 
 type OptionMatrixProps = {
@@ -88,7 +89,7 @@ export function OptionMatrix({
                   <span className="vog-chip">{OPTION_TYPE_LABELS[option.type ?? "custom"] ?? "Maßnahme"}</span>
                   {selectedOptionId === option.id ? <span className="vog-chip">Vorauswahl</span> : null}
                 </div>
-                <div>
+                <div className="min-h-[64px]">
                   <h3 className="text-lg font-semibold text-[rgb(var(--fg))]">{option.label}</h3>
                   <p className="text-sm text-[rgb(var(--muted))]">{option.narrative}</p>
                 </div>
@@ -100,13 +101,16 @@ export function OptionMatrix({
                       </span>
                     ))
                   ) : (
-                    <span className="vog-chip">Ohne dominante Dimension</span>
+                    <span className="vog-chip">Keine dominante Dimension</span>
                   )}
                 </div>
+                {option.dimensionNote ? (
+                  <p className="text-[11px] text-[rgb(var(--muted))]">{option.dimensionNote}</p>
+                ) : null}
                 <div className="text-[11px] text-[rgb(var(--muted))]">
                   Berührt Statements: {option.touches.length ? option.touches.join(", ") : "-"}
                 </div>
-                <div className="flex flex-wrap gap-3 text-[11px] text-[rgb(var(--muted))]">
+                <div className="min-h-[40px] flex flex-wrap gap-3 text-[11px] text-[rgb(var(--muted))]">
                   <span>Statements: {option.statementCount}</span>
                   <span>Evidenz: {option.evidenceCount}</span>
                   <span>Budget: {option.budgetRange}</span>
@@ -116,7 +120,9 @@ export function OptionMatrix({
                     <span>Tendenz: {option.majorityPct}%</span>
                   ) : null}
                 </div>
-                <EvidenceStatus level={option.evidenceLevel} density={option.evidenceDensity} />
+                <div className="min-h-[96px]">
+                  <EvidenceStatus level={option.evidenceLevel} density={option.evidenceDensity} />
+                </div>
                 <Link
                   href={ctaHref}
                   className="text-xs font-semibold text-[rgb(var(--fg))] underline"

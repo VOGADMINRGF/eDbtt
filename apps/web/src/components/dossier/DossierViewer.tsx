@@ -42,6 +42,7 @@ type OptionCard = {
   riskProfile: string;
   clusterLabel?: string;
   majorityPct?: number;
+  dimensionNote?: string;
 };
 
 type OptionLink = { optionId: string; claimId: string };
@@ -172,6 +173,17 @@ function optionNarrative(optionType?: string) {
   }
 }
 
+function dimensionNoteForOption(label: string, type?: string, chipCount = 0) {
+  if (chipCount > 0) return undefined;
+  const lowered = label.toLowerCase();
+  if (lowered.includes("kooperation") || type === "custom") {
+    return "Querschnittsthema: governance- oder verfahrensbezogen, ohne dominante Entscheidungsdimension.";
+  }
+  if (type === "pilot") {
+    return "Übergangslösung mit prozessualem Fokus; keine einzelne Entscheidungsdimension dominiert.";
+  }
+  return "Querschnittsthema ohne dominante Entscheidungsdimension.";
+}
 function buildEvidenceLinks(claimIds: Set<string>, sourceIds: Set<string>, edges: Dossier["analyze"]["evidenceGraph"]["edges"]) {
   const links: EvidenceLink[] = [];
   for (const edge of edges) {
@@ -312,6 +324,7 @@ export function DossierViewer({ dossier }: { dossier: Dossier }) {
     });
 
     const chips = DIMENSIONS.filter((dim) => dimensionCounts[dim.key] > 0).map((dim) => dim.label);
+    const dimensionNote = dimensionNoteForOption(vote.label, full?.type ?? vote.type, chips.length);
 
     const clusterLabel = Array.from(clusterCounts.entries()).sort((a, b) => b[1] - a[1])[0]?.[0];
     const computedLevel =
@@ -333,6 +346,7 @@ export function DossierViewer({ dossier }: { dossier: Dossier }) {
       riskProfile: OPTION_RISK[vote.id] ?? "mittel",
       clusterLabel,
       majorityPct: majorityMap.get(vote.id),
+      dimensionNote,
     };
   });
 

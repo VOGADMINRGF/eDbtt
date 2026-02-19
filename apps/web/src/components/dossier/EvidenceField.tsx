@@ -298,24 +298,24 @@ export function EvidenceField({ options, claims, sources, edges, optionLinks }: 
             <p className="text-[11px] text-[rgb(var(--muted))]">Fokus: {activeLabel}</p>
           ) : null}
         </div>
-        <div className="flex flex-wrap items-center gap-2 text-[10px] text-[rgb(var(--muted))]">
-          <span className="inline-flex items-center gap-1">
+        <div className="flex min-h-[32px] items-center gap-4 overflow-x-auto text-[10px] text-[rgb(var(--muted))]">
+          <span className="inline-flex items-center gap-1 whitespace-nowrap">
             <span className="h-2 w-2 rounded-full bg-sky-400/70" />
             Kernposition
           </span>
-          <span className="inline-flex items-center gap-1">
+          <span className="inline-flex items-center gap-1 whitespace-nowrap">
             <span className="h-2 w-2 rounded-full bg-teal-400/70" />
             Teilaspekt
           </span>
-          <span className="inline-flex items-center gap-1">
+          <span className="inline-flex items-center gap-1 whitespace-nowrap">
             <span className="h-2 w-2 rounded-full bg-amber-400/70" />
             Entscheidungsdimension
           </span>
-          <span className="inline-flex items-center gap-1">
+          <span className="inline-flex items-center gap-1 whitespace-nowrap">
             <span className="h-2 w-2 rounded-full bg-violet-400/70" />
             Governance
           </span>
-          <span className="inline-flex items-center gap-1">
+          <span className="inline-flex items-center gap-1 whitespace-nowrap">
             <span className="h-2 w-2 rounded-full bg-slate-400/70" />
             Quelle
           </span>
