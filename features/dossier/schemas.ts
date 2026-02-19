@@ -1,5 +1,6 @@
 import { z } from "zod";
 import type { ObjectId } from "@core/db/triMongo";
+import { AnalyzeResultSchema, RunReceiptSourceSchema } from "@features/analyze/schemas";
 import { DOSSIER_LIMITS } from "./limits";
 
 export const DossierActorRoleSchema = z.enum(["pipeline", "editor", "member", "admin", "system"]);
@@ -95,7 +96,40 @@ export const DossierCountsSchema = z
   .strict();
 export type DossierCounts = z.infer<typeof DossierCountsSchema>;
 
+export const DossierMetaSchema = z
+  .object({
+    id: z.string(),
+    title: z.string(),
+    jurisdiction: z.enum(["municipal", "state", "federal", "eu", "global"]),
+    region: z.string().optional(),
+    status: z.enum(["draft", "review", "published", "archived"]).default("draft"),
+    owner: z.string().optional(),
+    createdAt: z.string(),
+    updatedAt: z.string().optional(),
+  })
+  .strict();
+export type DossierMeta = z.infer<typeof DossierMetaSchema>;
+
+export const VoteConfigSchema = z
+  .object({
+    enabled: z.boolean().default(false),
+    minOptions: z.number().int().min(2).default(5),
+    allowCommunityOptions: z.boolean().default(true),
+  })
+  .strict();
+export type VoteConfig = z.infer<typeof VoteConfigSchema>;
+
 export const DossierSchema = z
+  .object({
+    meta: DossierMetaSchema,
+    analyze: AnalyzeResultSchema,
+    sourceSet: z.array(RunReceiptSourceSchema).default([]),
+    voteConfig: VoteConfigSchema.optional(),
+  })
+  .strict();
+export type Dossier = z.infer<typeof DossierSchema>;
+
+export const DossierDocSchema = z
   .object({
     dossierId: z.string().min(1),
     statementId: z.string().min(1),
@@ -116,7 +150,7 @@ export const DossierSchema = z
     updatedAt: z.date().optional(),
   })
   .strict();
-export type DossierDoc = z.infer<typeof DossierSchema> & { _id?: ObjectId };
+export type DossierDoc = z.infer<typeof DossierDocSchema> & { _id?: ObjectId };
 
 export const DossierSourceSchema = z
   .object({

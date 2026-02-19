@@ -5,7 +5,7 @@
 Diese Datei ist der kanonische Aufgabenstand fuer E150.  
 Wenn `Part14`, `Part15` oder Drift-Prompts abweichen, gewinnt diese Datei.
 
-Stand: 2026-02-18
+Stand: 2026-02-19
 
 ## Block-Board
 
@@ -40,10 +40,44 @@ Diese Liste ist die kanonische Umsetzungsliste fuer alle vorhandenen Drift-Promp
 
 Aktive Pflicht-Tasks:
 
-- **Keine** (Stand: 2026-02-15). Pflicht-Backlog ist abgearbeitet.
+- **Keine** (Stand: 2026-02-19). Pflicht-Backlog ist abgearbeitet.
 
 Letzter Pflicht-Task (erledigt):
 - **PR-0010B**: DecisionArchitecture v2.0 Publishing Pack + Drift-Validator (Landingpage, Downloads, Validator).
+
+---
+
+## Strategische Erweiterung – Dossier-Normierung (Legitimation 2.0) — Next Run: PR-0034
+
+### Ausgangslage
+
+`AnalyzeResult` bildet bereits faktisch das vollständige eDebatte-Dossier ab
+(Claims, Consequences, ResponsibilityPaths, DecisionTrees, EvidenceGraph, Report, EditorialAudit, RunReceipt).
+
+Aktuell existiert jedoch kein explizites Top-Level-Dossier-Objekt.
+
+### Ziel
+
+Ein normiertes `DossierSchema` einführen, das:
+
+- `AnalyzeResult` kapselt
+- Metadaten (Titel, Zuständigkeit, Region, Status) ergänzt
+- Quellen-Set explizit referenziert (runReceipt.sourceSet)
+- Beteiligung/Vote-Config strukturiert abbildet
+- als Referenz im Weißbuch ("Legitimation 2.0") dient
+
+### Tasks
+
+| Task | Beschreibung | Status |
+|------|--------------|--------|
+| DS-01 | `features/dossier/schemas.ts` mit `DossierSchema` Wrapper erstellen | Offen |
+| DS-02 | Adapter `buildDossierFromAnalyze()` implementieren | Offen |
+| DS-03 | Whitepaper-Hook im E150-Docs verankern (Part07) | Offen |
+| DS-04 | Optional: Route `/dossier/[id]` prüfen | Optional |
+
+### Zielbild
+
+Dossier = formalisierte digitale Entscheidungsakte als Container fuer Analyse, Evidenz, Verantwortung und Beteiligung.
 
 ### 1) Nachlauf (optional)
 

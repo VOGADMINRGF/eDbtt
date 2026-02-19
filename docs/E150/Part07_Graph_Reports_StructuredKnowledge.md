@@ -253,6 +253,21 @@ Ist/Unerledigt:
 | UI-Struktur | Swipe-Flow existiert | Kontext-Accordion mit "Warum sehe ich das?" fehlt |
 | Explainability | Prinzip "neutral und nachvollziehbar" definiert | Leichte Graph-Randinfo im Produkt noch nicht ausgerollt |
 
+7.2 Dossier als formalisierte Entscheidungsakte (Legitimation 2.0)
+Im E150-System ist `AnalyzeResult` der maschinenvalidierte Kernoutput
+(Claims, Evidenzgraph, Verantwortungszuordnung, Konsequenzen, Eventualities/DecisionTrees, Report).
+
+Fuer Publishing, kommunale Nutzung und wissenschaftliche Referenzierung wird dieser Kern
+durch ein Top-Level `DossierSchema` gekapselt:
+
+- **Meta**: Titel, Zustaendigkeit (jurisdiction), Region, Status, Zeitstempel
+- **Analyze**: unveraendertes `AnalyzeResult`
+- **SourceSet**: explizite Quellenreferenzen (aus `runReceipt.sourceSet`)
+- **VoteConfig**: Beteiligungs-/Abstimmungsparameter (z.B. min. Optionen, Community-Optionen)
+
+Das Dossier ist damit eine formal definierte „digitale Entscheidungsakte“: reproduzierbar,
+auditierbar und projekt-/kommunenfaehig.
+
 8. Konsistenzregeln (E150.7.x)
 E150.7.1 – Graph ist streng neutral
 Keine Gewichtung, nur Struktur.
