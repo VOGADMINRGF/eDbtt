@@ -6,6 +6,15 @@ type TransparencyPanelProps = {
   runReceipt?: Dossier["analyze"]["runReceipt"];
   createdAt?: string | null;
   updatedAt?: string | null;
+  revision?: Dossier["meta"]["revision"];
+};
+
+const SOURCE_TYPE_LABELS: Record<string, string> = {
+  gov: "Behörde/Verwaltung",
+  research: "Forschung",
+  media: "Medien",
+  community: "Community",
+  other: "Sonstiges",
 };
 
 function formatDate(value?: string | null) {
@@ -28,7 +37,13 @@ function dataPolicyText(contentPolicy: Dossier["analyze"]["runReceipt"]["content
   return "Daten werden in komprimierter Form dokumentiert.";
 }
 
-export function TransparencyPanel({ sources, runReceipt, createdAt, updatedAt }: TransparencyPanelProps) {
+export function TransparencyPanel({
+  sources,
+  runReceipt,
+  createdAt,
+  updatedAt,
+  revision,
+}: TransparencyPanelProps) {
   return (
     <section className="vog-card p-5 space-y-3">
       <div className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
@@ -39,6 +54,11 @@ export function TransparencyPanel({ sources, runReceipt, createdAt, updatedAt }:
         <div>Verfahrensversion: {runReceipt?.promptVersion ?? "—"}</div>
         <div>Protokoll-ID: {runReceipt?.id ?? "—"}</div>
         <div>Dokumentationsstand: {runReceipt?.snapshotId ?? "—"}</div>
+        {revision ? (
+          <div>
+            Änderungsstand: Rev {revision.rev} · Letzte Änderung: {formatDate(revision.lastChangeAt)}
+          </div>
+        ) : null}
       </div>
       <div className="text-[11px] text-[rgb(var(--muted))]">
         {UI_DE.created}: {formatDate(createdAt)} · {UI_DE.updated}: {formatDate(updatedAt ?? createdAt)}
@@ -62,6 +82,43 @@ export function TransparencyPanel({ sources, runReceipt, createdAt, updatedAt }:
                 <span>{src.title ?? "Quelle"}</span>
               )}
               <span className="text-[rgb(var(--muted))]"> ({src.publisher ?? "-"})</span>
+              <div className="mt-1 flex flex-wrap gap-2 text-[10px] text-[rgb(var(--muted))]">
+                {src.sourceType ? (
+                  <span className="rounded-full border border-[rgb(var(--border))] px-2 py-0.5">
+                    Typ: {SOURCE_TYPE_LABELS[src.sourceType] ?? src.sourceType}
+                  </span>
+                ) : null}
+                {src.timeRange ? (
+                  <span className="rounded-full border border-[rgb(var(--border))] px-2 py-0.5">
+                    Zeitraum: {src.timeRange}
+                  </span>
+                ) : null}
+                {src.location ? (
+                  <span className="rounded-full border border-[rgb(var(--border))] px-2 py-0.5">
+                    Ort: {src.location}
+                  </span>
+                ) : null}
+                {src.audience ? (
+                  <span className="rounded-full border border-[rgb(var(--border))] px-2 py-0.5">
+                    Zielgruppe: {src.audience}
+                  </span>
+                ) : null}
+                {src.conflicts ? (
+                  <span className="rounded-full border border-rose-400/40 bg-rose-500/10 px-2 py-0.5 text-rose-200">
+                    Konflikt
+                  </span>
+                ) : null}
+              </div>
+              {src.assumptions?.length ? (
+                <div className="mt-1 text-[10px] text-[rgb(var(--muted))]">
+                  Annahmen: {src.assumptions.join(", ")}
+                </div>
+              ) : null}
+              {src.conflicts ? (
+                <div className="mt-1 text-[10px] text-[rgb(var(--muted))]">
+                  Interessenkonflikt: {src.conflicts}
+                </div>
+              ) : null}
             </li>
           ))
         ) : (

@@ -11,6 +11,12 @@ import VotePanel from "./VotePanel";
 import ParticipationStatus from "./ParticipationStatus";
 import LegitimacyPanel, { type LegitimacyMetric, type LegitimacyStatus } from "./LegitimacyPanel";
 import TransparencyPanel from "./TransparencyPanel";
+import AuditTrailPanel from "./AuditTrailPanel";
+import CorrectionsPanel from "./CorrectionsPanel";
+import ExportPanel from "./ExportPanel";
+import EditorialInbox from "./EditorialInbox";
+import WatchlistPanel from "./WatchlistPanel";
+import RoadmapPanel from "./RoadmapPanel";
 import { useDecisionState } from "./useDecisionState";
 import {
   SECTION_TITLES,
@@ -93,25 +99,38 @@ const QUESTION_STATUS_LABELS: Record<string, string> = {
 };
 
 const QUESTION_STATUS_STYLES: Record<string, string> = {
-  offen: "border-slate-500/45 bg-slate-500/10 text-[rgb(var(--fg))]",
-  in_pruefung: "border-violet-500/45 bg-violet-500/12 text-[rgb(var(--fg))]",
-  beantwortet: "border-emerald-500/45 bg-emerald-500/12 text-[rgb(var(--fg))]",
-  delegiert: "border-slate-400/45 bg-slate-400/10 text-[rgb(var(--fg))]",
-  open: "border-slate-500/45 bg-slate-500/10 text-[rgb(var(--fg))]",
-  in_review: "border-violet-500/45 bg-violet-500/12 text-[rgb(var(--fg))]",
-  answered: "border-emerald-500/45 bg-emerald-500/12 text-[rgb(var(--fg))]",
-  closed: "border-slate-400/45 bg-slate-400/10 text-[rgb(var(--fg))]",
+  offen: "border-[rgb(var(--status-open)/0.45)] bg-[rgb(var(--status-open)/0.12)] text-[rgb(var(--fg))]",
+  in_pruefung:
+    "border-[rgb(var(--status-review)/0.45)] bg-[rgb(var(--status-review)/0.12)] text-[rgb(var(--fg))]",
+  beantwortet:
+    "border-[rgb(var(--status-done)/0.45)] bg-[rgb(var(--status-done)/0.12)] text-[rgb(var(--fg))]",
+  delegiert:
+    "border-[rgb(var(--status-delegated)/0.45)] bg-[rgb(var(--status-delegated)/0.12)] text-[rgb(var(--fg))]",
+  open: "border-[rgb(var(--status-open)/0.45)] bg-[rgb(var(--status-open)/0.12)] text-[rgb(var(--fg))]",
+  in_review:
+    "border-[rgb(var(--status-review)/0.45)] bg-[rgb(var(--status-review)/0.12)] text-[rgb(var(--fg))]",
+  answered:
+    "border-[rgb(var(--status-done)/0.45)] bg-[rgb(var(--status-done)/0.12)] text-[rgb(var(--fg))]",
+  closed:
+    "border-[rgb(var(--status-delegated)/0.45)] bg-[rgb(var(--status-delegated)/0.12)] text-[rgb(var(--fg))]",
 };
 
 const QUESTION_STATUS_ACCENT: Record<string, string> = {
-  offen: "border-l-2 border-l-slate-400/70",
-  in_pruefung: "border-l-2 border-l-violet-500/70",
-  beantwortet: "border-l-2 border-l-emerald-500/70",
-  delegiert: "border-l-2 border-l-slate-400/70",
-  open: "border-l-2 border-l-slate-400/70",
-  in_review: "border-l-2 border-l-violet-500/70",
-  answered: "border-l-2 border-l-emerald-500/70",
-  closed: "border-l-2 border-l-slate-400/70",
+  offen: "border-l-2 border-l-[rgb(var(--status-open)/0.7)]",
+  in_pruefung: "border-l-2 border-l-[rgb(var(--status-review)/0.7)]",
+  beantwortet: "border-l-2 border-l-[rgb(var(--status-done)/0.7)]",
+  delegiert: "border-l-2 border-l-[rgb(var(--status-delegated)/0.7)]",
+  open: "border-l-2 border-l-[rgb(var(--status-open)/0.7)]",
+  in_review: "border-l-2 border-l-[rgb(var(--status-review)/0.7)]",
+  answered: "border-l-2 border-l-[rgb(var(--status-done)/0.7)]",
+  closed: "border-l-2 border-l-[rgb(var(--status-delegated)/0.7)]",
+};
+
+const STATEMENT_TYPE_LABELS: Record<string, string> = {
+  fact: "Tatsache",
+  interpretation: "Interpretation",
+  value: "Werturteil",
+  question: "Offene Frage",
 };
 
 const ROLE_LABELS = {
@@ -316,10 +335,17 @@ function mergeClusters(defaultClusters: PresentationCluster[], derivedClusters: 
 
 export function DossierViewer({ dossier }: { dossier: Dossier }) {
   const { meta, analyze, voteConfig } = dossier;
+  const corrections = dossier.corrections ?? [];
   const { presentation, streams, contributions, voteOptions, majorityDemo, traceability, openQuestions } =
     getPresentation(dossier);
   const { selectedOptionId, savedOptionId, savedAt, setSelectedOptionId, saveSelection, saveNotice } =
-    useDecisionState(meta.id);
+    useDecisionState(meta.id, {
+      onMajorityUpdate: (payload) => {
+        if (payload.majorityDemo?.length) setMajorityLive(payload.majorityDemo);
+        if (payload.updatedAt) setMajorityUpdatedAt(payload.updatedAt);
+        if (typeof payload.totalVotes === "number") setMajorityTotalVotes(payload.totalVotes);
+      },
+    });
   const viewerRole = presentation.viewerRole ?? "citizen";
   const isCitizen = viewerRole === "citizen";
   const roleLabel = ROLE_LABELS[viewerRole] ?? viewerRole;
@@ -496,11 +522,24 @@ export function DossierViewer({ dossier }: { dossier: Dossier }) {
   }
   const votingOptions: PresentationVoteOption[] = Array.from(voteOptionMap.values());
 
-  const majority = majorityDemo.length
-    ? majorityDemo
-    : presentation.vote?.majorityDemo ?? votingOptions.map((opt) => ({ id: opt.id, pct: 0 }));
+  const baseMajority = useMemo(
+    () =>
+      majorityDemo.length
+        ? majorityDemo
+        : presentation.vote?.majorityDemo ?? votingOptions.map((opt) => ({ id: opt.id, pct: 0 })),
+    [majorityDemo, presentation.vote?.majorityDemo, votingOptions],
+  );
+  const [majorityLive, setMajorityLive] = useState(baseMajority);
+  const [majorityUpdatedAt, setMajorityUpdatedAt] = useState(presentation.vote?.updatedAt);
+  const [majorityTotalVotes, setMajorityTotalVotes] = useState(presentation.vote?.totalVotes);
 
-  const majorityMap = new Map(majority.map((item) => [item.id, item.pct]));
+  useEffect(() => {
+    setMajorityLive(baseMajority);
+    setMajorityUpdatedAt(presentation.vote?.updatedAt);
+    setMajorityTotalVotes(presentation.vote?.totalVotes);
+  }, [meta.id, baseMajority, presentation.vote?.updatedAt, presentation.vote?.totalVotes]);
+
+  const majorityMap = new Map(majorityLive.map((item) => [item.id, item.pct]));
 
   const claimIds = new Set(analyze.claims.map((claim) => claim.id));
   const sourceIds = new Set(
@@ -608,6 +647,18 @@ export function DossierViewer({ dossier }: { dossier: Dossier }) {
     }
   }
 
+  const contestedClaimIds = useMemo(
+    () =>
+      corrections
+        .filter(
+          (item) => item.kind === "objection" && item.targetType === "claim" && item.status === "open",
+        )
+        .map((item) => item.targetId),
+    [corrections],
+  );
+
+  const contestedClaimSet = useMemo(() => new Set(contestedClaimIds), [contestedClaimIds]);
+
   const coreClaims = analyze.claims.filter((claim) => claim.importance === 5);
   const secondaryClaims = analyze.claims.filter((claim) => claim.importance !== 5);
 
@@ -636,6 +687,7 @@ export function DossierViewer({ dossier }: { dossier: Dossier }) {
     cluster: inferClusterFromClaim(claim),
     importance: claim.importance,
     domain: claim.domain,
+    statementType: (claim as { statementType?: string }).statementType ?? null,
   }));
 
   const graphNodes = analyze.evidenceGraph?.nodes ?? [];
@@ -881,9 +933,8 @@ export function DossierViewer({ dossier }: { dossier: Dossier }) {
                 </div>
               </div>
               <div className="max-w-md space-y-1 text-[11px] text-[rgb(var(--muted))]">
-                <p>Übernimmt die Verwaltung das Thema, liegt dort die Federführung.</p>
-                <p>Weitere Akteure können Community, Verbände/Vereine und Medien sein.</p>
-                <p>Wird kein Status vergeben, orientiert sich die Einordnung an der ursprünglichen Hauptquelle des Themas.</p>
+                <p>Federführung: Verwaltung (falls übernommen). Danach: Community · Verbände/Vereine · Medien.</p>
+                <p>Statusvergabe: nur Admin/Staff. Sonst gilt die Hauptquelle, aus der das Thema hervorging.</p>
               </div>
             </div>
           ) : null}
@@ -969,7 +1020,7 @@ export function DossierViewer({ dossier }: { dossier: Dossier }) {
             selectedOptionId={selectedOptionId}
             savedOptionId={savedOptionId}
             onSelect={setSelectedOptionId}
-            onSave={saveSelection}
+            onSave={() => void saveSelection()}
             saveNotice={saveNotice}
             savedAt={savedAt}
             canVote={isCitizen}
@@ -977,11 +1028,11 @@ export function DossierViewer({ dossier }: { dossier: Dossier }) {
           />
           <ParticipationStatus
             options={votingOptions}
-            majorityDemo={majority}
+            majorityDemo={majorityLive}
             savedOptionId={displaySavedOptionId}
             savedAt={displaySavedAt}
-            totalVotes={presentation.vote?.totalVotes}
-            updatedAt={presentation.vote?.updatedAt}
+            totalVotes={majorityTotalVotes}
+            updatedAt={majorityUpdatedAt}
             history={presentation.vote?.history}
             showUserVote={isCitizen}
           />
@@ -1002,6 +1053,8 @@ export function DossierViewer({ dossier }: { dossier: Dossier }) {
         edges={graphEdges}
         optionLinks={optionLinks}
         optionRanking={majorityMap}
+        contestedClaimIds={contestedClaimIds}
+        findings={analyze.findings}
       />
     </section>
   );
@@ -1064,6 +1117,18 @@ export function DossierViewer({ dossier }: { dossier: Dossier }) {
                   <span className="vog-chip">Position: {STANCE_LABELS[claim.stance ?? ""] ?? "-"}</span>
                   <span className="vog-chip">Wichtigkeit: {claim.importance ?? "-"}</span>
                   <span className="vog-chip">Zuständigkeit: {claim.responsibility ?? "-"}</span>
+                  {(claim as { statementType?: string }).statementType ? (
+                    <span className="vog-chip">
+                      Typ:{" "}
+                      {STATEMENT_TYPE_LABELS[(claim as { statementType?: string }).statementType ?? ""] ??
+                        (claim as { statementType?: string }).statementType}
+                    </span>
+                  ) : null}
+                  {contestedClaimSet.has(claim.id) ? (
+                    <span className="vog-chip border-rose-400/50 bg-rose-500/10 text-rose-200">
+                      Einspruch offen
+                    </span>
+                  ) : null}
                 </div>
                 <div>
                   <p className="text-base font-semibold text-[rgb(var(--fg))]">{claim.title ?? "Kernaussage"}</p>
@@ -1087,6 +1152,18 @@ export function DossierViewer({ dossier }: { dossier: Dossier }) {
                   <span className="vog-chip">Position: {STANCE_LABELS[claim.stance ?? ""] ?? "-"}</span>
                   <span className="vog-chip">Wichtigkeit: {claim.importance ?? "-"}</span>
                   <span className="vog-chip">Zuständigkeit: {claim.responsibility ?? "-"}</span>
+                  {(claim as { statementType?: string }).statementType ? (
+                    <span className="vog-chip">
+                      Typ:{" "}
+                      {STATEMENT_TYPE_LABELS[(claim as { statementType?: string }).statementType ?? ""] ??
+                        (claim as { statementType?: string }).statementType}
+                    </span>
+                  ) : null}
+                  {contestedClaimSet.has(claim.id) ? (
+                    <span className="vog-chip border-rose-400/50 bg-rose-500/10 text-rose-200">
+                      Einspruch offen
+                    </span>
+                  ) : null}
                 </div>
                 <p className="text-sm font-semibold text-[rgb(var(--fg))]">{claim.title ?? "Kernaussage"}</p>
                 <p className="text-sm text-[rgb(var(--muted))]">{claim.text}</p>
@@ -1109,6 +1186,9 @@ export function DossierViewer({ dossier }: { dossier: Dossier }) {
           <div className="text-[11px] text-[rgb(var(--muted))]">
             Erkenntnisse: {labelList(analyze.report.takeaways)}
           </div>
+        </div>
+        <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3 text-[11px] text-[rgb(var(--muted))]">
+          Hinweis: Ein Dossier ist kein Wahrheitsurteil. Es zeigt transparent, was belegt ist – und was noch offen bleibt.
         </div>
       </section>
 
@@ -1208,7 +1288,14 @@ export function DossierViewer({ dossier }: { dossier: Dossier }) {
         runReceipt={analyze.runReceipt}
         createdAt={meta.createdAt}
         updatedAt={meta.updatedAt}
+        revision={meta.revision}
       />
+      <CorrectionsPanel items={corrections} />
+      <AuditTrailPanel auditTrail={dossier.auditTrail} />
+      <ExportPanel dossierId={meta.id} exportBase="/api/demo/export" />
+      <EditorialInbox items={presentation.editorialInbox} />
+      <WatchlistPanel items={presentation.watchlist} />
+      <RoadmapPanel items={presentation.roadmap} />
 
       <section className="vog-card p-5 space-y-2">
         <div className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">

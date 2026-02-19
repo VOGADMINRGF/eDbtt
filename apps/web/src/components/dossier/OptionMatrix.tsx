@@ -159,8 +159,8 @@ export function OptionMatrix({
                 >
                   <defs>
                     <linearGradient id={`radar-grad-${option.id}`} x1="0%" y1="0%" x2="100%" y2="100%">
-                      <stop offset="0%" stopColor="rgba(56,189,248,0.38)" />
-                      <stop offset="100%" stopColor="rgba(45,212,191,0.22)" />
+                      <stop offset="0%" stopColor="rgba(var(--grad-from),0.28)" />
+                      <stop offset="100%" stopColor="rgba(var(--grad-to),0.18)" />
                     </linearGradient>
                   </defs>
                   <circle
@@ -189,8 +189,8 @@ export function OptionMatrix({
                   <polygon
                     points={renderRadarPoints(option.dimensions)}
                     fill={`url(#radar-grad-${option.id})`}
-                    stroke="rgba(56,189,248,0.6)"
-                    strokeWidth="1.2"
+                    stroke="rgba(var(--grad-from),0.45)"
+                    strokeWidth="1"
                   />
                 </svg>
               </div>

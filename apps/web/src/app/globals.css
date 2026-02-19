@@ -33,6 +33,10 @@
   --dossier-top: #faf8f2;
   --dossier-mid: #f4f3ef;
   --dossier-bottom: #ece8de;
+  --status-open: 148 163 184;
+  --status-review: 139 92 246;
+  --status-done: 16 185 129;
+  --status-delegated: 120 137 158;
 }
 
 .dark {
@@ -55,6 +59,10 @@
   --dossier-top: #1a263a;
   --dossier-mid: #0f1b2e;
   --dossier-bottom: #0b1320;
+  --status-open: 148 163 184;
+  --status-review: 139 92 246;
+  --status-done: 16 185 129;
+  --status-delegated: 120 137 158;
 }
 
 /* Dossier Editorial Mode: scoped palette and quieter surfaces */
@@ -74,6 +82,10 @@
   --dossier-top: #faf8f2;
   --dossier-mid: #f4f3ef;
   --dossier-bottom: #ece8de;
+  --status-open: 100 116 139;
+  --status-review: 124 92 246;
+  --status-done: 16 120 97;
+  --status-delegated: 100 116 139;
 }
 
 .dark .dossier-editorial {
@@ -92,6 +104,10 @@
   --dossier-top: #1a263a;
   --dossier-mid: #0f1b2e;
   --dossier-bottom: #0b1320;
+  --status-open: 148 163 184;
+  --status-review: 139 92 246;
+  --status-done: 16 185 129;
+  --status-delegated: 120 137 158;
 }
 
 /* fallback if both `dark` and `light` classes appear during hydration/theme switches */
@@ -111,6 +127,10 @@
   --dossier-top: #faf8f2;
   --dossier-mid: #f4f3ef;
   --dossier-bottom: #ece8de;
+  --status-open: 100 116 139;
+  --status-review: 124 92 246;
+  --status-done: 16 120 97;
+  --status-delegated: 100 116 139;
 }
 
 .dossier-editorial .vog-card {

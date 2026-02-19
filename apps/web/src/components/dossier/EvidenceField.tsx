@@ -10,6 +10,7 @@ type ClaimNode = {
   cluster?: string;
   importance?: number;
   domain?: string | null;
+  statementType?: string | null;
 };
 
 type SourceNode = {
@@ -57,6 +58,7 @@ type EvidenceFieldProps = {
   optionLinks: OptionLink[];
   optionRanking?: Map<string, number>;
   contestedClaimIds?: string[];
+  findings?: Finding[];
 };
 
 type ActiveNode = { type: "option" | "claim" | "source"; id: string } | null;
@@ -81,6 +83,15 @@ type FocusDetails = {
 
 type Category = "kernposition" | "teilaspekt" | "entscheidungsdimension" | "governance";
 
+type Finding = {
+  id: string;
+  claimId: string;
+  sourceId: string;
+  finding: "supports" | "contradicts" | "unclear" | "mentions";
+  rationale?: string;
+  excerptRef?: string;
+};
+
 const CATEGORY_STYLES: Record<Category, string> = {
   kernposition: "border-cyan-500/35 bg-[rgb(var(--card))]",
   teilaspekt: "border-teal-500/35 bg-[rgb(var(--card))]",
@@ -93,6 +104,13 @@ const CATEGORY_MARKERS: Record<Category, string> = {
   teilaspekt: "bg-teal-500",
   entscheidungsdimension: "bg-sky-500",
   governance: "bg-violet-500",
+};
+
+const STATEMENT_TYPE_LABELS: Record<string, string> = {
+  fact: "Tatsache",
+  interpretation: "Interpretation",
+  value: "Werturteil",
+  question: "Offene Frage",
 };
 
 const NODE_CLAMP_STYLE: CSSProperties = {
@@ -169,13 +187,37 @@ function kindLabel(kind?: string) {
   return "bezieht sich auf";
 }
 
-export function EvidenceField({ options, claims, sources, edges, optionLinks, optionRanking }: EvidenceFieldProps) {
+function findingLabel(value: Finding["finding"]) {
+  if (value === "supports") return "Stützt";
+  if (value === "contradicts") return "Widerspricht";
+  if (value === "unclear") return "Unklar";
+  return "Erwähnt";
+}
+
+const FINDING_PRIORITY: Record<Finding["finding"], number> = {
+  supports: 3,
+  contradicts: 3,
+  mentions: 2,
+  unclear: 1,
+};
+
+export function EvidenceField({
+  options,
+  claims,
+  sources,
+  edges,
+  optionLinks,
+  optionRanking,
+  contestedClaimIds,
+  findings = [],
+}: EvidenceFieldProps) {
   const contestedSet = useMemo(() => new Set(contestedClaimIds ?? []), [contestedClaimIds]);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const hoverTimerRef = useRef<number | null>(null);
   const [lines, setLines] = useState<Line[]>([]);
   const [hovered, setHovered] = useState<ActiveNode>(null);
   const [focused, setFocused] = useState<ActiveNode>(null);
+  const [viewMode, setViewMode] = useState<"edges" | "findings">("edges");
 
   const claimIds = useMemo(() => new Set(claims.map((claim) => claim.id)), [claims]);
   const sourceIds = useMemo(() => new Set(sources.map((source) => source.id)), [sources]);
@@ -419,6 +461,19 @@ export function EvidenceField({ options, claims, sources, edges, optionLinks, op
     return { optionLabel, claimLabel, sourceLabel };
   }, [options, claims, sources]);
 
+  const findingsByClaim = useMemo(() => {
+    const map = new Map<string, Finding[]>();
+    for (const item of findings) {
+      const list = map.get(item.claimId) ?? [];
+      list.push(item);
+      map.set(item.claimId, list);
+    }
+    for (const list of map.values()) {
+      list.sort((a, b) => FINDING_PRIORITY[b.finding] - FINDING_PRIORITY[a.finding]);
+    }
+    return map;
+  }, [findings]);
+
   const focusedDetails = useMemo<FocusDetails | null>(() => {
     if (!focused) return null;
 
@@ -545,6 +600,30 @@ export function EvidenceField({ options, claims, sources, edges, optionLinks, op
             Verknüpfte Quellen: {activeEvidenceCount ?? 0}
           </p>
         </div>
+        <div className="flex items-center gap-2 text-[10px] text-[rgb(var(--muted))]">
+          <button
+            type="button"
+            onClick={() => setViewMode("edges")}
+            className={`rounded-full border px-2 py-1 ${
+              viewMode === "edges"
+                ? "border-[rgb(var(--grad-from))] text-[rgb(var(--fg))]"
+                : "border-[rgb(var(--border))]"
+            }`}
+          >
+            Kanten
+          </button>
+          <button
+            type="button"
+            onClick={() => setViewMode("findings")}
+            className={`rounded-full border px-2 py-1 ${
+              viewMode === "findings"
+                ? "border-[rgb(var(--grad-from))] text-[rgb(var(--fg))]"
+                : "border-[rgb(var(--border))]"
+            }`}
+          >
+            Befunde
+          </button>
+        </div>
         <div className="flex min-h-[32px] items-center gap-4 overflow-x-auto text-[10px] text-[rgb(var(--muted))] md:shrink-0">
           <span className="inline-flex items-center gap-1 whitespace-nowrap">
             <span className="h-2 w-2 rounded-full bg-cyan-500" />
@@ -652,16 +731,28 @@ export function EvidenceField({ options, claims, sources, edges, optionLinks, op
                     <span className="block min-h-[3.75rem] leading-snug" style={NODE_CLAMP_STYLE}>
                       {claim.label}
                     </span>
-                    <span
-                      title={
-                        evidenceCount === 0
-                          ? "Für diese Kernaussage fehlt aktuell eine Quelle. Material kann vorgeschlagen werden."
-                          : "Evidenzdichte auf Basis verknüpfter Quellen im Dossier."
-                      }
-                      className="shrink-0 rounded-full border border-[rgb(var(--border))] px-2 py-0.5 text-[10px] text-[rgb(var(--muted))]"
-                    >
-                      {evidenceBadge}
-                    </span>
+                    <div className="flex shrink-0 flex-col items-end gap-1 text-[10px] text-[rgb(var(--muted))]">
+                      <span
+                        title={
+                          evidenceCount === 0
+                            ? "Für diese Kernaussage fehlt aktuell eine Quelle. Material kann vorgeschlagen werden."
+                            : "Evidenzdichte auf Basis verknüpfter Quellen im Dossier."
+                        }
+                        className="rounded-full border border-[rgb(var(--border))] px-2 py-0.5"
+                      >
+                        {evidenceBadge}
+                      </span>
+                      {claim.statementType ? (
+                        <span className="rounded-full border border-[rgb(var(--border))] px-2 py-0.5">
+                          Typ: {STATEMENT_TYPE_LABELS[claim.statementType] ?? claim.statementType}
+                        </span>
+                      ) : null}
+                      {contestedSet.has(claim.id) ? (
+                        <span className="rounded-full border border-rose-400/50 bg-rose-500/10 px-2 py-0.5 text-rose-200">
+                          Einspruch
+                        </span>
+                      ) : null}
+                    </div>
                   </div>
                 </button>
               );
@@ -735,56 +826,106 @@ export function EvidenceField({ options, claims, sources, edges, optionLinks, op
         <span className="vog-chip">Durchgezogen: stützt</span>
         <span className="vog-chip">Gestrichelt: erwähnt</span>
       </div>
-      {focusedDetails ? (
-        <div className="mt-4 rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3 text-[11px] text-[rgb(var(--muted))]">
-          <p className="text-[11px] font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
-            Detailansicht (Fokus)
-          </p>
-          <p className="text-sm font-semibold text-[rgb(var(--fg))]">{focusedDetails.title}</p>
-          <p className="text-[11px] text-[rgb(var(--muted))]">Typ: {focusedDetails.typeLabel}</p>
-          {focusedDetails.typeLabel === "Quelle" && focusedDetails.excerpt ? (
-            <p className="mt-2 text-[11px] text-[rgb(var(--muted))]">Auszug: {focusedDetails.excerpt}</p>
-          ) : null}
-          <p className="mt-2 text-[11px] text-[rgb(var(--muted))]">
-            Verknüpfte {focusedDetails.typeLabel === "Kernaussage" ? "Optionen" : "Kernaussagen"}:{" "}
-            {focusedDetails.statements.length ? focusedDetails.statements.join(", ") : "—"}
-          </p>
-          {focusedDetails.typeLabel !== "Quelle" ? (
-            <p className="text-[11px] text-[rgb(var(--muted))]">
-              Verknüpfte Quellen: {focusedDetails.sources.length ? focusedDetails.sources.join(", ") : "—"}
+      {viewMode === "edges" ? (
+        focusedDetails ? (
+          <div className="mt-4 rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3 text-[11px] text-[rgb(var(--muted))]">
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
+              Detailansicht (Fokus)
             </p>
-          ) : null}
-          {focusedDetails.edges?.length ? (
-            <div className="mt-2 space-y-1 text-[11px] text-[rgb(var(--muted))]">
-              <p className="font-semibold text-[rgb(var(--fg))]">Kanten (Gewicht & Bezug)</p>
-              {focusedDetails.edges.map((edge) => (
-                <div key={edge.id} className="space-y-0.5 rounded-lg border border-[rgb(var(--border))] px-2 py-1">
-                  <div className="text-[11px] text-[rgb(var(--fg))]">
-                    {edge.fromLabel} → {edge.toLabel}
+            <p className="text-sm font-semibold text-[rgb(var(--fg))]">{focusedDetails.title}</p>
+            <p className="text-[11px] text-[rgb(var(--muted))]">Typ: {focusedDetails.typeLabel}</p>
+            {focused?.type === "claim" && contestedSet.has(focused.id) ? (
+              <p className="mt-1 text-[11px] text-rose-200">Einspruch offen: Aussage ist angefochten.</p>
+            ) : null}
+            {focusedDetails.typeLabel === "Quelle" && focusedDetails.excerpt ? (
+              <p className="mt-2 text-[11px] text-[rgb(var(--muted))]">Auszug: {focusedDetails.excerpt}</p>
+            ) : null}
+            <p className="mt-2 text-[11px] text-[rgb(var(--muted))]">
+              Verknüpfte {focusedDetails.typeLabel === "Kernaussage" ? "Optionen" : "Kernaussagen"}:{" "}
+              {focusedDetails.statements.length ? focusedDetails.statements.join(", ") : "—"}
+            </p>
+            {focusedDetails.typeLabel !== "Quelle" ? (
+              <p className="text-[11px] text-[rgb(var(--muted))]">
+                Verknüpfte Quellen: {focusedDetails.sources.length ? focusedDetails.sources.join(", ") : "—"}
+              </p>
+            ) : null}
+            {focusedDetails.edges?.length ? (
+              <div className="mt-2 space-y-1 text-[11px] text-[rgb(var(--muted))]">
+                <p className="font-semibold text-[rgb(var(--fg))]">Kanten (Gewicht & Bezug)</p>
+                {focusedDetails.edges.map((edge) => (
+                  <div key={edge.id} className="space-y-0.5 rounded-lg border border-[rgb(var(--border))] px-2 py-1">
+                    <div className="text-[11px] text-[rgb(var(--fg))]">
+                      {edge.fromLabel} → {edge.toLabel}
+                    </div>
+                    <div className="text-[10px] opacity-85">
+                      Gewicht: {edge.weight ?? "—"} · Bezug: {kindLabel(edge.kind)}
+                    </div>
+                    {edge.excerpt ? <div className="text-[10px] opacity-80">Auszug: {edge.excerpt}</div> : null}
+                    {edge.url ? (
+                      <a
+                        href={edge.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-block text-[10px] underline"
+                      >
+                        Quelle öffnen
+                      </a>
+                    ) : null}
                   </div>
-                  <div className="text-[10px] opacity-85">
-                    Gewicht: {edge.weight ?? "—"} · Bezug: {kindLabel(edge.kind)}
-                  </div>
-                  {edge.excerpt ? <div className="text-[10px] opacity-80">Auszug: {edge.excerpt}</div> : null}
-                  {edge.url ? (
-                    <a
-                      href={edge.url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="inline-block text-[10px] underline"
-                    >
-                      Quelle öffnen
-                    </a>
-                  ) : null}
-                </div>
-              ))}
-            </div>
-          ) : null}
-        </div>
+                ))}
+              </div>
+            ) : null}
+          </div>
+        ) : (
+          <p className="mt-4 text-[11px] text-[rgb(var(--muted))]">
+            Klicke auf eine Option, eine Kernaussage oder eine Quelle, um Details zu sehen.
+          </p>
+        )
       ) : (
-        <p className="mt-4 text-[11px] text-[rgb(var(--muted))]">
-          Klicke auf eine Option, eine Kernaussage oder eine Quelle, um Details zu sehen.
-        </p>
+        <div className="mt-4 space-y-3">
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
+            Befunde (Begründungen)
+          </p>
+          {findings.length === 0 ? (
+            <p className="text-[11px] text-[rgb(var(--muted))]">Keine Befunde hinterlegt.</p>
+          ) : (
+            claims
+              .filter((claim) => (findingsByClaim.get(claim.id) ?? []).length > 0)
+              .map((claim) => {
+                const list = findingsByClaim.get(claim.id) ?? [];
+                return (
+                  <div
+                    key={claim.id}
+                    className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3"
+                  >
+                    <p className="text-sm font-semibold text-[rgb(var(--fg))]">{claim.label}</p>
+                    <div className="mt-2 space-y-2 text-[11px] text-[rgb(var(--muted))]">
+                      {list.map((item) => (
+                        <div key={item.id} className="rounded-lg border border-[rgb(var(--border))] px-2 py-2">
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <span className="font-semibold text-[rgb(var(--fg))]">
+                              {findingLabel(item.finding)}
+                            </span>
+                            <span className="text-[10px] text-[rgb(var(--muted))]">
+                              Quelle: {labelMaps.sourceLabel.get(item.sourceId) ?? item.sourceId}
+                            </span>
+                          </div>
+                          {item.rationale ? (
+                            <p className="mt-1 text-[11px] text-[rgb(var(--muted))]">{item.rationale}</p>
+                          ) : null}
+                          {item.excerptRef ? (
+                            <p className="mt-1 text-[10px] text-[rgb(var(--muted))]">
+                              Auszug: {item.excerptRef}
+                            </p>
+                          ) : null}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })
+          )}
+        </div>
       )}
       <div className="mt-4 text-xs text-[rgb(var(--muted))]">
         <p className="font-semibold text-[rgb(var(--fg))]">Evidenzdichte</p>

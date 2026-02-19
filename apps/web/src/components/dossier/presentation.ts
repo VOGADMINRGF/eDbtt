@@ -89,6 +89,30 @@ type PresentationOpenQuestion = {
   sourceNote?: string;
 };
 
+type PresentationInboxItem = {
+  id: string;
+  title: string;
+  subtitle?: string;
+  status?: string;
+  priority?: string;
+};
+
+type PresentationWatchlistItem = {
+  id: string;
+  label: string;
+  kind?: string;
+  updatedAt?: string;
+};
+
+type PresentationRoadmapItem = {
+  id: string;
+  label: string;
+  status?: string;
+  eta?: string;
+  ownerRole?: string;
+  note?: string;
+};
+
 type PresentationPayload = {
   topic?: PresentationTopic;
   hero?: PresentationHero;
@@ -116,6 +140,9 @@ type PresentationPayload = {
   };
   traceability?: PresentationTraceability;
   openQuestions?: PresentationOpenQuestion[];
+  editorialInbox?: PresentationInboxItem[];
+  watchlist?: PresentationWatchlistItem[];
+  roadmap?: PresentationRoadmapItem[];
 };
 
 type PresentationNote = {
@@ -167,6 +194,9 @@ export function getPresentation(dossier: Dossier): PresentationResult {
   const majorityDemo: PresentationMajority[] = [];
   const traceability: PresentationTraceability = {};
   const openQuestions: PresentationOpenQuestion[] = [];
+  const editorialInbox: PresentationInboxItem[] = [];
+  const watchlist: PresentationWatchlistItem[] = [];
+  const roadmap: PresentationRoadmapItem[] = [];
 
   for (const note of notes) {
     if (note.kind !== "presentation" || !note.text) continue;
@@ -222,6 +252,9 @@ export function getPresentation(dossier: Dossier): PresentationResult {
         };
       }
       if (Array.isArray(parsed.openQuestions)) openQuestions.push(...parsed.openQuestions);
+      if (Array.isArray(parsed.editorialInbox)) editorialInbox.push(...parsed.editorialInbox);
+      if (Array.isArray(parsed.watchlist)) watchlist.push(...parsed.watchlist);
+      if (Array.isArray(parsed.roadmap)) roadmap.push(...parsed.roadmap);
 
       const inputStreams = parsed.inputs?.streams;
       if (Array.isArray(inputStreams)) {
@@ -256,6 +289,9 @@ export function getPresentation(dossier: Dossier): PresentationResult {
   const presentation: PresentationPayload = {
     ...result,
     options: mergedOptions.length ? mergedOptions : result.options,
+    editorialInbox: editorialInbox.length ? editorialInbox : result.editorialInbox,
+    watchlist: watchlist.length ? watchlist : result.watchlist,
+    roadmap: roadmap.length ? roadmap : result.roadmap,
     vote: {
       ...(result.vote ?? {}),
       options: mergedVoteOptions.length ? mergedVoteOptions : result.vote?.options,
@@ -290,4 +326,7 @@ export type {
   PresentationRole,
   PresentationRecommendation,
   PresentationOpenQuestion,
+  PresentationInboxItem,
+  PresentationWatchlistItem,
+  PresentationRoadmapItem,
 };

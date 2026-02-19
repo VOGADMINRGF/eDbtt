@@ -7,11 +7,21 @@ type DecisionState = {
   savedOptionId: string | null;
   savedAt: string | null;
   setSelectedOptionId: (id: string | null) => void;
-  saveSelection: () => void;
+  saveSelection: () => Promise<void>;
   saveNotice: boolean;
 };
 
-export function useDecisionState(dossierId: string): DecisionState {
+type MajorityUpdatePayload = {
+  totalVotes?: number;
+  updatedAt?: string;
+  majorityDemo?: { id: string; pct: number }[];
+};
+
+type DecisionStateOptions = {
+  onMajorityUpdate?: (payload: MajorityUpdatePayload) => void;
+};
+
+export function useDecisionState(dossierId: string, options?: DecisionStateOptions): DecisionState {
   const storageKey = `dossierVote:${dossierId}`;
   const timeKey = `dossierVoteAt:${dossierId}`;
   const [selectedOptionId, setSelectedOptionId] = useState<string | null>(null);
@@ -30,7 +40,7 @@ export function useDecisionState(dossierId: string): DecisionState {
     if (storedAt) setSavedAt(storedAt);
   }, [storageKey, timeKey]);
 
-  const saveSelection = () => {
+  const saveSelection = async () => {
     if (!selectedOptionId || typeof window === "undefined") return;
     window.localStorage.setItem(storageKey, selectedOptionId);
     const timestamp = new Date().toISOString();
@@ -39,6 +49,18 @@ export function useDecisionState(dossierId: string): DecisionState {
     setSavedAt(timestamp);
     setSaveNotice(true);
     window.setTimeout(() => setSaveNotice(false), 2200);
+
+    try {
+      const response = await fetch("/api/demo/vote", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ dossierId, optionId: selectedOptionId }),
+      });
+      const data = (await response.json()) as { ok?: boolean } & MajorityUpdatePayload;
+      if (data?.ok) options?.onMajorityUpdate?.(data);
+    } catch {
+      // Demo-only: silently ignore
+    }
   };
 
   return { selectedOptionId, savedOptionId, savedAt, setSelectedOptionId, saveSelection, saveNotice };
