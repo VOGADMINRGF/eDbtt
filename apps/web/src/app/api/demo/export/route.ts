@@ -44,17 +44,17 @@ export async function GET(req: Request) {
 
   if (format === "csv") {
     const csv = toCSV();
-    return new NextResponse(csv, {
+    return new Response(csv, {
       status: 200,
       headers: {
         "content-type": "text/csv; charset=utf-8",
-        "content-disposition": `attachment; filename=\"dossier-demo-export.csv\"`,
+        "content-disposition": `attachment; filename="dossier-demo-export.csv"`,
       },
     });
   }
 
   return NextResponse.json(
     { ok: true, dossier: demoDossier },
-    { status: 200, headers: { "content-disposition": `attachment; filename=\"dossier-demo.json\"` } },
+    { status: 200, headers: { "content-disposition": `attachment; filename="dossier-demo.json"` } },
   );
 }

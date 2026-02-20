@@ -11,7 +11,11 @@ export const metadata = {
 
 export const dynamic = "force-dynamic";
 
-export default async function ContributionNewPage() {
+export default async function ContributionNewPage({
+  searchParams,
+}: {
+  searchParams?: { dossierId?: string };
+}) {
   const cookieStore = await cookies();
   const userId = cookieStore.get("u_id")?.value;
   if (!userId) {
@@ -27,7 +31,7 @@ export default async function ContributionNewPage() {
     <main className="min-h-screen bg-[rgb(var(--bg))]">
       <h1 className="sr-only">Beitrag analysieren</h1>
       <div className="mx-auto w-full max-w-5xl px-4 py-10">
-        <ContributionNewClient initialOverview={overview} />
+        <ContributionNewClient initialOverview={overview} dossierId={searchParams?.dossierId ?? null} />
       </div>
     </main>
   );

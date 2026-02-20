@@ -583,6 +583,36 @@ export const demoDossier: Dossier = {
               sourceNote: "Interner Prüfvermerk (Demo).",
             },
           ],
+          openIssueManagement: {
+            issues: [
+              {
+                id: "issue-1",
+                questionId: "q1",
+                status: "offen",
+                delegatedTo: "Statistisches Landesamt",
+                level: "land",
+                requestedAt: "2026-02-20",
+              },
+              {
+                id: "issue-2",
+                questionId: "q2",
+                status: "in_bearbeitung",
+                delegatedTo: "Kämmerei",
+                level: "kommune",
+                requestedAt: "2026-02-21",
+              },
+            ],
+          },
+          regionalSuggestions: {
+            municipality: "Beispielstadt",
+            suggestions: [
+              "Grundschulkapazitäten 2027",
+              "Sanierung Sporthalle West",
+              "Klimaschutz-Förderprogramm",
+              "Neues Baugebiet Nord",
+              "Digitalisierung der Verwaltung",
+            ],
+          },
           editorialInbox: [
             {
               id: "in-1",

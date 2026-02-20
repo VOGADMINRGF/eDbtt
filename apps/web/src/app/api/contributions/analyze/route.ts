@@ -229,6 +229,7 @@ export async function POST(req: NextRequest): Promise<Response> {
         ],
         questions: [],
         missingPerspectives: [],
+        findings: [],
         knots: [],
         consequences: { consequences: [], responsibilities: [] },
         responsibilityPaths: [],

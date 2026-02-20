@@ -122,6 +122,7 @@ export function buildHeuristicAnalyzeResult({
     ],
     questions,
     missingPerspectives,
+    findings: [],
     knots: [],
     consequences: { consequences: [], responsibilities: [] },
     responsibilityPaths: [],

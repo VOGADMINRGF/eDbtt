@@ -1,0 +1,2727 @@
+[
+  {
+    "path": "/",
+    "file": "page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/:locale/referenzarchitektur",
+    "file": "[locale]/referenzarchitektur/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/account",
+    "file": "account/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/account/payment",
+    "file": "account/payment/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/account/security",
+    "file": "account/security/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/admin",
+    "file": "admin/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/admin/access",
+    "file": "admin/access/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/admin/access/users",
+    "file": "admin/access/users/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/admin/access/users/:id",
+    "file": "admin/access/users/[id]/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/admin/acquisition",
+    "file": "admin/acquisition/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/admin/analytics",
+    "file": "admin/analytics/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/admin/audit",
+    "file": "admin/audit/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/admin/campaigns",
+    "file": "admin/campaigns/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/admin/campaigns/:id",
+    "file": "admin/campaigns/[id]/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/admin/content",
+    "file": "admin/content/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/admin/contributions",
+    "file": "admin/contributions/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/admin/dossiers/:dossierId",
+    "file": "admin/dossiers/[dossierId]/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/admin/editorial/items/:id",
+    "file": "admin/editorial/items/[id]/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/admin/editorial/published",
+    "file": "admin/editorial/published/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/admin/editorial/queue",
+    "file": "admin/editorial/queue/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/admin/errors",
+    "file": "admin/errors/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/admin/errors/:id",
+    "file": "admin/errors/[id]/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/admin/eventualities",
+    "file": "admin/eventualities/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/admin/eventualities/:id",
+    "file": "admin/eventualities/[id]/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/admin/evidence/claims",
+    "file": "admin/evidence/claims/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/admin/evidence/claims/:id",
+    "file": "admin/evidence/claims/[id]/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/admin/evidence/items",
+    "file": "admin/evidence/items/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/admin/evidence/items/:id",
+    "file": "admin/evidence/items/[id]/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/admin/factcheck",
+    "file": "admin/factcheck/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/admin/feeds/drafts",
+    "file": "admin/feeds/drafts/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/admin/feeds/drafts/:id",
+    "file": "admin/feeds/drafts/[id]/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/admin/graph/health",
+    "file": "admin/graph/health/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/admin/graph/impact",
+    "file": "admin/graph/impact/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/admin/graph/repairs",
+    "file": "admin/graph/repairs/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/admin/identity",
+    "file": "admin/identity/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/admin/impact/:id",
+    "file": "admin/impact/[id]/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/admin/media",
+    "file": "admin/media/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/admin/memberships",
+    "file": "admin/memberships/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/admin/newsletter",
+    "file": "admin/newsletter/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/admin/orgs",
+    "file": "admin/orgs/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/admin/orgs/:id",
+    "file": "admin/orgs/[id]/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/admin/people",
+    "file": "admin/people/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/admin/pilot",
+    "file": "admin/pilot/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/admin/pitch",
+    "file": "admin/pitch/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/admin/projects",
+    "file": "admin/projects/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/admin/projects/:id",
+    "file": "admin/projects/[id]/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/admin/reports",
+    "file": "admin/reports/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/admin/reports/assets",
+    "file": "admin/reports/assets/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/admin/reports/assets/:id",
+    "file": "admin/reports/assets/[id]/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/admin/reports/region/:id",
+    "file": "admin/reports/region/[id]/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/admin/reports/topic/:slug",
+    "file": "admin/reports/topic/[slug]/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/admin/research/tasks",
+    "file": "admin/research/tasks/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/admin/responsibility",
+    "file": "admin/responsibility/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/admin/responsibility/directory",
+    "file": "admin/responsibility/directory/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/admin/routes",
+    "file": "admin/routes/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/admin/settings",
+    "file": "admin/settings/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/admin/support",
+    "file": "admin/support/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/admin/support/:id",
+    "file": "admin/support/[id]/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/admin/swipes",
+    "file": "admin/swipes/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/admin/system",
+    "file": "admin/system/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/admin/telemetry",
+    "file": "admin/telemetry/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/admin/telemetry/ai",
+    "file": "admin/telemetry/ai/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/admin/telemetry/ai/dashboard",
+    "file": "admin/telemetry/ai/dashboard/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/admin/telemetry/ai/flow",
+    "file": "admin/telemetry/ai/flow/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/admin/telemetry/ai/orchestrator",
+    "file": "admin/telemetry/ai/orchestrator/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/admin/telemetry/ai/usage",
+    "file": "admin/telemetry/ai/usage/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/admin/telemetry/identity",
+    "file": "admin/telemetry/identity/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/admin/users",
+    "file": "admin/users/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/agb",
+    "file": "agb/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/api/access/check",
+    "file": "api/access/check/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/account/identity-document",
+    "file": "api/account/identity-document/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/account/overview",
+    "file": "api/account/overview/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/account/payment-profile",
+    "file": "api/account/payment-profile/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/account/personal",
+    "file": "api/account/personal/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/account/plan",
+    "file": "api/account/plan/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/account/profile",
+    "file": "api/account/profile/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/account/self-service",
+    "file": "api/account/self-service/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/account/settings",
+    "file": "api/account/settings/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/account/signature",
+    "file": "api/account/signature/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/access/routes",
+    "file": "api/admin/access/routes/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/access/routes/:routeId",
+    "file": "api/admin/access/routes/[routeId]/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/access/routes/custom",
+    "file": "api/admin/access/routes/custom/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/access/routes/inventory",
+    "file": "api/admin/access/routes/inventory/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/access/users/:userId/overrides",
+    "file": "api/admin/access/users/[userId]/overrides/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/access/users/:userId/overrides/:routeId",
+    "file": "api/admin/access/users/[userId]/overrides/[routeId]/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/acquisition",
+    "file": "api/admin/acquisition/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/ai/orchestrator-smoke",
+    "file": "api/admin/ai/orchestrator-smoke/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/alerts/notify",
+    "file": "api/admin/alerts/notify/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/alerts/settings",
+    "file": "api/admin/alerts/settings/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/alerts/test",
+    "file": "api/admin/alerts/test/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/analytics/summary",
+    "file": "api/admin/analytics/summary/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/analytics/summary/contrib-timeseries",
+    "file": "api/admin/analytics/summary/contrib-timeseries/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/audit",
+    "file": "api/admin/audit/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/audit/:id",
+    "file": "api/admin/audit/[id]/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/campaigns/:id/qr",
+    "file": "api/admin/campaigns/[id]/qr/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/campaigns/:id/report",
+    "file": "api/admin/campaigns/[id]/report/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/campaigns/:id/sessions",
+    "file": "api/admin/campaigns/[id]/sessions/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/community/contributions",
+    "file": "api/admin/community/contributions/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/community/contributions/approve",
+    "file": "api/admin/community/contributions/approve/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/content/metrics",
+    "file": "api/admin/content/metrics/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/dashboard/newsletter/export",
+    "file": "api/admin/dashboard/newsletter/export/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/dashboard/newsletter/manage",
+    "file": "api/admin/dashboard/newsletter/manage/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/dashboard/summary",
+    "file": "api/admin/dashboard/summary/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/dashboard/users",
+    "file": "api/admin/dashboard/users/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/dev-elevate",
+    "file": "api/admin/dev-elevate/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/dossiers/:dossierId/verify-revisions",
+    "file": "api/admin/dossiers/[dossierId]/verify-revisions/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/editorial/decide",
+    "file": "api/admin/editorial/decide/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/editorial/factchecks",
+    "file": "api/admin/editorial/factchecks/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/editorial/inbox",
+    "file": "api/admin/editorial/inbox/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/editorial/items",
+    "file": "api/admin/editorial/items/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/editorial/items/:id",
+    "file": "api/admin/editorial/items/[id]/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/editorial/items/:id/archive",
+    "file": "api/admin/editorial/items/[id]/archive/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/editorial/items/:id/assign",
+    "file": "api/admin/editorial/items/[id]/assign/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/editorial/items/:id/publish",
+    "file": "api/admin/editorial/items/[id]/publish/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/editorial/items/:id/reject",
+    "file": "api/admin/editorial/items/[id]/reject/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/editorial/items/:id/revision",
+    "file": "api/admin/editorial/items/[id]/revision/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/editorial/items/:id/revisions",
+    "file": "api/admin/editorial/items/[id]/revisions/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/editorial/items/:id/sources",
+    "file": "api/admin/editorial/items/[id]/sources/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/editorial/items/:id/sources/:sourceId",
+    "file": "api/admin/editorial/items/[id]/sources/[sourceId]/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/editorial/items/:id/sources/:sourceId/remove",
+    "file": "api/admin/editorial/items/[id]/sources/[sourceId]/remove/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/editorial/items/:id/status",
+    "file": "api/admin/editorial/items/[id]/status/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/errors/:id",
+    "file": "api/admin/errors/[id]/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/errors/export",
+    "file": "api/admin/errors/export/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/errors/last24",
+    "file": "api/admin/errors/last24/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/errors/list",
+    "file": "api/admin/errors/list/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/errors/trace",
+    "file": "api/admin/errors/trace/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/eventualities/item",
+    "file": "api/admin/eventualities/item/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/eventualities/list",
+    "file": "api/admin/eventualities/list/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/eventualities/markReviewed",
+    "file": "api/admin/eventualities/markReviewed/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/evidence/claims",
+    "file": "api/admin/evidence/claims/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/evidence/claims/:id",
+    "file": "api/admin/evidence/claims/[id]/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/evidence/items",
+    "file": "api/admin/evidence/items/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/evidence/items/:id",
+    "file": "api/admin/evidence/items/[id]/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/feeds/drafts",
+    "file": "api/admin/feeds/drafts/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/feeds/drafts/:id",
+    "file": "api/admin/feeds/drafts/[id]/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/feeds/drafts/:id/publish",
+    "file": "api/admin/feeds/drafts/[id]/publish/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/feeds/drafts/:id/status",
+    "file": "api/admin/feeds/drafts/[id]/status/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/graph/ensure",
+    "file": "api/admin/graph/ensure/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/graph/health",
+    "file": "api/admin/graph/health/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/graph/impact/summary",
+    "file": "api/admin/graph/impact/summary/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/graph/repairs",
+    "file": "api/admin/graph/repairs/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/graph/repairs/:ticketId/apply",
+    "file": "api/admin/graph/repairs/[ticketId]/apply/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/graph/repairs/:ticketId/reject",
+    "file": "api/admin/graph/repairs/[ticketId]/reject/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/graph/repairs/merge-suggest",
+    "file": "api/admin/graph/repairs/merge-suggest/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/graph/repairs/relink",
+    "file": "api/admin/graph/repairs/relink/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/graph/seed",
+    "file": "api/admin/graph/seed/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/health/check",
+    "file": "api/admin/health/check/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/identity/events",
+    "file": "api/admin/identity/events/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/identity/funnel",
+    "file": "api/admin/identity/funnel/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/impact/by-contribution",
+    "file": "api/admin/impact/by-contribution/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/memberships",
+    "file": "api/admin/memberships/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/memberships/:id/cancel",
+    "file": "api/admin/memberships/[id]/cancel/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/memberships/:id/mark-paid",
+    "file": "api/admin/memberships/[id]/mark-paid/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/memberships/overview",
+    "file": "api/admin/memberships/overview/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/orgs",
+    "file": "api/admin/orgs/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/orgs/:orgId",
+    "file": "api/admin/orgs/[orgId]/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/orgs/:orgId/members",
+    "file": "api/admin/orgs/[orgId]/members/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/orgs/:orgId/members/:memberId",
+    "file": "api/admin/orgs/[orgId]/members/[memberId]/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/orgs/:orgId/members/:memberId/disable",
+    "file": "api/admin/orgs/[orgId]/members/[memberId]/disable/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/orgs/:orgId/members/invite",
+    "file": "api/admin/orgs/[orgId]/members/invite/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/orgs/upsert",
+    "file": "api/admin/orgs/upsert/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/pilot/run",
+    "file": "api/admin/pilot/run/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/pilot/settings",
+    "file": "api/admin/pilot/settings/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/projects",
+    "file": "api/admin/projects/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/qr/sets/summary",
+    "file": "api/admin/qr/sets/summary/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/reports/assets",
+    "file": "api/admin/reports/assets/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/reports/assets/:id",
+    "file": "api/admin/reports/assets/[id]/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/reports/assets/:id/publish",
+    "file": "api/admin/reports/assets/[id]/publish/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/reports/assets/:id/revision",
+    "file": "api/admin/reports/assets/[id]/revision/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/reports/assets/:id/status",
+    "file": "api/admin/reports/assets/[id]/status/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/reports/region/:id",
+    "file": "api/admin/reports/region/[id]/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/reports/topic/:slug",
+    "file": "api/admin/reports/topic/[slug]/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/research/contributions/feedback",
+    "file": "api/admin/research/contributions/feedback/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/research/contributions/status",
+    "file": "api/admin/research/contributions/status/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/research/tasks/list",
+    "file": "api/admin/research/tasks/list/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/research/tasks/save",
+    "file": "api/admin/research/tasks/save/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/research/tasks/seed",
+    "file": "api/admin/research/tasks/seed/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/responsibility/directory",
+    "file": "api/admin/responsibility/directory/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/responsibility/directory/list",
+    "file": "api/admin/responsibility/directory/list/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/responsibility/directory/save",
+    "file": "api/admin/responsibility/directory/save/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/responsibility/paths",
+    "file": "api/admin/responsibility/paths/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/route-access",
+    "file": "api/admin/route-access/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/routes/delete",
+    "file": "api/admin/routes/delete/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/search",
+    "file": "api/admin/search/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/settings/get",
+    "file": "api/admin/settings/get/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/settings/save",
+    "file": "api/admin/settings/save/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/streams",
+    "file": "api/admin/streams/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/support/campaigns",
+    "file": "api/admin/support/campaigns/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/support/campaigns/:id",
+    "file": "api/admin/support/campaigns/[id]/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/support/pledges/:id",
+    "file": "api/admin/support/pledges/[id]/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/swipes/summary",
+    "file": "api/admin/swipes/summary/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/system/ping",
+    "file": "api/admin/system/ping/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/telemetry/ai",
+    "file": "api/admin/telemetry/ai/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/telemetry/ai/events",
+    "file": "api/admin/telemetry/ai/events/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/telemetry/ai/usage",
+    "file": "api/admin/telemetry/ai/usage/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/telemetry/flow-health",
+    "file": "api/admin/telemetry/flow-health/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/telemetry/identity",
+    "file": "api/admin/telemetry/identity/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/usage/summary",
+    "file": "api/admin/usage/summary/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/users/detail",
+    "file": "api/admin/users/detail/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/users/list",
+    "file": "api/admin/users/list/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/users/reset2fa",
+    "file": "api/admin/users/reset2fa/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/users/resetVerify",
+    "file": "api/admin/users/resetVerify/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/users/suspend",
+    "file": "api/admin/users/suspend/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/users/updateRole",
+    "file": "api/admin/users/updateRole/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/analytics/pageview",
+    "file": "api/analytics/pageview/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/analyze/stream",
+    "file": "api/analyze/stream/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/ari",
+    "file": "api/ari/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/api/auth/:nextauth*",
+    "file": "api/auth/[...nextauth]/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/auth/email/confirm",
+    "file": "api/auth/email/confirm/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/auth/email/start-verify",
+    "file": "api/auth/email/start-verify/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/auth/identity/email/start",
+    "file": "api/auth/identity/email/start/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/auth/identity/email/verify",
+    "file": "api/auth/identity/email/verify/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/auth/location",
+    "file": "api/auth/location/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/auth/login",
+    "file": "api/auth/login/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/auth/logout",
+    "file": "api/auth/logout/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/auth/magic/consume",
+    "file": "api/auth/magic/consume/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/auth/magic/request",
+    "file": "api/auth/magic/request/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/auth/me",
+    "file": "api/auth/me/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/auth/register",
+    "file": "api/auth/register/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/auth/request-reset",
+    "file": "api/auth/request-reset/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/auth/reset",
+    "file": "api/auth/reset/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/auth/totp/initiate",
+    "file": "api/auth/totp/initiate/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/auth/totp/send-resume",
+    "file": "api/auth/totp/send-resume/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/auth/totp/status",
+    "file": "api/auth/totp/status/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/auth/totp/verify",
+    "file": "api/auth/totp/verify/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/auth/verification/confirm",
+    "file": "api/auth/verification/confirm/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/auth/verification/start",
+    "file": "api/auth/verification/start/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/auth/verify",
+    "file": "api/auth/verify/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/auth/verify-2fa",
+    "file": "api/auth/verify-2fa/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/auth/verify/resend",
+    "file": "api/auth/verify/resend/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/autopilot/start",
+    "file": "api/autopilot/start/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/campaigns",
+    "file": "api/campaigns/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/campaigns/:id",
+    "file": "api/campaigns/[id]/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/campaigns/:id/join",
+    "file": "api/campaigns/[id]/join/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/chat",
+    "file": "api/chat/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/claims/pipeline",
+    "file": "api/claims/pipeline/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/community/contributions",
+    "file": "api/community/contributions/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/consequence/:id",
+    "file": "api/consequence/[id]/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/contact",
+    "file": "api/contact/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/contributions",
+    "file": "api/contributions/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/contributions/:id",
+    "file": "api/contributions/[id]/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/contributions/:id/orchestrate",
+    "file": "api/contributions/[id]/orchestrate/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/contributions/analytics/summary",
+    "file": "api/contributions/analytics/summary/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/contributions/analyze",
+    "file": "api/contributions/analyze/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/contributions/analyze/save",
+    "file": "api/contributions/analyze/save/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/contributions/drafts",
+    "file": "api/contributions/drafts/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/contributions/finalize",
+    "file": "api/contributions/finalize/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/contributions/ingest",
+    "file": "api/contributions/ingest/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/contributions/refine",
+    "file": "api/contributions/refine/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/contributions/report",
+    "file": "api/contributions/report/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/contributions/research",
+    "file": "api/contributions/research/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/contributions/save",
+    "file": "api/contributions/save/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/contributions/trace",
+    "file": "api/contributions/trace/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/csrf",
+    "file": "api/csrf/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/debug/env",
+    "file": "api/debug/env/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/demo/dossier",
+    "file": "api/demo/dossier/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/demo/export",
+    "file": "api/demo/export/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/demo/vote",
+    "file": "api/demo/vote/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/diag/gpt",
+    "file": "api/diag/gpt/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/dossier/:id",
+    "file": "api/dossier/[id]/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/dossier/:id/export",
+    "file": "api/dossier/[id]/export/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/dossier/create-from-suggestion",
+    "file": "api/dossier/create-from-suggestion/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/dossier/delegate",
+    "file": "api/dossier/delegate/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/dossier/export/:id",
+    "file": "api/dossier/export/[id]/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/dossier/request-clarification",
+    "file": "api/dossier/request-clarification/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/dossier/snapshot",
+    "file": "api/dossier/snapshot/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/dossier/transition",
+    "file": "api/dossier/transition/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/dossier/verify",
+    "file": "api/dossier/verify/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/dossier/watchlist/list",
+    "file": "api/dossier/watchlist/list/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/dossier/watchlist/toggle",
+    "file": "api/dossier/watchlist/toggle/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/dossiers/:dossierId",
+    "file": "api/dossiers/[dossierId]/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/dossiers/:dossierId/claims/upsert",
+    "file": "api/dossiers/[dossierId]/claims/upsert/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/dossiers/:dossierId/disputes",
+    "file": "api/dossiers/[dossierId]/disputes/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/dossiers/:dossierId/disputes/:id/resolve",
+    "file": "api/dossiers/[dossierId]/disputes/[id]/resolve/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/dossiers/:dossierId/disputes/create",
+    "file": "api/dossiers/[dossierId]/disputes/create/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/dossiers/:dossierId/edges/upsert",
+    "file": "api/dossiers/[dossierId]/edges/upsert/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/dossiers/:dossierId/export.csv",
+    "file": "api/dossiers/[dossierId]/export.csv/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/dossiers/:dossierId/export.json",
+    "file": "api/dossiers/[dossierId]/export.json/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/dossiers/:dossierId/findings/upsert",
+    "file": "api/dossiers/[dossierId]/findings/upsert/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/dossiers/:dossierId/graph",
+    "file": "api/dossiers/[dossierId]/graph/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/dossiers/:dossierId/open-questions/upsert",
+    "file": "api/dossiers/[dossierId]/open-questions/upsert/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/dossiers/:dossierId/revisions",
+    "file": "api/dossiers/[dossierId]/revisions/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/dossiers/:dossierId/sources/upsert",
+    "file": "api/dossiers/[dossierId]/sources/upsert/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/dossiers/:dossierId/suggestions",
+    "file": "api/dossiers/[dossierId]/suggestions/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/dossiers/:dossierId/suggestions/:id/moderate",
+    "file": "api/dossiers/[dossierId]/suggestions/[id]/moderate/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/dossiers/:dossierId/suggestions/create",
+    "file": "api/dossiers/[dossierId]/suggestions/create/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/dossiers/by-statement/:statementId",
+    "file": "api/dossiers/by-statement/[statementId]/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/drafts",
+    "file": "api/drafts/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/drafts/:id",
+    "file": "api/drafts/[id]/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/drafts/create",
+    "file": "api/drafts/create/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/drafts/save",
+    "file": "api/drafts/save/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/edebatte/package",
+    "file": "api/edebatte/package/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/edebatte/pledge",
+    "file": "api/edebatte/pledge/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/edebatte/preorder",
+    "file": "api/edebatte/preorder/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/editorial/feedback",
+    "file": "api/editorial/feedback/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/editorial/feedback/bulk",
+    "file": "api/editorial/feedback/bulk/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/errors/list",
+    "file": "api/errors/list/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/errors/resolve",
+    "file": "api/errors/resolve/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/events",
+    "file": "api/events/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/eventualities/analyze",
+    "file": "api/eventualities/analyze/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/examples/ingest",
+    "file": "api/examples/ingest/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/export/items",
+    "file": "api/export/items/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/factcheck",
+    "file": "api/factcheck/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/api/factcheck/enqueue",
+    "file": "api/factcheck/enqueue/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/factcheck/intern/enqueue",
+    "file": "api/factcheck/intern/enqueue/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/factcheck/result/:contributionId",
+    "file": "api/factcheck/result/[contributionId]/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/factcheck/status",
+    "file": "api/factcheck/status/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/factcheck/status/:jobId",
+    "file": "api/factcheck/status/[jobId]/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/feeds/analyze-pending",
+    "file": "api/feeds/analyze-pending/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/feeds/batch",
+    "file": "api/feeds/batch/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/feeds/candidates",
+    "file": "api/feeds/candidates/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/feeds/drafts",
+    "file": "api/feeds/drafts/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/feeds/drafts/:id/publish",
+    "file": "api/feeds/drafts/[id]/publish/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/feeds/pull",
+    "file": "api/feeds/pull/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/finding/upsert",
+    "file": "api/finding/upsert/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/gdpr/delete",
+    "file": "api/gdpr/delete/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/gdpr/export",
+    "file": "api/gdpr/export/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/geo/lookup",
+    "file": "api/geo/lookup/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/geo/nuts",
+    "file": "api/geo/nuts/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/geo/region-meta",
+    "file": "api/geo/region-meta/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/geo/search",
+    "file": "api/geo/search/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/graph/health",
+    "file": "api/graph/health/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/health",
+    "file": "api/health/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/health/ai-models",
+    "file": "api/health/ai-models/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/health/ari",
+    "file": "api/health/ari/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/health/gpt",
+    "file": "api/health/gpt/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/health/map",
+    "file": "api/health/map/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/health/mongo",
+    "file": "api/health/mongo/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/health/prisma",
+    "file": "api/health/prisma/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/health/redis",
+    "file": "api/health/redis/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/health/streams",
+    "file": "api/health/streams/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/health/system",
+    "file": "api/health/system/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/health/system-matrix",
+    "file": "api/health/system-matrix/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/health/typensense",
+    "file": "api/health/typensense/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/health/worker",
+    "file": "api/health/worker/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/households/invite",
+    "file": "api/households/invite/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/i18n/translate",
+    "file": "api/i18n/translate/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/items",
+    "file": "api/items/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/items/:id",
+    "file": "api/items/[id]/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/items/list",
+    "file": "api/items/list/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/live",
+    "file": "api/live/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/map/points",
+    "file": "api/map/points/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/membership/apply",
+    "file": "api/membership/apply/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/memberships/apply",
+    "file": "api/memberships/apply/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/memberships/verify-microtransfer",
+    "file": "api/memberships/verify-microtransfer/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/news/search",
+    "file": "api/news/search/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/news/survey-topics",
+    "file": "api/news/survey-topics/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/preflight",
+    "file": "api/preflight/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/projects",
+    "file": "api/projects/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/projects/:id",
+    "file": "api/projects/[id]/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/projects/:id/options",
+    "file": "api/projects/[id]/options/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/projects/:id/vote",
+    "file": "api/projects/[id]/vote/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/public/streams",
+    "file": "api/public/streams/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/public/updates",
+    "file": "api/public/updates/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/public/updates/confirm",
+    "file": "api/public/updates/confirm/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/qr/resolve",
+    "file": "api/qr/resolve/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/qr/sets",
+    "file": "api/qr/sets/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/qr/sets/:code",
+    "file": "api/qr/sets/[code]/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/qr/sets/:code/vote",
+    "file": "api/qr/sets/[code]/vote/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/qr/sets/summary",
+    "file": "api/qr/sets/summary/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/qualify/start",
+    "file": "api/qualify/start/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/quality/clarify",
+    "file": "api/quality/clarify/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/quality/polish",
+    "file": "api/quality/polish/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/quick-register",
+    "file": "api/quick-register/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/region/effective",
+    "file": "api/region/effective/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/region/set",
+    "file": "api/region/set/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/region/summary",
+    "file": "api/region/summary/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/reports/:id",
+    "file": "api/reports/[id]/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/reports/overview",
+    "file": "api/reports/overview/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/reports/topic",
+    "file": "api/reports/topic/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/research/list",
+    "file": "api/research/list/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/research/tasks/:id",
+    "file": "api/research/tasks/[id]/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/research/tasks/:id/contribute",
+    "file": "api/research/tasks/[id]/contribute/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/research/tasks/list",
+    "file": "api/research/tasks/list/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/responsibility/:id",
+    "file": "api/responsibility/[id]/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/responsibility/directory",
+    "file": "api/responsibility/directory/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/runreceipts",
+    "file": "api/runreceipts/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/runreceipts/:id",
+    "file": "api/runreceipts/[id]/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/runreceipts/by-hash/:hash",
+    "file": "api/runreceipts/by-hash/[hash]/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/search/civic",
+    "file": "api/search/civic/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/security/verify-human",
+    "file": "api/security/verify-human/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/session",
+    "file": "api/session/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/stance/expand",
+    "file": "api/stance/expand/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/statements",
+    "file": "api/statements/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/statements/:id",
+    "file": "api/statements/[id]/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/statements/:id/react",
+    "file": "api/statements/[id]/react/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/statements/:id/stats",
+    "file": "api/statements/[id]/stats/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/statements/:id/timeseries",
+    "file": "api/statements/[id]/timeseries/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/statements/:id/vote",
+    "file": "api/statements/[id]/vote/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/statements/create",
+    "file": "api/statements/create/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/statements/prepare",
+    "file": "api/statements/prepare/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/statements/similar",
+    "file": "api/statements/similar/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/stream/append",
+    "file": "api/stream/append/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/streams/public",
+    "file": "api/streams/public/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/streams/sessions",
+    "file": "api/streams/sessions/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/streams/sessions/:id/agenda",
+    "file": "api/streams/sessions/[id]/agenda/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/streams/sessions/:id/agenda/autofill",
+    "file": "api/streams/sessions/[id]/agenda/autofill/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/streams/sessions/:id/call-ins",
+    "file": "api/streams/sessions/[id]/call-ins/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/streams/sessions/:id/deliberation",
+    "file": "api/streams/sessions/[id]/deliberation/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/streams/sessions/:id/follow-up",
+    "file": "api/streams/sessions/[id]/follow-up/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/streams/sessions/:id/live-board",
+    "file": "api/streams/sessions/[id]/live-board/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/streams/sessions/:id/moderation-queue",
+    "file": "api/streams/sessions/[id]/moderation-queue/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/streams/sessions/:id/overlay-feed",
+    "file": "api/streams/sessions/[id]/overlay-feed/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/streams/sessions/:id/settings",
+    "file": "api/streams/sessions/[id]/settings/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/streams/sessions/:id/vote",
+    "file": "api/streams/sessions/[id]/vote/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/streams/topics",
+    "file": "api/streams/topics/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/support/campaigns",
+    "file": "api/support/campaigns/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/support/campaigns/:slug",
+    "file": "api/support/campaigns/[slug]/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/support/campaigns/:slug/pledges",
+    "file": "api/support/campaigns/[slug]/pledges/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/support/report",
+    "file": "api/support/report/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/swipes/eventualities",
+    "file": "api/swipes/eventualities/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/swipes/feed",
+    "file": "api/swipes/feed/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/swipes/register",
+    "file": "api/swipes/register/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/swipes/vote",
+    "file": "api/swipes/vote/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/swipeStatements",
+    "file": "api/swipeStatements/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/topics",
+    "file": "api/topics/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/topics/:slug",
+    "file": "api/topics/[slug]/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/translate",
+    "file": "api/translate/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/translate/contribution",
+    "file": "api/translate/contribution/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/unit/:id/interest",
+    "file": "api/unit/[id]/interest/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/uploads",
+    "file": "api/uploads/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/votes/cast",
+    "file": "api/votes/cast/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/votes/stats/:statementId",
+    "file": "api/votes/stats/[statementId]/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/votes/stream",
+    "file": "api/votes/stream/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/votes/submit",
+    "file": "api/votes/submit/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/votes/summary",
+    "file": "api/votes/summary/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/votes/user",
+    "file": "api/votes/user/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/you/ping",
+    "file": "api/you/ping/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/you/query",
+    "file": "api/you/query/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/archiv",
+    "file": "archiv/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/auth/2fa-setup",
+    "file": "auth/2fa-setup/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/auth/onboarding/location",
+    "file": "auth/onboarding/location/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/barrierefreiheit",
+    "file": "barrierefreiheit/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/beitraege",
+    "file": "beitraege/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/beitraege/:id",
+    "file": "beitraege/[id]/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/beitraege/neu",
+    "file": "beitraege/neu/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/beitrage",
+    "file": "beitrage/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/beitritt",
+    "file": "beitritt/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/campaign",
+    "file": "campaign/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/campaign/:id",
+    "file": "campaign/[id]/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/campaign/:id/join",
+    "file": "campaign/[id]/join/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/chat",
+    "file": "chat/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/community",
+    "file": "community/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/community/contributions",
+    "file": "community/contributions/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/contact",
+    "file": "contact/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/context",
+    "file": "context/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/contribute",
+    "file": "contribute/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/contributions/analyze",
+    "file": "contributions/analyze/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/contributions/new",
+    "file": "contributions/new/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/dashboard/admin/memberships",
+    "file": "dashboard/admin/memberships/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/dashboard/admin/routes",
+    "file": "dashboard/admin/routes/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/dashboard/memberships",
+    "file": "dashboard/memberships/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/dashboard/projects/new",
+    "file": "dashboard/projects/new/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/dashboard/streams",
+    "file": "dashboard/streams/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/dashboard/streams/:id",
+    "file": "dashboard/streams/[id]/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/dashboard/usage",
+    "file": "dashboard/usage/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/datenschutz",
+    "file": "datenschutz/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/demo",
+    "file": "demo/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/demo/dossier",
+    "file": "demo/dossier/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/demo/factcheck",
+    "file": "demo/factcheck/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/demo/mandat",
+    "file": "demo/mandat/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/demo/votes",
+    "file": "demo/votes/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/demo/votes/:id",
+    "file": "demo/votes/[id]/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/dossier/:dossierId",
+    "file": "dossier/[dossierId]/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/dossier/:id",
+    "file": "dossier/[id]/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/dossier/demo",
+    "file": "dossier/demo/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/embed/dossier/:dossierId",
+    "file": "embed/dossier/[dossierId]/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/evidence/:regionCode",
+    "file": "evidence/[regionCode]/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/evidence/:regionCode/:topicKey",
+    "file": "evidence/[regionCode]/[topicKey]/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/factcheck",
+    "file": "(admin)/factcheck/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/faq",
+    "file": "faq/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/howtoworks",
+    "file": "howtoworks/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/howtoworks/bewegung",
+    "file": "howtoworks/bewegung/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/howtoworks/edebatte",
+    "file": "howtoworks/edebatte/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/howtoworks/edebatte/abstimmen",
+    "file": "howtoworks/edebatte/abstimmen/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/howtoworks/edebatte/dossier",
+    "file": "howtoworks/edebatte/dossier/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/howtoworks/edebatte/mandat",
+    "file": "howtoworks/edebatte/mandat/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/howtoworks/streamer",
+    "file": "howtoworks/streamer/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/impressum",
+    "file": "impressum/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/join",
+    "file": "(public)/join/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/ki-nutzung",
+    "file": "ki-nutzung/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/kontakt",
+    "file": "kontakt/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/live",
+    "file": "live/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/login",
+    "file": "login/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/logout",
+    "file": "logout/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/map",
+    "file": "map/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/mitglied-antrag",
+    "file": "mitglied-antrag/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/mitglied-werden",
+    "file": "mitglied-werden/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/not-found",
+    "file": "not-found/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/nutzungsmodell",
+    "file": "nutzungsmodell/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/overlay/stream/:id",
+    "file": "overlay/stream/[id]/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/partner/demo",
+    "file": "partner/demo/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/presse",
+    "file": "presse/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/pricing",
+    "file": "pricing/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/privatsphaere",
+    "file": "privatsphaere/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/profile",
+    "file": "profile/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/profile/:shareId",
+    "file": "profile/[shareId]/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/projects/:id",
+    "file": "projects/[id]/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/qr-studio",
+    "file": "qr-studio/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/qr/:qrId",
+    "file": "qr/[qrId]/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/qrcodegenerator",
+    "file": "qrcodegenerator/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/qrcodewizard",
+    "file": "qrcodewizard/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/region/:codeOrSlug",
+    "file": "region/[codeOrSlug]/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/register",
+    "file": "register/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/register/identity",
+    "file": "register/identity/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/register/preorder",
+    "file": "register/preorder/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/register/verify-email",
+    "file": "register/verify-email/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/report",
+    "file": "report/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/report/:id",
+    "file": "report/[id]/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/reports",
+    "file": "reports/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/reports/topic",
+    "file": "reports/topic/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/research/tasks",
+    "file": "research/tasks/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/reset",
+    "file": "reset/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/run/:id",
+    "file": "run/[id]/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/satzung",
+    "file": "satzung/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/settings",
+    "file": "settings/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/start",
+    "file": "start/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/statements",
+    "file": "statements/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/statements/:id",
+    "file": "statements/[id]/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/statements/new",
+    "file": "statements/new/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/stream",
+    "file": "stream/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/stream/:slug",
+    "file": "stream/[slug]/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/streamer/werden",
+    "file": "streamer/werden/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/streams",
+    "file": "streams/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/streams/:id",
+    "file": "streams/[id]/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/support/:slug",
+    "file": "support/[slug]/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/sw",
+    "file": "sw/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/swipe",
+    "file": "swipe/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/swipes",
+    "file": "swipes/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/swipes/:id",
+    "file": "swipes/[id]/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/team",
+    "file": "team/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/thema-einreichen",
+    "file": "thema-einreichen/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/transparenzbericht",
+    "file": "transparenzbericht/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/ueber-uns",
+    "file": "ueber-uns/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/unterstuetzen",
+    "file": "unterstuetzen/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/verhaltenskodex",
+    "file": "verhaltenskodex/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/verify",
+    "file": "verify/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/verify/:receiptHash",
+    "file": "verify/[receiptHash]/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/vormerken",
+    "file": "vormerken/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/vote",
+    "file": "vote/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/vote/new",
+    "file": "vote/new/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/votes",
+    "file": "votes/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/votes/:id",
+    "file": "votes/[id]/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/widerrufsbelehrung",
+    "file": "widerrufsbelehrung/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/widerspruch",
+    "file": "widerspruch/page.tsx",
+    "kind": "page"
+  }
+]

@@ -18,7 +18,7 @@ export function DossierLayout({
   afterSidebar,
 }: DossierLayoutProps) {
   return (
-    <section className="space-y-16">
+    <section className="space-y-16 leading-relaxed">
       {header}
 
       <div className="grid gap-12 lg:grid-cols-[1.7fr_1fr]">

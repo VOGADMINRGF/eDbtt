@@ -13,7 +13,7 @@ export function ExportPanel({ dossierId, exportBase }: ExportPanelProps) {
   return (
     <section className="vog-card p-5 space-y-3">
       <div className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
-        Export & Einbettung
+        Verifizierbarer Export
       </div>
       <div className="flex flex-wrap gap-2 text-xs font-semibold">
         <a href={jsonHref} className="btn btn-ghost text-xs" target="_blank" rel="noreferrer">
@@ -23,9 +23,12 @@ export function ExportPanel({ dossierId, exportBase }: ExportPanelProps) {
           Export CSV
         </a>
       </div>
+      <div className="text-[11px] text-[rgb(var(--muted))]">
+        Export enthält: Snapshot · Signatur · Audit-Kette · Workflow-Status.
+      </div>
       <details className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3 text-[11px] text-[rgb(var(--muted))]">
         <summary className="cursor-pointer text-[11px] font-semibold text-[rgb(var(--fg))]">
-          Embed-Code anzeigen
+          Einbettung (optional)
         </summary>
         <pre className="mt-2 whitespace-pre-wrap break-all text-[10px] text-[rgb(var(--muted))]">
           {embedSnippet}

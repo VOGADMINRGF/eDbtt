@@ -73,6 +73,24 @@ type PresentationRecommendation = {
   ctaHint?: string;
 };
 
+type PresentationOpenIssue = {
+  id: string;
+  questionId: string;
+  status: string;
+  delegatedTo?: string;
+  level?: string;
+  requestedAt?: string;
+};
+
+type PresentationOpenIssueManagement = {
+  issues: PresentationOpenIssue[];
+};
+
+type PresentationRegionalSuggestions = {
+  municipality: string;
+  suggestions: string[];
+};
+
 type PresentationTraceability = {
   streamsToStatements?: Record<string, string[]>;
   contributionsToStatements?: Record<string, string[]>;
@@ -140,6 +158,8 @@ type PresentationPayload = {
   };
   traceability?: PresentationTraceability;
   openQuestions?: PresentationOpenQuestion[];
+  openIssueManagement?: PresentationOpenIssueManagement;
+  regionalSuggestions?: PresentationRegionalSuggestions;
   editorialInbox?: PresentationInboxItem[];
   watchlist?: PresentationWatchlistItem[];
   roadmap?: PresentationRoadmapItem[];
@@ -197,6 +217,8 @@ export function getPresentation(dossier: Dossier): PresentationResult {
   const editorialInbox: PresentationInboxItem[] = [];
   const watchlist: PresentationWatchlistItem[] = [];
   const roadmap: PresentationRoadmapItem[] = [];
+  let openIssueManagement: PresentationOpenIssueManagement | undefined;
+  let regionalSuggestions: PresentationRegionalSuggestions | undefined;
 
   for (const note of notes) {
     if (note.kind !== "presentation" || !note.text) continue;
@@ -252,6 +274,8 @@ export function getPresentation(dossier: Dossier): PresentationResult {
         };
       }
       if (Array.isArray(parsed.openQuestions)) openQuestions.push(...parsed.openQuestions);
+      if (parsed.openIssueManagement) openIssueManagement = parsed.openIssueManagement;
+      if (parsed.regionalSuggestions) regionalSuggestions = parsed.regionalSuggestions;
       if (Array.isArray(parsed.editorialInbox)) editorialInbox.push(...parsed.editorialInbox);
       if (Array.isArray(parsed.watchlist)) watchlist.push(...parsed.watchlist);
       if (Array.isArray(parsed.roadmap)) roadmap.push(...parsed.roadmap);
@@ -292,6 +316,8 @@ export function getPresentation(dossier: Dossier): PresentationResult {
     editorialInbox: editorialInbox.length ? editorialInbox : result.editorialInbox,
     watchlist: watchlist.length ? watchlist : result.watchlist,
     roadmap: roadmap.length ? roadmap : result.roadmap,
+    openIssueManagement: openIssueManagement ?? result.openIssueManagement,
+    regionalSuggestions: regionalSuggestions ?? result.regionalSuggestions,
     vote: {
       ...(result.vote ?? {}),
       options: mergedVoteOptions.length ? mergedVoteOptions : result.vote?.options,
@@ -326,6 +352,9 @@ export type {
   PresentationRole,
   PresentationRecommendation,
   PresentationOpenQuestion,
+  PresentationOpenIssue,
+  PresentationOpenIssueManagement,
+  PresentationRegionalSuggestions,
   PresentationInboxItem,
   PresentationWatchlistItem,
   PresentationRoadmapItem,

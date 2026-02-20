@@ -223,6 +223,14 @@ export function EvidenceField({
   const sourceIds = useMemo(() => new Set(sources.map((source) => source.id)), [sources]);
 
   const evidenceEdges = useMemo(() => resolveEdges(edges, claimIds, sourceIds), [edges, claimIds, sourceIds]);
+  const optionLinksKey = useMemo(
+    () => optionLinks.map((link) => `${link.optionId}:${link.claimId}`).join("|"),
+    [optionLinks],
+  );
+  const evidenceEdgesKey = useMemo(
+    () => evidenceEdges.map((edge) => `${edge.claimId}:${edge.sourceId}:${edge.kind ?? ""}:${edge.weight ?? ""}`).join("|"),
+    [evidenceEdges],
+  );
 
   const evidenceByClaim = useMemo(() => {
     const map = new Map<string, EvidenceEdge[]>();
@@ -407,7 +415,25 @@ export function EvidenceField({
         });
       }
 
-      setLines(next);
+      setLines((prev) => {
+        if (prev.length === next.length) {
+          const same = prev.every((line, idx) => {
+            const other = next[idx];
+            return (
+              line.id === other.id &&
+              line.x1 === other.x1 &&
+              line.y1 === other.y1 &&
+              line.x2 === other.x2 &&
+              line.y2 === other.y2 &&
+              line.kind === other.kind &&
+              line.weight === other.weight &&
+              line.type === other.type
+            );
+          });
+          if (same) return prev;
+        }
+        return next;
+      });
     };
 
     update();
@@ -419,7 +445,7 @@ export function EvidenceField({
       observer.disconnect();
       window.removeEventListener("resize", update);
     };
-  }, [optionLinks, evidenceEdges]);
+  }, [optionLinksKey, evidenceEdgesKey, optionLinks, evidenceEdges]);
 
   useEffect(
     () => () => {
@@ -934,6 +960,10 @@ export function EvidenceField({
           <li>1 = Einzelquelle</li>
           <li>2+ = Mehrere unabhängige Quellen</li>
         </ul>
+        <p className="mt-2 text-[11px] text-[rgb(var(--muted))]">
+          Evidenzdichte beschreibt, wie viele Aussagen durch Quellen gestützt sind. 0 % bedeutet: keine verknüpften Quellen.
+          Höhere Werte bedeuten stärkere Nachvollziehbarkeit.
+        </p>
         <p className="mt-2">Je höher die Evidenzdichte, desto besser ist eine Aussage belegt.</p>
         <p className="mt-2 text-[11px] text-[rgb(var(--muted))]">
           Farben helfen, Argumenttypen schneller zu erkennen.

@@ -11,13 +11,18 @@ import VotePanel from "./VotePanel";
 import ParticipationStatus from "./ParticipationStatus";
 import LegitimacyPanel, { type LegitimacyMetric, type LegitimacyStatus } from "./LegitimacyPanel";
 import TransparencyPanel from "./TransparencyPanel";
-import AuditTrailPanel from "./AuditTrailPanel";
+import AuditTimeline from "./AuditTimeline";
 import CorrectionsPanel from "./CorrectionsPanel";
 import ExportPanel from "./ExportPanel";
 import EditorialInbox from "./EditorialInbox";
+import EditorialInboxLive from "./EditorialInboxLive";
 import WatchlistPanel from "./WatchlistPanel";
 import RoadmapPanel from "./RoadmapPanel";
+import MandatePanel from "./MandatePanel";
+import MunicipalityMode from "./MunicipalityMode";
+import InstitutionalHeader from "./InstitutionalHeader";
 import { useDecisionState } from "./useDecisionState";
+import { useInstitutionalDossier } from "./useInstitutionalDossier";
 import {
   SECTION_TITLES,
   STATUS_LABELS,
@@ -139,6 +144,8 @@ const ROLE_LABELS = {
   administration: "Verwaltung",
   journalist: "Journalismus",
   research: "Forschung",
+  admin: "Administration",
+  staff: "Redaktion/Staff",
 } as const;
 
 function formatDate(value?: string | null) {
@@ -335,7 +342,7 @@ function mergeClusters(defaultClusters: PresentationCluster[], derivedClusters: 
 
 export function DossierViewer({ dossier }: { dossier: Dossier }) {
   const { meta, analyze, voteConfig } = dossier;
-  const corrections = dossier.corrections ?? [];
+  const corrections = useMemo(() => dossier.corrections ?? [], [dossier.corrections]);
   const { presentation, streams, contributions, voteOptions, majorityDemo, traceability, openQuestions } =
     getPresentation(dossier);
   const { selectedOptionId, savedOptionId, savedAt, setSelectedOptionId, saveSelection, saveNotice } =
@@ -346,17 +353,77 @@ export function DossierViewer({ dossier }: { dossier: Dossier }) {
         if (typeof payload.totalVotes === "number") setMajorityTotalVotes(payload.totalVotes);
       },
     });
-  const viewerRole = presentation.viewerRole ?? "citizen";
+  const [sessionActorRole, setSessionActorRole] = useState<"admin" | "editor" | "member" | null>(null);
+  const [sessionRoles, setSessionRoles] = useState<string[] | null>(null);
+  const [watchlistActive, setWatchlistActive] = useState<boolean | null>(null);
+  const [watchlistBusy, setWatchlistBusy] = useState(false);
+  const [clarificationNotice, setClarificationNotice] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/session", { cache: "no-store" })
+      .then((r) => r.json() as Promise<{ ok?: boolean; actorRole?: string; roles?: string[] }>)
+      .then((data) => {
+        if (cancelled) return;
+        if (data?.ok) {
+          setSessionActorRole((data.actorRole as any) ?? null);
+          setSessionRoles(Array.isArray(data.roles) ? data.roles : []);
+        }
+      })
+      .catch(() => null);
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!meta.id) return;
+    fetch("/api/dossier/watchlist/list", { cache: "no-store" })
+      .then((r) => r.json() as Promise<{ ok?: boolean; items?: Array<{ dossierId: string }> }>)
+      .then((data) => {
+        if (cancelled) return;
+        if (data?.ok && Array.isArray(data.items)) {
+          setWatchlistActive(data.items.some((item) => item.dossierId === meta.id));
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setWatchlistActive(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [meta.id]);
+
+  const viewerRole = useMemo(() => {
+    if (sessionRoles?.includes("staff")) return "staff";
+    if (sessionRoles?.includes("administration")) return "administration";
+    if (sessionRoles?.includes("journalist")) return "journalist";
+    if (sessionActorRole === "admin") return "admin";
+    if (sessionActorRole === "editor") return "journalist";
+    return presentation.viewerRole ?? "citizen";
+  }, [sessionRoles, sessionActorRole, presentation.viewerRole]);
   const isCitizen = viewerRole === "citizen";
   const roleLabel = ROLE_LABELS[viewerRole] ?? viewerRole;
   const canEditOrigins = viewerRole === "admin" || viewerRole === "staff";
   const canTriggerClarification =
-    viewerRole === "organization" || viewerRole === "administration" || viewerRole === "journalist";
+    viewerRole === "organization" ||
+    viewerRole === "administration" ||
+    viewerRole === "journalist" ||
+    viewerRole === "admin" ||
+    viewerRole === "staff";
   const displaySavedOptionId = isCitizen ? savedOptionId : null;
   const displaySavedAt = isCitizen ? savedAt : null;
   const recommendation = presentation.recommendation ?? {};
-  const allowedRecommendationRoles = recommendation.allowedRoles ?? ["organization", "administration", "journalist"];
+  const allowedRecommendationRoles = recommendation.allowedRoles ?? [
+    "organization",
+    "administration",
+    "journalist",
+    "admin",
+    "staff",
+  ];
   const canSeeRecommendation = allowedRecommendationRoles.includes(viewerRole);
+  const inst = useInstitutionalDossier(meta.id);
   const fallbackAdminOrigin = presentation.emblem
     ? {
         kind: "administration" as const,
@@ -372,6 +439,7 @@ export function DossierViewer({ dossier }: { dossier: Dossier }) {
   );
   const carouselRef = useRef<HTMLDivElement | null>(null);
   const [activeCarouselIndex, setActiveCarouselIndex] = useState(0);
+
 
   const primaryOriginIndex = useMemo(() => {
     if (!orderedOrigins.length) return 0;
@@ -465,6 +533,37 @@ export function DossierViewer({ dossier }: { dossier: Dossier }) {
       ? openQuestions
       : analyze.questions.map((q) => ({ id: q.id, text: q.text }));
 
+  const delegationEntries = useMemo(() => {
+    if (inst.data?.delegations?.length) return inst.data.delegations;
+    return presentation.openIssueManagement?.issues ?? [];
+  }, [inst.data?.delegations, presentation.openIssueManagement?.issues]);
+  const delegationByQuestionId = useMemo(() => {
+    const map = new Map<string, any>();
+    for (const item of delegationEntries) {
+      const qid = (item as any).questionId;
+      if (qid) map.set(String(qid), item);
+    }
+    return map;
+  }, [delegationEntries]);
+
+  const canManageWatchlist = watchlistActive !== null;
+
+  const toggleWatchlist = async () => {
+    if (watchlistBusy || !meta.id) return;
+    setWatchlistBusy(true);
+    try {
+      const res = await fetch("/api/dossier/watchlist/toggle", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ dossierId: meta.id }),
+      });
+      const json = (await res.json()) as { ok?: boolean; watching?: boolean };
+      if (json?.ok) setWatchlistActive(Boolean(json.watching));
+    } finally {
+      setWatchlistBusy(false);
+    }
+  };
+
   const clarifiedCount = questionsForDisplay.filter((q) => {
     const status = (q as { status?: string }).status;
     return status === "beantwortet" || status === "answered";
@@ -522,22 +621,34 @@ export function DossierViewer({ dossier }: { dossier: Dossier }) {
   }
   const votingOptions: PresentationVoteOption[] = Array.from(voteOptionMap.values());
 
+  const votingOptionIds = useMemo(() => votingOptions.map((opt) => opt.id).join("|"), [votingOptions]);
+  const fallbackMajority = useMemo(() => {
+    if (!votingOptionIds) return [];
+    return votingOptionIds
+      .split("|")
+      .filter(Boolean)
+      .map((id) => ({ id, pct: 0 }));
+  }, [votingOptionIds]);
   const baseMajority = useMemo(
-    () =>
-      majorityDemo.length
-        ? majorityDemo
-        : presentation.vote?.majorityDemo ?? votingOptions.map((opt) => ({ id: opt.id, pct: 0 })),
-    [majorityDemo, presentation.vote?.majorityDemo, votingOptions],
+    () => (majorityDemo.length ? majorityDemo : presentation.vote?.majorityDemo ?? fallbackMajority),
+    [majorityDemo, presentation.vote?.majorityDemo, fallbackMajority],
+  );
+  const baseMajorityKey = useMemo(
+    () => baseMajority.map((item) => `${item.id}:${item.pct}`).join("|"),
+    [baseMajority],
   );
   const [majorityLive, setMajorityLive] = useState(baseMajority);
   const [majorityUpdatedAt, setMajorityUpdatedAt] = useState(presentation.vote?.updatedAt);
   const [majorityTotalVotes, setMajorityTotalVotes] = useState(presentation.vote?.totalVotes);
 
   useEffect(() => {
-    setMajorityLive(baseMajority);
-    setMajorityUpdatedAt(presentation.vote?.updatedAt);
-    setMajorityTotalVotes(presentation.vote?.totalVotes);
-  }, [meta.id, baseMajority, presentation.vote?.updatedAt, presentation.vote?.totalVotes]);
+    setMajorityLive((prev) => {
+      const prevKey = prev.map((item) => `${item.id}:${item.pct}`).join("|");
+      return prevKey === baseMajorityKey ? prev : baseMajority;
+    });
+    setMajorityUpdatedAt((prev) => (prev === presentation.vote?.updatedAt ? prev : presentation.vote?.updatedAt));
+    setMajorityTotalVotes((prev) => (prev === presentation.vote?.totalVotes ? prev : presentation.vote?.totalVotes));
+  }, [meta.id, baseMajorityKey, baseMajority, presentation.vote?.updatedAt, presentation.vote?.totalVotes]);
 
   const majorityMap = new Map(majorityLive.map((item) => [item.id, item.pct]));
 
@@ -850,6 +961,7 @@ export function DossierViewer({ dossier }: { dossier: Dossier }) {
             <p className="text-sm font-semibold text-[rgb(var(--fg))]">{legitimacyStatus.label}</p>
             <p className="text-[11px] text-[rgb(var(--muted))]">{legitimacyStatus.text}</p>
           </div>
+          <InstitutionalHeader dossierId={meta.id} viewerRole={viewerRole as any} inst={inst} />
           <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 space-y-2">
             <p className="text-[11px] font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
               Status & Protokoll
@@ -985,7 +1097,10 @@ export function DossierViewer({ dossier }: { dossier: Dossier }) {
         contributions={contributions}
         traceability={traceability}
         statementTitleById={statementTitleById}
+        dossierId={meta.id}
       />
+
+      <MunicipalityMode regionalSuggestions={presentation.regionalSuggestions} viewerRole={viewerRole as any} />
 
       <section className="space-y-4">
         <div className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
@@ -1291,9 +1406,32 @@ export function DossierViewer({ dossier }: { dossier: Dossier }) {
         revision={meta.revision}
       />
       <CorrectionsPanel items={corrections} />
-      <AuditTrailPanel auditTrail={dossier.auditTrail} />
-      <ExportPanel dossierId={meta.id} exportBase="/api/demo/export" />
-      <EditorialInbox items={presentation.editorialInbox} />
+      <AuditTimeline events={inst.data?.auditTrail ?? []} />
+      <ExportPanel dossierId={meta.id} />
+      <MandatePanel viewerRole={viewerRole as any} />
+      {viewerRole === "admin" || viewerRole === "staff" ? (
+        <EditorialInboxLive enabled />
+      ) : (
+        <EditorialInbox items={presentation.editorialInbox} />
+      )}
+      {canManageWatchlist ? (
+        <section className="vog-card p-5 space-y-2">
+          <div className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
+            Beobachtungsliste
+          </div>
+          <button
+            type="button"
+            className="btn btn-ghost text-xs"
+            onClick={() => void toggleWatchlist()}
+            disabled={watchlistBusy}
+          >
+            {watchlistActive ? "Nicht mehr beobachten" : "Beobachten"}
+          </button>
+          <p className="text-[11px] text-[rgb(var(--muted))]">
+            Updates werden in der Beobachtungsliste gesammelt.
+          </p>
+        </section>
+      ) : null}
       <WatchlistPanel items={presentation.watchlist} />
       <RoadmapPanel items={presentation.roadmap} />
 
@@ -1327,6 +1465,11 @@ export function DossierViewer({ dossier }: { dossier: Dossier }) {
             const lastUpdate = (q as { lastUpdate?: string }).lastUpdate;
             const resolution = (q as { resolution?: string }).resolution;
             const sourceNote = (q as { sourceNote?: string }).sourceNote;
+            const delegation = delegationByQuestionId.get(q.id);
+            const delegationStatus = delegation?.status as string | undefined;
+            const delegatedTo = delegation?.delegatedTo as string | undefined;
+            const delegatedLevel = delegation?.level as string | undefined;
+            const delegatedAt = delegation?.requestedAt as string | undefined;
             const coordination =
               responsible && /amt|behörde|dienststelle|ministerium|kammer/i.test(responsible)
                 ? "Behörde/Fachstelle"
@@ -1384,6 +1527,26 @@ export function DossierViewer({ dossier }: { dossier: Dossier }) {
                       Unterstützend: {supportActors.join(", ")}
                     </p>
                   ) : null}
+                  {delegatedTo ? (
+                    <p className="text-[11px] text-[rgb(var(--muted))]">
+                      Delegiert an: {delegatedTo}
+                      {delegatedLevel ? ` (${delegatedLevel})` : ""}
+                    </p>
+                  ) : null}
+                  {delegationStatus ? (
+                    <p className="text-[11px] text-[rgb(var(--muted))]">
+                      Delegationsstatus: {delegationStatus}
+                    </p>
+                  ) : !responsible ? (
+                    <p className="text-[11px] text-[rgb(var(--muted))]">
+                      Zuständigkeit: noch nicht zugeordnet.
+                    </p>
+                  ) : null}
+                  {delegatedAt ? (
+                    <p className="text-[11px] text-[rgb(var(--muted))]">
+                      Angefragt am: {formatDate(delegatedAt)}
+                    </p>
+                  ) : null}
                 </div>
               </div>
             );
@@ -1398,6 +1561,45 @@ export function DossierViewer({ dossier }: { dossier: Dossier }) {
               Klärung anstoßen
             </button>
             <span className="text-[11px] text-[rgb(var(--muted))]">Anfragen an Behörden stellt die Plattform.</span>
+          </div>
+        ) : isCitizen ? (
+          <div className="mt-2 space-y-2">
+            <button
+              type="button"
+              className="btn btn-ghost text-xs"
+              onClick={async () => {
+                setClarificationNotice(null);
+                const questionText =
+                  questionsForDisplay[0]?.text ?? "Bitte klären: Offene Frage im Dossier";
+                try {
+                  const res = await fetch("/api/dossier/request-clarification", {
+                    method: "POST",
+                    headers: { "content-type": "application/json" },
+                    body: JSON.stringify({
+                      dossierId: meta.id,
+                      questionText,
+                      context: "Bürgeranfrage über Dossier-Ansicht",
+                    }),
+                  });
+                  const json = (await res.json()) as { ok?: boolean };
+                  setClarificationNotice(
+                    json?.ok
+                      ? "Anfrage wurde an die Redaktion übermittelt."
+                      : "Anfrage konnte nicht gesendet werden.",
+                  );
+                } catch {
+                  setClarificationNotice("Anfrage konnte nicht gesendet werden.");
+                }
+              }}
+            >
+              Klärung anfragen (an Redaktion)
+            </button>
+            <p className="text-[11px] text-[rgb(var(--muted))]">
+              Die Plattform koordiniert Anfragen. Es werden keine Einzelanfragen an Behörden ausgelöst.
+            </p>
+            {clarificationNotice ? (
+              <p className="text-[11px] text-[rgb(var(--muted))]">{clarificationNotice}</p>
+            ) : null}
           </div>
         ) : (
           <span className="text-[11px] text-[rgb(var(--muted))]">

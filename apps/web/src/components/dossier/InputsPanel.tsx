@@ -6,6 +6,7 @@ type InputsPanelProps = {
   contributions: PresentationContribution[];
   traceability: PresentationTraceability;
   statementTitleById: Map<string, string>;
+  dossierId?: string | null;
 };
 
 function formatDate(value: string) {
@@ -21,7 +22,13 @@ function renderStatementHint(ids: string[] | undefined, statementTitleById: Map<
   return `${titles.length} Kernaussagen${preview ? ` · ${preview}` : ""}`;
 }
 
-export function InputsPanel({ streams, contributions, traceability, statementTitleById }: InputsPanelProps) {
+export function InputsPanel({
+  streams,
+  contributions,
+  traceability,
+  statementTitleById,
+  dossierId,
+}: InputsPanelProps) {
   const streamMap = traceability.streamsToStatements ?? {};
   const contributionMap = traceability.contributionsToStatements ?? {};
 
@@ -29,6 +36,16 @@ export function InputsPanel({ streams, contributions, traceability, statementTit
     <section className="grid gap-4 md:grid-cols-[1.1fr_0.9fr]">
       <div id="streams" className="vog-card p-5 space-y-3">
         <div className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Material</div>
+        {dossierId ? (
+          <div className="flex flex-wrap gap-2 text-[11px]">
+            <Link href={`/contributions/new?dossierId=${encodeURIComponent(dossierId)}`} className="btn btn-ghost text-xs">
+              Beitrag hinzufügen
+            </Link>
+            <Link href={`/statements/new?dossierId=${encodeURIComponent(dossierId)}`} className="btn btn-ghost text-xs">
+              Aussage ergänzen
+            </Link>
+          </div>
+        ) : null}
         <div className="space-y-3">
           <div className="space-y-2">
             <p className="text-sm font-semibold text-[rgb(var(--fg))]">Themenströme</p>

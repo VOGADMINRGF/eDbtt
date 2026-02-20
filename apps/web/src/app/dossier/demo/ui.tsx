@@ -36,16 +36,24 @@ export default function DossierDemoClient() {
   }, []);
 
   return (
-    <div className="mx-auto w-full max-w-screen-2xl px-6 py-18 lg:px-10">
+    <div className="mx-auto w-full max-w-[1440px] px-6 py-18 lg:px-10">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-2 text-[11px] text-[rgb(var(--muted))]">
-        <div>
-          Demo-Backend:{" "}
-          <span className={`font-semibold ${backendOk ? "text-emerald-400" : "text-amber-300"}`}>
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="rounded-full border border-[rgb(var(--border))] px-2 py-1 text-[10px] uppercase tracking-wide text-[rgb(var(--muted))]">
+            Demo-Backend
+          </span>
+          <span
+            className={`rounded-full border px-2 py-1 text-[10px] font-semibold uppercase tracking-wide ${
+              backendOk
+                ? "border-emerald-500/40 text-emerald-400"
+                : "border-amber-500/40 text-amber-300"
+            }`}
+          >
             {backendOk ? "verbunden" : "Fallback (lokal)"}
           </span>
         </div>
         {serverTimestamp ? (
-          <div>
+          <div className="rounded-full border border-[rgb(var(--border))] px-2 py-1 text-[10px]">
             Server-Stand: <span className="font-semibold text-[rgb(var(--fg))]">{serverTimestamp}</span>
           </div>
         ) : null}

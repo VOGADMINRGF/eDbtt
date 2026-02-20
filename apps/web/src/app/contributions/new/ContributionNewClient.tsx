@@ -8,6 +8,7 @@ import type { VerificationLevel } from "@core/auth/verificationTypes";
 
 export type ContributionNewClientProps = {
   initialOverview: AccountOverview;
+  dossierId?: string | null;
 };
 
 type GateState =
@@ -68,7 +69,7 @@ function deriveUseCaseAccess(overview?: AccountOverview | null): UseCaseAccess {
   };
 }
 
-export function ContributionNewClient({ initialOverview }: ContributionNewClientProps) {
+export function ContributionNewClient({ initialOverview, dossierId }: ContributionNewClientProps) {
   const [verificationLevel, setVerificationLevel] = React.useState<VerificationLevel>(
     initialOverview?.verificationLevel ?? "none",
   );
@@ -125,21 +126,30 @@ export function ContributionNewClient({ initialOverview }: ContributionNewClient
 
   const overview = gate.overview;
   const useCaseAccess = deriveUseCaseAccess(overview);
+  const afterFinalizeNavigateTo = dossierId ? `/dossier/${dossierId}` : "/swipes";
 
   return (
-    <AnalyzeWorkspace
-      mode="contribution"
-      defaultLevel={1}
-      storageKey="vog_contribution_draft_v2"
-      analyzeEndpoint="/api/contributions/analyze"
-      saveEndpoint="/api/contributions/save"
-      finalizeEndpoint="/api/contributions/finalize"
-      afterFinalizeNavigateTo="/swipes"
-      verificationLevel={verificationLevel}
-      verificationStatus={levelStatus}
-      authorName={overview?.displayName ?? overview?.profile?.headline ?? ""}
-      useCaseAccess={useCaseAccess}
-    />
+    <>
+      {dossierId ? (
+        <div className="mb-6 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 text-sm text-[rgb(var(--fg))]">
+          Dieser Beitrag wird dem Dossier zugeordnet:{" "}
+          <span className="font-semibold">{dossierId}</span>.
+        </div>
+      ) : null}
+      <AnalyzeWorkspace
+        mode="contribution"
+        defaultLevel={1}
+        storageKey="vog_contribution_draft_v2"
+        analyzeEndpoint="/api/contributions/analyze"
+        saveEndpoint="/api/contributions/save"
+        finalizeEndpoint="/api/contributions/finalize"
+        afterFinalizeNavigateTo={afterFinalizeNavigateTo}
+        verificationLevel={verificationLevel}
+        verificationStatus={levelStatus}
+        authorName={overview?.displayName ?? overview?.profile?.headline ?? ""}
+        useCaseAccess={useCaseAccess}
+      />
+    </>
   );
 }
 
