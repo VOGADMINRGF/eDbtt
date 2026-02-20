@@ -32,6 +32,7 @@ export default async function StatementNewPage({
         saveEndpoint="/api/contributions/save"
         finalizeEndpoint="/api/contributions/finalize"
         afterFinalizeNavigateTo={afterFinalizeNavigateTo}
+        dossierId={dossierId ?? undefined}
         initialText={initialText}
       />
     </main>

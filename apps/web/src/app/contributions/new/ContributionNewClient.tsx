@@ -144,6 +144,7 @@ export function ContributionNewClient({ initialOverview, dossierId }: Contributi
         saveEndpoint="/api/contributions/save"
         finalizeEndpoint="/api/contributions/finalize"
         afterFinalizeNavigateTo={afterFinalizeNavigateTo}
+        dossierId={dossierId ?? undefined}
         verificationLevel={verificationLevel}
         verificationStatus={levelStatus}
         authorName={overview?.displayName ?? overview?.profile?.headline ?? ""}

@@ -26,6 +26,7 @@ type OptionCard = {
 type DecisionSpaceProps = {
   options: OptionCard[];
   ctaHref?: string;
+  traceHref?: string;
   selectedOptionId?: string | null;
   onSelect?: (optionId: string) => void;
   optionRanking?: Map<string, number>;
@@ -34,6 +35,7 @@ type DecisionSpaceProps = {
 export function DecisionSpace({
   options,
   ctaHref,
+  traceHref,
   selectedOptionId,
   onSelect,
   optionRanking,
@@ -42,6 +44,7 @@ export function DecisionSpace({
     <OptionMatrix
       options={options}
       ctaHref={ctaHref}
+      traceHref={traceHref}
       selectedOptionId={selectedOptionId}
       onSelect={onSelect}
       optionRanking={optionRanking}

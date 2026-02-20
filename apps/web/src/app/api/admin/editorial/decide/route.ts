@@ -54,7 +54,7 @@ function buildDossierFromRequest(input: {
   cloned.analyze = cloned.analyze ?? {};
   cloned.analyze.sourceText =
     input.questionText?.trim() || "Klärungsanfrage wurde angenommen. Fragestellung folgt.";
-  cloned.analyze.mode = cloned.analyze.mode ?? "E150";
+  cloned.analyze.mode = cloned.analyze.mode ?? "standard";
   cloned.analyze.language = cloned.analyze.language ?? "de";
 
   cloned.analyze.notes = cloned.analyze.notes ?? [];

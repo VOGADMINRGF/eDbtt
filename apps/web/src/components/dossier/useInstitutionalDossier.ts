@@ -52,6 +52,17 @@ export type InstitutionalExport = {
     updatedAt?: string;
     note?: string;
   }>;
+  materialLinks?: Array<{
+    linkId: string;
+    dossierId: string;
+    kind: "statement" | "contribution";
+    itemId: string;
+    createdAt: string;
+    createdByRole: string;
+    createdByUserId?: string;
+    note?: string;
+    edgeType?: "supports" | "mentions" | "contradicts" | "unknown";
+  }>;
 };
 
 type VerifyState = { state: "unverified" | "verifying" | "verified" | "invalid" | "error" };

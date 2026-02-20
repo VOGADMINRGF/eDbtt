@@ -27,6 +27,7 @@ type SnapshotPanelProps = {
 };
 
 export function SnapshotPanel({ snapshot, verify, onVerify, loading }: SnapshotPanelProps) {
+  const hasSnapshot = Boolean(snapshot?.snapshotId && snapshot?.contentHash);
   const statusLabel =
     verify.state === "verified"
       ? "Signatur gültig"
@@ -43,7 +44,7 @@ export function SnapshotPanel({ snapshot, verify, onVerify, loading }: SnapshotP
       <p className="text-[11px] font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
         Verifizierter Snapshot
       </p>
-      {snapshot ? (
+      {hasSnapshot && snapshot ? (
         <>
           <div className="text-sm font-semibold text-[rgb(var(--fg))]">Snapshot vorhanden</div>
           <div className="grid gap-1 text-[12px] text-[rgb(var(--muted))]">

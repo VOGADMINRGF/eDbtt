@@ -249,6 +249,7 @@ type AnalyzeWorkspaceProps = {
   saveEndpoint: string;
   finalizeEndpoint: string;
   afterFinalizeNavigateTo?: string;
+  dossierId?: string | null;
   verificationLevel?: VerificationLevel;
   verificationStatus?: "loading" | "ok" | "login_required" | "error";
   initialText?: string;
@@ -618,6 +619,7 @@ export default function AnalyzeWorkspace({
   saveEndpoint,
   finalizeEndpoint,
   afterFinalizeNavigateTo,
+  dossierId,
   verificationLevel,
   verificationStatus,
   initialText,
@@ -1382,6 +1384,7 @@ export default function AnalyzeWorkspace({
         body: JSON.stringify({
           draftId,
           selectedClaimIds,
+          dossierId: dossierId ?? undefined,
           source: mode === "statement" ? "statement_new" : "contribution_new",
         }),
       });
@@ -1396,7 +1399,7 @@ export default function AnalyzeWorkspace({
     } finally {
       setIsFinalizing(false);
     }
-  }, [afterFinalizeNavigateTo, confirmUnderstanding, draftId, finalizeEndpoint, mode, selectedClaimIds]);
+  }, [afterFinalizeNavigateTo, confirmUnderstanding, dossierId, draftId, finalizeEndpoint, mode, selectedClaimIds]);
 
   const handleDeepResearch = React.useCallback(async () => {
     if (!preparedText.trim()) {

@@ -34,6 +34,7 @@ type OptionCard = {
 type OptionMatrixProps = {
   options: OptionCard[];
   ctaHref?: string;
+  traceHref?: string;
   selectedOptionId?: string | null;
   onSelect?: (optionId: string) => void;
   optionRanking?: Map<string, number>;
@@ -63,6 +64,7 @@ function renderRadarPoints(dimensions: Dimension[]) {
 export function OptionMatrix({
   options,
   ctaHref = "#vote",
+  traceHref = "#graph",
   selectedOptionId,
   onSelect,
   optionRanking,
@@ -149,6 +151,12 @@ export function OptionMatrix({
                   className="text-xs font-semibold text-[rgb(var(--fg))] underline"
                 >
                   Diese Option wählen
+                </Link>
+                <Link
+                  href={traceHref}
+                  className="text-xs text-[rgb(var(--muted))] underline"
+                >
+                  Begründungspfad anzeigen
                 </Link>
               </div>
               <div className="flex items-center justify-start md:justify-end">

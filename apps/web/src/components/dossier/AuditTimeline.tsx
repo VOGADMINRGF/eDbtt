@@ -28,15 +28,17 @@ const ACTION_LABELS: Record<string, string> = {
   editorial_decision: "Editorial Entscheidung",
   clarification_requested: "Klärung angefragt",
   issue_delegated: "Delegation gesetzt",
+  material_linked: "Material verknüpft",
 };
 
-const ACTION_GROUPS: Record<string, "workflow" | "snapshot" | "editorial" | "export" | "delegation"> = {
+const ACTION_GROUPS: Record<string, "workflow" | "snapshot" | "editorial" | "export" | "delegation" | "material"> = {
   workflow_transition: "workflow",
   snapshot_created: "snapshot",
   editorial_accept: "editorial",
   editorial_decision: "editorial",
   clarification_requested: "editorial",
   issue_delegated: "delegation",
+  material_linked: "material",
 };
 
 const FILTERS = [
@@ -45,6 +47,7 @@ const FILTERS = [
   { id: "snapshot", label: "Snapshot" },
   { id: "editorial", label: "Editorial" },
   { id: "delegation", label: "Delegation" },
+  { id: "material", label: "Material" },
 ] as const;
 
 export function AuditTimeline({ events }: { events: InstitutionalAuditEvent[] }) {

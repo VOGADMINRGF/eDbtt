@@ -343,8 +343,9 @@ function mergeClusters(defaultClusters: PresentationCluster[], derivedClusters: 
 export function DossierViewer({ dossier }: { dossier: Dossier }) {
   const { meta, analyze, voteConfig } = dossier;
   const corrections = useMemo(() => dossier.corrections ?? [], [dossier.corrections]);
+  const presentationBundle = useMemo(() => getPresentation(dossier), [dossier]);
   const { presentation, streams, contributions, voteOptions, majorityDemo, traceability, openQuestions } =
-    getPresentation(dossier);
+    presentationBundle;
   const { selectedOptionId, savedOptionId, savedAt, setSelectedOptionId, saveSelection, saveNotice } =
     useDecisionState(meta.id, {
       onMajorityUpdate: (payload) => {
@@ -424,6 +425,8 @@ export function DossierViewer({ dossier }: { dossier: Dossier }) {
   ];
   const canSeeRecommendation = allowedRecommendationRoles.includes(viewerRole);
   const inst = useInstitutionalDossier(meta.id);
+  const materialLinkCount =
+    typeof inst.data?.materialLinks?.length === "number" ? inst.data?.materialLinks?.length : null;
   const fallbackAdminOrigin = presentation.emblem
     ? {
         kind: "administration" as const,
@@ -1098,6 +1101,7 @@ export function DossierViewer({ dossier }: { dossier: Dossier }) {
         traceability={traceability}
         statementTitleById={statementTitleById}
         dossierId={meta.id}
+        materialLinkCount={materialLinkCount}
       />
 
       <MunicipalityMode regionalSuggestions={presentation.regionalSuggestions} viewerRole={viewerRole as any} />
@@ -1109,6 +1113,7 @@ export function DossierViewer({ dossier }: { dossier: Dossier }) {
         <DecisionSpace
           options={matrixOptions}
           ctaHref="#vote"
+          traceHref="#graph"
           selectedOptionId={selectedOptionId}
           onSelect={(optionId) => setSelectedOptionId(optionId)}
           optionRanking={majorityMap}
@@ -1157,7 +1162,7 @@ export function DossierViewer({ dossier }: { dossier: Dossier }) {
   );
 
   const fullWidth = (
-    <section className="space-y-4">
+    <section id="graph" className="space-y-4">
       <div className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
         Evidenz-Topologie
       </div>

@@ -171,20 +171,24 @@ function nodeKey(type: "option" | "claim" | "source", id: string) {
 }
 
 function edgeStroke(kind?: string) {
-  if (kind === "supports") return "rgba(45,212,191,0.72)";
-  if (kind === "mentions") return "rgba(56,189,248,0.45)";
-  return "rgba(149,164,182,0.35)";
+  if (kind === "supports") return "rgba(var(--grad-from),0.6)";
+  if (kind === "mentions") return "rgba(148,163,184,0.45)";
+  if (kind === "contradicts" || kind === "refutes") return "rgba(248,113,113,0.55)";
+  return "rgba(148,163,184,0.3)";
 }
 
 function edgeDash(kind?: string) {
   if (kind === "mentions") return "4 4";
+  if (kind === "contradicts" || kind === "refutes") return "6 3 2 3";
+  if (kind === "unknown") return "2 6";
   return undefined;
 }
 
 function kindLabel(kind?: string) {
   if (kind === "supports") return "stützt";
   if (kind === "mentions") return "erwähnt";
-  return "bezieht sich auf";
+  if (kind === "contradicts" || kind === "refutes") return "widerspricht";
+  return "unklar";
 }
 
 function findingLabel(value: Finding["finding"]) {
@@ -371,6 +375,7 @@ export function EvidenceField({
 
     const update = () => {
       const box = container.getBoundingClientRect();
+      const round = (value: number) => Math.round(value);
       const next: Line[] = [];
 
       for (const link of optionLinks) {
@@ -386,10 +391,10 @@ export function EvidenceField({
           fromKey,
           toKey,
           type: "option",
-          x1: fromRect.right - box.left,
-          y1: fromRect.top - box.top + fromRect.height / 2,
-          x2: toRect.left - box.left,
-          y2: toRect.top - box.top + toRect.height / 2,
+          x1: round(fromRect.right - box.left),
+          y1: round(fromRect.top - box.top + fromRect.height / 2),
+          x2: round(toRect.left - box.left),
+          y2: round(toRect.top - box.top + toRect.height / 2),
         });
       }
 
@@ -408,10 +413,10 @@ export function EvidenceField({
           type: "evidence",
           kind: link.kind,
           weight: link.weight,
-          x1: fromRect.right - box.left,
-          y1: fromRect.top - box.top + fromRect.height / 2,
-          x2: toRect.left - box.left,
-          y2: toRect.top - box.top + toRect.height / 2,
+          x1: round(fromRect.right - box.left),
+          y1: round(fromRect.top - box.top + fromRect.height / 2),
+          x2: round(toRect.left - box.left),
+          y2: round(toRect.top - box.top + toRect.height / 2),
         });
       }
 
@@ -677,6 +682,7 @@ export function EvidenceField({
           <p>Option → Kernaussage → Quelle</p>
           <p>Dicke Linie = stärker belegt</p>
           <p>Durchgezogen = stützt, gestrichelt = erwähnt</p>
+          <p>Punktiert = widerspricht, grau = unklar</p>
         </div>
         <div className="min-h-[16px] md:shrink-0">
           {focused ? (
@@ -851,6 +857,8 @@ export function EvidenceField({
         <span className="vog-chip">Linienstärke: Evidenzgewicht</span>
         <span className="vog-chip">Durchgezogen: stützt</span>
         <span className="vog-chip">Gestrichelt: erwähnt</span>
+        <span className="vog-chip">Punktiert: widerspricht</span>
+        <span className="vog-chip">Grau: unklar</span>
       </div>
       {viewMode === "edges" ? (
         focusedDetails ? (

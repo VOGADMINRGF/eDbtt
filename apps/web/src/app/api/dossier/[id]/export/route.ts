@@ -6,6 +6,7 @@ import type {
   AuditEvent,
   DossierSnapshot,
   IssueDelegation,
+  MaterialLink,
   StoredDossier,
   WorkflowDoc,
 } from "@features/dossier/infra/types";
@@ -53,6 +54,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
   let auditTrail: AuditEvent[] = [];
   let workflow: WorkflowDoc | null = null;
   let delegations: IssueDelegation[] = [];
+  let materialLinks: MaterialLink[] = [];
 
   try {
     const snapshotsCol = await coreCol<DossierSnapshot>("dossier_snapshots");
@@ -78,11 +80,19 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       .sort({ updatedAt: -1, _id: -1 })
       .limit(100)
       .toArray();
+
+    const linksCol = await coreCol<MaterialLink>("dossier_material_links");
+    materialLinks = await linksCol
+      .find({ dossierId })
+      .sort({ createdAt: -1, _id: -1 })
+      .limit(100)
+      .toArray();
   } catch {
     snapshot = snapshot ?? null;
     auditTrail = auditTrail ?? [];
     workflow = workflow ?? null;
     delegations = delegations ?? [];
+    materialLinks = materialLinks ?? [];
   }
 
   if (format === "csv") {
@@ -164,6 +174,23 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       ]);
     }
 
+    if (materialLinks.length) {
+      rows.push([
+        "material_links",
+        dossierId,
+        "Materialverknüpfungen",
+        `Anzahl: ${materialLinks.length}`,
+      ]);
+      for (const link of materialLinks) {
+        rows.push([
+          "material_link",
+          link.linkId,
+          `${link.kind}:${link.itemId}`,
+          `Kante: ${link.edgeType ?? "unknown"} | Hinweis: ${link.note ?? "-"}`,
+        ]);
+      }
+    }
+
     const csv = toCsv(rows);
     return new Response(csv, {
       headers: {
@@ -181,5 +208,6 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     auditTrail,
     workflow,
     delegations,
+    materialLinks,
   });
 }

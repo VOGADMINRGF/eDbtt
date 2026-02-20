@@ -40,6 +40,9 @@ const config = {
       // Beispiel – AUSGESCHALTET:
       // { source: "/", destination: "/contributions/new", permanent: false },
       // KEIN redirect von /contributions/analyze nach /contributions/new!
+      { source: "/sw", destination: "/swipes", permanent: true },
+      { source: "/swipe", destination: "/swipes", permanent: true },
+      { source: "/beitrage", destination: "/beitraege", permanent: true },
     ];
   },
 } satisfies NextConfig & { allowedDevOrigins?: string[] };

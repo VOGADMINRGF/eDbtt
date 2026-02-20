@@ -1,6 +1,9 @@
+import crypto from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { getCol, ObjectId } from "@core/db/triMongo";
+import { coreCol, getCol, ObjectId } from "@core/db/triMongo";
+import { createAuditEvent } from "@features/dossier/infra/auditChain";
+import type { AuditEvent, MaterialLink } from "@features/dossier/infra/types";
 import { z } from "zod";
 
 export const runtime = "nodejs";
@@ -11,6 +14,7 @@ const FinalizeSchema = z.object({
   selectedClaimIds: z.array(z.string()).min(1),
   topicTitle: z.string().optional(),
   source: z.enum(["contribution_new", "statement_new"]).optional(),
+  dossierId: z.string().min(1).optional(),
 });
 
 type DraftDoc = {
@@ -38,6 +42,7 @@ type ProposalDoc = {
   importance?: number | null;
   source?: string;
   topicTitle?: string;
+  dossierId?: string;
   status: "proposed";
   createdAt: Date;
 };
@@ -70,7 +75,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({
         ok: true,
         proposalIds: draft.proposalIds,
-        redirectTo: `/swipes?fromDraft=${body.draftId}`,
+        redirectTo: body.dossierId ? `/dossier/${body.dossierId}` : `/swipes?fromDraft=${body.draftId}`,
       });
     }
 
@@ -97,6 +102,7 @@ export async function POST(req: NextRequest) {
       importance: typeof claim.importance === "number" ? claim.importance : null,
       source: body.source,
       topicTitle: body.topicTitle,
+      dossierId: body.dossierId,
       status: "proposed",
       createdAt: now,
     }));
@@ -115,10 +121,96 @@ export async function POST(req: NextRequest) {
       },
     );
 
+    if (body.dossierId) {
+      const dossierId = body.dossierId;
+      const auditCol = await coreCol<AuditEvent>("dossier_audit_chain");
+      const lastEvent = await auditCol
+        .find({ dossierId })
+        .sort({ timestamp: -1, _id: -1 })
+        .limit(1)
+        .next();
+      const evt = createAuditEvent({
+        eventId: `evt_${crypto.randomUUID()}`,
+        dossierId,
+        actorRole: "citizen",
+        action: body.source === "statement_new" ? "statement_submitted" : "contribution_submitted",
+        diff: { draftId: body.draftId, proposalIds },
+        timestamp: now.toISOString(),
+        previousHash: lastEvent?.eventHash,
+      });
+      await auditCol.insertOne(evt as any);
+
+      const linksCol = await coreCol<MaterialLink>("dossier_material_links");
+      const createdAt = now.toISOString();
+      const linkDocs: MaterialLink[] = [];
+      const baseNote = body.source === "statement_new" ? "Direkt eingereicht" : "Aus Beitrag";
+
+      if (body.source === "contribution_new") {
+        linkDocs.push({
+          linkId: `lnk_${crypto.randomUUID()}`,
+          dossierId,
+          kind: "contribution",
+          itemId: body.draftId,
+          createdAt,
+          createdByRole: "citizen",
+          createdByUserId: userId,
+          note: "Beitrag eingereicht",
+          edgeType: "mentions",
+        });
+      }
+
+      for (const proposalId of proposalIds) {
+        linkDocs.push({
+          linkId: `lnk_${crypto.randomUUID()}`,
+          dossierId,
+          kind: "statement",
+          itemId: proposalId,
+          createdAt,
+          createdByRole: "citizen",
+          createdByUserId: userId,
+          note: baseNote,
+          edgeType: "supports",
+        });
+      }
+
+      if (linkDocs.length) {
+        await Promise.all(
+          linkDocs.map((link) =>
+            linksCol.updateOne(
+              { dossierId: link.dossierId, kind: link.kind, itemId: link.itemId },
+              { $set: link },
+              { upsert: true },
+            ),
+          ),
+        );
+
+        const lastAfter = await auditCol
+          .find({ dossierId })
+          .sort({ timestamp: -1, _id: -1 })
+          .limit(1)
+          .next();
+        const materialEvt = createAuditEvent({
+          eventId: `evt_${crypto.randomUUID()}`,
+          dossierId,
+          actorRole: "citizen",
+          action: "material_linked",
+          diff: {
+            source: body.source ?? "contribution_new",
+            contributionId: body.source === "contribution_new" ? body.draftId : undefined,
+            statementIds: proposalIds,
+            count: linkDocs.length,
+          },
+          timestamp: now.toISOString(),
+          previousHash: lastAfter?.eventHash,
+        });
+        await auditCol.insertOne(materialEvt as any);
+      }
+    }
+
     return NextResponse.json({
       ok: true,
       proposalIds,
-      redirectTo: `/swipes?fromDraft=${body.draftId}`,
+      redirectTo: body.dossierId ? `/dossier/${body.dossierId}` : `/swipes?fromDraft=${body.draftId}`,
     });
   } catch (err: any) {
     const message = err?.issues?.[0]?.message ?? err?.message ?? "Finalize failed";

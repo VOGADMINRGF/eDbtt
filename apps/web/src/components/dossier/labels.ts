@@ -67,7 +67,7 @@ export const SECTION_TITLES = {
   metadata: "Akte",
   methodology: "Methode & Protokoll",
   sources: "Quellen",
-  questions: "Offene Fragen",
+  questions: "Offene Fragen & Zuständigkeit",
   responsibilityPaths: "Verantwortungswege",
   graph: "Evidenzfeld",
   clusters: "Cluster & Spannungen",
@@ -86,4 +86,6 @@ export const EDGE_KIND_LABELS: Record<string, string> = {
   supports: "stützt",
   refutes: "widerlegt",
   mentions: "erwähnt",
+  contradicts: "widerspricht",
+  unknown: "unklar",
 };

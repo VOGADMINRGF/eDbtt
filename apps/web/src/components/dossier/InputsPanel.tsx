@@ -7,6 +7,7 @@ type InputsPanelProps = {
   traceability: PresentationTraceability;
   statementTitleById: Map<string, string>;
   dossierId?: string | null;
+  materialLinkCount?: number | null;
 };
 
 function formatDate(value: string) {
@@ -28,6 +29,7 @@ export function InputsPanel({
   traceability,
   statementTitleById,
   dossierId,
+  materialLinkCount,
 }: InputsPanelProps) {
   const streamMap = traceability.streamsToStatements ?? {};
   const contributionMap = traceability.contributionsToStatements ?? {};
@@ -44,6 +46,9 @@ export function InputsPanel({
             <Link href={`/statements/new?dossierId=${encodeURIComponent(dossierId)}`} className="btn btn-ghost text-xs">
               Aussage ergänzen
             </Link>
+            {typeof materialLinkCount === "number" && materialLinkCount > 0 ? (
+              <span className="vog-chip">Serververknüpfungen: {materialLinkCount}</span>
+            ) : null}
           </div>
         ) : null}
         <div className="space-y-3">

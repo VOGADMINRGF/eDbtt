@@ -42,6 +42,20 @@ export type IssueDelegation = {
   note?: string;
 };
 
+export type MaterialKind = "statement" | "contribution";
+
+export type MaterialLink = {
+  linkId: string;
+  dossierId: string;
+  kind: MaterialKind;
+  itemId: string;
+  createdAt: string;
+  createdByRole: string;
+  createdByUserId?: string;
+  note?: string;
+  edgeType?: "supports" | "mentions" | "contradicts" | "unknown";
+};
+
 export type StoredDossier = {
   dossierId: string;
   createdAt: string;
@@ -59,6 +73,7 @@ export type DossierExportBundle = {
   auditTrail: AuditEvent[];
   workflow?: WorkflowDoc | null;
   delegations?: IssueDelegation[];
+  materialLinks?: MaterialLink[];
 };
 
 export type ClarificationRequest = {
