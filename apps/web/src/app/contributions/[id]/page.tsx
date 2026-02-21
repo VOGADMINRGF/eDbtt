@@ -6,7 +6,7 @@ export const dynamic = "force-dynamic";
 
 type PageProps = {
   params: Promise<{ id: string }>;
-  searchParams?: { dossierId?: string };
+  searchParams?: Promise<{ dossierId?: string }>;
 };
 
 const EDGE_LABEL: Record<string, string> = {
@@ -25,6 +25,7 @@ function formatDate(value?: Date | string | null) {
 
 export default async function ContributionDetailPage({ params, searchParams }: PageProps) {
   const { id } = await params;
+  const resolvedSearch = searchParams ? await searchParams : undefined;
 
   let doc: any = null;
   const contributionsCol = await coreCol("contributions");
@@ -46,7 +47,7 @@ export default async function ContributionDetailPage({ params, searchParams }: P
   const title = doc?.title ?? draft?.title ?? "Beitrag";
   const text = doc?.text ?? draft?.text ?? draft?.analysis?.summary ?? "";
   const createdAt = doc?.createdAt ?? draft?.createdAt ?? null;
-  const dossierId = searchParams?.dossierId;
+  const dossierId = resolvedSearch?.dossierId;
 
   const linksCol = await coreCol<MaterialLink>("dossier_material_links");
   const linkIds = [id];
