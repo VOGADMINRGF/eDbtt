@@ -17,4 +17,9 @@ export default function AussagenNeuPage({ searchParams }: PageProps) {
   }
   const query = params.toString();
   redirect(query ? `/statements/new?${query}` : "/statements/new");
+  return (
+    <main className="min-h-screen bg-[rgb(var(--bg))]">
+      <h1 className="sr-only">Aussage anlegen</h1>
+    </main>
+  );
 }
