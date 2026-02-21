@@ -1,4 +1,5 @@
 import Link from "next/link";
+import MaterialLinksPanel from "./MaterialLinksPanel";
 import type { PresentationContribution, PresentationStream, PresentationTraceability } from "./presentation";
 
 type InputsPanelProps = {
@@ -8,6 +9,18 @@ type InputsPanelProps = {
   statementTitleById: Map<string, string>;
   dossierId?: string | null;
   materialLinkCount?: number | null;
+  materialLinks?: Array<{
+    linkId: string;
+    dossierId: string;
+    kind: "statement" | "contribution";
+    itemId: string;
+    createdAt: string;
+    createdByRole: string;
+    createdByUserId?: string;
+    note?: string;
+    edgeType?: "supports" | "mentions" | "contradicts" | "unknown";
+  }> | null;
+  viewerRole?: string | null;
 };
 
 function formatDate(value: string) {
@@ -30,13 +43,16 @@ export function InputsPanel({
   statementTitleById,
   dossierId,
   materialLinkCount,
+  materialLinks,
+  viewerRole,
 }: InputsPanelProps) {
   const streamMap = traceability.streamsToStatements ?? {};
   const contributionMap = traceability.contributionsToStatements ?? {};
 
   return (
-    <section className="grid gap-4 md:grid-cols-[1.1fr_0.9fr]">
-      <div id="streams" className="vog-card p-5 space-y-3">
+    <section className="space-y-4">
+      <div className="grid gap-4 md:grid-cols-[1.1fr_0.9fr]">
+        <div id="streams" className="vog-card p-5 space-y-3">
         <div className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Material</div>
         {dossierId ? (
           <div className="flex flex-wrap gap-2 text-[11px]">
@@ -75,9 +91,9 @@ export function InputsPanel({
             </div>
           </div>
         </div>
-      </div>
+        </div>
 
-      <div id="beitraege" className="vog-card p-5 space-y-3">
+        <div id="beitraege" className="vog-card p-5 space-y-3">
         <div className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Beiträge</div>
         <div className="space-y-2 text-sm">
           {contributions.length ? (
@@ -98,7 +114,13 @@ export function InputsPanel({
             <p className="text-sm text-[rgb(var(--muted))]">Keine Beiträge hinterlegt.</p>
           )}
         </div>
+        </div>
       </div>
+      <MaterialLinksPanel
+        links={materialLinks ?? undefined}
+        dossierId={dossierId ?? undefined}
+        viewerRole={viewerRole ?? undefined}
+      />
     </section>
   );
 }

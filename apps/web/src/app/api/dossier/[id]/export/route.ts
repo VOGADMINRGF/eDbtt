@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { coreCol } from "@core/db/triMongo";
+import { coreCol, ObjectId } from "@core/db/triMongo";
 import type { Dossier } from "@features/dossier";
 import demoDossier from "@features/dossier/data/demoDossier";
 import type {
@@ -25,6 +25,30 @@ function escapeCsv(value: string) {
 
 function toCsv(rows: string[][]) {
   return rows.map((row) => row.map((cell) => escapeCsv(cell ?? "")).join(",")).join("\n");
+}
+
+function extractSnippet(value?: string | null) {
+  if (!value) return "";
+  const plain = String(value).replace(/\s+/g, " ").trim();
+  return plain.length > 140 ? `${plain.slice(0, 140)}…` : plain;
+}
+
+function pushId(map: Map<string, { title?: string; excerpt?: string; source?: string }>, id?: string, value?: { title?: string; excerpt?: string; source?: string }) {
+  if (!id || !value) return;
+  map.set(id, value);
+}
+
+function splitObjectIds(ids: string[]) {
+  const objectIds: ObjectId[] = [];
+  const stringIds: string[] = [];
+  for (const id of ids) {
+    if (ObjectId.isValid(id)) {
+      objectIds.push(new ObjectId(id));
+    } else {
+      stringIds.push(id);
+    }
+  }
+  return { objectIds, stringIds };
 }
 
 export async function GET(request: NextRequest, { params }: RouteParams) {
@@ -93,6 +117,90 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     workflow = workflow ?? null;
     delegations = delegations ?? [];
     materialLinks = materialLinks ?? [];
+  }
+
+  if (materialLinks.length) {
+    try {
+      const statementIds = materialLinks.filter((l) => l.kind === "statement").map((l) => l.itemId);
+      const contributionIds = materialLinks.filter((l) => l.kind === "contribution").map((l) => l.itemId);
+      const statementMap = new Map<string, { title?: string; excerpt?: string; source?: string }>();
+      const contributionMap = new Map<string, { title?: string; excerpt?: string; source?: string }>();
+
+      if (statementIds.length) {
+        const { objectIds, stringIds } = splitObjectIds(statementIds);
+        const stmtsCol = await coreCol<any>("statements");
+        const proposalsCol = await coreCol<any>("statement_proposals");
+
+        if (objectIds.length) {
+          const docs = await stmtsCol.find({ _id: { $in: objectIds } }).toArray();
+          for (const doc of docs) {
+            const title = doc.title ?? "Aussage";
+            const excerpt = extractSnippet(doc.text ?? doc.content ?? doc.analysis?.summary ?? "");
+            const source = "statements";
+            pushId(statementMap, doc.id ?? String(doc._id), { title, excerpt, source });
+            pushId(statementMap, String(doc._id), { title, excerpt, source });
+          }
+          const props = await proposalsCol.find({ _id: { $in: objectIds } }).toArray();
+          for (const doc of props) {
+            const title = doc.title ?? "Aussage (Vorschlag)";
+            const excerpt = extractSnippet(doc.text ?? "");
+            const source = "statement_proposals";
+            pushId(statementMap, String(doc._id), { title, excerpt, source });
+          }
+        }
+        if (stringIds.length) {
+          const docs = await stmtsCol.find({ id: { $in: stringIds } }).toArray();
+          for (const doc of docs) {
+            const title = doc.title ?? "Aussage";
+            const excerpt = extractSnippet(doc.text ?? doc.content ?? doc.analysis?.summary ?? "");
+            const source = "statements";
+            pushId(statementMap, doc.id ?? String(doc._id), { title, excerpt, source });
+          }
+        }
+      }
+
+      if (contributionIds.length) {
+        const { objectIds, stringIds } = splitObjectIds(contributionIds);
+        const contribCol = await coreCol<any>("contributions");
+        const draftsCol = await coreCol<any>("contribution_drafts");
+
+        if (objectIds.length) {
+          const docs = await contribCol.find({ _id: { $in: objectIds } }).toArray();
+          for (const doc of docs) {
+            const title = doc.title ?? "Beitrag";
+            const excerpt = extractSnippet(doc.text ?? doc.content ?? doc.analysis?.summary ?? "");
+            const source = "contributions";
+            pushId(contributionMap, doc.id ?? String(doc._id), { title, excerpt, source });
+            pushId(contributionMap, String(doc._id), { title, excerpt, source });
+          }
+          const drafts = await draftsCol.find({ _id: { $in: objectIds } }).toArray();
+          for (const doc of drafts) {
+            const title = doc.title ?? "Beitrag (Entwurf)";
+            const excerpt = extractSnippet(doc.text ?? doc.analysis?.summary ?? "");
+            const source = "contribution_drafts";
+            pushId(contributionMap, String(doc._id), { title, excerpt, source });
+          }
+        }
+        if (stringIds.length) {
+          const docs = await contribCol.find({ id: { $in: stringIds } }).toArray();
+          for (const doc of docs) {
+            const title = doc.title ?? "Beitrag";
+            const excerpt = extractSnippet(doc.text ?? doc.content ?? doc.analysis?.summary ?? "");
+            const source = "contributions";
+            pushId(contributionMap, doc.id ?? String(doc._id), { title, excerpt, source });
+          }
+        }
+      }
+
+      materialLinks = materialLinks.map((link) => {
+        const info = link.kind === "statement" ? statementMap.get(link.itemId) : contributionMap.get(link.itemId);
+        return info
+          ? { ...link, itemTitle: info.title, itemExcerpt: info.excerpt, itemSource: info.source }
+          : link;
+      });
+    } catch {
+      // fallback: raw links only
+    }
   }
 
   if (format === "csv") {
@@ -186,7 +294,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
           "material_link",
           link.linkId,
           `${link.kind}:${link.itemId}`,
-          `Kante: ${link.edgeType ?? "unknown"} | Hinweis: ${link.note ?? "-"}`,
+          `Kante: ${link.edgeType ?? "unknown"} | Hinweis: ${link.note ?? "-"} | Titel: ${link.itemTitle ?? "-"}`,
         ]);
       }
     }

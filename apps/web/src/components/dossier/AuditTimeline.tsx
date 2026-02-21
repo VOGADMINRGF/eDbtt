@@ -29,6 +29,8 @@ const ACTION_LABELS: Record<string, string> = {
   clarification_requested: "Klärung angefragt",
   issue_delegated: "Delegation gesetzt",
   material_linked: "Material verknüpft",
+  statement_submitted: "Aussage eingereicht",
+  contribution_submitted: "Beitrag eingereicht",
 };
 
 const ACTION_GROUPS: Record<string, "workflow" | "snapshot" | "editorial" | "export" | "delegation" | "material"> = {
@@ -39,6 +41,8 @@ const ACTION_GROUPS: Record<string, "workflow" | "snapshot" | "editorial" | "exp
   clarification_requested: "editorial",
   issue_delegated: "delegation",
   material_linked: "material",
+  statement_submitted: "material",
+  contribution_submitted: "material",
 };
 
 const FILTERS = [

@@ -62,6 +62,9 @@ export type InstitutionalExport = {
     createdByUserId?: string;
     note?: string;
     edgeType?: "supports" | "mentions" | "contradicts" | "unknown";
+    itemTitle?: string;
+    itemExcerpt?: string;
+    itemSource?: string;
   }>;
 };
 

@@ -427,6 +427,16 @@ export function DossierViewer({ dossier }: { dossier: Dossier }) {
   const inst = useInstitutionalDossier(meta.id);
   const materialLinkCount =
     typeof inst.data?.materialLinks?.length === "number" ? inst.data?.materialLinks?.length : null;
+  const materialLinks = inst.data?.materialLinks ?? null;
+  const materialEdgeByItemId = useMemo(() => {
+    const map = new Map<string, "supports" | "mentions" | "contradicts" | "unknown">();
+    for (const link of materialLinks ?? []) {
+      if (link.kind !== "statement") continue;
+      if (!link.itemId) continue;
+      map.set(String(link.itemId), (link.edgeType ?? "unknown") as any);
+    }
+    return map;
+  }, [materialLinks]);
   const fallbackAdminOrigin = presentation.emblem
     ? {
         kind: "administration" as const,
@@ -636,22 +646,36 @@ export function DossierViewer({ dossier }: { dossier: Dossier }) {
     () => (majorityDemo.length ? majorityDemo : presentation.vote?.majorityDemo ?? fallbackMajority),
     [majorityDemo, presentation.vote?.majorityDemo, fallbackMajority],
   );
-  const baseMajorityKey = useMemo(
-    () => baseMajority.map((item) => `${item.id}:${item.pct}`).join("|"),
-    [baseMajority],
-  );
+  const baseMajorityKey = useMemo(() => {
+    return [...baseMajority]
+      .sort((a, b) => a.id.localeCompare(b.id))
+      .map((item) => `${item.id}:${item.pct}`)
+      .join("|");
+  }, [baseMajority]);
   const [majorityLive, setMajorityLive] = useState(baseMajority);
+  const majorityLiveKey = useMemo(() => {
+    return [...majorityLive]
+      .sort((a, b) => a.id.localeCompare(b.id))
+      .map((item) => `${item.id}:${item.pct}`)
+      .join("|");
+  }, [majorityLive]);
   const [majorityUpdatedAt, setMajorityUpdatedAt] = useState(presentation.vote?.updatedAt);
   const [majorityTotalVotes, setMajorityTotalVotes] = useState(presentation.vote?.totalVotes);
 
   useEffect(() => {
-    setMajorityLive((prev) => {
-      const prevKey = prev.map((item) => `${item.id}:${item.pct}`).join("|");
-      return prevKey === baseMajorityKey ? prev : baseMajority;
-    });
+    if (majorityLiveKey !== baseMajorityKey) {
+      setMajorityLive(baseMajority);
+    }
     setMajorityUpdatedAt((prev) => (prev === presentation.vote?.updatedAt ? prev : presentation.vote?.updatedAt));
     setMajorityTotalVotes((prev) => (prev === presentation.vote?.totalVotes ? prev : presentation.vote?.totalVotes));
-  }, [meta.id, baseMajorityKey, baseMajority, presentation.vote?.updatedAt, presentation.vote?.totalVotes]);
+  }, [
+    meta.id,
+    baseMajorityKey,
+    majorityLiveKey,
+    baseMajority,
+    presentation.vote?.updatedAt,
+    presentation.vote?.totalVotes,
+  ]);
 
   const majorityMap = new Map(majorityLive.map((item) => [item.id, item.pct]));
 
@@ -810,7 +834,20 @@ export function DossierViewer({ dossier }: { dossier: Dossier }) {
     .filter((node) => node.type === "evidence")
     .map((node) => ({ id: node.id, label: node.label, excerpt: sourceExcerpts[node.id], url: node.url }));
 
-  const graphEdges = analyze.evidenceGraph?.edges ?? [];
+  const graphEdges = useMemo(() => {
+    const edges = analyze.evidenceGraph?.edges ?? [];
+    if (!edges.length || materialEdgeByItemId.size === 0) return edges;
+    return edges.map((edge) => {
+      const claimId = materialEdgeByItemId.has(edge.from)
+        ? edge.from
+        : materialEdgeByItemId.has(edge.to)
+          ? edge.to
+          : null;
+      if (!claimId) return edge;
+      const kind = materialEdgeByItemId.get(claimId);
+      return kind && kind !== edge.kind ? { ...edge, kind } : edge;
+    });
+  }, [analyze.evidenceGraph?.edges, materialEdgeByItemId]);
 
   const evidenceSummary = analyze.evidenceGraph?.summary;
   const claimCount = evidenceSummary?.claimCount ?? analyze.claims.length;
@@ -1102,6 +1139,8 @@ export function DossierViewer({ dossier }: { dossier: Dossier }) {
         statementTitleById={statementTitleById}
         dossierId={meta.id}
         materialLinkCount={materialLinkCount}
+        materialLinks={materialLinks}
+        viewerRole={viewerRole}
       />
 
       <MunicipalityMode regionalSuggestions={presentation.regionalSuggestions} viewerRole={viewerRole as any} />

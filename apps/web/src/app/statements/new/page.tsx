@@ -30,7 +30,7 @@ export default async function StatementNewPage({
         storageKey="vog_statement_draft_v1"
         analyzeEndpoint="/api/contributions/analyze"
         saveEndpoint="/api/contributions/save"
-        finalizeEndpoint="/api/contributions/finalize"
+        finalizeEndpoint="/api/statements/finalize"
         afterFinalizeNavigateTo={afterFinalizeNavigateTo}
         dossierId={dossierId ?? undefined}
         initialText={initialText}

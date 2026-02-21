@@ -54,6 +54,9 @@ export type MaterialLink = {
   createdByUserId?: string;
   note?: string;
   edgeType?: "supports" | "mentions" | "contradicts" | "unknown";
+  itemTitle?: string;
+  itemExcerpt?: string;
+  itemSource?: string;
 };
 
 export type StoredDossier = {
