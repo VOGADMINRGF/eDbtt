@@ -1015,13 +1015,12 @@ export function DossierViewer({ dossier }: { dossier: Dossier }) {
                     Kommune/Region
                   </p>
                   <p className="truncate text-sm font-semibold text-[rgb(var(--fg))]">
-                    {presentation.region ?? primaryOrigin.label ?? "—"}
-                  </p>
+                  {meta.region ?? presentation.topic?.municipality ?? primaryOrigin?.label ?? "—"}                  </p>
                   <p className="text-[11px] text-[rgb(var(--muted))]">{primaryOrigin.subtitle ?? "—"}</p>
                 </div>
                 <span className="rounded-full border border-[rgb(var(--border))] px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
-                  {presentation.jurisdiction
-                    ? (JURISDICTION_LABELS as any)[presentation.jurisdiction] ?? presentation.jurisdiction
+                  {meta.jurisdiction
+                    ? (JURISDICTION_LABELS as any)[meta.jurisdiction] ?? meta.jurisdiction
                     : "Kommune"}
                 </span>
               </div>
