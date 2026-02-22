@@ -278,125 +278,6 @@ function statementLineClass(stance?: string | null) {
   return "border-l-2 border-l-teal-400/45";
 }
 
-function uiIcon(
-  name:
-    | "impact"
-    | "relevance"
-    | "budget"
-    | "vote"
-    | "dossier"
-    | "protocol"
-    | "municipality"
-    | "topic"
-    | "status"
-    | "level"
-    | "window"
-    | "date",
-  className = "h-4 w-4",
-) {
-  const cls = className;
-  switch (name) {
-    case "impact":
-      return (
-        <svg viewBox="0 0 24 24" aria-hidden="true" className={cls}>
-          <path d="M4 16l6-6 4 4 6-6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-          <path d="M14 8h6v6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-      );
-    case "relevance":
-      return (
-        <svg viewBox="0 0 24 24" aria-hidden="true" className={cls}>
-          <circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" strokeWidth="2" />
-          <path d="M12 7v6l4 2" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-      );
-    case "budget":
-      return (
-        <svg viewBox="0 0 24 24" aria-hidden="true" className={cls}>
-          <path d="M6 7h12a3 3 0 0 1 3 3v4a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3v-4a3 3 0 0 1 3-3Z" fill="none" stroke="currentColor" strokeWidth="2" />
-          <path d="M12 10c-1.2 0-2 .6-2 1.4 0 1.9 4 .8 4 2.9 0 .9-.9 1.7-2 1.7" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-          <path d="M12 9v8" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-        </svg>
-      );
-    case "vote":
-      return (
-        <svg viewBox="0 0 24 24" aria-hidden="true" className={cls}>
-          <rect x="4" y="4" width="16" height="16" rx="3" fill="none" stroke="currentColor" strokeWidth="2" />
-          <path d="M8 12l2.5 2.5L16 9" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-      );
-    case "dossier":
-      return (
-        <svg viewBox="0 0 24 24" aria-hidden="true" className={cls}>
-          <path d="M8 4h8l2 2v14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z" fill="none" stroke="currentColor" strokeWidth="2" />
-          <path d="M9 10h6M9 14h6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-        </svg>
-      );
-    case "protocol":
-      return (
-        <svg viewBox="0 0 24 24" aria-hidden="true" className={cls}>
-          <path d="M8 4h8l2 2v14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z" fill="none" stroke="currentColor" strokeWidth="2" />
-          <path d="M9 9h6M9 13h6M9 17h4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-        </svg>
-      );
-    case "municipality":
-      return (
-        <svg viewBox="0 0 24 24" aria-hidden="true" className={cls}>
-          <path d="M12 3l7 4v6c0 5-3 8-7 10-4-2-7-5-7-10V7l7-4Z" fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
-          <path d="M8 12h8M8 15h8" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-        </svg>
-      );
-    case "topic":
-      return (
-        <svg viewBox="0 0 24 24" aria-hidden="true" className={cls}>
-          <path d="M7 7h10v10H7z" fill="none" stroke="currentColor" strokeWidth="2" />
-          <path d="M4 10V7a3 3 0 0 1 3-3h3" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-        </svg>
-      );
-    case "status":
-      return (
-        <svg viewBox="0 0 24 24" aria-hidden="true" className={cls}>
-          <path d="M6 4v16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-          <path d="M6 5h12l-2.5 4 2.5 4H6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
-        </svg>
-      );
-    case "level":
-      return (
-        <svg viewBox="0 0 24 24" aria-hidden="true" className={cls}>
-          <path d="M12 3l9 5-9 5-9-5 9-5Z" fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
-          <path d="M3 16l9 5 9-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
-        </svg>
-      );
-    case "window":
-      return (
-        <svg viewBox="0 0 24 24" aria-hidden="true" className={cls}>
-          <path d="M6 2h12M6 22h12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-          <path d="M8 6h8l-2 3 2 3H8l2-3-2-3Z" fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
-          <path d="M10 12l-2 3h8l-2-3" fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
-        </svg>
-      );
-    case "date":
-      return (
-        <svg viewBox="0 0 24 24" aria-hidden="true" className={cls}>
-          <rect x="4" y="5" width="16" height="16" rx="2" fill="none" stroke="currentColor" strokeWidth="2" />
-          <path d="M8 3v4M16 3v4M4 9h16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-        </svg>
-      );
-  }
-}
-
-function metaChipIcon(label: string, className = "h-3.5 w-3.5") {
-  const l = label.toLowerCase();
-  if (l.includes("thema")) return uiIcon("topic", className);
-  if (l.includes("status")) return uiIcon("status", className);
-  if (l.includes("ebene") || l.includes("level")) return uiIcon("level", className);
-  if (l.includes("kommune") || l.includes("region")) return uiIcon("municipality", className);
-  if (l.includes("zeitfenster") || l.includes("window")) return uiIcon("window", className);
-  if (l.includes("stand") || l.includes("datum")) return uiIcon("date", className);
-  return null;
-}
-
-
 function renderOriginIcon(kind: PresentationOrigin["kind"], asset?: string) {
   if (asset) {
     return <img src={asset} alt="" className="h-full w-full object-contain" />;
@@ -581,6 +462,12 @@ export function DossierViewer({ dossier }: { dossier: Dossier }) {
     if (adminIndex >= 0) return adminIndex;
     return 0;
   }, [orderedOrigins]);
+
+  const primaryOrigin = orderedOrigins[primaryOriginIndex] ?? null;
+  const secondaryOrigins = useMemo(
+    () => orderedOrigins.filter((_, idx) => idx !== primaryOriginIndex).slice(0, 4),
+    [orderedOrigins, primaryOriginIndex],
+  );
 
   const primaryLoopIndex = useMemo(() => {
     const base = orderedOrigins.length;
@@ -928,14 +815,6 @@ export function DossierViewer({ dossier }: { dossier: Dossier }) {
     { label: "Stand", value: formatDate(meta.updatedAt ?? meta.createdAt) },
   ];
 
-  const jurisdictionLabel = JURISDICTION_LABELS[meta.jurisdiction] ?? meta.jurisdiction;
-  const municipalityLabel =
-    meta.region ??
-    presentation.emblem?.label ??
-    presentation.topic?.municipality ??
-    "-";
-
-
   const heroImpact = presentation.hero?.impactLevel ?? "Hoch";
   const heroRelevance = presentation.hero?.relevance ?? "10–20 Jahre";
   const heroBudget = presentation.hero?.budgetRange ?? "30–50 Mio €";
@@ -1074,7 +953,7 @@ export function DossierViewer({ dossier }: { dossier: Dossier }) {
 
   const header = (
     <header className="space-y-8 border-b border-[rgb(var(--border))] pb-10">
-      <div className="grid gap-8 lg:grid-cols-[1.6fr_1fr]">
+      <div className="grid gap-8 xl:grid-cols-[1.6fr_1fr]">
         <div className="space-y-6">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[rgb(var(--muted))]">
             Dossier (Demonstrationsfall)
@@ -1089,56 +968,21 @@ export function DossierViewer({ dossier }: { dossier: Dossier }) {
           </div>
           <div className="text-[11px] uppercase tracking-[0.18em] text-[rgb(var(--muted))]">[ Kontext · Evidenz · Optionen · Beteiligung ]</div>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <div className="vog-card group p-4 transition hover:shadow-soft">
-              <div className="flex items-start justify-between gap-3">
-                <p className="text-[11px] uppercase tracking-wide text-[rgb(var(--muted))]">
-                  Wirkungsniveau
-                </p>
-                <span className="rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-1.5 text-[rgb(var(--grad-from))]">
-                  {uiIcon("impact")}
-                </span>
-              </div>
-              <p className="mt-1 text-base font-semibold text-[rgb(var(--fg))]">{heroImpact}</p>
-              <p className="text-[11px] text-[rgb(var(--muted))]">Priorität & Reichweite</p>
+            <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-3">
+              <p className="text-[11px] uppercase tracking-wide text-[rgb(var(--muted))]">Wirkungsniveau</p>
+              <p className="text-sm font-semibold text-[rgb(var(--fg))]">{heroImpact}</p>
             </div>
-
-            <div className="vog-card group p-4 transition hover:shadow-soft">
-              <div className="flex items-start justify-between gap-3">
-                <p className="text-[11px] uppercase tracking-wide text-[rgb(var(--muted))]">
-                  Entscheidungsrelevanz
-                </p>
-                <span className="rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-1.5 text-[rgb(var(--grad-from))]">
-                  {uiIcon("relevance")}
-                </span>
-              </div>
-              <p className="mt-1 text-base font-semibold text-[rgb(var(--fg))]">{heroRelevance}</p>
-              <p className="text-[11px] text-[rgb(var(--muted))]">Zeithorizont</p>
+            <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-3">
+              <p className="text-[11px] uppercase tracking-wide text-[rgb(var(--muted))]">Entscheidungsrelevanz</p>
+              <p className="text-sm font-semibold text-[rgb(var(--fg))]">{heroRelevance}</p>
             </div>
-
-            <div className="vog-card group p-4 transition hover:shadow-soft">
-              <div className="flex items-start justify-between gap-3">
-                <p className="text-[11px] uppercase tracking-wide text-[rgb(var(--muted))]">
-                  Budgetdimension
-                </p>
-                <span className="rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-1.5 text-[rgb(var(--grad-from))]">
-                  {uiIcon("budget")}
-                </span>
-              </div>
-              <p className="mt-1 text-base font-semibold text-[rgb(var(--fg))]">{heroBudget}</p>
-              <p className="text-[11px] text-[rgb(var(--muted))]">Investitionsrahmen</p>
+            <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-3">
+              <p className="text-[11px] uppercase tracking-wide text-[rgb(var(--muted))]">Budgetdimension</p>
+              <p className="text-sm font-semibold text-[rgb(var(--fg))]">{heroBudget}</p>
             </div>
-
-            <div className="vog-card group p-4 transition hover:shadow-soft">
-              <div className="flex items-start justify-between gap-3">
-                <p className="text-[11px] uppercase tracking-wide text-[rgb(var(--muted))]">
-                  Abstimmungsmodus
-                </p>
-                <span className="rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-1.5 text-[rgb(var(--grad-from))]">
-                  {uiIcon("vote")}
-                </span>
-              </div>
-              <p className="mt-1 text-base font-semibold text-[rgb(var(--fg))]">{heroParticipation}</p>
-              <p className="text-[11px] text-[rgb(var(--muted))]">Beteiligung & Optionen</p>
+            <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-3">
+              <p className="text-[11px] uppercase tracking-wide text-[rgb(var(--muted))]">Abstimmungsmodus</p>
+              <p className="text-sm font-semibold text-[rgb(var(--fg))]">{heroParticipation}</p>
             </div>
           </div>
           <p className="max-w-prose text-lg leading-relaxed text-[rgb(var(--muted))]">
@@ -1147,54 +991,63 @@ export function DossierViewer({ dossier }: { dossier: Dossier }) {
           <p className="text-sm leading-relaxed text-[rgb(var(--muted))]">
             Die Abstimmungsdarstellung ist in dieser Demo simuliert und dient der Veranschaulichung der Beteiligungsebene.
           </p>
-          <div className="flex flex-wrap gap-2 text-[11px] text-[rgb(var(--muted))]">
-            {metaChips.map((chip) => {
-              const icon = metaChipIcon(chip.label);
-              return (
-                <span
-                  key={`${chip.label}-${chip.value}`}
-                  className="vog-chip inline-flex items-center gap-2"
-                >
-                  {icon ? <span className="text-[rgb(var(--muted))]">{icon}</span> : null}
-                  <span>
-                    {chip.label}:{" "}
-                    <span className="font-semibold text-[rgb(var(--fg))]">{chip.value}</span>
-                  </span>
-                </span>
-              );
-            })}
+          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            {metaChips.map((chip) => (
+              <div
+                key={`${chip.label}-${chip.value}`}
+                className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-[11px] shadow-soft"
+              >
+                <p className="uppercase tracking-wide text-[rgb(var(--muted))]">{chip.label}</p>
+                <p className="truncate font-semibold text-[rgb(var(--fg))]">{chip.value}</p>
+              </div>
+            ))}
           </div>
         </div>
         <div className="flex h-full flex-col gap-4">
-          <div className="flex items-center justify-between gap-3 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-3 shadow-soft">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-2 text-[rgb(var(--grad-from))]">
-                {presentation.emblem?.asset ? (
-                  <img src={presentation.emblem.asset} alt="" className="h-full w-full object-contain" />
-                ) : (
-                  uiIcon("municipality", "h-full w-full")
-                )}
+          {primaryOrigin ? (
+            <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-soft">
+              <div className="flex items-start gap-3">
+                <div className="h-12 w-12 shrink-0 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-2 text-[rgb(var(--fg))]">
+                  {renderOriginIcon(primaryOrigin.kind, primaryOrigin.asset)}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
+                    Kommune/Region
+                  </p>
+                  <p className="truncate text-sm font-semibold text-[rgb(var(--fg))]">
+                    {presentation.region ?? primaryOrigin.label ?? "—"}
+                  </p>
+                  <p className="text-[11px] text-[rgb(var(--muted))]">{primaryOrigin.subtitle ?? "—"}</p>
+                </div>
+                <span className="rounded-full border border-[rgb(var(--border))] px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
+                  {presentation.jurisdiction
+                    ? (JURISDICTION_LABELS as any)[presentation.jurisdiction] ?? presentation.jurisdiction
+                    : "Kommune"}
+                </span>
               </div>
-              <div className="min-w-0">
-                <p className="text-[11px] font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
-                  Kommune/Region
-                </p>
-                <p className="truncate text-sm font-semibold text-[rgb(var(--fg))]">{municipalityLabel}</p>
-                {presentation.emblem?.subtitle ? (
-                  <p className="truncate text-[11px] text-[rgb(var(--muted))]">{presentation.emblem.subtitle}</p>
-                ) : null}
-              </div>
+
+              {secondaryOrigins.length ? (
+                <div className="mt-3 flex items-center justify-between gap-3">
+                  <p className="text-[11px] uppercase tracking-wide text-[rgb(var(--muted))]">Initiatoren</p>
+                  <div className="flex -space-x-2">
+                    {secondaryOrigins.map((origin, idx) => (
+                      <div
+                        key={`${origin.kind}-${origin.label ?? idx}`}
+                        title={`${origin.label ?? "—"}${origin.subtitle ? ` · ${origin.subtitle}` : ""}`}
+                        className="h-8 w-8 overflow-hidden rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-1 text-[rgb(var(--fg))]"
+                      >
+                        {renderOriginIcon(origin.kind, origin.asset)}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
             </div>
-            <span className="rounded-full border border-[rgb(var(--border))] px-2 py-1 text-[11px] uppercase tracking-wide text-[rgb(var(--muted))]">
-              {jurisdictionLabel}
-            </span>
-          </div>
+          ) : null}
+
           <div className={`rounded-xl border p-4 ${legitimacyStatus.tone === "positive" ? "border-teal-600/35 bg-teal-600/8" : legitimacyStatus.tone === "warning" ? "border-[rgb(var(--border))] bg-[rgb(var(--card))]" : "border-[rgb(var(--border))] bg-[rgb(var(--card))]"}`}>
             <p className="text-[11px] font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
-              <span className="inline-flex items-center gap-2">
-                <span className="text-[rgb(var(--grad-from))]">{uiIcon("dossier", "h-4 w-4")}</span>
-                Dokumentationsstand
-              </span>
+              Dokumentationsstand
             </p>
             <p className="text-sm font-semibold text-[rgb(var(--fg))]">{legitimacyStatus.label}</p>
             <p className="text-[11px] text-[rgb(var(--muted))]">{legitimacyStatus.text}</p>
@@ -1202,37 +1055,29 @@ export function DossierViewer({ dossier }: { dossier: Dossier }) {
           <InstitutionalHeader dossierId={meta.id} viewerRole={viewerRole as any} inst={inst} />
           <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 space-y-2">
             <p className="text-[11px] font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
-              <span className="inline-flex items-center gap-2">
-                <span className="text-[rgb(var(--grad-from))]">{uiIcon("protocol", "h-4 w-4")}</span>
-                Status & Protokoll
-              </span>
+              Status & Protokoll
             </p>
             <div className="text-sm text-[rgb(var(--fg))]">{analysisMethodText}</div>
-            <div className="text-sm text-[rgb(var(--fg))]">
-              Stand: {formatDate(meta.updatedAt ?? meta.createdAt)}
-            </div>
             <div className="text-[11px] text-[rgb(var(--muted))]">
               Sprache: {formatLanguage(analyze.language)}
             </div>
           </div>
-          {orderedOrigins.length > 1 ? (
-            <div className="flex min-h-[220px] flex-1 flex-col items-center justify-center gap-4 text-center">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[rgb(var(--muted))]">
-                Initiatoren & Träger
-              </p>
-              <div className="w-full">
-                <div className="relative mx-auto max-w-[360px] overflow-hidden">
+          {canEditOrigins && orderedOrigins.length ? (
+            <details className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-soft">
+              <summary className="cursor-pointer select-none text-[11px] font-semibold uppercase tracking-[0.18em] text-[rgb(var(--muted))]">
+                Initiatoren & Träger verwalten
+              </summary>
+              <div className="mt-3 space-y-3">
+                <div className="relative mx-auto max-w-[420px] overflow-hidden">
                   <div
                     ref={carouselRef}
-                    className={`hide-scrollbar flex w-full snap-x snap-mandatory items-stretch gap-4 overflow-x-auto px-6 py-4 ${
-                      canEditOrigins ? "" : "pointer-events-none"
-                    }`}
+                    className="hide-scrollbar flex w-full snap-x snap-mandatory items-stretch gap-4 overflow-x-auto px-4 py-3"
                     aria-label="Initiatoren-Karussell"
                     style={{
                       WebkitMaskImage:
-                        "linear-gradient(90deg, transparent 0%, black 14%, black 86%, transparent 100%)",
+                        "linear-gradient(90deg, transparent 0%, black 12%, black 88%, transparent 100%)",
                       maskImage:
-                        "linear-gradient(90deg, transparent 0%, black 14%, black 86%, transparent 100%)",
+                        "linear-gradient(90deg, transparent 0%, black 12%, black 88%, transparent 100%)",
                     }}
                   >
                     {loopOrigins.map((origin, index) => {
@@ -1244,37 +1089,28 @@ export function DossierViewer({ dossier }: { dossier: Dossier }) {
                       );
                       const isActive = index === activeCarouselIndex;
                       const curve = Math.max(0, 1 - distance / 2.6);
-                      const offset = Math.round(curve * 16);
-                      const scale = isActive ? 1.08 : distance === 1 ? 0.95 : 0.88;
+                      const offset = Math.round(curve * 12);
+                      const scale = isActive ? 1.06 : distance === 1 ? 0.94 : 0.88;
                       const opacity = isActive ? 1 : distance === 1 ? 0.65 : 0.35;
-                      const showPrimary = !canEditOrigins && index === primaryLoopIndex;
                       return (
                         <div
                           key={`${origin.kind}-${origin.label ?? index}-${index}`}
                           data-carousel-index={index}
                           className={`relative snap-center rounded-2xl border bg-[rgb(var(--card))] px-4 py-4 text-center shadow-soft transition-transform duration-300 cursor-pointer ${
-                            isActive || showPrimary
+                            isActive
                               ? "min-w-[240px] border-[rgb(var(--grad-from))] ring-1 ring-[rgb(var(--grad-from))] ring-offset-0 z-10"
                               : "min-w-[190px] border-[rgb(var(--border))]"
                           }`}
                           style={{
                             transform: `translateY(${offset}px) scale(${scale})`,
                             opacity,
-                            backgroundImage: isActive
-                              ? "radial-gradient(circle_at_top, rgba(14,165,233,0.12), rgba(15,23,42,0.05))"
-                              : undefined,
                           }}
                           onClick={(event) => {
-                            if (!canEditOrigins) return;
                             const card = event.currentTarget;
                             card.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
                           }}
                         >
-                          <div
-                            className={`mx-auto flex items-center justify-center rounded-full bg-[rgb(var(--bg))] text-[rgb(var(--fg))] ${
-                              isActive ? "h-24 w-24" : "h-16 w-16"
-                            }`}
-                          >
+                          <div className={`mx-auto flex items-center justify-center rounded-full bg-[rgb(var(--bg))] text-[rgb(var(--fg))] ${isActive ? "h-20 w-20" : "h-16 w-16"}`}>
                             {renderOriginIcon(origin.kind, origin.asset)}
                           </div>
                           <p className="mt-2 text-sm font-semibold text-[rgb(var(--fg))]">{origin.label ?? "—"}</p>
@@ -1284,12 +1120,11 @@ export function DossierViewer({ dossier }: { dossier: Dossier }) {
                     })}
                   </div>
                 </div>
+                <p className="text-[11px] text-[rgb(var(--muted))]">
+                  Federführung: Verwaltung (falls übernommen). Danach: Community · Verbände/Vereine · Medien.
+                </p>
               </div>
-              <div className="max-w-md space-y-1 text-[11px] text-[rgb(var(--muted))]">
-                <p>Federführung: Verwaltung (falls übernommen). Danach: Community · Verbände/Vereine · Medien.</p>
-                <p>Statusvergabe: nur Admin/Staff. Sonst gilt die Hauptquelle, aus der das Thema hervorging.</p>
-              </div>
-            </div>
+            </details>
           ) : null}
         </div>
       </div>
