@@ -255,6 +255,8 @@ type AnalyzeWorkspaceProps = {
   initialText?: string;
   authorName?: string | null;
   useCaseAccess?: UseCaseAccess;
+  maxClaimsCap?: number;
+  maxFinalizeClaims?: number;
 };
 
 const BASE_STEPS: AnalyzeStepState[] = [

@@ -18,6 +18,43 @@ function formatDateTime(value?: string | null) {
   return d.toLocaleString("de-DE", { year: "numeric", month: "short", day: "2-digit", hour: "2-digit", minute: "2-digit" });
 }
 
+function chipIcon(
+  name: "workflow" | "updated" | "snapshot" | "event",
+  className = "h-3.5 w-3.5",
+) {
+  const cls = className;
+  switch (name) {
+    case "workflow":
+      return (
+        <svg viewBox="0 0 24 24" aria-hidden="true" className={cls}>
+          <path d="M7 7h6a4 4 0 0 1 4 4v10" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+          <path d="M7 7l3-3M7 7l3 3" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      );
+    case "updated":
+      return (
+        <svg viewBox="0 0 24 24" aria-hidden="true" className={cls}>
+          <circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" strokeWidth="2" />
+          <path d="M12 7v6l4 2" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      );
+    case "snapshot":
+      return (
+        <svg viewBox="0 0 24 24" aria-hidden="true" className={cls}>
+          <path d="M12 3a7 7 0 0 0-7 7c0 4 3 9 7 11 4-2 7-7 7-11a7 7 0 0 0-7-7Z" fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
+          <path d="M12 8v4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+          <path d="M10 10h4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+        </svg>
+      );
+    case "event":
+      return (
+        <svg viewBox="0 0 24 24" aria-hidden="true" className={cls}>
+          <path d="M6 12h4l2-5 2 10 2-5h4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      );
+  }
+}
+
 export function InstitutionalHeader({
   dossierId: _dossierId,
   viewerRole,
@@ -69,17 +106,29 @@ export function InstitutionalHeader({
     <div className="space-y-4">
       <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-3">
         <div className="flex flex-wrap items-center gap-2 text-[11px] text-[rgb(var(--muted))]">
-          <span className="rounded-full border border-[rgb(var(--border))] px-2 py-1 uppercase tracking-wide">
-            Workflow: <span className="text-[rgb(var(--fg))]">{workflowLabel}</span>
+          <span className="inline-flex items-center gap-2 rounded-full border border-[rgb(var(--border))] px-2 py-1 uppercase tracking-wide">
+            <span className="text-[rgb(var(--grad-from))]">{chipIcon("workflow")}</span>
+            <span>
+              Workflow: <span className="text-[rgb(var(--fg))]">{workflowLabel}</span>
+            </span>
           </span>
-          <span className="rounded-full border border-[rgb(var(--border))] px-2 py-1 uppercase tracking-wide">
-            Zuletzt geändert: <span className="text-[rgb(var(--fg))]">{updatedAt}</span>
+          <span className="inline-flex items-center gap-2 rounded-full border border-[rgb(var(--border))] px-2 py-1 uppercase tracking-wide">
+            <span className="text-[rgb(var(--grad-from))]">{chipIcon("updated")}</span>
+            <span>
+              Zuletzt geändert: <span className="text-[rgb(var(--fg))]">{updatedAt}</span>
+            </span>
           </span>
-          <span className="rounded-full border border-[rgb(var(--border))] px-2 py-1 uppercase tracking-wide">
-            Snapshot: <span className="text-[rgb(var(--fg))]">{verifyLabel}</span>
+          <span className="inline-flex items-center gap-2 rounded-full border border-[rgb(var(--border))] px-2 py-1 uppercase tracking-wide">
+            <span className="text-[rgb(var(--grad-from))]">{chipIcon("snapshot")}</span>
+            <span>
+              Snapshot: <span className="text-[rgb(var(--fg))]">{verifyLabel}</span>
+            </span>
           </span>
-          <span className="rounded-full border border-[rgb(var(--border))] px-2 py-1 uppercase tracking-wide">
-            Letztes Ereignis: <span className="text-[rgb(var(--fg))]">{lastAuditLabel}</span>
+          <span className="inline-flex items-center gap-2 rounded-full border border-[rgb(var(--border))] px-2 py-1 uppercase tracking-wide">
+            <span className="text-[rgb(var(--grad-from))]">{chipIcon("event")}</span>
+            <span>
+              Letztes Ereignis: <span className="text-[rgb(var(--fg))]">{lastAuditLabel}</span>
+            </span>
           </span>
         </div>
       </div>
