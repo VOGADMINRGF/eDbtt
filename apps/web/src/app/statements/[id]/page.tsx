@@ -1,5 +1,5 @@
 // apps/web/src/app/statements/[id]/page.tsx
-export const dynamic = "force-dynamic";
+
 import { ObjectId } from "@core/db/triMongo";
 import { notFound } from "next/navigation";
 import type { MaterialLink } from "@features/dossier/infra/types";
@@ -12,6 +12,13 @@ import {
 } from "@features/statement/components/StatementImpactPreview";
 import { getActors, type ResponsibilityPath } from "@core/responsibility";
 import type { ConsequenceRecord, ResponsibilityRecord } from "@features/analyze/schemas";
+
+export const dynamic = "force-dynamic";
+
+type PageProps = {
+  params: Promise<{ id: string }>;
+  searchParams?: Promise<{ dossierId?: string }>;
+};
 
 type Stats = {
   votesTotal: number;
@@ -34,22 +41,17 @@ function formatDate(value?: Date | string | null) {
   return d.toLocaleDateString("de-DE", { year: "numeric", month: "short", day: "2-digit" });
 }
 
-export default async function StatementPage({
-  params,
-  searchParams,
-}: {
-  params: Promise<{ id: string }>;
-  searchParams?: { dossierId?: string };
-}) {
+export default async function StatementPage({ params, searchParams }: PageProps) {
   const { id } = await params;
+  const resolvedSearch = searchParams ? await searchParams : undefined;
+  const dossierId = resolvedSearch?.dossierId;
+
   const tri: any = await import("@core/db/triMongo");
   const stmts = tri.coreCol
     ? await tri.coreCol("statements")
     : (await tri.getDb()).collection("statements");
 
-  const selector = ObjectId.isValid(id)
-    ? { _id: new ObjectId(id) }
-    : { id };
+  const selector = ObjectId.isValid(id) ? { _id: new ObjectId(id) } : { id };
 
   const doc = await stmts.findOne(selector);
   if (!doc) {
@@ -58,15 +60,18 @@ export default async function StatementPage({
       : (await tri.getDb()).collection("statement_proposals");
     const proposal = await proposals.findOne(selector);
     if (!proposal) return notFound();
+
     const linksCol = tri.coreCol
       ? await tri.coreCol("dossier_material_links")
       : (await tri.getDb()).collection("dossier_material_links");
+
     const linkIds = [id, String(proposal._id)];
     const links = await linksCol
       .find({ kind: "statement", itemId: { $in: linkIds } })
       .sort({ createdAt: -1, _id: -1 })
       .limit(50)
       .toArray();
+
     return (
       <div className="max-w-3xl mx-auto p-6 space-y-6">
         <header className="space-y-2">
@@ -76,20 +81,24 @@ export default async function StatementPage({
           <h1 className="text-2xl font-bold">{proposal.title ?? "Aussage"}</h1>
           <p className="text-[11px] text-[rgb(var(--muted))]">ID: {id}</p>
           {proposal.createdAt ? (
-            <p className="text-[11px] text-[rgb(var(--muted))]">Eingereicht: {formatDate(proposal.createdAt)}</p>
+            <p className="text-[11px] text-[rgb(var(--muted))]">
+              Eingereicht: {formatDate(proposal.createdAt)}
+            </p>
           ) : null}
-          {searchParams?.dossierId ? (
+          {dossierId ? (
             <a
-              href={`/dossier/${encodeURIComponent(searchParams.dossierId)}#material-links`}
+              href={`/dossier/${encodeURIComponent(dossierId)}#material-links`}
               className="inline-block text-[11px] text-[rgb(var(--muted))] underline"
             >
               Zurück zum Dossier
             </a>
           ) : null}
         </header>
+
         <section className="bg-[rgb(var(--card))] border rounded-xl p-4">
           <p className="text-sm whitespace-pre-wrap">{proposal.text ?? "—"}</p>
         </section>
+
         {links.length ? (
           <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 space-y-2">
             <div className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
@@ -136,6 +145,7 @@ export default async function StatementPage({
     [];
 
   const actors = await getActors();
+
   const linksCol = tri.coreCol
     ? await tri.coreCol("dossier_material_links")
     : (await tri.getDb()).collection("dossier_material_links");
@@ -150,19 +160,14 @@ export default async function StatementPage({
     <div className="max-w-3xl mx-auto p-6 space-y-6">
       <header>
         <h1 className="text-2xl font-bold">{doc.title}</h1>
-        {doc.category && (
-          <p className="text-sm text-neutral-500">{doc.category}</p>
-        )}
+        {doc.category && <p className="text-sm text-neutral-500">{doc.category}</p>}
       </header>
 
       {content && <p className="text-lg leading-relaxed">{content}</p>}
 
       <StatementDetailClient statementId={statementId} initialStats={stats} />
 
-      <ConsequencesPreviewCard
-        consequences={consequences}
-        responsibilities={responsibilities}
-      />
+      <ConsequencesPreviewCard consequences={consequences} responsibilities={responsibilities} />
 
       <ResponsibilityPreviewCard
         responsibilities={responsibilities}
@@ -170,20 +175,15 @@ export default async function StatementPage({
         showPathOverlay
       />
 
-      <ResponsibilityNavigator
-        paths={responsibilityPaths as any}
-        actors={actors}
-        statementTitle={doc.title}
-      />
+      <ResponsibilityNavigator paths={responsibilityPaths as any} actors={actors} statementTitle={doc.title} />
 
       {doc.analysis?.summary && (
         <section className="bg-[rgb(var(--card))] border rounded-xl p-4">
           <h2 className="font-semibold mb-2">Analyse</h2>
-          <pre className="text-sm whitespace-pre-wrap">
-            {doc.analysis.summary}
-          </pre>
+          <pre className="text-sm whitespace-pre-wrap">{doc.analysis.summary}</pre>
         </section>
       )}
+
       {materialLinks.length ? (
         <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 space-y-2">
           <div className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
