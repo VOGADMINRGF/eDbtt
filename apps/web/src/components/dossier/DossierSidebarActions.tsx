@@ -18,22 +18,34 @@ export default function DossierSidebarActions({
         </div>
 
         <div className="grid grid-cols-2 gap-2 text-xs">
-          <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
+          <Link
+            href="?tab=streams#material"
+            className="block rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3"
+          >
             <div className="text-[rgb(var(--muted))]">Themastrom</div>
             <div className="text-lg font-semibold text-[rgb(var(--fg))]">{counts.streams}</div>
-          </div>
-          <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
+          </Link>
+          <Link
+            href="?tab=contributions#material"
+            className="block rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3"
+          >
             <div className="text-[rgb(var(--muted))]">Beiträge</div>
             <div className="text-lg font-semibold text-[rgb(var(--fg))]">{counts.contributions}</div>
-          </div>
-          <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
+          </Link>
+          <Link
+            href="?tab=claims#material"
+            className="block rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3"
+          >
             <div className="text-[rgb(var(--muted))]">Kernaussagen</div>
             <div className="text-lg font-semibold text-[rgb(var(--fg))]">{counts.claims}</div>
-          </div>
-          <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
+          </Link>
+          <Link
+            href="?tab=sources#material"
+            className="block rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3"
+          >
             <div className="text-[rgb(var(--muted))]">Quellen</div>
             <div className="text-lg font-semibold text-[rgb(var(--fg))]">{counts.sources}</div>
-          </div>
+          </Link>
         </div>
 
         <div className="mt-3 flex flex-wrap gap-2">
@@ -48,6 +60,9 @@ export default function DossierSidebarActions({
             className="btn btn-ghost text-xs"
           >
             Aussage ergänzen
+          </Link>
+          <Link href="?tab=sources#material" className="btn btn-ghost text-xs">
+            Material öffnen
           </Link>
         </div>
       </div>
