@@ -1,20 +1,18 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { Dossier } from "@features/dossier";
 import DossierLayout from "./DossierLayout";
 import EvidenceField from "./EvidenceField";
 import DecisionSpace from "./DecisionSpace";
-import InputsPanel from "./InputsPanel";
+import MaterialHub from "./MaterialHub";
+import DossierSidebarActions from "./DossierSidebarActions";
 import VotePanel from "./VotePanel";
 import ParticipationStatus from "./ParticipationStatus";
 import LegitimacyPanel, { type LegitimacyMetric, type LegitimacyStatus } from "./LegitimacyPanel";
-import TransparencyPanel from "./TransparencyPanel";
 import AuditTimeline from "./AuditTimeline";
 import CorrectionsPanel from "./CorrectionsPanel";
 import ExportPanel from "./ExportPanel";
-import EditorialInbox from "./EditorialInbox";
 import EditorialInboxLive from "./EditorialInboxLive";
 import WatchlistPanel from "./WatchlistPanel";
 import RoadmapPanel from "./RoadmapPanel";
@@ -27,7 +25,6 @@ import {
   SECTION_TITLES,
   STATUS_LABELS,
   STANCE_LABELS,
-  VOTE_POLICY_LABELS,
   JURISDICTION_LABELS,
   UI_DE,
 } from "./labels";
@@ -147,6 +144,8 @@ const ROLE_LABELS = {
   admin: "Administration",
   staff: "Redaktion/Staff",
 } as const;
+
+const EDITORIAL_ROLES = new Set(["admin", "staff", "editor", "redaktion"]);
 
 function formatDate(value?: string | null) {
   if (!value) return "-";
@@ -407,6 +406,10 @@ export function DossierViewer({ dossier }: { dossier: Dossier }) {
   const isCitizen = viewerRole === "citizen";
   const roleLabel = ROLE_LABELS[viewerRole] ?? viewerRole;
   const canEditOrigins = viewerRole === "admin" || viewerRole === "staff";
+  const hasEditorialRole =
+    (sessionRoles?.some((role) => EDITORIAL_ROLES.has(role)) ?? false) ||
+    EDITORIAL_ROLES.has(sessionActorRole ?? "");
+  const isEditor = canEditOrigins || hasEditorialRole;
   const canTriggerClarification =
     viewerRole === "organization" ||
     viewerRole === "administration" ||
@@ -425,8 +428,6 @@ export function DossierViewer({ dossier }: { dossier: Dossier }) {
   ];
   const canSeeRecommendation = allowedRecommendationRoles.includes(viewerRole);
   const inst = useInstitutionalDossier(meta.id);
-  const materialLinkCount =
-    typeof inst.data?.materialLinks?.length === "number" ? inst.data?.materialLinks?.length : null;
   const materialLinks = inst.data?.materialLinks ?? null;
   const materialEdgeByItemId = useMemo(() => {
     const map = new Map<string, "supports" | "mentions" | "contradicts" | "unknown">();
@@ -659,29 +660,17 @@ export function DossierViewer({ dossier }: { dossier: Dossier }) {
       .join("|");
   }, [baseMajority]);
   const [majorityLive, setMajorityLive] = useState(baseMajority);
-  const majorityLiveKey = useMemo(() => {
-    return [...majorityLive]
-      .sort((a, b) => a.id.localeCompare(b.id))
-      .map((item) => `${item.id}:${item.pct}`)
-      .join("|");
-  }, [majorityLive]);
   const [majorityUpdatedAt, setMajorityUpdatedAt] = useState(presentation.vote?.updatedAt);
   const [majorityTotalVotes, setMajorityTotalVotes] = useState(presentation.vote?.totalVotes);
 
   useEffect(() => {
-    if (majorityLiveKey !== baseMajorityKey) {
-      setMajorityLive(baseMajority);
-    }
-    setMajorityUpdatedAt((prev) => (prev === presentation.vote?.updatedAt ? prev : presentation.vote?.updatedAt));
-    setMajorityTotalVotes((prev) => (prev === presentation.vote?.totalVotes ? prev : presentation.vote?.totalVotes));
-  }, [
-    meta.id,
-    baseMajorityKey,
-    majorityLiveKey,
-    baseMajority,
-    presentation.vote?.updatedAt,
-    presentation.vote?.totalVotes,
-  ]);
+    setMajorityLive(baseMajority);
+  }, [meta.id, baseMajority, baseMajorityKey]);
+
+  useEffect(() => {
+    setMajorityUpdatedAt(presentation.vote?.updatedAt);
+    setMajorityTotalVotes(presentation.vote?.totalVotes);
+  }, [presentation.vote?.updatedAt, presentation.vote?.totalVotes]);
 
   const majorityMap = new Map(majorityLive.map((item) => [item.id, item.pct]));
 
@@ -1060,6 +1049,25 @@ export function DossierViewer({ dossier }: { dossier: Dossier }) {
             <div className="text-[11px] text-[rgb(var(--muted))]">
               Sprache: {formatLanguage(analyze.language)}
             </div>
+            <div className="text-[11px] text-[rgb(var(--muted))]">
+              Verfahrensversion: {analyze.runReceipt?.promptVersion ?? "—"}
+            </div>
+            <div className="text-[11px] text-[rgb(var(--muted))]">
+              Protokoll-ID: {analyze.runReceipt?.id ?? "—"}
+            </div>
+            <div className="text-[11px] text-[rgb(var(--muted))]">
+              Dokumentationsstand: {analyze.runReceipt?.snapshotId ?? "—"}
+            </div>
+            {meta.revision ? (
+              <div className="text-[11px] text-[rgb(var(--muted))]">
+                Änderungsstand: Rev {meta.revision.rev} · Letzte Änderung:{" "}
+                {formatDate(meta.revision.lastChangeAt)}
+              </div>
+            ) : null}
+            <div className="text-[11px] text-[rgb(var(--muted))]">
+              {UI_DE.created}: {formatDate(meta.createdAt)} · {UI_DE.updated}:{" "}
+              {formatDate(meta.updatedAt ?? meta.createdAt)}
+            </div>
           </div>
           {canEditOrigins && orderedOrigins.length ? (
             <details className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-soft">
@@ -1132,52 +1140,6 @@ export function DossierViewer({ dossier }: { dossier: Dossier }) {
 
   const mainLeft = (
     <>
-      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Link
-          href="#streams"
-          className="vog-card p-4 space-y-2 transition hover:shadow-soft"
-        >
-          <div className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
-            Themenströme
-          </div>
-          <div className="text-2xl font-semibold text-[rgb(var(--fg))]">{streamCount || "-"}</div>
-          <div className="text-[11px] text-[rgb(var(--muted))]">Alle Themenströme anzeigen</div>
-        </Link>
-        <Link
-          href="#beitraege"
-          className="vog-card p-4 space-y-2 transition hover:shadow-soft"
-        >
-          <div className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Beiträge</div>
-          <div className="text-2xl font-semibold text-[rgb(var(--fg))]">{contributionCount || "-"}</div>
-          <div className="text-[11px] text-[rgb(var(--muted))]">Alle Beiträge anzeigen</div>
-        </Link>
-        <div className="vog-card p-4 space-y-2">
-          <div className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">{UI_DE.coreStatements}</div>
-          <div className="text-2xl font-semibold text-[rgb(var(--fg))]">
-            {statementStats.total ?? derivedStats.total}
-          </div>
-          <div className="text-[11px] text-[rgb(var(--muted))]">
-            Pro/Neutral/Contra: {statementStats.pro ?? derivedStats.pro}/
-            {statementStats.neutral ?? derivedStats.neutral}/{statementStats.contra ?? derivedStats.contra}
-          </div>
-        </div>
-        <div className="vog-card p-4 space-y-2">
-          <div className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Quellen</div>
-          <div className="text-2xl font-semibold text-[rgb(var(--fg))]">{sources.length}</div>
-        </div>
-      </section>
-
-      <InputsPanel
-        streams={streams}
-        contributions={contributions}
-        traceability={traceability}
-        statementTitleById={statementTitleById}
-        dossierId={meta.id}
-        materialLinkCount={materialLinkCount}
-        materialLinks={materialLinks}
-        viewerRole={viewerRole}
-      />
-
       <MunicipalityMode regionalSuggestions={presentation.regionalSuggestions} viewerRole={viewerRole as any} />
 
       <section className="space-y-4">
@@ -1236,25 +1198,44 @@ export function DossierViewer({ dossier }: { dossier: Dossier }) {
   );
 
   const fullWidth = (
-    <section id="graph" className="space-y-4">
-      <div className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
-        Evidenz-Topologie
-      </div>
-      <EvidenceField
-        options={votingOptions.map((opt) => ({ id: opt.id, label: opt.label }))}
-        claims={claimNodes}
-        sources={sourceNodes}
-        edges={graphEdges}
-        optionLinks={optionLinks}
-        optionRanking={majorityMap}
-        contestedClaimIds={contestedClaimIds}
-        findings={analyze.findings}
+    <div className="space-y-10">
+      <MaterialHub
+        sources={sources}
+        contributions={contributions}
+        streams={streams}
+        claims={analyze.claims}
+        dossierId={meta.id}
+        viewerRole={viewerRole}
+        materialLinks={materialLinks}
       />
-    </section>
+
+      {isEditor ? (
+        <EditorialInboxLive enabled />
+      ) : (
+        <CorrectionsPanel items={corrections} />
+      )}
+
+      <section id="graph" className="space-y-4">
+        <div className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
+          Evidenz-Topologie
+        </div>
+        <EvidenceField
+          options={votingOptions.map((opt) => ({ id: opt.id, label: opt.label }))}
+          claims={claimNodes}
+          sources={sourceNodes}
+          edges={graphEdges}
+          optionLinks={optionLinks}
+          optionRanking={majorityMap}
+          contestedClaimIds={contestedClaimIds}
+          findings={analyze.findings}
+        />
+      </section>
+    </div>
   );
 
   const afterLeft = (
     <>
+      <MandatePanel viewerRole={viewerRole as any} />
       <section className="space-y-2 border-t border-[rgb(var(--border))] pt-8">
         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[rgb(var(--muted))]">
           Argumentationslandschaft
@@ -1449,92 +1430,10 @@ export function DossierViewer({ dossier }: { dossier: Dossier }) {
           )}
         </div>
       </section>
-    </>
-  );
 
-  const sidebar = (
-    <>
-      <section className="vog-card p-5 space-y-2">
+      <section className="space-y-4">
         <div className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
-          {SECTION_TITLES.metadata}
-        </div>
-        <div className="text-sm text-[rgb(var(--fg))]">Status: {STATUS_LABELS[meta.status] ?? meta.status}</div>
-        <div className="text-sm text-[rgb(var(--fg))]">
-          {UI_DE.level}: {JURISDICTION_LABELS[meta.jurisdiction] ?? meta.jurisdiction}
-        </div>
-        <div className="text-sm text-[rgb(var(--fg))]">Region: {meta.region ?? "-"}</div>
-        <div className="text-sm text-[rgb(var(--fg))]">Zeitfenster: {timeWindow as string}</div>
-        <div className="text-sm text-[rgb(var(--fg))]">Letztes Update: {formatDate(meta.updatedAt ?? meta.createdAt)}</div>
-        {voteConfig ? (
-          <>
-            <div className="text-sm text-[rgb(var(--fg))]">
-              Abstimmungsmodus: {VOTE_POLICY_LABELS[voteConfig.policy] ?? voteConfig.policy}
-            </div>
-            <div className="text-sm text-[rgb(var(--fg))]">Mindestoptionen: {voteConfig.minOptions}</div>
-            <div className="text-sm text-[rgb(var(--fg))]">
-              {UI_DE.communityOptions}: {voteConfig.allowCommunityOptions ? "aktiv" : "deaktiviert"}
-            </div>
-          </>
-        ) : null}
-      </section>
-      <TransparencyPanel
-        sources={sources}
-        runReceipt={analyze.runReceipt}
-        createdAt={meta.createdAt}
-        updatedAt={meta.updatedAt}
-        revision={meta.revision}
-      />
-      <CorrectionsPanel items={corrections} />
-      <AuditTimeline events={inst.data?.auditTrail ?? []} />
-      <ExportPanel dossierId={meta.id} />
-      <MandatePanel viewerRole={viewerRole as any} />
-      {viewerRole === "admin" || viewerRole === "staff" ? (
-        <EditorialInboxLive enabled />
-      ) : (
-        <EditorialInbox items={presentation.editorialInbox} />
-      )}
-      {canManageWatchlist ? (
-        <section className="vog-card p-5 space-y-2">
-          <div className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
-            Beobachtungsliste
-          </div>
-          <button
-            type="button"
-            className="btn btn-ghost text-xs"
-            onClick={() => void toggleWatchlist()}
-            disabled={watchlistBusy}
-          >
-            {watchlistActive ? "Nicht mehr beobachten" : "Beobachten"}
-          </button>
-          <p className="text-[11px] text-[rgb(var(--muted))]">
-            Updates werden in der Beobachtungsliste gesammelt.
-          </p>
-        </section>
-      ) : null}
-      <WatchlistPanel items={presentation.watchlist} />
-      <RoadmapPanel items={presentation.roadmap} />
-
-      <section className="vog-card p-5 space-y-2">
-        <div className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
-          Evidenz-Überblick
-        </div>
-        <div className="text-sm text-[rgb(var(--fg))]">
-          Kernaussagen: {analyze.evidenceGraph?.summary.claimCount ?? analyze.claims.length}
-        </div>
-        <div className="text-sm text-[rgb(var(--fg))]">Quellen: {analyze.evidenceGraph?.summary.evidenceCount ?? sources.length}</div>
-        <div className="text-sm text-[rgb(var(--fg))]">Kanten: {graphEdges.length}</div>
-        <div className="text-sm text-[rgb(var(--fg))]">
-          Verknüpfte Kernaussagen: {analyze.evidenceGraph?.summary.linkedClaimCount ?? "-"}
-        </div>
-      </section>
-    </>
-  );
-
-  const afterSidebar = (
-    <>
-      <section className="vog-card p-5 space-y-3">
-        <div className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
-          {SECTION_TITLES.questions}
+          Offene Fragen & Zuständigkeit
         </div>
         <div className="space-y-3">
           {questionsForDisplay.map((q) => {
@@ -1685,26 +1584,65 @@ export function DossierViewer({ dossier }: { dossier: Dossier }) {
             Klärung anstoßen ist in dieser Rollenansicht nicht freigeschaltet.
           </span>
         )}
+
+        {analyze.responsibilityPaths.length ? (
+          <div className="mt-6 space-y-3">
+            <div className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
+              {SECTION_TITLES.responsibilityPaths}
+            </div>
+            <div className="space-y-3 text-sm text-[rgb(var(--fg))]">
+              {analyze.responsibilityPaths.map((path) => (
+                <div key={path.id} className="space-y-1">
+                  <div className="text-[11px] text-[rgb(var(--muted))]">
+                    {statementTitleById.get(path.statementId) ?? path.statementId}
+                  </div>
+                  <div className="text-sm text-[rgb(var(--fg))]">
+                    {path.nodes.map((node) => node.displayName).join(" → ")}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : null}
       </section>
 
-      <section className="vog-card p-5 space-y-3">
-        <div className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
-          {SECTION_TITLES.responsibilityPaths}
-        </div>
-        <div className="space-y-3 text-sm text-[rgb(var(--fg))]">
-          {analyze.responsibilityPaths.map((path) => (
-            <div key={path.id} className="space-y-1">
-              <div className="text-[11px] text-[rgb(var(--muted))]">
-                {statementTitleById.get(path.statementId) ?? path.statementId}
-              </div>
-              <div className="text-sm text-[rgb(var(--fg))]">
-                {path.nodes.map((node) => node.displayName).join(" → ")}
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
+      <AuditTimeline events={inst.data?.auditTrail ?? []} />
+
+      {canManageWatchlist ? (
+        <section className="vog-card p-5 space-y-2">
+          <div className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
+            Beobachtungsliste
+          </div>
+          <button
+            type="button"
+            className="btn btn-ghost text-xs"
+            onClick={() => void toggleWatchlist()}
+            disabled={watchlistBusy}
+          >
+            {watchlistActive ? "Nicht mehr beobachten" : "Beobachten"}
+          </button>
+          <p className="text-[11px] text-[rgb(var(--muted))]">
+            Updates werden in der Beobachtungsliste gesammelt.
+          </p>
+        </section>
+      ) : null}
+      <WatchlistPanel items={presentation.watchlist} />
+      <RoadmapPanel items={presentation.roadmap} />
     </>
+  );
+  const counts = {
+    streams: streamCount || 0,
+    contributions: contributionCount || 0,
+    claims: statementStats.total ?? derivedStats.total,
+    sources: sources.length,
+  };
+
+  const sidebar = (
+    <DossierSidebarActions
+      dossierId={meta.id}
+      counts={counts}
+      exportNode={<ExportPanel dossierId={meta.id} />}
+    />
   );
 
   return (
@@ -1714,7 +1652,6 @@ export function DossierViewer({ dossier }: { dossier: Dossier }) {
       sidebar={sidebar}
       fullWidth={fullWidth}
       afterLeft={afterLeft}
-      afterSidebar={afterSidebar}
     />
   );
 }

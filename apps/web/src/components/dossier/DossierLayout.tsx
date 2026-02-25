@@ -31,10 +31,14 @@ export function DossierLayout({
       ) : null}
 
       {afterLeft || afterSidebar ? (
-        <div className="grid gap-12 lg:grid-cols-[1.7fr_1fr]">
+        afterSidebar ? (
+          <div className="grid gap-12 lg:grid-cols-[1.7fr_1fr]">
+            <div className="space-y-12">{afterLeft}</div>
+            <aside className="space-y-8 lg:sticky lg:top-8 lg:self-start">{afterSidebar}</aside>
+          </div>
+        ) : (
           <div className="space-y-12">{afterLeft}</div>
-          <aside className="space-y-8 lg:sticky lg:top-8 lg:self-start">{afterSidebar}</aside>
-        </div>
+        )
       ) : null}
     </section>
   );
