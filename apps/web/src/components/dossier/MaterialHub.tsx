@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import type { Dossier } from "@features/dossier";
 import type { PresentationContribution, PresentationStream } from "./presentation";
@@ -71,9 +72,23 @@ export default function MaterialHub({
   viewerRole,
   materialLinks,
 }: MaterialHubProps) {
-  const [tab, setTab] = useState<TabId>("sources");
-  const [q, setQ] = useState("");
-  const [sort, setSort] = useState<"recent" | "alpha">("recent");
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
+
+  const initialTab = useMemo((): TabId => {
+    const t = searchParams.get("tab");
+    return TABS.some((item) => item.id === t) ? (t as TabId) : "sources";
+  }, [searchParams]);
+  const initialSort = useMemo((): "recent" | "alpha" => {
+    const s = searchParams.get("sort");
+    return s === "alpha" ? "alpha" : "recent";
+  }, [searchParams]);
+  const initialQ = useMemo(() => searchParams.get("q") ?? "", [searchParams]);
+
+  const [tab, setTab] = useState<TabId>(initialTab);
+  const [q, setQ] = useState<string>(initialQ);
+  const [sort, setSort] = useState<"recent" | "alpha">(initialSort);
   const [visible, setVisible] = useState<Record<TabId, number>>({
     sources: 12,
     contributions: 12,
@@ -87,6 +102,39 @@ export default function MaterialHub({
   useEffect(() => {
     setVisible({ sources: 12, contributions: 12, claims: 12, streams: 12 });
   }, [qDeferred, sort]);
+
+  useEffect(() => {
+    const next = new URLSearchParams(searchParams.toString());
+
+    if (tab && tab !== "sources") next.set("tab", tab);
+    else next.delete("tab");
+
+    if (q.trim()) next.set("q", q.trim());
+    else next.delete("q");
+
+    if (sort !== "recent") next.set("sort", sort);
+    else next.delete("sort");
+
+    const nextQs = next.toString();
+    const curQs = searchParams.toString();
+    if (nextQs === curQs) return;
+
+    router.replace(nextQs ? `${pathname}?${nextQs}` : pathname, { scroll: false });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab, q, sort]);
+
+  useEffect(() => {
+    const t = searchParams.get("tab");
+    const s = searchParams.get("sort");
+    const nq = searchParams.get("q") ?? "";
+    const nextTab = TABS.some((item) => item.id === t) ? (t as TabId) : "sources";
+    const nextSort: "recent" | "alpha" = s === "alpha" ? "alpha" : "recent";
+
+    setTab((prev) => (prev === nextTab ? prev : nextTab));
+    setSort((prev) => (prev === nextSort ? prev : nextSort));
+    setQ((prev) => (prev === nq ? prev : nq));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
 
   const filteredSources = useMemo(() => {
     const base = sources ?? [];
@@ -160,6 +208,11 @@ export default function MaterialHub({
     setVisible((prev) => ({ ...prev, [which]: prev[which] + 12 }));
   }
 
+  function onTab(next: TabId) {
+    setTab(next);
+    setVisible((prev) => ({ ...prev, [next]: 12 }));
+  }
+
   return (
     <section id="material" className="space-y-6">
       <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))]">
@@ -197,7 +250,7 @@ export default function MaterialHub({
                 key={item.id}
                 type="button"
                 className={`vog-chip ${tab === item.id ? "border-[rgb(var(--fg))] text-[rgb(var(--fg))]" : ""}`}
-                onClick={() => setTab(item.id)}
+                onClick={() => onTab(item.id)}
               >
                 {item.label}
               </button>
