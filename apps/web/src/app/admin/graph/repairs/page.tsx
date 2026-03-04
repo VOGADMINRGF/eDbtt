@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AdminErrorPanel } from "@/components/admin/AdminErrorPanel";
+import { GraphAdminNav } from "@/components/admin/GraphAdminNav";
 
 type RepairItem = {
   id: string;
@@ -153,6 +154,7 @@ export default function AdminGraphRepairsPage() {
         <h1 className="text-2xl font-bold text-[rgb(var(--fg))]">Repairs</h1>
         <p className="text-sm text-[rgb(var(--muted))]">Tickets anlegen, pruefen und anwenden.</p>
       </header>
+      <GraphAdminNav current="/admin/graph/repairs" />
 
       {error && (<AdminErrorPanel error={error} />)}
 

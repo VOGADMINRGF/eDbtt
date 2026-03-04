@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { AdminErrorPanel } from "@/components/admin/AdminErrorPanel";
+import { GraphAdminNav } from "@/components/admin/GraphAdminNav";
 
 type ImpactSummaryResponse =
   | {
@@ -72,6 +73,7 @@ export default function GraphImpactPage() {
           Aggregierte Kennzahlen direkt aus dem Graph. Dient als früher Indikator, dass Eventualitäten,
           Konsequenzen und Zuständigkeiten korrekt synchronisiert werden.
         </p>
+        <GraphAdminNav current="/admin/graph/impact" />
       </header>
 
       {loading && (

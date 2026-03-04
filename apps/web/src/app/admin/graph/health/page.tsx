@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AdminErrorPanel } from "@/components/admin/AdminErrorPanel";
+import { GraphAdminNav } from "@/components/admin/GraphAdminNav";
 
 type GraphHealth = {
   nodes: number;
@@ -64,6 +65,7 @@ export default function AdminGraphHealthPage() {
         <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Admin · Graph</p>
         <h1 className="text-2xl font-bold text-[rgb(var(--fg))]">Graph Health</h1>
         <p className="text-sm text-[rgb(var(--muted))]">Uebersicht ueber Knoten, Pfade und Reparatur-Backlog.</p>
+        <GraphAdminNav current="/admin/graph/health" />
       </header>
 
       {error && (<AdminErrorPanel error={error} />)}
