@@ -9,6 +9,7 @@
     "core"
   ],
   "scripts": {
+    "dev": "bash scripts/dev/start.sh && pnpm dev:web",
     "dev:landing": "pnpm --filter @vog/landing dev",
     "build:landing": "pnpm -w prisma:gen && pnpm --filter @vog/landing build",
     "start:landing": "pnpm --filter @vog/landing start",

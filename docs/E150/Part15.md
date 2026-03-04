@@ -47,6 +47,7 @@ Status basiert auf Repo-Evidenz (Dateien/Routes/Modelle). Offener Arbeitsstand b
 - `/contributions/new` rendert wieder mit SiteShell, Citizen-Core-Text und sauberem Login-Redirect statt JSON-403; Credits/Gating basieren auf `AccountOverview`.
 - Admin-Graph-Seiten nutzen eine gemeinsame Schnellnavigation fuer Impact/Health/Repairs (`GraphAdminNav`).
 - Graph-Health/Impact zeigen fehlende Neo4j-ENVs und verlinken auf Health-Checks.
+- Phase-0 Onboarding aktiv: `docs/START_HERE.md`, `docs/ARCHITECTURE.md`, Root `.env.example` und `scripts/dev/*` fuer Start/Stop/Reset/Seed.
 - Login & Registrierung schreiben Name + Kontakt direkt in `pii.user_profiles` (givenName/familyName, birthDate ready), sodass Mitgliedsanträge nicht mehr ohne PII bleiben.
 - `/pricing` ist die kanonische Landing fuer Pakete/Preise/Add-ons; `/mitglied-werden` ist Legacy und redirectet auf `/pricing`.
 - `/mitglied-antrag` bleibt der Mitgliedschafts-Antrag (Wizard, Pflichtfelder, Bankdaten/Verwendungszweck, optional 25%-Rabatt je nach Rule).
