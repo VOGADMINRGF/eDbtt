@@ -48,7 +48,7 @@ Operative Tasks (aus aktuellem Chat/Repo):
 
 | Task | Status | Naechster Run | Evidenz/Notiz |
 | --- | --- | --- | --- |
-| - | - | - | - |
+| Keine | - | - | - |
 
 Erledigt (seit 2026-03-04):
 
@@ -108,7 +108,7 @@ Ein normiertes `DossierSchema` einführen, das:
 | DS-01 | `features/dossier/schemas.ts` mit `DossierSchema` Wrapper erstellen | Done (Repo: `features/dossier/schemas.ts`) |
 | DS-02 | Adapter `buildDossierFromAnalyze()` implementieren | Done (Repo: `features/dossier/buildDossierFromAnalyze.ts`) |
 | DS-03 | Whitepaper-Hook im E150-Docs verankern (Part07) | Done (Repo: `docs/E150/Part07_Graph_Reports_StructuredKnowledge.md`) |
-| DS-04 | Optional: Route `/dossier/[id]` (Read-only Viewer, keine Migration) prüfen | Optional |
+| DS-04 | Optional: Route `/dossier/[id]` (Read-only Viewer, keine Migration) prüfen | Done (Repo: `apps/web/src/app/dossier/[id]/page.tsx`) |
 
 ### Zielbild
 
