@@ -49,6 +49,9 @@ Status basiert auf Repo-Evidenz (Dateien/Routes/Modelle). Offener Arbeitsstand b
 - Graph-Health/Impact zeigen fehlende Neo4j-ENVs und verlinken auf Health-Checks.
 - Phase-0 Onboarding aktiv: `docs/START_HERE.md`, `docs/ARCHITECTURE.md`, Root `.env.example` und `scripts/dev/*` fuer Start/Stop/Reset/Seed.
 - CI: `e150-ci.yml` nutzt compose/prod.yml und Tri-Mongo-ENVs fuer Build/Scan.
+- Web CI prueft lint/typecheck/test/build auf PRs.
+- Policy-Standards/Anti-Populismus Schema (debateFrame) ist als naechster Baustein in `OpenTasks.md` erfasst.
+- Rollback-Flags aktiv: `VOG_DISABLE_RATE_LIMIT=1` (RateLimit aus), `VOG_DISABLE_REVISION_HASH_CHAIN=1` (Hash-Chain verify deaktiviert, Revisions bleiben).
 - Login & Registrierung schreiben Name + Kontakt direkt in `pii.user_profiles` (givenName/familyName, birthDate ready), sodass Mitgliedsanträge nicht mehr ohne PII bleiben.
 - `/pricing` ist die kanonische Landing fuer Pakete/Preise/Add-ons; `/mitglied-werden` ist Legacy und redirectet auf `/pricing`.
 - `/mitglied-antrag` bleibt der Mitgliedschafts-Antrag (Wizard, Pflichtfelder, Bankdaten/Verwendungszweck, optional 25%-Rabatt je nach Rule).

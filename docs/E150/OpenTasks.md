@@ -48,7 +48,10 @@ Operative Tasks (aus aktuellem Chat/Repo):
 
 | Task | Status | Naechster Run | Evidenz/Notiz |
 | --- | --- | --- | --- |
-| Keine | - | - | - |
+| Policy-Standards/Anti-Populismus Schema (debateFrame) in Topic/Statement integrieren | Offen | PR-00XX | Basis: 5 Ebenen + 10 Regeln + Standard-Frageschema (aktueller Chat-Entwurf) |
+| API-Routen: Signaturen/`req.json()`-Mehrfachlese auditieren | Offen | PR-00XX | Ziel: 2-Arg-Handler + `req.json()` nur 1x pro Request |
+| Helpers: Effective-Findings/Filter entduplizieren (optional) | Offen | PR-00XX | Konsolidierung `effective.ts` falls mehrfach |
+| Hash-Chain Fallback: CAS-Fehler robust abfedern | Offen | PR-00XX | Kein blindes overwrite; sauberes Fallback logging |
 
 Erledigt (seit 2026-03-04):
 
@@ -58,6 +61,10 @@ Erledigt (seit 2026-03-04):
 | Graph-Health Fehlerdetail (missingEnv + Hinweis) + Impact-Link | Done | `apps/web/src/app/api/admin/graph/health/route.ts`, `apps/web/src/app/admin/graph/health/page.tsx`, `apps/web/src/app/admin/graph/impact/page.tsx` |
 | Phase 0 Startpaket (Docs + Dev-Skripte + Root Env) | Done | `docs/START_HERE.md`, `docs/ARCHITECTURE.md`, `.env.example`, `scripts/dev/*`, `docker-compose.yml`, `compose/prod.yml` |
 | CI fuer Compose/Prod aktualisiert (Tri-Mongo ENVs + compose/prod.yml) | Done | `.github/workflows/e150-ci.yml` |
+| Web CI staerker (lint/typecheck/test/build) | Done | `.github/workflows/web-ci.yml` |
+| Rollback: RateLimit per Env abschaltbar | Done | `apps/web/src/utils/rateLimitHelpers.ts` (`VOG_DISABLE_RATE_LIMIT`) |
+| Rollback: Findings ohne Effective-Filter | Done | `/api/dossiers/*`, `features/dossier/db.ts`, `AdminDossierClient.tsx`, `embed/dossier` |
+| Rollback: Hash-Chain Verify deaktivierbar | Done | `/api/admin/dossiers/[id]/verify-revisions` (410 bei `VOG_DISABLE_REVISION_HASH_CHAIN=1`) |
 | Pending Commit (Landing/Admin/Create/Material/Telemetry) abgeschlossen | Done | Sammel-Commit inkl. Landing/Admin/Create/Material/Telemetry + Pricing/SEO/Region |
 | DecisionArchitecture v2.0 Download-Asset wiederhergestellt | Done | `apps/web/public/docs/DecisionArchitecture_v2_0.docx` |
 | Create-Route + AdminErrorPanel in Git aufgenommen | Done | `apps/web/src/app/create/page.tsx`, `apps/web/src/components/admin/AdminErrorPanel.tsx` |

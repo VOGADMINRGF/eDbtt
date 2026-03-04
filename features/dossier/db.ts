@@ -13,7 +13,6 @@ import type {
 } from "./schemas";
 import { makeDossierEntityId } from "./ids";
 import { computeRevisionHash, REVISION_HASH_ALGO } from "./revisionHash";
-import { selectEffectiveFindings } from "./effective";
 
 const DISABLE_HASH_CHAIN = process.env.VOG_DISABLE_REVISION_HASH_CHAIN === "1";
 
@@ -324,18 +323,15 @@ export async function computeDossierCounts(dossierId: string) {
   const [claims, sources, findings, edges, openQuestions] = await Promise.all([
     (await dossierClaimsCol()).countDocuments({ dossierId }),
     (await dossierSourcesCol()).countDocuments({ dossierId }),
-    (await dossierFindingsCol())
-      .find({ dossierId }, { projection: { claimId: 1, producedBy: 1, updatedAt: 1 } })
-      .toArray(),
+    (await dossierFindingsCol()).countDocuments({ dossierId }),
     (await dossierEdgesCol()).countDocuments({ dossierId, active: { $ne: false } }),
     (await openQuestionsCol()).countDocuments({ dossierId }),
   ]);
-  const effectiveFindings = selectEffectiveFindings(findings as any[]);
 
   return {
     claims,
     sources,
-    findings: effectiveFindings.length,
+    findings,
     edges,
     openQuestions,
   } satisfies DossierCounts;

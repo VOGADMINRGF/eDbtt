@@ -25,7 +25,7 @@ export async function GET(req: NextRequest, context: RouteContext) {
   const gate = await requireAdminOrResponse(req);
   if (gate instanceof Response) return gate;
   if (DISABLE_HASH_CHAIN) {
-    return NextResponse.json({ ok: false, error: "hash_chain_disabled" }, { status: 409 });
+    return NextResponse.json({ ok: false, error: "hash_chain_disabled" }, { status: 410 });
   }
 
   const { dossierId } = await context.params;

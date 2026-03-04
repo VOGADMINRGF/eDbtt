@@ -8,7 +8,7 @@ import {
   openQuestionsCol,
 } from "@features/dossier/db";
 import { findDossierByAnyId } from "@features/dossier/lookup";
-import { sanitizeClaimPublic, selectEffectiveFindings } from "@features/dossier/effective";
+import { sanitizeClaimPublic } from "@features/dossier/effective";
 import { rateLimitHeaders } from "@/utils/rateLimitHelpers";
 import { rateLimitPublic } from "@/utils/publicRateLimit";
 
@@ -54,15 +54,13 @@ export async function GET(
     (await openQuestionsCol()).find({ dossierId: dossierKey }).sort({ status: 1, createdAt: 1 }).toArray(),
     (await dossierEdgesCol()).find({ dossierId: dossierKey, active: { $ne: false } }).sort({ createdAt: 1 }).toArray(),
   ]);
-  const effectiveFindings = selectEffectiveFindings(findings);
-
   return NextResponse.json({
     ok: true,
     exportedAt: new Date().toISOString(),
     dossier: stripId(dossier),
     claims: claims.map(stripId).map(sanitizeClaimPublic),
     sources: sources.map(stripId),
-    findings: effectiveFindings.map(stripId),
+    findings: findings.map(stripId),
     openQuestions: openQuestions.map(stripId),
     edges: edges.map(stripId),
   }, { headers: rateLimitHeaders(rl) });

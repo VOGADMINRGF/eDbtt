@@ -167,6 +167,14 @@ body {
   min-height: 100%;
 }
 
+html.light {
+  color-scheme: light;
+}
+
+html.dark {
+  color-scheme: dark;
+}
+
 body {
   background: rgb(var(--bg));
   color: rgb(var(--fg));

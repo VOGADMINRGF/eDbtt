@@ -6,6 +6,7 @@ import type { RateLimitResult } from "./rateLimit";
 export type { RateLimitResult };
 
 const isEdgeRuntime = () => process.env.NEXT_RUNTIME === "edge";
+const DISABLE_RATE_LIMIT = process.env.VOG_DISABLE_RATE_LIMIT === "1";
 
 type RateLimitFn = (
   key: string,
@@ -43,6 +44,7 @@ export async function rateLimitOrThrow(
   windowMs: number,
   opts?: { salt?: string },
 ): Promise<RateLimitResult> {
+  if (DISABLE_RATE_LIMIT) return allowAll(limit, windowMs);
   const limiter = await loadRateLimiter();
   if (!limiter) return allowAll(limit, windowMs);
   return limiter(key, limit, windowMs, opts);

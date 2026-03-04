@@ -9,7 +9,6 @@ type DossierBundle = {
   claims: any[];
   sources: any[];
   findings: any[];
-  findingsRaw?: any[];
   openQuestions: any[];
 };
 
@@ -61,7 +60,7 @@ export default function AdminDossierClient({ dossierId }: { dossierId: string })
   });
 
   const dossierKey = bundle?.dossier?.dossierId ?? dossierId;
-  const rawFindings = bundle?.findingsRaw ?? bundle?.findings ?? [];
+  const rawFindings = bundle?.findings ?? [];
 
   const claimMap = useMemo(() => {
     const map = new Map<string, any>();
@@ -75,7 +74,7 @@ export default function AdminDossierClient({ dossierId }: { dossierId: string })
       setLoading(true);
       setError(null);
       try {
-        const dossierRes = await fetch(`/api/dossiers/${encodeURIComponent(dossierId)}?include=raw`, { cache: "no-store" });
+        const dossierRes = await fetch(`/api/dossiers/${encodeURIComponent(dossierId)}`, { cache: "no-store" });
         if (!dossierRes.ok) {
           throw new Error(`Dossier load failed (${dossierRes.status})`);
         }
@@ -85,7 +84,6 @@ export default function AdminDossierClient({ dossierId }: { dossierId: string })
           claims: dossierBody.claims ?? [],
           sources: dossierBody.sources ?? [],
           findings: dossierBody.findings ?? [],
-          findingsRaw: dossierBody.findingsRaw ?? [],
           openQuestions: dossierBody.openQuestions ?? [],
         };
         const key = dossierBody.dossier?.dossierId ?? dossierId;
@@ -149,7 +147,7 @@ export default function AdminDossierClient({ dossierId }: { dossierId: string })
   }
 
   async function refresh() {
-    const dossierRes = await fetch(`/api/dossiers/${encodeURIComponent(dossierId)}?include=raw`, { cache: "no-store" });
+    const dossierRes = await fetch(`/api/dossiers/${encodeURIComponent(dossierId)}`, { cache: "no-store" });
     if (!dossierRes.ok) return;
     const dossierBody = await dossierRes.json();
     setBundle({
@@ -157,7 +155,6 @@ export default function AdminDossierClient({ dossierId }: { dossierId: string })
       claims: dossierBody.claims ?? [],
       sources: dossierBody.sources ?? [],
       findings: dossierBody.findings ?? [],
-      findingsRaw: dossierBody.findingsRaw ?? [],
       openQuestions: dossierBody.openQuestions ?? [],
     });
   }

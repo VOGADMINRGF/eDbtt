@@ -8,7 +8,7 @@ import {
   openQuestionsCol,
 } from "@features/dossier/db";
 import { findDossierByAnyId } from "@features/dossier/lookup";
-import { sanitizeClaimPublic, selectEffectiveFindings } from "@features/dossier/effective";
+import { sanitizeClaimPublic } from "@features/dossier/effective";
 import { rateLimitHeaders } from "@/utils/rateLimitHelpers";
 import { rateLimitPublic } from "@/utils/publicRateLimit";
 
@@ -104,8 +104,6 @@ export async function GET(
     (await openQuestionsCol()).find({ dossierId: dossierKey }).sort({ status: 1, createdAt: 1 }).toArray(),
     (await dossierEdgesCol()).find({ dossierId: dossierKey, active: { $ne: false } }).sort({ createdAt: 1 }).toArray(),
   ]);
-  const effectiveFindings = selectEffectiveFindings(findings);
-
   const rows: string[][] = [];
   rows.push(HEADER);
 
@@ -176,7 +174,7 @@ export async function GET(
     });
   }
 
-  for (const finding of effectiveFindings) {
+  for (const finding of findings) {
     pushRow({
       entityType: "finding",
       entityId: finding.findingId,

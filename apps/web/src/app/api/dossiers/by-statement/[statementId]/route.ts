@@ -12,7 +12,7 @@ import {
   getCanonicalStatementId,
   getStatementAliases,
 } from "@features/dossier/statement";
-import { sanitizeClaimPublic, selectEffectiveFindings } from "@features/dossier/effective";
+import { sanitizeClaimPublic } from "@features/dossier/effective";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -50,7 +50,6 @@ export async function GET(
   }
 
   const dossierId = dossier.dossierId;
-  const includeRaw = new URL(req.url).searchParams.get("include") === "raw";
   const [claims, sources, findings, openQuestions] = await Promise.all([
     (await dossierClaimsCol()).find({ dossierId }).sort({ createdAt: 1 }).toArray(),
     (await dossierSourcesCol()).find({ dossierId }).sort({ publishedAt: -1, createdAt: -1 }).toArray(),
@@ -58,11 +57,10 @@ export async function GET(
     (await openQuestionsCol()).find({ dossierId }).sort({ status: 1, createdAt: 1 }).toArray(),
   ]);
 
-  const effectiveFindings = selectEffectiveFindings(findings);
   const counts = {
     claims: claims.length,
     sources: sources.length,
-    findings: effectiveFindings.length,
+    findings: findings.length,
     edges: 0,
     openQuestions: openQuestions.length,
   };
@@ -72,8 +70,7 @@ export async function GET(
     dossier: { ...stripId(dossier), counts },
     claims: claims.map(stripId).map(sanitizeClaimPublic),
     sources: sources.map(stripId),
-    findings: effectiveFindings.map(stripId),
-    findingsRaw: includeRaw ? findings.map(stripId) : undefined,
+    findings: findings.map(stripId),
     openQuestions: openQuestions.map(stripId),
   });
 }

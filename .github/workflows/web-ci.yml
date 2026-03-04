@@ -10,11 +10,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.17.1
       - uses: actions/setup-node@v4
         with:
           node-version: "20"
           cache: "pnpm"
-      - run: corepack enable
+          cache-dependency-path: |
+            pnpm-lock.yaml
       - run: pnpm install --frozen-lockfile
-      - run: pnpm lint
-      - run: pnpm exec tsc --noEmit
+      - run: pnpm -w lint
+      - run: pnpm -w typecheck
+      - run: pnpm -w run --if-present test:ci
+      - run: pnpm -w run build

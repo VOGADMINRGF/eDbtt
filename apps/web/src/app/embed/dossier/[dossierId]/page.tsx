@@ -7,7 +7,6 @@ import {
   openQuestionsCol,
 } from "@features/dossier/db";
 import { findDossierByAnyId } from "@features/dossier/lookup";
-import { selectEffectiveFindings } from "@features/dossier/effective";
 
 export const dynamic = "force-dynamic";
 
@@ -38,8 +37,6 @@ export default async function DossierEmbedPage({ params }: PageProps) {
     (await dossierFindingsCol()).find({ dossierId: dossierKey }).sort({ updatedAt: -1 }).toArray(),
     (await openQuestionsCol()).find({ dossierId: dossierKey }).sort({ status: 1, createdAt: 1 }).toArray(),
   ]);
-
-  const effectiveFindings = selectEffectiveFindings(findings);
 
   return (
     <main className="min-h-screen bg-[rgb(var(--card))] px-4 py-6 text-[rgb(var(--fg))]">
@@ -74,11 +71,11 @@ export default async function DossierEmbedPage({ params }: PageProps) {
 
       <section className="mt-6 space-y-3">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Findings</h2>
-        {effectiveFindings.length === 0 ? (
+        {findings.length === 0 ? (
           <p className="text-sm text-[rgb(var(--muted))]">Noch keine Findings vorhanden.</p>
         ) : (
           <div className="space-y-2">
-            {effectiveFindings.map((finding) => (
+            {findings.map((finding) => (
               <div key={finding.findingId} className="rounded-xl border border-[rgb(var(--border))] px-3 py-2 text-sm">
                 <div className="flex flex-wrap items-center gap-2 text-xs text-[rgb(var(--muted))]">
                   <span className={`rounded-full border px-2 py-0.5 ${statusStyles[finding.verdict] ?? statusStyles.open}`}>
