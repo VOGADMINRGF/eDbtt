@@ -55,6 +55,7 @@ Erledigt (seit 2026-03-04):
 | Task | Status | Evidenz |
 | --- | --- | --- |
 | Admin Graph Navigation (Impact/Health/Repairs) vereinheitlicht | Done | `apps/web/src/components/admin/GraphAdminNav.tsx`, `apps/web/src/app/admin/graph/*/page.tsx` |
+| Graph-Health Fehlerdetail (missingEnv + Hinweis) + Impact-Link | Done | `apps/web/src/app/api/admin/graph/health/route.ts`, `apps/web/src/app/admin/graph/health/page.tsx`, `apps/web/src/app/admin/graph/impact/page.tsx` |
 | Pending Commit (Landing/Admin/Create/Material/Telemetry) abgeschlossen | Done | Sammel-Commit inkl. Landing/Admin/Create/Material/Telemetry + Pricing/SEO/Region |
 | DecisionArchitecture v2.0 Download-Asset wiederhergestellt | Done | `apps/web/public/docs/DecisionArchitecture_v2_0.docx` |
 | Create-Route + AdminErrorPanel in Git aufgenommen | Done | `apps/web/src/app/create/page.tsx`, `apps/web/src/components/admin/AdminErrorPanel.tsx` |

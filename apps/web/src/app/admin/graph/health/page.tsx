@@ -22,12 +22,22 @@ type Meta = {
   source: string;
 };
 
+type GraphHealthResponse =
+  | {
+      ok: true;
+      summary: GraphHealth;
+      _meta: Meta;
+    }
+  | { ok: false; error: string; missingEnv?: string[]; hint?: string };
+
 export default function AdminGraphHealthPage() {
   const router = useRouter();
   const [summary, setSummary] = useState<GraphHealth | null>(null);
   const [meta, setMeta] = useState<Meta | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [missingEnv, setMissingEnv] = useState<string[] | null>(null);
+  const [errorHint, setErrorHint] = useState<string | null>(null);
   const nf = new Intl.NumberFormat("de-DE");
 
   useEffect(() => {
@@ -35,14 +45,21 @@ export default function AdminGraphHealthPage() {
     async function load() {
       setLoading(true);
       setError(null);
+      setMissingEnv(null);
+      setErrorHint(null);
       try {
         const res = await fetch("/api/admin/graph/health", { cache: "no-store" });
         if (res.status === 401) {
           router.replace("/login?next=/admin/graph/health");
           return;
         }
-        const body = await res.json().catch(() => ({}));
-        if (!res.ok || !body?.ok) throw new Error(body?.error || res.statusText);
+        const body = (await res.json().catch(() => ({}))) as GraphHealthResponse;
+        if (!res.ok || !body?.ok) {
+          const payload = body as { error?: string; missingEnv?: string[]; hint?: string };
+          setMissingEnv(payload?.missingEnv ?? null);
+          setErrorHint(payload?.hint ?? null);
+          throw new Error(payload?.error || res.statusText);
+        }
         if (active) {
           setSummary(body.summary ?? null);
           setMeta(body._meta ?? null);
@@ -68,7 +85,7 @@ export default function AdminGraphHealthPage() {
         <GraphAdminNav current="/admin/graph/health" />
       </header>
 
-      {error && (<AdminErrorPanel error={error} />)}
+      {error && (<AdminErrorPanel error={error} missingEnv={missingEnv} hint={errorHint} />)}
 
       <section className="grid gap-3 md:grid-cols-2">
         {renderCard("Nodes", summary?.nodes, loading, nf)}

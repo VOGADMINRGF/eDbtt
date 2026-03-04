@@ -83,7 +83,14 @@ export default function GraphImpactPage() {
       )}
 
       {error && !loading && (
-        <AdminErrorPanel error={error} missingEnv={missingEnv} hint={errorHint} />
+        <AdminErrorPanel error={error} missingEnv={missingEnv} hint={errorHint}>
+          <Link
+            href="/admin/graph/health"
+            className="inline-flex items-center gap-2 rounded-full border border-rose-200 px-3 py-1.5 text-xs font-semibold text-rose-700"
+          >
+            Graph-Health pruefen
+          </Link>
+        </AdminErrorPanel>
       )}
 
       {!loading && !error && summary && (
