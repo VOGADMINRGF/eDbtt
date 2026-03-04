@@ -43,11 +43,19 @@ jobs:
       - name: Env
         run: |
           cp .env.example .env || true
+          echo "CORE_MONGODB_URI=mongodb://localhost:27017" >> .env
+          echo "CORE_DB_NAME=edebatte_core" >> .env
+          echo "VOTES_MONGODB_URI=mongodb://localhost:27017" >> .env
+          echo "VOTES_DB_NAME=edebatte_votes" >> .env
+          echo "PII_MONGODB_URI=mongodb://localhost:27017" >> .env
+          echo "PII_DB_NAME=edebatte_pii" >> .env
           echo "MONGODB_URI=mongodb://localhost:27017" >> .env
-          echo "MONGODB_DB=vog" >> .env
+          echo "MONGODB_DB=edebatte_core" >> .env
           echo "REDIS_URL=redis://localhost:6379" >> .env
           echo "JWT_SECRET=$(openssl rand -hex 16)" >> .env
           echo "NEO4J_URL=bolt://localhost:7687" >> .env
+          echo "NEO4J_USER=neo4j" >> .env
+          echo "NEO4J_PASSWORD=test1234" >> .env
 
       - name: pnpm install (root)
         run: pnpm install --frozen-lockfile
@@ -98,16 +106,24 @@ jobs:
           cp .env.example .env.ci || true
           echo "NODE_ENV=production" >> .env.ci
           echo "PORT=3000" >> .env.ci
+          echo "CORE_MONGODB_URI=mongodb://localhost:27017" >> .env.ci
+          echo "CORE_DB_NAME=edebatte_core" >> .env.ci
+          echo "VOTES_MONGODB_URI=mongodb://localhost:27017" >> .env.ci
+          echo "VOTES_DB_NAME=edebatte_votes" >> .env.ci
+          echo "PII_MONGODB_URI=mongodb://localhost:27017" >> .env.ci
+          echo "PII_DB_NAME=edebatte_pii" >> .env.ci
           echo "MONGODB_URI=mongodb://localhost:27017" >> .env.ci
-          echo "MONGODB_DB=vog" >> .env.ci
+          echo "MONGODB_DB=edebatte_core" >> .env.ci
           echo "REDIS_URL=redis://localhost:6379" >> .env.ci
           echo "JWT_SECRET=$(openssl rand -hex 16)" >> .env.ci
           echo "NEO4J_URL=bolt://localhost:7687" >> .env.ci
+          echo "NEO4J_USER=neo4j" >> .env.ci
+          echo "NEO4J_PASSWORD=test1234" >> .env.ci
 
-      # App + Dependencies hochfahren (erwartet services: web, mongo, redis, neo4j in docker-compose.yml)
+      # App + Dependencies hochfahren (services: web, mongo, redis, neo4j in compose/prod.yml)
       - name: Start app via docker compose
         run: |
-          docker compose --env-file ./.env.ci up -d web mongo redis neo4j
+          docker compose -f compose/prod.yml --env-file ./.env.ci up -d web mongo redis neo4j
           echo "Waiting for web to be healthy..."
           for i in {1..40}; do
             if curl -fsS http://localhost:3000/api/health || curl -fsS http://localhost:3000/ > /dev/null; then
@@ -115,7 +131,7 @@ jobs:
             fi
             sleep 3
           done
-          curl -fsS http://localhost:3000/ >/dev/null || (echo "Web not reachable" && docker compose logs web && exit 1)
+          curl -fsS http://localhost:3000/ >/dev/null || (echo "Web not reachable" && docker compose -f compose/prod.yml logs web && exit 1)
 
       - name: ZAP Baseline Scan
         uses: zaproxy/action-baseline@v0.12.0
@@ -143,5 +159,5 @@ jobs:
       - name: Docker Compose logs (on failure)
         if: failure()
         run: |
-          docker compose ps
-          docker compose logs --no-color web mongo redis neo4j | tail -n 2000
+          docker compose -f compose/prod.yml ps
+          docker compose -f compose/prod.yml logs --no-color web mongo redis neo4j | tail -n 2000
