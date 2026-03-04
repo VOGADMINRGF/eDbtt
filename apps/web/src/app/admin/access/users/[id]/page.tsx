@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import type { RouteId, UserRouteOverride } from "@features/access/types";
 import { DEFAULT_ROUTE_POLICIES } from "@features/access/types";
+import { AdminErrorPanel } from "@/components/admin/AdminErrorPanel";
 
 type AdminUserDetail = {
   id: string;
@@ -116,7 +117,7 @@ export default function AccessUserDetailPage() {
         )}
       </header>
 
-      {error && <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-2 text-sm text-rose-700">{error}</div>}
+      {error && <AdminErrorPanel error={error} />}
 
       <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm space-y-3">
         <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Neuen Override hinzufügen</h2>

@@ -5,7 +5,7 @@
 Diese Datei ist der kanonische Aufgabenstand fuer E150.  
 Wenn `Part14`, `Part15` oder Drift-Prompts abweichen, gewinnt diese Datei.
 
-Stand: 2026-02-19
+Stand: 2026-03-04
 
 ## Block-Board
 
@@ -21,6 +21,7 @@ Stand: 2026-02-19
 | H | I18N/A11y/Social | Done (PR-0033) | - | Produktreife der Skeleton-Pfade |
 | I | Unterstuetzen/Crowdfunding | Done | - | End-to-End SupportCampaign/SupportPledge live |
 | M | Membership Apply | Done | - | Betrieb + Monitoring |
+| N | Demo/Screenshot Studio | Done | - | /demo Studio + Manual Factcheck + Region Pitch |
 
 ## Drift Backlog (aus .codex/drifts)
 
@@ -34,13 +35,47 @@ Diese Liste ist die kanonische Umsetzungsliste fuer alle vorhandenen Drift-Promp
 | PR-0012 | Media Ready Projekte (5–10 Themen, min 5 Optionen) | Done | Monitoring/Polish |
 | PR-0013 | Live/Chat Skeleton | Done | - |
 | PR-0030 | Unterstuetzen/Crowdfunding | Implemented | Monitoring/Polish |
+| PR-0034 | DossierSchema Wrapper + Vote Policy (Legitimation 2.0) | Done (Core) | Optional: DS-04 |
 | PR-0010B | DecisionArchitecture v2.0 (Part16) – Publishing Pack + Drift-Validator | Done | - |
 
 ## Aktive Aufgaben
 
 Aktive Pflicht-Tasks:
 
-- **Keine** (Stand: 2026-02-19). Pflicht-Backlog ist abgearbeitet.
+- **Keine** (Stand: 2026-03-04). Pflicht-Backlog ist abgearbeitet.
+
+Operative Tasks (aus aktuellem Chat/Repo):
+
+| Task | Status | Naechster Run | Evidenz/Notiz |
+| --- | --- | --- | --- |
+| - | - | - | - |
+
+Erledigt (seit 2026-03-04):
+
+| Task | Status | Evidenz |
+| --- | --- | --- |
+| Pending Commit (Landing/Admin/Create/Material/Telemetry) abgeschlossen | Done | Sammel-Commit inkl. Landing/Admin/Create/Material/Telemetry + Pricing/SEO/Region |
+| DecisionArchitecture v2.0 Download-Asset wiederhergestellt | Done | `apps/web/public/docs/DecisionArchitecture_v2_0.docx` |
+| Create-Route + AdminErrorPanel in Git aufgenommen | Done | `apps/web/src/app/create/page.tsx`, `apps/web/src/components/admin/AdminErrorPanel.tsx` |
+| Landing-Input wieder oben zentriert + Hintergrund-Fade bei Fokus | Done | `apps/web/src/app/start/LandingStart.tsx`, `features/landing/LandingAssistant.tsx` |
+| MaterialHub Hash-Sprung (#material) abgesichert | Done | `apps/web/src/components/dossier/MaterialHub.tsx` |
+| Admin-Fehleranzeigen vereinheitlicht (Detail/Hints) | Done | `apps/web/src/components/admin/AdminErrorPanel.tsx`, `apps/web/src/app/admin/*` |
+
+Erledigt (seit 2026-02-19):
+
+| Task | Status | Evidenz |
+| --- | --- | --- |
+| Contributions/New Analyse-Flow auf Auto-Flow umgestellt (Editorial maxClaims 30, Statement-Dedupe, Flow-Coach/Community entfernt, Echtzeit-Feedback als Placeholder, Express als Default) | Done (2026-03-04) | `apps/web/src/components/analyze/AnalyzeWorkspace.tsx`, `apps/web/src/app/contributions/new/ContributionNewClient.tsx` |
+| Dossier-Header Premium/Mobile/No-Duplicates (InstitutionalHeader Mini-Cards + Details, konsolidierte Origin-Karte) | Done (Repo-Evidenz) | `apps/web/src/components/dossier/InstitutionalHeader.tsx`, `apps/web/src/components/dossier/DossierViewer.tsx` |
+| Demo/Screenshot Studio (Guard + Routen + statische Demo-Daten) | Done (Repo-Evidenz) | `apps/web/src/app/demo/layout.tsx`, `apps/web/src/app/demo/*`, `features/report/data/demoReports`, `features/votes/demoVotes.ts`, `features/mandate/demoMandate.ts` |
+| Demo Factcheck (KI/Manuell) + Redaktion-Feedback + Admin-Review | Done (Repo-Evidenz) | `apps/web/src/app/demo/factcheck/page.tsx`, `apps/web/src/app/api/editorial/feedback/route.ts`, `apps/web/src/app/admin/factcheck/page.tsx`, `apps/web/src/app/api/admin/editorial/factchecks/route.ts`, `apps/web/src/lib/editorial/status.ts` |
+| Region Pitch + Landing Fallback + Feed-Region-Filter | Done (Repo-Evidenz) | `apps/web/src/app/admin/pitch/page.tsx`, `apps/web/src/app/admin/adminNav.ts`, `apps/web/src/app/region/[codeOrSlug]/page.tsx`, `apps/web/src/lib/region/summary.ts`, `apps/web/src/lib/region/filters.ts`, `apps/web/src/app/api/feeds/pull/route.ts` |
+| Pricing/Vormerken Domain in `features/pricing` konsolidiert (client-safe Exports, server-only Usecase, fehlende Types) | Done (2026-03-04) | `features/pricing/domain/*`, `features/pricing/usecases/createPreorderLead.ts`, `features/pricing/server/leadsRepo.ts`, `features/pricing/types.ts`, `features/pricing/index.ts`, `apps/web/src/app/api/edebatte/preorder/route.ts` |
+| Pricing-/Vormerken-UI vereinheitlicht + Premium-Karten + Gradient-CTA | Done (2026-03-04) | `apps/web/src/app/pricing/page.tsx`, `apps/web/src/components/pricing/PackagesGrid.tsx`, `apps/web/src/app/vormerken/page.tsx` |
+| SEO-Regionen & Pillar-Seiten + kanonische Slugs (ASCII) + Sitemap | Done (2026-03-04) | `features/seo/*`, `apps/web/src/app/deutschland/*`, `apps/web/src/app/digitale-buergerbeteiligung/page.tsx`, `apps/web/src/app/beteiligungsplattform/page.tsx`, `apps/web/src/app/sitemap.ts`, `apps/web/src/lib/seo/jsonLd.ts` |
+| Locale-Detection zentralisiert | Done (2026-03-04) | `apps/web/src/lib/i18n/detectLocale.ts`, `apps/web/src/app/layout.tsx` |
+| Typecheck + Lint wieder gruen (Install ok) | Done (2026-03-04) | `pnpm -w -r typecheck`, `pnpm -w -r lint` |
+| Vercel Build-Fail `node:crypto` in RateLimit behoben (WebCrypto) | Done (Repo-Evidenz) | `apps/web/src/utils/rateLimit.ts` |
 
 Letzter Pflicht-Task (erledigt):
 - **PR-0010B**: DecisionArchitecture v2.0 Publishing Pack + Drift-Validator (Landingpage, Downloads, Validator).
@@ -70,9 +105,9 @@ Ein normiertes `DossierSchema` einführen, das:
 
 | Task | Beschreibung | Status |
 |------|--------------|--------|
-| DS-01 | `features/dossier/schemas.ts` mit `DossierSchema` Wrapper erstellen | Offen |
-| DS-02 | Adapter `buildDossierFromAnalyze()` implementieren | Offen |
-| DS-03 | Whitepaper-Hook im E150-Docs verankern (Part07) | Offen |
+| DS-01 | `features/dossier/schemas.ts` mit `DossierSchema` Wrapper erstellen | Done (Repo: `features/dossier/schemas.ts`) |
+| DS-02 | Adapter `buildDossierFromAnalyze()` implementieren | Done (Repo: `features/dossier/buildDossierFromAnalyze.ts`) |
+| DS-03 | Whitepaper-Hook im E150-Docs verankern (Part07) | Done (Repo: `docs/E150/Part07_Graph_Reports_StructuredKnowledge.md`) |
 | DS-04 | Optional: Route `/dossier/[id]` (Read-only Viewer, keine Migration) prüfen | Optional |
 
 ### Zielbild

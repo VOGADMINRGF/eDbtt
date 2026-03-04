@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import type { IdentityEventName, IdentityFunnelSnapshot } from "@core/telemetry/identityEvents";
+import { AdminErrorPanel } from "@/components/admin/AdminErrorPanel";
 
 type ApiResponse = {
   ok: boolean;
@@ -101,12 +102,9 @@ export default function IdentityTelemetryPage() {
         </select>
         <span className="text-xs text-[rgb(var(--muted))]">{formatDateRange(snapshot)}</span>
         {loading && <span className="text-sm text-[rgb(var(--muted))]">Lädt …</span>}
-        {error && (
-          <span className="text-sm text-rose-600" role="alert">
-            {error}
-          </span>
-        )}
       </section>
+
+      {error && <AdminErrorPanel error={error} />}
 
       {!loading && !error && snapshot === null && (
         <section className="rounded-2xl border border-dashed border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-4 py-6 text-sm text-[rgb(var(--muted))]">

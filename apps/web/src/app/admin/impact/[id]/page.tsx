@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import { AdminErrorPanel } from "@/components/admin/AdminErrorPanel";
 import { useParams } from "next/navigation";
 import type {
   ConsequenceRecord,
@@ -10,10 +11,7 @@ import type {
   ResponsibilityPath,
   ResponsibilityRecord,
 } from "@features/analyze/schemas";
-import {
-  ConsequencesPreviewCard,
-  ResponsibilityPreviewCard,
-} from "@features/statement/components/StatementImpactPreview";
+import { ConsequencesPreviewCard, ResponsibilityPreviewCard } from "@features/statement/components/StatementImpactPreview";
 
 type ImpactSnapshot = {
   contributionId: string;
@@ -117,11 +115,7 @@ export default function ImpactInspectorPage() {
         </div>
       )}
 
-      {error && !loading && (
-        <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-6 text-sm text-rose-700 shadow-sm">
-          {error}
-        </div>
-      )}
+      {error && !loading && <AdminErrorPanel error={error} />}
 
       {!loading && !error && impact && (
         <>

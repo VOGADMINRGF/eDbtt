@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { AdminErrorPanel } from "@/components/admin/AdminErrorPanel";
 
 type DossierBundle = {
   dossier: any;
@@ -313,11 +314,7 @@ export default function AdminDossierClient({ dossierId }: { dossierId: string })
   }
 
   if (error || !bundle) {
-    return (
-      <div className="mx-auto max-w-6xl px-4 py-8 text-sm text-rose-600">
-        Fehler: {error ?? "Dossier nicht gefunden"}
-      </div>
-    );
+    return <AdminErrorPanel error={error ?? "Dossier nicht gefunden"} />;
   }
 
   return (
@@ -340,7 +337,7 @@ export default function AdminDossierClient({ dossierId }: { dossierId: string })
           </Link>
         </div>
         {message ? <div className="text-xs text-emerald-600">{message}</div> : null}
-        {error ? <div className="text-xs text-rose-600">{error}</div> : null}
+        {error ? <AdminErrorPanel error={error} /> : null}
         {busy ? <div className="text-xs text-[rgb(var(--muted))]">Aktion laeuft...</div> : null}
       </header>
 

@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import Link from "next/link";
+import { AdminErrorPanel } from "@/components/admin/AdminErrorPanel";
 
 type FlowHealth = {
   ok: boolean;
@@ -26,14 +27,41 @@ type FlowHealth = {
   links: Record<string, string>;
 };
 
+type SmokeProvider = {
+  providerId: string;
+  state: "success" | "failed" | "skipped" | "disabled" | "unconfigured";
+  ok: boolean;
+  configured: boolean;
+  durationMs: number | null;
+  errorMessage?: string | null;
+};
+
+type SmokeResponse = {
+  ok: boolean;
+  results: SmokeProvider[];
+  checkedAt?: string;
+  mode?: "quick" | "full";
+  error?: string;
+};
+
 function pill(ok: boolean) {
   return ok ? "bg-emerald-100 text-emerald-800" : "bg-rose-100 text-rose-800";
+}
+
+function pillFromState(state: SmokeProvider["state"]) {
+  if (state === "success") return "bg-emerald-100 text-emerald-800";
+  if (state === "failed") return "bg-rose-100 text-rose-800";
+  if (state === "skipped") return "bg-amber-100 text-amber-800";
+  return "bg-slate-100 text-slate-700";
 }
 
 export default function FlowHealthPage() {
   const [data, setData] = useState<FlowHealth | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [smoke, setSmoke] = useState<SmokeResponse | null>(null);
+  const [smokeError, setSmokeError] = useState<string | null>(null);
+  const [smokeLoading, setSmokeLoading] = useState(false);
 
   async function load() {
     setError(null);
@@ -49,10 +77,35 @@ export default function FlowHealthPage() {
     }
   }
 
+  async function loadSmoke() {
+    setSmokeError(null);
+    setSmokeLoading(true);
+    try {
+      const res = await fetch("/api/admin/ai/orchestrator-smoke", { method: "POST" });
+      const body = (await res.json().catch(() => null)) as SmokeResponse | null;
+      if (!res.ok || !body) {
+        throw new Error(body?.error ?? res.statusText);
+      }
+      setSmoke(body);
+      if (body.ok === false) {
+        setSmokeError(body.error ?? "Smoke-Test fehlgeschlagen");
+      }
+    } catch (e: any) {
+      setSmokeError(e?.message ?? "Smoke-Test nicht erreichbar");
+    } finally {
+      setSmokeLoading(false);
+    }
+  }
+
   useEffect(() => {
     load();
+    loadSmoke();
     const t = setInterval(load, 6000);
-    return () => clearInterval(t);
+    const tSmoke = setInterval(loadSmoke, 60_000);
+    return () => {
+      clearInterval(t);
+      clearInterval(tSmoke);
+    };
   }, []);
 
   const candidates = data?.feeds.candidates.byStatus ?? {};
@@ -65,19 +118,50 @@ export default function FlowHealthPage() {
   const success = candidates["success"] ?? 0;
   const ready = statements["readyForLive"] ?? 0;
 
-  const envBadges = useMemo(() => {
+  const configBadges = useMemo(() => {
     if (!data) return [];
     return [
-      { label: "TriMongo core", ok: Boolean(data.env.triMongo.core) },
-      { label: "TriMongo votes", ok: Boolean(data.env.triMongo.votes) },
-      { label: "TriMongo pii", ok: Boolean(data.env.triMongo.pii) },
-      { label: "OpenAI key", ok: Boolean(data.env.openai.key) },
-      { label: `OpenAI model: ${data.env.openai.model ?? "-"}`, ok: Boolean(data.env.openai.model) },
-      { label: "ARI key", ok: Boolean(data.env.ari.key) },
-      { label: "ARI baseUrl", ok: Boolean(data.env.ari.baseUrl) },
-      { label: "Gemini key", ok: Boolean(data.env.gemini.key) },
+      { label: "Config: TriMongo core", ok: Boolean(data.env.triMongo.core) },
+      { label: "Config: TriMongo votes", ok: Boolean(data.env.triMongo.votes) },
+      { label: "Config: TriMongo pii", ok: Boolean(data.env.triMongo.pii) },
+      { label: "Config: OpenAI key", ok: Boolean(data.env.openai.key) },
+      { label: `Config: OpenAI model ${data.env.openai.model ?? "-"}`, ok: Boolean(data.env.openai.model) },
+      { label: "Config: ARI key", ok: Boolean(data.env.ari.key) },
+      { label: "Config: ARI baseUrl", ok: Boolean(data.env.ari.baseUrl) },
+      { label: "Config: Gemini key", ok: Boolean(data.env.gemini.key) },
     ];
   }, [data]);
+
+  const configOkCount = configBadges.filter((b) => b.ok).length;
+  const configTotal = configBadges.length;
+
+  const smokeCounts = useMemo(() => {
+    const results = smoke?.results ?? [];
+    const counts = {
+      success: 0,
+      failed: 0,
+      skipped: 0,
+      disabled: 0,
+      unconfigured: 0,
+      total: results.length,
+    };
+    results.forEach((r) => {
+      if (r.state === "success") counts.success += 1;
+      else if (r.state === "failed") counts.failed += 1;
+      else if (r.state === "skipped") counts.skipped += 1;
+      else if (r.state === "disabled") counts.disabled += 1;
+      else counts.unconfigured += 1;
+    });
+    return counts;
+  }, [smoke]);
+
+  const overallTone = useMemo(() => {
+    if (smokeCounts.failed > 0) return "bg-rose-50 text-rose-700";
+    if (!smoke || smokeCounts.total === 0) return "bg-amber-50 text-amber-700";
+    if (hasCandidateErrors || pending > 0 || processing > 0) return "bg-amber-50 text-amber-700";
+    if (configOkCount < configTotal) return "bg-amber-50 text-amber-700";
+    return "bg-emerald-50 text-emerald-700";
+  }, [configOkCount, configTotal, hasCandidateErrors, pending, processing, smoke, smokeCounts.failed, smokeCounts.total]);
 
   return (
     <main className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-8">
@@ -116,16 +200,53 @@ export default function FlowHealthPage() {
       </header>
 
       {loading && <div className="text-sm text-[rgb(var(--muted))]">Laedt ...</div>}
-      {error && (
-        <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
-          {error}
-        </div>
-      )}
+      {error && (<AdminErrorPanel error={error} />)}
 
       {data && (
         <>
+          <section className="grid gap-3 md:grid-cols-3">
+            <div className={`rounded-2xl border border-[rgb(var(--border))] px-4 py-3 text-sm ${overallTone}`}>
+              <p className="text-xs font-semibold uppercase tracking-wide">Overall</p>
+              <p className="mt-1 font-semibold">
+                {smokeCounts.failed > 0
+                  ? "Smoke-Fehler erkannt"
+                  : !smoke || smokeCounts.total === 0
+                    ? "Smoke nicht ausgefuehrt"
+                    : hasCandidateErrors || pending > 0 || processing > 0
+                      ? "Flow haengt"
+                      : configOkCount < configTotal
+                        ? "Config unvollstaendig"
+                        : "Alles ok"}
+              </p>
+              <p className="mt-1 text-xs">
+                Config {configOkCount}/{configTotal} ok · Smoke {smokeCounts.success}/{smokeCounts.total} ok
+              </p>
+            </div>
+            <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-3 text-sm">
+              <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Config</p>
+              <p className="mt-1 text-[rgb(var(--fg))]">
+                {configOkCount}/{configTotal} Checks ok
+              </p>
+              <p className="mt-1 text-xs text-[rgb(var(--muted))]">Schluessel, URIs, Modelle</p>
+            </div>
+            <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-3 text-sm">
+              <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Smoke</p>
+              <p className="mt-1 text-[rgb(var(--fg))]">
+                {smokeCounts.success} ok · {smokeCounts.failed} failed · {smokeCounts.unconfigured} unconfigured
+              </p>
+              <p className="mt-1 text-xs text-[rgb(var(--muted))]">
+                {smoke?.checkedAt ? `Stand: ${smoke.checkedAt}` : "Noch kein Smoke-Check"}
+              </p>
+            </div>
+          </section>
+
+          {smokeLoading && (
+            <div className="text-xs text-[rgb(var(--muted))]">Smoke-Test laeuft ...</div>
+          )}
+          {smokeError && <AdminErrorPanel error={`Smoke: ${smokeError}`} />}
+
           <section className="flex flex-wrap gap-2">
-            {envBadges.map((b) => (
+            {configBadges.map((b) => (
               <span
                 key={b.label}
                 className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold ${pill(
@@ -136,6 +257,23 @@ export default function FlowHealthPage() {
               </span>
             ))}
           </section>
+
+          {smoke?.results?.length ? (
+            <section className="flex flex-wrap gap-2">
+              {smoke.results.map((r) => (
+                <span
+                  key={r.providerId}
+                  className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold ${pillFromState(
+                    r.state,
+                  )}`}
+                >
+                  Smoke: {r.providerId} {r.state}
+                </span>
+              ))}
+            </section>
+          ) : (
+            <div className="text-xs text-[rgb(var(--muted))]">Smoke-Status noch nicht geladen.</div>
+          )}
 
           <section className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             <Kpi title="Candidates total" value={String(data.feeds.candidates.total)} hint="statement_candidates" />

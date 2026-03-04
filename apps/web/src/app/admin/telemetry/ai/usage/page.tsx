@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { AiUsageBreakdownSnapshot } from "@core/telemetry/aiUsageSnapshot";
+import { AdminErrorPanel } from "@/components/admin/AdminErrorPanel";
 
 type ApiResponse = { ok: boolean; snapshot?: AiUsageBreakdownSnapshot; error?: string };
 
@@ -81,7 +82,7 @@ export default function AiUsageTelemetryPage() {
           ))}
         </select>
         {loading && <span className="text-sm text-[rgb(var(--muted))]">Lädt …</span>}
-        {error && <span className="text-sm text-rose-600">{error}</span>}
+        {error && <AdminErrorPanel error={error} />}
       </section>
 
       {!loading && !error && snapshot === null && (

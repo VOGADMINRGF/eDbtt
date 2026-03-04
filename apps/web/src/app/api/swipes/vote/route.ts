@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 import { recordSwipeVote } from "@/features/swipes/service";
 import type { SwipeVotePayload } from "@/features/swipes/types";
+import { registerSwipeForUser } from "@features/swipe/service";
 
 export async function POST(req: NextRequest) {
   const cookieStore = await cookies();
@@ -23,9 +24,15 @@ export async function POST(req: NextRequest) {
     source: "swipes",
   };
 
-  await recordSwipeVote(payload);
+  const { inserted } = await recordSwipeVote(payload);
 
-  const res = NextResponse.json({ ok: true });
+  if (inserted && userId && !body.eventualityId) {
+    const direction =
+      body.decision === "agree" ? "pro" : body.decision === "disagree" ? "contra" : "neutral";
+    await registerSwipeForUser(userId, { statementId: body.statementId, direction });
+  }
+
+  const res = NextResponse.json({ ok: true, inserted });
   if (!userId && !anonCookie && anonId) {
     res.cookies.set("edb_anon", anonId, {
       httpOnly: true,

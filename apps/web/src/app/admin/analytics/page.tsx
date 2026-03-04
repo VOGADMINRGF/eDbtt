@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { getEdebatePackageLabel } from "@/config/edebatte";
+import { AdminErrorPanel } from "@/components/admin/AdminErrorPanel";
 
 type Summary = {
   packages: { code: string; count: number }[];
@@ -56,11 +57,7 @@ export default function AdminAnalyticsPage() {
   return (
     <div className="space-y-6">
       <h1 className="sr-only">Admin Analytics</h1>
-      {error && (
-        <div className="rounded-3xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
-          {error}
-        </div>
-      )}
+      {error && (<AdminErrorPanel error={error} />)}
       <section className="rounded-3xl bg-[rgb(var(--card))] p-4 shadow ring-1 ring-[rgb(var(--border))]">
         <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Registrierungen (30 Tage)</h2>
         <div className="mt-3 flex items-end gap-1">

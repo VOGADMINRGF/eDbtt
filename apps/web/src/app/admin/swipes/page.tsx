@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { AdminErrorPanel } from "@/components/admin/AdminErrorPanel";
 
 type SwipeSummary = {
   totals: {
@@ -53,11 +54,7 @@ export default function AdminSwipesPage() {
 
       <section className="rounded-3xl bg-[rgb(var(--card))] p-4 shadow ring-1 ring-[rgb(var(--border))]">
         <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Kernzahlen</h2>
-        {error && (
-          <div className="mt-3 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700">
-            {error}
-          </div>
-        )}
+        {error && (<AdminErrorPanel error={error} />)}
         <div className="mt-3 grid gap-3 sm:grid-cols-3">
           <Metric label="Swipe Votes gesamt" value={data?.totals.swipeVotes} loading={loading} />
           <Metric label="Swipe Votes (30d)" value={data?.totals.swipeVotes30d} loading={loading} />

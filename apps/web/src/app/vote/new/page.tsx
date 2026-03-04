@@ -20,7 +20,7 @@ export default function VoteNewPage({
         <Link className="rounded-full bg-slate-900 px-4 py-2 text-white" href="/votes">
           Zu Abstimmungen
         </Link>
-        <Link className="rounded-full border px-4 py-2" href="/contributions/new">
+        <Link className="rounded-full border px-4 py-2" href="/create?intent=contribution">
           Zurück
         </Link>
       </div>

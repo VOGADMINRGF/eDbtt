@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { getEdebatePackageLabel } from "@/config/edebatte";
+import { AdminErrorPanel } from "@/components/admin/AdminErrorPanel";
 
 type Summary = {
   totalUsers: number;
@@ -182,16 +183,17 @@ export default function AdminDashboardPage() {
             ))}
         </div>
         {error && (
-          <p className="mt-3 text-sm text-rose-600">
-            Fehler beim Laden: {error}{" "}
-            <button
-              type="button"
-              className="font-semibold underline underline-offset-2"
-              onClick={() => location.reload()}
-            >
-              Neu laden
-            </button>
-          </p>
+          <div className="mt-3">
+            <AdminErrorPanel error={error} title="Fehler beim Laden">
+              <button
+                type="button"
+                className="text-sm font-semibold underline underline-offset-2"
+                onClick={() => location.reload()}
+              >
+                Neu laden
+              </button>
+            </AdminErrorPanel>
+          </div>
         )}
       </section>
 

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { CORE_LOCALES, EXTENDED_LOCALES } from "@/config/locales";
+import { AdminErrorPanel } from "@/components/admin/AdminErrorPanel";
 
 const REGION_FILTERS = [
   { value: "all", label: "Alle Regionen" },
@@ -118,9 +119,7 @@ export default function EvidenceClaimsAdminPage() {
         />
       </div>
 
-      {error && (
-        <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</div>
-      )}
+      {error && (<AdminErrorPanel error={error} />)}
 
       <div className="overflow-hidden rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] shadow-sm">
         <table className="min-w-full divide-y divide-[rgb(var(--border))] text-sm">

@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { AdminErrorPanel } from "@/components/admin/AdminErrorPanel";
 
 type NewsletterEntry = {
   email: string;
@@ -106,11 +107,7 @@ export default function AdminNewsletterPage() {
   return (
     <div className="space-y-4">
       <h1 className="sr-only">Admin Newsletter</h1>
-      {accessError && (
-        <div className="rounded-3xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
-          {accessError}
-        </div>
-      )}
+      {accessError && <AdminErrorPanel error={accessError} />}
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-3xl bg-[rgb(var(--card))] p-4 shadow ring-1 ring-[rgb(var(--border))]">
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">Newsletter</p>
@@ -163,7 +160,7 @@ export default function AdminNewsletterPage() {
             {saving ? "Speichern …" : "Hinzufügen"}
           </button>
         </div>
-        {error && <p className="mt-2 text-sm text-rose-600">{error}</p>}
+        {error && <AdminErrorPanel error={error} />}
       </div>
 
       <div className="overflow-hidden rounded-3xl bg-[rgb(var(--card))] shadow ring-1 ring-[rgb(var(--border))]">

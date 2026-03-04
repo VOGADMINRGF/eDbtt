@@ -2,13 +2,19 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { AdminErrorPanel } from "@/components/admin/AdminErrorPanel";
 
 type ProviderSmokeResult = {
   providerId: string;
+  state: "success" | "failed" | "skipped" | "disabled" | "unconfigured";
   ok: boolean;
-  durationMs: number;
-  errorMessage?: string;
-  state?: "disabled" | "skipped";
+  configured: boolean;
+  durationMs: number | null;
+  errorMessage?: string | null;
+  errorKind?: string | null;
+  status?: number | null;
+  checkedAt?: string;
+  requestMode?: "quick" | "full";
 };
 
 type SmokeResponse = {
@@ -17,6 +23,8 @@ type SmokeResponse = {
   bestRawText?: string | null;
   results: ProviderSmokeResult[];
   error?: string;
+  checkedAt?: string;
+  mode?: "quick" | "full";
 };
 
 export default function OrchestratorTelemetryPage() {
@@ -31,8 +39,11 @@ export default function OrchestratorTelemetryPage() {
       const suffix = mode === "full" ? "?mode=full" : "";
       const res = await fetch(`/api/admin/ai/orchestrator-smoke${suffix}`, { method: "POST" });
       const body = (await res.json().catch(() => null)) as SmokeResponse | null;
-      if (!res.ok) throw new Error(body?.error || res.statusText);
+      if (!res.ok || !body) throw new Error(body?.error || res.statusText);
       setData(body);
+      if (body.ok === false) {
+        setError(body.error ?? "Smoke-Test fehlgeschlagen");
+      }
     } catch (err: any) {
       setError(err?.message ?? "Smoke-Test fehlgeschlagen");
     } finally {
@@ -72,7 +83,7 @@ export default function OrchestratorTelemetryPage() {
         >
           {loading ? "…" : "Volltest"}
         </button>
-        {error && <span className="text-sm text-rose-600">{error}</span>}
+        {error && <AdminErrorPanel error={error} />}
       </div>
 
       {data && (
@@ -90,14 +101,26 @@ export default function OrchestratorTelemetryPage() {
                 {data.ok ? "Ja" : "Nein"}
               </span>
             </p>
+            {data.mode && (
+              <p>
+                Modus: <span className="font-semibold text-[rgb(var(--fg))]">{data.mode}</span>
+              </p>
+            )}
+            {data.checkedAt && (
+              <p>
+                Letzter Check:{" "}
+                <span className="font-semibold text-[rgb(var(--fg))]">{data.checkedAt}</span>
+              </p>
+            )}
           </div>
 
           <table className="min-w-full divide-y divide-[rgb(var(--border))] text-sm">
             <thead className="bg-[rgb(var(--bg))] text-left text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
               <tr>
                 <th className="px-3 py-2">Provider</th>
-                <th className="px-3 py-2">Status</th>
-                <th className="px-3 py-2">Dauer (ms)</th>
+                <th className="px-3 py-2">Config</th>
+                <th className="px-3 py-2">Smoke</th>
+                <th className="px-3 py-2">Dauer</th>
                 <th className="px-3 py-2">Fehlermeldung</th>
               </tr>
             </thead>
@@ -106,17 +129,26 @@ export default function OrchestratorTelemetryPage() {
                 <tr key={result.providerId}>
                   <td className="px-3 py-2 font-semibold text-[rgb(var(--fg))]">{result.providerId}</td>
                   <td className="px-3 py-2">
-                    {result.state === "disabled" ? (
-                      <span className="text-[rgb(var(--muted))]">⏸ deaktiviert (lokal)</span>
-                    ) : result.state === "skipped" ? (
-                      <span className="text-amber-600">⤼ übersprungen</span>
-                    ) : result.ok ? (
-                      <span className="text-emerald-600">✅ OK</span>
+                    {result.configured ? (
+                      <span className="text-emerald-600">konfiguriert</span>
                     ) : (
-                      <span className="text-rose-600">❌ Fehler</span>
+                      <span className="text-[rgb(var(--muted))]">unconfigured</span>
                     )}
                   </td>
-                  <td className="px-3 py-2">{result.durationMs}</td>
+                  <td className="px-3 py-2">
+                    {result.state === "success" ? (
+                      <span className="text-emerald-600">✅ OK</span>
+                    ) : result.state === "failed" ? (
+                      <span className="text-rose-600">❌ Fehler</span>
+                    ) : result.state === "skipped" ? (
+                      <span className="text-amber-600">⤼ übersprungen</span>
+                    ) : result.state === "unconfigured" ? (
+                      <span className="text-[rgb(var(--muted))]">⚪ unconfigured</span>
+                    ) : (
+                      <span className="text-[rgb(var(--muted))]">⏸ deaktiviert</span>
+                    )}
+                  </td>
+                  <td className="px-3 py-2">{result.durationMs ?? "—"}</td>
                   <td className="px-3 py-2 text-xs text-[rgb(var(--muted))]">
                     {result.errorMessage ?? "—"}
                   </td>

@@ -257,6 +257,9 @@ type AnalyzeWorkspaceProps = {
   useCaseAccess?: UseCaseAccess;
   maxClaimsCap?: number;
   maxFinalizeClaims?: number;
+  maxFinalizeClaimsStatement?: number;
+  allowFinalizeAsStatement?: boolean;
+  allowFinalizeAsContribution?: boolean;
 };
 
 const BASE_STEPS: AnalyzeStepState[] = [
@@ -276,6 +279,78 @@ type DraftStorage = {
   authorName?: string | null;
   useCase?: UseCaseId;
 };
+
+type ApiSuccess<T> = { ok: true; data: T; code?: string };
+type ApiError = { ok: false; error: string; code: string; details?: unknown };
+
+function resolveApiErrorMessage(params: {
+  context: "analyze" | "save" | "finalize";
+  code?: string | null;
+  fallback: string;
+  details?: unknown;
+}) {
+  const { context, code, fallback, details } = params;
+  if (!code) return fallback;
+  if (code === "NOT_AUTHENTICATED") {
+    return context === "save"
+      ? "Speichern erfordert Anmeldung."
+      : context === "finalize"
+      ? "Einreichen erfordert Anmeldung."
+      : "Anmeldung erforderlich.";
+  }
+  if (code === "EXTERNAL_EXTRACTION_FORBIDDEN") {
+    return "Externe Quellen sind fuer dein Paket nicht freigeschaltet.";
+  }
+  if (code === "ATTACHMENTS_FORBIDDEN") {
+    return "Dateianhaenge sind fuer dein Paket nicht freigeschaltet.";
+  }
+  if (code === "RATE_LIMITED") {
+    return "Zu viele Anfragen. Bitte kurz warten und erneut versuchen.";
+  }
+  if (code === "ANALYZE_DISABLED" || code === "ANALYZE_TIMEOUT") {
+    return "Analyse aktuell nicht verfuegbar. Bitte spaeter erneut versuchen.";
+  }
+  if (code === "ANALYZE_PROVIDER_FAILED" || code === "NO_ANALYZE_PROVIDER" || code === "MISSING_ENV") {
+    return "OpenAI/GPT ist aktuell nicht erreichbar.";
+  }
+  if (code === "STATEMENT_FORBIDDEN") {
+    return "Statements sind fuer dein Paket nicht freigeschaltet.";
+  }
+  if (code === "CONTRIBUTION_FORBIDDEN") {
+    return "Beitragseinreichung ist aktuell nicht freigeschaltet.";
+  }
+  if (code === "NO_CREDITS") {
+    return "Keine Contribution-Credits verfuegbar.";
+  }
+  if (code === "MAX_FINALIZE_CLAIMS_EXCEEDED") {
+    const limit = typeof (details as any)?.limit === "number" ? (details as any).limit : null;
+    return limit ? `Maximal ${limit} Kernaussagen sind zulaessig.` : fallback;
+  }
+  if (code === "DRAFT_NOT_FOUND") {
+    return "Entwurf nicht gefunden.";
+  }
+  if (code === "EMPTY_TEXT") {
+    return "Bitte zuerst einen Text eingeben.";
+  }
+  if (code === "INVALID_BODY") {
+    return "Bitte pruefe deine Eingaben.";
+  }
+  return fallback;
+}
+
+function isCreateDebugEnabled(): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    return window.localStorage.getItem("create_debug") === "1";
+  } catch {
+    return false;
+  }
+}
+
+function debugLog(label: string, payload: unknown) {
+  if (!isCreateDebugEnabled()) return;
+  console.info(label, payload);
+}
 
 function mapAiNoteToSection(raw: any, idx: number): NoteSection | null {
   if (!raw || typeof raw.text !== "string") return null;
@@ -627,6 +702,11 @@ export default function AnalyzeWorkspace({
   initialText,
   authorName: initialAuthorName,
   useCaseAccess,
+  maxClaimsCap,
+  maxFinalizeClaims,
+  maxFinalizeClaimsStatement,
+  allowFinalizeAsStatement,
+  allowFinalizeAsContribution,
 }: AnalyzeWorkspaceProps) {
   const router = useRouter();
   const { locale } = useLocale();
@@ -639,19 +719,28 @@ export default function AnalyzeWorkspace({
   const initialFlowConfig = FLOW_OPTIONS.find((opt) => opt.id === initialFlow) ?? FLOW_OPTIONS[0];
   const [flow, setFlow] = React.useState<FlowId>(initialFlowConfig.id);
   const [viewLevel, setViewLevel] = React.useState<1 | 2 | 3 | 4>(defaultLevel ?? initialFlowConfig.defaultLevel);
-  const [maxClaims, setMaxClaims] = React.useState<number>(initialFlowConfig.maxClaims);
+  const initialMaxClaims =
+    typeof maxClaimsCap === "number"
+      ? Math.min(initialFlowConfig.maxClaims, maxClaimsCap)
+      : initialFlowConfig.maxClaims;
+  const [maxClaims, setMaxClaims] = React.useState<number>(initialMaxClaims);
   const [openPanels, setOpenPanels] = React.useState<Record<PanelKey, boolean>>(initialFlowConfig.openPanels);
   const [text, setText] = React.useState(initialText ?? "");
   const allowedUseCases = React.useMemo<UseCaseId[]>(() => {
     const allowed = useCaseAccess?.allowed;
     if (Array.isArray(allowed) && allowed.length > 0) return allowed;
-    return mode === "statement" ? ["journalism"] : ["civic", "journalism", "agenda"];
-  }, [useCaseAccess?.allowed, mode]);
-  const defaultUseCase: UseCaseId = mode === "statement" ? "journalism" : "civic";
-  const resolvedDefaultUseCase = allowedUseCases.includes(defaultUseCase)
-    ? defaultUseCase
-    : allowedUseCases[0] ?? defaultUseCase;
+    return ["civic", "journalism", "agenda"];
+  }, [useCaseAccess?.allowed]);
+  const resolvedDefaultUseCase = allowedUseCases.includes("civic")
+    ? "civic"
+    : allowedUseCases[0] ?? "civic";
   const [useCase, setUseCase] = React.useState<UseCaseId>(resolvedDefaultUseCase);
+  const [showAdvancedUseCases, setShowAdvancedUseCases] = React.useState(false);
+  const canFinalizeContribution = allowFinalizeAsContribution ?? mode !== "statement";
+  const canFinalizeStatement = allowFinalizeAsStatement ?? mode === "statement";
+  const [finalizeMode, setFinalizeMode] = React.useState<"contribution" | "statement">(
+    mode === "statement" ? "statement" : canFinalizeContribution ? "contribution" : "statement",
+  );
   const [authorName, setAuthorName] = React.useState(initialAuthorName ?? "");
   const [confirmUnderstanding, setConfirmUnderstanding] = React.useState(false);
   const [deepResearchInfo, setDeepResearchInfo] = React.useState<string | null>(null);
@@ -702,6 +791,45 @@ export default function AnalyzeWorkspace({
   const [flowInfo, setFlowInfo] = React.useState<string | null>(null);
   const [articleDraft, setArticleDraft] = React.useState<string>("");
   const [articleDraftEdited, setArticleDraftEdited] = React.useState(false);
+  const statementLimit =
+    typeof maxFinalizeClaimsStatement === "number" ? maxFinalizeClaimsStatement : 1;
+  const contributionLimit =
+    typeof maxFinalizeClaims === "number" ? maxFinalizeClaims : null;
+  const activeFinalizeLimit = finalizeMode === "statement" ? statementLimit : contributionLimit;
+  const canFinalizeActive = finalizeMode === "statement" ? canFinalizeStatement : canFinalizeContribution;
+  const finalizeStatementLock = canFinalizeStatement
+    ? null
+    : "Statements sind fuer dein Paket nicht freigeschaltet.";
+  const finalizeContributionLock = canFinalizeContribution
+    ? null
+    : "Beitraege sind fuer dein Paket nicht freigeschaltet.";
+  const activeFinalizeLock =
+    finalizeMode === "statement" ? finalizeStatementLock : finalizeContributionLock;
+  const showNeutralHeadline = canFinalizeStatement && canFinalizeContribution;
+  const headlineLabel = showNeutralHeadline ? "Text" : mode === "statement" ? "Statement" : "Beitrag";
+  const analyzeIntro = showNeutralHeadline
+    ? "Standard ist der Buerger-Modus. Nach der Analyse kannst du als Statement oder Beitrag einreichen."
+    : "Analyse startet mit dem passenden Ablauf fuer deinen Beitrag.";
+
+  React.useEffect(() => {
+    if (typeof maxClaimsCap !== "number") return;
+    setMaxClaims((prev) => (prev > maxClaimsCap ? maxClaimsCap : prev));
+  }, [maxClaimsCap]);
+
+  React.useEffect(() => {
+    if (finalizeMode === "contribution" && !canFinalizeContribution && canFinalizeStatement) {
+      setFinalizeMode("statement");
+    } else if (finalizeMode === "statement" && !canFinalizeStatement && canFinalizeContribution) {
+      setFinalizeMode("contribution");
+    }
+  }, [canFinalizeContribution, canFinalizeStatement, finalizeMode]);
+
+  React.useEffect(() => {
+    if (typeof activeFinalizeLimit !== "number") return;
+    if (selectedClaimIds.length <= activeFinalizeLimit) return;
+    setSelectedClaimIds((prev) => prev.slice(0, activeFinalizeLimit));
+    setInfo(`Maximal ${activeFinalizeLimit} Kernaussagen sind zulaessig.`);
+  }, [activeFinalizeLimit, selectedClaimIds.length]);
 
   const flowConfig = FLOW_OPTIONS.find((opt) => opt.id === flow) ?? FLOW_OPTIONS[0];
   const allowTrace = flowConfig.allowTrace;
@@ -745,6 +873,7 @@ export default function AnalyzeWorkspace({
       text: "Zustaendigkeiten, Folgen und Umsetzungslogik.",
     },
   ];
+  const canSwitchUseCase = allowedUseCases.length > 1;
   const contextCount = notes.length + (report?.summary ? 1 : 0);
   const responsibilityCount =
     responsibilities.length +
@@ -976,7 +1105,9 @@ export default function AnalyzeWorkspace({
     const config = FLOW_OPTIONS.find((opt) => opt.id === autoFlow) ?? FLOW_OPTIONS[0];
     setFlow(config.id);
     setViewLevel(config.defaultLevel);
-    setMaxClaims(config.maxClaims);
+    const nextMaxClaims =
+      typeof maxClaimsCap === "number" ? Math.min(config.maxClaims, maxClaimsCap) : config.maxClaims;
+    setMaxClaims(nextMaxClaims);
     setOpenPanels(config.openPanels);
     if (!config.allowTrace && !config.allowResearch) {
       setInsightTab("input");
@@ -986,7 +1117,7 @@ export default function AnalyzeWorkspace({
       setResearchError(null);
       setEvidenceInput("");
     }
-  }, [analysisStatus, autoFlow, flow]);
+  }, [analysisStatus, autoFlow, flow, maxClaimsCap]);
 
   React.useEffect(() => {
     if (!allowedUseCases.includes(useCase)) {
@@ -1154,7 +1285,7 @@ export default function AnalyzeWorkspace({
   }, [analysisStatus, knots.length, notes.length, questions.length, report?.summary, totalStatements]);
 
   const requiredLevel =
-    verificationLevel && mode === "contribution"
+    verificationLevel && finalizeMode === "contribution"
       ? viewLevel >= 2
         ? VERIFICATION_REQUIREMENTS.contribution_level2
         : VERIFICATION_REQUIREMENTS.contribution_level1
@@ -1293,7 +1424,7 @@ export default function AnalyzeWorkspace({
         textOriginal: text,
         textPrepared: preparedText,
         locale,
-        source: mode === "statement" ? "statement_new" : "contribution_new",
+        source: finalizeMode === "statement" ? "statement_new" : "contribution_new",
         authorName: authorName?.trim() || undefined,
         useCase,
         analysis: {
@@ -1311,17 +1442,26 @@ export default function AnalyzeWorkspace({
         },
       };
 
+      debugLog("[create.save] request", payload);
       const res = await fetch(saveUrl, {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify(payload),
       });
-      const body = await res.json().catch(() => ({}));
-      if (!res.ok || !body?.ok) {
-        throw new Error(body?.error || "Speichern fehlgeschlagen");
+      const body = await res.json().catch(() => null);
+      debugLog("[create.save] response", { status: res.status, body });
+      if (!res.ok || body?.ok !== true) {
+        const msg = resolveApiErrorMessage({
+          context: "save",
+          code: body?.code ?? null,
+          fallback: body?.error || body?.message || "Speichern fehlgeschlagen.",
+          details: body?.details,
+        });
+        throw new Error(msg);
       }
-      setDraftId(body.draftId ?? draftId);
-      setSavedAt(body.updatedAt ?? new Date().toISOString());
+      const responseData = body?.data ?? body ?? {};
+      setDraftId(responseData.draftId ?? draftId);
+      setSavedAt(responseData.updatedAt ?? new Date().toISOString());
       setSaveInfo("Entwurf gespeichert.");
       return;
     } catch (err: any) {
@@ -1347,7 +1487,7 @@ export default function AnalyzeWorkspace({
     impactAndResponsibility,
     knots,
     locale,
-    mode,
+    finalizeMode,
     notes,
     preparedText,
     questions,
@@ -1364,12 +1504,20 @@ export default function AnalyzeWorkspace({
   ]);
 
   const handleFinalize = React.useCallback(async () => {
+    if (!canFinalizeActive) {
+      setFinalizeInfo(activeFinalizeLock ?? "Diese Option ist nicht freigeschaltet.");
+      return;
+    }
     if (!draftId) {
       setFinalizeInfo("Bitte zuerst einen serverseitigen Entwurf speichern.");
       return;
     }
     if (selectedClaimIds.length === 0) {
       setFinalizeInfo("Bitte wähle mindestens ein Statement aus.");
+      return;
+    }
+    if (typeof activeFinalizeLimit === "number" && selectedClaimIds.length > activeFinalizeLimit) {
+      setFinalizeInfo(`Maximal ${activeFinalizeLimit} Kernaussagen sind zulaessig.`);
       return;
     }
     if (!confirmUnderstanding) {
@@ -1380,28 +1528,53 @@ export default function AnalyzeWorkspace({
     setIsFinalizing(true);
     setFinalizeInfo(null);
     try {
+      const payload = {
+        draftId,
+        selectedClaimIds,
+        dossierId: dossierId ?? undefined,
+        source: finalizeMode === "statement" ? "statement_new" : "contribution_new",
+      };
+      debugLog("[create.finalize] request", payload);
       const res = await fetch(finalizeEndpoint, {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          draftId,
-          selectedClaimIds,
-          dossierId: dossierId ?? undefined,
-          source: mode === "statement" ? "statement_new" : "contribution_new",
-        }),
+        body: JSON.stringify(payload),
       });
-      const body = await res.json().catch(() => ({}));
-      if (!res.ok || !body?.ok) {
-        throw new Error(body?.error || "Einreichen fehlgeschlagen");
+      const body = await res.json().catch(() => null);
+      debugLog("[create.finalize] response", { status: res.status, body });
+      if (!res.ok || body?.ok !== true) {
+        const msg = resolveApiErrorMessage({
+          context: "finalize",
+          code: body?.code ?? null,
+          fallback: body?.error || body?.message || "Einreichen fehlgeschlagen.",
+          details: body?.details,
+        });
+        throw new Error(msg);
       }
-      setFinalizeInfo("Erfolgreich eingereicht. Deine Vorschlaege erscheinen jetzt im Swipe-Pool.");
-      setFinalizeRedirectTo(body.redirectTo ?? afterFinalizeNavigateTo ?? null);
+      const responseData = body?.data ?? body ?? {};
+      const successMsg =
+        finalizeMode === "statement"
+          ? "Statement eingereicht. Deine Vorschlaege erscheinen jetzt im Swipe-Pool."
+          : "Beitrag eingereicht. Deine Vorschlaege erscheinen jetzt im Swipe-Pool.";
+      setFinalizeInfo(successMsg);
+      setFinalizeRedirectTo(responseData.redirectTo ?? afterFinalizeNavigateTo ?? null);
     } catch (err: any) {
       setFinalizeInfo(err?.message ?? "Einreichen fehlgeschlagen.");
     } finally {
       setIsFinalizing(false);
     }
-  }, [afterFinalizeNavigateTo, confirmUnderstanding, dossierId, draftId, finalizeEndpoint, mode, selectedClaimIds]);
+  }, [
+    afterFinalizeNavigateTo,
+    activeFinalizeLimit,
+    activeFinalizeLock,
+    canFinalizeActive,
+    confirmUnderstanding,
+    dossierId,
+    draftId,
+    finalizeEndpoint,
+    finalizeMode,
+    selectedClaimIds,
+  ]);
 
   const handleDeepResearch = React.useCallback(async () => {
     if (!preparedText.trim()) {
@@ -1517,8 +1690,10 @@ export default function AnalyzeWorkspace({
   const handleAnalyze = React.useCallback(async () => {
     if (analyzeDisabled) return;
     const effectiveEvidenceInput = allowResearch ? evidenceInput.trim() : "";
+    const effectiveMaxClaims =
+      typeof maxClaimsCap === "number" ? Math.min(maxClaims, maxClaimsCap) : maxClaims;
     const key = makeKey(preparedText, statements, {
-      maxClaims,
+      maxClaims: effectiveMaxClaims,
       detailLevel: viewLevel,
       locale,
       evidence: effectiveEvidenceInput,
@@ -1549,27 +1724,38 @@ export default function AnalyzeWorkspace({
             .filter(Boolean)
         : [];
 
+      const requestPayload = {
+        textOriginal: text,
+        preparedText,
+        text: preparedText,
+        locale,
+        maxClaims: effectiveMaxClaims,
+        detailPreset: viewLevel,
+        evidenceItems,
+      };
+      debugLog("[create.analyze] request", requestPayload);
+
       const res = await fetch(analyzeEndpoint, {
         method: "POST",
         signal: ctrl.signal,
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          textOriginal: text,
-          preparedText,
-          text: preparedText,
-          locale,
-          maxClaims,
-          detailPreset: viewLevel,
-          evidenceItems,
-        }),
+        body: JSON.stringify(requestPayload),
       });
-      const data = await res.json().catch(() => ({}));
+      const body = await res.json().catch(() => null);
+      debugLog("[create.analyze] response", { status: res.status, body });
       if (!mountedRef.current || myRun !== analyzeRunRef.current) return;
-      if (!res.ok || !data?.ok) {
-        throw new Error(data?.message || data?.error || `Analyse fehlgeschlagen (HTTP ${res.status}).`);
+      if (!res.ok || body?.ok !== true) {
+        const msg = resolveApiErrorMessage({
+          context: "analyze",
+          code: body?.code ?? null,
+          fallback: body?.error || body?.message || `Analyse fehlgeschlagen (HTTP ${res.status}).`,
+          details: body?.details,
+        });
+        throw new Error(msg);
       }
 
-      const resultPayload = data.result ?? data;
+      const payload = body?.data ?? body?.result ?? body;
+      const resultPayload = payload?.result ?? payload;
       if (!resultPayload) throw new Error("Analyse lieferte keine Ergebnisse.");
       const result: AnalyzeResult = resultPayload as AnalyzeResult;
 
@@ -1629,13 +1815,14 @@ export default function AnalyzeWorkspace({
       setEvidenceGraph((result as any)?.evidenceGraph ?? null);
       setRunReceipt((result as any)?.runReceipt ?? null);
 
-      const matrixFromResponse: ProviderMatrixEntry[] = Array.isArray(data?.meta?.providerMatrix)
-        ? data.meta.providerMatrix
+      const matrixFromResponse: ProviderMatrixEntry[] = Array.isArray(payload?.meta?.providerMatrix)
+        ? payload.meta.providerMatrix
         : [];
       setProviderMatrix(matrixFromResponse);
 
-      const degraded = Boolean(data?.degraded);
+      const degraded = Boolean(payload?.degraded);
       const degradedReason = degraded ? "KI temporär nicht erreichbar" : null;
+      const warningText = typeof payload?.warning === "string" ? payload.warning : null;
 
       setSteps(
         computeStepStatesFromData({
@@ -1669,7 +1856,7 @@ export default function AnalyzeWorkspace({
       } else {
         setInsightTab("input");
         setAnalysisStatus("success");
-        setInfo(null);
+        setInfo(warningText ?? null);
         setError(null);
       }
     } catch (err: any) {
@@ -1722,6 +1909,7 @@ export default function AnalyzeWorkspace({
     fetchResearchGuidance,
     locale,
     maxClaims,
+    maxClaimsCap,
     preparedText,
     statements,
     text,
@@ -1859,7 +2047,14 @@ export default function AnalyzeWorkspace({
 
   const toggleSelected = (id: string) => {
     setHasManualSelection(true);
-    setSelectedClaimIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+    setSelectedClaimIds((prev) => {
+      if (prev.includes(id)) return prev.filter((x) => x !== id);
+      if (typeof activeFinalizeLimit === "number" && prev.length >= activeFinalizeLimit) {
+        setInfo(`Maximal ${activeFinalizeLimit} Kernaussagen auswählbar.`);
+        return prev;
+      }
+      return [...prev, id];
+    });
   };
 
   const handleRedirect = React.useCallback(() => {
@@ -1867,30 +2062,26 @@ export default function AnalyzeWorkspace({
     router.push(finalizeRedirectTo as any);
   }, [finalizeRedirectTo, router]);
 
+  const scrollToCta = React.useCallback(() => {
+    if (!ctaRef.current) return;
+    ctaRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, []);
+
   return (
     <div ref={workspaceRef} className="min-h-[calc(100vh-64px)] bg-[rgb(var(--bg))]">
       <div className={["container-vog max-w-none px-4 space-y-4 pt-6", totalStatements > 0 ? "pb-40" : "pb-24"].join(" ")}>
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div className="space-y-2">
             <h1 className="vog-head text-3xl sm:text-4xl">
-              {mode === "statement" ? (
-                <>
-                  <span className="bg-gradient-to-r from-sky-500 via-cyan-500 to-emerald-500 bg-clip-text text-transparent">
-                    Statement
-                  </span>{" "}
-                  analysieren
-                </>
-              ) : (
-                <>
-                  <span className="bg-gradient-to-r from-sky-500 via-cyan-500 to-emerald-500 bg-clip-text text-transparent">
-                    Beitrag
-                  </span>{" "}
-                  analysieren
-                </>
-              )}
+              <span className="bg-gradient-to-r from-sky-500 via-cyan-500 to-emerald-500 bg-clip-text text-transparent">
+                {headlineLabel}
+              </span>{" "}
+              analysieren
             </h1>
             <p className="text-xs text-[rgb(var(--muted))]">
-              Auto-Flow: <span className="font-semibold text-[rgb(var(--muted))]">{flowConfig.label}</span> ·{" "}
+              {showNeutralHeadline ? "Buerger-Modus (Standard) · " : ""}
+              Auto-Flow:{" "}
+              <span className="font-semibold text-[rgb(var(--muted))]">{flowConfig.label}</span> ·{" "}
               {flowConfig.description}
             </p>
             <div className="flex flex-wrap gap-2 text-[10px] text-[rgb(var(--muted))]">
@@ -1935,7 +2126,7 @@ export default function AnalyzeWorkspace({
             </div>
 
             {allowResearch && (
-              <div className="space-y-2">
+              <div id="sources" className="space-y-2">
                 <div className="flex items-center justify-between">
                   <h3 className="text-sm font-semibold text-[rgb(var(--fg))]">Recherche-Input (optional)</h3>
                   <span className="text-[11px] text-[rgb(var(--muted))]">Links oder Stichpunkte</span>
@@ -2449,6 +2640,60 @@ export default function AnalyzeWorkspace({
               <p className="text-[11px] text-[rgb(var(--muted))]">{outputClassification.hint}</p>
 
               <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-[11px] text-[rgb(var(--muted))]">
+                <p className="text-[10px] font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Erkannt</p>
+                <div className="mt-1 flex flex-wrap gap-3 text-[11px]">
+                  <span>
+                    Beitragstyp erkannt:{" "}
+                    <span className="font-semibold text-[rgb(var(--fg))]">{outputClassification.label}</span>
+                  </span>
+                  <span>
+                    Kernaussagen erkannt:{" "}
+                    <span className="font-semibold text-[rgb(var(--fg))]">{totalStatements}</span>
+                  </span>
+                </div>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!canFinalizeStatement) {
+                        if (finalizeStatementLock) setFlowInfo(finalizeStatementLock);
+                        return;
+                      }
+                      setFinalizeMode("statement");
+                      scrollToCta();
+                    }}
+                    className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-1 text-[11px] font-semibold text-[rgb(var(--muted))] hover:bg-[rgb(var(--bg))]"
+                    disabled={!canFinalizeStatement}
+                  >
+                    Als Statement veröffentlichen
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!canFinalizeContribution) {
+                        if (finalizeContributionLock) setFlowInfo(finalizeContributionLock);
+                        return;
+                      }
+                      setFinalizeMode("contribution");
+                      scrollToCta();
+                    }}
+                    className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-1 text-[11px] font-semibold text-[rgb(var(--muted))] hover:bg-[rgb(var(--bg))]"
+                    disabled={!canFinalizeContribution}
+                  >
+                    Als Beitrag einreichen
+                  </button>
+                  {allowResearch ? (
+                    <a
+                      href="#sources"
+                      className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-1 text-[11px] font-semibold text-[rgb(var(--muted))] hover:bg-[rgb(var(--bg))]"
+                    >
+                      Quellen ergänzen
+                    </a>
+                  ) : null}
+                </div>
+              </div>
+
+              <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-[11px] text-[rgb(var(--muted))]">
                 <p className="text-[10px] font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Feedback an Verfasser</p>
                 <p className="mt-1">{authorFeedback}</p>
               </div>
@@ -2839,70 +3084,92 @@ export default function AnalyzeWorkspace({
 
         <div className="max-w-4xl mx-auto">
           <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-4 shadow-sm space-y-4">
-            <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
                 <p className="text-[11px] font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Analyse starten</p>
-                <p className="text-[11px] text-[rgb(var(--muted))]">
-                  Waehle deinen Bereich – die Analyse startet sofort mit dem passenden Ablauf.
-                </p>
+                <p className="text-[11px] text-[rgb(var(--muted))]">{analyzeIntro}</p>
                 {useCaseNote ? (
                   <p className="mt-1 text-[11px] text-[rgb(var(--muted))]">{useCaseNote}</p>
                 ) : null}
               </div>
-              <span className="rounded-full bg-[rgb(var(--bg))] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
-                {useCaseLabel}
-              </span>
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="rounded-full bg-[rgb(var(--bg))] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
+                  {useCaseLabel}
+                </span>
+                {canSwitchUseCase ? (
+                  <button
+                    type="button"
+                    onClick={() => setShowAdvancedUseCases((prev) => !prev)}
+                    className="rounded-full border border-[rgb(var(--border))] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-[rgb(var(--muted))] hover:border-sky-200 hover:text-sky-700"
+                  >
+                    {showAdvancedUseCases ? "Erweiterte Kontexte ausblenden" : "Erweiterte Kontexte"}
+                  </button>
+                ) : null}
+              </div>
             </div>
 
-            <div className="grid gap-2 sm:grid-cols-3">
-              {useCaseOptions.map((item) => {
-                const active = useCase === item.id;
-                const allowed = isUseCaseAllowed(item.id);
-                const lockLabel = lockLabelFor(item.id);
-                const isDisabled = analyzeDisabled;
-                return (
-                  <button
-                    key={item.id}
-                    type="button"
-                    aria-pressed={active && allowed}
-                    aria-disabled={!allowed || isDisabled}
-                    onClick={() => {
-                      if (!allowed) {
-                        setFlowInfo(lockLabel);
-                        return;
-                      }
-                      if (isDisabled) return;
-                      setUseCase(item.id);
-                      void handleAnalyze();
-                    }}
-                    className={[
-                      "group rounded-2xl border px-3 py-3 text-left transition shadow-sm",
-                      active && allowed
-                        ? "border-sky-200 bg-gradient-to-r from-sky-500/10 via-cyan-500/10 to-emerald-500/10"
-                        : "border-[rgb(var(--border))] bg-[rgb(var(--card))]",
-                      allowed ? "hover:border-sky-200 hover:shadow-md" : "cursor-not-allowed opacity-60",
-                      isDisabled ? "opacity-70" : "",
-                    ].join(" ")}
-                    disabled={isDisabled}
-                  >
-                    <div className="flex items-center justify-between gap-2">
-                      <p className="text-sm font-semibold text-[rgb(var(--fg))]">{item.title}</p>
-                      <span className="rounded-full bg-[rgb(var(--bg))] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
-                        {analyzeButtonLabel}
-                      </span>
-                    </div>
-                    <p className="mt-1 text-[11px] text-[rgb(var(--muted))]">{item.text}</p>
-                    {!allowed ? (
-                      <div className="mt-2 flex items-center justify-between text-[10px] text-[rgb(var(--muted))]">
-                        <span className="font-semibold uppercase tracking-wide">{lockLabel}</span>
-                        <a href={useCaseCtaHref} className="font-semibold underline underline-offset-4">
-                          {useCaseCtaLabel}
-                        </a>
+            {canSwitchUseCase && showAdvancedUseCases ? (
+              <div id="use-cases" className="grid gap-2 sm:grid-cols-3">
+                {useCaseOptions.map((item) => {
+                  const active = useCase === item.id;
+                  const allowed = isUseCaseAllowed(item.id);
+                  const lockLabel = lockLabelFor(item.id);
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      aria-pressed={active && allowed}
+                      aria-disabled={!allowed}
+                      onClick={() => {
+                        if (!allowed) {
+                          setFlowInfo(lockLabel);
+                          return;
+                        }
+                        setUseCase(item.id);
+                      }}
+                      className={[
+                        "group rounded-2xl border px-3 py-3 text-left transition shadow-sm",
+                        active && allowed
+                          ? "border-sky-200 bg-gradient-to-r from-sky-500/10 via-cyan-500/10 to-emerald-500/10"
+                          : "border-[rgb(var(--border))] bg-[rgb(var(--card))]",
+                        allowed ? "hover:border-sky-200 hover:shadow-md" : "cursor-not-allowed opacity-60",
+                      ].join(" ")}
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-sm font-semibold text-[rgb(var(--fg))]">{item.title}</p>
+                        {active ? (
+                          <span className="rounded-full bg-[rgb(var(--bg))] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
+                            Aktiv
+                          </span>
+                        ) : null}
                       </div>
-                    ) : null}
-                  </button>
-                );
-              })}
+                      <p className="mt-1 text-[11px] text-[rgb(var(--muted))]">{item.text}</p>
+                      {!allowed ? (
+                        <div className="mt-2 flex items-center justify-between text-[10px] text-[rgb(var(--muted))]">
+                          <span className="font-semibold uppercase tracking-wide">{lockLabel}</span>
+                          <a href={useCaseCtaHref} className="font-semibold underline underline-offset-4">
+                            {useCaseCtaLabel}
+                          </a>
+                        </div>
+                      ) : null}
+                    </button>
+                  );
+                })}
+              </div>
+            ) : null}
+
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={handleAnalyze}
+                disabled={analyzeDisabled}
+                className="rounded-full bg-gradient-to-r from-sky-500 via-cyan-500 to-emerald-500 px-4 py-2 text-xs font-semibold text-white shadow-md hover:brightness-105 focus:outline-none focus:ring-2 focus:ring-sky-200 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {analyzeButtonLabel}
+              </button>
+              <span className="text-[10px] font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
+                Modus: {useCaseLabel}
+              </span>
             </div>
 
             <div className="grid gap-3 md:grid-cols-2">
@@ -2984,13 +3251,46 @@ export default function AnalyzeWorkspace({
               >
                 Speichern
               </button>
+              <div className="flex flex-wrap items-center gap-1 rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-2 py-1">
+                <button
+                  type="button"
+                  onClick={() => setFinalizeMode("statement")}
+                  disabled={!canFinalizeStatement}
+                  className={[
+                    "rounded-full px-3 py-1 text-[11px] font-semibold transition",
+                    finalizeMode === "statement"
+                      ? "bg-sky-600 text-white"
+                      : "text-[rgb(var(--muted))] hover:text-sky-700",
+                    !canFinalizeStatement ? "cursor-not-allowed opacity-50" : "",
+                  ].join(" ")}
+                  title={finalizeStatementLock ?? undefined}
+                >
+                  Statement · max {statementLimit}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFinalizeMode("contribution")}
+                  disabled={!canFinalizeContribution}
+                  className={[
+                    "rounded-full px-3 py-1 text-[11px] font-semibold transition",
+                    finalizeMode === "contribution"
+                      ? "bg-emerald-600 text-white"
+                      : "text-[rgb(var(--muted))] hover:text-emerald-700",
+                    !canFinalizeContribution ? "cursor-not-allowed opacity-50" : "",
+                  ].join(" ")}
+                  title={finalizeContributionLock ?? undefined}
+                >
+                  Beitrag ·{contributionLimit ? ` max ${contributionLimit}` : " kein Limit"}
+                </button>
+              </div>
               <button
                 type="button"
                 onClick={handleFinalize}
-                disabled={!draftId || isFinalizing}
+                disabled={!draftId || isFinalizing || !canFinalizeActive}
+                title={activeFinalizeLock ?? undefined}
                 className="rounded-full bg-gradient-to-r from-sky-500 via-cyan-500 to-emerald-500 px-5 py-2 text-xs font-semibold text-white shadow-md hover:brightness-105 focus:outline-none focus:ring-2 focus:ring-sky-200 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                Einreichen
+                {finalizeMode === "statement" ? "Als Statement veröffentlichen" : "Als Beitrag einreichen"}
               </button>
             </div>
           </div>

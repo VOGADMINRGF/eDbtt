@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { AdminErrorPanel } from "@/components/admin/AdminErrorPanel";
 
 type PilotSettings = {
   checkLevel: 0 | 1 | 2;
@@ -162,7 +163,7 @@ export default function AdminPilotPage() {
         </p>
       </header>
 
-      {error && <p className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</p>}
+      {error && <AdminErrorPanel error={error} />}
 
       <section className="rounded-3xl bg-[rgb(var(--card))] p-4 shadow ring-1 ring-[rgb(var(--border))]">
         <div className="flex flex-wrap items-center justify-between gap-3">

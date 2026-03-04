@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { getCol, ObjectId } from "@core/db/triMongo";
 import { z } from "zod";
+import { getCreateEntitlementsForRequest } from "@/lib/server/entitlements/createEntitlements";
 
 const DraftSaveSchema = z.object({
   draftId: z.string().optional(),
@@ -16,6 +17,8 @@ const DraftSaveSchema = z.object({
   authorName: z.string().max(160).optional(),
   useCase: z.enum(["civic", "journalism", "agenda"]).optional(),
   analysis: z.unknown().optional(),
+  attachments: z.array(z.any()).optional(),
+  externalExtraction: z.boolean().optional(),
 });
 
 type ContributionDraftDoc = {
@@ -34,11 +37,25 @@ type ContributionDraftDoc = {
   proposalIds?: string[];
 };
 
+type ApiSuccess<T> = { ok: true; data: T; code?: string };
+type ApiError = { ok: false; error: string; code: string; details?: unknown };
+
+function ok<T>(data: T, status = 200, code?: string) {
+  return NextResponse.json({ ok: true, data, ...(code ? { code } : {}) } satisfies ApiSuccess<T>, { status });
+}
+
+function err(code: string, message: string, status = 500, details?: unknown) {
+  return NextResponse.json(
+    { ok: false, error: message, code, ...(details ? { details } : {}) } satisfies ApiError,
+    { status },
+  );
+}
+
 export async function POST(req: NextRequest) {
   const cookieStore = await cookies();
   const userId = cookieStore.get("u_id")?.value;
   if (!userId) {
-    return NextResponse.json({ ok: false, error: "not_authenticated" }, { status: 401 });
+    return err("NOT_AUTHENTICATED", "Speichern erfordert Anmeldung.", 401);
   }
 
   let body: z.infer<typeof DraftSaveSchema>;
@@ -46,7 +63,15 @@ export async function POST(req: NextRequest) {
     body = DraftSaveSchema.parse(await req.json());
   } catch (err: any) {
     const message = err?.issues?.[0]?.message ?? "invalid_body";
-    return NextResponse.json({ ok: false, error: message }, { status: 400 });
+    return err("INVALID_BODY", message, 400, { issues: err?.issues });
+  }
+
+  const entitlements = await getCreateEntitlementsForRequest(req);
+  if (!entitlements.canUseAttachments && Array.isArray(body.attachments) && body.attachments.length > 0) {
+    return err("ATTACHMENTS_FORBIDDEN", "Dateianhaenge sind fuer dein Paket nicht freigeschaltet.", 403);
+  }
+  if (!entitlements.canUseExternalExtraction && body.externalExtraction) {
+    return err("EXTERNAL_EXTRACTION_FORBIDDEN", "Externe Quellen sind fuer dein Paket nicht freigeschaltet.", 403);
   }
 
   const Drafts = await getCol<ContributionDraftDoc>("contribution_drafts");
@@ -55,7 +80,7 @@ export async function POST(req: NextRequest) {
     body.textPrepared?.trim() || body.textOriginal?.trim() || body.text?.trim() || "";
 
   if (!normalizedText) {
-    return NextResponse.json({ ok: false, error: "empty_text" }, { status: 422 });
+    return err("EMPTY_TEXT", "Bitte zuerst einen Text eingeben.", 422);
   }
 
   if (body.draftId) {
@@ -63,7 +88,7 @@ export async function POST(req: NextRequest) {
     try {
       draftOid = new ObjectId(body.draftId);
     } catch {
-      return NextResponse.json({ ok: false, error: "invalid_draft" }, { status: 400 });
+      return err("INVALID_DRAFT", "Draft-ID ist ungueltig.", 400);
     }
 
     const result = await Drafts.findOneAndUpdate(
@@ -85,11 +110,10 @@ export async function POST(req: NextRequest) {
 
     const updated = (result as any)?.value ?? result;
     if (!updated) {
-      return NextResponse.json({ ok: false, error: "draft_not_found" }, { status: 404 });
+      return err("DRAFT_NOT_FOUND", "Entwurf nicht gefunden.", 404);
     }
 
-    return NextResponse.json({
-      ok: true,
+    return ok({
       draftId: String(updated._id),
       updatedAt: updated.updatedAt?.toISOString() ?? now.toISOString(),
     });
@@ -109,5 +133,5 @@ export async function POST(req: NextRequest) {
   };
 
   const insert = await Drafts.insertOne(doc as ContributionDraftDoc);
-  return NextResponse.json({ ok: true, draftId: String(insert.insertedId), updatedAt: now.toISOString() });
+  return ok({ draftId: String(insert.insertedId), updatedAt: now.toISOString() });
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { AdminErrorPanel } from "@/components/admin/AdminErrorPanel";
 
 type Contribution = {
   id: string;
@@ -89,11 +90,7 @@ export default function AdminContributionsPage() {
         </button>
       </header>
 
-      {error && (
-        <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-2 text-sm text-rose-700" aria-live="polite">
-          {error}
-        </div>
-      )}
+      {error && (<AdminErrorPanel error={error} />)}
 
       <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm">
         {loading && <p className="text-sm text-[rgb(var(--muted))]">Lädt …</p>}

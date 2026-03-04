@@ -407,10 +407,10 @@ Mit diesem Part 1 sind folgende früheren TODOs abgedeckt:
 - Pricing-Limits für Paid Tiers (Rahmen, Details in `pricing.ts` + `limits.ts`)
 - Contribution-Credit-Threshold
 
-Offen bleiben (für spätere Parts):
+Offen bleiben (nur falls neue Spezifikationen nötig; Status siehe `docs/E150/OpenTasks.md`):
 
-- Detail-Design Orchestrator & Evidence-Graph (Part 2–4).
-- Vollständige Telemetrie-Spec (Events & KPIs in Part 3.x).
-- Tiefen-Spezifikation der Admin-Dashboards (Part 6/7).
+- Detail-Design Orchestrator & Evidence-Graph (in Part05/Part07 umgesetzt; weiterer Feinschliff optional).
+- Vollständige Telemetrie-Spec (Basis implementiert; zusätzliche KPIs optional).
+- Tiefen-Spezifikation der Admin-Dashboards (Basis vorhanden; optionaler Nachlauf in OpenTasks).
 
 Dieses Dokument ist der verbindliche Rahmen für alle Rollen-, Access- und Nutzungsentscheidungen in E150/E200.

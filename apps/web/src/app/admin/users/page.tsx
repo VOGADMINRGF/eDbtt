@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { EDEBATTE_PACKAGES_WITH_NONE, getEdebatePackageLabel } from "@/config/edebatte";
 import { ACCESS_TIER_CONFIG } from "@core/access/accessTiers";
 import type { AccessTier } from "@features/pricing/types";
+import { AdminErrorPanel } from "@/components/admin/AdminErrorPanel";
 
 const ACCESS_TIER_OPTIONS = Object.keys(ACCESS_TIER_CONFIG) as AccessTier[];
 
@@ -206,11 +207,7 @@ export default function AdminUsersPage() {
   };
 
   if (accessError) {
-    return (
-      <div className="rounded-3xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
-        {accessError}
-      </div>
-    );
+    return <AdminErrorPanel error={accessError} />;
   }
 
   return (
@@ -664,7 +661,7 @@ export default function AdminUsersPage() {
               </label>
             </div>
 
-            {createError && <p className="text-sm text-rose-600">{createError}</p>}
+            {createError && <AdminErrorPanel error={createError} />}
 
             <div className="flex justify-end gap-2 pt-2">
               <button

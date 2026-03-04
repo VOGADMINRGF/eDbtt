@@ -67,18 +67,20 @@ export default function AnalyzeShell() {
       setStage(3);
       const data: ApiResponse | null = await res.json().catch(() => null);
 
-      if (!res.ok || !data?.ok) {
+      if (!res.ok || data?.ok !== true) {
         setNote(
-          data?.message ||
-            data?.error ||
+          data?.error ||
+            (data as any)?.message ||
             `Ups – das hat nicht geklappt (HTTP ${res.status}). Bitte nochmal versuchen oder unseren Support kontaktieren.`,
         );
         setBusy(false);
         return;
       }
 
-      const claims = data.result?.claims ?? data.claims;
-      const statements = data.result?.statements ?? data.statements;
+      const payload = (data as any)?.data ?? (data as any);
+      const resultPayload = payload?.result ?? payload;
+      const claims = resultPayload?.claims ?? payload?.claims;
+      const statements = resultPayload?.statements ?? payload?.statements;
       if (!Array.isArray(claims)) {
         setNote("Analyse ergab keine Claims. Bitte versuche einen anderen Text oder kontaktiere den Support.");
         setBusy(false);
@@ -94,7 +96,7 @@ export default function AnalyzeShell() {
       setStage(4);
       setThanks(true);
 
-      if (data.degraded || data.fallback) {
+      if ((payload as any)?.degraded || (payload as any)?.fallback) {
         setNote("Hinweis: Analyse lief im Fallback. Falls das Ergebnis komisch wirkt, probiere es bitte erneut.");
       }
     } catch {

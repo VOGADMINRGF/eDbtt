@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { AdminErrorPanel } from "@/components/admin/AdminErrorPanel";
 
 const STATUS_OPTIONS = ["draft", "review", "published", "archived"] as const;
 
@@ -137,11 +138,7 @@ export default function AdminReportAssetDetailPage() {
         <p className="text-sm text-[rgb(var(--muted))]">Status: {asset?.status ?? "—"}</p>
       </header>
 
-      {error && (
-        <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
-          {error}
-        </div>
-      )}
+      {error && (<AdminErrorPanel error={error} />)}
 
       <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm">
         <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Status</h2>

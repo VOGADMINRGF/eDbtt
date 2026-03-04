@@ -15,7 +15,15 @@ export async function GET(req: NextRequest) {
 
   const driver = getGraphDriver();
   if (!driver) {
-    return NextResponse.json({ ok: false, error: "graph_unavailable" }, { status: 503 });
+    return NextResponse.json(
+      {
+        ok: false,
+        error: "graph_unavailable",
+        missingEnv: missingGraphEnv(),
+        hint: "NEO4J_URL, NEO4J_USER und NEO4J_PASSWORD in .env(.local) setzen.",
+      },
+      { status: 503 },
+    );
   }
 
   const session = driver.session();
@@ -79,6 +87,14 @@ export async function GET(req: NextRequest) {
   } finally {
     await session.close();
   }
+}
+
+function missingGraphEnv() {
+  const missing: string[] = [];
+  if (!process.env.NEO4J_URL) missing.push("NEO4J_URL");
+  if (!process.env.NEO4J_USER) missing.push("NEO4J_USER");
+  if (!process.env.NEO4J_PASSWORD) missing.push("NEO4J_PASSWORD");
+  return missing;
 }
 
 function mergeLevels(

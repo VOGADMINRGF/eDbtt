@@ -567,10 +567,10 @@ function SwipesHeader({ edebattePackage, isBasic, isStartOrPro }: SwipesHeaderPr
       </h1>
       <p className="max-w-2xl text-sm text-[rgb(var(--muted))]">Links/rechts entscheiden, Quellen prüfen, später vertiefen – die Karten können aus deinen Analysen oder aktuellen Themen gespeist werden.</p>
       <div className="flex flex-wrap items-center gap-2">
-        <Link href="/statements/new" className={primaryChipClass}>
+        <Link href="/create?intent=statement" className={primaryChipClass}>
           Neues Statement analysieren
         </Link>
-        <Link href="/contributions/new" className={secondaryChipClass}>
+        <Link href="/create?intent=contribution" className={secondaryChipClass}>
           Beitrag einreichen
         </Link>
         <Link href="/account" className={subtleTextLinkClass}>

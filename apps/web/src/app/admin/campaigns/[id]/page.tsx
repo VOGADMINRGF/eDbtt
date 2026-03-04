@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
+import { AdminErrorPanel } from "@/components/admin/AdminErrorPanel";
 
 type CampaignDetail = {
   id: string;
@@ -316,9 +317,7 @@ export default function AdminCampaignDetailPage() {
         </p>
       </header>
 
-      {error && (
-        <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</div>
-      )}
+      {error && (<AdminErrorPanel error={error} />)}
 
       {loading && (
         <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-6 text-sm text-[rgb(var(--muted))]">Lädt …</div>

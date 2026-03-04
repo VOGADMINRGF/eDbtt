@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useDeferredValue, useEffect, useMemo, useState } from "react";
+import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import type { Dossier } from "@features/dossier";
 import type { PresentationContribution, PresentationStream } from "./presentation";
 import MaterialLinksPanel from "./MaterialLinksPanel";
@@ -75,6 +75,20 @@ export default function MaterialHub({
   const searchParams = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
+  const scrollRafRef = useRef<number | null>(null);
+
+  const scrollToMaterial = useCallback(() => {
+    if (typeof window === "undefined") return;
+    if (window.location.hash !== "#material") return;
+    const el = document.getElementById("material");
+    if (!el) return;
+    if (scrollRafRef.current) {
+      window.cancelAnimationFrame(scrollRafRef.current);
+    }
+    scrollRafRef.current = window.requestAnimationFrame(() => {
+      el.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  }, []);
 
   const initialTab = useMemo((): TabId => {
     const t = searchParams.get("tab");
@@ -119,9 +133,8 @@ export default function MaterialHub({
     const curQs = searchParams.toString();
     if (nextQs === curQs) return;
 
-    router.replace(nextQs ? `${pathname}?${nextQs}` : pathname, { scroll: false });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tab, q, sort]);
+    router.replace((nextQs ? `${pathname}?${nextQs}` : pathname) as any, { scroll: false });
+  }, [pathname, q, router, searchParams, sort, tab]);
 
   useEffect(() => {
     const t = searchParams.get("tab");
@@ -133,8 +146,18 @@ export default function MaterialHub({
     setTab((prev) => (prev === nextTab ? prev : nextTab));
     setSort((prev) => (prev === nextSort ? prev : nextSort));
     setQ((prev) => (prev === nq ? prev : nq));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
+
+  useEffect(() => {
+    scrollToMaterial();
+  }, [scrollToMaterial, searchParams]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const onHashChange = () => scrollToMaterial();
+    window.addEventListener("hashchange", onHashChange);
+    return () => window.removeEventListener("hashchange", onHashChange);
+  }, [scrollToMaterial]);
 
   const filteredSources = useMemo(() => {
     const base = sources ?? [];

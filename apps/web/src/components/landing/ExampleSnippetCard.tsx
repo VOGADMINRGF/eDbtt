@@ -174,9 +174,9 @@ export function ExampleSnippetCard(props: {
   return (
     <div
       className={[
-        "rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))]",
+        "relative z-10 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))]",
         "shadow-[0_12px_40px_rgba(2,6,23,0.18)]",
-        "px-4 py-3",
+        "px-4 pt-4 pb-3",
         interactive
           ? "transition hover:-translate-y-[1px] hover:shadow-[0_18px_50px_rgba(2,6,23,0.28)]"
           : "",
@@ -204,7 +204,12 @@ export function ExampleSnippetCard(props: {
       }}
     >
       <div className="mb-2 flex flex-wrap items-center gap-2">
-        <span className="inline-flex items-center gap-2 rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-2.5 py-1 text-[11px] font-semibold text-[rgb(var(--fg))]">
+        <span
+          className={[
+            "inline-flex items-center gap-2 rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-2.5 py-1 font-semibold text-[rgb(var(--fg))]",
+            compact ? "text-[clamp(9px,0.55vw,10px)]" : "text-[11px]",
+          ].join(" ")}
+        >
           {badge.kind === "crest" ? (
             <StateCrestBadge regionCode={badge.regionCode} size={14} className="shrink-0" />
           ) : (
@@ -213,11 +218,13 @@ export function ExampleSnippetCard(props: {
           <span>{badge.label}</span>
         </span>
         <span
-          className={`inline-flex items-center gap-1.5 rounded-full border bg-[rgb(var(--card))] px-2.5 py-1 text-[11px] font-semibold text-[rgb(var(--fg))] ${
+          className={[
+            "inline-flex items-center gap-1.5 rounded-full border bg-[rgb(var(--card))] px-2.5 py-1 font-semibold text-[rgb(var(--fg))]",
+            compact ? "text-[clamp(9px,0.55vw,10px)]" : "text-[11px]",
             isVote
               ? "border-sky-400 dark:border-sky-400/35 dark:bg-sky-500/15 dark:text-sky-200"
-              : "border-cyan-400 dark:border-cyan-400/35 dark:bg-cyan-500/15 dark:text-cyan-200"
-          }`}
+              : "border-cyan-400 dark:border-cyan-400/35 dark:bg-cyan-500/15 dark:text-cyan-200",
+          ].join(" ")}
         >
           <LandingKindIcon kind={isVote ? "vote" : "topic"} className="h-3.5 w-3.5" />
           {kindLabel}
@@ -225,18 +232,33 @@ export function ExampleSnippetCard(props: {
         {topics.slice(0, compact ? 1 : 2).map((topic) => (
           <span
             key={topic}
-            className={`inline-flex items-center rounded-full border bg-[rgb(var(--card))] px-2.5 py-1 text-[11px] font-semibold text-[rgb(var(--fg))] ${topicTone(
-              topic,
-            )}`}
+            className={[
+              "inline-flex items-center rounded-full border bg-[rgb(var(--card))] px-2.5 py-1 font-semibold text-[rgb(var(--fg))]",
+              compact ? "text-[clamp(9px,0.55vw,10px)]" : "text-[11px]",
+              topicTone(topic),
+              "text-[rgb(var(--fg))] dark:text-[rgb(var(--fg))] opacity-100",
+            ].join(" ")}
           >
             {topic}
           </span>
         ))}
       </div>
 
-      <div className="line-clamp-2 text-sm font-semibold text-[rgb(var(--fg))]">{title}</div>
+      <div
+        className={[
+          "line-clamp-2 font-semibold text-[rgb(var(--fg))]",
+          compact ? "text-[clamp(11px,0.7vw,12px)]" : "text-sm",
+        ].join(" ")}
+      >
+        {title}
+      </div>
 
-      <div className="mt-2 flex items-center justify-between text-[11px] text-[rgb(var(--muted))]">
+      <div
+        className={[
+          "mt-2 flex items-center justify-between text-[rgb(var(--muted))]",
+          compact ? "text-[clamp(9px,0.55vw,10px)]" : "text-[11px]",
+        ].join(" ")}
+      >
         <div className="flex items-center gap-3">
           {participants && (
             <span>

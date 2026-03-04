@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
+import { AdminErrorPanel } from "@/components/admin/AdminErrorPanel";
 
 const KIND_OPTIONS = ["topic", "region", "custom"] as const;
 const STATUS_OPTIONS = ["draft", "review", "published", "archived"] as const;
@@ -207,11 +208,7 @@ export default function AdminReportAssetsPage() {
         />
       </div>
 
-      {error && (
-        <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
-          {error}
-        </div>
-      )}
+      {error && (<AdminErrorPanel error={error} />)}
 
       <div className="overflow-hidden rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] shadow-sm">
         <table className="min-w-full divide-y divide-[rgb(var(--border))] text-sm">

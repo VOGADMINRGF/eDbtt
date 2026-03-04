@@ -56,8 +56,15 @@ export default function AnalyzePanel() {
         body: JSON.stringify({ text, maxClaims: 5, locale: "de" }),
       });
       const aJson: AnalyzeOut | null = await aRes.json().catch(() => null);
+      const payload = (aJson as any)?.data ?? (aJson as any);
+      const resultPayload = payload?.result ?? payload;
+      const claims = Array.isArray(resultPayload?.claims)
+        ? resultPayload.claims
+        : Array.isArray(payload?.claims)
+          ? payload.claims
+          : null;
 
-      if (!aRes.ok || !aJson?.ok || !Array.isArray(aJson.claims)) {
+      if (!aRes.ok || aJson?.ok !== true || !Array.isArray(claims)) {
         throw new Error(
           aJson?.message ||
             aJson?.error ||
@@ -69,22 +76,22 @@ export default function AnalyzePanel() {
       }
 
       // Hinweis für UI, falls Fallback/Timeout o.ä.
-      if (aJson.degraded) {
-        setNotes(`Analyze lief degradiert (${aJson.reason ?? "unbekannt"}). Versuche zu verfeinern…`);
+      if ((payload as any)?.degraded) {
+        setNotes(`Analyze lief degradiert (${(payload as any)?.reason ?? "unbekannt"}). Versuche zu verfeinern…`);
       }
 
       // --- Phase B: Refine ---
       const rRes = await fetch("/api/contributions/refine", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ locale: "de", claims: aJson.claims }),
+        body: JSON.stringify({ locale: "de", claims }),
       });
-      const fallbackDraftIndexes = aJson.claims!.map((_, i) => i).slice(1);
+      const fallbackDraftIndexes = claims.map((_, i) => i).slice(1);
       const rJson: RefineOut | null = await rRes.json().catch(() => ({
         ok: false,
         degraded: true,
         primaryIndex: 0,
-        claims: aJson.claims!,
+        claims,
         draftIndexes: fallbackDraftIndexes,
         reason: "NO_JSON",
       }));
@@ -92,7 +99,7 @@ export default function AnalyzePanel() {
         ok: false,
         degraded: true,
         primaryIndex: 0,
-        claims: aJson.claims!,
+        claims,
         draftIndexes: fallbackDraftIndexes,
         reason: "EMPTY_RESPONSE",
       };
@@ -112,7 +119,7 @@ export default function AnalyzePanel() {
       const finalClaims =
         rRes.ok && safeRefine.ok && Array.isArray(safeRefine.claims)
           ? safeRefine.claims
-          : aJson.claims!;
+          : claims;
       const draftsIdx =
         rRes.ok && safeRefine.ok && Array.isArray(safeRefine.draftIndexes)
           ? safeRefine.draftIndexes

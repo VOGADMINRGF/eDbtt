@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import QRCode from "qrcode";
 import Link from "next/link";
+import { AdminErrorPanel } from "@/components/admin/AdminErrorPanel";
 
 type QuestionDraft = {
   title: string;
@@ -296,11 +297,7 @@ export default function AdminMediaPage() {
               Nur verifizierte Teilnehmende (nicht anonym)
             </label>
 
-            {createError && (
-              <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-2 text-sm text-rose-700">
-                {createError}
-              </div>
-            )}
+            {createError && <AdminErrorPanel error={createError} />}
 
             <button
               type="button"
@@ -363,11 +360,7 @@ export default function AdminMediaPage() {
           </button>
         </div>
 
-        {summaryError && (
-          <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-2 text-sm text-rose-700">
-            {summaryError}
-          </div>
-        )}
+        {summaryError && <AdminErrorPanel error={summaryError} />}
 
         {summary?.ok && summary.questions ? (
           <div className="space-y-4">

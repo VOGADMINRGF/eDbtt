@@ -121,7 +121,7 @@ export default function UserProfile() {
             Weiter swipen
           </a>
           <a
-            href="/contributions/new"
+            href="/create?intent=contribution"
             className="flex-1 rounded-full border border-[rgb(var(--border))] px-6 py-3 text-center font-semibold text-[rgb(var(--muted))]"
           >
             Neue Contribution starten

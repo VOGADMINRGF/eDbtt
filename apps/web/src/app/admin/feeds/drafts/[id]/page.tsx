@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { AdminErrorPanel } from "@/components/admin/AdminErrorPanel";
 
 type DraftDetailResponse = {
   ok: true;
@@ -104,11 +105,7 @@ export default function AdminDraftDetailPage() {
   }
 
   if (error || !data) {
-    return (
-      <div className="p-6 text-sm text-rose-600">
-        {error ?? "Draft nicht gefunden."}
-      </div>
-    );
+    return <AdminErrorPanel error={error ?? "Draft nicht gefunden."} />;
   }
 
   const { draft, candidate, analyzeResult } = data;

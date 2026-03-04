@@ -56,10 +56,16 @@ export function InputsPanel({
         <div className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Material</div>
         {dossierId ? (
           <div className="flex flex-wrap gap-2 text-[11px]">
-            <Link href={`/contributions/new?dossierId=${encodeURIComponent(dossierId)}`} className="btn btn-ghost text-xs">
+            <Link
+              href={`/create?intent=contribution&dossierId=${encodeURIComponent(dossierId)}`}
+              className="btn btn-ghost text-xs"
+            >
               Beitrag hinzufügen
             </Link>
-            <Link href={`/statements/new?dossierId=${encodeURIComponent(dossierId)}`} className="btn btn-ghost text-xs">
+            <Link
+              href={`/create?intent=statement&dossierId=${encodeURIComponent(dossierId)}`}
+              className="btn btn-ghost text-xs"
+            >
               Aussage ergänzen
             </Link>
             {typeof materialLinkCount === "number" && materialLinkCount > 0 ? (

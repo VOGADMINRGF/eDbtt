@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
+import { AdminErrorPanel } from "@/components/admin/AdminErrorPanel";
 
 type ErrorRow = {
   _id: string;
@@ -125,11 +126,7 @@ export default function AdminErrorDetailPage() {
         </div>
       )}
 
-      {error && !loading && (
-        <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-6 text-sm text-rose-700 shadow-sm">
-          {error}
-        </div>
-      )}
+      {error && !loading && <AdminErrorPanel error={error} />}
 
       {!loading && item && (
         <>

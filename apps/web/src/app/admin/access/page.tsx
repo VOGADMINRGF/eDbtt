@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import type { AccessGroup, RoutePolicy } from "@features/access/types";
 import type { AccessTier } from "@features/pricing/types";
 import { ACCESS_TIER_CONFIG } from "@core/access/accessTiers";
+import { AdminErrorPanel } from "@/components/admin/AdminErrorPanel";
 
 type RouteRow = RoutePolicy & { overrides: number };
 
@@ -223,9 +224,7 @@ export default function AccessCenterPage() {
         )}
       </div>
 
-      {error && (
-        <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-2 text-sm text-rose-700">{error}</div>
-      )}
+      {error && (<AdminErrorPanel error={error} />)}
 
       <div className="overflow-x-auto rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] shadow-sm">
         <table className="min-w-full divide-y divide-[rgb(var(--border))] text-sm">
@@ -375,11 +374,7 @@ export default function AccessCenterPage() {
           </span>
         </div>
 
-        {inventoryError && (
-          <div className="mt-3 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700">
-            {inventoryError}
-          </div>
-        )}
+        {inventoryError && <AdminErrorPanel error={inventoryError} className="mt-3" />}
 
         <div className="mt-3 space-y-2">
           {filteredUnmanaged.length === 0 && !inventoryLoading && (

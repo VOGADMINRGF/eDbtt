@@ -1,6 +1,6 @@
 # E150 Master Spec – Part 15: Offene Pfade & Restarbeiten
 
-> Status-Hinweis (2026-02-12): Dieses Part ist eine Spezifikation/Zusammenfassung. Der verbindliche Aufgabenstand liegt in `docs/E150/OpenTasks.md`. Keine neuen Runs aus diesem Part ableiten.
+> Status-Hinweis (2026-03-04): Dieses Part ist eine Spezifikation/Zusammenfassung. Der verbindliche Aufgabenstand liegt in `docs/E150/OpenTasks.md`. Keine neuen Runs aus diesem Part ableiten.
 
 
 ## Zweck
@@ -27,7 +27,7 @@ Dieses Dokument dient als Status-Zusammenfassung der Pfade (Part00–Part15). Es
 - **Part14 Implementation Roadmap:** Dient als Arbeitsmodus; Block-Reihenfolge beachten.
 - **Part15 Codex Safe Mode:** Leitplanken aktiv; keine offenen Tasks, aber stets befolgen.
 
-## Drift-Plan Audit (2026-02-12)
+## Drift-Plan Audit (2026-03-04)
 
 Diese Liste spiegelt alle vorhandenen Drift-Prompts aus `.codex/drifts/`.  
 Status basiert auf Repo-Evidenz (Dateien/Routes/Modelle). Offener Arbeitsstand bleibt in `docs/E150/OpenTasks.md`.

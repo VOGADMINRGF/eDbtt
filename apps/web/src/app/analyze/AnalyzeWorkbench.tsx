@@ -68,12 +68,19 @@ export default function AnalyzeWorkbench({
         body: JSON.stringify({ text, locale, maxClaims }),
       });
       const data = await res.json().catch(() => ({}));
+      if (!res.ok || data?.ok === false) {
+        setStatements([]);
+        return;
+      }
+      const payload = (data as any)?.data ?? (data as any);
+      const resultPayload = payload?.result ?? payload;
+      const source = resultPayload ?? payload;
       // bevorzugt route-V2: { statements: [...] }, fallback: { claims: [...] }
       const stmts: Statement[] =
-        Array.isArray(data?.statements)
-          ? data.statements.map((s: any, i: number) => ({ id: s.id ?? String(i), rep: s.rep ?? s }))
-          : Array.isArray(data?.claims)
-            ? data.claims.map((c: any, i: number) => ({ id: String(i), rep: c }))
+        Array.isArray(source?.statements)
+          ? source.statements.map((s: any, i: number) => ({ id: s.id ?? String(i), rep: s.rep ?? s }))
+          : Array.isArray(source?.claims)
+            ? source.claims.map((c: any, i: number) => ({ id: String(i), rep: c }))
             : [];
       setStatements(stmts);
     } finally {

@@ -80,14 +80,9 @@ export function ExamplesMarqueeRows(props: {
   const speeds = [64, 72, 80, 88, 96, 104];
 
   return (
-    <div ref={ref} className="absolute inset-0 z-0 overflow-hidden">
-      {/* calmer backdrop (less “heavy white overlay”) */}
-      <div className="pointer-events-none absolute inset-0 edb-backdrop-glow bg-[radial-gradient(900px_520px_at_30%_0%,rgba(26,140,255,0.16),transparent_58%),radial-gradient(900px_520px_at_72%_0%,rgba(24,207,200,0.14),transparent_58%)]" />
-      <div className="pointer-events-none absolute inset-0 edb-backdrop-waves bg-[linear-gradient(120deg,rgba(26,140,255,0.05),transparent_48%),linear-gradient(300deg,rgba(24,207,200,0.05),transparent_48%)]" />
-      <div className="pointer-events-none absolute inset-0 bg-[rgb(var(--bg))]" />
-
+    <div ref={ref} className="absolute inset-0 z-10">
       {/* tighter vertical rhythm */}
-      <div className="relative mx-auto grid h-[100svh] min-h-screen w-full grid-rows-[repeat(5,minmax(0,1fr))] gap-3 overflow-hidden px-3 pt-14 pb-5 sm:gap-4 sm:px-6">
+      <div className="relative mx-auto grid h-[100svh] min-h-screen w-full grid-rows-[repeat(5,minmax(0,1fr))] gap-3 px-3 pt-14 pb-5 sm:gap-4 sm:px-6">
         {props.blocks.map((block, idx) => {
           const baseItems = tileToCount(block.items, minCount);
           const doubled = baseItems.length ? [...baseItems, ...baseItems] : baseItems;
@@ -119,36 +114,76 @@ export function ExamplesMarqueeRows(props: {
                 )}
               </div>
 
-              <div className="relative min-h-0 flex-1 overflow-hidden px-3 sm:px-4">
+              <div className="relative min-h-0 flex-1 px-3 py-2 sm:px-4">
                 {/* softer edge masks (reduced so headlines don't look clipped) */}
-                <div className="pointer-events-none absolute inset-y-0 left-0 w-8 bg-gradient-to-r from-[rgb(var(--bg))]/80 via-[rgb(var(--bg))]/40 to-transparent" />
-                <div className="pointer-events-none absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-[rgb(var(--bg))]/80 via-[rgb(var(--bg))]/40 to-transparent" />
+                <div className="pointer-events-none absolute inset-y-0 left-0 z-0 w-8 bg-gradient-to-r from-[rgb(var(--bg))]/80 via-[rgb(var(--bg))]/40 to-transparent" />
+                <div className="pointer-events-none absolute inset-y-0 right-0 z-0 w-8 bg-gradient-to-l from-[rgb(var(--bg))]/80 via-[rgb(var(--bg))]/40 to-transparent" />
 
-                {doubled.length > 0 && (
-                  <div
-                    className="flex w-max gap-3 edb-marquee"
-                    style={{ ["--marquee-duration" as string]: `${duration}s` }}
-                  >
-                    {doubled.map((item, itemIdx) => (
-                      <div key={`${block.label}-${item.id}-${itemIdx}`} className="min-w-[260px] max-w-[260px]">
-                        <ExampleSnippetCard
-                          item={item}
-                          lang={props.lang}
-                          onPick={props.onPick}
-                          onOpen={props.onOpen}
-                          compact
-                        />
-                      </div>
-                    ))}
-                  </div>
-                )}
+                <div className="relative z-10">
+                  {doubled.length > 0 && (
+                    <div
+                      className="flex w-max gap-3 edb-marquee"
+                      style={{ ["--marquee-duration" as string]: `${duration}s` }}
+                    >
+                      {doubled.map((item, itemIdx) => (
+                        <div key={`${block.label}-${item.id}-${itemIdx}`} className="min-w-[260px] max-w-[260px]">
+                          <ExampleSnippetCard
+                            item={item}
+                            lang={props.lang}
+                            onPick={props.onPick}
+                            onOpen={props.onOpen}
+                            compact
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
             </section>
           );
         })}
       </div>
 
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(1200px_700px_at_50%_30%,transparent_40%,rgba(0,0,0,0.05)_100%)]" />
+      <style jsx>{`
+        @keyframes edbMarquee {
+          0% {
+            transform: translateX(0);
+          }
+          100% {
+            transform: translateX(-50%);
+          }
+        }
+        .edb-marquee {
+          animation-name: edbMarquee;
+          animation-timing-function: linear;
+          animation-iteration-count: infinite;
+          animation-duration: var(--marquee-duration);
+        }
+        @media (max-width: 1024px) {
+          .edb-marquee {
+            animation-duration: calc(var(--marquee-duration) * 1.2);
+          }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .edb-marquee {
+            animation-duration: 0s;
+            animation-iteration-count: 1;
+            transform: translateX(0);
+          }
+        }
+      `}</style>
+    </div>
+  );
+}
+
+export function ExamplesMarqueeBackdrop() {
+  return (
+    <>
+      <div className="absolute inset-0 edb-backdrop-glow bg-[radial-gradient(900px_520px_at_30%_0%,rgba(26,140,255,0.16),transparent_58%),radial-gradient(900px_520px_at_72%_0%,rgba(24,207,200,0.14),transparent_58%)]" />
+      <div className="absolute inset-0 edb-backdrop-waves bg-[linear-gradient(120deg,rgba(26,140,255,0.05),transparent_48%),linear-gradient(300deg,rgba(24,207,200,0.05),transparent_48%)]" />
+      <div className="absolute inset-0 bg-[rgb(var(--bg))]" />
+      <div className="absolute inset-0 bg-[radial-gradient(1200px_700px_at_50%_30%,transparent_40%,rgba(0,0,0,0.05)_100%)]" />
 
       <style jsx>{`
         .edb-backdrop-glow {
@@ -180,33 +215,7 @@ export function ExamplesMarqueeRows(props: {
             opacity: 1;
           }
         }
-        @keyframes edbMarquee {
-          0% {
-            transform: translateX(0);
-          }
-          100% {
-            transform: translateX(-50%);
-          }
-        }
-        .edb-marquee {
-          animation-name: edbMarquee;
-          animation-timing-function: linear;
-          animation-iteration-count: infinite;
-          animation-duration: var(--marquee-duration);
-        }
-        @media (max-width: 1024px) {
-          .edb-marquee {
-            animation-duration: calc(var(--marquee-duration) * 1.2);
-          }
-        }
-        @media (prefers-reduced-motion: reduce) {
-          .edb-marquee {
-            animation-duration: 0s;
-            animation-iteration-count: 1;
-            transform: translateX(0);
-          }
-        }
       `}</style>
-    </div>
+    </>
   );
 }

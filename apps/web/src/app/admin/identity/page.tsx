@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { AdminErrorPanel } from "@/components/admin/AdminErrorPanel";
 
 type IdentityEventName =
   | "identity_register"
@@ -175,7 +176,7 @@ export default function IdentityFunnelDashboard() {
           >
             {loading ? "Aktualisiere …" : "Aktualisieren"}
           </button>
-          {error && <span className="text-sm text-rose-600">{error}</span>}
+          {error && <AdminErrorPanel error={error} />}
         </div>
       </header>
 
@@ -295,7 +296,7 @@ export default function IdentityFunnelDashboard() {
             </button>
           </div>
 
-          {eventsError && <p className="text-sm text-rose-600">{eventsError}</p>}
+          {eventsError && <AdminErrorPanel error={eventsError} />}
 
           <div className="overflow-hidden rounded-xl border border-[rgb(var(--border))]">
             <table className="min-w-full divide-y divide-[rgb(var(--border))] text-sm">

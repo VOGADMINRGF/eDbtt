@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import type { AiUsageBreakdownSnapshot } from "@core/telemetry/aiUsageSnapshot";
 import type { AiErrorKind } from "@core/telemetry/aiUsageTypes";
+import { AdminErrorPanel } from "@/components/admin/AdminErrorPanel";
 
 type UsageResponse = { ok: boolean; snapshot?: AiUsageBreakdownSnapshot; error?: string };
 
@@ -164,11 +165,7 @@ export default function AdminAiHubPage() {
         {loading && <span className="text-[rgb(var(--muted))]">Lädt …</span>}
       </section>
 
-      {error && (
-        <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
-          {error}
-        </div>
-      )}
+      {error && (<AdminErrorPanel error={error} />)}
 
       <section className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <StatCard

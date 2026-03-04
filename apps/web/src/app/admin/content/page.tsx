@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { AdminErrorPanel } from "@/components/admin/AdminErrorPanel";
 
 type HubItem = {
   title: string;
@@ -183,11 +184,7 @@ export default function AdminContentHubPage() {
             {loading ? "laedt" : "aktualisiert"}
           </span>
         </div>
-        {error && (
-          <div className="mt-3 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700">
-            {error}
-          </div>
-        )}
+        {error && (<AdminErrorPanel error={error} />)}
         <div className="mt-3 grid gap-3 md:grid-cols-2 lg:grid-cols-4">
           <MetricCard label="Beitraege gesamt" value={metrics?.totals.contributions} loading={loading} href="/admin/contributions" />
           <MetricCard label="Beitraege (30d)" value={metrics?.totals.contributions30d} loading={loading} href="/admin/contributions" />

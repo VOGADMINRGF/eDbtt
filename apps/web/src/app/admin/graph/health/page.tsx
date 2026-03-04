@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { AdminErrorPanel } from "@/components/admin/AdminErrorPanel";
 
 type GraphHealth = {
   nodes: number;
@@ -65,11 +66,7 @@ export default function AdminGraphHealthPage() {
         <p className="text-sm text-[rgb(var(--muted))]">Uebersicht ueber Knoten, Pfade und Reparatur-Backlog.</p>
       </header>
 
-      {error && (
-        <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
-          {error}
-        </div>
-      )}
+      {error && (<AdminErrorPanel error={error} />)}
 
       <section className="grid gap-3 md:grid-cols-2">
         {renderCard("Nodes", summary?.nodes, loading, nf)}

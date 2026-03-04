@@ -20,6 +20,7 @@ import type { AiErrorKind } from "@core/telemetry/aiUsageTypes";
 import { buildHeuristicAnalyzeResult } from "@features/analyze/heuristics";
 import crypto from "crypto";
 import { parseAnalyzeRequestBody, type AnalyzeRequestParsed } from "./parseAnalyzeRequest";
+import { getCreateEntitlementsForRequest } from "@/lib/server/entitlements/createEntitlements";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -45,25 +46,16 @@ function withHardTimeout<T>(p: Promise<T>, ms: number): Promise<T> {
 
 const DEFAULT_MAX_CLAIMS = 10;
 
-type SuccessResponse<T extends Record<string, unknown>> = { ok: true } & T;
-type ErrorResponse<TExtra extends Record<string, unknown> = Record<string, unknown>> = {
-  ok: false;
-  errorCode: string;
-  message: string;
-} & TExtra;
+type ApiSuccess<T> = { ok: true; data: T; code?: string };
+type ApiError = { ok: false; error: string; code: string; details?: unknown };
 
-function ok<T extends Record<string, unknown>>(data: T, status = 200) {
-  return NextResponse.json({ ok: true, ...data } satisfies SuccessResponse<T>, { status });
+function ok<T>(data: T, status = 200, code?: string) {
+  return NextResponse.json({ ok: true, data, ...(code ? { code } : {}) } satisfies ApiSuccess<T>, { status });
 }
 
-function err(
-  code: string,
-  message: string,
-  status = 500,
-  extra: Record<string, unknown> = {},
-) {
+function err(code: string, message: string, status = 500, details?: unknown) {
   return NextResponse.json(
-    { ok: false, errorCode: code, message, ...extra } satisfies ErrorResponse,
+    { ok: false, error: message, code, ...(details ? { details } : {}) } satisfies ApiError,
     { status },
   );
 }
@@ -111,11 +103,7 @@ function sanitizeMaxClaims(maxClaims?: number): number {
  */
 export async function POST(req: NextRequest): Promise<Response> {
   if (process.env.ANALYZE_ENABLED !== "true") {
-    return NextResponse.json({
-      ok: false,
-      disabled: true,
-      message: "Analyse derzeit deaktiviert.",
-    });
+    return err("ANALYZE_DISABLED", "Analyse derzeit deaktiviert.", 503);
   }
 
   const runId = crypto.randomUUID();
@@ -133,12 +121,22 @@ export async function POST(req: NextRequest): Promise<Response> {
 
   const body = parsed.value;
 
+  const entitlements = await getCreateEntitlementsForRequest(req);
+  if (
+    !entitlements.canUseExternalExtraction &&
+    Array.isArray(body.evidenceItems) &&
+    body.evidenceItems.length > 0
+  ) {
+    return err("EXTERNAL_EXTRACTION_FORBIDDEN", "Externe Quellen sind fuer dein Paket nicht freigeschaltet.", 403);
+  }
+
   if (body.test === "ping") {
     return ok({ result: { ping: "pong" } });
   }
 
   const locale = sanitizeLocale(body.locale);
-  const maxClaims = sanitizeMaxClaims(body.maxClaims);
+  const requestedMaxClaims = sanitizeMaxClaims(body.maxClaims);
+  const maxClaims = Math.min(requestedMaxClaims, entitlements.maxVisibleAiProposals);
   const text = body.text?.trim() || "";
   const userId = req.cookies.get("u_id")?.value ?? null;
   const contributionId = resolveContributionId(body.contributionId, text);
@@ -146,7 +144,7 @@ export async function POST(req: NextRequest): Promise<Response> {
 
   const rl = await rateLimitOrThrow(`analyze:ip:${ip}`, 15, 10 * 60 * 1000, { salt: "analyze" });
   if (!rl.ok) {
-    return err("RATE_LIMITED", "Too many analyze requests. Please retry later.", 429, {
+    return err("RATE_LIMITED", "Zu viele Analyse-Anfragen. Bitte spaeter erneut versuchen.", 429, {
       retryInMs: rl.retryIn,
     });
   }
@@ -170,23 +168,16 @@ export async function POST(req: NextRequest): Promise<Response> {
       (result as any)?._meta?.providerMatrix,
       (result as any)?._meta,
     );
-    return NextResponse.json(
-      {
-        ok: true,
-        result,
-        meta: {
-          runId,
-          providerMatrix,
-        },
+    return ok({
+      result,
+      meta: {
+        runId,
+        providerMatrix,
       },
-      { status: 200 },
-    );
+    });
   } catch (error) {
     if ((error as any)?.code === "ANALYZE_TIMEOUT" || (error as any)?.message === "analyze_timeout") {
-      return NextResponse.json(
-        { ok: false, errorCode: "ANALYZE_TIMEOUT", message: "Analyze timed out" },
-        { status: 504 },
-      );
+      return err("ANALYZE_TIMEOUT", "Analyse aktuell nicht verfuegbar. Bitte spaeter erneut versuchen.", 504);
     }
     console.error("[contributions/analyze] failed", error);
     logErrorSafe({
@@ -198,13 +189,15 @@ export async function POST(req: NextRequest): Promise<Response> {
     const normalized = normalizeAnalyzerError(error);
     if (shouldUseFallback(normalized)) {
       const fallback = buildHeuristicAnalyzeResult({ text, locale });
-      return NextResponse.json({
-        ok: true,
-        fallback: true,
-        errorCode: normalized.code,
-        message: normalized.message,
-        result: fallback,
-      });
+      return ok(
+        {
+          result: fallback,
+          fallback: true,
+          warning: "Analyse im Fallback-Modus ausgefuehrt.",
+        },
+        200,
+        normalized.code,
+      );
     }
     if (normalized.code === "BAD_JSON" || normalized.code === "ANALYZE_PROVIDER_FAILED") {
       const meta = (error as any)?.meta ?? {};
@@ -252,12 +245,11 @@ export async function POST(req: NextRequest): Promise<Response> {
         },
       };
 
-      return NextResponse.json(
+      return ok(
         {
-          ok: true,
-          degraded: true,
-          warning: "KI temporär nicht erreichbar; Analyse wird später erneut versucht.",
           result: degradedResult,
+          degraded: true,
+          warning: "KI temporaer nicht erreichbar; Analyse wird spaeter erneut versucht.",
           meta: {
             runId,
             providerMatrix,
@@ -267,7 +259,8 @@ export async function POST(req: NextRequest): Promise<Response> {
             probes: meta?.probes ?? [],
           },
         },
-        { status: 200 },
+        200,
+        normalized.code,
       );
     }
     return formatErrorResponse(normalized, normalized.status ?? 502);

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
+import { AdminErrorPanel } from "@/components/admin/AdminErrorPanel";
 
 export default function EvidenceClaimDetailPage() {
   const params = useParams<{ id: string }>();
@@ -67,7 +68,7 @@ export default function EvidenceClaimDetailPage() {
   }
 
   if (loading) return <div className="p-6 text-sm text-[rgb(var(--muted))]">Lädt Claim …</div>;
-  if (error || !data) return <div className="p-6 text-sm text-rose-600">{error ?? "Claim nicht gefunden."}</div>;
+  if (error || !data) return <AdminErrorPanel error={error ?? "Claim nicht gefunden."} />;
 
   const claim = data.claim;
   const links = data.links ?? [];

@@ -1,38 +1,33 @@
 // apps/web/src/app/contributions/new/page.tsx
-import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { ContributionNewClient } from "./ContributionNewClient";
-import { getAccountOverview } from "@features/account/service";
 
 export const metadata = {
-  title: "Beitrag analysieren – eDebatte",
-  description: "Beitrag analysieren und strukturiert aufbereiten.",
+  title: "Beitrag erstellen – eDebatte",
+  description: "Beitrag erstellen und strukturiert aufbereiten.",
 };
 
 export const dynamic = "force-dynamic";
 
-export default async function ContributionNewPage({
-  searchParams,
-}: {
-  searchParams?: { dossierId?: string };
-}) {
-  const cookieStore = await cookies();
-  const userId = cookieStore.get("u_id")?.value;
-  if (!userId) {
-    redirect(`/login?next=${encodeURIComponent("/contributions/new")}`);
-  }
+type PageProps = {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+};
 
-  const overview = await getAccountOverview(userId);
-  if (!overview) {
-    redirect(`/login?next=${encodeURIComponent("/contributions/new")}`);
-  }
+function pickString(value: string | string[] | undefined): string | undefined {
+  if (Array.isArray(value)) return value[0];
+  return typeof value === "string" ? value : undefined;
+}
+
+export default async function ContributionNewPage({ searchParams }: PageProps) {
+  const params = (await searchParams) ?? {};
+  const q = new URLSearchParams();
+  q.set("intent", "contribution");
+  const dossierId = pickString(params.dossierId);
+  if (dossierId) q.set("dossierId", dossierId);
+  redirect(`/create?${q.toString()}`);
 
   return (
     <main className="min-h-screen bg-[rgb(var(--bg))]">
-      <h1 className="sr-only">Beitrag analysieren</h1>
-      <div className="mx-auto w-full max-w-5xl px-4 py-10">
-        <ContributionNewClient initialOverview={overview} dossierId={searchParams?.dossierId ?? null} />
-      </div>
+      <h1 className="sr-only">Beitrag erstellen</h1>
     </main>
   );
 }

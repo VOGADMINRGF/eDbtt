@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
+import { AdminErrorPanel } from "@/components/admin/AdminErrorPanel";
 
 export default function EvidenceItemDetailPage() {
   const params = useParams<{ id: string }>();
@@ -62,7 +63,7 @@ export default function EvidenceItemDetailPage() {
   }
 
   if (loading) return <div className="p-6 text-sm text-[rgb(var(--muted))]">Lädt Quelle …</div>;
-  if (error || !data) return <div className="p-6 text-sm text-rose-600">{error ?? "Quelle nicht gefunden."}</div>;
+  if (error || !data) return <AdminErrorPanel error={error ?? "Quelle nicht gefunden."} />;
 
   return (
     <div className="mx-auto flex max-w-4xl flex-col gap-6 px-4 py-8">

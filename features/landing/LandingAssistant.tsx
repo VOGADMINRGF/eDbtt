@@ -145,11 +145,13 @@ export default function LandingAssistant({
   onIngest,
   prefillText,
   onAnalyzeRequest,
+  onEngageChange,
   lang,
 }: {
   onIngest: (scope: LandingScope, tiles: LandingTile[]) => void;
   prefillText?: string;
   onAnalyzeRequest?: (actions: { submit: () => void; refine: () => void }) => void;
+  onEngageChange?: (engaged: boolean) => void;
   lang: Lang;
 }) {
   const { locale } = useLocale();
@@ -273,6 +275,11 @@ const [humanError, setHumanError] = React.useState<string | null>(null);
   const trimmed = text.trim();
   const hasText = trimmed.length > 0;
   const botBlocked = botTrap.trim().length > 0;
+  const engaged = hasText || loading || modalOpen;
+
+  React.useEffect(() => {
+    onEngageChange?.(engaged);
+  }, [engaged, onEngageChange]);
 
   const canSubmit =
     !loading && trimmed.length >= MIN_TEXT_LENGTH && humanAnswer.trim().length > 0 && !botBlocked;

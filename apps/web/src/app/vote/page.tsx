@@ -125,7 +125,7 @@ export default function VotePage() {
             <a href="/statements" className="btn bg-brand-grad text-white shadow-soft">
               Statements ansehen
             </a>
-            <a href="/contributions/new" className="btn border border-[rgb(var(--border))] bg-[rgb(var(--card))]">
+            <a href="/create?intent=contribution" className="btn border border-[rgb(var(--border))] bg-[rgb(var(--card))]">
               Eigenes Anliegen starten
             </a>
           </div>

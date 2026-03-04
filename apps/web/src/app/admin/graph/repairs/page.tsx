@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { AdminErrorPanel } from "@/components/admin/AdminErrorPanel";
 
 type RepairItem = {
   id: string;
@@ -153,11 +154,7 @@ export default function AdminGraphRepairsPage() {
         <p className="text-sm text-[rgb(var(--muted))]">Tickets anlegen, pruefen und anwenden.</p>
       </header>
 
-      {error && (
-        <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
-          {error}
-        </div>
-      )}
+      {error && (<AdminErrorPanel error={error} />)}
 
       <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm">
         <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Merge Suggest</h2>

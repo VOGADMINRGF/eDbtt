@@ -3,14 +3,13 @@
 import * as React from "react";
 import AnalyzeWorkspace, { type UseCaseAccess, type UseCaseId } from "@/components/analyze/AnalyzeWorkspace";
 import type { AccountOverview } from "@features/account/types";
-import { getAccessTierConfigForUser, getUserAccessTier, hasUnlimitedContributions } from "@core/access/accessTiers";
+import { getAccessTierConfigForUser, getUserAccessTier } from "@core/access/accessTiers";
 import type { CreateEntitlements } from "@/lib/server/entitlements/createEntitlements";
 
 export type CreateClientProps = {
   initialEntitlements: CreateEntitlements;
-  overview: AccountOverview;
+  overview?: AccountOverview | null;
   dossierId?: string | null;
-  initialIntent?: "statement" | "contribution";
   initialText?: string | null;
 };
 
@@ -74,16 +73,10 @@ export default function CreateClient({
   initialEntitlements,
   overview,
   dossierId,
-  initialIntent,
   initialText,
 }: CreateClientProps) {
   const [entitlements, setEntitlements] = React.useState<CreateEntitlements>(initialEntitlements);
   const [gate, setGate] = React.useState<GateState>(() => deriveGate(initialEntitlements));
-  const [intent, setIntent] = React.useState<"statement" | "contribution">(() => {
-    if (initialIntent === "contribution" && initialEntitlements.canSubmitContribution) return "contribution";
-    if (initialIntent === "statement") return "statement";
-    return initialEntitlements.canSubmitContribution ? "contribution" : "statement";
-  });
 
   React.useEffect(() => {
     let ignore = false;
@@ -105,12 +98,6 @@ export default function CreateClient({
       ignore = true;
     };
   }, []);
-
-  React.useEffect(() => {
-    if (intent === "contribution" && !entitlements.canSubmitContribution) {
-      setIntent("statement");
-    }
-  }, [intent, entitlements]);
 
   if (gate.status === "loading") {
     return (
@@ -135,47 +122,29 @@ export default function CreateClient({
   }
 
   const canContribution = entitlements.canSubmitContribution;
-  const maxClaimsCap =
-    intent === "statement"
-      ? Math.min(entitlements.maxVisibleAiProposals, 3)
-      : entitlements.maxVisibleAiProposals;
-  const maxFinalizeClaims = intent === "statement" ? 1 : entitlements.maxFinalizeClaimsPerInput;
+  const canStatement = entitlements.canSubmitStatement;
+  const maxClaimsCap = entitlements.maxVisibleAiProposals;
+  const maxFinalizeClaims = entitlements.maxFinalizeClaimsPerInput;
+  const maxFinalizeClaimsStatement = 1;
   const afterFinalizeNavigateTo = dossierId ? `/dossier/${dossierId}` : "/swipes";
   const useCaseAccess = deriveUseCaseAccess(overview);
 
-  const tierCfg = getAccessTierConfigForUser(overview);
-  const tierLabel = getUserAccessTier(overview);
+  const tierCfg = getAccessTierConfigForUser(overview ?? { accessTier: entitlements.tier as any });
+  const tierLabel = getUserAccessTier(overview ?? { accessTier: entitlements.tier as any });
   const monthlyLimit = tierCfg.monthlyContributionLimit;
   const credits = entitlements.contributionCredits;
+  const swipesPerCredit = entitlements.swipesPerCredit ?? 100;
 
   return (
     <div className="space-y-6">
       <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4">
-        <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
-              Erstellen
-            </p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Erstellen</p>
             <p className="text-sm text-[rgb(var(--fg))]">
-              Waehle deinen Einstieg: Statement oder Beitrag.
+              Buerger &amp; Projekte sind der Standard. Du entscheidest nach der Analyse, ob du als Statement
+              veroeffentlichen oder als Beitrag einreichen willst.
             </p>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              className={`btn ${intent === "statement" ? "bg-brand-grad text-white" : "btn-ghost text-xs"}`}
-              onClick={() => setIntent("statement")}
-            >
-              Statement
-            </button>
-            <button
-              type="button"
-              className={`btn ${intent === "contribution" ? "bg-brand-grad text-white" : "btn-ghost text-xs"}`}
-              disabled={!canContribution}
-              onClick={() => setIntent("contribution")}
-            >
-              Beitrag
-            </button>
           </div>
         </div>
 
@@ -187,12 +156,27 @@ export default function CreateClient({
           ) : (
             <span className="vog-chip">Monatslimit: {monthlyLimit}</span>
           )}
-          <span className="vog-chip">Max. Claims: {maxFinalizeClaims}</span>
+          <span className="vog-chip">Statement max: {maxFinalizeClaimsStatement}</span>
+          <span className="vog-chip">Beitrag max: {maxFinalizeClaims}</span>
+        </div>
+
+        <div className="mt-3 rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-[11px] text-[rgb(var(--muted))]">
+          <p className="font-semibold text-[rgb(var(--fg))]">Freemium-Hinweis</p>
+          <p className="mt-1">
+            Anmeldung erforderlich. Freikontingent: {monthlyLimit === null ? "unbegrenzt" : monthlyLimit} Eintrag(e) pro
+            Monat. z. B. {swipesPerCredit} Swipes = 1 weiterer Credit.
+          </p>
         </div>
 
         {!canContribution ? (
           <p className="mt-2 text-[11px] text-[rgb(var(--muted))]">
-            Beitragseinreichung ist aktuell gesperrt. {entitlements.reasons.credits ?? entitlements.reasons.monthly_limit ?? ""}
+            Beitragseinreichung ist aktuell gesperrt.{" "}
+            {entitlements.reasons.credits ?? entitlements.reasons.monthly_limit ?? ""}
+          </p>
+        ) : null}
+        {!canStatement ? (
+          <p className="mt-2 text-[11px] text-[rgb(var(--muted))]">
+            Statements sind fuer dein Paket nicht freigeschaltet.
           </p>
         ) : null}
 
@@ -204,22 +188,25 @@ export default function CreateClient({
       </section>
 
       <AnalyzeWorkspace
-        key={`${intent}-${dossierId ?? "no-dossier"}`}
-        mode={intent}
+        key={`create-${dossierId ?? "no-dossier"}`}
+        mode="contribution"
         defaultLevel={1}
-        storageKey={intent === "statement" ? "vog_statement_draft_v1" : "vog_contribution_draft_v2"}
+        storageKey="vog_contribution_draft_v2"
         analyzeEndpoint="/api/create/analyze"
         saveEndpoint="/api/create/save"
         finalizeEndpoint="/api/create/finalize"
         afterFinalizeNavigateTo={afterFinalizeNavigateTo}
         dossierId={dossierId ?? undefined}
-        verificationLevel={overview.verificationLevel ?? "none"}
+        verificationLevel={overview?.verificationLevel ?? "none"}
         verificationStatus="ok"
-        authorName={overview.displayName ?? overview.profile?.headline ?? ""}
+        authorName={overview?.displayName ?? overview?.profile?.headline ?? ""}
         useCaseAccess={useCaseAccess}
         initialText={initialText ?? undefined}
         maxClaimsCap={maxClaimsCap}
         maxFinalizeClaims={maxFinalizeClaims}
+        maxFinalizeClaimsStatement={maxFinalizeClaimsStatement}
+        allowFinalizeAsStatement={canStatement}
+        allowFinalizeAsContribution={canContribution}
       />
     </div>
   );

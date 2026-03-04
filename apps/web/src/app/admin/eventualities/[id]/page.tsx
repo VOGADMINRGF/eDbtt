@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import type { DecisionTree, EventualityNode } from "@features/analyze/schemas";
+import { AdminErrorPanel } from "@/components/admin/AdminErrorPanel";
 
 type SnapshotDetail = {
   contributionId: string;
@@ -108,18 +109,15 @@ export default function AdminEventualityDetailPage() {
   if (error) {
     return (
       <div className="mx-auto max-w-3xl px-4 py-20">
-        <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-6 text-sm text-rose-700">
-          {error}
-        </div>
-        <div className="mt-4">
+        <AdminErrorPanel error={error}>
           <button
             type="button"
             onClick={() => router.back()}
-            className="text-sm font-semibold text-[rgb(var(--muted))] hover:text-[rgb(var(--fg))]"
+            className="text-sm font-semibold underline underline-offset-2"
           >
             Zurück
           </button>
-        </div>
+        </AdminErrorPanel>
       </div>
     );
   }

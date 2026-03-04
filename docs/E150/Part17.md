@@ -1,5 +1,7 @@
 # DRIFT CODEX — eDebatte Dossier Header Premium + Mobile + No-Duplicates
 
+> Status-Hinweis (2026-03-04): Dieses Part ist eine Spezifikation/Zusammenfassung. Der verbindliche Aufgabenstand liegt in `docs/E150/OpenTasks.md`. Keine neuen Runs aus diesem Part ableiten.
+
 ## Ziel
 Die Darstellung im Dossier-Header soll deutlich hochwertiger ("premium") und mobilfähig werden:
 - Wappen/Initiator-Logo oben rechts (Identity-Card) statt separater/duplizierter Initiatoren-Box.
@@ -129,4 +131,3 @@ Du hast 2 Optionen – wähle **die bessere**:
 
 
 _____
-

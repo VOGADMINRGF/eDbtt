@@ -39,6 +39,10 @@
   --status-delegated: 120 137 158;
 }
 
+body.landing-no-xscroll {
+  overflow-x: hidden;
+}
+
 .dark {
   --bg: 2 6 23;
   --fg: 248 250 252;
@@ -832,6 +836,19 @@ body:not([data-analysis-ready="1"]) [data-requires-analysis] {
 
 .hide-scrollbar::-webkit-scrollbar {
   display: none;
+}
+
+/* X-Clip without forcing Y clipping (for marquees/edge fades) */
+.edb-clip-x {
+  overflow-x: clip;
+  overflow-y: visible;
+}
+
+@supports not (overflow: clip) {
+  .edb-clip-x {
+    overflow-x: hidden;
+    overflow-y: visible;
+  }
 }
 
 @layer utilities {

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { cookies, headers } from "next/headers";
+import { AdminErrorPanel } from "@/components/admin/AdminErrorPanel";
 
 type InventoryItem = {
   path: string;
@@ -8,6 +9,7 @@ type InventoryItem = {
 };
 
 const FOCUS_ROUTES = [
+  "/create",
   "/sw",
   "/swipes",
   "/beitraege",

@@ -3,20 +3,129 @@ export const dynamic = "force-dynamic";
 
 import { NextRequest, NextResponse } from "next/server";
 import { callE150Orchestrator } from "@features/ai/orchestratorE150";
-import { callOpenAIJson } from "@features/ai";
 import { requireAdminOrResponse } from "@/lib/server/auth/admin";
+import type { ProviderMatrixEntry } from "@features/ai/orchestratorE150";
 
 const SMOKE_SYSTEM_PROMPT =
   "You are the E150 orchestration smoke-tester. Respond exactly with 'OK'.";
 const SMOKE_USER_PROMPT =
   "E150 Orchestrator Smoke Test. Please respond with exactly 'OK'.";
 
+function hasValue(value: string | undefined | null): boolean {
+  return Boolean(value && String(value).trim());
+}
+
+function getProviderConfig(providerId: ProviderId) {
+  switch (providerId) {
+    case "openai": {
+      const configured = hasValue(process.env.OPENAI_API_KEY);
+      return { configured, disabled: false, reason: configured ? null : "API key fehlt" };
+    }
+    case "anthropic": {
+      const configured = hasValue(process.env.ANTHROPIC_API_KEY);
+      const disabled = process.env.ANTHROPIC_DISABLED === "1";
+      return {
+        configured,
+        disabled,
+        reason: disabled ? "deaktiviert (ANTHROPIC_DISABLED=1)" : configured ? null : "API key fehlt",
+      };
+    }
+    case "mistral": {
+      const configured = hasValue(process.env.MISTRAL_API_KEY);
+      return { configured, disabled: false, reason: configured ? null : "API key fehlt" };
+    }
+    case "gemini": {
+      const configured = hasValue(process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY);
+      const disabled = process.env.GEMINI_DISABLED === "1";
+      return {
+        configured,
+        disabled,
+        reason: disabled ? "deaktiviert (GEMINI_DISABLED=1)" : configured ? null : "API key fehlt",
+      };
+    }
+    case "ari": {
+      const base =
+        process.env.ARI_BASE_URL ||
+        process.env.ARI_URL ||
+        process.env.ARI_API_URL ||
+        process.env.YOUCOM_ARI_API_URL;
+      const key = process.env.ARI_API_KEY || process.env.YOUCOM_ARI_API_KEY;
+      const configured = hasValue(base) && hasValue(key);
+      const disabled = process.env.ARI_DISABLED === "1";
+      return {
+        configured,
+        disabled,
+        reason: disabled
+          ? "deaktiviert (ARI_DISABLED=1)"
+          : !hasValue(base)
+            ? "Basis-URL fehlt"
+            : !hasValue(key)
+              ? "API key fehlt"
+              : null,
+      };
+    }
+    default:
+      return { configured: false, disabled: true, reason: "unbekannt" };
+  }
+}
+
+function mapMatrixState(entry: ProviderMatrixEntry | null, configured: boolean): ProviderSmokeState {
+  if (!entry) return configured ? "skipped" : "unconfigured";
+  if (entry.state === "ok") return "success";
+  if (entry.state === "failed" || entry.state === "cancelled") return "failed";
+  if (entry.state === "skipped") return "skipped";
+  if (entry.state === "disabled") return configured ? "disabled" : "unconfigured";
+  return configured ? "skipped" : "unconfigured";
+}
+
+function buildResultsFromMatrix(params: {
+  matrix?: ProviderMatrixEntry[] | null;
+  failedProviders?: { provider: string; error: string; errorKind?: string }[];
+  mode: "quick" | "full";
+}): ProviderSmokeResult[] {
+  const { matrix, failedProviders, mode } = params;
+  const matrixMap = new Map<string, ProviderMatrixEntry>();
+  (matrix ?? []).forEach((entry) => matrixMap.set(entry.provider, entry));
+  const failedMap = new Map(
+    (failedProviders ?? []).map((entry) => [entry.provider, entry.error]),
+  );
+  const checkedAt = new Date().toISOString();
+
+  return PROVIDER_IDS.map((providerId) => {
+    const entry = matrixMap.get(providerId) ?? null;
+    const config = getProviderConfig(providerId);
+    const state = mapMatrixState(entry, config.configured);
+    const errorMessage = failedMap.get(providerId) ?? entry?.reason ?? config.reason ?? null;
+    return {
+      providerId,
+      state,
+      ok: state === "success",
+      configured: config.configured,
+      durationMs: entry?.durationMs ?? null,
+      errorMessage,
+      errorKind: entry?.errorKind ?? null,
+      status: entry?.status ?? null,
+      checkedAt,
+      requestMode: mode,
+    };
+  });
+}
+
+const PROVIDER_IDS = ["openai", "anthropic", "mistral", "gemini", "ari"] as const;
+type ProviderId = (typeof PROVIDER_IDS)[number];
+type ProviderSmokeState = "success" | "failed" | "skipped" | "disabled" | "unconfigured";
+
 type ProviderSmokeResult = {
-  providerId: string;
+  providerId: ProviderId;
+  state: ProviderSmokeState;
   ok: boolean;
-  durationMs: number;
-  errorMessage?: string;
-  state?: "disabled" | "skipped";
+  configured: boolean;
+  durationMs: number | null;
+  errorMessage?: string | null;
+  errorKind?: string | null;
+  status?: number | null;
+  checkedAt?: string;
+  requestMode?: "quick" | "full";
 };
 
 type OrchestratorSmokeResponse = {
@@ -27,12 +136,14 @@ type OrchestratorSmokeResponse = {
   error?: string;
   probeStatus?: Record<string, { ok: boolean; errorKind: string | null; durationMs: number }>;
   probes?: Record<string, { ok: boolean; errorKind: string | null; status?: number | null; latencyMs?: number; checkedAt?: number }>;
+  checkedAt?: string;
+  mode?: "quick" | "full";
 };
 
 export async function POST(req: NextRequest) {
   const gate = await requireAdminOrResponse(req);
   if (gate instanceof Response) return gate;
-  const mode = req.nextUrl.searchParams.get("mode");
+  const mode = req.nextUrl.searchParams.get("mode") === "full" ? "full" : "quick";
   if (mode === "full") {
     return runFullSmoke();
   }
@@ -48,7 +159,11 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    const providerResults = buildProviderResults(orchestratorResult);
+    const providerResults = buildResultsFromMatrix({
+      matrix: orchestratorResult.meta.providerMatrix ?? null,
+      failedProviders: orchestratorResult.meta.failedProviders ?? [],
+      mode,
+    });
 
     const payload: OrchestratorSmokeResponse = {
       ok: providerResults.some((r) => r.ok),
@@ -73,95 +188,29 @@ export async function POST(req: NextRequest) {
           },
         ]),
       ),
+      checkedAt: new Date().toISOString(),
+      mode,
     };
 
     return NextResponse.json(payload);
   } catch (err: any) {
-    const fallback = await runFallbackProviders().catch((fallbackErr) => [
-      {
-        providerId: "openai",
-        ok: false,
-        durationMs: 0,
-        errorMessage:
-          (fallbackErr as Error)?.message ?? "Fallback smoke test failed",
-      },
-    ]);
+    const metaMatrix = err?.meta?.providerMatrix ?? null;
+    const failedProviders = err?.meta?.failedProviders ?? [];
+    const providerResults = buildResultsFromMatrix({
+      matrix: metaMatrix,
+      failedProviders,
+      mode,
+    });
 
     return NextResponse.json({
-      ok: fallback.some((entry) => entry.ok),
-      bestProviderId: fallback.find((entry) => entry.ok)?.providerId ?? null,
+      ok: providerResults.some((entry) => entry.ok),
+      bestProviderId: providerResults.find((entry) => entry.ok)?.providerId ?? null,
       bestRawText: null,
-      results: fallback,
+      results: providerResults,
       error: err?.message ?? "orchestrator error",
+      checkedAt: new Date().toISOString(),
+      mode,
     } satisfies OrchestratorSmokeResponse);
-  }
-}
-
-function buildProviderResults(orchestratorResult: Awaited<ReturnType<typeof callE150Orchestrator>>) {
-  const candidateMap = new Map(
-    orchestratorResult.candidates.map((candidate) => [candidate.provider, candidate]),
-  );
-  const failureMap = new Map(orchestratorResult.meta.failedProviders.map((fail) => [fail.provider, fail.error]));
-  const disabled = orchestratorResult.meta.disabledProviders ?? [];
-  const skipped = orchestratorResult.meta.skippedProviders ?? [];
-
-  const used = orchestratorResult.meta.usedProviders.map((providerId) => {
-    const candidate = candidateMap.get(providerId);
-    const errorMessage = failureMap.get(providerId);
-    const duration = orchestratorResult.meta.timings[providerId] ?? candidate?.durationMs ?? 0;
-
-    return {
-      providerId,
-      ok: Boolean(candidate),
-      durationMs: duration,
-      errorMessage,
-    } satisfies ProviderSmokeResult;
-  });
-
-  const disabledRows = disabled.map((entry) => ({
-    providerId: entry.provider,
-    ok: false,
-    durationMs: 0,
-    errorMessage: entry.reason,
-    state: "disabled" as const,
-  }));
-
-  const skippedRows = skipped.map((entry) => ({
-    providerId: entry.provider,
-    ok: false,
-    durationMs: 0,
-    errorMessage: entry.reason,
-    state: "skipped" as const,
-  }));
-
-  return [...used, ...disabledRows, ...skippedRows];
-}
-
-async function runFallbackProviders(): Promise<ProviderSmokeResult[]> {
-  const started = Date.now();
-  try {
-    await callOpenAIJson({
-      system: SMOKE_SYSTEM_PROMPT,
-      user: SMOKE_USER_PROMPT,
-      max_tokens: 32,
-    });
-    return [
-      {
-        providerId: "openai",
-        ok: true,
-        durationMs: Date.now() - started,
-        errorMessage: undefined,
-      },
-    ];
-  } catch (err: any) {
-    return [
-      {
-        providerId: "openai",
-        ok: false,
-        durationMs: Date.now() - started,
-        errorMessage: err?.message ?? "OpenAI fallback error",
-      },
-    ];
   }
 }
 
@@ -216,15 +265,29 @@ async function runFullSmoke() {
       },
     });
 
-    const providerResults = buildProviderResults(orchestratorResult).map((row) => {
-      if (!row.ok) return row;
+    const baseResults = buildResultsFromMatrix({
+      matrix: orchestratorResult.meta.providerMatrix ?? null,
+      failedProviders: orchestratorResult.meta.failedProviders ?? [],
+      mode: "full",
+    });
+    const providerResults = baseResults.map((row) => {
+      if (row.state !== "success") return row;
       const candidate = orchestratorResult.candidates.find((c) => c.provider === row.providerId);
-      if (!candidate) return row;
+      if (!candidate) {
+        return {
+          ...row,
+          state: "failed",
+          ok: false,
+          errorMessage: "no candidate",
+        } satisfies ProviderSmokeResult;
+      }
       const validation = validateCandidate(candidate.rawText);
+      if (validation.ok) return row;
       return {
         ...row,
-        ok: validation.ok,
-        errorMessage: validation.ok ? row.errorMessage : validation.message,
+        state: "failed",
+        ok: false,
+        errorMessage: validation.message ?? row.errorMessage ?? "invalid response",
       } satisfies ProviderSmokeResult;
     });
 
@@ -239,6 +302,8 @@ async function runFullSmoke() {
           { ok: p.ok, errorKind: p.errorKind ?? null, durationMs: p.durationMs },
         ]),
       ),
+      checkedAt: new Date().toISOString(),
+      mode: "full",
     };
 
     return NextResponse.json(payload);

@@ -1,40 +1,29 @@
-import AnalyzeWorkspace from "@/components/analyze/AnalyzeWorkspace";
-import { getDraft } from "@/server/draftStore";
+import { redirect } from "next/navigation";
 
-export default async function StatementNewPage({
-  searchParams,
-}: {
-  searchParams?: { prefill?: string; draftId?: string; dossierId?: string };
-}) {
-  const prefill = searchParams?.prefill ? decodeURIComponent(searchParams.prefill) : undefined;
-  const draftId = searchParams?.draftId ?? null;
-  const dossierId = searchParams?.dossierId ?? null;
-  const draft = draftId ? await getDraft(draftId).catch(() => null) : null;
-  const initialText = draft?.text ?? prefill;
-  const afterFinalizeNavigateTo = dossierId ? `/dossier/${dossierId}` : "/swipes";
+type PageProps = {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+};
+
+function pickString(value: string | string[] | undefined): string | undefined {
+  if (Array.isArray(value)) return value[0];
+  return typeof value === "string" ? value : undefined;
+}
+
+export default async function StatementNewPage({ searchParams }: PageProps) {
+  const params = (await searchParams) ?? {};
+  const q = new URLSearchParams();
+  q.set("intent", "statement");
+  const dossierId = pickString(params.dossierId);
+  const prefill = pickString(params.prefill);
+  const draftId = pickString(params.draftId);
+  if (dossierId) q.set("dossierId", dossierId);
+  if (prefill) q.set("prefill", prefill);
+  if (draftId) q.set("draftId", draftId);
+  redirect(`/create?${q.toString()}`);
 
   return (
-    <main className="min-h-screen bg-[rgb(var(--card))]">
+    <main className="min-h-screen bg-[rgb(var(--bg))]">
       <h1 className="sr-only">Statement einreichen</h1>
-      {dossierId ? (
-        <div className="mx-auto w-full max-w-5xl px-4 pt-8">
-          <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4 text-sm text-[rgb(var(--fg))]">
-            Dieses Statement wird dem Dossier zugeordnet:{" "}
-            <span className="font-semibold">{dossierId}</span>.
-          </div>
-        </div>
-      ) : null}
-      <AnalyzeWorkspace
-        mode="statement"
-        defaultLevel={1}
-        storageKey="vog_statement_draft_v1"
-        analyzeEndpoint="/api/contributions/analyze"
-        saveEndpoint="/api/contributions/save"
-        finalizeEndpoint="/api/statements/finalize"
-        afterFinalizeNavigateTo={afterFinalizeNavigateTo}
-        dossierId={dossierId ?? undefined}
-        initialText={initialText}
-      />
     </main>
   );
 }

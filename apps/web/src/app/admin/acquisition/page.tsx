@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { AdminErrorPanel } from "@/components/admin/AdminErrorPanel";
 
 type RegionSummary = {
   regionCode: string;
@@ -125,11 +126,7 @@ export default function AcquisitionAdminPage() {
         </div>
       </header>
 
-      {error && (
-        <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-2 text-sm text-rose-700" aria-live="polite">
-          {error}
-        </div>
-      )}
+      {error && (<AdminErrorPanel error={error} />)}
 
       <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm">
         <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Letzter Fetch-Run</h2>

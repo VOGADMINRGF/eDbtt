@@ -7,7 +7,7 @@ import type { LandingScope, LandingTile } from "@features/landing/landingSeeds";
 import type { GeoInfo } from "@/lib/geo/getGeoFromHeaders";
 import type { ExampleItem, ExampleKind } from "@/lib/examples/types";
 import type { BucketBlock } from "@/components/landing/ExamplesBackdrop";
-import { ExamplesMarqueeRows } from "@/components/landing/ExamplesMarqueeRows";
+import { ExamplesMarqueeBackdrop, ExamplesMarqueeRows } from "@/components/landing/ExamplesMarqueeRows";
 import { PrelaunchGateModal } from "@/components/landing/PrelaunchGateModal";
 import { useLocale } from "@/context/LocaleContext";
 import { normalizeLang, type Lang } from "@features/landing/landingCopy";
@@ -78,12 +78,15 @@ export default function LandingStart({ blocks, geo }: LandingStartProps) {
 
   const [liveBlocks, setLiveBlocks] = useState<BucketBlock[]>(() => blocks);
   const [prefillText, setPrefillText] = useState("");
+  const [assistantEngaged, setAssistantEngaged] = useState(false);
+  const [assistantFocused, setAssistantFocused] = useState(false);
 
   const [showGate, setShowGate] = useState(false);
   const [gateAcknowledged, setGateAcknowledged] = useState(false);
 
   const pendingSubmitRef = useRef<null | (() => void)>(null);
   const pendingRefineRef = useRef<null | (() => void)>(null);
+  const assistantRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     try {
@@ -93,6 +96,14 @@ export default function LandingStart({ blocks, geo }: LandingStartProps) {
     } catch {
       // ignore
     }
+  }, []);
+
+  useEffect(() => {
+    const className = "landing-no-xscroll";
+    document.body.classList.add(className);
+    return () => {
+      document.body.classList.remove(className);
+    };
   }, []);
 
   const handleIngest = useCallback(
@@ -192,27 +203,51 @@ export default function LandingStart({ blocks, geo }: LandingStartProps) {
   );
 
   return (
-    <section className="relative h-[100svh] min-h-screen overflow-hidden bg-[rgb(var(--bg))]">
-      <ExamplesMarqueeRows
-        blocks={liveBlocks}
-        lang={lang}
-        onPick={(item) => {
-          setPrefillText(titleForLang(item));
-        }}
-        onOpen={(item) => {
-          ingestExample(item);
-          const target = `/pricing?from=landing&kind=${encodeURIComponent(item.kind)}&scope=${encodeURIComponent(item.scope)}`;
-          router.push(target as any);
-        }}
-      />
+    <section className="relative isolate h-[100svh] min-h-screen bg-[rgb(var(--bg))]">
+      <div aria-hidden className="pointer-events-none absolute inset-0 z-0">
+        <ExamplesMarqueeBackdrop />
+      </div>
 
-      <div className="relative z-10 mx-auto grid h-full w-full max-w-5xl place-items-center px-4 py-6 sm:px-6 [@media(max-height:740px)]:py-3">
-        <div className="w-full max-w-3xl">
-          <div className="max-h-[calc(100svh-3rem)] overflow-y-auto [scrollbar-gutter:stable]">
+      <div
+        className={[
+          "relative z-0 h-full w-full transition-[opacity,filter] duration-700 motion-reduce:transition-none",
+          assistantEngaged || assistantFocused ? "opacity-25 blur-[1.5px]" : "opacity-100",
+        ].join(" ")}
+      >
+        <ExamplesMarqueeRows
+          blocks={liveBlocks}
+          lang={lang}
+          onPick={(item) => {
+            setPrefillText(titleForLang(item));
+          }}
+          onOpen={(item) => {
+            ingestExample(item);
+            const target = `/pricing?from=landing&kind=${encodeURIComponent(item.kind)}&scope=${encodeURIComponent(item.scope)}`;
+            router.push(target as any);
+          }}
+        />
+      </div>
+
+      <div className="absolute inset-x-0 top-[clamp(3.5rem,10svh,9rem)] z-30 flex justify-center px-4 sm:px-6 [@media(max-height:740px)]:top-6">
+        <div
+          ref={assistantRef}
+          onFocusCapture={() => setAssistantFocused(true)}
+          onBlurCapture={() => {
+            requestAnimationFrame(() => {
+              if (!assistantRef.current) return;
+              if (!assistantRef.current.contains(document.activeElement)) {
+                setAssistantFocused(false);
+              }
+            });
+          }}
+          className="w-full max-w-3xl"
+        >
+          <div className="max-h-[calc(100svh-6rem)] overflow-y-auto [scrollbar-gutter:stable]">
             <LandingAssistant
               onIngest={handleIngest}
               prefillText={prefillText}
               onAnalyzeRequest={handleAnalyzeRequest}
+              onEngageChange={setAssistantEngaged}
               lang={lang}
             />
           </div>

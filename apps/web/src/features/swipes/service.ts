@@ -141,10 +141,10 @@ export async function getEventualitiesForStatement(req: EventualitiesRequest): P
   return { statementId: req.statementId, eventualities };
 }
 
-export async function recordSwipeVote(payload: SwipeVotePayload): Promise<void> {
+export async function recordSwipeVote(payload: SwipeVotePayload): Promise<{ inserted: boolean }> {
   const now = new Date();
   const col = await swipeVotesCol();
-  await col.updateOne(
+  const result = await col.updateOne(
     {
       userId: payload.userId,
       statementId: payload.statementId,
@@ -167,4 +167,5 @@ export async function recordSwipeVote(payload: SwipeVotePayload): Promise<void> 
   } catch (err) {
     console.error("[swipes] graph integration failed", err);
   }
+  return { inserted: Boolean(result.upsertedCount && result.upsertedCount > 0) };
 }

@@ -2,13 +2,14 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { AdminErrorPanel } from "@/components/admin/AdminErrorPanel";
 
 type ImpactSummaryResponse =
   | {
       ok: true;
       summary: ImpactSummary;
     }
-  | { ok: false; error: string };
+  | { ok: false; error: string; missingEnv?: string[]; hint?: string };
 
 type ImpactSummary = {
   totalStatements: number;
@@ -26,6 +27,8 @@ type ImpactSummary = {
 export default function GraphImpactPage() {
   const [summary, setSummary] = useState<ImpactSummary | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [missingEnv, setMissingEnv] = useState<string[] | null>(null);
+  const [errorHint, setErrorHint] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -33,11 +36,16 @@ export default function GraphImpactPage() {
     async function load() {
       setLoading(true);
       setError(null);
+      setMissingEnv(null);
+      setErrorHint(null);
       try {
         const res = await fetch("/api/admin/graph/impact/summary", { cache: "no-store" });
         const data = (await res.json()) as ImpactSummaryResponse;
         if (!res.ok || !data.ok) {
-          throw new Error((data as any)?.error || res.statusText);
+          const payload = data as { error?: string; missingEnv?: string[]; hint?: string };
+          setMissingEnv(payload?.missingEnv ?? null);
+          setErrorHint(payload?.hint ?? null);
+          throw new Error(payload?.error || res.statusText);
         }
         if (!ignore) setSummary(data.summary);
       } catch (err: any) {
@@ -73,9 +81,7 @@ export default function GraphImpactPage() {
       )}
 
       {error && !loading && (
-        <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-6 text-sm text-rose-700 shadow-sm">
-          {error}
-        </div>
+        <AdminErrorPanel error={error} missingEnv={missingEnv} hint={errorHint} />
       )}
 
       {!loading && !error && summary && (

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useParams } from "next/navigation";
+import { AdminErrorPanel } from "@/components/admin/AdminErrorPanel";
 
 type ProjectOption = {
   id: string;
@@ -89,11 +90,7 @@ export default function AdminProjectDetailPage() {
             {project.description && <p className="text-sm text-[rgb(var(--muted))]">{project.description}</p>}
           </header>
 
-          {error && (
-            <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
-              {error}
-            </div>
-          )}
+          {error && (<AdminErrorPanel error={error} />)}
 
           <section className="space-y-4">
             {project.topics.map((topic) => (

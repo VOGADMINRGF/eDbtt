@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import type { AiErrorKind } from "@core/telemetry/aiUsageTypes";
+import { AdminErrorPanel } from "@/components/admin/AdminErrorPanel";
 
 type ProviderStats = {
   provider: string;
@@ -117,7 +118,7 @@ export default function AiTelemetryDashboard() {
           >
             {loading ? "Aktualisiere …" : "Aktualisieren"}
           </button>
-          {error && <span className="text-sm text-rose-600">{error}</span>}
+          {error && <AdminErrorPanel error={error} />}
         </div>
       </header>
 
