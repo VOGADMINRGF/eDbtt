@@ -50,7 +50,7 @@ Operative Tasks (aus aktuellem Chat/Repo):
 | --- | --- | --- | --- |
 | Policy-Standards/Anti-Populismus Schema (debateFrame) in Topic/Statement integrieren | Done | - | `features/analyze/schemas.ts`, `features/analyze/debateFrame.ts`, `features/analyze/analyzeContribution.ts` |
 | API-Routen: Signaturen/`req.json()`-Mehrfachlese auditieren | Done | - | Audit: keine Handler mit mehrfacher `req.json()`-Nutzung pro Request gefunden |
-| Helpers: Effective-Findings/Filter entduplizieren (optional) | Offen | PR-00XX | Konsolidierung `effective.ts` falls mehrfach |
+| Helpers: Effective-Findings/Filter entduplizieren (optional) | Done | - | Audit: keine Duplikate gefunden; zentral in `features/dossier/effective.ts` |
 | Hash-Chain Fallback: CAS-Fehler robust abfedern | Done | - | `features/dossier/revisions.ts`, `features/dossier/db.ts` |
 
 Erledigt (seit 2026-03-04):
