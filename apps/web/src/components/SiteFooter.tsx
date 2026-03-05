@@ -6,6 +6,7 @@ import { BRAND } from "@/lib/brand";
 import { useLocale } from "@/context/LocaleContext";
 import { mapTranslatableStrings, useAutoTranslateText } from "@/lib/i18n/autoTranslate";
 import ReadingModeToggle from "@/components/ReadingModeToggle";
+import { VOG_SUPPORT_URL } from "@/config/links";
 
 const infoLinks = [
   { href: "/ueber-uns", label: "Über uns" },
@@ -138,7 +139,9 @@ export default function SiteFooter() {
               {donationLabel}{" "}
               <a
                 className="font-semibold text-[rgb(var(--fg))] underline decoration-[rgb(var(--border))] underline-offset-4 hover:decoration-[rgb(var(--grad-from))]"
-                href="/unterstuetzen"
+                href={VOG_SUPPORT_URL}
+                target="_blank"
+                rel="noreferrer"
               >
                 VoiceOpenGov
               </a>

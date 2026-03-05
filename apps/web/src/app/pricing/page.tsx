@@ -1,6 +1,7 @@
 import Link from "next/link";
 import PackagesGrid from "@/components/pricing/PackagesGrid";
 import { B2B_PACKAGE_IDS, B2G_PACKAGE_IDS, getPackagesByIds, PRIVATE_PACKAGE_IDS } from "@features/pricing";
+import { VOG_SUPPORT_URL } from "@/config/links";
 
 export default function PricingPage() {
   const privatePackages = getPackagesByIds(PRIVATE_PACKAGE_IDS);
@@ -23,12 +24,14 @@ export default function PricingPage() {
             unverbindlich vormerken. B2B- und B2G-Pakete starten mit Basis oder Pro und werden im Setup abgestimmt.
           </p>
           <div className="flex flex-wrap items-center gap-3 pt-1">
-            <Link
-              href="/unterstuetzen"
+            <a
+              href={VOG_SUPPORT_URL}
+              target="_blank"
+              rel="noreferrer"
               className="inline-flex items-center justify-center rounded-full border border-emerald-200 bg-emerald-50 px-4 py-2 text-xs font-semibold text-emerald-700 hover:bg-emerald-100"
             >
               Initiative unterstützen
-            </Link>
+            </a>
             <span className="text-xs text-[rgb(var(--muted))]">
               Unterstützung läuft über VoiceOpenGov – ohne Stimmvorteile.
             </span>

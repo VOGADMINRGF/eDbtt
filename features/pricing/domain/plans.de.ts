@@ -47,7 +47,7 @@ export const EDEBATTE_PACKAGES_DE: EDebattePackageDefinition[] = [
     ctaText: "Vormerken",
     ctaHref: "/vormerken?paket=start",
     sekundarCtaText: "VoiceOpenGov unterstuetzen",
-    sekundarCtaHref: "/unterstuetzen",
+    sekundarCtaHref: "https://voiceopengov.org/unterstuetzen#voiceopengov-support",
   },
   {
     id: "pro",
@@ -69,7 +69,7 @@ export const EDEBATTE_PACKAGES_DE: EDebattePackageDefinition[] = [
     ctaText: "Vormerken",
     ctaHref: "/vormerken?paket=pro",
     sekundarCtaText: "VoiceOpenGov unterstuetzen",
-    sekundarCtaHref: "/unterstuetzen",
+    sekundarCtaHref: "https://voiceopengov.org/unterstuetzen#voiceopengov-support",
   },
   {
     id: "b2b_basis",

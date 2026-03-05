@@ -5,7 +5,7 @@ import Link from "next/link";
 
 const checkItems = [
   { label: "Stream-Kacheln sichtbar & korrekt", href: "/stream" },
-  { label: "Unterstützen-Button im Header", href: "/unterstuetzen" },
+  { label: "Unterstützen-Button im Header", href: "https://voiceopengov.org/unterstuetzen#voiceopengov-support" },
   { label: "CI-Farben & Fonts greifen", href: "/" },
   { label: "Impressum geladen & erreichbar", href: "/impressum" },
   { label: "Datenschutzseite erreichbar", href: "/daten" },

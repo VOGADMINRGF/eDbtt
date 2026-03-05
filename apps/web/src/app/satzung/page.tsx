@@ -1,5 +1,6 @@
 // apps/web/src/app/satzung/page.tsx
 import type { ReactNode } from "react";
+import { VOG_SUPPORT_URL } from "@/config/links";
 
 export default function SatzungPage() {
   const sections: { id: string; title: string; content: ReactNode }[] = [
@@ -502,7 +503,9 @@ export default function SatzungPage() {
           </p>
           <div>
             <a
-              href="/unterstuetzen"
+              href={VOG_SUPPORT_URL}
+              target="_blank"
+              rel="noreferrer"
               className="inline-block text-sm font-medium underline underline-offset-4 text-sky-700 hover:text-sky-900"
             >
               → Mitmachen &amp; eDebatte unterstützen
