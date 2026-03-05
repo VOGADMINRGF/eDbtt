@@ -63,9 +63,10 @@ type LandingCopy = {
   modal: {
     title: string;
     text: string;
-    ctaAnother: string;
-    ctaMember: string;
-    ctaSupport: string;
+    ctaRegister: string;
+    ctaStart: string;
+    ctaPro: string;
+    ctaLater: string;
     closeLabel: string;
   };
   errors: {
@@ -150,10 +151,11 @@ export const LANDING_COPY: Record<Lang, LandingCopy> = {
     },
     modal: {
       title: "Danke! Beitrag ist eingegangen.",
-      text: "Wir prüfen jeden Beitrag redaktionell vor Freigabe. (Demo-Brücke: noch ohne öffentliche Veröffentlichung.)",
-      ctaAnother: "Noch einen Beitrag senden",
-      ctaMember: "Mitglied werden",
-      ctaSupport: "Vorbestellen / unterstützen",
+      text: "Damit du Updates zum Verlauf bekommst: Jetzt kostenlos registrieren. Optional kannst du danach Start (9,99 EUR) oder Pro (29,99 EUR) vormerken.",
+      ctaRegister: "Kostenfrei registrieren",
+      ctaStart: "Start vormerken (9,99 EUR)",
+      ctaPro: "Pro vormerken (29,99 EUR)",
+      ctaLater: "Später weiter schreiben",
       closeLabel: "Dialog schließen",
     },
     errors: {
@@ -237,10 +239,11 @@ export const LANDING_COPY: Record<Lang, LandingCopy> = {
     },
     modal: {
       title: "Thanks! Contribution received.",
-      text: "We review every submission before publishing. (Demo bridge: not public yet.)",
-      ctaAnother: "Send another",
-      ctaMember: "Become a member",
-      ctaSupport: "Pre-order / support",
+      text: "Register for free to get updates on your topic. Optionally, pre-order Start (9.99 EUR) or Pro (29.99 EUR).",
+      ctaRegister: "Register for free",
+      ctaStart: "Pre-order Start (9.99 EUR)",
+      ctaPro: "Pre-order Pro (29.99 EUR)",
+      ctaLater: "Continue later",
       closeLabel: "Close dialog",
     },
     errors: {
