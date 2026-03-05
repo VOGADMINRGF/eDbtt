@@ -82,7 +82,13 @@ export async function logDossierRevision(input: RevisionInput) {
   }
 
   if (!updatedChain) {
-    // Avoid overwriting newer chain state; fall back to revision history on next write.
+    console.warn("[dossier] revision hash chain update failed", {
+      dossierId: input.dossierId,
+      prevHash,
+      attempts,
+    });
+    prevHash = undefined;
+    hash = "";
   }
   const doc = {
     revId: makeDossierEntityId("rev"),
@@ -94,9 +100,9 @@ export async function logDossierRevision(input: RevisionInput) {
     byRole: input.byRole,
     byUserId: input.byUserId,
     timestamp: now,
-    prevHash,
-    hash,
-    hashAlgo: REVISION_HASH_ALGO,
+    ...(updatedChain && prevHash ? { prevHash } : {}),
+    ...(updatedChain && hash ? { hash } : {}),
+    ...(updatedChain && hash ? { hashAlgo: REVISION_HASH_ALGO } : {}),
   };
 
   await col.insertOne(doc as any);

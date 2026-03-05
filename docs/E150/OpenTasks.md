@@ -48,10 +48,10 @@ Operative Tasks (aus aktuellem Chat/Repo):
 
 | Task | Status | Naechster Run | Evidenz/Notiz |
 | --- | --- | --- | --- |
-| Policy-Standards/Anti-Populismus Schema (debateFrame) in Topic/Statement integrieren | Offen | PR-00XX | Basis: 5 Ebenen + 10 Regeln + Standard-Frageschema (aktueller Chat-Entwurf) |
-| API-Routen: Signaturen/`req.json()`-Mehrfachlese auditieren | Offen | PR-00XX | Ziel: 2-Arg-Handler + `req.json()` nur 1x pro Request |
+| Policy-Standards/Anti-Populismus Schema (debateFrame) in Topic/Statement integrieren | Done | - | `features/analyze/schemas.ts`, `features/analyze/debateFrame.ts`, `features/analyze/analyzeContribution.ts` |
+| API-Routen: Signaturen/`req.json()`-Mehrfachlese auditieren | Done | - | Audit: keine Handler mit mehrfacher `req.json()`-Nutzung pro Request gefunden |
 | Helpers: Effective-Findings/Filter entduplizieren (optional) | Offen | PR-00XX | Konsolidierung `effective.ts` falls mehrfach |
-| Hash-Chain Fallback: CAS-Fehler robust abfedern | Offen | PR-00XX | Kein blindes overwrite; sauberes Fallback logging |
+| Hash-Chain Fallback: CAS-Fehler robust abfedern | Done | - | `features/dossier/revisions.ts`, `features/dossier/db.ts` |
 
 Erledigt (seit 2026-03-04):
 
