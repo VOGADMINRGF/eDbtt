@@ -12,7 +12,6 @@ export function DossierShell({ children, className }: DossierShellProps) {
         className ?? ""
       }`.trim()}
     >
-      <h1 className="sr-only">Dossier</h1>
       {children}
     </main>
   );

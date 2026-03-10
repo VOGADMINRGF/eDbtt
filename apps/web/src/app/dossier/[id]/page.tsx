@@ -14,6 +14,7 @@ export default async function DossierPage({ params }: PageProps) {
   const entry = id.toLowerCase().startsWith("demo") ? "demo" : "public";
   return (
     <DossierShell>
+      <h1 className="sr-only">Dossier</h1>
       <DossierSurface dossierId={id} entry={entry} source="api" />
     </DossierShell>
   );

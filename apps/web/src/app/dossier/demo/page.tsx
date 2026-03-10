@@ -10,6 +10,7 @@ export const metadata: Metadata = {
 export default function DossierDemoPage() {
   return (
     <DossierShell>
+      <h1 className="sr-only">Dossier Demo</h1>
       <DossierSurface entry="demo" source="demo" />
     </DossierShell>
   );
