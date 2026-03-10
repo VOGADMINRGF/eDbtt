@@ -44,7 +44,7 @@ export const demoMandate: DemoMandate = {
   region: "Beispielstadt - Kommune",
   status: "aktiv",
   summary:
-    "Mandat zur Reduktion des Energieverbrauchs kommunaler Gebaeude um 15 % bis 2027. Umsetzung mit Schulungen, Gebaeudesanierung und Monitoring.",
+    "Mandat zur Reduktion des Energieverbrauchs kommunaler Gebäude um 15 % bis 2027. Umsetzung mit Schulungen, Gebäudesanierung und Monitoring.",
   lastUpdated: "2025-07-21",
   timeline: [
     {
@@ -57,13 +57,13 @@ export const demoMandate: DemoMandate = {
       label: "Projektstart & Kickoff",
       date: "2025-06-10",
       status: "done",
-      note: "Projektteam + Auftragnehmer ausgewaehlt.",
+      note: "Projektteam + Auftragnehmer ausgewählt.",
     },
     {
-      label: "Gebaeude-Audit",
+      label: "Gebäude-Audit",
       date: "2025-07-15",
       status: "in_progress",
-      note: "12 Gebaeude geprueft, 8 stehen noch aus.",
+      note: "12 Gebäude geprüft, 8 stehen noch aus.",
     },
     {
       label: "Sanierungsphase",
@@ -72,7 +72,7 @@ export const demoMandate: DemoMandate = {
       note: "Priorisierung nach Energiebedarf.",
     },
     {
-      label: "Erste Wirkungspruefung",
+      label: "Erste Wirkungsprüfung",
       date: "2026-03-15",
       status: "planned",
     },
@@ -80,13 +80,13 @@ export const demoMandate: DemoMandate = {
   responsibilities: [
     {
       area: "Projektleitung",
-      owner: "Klimaschutzbuero",
+      owner: "Klimaschutzbüro",
       partners: ["Stadtwerke", "Facility Management"],
       status: "in_progress",
       deliverables: ["Projektplan & Budgettracking", "Monatliches Reporting"],
     },
     {
-      area: "Gebaeudesanierung",
+      area: "Gebäudesanierung",
       owner: "Bauamt",
       partners: ["Externe Fachplanung"],
       status: "planned",
@@ -107,14 +107,14 @@ export const demoMandate: DemoMandate = {
   ],
   risks: [
     {
-      title: "Lieferengpaesse bei Daemmmaterial",
+      title: "Lieferengpässe bei Dämmmaterial",
       owner: "Bauamt",
-      mitigation: "Alternativlieferanten geprueft, Puffer eingeplant.",
+      mitigation: "Alternativlieferanten geprüft, Puffer eingeplant.",
     },
     {
-      title: "Verzoegerte Datenzulieferung",
+      title: "Verzögerte Datenzulieferung",
       owner: "Datenstelle",
-      mitigation: "Automatisierte Zaehlerablesung priorisiert.",
+      mitigation: "Automatisierte Zählerablesung priorisiert.",
     },
   ],
 };

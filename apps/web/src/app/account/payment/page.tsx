@@ -35,10 +35,10 @@ export default async function PaymentPage() {
   const paymentReference = membership?.paymentReference ?? null;
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-white py-10">
+    <main className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-white py-10 dark:from-slate-950 dark:via-slate-950 dark:to-slate-950">
       <div className="mx-auto max-w-3xl space-y-6 px-4">
         <header className="space-y-2">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-sky-600">Zahlungsprofil</p>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-sky-600 dark:text-sky-400">Zahlungsprofil</p>
           <h1 className="text-2xl font-semibold text-[rgb(var(--fg))]">Standardkonto &amp; Zahlungsart</h1>
           <p className="text-sm text-[rgb(var(--muted))]">
             Hinterlegte Bankverbindung für Beiträge und Abrechnungen. Du kannst dein Standardkonto hier aktualisieren; bei Fragen helfen wir dir im Support.

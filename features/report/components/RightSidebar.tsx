@@ -21,16 +21,16 @@ export default function RightSidebar({ news = [], className }: Props) {
   return (
     <aside
       className={clsx(
-        "bg-[rgb(var(--card))] border border-neutral-200 rounded-2xl shadow p-4 sm:p-5",
+        "bg-white border border-slate-200 rounded-2xl shadow p-4 sm:p-5 dark:bg-slate-950/80 dark:border-slate-800",
         "flex flex-col gap-4",
         className
       )}
       aria-label="Neuigkeiten & Hinweise"
     >
-      <h3 className="font-bold text-neutral-800 text-lg">Neuigkeiten</h3>
+      <h3 className="font-bold text-slate-900 dark:text-slate-100 text-lg">Neuigkeiten</h3>
 
       {news.length === 0 && (
-        <div className="text-sm text-neutral-500">
+        <div className="text-sm text-slate-500 dark:text-slate-300">
           Keine aktuellen Meldungen.
         </div>
       )}
@@ -43,14 +43,14 @@ export default function RightSidebar({ news = [], className }: Props) {
                 href={n.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="underline text-indigo-700"
+                className="underline text-sky-700 dark:text-sky-400"
               >
                 {n.title}
               </a>
             ) : (
-              <span className="text-neutral-800">{n.title}</span>
+              <span className="text-slate-900 dark:text-slate-100">{n.title}</span>
             )}
-            <div className="text-[11px] text-neutral-500">
+            <div className="text-[11px] text-slate-500 dark:text-slate-300">
               {n.source ? `${n.source} ` : ""}
               {n.at ? `• ${new Date(n.at).toLocaleDateString()}` : ""}
             </div>
@@ -58,7 +58,7 @@ export default function RightSidebar({ news = [], className }: Props) {
         ))}
       </ul>
 
-      <div className="mt-2 text-[12px] text-neutral-500">
+      <div className="mt-2 text-[12px] text-slate-500 dark:text-slate-300">
         Kuratiert für dich – basierend auf deinen Themen.
       </div>
     </aside>

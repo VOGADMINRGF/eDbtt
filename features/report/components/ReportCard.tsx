@@ -15,6 +15,7 @@ import MiniLineChart from "@features/report/components/MiniLineChart";
 import VotingRuleBadge from "@features/vote/components/VotingRuleBadge";
 import { getNationalFlag, getLanguageName } from "@features/stream/utils/nationalFlag";
 import { badgeColors } from "@vog/ui";
+import { SELECT } from "@/lib/ui/inputs";
 
 /* ──────────────────────────────────────────────────────────────────
  * Typen (V2 hinzugefügt)
@@ -81,10 +82,6 @@ export type Report = {
 function formatRelativeTime(time: string | number | Date): string {
   const date = new Date(time);
   if (Number.isNaN(date.getTime())) return "";
-  const diff = (Date.now() - date.getTime()) / 1000;
-  if (diff < 60) return "jetzt";
-  if (diff < 3600) return `${Math.floor(diff / 60)} Min.`;
-  if (diff < 86400) return `${Math.floor(diff / 3600)} Std.`;
   return date.toLocaleDateString("de-DE");
 }
 
@@ -174,7 +171,7 @@ function TrustBadge({
         </span>
       </Tooltip.Trigger>
       <Tooltip.Content
-        className="z-50 rounded-lg px-4 py-3 bg-[rgb(var(--card))] shadow-lg border text-neutral-900 max-w-xs text-xs"
+        className="z-50 rounded-lg px-4 py-3 bg-[rgb(var(--card))] shadow-lg border border-slate-200 text-slate-900 max-w-xs text-xs dark:border-slate-800 dark:text-slate-100"
         sideOffset={6}
         align="center"
       >
@@ -184,7 +181,7 @@ function TrustBadge({
         <div className="mb-1">
           Letzte Prüfung: <span className="font-semibold">{reviewedAtString}</span>
         </div>
-        <div className="text-neutral-500">
+        <div className="text-slate-500 dark:text-slate-300">
           Mehr Infos zu Prüfregeln:{" "}
           <a className="underline text-turquoise" href="/faq#trustscore" target="_blank" rel="noopener noreferrer">
             Hier
@@ -223,15 +220,15 @@ function RedaktionAccordion({ editors, lang = "de" }: { editors?: Editor[]; lang
                   loading="lazy"
                 />
               ) : (
-                <div className="w-7 h-7 rounded-full bg-neutral-200 flex items-center justify-center text-xl text-indigo-700">
+              <div className="w-7 h-7 rounded-full bg-slate-200 flex items-center justify-center text-xl text-indigo-700 dark:bg-slate-800 dark:text-sky-300">
                   <FiUser />
                 </div>
               )}
               <span className="font-semibold">{editor.name || "Redaktion"}</span>
-              <span className="text-xs text-neutral-500">{editor.role || ""}</span>
+              <span className="text-xs text-slate-500 dark:text-slate-300">{editor.role || ""}</span>
               {editor.contactable && (
                 <button
-                  className="ml-2 px-3 py-1 bg-neutral-100 rounded-full text-xs font-semibold border focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
+                  className="ml-2 px-3 py-1 bg-slate-100 rounded-full text-xs font-semibold border border-slate-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 dark:bg-slate-900/60 dark:border-slate-700 dark:text-slate-200"
                   type="button"
                   title={`Kontakt zu ${editor.name || "Redakteur:in"}`}
                 >
@@ -248,7 +245,7 @@ function RedaktionAccordion({ editors, lang = "de" }: { editors?: Editor[]; lang
 
 function CommentsPanel({ reportId }: { reportId?: string }) {
   return (
-    <div className="bg-neutral-100 rounded-lg px-4 py-3 text-xs text-neutral-600">
+    <div className="bg-slate-100 rounded-lg px-4 py-3 text-xs text-slate-600 dark:bg-slate-900/60 dark:text-slate-300">
       Kommentarbereich (in Entwicklung) für Report: {reportId || "—"}
     </div>
   );
@@ -259,7 +256,7 @@ function NewsTrendWidget({ news }: { news?: NewsItem[] }) {
   const MAX = 7;
   const displayNews = news.slice(0, MAX);
   return (
-    <aside className="bg-neutral-50 rounded-xl p-4 border border-neutral-100 mt-4" aria-label="Aktuelle News und Trends">
+    <aside className="bg-slate-50 rounded-xl p-4 border border-slate-200 mt-4 dark:bg-slate-900/50 dark:border-slate-800" aria-label="Aktuelle News und Trends">
       <div className="font-bold text-sm mb-1">Aktuelle News & Trends</div>
       <ul className="space-y-1">
         {displayNews.map((n, i) => (
@@ -276,8 +273,8 @@ function NewsTrendWidget({ news }: { news?: NewsItem[] }) {
               >
                 {n.title || "Ohne Titel"}
               </a>
-              {n.source && <span className="ml-1 bg-neutral-200 rounded px-1">{n.source}</span>}
-              {n.time && <span className="ml-1 text-neutral-500">{formatRelativeTime(n.time)}</span>}
+              {n.source && <span className="ml-1 bg-slate-200 rounded px-1 dark:bg-slate-800">{n.source}</span>}
+              {n.time && <span className="ml-1 text-slate-500 dark:text-slate-300">{formatRelativeTime(n.time)}</span>}
             </span>
           </li>
         ))}
@@ -321,7 +318,7 @@ export default function ReportCard({
   const editors = report.editors ?? [];
   const tags = report.tags ?? [];
   const votingRule = report.votingRule ?? {};
-  const exportId = `reportcard-${report.id || Math.random().toString(36).slice(2)}`;
+  const exportId = `reportcard-${report.id || report.slug || "demo"}`;
   const trending = trend.length > 1 && (trend.at(-1)! > (trend.at(-2)! * 1.07));
   const barrierescore = report.barrierescore;
   const accessibilityStatus = report.accessibilityStatus;
@@ -337,14 +334,14 @@ export default function ReportCard({
   const [lang, setLang] = useState(language);
 
   return (
-    <div className="min-h-screen bg-neutral-50 pb-8">
+    <div className="min-h-screen bg-slate-50 pb-8 dark:bg-slate-950">
       {/* Sprachauswahl */}
       {languages.length > 1 && (
         <div className="flex justify-end max-w-2xl mx-auto py-2">
           <select
             value={lang}
             onChange={(e) => setLang(e.target.value)}
-            className="border rounded px-2 py-1 text-sm focus:outline-indigo-500"
+            className={`${SELECT} w-auto px-2 py-1 text-sm`}
             aria-label="Sprache wählen"
           >
             {languages.map((l) => (
@@ -359,21 +356,21 @@ export default function ReportCard({
       <article
         id={exportId}
         aria-label="Report Card"
-        className="relative bg-[rgb(var(--card))] rounded-2xl shadow-card max-w-2xl mx-auto my-10 overflow-visible transition-all border border-gray-200"
+        className="relative bg-[rgb(var(--card))] rounded-2xl shadow-card max-w-2xl mx-auto my-10 overflow-visible transition-all border border-slate-200 dark:border-slate-800"
       >
         {/* STATUS, TREND, TRUST */}
         <div className="absolute top-4 right-4 flex gap-2 z-10">
           {report.status === "draft" && (
-            <span className="bg-yellow-100 text-yellow-900 px-3 py-1 rounded-full text-xs font-bold">Entwurf</span>
+            <span className="bg-yellow-100 text-yellow-900 px-3 py-1 rounded-full text-xs font-bold dark:bg-yellow-500/15 dark:text-yellow-200">Entwurf</span>
           )}
           {report.status === "published" && (
             <span className="bg-turquoise text-white px-3 py-1 rounded-full text-xs font-bold">Live</span>
           )}
           {report.status === "archived" && (
-            <span className="bg-gray-200 text-gray-600 px-3 py-1 rounded-full text-xs font-bold">Archiviert</span>
+            <span className="bg-slate-200 text-slate-600 px-3 py-1 rounded-full text-xs font-bold dark:bg-slate-800 dark:text-slate-200">Archiviert</span>
           )}
           {trending && (
-            <span className="bg-violet-100 text-violet-700 px-3 py-1 rounded-full text-xs font-bold">🔥 Trending</span>
+            <span className="bg-violet-100 text-violet-700 px-3 py-1 rounded-full text-xs font-bold dark:bg-violet-500/15 dark:text-violet-200">🔥 Trending</span>
           )}
           {trustScore > 0 && (
             <TrustBadge trustScore={trustScore} reviewedBy={reviewedBy} reviewedAt={report.updatedAt ?? null} />
@@ -381,7 +378,7 @@ export default function ReportCard({
         </div>
 
         {/* Titelbild / Trailer */}
-        <div className="w-full rounded-t-2xl overflow-hidden aspect-[5/3] bg-gray-100 flex items-center justify-center">
+        <div className="w-full rounded-t-2xl overflow-hidden aspect-[5/3] bg-slate-100 flex items-center justify-center dark:bg-slate-900/60">
           {report.trailerUrl ? (
             <video src={report.trailerUrl} controls className="w-full h-full object-cover rounded-t-2xl" />
           ) : report.imageUrl ? (
@@ -391,7 +388,7 @@ export default function ReportCard({
               className="w-full h-full object-cover"
             />
           ) : (
-            <div className="text-5xl text-gray-200">🎬</div>
+            <div className="text-5xl text-slate-300 dark:text-slate-700">🎬</div>
           )}
         </div>
 
@@ -420,10 +417,10 @@ export default function ReportCard({
           </h2>
 
           {report.subtitle && (
-            <div className="text-md text-neutral-400 mb-1">{translated.subtitle || report.subtitle}</div>
+            <div className="text-md text-slate-400 dark:text-slate-300 mb-1">{translated.subtitle || report.subtitle}</div>
           )}
 
-          <div className="flex flex-wrap gap-2 items-center text-xs text-neutral-500 mb-1">
+          <div className="flex flex-wrap gap-2 items-center text-xs text-slate-500 dark:text-slate-300 mb-1">
             {regions.map((region) => (
               <span key={`${region.iso}-${region.name}`} className="flex items-center gap-1">
                 <span className="text-lg">{getNationalFlag(region.iso)}</span>
@@ -436,9 +433,9 @@ export default function ReportCard({
 
           <div className="flex items-center gap-2">
             <VotingRuleBadge votingRule={votingRule} />
-            {votingRule?.description && <div className="text-xs text-neutral-500">{votingRule.description}</div>}
+            {votingRule?.description && <div className="text-xs text-slate-500 dark:text-slate-300">{votingRule.description}</div>}
             <MiniLineChart data={trend} color="#04bfbf" />
-            <span className="text-xs text-neutral-400">
+            <span className="text-xs text-slate-400 dark:text-slate-300">
               Trend: {trend.at(-1)} Stimmen {trending && <span className="text-turquoise font-semibold">↑</span>}
             </span>
           </div>
@@ -464,7 +461,7 @@ export default function ReportCard({
           </div>
         )}
         {hasAI && (
-          <div className="text-xs text-gray-500 mt-1 px-7" aria-label="KI-Analyse">
+          <div className="text-xs text-slate-500 dark:text-slate-300 mt-1 px-7" aria-label="KI-Analyse">
             {ai?.toxicity != null && <>Toxizität: {(ai.toxicity * 100).toFixed(2)} % </>}
             {ai?.sentiment != null && <>Stimmung: {ai.sentiment} </>}
             {Array.isArray(ai?.subjectAreas) && ai!.subjectAreas.length > 0 && <>Themen: {ai!.subjectAreas.join(", ")}</>}
@@ -478,7 +475,7 @@ export default function ReportCard({
           ) : null}
 
           {(translated as any).recommendation || (report as any).recommendation ? (
-            <div className="bg-turquoise/10 border-l-4 border-turquoise px-3 py-2 rounded mb-2 text-turquoise-900 font-bold">
+            <div className="bg-turquoise/10 border-l-4 border-turquoise px-3 py-2 rounded mb-2 text-turquoise-900 font-bold dark:bg-turquoise/20 dark:text-turquoise-100">
               Empfehlung: {(translated as any).recommendation || (report as any).recommendation}
             </div>
           ) : null}
@@ -519,7 +516,7 @@ export default function ReportCard({
         {facts.length > 0 && (
           <div className="px-7 pb-4">
             <div className="font-bold text-sm mb-1">Fakten & Studien:</div>
-            <ul className="list-disc ml-5 text-xs text-neutral-700">
+            <ul className="list-disc ml-5 text-xs text-slate-700 dark:text-slate-200">
               {facts.map((f, i) => (
                 <li key={i}>
                   {f.text}{" "}
@@ -534,7 +531,7 @@ export default function ReportCard({
                     </a>
                   )}
                   {typeof f.source?.trustScore === "number" && (
-                    <span className="ml-2 text-[10px] text-neutral-500">TrustScore: {f.source.trustScore}</span>
+                    <span className="ml-2 text-[10px] text-slate-500 dark:text-slate-300">TrustScore: {f.source.trustScore}</span>
                   )}
                 </li>
               ))}
@@ -570,7 +567,7 @@ export default function ReportCard({
           </button>
 
           <button
-            className="bg-[rgb(var(--card))] border border-coral text-coral rounded-full px-4 py-3 font-bold flex items-center gap-2 shadow-button"
+            className="bg-[rgb(var(--card))] border border-coral text-coral rounded-full px-4 py-3 font-bold flex items-center gap-2 shadow-button dark:border-coral/60"
             onClick={() =>
               onShare
                 ? onShare(report)
@@ -581,28 +578,28 @@ export default function ReportCard({
           </button>
 
           <button
-            className="bg-[rgb(var(--card))] border border-indigo-200 text-indigo-700 rounded-full px-4 py-3 font-bold flex items-center gap-2 shadow-button"
+            className="bg-[rgb(var(--card))] border border-indigo-200 text-indigo-700 rounded-full px-4 py-3 font-bold flex items-center gap-2 shadow-button dark:border-indigo-400/40 dark:text-indigo-200"
             onClick={() => (onEdit ? onEdit(report) : alert("Bald verfügbar: Statement ergänzen!"))}
           >
             <FiEdit3 /> Statement ergänzen
           </button>
 
           <button
-            className="bg-[rgb(var(--card))] border border-indigo-200 text-indigo-700 rounded-full px-4 py-3 font-bold flex items-center gap-2 shadow-button"
+            className="bg-[rgb(var(--card))] border border-indigo-200 text-indigo-700 rounded-full px-4 py-3 font-bold flex items-center gap-2 shadow-button dark:border-indigo-400/40 dark:text-indigo-200"
             onClick={() => exportAsPDFPNG(exportId, "pdf")}
           >
             <FiDownload /> Export PDF
           </button>
 
           <button
-            className="bg-[rgb(var(--card))] border border-indigo-200 text-indigo-700 rounded-full px-4 py-3 font-bold flex items-center gap-2 shadow-button"
+            className="bg-[rgb(var(--card))] border border-indigo-200 text-indigo-700 rounded-full px-4 py-3 font-bold flex items-center gap-2 shadow-button dark:border-indigo-400/40 dark:text-indigo-200"
             onClick={() => exportAsPDFPNG(exportId, "png")}
           >
             <FiDownload /> Export PNG
           </button>
 
           <button
-            className="bg-[rgb(var(--card))] border border-neutral-300 text-indigo-700 rounded-full px-4 py-3 font-bold flex items-center gap-2 shadow-button"
+            className="bg-[rgb(var(--card))] border border-slate-300 text-indigo-700 rounded-full px-4 py-3 font-bold flex items-center gap-2 shadow-button dark:border-slate-700 dark:text-indigo-200"
             title="Bookmark/Favorit (in Entwicklung)"
             type="button"
           >
@@ -610,7 +607,7 @@ export default function ReportCard({
           </button>
 
           <button
-            className="bg-[rgb(var(--card))] border border-neutral-300 text-red-600 rounded-full px-4 py-3 font-bold flex items-center gap-2 shadow-button"
+            className="bg-[rgb(var(--card))] border border-slate-300 text-red-600 rounded-full px-4 py-3 font-bold flex items-center gap-2 shadow-button dark:border-slate-700 dark:text-rose-300"
             title="Melden (in Entwicklung)"
             type="button"
           >
@@ -626,7 +623,7 @@ export default function ReportCard({
         {/* AUDITLOG */}
         {report.modLog && report.modLog.length > 0 && (
           <details className="px-7 pb-4 mt-2">
-            <summary className="text-xs underline text-gray-500 cursor-pointer">Redaktions-/Auditlog anzeigen</summary>
+            <summary className="text-xs underline text-slate-500 dark:text-slate-300 cursor-pointer">Redaktions-/Auditlog anzeigen</summary>
             <ul className="text-xs pl-4">
               {report.modLog.map((log, idx) => (
                 <li key={idx}>

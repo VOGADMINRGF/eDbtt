@@ -51,7 +51,7 @@ export const demoVotes: DemoVote[] = [
     id: "demo-vote-001",
     title: "Sichere Radwege - Innenstadt 2026",
     summary:
-      "Priorisierung eines durchgaengigen Radwegenetzes in der Innenstadt. Drei Optionen mit Zeitplan, Budget und Ausweichrouten.",
+      "Priorisierung eines durchgängigen Radwegenetzes in der Innenstadt. Drei Optionen mit Zeitplan, Budget und Ausweichrouten.",
     regionCode: "DE:BE",
     regionLabel: "Berlin Mitte",
     status: "published",
@@ -62,12 +62,12 @@ export const demoVotes: DemoVote[] = [
       {
         id: "opt-a",
         label: "Variante A: Pop-up Ausbau",
-        description: "Sofortstart mit temporaeren Spuren, 12 Monate Evaluationsphase.",
+        description: "Sofortstart mit temporären Spuren, 12 Monate Evaluationsphase.",
       },
       {
         id: "opt-b",
         label: "Variante B: Dauerhafte Trennung",
-        description: "Bauliche Trennung, hoeheres Budget, weniger Parkplaetze.",
+        description: "Bauliche Trennung, höheres Budget, weniger Parkplätze.",
       },
       {
         id: "opt-c",
@@ -81,11 +81,11 @@ export const demoVotes: DemoVote[] = [
         sourceHint: "Verkehrsmonitor 2024",
       },
       {
-        text: "Unfallzahlen steigen an drei Hotspots jaehrlich um 6 %.",
+        text: "Unfallzahlen steigen an drei Hotspots jährlich um 6 %.",
         sourceHint: "Polizeibericht Q4/2024",
       },
       {
-        text: "Temporaere Spuren senken Unfallrisiken kurzfristig um 18 %.",
+        text: "Temporäre Spuren senken Unfallrisiken kurzfristig um 18 %.",
         sourceHint: "Pilotprojekt Kiez West",
       },
     ],
@@ -101,7 +101,7 @@ export const demoVotes: DemoVote[] = [
         url: "https://www.berlin.de/sen/uvk/",
       },
       {
-        label: "Buerger:innen-Feedback",
+        label: "Bürger:innen-Feedback",
         source: "Beteiligungsplattform",
       },
     ],
@@ -109,16 +109,16 @@ export const demoVotes: DemoVote[] = [
       {
         title: "Quorum erreicht?",
         detail: "Mindestens 15 % Beteiligung in 21 Tagen.",
-        outcome: "Wenn nein -> Verlaengerung + Info-Kampagne.",
+        outcome: "Wenn nein -> Verlängerung + Info-Kampagne.",
       },
       {
-        title: "Mehrheit fuer Variante B?",
-        detail: "Mehrheit der gueltigen Stimmen.",
+        title: "Mehrheit für Variante B?",
+        detail: "Mehrheit der gültigen Stimmen.",
         outcome: "Wenn nein -> Vergleich A vs. C mit Kurzstudie.",
       },
       {
         title: "Budgetfreigabe",
-        detail: "Finanzausschuss bestaetigt Umsetzungsrahmen.",
+        detail: "Finanzausschuss bestätigt Umsetzungsrahmen.",
         outcome: "Wenn nein -> Phasenweise Umsetzung.",
       },
     ],
@@ -132,7 +132,7 @@ export const demoVotes: DemoVote[] = [
     id: "demo-vote-002",
     title: "Tempo 30 in Wohnquartieren",
     summary:
-      "Schrittweise Einfuehrung von Tempo 30 in Wohngebieten mit Ausnahmen fuer OEPNV-Korridore.",
+      "Schrittweise Einführung von Tempo 30 in Wohngebieten mit Ausnahmen für ÖPNV-Korridore.",
     regionCode: "DE:HH",
     regionLabel: "Hamburg",
     status: "review",
@@ -148,22 +148,22 @@ export const demoVotes: DemoVote[] = [
       {
         id: "opt-b",
         label: "Stufe 2: Gesamtstadt",
-        description: "Breiter Rollout mit OEPNV-Ausnahmen.",
+        description: "Breiter Rollout mit ÖPNV-Ausnahmen.",
       },
     ],
     claims: [
       {
-        text: "Laerm- und Feinstaubwerte ueberschreiten Richtwerte in 6 von 10 Quartieren.",
+        text: "Lärm- und Feinstaubwerte überschreiten Richtwerte in 6 von 10 Quartieren.",
         sourceHint: "Umweltmonitor 2024",
       },
       {
-        text: "Tempo 30 senkt Bremswege in Wohnstrassen um durchschnittlich 9 Meter.",
+        text: "Tempo 30 senkt Bremswege in Wohnstraßen um durchschnittlich 9 Meter.",
         sourceHint: "ADAC Safety Study",
       },
     ],
     evidence: [
       {
-        label: "Laermkarte 2024",
+        label: "Lärmkarte 2024",
         source: "Hamburg.de",
         url: "https://www.hamburg.de/",
       },
@@ -176,11 +176,11 @@ export const demoVotes: DemoVote[] = [
     decisionTree: [
       {
         title: "Pilot ausreichend?",
-        detail: "Mindestens 3 Quartiere bestaetigen Wirkung.",
-        outcome: "Wenn nein -> Anpassung der Massnahmen.",
+        detail: "Mindestens 3 Quartiere bestätigen Wirkung.",
+        outcome: "Wenn nein -> Anpassung der Maßnahmen.",
       },
       {
-        title: "Ausnahme fuer OEPNV?",
+        title: "Ausnahme für ÖPNV?",
         detail: "Zeitkritische Linien behalten 40 km/h.",
         outcome: "Wenn ja -> Sonderregelung im Beschluss.",
       },
@@ -188,14 +188,14 @@ export const demoVotes: DemoVote[] = [
     timeline: [
       { label: "Beteiligungsphase", date: "2025-06-25", status: "done" },
       { label: "Redaktionsreview", date: "2025-07-05", status: "in_progress" },
-      { label: "Veroeffentlichung", date: "2025-07-15", status: "planned" },
+      { label: "Veröffentlichung", date: "2025-07-15", status: "planned" },
     ],
   },
   {
     id: "demo-vote-003",
     title: "Schulhof-Entsiegelung & Klimaresilienz",
     summary:
-      "Investitionen in beschattete Schulhoefe, Regenwasserspeicher und Begruenung.",
+      "Investitionen in beschattete Schulhöfe, Regenwasserspeicher und Begrünung.",
     regionCode: "DE:NRW",
     regionLabel: "Nordrhein-Westfalen",
     status: "draft",
@@ -216,11 +216,11 @@ export const demoVotes: DemoVote[] = [
     ],
     claims: [
       {
-        text: "Hitzetage in Innenhoefen steigen seit 2018 um 23 %.",
+        text: "Hitzetage in Innenhöfen steigen seit 2018 um 23 %.",
         sourceHint: "Klimaatlas NRW",
       },
       {
-        text: "Entsiegelung reduziert Oberflaechentemperatur um bis zu 6 Grad.",
+        text: "Entsiegelung reduziert Oberflächentemperatur um bis zu 6 Grad.",
         sourceHint: "TU Dortmund Studie",
       },
     ],
@@ -232,13 +232,13 @@ export const demoVotes: DemoVote[] = [
       },
       {
         label: "Schulhof-Projektbericht",
-        source: "Staedtetag NRW",
+        source: "Städtetag NRW",
       },
     ],
     decisionTree: [
       {
-        title: "Foerdermittel gesichert?",
-        detail: "Mindestens 60 % externe Foerderung.",
+        title: "Fördermittel gesichert?",
+        detail: "Mindestens 60 % externe Förderung.",
         outcome: "Wenn nein -> Reduktion auf Pilot-Standorte.",
       },
       {
@@ -249,7 +249,7 @@ export const demoVotes: DemoVote[] = [
     ],
     timeline: [
       { label: "Entwurf", date: "2025-06-15", status: "done" },
-      { label: "Vorpruefung", date: "2025-06-30", status: "in_progress" },
+      { label: "Vorprüfung", date: "2025-06-30", status: "in_progress" },
       { label: "Beteiligung", date: "2025-07-20", status: "planned" },
     ],
   },
