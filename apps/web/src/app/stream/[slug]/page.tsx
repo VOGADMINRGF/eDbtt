@@ -119,13 +119,13 @@ export default async function StreamDetail({
     supportEnabled && {
       title: supportBlind ? "Support (blind)" : "Support aktiv",
       body: supportBlind
-        ? "Unterstuetzung laeuft im Hintergrund, ohne oeffentliche Anzeige."
-        : "Unterstuetzung ist sichtbar und kann die Nachbereitung foerdern.",
+        ? "Unterstützung läuft im Hintergrund, ohne öffentliche Anzeige."
+        : "Unterstützung ist sichtbar und kann die Nachbereitung fördern.",
       tone: "emerald",
     },
     hideViewerCount && {
       title: "Zuschauerzahl verborgen",
-      body: "Die Zuschauerzahl ist fuer die Oeffentlichkeit ausgeblendet.",
+      body: "Die Zuschauerzahl ist für die Öffentlichkeit ausgeblendet.",
       tone: "neutral",
     },
   ].filter(Boolean) as Array<{

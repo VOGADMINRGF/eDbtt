@@ -420,7 +420,7 @@ export default function AdminEditorialItemPage() {
 
       {loading && (
         <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-3 text-sm text-[rgb(var(--muted))]">
-          Laedt Item...
+          Lädt Item...
         </div>
       )}
     </div>

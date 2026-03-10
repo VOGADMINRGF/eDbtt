@@ -422,7 +422,7 @@ export default function EditorialAuditPanel({
 
       {(audit.euphemismTermFlags?.length ?? 0) > 0 && (
         <div className="mt-3">
-          <div className="text-xs font-semibold text-[rgb(var(--muted))]">Begriffe/Frames (Kontext pruefen)</div>
+          <div className="text-xs font-semibold text-[rgb(var(--muted))]">Begriffe/Frames (Kontext prüfen)</div>
           <ul className="mt-1 space-y-2">
             {audit.euphemismTermFlags.slice(0, 6).map((f, i) => (
               <li key={i} className="rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-xs text-[rgb(var(--muted))]">

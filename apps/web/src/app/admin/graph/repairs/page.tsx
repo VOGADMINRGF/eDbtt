@@ -150,7 +150,7 @@ export default function AdminGraphRepairsPage() {
       <header className="space-y-1">
         <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Admin · Graph</p>
         <h1 className="text-2xl font-bold text-[rgb(var(--fg))]">Repairs</h1>
-        <p className="text-sm text-[rgb(var(--muted))]">Tickets anlegen, pruefen und anwenden.</p>
+        <p className="text-sm text-[rgb(var(--muted))]">Tickets anlegen, prüfen und anwenden.</p>
       </header>
 
       {error && (
@@ -249,7 +249,7 @@ export default function AdminGraphRepairsPage() {
               {loading && (
                 <tr>
                   <td colSpan={4} className="px-4 py-6 text-center text-[rgb(var(--muted))]">
-                    Laedt Repairs...
+                    Lädt Repairs...
                   </td>
                 </tr>
               )}

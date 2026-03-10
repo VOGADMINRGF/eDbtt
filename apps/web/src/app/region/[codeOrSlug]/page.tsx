@@ -38,12 +38,12 @@ export default async function RegionLandingPage({
       {fallbackUsed && (
         <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm space-y-2">
           <p className="text-sm text-[rgb(var(--muted))]">
-            Fuer <span className="font-semibold">{requestedLabel}</span> liegen noch keine Daten vor. Wir zeigen
-            dir stattdessen die naechsthoehere Ebene:{" "}
+            Für <span className="font-semibold">{requestedLabel}</span> liegen noch keine Daten vor. Wir zeigen
+            dir stattdessen die nächsthöhere Ebene:{" "}
             <span className="font-semibold">{regionLabel}</span>.
           </p>
           <p className="text-sm text-[rgb(var(--muted))]">
-            Sei der Erste, der fuer deine Heimatregion etwas zur Abstimmung vorbringen will.
+            Sei der Erste, der für deine Heimatregion etwas zur Abstimmung vorbringen will.
           </p>
           <Link
             href="/thema-einreichen"
@@ -62,7 +62,7 @@ export default async function RegionLandingPage({
         />
         <ModuleCard
           title="Votes"
-          description="Abstimmungen und Entscheidungsbaeume."
+          description="Abstimmungen und Entscheidungsbäume."
           href="/votes"
         />
         <ModuleCard

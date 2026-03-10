@@ -367,11 +367,11 @@ export default function AccessCenterPage() {
             </p>
             <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Route-Index</h2>
             <p className="text-xs text-[rgb(var(--muted))]">
-              Seiten, die noch keine Access-Policy besitzen. Hinzufuegen erzeugt eine Custom-Policy.
+              Seiten, die noch keine Access-Policy besitzen. Hinzufügen erzeugt eine Custom-Policy.
             </p>
           </div>
           <span className="text-xs text-[rgb(var(--muted))]">
-            {inventoryLoading ? "laedt" : `${filteredUnmanaged.length} Eintraege`}
+            {inventoryLoading ? "lädt" : `${filteredUnmanaged.length} Einträge`}
           </span>
         </div>
 
@@ -403,7 +403,7 @@ export default function AccessCenterPage() {
                   target="_blank"
                   rel="noreferrer"
                 >
-                  oeffnen
+                  öffnen
                 </a>
                 <button
                   type="button"

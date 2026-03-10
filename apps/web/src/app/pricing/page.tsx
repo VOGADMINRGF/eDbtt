@@ -227,7 +227,7 @@ export default function PricingPage() {
                 <tr>
                   <td className="px-4 py-3 font-medium text-[rgb(var(--fg))]">Zusatzthema (Projekt)</td>
                   <td className="px-4 py-3 text-[rgb(var(--muted))]">1,99 EUR je Thema</td>
-                  <td className="px-4 py-3 text-[rgb(var(--muted))]">Zusatzthemen ueber 10 hinaus (nur eDebatte Pro, 24 Monate).</td>
+                  <td className="px-4 py-3 text-[rgb(var(--muted))]">Zusatzthemen über 10 hinaus (nur eDebatte Pro, 24 Monate).</td>
                 </tr>
                 <tr>
                   <td className="px-4 py-3 font-medium text-[rgb(var(--fg))]">Agenda &amp; Umfragen</td>

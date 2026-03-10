@@ -6,16 +6,16 @@ import { DEFAULT_LOCALE, isSupportedLocale, type SupportedLocale } from "@/confi
 
 export const metadata: Metadata = {
   title: "Community",
-  description: "Raeume und Austausch fuer sachliche Debatten, Moderation und Themenarbeit.",
+  description: "Räume und Austausch für sachliche Debatten, Moderation und Themenarbeit.",
   openGraph: {
     title: "Community",
-    description: "Raeume und Austausch fuer sachliche Debatten, Moderation und Themenarbeit.",
+    description: "Räume und Austausch für sachliche Debatten, Moderation und Themenarbeit.",
     url: `${BRAND.baseUrl}/community`,
     siteName: BRAND.name,
   },
   twitter: {
     title: "Community",
-    description: "Raeume und Austausch fuer sachliche Debatten, Moderation und Themenarbeit.",
+    description: "Räume und Austausch für sachliche Debatten, Moderation und Themenarbeit.",
   },
 };
 
@@ -38,15 +38,15 @@ const COPY = {
     en: "Community",
   },
   title: {
-    de: "Raeume & Austausch",
+    de: "Räume & Austausch",
     en: "Rooms & Exchange",
   },
   lead: {
-    de: "Raeume fuer konstruktive Debatten. Fokus auf Themen, klare Moderation, keine Echokammern.",
+    de: "Räume für konstruktive Debatten. Fokus auf Themen, klare Moderation, keine Echokammern.",
     en: "Rooms for constructive debate. Focus on topics, clear moderation, no echo chambers.",
   },
   hint: {
-    de: "Sprache kannst du im Header umstellen. Inhalte folgen dem gleichen Neutralitaetsstandard wie Reports.",
+    de: "Sprache kannst du im Header umstellen. Inhalte folgen dem gleichen Neutralitätsstandard wie Reports.",
     en: "You can switch language in the header. Content follows the same neutrality standard as reports.",
   },
   rulesTitle: {
@@ -54,7 +54,7 @@ const COPY = {
     en: "Guardrails",
   },
   rulesBody: {
-    de: "Offen fuer Fragen, Quellen und Optionen. Keine Hetze, keine Personalisierung.",
+    de: "Offen für Fragen, Quellen und Optionen. Keine Hetze, keine Personalisierung.",
     en: "Open for questions, sources, and options. No hate, no personal attacks.",
   },
   actionStream: {

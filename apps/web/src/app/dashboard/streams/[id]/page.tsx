@@ -1248,7 +1248,7 @@ export default function StreamCockpitPage() {
           >
             <p className="font-semibold">Support aktivieren</p>
             <p className="text-xs text-[rgb(var(--muted))]">
-              Unterstuetzen-CTA kann zugeschaltet werden (optional blind).
+              Unterstützen-CTA kann zugeschaltet werden (optional blind).
             </p>
           </button>
           <button
@@ -1262,7 +1262,7 @@ export default function StreamCockpitPage() {
           >
             <p className="font-semibold">Support blind schalten</p>
             <p className="text-xs text-[rgb(var(--muted))]">
-              Support laeuft im Hintergrund, ohne oeffentliche Anzeige.
+              Support läuft im Hintergrund, ohne öffentliche Anzeige.
             </p>
           </button>
           <button
@@ -1454,7 +1454,7 @@ export default function StreamCockpitPage() {
         <div>
           <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Session-Vorlagen</h2>
           <p className="text-xs text-[rgb(var(--muted))]">
-            Schnellstart fuer typische Formate (passt du spaeter an).
+            Schnellstart für typische Formate (passt du später an).
           </p>
         </div>
         <div className="flex flex-wrap gap-2">

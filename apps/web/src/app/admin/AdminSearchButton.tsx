@@ -269,7 +269,7 @@ export default function AdminSearchButton() {
                         Admin Daten
                       </p>
                       <span className="text-[11px] text-[rgb(var(--muted))]">
-                        {dataLoading ? "laedt" : `${dataResults.length} Treffer`}
+                        {dataLoading ? "lädt" : `${dataResults.length} Treffer`}
                       </span>
                     </div>
                     <div className="mt-2 space-y-3">
@@ -336,7 +336,7 @@ export default function AdminSearchButton() {
                         Seitenindex
                       </p>
                       <span className="text-[11px] text-[rgb(var(--muted))]">
-                        {loading ? "laedt" : `${filteredInventory.length} Treffer`}
+                        {loading ? "lädt" : `${filteredInventory.length} Treffer`}
                       </span>
                     </div>
                     <div className="mt-2 space-y-2">

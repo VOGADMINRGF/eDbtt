@@ -23,7 +23,7 @@ export default async function LivePage() {
         Platzhalter fuer Live-Session Steuerung. Noch keine Realtime-Integration.
       </p>
       <div className="rounded-xl border border-dashed border-[rgb(var(--border))] bg-[rgb(var(--card))] px-5 py-6 text-sm text-[rgb(var(--muted))]">
-        Live-Session UI folgt spaeter. Scope: nur Stubs, keine Provider/Keys.
+        Live-Session UI folgt später. Scope: nur Stubs, keine Provider/Keys.
       </div>
     </main>
   );

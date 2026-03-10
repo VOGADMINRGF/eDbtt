@@ -137,7 +137,7 @@ export default function SupportCampaignPage() {
       const refreshedBody = await refreshed.json().catch(() => null);
       if (refreshed.ok && refreshedBody?.ok) setData(refreshedBody as SupportResponse);
     } catch (err: unknown) {
-      setError(getErrorMessage(err, "Unterstuetzung konnte nicht angelegt werden."));
+      setError(getErrorMessage(err, "Unterstützung konnte nicht angelegt werden."));
     } finally {
       setSubmitting(false);
     }
@@ -146,7 +146,7 @@ export default function SupportCampaignPage() {
   return (
     <main className="mx-auto flex w-full max-w-4xl flex-col gap-6 px-4 py-10">
       <header className="space-y-2">
-        <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Unterstuetzen</p>
+        <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Unterstützen</p>
         <h1 className="text-3xl font-bold text-[rgb(var(--fg))]">{data?.supportCampaign?.title ?? "Support"}</h1>
         <p className="text-sm text-[rgb(var(--muted))]">
           {data?.supportCampaign?.description ?? "Hilf mit, dieses Projekt transparent und unabhaengig zu tragen."}
@@ -154,7 +154,7 @@ export default function SupportCampaignPage() {
       </header>
 
       {loading ? (
-        <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-6 text-sm text-[rgb(var(--muted))]">Laedt …</section>
+        <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-6 text-sm text-[rgb(var(--muted))]">Lädt …</section>
       ) : null}
 
       {error ? <section className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</section> : null}
@@ -183,9 +183,9 @@ export default function SupportCampaignPage() {
           </section>
 
           <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm">
-            <h2 className="text-lg font-semibold text-[rgb(var(--fg))]">Unterstuetzen</h2>
+            <h2 className="text-lg font-semibold text-[rgb(var(--fg))]">Unterstützen</h2>
             <p className="mt-1 text-sm text-[rgb(var(--muted))]">
-              Unterstuetzung kauft keine Stimme, keine XP und keine Credits.
+              Unterstützung kauft keine Stimme, keine XP und keine Credits.
             </p>
             <form className="mt-4 grid gap-3" onSubmit={submitPledge}>
               <label className="grid gap-1 text-sm">
@@ -227,7 +227,7 @@ export default function SupportCampaignPage() {
                 disabled={submitting}
                 className="inline-flex items-center justify-center rounded-full bg-slate-900 px-5 py-2 text-sm font-semibold text-white disabled:opacity-60"
               >
-                {submitting ? "Wird angelegt …" : "Unterstuetzung anlegen"}
+                {submitting ? "Wird angelegt …" : "Unterstützung anlegen"}
               </button>
             </form>
 
@@ -247,7 +247,7 @@ export default function SupportCampaignPage() {
                   <p className="font-semibold uppercase tracking-wide text-emerald-700">So geht es weiter</p>
                   <ol className="mt-1 space-y-1">
                     <li>1. Nutze den Verwendungszweck exakt wie oben angegeben.</li>
-                    <li>2. Ueberweise den Betrag innerhalb von 7 Tagen.</li>
+                    <li>2. Überweise den Betrag innerhalb von 7 Tagen.</li>
                     <li>3. Nach Zahlung wird dein Support automatisch als „bezahlt“ markiert.</li>
                   </ol>
                 </div>
@@ -256,9 +256,9 @@ export default function SupportCampaignPage() {
           </section>
 
           <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm">
-            <h2 className="text-lg font-semibold text-[rgb(var(--fg))]">Letzte Unterstuetzungen</h2>
+            <h2 className="text-lg font-semibold text-[rgb(var(--fg))]">Letzte Unterstützungen</h2>
             <ul className="mt-3 space-y-2 text-sm">
-              {data.recentPledges.length === 0 ? <li className="text-[rgb(var(--muted))]">Noch keine Eintraege.</li> : null}
+              {data.recentPledges.length === 0 ? <li className="text-[rgb(var(--muted))]">Noch keine Einträge.</li> : null}
               {data.recentPledges.map((row) => (
                 <li key={row.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[rgb(var(--border))] px-3 py-2">
                   <span className="text-[rgb(var(--muted))]">

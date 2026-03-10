@@ -136,7 +136,7 @@ export default async function DossierEmbedPage({ params }: PageProps) {
 
       <footer className="mt-8 text-xs text-[rgb(var(--muted))]">
         <Link href={`/dossier/${encodeURIComponent(dossierKey)}`} className="underline">
-          Vollansicht oeffnen
+          Vollansicht öffnen
         </Link>
       </footer>
     </main>

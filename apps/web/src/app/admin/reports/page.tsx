@@ -27,7 +27,7 @@ export default function AdminReportsPage() {
         <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Admin · Reports</p>
         <h1 className="text-2xl font-bold text-[rgb(var(--fg))]">Reports Explorer</h1>
         <p className="text-sm text-[rgb(var(--muted))]">
-          Gezielter Einstieg in Topic- und Region-Reports. Optional kannst du das oeffentliche Archiv oeffnen.
+          Gezielter Einstieg in Topic- und Region-Reports. Optional kannst du das öffentliche Archiv öffnen.
         </p>
       </header>
 
@@ -35,7 +35,7 @@ export default function AdminReportsPage() {
         <div className="rounded-3xl bg-[rgb(var(--card))] p-4 shadow ring-1 ring-[rgb(var(--border))]">
           <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Topic Report</h2>
           <p className="mt-1 text-sm text-[rgb(var(--muted))]">
-            Topic-Slug eingeben und den Impact-Report oeffnen.
+            Topic-Slug eingeben und den Impact-Report öffnen.
           </p>
           <form
             className="mt-3 flex items-center gap-2"
@@ -92,9 +92,9 @@ export default function AdminReportsPage() {
       <section className="rounded-3xl bg-[rgb(var(--card))] p-4 shadow ring-1 ring-[rgb(var(--border))]">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Archiv (oeffentlich)</h2>
+            <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Archiv (öffentlich)</h2>
             <p className="text-sm text-[rgb(var(--muted))]">
-              Oeffnet die oeffentliche Archiv-Uebersicht.
+              Öffnet die öffentliche Archiv-Übersicht.
             </p>
           </div>
           <Link

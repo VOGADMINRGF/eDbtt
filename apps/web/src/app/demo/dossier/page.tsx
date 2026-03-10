@@ -1,11 +1,10 @@
-import ReportPage from "@features/report/components/ReportPage";
-import demoReports from "@features/report/data/demoReports";
+import DossierSurface from "@/components/dossier/DossierSurface";
+import DossierShell from "@/components/dossier/DossierShell";
 
 export default function DemoDossierPage() {
   return (
-    <main className="min-h-screen bg-[rgb(var(--card))]">
-      <h1 className="sr-only">Demo Dossier</h1>
-      <ReportPage initial={demoReports} />
-    </main>
+    <DossierShell>
+      <DossierSurface entry="demo" source="demo" />
+    </DossierShell>
   );
 }

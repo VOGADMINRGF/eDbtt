@@ -7,8 +7,8 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { slug } = await params;
   return {
-    title: `Unterstuetzen · ${slug}`,
-    description: "Unterstuetzung fuer Kampagnen und Projekte mit transparenter Fortschrittsanzeige.",
+    title: `Unterstützen · ${slug}`,
+    description: "Unterstützung für Kampagnen und Projekte mit transparenter Fortschrittsanzeige.",
   };
 }
 

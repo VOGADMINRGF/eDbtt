@@ -104,7 +104,7 @@ export default function AdminSupportPage() {
     <main className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-8">
       <header className="space-y-2">
         <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Admin · Support</p>
-        <h1 className="text-2xl font-bold text-[rgb(var(--fg))]">Unterstuetzen verwalten</h1>
+        <h1 className="text-2xl font-bold text-[rgb(var(--fg))]">Unterstützen verwalten</h1>
         <p className="text-sm text-[rgb(var(--muted))]">
           Pledge-Verbuchung und Fortschritt sind transparent, ohne Einfluss auf Votes, XP oder Credits.
         </p>
@@ -187,7 +187,7 @@ export default function AdminSupportPage() {
               {loading ? (
                 <tr>
                   <td className="px-3 py-4 text-[rgb(var(--muted))]" colSpan={8}>
-                    Laedt …
+                    Lädt …
                   </td>
                 </tr>
               ) : null}

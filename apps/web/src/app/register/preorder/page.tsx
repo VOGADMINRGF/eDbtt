@@ -223,7 +223,7 @@ export default function PreorderPage() {
                 {BANK_DETAILS.bic ? ` · BIC: ${BANK_DETAILS.bic}` : ""}
               </p>
               <p className="mt-2 text-[11px] text-emerald-900/70">
-                Hinweis: Spenden und Mitgliedsbeitraege laufen weiterhin ueber VoiceOpenGov.
+                Hinweis: Spenden und Mitgliedsbeiträge laufen weiterhin über VoiceOpenGov.
               </p>
             </div>
           ) : null}
@@ -270,7 +270,7 @@ export default function PreorderPage() {
                 onChange={() => setWantsPreorder(false)}
               />
               <span>
-                <span className="block font-semibold text-[rgb(var(--fg))]">Spaeter entscheiden</span>
+                <span className="block font-semibold text-[rgb(var(--fg))]">Später entscheiden</span>
                 <span className="block text-xs text-[rgb(var(--muted))]">Du kannst jederzeit nachholen.</span>
               </span>
             </label>

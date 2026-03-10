@@ -46,7 +46,7 @@ function deriveUseCaseAccess(overview?: AccountOverview | null): UseCaseAccess {
     note = "Verwaltung/Organisation: Zugriff nur fuer Agenda- und Verwaltungsformate.";
   } else {
     allowed = ["civic"];
-    note = "Buergerbereich: Zugriff fuer Beitraege und Projekte.";
+    note = "Bürgerbereich: Zugriff für Beiträge und Projekte.";
   }
 
   return {

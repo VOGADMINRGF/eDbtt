@@ -160,7 +160,7 @@ export default function FactcheckReviewPage() {
         </div>
       ) : items.length === 0 ? (
         <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-4 py-3 text-sm text-[rgb(var(--muted))]">
-          Keine Eintraege fuer diesen Filter.
+          Keine Einträge für diesen Filter.
         </div>
       ) : (
         <div className="grid gap-4 lg:grid-cols-2">

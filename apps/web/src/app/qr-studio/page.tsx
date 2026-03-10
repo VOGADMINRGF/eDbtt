@@ -245,7 +245,7 @@ export default function QrStudioPage() {
           </h1>
           <p className="text-sm leading-relaxed text-[rgb(var(--muted))]">
             Ohne Voranmeldung: Fragen eintragen, QR-Code erzeugen und direkt einsetzen. Die manuelle Variante ist
-            kostenfrei. ProPilot erweitert Limits, Automationen und KI-Unterstuetzung (Kontingent begrenzt).
+            kostenfrei. ProPilot erweitert Limits, Automationen und KI-Unterstützung (Kontingent begrenzt).
           </p>
           <div className="flex flex-wrap gap-2 text-xs text-[rgb(var(--muted))]">
             <span className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-1">Max. 5 Fragen pro Set</span>

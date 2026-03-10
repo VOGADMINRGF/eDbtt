@@ -107,7 +107,7 @@ export default async function CampaignPage({ params }: PageProps) {
             href={`/support/${encodeURIComponent(campaign.supportSlug)}`}
             className="rounded-full border border-emerald-300 bg-emerald-50 px-5 py-2 text-sm font-semibold text-emerald-800"
           >
-            Unterstuetzen
+            Unterstützen
           </Link>
         ) : null}
         <Link href="/stream" className="text-sm font-semibold text-[rgb(var(--muted))] hover:text-[rgb(var(--fg))]">
@@ -117,7 +117,7 @@ export default async function CampaignPage({ params }: PageProps) {
 
       {canSupport ? (
         <p className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
-          Unterstuetzung dient nur der Transparenz und Ermöglichung: keine Stimmen, keine XP, keine Credits.
+          Unterstützung dient nur der Transparenz und Ermöglichung: keine Stimmen, keine XP, keine Credits.
         </p>
       ) : null}
     </main>

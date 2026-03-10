@@ -128,7 +128,7 @@ export default function AdminAuditPage() {
             {loading && (
               <tr>
                 <td colSpan={5} className="px-4 py-6 text-center text-[rgb(var(--muted))]">
-                  Laedt Audit...
+                  Lädt Audit...
                 </td>
               </tr>
             )}

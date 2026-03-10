@@ -234,7 +234,7 @@ export default function AdminEditorialQueuePage() {
             {loading && (
               <tr>
                 <td colSpan={6} className="px-4 py-6 text-center text-[rgb(var(--muted))]">
-                  Laedt Queue...
+                  Lädt Queue...
                 </td>
               </tr>
             )}

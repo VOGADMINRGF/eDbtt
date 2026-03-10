@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import DossierPageClient from "./ui";
+import DossierSurface from "@/components/dossier/DossierSurface";
+import DossierShell from "@/components/dossier/DossierShell";
 
 export const metadata: Metadata = {
   title: "Dossier",
@@ -10,10 +11,10 @@ type PageProps = { params: Promise<{ id: string }> };
 
 export default async function DossierPage({ params }: PageProps) {
   const { id } = await params;
+  const entry = id.toLowerCase().startsWith("demo") ? "demo" : "public";
   return (
-    <main className="min-h-screen bg-[rgb(var(--bg))]">
-      <h1 className="sr-only">Dossier</h1>
-      <DossierPageClient dossierId={id} />
-    </main>
+    <DossierShell>
+      <DossierSurface dossierId={id} entry={entry} source="api" />
+    </DossierShell>
   );
 }

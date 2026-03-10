@@ -202,7 +202,7 @@ export default function ProjectForm({ creatorId }: ProjectFormProps) {
       <header className="space-y-2">
         <h2 className="text-2xl font-bold text-coral">Projekt/Event erstellen</h2>
         <p className="text-sm text-[rgb(var(--muted))]">
-          Lege 5 bis 10 Themen an. Pro Thema werden mindestens 5 feste Optionen benoetigt.
+          Lege 5 bis 10 Themen an. Pro Thema werden mindestens 5 feste Optionen benötigt.
         </p>
       </header>
 
@@ -217,7 +217,7 @@ export default function ProjectForm({ creatorId }: ProjectFormProps) {
           {createdId ? (
             <span className="ml-2">
               <Link href={`/projects/${createdId}`} className="font-semibold underline">
-                Projekt oeffnen
+                Projekt öffnen
               </Link>
             </span>
           ) : null}
@@ -400,7 +400,7 @@ export default function ProjectForm({ creatorId }: ProjectFormProps) {
       </section>
 
       <p className="text-xs text-[rgb(var(--muted))]">
-        Organisator:innen werden spaeter automatisch aus dem Account-Kontext uebernommen.
+        Organisator:innen werden später automatisch aus dem Account-Kontext übernommen.
       </p>
 
       <button

@@ -96,7 +96,7 @@ export default function AdminProjectsPage() {
             {loading && (
               <tr>
                 <td colSpan={6} className="px-4 py-6 text-center text-[rgb(var(--muted))]">
-                  Laedt Projekte ...
+                  Lädt Projekte ...
                 </td>
               </tr>
             )}

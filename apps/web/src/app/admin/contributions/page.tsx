@@ -77,7 +77,7 @@ export default function AdminContributionsPage() {
       <header className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Admin · Contributions</p>
-          <h1 className="text-2xl font-bold text-[rgb(var(--fg))]">Beitraege Review</h1>
+          <h1 className="text-2xl font-bold text-[rgb(var(--fg))]">Beiträge Review</h1>
           <p className="text-sm text-[rgb(var(--muted))]">Vorschlaege freigeben oder ablehnen.</p>
         </div>
         <button
@@ -98,7 +98,7 @@ export default function AdminContributionsPage() {
       <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm">
         {loading && <p className="text-sm text-[rgb(var(--muted))]">Lädt …</p>}
         {!loading && items.length === 0 && (
-          <p className="text-sm text-[rgb(var(--muted))]">Keine offenen Beitraege.</p>
+          <p className="text-sm text-[rgb(var(--muted))]">Keine offenen Beiträge.</p>
         )}
         <div className="space-y-3">
           {items.map((item) => (

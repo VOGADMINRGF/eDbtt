@@ -10,7 +10,7 @@ export default function AdminMembershipsPage() {
       <div className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 text-sm text-[rgb(var(--muted))] shadow-sm">
         <p className="text-sm font-semibold text-[rgb(var(--fg))]">Deaktiviert</p>
         <p className="mt-2">
-          eDebatte bietet keine Mitgliedschaften. Verbindliche Zahlungen laufen ueber die
+          eDebatte bietet keine Mitgliedschaften. Verbindliche Zahlungen laufen über die
           VoiceOpenGov-Initiative und werden im Support-Ledger verwaltet.
         </p>
         <div className="mt-4 flex flex-wrap gap-2">

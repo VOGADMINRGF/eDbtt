@@ -119,7 +119,7 @@ function CampaignQrLanding({
       </div>
 
       <p className="text-xs text-[rgb(var(--muted))]">
-        Hinweis: Falls Unterstuetzen aktiv ist, findest du den Link direkt auf der Kampagnenseite.
+        Hinweis: Falls Unterstützen aktiv ist, findest du den Link direkt auf der Kampagnenseite.
       </p>
     </main>
   );

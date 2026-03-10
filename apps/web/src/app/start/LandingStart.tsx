@@ -201,7 +201,8 @@ export default function LandingStart({ blocks, geo }: LandingStartProps) {
         }}
         onOpen={(item) => {
           ingestExample(item);
-          const target = `/pricing?from=landing&kind=${encodeURIComponent(item.kind)}&scope=${encodeURIComponent(item.scope)}`;
+          const topic = encodeURIComponent(titleForLang(item));
+          const target = `/swipes?topic=${topic}&from=landing`;
           router.push(target as any);
         }}
       />
@@ -209,6 +210,31 @@ export default function LandingStart({ blocks, geo }: LandingStartProps) {
       <div className="relative z-10 mx-auto grid h-full w-full max-w-5xl place-items-center px-4 py-6 sm:px-6 [@media(max-height:740px)]:py-3">
         <div className="w-full max-w-3xl">
           <div className="max-h-[calc(100svh-3rem)] overflow-y-auto [scrollbar-gutter:stable]">
+            <div className="mb-4 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))]/90 p-4 text-sm text-[rgb(var(--fg))] shadow-soft backdrop-blur">
+              <div className="grid gap-3 md:grid-cols-3">
+                <div className="space-y-1">
+                  <div className="text-[11px] font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
+                    1. Thema entdecken
+                  </div>
+                  <div>Nutze die Beispiele im Hintergrund oder tippe eigene Begriffe ein.</div>
+                </div>
+                <div className="space-y-1">
+                  <div className="text-[11px] font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
+                    2. Thema ansehen
+                  </div>
+                  <div>Öffne ein Beispiel und sieh, wie Dossiers aufgebaut sind.</div>
+                </div>
+                <div className="space-y-1">
+                  <div className="text-[11px] font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
+                    3. Eigenes Thema analysieren
+                  </div>
+                  <div>Reiche dein Thema ein und erhalte eine strukturierte Analyse.</div>
+                </div>
+              </div>
+              <p className="mt-3 text-[11px] text-[rgb(var(--muted))]">
+                Freischaltung und Preislogik folgen nach der ersten inhaltlichen Orientierung.
+              </p>
+            </div>
             <LandingAssistant
               onIngest={handleIngest}
               prefillText={prefillText}

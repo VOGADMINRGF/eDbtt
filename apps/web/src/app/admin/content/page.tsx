@@ -180,7 +180,7 @@ export default function AdminContentHubPage() {
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Content-KPIs</h2>
           <span className="text-xs text-[rgb(var(--muted))]">
-            {loading ? "laedt" : "aktualisiert"}
+            {loading ? "lädt" : "aktualisiert"}
           </span>
         </div>
         {error && (
@@ -189,8 +189,8 @@ export default function AdminContentHubPage() {
           </div>
         )}
         <div className="mt-3 grid gap-3 md:grid-cols-2 lg:grid-cols-4">
-          <MetricCard label="Beitraege gesamt" value={metrics?.totals.contributions} loading={loading} href="/admin/contributions" />
-          <MetricCard label="Beitraege (30d)" value={metrics?.totals.contributions30d} loading={loading} href="/admin/contributions" />
+          <MetricCard label="Beiträge gesamt" value={metrics?.totals.contributions} loading={loading} href="/admin/contributions" />
+          <MetricCard label="Beiträge (30d)" value={metrics?.totals.contributions30d} loading={loading} href="/admin/contributions" />
           <MetricCard label="Statements gesamt" value={metrics?.totals.statements} loading={loading} href="/admin/evidence/claims" />
           <MetricCard label="Feed-Statements (AI)" value={metrics?.totals.feedStatements} loading={loading} href="/admin/feeds/drafts" />
           <MetricCard label="Evidence Claims" value={metrics?.totals.evidenceClaims} loading={loading} href="/admin/evidence/claims" />

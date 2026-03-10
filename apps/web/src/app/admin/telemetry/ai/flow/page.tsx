@@ -115,7 +115,7 @@ export default function FlowHealthPage() {
         </div>
       </header>
 
-      {loading && <div className="text-sm text-[rgb(var(--muted))]">Laedt ...</div>}
+      {loading && <div className="text-sm text-[rgb(var(--muted))]">Lädt ...</div>}
       {error && (
         <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
           {error}
@@ -166,7 +166,7 @@ export default function FlowHealthPage() {
                     target="_blank"
                     rel="noreferrer"
                   >
-                    Quelle oeffnen
+                    Quelle öffnen
                   </a>
                   <pre className="mt-3 whitespace-pre-wrap rounded-xl bg-[rgb(var(--bg))] p-3 text-xs text-[rgb(var(--muted))]">
 {data.feeds.latest.candidateError.analyzeError ?? "-"}

@@ -60,7 +60,7 @@ export default function PrivatsphaerePage() {
               </p>
               <p className="mt-2">
                 {t(
-                  "Wenn du noch Fragen hast oder einen konkreten Fall klaeren moechtest, melde dich jederzeit ueber das Kontaktformular.",
+                  "Wenn du noch Fragen hast oder einen konkreten Fall klären möchtest, melde dich jederzeit über das Kontaktformular.",
                   "control.body",
                 )}
               </p>

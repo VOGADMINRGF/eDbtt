@@ -242,7 +242,7 @@ export default function AdminMediaPage() {
               className="w-fit rounded-full border border-[rgb(var(--border))] px-4 py-2 text-xs font-semibold text-[rgb(var(--muted))] hover:bg-[rgb(var(--bg))]"
               onClick={handleAdoptScript}
             >
-              Aus Script uebernehmen
+              Aus Script übernehmen
             </button>
 
             <label className="grid gap-1 text-sm font-medium text-[rgb(var(--muted))]">
@@ -343,7 +343,7 @@ export default function AdminMediaPage() {
             className="rounded-full border border-[rgb(var(--border))] px-4 py-2 text-xs font-semibold text-[rgb(var(--muted))] hover:bg-[rgb(var(--bg))]"
             disabled={summaryLoading}
           >
-            {summaryLoading ? "Laedt…" : "Aktualisieren"}
+            {summaryLoading ? "Lädt…" : "Aktualisieren"}
           </button>
         </div>
 

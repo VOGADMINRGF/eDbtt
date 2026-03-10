@@ -103,7 +103,7 @@ const FLOW_OPTIONS = [
   {
     id: "guided",
     label: "Guided",
-    description: "Kontext, Fragen und ein Pruefplan als klare Leitplanke.",
+    description: "Kontext, Fragen und ein Prüfplan als klare Leitplanke.",
     defaultLevel: 2 as 1 | 2 | 3 | 4,
     maxClaims: 8,
     openPanels: {
@@ -737,7 +737,7 @@ export default function AnalyzeWorkspace({
     {
       id: "journalism",
       title: "Medien & Agenturen",
-      text: "Mit Herkunft/Pruefplan, Draft und redaktionellem Audit.",
+      text: "Mit Herkunft/Prüfplan, Draft und redaktionellem Audit.",
     },
     {
       id: "agenda",
@@ -1148,7 +1148,7 @@ export default function AnalyzeWorkspace({
     if (questions.length === 0) tips.push("Offene Fragen fehlen noch.");
     if (!notes.length && !knots.length && !report?.summary) tips.push("Kontext fehlt noch.");
     if (!tips.length) {
-      return "Gute Basis. Du kannst die Statements auswaehlen und einreichen oder in die Redaktion ueberfuehren.";
+      return "Gute Basis. Du kannst die Statements auswählen und einreichen oder in die Redaktion überführen.";
     }
     return tips.join(" ");
   }, [analysisStatus, knots.length, notes.length, questions.length, report?.summary, totalStatements]);
@@ -1223,7 +1223,7 @@ export default function AnalyzeWorkspace({
     if (!researchGuidance) return [] as string[];
     const hints: string[] = [];
     if (researchGuidance.queries?.length) {
-      hints.push(`Gezielte Suchanfragen pruefen (${researchGuidance.queries.length})`);
+      hints.push(`Gezielte Suchanfragen prüfen (${researchGuidance.queries.length})`);
     }
     if (researchGuidance.sources?.length) {
       hints.push(`Quellentypen vertiefen (${researchGuidance.sources.length})`);
@@ -1812,7 +1812,7 @@ export default function AnalyzeWorkspace({
   const handleTrace = React.useCallback(() => {
     if (insightTab === "recherche") {
       if (!allowResearch) {
-        setFlowInfo("Pruefplan ist im Express-Modus deaktiviert.");
+        setFlowInfo("Prüfplan ist im Express-Modus deaktiviert.");
         return;
       }
       fetchResearchGuidance();
@@ -1895,7 +1895,7 @@ export default function AnalyzeWorkspace({
             </p>
             <div className="flex flex-wrap gap-2 text-[10px] text-[rgb(var(--muted))]">
               <span className="inline-flex rounded-full bg-[rgb(var(--card))] px-2 py-1 ring-1 ring-inset ring-[rgb(var(--border))]">
-                {allowResearch ? "Pruefplan an" : "Pruefplan aus"}
+                {allowResearch ? "Prüfplan an" : "Prüfplan aus"}
               </span>
               <span className="inline-flex rounded-full bg-[rgb(var(--card))] px-2 py-1 ring-1 ring-inset ring-[rgb(var(--border))]">
                 {flowIsLite ? "Schnellstart" : "Vertieft"}
@@ -2096,7 +2096,7 @@ export default function AnalyzeWorkspace({
                           )}
                           {isJournalism ? (
                             <div className="rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-2 py-2 text-[11px] text-[rgb(var(--muted))]">
-                              Text bleibt fixiert fuer journalistische Beitraege.
+                              Text bleibt fixiert für journalistische Beiträge.
                             </div>
                           ) : (
                             <InlineEditableText
@@ -2171,7 +2171,7 @@ export default function AnalyzeWorkspace({
                                 onChange={() => toggleSelected(s.id)}
                                 className="h-4 w-4 rounded border-[rgb(var(--border))] text-sky-600"
                               />
-                              In Vorschlag uebernehmen
+                              In Vorschlag übernehmen
                             </label>
                           </div>
                         </div>
@@ -2313,12 +2313,12 @@ export default function AnalyzeWorkspace({
                     className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm"
                   >
                     <summary className="cursor-pointer text-sm font-semibold text-[rgb(var(--fg))]">
-                      Eventualitaeten &amp; Entscheidungsbaeume
+                      Eventualitäten &amp; Entscheidungsbäume
                     </summary>
                     <div className="mt-2 space-y-3 text-sm text-[rgb(var(--muted))]">
                       {eventualities.length > 0 && (
                         <div>
-                          <p className="text-xs font-semibold uppercase text-[rgb(var(--muted))]">Eventualitaeten</p>
+                          <p className="text-xs font-semibold uppercase text-[rgb(var(--muted))]">Eventualitäten</p>
                           <ul className="mt-1 list-disc space-y-1 pl-4">
                             {eventualities.map((e, idx) => {
                               const key = e.id ?? `ev-${idx}`;
@@ -2427,7 +2427,7 @@ export default function AnalyzeWorkspace({
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Weiterverarbeitung</p>
-                  <h3 className="mt-1 text-sm font-semibold text-[rgb(var(--fg))]">Orchestrierung &amp; Uebergang</h3>
+                  <h3 className="mt-1 text-sm font-semibold text-[rgb(var(--fg))]">Orchestrierung &amp; Übergang</h3>
                   <p className="text-[11px] text-[rgb(var(--muted))]">
                     Einordnung, Feedback und ein bearbeitbarer Entwurf fuer die Redaktion.
                   </p>
@@ -2504,9 +2504,9 @@ export default function AnalyzeWorkspace({
               <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Einordnung & naechste Schritte</p>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Einordnung & nächste Schritte</p>
                     <p className="text-[11px] text-[rgb(var(--muted))]">
-                      Vorschlaege und Pruefplan basieren nur auf deinem Input.
+                      Vorschläge und Prüfplan basieren nur auf deinem Input.
                     </p>
                   </div>
                   <button
@@ -2559,8 +2559,8 @@ export default function AnalyzeWorkspace({
                 {!hasGuidance && !guidanceError ? (
                   <p className="mt-2 text-[11px] text-[rgb(var(--muted))]">
                     {insightTab === "input"
-                      ? "Erzeuge Herkunftshinweise und einen Pruefplan auf Basis deiner Kernaussagen (Statements)."
-                      : "Erzeuge einen Pruefplan / Recherche-Hinweise - ohne externe Fakten zu uebernehmen."}
+                      ? "Erzeuge Herkunftshinweise und einen Prüfplan auf Basis deiner Kernaussagen (Statements)."
+                      : "Erzeuge einen Prüfplan / Recherche-Hinweise - ohne externe Fakten zu übernehmen."}
                   </p>
                 ) : null}
 
@@ -2720,11 +2720,11 @@ export default function AnalyzeWorkspace({
                           results={(researchGuidance.sources ?? []).map((label) => ({
                             url: "",
                             title: label,
-                            siteName: "Pruefplan",
+                            siteName: "Prüfplan",
                             breadcrumb: "Quellenbereich",
                             snippet:
                               SOURCE_HINTS[label] ||
-                              "Vorschlag fuer den Pruefplan: Pruefe Informationen in diesem Quellentyp.",
+                              "Vorschlag für den Prüfplan: Prüfe Informationen in diesem Quellentyp.",
                           }))}
                           view={researchView}
                         />

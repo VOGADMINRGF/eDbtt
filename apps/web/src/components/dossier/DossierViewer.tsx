@@ -1,8 +1,16 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import type { Dossier } from "@features/dossier";
+import {
+  MODE_LABELS,
+  ROLE_LABELS,
+  resolveDossierContext,
+  type DossierDataState,
+  type DossierEntry,
+  type DossierMode,
+} from "@features/dossier/modes";
 import DossierLayout from "./DossierLayout";
 import EvidenceField from "./EvidenceField";
 import DecisionSpace from "./DecisionSpace";
@@ -11,6 +19,7 @@ import VotePanel from "./VotePanel";
 import ParticipationStatus from "./ParticipationStatus";
 import LegitimacyPanel, { type LegitimacyMetric, type LegitimacyStatus } from "./LegitimacyPanel";
 import TransparencyPanel from "./TransparencyPanel";
+import TransparencyStatusPanel from "./TransparencyStatusPanel";
 import AuditTimeline from "./AuditTimeline";
 import CorrectionsPanel from "./CorrectionsPanel";
 import ExportPanel from "./ExportPanel";
@@ -68,6 +77,21 @@ type OptionCard = {
 type OptionLink = { optionId: string; claimId: string };
 
 type EvidenceLink = { claimId: string; sourceId: string; weight?: number; kind?: string };
+
+type DossierViewerContext = {
+  entry?: DossierEntry;
+  dataState?: DossierDataState;
+  serverTimestamp?: string | null;
+};
+
+const ALL_MODES: DossierMode[] = ["read", "work", "admin"];
+const PERSONA_LABELS: Record<string, string> = {
+  citizen: "Bürger/Community",
+  journalist: "Journalismus",
+  administration: "Verwaltung/Institution",
+  organization: "Organisation",
+  research: "Forschung",
+};
 
 const DIMENSIONS: DimensionMeta[] = [
   { key: "haushalt", label: "Haushalt" },
@@ -138,16 +162,6 @@ const STATEMENT_TYPE_LABELS: Record<string, string> = {
   question: "Offene Frage",
 };
 
-const ROLE_LABELS = {
-  citizen: "Bürgersicht",
-  organization: "Organisation",
-  administration: "Verwaltung",
-  journalist: "Journalismus",
-  research: "Forschung",
-  admin: "Administration",
-  staff: "Redaktion/Staff",
-} as const;
-
 function formatDate(value?: string | null) {
   if (!value) return "-";
   const d = new Date(value);
@@ -158,6 +172,12 @@ function formatDate(value?: string | null) {
 function labelList(items?: string[] | null) {
   if (!items || items.length === 0) return "-";
   return items.join(", ");
+}
+
+function pillToneClass(tone: "neutral" | "positive" | "warning") {
+  if (tone === "positive") return "border-emerald-500/40 bg-emerald-500/10 text-emerald-200";
+  if (tone === "warning") return "border-amber-500/40 bg-amber-500/10 text-amber-200";
+  return "border-[rgb(var(--border))] bg-[rgb(var(--card))] text-[rgb(var(--fg))]";
 }
 
 function clampScore(value: number) {
@@ -340,7 +360,7 @@ function mergeClusters(defaultClusters: PresentationCluster[], derivedClusters: 
   return derivedClusters;
 }
 
-export function DossierViewer({ dossier }: { dossier: Dossier }) {
+export function DossierViewer({ dossier, context }: { dossier: Dossier; context?: DossierViewerContext }) {
   const { meta, analyze, voteConfig } = dossier;
   const corrections = useMemo(() => dossier.corrections ?? [], [dossier.corrections]);
   const presentationBundle = useMemo(() => getPresentation(dossier), [dossier]);
@@ -354,6 +374,9 @@ export function DossierViewer({ dossier }: { dossier: Dossier }) {
         if (typeof payload.totalVotes === "number") setMajorityTotalVotes(payload.totalVotes);
       },
     });
+  const entry = context?.entry ?? "public";
+  const dataState = context?.dataState ?? "loading";
+  const [sessionOk, setSessionOk] = useState(false);
   const [sessionActorRole, setSessionActorRole] = useState<"admin" | "editor" | "member" | null>(null);
   const [sessionRoles, setSessionRoles] = useState<string[] | null>(null);
   const [watchlistActive, setWatchlistActive] = useState<boolean | null>(null);
@@ -367,11 +390,22 @@ export function DossierViewer({ dossier }: { dossier: Dossier }) {
       .then((data) => {
         if (cancelled) return;
         if (data?.ok) {
+          setSessionOk(true);
           setSessionActorRole((data.actorRole as any) ?? null);
           setSessionRoles(Array.isArray(data.roles) ? data.roles : []);
+        } else {
+          setSessionOk(false);
+          setSessionActorRole(null);
+          setSessionRoles([]);
         }
       })
-      .catch(() => null);
+      .catch(() => {
+        if (!cancelled) {
+          setSessionOk(false);
+          setSessionActorRole(null);
+          setSessionRoles([]);
+        }
+      });
     return () => {
       cancelled = true;
     };
@@ -396,14 +430,29 @@ export function DossierViewer({ dossier }: { dossier: Dossier }) {
     };
   }, [meta.id]);
 
-  const viewerRole = useMemo(() => {
-    if (sessionRoles?.includes("staff")) return "staff";
-    if (sessionRoles?.includes("administration")) return "administration";
-    if (sessionRoles?.includes("journalist")) return "journalist";
-    if (sessionActorRole === "admin") return "admin";
-    if (sessionActorRole === "editor") return "journalist";
-    return presentation.viewerRole ?? "citizen";
-  }, [sessionRoles, sessionActorRole, presentation.viewerRole]);
+  const resolvedContext = useMemo(
+    () =>
+      resolveDossierContext({
+        entry,
+        sessionOk,
+        sessionRoles,
+        actorRole: sessionActorRole,
+        fallbackRole: (presentation.viewerRole as any) ?? "citizen",
+      }),
+    [entry, sessionOk, sessionRoles, sessionActorRole, presentation.viewerRole],
+  );
+
+  const [userMode, setUserMode] = useState<DossierMode | null>(null);
+  const activeMode = userMode ?? resolvedContext.defaultMode;
+  useEffect(() => {
+    if (!resolvedContext.allowedModes.includes(activeMode)) {
+      setUserMode(null);
+    }
+  }, [activeMode, resolvedContext.allowedModes]);
+
+  const viewerRole = resolvedContext.viewerRole;
+  const access = resolvedContext.access;
+  const persona = resolvedContext.persona;
   const isCitizen = viewerRole === "citizen";
   const roleLabel = ROLE_LABELS[viewerRole] ?? viewerRole;
   const canEditOrigins = viewerRole === "admin" || viewerRole === "staff";
@@ -413,8 +462,9 @@ export function DossierViewer({ dossier }: { dossier: Dossier }) {
     viewerRole === "journalist" ||
     viewerRole === "admin" ||
     viewerRole === "staff";
-  const displaySavedOptionId = isCitizen ? savedOptionId : null;
-  const displaySavedAt = isCitizen ? savedAt : null;
+  const canVote = isCitizen && activeMode === "work" && access === "internal";
+  const displaySavedOptionId = canVote ? savedOptionId : null;
+  const displaySavedAt = canVote ? savedAt : null;
   const recommendation = presentation.recommendation ?? {};
   const allowedRecommendationRoles = recommendation.allowedRoles ?? [
     "organization",
@@ -546,11 +596,23 @@ export function DossierViewer({ dossier }: { dossier: Dossier }) {
   const sources = dossier.sourceSet.length ? dossier.sourceSet : analyze.runReceipt?.sourceSet ?? [];
 
   const statementTitleById = new Map(analyze.claims.map((claim) => [claim.id, claim.title ?? claim.id]));
+  const dossierParam = meta.id ? encodeURIComponent(meta.id) : "";
 
   const questionsForDisplay =
     openQuestions.length > 0
       ? openQuestions
       : analyze.questions.map((q) => ({ id: q.id, text: q.text }));
+  const questionStats = useMemo(() => {
+    const stats = { open: 0, inReview: 0, answered: 0, delegated: 0 };
+    for (const q of questionsForDisplay) {
+      const status = (q as { status?: string }).status;
+      if (status === "in_pruefung" || status === "in_review") stats.inReview += 1;
+      else if (status === "beantwortet" || status === "answered") stats.answered += 1;
+      else if (status === "delegiert" || status === "closed") stats.delegated += 1;
+      else stats.open += 1;
+    }
+    return stats;
+  }, [questionsForDisplay]);
 
   const delegationEntries = useMemo(() => {
     if (inst.data?.delegations?.length) return inst.data.delegations;
@@ -824,6 +886,31 @@ export function DossierViewer({ dossier }: { dossier: Dossier }) {
   const analysisMethodText = analyze.runReceipt?.pipelineVersion
     ? `Analyseverfahren: ${analyze.runReceipt.pipelineVersion}`
     : UI_DE.analysisMethod;
+  const dossierHeadline = meta.title ?? "Dossier";
+  const dossierKicker = presentation.topic?.label ?? "Kommunale Entscheidungsakte";
+  const isDemo = entry === "demo" || dataState === "demo";
+  const contextPills = [
+    {
+      label: entry === "demo" ? "Demo" : access === "public" ? "Öffentlich" : "Intern",
+      tone: "neutral" as const,
+    },
+    {
+      label:
+        dataState === "live"
+          ? "Echtdaten"
+          : dataState === "demo"
+            ? "Simulation"
+            : dataState === "fallback"
+              ? "Fallback"
+              : "Lädt …",
+      tone:
+        dataState === "live"
+          ? ("positive" as const)
+          : dataState === "fallback"
+            ? ("warning" as const)
+            : ("neutral" as const),
+    },
+  ];
 
   const claimNodes = analyze.claims.map((claim) => ({
     id: claim.id,
@@ -955,15 +1042,57 @@ export function DossierViewer({ dossier }: { dossier: Dossier }) {
     <header className="space-y-8 border-b border-[rgb(var(--border))] pb-10">
       <div className="grid gap-8 xl:grid-cols-[1.6fr_1fr]">
         <div className="space-y-6">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[rgb(var(--muted))]">
-            Dossier (Demonstrationsfall)
-          </p>
+          <div className="flex flex-wrap items-center gap-2 text-[11px]">
+            {contextPills.map((pill) => (
+              <span
+                key={pill.label}
+                className={`rounded-full border px-2 py-1 font-semibold uppercase tracking-wide ${pillToneClass(pill.tone)}`}
+              >
+                {pill.label}
+              </span>
+            ))}
+            <span className="rounded-full border border-[rgb(var(--border))] px-2 py-1 text-[10px] uppercase tracking-wide text-[rgb(var(--muted))]">
+              Rolle: {roleLabel}
+            </span>
+            <span className="rounded-full border border-[rgb(var(--border))] px-2 py-1 text-[10px] uppercase tracking-wide text-[rgb(var(--muted))]">
+              Fokus: {PERSONA_LABELS[persona] ?? persona}
+            </span>
+          </div>
+          <div className="flex flex-wrap items-center gap-3">
+            <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[rgb(var(--muted))]">
+              Modus
+            </span>
+            <div className="flex rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-1 text-[11px] font-semibold text-[rgb(var(--muted))]">
+              {ALL_MODES.map((mode) => {
+                const allowed = resolvedContext.allowedModes.includes(mode);
+                const active = activeMode === mode;
+                return (
+                  <button
+                    key={mode}
+                    type="button"
+                    className={`rounded-full px-3 py-1 transition ${
+                      active ? "bg-[rgb(var(--card))] text-[rgb(var(--fg))]" : ""
+                    } ${allowed ? "hover:text-[rgb(var(--fg))]" : "cursor-not-allowed opacity-40"}`}
+                    onClick={() => {
+                      if (!allowed) return;
+                      setUserMode(mode);
+                    }}
+                    disabled={!allowed}
+                    title={allowed ? `Modus: ${MODE_LABELS[mode]}` : "Nicht freigeschaltet"}
+                  >
+                    {MODE_LABELS[mode]}
+                  </button>
+                );
+              })}
+            </div>
+            <span className="text-[11px] text-[rgb(var(--muted))]">
+              {access === "internal" ? "Modus kann gewechselt werden." : "Login für Mitwirken."}
+            </span>
+          </div>
           <div className="space-y-3">
-            <p className="text-sm uppercase tracking-[0.3em] text-[rgb(var(--muted))]">
-              Kommunale Bildungsinfrastruktur
-            </p>
+            <p className="text-sm uppercase tracking-[0.3em] text-[rgb(var(--muted))]">{dossierKicker}</p>
             <h1 className="headline-grad text-5xl font-extrabold leading-[1.02] tracking-tight md:text-7xl">
-              Sanierung oder Neubau einer bestehenden Schule
+              {dossierHeadline}
             </h1>
           </div>
           <div className="text-[11px] uppercase tracking-[0.18em] text-[rgb(var(--muted))]">[ Kontext · Evidenz · Optionen · Beteiligung ]</div>
@@ -986,10 +1115,15 @@ export function DossierViewer({ dossier }: { dossier: Dossier }) {
             </div>
           </div>
           <p className="max-w-prose text-lg leading-relaxed text-[rgb(var(--muted))]">
-            {analyze.sourceText ?? "Fragestellung des Dossiers."} Dieses Demonstrationsdossier zeigt eine digitale Entscheidungsakte: strukturierte Kernaussagen, normierter Optionenraum, Evidenzverknüpfung und Zuständigkeitswege.
+            {analyze.sourceText ?? "Fragestellung des Dossiers."}{" "}
+            {isDemo
+              ? "Dieses Demo-Dossier zeigt eine digitale Entscheidungsakte: strukturierte Kernaussagen, normierter Optionenraum, Evidenzverknüpfung und Zuständigkeitswege."
+              : "Dieses Dossier bündelt Kontext, Evidenz, Optionen und Beteiligung mit nachvollziehbarer Statusspur."}
           </p>
           <p className="text-sm leading-relaxed text-[rgb(var(--muted))]">
-            Die Abstimmungsdarstellung ist in dieser Demo simuliert und dient der Veranschaulichung der Beteiligungsebene.
+            {isDemo
+              ? "Die Abstimmungsdarstellung ist in dieser Demo simuliert und dient der Veranschaulichung der Beteiligungsebene."
+              : "Beiträge laufen über dokumentierte Einreichungen; Veröffentlichungen erfolgen nach Prüfung."}
           </p>
           <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
             {metaChips.map((chip) => (
@@ -1015,7 +1149,8 @@ export function DossierViewer({ dossier }: { dossier: Dossier }) {
                     Kommune/Region
                   </p>
                   <p className="truncate text-sm font-semibold text-[rgb(var(--fg))]">
-                  {meta.region ?? presentation.topic?.municipality ?? primaryOrigin?.label ?? "—"}                  </p>
+                    {meta.region ?? presentation.topic?.municipality ?? primaryOrigin?.label ?? "—"}
+                  </p>
                   <p className="text-[11px] text-[rgb(var(--muted))]">{primaryOrigin.subtitle ?? "—"}</p>
                 </div>
                 <span className="rounded-full border border-[rgb(var(--border))] px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
@@ -1130,110 +1265,212 @@ export function DossierViewer({ dossier }: { dossier: Dossier }) {
     </header>
   );
 
-  const mainLeft = (
-    <>
-      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Link
-          href="#streams"
-          className="vog-card p-4 space-y-2 transition hover:shadow-soft"
-        >
-          <div className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
-            Themenströme
-          </div>
-          <div className="text-2xl font-semibold text-[rgb(var(--fg))]">{streamCount || "-"}</div>
-          <div className="text-[11px] text-[rgb(var(--muted))]">Alle Themenströme anzeigen</div>
-        </Link>
-        <Link
-          href="#beitraege"
-          className="vog-card p-4 space-y-2 transition hover:shadow-soft"
-        >
-          <div className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Beiträge</div>
-          <div className="text-2xl font-semibold text-[rgb(var(--fg))]">{contributionCount || "-"}</div>
-          <div className="text-[11px] text-[rgb(var(--muted))]">Alle Beiträge anzeigen</div>
-        </Link>
-        <div className="vog-card p-4 space-y-2">
-          <div className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">{UI_DE.coreStatements}</div>
-          <div className="text-2xl font-semibold text-[rgb(var(--fg))]">
-            {statementStats.total ?? derivedStats.total}
-          </div>
-          <div className="text-[11px] text-[rgb(var(--muted))]">
-            Pro/Neutral/Contra: {statementStats.pro ?? derivedStats.pro}/
-            {statementStats.neutral ?? derivedStats.neutral}/{statementStats.contra ?? derivedStats.contra}
-          </div>
-        </div>
-        <div className="vog-card p-4 space-y-2">
-          <div className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Quellen</div>
-          <div className="text-2xl font-semibold text-[rgb(var(--fg))]">{sources.length}</div>
-        </div>
-      </section>
-
-      <InputsPanel
-        streams={streams}
-        contributions={contributions}
-        traceability={traceability}
-        statementTitleById={statementTitleById}
-        dossierId={meta.id}
-        materialLinkCount={materialLinkCount}
-        materialLinks={materialLinks}
-        viewerRole={viewerRole}
-      />
-
-      <MunicipalityMode regionalSuggestions={presentation.regionalSuggestions} viewerRole={viewerRole as any} />
-
-      <section className="space-y-4">
+  const streamsHref = activeMode === "read" ? "#mitwirken" : "#streams";
+  const contributionsHref = activeMode === "read" ? "#mitwirken" : "#beitraege";
+  const summarySection = (
+    <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <Link href={streamsHref} className="vog-card p-4 space-y-2 transition hover:shadow-soft">
         <div className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
-          {SECTION_TITLES.options}
+          Themenströme
         </div>
-        <DecisionSpace
-          options={matrixOptions}
-          ctaHref="#vote"
-          traceHref="#graph"
-          selectedOptionId={selectedOptionId}
-          onSelect={(optionId) => setSelectedOptionId(optionId)}
-          optionRanking={majorityMap}
-        />
-      </section>
-
-      <LegitimacyPanel
-        metrics={legitimacyMetrics}
-        status={legitimacyStatus}
-        footnote={
-          <p className="text-[11px] text-[rgb(var(--muted))]">
-            Die Werte dienen der Einordnung im Demo-Dossier und ersetzen keine fachliche Prüfung.
-          </p>
-        }
-      />
-
-      <section id="vote" className="space-y-4">
+        <div className="text-2xl font-semibold text-[rgb(var(--fg))]">{streamCount || "-"}</div>
+        <div className="text-[11px] text-[rgb(var(--muted))]">Alle Themenströme anzeigen</div>
+      </Link>
+      <Link href={contributionsHref} className="vog-card p-4 space-y-2 transition hover:shadow-soft">
+        <div className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Beiträge</div>
+        <div className="text-2xl font-semibold text-[rgb(var(--fg))]">{contributionCount || "-"}</div>
+        <div className="text-[11px] text-[rgb(var(--muted))]">Alle Beiträge anzeigen</div>
+      </Link>
+      <div className="vog-card p-4 space-y-2">
         <div className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
-          Abstimmung & Mehrheitsdynamik
+          {UI_DE.coreStatements}
         </div>
-        <div className="grid gap-4 lg:grid-cols-[1fr_1.1fr]">
-          <VotePanel
-            options={votingOptions}
-            selectedOptionId={selectedOptionId}
-            savedOptionId={savedOptionId}
-            onSelect={setSelectedOptionId}
-            onSave={() => void saveSelection()}
-            saveNotice={saveNotice}
-            savedAt={savedAt}
-            canVote={isCitizen}
-            roleLabel={roleLabel}
-          />
-          <ParticipationStatus
-            options={votingOptions}
-            majorityDemo={majorityLive}
-            savedOptionId={displaySavedOptionId}
-            savedAt={displaySavedAt}
-            totalVotes={majorityTotalVotes}
-            updatedAt={majorityUpdatedAt}
-            history={presentation.vote?.history}
-            showUserVote={isCitizen}
-          />
+        <div className="text-2xl font-semibold text-[rgb(var(--fg))]">
+          {statementStats.total ?? derivedStats.total}
         </div>
-      </section>
-    </>
+        <div className="text-[11px] text-[rgb(var(--muted))]">
+          Pro/Neutral/Contra: {statementStats.pro ?? derivedStats.pro}/
+          {statementStats.neutral ?? derivedStats.neutral}/{statementStats.contra ?? derivedStats.contra}
+        </div>
+      </div>
+      <div className="vog-card p-4 space-y-2">
+        <div className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Quellen</div>
+        <div className="text-2xl font-semibold text-[rgb(var(--fg))]">{sources.length}</div>
+      </div>
+    </section>
   );
+
+  const creatorSection = (
+    <section id="mitwirken" className="vog-card p-5 space-y-4">
+      <div className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
+        Mitwirken & Creator-Modus
+      </div>
+      <p className="text-sm text-[rgb(var(--muted))]">
+        Bürger:innen, Community und Fachakteure können Fragen, Quellen, Optionen und Korrekturen einreichen.
+        Jede Einreichung wird dokumentiert und redaktionell geprüft.
+      </p>
+      <div className="flex flex-wrap gap-2 text-xs">
+        <Link
+          href={dossierParam ? `/contributions/new?dossierId=${dossierParam}` : "/contributions/new"}
+          className="btn btn-ghost text-xs"
+        >
+          Quelle einreichen
+        </Link>
+        <Link
+          href={dossierParam ? `/statements/new?dossierId=${dossierParam}` : "/statements/new"}
+          className="btn btn-ghost text-xs"
+        >
+          Frage melden
+        </Link>
+        <Link
+          href={dossierParam ? `/statements/new?dossierId=${dossierParam}` : "/statements/new"}
+          className="btn btn-ghost text-xs"
+        >
+          Perspektive ergänzen
+        </Link>
+        <Link
+          href={
+            dossierParam
+              ? `/contributions/new?dossierId=${dossierParam}&intent=option`
+              : "/contributions/new"
+          }
+          className="btn btn-ghost text-xs"
+        >
+          Option vorschlagen
+        </Link>
+        <Link
+          href={
+            dossierParam
+              ? `/contributions/new?dossierId=${dossierParam}&intent=objection`
+              : "/contributions/new"
+          }
+          className="btn btn-ghost text-xs"
+        >
+          Widerspruch melden
+        </Link>
+      </div>
+      <div className="text-[11px] text-[rgb(var(--muted))]">
+        Statusspur: eingereicht → geprüft → übernommen/archiviert.
+      </div>
+      <div className="space-y-2">
+        <div className="text-[10px] font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
+          Letzte Einreichungen
+        </div>
+        {contributions.length ? (
+          <div className="space-y-2 text-sm">
+            {contributions.slice(0, 3).map((item) => (
+              <Link
+                key={item.id}
+                href={`/beitraege/${item.id}`}
+                className="block rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-[rgb(var(--fg))]"
+              >
+                <div className="text-sm font-semibold">{item.title}</div>
+                <div className="text-[11px] text-[rgb(var(--muted))]">{item.date}</div>
+              </Link>
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm text-[rgb(var(--muted))]">Noch keine Einreichungen dokumentiert.</p>
+        )}
+      </div>
+    </section>
+  );
+
+  const inputsSection = (
+    <InputsPanel
+      streams={streams}
+      contributions={contributions}
+      traceability={traceability}
+      statementTitleById={statementTitleById}
+      dossierId={meta.id}
+      materialLinkCount={materialLinkCount}
+      materialLinks={materialLinks}
+      viewerRole={viewerRole}
+    />
+  );
+
+  const municipalitySection = (
+    <MunicipalityMode regionalSuggestions={presentation.regionalSuggestions} viewerRole={viewerRole as any} />
+  );
+
+  const decisionSection = (
+    <section className="space-y-4">
+      <div className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
+        {SECTION_TITLES.options}
+      </div>
+      <DecisionSpace
+        options={matrixOptions}
+        ctaHref="#vote"
+        traceHref="#graph"
+        selectedOptionId={selectedOptionId}
+        onSelect={(optionId) => setSelectedOptionId(optionId)}
+        optionRanking={majorityMap}
+      />
+    </section>
+  );
+
+  const legitimacySection = (
+    <LegitimacyPanel
+      metrics={legitimacyMetrics}
+      status={legitimacyStatus}
+      footnote={
+        <p className="text-[11px] text-[rgb(var(--muted))]">
+          {isDemo
+            ? "Die Werte dienen der Einordnung im Demo-Dossier und ersetzen keine fachliche Prüfung."
+            : "Die Werte dienen der Einordnung des Dokumentationsstands und ersetzen keine fachliche Prüfung."}
+        </p>
+      }
+    />
+  );
+
+  const voteSection = (
+    <section id="vote" className="space-y-4">
+      <div className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
+        Abstimmung & Mehrheitsdynamik
+      </div>
+      <div className="grid gap-4 lg:grid-cols-[1fr_1.1fr]">
+        <VotePanel
+          options={votingOptions}
+          selectedOptionId={selectedOptionId}
+          savedOptionId={savedOptionId}
+          onSelect={setSelectedOptionId}
+          onSave={() => void saveSelection()}
+          saveNotice={saveNotice}
+          savedAt={savedAt}
+          canVote={canVote}
+          roleLabel={roleLabel}
+        />
+        <ParticipationStatus
+          options={votingOptions}
+          majorityDemo={majorityLive}
+          savedOptionId={displaySavedOptionId}
+          savedAt={displaySavedAt}
+          totalVotes={majorityTotalVotes}
+          updatedAt={majorityUpdatedAt}
+          history={presentation.vote?.history}
+          showUserVote={canVote}
+        />
+      </div>
+    </section>
+  );
+
+  let mainLeftSections = [summarySection];
+  if (activeMode === "read") {
+    mainLeftSections = [summarySection, legitimacySection, decisionSection, voteSection];
+  } else if (activeMode === "work") {
+    mainLeftSections = [
+      summarySection,
+      creatorSection,
+      inputsSection,
+      decisionSection,
+      voteSection,
+      legitimacySection,
+    ];
+  } else {
+    mainLeftSections = [summarySection, municipalitySection, inputsSection, decisionSection, legitimacySection];
+  }
+
+  const mainLeft = <>{mainLeftSections}</>;
 
   const fullWidth = (
     <section id="graph" className="space-y-4">
@@ -1449,84 +1686,180 @@ export function DossierViewer({ dossier }: { dossier: Dossier }) {
           )}
         </div>
       </section>
+      {activeMode === "read" ? creatorSection : null}
     </>
   );
 
+  const metadataPanel = (
+    <section className="vog-card p-5 space-y-2">
+      <div className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
+        {SECTION_TITLES.metadata}
+      </div>
+      <div className="text-sm text-[rgb(var(--fg))]">Status: {STATUS_LABELS[meta.status] ?? meta.status}</div>
+      <div className="text-sm text-[rgb(var(--fg))]">
+        {UI_DE.level}: {JURISDICTION_LABELS[meta.jurisdiction] ?? meta.jurisdiction}
+      </div>
+      <div className="text-sm text-[rgb(var(--fg))]">Region: {meta.region ?? "-"}</div>
+      <div className="text-sm text-[rgb(var(--fg))]">Zeitfenster: {timeWindow as string}</div>
+      <div className="text-sm text-[rgb(var(--fg))]">Letztes Update: {formatDate(meta.updatedAt ?? meta.createdAt)}</div>
+      {voteConfig ? (
+        <>
+          <div className="text-sm text-[rgb(var(--fg))]">
+            Abstimmungsmodus: {VOTE_POLICY_LABELS[voteConfig.policy] ?? voteConfig.policy}
+          </div>
+          <div className="text-sm text-[rgb(var(--fg))]">Mindestoptionen: {voteConfig.minOptions}</div>
+          <div className="text-sm text-[rgb(var(--fg))]">
+            {UI_DE.communityOptions}: {voteConfig.allowCommunityOptions ? "aktiv" : "deaktiviert"}
+          </div>
+        </>
+      ) : null}
+    </section>
+  );
+
+  const transparencyStatusPanel = (
+    <TransparencyStatusPanel
+      entry={entry}
+      dataState={dataState}
+      statusLabel={STATUS_LABELS[meta.status] ?? meta.status}
+      sourcesCount={sources.length}
+      openCount={questionStats.open}
+      inReviewCount={questionStats.inReview}
+      answeredCount={questionStats.answered}
+      delegatedCount={questionStats.delegated}
+      communityCount={contributionCount}
+      correctionsCount={contestedClaimIds.length}
+    />
+  );
+
+  const transparencyPanel = (
+    <TransparencyPanel
+      sources={sources}
+      runReceipt={analyze.runReceipt}
+      createdAt={meta.createdAt}
+      updatedAt={meta.updatedAt}
+      revision={meta.revision}
+    />
+  );
+
+  const correctionsPanel = <CorrectionsPanel items={corrections} />;
+  const auditPanel = activeMode === "admin" ? <AuditTimeline events={inst.data?.auditTrail ?? []} /> : null;
+  const exportPanel = activeMode === "admin" ? <ExportPanel dossierId={meta.id} /> : null;
+  const mandatePanel =
+    activeMode === "admin" || viewerRole === "administration" ? <MandatePanel viewerRole={viewerRole as any} /> : null;
+  const allowEditorial =
+    activeMode !== "read" && (viewerRole === "admin" || viewerRole === "staff" || viewerRole === "journalist");
+  const editorialPanel = allowEditorial ? (
+    viewerRole === "admin" || viewerRole === "staff" ? (
+      <EditorialInboxLive enabled />
+    ) : (
+      <EditorialInbox items={presentation.editorialInbox} />
+    )
+  ) : null;
+  const watchlistTogglePanel =
+    access === "internal" && canManageWatchlist ? (
+      <section className="vog-card p-5 space-y-2">
+        <div className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
+          Beobachtungsliste
+        </div>
+        <button
+          type="button"
+          className="btn btn-ghost text-xs"
+          onClick={() => void toggleWatchlist()}
+          disabled={watchlistBusy}
+        >
+          {watchlistActive ? "Nicht mehr beobachten" : "Beobachten"}
+        </button>
+        <p className="text-[11px] text-[rgb(var(--muted))]">Updates werden in der Beobachtungsliste gesammelt.</p>
+      </section>
+    ) : null;
+  const watchlistPanel = activeMode !== "read" ? <WatchlistPanel items={presentation.watchlist} /> : null;
+  const roadmapPanel = activeMode !== "read" ? <RoadmapPanel items={presentation.roadmap} /> : null;
+
+  const evidenceSummaryPanel = (
+    <section className="vog-card p-5 space-y-2">
+      <div className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
+        Evidenz-Überblick
+      </div>
+      <div className="text-sm text-[rgb(var(--fg))]">
+        Kernaussagen: {analyze.evidenceGraph?.summary.claimCount ?? analyze.claims.length}
+      </div>
+      <div className="text-sm text-[rgb(var(--fg))]">
+        Quellen: {analyze.evidenceGraph?.summary.evidenceCount ?? sources.length}
+      </div>
+      <div className="text-sm text-[rgb(var(--fg))]">Kanten: {graphEdges.length}</div>
+      <div className="text-sm text-[rgb(var(--fg))]">
+        Verknüpfte Kernaussagen: {analyze.evidenceGraph?.summary.linkedClaimCount ?? "-"}
+      </div>
+    </section>
+  );
+
+  const sidebarOrderByPersona: Record<string, string[]> = {
+    journalist: [
+      "meta",
+      "status",
+      "transparency",
+      "editorial",
+      "corrections",
+      "audit",
+      "evidence",
+      "watchlistToggle",
+      "watchlist",
+      "roadmap",
+      "export",
+      "mandate",
+    ],
+    administration: [
+      "meta",
+      "status",
+      "mandate",
+      "audit",
+      "transparency",
+      "editorial",
+      "evidence",
+      "watchlistToggle",
+      "watchlist",
+      "roadmap",
+      "export",
+    ],
+    organization: [
+      "meta",
+      "status",
+      "transparency",
+      "corrections",
+      "editorial",
+      "evidence",
+      "watchlistToggle",
+      "watchlist",
+      "roadmap",
+    ],
+    research: ["meta", "status", "transparency", "corrections", "evidence", "export"],
+    citizen: ["meta", "status", "transparency", "corrections", "evidence", "watchlist", "roadmap"],
+  };
+
+  const sidebarPanels = {
+    meta: metadataPanel,
+    status: transparencyStatusPanel,
+    transparency: transparencyPanel,
+    corrections: correctionsPanel,
+    audit: auditPanel,
+    export: exportPanel,
+    mandate: mandatePanel,
+    editorial: editorialPanel,
+    watchlistToggle: watchlistTogglePanel,
+    watchlist: watchlistPanel,
+    roadmap: roadmapPanel,
+    evidence: evidenceSummaryPanel,
+  };
+
+  const sidebarItems = (sidebarOrderByPersona[persona] ?? sidebarOrderByPersona.citizen)
+    .map((key) => ({ key, node: sidebarPanels[key] }))
+    .filter((item) => Boolean(item.node));
+
   const sidebar = (
     <>
-      <section className="vog-card p-5 space-y-2">
-        <div className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
-          {SECTION_TITLES.metadata}
-        </div>
-        <div className="text-sm text-[rgb(var(--fg))]">Status: {STATUS_LABELS[meta.status] ?? meta.status}</div>
-        <div className="text-sm text-[rgb(var(--fg))]">
-          {UI_DE.level}: {JURISDICTION_LABELS[meta.jurisdiction] ?? meta.jurisdiction}
-        </div>
-        <div className="text-sm text-[rgb(var(--fg))]">Region: {meta.region ?? "-"}</div>
-        <div className="text-sm text-[rgb(var(--fg))]">Zeitfenster: {timeWindow as string}</div>
-        <div className="text-sm text-[rgb(var(--fg))]">Letztes Update: {formatDate(meta.updatedAt ?? meta.createdAt)}</div>
-        {voteConfig ? (
-          <>
-            <div className="text-sm text-[rgb(var(--fg))]">
-              Abstimmungsmodus: {VOTE_POLICY_LABELS[voteConfig.policy] ?? voteConfig.policy}
-            </div>
-            <div className="text-sm text-[rgb(var(--fg))]">Mindestoptionen: {voteConfig.minOptions}</div>
-            <div className="text-sm text-[rgb(var(--fg))]">
-              {UI_DE.communityOptions}: {voteConfig.allowCommunityOptions ? "aktiv" : "deaktiviert"}
-            </div>
-          </>
-        ) : null}
-      </section>
-      <TransparencyPanel
-        sources={sources}
-        runReceipt={analyze.runReceipt}
-        createdAt={meta.createdAt}
-        updatedAt={meta.updatedAt}
-        revision={meta.revision}
-      />
-      <CorrectionsPanel items={corrections} />
-      <AuditTimeline events={inst.data?.auditTrail ?? []} />
-      <ExportPanel dossierId={meta.id} />
-      <MandatePanel viewerRole={viewerRole as any} />
-      {viewerRole === "admin" || viewerRole === "staff" ? (
-        <EditorialInboxLive enabled />
-      ) : (
-        <EditorialInbox items={presentation.editorialInbox} />
-      )}
-      {canManageWatchlist ? (
-        <section className="vog-card p-5 space-y-2">
-          <div className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
-            Beobachtungsliste
-          </div>
-          <button
-            type="button"
-            className="btn btn-ghost text-xs"
-            onClick={() => void toggleWatchlist()}
-            disabled={watchlistBusy}
-          >
-            {watchlistActive ? "Nicht mehr beobachten" : "Beobachten"}
-          </button>
-          <p className="text-[11px] text-[rgb(var(--muted))]">
-            Updates werden in der Beobachtungsliste gesammelt.
-          </p>
-        </section>
-      ) : null}
-      <WatchlistPanel items={presentation.watchlist} />
-      <RoadmapPanel items={presentation.roadmap} />
-
-      <section className="vog-card p-5 space-y-2">
-        <div className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
-          Evidenz-Überblick
-        </div>
-        <div className="text-sm text-[rgb(var(--fg))]">
-          Kernaussagen: {analyze.evidenceGraph?.summary.claimCount ?? analyze.claims.length}
-        </div>
-        <div className="text-sm text-[rgb(var(--fg))]">Quellen: {analyze.evidenceGraph?.summary.evidenceCount ?? sources.length}</div>
-        <div className="text-sm text-[rgb(var(--fg))]">Kanten: {graphEdges.length}</div>
-        <div className="text-sm text-[rgb(var(--fg))]">
-          Verknüpfte Kernaussagen: {analyze.evidenceGraph?.summary.linkedClaimCount ?? "-"}
-        </div>
-      </section>
+      {sidebarItems.map((item) => (
+        <Fragment key={item.key}>{item.node}</Fragment>
+      ))}
     </>
   );
 

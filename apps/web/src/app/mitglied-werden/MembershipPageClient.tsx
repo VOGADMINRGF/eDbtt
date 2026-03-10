@@ -412,7 +412,7 @@ export function MembershipPageClient({ membershipPlan, edebattePlans }: Props) {
                 </p>
               </div>
               <p className="text-[11px] text-[rgb(var(--muted))]">
-                Vormerkung: −15% Einfuehrungspreis (unverbindlich, ohne Zahlung)
+                Vormerkung: −15% Einführungspreis (unverbindlich, ohne Zahlung)
               </p>
 
               <div className="grid gap-4 md:grid-cols-3">
