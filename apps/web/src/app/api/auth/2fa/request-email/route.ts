@@ -1,3 +1,4 @@
+import crypto from "crypto";
 import { NextResponse, type NextRequest } from "next/server";
 import { coreCol, piiCol, ObjectId } from "@core/db/triMongo";
 import { rateLimitOrThrow } from "@/utils/rateLimitHelpers";
@@ -71,14 +72,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "email_missing" }, { status: 400 });
     }
 
-    const demo = isDemoUser({ _id: existing.userId, email });
-    if (!demo) {
-      return NextResponse.json({ error: "demo_only" }, { status: 403 });
-    }
-
     const now = new Date();
     const expiresAt = new Date(now.getTime() + TWO_FA_WINDOW_MS);
-    const code = getDemoCode();
+    const demo = isDemoUser({ _id: existing.userId, email });
+    const code = demo ? getDemoCode() : crypto.randomInt(100000, 999999).toString();
     const challenge: TwoFactorChallengeDoc = {
       userId: existing.userId,
       method: "email",
