@@ -16,6 +16,7 @@ import type { AccountFeatureInterestKey } from "@features/account/types";
 import { TOPIC_CHOICES, type TopicKey } from "@features/interests/topics";
 import type { UserRole } from "@/types/user";
 import type { EngagementLevel } from "@features/user/engagement";
+import { INPUT, SELECT, TEXTAREA } from "@/lib/ui/inputs";
 
 // Konsistente Button-Styles im eDebatte-Gradient-CI
 const primaryButtonClass =
@@ -254,7 +255,7 @@ export function AccountClient({ initialData, membershipNotice, preorderNotice, w
         <MicroTransferBanner paymentReference={data.membershipSnapshot?.paymentReference} />
       )}
       {preorderNotice && (
-        <div className="mb-4 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
+        <div className="mb-4 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900 dark:border-emerald-400/40 dark:bg-emerald-500/10 dark:text-emerald-200">
           Vormerkung gespeichert. Wenn du eine E-Mail angegeben hast, senden wir dir eine Bestätigung. Die Vormerkung
           erscheint unten in deiner Übersicht.
         </div>
@@ -491,7 +492,7 @@ function MembershipBanner() {
   return (
     <section
       aria-label="Bestätigung eDebatte-Paket"
-      className="rounded-3xl border border-emerald-100 bg-emerald-50/80 px-4 py-3 text-sm text-emerald-900 shadow-sm"
+      className="rounded-3xl border border-emerald-100 bg-emerald-50/80 px-4 py-3 text-sm text-emerald-900 shadow-sm dark:border-emerald-400/40 dark:bg-emerald-500/10 dark:text-emerald-200"
     >
       <p className="font-medium">Vielen Dank für deine Vormerkung von eDebatte!</p>
       <p className="mt-1 text-xs text-emerald-800">
@@ -506,7 +507,7 @@ function WelcomeBanner() {
   return (
     <section
       aria-label="Willkommen"
-      className="rounded-3xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-900 shadow-sm"
+      className="rounded-3xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-900 shadow-sm dark:border-sky-400/40 dark:bg-sky-500/10 dark:text-sky-200"
     >
       <p className="font-medium">Herzlich willkommen! Dein Konto ist jetzt vollständig eingerichtet.</p>
       <p className="mt-1 text-xs text-sky-800">
@@ -521,7 +522,7 @@ function IdentityPendingBanner() {
   return (
     <section
       aria-label="Identitätsprüfung offen"
-      className="rounded-3xl border border-amber-200 bg-amber-50/80 px-4 py-3 text-sm text-amber-900 shadow-sm"
+      className="rounded-3xl border border-amber-200 bg-amber-50/80 px-4 py-3 text-sm text-amber-900 shadow-sm dark:border-amber-400/40 dark:bg-amber-500/10 dark:text-amber-200"
     >
       <p className="font-medium">Identitätsprüfung noch offen.</p>
       <p className="mt-1 text-xs text-amber-800">
@@ -541,7 +542,7 @@ function IdentityPendingBanner() {
 
 function MicroTransferBanner({ paymentReference }: { paymentReference?: string | null }) {
   return (
-    <section className="rounded-3xl border border-sky-200 bg-sky-50 px-5 py-4 text-sm text-sky-900 shadow-[0_16px_50px_rgba(14,116,144,0.12)]">
+    <section className="rounded-3xl border border-sky-200 bg-sky-50 px-5 py-4 text-sm text-sky-900 shadow-[0_16px_50px_rgba(14,116,144,0.12)] dark:border-sky-400/40 dark:bg-sky-500/10 dark:text-sky-200">
       <p className="font-semibold">Deine Mitgliedschaft wartet auf die 0,01 €-Verifikation.</p>
       <p className="mt-1 text-xs text-sky-800">
         Sobald der TAN-Code aus der 0,01 €-Überweisung vorliegt, kannst du ihn im Zahlungsprofil
@@ -697,7 +698,7 @@ function ProfileCard({ profile, onRefresh }: ProfileCardProps) {
   const handleSubmit = (event: FormEvent) => {
     event.preventDefault();
     if (!hasChanges) {
-      setSaveMsg("Keine Aenderung");
+      setSaveMsg("Keine Änderung");
       return;
     }
     setSaving(true);
@@ -789,7 +790,7 @@ function ProfileCard({ profile, onRefresh }: ProfileCardProps) {
             <input
               id="displayName"
               name="displayName"
-              className="w-full rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-sm text-[rgb(var(--fg))] shadow-inner focus:border-sky-400 focus:bg-[rgb(var(--card))] focus:outline-none focus:ring-2 focus:ring-sky-100"
+              className={INPUT}
               value={draft.displayName}
               onChange={(event) => handleFieldChange({ displayName: event.target.value })}
             />
@@ -807,13 +808,13 @@ function ProfileCard({ profile, onRefresh }: ProfileCardProps) {
               <label htmlFor="preferredLocale" className="text-xs font-medium text-[rgb(var(--muted))]">
                 Bevorzugte Sprache
               </label>
-              <select
-                id="preferredLocale"
-                name="preferredLocale"
-                className="w-full rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-sm text-[rgb(var(--fg))] focus:border-sky-400 focus:bg-[rgb(var(--card))] focus:outline-none focus:ring-2 focus:ring-sky-100"
-                value={draft.preferredLocale}
-                onChange={(event) => handleFieldChange({ preferredLocale: event.target.value })}
-              >
+            <select
+              id="preferredLocale"
+              name="preferredLocale"
+              className={SELECT}
+              value={draft.preferredLocale}
+              onChange={(event) => handleFieldChange({ preferredLocale: event.target.value })}
+            >
                 <option value="de">Deutsch</option>
                 <option value="en">English</option>
               </select>
@@ -1104,13 +1105,13 @@ function EDebattePackageModal({ currentPackage, onClose, onRefresh }: EDebattePa
 
             if (isCurrent && currentPackage.status === "active") {
               statusText = "Aktuelles Paket";
-              statusClass = "inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-emerald-700 ring-1 ring-emerald-200";
+              statusClass = "inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-emerald-700 ring-1 ring-emerald-200 dark:bg-emerald-500/15 dark:text-emerald-200 dark:ring-emerald-400/40";
             } else if (isCurrent && currentPackage.status === "preorder") {
               statusText = "Vorgemerkt";
-              statusClass = "inline-flex items-center rounded-full bg-sky-50 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-sky-700 ring-1 ring-sky-200";
+              statusClass = "inline-flex items-center rounded-full bg-sky-50 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-sky-700 ring-1 ring-sky-200 dark:bg-sky-500/15 dark:text-sky-200 dark:ring-sky-400/40";
             } else if (isCanceled) {
               statusText = "Zuletzt gekündigt";
-              statusClass = "inline-flex items-center rounded-full bg-amber-50 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-amber-700 ring-1 ring-amber-200";
+              statusClass = "inline-flex items-center rounded-full bg-amber-50 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-amber-700 ring-1 ring-amber-200 dark:bg-amber-500/15 dark:text-amber-200 dark:ring-amber-400/40";
             }
 
             const disabled = isCurrent;
@@ -1279,7 +1280,7 @@ function PublicProfileCard({ initial, onRefresh }: PublicProfileCardProps) {
             <textarea
               id="public-bio"
               rows={4}
-              className="w-full resize-none rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-sm text-[rgb(var(--fg))] focus:border-sky-400 focus:bg-[rgb(var(--card))] focus:outline-none focus:ring-2 focus:ring-sky-100"
+              className={TEXTAREA}
               value={draft.bio ?? ""}
               onChange={(event) => handleFieldChange({ bio: event.target.value })}
               placeholder="Zum Beispiel: Engagiert mich für bezahlbaren Wohnraum und konsequenten Klimaschutz in meiner Stadt."
@@ -1292,7 +1293,7 @@ function PublicProfileCard({ initial, onRefresh }: PublicProfileCardProps) {
             </label>
             <input
               id="public-tagline"
-              className="w-full rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-sm text-[rgb(var(--fg))] focus:border-sky-400 focus:bg-[rgb(var(--card))] focus:outline-none focus:ring-2 focus:ring-sky-100"
+              className={INPUT}
               value={draft.tagline ?? ""}
               onChange={(event) => handleFieldChange({ tagline: event.target.value })}
               placeholder="z.B. Pflegekraft, Student, Kommunalpolitikerin"
@@ -1326,7 +1327,7 @@ function PublicProfileCard({ initial, onRefresh }: PublicProfileCardProps) {
               </label>
               <input
                 id="public-city"
-                className="w-full rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-sm text-[rgb(var(--fg))] focus:border-sky-400 focus:bg-[rgb(var(--card))] focus:outline-none focus:ring-2 focus:ring-sky-100"
+                className={INPUT}
                 value={draft.city ?? ""}
                 onChange={(event) => handleFieldChange({ city: event.target.value })}
                 placeholder="z. B. Köln"
@@ -1338,7 +1339,7 @@ function PublicProfileCard({ initial, onRefresh }: PublicProfileCardProps) {
               </label>
               <input
                 id="public-region"
-                className="w-full rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-sm text-[rgb(var(--fg))] focus:border-sky-400 focus:bg-[rgb(var(--card))] focus:outline-none focus:ring-2 focus:ring-sky-100"
+                className={INPUT}
                 value={draft.region ?? ""}
                 onChange={(event) => handleFieldChange({ region: event.target.value })}
                 placeholder="z. B. NRW"
@@ -1350,7 +1351,7 @@ function PublicProfileCard({ initial, onRefresh }: PublicProfileCardProps) {
               </label>
               <input
                 id="public-country"
-                className="w-full rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-sm uppercase text-[rgb(var(--fg))] focus:border-sky-400 focus:bg-[rgb(var(--card))] focus:outline-none focus:ring-2 focus:ring-sky-100"
+                className={`${INPUT} uppercase`}
                 value={draft.countryCode ?? ""}
                 onChange={(event) => handleFieldChange({ countryCode: event.target.value.toUpperCase() })}
                 placeholder="DE"
@@ -1373,7 +1374,7 @@ function PublicProfileCard({ initial, onRefresh }: PublicProfileCardProps) {
                         key={topic.key}
                         className={`inline-flex items-start gap-2 rounded-2xl px-3 py-2 text-[11px] ring-1 ${
                           checked
-                            ? "bg-sky-50 text-sky-800 ring-sky-100"
+                            ? "bg-sky-50 text-sky-800 ring-sky-100 dark:bg-sky-500/15 dark:text-sky-200 dark:ring-sky-400/40"
                             : "bg-[rgb(var(--bg))] text-[rgb(var(--muted))] ring-[rgb(var(--border))]"
                         } ${disabled ? "opacity-60" : ""}`}
                       >
@@ -1475,8 +1476,8 @@ function VOGMembershipCard({ membership, membershipStatus, paymentReference }: V
   const isWaitingPayment = membershipStatus === "waiting_payment";
   const paymentHint = paymentReference ? `Verwendungszweck: ${paymentReference}` : null;
   const badgeClass = membership.isMember
-    ? "inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-emerald-700 ring-1 ring-emerald-200"
-    : "inline-flex items-center rounded-full bg-amber-50 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-amber-700 ring-1 ring-amber-200";
+    ? "inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-emerald-700 ring-1 ring-emerald-200 dark:bg-emerald-500/15 dark:text-emerald-200 dark:ring-emerald-400/40"
+    : "inline-flex items-center rounded-full bg-amber-50 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-amber-700 ring-1 ring-amber-200 dark:bg-amber-500/15 dark:text-amber-200 dark:ring-amber-400/40";
 
   return (
     <section className="rounded-3xl bg-[rgb(var(--card))] p-5 shadow-[0_18px_55px_rgba(15,23,42,0.08)] ring-1 ring-[rgb(var(--border))] sm:p-6">
@@ -1489,8 +1490,8 @@ function VOGMembershipCard({ membership, membershipStatus, paymentReference }: V
       {membership.contributionLabel && <p className="mt-1 text-xs text-[rgb(var(--muted))]">Beitrag: {membership.contributionLabel}</p>}
 
       {isWaitingPayment && (
-        <div className="mt-3 rounded-2xl border border-amber-200 bg-amber-50/70 px-3 py-2 text-[11px] text-amber-800">
-          Zahlung ausstehend. Bitte pruefe dein Zahlungsprofil und die Beitragsreferenz.
+        <div className="mt-3 rounded-2xl border border-amber-200 bg-amber-50/70 px-3 py-2 text-[11px] text-amber-800 dark:border-amber-400/40 dark:bg-amber-500/10 dark:text-amber-200">
+          Zahlung ausstehend. Bitte prüfe dein Zahlungsprofil und die Beitragsreferenz.
           {paymentHint ? <p className="mt-1 font-semibold">{paymentHint}</p> : null}
         </div>
       )}
@@ -1501,11 +1502,11 @@ function VOGMembershipCard({ membership, membershipStatus, paymentReference }: V
 
       <div className="mt-4 flex flex-wrap gap-2">
         <Link href="/pricing" className={primaryButtonSmallClass}>
-          {membership.isMember ? "Paket & Preise" : "Paket waehlen"}
+          {membership.isMember ? "Paket & Preise" : "Paket wählen"}
         </Link>
         {isWaitingPayment && (
           <Link href="/account/payment" className={secondaryLightButtonClass}>
-            Zahlungsprofil oeffnen
+            Zahlungsprofil öffnen
           </Link>
         )}
         <Link href="/transparenz" className={secondaryLightButtonClass}>
@@ -1542,7 +1543,7 @@ function RolesCard({ roles }: RolesCardProps) {
                 )}
               </div>
               {role.badge && (
-                <span className="inline-flex items-center rounded-full bg-sky-50 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-sky-700 ring-1 ring-sky-100">
+                <span className="inline-flex items-center rounded-full bg-sky-50 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-sky-700 ring-1 ring-sky-100 dark:bg-sky-500/15 dark:text-sky-200 dark:ring-sky-400/40">
                   {role.badge}
                 </span>
               )}
@@ -1555,7 +1556,7 @@ function RolesCard({ roles }: RolesCardProps) {
           </div>
         )}
         {hasSuperadmin && (
-          <div className="rounded-2xl bg-emerald-50/70 px-3 py-2 text-[11px] font-semibold text-emerald-800 ring-1 ring-emerald-100">
+          <div className="rounded-2xl bg-emerald-50/70 px-3 py-2 text-[11px] font-semibold text-emerald-800 ring-1 ring-emerald-100 dark:bg-emerald-500/15 dark:text-emerald-200 dark:ring-emerald-400/40">
             Superadmin aktiv
           </div>
         )}
@@ -1642,8 +1643,8 @@ function IdentityCheckCard() {
   const requiresBack = docType === "id_card";
   const hasDoc = Boolean(doc);
   const badgeClass = hasDoc
-    ? "inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-emerald-700 ring-1 ring-emerald-200"
-    : "inline-flex items-center rounded-full bg-amber-50 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-amber-700 ring-1 ring-amber-200";
+    ? "inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-emerald-700 ring-1 ring-emerald-200 dark:bg-emerald-500/15 dark:text-emerald-200 dark:ring-emerald-400/40"
+    : "inline-flex items-center rounded-full bg-amber-50 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-amber-700 ring-1 ring-amber-200 dark:bg-amber-500/15 dark:text-amber-200 dark:ring-amber-400/40";
 
   const updatedAtLabel = doc?.updatedAt
     ? new Intl.DateTimeFormat("de-DE", { dateStyle: "medium", timeStyle: "short" }).format(
@@ -1841,7 +1842,7 @@ function IdentityCheckCard() {
               <label
                 className={`cursor-pointer rounded-xl border px-3 py-2 text-[11px] ${
                   docType === "id_card"
-                    ? "border-sky-200 bg-sky-50 text-sky-700"
+                    ? "border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-400/40 dark:bg-sky-500/10 dark:text-sky-200"
                     : "border-[rgb(var(--border))] bg-[rgb(var(--card))] text-[rgb(var(--muted))]"
                 }`}
               >
@@ -1860,7 +1861,7 @@ function IdentityCheckCard() {
               <label
                 className={`cursor-pointer rounded-xl border px-3 py-2 text-[11px] ${
                   docType === "passport"
-                    ? "border-sky-200 bg-sky-50 text-sky-700"
+                    ? "border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-400/40 dark:bg-sky-500/10 dark:text-sky-200"
                     : "border-[rgb(var(--border))] bg-[rgb(var(--card))] text-[rgb(var(--muted))]"
                 }`}
               >
@@ -1959,8 +1960,8 @@ function StatusRow({ label, positive }: StatusRowProps) {
       <span
         className={
           positive
-            ? "inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-emerald-700 ring-1 ring-emerald-200"
-            : "inline-flex items-center rounded-full bg-amber-50 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-amber-700 ring-1 ring-amber-200"
+            ? "inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-emerald-700 ring-1 ring-emerald-200 dark:bg-emerald-500/15 dark:text-emerald-200 dark:ring-emerald-400/40"
+            : "inline-flex items-center rounded-full bg-amber-50 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-amber-700 ring-1 ring-amber-200 dark:bg-amber-500/15 dark:text-amber-200 dark:ring-amber-400/40"
         }
       >
         {positive ? "aktiv" : "empfohlen"}
@@ -2145,7 +2146,7 @@ function FeatureCard({ title, description, enabled, interested, onInterestChange
         <span
           className={
             enabled
-              ? "inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-emerald-700 ring-1 ring-emerald-200"
+              ? "inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-emerald-700 ring-1 ring-emerald-200 dark:bg-emerald-500/15 dark:text-emerald-200 dark:ring-emerald-400/40"
               : "inline-flex items-center rounded-full bg-[rgb(var(--bg))] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))] ring-1 ring-[rgb(var(--border))]"
           }
         >

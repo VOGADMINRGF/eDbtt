@@ -83,7 +83,7 @@ export function StatementCard({ statement, index = 0 }: Props) {
     <article className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] shadow-sm p-4 mb-4">
       <header className="mb-3 flex flex-col gap-1">
         <div className="flex items-center justify-between gap-2">
-          <span className="inline-flex items-center rounded-full bg-sky-50 px-3 py-1 text-xs font-semibold text-sky-700">
+          <span className="inline-flex items-center rounded-full bg-sky-50 px-3 py-1 text-xs font-semibold text-sky-700 dark:bg-sky-500/15 dark:text-sky-200">
             Statement #{index + 1}
           </span>
           <div className="flex flex-wrap gap-2 text-[11px] text-[rgb(var(--muted))]">
@@ -135,7 +135,7 @@ export function StatementCard({ statement, index = 0 }: Props) {
                   {ev.domainTags?.map((tag) => (
                     <span
                       key={`d-${ev.id}-${tag}`}
-                      className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] text-emerald-700"
+                      className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-200"
                     >
                       {tag}
                     </span>
@@ -143,7 +143,7 @@ export function StatementCard({ statement, index = 0 }: Props) {
                   {ev.stakeholderTags?.map((tag) => (
                     <span
                       key={`s-${ev.id}-${tag}`}
-                      className="rounded-full bg-amber-50 px-2 py-0.5 text-[10px] text-amber-700"
+                      className="rounded-full bg-amber-50 px-2 py-0.5 text-[10px] text-amber-700 dark:bg-amber-500/15 dark:text-amber-200"
                     >
                       {tag}
                     </span>
@@ -186,14 +186,14 @@ export function StatementCard({ statement, index = 0 }: Props) {
                   >
                     <div className="mb-1 flex flex-wrap items-center gap-1">
                       {p.scenarioType && (
-                        <span className="rounded-full bg-indigo-50 px-2 py-0.5 text-[10px] font-semibold text-indigo-700">
+                        <span className="rounded-full bg-indigo-50 px-2 py-0.5 text-[10px] font-semibold text-indigo-700 dark:bg-indigo-500/15 dark:text-indigo-200">
                           {scenarioLabel(p)}
                         </span>
                       )}
                       {p.valueTags?.slice(0, 3).map((tag) => (
                         <span
                           key={tag}
-                          className="rounded-full bg-sky-50 px-2 py-0.5 text-[10px] text-sky-700"
+                          className="rounded-full bg-sky-50 px-2 py-0.5 text-[10px] text-sky-700 dark:bg-sky-500/15 dark:text-sky-200"
                         >
                           {tag}
                         </span>

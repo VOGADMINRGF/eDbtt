@@ -2,6 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
+import { INPUT } from "@/lib/ui/inputs";
 
 type PaymentProfileFormProps = {
   initial?: {
@@ -69,7 +70,7 @@ export function PaymentProfileForm({ initial }: PaymentProfileFormProps) {
           <input
             id="holderName"
             name="holderName"
-            className="w-full rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm text-[rgb(var(--fg))] shadow-inner focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100"
+            className={INPUT}
             value={holderName}
             onChange={(e) => setHolderName(e.target.value)}
             placeholder={initial?.holderName ?? "Vor- und Nachname / Organisation"}
@@ -84,7 +85,7 @@ export function PaymentProfileForm({ initial }: PaymentProfileFormProps) {
           <input
             id="bic"
             name="bic"
-            className="w-full rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm text-[rgb(var(--fg))] shadow-inner focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100"
+            className={INPUT}
             value={bic}
             onChange={(e) => setBic(e.target.value)}
             placeholder="z.B. COLSDE33"
@@ -101,7 +102,7 @@ export function PaymentProfileForm({ initial }: PaymentProfileFormProps) {
           name="iban"
           inputMode="text"
           autoComplete="off"
-          className="w-full rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm text-[rgb(var(--fg))] shadow-inner focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100"
+          className={INPUT}
           value={iban}
           onChange={(e) => setIban(e.target.value)}
           placeholder={initial?.ibanMasked ?? "DE00 0000 0000 0000 0000 00"}

@@ -3,6 +3,7 @@
 import type { FormEvent } from "react";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { INPUT } from "@/lib/ui/inputs";
 
 type TotpState =
   | { status: "idle" }
@@ -139,7 +140,7 @@ export default function SecurityPage() {
                 inputMode="numeric"
                 pattern="[0-9]*"
                 maxLength={6}
-                className="w-full rounded border px-3 py-2 text-lg tracking-[0.3em]"
+                className={`${INPUT} text-lg tracking-[0.3em]`}
                 value={code}
                 onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
                 required

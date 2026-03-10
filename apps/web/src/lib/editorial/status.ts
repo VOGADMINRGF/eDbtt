@@ -9,13 +9,13 @@ export type EditorialStatusInput = {
 
 const STATUS_LABELS: Record<EditorialStatus, string> = {
   pending: "offen",
-  approved: "geprueft",
+  approved: "geprüft",
   rejected: "abgelehnt",
   needs_review: "umstritten",
   unknown: "unbekannt",
 };
 
-const APPROVED = new Set(["approved", "geprueft", "freigegeben", "ok", "review_ok"]);
+const APPROVED = new Set(["approved", "geprueft", "geprüft", "freigegeben", "ok", "review_ok"]);
 const REJECTED = new Set(["rejected", "abgelehnt"]);
 const PENDING = new Set(["pending", "queued", "in-review", "review", "offen", "ausstehend", "unbestaetigt", "fehlt"]);
 const NEEDS_REVIEW = new Set(["umstritten", "needs_review"]);

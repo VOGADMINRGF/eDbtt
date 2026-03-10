@@ -2,6 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
+import { INPUT } from "@/lib/ui/inputs";
 
 type MicroTransferVerificationFormProps = {
   membershipStatus?: string | null;
@@ -87,7 +88,7 @@ export function MicroTransferVerificationForm({
           inputMode="numeric"
           pattern="[0-9]{6}"
           maxLength={6}
-          className="w-full rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm text-[rgb(var(--fg))] shadow-inner focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100"
+          className={INPUT}
           value={code}
           onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
           placeholder="6-stelliger Code"

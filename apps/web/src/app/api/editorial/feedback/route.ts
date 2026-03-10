@@ -13,6 +13,8 @@ const FEEDBACK_GET_RATE = { limit: 120, windowMs: 60_000 };
 
 const ShortText = z.string().trim().min(1).max(600);
 const ClaimText = z.string().trim().min(1).max(800);
+const MandateTitle = z.string().trim().min(1).max(120);
+const MandateDescription = z.string().trim().min(1).max(800);
 const FactVerdict = z.enum(["LIKELY_TRUE", "LIKELY_FALSE", "MIXED", "UNDETERMINED"]);
 const SourceUrl = z.string().trim().min(1).max(600);
 const FeedbackOrigin = z.enum(["community", "editorial", "user", "ai"]);
@@ -79,6 +81,38 @@ const FeedbackActionSchema = z.discriminatedUnion("type", [
       type: z.literal("attach_context_pack"),
       packId: z.string().trim().min(1).max(120),
       note: ShortText.optional(),
+    })
+    .strict(),
+  z
+    .object({
+      type: z.literal("mandate_update_submit"),
+      title: MandateTitle,
+      description: MandateDescription,
+      sources: z.array(SourceUrl).max(5).optional(),
+    })
+    .strict(),
+  z
+    .object({
+      type: z.literal("mandate_risk_submit"),
+      title: MandateTitle,
+      description: MandateDescription,
+      sources: z.array(SourceUrl).max(5).optional(),
+    })
+    .strict(),
+  z
+    .object({
+      type: z.literal("mandate_responsibility_submit"),
+      title: MandateTitle,
+      description: MandateDescription,
+      sources: z.array(SourceUrl).max(5).optional(),
+    })
+    .strict(),
+  z
+    .object({
+      type: z.literal("mandate_impact_submit"),
+      title: MandateTitle,
+      description: MandateDescription,
+      sources: z.array(SourceUrl).max(5).optional(),
     })
     .strict(),
 ]);
