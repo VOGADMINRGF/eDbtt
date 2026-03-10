@@ -19,8 +19,19 @@ export function LoginPageShell({
   const [password, setPassword] = useState("");
   const [code, setCode] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const { step, method, expiresAt, loading, error, submitCredentials, submitTwoFactor, reset } =
-    useLoginFlow({ redirectTo, initialStep, initialMethod });
+  const {
+    step,
+    method,
+    expiresAt,
+    loading,
+    requestingEmail,
+    allowEmailFallback,
+    error,
+    submitCredentials,
+    submitTwoFactor,
+    requestEmailCode,
+    reset,
+  } = useLoginFlow({ redirectTo, initialStep, initialMethod });
 
   const expiresInMinutes = useMemo(() => {
     if (!expiresAt) return null;
@@ -138,7 +149,7 @@ export function LoginPageShell({
             </label>
             <input
               id="code"
-              className="w-full rounded-lg border border-[rgb(var(--border))] px-3 py-2"
+              className="w-full rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-[rgb(var(--fg))] shadow-inner focus:border-sky-400 focus:bg-[rgb(var(--card))] focus:outline-none focus:ring-2 focus:ring-sky-100"
               value={code}
               onChange={(e) => setCode(e.target.value)}
               inputMode="numeric"
@@ -146,6 +157,19 @@ export function LoginPageShell({
               required
             />
           </div>
+          {allowEmailFallback && method !== "email" && (
+            <button
+              type="button"
+              className="text-xs font-semibold text-sky-700 underline-offset-2 hover:underline disabled:opacity-60"
+              onClick={async () => {
+                const ok = await requestEmailCode();
+                if (ok) setCode("");
+              }}
+              disabled={requestingEmail || loading}
+            >
+              {requestingEmail ? "Sende Code per E-Mail …" : "Code per E-Mail senden"}
+            </button>
+          )}
           {error && <p className="text-sm text-rose-600">{error}</p>}
           <div className="flex items-center gap-3">
             <button type="submit" className={`${primaryButtonClass} w-full`} disabled={loading}>

@@ -889,7 +889,29 @@ const [humanError, setHumanError] = React.useState<string | null>(null);
                 </button>
               </div>
 
-              <div className="mt-6 grid gap-3 sm:grid-cols-2">
+              <div className="mt-6 space-y-3">
+                <a
+                  href="/register"
+                  className="inline-flex w-full items-center justify-center rounded-full bg-gradient-to-r from-[rgb(var(--grad-from))] to-[rgb(var(--grad-to))] px-4 py-2.5 text-sm font-extrabold text-white shadow-[0_10px_24px_rgba(24,165,255,0.25)] hover:opacity-95"
+                >
+                  {t.modal.ctaRegister}
+                </a>
+
+                <div className="grid gap-2 sm:grid-cols-2">
+                  <a
+                    href="/vormerken?paket=start"
+                    className="inline-flex items-center justify-center rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-2.5 text-sm font-semibold text-[rgb(var(--muted))] hover:bg-[color-mix(in_oklab,rgb(var(--card))_85%,rgb(var(--bg))_15%)] hover:text-[rgb(var(--fg))]"
+                  >
+                    {t.modal.ctaStart}
+                  </a>
+                  <a
+                    href="/vormerken?paket=pro"
+                    className="inline-flex items-center justify-center rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-2.5 text-sm font-semibold text-[rgb(var(--muted))] hover:bg-[color-mix(in_oklab,rgb(var(--card))_85%,rgb(var(--bg))_15%)] hover:text-[rgb(var(--fg))]"
+                  >
+                    {t.modal.ctaPro}
+                  </a>
+                </div>
+
                 <button
                   type="button"
                   onClick={() => {
@@ -897,24 +919,10 @@ const [humanError, setHumanError] = React.useState<string | null>(null);
                     const input = document.getElementById(inputId) as HTMLTextAreaElement | null;
                     input?.focus();
                   }}
-                  className="inline-flex items-center justify-center rounded-full bg-[rgb(var(--fg))] px-4 py-2.5 text-sm font-extrabold text-[rgb(var(--bg))] shadow-sm hover:opacity-95"
+                  className="inline-flex w-full items-center justify-center rounded-full border border-transparent px-4 py-2 text-xs font-semibold text-[rgb(var(--muted))] underline underline-offset-4 hover:text-[rgb(var(--fg))]"
                 >
-                  {t.modal.ctaAnother}
+                  {t.modal.ctaLater}
                 </button>
-
-                <a
-                  href="/pricing"
-                  className="inline-flex items-center justify-center rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-2.5 text-sm font-semibold text-[rgb(var(--muted))] hover:bg-[color-mix(in_oklab,rgb(var(--card))_85%,rgb(var(--bg))_15%)] hover:text-[rgb(var(--fg))]"
-                >
-                  {t.modal.ctaMember}
-                </a>
-
-                <a
-                  href="/pricing"
-                  className="sm:col-span-2 inline-flex items-center justify-center rounded-full bg-gradient-to-r from-[rgb(var(--grad-from))] to-[rgb(var(--grad-to))] px-4 py-2.5 text-sm font-extrabold text-white shadow-[0_10px_24px_rgba(24,165,255,0.25)] hover:opacity-95"
-                >
-                  {t.modal.ctaSupport}
-                </a>
               </div>
             </div>
           </div>

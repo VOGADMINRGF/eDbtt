@@ -17,6 +17,8 @@ export function useLoginFlow(opts?: {
   const [expiresAt, setExpiresAt] = useState<string | null>(null);
   const [redirectUrl, setRedirectUrl] = useState(opts?.redirectTo || "/account");
   const [loading, setLoading] = useState(false);
+  const [requestingEmail, setRequestingEmail] = useState(false);
+  const [allowEmailFallback, setAllowEmailFallback] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const submitCredentials = useCallback(
@@ -38,6 +40,7 @@ export function useLoginFlow(opts?: {
           setMethod(body.method ?? null);
           setExpiresAt(body.expiresAt ?? null);
           setRedirectUrl(body.redirectUrl || redirectUrl);
+          setAllowEmailFallback(Boolean(body.allowEmailFallback));
           setStep("twofactor");
           return;
         }
@@ -86,14 +89,56 @@ export function useLoginFlow(opts?: {
     [method, redirectUrl],
   );
 
+  const requestEmailCode = useCallback(async () => {
+    if (!allowEmailFallback) {
+      setError(mapVerifyError("email_fallback_disabled"));
+      return false;
+    }
+    setRequestingEmail(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/auth/2fa/request-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ next: redirectUrl }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok || !body?.ok) {
+        throw new Error(body?.error || "request_failed");
+      }
+      setMethod("email");
+      setExpiresAt(body.expiresAt ?? null);
+      return true;
+    } catch (e: any) {
+      setError(mapVerifyError(e?.message));
+      return false;
+    } finally {
+      setRequestingEmail(false);
+    }
+  }, [redirectUrl]);
+
   const reset = useCallback(() => {
     setStep("credentials");
     setMethod(null);
     setExpiresAt(null);
     setError(null);
+    setAllowEmailFallback(false);
   }, []);
 
-  return { step, method, expiresAt, redirectUrl, loading, error, submitCredentials, submitTwoFactor, reset };
+  return {
+    step,
+    method,
+    expiresAt,
+    redirectUrl,
+    loading,
+    requestingEmail,
+    allowEmailFallback,
+    error,
+    submitCredentials,
+    submitTwoFactor,
+    requestEmailCode,
+    reset,
+  };
 }
 
 function mapLoginError(code?: string) {
@@ -111,6 +156,14 @@ function mapLoginError(code?: string) {
 
 function mapVerifyError(code?: string) {
   switch (code) {
+    case "demo_only":
+      return "E-Mail-Code ist nur für Demo-Accounts verfügbar.";
+    case "email_fallback_disabled":
+      return "E-Mail-Code ist für dieses Konto nicht verfügbar.";
+    case "email_missing":
+      return "Für dieses Konto ist keine E-Mail hinterlegt.";
+    case "request_failed":
+      return "Code konnte nicht gesendet werden. Bitte erneut versuchen.";
     case "code_required":
       return "Bitte den Sicherheitscode eingeben.";
     case "invalid_code":

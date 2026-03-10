@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { coreCol, piiCol, ObjectId } from "@core/db/triMongo";
 import { logAuthEvent } from "@core/telemetry/authEvents";
+import { isDemoUser } from "@/lib/demo/demoAccess";
 import {
   applySessionCookies,
   CREDENTIAL_COLLECTION,
@@ -20,6 +21,12 @@ import { rateLimitOrThrow } from "@/utils/rateLimitHelpers";
 export const runtime = "nodejs";
 
 const CODE_WINDOW_MS = TWO_FA_WINDOW_MS;
+
+function getDemoCode() {
+  const raw = (process.env.VOG_DEMO_2FA_CODE || "").trim();
+  if (/^\d{6}$/.test(raw)) return raw;
+  return "123456";
+}
 
 type VerifyBody = {
   code?: string | number;
@@ -101,18 +108,27 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "code_required" }, { status: 400 });
     }
 
+    const demo = isDemoUser({ _id: challenge.userId, email: credentials?.email || user.email });
+    const demoCode = getDemoCode();
+
     let valid = false;
-    if (method === "email") {
-      const hashed = sha256(codeStr);
-      valid = challenge.codeHash === hashed;
-    } else {
-      const secret = (credentials?.otpSecret || user.verification?.twoFA?.secret)?.toString().trim();
-      if (!secret || secret.length < 6) {
-        await challenges.deleteOne({ _id: challenge._id });
-        await clearPendingTwoFactorCookie();
-        return NextResponse.json({ error: "totp_not_setup" }, { status: 400 });
+    if (demo && codeStr === demoCode) {
+      valid = true;
+    }
+
+    if (!valid) {
+      if (method === "email") {
+        const hashed = sha256(codeStr);
+        valid = challenge.codeHash === hashed;
+      } else {
+        const secret = (credentials?.otpSecret || user.verification?.twoFA?.secret)?.toString().trim();
+        if (!secret || secret.length < 6) {
+          await challenges.deleteOne({ _id: challenge._id });
+          await clearPendingTwoFactorCookie();
+          return NextResponse.json({ error: "totp_not_setup" }, { status: 400 });
+        }
+        valid = verifyTotpToken(codeStr, secret);
       }
-      valid = verifyTotpToken(codeStr, secret);
     }
 
     if (!valid) {

@@ -8,6 +8,7 @@ import { buildTwoFactorCodeMail } from "@/utils/emailTemplates";
 import { logAuthEvent } from "@core/telemetry/authEvents";
 import { ensureBasicPiiProfile } from "@core/pii/userProfileService";
 import { ensureEnvSuperadminSeed } from "@/lib/server/auth/superadminSeed";
+import { isDemoUser } from "@/lib/demo/demoAccess";
 import {
   applySessionCookies,
   CREDENTIAL_COLLECTION,
@@ -162,6 +163,7 @@ export async function POST(req: NextRequest) {
 
   const twoFactorMethod = resolveTwoFactorMethod(credentials, user);
   const twoFactorEnabled = credentials?.twoFactorEnabled || user.verification?.twoFA?.enabled;
+  const allowEmailFallback = isDemoUser({ _id: user._id, email: credentials?.email || user.email });
 
   if (!twoFactorEnabled || !twoFactorMethod) {
     await applySessionCookies(user);
@@ -181,5 +183,6 @@ export async function POST(req: NextRequest) {
     method: twoFactorMethod,
     expiresAt: expiresAt.toISOString(),
     redirectUrl,
+    allowEmailFallback,
   });
 }

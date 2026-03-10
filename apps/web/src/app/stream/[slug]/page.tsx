@@ -1,5 +1,6 @@
 // apps/web/src/app/stream/[slug]/page.tsx
 import Link from "next/link";
+import { VOG_SUPPORT_URL } from "@/config/links";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { ObjectId } from "@core/db/triMongo";
@@ -270,12 +271,14 @@ export default async function StreamDetail({
                 keine Priorität – nur Transparenz.
               </p>
             </div>
-            <Link
-              href="/unterstuetzen"
+            <a
+              href={VOG_SUPPORT_URL}
+              target="_blank"
+              rel="noreferrer"
               className="inline-flex items-center justify-center rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-2 text-xs font-semibold text-[rgb(var(--muted))] hover:border-[rgb(var(--border))]"
             >
               Unterstützen
-            </Link>
+            </a>
           </section>
         )}
 
