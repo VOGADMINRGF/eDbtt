@@ -39,6 +39,7 @@ export type NewsItem = {
 
 export type Report = {
   id?: string;
+  slug?: string;
   title?: string;
   subtitle?: string;
   translations?: Record<string, { title?: string; subtitle?: string; summary?: string; recommendation?: string }>;
