@@ -202,7 +202,7 @@ export default function LandingStart({ blocks, geo }: LandingStartProps) {
         onOpen={(item) => {
           ingestExample(item);
           const topic = encodeURIComponent(titleForLang(item));
-          const target = `/swipes?topic=${topic}&from=landing`;
+          const target = `/demo/dossier?topic=${topic}&from=landing`;
           router.push(target as any);
         }}
       />

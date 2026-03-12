@@ -7,6 +7,9 @@ export const PRELAUNCH_GATE_COPY: Record<
     title: string;
     lead: string;
     bullets: string[];
+    registerTitle: string;
+    registerText: string;
+    registerCta: string;
     refineTitle: string;
     refineText: string;
     refineCta: string;
@@ -29,6 +32,10 @@ export const PRELAUNCH_GATE_COPY: Record<
       "Abstimmen auf vorhandene Beiträge ist offen",
       "Freigabe nach Prüfung (redaktionell)",
     ],
+    registerTitle: "Empfehlung: kostenfrei anmelden",
+    registerText:
+      "Mit Anmeldung informieren wir dich über den Status deines Themas. Upgrade-Vormerkung (9,99 / 29,99) ist optional.",
+    registerCta: "Kostenfrei anmelden",
     refineTitle: "Noch ergänzen?",
     refineText: "Sichtweisen, Adressat und Bewertung genauer einordnen.",
     refineCta: "Ergänzen & qualifizieren",
@@ -49,6 +56,10 @@ export const PRELAUNCH_GATE_COPY: Record<
       "Voting on existing contributions is open",
       "Release after editorial review",
     ],
+    registerTitle: "Recommended: create a free account",
+    registerText:
+      "With an account we can notify you when your topic status changes. Upgrade pre-signup (9.99 / 29.99) stays optional.",
+    registerCta: "Create free account",
     refineTitle: "Want to add details?",
     refineText: "Add context, audience, and evaluation.",
     refineCta: "Refine & qualify",

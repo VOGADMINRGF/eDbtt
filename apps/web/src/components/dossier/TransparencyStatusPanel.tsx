@@ -11,6 +11,9 @@ type TransparencyStatusPanelProps = {
   delegatedCount: number;
   communityCount: number;
   correctionsCount: number;
+  onJump?: (
+    target: "sources" | "open" | "inReview" | "answered" | "delegated" | "community" | "corrections",
+  ) => void;
 };
 
 function statusTone(value: number) {
@@ -30,6 +33,7 @@ export function TransparencyStatusPanel({
   delegatedCount,
   communityCount,
   correctionsCount,
+  onJump,
 }: TransparencyStatusPanelProps) {
   const dataLabel =
     dataState === "live"
@@ -54,37 +58,65 @@ export function TransparencyStatusPanel({
           Status: {statusLabel}
         </span>
       </div>
-      <div className="grid gap-2 sm:grid-cols-2 text-[11px] text-[rgb(var(--fg))]">
-        <div className="rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-3">
+      <div className="grid gap-2 text-[11px] text-[rgb(var(--fg))] sm:grid-cols-2">
+        <button
+          type="button"
+          onClick={() => onJump?.("sources")}
+          className="rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-3 text-left"
+        >
           <div className="text-[10px] uppercase tracking-wide text-[rgb(var(--muted))]">Gesichert</div>
           <div className={`text-sm font-semibold ${statusTone(sourcesCount)}`}>
             {sourcesCount ? `${sourcesCount} Quellen` : "—"}
           </div>
-        </div>
-        <div className="rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-3">
+        </button>
+        <button
+          type="button"
+          onClick={() => onJump?.("open")}
+          className="rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-3 text-left"
+        >
           <div className="text-[10px] uppercase tracking-wide text-[rgb(var(--muted))]">Offen</div>
           <div className={`text-sm font-semibold ${statusTone(openCount)}`}>{openCount}</div>
-        </div>
-        <div className="rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-3">
+        </button>
+        <button
+          type="button"
+          onClick={() => onJump?.("inReview")}
+          className="rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-3 text-left"
+        >
           <div className="text-[10px] uppercase tracking-wide text-[rgb(var(--muted))]">In Prüfung</div>
           <div className={`text-sm font-semibold ${statusTone(inReviewCount)}`}>{inReviewCount}</div>
-        </div>
-        <div className="rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-3">
+        </button>
+        <button
+          type="button"
+          onClick={() => onJump?.("answered")}
+          className="rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-3 text-left"
+        >
           <div className="text-[10px] uppercase tracking-wide text-[rgb(var(--muted))]">Beantwortet</div>
           <div className={`text-sm font-semibold ${statusTone(answeredCount)}`}>{answeredCount}</div>
-        </div>
-        <div className="rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-3">
+        </button>
+        <button
+          type="button"
+          onClick={() => onJump?.("community")}
+          className="rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-3 text-left"
+        >
           <div className="text-[10px] uppercase tracking-wide text-[rgb(var(--muted))]">Community</div>
           <div className={`text-sm font-semibold ${statusTone(communityCount)}`}>{communityCount}</div>
-        </div>
-        <div className="rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-3">
+        </button>
+        <button
+          type="button"
+          onClick={() => onJump?.("delegated")}
+          className="rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-3 text-left"
+        >
           <div className="text-[10px] uppercase tracking-wide text-[rgb(var(--muted))]">Delegiert</div>
           <div className={`text-sm font-semibold ${statusTone(delegatedCount)}`}>{delegatedCount}</div>
-        </div>
-        <div className="rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-3">
+        </button>
+        <button
+          type="button"
+          onClick={() => onJump?.("corrections")}
+          className="rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-3 text-left sm:col-span-2"
+        >
           <div className="text-[10px] uppercase tracking-wide text-[rgb(var(--muted))]">Einsprüche</div>
           <div className={`text-sm font-semibold ${statusTone(correctionsCount)}`}>{correctionsCount}</div>
-        </div>
+        </button>
       </div>
       <p className="text-[11px] text-[rgb(var(--muted))]">
         Beiträge und Änderungen sind versioniert: eingereicht → geprüft → übernommen/archiviert.

@@ -82,8 +82,8 @@ export function ExamplesMarqueeRows(props: {
   return (
     <div ref={ref} className="absolute inset-0 z-0 overflow-hidden">
       {/* calmer backdrop (less “heavy white overlay”) */}
-      <div className="pointer-events-none absolute inset-0 edb-backdrop-glow bg-[radial-gradient(900px_520px_at_30%_0%,rgba(26,140,255,0.16),transparent_58%),radial-gradient(900px_520px_at_72%_0%,rgba(24,207,200,0.14),transparent_58%)]" />
-      <div className="pointer-events-none absolute inset-0 edb-backdrop-waves bg-[linear-gradient(120deg,rgba(26,140,255,0.05),transparent_48%),linear-gradient(300deg,rgba(24,207,200,0.05),transparent_48%)]" />
+      <div className="pointer-events-none absolute inset-0 edb-backdrop-glow bg-[radial-gradient(900px_520px_at_30%_0%,rgba(26,140,255,0.09),transparent_58%),radial-gradient(900px_520px_at_72%_0%,rgba(24,207,200,0.08),transparent_58%)] dark:bg-[radial-gradient(900px_520px_at_30%_0%,rgba(26,140,255,0.16),transparent_58%),radial-gradient(900px_520px_at_72%_0%,rgba(24,207,200,0.14),transparent_58%)]" />
+      <div className="pointer-events-none absolute inset-0 edb-backdrop-waves bg-[linear-gradient(120deg,rgba(26,140,255,0.035),transparent_48%),linear-gradient(300deg,rgba(24,207,200,0.035),transparent_48%)] dark:bg-[linear-gradient(120deg,rgba(26,140,255,0.05),transparent_48%),linear-gradient(300deg,rgba(24,207,200,0.05),transparent_48%)]" />
       <div className="pointer-events-none absolute inset-0 bg-[rgb(var(--bg))]" />
 
       {/* tighter vertical rhythm */}
@@ -148,7 +148,7 @@ export function ExamplesMarqueeRows(props: {
         })}
       </div>
 
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(1200px_700px_at_50%_30%,transparent_40%,rgba(0,0,0,0.05)_100%)]" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(1200px_700px_at_50%_30%,transparent_40%,rgba(2,6,23,0.02)_100%)] dark:bg-[radial-gradient(1200px_700px_at_50%_30%,transparent_40%,rgba(0,0,0,0.08)_100%)]" />
 
       <style jsx>{`
         .edb-backdrop-glow {

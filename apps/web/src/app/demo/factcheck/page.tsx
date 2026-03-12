@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { useFactcheckJob } from "@/hooks/useFactcheckJob";
 
 type Verdict = "LIKELY_TRUE" | "LIKELY_FALSE" | "MIXED" | "UNDETERMINED";
+type IntakeChannel = "text" | "link" | "file" | "video";
 
 type ManualEntry = {
   id: string;
@@ -12,6 +13,8 @@ type ManualEntry = {
   confidence?: number;
   note?: string;
   sources?: string[];
+  inputType: IntakeChannel;
+  inputPreview: string;
   status: "pending";
   updatedAt: string;
 };
@@ -44,8 +47,19 @@ const VERDICT_LABELS: Record<Verdict, string> = {
   UNDETERMINED: "unklar",
 };
 
+const CHANNEL_LABELS: Record<IntakeChannel, string> = {
+  text: "Text",
+  link: "Link",
+  file: "Datei/Anlage",
+  video: "Video-URL",
+};
+
 export default function DemoFactcheckPage() {
   const [input, setInput] = useState("");
+  const [channel, setChannel] = useState<IntakeChannel>("text");
+  const [linkInput, setLinkInput] = useState("");
+  const [videoInput, setVideoInput] = useState("");
+  const [fileInputName, setFileInputName] = useState("");
   const [mode, setMode] = useState<"ai" | "manual">("ai");
   const [demoAiReady, setDemoAiReady] = useState(false);
   const [manualEntries, setManualEntries] = useState<ManualEntry[]>([]);
@@ -72,7 +86,20 @@ export default function DemoFactcheckPage() {
     return DEMO_AI_CLAIMS;
   }, [claims]);
 
-  const manualCanSubmit = manualClaim.trim().length >= 5 && !sending;
+  const activeInput = useMemo(() => {
+    if (channel === "text") return input.trim();
+    if (channel === "link") return linkInput.trim();
+    if (channel === "video") return videoInput.trim();
+    return fileInputName.trim();
+  }, [channel, fileInputName, input, linkInput, videoInput]);
+
+  const activeInputPreview = useMemo(() => {
+    if (!activeInput) return "-";
+    if (activeInput.length <= 80) return activeInput;
+    return `${activeInput.slice(0, 77)}...`;
+  }, [activeInput]);
+
+  const manualCanSubmit = manualClaim.trim().length >= 5 && activeInput.length >= 5 && !sending;
 
   function resetManualForm() {
     setEditingId(null);
@@ -116,6 +143,8 @@ export default function DemoFactcheckPage() {
             type: "manual_factcheck_update",
             entryId: editingId,
             claim: manualClaim.trim(),
+            inputType: channel,
+            inputPreview: activeInputPreview,
             verdict: manualVerdict,
             confidence,
             note: manualNote.trim() || undefined,
@@ -125,6 +154,8 @@ export default function DemoFactcheckPage() {
         : {
             type: "manual_factcheck_submit",
             claim: manualClaim.trim(),
+            inputType: channel,
+            inputPreview: activeInputPreview,
             verdict: manualVerdict,
             confidence,
             note: manualNote.trim() || undefined,
@@ -140,6 +171,8 @@ export default function DemoFactcheckPage() {
         confidence,
         note: manualNote.trim() || undefined,
         sources: sources.length ? sources : undefined,
+        inputType: channel,
+        inputPreview: activeInputPreview,
         status: "pending",
         updatedAt: now,
       };
@@ -170,6 +203,8 @@ export default function DemoFactcheckPage() {
         await postEditorialFeedback({
           type: "manual_factcheck_submit",
           claim: claim.text,
+          inputType: channel,
+          inputPreview: activeInputPreview,
           verdict: claim.verdict,
           confidence: claim.confidence,
           origin: "ai",
@@ -186,6 +221,15 @@ export default function DemoFactcheckPage() {
   function handleEdit(entry: ManualEntry) {
     setEditingId(entry.id);
     setManualClaim(entry.claim);
+    setChannel(entry.inputType);
+    setInput("");
+    setLinkInput("");
+    setVideoInput("");
+    setFileInputName("");
+    if (entry.inputType === "text") setInput(entry.inputPreview);
+    if (entry.inputType === "link") setLinkInput(entry.inputPreview);
+    if (entry.inputType === "video") setVideoInput(entry.inputPreview);
+    if (entry.inputType === "file") setFileInputName(entry.inputPreview);
     setManualVerdict(entry.verdict);
     setManualConfidence(Math.round((entry.confidence ?? 0) * 100));
     setManualNote(entry.note ?? "");
@@ -209,13 +253,64 @@ export default function DemoFactcheckPage() {
       </div>
 
       <div className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm space-y-3">
-        <textarea
-          className="w-full rounded-2xl border border-[rgb(var(--border))] p-3 text-sm"
-          rows={5}
-          placeholder="Text fuer Factcheck... (min. 20 Zeichen)"
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-        />
+        <div className="flex flex-wrap gap-2 text-xs">
+          {(Object.keys(CHANNEL_LABELS) as IntakeChannel[]).map((ch) => (
+            <button
+              key={ch}
+              type="button"
+              onClick={() => setChannel(ch)}
+              className={`rounded-full border px-3 py-1.5 font-semibold ${
+                channel === ch
+                  ? "border-[rgb(var(--grad-from))] bg-[rgb(var(--bg))] text-[rgb(var(--fg))]"
+                  : "border-[rgb(var(--border))] text-[rgb(var(--muted))]"
+              }`}
+            >
+              {CHANNEL_LABELS[ch]}
+            </button>
+          ))}
+        </div>
+        {channel === "text" ? (
+          <textarea
+            className="w-full rounded-2xl border border-[rgb(var(--border))] p-3 text-sm"
+            rows={5}
+            placeholder="Text fuer Factcheck... (min. 20 Zeichen)"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+          />
+        ) : null}
+        {channel === "link" ? (
+          <input
+            className="w-full rounded-2xl border border-[rgb(var(--border))] px-3 py-2 text-sm"
+            placeholder="https://..."
+            value={linkInput}
+            onChange={(e) => setLinkInput(e.target.value)}
+          />
+        ) : null}
+        {channel === "video" ? (
+          <input
+            className="w-full rounded-2xl border border-[rgb(var(--border))] px-3 py-2 text-sm"
+            placeholder="Video-URL (z. B. YouTube)"
+            value={videoInput}
+            onChange={(e) => setVideoInput(e.target.value)}
+          />
+        ) : null}
+        {channel === "file" ? (
+          <div className="space-y-2">
+            <input
+              className="w-full rounded-2xl border border-[rgb(var(--border))] px-3 py-2 text-sm"
+              placeholder="Dateiname oder Anlage-Referenz"
+              value={fileInputName}
+              onChange={(e) => setFileInputName(e.target.value)}
+            />
+            <p className="text-xs text-[rgb(var(--muted))]">
+              Demo-Hinweis: Datei-Upload ist vorbereitet, aktuell als Simulations-Referenz.
+            </p>
+          </div>
+        ) : null}
+        <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-xs text-[rgb(var(--muted))]">
+          Gepruefter Input: <span className="font-semibold text-[rgb(var(--fg))]">{CHANNEL_LABELS[channel]}</span> ·{" "}
+          <span>{activeInputPreview}</span>
+        </div>
         <div className="flex flex-wrap items-center gap-3">
           <div className="flex rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-1 text-xs font-semibold text-[rgb(var(--muted))]">
             <button
@@ -237,9 +332,13 @@ export default function DemoFactcheckPage() {
             <>
               <button
                 className="rounded-full bg-slate-900 px-5 py-2 text-sm font-semibold text-white disabled:opacity-50"
-                disabled={loading || input.length < 20}
+                disabled={loading || activeInput.length < 20}
                 onClick={() => {
-                  enqueue({ text: input, language: "de", priority: 5 });
+                  enqueue({
+                    text: `[${CHANNEL_LABELS[channel]}] ${activeInput}`,
+                    language: "de",
+                    priority: 5,
+                  });
                   setDemoAiReady(true);
                   void handleSendAiToEditorial(true);
                 }}
@@ -270,6 +369,9 @@ export default function DemoFactcheckPage() {
           <h3 className="text-sm font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
             KI-Ergebnis (Status Redaktion: offen)
           </h3>
+          <p className="text-xs text-[rgb(var(--muted))]">
+            Geprueft wurde: {CHANNEL_LABELS[channel]} · {activeInputPreview}
+          </p>
           <div className="grid gap-3 md:grid-cols-2">
             {aiClaims.map((c: any) => (
               <div
@@ -280,6 +382,9 @@ export default function DemoFactcheckPage() {
                 <div className="mt-2 text-xs text-[rgb(var(--muted))]">
                   Konsens: {VERDICT_LABELS[c.verdict as Verdict] ?? "unklar"} (
                   {Math.round((c.confidence ?? 0) * 100)}%)
+                </div>
+                <div className="text-[11px] text-[rgb(var(--muted))]">
+                  Input-Typ: {CHANNEL_LABELS[channel]} · Demo-Verdikt
                 </div>
               </div>
             ))}
@@ -388,6 +493,9 @@ export default function DemoFactcheckPage() {
                     <div className="text-xs text-[rgb(var(--muted))]">
                       Verdict: {VERDICT_LABELS[entry.verdict]} (
                       {Math.round((entry.confidence ?? 0) * 100)}%)
+                    </div>
+                    <div className="text-xs text-[rgb(var(--muted))]">
+                      Input: {CHANNEL_LABELS[entry.inputType]} · {entry.inputPreview}
                     </div>
                     {entry.note && (
                       <div className="text-xs text-[rgb(var(--muted))]">Notiz: {entry.note}</div>

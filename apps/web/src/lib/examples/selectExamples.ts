@@ -3,6 +3,44 @@ import { SEED_EXAMPLES } from "./seedExamples";
 
 type Bucket = "WORLD" | "EU" | "NEIGHBORS" | "HOME_COUNTRY" | "HOME_REGION" | "HOME_LOCAL";
 
+const DE_REGION_ALIAS: Record<string, string> = {
+  bw: "BW",
+  "baden-württemberg": "BW",
+  "baden-wuerttemberg": "BW",
+  by: "BY",
+  bayern: "BY",
+  bavaria: "BY",
+  be: "BE",
+  berlin: "BE",
+  bb: "BB",
+  brandenburg: "BB",
+  hb: "HB",
+  bremen: "HB",
+  hh: "HH",
+  hamburg: "HH",
+  he: "HE",
+  hessen: "HE",
+  mv: "MV",
+  "mecklenburg-vorpommern": "MV",
+  ni: "NI",
+  niedersachsen: "NI",
+  nw: "NW",
+  "nordrhein-westfalen": "NW",
+  rp: "RP",
+  "rheinland-pfalz": "RP",
+  sl: "SL",
+  saarland: "SL",
+  sn: "SN",
+  sachsen: "SN",
+  st: "ST",
+  "sachsen-anhalt": "ST",
+  sh: "SH",
+  "schleswig-holstein": "SH",
+  th: "TH",
+  thüringen: "TH",
+  thueringen: "TH",
+};
+
 function stableHash(input: string): number {
   // tiny deterministic hash (good enough for stable shuffle)
   let h = 2166136261;
@@ -33,6 +71,28 @@ function shuffleStable<T>(arr: T[], seedKey: string): T[] {
   return a;
 }
 
+function normalizeRegion(country?: string, region?: string): string | undefined {
+  const cc = (country || "").trim().toUpperCase();
+  if (!region) return undefined;
+  const raw = region.trim();
+  if (!raw) return undefined;
+
+  const upper = raw.toUpperCase();
+  if (upper.includes("-")) {
+    const parts = upper.split("-");
+    if (parts.length === 2 && parts[0].length === 2 && parts[1].length >= 2) {
+      return parts[1];
+    }
+  }
+
+  if (cc === "DE") {
+    const key = raw.trim().toLowerCase();
+    return DE_REGION_ALIAS[key] || upper;
+  }
+
+  return upper;
+}
+
 export function selectExamples(params: {
   bucket: Bucket;
   country?: string;
@@ -54,15 +114,29 @@ export function selectExamples(params: {
   } else if (bucket === "HOME_COUNTRY") {
     pool = all.filter((x) => x.scope === "COUNTRY" && x.country === country);
   } else if (bucket === "HOME_REGION") {
-    pool = all.filter((x) => x.scope === "REGION" && x.country === country && x.region === region);
-    // fallback: if no region matches, fallback to home country
+    const wantedRegion = normalizeRegion(country, region);
+    pool = all.filter(
+      (x) =>
+        x.scope === "REGION" &&
+        x.country === country &&
+        normalizeRegion(country, x.region) === wantedRegion,
+    );
+    // fallback: keep regional surface (crest + regional framing) before country fallback
+    if (pool.length === 0) {
+      pool = all.filter((x) => x.scope === "REGION" && x.country === country);
+    }
+    // last fallback: home country
     if (pool.length === 0) {
       pool = all.filter((x) => x.scope === "COUNTRY" && x.country === country);
     }
   } else if (bucket === "HOME_LOCAL") {
     pool = all.filter((x) => x.scope === "REGION" && x.country === country);
     if (region) {
-      pool = pool.filter((x) => x.region === region);
+      const wantedRegion = normalizeRegion(country, region);
+      pool = pool.filter((x) => normalizeRegion(country, x.region) === wantedRegion);
+    }
+    if (pool.length === 0) {
+      pool = all.filter((x) => x.scope === "REGION" && x.country === country);
     }
     if (pool.length === 0) {
       pool = all.filter((x) => x.scope === "COUNTRY" && x.country === country);

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useLocale } from "@/context/LocaleContext";
@@ -106,6 +106,8 @@ export function SiteHeader({ initialUser }: { initialUser?: AuthUser | null }) {
   const { user } = useCurrentUser();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [localeOpen, setLocaleOpen] = useState(false);
+  const headerRef = useRef<HTMLElement | null>(null);
+  const localeMenuRef = useRef<HTMLDivElement | null>(null);
   const router = useRouter();
   const pathname = usePathname();
   const [loggingOut, setLoggingOut] = useState(false);
@@ -163,6 +165,34 @@ export function SiteHeader({ initialUser }: { initialUser?: AuthUser | null }) {
     if (!mobileOpen) setLocaleOpen(false);
   }, [mobileOpen]);
 
+  useEffect(() => {
+    const handlePointerDown = (event: PointerEvent) => {
+      const target = event.target as Node | null;
+      if (!target) return;
+
+      if (localeOpen && localeMenuRef.current && !localeMenuRef.current.contains(target)) {
+        setLocaleOpen(false);
+      }
+
+      if (mobileOpen && headerRef.current && !headerRef.current.contains(target)) {
+        setMobileOpen(false);
+      }
+    };
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      setLocaleOpen(false);
+      setMobileOpen(false);
+    };
+
+    document.addEventListener("pointerdown", handlePointerDown);
+    document.addEventListener("keydown", handleEscape);
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+      document.removeEventListener("keydown", handleEscape);
+    };
+  }, [localeOpen, mobileOpen]);
+
   const handleLocaleSelect = (next: LanguageCode) => {
     setContentLang(next);
     setLocale(next as SupportedLocale);
@@ -185,7 +215,10 @@ export function SiteHeader({ initialUser }: { initialUser?: AuthUser | null }) {
   };
 
   return (
-    <header className="sticky top-0 z-40 border-b border-[rgb(var(--border))] bg-[rgb(var(--bg))] backdrop-blur-md">
+    <header
+      ref={headerRef}
+      className="sticky top-0 z-40 border-b border-[rgb(var(--border))] bg-[rgb(var(--bg))] backdrop-blur-md"
+    >
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3">
         {/* Logo / Brand */}
         <Link href="/" className="flex items-center gap-2">
@@ -217,7 +250,7 @@ export function SiteHeader({ initialUser }: { initialUser?: AuthUser | null }) {
 
         {/* Rechts: Avatar/Account + Hamburger */}
         <div className="flex items-center gap-3">
-          <div className="relative hidden sm:block">
+          <div ref={localeMenuRef} className="relative hidden sm:block">
             <div className="flex items-center gap-2">
               <button
                 type="button"

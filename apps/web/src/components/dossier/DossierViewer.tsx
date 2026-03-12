@@ -162,6 +162,34 @@ const STATEMENT_TYPE_LABELS: Record<string, string> = {
   question: "Offene Frage",
 };
 
+type QuestionFilter = "all" | "open" | "inReview" | "answered" | "delegated";
+type CreatorIntent = "source" | "question" | "perspective" | "option" | "objection";
+
+const QUESTION_FILTER_LABELS: Record<QuestionFilter, string> = {
+  all: "Alle",
+  open: "Offen",
+  inReview: "In Prüfung",
+  answered: "Beantwortet",
+  delegated: "Delegiert",
+};
+
+const CREATOR_INTENT_LABELS: Record<CreatorIntent, string> = {
+  source: "Quelle einreichen",
+  question: "Frage melden",
+  perspective: "Perspektive ergänzen",
+  option: "Option vorschlagen",
+  objection: "Widerspruch melden",
+};
+
+function normalizeQuestionStatus(status?: string | null): QuestionFilter {
+  if (!status) return "open";
+  const value = status.toLowerCase();
+  if (value === "in_pruefung" || value === "in_review") return "inReview";
+  if (value === "beantwortet" || value === "answered") return "answered";
+  if (value === "delegiert" || value === "closed") return "delegated";
+  return "open";
+}
+
 function formatDate(value?: string | null) {
   if (!value) return "-";
   const d = new Date(value);
@@ -382,6 +410,11 @@ export function DossierViewer({ dossier, context }: { dossier: Dossier; context?
   const [watchlistActive, setWatchlistActive] = useState<boolean | null>(null);
   const [watchlistBusy, setWatchlistBusy] = useState(false);
   const [clarificationNotice, setClarificationNotice] = useState<string | null>(null);
+  const [questionFilter, setQuestionFilter] = useState<QuestionFilter>("all");
+  const [activeClusterLabel, setActiveClusterLabel] = useState<string | null>(null);
+  const [creatorIntent, setCreatorIntent] = useState<CreatorIntent | null>(null);
+  const [creatorDraft, setCreatorDraft] = useState("");
+  const [creatorNotice, setCreatorNotice] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -428,6 +461,14 @@ export function DossierViewer({ dossier, context }: { dossier: Dossier; context?
     return () => {
       cancelled = true;
     };
+  }, [meta.id]);
+
+  useEffect(() => {
+    setQuestionFilter("all");
+    setActiveClusterLabel(null);
+    setCreatorIntent(null);
+    setCreatorDraft("");
+    setCreatorNotice(null);
   }, [meta.id]);
 
   const resolvedContext = useMemo(
@@ -596,7 +637,6 @@ export function DossierViewer({ dossier, context }: { dossier: Dossier; context?
   const sources = dossier.sourceSet.length ? dossier.sourceSet : analyze.runReceipt?.sourceSet ?? [];
 
   const statementTitleById = new Map(analyze.claims.map((claim) => [claim.id, claim.title ?? claim.id]));
-  const dossierParam = meta.id ? encodeURIComponent(meta.id) : "";
 
   const questionsForDisplay =
     openQuestions.length > 0
@@ -605,14 +645,46 @@ export function DossierViewer({ dossier, context }: { dossier: Dossier; context?
   const questionStats = useMemo(() => {
     const stats = { open: 0, inReview: 0, answered: 0, delegated: 0 };
     for (const q of questionsForDisplay) {
-      const status = (q as { status?: string }).status;
-      if (status === "in_pruefung" || status === "in_review") stats.inReview += 1;
-      else if (status === "beantwortet" || status === "answered") stats.answered += 1;
-      else if (status === "delegiert" || status === "closed") stats.delegated += 1;
+      const status = normalizeQuestionStatus((q as { status?: string }).status);
+      if (status === "inReview") stats.inReview += 1;
+      else if (status === "answered") stats.answered += 1;
+      else if (status === "delegated") stats.delegated += 1;
       else stats.open += 1;
     }
     return stats;
   }, [questionsForDisplay]);
+  const filteredQuestionsForDisplay = useMemo(() => {
+    if (questionFilter === "all") return questionsForDisplay;
+    return questionsForDisplay.filter(
+      (q) => normalizeQuestionStatus((q as { status?: string }).status) === questionFilter,
+    );
+  }, [questionsForDisplay, questionFilter]);
+
+  const scrollToSection = (id: string) => {
+    if (typeof window === "undefined") return;
+    const node = document.getElementById(id);
+    if (!node) return;
+    node.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
+  const handleTransparencyJump = (
+    target: "sources" | "open" | "inReview" | "answered" | "delegated" | "community" | "corrections",
+  ) => {
+    if (target === "sources") {
+      scrollToSection("transparency");
+      return;
+    }
+    if (target === "corrections") {
+      scrollToSection("corrections");
+      return;
+    }
+    if (target === "community") {
+      scrollToSection("mitwirken");
+      return;
+    }
+    setQuestionFilter(target);
+    scrollToSection("open-questions");
+  };
 
   const delegationEntries = useMemo(() => {
     if (inst.data?.delegations?.length) return inst.data.delegations;
@@ -646,8 +718,8 @@ export function DossierViewer({ dossier, context }: { dossier: Dossier; context?
   };
 
   const clarifiedCount = questionsForDisplay.filter((q) => {
-    const status = (q as { status?: string }).status;
-    return status === "beantwortet" || status === "answered";
+    const status = normalizeQuestionStatus((q as { status?: string }).status);
+    return status === "answered";
   }).length;
   const questionTotal = questionsForDisplay.length;
 
@@ -864,9 +936,34 @@ export function DossierViewer({ dossier, context }: { dossier: Dossier; context?
   );
 
   const contestedClaimSet = useMemo(() => new Set(contestedClaimIds), [contestedClaimIds]);
-
-  const coreClaims = analyze.claims.filter((claim) => claim.importance === 5);
-  const secondaryClaims = analyze.claims.filter((claim) => claim.importance !== 5);
+  const claimClusterById = useMemo(() => {
+    const map = new Map<string, string | undefined>();
+    for (const claim of analyze.claims) {
+      map.set(claim.id, inferClusterFromClaim(claim));
+    }
+    return map;
+  }, [analyze.claims]);
+  const claimMatchesCluster = (claim: Dossier["analyze"]["claims"][number]) => {
+    if (!activeClusterLabel) return true;
+    const cluster = claimClusterById.get(claim.id);
+    if (!cluster) return false;
+    const clusterText = normalizeText(cluster);
+    const filterText = normalizeText(activeClusterLabel);
+    return clusterText === filterText || clusterText.includes(filterText) || filterText.includes(clusterText);
+  };
+  const coreClaims = analyze.claims.filter(
+    (claim) => claim.importance === 5 && claimMatchesCluster(claim),
+  );
+  const secondaryClaims = analyze.claims.filter(
+    (claim) => claim.importance !== 5 && claimMatchesCluster(claim),
+  );
+  const filteredKnots = activeClusterLabel
+    ? analyze.knots.filter((knot) =>
+        normalizeText(`${knot.label} ${knot.description}`).includes(
+          normalizeText(activeClusterLabel.split("/")[0] ?? activeClusterLabel),
+        ),
+      )
+    : analyze.knots;
 
   const metaChips = [
     { label: "Thema", value: presentation.topic?.label ?? "-" },
@@ -1300,6 +1397,40 @@ export function DossierViewer({ dossier, context }: { dossier: Dossier; context?
     </section>
   );
 
+  const dossierNavigationSection = (
+    <section className="vog-card p-4 space-y-3">
+      <div className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
+        Akte & Navigation
+      </div>
+      <div className="flex flex-wrap gap-2 text-xs">
+        <button type="button" className="btn btn-ghost text-xs" onClick={() => scrollToSection("akte")}>
+          Akte
+        </button>
+        <button type="button" className="btn btn-ghost text-xs" onClick={() => scrollToSection("transparency")}>
+          Transparenzspur
+        </button>
+        <button type="button" className="btn btn-ghost text-xs" onClick={() => scrollToSection("clusters")}>
+          Cluster & Spannungen
+        </button>
+        <button type="button" className="btn btn-ghost text-xs" onClick={() => scrollToSection("workflow")}>
+          Workflow
+        </button>
+      </div>
+    </section>
+  );
+
+  const canSubmitCreator = creatorDraft.trim().length >= 12;
+  const handleCreatorSubmit = () => {
+    if (!creatorIntent || !canSubmitCreator) return;
+    setCreatorNotice(
+      `${CREATOR_INTENT_LABELS[creatorIntent]} aufgenommen · ${new Date().toLocaleTimeString("de-DE", {
+        hour: "2-digit",
+        minute: "2-digit",
+      })} · Status: eingereicht (Demo)`,
+    );
+    setCreatorDraft("");
+  };
+
   const creatorSection = (
     <section id="mitwirken" className="vog-card p-5 space-y-4">
       <div className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
@@ -1310,45 +1441,57 @@ export function DossierViewer({ dossier, context }: { dossier: Dossier; context?
         Jede Einreichung wird dokumentiert und redaktionell geprüft.
       </p>
       <div className="flex flex-wrap gap-2 text-xs">
-        <Link
-          href={dossierParam ? `/contributions/new?dossierId=${dossierParam}` : "/contributions/new"}
-          className="btn btn-ghost text-xs"
-        >
-          Quelle einreichen
-        </Link>
-        <Link
-          href={dossierParam ? `/statements/new?dossierId=${dossierParam}` : "/statements/new"}
-          className="btn btn-ghost text-xs"
-        >
-          Frage melden
-        </Link>
-        <Link
-          href={dossierParam ? `/statements/new?dossierId=${dossierParam}` : "/statements/new"}
-          className="btn btn-ghost text-xs"
-        >
-          Perspektive ergänzen
-        </Link>
-        <Link
-          href={
-            dossierParam
-              ? `/contributions/new?dossierId=${dossierParam}&intent=option`
-              : "/contributions/new"
-          }
-          className="btn btn-ghost text-xs"
-        >
-          Option vorschlagen
-        </Link>
-        <Link
-          href={
-            dossierParam
-              ? `/contributions/new?dossierId=${dossierParam}&intent=objection`
-              : "/contributions/new"
-          }
-          className="btn btn-ghost text-xs"
-        >
-          Widerspruch melden
-        </Link>
+        {(Object.keys(CREATOR_INTENT_LABELS) as CreatorIntent[]).map((intent) => (
+          <button
+            key={intent}
+            type="button"
+            className={`btn text-xs ${
+              creatorIntent === intent ? "btn-primary" : "btn-ghost"
+            }`}
+            onClick={() => {
+              setCreatorIntent(intent);
+              setCreatorNotice(null);
+              scrollToSection("mitwirken");
+            }}
+          >
+            {CREATOR_INTENT_LABELS[intent]}
+          </button>
+        ))}
       </div>
+      {creatorIntent ? (
+        <div className="space-y-3 rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4">
+          <div className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
+            Inline-Mitwirken · {CREATOR_INTENT_LABELS[creatorIntent]}
+          </div>
+          <textarea
+            value={creatorDraft}
+            onChange={(event) => setCreatorDraft(event.target.value)}
+            rows={3}
+            placeholder="Kurz und konkret formulieren. Wird als Demo-Einreichung protokolliert."
+            className="w-full rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-sm text-[rgb(var(--fg))]"
+          />
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="text-[11px] text-[rgb(var(--muted))]">
+              {access === "internal"
+                ? "Einreichung bleibt im Dossier-Kontext (kein Seitenwechsel)."
+                : "Login erforderlich, um Einreichungen dauerhaft zu speichern."}
+            </p>
+            <button
+              type="button"
+              className="btn btn-primary text-xs"
+              onClick={handleCreatorSubmit}
+              disabled={!canSubmitCreator}
+            >
+              Einreichung speichern
+            </button>
+          </div>
+        </div>
+      ) : null}
+      {creatorNotice ? (
+        <p className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-[11px] text-emerald-200">
+          {creatorNotice}
+        </p>
+      ) : null}
       <div className="text-[11px] text-[rgb(var(--muted))]">
         Statusspur: eingereicht → geprüft → übernommen/archiviert.
       </div>
@@ -1377,16 +1520,18 @@ export function DossierViewer({ dossier, context }: { dossier: Dossier; context?
   );
 
   const inputsSection = (
-    <InputsPanel
-      streams={streams}
-      contributions={contributions}
-      traceability={traceability}
-      statementTitleById={statementTitleById}
-      dossierId={meta.id}
-      materialLinkCount={materialLinkCount}
-      materialLinks={materialLinks}
-      viewerRole={viewerRole}
-    />
+    <section id="workflow">
+      <InputsPanel
+        streams={streams}
+        contributions={contributions}
+        traceability={traceability}
+        statementTitleById={statementTitleById}
+        dossierId={meta.id}
+        materialLinkCount={materialLinkCount}
+        materialLinks={materialLinks}
+        viewerRole={viewerRole}
+      />
+    </section>
   );
 
   const municipalitySection = (
@@ -1454,12 +1599,13 @@ export function DossierViewer({ dossier, context }: { dossier: Dossier; context?
     </section>
   );
 
-  let mainLeftSections = [summarySection];
+  let mainLeftSections = [summarySection, dossierNavigationSection];
   if (activeMode === "read") {
-    mainLeftSections = [summarySection, legitimacySection, decisionSection, voteSection];
+    mainLeftSections = [summarySection, dossierNavigationSection, legitimacySection, decisionSection, voteSection];
   } else if (activeMode === "work") {
     mainLeftSections = [
       summarySection,
+      dossierNavigationSection,
       creatorSection,
       inputsSection,
       decisionSection,
@@ -1467,7 +1613,14 @@ export function DossierViewer({ dossier, context }: { dossier: Dossier; context?
       legitimacySection,
     ];
   } else {
-    mainLeftSections = [summarySection, municipalitySection, inputsSection, decisionSection, legitimacySection];
+    mainLeftSections = [
+      summarySection,
+      dossierNavigationSection,
+      municipalitySection,
+      inputsSection,
+      decisionSection,
+      legitimacySection,
+    ];
   }
 
   const mainLeft = <>{mainLeftSections}</>;
@@ -1501,25 +1654,42 @@ export function DossierViewer({ dossier, context }: { dossier: Dossier; context?
           Einordnung der Kernpositionen, Teilaspekte, Spannungsfelder und offenen Fragen.
         </p>
       </section>
-      <section className="space-y-4">
+      <section id="clusters" className="space-y-4">
         <div className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
           {SECTION_TITLES.clusters}
         </div>
         <div className="h-1 w-12 rounded-full bg-brand-grad opacity-70" />
         {clusters.length ? (
           <div className="flex flex-wrap gap-2 text-[11px] text-[rgb(var(--muted))]">
+            <button
+              type="button"
+              className={`vog-chip ${!activeClusterLabel ? "border-[rgb(var(--grad-from))] text-[rgb(var(--fg))]" : ""}`}
+              onClick={() => setActiveClusterLabel(null)}
+            >
+              Alle
+            </button>
             {clusters.map((cluster) => (
-              <span key={cluster.label} className="vog-chip">
+              <button
+                key={cluster.label}
+                type="button"
+                className={`vog-chip ${
+                  activeClusterLabel === cluster.label ? "border-[rgb(var(--grad-from))] text-[rgb(var(--fg))]" : ""
+                }`}
+                onClick={() => {
+                  setActiveClusterLabel(cluster.label);
+                  scrollToSection("statements");
+                }}
+              >
                 {cluster.label} ({cluster.count})
-              </span>
+              </button>
             ))}
           </div>
         ) : (
           <p className="text-sm text-[rgb(var(--muted))]">Keine Cluster hinterlegt.</p>
         )}
-        {analyze.knots.length ? (
+        {filteredKnots.length ? (
           <div className="space-y-2 text-sm text-[rgb(var(--fg))]">
-            {analyze.knots.map((knot) => (
+            {filteredKnots.map((knot) => (
               <div key={knot.id} className="vog-card p-4">
                 <p className="text-sm font-semibold">{knot.label}</p>
                 <p className="text-sm text-[rgb(var(--muted))]">{knot.description}</p>
@@ -1529,7 +1699,7 @@ export function DossierViewer({ dossier, context }: { dossier: Dossier; context?
         ) : null}
       </section>
 
-      <section className="space-y-4">
+      <section id="statements" className="space-y-4">
         <div className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
           {SECTION_TITLES.statements}
         </div>
@@ -1537,70 +1707,82 @@ export function DossierViewer({ dossier, context }: { dossier: Dossier; context?
 
         <div className="space-y-4">
           <div className="text-sm font-semibold text-[rgb(var(--fg))]">Kernpositionen</div>
-          <div className="grid gap-3">
-            {coreClaims.map((claim) => (
-              <article
-                key={claim.id}
-                id={`stmt-${claim.id}`}
-                className={`vog-card p-5 space-y-3 ${statementLineClass(claim.stance)}`}
-              >
-                <div className="flex flex-wrap items-center gap-2 text-[11px] text-[rgb(var(--muted))]">
-                  <span className="vog-chip">Position: {STANCE_LABELS[claim.stance ?? ""] ?? "-"}</span>
-                  <span className="vog-chip">Wichtigkeit: {claim.importance ?? "-"}</span>
-                  <span className="vog-chip">Zuständigkeit: {claim.responsibility ?? "-"}</span>
-                  {(claim as { statementType?: string }).statementType ? (
-                    <span className="vog-chip">
-                      Typ:{" "}
-                      {STATEMENT_TYPE_LABELS[(claim as { statementType?: string }).statementType ?? ""] ??
-                        (claim as { statementType?: string }).statementType}
-                    </span>
-                  ) : null}
-                  {contestedClaimSet.has(claim.id) ? (
-                    <span className="vog-chip border-rose-400/50 bg-rose-500/10 text-rose-200">
-                      Einspruch offen
-                    </span>
-                  ) : null}
-                </div>
-                <div>
-                  <p className="text-base font-semibold text-[rgb(var(--fg))]">{claim.title ?? "Kernaussage"}</p>
-                  <p className="mt-2 text-sm text-[rgb(var(--muted))]">{claim.text}</p>
-                </div>
-              </article>
-            ))}
-          </div>
+          {coreClaims.length ? (
+            <div className="grid gap-3">
+              {coreClaims.map((claim) => (
+                <article
+                  key={claim.id}
+                  id={`stmt-${claim.id}`}
+                  className={`vog-card p-5 space-y-3 ${statementLineClass(claim.stance)}`}
+                >
+                  <div className="flex flex-wrap items-center gap-2 text-[11px] text-[rgb(var(--muted))]">
+                    <span className="vog-chip">Position: {STANCE_LABELS[claim.stance ?? ""] ?? "-"}</span>
+                    <span className="vog-chip">Wichtigkeit: {claim.importance ?? "-"}</span>
+                    <span className="vog-chip">Zuständigkeit: {claim.responsibility ?? "-"}</span>
+                    {(claim as { statementType?: string }).statementType ? (
+                      <span className="vog-chip">
+                        Typ:{" "}
+                        {STATEMENT_TYPE_LABELS[(claim as { statementType?: string }).statementType ?? ""] ??
+                          (claim as { statementType?: string }).statementType}
+                      </span>
+                    ) : null}
+                    {contestedClaimSet.has(claim.id) ? (
+                      <span className="vog-chip border-rose-400/50 bg-rose-500/10 text-rose-200">
+                        Einspruch offen
+                      </span>
+                    ) : null}
+                  </div>
+                  <div>
+                    <p className="text-base font-semibold text-[rgb(var(--fg))]">{claim.title ?? "Kernaussage"}</p>
+                    <p className="mt-2 text-sm text-[rgb(var(--muted))]">{claim.text}</p>
+                  </div>
+                </article>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-[rgb(var(--muted))]">
+              Keine Kernpositionen im gewählten Clusterfilter.
+            </p>
+          )}
         </div>
 
         <div className="space-y-4">
           <div className="text-sm font-semibold text-[rgb(var(--fg))]">Teilaspekte</div>
-          <div className="grid gap-3">
-            {secondaryClaims.map((claim) => (
-              <article
-                key={claim.id}
-                id={`stmt-${claim.id}`}
-                className={`vog-card p-5 space-y-2 ${statementLineClass(claim.stance)}`}
-              >
-                <div className="flex flex-wrap items-center gap-2 text-[11px] text-[rgb(var(--muted))]">
-                  <span className="vog-chip">Position: {STANCE_LABELS[claim.stance ?? ""] ?? "-"}</span>
-                  <span className="vog-chip">Wichtigkeit: {claim.importance ?? "-"}</span>
-                  <span className="vog-chip">Zuständigkeit: {claim.responsibility ?? "-"}</span>
-                  {(claim as { statementType?: string }).statementType ? (
-                    <span className="vog-chip">
-                      Typ:{" "}
-                      {STATEMENT_TYPE_LABELS[(claim as { statementType?: string }).statementType ?? ""] ??
-                        (claim as { statementType?: string }).statementType}
-                    </span>
-                  ) : null}
-                  {contestedClaimSet.has(claim.id) ? (
-                    <span className="vog-chip border-rose-400/50 bg-rose-500/10 text-rose-200">
-                      Einspruch offen
-                    </span>
-                  ) : null}
-                </div>
-                <p className="text-sm font-semibold text-[rgb(var(--fg))]">{claim.title ?? "Kernaussage"}</p>
-                <p className="text-sm text-[rgb(var(--muted))]">{claim.text}</p>
-              </article>
-            ))}
-          </div>
+          {secondaryClaims.length ? (
+            <div className="grid gap-3">
+              {secondaryClaims.map((claim) => (
+                <article
+                  key={claim.id}
+                  id={`stmt-${claim.id}`}
+                  className={`vog-card p-5 space-y-2 ${statementLineClass(claim.stance)}`}
+                >
+                  <div className="flex flex-wrap items-center gap-2 text-[11px] text-[rgb(var(--muted))]">
+                    <span className="vog-chip">Position: {STANCE_LABELS[claim.stance ?? ""] ?? "-"}</span>
+                    <span className="vog-chip">Wichtigkeit: {claim.importance ?? "-"}</span>
+                    <span className="vog-chip">Zuständigkeit: {claim.responsibility ?? "-"}</span>
+                    {(claim as { statementType?: string }).statementType ? (
+                      <span className="vog-chip">
+                        Typ:{" "}
+                        {STATEMENT_TYPE_LABELS[(claim as { statementType?: string }).statementType ?? ""] ??
+                          (claim as { statementType?: string }).statementType}
+                      </span>
+                    ) : null}
+                    {contestedClaimSet.has(claim.id) ? (
+                      <span className="vog-chip border-rose-400/50 bg-rose-500/10 text-rose-200">
+                        Einspruch offen
+                      </span>
+                    ) : null}
+                  </div>
+                  <p className="text-sm font-semibold text-[rgb(var(--fg))]">{claim.title ?? "Kernaussage"}</p>
+                  <p className="text-sm text-[rgb(var(--muted))]">{claim.text}</p>
+                </article>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-[rgb(var(--muted))]">
+              Keine Teilaspekte im gewählten Clusterfilter.
+            </p>
+          )}
         </div>
       </section>
 
@@ -1691,7 +1873,7 @@ export function DossierViewer({ dossier, context }: { dossier: Dossier; context?
   );
 
   const metadataPanel = (
-    <section className="vog-card p-5 space-y-2">
+    <section id="akte" className="vog-card p-5 space-y-2">
       <div className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
         {SECTION_TITLES.metadata}
       </div>
@@ -1728,20 +1910,27 @@ export function DossierViewer({ dossier, context }: { dossier: Dossier; context?
       delegatedCount={questionStats.delegated}
       communityCount={contributionCount}
       correctionsCount={contestedClaimIds.length}
+      onJump={handleTransparencyJump}
     />
   );
 
   const transparencyPanel = (
-    <TransparencyPanel
-      sources={sources}
-      runReceipt={analyze.runReceipt}
-      createdAt={meta.createdAt}
-      updatedAt={meta.updatedAt}
-      revision={meta.revision}
-    />
+    <section id="transparency">
+      <TransparencyPanel
+        sources={sources}
+        runReceipt={analyze.runReceipt}
+        createdAt={meta.createdAt}
+        updatedAt={meta.updatedAt}
+        revision={meta.revision}
+      />
+    </section>
   );
 
-  const correctionsPanel = <CorrectionsPanel items={corrections} />;
+  const correctionsPanel = (
+    <section id="corrections">
+      <CorrectionsPanel items={corrections} />
+    </section>
+  );
   const auditPanel = activeMode === "admin" ? <AuditTimeline events={inst.data?.auditTrail ?? []} /> : null;
   const exportPanel = activeMode === "admin" ? <ExportPanel dossierId={meta.id} /> : null;
   const mandatePanel =
@@ -1865,12 +2054,24 @@ export function DossierViewer({ dossier, context }: { dossier: Dossier; context?
 
   const afterSidebar = (
     <>
-      <section className="vog-card p-5 space-y-3">
+      <section id="open-questions" className="vog-card p-5 space-y-3">
         <div className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
           {SECTION_TITLES.questions}
         </div>
+        <div className="flex flex-wrap gap-2 text-[11px]">
+          {(Object.keys(QUESTION_FILTER_LABELS) as QuestionFilter[]).map((filter) => (
+            <button
+              key={filter}
+              type="button"
+              className={`vog-chip ${questionFilter === filter ? "border-[rgb(var(--grad-from))] text-[rgb(var(--fg))]" : ""}`}
+              onClick={() => setQuestionFilter(filter)}
+            >
+              {QUESTION_FILTER_LABELS[filter]}
+            </button>
+          ))}
+        </div>
         <div className="space-y-3">
-          {questionsForDisplay.map((q) => {
+          {filteredQuestionsForDisplay.map((q) => {
             const status = (q as { status?: string }).status ?? "open";
             const responsible = (q as { responsible?: string }).responsible;
             const supportActors = (q as { supportActors?: string[] }).supportActors ?? [];
@@ -1982,7 +2183,9 @@ export function DossierViewer({ dossier, context }: { dossier: Dossier; context?
               onClick={async () => {
                 setClarificationNotice(null);
                 const questionText =
-                  questionsForDisplay[0]?.text ?? "Bitte klären: Offene Frage im Dossier";
+                  filteredQuestionsForDisplay[0]?.text ??
+                  questionsForDisplay[0]?.text ??
+                  "Bitte klären: Offene Frage im Dossier";
                 try {
                   const res = await fetch("/api/dossier/request-clarification", {
                     method: "POST",
@@ -2018,6 +2221,11 @@ export function DossierViewer({ dossier, context }: { dossier: Dossier; context?
             Klärung anstoßen ist in dieser Rollenansicht nicht freigeschaltet.
           </span>
         )}
+        {!filteredQuestionsForDisplay.length ? (
+          <p className="text-[11px] text-[rgb(var(--muted))]">
+            Keine Einträge im gewählten Filter.
+          </p>
+        ) : null}
       </section>
 
       <section className="vog-card p-5 space-y-3">

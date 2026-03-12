@@ -60,6 +60,20 @@ export function PrelaunchGateModal({
             </div>
 
             <div className="mt-6 grid gap-4 md:grid-cols-2">
+              <div className="rounded-2xl border border-[rgb(var(--grad-from))] bg-[rgb(var(--card))] p-5 shadow-sm md:col-span-2">
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">
+                  {c.registerTitle}
+                </p>
+                <p className="mt-2 text-sm font-semibold text-[rgb(var(--muted))]">{c.registerText}</p>
+                <Link
+                  href="/register"
+                  className="mt-4 inline-flex w-full items-center justify-center rounded-full bg-gradient-to-r from-[rgb(var(--grad-from))] to-[rgb(var(--grad-to))] px-4 py-2.5 text-sm font-extrabold text-white shadow-[0_10px_24px_rgba(24,165,255,0.25)] hover:opacity-95"
+                  onClick={onClose}
+                >
+                  {c.registerCta} →
+                </Link>
+              </div>
+
               <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm">
                 <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">{c.refineTitle}</p>
                 <p className="mt-2 text-sm font-semibold text-[rgb(var(--muted))]">{c.refineText}</p>

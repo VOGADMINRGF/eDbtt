@@ -76,6 +76,7 @@ function RegisterPageClient({ personCount = 1, searchParams }: RegisterPageClien
   const datePickerRef = useRef<HTMLInputElement | null>(null);
   const [useNativeDate, setUseNativeDate] = useState(false);
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [showPwd, setShowPwd] = useState(false);
   const [errMsg, setErrMsg] = useState<string>();
   const [okMsg, setOkMsg] = useState<string>();
@@ -133,6 +134,10 @@ function RegisterPageClient({ personCount = 1, searchParams }: RegisterPageClien
 
     if (!okPwd(password)) {
       setErrMsg("Passwort: min. 12 Zeichen, inkl. Zahl & Sonderzeichen.");
+      return;
+    }
+    if (password !== confirmPassword) {
+      setErrMsg("Passwörter stimmen nicht überein.");
       return;
     }
 
@@ -411,11 +416,22 @@ function RegisterPageClient({ personCount = 1, searchParams }: RegisterPageClien
             />
             <button
               type="button"
-              onClick={() => setShowPwd((v) => !v)}
+              onPointerDown={() => setShowPwd(true)}
+              onPointerUp={() => setShowPwd(false)}
+              onPointerLeave={() => setShowPwd(false)}
+              onPointerCancel={() => setShowPwd(false)}
+              onKeyDown={(e) => {
+                if (e.key === " " || e.key === "Enter") setShowPwd(true);
+              }}
+              onKeyUp={(e) => {
+                if (e.key === " " || e.key === "Enter") setShowPwd(false);
+              }}
               className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-2 py-1 text-xs"
               tabIndex={-1}
+              aria-label="Passwort kurz anzeigen"
+              title="Gedrückt halten zum Anzeigen"
             >
-              {showPwd ? "Verbergen" : "Anzeigen"}
+              Anzeigen
             </button>
           </div>
           <p
@@ -423,6 +439,57 @@ function RegisterPageClient({ personCount = 1, searchParams }: RegisterPageClien
             className={`text-xs ${okPwd(password) ? "text-emerald-600" : "text-[rgb(var(--muted))]"}`}
           >
             Anforderungen: min. 12 Zeichen, mind. eine Zahl und ein Sonderzeichen.
+          </p>
+        </div>
+        <div className="space-y-1">
+          <label className="text-xs font-medium text-[rgb(var(--muted))]" htmlFor="password-confirm">
+            Passwort bestätigen
+          </label>
+          <div className="relative">
+            <input
+              id="password-confirm"
+              className="w-full rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 pr-12 text-sm text-[rgb(var(--fg))] outline-none focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
+              type={showPwd ? "text" : "password"}
+              name="passwordConfirm"
+              placeholder="Passwort wiederholen"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              required
+              minLength={12}
+              pattern="^(?=.*[0-9])(?=.*[^A-Za-z0-9]).{12,}$"
+              autoComplete="new-password"
+              disabled={busy}
+              aria-describedby="pw-confirm-help"
+            />
+            <button
+              type="button"
+              onPointerDown={() => setShowPwd(true)}
+              onPointerUp={() => setShowPwd(false)}
+              onPointerLeave={() => setShowPwd(false)}
+              onPointerCancel={() => setShowPwd(false)}
+              onKeyDown={(e) => {
+                if (e.key === " " || e.key === "Enter") setShowPwd(true);
+              }}
+              onKeyUp={(e) => {
+                if (e.key === " " || e.key === "Enter") setShowPwd(false);
+              }}
+              className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-2 py-1 text-xs"
+              tabIndex={-1}
+              aria-label="Passwort kurz anzeigen"
+              title="Gedrückt halten zum Anzeigen"
+            >
+              Anzeigen
+            </button>
+          </div>
+          <p
+            id="pw-confirm-help"
+            className={`text-xs ${
+              confirmPassword && password !== confirmPassword ? "text-red-600" : "text-[rgb(var(--muted))]"
+            }`}
+          >
+            {confirmPassword && password !== confirmPassword
+              ? "Passwörter stimmen nicht überein."
+              : "Bitte identisch zum Passwort eingeben."}
           </p>
         </div>
 
