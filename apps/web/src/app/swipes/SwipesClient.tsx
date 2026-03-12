@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { EDebattePackage, SwipeItem, Eventuality, SwipeDecision, SwipeFeedFilter } from "@/features/swipes/types";
 import StatementCard, { type StatementVote } from "@/components/statements/StatementCard";
+import { buildCreateHref } from "@/features/create/intents";
 
 /** Fetch-Helper */
 
@@ -567,10 +568,10 @@ function SwipesHeader({ edebattePackage, isBasic, isStartOrPro }: SwipesHeaderPr
       </h1>
       <p className="max-w-2xl text-sm text-[rgb(var(--muted))]">Links/rechts entscheiden, Quellen prüfen, später vertiefen – die Karten können aus deinen Analysen oder aktuellen Themen gespeist werden.</p>
       <div className="flex flex-wrap items-center gap-2">
-        <Link href="/statements/new" className={primaryChipClass}>
+        <Link href={buildCreateHref({ intent: "claim" })} className={primaryChipClass}>
           Neues Statement analysieren
         </Link>
-        <Link href="/contributions/new" className={secondaryChipClass}>
+        <Link href={buildCreateHref({ intent: "source" })} className={secondaryChipClass}>
           Beitrag einreichen
         </Link>
         <Link href="/account" className={subtleTextLinkClass}>

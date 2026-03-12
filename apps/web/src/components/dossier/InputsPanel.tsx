@@ -1,5 +1,6 @@
 import Link from "next/link";
 import MaterialLinksPanel from "./MaterialLinksPanel";
+import { buildCreateHref } from "@/features/create/intents";
 import type { PresentationContribution, PresentationStream, PresentationTraceability } from "./presentation";
 
 type InputsPanelProps = {
@@ -56,10 +57,16 @@ export function InputsPanel({
         <div className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Material</div>
         {dossierId ? (
           <div className="flex flex-wrap gap-2 text-[11px]">
-            <Link href={`/contributions/new?dossierId=${encodeURIComponent(dossierId)}`} className="btn btn-ghost text-xs">
+            <Link
+              href={buildCreateHref({ intent: "source", dossierId })}
+              className="btn btn-ghost text-xs"
+            >
               Beitrag hinzufügen
             </Link>
-            <Link href={`/statements/new?dossierId=${encodeURIComponent(dossierId)}`} className="btn btn-ghost text-xs">
+            <Link
+              href={buildCreateHref({ intent: "claim", dossierId })}
+              className="btn btn-ghost text-xs"
+            >
               Aussage ergänzen
             </Link>
             {typeof materialLinkCount === "number" && materialLinkCount > 0 ? (

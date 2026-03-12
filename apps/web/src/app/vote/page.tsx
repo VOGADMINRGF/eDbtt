@@ -1,3 +1,6 @@
+import Link from "next/link";
+import { buildCreateHref } from "@/features/create/intents";
+
 const steps = [
   "Vorlage lesen: Kurztext, Begründung, Pro/Contra, Quellen & Unsicherheiten – alles verlinkt.",
   "Berechtigung prüfen: eine Person = eine Stimme; Region-Nachweis nur bei Bedarf.",
@@ -122,12 +125,15 @@ export default function VotePage() {
         <section className="space-y-3">
           <h2 className="text-lg font-semibold text-[rgb(var(--fg))]">Los geht’s</h2>
           <div className="flex flex-wrap gap-3">
-            <a href="/statements" className="btn bg-brand-grad text-white shadow-soft">
+            <Link href="/statements" className="btn bg-brand-grad text-white shadow-soft">
               Statements ansehen
-            </a>
-            <a href="/contributions/new" className="btn border border-[rgb(var(--border))] bg-[rgb(var(--card))]">
+            </Link>
+            <Link
+              href={buildCreateHref({ intent: "source" })}
+              className="btn border border-[rgb(var(--border))] bg-[rgb(var(--card))]"
+            >
               Eigenes Anliegen starten
-            </a>
+            </Link>
           </div>
         </section>
       </section>

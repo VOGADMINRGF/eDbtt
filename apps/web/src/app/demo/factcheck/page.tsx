@@ -1,7 +1,10 @@
 // apps/web/src/app/demo/factcheck/page.tsx
 "use client";
 import { useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { useFactcheckJob } from "@/hooks/useFactcheckJob";
+import { getDemoPersonaConfig, parseDemoPersona } from "@/features/demo/personas";
+import { DEMO_STATUS_GLOSSARY } from "@/features/demo/statusLanguage";
 
 type Verdict = "LIKELY_TRUE" | "LIKELY_FALSE" | "MIXED" | "UNDETERMINED";
 
@@ -45,6 +48,10 @@ const VERDICT_LABELS: Record<Verdict, string> = {
 };
 
 export default function DemoFactcheckPage() {
+  const searchParams = useSearchParams();
+  const persona = parseDemoPersona(searchParams.get("persona"));
+  const personaCfg = getDemoPersonaConfig(persona);
+
   const [input, setInput] = useState("");
   const [mode, setMode] = useState<"ai" | "manual">("ai");
   const [demoAiReady, setDemoAiReady] = useState(false);
@@ -73,6 +80,9 @@ export default function DemoFactcheckPage() {
   }, [claims]);
 
   const manualCanSubmit = manualClaim.trim().length >= 5 && !sending;
+  const statusLabels = DEMO_STATUS_GLOSSARY.filter((item) =>
+    ["demo", "simulation", "community_submitted", "in_review", "verified"].includes(item.key),
+  ).map((item) => item.label);
 
   function resetManualForm() {
     setEditingId(null);
@@ -197,7 +207,7 @@ export default function DemoFactcheckPage() {
     <div className="mx-auto max-w-4xl p-6 space-y-4">
       <div className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm space-y-3">
         <div className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
-          Demo - Factcheck
+          Demo - Factcheck · {personaCfg.label}
         </div>
         <h1 className="text-2xl font-semibold text-[rgb(var(--fg))]">
           Schnellpruefung mit Demo-Daten
@@ -205,6 +215,9 @@ export default function DemoFactcheckPage() {
         <p className="text-sm text-[rgb(var(--muted))]">
           Fuer Screenshots: stabiler Flow ohne echte Inhalte. Ergebnisdaten sind
           reproduzierbar.
+        </p>
+        <p className="text-xs text-[rgb(var(--muted))]">
+          Statussprache: {statusLabels.join(" · ")}.
         </p>
       </div>
 

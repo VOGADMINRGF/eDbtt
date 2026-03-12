@@ -1,20 +1,13 @@
-import Link from "next/link";
 import type { ReactNode } from "react";
 import { notFound } from "next/navigation";
 import { getSessionUser } from "@/lib/server/auth/sessionUser";
 import { isDemoUser } from "@/lib/demo/demoAccess";
+import { DEMO_STATUS_GLOSSARY } from "@/features/demo/statusLanguage";
+import DemoNavClient from "./DemoNavClient";
 
 type Props = {
   children: ReactNode;
 };
-
-const DEMO_NAV = [
-  { href: "/demo", label: "Studio" },
-  { href: "/demo/dossier", label: "Dossier" },
-  { href: "/demo/votes", label: "Votes" },
-  { href: "/demo/mandat", label: "Mandat" },
-  { href: "/demo/factcheck", label: "Factcheck" },
-];
 
 export default async function DemoLayout({ children }: Props) {
   const user = await getSessionUser();
@@ -28,19 +21,19 @@ export default async function DemoLayout({ children }: Props) {
             <span className="rounded-full bg-slate-900 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-white">
               Demo
             </span>
-            <span className="text-xs text-[rgb(var(--muted))]">nur Demo-Daten - Screenshot Studio</span>
+            <span className="text-xs text-[rgb(var(--muted))]">nur Demo-Daten - Studio/Simulation</span>
+            <div className="hidden flex-wrap gap-1 lg:flex">
+              {DEMO_STATUS_GLOSSARY.slice(0, 4).map((status) => (
+                <span
+                  key={status.key}
+                  className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-2 py-0.5 text-[10px] font-semibold text-[rgb(var(--muted))]"
+                >
+                  {status.label}
+                </span>
+              ))}
+            </div>
           </div>
-          <nav className="flex flex-wrap gap-2 text-xs font-semibold text-[rgb(var(--muted))]">
-            {DEMO_NAV.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-1 hover:border-[rgb(var(--border))] hover:text-[rgb(var(--fg))]"
-              >
-                {item.label}
-              </Link>
-            ))}
-          </nav>
+          <DemoNavClient />
         </div>
       </header>
       {children}
