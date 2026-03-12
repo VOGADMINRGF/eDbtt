@@ -7,7 +7,52 @@ export type CreateIntent =
   | "option"
   | "factcheck";
 
-export type CreateEntryMode = "legacy" | "unified";
+export type CreateIntentDefinition = {
+  intent: CreateIntent;
+  title: string;
+  lead: string;
+};
+
+export const CREATE_INTENT_DEFINITIONS: CreateIntentDefinition[] = [
+  {
+    intent: "source",
+    title: "Quelle einreichen",
+    lead: "Link, Anlage oder Hinweis als neue Quelle einbringen.",
+  },
+  {
+    intent: "question",
+    title: "Offene Frage melden",
+    lead: "Ungeklaerte Punkte sichtbar halten und priorisieren.",
+  },
+  {
+    intent: "perspective",
+    title: "Perspektive ergaenzen",
+    lead: "Argumente, Betroffenheit oder Kontext hinzufuegen.",
+  },
+  {
+    intent: "objection",
+    title: "Widerspruch einreichen",
+    lead: "Einordnung, Evidenz oder Schlussfolgerung begruendet hinterfragen.",
+  },
+  {
+    intent: "option",
+    title: "Option vorschlagen",
+    lead: "Umsetzbare Alternative fuer Entscheidung und Abstimmung vorschlagen.",
+  },
+  {
+    intent: "claim",
+    title: "Kernaussage formulieren",
+    lead: "Abstimmungsfaehige Aussage mit klarer Verantwortung erstellen.",
+  },
+  {
+    intent: "factcheck",
+    title: "Factcheck starten",
+    lead: "Pruefhinweis zu Text, Link, Anlage oder Video-URL einreichen.",
+  },
+];
+
+const VALID_INTENTS = new Set<CreateIntent>(CREATE_INTENT_DEFINITIONS.map((item) => item.intent));
+const CANONICAL_CREATE_PATH = "/create";
 
 export type BuildCreateHrefArgs = {
   intent: CreateIntent;
@@ -15,14 +60,6 @@ export type BuildCreateHrefArgs = {
   statementId?: string | null;
   next?: string | null;
 };
-
-const UNIFIED_ENTRY_PATH = "/create";
-
-function readCreateEntryMode(): CreateEntryMode {
-  return process.env.NEXT_PUBLIC_CREATE_ENTRY_MODE === "unified"
-    ? "unified"
-    : "legacy";
-}
 
 function withQuery(path: string, query: Record<string, string | undefined>) {
   const params = new URLSearchParams();
@@ -33,16 +70,18 @@ function withQuery(path: string, query: Record<string, string | undefined>) {
   return qs ? `${path}?${qs}` : path;
 }
 
-function legacyPathForIntent(intent: CreateIntent) {
-  if (intent === "claim") return "/statements/new";
-  if (intent === "factcheck") return "/factcheck";
-  return "/contributions/new";
+export function parseCreateIntent(raw?: string | null): CreateIntent | undefined {
+  if (!raw) return undefined;
+  const value = raw.toLowerCase();
+  if (VALID_INTENTS.has(value as CreateIntent)) return value as CreateIntent;
+  if (value === "statement") return "claim";
+  if (value === "contribution") return "source";
+  return undefined;
 }
 
 /**
- * Single resolver for "new contribution/statement/factcheck" entry links.
- * Current default keeps legacy routes stable. Switching to unified create
- * entry can be done via NEXT_PUBLIC_CREATE_ENTRY_MODE=unified.
+ * Canonical create resolver.
+ * Product architecture uses `/create` as the single entry path.
  */
 export function buildCreateHref({
   intent,
@@ -50,23 +89,10 @@ export function buildCreateHref({
   statementId,
   next,
 }: BuildCreateHrefArgs): string {
-  const mode = readCreateEntryMode();
-
-  if (mode === "unified") {
-    return withQuery(UNIFIED_ENTRY_PATH, {
-      intent,
-      dossierId: dossierId ?? undefined,
-      statementId: statementId ?? undefined,
-      next: next ?? undefined,
-    });
-  }
-
-  const legacyPath = legacyPathForIntent(intent);
-  return withQuery(legacyPath, {
+  return withQuery(CANONICAL_CREATE_PATH, {
+    intent,
     dossierId: dossierId ?? undefined,
     statementId: statementId ?? undefined,
-    intent,
     next: next ?? undefined,
   });
 }
-

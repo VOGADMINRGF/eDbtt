@@ -1,5 +1,9 @@
 import Link from "next/link";
-import { buildCreateHref } from "@/features/create/intents";
+import {
+  buildCreateHref,
+  CREATE_INTENT_DEFINITIONS,
+  type CreateIntent,
+} from "@/features/create/intents";
 import { getDemoPersonaConfig, parseDemoPersona, withPersona } from "@/features/demo/personas";
 import { getDemoStatusLabel } from "@/features/demo/statusLanguage";
 
@@ -12,44 +16,11 @@ function readParam(value?: string | string[]) {
   return value;
 }
 
-const INTENT_CARDS = [
-  {
-    intent: "source",
-    title: "Quelle einreichen",
-    lead: "Link, Datei oder Hinweis als neue Quelle einbringen.",
-  },
-  {
-    intent: "question",
-    title: "Offene Frage melden",
-    lead: "Ungeklaerte Punkte sichtbar halten und priorisieren.",
-  },
-  {
-    intent: "perspective",
-    title: "Perspektive ergaenzen",
-    lead: "Argumente, Betroffenheit oder Kontext hinzufuegen.",
-  },
-  {
-    intent: "objection",
-    title: "Widerspruch einreichen",
-    lead: "Einordnung, Evidenz oder Schlussfolgerung begruendet hinterfragen.",
-  },
-  {
-    intent: "option",
-    title: "Option vorschlagen",
-    lead: "Umsetzbare Alternative fuer Entscheidung und Abstimmung vorschlagen.",
-  },
-  {
-    intent: "claim",
-    title: "Kernaussage formulieren",
-    lead: "Abstimmungsfaehige Aussage mit klarer Verantwortung erstellen.",
-  },
-] as const;
-
-const RECOMMENDED_BY_PERSONA = {
+const RECOMMENDED_BY_PERSONA: Record<"journalist" | "administration" | "citizen", CreateIntent[]> = {
   journalist: ["source", "question", "objection"],
   administration: ["option", "source", "claim"],
   citizen: ["perspective", "source", "question"],
-} as const;
+};
 
 export default async function DemoCreatePage({
   searchParams,
@@ -60,6 +31,7 @@ export default async function DemoCreatePage({
   const persona = parseDemoPersona(readParam(resolved?.persona));
   const personaCfg = getDemoPersonaConfig(persona);
   const recommended = new Set(RECOMMENDED_BY_PERSONA[persona]);
+  const demoCards = CREATE_INTENT_DEFINITIONS.filter((item) => item.intent !== "factcheck");
 
   return (
     <main className="mx-auto min-h-screen max-w-5xl px-4 py-10 space-y-6">
@@ -75,10 +47,15 @@ export default async function DemoCreatePage({
           bleibt konsistent: {getDemoStatusLabel("community_submitted")} {"->"}{" "}
           {getDemoStatusLabel("in_review")} {"->"} {getDemoStatusLabel("confirmed")}.
         </p>
+        <p className="text-xs text-[rgb(var(--muted))]">
+          Architekturregel: <span className="font-semibold">/create</span> ist der kanonische
+          Entry. <span className="font-semibold">/demo/create</span> ist nur die persona-sensitive
+          Demo-Huelle auf derselben Intent-Logik.
+        </p>
       </header>
 
       <section className="grid gap-4 md:grid-cols-2">
-        {INTENT_CARDS.map((card) => (
+        {demoCards.map((card) => (
           <article
             key={card.intent}
             className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm space-y-3"
@@ -93,10 +70,13 @@ export default async function DemoCreatePage({
             </div>
             <p className="text-sm text-[rgb(var(--muted))]">{card.lead}</p>
             <Link
-              href={buildCreateHref({ intent: card.intent })}
+              href={buildCreateHref({
+                intent: card.intent,
+                next: withPersona("/demo/create", persona),
+              })}
               className="inline-flex items-center rounded-full bg-slate-900 px-4 py-2 text-xs font-semibold text-white"
             >
-              Intent starten
+              In /create oeffnen
             </Link>
           </article>
         ))}

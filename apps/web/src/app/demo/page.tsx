@@ -16,15 +16,15 @@ const MODULES = [
   {
     id: "dossier",
     href: "/demo/dossier",
-    title: "Dossier Studio",
+    title: "Dossier-Studie",
     baseLead: "Claims, Evidenz, offene Fragen und Argumentationsraeume im Zusammenhang.",
     tags: ["Claims", "Quellen", "Findings", "Transparenz"],
   },
   {
     id: "votes",
     href: "/demo/votes",
-    title: "Votes Preview",
-    baseLead: "Abstimmungsstand mit Optionen, Status und journalistischen Signals.",
+    title: "Abstimmungsuebersicht",
+    baseLead: "Abstimmungsstand mit Optionen, Status und journalistischen Signalen.",
     tags: ["Optionen", "Mehrheit", "Kontroverse", "Review"],
   },
   {
@@ -37,14 +37,14 @@ const MODULES = [
   {
     id: "factcheck",
     href: "/demo/factcheck",
-    title: "Factcheck Demo",
+    title: "Factcheck-Intake",
     baseLead: "Intake + Pruefverlauf fuer Text, Link, Datei und Video-URL (Demo).",
     tags: ["Intake", "Review", "Verdikt", "Status"],
   },
   {
     id: "create",
     href: "/demo/create",
-    title: "Create Studio",
+    title: "Create-Einstieg",
     baseLead: "Intent-basierter Einstieg fuer Quelle, Frage, Perspektive, Widerspruch und Option.",
     tags: ["Intents", "Routing", "Kontext", "Mitwirken"],
   },
@@ -101,13 +101,13 @@ export default async function DemoStudioPage({
     <main className="mx-auto max-w-6xl px-4 py-10 space-y-8">
       <header className="space-y-3">
         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[rgb(var(--muted))]">
-          Demo Studio
+          Demo-Studio
         </p>
         <h1 className="text-3xl font-semibold text-[rgb(var(--fg))]">
-          Gefuehrte Demo-Experience nach Persona
+          Gefuehrte Demo-Erfahrung nach Persona
         </h1>
         <p className="max-w-3xl text-sm text-[rgb(var(--muted))]">
-          Startpunkt fuer Dossier, Votes, Mandat und Factcheck. Die Prioritaeten werden je Persona
+          Startpunkt fuer Dossier, Abstimmungen, Mandat, Factcheck und Create. Die Prioritaeten werden je Persona
           unterschiedlich gewichtet, damit Demo-Flows fuer Pitch und Review konsistent bleiben.
         </p>
       </header>

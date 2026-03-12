@@ -3,8 +3,7 @@
 ## Purpose
 
 Prepare one shared intake entry (`/create`) for all creation intents, without
-breaking current production flows (`/contributions/new`, `/statements/new`,
-`/factcheck`).
+breaking current production flows (`/contributions/new`, `/statements/new`).
 
 This document defines the transition model and the routing abstraction used in
 code.
@@ -19,6 +18,13 @@ Today, create-like actions are split across multiple routes:
 - multiple UI CTAs linking directly to those routes
 
 Result: duplicated entry logic and hard-coupled links.
+
+## Architecture Rule (Binding)
+
+- `/create` is the canonical product entry for all create intents.
+- `/demo/create` is a demo wrapper only (persona-sensitive showcase) and must
+  reuse the same intent definitions and routing semantics.
+- No parallel create architecture is allowed.
 
 ## Target Model
 
@@ -59,18 +65,17 @@ Single resolver in code:
 
 Behavior:
 
-- default mode: `legacy`
-- unified mode: set `NEXT_PUBLIC_CREATE_ENTRY_MODE=unified`
-
-This keeps current routes stable and allows incremental migration by replacing
-hardcoded links with the resolver.
+- Resolver always returns canonical `/create?...` URLs.
+- Legacy routes remain compatibility wrappers and redirect to `/create`.
+- Demo routes (including `/demo/create`) stay wrapper/showcase routes only.
 
 ## Migration Plan
 
 1. Replace direct UI hrefs with `buildCreateHref` (ongoing in PR2).
 2. Keep `/contributions/new` and `/statements/new` as compatibility wrappers
    redirecting to `/create` with intent query.
-3. Enable unified mode in preview (`NEXT_PUBLIC_CREATE_ENTRY_MODE=unified`).
+3. Keep `/demo/create` as wrapper around the same intent catalog used by
+   `/create`.
 4. Migrate remaining legacy redirects after production validation.
 
 ## Out of Scope (PR2)

@@ -4,6 +4,7 @@ import { getDraft } from "@/server/draftStore";
 import CreateClient from "./CreateClient";
 import { getCreateEntitlementsForRequest } from "@/lib/server/entitlements/createEntitlements";
 import { getAccountOverview } from "@features/account/service";
+import { parseCreateIntent } from "@/features/create/intents";
 
 export const metadata: Metadata = {
   title: "Erstellen - eDebatte",
@@ -29,21 +30,9 @@ function decodeMaybe(value?: string) {
 }
 
 function mapIntent(raw?: string | null): "statement" | "contribution" | undefined {
-  if (!raw) return undefined;
-  const value = raw.toLowerCase();
-  if (value === "statement" || value === "claim") return "statement";
-  if (
-    value === "contribution" ||
-    value === "source" ||
-    value === "question" ||
-    value === "perspective" ||
-    value === "objection" ||
-    value === "option" ||
-    value === "factcheck"
-  ) {
-    return "contribution";
-  }
-  return undefined;
+  const parsed = parseCreateIntent(raw);
+  if (!parsed) return undefined;
+  return parsed === "claim" ? "statement" : "contribution";
 }
 
 function toQueryString(resolved: Record<string, string | string[] | undefined>) {
@@ -104,4 +93,3 @@ export default async function CreatePage({
     </main>
   );
 }
-

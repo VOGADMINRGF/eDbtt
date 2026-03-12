@@ -62,7 +62,7 @@ export default async function DemoVotesPage({
         <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
           Demo - Abstimmungen
         </p>
-        <h1 className="text-3xl font-semibold text-[rgb(var(--fg))]">Votes Preview · {personaCfg.label}</h1>
+        <h1 className="text-3xl font-semibold text-[rgb(var(--fg))]">Abstimmungsuebersicht · {personaCfg.label}</h1>
         <p className="text-sm text-[rgb(var(--muted))]">
           {roleHint} Statussprache im Demo-Flow:{" "}
           {DEMO_STATUS_GLOSSARY.filter((item) => ["open", "in_review", "confirmed", "verified"].includes(item.key))

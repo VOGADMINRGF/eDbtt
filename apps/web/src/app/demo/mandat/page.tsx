@@ -98,8 +98,8 @@ export default async function DemoMandatPage({
               ? demoMandate.risks.map((risk) => (
                   <div key={risk.title} className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-4 py-3 space-y-1">
                     <p className="font-semibold text-[rgb(var(--fg))]">{risk.title}</p>
-                    <p className="text-xs text-[rgb(var(--muted))]">Owner: {risk.owner}</p>
-                    <p className="text-xs text-[rgb(var(--muted))]">Mitigation: {risk.mitigation}</p>
+                    <p className="text-xs text-[rgb(var(--muted))]">Zustaendig: {risk.owner}</p>
+                    <p className="text-xs text-[rgb(var(--muted))]">Massnahme: {risk.mitigation}</p>
                   </div>
                 ))
               : demoMandate.impact.map((metric) => (
@@ -125,7 +125,7 @@ export default async function DemoMandatPage({
                     {statusLabel(resp.status)} · {getDemoStatusLabel(mapTimelineStatusToDemoKey(resp.status))}
                   </span>
                 </div>
-                <p className="text-xs text-[rgb(var(--muted))]">Owner: {resp.owner}</p>
+                <p className="text-xs text-[rgb(var(--muted))]">Zustaendig: {resp.owner}</p>
                 {resp.partners && resp.partners.length > 0 && (
                   <p className="text-xs text-[rgb(var(--muted))]">Partner: {resp.partners.join(", ")}</p>
                 )}
@@ -155,8 +155,8 @@ export default async function DemoMandatPage({
               : demoMandate.risks.map((risk) => (
                   <div key={risk.title} className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-4 py-3 space-y-1">
                     <p className="font-semibold text-[rgb(var(--fg))]">{risk.title}</p>
-                    <p className="text-xs text-[rgb(var(--muted))]">Owner: {risk.owner}</p>
-                    <p className="text-xs text-[rgb(var(--muted))]">Mitigation: {risk.mitigation}</p>
+                    <p className="text-xs text-[rgb(var(--muted))]">Zustaendig: {risk.owner}</p>
+                    <p className="text-xs text-[rgb(var(--muted))]">Massnahme: {risk.mitigation}</p>
                   </div>
                 ))}
           </div>
