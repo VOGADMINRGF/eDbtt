@@ -15,8 +15,9 @@ export default function AussagenNeuPage({ searchParams }: PageProps) {
       }
     }
   }
+  if (!params.has("intent")) params.set("intent", "claim");
   const query = params.toString();
-  redirect(query ? `/statements/new?${query}` : "/statements/new");
+  redirect(query ? `/create?${query}` : "/create?intent=claim");
   return (
     <main className="min-h-screen bg-[rgb(var(--bg))]">
       <h1 className="sr-only">Aussage anlegen</h1>

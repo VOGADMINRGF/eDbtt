@@ -1,38 +1,36 @@
-// apps/web/src/app/contributions/new/page.tsx
-import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { ContributionNewClient } from "./ContributionNewClient";
-import { getAccountOverview } from "@features/account/service";
 
-export const metadata = {
-  title: "Beitrag analysieren – eDebatte",
-  description: "Beitrag analysieren und strukturiert aufbereiten.",
-};
+type SearchParamsShape =
+  | Promise<Record<string, string | string[] | undefined>>
+  | Record<string, string | string[] | undefined>;
 
-export const dynamic = "force-dynamic";
+function toQueryString(resolved: Record<string, string | string[] | undefined>) {
+  const params = new URLSearchParams();
+  Object.entries(resolved).forEach(([key, value]) => {
+    if (Array.isArray(value)) {
+      value.forEach((item) => {
+        if (typeof item === "string") params.append(key, item);
+      });
+      return;
+    }
+    if (typeof value === "string") params.set(key, value);
+  });
+  if (!params.has("intent")) params.set("intent", "source");
+  return params.toString();
+}
 
 export default async function ContributionNewPage({
   searchParams,
 }: {
-  searchParams?: { dossierId?: string };
+  searchParams?: SearchParamsShape;
 }) {
-  const cookieStore = await cookies();
-  const userId = cookieStore.get("u_id")?.value;
-  if (!userId) {
-    redirect(`/login?next=${encodeURIComponent("/contributions/new")}`);
-  }
-
-  const overview = await getAccountOverview(userId);
-  if (!overview) {
-    redirect(`/login?next=${encodeURIComponent("/contributions/new")}`);
-  }
+  const resolved = searchParams ? await searchParams : {};
+  const query = toQueryString(resolved);
+  redirect(query ? `/create?${query}` : "/create?intent=source");
 
   return (
     <main className="min-h-screen bg-[rgb(var(--bg))]">
       <h1 className="sr-only">Beitrag analysieren</h1>
-      <div className="mx-auto w-full max-w-5xl px-4 py-10">
-        <ContributionNewClient initialOverview={overview} dossierId={searchParams?.dossierId ?? null} />
-      </div>
     </main>
   );
 }

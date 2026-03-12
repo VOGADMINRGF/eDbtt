@@ -68,14 +68,13 @@ hardcoded links with the resolver.
 ## Migration Plan
 
 1. Replace direct UI hrefs with `buildCreateHref` (ongoing in PR2).
-2. Enable unified mode in preview (`NEXT_PUBLIC_CREATE_ENTRY_MODE=unified`).
-3. Implement `/create` server/page wrapper that resolves intent and reuses
-   existing internals.
-4. Migrate old pages to wrappers (or redirects) after production validation.
+2. Keep `/contributions/new` and `/statements/new` as compatibility wrappers
+   redirecting to `/create` with intent query.
+3. Enable unified mode in preview (`NEXT_PUBLIC_CREATE_ENTRY_MODE=unified`).
+4. Migrate remaining legacy redirects after production validation.
 
 ## Out of Scope (PR2)
 
 - Removing legacy pages now.
 - Full backend workflow merge in one step.
 - Breaking URL changes.
-
