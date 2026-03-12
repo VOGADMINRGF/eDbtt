@@ -1,6 +1,7 @@
+import Link from "next/link";
 import ReportPage from "@features/report/components/ReportPage";
 import demoReports from "@features/report/data/demoReports";
-import { getDemoPersonaConfig, parseDemoPersona } from "@/features/demo/personas";
+import { getDemoPersonaConfig, parseDemoPersona, withPersona } from "@/features/demo/personas";
 import { DEMO_STATUS_GLOSSARY } from "@/features/demo/statusLanguage";
 
 type SearchParamsShape =
@@ -28,6 +29,22 @@ export default async function DemoDossierPage({
         ? "Workflow, Zustaendigkeit, Delegation und auditierbare Dokumentation."
         : "Verstehen, mitwirken, Status nachverfolgen und Perspektiven einreichen.";
 
+  const quickActions =
+    persona === "journalist"
+      ? [
+          { label: "Quelle nachreichen", href: "/demo/create?intent=source" },
+          { label: "Widerspruch markieren", href: "/demo/create?intent=objection" },
+        ]
+      : persona === "administration"
+        ? [
+            { label: "Option erfassen", href: "/demo/create?intent=option" },
+            { label: "Claim schaerfen", href: "/demo/create?intent=claim" },
+          ]
+        : [
+            { label: "Perspektive ergaenzen", href: "/demo/create?intent=perspective" },
+            { label: "Frage einreichen", href: "/demo/create?intent=question" },
+          ];
+
   return (
     <main className="min-h-screen bg-[rgb(var(--card))]">
       <h1 className="sr-only">Demo Dossier</h1>
@@ -47,6 +64,17 @@ export default async function DemoDossierPage({
               >
                 {item.label}
               </span>
+            ))}
+          </div>
+          <div className="flex flex-wrap gap-2 pt-1">
+            {quickActions.map((action) => (
+              <Link
+                key={action.label}
+                href={withPersona(action.href, persona)}
+                className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-1 text-xs font-semibold text-[rgb(var(--muted))] hover:text-[rgb(var(--fg))]"
+              >
+                {action.label}
+              </Link>
             ))}
           </div>
         </div>
