@@ -19,21 +19,29 @@ function readParam(value?: string | string[]) {
 
 function statusLabel(status: "done" | "in_progress" | "planned") {
   if (status === "done") return "erledigt";
-  if (status === "in_progress") return "laeuft";
+  if (status === "in_progress") return "läuft";
   return "geplant";
 }
 
 function statusClass(status: "done" | "in_progress" | "planned") {
-  if (status === "done") return "bg-emerald-100 text-emerald-700";
-  if (status === "in_progress") return "bg-amber-100 text-amber-700";
+  if (status === "done") return "bg-emerald-100 text-emerald-800 dark:bg-emerald-500/12 dark:text-emerald-200";
+  if (status === "in_progress") return "bg-amber-100 text-amber-800 dark:bg-amber-500/12 dark:text-amber-200";
   return "bg-[rgb(var(--bg))] text-[rgb(var(--muted))]";
+}
+
+function mandateSignals(mandate: DemoMandate) {
+  const running = mandate.status === "aktiv" ? "läuft" : mandate.status === "in Planung" ? "startet" : "abgeschlossen";
+  const riskOpen = mandate.risks.length > 0;
+  const impactVisible = mandate.impact.length > 0;
+  const stalled = mandate.status !== "abgeschlossen" && mandate.risks.length >= 2;
+  return { running, riskOpen, impactVisible, stalled };
 }
 
 function inferTheme(mandate: DemoMandate) {
   const text = `${mandate.title} ${mandate.summary}`.toLowerCase();
   if (text.includes("energie") || text.includes("klima")) return "Klima & Energie";
   if (text.includes("schule") || text.includes("bildung")) return "Bildung";
-  if (text.includes("mobil")) return "Mobilitaet";
+  if (text.includes("mobil")) return "Mobilität";
   return "Infrastruktur";
 }
 
@@ -54,9 +62,9 @@ function buildMandatePool(): DemoMandate[] {
     ],
     risks: [
       {
-        title: "Abstimmung mit Strassenbehoerde offen",
+        title: "Abstimmung mit Straßenbehörde offen",
         owner: "Ordnungsamt",
-        mitigation: "Wochenrhythmus fuer gemeinsame Abnahmen.",
+        mitigation: "Wochenrhythmus für gemeinsame Abnahmen.",
       },
       {
         title: "Ausschreibung verzögert",
@@ -77,7 +85,7 @@ function buildMandatePool(): DemoMandate[] {
     lastUpdated: "2025-08-02",
     impact: [
       { label: "Bearbeitungszeit", value: "-21 %", trend: "seit Rollout Welle 1" },
-      { label: "Online-Antraege", value: "64 %", trend: "Anteil Q3" },
+      { label: "Online-Anträge", value: "64 %", trend: "Anteil Q3" },
       { label: "Nutzerzufriedenheit", value: "+9 pp", trend: "Befragung August 2025" },
     ],
     risks: [
@@ -97,25 +105,25 @@ function buildMandatePool(): DemoMandate[] {
   const variantC: DemoMandate = {
     ...demoMandate,
     id: "demo-mandate-004",
-    title: "Kommunale Waermenetz-Modernisierung",
+    title: "Kommunale Wärmenetz-Modernisierung",
     region: "Bayern - Kommune",
     status: "abgeschlossen",
     summary:
-      "Mandat zur Modernisierung kommunaler Waermenetze mit Fokus auf Versorgungssicherheit und Preisstabilitaet.",
+      "Mandat zur Modernisierung kommunaler Wärmenetze mit Fokus auf Versorgungssicherheit und Preisstabilität.",
     lastUpdated: "2025-06-10",
     impact: [
-      { label: "Versorgungsausfaelle", value: "-33 %", trend: "ggü. Vorjahr" },
+      { label: "Versorgungsausfälle", value: "-33 %", trend: "ggü. Vorjahr" },
       { label: "Energieeffizienz", value: "+18 %", trend: "Anlagenmix 2025" },
       { label: "Betriebskosten", value: "-9 %", trend: "Q2 Abschluss" },
     ],
     risks: [
       {
-        title: "Folgeinvestitionen noetig",
+        title: "Folgeinvestitionen nötig",
         owner: "Stadtwerke",
         mitigation: "Mehrjahresplan im Haushalt verankert.",
       },
       {
-        title: "Fachkraeftebindung",
+        title: "Fachkräftebindung",
         owner: "Personalstelle",
         mitigation: "Weiterbildungsbudget dauerhaft gesichert.",
       },
@@ -156,13 +164,14 @@ export default async function DemoMandatPage({
 
   const roleHint =
     persona === "administration"
-      ? "Verwaltungsfokus: Zustaendigkeit, Umsetzungsgrad, Risikosteuerung."
+      ? "Verwaltungsfokus: Zuständigkeit, Umsetzungsgrad, Risikosteuerung."
       : persona === "journalist"
         ? "Journalistischer Fokus: stockende Punkte, Wirkung und offene Risiken."
-        : "Buergerfokus: Was wurde beschlossen und was passiert als naechstes?";
+        : "Bürgerfokus: Was wurde beschlossen und was passiert als nächstes?";
 
   const openRiskCount = filteredMandates.reduce((sum, mandate) => sum + mandate.risks.length, 0);
   const inProgressCount = filteredMandates.filter((mandate) => mandate.status === "aktiv").length;
+  const stalledCount = filteredMandates.filter((mandate) => mandateSignals(mandate).stalled).length;
 
   return (
     <main className="mx-auto min-h-screen max-w-6xl px-4 py-10 space-y-6">
@@ -225,15 +234,24 @@ export default async function DemoMandatPage({
           </select>
         </form>
         <div className="flex flex-wrap gap-2 text-[11px]">
-          <span className="vog-chip">Mandate in deiner Region: {region === "all" ? "alle" : region}</span>
-          <span className="vog-chip">Aktiv: {inProgressCount}</span>
-          <span className="vog-chip">Offene Risiken: {openRiskCount}</span>
-          <span className="vog-chip">Gefiltert: {filteredMandates.length}</span>
+          <span className="vog-chip vog-chip--status">Mandate in deiner Region: {region === "all" ? "alle" : region}</span>
+          <span className="vog-chip vog-chip--status">Aktiv: {inProgressCount}</span>
+          <span className="vog-chip vog-chip--status">Offene Risiken: {openRiskCount}</span>
+          <span className="vog-chip vog-chip--status">Stockend: {stalledCount}</span>
+          <span className="vog-chip vog-chip--status">Gefiltert: {filteredMandates.length}</span>
         </div>
       </section>
 
       <section className="grid gap-4">
-        {filteredMandates.map((mandate) => (
+        {filteredMandates.map((mandate) => {
+          const signals = mandateSignals(mandate);
+          const primarySignal =
+            persona === "journalist"
+              ? `Risiko offen: ${signals.riskOpen ? "ja" : "nein"}`
+              : persona === "administration"
+                ? `Umsetzungsstand: ${signals.running}`
+                : `Beschluss zu Umsetzung: ${signals.running}`;
+          return (
           <article
             key={mandate.id}
             className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm space-y-4"
@@ -244,14 +262,21 @@ export default async function DemoMandatPage({
                 <p className="text-sm text-[rgb(var(--muted))]">{mandate.summary}</p>
               </div>
               <div className="flex flex-wrap gap-2 text-xs text-[rgb(var(--muted))]">
-                <span className="rounded-full bg-[rgb(var(--bg))] px-3 py-1 font-semibold">{mandate.region}</span>
-                <span className="rounded-full border border-[rgb(var(--border))] px-3 py-1">{mandate.status}</span>
+                <span className="vog-chip vog-chip--status">{mandate.region}</span>
+                <span className="vog-chip vog-chip--status">{mandate.status}</span>
               </div>
+            </div>
+
+            <div className="flex flex-wrap gap-2 text-[11px]">
+              <span className="vog-chip vog-chip--active">{primarySignal}</span>
+              <span className="vog-chip">{signals.stalled ? "stockt" : "stabil"}</span>
+              <span className="vog-chip">{signals.impactVisible ? "Wirkung sichtbar" : "Wirkung offen"}</span>
+              <span className="vog-chip">{signals.riskOpen ? "Risiko offen" : "kein offenes Risiko"}</span>
             </div>
 
             <div className="grid gap-4 lg:grid-cols-3">
               <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4 space-y-2">
-                <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Zustaendigkeit</p>
+                <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Zuständigkeit</p>
                 {mandate.responsibilities.slice(0, 2).map((resp) => (
                   <div key={resp.area} className="text-sm">
                     <p className="font-semibold text-[rgb(var(--fg))]">{resp.area}</p>
@@ -277,7 +302,7 @@ export default async function DemoMandatPage({
 
               <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4 space-y-2">
                 <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
-                  Wirkung & Risiken
+                  Wirkung & Risiken ({personaCfg.label})
                 </p>
                 <p className="text-sm text-[rgb(var(--fg))]">
                   Neue Wirkungsdaten: {mandate.impact[0]?.label ?? "—"} {mandate.impact[0]?.value ?? ""}
@@ -288,7 +313,8 @@ export default async function DemoMandatPage({
               </div>
             </div>
           </article>
-        ))}
+          );
+        })}
       </section>
 
       {filteredMandates.length === 0 ? (

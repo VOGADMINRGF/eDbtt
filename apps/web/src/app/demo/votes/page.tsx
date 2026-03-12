@@ -20,7 +20,7 @@ function readParam(value?: string | string[]) {
 
 function themeForVote(title: string) {
   const text = title.toLowerCase();
-  if (text.includes("rad") || text.includes("tempo") || text.includes("verkehr")) return "Mobilitaet";
+  if (text.includes("rad") || text.includes("tempo") || text.includes("verkehr")) return "Mobilität";
   if (text.includes("schule") || text.includes("bildung")) return "Bildung";
   if (text.includes("klima") || text.includes("energie")) return "Klima";
   if (text.includes("steuer") || text.includes("budget")) return "Finanzen";
@@ -34,10 +34,11 @@ function parseParticipationTarget(input: string) {
 }
 
 function buildVotePool() {
+  const labels = ["Update", "Review-Fassung", "Folgestand"] as const;
   const synthetic: DemoVote[] = demoVotes.slice(0, 3).map((vote, idx) => ({
     ...vote,
-    id: `${vote.id}-snapshot-${idx + 1}`,
-    title: `${vote.title} · Snapshot ${idx + 1}`,
+    id: `${vote.id}-update-${idx + 1}`,
+    title: `${vote.title} · ${labels[idx]}`,
     status: idx === 0 ? "review" : idx === 1 ? "published" : "draft",
     updatedAt: new Date(new Date(vote.updatedAt).getTime() + (idx + 2) * 24 * 60 * 60 * 1000)
       .toISOString()
@@ -100,7 +101,7 @@ export default async function DemoVotesPage({
       ? "Journalistischer Fokus: strittige, offene und aktualisierte Abstimmungen mit klaren Signalen."
       : persona === "administration"
         ? "Verwaltungsfokus: priorisiert nach Konflikt-/Umsetzungsdruck und Status."
-        : "Buergerfokus: klare Optionen, Status und nachvollziehbare Evidenzhinweise.";
+        : "Bürgerfokus: klare Optionen, Status und nachvollziehbare Evidenzhinweise.";
 
   const reviewCount = sortedVotes.filter((item) => item.status === "review").length;
   const draftCount = sortedVotes.filter((item) => item.status === "draft").length;
@@ -110,6 +111,23 @@ export default async function DemoVotesPage({
     const ts = new Date(item.updatedAt).getTime();
     return Number.isFinite(ts) ? Math.max(max, ts) : max;
   }, 0);
+  const enrichedVotes = sortedVotes.map((vote) => {
+    const updatedTs = new Date(vote.updatedAt).getTime();
+    const isNew = newestUpdated > 0 && updatedTs >= newestUpdated - 10 * 24 * 60 * 60 * 1000;
+    const isControversial = vote.options.length >= 3 || vote.claims.length >= 3;
+    const isRelevant = vote.evidence.length >= 3 || parseParticipationTarget(vote.participationTarget) >= 8000;
+    return { vote, isNew, isControversial, isRelevant };
+  });
+  const signalSummary = enrichedVotes.reduce(
+    (acc, item) => {
+      if (item.vote.status === "review") acc.inReview += 1;
+      if (item.isRelevant) acc.relevant += 1;
+      if (item.isNew) acc.newCount += 1;
+      if (item.isControversial) acc.controversial += 1;
+      return acc;
+    },
+    { inReview: 0, relevant: 0, newCount: 0, controversial: 0 },
+  );
 
   function hrefWith(next: Record<string, string>) {
     const params = new URLSearchParams();
@@ -132,7 +150,7 @@ export default async function DemoVotesPage({
         <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
           Demo - Abstimmungen
         </p>
-        <h1 className="text-3xl font-semibold text-[rgb(var(--fg))]">Abstimmungsuebersicht · {personaCfg.label}</h1>
+        <h1 className="text-3xl font-semibold text-[rgb(var(--fg))]">Abstimmungsübersicht · {personaCfg.label}</h1>
         <p className="text-sm text-[rgb(var(--muted))]">
           {roleHint} Statussprache im Demo-Flow:{" "}
           {DEMO_STATUS_GLOSSARY.filter((item) => ["open", "in_review", "confirmed", "verified"].includes(item.key))
@@ -182,47 +200,63 @@ export default async function DemoVotesPage({
             className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-sm"
           >
             <option value="new">Sortierung: neu</option>
-            <option value="updated">Sortierung: zuletzt geaendert</option>
+            <option value="updated">Sortierung: zuletzt geändert</option>
             <option value="controversial">Sortierung: kontrovers</option>
             <option value="reactions">Sortierung: viele Reaktionen</option>
           </select>
         </form>
         <div className="flex flex-wrap gap-2 text-[11px]">
-          <Link href={hrefWith({ status: "all" })} className="vog-chip">
+          <Link
+            href={hrefWith({ status: "all" })}
+            aria-current={statusFilter === "all" ? "page" : undefined}
+            className={`vog-tab ${statusFilter === "all" ? "vog-tab--active" : ""}`}
+          >
             Status: alle
           </Link>
-          <Link href={hrefWith({ status: "draft" })} className="vog-chip">
+          <Link
+            href={hrefWith({ status: "draft" })}
+            aria-current={statusFilter === "draft" ? "page" : undefined}
+            className={`vog-tab ${statusFilter === "draft" ? "vog-tab--active" : ""}`}
+          >
             {getDemoStatusLabel("open")}
           </Link>
-          <Link href={hrefWith({ status: "review" })} className="vog-chip">
+          <Link
+            href={hrefWith({ status: "review" })}
+            aria-current={statusFilter === "review" ? "page" : undefined}
+            className={`vog-tab ${statusFilter === "review" ? "vog-tab--active" : ""}`}
+          >
             {getDemoStatusLabel("in_review")}
           </Link>
-          <Link href={hrefWith({ status: "published" })} className="vog-chip">
+          <Link
+            href={hrefWith({ status: "published" })}
+            aria-current={statusFilter === "published" ? "page" : undefined}
+            className={`vog-tab ${statusFilter === "published" ? "vog-tab--active" : ""}`}
+          >
             {getDemoStatusLabel("confirmed")}
           </Link>
         </div>
         <div className="flex flex-wrap gap-2 text-[11px]">
-          <span className="vog-chip">
+          <span className="vog-chip vog-chip--status">
             {getDemoStatusLabel("in_review")}: {reviewCount}
           </span>
-          <span className="vog-chip">
+          <span className="vog-chip vog-chip--status">
             {getDemoStatusLabel("open")}: {draftCount}
           </span>
-          <span className="vog-chip">
+          <span className="vog-chip vog-chip--status">
             {getDemoStatusLabel("confirmed")}: {publishedCount}
           </span>
-          <span className="vog-chip">Gesamt: {sortedVotes.length}</span>
+          <span className="vog-chip vog-chip--status">Gesamt: {sortedVotes.length}</span>
+        </div>
+        <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-xs text-[rgb(var(--muted))]">
+          Redaktioneller Schnellblick: {signalSummary.inReview} in Prüfung · {signalSummary.relevant} relevant ·{" "}
+          {signalSummary.newCount} neu · {signalSummary.controversial} strittig
         </div>
       </section>
 
       <section className="grid gap-4 md:grid-cols-2">
-        {sortedVotes.map((vote) => {
-          const detailId = vote.id.includes("-snapshot-") ? vote.id.split("-snapshot-")[0] : vote.id;
+        {enrichedVotes.map(({ vote, isNew, isControversial, isRelevant }) => {
+          const detailId = vote.id.includes("-update-") ? vote.id.split("-update-")[0] : vote.id;
           const theme = themeForVote(vote.title);
-          const updatedTs = new Date(vote.updatedAt).getTime();
-          const isNew = newestUpdated > 0 && updatedTs >= newestUpdated - 10 * 24 * 60 * 60 * 1000;
-          const isControversial = vote.options.length >= 3 || vote.claims.length >= 3;
-          const isRelevant = vote.evidence.length >= 3 || parseParticipationTarget(vote.participationTarget) >= 8000;
           return (
             <article
               key={vote.id}
@@ -245,15 +279,25 @@ export default async function DemoVotesPage({
                 <span className="vog-chip">{Math.max(1, vote.claims.length - 1)} offene Fragen</span>
               </div>
               <div className="flex flex-wrap gap-2 text-[11px]">
-                {isNew ? <span className="vog-chip border-cyan-400/50 bg-cyan-500/10 text-cyan-200">neu</span> : null}
+                {isNew ? (
+                  <span className="vog-chip border-cyan-300 bg-cyan-100 text-cyan-800 dark:border-cyan-400/40 dark:bg-cyan-500/12 dark:text-cyan-200">
+                    neu
+                  </span>
+                ) : null}
                 {vote.status === "review" ? (
-                  <span className="vog-chip border-amber-400/50 bg-amber-500/10 text-amber-200">in Prüfung</span>
+                  <span className="vog-chip border-amber-300 bg-amber-100 text-amber-800 dark:border-amber-400/45 dark:bg-amber-500/10 dark:text-amber-200">
+                    in Prüfung
+                  </span>
                 ) : null}
                 {isControversial ? (
-                  <span className="vog-chip border-rose-400/50 bg-rose-500/10 text-rose-200">strittig</span>
+                  <span className="vog-chip border-rose-300 bg-rose-100 text-rose-800 dark:border-rose-400/45 dark:bg-rose-500/10 dark:text-rose-200">
+                    strittig
+                  </span>
                 ) : null}
                 {isRelevant ? (
-                  <span className="vog-chip border-emerald-400/50 bg-emerald-500/10 text-emerald-200">relevant</span>
+                  <span className="vog-chip border-emerald-300 bg-emerald-100 text-emerald-800 dark:border-emerald-400/45 dark:bg-emerald-500/10 dark:text-emerald-200">
+                    relevant
+                  </span>
                 ) : null}
               </div>
               <div className="text-xs text-[rgb(var(--muted))]">
@@ -262,7 +306,7 @@ export default async function DemoVotesPage({
               </div>
               <Link
                 href={withPersona(`/demo/votes/${detailId}`, persona)}
-                className="inline-flex items-center justify-center rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white"
+                className="btn btn-primary text-sm"
               >
                 Details ansehen
               </Link>

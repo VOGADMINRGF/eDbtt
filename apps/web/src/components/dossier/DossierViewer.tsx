@@ -1289,12 +1289,13 @@ export function DossierViewer({
               <button
                 key={cluster.label}
                 type="button"
+                aria-pressed={activeClusterFilter === cluster.label}
                 onClick={() =>
                   setActiveClusterFilter((prev) => (prev === cluster.label ? null : cluster.label))
                 }
                 className={`vog-chip ${
                   activeClusterFilter === cluster.label
-                    ? "border-[rgb(var(--grad-from))] bg-[rgb(var(--bg))] text-[rgb(var(--fg))]"
+                    ? "vog-chip--active"
                     : ""
                 }`}
               >
@@ -1313,6 +1314,17 @@ export function DossierViewer({
           </div>
         ) : (
           <p className="text-sm text-[rgb(var(--muted))]">Keine Cluster hinterlegt.</p>
+        )}
+        {activeClusterFilter ? (
+          <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-xs text-[rgb(var(--muted))]">
+            Aktiver Fokus:{" "}
+            <span className="font-semibold text-[rgb(var(--fg))]">{activeClusterFilter}</span>. Die
+            Kernaussagen und Teilaspekte werden auf diesen Cluster gefiltert.
+          </div>
+        ) : (
+          <p className="text-xs text-[rgb(var(--muted))]">
+            Kein Clusterfilter aktiv. Alle Kernaussagen und Teilaspekte werden angezeigt.
+          </p>
         )}
         {analyze.knots.length ? (
           <div className="space-y-2 text-sm text-[rgb(var(--fg))]">

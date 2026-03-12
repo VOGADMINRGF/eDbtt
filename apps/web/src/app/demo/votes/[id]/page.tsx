@@ -27,7 +27,7 @@ export default async function DemoVoteDetailPage({
     <main className="mx-auto min-h-screen max-w-5xl px-4 py-10 space-y-6">
       <header className="space-y-2">
         <Link href={withPersona("/demo/votes", persona)} className="text-xs font-semibold uppercase text-[rgb(var(--muted))]">
-          &larr; Zur Uebersicht
+          &larr; Zur Übersicht
         </Link>
         <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Demo - Abstimmung</p>
         <h1 className="text-3xl font-semibold text-[rgb(var(--fg))]">{vote.title}</h1>
@@ -111,7 +111,7 @@ export default async function DemoVoteDetailPage({
                   {item.status === "done"
                     ? "erledigt"
                     : item.status === "in_progress"
-                    ? "laeuft"
+                    ? "läuft"
                     : "geplant"}
                 </span>
               </li>

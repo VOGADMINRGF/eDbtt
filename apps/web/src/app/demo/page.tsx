@@ -17,13 +17,13 @@ const MODULES = [
     id: "dossier",
     href: "/demo/dossier",
     title: "Dossier-Studie",
-    baseLead: "Claims, Evidenz, offene Fragen und Argumentationsraeume im Zusammenhang.",
+    baseLead: "Claims, Evidenz, offene Fragen und Argumentationsräume im Zusammenhang.",
     tags: ["Claims", "Quellen", "Findings", "Transparenz"],
   },
   {
     id: "votes",
     href: "/demo/votes",
-    title: "Abstimmungsuebersicht",
+    title: "Abstimmungsübersicht",
     baseLead: "Abstimmungsstand mit Optionen, Status und journalistischen Signalen.",
     tags: ["Optionen", "Mehrheit", "Kontroverse", "Review"],
   },
@@ -31,22 +31,22 @@ const MODULES = [
     id: "mandat",
     href: "/demo/mandat",
     title: "Mandat & Umsetzung",
-    baseLead: "Zustaendigkeiten, Fortschritt, Wirkung und Risiken im Umsetzungsbild.",
+    baseLead: "Zuständigkeiten, Fortschritt, Wirkung und Risiken im Umsetzungsbild.",
     tags: ["Timeline", "Delegation", "Wirkung", "Risiken"],
   },
   {
     id: "factcheck",
     href: "/demo/factcheck",
     title: "Factcheck-Intake",
-    baseLead: "Intake + Pruefverlauf fuer Text, Link, Datei und Video-URL (Demo).",
+    baseLead: "Intake + Prüfverlauf für Text, Link, Datei und Video-URL (Demo).",
     tags: ["Intake", "Review", "Verdikt", "Status"],
   },
   {
     id: "create",
     href: "/demo/create",
-    title: "Create-Einstieg",
-    baseLead: "Intent-basierter Einstieg fuer Quelle, Frage, Perspektive, Widerspruch und Option.",
-    tags: ["Intents", "Routing", "Kontext", "Mitwirken"],
+    title: "Mitwirken",
+    baseLead: "Passenden Einstieg wählen: Quelle, Frage, Perspektive, Widerspruch oder Option.",
+    tags: ["Eingang", "Kontext", "Status", "Mitwirken"],
   },
 ] as const;
 
@@ -55,25 +55,25 @@ const PERSONA_LEAD_BY_MODULE: Record<
   Partial<Record<(typeof MODULES)[number]["id"], string>>
 > = {
   journalist: {
-    dossier: "Schnellzugriff auf Quellenlage, Einsprueche und exportfaehige Einordnung.",
-    votes: "Newsworthy-Ansicht: offen/in Pruefung, strittige Themen und Update-Fokus.",
+    dossier: "Schnellzugriff auf Quellenlage, Einsprüche und exportfähige Einordnung.",
+    votes: "Newsworthy-Ansicht: offen/in Prüfung, strittige Themen und Update-Fokus.",
     mandat: "Monitoring von Stockungen, Risiken und Wirkung pro Verantwortungsbereich.",
     factcheck: "Quellen- und Verdikt-Fokus mit klarer Demo-Kennzeichnung.",
-    create: "Schneller Intake fuer Quelle, Frage und Widerspruch mit nachvollziehbarer Spur.",
+    create: "Schneller Einstieg für Quelle, Frage und Widerspruch mit nachvollziehbarer Spur.",
   },
   administration: {
-    dossier: "Arbeitsfokus: Zustaendigkeiten, Delegation, Workflow und Dokumentationsstand.",
+    dossier: "Arbeitsfokus: Zuständigkeiten, Delegation, Workflow und Dokumentationsstand.",
     votes: "Entscheidungsvorbereitung mit Status und priorisierter Umsetzungsrelevanz.",
     mandat: "Steuerungsfokus: Verantwortung, Umsetzungsgrad, Risiken und Wirkung.",
-    factcheck: "Eingangspruefung fuer Hinweise aus Text/Link/Datei/Video mit Audit-Spur.",
-    create: "Strukturierter Eingang fuer Optionen, Verantwortungen und pruefbare Claims.",
+    factcheck: "Eingangsprüfung für Hinweise aus Text/Link/Datei/Video mit Audit-Spur.",
+    create: "Strukturierter Einstieg für Optionen, Verantwortungen und prüfbare Aussagen.",
   },
   citizen: {
     dossier: "Verstehen, einordnen, mitwirken: transparente Fragen- und Evidenzlage.",
     votes: "Klare Optionen mit sichtbarem Status, damit Beteiligung nachvollziehbar bleibt.",
-    mandat: "Was wurde beschlossen und was passiert vor Ort als naechstes?",
-    factcheck: "Niedrigschwelliger Einstieg fuer Pruefhinweise aus mehreren Input-Kanaelen.",
-    create: "Klarer Einstieg fuer Mitwirken ohne harte Routenwechsel.",
+    mandat: "Was wurde beschlossen und was passiert vor Ort als nächstes?",
+    factcheck: "Niedrigschwelliger Einstieg für Prüfhinweise aus mehreren Input-Kanälen.",
+    create: "Klarer Einstieg für Mitwirken ohne harte Sprünge.",
   },
 };
 
@@ -104,11 +104,11 @@ export default async function DemoStudioPage({
           Demo-Studio
         </p>
         <h1 className="text-3xl font-semibold text-[rgb(var(--fg))]">
-          Gefuehrte Demo-Erfahrung nach Persona
+          Geführte Demo-Erfahrung nach Persona
         </h1>
         <p className="max-w-3xl text-sm text-[rgb(var(--muted))]">
-          Startpunkt fuer Dossier, Abstimmungen, Mandat, Factcheck und Create. Die Prioritaeten werden je Persona
-          unterschiedlich gewichtet, damit Demo-Flows fuer Pitch und Review konsistent bleiben.
+          Startpunkt für Dossier, Abstimmungen, Mandat, Factcheck und Mitwirken. Die Prioritäten werden je Persona
+          unterschiedlich gewichtet, damit Demo-Flows für Pitch und Review konsistent bleiben.
         </p>
       </header>
 
@@ -116,7 +116,7 @@ export default async function DemoStudioPage({
         <div>
           <p className="text-sm font-semibold text-[rgb(var(--fg))]">Was willst du sehen?</p>
           <p className="text-xs text-[rgb(var(--muted))]">
-            Persona steuert Einstiegstexte, Prioritaeten und Default-Reihenfolge.
+            Persona steuert Einstiegstexte, Prioritäten und Default-Reihenfolge.
           </p>
         </div>
         <div className="grid gap-3 md:grid-cols-3">
@@ -136,7 +136,7 @@ export default async function DemoStudioPage({
                 <p className="mt-1 text-xs text-[rgb(var(--muted))]">{item.lead}</p>
                 <div className="mt-2 flex flex-wrap gap-1 text-[10px] uppercase tracking-wide text-[rgb(var(--muted))]">
                   {item.priorities.map((priority) => (
-                    <span key={priority} className="rounded-full border border-[rgb(var(--border))] px-2 py-0.5">
+                    <span key={priority} className="vog-chip vog-chip--status">
                       {priority}
                     </span>
                   ))}
@@ -156,7 +156,7 @@ export default async function DemoStudioPage({
           >
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-semibold text-[rgb(var(--fg))]">{module.title}</h2>
-              <span className="text-xs font-semibold text-[rgb(var(--muted))]">Oeffnen {"->"}</span>
+              <span className="text-xs font-semibold text-[rgb(var(--muted))]">Öffnen {"->"}</span>
             </div>
             <p className="mt-2 text-sm text-[rgb(var(--muted))]">
               {PERSONA_LEAD_BY_MODULE[persona][module.id] ?? module.baseLead}
@@ -165,7 +165,7 @@ export default async function DemoStudioPage({
               {module.tags.map((tag) => (
                 <span
                   key={tag}
-                  className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-1 text-[11px] font-semibold text-[rgb(var(--muted))]"
+                  className="vog-chip vog-chip--status"
                 >
                   {tag}
                 </span>

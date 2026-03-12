@@ -27,6 +27,8 @@ type DraftEntry = {
   createdAt: string;
 };
 
+type FocusState = "offen" | "in_pruefung" | "community" | "einspruch";
+
 const MODE_LABELS: Record<DemoDossierMode, string> = {
   lesen: "Lesen",
   mitwirken: "Mitwirken",
@@ -66,6 +68,12 @@ function jumpTo(sectionId: string) {
   node.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
+const MODE_FOCUS: Record<DemoDossierMode, string[]> = {
+  lesen: ["Überblick", "Akte", "Transparenzspur", "Optionen", "Offene Fragen"],
+  mitwirken: ["Inline-Mitwirken", "Eigene Einreichungen", "Beteiligungsstatus", "Relevante CTA"],
+  verwalten: ["Workflow", "Zuständigkeit", "Snapshot", "Delegation", "Audit & Wirkung"],
+};
+
 export default function DemoDossierClient({
   persona,
   initialMode,
@@ -83,6 +91,7 @@ export default function DemoDossierClient({
   const [link, setLink] = useState("");
   const [entries, setEntries] = useState<DraftEntry[]>([]);
   const [notice, setNotice] = useState<string | null>(null);
+  const [focusState, setFocusState] = useState<FocusState>("offen");
 
   useEffect(() => {
     let cancelled = false;
@@ -168,11 +177,8 @@ export default function DemoDossierClient({
               key={item}
               type="button"
               onClick={() => setMode(item)}
-              className={`rounded-full border px-3 py-1 text-xs font-semibold ${
-                mode === item
-                  ? "border-[rgb(var(--grad-from))] bg-[rgb(var(--bg))] text-[rgb(var(--fg))]"
-                  : "border-[rgb(var(--border))] text-[rgb(var(--muted))]"
-              }`}
+              aria-pressed={mode === item}
+              className={`vog-tab ${mode === item ? "vog-tab--active" : ""}`}
             >
               {MODE_LABELS[item]}
             </button>
@@ -195,20 +201,77 @@ export default function DemoDossierClient({
         </div>
 
         <div className="flex flex-wrap gap-2 text-[11px]">
-          <button type="button" className="vog-chip" onClick={() => jumpTo("fragen")}>
+          <button
+            type="button"
+            aria-pressed={focusState === "offen"}
+            className={`vog-chip ${focusState === "offen" ? "vog-chip--active" : ""}`}
+            onClick={() => {
+              setFocusState("offen");
+              jumpTo("fragen");
+            }}
+          >
             Offen
           </button>
-          <button type="button" className="vog-chip" onClick={() => jumpTo("fragen")}>
+          <button
+            type="button"
+            aria-pressed={focusState === "in_pruefung"}
+            className={`vog-chip ${focusState === "in_pruefung" ? "vog-chip--active" : ""}`}
+            onClick={() => {
+              setFocusState("in_pruefung");
+              jumpTo("fragen");
+            }}
+          >
             In Prüfung
           </button>
-          <button type="button" className="vog-chip" onClick={() => jumpTo("material")}>
+          <button
+            type="button"
+            aria-pressed={focusState === "community"}
+            className={`vog-chip ${focusState === "community" ? "vog-chip--active" : ""}`}
+            onClick={() => {
+              setFocusState("community");
+              jumpTo("material");
+            }}
+          >
             Community
           </button>
-          <button type="button" className="vog-chip" onClick={() => jumpTo("clusters")}>
+          <button
+            type="button"
+            aria-pressed={focusState === "einspruch"}
+            className={`vog-chip ${focusState === "einspruch" ? "vog-chip--active" : ""}`}
+            onClick={() => {
+              setFocusState("einspruch");
+              jumpTo("clusters");
+            }}
+          >
             Einsprüche
           </button>
         </div>
+        <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-xs text-[rgb(var(--muted))]">
+          Aktiver Fokus:{" "}
+          <span className="font-semibold text-[rgb(var(--fg))]">
+            {focusState === "offen"
+              ? "Offene Fragen"
+              : focusState === "in_pruefung"
+                ? "Fragen in Prüfung"
+                : focusState === "community"
+                  ? "Community-Eingänge"
+                  : "Einsprüche und Spannungen"}
+          </span>
+        </div>
         <p className="text-xs text-[rgb(var(--muted))]">Statusfluss: {statusLine}</p>
+      </section>
+
+      <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-soft space-y-3">
+        <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
+          Arbeitskontext · {MODE_LABELS[mode]}
+        </p>
+        <div className="grid gap-2 md:grid-cols-3">
+          {MODE_FOCUS[mode].map((item) => (
+            <div key={item} className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-sm text-[rgb(var(--fg))]">
+              {item}
+            </div>
+          ))}
+        </div>
       </section>
 
       {mode === "mitwirken" ? (
@@ -222,11 +285,8 @@ export default function DemoDossierClient({
                 key={item}
                 type="button"
                 onClick={() => setIntent(item)}
-                className={`rounded-full border px-3 py-1 font-semibold ${
-                  intent === item
-                    ? "border-[rgb(var(--grad-from))] bg-[rgb(var(--bg))] text-[rgb(var(--fg))]"
-                    : "border-[rgb(var(--border))] text-[rgb(var(--muted))]"
-                }`}
+                aria-pressed={intent === item}
+                className={`vog-tab ${intent === item ? "vog-tab--active" : ""}`}
               >
                 {INTENT_LABELS[item]}
               </button>
@@ -250,7 +310,7 @@ export default function DemoDossierClient({
               type="button"
               onClick={handleSubmitInline}
               disabled={submitDisabled}
-              className="rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+              className="btn btn-primary text-sm disabled:opacity-50"
             >
               Einreichen
             </button>
@@ -275,7 +335,7 @@ export default function DemoDossierClient({
       ) : null}
 
       {manageLocked ? (
-        <section className="rounded-3xl border border-amber-500/40 bg-amber-500/10 p-4 text-sm text-amber-100">
+        <section className="rounded-3xl border border-amber-500/40 bg-amber-500/10 p-4 text-sm text-amber-800 dark:text-amber-200">
           Verwalten ist in der Demo primär für Verwaltung sichtbar.
           <div className="mt-2">
             <Link
