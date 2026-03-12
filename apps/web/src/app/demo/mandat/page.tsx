@@ -1,6 +1,10 @@
 import { demoMandate } from "@features/mandate/demoMandate";
 import { getDemoPersonaConfig, parseDemoPersona } from "@/features/demo/personas";
-import { DEMO_STATUS_GLOSSARY } from "@/features/demo/statusLanguage";
+import {
+  DEMO_STATUS_GLOSSARY,
+  getDemoStatusLabel,
+  mapTimelineStatusToDemoKey,
+} from "@/features/demo/statusLanguage";
 
 const STATUS_STYLES: Record<string, string> = {
   done: "bg-emerald-100 text-emerald-700",
@@ -80,7 +84,7 @@ export default async function DemoMandatPage({
                   {item.note && <p className="text-xs text-[rgb(var(--muted))] mt-1">{item.note}</p>}
                 </div>
                 <span className={`h-fit rounded-full px-3 py-1 text-xs font-semibold ${STATUS_STYLES[item.status]}`}>
-                  {statusLabel(item.status)}
+                  {statusLabel(item.status)} · {getDemoStatusLabel(mapTimelineStatusToDemoKey(item.status))}
                 </span>
               </li>
             ))}
@@ -118,7 +122,7 @@ export default async function DemoMandatPage({
                 <div className="flex items-center justify-between gap-2">
                   <p className="font-semibold text-[rgb(var(--fg))]">{resp.area}</p>
                   <span className={`rounded-full px-3 py-1 text-xs font-semibold ${STATUS_STYLES[resp.status]}`}>
-                    {statusLabel(resp.status)}
+                    {statusLabel(resp.status)} · {getDemoStatusLabel(mapTimelineStatusToDemoKey(resp.status))}
                   </span>
                 </div>
                 <p className="text-xs text-[rgb(var(--muted))]">Owner: {resp.owner}</p>

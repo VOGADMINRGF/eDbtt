@@ -5,7 +5,7 @@ export type DemoPersonaConfig = {
   label: string;
   lead: string;
   priorities: string[];
-  defaultModule: "dossier" | "votes" | "mandat" | "factcheck";
+  defaultModule: "dossier" | "votes" | "mandat" | "factcheck" | "create";
 };
 
 export const DEMO_PERSONAS: DemoPersonaConfig[] = [
@@ -28,7 +28,7 @@ export const DEMO_PERSONAS: DemoPersonaConfig[] = [
     label: "Buerger & Creator",
     lead: "Fokus auf Verstehen, Mitwirken und transparente Statusrueckmeldung.",
     priorities: ["community eingereicht", "in Pruefung", "bestaetigt", "Transparenz"],
-    defaultModule: "dossier",
+    defaultModule: "create",
   },
 ];
 

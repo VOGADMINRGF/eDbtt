@@ -1,7 +1,11 @@
 import Link from "next/link";
 import { demoVotes } from "@features/votes/demoVotes";
 import { getDemoPersonaConfig, parseDemoPersona, withPersona } from "@/features/demo/personas";
-import { DEMO_STATUS_GLOSSARY } from "@/features/demo/statusLanguage";
+import {
+  DEMO_STATUS_GLOSSARY,
+  getDemoStatusLabel,
+  mapVoteStatusToDemoKey,
+} from "@/features/demo/statusLanguage";
 
 type SearchParamsShape =
   | Promise<Record<string, string | string[] | undefined>>
@@ -48,6 +52,10 @@ export default async function DemoVotesPage({
         ? "Sortiert nach Handlungsdruck (review -> draft -> published)."
         : "Sortiert nach Beteiligungsreife (published zuerst).";
 
+  const reviewCount = sortedVotes.filter((item) => item.status === "review").length;
+  const draftCount = sortedVotes.filter((item) => item.status === "draft").length;
+  const publishedCount = sortedVotes.filter((item) => item.status === "published").length;
+
   return (
     <main className="mx-auto min-h-screen max-w-5xl px-4 py-10 space-y-6">
       <header className="space-y-2">
@@ -62,6 +70,17 @@ export default async function DemoVotesPage({
             .join(" · ")}
           .
         </p>
+        <div className="flex flex-wrap gap-2 text-[11px]">
+          <span className="vog-chip">
+            {getDemoStatusLabel("in_review")}: {reviewCount}
+          </span>
+          <span className="vog-chip">
+            {getDemoStatusLabel("open")}: {draftCount}
+          </span>
+          <span className="vog-chip">
+            {getDemoStatusLabel("confirmed")}: {publishedCount}
+          </span>
+        </div>
       </header>
 
       <section className="grid gap-4 md:grid-cols-2">
@@ -74,7 +93,7 @@ export default async function DemoVotesPage({
               <span className="rounded-full bg-[rgb(var(--bg))] px-3 py-1 font-semibold text-[rgb(var(--muted))]">
                 {vote.regionLabel}
               </span>
-              <span>Status: {vote.status}</span>
+              <span>Status: {getDemoStatusLabel(mapVoteStatusToDemoKey(vote.status))}</span>
             </div>
             <div>
               <h2 className="text-lg font-semibold text-[rgb(var(--fg))]">{vote.title}</h2>

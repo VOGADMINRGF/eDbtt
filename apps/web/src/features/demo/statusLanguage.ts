@@ -28,3 +28,21 @@ export const DEMO_STATUS_GLOSSARY: DemoStatusItem[] = [
   },
   { key: "verified", label: "verifiziert", description: "Quelle/Claim ist dokumentiert und geprueft." },
 ];
+
+export function getDemoStatusLabel(key: DemoStatusKey): string {
+  return DEMO_STATUS_GLOSSARY.find((item) => item.key === key)?.label ?? key;
+}
+
+export function mapVoteStatusToDemoKey(status: "draft" | "review" | "published"): DemoStatusKey {
+  if (status === "draft") return "open";
+  if (status === "review") return "in_review";
+  return "confirmed";
+}
+
+export function mapTimelineStatusToDemoKey(
+  status: "done" | "in_progress" | "planned",
+): DemoStatusKey {
+  if (status === "done") return "verified";
+  if (status === "in_progress") return "in_review";
+  return "open";
+}

@@ -41,6 +41,13 @@ const MODULES = [
     baseLead: "Intake + Pruefverlauf fuer Text, Link, Datei und Video-URL (Demo).",
     tags: ["Intake", "Review", "Verdikt", "Status"],
   },
+  {
+    id: "create",
+    href: "/demo/create",
+    title: "Create Studio",
+    baseLead: "Intent-basierter Einstieg fuer Quelle, Frage, Perspektive, Widerspruch und Option.",
+    tags: ["Intents", "Routing", "Kontext", "Mitwirken"],
+  },
 ] as const;
 
 const PERSONA_LEAD_BY_MODULE: Record<
@@ -52,18 +59,21 @@ const PERSONA_LEAD_BY_MODULE: Record<
     votes: "Newsworthy-Ansicht: offen/in Pruefung, strittige Themen und Update-Fokus.",
     mandat: "Monitoring von Stockungen, Risiken und Wirkung pro Verantwortungsbereich.",
     factcheck: "Quellen- und Verdikt-Fokus mit klarer Demo-Kennzeichnung.",
+    create: "Schneller Intake fuer Quelle, Frage und Widerspruch mit nachvollziehbarer Spur.",
   },
   administration: {
     dossier: "Arbeitsfokus: Zustaendigkeiten, Delegation, Workflow und Dokumentationsstand.",
     votes: "Entscheidungsvorbereitung mit Status und priorisierter Umsetzungsrelevanz.",
     mandat: "Steuerungsfokus: Verantwortung, Umsetzungsgrad, Risiken und Wirkung.",
     factcheck: "Eingangspruefung fuer Hinweise aus Text/Link/Datei/Video mit Audit-Spur.",
+    create: "Strukturierter Eingang fuer Optionen, Verantwortungen und pruefbare Claims.",
   },
   citizen: {
     dossier: "Verstehen, einordnen, mitwirken: transparente Fragen- und Evidenzlage.",
     votes: "Klare Optionen mit sichtbarem Status, damit Beteiligung nachvollziehbar bleibt.",
     mandat: "Was wurde beschlossen und was passiert vor Ort als naechstes?",
     factcheck: "Niedrigschwelliger Einstieg fuer Pruefhinweise aus mehreren Input-Kanaelen.",
+    create: "Klarer Einstieg fuer Mitwirken ohne harte Routenwechsel.",
   },
 };
 

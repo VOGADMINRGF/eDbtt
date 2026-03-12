@@ -10,6 +10,7 @@ const DEMO_NAV = [
   { href: "/demo/votes", label: "Votes" },
   { href: "/demo/mandat", label: "Mandat" },
   { href: "/demo/factcheck", label: "Factcheck" },
+  { href: "/demo/create", label: "Create" },
 ];
 
 export default function DemoNavClient() {
