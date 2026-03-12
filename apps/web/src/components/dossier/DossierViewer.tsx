@@ -340,7 +340,13 @@ function mergeClusters(defaultClusters: PresentationCluster[], derivedClusters: 
   return derivedClusters;
 }
 
-export function DossierViewer({ dossier }: { dossier: Dossier }) {
+export function DossierViewer({
+  dossier,
+  hideExternalCreateLinks = false,
+}: {
+  dossier: Dossier;
+  hideExternalCreateLinks?: boolean;
+}) {
   const { meta, analyze, voteConfig } = dossier;
   const corrections = useMemo(() => dossier.corrections ?? [], [dossier.corrections]);
   const presentationBundle = useMemo(() => getPresentation(dossier), [dossier]);
@@ -359,6 +365,7 @@ export function DossierViewer({ dossier }: { dossier: Dossier }) {
   const [watchlistActive, setWatchlistActive] = useState<boolean | null>(null);
   const [watchlistBusy, setWatchlistBusy] = useState(false);
   const [clarificationNotice, setClarificationNotice] = useState<string | null>(null);
+  const [activeClusterFilter, setActiveClusterFilter] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -803,8 +810,14 @@ export function DossierViewer({ dossier }: { dossier: Dossier }) {
 
   const contestedClaimSet = useMemo(() => new Set(contestedClaimIds), [contestedClaimIds]);
 
-  const coreClaims = analyze.claims.filter((claim) => claim.importance === 5);
-  const secondaryClaims = analyze.claims.filter((claim) => claim.importance !== 5);
+  const rawCoreClaims = analyze.claims.filter((claim) => claim.importance === 5);
+  const rawSecondaryClaims = analyze.claims.filter((claim) => claim.importance !== 5);
+  const coreClaims = rawCoreClaims.filter((claim) =>
+    activeClusterFilter ? inferClusterFromClaim(claim) === activeClusterFilter : true,
+  );
+  const secondaryClaims = rawSecondaryClaims.filter((claim) =>
+    activeClusterFilter ? inferClusterFromClaim(claim) === activeClusterFilter : true,
+  );
 
   const metaChips = [
     { label: "Thema", value: presentation.topic?.label ?? "-" },
@@ -1176,6 +1189,7 @@ export function DossierViewer({ dossier }: { dossier: Dossier }) {
         materialLinkCount={materialLinkCount}
         materialLinks={materialLinks}
         viewerRole={viewerRole}
+        disableCreateLinks={hideExternalCreateLinks}
       />
 
       <MunicipalityMode regionalSuggestions={presentation.regionalSuggestions} viewerRole={viewerRole as any} />
@@ -1264,7 +1278,7 @@ export function DossierViewer({ dossier }: { dossier: Dossier }) {
           Einordnung der Kernpositionen, Teilaspekte, Spannungsfelder und offenen Fragen.
         </p>
       </section>
-      <section className="space-y-4">
+      <section id="clusters" className="space-y-4">
         <div className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
           {SECTION_TITLES.clusters}
         </div>
@@ -1272,10 +1286,30 @@ export function DossierViewer({ dossier }: { dossier: Dossier }) {
         {clusters.length ? (
           <div className="flex flex-wrap gap-2 text-[11px] text-[rgb(var(--muted))]">
             {clusters.map((cluster) => (
-              <span key={cluster.label} className="vog-chip">
+              <button
+                key={cluster.label}
+                type="button"
+                onClick={() =>
+                  setActiveClusterFilter((prev) => (prev === cluster.label ? null : cluster.label))
+                }
+                className={`vog-chip ${
+                  activeClusterFilter === cluster.label
+                    ? "border-[rgb(var(--grad-from))] bg-[rgb(var(--bg))] text-[rgb(var(--fg))]"
+                    : ""
+                }`}
+              >
                 {cluster.label} ({cluster.count})
-              </span>
+              </button>
             ))}
+            {activeClusterFilter ? (
+              <button
+                type="button"
+                onClick={() => setActiveClusterFilter(null)}
+                className="vog-chip border-[rgb(var(--border))] bg-[rgb(var(--card))]"
+              >
+                Filter zurücksetzen
+              </button>
+            ) : null}
           </div>
         ) : (
           <p className="text-sm text-[rgb(var(--muted))]">Keine Cluster hinterlegt.</p>
@@ -1330,6 +1364,11 @@ export function DossierViewer({ dossier }: { dossier: Dossier }) {
                 </div>
               </article>
             ))}
+            {coreClaims.length === 0 ? (
+              <p className="rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm text-[rgb(var(--muted))]">
+                Keine Kernaussagen für den aktiven Clusterfilter.
+              </p>
+            ) : null}
           </div>
         </div>
 
@@ -1363,6 +1402,11 @@ export function DossierViewer({ dossier }: { dossier: Dossier }) {
                 <p className="text-sm text-[rgb(var(--muted))]">{claim.text}</p>
               </article>
             ))}
+            {secondaryClaims.length === 0 ? (
+              <p className="rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm text-[rgb(var(--muted))]">
+                Keine Teilaspekte für den aktiven Clusterfilter.
+              </p>
+            ) : null}
           </div>
         </div>
       </section>
@@ -1454,7 +1498,7 @@ export function DossierViewer({ dossier }: { dossier: Dossier }) {
 
   const sidebar = (
     <>
-      <section className="vog-card p-5 space-y-2">
+      <section id="akte" className="vog-card p-5 space-y-2">
         <div className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
           {SECTION_TITLES.metadata}
         </div>
@@ -1478,6 +1522,7 @@ export function DossierViewer({ dossier }: { dossier: Dossier }) {
         ) : null}
       </section>
       <TransparencyPanel
+        sectionId="transparenz"
         sources={sources}
         runReceipt={analyze.runReceipt}
         createdAt={meta.createdAt}
@@ -1532,7 +1577,7 @@ export function DossierViewer({ dossier }: { dossier: Dossier }) {
 
   const afterSidebar = (
     <>
-      <section className="vog-card p-5 space-y-3">
+      <section id="fragen" className="vog-card p-5 space-y-3">
         <div className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
           {SECTION_TITLES.questions}
         </div>

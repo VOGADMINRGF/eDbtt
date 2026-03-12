@@ -82,9 +82,9 @@ export function ExamplesMarqueeRows(props: {
   return (
     <div ref={ref} className="absolute inset-0 z-0 overflow-hidden">
       {/* calmer backdrop (less “heavy white overlay”) */}
-      <div className="pointer-events-none absolute inset-0 edb-backdrop-glow bg-[radial-gradient(900px_520px_at_30%_0%,rgba(26,140,255,0.16),transparent_58%),radial-gradient(900px_520px_at_72%_0%,rgba(24,207,200,0.14),transparent_58%)]" />
-      <div className="pointer-events-none absolute inset-0 edb-backdrop-waves bg-[linear-gradient(120deg,rgba(26,140,255,0.05),transparent_48%),linear-gradient(300deg,rgba(24,207,200,0.05),transparent_48%)]" />
-      <div className="pointer-events-none absolute inset-0 bg-[rgb(var(--bg))]" />
+      <div className="pointer-events-none absolute inset-0 edb-backdrop-glow opacity-55 dark:opacity-90 bg-[radial-gradient(900px_520px_at_30%_0%,rgba(26,140,255,0.12),transparent_58%),radial-gradient(900px_520px_at_72%_0%,rgba(24,207,200,0.1),transparent_58%)]" />
+      <div className="pointer-events-none absolute inset-0 edb-backdrop-waves opacity-45 dark:opacity-80 bg-[linear-gradient(120deg,rgba(26,140,255,0.04),transparent_48%),linear-gradient(300deg,rgba(24,207,200,0.04),transparent_48%)]" />
+      <div className="pointer-events-none absolute inset-0 bg-[rgb(var(--bg))] opacity-[0.88] dark:opacity-[0.68]" />
 
       {/* tighter vertical rhythm */}
       <div className="relative mx-auto grid h-[100svh] min-h-screen w-full grid-rows-[repeat(5,minmax(0,1fr))] gap-3 overflow-hidden px-3 pt-14 pb-5 sm:gap-4 sm:px-6">

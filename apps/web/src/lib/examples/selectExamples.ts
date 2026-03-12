@@ -3,6 +3,44 @@ import { SEED_EXAMPLES } from "./seedExamples";
 
 type Bucket = "WORLD" | "EU" | "NEIGHBORS" | "HOME_COUNTRY" | "HOME_REGION" | "HOME_LOCAL";
 
+const DE_REGION_ALIASES: Record<string, string> = {
+  bw: "BW",
+  "baden-württemberg": "BW",
+  "baden-wuerttemberg": "BW",
+  bayern: "BY",
+  by: "BY",
+  berlin: "BE",
+  be: "BE",
+  brandenburg: "BB",
+  bb: "BB",
+  bremen: "HB",
+  hb: "HB",
+  hamburg: "HH",
+  hh: "HH",
+  hessen: "HE",
+  he: "HE",
+  "mecklenburg-vorpommern": "MV",
+  mv: "MV",
+  niedersachsen: "NI",
+  ni: "NI",
+  "nordrhein-westfalen": "NW",
+  nrw: "NW",
+  nw: "NW",
+  "rheinland-pfalz": "RP",
+  rp: "RP",
+  saarland: "SL",
+  sl: "SL",
+  sachsen: "SN",
+  sn: "SN",
+  "sachsen-anhalt": "ST",
+  st: "ST",
+  "schleswig-holstein": "SH",
+  sh: "SH",
+  "thüringen": "TH",
+  "thueringen": "TH",
+  th: "TH",
+};
+
 function stableHash(input: string): number {
   // tiny deterministic hash (good enough for stable shuffle)
   let h = 2166136261;
@@ -33,6 +71,13 @@ function shuffleStable<T>(arr: T[], seedKey: string): T[] {
   return a;
 }
 
+function normalizeRegion(country: string | undefined, region: string | undefined) {
+  const value = (region ?? "").trim();
+  if (!value) return undefined;
+  if ((country ?? "").toUpperCase() !== "DE") return value.toUpperCase();
+  return DE_REGION_ALIASES[value.toLowerCase()] ?? value.toUpperCase();
+}
+
 export function selectExamples(params: {
   bucket: Bucket;
   country?: string;
@@ -42,6 +87,7 @@ export function selectExamples(params: {
   seedKey: string; // e.g. `${country}-${region}-${YYYYMMDD}`
 }): ExampleItem[] {
   const { bucket, country, region, neighbors = [], limit, seedKey } = params;
+  const normalizedRegion = normalizeRegion(country, region);
 
   const all = SEED_EXAMPLES;
 
@@ -54,15 +100,24 @@ export function selectExamples(params: {
   } else if (bucket === "HOME_COUNTRY") {
     pool = all.filter((x) => x.scope === "COUNTRY" && x.country === country);
   } else if (bucket === "HOME_REGION") {
-    pool = all.filter((x) => x.scope === "REGION" && x.country === country && x.region === region);
-    // fallback: if no region matches, fallback to home country
+    pool = all.filter(
+      (x) =>
+        x.scope === "REGION" &&
+        x.country === country &&
+        normalizeRegion(country, x.region) === normalizedRegion,
+    );
+    // fallback: keep regional cards if exact region has no seed
+    if (pool.length === 0) {
+      pool = all.filter((x) => x.scope === "REGION" && x.country === country);
+    }
+    // final fallback to country-level cards
     if (pool.length === 0) {
       pool = all.filter((x) => x.scope === "COUNTRY" && x.country === country);
     }
   } else if (bucket === "HOME_LOCAL") {
     pool = all.filter((x) => x.scope === "REGION" && x.country === country);
-    if (region) {
-      pool = pool.filter((x) => x.region === region);
+    if (normalizedRegion) {
+      pool = pool.filter((x) => normalizeRegion(country, x.region) === normalizedRegion);
     }
     if (pool.length === 0) {
       pool = all.filter((x) => x.scope === "COUNTRY" && x.country === country);

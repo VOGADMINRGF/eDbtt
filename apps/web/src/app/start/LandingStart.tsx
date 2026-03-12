@@ -201,7 +201,11 @@ export default function LandingStart({ blocks, geo }: LandingStartProps) {
         }}
         onOpen={(item) => {
           ingestExample(item);
-          const target = `/pricing?from=landing&kind=${encodeURIComponent(item.kind)}&scope=${encodeURIComponent(item.scope)}`;
+          const target =
+            `/demo/dossier?persona=citizen` +
+            `&from=landing` +
+            `&kind=${encodeURIComponent(item.kind)}` +
+            `&scope=${encodeURIComponent(item.scope)}`;
           router.push(target as any);
         }}
       />

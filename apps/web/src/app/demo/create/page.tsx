@@ -37,7 +37,7 @@ export default async function DemoCreatePage({
     <main className="mx-auto min-h-screen max-w-5xl px-4 py-10 space-y-6">
       <header className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-6 shadow-sm space-y-3">
         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[rgb(var(--muted))]">
-          Demo - Create Studio
+          Demo - Create-Einstieg
         </p>
         <h1 className="text-3xl font-semibold text-[rgb(var(--fg))]">
           Einheitlicher Intake fuer {personaCfg.label}
@@ -83,7 +83,7 @@ export default async function DemoCreatePage({
       </section>
 
       <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm space-y-2">
-        <p className="text-sm font-semibold text-[rgb(var(--fg))]">Nutzung in der Demo-Experience</p>
+        <p className="text-sm font-semibold text-[rgb(var(--fg))]">Nutzung in der Demo-Erfahrung</p>
         <p className="text-sm text-[rgb(var(--muted))]">
           Du kannst von hier in Dossier, Votes, Mandat und Factcheck wechseln, ohne Persona-Kontext
           zu verlieren.
