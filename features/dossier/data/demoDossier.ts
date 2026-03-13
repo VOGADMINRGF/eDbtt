@@ -341,6 +341,15 @@ export const demoDossier: Dossier = {
           "Aktualisierte Vergleichswerte zeigen höhere Neubaukosten in der Region als in der Erstannahme.",
         excerptRef: "Baukostenindex 2025, Regionalvergleich",
       },
+      {
+        id: "f-6",
+        claimId: "stmt-5",
+        sourceId: "src-1",
+        finding: "contradicts",
+        rationale:
+          "Der kommunale Entwurf enthält keine belastbare Deckung für die angenommene Betriebskostenreduktion.",
+        excerptRef: "Haushaltsentwurf 2026, Abschnitt Folgekosten",
+      },
     ],
     notes: [
       {
@@ -1202,6 +1211,15 @@ export const demoDossier: Dossier = {
       summary: "Haushaltsentwurf ergänzt um aktualisierten Investitionsrahmen.",
       status: "accepted",
     },
+    {
+      id: "corr-3",
+      createdAt: "2026-02-22T09:12:00.000Z",
+      kind: "objection",
+      targetType: "claim",
+      targetId: "stmt-5",
+      summary: "Betriebskostenannahmen widersprechen den aktuellen Haushaltsunterlagen.",
+      status: "open",
+    },
   ],
   truthGuardrails: {
     framingStatus: "relativized",
@@ -1209,11 +1227,11 @@ export const demoDossier: Dossier = {
       "Mehrere Gegenbelege und ein offener Einspruch relativieren die erste mediale Zuspitzung.",
     sourceDivergence: {
       supports: 2,
-      contradicts: 1,
+      contradicts: 2,
       unclear: 1,
       mentions: 1,
-      score: 0.33,
-      status: "mixed",
+      score: 0.5,
+      status: "contested",
     },
     factcheckIntervention: {
       status: "in_review",

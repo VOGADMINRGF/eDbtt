@@ -12,8 +12,8 @@ import ParticipationStatus from "./ParticipationStatus";
 import LegitimacyPanel, { type LegitimacyMetric, type LegitimacyStatus } from "./LegitimacyPanel";
 import TransparencyPanel from "./TransparencyPanel";
 import AuditTimeline from "./AuditTimeline";
-import CorrectionsPanel from "./CorrectionsPanel";
-import TruthGuardrailsPanel from "./TruthGuardrailsPanel";
+import SourceDivergencePanel from "./SourceDivergencePanel";
+import TruthStatusPanel from "./TruthStatusPanel";
 import ExportPanel from "./ExportPanel";
 import EditorialInbox from "./EditorialInbox";
 import EditorialInboxLive from "./EditorialInboxLive";
@@ -1069,15 +1069,18 @@ export function DossierViewer({
           {truthGuardrails.framingStatus !== "initial" ? (
             <div className="rounded-xl border border-amber-500/45 bg-amber-500/10 p-4">
               <p className="text-[11px] font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
-                Framing-Hinweis
+                Factcheck-Intervention
               </p>
               <p className="text-sm font-semibold text-[rgb(var(--fg))]">
-                Gegenquellen aktiv: Erstframing wird relativiert.
+                Gegenquellen aktiv: journalistische Darstellung wird sichtbar relativiert.
               </p>
               <p className="text-[11px] text-[rgb(var(--muted))]">
                 Das Dossier priorisiert nun Gegenbelege, Factcheck und Einspruch vor einer finalen
                 Einordnung.
               </p>
+              <Link href="#abweichende-quellenlage" className="mt-2 inline-flex btn-secondary text-xs">
+                Abweichende Evidenz anzeigen
+              </Link>
             </div>
           ) : null}
           <InstitutionalHeader dossierId={meta.id} viewerRole={viewerRole as any} inst={inst} />
@@ -1161,6 +1164,11 @@ export function DossierViewer({
 
   const mainLeft = (
     <>
+      <TruthStatusPanel
+        guardrails={truthGuardrails}
+        claims={analyze.claims}
+        corrections={corrections}
+      />
       <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Link
           href="#streams"
@@ -1549,7 +1557,13 @@ export function DossierViewer({
           </>
         ) : null}
       </section>
-      <TruthGuardrailsPanel guardrails={truthGuardrails} />
+      <SourceDivergencePanel
+        sectionId="abweichende-quellenlage"
+        guardrails={truthGuardrails}
+        findings={analyze.findings}
+        corrections={corrections}
+        sources={sources}
+      />
       <TransparencyPanel
         sectionId="transparenz"
         sources={sources}
@@ -1558,7 +1572,6 @@ export function DossierViewer({
         updatedAt={meta.updatedAt}
         revision={meta.revision}
       />
-      <CorrectionsPanel items={corrections} />
       <AuditTimeline events={inst.data?.auditTrail ?? []} />
       <ExportPanel dossierId={meta.id} />
       <MandatePanel viewerRole={viewerRole as any} />
