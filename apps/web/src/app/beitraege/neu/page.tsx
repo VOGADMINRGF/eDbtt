@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 
 export default function BeitraegeNeuPage() {
-  redirect("/contributions/new");
+  redirect("/create?intent=source");
 
   return (
     <main className="mx-auto flex max-w-2xl flex-col gap-3 px-4 py-12">

@@ -186,7 +186,7 @@ const FEATURE_INTEREST_OPTIONS: Array<{
 
 const ACCOUNT_SECTION_LINKS = [
   { id: "account-core-heading", label: "Profil" },
-  { id: "account-public-heading", label: "Oeffentlich" },
+  { id: "account-public-heading", label: "Öffentlich" },
   { id: "account-membership-heading", label: "Mitgliedschaft" },
   { id: "account-security-heading", label: "Sicherheit" },
   { id: "account-advanced-heading", label: "Pilot-Funktionen" },
@@ -254,7 +254,7 @@ export function AccountClient({ initialData, membershipNotice, preorderNotice, w
         <MicroTransferBanner paymentReference={data.membershipSnapshot?.paymentReference} />
       )}
       {preorderNotice && (
-        <div className="mb-4 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
+        <div className="mb-4 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900 dark:border-emerald-500/35 dark:bg-emerald-500/12 dark:text-emerald-100">
           Vormerkung gespeichert. Wenn du eine E-Mail angegeben hast, senden wir dir eine Bestätigung. Die Vormerkung
           erscheint unten in deiner Übersicht.
         </div>
@@ -491,10 +491,10 @@ function MembershipBanner() {
   return (
     <section
       aria-label="Bestätigung eDebatte-Paket"
-      className="rounded-3xl border border-emerald-100 bg-emerald-50/80 px-4 py-3 text-sm text-emerald-900 shadow-sm"
+      className="rounded-3xl border border-emerald-100 bg-emerald-50/80 px-4 py-3 text-sm text-emerald-900 shadow-sm dark:border-emerald-500/35 dark:bg-emerald-500/12 dark:text-emerald-100"
     >
       <p className="font-medium">Vielen Dank für deine Vormerkung von eDebatte!</p>
-      <p className="mt-1 text-xs text-emerald-800">
+      <p className="mt-1 text-xs text-emerald-800 dark:text-emerald-200">
         Dein eDebatte-Paket ist in deinem Konto hinterlegt. Sobald eDebatte startet, erhältst du eine separate Bestätigung mit allen Details per
         E-Mail.
       </p>
@@ -506,10 +506,10 @@ function WelcomeBanner() {
   return (
     <section
       aria-label="Willkommen"
-      className="rounded-3xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-900 shadow-sm"
+      className="rounded-3xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-900 shadow-sm dark:border-sky-500/35 dark:bg-sky-500/12 dark:text-sky-100"
     >
       <p className="font-medium">Herzlich willkommen! Dein Konto ist jetzt vollständig eingerichtet.</p>
-      <p className="mt-1 text-xs text-sky-800">
+      <p className="mt-1 text-xs text-sky-800 dark:text-sky-200">
         Du kannst dein Profil anpassen, Benachrichtigungen einstellen und dein eDebatte-Paket auswählen.
       </p>
     </section>
@@ -521,10 +521,10 @@ function IdentityPendingBanner() {
   return (
     <section
       aria-label="Identitätsprüfung offen"
-      className="rounded-3xl border border-amber-200 bg-amber-50/80 px-4 py-3 text-sm text-amber-900 shadow-sm"
+      className="rounded-3xl border border-amber-200 bg-amber-50/80 px-4 py-3 text-sm text-amber-900 shadow-sm dark:border-amber-500/35 dark:bg-amber-500/12 dark:text-amber-100"
     >
       <p className="font-medium">Identitätsprüfung noch offen.</p>
-      <p className="mt-1 text-xs text-amber-800">
+      <p className="mt-1 text-xs text-amber-800 dark:text-amber-200">
         Für verifizierte Aktionen brauchst du noch den Authenticator-Schritt. Das dauert nur eine Minute.
       </p>
       <div className="mt-3 flex flex-wrap gap-2">
@@ -541,14 +541,14 @@ function IdentityPendingBanner() {
 
 function MicroTransferBanner({ paymentReference }: { paymentReference?: string | null }) {
   return (
-    <section className="rounded-3xl border border-sky-200 bg-sky-50 px-5 py-4 text-sm text-sky-900 shadow-[0_16px_50px_rgba(14,116,144,0.12)]">
+    <section className="rounded-3xl border border-sky-200 bg-sky-50 px-5 py-4 text-sm text-sky-900 shadow-[0_16px_50px_rgba(14,116,144,0.12)] dark:border-sky-500/35 dark:bg-sky-500/12 dark:text-sky-100">
       <p className="font-semibold">Deine Mitgliedschaft wartet auf die 0,01 €-Verifikation.</p>
-      <p className="mt-1 text-xs text-sky-800">
+      <p className="mt-1 text-xs text-sky-800 dark:text-sky-200">
         Sobald der TAN-Code aus der 0,01 €-Überweisung vorliegt, kannst du ihn im Zahlungsprofil
         eingeben.
       </p>
       {paymentReference && (
-        <p className="mt-2 text-[11px] text-sky-700">
+        <p className="mt-2 text-[11px] text-sky-700 dark:text-sky-200">
           Beitrags-Verwendungszweck: <span className="font-semibold">{paymentReference}</span>
         </p>
       )}
@@ -1489,8 +1489,8 @@ function VOGMembershipCard({ membership, membershipStatus, paymentReference }: V
       {membership.contributionLabel && <p className="mt-1 text-xs text-[rgb(var(--muted))]">Beitrag: {membership.contributionLabel}</p>}
 
       {isWaitingPayment && (
-        <div className="mt-3 rounded-2xl border border-amber-200 bg-amber-50/70 px-3 py-2 text-[11px] text-amber-800">
-          Zahlung ausstehend. Bitte pruefe dein Zahlungsprofil und die Beitragsreferenz.
+        <div className="mt-3 rounded-2xl border border-amber-200 bg-amber-50/70 px-3 py-2 text-[11px] text-amber-800 dark:border-amber-500/35 dark:bg-amber-500/12 dark:text-amber-200">
+          Zahlung ausstehend. Bitte prüfe dein Zahlungsprofil und die Beitragsreferenz.
           {paymentHint ? <p className="mt-1 font-semibold">{paymentHint}</p> : null}
         </div>
       )}
@@ -1501,11 +1501,11 @@ function VOGMembershipCard({ membership, membershipStatus, paymentReference }: V
 
       <div className="mt-4 flex flex-wrap gap-2">
         <Link href="/pricing" className={primaryButtonSmallClass}>
-          {membership.isMember ? "Paket & Preise" : "Paket waehlen"}
+          {membership.isMember ? "Paket & Preise" : "Paket wählen"}
         </Link>
         {isWaitingPayment && (
           <Link href="/account/payment" className={secondaryLightButtonClass}>
-            Zahlungsprofil oeffnen
+            Zahlungsprofil öffnen
           </Link>
         )}
         <Link href="/transparenz" className={secondaryLightButtonClass}>

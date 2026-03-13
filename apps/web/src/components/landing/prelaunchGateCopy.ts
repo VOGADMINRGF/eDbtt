@@ -13,6 +13,7 @@ export const PRELAUNCH_GATE_COPY: Record<
     submitTitle: string;
     submitText: string;
     submitCta: string;
+    registerCta: string;
     productsTitle: string;
     productsHint: string;
     contactCta: string;
@@ -35,6 +36,7 @@ export const PRELAUNCH_GATE_COPY: Record<
     submitTitle: "So zur Prüfung stellen",
     submitText: "Wir übernehmen dein Anliegen wie eingereicht und prüfen es vor Veröffentlichung.",
     submitCta: "Zur Prüfung einreichen",
+    registerCta: "Kostenfrei anmelden",
     productsTitle: "Pakete & Vormerkung",
     productsHint: "Wischen",
     contactCta: "Kontakt / Vorfuehrliste",
@@ -55,6 +57,7 @@ export const PRELAUNCH_GATE_COPY: Record<
     submitTitle: "Submit as-is",
     submitText: "We take it as submitted and review it before publishing.",
     submitCta: "Submit for review",
+    registerCta: "Create free account",
     productsTitle: "Packages & pre-signup",
     productsHint: "Swipe",
     contactCta: "Contact / demo list",

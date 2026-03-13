@@ -19,6 +19,7 @@ type PrelaunchGateModalProps = {
   onRefine: () => void;
   onSubmit: () => void;
   preorderHref?: string;
+  registerHref?: string;
 };
 
 export function PrelaunchGateModal({
@@ -28,6 +29,7 @@ export function PrelaunchGateModal({
   onRefine,
   onSubmit,
   preorderHref = "/vormerken",
+  registerHref = "/register?next=%2Fcreate",
 }: PrelaunchGateModalProps) {
   if (!open) return null;
   const c = PRELAUNCH_GATE_COPY[lang];
@@ -78,9 +80,18 @@ export function PrelaunchGateModal({
               <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm">
                 <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">{c.submitTitle}</p>
                 <p className="mt-2 text-sm font-semibold text-[rgb(var(--muted))]">{c.submitText}</p>
+                <p className="mt-2 text-xs text-[rgb(var(--muted))]">
+                  Melde dich kostenfrei an, damit du Updates zu deinem Thema und der Prüfung erhältst.
+                </p>
+                <Link
+                  href={registerHref}
+                  className="mt-3 inline-flex w-full items-center justify-center rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-2.5 text-sm font-semibold text-[rgb(var(--muted))] hover:bg-[rgb(var(--bg))]"
+                >
+                  {c.registerCta} →
+                </Link>
                 <button
                   type="button"
-                  className="mt-4 inline-flex w-full items-center justify-center rounded-full bg-gradient-to-r from-[rgb(var(--grad-from))] to-[rgb(var(--grad-to))] px-4 py-2.5 text-sm font-extrabold text-white shadow-[0_10px_24px_rgba(24,165,255,0.25)] hover:opacity-95"
+                  className="mt-3 inline-flex w-full items-center justify-center rounded-full bg-gradient-to-r from-[rgb(var(--grad-from))] to-[rgb(var(--grad-to))] px-4 py-2.5 text-sm font-extrabold text-white shadow-[0_10px_24px_rgba(24,165,255,0.25)] hover:opacity-95"
                   onClick={() => {
                     onClose();
                     onSubmit();

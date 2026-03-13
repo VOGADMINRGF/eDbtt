@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getDemoVote } from "@features/votes/demoVotes";
+import { parseDemoPersona, withPersona } from "@/features/demo/personas";
 
 const STATUS_STYLES: Record<string, string> = {
   done: "bg-emerald-100 text-emerald-700",
@@ -10,18 +11,23 @@ const STATUS_STYLES: Record<string, string> = {
 
 export default async function DemoVoteDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const { id } = await params;
+  const resolved = searchParams ? await searchParams : {};
+  const personaValue = resolved?.persona;
+  const persona = parseDemoPersona(Array.isArray(personaValue) ? personaValue[0] : personaValue);
   const vote = getDemoVote(id);
   if (!vote) notFound();
 
   return (
     <main className="mx-auto min-h-screen max-w-5xl px-4 py-10 space-y-6">
       <header className="space-y-2">
-        <Link href="/demo/votes" className="text-xs font-semibold uppercase text-[rgb(var(--muted))]">
-          &larr; Zur Uebersicht
+        <Link href={withPersona("/demo/votes", persona)} className="text-xs font-semibold uppercase text-[rgb(var(--muted))]">
+          &larr; Zur Übersicht
         </Link>
         <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Demo - Abstimmung</p>
         <h1 className="text-3xl font-semibold text-[rgb(var(--fg))]">{vote.title}</h1>
@@ -105,7 +111,7 @@ export default async function DemoVoteDetailPage({
                   {item.status === "done"
                     ? "erledigt"
                     : item.status === "in_progress"
-                    ? "laeuft"
+                    ? "läuft"
                     : "geplant"}
                 </span>
               </li>

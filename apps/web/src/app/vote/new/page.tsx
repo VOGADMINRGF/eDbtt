@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { buildCreateHref } from "@/features/create/intents";
 
 export default function VoteNewPage({
   searchParams,
@@ -20,7 +21,7 @@ export default function VoteNewPage({
         <Link className="rounded-full bg-slate-900 px-4 py-2 text-white" href="/votes">
           Zu Abstimmungen
         </Link>
-        <Link className="rounded-full border px-4 py-2" href="/contributions/new">
+        <Link className="rounded-full border px-4 py-2" href={buildCreateHref({ intent: "source" })}>
           Zurück
         </Link>
       </div>

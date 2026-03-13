@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import type { AccountOverview } from "@features/account/types";
 import { getProfilePackageForAccessTier } from "@features/account/profilePackages";
+import { buildCreateHref } from "@/features/create/intents";
 
 export default function UserProfile() {
   const [data, setData] = useState<AccountOverview | null>(null);
@@ -121,7 +122,7 @@ export default function UserProfile() {
             Weiter swipen
           </a>
           <a
-            href="/contributions/new"
+            href={buildCreateHref({ intent: "source" })}
             className="flex-1 rounded-full border border-[rgb(var(--border))] px-6 py-3 text-center font-semibold text-[rgb(var(--muted))]"
           >
             Neue Contribution starten

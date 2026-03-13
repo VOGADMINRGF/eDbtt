@@ -7,6 +7,7 @@ type TransparencyPanelProps = {
   createdAt?: string | null;
   updatedAt?: string | null;
   revision?: Dossier["meta"]["revision"];
+  sectionId?: string;
 };
 
 const SOURCE_TYPE_LABELS: Record<string, string> = {
@@ -43,9 +44,10 @@ export function TransparencyPanel({
   createdAt,
   updatedAt,
   revision,
+  sectionId,
 }: TransparencyPanelProps) {
   return (
-    <section className="vog-card p-5 space-y-3">
+    <section id={sectionId} className="vog-card p-5 space-y-3">
       <div className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
         Transparenz & Protokoll
       </div>

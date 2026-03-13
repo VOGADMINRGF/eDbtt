@@ -35,7 +35,7 @@ export default async function PaymentPage() {
   const paymentReference = membership?.paymentReference ?? null;
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-white py-10">
+    <main className="min-h-screen bg-[rgb(var(--bg))] py-10">
       <div className="mx-auto max-w-3xl space-y-6 px-4">
         <header className="space-y-2">
           <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-sky-600">Zahlungsprofil</p>
@@ -80,7 +80,7 @@ export default async function PaymentPage() {
             <p className="text-sm text-[rgb(var(--fg))]">Aktuell Bankeinzug / Überweisung. Weitere Optionen (z.B. Karte) folgen.</p>
           </div>
 
-          <div className="rounded-2xl bg-slate-900/90 px-4 py-3 text-[11px] text-slate-100">
+          <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-4 py-3 text-[11px] text-[rgb(var(--muted))]">
             Wenn etwas unklar ist, schreib uns kurz an{" "}
             <a href="mailto:members@edebatte.org" className="font-semibold underline">
               members@edebatte.org

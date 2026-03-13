@@ -82,7 +82,8 @@ export default function SecurityPage() {
   }
 
   return (
-    <div className="mx-auto flex max-w-2xl flex-col gap-6 p-6">
+    <main className="min-h-screen bg-[rgb(var(--bg))] py-8">
+      <div className="mx-auto flex max-w-2xl flex-col gap-6 px-4">
       <header className="space-y-2">
         <h1 className="text-2xl font-semibold text-[rgb(var(--fg))]">Sicherheit &amp; 2-Faktor</h1>
         <p className="text-sm text-[rgb(var(--muted))]">
@@ -97,7 +98,7 @@ export default function SecurityPage() {
         {loading && <p className="text-sm text-[rgb(var(--muted))]">Status wird geladen …</p>}
 
         {totp.status === "success" && status.enabled && (
-          <div className="rounded-2xl bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
+          <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800 dark:border-emerald-500/35 dark:bg-emerald-500/12 dark:text-emerald-200">
             2-Faktor ist aktiv{status.updatedAt ? ` · aktiviert am ${status.updatedAt}` : ""}. Wenn du neu koppeln willst, deaktiviere die alte App und starte
             das Setup erneut.
           </div>
@@ -107,7 +108,7 @@ export default function SecurityPage() {
           <button
             type="button"
             onClick={startTotp}
-            className="rounded-full bg-slate-900 px-5 py-2 text-sm font-semibold text-white"
+            className="btn btn-primary text-sm"
           >
             2-Faktor mit App einrichten
           </button>
@@ -147,7 +148,7 @@ export default function SecurityPage() {
               <button
                 type="submit"
                 disabled={totp.status === "verifying"}
-                className="rounded-full bg-emerald-600 px-5 py-2 text-sm font-semibold text-white disabled:opacity-60"
+                className="btn btn-primary text-sm disabled:opacity-60"
               >
                 {totp.status === "verifying" ? "Prüfe Code …" : "Code bestätigen"}
               </button>
@@ -165,6 +166,7 @@ export default function SecurityPage() {
           <p className="text-sm font-semibold text-red-600">{totp.message}</p>
         )}
       </section>
-    </div>
+      </div>
+    </main>
   );
 }

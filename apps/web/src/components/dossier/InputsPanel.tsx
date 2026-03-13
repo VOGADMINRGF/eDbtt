@@ -1,5 +1,6 @@
 import Link from "next/link";
 import MaterialLinksPanel from "./MaterialLinksPanel";
+import { buildCreateHref } from "@/features/create/intents";
 import type { PresentationContribution, PresentationStream, PresentationTraceability } from "./presentation";
 
 type InputsPanelProps = {
@@ -21,6 +22,7 @@ type InputsPanelProps = {
     edgeType?: "supports" | "mentions" | "contradicts" | "unknown";
   }> | null;
   viewerRole?: string | null;
+  disableCreateLinks?: boolean;
 };
 
 function formatDate(value: string) {
@@ -45,23 +47,37 @@ export function InputsPanel({
   materialLinkCount,
   materialLinks,
   viewerRole,
+  disableCreateLinks,
 }: InputsPanelProps) {
   const streamMap = traceability.streamsToStatements ?? {};
   const contributionMap = traceability.contributionsToStatements ?? {};
 
   return (
-    <section className="space-y-4">
+    <section id="material" className="space-y-4">
       <div className="grid gap-4 md:grid-cols-[1.1fr_0.9fr]">
         <div id="streams" className="vog-card p-5 space-y-3">
         <div className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Material</div>
-        {dossierId ? (
+        {dossierId && !disableCreateLinks ? (
           <div className="flex flex-wrap gap-2 text-[11px]">
-            <Link href={`/contributions/new?dossierId=${encodeURIComponent(dossierId)}`} className="btn btn-ghost text-xs">
+            <Link
+              href={buildCreateHref({ intent: "source", dossierId })}
+              className="btn btn-ghost text-xs"
+            >
               Beitrag hinzufügen
             </Link>
-            <Link href={`/statements/new?dossierId=${encodeURIComponent(dossierId)}`} className="btn btn-ghost text-xs">
+            <Link
+              href={buildCreateHref({ intent: "claim", dossierId })}
+              className="btn btn-ghost text-xs"
+            >
               Aussage ergänzen
             </Link>
+            {typeof materialLinkCount === "number" && materialLinkCount > 0 ? (
+              <span className="vog-chip">Serververknüpfungen: {materialLinkCount}</span>
+            ) : null}
+          </div>
+        ) : dossierId ? (
+          <div className="flex flex-wrap gap-2 text-[11px]">
+            <span className="vog-chip">Inline-Mitwirken im oberen Panel aktiv</span>
             {typeof materialLinkCount === "number" && materialLinkCount > 0 ? (
               <span className="vog-chip">Serververknüpfungen: {materialLinkCount}</span>
             ) : null}

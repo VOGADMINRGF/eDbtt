@@ -1,9 +1,15 @@
 // apps/web/src/app/demo/factcheck/page.tsx
 "use client";
+import Link from "next/link";
 import { useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { useFactcheckJob } from "@/hooks/useFactcheckJob";
+import { getDemoPersonaConfig, parseDemoPersona, withPersona } from "@/features/demo/personas";
+import { DEMO_STATUS_GLOSSARY, getDemoStatusLabel } from "@/features/demo/statusLanguage";
 
 type Verdict = "LIKELY_TRUE" | "LIKELY_FALSE" | "MIXED" | "UNDETERMINED";
+type IntakeChannel = "text" | "link" | "file" | "video";
+type FlowStep = "eingang" | "pruefung" | "ergebnis" | "redaktion";
 
 type ManualEntry = {
   id: string;
@@ -25,13 +31,13 @@ const DEMO_AI_CLAIMS = [
   },
   {
     id: "demo-ai-2",
-    text: "Tempo 30 reduziert Laerm in Wohnstrassen deutlich.",
+    text: "Tempo 30 reduziert Lärm in Wohnstraßen deutlich.",
     verdict: "LIKELY_TRUE",
     confidence: 0.68,
   },
   {
     id: "demo-ai-3",
-    text: "Schulhoefe ohne Versiegelung verringern Hitzespitzen.",
+    text: "Schulhöfe ohne Versiegelung verringern Hitzespitzen.",
     verdict: "MIXED",
     confidence: 0.52,
   },
@@ -44,12 +50,28 @@ const VERDICT_LABELS: Record<Verdict, string> = {
   UNDETERMINED: "unklar",
 };
 
+const CHANNEL_LABELS: Record<IntakeChannel, string> = {
+  text: "Text",
+  link: "Link",
+  file: "Anlage",
+  video: "Video-URL",
+};
+
 export default function DemoFactcheckPage() {
+  const searchParams = useSearchParams();
+  const persona = parseDemoPersona(searchParams.get("persona"));
+  const personaCfg = getDemoPersonaConfig(persona);
+
   const [input, setInput] = useState("");
+  const [channel, setChannel] = useState<IntakeChannel>("text");
+  const [linkInput, setLinkInput] = useState("");
+  const [videoInput, setVideoInput] = useState("");
+  const [fileName, setFileName] = useState("");
   const [mode, setMode] = useState<"ai" | "manual">("ai");
   const [demoAiReady, setDemoAiReady] = useState(false);
   const [manualEntries, setManualEntries] = useState<ManualEntry[]>([]);
   const [manualStatus, setManualStatus] = useState<string | null>(null);
+  const [editorialSent, setEditorialSent] = useState(false);
   const [sending, setSending] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [manualClaim, setManualClaim] = useState("");
@@ -73,6 +95,42 @@ export default function DemoFactcheckPage() {
   }, [claims]);
 
   const manualCanSubmit = manualClaim.trim().length >= 5 && !sending;
+  const effectiveInput = useMemo(() => {
+    if (channel === "text") return input.trim();
+    if (channel === "link") return `Link-Hinweis: ${linkInput.trim()}`.trim();
+    if (channel === "video") return `Video-Hinweis: ${videoInput.trim()}`.trim();
+    if (channel === "file") return fileName ? `Anlage: ${fileName}` : "";
+    return input.trim();
+  }, [channel, fileName, input, linkInput, videoInput]);
+
+  const personaIntents =
+    persona === "journalist"
+      ? [
+          { label: "Quelle nachreichen", href: "/demo/create?intent=source" },
+          { label: "Widerspruch melden", href: "/demo/create?intent=objection" },
+        ]
+      : persona === "administration"
+        ? [
+            { label: "Option dokumentieren", href: "/demo/create?intent=option" },
+            { label: "Frage erfassen", href: "/demo/create?intent=question" },
+          ]
+        : [
+            { label: "Perspektive einreichen", href: "/demo/create?intent=perspective" },
+            { label: "Quelle melden", href: "/demo/create?intent=source" },
+          ];
+  const statusLabels = DEMO_STATUS_GLOSSARY.filter((item) =>
+    ["demo", "simulation", "community_submitted", "in_review", "verified"].includes(item.key),
+  ).map((item) => item.label);
+  const hasResult = mode === "ai" ? Boolean(done || demoAiReady) : manualEntries.length > 0;
+  const flowStep: FlowStep = editorialSent
+    ? "redaktion"
+    : hasResult
+      ? "ergebnis"
+      : loading
+        ? "pruefung"
+        : "eingang";
+  const stepOrder: FlowStep[] = ["eingang", "pruefung", "ergebnis", "redaktion"];
+  const stepIndex = stepOrder.indexOf(flowStep);
 
   function resetManualForm() {
     setEditingId(null);
@@ -149,7 +207,8 @@ export default function DemoFactcheckPage() {
         }
         return [entry, ...prev];
       });
-      setManualStatus("An Redaktion gesendet (Status: offen).");
+      setManualStatus(`An Redaktion gesendet (Status: ${getDemoStatusLabel("open")}).`);
+      setEditorialSent(true);
       resetManualForm();
     } catch (err: any) {
       setManualStatus(`Fehler: ${String(err?.message ?? err)}`);
@@ -175,7 +234,8 @@ export default function DemoFactcheckPage() {
           origin: "ai",
         });
       }
-      setManualStatus("KI-Ergebnis an Redaktion gesendet (Status: offen).");
+      setManualStatus(`KI-Ergebnis an Redaktion gesendet (Status: ${getDemoStatusLabel("open")}).`);
+      setEditorialSent(true);
     } catch (err: any) {
       setManualStatus(`Fehler: ${String(err?.message ?? err)}`);
     } finally {
@@ -197,38 +257,125 @@ export default function DemoFactcheckPage() {
     <div className="mx-auto max-w-4xl p-6 space-y-4">
       <div className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm space-y-3">
         <div className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
-          Demo - Factcheck
+          Demo - Factcheck · {personaCfg.label}
         </div>
         <h1 className="text-2xl font-semibold text-[rgb(var(--fg))]">
-          Schnellpruefung mit Demo-Daten
+          Schnellprüfung mit Demo-Daten
         </h1>
         <p className="text-sm text-[rgb(var(--muted))]">
-          Fuer Screenshots: stabiler Flow ohne echte Inhalte. Ergebnisdaten sind
-          reproduzierbar.
+          Multi-Channel Intake für Text, Link, Anlage und Video-URL. Die Prüfung ist als
+          Demo-Simulation markiert, aber der Ablauf folgt dem späteren Produktfluss.
         </p>
+        <p className="text-xs text-[rgb(var(--muted))]">
+          Statussprache: {statusLabels.join(" · ")}.
+        </p>
+        <div className="flex flex-wrap gap-2 text-xs">
+          {personaIntents.map((item) => (
+            <Link
+              key={item.label}
+              href={withPersona(item.href, persona)}
+              className="vog-tab"
+            >
+              {item.label}
+            </Link>
+          ))}
+        </div>
+      </div>
+
+      <div className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm space-y-2">
+        <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Ablauf</p>
+        <div className="grid gap-2 md:grid-cols-4">
+          {[
+            { id: "eingang", label: "1. Eingang wählen" },
+            { id: "pruefung", label: "2. Prüfung läuft" },
+            { id: "ergebnis", label: "3. Ergebnis" },
+            { id: "redaktion", label: "4. Redaktion" },
+          ].map((item, idx) => (
+            <div
+              key={item.id}
+              className={`rounded-xl border px-3 py-2 text-xs font-semibold ${
+                idx <= stepIndex
+                  ? "border-[rgb(var(--grad-from))] bg-[rgb(var(--bg))] text-[rgb(var(--fg))]"
+                  : "border-[rgb(var(--border))] bg-[rgb(var(--card))] text-[rgb(var(--muted))]"
+              }`}
+            >
+              {item.label}
+            </div>
+          ))}
+        </div>
       </div>
 
       <div className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm space-y-3">
-        <textarea
-          className="w-full rounded-2xl border border-[rgb(var(--border))] p-3 text-sm"
-          rows={5}
-          placeholder="Text fuer Factcheck... (min. 20 Zeichen)"
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-        />
+        <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Schritt 1 - Eingang wählen</p>
+        <div className="flex flex-wrap gap-2 text-xs">
+          {(Object.keys(CHANNEL_LABELS) as IntakeChannel[]).map((item) => (
+            <button
+              key={item}
+              type="button"
+              onClick={() => setChannel(item)}
+              aria-pressed={channel === item}
+              className={`vog-tab ${channel === item ? "vog-tab--active" : ""}`}
+            >
+              {CHANNEL_LABELS[item]}
+            </button>
+          ))}
+        </div>
+        {channel === "text" && (
+          <textarea
+            className="w-full rounded-2xl border border-[rgb(var(--border))] p-3 text-sm"
+            rows={5}
+            placeholder="Text für Factcheck... (min. 20 Zeichen)"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+          />
+        )}
+        {channel === "link" && (
+          <input
+            className="w-full rounded-xl border border-[rgb(var(--border))] px-3 py-2 text-sm"
+            placeholder="https://beispiel.de/artikel"
+            value={linkInput}
+            onChange={(e) => setLinkInput(e.target.value)}
+          />
+        )}
+        {channel === "video" && (
+          <input
+            className="w-full rounded-xl border border-[rgb(var(--border))] px-3 py-2 text-sm"
+            placeholder="https://youtube.com/... oder Mediathek-Link"
+            value={videoInput}
+            onChange={(e) => setVideoInput(e.target.value)}
+          />
+        )}
+        {channel === "file" && (
+          <div className="space-y-2">
+            <input
+              type="file"
+              className="w-full rounded-xl border border-[rgb(var(--border))] px-3 py-2 text-sm"
+              onChange={(e) => setFileName(e.target.files?.[0]?.name ?? "")}
+            />
+            <p className="text-xs text-[rgb(var(--muted))]">
+              {fileName ? `Anlage erkannt: ${fileName}` : "Noch keine Anlage ausgewählt."}
+            </p>
+          </div>
+        )}
+        <p className="text-xs text-[rgb(var(--muted))]">
+          Eingangsart: <span className="font-semibold">{CHANNEL_LABELS[channel]}</span>
+        </p>
+        <p className="text-xs text-[rgb(var(--muted))]">Schritt 2 - Prüfung starten</p>
         <div className="flex flex-wrap items-center gap-3">
-          <div className="flex rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-1 text-xs font-semibold text-[rgb(var(--muted))]">
+          <div className="flex flex-wrap gap-2 text-xs font-semibold text-[rgb(var(--muted))]">
             <button
               type="button"
               onClick={() => setMode("ai")}
-              className={`rounded-full px-3 py-1 ${mode === "ai" ? "bg-[rgb(var(--card))] text-[rgb(var(--fg))]" : ""}`}
+              aria-pressed={mode === "ai"}
+              className={`vog-tab ${mode === "ai" ? "vog-tab--active" : ""}`}
             >
               KI
             </button>
             <button
               type="button"
               onClick={() => setMode("manual")}
-              className={`rounded-full px-3 py-1 ${mode === "manual" ? "bg-[rgb(var(--card))] text-[rgb(var(--fg))]" : ""}`}
+              aria-pressed={mode === "manual"}
+              className={`vog-tab ${mode === "manual" ? "vog-tab--active" : ""}`}
             >
               Manuell
             </button>
@@ -236,18 +383,19 @@ export default function DemoFactcheckPage() {
           {mode === "ai" && (
             <>
               <button
-                className="rounded-full bg-slate-900 px-5 py-2 text-sm font-semibold text-white disabled:opacity-50"
-                disabled={loading || input.length < 20}
+                className="btn btn-primary text-sm disabled:opacity-50"
+                disabled={loading || effectiveInput.length < 20}
                 onClick={() => {
-                  enqueue({ text: input, language: "de", priority: 5 });
+                  setEditorialSent(false);
+                  enqueue({ text: effectiveInput, language: "de", priority: 5 });
                   setDemoAiReady(true);
                   void handleSendAiToEditorial(true);
                 }}
               >
-                {loading ? "Wird geprueft..." : "Factcheck starten"}
+                {loading ? "Wird geprüft..." : "Factcheck starten"}
               </button>
               <button
-                className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-2 text-sm font-semibold text-[rgb(var(--muted))] disabled:opacity-50"
+                className="btn-secondary text-sm disabled:opacity-50"
                 disabled={sending}
                 onClick={() => {
                   void handleSendAiToEditorial();
@@ -257,7 +405,7 @@ export default function DemoFactcheckPage() {
               </button>
             </>
           )}
-          {jobId && <div className="text-xs text-[rgb(var(--muted))]">JobID: {jobId}</div>}
+          {jobId && <div className="text-xs text-[rgb(var(--muted))]">Lauf-ID: {jobId}</div>}
           {status && <div className="text-xs text-[rgb(var(--muted))]">Status: {status}</div>}
         </div>
 
@@ -268,7 +416,7 @@ export default function DemoFactcheckPage() {
       {mode === "ai" && (done || demoAiReady) && aiClaims && (
         <div className="space-y-3">
           <h3 className="text-sm font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
-            KI-Ergebnis (Status Redaktion: offen)
+            Schritt 3 - KI-Ergebnis (Status Redaktion: {getDemoStatusLabel("open")})
           </h3>
           <div className="grid gap-3 md:grid-cols-2">
             {aiClaims.map((c: any) => (
@@ -291,7 +439,7 @@ export default function DemoFactcheckPage() {
         <div className="space-y-4">
           <div className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm space-y-3">
             <h3 className="text-sm font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
-              Manuelle Eingabe (immer Redaktion prueft)
+              Schritt 3 - Manuelle Eingabe (immer Redaktion prüft)
             </h3>
             <div className="space-y-2">
               <label className="text-xs font-semibold uppercase text-[rgb(var(--muted))]">Claim</label>
@@ -336,7 +484,7 @@ export default function DemoFactcheckPage() {
                 value={manualNote}
                 onChange={(e) => setManualNote(e.target.value)}
                 className="w-full rounded-xl border border-[rgb(var(--border))] px-3 py-2 text-sm"
-                placeholder="Notiz fuer Redaktion"
+                placeholder="Notiz für Redaktion"
               />
             </div>
             <div className="space-y-2">
@@ -351,7 +499,7 @@ export default function DemoFactcheckPage() {
             </div>
             <div className="flex flex-wrap items-center gap-3">
               <button
-                className="rounded-full bg-slate-900 px-5 py-2 text-sm font-semibold text-white disabled:opacity-50"
+                className="btn btn-primary text-sm disabled:opacity-50"
                 disabled={!manualCanSubmit}
                 onClick={handleManualSubmit}
               >
@@ -359,13 +507,15 @@ export default function DemoFactcheckPage() {
               </button>
               {editingId && (
                 <button
-                  className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-2 text-sm font-semibold text-[rgb(var(--muted))]"
+                  className="btn-secondary text-sm"
                   onClick={resetManualForm}
                 >
                   Abbrechen
                 </button>
               )}
-              <span className="text-xs text-[rgb(var(--muted))]">Status Redaktion: offen</span>
+              <span className="text-xs text-[rgb(var(--muted))]">
+                Status Redaktion: {getDemoStatusLabel("open")}
+              </span>
             </div>
           </div>
 
@@ -375,7 +525,7 @@ export default function DemoFactcheckPage() {
             </h4>
             {manualEntries.length === 0 ? (
               <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-4 py-3 text-sm text-[rgb(var(--muted))]">
-                Noch keine manuellen Eintraege.
+                Noch keine manuellen Einträge.
               </div>
             ) : (
               <div className="grid gap-3 md:grid-cols-2">
@@ -398,7 +548,7 @@ export default function DemoFactcheckPage() {
                       </div>
                     )}
                     <div className="flex items-center justify-between text-xs text-[rgb(var(--muted))]">
-                      <span>Status Redaktion: offen</span>
+                      <span>Status Redaktion: {getDemoStatusLabel("open")}</span>
                       <button
                         className="font-semibold text-sky-600 underline"
                         onClick={() => handleEdit(entry)}
@@ -413,6 +563,15 @@ export default function DemoFactcheckPage() {
           </div>
         </div>
       )}
+
+      <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 text-sm text-[rgb(var(--muted))]">
+        <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Schritt 4 - Redaktion</p>
+        <p className="mt-1">
+          Nach dem Versand landet der Vorgang im Redaktionsstatus{" "}
+          <span className="font-semibold text-[rgb(var(--fg))]">{getDemoStatusLabel("open")}</span> und
+          läuft dann über {getDemoStatusLabel("in_review")} bis {getDemoStatusLabel("verified")}.
+        </p>
+      </section>
     </div>
   );
 }

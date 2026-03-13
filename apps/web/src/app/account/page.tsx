@@ -76,7 +76,7 @@ export default async function AccountPage({ searchParams }: Props) {
   ];
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-white py-8 md:py-10">
+    <main className="min-h-screen bg-[rgb(var(--bg))] py-8 md:py-10">
       <div className="mx-auto flex max-w-5xl flex-col gap-8 px-4 pb-12">
         <header className="space-y-2 md:space-y-3">
           <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-sky-600">Konto &amp; eDebatte</p>
