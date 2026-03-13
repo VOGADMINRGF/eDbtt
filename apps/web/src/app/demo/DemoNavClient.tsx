@@ -7,9 +7,10 @@ import { parseDemoPersona, withPersona } from "@/features/demo/personas";
 const DEMO_NAV = [
   { href: "/demo", label: "Studio" },
   { href: "/demo/dossier", label: "Dossier" },
-  { href: "/demo/votes", label: "Abstimmungen" },
+  { href: "/demo/abstimmungen", label: "Abstimmungen" },
   { href: "/demo/mandat", label: "Mandat" },
   { href: "/demo/factcheck", label: "Factcheck" },
+  { href: "/demo/swipes", label: "Swipes" },
   { href: "/demo/create", label: "Mitwirken" },
 ];
 

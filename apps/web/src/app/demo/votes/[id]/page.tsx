@@ -26,7 +26,7 @@ export default async function DemoVoteDetailPage({
   return (
     <main className="mx-auto min-h-screen max-w-5xl px-4 py-10 space-y-6">
       <header className="space-y-2">
-        <Link href={withPersona("/demo/votes", persona)} className="text-xs font-semibold uppercase text-[rgb(var(--muted))]">
+        <Link href={withPersona("/demo/abstimmungen", persona)} className="text-xs font-semibold uppercase text-[rgb(var(--muted))]">
           &larr; Zur Übersicht
         </Link>
         <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Demo - Abstimmung</p>

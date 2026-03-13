@@ -96,10 +96,16 @@ export default async function DemoCreatePage({
             Dossier
           </Link>
           <Link
-            href={withPersona("/demo/votes", persona)}
+            href={withPersona("/demo/abstimmungen", persona)}
             className="btn-secondary text-xs"
           >
             Abstimmungen
+          </Link>
+          <Link
+            href={withPersona("/demo/swipes", persona)}
+            className="btn-secondary text-xs"
+          >
+            Swipes
           </Link>
           <Link
             href={withPersona("/demo/mandat", persona)}

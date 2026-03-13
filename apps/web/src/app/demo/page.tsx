@@ -22,10 +22,17 @@ const MODULES = [
   },
   {
     id: "votes",
-    href: "/demo/votes",
+    href: "/demo/abstimmungen",
     title: "Abstimmungsübersicht",
     baseLead: "Abstimmungsstand mit Optionen, Status und journalistischen Signalen.",
     tags: ["Optionen", "Mehrheit", "Kontroverse", "Review"],
+  },
+  {
+    id: "swipes",
+    href: "/demo/swipes",
+    title: "Swipes",
+    baseLead: "Schnelle Bewertung mit direktem Übergang zu Dossier, Evidenz und Mitwirken.",
+    tags: ["Bewerten", "Vertiefen", "Dossier", "Mitwirken"],
   },
   {
     id: "mandat",
@@ -57,6 +64,7 @@ const PERSONA_LEAD_BY_MODULE: Record<
   journalist: {
     dossier: "Schnellzugriff auf Quellenlage, Einsprüche und exportfähige Einordnung.",
     votes: "Newsworthy-Ansicht: offen/in Prüfung, strittige Themen und Update-Fokus.",
+    swipes: "Schneller Radar für relevante Fälle vor tiefer Recherche im Dossier.",
     mandat: "Monitoring von Stockungen, Risiken und Wirkung pro Verantwortungsbereich.",
     factcheck: "Quellen- und Verdikt-Fokus mit klarer Demo-Kennzeichnung.",
     create: "Schneller Einstieg für Quelle, Frage und Widerspruch mit nachvollziehbarer Spur.",
@@ -64,6 +72,7 @@ const PERSONA_LEAD_BY_MODULE: Record<
   administration: {
     dossier: "Arbeitsfokus: Zuständigkeiten, Delegation, Workflow und Dokumentationsstand.",
     votes: "Entscheidungsvorbereitung mit Status und priorisierter Umsetzungsrelevanz.",
+    swipes: "Vorqualifizieren und direkt in zuständige Dossiers wechseln.",
     mandat: "Steuerungsfokus: Verantwortung, Umsetzungsgrad, Risiken und Wirkung.",
     factcheck: "Eingangsprüfung für Hinweise aus Text/Link/Datei/Video mit Audit-Spur.",
     create: "Strukturierter Einstieg für Optionen, Verantwortungen und prüfbare Aussagen.",
@@ -71,6 +80,7 @@ const PERSONA_LEAD_BY_MODULE: Record<
   citizen: {
     dossier: "Verstehen, einordnen, mitwirken: transparente Fragen- und Evidenzlage.",
     votes: "Klare Optionen mit sichtbarem Status, damit Beteiligung nachvollziehbar bleibt.",
+    swipes: "Schneller Einstieg: Meinung bilden, dann Details und Evidenz ansehen.",
     mandat: "Was wurde beschlossen und was passiert vor Ort als nächstes?",
     factcheck: "Niedrigschwelliger Einstieg für Prüfhinweise aus mehreren Input-Kanälen.",
     create: "Klarer Einstieg für Mitwirken ohne harte Sprünge.",

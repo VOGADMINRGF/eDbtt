@@ -1,12 +1,12 @@
 import { parseDemoPersona } from "@/features/demo/personas";
 import { readStringParam, resolveSurfaceContext } from "@/features/surface";
-import { FactcheckSurface } from "@/features/surfaces/factcheck";
+import { SwipesSurface } from "@/features/surfaces/swipes";
 
 type SearchParamsShape =
   | Promise<Record<string, string | string[] | undefined>>
   | Record<string, string | string[] | undefined>;
 
-export default async function DemoFactcheckPage({
+export default async function DemoSwipesPage({
   searchParams,
 }: {
   searchParams?: SearchParamsShape;
@@ -17,13 +17,19 @@ export default async function DemoFactcheckPage({
     mode: "demo",
     audience:
       persona === "journalist" ? "journalist" : persona === "administration" ? "verwaltung" : "buerger",
+    viewerRole:
+      persona === "journalist" ? "journalist" : persona === "administration" ? "admin" : "citizen",
     dataSource: "seed",
   });
 
   return (
     <>
-      <h1 className="sr-only">Demo Factcheck</h1>
-      <FactcheckSurface context={context} persona={persona} />
+      <h1 className="sr-only">Demo Swipes</h1>
+      <SwipesSurface
+        context={context}
+        edebattePackage="none"
+        initialTopic={typeof resolved?.topic === "string" ? resolved.topic : ""}
+      />
     </>
   );
 }

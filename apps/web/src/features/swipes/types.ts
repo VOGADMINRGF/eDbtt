@@ -44,7 +44,7 @@ export type SwipeFeedFilter = {
 };
 
 export type SwipeFeedRequest = {
-  userId: string;
+  userId?: string;
   edebattePackage: EDebattePackage;
   filter?: SwipeFeedFilter;
   cursor?: string | null;
@@ -57,7 +57,7 @@ export type SwipeFeedResponse = {
 };
 
 export type EventualitiesRequest = {
-  userId: string;
+  userId?: string;
   statementId: string;
 };
 

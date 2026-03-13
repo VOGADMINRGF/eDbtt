@@ -6,10 +6,6 @@ export async function POST(req: NextRequest) {
   const cookieStore = await cookies();
   const userId = cookieStore.get("u_id")?.value;
 
-  if (!userId) {
-    return NextResponse.json({ error: "UNAUTHORIZED" }, { status: 401 });
-  }
-
   const body = (await req.json().catch(() => ({}))) as { statementId?: string };
 
   if (!body.statementId) {
