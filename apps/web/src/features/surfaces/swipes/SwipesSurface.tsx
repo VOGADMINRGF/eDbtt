@@ -36,7 +36,7 @@ export function SwipesSurface({ context, edebattePackage, initialTopic = "" }: S
             </span>
           </div>
           <div className="flex flex-wrap gap-2">
-            <Link href="/dossier/demo" className="btn-secondary text-xs">
+            <Link href="/demo/dossier?mode=lesen&persona=citizen" className="btn-secondary text-xs">
               Demo-Dossier öffnen
             </Link>
             <Link href="/abstimmungen" className="btn-secondary text-xs">
@@ -54,7 +54,13 @@ export function SwipesSurface({ context, edebattePackage, initialTopic = "" }: S
         </section>
       </div>
 
-      <SwipesClient edebattePackage={edebattePackage} initialTopic={initialTopic} showHero={false} />
+      <SwipesClient
+        edebattePackage={edebattePackage}
+        initialTopic={initialTopic}
+        showHero={false}
+        mode={context.mode}
+        audience={context.audience}
+      />
     </main>
   );
 }
