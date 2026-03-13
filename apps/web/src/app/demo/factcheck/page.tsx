@@ -10,6 +10,7 @@ import { DEMO_STATUS_GLOSSARY, getDemoStatusLabel } from "@/features/demo/status
 type Verdict = "LIKELY_TRUE" | "LIKELY_FALSE" | "MIXED" | "UNDETERMINED";
 type IntakeChannel = "text" | "link" | "file" | "video";
 type FlowStep = "eingang" | "pruefung" | "ergebnis" | "redaktion";
+type DivergenceStatus = "aligned" | "mixed" | "contested";
 
 type ManualEntry = {
   id: string;
@@ -56,6 +57,20 @@ const CHANNEL_LABELS: Record<IntakeChannel, string> = {
   file: "Anlage",
   video: "Video-URL",
 };
+
+function summarizeDivergence(verdicts: Verdict[]) {
+  const summary = { supports: 0, contradicts: 0, unclear: 0 };
+  for (const verdict of verdicts) {
+    if (verdict === "LIKELY_TRUE") summary.supports += 1;
+    else if (verdict === "LIKELY_FALSE") summary.contradicts += 1;
+    else summary.unclear += 1;
+  }
+  const denominator = summary.supports + summary.contradicts;
+  const score = denominator > 0 ? summary.contradicts / denominator : 0;
+  const status: DivergenceStatus =
+    summary.contradicts > 0 ? (score >= 0.4 ? "contested" : "mixed") : summary.unclear > 0 ? "mixed" : "aligned";
+  return { ...summary, score, status };
+}
 
 export default function DemoFactcheckPage() {
   const searchParams = useSearchParams();
@@ -122,6 +137,21 @@ export default function DemoFactcheckPage() {
     ["demo", "simulation", "community_submitted", "in_review", "verified"].includes(item.key),
   ).map((item) => item.label);
   const hasResult = mode === "ai" ? Boolean(done || demoAiReady) : manualEntries.length > 0;
+  const divergence = useMemo(() => {
+    const verdicts =
+      mode === "ai"
+        ? aiClaims.map((entry) => entry.verdict as Verdict)
+        : manualEntries.map((entry) => entry.verdict);
+    return summarizeDivergence(verdicts);
+  }, [aiClaims, manualEntries, mode]);
+  const interventionStatus =
+    divergence.status === "contested"
+      ? "Intervention aktiv"
+      : divergence.status === "mixed"
+        ? "In Prüfung"
+        : editorialSent
+          ? "An Redaktion übergeben"
+          : "Keine Intervention";
   const flowStep: FlowStep = editorialSent
     ? "redaktion"
     : hasResult
@@ -563,6 +593,46 @@ export default function DemoFactcheckPage() {
           </div>
         </div>
       )}
+
+      <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 text-sm text-[rgb(var(--muted))]">
+        <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
+          Truth Guardrails · Source Divergence
+        </p>
+        <div className="mt-2 grid gap-2 sm:grid-cols-4">
+          <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-xs">
+            <p className="uppercase tracking-wide text-[rgb(var(--muted))]">Stützt</p>
+            <p className="text-sm font-semibold text-[rgb(var(--fg))]">{divergence.supports}</p>
+          </div>
+          <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-xs">
+            <p className="uppercase tracking-wide text-[rgb(var(--muted))]">Widerspricht</p>
+            <p className="text-sm font-semibold text-[rgb(var(--fg))]">{divergence.contradicts}</p>
+          </div>
+          <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-xs">
+            <p className="uppercase tracking-wide text-[rgb(var(--muted))]">Unklar</p>
+            <p className="text-sm font-semibold text-[rgb(var(--fg))]">{divergence.unclear}</p>
+          </div>
+          <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-xs">
+            <p className="uppercase tracking-wide text-[rgb(var(--muted))]">Divergenz</p>
+            <p className="text-sm font-semibold text-[rgb(var(--fg))]">
+              {Math.round(divergence.score * 100)}%
+            </p>
+          </div>
+        </div>
+        <p className="mt-2 text-xs">
+          Status:{" "}
+          <span className="font-semibold text-[rgb(var(--fg))]">{interventionStatus}</span> ·
+          Erstframing bleibt Anlass, nicht Endwahrheit.
+        </p>
+        {divergence.status !== "aligned" ? (
+          <p className="mt-1 text-xs">
+            Gegenquellen sind sichtbar priorisiert. Das Dossier markiert das ursprüngliche Framing
+            als Perspektive und relativiert bei Bedarf.
+          </p>
+        ) : null}
+        <Link href={withPersona("/demo/dossier?mode=lesen", persona)} className="mt-2 inline-flex btn-secondary text-xs">
+          Offenen Dossierraum prüfen
+        </Link>
+      </section>
 
       <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 text-sm text-[rgb(var(--muted))]">
         <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Schritt 4 - Redaktion</p>

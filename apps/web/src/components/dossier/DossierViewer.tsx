@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { Dossier } from "@features/dossier";
+import { resolveTruthGuardrails, type Dossier } from "@features/dossier";
 import DossierLayout from "./DossierLayout";
 import EvidenceField from "./EvidenceField";
 import DecisionSpace from "./DecisionSpace";
@@ -13,6 +13,7 @@ import LegitimacyPanel, { type LegitimacyMetric, type LegitimacyStatus } from ".
 import TransparencyPanel from "./TransparencyPanel";
 import AuditTimeline from "./AuditTimeline";
 import CorrectionsPanel from "./CorrectionsPanel";
+import TruthGuardrailsPanel from "./TruthGuardrailsPanel";
 import ExportPanel from "./ExportPanel";
 import EditorialInbox from "./EditorialInbox";
 import EditorialInboxLive from "./EditorialInboxLive";
@@ -349,6 +350,7 @@ export function DossierViewer({
 }) {
   const { meta, analyze, voteConfig } = dossier;
   const corrections = useMemo(() => dossier.corrections ?? [], [dossier.corrections]);
+  const truthGuardrails = useMemo(() => resolveTruthGuardrails(dossier), [dossier]);
   const presentationBundle = useMemo(() => getPresentation(dossier), [dossier]);
   const { presentation, streams, contributions, voteOptions, majorityDemo, traceability, openQuestions } =
     presentationBundle;
@@ -1064,6 +1066,20 @@ export function DossierViewer({
             <p className="text-sm font-semibold text-[rgb(var(--fg))]">{legitimacyStatus.label}</p>
             <p className="text-[11px] text-[rgb(var(--muted))]">{legitimacyStatus.text}</p>
           </div>
+          {truthGuardrails.framingStatus !== "initial" ? (
+            <div className="rounded-xl border border-amber-500/45 bg-amber-500/10 p-4">
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
+                Framing-Hinweis
+              </p>
+              <p className="text-sm font-semibold text-[rgb(var(--fg))]">
+                Gegenquellen aktiv: Erstframing wird relativiert.
+              </p>
+              <p className="text-[11px] text-[rgb(var(--muted))]">
+                Das Dossier priorisiert nun Gegenbelege, Factcheck und Einspruch vor einer finalen
+                Einordnung.
+              </p>
+            </div>
+          ) : null}
           <InstitutionalHeader dossierId={meta.id} viewerRole={viewerRole as any} inst={inst} />
           <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 space-y-2">
             <p className="text-[11px] font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
@@ -1533,6 +1549,7 @@ export function DossierViewer({
           </>
         ) : null}
       </section>
+      <TruthGuardrailsPanel guardrails={truthGuardrails} />
       <TransparencyPanel
         sectionId="transparenz"
         sources={sources}

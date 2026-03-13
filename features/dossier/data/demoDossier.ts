@@ -332,6 +332,15 @@ export const demoDossier: Dossier = {
         rationale: "Fördermittelrahmen ist im Entwurf noch nicht abschließend gesichert.",
         excerptRef: "Haushaltsentwurf 2026, Fördermittel",
       },
+      {
+        id: "f-5",
+        claimId: "stmt-2",
+        sourceId: "src-2",
+        finding: "contradicts",
+        rationale:
+          "Aktualisierte Vergleichswerte zeigen höhere Neubaukosten in der Region als in der Erstannahme.",
+        excerptRef: "Baukostenindex 2025, Regionalvergleich",
+      },
     ],
     notes: [
       {
@@ -1194,6 +1203,25 @@ export const demoDossier: Dossier = {
       status: "accepted",
     },
   ],
+  truthGuardrails: {
+    framingStatus: "relativized",
+    summary:
+      "Mehrere Gegenbelege und ein offener Einspruch relativieren die erste mediale Zuspitzung.",
+    sourceDivergence: {
+      supports: 2,
+      contradicts: 1,
+      unclear: 1,
+      mentions: 1,
+      score: 0.33,
+      status: "mixed",
+    },
+    factcheckIntervention: {
+      status: "in_review",
+      summary:
+        "Redaktion priorisiert Gegenquellen und prüft die Kostenannahmen vor einer finalen Einordnung.",
+      lastUpdatedAt: "2026-02-22T10:30:00.000Z",
+    },
+  },
 };
 
 export default demoDossier;

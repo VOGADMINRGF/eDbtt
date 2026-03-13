@@ -136,12 +136,54 @@ export const VoteConfigSchema = z
   }));
 export type VoteConfig = z.infer<typeof VoteConfigSchema>;
 
+export const SourceDivergenceStatusSchema = z.enum(["aligned", "mixed", "contested"]);
+export type SourceDivergenceStatus = z.infer<typeof SourceDivergenceStatusSchema>;
+
+export const FramingStatusSchema = z.enum(["initial", "contested", "relativized"]);
+export type FramingStatus = z.infer<typeof FramingStatusSchema>;
+
+export const FactcheckInterventionStatusSchema = z.enum([
+  "none",
+  "queued",
+  "in_review",
+  "intervened",
+  "resolved",
+]);
+export type FactcheckInterventionStatus = z.infer<typeof FactcheckInterventionStatusSchema>;
+
+export const TruthGuardrailsSchema = z
+  .object({
+    framingStatus: FramingStatusSchema.default("initial"),
+    summary: z.string().optional(),
+    sourceDivergence: z
+      .object({
+        supports: z.number().int().nonnegative().default(0),
+        contradicts: z.number().int().nonnegative().default(0),
+        unclear: z.number().int().nonnegative().default(0),
+        mentions: z.number().int().nonnegative().default(0),
+        score: z.number().min(0).max(1).default(0),
+        status: SourceDivergenceStatusSchema.default("aligned"),
+      })
+      .strict(),
+    factcheckIntervention: z
+      .object({
+        status: FactcheckInterventionStatusSchema.default("none"),
+        summary: z.string().optional(),
+        lastUpdatedAt: z.string().optional(),
+      })
+      .strict()
+      .default({ status: "none" }),
+  })
+  .strict();
+export type TruthGuardrails = z.infer<typeof TruthGuardrailsSchema>;
+
 export const DossierSchema = z
   .object({
     meta: DossierMetaSchema,
     analyze: AnalyzeResultSchema,
     sourceSet: z.array(RunReceiptSourceSchema).default([]),
     voteConfig: VoteConfigSchema.optional(),
+    truthGuardrails: TruthGuardrailsSchema.optional(),
     auditTrail: z
       .array(
         z
