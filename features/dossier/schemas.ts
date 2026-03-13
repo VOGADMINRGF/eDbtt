@@ -1,6 +1,7 @@
 import { z } from "zod";
 import type { ObjectId } from "@core/db/triMongo";
 import { AnalyzeResultSchema, RunReceiptSourceSchema } from "@features/analyze/schemas";
+import { SourceAnchorSchema } from "@features/journalism";
 import { DOSSIER_LIMITS } from "./limits";
 
 export const DossierActorRoleSchema = z.enum(["pipeline", "editor", "member", "admin", "system"]);
@@ -139,6 +140,7 @@ export type VoteConfig = z.infer<typeof VoteConfigSchema>;
 export const DossierSchema = z
   .object({
     meta: DossierMetaSchema,
+    sourceAnchor: SourceAnchorSchema.optional(),
     analyze: AnalyzeResultSchema,
     sourceSet: z.array(RunReceiptSourceSchema).default([]),
     voteConfig: VoteConfigSchema.optional(),

@@ -1,4 +1,5 @@
 import type { Dossier } from "../schemas";
+import { buildSourceAnchorPublicPath } from "@features/journalism";
 
 const CREATED_AT = "2026-02-19T08:00:00.000Z";
 
@@ -32,6 +33,21 @@ export const demoDossier: Dossier = {
       rev: 6,
       lastChangeAt: "2026-02-22T10:30:00.000Z",
     },
+  },
+  sourceAnchor: {
+    id: "anchor-talkshow-bildung-2026-02-18",
+    type: "talkshow",
+    title: "Schulbau unter Druck: Sanierung oder Neubau?",
+    medium: "Bürgerfunk Beispielstadt",
+    format: "Talkshow",
+    reference: "Folge 42 · 18.02.2026 · Minute 12-28",
+    publishedAt: "2026-02-18",
+    triggerClaim:
+      "Die Sendung stellte die Leitfrage öffentlich: Ist eine Sanierung mit vertretbarem Risiko möglich oder ist ein Neubau langfristig tragfähiger?",
+    publicPath: buildSourceAnchorPublicPath(
+      "demo-school-2026",
+      "anchor-talkshow-bildung-2026-02-18",
+    ),
   },
   analyze: {
     mode: "E150",

@@ -148,6 +148,15 @@ const ROLE_LABELS = {
   staff: "Redaktion/Staff",
 } as const;
 
+const SOURCE_ANCHOR_TYPE_LABELS: Record<string, string> = {
+  article: "Artikel",
+  print: "Print",
+  video: "Video",
+  podcast: "Podcast",
+  talkshow: "Talkshow",
+  social_post: "Social Post",
+};
+
 function formatDate(value?: string | null) {
   if (!value) return "-";
   const d = new Date(value);
@@ -343,11 +352,14 @@ function mergeClusters(defaultClusters: PresentationCluster[], derivedClusters: 
 export function DossierViewer({
   dossier,
   hideExternalCreateLinks = false,
+  selectedAnchorId,
 }: {
   dossier: Dossier;
   hideExternalCreateLinks?: boolean;
+  selectedAnchorId?: string | null;
 }) {
   const { meta, analyze, voteConfig } = dossier;
+  const sourceAnchor = dossier.sourceAnchor;
   const corrections = useMemo(() => dossier.corrections ?? [], [dossier.corrections]);
   const presentationBundle = useMemo(() => getPresentation(dossier), [dossier]);
   const { presentation, streams, contributions, voteOptions, majorityDemo, traceability, openQuestions } =
@@ -573,6 +585,7 @@ export function DossierViewer({
   }, [delegationEntries]);
 
   const canManageWatchlist = watchlistActive !== null;
+  const isSelectedAnchor = Boolean(selectedAnchorId && sourceAnchor?.id === selectedAnchorId);
 
   const toggleWatchlist = async () => {
     if (watchlistBusy || !meta.id) return;
@@ -1054,6 +1067,59 @@ export function DossierViewer({
                   </div>
                 </div>
               ) : null}
+            </div>
+          ) : null}
+
+          {sourceAnchor ? (
+            <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-soft">
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
+                Ausgelöst durch
+              </p>
+              <p className="mt-1 text-sm font-semibold text-[rgb(var(--fg))]">{sourceAnchor.title}</p>
+              <div className="mt-2 flex flex-wrap gap-2 text-[10px] uppercase tracking-wide text-[rgb(var(--muted))]">
+                <span className="rounded-full border border-[rgb(var(--border))] px-2 py-1">
+                  {SOURCE_ANCHOR_TYPE_LABELS[sourceAnchor.type] ?? sourceAnchor.type}
+                </span>
+                <span className="rounded-full border border-[rgb(var(--border))] px-2 py-1">
+                  {sourceAnchor.medium}
+                </span>
+                {sourceAnchor.format ? (
+                  <span className="rounded-full border border-[rgb(var(--border))] px-2 py-1">
+                    {sourceAnchor.format}
+                  </span>
+                ) : null}
+              </div>
+              <p className="mt-2 text-[11px] text-[rgb(var(--muted))]">
+                Erstdarstellung: {sourceAnchor.triggerClaim}
+              </p>
+              <p className="mt-1 text-[11px] text-[rgb(var(--muted))]">
+                Datum: {formatDate(sourceAnchor.publishedAt)}{" "}
+                {isSelectedAnchor ? "· aktiver Anchor" : ""}
+              </p>
+              {sourceAnchor.reference ? (
+                <p className="mt-1 text-[11px] text-[rgb(var(--muted))]">
+                  Referenz: {sourceAnchor.reference}
+                </p>
+              ) : null}
+              <div className="mt-3 flex flex-wrap gap-2 text-[11px]">
+                {sourceAnchor.url ? (
+                  <a
+                    href={sourceAnchor.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="btn-secondary text-xs"
+                  >
+                    Originalbeitrag
+                  </a>
+                ) : null}
+                <Link href={sourceAnchor.publicPath} className="btn-secondary text-xs">
+                  Offenen Dossierraum öffnen
+                </Link>
+              </div>
+              <p className="mt-2 text-[10px] text-[rgb(var(--muted))]">
+                Anlassgeber, keine Deutungshoheit: Gegenquellen, Factcheck und Widerspruch können
+                das Framing jederzeit relativieren.
+              </p>
             </div>
           ) : null}
 

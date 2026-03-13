@@ -9,7 +9,13 @@ type ApiResponse =
   | { ok: true; dossier: Dossier }
   | { ok: false; error?: string };
 
-export default function DossierPageClient({ dossierId }: { dossierId: string }) {
+export default function DossierPageClient({
+  dossierId,
+  selectedAnchorId,
+}: {
+  dossierId: string;
+  selectedAnchorId?: string | null;
+}) {
   const [dossier, setDossier] = useState<Dossier>(demoFallback);
   const [loaded, setLoaded] = useState(false);
 
@@ -33,7 +39,7 @@ export default function DossierPageClient({ dossierId }: { dossierId: string }) 
       {!loaded ? (
         <p className="text-xs text-[rgb(var(--muted))]">Dossier wird geladen…</p>
       ) : null}
-      <DossierViewer dossier={dossier} />
+      <DossierViewer dossier={dossier} selectedAnchorId={selectedAnchorId} />
     </div>
   );
 }
