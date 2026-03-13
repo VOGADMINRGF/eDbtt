@@ -75,6 +75,13 @@ const secondaryChipClass =
 const subtleTextLinkClass =
   "text-[11px] font-medium text-[rgb(var(--muted))] underline-offset-2 hover:text-[rgb(var(--fg))] hover:underline";
 
+function getSwipeDetailHref(statementId: string) {
+  if (statementId.startsWith("seed-")) {
+    return "/dossier/demo";
+  }
+  return `/dossier/${encodeURIComponent(statementId)}`;
+}
+
 function isInteractiveTarget(target: EventTarget | null) {
   if (!(target instanceof Element)) return false;
   return Boolean(
@@ -88,10 +95,17 @@ type SwipeableCardShellProps = {
   onRequestActive: () => void;
   onOpen: () => void;
   onSwipeDecision: (decision: SwipeDecision) => void;
+  onSwipeUp: () => void;
   children: React.ReactNode;
 };
 
-function SwipeableCardShell({ onRequestActive, onOpen, onSwipeDecision, children }: SwipeableCardShellProps) {
+function SwipeableCardShell({
+  onRequestActive,
+  onOpen,
+  onSwipeDecision,
+  onSwipeUp,
+  children,
+}: SwipeableCardShellProps) {
   const ref = useRef<HTMLDivElement | null>(null);
   const startRef = useRef<{ x: number; y: number } | null>(null);
   const didDragRef = useRef(false);
@@ -128,6 +142,10 @@ function SwipeableCardShell({ onRequestActive, onOpen, onSwipeDecision, children
       if (absX < 6 && absY < 6) return;
       // Vertical scroll gesture: don't hijack; also suppress click-open.
       if (absY > absX) {
+        if (dy < -80) {
+          suppressNextClickRef.current = true;
+          onSwipeUp();
+        }
         suppressNextClickRef.current = true;
         reset();
         return;
@@ -240,9 +258,16 @@ type SwipesClientProps = {
   initialTopic?: string;
   focusStatementId?: string;
   variant?: "full" | "solo";
+  showHero?: boolean;
 };
 
-export function SwipesClient({ edebattePackage, initialTopic = "", focusStatementId, variant = "full" }: SwipesClientProps) {
+export function SwipesClient({
+  edebattePackage,
+  initialTopic = "",
+  focusStatementId,
+  variant = "full",
+  showHero = true,
+}: SwipesClientProps) {
   const router = useRouter();
   const [topicQuery, setTopicQuery] = useState(variant === "solo" ? "" : initialTopic);
   const [activeLevel, setActiveLevel] = useState<"ALL" | "Bund" | "Land" | "Kommune" | "EU">("ALL");
@@ -254,6 +279,7 @@ export function SwipesClient({ edebattePackage, initialTopic = "", focusStatemen
   const [flashDecision, setFlashDecision] = useState<{ id: string; decision: SwipeDecision } | null>(null);
   const [screenFlash, setScreenFlash] = useState<SwipeDecision | null>(null);
   const [lastAction, setLastAction] = useState<{ item: SwipeItem; decision: SwipeDecision; index: number; removed: boolean } | null>(null);
+  const [decisionStats, setDecisionStats] = useState({ agree: 0, neutral: 0, disagree: 0 });
   const [liveMessage, setLiveMessage] = useState("");
   const liveTimerRef = useRef<number | null>(null);
 
@@ -269,7 +295,7 @@ export function SwipesClient({ edebattePackage, initialTopic = "", focusStatemen
 
   const openDossier = useCallback(
     (statementId: string) => {
-      router.push(`/dossier/${encodeURIComponent(statementId)}`);
+      router.push(getSwipeDetailHref(statementId) as any);
     },
     [router],
   );
@@ -320,6 +346,10 @@ export function SwipesClient({ edebattePackage, initialTopic = "", focusStatemen
   };
 
   const handleDecision = useCallback((item: SwipeItem, decision: SwipeDecision, idxOverride?: number) => {
+    setDecisionStats((prev) => ({
+      ...prev,
+      [decision]: prev[decision] + 1,
+    }));
     setFlashDecision({ id: item.id, decision });
     setScreenFlash(decision);
     postSwipeVote({ statementId: item.id, decision }).catch(() => {});
@@ -376,14 +406,17 @@ export function SwipesClient({ edebattePackage, initialTopic = "", focusStatemen
       } else if (e.key === "ArrowRight") {
         e.preventDefault();
         handleDecision(current, "agree", activeIndex);
-      } else if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+      } else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        openDossier(current.id);
+      } else if (e.key === "ArrowDown") {
         e.preventDefault();
         handleDecision(current, "neutral", activeIndex);
       }
     };
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
-  }, [filteredSwipes, activeIndex, handleDecision]);
+  }, [filteredSwipes, activeIndex, handleDecision, openDossier]);
 
   const handleUndo = () => {
     if (!lastAction) return;
@@ -411,6 +444,7 @@ export function SwipesClient({ edebattePackage, initialTopic = "", focusStatemen
         onRequestActive={() => setActiveIndex(idx)}
         onOpen={() => openDossier(item.id)}
         onSwipeDecision={(decision) => handleDecision(item, decision, idx)}
+        onSwipeUp={() => openDossier(item.id)}
       >
         <StatementCard
           variant="swipe"
@@ -436,6 +470,9 @@ export function SwipesClient({ edebattePackage, initialTopic = "", focusStatemen
     );
   });
 
+  const activeItem = filteredSwipes[activeIndex] ?? filteredSwipes[0] ?? null;
+  const totalDecisions = decisionStats.agree + decisionStats.neutral + decisionStats.disagree;
+
   return (
     <div className={`mx-auto flex flex-col gap-6 px-4 pt-10 ${isSolo ? "max-w-3xl" : "max-w-6xl"}`}>
       <div className="sr-only" aria-live="polite" aria-atomic="true">
@@ -457,8 +494,24 @@ export function SwipesClient({ edebattePackage, initialTopic = "", focusStatemen
         <SoloHeader statementId={focusStatementId} />
       ) : (
         <>
-          <SwipesHeader edebattePackage={edebattePackage} isBasic={isBasic} isStartOrPro={isStartOrPro} />
+          {showHero ? <SwipesHeader edebattePackage={edebattePackage} isBasic={isBasic} isStartOrPro={isStartOrPro} /> : null}
           <SwipesToolbar topicQuery={topicQuery} onTopicChange={setTopicQuery} activeLevel={activeLevel} onLevelChange={setActiveLevel} isBasic={isBasic} />
+          <section className="rounded-3xl bg-[rgb(var(--card))] p-3 ring-1 ring-[rgb(var(--border))]">
+            <div className="flex flex-wrap items-center gap-2 text-[11px]">
+              <span className="vog-chip vog-chip--status">Bewertungen: {totalDecisions}</span>
+              <span className="vog-chip vog-chip--status">Ja: {decisionStats.agree}</span>
+              <span className="vog-chip vog-chip--status">Offen: {decisionStats.neutral}</span>
+              <span className="vog-chip vog-chip--status">Nein: {decisionStats.disagree}</span>
+              {totalDecisions >= 5 ? (
+                <>
+                  <Link href="/abstimmungen" className="vog-chip vog-chip--active">Passende Abstimmungen</Link>
+                  <Link href="/mitwirken" className="vog-chip">Mitwirken</Link>
+                </>
+              ) : (
+                <span className="text-[rgb(var(--muted))]">Ab 5 Bewertungen zeigen wir nächste Prioritäten.</span>
+              )}
+            </div>
+          </section>
         </>
       )}
 
@@ -504,7 +557,10 @@ export function SwipesClient({ edebattePackage, initialTopic = "", focusStatemen
             {loading ? (
               <div className="rounded-3xl bg-[rgb(var(--bg))] p-4 text-sm text-[rgb(var(--muted))] ring-1 ring-dashed ring-[rgb(var(--border))]">Lade Swipes …</div>
             ) : filteredSwipes.length === 0 ? (
-              <EmptyState />
+              <EmptyState onResetFilters={() => {
+                setTopicQuery("");
+                setActiveLevel("ALL");
+              }} />
             ) : (
               swipeCards
             )}
@@ -519,6 +575,41 @@ export function SwipesClient({ edebattePackage, initialTopic = "", focusStatemen
       {selectedSwipe && eventualities && (
         <MobileEventualitiesOverlay selectedSwipe={selectedSwipe} eventualities={eventualities} isBasic={isBasic} onClose={handleCloseEventualities} />
       )}
+
+      {!isSolo && activeItem ? (
+        <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-[rgb(var(--border))] bg-[rgb(var(--card))]/95 px-3 py-2 backdrop-blur md:hidden">
+          <div className="mx-auto grid max-w-xl grid-cols-4 gap-2">
+            <button
+              type="button"
+              onClick={() => handleDecision(activeItem, "disagree", activeIndex)}
+              className="rounded-xl border border-rose-200 bg-rose-50 px-2 py-2 text-xs font-semibold text-rose-700"
+            >
+              Nein
+            </button>
+            <button
+              type="button"
+              onClick={() => handleDecision(activeItem, "neutral", activeIndex)}
+              className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-2 py-2 text-xs font-semibold text-[rgb(var(--muted))]"
+            >
+              Offen
+            </button>
+            <button
+              type="button"
+              onClick={() => handleDecision(activeItem, "agree", activeIndex)}
+              className="rounded-xl border border-emerald-200 bg-emerald-50 px-2 py-2 text-xs font-semibold text-emerald-700"
+            >
+              Ja
+            </button>
+            <button
+              type="button"
+              onClick={() => openDossier(activeItem.id)}
+              className="rounded-xl border border-sky-200 bg-sky-50 px-2 py-2 text-xs font-semibold text-sky-700"
+            >
+              Mehr
+            </button>
+          </div>
+        </nav>
+      ) : null}
     </div>
   );
 }
@@ -562,35 +653,32 @@ function SwipesHeader({ edebattePackage, isBasic, isStartOrPro }: SwipesHeaderPr
 
   return (
     <header className="space-y-3">
-      <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-sky-600">Swipes</p>
+      <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-sky-600">Swipes · kostenloser Einstieg</p>
       <h1 className="text-2xl font-semibold leading-tight text-[rgb(var(--fg))] md:text-3xl">
-        <span className="bg-gradient-to-r from-sky-500 via-cyan-500 to-emerald-500 bg-clip-text text-transparent">Swipes</span> – schnelle, faire Entscheidungen.
+        <span className="bg-gradient-to-r from-sky-500 via-cyan-500 to-emerald-500 bg-clip-text text-transparent">Swipes</span> – schnell einordnen, dann vertiefen.
       </h1>
-      <p className="max-w-2xl text-sm text-[rgb(var(--muted))]">Links/rechts entscheiden, Quellen prüfen, später vertiefen – die Karten können aus deinen Analysen oder aktuellen Themen gespeist werden.</p>
+      <p className="max-w-2xl text-sm text-[rgb(var(--muted))]">
+        Mobile-first Themenkompass: links/rechts für erste Haltung, nach oben oder „Mehr“ für Dossier, Quellen und Varianten.
+      </p>
       <div className="flex flex-wrap items-center gap-2">
         <Link href={buildCreateHref({ intent: "claim" })} className={primaryChipClass}>
-          Neues Statement analysieren
+          Thema einreichen
         </Link>
         <Link href={buildCreateHref({ intent: "source" })} className={secondaryChipClass}>
-          Beitrag einreichen
+          Quelle ergänzen
         </Link>
         <Link href="/account" className={subtleTextLinkClass}>
-          Profil
+          Konto
         </Link>
       </div>
       <p className="flex flex-wrap items-center gap-2 text-[11px] text-[rgb(var(--muted))]">
         <span>
           Aktiver Modus: <span className="font-semibold text-[rgb(var(--fg))]">{pkgLabel}</span>
         </span>
-        {isBasic && <span>· Du siehst einen offenen Stream. In eDebatte Start kannst du gezielt nach Themen suchen und Varianten vergleichen.</span>}
-        {isStartOrPro && <span>· Nutze Suche &amp; Filter, um Themen wie <em>„Badeverbot Hunde“</em> oder <em>„Pflegepersonal“</em> zu vertiefen.</span>}
+        {isBasic && <span>· Offener Public-Stream ist aktiv.</span>}
+        {isStartOrPro && <span>· Suche, Filter und Variantenvergleich sind aktiv.</span>}
       </p>
-      <p className="text-[11px] text-[rgb(var(--muted))]">
-        Eventualitaeten stehen dir in eDebatte Start/Pro sowie in B2B/B2G-Paketen vollstaendig zur Verfuegung.
-      </p>
-      <p className="text-[11px] text-[rgb(var(--muted))]">
-        Hinweis: Ziehen/Wischen links = Ablehnen, rechts = Zustimmen. Pfeil hoch oder runter (oder Button) = Neutral. Tippen/Klicken auf eine Karte öffnet das Dossier.
-      </p>
+      <p className="text-[11px] text-[rgb(var(--muted))]">Gesten: links = eher ablehnen, rechts = eher zustimmen, oben = verstehen/vertiefen.</p>
     </header>
   );
 }
@@ -615,21 +703,18 @@ function SwipesToolbar({ topicQuery, onTopicChange, activeLevel, onLevelChange, 
             type="text"
             value={topicQuery}
             onChange={(e) => onTopicChange(e.target.value)}
-            placeholder={isBasic ? "Themensuche in eDebatte Start freischalten …" : "z.B. Badeverbot Hunde, Pflegepersonal, Klimaschutz"}
-            disabled={isBasic}
+            placeholder="z. B. Wohnen, Mobilität, Bildung, Pflege"
             className={`w-full rounded-full border px-3 py-1.5 text-sm text-[rgb(var(--fg))] focus:outline-none focus:ring-2 focus:ring-sky-200 ${
-              isBasic ? "cursor-not-allowed border-[rgb(var(--border))] bg-[rgb(var(--bg))] text-[rgb(var(--muted))]" : "border-[rgb(var(--border))] bg-[rgb(var(--bg))] hover:bg-[rgb(var(--card))]"
+              "border-[rgb(var(--border))] bg-[rgb(var(--bg))] hover:bg-[rgb(var(--card))]"
             }`}
           />
-          {isBasic ? (
-            <Link href="/pricing" className={primaryChipClass}>
-              Themensuche in Start freischalten
-            </Link>
-          ) : (
-            <Link href="/swipes/saved" className={secondaryChipClass}>
-              Gespeicherte Suchen
-            </Link>
-          )}
+          <button
+            type="button"
+            onClick={() => onTopicChange("")}
+            className={secondaryChipClass}
+          >
+            Zurücksetzen
+          </button>
         </div>
       </div>
 
@@ -653,6 +738,11 @@ function SwipesToolbar({ topicQuery, onTopicChange, activeLevel, onLevelChange, 
           );
         })}
       </div>
+      {isBasic ? (
+        <p className="text-[11px] text-[rgb(var(--muted))] md:ml-2">
+          Optional erweiterbar: Variantenvergleich und weitere Auswertungen in Start/Pro.
+        </p>
+      ) : null}
     </section>
   );
 }
@@ -798,10 +888,36 @@ function MobileEventualitiesOverlay({ selectedSwipe, eventualities, isBasic, onC
 
 /** Empty State */
 
-function EmptyState({ message, ctaHref, ctaLabel }: { message?: string; ctaHref?: string; ctaLabel?: string }) {
+function EmptyState({
+  message,
+  ctaHref,
+  ctaLabel,
+  onResetFilters,
+}: {
+  message?: string;
+  ctaHref?: string;
+  ctaLabel?: string;
+  onResetFilters?: () => void;
+}) {
   return (
     <div className="rounded-3xl bg-[rgb(var(--bg))] p-4 text-sm text-[rgb(var(--muted))] ring-1 ring-dashed ring-[rgb(var(--border))]">
       {message ?? "Aktuell gibt es zu deiner Auswahl keine Swipes. Probiere einen anderen Suchbegriff, eine andere Ebene – oder entdecke neue Themen auf der Startseite."}
+      <div className="mt-3 flex flex-wrap gap-2 text-xs">
+        {onResetFilters ? (
+          <button type="button" onClick={onResetFilters} className="vog-chip vog-chip--active">
+            Filter zurücksetzen
+          </button>
+        ) : null}
+        <Link href="/swipes?topic=wohnen" className="vog-chip">
+          Wohnen
+        </Link>
+        <Link href="/swipes?topic=bildung" className="vog-chip">
+          Bildung
+        </Link>
+        <Link href="/swipes?topic=mobilitaet" className="vog-chip">
+          Mobilität
+        </Link>
+      </div>
       {ctaHref && ctaLabel && (
         <div className="mt-2">
           <Link href={ctaHref} className="text-[11px] font-semibold text-sky-700 underline-offset-2 hover:underline">

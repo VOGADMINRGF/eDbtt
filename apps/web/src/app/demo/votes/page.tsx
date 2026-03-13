@@ -141,7 +141,7 @@ export default async function DemoVotesPage({
       if (!value || value === "all") params.delete(key);
       else params.set(key, value);
     });
-    return `/demo/votes?${params.toString()}`;
+    return `/demo/abstimmungen?${params.toString()}`;
   }
 
   return (
@@ -161,7 +161,7 @@ export default async function DemoVotesPage({
       </header>
 
       <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm space-y-3">
-        <form method="GET" action="/demo/votes" className="grid gap-3 md:grid-cols-[1.6fr_1fr_1fr_1fr]">
+        <form method="GET" action="/demo/abstimmungen" className="grid gap-3 md:grid-cols-[1.6fr_1fr_1fr_1fr]">
           <input type="hidden" name="persona" value={persona} />
           <input
             type="search"
@@ -305,7 +305,7 @@ export default async function DemoVotesPage({
                 <p>Letztes Update: {new Date(vote.updatedAt).toLocaleDateString("de-DE")}</p>
               </div>
               <Link
-                href={withPersona(`/demo/votes/${detailId}`, persona)}
+                href={withPersona(`/demo/abstimmungen/${detailId}`, persona)}
                 className="btn btn-primary text-sm"
               >
                 Details ansehen

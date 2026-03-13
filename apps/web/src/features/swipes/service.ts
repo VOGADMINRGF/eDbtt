@@ -9,6 +9,7 @@ import type {
   SwipeVotePayload,
   SwipeDecision,
 } from "./types";
+import { filterSwipeSeedItems, getSwipeSeedEventualities } from "./seed";
 import { recordSwipeVoteInGraph } from "@/features/graph/swipes";
 import { getCol } from "@core/db/triMongo";
 import { eventualityNodesCol } from "@core/eventualities/db";
@@ -88,11 +89,17 @@ export async function getSwipeFeed(req: SwipeFeedRequest): Promise<SwipeFeedResp
   const level = filter?.level;
   const statementId = filter?.statementId;
 
-  const Proposals = await getCol<ProposalDoc>("statement_proposals");
-  const proposalDocs = await Proposals.find({ status: { $in: ["proposed", null] } })
-    .sort({ createdAt: -1 })
-    .limit(req.limit ?? 20)
-    .toArray();
+  let proposalDocs: ProposalDoc[] = [];
+  try {
+    const Proposals = await getCol<ProposalDoc>("statement_proposals");
+    proposalDocs = await Proposals.find({ status: { $in: ["proposed", null] } })
+      .sort({ createdAt: -1 })
+      .limit(req.limit ?? 20)
+      .toArray();
+  } catch (error) {
+    console.error("[swipes] proposal feed unavailable, using seed fallback", error);
+    return { items: filterSwipeSeedItems(req.filter), nextCursor: null };
+  }
 
   let items = proposalDocs.length > 0 ? proposalDocs.map(mapProposalToSwipe) : [];
 
@@ -124,21 +131,37 @@ export async function getSwipeFeed(req: SwipeFeedRequest): Promise<SwipeFeedResp
     });
   }
 
+  if (items.length === 0) {
+    const seed = filterSwipeSeedItems(req.filter);
+    return { items: seed, nextCursor: null };
+  }
+
   return { items, nextCursor: null };
 }
 
 export async function getEventualitiesForStatement(req: EventualitiesRequest): Promise<EventualitiesResponse> {
-  const col = await eventualityNodesCol();
-  const nodes = await col
-    .find<EventualityNodeDoc>({ statementId: req.statementId })
-    .sort({ createdAt: 1 })
-    .toArray();
-  const eventualities: Eventuality[] = nodes.map((doc) => ({
-    id: doc.nodeId,
-    title: doc.payload?.label ?? "Eventualitaet",
-    description: doc.payload?.narrative ?? undefined,
-  }));
-  return { statementId: req.statementId, eventualities };
+  if (req.statementId.startsWith("seed-")) {
+    return {
+      statementId: req.statementId,
+      eventualities: getSwipeSeedEventualities(req.statementId),
+    };
+  }
+  try {
+    const col = await eventualityNodesCol();
+    const nodes = await col
+      .find<EventualityNodeDoc>({ statementId: req.statementId })
+      .sort({ createdAt: 1 })
+      .toArray();
+    const eventualities: Eventuality[] = nodes.map((doc) => ({
+      id: doc.nodeId,
+      title: doc.payload?.label ?? "Eventualität",
+      description: doc.payload?.narrative ?? undefined,
+    }));
+    return { statementId: req.statementId, eventualities };
+  } catch (error) {
+    console.error("[swipes] eventualities unavailable", error);
+    return { statementId: req.statementId, eventualities: [] };
+  }
 }
 
 export async function recordSwipeVote(payload: SwipeVotePayload): Promise<void> {

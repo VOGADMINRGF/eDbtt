@@ -8,13 +8,9 @@ export async function POST(req: NextRequest) {
   const cookieStore = await cookies();
   const userId = cookieStore.get("u_id")?.value;
 
-  if (!userId) {
-    return NextResponse.json({ error: "UNAUTHORIZED" }, { status: 401 });
-  }
-
   const body = (await req.json().catch(() => ({}))) as Partial<SwipeFeedRequest>;
 
-  const overview = await getAccountOverview(userId);
+  const overview = userId ? await getAccountOverview(userId).catch(() => null) : null;
   const edebattePackage = (overview as any)?.edebatte?.package ?? "none";
 
   const feedReq: SwipeFeedRequest = {
