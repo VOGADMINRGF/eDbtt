@@ -83,5 +83,28 @@ export async function GET(req: NextRequest) {
     }
   }
 
+  if (
+    target?.targetType === "dossier" ||
+    target?.targetType === "newsroom_companion" ||
+    target?.targetType === "custom"
+  ) {
+    const targetIds = Array.isArray(target.targetIds) ? target.targetIds.filter(Boolean) : [];
+    void logScan({
+      code: qrId,
+      targetType: target.targetType,
+      targetIds,
+      req,
+    });
+    return NextResponse.json({
+      success: true,
+      data: {
+        targetType: target.targetType,
+        targetIds,
+        title: target.title ?? null,
+        meta: target.meta ?? null,
+      },
+    });
+  }
+
   return NextResponse.json({ success: false, error: "not_found" }, { status: 404 });
 }

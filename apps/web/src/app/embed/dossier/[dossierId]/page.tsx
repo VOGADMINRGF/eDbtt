@@ -8,11 +8,16 @@ import {
 } from "@features/dossier/db";
 import { findDossierByAnyId } from "@features/dossier/lookup";
 import { selectEffectiveFindings } from "@features/dossier/effective";
+import {
+  buildNewsroomCompanionPath,
+  buildOpenDossierPath,
+} from "@features/newsroom";
 
 export const dynamic = "force-dynamic";
 
 type PageProps = {
   params: Promise<{ dossierId: string }>;
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
 };
 
 const statusStyles: Record<string, string> = {
@@ -26,12 +31,31 @@ const statusStyles: Record<string, string> = {
   closed: "border-[rgb(var(--border))] bg-[rgb(var(--bg))] text-[rgb(var(--muted))]",
 };
 
-export default async function DossierEmbedPage({ params }: PageProps) {
+function read(value?: string | string[]) {
+  if (Array.isArray(value)) return value[0];
+  return value;
+}
+
+export default async function DossierEmbedPage({ params, searchParams }: PageProps) {
   const { dossierId } = await params;
+  const resolved = searchParams ? await searchParams : {};
   const dossier = await findDossierByAnyId(dossierId);
   if (!dossier) return notFound();
 
+  const anchorId = read(resolved.anchor);
+  const medium = read(resolved.medium);
+  const format = read(resolved.format);
+  const publishedAt = read(resolved.publishedAt);
+
   const dossierKey = dossier.dossierId;
+  const openDossierPath = buildOpenDossierPath({ dossierId: dossierKey, anchorId });
+  const companionPath = buildNewsroomCompanionPath({
+    dossierId: dossierKey,
+    anchorId,
+    medium,
+    format,
+    publishedAt,
+  });
   const [claims, sources, findings, openQuestions] = await Promise.all([
     (await dossierClaimsCol()).find({ dossierId: dossierKey }).sort({ createdAt: 1 }).toArray(),
     (await dossierSourcesCol()).find({ dossierId: dossierKey }).sort({ publishedAt: -1, createdAt: -1 }).toArray(),
@@ -50,6 +74,21 @@ export default async function DossierEmbedPage({ params }: PageProps) {
           ID: <span className="font-mono">{dossier.dossierId}</span>
         </p>
       </header>
+      <section className="mt-4 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4 text-xs text-[rgb(var(--muted))]">
+        <p className="font-semibold uppercase tracking-wide">Open Companion Flow</p>
+        <p className="mt-1">
+          Dieser Embed ist ein offener Begleitraum. Journalistische Einstiege bleiben Anlassgeber,
+          nicht Endwahrheit.
+        </p>
+        <div className="mt-2 flex flex-wrap gap-2">
+          <Link href={openDossierPath} className="btn-secondary text-xs">
+            Offenen Dossierraum öffnen
+          </Link>
+          <Link href={companionPath} className="btn-secondary text-xs">
+            Newsroom Companion
+          </Link>
+        </div>
+      </section>
 
       <section className="mt-5 space-y-3">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Claims</h2>
@@ -135,8 +174,8 @@ export default async function DossierEmbedPage({ params }: PageProps) {
       </section>
 
       <footer className="mt-8 text-xs text-[rgb(var(--muted))]">
-        <Link href={`/dossier/${encodeURIComponent(dossierKey)}`} className="underline">
-          Vollansicht oeffnen
+        <Link href={openDossierPath} className="underline">
+          Vollansicht öffnen
         </Link>
       </footer>
     </main>
