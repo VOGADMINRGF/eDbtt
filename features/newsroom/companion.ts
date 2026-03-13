@@ -4,6 +4,7 @@ type CompanionParams = {
   medium?: string | null;
   format?: string | null;
   publishedAt?: string | null;
+  cta?: string | null;
 };
 
 function clean(value?: string | null) {
@@ -32,6 +33,7 @@ export function buildNewsroomCompanionPath(args: CompanionParams) {
     ["medium", clean(args.medium)],
     ["format", clean(args.format)],
     ["publishedAt", clean(args.publishedAt)],
+    ["cta", clean(args.cta)],
   ]);
 }
 
@@ -42,5 +44,6 @@ export function buildDossierEmbedPath(args: CompanionParams) {
     ["medium", clean(args.medium)],
     ["format", clean(args.format)],
     ["publishedAt", clean(args.publishedAt)],
+    ["cta", clean(args.cta)],
   ]);
 }

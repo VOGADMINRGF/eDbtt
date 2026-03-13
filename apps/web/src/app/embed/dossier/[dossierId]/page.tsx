@@ -12,6 +12,8 @@ import {
   buildNewsroomCompanionPath,
   buildOpenDossierPath,
 } from "@features/newsroom";
+import { resolveNewsroomCtaLabel } from "@features/embed";
+import { JOURNALISM_ANLASS_NOTE } from "@features/journalism";
 
 export const dynamic = "force-dynamic";
 
@@ -36,6 +38,15 @@ function read(value?: string | string[]) {
   return value;
 }
 
+function deriveFactcheckStatus(verdicts: string[]) {
+  if (verdicts.some((item) => item === "refuted")) return "widersprüchlich";
+  if (verdicts.some((item) => item === "mixed" || item === "unclear" || item === "in_review")) {
+    return "in Prüfung";
+  }
+  if (verdicts.some((item) => item === "supported")) return "teilweise bestätigt";
+  return "offen";
+}
+
 export default async function DossierEmbedPage({ params, searchParams }: PageProps) {
   const { dossierId } = await params;
   const resolved = searchParams ? await searchParams : {};
@@ -46,6 +57,8 @@ export default async function DossierEmbedPage({ params, searchParams }: PagePro
   const medium = read(resolved.medium);
   const format = read(resolved.format);
   const publishedAt = read(resolved.publishedAt);
+  const cta = read(resolved.cta);
+  const ctaLabel = resolveNewsroomCtaLabel(cta);
 
   const dossierKey = dossier.dossierId;
   const openDossierPath = buildOpenDossierPath({ dossierId: dossierKey, anchorId });
@@ -55,6 +68,7 @@ export default async function DossierEmbedPage({ params, searchParams }: PagePro
     medium,
     format,
     publishedAt,
+    cta,
   });
   const [claims, sources, findings, openQuestions] = await Promise.all([
     (await dossierClaimsCol()).find({ dossierId: dossierKey }).sort({ createdAt: 1 }).toArray(),
@@ -64,6 +78,7 @@ export default async function DossierEmbedPage({ params, searchParams }: PagePro
   ]);
 
   const effectiveFindings = selectEffectiveFindings(findings);
+  const factcheckStatus = deriveFactcheckStatus(effectiveFindings.map((item) => item.verdict));
 
   return (
     <main className="min-h-screen bg-[rgb(var(--card))] px-4 py-6 text-[rgb(var(--fg))]">
@@ -77,9 +92,9 @@ export default async function DossierEmbedPage({ params, searchParams }: PagePro
       <section className="mt-4 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4 text-xs text-[rgb(var(--muted))]">
         <p className="font-semibold uppercase tracking-wide">Open Companion Flow</p>
         <p className="mt-1">
-          Dieser Embed ist ein offener Begleitraum. Journalistische Einstiege bleiben Anlassgeber,
-          nicht Endwahrheit.
+          {JOURNALISM_ANLASS_NOTE}
         </p>
+        <p className="mt-1">{ctaLabel}</p>
         <div className="mt-2 flex flex-wrap gap-2">
           <Link href={openDossierPath} className="btn-secondary text-xs">
             Offenen Dossierraum öffnen
@@ -87,6 +102,27 @@ export default async function DossierEmbedPage({ params, searchParams }: PagePro
           <Link href={companionPath} className="btn-secondary text-xs">
             Newsroom Companion
           </Link>
+        </div>
+      </section>
+
+      <section className="mt-4 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4 text-xs text-[rgb(var(--muted))]">
+        <p className="font-semibold uppercase tracking-wide">Anlass & Prüflage</p>
+        <div className="mt-2 grid gap-2 sm:grid-cols-3">
+          <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2">
+            <p className="uppercase tracking-wide">Ausgelöst durch</p>
+            <p className="mt-1 font-semibold text-[rgb(var(--fg))]">{medium ?? "-"} · {format ?? "-"}</p>
+            <p className="mt-1">{publishedAt ?? "-"}</p>
+          </div>
+          <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2">
+            <p className="uppercase tracking-wide">Factcheck-Stand</p>
+            <p className="mt-1 font-semibold text-[rgb(var(--fg))]">{factcheckStatus}</p>
+            <p className="mt-1">{effectiveFindings.length} Findings</p>
+          </div>
+          <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2">
+            <p className="uppercase tracking-wide">Anlass-ID</p>
+            <p className="mt-1 font-semibold text-[rgb(var(--fg))]">{anchorId ?? "-"}</p>
+            <p className="mt-1">{openQuestions.length} offene Fragen</p>
+          </div>
         </div>
       </section>
 

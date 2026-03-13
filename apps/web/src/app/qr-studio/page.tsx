@@ -252,6 +252,12 @@ export default function QrStudioPage() {
             <span className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-1">2-5 Optionen</span>
             <span className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-1">Anonym &amp; ohne Login</span>
           </div>
+          <Link
+            href="/qr-studio/newsroom"
+            className="inline-flex items-center rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-2 text-xs font-semibold text-[rgb(var(--muted))] hover:bg-[rgb(var(--bg))]"
+          >
+            Zum Newsroom-Embed/QR-Studio
+          </Link>
         </header>
 
         <section className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">

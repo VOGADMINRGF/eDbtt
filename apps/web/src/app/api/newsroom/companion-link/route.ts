@@ -1,9 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import {
-  buildDossierEmbedPath,
-  buildNewsroomCompanionPath,
-  buildOpenDossierPath,
-} from "@features/newsroom";
+import { buildNewsroomEmbedBundle } from "@features/embed";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -27,25 +23,20 @@ export async function GET(req: NextRequest) {
   const medium = read(searchParams.get("medium"));
   const format = read(searchParams.get("format"));
   const publishedAt = read(searchParams.get("publishedAt"));
+  const cta = read(searchParams.get("cta"));
+  const bundle = buildNewsroomEmbedBundle({
+    dossierId,
+    anchorId,
+    medium,
+    format,
+    publishedAt,
+    cta,
+  });
 
   return NextResponse.json({
     ok: true,
     data: {
-      dossierPath: buildOpenDossierPath({ dossierId, anchorId }),
-      companionPath: buildNewsroomCompanionPath({
-        dossierId,
-        anchorId,
-        medium,
-        format,
-        publishedAt,
-      }),
-      embedPath: buildDossierEmbedPath({
-        dossierId,
-        anchorId,
-        medium,
-        format,
-        publishedAt,
-      }),
+      ...bundle,
       rule: "open_dossier_only",
     },
   });
