@@ -5,6 +5,7 @@ import Link from "next/link";
 import type { StatementVote } from "@/components/statements/StatementCard";
 import { buildSwipeDossierHref, buildSwipeEvidenceHref } from "@/features/surfaces/swipes/detailRoutes";
 import {
+  FreeVoteGate,
   SwipeDetailSheet,
   SwipesDeck,
   SwipesHeader,
@@ -12,6 +13,7 @@ import {
   SwipesToolbar,
   type DecisionHistoryItem,
 } from "@/features/surfaces/swipes/components";
+import { useFreeVoteLimit } from "@/features/surfaces/swipes/useFreeVoteLimit";
 import type {
   EDebattePackage,
   Eventuality,
@@ -77,6 +79,7 @@ type SwipesClientProps = {
   showHero?: boolean;
   mode?: SurfaceMode;
   audience?: SurfaceAudience;
+  requireAuthAfterFreeVotes?: boolean;
 };
 
 export function SwipesClient({
@@ -87,6 +90,7 @@ export function SwipesClient({
   showHero = true,
   mode = "live",
   audience = "none",
+  requireAuthAfterFreeVotes = false,
 }: SwipesClientProps) {
   const [topicQuery, setTopicQuery] = useState(variant === "solo" ? "" : initialTopic);
   const [activeLevel, setActiveLevel] = useState<"ALL" | "Bund" | "Land" | "Kommune" | "EU">("ALL");
@@ -116,6 +120,11 @@ export function SwipesClient({
     edebattePackage === "b2g_basis" ||
     edebattePackage === "b2g_pro";
   const isSolo = variant === "solo";
+  const freeVote = useFreeVoteLimit({
+    enabled: requireAuthAfterFreeVotes && mode === "live" && !isSolo,
+    limit: 3,
+  });
+  const isVoteLocked = freeVote.enabled && !freeVote.canVote;
 
   const openDossierRoute = useCallback(
     (statementId: string) => buildSwipeDossierHref(statementId, { mode, audience }),
@@ -231,6 +240,19 @@ export function SwipesClient({
     setTimeout(() => setScreenFlash(null), 320);
   }, [announce, filteredSwipes, isBasic, openDossierRoute]);
 
+  const attemptDecision = useCallback(
+    (item: SwipeItem, decision: SwipeDecision, idxOverride?: number) => {
+      if (isVoteLocked) {
+        freeVote.setGateOpen(true);
+        return;
+      }
+      const allowed = freeVote.registerVote();
+      if (!allowed) return;
+      handleDecision(item, decision, idxOverride);
+    },
+    [freeVote, handleDecision, isVoteLocked],
+  );
+
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
       if (!filteredSwipes.length) return;
@@ -243,21 +265,21 @@ export function SwipesClient({
       if (!current) return;
       if (e.key === "ArrowLeft") {
         e.preventDefault();
-        handleDecision(current, "disagree", activeIndex);
+        attemptDecision(current, "disagree", activeIndex);
       } else if (e.key === "ArrowRight") {
         e.preventDefault();
-        handleDecision(current, "agree", activeIndex);
+        attemptDecision(current, "agree", activeIndex);
       } else if (e.key === "ArrowUp") {
         e.preventDefault();
         void openDetail(current);
       } else if (e.key === "ArrowDown") {
         e.preventDefault();
-        handleDecision(current, "neutral", activeIndex);
+        attemptDecision(current, "neutral", activeIndex);
       }
     };
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
-  }, [filteredSwipes, activeIndex, handleDecision, openDetail]);
+  }, [filteredSwipes, activeIndex, attemptDecision, openDetail]);
 
   const handleUndo = () => {
     if (!lastAction) return;
@@ -278,7 +300,7 @@ export function SwipesClient({
   const activeItem = filteredSwipes[activeIndex] ?? filteredSwipes[0] ?? null;
 
   return (
-    <div className={`mx-auto flex flex-col gap-6 px-4 pt-10 ${isSolo ? "max-w-3xl" : "max-w-6xl"}`}>
+    <div className={`mx-auto flex flex-col gap-6 px-4 pt-3 md:pt-8 ${isSolo ? "max-w-3xl" : "max-w-6xl"}`}>
       <div className="sr-only" aria-live="polite" aria-atomic="true">
         {liveMessage}
       </div>
@@ -295,17 +317,20 @@ export function SwipesClient({
         />
       ) : null}
 
-      {isSolo ? (
-        <SoloHeader statementId={focusStatementId} />
-      ) : (
-        <>
-          {showHero ? (
-            <SwipesHeader
-              edebattePackage={edebattePackage}
-              isBasic={isBasic}
-              isStartOrPro={isStartOrPro}
-            />
-          ) : null}
+      {isSolo ? <SoloHeader statementId={focusStatementId} /> : null}
+
+      {!isSolo && showHero ? (
+        <div className="hidden md:block">
+          <SwipesHeader
+            edebattePackage={edebattePackage}
+            isBasic={isBasic}
+            isStartOrPro={isStartOrPro}
+          />
+        </div>
+      ) : null}
+
+      {!isSolo ? (
+        <div className="hidden md:block">
           <SwipesToolbar
             topicQuery={topicQuery}
             onTopicChange={setTopicQuery}
@@ -313,12 +338,16 @@ export function SwipesClient({
             onLevelChange={setActiveLevel}
             isBasic={isBasic}
           />
-          <SwipesOutcomeSummary stats={decisionStats} history={decisionHistory} />
-        </>
-      )}
+        </div>
+      ) : null}
 
       <div className={isSolo ? "relative space-y-3" : "grid gap-5 md:grid-cols-[minmax(0,2.1fr)_minmax(0,1.3fr)]"}>
         <div className="space-y-3 relative">
+          {!isSolo && freeVote.enabled ? (
+            <p className="text-xs text-[rgb(var(--muted))]">
+              Freier Einstieg: {Math.min(freeVote.count, freeVote.limit)}/{freeVote.limit} Abstimmungen genutzt.
+            </p>
+          ) : null}
           {lastAction ? (
             <div className="flex justify-end">
               <button
@@ -352,8 +381,8 @@ export function SwipesClient({
               onOpen={(item) => {
                 void openDetail(item);
               }}
-              onSwipeDecision={(item, decision, index) => handleDecision(item, decision, index)}
-              onVote={(item, vote, index) => handleDecision(item, mapVoteToDecision(vote), index)}
+              onSwipeDecision={(item, decision, index) => attemptDecision(item, decision, index)}
+              onVote={(item, vote, index) => attemptDecision(item, mapVoteToDecision(vote), index)}
             />
           )}
         </div>
@@ -376,21 +405,21 @@ export function SwipesClient({
           <div className="mx-auto grid max-w-xl grid-cols-4 gap-2">
             <button
               type="button"
-              onClick={() => handleDecision(activeItem, "disagree", activeIndex)}
+              onClick={() => attemptDecision(activeItem, "disagree", activeIndex)}
               className="rounded-xl border border-rose-200 bg-rose-50 px-2 py-2 text-xs font-semibold text-rose-700"
             >
               Nein
             </button>
             <button
               type="button"
-              onClick={() => handleDecision(activeItem, "neutral", activeIndex)}
+              onClick={() => attemptDecision(activeItem, "neutral", activeIndex)}
               className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-2 py-2 text-xs font-semibold text-[rgb(var(--muted))]"
             >
               Offen
             </button>
             <button
               type="button"
-              onClick={() => handleDecision(activeItem, "agree", activeIndex)}
+              onClick={() => attemptDecision(activeItem, "agree", activeIndex)}
               className="rounded-xl border border-emerald-200 bg-emerald-50 px-2 py-2 text-xs font-semibold text-emerald-700"
             >
               Ja
@@ -407,6 +436,28 @@ export function SwipesClient({
           </div>
         </nav>
       ) : null}
+
+      {!isSolo ? (
+        <>
+          <div className="md:hidden">
+            <SwipesToolbar
+              topicQuery={topicQuery}
+              onTopicChange={setTopicQuery}
+              activeLevel={activeLevel}
+              onLevelChange={setActiveLevel}
+              isBasic={isBasic}
+            />
+          </div>
+          <SwipesOutcomeSummary stats={decisionStats} history={decisionHistory} />
+        </>
+      ) : null}
+
+      <FreeVoteGate
+        open={freeVote.gateOpen}
+        count={freeVote.count}
+        limit={freeVote.limit}
+        onClose={() => freeVote.setGateOpen(false)}
+      />
 
       <SwipeDetailSheet
         open={detailOpen}

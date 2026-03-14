@@ -4,3 +4,4 @@ export * from "./SwipesOutcomeSummary";
 export * from "./SwipeDetailSheet";
 export * from "./SwipeCard";
 export * from "./SwipesDeck";
+export * from "./FreeVoteGate";

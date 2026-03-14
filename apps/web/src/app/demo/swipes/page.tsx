@@ -29,6 +29,7 @@ export default async function DemoSwipesPage({
         context={context}
         edebattePackage="none"
         initialTopic={typeof resolved?.topic === "string" ? resolved.topic : ""}
+        requireAuthAfterFreeVotes={false}
       />
     </>
   );

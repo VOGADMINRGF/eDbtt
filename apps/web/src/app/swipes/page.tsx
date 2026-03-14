@@ -27,6 +27,7 @@ export default async function SwipesPage({ searchParams }: Props) {
           context={context}
           edebattePackage="none"
           initialTopic={typeof searchParams?.topic === "string" ? searchParams.topic : ""}
+          requireAuthAfterFreeVotes
         />
       </>
     );
@@ -41,7 +42,12 @@ export default async function SwipesPage({ searchParams }: Props) {
   return (
     <>
       <h1 className="sr-only">Swipes</h1>
-      <SwipesSurface context={context} edebattePackage={edebattePkg} initialTopic={initialTopic} />
+      <SwipesSurface
+        context={context}
+        edebattePackage={edebattePkg}
+        initialTopic={initialTopic}
+        requireAuthAfterFreeVotes={false}
+      />
     </>
   );
 }
