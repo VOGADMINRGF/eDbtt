@@ -14,6 +14,13 @@ type SearchParamsShape =
 
 const MODULES = [
   {
+    id: "runden",
+    href: "/demo/runden",
+    title: "Topic & Runden",
+    baseLead: "Kanonisches Topic mit mehreren Runden (Artikel, Video, Stream, Podcast, Session, Event).",
+    tags: ["Topic", "Round", "Roadmap", "Mitwirken"],
+  },
+  {
     id: "dossier",
     href: "/demo/dossier",
     title: "Dossier-Studie",
@@ -62,6 +69,7 @@ const PERSONA_LEAD_BY_MODULE: Record<
   Partial<Record<(typeof MODULES)[number]["id"], string>>
 > = {
   journalist: {
+    runden: "Round-zu-Topic Verlauf mit Fokus auf offene Fragen und Quellenlage.",
     dossier: "Schnellzugriff auf Quellenlage, Einsprüche und exportfähige Einordnung.",
     votes: "Newsworthy-Ansicht: offen/in Prüfung, strittige Themen und Update-Fokus.",
     swipes: "Schneller Radar für relevante Fälle vor tiefer Recherche im Dossier.",
@@ -70,6 +78,7 @@ const PERSONA_LEAD_BY_MODULE: Record<
     create: "Schneller Einstieg für Quelle, Frage und Widerspruch mit nachvollziehbarer Spur.",
   },
   administration: {
+    runden: "Steuerungsblick auf Rundenhistorie, naechste Schritte und verantwortliche Antworten.",
     dossier: "Arbeitsfokus: Zuständigkeiten, Delegation, Workflow und Dokumentationsstand.",
     votes: "Entscheidungsvorbereitung mit Status und priorisierter Umsetzungsrelevanz.",
     swipes: "Vorqualifizieren und direkt in zuständige Dossiers wechseln.",
@@ -78,6 +87,7 @@ const PERSONA_LEAD_BY_MODULE: Record<
     create: "Strukturierter Einstieg für Optionen, Verantwortungen und prüfbare Aussagen.",
   },
   citizen: {
+    runden: "Thema verstehen, Runden vergleichen und direkt zur passenden Beteiligung wechseln.",
     dossier: "Verstehen, einordnen, mitwirken: transparente Fragen- und Evidenzlage.",
     votes: "Klare Optionen mit sichtbarem Status, damit Beteiligung nachvollziehbar bleibt.",
     swipes: "Schneller Einstieg: Meinung bilden, dann Details und Evidenz ansehen.",

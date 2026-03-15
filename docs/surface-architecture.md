@@ -4,6 +4,7 @@
 - Fachlogik liegt in kanonischen Produkt-Surfaces ohne `/demo`.
 - `/demo/*` ist nur kuratierter Einstiegs-/Präsentationslayer.
 - Demo, Rolle, Rechte und Datenquelle werden als separater Surface-Context aufgelöst.
+- Topic/Round-Guardrails: `docs/architecture/topic-round-guardrails.md`
 
 ## Zentraler Resolver
 - Datei: `apps/web/src/features/surface/context.ts`
@@ -22,6 +23,12 @@
 - `/factcheck` + `/factcheck/[id]`
 - `/swipes`
 - `/mitwirken`
+- `/topic/[slug]`
+- `/topic/manage/[slug]/governance` (Management-Reviewlog, Source Classes, Konfliktlage, Export/Handoff)
+- `/round/[slug]`
+- `/round/manage/[slug]/merge` (Management-Review fuer Round -> Topic Assist)
+- `/embed/topic/[slug]`
+- `/embed/round/[slug]`
 
 ## Demo-Einstieg
 - `/demo`
@@ -35,8 +42,10 @@
 - `/demo/mandat`
 - `/demo/factcheck`
 - `/demo/swipes`
+- `/demo/runden` als gefuehrter Wrapper ueber produktive Topic/Round-Logik
 
 ## Umgesetzte gemeinsame Surfaces
 - `MandatSurface`: genutzt von `/mandat` und `/demo/mandat`
 - `FactcheckSurface`: genutzt von `/factcheck` und `/demo/factcheck`
 - `SwipesSurface`: genutzt von `/swipes` und `/demo/swipes`
+- `TopicRound`-Surfaces: genutzt von `/topic/[slug]`, `/round/[slug]` und Demo-Wrapper `/demo/runden`

@@ -19,6 +19,14 @@ export async function proxy(req: NextRequest) {
     return allowNext();
   }
 
+  if (pathname.startsWith("/embed/topic/") || pathname.startsWith("/embed/round/")) {
+    const rl = await rateLimitPublic(req, EMBED_RATE_LIMIT.limit, EMBED_RATE_LIMIT.windowMs, "embed:topic-round");
+    if (!rl.ok) {
+      return NextResponse.json({ error: "rate_limited" }, { status: 429, headers: rateLimitHeaders(rl) });
+    }
+    return allowNext();
+  }
+
   if (!pathname.startsWith("/api")) {
     return allowNext();
   }
@@ -63,5 +71,5 @@ function allowNext() {
 }
 
 export const config = {
-  matcher: ["/api/:path*", "/embed/dossier/:path*"],
+  matcher: ["/api/:path*", "/embed/dossier/:path*", "/embed/topic/:path*", "/embed/round/:path*"],
 };
