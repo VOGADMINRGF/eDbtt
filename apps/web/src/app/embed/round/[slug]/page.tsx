@@ -50,7 +50,7 @@ export default async function EmbedRoundPage({ params, searchParams }: PageProps
 
   return (
     <main className="min-h-screen bg-[rgb(var(--card))] px-4 py-6 text-[rgb(var(--fg))]">
-      <header className="space-y-2 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4">
+      <header className="space-y-2 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4 shadow-sm">
         <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Embed · Rundenvorschau</p>
         <h1 className="text-lg font-semibold">{round.title}</h1>
         <p className="text-sm text-[rgb(var(--muted))]">{round.summary}</p>
@@ -59,24 +59,29 @@ export default async function EmbedRoundPage({ params, searchParams }: PageProps
             ? "Kontextzugang läuft über den Begleitraum; diese Embed zeigt die konkrete Runde."
             : distribution.framing}
         </p>
-        {companionPath ? (
-          <Link href={companionPath} className="inline-flex text-xs underline">
-            Zum Begleitraum
+        <div className="flex flex-wrap gap-2 pt-1">
+          {companionPath ? (
+            <Link href={companionPath} className="btn btn-primary text-xs">
+              Zum Begleitraum
+            </Link>
+          ) : null}
+          <Link href={fullRoundPath} className="btn-secondary text-xs">
+            Vollansicht Runde
           </Link>
-        ) : null}
+        </div>
       </header>
 
       <section className="mt-4 rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3 space-y-2">
-        <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Linked Topic</p>
+        <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Verknüpftes Topic</p>
         <p className="text-sm font-semibold">{topic.title}</p>
         <p className="text-sm text-[rgb(var(--muted))]">{topic.framingQuestion}</p>
-        <Link href={fullTopicPath} className="text-xs underline">
+        <Link href={fullTopicPath} className="btn-secondary text-xs">
           Zum Topic-Hub
         </Link>
       </section>
 
       <section className="mt-4 space-y-2">
-        <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Open Points</p>
+        <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Offene Punkte</p>
         <div className="space-y-2">
           {round.openPoints.map((item) => (
             <div key={item} className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3 text-sm text-[rgb(var(--muted))]">
@@ -90,11 +95,7 @@ export default async function EmbedRoundPage({ params, searchParams }: PageProps
         <PublicFollowUpBlock title="Folgebeitrag (Embed)" returnPath={fullTopicPath} />
       </div>
 
-      <footer className="mt-5 text-xs text-[rgb(var(--muted))]">
-        <Link href={fullRoundPath} className="underline">
-          Vollansicht Round öffnen
-        </Link>
-      </footer>
+      <footer className="mt-5 text-xs text-[rgb(var(--muted))]">Embed-Vorschau für den öffentlichen Kontext.</footer>
     </main>
   );
 }

@@ -7,6 +7,7 @@ type SwipeEventualitiesStepProps = {
   decision: SwipeDecision | null;
   eventualities: Eventuality[];
   loading: boolean;
+  voteFeedback?: string | null;
   onSelect: (selection: {
     eventualityId: string;
     variantWeight: 1 | 3 | 5;
@@ -19,17 +20,27 @@ type SwipeEventualitiesStepProps = {
 };
 
 const TITLE_BY_DECISION: Record<SwipeDecision, string> = {
-  agree: "Welche Ausgestaltung bevorzugst du?",
-  disagree: "Falls überhaupt: welche minimalinvasive Variante wäre noch denkbar?",
-  neutral: "Welche Variante wirkt aktuell am plausibelsten?",
+  agree: "Welche Variante passt am besten?",
+  disagree: "Wenn überhaupt: welche Variante wäre noch vertretbar?",
+  neutral: "Welche Variante ist aktuell am plausibelsten?",
 };
 
 const LEAD_BY_DECISION: Record<SwipeDecision, string> = {
-  agree: "Du hast grundsätzlich zugestimmt. Sortiere jetzt die Reihenfolge und schließe ggf. Varianten aus.",
-  disagree:
-    "Du hast abgelehnt. Prüfe optional, ob eine eng begrenzte Ausgestaltung vertretbar wäre, oder schließe Varianten aus.",
-  neutral:
-    "Du bist noch offen. Ordne die Varianten nach Plausibilität und markiere alles, was für dich nicht infrage kommt.",
+  agree: "Du bist eher zustimmend. Priorisiere jetzt die passende Ausgestaltung.",
+  disagree: "Du bist eher ablehnend. Optional kannst du eine engere Variante markieren.",
+  neutral: "Du bist noch offen. Sortiere die Varianten nach Plausibilität.",
+};
+
+const DECISION_BADGE_CLASS: Record<SwipeDecision, string> = {
+  agree: "border-emerald-300/55 bg-emerald-500/16 text-emerald-100",
+  disagree: "border-rose-300/55 bg-rose-500/16 text-rose-100",
+  neutral: "border-sky-300/55 bg-sky-500/16 text-sky-100",
+};
+
+const DECISION_BADGE_LABEL: Record<SwipeDecision, string> = {
+  agree: "Grundhaltung: eher zustimmend",
+  disagree: "Grundhaltung: eher ablehnend",
+  neutral: "Grundhaltung: offen",
 };
 
 const WEIGHT_OPTIONS = [
@@ -57,6 +68,7 @@ export function SwipeEventualitiesStep({
   decision,
   eventualities,
   loading,
+  voteFeedback,
   onSelect,
   onSkip,
   onOpenDetail,
@@ -161,26 +173,34 @@ export function SwipeEventualitiesStep({
   return (
     <div className="fixed inset-0 z-[75]">
       <div className="absolute inset-0 bg-slate-950/45 backdrop-blur-[1px]" />
-      <section className="absolute inset-x-0 bottom-0 flex h-[88dvh] flex-col overflow-hidden rounded-t-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-[0_-24px_60px_rgba(2,6,23,0.45)] md:left-1/2 md:h-auto md:max-h-[90vh] md:w-[700px] md:-translate-x-1/2 md:rounded-3xl md:bottom-8">
+      <section className="absolute inset-x-0 bottom-0 flex h-[82dvh] flex-col overflow-hidden rounded-t-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-3 shadow-[0_-24px_60px_rgba(2,6,23,0.45)] md:bottom-8 md:left-1/2 md:h-auto md:max-h-[90vh] md:w-[700px] md:-translate-x-1/2 md:rounded-3xl md:p-4">
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(120%_110%_at_100%_0%,rgba(14,165,233,0.12),rgba(15,23,42,0)_45%)]" />
 
         <div className="relative shrink-0">
           <div className="flex items-start justify-between gap-2">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[rgb(var(--muted))]">Varianten-Schritt</p>
-              <h3 className="mt-2 text-lg font-semibold text-[rgb(var(--fg))]">{TITLE_BY_DECISION[decision]}</h3>
+              <h3 className="mt-1 text-lg font-semibold text-[rgb(var(--fg))]">{TITLE_BY_DECISION[decision]}</h3>
             </div>
             <span className="rounded-full border border-sky-300/40 bg-sky-500/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-sky-200">
               Schritt 2/2
             </span>
           </div>
+          <div className="mt-2 flex flex-wrap items-center gap-1.5">
+            <span className={`rounded-full border px-2 py-1 text-[10px] font-semibold ${DECISION_BADGE_CLASS[decision]}`}>
+              {DECISION_BADGE_LABEL[decision]}
+            </span>
+            {voteFeedback ? (
+              <span className="rounded-full border border-sky-300/45 bg-sky-500/14 px-2 py-1 text-[10px] font-semibold text-sky-100">
+                {voteFeedback}
+              </span>
+            ) : null}
+          </div>
           <p className="mt-2 text-sm text-[rgb(var(--muted))]">{LEAD_BY_DECISION[decision]}</p>
-          <p className="mt-1 text-xs text-[rgb(var(--muted))]">
-            Klick setzt Fokus. Mit Hoch/Mittel/Niedrig priorisierst du. Mit „Ausschließen“ fliegt die Variante aus der Reihenfolge.
-          </p>
+          <p className="mt-1 text-xs text-[rgb(var(--muted))]">Tippen wählt. Hoch/Mittel/Niedrig priorisiert. Ausschließen entfernt aus der Reihenfolge.</p>
         </div>
 
-        <div className="relative mt-3 min-h-0 flex-1 overflow-y-auto overscroll-y-contain pr-1" style={{ WebkitOverflowScrolling: "touch" }}>
+        <div className="relative mt-2 min-h-0 flex-1 overflow-y-auto overscroll-y-contain pr-1" style={{ WebkitOverflowScrolling: "touch" }}>
           {loading ? (
             <p className="text-sm text-[rgb(var(--muted))]">Lade Eventualitäten …</p>
           ) : eventualities.length > 0 ? (
@@ -327,7 +347,7 @@ export function SwipeEventualitiesStep({
           ) : null}
         </div>
 
-        <div className="relative shrink-0 -mx-4 mt-4 border-t border-[rgb(var(--border))] bg-[rgb(var(--card))]/95 px-4 pt-3 pb-[max(env(safe-area-inset-bottom),0.75rem)] backdrop-blur">
+        <div className="relative mt-3 shrink-0 -mx-3 border-t border-[rgb(var(--border))] bg-[rgb(var(--card))]/95 px-3 pt-3 pb-[max(env(safe-area-inset-bottom),0.75rem)] backdrop-blur md:-mx-4 md:px-4">
           <div className="flex flex-wrap gap-2">
             <button
               type="button"

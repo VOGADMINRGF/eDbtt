@@ -42,7 +42,7 @@ export default async function EmbedTopicPage({ params, searchParams }: PageProps
 
   return (
     <main className="min-h-screen bg-[rgb(var(--card))] px-4 py-6 text-[rgb(var(--fg))]">
-      <header className="space-y-2 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4">
+      <header className="space-y-2 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4 shadow-sm">
         <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Embed · Themenvorschau</p>
         <h1 className="text-lg font-semibold">{topic.title}</h1>
         <p className="text-sm text-[rgb(var(--muted))]">{topic.framingQuestion}</p>
@@ -51,15 +51,20 @@ export default async function EmbedTopicPage({ params, searchParams }: PageProps
             ? "QR-/Medien-Einstiege starten im Begleitraum. Diese Embed zeigt die thematische Öffnung."
             : distribution.framing}
         </p>
-        {companionPath ? (
-          <Link href={companionPath} className="inline-flex text-xs underline">
-            Zuerst Begleitraum öffnen
+        <div className="flex flex-wrap gap-2 pt-1">
+          {companionPath ? (
+            <Link href={companionPath} className="btn btn-primary text-xs">
+              Zuerst Begleitraum öffnen
+            </Link>
+          ) : null}
+          <Link href={fullTopicPath} className="btn-secondary text-xs">
+            Vollansicht Topic
           </Link>
-        ) : null}
+        </div>
       </header>
 
       <section className="mt-4 space-y-2">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Latest Rounds</h2>
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Neueste Runden</h2>
         <div className="space-y-2">
           {rounds.map((round) => (
             <article key={round.id} className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
@@ -67,7 +72,7 @@ export default async function EmbedTopicPage({ params, searchParams }: PageProps
               <p className="text-xs text-[rgb(var(--muted))]">{round.summary}</p>
               <Link
                 href={withDistributionQuery(`/round/${round.slug}`, distribution)}
-                className="mt-2 inline-flex text-xs underline"
+                className="btn-secondary mt-2 text-xs"
               >
                 Round öffnen
               </Link>
@@ -80,11 +85,7 @@ export default async function EmbedTopicPage({ params, searchParams }: PageProps
         <PublicFollowUpBlock title="Folgebeitrag (Embed)" returnPath={followUpPath} />
       </div>
 
-      <footer className="mt-5 text-xs text-[rgb(var(--muted))]">
-        <Link href={fullTopicPath} className="underline">
-          Vollansicht Topic öffnen
-        </Link>
-      </footer>
+      <footer className="mt-5 text-xs text-[rgb(var(--muted))]">Embed-Vorschau für den öffentlichen Kontext.</footer>
     </main>
   );
 }

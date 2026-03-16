@@ -172,44 +172,49 @@ export function TopicSurface({
 
       <TopicOptionsPanel topic={topic} />
 
-      <TopicClaimsPanel topic={topic} sourceById={sourceById} />
+      <TopicClaimsPanel topic={topic} sourceById={sourceById} secondary />
 
-      <TopicRoundsPanel rounds={rounds} distribution={distribution} />
+      <TopicRoundsPanel rounds={rounds} distribution={distribution} secondary />
 
-      <section className="grid gap-4 lg:grid-cols-2">
-        <article className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm">
-          <h2 className="text-lg font-semibold text-[rgb(var(--fg))]">Konfliktlage</h2>
-          <p className="mt-1 text-sm text-[rgb(var(--muted))]">
-            Konflikte bleiben sichtbar. Der Themenraum erzwingt keinen künstlichen Konsens.
-          </p>
-          <div className="mt-3 space-y-2 text-sm">
-            {topic.conflicts.map((conflict) => (
-              <article key={conflict.id} className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
-                <div className="flex flex-wrap gap-2 text-xs">
-                  <span className="vog-chip">{CONFLICT_KIND_LABELS[conflict.kind]}</span>
-                  <span className="vog-chip vog-chip--status">{conflict.unresolved ? "offen" : "geklärt"}</span>
-                </div>
-                <p className="mt-1 font-semibold text-[rgb(var(--fg))]">{conflict.title}</p>
-                <p className="text-[rgb(var(--muted))]">{conflict.details}</p>
-              </article>
-            ))}
-          </div>
-        </article>
-
-        <article className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm">
-          <h2 className="text-lg font-semibold text-[rgb(var(--fg))]">Readiness und Handoff</h2>
-          <p className="mt-1 text-sm text-[rgb(var(--muted))]">{topic.exportSnapshot.conciseSummary}</p>
-          <div className="mt-3 space-y-2 text-sm text-[rgb(var(--muted))]">
-            <p className="font-semibold text-[rgb(var(--fg))]">Nächste-Runde-Agenda</p>
-            <ul className="space-y-1">
-              {topic.exportSnapshot.nextRoundAgenda.map((item) => (
-                <li key={item}>- {item}</li>
+      <details className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))]/78 p-4 shadow-sm">
+        <summary className="cursor-pointer text-sm font-semibold text-[rgb(var(--fg))]">
+          Weitere Einordnung (Konflikte, Readiness, Handoff)
+        </summary>
+        <section className="mt-4 grid gap-4 lg:grid-cols-2">
+          <article className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4">
+            <h2 className="text-base font-semibold text-[rgb(var(--fg))]">Konfliktlage</h2>
+            <p className="mt-1 text-sm text-[rgb(var(--muted))]">
+              Konflikte bleiben sichtbar. Der Themenraum erzwingt keinen künstlichen Konsens.
+            </p>
+            <div className="mt-3 space-y-2 text-sm">
+              {topic.conflicts.map((conflict) => (
+                <article key={conflict.id} className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-3">
+                  <div className="flex flex-wrap gap-2 text-xs">
+                    <span className="vog-chip">{CONFLICT_KIND_LABELS[conflict.kind]}</span>
+                    <span className="vog-chip vog-chip--status">{conflict.unresolved ? "offen" : "geklärt"}</span>
+                  </div>
+                  <p className="mt-1 font-semibold text-[rgb(var(--fg))]">{conflict.title}</p>
+                  <p className="text-[rgb(var(--muted))]">{conflict.details}</p>
+                </article>
               ))}
-            </ul>
-            <p>{topic.exportSnapshot.handoffNote}</p>
-          </div>
-        </article>
-      </section>
+            </div>
+          </article>
+
+          <article className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4">
+            <h2 className="text-base font-semibold text-[rgb(var(--fg))]">Readiness und Handoff</h2>
+            <p className="mt-1 text-sm text-[rgb(var(--muted))]">{topic.exportSnapshot.conciseSummary}</p>
+            <div className="mt-3 space-y-2 text-sm text-[rgb(var(--muted))]">
+              <p className="font-semibold text-[rgb(var(--fg))]">Nächste-Runde-Agenda</p>
+              <ul className="space-y-1">
+                {topic.exportSnapshot.nextRoundAgenda.map((item) => (
+                  <li key={item}>- {item}</li>
+                ))}
+              </ul>
+              <p>{topic.exportSnapshot.handoffNote}</p>
+            </div>
+          </article>
+        </section>
+      </details>
 
       <TopicOpenSpaceCta
         topicSlug={topic.slug}
@@ -452,7 +457,7 @@ export function CompanionSurface({
 
       <TopicOptionsPanel topic={topic} />
 
-      <section id="quellen" className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm">
+      <section id="quellen" className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))]/82 p-5 shadow-sm">
         <h2 className="text-lg font-semibold text-[rgb(var(--fg))]">Quellen & Claims</h2>
         <div className="mt-3 space-y-2">
           {topic.claims.slice(0, 4).map((claim) => (
@@ -474,7 +479,7 @@ export function CompanionSurface({
         </div>
       </section>
 
-      <TopicRoundsPanel rounds={rounds} distribution={distribution} />
+      <TopicRoundsPanel rounds={rounds} distribution={distribution} secondary />
 
       <TopicOpenSpaceCta topicSlug={topic.slug} topicTitle={topic.title} companion={companion} distribution={distribution} />
 
@@ -524,6 +529,19 @@ function TopicContextHero({
         <span className="vog-chip">Kontext: {distribution.framing}</span>
         {primaryCompanion ? <span className="vog-chip">Begleitraum vorhanden</span> : null}
       </div>
+      <div className="mt-4 flex flex-wrap gap-2">
+        <Link href="#offen" className="btn btn-primary text-xs">
+          Was ist offen?
+        </Link>
+        <Link href="#optionen" className="btn-secondary text-xs">
+          Optionen prüfen
+        </Link>
+        {primaryCompanion ? (
+          <Link href={withDistributionQuery(`/companion/${primaryCompanion.slug}`, distribution)} className="btn-secondary text-xs">
+            Zum Begleitraum
+          </Link>
+        ) : null}
+      </div>
       {primaryCompanion ? (
         <p className="mt-3 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-sm text-[rgb(var(--muted))]">
           Hinweis: Für mediumgebundene Einstiege (QR aus Artikel, TV, Podcast, Print etc.) startet der Flow im
@@ -558,6 +576,17 @@ function CompanionContextHeader({
         <span className="vog-chip">Einstieg: {distribution.entry === "qr" ? "QR" : "Direkt"}</span>
         <span className="vog-chip">Quelle: {distributionSourceLabel(distribution.source)}</span>
       </div>
+      <div className="mt-4 flex flex-wrap gap-2">
+        <Link href="#anlass" className="btn btn-primary text-xs">
+          Anlass verstehen
+        </Link>
+        <Link href="#fragen" className="btn-secondary text-xs">
+          Fragen & Einwände
+        </Link>
+        <Link href={withDistributionQuery(`/topic/${companion.linkedTopicSlug}`, distribution)} className="btn-secondary text-xs">
+          Zum offenen Themenraum
+        </Link>
+      </div>
       <div className="mt-3 grid gap-2 text-sm md:grid-cols-2">
         <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3 text-[rgb(var(--muted))]">
           <p className="font-semibold text-[rgb(var(--fg))]">Herkunft</p>
@@ -583,8 +612,12 @@ function TopicActionRail({ actions }: { actions: Array<{ href: string; label: st
     <nav className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-3 shadow-sm">
       <p className="text-xs uppercase tracking-wide text-[rgb(var(--muted))]">Schnelle Wege</p>
       <div className="mt-2 flex flex-wrap gap-2">
-        {actions.map((action) => (
-          <Link key={`${action.href}-${action.label}`} href={action.href} className="btn-secondary text-xs">
+        {actions.map((action, index) => (
+          <Link
+            key={`${action.href}-${action.label}`}
+            href={action.href}
+            className={index === 0 ? "btn btn-primary text-xs" : "btn-secondary text-xs"}
+          >
             {action.label}
           </Link>
         ))}
@@ -659,12 +692,19 @@ function TopicOptionsPanel({ topic }: { topic: Topic }) {
 function TopicClaimsPanel({
   topic,
   sourceById,
+  secondary = false,
 }: {
   topic: Topic;
   sourceById: Map<string, Topic["sources"][number]>;
+  secondary?: boolean;
 }) {
   return (
-    <section id="quellen" className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm">
+    <section
+      id="quellen"
+      className={`rounded-3xl border border-[rgb(var(--border))] p-5 shadow-sm ${
+        secondary ? "bg-[rgb(var(--card))]/82" : "bg-[rgb(var(--card))]"
+      }`}
+    >
       <h2 className="text-lg font-semibold text-[rgb(var(--fg))]">Quellen & Claims</h2>
       <div className="mt-3 space-y-2">
         {topic.claims.map((claim) => (
@@ -691,12 +731,19 @@ function TopicClaimsPanel({
 function TopicRoundsPanel({
   rounds,
   distribution,
+  secondary = false,
 }: {
   rounds: Round[];
   distribution: DistributionContext;
+  secondary?: boolean;
 }) {
   return (
-    <section id="runden" className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm">
+    <section
+      id="runden"
+      className={`rounded-3xl border border-[rgb(var(--border))] p-5 shadow-sm ${
+        secondary ? "bg-[rgb(var(--card))]/82" : "bg-[rgb(var(--card))]"
+      }`}
+    >
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="text-lg font-semibold text-[rgb(var(--fg))]">Weitere Runden</h2>
         <span className="text-xs text-[rgb(var(--muted))]">Runde = konkrete Folgeform, Topic = langfristiger Raum</span>

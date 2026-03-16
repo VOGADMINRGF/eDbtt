@@ -72,9 +72,9 @@ async function postSwipeVote(payload: {
 }
 
 function transitionLabel(decision: SwipeDecision) {
-  if (decision === "agree") return "Eher zustimmend erfasst. Variante folgt.";
-  if (decision === "disagree") return "Eher ablehnend erfasst. Prüfe optionale Einschränkungen.";
-  return "Noch offen erfasst. Jetzt Ausgestaltung wählen.";
+  if (decision === "agree") return "Grundhaltung: eher zustimmend. Jetzt Variante wählen.";
+  if (decision === "disagree") return "Grundhaltung: eher ablehnend. Optional engere Variante wählen.";
+  return "Grundhaltung: offen. Jetzt passende Variante wählen.";
 }
 
 function buildTransitionHint(decision: SwipeDecision, remainingToAnalysis: number) {
@@ -214,7 +214,11 @@ export function SwipesClient({
       setEventualityStepItems(evts.slice(0, 4));
       setEventualityStepLoading(false);
       if (evts.length === 0) {
-        setTransitionHint("Keine Varianten vorhanden. Nächstes Thema wird geladen.");
+        setTransitionHint((prev) =>
+          prev
+            ? `${prev} Keine Varianten vorhanden, nächstes Thema wird geladen.`
+            : "Keine Varianten vorhanden, nächstes Thema wird geladen.",
+        );
         window.setTimeout(() => {
           setEventualityStepOpen(false);
           setEventualityStepDecision(null);
@@ -276,9 +280,6 @@ export function SwipesClient({
       window.setTimeout(() => setScreenFlash(null), 260);
 
       await beginEventualityStep(item, decision, openGateAfterTopic);
-      if (!item.hasEventualities) {
-        window.setTimeout(() => setTransitionHint("Nächstes Thema"), 320);
-      }
     },
     [announce, beginEventualityStep, completedCount, freeVote, isVoteLocked, openDossierRoute],
   );
@@ -349,7 +350,7 @@ export function SwipesClient({
   }, [activeItem, eventualityStepOpen, handlePrimaryVote, openDetail]);
 
   return (
-    <div className={`mx-auto flex flex-col gap-4 px-4 pt-2 md:pt-6 ${isSolo ? "max-w-3xl" : "max-w-6xl"} pb-24`}>
+    <div className={`mx-auto flex flex-col gap-4 px-4 pt-2 md:pt-6 ${isSolo ? "max-w-3xl" : "max-w-6xl"} pb-40 md:pb-24`}>
       <div className="sr-only" aria-live="polite" aria-atomic="true">
         {liveMessage}
       </div>
@@ -393,7 +394,6 @@ export function SwipesClient({
             <SwipeTopicStep
               item={activeItem}
               step={completedCount + 1}
-              disabled={isVoteLocked}
               onVote={(decision) => {
                 void handlePrimaryVote(activeItem, decision);
               }}
@@ -437,43 +437,48 @@ export function SwipesClient({
       {!isSolo && activeItem && !eventualityStepOpen && !detailOpen && !freeVote.gateOpen ? (
         <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-[rgb(var(--border))] bg-[rgb(var(--card))]/95 px-3 pt-2 pb-[max(env(safe-area-inset-bottom),0.55rem)] backdrop-blur md:hidden">
           <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-sky-500/10 to-transparent" />
-          <div className="relative mx-auto grid max-w-xl grid-cols-4 gap-2">
-            <button
-              type="button"
-              onClick={() => {
-                void handlePrimaryVote(activeItem, "disagree");
-              }}
-              className="rounded-xl border border-rose-200 bg-rose-50 px-2 py-2 text-xs font-semibold text-rose-700 shadow-sm"
-            >
-              Nein
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                void handlePrimaryVote(activeItem, "neutral");
-              }}
-              className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-2 py-2 text-xs font-semibold text-[rgb(var(--muted))] shadow-sm"
-            >
-              Offen
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                void handlePrimaryVote(activeItem, "agree");
-              }}
-              className="rounded-xl border border-emerald-200 bg-emerald-50 px-2 py-2 text-xs font-semibold text-emerald-700 shadow-sm"
-            >
-              Ja
-            </button>
+          <div className="relative mx-auto max-w-xl space-y-2">
             <button
               type="button"
               onClick={() => {
                 void openDetail(activeItem);
               }}
-              className="rounded-xl border border-sky-200 bg-sky-50 px-2 py-2 text-xs font-semibold text-sky-700 shadow-sm"
+              className="w-full rounded-xl border border-sky-300/70 bg-gradient-to-r from-sky-50 to-cyan-50 px-3 py-2 text-sm font-semibold text-sky-800 shadow-sm dark:border-sky-400/35 dark:from-sky-500/16 dark:to-cyan-500/10 dark:text-sky-100"
             >
-              Mehr
+              Mehr Kontext öffnen
             </button>
+            <div className="grid grid-cols-3 gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  void handlePrimaryVote(activeItem, "disagree");
+                }}
+                aria-label="Ablehnen"
+                className="rounded-xl border border-rose-300 bg-gradient-to-r from-rose-100 to-rose-50 px-2 py-2 text-xs font-semibold text-rose-800 shadow-sm dark:border-rose-400/40 dark:from-rose-500/20 dark:to-rose-500/10 dark:text-rose-100"
+              >
+                👎 Nein
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  void handlePrimaryVote(activeItem, "neutral");
+                }}
+                aria-label="Neutral"
+                className="rounded-xl border border-slate-300 bg-slate-100 px-2 py-2 text-xs font-semibold text-slate-800 shadow-sm dark:border-slate-500/45 dark:bg-slate-500/16 dark:text-slate-100"
+              >
+                😐 Offen
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  void handlePrimaryVote(activeItem, "agree");
+                }}
+                aria-label="Zustimmen"
+                className="rounded-xl border border-emerald-300 bg-gradient-to-r from-emerald-100 to-emerald-50 px-2 py-2 text-xs font-semibold text-emerald-800 shadow-sm dark:border-emerald-400/40 dark:from-emerald-500/20 dark:to-emerald-500/10 dark:text-emerald-100"
+              >
+                👍 Ja
+              </button>
+            </div>
           </div>
         </nav>
       ) : null}
@@ -484,6 +489,7 @@ export function SwipesClient({
         decision={eventualityStepDecision}
         eventualities={eventualityStepItems}
         loading={eventualityStepLoading}
+        voteFeedback={transitionHint}
         onSelect={handleEventualitySelect}
         onOpenDetail={() => {
           if (!eventualityStepItem) return;
@@ -553,16 +559,19 @@ function DesktopDetailHint({ item, onOpenDetail }: { item: SwipeItem | null; onO
       <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[rgb(var(--muted))]">Vertiefung</p>
       {item ? (
         <>
-          <h3 className="mt-2 text-base font-semibold text-[rgb(var(--fg))]">{item.title}</h3>
-          <p className="mt-2 text-sm text-[rgb(var(--muted))]">
-            Öffne Dossier, Evidenz und Varianten direkt aus dem aktuellen Thema.
-          </p>
+          <h3 className="mt-2 text-base font-semibold text-[rgb(var(--fg))]">Aktives Thema vertiefen</h3>
+          <p className="mt-2 text-sm text-[rgb(var(--muted))]">Dossier, Evidenz und Varianten im Detail prüfen.</p>
+          <div className="mt-2 flex flex-wrap gap-1.5 text-[11px]">
+            <span className="vog-chip">Dossier</span>
+            <span className="vog-chip">Evidenz</span>
+            <span className="vog-chip">Eventualitäten</span>
+          </div>
           <button
             type="button"
             onClick={onOpenDetail}
             className="mt-3 rounded-full border border-sky-300/70 bg-gradient-to-r from-sky-50 to-cyan-50 px-3 py-1.5 text-xs font-semibold text-sky-700 transition hover:brightness-105 dark:border-sky-400/30 dark:from-sky-500/14 dark:to-cyan-500/10 dark:text-sky-200"
           >
-            Mehr zum Thema
+            Thema vertiefen
           </button>
         </>
       ) : (

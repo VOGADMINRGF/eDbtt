@@ -6,11 +6,10 @@ type SwipeTopicStepProps = {
   item: SwipeItem;
   onMore: () => void;
   onVote: (decision: SwipeDecision) => void;
-  disabled?: boolean;
   step?: number;
 };
 
-export function SwipeTopicStep({ item, onMore, onVote, disabled = false, step = 1 }: SwipeTopicStepProps) {
+export function SwipeTopicStep({ item, onMore, onVote, step = 1 }: SwipeTopicStepProps) {
   const chips = buildMetaChips(item);
   const touchStartRef = useRef<{ x: number; y: number } | null>(null);
   const [swipePreview, setSwipePreview] = useState<SwipeDecision | null>(null);
@@ -39,7 +38,7 @@ export function SwipeTopicStep({ item, onMore, onVote, disabled = false, step = 
     const start = touchStartRef.current;
     const touch = event.changedTouches[0];
     touchStartRef.current = null;
-    if (!start || !touch || disabled) {
+    if (!start || !touch) {
       setSwipePreview(null);
       return;
     }
@@ -82,7 +81,7 @@ export function SwipeTopicStep({ item, onMore, onVote, disabled = false, step = 
       <div className="relative flex flex-wrap items-center gap-2 text-xs">
         <span className="vog-chip vog-chip--active">Thema {step}</span>
         {chips.map((chip) => (
-          <span key={chip} className={chip === item.category ? "vog-chip vog-chip--active" : "vog-chip"}>
+          <span key={chip} className="vog-chip">
             {chip}
           </span>
         ))}
@@ -105,36 +104,42 @@ export function SwipeTopicStep({ item, onMore, onVote, disabled = false, step = 
         <button
           type="button"
           onClick={onMore}
-          className="w-full rounded-xl border border-sky-300/70 bg-gradient-to-r from-sky-50/95 to-cyan-50/80 px-3 py-2.5 text-left text-sm font-semibold text-sky-700 shadow-[0_10px_24px_rgba(14,165,233,0.1)] transition hover:from-sky-100 hover:to-cyan-100 dark:border-sky-400/30 dark:from-sky-500/12 dark:to-cyan-500/8 dark:text-sky-200"
+          className="w-full rounded-xl border border-sky-300/80 bg-gradient-to-r from-sky-50/95 to-cyan-50/85 px-3 py-2.5 text-left text-sm font-semibold text-sky-700 shadow-[0_10px_24px_rgba(14,165,233,0.12)] transition hover:from-sky-100 hover:to-cyan-100 dark:border-sky-400/30 dark:from-sky-500/14 dark:to-cyan-500/10 dark:text-sky-200 md:hidden"
         >
-          Mehr Kontext: Dossier, Evidenz, Varianten
+          Mehr Kontext öffnen: Dossier, Evidenz und Varianten
         </button>
       </div>
 
       <div className="relative mt-3 hidden grid-cols-3 gap-2 md:grid">
         <button
           type="button"
-          disabled={disabled}
           onClick={() => onVote("disagree")}
-          className="rounded-xl border border-rose-300/70 bg-gradient-to-r from-rose-50 to-rose-100/70 px-3 py-2 text-sm font-semibold text-rose-700 shadow-sm transition hover:brightness-105 disabled:opacity-60 dark:border-rose-400/30 dark:from-rose-500/14 dark:to-rose-500/6 dark:text-rose-200"
+          className="rounded-xl border border-rose-300/70 bg-gradient-to-r from-rose-100 to-rose-50 px-3 py-2 text-sm font-semibold text-rose-800 shadow-sm transition hover:brightness-105 dark:border-rose-400/40 dark:from-rose-500/20 dark:to-rose-500/10 dark:text-rose-100"
         >
-          Nein
+          <span className="mr-1" aria-hidden>
+            👎
+          </span>
+          Ablehnen
         </button>
         <button
           type="button"
-          disabled={disabled}
           onClick={() => onVote("neutral")}
-          className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-sm font-semibold text-[rgb(var(--muted))] shadow-sm transition hover:bg-[rgb(var(--card))] hover:text-[rgb(var(--fg))] disabled:opacity-60"
+          className="rounded-xl border border-slate-300/80 bg-slate-100 px-3 py-2 text-sm font-semibold text-slate-800 shadow-sm transition hover:brightness-105 dark:border-slate-500/45 dark:bg-slate-500/16 dark:text-slate-100"
         >
-          Offen
+          <span className="mr-1" aria-hidden>
+            😐
+          </span>
+          Neutral
         </button>
         <button
           type="button"
-          disabled={disabled}
           onClick={() => onVote("agree")}
-          className="rounded-xl border border-emerald-300/70 bg-gradient-to-r from-emerald-50 to-emerald-100/70 px-3 py-2 text-sm font-semibold text-emerald-700 shadow-sm transition hover:brightness-105 disabled:opacity-60 dark:border-emerald-400/30 dark:from-emerald-500/14 dark:to-emerald-500/6 dark:text-emerald-200"
+          className="rounded-xl border border-emerald-300/70 bg-gradient-to-r from-emerald-100 to-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-800 shadow-sm transition hover:brightness-105 dark:border-emerald-400/40 dark:from-emerald-500/20 dark:to-emerald-500/10 dark:text-emerald-100"
         >
-          Ja
+          <span className="mr-1" aria-hidden>
+            👍
+          </span>
+          Zustimmen
         </button>
       </div>
     </article>
@@ -142,18 +147,27 @@ export function SwipeTopicStep({ item, onMore, onVote, disabled = false, step = 
 }
 
 function buildMetaChips(item: SwipeItem) {
-  const values = [item.category, item.level, item.domainLabel]
+  const normalizedTitle = normalize(item.title);
+  const values = [item.level, item.category, item.domainLabel, item.topicTags[0]]
     .map((entry) => entry?.trim())
-    .filter((entry): entry is string => Boolean(entry));
+    .filter((entry): entry is string => Boolean(entry))
+    .filter((entry) => {
+      const normalized = normalize(entry);
+      return normalized !== normalizedTitle;
+    });
   const seen = new Set<string>();
   const unique: string[] = [];
   for (const value of values) {
-    const key = value.toLowerCase();
+    const key = normalize(value);
     if (seen.has(key)) continue;
     seen.add(key);
     unique.push(value);
   }
-  return unique;
+  return unique.slice(0, 2);
+}
+
+function normalize(value: string) {
+  return value.trim().toLowerCase().replace(/[^a-z0-9äöüß]+/g, "");
 }
 
 function MetaCard({ label, value }: { label: string; value: string }) {

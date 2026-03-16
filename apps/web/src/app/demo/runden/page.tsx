@@ -77,6 +77,16 @@ export default async function DemoRoundsPage({
           <span className="vog-chip">Topic: 1 kanonischer Hub</span>
           <span className="vog-chip">Runden: {rounds.length}</span>
         </div>
+        <div className="flex flex-wrap gap-2">
+          {companions[0] ? (
+            <Link href={`/companion/${companions[0].slug}?entry=qr&source=article&persona=${persona}`} className="btn btn-primary text-xs">
+              Begleitraum zuerst öffnen
+            </Link>
+          ) : null}
+          <Link href={`/topic/${topic.slug}`} className="btn-secondary text-xs">
+            Offenen Themenraum ansehen
+          </Link>
+        </div>
       </header>
 
       <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm space-y-3">
@@ -175,7 +185,7 @@ export default async function DemoRoundsPage({
         </article>
       </section>
 
-      <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm space-y-3">
+      <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))]/82 p-5 shadow-sm space-y-3">
         <h2 className="text-lg font-semibold text-[rgb(var(--fg))]">Distribution Demo (QR startet im Begleitraum)</h2>
         <p className="text-sm text-[rgb(var(--muted))]">
           Beispiele mit `entry=qr`, `source=*` und `persona=*`. Mediumgebundene Einstiege landen zuerst im Begleitraum.
@@ -208,7 +218,7 @@ export default async function DemoRoundsPage({
         </div>
       </section>
 
-      <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm space-y-3">
+      <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))]/82 p-5 shadow-sm space-y-3">
         <h2 className="text-lg font-semibold text-[rgb(var(--fg))]">Governance Demo (Reviewlog / Source Classes)</h2>
         <p className="text-sm text-[rgb(var(--muted))]">
           Demo zeigt nur die produktive Governance-Route mit Reviewtrail, Konfliktmarkern und Mandat-Brücke.
@@ -225,7 +235,7 @@ export default async function DemoRoundsPage({
         </div>
       </section>
 
-      <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm space-y-3">
+      <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))]/82 p-5 shadow-sm space-y-3">
         <h2 className="text-lg font-semibold text-[rgb(var(--fg))]">Nächste sinnvolle Schritte</h2>
         <p className="text-sm text-[rgb(var(--muted))]">
           Für themenbezogene Vertiefung zuerst ins Dossier, für neue Anliegen über die Thema-Einreichung.

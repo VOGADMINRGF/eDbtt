@@ -13,7 +13,8 @@ export function SwipesSurface({
   requireAuthAfterFreeVotes = false,
 }: SwipesSurfaceProps) {
   return (
-    <main className="relative min-h-screen overflow-hidden bg-gradient-to-b from-slate-50 via-white to-white pb-14 dark:from-slate-950 dark:via-slate-950 dark:to-slate-950">
+    <main className="relative min-h-screen overflow-hidden bg-[rgb(var(--bg))] pb-14 text-[rgb(var(--fg))]">
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-sky-500/10 via-transparent to-emerald-500/8 dark:from-sky-500/18 dark:to-emerald-500/12" />
       <div className="pointer-events-none absolute inset-0">
         <div className="absolute -top-32 -left-20 h-80 w-80 rounded-full bg-cyan-300/20 blur-3xl dark:bg-cyan-500/10" />
         <div className="absolute top-40 -right-24 h-[26rem] w-[26rem] rounded-full bg-sky-300/20 blur-3xl dark:bg-sky-600/10" />
