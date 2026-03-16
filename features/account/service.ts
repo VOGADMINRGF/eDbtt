@@ -601,7 +601,6 @@ function sanitizeTopTopics(topics: unknown): ProfileTopTopic[] {
     if (!topic || seen.has(topic.key)) continue;
     seen.add(topic.key);
     result.push(topic);
-    if (result.length >= 3) break;
   }
   return result;
 }

@@ -23,6 +23,7 @@ import {
   FiEdit2,
   FiGlobe,
   FiMail,
+  FiMapPin,
   FiMessageCircle,
   FiNavigation,
   FiPackage,
@@ -337,6 +338,19 @@ type SocialSummary = {
   friendRequests: SocialFriendRequestItem[];
   recentMessages: SocialMessageItem[];
 };
+type NameDisplayMode = "real_name" | "nickname";
+type PersonalIdentityData = {
+  givenName: string;
+  familyName: string;
+  street: string;
+  postalCode: string;
+  city: string;
+  country: string;
+  displayMode: NameDisplayMode;
+  nickname: string;
+  inviteToken: string;
+  referralCode: string;
+};
 type AccountHubTab = "profile" | "interests" | "inbox";
 
 const ACCOUNT_HUB_TABS: Array<{ key: AccountHubTab; label: string; icon: IconType }> = [
@@ -368,6 +382,49 @@ function truncateText(value: string, max: number) {
   return `${value.slice(0, max - 1).trimEnd()}…`;
 }
 
+const EMPTY_PERSONAL_IDENTITY: PersonalIdentityData = {
+  givenName: "",
+  familyName: "",
+  street: "",
+  postalCode: "",
+  city: "",
+  country: "DE",
+  displayMode: "real_name",
+  nickname: "",
+  inviteToken: "",
+  referralCode: "",
+};
+
+function mapPersonalIdentity(value: any): PersonalIdentityData {
+  return {
+    givenName: typeof value?.givenName === "string" ? value.givenName : "",
+    familyName: typeof value?.familyName === "string" ? value.familyName : "",
+    street: typeof value?.street === "string" ? value.street : "",
+    postalCode: typeof value?.postalCode === "string" ? value.postalCode : "",
+    city: typeof value?.city === "string" ? value.city : "",
+    country: typeof value?.country === "string" ? value.country : "DE",
+    displayMode: value?.displayMode === "nickname" ? "nickname" : "real_name",
+    nickname: typeof value?.nickname === "string" ? value.nickname : "",
+    inviteToken: typeof value?.inviteToken === "string" ? value.inviteToken : "",
+    referralCode: typeof value?.referralCode === "string" ? value.referralCode : "",
+  };
+}
+
+function normalizedPersonalIdentity(value: PersonalIdentityData) {
+  return {
+    givenName: value.givenName.trim(),
+    familyName: value.familyName.trim(),
+    street: value.street.trim(),
+    postalCode: value.postalCode.trim(),
+    city: value.city.trim(),
+    country: value.country.trim().toUpperCase(),
+    displayMode: value.displayMode,
+    nickname: value.nickname.trim(),
+    inviteToken: value.inviteToken.trim(),
+    referralCode: value.referralCode.trim(),
+  };
+}
+
 function CompactProfileHubSection({
   profile,
   publicProfile,
@@ -381,15 +438,18 @@ function CompactProfileHubSection({
   const [displayName, setDisplayName] = useState(profile.displayName ?? "");
   const [tagline, setTagline] = useState(publicProfile.tagline ?? "");
   const [bio, setBio] = useState(publicProfile.bio ?? "");
-  const [selectedTopics, setSelectedTopics] = useState<TopicKey[]>(
-    (publicProfile.topTopics ?? []).map((topic) => topic.key).slice(0, 3),
-  );
+  const [selectedTopics, setSelectedTopics] = useState<TopicKey[]>((publicProfile.topTopics ?? []).map((topic) => topic.key));
   const [profileSaving, setProfileSaving] = useState(false);
   const [interestsSaving, setInterestsSaving] = useState(false);
+  const [personalSaving, setPersonalSaving] = useState(false);
+  const [personalLoading, setPersonalLoading] = useState(true);
   const [profileMsg, setProfileMsg] = useState<string | null>(null);
   const [interestMsg, setInterestMsg] = useState<string | null>(null);
+  const [personalMsg, setPersonalMsg] = useState<string | null>(null);
   const [copyMsg, setCopyMsg] = useState<string | null>(null);
   const [inviteUrl, setInviteUrl] = useState("");
+  const [personalInitial, setPersonalInitial] = useState<PersonalIdentityData>(EMPTY_PERSONAL_IDENTITY);
+  const [personalDraft, setPersonalDraft] = useState<PersonalIdentityData>(EMPTY_PERSONAL_IDENTITY);
   const [socialLoading, setSocialLoading] = useState(true);
   const [socialSummary, setSocialSummary] = useState<SocialSummary>({
     pendingRequestCount: 0,
@@ -421,15 +481,31 @@ function CompactProfileHubSection({
     setDisplayName(profile.displayName ?? "");
     setTagline(publicProfile.tagline ?? "");
     setBio(publicProfile.bio ?? "");
-    setSelectedTopics((publicProfile.topTopics ?? []).map((topic) => topic.key).slice(0, 3));
+    setSelectedTopics((publicProfile.topTopics ?? []).map((topic) => topic.key));
   }, [profile.displayName, publicProfile.tagline, publicProfile.bio, publicProfile.topTopics]);
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
-    const sharePath = publicProfile.shareId ? `/profile/${publicProfile.shareId}` : "/register";
-    setInviteUrl(`${window.location.origin}${sharePath}`);
-    setCanNativeShare(typeof navigator !== "undefined" && typeof navigator.share === "function");
-  }, [publicProfile.shareId]);
+    let active = true;
+    async function loadPersonalIdentity() {
+      setPersonalLoading(true);
+      try {
+        const res = await fetch("/api/account/personal", { cache: "no-store" });
+        const body = await res.json().catch(() => ({}));
+        if (!active || !res.ok) return;
+        const next = mapPersonalIdentity(body?.personal);
+        setPersonalInitial(next);
+        setPersonalDraft(next);
+      } catch {
+        if (!active) return;
+      } finally {
+        if (active) setPersonalLoading(false);
+      }
+    }
+    void loadPersonalIdentity();
+    return () => {
+      active = false;
+    };
+  }, []);
 
   useEffect(() => {
     if (!copyMsg) return;
@@ -442,7 +518,6 @@ function CompactProfileHubSection({
   const initialBio = publicProfile.bio ?? "";
   const initialTopicKeyString = (publicProfile.topTopics ?? [])
     .map((topic) => topic.key)
-    .slice(0, 3)
     .join("|");
   const nextTopicKeyString = selectedTopics.join("|");
 
@@ -452,8 +527,23 @@ function CompactProfileHubSection({
     bio.trim() !== initialBio.trim();
   const interestsDirty = nextTopicKeyString !== initialTopicKeyString;
 
-  const invitePath = publicProfile.shareId ? `/profile/${publicProfile.shareId}` : "/register";
+  const personalName = `${personalDraft.givenName} ${personalDraft.familyName}`.trim();
+  const identityPublicName =
+    personalDraft.displayMode === "nickname" ? personalDraft.nickname.trim() : personalName;
+  // Invite handle becomes the stable referral key once referral attribution is activated end-to-end.
+  const inviteHandle =
+    personalDraft.inviteToken.trim() ||
+    personalDraft.referralCode.trim() ||
+    publicProfile.shareId ||
+    (profile.id ? `member-${profile.id.slice(-10)}` : "member");
+  const invitePath = `/register?invite=${encodeURIComponent(inviteHandle)}`;
   const inviteText = inviteUrl || invitePath;
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    setInviteUrl(`${window.location.origin}${invitePath}`);
+    setCanNativeShare(typeof navigator !== "undefined" && typeof navigator.share === "function");
+  }, [invitePath]);
 
   const selectedTopicLabels = selectedTopics
     .map((key) => TOPIC_CHOICES.find((topic) => topic.key === key)?.label)
@@ -467,8 +557,12 @@ function CompactProfileHubSection({
   const hasPendingRequests = socialSummary.pendingRequestCount > 0;
   const hasUnreadMessages = socialSummary.unreadMessageCount > 0;
   const hasSelectedInterests = selectedTopics.length > 0;
+  const hasEnoughInterests = selectedTopics.length >= 3;
   const inboxIsEmpty =
     !socialLoading && socialSummary.friendRequests.length === 0 && socialSummary.recentMessages.length === 0;
+  const personalDirty =
+    JSON.stringify(normalizedPersonalIdentity(personalDraft)) !==
+    JSON.stringify(normalizedPersonalIdentity(personalInitial));
 
   const verificationLabel = security.verificationLevel
     ? security.verificationLevel === "strong"
@@ -539,7 +633,6 @@ function CompactProfileHubSection({
   const toggleTopic = (key: TopicKey) => {
     setSelectedTopics((prev) => {
       if (prev.includes(key)) return prev.filter((entry) => entry !== key);
-      if (prev.length >= 3) return prev;
       return [...prev, key];
     });
     setInterestMsg(null);
@@ -630,6 +723,10 @@ function CompactProfileHubSection({
   };
 
   const saveInterests = async () => {
+    if (selectedTopics.length < 3) {
+      setInterestMsg("Wähle mindestens 3 Interessen.");
+      return;
+    }
     if (!interestsDirty) {
       setInterestMsg("Keine Änderung");
       return;
@@ -655,6 +752,49 @@ function CompactProfileHubSection({
       setInterestMsg(error?.message || "Speichern fehlgeschlagen");
     } finally {
       setInterestsSaving(false);
+    }
+  };
+
+  const savePersonalIdentity = async () => {
+    const nickname = personalDraft.nickname.trim();
+    if (personalDraft.displayMode === "nickname" && nickname.length < 2) {
+      setPersonalMsg("Bitte gib einen Nickname mit mindestens 2 Zeichen an.");
+      return;
+    }
+    if (!personalDirty) {
+      setPersonalMsg("Keine Änderung");
+      return;
+    }
+
+    setPersonalSaving(true);
+    setPersonalMsg(null);
+    try {
+      const res = await fetch("/api/account/personal", {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          givenName: personalDraft.givenName.trim(),
+          familyName: personalDraft.familyName.trim(),
+          street: personalDraft.street.trim(),
+          postalCode: personalDraft.postalCode.trim(),
+          city: personalDraft.city.trim(),
+          country: personalDraft.country.trim().toUpperCase(),
+          displayMode: personalDraft.displayMode,
+          nickname,
+        }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok || !body?.ok) {
+        throw new Error(body?.error || "Identität konnte nicht gespeichert werden.");
+      }
+      const next = mapPersonalIdentity(body?.personal);
+      setPersonalDraft(next);
+      setPersonalInitial(next);
+      setPersonalMsg("Identität gespeichert");
+    } catch (error: any) {
+      setPersonalMsg(error?.message || "Speichern fehlgeschlagen");
+    } finally {
+      setPersonalSaving(false);
     }
   };
 
@@ -694,7 +834,7 @@ function CompactProfileHubSection({
               <FiSliders className="h-3.5 w-3.5 text-sky-500" aria-hidden />
               Interessen
             </p>
-            <p className="mt-0.5 text-[15px] font-semibold text-[rgb(var(--fg))]">{selectedTopics.length}/3</p>
+            <p className="mt-0.5 text-[15px] font-semibold text-[rgb(var(--fg))]">{selectedTopics.length}</p>
           </div>
           <div
             className={`rounded-xl border px-2.5 py-2 ${
@@ -774,44 +914,179 @@ function CompactProfileHubSection({
       </nav>
 
       {activeTab === "profile" ? (
-        <article className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-[0_14px_45px_rgba(15,23,42,0.08)] sm:p-5">
-          <p className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">
-            <FiUser className="h-3.5 w-3.5 text-sky-500" aria-hidden />
-            Profilansicht
-          </p>
-          <div className="mt-3 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4">
-            <div className="flex items-center gap-3">
-              <div className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-sky-500/12 text-sm font-semibold text-sky-200 ring-1 ring-sky-300/30">
-                {displayNamePreview.slice(0, 2).toUpperCase()}
+        <div className="space-y-3">
+          <article className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-[0_14px_45px_rgba(15,23,42,0.08)] sm:p-5">
+            <p className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">
+              <FiUser className="h-3.5 w-3.5 text-sky-500" aria-hidden />
+              Profilansicht
+            </p>
+            <div className="mt-3 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4">
+              <div className="flex items-center gap-3">
+                <div className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-sky-500/12 text-sm font-semibold text-sky-200 ring-1 ring-sky-300/30">
+                  {displayNamePreview.slice(0, 2).toUpperCase()}
+                </div>
+                <div className="min-w-0">
+                  <p className="truncate text-lg font-semibold text-[rgb(var(--fg))]">{displayNamePreview}</p>
+                  <p className="truncate text-sm text-[rgb(var(--muted))]">{taglinePreview}</p>
+                </div>
               </div>
-              <div className="min-w-0">
-                <p className="truncate text-lg font-semibold text-[rgb(var(--fg))]">{displayNamePreview}</p>
-                <p className="truncate text-sm text-[rgb(var(--muted))]">{taglinePreview}</p>
+              <div className="mt-3 rounded-xl bg-[rgb(var(--card))] px-3 py-2.5 ring-1 ring-[rgb(var(--border))]">
+                <p className="text-sm leading-relaxed text-[rgb(var(--fg))]">{bioPreview}</p>
+              </div>
+              {hasSelectedInterests ? (
+                <div className="mt-3 flex flex-wrap gap-1.5">
+                  {selectedTopicLabels.slice(0, 5).map((label) => (
+                    <span
+                      key={`profile-interest-${label}`}
+                      className="inline-flex items-center rounded-full bg-sky-500/12 px-2.5 py-1 text-[11px] text-sky-100 ring-1 ring-sky-300/35"
+                    >
+                      {label}
+                    </span>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+            <div className="mt-4">
+              <button type="button" onClick={() => setProfileEditorOpen(true)} className={`${primaryButtonClass} w-full sm:w-auto`}>
+                <FiEdit2 className="mr-1.5 h-3.5 w-3.5" aria-hidden />
+                Profil bearbeiten
+              </button>
+            </div>
+          </article>
+
+          <article className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-[0_14px_45px_rgba(15,23,42,0.08)] sm:p-5">
+            <p className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">
+              <FiMapPin className="h-3.5 w-3.5 text-sky-500" aria-hidden />
+              Identität & Darstellung
+            </p>
+            <p className="mt-2 text-xs text-[rgb(var(--muted))]">
+              Registrierungsdaten (intern) und öffentliche Namensdarstellung sind getrennt.
+            </p>
+            <div className="mt-3 grid gap-2 sm:grid-cols-2">
+              <label className="space-y-1">
+                <span className="text-[11px] text-[rgb(var(--muted))]">Vorname</span>
+                <input
+                  className="w-full rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-sm text-[rgb(var(--fg))] focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100"
+                  value={personalDraft.givenName}
+                  onChange={(event) =>
+                    setPersonalDraft((prev) => ({ ...prev, givenName: event.target.value }))
+                  }
+                />
+              </label>
+              <label className="space-y-1">
+                <span className="text-[11px] text-[rgb(var(--muted))]">Nachname</span>
+                <input
+                  className="w-full rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-sm text-[rgb(var(--fg))] focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100"
+                  value={personalDraft.familyName}
+                  onChange={(event) =>
+                    setPersonalDraft((prev) => ({ ...prev, familyName: event.target.value }))
+                  }
+                />
+              </label>
+            </div>
+            <div className="mt-2 grid gap-2">
+              <label className="space-y-1">
+                <span className="text-[11px] text-[rgb(var(--muted))]">Anschrift</span>
+                <input
+                  className="w-full rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-sm text-[rgb(var(--fg))] focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100"
+                  placeholder="Straße und Hausnummer"
+                  value={personalDraft.street}
+                  onChange={(event) =>
+                    setPersonalDraft((prev) => ({ ...prev, street: event.target.value }))
+                  }
+                />
+              </label>
+              <div className="grid grid-cols-4 gap-2">
+                <input
+                  className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-sm text-[rgb(var(--fg))] focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100"
+                  placeholder="PLZ"
+                  value={personalDraft.postalCode}
+                  onChange={(event) =>
+                    setPersonalDraft((prev) => ({ ...prev, postalCode: event.target.value }))
+                  }
+                />
+                <input
+                  className="col-span-2 rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-sm text-[rgb(var(--fg))] focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100"
+                  placeholder="Stadt"
+                  value={personalDraft.city}
+                  onChange={(event) =>
+                    setPersonalDraft((prev) => ({ ...prev, city: event.target.value }))
+                  }
+                />
+                <input
+                  className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-sm uppercase text-[rgb(var(--fg))] focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100"
+                  placeholder="Land"
+                  value={personalDraft.country}
+                  onChange={(event) =>
+                    setPersonalDraft((prev) => ({ ...prev, country: event.target.value.toUpperCase() }))
+                  }
+                />
               </div>
             </div>
-            <div className="mt-3 rounded-xl bg-[rgb(var(--card))] px-3 py-2.5 ring-1 ring-[rgb(var(--border))]">
-              <p className="text-sm leading-relaxed text-[rgb(var(--fg))]">{bioPreview}</p>
-            </div>
-            {hasSelectedInterests ? (
-              <div className="mt-3 flex flex-wrap gap-1.5">
-                {selectedTopicLabels.slice(0, 3).map((label) => (
-                  <span
-                    key={`profile-interest-${label}`}
-                    className="inline-flex items-center rounded-full bg-sky-500/12 px-2.5 py-1 text-[11px] text-sky-100 ring-1 ring-sky-300/35"
-                  >
-                    {label}
-                  </span>
-                ))}
+
+            <div className="mt-3 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
+              <p className="text-[11px] font-medium text-[rgb(var(--muted))]">Öffentliche Namensdarstellung</p>
+              <div className="mt-2 grid grid-cols-2 gap-1 rounded-xl bg-[rgb(var(--card))] p-1 ring-1 ring-[rgb(var(--border))]">
+                <button
+                  type="button"
+                  onClick={() => setPersonalDraft((prev) => ({ ...prev, displayMode: "real_name" }))}
+                  className={`rounded-lg px-2 py-2 text-xs font-semibold ${
+                    personalDraft.displayMode === "real_name"
+                      ? "bg-sky-500/16 text-sky-100 shadow-[inset_0_0_0_1px_rgba(56,189,248,0.45)]"
+                      : "text-[rgb(var(--muted))]"
+                  }`}
+                >
+                  Klarname
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPersonalDraft((prev) => ({ ...prev, displayMode: "nickname" }))}
+                  className={`rounded-lg px-2 py-2 text-xs font-semibold ${
+                    personalDraft.displayMode === "nickname"
+                      ? "bg-sky-500/16 text-sky-100 shadow-[inset_0_0_0_1px_rgba(56,189,248,0.45)]"
+                      : "text-[rgb(var(--muted))]"
+                  }`}
+                >
+                  Nickname
+                </button>
               </div>
-            ) : null}
-          </div>
-          <div className="mt-4">
-            <button type="button" onClick={() => setProfileEditorOpen(true)} className={`${primaryButtonClass} w-full sm:w-auto`}>
-              <FiEdit2 className="mr-1.5 h-3.5 w-3.5" aria-hidden />
-              Profil bearbeiten
-            </button>
-          </div>
-        </article>
+              {personalDraft.displayMode === "nickname" ? (
+                <label className="mt-2 block space-y-1">
+                  <span className="text-[11px] text-[rgb(var(--muted))]">Nickname</span>
+                  <input
+                    className="w-full rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm text-[rgb(var(--fg))] focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100"
+                    value={personalDraft.nickname}
+                    onChange={(event) =>
+                      setPersonalDraft((prev) => ({ ...prev, nickname: event.target.value }))
+                    }
+                    placeholder="Dein öffentlicher Name"
+                  />
+                </label>
+              ) : null}
+              <p className="mt-2 text-[11px] text-[rgb(var(--muted))]">
+                Öffentlich sichtbar als:{" "}
+                <span className="font-semibold text-[rgb(var(--fg))]">{identityPublicName || "Noch nicht gesetzt"}</span>
+              </p>
+            </div>
+
+            <div className="mt-3 flex flex-col gap-2">
+              <button
+                type="button"
+                onClick={savePersonalIdentity}
+                disabled={personalLoading || personalSaving || !personalDirty}
+                className={`${primaryButtonClass} w-full sm:w-auto`}
+              >
+                <FiCheckCircle className="mr-1.5 h-3.5 w-3.5" aria-hidden />
+                {personalSaving ? "Speichert …" : "Identität speichern"}
+              </button>
+              {personalMsg ? (
+                <p className="text-xs text-[rgb(var(--muted))]" role="status" aria-live="polite">
+                  {personalMsg}
+                </p>
+              ) : null}
+            </div>
+          </article>
+        </div>
       ) : null}
 
       {activeTab === "interests" ? (
@@ -819,10 +1094,10 @@ function CompactProfileHubSection({
           <div className="flex flex-wrap items-center justify-between gap-2">
             <p className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">
               <FiSliders className="h-3.5 w-3.5 text-sky-500" aria-hidden />
-              Interessen (max. 3)
+              Interessen (mind. 3)
             </p>
             <span className="inline-flex items-center rounded-full bg-[rgb(var(--bg))] px-2.5 py-1 text-[11px] text-[rgb(var(--muted))] ring-1 ring-[rgb(var(--border))]">
-              {selectedTopics.length} von 3 gewählt
+              {selectedTopics.length} gewählt
             </span>
           </div>
 
@@ -840,7 +1115,7 @@ function CompactProfileHubSection({
               <div className="w-full rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-xs text-[rgb(var(--muted))]">
                 <p className="inline-flex items-center gap-1.5">
                   <FiSliders className="h-3.5 w-3.5 text-sky-500" aria-hidden />
-                  Wähle bis zu 3 Themen, damit passende Debatten und Kontakte sichtbarer werden.
+                  Wähle mindestens 3 Themen, damit passende Debatten und Kontakte sichtbarer werden.
                 </p>
               </div>
             )}
@@ -849,19 +1124,17 @@ function CompactProfileHubSection({
           <div className="mt-4 grid gap-2 sm:grid-cols-2">
             {TOPIC_CHOICES.map((topic) => {
               const active = selectedTopics.includes(topic.key);
-              const blocked = !active && selectedTopics.length >= 3;
               const TopicIcon = TOPIC_ICON_BY_KEY[topic.key] ?? FiSliders;
               return (
                 <button
                   key={topic.key}
                   type="button"
                   onClick={() => toggleTopic(topic.key)}
-                  disabled={blocked}
                   className={`inline-flex min-h-[52px] items-center gap-2 rounded-2xl border px-3 py-2 text-left text-xs transition ${
                     active
                       ? "border-sky-300/50 bg-sky-500/12 text-sky-100"
                       : "border-[rgb(var(--border))] bg-[rgb(var(--bg))] text-[rgb(var(--muted))] hover:text-[rgb(var(--fg))]"
-                  } ${blocked ? "cursor-not-allowed opacity-45" : ""}`}
+                  }`}
                 >
                   <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-slate-950/40 text-sky-400 ring-1 ring-sky-400/30">
                     <TopicIcon className="h-3.5 w-3.5" aria-hidden />
@@ -872,12 +1145,21 @@ function CompactProfileHubSection({
               );
             })}
           </div>
+          {!hasEnoughInterests ? (
+            <p className="mt-2 text-xs text-amber-200">
+              Wähle mindestens 3 Interessen. Mehr Themen verbessern Matching und Relevanz.
+            </p>
+          ) : (
+            <p className="mt-2 text-xs text-[rgb(var(--muted))]">
+              Du kannst 3 oder mehr Interessen auswählen.
+            </p>
+          )}
 
           <div className="mt-4 flex flex-col gap-2">
             <button
               type="button"
               onClick={saveInterests}
-              disabled={interestsSaving || !interestsDirty}
+              disabled={interestsSaving || !interestsDirty || !hasEnoughInterests}
               className={`${primaryButtonClass} w-full`}
             >
               <FiCheckCircle className="mr-1.5 h-3.5 w-3.5" aria-hidden />
@@ -899,9 +1181,13 @@ function CompactProfileHubSection({
               <FiMessageCircle className="h-3.5 w-3.5 text-sky-500" aria-hidden />
               Freundschaftsanfragen & Nachrichten
             </p>
-            <button type="button" onClick={() => void loadSocialSummary()} className={secondaryLightButtonClass}>
-              <FiRefreshCw className="mr-1.5 h-3.5 w-3.5 text-sky-500" aria-hidden />
-              Aktualisieren
+            <button
+              type="button"
+              onClick={() => void loadSocialSummary()}
+              className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-[rgb(var(--bg))] text-[rgb(var(--muted))] ring-1 ring-[rgb(var(--border))] transition hover:text-[rgb(var(--fg))] focus:outline-none focus:ring-2 focus:ring-sky-200"
+              aria-label="Inbox aktualisieren"
+            >
+              <FiRefreshCw className="h-3.5 w-3.5 text-sky-500" aria-hidden />
             </button>
           </div>
 
@@ -1006,6 +1292,9 @@ function CompactProfileHubSection({
               <FiSend className="h-3.5 w-3.5 text-sky-500" aria-hidden />
               Freunde einladen
             </p>
+            <p className="mt-1 text-xs text-[rgb(var(--muted))]">
+              Persönlicher Einladungslink (vorbereitet für Referral-Code).
+            </p>
             <p className="mt-2 truncate rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-xs text-[rgb(var(--muted))]">
               {inviteText}
             </p>
@@ -1025,9 +1314,9 @@ function CompactProfileHubSection({
                   Per E-Mail
                 </button>
               )}
-              <Link href="/community" className={`${secondaryLightButtonClass} w-full`}>
+              <Link href="/community" className={`${ghostDarkButtonClass} w-full`}>
                 <FiUsers className="mr-1.5 h-3.5 w-3.5 text-sky-500" aria-hidden />
-                Community ansehen
+                Community beitreten
               </Link>
             </div>
             {canNativeShare ? (

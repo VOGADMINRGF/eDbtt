@@ -70,7 +70,6 @@ const schema = z.object({
         })
         .strict(),
     )
-    .max(3)
     .nullable()
     .optional(),
   publicFlags: z
