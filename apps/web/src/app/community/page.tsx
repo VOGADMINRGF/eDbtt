@@ -38,16 +38,16 @@ const COPY = {
     en: "Community",
   },
   title: {
-    de: "Raeume & Austausch",
-    en: "Rooms & Exchange",
+    de: "Community-Hub",
+    en: "Community hub",
   },
   lead: {
-    de: "Raeume für konstruktive Debatten. Fokus auf Themen, klare Moderation, keine Echokammern.",
-    en: "Rooms for constructive debate. Focus on topics, clear moderation, no echo chambers.",
+    de: "Aktuell ist Community ein Discovery- und Beitrags-Hub: Menschen finden, Beiträge einreichen, Inbox prüfen.",
+    en: "Community is currently a discovery and contribution hub: find people, submit inputs, check inbox.",
   },
   hint: {
-    de: "Sprache kannst du im Header umstellen. Inhalte folgen dem gleichen Neutralitaetsstandard wie Reports.",
-    en: "You can switch language in the header. Content follows the same neutrality standard as reports.",
+    de: "Direktnachrichten sind noch nicht end-to-end freigeschaltet. Das wird im Produkt klar markiert.",
+    en: "Direct messages are not fully enabled end-to-end yet. This is marked transparently in product.",
   },
   rulesTitle: {
     de: "Leitplanken",
@@ -60,6 +60,10 @@ const COPY = {
   actionStream: {
     de: "Zu den Streams",
     en: "Go to streams",
+  },
+  actionAccount: {
+    de: "Zur Account-Inbox",
+    en: "Open account inbox",
   },
   actionCampaigns: {
     de: "Campaigns ansehen",
@@ -79,20 +83,22 @@ const COPY = {
   },
   rooms: [
     {
-      id: "citizen",
-      title: { de: "Bürger:innen Lounge", en: "Citizen lounge" },
+      id: "matching",
+      title: { de: "Gleichgesinnte finden", en: "Find like-minded people" },
       description: {
-        de: "Offener Raum für Updates, Fragen und Koordination.",
-        en: "Open room for updates, questions, and coordination.",
+        de: "Matching über gemeinsame Interessen und Region (Preview im Account-Inbox-Bereich).",
+        en: "Matching via shared interests and region (preview in account inbox).",
       },
+      href: "/account#inbox",
     },
     {
-      id: "staff",
-      title: { de: "Redaktion & Staff", en: "Editorial & staff" },
+      id: "contributions",
+      title: { de: "Community-Beiträge", en: "Community contributions" },
       description: {
-        de: "Koordination von Research, Eventualitaeten und Campaign-Updates.",
-        en: "Coordination of research, eventualities, and campaign updates.",
+        de: "Quellen, Fragen und Optionen einreichen. Moderation und Freigabe laufen getrennt.",
+        en: "Submit sources, questions and options. Moderation and approval run separately.",
       },
+      href: "/community/contributions",
     },
   ],
 };
@@ -120,7 +126,7 @@ export default function CommunityPage() {
             title={t(room.title, locale)}
             description={t(room.description, locale)}
             label={t(COPY.roomLabel, locale)}
-            href="/chat"
+            href={room.href}
           />
         ))}
       </section>
@@ -131,6 +137,9 @@ export default function CommunityPage() {
       </section>
 
       <div className="flex flex-wrap gap-3 text-sm">
+        <Link href="/account#inbox" className="font-semibold text-[rgb(var(--muted))] hover:text-[rgb(var(--fg))]">
+          {t(COPY.actionAccount, locale)}
+        </Link>
         <Link href="/stream" className="font-semibold text-[rgb(var(--muted))]">
           {t(COPY.actionStream, locale)}
         </Link>

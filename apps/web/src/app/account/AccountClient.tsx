@@ -38,18 +38,18 @@ import {
 } from "react-icons/fi";
 import type { IconType } from "react-icons";
 
-// Konsistente Button-Styles im eDebatte-Gradient-CI
+// Shared button primitives for consistent contrast across light/dark.
 const primaryButtonClass =
-  "inline-flex items-center justify-center rounded-full bg-gradient-to-r from-sky-500 via-cyan-500 to-emerald-500 px-4 py-2 text-xs font-semibold text-white shadow-[0_10px_30px_rgba(14,116,144,0.35)] transition hover:brightness-105 focus:outline-none focus:ring-2 focus:ring-sky-200";
+  "btn-primary inline-flex items-center justify-center rounded-full px-4 py-2 text-xs font-semibold";
 
 const primaryButtonSmallClass =
-  "inline-flex items-center justify-center rounded-full bg-gradient-to-r from-sky-500 via-cyan-500 to-emerald-500 px-3 py-1.5 text-[11px] font-semibold text-white shadow-[0_8px_22px_rgba(14,116,144,0.32)] transition hover:brightness-105 focus:outline-none focus:ring-2 focus:ring-sky-200";
+  "btn-primary inline-flex items-center justify-center rounded-full px-3 py-1.5 text-[11px] font-semibold";
 
 const secondaryLightButtonClass =
-  "inline-flex items-center justify-center rounded-full bg-[rgb(var(--card))] px-3 py-1.5 text-[11px] font-semibold text-[rgb(var(--fg))] shadow-sm ring-1 ring-[rgb(var(--border))] transition hover:bg-[rgb(var(--card))] focus:outline-none focus:ring-2 focus:ring-sky-200";
+  "btn-secondary inline-flex items-center justify-center rounded-full px-3 py-1.5 text-[11px] font-semibold";
 
 const ghostDarkButtonClass =
-  "inline-flex items-center justify-center rounded-full bg-slate-900/90 px-3 py-1.5 text-[11px] font-semibold text-slate-50 shadow-sm transition hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-[rgb(var(--border))]";
+  "btn-ghost inline-flex items-center justify-center rounded-full px-3 py-1.5 text-[11px] font-semibold";
 
 const subtleLinkClass =
   "text-[11px] font-medium text-[rgb(var(--muted))] underline-offset-2 hover:text-[rgb(var(--fg))] hover:underline";
@@ -339,6 +339,25 @@ type SocialSummary = {
   friendRequests: SocialFriendRequestItem[];
   recentMessages: SocialMessageItem[];
 };
+
+type SocialSummaryMeta = {
+  store: "core";
+  founderFlow:
+    | "ensured"
+    | "already_present"
+    | "founder_not_found_fallback"
+    | "target_is_founder"
+    | "failed";
+};
+
+type AccountMatchItem = {
+  id: string;
+  displayName: string;
+  sharedTopics: string[];
+  locationLabel?: string | null;
+  score: number;
+};
+
 type NameDisplayMode = "real_name" | "nickname";
 type PersonalIdentityData = {
   givenName: string;
@@ -361,6 +380,13 @@ const ACCOUNT_HUB_TABS: Array<{ key: AccountHubTab; label: string; icon: IconTyp
   { key: "profile", label: "Profil", icon: FiUser },
   { key: "interests", label: "Interessen", icon: FiSliders },
   { key: "inbox", label: "Inbox", icon: FiMessageCircle },
+];
+
+const MOBILE_QUICK_ACTIONS: Array<{ key: AccountHubTab | "invite"; label: string; icon: IconType }> = [
+  { key: "profile", label: "Profil", icon: FiUser },
+  { key: "interests", label: "Interessen", icon: FiSliders },
+  { key: "inbox", label: "Inbox", icon: FiMessageCircle },
+  { key: "invite", label: "Einladen", icon: FiSend },
 ];
 
 const TOPIC_ICON_BY_KEY: Record<TopicKey, IconType> = {
@@ -455,6 +481,8 @@ function CompactProfileHubSection({
   const [displayName, setDisplayName] = useState(profile.displayName ?? "");
   const [tagline, setTagline] = useState(publicProfile.tagline ?? "");
   const [bio, setBio] = useState(publicProfile.bio ?? "");
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(profile.avatarUrl ?? null);
+  const [avatarUploading, setAvatarUploading] = useState(false);
   const [selectedTopics, setSelectedTopics] = useState<TopicKey[]>((publicProfile.topTopics ?? []).map((topic) => topic.key));
   const [profileSaving, setProfileSaving] = useState(false);
   const [interestsSaving, setInterestsSaving] = useState(false);
@@ -474,7 +502,16 @@ function CompactProfileHubSection({
     friendRequests: [],
     recentMessages: [],
   });
+  const [socialMeta, setSocialMeta] = useState<SocialSummaryMeta>({
+    store: "core",
+    founderFlow: "already_present",
+  });
+  const [socialError, setSocialError] = useState<string | null>(null);
+  const [matches, setMatches] = useState<AccountMatchItem[]>([]);
+  const [matchesLoading, setMatchesLoading] = useState(false);
   const [canNativeShare, setCanNativeShare] = useState(false);
+  const avatarInputRef = useRef<HTMLInputElement | null>(null);
+  const invitePanelRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -498,6 +535,7 @@ function CompactProfileHubSection({
     setDisplayName(profile.displayName ?? "");
     setTagline(publicProfile.tagline ?? "");
     setBio(publicProfile.bio ?? "");
+    setAvatarPreview(profile.avatarUrl ?? null);
     setSelectedTopics((publicProfile.topTopics ?? []).map((topic) => topic.key));
   }, [profile.displayName, publicProfile.tagline, publicProfile.bio, publicProfile.topTopics]);
 
@@ -611,6 +649,7 @@ function CompactProfileHubSection({
 
   const loadSocialSummary = useCallback(async () => {
     setSocialLoading(true);
+    setSocialError(null);
     try {
       const res = await fetch("/api/account/social-summary", { cache: "no-store" });
       const body = await res.json().catch(() => ({}));
@@ -623,15 +662,44 @@ function CompactProfileHubSection({
         friendRequests: Array.isArray(body.summary.friendRequests) ? body.summary.friendRequests : [],
         recentMessages: Array.isArray(body.summary.recentMessages) ? body.summary.recentMessages : [],
       });
-    } catch {
+      setSocialMeta({
+        store: "core",
+        founderFlow:
+          body?.meta?.founderFlow === "ensured" ||
+          body?.meta?.founderFlow === "already_present" ||
+          body?.meta?.founderFlow === "founder_not_found_fallback" ||
+          body?.meta?.founderFlow === "target_is_founder"
+            ? body.meta.founderFlow
+            : "failed",
+      });
+    } catch (error: any) {
       setSocialSummary({
         pendingRequestCount: 0,
         unreadMessageCount: 0,
         friendRequests: [],
         recentMessages: [],
       });
+      setSocialMeta({
+        store: "core",
+        founderFlow: "failed",
+      });
+      setSocialError(error?.message || "Social-Core aktuell nicht erreichbar.");
     } finally {
       setSocialLoading(false);
+    }
+  }, []);
+
+  const loadMatches = useCallback(async () => {
+    setMatchesLoading(true);
+    try {
+      const res = await fetch("/api/account/matches", { cache: "no-store" });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok || !body?.ok) throw new Error(body?.error || "matches_failed");
+      setMatches(Array.isArray(body.matches) ? body.matches : []);
+    } catch {
+      setMatches([]);
+    } finally {
+      setMatchesLoading(false);
     }
   }, []);
 
@@ -640,12 +708,17 @@ function CompactProfileHubSection({
   }, [loadSocialSummary]);
 
   useEffect(() => {
+    void loadMatches();
+  }, [loadMatches]);
+
+  useEffect(() => {
     const onFocus = () => {
       void loadSocialSummary();
+      void loadMatches();
     };
     window.addEventListener("focus", onFocus);
     return () => window.removeEventListener("focus", onFocus);
-  }, [loadSocialSummary]);
+  }, [loadMatches, loadSocialSummary]);
 
   const toggleTopic = (key: TopicKey) => {
     setSelectedTopics((prev) => {
@@ -684,6 +757,54 @@ function CompactProfileHubSection({
       `Hi,\n\nich lade dich zu eDebatte ein. Hier ist mein Profil bzw. Einstieg:\n${inviteText}\n\nBis bald!`,
     );
     window.location.href = `mailto:?subject=${subject}&body=${body}`;
+  };
+
+  const openInviteQuickAccess = () => {
+    setActiveTab("inbox");
+    window.setTimeout(() => {
+      invitePanelRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 70);
+  };
+
+  const openAvatarPicker = () => {
+    avatarInputRef.current?.click();
+  };
+
+  const readFileAsDataUrl = (file: File) =>
+    new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result ?? ""));
+      reader.onerror = () => reject(new Error("avatar_read_failed"));
+      reader.readAsDataURL(file);
+    });
+
+  const handleAvatarChange = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    setAvatarUploading(true);
+    try {
+      const dataUrl = await readFileAsDataUrl(file);
+      if (!dataUrl.startsWith("data:image/")) {
+        throw new Error("Bitte ein gültiges Bild auswählen.");
+      }
+      setAvatarPreview(dataUrl);
+      const res = await fetch("/api/account/profile", {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ avatarUrl: dataUrl }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok || !body?.ok) {
+        throw new Error(body?.error || "Profilfoto konnte nicht gespeichert werden.");
+      }
+      setProfileMsg("Profilfoto aktualisiert");
+      onRefresh();
+    } catch (error: any) {
+      setProfileMsg(error?.message || "Profilfoto konnte nicht gespeichert werden.");
+    } finally {
+      event.target.value = "";
+      setAvatarUploading(false);
+    }
   };
 
   const cancelProfileEdit = () => {
@@ -764,6 +885,7 @@ function CompactProfileHubSection({
         throw new Error(body?.error || "Interessen konnten nicht gespeichert werden.");
       }
       setInterestMsg("Interessen gespeichert");
+      void loadMatches();
       onRefresh();
     } catch (error: any) {
       setInterestMsg(error?.message || "Speichern fehlgeschlagen");
@@ -816,26 +938,33 @@ function CompactProfileHubSection({
   };
 
   return (
-    <section className="space-y-3 pb-[calc(env(safe-area-inset-bottom)+0.3rem)]">
+    <section className="space-y-3 pb-[calc(env(safe-area-inset-bottom)+5.8rem)] md:pb-4">
       <article className="overflow-hidden rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-3.5 shadow-[0_16px_48px_rgba(15,23,42,0.08)] sm:p-5">
         <div className="flex items-start justify-between gap-2.5">
           <div className="flex min-w-0 items-center gap-3">
-            <div
-              className="relative inline-flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-br from-sky-500 via-cyan-500 to-emerald-500 text-base font-semibold text-white ring-1 ring-sky-300/35"
-              aria-label="Avatar (Edit vorbereitet)"
+            <button
+              type="button"
+              onClick={openAvatarPicker}
+              disabled={avatarUploading}
+              aria-label="Profilfoto ändern"
+              className="relative inline-flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-br from-sky-500 via-cyan-500 to-emerald-500 text-base font-semibold text-white ring-1 ring-sky-300/35 transition hover:brightness-105 disabled:opacity-70"
             >
-              {profile.avatarUrl ? (
-                <Image src={profile.avatarUrl} alt={displayNamePreview} fill sizes="56px" className="object-cover" />
+              {avatarPreview ? (
+                <Image src={avatarPreview} alt={displayNamePreview} fill sizes="56px" className="object-cover" />
               ) : (
                 <span>{displayNamePreview.slice(0, 2).toUpperCase()}</span>
               )}
               <span className="absolute -bottom-1 -right-1 inline-flex h-5 w-5 items-center justify-center rounded-full bg-[rgb(var(--card))] text-sky-400 ring-1 ring-[rgb(var(--border))]">
                 <FiEdit2 className="h-2.5 w-2.5" aria-hidden />
               </span>
-            </div>
+            </button>
+            <input ref={avatarInputRef} type="file" accept="image/*" className="sr-only" onChange={handleAvatarChange} />
             <div className="min-w-0">
               <p className="truncate text-[1.02rem] font-semibold text-[rgb(var(--fg))]">{displayNamePreview}</p>
               <p className="truncate text-[12px] text-[rgb(var(--muted))]">{taglinePreview}</p>
+              <p className="mt-0.5 text-[10px] text-[rgb(var(--muted))]">
+                {avatarUploading ? "Profilfoto wird aktualisiert …" : "Profilfoto ändern"}
+              </p>
             </div>
           </div>
           <span className="inline-flex items-center rounded-full bg-[rgb(var(--bg))] px-2 py-1 text-[10px] font-medium text-[rgb(var(--muted))] ring-1 ring-[rgb(var(--border))]">
@@ -862,7 +991,11 @@ function CompactProfileHubSection({
               <FiUserPlus className="h-3.5 w-3.5 text-sky-500" aria-hidden />
               Anfragen
             </p>
-            <p className={`mt-0.5 text-[15px] font-semibold ${hasPendingRequests ? "text-emerald-200" : "text-[rgb(var(--fg))]"}`}>
+            <p
+              className={`mt-0.5 text-[15px] font-semibold ${
+                hasPendingRequests ? "text-emerald-700 dark:text-emerald-200" : "text-[rgb(var(--fg))]"
+              }`}
+            >
               {socialLoading ? "…" : socialSummary.pendingRequestCount}
             </p>
           </div>
@@ -877,7 +1010,11 @@ function CompactProfileHubSection({
               <FiMessageCircle className="h-3.5 w-3.5 text-sky-500" aria-hidden />
               Ungelesen
             </p>
-            <p className={`mt-0.5 text-[15px] font-semibold ${hasUnreadMessages ? "text-sky-200" : "text-[rgb(var(--fg))]"}`}>
+            <p
+              className={`mt-0.5 text-[15px] font-semibold ${
+                hasUnreadMessages ? "text-sky-700 dark:text-sky-200" : "text-[rgb(var(--fg))]"
+              }`}
+            >
               {socialLoading ? "…" : socialSummary.unreadMessageCount}
             </p>
           </div>
@@ -916,7 +1053,7 @@ function CompactProfileHubSection({
                 aria-pressed={active}
                 className={`inline-flex min-h-[40px] items-center justify-center gap-1 rounded-[10px] px-1.5 text-[11px] font-semibold transition ${
                   active
-                    ? "bg-sky-500/16 text-sky-100 shadow-[inset_0_0_0_1px_rgba(56,189,248,0.45)]"
+                    ? "bg-sky-500/16 text-sky-700 shadow-[inset_0_0_0_1px_rgba(56,189,248,0.45)] dark:text-sky-100"
                     : "text-[rgb(var(--muted))] hover:bg-white/5 hover:text-[rgb(var(--fg))]"
                 }`}
               >
@@ -931,13 +1068,9 @@ function CompactProfileHubSection({
       {activeTab === "profile" ? (
         <div className="space-y-3">
           <article className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-[0_14px_45px_rgba(15,23,42,0.08)] sm:p-5">
-            <p className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">
-              <FiUser className="h-3.5 w-3.5 text-sky-500" aria-hidden />
-              Profilansicht
-            </p>
-            <div className="mt-3 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4">
+            <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4">
               <div className="flex items-center gap-3">
-                <div className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-sky-500/12 text-sm font-semibold text-sky-200 ring-1 ring-sky-300/30">
+                <div className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-sky-500/12 text-sm font-semibold text-sky-700 ring-1 ring-sky-300/30 dark:text-sky-200">
                   {displayNamePreview.slice(0, 2).toUpperCase()}
                 </div>
                 <div className="min-w-0">
@@ -953,13 +1086,20 @@ function CompactProfileHubSection({
                   {selectedTopicLabels.slice(0, 5).map((label) => (
                     <span
                       key={`profile-interest-${label}`}
-                      className="inline-flex items-center rounded-full bg-sky-500/12 px-2.5 py-1 text-[11px] text-sky-100 ring-1 ring-sky-300/35"
+                      className="inline-flex items-center rounded-full bg-sky-500/12 px-2.5 py-1 text-[11px] text-sky-700 ring-1 ring-sky-300/35 dark:text-sky-100"
                     >
                       {label}
                     </span>
                   ))}
                 </div>
-              ) : null}
+              ) : (
+                <div className="mt-3 rounded-xl border border-amber-300/45 bg-amber-500/10 px-3 py-2 text-xs text-amber-800 dark:text-amber-200">
+                  <p>Wähle mindestens 3 Interessen, damit Debatten und passende Menschen für dich priorisiert werden.</p>
+                  <button type="button" onClick={() => setActiveTab("interests")} className={`${secondaryLightButtonClass} mt-2`}>
+                    Jetzt Interessen wählen
+                  </button>
+                </div>
+              )}
             </div>
             <div className="mt-4">
               <button type="button" onClick={() => setProfileEditorOpen(true)} className={`${primaryButtonClass} w-full sm:w-auto`}>
@@ -1047,7 +1187,7 @@ function CompactProfileHubSection({
                   onClick={() => setPersonalDraft((prev) => ({ ...prev, displayMode: "real_name" }))}
                   className={`rounded-lg px-2 py-2 text-xs font-semibold ${
                     personalDraft.displayMode === "real_name"
-                      ? "bg-sky-500/16 text-sky-100 shadow-[inset_0_0_0_1px_rgba(56,189,248,0.45)]"
+                      ? "bg-sky-500/16 text-sky-700 shadow-[inset_0_0_0_1px_rgba(56,189,248,0.45)] dark:text-sky-100"
                       : "text-[rgb(var(--muted))]"
                   }`}
                 >
@@ -1058,7 +1198,7 @@ function CompactProfileHubSection({
                   onClick={() => setPersonalDraft((prev) => ({ ...prev, displayMode: "nickname" }))}
                   className={`rounded-lg px-2 py-2 text-xs font-semibold ${
                     personalDraft.displayMode === "nickname"
-                      ? "bg-sky-500/16 text-sky-100 shadow-[inset_0_0_0_1px_rgba(56,189,248,0.45)]"
+                      ? "bg-sky-500/16 text-sky-700 shadow-[inset_0_0_0_1px_rgba(56,189,248,0.45)] dark:text-sky-100"
                       : "text-[rgb(var(--muted))]"
                   }`}
                 >
@@ -1121,7 +1261,7 @@ function CompactProfileHubSection({
               selectedTopicLabels.map((label) => (
                 <span
                   key={label}
-                  className="inline-flex items-center rounded-full bg-sky-500/12 px-2.5 py-1 text-[11px] font-medium text-sky-200 ring-1 ring-sky-300/40"
+                  className="inline-flex items-center rounded-full bg-sky-500/12 px-2.5 py-1 text-[11px] font-medium text-sky-700 ring-1 ring-sky-300/40 dark:text-sky-200"
                 >
                   {label}
                 </span>
@@ -1147,7 +1287,7 @@ function CompactProfileHubSection({
                   onClick={() => toggleTopic(topic.key)}
                   className={`inline-flex min-h-[52px] items-center gap-2 rounded-2xl border px-3 py-2 text-left text-xs transition ${
                     active
-                      ? "border-sky-300/50 bg-sky-500/12 text-sky-100"
+                      ? "border-sky-300/50 bg-sky-500/12 text-sky-700 dark:text-sky-100"
                       : "border-[rgb(var(--border))] bg-[rgb(var(--bg))] text-[rgb(var(--muted))] hover:text-[rgb(var(--fg))]"
                   }`}
                 >
@@ -1161,7 +1301,7 @@ function CompactProfileHubSection({
             })}
           </div>
           {!hasEnoughInterests ? (
-            <p className="mt-2 text-xs text-amber-200">
+            <p className="mt-2 text-xs text-amber-700 dark:text-amber-200">
               Wähle mindestens 3 Interessen. Mehr Themen verbessern Matching und Relevanz.
             </p>
           ) : (
@@ -1215,7 +1355,11 @@ function CompactProfileHubSection({
               }`}
             >
               <p className="text-[10px] uppercase tracking-[0.12em] text-[rgb(var(--muted))]">Anfragen</p>
-              <p className={`mt-1 text-xl font-semibold ${hasPendingRequests ? "text-emerald-200" : "text-[rgb(var(--fg))]"}`}>
+              <p
+                className={`mt-1 text-xl font-semibold ${
+                  hasPendingRequests ? "text-emerald-700 dark:text-emerald-200" : "text-[rgb(var(--fg))]"
+                }`}
+              >
                 {socialLoading ? "…" : socialSummary.pendingRequestCount}
               </p>
             </div>
@@ -1227,11 +1371,36 @@ function CompactProfileHubSection({
               }`}
             >
               <p className="text-[10px] uppercase tracking-[0.12em] text-[rgb(var(--muted))]">Ungelesen</p>
-              <p className={`mt-1 text-xl font-semibold ${hasUnreadMessages ? "text-sky-200" : "text-[rgb(var(--fg))]"}`}>
+              <p
+                className={`mt-1 text-xl font-semibold ${
+                  hasUnreadMessages ? "text-sky-700 dark:text-sky-200" : "text-[rgb(var(--fg))]"
+                }`}
+              >
                 {socialLoading ? "…" : socialSummary.unreadMessageCount}
               </p>
             </div>
           </div>
+
+          {socialError ? (
+            <div className="rounded-2xl border border-rose-300/55 bg-rose-500/10 px-3 py-2 text-xs text-rose-800 dark:text-rose-200">
+              Social-Core Status: {socialError}
+            </div>
+          ) : (
+            <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-xs text-[rgb(var(--muted))]">
+              Core-Social aktiv · Founder-Flow:{" "}
+              <span className="font-semibold text-[rgb(var(--fg))]">
+                {socialMeta.founderFlow === "ensured"
+                  ? "neu gesichert"
+                  : socialMeta.founderFlow === "already_present"
+                    ? "bereits vorhanden"
+                    : socialMeta.founderFlow === "founder_not_found_fallback"
+                      ? "Fallback aktiv"
+                      : socialMeta.founderFlow === "target_is_founder"
+                        ? "Founder-Konto"
+                        : "Fehler"}
+              </span>
+            </div>
+          )}
 
           <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
             <div className="mb-2 flex items-center justify-between gap-2">
@@ -1270,7 +1439,9 @@ function CompactProfileHubSection({
                 <FiMessageCircle className="h-3.5 w-3.5 text-sky-500" aria-hidden />
                 Letzte Nachrichten
               </p>
-              <span className="text-[11px] text-[rgb(var(--muted))]">{chatEnabled ? "Inbox aktiv" : "Inbox im Aufbau"}</span>
+              <span className="text-[11px] text-[rgb(var(--muted))]">
+                {chatEnabled ? "Nachrichten lesen aktiv" : "Direktnachrichten noch im Ausbau"}
+              </span>
             </div>
             {socialLoading ? (
               <p className="text-xs text-[rgb(var(--muted))]">Lade Nachrichten …</p>
@@ -1295,6 +1466,46 @@ function CompactProfileHubSection({
                 Noch keine neuen Nachrichten. Wenn du Freunde hinzufügst, startet hier deine Inbox.
               </p>
             )}
+            <p className="mt-2 text-[11px] text-[rgb(var(--muted))]">
+              Direktnachrichten senden ist noch nicht freigeschaltet. Aktuell zeigt die Inbox empfangene System-/Founder-Nachrichten und Verbindungsstatus.
+            </p>
+          </div>
+
+          <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
+            <div className="mb-2 flex items-center justify-between gap-2">
+              <p className="inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--muted))]">
+                <FiUsers className="h-3.5 w-3.5 text-sky-500" aria-hidden />
+                Gleichgesinnte finden
+              </p>
+              <span className="text-[11px] text-[rgb(var(--muted))]">Interessen + Region</span>
+            </div>
+            {matchesLoading ? (
+              <p className="text-xs text-[rgb(var(--muted))]">Suche passende Menschen …</p>
+            ) : matches.length > 0 ? (
+              <div className="space-y-2">
+                {matches.slice(0, 5).map((match) => (
+                  <div key={match.id} className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-xs">
+                    <p className="font-semibold text-[rgb(var(--fg))]">{match.displayName}</p>
+                    <p className="mt-0.5 text-[rgb(var(--muted))]">
+                      Gemeinsam: {match.sharedTopics.join(", ")}
+                      {match.locationLabel ? ` · ${match.locationLabel}` : ""}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-xs text-[rgb(var(--muted))]">
+                Noch keine Matches sichtbar. Mit mindestens 3 Interessen und Ortsangabe steigen die Treffer.
+              </p>
+            )}
+            <div className="mt-2 flex flex-wrap gap-2">
+              <button type="button" onClick={() => setActiveTab("interests")} className={secondaryLightButtonClass}>
+                Interessen schärfen
+              </button>
+              <Link href="/community" className={ghostDarkButtonClass}>
+                Community-Hub
+              </Link>
+            </div>
           </div>
 
           {inboxIsEmpty ? (
@@ -1307,7 +1518,7 @@ function CompactProfileHubSection({
             </div>
           ) : null}
 
-          <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
+          <div ref={invitePanelRef} className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
             <p className="inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--muted))]">
               <FiSend className="h-3.5 w-3.5 text-sky-500" aria-hidden />
               Freunde einladen
@@ -1326,7 +1537,7 @@ function CompactProfileHubSection({
                 <p className="text-[10px] uppercase tracking-[0.12em] text-[rgb(var(--muted))]">Erfolgreich</p>
                 <p
                   className={`mt-1 text-base font-semibold ${
-                    personalDraft.successfulInvites > 0 ? "text-emerald-200" : "text-[rgb(var(--fg))]"
+                    personalDraft.successfulInvites > 0 ? "text-emerald-700 dark:text-emerald-200" : "text-[rgb(var(--fg))]"
                   }`}
                 >
                   {personalDraft.successfulInvites}
@@ -1340,7 +1551,11 @@ function CompactProfileHubSection({
                 }`}
               >
                 <p className="text-[10px] uppercase tracking-[0.12em] text-[rgb(var(--muted))]">Bonus-Starts</p>
-                <p className={`mt-1 text-base font-semibold ${referralRewardsActive ? "text-sky-200" : "text-[rgb(var(--fg))]"}`}>
+                <p
+                  className={`mt-1 text-base font-semibold ${
+                    referralRewardsActive ? "text-sky-700 dark:text-sky-200" : "text-[rgb(var(--fg))]"
+                  }`}
+                >
                   {personalDraft.rewardAnalysisStarts}
                 </p>
               </div>
@@ -1384,6 +1599,35 @@ function CompactProfileHubSection({
           </div>
         </article>
       ) : null}
+
+      <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-[rgb(var(--border))] bg-[rgb(var(--card))]/95 px-3 py-2 pb-[max(env(safe-area-inset-bottom),0.65rem)] backdrop-blur md:hidden">
+        <div className="mx-auto grid max-w-xl grid-cols-4 gap-2">
+          {MOBILE_QUICK_ACTIONS.map((action) => {
+            const active = action.key !== "invite" && activeTab === action.key;
+            return (
+              <button
+                key={action.key}
+                type="button"
+                onClick={() => {
+                  if (action.key === "invite") {
+                    openInviteQuickAccess();
+                    return;
+                  }
+                  setActiveTab(action.key);
+                }}
+                className={`inline-flex min-h-[42px] flex-col items-center justify-center gap-0.5 rounded-xl border px-1 py-1 text-[10px] font-semibold ${
+                  active
+                    ? "border-sky-300/60 bg-sky-500/16 text-sky-700 dark:text-sky-200"
+                    : "border-[rgb(var(--border))] bg-[rgb(var(--bg))] text-[rgb(var(--muted))]"
+                }`}
+              >
+                <action.icon className="h-3.5 w-3.5" aria-hidden />
+                <span>{action.label}</span>
+              </button>
+            );
+          })}
+        </div>
+      </nav>
 
       {profileEditorOpen ? (
         <div className="fixed inset-0 z-[95] bg-slate-950/65 p-3 backdrop-blur-[2px] sm:p-5" onClick={cancelProfileEdit}>

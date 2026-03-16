@@ -1,6 +1,12 @@
 import { NextResponse } from "next/server";
 import { assertStoreConfigured, ObjectId, coreCol } from "@core/db/triMongo";
 import { readSession } from "@/utils/session";
+import {
+  ensureFounderWelcomeForUser,
+  FOUNDER_ACCOUNT_EMAIL,
+  FOUNDER_FALLBACK_DISPLAY_NAME,
+  FOUNDER_FALLBACK_USER_ID,
+} from "@/lib/onboarding/founderWelcome";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -10,6 +16,7 @@ type SocialFriendRequestDoc = {
   fromUserId?: string | ObjectId | null;
   toUserId?: string | ObjectId | null;
   status?: "pending" | "accepted" | "rejected" | "canceled" | null;
+  source?: string | null;
   message?: string | null;
   createdAt?: string | Date | null;
 };
@@ -46,6 +53,25 @@ function normalizeId(value: unknown): string {
   return String(value);
 }
 
+function resolveSenderLabel(params: {
+  fromId: string;
+  kind?: string | null;
+  source?: string | null;
+  senderLabelById: Map<string, string>;
+}) {
+  if (params.senderLabelById.has(params.fromId)) {
+    return params.senderLabelById.get(params.fromId) ?? "Nutzer:in";
+  }
+  if (
+    params.fromId === FOUNDER_FALLBACK_USER_ID ||
+    params.kind === "founder_welcome" ||
+    params.source === "founder_welcome"
+  ) {
+    return `${FOUNDER_FALLBACK_DISPLAY_NAME} · ${FOUNDER_ACCOUNT_EMAIL}`;
+  }
+  return "Unbekannter Kontakt";
+}
+
 export async function GET() {
   // Founder/social/inbox collections are intentionally stored in triMongo core.
   assertStoreConfigured("core", "api/account/social-summary");
@@ -53,6 +79,28 @@ export async function GET() {
   const userId = session?.uid ?? null;
   if (!userId) {
     return NextResponse.json({ ok: false, error: "not_authenticated" }, { status: 401 });
+  }
+
+  let founderFlow:
+    | "ensured"
+    | "already_present"
+    | "founder_not_found_fallback"
+    | "target_is_founder"
+    | "failed" = "already_present";
+  try {
+    const founderResult = await ensureFounderWelcomeForUser(userId, { source: "manual" });
+    if (founderResult.skipped) {
+      founderFlow = founderResult.reason === "target_is_founder" ? "target_is_founder" : "already_present";
+    } else if (founderResult.reason === "founder_not_found_fallback") {
+      founderFlow = "founder_not_found_fallback";
+    } else if (founderResult.friendRequestCreated || founderResult.welcomeMessageCreated) {
+      founderFlow = "ensured";
+    } else {
+      founderFlow = "already_present";
+    }
+  } catch (error) {
+    founderFlow = "failed";
+    console.error("[social-summary] founder ensure failed", { userId, error });
   }
 
   const requestFilter = userMatchFilter(userId);
@@ -102,7 +150,9 @@ export async function GET() {
           .toArray()
       : [];
 
-  const senderLabelById = new Map<string, string>();
+  const senderLabelById = new Map<string, string>([
+    [FOUNDER_FALLBACK_USER_ID, `${FOUNDER_FALLBACK_DISPLAY_NAME} · ${FOUNDER_ACCOUNT_EMAIL}`],
+  ]);
   for (const doc of senderDocs) {
     const label =
       (typeof doc?.profile?.displayName === "string" && doc.profile.displayName.trim()) ||
@@ -116,7 +166,11 @@ export async function GET() {
     const fromId = normalizeId(doc.fromUserId);
     return {
       id: String(doc._id),
-      fromLabel: senderLabelById.get(fromId) ?? "Unbekannter Kontakt",
+      fromLabel: resolveSenderLabel({
+        fromId,
+        source: doc.source ?? null,
+        senderLabelById,
+      }),
       message: typeof doc.message === "string" ? doc.message.trim().slice(0, 160) : null,
       createdAt: toIso(doc.createdAt),
     };
@@ -130,7 +184,11 @@ export async function GET() {
       "Nachricht ohne Text";
     return {
       id: String(doc._id),
-      fromLabel: senderLabelById.get(fromId) ?? "Unbekannter Kontakt",
+      fromLabel: resolveSenderLabel({
+        fromId,
+        kind: doc.kind ?? null,
+        senderLabelById,
+      }),
       text: text.slice(0, 180),
       kind: typeof doc.kind === "string" ? doc.kind : "direct",
       createdAt: toIso(doc.createdAt),
@@ -140,6 +198,7 @@ export async function GET() {
 
   console.info("[social-summary] counts", {
     userId,
+    founderFlow,
     pendingRequestCount,
     unreadMessageCount,
     friendRequestPreviewCount: friendRequests.length,
@@ -153,6 +212,10 @@ export async function GET() {
       unreadMessageCount,
       friendRequests,
       recentMessages,
+    },
+    meta: {
+      store: "core",
+      founderFlow,
     },
   });
 }

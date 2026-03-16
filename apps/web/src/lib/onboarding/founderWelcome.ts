@@ -2,9 +2,11 @@ import { assertStoreConfigured, getCol, ObjectId } from "@core/db/triMongo";
 
 export const FOUNDER_ACCOUNT_EMAIL = "rgf@voiceopengov.org";
 export const FOUNDER_WELCOME_MESSAGE_KIND = "founder_welcome";
+export const FOUNDER_FALLBACK_USER_ID = "founder:voiceopengov";
+export const FOUNDER_FALLBACK_DISPLAY_NAME = "Ricky";
 // Social/onboarding founder flows are part of the operational core store.
 
-const FOUNDER_DEFAULT_NAME = "Ricky";
+const FOUNDER_DEFAULT_NAME = FOUNDER_FALLBACK_DISPLAY_NAME;
 
 function buildFounderWelcomeText(founderName?: string | null) {
   const safeName = founderName?.trim() || FOUNDER_DEFAULT_NAME;
@@ -188,32 +190,25 @@ export async function ensureFounderWelcomeForUser(
   }
 
   const founder = await resolveFounderAccount(targetUserId);
-  if (!founder?.userId) {
+  const founderMissing = !founder?.userId;
+  if (founderMissing) {
     console.info("[founder-welcome] founder not found", {
       source,
       targetUserId: String(targetUserId),
+      fallbackFromUserId: FOUNDER_FALLBACK_USER_ID,
     });
-    return {
-      targetUserId: String(targetUserId),
-      founderUserId: null,
-      founderDisplayName: null,
-      friendRequestCreated: false,
-      friendRequestExists: false,
-      welcomeMessageCreated: false,
-      welcomeMessageExists: false,
-      onboardingMarkerUpdated: false,
-      skipped: true,
-      reason: "founder_not_found",
-    };
   }
 
-  const founderId = String(founder.userId);
+  const founderId = founderMissing ? FOUNDER_FALLBACK_USER_ID : String(founder.userId);
+  const founderDisplayName =
+    founder?.displayName?.trim() ||
+    FOUNDER_FALLBACK_DISPLAY_NAME;
   const userId = String(targetUserId);
-  if (founderId === userId) {
+  if (!founderMissing && founderId === userId) {
     return {
       targetUserId: userId,
       founderUserId: founderId,
-      founderDisplayName: founder.displayName ?? null,
+      founderDisplayName: founderDisplayName,
       friendRequestCreated: false,
       friendRequestExists: false,
       welcomeMessageCreated: false,
@@ -254,7 +249,7 @@ export async function ensureFounderWelcomeForUser(
     { fromUserId: founderId, toUserId: userId, kind: FOUNDER_WELCOME_MESSAGE_KIND },
     {
       $setOnInsert: {
-        text: buildFounderWelcomeText(founder.displayName),
+        text: buildFounderWelcomeText(founderDisplayName),
         kind: FOUNDER_WELCOME_MESSAGE_KIND,
         readAt: null,
         createdAt: now,
@@ -290,12 +285,13 @@ export async function ensureFounderWelcomeForUser(
   const result: FounderFlowResult = {
     targetUserId: userId,
     founderUserId: founderId,
-    founderDisplayName: founder.displayName ?? null,
+    founderDisplayName,
     friendRequestCreated,
     friendRequestExists,
     welcomeMessageCreated,
     welcomeMessageExists,
     onboardingMarkerUpdated,
+    reason: founderMissing ? "founder_not_found_fallback" : undefined,
   };
 
   console.info("[founder-welcome] ensured", {

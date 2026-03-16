@@ -17,7 +17,7 @@ const cx = (...cls: Array<string | false | null | undefined>) =>
 
 const VARIANT: Record<ButtonVariant, string> = {
   primary:
-    "text-white border border-[rgb(var(--grad-from))] bg-gradient-to-r from-[rgb(var(--grad-from))] to-[rgb(var(--grad-to))] shadow-[0_10px_24px_rgba(14,165,233,0.26)] hover:-translate-y-px hover:shadow-[0_14px_30px_rgba(14,165,233,0.34)] focus-visible:outline-[rgb(var(--grad-from))]",
+    "text-[rgb(var(--btn-primary-fg))] border border-[rgb(var(--grad-from))] bg-gradient-to-r from-[rgb(var(--grad-from))] to-[rgb(var(--grad-to))] shadow-[0_10px_24px_rgba(14,165,233,0.3)] hover:-translate-y-px hover:shadow-[0_14px_30px_rgba(14,165,233,0.36)] focus-visible:outline-[rgb(var(--grad-from))]",
   secondary:
     "bg-[rgb(var(--card))] text-[rgb(var(--fg))] border border-[rgb(var(--border))] shadow-[0_2px_8px_rgba(15,23,42,0.08)] hover:bg-[rgb(var(--bg))] hover:border-[rgb(var(--fg))] focus-visible:outline-[rgb(var(--grad-from))]",
   ghost:
