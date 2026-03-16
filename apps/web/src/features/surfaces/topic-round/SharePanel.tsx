@@ -9,6 +9,7 @@ type SharePanelProps = {
   canonicalTopicUrl: string;
   embedUrl: string;
   followUpUrl: string;
+  compact?: boolean;
 };
 
 async function copyToClipboard(value: string) {
@@ -34,6 +35,7 @@ export default function SharePanel({
   canonicalTopicUrl,
   embedUrl,
   followUpUrl,
+  compact = false,
 }: SharePanelProps) {
   const [message, setMessage] = useState<string | null>(null);
   const embedSnippet = useMemo(
@@ -56,54 +58,54 @@ export default function SharePanel({
   }
 
   return (
-    <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm space-y-3">
-      <h2 className="text-lg font-semibold text-[rgb(var(--fg))]">Share Panel</h2>
+    <section className={compact ? "space-y-3" : "space-y-3 rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm"}>
+      {!compact ? <h2 className="text-lg font-semibold text-[rgb(var(--fg))]">Beitrag teilen</h2> : null}
       <p className="text-sm text-[rgb(var(--muted))]">
-        Public Link, QR, Embed und Follow-up laufen auf derselben produktiven Topic/Round-Logik.
+        Companion-Link, QR, Embed und offener Topic-Link greifen auf dieselbe produktive Logik zu.
       </p>
 
-      <div className="grid gap-3 lg:grid-cols-2">
+      <div className={`grid gap-3 ${compact ? "md:grid-cols-1" : "lg:grid-cols-2"}`}>
         <div className="space-y-2 text-xs">
           <button
             type="button"
             className="btn-secondary text-xs w-full justify-center"
-            onClick={() => handleCopy(publicUrl, "Public Link")}
+            onClick={() => handleCopy(publicUrl, "Companion-Link")}
           >
-            Public Link kopieren
+            Companion-Link kopieren
           </button>
           <button
             type="button"
             className="btn-secondary text-xs w-full justify-center"
-            onClick={() => handleCopy(canonicalTopicUrl, "Canonical Topic Link")}
+            onClick={() => handleCopy(canonicalTopicUrl, "Offener Topic-Link")}
           >
-            Canonical Topic Link kopieren
+            Offenen Topic-Link kopieren
           </button>
           <button
             type="button"
             className="btn-secondary text-xs w-full justify-center"
-            onClick={() => handleCopy(embedSnippet, "Embed Snippet")}
+            onClick={() => handleCopy(embedSnippet, "Embed-Code")}
           >
-            Embed Snippet kopieren
+            Embed-Code kopieren
           </button>
           <button
             type="button"
             className="btn-secondary text-xs w-full justify-center"
-            onClick={() => handleCopy(followUpUrl, "Follow-up Link")}
+            onClick={() => handleCopy(followUpUrl, "Follow-up-Link")}
           >
             Follow-up Link kopieren
           </button>
         </div>
 
         <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3 flex flex-col items-center gap-2">
-          <img src={qrUrl} alt="QR code for public entry" width={180} height={180} className="rounded-md border border-[rgb(var(--border))]" />
+          <img src={qrUrl} alt="QR-Code für diesen Kontextzugang" width={compact ? 150 : 180} height={compact ? 150 : 180} className="rounded-md border border-[rgb(var(--border))]" />
           <p className="text-[11px] text-[rgb(var(--muted))] text-center">
-            QR Entry unterstützt `?entry=qr` und source/persona Kontexte.
+            QR startet den Kontextzugang (`entry=qr`) und führt danach in den offenen Themenraum.
           </p>
         </div>
       </div>
 
       <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3 space-y-1">
-        <p className="text-xs font-semibold text-[rgb(var(--fg))]">Share Preview (OG vorbereitbar)</p>
+        <p className="text-xs font-semibold text-[rgb(var(--fg))]">Vorschau</p>
         <p className="text-sm font-semibold text-[rgb(var(--fg))]">{title}</p>
         <p className="text-xs text-[rgb(var(--muted))]">{description}</p>
         <p className="text-[11px] text-[rgb(var(--muted))] break-all">{publicUrl}</p>

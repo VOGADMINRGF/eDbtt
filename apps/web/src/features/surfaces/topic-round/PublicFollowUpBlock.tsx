@@ -13,7 +13,7 @@ const FOLLOW_UP_ACTIONS: FollowUpAction[] = [
   { label: "Widerspruch einreichen", intent: "objection" },
   { label: "Perspektive teilen", intent: "perspective" },
   { label: "Option verfeinern", intent: "option" },
-  { label: "Nächsten Rundenfokus vorschlagen", intent: "question", nextSuffix: "#roadmap" },
+  { label: "Nächsten Rundenfokus vorschlagen", intent: "question", nextSuffix: "#offen" },
 ];
 
 type Props = {
@@ -22,14 +22,14 @@ type Props = {
 };
 
 export default function PublicFollowUpBlock({
-  title = "Public Follow-up",
+  title = "Öffentlicher Folgebeitrag",
   returnPath,
 }: Props) {
   return (
     <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm space-y-3">
       <h2 className="text-lg font-semibold text-[rgb(var(--fg))]">{title}</h2>
       <p className="text-sm text-[rgb(var(--muted))]">
-        Strukturierte Folgeaktionen laufen über den kanonischen Create-Einstieg.
+        Strukturierte Folgeaktionen laufen über den kanonischen Create-Einstieg und bleiben mit Anlass/Topic verknüpft.
       </p>
       <div className="flex flex-wrap gap-2">
         {FOLLOW_UP_ACTIONS.map((action) => (

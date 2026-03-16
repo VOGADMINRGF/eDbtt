@@ -3,7 +3,11 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { parseDistributionContext, withDistributionQuery } from "@/features/surfaces/topic-round";
 import PublicFollowUpBlock from "@/features/surfaces/topic-round/PublicFollowUpBlock";
-import { getTopicBySlug, listRoundsByTopicSlug } from "@features/topicRound";
+import {
+  findCompanionContextByTopicAndType,
+  getTopicBySlug,
+  listRoundsByTopicSlug,
+} from "@features/topicRound";
 
 type PageProps = {
   params: Promise<{ slug: string }>;
@@ -28,17 +32,30 @@ export default async function EmbedTopicPage({ params, searchParams }: PageProps
   if (!topic) notFound();
   const rounds = listRoundsByTopicSlug(topic.slug).slice(0, 5);
   const distribution = parseDistributionContext(resolved);
+  const companion = findCompanionContextByTopicAndType(topic.slug, distribution.source);
 
   const fullTopicPath = withDistributionQuery(`/topic/${topic.slug}`, distribution);
   const followUpPath = withDistributionQuery(`/topic/${topic.slug}`, distribution);
+  const companionPath = companion
+    ? withDistributionQuery(`/companion/${companion.slug}`, distribution)
+    : null;
 
   return (
     <main className="min-h-screen bg-[rgb(var(--card))] px-4 py-6 text-[rgb(var(--fg))]">
       <header className="space-y-2 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4">
-        <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Embed Topic</p>
+        <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Embed · Themenvorschau</p>
         <h1 className="text-lg font-semibold">{topic.title}</h1>
         <p className="text-sm text-[rgb(var(--muted))]">{topic.framingQuestion}</p>
-        <p className="text-xs text-[rgb(var(--muted))]">{distribution.framing}</p>
+        <p className="text-xs text-[rgb(var(--muted))]">
+          {companion
+            ? "QR-/Medien-Einstiege starten im Begleitraum. Diese Embed zeigt die thematische Öffnung."
+            : distribution.framing}
+        </p>
+        {companionPath ? (
+          <Link href={companionPath} className="inline-flex text-xs underline">
+            Zuerst Begleitraum öffnen
+          </Link>
+        ) : null}
       </header>
 
       <section className="mt-4 space-y-2">
@@ -60,7 +77,7 @@ export default async function EmbedTopicPage({ params, searchParams }: PageProps
       </section>
 
       <div className="mt-4">
-        <PublicFollowUpBlock title="Public Follow-up (Embed)" returnPath={followUpPath} />
+        <PublicFollowUpBlock title="Folgebeitrag (Embed)" returnPath={followUpPath} />
       </div>
 
       <footer className="mt-5 text-xs text-[rgb(var(--muted))]">

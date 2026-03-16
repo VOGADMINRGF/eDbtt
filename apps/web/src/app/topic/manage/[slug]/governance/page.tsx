@@ -60,7 +60,8 @@ export default async function TopicGovernancePage({ params }: Params) {
         <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Topic Manage · Governance</p>
         <h1 className="text-3xl font-semibold text-[rgb(var(--fg))]">{topic.title}</h1>
         <p className="text-sm text-[rgb(var(--muted))]">
-          Reviewlog, Source Classes, Konfliktlage und Export-/Handoff-Readiness für operative Nutzung.
+          Manage-Ebene für Reviewlog, Source Classes, Konfliktlage und Export-/Handoff-Readiness.
+          Öffentlich sichtbare Leseflächen bleiben davon getrennt.
         </p>
         <div className="flex flex-wrap gap-2 text-[11px]">
           <span className="vog-chip">Rounds: {rounds.length}</span>

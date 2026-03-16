@@ -1,8 +1,13 @@
 import Link from "next/link";
+import type { ReactNode } from "react";
 import type { SurfaceContext } from "@/features/surface";
-import type { Round, Topic, TopicRoadmapItem } from "@features/topicRound";
+import type { CompanionContext, Round, Topic, TopicRoadmapItem } from "@features/topicRound";
 import type { DistributionContext } from "./distribution";
-import { absoluteUrl, withDistributionQuery } from "./distribution";
+import {
+  absoluteUrl,
+  distributionSourceLabel,
+  withDistributionQuery,
+} from "./distribution";
 import SharePanel from "./SharePanel";
 import PublicFollowUpBlock from "./PublicFollowUpBlock";
 
@@ -13,12 +18,25 @@ const ROUND_TYPE_LABELS: Record<Round["type"], string> = {
   article: "Artikel",
   podcast: "Podcast",
   session: "Session",
-  open_round: "Open Round",
+  open_round: "Offene Runde",
 };
 
 const ROUND_STATUS_LABELS: Record<Round["status"], string> = {
   open: "offen",
   closed: "abgeschlossen",
+};
+
+const COMPANION_TYPE_LABELS: Record<CompanionContext["type"], string> = {
+  article: "Artikel",
+  print: "Print",
+  tv_show: "TV-Sendung",
+  talkshow: "Talkshow",
+  radio: "Radiosendung",
+  podcast: "Podcast",
+  author_column: "Autor:innenbeitrag",
+  letter_to_editor: "Leserbrief",
+  event: "Veranstaltung",
+  livestream: "Livestream",
 };
 
 const ROADMAP_CATEGORY_LABELS: Record<TopicRoadmapItem["category"], string> = {
@@ -29,7 +47,7 @@ const ROADMAP_CATEGORY_LABELS: Record<TopicRoadmapItem["category"], string> = {
   implementation_question: "Umsetzungsfrage offen",
   legal_check_needed: "Rechtliche Prüfung nötig",
   moderation_followup: "Moderations-Follow-up",
-  next_round_question: "Nächster Rundenfokus",
+  next_round_question: "Nächste Runde vorbereiten",
   ready_for_vote_check: "Vote-Check vorbereiten",
 };
 
@@ -43,13 +61,6 @@ const TOPIC_READINESS_LABELS: Record<Topic["readiness"], string> = {
   ready_for_vote_check: "Bereit für Vote-Check",
   in_implementation: "In Umsetzung",
   monitoring_impact: "Wirkung wird beobachtet",
-};
-
-const ROADMAP_STATUS_LABELS: Record<TopicRoadmapItem["status"], string> = {
-  open: "offen",
-  in_progress: "in Arbeit",
-  blocked: "blockiert",
-  done: "erledigt",
 };
 
 const SOURCE_CLASS_LABELS: Record<Topic["sources"][number]["sourceClass"], string> = {
@@ -100,10 +111,10 @@ function contributionTypeLabel(round: Round, id: string) {
   if (!item) return "Beitrag";
   if (item.type === "question") return "Frage";
   if (item.type === "source") return "Quelle";
-  if (item.type === "objection") return "Widerspruch";
+  if (item.type === "objection") return "Einwand";
   if (item.type === "perspective") return "Perspektive";
   if (item.type === "option") return "Option";
-  if (item.type === "summary_note") return "Summary";
+  if (item.type === "summary_note") return "Zusammenfassung";
   if (item.type === "protocol_note") return "Protokoll";
   return "Follow-up";
 }
@@ -114,289 +125,116 @@ type TopicSurfaceProps = {
   rounds: Round[];
   basePath: string;
   distribution: DistributionContext;
+  companionContexts?: CompanionContext[];
 };
 
-export function TopicSurface({ context, topic, rounds, basePath, distribution }: TopicSurfaceProps) {
+export function TopicSurface({
+  context,
+  topic,
+  rounds,
+  basePath,
+  distribution,
+  companionContexts = [],
+}: TopicSurfaceProps) {
   const sourceById = new Map(topic.sources.map((source) => [source.id, source]));
   const unresolvedRoadmap = topic.roadmap.filter((item) => item.status !== "done");
-  const evidenceMissingCount = topic.roadmap.filter((item) => Boolean(item.evidenceMissing)).length;
-  const hasReadyVoteCheck = topic.roadmap.some((item) => item.voteReadinessSignal === "ready_for_check");
+  const primaryCompanion = companionContexts[0] ?? null;
+
   const topicPublicPath = withDistributionQuery(basePath, distribution);
   const topicEmbedPath = withDistributionQuery(`/embed/topic/${topic.slug}`, distribution);
   const topicFollowUpPath = withDistributionQuery(basePath, distribution);
 
   return (
-    <main className="mx-auto min-h-screen max-w-6xl px-4 py-10 space-y-6">
-      <header className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-6 shadow-sm space-y-3">
-        <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
-          {context.mode === "demo" ? "Demo - Topic" : "Topic"}
-        </p>
-        <h1 className="text-3xl font-semibold text-[rgb(var(--fg))]">{topic.title}</h1>
-        <p className="text-sm font-medium text-[rgb(var(--fg))]">{topic.framingQuestion}</p>
-        <p className="text-sm text-[rgb(var(--muted))]">{topic.currentState}</p>
-        <p className="text-sm text-[rgb(var(--muted))]">{distribution.framing}</p>
-        <div className="flex flex-wrap gap-2 text-[11px]">
-          <span className="vog-chip vog-chip--active">Status: {TOPIC_READINESS_LABELS[topic.readiness]}</span>
-          <span className="vog-chip">{rounds.length} Runden verknüpft</span>
-          <span className="vog-chip">Roadmap offen: {unresolvedRoadmap.length}</span>
-          <span className="vog-chip">Fehlende Evidenz: {evidenceMissingCount}</span>
-          <span className="vog-chip">{hasReadyVoteCheck ? "Vote-Check in Sicht" : "Vote-Check noch offen"}</span>
-          <span className="vog-chip">Entry: {distribution.entry}</span>
-          {distribution.source ? <span className="vog-chip">Source: {distribution.source}</span> : null}
-          {distribution.persona ? <span className="vog-chip">Persona: {distribution.persona}</span> : null}
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Link href={withDistributionQuery(`/topic/manage/${topic.slug}/governance`, distribution)} className="btn-secondary text-xs">
-            Governance-Reviewlog
-          </Link>
-        </div>
-      </header>
-
-      <SharePanel
-        title={topic.title}
-        description={topic.currentState}
-        publicUrl={absoluteUrl(topicPublicPath)}
-        canonicalTopicUrl={absoluteUrl(`/topic/${topic.slug}`)}
-        embedUrl={absoluteUrl(topicEmbedPath)}
-        followUpUrl={absoluteUrl(topicFollowUpPath)}
+    <main className="mx-auto min-h-screen max-w-6xl space-y-5 px-4 py-8 md:py-10">
+      <TopicContextHero
+        context={context}
+        topic={topic}
+        distribution={distribution}
+        primaryCompanion={primaryCompanion}
       />
 
-      <section className="grid gap-4 lg:grid-cols-2">
-        <article className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm space-y-3">
-          <h2 className="text-lg font-semibold text-[rgb(var(--fg))]">Optionen</h2>
-          <ul className="space-y-2 text-sm">
-            {topic.options.map((option) => (
-              <li key={option.id} className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
-                <p className="font-semibold text-[rgb(var(--fg))]">{option.title}</p>
-                <p className="text-[rgb(var(--muted))]">{option.summary}</p>
-              </li>
-            ))}
-          </ul>
-        </article>
+      <TopicActionRail
+        actions={[
+          { href: "#offen", label: "Was ist offen?" },
+          { href: "#optionen", label: "Optionen prüfen" },
+          { href: "#quellen", label: "Quellen & Claims" },
+          { href: "#runden", label: "Weitere Runden" },
+          primaryCompanion
+            ? {
+                href: withDistributionQuery(`/companion/${primaryCompanion.slug}`, distribution),
+                label: "Zum Begleitraum",
+              }
+            : { href: `/dossier?topic=${encodeURIComponent(topic.title)}`, label: "Im Dossier vertiefen" },
+        ]}
+      />
 
-        <article className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm space-y-3">
-          <h2 className="text-lg font-semibold text-[rgb(var(--fg))]">Offene Fragen und Einwände</h2>
-          <ul className="space-y-2 text-sm">
-            {topic.openQuestions.map((item) => (
-              <li key={item} className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3 text-[rgb(var(--fg))]">
-                {item}
-              </li>
-            ))}
-          </ul>
-          <div className="space-y-2">
-            <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Einwände</p>
-            <ul className="space-y-2 text-sm text-[rgb(var(--muted))]">
-              {topic.objections.map((item) => (
-                <li key={item}>- {item}</li>
-              ))}
-            </ul>
-          </div>
-        </article>
-      </section>
+      <TopicQuestionsPanel topic={topic} unresolvedRoadmap={unresolvedRoadmap} />
 
-      <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm space-y-3">
-        <h2 className="text-lg font-semibold text-[rgb(var(--fg))]">Claims und Quellen</h2>
-        <div className="space-y-3">
-          {topic.claims.map((claim) => (
-            <article key={claim.id} className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4 space-y-2">
-              <p className="text-sm font-semibold text-[rgb(var(--fg))]">{claim.text}</p>
-              <div className="flex flex-wrap gap-2 text-xs">
-                {claim.sourceIds.map((sourceId) => {
-                  const source = sourceById.get(sourceId);
-                  if (!source) return null;
-                  return (
-                    <a
-                      key={`${claim.id}-${source.id}`}
-                      href={source.url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="vog-chip"
-                    >
-                      Quelle: {source.publisher} · {SOURCE_CLASS_LABELS[source.sourceClass]}
-                    </a>
-                  );
-                })}
-              </div>
-            </article>
-          ))}
-        </div>
-      </section>
+      <TopicOptionsPanel topic={topic} />
 
-      <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm space-y-3">
-        <div className="flex items-center justify-between gap-3">
-          <h2 className="text-lg font-semibold text-[rgb(var(--fg))]">Runden-Timeline</h2>
-          <span className="text-xs text-[rgb(var(--muted))]">Round ist kontextuell, Topic bleibt kanonisch.</span>
-        </div>
-        <div className="grid gap-3 md:grid-cols-2">
-          {rounds.map((round) => (
-            <article key={round.id} className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4 space-y-2">
-              <div className="flex flex-wrap items-center gap-2 text-xs">
-                <span className="vog-chip">{ROUND_TYPE_LABELS[round.type]}</span>
-                <span className="vog-chip vog-chip--status">{ROUND_STATUS_LABELS[round.status]}</span>
-                <span className="text-[rgb(var(--muted))]">{formatDate(round.startedAt)}</span>
-              </div>
-              <p className="text-sm font-semibold text-[rgb(var(--fg))]">{round.title}</p>
-              <p className="text-sm text-[rgb(var(--muted))]">{round.summary}</p>
-              <Link href={withDistributionQuery(`/round/${round.slug}`, distribution)} className="btn-secondary text-xs">
-                Runde ansehen
-              </Link>
-            </article>
-          ))}
-        </div>
-      </section>
+      <TopicClaimsPanel topic={topic} sourceById={sourceById} />
 
-      <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm space-y-3">
-        <h2 className="text-lg font-semibold text-[rgb(var(--fg))]">Roadmap / Nächste Schritte</h2>
-        <p className="text-sm text-[rgb(var(--muted))]">
-          Manuell gepflegt, ohne KI-Zwang: Was ist noch ungeklärt, welche Evidenz fehlt, und was muss in die nächste
-          Runde.
-        </p>
-        <div className="space-y-3">
-          {topic.roadmap.map((item) => (
-            <article key={item.id} className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4 space-y-2">
-              <div className="flex flex-wrap items-center gap-2 text-xs">
-                <span className="vog-chip">{ROADMAP_CATEGORY_LABELS[item.category]}</span>
-                <span className="vog-chip vog-chip--status">{ROADMAP_STATUS_LABELS[item.status]}</span>
-                <span className="vog-chip">{roadmapSignalLabel(item.voteReadinessSignal)}</span>
-              </div>
-              <p className="text-sm font-semibold text-[rgb(var(--fg))]">{item.title}</p>
-              <p className="text-sm text-[rgb(var(--muted))]">{item.unresolved}</p>
-              {item.evidenceMissing ? (
-                <p className="text-sm text-[rgb(var(--muted))]">Fehlende Evidenz: {item.evidenceMissing}</p>
-              ) : null}
-              {item.askNext ? (
-                <p className="text-sm text-[rgb(var(--muted))]">Nächste Frage: {item.askNext}</p>
-              ) : null}
-              {item.responderHint ? (
-                <p className="text-sm text-[rgb(var(--muted))]">Mögliche Antwortstelle: {item.responderHint}</p>
-              ) : null}
-            </article>
-          ))}
-        </div>
-      </section>
+      <TopicRoundsPanel rounds={rounds} distribution={distribution} />
 
       <section className="grid gap-4 lg:grid-cols-2">
-        <article className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm space-y-3">
-          <h2 className="text-lg font-semibold text-[rgb(var(--fg))]">Konflikte und Gegenpositionen</h2>
-          <p className="text-sm text-[rgb(var(--muted))]">
-            Das Topic modelliert offene Widersprüche explizit. Konsens wird nicht stillschweigend vorausgesetzt.
+        <article className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm">
+          <h2 className="text-lg font-semibold text-[rgb(var(--fg))]">Konfliktlage</h2>
+          <p className="mt-1 text-sm text-[rgb(var(--muted))]">
+            Konflikte bleiben sichtbar. Der Themenraum erzwingt keinen künstlichen Konsens.
           </p>
-          <div className="space-y-2 text-sm">
+          <div className="mt-3 space-y-2 text-sm">
             {topic.conflicts.map((conflict) => (
-              <article key={conflict.id} className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3 space-y-1">
+              <article key={conflict.id} className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
                 <div className="flex flex-wrap gap-2 text-xs">
                   <span className="vog-chip">{CONFLICT_KIND_LABELS[conflict.kind]}</span>
-                  <span className="vog-chip vog-chip--status">{conflict.unresolved ? "unresolved" : "geklärt"}</span>
+                  <span className="vog-chip vog-chip--status">{conflict.unresolved ? "offen" : "geklärt"}</span>
                 </div>
-                <p className="font-semibold text-[rgb(var(--fg))]">{conflict.title}</p>
+                <p className="mt-1 font-semibold text-[rgb(var(--fg))]">{conflict.title}</p>
                 <p className="text-[rgb(var(--muted))]">{conflict.details}</p>
               </article>
             ))}
           </div>
         </article>
 
-        <article className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm space-y-3">
-          <h2 className="text-lg font-semibold text-[rgb(var(--fg))]">Reviewlog (öffentlich sichtbar)</h2>
-          <p className="text-sm text-[rgb(var(--muted))]">
-            Herkunft und Entscheidungen bleiben nachvollziehbar: was einging, wie entschieden wurde und warum.
-          </p>
-          <div className="space-y-2 text-sm">
-            {topic.reviewLog
-              .filter((entry) => entry.visibility === "public")
-              .slice(0, 5)
-              .map((entry) => (
-                <article key={entry.id} className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3 space-y-1">
-                  <div className="flex flex-wrap gap-2 text-xs">
-                    <span className="vog-chip">{REVIEW_STATUS_LABELS[entry.status]}</span>
-                    <span className="vog-chip">{entry.scope}</span>
-                    <span className="text-[rgb(var(--muted))]">{formatDate(entry.reviewedAt)}</span>
-                  </div>
-                  <p className="font-semibold text-[rgb(var(--fg))]">{entry.title}</p>
-                  <p className="text-[rgb(var(--muted))]">{entry.summary}</p>
-                  {entry.publicReason ? <p className="text-[rgb(var(--muted))]">Grund: {entry.publicReason}</p> : null}
-                </article>
-              ))}
-          </div>
-        </article>
-      </section>
-
-      <section className="grid gap-4 lg:grid-cols-2">
-        <article className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm space-y-3">
-          <h2 className="text-lg font-semibold text-[rgb(var(--fg))]">Maturity / Readiness</h2>
-          <p className="text-sm text-[rgb(var(--muted))]">
-            Reifestand wird explizit festgehalten, inklusive begründeter Entscheidungen zur Vote- oder Handoff-Reife.
-          </p>
-          <div className="space-y-2 text-sm">
-            {topic.readinessChecks.map((check) => (
-              <article key={check.id} className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3 space-y-1">
-                <div className="flex flex-wrap gap-2 text-xs">
-                  <span className="vog-chip">{check.decision}</span>
-                  <span className="text-[rgb(var(--muted))]">{formatDate(check.createdAt)}</span>
-                  <span className="text-[rgb(var(--muted))]">by {check.decidedBy}</span>
-                </div>
-                <p className="text-[rgb(var(--muted))]">{check.rationale}</p>
-              </article>
-            ))}
-          </div>
-        </article>
-
-        <article className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm space-y-3">
-          <h2 className="text-lg font-semibold text-[rgb(var(--fg))]">Export / Handoff-Snapshot</h2>
-          <p className="text-sm text-[rgb(var(--muted))]">{topic.exportSnapshot.conciseSummary}</p>
-          <div className="space-y-2">
-            <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Nächste Runde Agenda</p>
-            <ul className="space-y-1 text-sm text-[rgb(var(--muted))]">
+        <article className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm">
+          <h2 className="text-lg font-semibold text-[rgb(var(--fg))]">Readiness und Handoff</h2>
+          <p className="mt-1 text-sm text-[rgb(var(--muted))]">{topic.exportSnapshot.conciseSummary}</p>
+          <div className="mt-3 space-y-2 text-sm text-[rgb(var(--muted))]">
+            <p className="font-semibold text-[rgb(var(--fg))]">Nächste-Runde-Agenda</p>
+            <ul className="space-y-1">
               {topic.exportSnapshot.nextRoundAgenda.map((item) => (
                 <li key={item}>- {item}</li>
               ))}
             </ul>
+            <p>{topic.exportSnapshot.handoffNote}</p>
           </div>
-          <p className="text-sm text-[rgb(var(--muted))]">{topic.exportSnapshot.handoffNote}</p>
         </article>
       </section>
 
-      <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm space-y-3">
-        <h2 className="text-lg font-semibold text-[rgb(var(--fg))]">Mandat-Brücke</h2>
-        <p className="text-sm text-[rgb(var(--muted))]">
-          Topic/Round bleibt eigenständig, markiert aber klar, was für Umsetzung und Monitoring bereit ist.
-        </p>
-        <div className="grid gap-3 md:grid-cols-2 text-sm">
-          <article className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
-            <p className="font-semibold text-[rgb(var(--fg))]">Jetzt geklärt</p>
-            <ul className="mt-2 space-y-1 text-[rgb(var(--muted))]">
-              {topic.mandateBridge.clarifiedNow.map((item) => (
-                <li key={item}>- {item}</li>
-              ))}
-            </ul>
-          </article>
-          <article className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
-            <p className="font-semibold text-[rgb(var(--fg))]">Owner benötigt</p>
-            <ul className="mt-2 space-y-1 text-[rgb(var(--muted))]">
-              {topic.mandateBridge.ownerNeeded.map((item) => (
-                <li key={item}>- {item}</li>
-              ))}
-            </ul>
-          </article>
-          <article className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
-            <p className="font-semibold text-[rgb(var(--fg))]">Vor Umsetzung noch offen</p>
-            <ul className="mt-2 space-y-1 text-[rgb(var(--muted))]">
-              {topic.mandateBridge.openBeforeImplementation.map((item) => (
-                <li key={item}>- {item}</li>
-              ))}
-            </ul>
-          </article>
-          <article className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
-            <p className="font-semibold text-[rgb(var(--fg))]">Monitoring-Fokus</p>
-            <ul className="mt-2 space-y-1 text-[rgb(var(--muted))]">
-              {topic.mandateBridge.monitoringFocus.map((item) => (
-                <li key={item}>- {item}</li>
-              ))}
-            </ul>
-          </article>
-        </div>
-      </section>
+      <TopicOpenSpaceCta
+        topicSlug={topic.slug}
+        topicTitle={topic.title}
+        companion={primaryCompanion}
+        distribution={distribution}
+      />
 
-      <PublicFollowUpBlock returnPath={topicFollowUpPath} />
+      <CompanionDistributionPanel
+        title="Verteilung & Teilen (sekundär)"
+        hint="QR-, Share- und Embed-Werkzeuge sind bewusst nachgelagert und gehören primär in den Distribution-/Manage-Kontext."
+        manageHref={withDistributionQuery(`/topic/manage/${topic.slug}/governance`, distribution)}
+      >
+        <SharePanel
+          title={topic.title}
+          description={topic.currentState}
+          publicUrl={absoluteUrl(topicPublicPath)}
+          canonicalTopicUrl={absoluteUrl(`/topic/${topic.slug}`)}
+          embedUrl={absoluteUrl(topicEmbedPath)}
+          followUpUrl={absoluteUrl(topicFollowUpPath)}
+          compact
+        />
+      </CompanionDistributionPanel>
+
+      <PublicFollowUpBlock title="Fragen, Einwände und Optionen einreichen" returnPath={topicFollowUpPath} />
     </main>
   );
 }
@@ -407,110 +245,75 @@ type RoundSurfaceProps = {
   round: Round;
   basePath: string;
   distribution: DistributionContext;
+  companion?: CompanionContext | null;
 };
 
-export function RoundSurface({ context, topic, round, basePath, distribution }: RoundSurfaceProps) {
+export function RoundSurface({
+  context,
+  topic,
+  round,
+  basePath,
+  distribution,
+  companion,
+}: RoundSurfaceProps) {
   const roundPublicPath = withDistributionQuery(basePath, distribution);
   const roundEmbedPath = withDistributionQuery(`/embed/round/${round.slug}`, distribution);
   const topicCanonicalPath = `/topic/${topic.slug}`;
   const topicPathWithDistribution = withDistributionQuery(topicCanonicalPath, distribution);
-  const followUpPath = topicPathWithDistribution;
 
   return (
-    <main className="mx-auto min-h-screen max-w-5xl px-4 py-10 space-y-6">
-      <header className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-6 shadow-sm space-y-3">
+    <main className="mx-auto min-h-screen max-w-5xl space-y-5 px-4 py-8 md:py-10">
+      <header className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-6 shadow-sm">
         <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
-          {context.mode === "demo" ? "Demo - Round" : "Round"} · {ROUND_TYPE_LABELS[round.type]}
+          {context.mode === "demo" ? "Demo" : "Produktiv"} · Runde im Kontext
         </p>
-        <h1 className="text-3xl font-semibold text-[rgb(var(--fg))]">{round.title}</h1>
-        <div className="flex flex-wrap gap-2 text-[11px]">
-          <span className="vog-chip">{ROUND_TYPE_LABELS[round.type]}</span>
-          <span className="vog-chip vog-chip--status">{ROUND_STATUS_LABELS[round.status]}</span>
-          <span className="vog-chip">{formatDate(round.startedAt)}</span>
-        </div>
-        <p className="text-sm text-[rgb(var(--muted))]">
-          Diese Runde ist kontextuell und führt in das kanonische Topic zurück.
+        <h1 className="mt-2 text-3xl font-semibold text-[rgb(var(--fg))]">{round.title}</h1>
+        <p className="mt-2 text-sm text-[rgb(var(--muted))]">
+          Runde ist die konkrete Session-Ebene. Das offene Thema bleibt der kanonische Raum.
         </p>
-        <p className="text-sm text-[rgb(var(--muted))]">{distribution.framing}</p>
-        <div className="flex flex-wrap gap-2 text-[11px]">
-          <span className="vog-chip">Entry: {distribution.entry}</span>
-          {distribution.source ? <span className="vog-chip">Source: {distribution.source}</span> : null}
-          {distribution.persona ? <span className="vog-chip">Persona: {distribution.persona}</span> : null}
+        <div className="mt-3 flex flex-wrap gap-2 text-[11px]">
+          <span className="vog-chip">Typ: {ROUND_TYPE_LABELS[round.type]}</span>
+          <span className="vog-chip vog-chip--status">Status: {ROUND_STATUS_LABELS[round.status]}</span>
+          <span className="vog-chip">Datum: {formatDate(round.startedAt)}</span>
+          <span className="vog-chip">Einstieg: {distribution.entry === "qr" ? "QR" : "Direkt"}</span>
+          <span className="vog-chip">Quelle: {distributionSourceLabel(distribution.source)}</span>
+          {companion ? <span className="vog-chip vog-chip--active">Begleitraum verknüpft</span> : null}
         </div>
-        <div className="flex flex-wrap gap-2">
-          <Link href={topicPathWithDistribution} className="btn btn-primary text-xs w-fit">
-            Zurück zum Topic
+        <div className="mt-4 flex flex-wrap gap-2">
+          {companion ? (
+            <Link href={withDistributionQuery(`/companion/${companion.slug}`, distribution)} className="btn btn-primary text-xs">
+              Zum Begleitraum
+            </Link>
+          ) : null}
+          <Link href={topicPathWithDistribution} className="btn-secondary text-xs">
+            Zum offenen Themenraum
           </Link>
           <Link href={`/round/manage/${round.slug}/merge`} className="btn-secondary text-xs">
-            Merge-Review Workspace
-          </Link>
-          <Link href={withDistributionQuery(`/topic/manage/${topic.slug}/governance`, distribution)} className="btn-secondary text-xs">
-            Topic Governance
+            Merge-Review (Manage)
           </Link>
         </div>
       </header>
 
-      <SharePanel
-        title={round.title}
-        description={round.summary}
-        publicUrl={absoluteUrl(roundPublicPath)}
-        canonicalTopicUrl={absoluteUrl(topicCanonicalPath)}
-        embedUrl={absoluteUrl(roundEmbedPath)}
-        followUpUrl={absoluteUrl(followUpPath)}
-      />
-
-      <section className="grid gap-4 md:grid-cols-2">
-        <article className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm space-y-2">
-          <h2 className="text-lg font-semibold text-[rgb(var(--fg))]">Verknüpftes Topic</h2>
-          <p className="text-sm font-semibold text-[rgb(var(--fg))]">{topic.title}</p>
-          <p className="text-sm text-[rgb(var(--muted))]">{topic.framingQuestion}</p>
-          <Link href={topicPathWithDistribution} className="btn-secondary text-xs">
-            Topic-Hub öffnen
-          </Link>
-        </article>
-
-        <article className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm space-y-2">
-          <h2 className="text-lg font-semibold text-[rgb(var(--fg))]">Medium-Metadaten</h2>
-          <p className="text-sm text-[rgb(var(--fg))]">Typ: {ROUND_TYPE_LABELS[round.type]}</p>
-          <p className="text-sm text-[rgb(var(--fg))]">Quelle: {round.sourceLabel}</p>
-          {round.sourcePublisher ? (
-            <p className="text-sm text-[rgb(var(--fg))]">Publisher: {round.sourcePublisher}</p>
-          ) : null}
-          {round.sourceUrl ? (
-            <a href={round.sourceUrl} target="_blank" rel="noreferrer" className="text-sm underline text-[rgb(var(--muted))]">
-              Quelle öffnen
-            </a>
-          ) : (
-            <p className="text-sm text-[rgb(var(--muted))]">Keine externe URL hinterlegt.</p>
-          )}
-        </article>
-      </section>
-
-      <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm space-y-2">
-        <h2 className="text-lg font-semibold text-[rgb(var(--fg))]">Round-Zusammenfassung</h2>
-        <p className="text-sm text-[rgb(var(--muted))]">{round.summary}</p>
-      </section>
-
-      <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm space-y-3">
-        <h2 className="text-lg font-semibold text-[rgb(var(--fg))]">Rundenbeiträge</h2>
-        <div className="space-y-3">
-          {round.contributions.map((entry) => (
-            <article key={entry.id} className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4 space-y-1">
-              <div className="flex flex-wrap items-center gap-2 text-xs">
-                <span className="vog-chip">{contributionTypeLabel(round, entry.id)}</span>
-                {entry.reviewStatus ? <span className="vog-chip">{REVIEW_STATUS_LABELS[entry.reviewStatus]}</span> : null}
-                <span className="text-[rgb(var(--muted))]">{entry.authorLabel}</span>
-                <span className="text-[rgb(var(--muted))]">{formatDate(entry.createdAt)}</span>
-              </div>
-              <p className="text-sm text-[rgb(var(--fg))]">{entry.text}</p>
-            </article>
-          ))}
+      <section id="anlass" className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm">
+        <h2 className="text-lg font-semibold text-[rgb(var(--fg))]">Anlass und Hauptfrage</h2>
+        <p className="mt-1 text-sm text-[rgb(var(--muted))]">{round.summary}</p>
+        <div className="mt-3 grid gap-2 text-sm md:grid-cols-2">
+          <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
+            <p className="text-xs uppercase tracking-wide text-[rgb(var(--muted))]">Kontextquelle</p>
+            <p className="mt-1 font-semibold text-[rgb(var(--fg))]">{round.sourceLabel}</p>
+            {round.sourcePublisher ? <p className="text-[rgb(var(--muted))]">{round.sourcePublisher}</p> : null}
+          </div>
+          <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
+            <p className="text-xs uppercase tracking-wide text-[rgb(var(--muted))]">Verknüpftes Thema</p>
+            <p className="mt-1 font-semibold text-[rgb(var(--fg))]">{topic.title}</p>
+            <p className="text-[rgb(var(--muted))]">{topic.framingQuestion}</p>
+          </div>
         </div>
       </section>
 
-      <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm space-y-3">
-        <h2 className="text-lg font-semibold text-[rgb(var(--fg))]">Offene Punkte aus dieser Runde</h2>
-        <ul className="space-y-2 text-sm text-[rgb(var(--muted))]">
+      <section id="fragen" className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm">
+        <h2 className="text-lg font-semibold text-[rgb(var(--fg))]">Fragen & Einwände aus dieser Runde</h2>
+        <ul className="mt-3 space-y-2 text-sm text-[rgb(var(--muted))]">
           {round.openPoints.map((item) => (
             <li key={item} className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
               {item}
@@ -519,7 +322,464 @@ export function RoundSurface({ context, topic, round, basePath, distribution }: 
         </ul>
       </section>
 
-      <PublicFollowUpBlock returnPath={followUpPath} />
+      <section id="optionen" className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm">
+        <h2 className="text-lg font-semibold text-[rgb(var(--fg))]">Optionen für den nächsten Schritt</h2>
+        <div className="mt-3 grid gap-2 md:grid-cols-2">
+          {topic.options.slice(0, 4).map((option) => (
+            <article key={option.id} className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
+              <p className="font-semibold text-[rgb(var(--fg))]">{option.title}</p>
+              <p className="text-sm text-[rgb(var(--muted))]">{option.summary}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section id="beitraege" className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm">
+        <h2 className="text-lg font-semibold text-[rgb(var(--fg))]">Rundenbeiträge</h2>
+        <div className="mt-3 space-y-2">
+          {round.contributions.map((entry) => (
+            <article key={entry.id} className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
+              <div className="flex flex-wrap items-center gap-2 text-xs">
+                <span className="vog-chip">{contributionTypeLabel(round, entry.id)}</span>
+                {entry.reviewStatus ? <span className="vog-chip">{REVIEW_STATUS_LABELS[entry.reviewStatus]}</span> : null}
+                <span className="text-[rgb(var(--muted))]">{entry.authorLabel}</span>
+                <span className="text-[rgb(var(--muted))]">{formatDate(entry.createdAt)}</span>
+              </div>
+              <p className="mt-1 text-sm text-[rgb(var(--fg))]">{entry.text}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <TopicOpenSpaceCta topicSlug={topic.slug} topicTitle={topic.title} companion={companion ?? null} distribution={distribution} />
+
+      <CompanionDistributionPanel
+        title="Distribution-Werkzeuge (sekundär)"
+        hint="QR/Share/Embed bleiben verfügbar, sind hier aber bewusst kein Hauptcontentblock."
+        manageHref={`/round/manage/${round.slug}/merge`}
+      >
+        <SharePanel
+          title={round.title}
+          description={round.summary}
+          publicUrl={absoluteUrl(roundPublicPath)}
+          canonicalTopicUrl={absoluteUrl(topicCanonicalPath)}
+          embedUrl={absoluteUrl(roundEmbedPath)}
+          followUpUrl={absoluteUrl(topicPathWithDistribution)}
+          compact
+        />
+      </CompanionDistributionPanel>
+
+      <PublicFollowUpBlock title="Im Anschluss strukturiert beitragen" returnPath={topicPathWithDistribution} />
     </main>
+  );
+}
+
+type CompanionSurfaceProps = {
+  context: SurfaceContext;
+  companion: CompanionContext;
+  topic: Topic;
+  rounds: Round[];
+  linkedRound: Round | null;
+  distribution: DistributionContext;
+};
+
+export function CompanionSurface({
+  context,
+  companion,
+  topic,
+  rounds,
+  linkedRound,
+  distribution,
+}: CompanionSurfaceProps) {
+  const sourceById = new Map(topic.sources.map((source) => [source.id, source]));
+  const canonicalTopicPath = withDistributionQuery(`/topic/${topic.slug}`, distribution);
+
+  return (
+    <main className="mx-auto min-h-screen max-w-6xl space-y-5 px-4 py-8 md:py-10">
+      <CompanionContextHeader context={context} companion={companion} distribution={distribution} />
+
+      <TopicActionRail
+        actions={[
+          { href: "#anlass", label: "Anlass verstehen" },
+          { href: "#fragen", label: "Fragen & Einwände" },
+          { href: "#optionen", label: "Optionen prüfen" },
+          {
+            href: canonicalTopicPath,
+            label: "Zum offenen Themenraum",
+          },
+          linkedRound
+            ? {
+                href: withDistributionQuery(`/round/${linkedRound.slug}`, distribution),
+                label: "Zur verknüpften Runde",
+              }
+            : { href: canonicalTopicPath, label: "Zum Topic" },
+        ]}
+      />
+
+      <section id="anlass" className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm">
+        <h2 className="text-lg font-semibold text-[rgb(var(--fg))]">Warum bin ich hier?</h2>
+        <p className="mt-2 text-sm text-[rgb(var(--muted))]">{companion.intro}</p>
+        <p className="mt-3 text-sm font-semibold text-[rgb(var(--fg))]">Hauptfrage: {companion.mainQuestion}</p>
+        {linkedRound ? (
+          <div className="mt-3 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3 text-sm">
+            <p className="font-semibold text-[rgb(var(--fg))]">Verknüpfte Runde: {linkedRound.title}</p>
+            <p className="text-[rgb(var(--muted))]">{linkedRound.summary}</p>
+          </div>
+        ) : null}
+      </section>
+
+      <section id="fragen" className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm">
+        <h2 className="text-lg font-semibold text-[rgb(var(--fg))]">Fragen & Einwände</h2>
+        <div className="mt-3 grid gap-3 lg:grid-cols-2">
+          <article className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
+            <p className="text-xs uppercase tracking-wide text-[rgb(var(--muted))]">Offene Fragen</p>
+            <ul className="mt-2 space-y-1 text-sm text-[rgb(var(--muted))]">
+              {topic.openQuestions.slice(0, 6).map((question) => (
+                <li key={question}>- {question}</li>
+              ))}
+            </ul>
+          </article>
+          <article className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
+            <p className="text-xs uppercase tracking-wide text-[rgb(var(--muted))]">Einwände</p>
+            <ul className="mt-2 space-y-1 text-sm text-[rgb(var(--muted))]">
+              {topic.objections.slice(0, 6).map((objection) => (
+                <li key={objection}>- {objection}</li>
+              ))}
+            </ul>
+          </article>
+        </div>
+      </section>
+
+      <TopicOptionsPanel topic={topic} />
+
+      <section id="quellen" className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm">
+        <h2 className="text-lg font-semibold text-[rgb(var(--fg))]">Quellen & Claims</h2>
+        <div className="mt-3 space-y-2">
+          {topic.claims.slice(0, 4).map((claim) => (
+            <article key={claim.id} className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
+              <p className="text-sm font-semibold text-[rgb(var(--fg))]">{claim.text}</p>
+              <div className="mt-2 flex flex-wrap gap-2 text-xs">
+                {claim.sourceIds.map((sourceId) => {
+                  const source = sourceById.get(sourceId);
+                  if (!source) return null;
+                  return (
+                    <a key={`${claim.id}-${source.id}`} href={source.url} target="_blank" rel="noreferrer" className="vog-chip">
+                      {source.publisher} · {SOURCE_CLASS_LABELS[source.sourceClass]}
+                    </a>
+                  );
+                })}
+              </div>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <TopicRoundsPanel rounds={rounds} distribution={distribution} />
+
+      <TopicOpenSpaceCta topicSlug={topic.slug} topicTitle={topic.title} companion={companion} distribution={distribution} />
+
+      <CompanionDistributionPanel
+        title="Companion-Link teilen (sekundär)"
+        hint="Der Begleitraum ist der erste Kontextzugang. Offener Topic-Einstieg bleibt als nächster Schritt sichtbar."
+        manageHref={withDistributionQuery(`/topic/manage/${topic.slug}/governance`, distribution)}
+      >
+        <SharePanel
+          title={companion.title}
+          description={companion.intro}
+          publicUrl={absoluteUrl(withDistributionQuery(`/companion/${companion.slug}`, distribution))}
+          canonicalTopicUrl={absoluteUrl(`/topic/${topic.slug}`)}
+          embedUrl={absoluteUrl(withDistributionQuery(`/embed/topic/${topic.slug}`, distribution))}
+          followUpUrl={absoluteUrl(canonicalTopicPath)}
+          compact
+        />
+      </CompanionDistributionPanel>
+
+      <PublicFollowUpBlock title="Zum Anlass strukturiert beitragen" returnPath={canonicalTopicPath} />
+    </main>
+  );
+}
+
+function TopicContextHero({
+  context,
+  topic,
+  distribution,
+  primaryCompanion,
+}: {
+  context: SurfaceContext;
+  topic: Topic;
+  distribution: DistributionContext;
+  primaryCompanion: CompanionContext | null;
+}) {
+  return (
+    <header className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-6 shadow-sm">
+      <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
+        {context.mode === "demo" ? "Demo" : "Produktiv"} · Offener Themenraum
+      </p>
+      <h1 className="mt-2 text-3xl font-semibold text-[rgb(var(--fg))]">{topic.title}</h1>
+      <p className="mt-2 text-sm font-semibold text-[rgb(var(--fg))]">Hauptfrage: {topic.framingQuestion}</p>
+      <p className="mt-2 text-sm text-[rgb(var(--muted))]">{topic.currentState}</p>
+      <div className="mt-3 flex flex-wrap gap-2 text-[11px]">
+        <span className="vog-chip vog-chip--active">Status: {TOPIC_READINESS_LABELS[topic.readiness]}</span>
+        <span className="vog-chip">Einstieg: {distribution.entry === "qr" ? "QR" : "Direkt"}</span>
+        <span className="vog-chip">Kontext: {distribution.framing}</span>
+        {primaryCompanion ? <span className="vog-chip">Begleitraum vorhanden</span> : null}
+      </div>
+      {primaryCompanion ? (
+        <p className="mt-3 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-sm text-[rgb(var(--muted))]">
+          Hinweis: Für mediumgebundene Einstiege (QR aus Artikel, TV, Podcast, Print etc.) startet der Flow im
+          Begleitraum, danach folgt die Öffnung in diesen Themenraum.
+        </p>
+      ) : null}
+    </header>
+  );
+}
+
+function CompanionContextHeader({
+  context,
+  companion,
+  distribution,
+}: {
+  context: SurfaceContext;
+  companion: CompanionContext;
+  distribution: DistributionContext;
+}) {
+  return (
+    <header className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-6 shadow-sm">
+      <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
+        {context.mode === "demo" ? "Demo" : "Produktiv"} · Begleitraum
+      </p>
+      <h1 className="mt-2 text-3xl font-semibold text-[rgb(var(--fg))]">{companion.title}</h1>
+      <p className="mt-2 text-sm text-[rgb(var(--muted))]">{companion.intro}</p>
+      <div className="mt-3 flex flex-wrap gap-2 text-[11px]">
+        <span className="vog-chip vog-chip--active">Anlass: {COMPANION_TYPE_LABELS[companion.type]}</span>
+        <span className="vog-chip">Medium: {companion.medium}</span>
+        <span className="vog-chip">Format: {companion.format}</span>
+        <span className="vog-chip">Datum: {formatDate(companion.publishedAt)}</span>
+        <span className="vog-chip">Einstieg: {distribution.entry === "qr" ? "QR" : "Direkt"}</span>
+        <span className="vog-chip">Quelle: {distributionSourceLabel(distribution.source)}</span>
+      </div>
+      <div className="mt-3 grid gap-2 text-sm md:grid-cols-2">
+        <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3 text-[rgb(var(--muted))]">
+          <p className="font-semibold text-[rgb(var(--fg))]">Herkunft</p>
+          <p>Referenz: {companion.reference ?? "–"}</p>
+          {companion.issue ? <p>Ausgabe: {companion.issue}</p> : null}
+          {companion.episode ? <p>Episode: {companion.episode}</p> : null}
+          {companion.page ? <p>Seite: {companion.page}</p> : null}
+        </div>
+        <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3 text-[rgb(var(--muted))]">
+          <p className="font-semibold text-[rgb(var(--fg))]">Verantwortung</p>
+          {companion.author ? <p>Autor: {companion.author}</p> : null}
+          {companion.host ? <p>Host: {companion.host}</p> : null}
+          {companion.editorialOwner ? <p>Redaktion: {companion.editorialOwner}</p> : null}
+          <p>Moderation: {companion.moderationMode}</p>
+        </div>
+      </div>
+    </header>
+  );
+}
+
+function TopicActionRail({ actions }: { actions: Array<{ href: string; label: string }> }) {
+  return (
+    <nav className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-3 shadow-sm">
+      <p className="text-xs uppercase tracking-wide text-[rgb(var(--muted))]">Schnelle Wege</p>
+      <div className="mt-2 flex flex-wrap gap-2">
+        {actions.map((action) => (
+          <Link key={`${action.href}-${action.label}`} href={action.href} className="btn-secondary text-xs">
+            {action.label}
+          </Link>
+        ))}
+      </div>
+    </nav>
+  );
+}
+
+function TopicQuestionsPanel({
+  topic,
+  unresolvedRoadmap,
+}: {
+  topic: Topic;
+  unresolvedRoadmap: TopicRoadmapItem[];
+}) {
+  return (
+    <section id="offen" className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm">
+      <h2 className="text-lg font-semibold text-[rgb(var(--fg))]">Was ist offen?</h2>
+      <div className="mt-3 grid gap-3 lg:grid-cols-2">
+        <article className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
+          <p className="text-xs uppercase tracking-wide text-[rgb(var(--muted))]">Offene Fragen</p>
+          <ul className="mt-2 space-y-1 text-sm text-[rgb(var(--muted))]">
+            {topic.openQuestions.map((item) => (
+              <li key={item}>- {item}</li>
+            ))}
+          </ul>
+        </article>
+        <article className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
+          <p className="text-xs uppercase tracking-wide text-[rgb(var(--muted))]">Einwände</p>
+          <ul className="mt-2 space-y-1 text-sm text-[rgb(var(--muted))]">
+            {topic.objections.map((item) => (
+              <li key={item}>- {item}</li>
+            ))}
+          </ul>
+        </article>
+      </div>
+      <div className="mt-3 space-y-2">
+        {unresolvedRoadmap.slice(0, 4).map((item) => (
+          <article key={item.id} className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
+            <div className="flex flex-wrap gap-2 text-xs">
+              <span className="vog-chip">{ROADMAP_CATEGORY_LABELS[item.category]}</span>
+              <span className="vog-chip">{roadmapSignalLabel(item.voteReadinessSignal)}</span>
+            </div>
+            <p className="mt-1 font-semibold text-[rgb(var(--fg))]">{item.title}</p>
+            <p className="text-sm text-[rgb(var(--muted))]">{item.unresolved}</p>
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function TopicOptionsPanel({ topic }: { topic: Topic }) {
+  return (
+    <section id="optionen" className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm">
+      <h2 className="text-lg font-semibold text-[rgb(var(--fg))]">Optionen / Varianten</h2>
+      <p className="mt-1 text-sm text-[rgb(var(--muted))]">
+        Optionen sind als Entscheidungsraum formuliert und nicht als rein technische Liste.
+      </p>
+      <div className="mt-3 grid gap-3 md:grid-cols-2">
+        {topic.options.map((option) => (
+          <article key={option.id} className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
+            <p className="font-semibold text-[rgb(var(--fg))]">{option.title}</p>
+            <p className="text-sm text-[rgb(var(--muted))]">{option.summary}</p>
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function TopicClaimsPanel({
+  topic,
+  sourceById,
+}: {
+  topic: Topic;
+  sourceById: Map<string, Topic["sources"][number]>;
+}) {
+  return (
+    <section id="quellen" className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm">
+      <h2 className="text-lg font-semibold text-[rgb(var(--fg))]">Quellen & Claims</h2>
+      <div className="mt-3 space-y-2">
+        {topic.claims.map((claim) => (
+          <article key={claim.id} className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
+            <p className="text-sm font-semibold text-[rgb(var(--fg))]">{claim.text}</p>
+            <div className="mt-2 flex flex-wrap gap-2 text-xs">
+              {claim.sourceIds.map((sourceId) => {
+                const source = sourceById.get(sourceId);
+                if (!source) return null;
+                return (
+                  <a key={`${claim.id}-${source.id}`} href={source.url} target="_blank" rel="noreferrer" className="vog-chip">
+                    {source.publisher} · {SOURCE_CLASS_LABELS[source.sourceClass]}
+                  </a>
+                );
+              })}
+            </div>
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function TopicRoundsPanel({
+  rounds,
+  distribution,
+}: {
+  rounds: Round[];
+  distribution: DistributionContext;
+}) {
+  return (
+    <section id="runden" className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h2 className="text-lg font-semibold text-[rgb(var(--fg))]">Weitere Runden</h2>
+        <span className="text-xs text-[rgb(var(--muted))]">Runde = konkrete Folgeform, Topic = langfristiger Raum</span>
+      </div>
+      <div className="mt-3 grid gap-3 md:grid-cols-2">
+        {rounds.map((round) => (
+          <article key={round.id} className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
+            <div className="flex flex-wrap gap-2 text-xs">
+              <span className="vog-chip">{ROUND_TYPE_LABELS[round.type]}</span>
+              <span className="vog-chip vog-chip--status">{ROUND_STATUS_LABELS[round.status]}</span>
+              <span className="text-[rgb(var(--muted))]">{formatDate(round.startedAt)}</span>
+            </div>
+            <p className="mt-1 font-semibold text-[rgb(var(--fg))]">{round.title}</p>
+            <p className="text-sm text-[rgb(var(--muted))]">{round.summary}</p>
+            <Link href={withDistributionQuery(`/round/${round.slug}`, distribution)} className="btn-secondary mt-2 text-xs">
+              Runde öffnen
+            </Link>
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function TopicOpenSpaceCta({
+  topicSlug,
+  topicTitle,
+  companion,
+  distribution,
+}: {
+  topicSlug: string;
+  topicTitle: string;
+  companion: CompanionContext | null;
+  distribution: DistributionContext;
+}) {
+  return (
+    <section className="rounded-3xl border border-sky-300/45 bg-gradient-to-r from-sky-500/12 to-cyan-500/6 p-5 shadow-sm">
+      <h2 className="text-lg font-semibold text-[rgb(var(--fg))]">Zum offenen Themenraum</h2>
+      <p className="mt-1 text-sm text-[rgb(var(--muted))]">
+        Der Begleitraum bleibt am Anlass. Der offene Themenraum sammelt zusätzliche Quellen, weitere Runden und
+        langfristige Klärung.
+      </p>
+      <div className="mt-3 flex flex-wrap gap-2">
+        <Link href={withDistributionQuery(`/topic/${topicSlug}`, distribution)} className="btn btn-primary text-xs">
+          Offenen Themenraum öffnen
+        </Link>
+        <Link href={`/dossier?topic=${encodeURIComponent(topicTitle)}`} className="btn-secondary text-xs">
+          Im Dossier vertiefen
+        </Link>
+        {companion ? (
+          <Link href={withDistributionQuery(`/companion/${companion.slug}`, distribution)} className="btn-secondary text-xs">
+            Zum Begleitraum zurück
+          </Link>
+        ) : null}
+      </div>
+    </section>
+  );
+}
+
+function CompanionDistributionPanel({
+  title,
+  hint,
+  manageHref,
+  children,
+}: {
+  title: string;
+  hint: string;
+  manageHref: string;
+  children: ReactNode;
+}) {
+  return (
+    <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm">
+      <p className="text-sm font-semibold text-[rgb(var(--fg))]">{title}</p>
+      <p className="mt-1 text-xs text-[rgb(var(--muted))]">{hint}</p>
+      <details className="mt-3 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
+        <summary className="cursor-pointer text-sm font-medium text-[rgb(var(--fg))]">Werkzeuge anzeigen</summary>
+        <div className="mt-3 space-y-3">{children}</div>
+        <div className="mt-3">
+          <Link href={manageHref} className="btn-secondary text-xs">
+            In den Manage-/Distribution-Bereich
+          </Link>
+        </div>
+      </details>
+    </section>
   );
 }

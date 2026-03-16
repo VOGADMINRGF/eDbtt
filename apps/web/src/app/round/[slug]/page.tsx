@@ -1,12 +1,18 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { resolveSurfaceContext } from "@/features/surface";
 import {
   parseDistributionContext,
   roundTypeToDistributionSource,
   RoundSurface,
+  withDistributionQuery,
 } from "@/features/surfaces/topic-round";
-import { getRoundBySlug, getTopicBySlug } from "@features/topicRound";
+import {
+  findCompanionContextByRoundSlug,
+  findCompanionContextByTopicAndType,
+  getRoundBySlug,
+  getTopicBySlug,
+} from "@features/topicRound";
 import { BRAND } from "@/lib/brand";
 
 type Params = {
@@ -58,6 +64,13 @@ export default async function RoundPage({
     resolvedSearch,
     roundTypeToDistributionSource(round.type),
   );
+  const companion =
+    findCompanionContextByRoundSlug(round.slug) ??
+    findCompanionContextByTopicAndType(topic.slug, distribution.source);
+
+  if (distribution.entry === "qr" && companion) {
+    redirect(withDistributionQuery(`/companion/${companion.slug}`, distribution));
+  }
 
   const context = resolveSurfaceContext({
     mode: "live",
@@ -75,6 +88,7 @@ export default async function RoundPage({
         round={round}
         basePath={`/round/${round.slug}`}
         distribution={distribution}
+        companion={companion}
       />
     </>
   );

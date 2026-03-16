@@ -7,6 +7,7 @@
 
 export const TOPIC_ROUTE_PATTERN = "/topic/[slug]";
 export const ROUND_ROUTE_PATTERN = "/round/[slug]";
+export const COMPANION_ROUTE_PATTERN = "/companion/[slug]";
 export const DEMO_TOPIC_ROUND_WRAPPER_PREFIX = "/demo";
 
 export const ROUND_TYPES = [
@@ -19,6 +20,20 @@ export const ROUND_TYPES = [
   "open_round",
 ] as const;
 export type RoundType = (typeof ROUND_TYPES)[number];
+
+export const COMPANION_CONTEXT_TYPES = [
+  "article",
+  "print",
+  "tv_show",
+  "talkshow",
+  "radio",
+  "podcast",
+  "author_column",
+  "letter_to_editor",
+  "event",
+  "livestream",
+] as const;
+export type CompanionContextType = (typeof COMPANION_CONTEXT_TYPES)[number];
 
 export const ROUND_CONTRIBUTION_TYPES = [
   "question",

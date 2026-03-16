@@ -2,7 +2,11 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getDemoPersonaConfig, parseDemoPersona, withPersona } from "@/features/demo/personas";
 import { readStringParam, resolveSurfaceContext } from "@/features/surface";
-import { listRoundsByTopicSlug, listTopics } from "@features/topicRound";
+import {
+  listCompanionContextsByTopicSlug,
+  listRoundsByTopicSlug,
+  listTopics,
+} from "@features/topicRound";
 
 type SearchParamsShape = Promise<Record<string, string | string[] | undefined>>;
 
@@ -46,6 +50,12 @@ export default async function DemoRoundsPage({
   if (!topic) notFound();
 
   const rounds = listRoundsByTopicSlug(topic.slug);
+  const companions = listCompanionContextsByTopicSlug(topic.slug);
+  const companionByRoundSlug = new Map(
+    companions
+      .filter((entry) => Boolean(entry.linkedRoundSlug))
+      .map((entry) => [entry.linkedRoundSlug as string, entry]),
+  );
   const featuredRound = rounds[0] ?? null;
 
   return (
@@ -57,12 +67,13 @@ export default async function DemoRoundsPage({
         <h1 className="text-3xl font-semibold text-[rgb(var(--fg))]">Geführter Topic-Round-Einstieg</h1>
         <p className="text-sm text-[rgb(var(--muted))]">
           Persona: {personaCfg.label}. Diese Demo ist nur ein Wrapper. Die kanonische Logik liegt auf den
-          produktiven Routen <span className="font-semibold">/topic/[slug]</span> und{" "}
-          <span className="font-semibold">/round/[slug]</span>.
+          produktiven Routen <span className="font-semibold">/companion/[slug]</span>,{" "}
+          <span className="font-semibold">/topic/[slug]</span> und <span className="font-semibold">/round/[slug]</span>.
         </p>
         <div className="flex flex-wrap gap-2 text-[11px]">
           <span className="vog-chip">Modus: {context.mode}</span>
           <span className="vog-chip">Datenquelle: {context.dataSource}</span>
+          <span className="vog-chip">Begleiträume: {companions.length}</span>
           <span className="vog-chip">Topic: 1 kanonischer Hub</span>
           <span className="vog-chip">Runden: {rounds.length}</span>
         </div>
@@ -85,36 +96,48 @@ export default async function DemoRoundsPage({
       <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm space-y-3">
         <h2 className="text-lg font-semibold text-[rgb(var(--fg))]">Runden über mehrere Medien</h2>
         <div className="grid gap-3 md:grid-cols-2">
-          {rounds.map((round) => (
-            <article key={round.id} className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4 space-y-2">
-              <div className="flex flex-wrap items-center gap-2 text-xs">
-                <span className="vog-chip">{roundTypeLabel(round.type)}</span>
-                <span className="vog-chip vog-chip--status">{round.status === "open" ? "offen" : "abgeschlossen"}</span>
-              </div>
-              <p className="text-sm font-semibold text-[rgb(var(--fg))]">{round.title}</p>
-              <p className="text-sm text-[rgb(var(--muted))]">{round.summary}</p>
-              <div className="flex flex-wrap gap-2">
-                <Link
-                  href={`/round/${round.slug}?entry=qr&source=${roundSourceParam(round.type)}&persona=${persona}`}
-                  className="btn-secondary text-xs"
-                >
-                  Produktive Round öffnen
-                </Link>
-                {persona === "citizen" ? (
-                  <Link href={withPersona("/demo/dossier", persona)} className="btn-secondary text-xs">
-                    Im Dossier vertiefen
+          {rounds.map((round) => {
+            const companionContext = companionByRoundSlug.get(round.slug);
+            return (
+              <article key={round.id} className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4 space-y-2">
+                <div className="flex flex-wrap items-center gap-2 text-xs">
+                  <span className="vog-chip">{roundTypeLabel(round.type)}</span>
+                  <span className="vog-chip vog-chip--status">{round.status === "open" ? "offen" : "abgeschlossen"}</span>
+                </div>
+                <p className="text-sm font-semibold text-[rgb(var(--fg))]">{round.title}</p>
+                <p className="text-sm text-[rgb(var(--muted))]">{round.summary}</p>
+                <div className="flex flex-wrap gap-2">
+                  {companionContext ? (
+                    <Link
+                      href={`/companion/${companionContext.slug}?entry=qr&source=${roundSourceParam(round.type)}&persona=${persona}`}
+                      className="btn-secondary text-xs"
+                    >
+                      Begleitraum öffnen
+                    </Link>
+                  ) : (
+                    <Link
+                      href={`/round/${round.slug}?entry=qr&source=${roundSourceParam(round.type)}&persona=${persona}`}
+                      className="btn-secondary text-xs"
+                    >
+                      Produktive Round öffnen
+                    </Link>
+                  )}
+                  {persona === "citizen" ? (
+                    <Link href={withPersona("/demo/dossier", persona)} className="btn-secondary text-xs">
+                      Im Dossier vertiefen
+                    </Link>
+                  ) : (
+                    <Link href={`/round/manage/${round.slug}/merge`} className="btn-secondary text-xs">
+                      Merge-Assist Review
+                    </Link>
+                  )}
+                  <Link href={`/topic/${topic.slug}`} className="btn-secondary text-xs">
+                    Zum Topic
                   </Link>
-                ) : (
-                  <Link href={`/round/manage/${round.slug}/merge`} className="btn-secondary text-xs">
-                    Merge-Assist Review
-                  </Link>
-                )}
-                <Link href={`/topic/${topic.slug}`} className="btn-secondary text-xs">
-                  Zum Topic
-                </Link>
-              </div>
-            </article>
-          ))}
+                </div>
+              </article>
+            );
+          })}
         </div>
       </section>
 
@@ -153,17 +176,19 @@ export default async function DemoRoundsPage({
       </section>
 
       <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm space-y-3">
-        <h2 className="text-lg font-semibold text-[rgb(var(--fg))]">Distribution Demo (QR / Embed / Share Entry)</h2>
+        <h2 className="text-lg font-semibold text-[rgb(var(--fg))]">Distribution Demo (QR startet im Begleitraum)</h2>
         <p className="text-sm text-[rgb(var(--muted))]">
-          Beispiele mit `entry=qr`, `source=*` und `persona=*` auf produktiven Routen.
+          Beispiele mit `entry=qr`, `source=*` und `persona=*`. Mediumgebundene Einstiege landen zuerst im Begleitraum.
         </p>
         <div className="flex flex-wrap gap-2">
-          <Link
-            href={`/topic/${topic.slug}?entry=qr&source=article&persona=${persona}`}
-            className="btn-secondary text-xs"
-          >
-            Topic via QR-Entry
-          </Link>
+          {companions[0] ? (
+            <Link
+              href={`/companion/${companions[0].slug}?entry=qr&source=article&persona=${persona}`}
+              className="btn-secondary text-xs"
+            >
+              Begleitraum via QR-Entry
+            </Link>
+          ) : null}
           <Link
             href={`/embed/topic/${topic.slug}?entry=qr&source=article&persona=${persona}`}
             className="btn-secondary text-xs"

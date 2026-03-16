@@ -4,8 +4,14 @@ import { readStringParam } from "@/features/surface";
 export type DistributionEntry = "qr" | "direct";
 export type DistributionSource =
   | "article"
+  | "print"
+  | "tv_show"
+  | "talkshow"
+  | "radio"
   | "video"
   | "podcast"
+  | "author_column"
+  | "letter_to_editor"
   | "session"
   | "event"
   | "livestream";
@@ -19,21 +25,33 @@ export type DistributionContext = {
 
 const ALLOWED_SOURCES = new Set<DistributionSource>([
   "article",
+  "print",
+  "tv_show",
+  "talkshow",
+  "radio",
   "video",
   "podcast",
+  "author_column",
+  "letter_to_editor",
   "session",
   "event",
   "livestream",
 ]);
 
 function sourceFraming(source?: DistributionSource) {
-  if (source === "article") return "Dieser Debattenraum begleitet einen Artikel.";
-  if (source === "video") return "Dieser Debattenraum begleitet ein Video.";
-  if (source === "podcast") return "Dieser Debattenraum begleitet eine Podcast-Episode.";
-  if (source === "session") return "Dieser Debattenraum begleitet eine Session.";
-  if (source === "event") return "Dieser Debattenraum begleitet ein Event.";
-  if (source === "livestream") return "Dieser Debattenraum begleitet einen Livestream.";
-  return "Dieser Debattenraum ist als offener Follow-up Einstieg erreichbar.";
+  if (source === "article") return "Begleitraum zu einem Artikel";
+  if (source === "print") return "Begleitraum zu einer Printausgabe";
+  if (source === "tv_show") return "Begleitraum zu einer TV-Sendung";
+  if (source === "talkshow") return "Begleitraum zu einer Talkshow";
+  if (source === "radio") return "Begleitraum zu einer Radiosendung";
+  if (source === "video") return "Begleitraum zu einem Video";
+  if (source === "podcast") return "Begleitraum zu einer Podcast-Episode";
+  if (source === "author_column") return "Begleitraum zu einem Autor:innenbeitrag";
+  if (source === "letter_to_editor") return "Begleitraum zu einem Leserbrief";
+  if (source === "session") return "Begleitraum zu einer Session";
+  if (source === "event") return "Begleitraum zu einer Veranstaltung";
+  if (source === "livestream") return "Begleitraum zu einem Livestream";
+  return "Offener Einstieg ohne spezifischen Anlass";
 }
 
 export function parseDistributionContext(
@@ -80,4 +98,39 @@ export function roundTypeToDistributionSource(type: string): DistributionSource 
   if (type === "event") return "event";
   if (type === "livestream") return "livestream";
   return undefined;
+}
+
+export function companionTypeToDistributionSource(type: string): DistributionSource | undefined {
+  if (
+    type === "article" ||
+    type === "print" ||
+    type === "tv_show" ||
+    type === "talkshow" ||
+    type === "radio" ||
+    type === "video" ||
+    type === "podcast" ||
+    type === "author_column" ||
+    type === "letter_to_editor" ||
+    type === "event" ||
+    type === "livestream"
+  ) {
+    return type;
+  }
+  return undefined;
+}
+
+export function distributionSourceLabel(source?: DistributionSource) {
+  if (!source) return "ohne Anlassquelle";
+  if (source === "article") return "Artikel";
+  if (source === "print") return "Print";
+  if (source === "tv_show") return "TV-Sendung";
+  if (source === "talkshow") return "Talkshow";
+  if (source === "radio") return "Radiosendung";
+  if (source === "video") return "Video";
+  if (source === "podcast") return "Podcast";
+  if (source === "author_column") return "Autor:innenbeitrag";
+  if (source === "letter_to_editor") return "Leserbrief";
+  if (source === "session") return "Session";
+  if (source === "event") return "Veranstaltung";
+  return "Livestream";
 }

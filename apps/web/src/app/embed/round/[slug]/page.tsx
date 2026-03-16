@@ -7,7 +7,12 @@ import {
   withDistributionQuery,
 } from "@/features/surfaces/topic-round";
 import PublicFollowUpBlock from "@/features/surfaces/topic-round/PublicFollowUpBlock";
-import { getRoundBySlug, getTopicBySlug } from "@features/topicRound";
+import {
+  findCompanionContextByRoundSlug,
+  findCompanionContextByTopicAndType,
+  getRoundBySlug,
+  getTopicBySlug,
+} from "@features/topicRound";
 
 type PageProps = {
   params: Promise<{ slug: string }>;
@@ -33,17 +38,32 @@ export default async function EmbedRoundPage({ params, searchParams }: PageProps
   if (!topic) notFound();
   const resolved = searchParams ? await searchParams : {};
   const distribution = parseDistributionContext(resolved, roundTypeToDistributionSource(round.type));
+  const companion =
+    findCompanionContextByRoundSlug(round.slug) ??
+    findCompanionContextByTopicAndType(topic.slug, distribution.source);
 
   const fullRoundPath = withDistributionQuery(`/round/${round.slug}`, distribution);
   const fullTopicPath = withDistributionQuery(`/topic/${topic.slug}`, distribution);
+  const companionPath = companion
+    ? withDistributionQuery(`/companion/${companion.slug}`, distribution)
+    : null;
 
   return (
     <main className="min-h-screen bg-[rgb(var(--card))] px-4 py-6 text-[rgb(var(--fg))]">
       <header className="space-y-2 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4">
-        <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Embed Round</p>
+        <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Embed · Rundenvorschau</p>
         <h1 className="text-lg font-semibold">{round.title}</h1>
         <p className="text-sm text-[rgb(var(--muted))]">{round.summary}</p>
-        <p className="text-xs text-[rgb(var(--muted))]">{distribution.framing}</p>
+        <p className="text-xs text-[rgb(var(--muted))]">
+          {companion
+            ? "Kontextzugang läuft über den Begleitraum; diese Embed zeigt die konkrete Runde."
+            : distribution.framing}
+        </p>
+        {companionPath ? (
+          <Link href={companionPath} className="inline-flex text-xs underline">
+            Zum Begleitraum
+          </Link>
+        ) : null}
       </header>
 
       <section className="mt-4 rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3 space-y-2">
@@ -67,7 +87,7 @@ export default async function EmbedRoundPage({ params, searchParams }: PageProps
       </section>
 
       <div className="mt-4">
-        <PublicFollowUpBlock title="Public Follow-up (Embed)" returnPath={fullTopicPath} />
+        <PublicFollowUpBlock title="Folgebeitrag (Embed)" returnPath={fullTopicPath} />
       </div>
 
       <footer className="mt-5 text-xs text-[rgb(var(--muted))]">

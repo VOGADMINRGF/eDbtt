@@ -1,5 +1,6 @@
 import type {
   TopicConflictKind,
+  CompanionContextType,
   RoundContributionType,
   RoundType,
   TopicReadinessStatus,
@@ -140,4 +141,43 @@ export type Round = {
   summary: string;
   openPoints: string[];
   contributions: RoundContribution[];
+};
+
+export type CompanionVisibility = "exclusive" | "semi_open" | "open";
+
+export type CompanionAccessPolicy =
+  | "qr_only"
+  | "link_required"
+  | "context_first_then_topic"
+  | "public_entry";
+
+export type CompanionModerationMode =
+  | "editorial_gate"
+  | "moderated_public"
+  | "public_with_review";
+
+export type CompanionContext = {
+  id: string;
+  slug: string;
+  type: CompanionContextType;
+  title: string;
+  medium: string;
+  format: string;
+  author?: string;
+  host?: string;
+  editorialOwner?: string;
+  publishedAt: string;
+  issue?: string;
+  episode?: string;
+  page?: string;
+  reference?: string;
+  intro: string;
+  visibility: CompanionVisibility;
+  accessPolicy: CompanionAccessPolicy;
+  linkedTopicSlug: string;
+  linkedRoundSlug?: string;
+  qrTargetPath: string;
+  canonicalOpenPath: string;
+  moderationMode: CompanionModerationMode;
+  mainQuestion: string;
 };

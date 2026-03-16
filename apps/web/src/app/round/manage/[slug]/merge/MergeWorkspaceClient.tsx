@@ -12,13 +12,13 @@ import type {
 } from "@features/topicRound";
 
 const KIND_LABELS: Record<RoundAssistSuggestionKind, string> = {
-  suggestedClaims: "Suggested Claims",
-  suggestedQuestions: "Suggested Questions",
-  suggestedSourceLinks: "Suggested Source Links",
-  suggestedOptionRefinements: "Suggested Option Refinements",
-  suggestedRoadmapItems: "Suggested Roadmap Items",
-  duplicateAndClusterHints: "Duplicate & Cluster Hints",
-  personaSummaries: "Persona Summaries",
+  suggestedClaims: "Vorgeschlagene Claims",
+  suggestedQuestions: "Vorgeschlagene Fragen",
+  suggestedSourceLinks: "Vorgeschlagene Quellen",
+  suggestedOptionRefinements: "Vorgeschlagene Optionsverfeinerungen",
+  suggestedRoadmapItems: "Vorgeschlagene Roadmap-Items",
+  duplicateAndClusterHints: "Duplikat- und Cluster-Hinweise",
+  personaSummaries: "Persona-Zusammenfassungen",
 };
 
 const CONFIDENCE_LABELS = {
@@ -174,7 +174,7 @@ export default function MergeWorkspaceClient({
             onClick={() => triggerAssistRun()}
             disabled={busy || !canManage}
           >
-            AI-Assist vorbereiten
+            KI-Assist vorbereiten
           </button>
         </div>
         {!canManage ? (
@@ -197,7 +197,7 @@ export default function MergeWorkspaceClient({
 
       <section className="grid gap-4 lg:grid-cols-2">
         <article className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm space-y-2">
-          <h2 className="text-lg font-semibold text-[rgb(var(--fg))]">Source Round Overview</h2>
+          <h2 className="text-lg font-semibold text-[rgb(var(--fg))]">Rundenkontext</h2>
           <p className="text-sm text-[rgb(var(--muted))]">{round.summary}</p>
           <ul className="space-y-2 text-sm">
             {round.openPoints.map((point) => (
@@ -209,7 +209,7 @@ export default function MergeWorkspaceClient({
         </article>
 
         <article className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm space-y-2">
-          <h2 className="text-lg font-semibold text-[rgb(var(--fg))]">Linked Topic Overview</h2>
+          <h2 className="text-lg font-semibold text-[rgb(var(--fg))]">Verknüpftes Topic</h2>
           <p className="text-sm font-semibold text-[rgb(var(--fg))]">{topic.title}</p>
           <p className="text-sm text-[rgb(var(--muted))]">{topic.framingQuestion}</p>
           <p className="text-sm text-[rgb(var(--muted))]">
@@ -219,7 +219,7 @@ export default function MergeWorkspaceClient({
       </section>
 
       <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm space-y-3">
-        <h2 className="text-lg font-semibold text-[rgb(var(--fg))]">Review State</h2>
+        <h2 className="text-lg font-semibold text-[rgb(var(--fg))]">Review-Status</h2>
         {!snapshot ? (
           <p className="text-sm text-[rgb(var(--muted))]">
             Noch kein Assist-Run vorhanden. Manual-first Workflow bleibt aktiv; du kannst Topic und Round weiterhin ohne KI

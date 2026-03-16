@@ -1,8 +1,17 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { resolveSurfaceContext } from "@/features/surface";
-import { parseDistributionContext, TopicSurface } from "@/features/surfaces/topic-round";
-import { getTopicBySlug, listRoundsByTopicSlug } from "@features/topicRound";
+import {
+  parseDistributionContext,
+  TopicSurface,
+  withDistributionQuery,
+} from "@/features/surfaces/topic-round";
+import {
+  findCompanionContextByTopicAndType,
+  getTopicBySlug,
+  listCompanionContextsByTopicSlug,
+  listRoundsByTopicSlug,
+} from "@features/topicRound";
 import { BRAND } from "@/lib/brand";
 
 type Params = {
@@ -49,6 +58,15 @@ export default async function TopicPage({
 
   const rounds = listRoundsByTopicSlug(topic.slug);
   const distribution = parseDistributionContext(resolvedSearch);
+  const companionContexts = listCompanionContextsByTopicSlug(topic.slug);
+
+  if (distribution.entry === "qr") {
+    const companion = findCompanionContextByTopicAndType(topic.slug, distribution.source);
+    if (companion) {
+      redirect(withDistributionQuery(`/companion/${companion.slug}`, distribution));
+    }
+  }
+
   const context = resolveSurfaceContext({
     mode: "live",
     audience: "none",
@@ -63,6 +81,7 @@ export default async function TopicPage({
         context={context}
         topic={topic}
         rounds={rounds}
+        companionContexts={companionContexts}
         basePath={`/topic/${topic.slug}`}
         distribution={distribution}
       />
