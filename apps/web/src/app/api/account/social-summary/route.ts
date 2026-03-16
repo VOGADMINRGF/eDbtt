@@ -20,6 +20,7 @@ type SocialMessageDoc = {
   toUserId?: string | ObjectId | null;
   text?: string | null;
   body?: string | null;
+  kind?: "direct" | "founder_welcome" | "referral_signup" | "system_onboarding" | string | null;
   readAt?: string | Date | null;
   createdAt?: string | Date | null;
 };
@@ -121,6 +122,7 @@ export async function GET() {
       id: String(doc._id),
       fromLabel: senderLabelById.get(fromId) ?? "Unbekannter Kontakt",
       text: text.slice(0, 180),
+      kind: typeof doc.kind === "string" ? doc.kind : "direct",
       createdAt: toIso(doc.createdAt),
       read: Boolean(doc.readAt),
     };

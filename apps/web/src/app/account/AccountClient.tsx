@@ -328,6 +328,7 @@ type SocialMessageItem = {
   id: string;
   fromLabel: string;
   text: string;
+  kind?: string;
   createdAt?: string | null;
   read: boolean;
 };
@@ -383,6 +384,13 @@ const TOPIC_ICON_BY_KEY: Record<TopicKey, IconType> = {
 function truncateText(value: string, max: number) {
   if (value.length <= max) return value;
   return `${value.slice(0, max - 1).trimEnd()}…`;
+}
+
+function messageKindLabel(kind?: string) {
+  if (kind === "founder_welcome") return "Founder";
+  if (kind === "referral_signup") return "Referral";
+  if (kind === "system_onboarding") return "Onboarding";
+  return "Direkt";
 }
 
 const EMPTY_PERSONAL_IDENTITY: PersonalIdentityData = {
@@ -969,7 +977,7 @@ function CompactProfileHubSection({
               Identität & Darstellung
             </p>
             <p className="mt-2 text-xs text-[rgb(var(--muted))]">
-              Registrierungsdaten (intern) und öffentliche Namensdarstellung sind getrennt.
+              Registrierungsdaten (intern) und öffentliche Namensdarstellung sind getrennt. Stadt/Region helfen bei passender lokaler Priorisierung.
             </p>
             <div className="mt-3 grid gap-2 sm:grid-cols-2">
               <label className="space-y-1">
@@ -1272,9 +1280,14 @@ function CompactProfileHubSection({
               <div className="space-y-2">
                 {socialSummary.recentMessages.map((message) => (
                   <div key={message.id} className="flex items-start justify-between gap-2 text-xs">
-                    <p className="min-w-0 text-[rgb(var(--fg))]">
-                      <span className="font-semibold">{message.fromLabel}:</span> {truncateText(message.text, 56)}
-                    </p>
+                    <div className="min-w-0">
+                      <p className="min-w-0 text-[rgb(var(--fg))]">
+                        <span className="font-semibold">{message.fromLabel}:</span> {truncateText(message.text, 56)}
+                      </p>
+                      <p className="mt-0.5 text-[10px] uppercase tracking-[0.12em] text-[rgb(var(--muted))]">
+                        {messageKindLabel(message.kind)}
+                      </p>
+                    </div>
                     <span className="shrink-0 text-[10px] text-[rgb(var(--muted))]">{formatDateLabel(message.createdAt)}</span>
                   </div>
                 ))}

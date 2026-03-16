@@ -14,6 +14,10 @@ import { recordSwipeVoteInGraph } from "@/features/graph/swipes";
 import { getCol } from "@core/db/triMongo";
 import { eventualityNodesCol } from "@core/eventualities/db";
 import type { EventualityNodeDoc } from "@core/eventualities/types";
+import {
+  getPersonalizedStartItems,
+  getUserPreferenceSnapshot,
+} from "@/lib/onboarding/preferenceSnapshot";
 
 type ProposalDoc = {
   _id?: any;
@@ -133,6 +137,34 @@ export async function getSwipeFeed(req: SwipeFeedRequest): Promise<SwipeFeedResp
         eventualitiesCount: count,
       };
     });
+  }
+
+  if (items.length > 0 && req.userId) {
+    try {
+      const snapshot = await getUserPreferenceSnapshot(req.userId);
+      if (snapshot) {
+        const proposalById = new Map(proposalDocs.map((doc) => [String(doc._id ?? ""), doc]));
+        const rankingInput = items.map((item) => {
+          const proposal = proposalById.get(item.id);
+          return {
+            id: item.id,
+            topic: proposal?.topic ?? item.category,
+            topicTags: item.topicTags,
+            level: item.level,
+            createdAt: proposal?.createdAt ?? null,
+            importance: typeof proposal?.importance === "number" ? proposal.importance : null,
+            socialSignals: {
+              interactions: item.eventualitiesCount,
+            },
+          };
+        });
+        const ranked = getPersonalizedStartItems(snapshot, rankingInput, rankingInput.length);
+        const scoreById = new Map(ranked.map((entry) => [entry.item.id, entry.score.totalScore]));
+        items = [...items].sort((a, b) => (scoreById.get(b.id) ?? 0) - (scoreById.get(a.id) ?? 0));
+      }
+    } catch (error) {
+      console.error("[swipes] personalization ranking failed", error);
+    }
   }
 
   if (items.length === 0) {

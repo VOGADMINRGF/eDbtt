@@ -5,6 +5,8 @@ import { z } from "zod";
 import { ObjectId, getCol } from "@core/db/triMongo";
 import { getPiiProfile, upsertPiiProfile } from "@core/pii/userProfileService";
 import { readSession } from "@/utils/session";
+import { logOnboardingEvent } from "@/lib/onboarding/events";
+import { refreshUserPreferenceSnapshot } from "@/lib/onboarding/preferenceSnapshot";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -179,9 +181,30 @@ export async function PATCH(req: NextRequest) {
 
   await Users.updateOne({ _id: userObjectId }, { $set: setOps });
 
+  let onboardingTransitions = {
+    interestsCompletedNow: false,
+    locationCompletedNow: false,
+    personalizedReadyNow: false,
+  };
+  try {
+    const refreshed = await refreshUserPreferenceSnapshot(userObjectId);
+    onboardingTransitions = refreshed.transitions;
+    if (refreshed.transitions.interestsCompletedNow) {
+      await logOnboardingEvent("interests_completed", { userId });
+    }
+    if (refreshed.transitions.locationCompletedNow) {
+      await logOnboardingEvent("location_completed", { userId });
+    }
+    if (refreshed.transitions.personalizedReadyNow) {
+      await logOnboardingEvent("personalized_start_ready", { userId });
+    }
+  } catch (error) {
+    console.error("[account/personal] refreshUserPreferenceSnapshot failed", error);
+  }
+
   const payload = await loadPersonalPayload(userId);
   if (!payload) {
     return NextResponse.json({ ok: false, error: "user_not_found" }, { status: 404 });
   }
-  return NextResponse.json({ ok: true, ...payload });
+  return NextResponse.json({ ok: true, ...payload, onboardingTransitions });
 }

@@ -4,6 +4,8 @@ import { getAccountOverview, updateAccountProfile } from "@features/account/serv
 import { TOPIC_CHOICES, type TopicKey } from "@features/interests/topics";
 import type { AccountProfileUpdate } from "@features/account/types";
 import { readSession } from "@/utils/session";
+import { refreshUserPreferenceSnapshot } from "@/lib/onboarding/preferenceSnapshot";
+import { logOnboardingEvent } from "@/lib/onboarding/events";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -167,5 +169,26 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ ok: false, error: "user_not_found" }, { status: 404 });
   }
 
-  return NextResponse.json({ ok: true, overview });
+  let onboardingTransitions = {
+    interestsCompletedNow: false,
+    locationCompletedNow: false,
+    personalizedReadyNow: false,
+  };
+  try {
+    const refreshed = await refreshUserPreferenceSnapshot(userId);
+    onboardingTransitions = refreshed.transitions;
+    if (refreshed.transitions.interestsCompletedNow) {
+      await logOnboardingEvent("interests_completed", { userId });
+    }
+    if (refreshed.transitions.locationCompletedNow) {
+      await logOnboardingEvent("location_completed", { userId });
+    }
+    if (refreshed.transitions.personalizedReadyNow) {
+      await logOnboardingEvent("personalized_start_ready", { userId });
+    }
+  } catch (error) {
+    console.error("[account/profile] refreshUserPreferenceSnapshot failed", error);
+  }
+
+  return NextResponse.json({ ok: true, overview, onboardingTransitions });
 }

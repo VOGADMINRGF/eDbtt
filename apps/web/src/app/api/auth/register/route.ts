@@ -14,6 +14,9 @@ import { publicOrigin } from "@/utils/publicOrigin";
 import { ensureBasicPiiProfile } from "@core/pii/userProfileService";
 import { incrementRateLimit } from "@/lib/security/rate-limit";
 import { verifyHumanTokenDetailed } from "@/lib/security/human-token";
+import { ensureFounderWelcomeFlow } from "@/lib/onboarding/founderWelcome";
+import { logOnboardingEvent } from "@/lib/onboarding/events";
+import { refreshUserPreferenceSnapshot } from "@/lib/onboarding/preferenceSnapshot";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -51,6 +54,13 @@ type UserProfileDoc = {
     publicShareId?: string | null;
   };
 };
+
+type FounderWelcomeResult = {
+  founderUserId: string | null;
+  founderDisplayName: string | null;
+  friendRequestCreated: boolean;
+  welcomeMessageCreated: boolean;
+} | null;
 
 type ReferralDoc = {
   _id?: ObjectId;
@@ -372,6 +382,69 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  try {
+    await Users.updateOne(
+      { _id: userId, "profile.onboarding.registeredAt": { $exists: false } },
+      {
+        $set: {
+          "profile.onboarding.registeredAt": now,
+          updatedAt: now,
+        },
+      },
+    );
+    await logOnboardingEvent("register_completed", {
+      userId: String(userId),
+      meta: {
+        viaInvite: Boolean(inviteCode),
+      },
+    });
+  } catch (onboardingErr) {
+    console.error("[register] onboarding registration marker failed", onboardingErr);
+  }
+
+  let founderWelcomeResult: FounderWelcomeResult = null;
+  try {
+    founderWelcomeResult = await ensureFounderWelcomeFlow(userId);
+    if (founderWelcomeResult?.founderUserId) {
+      await Users.updateOne(
+        { _id: userId, "profile.onboarding.founderFriendRequestSentAt": { $exists: false } },
+        {
+          $set: {
+            "profile.onboarding.founderFriendRequestSentAt": now,
+            updatedAt: now,
+          },
+        },
+      );
+      await Users.updateOne(
+        { _id: userId, "profile.onboarding.founderWelcomeMessageSentAt": { $exists: false } },
+        {
+          $set: {
+            "profile.onboarding.founderWelcomeMessageSentAt": now,
+            updatedAt: now,
+          },
+        },
+      );
+    }
+    if (founderWelcomeResult?.friendRequestCreated) {
+      await logOnboardingEvent("founder_friend_request_created", {
+        userId: String(userId),
+        meta: {
+          founderUserId: founderWelcomeResult.founderUserId,
+        },
+      });
+    }
+    if (founderWelcomeResult?.welcomeMessageCreated) {
+      await logOnboardingEvent("founder_welcome_message_created", {
+        userId: String(userId),
+        meta: {
+          founderUserId: founderWelcomeResult.founderUserId,
+        },
+      });
+    }
+  } catch (founderErr) {
+    console.error("[register] founder welcome flow failed", founderErr);
+  }
+
   const credentials = await piiCol(CREDENTIAL_COLLECTION);
   await credentials.updateOne(
     { coreUserId: userId },
@@ -406,6 +479,27 @@ export async function POST(req: NextRequest) {
     console.error("[register] ensureBasicPiiProfile failed", err);
   }
 
+  let preferenceSeedTransitions = {
+    interestsCompletedNow: false,
+    locationCompletedNow: false,
+    personalizedReadyNow: false,
+  };
+  try {
+    const seeded = await refreshUserPreferenceSnapshot(userId);
+    preferenceSeedTransitions = seeded.transitions;
+    if (seeded.transitions.interestsCompletedNow) {
+      await logOnboardingEvent("interests_completed", { userId: String(userId) });
+    }
+    if (seeded.transitions.locationCompletedNow) {
+      await logOnboardingEvent("location_completed", { userId: String(userId) });
+    }
+    if (seeded.transitions.personalizedReadyNow) {
+      await logOnboardingEvent("personalized_start_ready", { userId: String(userId) });
+    }
+  } catch (seedErr) {
+    console.error("[register] preference snapshot seed failed", seedErr);
+  }
+
   try {
     await logIdentityEvent("identity_register", {
       userId: String(userId),
@@ -417,6 +511,12 @@ export async function POST(req: NextRequest) {
         referralRewardGranted: referralResult?.linked ? referralResult.rewardGranted : false,
         referralReason:
           referralResult && "reason" in referralResult ? referralResult.reason : undefined,
+        founderUserId: founderWelcomeResult?.founderUserId ?? undefined,
+        founderFriendRequestCreated: founderWelcomeResult?.friendRequestCreated ?? false,
+        founderWelcomeMessageCreated: founderWelcomeResult?.welcomeMessageCreated ?? false,
+        onboardingInterestsCompleted: preferenceSeedTransitions.interestsCompletedNow,
+        onboardingLocationCompleted: preferenceSeedTransitions.locationCompletedNow,
+        personalizedStartReady: preferenceSeedTransitions.personalizedReadyNow,
       },
     });
   } catch (telemetryErr) {
