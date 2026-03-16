@@ -32,12 +32,205 @@ const schema = z.object({
   humanToken: z.string().min(10).max(1024),
   formStartedAt: z.coerce.number().optional(),
   hp_register: z.string().optional(),
+  inviteCode: z.string().trim().max(128).optional(),
 });
 
 const RATE_LIMIT_MAX = 6;
 const RATE_LIMIT_WINDOW = 15 * 60; // 15 minutes
 const MIN_FILL_MS = 3000;
 const MAX_FILL_MS = 2 * 60 * 60 * 1000;
+const REFERRAL_REWARD_ANALYSIS_STARTS = 1;
+const REFERRAL_CODE_RE = /^[a-zA-Z0-9_-]{6,128}$/;
+
+type UserProfileDoc = {
+  _id: ObjectId;
+  name?: string | null;
+  email?: string | null;
+  profile?: {
+    inviteToken?: string | null;
+    publicShareId?: string | null;
+  };
+};
+
+type ReferralDoc = {
+  _id?: ObjectId;
+  inviteCode: string;
+  inviterUserId: string;
+  invitedUserId: string;
+  status: "linked";
+  createdAt: Date;
+  updatedAt: Date;
+  connectedAt?: Date;
+  notifiedAt?: Date;
+  rewardGrantedAt?: Date;
+  rewardAnalysisStarts?: number;
+};
+
+function sanitizeInviteCode(value?: string | null) {
+  if (!value) return null;
+  const trimmed = value.trim();
+  if (!trimmed || !REFERRAL_CODE_RE.test(trimmed)) return null;
+  return trimmed.toLowerCase();
+}
+
+async function applyReferralFlow({
+  users,
+  invitedUserId,
+  inviteCode,
+}: {
+  users: Awaited<ReturnType<typeof getCol>>;
+  invitedUserId: ObjectId;
+  inviteCode: string;
+}) {
+  const invitedUserIdStr = String(invitedUserId);
+
+  const inviter = await users.findOne(
+    {
+      _id: { $ne: invitedUserId },
+      $or: [
+        { "profile.inviteToken": inviteCode },
+        { "profile.publicShareId": inviteCode },
+      ],
+    },
+    { projection: { _id: 1, name: 1, email: 1 } },
+  ) as UserProfileDoc | null;
+  if (!inviter?._id) return { linked: false as const, reason: "inviter_not_found" as const };
+
+  const inviterUserId = String(inviter._id);
+  const now = new Date();
+  const referralsCol = await getCol<ReferralDoc>("user_referrals");
+  const existingReferral = await referralsCol.findOne(
+    { invitedUserId: invitedUserIdStr },
+    { projection: { inviterUserId: 1, rewardGrantedAt: 1 } },
+  );
+  if (existingReferral?.inviterUserId && existingReferral.inviterUserId !== inviterUserId) {
+    return {
+      linked: true as const,
+      inviterUserId: existingReferral.inviterUserId,
+      rewardGranted: Boolean(existingReferral.rewardGrantedAt),
+    };
+  }
+
+  const upsert = await referralsCol.updateOne(
+    { invitedUserId: invitedUserIdStr },
+    {
+      $setOnInsert: {
+        inviteCode,
+        inviterUserId,
+        invitedUserId: invitedUserIdStr,
+        status: "linked",
+        createdAt: now,
+      },
+      $set: {
+        updatedAt: now,
+      },
+    },
+    { upsert: true },
+  );
+
+  const referralDoc = await referralsCol.findOne(
+    { invitedUserId: invitedUserIdStr },
+    { projection: { rewardGrantedAt: 1 } },
+  );
+  if (!upsert.upsertedId && referralDoc?.rewardGrantedAt) {
+    return { linked: true as const, inviterUserId, rewardGranted: false as const };
+  }
+
+  await users.updateOne(
+    { _id: invitedUserId },
+    {
+      $set: {
+        "profile.referral.inviterUserId": inviterUserId,
+        "profile.referral.inviteCode": inviteCode,
+        "profile.referral.attributedAt": now,
+        updatedAt: now,
+      },
+    },
+  );
+
+  const friendRequestsCol = await getCol("social_friend_requests");
+  await Promise.all([
+    friendRequestsCol.updateOne(
+      { fromUserId: inviterUserId, toUserId: invitedUserIdStr },
+      {
+        $set: {
+          status: "accepted",
+          source: "referral",
+          acceptedAt: now,
+          updatedAt: now,
+        },
+        $setOnInsert: {
+          createdAt: now,
+          message: "Verbunden über Einladungslink",
+        },
+      },
+      { upsert: true },
+    ),
+    friendRequestsCol.updateOne(
+      { fromUserId: invitedUserIdStr, toUserId: inviterUserId },
+      {
+        $set: {
+          status: "accepted",
+          source: "referral",
+          acceptedAt: now,
+          updatedAt: now,
+        },
+        $setOnInsert: {
+          createdAt: now,
+          message: "Verbunden über Einladungslink",
+        },
+      },
+      { upsert: true },
+    ),
+  ]);
+
+  const messagesCol = await getCol("social_messages");
+  await messagesCol.updateOne(
+    { fromUserId: invitedUserIdStr, toUserId: inviterUserId, kind: "referral_signup" },
+    {
+      $setOnInsert: {
+        text: "hat sich über deinen Einladungslink registriert.",
+        readAt: null,
+        createdAt: now,
+      },
+      $set: {
+        updatedAt: now,
+      },
+    },
+    { upsert: true },
+  );
+
+  await users.updateOne(
+    { _id: inviter._id },
+    {
+      $inc: {
+        "usage.contributionCredits": REFERRAL_REWARD_ANALYSIS_STARTS,
+        "stats.contributionCredits": REFERRAL_REWARD_ANALYSIS_STARTS,
+        "profile.referrals.successfulInvites": 1,
+        "profile.referrals.rewardAnalysisStarts": REFERRAL_REWARD_ANALYSIS_STARTS,
+      },
+      $set: {
+        "profile.referrals.lastSuccessAt": now,
+        updatedAt: now,
+      },
+    },
+  );
+
+  await referralsCol.updateOne(
+    { invitedUserId: invitedUserIdStr },
+    {
+      $set: {
+        connectedAt: now,
+        notifiedAt: now,
+        rewardGrantedAt: now,
+        rewardAnalysisStarts: REFERRAL_REWARD_ANALYSIS_STARTS,
+        updatedAt: now,
+      },
+    },
+  );
+
+  return { linked: true as const, inviterUserId, rewardGranted: true as const };
+}
 
 function hashedClientKey(req: NextRequest) {
   const ip =
@@ -94,6 +287,8 @@ export async function POST(req: NextRequest) {
   const title = body.title?.trim() || undefined;
   const pronouns = body.pronouns?.trim() || undefined;
   const displayName = body.name.trim();
+  const inviteFromQuery = sanitizeInviteCode(req.nextUrl.searchParams.get("invite"));
+  const inviteCode = sanitizeInviteCode(body.inviteCode) ?? inviteFromQuery;
 
   if (!isPasswordStrong(body.password)) {
     return NextResponse.json({ error: "weak_password" }, { status: 400 });
@@ -160,6 +355,23 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  let referralResult:
+    | { linked: false; reason: "inviter_not_found" | "flow_failed" }
+    | { linked: true; inviterUserId: string; rewardGranted: boolean }
+    | null = null;
+  if (inviteCode) {
+    try {
+      referralResult = await applyReferralFlow({
+        users: Users,
+        invitedUserId: userId,
+        inviteCode,
+      });
+    } catch (referralErr) {
+      console.error("[register] applyReferralFlow failed", referralErr);
+      referralResult = { linked: false, reason: "flow_failed" };
+    }
+  }
+
   const credentials = await piiCol(CREDENTIAL_COLLECTION);
   await credentials.updateOne(
     { coreUserId: userId },
@@ -201,6 +413,10 @@ export async function POST(req: NextRequest) {
         email,
         householdSize: householdSize > 1 ? householdSize : undefined,
         piiProfileError,
+        referralLinked: referralResult?.linked ?? false,
+        referralRewardGranted: referralResult?.linked ? referralResult.rewardGranted : false,
+        referralReason:
+          referralResult && "reason" in referralResult ? referralResult.reason : undefined,
       },
     });
   } catch (telemetryErr) {

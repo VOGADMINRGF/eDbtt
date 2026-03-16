@@ -16,6 +16,11 @@ type CoreUserDoc = {
   profile?: {
     inviteToken?: string | null;
     publicShareId?: string | null;
+    referrals?: {
+      successfulInvites?: number | null;
+      rewardAnalysisStarts?: number | null;
+      lastSuccessAt?: string | Date | null;
+    };
     identity?: {
       displayMode?: NameMode;
       nickname?: string | null;
@@ -60,6 +65,12 @@ function createInviteToken() {
   return crypto.randomBytes(7).toString("hex");
 }
 
+function normalizeDate(value?: string | Date | null) {
+  if (!value) return null;
+  const date = value instanceof Date ? value : new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date.toISOString();
+}
+
 async function ensureInviteToken(Users: Collection<CoreUserDoc>, user: CoreUserDoc) {
   const existing =
     (typeof user.profile?.inviteToken === "string" && user.profile.inviteToken.trim()) ||
@@ -88,6 +99,9 @@ async function loadPersonalPayload(userId: string) {
   const inviteToken = await ensureInviteToken(Users, user);
   const displayMode: NameMode = user.profile?.identity?.displayMode === "nickname" ? "nickname" : "real_name";
   const nickname = typeof user.profile?.identity?.nickname === "string" ? user.profile.identity.nickname : null;
+  const successfulInvites = Number(user.profile?.referrals?.successfulInvites ?? 0) || 0;
+  const rewardAnalysisStarts = Number(user.profile?.referrals?.rewardAnalysisStarts ?? 0) || 0;
+  const lastReferralSuccessAt = normalizeDate(user.profile?.referrals?.lastSuccessAt ?? null);
 
   return {
     personal: {
@@ -102,6 +116,9 @@ async function loadPersonalPayload(userId: string) {
       nickname,
       inviteToken,
       referralCode: inviteToken,
+      successfulInvites,
+      rewardAnalysisStarts,
+      lastReferralSuccessAt,
     },
   };
 }

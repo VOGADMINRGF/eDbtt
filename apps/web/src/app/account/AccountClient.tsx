@@ -350,6 +350,9 @@ type PersonalIdentityData = {
   nickname: string;
   inviteToken: string;
   referralCode: string;
+  successfulInvites: number;
+  rewardAnalysisStarts: number;
+  lastReferralSuccessAt: string;
 };
 type AccountHubTab = "profile" | "interests" | "inbox";
 
@@ -393,6 +396,9 @@ const EMPTY_PERSONAL_IDENTITY: PersonalIdentityData = {
   nickname: "",
   inviteToken: "",
   referralCode: "",
+  successfulInvites: 0,
+  rewardAnalysisStarts: 0,
+  lastReferralSuccessAt: "",
 };
 
 function mapPersonalIdentity(value: any): PersonalIdentityData {
@@ -407,6 +413,9 @@ function mapPersonalIdentity(value: any): PersonalIdentityData {
     nickname: typeof value?.nickname === "string" ? value.nickname : "",
     inviteToken: typeof value?.inviteToken === "string" ? value.inviteToken : "",
     referralCode: typeof value?.referralCode === "string" ? value.referralCode : "",
+    successfulInvites: Number(value?.successfulInvites ?? 0) || 0,
+    rewardAnalysisStarts: Number(value?.rewardAnalysisStarts ?? 0) || 0,
+    lastReferralSuccessAt: typeof value?.lastReferralSuccessAt === "string" ? value.lastReferralSuccessAt : "",
   };
 }
 
@@ -530,7 +539,7 @@ function CompactProfileHubSection({
   const personalName = `${personalDraft.givenName} ${personalDraft.familyName}`.trim();
   const identityPublicName =
     personalDraft.displayMode === "nickname" ? personalDraft.nickname.trim() : personalName;
-  // Invite handle becomes the stable referral key once referral attribution is activated end-to-end.
+  const referralRewardsActive = personalDraft.rewardAnalysisStarts > 0;
   const inviteHandle =
     personalDraft.inviteToken.trim() ||
     personalDraft.referralCode.trim() ||
@@ -1293,8 +1302,43 @@ function CompactProfileHubSection({
               Freunde einladen
             </p>
             <p className="mt-1 text-xs text-[rgb(var(--muted))]">
-              Persönlicher Einladungslink (vorbereitet für Referral-Code).
+              Dein persönlicher Einladungslink. Bei Registrierung über diesen Link wird die Verbindung direkt hergestellt.
             </p>
+            <div className="mt-2 grid grid-cols-2 gap-2">
+              <div
+                className={`rounded-xl border px-3 py-2 ${
+                  personalDraft.successfulInvites > 0
+                    ? "border-emerald-400/50 bg-emerald-500/10"
+                    : "border-[rgb(var(--border))] bg-[rgb(var(--card))]"
+                }`}
+              >
+                <p className="text-[10px] uppercase tracking-[0.12em] text-[rgb(var(--muted))]">Erfolgreich</p>
+                <p
+                  className={`mt-1 text-base font-semibold ${
+                    personalDraft.successfulInvites > 0 ? "text-emerald-200" : "text-[rgb(var(--fg))]"
+                  }`}
+                >
+                  {personalDraft.successfulInvites}
+                </p>
+              </div>
+              <div
+                className={`rounded-xl border px-3 py-2 ${
+                  referralRewardsActive
+                    ? "border-sky-400/50 bg-sky-500/10"
+                    : "border-[rgb(var(--border))] bg-[rgb(var(--card))]"
+                }`}
+              >
+                <p className="text-[10px] uppercase tracking-[0.12em] text-[rgb(var(--muted))]">Bonus-Starts</p>
+                <p className={`mt-1 text-base font-semibold ${referralRewardsActive ? "text-sky-200" : "text-[rgb(var(--fg))]"}`}>
+                  {personalDraft.rewardAnalysisStarts}
+                </p>
+              </div>
+            </div>
+            {personalDraft.lastReferralSuccessAt ? (
+              <p className="mt-1 text-[11px] text-[rgb(var(--muted))]">
+                Letzte erfolgreiche Einladung: {formatDateLabel(personalDraft.lastReferralSuccessAt)}
+              </p>
+            ) : null}
             <p className="mt-2 truncate rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-xs text-[rgb(var(--muted))]">
               {inviteText}
             </p>

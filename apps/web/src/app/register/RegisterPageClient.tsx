@@ -51,6 +51,15 @@ function sanitizeNext(value?: string | string[] | null) {
   return trimmed;
 }
 
+function sanitizeInvite(value?: string | string[] | null) {
+  const raw = Array.isArray(value) ? value[0] : value;
+  if (!raw) return null;
+  const trimmed = raw.trim();
+  if (!trimmed) return null;
+  if (!/^[a-zA-Z0-9_-]{6,128}$/.test(trimmed)) return null;
+  return trimmed;
+}
+
 type RegisterPageClientProps = {
   personCount?: number;
   searchParams?: Record<string, string | string[] | undefined>;
@@ -73,6 +82,7 @@ function RegisterPageClient({ personCount = 1, searchParams }: RegisterPageClien
     searchParams?.birthDate ? sanitizeBirthDateInput(String(searchParams.birthDate)) : "",
   );
   const nextParam = sanitizeNext(searchParams?.next ?? null);
+  const inviteCode = sanitizeInvite(searchParams?.invite ?? null);
   const datePickerRef = useRef<HTMLInputElement | null>(null);
   const [useNativeDate, setUseNativeDate] = useState(false);
   const [password, setPassword] = useState("");
@@ -146,10 +156,15 @@ function RegisterPageClient({ personCount = 1, searchParams }: RegisterPageClien
       const ac = new AbortController();
       const t = setTimeout(() => ac.abort("timeout"), 15_000);
 
-      const registerUrl =
-        personCount > 1
-          ? `/api/auth/register?householdSize=${encodeURIComponent(String(personCount))}`
-          : "/api/auth/register";
+      const registerParams = new URLSearchParams();
+      if (personCount > 1) {
+        registerParams.set("householdSize", String(personCount));
+      }
+      if (inviteCode) {
+        registerParams.set("invite", inviteCode);
+      }
+      const query = registerParams.toString();
+      const registerUrl = query ? `/api/auth/register?${query}` : "/api/auth/register";
 
       const startedAt = formStartedAt ?? Date.now();
       const r = await fetch(registerUrl, {
@@ -174,6 +189,7 @@ function RegisterPageClient({ personCount = 1, searchParams }: RegisterPageClien
           humanToken,
           formStartedAt: startedAt,
           hp_register: hpRegister,
+          inviteCode: inviteCode ?? undefined,
         }),
         signal: ac.signal,
       });
