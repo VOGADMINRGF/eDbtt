@@ -54,6 +54,15 @@ const ghostDarkButtonClass =
 const subtleLinkClass =
   "text-[11px] font-medium text-[rgb(var(--muted))] underline-offset-2 hover:text-[rgb(var(--fg))] hover:underline";
 
+const selectedSurfaceClass =
+  "border-sky-300/60 bg-sky-100 text-sky-900 shadow-[inset_0_0_0_1px_rgba(56,189,248,0.45)] dark:border-sky-400/40 dark:bg-sky-500/18 dark:text-sky-100";
+
+const selectedChipClass =
+  "bg-sky-100 text-sky-900 ring-1 ring-sky-300/60 dark:bg-sky-500/18 dark:text-sky-100 dark:ring-sky-400/40";
+
+const subtleWarningClass =
+  "rounded-xl border border-amber-300/55 bg-amber-100/80 px-3 py-2 text-xs text-amber-900 dark:border-amber-500/35 dark:bg-amber-500/14 dark:text-amber-100";
+
 const EURO = new Intl.NumberFormat("de-DE", {
   style: "currency",
   currency: "EUR",
@@ -993,7 +1002,7 @@ function CompactProfileHubSection({
             </p>
             <p
               className={`mt-0.5 text-[15px] font-semibold ${
-                hasPendingRequests ? "text-emerald-700 dark:text-emerald-200" : "text-[rgb(var(--fg))]"
+                hasPendingRequests ? "text-emerald-800 dark:text-emerald-100" : "text-[rgb(var(--fg))]"
               }`}
             >
               {socialLoading ? "…" : socialSummary.pendingRequestCount}
@@ -1012,7 +1021,7 @@ function CompactProfileHubSection({
             </p>
             <p
               className={`mt-0.5 text-[15px] font-semibold ${
-                hasUnreadMessages ? "text-sky-700 dark:text-sky-200" : "text-[rgb(var(--fg))]"
+                hasUnreadMessages ? "text-sky-800 dark:text-sky-100" : "text-[rgb(var(--fg))]"
               }`}
             >
               {socialLoading ? "…" : socialSummary.unreadMessageCount}
@@ -1053,11 +1062,11 @@ function CompactProfileHubSection({
                 aria-pressed={active}
                 className={`inline-flex min-h-[40px] items-center justify-center gap-1 rounded-[10px] px-1.5 text-[11px] font-semibold transition ${
                   active
-                    ? "bg-sky-500/16 text-sky-700 shadow-[inset_0_0_0_1px_rgba(56,189,248,0.45)] dark:text-sky-100"
+                    ? selectedSurfaceClass
                     : "text-[rgb(var(--muted))] hover:bg-white/5 hover:text-[rgb(var(--fg))]"
                 }`}
               >
-                <tab.icon className={`h-3.5 w-3.5 ${active ? "text-sky-300" : "text-sky-500/90"}`} aria-hidden />
+                <tab.icon className={`h-3.5 w-3.5 ${active ? "text-sky-700 dark:text-sky-200" : "text-sky-500/90"}`} aria-hidden />
                 <span>{tab.label}</span>
               </button>
             );
@@ -1070,7 +1079,7 @@ function CompactProfileHubSection({
           <article className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-[0_14px_45px_rgba(15,23,42,0.08)] sm:p-5">
             <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4">
               <div className="flex items-center gap-3">
-                <div className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-sky-500/12 text-sm font-semibold text-sky-700 ring-1 ring-sky-300/30 dark:text-sky-200">
+                <div className={`inline-flex h-11 w-11 items-center justify-center rounded-xl text-sm font-semibold ${selectedChipClass}`}>
                   {displayNamePreview.slice(0, 2).toUpperCase()}
                 </div>
                 <div className="min-w-0">
@@ -1086,14 +1095,14 @@ function CompactProfileHubSection({
                   {selectedTopicLabels.slice(0, 5).map((label) => (
                     <span
                       key={`profile-interest-${label}`}
-                      className="inline-flex items-center rounded-full bg-sky-500/12 px-2.5 py-1 text-[11px] text-sky-700 ring-1 ring-sky-300/35 dark:text-sky-100"
+                      className={`inline-flex items-center rounded-full px-2.5 py-1 text-[11px] ${selectedChipClass}`}
                     >
                       {label}
                     </span>
                   ))}
                 </div>
               ) : (
-                <div className="mt-3 rounded-xl border border-amber-300/45 bg-amber-500/10 px-3 py-2 text-xs text-amber-800 dark:text-amber-200">
+                <div className={`mt-3 ${subtleWarningClass}`}>
                   <p>Wähle mindestens 3 Interessen, damit Debatten und passende Menschen für dich priorisiert werden.</p>
                   <button type="button" onClick={() => setActiveTab("interests")} className={`${secondaryLightButtonClass} mt-2`}>
                     Jetzt Interessen wählen
@@ -1187,7 +1196,7 @@ function CompactProfileHubSection({
                   onClick={() => setPersonalDraft((prev) => ({ ...prev, displayMode: "real_name" }))}
                   className={`rounded-lg px-2 py-2 text-xs font-semibold ${
                     personalDraft.displayMode === "real_name"
-                      ? "bg-sky-500/16 text-sky-700 shadow-[inset_0_0_0_1px_rgba(56,189,248,0.45)] dark:text-sky-100"
+                      ? selectedSurfaceClass
                       : "text-[rgb(var(--muted))]"
                   }`}
                 >
@@ -1198,7 +1207,7 @@ function CompactProfileHubSection({
                   onClick={() => setPersonalDraft((prev) => ({ ...prev, displayMode: "nickname" }))}
                   className={`rounded-lg px-2 py-2 text-xs font-semibold ${
                     personalDraft.displayMode === "nickname"
-                      ? "bg-sky-500/16 text-sky-700 shadow-[inset_0_0_0_1px_rgba(56,189,248,0.45)] dark:text-sky-100"
+                      ? selectedSurfaceClass
                       : "text-[rgb(var(--muted))]"
                   }`}
                 >
@@ -1261,7 +1270,7 @@ function CompactProfileHubSection({
               selectedTopicLabels.map((label) => (
                 <span
                   key={label}
-                  className="inline-flex items-center rounded-full bg-sky-500/12 px-2.5 py-1 text-[11px] font-medium text-sky-700 ring-1 ring-sky-300/40 dark:text-sky-200"
+                  className={`inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-medium ${selectedChipClass}`}
                 >
                   {label}
                 </span>
@@ -1287,7 +1296,7 @@ function CompactProfileHubSection({
                   onClick={() => toggleTopic(topic.key)}
                   className={`inline-flex min-h-[52px] items-center gap-2 rounded-2xl border px-3 py-2 text-left text-xs transition ${
                     active
-                      ? "border-sky-300/50 bg-sky-500/12 text-sky-700 dark:text-sky-100"
+                      ? selectedSurfaceClass
                       : "border-[rgb(var(--border))] bg-[rgb(var(--bg))] text-[rgb(var(--muted))] hover:text-[rgb(var(--fg))]"
                   }`}
                 >
@@ -1301,7 +1310,7 @@ function CompactProfileHubSection({
             })}
           </div>
           {!hasEnoughInterests ? (
-            <p className="mt-2 text-xs text-amber-700 dark:text-amber-200">
+            <p className="mt-2 text-xs text-amber-900 dark:text-amber-100">
               Wähle mindestens 3 Interessen. Mehr Themen verbessern Matching und Relevanz.
             </p>
           ) : (
@@ -1357,7 +1366,7 @@ function CompactProfileHubSection({
               <p className="text-[10px] uppercase tracking-[0.12em] text-[rgb(var(--muted))]">Anfragen</p>
               <p
                 className={`mt-1 text-xl font-semibold ${
-                  hasPendingRequests ? "text-emerald-700 dark:text-emerald-200" : "text-[rgb(var(--fg))]"
+                  hasPendingRequests ? "text-emerald-800 dark:text-emerald-100" : "text-[rgb(var(--fg))]"
                 }`}
               >
                 {socialLoading ? "…" : socialSummary.pendingRequestCount}
@@ -1373,7 +1382,7 @@ function CompactProfileHubSection({
               <p className="text-[10px] uppercase tracking-[0.12em] text-[rgb(var(--muted))]">Ungelesen</p>
               <p
                 className={`mt-1 text-xl font-semibold ${
-                  hasUnreadMessages ? "text-sky-700 dark:text-sky-200" : "text-[rgb(var(--fg))]"
+                  hasUnreadMessages ? "text-sky-800 dark:text-sky-100" : "text-[rgb(var(--fg))]"
                 }`}
               >
                 {socialLoading ? "…" : socialSummary.unreadMessageCount}
@@ -1382,7 +1391,7 @@ function CompactProfileHubSection({
           </div>
 
           {socialError ? (
-            <div className="rounded-2xl border border-rose-300/55 bg-rose-500/10 px-3 py-2 text-xs text-rose-800 dark:text-rose-200">
+            <div className="rounded-2xl border border-rose-300/55 bg-rose-100/80 px-3 py-2 text-xs text-rose-900 dark:border-rose-500/35 dark:bg-rose-500/14 dark:text-rose-100">
               Social-Core Status: {socialError}
             </div>
           ) : (
@@ -1537,7 +1546,7 @@ function CompactProfileHubSection({
                 <p className="text-[10px] uppercase tracking-[0.12em] text-[rgb(var(--muted))]">Erfolgreich</p>
                 <p
                   className={`mt-1 text-base font-semibold ${
-                    personalDraft.successfulInvites > 0 ? "text-emerald-700 dark:text-emerald-200" : "text-[rgb(var(--fg))]"
+                    personalDraft.successfulInvites > 0 ? "text-emerald-800 dark:text-emerald-100" : "text-[rgb(var(--fg))]"
                   }`}
                 >
                   {personalDraft.successfulInvites}
@@ -1553,7 +1562,7 @@ function CompactProfileHubSection({
                 <p className="text-[10px] uppercase tracking-[0.12em] text-[rgb(var(--muted))]">Bonus-Starts</p>
                 <p
                   className={`mt-1 text-base font-semibold ${
-                    referralRewardsActive ? "text-sky-700 dark:text-sky-200" : "text-[rgb(var(--fg))]"
+                    referralRewardsActive ? "text-sky-800 dark:text-sky-100" : "text-[rgb(var(--fg))]"
                   }`}
                 >
                   {personalDraft.rewardAnalysisStarts}
@@ -1617,7 +1626,7 @@ function CompactProfileHubSection({
                 }}
                 className={`inline-flex min-h-[42px] flex-col items-center justify-center gap-0.5 rounded-xl border px-1 py-1 text-[10px] font-semibold ${
                   active
-                    ? "border-sky-300/60 bg-sky-500/16 text-sky-700 dark:text-sky-200"
+                    ? selectedSurfaceClass
                     : "border-[rgb(var(--border))] bg-[rgb(var(--bg))] text-[rgb(var(--muted))]"
                 }`}
               >
