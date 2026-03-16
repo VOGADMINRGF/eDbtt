@@ -18,7 +18,6 @@ import type { UserRole } from "@/types/user";
 import type { EngagementLevel } from "@features/user/engagement";
 import {
   FiCheckCircle,
-  FiChevronRight,
   FiCopy,
   FiCreditCard,
   FiGlobe,
@@ -204,12 +203,6 @@ const FEATURE_INTEREST_OPTIONS: Array<{
   },
 ];
 
-const ACCOUNT_SECTION_LINKS = [
-  { id: "account-core-heading", label: "Profil", icon: FiUser },
-  { id: "account-interests-heading", label: "Interessen", icon: FiSliders },
-  { id: "account-social-heading", label: "Freunde & Inbox", icon: FiUsers },
-] as const;
-
 export type AccountOverview = {
   profile: ProfileData;
   publicProfile: PublicProfileData;
@@ -278,78 +271,19 @@ export function AccountClient({ initialData, membershipNotice, preorderNotice, w
         </div>
       )}
 
-      <AccountQuickNav />
-
       <CompactProfileHubSection
         profile={data.profile}
         publicProfile={data.publicProfile}
+        security={data.security}
+        edebatte={data.edebatte}
         chatEnabled={data.features.chatEnabled}
         onRefresh={refreshOverview}
       />
-      <MobileAccountDock />
     </div>
   );
 }
 
 export default AccountClient;
-
-function AccountQuickNav() {
-  return (
-    <nav
-      aria-label="Schnellnavigation Konto"
-      className="sticky top-2 z-20 hidden rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))]/95 px-3 py-3 shadow-[0_10px_30px_rgba(15,23,42,0.08)] backdrop-blur md:block"
-    >
-      <div className="mb-2 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-[rgb(var(--muted))]">
-        <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-sky-500/10 text-sky-400 ring-1 ring-sky-400/30">
-          <FiNavigation className="h-3.5 w-3.5" aria-hidden />
-        </span>
-        <p>Direkt zu</p>
-      </div>
-      <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 sm:flex-wrap sm:overflow-visible">
-        {ACCOUNT_SECTION_LINKS.map((section) => (
-          <a
-            key={section.id}
-            href={`#${section.id}`}
-            className="inline-flex min-h-[36px] shrink-0 items-center gap-1.5 rounded-full bg-[rgb(var(--bg))] px-3 py-1.5 text-[11px] font-semibold text-[rgb(var(--muted))] ring-1 ring-[rgb(var(--border))] transition hover:bg-[rgb(var(--card))] hover:text-[rgb(var(--fg))] focus:outline-none focus:ring-2 focus:ring-sky-200"
-          >
-            <section.icon className="h-3.5 w-3.5 text-sky-400" aria-hidden />
-            {section.label}
-            <FiChevronRight className="h-3.5 w-3.5 opacity-70" aria-hidden />
-          </a>
-        ))}
-      </div>
-    </nav>
-  );
-}
-
-function MobileAccountDock() {
-  const scrollToSection = (id: string) => {
-    const target = document.getElementById(id);
-    if (!target) return;
-    target.scrollIntoView({ behavior: "smooth", block: "start" });
-  };
-
-  return (
-    <nav
-      aria-label="Konto Mobile Navigation"
-      className="fixed inset-x-3 bottom-[calc(env(safe-area-inset-bottom)+0.55rem)] z-40 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))]/95 p-1.5 shadow-[0_20px_45px_rgba(2,6,23,0.45)] backdrop-blur md:hidden"
-    >
-      <div className="grid grid-cols-3 gap-1">
-        {ACCOUNT_SECTION_LINKS.map((section) => (
-          <button
-            key={`dock-${section.id}`}
-            type="button"
-            onClick={() => scrollToSection(section.id)}
-            className="inline-flex min-h-[52px] flex-col items-center justify-center rounded-xl bg-[rgb(var(--bg))]/85 px-2 py-1 text-[11px] font-medium text-[rgb(var(--muted))] ring-1 ring-[rgb(var(--border))]"
-          >
-            <section.icon className="h-4 w-4 text-sky-400" aria-hidden />
-            <span className="mt-0.5 leading-tight">{section.label}</span>
-          </button>
-        ))}
-      </div>
-    </nav>
-  );
-}
 
 type SectionHeadingProps = {
   id: string;
@@ -375,6 +309,8 @@ function SectionHeading({ id, title, description, icon: Icon }: SectionHeadingPr
 type CompactProfileHubSectionProps = {
   profile: ProfileData;
   publicProfile: PublicProfileData;
+  security: SecurityInfo;
+  edebatte: EDebattePackageInfo;
   chatEnabled: boolean;
   onRefresh: () => void;
 };
@@ -400,19 +336,59 @@ type SocialSummary = {
   friendRequests: SocialFriendRequestItem[];
   recentMessages: SocialMessageItem[];
 };
+type AccountHubTab = "profile" | "interests" | "inbox";
 
-function CompactProfileHubSection({ profile, publicProfile, chatEnabled, onRefresh }: CompactProfileHubSectionProps) {
+const ACCOUNT_HUB_TABS: Array<{ key: AccountHubTab; label: string; icon: IconType }> = [
+  { key: "profile", label: "Profil", icon: FiUser },
+  { key: "interests", label: "Interessen", icon: FiSliders },
+  { key: "inbox", label: "Inbox", icon: FiMessageCircle },
+];
+
+const TOPIC_ICON_BY_KEY: Record<TopicKey, IconType> = {
+  democracy: FiUsers,
+  budget: FiCreditCard,
+  economy: FiPackage,
+  social: FiUserPlus,
+  education: FiSearch,
+  health: FiShield,
+  climate: FiGlobe,
+  energy: FiSliders,
+  mobility: FiNavigation,
+  interior: FiShield,
+  justice: FiCheckCircle,
+  migration: FiUsers,
+  digital: FiMessageCircle,
+  europe: FiGlobe,
+  local: FiNavigation,
+};
+
+function truncateText(value: string, max: number) {
+  if (value.length <= max) return value;
+  return `${value.slice(0, max - 1).trimEnd()}…`;
+}
+
+function CompactProfileHubSection({
+  profile,
+  publicProfile,
+  security,
+  edebatte,
+  chatEnabled,
+  onRefresh,
+}: CompactProfileHubSectionProps) {
+  const [activeTab, setActiveTab] = useState<AccountHubTab>("profile");
+  const [profileEditorOpen, setProfileEditorOpen] = useState(false);
   const [displayName, setDisplayName] = useState(profile.displayName ?? "");
   const [tagline, setTagline] = useState(publicProfile.tagline ?? "");
   const [bio, setBio] = useState(publicProfile.bio ?? "");
   const [selectedTopics, setSelectedTopics] = useState<TopicKey[]>(
     (publicProfile.topTopics ?? []).map((topic) => topic.key).slice(0, 3),
   );
-  const [saving, setSaving] = useState(false);
-  const [saveMsg, setSaveMsg] = useState<string | null>(null);
+  const [profileSaving, setProfileSaving] = useState(false);
+  const [interestsSaving, setInterestsSaving] = useState(false);
+  const [profileMsg, setProfileMsg] = useState<string | null>(null);
+  const [interestMsg, setInterestMsg] = useState<string | null>(null);
   const [copyMsg, setCopyMsg] = useState<string | null>(null);
   const [inviteUrl, setInviteUrl] = useState("");
-  const [interestPickerOpen, setInterestPickerOpen] = useState(false);
   const [socialLoading, setSocialLoading] = useState(true);
   const [socialSummary, setSocialSummary] = useState<SocialSummary>({
     pendingRequestCount: 0,
@@ -421,6 +397,24 @@ function CompactProfileHubSection({ profile, publicProfile, chatEnabled, onRefre
     recentMessages: [],
   });
   const [canNativeShare, setCanNativeShare] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const hash = window.location.hash.replace("#", "").toLowerCase();
+    if (hash === "interessen" || hash === "interests") {
+      setActiveTab("interests");
+      return;
+    }
+    if (hash === "inbox" || hash === "social") {
+      setActiveTab("inbox");
+    }
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const hash = activeTab === "profile" ? "profil" : activeTab === "interests" ? "interessen" : "inbox";
+    window.history.replaceState(null, "", `${window.location.pathname}${window.location.search}#${hash}`);
+  }, [activeTab]);
 
   useEffect(() => {
     setDisplayName(profile.displayName ?? "");
@@ -451,11 +445,11 @@ function CompactProfileHubSection({ profile, publicProfile, chatEnabled, onRefre
     .join("|");
   const nextTopicKeyString = selectedTopics.join("|");
 
-  const hasChanges =
+  const profileDirty =
     displayName.trim() !== initialDisplayName.trim() ||
     tagline.trim() !== initialTagline.trim() ||
-    bio.trim() !== initialBio.trim() ||
-    nextTopicKeyString !== initialTopicKeyString;
+    bio.trim() !== initialBio.trim();
+  const interestsDirty = nextTopicKeyString !== initialTopicKeyString;
 
   const invitePath = publicProfile.shareId ? `/profile/${publicProfile.shareId}` : "/register";
   const inviteText = inviteUrl || invitePath;
@@ -464,11 +458,38 @@ function CompactProfileHubSection({ profile, publicProfile, chatEnabled, onRefre
     .map((key) => TOPIC_CHOICES.find((topic) => topic.key === key)?.label)
     .filter((label): label is string => Boolean(label));
 
+  const displayNamePreview = displayName.trim() || "Dein Anzeigename";
+  const taglinePreview = tagline.trim() || "Kurzprofil hinzufügen";
+  const bioPreview = bio.trim()
+    ? truncateText(bio.trim(), 130)
+    : "Beschreibe kurz, wofür du dich politisch oder lokal einsetzt.";
+
+  const verificationLabel = security.verificationLevel
+    ? security.verificationLevel === "strong"
+      ? "Verifiziert"
+      : "Basis-Verifikation"
+    : security.twoFactorEnabled
+      ? "2FA aktiv"
+      : "Verifikation offen";
+  const packageLabel =
+    edebatte.status === "none"
+      ? "Kein Paket"
+      : edebatte.status === "active"
+        ? getEDebatteLabel(edebatte.package)
+        : "Paket vorgemerkt";
+  const visibilityLabel =
+    publicProfile.showRealName || publicProfile.showCity || publicProfile.showStats ? "Teilweise öffentlich" : "Privat";
+
   const formatDateLabel = (iso?: string | null) => {
     if (!iso) return "";
     const date = new Date(iso);
     if (Number.isNaN(date.getTime())) return "";
-    return new Intl.DateTimeFormat("de-DE", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }).format(date);
+    return new Intl.DateTimeFormat("de-DE", {
+      day: "2-digit",
+      month: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+    }).format(date);
   };
 
   const loadSocialSummary = useCallback(async () => {
@@ -509,15 +530,13 @@ function CompactProfileHubSection({ profile, publicProfile, chatEnabled, onRefre
     return () => window.removeEventListener("focus", onFocus);
   }, [loadSocialSummary]);
 
-  const toggleTopic = (key: TopicKey, checked: boolean) => {
+  const toggleTopic = (key: TopicKey) => {
     setSelectedTopics((prev) => {
-      if (checked) {
-        if (prev.includes(key)) return prev;
-        if (prev.length >= 3) return prev;
-        return [...prev, key];
-      }
-      return prev.filter((entry) => entry !== key);
+      if (prev.includes(key)) return prev.filter((entry) => entry !== key);
+      if (prev.length >= 3) return prev;
+      return [...prev, key];
     });
+    setInterestMsg(null);
   };
 
   const copyInviteLink = async () => {
@@ -551,14 +570,21 @@ function CompactProfileHubSection({ profile, publicProfile, chatEnabled, onRefre
     window.location.href = `mailto:?subject=${subject}&body=${body}`;
   };
 
-  const saveCompactProfile = async () => {
-    if (!hasChanges) {
-      setSaveMsg("Keine Änderung");
+  const cancelProfileEdit = () => {
+    setDisplayName(initialDisplayName);
+    setTagline(initialTagline);
+    setBio(initialBio);
+    setProfileMsg(null);
+    setProfileEditorOpen(false);
+  };
+
+  const saveProfile = async () => {
+    if (!profileDirty) {
+      setProfileMsg("Keine Änderung");
       return;
     }
-    setSaving(true);
-    setSaveMsg(null);
-
+    setProfileSaving(true);
+    setProfileMsg(null);
     try {
       if (displayName.trim() !== initialDisplayName.trim()) {
         const settingsRes = await fetch("/api/account/settings", {
@@ -572,18 +598,13 @@ function CompactProfileHubSection({ profile, publicProfile, chatEnabled, onRefre
         }
       }
 
-      if (
-        tagline.trim() !== initialTagline.trim() ||
-        bio.trim() !== initialBio.trim() ||
-        nextTopicKeyString !== initialTopicKeyString
-      ) {
+      if (tagline.trim() !== initialTagline.trim() || bio.trim() !== initialBio.trim()) {
         const profileRes = await fetch("/api/account/profile", {
           method: "PATCH",
           headers: { "content-type": "application/json" },
           body: JSON.stringify({
             tagline: tagline.trim(),
             bio: bio.trim(),
-            topTopics: selectedTopics.map((key) => ({ key })),
           }),
         });
         if (!profileRes.ok) {
@@ -592,158 +613,251 @@ function CompactProfileHubSection({ profile, publicProfile, chatEnabled, onRefre
         }
       }
 
-      setSaveMsg("Profil gespeichert");
+      setProfileMsg("Profil gespeichert");
+      setProfileEditorOpen(false);
       onRefresh();
-      void loadSocialSummary();
     } catch (error: any) {
-      setSaveMsg(error?.message || "Speichern fehlgeschlagen");
+      setProfileMsg(error?.message || "Speichern fehlgeschlagen");
     } finally {
-      setSaving(false);
+      setProfileSaving(false);
+    }
+  };
+
+  const saveInterests = async () => {
+    if (!interestsDirty) {
+      setInterestMsg("Keine Änderung");
+      return;
+    }
+
+    setInterestsSaving(true);
+    setInterestMsg(null);
+    try {
+      const profileRes = await fetch("/api/account/profile", {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          topTopics: selectedTopics.map((key) => ({ key })),
+        }),
+      });
+      if (!profileRes.ok) {
+        const body = await profileRes.json().catch(() => ({}));
+        throw new Error(body?.error || "Interessen konnten nicht gespeichert werden.");
+      }
+      setInterestMsg("Interessen gespeichert");
+      onRefresh();
+    } catch (error: any) {
+      setInterestMsg(error?.message || "Speichern fehlgeschlagen");
+    } finally {
+      setInterestsSaving(false);
     }
   };
 
   return (
     <section className="space-y-4">
-      <SectionHeading
-        id="account-core-heading"
-        title="Kompakte Profilübersicht"
-        description="Stell dich kurz vor, pflege deine Interessen und verwalte Einladungen sowie Inbox an einer Stelle."
-        icon={FiUser}
-      />
-      <div className="grid grid-cols-3 gap-2">
-        <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2">
-          <p className="text-[10px] uppercase tracking-[0.12em] text-[rgb(var(--muted))]">Interessen</p>
-          <p className="mt-1 text-base font-semibold text-[rgb(var(--fg))]">{selectedTopics.length}/3</p>
-        </div>
-        <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2">
-          <p className="text-[10px] uppercase tracking-[0.12em] text-[rgb(var(--muted))]">Anfragen</p>
-          <p className="mt-1 text-base font-semibold text-[rgb(var(--fg))]">
-            {socialLoading ? "…" : socialSummary.pendingRequestCount}
-          </p>
-        </div>
-        <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2">
-          <p className="text-[10px] uppercase tracking-[0.12em] text-[rgb(var(--muted))]">Ungelesen</p>
-          <p className="mt-1 text-base font-semibold text-[rgb(var(--fg))]">
-            {socialLoading ? "…" : socialSummary.unreadMessageCount}
-          </p>
-        </div>
-      </div>
-
-      <article className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-[0_18px_55px_rgba(15,23,42,0.08)] sm:p-5">
-        <div className="grid gap-4 md:grid-cols-[minmax(0,1.3fr)_minmax(0,0.9fr)]">
-          <div className="space-y-2.5">
-            <label className="block space-y-1">
-              <span className="text-xs font-medium text-[rgb(var(--muted))]">Anzeigename</span>
-              <input
-                className="w-full rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-sm text-[rgb(var(--fg))] focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100"
-                value={displayName}
-                onChange={(event) => setDisplayName(event.target.value)}
-              />
-            </label>
-
-            <label className="block space-y-1">
-              <span className="text-xs font-medium text-[rgb(var(--muted))]">Kurzprofil (z. B. Beruf/Rolle)</span>
-              <input
-                className="w-full rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-sm text-[rgb(var(--fg))] focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100"
-                value={tagline}
-                onChange={(event) => setTagline(event.target.value)}
-                placeholder="z. B. Studentin, Lokaljournalist, Klima-Aktiv"
-              />
-            </label>
-
-            <label className="block space-y-1">
-              <span className="text-xs font-medium text-[rgb(var(--muted))]">So stellst du dich dar</span>
-              <textarea
-                rows={3}
-                className="w-full resize-none rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-sm text-[rgb(var(--fg))] focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100"
-                value={bio}
-                onChange={(event) => setBio(event.target.value)}
-                placeholder="Was treibt dich politisch oder lokal an?"
-              />
-            </label>
+      <article className="overflow-hidden rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-[0_18px_55px_rgba(15,23,42,0.08)] sm:p-5">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="relative inline-flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-br from-sky-500 via-cyan-500 to-emerald-500 text-base font-semibold text-white">
+              {profile.avatarUrl ? (
+                <Image src={profile.avatarUrl} alt={displayNamePreview} fill sizes="56px" className="object-cover" />
+              ) : (
+                <span>{displayNamePreview.slice(0, 2).toUpperCase()}</span>
+              )}
+            </div>
+            <div className="min-w-0">
+              <p className="truncate text-base font-semibold text-[rgb(var(--fg))]">{displayNamePreview}</p>
+              <p className="truncate text-xs text-[rgb(var(--muted))]">{taglinePreview}</p>
+              <p className="truncate text-[11px] text-[rgb(var(--muted))]">{profile.email}</p>
+            </div>
           </div>
+          <button type="button" onClick={() => setProfileEditorOpen(true)} className={secondaryLightButtonClass}>
+            <FiUser className="mr-1.5 h-3.5 w-3.5 text-sky-500" aria-hidden />
+            Bearbeiten
+          </button>
+        </div>
 
-          <div id="account-interests-heading" className="space-y-2 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
+        <p className="mt-3 text-sm text-[rgb(var(--muted))]">{bioPreview}</p>
+
+        <div className="mt-4 grid grid-cols-3 gap-2">
+          <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2">
+            <p className="inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.14em] text-[rgb(var(--muted))]">
+              <FiSliders className="h-3.5 w-3.5 text-sky-500" aria-hidden />
+              Interessen
+            </p>
+            <p className="mt-1 text-base font-semibold text-[rgb(var(--fg))]">{selectedTopics.length}/3</p>
+          </div>
+          <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2">
+            <p className="inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.14em] text-[rgb(var(--muted))]">
+              <FiUserPlus className="h-3.5 w-3.5 text-sky-500" aria-hidden />
+              Anfragen
+            </p>
+            <p className="mt-1 text-base font-semibold text-[rgb(var(--fg))]">
+              {socialLoading ? "…" : socialSummary.pendingRequestCount}
+            </p>
+          </div>
+          <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2">
+            <p className="inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.14em] text-[rgb(var(--muted))]">
+              <FiMessageCircle className="h-3.5 w-3.5 text-sky-500" aria-hidden />
+              Ungelesen
+            </p>
+            <p className="mt-1 text-base font-semibold text-[rgb(var(--fg))]">
+              {socialLoading ? "…" : socialSummary.unreadMessageCount}
+            </p>
+          </div>
+        </div>
+
+        <div className="mt-3 flex flex-wrap gap-2 text-[11px]">
+          <span className="inline-flex items-center gap-1 rounded-full bg-[rgb(var(--bg))] px-2.5 py-1 text-[rgb(var(--muted))] ring-1 ring-[rgb(var(--border))]">
+            <FiShield className="h-3.5 w-3.5 text-sky-500" aria-hidden />
+            {verificationLabel}
+          </span>
+          <span className="inline-flex items-center gap-1 rounded-full bg-[rgb(var(--bg))] px-2.5 py-1 text-[rgb(var(--muted))] ring-1 ring-[rgb(var(--border))]">
+            <FiPackage className="h-3.5 w-3.5 text-sky-500" aria-hidden />
+            {packageLabel}
+          </span>
+          <span className="inline-flex items-center gap-1 rounded-full bg-[rgb(var(--bg))] px-2.5 py-1 text-[rgb(var(--muted))] ring-1 ring-[rgb(var(--border))]">
+            <FiGlobe className="h-3.5 w-3.5 text-sky-500" aria-hidden />
+            {visibilityLabel}
+          </span>
+        </div>
+        {profileMsg && !profileEditorOpen ? (
+          <p className="mt-2 text-xs text-[rgb(var(--muted))]" role="status" aria-live="polite">
+            {profileMsg}
+          </p>
+        ) : null}
+      </article>
+
+      <nav
+        aria-label="Profil-Navigation"
+        className="sticky top-2 z-20 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))]/95 p-1 backdrop-blur"
+      >
+        <div className="grid grid-cols-3 gap-1">
+          {ACCOUNT_HUB_TABS.map((tab) => {
+            const active = tab.key === activeTab;
+            return (
+              <button
+                key={tab.key}
+                type="button"
+                onClick={() => setActiveTab(tab.key)}
+                aria-pressed={active}
+                className={`inline-flex min-h-[46px] items-center justify-center gap-1.5 rounded-xl px-2 text-xs font-semibold transition ${
+                  active
+                    ? "bg-sky-500/15 text-sky-100 ring-1 ring-sky-400/50"
+                    : "bg-[rgb(var(--bg))] text-[rgb(var(--muted))] ring-1 ring-[rgb(var(--border))] hover:text-[rgb(var(--fg))]"
+                }`}
+              >
+                <tab.icon className={`h-3.5 w-3.5 ${active ? "text-sky-300" : "text-sky-500"}`} aria-hidden />
+                <span>{tab.label}</span>
+              </button>
+            );
+          })}
+        </div>
+      </nav>
+
+      {activeTab === "profile" ? (
+        <article className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-[0_14px_45px_rgba(15,23,42,0.08)] sm:p-5">
+          <p className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">
+            <FiUser className="h-3.5 w-3.5 text-sky-500" aria-hidden />
+            Profilansicht
+          </p>
+          <div className="mt-3 space-y-3 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
+            <div>
+              <p className="text-[11px] uppercase tracking-[0.12em] text-[rgb(var(--muted))]">Anzeigename</p>
+              <p className="mt-1 text-sm font-semibold text-[rgb(var(--fg))]">{displayNamePreview}</p>
+            </div>
+            <div>
+              <p className="text-[11px] uppercase tracking-[0.12em] text-[rgb(var(--muted))]">Kurzprofil</p>
+              <p className="mt-1 text-sm text-[rgb(var(--fg))]">{taglinePreview}</p>
+            </div>
+            <div>
+              <p className="text-[11px] uppercase tracking-[0.12em] text-[rgb(var(--muted))]">Selbstdarstellung</p>
+              <p className="mt-1 text-sm text-[rgb(var(--fg))]">{bioPreview}</p>
+            </div>
+          </div>
+          <div className="mt-4">
+            <button type="button" onClick={() => setProfileEditorOpen(true)} className={`${primaryButtonClass} w-full sm:w-auto`}>
+              <FiUser className="mr-1.5 h-3.5 w-3.5" aria-hidden />
+              Profil bearbeiten
+            </button>
+          </div>
+        </article>
+      ) : null}
+
+      {activeTab === "interests" ? (
+        <article className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-[0_14px_45px_rgba(15,23,42,0.08)] sm:p-5">
+          <div className="flex flex-wrap items-center justify-between gap-2">
             <p className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">
               <FiSliders className="h-3.5 w-3.5 text-sky-500" aria-hidden />
               Interessen (max. 3)
             </p>
-            <div className="flex min-h-[54px] flex-wrap gap-1.5">
-              {selectedTopicLabels.length > 0 ? (
-                selectedTopicLabels.map((label) => (
-                  <span
-                    key={label}
-                    className="inline-flex items-center rounded-full bg-sky-500/12 px-2.5 py-1 text-[11px] font-medium text-sky-200 ring-1 ring-sky-300/40"
-                  >
-                    {label}
-                  </span>
-                ))
-              ) : (
-                <p className="text-[11px] text-[rgb(var(--muted))]">Noch keine Interessen gewählt.</p>
-              )}
-            </div>
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <p className="text-[11px] text-[rgb(var(--muted))]">{selectedTopics.length} von 3 Interessen ausgewählt.</p>
-              <button type="button" onClick={() => setInterestPickerOpen(true)} className={secondaryLightButtonClass}>
-                Interessen bearbeiten
-              </button>
-            </div>
+            <span className="inline-flex items-center rounded-full bg-[rgb(var(--bg))] px-2.5 py-1 text-[11px] text-[rgb(var(--muted))] ring-1 ring-[rgb(var(--border))]">
+              {selectedTopics.length} von 3 gewählt
+            </span>
           </div>
-        </div>
 
-        <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
-          <button
-            type="button"
-            className={`${primaryButtonClass} w-full sm:w-auto`}
-            disabled={saving || !hasChanges}
-            onClick={saveCompactProfile}
-          >
-            <FiCheckCircle className="mr-1.5 h-3.5 w-3.5" aria-hidden />
-            {saving ? "Speichert …" : "Profil speichern"}
-          </button>
-          {saveMsg && <p className="text-xs text-[rgb(var(--muted))]">{saveMsg}</p>}
-        </div>
-      </article>
-
-      <div id="account-social-heading" className="grid gap-4 lg:grid-cols-2">
-        <article className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-[0_18px_55px_rgba(15,23,42,0.08)] sm:p-5">
-          <p className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">
-            <FiUserPlus className="h-3.5 w-3.5 text-sky-500" aria-hidden />
-            Freunde einladen
-          </p>
-          <p className="mt-2 text-sm text-[rgb(var(--fg))]">Teile deinen Profil- oder Einstiegslink mit Freund:innen.</p>
-          <div className="mt-3 rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-xs text-[rgb(var(--muted))]">
-            {inviteText}
-          </div>
-          <div className="mt-3 grid gap-2 sm:grid-cols-2">
-            <button type="button" onClick={copyInviteLink} className={`${secondaryLightButtonClass} w-full`}>
-              <FiCopy className="mr-1.5 h-3.5 w-3.5 text-sky-500" aria-hidden />
-              Link kopieren
-            </button>
-            {canNativeShare ? (
-              <button type="button" onClick={shareInvite} className={`${primaryButtonSmallClass} w-full`}>
-                <FiSend className="mr-1.5 h-3.5 w-3.5" aria-hidden />
-                Teilen
-              </button>
+          <div className="mt-3 flex min-h-[36px] flex-wrap gap-1.5">
+            {selectedTopicLabels.length > 0 ? (
+              selectedTopicLabels.map((label) => (
+                <span
+                  key={label}
+                  className="inline-flex items-center rounded-full bg-sky-500/12 px-2.5 py-1 text-[11px] font-medium text-sky-200 ring-1 ring-sky-300/40"
+                >
+                  {label}
+                </span>
+              ))
             ) : (
-              <button type="button" onClick={openMailInvite} className={`${primaryButtonSmallClass} w-full`}>
-                <FiMail className="mr-1.5 h-3.5 w-3.5" aria-hidden />
-                Per E-Mail einladen
-              </button>
+              <p className="text-xs text-[rgb(var(--muted))]">Noch keine Interessen gewählt.</p>
             )}
           </div>
-          {!canNativeShare ? null : (
-            <div className="mt-2">
-              <button type="button" onClick={openMailInvite} className={`${secondaryLightButtonClass} w-full`}>
-                <FiMail className="mr-1.5 h-3.5 w-3.5" aria-hidden />
-                Per E-Mail einladen
-              </button>
-            </div>
-          )}
-          {copyMsg && <p className="mt-2 text-xs text-[rgb(var(--muted))]">{copyMsg}</p>}
-        </article>
 
-        <article className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-[0_18px_55px_rgba(15,23,42,0.08)] sm:p-5">
+          <div className="mt-4 grid gap-2 sm:grid-cols-2">
+            {TOPIC_CHOICES.map((topic) => {
+              const active = selectedTopics.includes(topic.key);
+              const blocked = !active && selectedTopics.length >= 3;
+              const TopicIcon = TOPIC_ICON_BY_KEY[topic.key] ?? FiSliders;
+              return (
+                <button
+                  key={topic.key}
+                  type="button"
+                  onClick={() => toggleTopic(topic.key)}
+                  disabled={blocked}
+                  className={`inline-flex min-h-[52px] items-center gap-2 rounded-2xl border px-3 py-2 text-left text-xs transition ${
+                    active
+                      ? "border-sky-300/50 bg-sky-500/12 text-sky-100"
+                      : "border-[rgb(var(--border))] bg-[rgb(var(--bg))] text-[rgb(var(--muted))] hover:text-[rgb(var(--fg))]"
+                  } ${blocked ? "cursor-not-allowed opacity-45" : ""}`}
+                >
+                  <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-slate-950/40 text-sky-400 ring-1 ring-sky-400/30">
+                    <TopicIcon className="h-3.5 w-3.5" aria-hidden />
+                  </span>
+                  <span className="flex-1 leading-tight">{topic.label}</span>
+                  {active ? <FiCheckCircle className="h-4 w-4 shrink-0 text-emerald-300" aria-hidden /> : null}
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="mt-4 flex flex-col gap-2">
+            <button
+              type="button"
+              onClick={saveInterests}
+              disabled={interestsSaving || !interestsDirty}
+              className={`${primaryButtonClass} w-full`}
+            >
+              <FiCheckCircle className="mr-1.5 h-3.5 w-3.5" aria-hidden />
+              {interestsSaving ? "Speichert …" : "Interessen speichern"}
+            </button>
+            {interestMsg ? (
+              <p className="text-xs text-[rgb(var(--muted))]" role="status" aria-live="polite">
+                {interestMsg}
+              </p>
+            ) : null}
+          </div>
+        </article>
+      ) : null}
+
+      {activeTab === "inbox" ? (
+        <article className="space-y-3 rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-[0_14px_45px_rgba(15,23,42,0.08)] sm:p-5">
           <div className="flex items-center justify-between gap-2">
             <p className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">
               <FiMessageCircle className="h-3.5 w-3.5 text-sky-500" aria-hidden />
@@ -754,120 +868,187 @@ function CompactProfileHubSection({ profile, publicProfile, chatEnabled, onRefre
               Aktualisieren
             </button>
           </div>
-          <div className="mt-3 grid grid-cols-2 gap-2">
-            <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2">
+
+          <div className="grid grid-cols-2 gap-2">
+            <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2">
               <p className="text-[10px] uppercase tracking-[0.12em] text-[rgb(var(--muted))]">Anfragen</p>
-              <p className="mt-1 text-lg font-semibold text-[rgb(var(--fg))]">
+              <p className="mt-1 text-xl font-semibold text-[rgb(var(--fg))]">
                 {socialLoading ? "…" : socialSummary.pendingRequestCount}
               </p>
             </div>
-            <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2">
+            <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2">
               <p className="text-[10px] uppercase tracking-[0.12em] text-[rgb(var(--muted))]">Ungelesen</p>
-              <p className="mt-1 text-lg font-semibold text-[rgb(var(--fg))]">
+              <p className="mt-1 text-xl font-semibold text-[rgb(var(--fg))]">
                 {socialLoading ? "…" : socialSummary.unreadMessageCount}
               </p>
             </div>
           </div>
-          <div className="mt-3 space-y-2">
+
+          <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
+            <div className="mb-2 flex items-center justify-between gap-2">
+              <p className="inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--muted))]">
+                <FiUserPlus className="h-3.5 w-3.5 text-sky-500" aria-hidden />
+                Neueste Anfragen
+              </p>
+              <span className="text-[11px] text-[rgb(var(--muted))]">
+                {socialLoading ? "…" : socialSummary.pendingRequestCount}
+              </span>
+            </div>
             {socialLoading ? (
               <p className="text-xs text-[rgb(var(--muted))]">Lade Inbox …</p>
+            ) : socialSummary.friendRequests.length > 0 ? (
+              <div className="space-y-2">
+                {socialSummary.friendRequests.map((request) => (
+                  <div key={request.id} className="flex items-start justify-between gap-2 text-xs">
+                    <p className="min-w-0 text-[rgb(var(--fg))]">
+                      <span className="font-semibold">{request.fromLabel}</span>
+                      {request.message ? ` · ${truncateText(request.message, 54)}` : ""}
+                    </p>
+                    <span className="shrink-0 text-[10px] text-[rgb(var(--muted))]">{formatDateLabel(request.createdAt)}</span>
+                  </div>
+                ))}
+              </div>
             ) : (
-              <>
-                {socialSummary.friendRequests.length > 0 ? (
-                  <div className="space-y-1 rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-2">
-                    <p className="text-[10px] uppercase tracking-[0.12em] text-[rgb(var(--muted))]">Neueste Anfragen</p>
-                    {socialSummary.friendRequests.map((request) => (
-                      <div key={request.id} className="flex items-center justify-between gap-2 text-[11px]">
-                        <p className="truncate text-[rgb(var(--fg))]">
-                          <span className="font-semibold">{request.fromLabel}</span>
-                          {request.message ? ` · ${request.message}` : ""}
-                        </p>
-                        <span className="shrink-0 text-[rgb(var(--muted))]">{formatDateLabel(request.createdAt)}</span>
-                      </div>
-                    ))}
-                  </div>
-                ) : null}
-                {socialSummary.recentMessages.length > 0 ? (
-                  <div className="space-y-1 rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-2">
-                    <p className="text-[10px] uppercase tracking-[0.12em] text-[rgb(var(--muted))]">Neueste Nachrichten</p>
-                    {socialSummary.recentMessages.map((msg) => (
-                      <div key={msg.id} className="flex items-center justify-between gap-2 text-[11px]">
-                        <p className="truncate text-[rgb(var(--fg))]">
-                          <span className="font-semibold">{msg.fromLabel}:</span> {msg.text}
-                        </p>
-                        <span className="shrink-0 text-[rgb(var(--muted))]">{formatDateLabel(msg.createdAt)}</span>
-                      </div>
-                    ))}
-                  </div>
-                ) : null}
-                {socialSummary.friendRequests.length === 0 && socialSummary.recentMessages.length === 0 ? (
-                  <p className="text-xs text-[rgb(var(--muted))]">Noch keine Freundschaftsanfragen oder Nachrichten.</p>
-                ) : null}
-              </>
+              <p className="text-xs text-[rgb(var(--muted))]">Noch keine offenen Freundschaftsanfragen.</p>
             )}
           </div>
-          <div className="mt-3 flex flex-col gap-2 sm:flex-row">
-            <span className="inline-flex w-full items-center justify-center rounded-full bg-[rgb(var(--bg))] px-3 py-1.5 text-[11px] font-semibold text-[rgb(var(--muted))] ring-1 ring-[rgb(var(--border))]">
-              {chatEnabled ? "Inbox aktiv" : "Inbox im Aufbau"}
-            </span>
-            <Link href="/community" className={`${secondaryLightButtonClass} w-full`}>
-              <FiUsers className="mr-1.5 h-3.5 w-3.5 text-sky-500" aria-hidden />
-              Community ansehen
-            </Link>
+
+          <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
+            <div className="mb-2 flex items-center justify-between gap-2">
+              <p className="inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--muted))]">
+                <FiMessageCircle className="h-3.5 w-3.5 text-sky-500" aria-hidden />
+                Letzte Nachrichten
+              </p>
+              <span className="text-[11px] text-[rgb(var(--muted))]">{chatEnabled ? "Inbox aktiv" : "Inbox im Aufbau"}</span>
+            </div>
+            {socialLoading ? (
+              <p className="text-xs text-[rgb(var(--muted))]">Lade Nachrichten …</p>
+            ) : socialSummary.recentMessages.length > 0 ? (
+              <div className="space-y-2">
+                {socialSummary.recentMessages.map((message) => (
+                  <div key={message.id} className="flex items-start justify-between gap-2 text-xs">
+                    <p className="min-w-0 text-[rgb(var(--fg))]">
+                      <span className="font-semibold">{message.fromLabel}:</span> {truncateText(message.text, 56)}
+                    </p>
+                    <span className="shrink-0 text-[10px] text-[rgb(var(--muted))]">{formatDateLabel(message.createdAt)}</span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-xs text-[rgb(var(--muted))]">Noch keine neuen Nachrichten.</p>
+            )}
+          </div>
+
+          <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
+            <p className="inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--muted))]">
+              <FiSend className="h-3.5 w-3.5 text-sky-500" aria-hidden />
+              Freunde einladen
+            </p>
+            <p className="mt-2 truncate rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-xs text-[rgb(var(--muted))]">
+              {inviteText}
+            </p>
+            <div className="mt-2 grid gap-2 sm:grid-cols-3">
+              <button type="button" onClick={copyInviteLink} className={`${secondaryLightButtonClass} w-full`}>
+                <FiCopy className="mr-1.5 h-3.5 w-3.5 text-sky-500" aria-hidden />
+                Link kopieren
+              </button>
+              {canNativeShare ? (
+                <button type="button" onClick={shareInvite} className={`${primaryButtonSmallClass} w-full`}>
+                  <FiSend className="mr-1.5 h-3.5 w-3.5" aria-hidden />
+                  Teilen
+                </button>
+              ) : (
+                <button type="button" onClick={openMailInvite} className={`${primaryButtonSmallClass} w-full`}>
+                  <FiMail className="mr-1.5 h-3.5 w-3.5" aria-hidden />
+                  Per E-Mail
+                </button>
+              )}
+              <Link href="/community" className={`${secondaryLightButtonClass} w-full`}>
+                <FiUsers className="mr-1.5 h-3.5 w-3.5 text-sky-500" aria-hidden />
+                Community ansehen
+              </Link>
+            </div>
+            {canNativeShare ? (
+              <button type="button" onClick={openMailInvite} className={`${secondaryLightButtonClass} mt-2 w-full`}>
+                <FiMail className="mr-1.5 h-3.5 w-3.5 text-sky-500" aria-hidden />
+                Per E-Mail einladen
+              </button>
+            ) : null}
+            {copyMsg ? <p className="mt-2 text-xs text-[rgb(var(--muted))]">{copyMsg}</p> : null}
           </div>
         </article>
-      </div>
+      ) : null}
 
-      {interestPickerOpen && (
-        <div className="fixed inset-0 z-[90] bg-slate-950/60 p-3 backdrop-blur-[2px] sm:p-5" onClick={() => setInterestPickerOpen(false)}>
+      {profileEditorOpen ? (
+        <div className="fixed inset-0 z-[95] bg-slate-950/65 p-3 backdrop-blur-[2px] sm:p-5" onClick={cancelProfileEdit}>
           <div
-            className="absolute inset-x-3 bottom-3 max-h-[72vh] overflow-y-auto rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-[0_24px_70px_rgba(2,6,23,0.55)] sm:inset-x-auto sm:left-1/2 sm:top-1/2 sm:w-[560px] sm:max-w-[calc(100vw-2.5rem)] sm:-translate-x-1/2 sm:-translate-y-1/2 sm:max-h-[80vh]"
+            className="absolute inset-x-0 bottom-0 max-h-[84vh] overflow-hidden rounded-t-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] shadow-[0_28px_70px_rgba(2,6,23,0.65)] sm:inset-x-auto sm:left-1/2 sm:top-1/2 sm:w-[560px] sm:max-w-[calc(100vw-2.5rem)] sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-3xl"
             onClick={(event) => event.stopPropagation()}
           >
-            <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center justify-between border-b border-[rgb(var(--border))] px-4 py-3">
               <p className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">
-                <FiSliders className="h-3.5 w-3.5 text-sky-500" aria-hidden />
-                Interessen wählen
+                <FiUser className="h-3.5 w-3.5 text-sky-500" aria-hidden />
+                Profil bearbeiten
               </p>
-              <button type="button" onClick={() => setInterestPickerOpen(false)} className={secondaryLightButtonClass}>
-                Schließen
+              <button type="button" onClick={cancelProfileEdit} className={secondaryLightButtonClass}>
+                Abbrechen
               </button>
             </div>
-            <p className="mt-2 text-xs text-[rgb(var(--muted))]">Wähle bis zu drei Themen für dein öffentliches Profil.</p>
-            <div className="mt-3 grid gap-2 sm:grid-cols-2">
-              {TOPIC_CHOICES.map((topic) => {
-                const checked = selectedTopics.includes(topic.key);
-                const blocked = !checked && selectedTopics.length >= 3;
-                return (
-                  <label
-                    key={topic.key}
-                    className={`inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-[12px] ${
-                      checked
-                        ? "border-sky-300/50 bg-sky-500/12 text-sky-200"
-                        : "border-[rgb(var(--border))] bg-[rgb(var(--bg))] text-[rgb(var(--muted))]"
-                    } ${blocked ? "opacity-50" : ""}`}
-                  >
-                    <input
-                      type="checkbox"
-                      className="h-4 w-4 rounded border-[rgb(var(--border))] text-sky-600 focus:ring-sky-500"
-                      checked={checked}
-                      disabled={blocked}
-                      onChange={(event) => toggleTopic(topic.key, event.target.checked)}
-                    />
-                    <span>{topic.label}</span>
-                  </label>
-                );
-              })}
+
+            <div className="space-y-3 overflow-y-auto px-4 py-4">
+              <label className="block space-y-1">
+                <span className="text-xs font-medium text-[rgb(var(--muted))]">Anzeigename</span>
+                <input
+                  className="w-full rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-sm text-[rgb(var(--fg))] focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100"
+                  value={displayName}
+                  onChange={(event) => setDisplayName(event.target.value)}
+                />
+              </label>
+              <label className="block space-y-1">
+                <span className="text-xs font-medium text-[rgb(var(--muted))]">Kurzprofil</span>
+                <input
+                  className="w-full rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-sm text-[rgb(var(--fg))] focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100"
+                  value={tagline}
+                  onChange={(event) => setTagline(event.target.value)}
+                  placeholder="z. B. Studentin, Lokaljournalist, Klima-Aktiv"
+                />
+              </label>
+              <label className="block space-y-1">
+                <span className="text-xs font-medium text-[rgb(var(--muted))]">Selbstdarstellung</span>
+                <textarea
+                  rows={4}
+                  className="w-full resize-none rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-sm text-[rgb(var(--fg))] focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100"
+                  value={bio}
+                  onChange={(event) => setBio(event.target.value)}
+                  placeholder="Was treibt dich politisch oder lokal an?"
+                />
+              </label>
             </div>
-            <div className="mt-4 flex items-center justify-between gap-2">
-              <p className="text-xs text-[rgb(var(--muted))]">{selectedTopics.length} von 3 gewählt.</p>
-              <button type="button" onClick={() => setInterestPickerOpen(false)} className={primaryButtonSmallClass}>
-                Übernehmen
-              </button>
+
+            <div className="border-t border-[rgb(var(--border))] bg-[rgb(var(--card))] p-3">
+              <div className="grid grid-cols-2 gap-2">
+                <button type="button" onClick={cancelProfileEdit} className={`${secondaryLightButtonClass} w-full`}>
+                  Abbrechen
+                </button>
+                <button
+                  type="button"
+                  onClick={saveProfile}
+                  disabled={profileSaving || !profileDirty}
+                  className={`${primaryButtonClass} w-full`}
+                >
+                  <FiCheckCircle className="mr-1.5 h-3.5 w-3.5" aria-hidden />
+                  {profileSaving ? "Speichert …" : "Speichern"}
+                </button>
+              </div>
+              {profileMsg ? (
+                <p className="mt-2 text-xs text-[rgb(var(--muted))]" role="status" aria-live="polite">
+                  {profileMsg}
+                </p>
+              ) : null}
             </div>
           </div>
         </div>
-      )}
+      ) : null}
     </section>
   );
 }
