@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { ChangeEvent, FormEvent } from "react";
 import Image from "next/image";
 import Link from "next/link";
@@ -16,6 +16,26 @@ import type { AccountFeatureInterestKey } from "@features/account/types";
 import { TOPIC_CHOICES, type TopicKey } from "@features/interests/topics";
 import type { UserRole } from "@/types/user";
 import type { EngagementLevel } from "@features/user/engagement";
+import {
+  FiCheckCircle,
+  FiChevronRight,
+  FiCopy,
+  FiCreditCard,
+  FiGlobe,
+  FiMail,
+  FiMessageCircle,
+  FiNavigation,
+  FiPackage,
+  FiRefreshCw,
+  FiSearch,
+  FiSend,
+  FiShield,
+  FiSliders,
+  FiUser,
+  FiUserPlus,
+  FiUsers,
+} from "react-icons/fi";
+import type { IconType } from "react-icons";
 
 // Konsistente Button-Styles im eDebatte-Gradient-CI
 const primaryButtonClass =
@@ -185,11 +205,9 @@ const FEATURE_INTEREST_OPTIONS: Array<{
 ];
 
 const ACCOUNT_SECTION_LINKS = [
-  { id: "account-core-heading", label: "Profil" },
-  { id: "account-public-heading", label: "Öffentlich" },
-  { id: "account-membership-heading", label: "Mitgliedschaft" },
-  { id: "account-security-heading", label: "Sicherheit" },
-  { id: "account-advanced-heading", label: "Pilot-Funktionen" },
+  { id: "account-core-heading", label: "Profil", icon: FiUser },
+  { id: "account-interests-heading", label: "Interessen", icon: FiSliders },
+  { id: "account-social-heading", label: "Freunde & Inbox", icon: FiUsers },
 ] as const;
 
 export type AccountOverview = {
@@ -262,29 +280,13 @@ export function AccountClient({ initialData, membershipNotice, preorderNotice, w
 
       <AccountQuickNav />
 
-      <ProfileAndPackageSection
+      <CompactProfileHubSection
         profile={data.profile}
-        edebatte={data.edebatte}
-        usage={data.usage}
+        publicProfile={data.publicProfile}
+        chatEnabled={data.features.chatEnabled}
         onRefresh={refreshOverview}
       />
-
-      <PublicProfileSection publicProfile={data.publicProfile} onRefresh={refreshOverview} />
-
-      <MembershipAndRolesSection
-        membership={data.membership}
-        roles={data.roles}
-        membershipStatus={data.membershipSnapshot?.status ?? null}
-        paymentReference={data.membershipSnapshot?.paymentReference ?? null}
-      />
-
-      <SecurityAndPaymentSection security={data.security} payment={data.payment} signature={data.signature} membership={data.membership} />
-
-      <AdvancedFeaturesSection
-        features={data.features}
-        featureInterests={data.featureInterests}
-        onRefresh={refreshOverview}
-      />
+      <MobileAccountDock />
     </div>
   );
 }
@@ -295,23 +297,578 @@ function AccountQuickNav() {
   return (
     <nav
       aria-label="Schnellnavigation Konto"
-      className="rounded-2xl bg-[rgb(var(--card))] px-3 py-3 shadow-[0_10px_30px_rgba(15,23,42,0.08)] ring-1 ring-[rgb(var(--border))]"
+      className="sticky top-2 z-20 hidden rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))]/95 px-3 py-3 shadow-[0_10px_30px_rgba(15,23,42,0.08)] backdrop-blur md:block"
     >
-      <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-[rgb(var(--muted))]">
-        Direkt zu
-      </p>
-      <div className="flex flex-wrap gap-2">
+      <div className="mb-2 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-[rgb(var(--muted))]">
+        <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-sky-500/10 text-sky-400 ring-1 ring-sky-400/30">
+          <FiNavigation className="h-3.5 w-3.5" aria-hidden />
+        </span>
+        <p>Direkt zu</p>
+      </div>
+      <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 sm:flex-wrap sm:overflow-visible">
         {ACCOUNT_SECTION_LINKS.map((section) => (
           <a
             key={section.id}
             href={`#${section.id}`}
-            className="inline-flex items-center rounded-full bg-[rgb(var(--bg))] px-3 py-1.5 text-[11px] font-semibold text-[rgb(var(--muted))] ring-1 ring-[rgb(var(--border))] transition hover:bg-[rgb(var(--bg))] focus:outline-none focus:ring-2 focus:ring-sky-200"
+            className="inline-flex min-h-[36px] shrink-0 items-center gap-1.5 rounded-full bg-[rgb(var(--bg))] px-3 py-1.5 text-[11px] font-semibold text-[rgb(var(--muted))] ring-1 ring-[rgb(var(--border))] transition hover:bg-[rgb(var(--card))] hover:text-[rgb(var(--fg))] focus:outline-none focus:ring-2 focus:ring-sky-200"
           >
+            <section.icon className="h-3.5 w-3.5 text-sky-400" aria-hidden />
             {section.label}
+            <FiChevronRight className="h-3.5 w-3.5 opacity-70" aria-hidden />
           </a>
         ))}
       </div>
     </nav>
+  );
+}
+
+function MobileAccountDock() {
+  const scrollToSection = (id: string) => {
+    const target = document.getElementById(id);
+    if (!target) return;
+    target.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
+  return (
+    <nav
+      aria-label="Konto Mobile Navigation"
+      className="fixed inset-x-3 bottom-[calc(env(safe-area-inset-bottom)+0.55rem)] z-40 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))]/95 p-1.5 shadow-[0_20px_45px_rgba(2,6,23,0.45)] backdrop-blur md:hidden"
+    >
+      <div className="grid grid-cols-3 gap-1">
+        {ACCOUNT_SECTION_LINKS.map((section) => (
+          <button
+            key={`dock-${section.id}`}
+            type="button"
+            onClick={() => scrollToSection(section.id)}
+            className="inline-flex min-h-[52px] flex-col items-center justify-center rounded-xl bg-[rgb(var(--bg))]/85 px-2 py-1 text-[11px] font-medium text-[rgb(var(--muted))] ring-1 ring-[rgb(var(--border))]"
+          >
+            <section.icon className="h-4 w-4 text-sky-400" aria-hidden />
+            <span className="mt-0.5 leading-tight">{section.label}</span>
+          </button>
+        ))}
+      </div>
+    </nav>
+  );
+}
+
+type SectionHeadingProps = {
+  id: string;
+  title: string;
+  description: string;
+  icon: IconType;
+};
+
+function SectionHeading({ id, title, description, icon: Icon }: SectionHeadingProps) {
+  return (
+    <div className="flex flex-col gap-1">
+      <h2 id={id} className="inline-flex items-center gap-2 text-sm font-semibold tracking-tight text-[rgb(var(--fg))]">
+        <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-sky-500/10 text-sky-400 ring-1 ring-sky-300/30">
+          <Icon className="h-3.5 w-3.5" aria-hidden />
+        </span>
+        <span>{title}</span>
+      </h2>
+      <p className="text-xs text-[rgb(var(--muted))]">{description}</p>
+    </div>
+  );
+}
+
+type CompactProfileHubSectionProps = {
+  profile: ProfileData;
+  publicProfile: PublicProfileData;
+  chatEnabled: boolean;
+  onRefresh: () => void;
+};
+
+type SocialFriendRequestItem = {
+  id: string;
+  fromLabel: string;
+  message?: string | null;
+  createdAt?: string | null;
+};
+
+type SocialMessageItem = {
+  id: string;
+  fromLabel: string;
+  text: string;
+  createdAt?: string | null;
+  read: boolean;
+};
+
+type SocialSummary = {
+  pendingRequestCount: number;
+  unreadMessageCount: number;
+  friendRequests: SocialFriendRequestItem[];
+  recentMessages: SocialMessageItem[];
+};
+
+function CompactProfileHubSection({ profile, publicProfile, chatEnabled, onRefresh }: CompactProfileHubSectionProps) {
+  const [displayName, setDisplayName] = useState(profile.displayName ?? "");
+  const [tagline, setTagline] = useState(publicProfile.tagline ?? "");
+  const [bio, setBio] = useState(publicProfile.bio ?? "");
+  const [selectedTopics, setSelectedTopics] = useState<TopicKey[]>(
+    (publicProfile.topTopics ?? []).map((topic) => topic.key).slice(0, 3),
+  );
+  const [saving, setSaving] = useState(false);
+  const [saveMsg, setSaveMsg] = useState<string | null>(null);
+  const [copyMsg, setCopyMsg] = useState<string | null>(null);
+  const [inviteUrl, setInviteUrl] = useState("");
+  const [interestPickerOpen, setInterestPickerOpen] = useState(false);
+  const [socialLoading, setSocialLoading] = useState(true);
+  const [socialSummary, setSocialSummary] = useState<SocialSummary>({
+    pendingRequestCount: 0,
+    unreadMessageCount: 0,
+    friendRequests: [],
+    recentMessages: [],
+  });
+  const [canNativeShare, setCanNativeShare] = useState(false);
+
+  useEffect(() => {
+    setDisplayName(profile.displayName ?? "");
+    setTagline(publicProfile.tagline ?? "");
+    setBio(publicProfile.bio ?? "");
+    setSelectedTopics((publicProfile.topTopics ?? []).map((topic) => topic.key).slice(0, 3));
+  }, [profile.displayName, publicProfile.tagline, publicProfile.bio, publicProfile.topTopics]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const sharePath = publicProfile.shareId ? `/profile/${publicProfile.shareId}` : "/register";
+    setInviteUrl(`${window.location.origin}${sharePath}`);
+    setCanNativeShare(typeof navigator !== "undefined" && typeof navigator.share === "function");
+  }, [publicProfile.shareId]);
+
+  useEffect(() => {
+    if (!copyMsg) return;
+    const timeout = window.setTimeout(() => setCopyMsg(null), 2200);
+    return () => window.clearTimeout(timeout);
+  }, [copyMsg]);
+
+  const initialDisplayName = profile.displayName ?? "";
+  const initialTagline = publicProfile.tagline ?? "";
+  const initialBio = publicProfile.bio ?? "";
+  const initialTopicKeyString = (publicProfile.topTopics ?? [])
+    .map((topic) => topic.key)
+    .slice(0, 3)
+    .join("|");
+  const nextTopicKeyString = selectedTopics.join("|");
+
+  const hasChanges =
+    displayName.trim() !== initialDisplayName.trim() ||
+    tagline.trim() !== initialTagline.trim() ||
+    bio.trim() !== initialBio.trim() ||
+    nextTopicKeyString !== initialTopicKeyString;
+
+  const invitePath = publicProfile.shareId ? `/profile/${publicProfile.shareId}` : "/register";
+  const inviteText = inviteUrl || invitePath;
+
+  const selectedTopicLabels = selectedTopics
+    .map((key) => TOPIC_CHOICES.find((topic) => topic.key === key)?.label)
+    .filter((label): label is string => Boolean(label));
+
+  const formatDateLabel = (iso?: string | null) => {
+    if (!iso) return "";
+    const date = new Date(iso);
+    if (Number.isNaN(date.getTime())) return "";
+    return new Intl.DateTimeFormat("de-DE", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }).format(date);
+  };
+
+  const loadSocialSummary = useCallback(async () => {
+    setSocialLoading(true);
+    try {
+      const res = await fetch("/api/account/social-summary", { cache: "no-store" });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok || !body?.ok || !body?.summary) {
+        throw new Error(body?.error || "social_summary_failed");
+      }
+      setSocialSummary({
+        pendingRequestCount: Number(body.summary.pendingRequestCount ?? 0),
+        unreadMessageCount: Number(body.summary.unreadMessageCount ?? 0),
+        friendRequests: Array.isArray(body.summary.friendRequests) ? body.summary.friendRequests : [],
+        recentMessages: Array.isArray(body.summary.recentMessages) ? body.summary.recentMessages : [],
+      });
+    } catch {
+      setSocialSummary({
+        pendingRequestCount: 0,
+        unreadMessageCount: 0,
+        friendRequests: [],
+        recentMessages: [],
+      });
+    } finally {
+      setSocialLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadSocialSummary();
+  }, [loadSocialSummary]);
+
+  useEffect(() => {
+    const onFocus = () => {
+      void loadSocialSummary();
+    };
+    window.addEventListener("focus", onFocus);
+    return () => window.removeEventListener("focus", onFocus);
+  }, [loadSocialSummary]);
+
+  const toggleTopic = (key: TopicKey, checked: boolean) => {
+    setSelectedTopics((prev) => {
+      if (checked) {
+        if (prev.includes(key)) return prev;
+        if (prev.length >= 3) return prev;
+        return [...prev, key];
+      }
+      return prev.filter((entry) => entry !== key);
+    });
+  };
+
+  const copyInviteLink = async () => {
+    if (!inviteText) return;
+    try {
+      await navigator.clipboard.writeText(inviteText);
+      setCopyMsg("Einladungslink kopiert");
+    } catch {
+      setCopyMsg("Kopieren nicht möglich");
+    }
+  };
+
+  const shareInvite = async () => {
+    if (!inviteText || typeof navigator === "undefined" || typeof navigator.share !== "function") return;
+    try {
+      await navigator.share({
+        title: "eDebatte Einladung",
+        text: "Komm zu eDebatte",
+        url: inviteText.startsWith("http") ? inviteText : undefined,
+      });
+    } catch {
+      // user cancelled
+    }
+  };
+
+  const openMailInvite = () => {
+    const subject = encodeURIComponent("Komm zu eDebatte");
+    const body = encodeURIComponent(
+      `Hi,\n\nich lade dich zu eDebatte ein. Hier ist mein Profil bzw. Einstieg:\n${inviteText}\n\nBis bald!`,
+    );
+    window.location.href = `mailto:?subject=${subject}&body=${body}`;
+  };
+
+  const saveCompactProfile = async () => {
+    if (!hasChanges) {
+      setSaveMsg("Keine Änderung");
+      return;
+    }
+    setSaving(true);
+    setSaveMsg(null);
+
+    try {
+      if (displayName.trim() !== initialDisplayName.trim()) {
+        const settingsRes = await fetch("/api/account/settings", {
+          method: "PATCH",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ displayName: displayName.trim() }),
+        });
+        if (!settingsRes.ok) {
+          const body = await settingsRes.json().catch(() => ({}));
+          throw new Error(body?.error || "Anzeigename konnte nicht gespeichert werden.");
+        }
+      }
+
+      if (
+        tagline.trim() !== initialTagline.trim() ||
+        bio.trim() !== initialBio.trim() ||
+        nextTopicKeyString !== initialTopicKeyString
+      ) {
+        const profileRes = await fetch("/api/account/profile", {
+          method: "PATCH",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            tagline: tagline.trim(),
+            bio: bio.trim(),
+            topTopics: selectedTopics.map((key) => ({ key })),
+          }),
+        });
+        if (!profileRes.ok) {
+          const body = await profileRes.json().catch(() => ({}));
+          throw new Error(body?.error || "Profil konnte nicht gespeichert werden.");
+        }
+      }
+
+      setSaveMsg("Profil gespeichert");
+      onRefresh();
+      void loadSocialSummary();
+    } catch (error: any) {
+      setSaveMsg(error?.message || "Speichern fehlgeschlagen");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <section className="space-y-4">
+      <SectionHeading
+        id="account-core-heading"
+        title="Kompakte Profilübersicht"
+        description="Stell dich kurz vor, pflege deine Interessen und verwalte Einladungen sowie Inbox an einer Stelle."
+        icon={FiUser}
+      />
+      <div className="grid grid-cols-3 gap-2">
+        <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2">
+          <p className="text-[10px] uppercase tracking-[0.12em] text-[rgb(var(--muted))]">Interessen</p>
+          <p className="mt-1 text-base font-semibold text-[rgb(var(--fg))]">{selectedTopics.length}/3</p>
+        </div>
+        <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2">
+          <p className="text-[10px] uppercase tracking-[0.12em] text-[rgb(var(--muted))]">Anfragen</p>
+          <p className="mt-1 text-base font-semibold text-[rgb(var(--fg))]">
+            {socialLoading ? "…" : socialSummary.pendingRequestCount}
+          </p>
+        </div>
+        <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2">
+          <p className="text-[10px] uppercase tracking-[0.12em] text-[rgb(var(--muted))]">Ungelesen</p>
+          <p className="mt-1 text-base font-semibold text-[rgb(var(--fg))]">
+            {socialLoading ? "…" : socialSummary.unreadMessageCount}
+          </p>
+        </div>
+      </div>
+
+      <article className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-[0_18px_55px_rgba(15,23,42,0.08)] sm:p-5">
+        <div className="grid gap-4 md:grid-cols-[minmax(0,1.3fr)_minmax(0,0.9fr)]">
+          <div className="space-y-2.5">
+            <label className="block space-y-1">
+              <span className="text-xs font-medium text-[rgb(var(--muted))]">Anzeigename</span>
+              <input
+                className="w-full rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-sm text-[rgb(var(--fg))] focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100"
+                value={displayName}
+                onChange={(event) => setDisplayName(event.target.value)}
+              />
+            </label>
+
+            <label className="block space-y-1">
+              <span className="text-xs font-medium text-[rgb(var(--muted))]">Kurzprofil (z. B. Beruf/Rolle)</span>
+              <input
+                className="w-full rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-sm text-[rgb(var(--fg))] focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100"
+                value={tagline}
+                onChange={(event) => setTagline(event.target.value)}
+                placeholder="z. B. Studentin, Lokaljournalist, Klima-Aktiv"
+              />
+            </label>
+
+            <label className="block space-y-1">
+              <span className="text-xs font-medium text-[rgb(var(--muted))]">So stellst du dich dar</span>
+              <textarea
+                rows={3}
+                className="w-full resize-none rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-sm text-[rgb(var(--fg))] focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100"
+                value={bio}
+                onChange={(event) => setBio(event.target.value)}
+                placeholder="Was treibt dich politisch oder lokal an?"
+              />
+            </label>
+          </div>
+
+          <div id="account-interests-heading" className="space-y-2 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
+            <p className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">
+              <FiSliders className="h-3.5 w-3.5 text-sky-500" aria-hidden />
+              Interessen (max. 3)
+            </p>
+            <div className="flex min-h-[54px] flex-wrap gap-1.5">
+              {selectedTopicLabels.length > 0 ? (
+                selectedTopicLabels.map((label) => (
+                  <span
+                    key={label}
+                    className="inline-flex items-center rounded-full bg-sky-500/12 px-2.5 py-1 text-[11px] font-medium text-sky-200 ring-1 ring-sky-300/40"
+                  >
+                    {label}
+                  </span>
+                ))
+              ) : (
+                <p className="text-[11px] text-[rgb(var(--muted))]">Noch keine Interessen gewählt.</p>
+              )}
+            </div>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p className="text-[11px] text-[rgb(var(--muted))]">{selectedTopics.length} von 3 Interessen ausgewählt.</p>
+              <button type="button" onClick={() => setInterestPickerOpen(true)} className={secondaryLightButtonClass}>
+                Interessen bearbeiten
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
+          <button
+            type="button"
+            className={`${primaryButtonClass} w-full sm:w-auto`}
+            disabled={saving || !hasChanges}
+            onClick={saveCompactProfile}
+          >
+            <FiCheckCircle className="mr-1.5 h-3.5 w-3.5" aria-hidden />
+            {saving ? "Speichert …" : "Profil speichern"}
+          </button>
+          {saveMsg && <p className="text-xs text-[rgb(var(--muted))]">{saveMsg}</p>}
+        </div>
+      </article>
+
+      <div id="account-social-heading" className="grid gap-4 lg:grid-cols-2">
+        <article className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-[0_18px_55px_rgba(15,23,42,0.08)] sm:p-5">
+          <p className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">
+            <FiUserPlus className="h-3.5 w-3.5 text-sky-500" aria-hidden />
+            Freunde einladen
+          </p>
+          <p className="mt-2 text-sm text-[rgb(var(--fg))]">Teile deinen Profil- oder Einstiegslink mit Freund:innen.</p>
+          <div className="mt-3 rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-xs text-[rgb(var(--muted))]">
+            {inviteText}
+          </div>
+          <div className="mt-3 grid gap-2 sm:grid-cols-2">
+            <button type="button" onClick={copyInviteLink} className={`${secondaryLightButtonClass} w-full`}>
+              <FiCopy className="mr-1.5 h-3.5 w-3.5 text-sky-500" aria-hidden />
+              Link kopieren
+            </button>
+            {canNativeShare ? (
+              <button type="button" onClick={shareInvite} className={`${primaryButtonSmallClass} w-full`}>
+                <FiSend className="mr-1.5 h-3.5 w-3.5" aria-hidden />
+                Teilen
+              </button>
+            ) : (
+              <button type="button" onClick={openMailInvite} className={`${primaryButtonSmallClass} w-full`}>
+                <FiMail className="mr-1.5 h-3.5 w-3.5" aria-hidden />
+                Per E-Mail einladen
+              </button>
+            )}
+          </div>
+          {!canNativeShare ? null : (
+            <div className="mt-2">
+              <button type="button" onClick={openMailInvite} className={`${secondaryLightButtonClass} w-full`}>
+                <FiMail className="mr-1.5 h-3.5 w-3.5" aria-hidden />
+                Per E-Mail einladen
+              </button>
+            </div>
+          )}
+          {copyMsg && <p className="mt-2 text-xs text-[rgb(var(--muted))]">{copyMsg}</p>}
+        </article>
+
+        <article className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-[0_18px_55px_rgba(15,23,42,0.08)] sm:p-5">
+          <div className="flex items-center justify-between gap-2">
+            <p className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">
+              <FiMessageCircle className="h-3.5 w-3.5 text-sky-500" aria-hidden />
+              Freundschaftsanfragen & Nachrichten
+            </p>
+            <button type="button" onClick={() => void loadSocialSummary()} className={secondaryLightButtonClass}>
+              <FiRefreshCw className="mr-1.5 h-3.5 w-3.5 text-sky-500" aria-hidden />
+              Aktualisieren
+            </button>
+          </div>
+          <div className="mt-3 grid grid-cols-2 gap-2">
+            <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2">
+              <p className="text-[10px] uppercase tracking-[0.12em] text-[rgb(var(--muted))]">Anfragen</p>
+              <p className="mt-1 text-lg font-semibold text-[rgb(var(--fg))]">
+                {socialLoading ? "…" : socialSummary.pendingRequestCount}
+              </p>
+            </div>
+            <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2">
+              <p className="text-[10px] uppercase tracking-[0.12em] text-[rgb(var(--muted))]">Ungelesen</p>
+              <p className="mt-1 text-lg font-semibold text-[rgb(var(--fg))]">
+                {socialLoading ? "…" : socialSummary.unreadMessageCount}
+              </p>
+            </div>
+          </div>
+          <div className="mt-3 space-y-2">
+            {socialLoading ? (
+              <p className="text-xs text-[rgb(var(--muted))]">Lade Inbox …</p>
+            ) : (
+              <>
+                {socialSummary.friendRequests.length > 0 ? (
+                  <div className="space-y-1 rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-2">
+                    <p className="text-[10px] uppercase tracking-[0.12em] text-[rgb(var(--muted))]">Neueste Anfragen</p>
+                    {socialSummary.friendRequests.map((request) => (
+                      <div key={request.id} className="flex items-center justify-between gap-2 text-[11px]">
+                        <p className="truncate text-[rgb(var(--fg))]">
+                          <span className="font-semibold">{request.fromLabel}</span>
+                          {request.message ? ` · ${request.message}` : ""}
+                        </p>
+                        <span className="shrink-0 text-[rgb(var(--muted))]">{formatDateLabel(request.createdAt)}</span>
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
+                {socialSummary.recentMessages.length > 0 ? (
+                  <div className="space-y-1 rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-2">
+                    <p className="text-[10px] uppercase tracking-[0.12em] text-[rgb(var(--muted))]">Neueste Nachrichten</p>
+                    {socialSummary.recentMessages.map((msg) => (
+                      <div key={msg.id} className="flex items-center justify-between gap-2 text-[11px]">
+                        <p className="truncate text-[rgb(var(--fg))]">
+                          <span className="font-semibold">{msg.fromLabel}:</span> {msg.text}
+                        </p>
+                        <span className="shrink-0 text-[rgb(var(--muted))]">{formatDateLabel(msg.createdAt)}</span>
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
+                {socialSummary.friendRequests.length === 0 && socialSummary.recentMessages.length === 0 ? (
+                  <p className="text-xs text-[rgb(var(--muted))]">Noch keine Freundschaftsanfragen oder Nachrichten.</p>
+                ) : null}
+              </>
+            )}
+          </div>
+          <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+            <span className="inline-flex w-full items-center justify-center rounded-full bg-[rgb(var(--bg))] px-3 py-1.5 text-[11px] font-semibold text-[rgb(var(--muted))] ring-1 ring-[rgb(var(--border))]">
+              {chatEnabled ? "Inbox aktiv" : "Inbox im Aufbau"}
+            </span>
+            <Link href="/community" className={`${secondaryLightButtonClass} w-full`}>
+              <FiUsers className="mr-1.5 h-3.5 w-3.5 text-sky-500" aria-hidden />
+              Community ansehen
+            </Link>
+          </div>
+        </article>
+      </div>
+
+      {interestPickerOpen && (
+        <div className="fixed inset-0 z-[90] bg-slate-950/60 p-3 backdrop-blur-[2px] sm:p-5" onClick={() => setInterestPickerOpen(false)}>
+          <div
+            className="absolute inset-x-3 bottom-3 max-h-[72vh] overflow-y-auto rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-[0_24px_70px_rgba(2,6,23,0.55)] sm:inset-x-auto sm:left-1/2 sm:top-1/2 sm:w-[560px] sm:max-w-[calc(100vw-2.5rem)] sm:-translate-x-1/2 sm:-translate-y-1/2 sm:max-h-[80vh]"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="flex items-center justify-between gap-2">
+              <p className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">
+                <FiSliders className="h-3.5 w-3.5 text-sky-500" aria-hidden />
+                Interessen wählen
+              </p>
+              <button type="button" onClick={() => setInterestPickerOpen(false)} className={secondaryLightButtonClass}>
+                Schließen
+              </button>
+            </div>
+            <p className="mt-2 text-xs text-[rgb(var(--muted))]">Wähle bis zu drei Themen für dein öffentliches Profil.</p>
+            <div className="mt-3 grid gap-2 sm:grid-cols-2">
+              {TOPIC_CHOICES.map((topic) => {
+                const checked = selectedTopics.includes(topic.key);
+                const blocked = !checked && selectedTopics.length >= 3;
+                return (
+                  <label
+                    key={topic.key}
+                    className={`inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-[12px] ${
+                      checked
+                        ? "border-sky-300/50 bg-sky-500/12 text-sky-200"
+                        : "border-[rgb(var(--border))] bg-[rgb(var(--bg))] text-[rgb(var(--muted))]"
+                    } ${blocked ? "opacity-50" : ""}`}
+                  >
+                    <input
+                      type="checkbox"
+                      className="h-4 w-4 rounded border-[rgb(var(--border))] text-sky-600 focus:ring-sky-500"
+                      checked={checked}
+                      disabled={blocked}
+                      onChange={(event) => toggleTopic(topic.key, event.target.checked)}
+                    />
+                    <span>{topic.label}</span>
+                  </label>
+                );
+              })}
+            </div>
+            <div className="mt-4 flex items-center justify-between gap-2">
+              <p className="text-xs text-[rgb(var(--muted))]">{selectedTopics.length} von 3 gewählt.</p>
+              <button type="button" onClick={() => setInterestPickerOpen(false)} className={primaryButtonSmallClass}>
+                Übernehmen
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </section>
   );
 }
 
@@ -578,12 +1135,12 @@ type ProfileAndPackageSectionProps = {
 function ProfileAndPackageSection({ profile, edebatte, usage, onRefresh }: ProfileAndPackageSectionProps) {
   return (
     <section aria-labelledby="account-core-heading" className="space-y-4">
-      <div className="flex flex-col gap-1">
-        <h2 id="account-core-heading" className="text-sm font-semibold tracking-tight text-[rgb(var(--fg))]">
-          Profil &amp; eDebatte-Paket
-        </h2>
-        <p className="text-xs text-[rgb(var(--muted))]">Passe dein Profil an und behalte dein gewähltes eDebatte-Paket im Blick.</p>
-      </div>
+      <SectionHeading
+        id="account-core-heading"
+        title="Profil & eDebatte-Paket"
+        description="Passe dein Profil an und behalte dein gewähltes eDebatte-Paket im Blick."
+        icon={FiUser}
+      />
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,2.1fr)_minmax(0,1.6fr)]">
         <ProfileCard profile={profile} onRefresh={onRefresh} />
@@ -831,12 +1388,13 @@ function ProfileCard({ profile, onRefresh }: ProfileCardProps) {
           </label>
         </div>
 
-        <div className="mt-5 flex justify-end">
-          <button type="submit" className={primaryButtonClass} disabled={saving || !hasChanges}>
+        <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
+          <button type="submit" className={`${primaryButtonClass} w-full sm:w-auto`} disabled={saving || !hasChanges}>
+            <FiCheckCircle className="mr-1.5 h-3.5 w-3.5" aria-hidden />
             {saving ? "Speichert …" : "Änderungen speichern"}
           </button>
           {saveMsg && (
-            <p className="ml-3 text-xs text-[rgb(var(--muted))]" role="status" aria-live="polite">
+            <p className="text-xs text-[rgb(var(--muted))] sm:ml-1" role="status" aria-live="polite">
               {saveMsg}
             </p>
           )}
@@ -904,11 +1462,15 @@ function EDebattePackageCard({ edebatte, usage, onRefresh }: EDebattePackageCard
         <div className="flex flex-1 flex-col gap-4 px-5 pb-5 pt-4 sm:px-6 sm:pt-5">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-sky-400">eDebatte-Paket</p>
+              <p className="inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.2em] text-sky-400">
+                <FiPackage className="h-3.5 w-3.5" aria-hidden />
+                <span>eDebatte-Paket</span>
+              </p>
               <h3 className="mt-1 text-lg font-semibold text-white">{isNone ? "Noch kein eDebatte-Paket" : label}</h3>
             </div>
 
-            <span className="inline-flex items-center rounded-full bg-emerald-500/10 px-3 py-1 text-[11px] font-medium text-emerald-200 ring-1 ring-emerald-400/40">
+            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-3 py-1 text-[11px] font-medium text-emerald-200 ring-1 ring-emerald-400/40">
+              <FiCheckCircle className="h-3.5 w-3.5" aria-hidden />
               {isNone
                 ? "Noch nicht aktiviert"
                 : edebatte.status === "preorder"
@@ -966,12 +1528,14 @@ function EDebattePackageCard({ edebatte, usage, onRefresh }: EDebattePackageCard
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center justify-between gap-2 border-t border-[rgb(var(--border))] px-5 py-3 sm:px-6">
-          <div className="flex flex-wrap gap-2">
-            <button type="button" onClick={() => setShowModal(true)} className={primaryButtonSmallClass}>
+        <div className="flex flex-col gap-2 border-t border-[rgb(var(--border))] px-5 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+          <div className="grid w-full grid-cols-1 gap-2 sm:flex sm:w-auto sm:flex-wrap">
+            <button type="button" onClick={() => setShowModal(true)} className={`${primaryButtonSmallClass} w-full sm:w-auto`}>
+              <FiPackage className="mr-1.5 h-3.5 w-3.5" aria-hidden />
               {primaryCtaLabel}
             </button>
-            <Link href="/faq#edebatte" className={secondaryLightButtonClass}>
+            <Link href="/faq#edebatte" className={`${secondaryLightButtonClass} w-full sm:w-auto`}>
+              <FiSearch className="mr-1.5 h-3.5 w-3.5 text-sky-500" aria-hidden />
               Details zu eDebatte
             </Link>
           </div>
@@ -1168,12 +1732,12 @@ type PublicProfileSectionProps = {
 function PublicProfileSection({ publicProfile, onRefresh }: PublicProfileSectionProps) {
   return (
     <section aria-labelledby="account-public-heading" className="space-y-4">
-      <div className="flex flex-col gap-1">
-        <h2 id="account-public-heading" className="text-sm font-semibold tracking-tight text-[rgb(var(--fg))]">
-          Öffentliches Profil &amp; Privatsphäre
-        </h2>
-        <p className="text-xs text-[rgb(var(--muted))]">Steuere, wie du in öffentlichen Übersichten, Diskussionen und Streams angezeigt wirst.</p>
-      </div>
+      <SectionHeading
+        id="account-public-heading"
+        title="Öffentliches Profil & Privatsphäre"
+        description="Steuere, wie du in öffentlichen Übersichten, Diskussionen und Streams angezeigt wirst."
+        icon={FiGlobe}
+      />
 
       <PublicProfileCard initial={publicProfile} onRefresh={onRefresh} />
     </section>
@@ -1398,9 +1962,10 @@ function PublicProfileCard({ initial, onRefresh }: PublicProfileCardProps) {
         </div>
       </div>
 
-      <div className="mt-5 flex justify-end">
-        <div className="flex items-center gap-3">
-          <button type="submit" className={primaryButtonClass} disabled={saving || !hasChanges}>
+      <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
+        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center sm:gap-3">
+          <button type="submit" className={`${primaryButtonClass} w-full sm:w-auto`} disabled={saving || !hasChanges}>
+            <FiCheckCircle className="mr-1.5 h-3.5 w-3.5" aria-hidden />
             {saving ? "Speichert …" : "Öffentliches Profil speichern"}
           </button>
           {saveMsg && (
@@ -1448,12 +2013,12 @@ type MembershipAndRolesSectionProps = {
 function MembershipAndRolesSection({ membership, roles, membershipStatus, paymentReference }: MembershipAndRolesSectionProps) {
   return (
     <section aria-labelledby="account-membership-heading" className="space-y-4">
-      <div className="flex flex-col gap-1">
-        <h2 id="account-membership-heading" className="text-sm font-semibold tracking-tight text-[rgb(var(--fg))]">
-          Mitgliedschaft &amp; Rollen
-        </h2>
-        <p className="text-xs text-[rgb(var(--muted))]">Überblick über deine Rolle bei eDebatte und deine Mitgliedschaft.</p>
-      </div>
+      <SectionHeading
+        id="account-membership-heading"
+        title="Mitgliedschaft & Rollen"
+        description="Überblick über deine Rolle bei eDebatte und deine Mitgliedschaft."
+        icon={FiUsers}
+      />
 
       <div className="grid gap-4 md:grid-cols-2">
         <VOGMembershipCard membership={membership} membershipStatus={membershipStatus} paymentReference={paymentReference} />
@@ -1480,7 +2045,10 @@ function VOGMembershipCard({ membership, membershipStatus, paymentReference }: V
 
   return (
     <section className="rounded-3xl bg-[rgb(var(--card))] p-5 shadow-[0_18px_55px_rgba(15,23,42,0.08)] ring-1 ring-[rgb(var(--border))] sm:p-6">
-      <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-sky-600">Mitgliedschaft</p>
+      <p className="inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-sky-600">
+        <FiUsers className="h-3.5 w-3.5" aria-hidden />
+        <span>Mitgliedschaft</span>
+      </p>
       <h3 className="mt-1 text-sm font-semibold text-[rgb(var(--fg))]">{title}</h3>
       <div className="mt-1 flex items-center gap-2">
         <span className="text-xs text-[rgb(var(--muted))]">{status}</span>
@@ -1499,16 +2067,19 @@ function VOGMembershipCard({ membership, membershipStatus, paymentReference }: V
         eDebatte finanziert sich unabhängig durch viele kleine Beiträge. Details findest du im Transparenzbericht.
       </p>
 
-      <div className="mt-4 flex flex-wrap gap-2">
-        <Link href="/pricing" className={primaryButtonSmallClass}>
+      <div className="mt-4 grid gap-2 sm:flex sm:flex-wrap">
+        <Link href="/pricing" className={`${primaryButtonSmallClass} w-full sm:w-auto`}>
+          <FiPackage className="mr-1.5 h-3.5 w-3.5" aria-hidden />
           {membership.isMember ? "Paket & Preise" : "Paket wählen"}
         </Link>
         {isWaitingPayment && (
-          <Link href="/account/payment" className={secondaryLightButtonClass}>
+          <Link href="/account/payment" className={`${secondaryLightButtonClass} w-full sm:w-auto`}>
+            <FiCreditCard className="mr-1.5 h-3.5 w-3.5 text-sky-500" aria-hidden />
             Zahlungsprofil öffnen
           </Link>
         )}
-        <Link href="/transparenz" className={secondaryLightButtonClass}>
+        <Link href="/transparenz" className={`${secondaryLightButtonClass} w-full sm:w-auto`}>
+          <FiSearch className="mr-1.5 h-3.5 w-3.5 text-sky-500" aria-hidden />
           Transparenzbericht
         </Link>
       </div>
@@ -1578,12 +2149,12 @@ type SecurityAndPaymentSectionProps = {
 function SecurityAndPaymentSection({ security, payment, signature, membership }: SecurityAndPaymentSectionProps) {
   return (
     <section aria-labelledby="account-security-heading" className="space-y-4">
-      <div className="flex flex-col gap-1">
-        <h2 id="account-security-heading" className="text-sm font-semibold tracking-tight text-[rgb(var(--fg))]">
-          Sicherheit &amp; Zahlung
-        </h2>
-        <p className="text-xs text-[rgb(var(--muted))]">Login-Schutz, Zahlungsdaten und digitale Unterschrift im Überblick.</p>
-      </div>
+      <SectionHeading
+        id="account-security-heading"
+        title="Sicherheit & Zahlung"
+        description="Login-Schutz, Zahlungsdaten und digitale Unterschrift im Überblick."
+        icon={FiShield}
+      />
 
       <div className="grid gap-4 md:grid-cols-2">
         <SecurityCard security={security} />
@@ -1604,7 +2175,10 @@ function SecurityCard({ security }: SecurityCardProps) {
   const twoFaOk = security.twoFactorEnabled === undefined ? true : Boolean(security.twoFactorEnabled);
   return (
     <section className="rounded-3xl bg-[rgb(var(--card))] p-5 shadow-[0_18px_55px_rgba(15,23,42,0.08)] ring-1 ring-[rgb(var(--border))] sm:p-6">
-      <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[rgb(var(--muted))]">Sicherheit</p>
+      <p className="inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-[rgb(var(--muted))]">
+        <FiShield className="h-3.5 w-3.5 text-sky-500" aria-hidden />
+        <span>Sicherheit</span>
+      </p>
       <h3 className="mt-1 text-sm font-semibold text-[rgb(var(--fg))]">Aktueller Zustand</h3>
 
       <div className="mt-3 space-y-2 text-xs">
@@ -1619,8 +2193,9 @@ function SecurityCard({ security }: SecurityCardProps) {
         <p className="text-[11px] text-[rgb(var(--muted))]">{identPilot}</p>
       </div>
 
-      <div className="mt-4 flex flex-wrap gap-2">
-        <Link href="/account/security" className={primaryButtonSmallClass}>
+      <div className="mt-4 grid gap-2 sm:flex sm:flex-wrap">
+        <Link href="/account/security" className={`${primaryButtonSmallClass} w-full sm:w-auto`}>
+          <FiShield className="mr-1.5 h-3.5 w-3.5" aria-hidden />
           Sicherheitseinstellungen öffnen
         </Link>
       </div>
@@ -1769,7 +2344,10 @@ function IdentityCheckCard() {
     <section className="rounded-3xl bg-[rgb(var(--card))] p-5 shadow-[0_18px_55px_rgba(15,23,42,0.08)] ring-1 ring-[rgb(var(--border))] sm:p-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-amber-600">Identity Check</p>
+          <p className="inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-amber-600">
+            <FiUser className="h-3.5 w-3.5" aria-hidden />
+            <span>Identity Check</span>
+          </p>
           <h3 className="mt-1 text-sm font-semibold text-[rgb(var(--fg))]">Ausweis / Pass hinterlegen</h3>
         </div>
         <span className={badgeClass}>{hasDoc ? "hochgeladen" : "offen"}</span>
@@ -1921,20 +2499,21 @@ function IdentityCheckCard() {
 
           {message && <p className="text-[11px] text-[rgb(var(--muted))]">{message}</p>}
 
-          <div className="flex flex-wrap gap-2">
+          <div className="grid gap-2 sm:flex sm:flex-wrap">
             <button
               type="button"
               onClick={handleUpload}
-              className={primaryButtonSmallClass}
+              className={`${primaryButtonSmallClass} w-full sm:w-auto`}
               disabled={saving}
             >
+              <FiCheckCircle className="mr-1.5 h-3.5 w-3.5" aria-hidden />
               {saving ? "Speichere …" : hasDoc ? "Dokument aktualisieren" : "Dokument speichern"}
             </button>
             {doc ? (
               <button
                 type="button"
                 onClick={handleDelete}
-                className={secondaryLightButtonClass}
+                className={`${secondaryLightButtonClass} w-full sm:w-auto`}
                 disabled={saving}
               >
                 Entfernen
@@ -1982,7 +2561,10 @@ function PaymentAndSignatureCard({ payment, signature, membership }: PaymentAndS
 
   return (
     <section className="rounded-3xl bg-[rgb(var(--card))] p-5 shadow-[0_18px_55px_rgba(15,23,42,0.08)] ring-1 ring-[rgb(var(--border))] sm:p-6">
-      <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[rgb(var(--muted))]">Zahlung &amp; Unterschrift</p>
+      <p className="inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-[rgb(var(--muted))]">
+        <FiCreditCard className="h-3.5 w-3.5 text-sky-500" aria-hidden />
+        <span>Zahlung &amp; Unterschrift</span>
+      </p>
       <h3 className="mt-1 text-sm font-semibold text-[rgb(var(--fg))]">Standardkonto &amp; digitale Unterschrift</h3>
 
       <div className="mt-3 space-y-3 text-xs">
@@ -2008,11 +2590,13 @@ function PaymentAndSignatureCard({ payment, signature, membership }: PaymentAndS
         </div>
       </div>
 
-      <div className="mt-4 flex flex-wrap gap-2">
-        <Link href="/account/payment" className={primaryButtonSmallClass}>
+      <div className="mt-4 grid gap-2 sm:flex sm:flex-wrap">
+        <Link href="/account/payment" className={`${primaryButtonSmallClass} w-full sm:w-auto`}>
+          <FiCreditCard className="mr-1.5 h-3.5 w-3.5" aria-hidden />
           Zahlungsprofil bearbeiten
         </Link>
-        <Link href="/account/signature" className={secondaryLightButtonClass}>
+        <Link href="/account/signature" className={`${secondaryLightButtonClass} w-full sm:w-auto`}>
+          <FiCheckCircle className="mr-1.5 h-3.5 w-3.5 text-sky-500" aria-hidden />
           Digitale Unterschrift verwalten
         </Link>
       </div>
@@ -2071,8 +2655,11 @@ function AdvancedFeaturesSection({ features, featureInterests, onRefresh }: Adva
   return (
     <section aria-labelledby="account-advanced-heading" className="space-y-3">
       <div className="flex items-center justify-between gap-2">
-        <h2 id="account-advanced-heading" className="text-sm font-semibold tracking-tight text-[rgb(var(--fg))]">
-          Erweiterte Funktionen (Pilotphase)
+        <h2 id="account-advanced-heading" className="inline-flex items-center gap-2 text-sm font-semibold tracking-tight text-[rgb(var(--fg))]">
+          <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-sky-500/10 text-sky-400 ring-1 ring-sky-300/30">
+            <FiSliders className="h-3.5 w-3.5" aria-hidden />
+          </span>
+          <span>Erweiterte Funktionen (Pilotphase)</span>
         </h2>
         <span className="inline-flex items-center rounded-full bg-brand-grad px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-white shadow-sm">
           Early Access
@@ -2100,8 +2687,9 @@ function AdvancedFeaturesSection({ features, featureInterests, onRefresh }: Adva
           />
         ))}
       </div>
-      <div className="flex flex-wrap items-center justify-end gap-3">
-        <button type="button" className={primaryButtonClass} disabled={saving} onClick={saveInterests}>
+      <div className="flex flex-col items-stretch gap-2 sm:flex-row sm:items-center sm:justify-end sm:gap-3">
+        <button type="button" className={`${primaryButtonClass} w-full sm:w-auto`} disabled={saving} onClick={saveInterests}>
+          <FiCheckCircle className="mr-1.5 h-3.5 w-3.5" aria-hidden />
           {saving ? "Speichert …" : "Interessen speichern"}
         </button>
         {saveMsg && (
