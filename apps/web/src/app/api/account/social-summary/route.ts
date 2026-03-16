@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { ObjectId, coreCol } from "@core/db/triMongo";
+import { assertStoreConfigured, ObjectId, coreCol } from "@core/db/triMongo";
 import { readSession } from "@/utils/session";
 
 export const runtime = "nodejs";
@@ -47,6 +47,8 @@ function normalizeId(value: unknown): string {
 }
 
 export async function GET() {
+  // Founder/social/inbox collections are intentionally stored in triMongo core.
+  assertStoreConfigured("core", "api/account/social-summary");
   const session = await readSession();
   const userId = session?.uid ?? null;
   if (!userId) {

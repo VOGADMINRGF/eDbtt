@@ -1,7 +1,8 @@
-import { getCol, ObjectId } from "@core/db/triMongo";
+import { assertStoreConfigured, getCol, ObjectId } from "@core/db/triMongo";
 
 export const FOUNDER_ACCOUNT_EMAIL = "rgf@voiceopengov.org";
 export const FOUNDER_WELCOME_MESSAGE_KIND = "founder_welcome";
+// Social/onboarding founder flows are part of the operational core store.
 
 const FOUNDER_DEFAULT_NAME = "Ricky";
 
@@ -85,6 +86,7 @@ function founderCandidateScore(user: FounderCandidateDoc) {
 }
 
 export async function resolveFounderAccount(excludeUserId?: ObjectId | null) {
+  assertStoreConfigured("core", "onboarding/founderWelcome.resolveFounderAccount");
   const users = await getCol<FounderCandidateDoc>("users");
   const filters: Array<Record<string, unknown>> = [
     { email: FOUNDER_ACCOUNT_EMAIL },
@@ -147,6 +149,7 @@ export async function ensureFounderWelcomeForUser(
   targetUserIdInput: string | ObjectId,
   options: FounderFlowOptions = {},
 ): Promise<FounderFlowResult> {
+  assertStoreConfigured("core", "onboarding/founderWelcome.ensureFounderWelcomeForUser");
   const source = options.source ?? "manual";
   const targetUserId = toObjectId(targetUserIdInput);
   if (!targetUserId) {
@@ -306,6 +309,7 @@ export async function ensureFounderWelcomeForUser(
 export async function backfillFounderWelcomeForExistingUsers(
   options: FounderBackfillOptions = {},
 ): Promise<FounderBackfillResult> {
+  assertStoreConfigured("core", "onboarding/founderWelcome.backfillFounderWelcomeForExistingUsers");
   const usersCol = await getCol<FounderCandidateDoc>("users");
   const source = options.source ?? "backfill";
   const limit = Math.max(1, Math.min(500, Number(options.limit) || 150));

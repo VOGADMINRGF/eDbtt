@@ -2,7 +2,7 @@ import crypto from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import type { Collection } from "mongodb";
 import { z } from "zod";
-import { ObjectId, getCol } from "@core/db/triMongo";
+import { assertStoreConfigured, ObjectId, getCol } from "@core/db/triMongo";
 import { getPiiProfile, upsertPiiProfile } from "@core/pii/userProfileService";
 import { readSession } from "@/utils/session";
 import { logOnboardingEvent } from "@/lib/onboarding/events";
@@ -126,6 +126,8 @@ async function loadPersonalPayload(userId: string) {
 }
 
 export async function GET() {
+  assertStoreConfigured("core", "api/account/personal.GET");
+  assertStoreConfigured("pii", "api/account/personal.GET");
   const session = await readSession();
   const userId = session?.uid ?? null;
   if (!userId) {
@@ -141,6 +143,8 @@ export async function GET() {
 }
 
 export async function PATCH(req: NextRequest) {
+  assertStoreConfigured("core", "api/account/personal.PATCH");
+  assertStoreConfigured("pii", "api/account/personal.PATCH");
   const session = await readSession();
   const userId = session?.uid ?? null;
   if (!userId || !ObjectId.isValid(userId)) {

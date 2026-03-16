@@ -7,12 +7,18 @@ Dieses Dokument ist der verbindliche Architektur-Vertrag. Alle Patches muessen i
 **triMongo ist die einzige kanonische Datenquelle.**  
 Wir nutzen 4 logisch getrennte MongoDB-Datenbanken:
 
-- **core**: Entities wie Statements, Candidates, Drafts, Reports, Moderation/Flags, Factcheck-Jobs, etc.
+- **core**: Entities wie Statements, Candidates, Drafts, Reports, Moderation/Flags, Factcheck-Jobs und operative User-/Social-/Onboarding-Daten (z.B. `users`, `social_friend_requests`, `social_messages`, `user_referrals`, `product_onboarding_events`, Preference-Snapshots).
 - **votes**: Votes, Swipe-Events, Aggregationen
 - **pii**: sensible User/Profile/Verifizierung
 - **ai_core_reader**: read-only Spiegel fuer AI/Analyse-Workloads (keine Writes)
 
 **Regel:** Keine zweite Wahrheit. Kein Prisma als kanonischer Speicher. **ai_core_reader** ist read-only.
+
+### Store-Grenzen (wichtig fuer Onboarding/Social)
+
+- Founder-Welcome, Founder-Backfill, Social-Summary, Friend Requests, Inbox-Messages und Referrals laufen auf **`core`**.
+- **`votes`** ist fuer diese Flows nicht zustaendig (nur Vote-/Swipe-/Abstimmungsdaten).
+- **`pii`** ist fuer Credentials und Identitaets-/Adressdaten zustaendig, nicht fuer Social-/Inbox-Collections.
 
 ## 2) Relationen
 
@@ -51,4 +57,3 @@ Prisma darf **nicht** notwendig sein, um MVP-Flows laufen zu lassen.
 
 Vor jedem Patch muss `scripts/codex-preflight.mjs` laufen.  
 Bei Verstoessen (Strict Mode) darf Codex keinen Patch anwenden.
-

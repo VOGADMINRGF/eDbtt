@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { requireAdminOrResponse } from "@/lib/server/auth/admin";
+import { assertStoreConfigured } from "@core/db/triMongo";
 import {
   backfillFounderWelcomeForExistingUsers,
   ensureFounderWelcomeForUser,
@@ -17,6 +18,7 @@ const schema = z.object({
 });
 
 export async function POST(req: NextRequest) {
+  assertStoreConfigured("core", "api/admin/onboarding/founder-welcome/backfill");
   const gate = await requireAdminOrResponse(req);
   if (gate instanceof Response) return gate;
 
@@ -73,4 +75,3 @@ export async function POST(req: NextRequest) {
 
   return NextResponse.json({ ok: true, mode: "batch", summary });
 }
-

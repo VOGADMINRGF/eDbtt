@@ -1,5 +1,5 @@
 import { getPiiProfile } from "@core/pii/userProfileService";
-import { ObjectId, getCol } from "@core/db/triMongo";
+import { assertStoreConfigured, ObjectId, getCol } from "@core/db/triMongo";
 import { TOPIC_CHOICES, type TopicKey } from "@features/interests/topics";
 
 export const MIN_INTEREST_COUNT = 3;
@@ -237,6 +237,7 @@ export function buildUserPreferenceSnapshot(
 }
 
 export async function getUserPreferenceSnapshot(userId: string): Promise<UserPreferenceSnapshot | null> {
+  assertStoreConfigured("core", "onboarding/preferenceSnapshot.getUserPreferenceSnapshot");
   if (!ObjectId.isValid(userId)) return null;
   const users = await getCol<UserProfileDoc>("users");
   const user = await users.findOne(
@@ -257,6 +258,7 @@ export async function getUserPreferenceSnapshot(userId: string): Promise<UserPre
 }
 
 export async function refreshUserPreferenceSnapshot(userId: string | ObjectId) {
+  assertStoreConfigured("core", "onboarding/preferenceSnapshot.refreshUserPreferenceSnapshot");
   const oid =
     typeof userId === "string"
       ? ObjectId.isValid(userId)
@@ -438,4 +440,3 @@ export function getPersonalizedStartItems<T extends PersonalizedContentCandidate
     .sort((a, b) => b.score.totalScore - a.score.totalScore);
   return ranked.slice(0, Math.max(1, limit));
 }
-

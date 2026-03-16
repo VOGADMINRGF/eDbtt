@@ -11,6 +11,20 @@ const CFG: Record<TriStore, Conn> = {
   ai_core_reader: { uri: process.env.AI_CORE_READER_MONGODB_URI, db: process.env.AI_CORE_READER_DB_NAME },
 };
 
+const STORE_ENV_KEYS: Record<TriStore, { uri: string; db: string }> = {
+  core: { uri: "CORE_MONGODB_URI", db: "CORE_DB_NAME" },
+  votes: { uri: "VOTES_MONGODB_URI", db: "VOTES_DB_NAME" },
+  pii: { uri: "PII_MONGODB_URI", db: "PII_DB_NAME" },
+  ai_core_reader: { uri: "AI_CORE_READER_MONGODB_URI", db: "AI_CORE_READER_DB_NAME" },
+};
+
+const STORE_OWNERSHIP_HINT: Record<TriStore, string> = {
+  core: "core = user/social/onboarding/referral/founder flows (users, social_friend_requests, social_messages, user_referrals, onboarding events, preference snapshots).",
+  votes: "votes = vote/swipe/abstimmungsdaten only.",
+  pii: "pii = credentials + identitaet/adresse/profil-PII only.",
+  ai_core_reader: "ai_core_reader = read-only mirror for analysis workloads.",
+};
+
 declare global {
   // eslint-disable-next-line no-var
   var __TRIMONGO__: {
@@ -20,11 +34,28 @@ declare global {
 }
 const G = (globalThis as any).__TRIMONGO__ ??= { clients: {}, dbs: {} };
 
+function configError(
+  store: TriStore,
+  missing: "uri" | "db",
+  context?: string,
+) {
+  const envKey = missing === "uri" ? STORE_ENV_KEYS[store].uri : STORE_ENV_KEYS[store].db;
+  const base = `[triMongo] Missing ${missing.toUpperCase()} for store "${store}" (expected env ${envKey})`;
+  const where = context ? ` in ${context}` : "";
+  return new Error(`${base}${where}. ${STORE_OWNERSHIP_HINT[store]}`);
+}
+
+export function assertStoreConfigured(store: TriStore, context?: string) {
+  const cfg = CFG[store];
+  if (!cfg?.uri) throw configError(store, "uri", context);
+  if (!cfg?.db) throw configError(store, "db", context);
+}
+
 /** Liefert (und cached) den MongoClient für einen Store. */
 async function getClient(store: TriStore): Promise<MongoClient> {
   if (!G.clients[store]) {
+    assertStoreConfigured(store, "triMongo.getClient");
     const { uri } = CFG[store];
-    if (!uri) throw new Error(`[triMongo] Missing URI for store "${store}"`);
     G.clients[store] = new MongoClient(uri, {
       connectTimeoutMS: 15_000,
       serverSelectionTimeoutMS: 15_000,
@@ -44,8 +75,8 @@ async function getClient(store: TriStore): Promise<MongoClient> {
 /** Liefert (und cached) die Db-Instanz für einen Store. */
 export async function getDb(store: TriStore = "core"): Promise<Db> {
   if (!G.dbs[store]) {
+    assertStoreConfigured(store, "triMongo.getDb");
     const { db } = CFG[store];
-    if (!db) throw new Error(`[triMongo] Missing DB name for store "${store}"`);
     const client = await getClient(store);
     G.dbs[store] = client.db(db);
   }

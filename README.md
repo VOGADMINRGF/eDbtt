@@ -10,6 +10,24 @@ eDbtt bündelt die eDebatte-Apps (Next.js 15 App Router), die Domain-Logik und d
 - **packages/tri-mongo** – DB-Abstraktion für `core`, `votes`, `pii`, `ai_reader`.
 - **packages/ui** u. a. – gemeinsame UI-Bausteine.
 
+## TriStore Ownership (operativ)
+
+Für laufende Produkt-Flows gilt die folgende klare Zuordnung:
+
+- **`core`**
+  Für User-Basisdaten, Founder-Welcome, Backfill, Social-Summary, Friend Requests, Inbox-Messages,
+  Referrals, Onboarding-Events und Preference-Snapshots.
+- **`votes`**
+  Nur für Swipe-/Vote-/Abstimmungsdaten und vote-spezifische Collections.
+- **`pii`**
+  Für Credentials sowie Identitäts-/Adress-/Registrierungsdaten (PII-Profil).
+
+Wichtig:
+
+- Founder-/Social-/Backfill-Logik gehoert in **`core`**.
+- Vote-/Swipe-Daten gehoeren in **`votes`**.
+- PII-Daten gehoeren in **`pii`** und nicht in Social-/Inbox-Flows.
+
 ## Tech-Stack
 
 - Node.js 20, pnpm 10.x

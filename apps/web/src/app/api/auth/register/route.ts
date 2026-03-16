@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { createHash } from "crypto";
-import { getCol, ObjectId } from "@core/db/triMongo";
+import { assertStoreConfigured, getCol, ObjectId } from "@core/db/triMongo";
 import { piiCol } from "@core/db/db/triMongo";
 import { CREDENTIAL_COLLECTION } from "../sharedAuth";
 import { createEmailVerificationToken } from "@core/auth/emailVerificationService";
@@ -252,6 +252,9 @@ function hashedClientKey(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  // Register touches core (users/social/referrals) and pii (credentials/profile).
+  assertStoreConfigured("core", "api/auth/register");
+  assertStoreConfigured("pii", "api/auth/register");
   const json = await req.json().catch(() => null);
   const parsed = schema.safeParse(json);
   if (!parsed.success) {
