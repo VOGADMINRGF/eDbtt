@@ -54,6 +54,14 @@ export async function GET() {
   }
 
   const requestFilter = userMatchFilter(userId);
+  const pendingRequestFilter = {
+    $and: [
+      requestFilter,
+      {
+        $or: [{ status: "pending" }, { status: "PENDING" }],
+      },
+    ],
+  };
   const unreadMessageFilter = {
     $and: [
       userMatchFilter(userId),
@@ -68,9 +76,9 @@ export async function GET() {
   const usersCol = await coreCol<any>("users");
 
   const [pendingRequestCount, unreadMessageCount, friendRequestDocs, recentMessageDocs] = await Promise.all([
-    requestCol.countDocuments({ ...requestFilter, status: "pending" }),
+    requestCol.countDocuments(pendingRequestFilter),
     messageCol.countDocuments(unreadMessageFilter),
-    requestCol.find({ ...requestFilter, status: "pending" }).sort({ createdAt: -1 }).limit(5).toArray(),
+    requestCol.find(pendingRequestFilter).sort({ createdAt: -1 }).limit(5).toArray(),
     messageCol.find(requestFilter).sort({ createdAt: -1 }).limit(6).toArray(),
   ]);
 
@@ -126,6 +134,14 @@ export async function GET() {
       createdAt: toIso(doc.createdAt),
       read: Boolean(doc.readAt),
     };
+  });
+
+  console.info("[social-summary] counts", {
+    userId,
+    pendingRequestCount,
+    unreadMessageCount,
+    friendRequestPreviewCount: friendRequests.length,
+    recentMessagePreviewCount: recentMessages.length,
   });
 
   return NextResponse.json({

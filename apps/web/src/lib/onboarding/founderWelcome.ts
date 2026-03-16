@@ -19,14 +19,45 @@ type FounderCandidateDoc = {
   profile?: {
     displayName?: string | null;
     systemAccountType?: string | null;
+    onboarding?: {
+      founderFriendRequestSentAt?: string | Date | null;
+      founderWelcomeMessageSentAt?: string | Date | null;
+    } | null;
   };
 };
 
 type FounderFlowResult = {
+  targetUserId: string;
   founderUserId: string | null;
   founderDisplayName: string | null;
   friendRequestCreated: boolean;
+  friendRequestExists: boolean;
   welcomeMessageCreated: boolean;
+  welcomeMessageExists: boolean;
+  onboardingMarkerUpdated: boolean;
+  skipped?: boolean;
+  reason?: string;
+};
+
+type FounderFlowOptions = {
+  source?: "register" | "backfill" | "admin_api" | "manual";
+};
+
+type FounderBackfillOptions = {
+  userId?: string | ObjectId;
+  limit?: number;
+  includeAlreadyMarked?: boolean;
+  source?: "backfill" | "admin_api" | "manual";
+};
+
+type FounderBackfillResult = {
+  processed: number;
+  skipped: number;
+  friendRequestsCreated: number;
+  welcomeMessagesCreated: number;
+  onboardingMarkersUpdated: number;
+  users: FounderFlowResult[];
+  founderUserId: string | null;
 };
 
 function normalizeRole(value: unknown) {
@@ -103,28 +134,106 @@ export async function resolveFounderAccount(excludeUserId?: ObjectId | null) {
 }
 
 export async function ensureFounderWelcomeFlow(newUserId: ObjectId): Promise<FounderFlowResult> {
-  const founder = await resolveFounderAccount(newUserId);
-  if (!founder?.userId) {
+  return ensureFounderWelcomeForUser(newUserId, { source: "register" });
+}
+
+function toObjectId(value: string | ObjectId) {
+  if (value instanceof ObjectId) return value;
+  if (!ObjectId.isValid(value)) return null;
+  return new ObjectId(value);
+}
+
+export async function ensureFounderWelcomeForUser(
+  targetUserIdInput: string | ObjectId,
+  options: FounderFlowOptions = {},
+): Promise<FounderFlowResult> {
+  const source = options.source ?? "manual";
+  const targetUserId = toObjectId(targetUserIdInput);
+  if (!targetUserId) {
     return {
+      targetUserId: String(targetUserIdInput),
       founderUserId: null,
       founderDisplayName: null,
       friendRequestCreated: false,
+      friendRequestExists: false,
       welcomeMessageCreated: false,
+      welcomeMessageExists: false,
+      onboardingMarkerUpdated: false,
+      skipped: true,
+      reason: "invalid_user_id",
+    };
+  }
+
+  const usersCol = await getCol("users");
+  const targetDoc = await usersCol.findOne(
+    { _id: targetUserId },
+    { projection: { profile: 1, email: 1 } },
+  );
+  if (!targetDoc?._id) {
+    return {
+      targetUserId: String(targetUserId),
+      founderUserId: null,
+      founderDisplayName: null,
+      friendRequestCreated: false,
+      friendRequestExists: false,
+      welcomeMessageCreated: false,
+      welcomeMessageExists: false,
+      onboardingMarkerUpdated: false,
+      skipped: true,
+      reason: "user_not_found",
+    };
+  }
+
+  const founder = await resolveFounderAccount(targetUserId);
+  if (!founder?.userId) {
+    console.info("[founder-welcome] founder not found", {
+      source,
+      targetUserId: String(targetUserId),
+    });
+    return {
+      targetUserId: String(targetUserId),
+      founderUserId: null,
+      founderDisplayName: null,
+      friendRequestCreated: false,
+      friendRequestExists: false,
+      welcomeMessageCreated: false,
+      welcomeMessageExists: false,
+      onboardingMarkerUpdated: false,
+      skipped: true,
+      reason: "founder_not_found",
     };
   }
 
   const founderId = String(founder.userId);
-  const userId = String(newUserId);
+  const userId = String(targetUserId);
+  if (founderId === userId) {
+    return {
+      targetUserId: userId,
+      founderUserId: founderId,
+      founderDisplayName: founder.displayName ?? null,
+      friendRequestCreated: false,
+      friendRequestExists: false,
+      welcomeMessageCreated: false,
+      welcomeMessageExists: false,
+      onboardingMarkerUpdated: false,
+      skipped: true,
+      reason: "target_is_founder",
+    };
+  }
+
   const now = new Date();
   const friendRequestsCol = await getCol("social_friend_requests");
   const messagesCol = await getCol("social_messages");
 
+  let friendRequestExists = false;
+  let friendRequestCreated = false;
   const existingRequest = await friendRequestsCol.findOne({
     fromUserId: founderId,
     toUserId: userId,
   });
-  let friendRequestCreated = false;
-  if (!existingRequest?._id) {
+  if (existingRequest?._id) {
+    friendRequestExists = true;
+  } else {
     await friendRequestsCol.insertOne({
       fromUserId: founderId,
       toUserId: userId,
@@ -134,6 +243,7 @@ export async function ensureFounderWelcomeFlow(newUserId: ObjectId): Promise<Fou
       createdAt: now,
       updatedAt: now,
     });
+    friendRequestExists = true;
     friendRequestCreated = true;
   }
 
@@ -152,11 +262,132 @@ export async function ensureFounderWelcomeFlow(newUserId: ObjectId): Promise<Fou
     },
     { upsert: true },
   );
+  const welcomeMessageCreated = Boolean(messageWrite.upsertedId);
+  const welcomeMessageExists = welcomeMessageCreated || messageWrite.matchedCount > 0;
 
-  return {
+  const setOps: Record<string, unknown> = {};
+  if (
+    friendRequestExists &&
+    !targetDoc?.profile?.onboarding?.founderFriendRequestSentAt
+  ) {
+    setOps["profile.onboarding.founderFriendRequestSentAt"] = now;
+  }
+  if (
+    welcomeMessageExists &&
+    !targetDoc?.profile?.onboarding?.founderWelcomeMessageSentAt
+  ) {
+    setOps["profile.onboarding.founderWelcomeMessageSentAt"] = now;
+  }
+  const onboardingMarkerUpdated = Object.keys(setOps).length > 0;
+  if (onboardingMarkerUpdated) {
+    setOps.updatedAt = now;
+    await usersCol.updateOne({ _id: targetUserId }, { $set: setOps });
+  }
+
+  const result: FounderFlowResult = {
+    targetUserId: userId,
     founderUserId: founderId,
     founderDisplayName: founder.displayName ?? null,
     friendRequestCreated,
-    welcomeMessageCreated: Boolean(messageWrite.upsertedId),
+    friendRequestExists,
+    welcomeMessageCreated,
+    welcomeMessageExists,
+    onboardingMarkerUpdated,
   };
+
+  console.info("[founder-welcome] ensured", {
+    source,
+    ...result,
+  });
+
+  return result;
+}
+
+export async function backfillFounderWelcomeForExistingUsers(
+  options: FounderBackfillOptions = {},
+): Promise<FounderBackfillResult> {
+  const usersCol = await getCol<FounderCandidateDoc>("users");
+  const source = options.source ?? "backfill";
+  const limit = Math.max(1, Math.min(500, Number(options.limit) || 150));
+
+  const founder = await resolveFounderAccount(null);
+  const founderUserId = founder?.userId ? String(founder.userId) : null;
+  if (!founderUserId) {
+    console.info("[founder-welcome-backfill] founder not found");
+    return {
+      processed: 0,
+      skipped: 0,
+      friendRequestsCreated: 0,
+      welcomeMessagesCreated: 0,
+      onboardingMarkersUpdated: 0,
+      users: [],
+      founderUserId: null,
+    };
+  }
+
+  let targetIds: ObjectId[] = [];
+  if (options.userId) {
+    const oid = toObjectId(options.userId);
+    if (oid && String(oid) !== founderUserId) {
+      targetIds = [oid];
+    }
+  } else if (options.includeAlreadyMarked) {
+    const docs = await usersCol
+      .find(
+        { _id: { $ne: new ObjectId(founderUserId) } },
+        { projection: { _id: 1 } },
+      )
+      .limit(limit)
+      .toArray();
+    targetIds = docs.map((doc) => doc._id);
+  } else {
+    const docs = await usersCol
+      .find(
+        {
+          _id: { $ne: new ObjectId(founderUserId) },
+          $or: [
+            { "profile.onboarding.founderFriendRequestSentAt": { $exists: false } },
+            { "profile.onboarding.founderWelcomeMessageSentAt": { $exists: false } },
+          ],
+        },
+        { projection: { _id: 1 } },
+      )
+      .limit(limit)
+      .toArray();
+    targetIds = docs.map((doc) => doc._id);
+  }
+
+  const users: FounderFlowResult[] = [];
+  let skipped = 0;
+  let friendRequestsCreated = 0;
+  let welcomeMessagesCreated = 0;
+  let onboardingMarkersUpdated = 0;
+
+  for (const targetId of targetIds) {
+    const result = await ensureFounderWelcomeForUser(targetId, { source });
+    users.push(result);
+    if (result.skipped) {
+      skipped += 1;
+      continue;
+    }
+    if (result.friendRequestCreated) friendRequestsCreated += 1;
+    if (result.welcomeMessageCreated) welcomeMessagesCreated += 1;
+    if (result.onboardingMarkerUpdated) onboardingMarkersUpdated += 1;
+  }
+
+  const summary: FounderBackfillResult = {
+    processed: users.length,
+    skipped,
+    friendRequestsCreated,
+    welcomeMessagesCreated,
+    onboardingMarkersUpdated,
+    users,
+    founderUserId,
+  };
+
+  console.info("[founder-welcome-backfill] completed", {
+    source,
+    ...summary,
+  });
+  return summary;
 }

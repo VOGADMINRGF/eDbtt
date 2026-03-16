@@ -843,8 +843,6 @@ function CompactProfileHubSection({
           </span>
         </div>
 
-        <p className="mt-2.5 text-[13px] leading-relaxed text-[rgb(var(--muted))]">{bioPreview}</p>
-
         <div className="mt-3 grid grid-cols-3 gap-1.5">
           <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-2.5 py-2">
             <p className="inline-flex items-center gap-1 text-[10px] text-[rgb(var(--muted))]">

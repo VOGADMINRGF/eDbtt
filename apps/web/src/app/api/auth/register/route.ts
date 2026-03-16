@@ -14,7 +14,7 @@ import { publicOrigin } from "@/utils/publicOrigin";
 import { ensureBasicPiiProfile } from "@core/pii/userProfileService";
 import { incrementRateLimit } from "@/lib/security/rate-limit";
 import { verifyHumanTokenDetailed } from "@/lib/security/human-token";
-import { ensureFounderWelcomeFlow } from "@/lib/onboarding/founderWelcome";
+import { ensureFounderWelcomeForUser } from "@/lib/onboarding/founderWelcome";
 import { logOnboardingEvent } from "@/lib/onboarding/events";
 import { refreshUserPreferenceSnapshot } from "@/lib/onboarding/preferenceSnapshot";
 
@@ -404,27 +404,7 @@ export async function POST(req: NextRequest) {
 
   let founderWelcomeResult: FounderWelcomeResult = null;
   try {
-    founderWelcomeResult = await ensureFounderWelcomeFlow(userId);
-    if (founderWelcomeResult?.founderUserId) {
-      await Users.updateOne(
-        { _id: userId, "profile.onboarding.founderFriendRequestSentAt": { $exists: false } },
-        {
-          $set: {
-            "profile.onboarding.founderFriendRequestSentAt": now,
-            updatedAt: now,
-          },
-        },
-      );
-      await Users.updateOne(
-        { _id: userId, "profile.onboarding.founderWelcomeMessageSentAt": { $exists: false } },
-        {
-          $set: {
-            "profile.onboarding.founderWelcomeMessageSentAt": now,
-            updatedAt: now,
-          },
-        },
-      );
-    }
+    founderWelcomeResult = await ensureFounderWelcomeForUser(userId, { source: "register" });
     if (founderWelcomeResult?.friendRequestCreated) {
       await logOnboardingEvent("founder_friend_request_created", {
         userId: String(userId),
