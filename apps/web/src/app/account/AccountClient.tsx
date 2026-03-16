@@ -20,6 +20,7 @@ import {
   FiCheckCircle,
   FiCopy,
   FiCreditCard,
+  FiEdit2,
   FiGlobe,
   FiMail,
   FiMessageCircle,
@@ -463,6 +464,11 @@ function CompactProfileHubSection({
   const bioPreview = bio.trim()
     ? truncateText(bio.trim(), 130)
     : "Beschreibe kurz, wofür du dich politisch oder lokal einsetzt.";
+  const hasPendingRequests = socialSummary.pendingRequestCount > 0;
+  const hasUnreadMessages = socialSummary.unreadMessageCount > 0;
+  const hasSelectedInterests = selectedTopics.length > 0;
+  const inboxIsEmpty =
+    !socialLoading && socialSummary.friendRequests.length === 0 && socialSummary.recentMessages.length === 0;
 
   const verificationLabel = security.verificationLevel
     ? security.verificationLevel === "strong"
@@ -653,73 +659,86 @@ function CompactProfileHubSection({
   };
 
   return (
-    <section className="space-y-4">
-      <article className="overflow-hidden rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-[0_18px_55px_rgba(15,23,42,0.08)] sm:p-5">
-        <div className="flex items-start justify-between gap-3">
+    <section className="space-y-3 pb-[calc(env(safe-area-inset-bottom)+0.3rem)]">
+      <article className="overflow-hidden rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-3.5 shadow-[0_16px_48px_rgba(15,23,42,0.08)] sm:p-5">
+        <div className="flex items-start justify-between gap-2.5">
           <div className="flex min-w-0 items-center gap-3">
-            <div className="relative inline-flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-br from-sky-500 via-cyan-500 to-emerald-500 text-base font-semibold text-white">
+            <div
+              className="relative inline-flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-br from-sky-500 via-cyan-500 to-emerald-500 text-base font-semibold text-white ring-1 ring-sky-300/35"
+              aria-label="Avatar (Edit vorbereitet)"
+            >
               {profile.avatarUrl ? (
                 <Image src={profile.avatarUrl} alt={displayNamePreview} fill sizes="56px" className="object-cover" />
               ) : (
                 <span>{displayNamePreview.slice(0, 2).toUpperCase()}</span>
               )}
+              <span className="absolute -bottom-1 -right-1 inline-flex h-5 w-5 items-center justify-center rounded-full bg-[rgb(var(--card))] text-sky-400 ring-1 ring-[rgb(var(--border))]">
+                <FiEdit2 className="h-2.5 w-2.5" aria-hidden />
+              </span>
             </div>
             <div className="min-w-0">
-              <p className="truncate text-base font-semibold text-[rgb(var(--fg))]">{displayNamePreview}</p>
-              <p className="truncate text-xs text-[rgb(var(--muted))]">{taglinePreview}</p>
-              <p className="truncate text-[11px] text-[rgb(var(--muted))]">{profile.email}</p>
+              <p className="truncate text-[1.02rem] font-semibold text-[rgb(var(--fg))]">{displayNamePreview}</p>
+              <p className="truncate text-[12px] text-[rgb(var(--muted))]">{taglinePreview}</p>
             </div>
           </div>
-          <button type="button" onClick={() => setProfileEditorOpen(true)} className={secondaryLightButtonClass}>
-            <FiUser className="mr-1.5 h-3.5 w-3.5 text-sky-500" aria-hidden />
-            Bearbeiten
-          </button>
+          <span className="inline-flex items-center rounded-full bg-[rgb(var(--bg))] px-2 py-1 text-[10px] font-medium text-[rgb(var(--muted))] ring-1 ring-[rgb(var(--border))]">
+            Profil-Hub
+          </span>
         </div>
 
-        <p className="mt-3 text-sm text-[rgb(var(--muted))]">{bioPreview}</p>
+        <p className="mt-2.5 text-[13px] leading-relaxed text-[rgb(var(--muted))]">{bioPreview}</p>
 
-        <div className="mt-4 grid grid-cols-3 gap-2">
-          <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2">
-            <p className="inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.14em] text-[rgb(var(--muted))]">
+        <div className="mt-3 grid grid-cols-3 gap-1.5">
+          <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-2.5 py-2">
+            <p className="inline-flex items-center gap-1 text-[10px] text-[rgb(var(--muted))]">
               <FiSliders className="h-3.5 w-3.5 text-sky-500" aria-hidden />
               Interessen
             </p>
-            <p className="mt-1 text-base font-semibold text-[rgb(var(--fg))]">{selectedTopics.length}/3</p>
+            <p className="mt-0.5 text-[15px] font-semibold text-[rgb(var(--fg))]">{selectedTopics.length}/3</p>
           </div>
-          <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2">
-            <p className="inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.14em] text-[rgb(var(--muted))]">
+          <div
+            className={`rounded-xl border px-2.5 py-2 ${
+              hasPendingRequests
+                ? "border-emerald-400/45 bg-emerald-500/10"
+                : "border-[rgb(var(--border))] bg-[rgb(var(--bg))]"
+            }`}
+          >
+            <p className="inline-flex items-center gap-1 text-[10px] text-[rgb(var(--muted))]">
               <FiUserPlus className="h-3.5 w-3.5 text-sky-500" aria-hidden />
               Anfragen
             </p>
-            <p className="mt-1 text-base font-semibold text-[rgb(var(--fg))]">
+            <p className={`mt-0.5 text-[15px] font-semibold ${hasPendingRequests ? "text-emerald-200" : "text-[rgb(var(--fg))]"}`}>
               {socialLoading ? "…" : socialSummary.pendingRequestCount}
             </p>
           </div>
-          <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2">
-            <p className="inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.14em] text-[rgb(var(--muted))]">
+          <div
+            className={`rounded-xl border px-2.5 py-2 ${
+              hasUnreadMessages
+                ? "border-sky-400/45 bg-sky-500/10"
+                : "border-[rgb(var(--border))] bg-[rgb(var(--bg))]"
+            }`}
+          >
+            <p className="inline-flex items-center gap-1 text-[10px] text-[rgb(var(--muted))]">
               <FiMessageCircle className="h-3.5 w-3.5 text-sky-500" aria-hidden />
               Ungelesen
             </p>
-            <p className="mt-1 text-base font-semibold text-[rgb(var(--fg))]">
+            <p className={`mt-0.5 text-[15px] font-semibold ${hasUnreadMessages ? "text-sky-200" : "text-[rgb(var(--fg))]"}`}>
               {socialLoading ? "…" : socialSummary.unreadMessageCount}
             </p>
           </div>
         </div>
 
-        <div className="mt-3 flex flex-wrap gap-2 text-[11px]">
+        <div className="mt-2.5 flex flex-wrap gap-1.5 text-[11px]">
           <span className="inline-flex items-center gap-1 rounded-full bg-[rgb(var(--bg))] px-2.5 py-1 text-[rgb(var(--muted))] ring-1 ring-[rgb(var(--border))]">
             <FiShield className="h-3.5 w-3.5 text-sky-500" aria-hidden />
             {verificationLabel}
-          </span>
-          <span className="inline-flex items-center gap-1 rounded-full bg-[rgb(var(--bg))] px-2.5 py-1 text-[rgb(var(--muted))] ring-1 ring-[rgb(var(--border))]">
-            <FiPackage className="h-3.5 w-3.5 text-sky-500" aria-hidden />
-            {packageLabel}
           </span>
           <span className="inline-flex items-center gap-1 rounded-full bg-[rgb(var(--bg))] px-2.5 py-1 text-[rgb(var(--muted))] ring-1 ring-[rgb(var(--border))]">
             <FiGlobe className="h-3.5 w-3.5 text-sky-500" aria-hidden />
             {visibilityLabel}
           </span>
         </div>
+        <p className="mt-1.5 text-[11px] text-[rgb(var(--muted))]">Paketstatus: {packageLabel}</p>
         {profileMsg && !profileEditorOpen ? (
           <p className="mt-2 text-xs text-[rgb(var(--muted))]" role="status" aria-live="polite">
             {profileMsg}
@@ -729,9 +748,9 @@ function CompactProfileHubSection({
 
       <nav
         aria-label="Profil-Navigation"
-        className="sticky top-2 z-20 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))]/95 p-1 backdrop-blur"
+        className="sticky top-2 z-20 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))]/95 p-0.5 backdrop-blur"
       >
-        <div className="grid grid-cols-3 gap-1">
+        <div className="grid grid-cols-3 gap-0.5 rounded-xl bg-[rgb(var(--bg))]/80 p-0.5">
           {ACCOUNT_HUB_TABS.map((tab) => {
             const active = tab.key === activeTab;
             return (
@@ -740,13 +759,13 @@ function CompactProfileHubSection({
                 type="button"
                 onClick={() => setActiveTab(tab.key)}
                 aria-pressed={active}
-                className={`inline-flex min-h-[46px] items-center justify-center gap-1.5 rounded-xl px-2 text-xs font-semibold transition ${
+                className={`inline-flex min-h-[40px] items-center justify-center gap-1 rounded-[10px] px-1.5 text-[11px] font-semibold transition ${
                   active
-                    ? "bg-sky-500/15 text-sky-100 ring-1 ring-sky-400/50"
-                    : "bg-[rgb(var(--bg))] text-[rgb(var(--muted))] ring-1 ring-[rgb(var(--border))] hover:text-[rgb(var(--fg))]"
+                    ? "bg-sky-500/16 text-sky-100 shadow-[inset_0_0_0_1px_rgba(56,189,248,0.45)]"
+                    : "text-[rgb(var(--muted))] hover:bg-white/5 hover:text-[rgb(var(--fg))]"
                 }`}
               >
-                <tab.icon className={`h-3.5 w-3.5 ${active ? "text-sky-300" : "text-sky-500"}`} aria-hidden />
+                <tab.icon className={`h-3.5 w-3.5 ${active ? "text-sky-300" : "text-sky-500/90"}`} aria-hidden />
                 <span>{tab.label}</span>
               </button>
             );
@@ -760,23 +779,35 @@ function CompactProfileHubSection({
             <FiUser className="h-3.5 w-3.5 text-sky-500" aria-hidden />
             Profilansicht
           </p>
-          <div className="mt-3 space-y-3 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
-            <div>
-              <p className="text-[11px] uppercase tracking-[0.12em] text-[rgb(var(--muted))]">Anzeigename</p>
-              <p className="mt-1 text-sm font-semibold text-[rgb(var(--fg))]">{displayNamePreview}</p>
+          <div className="mt-3 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4">
+            <div className="flex items-center gap-3">
+              <div className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-sky-500/12 text-sm font-semibold text-sky-200 ring-1 ring-sky-300/30">
+                {displayNamePreview.slice(0, 2).toUpperCase()}
+              </div>
+              <div className="min-w-0">
+                <p className="truncate text-lg font-semibold text-[rgb(var(--fg))]">{displayNamePreview}</p>
+                <p className="truncate text-sm text-[rgb(var(--muted))]">{taglinePreview}</p>
+              </div>
             </div>
-            <div>
-              <p className="text-[11px] uppercase tracking-[0.12em] text-[rgb(var(--muted))]">Kurzprofil</p>
-              <p className="mt-1 text-sm text-[rgb(var(--fg))]">{taglinePreview}</p>
+            <div className="mt-3 rounded-xl bg-[rgb(var(--card))] px-3 py-2.5 ring-1 ring-[rgb(var(--border))]">
+              <p className="text-sm leading-relaxed text-[rgb(var(--fg))]">{bioPreview}</p>
             </div>
-            <div>
-              <p className="text-[11px] uppercase tracking-[0.12em] text-[rgb(var(--muted))]">Selbstdarstellung</p>
-              <p className="mt-1 text-sm text-[rgb(var(--fg))]">{bioPreview}</p>
-            </div>
+            {hasSelectedInterests ? (
+              <div className="mt-3 flex flex-wrap gap-1.5">
+                {selectedTopicLabels.slice(0, 3).map((label) => (
+                  <span
+                    key={`profile-interest-${label}`}
+                    className="inline-flex items-center rounded-full bg-sky-500/12 px-2.5 py-1 text-[11px] text-sky-100 ring-1 ring-sky-300/35"
+                  >
+                    {label}
+                  </span>
+                ))}
+              </div>
+            ) : null}
           </div>
           <div className="mt-4">
             <button type="button" onClick={() => setProfileEditorOpen(true)} className={`${primaryButtonClass} w-full sm:w-auto`}>
-              <FiUser className="mr-1.5 h-3.5 w-3.5" aria-hidden />
+              <FiEdit2 className="mr-1.5 h-3.5 w-3.5" aria-hidden />
               Profil bearbeiten
             </button>
           </div>
@@ -806,7 +837,12 @@ function CompactProfileHubSection({
                 </span>
               ))
             ) : (
-              <p className="text-xs text-[rgb(var(--muted))]">Noch keine Interessen gewählt.</p>
+              <div className="w-full rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-xs text-[rgb(var(--muted))]">
+                <p className="inline-flex items-center gap-1.5">
+                  <FiSliders className="h-3.5 w-3.5 text-sky-500" aria-hidden />
+                  Wähle bis zu 3 Themen, damit passende Debatten und Kontakte sichtbarer werden.
+                </p>
+              </div>
             )}
           </div>
 
@@ -870,15 +906,27 @@ function CompactProfileHubSection({
           </div>
 
           <div className="grid grid-cols-2 gap-2">
-            <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2">
+            <div
+              className={`rounded-2xl border px-3 py-2 ${
+                hasPendingRequests
+                  ? "border-emerald-400/50 bg-emerald-500/10"
+                  : "border-[rgb(var(--border))] bg-[rgb(var(--bg))]"
+              }`}
+            >
               <p className="text-[10px] uppercase tracking-[0.12em] text-[rgb(var(--muted))]">Anfragen</p>
-              <p className="mt-1 text-xl font-semibold text-[rgb(var(--fg))]">
+              <p className={`mt-1 text-xl font-semibold ${hasPendingRequests ? "text-emerald-200" : "text-[rgb(var(--fg))]"}`}>
                 {socialLoading ? "…" : socialSummary.pendingRequestCount}
               </p>
             </div>
-            <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2">
+            <div
+              className={`rounded-2xl border px-3 py-2 ${
+                hasUnreadMessages
+                  ? "border-sky-400/50 bg-sky-500/10"
+                  : "border-[rgb(var(--border))] bg-[rgb(var(--bg))]"
+              }`}
+            >
               <p className="text-[10px] uppercase tracking-[0.12em] text-[rgb(var(--muted))]">Ungelesen</p>
-              <p className="mt-1 text-xl font-semibold text-[rgb(var(--fg))]">
+              <p className={`mt-1 text-xl font-semibold ${hasUnreadMessages ? "text-sky-200" : "text-[rgb(var(--fg))]"}`}>
                 {socialLoading ? "…" : socialSummary.unreadMessageCount}
               </p>
             </div>
@@ -909,7 +957,9 @@ function CompactProfileHubSection({
                 ))}
               </div>
             ) : (
-              <p className="text-xs text-[rgb(var(--muted))]">Noch keine offenen Freundschaftsanfragen.</p>
+              <p className="text-xs text-[rgb(var(--muted))]">
+                Noch keine offenen Anfragen. Lade Kontakte ein, damit hier neue Verbindungen erscheinen.
+              </p>
             )}
           </div>
 
@@ -935,9 +985,21 @@ function CompactProfileHubSection({
                 ))}
               </div>
             ) : (
-              <p className="text-xs text-[rgb(var(--muted))]">Noch keine neuen Nachrichten.</p>
+              <p className="text-xs text-[rgb(var(--muted))]">
+                Noch keine neuen Nachrichten. Wenn du Freunde hinzufügst, startet hier deine Inbox.
+              </p>
             )}
           </div>
+
+          {inboxIsEmpty ? (
+            <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-3 text-xs text-[rgb(var(--muted))]">
+              <p className="inline-flex items-center gap-1.5 font-medium text-[rgb(var(--fg))]">
+                <FiMessageCircle className="h-3.5 w-3.5 text-sky-500" aria-hidden />
+                Deine Inbox ist startklar.
+              </p>
+              <p className="mt-1">Lade Freund:innen ein oder schau in die Community, um erste Kontakte und Nachrichten zu erhalten.</p>
+            </div>
+          ) : null}
 
           <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
             <p className="inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--muted))]">
@@ -1025,7 +1087,7 @@ function CompactProfileHubSection({
               </label>
             </div>
 
-            <div className="border-t border-[rgb(var(--border))] bg-[rgb(var(--card))] p-3">
+            <div className="border-t border-[rgb(var(--border))] bg-[rgb(var(--card))] p-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)]">
               <div className="grid grid-cols-2 gap-2">
                 <button type="button" onClick={cancelProfileEdit} className={`${secondaryLightButtonClass} w-full`}>
                   Abbrechen
