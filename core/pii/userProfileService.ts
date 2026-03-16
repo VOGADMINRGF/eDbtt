@@ -109,9 +109,15 @@ export async function ensureBasicPiiProfile(
     title?: string | null;
     pronouns?: string | null;
     householdSize?: number | null;
+    address?: {
+      street?: string | null;
+      postalCode?: string | null;
+      city?: string | null;
+      country?: string | null;
+    } | null;
   },
 ) {
-  if (!opts.email && !opts.displayName && !opts.givenName && !opts.familyName) return;
+  if (!opts.email && !opts.displayName && !opts.givenName && !opts.familyName && !opts.address) return;
   const parsed = splitName(opts.displayName);
   const givenName = opts.givenName ?? parsed.givenName ?? null;
   const familyName = opts.familyName ?? parsed.familyName ?? null;
@@ -129,6 +135,7 @@ export async function ensureBasicPiiProfile(
     birthDate: opts.birthDate ?? null,
     title: opts.title ?? null,
     pronouns: opts.pronouns ?? null,
+    address: opts.address ?? undefined,
     household:
       typeof opts.householdSize === "number"
         ? { size: opts.householdSize }

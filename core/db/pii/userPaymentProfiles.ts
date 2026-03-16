@@ -69,6 +69,7 @@ export async function upsertMembershipPaymentProfile(
     billingName: string;
     billingAddress?: { street?: string; postalCode?: string; city?: string; country?: string };
     iban?: string | null;
+    bic?: string | null;
     mandateReference?: string | null;
     microTransferHash?: string | null;
     microTransferExpiresAt?: Date | null;
@@ -93,6 +94,7 @@ export async function upsertMembershipPaymentProfile(
     ibanMasked: normalizedIban ? maskIban(normalizedIban) : null,
     ibanLast4: ibanLast4(normalizedIban),
     ibanFingerprint: ibanFingerprint(normalizedIban),
+    bic: input.bic ?? null,
     // TODO: encryptedIban, sobald zentraler Encryption-Helper verfügbar ist.
     mandateReference: input.mandateReference ?? null,
     updatedAt: now,

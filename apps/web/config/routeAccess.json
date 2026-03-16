@@ -212,6 +212,9 @@
   "/register": {
     "access": "public"
   },
+  "/regist": {
+    "access": "public"
+  },
   "/register/identity": {
     "access": "public"
   },

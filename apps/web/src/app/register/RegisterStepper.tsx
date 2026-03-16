@@ -1,32 +1,39 @@
 type StepId = 1 | 2 | 3;
 
-const STEPS: { id: StepId; title: string; subtitle: string }[] = [
-  { id: 1, title: "Konto", subtitle: "Daten eingeben" },
-  { id: 2, title: "Verifikation", subtitle: "E-Mail + Identität" },
-  { id: 3, title: "Vormerkung", subtitle: "Optionales Paket" },
+type StepDef = { id: StepId; title: string; subtitle: string };
+
+const DEFAULT_STEPS: StepDef[] = [
+  { id: 1, title: "Konto", subtitle: "Basisdaten" },
+  { id: 2, title: "Verifikation", subtitle: "E-Mail und OTP" },
+  { id: 3, title: "Vormerkung", subtitle: "Optional" },
 ];
 
-export function RegisterStepper({ current }: { current: StepId }) {
-  return (
-    <div className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm">
-      <div className="grid gap-3 md:grid-cols-3">
-        {STEPS.map((step) => {
-          const active = step.id === current;
-          const done = step.id < current;
+export function RegisterStepper({ current, steps = DEFAULT_STEPS }: { current: StepId; steps?: StepDef[] }) {
+  const currentStep = steps.find((step) => step.id === current) ?? steps[0];
 
+  return (
+    <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2.5 shadow-sm">
+      <div className="flex items-center justify-between gap-2 text-[11px] font-medium text-[rgb(var(--muted))]">
+        <span>Schritt {current} von {steps.length}</span>
+        <span className="truncate text-right text-[rgb(var(--fg))]">{currentStep.title} · {currentStep.subtitle}</span>
+      </div>
+
+      <div className="mt-2 flex gap-1.5" aria-hidden="true">
+        {steps.map((step) => {
+          const isActive = step.id === current;
+          const isDone = step.id < current;
           return (
-            <div
+            <span
               key={step.id}
               className={[
-                "rounded-2xl border px-4 py-3",
-                active ? "border-sky-300 bg-sky-50" : done ? "border-emerald-200 bg-emerald-50/40" : "border-[rgb(var(--border))] bg-[rgb(var(--card))]",
+                "h-1.5 flex-1 rounded-full transition-colors",
+                isActive
+                  ? "bg-[linear-gradient(90deg,#0ea5e9,#10b981)]"
+                  : isDone
+                    ? "bg-emerald-400"
+                    : "bg-[rgb(var(--border))]",
               ].join(" ")}
-            >
-              <p className="text-[11px] font-semibold tracking-[0.18em] text-[rgb(var(--muted))]">
-                SCHRITT {step.id} / {STEPS.length} · {step.title}
-              </p>
-              <p className="mt-1 text-sm font-semibold text-[rgb(var(--fg))]">{step.subtitle}</p>
-            </div>
+            />
           );
         })}
       </div>

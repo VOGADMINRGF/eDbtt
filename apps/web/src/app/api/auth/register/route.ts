@@ -17,15 +17,34 @@ import { verifyHumanTokenDetailed } from "@/lib/security/human-token";
 import { ensureFounderWelcomeForUser } from "@/lib/onboarding/founderWelcome";
 import { logOnboardingEvent } from "@/lib/onboarding/events";
 import { refreshUserPreferenceSnapshot } from "@/lib/onboarding/preferenceSnapshot";
+import { upsertMembershipPaymentProfile } from "@core/db/pii/userPaymentProfiles";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+
+const addressSchema = z.object({
+  street: z.string().trim().min(2).max(200),
+  houseNumber: z.string().trim().min(1).max(20),
+  line2: z.string().trim().max(200).optional(),
+  postalCode: z.string().trim().min(2).max(20),
+  city: z.string().trim().min(2).max(120),
+  country: z.string().trim().min(2).max(120),
+});
+
+const bankSchema = z.object({
+  accountHolder: z.string().trim().min(2).max(200),
+  iban: z.string().trim().min(15).max(34),
+  bic: z.string().trim().max(11).optional(),
+  consent: z.literal(true),
+});
 
 const schema = z.object({
   name: z.string().min(2).max(120),
   firstName: z.string().min(2).max(120).optional(),
   lastName: z.string().min(2).max(160).optional(),
   birthDate: z.string().optional(), // Sanitizing unten
+  address: addressSchema,
+  bank: bankSchema,
   email: z.string().email(),
   password: z.string().min(12),
   preferredLocale: z.string().optional(),
@@ -300,12 +319,21 @@ export async function POST(req: NextRequest) {
   const birthDate = normalizeBirthDate(body.birthDate);
   const title = body.title?.trim() || undefined;
   const pronouns = body.pronouns?.trim() || undefined;
+  const address = normalizeAddress(body.address);
+  const normalizedIban = normalizeIban(body.bank.iban);
+  const bankBic = normalizeBic(body.bank.bic);
   const displayName = body.name.trim();
   const inviteFromQuery = sanitizeInviteCode(req.nextUrl.searchParams.get("invite"));
   const inviteCode = sanitizeInviteCode(body.inviteCode) ?? inviteFromQuery;
 
   if (!isPasswordStrong(body.password)) {
     return NextResponse.json({ error: "weak_password" }, { status: 400 });
+  }
+  if (!isValidIban(normalizedIban)) {
+    return NextResponse.json({ error: "invalid_iban" }, { status: 400 });
+  }
+  if (bankBic && !isValidBic(bankBic)) {
+    return NextResponse.json({ error: "invalid_bic" }, { status: 400 });
   }
   if (!birthDate) {
     return NextResponse.json({ error: "birthdate_invalid" }, { status: 400 });
@@ -455,6 +483,7 @@ export async function POST(req: NextRequest) {
   const { rawToken } = await createEmailVerificationToken(userId, email);
 
   let piiProfileError: string | null = null;
+  let bankProfileError: string | null = null;
   try {
     await ensureBasicPiiProfile(userId, {
       email,
@@ -464,12 +493,37 @@ export async function POST(req: NextRequest) {
       birthDate: birthDate ?? null,
       title: title ?? null,
       pronouns: pronouns ?? null,
+      address: {
+        street: [address.street, address.houseNumber, address.line2].filter(Boolean).join(" "),
+        postalCode: address.postalCode,
+        city: address.city,
+        country: address.country,
+      },
       householdSize: householdSize > 1 ? householdSize : undefined,
     });
   } catch (err) {
     piiProfileError =
       err instanceof Error ? err.message : String(err ?? "unknown error");
     console.error("[register] ensureBasicPiiProfile failed", err);
+  }
+
+  try {
+    await upsertMembershipPaymentProfile(userId, {
+      type: "bank_transfer",
+      billingName: body.bank.accountHolder.trim(),
+      billingAddress: {
+        street: [address.street, address.houseNumber, address.line2].filter(Boolean).join(" "),
+        postalCode: address.postalCode,
+        city: address.city,
+        country: address.country,
+      },
+      iban: normalizedIban,
+      bic: bankBic || null,
+    });
+  } catch (err) {
+    bankProfileError =
+      err instanceof Error ? err.message : String(err ?? "unknown error");
+    console.error("[register] upsertMembershipPaymentProfile failed", err);
   }
 
   let preferenceSeedTransitions = {
@@ -500,6 +554,7 @@ export async function POST(req: NextRequest) {
         email,
         householdSize: householdSize > 1 ? householdSize : undefined,
         piiProfileError,
+        bankProfileError,
         referralLinked: referralResult?.linked ?? false,
         referralRewardGranted: referralResult?.linked ? referralResult.rewardGranted : false,
         referralReason:
@@ -549,6 +604,44 @@ function isPasswordStrong(value: string) {
 function normalizeLocale(locale?: string) {
   if (locale && isSupportedLocale(locale)) return locale;
   return DEFAULT_LOCALE;
+}
+
+function normalizeAddress(raw: z.infer<typeof addressSchema>) {
+  return {
+    street: raw.street.trim(),
+    houseNumber: raw.houseNumber.trim(),
+    line2: raw.line2?.trim() || "",
+    postalCode: raw.postalCode.trim(),
+    city: raw.city.trim(),
+    country: raw.country.trim(),
+  };
+}
+
+function normalizeIban(raw?: string | null) {
+  return raw?.replace(/\s+/g, "").toUpperCase() ?? "";
+}
+
+function normalizeBic(raw?: string | null) {
+  return raw?.replace(/\s+/g, "").toUpperCase() ?? "";
+}
+
+function isValidIban(iban: string) {
+  if (iban.length < 15 || iban.length > 34) return false;
+  if (!/^[A-Z]{2}[0-9A-Z]+$/.test(iban)) return false;
+  const rearranged = iban.slice(4) + iban.slice(0, 4);
+  let remainder = 0;
+  for (const ch of rearranged) {
+    const code = ch.charCodeAt(0);
+    const value = code >= 65 && code <= 90 ? String(code - 55) : ch;
+    for (const digit of value) {
+      remainder = (remainder * 10 + Number(digit)) % 97;
+    }
+  }
+  return remainder === 1;
+}
+
+function isValidBic(bic: string) {
+  return /^[A-Z]{4}[A-Z]{2}[A-Z0-9]{2}([A-Z0-9]{3})?$/.test(bic);
 }
 
 function normalizeBirthDate(raw?: string | null): string | null {
