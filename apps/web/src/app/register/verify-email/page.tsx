@@ -48,7 +48,7 @@ export default function VerifyEmailPage() {
       if (!payload || payload.type !== "edb-email-verify-success") return;
       if (payload.email && emailParam && payload.email !== emailParam) return;
       setState("success");
-      setMessage("E-Mail bestätigt. Weiter geht's mit Schritt 3 …");
+      setMessage("E-Mail bestätigt. Weiter geht's mit der Verifikation …");
       setTimeout(() => {
         router.push(payload.next || nextAfterVerify);
       }, 600);
@@ -90,7 +90,7 @@ export default function VerifyEmailPage() {
         throw new Error(friendly);
       }
       setState("success");
-      setMessage("E-Mail bestätigt. Weiter geht's mit Schritt 3 …");
+      setMessage("E-Mail bestätigt. Weiter geht's mit der Verifikation …");
       if (channel) {
         channel.postMessage({
           type: "edb-email-verify-success",

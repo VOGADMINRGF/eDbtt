@@ -7,6 +7,8 @@ import { CORE_LOCALES, EXTENDED_LOCALES } from "@/config/locales";
 import { HumanCheck } from "@/components/security/HumanCheck";
 import { RegisterStepper } from "./RegisterStepper";
 
+const MIN_PARTICIPATION_AGE = 14;
+
 function okPwd(p: string) {
   return p.length >= 12 && /[0-9]/.test(p) && /[^A-Za-z0-9]/.test(p);
 }
@@ -23,7 +25,7 @@ function toIsoBirthdate(raw: string): string | null {
   if (!v) return null;
 
   if (/^\d{4}-\d{2}-\d{2}$/.test(v)) {
-    return Number.isNaN(Date.parse(v)) ? null : v;
+    return parseIsoDateStrict(v) ? v : null;
   }
 
   const m = v.match(/^(\d{2})\.(\d{2})\.(\d{4})$/);
@@ -31,7 +33,7 @@ function toIsoBirthdate(raw: string): string | null {
 
   const [, dd, mm, yyyy] = m;
   const iso = `${yyyy}-${mm}-${dd}`;
-  return Number.isNaN(Date.parse(iso)) ? null : iso;
+  return parseIsoDateStrict(iso) ? iso : null;
 }
 
 function isoToDe(iso: string): string {
@@ -39,6 +41,44 @@ function isoToDe(iso: string): string {
   if (!m) return iso;
   const [, yyyy, mm, dd] = m;
   return `${dd}.${mm}.${yyyy}`;
+}
+
+function parseIsoDateStrict(iso: string): Date | null {
+  const m = iso.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!m) return null;
+
+  const year = Number(m[1]);
+  const month = Number(m[2]);
+  const day = Number(m[3]);
+  if (!Number.isInteger(year) || !Number.isInteger(month) || !Number.isInteger(day)) return null;
+
+  const date = new Date(Date.UTC(year, month - 1, day));
+  const isValid =
+    date.getUTCFullYear() === year &&
+    date.getUTCMonth() === month - 1 &&
+    date.getUTCDate() === day;
+  return isValid ? date : null;
+}
+
+function formatIsoUTC(date: Date): string {
+  const yyyy = date.getUTCFullYear();
+  const mm = String(date.getUTCMonth() + 1).padStart(2, "0");
+  const dd = String(date.getUTCDate()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+function latestBirthDateForMinAge(minAge: number): string {
+  const now = new Date();
+  const latest = new Date(Date.UTC(now.getUTCFullYear() - minAge, now.getUTCMonth(), now.getUTCDate()));
+  return formatIsoUTC(latest);
+}
+
+function isAtLeastAge(isoBirthDate: string, minAge: number): boolean {
+  const birthDate = parseIsoDateStrict(isoBirthDate);
+  if (!birthDate) return false;
+  const now = new Date();
+  const latestAllowed = new Date(Date.UTC(now.getUTCFullYear() - minAge, now.getUTCMonth(), now.getUTCDate()));
+  return birthDate.getTime() <= latestAllowed.getTime();
 }
 
 function sanitizeNext(value?: string | string[] | null) {
@@ -98,6 +138,7 @@ function RegisterPageClient({ personCount = 1, searchParams }: RegisterPageClien
   const [hpRegister, setHpRegister] = useState("");
   const router = useRouter();
   const birthDateIso = toIsoBirthdate(birthDate);
+  const latestBirthDateIso = latestBirthDateForMinAge(MIN_PARTICIPATION_AGE);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -148,6 +189,10 @@ function RegisterPageClient({ personCount = 1, searchParams }: RegisterPageClien
 
     if (!birthDateIso) {
       setErrMsg("Geburtsdatum: Bitte TT.MM.JJJJ oder JJJJ-MM-TT verwenden.");
+      return;
+    }
+    if (!isAtLeastAge(birthDateIso, MIN_PARTICIPATION_AGE)) {
+      setErrMsg(`Teilnahme ist erst ab ${MIN_PARTICIPATION_AGE} Jahren möglich.`);
       return;
     }
 
@@ -215,6 +260,14 @@ function RegisterPageClient({ personCount = 1, searchParams }: RegisterPageClien
           setErrMsg(err);
           return;
         }
+        if (data?.error === "minimum_age_not_met") {
+          setErrMsg(`Teilnahme ist erst ab ${MIN_PARTICIPATION_AGE} Jahren möglich.`);
+          return;
+        }
+        if (data?.error === "birthdate_invalid") {
+          setErrMsg("Geburtsdatum: Bitte ein gültiges Datum eingeben.");
+          return;
+        }
         throw new Error(data?.error || data?.message || `HTTP ${r.status}`);
       }
 
@@ -238,7 +291,7 @@ function RegisterPageClient({ personCount = 1, searchParams }: RegisterPageClien
       <div>
         <h1 className="text-2xl font-semibold text-[rgb(var(--fg))]">Registrieren</h1>
         <p className="mt-1 text-sm text-[rgb(var(--muted))]">
-          Basisdaten anlegen, E-Mail bestätigen, Identität sichern – und optional direkt vormerken.
+          Konto anlegen, E-Mail bestätigen, Identität schützen - danach optional Paket vormerken.
         </p>
       </div>
 
@@ -246,7 +299,7 @@ function RegisterPageClient({ personCount = 1, searchParams }: RegisterPageClien
         <div className="rounded-2xl border border-sky-100 bg-sky-50/70 px-4 py-3 text-xs text-sky-900">
           <p className="font-semibold">Aus deinem Mitgliedsantrag übernommen</p>
           <p className="mt-1">
-            Du hast <strong>{fromParams}</strong> Personen ab 16 Jahren angegeben. Dieses Formular legt das Konto für die
+            Du hast <strong>{fromParams}</strong> Personen ab 14 Jahren angegeben. Dieses Formular legt das Konto für die
             Hauptkontaktperson an. Weitere Personen kannst du später im Profil ergänzen.
           </p>
         </div>
@@ -352,6 +405,7 @@ function RegisterPageClient({ personCount = 1, searchParams }: RegisterPageClien
               const iso = e.currentTarget.value;
               if (iso) setBirthDate(isoToDe(iso));
             }}
+            max={latestBirthDateIso}
             required={useNativeDate}
             disabled={busy}
           />
@@ -383,7 +437,7 @@ function RegisterPageClient({ personCount = 1, searchParams }: RegisterPageClien
               </button>
             </div>
           )}
-          <p className="text-[11px] text-[rgb(var(--muted))]">Für faire Citizen Votes: Teilnahme ab 16 Jahren.</p>
+          <p className="text-[11px] text-[rgb(var(--muted))]">Teilnahme bei eDebatte ist ab 14 Jahren möglich.</p>
         </div>
 
         <div className="space-y-1">

@@ -42,6 +42,7 @@ const RATE_LIMIT_MAX = 6;
 const RATE_LIMIT_WINDOW = 15 * 60; // 15 minutes
 const MIN_FILL_MS = 3000;
 const MAX_FILL_MS = 2 * 60 * 60 * 1000;
+const MIN_PARTICIPATION_AGE = 14;
 const REFERRAL_REWARD_ANALYSIS_STARTS = 1;
 const REFERRAL_CODE_RE = /^[a-zA-Z0-9_-]{6,128}$/;
 
@@ -306,6 +307,15 @@ export async function POST(req: NextRequest) {
   if (!isPasswordStrong(body.password)) {
     return NextResponse.json({ error: "weak_password" }, { status: 400 });
   }
+  if (!birthDate) {
+    return NextResponse.json({ error: "birthdate_invalid" }, { status: 400 });
+  }
+  if (!isAtLeastAge(birthDate, MIN_PARTICIPATION_AGE)) {
+    return NextResponse.json(
+      { error: "minimum_age_not_met", minAge: MIN_PARTICIPATION_AGE },
+      { status: 400 },
+    );
+  }
 
   const url = new URL(req.url);
   const householdSizeRaw = url.searchParams.get("householdSize");
@@ -541,10 +551,10 @@ function normalizeLocale(locale?: string) {
   return DEFAULT_LOCALE;
 }
 
-function normalizeBirthDate(raw?: string | null): string | undefined {
-  if (!raw) return undefined;
+function normalizeBirthDate(raw?: string | null): string | null {
+  if (!raw) return null;
   const trimmed = raw.trim();
-  if (!trimmed) return undefined;
+  if (!trimmed) return null;
 
   // akzeptiere YYYY-MM-DD oder DD.MM.YYYY
   const isoMatch = trimmed.match(/^(\d{4})-(\d{2})-(\d{2})$/);
@@ -561,13 +571,33 @@ function normalizeBirthDate(raw?: string | null): string | undefined {
   }
 
   if (!yyyy || !mm || !dd) {
-    throw NextResponse.json({ error: "birthdate_invalid" }, { status: 400 });
+    return null;
   }
 
   const normalized = `${yyyy}-${mm}-${dd}`;
-  const ts = Date.parse(normalized);
-  if (Number.isNaN(ts)) {
-    throw NextResponse.json({ error: "birthdate_invalid" }, { status: 400 });
-  }
+  if (!parseIsoDateStrict(normalized)) return null;
   return normalized;
+}
+
+function parseIsoDateStrict(iso: string): Date | null {
+  const m = iso.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!m) return null;
+
+  const year = Number(m[1]);
+  const month = Number(m[2]);
+  const day = Number(m[3]);
+  const date = new Date(Date.UTC(year, month - 1, day));
+  const isValid =
+    date.getUTCFullYear() === year &&
+    date.getUTCMonth() === month - 1 &&
+    date.getUTCDate() === day;
+  return isValid ? date : null;
+}
+
+function isAtLeastAge(isoBirthDate: string, minAge: number): boolean {
+  const birthDate = parseIsoDateStrict(isoBirthDate);
+  if (!birthDate) return false;
+  const now = new Date();
+  const latestAllowed = new Date(Date.UTC(now.getUTCFullYear() - minAge, now.getUTCMonth(), now.getUTCDate()));
+  return birthDate.getTime() <= latestAllowed.getTime();
 }
