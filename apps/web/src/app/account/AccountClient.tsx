@@ -364,6 +364,15 @@ type AccountMatchItem = {
   score: number;
 };
 
+type InterestDebateResult = {
+  id: string;
+  title: string;
+  text: string;
+  matchedTopics: string[];
+  local: boolean;
+  prepared: boolean;
+};
+
 type NameDisplayMode = "real_name" | "nickname";
 type PersonalIdentityData = {
   givenName: string;
@@ -515,6 +524,8 @@ function CompactProfileHubSection({
   const [socialError, setSocialError] = useState<string | null>(null);
   const [matches, setMatches] = useState<AccountMatchItem[]>([]);
   const [matchesLoading, setMatchesLoading] = useState(false);
+  const [debateResults, setDebateResults] = useState<InterestDebateResult[]>([]);
+  const [debateLoading, setDebateLoading] = useState(false);
   const [canNativeShare, setCanNativeShare] = useState(false);
   const avatarInputRef = useRef<HTMLInputElement | null>(null);
   const invitePanelRef = useRef<HTMLDivElement | null>(null);
@@ -613,6 +624,13 @@ function CompactProfileHubSection({
   const selectedTopicLabels = selectedTopics
     .map((key) => TOPIC_CHOICES.find((topic) => topic.key === key)?.label)
     .filter((label): label is string => Boolean(label));
+  const locationTerms = [personalDraft.city, publicProfile.city, publicProfile.region]
+    .map((value) => String(value ?? "").trim())
+    .filter((value) => value.length > 0);
+  const locationSignature = locationTerms.map((value) => value.toLowerCase()).join("|");
+  const selectedTopicSignature = selectedTopics.join("|");
+  const hasLocationContext = locationTerms.length > 0;
+  const locationContextLabel = hasLocationContext ? locationTerms.join(" · ") : null;
 
   const displayNamePreview = displayName.trim() || "Dein Anzeigename";
   const taglinePreview = tagline.trim() || "Kurzprofil hinzufügen";
@@ -723,6 +741,86 @@ function CompactProfileHubSection({
     }
   }, []);
 
+  const loadDebateResults = useCallback(async () => {
+    const topicKeys = selectedTopicSignature
+      .split("|")
+      .map((value) => value.trim().toLowerCase())
+      .filter((value): value is TopicKey => value.length > 0) as TopicKey[];
+    if (topicKeys.length === 0) {
+      setDebateResults([]);
+      return;
+    }
+
+    setDebateLoading(true);
+    try {
+      const res = await fetch("/api/swipeStatements?limit=40", { cache: "no-store" });
+      const payload = await res.json().catch(() => []);
+      const rows = Array.isArray(payload) ? payload : [];
+      const topicLabelByKey = new Map(TOPIC_CHOICES.map((topic) => [topic.key, topic.label]));
+      const keywordToLabel = new Map<string, string>();
+
+      for (const key of topicKeys) {
+        const label = topicLabelByKey.get(key) ?? key;
+        const fragments = [key, ...label.toLowerCase().split(/[^a-z0-9äöüß]+/).filter((part) => part.length >= 4)];
+        for (const fragment of fragments) {
+          if (fragment.length < 3) continue;
+          keywordToLabel.set(fragment, label);
+        }
+      }
+
+      const localTokens = locationSignature
+        .split("|")
+        .map((value) => value.trim().toLowerCase())
+        .filter((value) => value.length >= 3);
+
+      const ranked = rows
+        .map((row: any, idx: number) => {
+          const title = String(row?.title ?? "").trim();
+          const text = String(row?.text ?? "").trim();
+          const haystack = `${title} ${text}`.toLowerCase();
+          if (!haystack) return null;
+          const matchedTopics = new Set<string>();
+          for (const [keyword, label] of keywordToLabel) {
+            if (haystack.includes(keyword)) matchedTopics.add(label);
+          }
+          const local = localTokens.some((token) => haystack.includes(token));
+          const score = matchedTopics.size * 3 + (local ? 2 : 0);
+          if (score <= 0) return null;
+          return {
+            id: String(row?.id ?? row?._id ?? `ranked-${idx}`),
+            title: title || "Debattenvorschlag",
+            text: text || "Kurzzusammenfassung folgt.",
+            matchedTopics: Array.from(matchedTopics),
+            local,
+            prepared: false,
+            score,
+          };
+        })
+        .filter((entry): entry is NonNullable<typeof entry> => Boolean(entry))
+        .sort((a, b) => b.score - a.score)
+        .slice(0, 4)
+        .map(({ score: _score, ...entry }) => entry);
+
+      if (ranked.length > 0) {
+        setDebateResults(ranked);
+      } else {
+        const fallback = rows.slice(0, 4).map((row: any, idx: number) => ({
+          id: String(row?.id ?? row?._id ?? `fallback-${idx}`),
+          title: String(row?.title ?? "Debattenvorschlag").trim() || "Debattenvorschlag",
+          text: String(row?.text ?? "Noch keine exakten Interessentreffer.").trim() || "Noch keine exakten Interessentreffer.",
+          matchedTopics: [],
+          local: false,
+          prepared: true,
+        }));
+        setDebateResults(fallback);
+      }
+    } catch {
+      setDebateResults([]);
+    } finally {
+      setDebateLoading(false);
+    }
+  }, [locationSignature, selectedTopicSignature]);
+
   useEffect(() => {
     void loadSocialSummary();
   }, [loadSocialSummary]);
@@ -732,13 +830,18 @@ function CompactProfileHubSection({
   }, [loadMatches]);
 
   useEffect(() => {
+    void loadDebateResults();
+  }, [loadDebateResults]);
+
+  useEffect(() => {
     const onFocus = () => {
       void loadSocialSummary();
       void loadMatches();
+      void loadDebateResults();
     };
     window.addEventListener("focus", onFocus);
     return () => window.removeEventListener("focus", onFocus);
-  }, [loadMatches, loadSocialSummary]);
+  }, [loadDebateResults, loadMatches, loadSocialSummary]);
 
   const toggleTopic = (key: TopicKey) => {
     setSelectedTopics((prev) => {
@@ -906,6 +1009,7 @@ function CompactProfileHubSection({
       }
       setInterestMsg("Interessen gespeichert");
       void loadMatches();
+      void loadDebateResults();
       onRefresh();
     } catch (error: any) {
       setInterestMsg(error?.message || "Speichern fehlgeschlagen");
@@ -1357,30 +1461,85 @@ function CompactProfileHubSection({
             )}
           </div>
 
-          <div className="mt-3 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
-            <p className="inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--muted))]">
-              <FiUsers className="h-3.5 w-3.5 text-sky-500" aria-hidden />
-              Vorschau: passende Menschen
-            </p>
-            {matchesLoading ? (
-              <p className="mt-1 text-xs text-[rgb(var(--muted))]">Ermittle Matches aus Interessen und Region …</p>
-            ) : topMatches.length > 0 ? (
-              <div className="mt-2 space-y-1.5">
-                {topMatches.slice(0, 3).map((match) => (
-                  <div key={`interests-match-${match.id}`} className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-2.5 py-2 text-xs">
-                    <p className="font-semibold text-[rgb(var(--fg))]">{match.displayName}</p>
-                    <p className="text-[rgb(var(--muted))]">
-                      Gemeinsam: {match.sharedTopics.slice(0, 2).join(", ")}
-                      {match.locationLabel ? ` · ${match.locationLabel}` : ""}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="mt-1 text-xs text-[rgb(var(--muted))]">
-                Noch keine Vorschau. Mit mindestens 3 Interessen und Ortsangabe werden hier Matches sichtbar.
+          <div className="mt-3 grid gap-3 xl:grid-cols-2">
+            <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
+              <p className="inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--muted))]">
+                <FiUsers className="h-3.5 w-3.5 text-sky-500" aria-hidden />
+                Vorschau: passende Menschen
               </p>
-            )}
+              {matchesLoading ? (
+                <p className="mt-1 text-xs text-[rgb(var(--muted))]">Ermittle Matches aus Interessen und Region …</p>
+              ) : topMatches.length > 0 ? (
+                <div className="mt-2 space-y-1.5">
+                  {topMatches.slice(0, 3).map((match) => (
+                    <div key={`interests-match-${match.id}`} className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-2.5 py-2 text-xs">
+                      <p className="font-semibold text-[rgb(var(--fg))]">{match.displayName}</p>
+                      <p className="text-[rgb(var(--muted))]">
+                        Gemeinsam: {match.sharedTopics.slice(0, 2).join(", ")}
+                        {match.locationLabel ? ` · ${match.locationLabel}` : ""}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="mt-1 text-xs text-[rgb(var(--muted))]">
+                  Noch keine Vorschau. Mit mindestens 3 Interessen und Ortsangabe werden hier Matches sichtbar.
+                </p>
+              )}
+            </div>
+
+            <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
+              <p className="inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--muted))]">
+                <FiMessageCircle className="h-3.5 w-3.5 text-sky-500" aria-hidden />
+                Passende Debatten & Themen
+              </p>
+              {debateLoading ? (
+                <p className="mt-1 text-xs text-[rgb(var(--muted))]">Priorisiere Debatten aus deinen Interessen …</p>
+              ) : debateResults.length > 0 ? (
+                <div className="mt-2 space-y-2">
+                  {debateResults.map((entry) => (
+                    <div key={entry.id} className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-2.5 py-2 text-xs">
+                      <p className="font-semibold text-[rgb(var(--fg))]">{entry.title}</p>
+                      <p className="mt-0.5 text-[rgb(var(--muted))]">{truncateText(entry.text, 120)}</p>
+                      <div className="mt-1 flex flex-wrap gap-1">
+                        {entry.matchedTopics.length > 0 ? (
+                          entry.matchedTopics.slice(0, 2).map((topic) => (
+                            <span key={`${entry.id}-${topic}`} className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] ${selectedChipClass}`}>
+                              {topic}
+                            </span>
+                          ))
+                        ) : (
+                          <span className="inline-flex items-center rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-2 py-0.5 text-[10px] text-[rgb(var(--muted))]">
+                            vorbereitete Vorschläge
+                          </span>
+                        )}
+                        {entry.local ? (
+                          <span className="inline-flex items-center rounded-full border border-emerald-300/60 bg-emerald-100/80 px-2 py-0.5 text-[10px] text-emerald-800 dark:border-emerald-400/40 dark:bg-emerald-500/14 dark:text-emerald-100">
+                            lokal relevant
+                          </span>
+                        ) : null}
+                      </div>
+                      <Link href="/swipes" className={`${secondaryLightButtonClass} mt-2 w-full`}>
+                        Zur Debattenansicht
+                      </Link>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="mt-1 text-xs text-[rgb(var(--muted))]">
+                  Noch keine passenden Debatten sichtbar. Mit mindestens 3 gespeicherten Interessen werden Themen klarer priorisiert.
+                </p>
+              )}
+              {hasLocationContext ? (
+                <p className="mt-2 text-[11px] text-[rgb(var(--muted))]">
+                  Regionale Relevanz berücksichtigt: <span className="font-semibold text-[rgb(var(--fg))]">{locationContextLabel}</span>
+                </p>
+              ) : (
+                <p className="mt-2 text-[11px] text-[rgb(var(--muted))]">
+                  Mit Stadt/Region können wir dir lokal passendere Debatten priorisieren.
+                </p>
+              )}
+            </div>
           </div>
 
           <div className="mt-4 grid gap-2 sm:grid-cols-2">
@@ -1532,6 +1691,14 @@ function CompactProfileHubSection({
                 {founderMessage.fromLabel}
                 {founderMessage.createdAt ? ` · ${formatDateLabel(founderMessage.createdAt)}` : ""}
               </p>
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                <button type="button" onClick={() => setActiveTab("interests")} className={secondaryLightButtonClass}>
+                  Interessen nachschärfen
+                </button>
+                <button type="button" onClick={openInviteQuickAccess} className={primaryButtonSmallClass}>
+                  Kontakte einladen
+                </button>
+              </div>
             </div>
           ) : null}
 
@@ -1610,144 +1777,159 @@ function CompactProfileHubSection({
             </p>
           </div>
 
-          <p className="inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--muted))]">
-            <FiUsers className="h-3.5 w-3.5 text-sky-500" aria-hidden />
-            Menschen & Matches
-          </p>
-
-          <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
-            <div className="mb-2 flex items-center justify-between gap-2">
+          <div className="grid gap-3 xl:grid-cols-[1.2fr_1fr] xl:items-start">
+            <div className="space-y-3">
               <p className="inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--muted))]">
                 <FiUsers className="h-3.5 w-3.5 text-sky-500" aria-hidden />
-                Gleichgesinnte finden
+                Menschen & Matches
               </p>
-              <span className="text-[11px] text-[rgb(var(--muted))]">Interessen + Region</span>
+
+              <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
+                <div className="mb-2 flex items-center justify-between gap-2">
+                  <p className="inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--muted))]">
+                    <FiUsers className="h-3.5 w-3.5 text-sky-500" aria-hidden />
+                    Gleichgesinnte finden
+                  </p>
+                  <span className="text-[11px] text-[rgb(var(--muted))]">Interessen + Region</span>
+                </div>
+                {matchesLoading ? (
+                  <p className="text-xs text-[rgb(var(--muted))]">Suche passende Menschen …</p>
+                ) : topMatches.length > 0 ? (
+                  <div className="space-y-2">
+                    {topMatches.map((match) => (
+                      <div key={match.id} className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-xs">
+                        <p className="font-semibold text-[rgb(var(--fg))]">{match.displayName}</p>
+                        <p className="mt-0.5 text-[rgb(var(--muted))]">
+                          Gemeinsam: {match.sharedTopics.join(", ")}
+                          {match.locationLabel ? ` · ${match.locationLabel}` : ""}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-xs text-[rgb(var(--muted))]">
+                    Noch keine Matches sichtbar. Mit mindestens 3 Interessen und Ortsangabe steigen die Treffer.
+                  </p>
+                )}
+                {hasLocationContext ? (
+                  <p className="mt-2 text-[11px] text-[rgb(var(--muted))]">
+                    Ortskontext aktiv: <span className="font-semibold text-[rgb(var(--fg))]">{locationContextLabel}</span>
+                  </p>
+                ) : (
+                  <p className="mt-2 text-[11px] text-[rgb(var(--muted))]">
+                    Ergänze Stadt/Region im Profil für lokalere Treffer.
+                  </p>
+                )}
+                <div className="mt-2 flex flex-wrap gap-2">
+                  <button type="button" onClick={() => setActiveTab("interests")} className={secondaryLightButtonClass}>
+                    Interessen schärfen
+                  </button>
+                  <Link href="/community" className={ghostDarkButtonClass}>
+                    Community-Hub
+                  </Link>
+                </div>
+              </div>
+
+              {inboxIsEmpty ? (
+                <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-3 text-xs text-[rgb(var(--muted))]">
+                  <p className="inline-flex items-center gap-1.5 font-medium text-[rgb(var(--fg))]">
+                    <FiMessageCircle className="h-3.5 w-3.5 text-sky-500" aria-hidden />
+                    Deine Inbox ist startklar.
+                  </p>
+                  <p className="mt-1">Lade Freund:innen ein oder schau in die Community, um erste Kontakte und Nachrichten zu erhalten.</p>
+                </div>
+              ) : null}
             </div>
-            {matchesLoading ? (
-              <p className="text-xs text-[rgb(var(--muted))]">Suche passende Menschen …</p>
-            ) : topMatches.length > 0 ? (
-              <div className="space-y-2">
-                {topMatches.map((match) => (
-                  <div key={match.id} className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-xs">
-                    <p className="font-semibold text-[rgb(var(--fg))]">{match.displayName}</p>
-                    <p className="mt-0.5 text-[rgb(var(--muted))]">
-                      Gemeinsam: {match.sharedTopics.join(", ")}
-                      {match.locationLabel ? ` · ${match.locationLabel}` : ""}
+
+            <div className="space-y-3">
+              <p className="inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--muted))]">
+                <FiSend className="h-3.5 w-3.5 text-sky-500" aria-hidden />
+                Aktionen
+              </p>
+              <p className="text-xs text-[rgb(var(--muted))]">
+                Community bedeutet aktuell Discovery, Verbindungen und Beiträge. Realtime-Messenger ist noch nicht vollständig freigeschaltet.
+              </p>
+
+              <div ref={invitePanelRef} className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
+                <p className="inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--muted))]">
+                  <FiSend className="h-3.5 w-3.5 text-sky-500" aria-hidden />
+                  Freunde einladen
+                </p>
+                <p className="mt-1 text-xs text-[rgb(var(--muted))]">
+                  Dein persönlicher Einladungslink. Bei Registrierung über diesen Link wird die Verbindung direkt hergestellt.
+                </p>
+                <div className="mt-2 grid grid-cols-2 gap-2">
+                  <div
+                    className={`rounded-xl border px-3 py-2 ${
+                      personalDraft.successfulInvites > 0
+                        ? "border-emerald-400/50 bg-emerald-500/10"
+                        : "border-[rgb(var(--border))] bg-[rgb(var(--card))]"
+                    }`}
+                  >
+                    <p className="text-[10px] uppercase tracking-[0.12em] text-[rgb(var(--muted))]">Erfolgreich</p>
+                    <p
+                      className={`mt-1 text-base font-semibold ${
+                        personalDraft.successfulInvites > 0 ? "text-emerald-800 dark:text-emerald-100" : "text-[rgb(var(--fg))]"
+                      }`}
+                    >
+                      {personalDraft.successfulInvites}
                     </p>
                   </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-xs text-[rgb(var(--muted))]">
-                Noch keine Matches sichtbar. Mit mindestens 3 Interessen und Ortsangabe steigen die Treffer.
-              </p>
-            )}
-            <div className="mt-2 flex flex-wrap gap-2">
-              <button type="button" onClick={() => setActiveTab("interests")} className={secondaryLightButtonClass}>
-                Interessen schärfen
-              </button>
-              <Link href="/community" className={ghostDarkButtonClass}>
-                Community-Hub
-              </Link>
-            </div>
-          </div>
-
-          {inboxIsEmpty ? (
-            <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-3 text-xs text-[rgb(var(--muted))]">
-              <p className="inline-flex items-center gap-1.5 font-medium text-[rgb(var(--fg))]">
-                <FiMessageCircle className="h-3.5 w-3.5 text-sky-500" aria-hidden />
-                Deine Inbox ist startklar.
-              </p>
-              <p className="mt-1">Lade Freund:innen ein oder schau in die Community, um erste Kontakte und Nachrichten zu erhalten.</p>
-            </div>
-          ) : null}
-
-          <p className="inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--muted))]">
-            <FiSend className="h-3.5 w-3.5 text-sky-500" aria-hidden />
-            Aktionen
-          </p>
-          <p className="text-xs text-[rgb(var(--muted))]">
-            Community bedeutet aktuell Discovery, Verbindungen und Beiträge. Realtime-Messenger ist noch nicht vollständig freigeschaltet.
-          </p>
-
-          <div ref={invitePanelRef} className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
-            <p className="inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--muted))]">
-              <FiSend className="h-3.5 w-3.5 text-sky-500" aria-hidden />
-              Freunde einladen
-            </p>
-            <p className="mt-1 text-xs text-[rgb(var(--muted))]">
-              Dein persönlicher Einladungslink. Bei Registrierung über diesen Link wird die Verbindung direkt hergestellt.
-            </p>
-            <div className="mt-2 grid grid-cols-2 gap-2">
-              <div
-                className={`rounded-xl border px-3 py-2 ${
-                  personalDraft.successfulInvites > 0
-                    ? "border-emerald-400/50 bg-emerald-500/10"
-                    : "border-[rgb(var(--border))] bg-[rgb(var(--card))]"
-                }`}
-              >
-                <p className="text-[10px] uppercase tracking-[0.12em] text-[rgb(var(--muted))]">Erfolgreich</p>
-                <p
-                  className={`mt-1 text-base font-semibold ${
-                    personalDraft.successfulInvites > 0 ? "text-emerald-800 dark:text-emerald-100" : "text-[rgb(var(--fg))]"
-                  }`}
-                >
-                  {personalDraft.successfulInvites}
+                  <div
+                    className={`rounded-xl border px-3 py-2 ${
+                      referralRewardsActive
+                        ? "border-sky-400/50 bg-sky-500/10"
+                        : "border-[rgb(var(--border))] bg-[rgb(var(--card))]"
+                    }`}
+                  >
+                    <p className="text-[10px] uppercase tracking-[0.12em] text-[rgb(var(--muted))]">Bonus-Starts</p>
+                    <p
+                      className={`mt-1 text-base font-semibold ${
+                        referralRewardsActive ? "text-sky-800 dark:text-sky-100" : "text-[rgb(var(--fg))]"
+                      }`}
+                    >
+                      {personalDraft.rewardAnalysisStarts}
+                    </p>
+                  </div>
+                </div>
+                {personalDraft.lastReferralSuccessAt ? (
+                  <p className="mt-1 text-[11px] text-[rgb(var(--muted))]">
+                    Letzte erfolgreiche Einladung: {formatDateLabel(personalDraft.lastReferralSuccessAt)}
+                  </p>
+                ) : null}
+                <p className="mt-2 truncate rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-xs text-[rgb(var(--muted))]">
+                  {inviteText}
                 </p>
-              </div>
-              <div
-                className={`rounded-xl border px-3 py-2 ${
-                  referralRewardsActive
-                    ? "border-sky-400/50 bg-sky-500/10"
-                    : "border-[rgb(var(--border))] bg-[rgb(var(--card))]"
-                }`}
-              >
-                <p className="text-[10px] uppercase tracking-[0.12em] text-[rgb(var(--muted))]">Bonus-Starts</p>
-                <p
-                  className={`mt-1 text-base font-semibold ${
-                    referralRewardsActive ? "text-sky-800 dark:text-sky-100" : "text-[rgb(var(--fg))]"
-                  }`}
-                >
-                  {personalDraft.rewardAnalysisStarts}
-                </p>
+                <div className="mt-2 grid gap-2 sm:grid-cols-3">
+                  <button type="button" onClick={copyInviteLink} className={`${secondaryLightButtonClass} w-full`}>
+                    <FiCopy className="mr-1.5 h-3.5 w-3.5 text-sky-500" aria-hidden />
+                    Link kopieren
+                  </button>
+                  {canNativeShare ? (
+                    <button type="button" onClick={shareInvite} className={`${primaryButtonSmallClass} w-full`}>
+                      <FiSend className="mr-1.5 h-3.5 w-3.5" aria-hidden />
+                      Teilen
+                    </button>
+                  ) : (
+                    <button type="button" onClick={openMailInvite} className={`${primaryButtonSmallClass} w-full`}>
+                      <FiMail className="mr-1.5 h-3.5 w-3.5" aria-hidden />
+                      Per E-Mail
+                    </button>
+                  )}
+                  <Link href="/community" className={`${ghostDarkButtonClass} w-full`}>
+                    <FiUsers className="mr-1.5 h-3.5 w-3.5 text-sky-500" aria-hidden />
+                    Community beitreten
+                  </Link>
+                </div>
+                {canNativeShare ? (
+                  <button type="button" onClick={openMailInvite} className={`${secondaryLightButtonClass} mt-2 w-full`}>
+                    <FiMail className="mr-1.5 h-3.5 w-3.5 text-sky-500" aria-hidden />
+                    Per E-Mail einladen
+                  </button>
+                ) : null}
+                {copyMsg ? <p className="mt-2 text-xs text-[rgb(var(--muted))]">{copyMsg}</p> : null}
               </div>
             </div>
-            {personalDraft.lastReferralSuccessAt ? (
-              <p className="mt-1 text-[11px] text-[rgb(var(--muted))]">
-                Letzte erfolgreiche Einladung: {formatDateLabel(personalDraft.lastReferralSuccessAt)}
-              </p>
-            ) : null}
-            <p className="mt-2 truncate rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-xs text-[rgb(var(--muted))]">
-              {inviteText}
-            </p>
-            <div className="mt-2 grid gap-2 sm:grid-cols-3">
-              <button type="button" onClick={copyInviteLink} className={`${secondaryLightButtonClass} w-full`}>
-                <FiCopy className="mr-1.5 h-3.5 w-3.5 text-sky-500" aria-hidden />
-                Link kopieren
-              </button>
-              {canNativeShare ? (
-                <button type="button" onClick={shareInvite} className={`${primaryButtonSmallClass} w-full`}>
-                  <FiSend className="mr-1.5 h-3.5 w-3.5" aria-hidden />
-                  Teilen
-                </button>
-              ) : (
-                <button type="button" onClick={openMailInvite} className={`${primaryButtonSmallClass} w-full`}>
-                  <FiMail className="mr-1.5 h-3.5 w-3.5" aria-hidden />
-                  Per E-Mail
-                </button>
-              )}
-              <Link href="/community" className={`${ghostDarkButtonClass} w-full`}>
-                <FiUsers className="mr-1.5 h-3.5 w-3.5 text-sky-500" aria-hidden />
-                Community beitreten
-              </Link>
-            </div>
-            {canNativeShare ? (
-              <button type="button" onClick={openMailInvite} className={`${secondaryLightButtonClass} mt-2 w-full`}>
-                <FiMail className="mr-1.5 h-3.5 w-3.5 text-sky-500" aria-hidden />
-                Per E-Mail einladen
-              </button>
-            ) : null}
-            {copyMsg ? <p className="mt-2 text-xs text-[rgb(var(--muted))]">{copyMsg}</p> : null}
           </div>
         </article>
       ) : null}

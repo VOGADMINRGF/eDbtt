@@ -43,7 +43,7 @@ export default async function AccountPage({ searchParams }: Props) {
 
   return (
     <main className="min-h-screen bg-[rgb(var(--bg))] py-5 md:py-8">
-      <div className="mx-auto flex max-w-4xl flex-col gap-4 px-4 pb-[calc(env(safe-area-inset-bottom)+1.5rem)] md:gap-6 md:pb-12">
+      <div className="mx-auto flex w-full max-w-7xl flex-col gap-4 px-4 pb-[calc(env(safe-area-inset-bottom)+1.5rem)] md:gap-6 md:px-6 md:pb-12">
         <header className="space-y-1">
           <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-sky-500">Account</p>
           <h1 className="text-[1.35rem] font-semibold leading-tight text-[rgb(var(--fg))] md:text-[1.9rem]">

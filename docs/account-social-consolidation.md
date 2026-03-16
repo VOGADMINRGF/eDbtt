@@ -13,7 +13,12 @@ Stand: 2026-03-16
 - Interessen-Tab ist als primärer Startbereich formuliert:
   - Nutzenkette sichtbar (`Interessen -> Debatten -> Matches`),
   - Save-Flow + CTA Richtung Inbox,
-  - Match-Vorschau direkt im Interessen-Tab.
+  - Match-Vorschau direkt im Interessen-Tab,
+  - Debatten-/Themen-Ergebnisse direkt im Tab (heuristisch aus `feed_statements` via `/api/swipeStatements`).
+- Ergebnislogik im Interessen-Tab ist sofort sichtbar:
+  - Treffer nach Interessen-Keywords,
+  - lokales Label, wenn Stadt/Region im Profil verfügbar ist,
+  - ehrlicher Fallback (`vorbereitete Vorschläge`), wenn noch keine exakten Treffer vorhanden sind.
 - Inbox lädt Social-Daten aus `core` über `/api/account/social-summary`.
 - Founder-Welcome wird beim Laden aktiv sichergestellt.
 - Inbox ist in drei Blöcke gegliedert:
@@ -22,6 +27,10 @@ Stand: 2026-03-16
   - `Aktionen` (Einladen, Community, nächste Schritte).
 - Invite-Funktion ist im Inbox-Kontext prominent und mobil schnell erreichbar.
 - Matching-Preview (`/api/account/matches`) zeigt Gleichgesinnte über gemeinsame Interessen + Region.
+- Desktop-Hierarchie ist breiter und stärker gestaffelt:
+  - größere Seitenbreite in `/account`,
+  - zweispaltige Ergebnis-/Aktionsbereiche bei großen Breakpoints,
+  - bessere Trennung von primärem Inhalt vs. Aktionen/Meta.
 - Profil ist nachgelagert und UX-seitig eindeutig:
   - klare Profil-Vorschau (nicht pseudo-editierbar),
   - expliziter Edit-Trigger für Name/Tagline/Bio,
