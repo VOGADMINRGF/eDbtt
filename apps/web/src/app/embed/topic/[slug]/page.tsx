@@ -52,7 +52,7 @@ export default async function EmbedTopicPage({ params, searchParams }: PageProps
                 href={withDistributionQuery(`/round/${round.slug}`, distribution)}
                 className="mt-2 inline-flex text-xs underline"
               >
-                Round oeffnen
+                Round öffnen
               </Link>
             </article>
           ))}
@@ -65,7 +65,7 @@ export default async function EmbedTopicPage({ params, searchParams }: PageProps
 
       <footer className="mt-5 text-xs text-[rgb(var(--muted))]">
         <Link href={fullTopicPath} className="underline">
-          Vollansicht Topic oeffnen
+          Vollansicht Topic öffnen
         </Link>
       </footer>
     </main>

@@ -23,7 +23,7 @@ export default function WiderrufPage() {
             </h1>
             <p className="text-sm leading-relaxed text-[rgb(var(--muted))] md:text-base">
               {t(
-                "Hier findest du die Widerrufsbelehrung fuer entgeltliche Leistungen, sofern sie anwendbar ist. Wir finalisieren die rechtsverbindliche Fassung und stellen sie hier bereit.",
+                "Hier findest du die Widerrufsbelehrung für entgeltliche Leistungen, sofern sie anwendbar ist. Wir finalisieren die rechtsverbindliche Fassung und stellen sie hier bereit.",
                 "lead",
               )}
             </p>
@@ -33,7 +33,7 @@ export default function WiderrufPage() {
             <InfoCard
               title={t("Aktueller Stand", "status.title")}
               body={t(
-                "Die Widerrufsbelehrung wird derzeit rechtlich finalisiert. Sobald sie vorliegt, veroeffentlichen wir sie an dieser Stelle.",
+                "Die Widerrufsbelehrung wird derzeit rechtlich finalisiert. Sobald sie vorliegt, veröffentlichen wir sie an dieser Stelle.",
                 "status.body",
               )}
             />
@@ -56,7 +56,7 @@ export default function WiderrufPage() {
             <div className="grid gap-3 md:grid-cols-3">
               <LinkCard href="/agb" label={t("AGB", "links.agb")} />
               <LinkCard href="/datenschutz" label={t("Datenschutz", "links.privacy")} />
-              <LinkCard href="/widerspruch" label={t("Widerspruch & Kuendigung", "links.objection")} />
+              <LinkCard href="/widerspruch" label={t("Widerspruch & Kündigung", "links.objection")} />
             </div>
           </div>
         </div>

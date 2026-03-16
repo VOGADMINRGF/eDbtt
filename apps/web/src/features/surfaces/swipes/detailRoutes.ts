@@ -27,3 +27,20 @@ export function buildSwipeEvidenceHref(statementId: string, context?: DetailRout
   return `/dossier/${encodeURIComponent(statementId)}#material`;
 }
 
+export function buildSwipeVotingHref(
+  statementId: string,
+  context?: DetailRouteContext,
+  options?: { title?: string | null },
+) {
+  const query = new URLSearchParams();
+  if (options?.title) query.set("q", options.title);
+  if (!statementId.startsWith("seed-")) {
+    query.set("statementId", statementId);
+    const suffix = query.toString();
+    return `/abstimmungen${suffix ? `?${suffix}` : ""}`;
+  }
+  const persona = demoPersonaByAudience(context?.audience);
+  query.set("persona", persona);
+  const suffix = query.toString();
+  return `/demo/abstimmungen${suffix ? `?${suffix}` : ""}`;
+}

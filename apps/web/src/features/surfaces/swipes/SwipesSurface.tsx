@@ -1,30 +1,33 @@
 import { SwipesClient } from "@/app/swipes/SwipesClient";
-import type { EDebattePackage } from "@/features/swipes/types";
 import type { SurfaceContext } from "@/features/surface";
 
 type SwipesSurfaceProps = {
   context: SurfaceContext;
-  edebattePackage: EDebattePackage;
   initialTopic?: string;
   requireAuthAfterFreeVotes?: boolean;
 };
 
 export function SwipesSurface({
   context,
-  edebattePackage,
   initialTopic = "",
   requireAuthAfterFreeVotes = false,
 }: SwipesSurfaceProps) {
   return (
-    <main className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-white pb-14 dark:from-slate-950 dark:via-slate-950 dark:to-slate-950">
-      <SwipesClient
-        edebattePackage={edebattePackage}
-        initialTopic={initialTopic}
-        showHero={false}
-        mode={context.mode}
-        audience={context.audience}
-        requireAuthAfterFreeVotes={requireAuthAfterFreeVotes}
-      />
+    <main className="relative min-h-screen overflow-hidden bg-gradient-to-b from-slate-50 via-white to-white pb-14 dark:from-slate-950 dark:via-slate-950 dark:to-slate-950">
+      <div className="pointer-events-none absolute inset-0">
+        <div className="absolute -top-32 -left-20 h-80 w-80 rounded-full bg-cyan-300/20 blur-3xl dark:bg-cyan-500/10" />
+        <div className="absolute top-40 -right-24 h-[26rem] w-[26rem] rounded-full bg-sky-300/20 blur-3xl dark:bg-sky-600/10" />
+        <div className="absolute bottom-0 left-1/4 h-72 w-72 rounded-full bg-emerald-300/15 blur-3xl dark:bg-emerald-600/10" />
+      </div>
+
+      <div className="relative z-10">
+        <SwipesClient
+          initialTopic={initialTopic}
+          mode={context.mode}
+          audience={context.audience}
+          requireAuthAfterFreeVotes={requireAuthAfterFreeVotes}
+        />
+      </div>
     </main>
   );
 }

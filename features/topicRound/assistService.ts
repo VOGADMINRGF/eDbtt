@@ -87,7 +87,7 @@ function buildMockAssistOutput(roundSlug: string) {
     ],
     suggestedQuestions: [
       {
-        title: "Nachfrage fuer naechste Runde",
+        title: "Nachfrage für nächste Runde",
         text: firstQuestion,
         confidence: "high",
         targetHint: "topic.openQuestions",
@@ -126,7 +126,7 @@ function buildMockAssistOutput(roundSlug: string) {
     duplicateAndClusterHints: [
       {
         title: "Cluster-Hinweis",
-        text: `Pruefen, ob neuer Claim-Entwurf inhaltlich mit bestehendem Claim ueberschneidet: '${firstClaim.slice(0, 140)}'`,
+        text: `Prüfen, ob neuer Claim-Entwurf inhaltlich mit bestehendem Claim überschneidet: '${firstClaim.slice(0, 140)}'`,
         confidence: "low",
         targetHint: "topic.claims",
       },
@@ -140,12 +140,12 @@ function buildMockAssistOutput(roundSlug: string) {
       },
       {
         title: "Kurzfazit Verwaltung",
-        text: "Naechster Schritt: Zustaendigkeitsantwort fuer offene Roadmap-Punkte festlegen.",
+        text: "Nächster Schritt: Zuständigkeitsantwort für offene Roadmap-Punkte festlegen.",
         confidence: "medium",
         targetHint: "topic.roadmap",
       },
       {
-        title: "Kurzfazit Buerger",
+        title: "Kurzfazit Bürger",
         text: "Beteiligungsfokus: Quelle + Frage einreichen, um den Vote-Check vorzubereiten.",
         confidence: "medium",
         targetHint: "create.entry",

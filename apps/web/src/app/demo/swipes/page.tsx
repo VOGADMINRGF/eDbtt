@@ -27,7 +27,6 @@ export default async function DemoSwipesPage({
       <h1 className="sr-only">Demo Swipes</h1>
       <SwipesSurface
         context={context}
-        edebattePackage="none"
         initialTopic={typeof resolved?.topic === "string" ? resolved.topic : ""}
         requireAuthAfterFreeVotes={false}
       />

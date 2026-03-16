@@ -102,7 +102,7 @@ export default function MergeWorkspaceClient({
         throw new Error(body?.error ?? "assist_trigger_failed");
       }
       setSnapshot(body.snapshot ?? null);
-      setMessage("Assist suggestions vorbereitet. Es wurde nichts automatisch veroeffentlicht.");
+      setMessage("Assist suggestions vorbereitet. Es wurde nichts automatisch veröffentlicht.");
     } catch (err: any) {
       setError(err?.message ?? "assist_trigger_failed");
     } finally {
@@ -150,7 +150,7 @@ export default function MergeWorkspaceClient({
         </p>
         <h1 className="text-3xl font-semibold text-[rgb(var(--fg))]">{round.title}</h1>
         <p className="text-sm text-[rgb(var(--muted))]">
-          Optionaler KI-Assist zur Round-zu-Topic-Synthese. Alle Vorschlaege bleiben bis zur Review-Aktion unverbindlich.
+          Optionaler KI-Assist zur Round-zu-Topic-Synthese. Alle Vorschläge bleiben bis zur Review-Aktion unverbindlich.
         </p>
         <div className="flex flex-wrap gap-2 text-[11px]">
           <span className="vog-chip">Round: {round.slug}</span>
@@ -179,7 +179,7 @@ export default function MergeWorkspaceClient({
         </div>
         {!canManage ? (
           <p className="text-xs text-[rgb(var(--muted))]">
-            Review-Aktionen sind im Management-Bereich verfuegbar (editor/moderation/admin/journalism).
+            Review-Aktionen sind im Management-Bereich verfügbar (editor/moderation/admin/journalism).
           </p>
         ) : null}
       </header>
@@ -237,7 +237,7 @@ export default function MergeWorkspaceClient({
             <span className="vog-chip">Rejected: {snapshot.reviewState.rejected}</span>
             <span className="vog-chip">Duplicate: {snapshot.reviewState.duplicate}</span>
             <span className="vog-chip">
-              Apply to topic: {snapshot.reviewState.canApplyToTopic ? "manuell moeglich" : "noch keine apply-Aktionen"}
+              Apply to topic: {snapshot.reviewState.canApplyToTopic ? "manuell möglich" : "noch keine apply-Aktionen"}
             </span>
           </div>
         )}
@@ -254,7 +254,7 @@ export default function MergeWorkspaceClient({
                 {KIND_LABELS[kind as RoundAssistSuggestionKind]} ({items.length})
               </h3>
               {items.length === 0 ? (
-                <p className="text-sm text-[rgb(var(--muted))]">Keine Vorschlaege in dieser Gruppe.</p>
+                <p className="text-sm text-[rgb(var(--muted))]">Keine Vorschläge in dieser Gruppe.</p>
               ) : (
                 <div className="space-y-3">
                   {items.map((item) => (

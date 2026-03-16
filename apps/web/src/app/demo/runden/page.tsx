@@ -54,7 +54,7 @@ export default async function DemoRoundsPage({
         <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
           Demo - Runden
         </p>
-        <h1 className="text-3xl font-semibold text-[rgb(var(--fg))]">Gefuehrter Topic-Round Einstieg</h1>
+        <h1 className="text-3xl font-semibold text-[rgb(var(--fg))]">Geführter Topic-Round-Einstieg</h1>
         <p className="text-sm text-[rgb(var(--muted))]">
           Persona: {personaCfg.label}. Diese Demo ist nur ein Wrapper. Die kanonische Logik liegt auf den
           produktiven Routen <span className="font-semibold">/topic/[slug]</span> und{" "}
@@ -72,18 +72,18 @@ export default async function DemoRoundsPage({
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h2 className="text-lg font-semibold text-[rgb(var(--fg))]">Kanonisches Topic</h2>
           <Link href={`/topic/${topic.slug}`} className="btn btn-primary text-xs">
-            Produktive Topic-Seite oeffnen
+            Produktive Topic-Seite öffnen
           </Link>
         </div>
         <p className="text-sm font-semibold text-[rgb(var(--fg))]">{topic.title}</p>
         <p className="text-sm text-[rgb(var(--muted))]">{topic.framingQuestion}</p>
         <p className="text-xs text-[rgb(var(--muted))]">
-          Guardrail: Jede Runde fuehrt sichtbar auf dieses Topic zurueck.
+          Guardrail: Jede Runde führt sichtbar auf dieses Topic zurück.
         </p>
       </section>
 
       <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm space-y-3">
-        <h2 className="text-lg font-semibold text-[rgb(var(--fg))]">Runden ueber mehrere Medien</h2>
+        <h2 className="text-lg font-semibold text-[rgb(var(--fg))]">Runden über mehrere Medien</h2>
         <div className="grid gap-3 md:grid-cols-2">
           {rounds.map((round) => (
             <article key={round.id} className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4 space-y-2">
@@ -98,11 +98,17 @@ export default async function DemoRoundsPage({
                   href={`/round/${round.slug}?entry=qr&source=${roundSourceParam(round.type)}&persona=${persona}`}
                   className="btn-secondary text-xs"
                 >
-                  Produktive Round oeffnen
+                  Produktive Round öffnen
                 </Link>
-                <Link href={`/round/manage/${round.slug}/merge`} className="btn-secondary text-xs">
-                  Merge-Assist Review
-                </Link>
+                {persona === "citizen" ? (
+                  <Link href={withPersona("/demo/dossier", persona)} className="btn-secondary text-xs">
+                    Im Dossier vertiefen
+                  </Link>
+                ) : (
+                  <Link href={`/round/manage/${round.slug}/merge`} className="btn-secondary text-xs">
+                    Merge-Assist Review
+                  </Link>
+                )}
                 <Link href={`/topic/${topic.slug}`} className="btn-secondary text-xs">
                   Zum Topic
                 </Link>
@@ -116,7 +122,7 @@ export default async function DemoRoundsPage({
         <article className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm space-y-2">
           <h2 className="text-lg font-semibold text-[rgb(var(--fg))]">Roadmap-Vorschau</h2>
           <p className="text-sm text-[rgb(var(--muted))]">
-            Manuell gepflegte naechste Schritte im Topic-Hub, ohne KI-Abhaengigkeit.
+            Manuell gepflegte nächste Schritte im Topic-Hub, ohne KI-Abhängigkeit.
           </p>
           <ul className="space-y-2 text-sm">
             {topic.roadmap.slice(0, 4).map((item) => (
@@ -131,14 +137,14 @@ export default async function DemoRoundsPage({
         <article className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm space-y-2">
           <h2 className="text-lg font-semibold text-[rgb(var(--fg))]">Beteiligung aus den Runden</h2>
           <p className="text-sm text-[rgb(var(--muted))]">
-            Fragen, Quellen, Widersprueche und Follow-ups laufen in dieselbe produktive Struktur zurueck.
+            Fragen, Quellen, Widersprüche und Follow-ups laufen in dieselbe produktive Struktur zurück.
           </p>
           <ul className="space-y-2 text-sm">
             {rounds.slice(0, 4).map((round) => (
               <li key={`${round.id}-count`} className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
                 <p className="font-semibold text-[rgb(var(--fg))]">{round.title}</p>
                 <p className="text-[rgb(var(--muted))]">
-                  Beitraege: {round.contributions.length} · Offene Punkte: {round.openPoints.length}
+                  Beiträge: {round.contributions.length} · Offene Punkte: {round.openPoints.length}
                 </p>
               </li>
             ))}
@@ -180,31 +186,34 @@ export default async function DemoRoundsPage({
       <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm space-y-3">
         <h2 className="text-lg font-semibold text-[rgb(var(--fg))]">Governance Demo (Reviewlog / Source Classes)</h2>
         <p className="text-sm text-[rgb(var(--muted))]">
-          Demo zeigt nur die produktive Governance-Route mit Reviewtrail, Konfliktmarkern und Mandat-Bruecke.
+          Demo zeigt nur die produktive Governance-Route mit Reviewtrail, Konfliktmarkern und Mandat-Brücke.
         </p>
         <div className="flex flex-wrap gap-2">
           <Link href={`/topic/manage/${topic.slug}/governance`} className="btn-secondary text-xs">
-            Topic Governance oeffnen
+            Topic Governance öffnen
           </Link>
           {rounds[0] ? (
             <Link href={`/round/manage/${rounds[0].slug}/merge`} className="btn-secondary text-xs">
-              Round Merge Review oeffnen
+              Round Merge Review öffnen
             </Link>
           ) : null}
         </div>
       </section>
 
       <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm space-y-3">
-        <h2 className="text-lg font-semibold text-[rgb(var(--fg))]">Weiter im Demo-Studio</h2>
+        <h2 className="text-lg font-semibold text-[rgb(var(--fg))]">Nächste sinnvolle Schritte</h2>
+        <p className="text-sm text-[rgb(var(--muted))]">
+          Für themenbezogene Vertiefung zuerst ins Dossier, für neue Anliegen über die Thema-Einreichung.
+        </p>
         <div className="flex flex-wrap gap-2">
           <Link href={withPersona("/demo", persona)} className="btn-secondary text-xs">
             Demo-Studio
           </Link>
-          <Link href={withPersona("/demo/create", persona)} className="btn-secondary text-xs">
-            Demo Mitwirken
-          </Link>
           <Link href={withPersona("/demo/dossier", persona)} className="btn-secondary text-xs">
             Demo Dossier
+          </Link>
+          <Link href="/thema-einreichen" className="btn-secondary text-xs">
+            Neues Thema einreichen
           </Link>
         </div>
       </section>

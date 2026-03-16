@@ -116,8 +116,8 @@ export async function generateMetadata({
   const flags = resolveFlags(user);
   if (!flags.showMembership) {
     return {
-      title: "Profil nicht verfuegbar",
-      description: "Dieses Profil ist derzeit nicht oeffentlich sichtbar.",
+      title: "Profil nicht verfügbar",
+      description: "Dieses Profil ist derzeit nicht öffentlich sichtbar.",
       robots: { index: false },
     };
   }

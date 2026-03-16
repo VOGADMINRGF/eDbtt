@@ -42,7 +42,7 @@ export default function OnboardingLocation() {
       if (!r.ok) throw new Error(j?.error || "HTTP " + r.status);
       router.push(wantsVerified ? "/auth/2fa-setup" : "/");
     } catch (e: unknown) {
-      setMsg(e instanceof Error ? e.message : "Speichern nicht moeglich.");
+      setMsg(e instanceof Error ? e.message : "Speichern nicht möglich.");
     } finally {
       setBusy(false);
     }

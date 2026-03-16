@@ -40,16 +40,16 @@ export default function PrivatsphaerePage() {
                 />
                 <LinkCard
                   href="/widerspruch"
-                  label={t("Widerspruch & Kuendigung", "quick.objection")}
+                  label={t("Widerspruch & Kündigung", "quick.objection")}
                   body={t(
-                    "Widerspruch gegen Datenverarbeitung oder Kuendigung.",
+                    "Widerspruch gegen Datenverarbeitung oder Kündigung.",
                     "quick.objection.body",
                   )}
                 />
                 <LinkCard
                   href="/account/security"
                   label={t("Kontosicherheit", "quick.security")}
-                  body={t("Sicherheitsoptionen fuer dein Konto.", "quick.security.body")}
+                  body={t("Sicherheitsoptionen für dein Konto.", "quick.security.body")}
                 />
               </div>
             </div>
@@ -60,7 +60,7 @@ export default function PrivatsphaerePage() {
               </p>
               <p className="mt-2">
                 {t(
-                  "Wenn du noch Fragen hast oder einen konkreten Fall klaeren moechtest, melde dich jederzeit ueber das Kontaktformular.",
+                  "Wenn du noch Fragen hast oder einen konkreten Fall klären möchtest, melde dich jederzeit über das Kontaktformular.",
                   "control.body",
                 )}
               </p>

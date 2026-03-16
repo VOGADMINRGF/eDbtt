@@ -9,16 +9,16 @@ import { userIsAdminDashboard } from "@/lib/server/auth/roles";
 
 export const metadata: Metadata = {
   title: "Community Chat",
-  description: "Sachlicher Community-Chat fuer Themenarbeit und Moderation.",
+  description: "Sachlicher Community-Chat für Themenarbeit und Moderation.",
   openGraph: {
     title: "Community Chat",
-    description: "Sachlicher Community-Chat fuer Themenarbeit und Moderation.",
+    description: "Sachlicher Community-Chat für Themenarbeit und Moderation.",
     url: `${BRAND.baseUrl}/chat`,
     siteName: BRAND.name,
   },
   twitter: {
     title: "Community Chat",
-    description: "Sachlicher Community-Chat fuer Themenarbeit und Moderation.",
+    description: "Sachlicher Community-Chat für Themenarbeit und Moderation.",
   },
 };
 
@@ -41,7 +41,7 @@ const COPY = {
   kicker: { de: "Chat", en: "Chat" },
   title: { de: "Community Chat", en: "Community chat" },
   lead: {
-    de: "Read-only Grundgeruest fuer den Austausch. Realtime-Provider und Moderation folgen in einem separaten Block.",
+    de: "Read-only Grundgeruest für den Austausch. Realtime-Provider und Moderation folgen in einem separaten Block.",
     en: "Read-only foundation for exchange. Realtime provider and moderation will follow in a separate block.",
   },
   statusTitle: { de: "Status", en: "Status" },
@@ -49,12 +49,12 @@ const COPY = {
     de: "Der Chat ist bewusst reduziert, damit Moderation und Regeln zuerst sauber definiert werden.",
     en: "The chat is intentionally reduced until moderation and rules are clearly defined.",
   },
-  nextTitle: { de: "Naechste Schritte", en: "Next steps" },
+  nextTitle: { de: "Nächste Schritte", en: "Next steps" },
   nextItems: {
     de: [
       "Moderationsrichtlinien und Meldelogik.",
       "Themen- und Regionsraeume mit klaren Rollen.",
-      "A11y-Checks fuer Tastatur und Screenreader.",
+      "A11y-Checks für Tastatur und Screenreader.",
     ],
     en: [
       "Moderation rules and reporting logic.",
@@ -62,7 +62,7 @@ const COPY = {
       "A11y checks for keyboard and screen readers.",
     ],
   },
-  actionRooms: { de: "Zurueck zu den Raeumen", en: "Back to rooms" },
+  actionRooms: { de: "Zurück zu den Raeumen", en: "Back to rooms" },
   actionStreams: { de: "Streams ansehen", en: "View streams" },
 };
 

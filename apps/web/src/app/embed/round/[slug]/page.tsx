@@ -72,7 +72,7 @@ export default async function EmbedRoundPage({ params, searchParams }: PageProps
 
       <footer className="mt-5 text-xs text-[rgb(var(--muted))]">
         <Link href={fullRoundPath} className="underline">
-          Vollansicht Round oeffnen
+          Vollansicht Round öffnen
         </Link>
       </footer>
     </main>

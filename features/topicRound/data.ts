@@ -9,11 +9,11 @@ export const TOPIC_SEED: Topic[] = [
   {
     id: "topic-energy-berlin",
     slug: "bezahlbare-energie-und-waermewende-berlin",
-    title: "Bezahlbare Energie und belastbare Waermewende in Berlin",
+    title: "Bezahlbare Energie und belastbare Wärmewende in Berlin",
     framingQuestion:
       "Wie sichern wir bezahlbare Heiz- und Stromkosten, ohne Klimaziele und Umsetzungstempo zu verlieren?",
     currentState:
-      "Evidenzlage waechst, Konflikte zwischen Kostenstabilitaet und Ausbaupfaden sind sichtbar. Optionen liegen vor, aber noch nicht alle Auswirkungen sind belegt.",
+      "Evidenzlage wächst, Konflikte zwischen Kostenstabilität und Ausbaupfaden sind sichtbar. Optionen liegen vor, aber noch nicht alle Auswirkungen sind belegt.",
     readiness: "options_clarifying",
     options: [
       {
@@ -35,7 +35,7 @@ export const TOPIC_SEED: Topic[] = [
     claims: [
       {
         id: "clm-1",
-        text: "Unsanierte Teilnetze verursachen ueberproportionale Betriebskosten und stoeren die Preisstabilitaet.",
+        text: "Unsanierte Teilnetze verursachen überproportionale Betriebskosten und stören die Preisstabilität.",
         sourceIds: ["src-1", "src-3"],
       },
       {
@@ -45,14 +45,14 @@ export const TOPIC_SEED: Topic[] = [
       },
       {
         id: "clm-3",
-        text: "Fehlende Transparenz zu Projektfortschritt und Kosten erzeugt Vertrauensverlust in der Bevoelkerung.",
+        text: "Fehlende Transparenz zu Projektfortschritt und Kosten erzeugt Vertrauensverlust in der Bevölkerung.",
         sourceIds: ["src-4"],
       },
     ],
     sources: [
       {
         id: "src-1",
-        title: "Netzzustandsbericht Waerme 2025",
+        title: "Netzzustandsbericht Wärme 2025",
         url: "https://example.org/netzbericht-waerme-2025",
         publisher: "Landesenergieagentur",
         sourceClass: "official_document",
@@ -66,7 +66,7 @@ export const TOPIC_SEED: Topic[] = [
       },
       {
         id: "src-3",
-        title: "Praxisanalyse Fernwaermeausfaelle 2024",
+        title: "Praxisanalyse Fernwärmeausfälle 2024",
         url: "https://example.org/fernwaerme-ausfaelle-2024",
         publisher: "Stadtwerke Verbund",
         sourceClass: "primary_source",
@@ -75,28 +75,28 @@ export const TOPIC_SEED: Topic[] = [
         id: "src-4",
         title: "Befragung Vertrauen in Energieprojekte 2025",
         url: "https://example.org/vertrauen-energieprojekte-2025",
-        publisher: "Buergerpanel Berlin",
+        publisher: "Bürgerpanel Berlin",
         sourceClass: "community_note",
       },
     ],
     objections: [
-      "Die Kostenprognosen der Netzsanierung unterschaetzen Material- und Fachkraeftepreisrisiken.",
-      "Ein pauschaler Sozialtarif kann Fehlanreize setzen, wenn Zielgruppen nicht praezise begrenzt sind.",
+      "Die Kostenprognosen der Netzsanierung unterschätzen Material- und Fachkräftepreisrisiken.",
+      "Ein pauschaler Sozialtarif kann Fehlanreize setzen, wenn Zielgruppen nicht präzise begrenzt sind.",
       "Ein Dashboard ohne belastbare Rohdaten verbessert Transparenz nicht ausreichend.",
     ],
     openQuestions: [
-      "Welche Quartiere liefern in 24 Monaten den groessten Effekt pro investiertem Euro?",
-      "Welche Kriterien definieren den Zugang zum Sozialtarif nachvollziehbar und pruefbar?",
-      "Welche Stelle verantwortet monatliche Datenguete fuer das Fortschrittsdashboard?",
+      "Welche Quartiere liefern in 24 Monaten den größten Effekt pro investiertem Euro?",
+      "Welche Kriterien definieren den Zugang zum Sozialtarif nachvollziehbar und prüfbar?",
+      "Welche Stelle verantwortet monatliche Datengüte für das Fortschrittsdashboard?",
     ],
     roadmap: [
       {
         id: "rm-1",
         category: "evidence_missing",
-        title: "Kostenvergleich nach Quartier vervollstaendigen",
-        unresolved: "Belastbare Vergleichswerte fuer drei priorisierte Quartiere fehlen.",
+        title: "Kostenvergleich nach Quartier vervollständigen",
+        unresolved: "Belastbare Vergleichswerte für drei priorisierte Quartiere fehlen.",
         evidenceMissing: "Vollkosten inkl. Bauzeitrisiko und Betriebskostenprojektion.",
-        askNext: "Welche Quartierliste ist fuer 2026 zuerst finanzierbar?",
+        askNext: "Welche Quartierliste ist für 2026 zuerst finanzierbar?",
         responderHint: "Landesenergieagentur + Stadtwerke",
         voteReadinessSignal: "review_needed",
         status: "open",
@@ -114,9 +114,9 @@ export const TOPIC_SEED: Topic[] = [
       {
         id: "rm-3",
         category: "authority_response_needed",
-        title: "Zustaendigkeitsantwort fuer Dashboard-Pflege klaeren",
+        title: "Zuständigkeitsantwort für Dashboard-Pflege klären",
         unresolved: "Datenpflegeverantwortung zwischen Senatsverwaltung und Stadtwerken ist offen.",
-        askNext: "Wer veroeffentlicht monatlich den verbindlichen Datensatz?",
+        askNext: "Wer veröffentlicht monatlich den verbindlichen Datensatz?",
         responderHint: "Senatsverwaltung",
         voteReadinessSignal: "not_ready",
         status: "blocked",
@@ -124,9 +124,9 @@ export const TOPIC_SEED: Topic[] = [
       {
         id: "rm-4",
         category: "ready_for_vote_check",
-        title: "Vorpruefung zur Abstimmungsreife vorbereiten",
+        title: "Vorprüfung zur Abstimmungsreife vorbereiten",
         unresolved: "Optionen sind noch nicht mit identischen Kennzahlen hinterlegt.",
-        askNext: "Welche Mindestkriterien muessen vor einem Vote-Check erfuellt sein?",
+        askNext: "Welche Mindestkriterien müssen vor einem Vote-Check erfüllt sein?",
         responderHint: "Moderation + Redaktion",
         voteReadinessSignal: "review_needed",
         status: "open",
@@ -148,7 +148,7 @@ export const TOPIC_SEED: Topic[] = [
         kind: "option_disagreement",
         title: "Sozialtarif: Entlastung vs. Fehlanreiz",
         details:
-          "Ein Teil der Beitraege fordert schnelle Entlastung, ein anderer Teil bewertet die Zielgruppenschaerfe und Exit-Regeln als nicht belastbar genug.",
+          "Ein Teil der Beiträge fordert schnelle Entlastung, ein anderer Teil bewertet die Zielgruppenschärfe und Exit-Regeln als nicht belastbar genug.",
         relatedClaimIds: ["clm-2"],
         relatedOptionIds: ["opt-sozialtarif"],
         unresolved: true,
@@ -156,9 +156,9 @@ export const TOPIC_SEED: Topic[] = [
       {
         id: "cf-3",
         kind: "counterposition_missing",
-        title: "Counterposition zum Dashboard-Pfad ist unvollstaendig",
+        title: "Counterposition zum Dashboard-Pfad ist unvollständig",
         details:
-          "Die Kritik an Datenqualitaet ist sichtbar, aber eine ausformulierte Gegenalternative zur monatlichen Publikation fehlt.",
+          "Die Kritik an Datenqualität ist sichtbar, aber eine ausformulierte Gegenalternative zur monatlichen Publikation fehlt.",
         relatedClaimIds: ["clm-3"],
         unresolved: true,
       },
@@ -170,9 +170,9 @@ export const TOPIC_SEED: Topic[] = [
         scope: "round_contribution",
         entityId: "rc-10",
         title: "Datendefinitionstabelle eingereicht",
-        summary: "Beitrag aus Verwaltungs-Session wurde als Quelle fuer Dashboard-Standards eingereicht.",
+        summary: "Beitrag aus Verwaltungs-Session wurde als Quelle für Dashboard-Standards eingereicht.",
         sourceRoundSlug: "verwaltungssession-datenstandard",
-        publicReason: "Neues Material fuer Evidenz- und Umsetzungspruefung.",
+        publicReason: "Neues Material für Evidenz- und Umsetzungsprüfung.",
         internalReason: "Schema passt, semantische Felder noch zu normalisieren.",
         reviewedBy: "moderation@edebatte.local",
         reviewedAt: "2026-02-20T11:10:00.000Z",
@@ -186,7 +186,7 @@ export const TOPIC_SEED: Topic[] = [
         title: "AI-Hinweis zu Claim-Clustering in Review",
         summary: "Assist-Vorschlag wird manuell mit bestehendem Claim clm-1 abgeglichen.",
         sourceRoundSlug: "livestream-qa-stadtwerke",
-        publicReason: "Moegliche Dublette wird vor Merge transparent geprueft.",
+        publicReason: "Mögliche Dublette wird vor Merge transparent geprüft.",
         internalReason: "Potenzieller Doppelpunkt; erst nach Redaktionsabgleich entscheiden.",
         reviewedBy: "editor@edebatte.local",
         reviewedAt: "2026-02-05T09:30:00.000Z",
@@ -197,12 +197,12 @@ export const TOPIC_SEED: Topic[] = [
         status: "merged_into_existing_item",
         scope: "roadmap_action",
         entityId: "rm-2",
-        title: "Counterposition-Task mit Session-Input zusammengefuehrt",
+        title: "Counterposition-Task mit Session-Input zusammengeführt",
         summary: "Fragen aus Eventrunde wurden in Roadmap-Item rm-2 integriert.",
         sourceRoundSlug: "vor-ort-forum-energiepreise-neukoelln",
         appliedToId: "rm-2",
         publicReason: "Doppelte Folgefrage vermieden, bestehendes Item erweitert.",
-        internalReason: "Gleicher inhaltlicher Schwerpunkt, zusammengefuehrt fuer bessere Nachverfolgbarkeit.",
+        internalReason: "Gleicher inhaltlicher Schwerpunkt, zusammengeführt für bessere Nachverfolgbarkeit.",
         reviewedBy: "moderation@edebatte.local",
         reviewedAt: "2026-01-27T08:40:00.000Z",
         visibility: "public",
@@ -212,11 +212,11 @@ export const TOPIC_SEED: Topic[] = [
         status: "deferred_to_next_round",
         scope: "round_contribution",
         entityId: "rc-11",
-        title: "Priorisierungsliste auf naechste Open Round vertagt",
-        summary: "Follow-up-Task bleibt offen bis Evidenzmatrix aus Session vervollstaendigt ist.",
+        title: "Priorisierungsliste auf nächste Open Round vertagt",
+        summary: "Follow-up-Task bleibt offen bis Evidenzmatrix aus Session vervollständigt ist.",
         sourceRoundSlug: "offene-runde-naechster-fokus",
-        publicReason: "Entscheidung auf naechste Runde verschoben, um Datenluecken zu schliessen.",
-        internalReason: "Abhaengig von externer Datennachreichung.",
+        publicReason: "Entscheidung auf nächste Runde verschoben, um Datenlücken zu schließen.",
+        internalReason: "Abhängig von externer Datennachreichung.",
         reviewedBy: "moderation@edebatte.local",
         reviewedAt: "2026-03-05T08:25:00.000Z",
         visibility: "public",
@@ -227,10 +227,10 @@ export const TOPIC_SEED: Topic[] = [
         scope: "claim_update",
         entityId: "clm-draft-4",
         title: "Neuer Claim-Entwurf zu Finanzierungspuffer",
-        summary: "Rundenbeitrag wurde als neuer Draft-Claim in die interne Review uebernommen.",
+        summary: "Rundenbeitrag wurde als neuer Draft-Claim in die interne Review übernommen.",
         sourceRoundSlug: "podcast-expertenrunde-netzausbau",
         publicReason: "Neue Perspektive aufgenommen, noch nicht final verifiziert.",
-        internalReason: "Sourcing laeuft, final erst nach Gegenposition.",
+        internalReason: "Sourcing läuft, final erst nach Gegenposition.",
         reviewedBy: "redaktion@edebatte.local",
         reviewedAt: "2026-02-12T10:10:00.000Z",
         visibility: "management_only",
@@ -248,17 +248,17 @@ export const TOPIC_SEED: Topic[] = [
     ],
     exportSnapshot: {
       conciseSummary:
-        "Topic im Status options_clarifying. Hauptkonflikte liegen bei Kostenannahmen, Sozialtarif-Kriterien und Verantwortlichkeit fuer Dashboard-Daten.",
+        "Topic im Status options_clarifying. Hauptkonflikte liegen bei Kostenannahmen, Sozialtarif-Kriterien und Verantwortlichkeit für Dashboard-Daten.",
       nextRoundAgenda: [
         "Kostenannahmen aus src-1 und src-3 harmonisieren",
-        "Counterpositionen zum Sozialtarif strukturiert gegenueberstellen",
-        "Verbindliche Datenzustaendigkeit fuer Dashboard festlegen",
+        "Counterpositionen zum Sozialtarif strukturiert gegenüberstellen",
+        "Verbindliche Datenzuständigkeit für Dashboard festlegen",
       ],
       sourceSnapshot: [
-        "src-1 official_document: Netzzustandsbericht Waerme 2025",
+        "src-1 official_document: Netzzustandsbericht Wärme 2025",
         "src-2 secondary_report: Sozialmonitor Energiearmut",
-        "src-3 primary_source: Praxisanalyse Fernwaermeausfaelle",
-        "src-4 community_note: Buergerpanel Vertrauen",
+        "src-3 primary_source: Praxisanalyse Fernwärmeausfälle",
+        "src-4 community_note: Bürgerpanel Vertrauen",
       ],
       roadmapSnapshot: [
         "rm-1 open evidence_missing",
@@ -267,16 +267,16 @@ export const TOPIC_SEED: Topic[] = [
         "rm-4 open ready_for_vote_check",
       ],
       handoffNote:
-        "Mandat-Handoff erst nach naechster Runde und dokumentierter Verantwortlichkeitszusage fuer Datenguete empfohlen.",
+        "Mandat-Handoff erst nach nächster Runde und dokumentierter Verantwortlichkeitszusage für Datengüte empfohlen.",
     },
     mandateBridge: {
       clarifiedNow: [
-        "Prioritaere Quartiere fuer Netzsanierung sind eingegrenzt",
-        "Mindestindikatoren fuer Sozialtarif-Pilot sind benannt",
+        "Prioritäre Quartiere für Netzsanierung sind eingegrenzt",
+        "Mindestindikatoren für Sozialtarif-Pilot sind benannt",
       ],
       ownerNeeded: [
-        "Verbindliche Datenpflege-Stelle fuer Dashboard",
-        "Verantwortliche Stelle fuer Sozialtarif-Evaluation",
+        "Verbindliche Datenpflege-Stelle für Dashboard",
+        "Verantwortliche Stelle für Sozialtarif-Evaluation",
       ],
       openBeforeImplementation: [
         "Finanzierungspuffer bei steigenden Zinsen",
@@ -285,7 +285,7 @@ export const TOPIC_SEED: Topic[] = [
       monitoringFocus: [
         "Ausfallquote je Quartier",
         "Haushaltsentlastung pro Zielgruppe",
-        "Datenqualitaet und Publikationsrhythmus",
+        "Datenqualität und Publikationsrhythmus",
       ],
       linkedMandateId: "mandate-energy-berlin-2026-q2",
     },
@@ -297,7 +297,7 @@ export const ROUND_SEED: Round[] = [
     id: "rnd-article-1",
     slug: "artikel-kostenanalyse-waermenetze",
     topicSlug: "bezahlbare-energie-und-waermewende-berlin",
-    title: "Artikelrunde: Kostenanalyse Waermenetze",
+    title: "Artikelrunde: Kostenanalyse Wärmenetze",
     type: "article",
     status: "closed",
     startedAt: "2026-01-18T09:00:00.000Z",
@@ -305,17 +305,17 @@ export const ROUND_SEED: Round[] = [
     sourceUrl: "https://example.org/artikel-waermenetze-kostenanalyse",
     sourcePublisher: "Lokalredaktion Berlin",
     summary:
-      "Der Artikel hat Netzverluste und Investitionsstau fuer drei Quartiere offen gelegt. Schwerpunkt war Kostenentwicklung je Haushalt.",
+      "Der Artikel hat Netzverluste und Investitionsstau für drei Quartiere offengelegt. Schwerpunkt war Kostenentwicklung je Haushalt.",
     openPoints: [
-      "Kostenannahmen fuer Materialpreise muessen aktualisiert werden.",
+      "Kostenannahmen für Materialpreise müssen aktualisiert werden.",
       "Vergleichsdaten zu alternativen Sanierungsfolgen fehlen.",
     ],
     contributions: [
       {
         id: "rc-1",
         type: "source",
-        text: "Ergaenzender Verweis auf den Netzzustandsbericht 2025 mit Datentabelle pro Quartier.",
-        authorLabel: "Buergerbeitrag",
+        text: "Ergänzender Verweis auf den Netzzustandsbericht 2025 mit Datentabelle pro Quartier.",
+        authorLabel: "Bürgerbeitrag",
         createdAt: "2026-01-18T11:20:00.000Z",
         reviewStatus: "merged_into_existing_item",
       },
@@ -330,7 +330,7 @@ export const ROUND_SEED: Round[] = [
       {
         id: "rc-3",
         type: "objection",
-        text: "Die angenommene Bauzeit wirkt zu optimistisch und ignoriert Engpaesse bei Fachfirmen.",
+        text: "Die angenommene Bauzeit wirkt zu optimistisch und ignoriert Engpässe bei Fachfirmen.",
         authorLabel: "Fachverband Handwerk",
         createdAt: "2026-01-18T12:45:00.000Z",
         reviewStatus: "accepted_as_new_draft",
@@ -341,23 +341,23 @@ export const ROUND_SEED: Round[] = [
     id: "rnd-event-1",
     slug: "vor-ort-forum-energiepreise-neukoelln",
     topicSlug: "bezahlbare-energie-und-waermewende-berlin",
-    title: "Eventrunde: Vor-Ort-Forum Energiepreise in Neukoelln",
+    title: "Eventrunde: Vor-Ort-Forum Energiepreise in Neukölln",
     type: "event",
     status: "closed",
     startedAt: "2026-01-25T16:30:00.000Z",
-    sourceLabel: "Oeffentliches Forum",
-    sourcePublisher: "Bezirksamt Neukoelln",
+    sourceLabel: "Öffentliches Forum",
+    sourcePublisher: "Bezirksamt Neukölln",
     summary:
       "Im Forum wurden Belastungsspitzen bei Mietnebenkosten gesammelt und priorisiert. Verwaltung und Stadtwerke haben offene Punkte mitgenommen.",
     openPoints: [
-      "Definition fuer haushaltsnahe Entlastungsgrenzen fehlt.",
-      "Rolle der Bezirke bei Zielgruppenansprache muss geklaert werden.",
+      "Definition für haushaltsnahe Entlastungsgrenzen fehlt.",
+      "Rolle der Bezirke bei Zielgruppenansprache muss geklärt werden.",
     ],
     contributions: [
       {
         id: "rc-4",
         type: "perspective",
-        text: "Viele Familien berichten ueber stark schwankende Abschlaege trotz konstantem Verbrauch.",
+        text: "Viele Familien berichten über stark schwankende Abschläge trotz konstantem Verbrauch.",
         authorLabel: "Bewohnerinitiative",
         createdAt: "2026-01-25T18:10:00.000Z",
         reviewStatus: "accepted_as_new_draft",
@@ -366,7 +366,7 @@ export const ROUND_SEED: Round[] = [
         id: "rc-5",
         type: "option",
         text: "Pilot mit quartiersbezogenem Sozialtarif plus verpflichtender Energieberatung.",
-        authorLabel: "Sozialtraeger",
+        authorLabel: "Sozialträger",
         createdAt: "2026-01-25T19:05:00.000Z",
         reviewStatus: "merged_into_existing_item",
       },
@@ -384,16 +384,16 @@ export const ROUND_SEED: Round[] = [
     sourceUrl: "https://example.org/livestream-stadtwerke-qa",
     sourcePublisher: "Stadtwerke Berlin",
     summary:
-      "Im Livestream wurden Bauablauf, Ausfallrisiken und geplante Transparenzmassnahmen diskutiert. Mehrere Punkte wurden zur Nachpruefung markiert.",
+      "Im Livestream wurden Bauablauf, Ausfallrisiken und geplante Transparenzmaßnahmen diskutiert. Mehrere Punkte wurden zur Nachprüfung markiert.",
     openPoints: [
-      "Verbindliche Termine fuer monatliche Datenschnittstellen fehlen.",
-      "Antwort zu Finanzierungspuffer ist unvollstaendig.",
+      "Verbindliche Termine für monatliche Datenschnittstellen fehlen.",
+      "Antwort zu Finanzierungspuffer ist unvollständig.",
     ],
     contributions: [
       {
         id: "rc-6",
         type: "summary_note",
-        text: "Zentraler Konsens: Transparenz ueber Baustufen ist wichtiger als ein einzelner Endtermin.",
+        text: "Zentraler Konsens: Transparenz über Baustufen ist wichtiger als ein einzelner Endtermin.",
         authorLabel: "Moderation",
         createdAt: "2026-02-02T19:45:00.000Z",
         reviewStatus: "accepted_as_new_draft",
@@ -401,7 +401,7 @@ export const ROUND_SEED: Round[] = [
       {
         id: "rc-7",
         type: "followup_task",
-        text: "Stadtwerke liefern bis naechste Woche einen Datenfeldkatalog fuer das Fortschrittsdashboard.",
+        text: "Stadtwerke liefern bis nächste Woche einen Datenfeldkatalog für das Fortschrittsdashboard.",
         authorLabel: "Redaktion",
         createdAt: "2026-02-02T19:52:00.000Z",
         reviewStatus: "under_review",
@@ -412,7 +412,7 @@ export const ROUND_SEED: Round[] = [
     id: "rnd-video-1",
     slug: "video-erklaerung-sozialtarif",
     topicSlug: "bezahlbare-energie-und-waermewende-berlin",
-    title: "Videorunde: Erklaerstueck Sozialtarif",
+    title: "Videorunde: Erklärstück Sozialtarif",
     type: "video",
     status: "closed",
     startedAt: "2026-02-07T08:30:00.000Z",
@@ -420,7 +420,7 @@ export const ROUND_SEED: Round[] = [
     sourceUrl: "https://example.org/video-sozialtarif-erklaert",
     sourcePublisher: "Kommunalkanal",
     summary:
-      "Das Video hat Kriterien und Kritikpunkte zum Sozialtarif erklaert. In der Diskussion wurden mehrere Messindikatoren gefordert.",
+      "Das Video hat Kriterien und Kritikpunkte zum Sozialtarif erklärt. In der Diskussion wurden mehrere Messindikatoren gefordert.",
     openPoints: [
       "Wie wird Mitnahmeeffekt im Pilot belastbar gemessen?",
       "Welche Exit-Regel gilt nach Ablauf der Pilotphase?",
@@ -446,11 +446,11 @@ export const ROUND_SEED: Round[] = [
     startedAt: "2026-02-11T13:00:00.000Z",
     sourceLabel: "Podcast Episode",
     sourceUrl: "https://example.org/podcast-netzausbau",
-    sourcePublisher: "Stadtgespraeche",
+    sourcePublisher: "Stadtgespräche",
     summary:
-      "Fachgaeste haben Ausbaupfade, Finanzierungsmodelle und Verteilwirkungen gegenuebergestellt.",
+      "Fachgäste haben Ausbaupfade, Finanzierungsmodelle und Verteilwirkungen gegenübergestellt.",
     openPoints: [
-      "Wie werden Randlagen in Priorisierung transparent beruecksichtigt?",
+      "Wie werden Randlagen in Priorisierung transparent berücksichtigt?",
     ],
     contributions: [
       {
@@ -474,10 +474,10 @@ export const ROUND_SEED: Round[] = [
     sourceLabel: "Fachsession",
     sourcePublisher: "Senatsverwaltung",
     summary:
-      "Arbeitsgruppe zu Datenqualitaet und Reportingzyklen fuer das Topic-Dashboard. Runde ist noch offen fuer Nachreichungen.",
+      "Arbeitsgruppe zu Datenqualität und Reportingzyklen für das Topic-Dashboard. Runde ist noch offen für Nachreichungen.",
     openPoints: [
-      "Versionierungsregel fuer Korrekturen muss festgelegt werden.",
-      "Publikationsrhythmus ueber Feiertage ist offen.",
+      "Versionierungsregel für Korrekturen muss festgelegt werden.",
+      "Publikationsrhythmus über Feiertage ist offen.",
     ],
     contributions: [
       {
@@ -494,22 +494,22 @@ export const ROUND_SEED: Round[] = [
     id: "rnd-open-1",
     slug: "offene-runde-naechster-fokus",
     topicSlug: "bezahlbare-energie-und-waermewende-berlin",
-    title: "Open Round: Naechster Fokus fuer das Topic",
+    title: "Open Round: Nächster Fokus für das Topic",
     type: "open_round",
     status: "open",
     startedAt: "2026-03-04T17:30:00.000Z",
     sourceLabel: "Offene Beteiligungsrunde",
     summary:
-      "Offene Runde fuer die Frage, welche Evidenz vor einem Vote-Check zwingend noch nachgereicht werden muss.",
+      "Offene Runde für die Frage, welche Evidenz vor einem Vote-Check zwingend noch nachgereicht werden muss.",
     openPoints: [
       "Priorisierung der fehlenden Evidenz ist noch nicht abgeschlossen.",
-      "Counterpositionen zum Sozialtarif muessen konsolidiert werden.",
+      "Counterpositionen zum Sozialtarif müssen konsolidiert werden.",
     ],
     contributions: [
       {
         id: "rc-11",
         type: "followup_task",
-        text: "Moderation erstellt bis zur naechsten Woche eine priorisierte Evidenzliste fuer den Vote-Check.",
+        text: "Moderation erstellt bis zur nächsten Woche eine priorisierte Evidenzliste für den Vote-Check.",
         authorLabel: "Moderation",
         createdAt: "2026-03-04T19:00:00.000Z",
         reviewStatus: "deferred_to_next_round",

@@ -40,7 +40,7 @@ export default async function PartnerDemoPage() {
         <div className="text-[11px] font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Partner Demo (private)</div>
         <h1 className="mt-1 text-xl font-semibold text-[rgb(var(--fg))]">Correctiv / RSF - Review Demo</h1>
         <p className="mt-2 text-sm text-[rgb(var(--muted))]">
-          Ziel: auditable Review Flow (RunReceipt + EvidenceGraph + EditorialAudit) - Demo ist nur fuer Dummy-Accounts sichtbar.
+          Ziel: auditable Review Flow (RunReceipt + EvidenceGraph + EditorialAudit) - Demo ist nur für Dummy-Accounts sichtbar.
         </p>
 
         <div className="mt-4 space-y-2">

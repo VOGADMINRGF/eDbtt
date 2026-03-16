@@ -72,5 +72,9 @@ export type SwipeVotePayload = {
   statementId: string;
   eventualityId?: string; // optional: Vote auf konkrete Eventualität
   decision: SwipeDecision;
+  variantWeight?: 1 | 3 | 5;
+  variantReason?: string;
+  variantRankedIds?: string[];
+  excludedEventualityIds?: string[];
   source: "swipes";
 };

@@ -361,7 +361,7 @@ export default function VormerkenPage() {
 
             <InfoCard eyebrow="2) Module (optional)" title="Zusatzfunktionen, die du voraussichtlich buchen willst">
               <p>
-                Das ist noch kein Kauf – nur eine Vormerkung. Damit sehen wir, was fuer Rollout &amp; Ausbau am wichtigsten
+                Das ist noch kein Kauf – nur eine Vormerkung. Damit sehen wir, was für Rollout &amp; Ausbau am wichtigsten
                 ist.
               </p>
 
@@ -549,14 +549,14 @@ export default function VormerkenPage() {
                         rel="noreferrer"
                         className="inline-flex items-center justify-center rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-2 text-sm font-semibold text-[rgb(var(--muted))] hover:bg-[rgb(var(--bg))]"
                       >
-                        {selectedPackage.sekundarCtaText ?? "Aufbau unterstuetzen"}
+                        {selectedPackage.sekundarCtaText ?? "Aufbau unterstützen"}
                       </a>
                     ) : (
                       <Link
                         href={selectedPackage.sekundarCtaHref}
                         className="inline-flex items-center justify-center rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-2 text-sm font-semibold text-[rgb(var(--muted))] hover:bg-[rgb(var(--bg))]"
                       >
-                        {selectedPackage.sekundarCtaText ?? "Aufbau unterstuetzen"}
+                        {selectedPackage.sekundarCtaText ?? "Aufbau unterstützen"}
                       </Link>
                     )
                   ) : null}

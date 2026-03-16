@@ -8,7 +8,7 @@ import { parseCreateIntent } from "@/features/create/intents";
 
 export const metadata: Metadata = {
   title: "Erstellen - eDebatte",
-  description: "Einheitlicher Einstieg fuer Statements, Beitraege und weitere Intents.",
+  description: "Einheitlicher Einstieg für Statements, Beiträge und weitere Intents.",
 };
 
 type SearchParamsShape =

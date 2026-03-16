@@ -33,6 +33,10 @@ type SwipeVoteDoc = {
   statementId: string;
   eventualityId: string | null;
   decision: SwipeDecision;
+  variantWeight?: 1 | 3 | 5 | null;
+  variantReason?: string | null;
+  variantRankedIds?: string[] | null;
+  excludedEventualityIds?: string[] | null;
   source: "swipes";
   createdAt: Date;
   updatedAt: Date;
@@ -177,6 +181,10 @@ export async function recordSwipeVote(payload: SwipeVotePayload): Promise<void> 
     {
       $set: {
         decision: payload.decision,
+        variantWeight: payload.variantWeight ?? null,
+        variantReason: payload.variantReason?.trim() ? payload.variantReason.trim() : null,
+        variantRankedIds: payload.variantRankedIds?.length ? payload.variantRankedIds : null,
+        excludedEventualityIds: payload.excludedEventualityIds?.length ? payload.excludedEventualityIds : null,
         updatedAt: now,
       },
       $setOnInsert: {

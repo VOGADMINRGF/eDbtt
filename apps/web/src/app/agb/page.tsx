@@ -19,11 +19,11 @@ export default function AgbPage() {
               {t("Rechtliches", "kicker")}
             </p>
             <h1 className="text-3xl font-extrabold leading-tight text-[rgb(var(--fg))] md:text-4xl">
-              {t("Allgemeine Geschaeftsbedingungen (AGB)", "title")}
+              {t("Allgemeine Geschäftsbedingungen (AGB)", "title")}
             </h1>
             <p className="text-sm leading-relaxed text-[rgb(var(--muted))] md:text-base">
               {t(
-                "Hier findest du die AGB fuer eDebatte und eDebatte. Wir finalisieren die rechtsverbindliche Fassung und veroeffentlichen sie hier, sobald sie vorliegt.",
+                "Hier findest du die AGB für eDebatte und eDebatte. Wir finalisieren die rechtsverbindliche Fassung und veröffentlichen sie hier, sobald sie vorliegt.",
                 "lead",
               )}
             </p>
@@ -33,7 +33,7 @@ export default function AgbPage() {
             <InfoCard
               title={t("Aktueller Stand", "status.title")}
               body={t(
-                "Die AGB befinden sich in der finalen Abstimmung. Sobald die rechtsverbindliche Version veroeffentlicht ist, findest du sie an dieser Stelle.",
+                "Die AGB befinden sich in der finalen Abstimmung. Sobald die rechtsverbindliche Version veröffentlicht ist, findest du sie an dieser Stelle.",
                 "status.body",
               )}
             />
@@ -45,7 +45,7 @@ export default function AgbPage() {
               <ul className="mt-2 list-disc space-y-2 pl-5">
                 <li>{t("Leistungsumfang und Nutzung der Plattform", "contents.0")}</li>
                 <li>{t("Mitgliedschaften, Pakete und Laufzeiten", "contents.1")}</li>
-                <li>{t("Kuendigung, Widerruf und Support", "contents.2")}</li>
+                <li>{t("Kündigung, Widerruf und Support", "contents.2")}</li>
                 <li>{t("Haftung, Pflichten und Verhaltensregeln", "contents.3")}</li>
               </ul>
             </div>
@@ -61,7 +61,7 @@ export default function AgbPage() {
             <div className="grid gap-3 md:grid-cols-3">
               <LinkCard href="/datenschutz" label={t("Datenschutz", "links.privacy")} />
               <LinkCard href="/widerrufsbelehrung" label={t("Widerrufsbelehrung", "links.withdraw")} />
-              <LinkCard href="/widerspruch" label={t("Widerspruch & Kuendigung", "links.objection")} />
+              <LinkCard href="/widerspruch" label={t("Widerspruch & Kündigung", "links.objection")} />
             </div>
 
             <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 text-sm text-[rgb(var(--fg))] shadow-sm">

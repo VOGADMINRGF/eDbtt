@@ -98,7 +98,7 @@ export default function PricingPage() {
                 <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">B2G</p>
                 <h3 className="text-lg font-semibold text-[rgb(var(--fg))]">Kommunen &amp; Verwaltungen</h3>
                 <p className="text-sm text-[rgb(var(--muted))]">
-                  Kommunale Bereiche, Admin-Steuerung und Reports fuer Verwaltungen.
+                  Kommunale Bereiche, Admin-Steuerung und Reports für Verwaltungen.
                 </p>
               </div>
             </div>
@@ -111,7 +111,7 @@ export default function PricingPage() {
                 <p className="text-xs font-semibold uppercase tracking-wide text-amber-700">Ablauf</p>
                 <h3 className="text-lg font-semibold">Setup &amp; Onboarding</h3>
                 <p className="mt-1 text-sm text-amber-900">
-                  Nach der Vormerkung klaeren wir Setup, Umfang und Starttermin. Basis/Pro wird dann passend
+                  Nach der Vormerkung klären wir Setup, Umfang und Starttermin. Basis/Pro wird dann passend
                   freigeschaltet.
                 </p>
               </div>
@@ -227,7 +227,7 @@ export default function PricingPage() {
                 <tr>
                   <td className="px-4 py-3 font-medium text-[rgb(var(--fg))]">Zusatzthema (Projekt)</td>
                   <td className="px-4 py-3 text-[rgb(var(--muted))]">1,99 EUR je Thema</td>
-                  <td className="px-4 py-3 text-[rgb(var(--muted))]">Zusatzthemen ueber 10 hinaus (nur eDebatte Pro, 24 Monate).</td>
+                  <td className="px-4 py-3 text-[rgb(var(--muted))]">Zusatzthemen über 10 hinaus (nur eDebatte Pro, 24 Monate).</td>
                 </tr>
                 <tr>
                   <td className="px-4 py-3 font-medium text-[rgb(var(--fg))]">Agenda &amp; Umfragen</td>
@@ -257,7 +257,7 @@ export default function PricingPage() {
             },
             {
               title: "Setup",
-              text: "Gefuehrte Schritte fuer Themen, Fragen und Alternativen – passend fuer Teams und Verwaltungen.",
+              text: "Geführte Schritte für Themen, Fragen und Alternativen – passend für Teams und Verwaltungen.",
             },
             {
               title: "Pro-Optionen",

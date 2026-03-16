@@ -51,7 +51,7 @@ export default function SharePanel({
       await copyToClipboard(value);
       setMessage(`${label} kopiert.`);
     } catch {
-      setMessage(`Kopieren fuer ${label} nicht verfuegbar.`);
+      setMessage(`Kopieren für ${label} nicht verfügbar.`);
     }
   }
 
@@ -97,7 +97,7 @@ export default function SharePanel({
         <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3 flex flex-col items-center gap-2">
           <img src={qrUrl} alt="QR code for public entry" width={180} height={180} className="rounded-md border border-[rgb(var(--border))]" />
           <p className="text-[11px] text-[rgb(var(--muted))] text-center">
-            QR Entry unterstuetzt `?entry=qr` und source/persona Kontexte.
+            QR Entry unterstützt `?entry=qr` und source/persona Kontexte.
           </p>
         </div>
       </div>

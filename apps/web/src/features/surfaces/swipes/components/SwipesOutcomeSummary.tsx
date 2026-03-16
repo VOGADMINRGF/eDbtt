@@ -13,6 +13,7 @@ type DecisionHistoryItem = {
 type SwipesOutcomeSummaryProps = {
   stats: DecisionStats;
   history: DecisionHistoryItem[];
+  votesHref?: string;
 };
 
 function pickTopCategories(history: DecisionHistoryItem[]) {
@@ -32,7 +33,7 @@ function pickPriorityDossiers(history: DecisionHistoryItem[]) {
   return history.slice(-3).reverse();
 }
 
-export function SwipesOutcomeSummary({ stats, history }: SwipesOutcomeSummaryProps) {
+export function SwipesOutcomeSummary({ stats, history, votesHref = "/abstimmungen" }: SwipesOutcomeSummaryProps) {
   const total = stats.agree + stats.neutral + stats.disagree;
   if (total < 5) return null;
 
@@ -94,7 +95,7 @@ export function SwipesOutcomeSummary({ stats, history }: SwipesOutcomeSummaryPro
         <article className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
           <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Nächste Aktionen</p>
           <div className="mt-2 flex flex-wrap gap-2">
-            <Link href="/abstimmungen" className="vog-chip vog-chip--active">
+            <Link href={votesHref} className="vog-chip vog-chip--active">
               Passende Abstimmungen
             </Link>
             <Link href="/mitwirken" className="vog-chip">
@@ -114,4 +115,3 @@ export function SwipesOutcomeSummary({ stats, history }: SwipesOutcomeSummaryPro
 }
 
 export type { DecisionHistoryItem };
-

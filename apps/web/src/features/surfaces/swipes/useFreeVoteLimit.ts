@@ -24,7 +24,7 @@ export function useFreeVoteLimit({ enabled, limit = 3 }: UseFreeVoteLimitArgs) {
       const parsed = raw ? Number(raw) : 0;
       const next = Number.isFinite(parsed) ? Math.max(0, Math.floor(parsed)) : 0;
       setCount(next);
-      if (next >= limit) setGateOpen(true);
+      if (next >= limit) setGateOpen(false);
     } catch {
       setCount(0);
     }
@@ -33,11 +33,10 @@ export function useFreeVoteLimit({ enabled, limit = 3 }: UseFreeVoteLimitArgs) {
   const canVote = !enabled || count < limit;
   const remaining = Math.max(limit - count, 0);
 
-  const registerVote = useCallback(() => {
-    if (!enabled) return true;
+  const registerVote = useCallback((): number | null => {
+    if (!enabled) return 0;
     if (count >= limit) {
-      setGateOpen(true);
-      return false;
+      return null;
     }
     const next = count + 1;
     setCount(next);
@@ -46,8 +45,7 @@ export function useFreeVoteLimit({ enabled, limit = 3 }: UseFreeVoteLimitArgs) {
     } catch {
       // ignore storage errors
     }
-    if (next >= limit) setGateOpen(true);
-    return true;
+    return next;
   }, [count, enabled, limit]);
 
   return useMemo(
@@ -64,4 +62,3 @@ export function useFreeVoteLimit({ enabled, limit = 3 }: UseFreeVoteLimitArgs) {
     [enabled, limit, count, remaining, canVote, gateOpen, registerVote],
   );
 }
-

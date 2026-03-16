@@ -25,11 +25,14 @@ export default async function RoundMergeWorkspacePage({ params }: Params) {
   const snapshot = getLatestRoundAssistSnapshot(round.slug);
 
   return (
-    <MergeWorkspaceClient
-      round={round}
-      topic={topic}
-      initialSnapshot={snapshot}
-      canManage={canManage}
-    />
+    <>
+      <h1 className="sr-only">Runden-Zusammenführung</h1>
+      <MergeWorkspaceClient
+        round={round}
+        topic={topic}
+        initialSnapshot={snapshot}
+        canManage={canManage}
+      />
+    </>
   );
 }

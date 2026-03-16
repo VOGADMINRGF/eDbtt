@@ -2,20 +2,19 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import type { StatementVote } from "@/components/statements/StatementCard";
-import { buildSwipeDossierHref, buildSwipeEvidenceHref } from "@/features/surfaces/swipes/detailRoutes";
+import { buildSwipeDossierHref, buildSwipeEvidenceHref, buildSwipeVotingHref } from "@/features/surfaces/swipes/detailRoutes";
 import {
-  FreeVoteGate,
+  SwipeAuthGate,
   SwipeDetailSheet,
-  SwipesDeck,
-  SwipesHeader,
+  SwipeEventualitiesStep,
+  SwipesHeaderProgress,
+  SwipesSearchTrigger,
+  SwipeTopicStep,
   SwipesOutcomeSummary,
-  SwipesToolbar,
   type DecisionHistoryItem,
 } from "@/features/surfaces/swipes/components";
 import { useFreeVoteLimit } from "@/features/surfaces/swipes/useFreeVoteLimit";
 import type {
-  EDebattePackage,
   Eventuality,
   SwipeDecision,
   SwipeFeedFilter,
@@ -53,13 +52,15 @@ async function fetchEventualities(statementId: string): Promise<Eventuality[]> {
   return data.eventualities;
 }
 
-const mapVoteToDecision = (vote: StatementVote): SwipeDecision => {
-  if (vote === "approve") return "agree";
-  if (vote === "reject") return "disagree";
-  return "neutral";
-};
-
-async function postSwipeVote(payload: { statementId: string; eventualityId?: string; decision: SwipeDecision }) {
+async function postSwipeVote(payload: {
+  statementId: string;
+  eventualityId?: string;
+  decision: SwipeDecision;
+  variantWeight?: 1 | 3 | 5;
+  variantReason?: string;
+  variantRankedIds?: string[];
+  excludedEventualityIds?: string[];
+}) {
   const res = await fetch("/api/swipes/vote", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -70,38 +71,44 @@ async function postSwipeVote(payload: { statementId: string; eventualityId?: str
   }
 }
 
+function transitionLabel(decision: SwipeDecision) {
+  if (decision === "agree") return "Eher zustimmend erfasst. Variante folgt.";
+  if (decision === "disagree") return "Eher ablehnend erfasst. Prüfe optionale Einschränkungen.";
+  return "Noch offen erfasst. Jetzt Ausgestaltung wählen.";
+}
+
+function buildTransitionHint(decision: SwipeDecision, remainingToAnalysis: number) {
+  return `+1 Swipe gespeichert · ${remainingToAnalysis} bis zur Analyse. ${transitionLabel(decision)}`;
+}
 
 type SwipesClientProps = {
-  edebattePackage: EDebattePackage;
   initialTopic?: string;
   focusStatementId?: string;
   variant?: "full" | "solo";
-  showHero?: boolean;
   mode?: SurfaceMode;
   audience?: SurfaceAudience;
   requireAuthAfterFreeVotes?: boolean;
 };
 
 export function SwipesClient({
-  edebattePackage,
   initialTopic = "",
   focusStatementId,
   variant = "full",
-  showHero = true,
   mode = "live",
   audience = "none",
   requireAuthAfterFreeVotes = false,
 }: SwipesClientProps) {
   const [topicQuery, setTopicQuery] = useState(variant === "solo" ? "" : initialTopic);
   const [activeLevel, setActiveLevel] = useState<"ALL" | "Bund" | "Land" | "Kommune" | "EU">("ALL");
+  const [searchOpen, setSearchOpen] = useState(false);
   const [items, setItems] = useState<SwipeItem[]>([]);
   const [loading, setLoading] = useState(false);
-  const [activeIndex, setActiveIndex] = useState(0);
-  const [flashDecision, setFlashDecision] = useState<{ id: string; decision: SwipeDecision } | null>(null);
-  const [screenFlash, setScreenFlash] = useState<SwipeDecision | null>(null);
-  const [lastAction, setLastAction] = useState<{ item: SwipeItem; decision: SwipeDecision; index: number; removed: boolean } | null>(null);
   const [decisionStats, setDecisionStats] = useState({ agree: 0, neutral: 0, disagree: 0 });
   const [decisionHistory, setDecisionHistory] = useState<DecisionHistoryItem[]>([]);
+  const [transitionHint, setTransitionHint] = useState<string | null>(null);
+  const [completedCount, setCompletedCount] = useState(0);
+
+  const [screenFlash, setScreenFlash] = useState<SwipeDecision | null>(null);
   const [liveMessage, setLiveMessage] = useState("");
 
   const [detailOpen, setDetailOpen] = useState(false);
@@ -109,22 +116,24 @@ export function SwipesClient({
   const [detailEventualities, setDetailEventualities] = useState<Eventuality[] | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
 
+  const [eventualityStepOpen, setEventualityStepOpen] = useState(false);
+  const [eventualityStepDecision, setEventualityStepDecision] = useState<SwipeDecision | null>(null);
+  const [eventualityStepItem, setEventualityStepItem] = useState<SwipeItem | null>(null);
+  const [eventualityStepItems, setEventualityStepItems] = useState<Eventuality[]>([]);
+  const [eventualityStepLoading, setEventualityStepLoading] = useState(false);
+  const [openGateAfterStep, setOpenGateAfterStep] = useState(false);
+
   const liveTimerRef = useRef<number | null>(null);
 
-  const isBasic = edebattePackage === "basis" || edebattePackage === "none";
-  const isStartOrPro =
-    edebattePackage === "start" ||
-    edebattePackage === "pro" ||
-    edebattePackage === "b2b_basis" ||
-    edebattePackage === "b2b_pro" ||
-    edebattePackage === "b2g_basis" ||
-    edebattePackage === "b2g_pro";
   const isSolo = variant === "solo";
+
   const freeVote = useFreeVoteLimit({
     enabled: requireAuthAfterFreeVotes && mode === "live" && !isSolo,
     limit: 3,
   });
+
   const isVoteLocked = freeVote.enabled && !freeVote.canVote;
+  const swipeProgressCount = Math.max(completedCount, freeVote.count);
 
   const openDossierRoute = useCallback(
     (statementId: string) => buildSwipeDossierHref(statementId, { mode, audience }),
@@ -133,6 +142,12 @@ export function SwipesClient({
 
   const openEvidenceRoute = useCallback(
     (statementId: string) => buildSwipeEvidenceHref(statementId, { mode, audience }),
+    [audience, mode],
+  );
+
+  const openVotesRoute = useCallback(
+    (statementId: string, title?: string | null) =>
+      buildSwipeVotingHref(statementId, { mode, audience }, { title }),
     [audience, mode],
   );
 
@@ -156,7 +171,6 @@ export function SwipesClient({
       );
       if (!cancelled) {
         setItems(resp.items);
-        setActiveIndex(0);
         setLoading(false);
       }
     }
@@ -166,7 +180,7 @@ export function SwipesClient({
     };
   }, [topicQuery, activeLevel, focusStatementId, variant]);
 
-  const filteredSwipes = useMemo(() => items, [items]);
+  const activeItem = useMemo(() => items[0] ?? null, [items]);
 
   const openDetail = useCallback(async (item: SwipeItem) => {
     setDetailItem(item);
@@ -177,130 +191,165 @@ export function SwipesClient({
     setDetailLoading(false);
   }, []);
 
-  const handleDecision = useCallback((item: SwipeItem, decision: SwipeDecision, idxOverride?: number) => {
-    setDecisionStats((prev) => ({
-      ...prev,
-      [decision]: prev[decision] + 1,
-    }));
+  const moveToNextTopic = useCallback(() => {
+    setItems((prev) => prev.slice(1));
+    setCompletedCount((prev) => prev + 1);
+  }, []);
 
-    setDecisionHistory((prev) => {
-      const next: DecisionHistoryItem[] = [
-        ...prev,
-        {
-          id: item.id,
-          title: item.title,
-          category: item.category || item.domainLabel || "Thema",
-          decision,
-          detailHref: openDossierRoute(item.id),
-        },
-      ];
-      return next.slice(-20);
-    });
-
-    setFlashDecision({ id: item.id, decision });
-    setScreenFlash(decision);
-    postSwipeVote({ statementId: item.id, decision }).catch(() => {});
-
-    const shouldRemove = isBasic;
-    const idx = typeof idxOverride === "number" ? idxOverride : filteredSwipes.findIndex((s) => s.id === item.id);
-
-    setLastAction({ item, decision, index: idx >= 0 ? idx : 0, removed: shouldRemove });
-
-    announce(
-      decision === "agree"
-        ? "Zustimmung gespeichert."
-        : decision === "disagree"
-          ? "Ablehnung gespeichert."
-          : "Neutral gespeichert.",
-    );
-
-    if (shouldRemove) {
-      setTimeout(() => {
-        setItems((prev) => prev.filter((s) => s.id !== item.id));
-        setFlashDecision(null);
-        if (idx >= 0) {
-          const next = Math.min(idx, Math.max(filteredSwipes.length - 2, 0));
-          setActiveIndex(next);
+  const beginEventualityStep = useCallback(
+    async (item: SwipeItem, decision: SwipeDecision, openGateAfterTopic: boolean) => {
+      if (!item.hasEventualities) {
+        moveToNextTopic();
+        if (openGateAfterTopic) {
+          freeVote.setGateOpen(true);
         }
-      }, 250);
-    } else {
-      const nextIdx = idx >= 0 ? Math.min(idx + 1, Math.max(filteredSwipes.length - 1, 0)) : 0;
-      setTimeout(() => {
-        setFlashDecision(null);
-        if (filteredSwipes[nextIdx]) {
-          setActiveIndex(nextIdx);
-          const nextId = filteredSwipes[nextIdx]?.id;
-          if (nextId) {
-            const el = document.querySelector(`[data-statement-id="${nextId}"]`);
-            (el as HTMLElement | null)?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+        return;
+      }
+      setOpenGateAfterStep(openGateAfterTopic);
+      setEventualityStepOpen(true);
+      setEventualityStepDecision(decision);
+      setEventualityStepItem(item);
+      setEventualityStepLoading(true);
+      const evts = await fetchEventualities(item.id);
+      setEventualityStepItems(evts.slice(0, 4));
+      setEventualityStepLoading(false);
+      if (evts.length === 0) {
+        setTransitionHint("Keine Varianten vorhanden. Nächstes Thema wird geladen.");
+        window.setTimeout(() => {
+          setEventualityStepOpen(false);
+          setEventualityStepDecision(null);
+          setEventualityStepItem(null);
+          setEventualityStepItems([]);
+          moveToNextTopic();
+          if (openGateAfterTopic) {
+            freeVote.setGateOpen(true);
           }
-        }
-      }, 240);
-    }
-    setTimeout(() => setScreenFlash(null), 320);
-  }, [announce, filteredSwipes, isBasic, openDossierRoute]);
+        }, 500);
+      }
+    },
+    [freeVote, moveToNextTopic],
+  );
 
-  const attemptDecision = useCallback(
-    (item: SwipeItem, decision: SwipeDecision, idxOverride?: number) => {
+  const handlePrimaryVote = useCallback(
+    async (item: SwipeItem, decision: SwipeDecision) => {
       if (isVoteLocked) {
         freeVote.setGateOpen(true);
         return;
       }
-      const allowed = freeVote.registerVote();
-      if (!allowed) return;
-      handleDecision(item, decision, idxOverride);
+      const nextCount = freeVote.registerVote();
+      if (nextCount === null) {
+        freeVote.setGateOpen(true);
+        return;
+      }
+      const openGateAfterTopic = freeVote.enabled && nextCount >= freeVote.limit;
+      const nextProgress = Math.max(completedCount, freeVote.count) + 1;
+      const remainingToAnalysis = Math.max(100 - nextProgress, 0);
+
+      setDecisionStats((prev) => ({
+        ...prev,
+        [decision]: prev[decision] + 1,
+      }));
+      setDecisionHistory((prev) => {
+        const next: DecisionHistoryItem[] = [
+          ...prev,
+          {
+            id: item.id,
+            title: item.title,
+            category: item.category || item.domainLabel || "Thema",
+            decision,
+            detailHref: openDossierRoute(item.id),
+          },
+        ];
+        return next.slice(-20);
+      });
+
+      setScreenFlash(decision);
+      setTransitionHint(buildTransitionHint(decision, remainingToAnalysis));
+      announce(
+        decision === "agree"
+          ? "Zustimmung gespeichert."
+          : decision === "disagree"
+            ? "Ablehnung gespeichert."
+            : "Offene Bewertung gespeichert.",
+      );
+      postSwipeVote({ statementId: item.id, decision }).catch(() => {});
+      window.setTimeout(() => setScreenFlash(null), 260);
+
+      await beginEventualityStep(item, decision, openGateAfterTopic);
+      if (!item.hasEventualities) {
+        window.setTimeout(() => setTransitionHint("Nächstes Thema"), 320);
+      }
     },
-    [freeVote, handleDecision, isVoteLocked],
+    [announce, beginEventualityStep, completedCount, freeVote, isVoteLocked, openDossierRoute],
+  );
+
+  const finishEventualityStep = useCallback(() => {
+    setEventualityStepOpen(false);
+    setEventualityStepDecision(null);
+    setEventualityStepItem(null);
+    setEventualityStepItems([]);
+    moveToNextTopic();
+    if (openGateAfterStep) {
+      setOpenGateAfterStep(false);
+      freeVote.setGateOpen(true);
+    }
+  }, [freeVote, moveToNextTopic, openGateAfterStep]);
+
+  const handleEventualitySelect = useCallback(
+    (selection: {
+      eventualityId: string;
+      variantWeight: 1 | 3 | 5;
+      variantReason?: string;
+      variantRankedIds?: string[];
+      excludedEventualityIds?: string[];
+    }) => {
+      if (!eventualityStepItem || !eventualityStepDecision) {
+        finishEventualityStep();
+        return;
+      }
+      postSwipeVote({
+        statementId: eventualityStepItem.id,
+        eventualityId: selection.eventualityId,
+        decision: eventualityStepDecision,
+        variantWeight: selection.variantWeight,
+        variantReason: selection.variantReason,
+        variantRankedIds: selection.variantRankedIds,
+        excludedEventualityIds: selection.excludedEventualityIds,
+      }).catch(() => {});
+      setTransitionHint("Variante mit Gewichtung gespeichert. Nächstes Thema folgt.");
+      finishEventualityStep();
+    },
+    [eventualityStepDecision, eventualityStepItem, finishEventualityStep],
   );
 
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
-      if (!filteredSwipes.length) return;
+      if (!activeItem || eventualityStepOpen) return;
       if (e.metaKey || e.ctrlKey || e.altKey) return;
       const t = e.target as HTMLElement | null;
       if (t?.isContentEditable) return;
       const tag = t?.tagName;
       if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
-      const current = filteredSwipes[activeIndex] ?? filteredSwipes[0];
-      if (!current) return;
       if (e.key === "ArrowLeft") {
         e.preventDefault();
-        attemptDecision(current, "disagree", activeIndex);
+        void handlePrimaryVote(activeItem, "disagree");
       } else if (e.key === "ArrowRight") {
         e.preventDefault();
-        attemptDecision(current, "agree", activeIndex);
+        void handlePrimaryVote(activeItem, "agree");
       } else if (e.key === "ArrowUp") {
         e.preventDefault();
-        void openDetail(current);
+        void openDetail(activeItem);
       } else if (e.key === "ArrowDown") {
         e.preventDefault();
-        attemptDecision(current, "neutral", activeIndex);
+        void handlePrimaryVote(activeItem, "neutral");
       }
     };
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
-  }, [filteredSwipes, activeIndex, attemptDecision, openDetail]);
-
-  const handleUndo = () => {
-    if (!lastAction) return;
-    if (lastAction.removed) {
-      setItems((prev) => {
-        const next = [...prev];
-        const insertIndex = Math.min(lastAction.index, next.length);
-        next.splice(insertIndex, 0, lastAction.item);
-        return next;
-      });
-      setActiveIndex(Math.min(lastAction.index, Math.max(items.length, 0)));
-    }
-    setFlashDecision(null);
-    setScreenFlash(null);
-    setLastAction(null);
-  };
-
-  const activeItem = filteredSwipes[activeIndex] ?? filteredSwipes[0] ?? null;
+  }, [activeItem, eventualityStepOpen, handlePrimaryVote, openDetail]);
 
   return (
-    <div className={`mx-auto flex flex-col gap-6 px-4 pt-3 md:pt-8 ${isSolo ? "max-w-3xl" : "max-w-6xl"}`}>
+    <div className={`mx-auto flex flex-col gap-4 px-4 pt-2 md:pt-6 ${isSolo ? "max-w-3xl" : "max-w-6xl"} pb-24`}>
       <div className="sr-only" aria-live="polite" aria-atomic="true">
         {liveMessage}
       </div>
@@ -309,9 +358,9 @@ export function SwipesClient({
         <div
           className={`pointer-events-none fixed inset-0 z-40 transition-opacity duration-200 ${
             screenFlash === "agree"
-              ? "bg-emerald-200/40"
+              ? "bg-emerald-200/35"
               : screenFlash === "disagree"
-                ? "bg-rose-200/40"
+                ? "bg-rose-200/35"
                 : "bg-sky-200/35"
           }`}
         />
@@ -319,72 +368,49 @@ export function SwipesClient({
 
       {isSolo ? <SoloHeader statementId={focusStatementId} /> : null}
 
-      {!isSolo && showHero ? (
-        <div className="hidden md:block">
-          <SwipesHeader
-            edebattePackage={edebattePackage}
-            isBasic={isBasic}
-            isStartOrPro={isStartOrPro}
-          />
-        </div>
+      {!isSolo ? (
+        <SwipesHeaderProgress swipeCount={swipeProgressCount} onOpenSearch={() => setSearchOpen(true)} />
       ) : null}
 
       {!isSolo ? (
-        <div className="hidden md:block">
-          <SwipesToolbar
-            topicQuery={topicQuery}
-            onTopicChange={setTopicQuery}
-            activeLevel={activeLevel}
-            onLevelChange={setActiveLevel}
-            isBasic={isBasic}
-          />
-        </div>
+        <SwipesSearchTrigger
+          open={searchOpen}
+          topicQuery={topicQuery}
+          activeLevel={activeLevel}
+          onClose={() => setSearchOpen(false)}
+          onTopicChange={setTopicQuery}
+          onLevelChange={setActiveLevel}
+        />
       ) : null}
 
-      <div className={isSolo ? "relative space-y-3" : "grid gap-5 md:grid-cols-[minmax(0,2.1fr)_minmax(0,1.3fr)]"}>
-        <div className="space-y-3 relative">
-          {!isSolo && freeVote.enabled ? (
-            <p className="text-xs text-[rgb(var(--muted))]">
-              Freier Einstieg: {Math.min(freeVote.count, freeVote.limit)}/{freeVote.limit} Abstimmungen genutzt.
-            </p>
-          ) : null}
-          {lastAction ? (
-            <div className="flex justify-end">
-              <button
-                type="button"
-                onClick={handleUndo}
-                className="inline-flex items-center gap-1 rounded-full bg-slate-900 px-3 py-1.5 text-[11px] font-semibold text-white shadow-[0_10px_30px_rgba(15,23,42,0.35)] hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-200"
-              >
-                ↩︎ Swipe rückgängig
-              </button>
-            </div>
-          ) : null}
-
+      <div className={isSolo ? "space-y-3" : "grid gap-4 md:grid-cols-[minmax(0,2.2fr)_minmax(0,1.2fr)]"}>
+        <div className="space-y-3">
           {loading ? (
             <div className="rounded-3xl bg-[rgb(var(--bg))] p-4 text-sm text-[rgb(var(--muted))] ring-1 ring-dashed ring-[rgb(var(--border))]">
-              Lade Swipes …
+              Lade Thema …
             </div>
-          ) : filteredSwipes.length === 0 ? (
+          ) : activeItem ? (
+            <SwipeTopicStep
+              item={activeItem}
+              step={completedCount + 1}
+              disabled={isVoteLocked}
+              onVote={(decision) => {
+                void handlePrimaryVote(activeItem, decision);
+              }}
+              onMore={() => {
+                void openDetail(activeItem);
+              }}
+            />
+          ) : (
             <EmptyState
-              message="Keine passenden Karten. Wähle ein anderes Thema oder setze die Filter zurück."
+              message="Aktuell keine weiteren Themen im Stream. Passe Filter an oder starte mit Trendthemen."
               onResetFilters={() => {
                 setTopicQuery("");
                 setActiveLevel("ALL");
               }}
             />
-          ) : (
-            <SwipesDeck
-              items={filteredSwipes}
-              activeIndex={activeIndex}
-              flashDecision={flashDecision}
-              onRequestActive={setActiveIndex}
-              onOpen={(item) => {
-                void openDetail(item);
-              }}
-              onSwipeDecision={(item, decision, index) => attemptDecision(item, decision, index)}
-              onVote={(item, vote, index) => attemptDecision(item, mapVoteToDecision(vote), index)}
-            />
           )}
+          {!isSolo && transitionHint ? <p className="text-xs text-[rgb(var(--muted))]">{transitionHint}</p> : null}
         </div>
 
         {!isSolo ? (
@@ -400,27 +426,42 @@ export function SwipesClient({
         ) : null}
       </div>
 
-      {!isSolo && activeItem ? (
-        <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-[rgb(var(--border))] bg-[rgb(var(--card))]/95 px-3 py-2 backdrop-blur md:hidden">
-          <div className="mx-auto grid max-w-xl grid-cols-4 gap-2">
+      {!isSolo ? (
+        <SwipesOutcomeSummary
+          stats={decisionStats}
+          history={decisionHistory}
+          votesHref={activeItem ? openVotesRoute(activeItem.id, activeItem.title) : "/abstimmungen"}
+        />
+      ) : null}
+
+      {!isSolo && activeItem && !eventualityStepOpen && !detailOpen && !freeVote.gateOpen ? (
+        <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-[rgb(var(--border))] bg-[rgb(var(--card))]/95 px-3 pt-2 pb-[max(env(safe-area-inset-bottom),0.55rem)] backdrop-blur md:hidden">
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-sky-500/10 to-transparent" />
+          <div className="relative mx-auto grid max-w-xl grid-cols-4 gap-2">
             <button
               type="button"
-              onClick={() => attemptDecision(activeItem, "disagree", activeIndex)}
-              className="rounded-xl border border-rose-200 bg-rose-50 px-2 py-2 text-xs font-semibold text-rose-700"
+              onClick={() => {
+                void handlePrimaryVote(activeItem, "disagree");
+              }}
+              className="rounded-xl border border-rose-200 bg-rose-50 px-2 py-2 text-xs font-semibold text-rose-700 shadow-sm"
             >
               Nein
             </button>
             <button
               type="button"
-              onClick={() => attemptDecision(activeItem, "neutral", activeIndex)}
-              className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-2 py-2 text-xs font-semibold text-[rgb(var(--muted))]"
+              onClick={() => {
+                void handlePrimaryVote(activeItem, "neutral");
+              }}
+              className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-2 py-2 text-xs font-semibold text-[rgb(var(--muted))] shadow-sm"
             >
               Offen
             </button>
             <button
               type="button"
-              onClick={() => attemptDecision(activeItem, "agree", activeIndex)}
-              className="rounded-xl border border-emerald-200 bg-emerald-50 px-2 py-2 text-xs font-semibold text-emerald-700"
+              onClick={() => {
+                void handlePrimaryVote(activeItem, "agree");
+              }}
+              className="rounded-xl border border-emerald-200 bg-emerald-50 px-2 py-2 text-xs font-semibold text-emerald-700 shadow-sm"
             >
               Ja
             </button>
@@ -429,7 +470,7 @@ export function SwipesClient({
               onClick={() => {
                 void openDetail(activeItem);
               }}
-              className="rounded-xl border border-sky-200 bg-sky-50 px-2 py-2 text-xs font-semibold text-sky-700"
+              className="rounded-xl border border-sky-200 bg-sky-50 px-2 py-2 text-xs font-semibold text-sky-700 shadow-sm"
             >
               Mehr
             </button>
@@ -437,22 +478,31 @@ export function SwipesClient({
         </nav>
       ) : null}
 
-      {!isSolo ? (
-        <>
-          <div className="md:hidden">
-            <SwipesToolbar
-              topicQuery={topicQuery}
-              onTopicChange={setTopicQuery}
-              activeLevel={activeLevel}
-              onLevelChange={setActiveLevel}
-              isBasic={isBasic}
-            />
-          </div>
-          <SwipesOutcomeSummary stats={decisionStats} history={decisionHistory} />
-        </>
-      ) : null}
+      <SwipeEventualitiesStep
+        open={eventualityStepOpen}
+        item={eventualityStepItem}
+        decision={eventualityStepDecision}
+        eventualities={eventualityStepItems}
+        loading={eventualityStepLoading}
+        onSelect={handleEventualitySelect}
+        onOpenDetail={() => {
+          if (!eventualityStepItem) return;
+          const item = eventualityStepItem;
+          setEventualityStepOpen(false);
+          setEventualityStepDecision(null);
+          setEventualityStepItem(null);
+          setEventualityStepItems([]);
+          setEventualityStepLoading(false);
+          setOpenGateAfterStep(false);
+          void openDetail(item);
+        }}
+        onSkip={() => {
+          setTransitionHint("Variante übersprungen. Nächstes Thema folgt.");
+          finishEventualityStep();
+        }}
+      />
 
-      <FreeVoteGate
+      <SwipeAuthGate
         open={freeVote.gateOpen}
         count={freeVote.count}
         limit={freeVote.limit}
@@ -466,6 +516,7 @@ export function SwipesClient({
         loadingEventualities={detailLoading}
         dossierHref={detailItem ? openDossierRoute(detailItem.id) : null}
         evidenceHref={detailItem ? openEvidenceRoute(detailItem.id) : null}
+        votesHref={detailItem ? openVotesRoute(detailItem.id, detailItem.title) : null}
         onClose={() => {
           setDetailOpen(false);
           setDetailItem(null);
@@ -496,20 +547,26 @@ function SoloHeader({ statementId }: { statementId?: string }) {
 
 function DesktopDetailHint({ item, onOpenDetail }: { item: SwipeItem | null; onOpenDetail: () => void }) {
   return (
-    <article className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm">
+    <article className="relative overflow-hidden rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))]/95 p-4 shadow-[0_20px_48px_rgba(2,6,23,0.18)]">
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(120%_100%_at_100%_0%,rgba(56,189,248,0.14),rgba(15,23,42,0)_45%)]" />
+      <div className="pointer-events-none absolute -top-16 -right-10 h-32 w-32 rounded-full bg-cyan-500/12 blur-2xl" />
       <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[rgb(var(--muted))]">Vertiefung</p>
       {item ? (
         <>
           <h3 className="mt-2 text-base font-semibold text-[rgb(var(--fg))]">{item.title}</h3>
           <p className="mt-2 text-sm text-[rgb(var(--muted))]">
-            Öffne Dossier, Evidenz und Varianten direkt aus der aktuellen Karte.
+            Öffne Dossier, Evidenz und Varianten direkt aus dem aktuellen Thema.
           </p>
-          <button type="button" onClick={onOpenDetail} className="mt-3 vog-chip vog-chip--active">
-            Mehr zur Karte
+          <button
+            type="button"
+            onClick={onOpenDetail}
+            className="mt-3 rounded-full border border-sky-300/70 bg-gradient-to-r from-sky-50 to-cyan-50 px-3 py-1.5 text-xs font-semibold text-sky-700 transition hover:brightness-105 dark:border-sky-400/30 dark:from-sky-500/14 dark:to-cyan-500/10 dark:text-sky-200"
+          >
+            Mehr zum Thema
           </button>
         </>
       ) : (
-        <p className="mt-2 text-sm text-[rgb(var(--muted))]">Wähle eine Karte, um die Vertiefung zu öffnen.</p>
+        <p className="mt-2 text-sm text-[rgb(var(--muted))]">Wähle ein Thema, um die Vertiefung zu öffnen.</p>
       )}
     </article>
   );

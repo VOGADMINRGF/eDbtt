@@ -14,13 +14,13 @@ const REVIEW_STATUS_LABELS = {
   merged_into_existing_item: "in bestehendes Item gemerged",
   accepted_as_new_draft: "als neuer Draft akzeptiert",
   marked_duplicate: "als Duplikat markiert",
-  deferred_to_next_round: "auf naechste Runde vertagt",
+  deferred_to_next_round: "auf nächste Runde vertagt",
   rejected: "abgelehnt",
 } as const;
 
 const SOURCE_CLASS_LABELS = {
-  primary_source: "Primaerquelle",
-  secondary_report: "Sekundaerbericht",
+  primary_source: "Primärquelle",
+  secondary_report: "Sekundärbericht",
   official_document: "Offizielles Dokument",
   eyewitness_or_affected_account: "Betroffenen-/Zeugenbericht",
   media_report: "Medienbericht",
@@ -60,7 +60,7 @@ export default async function TopicGovernancePage({ params }: Params) {
         <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Topic Manage · Governance</p>
         <h1 className="text-3xl font-semibold text-[rgb(var(--fg))]">{topic.title}</h1>
         <p className="text-sm text-[rgb(var(--muted))]">
-          Reviewlog, Source Classes, Konfliktlage und Export-/Handoff-Readiness fuer operative Nutzung.
+          Reviewlog, Source Classes, Konfliktlage und Export-/Handoff-Readiness für operative Nutzung.
         </p>
         <div className="flex flex-wrap gap-2 text-[11px]">
           <span className="vog-chip">Rounds: {rounds.length}</span>
@@ -81,7 +81,7 @@ export default async function TopicGovernancePage({ params }: Params) {
 
       {!canManage ? (
         <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-3 text-sm text-[rgb(var(--muted))]">
-          Management-Only Felder (interne Begruendung, interne Rationale) sind ausgeblendet.
+          Management-Only Felder (interne Begründung, interne Rationale) sind ausgeblendet.
         </section>
       ) : null}
 
@@ -98,9 +98,9 @@ export default async function TopicGovernancePage({ params }: Params) {
                 </div>
                 <p className="font-semibold text-[rgb(var(--fg))]">{entry.title}</p>
                 <p className="text-[rgb(var(--muted))]">{entry.summary}</p>
-                {entry.publicReason ? <p className="text-[rgb(var(--muted))]">Oeffentlicher Grund: {entry.publicReason}</p> : null}
+                {entry.publicReason ? <p className="text-[rgb(var(--muted))]">Öffentlicher Grund: {entry.publicReason}</p> : null}
                 {canManage && entry.internalReason ? (
-                  <p className="text-[rgb(var(--muted))]">Interne Begruendung: {entry.internalReason}</p>
+                  <p className="text-[rgb(var(--muted))]">Interne Begründung: {entry.internalReason}</p>
                 ) : null}
               </article>
             ))}
@@ -125,7 +125,7 @@ export default async function TopicGovernancePage({ params }: Params) {
               <article key={conflict.id} className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3 text-sm space-y-1">
                 <p className="font-semibold text-[rgb(var(--fg))]">{conflict.title}</p>
                 <p className="text-[rgb(var(--muted))]">{conflict.details}</p>
-                <p className="text-xs text-[rgb(var(--muted))]">Status: {conflict.unresolved ? "unresolved" : "geklaert"}</p>
+                <p className="text-xs text-[rgb(var(--muted))]">Status: {conflict.unresolved ? "unresolved" : "geklärt"}</p>
               </article>
             ))}
           </div>
@@ -137,7 +137,7 @@ export default async function TopicGovernancePage({ params }: Params) {
           <h2 className="text-lg font-semibold text-[rgb(var(--fg))]">Readiness + Export</h2>
           <p className="text-sm text-[rgb(var(--muted))]">{topic.exportSnapshot.conciseSummary}</p>
           <div className="space-y-2 text-sm">
-            <p className="font-semibold text-[rgb(var(--fg))]">Naechste-Runde-Agenda</p>
+            <p className="font-semibold text-[rgb(var(--fg))]">Nächste-Runde-Agenda</p>
             <ul className="space-y-1 text-[rgb(var(--muted))]">
               {topic.exportSnapshot.nextRoundAgenda.map((item) => (
                 <li key={item}>- {item}</li>
@@ -148,9 +148,9 @@ export default async function TopicGovernancePage({ params }: Params) {
         </article>
 
         <article className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm space-y-3">
-          <h2 className="text-lg font-semibold text-[rgb(var(--fg))]">Mandat-Bruecke</h2>
+          <h2 className="text-lg font-semibold text-[rgb(var(--fg))]">Mandat-Brücke</h2>
           <div className="space-y-2 text-sm">
-            <p className="font-semibold text-[rgb(var(--fg))]">Klar genug fuer Umsetzung</p>
+            <p className="font-semibold text-[rgb(var(--fg))]">Klar genug für Umsetzung</p>
             <ul className="space-y-1 text-[rgb(var(--muted))]">
               {topic.mandateBridge.clarifiedNow.map((item) => (
                 <li key={item}>- {item}</li>

@@ -33,27 +33,27 @@ function deriveUseCaseAccess(overview?: AccountOverview | null): UseCaseAccess {
     ) || tier.startsWith("institution");
 
   let allowed: UseCaseId[] = ["civic"];
-  let note = "Dein Bereich ist festgelegt. Fuer andere Use Cases brauchst du das passende Paket.";
+  let note = "Dein Bereich ist festgelegt. Für andere Use Cases brauchst du das passende Paket.";
 
   if (isStaff) {
     allowed = ["civic", "journalism", "agenda"];
     note = "Staff-Zugang: alle Use Cases sind freigeschaltet.";
   } else if (isMedia) {
     allowed = ["journalism"];
-    note = "Journalismus/Medien: Zugriff nur fuer journalistische Formate.";
+    note = "Journalismus/Medien: Zugriff nur für journalistische Formate.";
   } else if (isAgenda) {
     allowed = ["agenda"];
-    note = "Verwaltung/Organisation: Zugriff nur fuer Agenda- und Verwaltungsformate.";
+    note = "Verwaltung/Organisation: Zugriff nur für Agenda- und Verwaltungsformate.";
   } else {
     allowed = ["civic"];
-    note = "Buergerbereich: Zugriff fuer Beitraege und Projekte.";
+    note = "Bürgerbereich: Zugriff für Beiträge und Projekte.";
   }
 
   return {
     allowed,
     note,
     lockLabels: {
-      civic: "Buerger-Bereich",
+      civic: "Bürger-Bereich",
       journalism: "Nur Journalismus/Medien",
       agenda: "Nur Verwaltung/Organisationen",
     },

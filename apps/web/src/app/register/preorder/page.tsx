@@ -219,11 +219,11 @@ export default function PreorderPage() {
               <p className="mt-1">Betrag: {formatEuro(pledgeResult.amount)}</p>
               <p className="mt-2 text-emerald-900/80">Bankverbindung:</p>
               <p className="text-emerald-900/80">
-                Empfaenger: {BANK_DETAILS.recipient} · IBAN: {BANK_DETAILS.iban}
+                Empfänger: {BANK_DETAILS.recipient} · IBAN: {BANK_DETAILS.iban}
                 {BANK_DETAILS.bic ? ` · BIC: ${BANK_DETAILS.bic}` : ""}
               </p>
               <p className="mt-2 text-[11px] text-emerald-900/70">
-                Hinweis: Spenden und Mitgliedsbeitraege laufen weiterhin ueber VoiceOpenGov.
+                Hinweis: Spenden und Mitgliedsbeiträge laufen weiterhin über VoiceOpenGov.
               </p>
             </div>
           ) : null}
@@ -246,7 +246,7 @@ export default function PreorderPage() {
 
       <section className="space-y-4 rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm">
         <div className="space-y-2">
-          <p className="text-sm font-semibold text-[rgb(var(--fg))]">Moechtest du dein Paket jetzt vormerken?</p>
+          <p className="text-sm font-semibold text-[rgb(var(--fg))]">Möchtest du dein Paket jetzt vormerken?</p>
 
           <div className="grid gap-2 md:grid-cols-2">
             <label className="flex items-start gap-3 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-4 py-3 text-sm">

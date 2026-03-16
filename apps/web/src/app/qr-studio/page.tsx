@@ -158,7 +158,7 @@ export default function QrStudioPage() {
 
   const handleCreate = async () => {
     if (mode !== "manual") {
-      setCreateError("Recherche-Schub ist nur im ProPilot verfuegbar.");
+      setCreateError("Recherche-Schub ist nur im ProPilot verfügbar.");
       return;
     }
     if (!canCreate) {
@@ -245,7 +245,7 @@ export default function QrStudioPage() {
           </h1>
           <p className="text-sm leading-relaxed text-[rgb(var(--muted))]">
             Ohne Voranmeldung: Fragen eintragen, QR-Code erzeugen und direkt einsetzen. Die manuelle Variante ist
-            kostenfrei. ProPilot erweitert Limits, Automationen und KI-Unterstuetzung (Kontingent begrenzt).
+            kostenfrei. ProPilot erweitert Limits, Automationen und KI-Unterstützung (Kontingent begrenzt).
           </p>
           <div className="flex flex-wrap gap-2 text-xs text-[rgb(var(--muted))]">
             <span className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-1">Max. 5 Fragen pro Set</span>
@@ -259,8 +259,8 @@ export default function QrStudioPage() {
             <div className="space-y-1">
               <h2 className="text-lg font-semibold text-[rgb(var(--fg))]">QR-Set erstellen</h2>
               <p className="text-sm text-[rgb(var(--muted))]">
-                Fuehre dein Thema Schritt fuer Schritt: erst Grundtext, dann Fragen, dann Alternativen. Der QR-Code
-                buendelt alles in einer Sitzung.
+                Führe dein Thema Schritt für Schritt: erst Grundtext, dann Fragen, dann Alternativen. Der QR-Code
+                bündelt alles in einer Sitzung.
               </p>
             </div>
 
@@ -268,13 +268,13 @@ export default function QrStudioPage() {
               {[
                 {
                   id: "manual",
-                  title: "Manuell gefuehrt",
-                  text: "Du steuerst Inhalt, Fragen und Alternativen Schritt fuer Schritt.",
+                  title: "Manuell geführt",
+                  text: "Du steuerst Inhalt, Fragen und Alternativen Schritt für Schritt.",
                 },
                 {
                   id: "research",
                   title: "Recherche-Schub (KI-Orchester)",
-                  text: "Automatische Aufschluesselung & Dynamik (nur ProPilot).",
+                  text: "Automatische Aufschlüsselung & Dynamik (nur ProPilot).",
                 },
               ].map((card) => (
                 <button
@@ -330,7 +330,7 @@ export default function QrStudioPage() {
 
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div className="text-xs text-[rgb(var(--muted))]">
-                Schritt 2: Fragen aus dem Grundtext ableiten (manuell gefuehrt).
+                Schritt 2: Fragen aus dem Grundtext ableiten (manuell geführt).
               </div>
               <button
                 type="button"
@@ -553,7 +553,7 @@ export default function QrStudioPage() {
                   ))}
                 </div>
               ) : (
-                <p className="text-sm text-[rgb(var(--muted))]">Noch keine Daten fuer diesen Code.</p>
+                <p className="text-sm text-[rgb(var(--muted))]">Noch keine Daten für diesen Code.</p>
               )}
             </div>
           )}

@@ -24,23 +24,23 @@ const ROUND_STATUS_LABELS: Record<Round["status"], string> = {
 const ROADMAP_CATEGORY_LABELS: Record<TopicRoadmapItem["category"], string> = {
   evidence_missing: "Evidenz fehlt",
   counterposition_missing: "Gegenposition fehlt",
-  authority_response_needed: "Antwort der zustaendigen Stelle noetig",
+  authority_response_needed: "Antwort der zuständigen Stelle nötig",
   option_needs_detail: "Option braucht mehr Details",
   implementation_question: "Umsetzungsfrage offen",
-  legal_check_needed: "Rechtliche Pruefung noetig",
+  legal_check_needed: "Rechtliche Prüfung nötig",
   moderation_followup: "Moderations-Follow-up",
-  next_round_question: "Naechster Rundenfokus",
+  next_round_question: "Nächster Rundenfokus",
   ready_for_vote_check: "Vote-Check vorbereiten",
 };
 
 const TOPIC_READINESS_LABELS: Record<Topic["readiness"], string> = {
-  opened: "Thema geoeffnet",
+  opened: "Thema geöffnet",
   gathering_questions: "Fragen werden gesammelt",
-  evidence_growing: "Evidenz waechst",
+  evidence_growing: "Evidenz wächst",
   conflicts_visible: "Konflikte sind sichtbar",
-  options_clarifying: "Optionen werden geklaert",
-  next_round_needed: "Naechste Runde noetig",
-  ready_for_vote_check: "Bereit fuer Vote-Check",
+  options_clarifying: "Optionen werden geklärt",
+  next_round_needed: "Nächste Runde nötig",
+  ready_for_vote_check: "Bereit für Vote-Check",
   in_implementation: "In Umsetzung",
   monitoring_impact: "Wirkung wird beobachtet",
 };
@@ -53,8 +53,8 @@ const ROADMAP_STATUS_LABELS: Record<TopicRoadmapItem["status"], string> = {
 };
 
 const SOURCE_CLASS_LABELS: Record<Topic["sources"][number]["sourceClass"], string> = {
-  primary_source: "Primaerquelle",
-  secondary_report: "Sekundaerbericht",
+  primary_source: "Primärquelle",
+  secondary_report: "Sekundärbericht",
   official_document: "Offizielles Dokument",
   eyewitness_or_affected_account: "Betroffenen-/Zeugenbericht",
   media_report: "Medienbericht",
@@ -67,7 +67,7 @@ const CONFLICT_KIND_LABELS: Record<Topic["conflicts"][number]["kind"], string> =
   claim_contradiction: "Claim-Widerspruch",
   evidence_conflict: "Evidenzkonflikt",
   option_disagreement: "Optionskonflikt",
-  unresolved_dispute: "Ungeklaerter Streitpunkt",
+  unresolved_dispute: "Ungeklärter Streitpunkt",
   counterposition_missing: "Gegenposition fehlt",
 };
 
@@ -77,7 +77,7 @@ const REVIEW_STATUS_LABELS: Record<Exclude<Topic["reviewLog"][number]["status"],
   merged_into_existing_item: "in bestehendes Item gemerged",
   accepted_as_new_draft: "als neuer Draft akzeptiert",
   marked_duplicate: "als Duplikat markiert",
-  deferred_to_next_round: "auf naechste Runde vertagt",
+  deferred_to_next_round: "auf nächste Runde vertagt",
   rejected: "abgelehnt",
 };
 
@@ -90,7 +90,7 @@ function formatDate(iso: string) {
 }
 
 function roadmapSignalLabel(signal?: TopicRoadmapItem["voteReadinessSignal"]) {
-  if (signal === "ready_for_check") return "Vote-Check moeglich";
+  if (signal === "ready_for_check") return "Vote-Check möglich";
   if (signal === "review_needed") return "Vote-Check nach Review";
   return "Noch nicht vote-ready";
 }
@@ -137,7 +137,7 @@ export function TopicSurface({ context, topic, rounds, basePath, distribution }:
         <p className="text-sm text-[rgb(var(--muted))]">{distribution.framing}</p>
         <div className="flex flex-wrap gap-2 text-[11px]">
           <span className="vog-chip vog-chip--active">Status: {TOPIC_READINESS_LABELS[topic.readiness]}</span>
-          <span className="vog-chip">{rounds.length} Runden verknuepft</span>
+          <span className="vog-chip">{rounds.length} Runden verknüpft</span>
           <span className="vog-chip">Roadmap offen: {unresolvedRoadmap.length}</span>
           <span className="vog-chip">Fehlende Evidenz: {evidenceMissingCount}</span>
           <span className="vog-chip">{hasReadyVoteCheck ? "Vote-Check in Sicht" : "Vote-Check noch offen"}</span>
@@ -175,7 +175,7 @@ export function TopicSurface({ context, topic, rounds, basePath, distribution }:
         </article>
 
         <article className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm space-y-3">
-          <h2 className="text-lg font-semibold text-[rgb(var(--fg))]">Offene Fragen und Einwaende</h2>
+          <h2 className="text-lg font-semibold text-[rgb(var(--fg))]">Offene Fragen und Einwände</h2>
           <ul className="space-y-2 text-sm">
             {topic.openQuestions.map((item) => (
               <li key={item} className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3 text-[rgb(var(--fg))]">
@@ -184,7 +184,7 @@ export function TopicSurface({ context, topic, rounds, basePath, distribution }:
             ))}
           </ul>
           <div className="space-y-2">
-            <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Einwaende</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Einwände</p>
             <ul className="space-y-2 text-sm text-[rgb(var(--muted))]">
               {topic.objections.map((item) => (
                 <li key={item}>- {item}</li>
@@ -246,9 +246,9 @@ export function TopicSurface({ context, topic, rounds, basePath, distribution }:
       </section>
 
       <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm space-y-3">
-        <h2 className="text-lg font-semibold text-[rgb(var(--fg))]">Roadmap / Naechste Schritte</h2>
+        <h2 className="text-lg font-semibold text-[rgb(var(--fg))]">Roadmap / Nächste Schritte</h2>
         <p className="text-sm text-[rgb(var(--muted))]">
-          Manuell gepflegt, ohne KI-Zwang: Was ist noch ungeklaert, welche Evidenz fehlt, und was muss in die naechste
+          Manuell gepflegt, ohne KI-Zwang: Was ist noch ungeklärt, welche Evidenz fehlt, und was muss in die nächste
           Runde.
         </p>
         <div className="space-y-3">
@@ -265,10 +265,10 @@ export function TopicSurface({ context, topic, rounds, basePath, distribution }:
                 <p className="text-sm text-[rgb(var(--muted))]">Fehlende Evidenz: {item.evidenceMissing}</p>
               ) : null}
               {item.askNext ? (
-                <p className="text-sm text-[rgb(var(--muted))]">Naechste Frage: {item.askNext}</p>
+                <p className="text-sm text-[rgb(var(--muted))]">Nächste Frage: {item.askNext}</p>
               ) : null}
               {item.responderHint ? (
-                <p className="text-sm text-[rgb(var(--muted))]">Moegliche Antwortstelle: {item.responderHint}</p>
+                <p className="text-sm text-[rgb(var(--muted))]">Mögliche Antwortstelle: {item.responderHint}</p>
               ) : null}
             </article>
           ))}
@@ -279,14 +279,14 @@ export function TopicSurface({ context, topic, rounds, basePath, distribution }:
         <article className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm space-y-3">
           <h2 className="text-lg font-semibold text-[rgb(var(--fg))]">Konflikte und Gegenpositionen</h2>
           <p className="text-sm text-[rgb(var(--muted))]">
-            Das Topic modelliert offene Widersprueche explizit. Konsens wird nicht stillschweigend vorausgesetzt.
+            Das Topic modelliert offene Widersprüche explizit. Konsens wird nicht stillschweigend vorausgesetzt.
           </p>
           <div className="space-y-2 text-sm">
             {topic.conflicts.map((conflict) => (
               <article key={conflict.id} className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3 space-y-1">
                 <div className="flex flex-wrap gap-2 text-xs">
                   <span className="vog-chip">{CONFLICT_KIND_LABELS[conflict.kind]}</span>
-                  <span className="vog-chip vog-chip--status">{conflict.unresolved ? "unresolved" : "geklaert"}</span>
+                  <span className="vog-chip vog-chip--status">{conflict.unresolved ? "unresolved" : "geklärt"}</span>
                 </div>
                 <p className="font-semibold text-[rgb(var(--fg))]">{conflict.title}</p>
                 <p className="text-[rgb(var(--muted))]">{conflict.details}</p>
@@ -296,7 +296,7 @@ export function TopicSurface({ context, topic, rounds, basePath, distribution }:
         </article>
 
         <article className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm space-y-3">
-          <h2 className="text-lg font-semibold text-[rgb(var(--fg))]">Reviewlog (oeffentlich sichtbar)</h2>
+          <h2 className="text-lg font-semibold text-[rgb(var(--fg))]">Reviewlog (öffentlich sichtbar)</h2>
           <p className="text-sm text-[rgb(var(--muted))]">
             Herkunft und Entscheidungen bleiben nachvollziehbar: was einging, wie entschieden wurde und warum.
           </p>
@@ -324,7 +324,7 @@ export function TopicSurface({ context, topic, rounds, basePath, distribution }:
         <article className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm space-y-3">
           <h2 className="text-lg font-semibold text-[rgb(var(--fg))]">Maturity / Readiness</h2>
           <p className="text-sm text-[rgb(var(--muted))]">
-            Reifestand wird explizit festgehalten, inklusive begruendeter Entscheidungen zur Vote- oder Handoff-Reife.
+            Reifestand wird explizit festgehalten, inklusive begründeter Entscheidungen zur Vote- oder Handoff-Reife.
           </p>
           <div className="space-y-2 text-sm">
             {topic.readinessChecks.map((check) => (
@@ -341,10 +341,10 @@ export function TopicSurface({ context, topic, rounds, basePath, distribution }:
         </article>
 
         <article className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm space-y-3">
-          <h2 className="text-lg font-semibold text-[rgb(var(--fg))]">Export / Handoff Snapshot</h2>
+          <h2 className="text-lg font-semibold text-[rgb(var(--fg))]">Export / Handoff-Snapshot</h2>
           <p className="text-sm text-[rgb(var(--muted))]">{topic.exportSnapshot.conciseSummary}</p>
           <div className="space-y-2">
-            <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Naechste Runde Agenda</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Nächste Runde Agenda</p>
             <ul className="space-y-1 text-sm text-[rgb(var(--muted))]">
               {topic.exportSnapshot.nextRoundAgenda.map((item) => (
                 <li key={item}>- {item}</li>
@@ -356,13 +356,13 @@ export function TopicSurface({ context, topic, rounds, basePath, distribution }:
       </section>
 
       <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm space-y-3">
-        <h2 className="text-lg font-semibold text-[rgb(var(--fg))]">Mandat-Bruecke</h2>
+        <h2 className="text-lg font-semibold text-[rgb(var(--fg))]">Mandat-Brücke</h2>
         <p className="text-sm text-[rgb(var(--muted))]">
-          Topic/Round bleibt eigenstaendig, markiert aber klar, was fuer Umsetzung und Monitoring bereit ist.
+          Topic/Round bleibt eigenständig, markiert aber klar, was für Umsetzung und Monitoring bereit ist.
         </p>
         <div className="grid gap-3 md:grid-cols-2 text-sm">
           <article className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
-            <p className="font-semibold text-[rgb(var(--fg))]">Jetzt geklaert</p>
+            <p className="font-semibold text-[rgb(var(--fg))]">Jetzt geklärt</p>
             <ul className="mt-2 space-y-1 text-[rgb(var(--muted))]">
               {topic.mandateBridge.clarifiedNow.map((item) => (
                 <li key={item}>- {item}</li>
@@ -370,7 +370,7 @@ export function TopicSurface({ context, topic, rounds, basePath, distribution }:
             </ul>
           </article>
           <article className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
-            <p className="font-semibold text-[rgb(var(--fg))]">Owner benoetigt</p>
+            <p className="font-semibold text-[rgb(var(--fg))]">Owner benötigt</p>
             <ul className="mt-2 space-y-1 text-[rgb(var(--muted))]">
               {topic.mandateBridge.ownerNeeded.map((item) => (
                 <li key={item}>- {item}</li>
@@ -429,7 +429,7 @@ export function RoundSurface({ context, topic, round, basePath, distribution }: 
           <span className="vog-chip">{formatDate(round.startedAt)}</span>
         </div>
         <p className="text-sm text-[rgb(var(--muted))]">
-          Diese Runde ist kontextuell und fuehrt in das kanonische Topic zurueck.
+          Diese Runde ist kontextuell und führt in das kanonische Topic zurück.
         </p>
         <p className="text-sm text-[rgb(var(--muted))]">{distribution.framing}</p>
         <div className="flex flex-wrap gap-2 text-[11px]">
@@ -439,7 +439,7 @@ export function RoundSurface({ context, topic, round, basePath, distribution }: 
         </div>
         <div className="flex flex-wrap gap-2">
           <Link href={topicPathWithDistribution} className="btn btn-primary text-xs w-fit">
-            Zurueck zum Topic
+            Zurück zum Topic
           </Link>
           <Link href={`/round/manage/${round.slug}/merge`} className="btn-secondary text-xs">
             Merge-Review Workspace
@@ -461,11 +461,11 @@ export function RoundSurface({ context, topic, round, basePath, distribution }: 
 
       <section className="grid gap-4 md:grid-cols-2">
         <article className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm space-y-2">
-          <h2 className="text-lg font-semibold text-[rgb(var(--fg))]">Verknuepftes Topic</h2>
+          <h2 className="text-lg font-semibold text-[rgb(var(--fg))]">Verknüpftes Topic</h2>
           <p className="text-sm font-semibold text-[rgb(var(--fg))]">{topic.title}</p>
           <p className="text-sm text-[rgb(var(--muted))]">{topic.framingQuestion}</p>
           <Link href={topicPathWithDistribution} className="btn-secondary text-xs">
-            Topic-Hub oeffnen
+            Topic-Hub öffnen
           </Link>
         </article>
 
@@ -478,7 +478,7 @@ export function RoundSurface({ context, topic, round, basePath, distribution }: 
           ) : null}
           {round.sourceUrl ? (
             <a href={round.sourceUrl} target="_blank" rel="noreferrer" className="text-sm underline text-[rgb(var(--muted))]">
-              Quelle oeffnen
+              Quelle öffnen
             </a>
           ) : (
             <p className="text-sm text-[rgb(var(--muted))]">Keine externe URL hinterlegt.</p>
@@ -492,7 +492,7 @@ export function RoundSurface({ context, topic, round, basePath, distribution }: 
       </section>
 
       <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm space-y-3">
-        <h2 className="text-lg font-semibold text-[rgb(var(--fg))]">Rundenbeitraege</h2>
+        <h2 className="text-lg font-semibold text-[rgb(var(--fg))]">Rundenbeiträge</h2>
         <div className="space-y-3">
           {round.contributions.map((entry) => (
             <article key={entry.id} className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4 space-y-1">

@@ -29,14 +29,14 @@ export default function UnterstuetzenPage() {
             <ul className="mt-3 list-disc space-y-2 pl-5 text-sm text-[rgb(var(--muted))]">
               <li>Server- und Moderationskosten sauber planen.</li>
               <li>Keine Werbung, kein Verkauf von Daten.</li>
-              <li>Frueher Zugriff auf neue Funktionen und Pilot-Formate.</li>
+              <li>Früher Zugriff auf neue Funktionen und Pilot-Formate.</li>
             </ul>
           </div>
 
           <div className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-6 shadow-sm">
             <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Was jetzt?</p>
             <p className="mt-2 text-sm text-[rgb(var(--muted))]">
-              Waehle dein Paket auf der Pricing-Seite. Dort kannst du dein Interesse unverbindlich vormerken.
+              Wähle dein Paket auf der Pricing-Seite. Dort kannst du dein Interesse unverbindlich vormerken.
             </p>
             <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-start">
               <Link
@@ -51,14 +51,14 @@ export default function UnterstuetzenPage() {
                 rel="noreferrer"
                 className="inline-flex items-center justify-center rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-5 py-2.5 text-sm font-semibold text-[rgb(var(--muted))] hover:bg-[color-mix(in_oklab,rgb(var(--card))_85%,rgb(var(--bg))_15%)] hover:text-[rgb(var(--fg))]"
               >
-                VoiceOpenGov unterstuetzen
+                VoiceOpenGov unterstützen
               </a>
             </div>
           </div>
         </div>
 
         <p className="text-center text-xs text-[rgb(var(--muted))]">
-          Hinweis: Unterstuetzung laeuft extern ueber VoiceOpenGov und bringt keine Stimmvorteile.
+          Hinweis: Unterstützung läuft extern über VoiceOpenGov und bringt keine Stimmvorteile.
         </p>
       </section>
     </main>

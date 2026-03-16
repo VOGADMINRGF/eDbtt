@@ -6,16 +6,16 @@ import { DEFAULT_LOCALE, isSupportedLocale, type SupportedLocale } from "@/confi
 
 export const metadata: Metadata = {
   title: "Community",
-  description: "Raeume und Austausch fuer sachliche Debatten, Moderation und Themenarbeit.",
+  description: "Raeume und Austausch für sachliche Debatten, Moderation und Themenarbeit.",
   openGraph: {
     title: "Community",
-    description: "Raeume und Austausch fuer sachliche Debatten, Moderation und Themenarbeit.",
+    description: "Raeume und Austausch für sachliche Debatten, Moderation und Themenarbeit.",
     url: `${BRAND.baseUrl}/community`,
     siteName: BRAND.name,
   },
   twitter: {
     title: "Community",
-    description: "Raeume und Austausch fuer sachliche Debatten, Moderation und Themenarbeit.",
+    description: "Raeume und Austausch für sachliche Debatten, Moderation und Themenarbeit.",
   },
 };
 
@@ -42,7 +42,7 @@ const COPY = {
     en: "Rooms & Exchange",
   },
   lead: {
-    de: "Raeume fuer konstruktive Debatten. Fokus auf Themen, klare Moderation, keine Echokammern.",
+    de: "Raeume für konstruktive Debatten. Fokus auf Themen, klare Moderation, keine Echokammern.",
     en: "Rooms for constructive debate. Focus on topics, clear moderation, no echo chambers.",
   },
   hint: {
@@ -54,7 +54,7 @@ const COPY = {
     en: "Guardrails",
   },
   rulesBody: {
-    de: "Offen fuer Fragen, Quellen und Optionen. Keine Hetze, keine Personalisierung.",
+    de: "Offen für Fragen, Quellen und Optionen. Keine Hetze, keine Personalisierung.",
     en: "Open for questions, sources, and options. No hate, no personal attacks.",
   },
   actionStream: {
@@ -80,9 +80,9 @@ const COPY = {
   rooms: [
     {
       id: "citizen",
-      title: { de: "Buerger:innen Lounge", en: "Citizen lounge" },
+      title: { de: "Bürger:innen Lounge", en: "Citizen lounge" },
       description: {
-        de: "Offener Raum fuer Updates, Fragen und Koordination.",
+        de: "Offener Raum für Updates, Fragen und Koordination.",
         en: "Open room for updates, questions, and coordination.",
       },
     },

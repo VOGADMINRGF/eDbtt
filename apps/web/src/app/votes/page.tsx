@@ -4,9 +4,57 @@ import { listPublicVotes } from "@features/votes/service";
 
 export const dynamic = "force-dynamic";
 
-export default async function VotesPage() {
+type SearchParamsShape =
+  | Promise<Record<string, string | string[] | undefined>>
+  | Record<string, string | string[] | undefined>;
+
+function readParam(value?: string | string[]) {
+  if (Array.isArray(value)) return value[0];
+  return value;
+}
+
+export default async function VotesPage({
+  searchParams,
+}: {
+  searchParams?: SearchParamsShape;
+}) {
   const userId = (await cookies()).get("u_id")?.value ?? null;
   const { items } = await listPublicVotes({ limit: 50, includeDraft: false, userId });
+  const resolved = searchParams ? await searchParams : {};
+  const q = (readParam(resolved?.q) ?? "").trim().toLowerCase();
+  const statementId = (readParam(resolved?.statementId) ?? "").trim().toLowerCase();
+
+  const withSearchBlob = items.map((vote) => {
+    const claimsText = (vote.claims ?? [])
+      .map((claim) => {
+        if (typeof claim === "string") return claim;
+        try {
+          return JSON.stringify(claim);
+        } catch {
+          return String(claim);
+        }
+      })
+      .join(" ");
+    return {
+      vote,
+      haystack: `${vote.title} ${vote.summary ?? ""} ${claimsText}`.toLowerCase(),
+    };
+  });
+
+  const directStatementMatches = statementId
+    ? withSearchBlob.filter((item) => item.haystack.includes(statementId))
+    : [];
+  const topicMatches = q ? withSearchBlob.filter((item) => item.haystack.includes(q)) : withSearchBlob;
+
+  const filtered =
+    statementId && directStatementMatches.length > 0
+      ? directStatementMatches.map((item) => item.vote)
+      : statementId && q
+        ? topicMatches.map((item) => item.vote)
+        : q
+          ? topicMatches.map((item) => item.vote)
+          : items;
+  const usingTopicFallback = statementId && directStatementMatches.length === 0 && Boolean(q);
 
   return (
     <main className="mx-auto min-h-screen max-w-5xl px-4 py-8 space-y-6">
@@ -19,8 +67,18 @@ export default async function VotesPage() {
           und Datenpakete sichtbar, damit Politik, Verbände und Medien belastbare Entscheidungen begleiten können.
         </p>
       </header>
+      {q || statementId ? (
+        <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-3 text-sm text-[rgb(var(--muted))]">
+          Gefiltert nach Thema: <span className="font-semibold text-[rgb(var(--fg))]">{q || statementId}</span>
+          {usingTopicFallback ? (
+            <p className="mt-1 text-xs">
+              Keine direkte Statement-Verknüpfung gefunden. Es werden thematisch passende Abstimmungen gezeigt.
+            </p>
+          ) : null}
+        </section>
+      ) : null}
       <div className="grid gap-4 md:grid-cols-2">
-        {items.map((vote) => (
+        {filtered.map((vote) => (
           <article key={vote.id} className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm space-y-3">
             <div className="flex items-center justify-between text-xs text-[rgb(var(--muted))]">
               <span className="rounded-full bg-[rgb(var(--bg))] px-3 py-1 font-semibold text-[rgb(var(--muted))]">
@@ -45,6 +103,11 @@ export default async function VotesPage() {
           </article>
         ))}
       </div>
+      {filtered.length === 0 ? (
+        <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-3 text-sm text-[rgb(var(--muted))]">
+          Keine thematisch passenden Abstimmungen gefunden. Du kannst im Dossier weiterarbeiten oder den Filter entfernen.
+        </section>
+      ) : null}
     </main>
   );
 }

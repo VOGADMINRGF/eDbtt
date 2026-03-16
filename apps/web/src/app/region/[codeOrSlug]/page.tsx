@@ -38,12 +38,12 @@ export default async function RegionLandingPage({
       {fallbackUsed && (
         <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm space-y-2">
           <p className="text-sm text-[rgb(var(--muted))]">
-            Fuer <span className="font-semibold">{requestedLabel}</span> liegen noch keine Daten vor. Wir zeigen
-            dir stattdessen die naechsthoehere Ebene:{" "}
+            Für <span className="font-semibold">{requestedLabel}</span> liegen noch keine Daten vor. Wir zeigen
+            dir stattdessen die nächsthöhere Ebene:{" "}
             <span className="font-semibold">{regionLabel}</span>.
           </p>
           <p className="text-sm text-[rgb(var(--muted))]">
-            Sei der Erste, der fuer deine Heimatregion etwas zur Abstimmung vorbringen will.
+            Sei der Erste, der für deine Heimatregion etwas zur Abstimmung vorbringen will.
           </p>
           <Link
             href="/thema-einreichen"
@@ -88,7 +88,7 @@ export default async function RegionLandingPage({
           </div>
           {summary.feedItems.length === 0 ? (
             <p className="text-sm text-[rgb(var(--muted))]">
-              Noch keine Feed-Items fuer diese Region.
+              Noch keine Feed-Items für diese Region.
             </p>
           ) : (
             <ul className="space-y-3 text-sm">
@@ -132,7 +132,7 @@ export default async function RegionLandingPage({
           </div>
           {summary.topics.length === 0 ? (
             <p className="text-sm text-[rgb(var(--muted))]">
-              Keine Themencluster verfuegbar.
+              Keine Themencluster verfügbar.
             </p>
           ) : (
             <div className="flex flex-wrap gap-2">
@@ -171,7 +171,7 @@ function ModuleCard({
     >
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-semibold text-[rgb(var(--fg))]">{title}</h3>
-        <span className="text-xs font-semibold text-[rgb(var(--muted))]">Oeffnen {"->"}</span>
+        <span className="text-xs font-semibold text-[rgb(var(--muted))]">Öffnen {"->"}</span>
       </div>
       <p className="mt-2 text-sm text-[rgb(var(--muted))]">{description}</p>
     </Link>

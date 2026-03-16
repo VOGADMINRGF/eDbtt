@@ -78,7 +78,7 @@ const PERSONA_LEAD_BY_MODULE: Record<
     create: "Schneller Einstieg für Quelle, Frage und Widerspruch mit nachvollziehbarer Spur.",
   },
   administration: {
-    runden: "Steuerungsblick auf Rundenhistorie, naechste Schritte und verantwortliche Antworten.",
+    runden: "Steuerungsblick auf Rundenhistorie, nächste Schritte und verantwortliche Antworten.",
     dossier: "Arbeitsfokus: Zuständigkeiten, Delegation, Workflow und Dokumentationsstand.",
     votes: "Entscheidungsvorbereitung mit Status und priorisierter Umsetzungsrelevanz.",
     swipes: "Vorqualifizieren und direkt in zuständige Dossiers wechseln.",

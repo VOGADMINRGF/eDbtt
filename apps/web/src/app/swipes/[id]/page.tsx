@@ -1,9 +1,7 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { SwipesClient } from "../SwipesClient";
-import { getAccountOverview } from "@features/account/service";
 import { readSession } from "@/utils/session";
-import type { EDebattePackage } from "@/features/swipes/types";
 
 export const metadata = {
   title: "Swipe-Karte · eDebatte",
@@ -24,18 +22,10 @@ export default async function SwipeDetailPage({ params }: Props) {
     redirect(`/login?next=${encodeURIComponent(nextUrl)}`);
   }
 
-  const overview = await getAccountOverview(userId);
-
-  if (!overview) {
-    redirect(`/login?next=${encodeURIComponent(nextUrl)}`);
-  }
-
-  const edebattePkg: EDebattePackage = (overview as any)?.edebatte?.package ?? "none";
-
   return (
     <main className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-white pb-12">
       <h1 className="sr-only">Swipe-Karte</h1>
-      <SwipesClient edebattePackage={edebattePkg} focusStatementId={id} variant="solo" />
+      <SwipesClient focusStatementId={id} variant="solo" />
     </main>
   );
 }

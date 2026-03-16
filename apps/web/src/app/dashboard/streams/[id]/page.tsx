@@ -1248,7 +1248,7 @@ export default function StreamCockpitPage() {
           >
             <p className="font-semibold">Support aktivieren</p>
             <p className="text-xs text-[rgb(var(--muted))]">
-              Unterstuetzen-CTA kann zugeschaltet werden (optional blind).
+              Unterstützen-CTA kann zugeschaltet werden (optional blind).
             </p>
           </button>
           <button
@@ -1262,7 +1262,7 @@ export default function StreamCockpitPage() {
           >
             <p className="font-semibold">Support blind schalten</p>
             <p className="text-xs text-[rgb(var(--muted))]">
-              Support laeuft im Hintergrund, ohne oeffentliche Anzeige.
+              Support laeuft im Hintergrund, ohne öffentliche Anzeige.
             </p>
           </button>
           <button
@@ -1305,7 +1305,7 @@ export default function StreamCockpitPage() {
           >
             <p className="font-semibold">Zuschauerzahl verstecken</p>
             <p className="text-xs text-[rgb(var(--muted))]">
-              Sichtbar nur fuer Creator/Admin/Mods.
+              Sichtbar nur für Creator/Admin/Mods.
             </p>
           </button>
         </div>
@@ -1316,7 +1316,7 @@ export default function StreamCockpitPage() {
           <div>
             <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Deliberation Mode</h2>
             <p className="text-xs text-[rgb(var(--muted))]">
-              Phasen, Runden und Timer fuer strukturierte Live-Debatten.
+              Phasen, Runden und Timer für strukturierte Live-Debatten.
             </p>
           </div>
           <button
@@ -1454,7 +1454,7 @@ export default function StreamCockpitPage() {
         <div>
           <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Session-Vorlagen</h2>
           <p className="text-xs text-[rgb(var(--muted))]">
-            Schnellstart fuer typische Formate (passt du spaeter an).
+            Schnellstart für typische Formate (passt du spaeter an).
           </p>
         </div>
         <div className="flex flex-wrap gap-2">

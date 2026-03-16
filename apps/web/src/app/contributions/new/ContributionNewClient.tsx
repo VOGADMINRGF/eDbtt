@@ -40,27 +40,27 @@ function deriveUseCaseAccess(overview?: AccountOverview | null): UseCaseAccess {
     ) || tier.startsWith("institution");
 
   let allowed: UseCaseId[] = ["civic"];
-  let note = "Dein Bereich ist festgelegt. Fuer andere Use Cases brauchst du das passende Paket.";
+  let note = "Dein Bereich ist festgelegt. Für andere Use Cases brauchst du das passende Paket.";
 
   if (isStaff) {
     allowed = ["civic", "journalism", "agenda"];
     note = "Staff-Zugang: alle Use Cases sind freigeschaltet.";
   } else if (isMedia) {
     allowed = ["journalism"];
-    note = "Journalismus/Medien: Zugriff nur fuer journalistische Formate.";
+    note = "Journalismus/Medien: Zugriff nur für journalistische Formate.";
   } else if (isAgenda) {
     allowed = ["agenda"];
-    note = "Verwaltung/Organisation: Zugriff nur fuer Agenda- und Verwaltungsformate.";
+    note = "Verwaltung/Organisation: Zugriff nur für Agenda- und Verwaltungsformate.";
   } else {
     allowed = ["civic"];
-    note = "Buergerbereich: Zugriff fuer Beitraege und Projekte.";
+    note = "Bürgerbereich: Zugriff für Beiträge und Projekte.";
   }
 
   return {
     allowed,
     note,
     lockLabels: {
-      civic: "Buerger-Bereich",
+      civic: "Bürger-Bereich",
       journalism: "Nur Journalismus/Medien",
       agenda: "Nur Verwaltung/Organisationen",
     },
@@ -173,12 +173,12 @@ function ContributionGate({ variant, overview }: ContributionGateProps) {
 
   const title =
     variant === "anon"
-      ? "Registriere dich fuer deinen ersten Beitrag"
+      ? "Registriere dich für deinen ersten Beitrag"
       : "Du brauchst einen Contribution-Credit oder citizenPremium+";
   const description =
     variant === "anon"
       ? "Mit einem kostenlosen citizenBasic-Konto sammelst du XP, Swipes und erhaelst nach 100 Swipes einen Contribution-Credit (1 Beitrag mit bis zu 3 Statements)."
-      : `Freie Plaene erlauben ${tierLimit || 0} Beitraege/Monat. Du hast ${swipes} Swipes gesammelt – dir fehlen noch ${nextCreditIn} bis zum naechsten Credit oder du wechselst auf citizenPremium, citizenPro oder citizenUltra.`;
+      : `Freie Plaene erlauben ${tierLimit || 0} Beiträge/Monat. Du hast ${swipes} Swipes gesammelt – dir fehlen noch ${nextCreditIn} bis zum nächsten Credit oder du wechselst auf citizenPremium, citizenPro oder citizenUltra.`;
 
   return (
     <main className="mx-auto max-w-4xl px-4 py-12">
@@ -197,8 +197,8 @@ function ContributionGate({ variant, overview }: ContributionGateProps) {
             <StatBox label="Plan" value={tier} hint="citizenPremium+ erlaubt unbegrenzt Contributions" />
             <StatBox label="Contribution-Credits" value={credits} hint="1 Credit = 1 Beitrag mit bis zu 3 Statements" />
             <StatBox label="XP & Level" value={`${xp} XP · ${levelLabel}`} hint="Swipes geben XP & steigern dein Level" />
-            <StatBox label="Swipes" value={`${swipes} total`} hint={`Noch ${nextCreditIn} bis zum naechsten Credit`} />
-            <StatBox label="Monatslimit" value={tierLimitLabel ?? tierLimit} hint="Beitraege pro Monat laut aktuellem Tier" />
+            <StatBox label="Swipes" value={`${swipes} total`} hint={`Noch ${nextCreditIn} bis zum nächsten Credit`} />
+            <StatBox label="Monatslimit" value={tierLimitLabel ?? tierLimit} hint="Beiträge pro Monat laut aktuellem Tier" />
           </div>
         )}
 

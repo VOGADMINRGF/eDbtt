@@ -119,7 +119,7 @@ function CampaignQrLanding({
       </div>
 
       <p className="text-xs text-[rgb(var(--muted))]">
-        Hinweis: Falls Unterstuetzen aktiv ist, findest du den Link direkt auf der Kampagnenseite.
+        Hinweis: Falls Unterstützen aktiv ist, findest du den Link direkt auf der Kampagnenseite.
       </p>
     </main>
   );
@@ -130,7 +130,7 @@ function CustomFlow({ data }: { data: QrResolved }) {
     <main className="mx-auto flex max-w-2xl flex-col gap-4 px-4 py-10">
       <h1 className="text-xl font-semibold text-[rgb(var(--fg))]">Individuelle Aktion</h1>
       <p className="text-sm text-[rgb(var(--muted))]">
-        Dieser QR-Code fuehrt zu einem benutzerdefinierten Flow. Bitte folge den Hinweisen der
+        Dieser QR-Code führt zu einem benutzerdefinierten Flow. Bitte folge den Hinweisen der
         Veranstaltung oder Organisation.
       </p>
       <pre className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3 text-xs text-[rgb(var(--muted))]">
