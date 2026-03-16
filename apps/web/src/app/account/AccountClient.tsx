@@ -51,9 +51,6 @@ const secondaryLightButtonClass =
 const ghostDarkButtonClass =
   "btn-ghost inline-flex items-center justify-center rounded-full px-3 py-1.5 text-[11px] font-semibold";
 
-const subtleLinkClass =
-  "text-[11px] font-medium text-[rgb(var(--muted))] underline-offset-2 hover:text-[rgb(var(--fg))] hover:underline";
-
 const selectedSurfaceClass =
   "border-sky-300/60 bg-sky-100 text-sky-900 shadow-[inset_0_0_0_1px_rgba(56,189,248,0.45)] dark:border-sky-400/40 dark:bg-sky-500/18 dark:text-sky-100";
 
@@ -626,6 +623,16 @@ function CompactProfileHubSection({
   const hasUnreadMessages = socialSummary.unreadMessageCount > 0;
   const hasSelectedInterests = selectedTopics.length > 0;
   const hasEnoughInterests = selectedTopics.length >= 3;
+  const founderMessage = socialSummary.recentMessages.find((message) => {
+    const sender = message.fromLabel.toLowerCase();
+    return (
+      message.kind === "founder_welcome" ||
+      sender.includes("ricky") ||
+      sender.includes("voiceopengov")
+    );
+  });
+  const topMatches = matches.slice(0, 5);
+  const hasImportantNow = hasPendingRequests || hasUnreadMessages || Boolean(founderMessage);
   const inboxIsEmpty =
     !socialLoading && socialSummary.friendRequests.length === 0 && socialSummary.recentMessages.length === 0;
   const personalDirty =
@@ -1165,70 +1172,76 @@ function CompactProfileHubSection({
               Diese Felder sind direkt editierbar. Registrierungsdaten (intern) und öffentliche Namensdarstellung sind getrennt.
               Stadt/Region helfen bei passender lokaler Priorisierung.
             </p>
-            <div className="mt-3 grid gap-2 sm:grid-cols-2">
-              <label className="space-y-1">
-                <span className="text-[11px] text-[rgb(var(--muted))]">Vorname</span>
-                <input
-                  className="w-full rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-sm text-[rgb(var(--fg))] focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100"
-                  value={personalDraft.givenName}
-                  onChange={(event) =>
-                    setPersonalDraft((prev) => ({ ...prev, givenName: event.target.value }))
-                  }
-                />
-              </label>
-              <label className="space-y-1">
-                <span className="text-[11px] text-[rgb(var(--muted))]">Nachname</span>
-                <input
-                  className="w-full rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-sm text-[rgb(var(--fg))] focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100"
-                  value={personalDraft.familyName}
-                  onChange={(event) =>
-                    setPersonalDraft((prev) => ({ ...prev, familyName: event.target.value }))
-                  }
-                />
-              </label>
-            </div>
-            <div className="mt-2 grid gap-2">
-              <label className="space-y-1">
-                <span className="text-[11px] text-[rgb(var(--muted))]">Anschrift</span>
-                <input
-                  className="w-full rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-sm text-[rgb(var(--fg))] focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100"
-                  placeholder="Straße und Hausnummer"
-                  value={personalDraft.street}
-                  onChange={(event) =>
-                    setPersonalDraft((prev) => ({ ...prev, street: event.target.value }))
-                  }
-                />
-              </label>
-              <div className="grid grid-cols-4 gap-2">
-                <input
-                  className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-sm text-[rgb(var(--fg))] focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100"
-                  placeholder="PLZ"
-                  value={personalDraft.postalCode}
-                  onChange={(event) =>
-                    setPersonalDraft((prev) => ({ ...prev, postalCode: event.target.value }))
-                  }
-                />
-                <input
-                  className="col-span-2 rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-sm text-[rgb(var(--fg))] focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100"
-                  placeholder="Stadt"
-                  value={personalDraft.city}
-                  onChange={(event) =>
-                    setPersonalDraft((prev) => ({ ...prev, city: event.target.value }))
-                  }
-                />
-                <input
-                  className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-sm uppercase text-[rgb(var(--fg))] focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100"
-                  placeholder="Land"
-                  value={personalDraft.country}
-                  onChange={(event) =>
-                    setPersonalDraft((prev) => ({ ...prev, country: event.target.value.toUpperCase() }))
-                  }
-                />
+            <div className="mt-3 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--muted))]">Interne Registrierungsdaten</p>
+              <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                <label className="space-y-1">
+                  <span className="text-[11px] text-[rgb(var(--muted))]">Vorname</span>
+                  <input
+                    className="w-full rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm text-[rgb(var(--fg))] focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100"
+                    value={personalDraft.givenName}
+                    onChange={(event) =>
+                      setPersonalDraft((prev) => ({ ...prev, givenName: event.target.value }))
+                    }
+                  />
+                </label>
+                <label className="space-y-1">
+                  <span className="text-[11px] text-[rgb(var(--muted))]">Nachname</span>
+                  <input
+                    className="w-full rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm text-[rgb(var(--fg))] focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100"
+                    value={personalDraft.familyName}
+                    onChange={(event) =>
+                      setPersonalDraft((prev) => ({ ...prev, familyName: event.target.value }))
+                    }
+                  />
+                </label>
+              </div>
+              <div className="mt-2 grid gap-2">
+                <label className="space-y-1">
+                  <span className="text-[11px] text-[rgb(var(--muted))]">Anschrift</span>
+                  <input
+                    className="w-full rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm text-[rgb(var(--fg))] focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100"
+                    placeholder="Straße und Hausnummer"
+                    value={personalDraft.street}
+                    onChange={(event) =>
+                      setPersonalDraft((prev) => ({ ...prev, street: event.target.value }))
+                    }
+                  />
+                </label>
+                <div className="grid grid-cols-4 gap-2">
+                  <input
+                    className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm text-[rgb(var(--fg))] focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100"
+                    placeholder="PLZ"
+                    value={personalDraft.postalCode}
+                    onChange={(event) =>
+                      setPersonalDraft((prev) => ({ ...prev, postalCode: event.target.value }))
+                    }
+                  />
+                  <input
+                    className="col-span-2 rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm text-[rgb(var(--fg))] focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100"
+                    placeholder="Stadt"
+                    value={personalDraft.city}
+                    onChange={(event) =>
+                      setPersonalDraft((prev) => ({ ...prev, city: event.target.value }))
+                    }
+                  />
+                  <input
+                    className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm uppercase text-[rgb(var(--fg))] focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100"
+                    placeholder="Land"
+                    value={personalDraft.country}
+                    onChange={(event) =>
+                      setPersonalDraft((prev) => ({ ...prev, country: event.target.value.toUpperCase() }))
+                    }
+                  />
+                </div>
               </div>
             </div>
 
             <div className="mt-3 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
-              <p className="text-[11px] font-medium text-[rgb(var(--muted))]">Öffentliche Namensdarstellung</p>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--muted))]">Öffentliche Darstellung</p>
+              <p className="mt-1 text-[11px] text-[rgb(var(--muted))]">
+                Diese Darstellung sehen andere Mitglieder in Matching und Profilansicht.
+              </p>
               <div className="mt-2 grid grid-cols-2 gap-1 rounded-xl bg-[rgb(var(--card))] p-1 ring-1 ring-[rgb(var(--border))]">
                 <button
                   type="button"
@@ -1305,8 +1318,9 @@ function CompactProfileHubSection({
           </div>
 
           <div className="mt-3 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2.5">
-            <p className="text-xs text-[rgb(var(--fg))]">
-              Interessen steuern Vorschläge in Debatten, Matching in der Inbox und deine Community-Priorisierung.
+            <p className="text-xs font-semibold text-[rgb(var(--fg))]">Interessen sind dein Startmotor</p>
+            <p className="mt-1 text-xs text-[rgb(var(--muted))]">
+              1) Themen wählen, 2) passende Debatten priorisieren, 3) Gleichgesinnte in der Inbox sehen.
             </p>
             <div className="mt-2 flex flex-wrap gap-1.5">
               <button
@@ -1315,7 +1329,7 @@ function CompactProfileHubSection({
                 disabled={!hasEnoughInterests}
                 className={secondaryLightButtonClass}
               >
-                Weiter zur Inbox
+                {hasEnoughInterests ? "Weiter zur Inbox" : "Mind. 3 wählen"}
               </button>
               <button type="button" onClick={() => setActiveTab("profile")} className={ghostDarkButtonClass}>
                 Profil ansehen
@@ -1340,6 +1354,32 @@ function CompactProfileHubSection({
                   Wähle mindestens 3 Themen, damit passende Debatten und Kontakte sichtbarer werden.
                 </p>
               </div>
+            )}
+          </div>
+
+          <div className="mt-3 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
+            <p className="inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--muted))]">
+              <FiUsers className="h-3.5 w-3.5 text-sky-500" aria-hidden />
+              Vorschau: passende Menschen
+            </p>
+            {matchesLoading ? (
+              <p className="mt-1 text-xs text-[rgb(var(--muted))]">Ermittle Matches aus Interessen und Region …</p>
+            ) : topMatches.length > 0 ? (
+              <div className="mt-2 space-y-1.5">
+                {topMatches.slice(0, 3).map((match) => (
+                  <div key={`interests-match-${match.id}`} className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-2.5 py-2 text-xs">
+                    <p className="font-semibold text-[rgb(var(--fg))]">{match.displayName}</p>
+                    <p className="text-[rgb(var(--muted))]">
+                      Gemeinsam: {match.sharedTopics.slice(0, 2).join(", ")}
+                      {match.locationLabel ? ` · ${match.locationLabel}` : ""}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="mt-1 text-xs text-[rgb(var(--muted))]">
+                Noch keine Vorschau. Mit mindestens 3 Interessen und Ortsangabe werden hier Matches sichtbar.
+              </p>
             )}
           </div>
 
@@ -1406,7 +1446,7 @@ function CompactProfileHubSection({
           <div className="flex items-center justify-between gap-2">
             <p className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">
               <FiMessageCircle className="h-3.5 w-3.5 text-sky-500" aria-hidden />
-              Freundschaftsanfragen & Nachrichten
+              Inbox
             </p>
             <button
               type="button"
@@ -1417,6 +1457,14 @@ function CompactProfileHubSection({
               <FiRefreshCw className="h-3.5 w-3.5 text-sky-500" aria-hidden />
             </button>
           </div>
+          <p className="text-xs text-[rgb(var(--muted))]">
+            Hier laufen deine wichtigsten Hinweise, Verbindungen und Matches zusammen.
+          </p>
+
+          <p className="inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--muted))]">
+            <FiCheckCircle className="h-3.5 w-3.5 text-sky-500" aria-hidden />
+            Wichtig jetzt
+          </p>
 
           <div className="grid grid-cols-2 gap-2">
             <div
@@ -1473,6 +1521,25 @@ function CompactProfileHubSection({
               </span>
             </div>
           )}
+
+          {founderMessage ? (
+            <div className="rounded-2xl border border-cyan-300/55 bg-cyan-100/80 px-3 py-2.5 text-xs text-cyan-950 dark:border-cyan-400/40 dark:bg-cyan-500/16 dark:text-cyan-100">
+              <p className="font-semibold">Willkommen von Ricky</p>
+              <p className="mt-1">
+                {truncateText(founderMessage.text, 150)}
+              </p>
+              <p className="mt-1 text-[11px] text-cyan-800 dark:text-cyan-200">
+                {founderMessage.fromLabel}
+                {founderMessage.createdAt ? ` · ${formatDateLabel(founderMessage.createdAt)}` : ""}
+              </p>
+            </div>
+          ) : null}
+
+          {!socialLoading && !hasImportantNow ? (
+            <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-xs text-[rgb(var(--muted))]">
+              Keine dringenden Hinweise. Setze Interessen und lade Kontakte ein, damit hier neue Impulse erscheinen.
+            </div>
+          ) : null}
 
           <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
             <div className="mb-2 flex items-center justify-between gap-2">
@@ -1543,6 +1610,11 @@ function CompactProfileHubSection({
             </p>
           </div>
 
+          <p className="inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--muted))]">
+            <FiUsers className="h-3.5 w-3.5 text-sky-500" aria-hidden />
+            Menschen & Matches
+          </p>
+
           <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
             <div className="mb-2 flex items-center justify-between gap-2">
               <p className="inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--muted))]">
@@ -1553,9 +1625,9 @@ function CompactProfileHubSection({
             </div>
             {matchesLoading ? (
               <p className="text-xs text-[rgb(var(--muted))]">Suche passende Menschen …</p>
-            ) : matches.length > 0 ? (
+            ) : topMatches.length > 0 ? (
               <div className="space-y-2">
-                {matches.slice(0, 5).map((match) => (
+                {topMatches.map((match) => (
                   <div key={match.id} className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-xs">
                     <p className="font-semibold text-[rgb(var(--fg))]">{match.displayName}</p>
                     <p className="mt-0.5 text-[rgb(var(--muted))]">
@@ -1589,6 +1661,14 @@ function CompactProfileHubSection({
               <p className="mt-1">Lade Freund:innen ein oder schau in die Community, um erste Kontakte und Nachrichten zu erhalten.</p>
             </div>
           ) : null}
+
+          <p className="inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--muted))]">
+            <FiSend className="h-3.5 w-3.5 text-sky-500" aria-hidden />
+            Aktionen
+          </p>
+          <p className="text-xs text-[rgb(var(--muted))]">
+            Community bedeutet aktuell Discovery, Verbindungen und Beiträge. Realtime-Messenger ist noch nicht vollständig freigeschaltet.
+          </p>
 
           <div ref={invitePanelRef} className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
             <p className="inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--muted))]">

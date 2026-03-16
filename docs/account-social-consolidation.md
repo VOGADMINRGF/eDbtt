@@ -4,14 +4,28 @@ Stand: 2026-03-16
 
 ## Was jetzt produktseitig sichtbar ist
 
-- Account-Hub mit drei klaren Flächen: `Profil`, `Interessen`, `Inbox`.
-- Mobile Quick-Utility unten mit Schnellzugriff auf `Profil`, `Interessen`, `Inbox`, `Einladen`.
+- Account-Hub mit drei klaren Flächen in fester Reihenfolge: `Interessen` -> `Inbox` -> `Profil`.
+- `/account` startet ohne Hash standardmäßig im Tab `Interessen`.
+- Hashes behalten Vorrang (`#interessen`, `#inbox`, `#profil`).
+- Mobile Quick-Utility unten folgt derselben Reihenfolge plus `Einladen`.
 - Avatar-Stift ist echte Aktion (Dateiauswahl + Persistenz via `/api/account/profile`).
 - Interessen-Flow erzwingt mindestens 3 Themen für Speichern.
+- Interessen-Tab ist als primärer Startbereich formuliert:
+  - Nutzenkette sichtbar (`Interessen -> Debatten -> Matches`),
+  - Save-Flow + CTA Richtung Inbox,
+  - Match-Vorschau direkt im Interessen-Tab.
 - Inbox lädt Social-Daten aus `core` über `/api/account/social-summary`.
 - Founder-Welcome wird beim Laden aktiv sichergestellt.
+- Inbox ist in drei Blöcke gegliedert:
+  - `Wichtig jetzt` (Counts, Founder-/System-Momente, offene Signale),
+  - `Menschen & Matches` (Interessen-/Region-Matching),
+  - `Aktionen` (Einladen, Community, nächste Schritte).
 - Invite-Funktion ist im Inbox-Kontext prominent und mobil schnell erreichbar.
 - Matching-Preview (`/api/account/matches`) zeigt Gleichgesinnte über gemeinsame Interessen + Region.
+- Profil ist nachgelagert und UX-seitig eindeutig:
+  - klare Profil-Vorschau (nicht pseudo-editierbar),
+  - expliziter Edit-Trigger für Name/Tagline/Bio,
+  - direkter Edit-Bereich mit Trennung `Interne Registrierungsdaten` vs. `Öffentliche Darstellung`.
 
 ## Social/Founder Runtime
 
@@ -49,4 +63,3 @@ Stand: 2026-03-16
 - Verlinkung in Streams/Campaigns.
 
 Es ist aktuell kein vollwertiger Realtime-DM-Chat.
-
