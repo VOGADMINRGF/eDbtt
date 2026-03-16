@@ -383,18 +383,18 @@ type PersonalIdentityData = {
   rewardAnalysisStarts: number;
   lastReferralSuccessAt: string;
 };
-type AccountHubTab = "profile" | "interests" | "inbox";
+type AccountHubTab = "interests" | "inbox" | "profile";
 
 const ACCOUNT_HUB_TABS: Array<{ key: AccountHubTab; label: string; icon: IconType }> = [
-  { key: "profile", label: "Profil", icon: FiUser },
   { key: "interests", label: "Interessen", icon: FiSliders },
   { key: "inbox", label: "Inbox", icon: FiMessageCircle },
+  { key: "profile", label: "Profil", icon: FiUser },
 ];
 
 const MOBILE_QUICK_ACTIONS: Array<{ key: AccountHubTab | "invite"; label: string; icon: IconType }> = [
-  { key: "profile", label: "Profil", icon: FiUser },
   { key: "interests", label: "Interessen", icon: FiSliders },
   { key: "inbox", label: "Inbox", icon: FiMessageCircle },
+  { key: "profile", label: "Profil", icon: FiUser },
   { key: "invite", label: "Einladen", icon: FiSend },
 ];
 
@@ -485,7 +485,7 @@ function CompactProfileHubSection({
   chatEnabled,
   onRefresh,
 }: CompactProfileHubSectionProps) {
-  const [activeTab, setActiveTab] = useState<AccountHubTab>("profile");
+  const [activeTab, setActiveTab] = useState<AccountHubTab>("interests");
   const [profileEditorOpen, setProfileEditorOpen] = useState(false);
   const [displayName, setDisplayName] = useState(profile.displayName ?? "");
   const [tagline, setTagline] = useState(publicProfile.tagline ?? "");
@@ -525,6 +525,10 @@ function CompactProfileHubSection({
   useEffect(() => {
     if (typeof window === "undefined") return;
     const hash = window.location.hash.replace("#", "").toLowerCase();
+    if (hash === "profil" || hash === "profile") {
+      setActiveTab("profile");
+      return;
+    }
     if (hash === "interessen" || hash === "interests") {
       setActiveTab("interests");
       return;
@@ -977,7 +981,7 @@ function CompactProfileHubSection({
             </div>
           </div>
           <span className="inline-flex items-center rounded-full bg-[rgb(var(--bg))] px-2 py-1 text-[10px] font-medium text-[rgb(var(--muted))] ring-1 ring-[rgb(var(--border))]">
-            Profil-Hub
+            Konto-Überblick
           </span>
         </div>
 
@@ -1040,6 +1044,39 @@ function CompactProfileHubSection({
           </span>
         </div>
         <p className="mt-1.5 text-[11px] text-[rgb(var(--muted))]">Paketstatus: {packageLabel}</p>
+        <p className="mt-1 text-[11px] text-[rgb(var(--muted))]">
+          Start mit Interessen, dann Inbox. Profilpflege findest du im dritten Tab.
+        </p>
+        <div className="mt-2 flex flex-wrap gap-1.5">
+          <button
+            type="button"
+            onClick={() => setActiveTab("interests")}
+            className={`inline-flex items-center justify-center rounded-full px-3 py-1.5 text-[11px] font-semibold ${
+              activeTab === "interests" ? selectedSurfaceClass : secondaryLightButtonClass
+            }`}
+          >
+            Interessen
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab("inbox")}
+            className={`inline-flex items-center justify-center rounded-full px-3 py-1.5 text-[11px] font-semibold ${
+              activeTab === "inbox" ? selectedSurfaceClass : secondaryLightButtonClass
+            }`}
+          >
+            Inbox
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setActiveTab("profile");
+              setProfileEditorOpen(true);
+            }}
+            className={primaryButtonSmallClass}
+          >
+            Profil bearbeiten
+          </button>
+        </div>
         {profileMsg && !profileEditorOpen ? (
           <p className="mt-2 text-xs text-[rgb(var(--muted))]" role="status" aria-live="polite">
             {profileMsg}
@@ -1077,19 +1114,26 @@ function CompactProfileHubSection({
       {activeTab === "profile" ? (
         <div className="space-y-3">
           <article className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-[0_14px_45px_rgba(15,23,42,0.08)] sm:p-5">
-            <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4">
-              <div className="flex items-center gap-3">
-                <div className={`inline-flex h-11 w-11 items-center justify-center rounded-xl text-sm font-semibold ${selectedChipClass}`}>
-                  {displayNamePreview.slice(0, 2).toUpperCase()}
-                </div>
-                <div className="min-w-0">
-                  <p className="truncate text-lg font-semibold text-[rgb(var(--fg))]">{displayNamePreview}</p>
-                  <p className="truncate text-sm text-[rgb(var(--muted))]">{taglinePreview}</p>
-                </div>
+            <div className="flex flex-wrap items-start justify-between gap-2">
+              <div>
+                <p className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">
+                  <FiUser className="h-3.5 w-3.5 text-sky-500" aria-hidden />
+                  Profil-Vorschau
+                </p>
+                <p className="mt-1 text-xs text-[rgb(var(--muted))]">
+                  Öffentliche Ansicht mit explizitem Edit-Modus. Änderungen an Name, Kurzprofil und Bio nur über „Profil bearbeiten“.
+                </p>
               </div>
-              <div className="mt-3 rounded-xl bg-[rgb(var(--card))] px-3 py-2.5 ring-1 ring-[rgb(var(--border))]">
-                <p className="text-sm leading-relaxed text-[rgb(var(--fg))]">{bioPreview}</p>
-              </div>
+              <button type="button" onClick={() => setProfileEditorOpen(true)} className={primaryButtonSmallClass}>
+                <FiEdit2 className="mr-1.5 h-3.5 w-3.5" aria-hidden />
+                Profil bearbeiten
+              </button>
+            </div>
+            <div className="mt-3 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--muted))]">Kurzprofil</p>
+              <p className="mt-1 text-sm text-[rgb(var(--fg))]">{taglinePreview || "Noch kein Kurzprofil gesetzt."}</p>
+              <p className="mt-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--muted))]">Selbstdarstellung</p>
+              <p className="mt-1 text-sm leading-relaxed text-[rgb(var(--fg))]">{bioPreview || "Noch keine Selbstdarstellung hinterlegt."}</p>
               {hasSelectedInterests ? (
                 <div className="mt-3 flex flex-wrap gap-1.5">
                   {selectedTopicLabels.slice(0, 5).map((label) => (
@@ -1110,21 +1154,16 @@ function CompactProfileHubSection({
                 </div>
               )}
             </div>
-            <div className="mt-4">
-              <button type="button" onClick={() => setProfileEditorOpen(true)} className={`${primaryButtonClass} w-full sm:w-auto`}>
-                <FiEdit2 className="mr-1.5 h-3.5 w-3.5" aria-hidden />
-                Profil bearbeiten
-              </button>
-            </div>
           </article>
 
           <article className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-[0_14px_45px_rgba(15,23,42,0.08)] sm:p-5">
             <p className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">
               <FiMapPin className="h-3.5 w-3.5 text-sky-500" aria-hidden />
-              Identität & Darstellung
+              Identität & Darstellung (direkt editierbar)
             </p>
             <p className="mt-2 text-xs text-[rgb(var(--muted))]">
-              Registrierungsdaten (intern) und öffentliche Namensdarstellung sind getrennt. Stadt/Region helfen bei passender lokaler Priorisierung.
+              Diese Felder sind direkt editierbar. Registrierungsdaten (intern) und öffentliche Namensdarstellung sind getrennt.
+              Stadt/Region helfen bei passender lokaler Priorisierung.
             </p>
             <div className="mt-3 grid gap-2 sm:grid-cols-2">
               <label className="space-y-1">
@@ -1265,6 +1304,25 @@ function CompactProfileHubSection({
             </span>
           </div>
 
+          <div className="mt-3 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2.5">
+            <p className="text-xs text-[rgb(var(--fg))]">
+              Interessen steuern Vorschläge in Debatten, Matching in der Inbox und deine Community-Priorisierung.
+            </p>
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              <button
+                type="button"
+                onClick={() => setActiveTab("inbox")}
+                disabled={!hasEnoughInterests}
+                className={secondaryLightButtonClass}
+              >
+                Weiter zur Inbox
+              </button>
+              <button type="button" onClick={() => setActiveTab("profile")} className={ghostDarkButtonClass}>
+                Profil ansehen
+              </button>
+            </div>
+          </div>
+
           <div className="mt-3 flex min-h-[36px] flex-wrap gap-1.5">
             {selectedTopicLabels.length > 0 ? (
               selectedTopicLabels.map((label) => (
@@ -1329,6 +1387,11 @@ function CompactProfileHubSection({
               <FiCheckCircle className="mr-1.5 h-3.5 w-3.5" aria-hidden />
               {interestsSaving ? "Speichert …" : "Interessen speichern"}
             </button>
+            {hasEnoughInterests ? (
+              <button type="button" onClick={() => setActiveTab("inbox")} className={`${secondaryLightButtonClass} w-full`}>
+                Zur Inbox wechseln
+              </button>
+            ) : null}
             {interestMsg ? (
               <p className="text-xs text-[rgb(var(--muted))]" role="status" aria-live="polite">
                 {interestMsg}
