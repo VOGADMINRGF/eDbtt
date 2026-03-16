@@ -1,71 +1,187 @@
-import { useRef, useState } from "react";
-import type { TouchEvent } from "react";
+import { useEffect, useRef, useState } from "react";
+import type { PointerEvent } from "react";
 import type { SwipeDecision, SwipeItem } from "@/features/swipes/types";
 
 type SwipeTopicStepProps = {
   item: SwipeItem;
-  onMore: () => void;
   onVote: (decision: SwipeDecision) => void;
   step?: number;
 };
 
-export function SwipeTopicStep({ item, onMore, onVote, step = 1 }: SwipeTopicStepProps) {
+export function SwipeTopicStep({ item, onVote, step = 1 }: SwipeTopicStepProps) {
   const chips = buildMetaChips(item);
-  const touchStartRef = useRef<{ x: number; y: number } | null>(null);
+  const cardRef = useRef<HTMLElement | null>(null);
+  const gestureRef = useRef<{
+    pointerId: number;
+    x: number;
+    y: number;
+    startTs: number;
+    lastX: number;
+    lastTs: number;
+    axis: "x" | "y" | null;
+  } | null>(null);
+  const voteTimeoutRef = useRef<number | null>(null);
+  const [dragX, setDragX] = useState(0);
+  const [dragY, setDragY] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
   const [swipePreview, setSwipePreview] = useState<SwipeDecision | null>(null);
 
-  function handleTouchStart(event: TouchEvent) {
-    const touch = event.touches[0];
-    if (!touch) return;
-    touchStartRef.current = { x: touch.clientX, y: touch.clientY };
+  useEffect(() => {
+    setDragX(0);
+    setDragY(0);
+    setIsDragging(false);
+    setSwipePreview(null);
+    if (voteTimeoutRef.current) {
+      window.clearTimeout(voteTimeoutRef.current);
+      voteTimeoutRef.current = null;
+    }
+  }, [item.id]);
+
+  useEffect(
+    () => () => {
+      if (voteTimeoutRef.current) {
+        window.clearTimeout(voteTimeoutRef.current);
+      }
+    },
+    [],
+  );
+
+  function resetCardPosition() {
+    setDragX(0);
+    setDragY(0);
+    setIsDragging(false);
     setSwipePreview(null);
   }
 
-  function handleTouchMove(event: TouchEvent) {
-    const start = touchStartRef.current;
-    const touch = event.touches[0];
-    if (!start || !touch) return;
-    const dx = touch.clientX - start.x;
-    const dy = touch.clientY - start.y;
-    if (Math.abs(dx) < 28 || Math.abs(dx) <= Math.abs(dy)) {
-      setSwipePreview(null);
-      return;
+  function commitSwipe(decision: SwipeDecision, dy: number) {
+    setIsDragging(false);
+    setSwipePreview(decision);
+    const exitOffset = Math.max(window.innerWidth * 0.9, 360);
+    setDragX(decision === "agree" ? exitOffset : -exitOffset);
+    setDragY(Math.max(-24, Math.min(24, dy * 0.25)));
+    if (voteTimeoutRef.current) {
+      window.clearTimeout(voteTimeoutRef.current);
     }
-    setSwipePreview(dx > 0 ? "agree" : "disagree");
+    voteTimeoutRef.current = window.setTimeout(() => {
+      onVote(decision);
+      resetCardPosition();
+      voteTimeoutRef.current = null;
+    }, 130);
   }
 
-  function handleTouchEnd(event: TouchEvent) {
-    const start = touchStartRef.current;
-    const touch = event.changedTouches[0];
-    touchStartRef.current = null;
-    if (!start || !touch) {
-      setSwipePreview(null);
+  function handlePointerDown(event: PointerEvent<HTMLElement>) {
+    if (voteTimeoutRef.current) return;
+    if (event.pointerType === "mouse" && event.button !== 0) return;
+    const target = event.target as Element | null;
+    if (
+      target?.closest(
+        "button,a,input,textarea,select,summary,[role='button'],[role='link'],[data-swipe-no-drag]",
+      )
+    ) {
       return;
     }
-    const dx = touch.clientX - start.x;
-    const dy = touch.clientY - start.y;
-    const isHorizontalSwipe = Math.abs(dx) >= 72 && Math.abs(dx) > Math.abs(dy) * 1.2;
+    const now = performance.now();
+    gestureRef.current = {
+      pointerId: event.pointerId,
+      x: event.clientX,
+      y: event.clientY,
+      startTs: now,
+      lastX: event.clientX,
+      lastTs: now,
+      axis: null,
+    };
+    setIsDragging(false);
+    setDragX(0);
+    setDragY(0);
     setSwipePreview(null);
-    if (!isHorizontalSwipe) return;
-    onVote(dx > 0 ? "agree" : "disagree");
+    event.currentTarget.setPointerCapture(event.pointerId);
   }
+
+  function handlePointerMove(event: PointerEvent<HTMLElement>) {
+    const gesture = gestureRef.current;
+    if (!gesture || gesture.pointerId !== event.pointerId) return;
+
+    const dx = event.clientX - gesture.x;
+    const dy = event.clientY - gesture.y;
+
+    if (gesture.axis === null) {
+      if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
+      gesture.axis = Math.abs(dx) > Math.abs(dy) * 1.1 ? "x" : "y";
+    }
+
+    if (gesture.axis !== "x") {
+      return;
+    }
+
+    if (event.cancelable) {
+      event.preventDefault();
+    }
+    gesture.lastX = event.clientX;
+    gesture.lastTs = performance.now();
+    setIsDragging(true);
+    setDragX(dx);
+    setDragY(Math.max(-18, Math.min(18, dy * 0.3)));
+
+    if (Math.abs(dx) >= 28) {
+      setSwipePreview(dx > 0 ? "agree" : "disagree");
+    } else {
+      setSwipePreview(null);
+    }
+  }
+
+  function finishPointer(event: PointerEvent<HTMLElement>, cancelled = false) {
+    const gesture = gestureRef.current;
+    if (!gesture || gesture.pointerId !== event.pointerId) return;
+    gestureRef.current = null;
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+    if (cancelled || gesture.axis !== "x") {
+      resetCardPosition();
+      return;
+    }
+
+    const dx = event.clientX - gesture.x;
+    const dy = event.clientY - gesture.y;
+    const cardWidth = cardRef.current?.offsetWidth ?? window.innerWidth;
+    const distanceThreshold = Math.min(140, Math.max(72, cardWidth * 0.22));
+    const totalDuration = Math.max(performance.now() - gesture.startTs, 1);
+    const averageVelocity = dx / totalDuration;
+    const isFastFlick = Math.abs(averageVelocity) >= 0.55 && Math.abs(dx) >= 32;
+    const isHorizontalSwipe =
+      (Math.abs(dx) >= distanceThreshold || isFastFlick) && Math.abs(dx) > Math.abs(dy) * 1.15;
+    if (!isHorizontalSwipe) {
+      resetCardPosition();
+      return;
+    }
+
+    commitSwipe(dx > 0 ? "agree" : "disagree", dy);
+  }
+
+  const rotate = dragX / 34;
+  const opacity = Math.max(0.86, 1 - Math.abs(dragX) / 620);
 
   return (
     <article
-      className={`relative overflow-hidden rounded-[30px] border border-[rgb(var(--border))] bg-[rgb(var(--card))]/95 p-4 shadow-[0_24px_60px_rgba(2,6,23,0.2)] backdrop-blur touch-pan-y ${
+      ref={cardRef}
+      className={`relative min-h-[520px] overflow-hidden rounded-[30px] border border-[rgb(var(--border))] bg-[rgb(var(--card))]/95 p-4 shadow-[0_24px_60px_rgba(2,6,23,0.2)] backdrop-blur touch-pan-y will-change-transform ${
         swipePreview === "agree"
           ? "ring-2 ring-emerald-300/70"
           : swipePreview === "disagree"
             ? "ring-2 ring-rose-300/70"
             : ""
       }`}
-      onTouchStart={handleTouchStart}
-      onTouchMove={handleTouchMove}
-      onTouchEnd={handleTouchEnd}
-      onTouchCancel={() => {
-        touchStartRef.current = null;
-        setSwipePreview(null);
+      style={{
+        transform: `translate3d(${dragX}px, ${dragY}px, 0) rotate(${rotate}deg)`,
+        opacity,
+        transition: isDragging
+          ? "none"
+          : "transform 220ms cubic-bezier(0.22, 1, 0.36, 1), opacity 220ms ease, box-shadow 220ms ease",
       }}
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={(event) => finishPointer(event)}
+      onPointerCancel={(event) => finishPointer(event, true)}
     >
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(100%_120%_at_0%_0%,rgba(56,189,248,0.1),rgba(15,23,42,0)_45%),radial-gradient(90%_110%_at_100%_100%,rgba(16,185,129,0.08),rgba(15,23,42,0)_40%)]" />
       <div className="pointer-events-none absolute -top-20 -right-12 h-44 w-44 rounded-full bg-sky-500/12 blur-3xl" />
@@ -100,21 +216,11 @@ export function SwipeTopicStep({ item, onMore, onVote, step = 1 }: SwipeTopicSte
         <MetaCard label="Eventualitäten" value={`${item.eventualitiesCount} Varianten`} />
       </div>
 
-      <div className="relative mt-3">
-        <button
-          type="button"
-          onClick={onMore}
-          className="w-full rounded-xl border border-sky-300/80 bg-gradient-to-r from-sky-50/95 to-cyan-50/85 px-3 py-2.5 text-left text-sm font-semibold text-sky-700 shadow-[0_10px_24px_rgba(14,165,233,0.12)] transition hover:from-sky-100 hover:to-cyan-100 dark:border-sky-400/30 dark:from-sky-500/14 dark:to-cyan-500/10 dark:text-sky-200 md:hidden"
-        >
-          Mehr Kontext öffnen: Dossier, Evidenz und Varianten
-        </button>
-      </div>
-
       <div className="relative mt-3 hidden grid-cols-3 gap-2 md:grid">
         <button
           type="button"
           onClick={() => onVote("disagree")}
-          className="rounded-xl border border-rose-300/70 bg-gradient-to-r from-rose-100 to-rose-50 px-3 py-2 text-sm font-semibold text-rose-800 shadow-sm transition hover:brightness-105 dark:border-rose-400/40 dark:from-rose-500/20 dark:to-rose-500/10 dark:text-rose-100"
+          className="btn-vote btn-vote-disagree rounded-xl px-3 py-2 text-sm"
         >
           <span className="mr-1" aria-hidden>
             👎
@@ -124,7 +230,7 @@ export function SwipeTopicStep({ item, onMore, onVote, step = 1 }: SwipeTopicSte
         <button
           type="button"
           onClick={() => onVote("neutral")}
-          className="rounded-xl border border-slate-300/80 bg-slate-100 px-3 py-2 text-sm font-semibold text-slate-800 shadow-sm transition hover:brightness-105 dark:border-slate-500/45 dark:bg-slate-500/16 dark:text-slate-100"
+          className="btn-vote btn-vote-neutral rounded-xl px-3 py-2 text-sm"
         >
           <span className="mr-1" aria-hidden>
             😐
@@ -134,7 +240,7 @@ export function SwipeTopicStep({ item, onMore, onVote, step = 1 }: SwipeTopicSte
         <button
           type="button"
           onClick={() => onVote("agree")}
-          className="rounded-xl border border-emerald-300/70 bg-gradient-to-r from-emerald-100 to-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-800 shadow-sm transition hover:brightness-105 dark:border-emerald-400/40 dark:from-emerald-500/20 dark:to-emerald-500/10 dark:text-emerald-100"
+          className="btn-vote btn-vote-agree rounded-xl px-3 py-2 text-sm"
         >
           <span className="mr-1" aria-hidden>
             👍

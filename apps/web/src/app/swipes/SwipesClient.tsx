@@ -52,7 +52,7 @@ async function fetchEventualities(statementId: string): Promise<Eventuality[]> {
   return data.eventualities;
 }
 
-async function postSwipeVote(payload: {
+type SwipeVotePersistPayload = {
   statementId: string;
   eventualityId?: string;
   decision: SwipeDecision;
@@ -60,7 +60,9 @@ async function postSwipeVote(payload: {
   variantReason?: string;
   variantRankedIds?: string[];
   excludedEventualityIds?: string[];
-}) {
+};
+
+async function postSwipeVote(payload: SwipeVotePersistPayload) {
   const res = await fetch("/api/swipes/vote", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -68,6 +70,17 @@ async function postSwipeVote(payload: {
   });
   if (!res.ok) {
     console.error("[swipes] vote failed", res.status);
+  }
+}
+
+async function deleteSwipeVote(statementId: string) {
+  const res = await fetch("/api/swipes/vote", {
+    method: "DELETE",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ statementId }),
+  });
+  if (!res.ok) {
+    console.error("[swipes] vote undo failed", res.status);
   }
 }
 
@@ -90,6 +103,13 @@ type SwipesClientProps = {
   requireAuthAfterFreeVotes?: boolean;
 };
 
+type LastVoteSnapshot = {
+  item: SwipeItem;
+  decision: SwipeDecision;
+  historyEntry: DecisionHistoryItem;
+  prevHint: string | null;
+};
+
 export function SwipesClient({
   initialTopic = "",
   focusStatementId,
@@ -107,6 +127,7 @@ export function SwipesClient({
   const [decisionHistory, setDecisionHistory] = useState<DecisionHistoryItem[]>([]);
   const [transitionHint, setTransitionHint] = useState<string | null>(null);
   const [completedCount, setCompletedCount] = useState(0);
+  const [lastVote, setLastVote] = useState<LastVoteSnapshot | null>(null);
 
   const [screenFlash, setScreenFlash] = useState<SwipeDecision | null>(null);
   const [liveMessage, setLiveMessage] = useState("");
@@ -124,6 +145,8 @@ export function SwipesClient({
   const [openGateAfterStep, setOpenGateAfterStep] = useState(false);
 
   const liveTimerRef = useRef<number | null>(null);
+  const pendingVoteTimerRef = useRef<number | null>(null);
+  const pendingVotePayloadRef = useRef<SwipeVotePersistPayload | null>(null);
 
   const isSolo = variant === "solo";
 
@@ -157,6 +180,45 @@ export function SwipesClient({
     liveTimerRef.current = window.setTimeout(() => setLiveMessage(""), 1400);
   }, []);
 
+  const flushPendingVote = useCallback(() => {
+    const pending = pendingVotePayloadRef.current;
+    if (!pending) return;
+    if (pendingVoteTimerRef.current) {
+      window.clearTimeout(pendingVoteTimerRef.current);
+      pendingVoteTimerRef.current = null;
+    }
+    pendingVotePayloadRef.current = null;
+    postSwipeVote(pending).catch(() => {});
+  }, []);
+
+  const cancelPendingVote = useCallback(() => {
+    if (pendingVoteTimerRef.current) {
+      window.clearTimeout(pendingVoteTimerRef.current);
+      pendingVoteTimerRef.current = null;
+    }
+    pendingVotePayloadRef.current = null;
+  }, []);
+
+  const queueVotePayload = useCallback(
+    (payload: SwipeVotePersistPayload) => {
+      if (pendingVotePayloadRef.current) {
+        flushPendingVote();
+      }
+      pendingVotePayloadRef.current = payload;
+      pendingVoteTimerRef.current = window.setTimeout(() => {
+        flushPendingVote();
+      }, 900);
+    },
+    [flushPendingVote],
+  );
+
+  useEffect(
+    () => () => {
+      flushPendingVote();
+    },
+    [flushPendingVote],
+  );
+
   useEffect(() => {
     let cancelled = false;
     async function load() {
@@ -172,6 +234,7 @@ export function SwipesClient({
       if (!cancelled) {
         setItems(resp.items);
         setLoading(false);
+        setLastVote(null);
       }
     }
     load();
@@ -248,22 +311,26 @@ export function SwipesClient({
       const openGateAfterTopic = freeVote.enabled && nextCount >= freeVote.limit;
       const nextProgress = Math.max(completedCount, freeVote.count) + 1;
       const remainingToAnalysis = Math.max(100 - nextProgress, 0);
+      const historyEntry: DecisionHistoryItem = {
+        id: item.id,
+        title: item.title,
+        category: item.category || item.domainLabel || "Thema",
+        decision,
+        detailHref: openDossierRoute(item.id),
+      };
 
       setDecisionStats((prev) => ({
         ...prev,
         [decision]: prev[decision] + 1,
       }));
+      setLastVote({
+        item,
+        decision,
+        historyEntry,
+        prevHint: transitionHint,
+      });
       setDecisionHistory((prev) => {
-        const next: DecisionHistoryItem[] = [
-          ...prev,
-          {
-            id: item.id,
-            title: item.title,
-            category: item.category || item.domainLabel || "Thema",
-            decision,
-            detailHref: openDossierRoute(item.id),
-          },
-        ];
+        const next: DecisionHistoryItem[] = [...prev, historyEntry];
         return next.slice(-20);
       });
 
@@ -276,13 +343,61 @@ export function SwipesClient({
             ? "Ablehnung gespeichert."
             : "Offene Bewertung gespeichert.",
       );
-      postSwipeVote({ statementId: item.id, decision }).catch(() => {});
+      if (!item.hasEventualities) {
+        queueVotePayload({ statementId: item.id, decision });
+      }
       window.setTimeout(() => setScreenFlash(null), 260);
 
       await beginEventualityStep(item, decision, openGateAfterTopic);
     },
-    [announce, beginEventualityStep, completedCount, freeVote, isVoteLocked, openDossierRoute],
+    [announce, beginEventualityStep, completedCount, freeVote, isVoteLocked, openDossierRoute, queueVotePayload, transitionHint],
   );
+
+  const handleUndoLastVote = useCallback(() => {
+    if (!lastVote) return;
+
+    const { item, decision, historyEntry, prevHint } = lastVote;
+    const shouldReinsert = !activeItem || activeItem.id !== item.id;
+
+    setDecisionStats((prev) => ({
+      ...prev,
+      [decision]: Math.max(prev[decision] - 1, 0),
+    }));
+    setDecisionHistory((prev) => {
+      const idx = [...prev].reverse().findIndex((entry) => entry.id === historyEntry.id && entry.decision === historyEntry.decision);
+      if (idx === -1) return prev;
+      const absoluteIndex = prev.length - 1 - idx;
+      return prev.filter((_, entryIndex) => entryIndex !== absoluteIndex);
+    });
+    if (shouldReinsert) {
+      setItems((prev) => [item, ...prev.filter((entry) => entry.id !== item.id)]);
+      setCompletedCount((prev) => Math.max(prev - 1, 0));
+    }
+
+    if (eventualityStepOpen) {
+      setEventualityStepOpen(false);
+      setEventualityStepDecision(null);
+      setEventualityStepItem(null);
+      setEventualityStepItems([]);
+      setEventualityStepLoading(false);
+    }
+
+    setOpenGateAfterStep(false);
+    setScreenFlash(null);
+    setTransitionHint(prevHint ?? "Letzte Entscheidung zurückgenommen.");
+    const pendingVote = pendingVotePayloadRef.current;
+    if (pendingVote && pendingVote.statementId === item.id) {
+      cancelPendingVote();
+    } else {
+      void deleteSwipeVote(item.id);
+    }
+    if (freeVote.enabled) {
+      freeVote.unregisterVote();
+    }
+    freeVote.setGateOpen(false);
+    announce("Letzte Bewertung wurde zurückgenommen.");
+    setLastVote(null);
+  }, [activeItem, announce, cancelPendingVote, eventualityStepOpen, freeVote, lastVote]);
 
   const finishEventualityStep = useCallback(() => {
     setEventualityStepOpen(false);
@@ -308,7 +423,7 @@ export function SwipesClient({
         finishEventualityStep();
         return;
       }
-      postSwipeVote({
+      queueVotePayload({
         statementId: eventualityStepItem.id,
         eventualityId: selection.eventualityId,
         decision: eventualityStepDecision,
@@ -316,11 +431,11 @@ export function SwipesClient({
         variantReason: selection.variantReason,
         variantRankedIds: selection.variantRankedIds,
         excludedEventualityIds: selection.excludedEventualityIds,
-      }).catch(() => {});
+      });
       setTransitionHint("Variante mit Gewichtung gespeichert. Nächstes Thema folgt.");
       finishEventualityStep();
     },
-    [eventualityStepDecision, eventualityStepItem, finishEventualityStep],
+    [eventualityStepDecision, eventualityStepItem, finishEventualityStep, queueVotePayload],
   );
 
   useEffect(() => {
@@ -397,9 +512,6 @@ export function SwipesClient({
               onVote={(decision) => {
                 void handlePrimaryVote(activeItem, decision);
               }}
-              onMore={() => {
-                void openDetail(activeItem);
-              }}
             />
           ) : (
             <EmptyState
@@ -411,6 +523,15 @@ export function SwipesClient({
             />
           )}
           {!isSolo && transitionHint ? <p className="text-xs text-[rgb(var(--muted))]">{transitionHint}</p> : null}
+          {!isSolo && lastVote ? (
+            <button
+              type="button"
+              onClick={handleUndoLastVote}
+              className="btn-secondary hidden w-fit items-center px-3 py-1.5 text-xs md:inline-flex"
+            >
+              Letzte Bewertung rückgängig
+            </button>
+          ) : null}
         </div>
 
         {!isSolo ? (
@@ -438,15 +559,26 @@ export function SwipesClient({
         <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-[rgb(var(--border))] bg-[rgb(var(--card))]/95 px-3 pt-2 pb-[max(env(safe-area-inset-bottom),0.55rem)] backdrop-blur md:hidden">
           <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-sky-500/10 to-transparent" />
           <div className="relative mx-auto max-w-xl space-y-2">
-            <button
-              type="button"
-              onClick={() => {
-                void openDetail(activeItem);
-              }}
-              className="w-full rounded-xl border border-sky-300/70 bg-gradient-to-r from-sky-50 to-cyan-50 px-3 py-2 text-sm font-semibold text-sky-800 shadow-sm dark:border-sky-400/35 dark:from-sky-500/16 dark:to-cyan-500/10 dark:text-sky-100"
-            >
-              Mehr Kontext öffnen
-            </button>
+            <div className={`grid gap-2 ${lastVote ? "grid-cols-2" : "grid-cols-1"}`}>
+              <button
+                type="button"
+                onClick={() => {
+                  void openDetail(activeItem);
+                }}
+                className="btn-secondary w-full rounded-xl px-3 py-2 text-sm"
+              >
+                Mehr Kontext öffnen
+              </button>
+              {lastVote ? (
+                <button
+                  type="button"
+                  onClick={handleUndoLastVote}
+                  className="btn-secondary w-full rounded-xl px-3 py-2 text-sm"
+                >
+                  Rückgängig
+                </button>
+              ) : null}
+            </div>
             <div className="grid grid-cols-3 gap-2">
               <button
                 type="button"
@@ -454,7 +586,7 @@ export function SwipesClient({
                   void handlePrimaryVote(activeItem, "disagree");
                 }}
                 aria-label="Ablehnen"
-                className="rounded-xl border border-rose-300 bg-gradient-to-r from-rose-100 to-rose-50 px-2 py-2 text-xs font-semibold text-rose-800 shadow-sm dark:border-rose-400/40 dark:from-rose-500/20 dark:to-rose-500/10 dark:text-rose-100"
+                className="btn-vote btn-vote-disagree rounded-xl px-2 py-2 text-xs"
               >
                 👎 Nein
               </button>
@@ -464,7 +596,7 @@ export function SwipesClient({
                   void handlePrimaryVote(activeItem, "neutral");
                 }}
                 aria-label="Neutral"
-                className="rounded-xl border border-slate-300 bg-slate-100 px-2 py-2 text-xs font-semibold text-slate-800 shadow-sm dark:border-slate-500/45 dark:bg-slate-500/16 dark:text-slate-100"
+                className="btn-vote btn-vote-neutral rounded-xl px-2 py-2 text-xs"
               >
                 😐 Offen
               </button>
@@ -474,7 +606,7 @@ export function SwipesClient({
                   void handlePrimaryVote(activeItem, "agree");
                 }}
                 aria-label="Zustimmen"
-                className="rounded-xl border border-emerald-300 bg-gradient-to-r from-emerald-100 to-emerald-50 px-2 py-2 text-xs font-semibold text-emerald-800 shadow-sm dark:border-emerald-400/40 dark:from-emerald-500/20 dark:to-emerald-500/10 dark:text-emerald-100"
+                className="btn-vote btn-vote-agree rounded-xl px-2 py-2 text-xs"
               >
                 👍 Ja
               </button>
@@ -491,6 +623,7 @@ export function SwipesClient({
         loading={eventualityStepLoading}
         voteFeedback={transitionHint}
         onSelect={handleEventualitySelect}
+        onUndoLastVote={lastVote ? handleUndoLastVote : undefined}
         onOpenDetail={() => {
           if (!eventualityStepItem) return;
           const item = eventualityStepItem;
@@ -503,6 +636,9 @@ export function SwipesClient({
           void openDetail(item);
         }}
         onSkip={() => {
+          if (eventualityStepItem && eventualityStepDecision) {
+            queueVotePayload({ statementId: eventualityStepItem.id, decision: eventualityStepDecision });
+          }
           setTransitionHint("Variante übersprungen. Nächstes Thema folgt.");
           finishEventualityStep();
         }}

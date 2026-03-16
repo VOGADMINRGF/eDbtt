@@ -37,7 +37,7 @@ export function VoteButtons({ statementId }: Props) {
       <div className="mt-3 flex flex-wrap gap-2">
         <button
           type="button"
-          className="rounded-full bg-emerald-500 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+          className="btn-vote btn-vote-agree rounded-full px-4 py-2 text-sm"
           disabled={status === "submitting"}
           onClick={() => cast("yes")}
         >
@@ -45,7 +45,7 @@ export function VoteButtons({ statementId }: Props) {
         </button>
         <button
           type="button"
-          className="rounded-full bg-rose-500 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+          className="btn-vote btn-vote-disagree rounded-full px-4 py-2 text-sm"
           disabled={status === "submitting"}
           onClick={() => cast("no")}
         >
@@ -53,7 +53,7 @@ export function VoteButtons({ statementId }: Props) {
         </button>
         <button
           type="button"
-          className="rounded-full bg-[rgb(var(--bg))] px-4 py-2 text-sm font-semibold text-[rgb(var(--muted))] disabled:opacity-50"
+          className="btn-vote btn-vote-neutral rounded-full px-4 py-2 text-sm"
           disabled={status === "submitting"}
           onClick={() => cast("skip")}
         >

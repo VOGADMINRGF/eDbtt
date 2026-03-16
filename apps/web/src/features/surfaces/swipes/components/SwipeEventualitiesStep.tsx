@@ -17,6 +17,7 @@ type SwipeEventualitiesStepProps = {
   }) => void;
   onSkip: () => void;
   onOpenDetail: () => void;
+  onUndoLastVote?: () => void;
 };
 
 const TITLE_BY_DECISION: Record<SwipeDecision, string> = {
@@ -72,6 +73,7 @@ export function SwipeEventualitiesStep({
   onSelect,
   onSkip,
   onOpenDetail,
+  onUndoLastVote,
 }: SwipeEventualitiesStepProps) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [variantWeights, setVariantWeights] = useState<Record<string, 1 | 3 | 5>>({});
@@ -372,6 +374,11 @@ export function SwipeEventualitiesStep({
             <button type="button" onClick={onOpenDetail} className="btn-secondary min-h-[44px] text-sm">
               Mehr Kontext
             </button>
+            {onUndoLastVote ? (
+              <button type="button" onClick={onUndoLastVote} className="btn-secondary min-h-[44px] text-sm">
+                Entscheidung rückgängig
+              </button>
+            ) : null}
           </div>
         </div>
       </section>

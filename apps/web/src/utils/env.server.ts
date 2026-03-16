@@ -66,6 +66,8 @@ const ServerEnvSchema = z.object({
   GEMINI_MODEL: z.string().optional(),
 
   YOU_API_KEY: z.string().optional(),
+  YOUCOM_ARI_API_KEY: z.string().optional(),
+  ARI_API_KEY: z.string().optional(),
   YOU_API_BASE: z.string().optional(),
   YOU_MODEL: z.string().optional(),
 
@@ -106,7 +108,7 @@ export const ENV = ServerEnvSchema.parse({
   ARANGO_URL: process.env.ARANGO_URL,
   ARANGO_DB: process.env.ARANGO_DB,
   ARANGO_USER: process.env.ARANGO_USER,
-  ARANGO_PASSWORD: process.env.ARANGO_PASSWORD,
+  ARANGO_PASSWORD: process.env.ARANGO_PASSWORD ?? process.env.ARANGO_ROOT_PASSWORD,
 
   MEMGRAPH_URI: process.env.MEMGRAPH_URI,
   MEMGRAPH_USER: process.env.MEMGRAPH_USER,
@@ -132,8 +134,13 @@ export const ENV = ServerEnvSchema.parse({
   GEMINI_API_KEY: process.env.GEMINI_API_KEY,
   GEMINI_MODEL: process.env.GEMINI_MODEL,
 
-  YOU_API_KEY: process.env.YOU_API_KEY,
-  YOU_API_BASE: process.env.YOU_API_BASE,
+  YOU_API_KEY:
+    process.env.YOU_API_KEY ??
+    process.env.YOUCOM_ARI_API_KEY ??
+    process.env.ARI_API_KEY,
+  YOUCOM_ARI_API_KEY: process.env.YOUCOM_ARI_API_KEY,
+  ARI_API_KEY: process.env.ARI_API_KEY,
+  YOU_API_BASE: process.env.YOU_API_BASE ?? process.env.ARI_BASE_URL,
   YOU_MODEL: process.env.YOU_MODEL,
 
   FEATURE_GRAPHDB: process.env.FEATURE_GRAPHDB ?? "false",

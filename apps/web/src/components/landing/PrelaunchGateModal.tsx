@@ -85,13 +85,13 @@ export function PrelaunchGateModal({
                 </p>
                 <Link
                   href={registerHref}
-                  className="mt-3 inline-flex w-full items-center justify-center rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-2.5 text-sm font-semibold text-[rgb(var(--muted))] hover:bg-[rgb(var(--bg))]"
+                  className="btn-secondary mt-3 inline-flex w-full items-center justify-center px-4 py-2.5 text-sm"
                 >
                   {c.registerCta} →
                 </Link>
                 <button
                   type="button"
-                  className="mt-3 inline-flex w-full items-center justify-center rounded-full bg-gradient-to-r from-[rgb(var(--grad-from))] to-[rgb(var(--grad-to))] px-4 py-2.5 text-sm font-extrabold text-white shadow-[0_10px_24px_rgba(24,165,255,0.25)] hover:opacity-95"
+                  className="btn-primary mt-3 inline-flex w-full items-center justify-center px-4 py-2.5 text-sm font-extrabold"
                   onClick={() => {
                     onClose();
                     onSubmit();
@@ -122,10 +122,10 @@ export function PrelaunchGateModal({
                     ? "rounded-2xl border border-[rgb(var(--grad-from))] bg-[rgb(var(--card))] p-5 shadow-sm ring-1 ring-[rgb(var(--grad-from))]/30"
                     : "rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm";
                   const ctaClassName = isHighlighted
-                    ? "inline-flex w-full items-center justify-center rounded-full bg-gradient-to-r from-[rgb(var(--grad-from))] to-[rgb(var(--grad-to))] px-4 py-2.5 text-sm font-extrabold text-white shadow-[0_10px_24px_rgba(24,165,255,0.25)] hover:opacity-95"
+                    ? "btn-primary inline-flex w-full items-center justify-center px-4 py-2.5 text-sm font-extrabold"
                     : isFree
                       ? "inline-flex w-full items-center justify-center rounded-full bg-[rgb(var(--fg))] px-4 py-2.5 text-sm font-extrabold text-[rgb(var(--bg))] shadow-sm hover:opacity-95"
-                      : "inline-flex w-full items-center justify-center rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-2.5 text-sm font-semibold text-[rgb(var(--muted))] hover:bg-[rgb(var(--bg))]";
+                      : "btn-secondary inline-flex w-full items-center justify-center px-4 py-2.5 text-sm";
                   return (
                     <div key={pkg.id} className={`min-w-[240px] max-w-[280px] flex-1 snap-start ${cardClassName}`}>
                       <div className="flex items-center justify-between gap-2">
@@ -169,7 +169,7 @@ export function PrelaunchGateModal({
 
             <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
               <a
-                className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-2 text-sm font-semibold text-[rgb(var(--muted))] hover:bg-[rgb(var(--bg))]"
+                className="btn-secondary px-4 py-2 text-sm"
               href="/kontakt"
             >
               {c.contactCta}
@@ -177,7 +177,7 @@ export function PrelaunchGateModal({
 
               <button
                 type="button"
-                className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-2 text-sm font-semibold text-[rgb(var(--muted))] hover:bg-[rgb(var(--bg))]"
+                className="btn-secondary px-4 py-2 text-sm"
                 onClick={onClose}
               >
                 {c.later}

@@ -231,3 +231,12 @@ export async function recordSwipeVote(payload: SwipeVotePayload): Promise<void> 
     console.error("[swipes] graph integration failed", err);
   }
 }
+
+export async function removeSwipeVotesForStatement(userId: string, statementId: string): Promise<void> {
+  const col = await swipeVotesCol();
+  await col.deleteMany({
+    userId,
+    statementId,
+    source: "swipes",
+  });
+}

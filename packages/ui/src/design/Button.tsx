@@ -17,13 +17,13 @@ const cx = (...cls: Array<string | false | null | undefined>) =>
 
 const VARIANT: Record<ButtonVariant, string> = {
   primary:
-    "bg-[#00B3A6] text-white hover:opacity-95 focus-visible:outline-[#00B3A6]",
+    "text-white border border-[rgb(var(--grad-from))] bg-gradient-to-r from-[rgb(var(--grad-from))] to-[rgb(var(--grad-to))] shadow-[0_10px_24px_rgba(14,165,233,0.26)] hover:-translate-y-px hover:shadow-[0_14px_30px_rgba(14,165,233,0.34)] focus-visible:outline-[rgb(var(--grad-from))]",
   secondary:
-    "bg-[rgb(var(--card))] text-neutral-800 border border-neutral-300 hover:bg-neutral-50 focus-visible:outline-neutral-800",
+    "bg-[rgb(var(--card))] text-[rgb(var(--fg))] border border-[rgb(var(--border))] shadow-[0_2px_8px_rgba(15,23,42,0.08)] hover:bg-[rgb(var(--bg))] hover:border-[rgb(var(--fg))] focus-visible:outline-[rgb(var(--grad-from))]",
   ghost:
-    "bg-transparent text-neutral-700 hover:bg-neutral-100 focus-visible:outline-neutral-700",
+    "bg-[rgb(var(--card))] text-[rgb(var(--fg))] border border-[rgb(var(--border))] hover:bg-[rgb(var(--bg))] focus-visible:outline-[rgb(var(--grad-from))]",
   link:
-    "bg-transparent text-[#2396F3] underline px-0 py-0 rounded-none hover:opacity-80 focus-visible:outline-[#2396F3]",
+    "bg-transparent text-[rgb(var(--grad-from))] underline px-0 py-0 rounded-none hover:opacity-85 focus-visible:outline-[rgb(var(--grad-from))]",
 };
 
 const SIZE: Record<ButtonSize, string> = {
@@ -58,7 +58,7 @@ function ButtonBase(
       className={cx(
         "inline-flex items-center justify-center gap-2 rounded-full font-semibold transition",
         "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2",
-        "disabled:opacity-50 disabled:cursor-not-allowed",
+        "disabled:opacity-50 disabled:cursor-not-allowed disabled:saturate-75 disabled:shadow-none disabled:translate-y-0",
         VARIANT[variant],
         SIZE[size],
         className
@@ -110,4 +110,3 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(ButtonBas
 Button.displayName = "Button";
 
 export default Button;
-

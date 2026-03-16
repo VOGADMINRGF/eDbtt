@@ -229,25 +229,134 @@ body h1:not(.no-grad) {
   border-radius: 1rem;
   padding: 0.625rem 0.875rem;
   font-size: 0.875rem;
+  font-weight: 600;
   border: 1px solid rgb(var(--border));
-  background: rgb(var(--card));
-  color: rgb(var(--fg));
+  background: color-mix(in oklab, rgb(var(--card)) 94%, rgb(var(--bg)) 6%);
+  color: color-mix(in oklab, rgb(var(--fg)) 88%, rgb(var(--muted)) 12%);
+  box-shadow: 0 3px 10px rgba(15, 23, 42, 0.1);
   transition:
+    color 150ms ease,
     background-color 150ms ease,
+    border-color 150ms ease,
     box-shadow 150ms ease,
     transform 150ms ease;
 }
 
 .vog-btn:hover {
-  background: color-mix(in oklab, rgb(var(--card)) 85%, rgb(var(--bg)) 15%);
+  color: rgb(var(--fg));
+  border-color: color-mix(in oklab, rgb(var(--border)) 70%, rgb(var(--fg)) 30%);
+  background: color-mix(in oklab, rgb(var(--card)) 84%, rgb(var(--bg)) 16%);
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.14);
 }
 
-.vog-btn-pri {
+.vog-btn:focus-visible {
+  outline: 2px solid rgb(var(--grad-from));
+  outline-offset: 2px;
+}
+
+.vog-btn:disabled,
+.vog-btn[aria-disabled="true"] {
+  pointer-events: none;
+  opacity: 0.52;
+  box-shadow: none;
+  transform: none;
+  filter: saturate(0.8);
+}
+
+.vog-btn-pri,
+.vog-btn--pri {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   border-radius: 1rem;
-  background-color: var(--color-sky-600, #0284c7);
+  border: 1px solid color-mix(in oklab, rgb(var(--grad-from)) 72%, rgb(var(--border)) 28%);
+  background-image: linear-gradient(
+    92deg,
+    rgb(var(--grad-from)),
+    rgb(var(--grad-to))
+  );
   padding-inline: 0.875rem;
   padding-block: 0.625rem;
-  color: #fff;
+  color: rgb(248, 250, 252);
+  box-shadow:
+    0 10px 24px rgba(14, 165, 233, 0.26),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  transition:
+    box-shadow 150ms ease,
+    transform 150ms ease,
+    filter 150ms ease;
+}
+
+.vog-btn-pri:hover,
+.vog-btn--pri:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.03);
+  box-shadow:
+    0 14px 30px rgba(14, 165, 233, 0.32),
+    inset 0 1px 0 rgba(255, 255, 255, 0.24);
+}
+
+.vog-btn-pri:focus-visible,
+.vog-btn--pri:focus-visible {
+  outline: 2px solid rgb(var(--grad-from));
+  outline-offset: 2px;
+}
+
+.vog-btn-pri:disabled,
+.vog-btn-pri[aria-disabled="true"],
+.vog-btn--pri:disabled,
+.vog-btn--pri[aria-disabled="true"] {
+  pointer-events: none;
+  opacity: 0.52;
+  box-shadow: none;
+  transform: none;
+  filter: saturate(0.8);
+}
+
+.vog-btn-sec,
+.vog-btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 1rem;
+  border: 1px solid color-mix(in oklab, rgb(var(--border)) 74%, rgb(var(--fg)) 26%);
+  background: color-mix(in oklab, rgb(var(--card)) 95%, rgb(var(--bg)) 5%);
+  color: rgb(var(--fg));
+  padding-inline: 0.875rem;
+  padding-block: 0.625rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
+  transition:
+    color 150ms ease,
+    background-color 150ms ease,
+    border-color 150ms ease,
+    box-shadow 150ms ease,
+    transform 150ms ease;
+}
+
+.vog-btn-sec:hover,
+.vog-btn-ghost:hover {
+  background: color-mix(in oklab, rgb(var(--card)) 84%, rgb(var(--bg)) 16%);
+  border-color: color-mix(in oklab, rgb(var(--border)) 64%, rgb(var(--fg)) 36%);
+  box-shadow: 0 10px 20px rgba(15, 23, 42, 0.12);
+}
+
+.vog-btn-sec:focus-visible,
+.vog-btn-ghost:focus-visible {
+  outline: 2px solid rgb(var(--grad-from));
+  outline-offset: 2px;
+}
+
+.vog-btn-sec:disabled,
+.vog-btn-sec[aria-disabled="true"],
+.vog-btn-ghost:disabled,
+.vog-btn-ghost[aria-disabled="true"] {
+  pointer-events: none;
+  opacity: 0.52;
+  box-shadow: none;
+  transform: none;
+  filter: saturate(0.8);
 }
 
 .vog-chip {
@@ -337,19 +446,31 @@ body h1:not(.no-grad) {
 
 /* Generische Buttons (Landing etc.) */
 
-.btn {
+.btn,
+.btn-primary,
+.btn-secondary,
+.btn-ghost,
+.btn-grad,
+.cta,
+.cta-ghost {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  gap: 0.375rem;
   border-radius: 9999px;
   padding-inline: 1rem;
   padding-block: 0.5rem;
   font-size: 0.875rem;
-  font-weight: 500;
+  font-weight: 600;
+  line-height: 1.2;
+  border: 1px solid transparent;
+  text-decoration: none;
   transition:
     color var(--default-transition-duration, 150ms)
       var(--default-transition-timing-function, cubic-bezier(0.4, 0, 0.2, 1)),
     background-color var(--default-transition-duration, 150ms)
+      var(--default-transition-timing-function, cubic-bezier(0.4, 0, 0.2, 1)),
+    border-color var(--default-transition-duration, 150ms)
       var(--default-transition-timing-function, cubic-bezier(0.4, 0, 0.2, 1)),
     box-shadow var(--default-transition-duration, 150ms)
       var(--default-transition-timing-function, cubic-bezier(0.4, 0, 0.2, 1)),
@@ -359,75 +480,127 @@ body h1:not(.no-grad) {
   user-select: none;
 }
 
-.btn:active {
-  transform: scale(0.99);
+.btn:focus-visible,
+.btn-primary:focus-visible,
+.btn-secondary:focus-visible,
+.btn-ghost:focus-visible,
+.btn-grad:focus-visible,
+.cta:focus-visible,
+.cta-ghost:focus-visible {
+  outline: 2px solid rgb(var(--grad-from));
+  outline-offset: 2px;
+}
+
+.btn:active,
+.btn-primary:active,
+.btn-secondary:active,
+.btn-ghost:active,
+.btn-grad:active,
+.cta:active,
+.cta-ghost:active {
+  transform: translateY(0.5px);
+}
+
+.btn:disabled,
+.btn-primary:disabled,
+.btn-secondary:disabled,
+.btn-ghost:disabled,
+.btn-grad:disabled,
+.cta:disabled,
+.cta-ghost:disabled,
+.btn[aria-disabled="true"],
+.btn-primary[aria-disabled="true"],
+.btn-secondary[aria-disabled="true"],
+.btn-ghost[aria-disabled="true"],
+.btn-grad[aria-disabled="true"],
+.cta[aria-disabled="true"],
+.cta-ghost[aria-disabled="true"] {
+  pointer-events: none;
+  opacity: 0.52;
+  transform: none;
+  box-shadow: none;
+  filter: saturate(0.8);
 }
 
 .btn-primary,
 .cta {
-  color: #fff;
-  background-image: linear-gradient(90deg, var(--brand-accent-1), var(--brand-accent-2));
-  box-shadow: 0 10px 24px rgba(26, 140, 255, 0.25);
+  color: rgb(248, 250, 252);
+  border-color: color-mix(in oklab, rgb(var(--grad-from)) 72%, rgb(var(--border)) 28%);
+  background-image: linear-gradient(92deg, rgb(var(--grad-from)), rgb(var(--grad-to)));
+  box-shadow:
+    0 10px 24px rgba(14, 165, 233, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
 }
 
 .btn-primary:hover,
 .cta:hover {
   transform: translateY(-1px);
-  box-shadow: 0 14px 30px rgba(26, 140, 255, 0.3);
-}
-
-.btn-primary:disabled,
-.cta:disabled {
-  pointer-events: none;
-  opacity: 0.5;
+  box-shadow:
+    0 14px 30px rgba(14, 165, 233, 0.34),
+    inset 0 1px 0 rgba(255, 255, 255, 0.24);
 }
 
 .btn-ghost,
 .cta-ghost {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 9999px;
-  padding-inline: 1rem;
-  padding-block: 0.5rem;
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: rgb(var(--muted));
-  background: color-mix(in oklab, rgb(var(--card)) 70%, transparent);
-  border: 1px solid rgb(var(--border));
-  transition:
-    color var(--default-transition-duration, 150ms)
-      var(--default-transition-timing-function, cubic-bezier(0.4, 0, 0.2, 1)),
-    background-color var(--default-transition-duration, 150ms)
-      var(--default-transition-timing-function, cubic-bezier(0.4, 0, 0.2, 1)),
-    box-shadow var(--default-transition-duration, 150ms)
-      var(--default-transition-timing-function, cubic-bezier(0.4, 0, 0.2, 1)),
-    transform var(--default-transition-duration, 150ms)
-      var(--default-transition-timing-function, cubic-bezier(0.4, 0, 0.2, 1));
+  color: color-mix(in oklab, rgb(var(--fg)) 88%, rgb(var(--muted)) 12%);
+  border-color: color-mix(in oklab, rgb(var(--border)) 84%, rgb(var(--fg)) 16%);
+  background: color-mix(in oklab, rgb(var(--card)) 92%, rgb(var(--bg)) 8%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2);
 }
 
 .btn-ghost:hover,
 .cta-ghost:hover {
-  background: color-mix(in oklab, rgb(var(--card)) 85%, transparent);
+  border-color: color-mix(in oklab, rgb(var(--border)) 68%, rgb(var(--fg)) 32%);
+  background: color-mix(in oklab, rgb(var(--card)) 82%, rgb(var(--bg)) 18%);
   color: rgb(var(--fg));
 }
 
 .btn-secondary {
+  border-color: color-mix(in oklab, rgb(var(--border)) 74%, rgb(var(--fg)) 26%);
+  background: color-mix(in oklab, rgb(var(--card)) 95%, rgb(var(--bg)) 5%);
+  color: rgb(var(--fg));
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
+}
+
+.btn-secondary:hover {
+  border-color: color-mix(in oklab, rgb(var(--border)) 62%, rgb(var(--fg)) 38%);
+  background: color-mix(in oklab, rgb(var(--card)) 84%, rgb(var(--bg)) 16%);
+  box-shadow: 0 10px 20px rgba(15, 23, 42, 0.12);
+}
+
+.btn-grad {
+  color: rgb(248, 250, 252);
+  border-color: color-mix(in oklab, rgb(var(--grad-from)) 60%, rgb(var(--border)) 40%);
+  background-image: linear-gradient(90deg, var(--brand-cyan), var(--brand-blue));
+  box-shadow:
+    0 10px 24px rgba(26, 140, 255, 0.24),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.btn-grad:hover {
+  transform: translateY(-1px);
+  box-shadow:
+    0 14px 30px rgba(26, 140, 255, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.24);
+}
+
+.btn-vote {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border-radius: 9999px;
-  border: 1px solid rgb(var(--border));
-  background: color-mix(in oklab, rgb(var(--card)) 92%, rgb(var(--bg)) 8%);
-  color: rgb(var(--fg));
-  padding-inline: 1rem;
+  border-radius: 0.75rem;
+  border: 1px solid transparent;
+  padding-inline: 0.875rem;
   padding-block: 0.5rem;
   font-size: 0.875rem;
-  font-weight: 600;
+  font-weight: 700;
+  line-height: 1.2;
   transition:
     color var(--default-transition-duration, 150ms)
       var(--default-transition-timing-function, cubic-bezier(0.4, 0, 0.2, 1)),
     background-color var(--default-transition-duration, 150ms)
+      var(--default-transition-timing-function, cubic-bezier(0.4, 0, 0.2, 1)),
+    border-color var(--default-transition-duration, 150ms)
       var(--default-transition-timing-function, cubic-bezier(0.4, 0, 0.2, 1)),
     box-shadow var(--default-transition-duration, 150ms)
       var(--default-transition-timing-function, cubic-bezier(0.4, 0, 0.2, 1)),
@@ -435,19 +608,75 @@ body h1:not(.no-grad) {
       var(--default-transition-timing-function, cubic-bezier(0.4, 0, 0.2, 1));
 }
 
-.btn-secondary:hover {
-  background: color-mix(in oklab, rgb(var(--card)) 82%, rgb(var(--bg)) 18%);
-  box-shadow: 0 10px 20px rgba(15, 23, 42, 0.1);
+.btn-vote:hover {
+  transform: translateY(-1px);
 }
 
-.btn-secondary:focus-visible {
+.btn-vote:focus-visible {
   outline: 2px solid rgb(var(--grad-from));
   outline-offset: 2px;
 }
 
-.btn-grad {
-  color: #fff;
-  background-image: linear-gradient(90deg, var(--brand-cyan), var(--brand-blue));
+.btn-vote:disabled,
+.btn-vote[aria-disabled="true"] {
+  pointer-events: none;
+  opacity: 0.52;
+  transform: none;
+  box-shadow: none;
+  filter: saturate(0.8);
+}
+
+.btn-vote-agree {
+  color: rgb(6, 78, 59);
+  border-color: rgba(16, 185, 129, 0.48);
+  background: linear-gradient(95deg, rgba(209, 250, 229, 0.96), rgba(167, 243, 208, 0.92));
+  box-shadow: 0 8px 18px rgba(5, 150, 105, 0.2);
+}
+
+.btn-vote-agree:hover {
+  box-shadow: 0 12px 24px rgba(5, 150, 105, 0.24);
+}
+
+.btn-vote-disagree {
+  color: rgb(136, 19, 55);
+  border-color: rgba(244, 63, 94, 0.5);
+  background: linear-gradient(95deg, rgba(255, 228, 230, 0.96), rgba(254, 205, 211, 0.9));
+  box-shadow: 0 8px 18px rgba(225, 29, 72, 0.18);
+}
+
+.btn-vote-disagree:hover {
+  box-shadow: 0 12px 24px rgba(225, 29, 72, 0.22);
+}
+
+.btn-vote-neutral {
+  color: rgb(var(--fg));
+  border-color: color-mix(in oklab, rgb(var(--border)) 72%, rgb(var(--fg)) 28%);
+  background: color-mix(in oklab, rgb(var(--card)) 96%, rgb(var(--bg)) 4%);
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
+}
+
+.btn-vote-neutral:hover {
+  border-color: color-mix(in oklab, rgb(var(--border)) 58%, rgb(var(--fg)) 42%);
+  background: color-mix(in oklab, rgb(var(--card)) 84%, rgb(var(--bg)) 16%);
+  box-shadow: 0 10px 20px rgba(15, 23, 42, 0.12);
+}
+
+.dark .btn-vote-agree {
+  color: rgb(209, 250, 229);
+  border-color: rgba(16, 185, 129, 0.48);
+  background: linear-gradient(95deg, rgba(5, 150, 105, 0.34), rgba(6, 95, 70, 0.34));
+}
+
+.dark .btn-vote-disagree {
+  color: rgb(255, 228, 230);
+  border-color: rgba(244, 63, 94, 0.52);
+  background: linear-gradient(95deg, rgba(190, 24, 93, 0.3), rgba(159, 18, 57, 0.3));
+}
+
+.dark .btn-vote-neutral {
+  color: rgb(var(--fg));
+  border-color: color-mix(in oklab, rgb(var(--border)) 70%, rgb(var(--fg)) 30%);
+  background: color-mix(in oklab, rgb(var(--card)) 90%, rgb(var(--bg)) 10%);
 }
 
 /* === Typografie-Helpers =================================================== */

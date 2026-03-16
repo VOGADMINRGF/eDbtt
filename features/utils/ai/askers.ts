@@ -122,8 +122,9 @@ async function askGemini(input: AskInput): Promise<string> {
 }
 
 /** ---------- YOU / ARI ---------- */
-const youBase = process.env.YOU_API_BASE || "https://api.ari.yousearch.ai";
+const youBase = process.env.YOU_API_BASE || process.env.ARI_BASE_URL || "https://api.ari.yousearch.ai";
 const youModel = process.env.YOU_MODEL || "ari-2";
+const youApiKey = process.env.YOU_API_KEY || process.env.YOUCOM_ARI_API_KEY || process.env.ARI_API_KEY || "";
 async function askYou(input: AskInput): Promise<string> {
   const sys = "Return ONLY valid JSON (object or array), no prose.";
   const payload = { model: youModel, input: composePrompt(input, sys) };
@@ -131,7 +132,7 @@ async function askYou(input: AskInput): Promise<string> {
     const r = await fetch(`${youBase}/chat`, {
       method: "POST",
       headers: {
-        "X-API-Key": process.env.YOU_API_KEY || "",
+        "X-API-Key": youApiKey,
         "Content-Type": "application/json"
       },
       body: JSON.stringify(payload)
@@ -160,7 +161,7 @@ export const providers: Record<string, Provider> = {
     ask: askGemini,
   },
   you: {
-    enabled: () => Boolean(process.env.YOU_API_KEY),
+    enabled: () => Boolean(youApiKey),
     ask: askYou,
   },
 };

@@ -3,10 +3,16 @@ import 'server-only';
 import axios, { AxiosError } from 'axios';
 import { extractEntities } from './youEntities'; // <- neu
 
-const BASE_URL = 'https://chat-api.you.com';
-const YOU_API_KEY = process.env.YOU_API_KEY ?? '';
+const BASE_URL = process.env.YOU_API_BASE ?? process.env.ARI_BASE_URL ?? 'https://chat-api.you.com';
+const YOU_API_KEY =
+  process.env.YOU_API_KEY ??
+  process.env.YOUCOM_ARI_API_KEY ??
+  process.env.ARI_API_KEY ??
+  '';
 
-if (!YOU_API_KEY) console.warn('[youClient] Missing env: YOU_API_KEY');
+if (!YOU_API_KEY) {
+  console.warn('[youClient] Missing env: YOU_API_KEY (fallbacks checked: YOUCOM_ARI_API_KEY, ARI_API_KEY)');
+}
 
 const http = axios.create({
   baseURL: BASE_URL,

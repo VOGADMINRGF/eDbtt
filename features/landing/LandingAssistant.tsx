@@ -635,7 +635,7 @@ const [humanError, setHumanError] = React.useState<string | null>(null);
                 onClick={handleSubmitRequest}
                 disabled={loading}
                 aria-disabled={!canSubmit}
-                className={`inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-[rgb(var(--grad-from))] to-[rgb(var(--grad-to))] px-5 py-2.5 text-sm font-semibold text-white shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--grad-from))] ${
+                className={`btn-primary inline-flex items-center justify-center gap-2 px-5 py-2.5 text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--grad-from))] ${
                   !canSubmit ? "opacity-70" : "hover:opacity-95 active:translate-y-[0.5px]"
                 } ${loading ? "opacity-60" : ""}`}
                 aria-label={loading ? t.buttons.starting : t.buttons.start}
@@ -892,7 +892,7 @@ const [humanError, setHumanError] = React.useState<string | null>(null);
               <div className="mt-6 space-y-3">
                 <a
                   href="/register"
-                  className="inline-flex w-full items-center justify-center rounded-full bg-gradient-to-r from-[rgb(var(--grad-from))] to-[rgb(var(--grad-to))] px-4 py-2.5 text-sm font-extrabold text-white shadow-[0_10px_24px_rgba(24,165,255,0.25)] hover:opacity-95"
+                  className="btn-primary inline-flex w-full items-center justify-center px-4 py-2.5 text-sm font-extrabold"
                 >
                   {t.modal.ctaRegister}
                 </a>
@@ -900,13 +900,13 @@ const [humanError, setHumanError] = React.useState<string | null>(null);
                 <div className="grid gap-2 sm:grid-cols-2">
                   <a
                     href="/vormerken?paket=start"
-                    className="inline-flex items-center justify-center rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-2.5 text-sm font-semibold text-[rgb(var(--muted))] hover:bg-[color-mix(in_oklab,rgb(var(--card))_85%,rgb(var(--bg))_15%)] hover:text-[rgb(var(--fg))]"
+                    className="btn-secondary inline-flex items-center justify-center px-4 py-2.5 text-sm"
                   >
                     {t.modal.ctaStart}
                   </a>
                   <a
                     href="/vormerken?paket=pro"
-                    className="inline-flex items-center justify-center rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-2.5 text-sm font-semibold text-[rgb(var(--muted))] hover:bg-[color-mix(in_oklab,rgb(var(--card))_85%,rgb(var(--bg))_15%)] hover:text-[rgb(var(--fg))]"
+                    className="btn-secondary inline-flex items-center justify-center px-4 py-2.5 text-sm"
                   >
                     {t.modal.ctaPro}
                   </a>
@@ -919,7 +919,7 @@ const [humanError, setHumanError] = React.useState<string | null>(null);
                     const input = document.getElementById(inputId) as HTMLTextAreaElement | null;
                     input?.focus();
                   }}
-                  className="inline-flex w-full items-center justify-center rounded-full border border-transparent px-4 py-2 text-xs font-semibold text-[rgb(var(--muted))] underline underline-offset-4 hover:text-[rgb(var(--fg))]"
+                  className="btn-ghost inline-flex w-full items-center justify-center px-4 py-2 text-xs underline underline-offset-4"
                 >
                   {t.modal.ctaLater}
                 </button>

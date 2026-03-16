@@ -1,6 +1,6 @@
 import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
-import { recordSwipeVote } from "@/features/swipes/service";
+import { recordSwipeVote, removeSwipeVotesForStatement } from "@/features/swipes/service";
 import type { SwipeVotePayload } from "@/features/swipes/types";
 
 export async function POST(req: NextRequest) {
@@ -35,4 +35,20 @@ export async function POST(req: NextRequest) {
     });
   }
   return res;
+}
+
+export async function DELETE(req: NextRequest) {
+  const cookieStore = await cookies();
+  const userId = cookieStore.get("u_id")?.value ?? cookieStore.get("edb_anon")?.value;
+  const body = (await req.json().catch(() => ({}))) as { statementId?: string };
+
+  if (!body.statementId) {
+    return NextResponse.json({ error: "MISSING_FIELDS" }, { status: 400 });
+  }
+  if (!userId) {
+    return NextResponse.json({ ok: true });
+  }
+
+  await removeSwipeVotesForStatement(userId, body.statementId);
+  return NextResponse.json({ ok: true });
 }
