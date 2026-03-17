@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { useLocale } from "@/context/LocaleContext";
+import { useCurrentUser } from "@/hooks/auth";
 import { mapTranslatableStrings, useAutoTranslateText } from "@/lib/i18n/autoTranslate";
 import type { LandingScope, LandingTile } from "./landingSeeds";
 import { LANDING_COPY, type Lang } from "./landingCopy";
@@ -153,6 +154,7 @@ export default function LandingAssistant({
   lang: Lang;
 }) {
   const { locale } = useLocale();
+  const { user, loading: authLoading } = useCurrentUser();
   const translate = useAutoTranslateText({ locale, namespace: "landing" });
   const baseCopy = LANDING_COPY[lang];
   const t = React.useMemo(() => {
@@ -501,6 +503,8 @@ const [humanError, setHumanError] = React.useState<string | null>(null);
   };
 
   const closeModal = () => setModalOpen(false);
+  const isAuthenticated = Boolean(user?.id);
+  const showRegisterCta = !authLoading && !isAuthenticated;
 
   const handleModalKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
     if (event.key === "Escape") {
@@ -890,24 +894,40 @@ const [humanError, setHumanError] = React.useState<string | null>(null);
               </div>
 
               <div className="mt-6 space-y-3">
-                <button
-                  type="button"
-                  onClick={() => {
-                    closeModal();
-                    const input = document.getElementById(inputId) as HTMLTextAreaElement | null;
-                    input?.focus();
-                  }}
-                  className="btn-primary inline-flex w-full items-center justify-center px-4 py-2.5 text-sm font-extrabold"
-                >
-                  {t.modal.ctaLater}
-                </button>
+                {showRegisterCta ? (
+                  <a
+                    href="/register?next=%2Fstart"
+                    className="btn-primary inline-flex w-full items-center justify-center px-4 py-2.5 text-sm font-extrabold"
+                  >
+                    {t.modal.ctaRegister}
+                  </a>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      closeModal();
+                      const input = document.getElementById(inputId) as HTMLTextAreaElement | null;
+                      input?.focus();
+                    }}
+                    className="btn-primary inline-flex w-full items-center justify-center px-4 py-2.5 text-sm font-extrabold"
+                  >
+                    {t.modal.ctaContinue}
+                  </button>
+                )}
 
-                <a
-                  href="/register?next=%2Fstart"
-                  className="btn-secondary inline-flex w-full items-center justify-center px-4 py-2.5 text-sm"
-                >
-                  {t.modal.ctaRegister}
-                </a>
+                {showRegisterCta ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      closeModal();
+                      const input = document.getElementById(inputId) as HTMLTextAreaElement | null;
+                      input?.focus();
+                    }}
+                    className="btn-ghost inline-flex w-full items-center justify-center px-4 py-2 text-xs underline underline-offset-4"
+                  >
+                    {t.modal.ctaLater}
+                  </button>
+                ) : null}
 
                 <a
                   href="/pricing"

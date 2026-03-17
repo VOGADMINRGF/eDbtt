@@ -64,6 +64,7 @@ type LandingCopy = {
     title: string;
     text: string;
     ctaRegister: string;
+    ctaContinue: string;
     ctaStart: string;
     ctaPro: string;
     ctaLater: string;
@@ -151,11 +152,12 @@ export const LANDING_COPY: Record<Lang, LandingCopy> = {
     },
     modal: {
       title: "Beitrag eingereicht",
-      text: "Danke — dein Beitrag ist jetzt in der Prüfung. Alle starten automatisch kostenfrei. 100 Swipes = 1 Beitrags-Credit. Upgrades sind später optional.",
-      ctaRegister: "Kostenfrei anmelden & Updates aktivieren",
-      ctaStart: "Pakete ansehen (optional)",
+      text: "Danke — dein Beitrag ist jetzt in der Prüfung. Melde dich jetzt kostenfrei an, damit wir dich per E-Mail über den weiteren Verlauf informieren können. Alle starten automatisch kostenfrei. 100 Swipes = 1 Beitrags-Credit. Upgrades sind später optional.",
+      ctaRegister: "Kostenfrei anmelden & Updates erhalten",
+      ctaContinue: "Weiter",
+      ctaStart: "Pakete später ansehen",
       ctaPro: "Mehr zu Vormerkung",
-      ctaLater: "Weiteren Beitrag schreiben",
+      ctaLater: "Später",
       closeLabel: "Dialog schließen",
     },
     errors: {
@@ -239,11 +241,12 @@ export const LANDING_COPY: Record<Lang, LandingCopy> = {
     },
     modal: {
       title: "Contribution submitted",
-      text: "Thanks — your contribution is now in review. Everyone starts on free access. 100 swipes = 1 contribution credit. Upgrades remain optional later.",
-      ctaRegister: "Sign up free & enable updates",
-      ctaStart: "View packages (optional)",
+      text: "Thanks — your contribution is now in review. Sign up for free now so we can inform you by email about the next steps. Everyone starts on free access. 100 swipes = 1 contribution credit. Upgrades remain optional later.",
+      ctaRegister: "Sign up free & get updates",
+      ctaContinue: "Continue",
+      ctaStart: "View packages later",
       ctaPro: "More about pre-signup",
-      ctaLater: "Write another contribution",
+      ctaLater: "Later",
       closeLabel: "Close dialog",
     },
     errors: {
