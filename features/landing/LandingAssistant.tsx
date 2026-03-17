@@ -490,6 +490,11 @@ const [humanError, setHumanError] = React.useState<string | null>(null);
   };
 
   const handleSubmitRequest = () => {
+    if (authLoading) return;
+    if (!isAuthenticated) {
+      window.location.assign("/register?next=%2Fstart");
+      return;
+    }
     if (!canSubmit) {
       void handleSubmit();
       return;
