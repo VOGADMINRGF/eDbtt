@@ -59,7 +59,7 @@ export async function GET() {
       : getEngagementLevelFromXp(xp ?? 0);
     const contributionCredits =
       doc.stats?.contributionCredits ?? doc.usage?.contributionCredits ?? null;
-    const accessTier = normalizeAccessTier(doc.accessTier ?? doc.b2cPlanId ?? null);
+    const accessTier = normalizeAccessTier(doc.accessTier ?? doc.b2cPlanId ?? "citizenBasic");
     const planSlug = doc.b2cPlanId ?? accessTier ?? null;
 
     return NextResponse.json(

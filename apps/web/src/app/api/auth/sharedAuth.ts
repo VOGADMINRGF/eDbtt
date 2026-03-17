@@ -145,7 +145,7 @@ export async function applySessionCookies(
   const normalizedRoles = normalizeUserRoles(user.roles);
   const primaryRole = user.role || normalizedRoles[0];
   const tier = normalizeAccessTier(
-    user.accessTier || user.b2cPlanId || (user as any).tier || null,
+    user.accessTier || user.b2cPlanId || (user as any).tier || "citizenBasic",
   );
   const xp = user.engagementXp ?? user.stats?.xp ?? user.usage?.xp ?? 0;
   const engagementLevel = normalizeEngagementLevel(user.stats?.engagementLevel) || getEngagementLevelFromXp(xp);

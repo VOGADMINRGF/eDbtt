@@ -151,7 +151,7 @@ export const LANDING_COPY: Record<Lang, LandingCopy> = {
     },
     modal: {
       title: "Beitrag eingereicht",
-      text: "Danke — dein Beitrag ist jetzt in der Prüfung. Wenn du ein Konto nutzt, informieren wir dich per E-Mail bei Änderungen im Verlauf.",
+      text: "Danke — dein Beitrag ist jetzt in der Prüfung. Alle starten automatisch kostenfrei. 100 Swipes = 1 Beitrags-Credit. Upgrades sind später optional.",
       ctaRegister: "Kostenfrei anmelden & Updates aktivieren",
       ctaStart: "Pakete ansehen (optional)",
       ctaPro: "Mehr zu Vormerkung",
@@ -239,7 +239,7 @@ export const LANDING_COPY: Record<Lang, LandingCopy> = {
     },
     modal: {
       title: "Contribution submitted",
-      text: "Thanks — your contribution is now in review. With an account, we notify you by email when status changes.",
+      text: "Thanks — your contribution is now in review. Everyone starts on free access. 100 swipes = 1 contribution credit. Upgrades remain optional later.",
       ctaRegister: "Sign up free & enable updates",
       ctaStart: "View packages (optional)",
       ctaPro: "More about pre-signup",

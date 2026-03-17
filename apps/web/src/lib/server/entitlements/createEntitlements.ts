@@ -102,7 +102,7 @@ export async function getCreateEntitlementsForRequest(
   const overview = userId ? await getAccountOverview(userId).catch(() => null) : null;
   const roles = normalizeRoleList(overview?.roles);
   const isAuthenticated = Boolean(userId && overview);
-  const tier = overview ? getUserAccessTier(overview) : ("citizenBasic" as AccessTier);
+  const tier = overview ? getUserAccessTier(overview) : ("public" as AccessTier);
   const tierConfig = overview
     ? getAccessTierConfigForUser(overview)
     : getAccessTierConfigForUser({ accessTier: tier });
