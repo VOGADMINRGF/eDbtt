@@ -101,8 +101,8 @@ export async function POST(req: NextRequest) {
       method: "email",
       expiresAt: expiresAt.toISOString(),
     });
-  } catch (err) {
-    console.error("[2fa.request-email] failed", err);
+  } catch {
+    console.error("[2fa.request-email] failed");
     return NextResponse.json({ error: "server_error" }, { status: 500 });
   }
 }

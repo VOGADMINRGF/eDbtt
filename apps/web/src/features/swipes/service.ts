@@ -18,6 +18,10 @@ import {
   getPersonalizedStartItems,
   getUserPreferenceSnapshot,
 } from "@/lib/onboarding/preferenceSnapshot";
+import { ObjectId } from "@core/db/triMongo";
+import { applySwipeForCredits } from "@features/user/credits";
+import { normalizeAccessTier } from "@/config/accessTiers";
+import { FEATURE_MATRIX_DEFAULTS } from "@/config/featureMatrix";
 
 type ProposalDoc = {
   _id?: any;
@@ -45,6 +49,34 @@ type SwipeVoteDoc = {
   createdAt: Date;
   updatedAt: Date;
 };
+
+type UserUsageDoc = {
+  _id: ObjectId;
+  accessTier?: string | null;
+  b2cPlanId?: string | null;
+  usage?: {
+    swipeCountTotal?: number;
+    swipesThisMonth?: number;
+    xp?: number;
+    contributionCredits?: number;
+  };
+};
+
+type SwipeTelemetryDoc = {
+  _id?: ObjectId;
+  userId: ObjectId;
+  statementId: string;
+  direction: "pro" | "neutral" | "contra";
+  createdAt: Date;
+  xpAfter: number;
+  contributionCredits: number;
+};
+
+function decisionToDirection(decision: SwipeDecision): "pro" | "neutral" | "contra" {
+  if (decision === "agree") return "pro";
+  if (decision === "disagree") return "contra";
+  return "neutral";
+}
 
 function deriveScopeLevel(responsibility?: string | null): SwipeItem["level"] {
   const value = (responsibility ?? "").toLowerCase();
@@ -88,6 +120,66 @@ async function loadEventualityCounts(statementIds: string[]) {
 
 async function swipeVotesCol() {
   return getCol<SwipeVoteDoc>("swipe_votes");
+}
+
+async function applySwipeProgressForVote(params: {
+  userId: string;
+  statementId: string;
+  decision: SwipeDecision;
+  now: Date;
+}) {
+  if (!ObjectId.isValid(params.userId)) return;
+
+  const usersCol = await getCol<UserUsageDoc>("users");
+  const userObjectId = new ObjectId(params.userId);
+  const userDoc = await usersCol.findOne(
+    { _id: userObjectId },
+    { projection: { usage: 1, accessTier: 1, b2cPlanId: 1 } },
+  );
+  if (!userDoc) return;
+
+  const accessTier = normalizeAccessTier(userDoc.accessTier ?? userDoc.b2cPlanId ?? null);
+  const featureSet = FEATURE_MATRIX_DEFAULTS[accessTier];
+  if (!featureSet.canSwipe) return;
+
+  const previous = userDoc.usage ?? {};
+  const next = applySwipeForCredits({
+    swipeCountTotal: previous.swipeCountTotal,
+    xp: previous.xp,
+    contributionCredits: previous.contributionCredits,
+  });
+
+  const incOps: Record<string, number> = {
+    "usage.swipeCountTotal": 1,
+    "usage.swipesThisMonth": 1,
+    "usage.xp": next.xp - (previous.xp ?? 0),
+  };
+  if (next.earnedCredits > 0) {
+    incOps["usage.contributionCredits"] = next.earnedCredits;
+  }
+
+  await usersCol.updateOne(
+    { _id: userObjectId },
+    {
+      $inc: incOps,
+      $set: {
+        "usage.lastSwipeAt": params.now,
+        "stats.swipeCountTotal": next.swipeCountTotal,
+        "stats.xp": next.xp,
+        "stats.contributionCredits": next.contributionCredits,
+      },
+    },
+  );
+
+  const telemetryCol = await getCol<SwipeTelemetryDoc>("swipe_events");
+  await telemetryCol.insertOne({
+    userId: userObjectId,
+    statementId: params.statementId,
+    direction: decisionToDirection(params.decision),
+    createdAt: params.now,
+    xpAfter: next.xp,
+    contributionCredits: next.contributionCredits,
+  });
 }
 
 export async function getSwipeFeed(req: SwipeFeedRequest): Promise<SwipeFeedResponse> {
@@ -203,7 +295,7 @@ export async function getEventualitiesForStatement(req: EventualitiesRequest): P
 export async function recordSwipeVote(payload: SwipeVotePayload): Promise<void> {
   const now = new Date();
   const col = await swipeVotesCol();
-  await col.updateOne(
+  const write = await col.updateOne(
     {
       userId: payload.userId,
       statementId: payload.statementId,
@@ -225,6 +317,26 @@ export async function recordSwipeVote(payload: SwipeVotePayload): Promise<void> 
     },
     { upsert: true },
   );
+
+  if (write.upsertedId && payload.source === "swipes") {
+    try {
+      const votesForStatement = await col.countDocuments({
+        userId: payload.userId,
+        statementId: payload.statementId,
+        source: "swipes",
+      });
+      if (votesForStatement === 1) {
+        await applySwipeProgressForVote({
+          userId: payload.userId,
+          statementId: payload.statementId,
+          decision: payload.decision,
+          now,
+        });
+      }
+    } catch {
+      console.error("[swipes] progress update failed");
+    }
+  }
   try {
     await recordSwipeVoteInGraph(payload);
   } catch (err) {

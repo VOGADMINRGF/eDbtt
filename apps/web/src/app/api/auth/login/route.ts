@@ -116,7 +116,7 @@ export async function POST(req: NextRequest) {
       await ensureEnvSuperadminSeed();
     }
   } catch (err) {
-    console.warn("[auth.login] ensureEnvSuperadminSeed failed", err);
+    console.warn("[auth.login] ensureEnvSuperadminSeed failed");
   }
 
   const credsCol = await piiCol<PiiUserCredentials>(CREDENTIAL_COLLECTION);
@@ -138,7 +138,7 @@ export async function POST(req: NextRequest) {
 
   if (!user || !(credentials?.passwordHash || user.passwordHash)) {
     await logAuthEvent("auth.login.failed", {
-      meta: { reason: "not_found", ipHash: sha256(ip) },
+      meta: { reason: "not_found", ipHash: sha256(ip), userHash: credentials?.coreUserId ? sha256(String(credentials.coreUserId)) : null },
     });
     return errorResponse("invalid_credentials", 401);
   }
@@ -154,8 +154,7 @@ export async function POST(req: NextRequest) {
   const passwordOk = passwordHash ? await verifyPassword(password, String(passwordHash)) : false;
   if (!passwordOk) {
     await logAuthEvent("auth.login.failed", {
-      userId: String(user._id),
-      meta: { reason: "invalid_password", ipHash: sha256(ip) },
+      meta: { reason: "invalid_password", ipHash: sha256(ip), userHash: sha256(String(user._id)) },
     });
     return errorResponse("invalid_credentials", 401);
   }
@@ -164,7 +163,7 @@ export async function POST(req: NextRequest) {
   ensureBasicPiiProfile(user._id, {
     email: user.email || credentials?.email || identifier,
     displayName: user.name || (user as any)?.profile?.displayName || null,
-  }).catch((err) => console.warn("[auth.login] failed to sync PII profile", err));
+  }).catch(() => console.warn("[auth.login] failed to sync PII profile"));
 
   const twoFactorMethod = resolveTwoFactorMethod(credentials, user);
   const twoFactorEnabled = credentials?.twoFactorEnabled || user.verification?.twoFA?.enabled;
@@ -172,7 +171,9 @@ export async function POST(req: NextRequest) {
 
   if (!twoFactorEnabled || !twoFactorMethod) {
     await applySessionCookies(user);
-    await logAuthEvent("auth.login.success", { userId: String(user._id), meta: { ipHash: sha256(ip) } });
+    await logAuthEvent("auth.login.success", {
+      meta: { ipHash: sha256(ip), userHash: sha256(String(user._id)) },
+    });
     return NextResponse.json({ ok: true, require2fa: false, redirectUrl, message: "login_success" });
   }
 

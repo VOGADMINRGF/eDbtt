@@ -38,12 +38,12 @@ Wichtig für Kommunikation und UX:
 
 ## Konfigurationsanker
 
-`apps/web/src/config/pricing.ts` enthält:
+`apps/web/src/config/pricing.ts` enthält aktuell:
 
 - `VOG_MEMBERSHIP_PLAN`
 - `EDEBATTE_PLANS`
-- `MEMBER_DISCOUNT`
-- `calcDiscountedPrice`
-- `canApplyVogDiscount` / `getVogDiscountDecision`
 
-Damit bleiben Preislogik, Goodie-Regeln und Frontend-Darstellung konsistent.
+Hinweis zum Repo-Stand:
+
+- Die Goodie-/Discount-Entscheidung ist derzeit **nicht** als eigener Export (`MEMBER_DISCOUNT`, `calcDiscountedPrice`, `canApplyVogDiscount`, `getVogDiscountDecision`) in `pricing.ts` vorhanden.
+- Regeln und Kommunikation zur 25%-Logik bleiben weiterhin verbindlich, die technische Auswertung liegt aktuell im jeweiligen Membership-/Checkout-Flow.

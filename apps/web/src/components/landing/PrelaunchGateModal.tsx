@@ -67,7 +67,7 @@ export function PrelaunchGateModal({
                 <p className="mt-2 text-sm font-semibold text-[rgb(var(--muted))]">{c.refineText}</p>
                 <button
                   type="button"
-                  className="mt-4 inline-flex w-full items-center justify-center rounded-full bg-[rgb(var(--fg))] px-4 py-2.5 text-sm font-extrabold text-[rgb(var(--bg))] shadow-sm hover:opacity-95"
+                  className="btn-secondary mt-4 inline-flex w-full items-center justify-center px-4 py-2.5 text-sm"
                   onClick={() => {
                     onClose();
                     onRefine();
@@ -77,18 +77,9 @@ export function PrelaunchGateModal({
                 </button>
               </div>
 
-              <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm">
+              <div className="rounded-2xl border border-[rgb(var(--grad-from))]/40 bg-[rgb(var(--card))] p-5 shadow-sm ring-1 ring-[rgb(var(--grad-from))]/20">
                 <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">{c.submitTitle}</p>
                 <p className="mt-2 text-sm font-semibold text-[rgb(var(--muted))]">{c.submitText}</p>
-                <p className="mt-2 text-xs text-[rgb(var(--muted))]">
-                  Melde dich kostenfrei an, damit du Updates zu deinem Thema und der Prüfung erhältst.
-                </p>
-                <Link
-                  href={registerHref}
-                  className="btn-secondary mt-3 inline-flex w-full items-center justify-center px-4 py-2.5 text-sm"
-                >
-                  {c.registerCta} →
-                </Link>
                 <button
                   type="button"
                   className="btn-primary mt-3 inline-flex w-full items-center justify-center px-4 py-2.5 text-sm font-extrabold"
@@ -99,72 +90,84 @@ export function PrelaunchGateModal({
                 >
                   {c.submitCta} →
                 </button>
+                <p className="mt-3 text-xs text-[rgb(var(--muted))]">{c.submitHint}</p>
+                <Link
+                  href={registerHref}
+                  className="mt-1 inline-flex text-xs font-semibold text-[rgb(var(--muted))] underline-offset-4 hover:underline"
+                >
+                  {c.registerCta}
+                </Link>
               </div>
             </div>
 
-            <div className="mt-5">
-              <div className="mb-3 flex items-center justify-between px-1">
-                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">
-                  {c.productsTitle}
-                </p>
-                <p className="text-[11px] text-[rgb(var(--muted))]">{c.productsHint}</p>
-              </div>
-              <div className="flex gap-4 overflow-x-auto pb-2 [-webkit-overflow-scrolling:touch] snap-x snap-mandatory">
-                {getPackagesByIds(PRIVATE_PACKAGE_IDS).map((pkg) => {
-                  const isFree = pkg.preisMonat === 0;
-                  const isHighlighted = pkg.hervorgehoben;
-                  const priceLabel = isFree
-                    ? "Kostenfrei"
-                    : pkg.preisMonat != null
-                      ? `${CURRENCY.format(pkg.preisMonat)} / Monat`
-                      : "Preis folgt";
-                  const cardClassName = isHighlighted
-                    ? "rounded-2xl border border-[rgb(var(--grad-from))] bg-[rgb(var(--card))] p-5 shadow-sm ring-1 ring-[rgb(var(--grad-from))]/30"
-                    : "rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm";
-                  const ctaClassName = isHighlighted
-                    ? "btn-primary inline-flex w-full items-center justify-center px-4 py-2.5 text-sm font-extrabold"
-                    : isFree
-                      ? "inline-flex w-full items-center justify-center rounded-full bg-[rgb(var(--fg))] px-4 py-2.5 text-sm font-extrabold text-[rgb(var(--bg))] shadow-sm hover:opacity-95"
-                      : "btn-secondary inline-flex w-full items-center justify-center px-4 py-2.5 text-sm";
-                  return (
-                    <div key={pkg.id} className={`min-w-[240px] max-w-[280px] flex-1 snap-start ${cardClassName}`}>
-                      <div className="flex items-center justify-between gap-2">
-                        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">
-                          eDebatte
-                        </p>
-                        <span className="rounded-full bg-[rgb(var(--bg))] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
-                          {PACKAGE_STATUS_LABELS[pkg.status]}
-                        </span>
+            <div className="mt-5 rounded-2xl border border-[rgb(var(--border))] bg-[color-mix(in_oklab,rgb(var(--card))_92%,rgb(var(--bg))_8%)] p-4">
+              <details>
+                <summary className="list-none cursor-pointer">
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">
+                      {c.productsTitle}
+                    </p>
+                    <p className="text-[11px] text-[rgb(var(--muted))]">{c.productsHint}</p>
+                  </div>
+                </summary>
+
+                <div className="mt-3 flex gap-4 overflow-x-auto pb-2 [-webkit-overflow-scrolling:touch] snap-x snap-mandatory">
+                  {getPackagesByIds(PRIVATE_PACKAGE_IDS).map((pkg) => {
+                    const isFree = pkg.preisMonat === 0;
+                    const isHighlighted = pkg.hervorgehoben;
+                    const priceLabel = isFree
+                      ? "Kostenfrei"
+                      : pkg.preisMonat != null
+                        ? `${CURRENCY.format(pkg.preisMonat)} / Monat`
+                        : "Preis folgt";
+                    const cardClassName = isHighlighted
+                      ? "rounded-2xl border border-[rgb(var(--grad-from))] bg-[rgb(var(--card))] p-5 shadow-sm ring-1 ring-[rgb(var(--grad-from))]/30"
+                      : "rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm";
+                    const ctaClassName = isHighlighted
+                      ? "btn-primary inline-flex w-full items-center justify-center px-4 py-2.5 text-sm font-extrabold"
+                      : isFree
+                        ? "inline-flex w-full items-center justify-center rounded-full bg-[rgb(var(--fg))] px-4 py-2.5 text-sm font-extrabold text-[rgb(var(--bg))] shadow-sm hover:opacity-95"
+                        : "btn-secondary inline-flex w-full items-center justify-center px-4 py-2.5 text-sm";
+                    return (
+                      <div key={pkg.id} className={`min-w-[240px] max-w-[280px] flex-1 snap-start ${cardClassName}`}>
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">
+                            eDebatte
+                          </p>
+                          <span className="rounded-full bg-[rgb(var(--bg))] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
+                            {PACKAGE_STATUS_LABELS[pkg.status]}
+                          </span>
+                        </div>
+                        <p className="mt-2 text-sm font-semibold text-[rgb(var(--fg))]">{pkg.titel}</p>
+                        <p className="mt-2 text-sm text-[rgb(var(--muted))]">{pkg.beschreibungKurz}</p>
+                        <p className="mt-2 text-xs font-semibold text-[rgb(var(--muted))]">{priceLabel}</p>
+                        <a href={pkg.ctaHref || preorderHref} className={`${ctaClassName} mt-4`}>
+                          {pkg.ctaText} →
+                        </a>
+                        {pkg.sekundarCtaText && pkg.sekundarCtaHref && (
+                          pkg.sekundarCtaHref.startsWith("http") ? (
+                            <a
+                              href={pkg.sekundarCtaHref}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="mt-3 inline-flex text-xs font-semibold text-[rgb(var(--muted))] underline-offset-4 hover:underline"
+                            >
+                              {pkg.sekundarCtaText}
+                            </a>
+                          ) : (
+                            <Link
+                              href={pkg.sekundarCtaHref}
+                              className="mt-3 inline-flex text-xs font-semibold text-[rgb(var(--muted))] underline-offset-4 hover:underline"
+                            >
+                              {pkg.sekundarCtaText}
+                            </Link>
+                          )
+                        )}
                       </div>
-                      <p className="mt-2 text-sm font-semibold text-[rgb(var(--fg))]">{pkg.titel}</p>
-                      <p className="mt-2 text-sm text-[rgb(var(--muted))]">{pkg.beschreibungKurz}</p>
-                      <p className="mt-2 text-xs font-semibold text-[rgb(var(--muted))]">{priceLabel}</p>
-                      <a href={pkg.ctaHref || preorderHref} className={`${ctaClassName} mt-4`}>
-                        {pkg.ctaText} →
-                      </a>
-                      {pkg.sekundarCtaText && pkg.sekundarCtaHref && (
-                        pkg.sekundarCtaHref.startsWith("http") ? (
-                          <a
-                            href={pkg.sekundarCtaHref}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="mt-3 inline-flex text-xs font-semibold text-[rgb(var(--muted))] underline-offset-4 hover:underline"
-                          >
-                            {pkg.sekundarCtaText}
-                          </a>
-                        ) : (
-                          <Link
-                            href={pkg.sekundarCtaHref}
-                            className="mt-3 inline-flex text-xs font-semibold text-[rgb(var(--muted))] underline-offset-4 hover:underline"
-                          >
-                            {pkg.sekundarCtaText}
-                          </Link>
-                        )
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
+                    );
+                  })}
+                </div>
+              </details>
             </div>
 
             <div className="mt-5 flex flex-wrap items-center justify-between gap-3">

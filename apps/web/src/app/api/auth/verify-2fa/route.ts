@@ -138,8 +138,7 @@ export async function POST(req: NextRequest) {
     if (!valid) {
       await challenges.updateOne({ _id: challenge._id }, { $inc: { attempts: 1 } });
       await logAuthEvent("auth.2fa.failed", {
-        userId: String(challenge.userId),
-        meta: { method, ipHash: sha256(ip) },
+        meta: { method, ipHash: sha256(ip), userHash: sha256(String(challenge.userId)) },
       });
       return errorResponse("invalid_code", 401);
     }
@@ -153,17 +152,15 @@ export async function POST(req: NextRequest) {
     await applySessionCookies(user);
 
     await logAuthEvent("auth.2fa.success", {
-      userId: String(challenge.userId),
-      meta: { method, ipHash: sha256(ip) },
+      meta: { method, ipHash: sha256(ip), userHash: sha256(String(challenge.userId)) },
     });
     await logAuthEvent("auth.login.success", {
-      userId: String(challenge.userId),
-      meta: { ipHash: sha256(ip), via: method },
+      meta: { ipHash: sha256(ip), via: method, userHash: sha256(String(challenge.userId)) },
     });
 
     return NextResponse.json({ ok: true, redirectUrl, message: "2fa_success" });
   } catch (err: any) {
-    console.error("[verify-2fa] failed", err);
+    console.error("[verify-2fa] failed");
     return errorResponse("server_error", 500);
   }
 }

@@ -12,6 +12,7 @@ export const PRELAUNCH_GATE_COPY: Record<
     refineCta: string;
     submitTitle: string;
     submitText: string;
+    submitHint: string;
     submitCta: string;
     registerCta: string;
     productsTitle: string;
@@ -22,44 +23,49 @@ export const PRELAUNCH_GATE_COPY: Record<
 > = {
   de: {
     brand: "eDebatte",
-    title: "Wir prüfen jeden Beitrag vor Freigabe",
-    lead:
-      "Bis zum finalen Rollout prüfen wir Beiträge manuell. Beiträge anlegen und abstimmen bleibt kostenfrei.",
+    title: "Beitrag jetzt einreichen und per E-Mail auf dem Laufenden bleiben",
+    lead: "Wir prüfen neue Beiträge aktuell vor der Freigabe redaktionell.",
     bullets: [
-      "Entwürfe ohne Registrierung möglich",
-      "Abstimmen auf vorhandene Beiträge ist offen",
-      "Freigabe nach Prüfung (redaktionell)",
+      "Einreichen bleibt kostenfrei",
+      "Konto wird bei Bedarf direkt im nächsten Schritt angelegt",
+      "E-Mail bei Eingang und bei Änderungen im Prüfstatus",
+      "Abstimmen auf bestehende Beiträge bleibt offen",
     ],
-    refineTitle: "Noch ergänzen?",
-    refineText: "Sichtweisen, Adressat und Bewertung genauer einordnen.",
-    refineCta: "Ergänzen & qualifizieren",
-    submitTitle: "So zur Prüfung stellen",
-    submitText: "Wir übernehmen dein Anliegen wie eingereicht und prüfen es vor Veröffentlichung.",
-    submitCta: "Zur Prüfung einreichen",
-    registerCta: "Kostenfrei anmelden",
-    productsTitle: "Pakete & Vormerkung",
-    productsHint: "Wischen",
+    refineTitle: "Vor dem Einreichen noch ergänzen?",
+    refineText: "Sichtweisen, Adressat und Bewertung noch genauer einordnen.",
+    refineCta: "Beitrag weiter ausarbeiten",
+    submitTitle: "Jetzt einreichen",
+    submitText:
+      "Wir übernehmen deinen Beitrag in die Prüfung. Falls du noch kein Konto hast, meldest du dich im nächsten Schritt kurz kostenlos an und erhältst danach automatische E-Mail-Updates.",
+    submitHint: "Bereits registriert? Jetzt anmelden und direkt weiter.",
+    submitCta: "Kostenfrei einreichen & Updates erhalten",
+    registerCta: "Ich habe bereits ein Konto",
+    productsTitle: "Optional: Pakete & Vormerkung",
+    productsHint: "sekundär",
     contactCta: "Kontakt / Vorfuehrliste",
     later: "Später",
   },
   en: {
     brand: "eDebatte",
-    title: "Every contribution is reviewed before release",
-    lead: "Until launch, we review submissions manually. Posting and voting stay free.",
+    title: "Submit now and stay informed by email",
+    lead: "We currently review new contributions editorially before release.",
     bullets: [
-      "Drafts without registration",
-      "Voting on existing contributions is open",
-      "Release after editorial review",
+      "Submitting remains free",
+      "An account can be created for free in the next step if needed",
+      "Email updates at intake and status changes",
+      "Voting on existing contributions stays open",
     ],
-    refineTitle: "Want to add details?",
-    refineText: "Add context, audience, and evaluation.",
-    refineCta: "Refine & qualify",
-    submitTitle: "Submit as-is",
-    submitText: "We take it as submitted and review it before publishing.",
-    submitCta: "Submit for review",
-    registerCta: "Create free account",
-    productsTitle: "Packages & pre-signup",
-    productsHint: "Swipe",
+    refineTitle: "Add more before submitting?",
+    refineText: "Refine perspectives, audience, and evaluation.",
+    refineCta: "Continue refining",
+    submitTitle: "Submit now",
+    submitText:
+      "We move your contribution into review. If you do not have an account yet, you can sign up for free in the next step and receive automatic email updates.",
+    submitHint: "Already registered? Sign in first and continue.",
+    submitCta: "Submit for free & get updates",
+    registerCta: "I already have an account",
+    productsTitle: "Optional: packages & pre-signup",
+    productsHint: "secondary",
     contactCta: "Contact / demo list",
     later: "Later",
   },

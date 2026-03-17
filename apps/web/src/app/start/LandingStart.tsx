@@ -229,6 +229,7 @@ export default function LandingStart({ blocks, geo }: LandingStartProps) {
         lang={lang}
         onSubmit={handleGateSubmit}
         onRefine={handleGateRefine}
+        registerHref="/login?next=%2Fcreate"
       />
     </section>
   );

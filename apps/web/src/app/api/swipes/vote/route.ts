@@ -2,10 +2,23 @@ import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 import { recordSwipeVote, removeSwipeVotesForStatement } from "@/features/swipes/service";
 import type { SwipeVotePayload } from "@/features/swipes/types";
+import { readSession } from "@/utils/session";
+import { normalizeAccessTier } from "@/config/accessTiers";
+import { getFeaturesWithOverrides } from "@/lib/server/access/featureOverrides";
 
 export async function POST(req: NextRequest) {
   const cookieStore = await cookies();
   const userId = cookieStore.get("u_id")?.value;
+  const session = userId ? await readSession() : null;
+
+  if (userId) {
+    const tier = normalizeAccessTier(session?.accessTier ?? null);
+    const { effectiveMatrix } = await getFeaturesWithOverrides();
+    const featureSet = effectiveMatrix[tier];
+    if (!featureSet.canSwipe) {
+      return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
+    }
+  }
 
   const body = (await req.json().catch(() => ({}))) as Omit<SwipeVotePayload, "userId" | "source">;
 

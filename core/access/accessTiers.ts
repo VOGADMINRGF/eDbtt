@@ -33,6 +33,17 @@ const DEFAULT_EDEBATTE_MAPPING: Record<AccessTier, EDebattePackageCode> = {
   staff: "pro",
 };
 
+const ACCESS_TIER_ALIASES: Record<string, AccessTier> = {
+  basis: "citizenBasic",
+  erweitert: "citizenPremium",
+  premium: "citizenPro",
+  "edb-basis": "citizenBasic",
+  "edb-erweitert": "citizenPremium",
+  "edb-premium": "citizenPro",
+  start: "citizenPremium",
+  pro: "citizenPro",
+};
+
 export const ACCESS_TIER_CONFIG: Record<AccessTier, AccessTierConfigEntry> = Object.fromEntries(
   (Object.keys(LIMITS) as AccessTier[]).map((tier) => {
     const contributionsPerMonth = LIMITS[tier]?.contributionsPerMonth ?? 0;
@@ -57,6 +68,9 @@ export function deriveAccessTierFromPlanCode(planCode: string | null | undefined
 
   if ((ACCESS_TIER_CONFIG as Record<string, any>)[normalized]) {
     return normalized as AccessTier;
+  }
+  if (ACCESS_TIER_ALIASES[normalized]) {
+    return ACCESS_TIER_ALIASES[normalized];
   }
   return "citizenBasic";
 }
