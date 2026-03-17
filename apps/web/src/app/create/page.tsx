@@ -4,7 +4,7 @@ import { getDraft } from "@/server/draftStore";
 import CreateClient from "./CreateClient";
 import { getCreateEntitlementsForRequest } from "@/lib/server/entitlements/createEntitlements";
 import { getAccountOverview } from "@features/account/service";
-import { parseCreateIntent } from "@/features/create/intents";
+import { parseCreateIntent, parseCreateMode, type CreateMode } from "@/features/create/intents";
 
 export const metadata: Metadata = {
   title: "Erstellen - eDebatte",
@@ -33,6 +33,10 @@ function mapIntent(raw?: string | null): "statement" | "contribution" | undefine
   const parsed = parseCreateIntent(raw);
   if (!parsed) return undefined;
   return parsed === "claim" ? "statement" : "contribution";
+}
+
+function mapMode(raw?: string | null): CreateMode | undefined {
+  return parseCreateMode(raw);
 }
 
 function toQueryString(resolved: Record<string, string | string[] | undefined>) {
@@ -68,6 +72,7 @@ export default async function CreatePage({
   }
 
   const intent = mapIntent(readParam(resolved.intent));
+  const mode = mapMode(readParam(resolved.mode));
   const dossierId = readParam(resolved.dossierId) ?? null;
   const prefillText = decodeMaybe(readParam(resolved.prefill) ?? readParam(resolved.text));
   const draftId = readParam(resolved.draftId);
@@ -81,12 +86,13 @@ export default async function CreatePage({
   return (
     <main className="min-h-screen bg-[rgb(var(--bg))]">
       <h1 className="sr-only">Erstellen</h1>
-      <div className="mx-auto w-full max-w-5xl px-4 py-10">
+      <div className="mx-auto w-full max-w-6xl px-4 py-6 md:py-8">
         <CreateClient
           initialEntitlements={entitlements}
           overview={overview}
           dossierId={dossierId}
           initialIntent={intent}
+          initialMode={mode}
           initialText={initialText}
         />
       </div>

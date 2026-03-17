@@ -22,6 +22,7 @@ Result: duplicated entry logic and hard-coupled links.
 ## Architecture Rule (Binding)
 
 - `/create` is the canonical product entry for all create intents.
+- `/runden` is the canonical entry surface for round overview and guided return.
 - `/demo/create` is a demo wrapper only (persona-sensitive showcase) and must
   reuse the same intent definitions and routing semantics.
 - No parallel create architecture is allowed.
@@ -39,6 +40,12 @@ Use one intent-driven entry model:
 - `factcheck`
 
 Canonical target: `/create?intent=...`
+
+Optional mode parameter:
+
+- `mode=manual` (manuell starten)
+- `mode=source` (aus Quelle)
+- `mode=ai` (KI-gestuetzt, weiterhin optional)
 
 Optional context parameters:
 

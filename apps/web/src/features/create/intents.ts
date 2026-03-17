@@ -7,6 +7,8 @@ export type CreateIntent =
   | "option"
   | "factcheck";
 
+export type CreateMode = "manual" | "source" | "ai";
+
 export type CreateIntentDefinition = {
   intent: CreateIntent;
   title: string;
@@ -52,10 +54,12 @@ export const CREATE_INTENT_DEFINITIONS: CreateIntentDefinition[] = [
 ];
 
 const VALID_INTENTS = new Set<CreateIntent>(CREATE_INTENT_DEFINITIONS.map((item) => item.intent));
+const VALID_MODES = new Set<CreateMode>(["manual", "source", "ai"]);
 const CANONICAL_CREATE_PATH = "/create";
 
 export type BuildCreateHrefArgs = {
   intent: CreateIntent;
+  mode?: CreateMode;
   dossierId?: string | null;
   statementId?: string | null;
   next?: string | null;
@@ -79,18 +83,36 @@ export function parseCreateIntent(raw?: string | null): CreateIntent | undefined
   return undefined;
 }
 
+export function parseCreateMode(raw?: string | null): CreateMode | undefined {
+  if (!raw) return undefined;
+  const value = raw.toLowerCase();
+  if (VALID_MODES.has(value as CreateMode)) return value as CreateMode;
+  if (value === "manuell") return "manual";
+  if (value === "ki") return "ai";
+  if (value === "quelle") return "source";
+  return undefined;
+}
+
+export function createModeFromIntent(intent?: CreateIntent | null): CreateMode {
+  if (!intent) return "source";
+  if (intent === "claim") return "manual";
+  return "source";
+}
+
 /**
  * Canonical create resolver.
  * Product architecture uses `/create` as the single entry path.
  */
 export function buildCreateHref({
   intent,
+  mode,
   dossierId,
   statementId,
   next,
 }: BuildCreateHrefArgs): string {
   return withQuery(CANONICAL_CREATE_PATH, {
     intent,
+    mode: mode ?? undefined,
     dossierId: dossierId ?? undefined,
     statementId: statementId ?? undefined,
     next: next ?? undefined,
