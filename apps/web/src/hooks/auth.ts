@@ -128,7 +128,13 @@ export function useAccessTier() {
 
 export function useEngagementLevel() {
   const { user, loading, error, refresh } = useCurrentUser();
-  return { engagementXp: user?.engagementXp ?? null, loading, error, refresh };
+  return {
+    engagementLevel: user?.engagementLevel ?? null,
+    engagementXp: user?.engagementXp ?? null,
+    loading,
+    error,
+    refresh,
+  };
 }
 
 export function useB2CPlan() {

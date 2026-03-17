@@ -1,4 +1,7 @@
-export const SWIPES_PER_CONTRIBUTION_CREDIT = 100;
-export const MAX_STORED_CONTRIBUTION_CREDITS = 50;
-
-export const XP_PER_SWIPE = 1;
+export {
+  SWIPES_PER_CONTRIBUTION_CREDIT,
+  MAX_STORED_CONTRIBUTION_CREDITS,
+  XP_PER_SWIPE,
+  applySwipeForCredits,
+  type CreditState,
+} from "../apps/web/src/config/credits";

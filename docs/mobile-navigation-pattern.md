@@ -47,3 +47,19 @@ Stand: 2026-03-17
 
 - Dieses Muster priorisiert in Vollfokus-Flows Inhalt + Primäraktionen.
 - Utility bleibt erreichbar, aber konkurriert nicht mit der Kernnavigation.
+- Für Social/DM-v1 gilt mobil:
+  - Detail-Sheets bleiben die zentrale Interaktionsfläche.
+  - Freundschaftsanfragen sind direkt inline bedienbar (Annehmen/Ablehnen/Profil), Sheet bleibt Zusatz.
+  - Founder/System-Kontakte laufen in separatem Kanal statt im normalen privaten Anfrage-Ton.
+  - Thread-Liste + Composer sind im Sheet scroll-/safe-area-fest eingebettet.
+  - Composer sitzt im unteren, safe-area-geschützten Aktionsbereich.
+  - Composer-Keyboard-Flow ist klar: `Enter` sendet, `Shift+Enter` bleibt mehrzeilig.
+  - Beim Fokus auf das Eingabefeld wird der Composer aktiv in den sichtbaren Bereich gescrollt.
+  - Nach Senden bleibt der Schreibfluss stabil (Fokus bleibt im Composer, Thread-Ende wird sanft nachgeführt).
+  - Read/Unread-Rückläufe werden nach Thread-Öffnung unmittelbar in der Inbox-Übersicht nachgezogen.
+  - DM bleibt bewusst v1 (kein Realtime-Messenger-Verhalten).
+- Für Community-Gruppenflächen mobil gilt:
+  - kompakter Gruppenkopf,
+  - tappbare Menschenkarten mit klaren Primäraktionen,
+  - Themen-/Dossier-CTAs in kurzen, gut erreichbaren Blöcken,
+  - kein Chat-Versprechen, sondern Discovery + Beiträge + Kontakte.

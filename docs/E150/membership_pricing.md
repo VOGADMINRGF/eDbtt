@@ -1,29 +1,49 @@
-# eDebatte & eDebatte – zentrale Pricing-Struktur
+# eDebatte & eDebatte - zentrale Pricing-Struktur
 
 Die Preis- und Paketlogik ist bewusst in zwei Ebenen getrennt:
 
-- **Mitgliedschaft (Bewegung / VoG)**: `apps/web/src/config/pricing.ts`
-- **App-Pakete & Marketing**: `features/pricing/domain/plans.de.ts` (wird in `apps/web/src/config/pricing.ts` als `EDEBATTE_PLANS` abgeleitet)
-- **Feature-Gates / AccessTiers**: `features/pricing/config.ts` (intern, z.B. fuer Credits/Limits)
+- Mitgliedschaft (Bewegung / eDebatte): `apps/web/src/config/pricing.ts`
+- App-Pakete und Marketing: `features/pricing/domain/plans.de.ts` (abgeleitet in `apps/web/src/config/pricing.ts` als `EDEBATTE_PLANS`)
+- Feature-Gates und Limits: `apps/web/src/config/{accessTiers,featureMatrix,limits,engagement,credits}.ts`
 
 Wichtige Seiten:
 
-- `/pricing` ist die **kanonische** Landing fuer Pakete, Preise und Add-ons.
-- `/mitglied-antrag` ist der **Mitgliedschafts-Antrag** (Wizard, Pflichtfelder, Bankdaten/Verwendungszweck).
-- `/mitglied-werden` ist **Legacy** und redirectet auf `/pricing` (keine neuen Flows darauf aufbauen).
+- `/pricing` ist die kanonische Landing für Pakete, Preise und Add-ons.
+- `/mitglied-antrag` ist der Mitgliedschafts-Antrag (Wizard, Pflichtfelder, Zahlungsdaten).
+- `/mitglied-werden` ist Legacy und redirectet auf `/pricing`.
 
-`apps/web/src/config/pricing.ts` ist TS-strikt typisiert und enthält:
+## Mitgliedschaft und 25%-Goodie
 
-- **`VOG_MEMBERSHIP_PLAN`** – Basisdaten der eDebatte-Mitgliedschaft (Bezeichnung, Beschreibung, orientierender Monatsbeitrag pro Person).
-- **`EDEBATTE_PLANS`** – Liste der eDebatte-Pakete (`edb-start`, `edb-pro`) mit Label, Beschreibung und Listenpreis (Amount + Interval `month | year`).
-- **`MEMBER_DISCOUNT`** – zentrale Rabattregel (aktuell 25 %) inklusive Anwendungsbereich (`edebatte`, `merch`).
-- **`calcDiscountedPrice`** – Helper, der den rabattierten Preis aus dem Listenpreis berechnet.
+Die Mitgliedschaft ist Unterstützung der Bewegung und kein Rabattprodukt.
 
-## Neue Pakete oder Rabatte ergänzen
+Goodie-Regel (technisch):
 
-1. **Neues eDebatte-Paket**: In `EDEBATTE_PLANS` einen weiteren Eintrag mit `id`, `label`, `description` und `listPrice` anlegen. Die Seiten lesen automatisch alle Einträge der Liste aus und zeigen Listen- und Mitgliedspreis an.
-2. **Weitere Rabatte**: `MEMBER_DISCOUNT` erweitern oder zusätzliche `DiscountRule`-Objekte definieren. Verwende `calcDiscountedPrice(listPrice, discountPercent)`, um neue Prozentsätze einzubinden.
-3. **Mitglieds-Orientierungswert anpassen**: `VOG_MEMBERSHIP_PLAN.suggestedPerPersonPerMonth` ändern; der Wert fließt in den Mitgliedschafts-Rechner (z.B. `/unterstuetzen`).
+- `membership.status === "active"`
+- `membership.monthlyAmountEUR >= 5.63`
+- `membership.minTermMonths >= 24`
+- nur bei monatlicher Zahlung (`interval === "month"`)
+- nur einmal pro Mitgliedschaft (`discountUsed === false`)
 
-Die Darstellung auf `/pricing` basiert primaer auf `features/pricing/domain/plans.de.ts`.  
-Feature-Gates (Credits/Limits) werden separat ueber `features/pricing/config.ts` modelliert, damit UI-Texte und technische Berechtigungen nicht auseinanderlaufen.
+Wenn alle Bedingungen erfüllt sind:
+
+- 25% Rabatt auf eDebatte-Abo (`erweitert` oder `premium`)
+- Laufzeit des Goodies: 6 Monate
+- danach gilt wieder der Listenpreis
+
+Wichtig für Kommunikation und UX:
+
+- Das Goodie ist ein Dankeschön für langfristige Unterstützung.
+- Es ist kein Lockangebot und keine Rabattmaschine.
+- Die Mitgliedschaft läuft unabhängig vom Goodie weiter.
+
+## Konfigurationsanker
+
+`apps/web/src/config/pricing.ts` enthält:
+
+- `VOG_MEMBERSHIP_PLAN`
+- `EDEBATTE_PLANS`
+- `MEMBER_DISCOUNT`
+- `calcDiscountedPrice`
+- `canApplyVogDiscount` / `getVogDiscountDecision`
+
+Damit bleiben Preislogik, Goodie-Regeln und Frontend-Darstellung konsistent.

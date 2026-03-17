@@ -22,6 +22,9 @@ Stand: 2026-03-17
   - lokales Label, wenn Stadt/Region im Profil verfügbar ist,
   - ehrlicher Fallback (`vorbereitete Vorschläge`), wenn noch keine exakten Treffer vorhanden sind.
 - Inbox lädt Social-Daten aus `core` über `/api/account/social-summary`.
+- Inbox unterscheidet sichtbarer zwischen:
+  - Founder/System-Signalen
+  - echten Direktnachrichten.
 - Founder-Welcome wird beim Laden aktiv sichergestellt.
 - Social-Listen sind jetzt drill-down-fähig:
   - Freundschaftsanfragen klickbar,
@@ -32,13 +35,66 @@ Stand: 2026-03-17
 - Social-Detail-Sheets sind jetzt handlungsorientiert:
   - Anfrage: `Annehmen` / `Ablehnen`
   - Match: `Verbindung anfragen`
-  - Nachricht: lesbar, Antwortfunktion weiterhin ehrlich als "kommt bald"
+  - Nachricht: Verlauf lesen + kurze Nachricht senden (DM-v1, wenn Verbindung bestätigt)
+- Anfrage-Flow ist jetzt zuerst inline:
+  - `Annehmen`, `Ablehnen`, `Profil öffnen` direkt in der Anfrage-Liste.
+  - Nach `Annehmen` wechselt dieselbe Karte auf `Verbunden` + `Nachricht schreiben`.
+  - Detail-Sheet bleibt optionaler Zusatz, nicht Pflicht.
+- Founder-/Systemkontakt ist klar getrennt:
+  - in eigener Kanal-Darstellung (`Founder & System Kanal`),
+  - nicht mehr als normale private Freundschaftsanfrage inszeniert.
+- Thread-UX in DM-v1 ist ruhiger gestaffelt:
+  - eindeutige Du/Kontakt-Bubbles,
+  - freundlicher Empty-State,
+  - Zeitstempel dezent,
+  - Intro-Hinweis bei erster Nachricht.
+- Composer-Polish in DM-v1:
+  - `Enter` sendet,
+  - `Shift+Enter` erzeugt Zeilenumbruch,
+  - Fokus bleibt nach dem Senden stabil im Eingabefeld.
+- Öffentliche Profilseiten (`/profile/[shareId]`) sind jetzt als Kontaktfläche nutzbar:
+  - Verbindungsstatus sichtbar,
+  - Anfrage annehmen/ablehnen oder Verbindung anfragen,
+  - Direktnachricht v1 bei bestätigter Verbindung.
+- Target-Linking ist robuster:
+  - Detailflächen nutzen `targetShareId`/`targetProfileHref` als bevorzugten Profilanker,
+  - ehrlicher Fallback ohne kaputten Link.
 - Inbox ist in drei Blöcke gegliedert:
   - `Wichtig jetzt` (Counts, Founder-/System-Momente, offene Signale),
   - `Menschen & Matches` (Interessen-/Region-Matching),
   - `Aktionen` (Einladen, Community, nächste Schritte).
 - Invite-Funktion ist im Inbox-Kontext prominent und mobil schnell erreichbar.
 - Matching-Preview (`/api/account/matches`) zeigt Gleichgesinnte über gemeinsame Interessen + Region.
+- Match-Karten transportieren zusätzlich Kontaktstatus:
+  - `Verbunden`
+  - `Eingehende Anfrage`
+  - `Anfrage gesendet`
+  - `Keine Verbindung`
+  - plus zustandsbasierten nächsten Schritt (z. B. `Nachricht schreiben` / `Verbindung anfragen`).
+- Social-Items tragen jetzt optionalen Herkunftskontext (`originContext`):
+  - `origin.type`: `interest_match` | `dossier` | `topic_round` | `regional_group` | `founder` | `system`
+  - `origin.topicKey` / `origin.topicLabel`
+  - `origin.dossierId` / `origin.dossierTitle` (vorbereitet)
+  - `origin.regionKey` / `origin.regionLabel`
+  - `origin.communityKey` / `origin.communityLabel`
+  - `origin.scope`: `regional` | `ueberregional`
+  - `origin.reasonLabel` für direkte UI-Erklärung („Warum sehe ich diese Person?“).
+- Community-Ableitung ist produktlogisch vorbereitet:
+  - Thema + Region => regionale Gruppe (z. B. `Mobilität · Berlin`)
+  - Thema ohne Region => überregionale Gruppe
+  - Dossier-Kontext ist über `originContext` strukturell anschlussfähig.
+- `/community?group=...` rendert jetzt echte Gruppenflächen statt nur Hub-Links:
+  - Gruppenkopf mit Typ/Scope/Warum-Kontext,
+  - passende Menschen (Avatar, Status, nächste Aktion),
+  - relevante Themen/Swipes,
+  - Dossier-Kontext (wenn vorhanden, sonst ehrlicher Fallback),
+  - Beiträge/Aktions-CTAs.
+- Gruppentypen in Community sind sichtbar getrennt:
+  - `regional_group`
+  - `interest_match` (überregional)
+  - `dossier`
+  - `founder` / `system`
+- Detail-Sheet-Links (`Gruppe öffnen`, `Thema öffnen`, `Dossier öffnen`) übergeben jetzt den Kontext aus `originContext` vollständig, damit Zielseiten inhaltlich anschlussfähig bleiben.
 - Desktop-Hierarchie ist breiter und stärker gestaffelt:
   - größere Seitenbreite in `/account`,
   - zweispaltige Ergebnis-/Aktionsbereiche bei großen Breakpoints,
@@ -94,16 +150,32 @@ Stand: 2026-03-17
 ## Direktnachrichten-Status (ehrlich markiert)
 
 - Lesen/Anzeige von Social-Nachrichten in der Inbox: ja.
-- Senden von Direktnachrichten zwischen Nutzern (UI + API end-to-end): noch nicht freigeschaltet.
-- Produkttexte markieren diesen Zustand explizit als "noch im Ausbau".
-- Im Detail-Sheet wird Antworten bewusst als "kommt bald" und deaktiviert dargestellt (keine Scheininteraktion).
-- Nachrichtendetail enthält eine DM-v1-Vorbereitung als Thread-Basis (Read-Only-Vorschau + vorbereitetes Reply-Feld).
+- DM-v1 aktiv (bewusst klein):
+  - Thread lesen,
+  - kurze Direktnachricht senden,
+  - kein Realtime-Chat, keine Attachments, keine Gruppen.
+- Mobile Composer/Thread-Verhalten:
+  - Composer bleibt in Safe-Area erreichbar,
+  - Fokus scrollt den Composer in Sicht,
+  - Senden/Loading-Zustände bleiben stabil ohne hektisches UI.
+- Schreiben ist nur in sinnvollen Beziehungskontexten erlaubt:
+  - `connected` -> `can_message = true`
+  - `incoming_pending` / `outgoing_pending` / `none` -> `can_message = false` mit Grund.
+- API liefert dafür explizit:
+  - `relationshipState`
+  - `canMessage`
+  - `cannotMessageReason` / `cannotMessageReasonLabel`
+- Doppelklick-/Spam-Basisabsicherung:
+  - identische Direct-Message innerhalb kurzer Zeit wird serverseitig als Duplikat behandelt.
+- Read/Unread-Polish:
+  - Thread-Öffnen markiert eingehende Nachrichten des Kontakts als gelesen.
+  - Summary liefert gesplittete Unread-Sicht (`unreadDirectCount` / `unreadSystemCount`) für plausiblere Badges.
 
 ## Community-Begriff (aktueller Scope)
 
 `/community` ist aktuell ein Community-Hub mit Fokus auf:
 
-- Discovery (Matching-Ausgangspunkt in Account/Inbox),
+- Discovery (Matching-Ausgangspunkt in Account/Inbox) inkl. gruppenbasierten Kontextflächen,
 - Community-Beiträge (`/community/contributions`),
 - Verlinkung in Streams/Campaigns.
 

@@ -51,6 +51,7 @@ export type VoteDraft = {
   _id: string;
   statementCandidateId: string;
   analyzeResultId: string;
+  anlassraumId?: string | null;
   status: VoteDraftStatus;
   title: string;
   summary?: string | null;
@@ -77,6 +78,7 @@ export type VoteDraft = {
 
 export type VoteDraftSummary = {
   id: string;
+  anlassraumId?: string | null;
   title: string;
   status: VoteDraftStatus;
   regionCode: string | null;

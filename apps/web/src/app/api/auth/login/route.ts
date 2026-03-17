@@ -35,6 +35,10 @@ type LoginBody = {
   next?: string;
 };
 
+function errorResponse(error: string, status: number) {
+  return NextResponse.json({ error, message: error }, { status });
+}
+
 async function issueTwoFactorChallenge(
   userId: ObjectId,
   method: TwoFactorMethod,
@@ -92,7 +96,7 @@ export async function POST(req: NextRequest) {
     salt: "auth",
   });
   if (!ipLimit.ok) {
-    return NextResponse.json({ error: "rate_limited" }, { status: 429 });
+    return errorResponse("rate_limited", 429);
   }
 
   const body = (await req.json().catch(() => ({}))) as LoginBody;
@@ -101,7 +105,7 @@ export async function POST(req: NextRequest) {
   const redirectUrl = sanitizeRedirect(body.next || "/account");
 
   if (!identifier || !password) {
-    return NextResponse.json({ error: "invalid_input" }, { status: 400 });
+    return errorResponse("invalid_input", 400);
   }
 
   // Dev/staging convenience: if SUPERADMIN_* is configured and the user tries to login as that email,
@@ -126,6 +130,8 @@ export async function POST(req: NextRequest) {
           $or: [
             { email: identifier },
             { name: body.identifier },
+            { nickname: body.identifier },
+            { "profile.nickname": body.identifier },
             { "profile.displayName": body.identifier },
           ],
         })) || null;
@@ -134,14 +140,14 @@ export async function POST(req: NextRequest) {
     await logAuthEvent("auth.login.failed", {
       meta: { reason: "not_found", ipHash: sha256(ip) },
     });
-    return NextResponse.json({ error: "invalid_credentials" }, { status: 401 });
+    return errorResponse("invalid_credentials", 401);
   }
 
   const perUser = await rateLimitOrThrow(`login:user:${String(user._id)}`, 8, LOGIN_WINDOW_MS, {
     salt: "auth-user",
   });
   if (!perUser.ok) {
-    return NextResponse.json({ error: "rate_limited" }, { status: 429 });
+    return errorResponse("rate_limited", 429);
   }
 
   const passwordHash = credentials?.passwordHash || user.passwordHash;
@@ -151,7 +157,7 @@ export async function POST(req: NextRequest) {
       userId: String(user._id),
       meta: { reason: "invalid_password", ipHash: sha256(ip) },
     });
-    return NextResponse.json({ error: "invalid_credentials" }, { status: 401 });
+    return errorResponse("invalid_credentials", 401);
   }
 
   maybeBackfillCredentials(user, credentials ?? null, identifier);
@@ -167,7 +173,7 @@ export async function POST(req: NextRequest) {
   if (!twoFactorEnabled || !twoFactorMethod) {
     await applySessionCookies(user);
     await logAuthEvent("auth.login.success", { userId: String(user._id), meta: { ipHash: sha256(ip) } });
-    return NextResponse.json({ ok: true, require2fa: false, redirectUrl });
+    return NextResponse.json({ ok: true, require2fa: false, redirectUrl, message: "login_success" });
   }
 
   const { expiresAt } = await issueTwoFactorChallenge(
@@ -183,5 +189,6 @@ export async function POST(req: NextRequest) {
     expiresAt: expiresAt.toISOString(),
     redirectUrl,
     allowEmailFallback,
+    message: "twofactor_required",
   });
 }

@@ -3,7 +3,7 @@ import {
   SWIPES_PER_CONTRIBUTION_CREDIT,
   XP_PER_SWIPE,
 } from "../../config/credits";
-import { ENGAGEMENT_THRESHOLDS } from "../../config/engagement";
+import { getEngagementLevelKeyFromXp } from "../../config/engagement";
 
 export type EngagementLevel =
   | "interessiert"
@@ -14,9 +14,7 @@ export type EngagementLevel =
   | "leuchtend";
 
 export function getEngagementLevel(xp: number): EngagementLevel {
-  const safeXp = Number.isFinite(xp) ? Math.max(0, Math.floor(xp)) : 0;
-  const match = ENGAGEMENT_THRESHOLDS.find((entry) => safeXp >= entry.minXp);
-  return match?.level ?? "interessiert";
+  return getEngagementLevelKeyFromXp(xp);
 }
 
 export function swipesUntilNextCredit(totalSwipes: number): number {
@@ -27,3 +25,5 @@ export function swipesUntilNextCredit(totalSwipes: number): number {
   }
   return SWIPES_PER_CONTRIBUTION_CREDIT - remainder;
 }
+
+export { XP_PER_SWIPE };

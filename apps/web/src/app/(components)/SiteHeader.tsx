@@ -51,7 +51,7 @@ const NAV_SECTIONS: NavSection[] = [
         description: "Positionen bewerten und Mehrheiten sichtbar machen.",
       },
       {
-        href: "/thema-einreichen",
+        href: "/create?mode=manual&intent=claim",
         label: "Einreichen",
         description: "Themen, Hinweise und Perspektiven einspeisen.",
       },

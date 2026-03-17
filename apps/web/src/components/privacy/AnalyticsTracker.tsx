@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
 import {
   CONSENT_COOKIE_NAME,
+  CONSENT_LOCALSTORAGE_KEY,
   LEGACY_CONSENT_COOKIE_NAME,
   parseConsentCookie,
 } from "@/lib/privacy/consent";
@@ -41,7 +42,12 @@ function readConsent() {
   const primary = readCookieValue(CONSENT_COOKIE_NAME);
   if (primary) return parseConsentCookie(primary);
   const legacy = readCookieValue(LEGACY_CONSENT_COOKIE_NAME);
-  return parseConsentCookie(legacy);
+  if (legacy) return parseConsentCookie(legacy);
+  if (typeof window !== "undefined") {
+    const local = window.localStorage.getItem(CONSENT_LOCALSTORAGE_KEY);
+    return parseConsentCookie(local);
+  }
+  return null;
 }
 
 export function AnalyticsTracker() {

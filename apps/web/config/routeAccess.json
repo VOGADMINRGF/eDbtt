@@ -122,6 +122,9 @@
   "/contributions/new": {
     "access": "auth"
   },
+  "/create": {
+    "access": "auth"
+  },
   "/dashboard/admin/routes": {
     "access": "admin"
   },
@@ -227,6 +230,9 @@
   "/report/:id": {
     "access": "public"
   },
+  "/runden": {
+    "access": "public"
+  },
   "/reports": {
     "access": "public"
   },
@@ -261,6 +267,9 @@
     "access": "public"
   },
   "/team": {
+    "access": "public"
+  },
+  "/thema-einreichen": {
     "access": "public"
   },
   "/unterstuetzen": {

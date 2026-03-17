@@ -16,13 +16,23 @@ Feed → statement_candidates → analyze_results → vote_drafts → feed_state
 - **Analyse anstoßen:** alle 15–30 Minuten `POST /api/feeds/analyze-pending` aufrufen.
   - Body z. B. `{ "limit": 10 }`.
   - Standard-Limit ist 10; >50 wird serverseitig abgewiesen.
-  - Route ist `runtime = "nodejs"` und kann ohne Auth verwendet werden (nur intern callen).
-- **Feeddaten einspielen:** `/api/feeds/batch` kann von jedem Worker aufgerufen werden, sobald neue Artikel/Kanäle geparst wurden.
+  - Route ist `runtime = "nodejs"`; Auth via Admin-Session oder `EDITOR_TOKEN` (Header `Authorization: Bearer ...`).
+- **Feeds abrufen:** `POST /api/feeds/pull` zyklisch ausführen (`scope`, `maxFeeds`, `maxItemsPerFeed`, optional `regionCode`).
+- **Feeddaten einspielen:** `/api/feeds/batch` nimmt vorbereitete Items an und validiert/entfernt ungültige URLs.
+- **Empfohlene Env-Parameter:** `FEEDS_PULL_CONCURRENCY` (default 4, max 8), `FEEDS_PULL_TIMEOUT_MS` (default 12000).
 
 ### Beispiel (Curl)
 
 ```bash
+export EDITOR_TOKEN="<token>"
+
+curl -X POST https://edebatte.example/api/feeds/pull \
+  -H "authorization: Bearer $EDITOR_TOKEN" \
+  -H 'content-type: application/json' \
+  -d '{ "scope": "de", "maxFeeds": 20, "maxItemsPerFeed": 12, "dryRun": false }'
+
 curl -X POST https://edebatte.example/api/feeds/analyze-pending \
+  -H "authorization: Bearer $EDITOR_TOKEN" \
   -H 'content-type: application/json' \
   -d '{ "limit": 10 }'
 ```
@@ -61,7 +71,7 @@ Unter `tools/feeds/import_rss.ts` liegt ein kleiner Fetcher, der ausgewählte RS
 ```bash
 # .env.local (Beispiel)
 export FEEDS_API_URL="https://app.edebatte.org/api/feeds/batch"
-export FEEDS_API_TOKEN="<optional bearer token>"
+export FEEDS_API_TOKEN="<EDITOR_TOKEN>"
 
 # ad-hoc Lauf lokal
 cd tools/feeds

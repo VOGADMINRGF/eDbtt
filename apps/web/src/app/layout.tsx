@@ -11,12 +11,13 @@ import { LocaleProvider } from "@/context/LocaleContext";
 import { DEFAULT_LOCALE, type SupportedLocale, isSupportedLocale } from "@/config/locales";
 import { SiteHeader } from "./(components)/SiteHeader";
 import { getPrivacyStrings } from "./privacyStrings";
-import { CookieBanner } from "@/components/privacy/CookieBanner";
+import { CookieConsentBanner } from "@/components/privacy/CookieConsentBanner";
 import { AnalyticsTracker } from "@/components/privacy/AnalyticsTracker";
 import { CONSENT_COOKIE_NAME, LEGACY_CONSENT_COOKIE_NAME, parseConsentCookie } from "@/lib/privacy/consent";
 import SiteFooter from "@/components/SiteFooter";
 import { ThemeProvider } from "@/components/providers/theme-provider";
 import { ReadingModeProvider } from "@/components/providers/reading-mode-provider";
+import { normalizeAccessTier } from "@/config/accessTiers";
 
 export const metadata: Metadata = {
   metadataBase: new URL(BRAND.baseUrl),
@@ -62,7 +63,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                 <SiteFooter />
                 <div className="h-[env(safe-area-inset-bottom)]" />
                 <AnalyticsTracker />
-                <CookieBanner strings={privacyStrings} initialConsent={initialConsent} />
+                <CookieConsentBanner strings={privacyStrings} initialConsent={initialConsent} />
               </div>
             </LocaleProvider>
           </ReadingModeProvider>
@@ -101,12 +102,13 @@ async function loadServerUser(cookieStore: Awaited<ReturnType<typeof cookies>>):
     );
     if (!doc) return null;
     const roles = Array.isArray(doc.roles) ? doc.roles : [];
+    const accessTier = normalizeAccessTier(doc.accessTier ?? doc.b2cPlanId ?? null);
     return {
       id: String(doc._id),
       email: doc.email ?? null,
       name: doc.name ?? null,
       roles: roles.length ? roles : ["user"],
-      accessTier: doc.accessTier ?? null,
+      accessTier,
       b2cPlanId: doc.b2cPlanId ?? null,
       engagementXp: null,
       engagementLevel: null,

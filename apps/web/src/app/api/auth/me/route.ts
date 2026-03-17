@@ -3,8 +3,8 @@ import { ObjectId } from "@core/db/triMongo";
 import { NextResponse } from "next/server";
 import { readSession } from "@/utils/session";
 import { coreCol } from "@core/db/db/triMongo";
-import { getEngagementLevel } from "@features/user/engagement";
-import { deriveAccessTierFromPlanCode } from "@core/access/accessTiers";
+import { normalizeAccessTier } from "@/config/accessTiers";
+import { getEngagementLevelFromXp, normalizeEngagementLevel } from "@/config/engagement";
 
 export const runtime = "nodejs";
 
@@ -54,10 +54,12 @@ export async function GET() {
     const roles = rolesFromArray.length ? rolesFromArray : splitRoleTokens(doc.role);
 
     const xp = doc.engagementXp ?? doc.stats?.xp ?? doc.usage?.xp ?? 0;
-    const engagementLevel = doc.stats?.engagementLevel || getEngagementLevel(xp ?? 0);
+    const engagementLevel = doc.stats?.engagementLevel
+      ? normalizeEngagementLevel(doc.stats.engagementLevel)
+      : getEngagementLevelFromXp(xp ?? 0);
     const contributionCredits =
       doc.stats?.contributionCredits ?? doc.usage?.contributionCredits ?? null;
-    const accessTier = deriveAccessTierFromPlanCode(doc.accessTier ?? doc.b2cPlanId ?? null);
+    const accessTier = normalizeAccessTier(doc.accessTier ?? doc.b2cPlanId ?? null);
     const planSlug = doc.b2cPlanId ?? accessTier ?? null;
 
     return NextResponse.json(

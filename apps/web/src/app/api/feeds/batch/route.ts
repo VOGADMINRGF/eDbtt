@@ -8,6 +8,7 @@ import {
   buildStatementCandidate,
   normalizeLocale,
 } from "@features/feeds/utils";
+import { normalizeFeedUrl } from "@features/feeds/feedConfig";
 import {
   findCandidateHashes,
   saveFeedItemsRaw,
@@ -45,13 +46,26 @@ export async function POST(req: NextRequest): Promise<Response> {
 
   const seenHashes = new Set<string>();
   const normalized: Array<FeedItemInput & { canonicalHash: string }> = [];
+  let skippedInvalidUrl = 0;
+  let skippedDuplicateInBatch = 0;
 
   for (const item of body.items) {
-    if (!item || typeof item.url !== "string" || !item.url.trim()) continue;
+    if (!item || typeof item.url !== "string" || !item.url.trim()) {
+      skippedInvalidUrl += 1;
+      continue;
+    }
+    const validUrl = normalizeFeedUrl(item.url);
+    if (!validUrl) {
+      skippedInvalidUrl += 1;
+      continue;
+    }
 
-    const normalizedItem = applyFeedDefaults(item);
+    const normalizedItem = applyFeedDefaults({ ...item, url: validUrl });
     const canonicalHash = buildCanonicalHash(normalizedItem);
-    if (seenHashes.has(canonicalHash)) continue;
+    if (seenHashes.has(canonicalHash)) {
+      skippedDuplicateInBatch += 1;
+      continue;
+    }
     seenHashes.add(canonicalHash);
 
     normalized.push({ ...normalizedItem, canonicalHash });
@@ -59,6 +73,7 @@ export async function POST(req: NextRequest): Promise<Response> {
 
   const existingHashes = await findCandidateHashes(normalized.map((i) => i.canonicalHash));
   const newItems = normalized.filter((i) => !existingHashes.has(i.canonicalHash));
+  const skippedExisting = normalized.length - newItems.length;
   const candidates: StatementCandidate[] = newItems.map((item) =>
     buildStatementCandidate(item, item.canonicalHash),
   );
@@ -70,7 +85,19 @@ export async function POST(req: NextRequest): Promise<Response> {
     await upsertStatementCandidates(candidates);
   }
 
-  return NextResponse.json({ ok: true, results: candidates }, { headers: JSON_HEADERS });
+  return NextResponse.json(
+    {
+      ok: true,
+      totalReceived: body.items.length,
+      normalized: normalized.length,
+      skippedInvalidUrl,
+      skippedDuplicateInBatch,
+      skippedExisting,
+      inserted: candidates.length,
+      results: candidates,
+    },
+    { headers: JSON_HEADERS },
+  );
 }
 
 function applyFeedDefaults(item: FeedItemInput & { locale?: string | null }): FeedItemInput {

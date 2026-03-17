@@ -76,6 +76,11 @@ export default function AdminFeedDraftsPage() {
           Übersicht über alle automatisch erzeugten Drafts. Filtere nach Status oder Region und öffne die
           Detailansicht für Reviews & Veröffentlichung.
         </p>
+        <p>
+          <Link href="/admin/feeds" className="text-sm font-semibold text-sky-700 hover:underline">
+            Zur Feed Control Plane
+          </Link>
+        </p>
       </header>
 
       <div className="flex flex-wrap items-center gap-3">
@@ -121,6 +126,7 @@ export default function AdminFeedDraftsPage() {
               <th className="px-4 py-3 text-left font-semibold text-[rgb(var(--muted))]">Titel</th>
               <th className="px-4 py-3 text-left font-semibold text-[rgb(var(--muted))]">Status</th>
               <th className="px-4 py-3 text-left font-semibold text-[rgb(var(--muted))]">Region</th>
+              <th className="px-4 py-3 text-left font-semibold text-[rgb(var(--muted))]">Anlassraum</th>
               <th className="px-4 py-3 text-left font-semibold text-[rgb(var(--muted))]">Quelle</th>
               <th className="px-4 py-3 text-left font-semibold text-[rgb(var(--muted))]">Analyse</th>
               <th className="px-4 py-3 text-left font-semibold text-[rgb(var(--muted))]">Pipeline</th>
@@ -129,14 +135,14 @@ export default function AdminFeedDraftsPage() {
           <tbody className="divide-y divide-[rgb(var(--border))]">
             {loading && (
               <tr>
-                <td colSpan={6} className="px-4 py-6 text-center text-[rgb(var(--muted))]">
+                <td colSpan={7} className="px-4 py-6 text-center text-[rgb(var(--muted))]">
                   Lädt Drafts …
                 </td>
               </tr>
             )}
             {!loading && items.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-4 py-6 text-center text-[rgb(var(--muted))]">
+                <td colSpan={7} className="px-4 py-6 text-center text-[rgb(var(--muted))]">
                   Keine Drafts für die aktuellen Filter gefunden.
                 </td>
               </tr>
@@ -161,6 +167,15 @@ export default function AdminFeedDraftsPage() {
                   <td className="px-4 py-3">
                     <p className="font-medium text-[rgb(var(--fg))]">{draft.regionName ?? "–"}</p>
                     <p className="text-xs text-[rgb(var(--muted))]">{draft.regionCode ?? "—"}</p>
+                  </td>
+                  <td className="px-4 py-3 text-xs">
+                    {draft.anlassraumId ? (
+                      <Link href={`/admin/feeds/anlassraum/${draft.anlassraumId}`} className="text-sky-700 hover:underline">
+                        {draft.anlassraumId.slice(-8)}
+                      </Link>
+                    ) : (
+                      <span className="text-[rgb(var(--muted))]">—</span>
+                    )}
                   </td>
                   <td className="px-4 py-3">
                     {draft.sourceUrl ? (

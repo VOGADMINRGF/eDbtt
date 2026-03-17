@@ -1,6 +1,3 @@
-import fs from "node:fs/promises";
-import path from "node:path";
-
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 import {
@@ -12,30 +9,13 @@ import {
   type AcquisitionFeedSource,
   type AcquisitionFeedStatus,
 } from "@core/acquisition";
+import { collectFeedRefs, loadFeeds } from "@features/feeds/feedConfig";
 import { logger } from "@/utils/logger";
 import { requireAdminOrResponse } from "@/lib/server/auth/admin";
 import { adminConfig } from "@/config/admin-config";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-
-type CivicFeedsFile = {
-  regions?: Record<string, Record<string, string[]>>;
-  feeds?: CivicFeedEntry[];
-};
-
-type CivicFeedEntry =
-  | string
-  | {
-      url?: string;
-      feedUrl?: string;
-      region?: string;
-      regionCode?: string;
-      topic?: string;
-      topicHint?: string;
-      source_type?: string;
-      sourceType?: string;
-    };
 
 type FeedRef = {
   sourceKey: string;
@@ -99,29 +79,6 @@ const STOPWORDS = new Set([
   "its",
 ]);
 
-function getFeedConfigPaths(scope: string): string[] {
-  const fileName = `civic_feeds.${scope}.json`;
-  const candidates = [
-    path.join(process.cwd(), "core", "feeds", fileName),
-    path.join(process.cwd(), "..", "core", "feeds", fileName),
-    path.join(process.cwd(), "apps", "web", "core", "feeds", fileName),
-  ];
-  return Array.from(new Set(candidates.map((p) => path.resolve(p))));
-}
-
-async function loadFeeds(scope: string): Promise<CivicFeedsFile | null> {
-  const searched = getFeedConfigPaths(scope);
-  for (const file of searched) {
-    try {
-      const raw = await fs.readFile(file, "utf8");
-      return JSON.parse(raw) as CivicFeedsFile;
-    } catch {
-      // try next
-    }
-  }
-  return null;
-}
-
 function normalizeTopicHints(hints: Array<string | null | undefined>): string[] {
   const out = new Set<string>();
   for (const hint of hints) {
@@ -133,51 +90,6 @@ function normalizeTopicHints(hints: Array<string | null | undefined>): string[] 
 
 function buildSourceKey(feedUrl: string, regionCode: string | null) {
   return `${(regionCode || "GLOBAL").toUpperCase()}::${feedUrl.toLowerCase()}`;
-}
-
-function collectFeedRefs(cfg: CivicFeedsFile | null): FeedRef[] {
-  if (!cfg) return [];
-  const map = new Map<string, FeedRef>();
-
-  const pushRef = (url?: string | null, regionCode?: string | null, topicHint?: string | null) => {
-    const feedUrl = typeof url === "string" ? url.trim() : "";
-    if (!feedUrl) return;
-    const key = buildSourceKey(feedUrl, regionCode ?? null);
-    const existing = map.get(key);
-    const nextHints = normalizeTopicHints([topicHint, ...(existing?.topicHints ?? [])]);
-    if (existing) {
-      existing.topicHints = nextHints;
-    } else {
-      map.set(key, {
-        sourceKey: key,
-        feedUrl,
-        regionCode: regionCode ? String(regionCode).trim() : null,
-        topicHints: nextHints,
-      });
-    }
-  };
-
-  for (const [regionCode, topics] of Object.entries(cfg.regions ?? {})) {
-    for (const [topic, urls] of Object.entries(topics ?? {})) {
-      for (const feedUrl of urls ?? []) {
-        pushRef(feedUrl, regionCode, topic);
-      }
-    }
-  }
-
-  for (const entry of cfg.feeds ?? []) {
-    if (!entry) continue;
-    if (typeof entry === "string") {
-      pushRef(entry, null, null);
-      continue;
-    }
-    const url = entry.url ?? entry.feedUrl ?? null;
-    const region = entry.regionCode ?? entry.region ?? null;
-    const topicHint = entry.topicHint ?? entry.topic ?? entry.source_type ?? entry.sourceType ?? null;
-    pushRef(url, region, topicHint);
-  }
-
-  return Array.from(map.values());
 }
 
 function unescapeXml(s: string): string {
@@ -364,7 +276,18 @@ function summarizeRegions(sources: AcquisitionFeedSource[]) {
 async function ensureSourcesFromConfig(): Promise<FeedRef[]> {
   const cfgDe = await loadFeeds("de");
   const cfgGlobal = await loadFeeds("global");
-  const refs = [...collectFeedRefs(cfgDe), ...collectFeedRefs(cfgGlobal)];
+  const deRefs = cfgDe.config
+    ? collectFeedRefs(cfgDe.config, { dedupeByRegion: true }).feedRefs
+    : [];
+  const globalRefs = cfgGlobal.config
+    ? collectFeedRefs(cfgGlobal.config, { dedupeByRegion: true }).feedRefs
+    : [];
+  const refs = [...deRefs, ...globalRefs].map((ref) => ({
+    sourceKey: buildSourceKey(ref.feedUrl, ref.regionCode),
+    feedUrl: ref.feedUrl,
+    regionCode: ref.regionCode,
+    topicHints: normalizeTopicHints(ref.topicHints),
+  }));
   await upsertAcquisitionFeedSources(
     refs.map((ref) => ({
       sourceKey: ref.sourceKey,

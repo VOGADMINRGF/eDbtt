@@ -1,77 +1,54 @@
-import { FEATURE_MATRIX } from "@/config/featureMatrix";
-import type { AccessTier } from "@/config/accessTiers";
-import type { EngagementLevel } from "@features/user/engagement";
-import { getEngagementLevel } from "@features/user/engagement";
+import { FEATURE_MATRIX_DEFAULTS } from "@/config/featureMatrix";
+import { getEngagementLevelFromXp, meetsEngagementLevel, normalizeEngagementLevel } from "@/config/engagement";
+import { normalizeAccessTier } from "@/config/accessTiers";
 
 type AccessAwareUser = {
   accessTier?: string | null;
   engagementXp?: number | null;
-  engagementLevel?: EngagementLevel | null;
+  engagementLevel?: string | null;
 };
 
-const MIN_CREATE_STREAM_LEVEL: EngagementLevel = "brennend";
-const MIN_HOST_STREAM_LEVEL: EngagementLevel = "inspirierend";
-
-function normalizeTier(tier?: string | null): AccessTier {
-  const key = (tier || "public") as AccessTier;
-  if (Object.prototype.hasOwnProperty.call(FEATURE_MATRIX, key)) {
-    return key;
-  }
-  return "public";
+function resolveFeatureSet(user?: AccessAwareUser) {
+  const tier = normalizeAccessTier(user?.accessTier);
+  return FEATURE_MATRIX_DEFAULTS[tier];
 }
 
-function resolveEngagementLevel(user?: AccessAwareUser): EngagementLevel {
-  if (!user) return "interessiert";
-  if (user.engagementLevel) return user.engagementLevel;
-  return getEngagementLevel(user.engagementXp ?? 0);
+function resolveEngagementLevel(user?: AccessAwareUser) {
+  if (!user) return normalizeEngagementLevel("Interessiert");
+  if (user.engagementLevel) return normalizeEngagementLevel(user.engagementLevel);
+  return getEngagementLevelFromXp(user.engagementXp ?? 0);
 }
 
 export function canUserSwipe(user?: AccessAwareUser): boolean {
-  const tier = normalizeTier(user?.accessTier);
-  return FEATURE_MATRIX[tier].canSwipe;
+  const feature = resolveFeatureSet(user);
+  return feature.canSwipe;
 }
 
 export function canUserVote(user?: AccessAwareUser): boolean {
-  const tier = normalizeTier(user?.accessTier);
-  return FEATURE_MATRIX[tier].canVote;
+  const feature = resolveFeatureSet(user);
+  return feature.canVote;
 }
 
 export function canUserChatPublic(user?: AccessAwareUser): boolean {
-  const tier = normalizeTier(user?.accessTier);
-  return FEATURE_MATRIX[tier].canChatPublic;
+  const feature = resolveFeatureSet(user);
+  return feature.canChatPublic;
 }
 
 export function canUserCreateStream(user?: AccessAwareUser): boolean {
-  const tier = normalizeTier(user?.accessTier);
-  if (!FEATURE_MATRIX[tier].canCreateStream) return false;
+  const feature = resolveFeatureSet(user);
+  if (!feature.canCreateStream) return false;
   const level = resolveEngagementLevel(user);
-  const thresholds: EngagementLevel[] = [
-    "interessiert",
-    "engagiert",
-    "begeistert",
-    "brennend",
-    "inspirierend",
-    "leuchtend",
-  ];
-  return thresholds.indexOf(level) >= thresholds.indexOf(MIN_CREATE_STREAM_LEVEL);
+  return meetsEngagementLevel(level, feature.minEngagementLevelForCreateStream);
 }
 
 export function canUserHostStream(user?: AccessAwareUser): boolean {
-  const tier = normalizeTier(user?.accessTier);
-  if (!FEATURE_MATRIX[tier].canHostStream) return false;
+  const feature = resolveFeatureSet(user);
+  if (!feature.canHostStream) return false;
   const level = resolveEngagementLevel(user);
-  const thresholds: EngagementLevel[] = [
-    "interessiert",
-    "engagiert",
-    "begeistert",
-    "brennend",
-    "inspirierend",
-    "leuchtend",
-  ];
-  return thresholds.indexOf(level) >= thresholds.indexOf(MIN_HOST_STREAM_LEVEL);
+  return meetsEngagementLevel(level, feature.minEngagementLevelForHostStream);
 }
 
 export function canUserCreateCampaign(user?: AccessAwareUser): boolean {
-  const tier = normalizeTier(user?.accessTier);
-  return FEATURE_MATRIX[tier].canCreateCampaign;
+  const feature = resolveFeatureSet(user);
+  return feature.canCreateCampaign && feature.maxCampaignsPerMonth > 0;
 }

@@ -1,6 +1,8 @@
 import crypto from "crypto";
 import { cookies } from "next/headers";
 import { createSession } from "@/utils/session";
+import { normalizeAccessTier } from "@/config/accessTiers";
+import { getEngagementLevelFromXp, normalizeEngagementLevel } from "@/config/engagement";
 import { ensureVerificationDefaults } from "@core/auth/verificationTypes";
 import type { ObjectId } from "@core/db/triMongo";
 import type { UserRole } from "@/types/user";
@@ -53,6 +55,15 @@ export type CoreUserAuthSnapshot = {
   accessTier?: string | null;
   b2cPlanId?: string | null;
   engagementXp?: number | null;
+  stats?: {
+    xp?: number | null;
+    engagementLevel?: string | null;
+    contributionCredits?: number | null;
+  };
+  usage?: {
+    xp?: number | null;
+    contributionCredits?: number | null;
+  };
   vogMembershipStatus?: string | null;
   profile?: { displayName?: string | null; location?: string | null } | null;
   verification?: ReturnType<typeof ensureVerificationDefaults> & {
@@ -133,7 +144,11 @@ export async function applySessionCookies(
   const hasLocation = !!(user.profile?.location || (user as any).city || (user as any).region);
   const normalizedRoles = normalizeUserRoles(user.roles);
   const primaryRole = user.role || normalizedRoles[0];
-  const tier = user.accessTier || (user as any).tier || null;
+  const tier = normalizeAccessTier(
+    user.accessTier || user.b2cPlanId || (user as any).tier || null,
+  );
+  const xp = user.engagementXp ?? user.stats?.xp ?? user.usage?.xp ?? 0;
+  const engagementLevel = normalizeEngagementLevel(user.stats?.engagementLevel) || getEngagementLevelFromXp(xp);
   const groups = Array.isArray(user.groups) ? user.groups : [];
 
   const twoFactorAuthenticated = opts?.twoFactorAuthenticated ?? true;
@@ -142,6 +157,12 @@ export async function applySessionCookies(
 
   await createSession(String(user._id), rolesForSession, {
     twoFactorAuthenticated,
+    session: {
+      accessTier: tier,
+      engagementLevel,
+      b2cPlanId: user.b2cPlanId ?? tier,
+      vogMembershipStatus: user.vogMembershipStatus ?? null,
+    },
   });
   const secureCookie =
     process.env.NODE_ENV === "production" || process.env.COOKIE_SECURE === "true";
@@ -154,7 +175,7 @@ export async function applySessionCookies(
   cookieJar.set("u_id", String(user._id), baseOpts);
   if (primaryRole) cookieJar.set("u_role", primaryRole, baseOpts);
   cookieJar.set("u_verified", isVerified ? "1" : "0", baseOpts);
-  if (tier) cookieJar.set("u_tier", String(tier), baseOpts);
+  cookieJar.set("u_tier", String(tier), baseOpts);
   if (groups.length) cookieJar.set("u_groups", groups.join(","), baseOpts);
   cookieJar.set("u_loc", hasLocation ? "1" : "0", baseOpts);
   cookieJar.set("u_2fa", twoFactorAuthenticated ? "1" : "0", baseOpts);

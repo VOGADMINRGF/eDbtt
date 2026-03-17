@@ -85,6 +85,7 @@ export interface VoteDraftDoc {
   _id?: ObjectId;
   statementCandidateId: ObjectId;
   analyzeResultId: ObjectId;
+  anlassraumId?: ObjectId | null;
   createdAt: Date;
   updatedAt?: Date;
   publishedAt?: Date | null;

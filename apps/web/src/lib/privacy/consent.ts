@@ -1,6 +1,7 @@
 // E200: Minimal consent parsing and cookie serialization for the cookie banner.
 export const CONSENT_COOKIE_NAME = "edb_consent";
 export const LEGACY_CONSENT_COOKIE_NAME = "vog_consent";
+export const CONSENT_LOCALSTORAGE_KEY = "edb_consent_choice";
 export type Consent = { essential: true; analytics: boolean };
 
 const SIX_MONTHS_IN_SECONDS = 60 * 60 * 24 * 30 * 6;

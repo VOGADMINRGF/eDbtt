@@ -18,8 +18,6 @@ export const dynamic = "force-dynamic";
  * }
  */
 import { NextRequest, NextResponse } from "next/server";
-import fs from "node:fs/promises";
-import path from "node:path";
 
 import type { FeedItemInput } from "@features/feeds/types";
 import {
@@ -32,110 +30,19 @@ import {
   saveFeedItemsRaw,
   upsertStatementCandidates,
 } from "@features/feeds/storage";
+import {
+  collectFeedRefs,
+  loadFeeds,
+  type FeedRef,
+} from "@features/feeds/feedConfig";
 import { normalizeRegionCode } from "@core/regions/types";
 import { filterFeedRefsByRegion } from "@/lib/region/filters";
 import { requireAdminOrEditor } from "../_auth";
-
-type CivicFeedsFile = {
-  version?: number;
-  regions?: Record<string, Record<string, string[]>>; // region -> topic -> urls[]
-  feeds?: CivicFeedEntry[];
-  notes?: string[];
-};
-
-type CivicFeedEntry =
-  | string
-  | {
-      url?: string;
-      feedUrl?: string;
-      region?: string;
-      regionCode?: string;
-      topic?: string;
-      topicHint?: string;
-      source_type?: string;
-      sourceType?: string;
-    };
-
-type FeedRef = { feedUrl: string; regionCode?: string | null; topicHint?: string | null };
 
 const JSON_HEADERS = { "content-type": "application/json; charset=utf-8" };
 const DEFAULT_FETCH_TIMEOUT_MS = 12_000;
 const DEFAULT_FEED_CONCURRENCY = 4;
 const MAX_FEED_CONCURRENCY = 8;
-
-/* ---------------------------------------------
- * Config Loader
- * -------------------------------------------- */
-
-function getFeedConfigPaths(scope: string): string[] {
-  const fileName = `civic_feeds.${scope}.json`;
-  const candidates = [
-    path.join(process.cwd(), "core", "feeds", fileName),
-    path.join(process.cwd(), "..", "core", "feeds", fileName),
-    path.join(process.cwd(), "apps", "web", "core", "feeds", fileName),
-  ];
-  return Array.from(new Set(candidates.map((p) => path.resolve(p))));
-}
-
-async function loadFeeds(scope: string): Promise<{
-  config: CivicFeedsFile | null;
-  searched: string[];
-  source?: string | null;
-}> {
-  const searched = getFeedConfigPaths(scope);
-  for (const file of searched) {
-    try {
-      const raw = await fs.readFile(file, "utf8");
-      return { config: JSON.parse(raw) as CivicFeedsFile, searched, source: file };
-    } catch {
-      // try next
-    }
-  }
-  return { config: null, searched };
-}
-
-function collectFeedRefs(cfg: CivicFeedsFile): FeedRef[] {
-  const out: FeedRef[] = [];
-  const seen = new Set<string>();
-
-  const pushRef = (url?: string | null, regionCode?: string | null, topicHint?: string | null) => {
-    const feedUrl = typeof url === "string" ? url.trim() : "";
-    if (!feedUrl) return;
-    const key = feedUrl.toLowerCase();
-    if (seen.has(key)) return;
-    seen.add(key);
-    out.push({
-      feedUrl,
-      regionCode: regionCode ? String(regionCode).trim() : null,
-      topicHint: topicHint ?? null,
-    });
-  };
-
-  for (const [regionCode, topics] of Object.entries(cfg.regions ?? {})) {
-    for (const [topic, urls] of Object.entries(topics ?? {})) {
-      for (const feedUrl of urls ?? []) {
-        pushRef(feedUrl, regionCode, topic);
-      }
-    }
-  }
-
-  if (Array.isArray(cfg.feeds)) {
-    for (const entry of cfg.feeds) {
-      if (!entry) continue;
-      if (typeof entry === "string") {
-        pushRef(entry, null, null);
-        continue;
-      }
-      const url = entry.url ?? entry.feedUrl ?? null;
-      const region = entry.regionCode ?? entry.region ?? null;
-      const topicHint = entry.topicHint ?? entry.topic ?? entry.source_type ?? entry.sourceType ?? null;
-      pushRef(url, region, topicHint);
-    }
-  }
-
-  return out;
-}
-
 
 /* ---------------------------------------------
  * RSS / Atom Parsing (leichtgewichtig; Regex)
@@ -326,7 +233,7 @@ async function processFeed(
         sourceType: "rss",
         regionCode: ref.regionCode ?? null,
         sourceLocale: opts.scope === "de" ? "de" : null,
-        topicHint: ref.topicHint ?? null,
+        topicHint: ref.topicHints[0] ?? null,
       });
 
       const canonicalHash = buildCanonicalHash(feedItem);
@@ -418,7 +325,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(payload, { status: 500, headers: JSON_HEADERS });
   }
 
-  const collected = collectFeedRefs(cfg);
+  const { feedRefs: collected, invalidFeedUrls } = collectFeedRefs(cfg);
   const regionFilter = filterFeedRefsByRegion(collected, regionCode);
   const feedRefs = (regionCode && !regionFilter.isGlobal ? regionFilter.feedRefs : collected).slice(0, maxFeeds);
   if (regionCode && !regionFilter.isValid) {
@@ -463,6 +370,7 @@ export async function POST(req: NextRequest) {
       ? {
           configSource: source ?? null,
           feedRefs: feedRefs.length,
+          invalidFeedUrls: invalidFeedUrls.slice(0, 20),
         }
       : {};
 
@@ -481,6 +389,7 @@ export async function POST(req: NextRequest) {
       fetchedItems,
       inserted,
       skippedExisting,
+      skippedInvalidFeeds: invalidFeedUrls.length,
       errors,
       ...debug,
     },
