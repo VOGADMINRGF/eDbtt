@@ -17,18 +17,13 @@ type SearchParamsShape = Promise<Record<string, string | string[] | undefined>>;
 
 type RoundEntryView = "active" | "mine" | "results" | "organize";
 
+const VIEW_ORDER: RoundEntryView[] = ["active", "mine", "results", "organize"];
+
 const VIEW_LABELS: Record<RoundEntryView, string> = {
   active: "Aktiv",
   mine: "Meine",
   results: "Ergebnisse",
   organize: "Organisieren",
-};
-
-const VIEW_HINTS: Record<RoundEntryView, string> = {
-  active: "Laufende Runden mit direktem Einstieg",
-  mine: "Empfohlene Schritte fuer deine Persona",
-  results: "Abgeschlossene Runden und Einblicke",
-  organize: "Regeln, Transparenz und Steuerung",
 };
 
 function parseView(value?: string): RoundEntryView {
@@ -60,8 +55,8 @@ function shortSummary(text: string) {
   const clean = text.trim();
   if (!clean) return "";
   const firstSentence = clean.split(/[.!?]/)[0]?.trim() ?? clean;
-  if (firstSentence.length <= 130) return firstSentence;
-  return `${firstSentence.slice(0, 127).trimEnd()}...`;
+  if (firstSentence.length <= 138) return firstSentence;
+  return `${firstSentence.slice(0, 135).trimEnd()}...`;
 }
 
 function formatDate(iso: string) {
@@ -74,6 +69,16 @@ function formatDate(iso: string) {
 
 function summaryCountLabel(value: number, singular: string, plural: string) {
   return `${value} ${value === 1 ? singular : plural}`;
+}
+
+function roundRelevanceLabel(contributions: number, openPoints: number) {
+  if (openPoints > 0) {
+    return `${summaryCountLabel(openPoints, "offene Frage", "offene Fragen")} brauchen noch klares Feedback.`;
+  }
+  if (contributions >= 3) {
+    return `${summaryCountLabel(contributions, "aktueller Beitrag", "aktuelle Beitraege")} geben dir schnellen Kontext fuer den Einstieg.`;
+  }
+  return "Guter Einstieg, um den aktuellen Stand mit einem Klick zu verstehen.";
 }
 
 function viewHref(persona: DemoPersona, view: RoundEntryView) {
@@ -115,191 +120,231 @@ export default async function DemoRoundsPage({
   const fallbackRounds = rounds.slice(0, 3);
   const visibleActiveRounds = activeRounds.length > 0 ? activeRounds : fallbackRounds;
   const closedRounds = rounds.filter((round) => round.status === "closed");
-  const featuredRound = visibleActiveRounds[0] ?? rounds[0] ?? null;
-  const featuredCompanion = featuredRound ? companionByRoundSlug.get(featuredRound.slug) : companions[0] ?? null;
 
-  const featuredRoundEntryHref = featuredRound
-    ? featuredCompanion
-      ? `/companion/${featuredCompanion.slug}?entry=qr&source=${roundSourceParam(featuredRound.type)}&persona=${persona}`
-      : `/round/${featuredRound.slug}?entry=qr&source=${roundSourceParam(featuredRound.type)}&persona=${persona}`
-    : `/topic/${topic.slug}`;
+  const featuredRound = visibleActiveRounds[0] ?? null;
+  const remainingActiveRounds =
+    featuredRound === null
+      ? visibleActiveRounds
+      : visibleActiveRounds.filter((round) => round.id !== featuredRound.id);
 
+  const resolveRoundEntryHref = (round: (typeof rounds)[number]) => {
+    const companionContext = companionByRoundSlug.get(round.slug);
+    if (companionContext) {
+      return `/companion/${companionContext.slug}?entry=qr&source=${roundSourceParam(round.type)}&persona=${persona}`;
+    }
+    return `/round/${round.slug}?entry=qr&source=${roundSourceParam(round.type)}&persona=${persona}`;
+  };
+
+  const featuredRoundEntryHref = featuredRound ? resolveRoundEntryHref(featuredRound) : `/topic/${topic.slug}`;
   const totalContributions = rounds.reduce((sum, round) => sum + round.contributions.length, 0);
   const totalOpenPoints = rounds.reduce((sum, round) => sum + round.openPoints.length, 0);
   const unresolvedRoadmap = topic.roadmap.filter((item) => item.status !== "done");
 
   return (
-    <main className="mx-auto min-h-screen max-w-7xl space-y-8 px-4 py-8 md:space-y-10 md:px-6 md:py-10">
-      <header className="relative overflow-hidden rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-6 shadow-sm md:p-8">
-        <div className="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full bg-[rgb(var(--grad-from))]/12 blur-3xl" />
-        <div className="pointer-events-none absolute -left-20 bottom-0 h-44 w-44 rounded-full bg-[rgb(var(--grad-to))]/10 blur-3xl" />
+    <main className="mx-auto min-h-screen w-full max-w-[92rem] space-y-10 px-4 py-8 md:space-y-12 md:px-8 md:py-12 xl:px-10">
+      <header className="relative overflow-hidden rounded-[2rem] border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-7 shadow-sm md:p-10">
+        <div className="pointer-events-none absolute -right-24 -top-20 h-72 w-72 rounded-full bg-[rgb(var(--grad-from))]/18 blur-3xl" />
+        <div className="pointer-events-none absolute -left-16 bottom-0 h-52 w-52 rounded-full bg-[rgb(var(--grad-to))]/14 blur-3xl" />
 
-        <div className="relative space-y-6">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[rgb(var(--muted))]">
-            Demo - Runden
-          </p>
+        <div className="relative space-y-8">
+          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[rgb(var(--muted))]">Demo - Runden</p>
 
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-            <div className="max-w-3xl space-y-3">
-              <h1 className="text-3xl font-semibold leading-tight text-[rgb(var(--fg))] md:text-4xl">
+          <div className="grid gap-6 lg:grid-cols-[1.4fr_0.9fr] lg:items-end">
+            <div className="space-y-4">
+              <h1 className="text-4xl font-semibold leading-tight text-[rgb(var(--fg))] md:text-5xl">
                 Mach bei einer Runde mit
               </h1>
-              <p className="text-sm text-[rgb(var(--muted))] md:text-base">
-                Starte ein neues Thema, steige in eine laufende Runde ein oder sieh dir Ergebnisse an. Du kannst
-                jederzeit in die Detailseiten wechseln.
+              <p className="max-w-3xl text-base text-[rgb(var(--muted))]">
+                Starte ein neues Thema, steige direkt in eine laufende Runde ein oder gehe ueber Ergebnisse tiefer in
+                den Stand.
               </p>
             </div>
-            <Link href={featuredRoundEntryHref} className="btn btn-primary w-full text-sm sm:w-auto md:text-base">
-              In aktive Runde einsteigen
-            </Link>
+
+            <div className="rounded-2xl border border-[rgb(var(--grad-from))]/35 bg-[rgb(var(--bg))]/85 p-4 md:p-5">
+              <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Empfohlener Start</p>
+              <p className="mt-2 text-sm text-[rgb(var(--fg))]">
+                {featuredRound ? featuredRound.title : "Direkt in das aktuelle Thema wechseln"}
+              </p>
+              <Link href={featuredRoundEntryHref} className="btn btn-primary mt-4 w-full text-base">
+                Jetzt einsteigen
+              </Link>
+            </div>
           </div>
 
-          <section aria-label="Schneller Einstieg" className="grid gap-3 md:grid-cols-3">
+          <section aria-label="Schneller Einstieg" className="grid gap-4 md:grid-cols-3">
             <Link
               href={withPersona("/demo/create", persona)}
-              className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4 transition hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--grad-from))]"
+              className="min-h-[150px] rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-5 transition hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--grad-from))]"
             >
-              <p className="text-sm font-semibold text-[rgb(var(--fg))]">Neue Runde starten</p>
-              <p className="mt-1 text-sm text-[rgb(var(--muted))]">
-                Lege ein neues Anliegen an und fuehre es in den passenden Beteiligungsfluss.
+              <p className="text-base font-semibold text-[rgb(var(--fg))]">Neue Runde starten</p>
+              <p className="mt-2 text-sm text-[rgb(var(--muted))]">
+                Lege ein Anliegen an und fuehre es in den passenden Beteiligungsfluss.
               </p>
             </Link>
 
             <Link
               href={viewHref(persona, "active")}
-              className="rounded-2xl border border-[rgb(var(--grad-from))]/45 bg-[rgb(var(--bg))] p-4 transition hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--grad-from))]"
+              className="min-h-[150px] rounded-2xl border border-[rgb(var(--grad-from))]/50 bg-[rgb(var(--bg))] p-5 transition hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--grad-from))]"
             >
-              <p className="text-sm font-semibold text-[rgb(var(--fg))]">In aktive Runde einsteigen</p>
-              <p className="mt-1 text-sm text-[rgb(var(--muted))]">
-                Oeffne laufende Runden mit einem Klick und sieh direkt, was noch offen ist.
+              <p className="text-base font-semibold text-[rgb(var(--fg))]">In aktive Runde einsteigen</p>
+              <p className="mt-2 text-sm text-[rgb(var(--muted))]">
+                Oeffne laufende Runden mit einem Klick und arbeite direkt an offenen Punkten weiter.
               </p>
             </Link>
 
             <Link
               href={viewHref(persona, "results")}
-              className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4 transition hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--grad-from))]"
+              className="min-h-[150px] rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-5 transition hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--grad-from))]"
             >
-              <p className="text-sm font-semibold text-[rgb(var(--fg))]">Ergebnisse ansehen</p>
-              <p className="mt-1 text-sm text-[rgb(var(--muted))]">
-                Schau dir abgeschlossene Runden, offene Punkte und den aktuellen Stand im Thema an.
+              <p className="text-base font-semibold text-[rgb(var(--fg))]">Ergebnisse ansehen</p>
+              <p className="mt-2 text-sm text-[rgb(var(--muted))]">
+                Schau dir abgeschlossene Runden an und wechsle von dort in Details.
               </p>
             </Link>
           </section>
 
-          <div className="flex flex-wrap gap-2 text-[11px]">
-            <span className="vog-chip">Persona: {personaCfg.label}</span>
-            <span className="vog-chip">Runden: {rounds.length}</span>
-            <span className="vog-chip">Aktiv: {activeRounds.length}</span>
-            <span className="vog-chip">Begleitraeume: {companions.length}</span>
-            <span className="vog-chip">Modus: {context.mode}</span>
+          <div className="flex flex-wrap gap-x-6 gap-y-1 text-xs text-[rgb(var(--muted))]">
+            <span>Persona: {personaCfg.label}</span>
+            <span>Runden: {rounds.length}</span>
+            <span>Aktiv: {activeRounds.length}</span>
+            <span>Datenquelle: {context.dataSource}</span>
           </div>
         </div>
       </header>
 
-      <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm md:p-5">
-        <div className="space-y-3">
-          <p className="text-sm font-semibold text-[rgb(var(--fg))]">Bereich waehlen</p>
-          <nav aria-label="Rundenbereiche" className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-            {(Object.keys(VIEW_LABELS) as RoundEntryView[]).map((entryView) => {
+      {view === "active" && featuredRound ? (
+        <section className="rounded-3xl border border-[rgb(var(--grad-from))]/35 bg-[rgb(var(--card))] p-6 shadow-sm md:p-8">
+          <div className="grid gap-6 lg:grid-cols-[1.5fr_0.9fr] lg:items-end">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[rgb(var(--muted))]">
+                Empfohlene Runde
+              </p>
+              <h2 className="mt-3 text-2xl font-semibold text-[rgb(var(--fg))] md:text-3xl">{featuredRound.title}</h2>
+              <p className="mt-2 max-w-3xl text-sm text-[rgb(var(--muted))]">{shortSummary(featuredRound.summary)}</p>
+              <p className="mt-3 text-sm text-[rgb(var(--fg))]">
+                Warum jetzt: {roundRelevanceLabel(featuredRound.contributions.length, featuredRound.openPoints.length)}
+              </p>
+            </div>
+
+            <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4 md:p-5">
+              <p className="text-xs text-[rgb(var(--muted))]">
+                {roundTypeLabel(featuredRound.type)} · zuletzt aktiv am {formatDate(featuredRound.startedAt)}
+              </p>
+              <p className="mt-1 text-xs text-[rgb(var(--muted))]">
+                {summaryCountLabel(featuredRound.contributions.length, "Beitrag", "Beitraege")} · {summaryCountLabel(featuredRound.openPoints.length, "offene Frage", "offene Fragen")}
+              </p>
+              <Link href={featuredRoundEntryHref} className="btn btn-primary mt-4 w-full text-base">
+                Runde oeffnen
+              </Link>
+            </div>
+          </div>
+        </section>
+      ) : null}
+
+      <section className="space-y-3">
+        <p className="text-sm font-semibold text-[rgb(var(--fg))]">Ansicht</p>
+        <nav aria-label="Rundenbereiche" className="overflow-x-auto pb-1">
+          <div className="inline-flex min-w-full gap-1 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-1 sm:min-w-0">
+            {VIEW_ORDER.map((entryView) => {
               const active = view === entryView;
               return (
                 <Link
                   key={entryView}
                   href={viewHref(persona, entryView)}
                   aria-current={active ? "page" : undefined}
-                  className={`rounded-2xl border px-4 py-3 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--grad-from))] ${
+                  className={`flex-1 whitespace-nowrap rounded-xl px-4 py-2.5 text-center text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--grad-from))] ${
                     active
-                      ? "border-[rgb(var(--grad-from))]/60 bg-[rgb(var(--bg))]"
-                      : "border-[rgb(var(--border))] bg-[rgb(var(--card))] hover:bg-[rgb(var(--bg))]"
+                      ? "bg-[rgb(var(--bg))] text-[rgb(var(--fg))] shadow-sm"
+                      : "text-[rgb(var(--muted))] hover:text-[rgb(var(--fg))]"
                   }`}
                 >
-                  <p className="text-sm font-semibold text-[rgb(var(--fg))]">{VIEW_LABELS[entryView]}</p>
-                  <p className="mt-1 text-xs text-[rgb(var(--muted))]">{VIEW_HINTS[entryView]}</p>
+                  {VIEW_LABELS[entryView]}
                 </Link>
               );
             })}
-          </nav>
-        </div>
+          </div>
+        </nav>
       </section>
 
       {view === "active" ? (
-        <section id="aktive-runden" className="space-y-4">
-          <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
-            <div>
-              <h2 className="text-2xl font-semibold text-[rgb(var(--fg))]">Aktive Runden</h2>
+        <>
+          <section id="aktive-runden" className="space-y-5">
+            <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+              <div>
+                <h2 className="text-2xl font-semibold text-[rgb(var(--fg))]">
+                  {remainingActiveRounds.length > 0 ? "Weitere aktive Runden" : "Aktive Runden"}
+                </h2>
+                <p className="text-sm text-[rgb(var(--muted))]">Weniger lesen, schneller einsteigen: jede Karte hat genau eine Hauptaktion.</p>
+              </div>
+              <Link href={`/topic/${topic.slug}`} className="btn-secondary w-full text-sm sm:w-auto">
+                Aktuelles Thema ansehen
+              </Link>
+            </div>
+
+            {remainingActiveRounds.length > 0 ? (
+              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                {remainingActiveRounds.map((round) => {
+                  const companionContext = companionByRoundSlug.get(round.slug);
+                  const openRoundHref = resolveRoundEntryHref(round);
+
+                  return (
+                    <article key={round.id} className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm md:p-6">
+                      <div className="flex flex-wrap items-center gap-2 text-xs text-[rgb(var(--muted))]">
+                        <span className="vog-chip">{roundTypeLabel(round.type)}</span>
+                        <span className="vog-chip vog-chip--status">{round.status === "open" ? "laeuft" : "abgeschlossen"}</span>
+                        {companionContext ? <span className="vog-chip">Begleitraum</span> : null}
+                      </div>
+
+                      <h3 className="mt-3 text-lg font-semibold text-[rgb(var(--fg))]">{round.title}</h3>
+                      <p className="mt-2 text-sm text-[rgb(var(--muted))]">{shortSummary(round.summary)}</p>
+
+                      <p className="mt-3 text-xs text-[rgb(var(--muted))]">
+                        {summaryCountLabel(round.contributions.length, "Beitrag", "Beitraege")} · {summaryCountLabel(round.openPoints.length, "offene Frage", "offene Fragen")} · zuletzt {formatDate(round.startedAt)}
+                      </p>
+
+                      <div className="mt-5 flex items-center gap-3">
+                        <Link href={openRoundHref} className="btn btn-primary text-sm">
+                          Runde oeffnen
+                        </Link>
+                        <Link href={`/topic/${topic.slug}`} className="text-sm font-medium text-[rgb(var(--muted))] underline-offset-2 hover:underline">
+                          Mehr dazu
+                        </Link>
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+            ) : (
+              <article className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-6 text-sm text-[rgb(var(--muted))] shadow-sm">
+                Aktuell gibt es keine weitere Runde neben der empfohlenen Einstiegsrunde.
+              </article>
+            )}
+          </section>
+
+          <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-6 shadow-sm md:p-8">
+            <div className="space-y-2">
+              <h2 className="text-xl font-semibold text-[rgb(var(--fg))]">Sekundaere Orientierung</h2>
               <p className="text-sm text-[rgb(var(--muted))]">
-                Waehle eine Runde und steige direkt ein. Details folgen erst nach dem Einstieg.
+                Dieser Bereich bleibt bewusst nachgelagert: zuerst Einstieg und Auswahl, danach Regeln, Verlauf und tieferer Kontext.
               </p>
             </div>
-            <Link href={`/topic/${topic.slug}`} className="btn-secondary w-full text-sm sm:w-auto">
-              Aktuelles Thema ansehen
-            </Link>
-          </div>
 
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {visibleActiveRounds.map((round) => {
-              const companionContext = companionByRoundSlug.get(round.slug);
-              const openRoundHref = companionContext
-                ? `/companion/${companionContext.slug}?entry=qr&source=${roundSourceParam(round.type)}&persona=${persona}`
-                : `/round/${round.slug}?entry=qr&source=${roundSourceParam(round.type)}&persona=${persona}`;
-
-              return (
-                <article
-                  key={round.id}
-                  className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm"
-                >
-                  <div className="flex flex-wrap gap-2 text-[11px]">
-                    <span className="vog-chip">{roundTypeLabel(round.type)}</span>
-                    <span className="vog-chip vog-chip--status">
-                      {round.status === "open" ? "laeuft gerade" : "zuletzt aktiv"}
-                    </span>
-                    {companionContext ? <span className="vog-chip">Begleitraum</span> : null}
-                  </div>
-
-                  <h3 className="mt-3 text-lg font-semibold text-[rgb(var(--fg))]">{round.title}</h3>
-                  <p className="mt-1 text-sm text-[rgb(var(--muted))]">{shortSummary(round.summary)}</p>
-
-                  <dl className="mt-4 grid grid-cols-2 gap-2 text-xs text-[rgb(var(--muted))]">
-                    <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-2">
-                      <dt className="font-medium text-[rgb(var(--fg))]">Beitraege</dt>
-                      <dd>{summaryCountLabel(round.contributions.length, "Beitrag", "Beitraege")}</dd>
-                    </div>
-                    <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-2">
-                      <dt className="font-medium text-[rgb(var(--fg))]">Offene Fragen</dt>
-                      <dd>{round.openPoints.length}</dd>
-                    </div>
-                    <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-2">
-                      <dt className="font-medium text-[rgb(var(--fg))]">Zuletzt</dt>
-                      <dd>{formatDate(round.startedAt)}</dd>
-                    </div>
-                    <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-2">
-                      <dt className="font-medium text-[rgb(var(--fg))]">Quelle</dt>
-                      <dd>{round.sourceLabel}</dd>
-                    </div>
-                  </dl>
-
-                  <div className="mt-4 flex items-center gap-3">
-                    <Link href={openRoundHref} className="btn btn-primary text-sm">
-                      Runde oeffnen
-                    </Link>
-                    <Link href={`/topic/${topic.slug}`} className="text-sm font-medium text-[rgb(var(--muted))] underline-offset-2 hover:underline">
-                      Mehr dazu
-                    </Link>
-                  </div>
-                </article>
-              );
-            })}
-          </div>
-
-          <details className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))]/78 p-5 shadow-sm">
-            <summary className="cursor-pointer text-sm font-semibold text-[rgb(var(--fg))]">
-              Regeln & Transparenz sowie naechste Schritte anzeigen
-            </summary>
-            <div className="mt-4 grid gap-4 lg:grid-cols-3">
+            <div className="mt-5 grid gap-4 lg:grid-cols-3">
               <article className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4">
-                <h3 className="text-sm font-semibold text-[rgb(var(--fg))]">Aktuelles Thema</h3>
-                <p className="mt-1 text-sm font-medium text-[rgb(var(--fg))]">{topic.title}</p>
-                <p className="mt-1 text-sm text-[rgb(var(--muted))]">{topic.framingQuestion}</p>
+                <h3 className="text-sm font-semibold text-[rgb(var(--fg))]">Regeln & Transparenz</h3>
+                <p className="mt-2 text-sm text-[rgb(var(--muted))]">
+                  Moderation, Review-Log und begruendete Entscheidungen liegen im Governance-Bereich.
+                </p>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <Link href={`/topic/manage/${topic.slug}/governance`} className="btn-secondary text-xs">
+                    Governance oeffnen
+                  </Link>
+                  {rounds[0] ? (
+                    <Link href={`/round/manage/${rounds[0].slug}/merge`} className="btn-secondary text-xs">
+                      Merge-Review
+                    </Link>
+                  ) : null}
+                </div>
               </article>
 
               <article className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4">
@@ -309,19 +354,33 @@ export default async function DemoRoundsPage({
                     <li key={item.id}>- {item.title}</li>
                   ))}
                 </ul>
+                <details className="mt-3 rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-3">
+                  <summary className="cursor-pointer text-xs font-semibold text-[rgb(var(--fg))]">Alle naechsten Schritte</summary>
+                  <ul className="mt-2 space-y-1 text-xs text-[rgb(var(--muted))]">
+                    {topic.roadmap.slice(0, 6).map((item) => (
+                      <li key={`${item.id}-all`}>- {item.title}</li>
+                    ))}
+                  </ul>
+                </details>
               </article>
 
               <article className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4">
                 <h3 className="text-sm font-semibold text-[rgb(var(--fg))]">Was bereits eingebracht wurde</h3>
                 <p className="mt-2 text-sm text-[rgb(var(--muted))]">
-                  {summaryCountLabel(totalContributions, "Beitrag", "Beitraege")} und{" "}
-                  {summaryCountLabel(totalOpenPoints, "offener Punkt", "offene Punkte")}
-                  {" "}liegen im aktuellen Stand vor.
+                  {summaryCountLabel(totalContributions, "Beitrag", "Beitraege")} und {summaryCountLabel(totalOpenPoints, "offener Punkt", "offene Punkte")} liegen derzeit vor.
                 </p>
+                <details className="mt-3 rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-3">
+                  <summary className="cursor-pointer text-xs font-semibold text-[rgb(var(--fg))]">Runden-Details</summary>
+                  <ul className="mt-2 space-y-1 text-xs text-[rgb(var(--muted))]">
+                    {rounds.slice(0, 4).map((round) => (
+                      <li key={`${round.id}-meta`}>{round.title}: {round.contributions.length} Beitraege · {round.openPoints.length} offene Punkte</li>
+                    ))}
+                  </ul>
+                </details>
               </article>
             </div>
-          </details>
-        </section>
+          </section>
+        </>
       ) : null}
 
       {view === "mine" ? (
@@ -369,10 +428,7 @@ export default async function DemoRoundsPage({
             <h3 className="text-base font-semibold text-[rgb(var(--fg))]">Zuletzt bearbeitbare Runden</h3>
             <div className="mt-3 grid gap-3 md:grid-cols-2">
               {rounds.slice(0, 2).map((round) => {
-                const companionContext = companionByRoundSlug.get(round.slug);
-                const openRoundHref = companionContext
-                  ? `/companion/${companionContext.slug}?entry=qr&source=${roundSourceParam(round.type)}&persona=${persona}`
-                  : `/round/${round.slug}?entry=qr&source=${roundSourceParam(round.type)}&persona=${persona}`;
+                const openRoundHref = resolveRoundEntryHref(round);
 
                 return (
                   <article
@@ -408,10 +464,7 @@ export default async function DemoRoundsPage({
 
           <div className="grid gap-4 md:grid-cols-2">
             {(closedRounds.length > 0 ? closedRounds : rounds.slice(0, 2)).map((round) => {
-              const companionContext = companionByRoundSlug.get(round.slug);
-              const resultHref = companionContext
-                ? `/companion/${companionContext.slug}?entry=qr&source=${roundSourceParam(round.type)}&persona=${persona}`
-                : `/round/${round.slug}?entry=qr&source=${roundSourceParam(round.type)}&persona=${persona}`;
+              const resultHref = resolveRoundEntryHref(round);
 
               return (
                 <article
@@ -438,22 +491,6 @@ export default async function DemoRoundsPage({
               );
             })}
           </div>
-
-          <details className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))]/78 p-5 shadow-sm">
-            <summary className="cursor-pointer text-sm font-semibold text-[rgb(var(--fg))]">
-              Was bisher eingebracht wurde anzeigen
-            </summary>
-            <div className="mt-4 grid gap-3 md:grid-cols-2">
-              {rounds.slice(0, 4).map((round) => (
-                <article key={`${round.id}-count`} className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
-                  <p className="text-sm font-semibold text-[rgb(var(--fg))]">{round.title}</p>
-                  <p className="text-sm text-[rgb(var(--muted))]">
-                    Beitraege: {round.contributions.length} · Offene Punkte: {round.openPoints.length}
-                  </p>
-                </article>
-              ))}
-            </div>
-          </details>
         </section>
       ) : null}
 
