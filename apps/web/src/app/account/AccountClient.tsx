@@ -2234,8 +2234,23 @@ function CompactProfileHubSection({
               ) : null}
 
               {socialDetail.kind === "message" ? (
-                <div className={subtleWarningClass}>
-                  Direktnachrichten senden ist noch im Ausbau. Diese Detailansicht ist lesbar, Antworten folgen in einer nächsten Stufe.
+                <div className="space-y-2">
+                  <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--muted))]">Thread-Vorschau</p>
+                    <p className="mt-1 text-xs text-[rgb(var(--muted))]">
+                      Dieser Bereich ist als Basis für DM-v1 vorbereitet (Thread lesen, später Antworten).
+                    </p>
+                    <textarea
+                      rows={2}
+                      readOnly
+                      value=""
+                      placeholder="Antwortfeld wird mit DM-v1 freigeschaltet."
+                      className="mt-2 w-full resize-none rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-xs text-[rgb(var(--muted))] opacity-75"
+                    />
+                  </div>
+                  <div className={subtleWarningClass}>
+                    Direktnachrichten senden ist noch im Ausbau. Diese Detailansicht ist lesbar, Antworten folgen in einer nächsten Stufe.
+                  </div>
                 </div>
               ) : null}
             </div>

@@ -202,7 +202,7 @@ export function SwipeEventualitiesStep({
           <p className="mt-1 text-xs text-[rgb(var(--muted))]">Tippen wählt. Hoch/Mittel/Niedrig priorisiert. Ausschließen entfernt aus der Reihenfolge.</p>
         </div>
 
-        <div className="relative mt-1.5 min-h-0 flex-1 overflow-y-auto overscroll-y-contain pr-1 pb-3" style={{ WebkitOverflowScrolling: "touch" }}>
+        <div className="relative mt-1.5 min-h-0 flex-1 overflow-y-auto overscroll-y-contain pr-1 pb-[max(env(safe-area-inset-bottom),0.75rem)]" style={{ WebkitOverflowScrolling: "touch" }}>
           {loading ? (
             <p className="text-sm text-[rgb(var(--muted))]">Lade Eventualitäten …</p>
           ) : eventualities.length > 0 ? (

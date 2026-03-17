@@ -144,12 +144,14 @@ export function SwipesClient({
   const [eventualityStepItems, setEventualityStepItems] = useState<Eventuality[]>([]);
   const [eventualityStepLoading, setEventualityStepLoading] = useState(false);
   const [openGateAfterStep, setOpenGateAfterStep] = useState(false);
+  const [chromeRevealSignal, setChromeRevealSignal] = useState(0);
 
   const liveTimerRef = useRef<number | null>(null);
   const pendingVoteTimerRef = useRef<number | null>(null);
   const pendingVotePayloadRef = useRef<SwipeVotePersistPayload | null>(null);
 
   const isSolo = variant === "solo";
+  const isSwipeFocusMode = !isSolo;
 
   const freeVote = useFreeVoteLimit({
     enabled: requireAuthAfterFreeVotes && mode === "live" && !isSolo,
@@ -158,6 +160,10 @@ export function SwipesClient({
   const mobileActionChromeVisible = useMobileChromeVisibility({
     disabled: isSolo || eventualityStepOpen || detailOpen || freeVote.gateOpen,
     minY: 72,
+    hideDelta: 12,
+    showDelta: 14,
+    revealSignal: chromeRevealSignal,
+    holdVisibleMs: 900,
   });
 
   const isVoteLocked = freeVote.enabled && !freeVote.canVote;
@@ -225,12 +231,12 @@ export function SwipesClient({
   );
 
   useEffect(() => {
-    if (typeof document === "undefined") return;
+    if (typeof document === "undefined" || !isSwipeFocusMode) return;
     document.body.classList.add("vog-mobile-swipe-focus");
     return () => {
       document.body.classList.remove("vog-mobile-swipe-focus");
     };
-  }, []);
+  }, [isSwipeFocusMode]);
 
   useEffect(() => {
     let cancelled = false;
@@ -356,6 +362,7 @@ export function SwipesClient({
             ? "Ablehnung gespeichert."
             : "Offene Bewertung gespeichert.",
       );
+      setChromeRevealSignal((prev) => prev + 1);
       if (!item.hasEventualities) {
         queueVotePayload({ statementId: item.id, decision });
       }
@@ -409,6 +416,7 @@ export function SwipesClient({
     }
     freeVote.setGateOpen(false);
     announce("Letzte Bewertung wurde zurückgenommen.");
+    setChromeRevealSignal((prev) => prev + 1);
     setLastVote(null);
   }, [activeItem, announce, cancelPendingVote, eventualityStepOpen, freeVote, lastVote]);
 
@@ -446,6 +454,7 @@ export function SwipesClient({
         excludedEventualityIds: selection.excludedEventualityIds,
       });
       setTransitionHint("Variante mit Gewichtung gespeichert. Nächstes Thema folgt.");
+      setChromeRevealSignal((prev) => prev + 1);
       finishEventualityStep();
     },
     [eventualityStepDecision, eventualityStepItem, finishEventualityStep, queueVotePayload],
@@ -478,7 +487,7 @@ export function SwipesClient({
   }, [activeItem, eventualityStepOpen, handlePrimaryVote, openDetail]);
 
   return (
-    <div className={`mx-auto flex flex-col gap-4 px-4 pt-2 md:pt-6 ${isSolo ? "max-w-3xl" : "max-w-6xl"} pb-32 md:pb-24`}>
+    <div className={`mx-auto flex flex-col gap-3 px-3 pt-1.5 md:gap-4 md:px-4 md:pt-6 ${isSolo ? "max-w-3xl" : "max-w-6xl"} pb-32 md:pb-24`}>
       <div className="sr-only" aria-live="polite" aria-atomic="true">
         {liveMessage}
       </div>
@@ -657,6 +666,7 @@ export function SwipesClient({
             queueVotePayload({ statementId: eventualityStepItem.id, decision: eventualityStepDecision });
           }
           setTransitionHint("Variante übersprungen. Nächstes Thema folgt.");
+          setChromeRevealSignal((prev) => prev + 1);
           finishEventualityStep();
         }}
       />

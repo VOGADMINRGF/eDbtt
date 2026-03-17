@@ -108,6 +108,7 @@ export function SiteHeader({ initialUser }: { initialUser?: AuthUser | null }) {
   const [localeOpen, setLocaleOpen] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
+  const isSwipeFocusPath = pathname?.startsWith("/swipes") || pathname?.startsWith("/demo/swipes");
   const [loggingOut, setLoggingOut] = useState(false);
   const avatarLabel = deriveInitials(user?.name || user?.email || "Du");
   const avatarUrl = user?.avatarUrl ?? null;
@@ -218,7 +219,9 @@ export function SiteHeader({ initialUser }: { initialUser?: AuthUser | null }) {
     <header
       ref={headerRef}
       data-site-header="true"
-      className="sticky top-0 z-40 border-b border-[rgb(var(--border))] bg-[rgb(var(--bg))] backdrop-blur-md"
+      className={`sticky top-0 z-40 border-b border-[rgb(var(--border))] bg-[rgb(var(--bg))] backdrop-blur-md ${
+        isSwipeFocusPath ? "max-md:hidden" : ""
+      }`}
     >
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3">
         {/* Logo / Brand */}

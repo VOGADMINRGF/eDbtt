@@ -6,6 +6,8 @@ type UseMobileChromeVisibilityOptions = {
   topRevealY?: number;
   hideDelta?: number;
   showDelta?: number;
+  revealSignal?: number | string;
+  holdVisibleMs?: number;
 };
 
 export function useMobileChromeVisibility(options?: UseMobileChromeVisibilityOptions) {
@@ -15,11 +17,14 @@ export function useMobileChromeVisibility(options?: UseMobileChromeVisibilityOpt
     topRevealY = 20,
     hideDelta = 10,
     showDelta = 10,
+    revealSignal,
+    holdVisibleMs = 850,
   } = options ?? {};
 
   const [visible, setVisible] = useState(true);
   const lastYRef = useRef(0);
   const tickingRef = useRef(false);
+  const holdUntilRef = useRef(0);
 
   useEffect(() => {
     if (disabled) {
@@ -37,6 +42,14 @@ export function useMobileChromeVisibility(options?: UseMobileChromeVisibilityOpt
       window.requestAnimationFrame(() => {
         const nextY = window.scrollY;
         const delta = nextY - lastYRef.current;
+        const now = Date.now();
+
+        if (now < holdUntilRef.current) {
+          setVisible(true);
+          lastYRef.current = nextY;
+          tickingRef.current = false;
+          return;
+        }
 
         if (nextY <= topRevealY || nextY < minY) {
           setVisible(true);
@@ -57,6 +70,11 @@ export function useMobileChromeVisibility(options?: UseMobileChromeVisibilityOpt
     };
   }, [disabled, hideDelta, minY, showDelta, topRevealY]);
 
+  useEffect(() => {
+    if (disabled) return;
+    holdUntilRef.current = Date.now() + holdVisibleMs;
+    setVisible(true);
+  }, [disabled, holdVisibleMs, revealSignal]);
+
   return visible;
 }
-

@@ -70,6 +70,19 @@ Stand: 2026-03-17
   - `request.reject`
   - `match.request`
 - Wird vom Account-Detail-Sheet genutzt und aktualisiert danach Summary + Matches.
+- Route ist idempotent gehärtet:
+  - mehrfaches Accept/Reject bleibt stabil,
+  - `match.request` verhindert Pending-Duplikate,
+  - Self-Requests und ungültige Targets werden geblockt.
+
+### Social-State-Wahrheit (Request/Connection)
+
+- `pending`: offene Anfrage.
+- `accepted`: Verbindung aktiv (unabhängig von Quelle wie Founder/Referral/Sync).
+- `rejected`: explizit abgelehnt.
+- `canceled`: deaktivierte Altanfrage (z. B. Gegenlauf nach Ablehnung).
+- Verbindungslogik bewertet immer das Paar beider Richtungen (A->B / B->A), nicht nur einen Eintrag.
+- Bei Annahme werden offene Pending-Einträge des Paars auf konsistenten Zustand gebracht und ein Spiegelzustand (`social_accept_sync`) sichergestellt.
 
 ### Founder-Welcome Kette
 
@@ -84,6 +97,7 @@ Stand: 2026-03-17
 - Senden von Direktnachrichten zwischen Nutzern (UI + API end-to-end): noch nicht freigeschaltet.
 - Produkttexte markieren diesen Zustand explizit als "noch im Ausbau".
 - Im Detail-Sheet wird Antworten bewusst als "kommt bald" und deaktiviert dargestellt (keine Scheininteraktion).
+- Nachrichtendetail enthält eine DM-v1-Vorbereitung als Thread-Basis (Read-Only-Vorschau + vorbereitetes Reply-Feld).
 
 ## Community-Begriff (aktueller Scope)
 

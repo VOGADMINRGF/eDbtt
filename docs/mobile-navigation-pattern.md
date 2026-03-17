@@ -25,13 +25,16 @@ Stand: 2026-03-17
 - Mobile Leisten nutzen `useMobileChromeVisibility`.
 - Scroll nach unten: Leisten reduzieren/ausblenden.
 - Scroll nach oben oder nahe Seitenanfang: Leisten wieder sichtbar.
+- Nach Aktionen kann der Chrome kurz stabil sichtbar gehalten werden (`revealSignal` + `holdVisibleMs`), um Flackern zu vermeiden.
 
 ## Swipe-Sondermodus
 
-- In Swipes wird mobil `vog-mobile-swipe-focus` auf `body` gesetzt.
-- Dadurch werden mobile Header-Ebenen reduziert:
-  - Site-Header (`data-site-header="true"`) ausgeblendet.
-  - Demo-Header (`data-demo-header="true"`) ausgeblendet.
+- Komponentenseitig explizit:
+  - Site-Header kennt Swipe-Fokus-Route und rendert mobil reduziert/ausgeblendet.
+  - Demo-Header kennt Swipe-Fokus-Route und rendert mobil reduziert/ausgeblendet.
+- Fallback bleibt aktiv:
+  - In Swipes setzt der Client weiterhin `vog-mobile-swipe-focus` auf `body`.
+  - CSS-Fallback kann bei Edge-Cases Header-Ebenen zusätzlich reduzieren.
 - Ergebnis: mehr vertikale Fläche für Karte, Eventualitäten und Entscheidungsaktionen.
 
 ## Eventualitäten-Viewport

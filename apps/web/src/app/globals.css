@@ -1182,6 +1182,7 @@ body:not([data-analysis-ready="1"]) [data-requires-analysis] {
 }
 
 @media (max-width: 767px) {
+  /* Swipe focus fallback: component-level route logic is primary, this guards edge-cases. */
   body.vog-mobile-swipe-focus [data-site-header="true"],
   body.vog-mobile-swipe-focus [data-demo-header="true"] {
     display: none;

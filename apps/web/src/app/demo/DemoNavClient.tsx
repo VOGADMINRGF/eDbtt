@@ -30,7 +30,7 @@ export default function DemoNavClient() {
             key={item.href}
             href={withPersona(item.href, persona)}
             aria-current={active ? "page" : undefined}
-            className={`vog-tab ${active ? "vog-tab--active" : ""}`}
+            className={`vog-tab ${active ? "vog-tab--active" : ""} ${isSwipeRoute ? "px-2 py-1 text-[11px]" : ""}`}
           >
             {item.label}
           </Link>
