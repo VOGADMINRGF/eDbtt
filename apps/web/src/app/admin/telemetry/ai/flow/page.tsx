@@ -192,12 +192,12 @@ export default function FlowHealthPage() {
               <ActionCard
                 title="Feeds Pull (dryRun=false)"
                 desc="holt neue Feed-Items und schreibt Candidates"
-                cmd={`curl -sS -X POST "http://localhost:3000/api/feeds/pull" -H "content-type: application/json" -d '{"scope":"de","maxFeeds":20,"maxItemsPerFeed":12,"dryRun":false}' | jq`}
+                cmd={`EDITOR_TOKEN="<token>" curl -sS -X POST "http://localhost:3000/api/feeds/pull" -H "authorization: Bearer $EDITOR_TOKEN" -H "content-type: application/json" -d '{"scope":"de","maxFeeds":20,"maxItemsPerFeed":12,"dryRun":false}' | jq`}
               />
               <ActionCard
                 title="Analyze Pending (limit=10)"
                 desc="fuehrt KI-Analyse auf Candidates aus und erzeugt vote_drafts"
-                cmd={`curl -sS -X POST "http://localhost:3000/api/feeds/analyze-pending" -H "content-type: application/json" -d '{"limit":10}' | jq`}
+                cmd={`EDITOR_TOKEN="<token>" curl -sS -X POST "http://localhost:3000/api/feeds/analyze-pending" -H "authorization: Bearer $EDITOR_TOKEN" -H "content-type: application/json" -d '{"limit":10}' | jq`}
               />
               <ActionCard
                 title="Drafts (Admin UI)"

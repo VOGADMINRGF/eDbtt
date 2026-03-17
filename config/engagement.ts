@@ -1,12 +1,34 @@
-import type { EngagementLevel } from "@features/user/engagement";
+export {
+  XP_EVENTS,
+  ENGAGEMENT_LEVEL_ORDER,
+  ENGAGEMENT_LEVEL_THRESHOLDS,
+  getEngagementLevelFromXp,
+  normalizeEngagementLevel,
+  toEngagementLevelKey,
+  compareEngagementLevels,
+  meetsEngagementLevel,
+} from "../apps/web/src/config/engagement";
 
-type Threshold = { minXp: number; level: EngagementLevel };
+import {
+  ENGAGEMENT_LEVEL_THRESHOLDS,
+  getEngagementLevelFromXp,
+  toEngagementLevelKey,
+  type EngagementLevelKey,
+} from "../apps/web/src/config/engagement";
 
-export const ENGAGEMENT_THRESHOLDS: Threshold[] = [
-  { minXp: 50_000, level: "leuchtend" },
-  { minXp: 15_000, level: "inspirierend" },
-  { minXp: 5_000, level: "brennend" },
-  { minXp: 1_500, level: "begeistert" },
-  { minXp: 250, level: "engagiert" },
-  { minXp: 0, level: "interessiert" },
-];
+export type EngagementThreshold = {
+  minXp: number;
+  level: EngagementLevelKey;
+};
+
+// Legacy export for existing feature modules.
+export const ENGAGEMENT_THRESHOLDS: EngagementThreshold[] = ENGAGEMENT_LEVEL_THRESHOLDS.map(
+  (entry) => ({
+    minXp: entry.minXp,
+    level: toEngagementLevelKey(entry.level),
+  }),
+);
+
+export function getEngagementLevelKeyFromXp(totalXp: number): EngagementLevelKey {
+  return toEngagementLevelKey(getEngagementLevelFromXp(totalXp));
+}

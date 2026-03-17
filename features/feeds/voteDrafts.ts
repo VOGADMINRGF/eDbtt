@@ -5,6 +5,7 @@ import type {
   VoteDraftDoc,
 } from "./types";
 import { voteDraftsCol } from "./db";
+import { ensureAnlassraumFromFeedDraft } from "@features/anlassraum/service";
 
 export async function createDraftFromAnalyzeResult(
   candidate: StatementCandidate,
@@ -22,6 +23,7 @@ export async function createDraftFromAnalyzeResult(
     statementCandidateId: candidate._id,
   });
   if (existing?._id) {
+    await attachAnlassraum(existing._id, existing, candidate, analyzeResult);
     return existing._id;
   }
 
@@ -56,5 +58,37 @@ export async function createDraftFromAnalyzeResult(
   };
 
   const insert = await col.insertOne(doc);
+  await attachAnlassraum(insert.insertedId, doc, candidate, analyzeResult);
   return insert.insertedId;
+}
+
+async function attachAnlassraum(
+  draftId: ObjectId,
+  draft: VoteDraftDoc,
+  candidate: StatementCandidate,
+  analyzeResult: StatementCandidateAnalyzeResultDoc,
+) {
+  try {
+    const out = await ensureAnlassraumFromFeedDraft({
+      draftId,
+      draft,
+      candidate,
+      analyzeResult,
+    });
+    const col = await voteDraftsCol();
+    await col.updateOne(
+      { _id: draftId },
+      {
+        $set: {
+          anlassraumId: out.anlassraumId,
+          updatedAt: new Date(),
+        },
+      },
+    );
+  } catch (error: any) {
+    console.warn("[createDraftFromAnalyzeResult] anlassraum sync failed", {
+      draftId: draftId.toHexString(),
+      error: String(error?.message ?? error),
+    });
+  }
 }

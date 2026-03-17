@@ -5,7 +5,7 @@
 Diese Datei ist der kanonische Aufgabenstand fuer E150.  
 Wenn `Part14`, `Part15` oder Drift-Prompts abweichen, gewinnt diese Datei.
 
-Stand: 2026-03-04
+Stand: 2026-03-17
 
 ## Block-Board
 
@@ -42,12 +42,39 @@ Diese Liste ist die kanonische Umsetzungsliste fuer alle vorhandenen Drift-Promp
 
 Aktive Pflicht-Tasks:
 
-- **Keine** (Stand: 2026-03-04). Pflicht-Backlog ist abgearbeitet.
+- **Create/Runden Follow-up** (Stand: 2026-03-17):
+  - `/create`: Schrittweise Entkopplung vom reinen AnalyzeWorkspace hin zu dedizierten Modulen fuer `manual/source/ai`.
+  - `/runden`: Wechsel von Seed-Daten auf produktive Datenquelle vorbereiten.
+  - Legacy-Entry-Redirects auf `/runden` (z.B. Demo-Einstiegslinks) finalisieren und testen.
 
 Operative Tasks (aus aktuellem Chat/Repo):
 
 | Task | Status | Naechster Run | Evidenz/Notiz |
 | --- | --- | --- | --- |
+| Create IA v2: dedizierte Mode-Module (`manual/source/ai`) statt nur Workspace-Parametrisierung | Open | PR-0035 | Aktuell produktiv: `apps/web/src/app/create/CreateClient.tsx` nutzt Mode-Switch auf bestehendem AnalyzeWorkspace |
+| Runden Entry Surface auf produktive Quelle umstellen (statt Seed aus `features/topicRound/data.ts`) | Open | PR-0036 | Aktuell produktiv: `apps/web/src/app/runden/page.tsx` basiert auf `@features/topicRound` Seed-Repository |
+| Backward-Compatibility finalisieren: Redirect-Matrix fuer Legacy-/Demo-Entry-Pfade dokumentieren + testen | Open | PR-0037 | Bereits umgesetzt: `/thema-einreichen -> /create`; offen: Abschlussmatrix inkl. `/demo/runden`-Kommunikation |
+| E2E-Abnahme fuer `/create` + `/runden` (mobile-first IA, Deep-Links, CTA-Flows) | Open | PR-0038 | Derzeit nur Typecheck/Lint abgesichert; keine dedizierten E2E-Cases fuer neue Entry-Surfaces |
+| Community Group Surfaces: eigene API/Resolver fuer `/community?group=...` entkoppeln (statt Query-only Heuristik) | Open | PR-0039 | Aktuell in `apps/web/src/app/community/page.tsx` serverseitig direkt auf Basis Query + Best-Effort-Matching; als naechstes in dedizierte Resolver/API ueberfuehren |
+| Community Deep-Link Contracts vereinheitlichen (`group/type/scope/topic/dossier/region`) inkl. Guardrails | Open | PR-0040 | Aktuell werden Query-Parameter aus `originContext` durchgereicht; Validierung/Normalisierung fuer robuste externe Links fehlt |
+| Community E2E: Flows `Interesse -> Match -> Gruppe -> Profil/Inbox/Dossier` (mobile + desktop) absichern | Open | PR-0041 | Noch keine dedizierten E2E-Cases fuer neue Gruppenflaechen, nur Typecheck/Lint |
+| Feed/Anlassraum: `/create`-Modi `feed|cluster|ai_assist` an reale Auswahl (`ingest_item`/`anlassraum`) anbinden | Open | PR-FEED-ANLASS-02 | Modi sind im Wizard vorhanden (`apps/web/src/app/create/CreateClient.tsx`), aber noch ohne echte Picker/Assignment-UI |
+| Feed/Anlassraum: Cluster-Job (`regionCode + topicKey + timeWindow + publisherSpread`) implementieren | Open | PR-FEED-ANLASS-03 | `clusterKey` ist vorbereitet (`features/anlassraum/service.ts`), dedizierter Cluster-Worker fehlt noch |
+| Feed/Anlassraum: Status-Transitions fuer Review-Governance als API-Hardening umsetzen | Open | PR-FEED-ANLASS-04 | Statusmodell ist definiert (`features/anlassraum/types.ts`), Transition-Route mit Guardrails fehlt |
+| Feed/Anlassraum: Output-seed spezifische Publish-Flows (round/dossier/embed/social) ausbauen | Open | PR-FEED-ANLASS-05 | Seeds werden angelegt (`output_seed`), aber noch ohne dedizierte Output-Redaktions-/Publish-UI |
+| Feed/Anlassraum: Backfill fuer bestehende `vote_drafts` ohne `anlassraumId` einplanen | Open | PR-FEED-ANLASS-06 | Neue Drafts syncen automatisch; Altbestand braucht einmaliges Migrations-/Backfill-Skript |
+| Swipes: Kontextpfade haerten (`Zur Abstimmung` darf nur thematisch passendes Ziel oeffnen) | Open | PR-0042 | Aktuell kann CTA auf generische `/abstimmungen`-Liste fuehren; Topic/Dossier-gebundene Deep-Links + Fallback-Regeln fehlen |
+| Swipes Mobile: echte Gesture-Steuerung + fixe Bottom-Actions (kein Footer-Scroll fuer Kernaktionen) | Open | PR-0043 | Zielbild: links/rechts wischen wie Karten-Flow, Varianten als Popup/Sheet, Aktionen stets thumb-reachable |
+| Swipes Varianten-Schritt: Ranking/Weighting/Exclude finalisieren (kein Auto-Save beim reinen Klick) | Open | PR-0044 | Gewuenscht: explizites Speichern, Reihenfolge steuerbar (up/down/drag), Variante komplett ausschliessen, kurze Begruendung |
+| Swipes UX-Dedupe: redundante Vertiefungsboxen/`Mehr zur Karte` reduzieren | Open | PR-0045 | Gleiche Frage erscheint teils doppelt (Karte + Vertiefungsmodul + Follow-up); Informationsarchitektur straffen |
+| UI-Konsistenz Light/Dark + Button-Typografie auf Start/Swipes/Account harmonisieren | Open | PR-0046 | Gemeldete Kontrast-/Schriftprobleme in Light Mode und Dark-Surfaces noch nicht durchgaengig bereinigt |
+| Account Dark-Mode Nacharbeit (`/account` + Unterseiten) | Open | PR-0047 | User-Feedback: Dark-Surface wirkt inkonsistent gegen Restsystem; Components/Token-Check offen |
+| Journalism PR-1: `source_anchor` als offener Anlassgeber fuer Dossier integrieren | Open | PR-JOURNALISM-01 | Ankermodel fuer article/print/video/podcast/talkshow/social_post + Header-Block `Ausgeloest durch` noch offen |
+| Journalism PR-2: Truth Guardrails + Factcheck-Intervention sichtbar machen | Open | PR-JOURNALISM-02 | TruthStatusPanel/SourceDivergencePanel + prominente Gegenquellen/Widerspruchslogik noch offen |
+| Journalism PR-3: Newsroom Embed/QR Companion fuer offenen Dossierraum | Open | PR-JOURNALISM-03 | `qr-studio`/`embed`-Flow fuer Redaktionen als offener Begleitraum (Anlass != Wahrheit) noch offen |
+| Env-Key-Hardening abschliessen (`YOU*/ARI*`, `WEB_POSTGRES_URL/URI`, `ARANGO_PASSWORD/ROOT`) | Open | PR-ENV-01 | Erste Alias-Fixes vorhanden; Rest-Audit + konsistente Runtime-Aliasse fuer alle Pfade offen |
+| Mongo SRV `ECONNREFUSED` im Build aufklaeren und robusten Fallback definieren | Open | PR-ENV-02 | Build loggt `querySrv ECONNREFUSED _mongodb._tcp.cluster0...`; DNS/Netz/Config-Fallback fuer statische Generierung offen |
+| Typelink-Check (`typecheck + lint`) fuer Web ausgefuehrt | Done (2026-03-17) | - | `pnpm -C apps/web run typecheck`, `pnpm -C apps/web run lint` |
 | Policy-Standards/Anti-Populismus Schema (debateFrame) in Topic/Statement integrieren | Done | - | `features/analyze/schemas.ts`, `features/analyze/debateFrame.ts`, `features/analyze/analyzeContribution.ts` |
 | API-Routen: Signaturen/`req.json()`-Mehrfachlese auditieren | Done | - | Audit: keine Handler mit mehrfacher `req.json()`-Nutzung pro Request gefunden |
 | Helpers: Effective-Findings/Filter entduplizieren (optional) | Done | - | Audit: keine Duplikate gefunden; zentral in `features/dossier/effective.ts` |
@@ -154,3 +181,8 @@ Ist/Unerledigt:
 3. `Part15.md` PR-Log aktualisieren.
 4. `OpenTasks.md` Status/Naechster Run aktualisieren.
 5. `Changes / Verification / Next Steps` ausgeben.
+
+## Verifikation letzter Run
+
+- 2026-03-17: `pnpm -C apps/web run typecheck` -> gruen.
+- 2026-03-17: `pnpm -C apps/web run lint` -> gruen.

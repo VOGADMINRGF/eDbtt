@@ -2,6 +2,7 @@ import {
   MAX_STORED_CONTRIBUTION_CREDITS,
   SWIPES_PER_CONTRIBUTION_CREDIT,
   XP_PER_SWIPE,
+  applySwipeForCredits as applySwipeForCreditsState,
 } from "../../config/credits";
 import { getEngagementLevel, swipesUntilNextCredit } from "./engagement";
 import type { EngagementLevel } from "./engagement";
@@ -30,26 +31,26 @@ export function applySwipeForCredits(state: SwipeCreditState): SwipeCreditResult
     ? Math.max(0, Math.floor(state.contributionCredits || 0))
     : 0;
 
-  const swipeCountTotal = prevSwipes + 1;
+  const nextState = applySwipeForCreditsState({
+    swipeCountTotal: prevSwipes,
+    creditsAvailable: prevCredits,
+  });
+
   const xp = prevXp + XP_PER_SWIPE;
+  const earnedCredits = Math.max(0, nextState.creditsAvailable - prevCredits);
+  const cappedTotalCredits = Math.min(MAX_STORED_CONTRIBUTION_CREDITS, nextState.creditsAvailable);
 
   const prevCompletedCredits = Math.floor(prevSwipes / SWIPES_PER_CONTRIBUTION_CREDIT);
-  const nextCompletedCredits = Math.floor(swipeCountTotal / SWIPES_PER_CONTRIBUTION_CREDIT);
-  const rawEarnedCredits = Math.max(0, nextCompletedCredits - prevCompletedCredits);
-
-  const cappedTotalCredits = Math.min(
-    MAX_STORED_CONTRIBUTION_CREDITS,
-    prevCredits + rawEarnedCredits,
-  );
-  const earnedCredits = Math.max(0, cappedTotalCredits - prevCredits);
+  const nextCompletedCredits = Math.floor(nextState.swipeCountTotal / SWIPES_PER_CONTRIBUTION_CREDIT);
+  const shouldHaveEarned = Math.max(0, nextCompletedCredits - prevCompletedCredits);
 
   const engagementLevel = getEngagementLevel(xp);
-  const nextCreditIn = swipesUntilNextCredit(swipeCountTotal);
+  const nextCreditIn = swipesUntilNextCredit(nextState.swipeCountTotal);
 
   return {
-    swipeCountTotal,
+    swipeCountTotal: nextState.swipeCountTotal,
     xp,
-    earnedCredits,
+    earnedCredits: Math.min(earnedCredits, shouldHaveEarned),
     contributionCredits: cappedTotalCredits,
     engagementLevel,
     nextCreditIn,

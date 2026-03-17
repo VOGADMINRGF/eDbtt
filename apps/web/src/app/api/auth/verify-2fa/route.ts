@@ -34,6 +34,10 @@ type VerifyBody = {
   next?: string;
 };
 
+function errorResponse(error: string, status: number) {
+  return NextResponse.json({ error, message: error }, { status });
+}
+
 export async function POST(req: NextRequest) {
   try {
     const ip = (req.headers.get("x-forwarded-for") || "local").split(",")[0].trim();
@@ -41,26 +45,26 @@ export async function POST(req: NextRequest) {
       salt: "auth",
     });
     if (!ipLimit.ok) {
-      return NextResponse.json({ error: "rate_limited" }, { status: 429 });
+      return errorResponse("rate_limited", 429);
     }
 
     const body = (await req.json().catch(() => ({}))) as VerifyBody;
     const method = body.method === "totp" ? "otp" : body.method;
     const redirectUrl = sanitizeRedirect(body.next);
     if (!method) {
-      return NextResponse.json({ error: "method_required" }, { status: 400 });
+      return errorResponse("method_required", 400);
     }
 
     const pendingId = req.cookies.get("pending_2fa")?.value;
     if (!pendingId || !ObjectId.isValid(pendingId)) {
-      return NextResponse.json({ error: "challenge_missing" }, { status: 400 });
+      return errorResponse("challenge_missing", 400);
     }
 
     const challenges = await piiCol<TwoFactorChallengeDoc>(TWO_FA_COLLECTION);
     const challenge = await challenges.findOne({ _id: new ObjectId(pendingId) });
     if (!challenge) {
       await clearPendingTwoFactorCookie();
-      return NextResponse.json({ error: "challenge_missing" }, { status: 400 });
+      return errorResponse("challenge_missing", 400);
     }
 
     if (challenge.expiresAt < new Date()) {
@@ -69,11 +73,11 @@ export async function POST(req: NextRequest) {
         { $set: { consumedAt: new Date(), status: "expired" } },
       );
       await clearPendingTwoFactorCookie();
-      return NextResponse.json({ error: "challenge_expired" }, { status: 400 });
+      return errorResponse("challenge_expired", 400);
     }
 
     if (challenge.method !== method) {
-      return NextResponse.json({ error: "method_mismatch" }, { status: 400 });
+      return errorResponse("method_mismatch", 400);
     }
 
     const userLimit = await rateLimitOrThrow(
@@ -83,7 +87,7 @@ export async function POST(req: NextRequest) {
       { salt: "auth-user" },
     );
     if (!userLimit.ok) {
-      return NextResponse.json({ error: "rate_limited" }, { status: 429 });
+      return errorResponse("rate_limited", 429);
     }
 
     const users = await coreCol<CoreUserAuthSnapshot & { passwordHash?: string }>("users");
@@ -97,7 +101,7 @@ export async function POST(req: NextRequest) {
         { $set: { consumedAt: new Date(), status: "user_missing" } },
       );
       await clearPendingTwoFactorCookie();
-      return NextResponse.json({ error: "user_not_found" }, { status: 404 });
+      return errorResponse("user_not_found", 404);
     }
 
     const codeStr =
@@ -105,7 +109,7 @@ export async function POST(req: NextRequest) {
         ? String(body.code).trim()
         : "";
     if (!codeStr) {
-      return NextResponse.json({ error: "code_required" }, { status: 400 });
+      return errorResponse("code_required", 400);
     }
 
     const demo = isDemoUser({ _id: challenge.userId, email: credentials?.email || user.email });
@@ -125,7 +129,7 @@ export async function POST(req: NextRequest) {
         if (!secret || secret.length < 6) {
           await challenges.deleteOne({ _id: challenge._id });
           await clearPendingTwoFactorCookie();
-          return NextResponse.json({ error: "totp_not_setup" }, { status: 400 });
+          return errorResponse("totp_not_setup", 400);
         }
         valid = verifyTotpToken(codeStr, secret);
       }
@@ -137,7 +141,7 @@ export async function POST(req: NextRequest) {
         userId: String(challenge.userId),
         meta: { method, ipHash: sha256(ip) },
       });
-      return NextResponse.json({ error: "invalid_code" }, { status: 401 });
+      return errorResponse("invalid_code", 401);
     }
 
     const now = new Date();
@@ -148,14 +152,18 @@ export async function POST(req: NextRequest) {
     await clearPendingTwoFactorCookie();
     await applySessionCookies(user);
 
+    await logAuthEvent("auth.2fa.success", {
+      userId: String(challenge.userId),
+      meta: { method, ipHash: sha256(ip) },
+    });
     await logAuthEvent("auth.login.success", {
       userId: String(challenge.userId),
       meta: { ipHash: sha256(ip), via: method },
     });
 
-    return NextResponse.json({ ok: true, redirectUrl });
+    return NextResponse.json({ ok: true, redirectUrl, message: "2fa_success" });
   } catch (err: any) {
     console.error("[verify-2fa] failed", err);
-    return NextResponse.json({ error: "server_error" }, { status: 500 });
+    return errorResponse("server_error", 500);
   }
 }

@@ -51,6 +51,7 @@ export async function GET(
 function serializeDraft(draft: any, regionName: string) {
   return {
     id: draft._id.toHexString(),
+    anlassraumId: draft.anlassraumId?.toHexString?.() ?? null,
     status: draft.status,
     title: draft.title,
     summary: draft.summary,

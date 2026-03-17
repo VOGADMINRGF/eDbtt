@@ -80,6 +80,12 @@ export const NAV_SECTIONS: NavSection[] = [
         keywords: ["overrides", "users", "access"],
       },
       {
+        href: "/admin/features",
+        label: "Feature Control",
+        description: "Feature-Matrix & Limits je Access Tier",
+        keywords: ["features", "limits", "tiers", "engagement", "credits"],
+      },
+      {
         href: "/admin/newsletter",
         label: "Newsletter",
         description: "Abonnenten verwalten",
@@ -151,10 +157,22 @@ export const NAV_SECTIONS: NavSection[] = [
         keywords: ["eventualities", "scenarios"],
       },
       {
+        href: "/admin/feeds",
+        label: "Feed Control",
+        description: "Pull, Analyze, Batch, Config",
+        keywords: ["feeds", "pipeline", "batch", "pull", "analyze"],
+      },
+      {
         href: "/admin/feeds/drafts",
         label: "Feed Drafts",
         description: "Entwuerfe aus Feeds",
         keywords: ["feeds", "drafts"],
+      },
+      {
+        href: "/admin/feeds/anlassraum",
+        label: "Anlassraeume",
+        description: "Feed -> Anlassraum -> Outputs",
+        keywords: ["feeds", "anlassraum", "outputs", "cluster"],
       },
       {
         href: "/admin/pilot",

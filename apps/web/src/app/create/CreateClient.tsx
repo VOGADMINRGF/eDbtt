@@ -191,9 +191,19 @@ export default function CreateClient({
       body: "Aus Artikel, Stream oder Notiz strukturiert in eine Runde ueberfuehren.",
     },
     {
-      id: "ai",
-      title: "KI-gestuetzt",
-      body: "Schneller Vorschlag fuer Claims, Fragen und offene Punkte.",
+      id: "feed",
+      title: "Feed-Treffer",
+      body: "Aus Ingest-Items einen Anlassraum und danach Outputs erzeugen.",
+    },
+    {
+      id: "cluster",
+      title: "Themencluster",
+      body: "Mehrere Quellen nach Region/Zeitraum/Thema gemeinsam strukturieren.",
+    },
+    {
+      id: "ai_assist",
+      title: "KI-Assist",
+      body: "Vorschlaege fuer Claims, Fragen, Segmente und Gegenpositionen.",
     },
   ];
 
@@ -213,7 +223,7 @@ export default function CreateClient({
             Neue Runde starten
           </h2>
           <p className="max-w-3xl text-sm text-[rgb(var(--muted))]">
-            Ein Einstieg, drei Modi: manuell, aus Quelle oder KI-gestuetzt. Die eigentliche Erstellung bleibt im selben Flow.
+            Ein Einstieg, fuenf Modi: manuell, Quelle, Feed, Cluster und KI-Assist. Die Erstellung bleibt im selben Flow.
           </p>
 
           <div className="flex flex-wrap items-center gap-2 text-[11px] text-[rgb(var(--muted))]">
@@ -258,7 +268,19 @@ export default function CreateClient({
         </section>
       ) : null}
 
-      {mode === "ai" ? (
+      {mode === "feed" ? (
+        <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-3 text-sm text-[rgb(var(--muted))]">
+          Feed-Treffer zuerst: ueberfuehre ingestierte Quellen in einen Anlassraum und waehle danach den passenden Output (Runde, Dossier, Embed, Social).
+        </section>
+      ) : null}
+
+      {mode === "cluster" ? (
+        <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-3 text-sm text-[rgb(var(--muted))]">
+          Cluster-Modus: gruppiere mehrere Quellen in einem Zeitfenster zu einem gemeinsamen Anlassraum mit Konfliktlinien.
+        </section>
+      ) : null}
+
+      {mode === "ai_assist" ? (
         <section className="rounded-2xl border border-[rgb(var(--grad-from))]/35 bg-[rgb(var(--card))] px-4 py-3 text-sm text-[rgb(var(--muted))]">
           KI-Modus nutzt die bestehende Analyse-Route <code>/api/contributions/analyze</code>. Ergebnis bleibt editierbar, bevor du finalisierst.
         </section>
@@ -295,13 +317,23 @@ export default function CreateClient({
       <AnalyzeWorkspace
         key={`${mode}-${intent}-${dossierId ?? "no-dossier"}`}
         mode={intent}
-        defaultLevel={mode === "manual" ? 1 : mode === "source" ? 2 : 3}
+        defaultLevel={
+          mode === "manual"
+            ? 1
+            : mode === "source" || mode === "feed"
+              ? 2
+              : 3
+        }
         storageKey={
           mode === "manual"
             ? "vog_create_manual_statement_v1"
             : mode === "source"
               ? "vog_create_source_contribution_v1"
-              : "vog_create_ai_contribution_v1"
+              : mode === "feed"
+                ? "vog_create_feed_contribution_v1"
+                : mode === "cluster"
+                  ? "vog_create_cluster_contribution_v1"
+                  : "vog_create_ai_assist_contribution_v1"
         }
         analyzeEndpoint="/api/create/analyze"
         saveEndpoint="/api/create/save"

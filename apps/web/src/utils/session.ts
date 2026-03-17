@@ -16,6 +16,10 @@ export type SessionPayload = {
   iat: number; // ms epoch
   exp: number; // ms epoch
   tfa?: boolean;
+  accessTier?: string | null;
+  engagementLevel?: string | null;
+  b2cPlanId?: string | null;
+  vogMembershipStatus?: string | null;
 };
 
 // ---------- intern: JWT (HS256) ----------
@@ -66,7 +70,15 @@ export async function getSessionToken(): Promise<string | undefined> {
 export async function createSession(
   uid: string,
   roles?: Array<UserRole | string | null | undefined> | null,
-  opts?: { twoFactorAuthenticated?: boolean },
+  opts?: {
+    twoFactorAuthenticated?: boolean;
+    session?: {
+      accessTier?: string | null;
+      engagementLevel?: string | null;
+      b2cPlanId?: string | null;
+      vogMembershipStatus?: string | null;
+    };
+  },
 ) {
   const now = Date.now();
   const days = Number(env.SESSION_TTL_DAYS ?? 7);
@@ -78,6 +90,10 @@ export async function createSession(
     iat: now,
     exp,
     tfa: opts?.twoFactorAuthenticated ?? true,
+    accessTier: opts?.session?.accessTier ?? null,
+    engagementLevel: opts?.session?.engagementLevel ?? null,
+    b2cPlanId: opts?.session?.b2cPlanId ?? null,
+    vogMembershipStatus: opts?.session?.vogMembershipStatus ?? null,
   });
 
   const jar = await cookies();

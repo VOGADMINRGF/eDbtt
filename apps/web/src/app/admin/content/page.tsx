@@ -76,9 +76,19 @@ const SECTIONS: Array<{ title: string; items: HubItem[] }> = [
     title: "Feeds & Redaktion",
     items: [
       {
+        title: "Feed Control",
+        description: "Feeds konfigurieren, Pull/Analyze/Batch ausfuehren",
+        href: "/admin/feeds",
+      },
+      {
         title: "Feed Drafts",
         description: "Entwuerfe aus Feeds sichten und publizieren",
         href: "/admin/feeds/drafts",
+      },
+      {
+        title: "Anlassraeume",
+        description: "Anlassraum-Container und Output-Seeds",
+        href: "/admin/feeds/anlassraum",
       },
       {
         title: "Editorial Queue",

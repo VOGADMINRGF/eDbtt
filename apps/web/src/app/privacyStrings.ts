@@ -57,7 +57,7 @@ const AI_USAGE_TITLE = {
 };
 
 const AI_USAGE_BODY = {
-  de: "Für Analyse- und Auswertefunktionen setzen wir externe KI-Dienste wie OpenAI, Anthropic (Claude), Mistral oder Google Gemini ein. Diese Systeme werden ausschließlich serverseitig über unsere eigenen API-Schlüssel angesprochen. Auf deiner Seite setzen wir dafür keine eigenen Drittanbieter-Cookies. Welche Daten wir an diese Dienste übergeben und nach welchen Regeln wir sie einsetzen, beschreiben wir ausführlich in unserer Datenschutzerklärung.",
+  de: "Für Analyse- und Auswertefunktionen setzen wir externe KI-Dienste wie OpenAI, Anthropic (Claude), Mistral, Gemini oder Gemma ein. Diese Systeme werden ausschließlich serverseitig über unsere eigenen API-Schlüssel angesprochen. Wir nutzen dafür keine Tracking-Pixel und erstellen keine Werbeprofile. Welche Daten wir an diese Dienste übergeben und nach welchen Regeln wir sie einsetzen, beschreiben wir ausführlich in unserer Datenschutzerklärung.",
 };
 
 const DIALOG_TITLE = {

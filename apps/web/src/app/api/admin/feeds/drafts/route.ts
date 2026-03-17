@@ -39,17 +39,21 @@ export async function GET(req: NextRequest) {
   ]);
 
   const summaries = await Promise.all(
-    items.map(async (draft) => ({
-      id: formatObjectId(draft._id),
-      title: draft.title,
-      status: draft.status,
-      regionCode: draft.regionCode ?? null,
-      regionName: await resolveRegionName(draft.regionCode),
-      sourceUrl: draft.sourceUrl ?? null,
-      pipeline: draft.pipeline ?? "feeds_to_statementCandidate",
-      createdAt: draft.createdAt?.toISOString?.() ?? null,
-      analyzeCompletedAt: draft.analyzeCompletedAt?.toISOString?.() ?? null,
-    })),
+    items.map(async (draft) => {
+      const anlassraumId = formatObjectId(draft.anlassraumId ?? null) || null;
+      return {
+        id: formatObjectId(draft._id),
+        anlassraumId,
+        title: draft.title,
+        status: draft.status,
+        regionCode: draft.regionCode ?? null,
+        regionName: await resolveRegionName(draft.regionCode),
+        sourceUrl: draft.sourceUrl ?? null,
+        pipeline: draft.pipeline ?? "feeds_to_statementCandidate",
+        createdAt: draft.createdAt?.toISOString?.() ?? null,
+        analyzeCompletedAt: draft.analyzeCompletedAt?.toISOString?.() ?? null,
+      };
+    }),
   );
 
   return NextResponse.json({

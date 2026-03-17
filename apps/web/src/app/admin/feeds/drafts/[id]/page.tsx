@@ -124,6 +124,14 @@ export default function AdminDraftDetailPage() {
           <StatusBadge status={draft.status} />
           <span className="text-[rgb(var(--muted))]">·</span>
           <span>{draft.regionName ?? "Global/Offen"}</span>
+          {draft.anlassraumId && (
+            <>
+              <span className="text-[rgb(var(--muted))]">·</span>
+              <a href={`/admin/feeds/anlassraum/${draft.anlassraumId}`} className="text-sky-600 hover:underline">
+                Anlassraum
+              </a>
+            </>
+          )}
           {draft.sourceUrl && (
             <>
               <span className="text-[rgb(var(--muted))]">·</span>

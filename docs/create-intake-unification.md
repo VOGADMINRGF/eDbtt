@@ -45,7 +45,10 @@ Optional mode parameter:
 
 - `mode=manual` (manuell starten)
 - `mode=source` (aus Quelle)
-- `mode=ai` (KI-gestuetzt, weiterhin optional)
+- `mode=feed` (Feed-Treffer uebernehmen)
+- `mode=cluster` (Themencluster starten)
+- `mode=ai_assist` (KI-gestuetzte Vorstrukturierung, optional)
+- Legacy alias: `mode=ai` wird intern auf `mode=ai_assist` gemappt.
 
 Optional context parameters:
 

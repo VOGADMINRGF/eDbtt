@@ -3,6 +3,8 @@ import { ObjectId, getCol } from "@core/db/triMongo";
 import { applySwipeForCredits } from "@features/user/credits";
 import { getEngagementLevel } from "@features/user/engagement";
 import type { EngagementLevel } from "@features/user/engagement";
+import { normalizeAccessTier } from "../../config/accessTiers";
+import { FEATURE_MATRIX_DEFAULTS } from "../../config/featureMatrix";
 
 type SwipeTelemetry = {
   _id?: ObjectId;
@@ -26,6 +28,8 @@ type SwipeDoc = {
 
 type UserUsageDoc = {
   _id: ObjectId;
+  accessTier?: string | null;
+  b2cPlanId?: string | null;
   usage?: {
     swipeCountTotal?: number;
     swipesThisMonth?: number;
@@ -105,9 +109,18 @@ export async function registerSwipeForUser(
   }
 
   const Users = await getCol<UserUsageDoc>("users");
-  const userDoc = await Users.findOne({ _id: oid }, { projection: { usage: 1 } });
+  const userDoc = await Users.findOne(
+    { _id: oid },
+    { projection: { usage: 1, accessTier: 1, b2cPlanId: 1 } },
+  );
   if (!userDoc) {
     return { ok: false, error: "USER_NOT_FOUND" };
+  }
+
+  const accessTier = normalizeAccessTier(userDoc.accessTier ?? userDoc.b2cPlanId ?? null);
+  const tierFeatures = FEATURE_MATRIX_DEFAULTS[accessTier];
+  if (!tierFeatures.canSwipe) {
+    return { ok: false, error: "FORBIDDEN" };
   }
 
   const now = new Date();

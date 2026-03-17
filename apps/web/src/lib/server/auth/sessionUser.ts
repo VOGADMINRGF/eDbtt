@@ -12,6 +12,8 @@ export type SessionUser = {
   name?: string | null;
   roles?: UserRole[] | null;
   role?: UserRole | null;
+  accessTier?: string | null;
+  b2cPlanId?: string | null;
   verification?: any;
   sessionTwoFactorAuthenticated?: boolean;
   sessionValid?: boolean;
@@ -43,7 +45,17 @@ export async function getSessionUser(req?: NextRequest): Promise<SessionUser | n
   const users = await getCol<SessionUser>("users");
   const user = await users.findOne(
     { _id: new ObjectId(uid) },
-    { projection: { roles: 1, role: 1, email: 1, name: 1, verification: 1 } },
+    {
+      projection: {
+        roles: 1,
+        role: 1,
+        email: 1,
+        name: 1,
+        accessTier: 1,
+        b2cPlanId: 1,
+        verification: 1,
+      },
+    },
   );
   if (!user) return null;
 
