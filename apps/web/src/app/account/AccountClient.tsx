@@ -943,6 +943,22 @@ function CompactProfileHubSection({
     return null;
   };
 
+  const buildCommunityHref = (origin?: SocialOriginContext | null) => {
+    if (!origin?.communityKey) return "/community";
+    const params = new URLSearchParams();
+    params.set("group", origin.communityKey);
+    params.set("type", origin.type);
+    if (origin.scope) params.set("scope", origin.scope);
+    if (origin.topicKey) params.set("topic", origin.topicKey);
+    if (origin.topicLabel) params.set("topicLabel", origin.topicLabel);
+    if (origin.dossierId) params.set("dossierId", origin.dossierId);
+    if (origin.dossierTitle) params.set("dossierTitle", origin.dossierTitle);
+    if (origin.regionLabel) params.set("regionLabel", origin.regionLabel);
+    if (origin.communityLabel) params.set("communityLabel", origin.communityLabel);
+    if (origin.reasonLabel) params.set("reasonLabel", origin.reasonLabel);
+    return `/community?${params.toString()}`;
+  };
+
   const profileHrefForShareId = (shareId?: string | null) =>
     shareId ? `/profile/${encodeURIComponent(shareId)}` : null;
 
@@ -2967,7 +2983,11 @@ function CompactProfileHubSection({
               socialThreadContext?.originContext?.dossierId ? (
                 <div className="mt-2 grid gap-2 sm:grid-cols-3">
                   {socialDetail.originContext?.communityKey || socialThreadContext?.originContext?.communityKey ? (
-                    <Link href={`/community?group=${encodeURIComponent(socialDetail.originContext?.communityKey ?? socialThreadContext?.originContext?.communityKey ?? "")}`} className={`${secondaryLightButtonClass} w-full`} onClick={() => setSocialDetail(null)}>
+                    <Link
+                      href={buildCommunityHref(socialDetail.originContext ?? socialThreadContext?.originContext)}
+                      className={`${secondaryLightButtonClass} w-full`}
+                      onClick={() => setSocialDetail(null)}
+                    >
                       Gruppe öffnen
                     </Link>
                   ) : (

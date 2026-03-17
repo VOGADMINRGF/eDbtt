@@ -83,6 +83,18 @@ Stand: 2026-03-17
   - Thema + Region => regionale Gruppe (z. B. `Mobilität · Berlin`)
   - Thema ohne Region => überregionale Gruppe
   - Dossier-Kontext ist über `originContext` strukturell anschlussfähig.
+- `/community?group=...` rendert jetzt echte Gruppenflächen statt nur Hub-Links:
+  - Gruppenkopf mit Typ/Scope/Warum-Kontext,
+  - passende Menschen (Avatar, Status, nächste Aktion),
+  - relevante Themen/Swipes,
+  - Dossier-Kontext (wenn vorhanden, sonst ehrlicher Fallback),
+  - Beiträge/Aktions-CTAs.
+- Gruppentypen in Community sind sichtbar getrennt:
+  - `regional_group`
+  - `interest_match` (überregional)
+  - `dossier`
+  - `founder` / `system`
+- Detail-Sheet-Links (`Gruppe öffnen`, `Thema öffnen`, `Dossier öffnen`) übergeben jetzt den Kontext aus `originContext` vollständig, damit Zielseiten inhaltlich anschlussfähig bleiben.
 - Desktop-Hierarchie ist breiter und stärker gestaffelt:
   - größere Seitenbreite in `/account`,
   - zweispaltige Ergebnis-/Aktionsbereiche bei großen Breakpoints,
@@ -163,7 +175,7 @@ Stand: 2026-03-17
 
 `/community` ist aktuell ein Community-Hub mit Fokus auf:
 
-- Discovery (Matching-Ausgangspunkt in Account/Inbox),
+- Discovery (Matching-Ausgangspunkt in Account/Inbox) inkl. gruppenbasierten Kontextflächen,
 - Community-Beiträge (`/community/contributions`),
 - Verlinkung in Streams/Campaigns.
 

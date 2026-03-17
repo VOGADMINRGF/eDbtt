@@ -58,3 +58,8 @@ Stand: 2026-03-17
   - Nach Senden bleibt der Schreibfluss stabil (Fokus bleibt im Composer, Thread-Ende wird sanft nachgeführt).
   - Read/Unread-Rückläufe werden nach Thread-Öffnung unmittelbar in der Inbox-Übersicht nachgezogen.
   - DM bleibt bewusst v1 (kein Realtime-Messenger-Verhalten).
+- Für Community-Gruppenflächen mobil gilt:
+  - kompakter Gruppenkopf,
+  - tappbare Menschenkarten mit klaren Primäraktionen,
+  - Themen-/Dossier-CTAs in kurzen, gut erreichbaren Blöcken,
+  - kein Chat-Versprechen, sondern Discovery + Beiträge + Kontakte.
