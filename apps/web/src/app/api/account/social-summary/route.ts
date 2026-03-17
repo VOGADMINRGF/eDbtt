@@ -53,23 +53,37 @@ function normalizeId(value: unknown): string {
   return String(value);
 }
 
-function resolveSenderLabel(params: {
+type SenderInfo = {
+  label: string;
+  avatarUrl: string | null;
+  shareId: string | null;
+};
+
+function clean(value: unknown) {
+  return typeof value === "string" ? value.trim() : "";
+}
+
+function resolveSenderInfo(params: {
   fromId: string;
   kind?: string | null;
   source?: string | null;
-  senderLabelById: Map<string, string>;
-}) {
-  if (params.senderLabelById.has(params.fromId)) {
-    return params.senderLabelById.get(params.fromId) ?? "Nutzer:in";
+  senderInfoById: Map<string, SenderInfo>;
+}): SenderInfo {
+  if (params.senderInfoById.has(params.fromId)) {
+    return params.senderInfoById.get(params.fromId) ?? { label: "Nutzer:in", avatarUrl: null, shareId: null };
   }
   if (
     params.fromId === FOUNDER_FALLBACK_USER_ID ||
     params.kind === "founder_welcome" ||
     params.source === "founder_welcome"
   ) {
-    return `${FOUNDER_FALLBACK_DISPLAY_NAME} · ${FOUNDER_ACCOUNT_EMAIL}`;
+    return {
+      label: `${FOUNDER_FALLBACK_DISPLAY_NAME} · ${FOUNDER_ACCOUNT_EMAIL}`,
+      avatarUrl: null,
+      shareId: null,
+    };
   }
-  return "Unbekannter Kontakt";
+  return { label: "Unbekannter Kontakt", avatarUrl: null, shareId: null };
 }
 
 export async function GET() {
@@ -145,54 +159,73 @@ export async function GET() {
       ? await usersCol
           .find(
             { _id: { $in: senderIds } },
-            { projection: { name: 1, email: 1, "profile.displayName": 1 } },
+            { projection: { name: 1, email: 1, "profile.displayName": 1, "profile.avatarUrl": 1, "profile.publicShareId": 1 } },
           )
           .toArray()
       : [];
 
-  const senderLabelById = new Map<string, string>([
-    [FOUNDER_FALLBACK_USER_ID, `${FOUNDER_FALLBACK_DISPLAY_NAME} · ${FOUNDER_ACCOUNT_EMAIL}`],
+  const senderInfoById = new Map<string, SenderInfo>([
+    [
+      FOUNDER_FALLBACK_USER_ID,
+      {
+        label: `${FOUNDER_FALLBACK_DISPLAY_NAME} · ${FOUNDER_ACCOUNT_EMAIL}`,
+        avatarUrl: null,
+        shareId: null,
+      },
+    ],
   ]);
   for (const doc of senderDocs) {
     const label =
-      (typeof doc?.profile?.displayName === "string" && doc.profile.displayName.trim()) ||
-      (typeof doc?.name === "string" && doc.name.trim()) ||
-      (typeof doc?.email === "string" && doc.email.trim()) ||
+      clean(doc?.profile?.displayName) ||
+      clean(doc?.name) ||
+      clean(doc?.email) ||
       "Nutzer:in";
-    senderLabelById.set(String(doc._id), label);
+    senderInfoById.set(String(doc._id), {
+      label,
+      avatarUrl: clean(doc?.profile?.avatarUrl) || null,
+      shareId: clean(doc?.profile?.publicShareId) || null,
+    });
   }
 
   const friendRequests = friendRequestDocs.map((doc) => {
     const fromId = normalizeId(doc.fromUserId);
+    const sender = resolveSenderInfo({
+      fromId,
+      source: doc.source ?? null,
+      senderInfoById,
+    });
     return {
       id: String(doc._id),
-      fromLabel: resolveSenderLabel({
-        fromId,
-        source: doc.source ?? null,
-        senderLabelById,
-      }),
+      fromLabel: sender.label,
       message: typeof doc.message === "string" ? doc.message.trim().slice(0, 160) : null,
       createdAt: toIso(doc.createdAt),
+      fromUserId: fromId || null,
+      fromShareId: sender.shareId,
+      fromAvatarUrl: sender.avatarUrl,
     };
   });
 
   const recentMessages = recentMessageDocs.map((doc) => {
     const fromId = normalizeId(doc.fromUserId);
+    const sender = resolveSenderInfo({
+      fromId,
+      kind: doc.kind ?? null,
+      senderInfoById,
+    });
     const text =
       (typeof doc.text === "string" && doc.text.trim()) ||
       (typeof doc.body === "string" && doc.body.trim()) ||
       "Nachricht ohne Text";
     return {
       id: String(doc._id),
-      fromLabel: resolveSenderLabel({
-        fromId,
-        kind: doc.kind ?? null,
-        senderLabelById,
-      }),
+      fromLabel: sender.label,
       text: text.slice(0, 180),
       kind: typeof doc.kind === "string" ? doc.kind : "direct",
       createdAt: toIso(doc.createdAt),
       read: Boolean(doc.readAt),
+      fromUserId: fromId || null,
+      fromShareId: sender.shareId,
+      fromAvatarUrl: sender.avatarUrl,
     };
   });
 

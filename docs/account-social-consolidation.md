@@ -1,13 +1,14 @@
 # Account/Social Consolidation (Runtime Truth)
 
-Stand: 2026-03-16
+Stand: 2026-03-17
 
 ## Was jetzt produktseitig sichtbar ist
 
 - Account-Hub mit drei klaren Flächen in fester Reihenfolge: `Interessen` -> `Inbox` -> `Profil`.
 - `/account` startet ohne Hash standardmäßig im Tab `Interessen`.
 - Hashes behalten Vorrang (`#interessen`, `#inbox`, `#profil`).
-- Mobile Quick-Utility unten folgt derselben Reihenfolge plus `Einladen`.
+- Mobile Bottom-Navigation auf Kernprodukt umgestellt: `Swipes` -> `Create` -> `Dossier` -> `Profil`.
+- Inbox ist mobil als separate Utility (Floating-Briefkasten mit Badge) schnell erreichbar.
 - Avatar-Stift ist echte Aktion (Dateiauswahl + Persistenz via `/api/account/profile`).
 - Interessen-Flow erzwingt mindestens 3 Themen für Speichern.
 - Interessen-Tab ist als primärer Startbereich formuliert:
@@ -21,6 +22,12 @@ Stand: 2026-03-16
   - ehrlicher Fallback (`vorbereitete Vorschläge`), wenn noch keine exakten Treffer vorhanden sind.
 - Inbox lädt Social-Daten aus `core` über `/api/account/social-summary`.
 - Founder-Welcome wird beim Laden aktiv sichergestellt.
+- Social-Listen sind jetzt drill-down-fähig:
+  - Freundschaftsanfragen klickbar,
+  - Nachrichten klickbar,
+  - Matches klickbar.
+- Alle Social-Items nutzen Personenanker mit Avatar (wenn vorhanden) oder Initialen-Fallback.
+- Klick auf Anfrage/Nachricht/Match öffnet ein einheitliches Detail-Sheet (konsistentes Interaktionsmuster).
 - Inbox ist in drei Blöcke gegliedert:
   - `Wichtig jetzt` (Counts, Founder-/System-Momente, offene Signale),
   - `Menschen & Matches` (Interessen-/Region-Matching),
@@ -62,6 +69,7 @@ Stand: 2026-03-16
 - Lesen/Anzeige von Social-Nachrichten in der Inbox: ja.
 - Senden von Direktnachrichten zwischen Nutzern (UI + API end-to-end): noch nicht freigeschaltet.
 - Produkttexte markieren diesen Zustand explizit als "noch im Ausbau".
+- Im Detail-Sheet wird Antworten bewusst als "kommt bald" und deaktiviert dargestellt (keine Scheininteraktion).
 
 ## Community-Begriff (aktueller Scope)
 

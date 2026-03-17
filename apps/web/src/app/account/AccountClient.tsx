@@ -328,6 +328,9 @@ type SocialFriendRequestItem = {
   fromLabel: string;
   message?: string | null;
   createdAt?: string | null;
+  fromUserId?: string | null;
+  fromShareId?: string | null;
+  fromAvatarUrl?: string | null;
 };
 
 type SocialMessageItem = {
@@ -337,6 +340,9 @@ type SocialMessageItem = {
   kind?: string;
   createdAt?: string | null;
   read: boolean;
+  fromUserId?: string | null;
+  fromShareId?: string | null;
+  fromAvatarUrl?: string | null;
 };
 
 type SocialSummary = {
@@ -362,6 +368,8 @@ type AccountMatchItem = {
   sharedTopics: string[];
   locationLabel?: string | null;
   score: number;
+  shareId?: string | null;
+  avatarUrl?: string | null;
 };
 
 type InterestDebateResult = {
@@ -397,12 +405,27 @@ const ACCOUNT_HUB_TABS: Array<{ key: AccountHubTab; label: string; icon: IconTyp
   { key: "profile", label: "Profil", icon: FiUser },
 ];
 
-const MOBILE_QUICK_ACTIONS: Array<{ key: AccountHubTab | "invite"; label: string; icon: IconType }> = [
-  { key: "interests", label: "Interessen", icon: FiSliders },
-  { key: "inbox", label: "Inbox", icon: FiMessageCircle },
+const MOBILE_CORE_ACTIONS: Array<{ key: "swipes" | "create" | "dossier" | "profile"; label: string; icon: IconType; href?: string }> = [
+  { key: "swipes", label: "Swipes", icon: FiSliders, href: "/swipes" },
+  { key: "create", label: "Create", icon: FiEdit2, href: "/create" },
+  { key: "dossier", label: "Dossier", icon: FiPackage, href: "/dossier/demo" },
   { key: "profile", label: "Profil", icon: FiUser },
-  { key: "invite", label: "Einladen", icon: FiSend },
 ];
+
+type SocialDetailKind = "request" | "message" | "match";
+type SocialDetailState = {
+  kind: SocialDetailKind;
+  id: string;
+  title: string;
+  avatarUrl?: string | null;
+  shareId?: string | null;
+  body?: string | null;
+  createdAt?: string | null;
+  kindLabel?: string | null;
+  sharedTopics?: string[];
+  locationLabel?: string | null;
+  unread?: boolean;
+};
 
 const TOPIC_ICON_BY_KEY: Record<TopicKey, IconType> = {
   democracy: FiUsers,
@@ -432,6 +455,39 @@ function messageKindLabel(kind?: string) {
   if (kind === "referral_signup") return "Referral";
   if (kind === "system_onboarding") return "Onboarding";
   return "Direkt";
+}
+
+function getInitials(value?: string | null) {
+  const words = String(value ?? "")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2);
+  if (words.length === 0) return "VG";
+  return words.map((part) => part.slice(0, 1).toUpperCase()).join("");
+}
+
+function SocialAvatar({
+  label,
+  avatarUrl,
+  sizeClass = "h-9 w-9 text-xs",
+}: {
+  label?: string | null;
+  avatarUrl?: string | null;
+  sizeClass?: string;
+}) {
+  return (
+    <span
+      className={`inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-sky-500/85 via-cyan-500/80 to-emerald-500/80 font-semibold text-white ring-1 ring-sky-300/40 ${sizeClass}`}
+      aria-hidden
+    >
+      {avatarUrl ? (
+        <img src={avatarUrl} alt="" className="h-full w-full object-cover" loading="lazy" />
+      ) : (
+        <span>{getInitials(label)}</span>
+      )}
+    </span>
+  );
 }
 
 const EMPTY_PERSONAL_IDENTITY: PersonalIdentityData = {
@@ -522,6 +578,7 @@ function CompactProfileHubSection({
     founderFlow: "already_present",
   });
   const [socialError, setSocialError] = useState<string | null>(null);
+  const [socialDetail, setSocialDetail] = useState<SocialDetailState | null>(null);
   const [matches, setMatches] = useState<AccountMatchItem[]>([]);
   const [matchesLoading, setMatchesLoading] = useState(false);
   const [debateResults, setDebateResults] = useState<InterestDebateResult[]>([]);
@@ -550,6 +607,10 @@ function CompactProfileHubSection({
     if (typeof window === "undefined") return;
     const hash = activeTab === "profile" ? "profil" : activeTab === "interests" ? "interessen" : "inbox";
     window.history.replaceState(null, "", `${window.location.pathname}${window.location.search}#${hash}`);
+  }, [activeTab]);
+
+  useEffect(() => {
+    setSocialDetail(null);
   }, [activeTab]);
 
   useEffect(() => {
@@ -651,6 +712,7 @@ function CompactProfileHubSection({
   });
   const topMatches = matches.slice(0, 5);
   const hasImportantNow = hasPendingRequests || hasUnreadMessages || Boolean(founderMessage);
+  const inboxUtilityCount = socialSummary.pendingRequestCount + socialSummary.unreadMessageCount;
   const inboxIsEmpty =
     !socialLoading && socialSummary.friendRequests.length === 0 && socialSummary.recentMessages.length === 0;
   const personalDirty =
@@ -684,6 +746,50 @@ function CompactProfileHubSection({
       minute: "2-digit",
     }).format(date);
   };
+
+  const profileHrefForShareId = (shareId?: string | null) =>
+    shareId ? `/profile/${encodeURIComponent(shareId)}` : null;
+
+  const openFriendRequestDetail = (request: SocialFriendRequestItem) => {
+    setSocialDetail({
+      kind: "request",
+      id: request.id,
+      title: request.fromLabel,
+      avatarUrl: request.fromAvatarUrl ?? null,
+      shareId: request.fromShareId ?? null,
+      body: request.message ?? "Neue Verbindungsanfrage.",
+      createdAt: request.createdAt ?? null,
+      kindLabel: "Freundschaftsanfrage",
+    });
+  };
+
+  const openMessageDetail = (message: SocialMessageItem) => {
+    setSocialDetail({
+      kind: "message",
+      id: message.id,
+      title: message.fromLabel,
+      avatarUrl: message.fromAvatarUrl ?? null,
+      shareId: message.fromShareId ?? null,
+      body: message.text,
+      createdAt: message.createdAt ?? null,
+      kindLabel: messageKindLabel(message.kind),
+      unread: !message.read,
+    });
+  };
+
+  const openMatchDetail = (match: AccountMatchItem) => {
+    setSocialDetail({
+      kind: "match",
+      id: match.id,
+      title: match.displayName,
+      avatarUrl: match.avatarUrl ?? null,
+      shareId: match.shareId ?? null,
+      sharedTopics: match.sharedTopics,
+      locationLabel: match.locationLabel ?? null,
+      kindLabel: "Passendes Profil",
+    });
+  };
+  const socialDetailProfileHref = socialDetail ? profileHrefForShareId(socialDetail.shareId) : null;
 
   const loadSocialSummary = useCallback(async () => {
     setSocialLoading(true);
@@ -1472,13 +1578,21 @@ function CompactProfileHubSection({
               ) : topMatches.length > 0 ? (
                 <div className="mt-2 space-y-1.5">
                   {topMatches.slice(0, 3).map((match) => (
-                    <div key={`interests-match-${match.id}`} className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-2.5 py-2 text-xs">
-                      <p className="font-semibold text-[rgb(var(--fg))]">{match.displayName}</p>
-                      <p className="text-[rgb(var(--muted))]">
-                        Gemeinsam: {match.sharedTopics.slice(0, 2).join(", ")}
-                        {match.locationLabel ? ` · ${match.locationLabel}` : ""}
-                      </p>
-                    </div>
+                    <button
+                      key={`interests-match-${match.id}`}
+                      type="button"
+                      onClick={() => openMatchDetail(match)}
+                      className="flex w-full items-start gap-2.5 rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-2.5 py-2 text-left text-xs transition hover:border-sky-300/60 hover:bg-sky-500/5"
+                    >
+                      <SocialAvatar label={match.displayName} avatarUrl={match.avatarUrl} />
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate font-semibold text-[rgb(var(--fg))]">{match.displayName}</span>
+                        <span className="block text-[rgb(var(--muted))]">
+                          Gemeinsam: {match.sharedTopics.slice(0, 2).join(", ")}
+                          {match.locationLabel ? ` · ${match.locationLabel}` : ""}
+                        </span>
+                      </span>
+                    </button>
                   ))}
                 </div>
               ) : (
@@ -1695,6 +1809,9 @@ function CompactProfileHubSection({
                 <button type="button" onClick={() => setActiveTab("interests")} className={secondaryLightButtonClass}>
                   Interessen nachschärfen
                 </button>
+                <button type="button" onClick={() => openMessageDetail(founderMessage)} className={secondaryLightButtonClass}>
+                  Nachricht öffnen
+                </button>
                 <button type="button" onClick={openInviteQuickAccess} className={primaryButtonSmallClass}>
                   Kontakte einladen
                 </button>
@@ -1723,13 +1840,21 @@ function CompactProfileHubSection({
             ) : socialSummary.friendRequests.length > 0 ? (
               <div className="space-y-2">
                 {socialSummary.friendRequests.map((request) => (
-                  <div key={request.id} className="flex items-start justify-between gap-2 text-xs">
-                    <p className="min-w-0 text-[rgb(var(--fg))]">
-                      <span className="font-semibold">{request.fromLabel}</span>
-                      {request.message ? ` · ${truncateText(request.message, 54)}` : ""}
-                    </p>
+                  <button
+                    key={request.id}
+                    type="button"
+                    onClick={() => openFriendRequestDetail(request)}
+                    className="flex w-full items-start gap-2.5 rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-2.5 py-2 text-left text-xs transition hover:border-sky-300/60 hover:bg-sky-500/5"
+                  >
+                    <SocialAvatar label={request.fromLabel} avatarUrl={request.fromAvatarUrl} />
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-[rgb(var(--fg))]">
+                        <span className="font-semibold">{request.fromLabel}</span>
+                        {request.message ? ` · ${truncateText(request.message, 54)}` : ""}
+                      </span>
+                    </span>
                     <span className="shrink-0 text-[10px] text-[rgb(var(--muted))]">{formatDateLabel(request.createdAt)}</span>
-                  </div>
+                  </button>
                 ))}
               </div>
             ) : (
@@ -1754,17 +1879,28 @@ function CompactProfileHubSection({
             ) : socialSummary.recentMessages.length > 0 ? (
               <div className="space-y-2">
                 {socialSummary.recentMessages.map((message) => (
-                  <div key={message.id} className="flex items-start justify-between gap-2 text-xs">
-                    <div className="min-w-0">
-                      <p className="min-w-0 text-[rgb(var(--fg))]">
+                  <button
+                    key={message.id}
+                    type="button"
+                    onClick={() => openMessageDetail(message)}
+                    className="flex w-full items-start gap-2.5 rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-2.5 py-2 text-left text-xs transition hover:border-sky-300/60 hover:bg-sky-500/5"
+                  >
+                    <SocialAvatar label={message.fromLabel} avatarUrl={message.fromAvatarUrl} />
+                    <span className="min-w-0 flex-1">
+                      <span className="block min-w-0 text-[rgb(var(--fg))]">
                         <span className="font-semibold">{message.fromLabel}:</span> {truncateText(message.text, 56)}
-                      </p>
-                      <p className="mt-0.5 text-[10px] uppercase tracking-[0.12em] text-[rgb(var(--muted))]">
+                      </span>
+                      <span className="mt-0.5 inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.12em] text-[rgb(var(--muted))]">
                         {messageKindLabel(message.kind)}
-                      </p>
-                    </div>
+                        {!message.read ? (
+                          <span className="inline-flex items-center rounded-full border border-sky-300/70 bg-sky-100 px-1.5 py-0.5 text-[9px] font-semibold text-sky-800 dark:border-sky-400/50 dark:bg-sky-500/15 dark:text-sky-100">
+                            ungelesen
+                          </span>
+                        ) : null}
+                      </span>
+                    </span>
                     <span className="shrink-0 text-[10px] text-[rgb(var(--muted))]">{formatDateLabel(message.createdAt)}</span>
-                  </div>
+                  </button>
                 ))}
               </div>
             ) : (
@@ -1797,13 +1933,21 @@ function CompactProfileHubSection({
                 ) : topMatches.length > 0 ? (
                   <div className="space-y-2">
                     {topMatches.map((match) => (
-                      <div key={match.id} className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-xs">
-                        <p className="font-semibold text-[rgb(var(--fg))]">{match.displayName}</p>
-                        <p className="mt-0.5 text-[rgb(var(--muted))]">
-                          Gemeinsam: {match.sharedTopics.join(", ")}
-                          {match.locationLabel ? ` · ${match.locationLabel}` : ""}
-                        </p>
-                      </div>
+                      <button
+                        key={match.id}
+                        type="button"
+                        onClick={() => openMatchDetail(match)}
+                        className="flex w-full items-start gap-2.5 rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-left text-xs transition hover:border-sky-300/60 hover:bg-sky-500/5"
+                      >
+                        <SocialAvatar label={match.displayName} avatarUrl={match.avatarUrl} />
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate font-semibold text-[rgb(var(--fg))]">{match.displayName}</span>
+                          <span className="mt-0.5 block text-[rgb(var(--muted))]">
+                            Gemeinsam: {match.sharedTopics.join(", ")}
+                            {match.locationLabel ? ` · ${match.locationLabel}` : ""}
+                          </span>
+                        </span>
+                      </button>
                     ))}
                   </div>
                 ) : (
@@ -1934,26 +2078,47 @@ function CompactProfileHubSection({
         </article>
       ) : null}
 
-      <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-[rgb(var(--border))] bg-[rgb(var(--card))]/95 px-3 py-2 pb-[max(env(safe-area-inset-bottom),0.65rem)] backdrop-blur md:hidden">
+      <button
+        type="button"
+        onClick={() => setActiveTab("inbox")}
+        className={`fixed right-3 z-40 inline-flex h-11 w-11 items-center justify-center rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))]/95 text-[rgb(var(--muted))] shadow-[0_10px_26px_rgba(15,23,42,0.28)] backdrop-blur transition hover:text-[rgb(var(--fg))] focus:outline-none focus:ring-2 focus:ring-sky-200 md:hidden ${
+          activeTab === "inbox"
+            ? "bottom-[calc(env(safe-area-inset-bottom)+6.1rem)] text-sky-600 dark:text-sky-200"
+            : "bottom-[calc(env(safe-area-inset-bottom)+5rem)]"
+        }`}
+        aria-label="Inbox öffnen"
+      >
+        <FiMessageCircle className="h-4 w-4" aria-hidden />
+        {inboxUtilityCount > 0 ? (
+          <span className="absolute -right-1 -top-1 inline-flex min-h-[18px] min-w-[18px] items-center justify-center rounded-full bg-sky-600 px-1 text-[10px] font-semibold text-white">
+            {Math.min(inboxUtilityCount, 99)}
+          </span>
+        ) : null}
+      </button>
+
+      <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-[rgb(var(--border))] bg-[rgb(var(--card))]/95 px-3 py-2 pb-[max(env(safe-area-inset-bottom),0.65rem)] backdrop-blur md:hidden">
         <div className="mx-auto grid max-w-xl grid-cols-4 gap-2">
-          {MOBILE_QUICK_ACTIONS.map((action) => {
-            const active = action.key !== "invite" && activeTab === action.key;
+          {MOBILE_CORE_ACTIONS.map((action) => {
+            const active = action.key === "profile" && activeTab === "profile";
+            const className = `inline-flex min-h-[42px] flex-col items-center justify-center gap-0.5 rounded-xl border px-1 py-1 text-[10px] font-semibold ${
+              active
+                ? selectedSurfaceClass
+                : "border-[rgb(var(--border))] bg-[rgb(var(--bg))] text-[rgb(var(--muted))]"
+            }`;
+            if (action.href) {
+              return (
+                <Link key={action.key} href={action.href} className={className}>
+                  <action.icon className="h-3.5 w-3.5" aria-hidden />
+                  <span>{action.label}</span>
+                </Link>
+              );
+            }
             return (
               <button
                 key={action.key}
                 type="button"
-                onClick={() => {
-                  if (action.key === "invite") {
-                    openInviteQuickAccess();
-                    return;
-                  }
-                  setActiveTab(action.key);
-                }}
-                className={`inline-flex min-h-[42px] flex-col items-center justify-center gap-0.5 rounded-xl border px-1 py-1 text-[10px] font-semibold ${
-                  active
-                    ? selectedSurfaceClass
-                    : "border-[rgb(var(--border))] bg-[rgb(var(--bg))] text-[rgb(var(--muted))]"
-                }`}
+                onClick={() => setActiveTab("profile")}
+                className={className}
               >
                 <action.icon className="h-3.5 w-3.5" aria-hidden />
                 <span>{action.label}</span>
@@ -1962,6 +2127,95 @@ function CompactProfileHubSection({
           })}
         </div>
       </nav>
+
+      {socialDetail ? (
+        <div className="fixed inset-0 z-[90] bg-slate-950/60 p-3 backdrop-blur-[2px] sm:p-5" onClick={() => setSocialDetail(null)}>
+          <div
+            className="absolute inset-x-0 bottom-0 max-h-[82vh] overflow-hidden rounded-t-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] shadow-[0_28px_70px_rgba(2,6,23,0.65)] sm:inset-x-auto sm:left-1/2 sm:top-1/2 sm:w-[540px] sm:max-w-[calc(100vw-2.5rem)] sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-3xl"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b border-[rgb(var(--border))] px-4 py-3">
+              <p className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">
+                <FiMessageCircle className="h-3.5 w-3.5 text-sky-500" aria-hidden />
+                {socialDetail.kind === "request" ? "Anfrage" : socialDetail.kind === "message" ? "Nachricht" : "Match"}
+              </p>
+              <button type="button" onClick={() => setSocialDetail(null)} className={secondaryLightButtonClass}>
+                Schließen
+              </button>
+            </div>
+            <div className="space-y-3 overflow-y-auto px-4 py-4">
+              <div className="flex items-center gap-3 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
+                <SocialAvatar label={socialDetail.title} avatarUrl={socialDetail.avatarUrl} sizeClass="h-11 w-11 text-sm" />
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-semibold text-[rgb(var(--fg))]">{socialDetail.title}</p>
+                  <p className="text-xs text-[rgb(var(--muted))]">{socialDetail.kindLabel ?? "Kontakt"}</p>
+                </div>
+              </div>
+
+              {socialDetail.body ? (
+                <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3 text-sm text-[rgb(var(--fg))]">
+                  {socialDetail.body}
+                </div>
+              ) : null}
+
+              {socialDetail.sharedTopics && socialDetail.sharedTopics.length > 0 ? (
+                <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--muted))]">Gemeinsame Interessen</p>
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    {socialDetail.sharedTopics.slice(0, 4).map((topic) => (
+                      <span key={`${socialDetail.id}-${topic}`} className={`inline-flex items-center rounded-full px-2.5 py-1 text-[11px] ${selectedChipClass}`}>
+                        {topic}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+
+              {socialDetail.locationLabel ? (
+                <p className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-xs text-[rgb(var(--muted))]">
+                  Region: <span className="font-semibold text-[rgb(var(--fg))]">{socialDetail.locationLabel}</span>
+                </p>
+              ) : null}
+
+              {socialDetail.createdAt ? (
+                <p className="text-xs text-[rgb(var(--muted))]">Zeitpunkt: {formatDateLabel(socialDetail.createdAt)}</p>
+              ) : null}
+
+              {socialDetail.kind === "message" ? (
+                <div className={subtleWarningClass}>
+                  Direktnachrichten senden ist noch im Ausbau. Diese Detailansicht ist lesbar, Antworten folgen in einer nächsten Stufe.
+                </div>
+              ) : null}
+            </div>
+            <div className="border-t border-[rgb(var(--border))] bg-[rgb(var(--card))] p-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)]">
+              <div className="grid gap-2 sm:grid-cols-2">
+                {socialDetailProfileHref ? (
+                  <Link href={socialDetailProfileHref} className={`${primaryButtonClass} w-full`} onClick={() => setSocialDetail(null)}>
+                    Profil öffnen
+                  </Link>
+                ) : (
+                  <button type="button" disabled className="inline-flex w-full items-center justify-center rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-4 py-2 text-xs font-semibold text-[rgb(var(--muted))] opacity-70">
+                    Öffentliches Profil folgt
+                  </button>
+                )}
+                {socialDetail.kind === "message" ? (
+                  <button
+                    type="button"
+                    disabled
+                    className="inline-flex w-full items-center justify-center rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-4 py-2 text-xs font-semibold text-[rgb(var(--muted))] opacity-70"
+                  >
+                    Antworten (kommt bald)
+                  </button>
+                ) : (
+                  <Link href="/community" className={`${secondaryLightButtonClass} w-full`} onClick={() => setSocialDetail(null)}>
+                    Community öffnen
+                  </Link>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       {profileEditorOpen ? (
         <div className="fixed inset-0 z-[95] bg-slate-950/65 p-3 backdrop-blur-[2px] sm:p-5" onClick={cancelProfileEdit}>

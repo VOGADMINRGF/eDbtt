@@ -31,6 +31,7 @@ export default [
         // Browser/DOM
         window: "readonly", document: "readonly", navigator: "readonly",
         location: "readonly", localStorage: "readonly", alert: "readonly",
+        HTMLElement: "readonly", Element: "readonly", performance: "readonly",
         console: "readonly", URL: "readonly", URLSearchParams: "readonly",
         Blob: "readonly", File: "readonly", FormData: "readonly",
         ReadableStream: "readonly", TextEncoder: "readonly",

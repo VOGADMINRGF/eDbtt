@@ -17,6 +17,8 @@ type UserDoc = {
   email?: string | null;
   profile?: {
     displayName?: string | null;
+    avatarUrl?: string | null;
+    publicShareId?: string | null;
     topTopics?: Array<{ key?: string | null }>;
     publicLocation?: PublicLocation | null;
   } | null;
@@ -78,6 +80,8 @@ export async function GET() {
           name: 1,
           email: 1,
           "profile.displayName": 1,
+          "profile.avatarUrl": 1,
+          "profile.publicShareId": 1,
           "profile.topTopics": 1,
           "profile.publicLocation.city": 1,
           "profile.publicLocation.region": 1,
@@ -108,6 +112,8 @@ export async function GET() {
         sharedTopics: sharedKeys.map((key) => TOPIC_LABEL.get(key) ?? key),
         locationLabel: city || region || null,
         score,
+        avatarUrl: clean(candidate.profile?.avatarUrl) || null,
+        shareId: clean(candidate.profile?.publicShareId) || null,
       };
     })
     .filter((entry): entry is NonNullable<typeof entry> => Boolean(entry))
