@@ -405,6 +405,40 @@ export async function GET(request: Request) {
 
   const incomingRequestId = pairState.incomingPending?._id ? String(pairState.incomingPending._id) : null;
   const outgoingRequestId = pairState.outgoingPending?._id ? String(pairState.outgoingPending._id) : null;
+  const primaryTopic = target.topics?.[0] ?? null;
+  const communityLabel = primaryTopic
+    ? target.locationLabel
+      ? `${primaryTopic} · ${target.locationLabel}`
+      : `${primaryTopic} überregional`
+    : target.locationLabel
+      ? `Region ${target.locationLabel}`
+      : null;
+  const originContext =
+    target.userId === FOUNDER_FALLBACK_USER_ID
+      ? {
+          type: "founder",
+          communityKey: "founder-channel",
+          communityLabel: "Founder-Channel",
+          reasonLabel: "Founder-Willkommenskanal",
+        }
+      : {
+          type: target.locationLabel ? "regional_group" : "interest_match",
+          topicLabel: primaryTopic,
+          regionLabel: target.locationLabel,
+          communityKey: communityLabel
+            ? communityLabel
+                .toLowerCase()
+                .replace(/[^a-z0-9äöüß]+/gi, "-")
+                .replace(/^-+|-+$/g, "")
+            : null,
+          communityLabel,
+          scope: target.locationLabel ? "regional" : "ueberregional",
+          reasonLabel: primaryTopic
+            ? target.locationLabel
+              ? `Gemeinsam über ${primaryTopic} in ${target.locationLabel}`
+              : `Gemeinsames Thema ${primaryTopic}`
+            : "Kontakt aus Interessenraum",
+        };
 
   return NextResponse.json({
     ok: true,
@@ -424,6 +458,7 @@ export async function GET(request: Request) {
       cannotMessageReasonLabel: cannotMessageReasonLabel(capability.cannotMessageReason),
       incomingRequestId,
       outgoingRequestId,
+      originContext,
     },
     thread,
     meta: {

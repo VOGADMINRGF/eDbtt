@@ -39,6 +39,20 @@ type SocialFriendRequestDoc = {
   status?: string | null;
 };
 
+type OriginContext = {
+  type: "interest_match" | "dossier" | "topic_round" | "regional_group" | "founder" | "system";
+  topicKey?: string | null;
+  topicLabel?: string | null;
+  dossierId?: string | null;
+  dossierTitle?: string | null;
+  regionKey?: string | null;
+  regionLabel?: string | null;
+  communityKey?: string | null;
+  communityLabel?: string | null;
+  scope?: "regional" | "ueberregional" | null;
+  reasonLabel?: string | null;
+};
+
 const TOPIC_LABEL = new Map(TOPIC_CHOICES.map((topic) => [topic.key, topic.label]));
 
 function normalizeTopicKeys(input?: Array<{ key?: string | null }> | null): TopicKey[] {
@@ -51,6 +65,13 @@ function normalizeTopicKeys(input?: Array<{ key?: string | null }> | null): Topi
 
 function clean(value?: string | null) {
   return String(value ?? "").trim();
+}
+
+function slugify(value: string) {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9äöüß]+/gi, "-")
+    .replace(/^-+|-+$/g, "");
 }
 
 export async function GET() {
@@ -130,6 +151,33 @@ export async function GET() {
       const displayName =
         clean(candidate.profile?.displayName) || clean(candidate.name) || clean(candidate.email) || "Mitglied";
       const candidateId = String(candidate._id);
+      const sharedTopicLabel = TOPIC_LABEL.get(sharedKeys[0]) ?? sharedKeys[0] ?? null;
+      const regionLabel = city || region || null;
+      const regionKey = regionLabel ? slugify(regionLabel) : null;
+      const communityLabel = sharedTopicLabel
+        ? regionLabel
+          ? `${sharedTopicLabel} · ${regionLabel}`
+          : `${sharedTopicLabel} überregional`
+        : regionLabel
+          ? `Region ${regionLabel}`
+          : null;
+      const originContext: OriginContext = {
+        type: regionLabel ? "regional_group" : "interest_match",
+        topicKey: sharedKeys[0] ?? null,
+        topicLabel: sharedTopicLabel,
+        dossierId: null,
+        dossierTitle: null,
+        regionKey,
+        regionLabel,
+        communityKey: communityLabel ? slugify(communityLabel) : null,
+        communityLabel,
+        scope: regionLabel ? "regional" : "ueberregional",
+        reasonLabel: sharedTopicLabel
+          ? regionLabel
+            ? `Gemeinsam über ${sharedTopicLabel} in ${regionLabel}`
+            : `Gemeinsames Thema ${sharedTopicLabel}`
+          : "Interessenmatch",
+      };
       const candidateIdSet = new Set(idCandidates(candidateId).map((entry) => normalizeId(entry)));
       const candidatePairDocs = pairDocs.filter((doc) => {
         const fromId = normalizeId(doc.fromUserId);
@@ -160,6 +208,7 @@ export async function GET() {
         canMessage: relation.canMessage,
         incomingRequestId,
         outgoingRequestId,
+        originContext,
       };
     })
     .filter((entry): entry is NonNullable<typeof entry> => Boolean(entry))

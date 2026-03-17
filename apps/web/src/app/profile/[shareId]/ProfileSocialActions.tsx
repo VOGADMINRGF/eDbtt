@@ -4,6 +4,19 @@ import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent a
 import Link from "next/link";
 
 type RelationshipState = "connected" | "incoming_pending" | "outgoing_pending" | "none";
+type OriginContext = {
+  type: "interest_match" | "dossier" | "topic_round" | "regional_group" | "founder" | "system";
+  topicKey?: string | null;
+  topicLabel?: string | null;
+  dossierId?: string | null;
+  dossierTitle?: string | null;
+  regionKey?: string | null;
+  regionLabel?: string | null;
+  communityKey?: string | null;
+  communityLabel?: string | null;
+  scope?: "regional" | "ueberregional" | null;
+  reasonLabel?: string | null;
+};
 
 type ThreadContext = {
   targetUserId: string;
@@ -21,6 +34,7 @@ type ThreadContext = {
   cannotMessageReasonLabel?: string | null;
   incomingRequestId?: string | null;
   outgoingRequestId?: string | null;
+  originContext?: OriginContext | null;
 };
 
 type ThreadMessage = {
@@ -61,6 +75,15 @@ function messageKindLabel(kind?: string | null) {
   if (normalized === "referral_signup") return "Referral";
   if (normalized === "system_onboarding") return "Onboarding";
   return "Direkt";
+}
+
+function originLabel(origin?: OriginContext | null) {
+  if (!origin) return null;
+  if (origin.reasonLabel) return origin.reasonLabel;
+  if (origin.topicLabel && origin.regionLabel) return `Gemeinsam über ${origin.topicLabel} in ${origin.regionLabel}`;
+  if (origin.topicLabel) return `Gemeinsames Thema ${origin.topicLabel}`;
+  if (origin.regionLabel) return `Gleiche Region ${origin.regionLabel}`;
+  return null;
 }
 
 export default function ProfileSocialActions({ shareId }: Props) {
@@ -275,6 +298,16 @@ export default function ProfileSocialActions({ shareId }: Props) {
 
           <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-xs text-[rgb(var(--muted))]">
             {canMessage ? "Du kannst dieser Person jetzt direkt schreiben." : cannotMessageLabel}
+            {originLabel(context.originContext) ? (
+              <p className="mt-1">
+                Herkunft: <span className="font-semibold text-[rgb(var(--fg))]">{originLabel(context.originContext)}</span>
+              </p>
+            ) : null}
+            {context.originContext?.communityLabel ? (
+              <p className="mt-1">
+                Community: <span className="font-semibold text-[rgb(var(--fg))]">{context.originContext.communityLabel}</span>
+              </p>
+            ) : null}
           </div>
 
           {relationshipState === "incoming_pending" && context.incomingRequestId ? (

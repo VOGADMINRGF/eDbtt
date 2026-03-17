@@ -36,6 +36,13 @@ Stand: 2026-03-17
   - Anfrage: `Annehmen` / `Ablehnen`
   - Match: `Verbindung anfragen`
   - Nachricht: Verlauf lesen + kurze Nachricht senden (DM-v1, wenn Verbindung bestätigt)
+- Anfrage-Flow ist jetzt zuerst inline:
+  - `Annehmen`, `Ablehnen`, `Profil öffnen` direkt in der Anfrage-Liste.
+  - Nach `Annehmen` wechselt dieselbe Karte auf `Verbunden` + `Nachricht schreiben`.
+  - Detail-Sheet bleibt optionaler Zusatz, nicht Pflicht.
+- Founder-/Systemkontakt ist klar getrennt:
+  - in eigener Kanal-Darstellung (`Founder & System Kanal`),
+  - nicht mehr als normale private Freundschaftsanfrage inszeniert.
 - Thread-UX in DM-v1 ist ruhiger gestaffelt:
   - eindeutige Du/Kontakt-Bubbles,
   - freundlicher Empty-State,
@@ -64,6 +71,18 @@ Stand: 2026-03-17
   - `Anfrage gesendet`
   - `Keine Verbindung`
   - plus zustandsbasierten nächsten Schritt (z. B. `Nachricht schreiben` / `Verbindung anfragen`).
+- Social-Items tragen jetzt optionalen Herkunftskontext (`originContext`):
+  - `origin.type`: `interest_match` | `dossier` | `topic_round` | `regional_group` | `founder` | `system`
+  - `origin.topicKey` / `origin.topicLabel`
+  - `origin.dossierId` / `origin.dossierTitle` (vorbereitet)
+  - `origin.regionKey` / `origin.regionLabel`
+  - `origin.communityKey` / `origin.communityLabel`
+  - `origin.scope`: `regional` | `ueberregional`
+  - `origin.reasonLabel` für direkte UI-Erklärung („Warum sehe ich diese Person?“).
+- Community-Ableitung ist produktlogisch vorbereitet:
+  - Thema + Region => regionale Gruppe (z. B. `Mobilität · Berlin`)
+  - Thema ohne Region => überregionale Gruppe
+  - Dossier-Kontext ist über `originContext` strukturell anschlussfähig.
 - Desktop-Hierarchie ist breiter und stärker gestaffelt:
   - größere Seitenbreite in `/account`,
   - zweispaltige Ergebnis-/Aktionsbereiche bei großen Breakpoints,

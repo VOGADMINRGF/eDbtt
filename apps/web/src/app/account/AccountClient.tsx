@@ -332,6 +332,8 @@ type SocialFriendRequestItem = {
   fromUserId?: string | null;
   fromShareId?: string | null;
   fromAvatarUrl?: string | null;
+  requestType?: "user" | "founder" | "system";
+  originContext?: SocialOriginContext | null;
 };
 
 type SocialMessageItem = {
@@ -345,6 +347,7 @@ type SocialMessageItem = {
   fromUserId?: string | null;
   fromShareId?: string | null;
   fromAvatarUrl?: string | null;
+  originContext?: SocialOriginContext | null;
 };
 
 type SocialSummary = {
@@ -378,6 +381,21 @@ type AccountMatchItem = {
   canMessage?: boolean;
   incomingRequestId?: string | null;
   outgoingRequestId?: string | null;
+  originContext?: SocialOriginContext | null;
+};
+
+type SocialOriginContext = {
+  type: "interest_match" | "dossier" | "topic_round" | "regional_group" | "founder" | "system";
+  topicKey?: string | null;
+  topicLabel?: string | null;
+  dossierId?: string | null;
+  dossierTitle?: string | null;
+  regionKey?: string | null;
+  regionLabel?: string | null;
+  communityKey?: string | null;
+  communityLabel?: string | null;
+  scope?: "regional" | "ueberregional" | null;
+  reasonLabel?: string | null;
 };
 
 type InterestDebateResult = {
@@ -435,6 +453,8 @@ type SocialDetailState = {
   sharedTopics?: string[];
   locationLabel?: string | null;
   unread?: boolean;
+  requestType?: "user" | "founder" | "system";
+  originContext?: SocialOriginContext | null;
 };
 
 type SocialRelationshipState = "connected" | "incoming_pending" | "outgoing_pending" | "none";
@@ -455,6 +475,7 @@ type SocialThreadContext = {
   cannotMessageReasonLabel?: string | null;
   incomingRequestId?: string | null;
   outgoingRequestId?: string | null;
+  originContext?: SocialOriginContext | null;
 };
 
 type SocialThreadMessage = {
@@ -634,6 +655,9 @@ function CompactProfileHubSection({
   const [socialDetail, setSocialDetail] = useState<SocialDetailState | null>(null);
   const [socialActionPending, setSocialActionPending] = useState(false);
   const [socialActionMsg, setSocialActionMsg] = useState<string | null>(null);
+  const [requestInlineStates, setRequestInlineStates] = useState<
+    Record<string, { status: "accepted" | "rejected"; item: SocialFriendRequestItem }>
+  >({});
   const [socialThreadLoading, setSocialThreadLoading] = useState(false);
   const [socialThreadContext, setSocialThreadContext] = useState<SocialThreadContext | null>(null);
   const [socialThreadMessages, setSocialThreadMessages] = useState<SocialThreadMessage[]>([]);
@@ -718,6 +742,14 @@ function CompactProfileHubSection({
     return () => window.clearTimeout(timeout);
   }, [copyMsg]);
 
+  useEffect(() => {
+    setRequestInlineStates((prev) => {
+      const entries = Object.entries(prev);
+      if (entries.length <= 12) return prev;
+      return Object.fromEntries(entries.slice(-12));
+    });
+  }, [socialSummary.friendRequests.length]);
+
   const initialDisplayName = profile.displayName ?? "";
   const initialTagline = publicProfile.tagline ?? "";
   const initialBio = publicProfile.bio ?? "";
@@ -780,6 +812,14 @@ function CompactProfileHubSection({
   });
   const directMessages = socialSummary.recentMessages.filter((message) => resolveMessageType(message) === "direct");
   const systemMessages = socialSummary.recentMessages.filter((message) => resolveMessageType(message) !== "direct");
+  const userFriendRequests = socialSummary.friendRequests.filter((request) => (request.requestType ?? "user") === "user");
+  const channelRequests = socialSummary.friendRequests.filter((request) => (request.requestType ?? "user") !== "user");
+  const pendingRequestById = new Map(userFriendRequests.map((request) => [request.id, request]));
+  const recentResolvedRequests = Object.values(requestInlineStates)
+    .map((entry) => entry.item)
+    .filter((item) => !pendingRequestById.has(item.id))
+    .slice(0, 3);
+  const visibleRequests = [...userFriendRequests, ...recentResolvedRequests];
   const unreadDirectCount = Number(socialSummary.unreadDirectCount ?? 0);
   const unreadSystemCount = Number(socialSummary.unreadSystemCount ?? 0);
   const topMatches = matches.slice(0, 5);
@@ -866,6 +906,43 @@ function CompactProfileHubSection({
     socialThreadContext?.cannotMessageReasonLabel ||
     cannotMessageReasonLabel(socialThreadContext?.cannotMessageReason);
 
+  const originTypeBadgeClass = (origin?: SocialOriginContext | null) => {
+    if (!origin) return "border-[rgb(var(--border))] bg-[rgb(var(--bg))] text-[rgb(var(--muted))]";
+    if (origin.type === "founder") {
+      return "border-cyan-300/70 bg-cyan-100 text-cyan-900 dark:border-cyan-400/50 dark:bg-cyan-500/15 dark:text-cyan-100";
+    }
+    if (origin.type === "system") {
+      return "border-indigo-300/70 bg-indigo-100 text-indigo-900 dark:border-indigo-400/50 dark:bg-indigo-500/15 dark:text-indigo-100";
+    }
+    if (origin.type === "regional_group") {
+      return "border-emerald-300/70 bg-emerald-100 text-emerald-900 dark:border-emerald-400/45 dark:bg-emerald-500/15 dark:text-emerald-100";
+    }
+    if (origin.type === "dossier") {
+      return "border-fuchsia-300/70 bg-fuchsia-100 text-fuchsia-900 dark:border-fuchsia-400/45 dark:bg-fuchsia-500/15 dark:text-fuchsia-100";
+    }
+    return "border-sky-300/70 bg-sky-100 text-sky-900 dark:border-sky-400/45 dark:bg-sky-500/16 dark:text-sky-100";
+  };
+
+  const originTypeLabel = (origin?: SocialOriginContext | null) => {
+    if (!origin) return "Kontext";
+    if (origin.type === "founder") return "Founder";
+    if (origin.type === "system") return "System";
+    if (origin.type === "dossier") return "Dossier";
+    if (origin.type === "regional_group") return "Regionale Gruppe";
+    if (origin.type === "topic_round") return "Themenrunde";
+    return "Interessen";
+  };
+
+  const originReasonLabel = (origin?: SocialOriginContext | null) => {
+    if (!origin) return null;
+    if (origin.reasonLabel) return origin.reasonLabel;
+    if (origin.dossierTitle) return `Dossier: ${origin.dossierTitle}`;
+    if (origin.topicLabel && origin.regionLabel) return `Gemeinsam über ${origin.topicLabel} in ${origin.regionLabel}`;
+    if (origin.topicLabel) return `Gemeinsames Thema ${origin.topicLabel}`;
+    if (origin.regionLabel) return `Gleiche Region ${origin.regionLabel}`;
+    return null;
+  };
+
   const profileHrefForShareId = (shareId?: string | null) =>
     shareId ? `/profile/${encodeURIComponent(shareId)}` : null;
 
@@ -881,7 +958,14 @@ function CompactProfileHubSection({
       shareId: request.fromShareId ?? null,
       body: request.message ?? "Neue Verbindungsanfrage.",
       createdAt: request.createdAt ?? null,
-      kindLabel: "Freundschaftsanfrage",
+      kindLabel:
+        (request.requestType ?? "user") === "founder"
+          ? "Founder-Kanal"
+          : (request.requestType ?? "user") === "system"
+            ? "System-Hinweis"
+            : "Freundschaftsanfrage",
+      requestType: request.requestType ?? "user",
+      originContext: request.originContext ?? null,
     });
   };
 
@@ -898,6 +982,7 @@ function CompactProfileHubSection({
       createdAt: message.createdAt ?? null,
       kindLabel: messageKindLabel(message.kind),
       unread: !message.read,
+      originContext: message.originContext ?? null,
     });
   };
 
@@ -913,8 +998,31 @@ function CompactProfileHubSection({
       sharedTopics: match.sharedTopics,
       locationLabel: match.locationLabel ?? null,
       kindLabel: "Passendes Profil",
+      originContext: match.originContext ?? null,
     });
   };
+
+  const openDirectMessageForContact = (params: {
+    id: string;
+    title: string;
+    targetUserId?: string | null;
+    avatarUrl?: string | null;
+    shareId?: string | null;
+    originContext?: SocialOriginContext | null;
+  }) => {
+    setSocialActionMsg(null);
+    setSocialDetail({
+      kind: "message",
+      id: params.id,
+      title: params.title,
+      targetUserId: params.targetUserId ?? null,
+      avatarUrl: params.avatarUrl ?? null,
+      shareId: params.shareId ?? null,
+      kindLabel: "Direktnachricht",
+      originContext: params.originContext ?? null,
+    });
+  };
+
   const switchToMessageDetail = () => {
     setSocialDetail((prev) =>
       prev
@@ -926,6 +1034,7 @@ function CompactProfileHubSection({
         : prev,
     );
   };
+
   const socialDetailProfileHref = socialDetail
     ? socialThreadContext?.targetProfileHref ||
       profileHrefForShareId(socialDetail.shareId || socialThreadContext?.targetShareId || null)
@@ -996,12 +1105,34 @@ function CompactProfileHubSection({
       if (socialDetail) {
         await loadSocialThreadContext(socialDetail);
       }
+      return body as { ok: true; state?: string; message?: string };
     } catch (error: any) {
       setSocialActionMsg(error?.message || "Aktion fehlgeschlagen.");
+      return null;
     } finally {
       setSocialActionPending(false);
     }
   };
+
+  const handleInlineRequestAction = useCallback(
+    async (request: SocialFriendRequestItem, action: "request.accept" | "request.reject") => {
+      if (!request.id) return;
+      const response = await submitSocialAction({
+        action,
+        requestId: request.id,
+        targetUserId: request.fromUserId ?? null,
+      });
+      if (!response?.ok) return;
+      setRequestInlineStates((prev) => ({
+        ...prev,
+        [request.id]: {
+          status: action === "request.accept" ? "accepted" : "rejected",
+          item: request,
+        },
+      }));
+    },
+    [submitSocialAction],
+  );
 
   const loadSocialSummary = useCallback(async () => {
     setSocialLoading(true);
@@ -1896,6 +2027,11 @@ function CompactProfileHubSection({
                           Gemeinsam: {match.sharedTopics.slice(0, 2).join(", ") || "Interessenprofil"}
                           {match.locationLabel ? ` · ${match.locationLabel}` : ""}
                         </span>
+                        {originReasonLabel(match.originContext) ? (
+                          <span className="mt-0.5 block text-[10px] text-[rgb(var(--muted))]">
+                            {originReasonLabel(match.originContext)}
+                          </span>
+                        ) : null}
                         <span className="mt-0.5 block text-[10px] font-medium text-[rgb(var(--muted))]">
                           {relationshipPrimaryActionLabel(match.relationshipState)}
                         </span>
@@ -2148,25 +2284,113 @@ function CompactProfileHubSection({
             </div>
             {socialLoading ? (
               <p className="text-xs text-[rgb(var(--muted))]">Lade Inbox …</p>
-            ) : socialSummary.friendRequests.length > 0 ? (
+            ) : visibleRequests.length > 0 ? (
               <div className="space-y-2">
-                {socialSummary.friendRequests.map((request) => (
-                  <button
-                    key={request.id}
-                    type="button"
-                    onClick={() => openFriendRequestDetail(request)}
-                    className="flex w-full items-start gap-2.5 rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-2.5 py-2 text-left text-xs transition hover:border-sky-300/60 hover:bg-sky-500/5"
-                  >
-                    <SocialAvatar label={request.fromLabel} avatarUrl={request.fromAvatarUrl} />
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate text-[rgb(var(--fg))]">
-                        <span className="font-semibold">{request.fromLabel}</span>
-                        {request.message ? ` · ${truncateText(request.message, 54)}` : ""}
-                      </span>
-                    </span>
-                    <span className="shrink-0 text-[10px] text-[rgb(var(--muted))]">{formatDateLabel(request.createdAt)}</span>
-                  </button>
-                ))}
+                {visibleRequests.map((request) => {
+                  const inlineState = requestInlineStates[request.id]?.status ?? "pending";
+                  const profileHref = profileHrefForShareId(request.fromShareId);
+                  const requestConnected = inlineState === "accepted";
+                  const requestRejected = inlineState === "rejected";
+                  return (
+                    <div
+                      key={request.id}
+                      className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-2.5 py-2 text-xs"
+                    >
+                      <button
+                        type="button"
+                        onClick={() => openFriendRequestDetail(request)}
+                        className="flex w-full items-start gap-2.5 text-left transition hover:text-[rgb(var(--fg))]"
+                      >
+                        <SocialAvatar label={request.fromLabel} avatarUrl={request.fromAvatarUrl} />
+                        <span className="min-w-0 flex-1">
+                          <span className="flex items-center justify-between gap-2">
+                            <span className="block truncate text-[rgb(var(--fg))]">
+                              <span className="font-semibold">{request.fromLabel}</span>
+                              {request.message ? ` · ${truncateText(request.message, 54)}` : ""}
+                            </span>
+                            <span className="shrink-0 text-[10px] text-[rgb(var(--muted))]">{formatDateLabel(request.createdAt)}</span>
+                          </span>
+                          <span className="mt-1 inline-flex flex-wrap items-center gap-1.5">
+                            <span
+                              className={`inline-flex items-center rounded-full border px-1.5 py-0.5 text-[9px] font-semibold ${requestConnected ? relationshipStateBadgeClass("connected") : requestRejected ? "border-rose-300/70 bg-rose-100 text-rose-900 dark:border-rose-400/45 dark:bg-rose-500/14 dark:text-rose-100" : relationshipStateBadgeClass("incoming_pending")}`}
+                            >
+                              {requestConnected ? "Verbunden" : requestRejected ? "Abgelehnt" : "Anfrage erhalten"}
+                            </span>
+                            {request.originContext ? (
+                              <span
+                                className={`inline-flex items-center rounded-full border px-1.5 py-0.5 text-[9px] font-semibold ${originTypeBadgeClass(request.originContext)}`}
+                              >
+                                {originTypeLabel(request.originContext)}
+                              </span>
+                            ) : null}
+                          </span>
+                          {originReasonLabel(request.originContext) ? (
+                            <span className="mt-1 block text-[10px] text-[rgb(var(--muted))]">
+                              {originReasonLabel(request.originContext)}
+                            </span>
+                          ) : null}
+                          {request.originContext?.communityLabel ? (
+                            <span className="mt-0.5 block text-[10px] text-[rgb(var(--muted))]">
+                              Community: {request.originContext.communityLabel}
+                            </span>
+                          ) : null}
+                        </span>
+                      </button>
+                      <div className="mt-2 grid gap-1.5 sm:grid-cols-3">
+                        {requestConnected ? (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              openDirectMessageForContact({
+                                id: request.id,
+                                title: request.fromLabel,
+                                targetUserId: request.fromUserId ?? null,
+                                avatarUrl: request.fromAvatarUrl ?? null,
+                                shareId: request.fromShareId ?? null,
+                                originContext: request.originContext ?? null,
+                              })
+                            }
+                            className={`${primaryButtonSmallClass} w-full`}
+                          >
+                            Nachricht schreiben
+                          </button>
+                        ) : requestRejected ? (
+                          <button type="button" disabled className={`${secondaryLightButtonClass} w-full opacity-70`}>
+                            Abgelehnt
+                          </button>
+                        ) : (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => void handleInlineRequestAction(request, "request.accept")}
+                              disabled={socialActionPending}
+                              className={`${primaryButtonSmallClass} w-full disabled:opacity-70`}
+                            >
+                              {socialActionPending ? "Speichert …" : "Annehmen"}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => void handleInlineRequestAction(request, "request.reject")}
+                              disabled={socialActionPending}
+                              className="inline-flex w-full items-center justify-center rounded-full border border-rose-300/65 bg-rose-500/12 px-3 py-1.5 text-[11px] font-semibold text-rose-800 transition hover:bg-rose-500/18 disabled:opacity-70 dark:border-rose-400/40 dark:text-rose-100"
+                            >
+                              {socialActionPending ? "Speichert …" : "Ablehnen"}
+                            </button>
+                          </>
+                        )}
+                        {profileHref ? (
+                          <Link href={profileHref} className={`${secondaryLightButtonClass} w-full`}>
+                            Profil öffnen
+                          </Link>
+                        ) : (
+                          <button type="button" onClick={() => openFriendRequestDetail(request)} className={`${secondaryLightButtonClass} w-full`}>
+                            Details
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             ) : (
               <p className="text-xs text-[rgb(var(--muted))]">
@@ -2174,6 +2398,39 @@ function CompactProfileHubSection({
               </p>
             )}
           </div>
+
+          {channelRequests.length > 0 ? (
+            <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
+              <div className="mb-2 flex items-center justify-between gap-2">
+                <p className="inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--muted))]">
+                  <FiShield className="h-3.5 w-3.5 text-cyan-500" aria-hidden />
+                  Founder & System Kanal
+                </p>
+                <span className="text-[11px] text-[rgb(var(--muted))]">{channelRequests.length}</span>
+              </div>
+              <div className="space-y-2">
+                {channelRequests.map((request) => (
+                  <button
+                    key={`channel-${request.id}`}
+                    type="button"
+                    onClick={() => openFriendRequestDetail(request)}
+                    className="flex w-full items-start gap-2.5 rounded-xl border border-cyan-300/45 bg-cyan-500/8 px-2.5 py-2 text-left text-xs transition hover:bg-cyan-500/12"
+                  >
+                    <SocialAvatar label={request.fromLabel} avatarUrl={request.fromAvatarUrl} />
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate font-semibold text-[rgb(var(--fg))]">{request.fromLabel}</span>
+                      {originReasonLabel(request.originContext) ? (
+                        <span className="mt-0.5 block text-[10px] text-[rgb(var(--muted))]">{originReasonLabel(request.originContext)}</span>
+                      ) : null}
+                    </span>
+                    <span className={`inline-flex shrink-0 items-center rounded-full border px-1.5 py-0.5 text-[9px] font-semibold ${originTypeBadgeClass(request.originContext)}`}>
+                      {originTypeLabel(request.originContext)}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : null}
 
           <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
             <div className="mb-2 flex items-center justify-between gap-2">
@@ -2208,12 +2465,24 @@ function CompactProfileHubSection({
                           </span>
                           <span className="mt-0.5 inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.12em] text-[rgb(var(--muted))]">
                             Direkt
+                            {message.originContext ? (
+                              <span
+                                className={`inline-flex items-center rounded-full border px-1.5 py-0.5 text-[9px] font-semibold normal-case tracking-normal ${originTypeBadgeClass(message.originContext)}`}
+                              >
+                                {originTypeLabel(message.originContext)}
+                              </span>
+                            ) : null}
                             {!message.read ? (
                               <span className="inline-flex items-center rounded-full border border-sky-300/70 bg-sky-100 px-1.5 py-0.5 text-[9px] font-semibold text-sky-800 dark:border-sky-400/50 dark:bg-sky-500/15 dark:text-sky-100">
                                 ungelesen
                               </span>
                             ) : null}
                           </span>
+                          {originReasonLabel(message.originContext) ? (
+                            <span className="mt-0.5 block text-[10px] text-[rgb(var(--muted))]">
+                              {originReasonLabel(message.originContext)}
+                            </span>
+                          ) : null}
                         </span>
                         <span className="shrink-0 text-[10px] text-[rgb(var(--muted))]">{formatDateLabel(message.createdAt)}</span>
                       </button>
@@ -2253,6 +2522,11 @@ function CompactProfileHubSection({
                               </span>
                             ) : null}
                           </span>
+                          {originReasonLabel(message.originContext) ? (
+                            <span className="mt-0.5 block text-[10px] text-[rgb(var(--muted))]">
+                              {originReasonLabel(message.originContext)}
+                            </span>
+                          ) : null}
                         </span>
                         <span className="shrink-0 text-[10px] text-[rgb(var(--muted))]">{formatDateLabel(message.createdAt)}</span>
                       </button>
@@ -2310,6 +2584,11 @@ function CompactProfileHubSection({
                             Gemeinsam: {match.sharedTopics.join(", ") || "Interessenprofil"}
                             {match.locationLabel ? ` · ${match.locationLabel}` : ""}
                           </span>
+                          {originReasonLabel(match.originContext) ? (
+                            <span className="mt-0.5 block text-[10px] text-[rgb(var(--muted))]">
+                              {originReasonLabel(match.originContext)}
+                            </span>
+                          ) : null}
                           <span className="mt-0.5 block text-[10px] font-medium text-[rgb(var(--muted))]">
                             {relationshipPrimaryActionLabel(match.relationshipState)}
                           </span>
@@ -2544,6 +2823,25 @@ function CompactProfileHubSection({
                 </p>
               ) : null}
 
+              {socialDetail.originContext || socialThreadContext?.originContext ? (
+                <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-xs text-[rgb(var(--muted))]">
+                  <p className="inline-flex items-center gap-1.5">
+                    <span className={`inline-flex items-center rounded-full border px-1.5 py-0.5 text-[9px] font-semibold ${originTypeBadgeClass(socialDetail.originContext ?? socialThreadContext?.originContext)}`}>
+                      {originTypeLabel(socialDetail.originContext ?? socialThreadContext?.originContext)}
+                    </span>
+                    <span className="font-medium text-[rgb(var(--fg))]">
+                      {originReasonLabel(socialDetail.originContext ?? socialThreadContext?.originContext) ?? "Kontext wird vorbereitet"}
+                    </span>
+                  </p>
+                  {(socialDetail.originContext?.communityLabel ?? socialThreadContext?.originContext?.communityLabel) ? (
+                    <p className="mt-1">Community: {socialDetail.originContext?.communityLabel ?? socialThreadContext?.originContext?.communityLabel}</p>
+                  ) : null}
+                  {(socialDetail.originContext?.dossierTitle ?? socialThreadContext?.originContext?.dossierTitle) ? (
+                    <p className="mt-1">Dossier: {socialDetail.originContext?.dossierTitle ?? socialThreadContext?.originContext?.dossierTitle}</p>
+                  ) : null}
+                </div>
+              ) : null}
+
               {socialDetail.createdAt ? (
                 <p className="text-xs text-[rgb(var(--muted))]">Zeitpunkt: {formatDateLabel(socialDetail.createdAt)}</p>
               ) : null}
@@ -2661,9 +2959,54 @@ function CompactProfileHubSection({
                   </>
                 )}
               </div>
+              {socialDetail.originContext?.communityKey ||
+              socialThreadContext?.originContext?.communityKey ||
+              socialDetail.originContext?.topicKey ||
+              socialThreadContext?.originContext?.topicKey ||
+              socialDetail.originContext?.dossierId ||
+              socialThreadContext?.originContext?.dossierId ? (
+                <div className="mt-2 grid gap-2 sm:grid-cols-3">
+                  {socialDetail.originContext?.communityKey || socialThreadContext?.originContext?.communityKey ? (
+                    <Link href={`/community?group=${encodeURIComponent(socialDetail.originContext?.communityKey ?? socialThreadContext?.originContext?.communityKey ?? "")}`} className={`${secondaryLightButtonClass} w-full`} onClick={() => setSocialDetail(null)}>
+                      Gruppe öffnen
+                    </Link>
+                  ) : (
+                    <button type="button" disabled className={`${secondaryLightButtonClass} w-full opacity-70`}>
+                      Gruppe folgt
+                    </button>
+                  )}
+                  {socialDetail.originContext?.dossierId || socialThreadContext?.originContext?.dossierId ? (
+                    <Link href={`/dossier/${encodeURIComponent(socialDetail.originContext?.dossierId ?? socialThreadContext?.originContext?.dossierId ?? "")}`} className={`${secondaryLightButtonClass} w-full`} onClick={() => setSocialDetail(null)}>
+                      Dossier öffnen
+                    </Link>
+                  ) : (
+                    <Link href="/dossier/demo" className={`${secondaryLightButtonClass} w-full`} onClick={() => setSocialDetail(null)}>
+                      Dossier öffnen
+                    </Link>
+                  )}
+                  {socialDetail.originContext?.topicKey || socialThreadContext?.originContext?.topicKey ? (
+                    <Link href={`/swipes?topic=${encodeURIComponent(socialDetail.originContext?.topicKey ?? socialThreadContext?.originContext?.topicKey ?? "")}`} className={`${secondaryLightButtonClass} w-full`} onClick={() => setSocialDetail(null)}>
+                      Thema öffnen
+                    </Link>
+                  ) : (
+                    <button type="button" disabled className={`${secondaryLightButtonClass} w-full opacity-70`}>
+                      Thema folgt
+                    </button>
+                  )}
+                </div>
+              ) : null}
               {socialDetail.kind === "request" ? (
                 <>
-                  {socialRelationshipState === "incoming_pending" ? (
+                  {socialDetail.requestType && socialDetail.requestType !== "user" ? (
+                    <div className="mt-2 space-y-2">
+                      <p className="text-xs text-[rgb(var(--muted))]">
+                        Dieser Kontakt läuft über den Founder/System-Kanal und nicht über eine klassische private Anfrage.
+                      </p>
+                      <button type="button" onClick={switchToMessageDetail} className={`${secondaryLightButtonClass} w-full`}>
+                        Hinweis lesen
+                      </button>
+                    </div>
+                  ) : socialRelationshipState === "incoming_pending" ? (
                     <div className="mt-2 grid gap-2 sm:grid-cols-2">
                       <button
                         type="button"
