@@ -1181,6 +1181,13 @@ body:not([data-analysis-ready="1"]) [data-requires-analysis] {
   }
 }
 
+@media (max-width: 767px) {
+  body.vog-mobile-swipe-focus [data-site-header="true"],
+  body.vog-mobile-swipe-focus [data-demo-header="true"] {
+    display: none;
+  }
+}
+
 /* === Accessibility ======================================================== */
 
 :focus-visible {

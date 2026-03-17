@@ -19,9 +19,10 @@ export default function DemoNavClient() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const persona = parseDemoPersona(searchParams.get("persona"));
+  const isSwipeRoute = pathname?.startsWith("/demo/swipes");
 
   return (
-    <nav className="flex flex-wrap gap-2 text-xs font-semibold text-[rgb(var(--muted))]">
+    <nav className={`hide-scrollbar flex w-full gap-1 overflow-x-auto whitespace-nowrap pb-0.5 text-[11px] font-semibold text-[rgb(var(--muted))] md:w-auto md:flex-wrap md:gap-2 md:overflow-visible md:whitespace-normal ${isSwipeRoute ? "md:max-w-[42rem]" : ""}`}>
       {DEMO_NAV.map((item) => {
         const active = pathname === item.href;
         return (

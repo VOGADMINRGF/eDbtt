@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { buildSwipeDossierHref, buildSwipeEvidenceHref, buildSwipeVotingHref } from "@/features/surfaces/swipes/detailRoutes";
+import { useMobileChromeVisibility } from "@/hooks/useMobileChromeVisibility";
 import {
   SwipeAuthGate,
   SwipeDetailSheet,
@@ -154,6 +155,10 @@ export function SwipesClient({
     enabled: requireAuthAfterFreeVotes && mode === "live" && !isSolo,
     limit: 3,
   });
+  const mobileActionChromeVisible = useMobileChromeVisibility({
+    disabled: isSolo || eventualityStepOpen || detailOpen || freeVote.gateOpen,
+    minY: 72,
+  });
 
   const isVoteLocked = freeVote.enabled && !freeVote.canVote;
   const swipeProgressCount = Math.max(completedCount, freeVote.count);
@@ -218,6 +223,14 @@ export function SwipesClient({
     },
     [flushPendingVote],
   );
+
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    document.body.classList.add("vog-mobile-swipe-focus");
+    return () => {
+      document.body.classList.remove("vog-mobile-swipe-focus");
+    };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -465,7 +478,7 @@ export function SwipesClient({
   }, [activeItem, eventualityStepOpen, handlePrimaryVote, openDetail]);
 
   return (
-    <div className={`mx-auto flex flex-col gap-4 px-4 pt-2 md:pt-6 ${isSolo ? "max-w-3xl" : "max-w-6xl"} pb-40 md:pb-24`}>
+    <div className={`mx-auto flex flex-col gap-4 px-4 pt-2 md:pt-6 ${isSolo ? "max-w-3xl" : "max-w-6xl"} pb-32 md:pb-24`}>
       <div className="sr-only" aria-live="polite" aria-atomic="true">
         {liveMessage}
       </div>
@@ -556,16 +569,20 @@ export function SwipesClient({
       ) : null}
 
       {!isSolo && activeItem && !eventualityStepOpen && !detailOpen && !freeVote.gateOpen ? (
-        <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-[rgb(var(--border))] bg-[rgb(var(--card))]/95 px-3 pt-2 pb-[max(env(safe-area-inset-bottom),0.55rem)] backdrop-blur md:hidden">
+        <nav
+          className={`fixed inset-x-0 bottom-0 z-30 border-t border-[rgb(var(--border))] bg-[rgb(var(--card))]/95 px-2 pt-1.5 pb-[max(env(safe-area-inset-bottom),0.45rem)] backdrop-blur transition-all duration-200 md:hidden ${
+            mobileActionChromeVisible ? "translate-y-0 opacity-100" : "pointer-events-none translate-y-[120%] opacity-0"
+          }`}
+        >
           <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-sky-500/10 to-transparent" />
-          <div className="relative mx-auto max-w-xl space-y-2">
-            <div className={`grid gap-2 ${lastVote ? "grid-cols-2" : "grid-cols-1"}`}>
+          <div className="relative mx-auto max-w-xl space-y-1.5">
+            <div className={`grid gap-1.5 ${lastVote ? "grid-cols-2" : "grid-cols-1"}`}>
               <button
                 type="button"
                 onClick={() => {
                   void openDetail(activeItem);
                 }}
-                className="btn-secondary w-full rounded-xl px-3 py-2 text-sm"
+                className="btn-secondary w-full rounded-xl px-3 py-1.5 text-xs"
               >
                 Mehr Kontext öffnen
               </button>
@@ -573,20 +590,20 @@ export function SwipesClient({
                 <button
                   type="button"
                   onClick={handleUndoLastVote}
-                  className="btn-secondary w-full rounded-xl px-3 py-2 text-sm"
+                  className="btn-secondary w-full rounded-xl px-3 py-1.5 text-xs"
                 >
                   Rückgängig
                 </button>
               ) : null}
             </div>
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-3 gap-1.5">
               <button
                 type="button"
                 onClick={() => {
                   void handlePrimaryVote(activeItem, "disagree");
                 }}
                 aria-label="Ablehnen"
-                className="btn-vote btn-vote-disagree rounded-xl px-2 py-2 text-xs"
+                className="btn-vote btn-vote-disagree rounded-xl px-2 py-1.5 text-xs"
               >
                 👎 Nein
               </button>
@@ -596,7 +613,7 @@ export function SwipesClient({
                   void handlePrimaryVote(activeItem, "neutral");
                 }}
                 aria-label="Neutral"
-                className="btn-vote btn-vote-neutral rounded-xl px-2 py-2 text-xs"
+                className="btn-vote btn-vote-neutral rounded-xl px-2 py-1.5 text-xs"
               >
                 😐 Offen
               </button>
@@ -606,7 +623,7 @@ export function SwipesClient({
                   void handlePrimaryVote(activeItem, "agree");
                 }}
                 aria-label="Zustimmen"
-                className="btn-vote btn-vote-agree rounded-xl px-2 py-2 text-xs"
+                className="btn-vote btn-vote-agree rounded-xl px-2 py-1.5 text-xs"
               >
                 👍 Ja
               </button>

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { ChangeEvent, FormEvent } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { useMobileChromeVisibility } from "@/hooks/useMobileChromeVisibility";
 import { EDEBATTE_PACKAGES_WITH_NONE } from "@/config/edebatte";
 import { canEditTopTopics } from "@features/account/capabilities";
 import {
@@ -417,6 +418,8 @@ type SocialDetailState = {
   kind: SocialDetailKind;
   id: string;
   title: string;
+  requestId?: string | null;
+  targetUserId?: string | null;
   avatarUrl?: string | null;
   shareId?: string | null;
   body?: string | null;
@@ -579,6 +582,8 @@ function CompactProfileHubSection({
   });
   const [socialError, setSocialError] = useState<string | null>(null);
   const [socialDetail, setSocialDetail] = useState<SocialDetailState | null>(null);
+  const [socialActionPending, setSocialActionPending] = useState(false);
+  const [socialActionMsg, setSocialActionMsg] = useState<string | null>(null);
   const [matches, setMatches] = useState<AccountMatchItem[]>([]);
   const [matchesLoading, setMatchesLoading] = useState(false);
   const [debateResults, setDebateResults] = useState<InterestDebateResult[]>([]);
@@ -586,6 +591,10 @@ function CompactProfileHubSection({
   const [canNativeShare, setCanNativeShare] = useState(false);
   const avatarInputRef = useRef<HTMLInputElement | null>(null);
   const invitePanelRef = useRef<HTMLDivElement | null>(null);
+  const mobileChromeVisible = useMobileChromeVisibility({
+    disabled: profileEditorOpen || Boolean(socialDetail),
+    minY: 88,
+  });
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -611,6 +620,7 @@ function CompactProfileHubSection({
 
   useEffect(() => {
     setSocialDetail(null);
+    setSocialActionMsg(null);
   }, [activeTab]);
 
   useEffect(() => {
@@ -713,6 +723,12 @@ function CompactProfileHubSection({
   const topMatches = matches.slice(0, 5);
   const hasImportantNow = hasPendingRequests || hasUnreadMessages || Boolean(founderMessage);
   const inboxUtilityCount = socialSummary.pendingRequestCount + socialSummary.unreadMessageCount;
+  const mobileUtilityVisibilityClass = mobileChromeVisible
+    ? "translate-y-0 opacity-100"
+    : "pointer-events-none translate-y-6 opacity-0";
+  const mobileBottomNavVisibilityClass = mobileChromeVisible
+    ? "translate-y-0 opacity-100"
+    : "pointer-events-none translate-y-[120%] opacity-0";
   const inboxIsEmpty =
     !socialLoading && socialSummary.friendRequests.length === 0 && socialSummary.recentMessages.length === 0;
   const personalDirty =
@@ -751,10 +767,13 @@ function CompactProfileHubSection({
     shareId ? `/profile/${encodeURIComponent(shareId)}` : null;
 
   const openFriendRequestDetail = (request: SocialFriendRequestItem) => {
+    setSocialActionMsg(null);
     setSocialDetail({
       kind: "request",
       id: request.id,
       title: request.fromLabel,
+      requestId: request.id,
+      targetUserId: request.fromUserId ?? null,
       avatarUrl: request.fromAvatarUrl ?? null,
       shareId: request.fromShareId ?? null,
       body: request.message ?? "Neue Verbindungsanfrage.",
@@ -764,10 +783,12 @@ function CompactProfileHubSection({
   };
 
   const openMessageDetail = (message: SocialMessageItem) => {
+    setSocialActionMsg(null);
     setSocialDetail({
       kind: "message",
       id: message.id,
       title: message.fromLabel,
+      targetUserId: message.fromUserId ?? null,
       avatarUrl: message.fromAvatarUrl ?? null,
       shareId: message.fromShareId ?? null,
       body: message.text,
@@ -778,10 +799,12 @@ function CompactProfileHubSection({
   };
 
   const openMatchDetail = (match: AccountMatchItem) => {
+    setSocialActionMsg(null);
     setSocialDetail({
       kind: "match",
       id: match.id,
       title: match.displayName,
+      targetUserId: match.id,
       avatarUrl: match.avatarUrl ?? null,
       shareId: match.shareId ?? null,
       sharedTopics: match.sharedTopics,
@@ -790,6 +813,35 @@ function CompactProfileHubSection({
     });
   };
   const socialDetailProfileHref = socialDetail ? profileHrefForShareId(socialDetail.shareId) : null;
+  const submitSocialAction = async (payload: {
+    action: "request.accept" | "request.reject" | "match.request";
+    requestId?: string | null;
+    targetUserId?: string | null;
+  }) => {
+    setSocialActionPending(true);
+    setSocialActionMsg(null);
+    try {
+      const res = await fetch("/api/account/social-actions", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok || !body?.ok) {
+        throw new Error(body?.error || "social_action_failed");
+      }
+      setSocialActionMsg(
+        typeof body?.message === "string" && body.message.trim().length > 0
+          ? body.message
+          : "Aktion gespeichert.",
+      );
+      await Promise.all([loadSocialSummary(), loadMatches()]);
+    } catch (error: any) {
+      setSocialActionMsg(error?.message || "Aktion fehlgeschlagen.");
+    } finally {
+      setSocialActionPending(false);
+    }
+  };
 
   const loadSocialSummary = useCallback(async () => {
     setSocialLoading(true);
@@ -1168,7 +1220,7 @@ function CompactProfileHubSection({
   };
 
   return (
-    <section className="space-y-3 pb-[calc(env(safe-area-inset-bottom)+5.8rem)] md:pb-4">
+    <section className="space-y-3 pb-[calc(env(safe-area-inset-bottom)+5.2rem)] md:pb-4">
       <article className="overflow-hidden rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-3.5 shadow-[0_16px_48px_rgba(15,23,42,0.08)] sm:p-5">
         <div className="flex items-start justify-between gap-2.5">
           <div className="flex min-w-0 items-center gap-3">
@@ -2081,7 +2133,7 @@ function CompactProfileHubSection({
       <button
         type="button"
         onClick={() => setActiveTab("inbox")}
-        className={`fixed right-3 z-40 inline-flex h-11 w-11 items-center justify-center rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))]/95 text-[rgb(var(--muted))] shadow-[0_10px_26px_rgba(15,23,42,0.28)] backdrop-blur transition hover:text-[rgb(var(--fg))] focus:outline-none focus:ring-2 focus:ring-sky-200 md:hidden ${
+        className={`fixed right-3 z-40 inline-flex h-11 w-11 items-center justify-center rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))]/95 text-[rgb(var(--muted))] shadow-[0_10px_26px_rgba(15,23,42,0.28)] backdrop-blur transition-all duration-200 hover:text-[rgb(var(--fg))] focus:outline-none focus:ring-2 focus:ring-sky-200 md:hidden ${mobileUtilityVisibilityClass} ${
           activeTab === "inbox"
             ? "bottom-[calc(env(safe-area-inset-bottom)+6.1rem)] text-sky-600 dark:text-sky-200"
             : "bottom-[calc(env(safe-area-inset-bottom)+5rem)]"
@@ -2096,7 +2148,7 @@ function CompactProfileHubSection({
         ) : null}
       </button>
 
-      <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-[rgb(var(--border))] bg-[rgb(var(--card))]/95 px-3 py-2 pb-[max(env(safe-area-inset-bottom),0.65rem)] backdrop-blur md:hidden">
+      <nav className={`fixed inset-x-0 bottom-0 z-30 border-t border-[rgb(var(--border))] bg-[rgb(var(--card))]/95 px-3 py-2 pb-[max(env(safe-area-inset-bottom),0.65rem)] backdrop-blur transition-all duration-200 md:hidden ${mobileBottomNavVisibilityClass}`}>
         <div className="mx-auto grid max-w-xl grid-cols-4 gap-2">
           {MOBILE_CORE_ACTIONS.map((action) => {
             const active = action.key === "profile" && activeTab === "profile";
@@ -2188,6 +2240,11 @@ function CompactProfileHubSection({
               ) : null}
             </div>
             <div className="border-t border-[rgb(var(--border))] bg-[rgb(var(--card))] p-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)]">
+              {socialActionMsg ? (
+                <p className="mb-2 text-xs text-[rgb(var(--muted))]" role="status" aria-live="polite">
+                  {socialActionMsg}
+                </p>
+              ) : null}
               <div className="grid gap-2 sm:grid-cols-2">
                 {socialDetailProfileHref ? (
                   <Link href={socialDetailProfileHref} className={`${primaryButtonClass} w-full`} onClick={() => setSocialDetail(null)}>
@@ -2212,6 +2269,53 @@ function CompactProfileHubSection({
                   </Link>
                 )}
               </div>
+              {socialDetail.kind === "request" ? (
+                <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                  <button
+                    type="button"
+                    disabled={socialActionPending || !socialDetail.requestId}
+                    onClick={() =>
+                      void submitSocialAction({
+                        action: "request.accept",
+                        requestId: socialDetail.requestId,
+                        targetUserId: socialDetail.targetUserId,
+                      })
+                    }
+                    className={`${primaryButtonClass} w-full disabled:opacity-70`}
+                  >
+                    {socialActionPending ? "Speichert …" : "Annehmen"}
+                  </button>
+                  <button
+                    type="button"
+                    disabled={socialActionPending || !socialDetail.requestId}
+                    onClick={() =>
+                      void submitSocialAction({
+                        action: "request.reject",
+                        requestId: socialDetail.requestId,
+                        targetUserId: socialDetail.targetUserId,
+                      })
+                    }
+                    className="inline-flex w-full items-center justify-center rounded-full border border-rose-300/65 bg-rose-500/12 px-4 py-2 text-xs font-semibold text-rose-800 transition hover:bg-rose-500/18 disabled:opacity-70 dark:border-rose-400/40 dark:text-rose-100"
+                  >
+                    {socialActionPending ? "Speichert …" : "Ablehnen"}
+                  </button>
+                </div>
+              ) : null}
+              {socialDetail.kind === "match" ? (
+                <button
+                  type="button"
+                  disabled={socialActionPending || !socialDetail.targetUserId}
+                  onClick={() =>
+                    void submitSocialAction({
+                      action: "match.request",
+                      targetUserId: socialDetail.targetUserId,
+                    })
+                  }
+                  className={`${primaryButtonClass} mt-2 w-full disabled:opacity-70`}
+                >
+                  {socialActionPending ? "Verbindet …" : "Verbindung anfragen"}
+                </button>
+              ) : null}
             </div>
           </div>
         </div>

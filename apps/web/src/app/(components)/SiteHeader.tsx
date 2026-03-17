@@ -217,6 +217,7 @@ export function SiteHeader({ initialUser }: { initialUser?: AuthUser | null }) {
   return (
     <header
       ref={headerRef}
+      data-site-header="true"
       className="sticky top-0 z-40 border-b border-[rgb(var(--border))] bg-[rgb(var(--bg))] backdrop-blur-md"
     >
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3">

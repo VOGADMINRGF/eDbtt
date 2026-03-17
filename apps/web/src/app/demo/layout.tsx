@@ -15,14 +15,14 @@ export default async function DemoLayout({ children }: Props) {
 
   return (
     <div className="min-h-screen bg-[rgb(var(--bg))]">
-      <header className="sticky top-0 z-40 border-b border-[rgb(var(--border))] bg-[rgb(var(--card))] backdrop-blur">
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-3">
-          <div className="flex items-center gap-3">
-            <span className="rounded-full bg-brand-grad px-3 py-1 text-xs font-semibold uppercase tracking-wide text-white shadow-sm">
+      <header data-demo-header="true" className="sticky top-0 z-40 border-b border-[rgb(var(--border))] bg-[rgb(var(--card))] backdrop-blur">
+        <div className="mx-auto flex max-w-6xl flex-col gap-2 px-3 py-2 sm:px-4 sm:py-3 md:flex-row md:items-center md:justify-between">
+          <div className="flex min-w-0 items-center gap-2.5">
+            <span className="rounded-full bg-brand-grad px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white shadow-sm">
               Demo
             </span>
-            <span className="text-xs text-[rgb(var(--muted))]">nur Demo-Daten - Studio/Simulation</span>
-            <div className="hidden flex-wrap gap-1 lg:flex">
+            <span className="hidden text-[11px] text-[rgb(var(--muted))] sm:inline">nur Demo-Daten - Studio/Simulation</span>
+            <div className="hidden flex-wrap gap-1 xl:flex">
               {DEMO_STATUS_GLOSSARY.slice(0, 4).map((status) => (
                 <span
                   key={status.key}

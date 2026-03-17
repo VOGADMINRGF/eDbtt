@@ -10,21 +10,21 @@ export function SwipesHeaderProgress({ swipeCount, goal = 100, onOpenSearch }: S
   const progress = goal > 0 ? Math.min((clamped / goal) * 100, 100) : 0;
 
   return (
-    <header className="relative overflow-hidden rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))]/95 px-3 py-3 shadow-[0_16px_45px_rgba(2,6,23,0.18)] backdrop-blur">
+    <header className="relative overflow-hidden rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))]/95 px-3 py-2 shadow-[0_16px_45px_rgba(2,6,23,0.18)] backdrop-blur md:py-3">
       <div className="pointer-events-none absolute -top-16 right-0 h-32 w-32 rounded-full bg-sky-500/15 blur-2xl" />
       <div className="pointer-events-none absolute -bottom-20 left-8 h-32 w-32 rounded-full bg-cyan-500/10 blur-2xl" />
       <div className="flex items-start justify-between gap-3 text-xs">
         <div>
           <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">Analysefortschritt</p>
-          <p className="mt-1 text-base font-semibold text-[rgb(var(--fg))]">
+          <p className="mt-0.5 text-[15px] font-semibold text-[rgb(var(--fg))] md:mt-1 md:text-base">
             {clamped} von {goal} Swipes
           </p>
-          <p className="mt-1 text-[rgb(var(--muted))]">{remaining} bis zur Analyse · 1 Analyse pro {goal} Swipes</p>
+          <p className="mt-1 hidden text-[rgb(var(--muted))] sm:block">{remaining} bis zur Analyse · 1 Analyse pro {goal} Swipes</p>
         </div>
         <button
           type="button"
           onClick={onOpenSearch}
-          className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-sky-300/60 bg-gradient-to-br from-sky-50 to-cyan-50 text-sky-700 shadow-[0_8px_20px_rgba(14,165,233,0.18)] transition hover:brightness-105 dark:border-sky-400/30 dark:from-sky-500/16 dark:to-cyan-500/10 dark:text-sky-200"
+          className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-sky-300/60 bg-gradient-to-br from-sky-50 to-cyan-50 text-sky-700 shadow-[0_8px_20px_rgba(14,165,233,0.18)] transition hover:brightness-105 dark:border-sky-400/30 dark:from-sky-500/16 dark:to-cyan-500/10 dark:text-sky-200 md:h-10 md:w-10"
           aria-label="Suche und Filter öffnen"
         >
           <SearchIcon />

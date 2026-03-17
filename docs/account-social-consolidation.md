@@ -9,6 +9,7 @@ Stand: 2026-03-17
 - Hashes behalten Vorrang (`#interessen`, `#inbox`, `#profil`).
 - Mobile Bottom-Navigation auf Kernprodukt umgestellt: `Swipes` -> `Create` -> `Dossier` -> `Profil`.
 - Inbox ist mobil als separate Utility (Floating-Briefkasten mit Badge) schnell erreichbar.
+- Mobile Utility und Bottom-Navigation reagieren auf Scrollrichtung (nach unten reduziert, nach oben wieder sichtbar).
 - Avatar-Stift ist echte Aktion (Dateiauswahl + Persistenz via `/api/account/profile`).
 - Interessen-Flow erzwingt mindestens 3 Themen für Speichern.
 - Interessen-Tab ist als primärer Startbereich formuliert:
@@ -28,6 +29,10 @@ Stand: 2026-03-17
   - Matches klickbar.
 - Alle Social-Items nutzen Personenanker mit Avatar (wenn vorhanden) oder Initialen-Fallback.
 - Klick auf Anfrage/Nachricht/Match öffnet ein einheitliches Detail-Sheet (konsistentes Interaktionsmuster).
+- Social-Detail-Sheets sind jetzt handlungsorientiert:
+  - Anfrage: `Annehmen` / `Ablehnen`
+  - Match: `Verbindung anfragen`
+  - Nachricht: lesbar, Antwortfunktion weiterhin ehrlich als "kommt bald"
 - Inbox ist in drei Blöcke gegliedert:
   - `Wichtig jetzt` (Counts, Founder-/System-Momente, offene Signale),
   - `Menschen & Matches` (Interessen-/Region-Matching),
@@ -56,6 +61,15 @@ Stand: 2026-03-17
   - persönliche Profildaten (`/api/account/personal`)
 - `votes`:
   - nicht Teil des Account/Social-Flows
+
+### Social Actions API
+
+- Neue Route: `/api/account/social-actions`
+- Unterstützte Aktionen:
+  - `request.accept`
+  - `request.reject`
+  - `match.request`
+- Wird vom Account-Detail-Sheet genutzt und aktualisiert danach Summary + Matches.
 
 ### Founder-Welcome Kette
 

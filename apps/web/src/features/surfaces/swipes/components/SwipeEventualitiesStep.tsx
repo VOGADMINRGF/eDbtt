@@ -175,7 +175,7 @@ export function SwipeEventualitiesStep({
   return (
     <div className="fixed inset-0 z-[75]">
       <div className="absolute inset-0 bg-slate-950/45 backdrop-blur-[1px]" />
-      <section className="absolute inset-x-0 bottom-0 flex h-[82dvh] flex-col overflow-hidden rounded-t-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-3 shadow-[0_-24px_60px_rgba(2,6,23,0.45)] md:bottom-8 md:left-1/2 md:h-auto md:max-h-[90vh] md:w-[700px] md:-translate-x-1/2 md:rounded-3xl md:p-4">
+      <section className="absolute inset-x-0 bottom-0 flex h-[90dvh] flex-col overflow-hidden rounded-t-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-3 shadow-[0_-24px_60px_rgba(2,6,23,0.45)] sm:h-[88dvh] md:bottom-8 md:left-1/2 md:h-auto md:max-h-[90vh] md:w-[700px] md:-translate-x-1/2 md:rounded-3xl md:p-4">
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(120%_110%_at_100%_0%,rgba(14,165,233,0.12),rgba(15,23,42,0)_45%)]" />
 
         <div className="relative shrink-0">
@@ -202,7 +202,7 @@ export function SwipeEventualitiesStep({
           <p className="mt-1 text-xs text-[rgb(var(--muted))]">Tippen wählt. Hoch/Mittel/Niedrig priorisiert. Ausschließen entfernt aus der Reihenfolge.</p>
         </div>
 
-        <div className="relative mt-2 min-h-0 flex-1 overflow-y-auto overscroll-y-contain pr-1" style={{ WebkitOverflowScrolling: "touch" }}>
+        <div className="relative mt-1.5 min-h-0 flex-1 overflow-y-auto overscroll-y-contain pr-1 pb-3" style={{ WebkitOverflowScrolling: "touch" }}>
           {loading ? (
             <p className="text-sm text-[rgb(var(--muted))]">Lade Eventualitäten …</p>
           ) : eventualities.length > 0 ? (
@@ -349,7 +349,7 @@ export function SwipeEventualitiesStep({
           ) : null}
         </div>
 
-        <div className="relative mt-3 shrink-0 -mx-3 border-t border-[rgb(var(--border))] bg-[rgb(var(--card))]/95 px-3 pt-3 pb-[max(env(safe-area-inset-bottom),0.75rem)] backdrop-blur md:-mx-4 md:px-4">
+        <div className="relative mt-2 shrink-0 -mx-3 border-t border-[rgb(var(--border))] bg-[rgb(var(--card))]/95 px-3 pt-2.5 pb-[max(env(safe-area-inset-bottom),0.6rem)] backdrop-blur md:-mx-4 md:px-4">
           <div className="flex flex-wrap gap-2">
             <button
               type="button"
@@ -364,18 +364,18 @@ export function SwipeEventualitiesStep({
                   excludedEventualityIds: excludedVariants.map((evt) => evt.id),
                 });
               }}
-              className="btn-primary min-h-[44px] min-w-[190px] text-sm disabled:cursor-not-allowed disabled:opacity-50"
+              className="btn-primary min-h-[40px] min-w-[190px] text-sm disabled:cursor-not-allowed disabled:opacity-50"
             >
               Variante speichern
             </button>
-            <button type="button" onClick={onSkip} className="btn-secondary min-h-[44px] text-sm">
+            <button type="button" onClick={onSkip} className="btn-secondary min-h-[40px] text-sm">
               Varianten überspringen
             </button>
-            <button type="button" onClick={onOpenDetail} className="btn-secondary min-h-[44px] text-sm">
+            <button type="button" onClick={onOpenDetail} className="btn-secondary min-h-[40px] text-sm">
               Mehr Kontext
             </button>
             {onUndoLastVote ? (
-              <button type="button" onClick={onUndoLastVote} className="btn-secondary min-h-[44px] text-sm">
+              <button type="button" onClick={onUndoLastVote} className="btn-secondary min-h-[40px] text-sm">
                 Entscheidung rückgängig
               </button>
             ) : null}
