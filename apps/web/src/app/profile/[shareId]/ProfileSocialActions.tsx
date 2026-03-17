@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 
 type RelationshipState = "connected" | "incoming_pending" | "outgoing_pending" | "none";
@@ -8,6 +8,7 @@ type RelationshipState = "connected" | "incoming_pending" | "outgoing_pending" |
 type ThreadContext = {
   targetUserId: string;
   targetShareId?: string | null;
+  targetProfileHref?: string | null;
   displayName: string;
   avatarUrl?: string | null;
   tagline?: string | null;
@@ -27,6 +28,7 @@ type ThreadMessage = {
   fromLabel: string;
   fromSelf: boolean;
   text: string;
+  kind?: string | null;
   createdAt?: string | null;
 };
 
@@ -53,6 +55,14 @@ function formatDate(value?: string | null) {
   }).format(date);
 }
 
+function messageKindLabel(kind?: string | null) {
+  const normalized = String(kind ?? "").toLowerCase();
+  if (normalized === "founder_welcome") return "Founder";
+  if (normalized === "referral_signup") return "Referral";
+  if (normalized === "system_onboarding") return "Onboarding";
+  return "Direkt";
+}
+
 export default function ProfileSocialActions({ shareId }: Props) {
   const [loading, setLoading] = useState(true);
   const [authRequired, setAuthRequired] = useState(false);
@@ -63,6 +73,13 @@ export default function ProfileSocialActions({ shareId }: Props) {
   const [draft, setDraft] = useState("");
   const [context, setContext] = useState<ThreadContext | null>(null);
   const [thread, setThread] = useState<ThreadMessage[]>([]);
+  const composerRef = useRef<HTMLTextAreaElement | null>(null);
+
+  const keepComposerInView = useCallback(() => {
+    window.setTimeout(() => {
+      composerRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }, 60);
+  }, []);
 
   const loadContext = useCallback(async () => {
     setLoading(true);
@@ -166,7 +183,7 @@ export default function ProfileSocialActions({ shareId }: Props) {
   }, [relationshipState]);
 
   return (
-    <section className="rounded-3xl bg-[rgb(var(--card))] p-6 shadow-sm ring-1 ring-[rgb(var(--border))]">
+    <section className="rounded-3xl bg-[rgb(var(--card))] p-6 pb-[max(env(safe-area-inset-bottom),1.25rem)] shadow-sm ring-1 ring-[rgb(var(--border))]">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="text-lg font-semibold text-[rgb(var(--fg))]">Kontakt & Direktnachricht (v1)</h2>
         <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-semibold ${relationshipBadgeClass}`}>
@@ -200,6 +217,37 @@ export default function ProfileSocialActions({ shareId }: Props) {
 
       {!authRequired && context ? (
         <div className="mt-3 space-y-3">
+          <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
+            <div className="flex items-start gap-2.5">
+              <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-sky-500/85 via-cyan-500/80 to-emerald-500/80 text-xs font-semibold text-white ring-1 ring-sky-300/40">
+                {context.avatarUrl ? (
+                  <img src={context.avatarUrl} alt="" className="h-full w-full object-cover" />
+                ) : (
+                  context.displayName
+                    .split(" ")
+                    .map((part) => part.slice(0, 1))
+                    .join("")
+                    .slice(0, 2)
+                    .toUpperCase()
+                )}
+              </span>
+              <div className="min-w-0">
+                <p className="truncate text-sm font-semibold text-[rgb(var(--fg))]">{context.displayName}</p>
+                {context.tagline ? <p className="text-xs text-[rgb(var(--muted))]">{context.tagline}</p> : null}
+                {context.locationLabel ? <p className="text-[11px] text-[rgb(var(--muted))]">{context.locationLabel}</p> : null}
+              </div>
+            </div>
+            {Array.isArray(context.topics) && context.topics.length > 0 ? (
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {context.topics.slice(0, 4).map((topic) => (
+                  <span key={`${context.targetUserId}-${topic}`} className="inline-flex items-center rounded-full border border-sky-300/60 bg-sky-100 px-2 py-0.5 text-[10px] text-sky-800 dark:border-sky-400/40 dark:bg-sky-500/14 dark:text-sky-100">
+                    {topic}
+                  </span>
+                ))}
+              </div>
+            ) : null}
+          </div>
+
           <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-xs text-[rgb(var(--muted))]">
             {canMessage ? "Du kannst dieser Person jetzt direkt schreiben." : cannotMessageLabel}
           </div>
@@ -253,12 +301,21 @@ export default function ProfileSocialActions({ shareId }: Props) {
             </button>
           ) : null}
 
+          <Link
+            href="/account#inbox"
+            className="inline-flex w-full items-center justify-center rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-2 text-xs font-semibold text-[rgb(var(--muted))] hover:text-[rgb(var(--fg))]"
+          >
+            Zur Inbox wechseln
+          </Link>
+
           {canMessage ? (
             <div className="space-y-2 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
               <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--muted))]">Nachricht senden</p>
               <textarea
+                ref={composerRef}
                 rows={3}
                 value={draft}
+                onFocus={keepComposerInView}
                 onChange={(event) => setDraft(event.target.value)}
                 placeholder="Kurze Nachricht schreiben …"
                 className="w-full resize-none rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm text-[rgb(var(--fg))] focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100"
@@ -279,19 +336,25 @@ export default function ProfileSocialActions({ shareId }: Props) {
             {loading ? (
               <p className="mt-1 text-xs text-[rgb(var(--muted))]">Lade Nachrichten …</p>
             ) : thread.length > 0 ? (
-              <div className="mt-2 space-y-2">
+              <div className="mt-2 space-y-2.5">
                 {thread.map((entry) => (
-                  <div
-                    key={entry.id}
-                    className={`rounded-xl border px-3 py-2 text-xs ${
-                      entry.fromSelf
-                        ? "border-sky-300/65 bg-sky-100/80 text-sky-900 dark:border-sky-400/45 dark:bg-sky-500/16 dark:text-sky-100"
-                        : "border-[rgb(var(--border))] bg-[rgb(var(--card))] text-[rgb(var(--fg))]"
-                    }`}
-                  >
-                    <p className="font-semibold">{entry.fromSelf ? "Du" : entry.fromLabel}</p>
-                    <p className="mt-0.5 whitespace-pre-wrap">{entry.text}</p>
-                    <p className="mt-1 text-[10px] text-[rgb(var(--muted))]">{formatDate(entry.createdAt)}</p>
+                  <div key={entry.id} className={`flex ${entry.fromSelf ? "justify-end" : "justify-start"}`}>
+                    <div
+                      className={`max-w-[84%] rounded-2xl border px-3 py-2 text-xs ${
+                        entry.fromSelf
+                          ? "border-sky-300/65 bg-sky-100/85 text-sky-900 dark:border-sky-400/45 dark:bg-sky-500/16 dark:text-sky-100"
+                          : "border-[rgb(var(--border))] bg-[rgb(var(--card))] text-[rgb(var(--fg))]"
+                      }`}
+                    >
+                      {!entry.fromSelf ? <p className="font-semibold">{entry.fromLabel}</p> : null}
+                      {!entry.fromSelf && entry.kind && String(entry.kind).toLowerCase() !== "direct" ? (
+                        <p className="mt-0.5 text-[10px] uppercase tracking-[0.12em] text-[rgb(var(--muted))]">
+                          {messageKindLabel(entry.kind)}
+                        </p>
+                      ) : null}
+                      <p className={`whitespace-pre-wrap ${entry.fromSelf ? "" : "mt-0.5"}`}>{entry.text}</p>
+                      <p className="mt-1 text-[10px] text-[rgb(var(--muted))]">{formatDate(entry.createdAt)}</p>
+                    </div>
                   </div>
                 ))}
               </div>

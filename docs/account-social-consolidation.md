@@ -22,6 +22,9 @@ Stand: 2026-03-17
   - lokales Label, wenn Stadt/Region im Profil verfügbar ist,
   - ehrlicher Fallback (`vorbereitete Vorschläge`), wenn noch keine exakten Treffer vorhanden sind.
 - Inbox lädt Social-Daten aus `core` über `/api/account/social-summary`.
+- Inbox unterscheidet sichtbarer zwischen:
+  - Founder/System-Signalen
+  - echten Direktnachrichten.
 - Founder-Welcome wird beim Laden aktiv sichergestellt.
 - Social-Listen sind jetzt drill-down-fähig:
   - Freundschaftsanfragen klickbar,
@@ -33,10 +36,18 @@ Stand: 2026-03-17
   - Anfrage: `Annehmen` / `Ablehnen`
   - Match: `Verbindung anfragen`
   - Nachricht: Verlauf lesen + kurze Nachricht senden (DM-v1, wenn Verbindung bestätigt)
+- Thread-UX in DM-v1 ist ruhiger gestaffelt:
+  - eindeutige Du/Kontakt-Bubbles,
+  - freundlicher Empty-State,
+  - Zeitstempel dezent,
+  - Intro-Hinweis bei erster Nachricht.
 - Öffentliche Profilseiten (`/profile/[shareId]`) sind jetzt als Kontaktfläche nutzbar:
   - Verbindungsstatus sichtbar,
   - Anfrage annehmen/ablehnen oder Verbindung anfragen,
   - Direktnachricht v1 bei bestätigter Verbindung.
+- Target-Linking ist robuster:
+  - Detailflächen nutzen `targetShareId`/`targetProfileHref` als bevorzugten Profilanker,
+  - ehrlicher Fallback ohne kaputten Link.
 - Inbox ist in drei Blöcke gegliedert:
   - `Wichtig jetzt` (Counts, Founder-/System-Momente, offene Signale),
   - `Menschen & Matches` (Interessen-/Region-Matching),
@@ -102,6 +113,10 @@ Stand: 2026-03-17
   - Thread lesen,
   - kurze Direktnachricht senden,
   - kein Realtime-Chat, keine Attachments, keine Gruppen.
+- Mobile Composer/Thread-Verhalten:
+  - Composer bleibt in Safe-Area erreichbar,
+  - Fokus scrollt den Composer in Sicht,
+  - Senden/Loading-Zustände bleiben stabil ohne hektisches UI.
 - Schreiben ist nur in sinnvollen Beziehungskontexten erlaubt:
   - `connected` -> `can_message = true`
   - `incoming_pending` / `outgoing_pending` / `none` -> `can_message = false` mit Grund.
@@ -111,6 +126,9 @@ Stand: 2026-03-17
   - `cannotMessageReason` / `cannotMessageReasonLabel`
 - Doppelklick-/Spam-Basisabsicherung:
   - identische Direct-Message innerhalb kurzer Zeit wird serverseitig als Duplikat behandelt.
+- Read/Unread-Polish:
+  - Thread-Öffnen markiert eingehende Nachrichten des Kontakts als gelesen.
+  - Summary liefert gesplittete Unread-Sicht (`unreadDirectCount` / `unreadSystemCount`) für plausiblere Badges.
 
 ## Community-Begriff (aktueller Scope)
 

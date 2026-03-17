@@ -32,6 +32,8 @@ type SocialMessageDoc = {
   createdAt?: string | Date | null;
 };
 
+type MessageType = "founder" | "system" | "direct";
+
 function toIso(value?: string | Date | null): string | null {
   if (!value) return null;
   const date = value instanceof Date ? value : new Date(value);
@@ -86,6 +88,13 @@ function resolveSenderInfo(params: {
   return { label: "Unbekannter Kontakt", avatarUrl: null, shareId: null };
 }
 
+function classifyMessageType(kind?: string | null): MessageType {
+  const normalized = clean(kind).toLowerCase();
+  if (normalized === "founder_welcome") return "founder";
+  if (normalized === "referral_signup" || normalized === "system_onboarding") return "system";
+  return "direct";
+}
+
 export async function GET() {
   // Founder/social/inbox collections are intentionally stored in triMongo core.
   assertStoreConfigured("core", "api/account/social-summary");
@@ -134,14 +143,34 @@ export async function GET() {
       },
     ],
   };
+  const unreadDirectFilter = {
+    $and: [
+      unreadMessageFilter,
+      {
+        $or: [{ kind: "direct" }, { kind: "DIRECT" }, { kind: null }, { kind: { $exists: false } }],
+      },
+    ],
+  };
+  const unreadSystemFilter = {
+    $and: [
+      unreadMessageFilter,
+      {
+        kind: {
+          $in: ["founder_welcome", "referral_signup", "system_onboarding", "FOUNDER_WELCOME", "REFERRAL_SIGNUP", "SYSTEM_ONBOARDING"],
+        },
+      },
+    ],
+  };
 
   const requestCol = await coreCol<SocialFriendRequestDoc>("social_friend_requests");
   const messageCol = await coreCol<SocialMessageDoc>("social_messages");
   const usersCol = await coreCol<any>("users");
 
-  const [pendingRequestCount, unreadMessageCount, friendRequestDocs, recentMessageDocs] = await Promise.all([
+  const [pendingRequestCount, unreadMessageCount, unreadDirectCount, unreadSystemCount, friendRequestDocs, recentMessageDocs] = await Promise.all([
     requestCol.countDocuments(pendingRequestFilter),
     messageCol.countDocuments(unreadMessageFilter),
+    messageCol.countDocuments(unreadDirectFilter),
+    messageCol.countDocuments(unreadSystemFilter),
     requestCol.find(pendingRequestFilter).sort({ createdAt: -1 }).limit(5).toArray(),
     messageCol.find(requestFilter).sort({ createdAt: -1 }).limit(6).toArray(),
   ]);
@@ -221,6 +250,7 @@ export async function GET() {
       fromLabel: sender.label,
       text: text.slice(0, 180),
       kind: typeof doc.kind === "string" ? doc.kind : "direct",
+      messageType: classifyMessageType(typeof doc.kind === "string" ? doc.kind : "direct"),
       createdAt: toIso(doc.createdAt),
       read: Boolean(doc.readAt),
       fromUserId: fromId || null,
@@ -234,6 +264,8 @@ export async function GET() {
     founderFlow,
     pendingRequestCount,
     unreadMessageCount,
+    unreadDirectCount,
+    unreadSystemCount,
     friendRequestPreviewCount: friendRequests.length,
     recentMessagePreviewCount: recentMessages.length,
   });
@@ -243,6 +275,8 @@ export async function GET() {
     summary: {
       pendingRequestCount,
       unreadMessageCount,
+      unreadDirectCount,
+      unreadSystemCount,
       friendRequests,
       recentMessages,
     },

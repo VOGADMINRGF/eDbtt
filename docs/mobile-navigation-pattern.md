@@ -50,4 +50,7 @@ Stand: 2026-03-17
 - Für Social/DM-v1 gilt mobil:
   - Detail-Sheets bleiben die zentrale Interaktionsfläche.
   - Thread-Liste + Composer sind im Sheet scroll-/safe-area-fest eingebettet.
+  - Composer sitzt im unteren, safe-area-geschützten Aktionsbereich.
+  - Beim Fokus auf das Eingabefeld wird der Composer aktiv in den sichtbaren Bereich gescrollt.
+  - Read/Unread-Rückläufe werden nach Thread-Öffnung unmittelbar in der Inbox-Übersicht nachgezogen.
   - DM bleibt bewusst v1 (kein Realtime-Messenger-Verhalten).

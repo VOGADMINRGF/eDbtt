@@ -339,6 +339,7 @@ type SocialMessageItem = {
   fromLabel: string;
   text: string;
   kind?: string;
+  messageType?: "founder" | "system" | "direct";
   createdAt?: string | null;
   read: boolean;
   fromUserId?: string | null;
@@ -349,6 +350,8 @@ type SocialMessageItem = {
 type SocialSummary = {
   pendingRequestCount: number;
   unreadMessageCount: number;
+  unreadDirectCount?: number;
+  unreadSystemCount?: number;
   friendRequests: SocialFriendRequestItem[];
   recentMessages: SocialMessageItem[];
 };
@@ -435,6 +438,7 @@ type SocialRelationshipState = "connected" | "incoming_pending" | "outgoing_pend
 type SocialThreadContext = {
   targetUserId: string;
   targetShareId?: string | null;
+  targetProfileHref?: string | null;
   displayName: string;
   avatarUrl?: string | null;
   tagline?: string | null;
@@ -488,6 +492,16 @@ function messageKindLabel(kind?: string) {
   if (kind === "referral_signup") return "Referral";
   if (kind === "system_onboarding") return "Onboarding";
   return "Direkt";
+}
+
+function resolveMessageType(message: SocialMessageItem): "founder" | "system" | "direct" {
+  if (message.messageType === "founder" || message.messageType === "system" || message.messageType === "direct") {
+    return message.messageType;
+  }
+  const kind = String(message.kind ?? "").toLowerCase();
+  if (kind === "founder_welcome") return "founder";
+  if (kind === "referral_signup" || kind === "system_onboarding") return "system";
+  return "direct";
 }
 
 function getInitials(value?: string | null) {
@@ -603,6 +617,8 @@ function CompactProfileHubSection({
   const [socialSummary, setSocialSummary] = useState<SocialSummary>({
     pendingRequestCount: 0,
     unreadMessageCount: 0,
+    unreadDirectCount: 0,
+    unreadSystemCount: 0,
     friendRequests: [],
     recentMessages: [],
   });
@@ -627,6 +643,7 @@ function CompactProfileHubSection({
   const [canNativeShare, setCanNativeShare] = useState(false);
   const avatarInputRef = useRef<HTMLInputElement | null>(null);
   const invitePanelRef = useRef<HTMLDivElement | null>(null);
+  const dmComposerRef = useRef<HTMLTextAreaElement | null>(null);
   const mobileChromeVisible = useMobileChromeVisibility({
     disabled: profileEditorOpen || Boolean(socialDetail),
     minY: 88,
@@ -756,6 +773,10 @@ function CompactProfileHubSection({
       sender.includes("voiceopengov")
     );
   });
+  const directMessages = socialSummary.recentMessages.filter((message) => resolveMessageType(message) === "direct");
+  const systemMessages = socialSummary.recentMessages.filter((message) => resolveMessageType(message) !== "direct");
+  const unreadDirectCount = Number(socialSummary.unreadDirectCount ?? 0);
+  const unreadSystemCount = Number(socialSummary.unreadSystemCount ?? 0);
   const topMatches = matches.slice(0, 5);
   const hasImportantNow = hasPendingRequests || hasUnreadMessages || Boolean(founderMessage);
   const inboxUtilityCount = socialSummary.pendingRequestCount + socialSummary.unreadMessageCount;
@@ -880,7 +901,10 @@ function CompactProfileHubSection({
         : prev,
     );
   };
-  const socialDetailProfileHref = socialDetail ? profileHrefForShareId(socialDetail.shareId) : null;
+  const socialDetailProfileHref = socialDetail
+    ? socialThreadContext?.targetProfileHref ||
+      profileHrefForShareId(socialDetail.shareId || socialThreadContext?.targetShareId || null)
+    : null;
   const loadSocialThreadContext = useCallback(async (detail: SocialDetailState | null) => {
     if (!detail) {
       setSocialThreadContext(null);
@@ -966,6 +990,8 @@ function CompactProfileHubSection({
       setSocialSummary({
         pendingRequestCount: Number(body.summary.pendingRequestCount ?? 0),
         unreadMessageCount: Number(body.summary.unreadMessageCount ?? 0),
+        unreadDirectCount: Number(body.summary.unreadDirectCount ?? 0),
+        unreadSystemCount: Number(body.summary.unreadSystemCount ?? 0),
         friendRequests: Array.isArray(body.summary.friendRequests) ? body.summary.friendRequests : [],
         recentMessages: Array.isArray(body.summary.recentMessages) ? body.summary.recentMessages : [],
       });
@@ -983,6 +1009,8 @@ function CompactProfileHubSection({
       setSocialSummary({
         pendingRequestCount: 0,
         unreadMessageCount: 0,
+        unreadDirectCount: 0,
+        unreadSystemCount: 0,
         friendRequests: [],
         recentMessages: [],
       });
@@ -1207,6 +1235,12 @@ function CompactProfileHubSection({
     window.setTimeout(() => {
       invitePanelRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
     }, 70);
+  };
+
+  const keepComposerInView = () => {
+    window.setTimeout(() => {
+      dmComposerRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }, 60);
   };
 
   const openAvatarPicker = () => {
@@ -1985,6 +2019,9 @@ function CompactProfileHubSection({
               >
                 {socialLoading ? "…" : socialSummary.unreadMessageCount}
               </p>
+              <p className="mt-0.5 text-[10px] text-[rgb(var(--muted))]">
+                direkt {socialLoading ? "…" : unreadDirectCount} · system {socialLoading ? "…" : unreadSystemCount}
+              </p>
             </div>
           </div>
 
@@ -2091,31 +2128,77 @@ function CompactProfileHubSection({
             {socialLoading ? (
               <p className="text-xs text-[rgb(var(--muted))]">Lade Nachrichten …</p>
             ) : socialSummary.recentMessages.length > 0 ? (
-              <div className="space-y-2">
-                {socialSummary.recentMessages.map((message) => (
-                  <button
-                    key={message.id}
-                    type="button"
-                    onClick={() => openMessageDetail(message)}
-                    className="flex w-full items-start gap-2.5 rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-2.5 py-2 text-left text-xs transition hover:border-sky-300/60 hover:bg-sky-500/5"
-                  >
-                    <SocialAvatar label={message.fromLabel} avatarUrl={message.fromAvatarUrl} />
-                    <span className="min-w-0 flex-1">
-                      <span className="block min-w-0 text-[rgb(var(--fg))]">
-                        <span className="font-semibold">{message.fromLabel}:</span> {truncateText(message.text, 56)}
-                      </span>
-                      <span className="mt-0.5 inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.12em] text-[rgb(var(--muted))]">
-                        {messageKindLabel(message.kind)}
-                        {!message.read ? (
-                          <span className="inline-flex items-center rounded-full border border-sky-300/70 bg-sky-100 px-1.5 py-0.5 text-[9px] font-semibold text-sky-800 dark:border-sky-400/50 dark:bg-sky-500/15 dark:text-sky-100">
-                            ungelesen
+              <div className="space-y-3">
+                {directMessages.length > 0 ? (
+                  <div className="space-y-2">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--muted))]">
+                      Direktnachrichten
+                    </p>
+                    {directMessages.map((message) => (
+                      <button
+                        key={message.id}
+                        type="button"
+                        onClick={() => openMessageDetail(message)}
+                        className="flex w-full items-start gap-2.5 rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-2.5 py-2 text-left text-xs transition hover:border-sky-300/60 hover:bg-sky-500/5"
+                      >
+                        <SocialAvatar label={message.fromLabel} avatarUrl={message.fromAvatarUrl} />
+                        <span className="min-w-0 flex-1">
+                          <span className="block min-w-0 text-[rgb(var(--fg))]">
+                            <span className="font-semibold">{message.fromLabel}:</span> {truncateText(message.text, 56)}
                           </span>
-                        ) : null}
-                      </span>
-                    </span>
-                    <span className="shrink-0 text-[10px] text-[rgb(var(--muted))]">{formatDateLabel(message.createdAt)}</span>
-                  </button>
-                ))}
+                          <span className="mt-0.5 inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.12em] text-[rgb(var(--muted))]">
+                            Direkt
+                            {!message.read ? (
+                              <span className="inline-flex items-center rounded-full border border-sky-300/70 bg-sky-100 px-1.5 py-0.5 text-[9px] font-semibold text-sky-800 dark:border-sky-400/50 dark:bg-sky-500/15 dark:text-sky-100">
+                                ungelesen
+                              </span>
+                            ) : null}
+                          </span>
+                        </span>
+                        <span className="shrink-0 text-[10px] text-[rgb(var(--muted))]">{formatDateLabel(message.createdAt)}</span>
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
+                {systemMessages.length > 0 ? (
+                  <div className="space-y-2">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--muted))]">
+                      Founder & System
+                    </p>
+                    {systemMessages.map((message) => (
+                      <button
+                        key={message.id}
+                        type="button"
+                        onClick={() => openMessageDetail(message)}
+                        className="flex w-full items-start gap-2.5 rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-2.5 py-2 text-left text-xs transition hover:border-cyan-300/60 hover:bg-cyan-500/5"
+                      >
+                        <SocialAvatar label={message.fromLabel} avatarUrl={message.fromAvatarUrl} />
+                        <span className="min-w-0 flex-1">
+                          <span className="block min-w-0 text-[rgb(var(--fg))]">
+                            <span className="font-semibold">{message.fromLabel}:</span> {truncateText(message.text, 56)}
+                          </span>
+                          <span className="mt-0.5 inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.12em] text-[rgb(var(--muted))]">
+                            <span
+                              className={`inline-flex items-center rounded-full border px-1.5 py-0.5 text-[9px] font-semibold ${
+                                resolveMessageType(message) === "founder"
+                                  ? "border-cyan-300/70 bg-cyan-100 text-cyan-800 dark:border-cyan-400/50 dark:bg-cyan-500/15 dark:text-cyan-100"
+                                  : "border-indigo-300/70 bg-indigo-100 text-indigo-800 dark:border-indigo-400/50 dark:bg-indigo-500/15 dark:text-indigo-100"
+                              }`}
+                            >
+                              {messageKindLabel(message.kind)}
+                            </span>
+                            {!message.read ? (
+                              <span className="inline-flex items-center rounded-full border border-sky-300/70 bg-sky-100 px-1.5 py-0.5 text-[9px] font-semibold text-sky-800 dark:border-sky-400/50 dark:bg-sky-500/15 dark:text-sky-100">
+                                ungelesen
+                              </span>
+                            ) : null}
+                          </span>
+                        </span>
+                        <span className="shrink-0 text-[10px] text-[rgb(var(--muted))]">{formatDateLabel(message.createdAt)}</span>
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
               </div>
             ) : (
               <p className="text-xs text-[rgb(var(--muted))]">
@@ -2345,7 +2428,7 @@ function CompactProfileHubSection({
       {socialDetail ? (
         <div className="fixed inset-0 z-[90] bg-slate-950/60 p-3 backdrop-blur-[2px] sm:p-5" onClick={() => setSocialDetail(null)}>
           <div
-            className="absolute inset-x-0 bottom-0 max-h-[82vh] overflow-hidden rounded-t-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] shadow-[0_28px_70px_rgba(2,6,23,0.65)] sm:inset-x-auto sm:left-1/2 sm:top-1/2 sm:w-[540px] sm:max-w-[calc(100vw-2.5rem)] sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-3xl"
+            className="absolute inset-x-0 bottom-0 max-h-[88dvh] overflow-hidden rounded-t-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] shadow-[0_28px_70px_rgba(2,6,23,0.65)] sm:inset-x-auto sm:left-1/2 sm:top-1/2 sm:w-[540px] sm:max-w-[calc(100vw-2.5rem)] sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-3xl"
             onClick={(event) => event.stopPropagation()}
           >
             <div className="flex items-center justify-between border-b border-[rgb(var(--border))] px-4 py-3">
@@ -2357,7 +2440,7 @@ function CompactProfileHubSection({
                 Schließen
               </button>
             </div>
-            <div className="space-y-3 overflow-y-auto px-4 py-4">
+            <div className="space-y-3 overflow-y-auto px-4 py-4 pb-[max(env(safe-area-inset-bottom),0.75rem)]">
               <div className="flex items-center gap-3 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
                 <SocialAvatar label={socialDetail.title} avatarUrl={socialDetail.avatarUrl} sizeClass="h-11 w-11 text-sm" />
                 <div className="min-w-0">
@@ -2412,19 +2495,25 @@ function CompactProfileHubSection({
                   {socialThreadLoading ? (
                     <p className="text-xs text-[rgb(var(--muted))]">Lade Verlauf …</p>
                   ) : socialThreadMessages.length > 0 ? (
-                    <div className="space-y-2">
+                    <div className="space-y-2.5">
                       {socialThreadMessages.map((entry) => (
-                        <div
-                          key={entry.id}
-                          className={`rounded-xl border px-3 py-2 text-xs ${
-                            entry.fromSelf
-                              ? "border-sky-300/65 bg-sky-100/85 text-sky-900 dark:border-sky-400/45 dark:bg-sky-500/16 dark:text-sky-100"
-                              : "border-[rgb(var(--border))] bg-[rgb(var(--card))] text-[rgb(var(--fg))]"
-                          }`}
-                        >
-                          <p className="font-semibold">{entry.fromSelf ? "Du" : entry.fromLabel}</p>
-                          <p className="mt-0.5 whitespace-pre-wrap">{entry.text}</p>
-                          <p className="mt-1 text-[10px] text-[rgb(var(--muted))]">{formatDateLabel(entry.createdAt)}</p>
+                        <div key={entry.id} className={`flex ${entry.fromSelf ? "justify-end" : "justify-start"}`}>
+                          <div
+                            className={`max-w-[85%] rounded-2xl border px-3 py-2 text-xs ${
+                              entry.fromSelf
+                                ? "border-sky-300/70 bg-sky-100/90 text-sky-900 dark:border-sky-400/45 dark:bg-sky-500/18 dark:text-sky-100"
+                                : "border-[rgb(var(--border))] bg-[rgb(var(--card))] text-[rgb(var(--fg))]"
+                            }`}
+                          >
+                            {!entry.fromSelf ? <p className="font-semibold">{entry.fromLabel}</p> : null}
+                            {!entry.fromSelf && entry.kind && String(entry.kind).toLowerCase() !== "direct" ? (
+                              <p className="mt-0.5 text-[10px] uppercase tracking-[0.12em] text-[rgb(var(--muted))]">
+                                {messageKindLabel(entry.kind)}
+                              </p>
+                            ) : null}
+                            <p className={`whitespace-pre-wrap ${entry.fromSelf ? "" : "mt-0.5"}`}>{entry.text}</p>
+                            <p className="mt-1 text-[10px] text-[rgb(var(--muted))]">{formatDateLabel(entry.createdAt)}</p>
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -2433,23 +2522,9 @@ function CompactProfileHubSection({
                   )}
 
                   {socialCanMessage ? (
-                    <div className="space-y-2 pt-1">
-                      <textarea
-                        rows={2}
-                        value={dmDraft}
-                        onChange={(event) => setDmDraft(event.target.value)}
-                        placeholder="Kurze Nachricht schreiben …"
-                        className="w-full resize-none rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm text-[rgb(var(--fg))] focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100"
-                      />
-                      <button
-                        type="button"
-                        disabled={dmSending || dmDraft.trim().length === 0}
-                        onClick={() => void sendDirectMessage()}
-                        className={`${primaryButtonClass} w-full disabled:opacity-70`}
-                      >
-                        {dmSending ? "Sendet …" : "Nachricht senden"}
-                      </button>
-                    </div>
+                    <p className="text-xs text-[rgb(var(--muted))]">
+                      Du bist verbunden. Schreibe unten eine erste Nachricht.
+                    </p>
                   ) : (
                     <div className={subtleWarningClass}>{socialCannotMessageLabel}</div>
                   )}
@@ -2459,7 +2534,28 @@ function CompactProfileHubSection({
                 <p className="text-xs text-rose-800 dark:text-rose-100">{socialThreadError}</p>
               ) : null}
             </div>
-            <div className="border-t border-[rgb(var(--border))] bg-[rgb(var(--card))] p-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)]">
+            <div className="border-t border-[rgb(var(--border))] bg-[rgb(var(--card))] p-3 pb-[calc(env(safe-area-inset-bottom)+0.9rem)]">
+              {socialDetail.kind === "message" && socialCanMessage ? (
+                <div className="mb-2 space-y-2 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-2.5">
+                  <textarea
+                    ref={dmComposerRef}
+                    rows={2}
+                    value={dmDraft}
+                    onFocus={keepComposerInView}
+                    onChange={(event) => setDmDraft(event.target.value)}
+                    placeholder="Kurze Nachricht schreiben …"
+                    className="w-full resize-none rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm text-[rgb(var(--fg))] focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100"
+                  />
+                  <button
+                    type="button"
+                    disabled={dmSending || dmDraft.trim().length === 0}
+                    onClick={() => void sendDirectMessage()}
+                    className={`${primaryButtonClass} w-full disabled:opacity-70`}
+                  >
+                    {dmSending ? "Sendet …" : "Nachricht senden"}
+                  </button>
+                </div>
+              ) : null}
               {socialActionMsg ? (
                 <p className="mb-2 text-xs text-[rgb(var(--muted))]" role="status" aria-live="polite">
                   {socialActionMsg}

@@ -257,6 +257,7 @@ async function loadThreadAndState(params: {
   const usersCol = await coreCol<UserDoc>("users");
 
   const currentUserIds = idCandidates(params.userId);
+  const currentIdSet = new Set(currentUserIds.map((candidate) => normalizeId(candidate)));
   const pairDocs = await requestCol
     .find(pairFilter(currentUserIds, params.target.idCandidates))
     .sort({ createdAt: -1, _id: -1 })
@@ -325,7 +326,7 @@ async function loadThreadAndState(params: {
   }
 
   const now = new Date();
-  await messageCol.updateMany(
+  const readUpdate = await messageCol.updateMany(
     {
       fromUserId: { $in: params.target.idCandidates },
       toUserId: { $in: currentUserIds },
@@ -355,7 +356,7 @@ async function loadThreadAndState(params: {
         fromUserId: fromId || null,
         fromLabel: sender.label,
         fromAvatarUrl: sender.avatarUrl,
-        fromSelf: currentUserIds.map((candidate) => normalizeId(candidate)).includes(fromId),
+        fromSelf: currentIdSet.has(fromId),
         text: text.slice(0, 600),
         kind: typeof doc.kind === "string" ? doc.kind : "direct",
         createdAt: toIso(doc.createdAt),
@@ -367,6 +368,7 @@ async function loadThreadAndState(params: {
     capability,
     pairState,
     thread,
+    readMarkedCount: Number(readUpdate.modifiedCount ?? 0),
   };
 }
 
@@ -395,7 +397,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ ok: false, error: "cannot_message_self" }, { status: 400 });
   }
 
-  const { capability, pairState, thread } = await loadThreadAndState({
+  const { capability, pairState, thread, readMarkedCount } = await loadThreadAndState({
     userId,
     target,
     limit,
@@ -409,6 +411,7 @@ export async function GET(request: Request) {
     context: {
       targetUserId: target.userId,
       targetShareId: target.shareId,
+      targetProfileHref: target.shareId ? `/profile/${encodeURIComponent(target.shareId)}` : null,
       displayName: target.displayName,
       avatarUrl: target.avatarUrl,
       tagline: target.tagline,
@@ -426,6 +429,7 @@ export async function GET(request: Request) {
     meta: {
       store: "core",
       limit,
+      readMarkedCount,
     },
   });
 }
