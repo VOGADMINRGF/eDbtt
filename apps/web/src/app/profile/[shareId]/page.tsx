@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { coreCol } from "@core/db/triMongo";
 import { getEngagementLevel } from "@features/user/engagement";
+import ProfileSocialActions from "./ProfileSocialActions";
 
 export const dynamic = "force-dynamic";
 
@@ -263,6 +264,8 @@ export default async function PublicProfilePage({
             </div>
           </section>
         )}
+
+        <ProfileSocialActions shareId={shareId} />
 
         <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-5 text-xs text-[rgb(var(--muted))]">
           Dieses Profil wird nur angezeigt, wenn der/die Nutzer:in der öffentlichen Darstellung zugestimmt hat.

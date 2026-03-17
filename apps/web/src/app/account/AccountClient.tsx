@@ -430,6 +430,36 @@ type SocialDetailState = {
   unread?: boolean;
 };
 
+type SocialRelationshipState = "connected" | "incoming_pending" | "outgoing_pending" | "none";
+
+type SocialThreadContext = {
+  targetUserId: string;
+  targetShareId?: string | null;
+  displayName: string;
+  avatarUrl?: string | null;
+  tagline?: string | null;
+  bio?: string | null;
+  locationLabel?: string | null;
+  topics?: string[];
+  relationshipState: SocialRelationshipState;
+  canMessage: boolean;
+  cannotMessageReason?: string | null;
+  cannotMessageReasonLabel?: string | null;
+  incomingRequestId?: string | null;
+  outgoingRequestId?: string | null;
+};
+
+type SocialThreadMessage = {
+  id: string;
+  fromUserId?: string | null;
+  fromLabel: string;
+  fromAvatarUrl?: string | null;
+  fromSelf: boolean;
+  text: string;
+  kind?: string | null;
+  createdAt?: string | null;
+};
+
 const TOPIC_ICON_BY_KEY: Record<TopicKey, IconType> = {
   democracy: FiUsers,
   budget: FiCreditCard,
@@ -584,6 +614,12 @@ function CompactProfileHubSection({
   const [socialDetail, setSocialDetail] = useState<SocialDetailState | null>(null);
   const [socialActionPending, setSocialActionPending] = useState(false);
   const [socialActionMsg, setSocialActionMsg] = useState<string | null>(null);
+  const [socialThreadLoading, setSocialThreadLoading] = useState(false);
+  const [socialThreadContext, setSocialThreadContext] = useState<SocialThreadContext | null>(null);
+  const [socialThreadMessages, setSocialThreadMessages] = useState<SocialThreadMessage[]>([]);
+  const [socialThreadError, setSocialThreadError] = useState<string | null>(null);
+  const [dmDraft, setDmDraft] = useState("");
+  const [dmSending, setDmSending] = useState(false);
   const [matches, setMatches] = useState<AccountMatchItem[]>([]);
   const [matchesLoading, setMatchesLoading] = useState(false);
   const [debateResults, setDebateResults] = useState<InterestDebateResult[]>([]);
@@ -731,6 +767,8 @@ function CompactProfileHubSection({
     : "pointer-events-none translate-y-[120%] opacity-0";
   const inboxIsEmpty =
     !socialLoading && socialSummary.friendRequests.length === 0 && socialSummary.recentMessages.length === 0;
+  const socialRelationshipState = socialThreadContext?.relationshipState ?? "none";
+  const socialCanMessage = Boolean(socialThreadContext?.canMessage);
   const personalDirty =
     JSON.stringify(normalizedPersonalIdentity(personalDraft)) !==
     JSON.stringify(normalizedPersonalIdentity(personalInitial));
@@ -762,6 +800,25 @@ function CompactProfileHubSection({
       minute: "2-digit",
     }).format(date);
   };
+
+  const relationshipStateLabel = (state?: SocialRelationshipState | null) => {
+    if (state === "connected") return "Verbunden";
+    if (state === "incoming_pending") return "Eingehende Anfrage";
+    if (state === "outgoing_pending") return "Anfrage gesendet";
+    return "Keine Verbindung";
+  };
+
+  const cannotMessageReasonLabel = (reason?: string | null) => {
+    if (reason === "incoming_request_pending") return "Anfrage zuerst annehmen";
+    if (reason === "outgoing_request_pending") return "Warte auf Annahme der Anfrage";
+    if (reason === "not_connected") return "Nur mit bestätigten Verbindungen möglich";
+    if (reason === "target_unknown") return "Kontakt ist aktuell nicht auflösbar";
+    if (reason === "self") return "Nachricht an dich selbst nicht möglich";
+    return "Direktnachricht aktuell nicht möglich.";
+  };
+  const socialCannotMessageLabel =
+    socialThreadContext?.cannotMessageReasonLabel ||
+    cannotMessageReasonLabel(socialThreadContext?.cannotMessageReason);
 
   const profileHrefForShareId = (shareId?: string | null) =>
     shareId ? `/profile/${encodeURIComponent(shareId)}` : null;
@@ -812,7 +869,58 @@ function CompactProfileHubSection({
       kindLabel: "Passendes Profil",
     });
   };
+  const switchToMessageDetail = () => {
+    setSocialDetail((prev) =>
+      prev
+        ? {
+            ...prev,
+            kind: "message",
+            kindLabel: "Direktnachricht",
+          }
+        : prev,
+    );
+  };
   const socialDetailProfileHref = socialDetail ? profileHrefForShareId(socialDetail.shareId) : null;
+  const loadSocialThreadContext = useCallback(async (detail: SocialDetailState | null) => {
+    if (!detail) {
+      setSocialThreadContext(null);
+      setSocialThreadMessages([]);
+      setSocialThreadError(null);
+      return;
+    }
+
+    const params = new URLSearchParams();
+    if (detail.targetUserId) {
+      params.set("targetUserId", detail.targetUserId);
+    } else if (detail.shareId) {
+      params.set("shareId", detail.shareId);
+    } else {
+      setSocialThreadContext(null);
+      setSocialThreadMessages([]);
+      setSocialThreadError("Kontaktkontext nicht auflösbar.");
+      return;
+    }
+    params.set("limit", "14");
+
+    setSocialThreadLoading(true);
+    setSocialThreadError(null);
+    try {
+      const res = await fetch(`/api/account/social-thread?${params.toString()}`, { cache: "no-store" });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok || !body?.ok || !body?.context) {
+        throw new Error(body?.cannotMessageReasonLabel || body?.error || "social_thread_failed");
+      }
+      setSocialThreadContext(body.context as SocialThreadContext);
+      setSocialThreadMessages(Array.isArray(body.thread) ? (body.thread as SocialThreadMessage[]) : []);
+    } catch (error: any) {
+      setSocialThreadContext(null);
+      setSocialThreadMessages([]);
+      setSocialThreadError(error?.message || "Thread nicht verfügbar.");
+    } finally {
+      setSocialThreadLoading(false);
+    }
+  }, []);
+
   const submitSocialAction = async (payload: {
     action: "request.accept" | "request.reject" | "match.request";
     requestId?: string | null;
@@ -836,6 +944,9 @@ function CompactProfileHubSection({
           : "Aktion gespeichert.",
       );
       await Promise.all([loadSocialSummary(), loadMatches()]);
+      if (socialDetail) {
+        await loadSocialThreadContext(socialDetail);
+      }
     } catch (error: any) {
       setSocialActionMsg(error?.message || "Aktion fehlgeschlagen.");
     } finally {
@@ -898,6 +1009,38 @@ function CompactProfileHubSection({
       setMatchesLoading(false);
     }
   }, []);
+
+  const sendDirectMessage = useCallback(async () => {
+    if (!socialDetail || !socialThreadContext?.canMessage) return;
+    const text = dmDraft.trim();
+    if (!text) return;
+
+    setDmSending(true);
+    setSocialActionMsg(null);
+    try {
+      const res = await fetch("/api/account/social-thread", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          targetUserId: socialThreadContext.targetUserId || socialDetail.targetUserId,
+          shareId: socialThreadContext.targetShareId || socialDetail.shareId,
+          text,
+        }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok || !body?.ok) {
+        throw new Error(body?.cannotMessageReasonLabel || body?.error || "message_send_failed");
+      }
+
+      setDmDraft("");
+      setSocialActionMsg(typeof body?.info === "string" ? body.info : "Nachricht gesendet.");
+      await Promise.all([loadSocialSummary(), loadSocialThreadContext(socialDetail)]);
+    } catch (error: any) {
+      setSocialActionMsg(error?.message || "Nachricht konnte nicht gesendet werden.");
+    } finally {
+      setDmSending(false);
+    }
+  }, [dmDraft, loadSocialSummary, loadSocialThreadContext, socialDetail, socialThreadContext]);
 
   const loadDebateResults = useCallback(async () => {
     const topicKeys = selectedTopicSignature
@@ -1000,6 +1143,25 @@ function CompactProfileHubSection({
     window.addEventListener("focus", onFocus);
     return () => window.removeEventListener("focus", onFocus);
   }, [loadDebateResults, loadMatches, loadSocialSummary]);
+
+  useEffect(() => {
+    if (!socialDetail) {
+      setSocialThreadContext(null);
+      setSocialThreadMessages([]);
+      setSocialThreadError(null);
+      setDmDraft("");
+      return;
+    }
+    setDmDraft("");
+    const detail = socialDetail;
+    const run = async () => {
+      await loadSocialThreadContext(detail);
+      if (detail.kind === "message") {
+        void loadSocialSummary();
+      }
+    };
+    void run();
+  }, [loadSocialSummary, loadSocialThreadContext, socialDetail]);
 
   const toggleTopic = (key: TopicKey) => {
     setSelectedTopics((prev) => {
@@ -1923,7 +2085,7 @@ function CompactProfileHubSection({
                 Letzte Nachrichten
               </p>
               <span className="text-[11px] text-[rgb(var(--muted))]">
-                {chatEnabled ? "Nachrichten lesen aktiv" : "Direktnachrichten noch im Ausbau"}
+                {chatEnabled ? "Direktnachricht v1 aktiv" : "Direktnachricht v1 begrenzt"}
               </span>
             </div>
             {socialLoading ? (
@@ -1961,7 +2123,7 @@ function CompactProfileHubSection({
               </p>
             )}
             <p className="mt-2 text-[11px] text-[rgb(var(--muted))]">
-              Direktnachrichten senden ist noch nicht freigeschaltet. Aktuell zeigt die Inbox empfangene System-/Founder-Nachrichten und Verbindungsstatus.
+              Direktnachricht v1 ist bewusst klein: Verlauf lesen und kurze Antworten bei bestätigten Verbindungen. Kein Realtime-Messenger.
             </p>
           </div>
 
@@ -2233,25 +2395,68 @@ function CompactProfileHubSection({
                 <p className="text-xs text-[rgb(var(--muted))]">Zeitpunkt: {formatDateLabel(socialDetail.createdAt)}</p>
               ) : null}
 
-              {socialDetail.kind === "message" ? (
-                <div className="space-y-2">
-                  <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--muted))]">Thread-Vorschau</p>
-                    <p className="mt-1 text-xs text-[rgb(var(--muted))]">
-                      Dieser Bereich ist als Basis für DM-v1 vorbereitet (Thread lesen, später Antworten).
-                    </p>
-                    <textarea
-                      rows={2}
-                      readOnly
-                      value=""
-                      placeholder="Antwortfeld wird mit DM-v1 freigeschaltet."
-                      className="mt-2 w-full resize-none rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-xs text-[rgb(var(--muted))] opacity-75"
-                    />
-                  </div>
-                  <div className={subtleWarningClass}>
-                    Direktnachrichten senden ist noch im Ausbau. Diese Detailansicht ist lesbar, Antworten folgen in einer nächsten Stufe.
-                  </div>
+              {socialThreadContext ? (
+                <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-xs text-[rgb(var(--muted))]">
+                  Verbindung:{" "}
+                  <span className="font-semibold text-[rgb(var(--fg))]">
+                    {relationshipStateLabel(socialRelationshipState)}
+                  </span>
+                  <span className="mx-1.5 text-[rgb(var(--border))]">•</span>
+                  {socialCanMessage ? "Direktnachricht möglich" : socialCannotMessageLabel}
                 </div>
+              ) : null}
+
+              {socialDetail.kind === "message" ? (
+                <div className="space-y-2 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--muted))]">Nachrichtenverlauf</p>
+                  {socialThreadLoading ? (
+                    <p className="text-xs text-[rgb(var(--muted))]">Lade Verlauf …</p>
+                  ) : socialThreadMessages.length > 0 ? (
+                    <div className="space-y-2">
+                      {socialThreadMessages.map((entry) => (
+                        <div
+                          key={entry.id}
+                          className={`rounded-xl border px-3 py-2 text-xs ${
+                            entry.fromSelf
+                              ? "border-sky-300/65 bg-sky-100/85 text-sky-900 dark:border-sky-400/45 dark:bg-sky-500/16 dark:text-sky-100"
+                              : "border-[rgb(var(--border))] bg-[rgb(var(--card))] text-[rgb(var(--fg))]"
+                          }`}
+                        >
+                          <p className="font-semibold">{entry.fromSelf ? "Du" : entry.fromLabel}</p>
+                          <p className="mt-0.5 whitespace-pre-wrap">{entry.text}</p>
+                          <p className="mt-1 text-[10px] text-[rgb(var(--muted))]">{formatDateLabel(entry.createdAt)}</p>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-[rgb(var(--muted))]">Noch keine Nachrichten in diesem Verlauf.</p>
+                  )}
+
+                  {socialCanMessage ? (
+                    <div className="space-y-2 pt-1">
+                      <textarea
+                        rows={2}
+                        value={dmDraft}
+                        onChange={(event) => setDmDraft(event.target.value)}
+                        placeholder="Kurze Nachricht schreiben …"
+                        className="w-full resize-none rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm text-[rgb(var(--fg))] focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100"
+                      />
+                      <button
+                        type="button"
+                        disabled={dmSending || dmDraft.trim().length === 0}
+                        onClick={() => void sendDirectMessage()}
+                        className={`${primaryButtonClass} w-full disabled:opacity-70`}
+                      >
+                        {dmSending ? "Sendet …" : "Nachricht senden"}
+                      </button>
+                    </div>
+                  ) : (
+                    <div className={subtleWarningClass}>{socialCannotMessageLabel}</div>
+                  )}
+                </div>
+              ) : null}
+              {socialThreadError ? (
+                <p className="text-xs text-rose-800 dark:text-rose-100">{socialThreadError}</p>
               ) : null}
             </div>
             <div className="border-t border-[rgb(var(--border))] bg-[rgb(var(--card))] p-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)]">
@@ -2271,65 +2476,122 @@ function CompactProfileHubSection({
                   </button>
                 )}
                 {socialDetail.kind === "message" ? (
-                  <button
-                    type="button"
-                    disabled
-                    className="inline-flex w-full items-center justify-center rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-4 py-2 text-xs font-semibold text-[rgb(var(--muted))] opacity-70"
-                  >
-                    Antworten (kommt bald)
-                  </button>
-                ) : (
-                  <Link href="/community" className={`${secondaryLightButtonClass} w-full`} onClick={() => setSocialDetail(null)}>
-                    Community öffnen
+                  <Link href="/account#inbox" className={`${secondaryLightButtonClass} w-full`} onClick={() => setSocialDetail(null)}>
+                    Inbox öffnen
                   </Link>
+                ) : (
+                  <>
+                    {socialCanMessage ? (
+                      <button type="button" onClick={switchToMessageDetail} className={`${secondaryLightButtonClass} w-full`}>
+                        Nachricht schreiben
+                      </button>
+                    ) : (
+                      <Link href="/community" className={`${secondaryLightButtonClass} w-full`} onClick={() => setSocialDetail(null)}>
+                        Community öffnen
+                      </Link>
+                    )}
+                  </>
                 )}
               </div>
               {socialDetail.kind === "request" ? (
-                <div className="mt-2 grid gap-2 sm:grid-cols-2">
-                  <button
-                    type="button"
-                    disabled={socialActionPending || !socialDetail.requestId}
-                    onClick={() =>
-                      void submitSocialAction({
-                        action: "request.accept",
-                        requestId: socialDetail.requestId,
-                        targetUserId: socialDetail.targetUserId,
-                      })
-                    }
-                    className={`${primaryButtonClass} w-full disabled:opacity-70`}
-                  >
-                    {socialActionPending ? "Speichert …" : "Annehmen"}
-                  </button>
-                  <button
-                    type="button"
-                    disabled={socialActionPending || !socialDetail.requestId}
-                    onClick={() =>
-                      void submitSocialAction({
-                        action: "request.reject",
-                        requestId: socialDetail.requestId,
-                        targetUserId: socialDetail.targetUserId,
-                      })
-                    }
-                    className="inline-flex w-full items-center justify-center rounded-full border border-rose-300/65 bg-rose-500/12 px-4 py-2 text-xs font-semibold text-rose-800 transition hover:bg-rose-500/18 disabled:opacity-70 dark:border-rose-400/40 dark:text-rose-100"
-                  >
-                    {socialActionPending ? "Speichert …" : "Ablehnen"}
-                  </button>
-                </div>
+                <>
+                  {socialRelationshipState === "incoming_pending" ? (
+                    <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                      <button
+                        type="button"
+                        disabled={socialActionPending || !socialDetail.requestId}
+                        onClick={() =>
+                          void submitSocialAction({
+                            action: "request.accept",
+                            requestId: socialDetail.requestId,
+                            targetUserId: socialDetail.targetUserId,
+                          })
+                        }
+                        className={`${primaryButtonClass} w-full disabled:opacity-70`}
+                      >
+                        {socialActionPending ? "Speichert …" : "Annehmen"}
+                      </button>
+                      <button
+                        type="button"
+                        disabled={socialActionPending || !socialDetail.requestId}
+                        onClick={() =>
+                          void submitSocialAction({
+                            action: "request.reject",
+                            requestId: socialDetail.requestId,
+                            targetUserId: socialDetail.targetUserId,
+                          })
+                        }
+                        className="inline-flex w-full items-center justify-center rounded-full border border-rose-300/65 bg-rose-500/12 px-4 py-2 text-xs font-semibold text-rose-800 transition hover:bg-rose-500/18 disabled:opacity-70 dark:border-rose-400/40 dark:text-rose-100"
+                      >
+                        {socialActionPending ? "Speichert …" : "Ablehnen"}
+                      </button>
+                    </div>
+                  ) : socialCanMessage ? (
+                    <button type="button" onClick={switchToMessageDetail} className={`${primaryButtonClass} mt-2 w-full`}>
+                      Nachricht schreiben
+                    </button>
+                  ) : (
+                    <p className="mt-2 text-xs text-[rgb(var(--muted))]">
+                      {socialCannotMessageLabel}
+                    </p>
+                  )}
+                </>
               ) : null}
               {socialDetail.kind === "match" ? (
-                <button
-                  type="button"
-                  disabled={socialActionPending || !socialDetail.targetUserId}
-                  onClick={() =>
-                    void submitSocialAction({
-                      action: "match.request",
-                      targetUserId: socialDetail.targetUserId,
-                    })
-                  }
-                  className={`${primaryButtonClass} mt-2 w-full disabled:opacity-70`}
-                >
-                  {socialActionPending ? "Verbindet …" : "Verbindung anfragen"}
-                </button>
+                <>
+                  {socialRelationshipState === "connected" ? (
+                    <button type="button" onClick={switchToMessageDetail} className={`${primaryButtonClass} mt-2 w-full`}>
+                      Nachricht schreiben
+                    </button>
+                  ) : socialRelationshipState === "incoming_pending" && socialThreadContext?.incomingRequestId ? (
+                    <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                      <button
+                        type="button"
+                        disabled={socialActionPending}
+                        onClick={() =>
+                          void submitSocialAction({
+                            action: "request.accept",
+                            requestId: socialThreadContext.incomingRequestId,
+                            targetUserId: socialDetail.targetUserId,
+                          })
+                        }
+                        className={`${primaryButtonClass} w-full disabled:opacity-70`}
+                      >
+                        {socialActionPending ? "Speichert …" : "Anfrage annehmen"}
+                      </button>
+                      <button
+                        type="button"
+                        disabled={socialActionPending}
+                        onClick={() =>
+                          void submitSocialAction({
+                            action: "request.reject",
+                            requestId: socialThreadContext.incomingRequestId,
+                            targetUserId: socialDetail.targetUserId,
+                          })
+                        }
+                        className="inline-flex w-full items-center justify-center rounded-full border border-rose-300/65 bg-rose-500/12 px-4 py-2 text-xs font-semibold text-rose-800 transition hover:bg-rose-500/18 disabled:opacity-70 dark:border-rose-400/40 dark:text-rose-100"
+                      >
+                        {socialActionPending ? "Speichert …" : "Ablehnen"}
+                      </button>
+                    </div>
+                  ) : socialRelationshipState === "outgoing_pending" ? (
+                    <p className="mt-2 text-xs text-[rgb(var(--muted))]">Anfrage gesendet. Nachricht möglich, sobald die Verbindung angenommen ist.</p>
+                  ) : (
+                    <button
+                      type="button"
+                      disabled={socialActionPending || !socialDetail.targetUserId}
+                      onClick={() =>
+                        void submitSocialAction({
+                          action: "match.request",
+                          targetUserId: socialDetail.targetUserId,
+                        })
+                      }
+                      className={`${primaryButtonClass} mt-2 w-full disabled:opacity-70`}
+                    >
+                      {socialActionPending ? "Verbindet …" : "Verbindung anfragen"}
+                    </button>
+                  )}
+                </>
               ) : null}
             </div>
           </div>

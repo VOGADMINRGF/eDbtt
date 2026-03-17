@@ -32,7 +32,11 @@ Stand: 2026-03-17
 - Social-Detail-Sheets sind jetzt handlungsorientiert:
   - Anfrage: `Annehmen` / `Ablehnen`
   - Match: `Verbindung anfragen`
-  - Nachricht: lesbar, Antwortfunktion weiterhin ehrlich als "kommt bald"
+  - Nachricht: Verlauf lesen + kurze Nachricht senden (DM-v1, wenn Verbindung bestätigt)
+- Öffentliche Profilseiten (`/profile/[shareId]`) sind jetzt als Kontaktfläche nutzbar:
+  - Verbindungsstatus sichtbar,
+  - Anfrage annehmen/ablehnen oder Verbindung anfragen,
+  - Direktnachricht v1 bei bestätigter Verbindung.
 - Inbox ist in drei Blöcke gegliedert:
   - `Wichtig jetzt` (Counts, Founder-/System-Momente, offene Signale),
   - `Menschen & Matches` (Interessen-/Region-Matching),
@@ -94,10 +98,19 @@ Stand: 2026-03-17
 ## Direktnachrichten-Status (ehrlich markiert)
 
 - Lesen/Anzeige von Social-Nachrichten in der Inbox: ja.
-- Senden von Direktnachrichten zwischen Nutzern (UI + API end-to-end): noch nicht freigeschaltet.
-- Produkttexte markieren diesen Zustand explizit als "noch im Ausbau".
-- Im Detail-Sheet wird Antworten bewusst als "kommt bald" und deaktiviert dargestellt (keine Scheininteraktion).
-- Nachrichtendetail enthält eine DM-v1-Vorbereitung als Thread-Basis (Read-Only-Vorschau + vorbereitetes Reply-Feld).
+- DM-v1 aktiv (bewusst klein):
+  - Thread lesen,
+  - kurze Direktnachricht senden,
+  - kein Realtime-Chat, keine Attachments, keine Gruppen.
+- Schreiben ist nur in sinnvollen Beziehungskontexten erlaubt:
+  - `connected` -> `can_message = true`
+  - `incoming_pending` / `outgoing_pending` / `none` -> `can_message = false` mit Grund.
+- API liefert dafür explizit:
+  - `relationshipState`
+  - `canMessage`
+  - `cannotMessageReason` / `cannotMessageReasonLabel`
+- Doppelklick-/Spam-Basisabsicherung:
+  - identische Direct-Message innerhalb kurzer Zeit wird serverseitig als Duplikat behandelt.
 
 ## Community-Begriff (aktueller Scope)
 

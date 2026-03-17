@@ -47,3 +47,7 @@ Stand: 2026-03-17
 
 - Dieses Muster priorisiert in Vollfokus-Flows Inhalt + Primäraktionen.
 - Utility bleibt erreichbar, aber konkurriert nicht mit der Kernnavigation.
+- Für Social/DM-v1 gilt mobil:
+  - Detail-Sheets bleiben die zentrale Interaktionsfläche.
+  - Thread-Liste + Composer sind im Sheet scroll-/safe-area-fest eingebettet.
+  - DM bleibt bewusst v1 (kein Realtime-Messenger-Verhalten).
