@@ -51,6 +51,8 @@ Stand: 2026-03-17
   - Detail-Sheets bleiben die zentrale Interaktionsfläche.
   - Thread-Liste + Composer sind im Sheet scroll-/safe-area-fest eingebettet.
   - Composer sitzt im unteren, safe-area-geschützten Aktionsbereich.
+  - Composer-Keyboard-Flow ist klar: `Enter` sendet, `Shift+Enter` bleibt mehrzeilig.
   - Beim Fokus auf das Eingabefeld wird der Composer aktiv in den sichtbaren Bereich gescrollt.
+  - Nach Senden bleibt der Schreibfluss stabil (Fokus bleibt im Composer, Thread-Ende wird sanft nachgeführt).
   - Read/Unread-Rückläufe werden nach Thread-Öffnung unmittelbar in der Inbox-Übersicht nachgezogen.
   - DM bleibt bewusst v1 (kein Realtime-Messenger-Verhalten).

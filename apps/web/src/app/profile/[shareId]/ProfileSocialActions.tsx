@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from "react";
 import Link from "next/link";
 
 type RelationshipState = "connected" | "incoming_pending" | "outgoing_pending" | "none";
@@ -74,11 +74,18 @@ export default function ProfileSocialActions({ shareId }: Props) {
   const [context, setContext] = useState<ThreadContext | null>(null);
   const [thread, setThread] = useState<ThreadMessage[]>([]);
   const composerRef = useRef<HTMLTextAreaElement | null>(null);
+  const threadEndRef = useRef<HTMLDivElement | null>(null);
 
   const keepComposerInView = useCallback(() => {
     window.setTimeout(() => {
       composerRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
     }, 60);
+  }, []);
+
+  const keepThreadEndInView = useCallback((behavior: ScrollBehavior = "smooth") => {
+    window.setTimeout(() => {
+      threadEndRef.current?.scrollIntoView({ behavior, block: "end" });
+    }, 24);
   }, []);
 
   const loadContext = useCallback(async () => {
@@ -158,12 +165,30 @@ export default function ProfileSocialActions({ shareId }: Props) {
       setDraft("");
       setActionMsg(typeof body?.info === "string" ? body.info : "Nachricht gesendet.");
       await loadContext();
+      keepThreadEndInView("smooth");
+      window.setTimeout(() => {
+        composerRef.current?.focus();
+      }, 36);
     } catch (err: any) {
       setActionMsg(err?.message || "Nachricht konnte nicht gesendet werden.");
     } finally {
       setSending(false);
     }
-  }, [context, draft, loadContext]);
+  }, [context, draft, keepThreadEndInView, loadContext]);
+
+  const handleComposerKeyDown = useCallback(
+    (event: ReactKeyboardEvent<HTMLTextAreaElement>) => {
+      if (event.key !== "Enter" || event.shiftKey || event.nativeEvent.isComposing) return;
+      event.preventDefault();
+      if (sending || draft.trim().length === 0) return;
+      void sendDirectMessage();
+    },
+    [draft, sendDirectMessage, sending],
+  );
+
+  useEffect(() => {
+    keepThreadEndInView("auto");
+  }, [keepThreadEndInView, thread.length]);
 
   const relationshipState = context?.relationshipState ?? "none";
   const canMessage = Boolean(context?.canMessage);
@@ -317,6 +342,7 @@ export default function ProfileSocialActions({ shareId }: Props) {
                 value={draft}
                 onFocus={keepComposerInView}
                 onChange={(event) => setDraft(event.target.value)}
+                onKeyDown={handleComposerKeyDown}
                 placeholder="Kurze Nachricht schreiben …"
                 className="w-full resize-none rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm text-[rgb(var(--fg))] focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100"
               />
@@ -357,6 +383,7 @@ export default function ProfileSocialActions({ shareId }: Props) {
                     </div>
                   </div>
                 ))}
+                <div ref={threadEndRef} className="h-0.5 w-full" aria-hidden />
               </div>
             ) : (
               <p className="mt-1 text-xs text-[rgb(var(--muted))]">Noch keine Nachrichten in diesem Verlauf.</p>

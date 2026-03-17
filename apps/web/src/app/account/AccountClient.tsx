@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { ChangeEvent, FormEvent } from "react";
+import type { ChangeEvent, FormEvent, KeyboardEvent as ReactKeyboardEvent } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useMobileChromeVisibility } from "@/hooks/useMobileChromeVisibility";
@@ -374,6 +374,10 @@ type AccountMatchItem = {
   score: number;
   shareId?: string | null;
   avatarUrl?: string | null;
+  relationshipState?: SocialRelationshipState;
+  canMessage?: boolean;
+  incomingRequestId?: string | null;
+  outgoingRequestId?: string | null;
 };
 
 type InterestDebateResult = {
@@ -644,6 +648,7 @@ function CompactProfileHubSection({
   const avatarInputRef = useRef<HTMLInputElement | null>(null);
   const invitePanelRef = useRef<HTMLDivElement | null>(null);
   const dmComposerRef = useRef<HTMLTextAreaElement | null>(null);
+  const socialThreadEndRef = useRef<HTMLDivElement | null>(null);
   const mobileChromeVisible = useMobileChromeVisibility({
     disabled: profileEditorOpen || Boolean(socialDetail),
     minY: 88,
@@ -827,6 +832,26 @@ function CompactProfileHubSection({
     if (state === "incoming_pending") return "Eingehende Anfrage";
     if (state === "outgoing_pending") return "Anfrage gesendet";
     return "Keine Verbindung";
+  };
+
+  const relationshipStateBadgeClass = (state?: SocialRelationshipState | null) => {
+    if (state === "connected") {
+      return "border-emerald-300/65 bg-emerald-100 text-emerald-900 dark:border-emerald-400/45 dark:bg-emerald-500/16 dark:text-emerald-100";
+    }
+    if (state === "incoming_pending") {
+      return "border-sky-300/65 bg-sky-100 text-sky-900 dark:border-sky-400/45 dark:bg-sky-500/16 dark:text-sky-100";
+    }
+    if (state === "outgoing_pending") {
+      return "border-indigo-300/65 bg-indigo-100 text-indigo-900 dark:border-indigo-400/45 dark:bg-indigo-500/16 dark:text-indigo-100";
+    }
+    return "border-[rgb(var(--border))] bg-[rgb(var(--bg))] text-[rgb(var(--muted))]";
+  };
+
+  const relationshipPrimaryActionLabel = (state?: SocialRelationshipState | null) => {
+    if (state === "connected") return "Nachricht schreiben";
+    if (state === "incoming_pending") return "Anfrage prüfen";
+    if (state === "outgoing_pending") return "Anfrage läuft";
+    return "Verbindung anfragen";
   };
 
   const cannotMessageReasonLabel = (reason?: string | null) => {
@@ -1038,6 +1063,18 @@ function CompactProfileHubSection({
     }
   }, []);
 
+  const keepComposerInView = () => {
+    window.setTimeout(() => {
+      dmComposerRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }, 60);
+  };
+
+  const keepThreadEndInView = useCallback((behavior: ScrollBehavior = "smooth") => {
+    window.setTimeout(() => {
+      socialThreadEndRef.current?.scrollIntoView({ behavior, block: "end" });
+    }, 24);
+  }, []);
+
   const sendDirectMessage = useCallback(async () => {
     if (!socialDetail || !socialThreadContext?.canMessage) return;
     const text = dmDraft.trim();
@@ -1063,12 +1100,31 @@ function CompactProfileHubSection({
       setDmDraft("");
       setSocialActionMsg(typeof body?.info === "string" ? body.info : "Nachricht gesendet.");
       await Promise.all([loadSocialSummary(), loadSocialThreadContext(socialDetail)]);
+      keepThreadEndInView("smooth");
+      window.setTimeout(() => {
+        dmComposerRef.current?.focus();
+      }, 36);
     } catch (error: any) {
       setSocialActionMsg(error?.message || "Nachricht konnte nicht gesendet werden.");
     } finally {
       setDmSending(false);
     }
-  }, [dmDraft, loadSocialSummary, loadSocialThreadContext, socialDetail, socialThreadContext]);
+  }, [dmDraft, keepThreadEndInView, loadSocialSummary, loadSocialThreadContext, socialDetail, socialThreadContext]);
+
+  const handleDmComposerKeyDown = useCallback(
+    (event: ReactKeyboardEvent<HTMLTextAreaElement>) => {
+      if (event.key !== "Enter" || event.shiftKey || event.nativeEvent.isComposing) return;
+      event.preventDefault();
+      if (dmSending || dmDraft.trim().length === 0) return;
+      void sendDirectMessage();
+    },
+    [dmDraft, dmSending, sendDirectMessage],
+  );
+
+  useEffect(() => {
+    if (socialDetail?.kind !== "message") return;
+    keepThreadEndInView("auto");
+  }, [keepThreadEndInView, socialDetail?.kind, socialThreadMessages.length]);
 
   const loadDebateResults = useCallback(async () => {
     const topicKeys = selectedTopicSignature
@@ -1235,12 +1291,6 @@ function CompactProfileHubSection({
     window.setTimeout(() => {
       invitePanelRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
     }, 70);
-  };
-
-  const keepComposerInView = () => {
-    window.setTimeout(() => {
-      dmComposerRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
-    }, 60);
   };
 
   const openAvatarPicker = () => {
@@ -1834,10 +1884,20 @@ function CompactProfileHubSection({
                     >
                       <SocialAvatar label={match.displayName} avatarUrl={match.avatarUrl} />
                       <span className="min-w-0 flex-1">
-                        <span className="block truncate font-semibold text-[rgb(var(--fg))]">{match.displayName}</span>
+                        <span className="flex items-center justify-between gap-2">
+                          <span className="block truncate font-semibold text-[rgb(var(--fg))]">{match.displayName}</span>
+                          <span
+                            className={`inline-flex shrink-0 items-center rounded-full border px-1.5 py-0.5 text-[9px] font-semibold ${relationshipStateBadgeClass(match.relationshipState)}`}
+                          >
+                            {relationshipStateLabel(match.relationshipState)}
+                          </span>
+                        </span>
                         <span className="block text-[rgb(var(--muted))]">
-                          Gemeinsam: {match.sharedTopics.slice(0, 2).join(", ")}
+                          Gemeinsam: {match.sharedTopics.slice(0, 2).join(", ") || "Interessenprofil"}
                           {match.locationLabel ? ` · ${match.locationLabel}` : ""}
+                        </span>
+                        <span className="mt-0.5 block text-[10px] font-medium text-[rgb(var(--muted))]">
+                          {relationshipPrimaryActionLabel(match.relationshipState)}
                         </span>
                       </span>
                     </button>
@@ -2238,10 +2298,20 @@ function CompactProfileHubSection({
                       >
                         <SocialAvatar label={match.displayName} avatarUrl={match.avatarUrl} />
                         <span className="min-w-0 flex-1">
-                          <span className="block truncate font-semibold text-[rgb(var(--fg))]">{match.displayName}</span>
+                          <span className="flex items-center justify-between gap-2">
+                            <span className="block truncate font-semibold text-[rgb(var(--fg))]">{match.displayName}</span>
+                            <span
+                              className={`inline-flex shrink-0 items-center rounded-full border px-1.5 py-0.5 text-[9px] font-semibold ${relationshipStateBadgeClass(match.relationshipState)}`}
+                            >
+                              {relationshipStateLabel(match.relationshipState)}
+                            </span>
+                          </span>
                           <span className="mt-0.5 block text-[rgb(var(--muted))]">
-                            Gemeinsam: {match.sharedTopics.join(", ")}
+                            Gemeinsam: {match.sharedTopics.join(", ") || "Interessenprofil"}
                             {match.locationLabel ? ` · ${match.locationLabel}` : ""}
+                          </span>
+                          <span className="mt-0.5 block text-[10px] font-medium text-[rgb(var(--muted))]">
+                            {relationshipPrimaryActionLabel(match.relationshipState)}
                           </span>
                         </span>
                       </button>
@@ -2516,6 +2586,7 @@ function CompactProfileHubSection({
                           </div>
                         </div>
                       ))}
+                      <div ref={socialThreadEndRef} className="h-0.5 w-full" aria-hidden />
                     </div>
                   ) : (
                     <p className="text-xs text-[rgb(var(--muted))]">Noch keine Nachrichten in diesem Verlauf.</p>
@@ -2543,6 +2614,7 @@ function CompactProfileHubSection({
                     value={dmDraft}
                     onFocus={keepComposerInView}
                     onChange={(event) => setDmDraft(event.target.value)}
+                    onKeyDown={handleDmComposerKeyDown}
                     placeholder="Kurze Nachricht schreiben …"
                     className="w-full resize-none rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm text-[rgb(var(--fg))] focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100"
                   />

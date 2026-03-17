@@ -41,6 +41,10 @@ Stand: 2026-03-17
   - freundlicher Empty-State,
   - Zeitstempel dezent,
   - Intro-Hinweis bei erster Nachricht.
+- Composer-Polish in DM-v1:
+  - `Enter` sendet,
+  - `Shift+Enter` erzeugt Zeilenumbruch,
+  - Fokus bleibt nach dem Senden stabil im Eingabefeld.
 - Öffentliche Profilseiten (`/profile/[shareId]`) sind jetzt als Kontaktfläche nutzbar:
   - Verbindungsstatus sichtbar,
   - Anfrage annehmen/ablehnen oder Verbindung anfragen,
@@ -54,6 +58,12 @@ Stand: 2026-03-17
   - `Aktionen` (Einladen, Community, nächste Schritte).
 - Invite-Funktion ist im Inbox-Kontext prominent und mobil schnell erreichbar.
 - Matching-Preview (`/api/account/matches`) zeigt Gleichgesinnte über gemeinsame Interessen + Region.
+- Match-Karten transportieren zusätzlich Kontaktstatus:
+  - `Verbunden`
+  - `Eingehende Anfrage`
+  - `Anfrage gesendet`
+  - `Keine Verbindung`
+  - plus zustandsbasierten nächsten Schritt (z. B. `Nachricht schreiben` / `Verbindung anfragen`).
 - Desktop-Hierarchie ist breiter und stärker gestaffelt:
   - größere Seitenbreite in `/account`,
   - zweispaltige Ergebnis-/Aktionsbereiche bei großen Breakpoints,
