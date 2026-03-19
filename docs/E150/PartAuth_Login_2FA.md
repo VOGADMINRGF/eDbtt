@@ -20,5 +20,5 @@
 - Session-Cookies setzen `u_id`, `u_role`, `u_tier`, `u_verified` (siehe `sharedAuth.ts`).
 
 ## Telemetrie (lightweight)
-- `auth.login.success`, `auth.login.failed`, `auth.2fa.success`, `auth.2fa.failed` in Collection `auth_events`.
+- `auth.login.success`, `auth.login.failed`, `auth.2fa.failed` in Collection `auth_events`.
 - Swipe-Events als `swipe_events` (XP/Credit-Tracking).

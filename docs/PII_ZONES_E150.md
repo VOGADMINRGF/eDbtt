@@ -11,12 +11,6 @@ Dieses Dokument definiert, wo im eDebatte / e-Debatte Monorepo personenbezogene 
 
 > **Regel:** PII darf nur in den freigegebenen Modulen verarbeitet werden. Alle anderen Bereiche nutzen ausschließlich anonymisierte/aggregierte Daten oder `safe`-Helper aus `@core/pii`.
 
-## Abgrenzung zu Social-/Onboarding-Flows
-
-- Founder-Welcome, Friend Requests, Inbox-Messages, Referrals und Social-Summary sind **operativ in `core`** verankert.
-- Diese Social-/Onboarding-Flows gehoeren **nicht** in `votes` und **nicht** in `pii`.
-- `pii` bleibt ausschliesslich fuer sensible Identitaets-/Adress-/Credential-Daten.
-
 ## Logging & Telemetrie
 
 1. **Logger-Redaktion:** `core/observability/logger` und `apps/web/src/utils/logger` besitzen gemeinsame Redaktionspfade (`PII_REDACT_PATHS`). Dadurch werden typische Felder (`email`, `phone`, `password`, `token`, `payment.*`, …) automatisch zu `***`.

@@ -1,334 +1,325 @@
 # E150 Master Spec – Part 1: Systemvision, Mission & Governance
 
-> Status-Hinweis (2026-02-12): Dieses Part ist eine Spezifikation/Zusammenfassung. Der verbindliche Aufgabenstand liegt in `docs/E150/OpenTasks.md`. Keine neuen Runs aus diesem Part ableiten.
-
+> Status-Hinweis (2026-03-19): Dieses Part ist normativ. Der verbindliche Aufgabenstand liegt in `docs/E150/OpenTasks.md`. Dieses Dokument definiert jedoch die Leitplanken, an die alle Folge-Parts gebunden sind.
 
 ## 1. Zweck dieses Parts
 
-Part 01 beschreibt die **Systemvision**, die **Mission** und die **Governance-Prinzipien** von eDebatte / eDebatte.
+Part 01 beschreibt die Systemvision, Mission und Governance-Prinzipien von eDebatte / VoiceOpenGov.
 
-Alles, was in späteren Parts (Orchestrator, Graph, Pricing, Streams, Admin etc.) steht, muss mit diesen Grundentscheidungen kompatibel sein:
+Alle spaeteren Parts muessen kompatibel sein mit:
 
-- Was will die Plattform gesellschaftlich leisten?
-- Wie wird mit Mehrheiten & Minderheiten umgegangen?
-- Welche Rolle spielt KI – und welche explizit **nicht**?
-- Wie bleiben wir unabhängig von Lobby, Parteien & Einzelinteressen?
-- Welche Governance-Strukturen sind im Produkt technisch zu unterstützen?
-
-Codex soll diese Prinzipien in Kommentaren, Modellen und Admin-Features widerspiegeln, aber **keinen eigenen politischen Kurs** implementieren.
-
----
+- Gesellschaft statt Rage-Optimierung
+- Transparenz statt Blackbox
+- Anlassraum statt Feed-Chaos
+- Dossier statt bloßer Rohsammlung
+- Review statt Auto-Publikation
+- Funding fuer Prozess / Umsetzung, nie fuer Wahrheit
 
 ## 2. Systemvision
 
-### 2.1 Langfristige Zielbilder
+### 2.1 Langfristiges Zielbild
 
-eDebatte / eDebatte soll eine **dauerhafte, internationale Demokratie-Infrastruktur** werden, die:
+eDebatte / VoiceOpenGov soll zu einer dauerhaften Demokratie- und Entscheidungsinfrastruktur werden, die:
 
-- Bürger:innen befähigt, komplexe Themen zu verstehen,
-- Mehrheiten und Minderheiten fair sichtbar macht,
-- Verantwortlichkeiten und Folgen transparent macht,
-- lokale, nationale, europäische und globale Ebenen verbindet,
-- Vertrauen in demokratische Prozesse erhöht,
-- populistische Vereinfachungen durch Struktur und Kontext entschärft.
+- gesellschaftliche Signale frueh sichtbar macht,
+- daraus strukturierte Anlassraeume bildet,
+- Dossiers als nachvollziehbare Analyseakte erzeugt,
+- Beteiligung, Mandat, Umsetzung und Wirkung verbindet,
+- Kommunen, Medien, Organisationen und Community in einem gemeinsamen Modell zusammenfuehrt.
 
-Die Plattform versteht sich als:
+Der Kernfluss lautet:
 
-- **„Instrument“** zur Strukturierung von Meinungen, Fakten & Optionen,
-- **kein soziales Netzwerk** im klassischen Sinne (keine Rage-Belohnung),
-- **kein Abstimmungstool, das Parlamente ersetzt**, sondern ein Ergänzungs- und Feedbackkanal.
+**Signal -> Anlassraum -> Dossier -> Runde -> Mandat -> Umsetzung -> Impact**
 
-### 2.2 Gesellschaftlicher Fokus („Society first“)
+### 2.2 Was die Plattform ist
 
-Über alle Features hinweg gilt:
+Die Plattform ist:
 
-- **Gesamtgesellschaftlicher Mehrwert** ist wichtiger als kurzfristige Klicks.
-- Plattform-Logiken (Algorithmik, Sortierung, UI-Highlights) sollen:
-  - konstruktiven Diskurs stärken,
-  - Extrem-Polarisierung dämpfen,
-  - Brücken schlagen, statt Lager zu verhärten.
+- ein Instrument zur Strukturierung gesellschaftlicher Relevanz,
+- ein Kontext- und Dossier-System,
+- ein Beteiligungs- und Umsetzungsbetriebssystem,
+- eine Infrastruktur fuer gesellschaftliche und politische Koordination.
 
-Codex:
+### 2.3 Was die Plattform nicht ist
 
-- darf keine Mechanismen einbauen, die gezielt Empörung/Polarisierung verstärken (z.B. algorithmische Bevorzugung extremer Aussagen),
-- soll Funktionen bevorzugen, die Verständigung, Kompromisssuche und Transparenz fördern.
+Die Plattform ist nicht:
 
----
+- ein klassisches soziales Netzwerk,
+- ein Rage- oder Empoerungssystem,
+- ein Voting-Spiel,
+- ein Marktplatz fuer gekaufte Mehrheiten,
+- eine Maschine fuer automatische Wahrheit oder Wahlempfehlungen.
 
-## 3. Mission im Detail
+## 3. Grundbegriffe
 
-### 3.1 Kernaufgaben
+### 3.1 Signal
 
-1. **Strukturieren statt polarisieren**  
-   - komplexe Themen in klare Statements/Optionen zerlegen,
-   - Eventualitäten sichtbar machen („Ich wäre dafür, wenn …“),
-   - Konflikte (Knots) benennen statt verstecken.
+Ein Signal ist ein Relevanzhinweis.
+Es kann entstehen durch:
+- Feed
+- Community
+- Event
+- investigativen Hinweis
+- journalistischen Beitrag
+- offizielle Initiative / Verwaltung
 
-2. **Kontext & Zuständigkeit erklären**
-   - wer ist wofür zuständig (EU/Bund/Land/Kreis/Gemeinde),
-   - welche Rechtslage und Rahmenbedingungen gibt es,
-   - welche Folgen hätten verschiedene Optionen.
+Ein Signal ist **keine Stimme**, **kein Geld**, **keine Wahrheit**.
 
-3. **Beteiligung niederschwellig ermöglichen**
-   - einfache Swipes statt komplizierter Umfragen,
-   - barrierearme Sprache & UI,
-   - klare Feedback-Schleifen („Dein Beitrag floss hier ein …“).
+### 3.2 Anlassraum
 
-4. **Vertrauen & Nachvollziehbarkeit stärken**
-   - offene Darstellung von Mehrheiten/Minderheiten,
-   - nachvollziehbare Orchestrator-Logik (E150),
-   - Audit-Trails für wichtige Eingriffe (Moderation, Admin-Entscheidungen).
+Ein Anlassraum ist der Kontextraum eines Themas, Konflikts, Events oder Projekts.
 
-### 3.2 Was die Plattform explizit nicht ist
+Er kann enthalten:
+- Quellen
+- Hinweise
+- Community-Eingaben
+- Feed-Signale
+- Stakeholder-Positionen
+- erste Fragen und Optionen
 
-- keine Partei, kein Verein, keine Stiftung, keine Lobbyorganisation,
-- kein Werkzeug zur geheimen Kampagnensteuerung,
-- keine Maschine für „Abstimmungsempfehlungen“ im Sinne von: „Du solltest X wählen“.
+Der Anlassraum ist **nicht** das fertige Dossier.
 
-**Verpflichtung:**  
-Beiträge, Reports, Streams dürfen **nie** als „offizielle Wahlempfehlung“ des Systems auftreten.  
-Sie sind strukturierte Spiegel der Beteiligung, keine Empfehlung.
+### 3.3 Dossier
 
----
+Ein Dossier ist die strukturierte Analyseakte eines oder mehrerer Anlassraeume.
 
-## 4. Mehrheitsprinzip & Minderheitenschutz
+Es kann enthalten:
+- Claims
+- Quellen
+- Widersprueche
+- Eventualitaeten
+- Konsequenzen
+- Verantwortlichkeiten
+- Optionen / Entscheidungswege
 
-### 4.1 Mehrheiten „finden Recht“ – aber nicht „haben Recht“
+Mehrere Anlassraeume duerfen in ein Dossier muenden.
 
-Grundprinzip:
+### 3.4 Runde
 
-- **Mehrheiten** sollen klar sichtbar sein (Anteil Pro/Neutral/Contra etc.),
-- **Minderheiten** sollen ebenso klar sichtbar und respektiert werden,
-- die Plattform behauptet **nicht**, dass die Mehrheit inhaltlich recht hat, sondern dass sie aktuell die **Mehrheitsposition** ist.
+Die Runde ist der deliberative oder abstimmungsnahe Beteiligungsraum.
 
-UI/Reporting:
+### 3.5 Mandat / Umsetzung / Impact
 
-- Mehrheiten werden als Balken, Zahlen, Heatmaps etc. gezeigt,
-- Minderheiten bekommen eigene Sichtbarkeit (z.B. „gut begründete Gegenposition“),
-- Diskrepanz zwischen knapper Mehrheitslage und starken Eventualitäten wird hervorgehoben („Mehrheit, aber nur unter Bedingungen …“).
+Nach Beteiligung kann ein Thema in:
+- Mandat,
+- Umsetzung
+- und spaeter in eine sichtbare Wirkung uebergehen.
 
-Codex:
+## 4. Anlassraum-first statt Feed-first
 
-- darf keine Formulierungen wie „richtige Antwort“, „korrekte Position“ generieren,
-- soll Datenmodelle & Reports so anlegen, dass **Mehrheitsverhältnisse + Minderheitsargumente gleichwertig abgebildet werden können**.
+Das System folgt **nicht** dem Muster:
 
-### 4.2 Umgang mit kontroversen Themen
+Feed -> Analyze -> Publish
 
-- Bei stark polarisierten Themen sind:
-  - Eventualitäten besonders wichtig (welche Bedingungen könnten Konsens bringen?),
-  - Consequences & Fairness-Analysen besonders hervorzuheben.
-- Moderations- & Safety-Regeln (Hass, Rassismus etc.) werden strikt umgesetzt:
-  - solche Inhalte werden gefiltert / markiert / entfernt,
-  - Kritik an Institutionen/Politik ist erlaubt, solange sie nicht in Hetze kippt.
+Sondern:
 
----
+Signal -> Anlassraum -> Review -> Dossier -> Beteiligung -> Umsetzung
 
-## 5. Rolle der KI
+Regeln:
+- Feed ist nur Signalquelle.
+- Feed darf neue Anlassraeume vorschlagen oder bestehende Anlassraeume speisen.
+- Feed darf nie direkt oeffentlich publizieren.
+- Anlassraeume duerfen aus Community, Journalismus, Verwaltung, Parteien, Organisationen oder anonymen Hinweisen entstehen.
+
+## 5. Human-in-the-loop
+
+### 5.1 Grundsatz
 
-### 5.1 KI als Werkzeug, nicht als Entscheider
+KI ist Assistenz, nicht Entscheider.
 
-Leitgedanke:
+KI darf:
+- strukturieren
+- clustern
+- zusammenfassen
+- Widersprueche und Quellen finden
+- Agenda- und Kontextvorschlaege machen
+- Factcheck-Vorpruefung leisten
+
+KI darf nicht:
+- ungeprueft publizieren
+- Wahrheitslabels ohne Evidenz vergeben
+- Wahlempfehlungen aussprechen
+- allein Anlassraum-Kernlogik festlegen
+
+### 5.2 Review vor Publikation
+
+Oeffentliche Publikation setzt mindestens voraus:
+- Review
+- Approval
+- Revisionsspur
+- bei kritischen Themen ausreichend belastbare Quellenlage
+
+## 6. Mehrheitsprinzip, Minderheitenschutz und Konflikttransparenz
+
+### 6.1 Mehrheiten
 
-> „Möge KI noch so umstritten sein – im Kern ist sie hier ein Instrument,  
-> um Texte schnell und fachlich korrekt einzuordnen und zu analysieren.“
+Mehrheiten sind sichtbar, aber nicht automatisch „wahr“.
+Das System zeigt:
+- Mehrheiten
+- Minderheiten
+- Bedingungen / Eventualitaeten
+- Konfliktlinien
 
-Konkrete Grenzen:
+### 6.2 Minderheiten
 
-- KI **strukturiert**, **fasst zusammen**, **stellt Fragen**, **benennt Konflikte**,
-- KI **entscheidet nicht**,
-- KI **gibt keine Wahlempfehlungen**,
-- KI **darf keine persönlichen Profile** („User X ist eher links/rechts“) bauen.
+Minderheiten muessen sichtbar bleiben, insbesondere wenn:
+- gut begruendet,
+- quellenbasiert,
+- gesellschaftlich betroffen,
+- oder risiko-/grundrechtsrelevant.
 
-### 5.2 Zusammenspiel mit menschlicher Redaktion
+### 6.3 Konflikte
 
-- Redakteur:innen / Moderation prüfen:
-  - Qualität von KI-Ergebnissen,
-  - problematische Formulierungen,
-  - heikle Themen.
-- KI-Vorschläge können:
-  - akzeptiert, modifiziert oder verworfen werden,
-  - durch Community-Research (Part 10) vertieft werden.
+Ein gutes System versteckt Konflikte nicht, sondern macht sie nachvollziehbar.
+Dossiers muessen deshalb:
+- Gegenquellen
+- offene Fragen
+- unklare Datenlagen
+- Folgen konkurrierender Optionen
+sichtbar machen.
 
-Codex:
+## 7. Trust- und Rollenmodell
+
+### 7.1 Personen-Trust
 
-- soll E150-Orchestrator & Analyze-Pipeline so gestalten,  
-  dass immer **Platz für menschliche Prüfschritte** bleibt (z.B. Statusfelder, Review-Flags),
-- muss sicherstellen, dass KI-Ausgaben immer als solche erkennbar bleiben (z.B. Metadaten).
+Mindestens diese Trust-Level werden systemweit gedacht:
+- `anonymous`
+- `registered`
+- `verified`
+- `institutional`
+- `editorial`
 
----
-
-## 6. Unabhängigkeit & Finanzierung
-
-### 6.1 Keine versteckte Lobby, keine „gekaufte Redaktion“
-
-Finanzierungsprinzipien:
-
-- Einnahmen primär durch:
-  - Mitgliedschaften / Tiers,
-  - Kampagnen / B2G- & B2B-Modelle,
-  - Schenkungen, freiwillige Mitarbeit, kleine Zuwendungen.
-- **Keine Abhängigkeit** von:
-  - großen Einzelspendern oder Lobbygruppen,  
-  - Parteien, Ministerien, Unternehmen mit direktem Interessen-Konflikt.
-
-Es ist bewusst **nicht** vorgesehen:
-
-- als klassischer Verein mit Spendenquittungen,  
-- als gGmbH mit Rücksubventionierung des Staates über Steuernachlässe.
-
-Die Idee dahinter:  
-Geldflüsse sollen **überschaubar und transparent** sein – „aus der Gesellschaft für die Gesellschaft“.
-
-### 6.2 Transparenzanforderungen im Produkt
-
-Codex soll Strukturen vorsehen für:
-
-- **Transparenzseiten**:
-  - Einnahmequellen nach Kategorien (Mitgliedschaften, B2G, B2B, Merch …),
-  - keine personenbezogenen Daten, nur aggregiert.
-- **Konflikt-of-Interest-Hinweise**:
-  - z.B. Markierung, wenn eine Organisation sowohl Kunde als auch häufiges Thema ist.
-
----
-
-## 7. Governance-Struktur (Rollen & Gremien)
-
-### 7.1 Interne Governance-Rollen
-
-Nicht zwingend alle von Anfang an, aber als Zielbild:
-
-- **Platform Owner**  
-  - verantwortet Betrieb & strategische Ausrichtung,
-  - legt Grundprinzipien fest (diese Doku).
-
-- **Editorial Council (Redaktionsrat)**  
-  - entscheidet über Leitlinien z.B. zu Themenpriorisierung, Formaten, Moderation,
-  - hat Vetorecht bei großen inhaltlichen Änderungen.
-
-- **Community Council**  
-  - repräsentative Gruppe engagierter Nutzer:innen („Brennend“/„Leuchtend“),
-  - Feedback zu Features, Kampagnen, Umgang mit Community-Themen.
-
-- **Scientific Advisory Board**  
-  - Expert:innen für Demokratie, Ethik, Data Science,
-  - Feedback zu Orchestrator-Logik, Bias-Fragen, Auswertung.
-
-- **Ombudsperson**  
-  - Anlaufstelle bei Konflikten (Moderation, Sperrungen, Transparenzfragen).
-
-Codex:
-
-- muss nicht alle Gremien technisch „umsetzen“,  
-- sollte aber Roles & Permissions so modellieren, dass diese Struktur ENTSTEHEN kann (z.B. eigene Role-Flags für Council-Mitglieder, Ombudsperson).
-
-### 7.2 Produktseitige Governance-Funktionen
-
-- Audit-Logs für:
-  - Moderationsentscheidungen,
-  - manuelle Eingriffe in Daten (z.B. Korrektur eines Reports),
-  - Rollenänderungen (z.B. Staff-Zugänge).
-- Übersichtliche Admin-Panels:
-  - wer hat welche Rolle,
-  - welche Gremien sind wie besetzt,
-  - welche Eskalationen laufen.
-
----
-
-## 8. Prinzipien für Admin-Eingriffe
-
-### 8.1 „Kein heimliches Schieben“
-
-- Ergebnisse dürfen nicht ohne Spur „zurechtgebogen“ werden.
-- Wenn z.B. ein Statement gelöscht oder zusammengeführt wird:
-  - muss es einen verlinkten Audit-Eintrag geben,
-  - idealerweise mit Begründung (z.B. Doppelung, Hate Speech, Fake).
-
-### 8.2 Technische Anforderungen
-
-Codex soll:
-
-- Modelle für Audit-Einträge vorsehen,
-- UI-Komponenten für Admins so bauen, dass:
-  - immer ein Grund angegeben werden muss,
-  - Zeitstempel & verantwortliche Person mitgespeichert werden.
-
----
-
-## 9. Internationale Ausrichtung & Fairness
-
-### 9.1 Mehrsprachigkeit
-
-- Plattform soll von Anfang an **mehrsprachig** gedacht sein (siehe Part 13),
-- Systemvision & Governance gelten in allen Sprachen identisch,
-- lokale Besonderheiten (z.B. andere Institutionen) werden auf Ebene der Responsibility-Modelle abgebildet, **nicht** durch andere Grundwerte.
-
-### 9.2 Fairness gegenüber Regionen & Gruppen
-
-- keine Benachteiligung kleiner Regionen,
-- auch Themen mit wenig Reichweite können Relevanz haben (z.B. Minderheitenschutz),
-- Orchestrator & Reports sollen nicht nur „laute Mehrheiten“ abbilden, sondern auch strukturierte Minderheitsargumente.
-
----
-
-## 10. Anforderungen an Codex (Part 1)
-
-Zusammenfassend soll Codex bei allen zukünftigen Aufgaben:
-
-1. **Systemvision respektieren**  
-   - keine Features bauen, die explizit gegen die Mission arbeiten (z.B. Empörungs-Booster).
-
-2. **Mehrheitsprinzip + Minderheitenschutz abbilden**  
-   - Datenmodelle so entwerfen, dass Mehrheits- UND Minderheitspositionen sichtbar bleiben.
-
-3. **KI als Werkzeug halten**  
-   - KI-Module immer als Assistenz, nie als Entscheidungsinstanz implementieren.
-
-4. **Unabhängigkeit & Transparenz unterstützen**  
-   - Strukturen für transparente Einnahmen/Pläne,  
-   - Audit-Logs für kritische Admin-Aktionen,  
-   - keine versteckten „Manipulationsknöpfe“.
-
-5. **Governance-Rollen vorbereiten**  
-   - Rollen/Permissions so modellieren, dass Platform Owner, Editorial Council, Community Council & Ombudsperson technisch möglich sind.
-
-Part 01 ist damit der **wertemäßige Rahmen**.
-Part 02 ff. konkretisieren, wie diese Werte in Rollen, XP-System, Pricing, Orchestrator, Graph, Streams und Admin-Oberflächen umgesetzt werden.
-
-## 11. Themenkatalog & Zuständigkeiten (15 Hauptkategorien)
-
-Alle Anliegen, Beiträge und Profil-Themen werden in **15 Hauptkategorien** eingeordnet, die sich an realen Zuständigkeiten orientieren (Ministerien, Parlamente, Kommunen, EU). Der vollständige Themenkatalog ist in `docs/E150/Part06_Themenkatalog_und_Zustaendigkeiten.md` beschrieben.
-
-Ziele:
-
-- Bürger:innen verstehen besser, **wer** für welches Thema zuständig ist.
-- Wir können Anliegen entlang der realen Entscheidungswege auffächern.
-- Profil-Themen spiegeln nicht nur „Interessen“, sondern auch das Verständnis von Verantwortung.
-
-Die 15 Kategorien (Arbeitstitel, Feintuning später):
-
-1. Demokratie & Wahlen
-2. Haushalt & Finanzen
-3. Arbeit & Wirtschaft
-4. Soziales & Familie
-5. Bildung & Forschung
-6. Gesundheit & Pflege
-7. Klima & Umwelt
-8. Energie & Infrastruktur
-9. Mobilität & Stadtentwicklung
-10. Inneres & Sicherheit
-11. Justiz & Recht
-12. Migration & Integration
-13. Digitalisierung & Medien
-14. Europa & Außenpolitik
-15. Kommunales & Lebensumfeld (Rathaus, Stadt, Kreis)
-
-Vorgabe:
-
-- `TOPIC_CHOICES` in Code und Profil-Funktionen müssen sich **immer** aus diesen 15 Kategorien ableiten.
-- Zusätzliche Tags/Unterthemen sind erlaubt, hängen aber immer an einer der 15 Hauptkategorien.
-
-### Aktueller B2C-Stand (eDebatte + eDebatte)
-
-- B2C-Tiers der App: **eDebatte Basis (0 €), Erweitert, Premium** – Preise und Labels liegen zentral in `apps/web/src/config/pricing.ts`.
-- Mitgliedschaft: eDebatte mit empfohlenen 5,63 € p. P. pro Monat. 24 Monate Mindestlaufzeit, wenn das eDebatte-Dankeschön genutzt werden soll.
-- Goodie: Bis zu 25 % Nachlass auf eDebatte-Abos in den ersten 6 Monaten, nur bei monatlicher Zahlung, Mindestbeitrag 5,63 € und 24 Monaten Commitment; einmalig pro Mitgliedschaft.
+### 7.2 Inhalts-Trust
+
+Inhalte koennen sein:
+- `unverified`
+- `source_based`
+- `disputed`
+- `checked`
+
+### 7.3 Rollen
+
+Systemisch relevant sind:
+- Community / Citizen
+- Editor
+- Reviewer
+- Admin
+- Institutional Actor
+- Editorial Actor / Journalist
+
+Niemand ausser den dafuer vorgesehenen Rollen darf:
+- Anlassraum-Kern umdefinieren
+- Dossiers freigeben
+- Trust final setzen
+- Publikation ohne Freigabe ausloesen
+
+## 8. Anonyme Hinweise / Investigative Inputs
+
+Anonyme oder pseudonyme Hinweise sind erlaubt und gewollt, wenn sie Missstaende, Risiken oder relevante Informationen sichtbar machen.
+
+Aber:
+- sie sind nie direkt publikationsfaehig,
+- sie landen zuerst in einer Review-/Triage-Queue,
+- sie muessen fuer oeffentliche Behauptungen verifiziert oder mindestens corroboriert werden.
+
+## 9. Funding-Prinzipien
+
+Das System trennt strikt:
+
+### 9.1 Signals
+Signals zeigen Relevanz.
+
+### 9.2 Funding
+Funding ermoeglicht:
+- Priorisierung
+- Bearbeitung
+- Aufbereitung
+- Umsetzung
+- Sachleistungen
+- Community-Mitfinanzierung
+
+Funding darf **niemals**:
+- Wahrheit kaufen
+- Faktenstatus kaufen
+- Abstimmungsgewicht kaufen
+- Moderation kaufen
+
+## 10. Finanzierungsmodelle
+
+### 10.1 Mission Funding
+Unterstuetzung einer Sache / Bewegung ohne hartes Projektziel.
+
+### 10.2 Projekt Funding
+Klares Projekt, klares Ziel, klares Ergebnis.
+
+### 10.3 Ressourcen Funding
+Sachleistungen, Kontakte, Arbeitszeit, Material.
+
+### 10.4 Matching Funds
+Institutionen oder Organisationen koennen Beitraege matchen, aber nie den Wahrheitskern kontrollieren.
+
+## 11. Anti-Capture Prinzipien
+
+Die Plattform muss verhindern, dass Anlassraeume oder Funding von einzelnen Gruppen gekapert werden.
+
+Mittel:
+- Review-Queues
+- Dedupe / Clustering
+- Rate Limits
+- max. Funding-Anteile
+- Revisionsspur
+- geschuetzte Anlassraum-Kernfelder
+- sichtbare Interessenkonflikte
+
+## 12. Regionale und globale Skalierung
+
+Themen koennen in mehreren Skalen existieren:
+- lokal
+- regional
+- national
+- EU
+- global
+
+Ein Thema kann global diskutiert werden, aber lokal oder national entschieden werden.
+Dafuer wird `decisionScope` vom allgemeinen `scope` getrennt.
+
+## 13. Events, Sitzungen und B2B/B2G-Kontexte
+
+Jedes relevante Event oder jede Sitzung kann ein separater Anlassraum sein:
+- Buergerabend
+- Ausschuss
+- Parteitag
+- Redaktionstermin
+- Verbandssitzung
+- Unternehmensdialog
+
+Das System hilft beim Erstellen:
+- Anlassvorschlag
+- Agenda
+- Quellenabgleich
+- aehnliche Anlassraeume / Dossiers
+- Nachbereitung
+
+## 14. Plattform-Qualitaet statt Vollautomatik
+
+Erster Erfolg ist nicht:
+- 11.000 Gemeinden automatisch live
+
+Sondern:
+- eine einzelne Entity sauber anlegen
+- einen Anlassraum sauber reviewen und publizieren
+- Signals sammeln
+- Funding Intent pruefen
+- optional Funding oder Event sauber fahren
+
+## 15. Verbindliche Leitlinien fuer Codex / Entwicklung
+
+Jeder Implementierungsrun muss diese Leitlinien erfuellen:
+- Manual-first
+- Review-first
+- Publish-gated
+- Anlassraum-first
+- Trust-separiert
+- Funding-separiert
+- Edge Cases dokumentiert
+- keine Auto-Publikation

@@ -36,7 +36,7 @@ Voraussetzungen (konfigurierbar):
 
 - **Engagement-Level** mindestens:  
   - Standard: `Brennend`  
-  - oder `Begeistert` + aktives Abo (z.B. premium/premium)
+  - oder `Begeistert` + aktives Abo (z.B. citizenPro/citizenUltra)
 - **Verifizierter Account**:  
   - E-Mail + OTP, optional ID-Check (z.B. B2G-Partner, bekannte Hosts)
 - **Community-Richtlinien akzeptiert** (One-Click-Agreement, Versioniert)
@@ -312,7 +312,7 @@ Bonus je nach Zuschauerzahl & Interaktion (konfigurierbar).
 ### 8.2 Abo/Plan-Abhängigkeit
 Bestimmte Stream-Typen:
 
-z.B. Kampagnen-Streams nur mit premium oder B2G/B2B-Plan,
+z.B. Kampagnen-Streams nur mit citizenPro/Ultra oder B2G/B2B-Plan,
 
 Normale Community-Streams:
 

@@ -555,7 +555,9 @@ function RegisterPageClient({ personCount = 1, searchParams }: RegisterPageClien
                   className="w-full rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm text-[rgb(var(--fg))] outline-none focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
                   value={street}
                   onChange={(e) => setStreet(e.target.value)}
-                  autoComplete="address-line1"
+                  placeholder="Straße"
+                  autoComplete="street-address"
+                  maxLength={120}
                   disabled={busy}
                 />
               </div>
@@ -567,7 +569,9 @@ function RegisterPageClient({ personCount = 1, searchParams }: RegisterPageClien
                   className="w-full rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm text-[rgb(var(--fg))] outline-none focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
                   value={houseNumber}
                   onChange={(e) => setHouseNumber(e.target.value)}
-                  autoComplete="address-line2"
+                  placeholder="12a"
+                  autoComplete="off"
+                  maxLength={12}
                   disabled={busy}
                 />
               </div>
@@ -582,7 +586,8 @@ function RegisterPageClient({ personCount = 1, searchParams }: RegisterPageClien
                 value={addressLine2}
                 onChange={(e) => setAddressLine2(e.target.value)}
                 placeholder="c/o, Wohnung, Etage ..."
-                autoComplete="address-line3"
+                autoComplete="off"
+                maxLength={120}
                 disabled={busy}
               />
             </div>

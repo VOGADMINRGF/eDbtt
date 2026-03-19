@@ -33,9 +33,10 @@ Alle Mechaniken hier greifen in spätere Parts ein:
 Diese Rollen definieren **technische Rechte**, nicht soziale Bedeutung:
 
 - `public`
-- `basis`
-- `erweitert`
-- `premium`
+- `citizenBasic`
+- `citizenPremium`
+- `citizenPro`
+- `citizenUltra`
 - `institutionBasic`
 - `institutionPremium`
 - `staff`
@@ -45,9 +46,10 @@ Diese Rollen definieren **technische Rechte**, nicht soziale Bedeutung:
 | Rolle | Zugang | Beschreibung |
 |------|--------|--------------|
 | **public** | minimal | Gast, max. 3 Swipes, keine Streams, keine Contributions |
-| **basis** | free | unbegrenzt Swipes, XP, 100-Swipe-Credit → 1 Contribution |
-| **erweitert** | paid | alle basis-Funktionen + mehr Credits, Events |
-| **premium** | paid | Streams hosten unter Bedingungen, Community-Features, Priorität im Research |
+| **citizenBasic** | free | unbegrenzt Swipes, XP, 100-Swipe-Credit → 1 Contribution |
+| **citizenPremium** | paid | alle citizenBasic-Funktionen + mehr Credits, Events |
+| **citizenPro** | paid | Streams hosten unter Bedingungen, Community-Features |
+| **citizenUltra** | paid | uneingeschränkte Pro-Funktionen, Priorität im Research |
 | **institutionBasic** | org | Kampagnen, Reports (bis 10 Fragen), keine Streams |
 | **institutionPremium** | org | volle B2G/B2B-Funktionen, Multi-Region, Reports |
 | **staff** | admin | Moderation, Audit, Council-Sichten, Telemetrie |
@@ -180,17 +182,18 @@ Achievements haben **keinen** funktionalen Einfluss – nur Darstellung.
 Beispiel:
 
 - ein **public** User, der 200 XP sammelt → bleibt trotzdem **public**
-- ein **premium** ohne XP hat alle Pro-Features, aber geringere Anerkennung
-- ein **premium** + „Brennend“ kann Streams hosten & Panels moderieren
+- ein **citizenPro** ohne XP hat alle Pro-Features, aber geringere Anerkennung
+- ein **citizenUltra** + „Brennend“ kann Streams hosten & Panels moderieren
 
 ### 6.2 Matrix (Kurzform)
 
 | Rolle/Tier | Swipes | Contributions | Streams | Community Council | Admin |
 |------------|--------|---------------|---------|-------------------|-------|
 | public | 3 | – | – | – | – |
-| basis | ∞ | 1/100 Swipes | – | – | – |
-| erweitert | ∞ | mehr Credits | – | – | – |
-| premium | ∞ | viele Credits | ✓ (ab Brennend) | ✓ (ab Inspirierend) | – |
+| citizenBasic | ∞ | 1/100 Swipes | – | – | – |
+| citizenPremium | ∞ | mehr Credits | – | – | – |
+| citizenPro | ∞ | viele Credits | ✗ (ab Brennend) | ✗ | – |
+| citizenUltra | ∞ | viele Credits | ✓ | ✓ (ab Inspirierend) | – |
 | staff | ∞ | alle | ✓ | ✓ | ✓ |
 
 Codex soll:
@@ -272,8 +275,8 @@ Codex:
 Streams sind ein **Engagement-Feature**.
 
 - Teilnahme gibt XP,
-- Hostrolle nur ab „Brennend“ + premium,
-- Moderation nur ab „Inspirierend“ + premium.
+- Hostrolle nur ab „Brennend“ + citizenPro,
+- Moderation nur ab „Inspirierend“ + citizenUltra.
 
 Codex muss die Feature-Gates an XP + Role koppeln.
 

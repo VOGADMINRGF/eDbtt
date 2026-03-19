@@ -313,8 +313,8 @@ Ist/Unerledigt:
 | Bereich | Ist | Unerledigt |
 | --- | --- | --- |
 | Leitregel | "1 Person = 1 Stimme" und Anti-Kauf-Logik klar gesetzt | Produktweit sichtbarer Crowdfunding-Hinweis je Flow fehlt |
-| Campaign-Fokus | Campaigns/QR/Reports + Support-Slug/Support-CTA pro Campaign aktiv | Optional: owner-self-service Aktivierung ohne Staff-API |
-| Betriebsmodell | SupportCampaign/SupportPledge + Admin mark-paid/cancel + CSV aktiv | Optional: Guided Payment UX + Social-Proof-Filter |
+| Campaign-Fokus | Campaigns/QR/Reports vorhanden | Support-Slug + Support-CTA pro Campaign fehlt |
+| Betriebsmodell | Membership-Referenz/mark-paid Pattern vorhanden | Eigenes Support-Pledge-Modell und Admin-Verbuchen fehlt |
 
 ---
 
@@ -388,7 +388,7 @@ Wichtig:
   - `config/limits.ts`
   - `config/engagement.ts`
   - `config/credits.ts`
-- **Kanonische Tier-IDs im Code (Stand E150 Access Run)**: `public`, `basis`, `erweitert`, `premium`, `institutionBasic`, `institutionPremium`, `staff`. Quelle: `apps/web/src/config/{accessTiers,featureMatrix,limits,engagement,credits}`.
+- **Kanonische Tier-IDs im Code (Stand Run B2C)**: `public`, `citizenBasic`, `citizenPremium`, `citizenPro`, `citizenUltra`, `institutionBasic`, `institutionPremium`, `staff`. Quelle: `features/pricing/{accessTiers,featureMatrix,limits}`; in `apps/web/src/config/*` nur Re-Exports.
 - PII-Daten niemals in Logs oder Telemetrie.
 - Alle Telemetrie-Events benutzen nur Core-IDs (keine E-Mails, keine Klar-Namen).
 - E150-/E200-Qualität: neue Features müssen:

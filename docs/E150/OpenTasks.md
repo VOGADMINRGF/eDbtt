@@ -49,8 +49,8 @@ Regel:
 | I | Unterstuetzen / Crowdfunding | Implemented (legacy) | GOV-FUNDING-01 | In Signals/Funding-Modell ueberfuehren |
 | M | Membership Apply | Done | GOV-PRICING-01 | Membership mit neuer Paketlogik harmonisieren |
 | N | Demo / Screenshot Studio | Done | GOV-MUNI-01 | Kommune-/Pilot-Sales-Demos damit speisen |
-| O | Governance / Journalismus / Kommune / Initiative / Organisation | In Progress (Wave 2 core in progress) | GOV-EVENT-02 | Gemeinsames Zielmodell voll verankern |
-| P | Anlassraum / Signals / Funding / Pricing | In Progress (Wave 2 core in progress) | GOV-EVENT-02 | Manual-first Kernsystem produktiv verankern |
+| O | Governance / Journalismus / Kommune / Initiative / Organisation | In Progress (Wave 2 core in progress) | GOV-ANLASS-04 | Gemeinsames Zielmodell voll verankern |
+| P | Anlassraum / Signals / Funding / Pricing | In Progress (Wave 2 core in progress) | GOV-ANLASS-04 | Manual-first Kernsystem produktiv verankern |
 
 ## Drift Backlog (bestehend)
 
@@ -82,7 +82,7 @@ Status: **In Progress (Core baseline / 2026-03-19)**
 - **GOV-ANLASS-03** regionale / skalenfaehige Gruppierung (`local`, `regional`, `national`, `eu`, `global`) (**Core baseline active**)
 - **GOV-ANLASS-04** Feed-Review statt Feed-Leerlauf (**Queue actions active**)
 - **GOV-EVENT-01** Event-/Sitzungsmodell (**Event->Anlassraum linking active**)
-- **GOV-EVENT-02** QR -> Fragen -> Protokoll -> Dossier -> Runde (**Protocol->Dossier-Upsert + Round-Seed contracts active**)
+- **GOV-EVENT-02** QR -> Fragen -> Protokoll -> Dossier -> Runde (**Functionally complete: service+route acceptance + legacy backfill strategy (manual-first)**)
 
 ### Welle 3 — Kommune / Verwaltung
 - **GOV-MUNI-01** Buergermeister-Dashboard
@@ -188,6 +188,8 @@ Route-Level Permission Update (Wave 2/3 Regel, umgesetzt am 2026-03-19):
 - Publish-Gates, Manual-first und Review-first bleiben unveraendert verpflichtend.
 - Publish-Gate ist gehaertet (Quellenrollen, Publisher-Diversitaet, strukturierte Claims/Fragen, Weak-Signal-Korroboration).
 - Feed-Typen sind auf einen kanonischen Pfad gehaertet: `features/feeds/types.ts` ist Source of Truth; aktive Importe laufen ueber `@features/feeds/types`.
+- Neue Governance-Contract-Routen (GOV-EVENT-02 Apply Layer) bleiben scoped + role-checked:
+  `reviewer`, `editorial_actor`, `institutional_actor`, `admin`.
 
 ### DOCS-GOV-01 — Dokumentation synchron
 Status: **Done (Wave 1 / 2026-03-19)**
@@ -284,7 +286,7 @@ Evidenz:
 - `docs/event-and-session-model.md`
 
 ### GOV-EVENT-02 — QR -> Fragen -> Protokoll -> Dossier -> Runde
-Status: **In Progress (Contract baseline / 2026-03-19)**
+Status: **Done (Functional closure / 2026-03-19)**
 
 Evidenz:
 - `apps/web/src/app/api/qr/sets/route.ts` (Anlassraum-/Dossier-/Round-Link)
@@ -292,14 +294,40 @@ Evidenz:
 - `apps/web/src/app/api/qr/resolve/route.ts`
 - `apps/web/src/app/api/qr/sets/[code]/protocol/route.ts`
 - `apps/web/src/app/api/qr/sets/summary/route.ts`
-- `features/dossier/protocolUpsert.ts` (protocol -> dossier-upsert contract, additive pending suggestions)
-- `features/topicRound/seedContract.ts` (protocol/anlassraum/dossier -> round-seed contract)
+- `features/dossier/protocolUpsert.ts` (protocol -> dossier-upsert contracts inkl. manual list/read/apply/reject, additive apply + audit trail)
+- `features/topicRound/seedContract.ts` (protocol/anlassraum/dossier -> round-seed contracts inkl. manual handoff/reject in non-public round drafts)
 - `apps/web/src/app/api/events/route.ts` (Event follow-up audit chain to QR/protocol/contracts)
+- `apps/web/src/app/api/admin/governance/dossier-upsert-contracts/route.ts`
+- `apps/web/src/app/api/admin/governance/dossier-upsert-contracts/[contractId]/route.ts`
+- `apps/web/src/app/api/admin/governance/dossier-upsert-contracts/[contractId]/apply/route.ts`
+- `apps/web/src/app/api/admin/governance/dossier-upsert-contracts/[contractId]/reject/route.ts`
+- `apps/web/src/app/api/admin/governance/dossier-upsert-contracts/legacy/route.ts`
+- `apps/web/src/app/api/admin/governance/dossier-upsert-contracts/[contractId]/backfill/route.ts`
+- `apps/web/src/app/api/admin/governance/round-seed-contracts/route.ts`
+- `apps/web/src/app/api/admin/governance/round-seed-contracts/[contractId]/route.ts`
+- `apps/web/src/app/api/admin/governance/round-seed-contracts/[contractId]/handoff/route.ts`
+- `apps/web/src/app/api/admin/governance/round-seed-contracts/[contractId]/reject/route.ts`
+- `apps/web/src/app/api/admin/governance/round-seed-contracts/legacy/route.ts`
+- `apps/web/src/app/api/admin/governance/round-seed-contracts/[contractId]/backfill/route.ts`
+- `apps/web/tests/gov-event-02.contracts.test.ts` (E2E/Integration: protocol->contract->apply/handoff + forbidden access + legacy-policy checks)
+- `apps/web/tests/gov-event-02.routes.test.ts` (Route-Acceptance: list/read/apply/reject/handoff/backfill + error/status mapping)
+- `apps/web/src/app/api/admin/governance/contractsError.ts` (stabile policy-error -> HTTP-status mapping)
 
 Manual-first Guardrails:
 - Kein Auto-Publish, kein Auto-Approval.
-- Protokollmaterial erzeugt nur reviewbare Dossier-Upsert-Contracts + pending Dossier-Suggestions.
-- Round-Seed wird als Contract (`review_required`) abgelegt, ohne automatische Live-Rundenerstellung.
+- Protokollmaterial erzeugt reviewbare Dossier-Upsert-Contracts; Apply bleibt explizit/manuell und additiv (kein destruktives Overwrite).
+- Round-Seed bleibt Contract-basiert; Handoff erzeugt nur non-public Round-Draft (`manual_review_required`), keine automatische Live-Rundenerstellung.
+
+Legacy/Incomplete Contract Policy (Hardening 2026-03-19):
+- Fehlendes Ziel-Dossier fuehrt bei Apply explizit zu `contract_missing_target_dossier` (kein implizites Dossier-Anlegen, Contract bleibt reviewbar).
+- Fehlendes `anlassraumId` ist fuer nicht-admin Governance-Akteure explizit gesperrt (`actor_scope_requires_anlassraum`); Admin bleibt kontrollierter Fallback.
+- Community-Rollen bleiben fuer Apply/Handoff strikt gesperrt (`actor_scope_forbidden`).
+
+Legacy Backfill Strategy (Abschluss 2026-03-19):
+- Detection (admin-only): `GET /api/admin/governance/dossier-upsert-contracts/legacy` und `GET /api/admin/governance/round-seed-contracts/legacy`.
+- Remediation (admin-only): `POST .../dossier-upsert-contracts/[contractId]/backfill` (anlassraum/dossier-linkage) und `POST .../round-seed-contracts/[contractId]/backfill` (anlassraum/dossier-linkage + readiness refresh).
+- Fallback ohne Backfill bleibt explizit/manual: admin kann Dossier-Apply mit `targetDossierId` manuell ausfuehren; keine automatische Oeffentlich-Publikation.
+- Nicht automatisiert: Bulk-Backfill bleibt bewusst manuell/protokolliert pro Contract (keine Silent-Migration im Produktfluss).
 
 ### GOV-SIGNAL-01 — Signals
 Muss enthalten:

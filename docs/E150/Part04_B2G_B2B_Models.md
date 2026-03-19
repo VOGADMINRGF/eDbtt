@@ -1,339 +1,250 @@
-# E150 Master Spec – Part 4: B2G & B2B Models
+# E150 Master Spec – Part 4: B2G, B2B, B2O & institutionelle Modelle
 
-> Status-Hinweis (2026-02-12): Dieses Part ist eine Spezifikation/Zusammenfassung. Der verbindliche Aufgabenstand liegt in `docs/E150/OpenTasks.md`. Keine neuen Runs aus diesem Part ableiten.
-
+> Status-Hinweis (2026-03-19): Dieses Part beschreibt das Zielmodell fuer Kommunen, Parteien, Organisationen, Verbaende, Medien und weitere institutionelle Akteure. Der operative Aufgabenstand liegt in `docs/E150/OpenTasks.md`.
 
 ## 1. Zweck dieses Parts
 
-Dieser Part definiert alle **B2G- (Behörden/Gemeinden/Landkreise)**  
-und **B2B- (Unternehmen/Organisationen)** Modelle, Pläne, Limits und  
-Entscheidungslogiken für eDebatte / eDebatte.
+Dieser Part definiert die institutionellen Betriebs- und Produktmodelle fuer:
+
+- Kommunen / Verwaltungen
+- Parteien
+- Organisationen / Verbaende / NGOs
+- Medien / Redaktionen
+- Unternehmen / interne Beteiligung
+
+Ziel ist **nicht** eine Sammlung getrennter Feature-Silos, sondern ein gemeinsames Modell auf Basis von:
+- `Entity`
+- `Anlassraum`
+- `Dossier`
+- `Runde`
+- `Mandat`
+- `Impact`
+
+## 2. Gemeinsames Entity-Modell
+
+### 2.1 Entity Types
+
+Mindestens:
+- `municipality`
+- `district`
+- `government`
+- `party`
+- `organization`
+- `association`
+- `ngo`
+- `company`
+- `media`
+- `initiative`
+- `other`
+
+### 2.2 Pflichtfelder
+
+- `id`
+- `type`
+- `slug`
+- `name`
+- `regionKey`
+- `scope`
+- `status`
+- `ownerType`
+- `ownerId`
+- `stewardUserId`
+- `createdAt`
+- `updatedAt`
+
+### 2.3 Entity Status
+
+- `draft`
+- `curated`
+- `reviewed`
+- `approved`
+- `published`
+- `archived`
+
+## 3. Kommunen / Verwaltungen (B2G)
+
+### 3.1 Zielbild
+
+Kommunen kaufen keine „Abstimmungsmaschine“, sondern:
+- Themenradar
+- Anlassraeume
+- Verwaltungsmodus
+- Event-/QR-Einbindung
+- Dossiers
+- nachvollziehbare Entscheidungsprozesse
+- Reporting / Monitoring
+
+### 3.2 Die drei staerksten kommunalen Features
+
+1. **Themenradar + Anlassraum-Vorschlaege**  
+   Sicht auf relevante Themen, Signale, Konflikte und moegliche Anlassraeume.
+
+2. **Anlassraum + Event-Integration**  
+   Buergerabend / Sitzung / Workshop / QR / Nachbereitung in einem Fluss.
+
+3. **Dossier + Entscheidungslogik**  
+   Optionen, Konsequenzen, Gegenpositionen, Nachvollziehbarkeit.
+
+### 3.3 Verwaltungslogik
+
+Verwaltungen brauchen:
+- einfache operative Oberflaechen
+- Statusverfolgung
+- Dezernatslogik
+- Buergermeister-/Executive-Sicht
+- keine Vollredaktion als Voraussetzung
+
+### 3.4 Raumstatus fuer kommunale Prozesse
+
+Beispiele:
+- `community_driven`
+- `administrative_review`
+- `official_consultation`
+- `approved`
+- `in_implementation`
+- `rejected`
+- `monitoring`
+
+## 4. Parteien
 
-Ziele:
+Parteien koennen Anlassraeume initiieren fuer:
+- Programmarbeit
+- lokale Konflikte
+- Mitgliederdialog
+- Positionierungsfragen
 
-- eine einheitliche und skalierbare Struktur für Organisationen,
-- Tarif- & Feature-Modelle für Gemeinden, Landkreise, Unternehmen,
-- klare Regeln für Einwohner-Billing (0,95 € / Bürger),
-- Governance-grade Limits für öffentliche Nutzergruppen,
-- zentrale Organisationstabellen und Plan-Enums für Codex,
-- Interoperabilität mit XP-, Pricing- & Stream-Mechaniken (Part 02/03).
+Regeln:
+- Anlassraeume koennen offiziell von Parteien getragen werden,
+- aber Gegenpositionen / Quellenpflicht / Review duerfen nicht abgeschaltet werden.
 
-Hinweis: Dieses Dokument verwendet die Profil-Paket-Namen aus Part03 (`profileBasic`, `profilePro`, `profilePremium`). Eigene Marketing-Begriffe (z.B. „Starter“, „Plus“, „Institution Gold“) sind reine UI-/Kommunikationslabels und **ändern nicht** die technische Paket-Zuordnung.
+## 5. Organisationen / Verbaende / NGOs
 
-Dieser Part bildet die Grundlage für:
+Organisationen sollen sich primaer ueber:
+- Dossiers
+- Anlassraeume
+- Stellungnahmen
+- evidenzbasierte Themenraeume
 
-- Kampagnen (Part10),
-- Admin & Telemetrie (Part12),
-- KnowledgeGraph (Part09),
-- I18N (Part13).
+identifizieren, nicht ueber freie Social-Posts.
 
----
+Wichtige Modi:
+- `official`
+- `public`
+- `member_only`
+- `internal`
+- `hybrid`
 
-## 2. Organisationstypen
+## 6. Medien / Journalismus
 
-Es gibt zwei Hauptkategorien:
+Journalismus nutzt das gleiche Kernmodell:
+- Artikel / Sendung / Podcast / Beitrag = `source_anchor`
+- daraus kann ein Anlassraum entstehen
+- daraus wiederum ein offenes Dossier
 
-1. **B2G (Public Sector)**  
-   - Gemeinden  
-   - Städte  
-   - Landkreise  
-   - Ministerien  
-   - Bildungseinrichtungen  
+Wichtig:
+- journalistische Ausloeser = Anlassgeber
+- nicht gleich Wahrheitsurteil
+- Truth Guardrails bleiben sichtbar
 
-2. **B2B (Private Sector)**  
-   - Unternehmen  
-   - Vereine  
-   - Verbände  
-   - NGOs  
-   - Agenturen
+## 7. Unternehmen / interne Beteiligung
 
-Codex muss diese Typen als Enum führen:
+Auch Unternehmen koennen das Modell intern nutzen:
+- Anlassraeume fuer Kultur / Prozesse / Konflikte
+- Dossiers fuer Optionen / Konsequenzen
+- Runden fuer Beteiligung
 
-enum OrganizationType {
-MUNICIPALITY = "municipality",
-DISTRICT = "district",
-GOVERNMENT = "government",
-SCHOOL = "school",
-COMPANY = "company",
-NGO = "ngo",
-ASSOCIATION = "association",
-OTHER = "other"
-}
+Wichtig:
+- klar getrennt von oeffentlichen politischen Raeumen
+- intern / hybrid / privat moeglich
 
-yaml
-Code kopieren
+## 8. Pricing-Logik fuer institutionelle Akteure
 
----
+Die alte pauschale Einwohnerlogik wird nicht mehr als Hauptpfad fortgeschrieben.
 
-## 3. Organisations-Modelle (technisch)
+### 8.1 Neues Grundmodell
 
-### 3.1 Organisations-Modell
+Preis setzt sich zusammen aus:
 
-organization {
-id: string
-type: OrganizationType
-name: string
-region: string
-populationCount?: number // nur B2G
-staffCount?: number // optional, teilweise B2B
-seatCount?: number // optionale Metrik für Unternehmen
-plan: OrgPlan // siehe unten
-billingCycle: "monthly" | "yearly"
-createdAt: Date
-updatedAt: Date
-}
+- **Basispreis** (Infrastruktur)
+- **Anlassraum-Komponente** (aktive / komplexe Themenraeume)
+- **optionale Teilnehmer-Komponente** (aktive, tatsaechliche Beteiligung)
+- **Add-ons** (Event, Assistenz, Reports, Managed Governance)
+- optional **Outcome-/Report-Komponenten**
 
-shell
-Code kopieren
+### 8.2 Kommunen
 
-### 3.2 OrgPlan (B2G/B2B Tarife)
+Beispielhafte Logik:
+- Basis: ab 2.500 EUR / Monat
+- Anlassraeume: z. B. 300–1.500 EUR je nach Komplexitaet
+- aktive Teilnehmende: nur optional und nur fuer aktive Beteiligung
+- kein Preis fuer inaktive, bloß registrierte Accounts
 
-enum OrgPlan {
-ORG_FREE = "org_free",
-ORG_BASIC = "org_basic",
-ORG_PRO = "org_pro",
-ORG_ULTRA = "org_ultra"
-}
+### 8.3 Organisationen / Verbaende
 
-yaml
-Code kopieren
+Preis orientiert sich eher an:
+- Nutzung
+- Anlassraeumen
+- Rollen / Teams
+- Event- und Dossierintensitaet
 
-### 3.3 Plan-Mapping
+nicht an Einwohnern.
 
-- B2G nutzt ORG_FREE, ORG_PRO, ORG_ULTRA  
-- B2B nutzt ORG_FREE, ORG_BASIC, ORG_PRO  
+### 8.4 Medien
 
-Staff kann ORG_ULTRA für Test und Governance besitzen.
+Preis orientiert sich eher an:
+- Anlassraeumen / Dossiers
+- Anzahl Redaktionsraume
+- Factcheck / Review / Embed Nutzung
 
----
+### 8.5 Parteien
 
-## 4. B2G — Gemeinden & Landkreise
+Preis orientiert sich eher an:
+- Team / Rollen
+- Anzahl Anlassraeume / Dossiers
+- Event-/Dialogformaten
 
-### 4.1 Grundprinzipien
+## 9. Rabatt-Logik
 
-- Gemeinden sollen **politische Beteiligung modernisieren**, nicht kaufen.
-- Abos dürfen **keinen Einfluss** auf demokratische Ergebnisse haben.
-- Die Kategorien „Thema“, „Frage“, „Eventualität“, „Report“ bleiben gleich.
+Rabatte:
+- bis zu 30 %
+- nicht pauschal auf alles
+- besonders fuer Piloten oder Jahreszahlungen
+- component-scoped
+- zeitlich begrenzt
+- ab hoher Rabattstufe mit Approval + Audit
 
-### 4.2 Pricing-Logik für B2G
+## 10. Pilot- und Aktivierungslogik
 
-**Pilotphase (kostenlos):**
+### 10.1 Pilot
+Ziel:
+- ein echter Anlassraum
+- eine echte Beteiligung
+- ein echter Review-/Publish-/Impact-Fluss
 
-- 5–10 Themen pro Pilot (12 Wochen) kostenfrei  
-- einfache Community-Beteiligung  
-- Nutzung der Basis-Tools  
-- Nutzung des KnowledgeGraph-Auszuges (reduziert)
+### 10.2 Activation Funnel
+- Radar sichtbar
+- erster offizieller Anlassraum
+- Event / QR / Fragen
+- Dossier
+- weitere Themen
 
-**Darüber hinaus:**
+## 11. Admin Pricing Control
 
-> **0,95 € pro Bürger ≥16 Jahre und Monat**
+Institutionelle Kunden brauchen individuelle Preise.
+Dafuer wird im Admin vorgesehen:
+- Preisprofil je Entity
+- Basispreis
+- Anlassraumpreise
+- Teilnehmerpreise
+- Caps
+- Rabatte
+- Approval
+- Audit Log
 
-Berechnung:
+## 12. Erfolgsdefinition
 
-preis = populationCount * 0.95€
-
-yaml
-Code kopieren
-
-oder via echten Kampagnen:
-
-- jede registrierte Teilnahme (mit E-Mail oder SMS verifiziert) zählt als **Kampagnen-Teilnahme** → wird abgerechnet
-- bei anonymen Kiosk-Geräten zählt nur die Einwohnerzahl
-
-### 4.3 Abrechnungsmodi
-
-#### Modus A: Einwohnermodell (Standard)
-- Fixpreis pro Einwohner ≥16 Jahre
-- Gemeinde erhält vollständiges Reporting & Community Tools
-
-#### Modus B: Kampagnenmodell
-- Abrechnung nur für tatsächliche Teilnehmer
-- pro registriertem Teilnehmer ca. **0,35–0,50 €**  
-  (später anpassbar)
-
-#### Modus C: Frontdesk/Kiosk
-- Gerät im Rathaus (99 €/Monat)
-- für Bürger vor Ort 100% kostenfrei
-- Reporting wie bei Modus A
-
-### 4.4 Feature-Matrix für Gemeinden
-
-| Feature | ORG_FREE | ORG_PRO | ORG_ULTRA |
-|--------|----------|---------|-----------|
-| Kampagnen | 5/Jahr | 20/Jahr | ∞ |
-| Fragen pro Kampagne | 10 | 25 | ∞ |
-| Reports (automatisch) | Basis | erweitert | vollständig |
-| KnowledgeGraph | limited | erweitert | full |
-| Region-Streams | – | ✓ | ✓ |
-| Custom Branding | – | ✓ | ✓ |
-
----
-
-## 5. B2B — Unternehmen, Vereine & NGOs
-
-### 5.1 Motivation
-
-Unternehmen sollen:
-
-- Mitarbeitende beteiligen,
-- Fragen zur Kultur, Sicherheit, Politik, Klima etc. klären,
-- Insights für Führungskräfte generieren,
-- ohne Einfluss auf öffentliche Debatten.
-
-### 5.2 B2B Pricing
-
-Pläne:
-
-#### 1. Business Free (0 €)
-- 1 Kampagne
-- bis 10 Fragen
-- Basis-Analyse (E150)
-- keine Streams
-
-#### 2. Business Plus (Preis: variabel, z.B. 49–199 €)
-- mehrere Kampagnen
-- bis 50 Fragen
-- interne Streams
-- KnowledgeGraph (intern)
-- Reporting-Tools
-
-#### 3. Business Pro / Brennend (Preis: 199–999 €)
-- unbegrenzte Kampagnen
-- unbegrenzte Fragen
-- automatische Reports
-- interne Konsensfindung
-- HR-Integration möglich
-- Community-Engagement optional
-
-### 5.3 B2B Feature-Matrix
-
-| Feature | Free | Plus | Pro |
-|--------|------|------|------|
-| Kampagnen | 1 | 10 | ∞ |
-| Fragen pro Kampagne | 10 | 50 | ∞ |
-| Reports | Basis | erweitert | full |
-| Streams | – | intern | intern+ |
-| Branding | – | ✓ | ✓ |
-| API-Zugriff | – | – | ✓ |
-
----
-
-## 6. Gemeinsame B2G/B2B Modelle
-
-### 6.1 Kampagnen-Modell
-
-campaign {
-id: string
-orgId: string
-name: string
-description: string
-questions: Question[]
-allowedRegions: string[] // optional für B2G
-visibility: "private" | "public"
-createdAt: Date
-}
-
-markdown
-Code kopieren
-
-### 6.2 Reporting-Modell
-
-Reports haben E150-Kern:
-
-- Claims
-- Fragen
-- Knoten
-- Eventualitäten
-- Verantwortlichkeiten
-- Folgen
-- Konsens/Polarität
-- Regionale Verteilung
-
-Report-Typen:
-
-- municipalReport
-- districtReport
-- orgReport
-- communityReport
-
-### 6.3 Verknüpfung mit Pricing
-
-- mehr Kampagnen → höherer Plan
-- mehr Fragen → höherer Plan
-- Streaming → Pro/Ultra
-- KnowledgeGraph → Pro/Ultra
-
-Codex verknüpft dies in:
-
-config/orgPlans.ts
-config/campaignLimits.ts
-config/reportingLimits.ts
-
-yaml
-Code kopieren
-
----
-
-## 7. Verknüpfung zwischen Bürgern & Gemeinden
-
-Eine Gemeinde kann:
-
-- Bürger automatisch erkennen (via Region in Profil)
-- Bürger verifizieren (Adresse / SMS)
-- Streams lokal priorisieren
-- Kiosk-Nutzer kostenfrei aktivieren
-
-Ein Bürger kann:
-
-- regionale Themen kostenlos beantworten,
-- aber andere Features (z.B. Stream-Hosten) weiterhin nur über B2C-Tiers nutzen.
-
----
-
-## 8. Sicherheit & Governance (B2G/B2B)
-
-### 8.1 Prioritäten
-
-- Datenschutz (siehe Part00)
-- Einhaltung demokratischer Standards
-- keine gezielte Manipulation durch Unternehmen oder Gemeinden
-- transparente Reporting-Kriterien
-
-### 8.2 Moderationsstufen
-
-- Gemeinde-Admins (nur lokale Themen)
-- Organisations-Admins (nur interne Kampagnen)
-- Staff (übergreifend)
-- Community Council (nur Bewertungsrolle)
-
----
-
-## 9. Internationalisierung (I18N)
-
-B2G/B2B sollen in Zukunft international nutzbar sein. Anforderungen:
-
-- Regionale Übersetzungen (Part13)
-- flexible Einwohnerdaten-Modelle
-- Währungen variabel
-- Kampagnen-Zeitpläne auf Länderregeln anpassbar
-
----
-
-## 10. Anforderungen an Codex (Part 4)
-
-Codex MUSS:
-
-1. Organisationen als eigene Entität pflegen.  
-2. korrekte Tarife + Limits je Plan hinterlegen.  
-3. Einwohner-basierte Abrechnung vorbereiten.  
-4. Kampagnen vollständig implementieren.  
-5. Reporting-Struktur an E150 ausrichten.  
-6. Admin-Interfaces für Gemeinden & Firmen bauen.  
-7. Streams an Pläne + XP koppeln (Pläne definieren „ob“, XP definiert „wer“).  
-8. Kiosk-Modus unterstützen (einfache, sichere Frontends).  
-9. Anti-Abuse und Governance-Sicherheitsmechaniken beachten.  
-10. Part02+03 korrekt integrieren (Tiers, XP, Credits).
-
----
-
-Part04 bildet die Grundlage für Kampagnen (Part10), Streams (Part11), Admin & Telemetrie (Part12), sowie I18N & Social Features (Part13).
+Ein institutionelles Modell ist erfolgreich, wenn:
+- es ohne Vollredaktion genutzt werden kann,
+- Anlassraeume sauber reviewt und publiziert werden,
+- Entscheidungen nachvollziehbarer werden,
+- Beteiligung und Wirkung gemeinsam sichtbar werden.

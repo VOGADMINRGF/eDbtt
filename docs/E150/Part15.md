@@ -33,6 +33,31 @@ Dieses Dokument dient als Status-Zusammenfassung der Pfade (Part00–Part15). Es
 - QR-/Resolve-/Summary-/Event-APIs geben Follow-up/Audit-Referenzen aus (Event <-> QR <-> Protocol <-> Dossier-Upsert-Contract <-> Round-Seed-Contract).
 - Manual-first bleibt unveraendert: keine automatische Live-Rundenerstellung, keine automatische öffentliche Dossier-Freigabe.
 
+## Update (2026-03-19) — GOV-EVENT-02 Apply Layer (Dossier-Apply + Round-Handoff)
+
+- Dossier-Upsert-Contracts haben jetzt einen manuellen Review/Apply-Pfad (`pending_review` -> `partially_applied`/`applied` -> `rejected`) mit Audit-Metadaten und expliziten Governance-Aktionen.
+- Round-Seed-Contracts haben jetzt einen manuellen Handoff/Reject-Pfad (`review_required` -> `draft_created`/`rejected`); Handoff erzeugt nur einen non-public Round-Draft (`manual_review_required`).
+- Neue Governance-Contract-Endpunkte (API-first): Listen/Details/Apply/Reject fuer Dossier-Upsert sowie Listen/Details/Handoff/Reject fuer Round-Seed.
+- Scope- und Rollenchecks bleiben aktiv (reviewer/editorial_actor/institutional_actor/admin, keine Community-Apply-Rechte) und werden sowohl in Route-Handlern als auch Domain-Services durchgesetzt.
+- Keine automatische Publikation: kein Auto-Approval, kein Auto-Publish, keine automatische Live-Runde.
+
+## Update (2026-03-19) — GOV-EVENT-02 Hardening (E2E + Legacy Contract Policy)
+
+- GOV-EVENT-02 hat jetzt eine dedizierte Integrationsabdeckung fuer die Kernpfade `Protocol -> Dossier-Upsert-Contract -> manual Apply` und `Protocol -> Round-Seed-Contract -> manual Handoff`.
+- Legacy-/Incomplete-Contracts sind explizit policy-gebunden:
+  fehlendes Ziel-Dossier fuehrt zu `contract_missing_target_dossier`; fehlendes `anlassraumId` blockiert nicht-admin Governance-Akteure mit `actor_scope_requires_anlassraum`.
+- Admin bleibt kontrollierter Fallback fuer Legacy-Faelle, ohne Publish-Bypass.
+- Community-Zugriff auf Apply/Handoff bleibt strikt untersagt (`actor_scope_forbidden`).
+
+## Update (2026-03-19) — GOV-EVENT-02 Abschluss (Route Acceptance + Legacy Backfill Strategy)
+
+- Route-Layer fuer Governance-Contracts ist jetzt explizit acceptance-getestet (list/read/apply/reject/handoff inkl. Backfill-Routen).
+- Error/Response-Mapping ist als stabile Policy verankert (`apps/web/src/app/api/admin/governance/contractsError.ts`), inkl. Konfliktfaelle wie `contract_missing_target_dossier` und `contract_already_handed_off`.
+- Legacy-Vertraege haben jetzt einen expliziten Admin-Backfill-Pfad:
+  - Detection: `.../dossier-upsert-contracts/legacy`, `.../round-seed-contracts/legacy`
+  - Remediation: `.../[contractId]/backfill` (anlassraum-/dossier-linkage, auditierbar, manuell)
+- Manual-first bleibt unveraendert: kein Auto-Publish, kein Auto-Approval, keine automatische Live-Runde.
+
 ## Status-Übersicht der Pfade 00–15
 
 - **Part00 Foundations / PII:** PII-Guardrails plus Klarname-Trennung (givenName/familyName) und Privacy-Flags dokumentiert; Alt-Migration optional.
@@ -279,7 +304,82 @@ Verification:
 - `pnpm -C apps/web run lint` (PASS)
 
 Next Steps:
-- GOV-EVENT-02 Next: manueller Review/Apply-Pfad fuer Dossier-Upsert-Contracts und Round-Seed-Contracts (explizite Freigabe-Aktionen, kein Auto-Apply).
+- GOV-EVENT-02 Next: Apply-Layer robuster machen (Policy-Feinschliff, Backfill fuer Alt-Contracts ohne Anlassraum/Dossier-Link, E2E-Abnahme).
+
+### PR-GOV-04 (2026-03-19) – GOV-EVENT-02 Apply Layer (Dossier-Upsert Apply + Round-Seed Handoff)
+
+Ziel:
+- Contract-Baseline aus PR-GOV-03 um explizite manuelle Apply/Handoff-Aktionen erweitern, ohne Auto-Publish/Auto-Live-Round.
+
+Changes:
+- `features/dossier/protocolUpsert.ts` erweitert um:
+  autorisierte `list/read/apply/reject`-Services, additive Apply-Logik, Status-Transitions, Audit-Trail.
+- `features/topicRound/seedContract.ts` erweitert um:
+  autorisierte `list/read/handoff/reject`-Services, non-public Round-Draft-Handoff, Status-Transitions, Audit-Trail.
+- Neue Admin-Governance-API-Routen:
+  `apps/web/src/app/api/admin/governance/dossier-upsert-contracts/*`
+  und
+  `apps/web/src/app/api/admin/governance/round-seed-contracts/*`.
+
+Verification:
+- `pnpm -C apps/web run typecheck` (PASS)
+- `pnpm -C apps/web run lint` (PASS)
+
+Next Steps:
+- GOV-EVENT-02 Follow-up: E2E-Flow fuer Contract-Apply/Handoff + Alt-Daten-Backfill fuer fehlende Anlassraum-/Dossier-Links.
+
+### PR-GOV-05 (2026-03-19) – GOV-EVENT-02 Hardening (E2E + Legacy Policy)
+
+Ziel:
+- Apply/Handoff-Flow testbar absichern und Legacy-Contract-Policy (fehlendes Anlassraum-/Dossier-Linking) explizit verifizieren.
+
+Changes:
+- Neue Integrationssuite:
+  `apps/web/tests/gov-event-02.contracts.test.ts`.
+- Abgedeckte Szenarien:
+  - Protocol erzeugt Dossier-Upsert-Contract.
+  - Manual Apply ist additiv, schreibt Audit-Metadaten und updated Contract-State.
+  - Apply ohne Ziel-Dossier scheitert sicher (`contract_missing_target_dossier`) ohne implizites Dossier-Anlegen.
+  - Protocol erzeugt Round-Seed-Contract; Manual Handoff erzeugt nur non-public/internal Draft (`manual_review_required`).
+  - Community-Zugriff ist verboten; Legacy-Contracts ohne `anlassraumId` sind fuer nicht-admin explizit gesperrt (`actor_scope_requires_anlassraum`).
+
+Verification:
+- `pnpm -C apps/web exec vitest run tests/gov-event-02.contracts.test.ts` (PASS)
+- `pnpm -C apps/web run typecheck` (PASS)
+- `pnpm -C apps/web run lint` (PASS)
+
+Next Steps:
+- GOV-EVENT-02 Abschluss-Run: API/route-nahe Abnahmetests (inkl. Response-Mapping) und Backfill-Strategie fuer historische Contracts mit fehlenden Links.
+
+### PR-GOV-06 (2026-03-19) – GOV-EVENT-02 Abschluss (Route Acceptance + Legacy Backfill Strategy)
+
+Ziel:
+- GOV-EVENT-02 route-seitig abschliessen, Error-Mapping stabilisieren und Legacy-Backfill als expliziten Admin-Flow verankern.
+
+Changes:
+- Route-Acceptance-Suite hinzugefuegt:
+  `apps/web/tests/gov-event-02.routes.test.ts`.
+- Legacy-Detection-Routen hinzugefuegt:
+  `apps/web/src/app/api/admin/governance/dossier-upsert-contracts/legacy/route.ts`,
+  `apps/web/src/app/api/admin/governance/round-seed-contracts/legacy/route.ts`.
+- Legacy-Backfill-Routen (admin-only, auditierbar) hinzugefuegt:
+  `apps/web/src/app/api/admin/governance/dossier-upsert-contracts/[contractId]/backfill/route.ts`,
+  `apps/web/src/app/api/admin/governance/round-seed-contracts/[contractId]/backfill/route.ts`.
+- Service-Hardening:
+  - `features/dossier/protocolUpsert.ts`:
+    Legacy-List/Backfill-Services, Guards fuer `contract_rejected`/`contract_already_applied`/`contract_already_rejected`.
+  - `features/topicRound/seedContract.ts`:
+    Legacy-List/Backfill-Services, Guards fuer `contract_already_handed_off`/`contract_already_rejected`.
+- Error-Mapping erweitert:
+  `apps/web/src/app/api/admin/governance/contractsError.ts` mappt bekannte Policy-Errors auf stabile Statuscodes (400/403/404/409).
+
+Verification:
+- `pnpm -C apps/web exec vitest run tests/gov-event-02.contracts.test.ts tests/gov-event-02.routes.test.ts` (PASS)
+- `pnpm -C apps/web run typecheck` (PASS)
+- `pnpm -C apps/web run lint` (PASS)
+
+Next Steps:
+- GOV-ANLASS-04 / PR-FEED-ANLASS-04 weiter vertiefen (Queue-UX, Bulk-Review, Backfill `vote_drafts` -> `anlassraumId`) bei unveraenderten Governance-Gates.
 
 ### PR-0017 (2026-02-11) – Block E Research R2
 
