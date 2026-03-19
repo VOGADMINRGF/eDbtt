@@ -13,6 +13,14 @@ vi.mock("next/navigation", () => ({
 import DemoRundenCompatibilityPage from "@/app/demo/runden/page";
 
 describe("/demo/runden compatibility path", () => {
+  it("Scenario A: base demo path redirects to productive /runden with compat marker", async () => {
+    await expect(
+      DemoRundenCompatibilityPage({
+        searchParams: Promise.resolve({}),
+      }),
+    ).rejects.toThrow("REDIRECT:/runden?compat=demo_runden");
+  });
+
   it("Scenario A: old demo path redirects to productive /runden with mapped view", async () => {
     await expect(
       DemoRundenCompatibilityPage({

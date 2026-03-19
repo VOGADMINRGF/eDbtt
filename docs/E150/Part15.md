@@ -151,6 +151,24 @@ Dieses Dokument dient als Status-Zusammenfassung der Pfade (Part00–Part15). Es
 - Guardrails bleiben unveraendert:
   kein Auto-Publish, kein Auto-Approval, kein Public-/Live-Bypass.
 
+## Update (2026-03-19) — PR-0038 E2E-Abnahme (`/create` + `/runden`)
+
+- Akzeptanzabdeckung fuer den produktiven Einstieg ist jetzt aktiv:
+  - `/demo/runden` Redirect-Compat (`/runden?compat=demo_runden`, inkl. Query-Mapping)
+  - `/runden` Empty-/Error-State ohne Seed-/Demo-Fallback
+  - `/create` kanonische Modus-Auswahl `manual|source|ai` (UI-Reflexion + Weitergabe in Save/Finalize)
+- Save-/Finalize-Routen sind mit stabilen Mode-Regeln abgesichert:
+  - gueltige Modi werden persistiert/propagiert
+  - ungueltige Modi liefern stabil `invalid_create_mode` (400)
+- Handoff-Boundary bleibt unveraendert:
+  kein Auto-Publish, kein Auto-Approval, kein direkter Write-Pfad aus Create in `output_seed`/Live-Runden.
+- Testabdeckung:
+  - `apps/web/tests/create-mode.page.test.ts`
+  - `apps/web/tests/create-mode.save.route.test.ts`
+  - `apps/web/tests/create-mode.finalize.route.test.ts`
+  - `apps/web/tests/runden-page.acceptance.test.ts`
+  - plus bestehende `/runden` Service/Route/Compat-Suiten.
+
 ## Status-Übersicht der Pfade 00–15
 
 - **Part00 Foundations / PII:** PII-Guardrails plus Klarname-Trennung (givenName/familyName) und Privacy-Flags dokumentiert; Alt-Migration optional.
