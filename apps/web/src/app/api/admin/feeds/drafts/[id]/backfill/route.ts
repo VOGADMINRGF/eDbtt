@@ -13,11 +13,7 @@ import {
   type AnlassraumType,
 } from "@features/anlassraum/types";
 import { ROOM_TYPES, type RoomType } from "@features/trust/types";
-import {
-  FEED_REVIEW_ACTIONS,
-  applyFeedReviewAction,
-  type FeedReviewAction,
-} from "@features/feeds/reviewQueue";
+import { backfillVoteDraftAnlassraumAuthorized } from "@features/feeds/reviewQueue";
 import { requireGovernanceActorOrResponse } from "@/lib/server/auth/governance";
 import { statusForFeedReviewError } from "../../reviewErrors";
 
@@ -29,18 +25,14 @@ export async function POST(
   if (gate instanceof Response) return gate;
 
   const { id } = await context.params;
-  let draftId: ObjectId;
-  try {
-    draftId = new ObjectId(id);
-  } catch {
+  if (!ObjectId.isValid(id)) {
     return NextResponse.json({ ok: false, error: "invalid_id" }, { status: 400 });
   }
 
   const body = (await req.json().catch(() => ({}))) as {
-    action?: string;
-    reviewNote?: string;
-    weakSignalReason?: string;
+    mode?: string;
     anlassraumId?: string;
+    reviewNote?: string;
     sourceRole?: string;
     sourceWeight?: number;
     ownerType?: string;
@@ -53,12 +45,11 @@ export async function POST(
     decisionScope?: string;
   };
 
-  const action = String(body.action || "").toLowerCase();
-  if (!isFeedReviewAction(action)) {
-    return NextResponse.json({ ok: false, error: "invalid_action" }, { status: 400 });
+  const mode = normalizeMode(body.mode);
+  if (!mode) {
+    return NextResponse.json({ ok: false, error: "invalid_mode" }, { status: 400 });
   }
-
-  if (action === "attach_to_anlassraum" && !ObjectId.isValid(String(body.anlassraumId || ""))) {
+  if (mode === "attach" && !ObjectId.isValid(String(body.anlassraumId || ""))) {
     return NextResponse.json({ ok: false, error: "invalid_anlassraum_id" }, { status: 400 });
   }
 
@@ -71,15 +62,14 @@ export async function POST(
   const decisionScope = normalizeScope(body.decisionScope);
 
   try {
-    const result = await applyFeedReviewAction({
-      draftId,
+    const response = await backfillVoteDraftAnlassraumAuthorized({
+      draftId: new ObjectId(id),
       actor: gate.actor,
-      action,
+      mode,
+      anlassraumId: body.anlassraumId ? new ObjectId(body.anlassraumId) : null,
       reviewNote: body.reviewNote,
-      weakSignalReason: body.weakSignalReason,
       sourceRole,
       sourceWeight: Number(body.sourceWeight ?? 1),
-      anlassraumId: body.anlassraumId ? new ObjectId(body.anlassraumId) : null,
       ownerType,
       ownerId: body.ownerId,
       roomType,
@@ -90,40 +80,36 @@ export async function POST(
       decisionScope,
     });
 
-    const publishGate = result.anlassraumId
-      ? await getAnlassraumPublishGate(result.anlassraumId).catch(() => null)
+    const publishGate = response.result.anlassraumId
+      ? await getAnlassraumPublishGate(response.result.anlassraumId).catch(() => null)
       : null;
 
     return NextResponse.json({
       ok: true,
-      action,
-      draft: {
-        id: result.draft._id?.toHexString?.() ?? "",
-        status: result.draft.status,
-        anlassraumId: result.draft.anlassraumId?.toHexString?.() ?? null,
-        reviewNote: result.draft.reviewNote ?? null,
-        feedReviewState: result.draft.feedReviewState ?? result.feedReviewState,
-        weakSignal: result.draft.weakSignal
-          ? {
-              flagged: !!result.draft.weakSignal.flagged,
-              reason: result.draft.weakSignal.reason ?? null,
-              flaggedBy: result.draft.weakSignal.flaggedBy ?? null,
-              flaggedAt: result.draft.weakSignal.flaggedAt?.toISOString?.() ?? null,
-            }
-          : null,
-        updatedAt: result.draft.updatedAt?.toISOString?.() ?? null,
+      draftId: response.draftId,
+      mode: response.mode,
+      result: {
+        anlassraumId: response.result.anlassraumId?.toHexString?.() ?? null,
+        feedReviewState: response.result.feedReviewState,
+        createdAnlassraum: response.result.createdAnlassraum,
+        draftStatus: response.result.draft.status,
+        lastReviewAction: response.result.draft.lastReviewAction ?? null,
+        lastReviewActionBy: response.result.draft.lastReviewActionBy ?? null,
+        lastReviewActionAt: response.result.draft.lastReviewActionAt?.toISOString?.() ?? null,
       },
-      createdAnlassraum: result.createdAnlassraum,
       publishGate,
     });
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "review_action_failed";
+    const message = error instanceof Error ? error.message : "backfill_failed";
     return NextResponse.json({ ok: false, error: message }, { status: statusForFeedReviewError(message) });
   }
 }
 
-function isFeedReviewAction(value: string): value is FeedReviewAction {
-  return FEED_REVIEW_ACTIONS.includes(value as FeedReviewAction);
+function normalizeMode(value?: string): "attach" | "create_candidate" | null {
+  const normalized = String(value || "").toLowerCase();
+  if (normalized === "attach") return "attach";
+  if (normalized === "create_candidate" || normalized === "create") return "create_candidate";
+  return null;
 }
 
 function normalizeSourceRole(value?: string): AnlassraumSourceRole | undefined {

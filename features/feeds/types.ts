@@ -207,4 +207,14 @@ export type VoteDraftSummary = {
     flagged: boolean;
     reason?: string | null;
   } | null;
+  lastReviewAction?: string | null;
+  lastReviewActionBy?: string | null;
+  lastReviewActionAt?: string | null;
+  queueMeta?: {
+    priorityScore: number;
+    priorityBucket: "high" | "medium" | "low";
+    pendingHours: number;
+    needsAnlassraumBackfill: boolean;
+    reasons: string[];
+  } | null;
 };

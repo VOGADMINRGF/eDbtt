@@ -2,9 +2,13 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import type { VoteDraftSummary, VoteDraftStatus } from "@features/feeds/types";
+import type { FeedReviewState, VoteDraftSummary, VoteDraftStatus } from "@features/feeds/types";
 
 type RegionOption = { value: string; label: string };
+type QueueSort = "newest" | "oldest" | "review_recent" | "review_stale" | "priority_high";
+type QueueLinkFilter = "all" | "linked" | "unlinked";
+type QueueWeakFilter = "all" | "flagged" | "clear";
+type BulkAction = "ignore" | "mark_as_weak_signal" | "attach_to_anlassraum" | "create_anlassraum_candidate";
 
 const STATUS_FILTERS: { label: string; value: VoteDraftStatus | "all" }[] = [
   { label: "Alle", value: "all" },
@@ -12,6 +16,23 @@ const STATUS_FILTERS: { label: string; value: VoteDraftStatus | "all" }[] = [
   { label: "Review", value: "review" },
   { label: "Veröffentlicht", value: "published" },
   { label: "Verworfen", value: "discarded" },
+];
+
+const REVIEW_STATE_FILTERS: { label: string; value: FeedReviewState | "all" }[] = [
+  { label: "Alle Queue-States", value: "all" },
+  { label: "Queued", value: "queued" },
+  { label: "Ignored", value: "ignored" },
+  { label: "Attached", value: "attached" },
+  { label: "Candidate Created", value: "candidate_created" },
+  { label: "Weak Signal", value: "weak_signal" },
+];
+
+const SORT_OPTIONS: { label: string; value: QueueSort }[] = [
+  { label: "Neueste zuerst", value: "newest" },
+  { label: "Älteste zuerst", value: "oldest" },
+  { label: "Zuletzt reviewed", value: "review_recent" },
+  { label: "Lange nicht reviewed", value: "review_stale" },
+  { label: "Queue-Priorität", value: "priority_high" },
 ];
 
 const REGION_FILTERS: RegionOption[] = [
@@ -23,12 +44,45 @@ const REGION_FILTERS: RegionOption[] = [
   { value: "CH", label: "Schweiz" },
 ];
 
+const LINK_FILTERS: { label: string; value: QueueLinkFilter }[] = [
+  { label: "Alle Link-States", value: "all" },
+  { label: "Mit Anlassraum", value: "linked" },
+  { label: "Ohne Anlassraum", value: "unlinked" },
+];
+
+const WEAK_SIGNAL_FILTERS: { label: string; value: QueueWeakFilter }[] = [
+  { label: "Alle Signal-Flags", value: "all" },
+  { label: "Weak Signal", value: "flagged" },
+  { label: "Kein Weak Signal", value: "clear" },
+];
+
+const BULK_ACTIONS: { label: string; value: BulkAction }[] = [
+  { label: "Ignore", value: "ignore" },
+  { label: "Weak Signal markieren", value: "mark_as_weak_signal" },
+  { label: "An Anlassraum anhängen", value: "attach_to_anlassraum" },
+  { label: "Candidate Create", value: "create_anlassraum_candidate" },
+];
+
 export default function AdminFeedDraftsPage() {
-  const [statusFilter, setStatusFilter] = useState<VoteDraftStatus | "all">("draft");
+  const [statusFilter, setStatusFilter] = useState<VoteDraftStatus | "all">("all");
+  const [reviewStateFilter, setReviewStateFilter] = useState<FeedReviewState | "all">("all");
   const [regionFilter, setRegionFilter] = useState<string>("all");
+  const [linkFilter, setLinkFilter] = useState<QueueLinkFilter>("all");
+  const [weakSignalFilter, setWeakSignalFilter] = useState<QueueWeakFilter>("all");
+  const [sort, setSort] = useState<QueueSort>("priority_high");
+  const [query, setQuery] = useState("");
   const [items, setItems] = useState<VoteDraftSummary[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [reloadToken, setReloadToken] = useState(0);
+
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [bulkAction, setBulkAction] = useState<BulkAction>("ignore");
+  const [bulkAnlassraumId, setBulkAnlassraumId] = useState("");
+  const [bulkWeakSignalReason, setBulkWeakSignalReason] = useState("");
+  const [bulkReviewNote, setBulkReviewNote] = useState("");
+  const [bulkBusy, setBulkBusy] = useState(false);
+  const [bulkNotice, setBulkNotice] = useState<string | null>(null);
 
   useEffect(() => {
     let ignored = false;
@@ -39,6 +93,12 @@ export default function AdminFeedDraftsPage() {
         const qs = new URLSearchParams();
         if (statusFilter !== "all") qs.set("status", statusFilter);
         if (regionFilter !== "all") qs.set("regionCode", regionFilter);
+        if (reviewStateFilter !== "all") qs.set("reviewState", reviewStateFilter);
+        if (linkFilter !== "all") qs.set("hasAnlassraum", linkFilter);
+        if (weakSignalFilter !== "all") qs.set("weakSignal", weakSignalFilter);
+        if (sort !== "newest") qs.set("sort", sort);
+        if (query.trim()) qs.set("q", query.trim());
+
         const res = await fetch(`/api/admin/feeds/drafts?${qs.toString()}`, {
           cache: "no-store",
         });
@@ -48,11 +108,14 @@ export default function AdminFeedDraftsPage() {
         }
         const data = await res.json();
         if (!ignored) {
-          setItems(data.items ?? []);
+          const loaded = (data.items ?? []) as VoteDraftSummary[];
+          setItems(loaded);
+          setSelectedIds((prev) => prev.filter((id) => loaded.some((item) => item.id === id)));
         }
       } catch (err: any) {
         if (!ignored) {
           setItems([]);
+          setSelectedIds([]);
           setError(err?.message ?? "Unbekannter Fehler beim Laden der Drafts");
         }
       } finally {
@@ -63,18 +126,88 @@ export default function AdminFeedDraftsPage() {
     return () => {
       ignored = true;
     };
-  }, [statusFilter, regionFilter]);
+  }, [statusFilter, reviewStateFilter, regionFilter, linkFilter, weakSignalFilter, sort, query, reloadToken]);
+
+  const allVisibleSelected = useMemo(
+    () => items.length > 0 && items.every((item) => selectedIds.includes(item.id)),
+    [items, selectedIds],
+  );
+
+  async function runBulkAction() {
+    if (!selectedIds.length) {
+      setBulkNotice("Bitte mindestens einen Draft auswählen.");
+      return;
+    }
+
+    if (bulkAction === "attach_to_anlassraum" && !bulkAnlassraumId.trim()) {
+      setBulkNotice("Für 'An Anlassraum anhängen' ist eine Anlassraum-ID erforderlich.");
+      return;
+    }
+
+    setBulkBusy(true);
+    setBulkNotice(null);
+    try {
+      const payload: Record<string, unknown> = {
+        draftIds: selectedIds,
+        action: bulkAction,
+        reviewNote: bulkReviewNote.trim() || undefined,
+      };
+
+      if (bulkAction === "attach_to_anlassraum") {
+        payload.anlassraumId = bulkAnlassraumId.trim();
+      }
+      if (bulkAction === "mark_as_weak_signal" && bulkWeakSignalReason.trim()) {
+        payload.weakSignalReason = bulkWeakSignalReason.trim();
+      }
+
+      const res = await fetch("/api/admin/feeds/drafts/bulk", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok || !body?.ok) {
+        throw new Error(body?.error || res.statusText);
+      }
+
+      const successCount = Number(body?.successCount ?? 0);
+      const failureCount = Number(body?.failureCount ?? 0);
+      setBulkNotice(`Bulk abgeschlossen: ${successCount} erfolgreich, ${failureCount} fehlgeschlagen.`);
+      setSelectedIds([]);
+      setReloadToken((prev) => prev + 1);
+    } catch (err: any) {
+      setBulkNotice(err?.message ?? "Bulk-Review fehlgeschlagen.");
+    } finally {
+      setBulkBusy(false);
+    }
+  }
+
+  function toggleRow(id: string) {
+    setSelectedIds((prev) => (prev.includes(id) ? prev.filter((entry) => entry !== id) : [...prev, id]));
+  }
+
+  function toggleAllVisible() {
+    if (allVisibleSelected) {
+      setSelectedIds((prev) => prev.filter((id) => !items.some((entry) => entry.id === id)));
+      return;
+    }
+    setSelectedIds((prev) => {
+      const merged = new Set(prev);
+      for (const item of items) merged.add(item.id);
+      return Array.from(merged);
+    });
+  }
 
   return (
-    <div className="mx-auto flex min-h-[80vh] max-w-6xl flex-col gap-6 px-4 py-8">
+    <div className="mx-auto flex min-h-[80vh] max-w-7xl flex-col gap-6 px-4 py-8">
       <header className="space-y-1">
         <p className="text-sm font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
           Admin · Feed-Pipeline
         </p>
         <h1 className="text-2xl font-bold text-[rgb(var(--fg))]">Drafts aus Feeds</h1>
         <p className="text-sm text-[rgb(var(--muted))]">
-          Übersicht über alle automatisch erzeugten Drafts. Filtere nach Status oder Region und öffne die
-          Detailansicht für Reviews & Veröffentlichung.
+          Queue-Review mit Filter/Sortierung, Prioritätsindikatoren und sicheren Bulk-Aktionen (kein Auto-Publish,
+          kein Auto-Approval).
         </p>
         <p>
           <Link href="/admin/feeds" className="text-sm font-semibold text-sky-700 hover:underline">
@@ -83,27 +216,35 @@ export default function AdminFeedDraftsPage() {
         </p>
       </header>
 
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="flex flex-wrap gap-2 rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2">
-          {STATUS_FILTERS.map((entry) => (
-            <button
-              key={entry.value}
-              className={`rounded-full px-3 py-1 text-sm font-medium transition ${
-                statusFilter === entry.value
-                  ? "bg-slate-900 text-white"
-                  : "text-[rgb(var(--muted))] hover:text-[rgb(var(--fg))]"
-              }`}
-              onClick={() => setStatusFilter(entry.value)}
-            >
-              {entry.label}
-            </button>
+      <div className="grid gap-3 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-3 shadow-sm lg:grid-cols-6">
+        <select
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value as VoteDraftStatus | "all")}
+          className="rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm"
+        >
+          {STATUS_FILTERS.map((opt) => (
+            <option key={opt.value} value={opt.value}>
+              {opt.label}
+            </option>
           ))}
-        </div>
+        </select>
+
+        <select
+          value={reviewStateFilter}
+          onChange={(e) => setReviewStateFilter(e.target.value as FeedReviewState | "all")}
+          className="rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm"
+        >
+          {REVIEW_STATE_FILTERS.map((opt) => (
+            <option key={opt.value} value={opt.value}>
+              {opt.label}
+            </option>
+          ))}
+        </select>
 
         <select
           value={regionFilter}
           onChange={(e) => setRegionFilter(e.target.value)}
-          className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-2 text-sm text-[rgb(var(--muted))] shadow-sm"
+          className="rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm"
         >
           {REGION_FILTERS.map((opt) => (
             <option key={opt.value} value={opt.value}>
@@ -111,7 +252,99 @@ export default function AdminFeedDraftsPage() {
             </option>
           ))}
         </select>
+
+        <select
+          value={linkFilter}
+          onChange={(e) => setLinkFilter(e.target.value as QueueLinkFilter)}
+          className="rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm"
+        >
+          {LINK_FILTERS.map((opt) => (
+            <option key={opt.value} value={opt.value}>
+              {opt.label}
+            </option>
+          ))}
+        </select>
+
+        <select
+          value={weakSignalFilter}
+          onChange={(e) => setWeakSignalFilter(e.target.value as QueueWeakFilter)}
+          className="rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm"
+        >
+          {WEAK_SIGNAL_FILTERS.map((opt) => (
+            <option key={opt.value} value={opt.value}>
+              {opt.label}
+            </option>
+          ))}
+        </select>
+
+        <select
+          value={sort}
+          onChange={(e) => setSort(e.target.value as QueueSort)}
+          className="rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm"
+        >
+          {SORT_OPTIONS.map((opt) => (
+            <option key={opt.value} value={opt.value}>
+              {opt.label}
+            </option>
+          ))}
+        </select>
+
+        <input
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Suche in Titel/Summary/Quelle"
+          className="rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm lg:col-span-3"
+        />
       </div>
+
+      <section className="grid gap-3 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-3 shadow-sm lg:grid-cols-6">
+        <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))] lg:col-span-6">
+          Bulk Review ({selectedIds.length} ausgewählt)
+        </p>
+
+        <select
+          value={bulkAction}
+          onChange={(e) => setBulkAction(e.target.value as BulkAction)}
+          className="rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm"
+        >
+          {BULK_ACTIONS.map((opt) => (
+            <option key={opt.value} value={opt.value}>
+              {opt.label}
+            </option>
+          ))}
+        </select>
+
+        <input
+          value={bulkAnlassraumId}
+          onChange={(e) => setBulkAnlassraumId(e.target.value)}
+          placeholder="Anlassraum-ID (nur für Attach)"
+          className="rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm"
+        />
+
+        <input
+          value={bulkWeakSignalReason}
+          onChange={(e) => setBulkWeakSignalReason(e.target.value)}
+          placeholder="Weak-Signal Grund (optional)"
+          className="rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm"
+        />
+
+        <input
+          value={bulkReviewNote}
+          onChange={(e) => setBulkReviewNote(e.target.value)}
+          placeholder="Review-Notiz (optional)"
+          className="rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm lg:col-span-2"
+        />
+
+        <button
+          disabled={bulkBusy || selectedIds.length === 0}
+          onClick={runBulkAction}
+          className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {bulkBusy ? "läuft…" : "Bulk anwenden"}
+        </button>
+
+        {bulkNotice && <p className="text-xs text-[rgb(var(--muted))] lg:col-span-6">{bulkNotice}</p>}
+      </section>
 
       {error && (
         <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
@@ -123,8 +356,11 @@ export default function AdminFeedDraftsPage() {
         <table className="min-w-full divide-y divide-[rgb(var(--border))] text-sm">
           <thead className="bg-[rgb(var(--bg))]">
             <tr>
+              <th className="px-3 py-3 text-left font-semibold text-[rgb(var(--muted))]">
+                <input type="checkbox" checked={allVisibleSelected} onChange={toggleAllVisible} aria-label="Alle auswählen" />
+              </th>
               <th className="px-4 py-3 text-left font-semibold text-[rgb(var(--muted))]">Titel</th>
-              <th className="px-4 py-3 text-left font-semibold text-[rgb(var(--muted))]">Status</th>
+              <th className="px-4 py-3 text-left font-semibold text-[rgb(var(--muted))]">Queue</th>
               <th className="px-4 py-3 text-left font-semibold text-[rgb(var(--muted))]">Region</th>
               <th className="px-4 py-3 text-left font-semibold text-[rgb(var(--muted))]">Anlassraum</th>
               <th className="px-4 py-3 text-left font-semibold text-[rgb(var(--muted))]">Quelle</th>
@@ -135,21 +371,29 @@ export default function AdminFeedDraftsPage() {
           <tbody className="divide-y divide-[rgb(var(--border))]">
             {loading && (
               <tr>
-                <td colSpan={7} className="px-4 py-6 text-center text-[rgb(var(--muted))]">
+                <td colSpan={8} className="px-4 py-6 text-center text-[rgb(var(--muted))]">
                   Lädt Drafts …
                 </td>
               </tr>
             )}
             {!loading && items.length === 0 && (
               <tr>
-                <td colSpan={7} className="px-4 py-6 text-center text-[rgb(var(--muted))]">
+                <td colSpan={8} className="px-4 py-6 text-center text-[rgb(var(--muted))]">
                   Keine Drafts für die aktuellen Filter gefunden.
                 </td>
               </tr>
             )}
             {!loading &&
               items.map((draft) => (
-                <tr key={draft.id}>
+                <tr key={draft.id} className={draft.queueMeta?.priorityBucket === "high" ? "bg-amber-50/50" : ""}>
+                  <td className="px-3 py-3 align-top">
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.includes(draft.id)}
+                      onChange={() => toggleRow(draft.id)}
+                      aria-label={`Draft ${draft.title} auswählen`}
+                    />
+                  </td>
                   <td className="px-4 py-3">
                     <Link
                       href={`/admin/feeds/drafts/${draft.id}`}
@@ -163,9 +407,16 @@ export default function AdminFeedDraftsPage() {
                   </td>
                   <td className="px-4 py-3">
                     <StatusBadge status={draft.status} />
+                    <p className="text-[11px] text-[rgb(var(--muted))]">state: {draft.feedReviewState ?? "queued"}</p>
                     <p className="text-[11px] text-[rgb(var(--muted))]">
-                      queue: {draft.feedReviewState ?? "queued"}
+                      prio: {draft.queueMeta?.priorityBucket ?? "low"} ({draft.queueMeta?.priorityScore ?? 0})
                     </p>
+                    <p className="text-[11px] text-[rgb(var(--muted))]">pending: {draft.queueMeta?.pendingHours ?? 0}h</p>
+                    {draft.lastReviewActionAt && (
+                      <p className="text-[11px] text-[rgb(var(--muted))]">
+                        last: {draft.lastReviewAction ?? "action"} · {formatDate(draft.lastReviewActionAt)}
+                      </p>
+                    )}
                   </td>
                   <td className="px-4 py-3">
                     <p className="font-medium text-[rgb(var(--fg))]">{draft.regionName ?? "–"}</p>
@@ -177,7 +428,7 @@ export default function AdminFeedDraftsPage() {
                         {draft.anlassraumId.slice(-8)}
                       </Link>
                     ) : (
-                      <span className="text-[rgb(var(--muted))]">—</span>
+                      <span className="rounded bg-amber-100 px-2 py-1 text-amber-800">fehlend</span>
                     )}
                   </td>
                   <td className="px-4 py-3">
@@ -192,6 +443,11 @@ export default function AdminFeedDraftsPage() {
                       </a>
                     ) : (
                       <span className="text-[rgb(var(--muted))]">–</span>
+                    )}
+                    {draft.weakSignal?.flagged && (
+                      <p className="mt-1 text-[11px] font-semibold text-amber-700">
+                        weak: {draft.weakSignal.reason ?? "markiert"}
+                      </p>
                     )}
                   </td>
                   <td className="px-4 py-3 text-sm text-[rgb(var(--muted))]">

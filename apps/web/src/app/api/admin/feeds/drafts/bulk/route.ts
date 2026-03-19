@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ObjectId } from "@core/db/triMongo";
-import { getAnlassraumPublishGate } from "@features/anlassraum/governance";
 import {
   ANLASSRAUM_OWNER_TYPES,
   ANLASSRAUM_ORIGIN_TYPES,
@@ -15,28 +14,18 @@ import {
 import { ROOM_TYPES, type RoomType } from "@features/trust/types";
 import {
   FEED_REVIEW_ACTIONS,
-  applyFeedReviewAction,
+  applyBulkFeedReviewAction,
   type FeedReviewAction,
 } from "@features/feeds/reviewQueue";
 import { requireGovernanceActorOrResponse } from "@/lib/server/auth/governance";
-import { statusForFeedReviewError } from "../../reviewErrors";
+import { statusForFeedReviewError } from "../reviewErrors";
 
-export async function POST(
-  req: NextRequest,
-  context: { params: Promise<{ id: string }> },
-) {
+export async function POST(req: NextRequest) {
   const gate = await requireGovernanceActorOrResponse(req);
   if (gate instanceof Response) return gate;
 
-  const { id } = await context.params;
-  let draftId: ObjectId;
-  try {
-    draftId = new ObjectId(id);
-  } catch {
-    return NextResponse.json({ ok: false, error: "invalid_id" }, { status: 400 });
-  }
-
-  const body = (await req.json().catch(() => ({}))) as {
+  const body = (await req.json().catch(() => null)) as {
+    draftIds?: string[];
     action?: string;
     reviewNote?: string;
     weakSignalReason?: string;
@@ -51,7 +40,19 @@ export async function POST(
     type?: string;
     scope?: string;
     decisionScope?: string;
-  };
+    continueOnError?: boolean;
+  } | null;
+
+  if (!body || typeof body !== "object") {
+    return NextResponse.json({ ok: false, error: "invalid_body" }, { status: 400 });
+  }
+
+  const draftIds = Array.isArray(body.draftIds)
+    ? body.draftIds.map((value) => String(value || "").trim()).filter(Boolean)
+    : [];
+  if (!draftIds.length) {
+    return NextResponse.json({ ok: false, error: "draft_ids_required" }, { status: 400 });
+  }
 
   const action = String(body.action || "").toLowerCase();
   if (!isFeedReviewAction(action)) {
@@ -71,8 +72,8 @@ export async function POST(
   const decisionScope = normalizeScope(body.decisionScope);
 
   try {
-    const result = await applyFeedReviewAction({
-      draftId,
+    const result = await applyBulkFeedReviewAction({
+      draftIds,
       actor: gate.actor,
       action,
       reviewNote: body.reviewNote,
@@ -88,36 +89,16 @@ export async function POST(
       type,
       scope,
       decisionScope,
+      continueOnError: body.continueOnError !== false,
     });
-
-    const publishGate = result.anlassraumId
-      ? await getAnlassraumPublishGate(result.anlassraumId).catch(() => null)
-      : null;
 
     return NextResponse.json({
       ok: true,
       action,
-      draft: {
-        id: result.draft._id?.toHexString?.() ?? "",
-        status: result.draft.status,
-        anlassraumId: result.draft.anlassraumId?.toHexString?.() ?? null,
-        reviewNote: result.draft.reviewNote ?? null,
-        feedReviewState: result.draft.feedReviewState ?? result.feedReviewState,
-        weakSignal: result.draft.weakSignal
-          ? {
-              flagged: !!result.draft.weakSignal.flagged,
-              reason: result.draft.weakSignal.reason ?? null,
-              flaggedBy: result.draft.weakSignal.flaggedBy ?? null,
-              flaggedAt: result.draft.weakSignal.flaggedAt?.toISOString?.() ?? null,
-            }
-          : null,
-        updatedAt: result.draft.updatedAt?.toISOString?.() ?? null,
-      },
-      createdAnlassraum: result.createdAnlassraum,
-      publishGate,
+      ...result,
     });
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "review_action_failed";
+    const message = error instanceof Error ? error.message : "bulk_review_failed";
     return NextResponse.json({ ok: false, error: message }, { status: statusForFeedReviewError(message) });
   }
 }

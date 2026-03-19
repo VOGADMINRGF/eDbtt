@@ -20,6 +20,7 @@ import type {
   FeedReviewState,
   StatementCandidate,
   StatementCandidateAnalyzeResultDoc,
+  VoteDraftStatus,
   VoteDraftDoc,
 } from "./types";
 
@@ -31,6 +32,25 @@ export const FEED_REVIEW_ACTIONS = [
 ] as const;
 
 export type FeedReviewAction = (typeof FEED_REVIEW_ACTIONS)[number];
+export const FEED_REVIEW_QUEUE_SORTS = [
+  "newest",
+  "oldest",
+  "review_recent",
+  "review_stale",
+  "priority_high",
+] as const;
+export type FeedReviewQueueSort = (typeof FEED_REVIEW_QUEUE_SORTS)[number];
+export type FeedQueueLinkFilter = "all" | "linked" | "unlinked";
+export type FeedQueueWeakSignalFilter = "all" | "flagged" | "clear";
+export type FeedQueuePriorityBucket = "high" | "medium" | "low";
+
+export type FeedQueueMeta = {
+  priorityScore: number;
+  priorityBucket: FeedQueuePriorityBucket;
+  pendingHours: number;
+  needsAnlassraumBackfill: boolean;
+  reasons: string[];
+};
 
 export type ApplyFeedReviewActionInput = {
   draftId: ObjectId | string;
@@ -56,6 +76,57 @@ export type FeedReviewActionResult = {
   anlassraumId: ObjectId | null;
   feedReviewState: FeedReviewState;
   createdAnlassraum: boolean;
+};
+
+export type BulkFeedReviewActionInput = Omit<ApplyFeedReviewActionInput, "draftId"> & {
+  draftIds: Array<ObjectId | string>;
+  continueOnError?: boolean;
+};
+
+export type BulkFeedReviewActionItemResult = {
+  draftId: string;
+  ok: boolean;
+  error?: string;
+  anlassraumId?: string | null;
+  feedReviewState?: FeedReviewState;
+  createdAnlassraum?: boolean;
+};
+
+export type BulkFeedReviewActionResult = {
+  action: FeedReviewAction;
+  results: BulkFeedReviewActionItemResult[];
+  successCount: number;
+  failureCount: number;
+};
+
+export type ListLegacyVoteDraftsInput = {
+  actor: GovernanceActor;
+  limit?: number;
+  status?: VoteDraftStatus | "all";
+  reviewState?: FeedReviewState | "all";
+};
+
+export type LegacyVoteDraftSummary = {
+  id: string;
+  title: string;
+  status: VoteDraftStatus;
+  regionCode: VoteDraftDoc["regionCode"] | null;
+  anlassraumId: string | null;
+  feedReviewState: FeedReviewState;
+  weakSignalFlagged: boolean;
+  createdAt: string | null;
+  updatedAt: string | null;
+  queueMeta: FeedQueueMeta;
+};
+
+export type BackfillVoteDraftAnlassraumInput = Omit<ApplyFeedReviewActionInput, "action"> & {
+  mode: "attach" | "create_candidate";
+};
+
+export type BackfillVoteDraftAnlassraumResult = {
+  draftId: string;
+  mode: "attach" | "create_candidate";
+  result: FeedReviewActionResult;
 };
 
 export async function applyFeedReviewAction(
@@ -210,6 +281,195 @@ export async function applyFeedReviewAction(
     anlassraumId: targetId,
     feedReviewState: "candidate_created",
     createdAnlassraum: !draft.anlassraumId,
+  };
+}
+
+export async function applyBulkFeedReviewAction(
+  input: BulkFeedReviewActionInput,
+): Promise<BulkFeedReviewActionResult> {
+  const uniqueDraftIds = Array.from(
+    new Set(
+      input.draftIds
+        .map((value) => String(value || "").trim())
+        .filter(Boolean),
+    ),
+  );
+  if (!uniqueDraftIds.length) {
+    throw new Error("draft_ids_required");
+  }
+  if (uniqueDraftIds.length > 100) {
+    throw new Error("too_many_draft_ids");
+  }
+
+  const results: BulkFeedReviewActionItemResult[] = [];
+  for (const rawId of uniqueDraftIds) {
+    if (!ObjectId.isValid(rawId)) {
+      results.push({
+        draftId: rawId,
+        ok: false,
+        error: "invalid_draft_id",
+      });
+      if (!input.continueOnError) break;
+      continue;
+    }
+
+    try {
+      const outcome = await applyFeedReviewAction({
+        ...input,
+        draftId: new ObjectId(rawId),
+      });
+      results.push({
+        draftId: rawId,
+        ok: true,
+        anlassraumId: outcome.anlassraumId?.toHexString() ?? null,
+        feedReviewState: outcome.feedReviewState,
+        createdAnlassraum: outcome.createdAnlassraum,
+      });
+    } catch (error: unknown) {
+      results.push({
+        draftId: rawId,
+        ok: false,
+        error: error instanceof Error ? error.message : "bulk_action_failed",
+      });
+      if (!input.continueOnError) break;
+    }
+  }
+
+  const successCount = results.filter((entry) => entry.ok).length;
+  return {
+    action: input.action,
+    results,
+    successCount,
+    failureCount: results.length - successCount,
+  };
+}
+
+export function buildFeedQueueMeta(draft: VoteDraftDoc): FeedQueueMeta {
+  const now = Date.now();
+  const updated = draft.lastReviewActionAt ?? draft.updatedAt ?? draft.createdAt ?? null;
+  const pendingHours = updated ? Math.max(0, (now - updated.getTime()) / 36e5) : 0;
+  const reasons: string[] = [];
+  let priorityScore = 0;
+
+  const state = draft.feedReviewState ?? "queued";
+  if (state === "queued") {
+    priorityScore += 24;
+    reasons.push("queued_unreviewed");
+  }
+  if (draft.status === "draft") {
+    priorityScore += 20;
+    reasons.push("status_draft");
+  } else if (draft.status === "review") {
+    priorityScore += 12;
+    reasons.push("status_review");
+  }
+  if (!draft.anlassraumId) {
+    priorityScore += 22;
+    reasons.push("missing_anlassraum_link");
+  }
+  if (draft.weakSignal?.flagged) {
+    priorityScore += 8;
+    reasons.push("weak_signal_flagged");
+  }
+  if (pendingHours >= 72) {
+    priorityScore += 18;
+    reasons.push("stale_72h_plus");
+  } else if (pendingHours >= 24) {
+    priorityScore += 10;
+    reasons.push("stale_24h_plus");
+  }
+  if (!draft.lastReviewActionAt) {
+    priorityScore += 8;
+    reasons.push("never_reviewed");
+  }
+
+  const boundedScore = Math.max(0, Math.min(100, Math.round(priorityScore)));
+  const priorityBucket: FeedQueuePriorityBucket =
+    boundedScore >= 60 ? "high" : boundedScore >= 35 ? "medium" : "low";
+
+  return {
+    priorityScore: boundedScore,
+    priorityBucket,
+    pendingHours: Number(pendingHours.toFixed(1)),
+    needsAnlassraumBackfill: !draft.anlassraumId,
+    reasons,
+  };
+}
+
+export async function listLegacyVoteDraftsWithoutAnlassraumAuthorized(
+  input: ListLegacyVoteDraftsInput,
+): Promise<LegacyVoteDraftSummary[]> {
+  assertLegacyBackfillActor(input.actor);
+  const limit = Math.max(1, Math.min(200, Number(input.limit ?? 100)));
+  const status = normalizeLegacyStatusFilter(input.status);
+  const reviewState = normalizeLegacyReviewState(input.reviewState);
+
+  const filter: Record<string, unknown> = {
+    $or: [{ anlassraumId: { $exists: false } }, { anlassraumId: null }],
+  };
+  if (status !== "all") filter.status = status;
+  if (reviewState !== "all") filter.feedReviewState = reviewState;
+
+  const drafts = await voteDraftsCol();
+  const docs = await drafts
+    .find(filter)
+    .sort({ createdAt: 1 })
+    .limit(limit)
+    .toArray();
+
+  return docs.map((draft) => ({
+    id: draft._id?.toHexString?.() ?? "",
+    title: draft.title,
+    status: draft.status,
+    regionCode: draft.regionCode ?? null,
+    anlassraumId: draft.anlassraumId?.toHexString?.() ?? null,
+    feedReviewState: draft.feedReviewState ?? "queued",
+    weakSignalFlagged: !!draft.weakSignal?.flagged,
+    createdAt: draft.createdAt?.toISOString?.() ?? null,
+    updatedAt: draft.updatedAt?.toISOString?.() ?? null,
+    queueMeta: buildFeedQueueMeta(draft),
+  }));
+}
+
+export async function backfillVoteDraftAnlassraumAuthorized(
+  input: BackfillVoteDraftAnlassraumInput,
+): Promise<BackfillVoteDraftAnlassraumResult> {
+  assertLegacyBackfillActor(input.actor);
+  const draftId = toObjectId(input.draftId);
+
+  const drafts = await voteDraftsCol();
+  const draft = await drafts.findOne({ _id: draftId });
+  if (!draft) throw new Error("draft_not_found");
+  if (draft.anlassraumId) {
+    throw new Error("draft_already_has_anlassraum");
+  }
+
+  if (input.mode === "attach") {
+    if (!input.anlassraumId) {
+      throw new Error("anlassraum_id_required");
+    }
+    const result = await applyFeedReviewAction({
+      ...input,
+      action: "attach_to_anlassraum",
+      reviewNote: normalizeBackfillNote(input.reviewNote),
+    });
+    return {
+      draftId: draftId.toHexString(),
+      mode: "attach",
+      result,
+    };
+  }
+
+  const result = await applyFeedReviewAction({
+    ...input,
+    action: "create_anlassraum_candidate",
+    reviewNote: normalizeBackfillNote(input.reviewNote),
+  });
+
+  return {
+    draftId: draftId.toHexString(),
+    mode: "create_candidate",
+    result,
   };
 }
 
@@ -630,6 +890,39 @@ function normalizeSourceWeight(value?: number): number {
   const num = Number(value ?? 1);
   if (!Number.isFinite(num)) return 1;
   return Math.max(0.1, Math.min(5, Number(num.toFixed(2))));
+}
+
+function normalizeLegacyStatusFilter(value?: VoteDraftStatus | "all"): VoteDraftStatus | "all" {
+  if (value === "draft" || value === "review" || value === "published" || value === "discarded") {
+    return value;
+  }
+  return "all";
+}
+
+function normalizeLegacyReviewState(value?: FeedReviewState | "all"): FeedReviewState | "all" {
+  if (
+    value === "queued" ||
+    value === "ignored" ||
+    value === "attached" ||
+    value === "candidate_created" ||
+    value === "weak_signal"
+  ) {
+    return value;
+  }
+  return "all";
+}
+
+function assertLegacyBackfillActor(actor: GovernanceActor) {
+  if (actor.isAdmin || actor.role === "admin") return;
+  throw new Error("forbidden_legacy_backfill_requires_admin");
+}
+
+function normalizeBackfillNote(value?: string | null): string {
+  const note = normalizeReviewNote(value) ?? "";
+  const prefix = "[legacy-backfill]";
+  if (!note) return `${prefix} vote_draft -> anlassraumId remediation`;
+  if (note.toLowerCase().startsWith(prefix)) return note;
+  return `${prefix} ${note}`.slice(0, 2000);
 }
 
 function slugifyShort(value: string): string {

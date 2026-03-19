@@ -58,6 +58,16 @@ Dieses Dokument dient als Status-Zusammenfassung der Pfade (Part00–Part15). Es
   - Remediation: `.../[contractId]/backfill` (anlassraum-/dossier-linkage, auditierbar, manuell)
 - Manual-first bleibt unveraendert: kein Auto-Publish, kein Auto-Approval, keine automatische Live-Runde.
 
+## Update (2026-03-19) — GOV-ANLASS-04 / PR-FEED-ANLASS-04 Deepening
+
+- Feed-Review-Queue wurde operativ vertieft: neue Filter (`reviewState`, `hasAnlassraum`, `weakSignal`, `q`) und Sortierungen (`review_recent`, `review_stale`, `priority_high`) sind im Draft-List-Endpoint aktiv.
+- Triage-Metadaten pro Draft sind jetzt auslieferbar (`lastReviewAction*`, `queueMeta.priorityScore`, `queueMeta.priorityBucket`, `queueMeta.pendingHours`, `queueMeta.reasons`).
+- Bulk-Review-Route ist aktiv (`POST /api/admin/feeds/drafts/bulk`) fuer `ignore`, `mark_as_weak_signal`, `attach_to_anlassraum`, `create_anlassraum_candidate` mit per-item Ergebnisliste.
+- Legacy-Backfill fuer `vote_drafts` ohne `anlassraumId` ist jetzt explizit und admin-safe:
+  - Detection: `GET /api/admin/feeds/drafts/legacy`
+  - Remediation: `POST /api/admin/feeds/drafts/[id]/backfill` (`attach` oder `create_candidate`)
+- Governance-/Manual-first-Regeln bleiben unveraendert: keine Auto-Publikation, keine Auto-Approval, keine Scope-Aufweichung.
+
 ## Status-Übersicht der Pfade 00–15
 
 - **Part00 Foundations / PII:** PII-Guardrails plus Klarname-Trennung (givenName/familyName) und Privacy-Flags dokumentiert; Alt-Migration optional.
@@ -380,6 +390,35 @@ Verification:
 
 Next Steps:
 - GOV-ANLASS-04 / PR-FEED-ANLASS-04 weiter vertiefen (Queue-UX, Bulk-Review, Backfill `vote_drafts` -> `anlassraumId`) bei unveraenderten Governance-Gates.
+
+### PR-GOV-07 (2026-03-19) – GOV-ANLASS-04 / PR-FEED-ANLASS-04 Deepening (Queue Ops + Bulk + Backfill)
+
+Ziel:
+- Feed-Review operativ skalierbarer machen, ohne Governance-/Publish-Gates zu schwaechen.
+
+Changes:
+- `features/feeds/reviewQueue.ts` erweitert um:
+  - Bulk-Review-Service (`applyBulkFeedReviewAction`)
+  - Queue-Triage-Metadaten (`buildFeedQueueMeta`)
+  - Legacy-Detection/Backfill-Services fuer unlinked `vote_drafts`.
+- `apps/web/src/app/api/admin/feeds/drafts/route.ts` erweitert um Queue-Filter/Sortierung/Triage-Daten.
+- Neue Feed-Governance-Routen:
+  - `apps/web/src/app/api/admin/feeds/drafts/bulk/route.ts`
+  - `apps/web/src/app/api/admin/feeds/drafts/legacy/route.ts`
+  - `apps/web/src/app/api/admin/feeds/drafts/[id]/backfill/route.ts`
+  - plus `apps/web/src/app/api/admin/feeds/drafts/reviewErrors.ts` fuer stabiles Error-Mapping.
+- Minimales Admin-UI-Update fuer Queue-Operations:
+  - `apps/web/src/app/admin/feeds/drafts/page.tsx` (zus. Filter/Sortierung, Bulk-Toolbar, Queue-Metadaten).
+- Route-Tests fuer neue Feed-Review-Routen:
+  - `apps/web/tests/feed-review.routes.test.ts`.
+
+Verification:
+- `pnpm -C apps/web run typecheck` (PASS)
+- `pnpm -C apps/web run lint` (PASS)
+- `pnpm -C apps/web exec vitest run tests/feed-review.routes.test.ts` (PASS)
+
+Next Steps:
+- PR-FEED-ANLASS-05: Feed/Anlassraum Publish-Flows weiter ausbauen (Output-Redaktions-/Publish-UI) auf bestehendem, gehärtetem Queue- und Backfill-Fundament.
 
 ### PR-0017 (2026-02-11) – Block E Research R2
 

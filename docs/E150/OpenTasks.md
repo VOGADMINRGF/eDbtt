@@ -80,7 +80,7 @@ Status: **In Progress (Core baseline / 2026-03-19)**
 - **GOV-ANLASS-01** universelles Anlassraum-Modell (**Core baseline active**)
 - **GOV-ANLASS-02** Anlassraum <-> Dossier Beziehung (**Core baseline active**)
 - **GOV-ANLASS-03** regionale / skalenfaehige Gruppierung (`local`, `regional`, `national`, `eu`, `global`) (**Core baseline active**)
-- **GOV-ANLASS-04** Feed-Review statt Feed-Leerlauf (**Queue actions active**)
+- **GOV-ANLASS-04** Feed-Review statt Feed-Leerlauf (**Queue ops deepened: filters/sort + bulk actions + legacy backfill path active**)
 - **GOV-EVENT-01** Event-/Sitzungsmodell (**Event->Anlassraum linking active**)
 - **GOV-EVENT-02** QR -> Fragen -> Protokoll -> Dossier -> Runde (**Functionally complete: service+route acceptance + legacy backfill strategy (manual-first)**)
 
@@ -125,9 +125,9 @@ Status: **In Progress (Core baseline / 2026-03-19)**
 | Community E2E absichern | Open | PR-0041 | mobile + desktop |
 | Feed/Anlassraum Picker im `/create` anbinden | Open | PR-FEED-ANLASS-02 | echte Auswahl / Assignment-UI |
 | Feed/Anlassraum Cluster-Job | Open | PR-FEED-ANLASS-03 | dedizierter Worker fehlt |
-| Feed/Anlassraum Status-Transitions absichern | In Progress (Wave 2 core) | PR-FEED-ANLASS-04 | erweitert um Queue-Review-Aktionen: `apps/web/src/app/api/admin/feeds/drafts/[id]/review/route.ts` + `features/feeds/reviewQueue.ts` |
+| Feed/Anlassraum Status-Transitions absichern | In Progress (Wave 2 deepening) | PR-FEED-ANLASS-04 | erweitert um Queue-Review-Aktionen + Bulk-Route + Queue-Triage: `features/feeds/reviewQueue.ts`, `apps/web/src/app/api/admin/feeds/drafts/bulk/route.ts`, `apps/web/src/app/api/admin/feeds/drafts/route.ts` |
 | Feed/Anlassraum Publish-Flows ausbauen | In Progress (Wave 2 core) | PR-FEED-ANLASS-05 | Publish-Gate gehaertet in `features/anlassraum/governance.ts` (nicht mehr nur `sourceCount > 0`) |
-| Feed/Anlassraum Backfill | Open | PR-FEED-ANLASS-06 | `vote_drafts` ohne `anlassraumId` |
+| Feed/Anlassraum Backfill | In Progress (admin-safe path active) | PR-FEED-ANLASS-06 | Detection + Remediation fuer `vote_drafts` ohne `anlassraumId`: `GET /api/admin/feeds/drafts/legacy`, `POST /api/admin/feeds/drafts/[id]/backfill` |
 | Swipes Kontextpfade haerten | Open | PR-0042 | thematisch passendes Ziel |
 | Swipes Mobile Gestures + Bottom-Actions | Open | PR-0043 | thumb-reachable |
 | Swipes Varianten-Schritt finalisieren | Open | PR-0044 | Ranking/Weighting/Exclude |
@@ -263,20 +263,33 @@ Evidenz:
 - `apps/web/src/app/api/events/route.ts` (scope/decisionScope bei Event->Anlassraum)
 
 ### GOV-ANLASS-04 — Feed Review statt Feed Leerlauf
-Admin-Aktionen:
+Queue-/Admin-Aktionen:
 - `ignore`
 - `attach_to_anlassraum`
 - `create_anlassraum_candidate`
 - `mark_as_weak_signal`
 
-Status: **In Progress (Queue actions active / 2026-03-19)**
+Status: **In Progress (Queue deepening active / 2026-03-19)**
 
 Evidenz:
 - `features/feeds/reviewQueue.ts`
 - `apps/web/src/app/api/admin/feeds/drafts/[id]/review/route.ts`
+- `apps/web/src/app/api/admin/feeds/drafts/reviewErrors.ts`
 - `apps/web/src/app/api/admin/feeds/drafts/route.ts`
+- `apps/web/src/app/api/admin/feeds/drafts/bulk/route.ts`
+- `apps/web/src/app/api/admin/feeds/drafts/legacy/route.ts`
+- `apps/web/src/app/api/admin/feeds/drafts/[id]/backfill/route.ts`
 - `apps/web/src/app/api/admin/feeds/drafts/[id]/route.ts`
+- `apps/web/src/app/admin/feeds/drafts/page.tsx`
 - `apps/web/src/app/admin/feeds/drafts/[id]/page.tsx`
+- `apps/web/tests/feed-review.routes.test.ts`
+
+Queue Deepening (2026-03-19):
+- Queue-Filter erweitert: `status`, `reviewState`, `region`, `hasAnlassraum`, `weakSignal`, `q` (Titel/Summary/Quelle).
+- Queue-Sortierung erweitert: `newest`, `oldest`, `review_recent`, `review_stale`, `priority_high`.
+- Triage-Metadaten je Draft: `lastReviewAction*`, `queueMeta` (`priorityScore`, `priorityBucket`, `pendingHours`, `needsAnlassraumBackfill`, `reasons`).
+- Bulk-Review (manual-first, nicht publizierend): `POST /api/admin/feeds/drafts/bulk` fuer `ignore`, `mark_as_weak_signal`, `attach_to_anlassraum`, `create_anlassraum_candidate`.
+- Legacy-Backfill-Pfad (admin-safe): `GET /api/admin/feeds/drafts/legacy` + `POST /api/admin/feeds/drafts/[id]/backfill`.
 
 ### GOV-EVENT-01 — Event-/Sitzungsmodell
 Status: **In Progress (Core baseline / 2026-03-19)**

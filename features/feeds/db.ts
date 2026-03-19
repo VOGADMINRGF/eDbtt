@@ -40,6 +40,8 @@ async function ensureVoteDraftIndexes() {
   await col.createIndex({ statementCandidateId: 1 }, { unique: true });
   await col.createIndex({ status: 1, createdAt: -1 });
   await col.createIndex({ feedReviewState: 1, createdAt: -1 }, { sparse: true });
+  await col.createIndex({ anlassraumId: 1, createdAt: -1 }, { sparse: true });
+  await col.createIndex({ lastReviewActionAt: -1 }, { sparse: true });
   ensured.voteDrafts = true;
 }
 
