@@ -80,7 +80,7 @@ Status: **In Progress (Core baseline / 2026-03-19)**
 - **GOV-ANLASS-01** universelles Anlassraum-Modell (**Core baseline active**)
 - **GOV-ANLASS-02** Anlassraum <-> Dossier Beziehung (**Core baseline active**)
 - **GOV-ANLASS-03** regionale / skalenfaehige Gruppierung (`local`, `regional`, `national`, `eu`, `global`) (**Core baseline active**)
-- **GOV-ANLASS-04** Feed-Review statt Feed-Leerlauf (**Queue ops deepened + output-prep transitions active**)
+- **GOV-ANLASS-04** Feed-Review statt Feed-Leerlauf (**Queue ops deepened + output-prep surface active**)
 - **GOV-EVENT-01** Event-/Sitzungsmodell (**Event->Anlassraum linking active**)
 - **GOV-EVENT-02** QR -> Fragen -> Protokoll -> Dossier -> Runde (**Functionally complete: service+route acceptance + legacy backfill strategy (manual-first)**)
 
@@ -126,7 +126,7 @@ Status: **In Progress (Core baseline / 2026-03-19)**
 | Feed/Anlassraum Picker im `/create` anbinden | Open | PR-FEED-ANLASS-02 | echte Auswahl / Assignment-UI |
 | Feed/Anlassraum Cluster-Job | Open | PR-FEED-ANLASS-03 | dedizierter Worker fehlt |
 | Feed/Anlassraum Status-Transitions absichern | In Progress (Wave 2 deepening) | PR-FEED-ANLASS-04 | erweitert um Queue-Review-Aktionen + Bulk-Route + Queue-Triage: `features/feeds/reviewQueue.ts`, `apps/web/src/app/api/admin/feeds/drafts/bulk/route.ts`, `apps/web/src/app/api/admin/feeds/drafts/route.ts` |
-| Feed/Anlassraum Publish-Flows ausbauen | In Progress (manual output-prep baseline active) | PR-FEED-ANLASS-05 | Output-Prep API-first aktiv: `features/anlassraum/outputPrep.ts`, `GET /api/admin/feeds/anlassraum/[id]/outputs`, `POST /api/admin/feeds/anlassraum/[id]/outputs/[seedId]/transition` |
+| Feed/Anlassraum Publish-Flows ausbauen | Done (manual output-prep baseline closed / 2026-03-19) | PR-FEED-ANLASS-06 | Output-Prep operabel inkl. Admin-Surface: `features/anlassraum/outputPrep.ts`, `GET /api/admin/feeds/anlassraum/[id]/outputs`, `POST /api/admin/feeds/anlassraum/[id]/outputs/[seedId]/transition`, `apps/web/src/app/admin/feeds/anlassraum/[id]/page.tsx` |
 | Feed/Anlassraum Backfill | In Progress (admin-safe path active) | PR-FEED-ANLASS-06 | Detection + Remediation fuer `vote_drafts` ohne `anlassraumId`: `GET /api/admin/feeds/drafts/legacy`, `POST /api/admin/feeds/drafts/[id]/backfill` |
 | Swipes Kontextpfade haerten | Open | PR-0042 | thematisch passendes Ziel |
 | Swipes Mobile Gestures + Bottom-Actions | Open | PR-0043 | thumb-reachable |
@@ -285,8 +285,10 @@ Evidenz:
 - `apps/web/src/app/api/admin/feeds/anlassraum/outputPrepErrors.ts`
 - `apps/web/src/app/admin/feeds/drafts/page.tsx`
 - `apps/web/src/app/admin/feeds/drafts/[id]/page.tsx`
+- `apps/web/src/app/admin/feeds/anlassraum/[id]/page.tsx`
 - `apps/web/tests/feed-review.routes.test.ts`
 - `apps/web/tests/anlassraum-output-prep.routes.test.ts`
+- `apps/web/tests/anlassraum-output-prep.service.test.ts`
 - `features/anlassraum/outputPrep.ts`
 - `features/anlassraum/types.ts`
 
@@ -303,6 +305,13 @@ Output-Prep Deepening (PR-FEED-ANLASS-05 / 2026-03-19):
 - Transition-Aktionen (manual-first): `queue`, `send_to_review`, `approve_prep`, `reject_prep`, `mark_ready`, `publish`, `discard`, `reset_draft`.
 - `mark_ready`/`publish` bleiben publish-gated (`getAnlassraumPublishGate`) und setzen `reviewState=approved` voraus.
 - Kein Direktpfad aus Feed-Ingest in oeffentliche Publikation; `publish` ist nur Output-Prep-Status (kein Auto-Live-Release).
+
+Output-Prep Closure (PR-FEED-ANLASS-05 Abschluss / 2026-03-19):
+- Minimales Admin-Manual-Surface aktiv in `apps/web/src/app/admin/feeds/anlassraum/[id]/page.tsx`:
+  Output-Seeds listen, Status/Review/PublishTarget/LastAction sehen, manuelle Transition pro Seed ausfuehren.
+- Service-Level-Integrationstests gegen reale `outputPrep`-Domainlogik aktiv:
+  `apps/web/tests/anlassraum-output-prep.service.test.ts`.
+- PR-FEED-ANLASS-05 Baseline gilt als funktional geschlossen; weitergehende Public-Release-Automation bleibt bewusst nicht automatisiert.
 
 ### GOV-EVENT-01 — Event-/Sitzungsmodell
 Status: **In Progress (Core baseline / 2026-03-19)**

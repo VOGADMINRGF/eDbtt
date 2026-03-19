@@ -85,6 +85,17 @@ Dieses Dokument dient als Status-Zusammenfassung der Pfade (Part00–Part15). Es
 - Manual-first bleibt unveraendert:
   kein Auto-Publish, kein Auto-Approval, kein direkter Feed-Ingest -> Public-Publish.
 
+## Update (2026-03-19) — PR-FEED-ANLASS-05 Abschluss (Admin Surface + Service Integration)
+
+- Output-Prep ist jetzt ohne Raw-API-Calls operabel:
+  `apps/web/src/app/admin/feeds/anlassraum/[id]/page.tsx` listet Output-Seeds inkl. Status/Review/PublishTarget/LastAction und erlaubt manuelle Transitionen.
+- Service-Level-Integration wurde gegen reale Domainlogik abgesichert:
+  `apps/web/tests/anlassraum-output-prep.service.test.ts`
+  (Sequenz-Transitions, Gate-Blocking, Invalid-State-Blocking, Non-Approver-/Scope-Blocking).
+- Route-Acceptance bleibt bestehen:
+  `apps/web/tests/anlassraum-output-prep.routes.test.ts`.
+- Ergebnis: PR-FEED-ANLASS-05 Baseline ist funktional geschlossen, weiterhin strikt manual-first.
+
 ## Status-Übersicht der Pfade 00–15
 
 - **Part00 Foundations / PII:** PII-Guardrails plus Klarname-Trennung (givenName/familyName) und Privacy-Flags dokumentiert; Alt-Migration optional.
@@ -464,6 +475,37 @@ Verification:
 
 Next Steps:
 - PR-FEED-ANLASS-05 Follow-up: minimale Admin-Output-Prep-Surfaces (list/transition wiring) und danach E2E-Abnahme fuer `/create` + `/runden` (PR-0038), ohne Governance-/Publish-Bypass.
+
+### PR-GOV-09 (2026-03-19) – PR-FEED-ANLASS-05 Abschluss (Admin Output-Prep Surface + Service Integration)
+
+Ziel:
+- Manual Output-Prep Baseline operativ abschliessen (Admin-Bedienpfad + service-nahe Integrationsabdeckung), ohne neue Architektur zu oeffnen.
+
+Changes:
+- Minimales Admin-Output-Prep-Surface in
+  `apps/web/src/app/admin/feeds/anlassraum/[id]/page.tsx`:
+  - Listet Output-Seeds pro Anlassraum
+  - Zeigt `outputType`, `status`, `reviewState`, `publishTarget`, `lastAction*`
+  - Erlaubt manuelle Transitionen fuer
+    `queue`, `send_to_review`, `approve_prep`, `reject_prep`, `mark_ready`, `publish`, `discard`, `reset_draft`
+- Neue Service-Integrationstest-Suite:
+  `apps/web/tests/anlassraum-output-prep.service.test.ts`
+  mit Szenarien:
+  - `draft -> review -> approved -> ready`
+  - Gate-Block bei `mark_ready`
+  - Block bei `publish` ohne `reviewState=approved`
+  - Block bei `publish` aus invalidem Status
+  - Block fuer Non-Approver/Out-of-Scope auf `approve_prep`/`publish`
+- Route-Layer unveraendert stabil:
+  `apps/web/tests/anlassraum-output-prep.routes.test.ts` bleibt gruen.
+
+Verification:
+- `pnpm -C apps/web run typecheck` (PASS)
+- `pnpm -C apps/web run lint` (PASS)
+- `pnpm -C apps/web exec vitest run tests/anlassraum-output-prep.service.test.ts tests/anlassraum-output-prep.routes.test.ts tests/feed-review.routes.test.ts` (PASS)
+
+Next Steps:
+- PR-FEED-ANLASS-06: Legacy-Backfill/Remediation fuer unlinked `vote_drafts -> anlassraumId` weiter operationalisieren (Detection/Remediation UX + Audit), ohne Publish-/Approval-Automation.
 
 ### PR-0017 (2026-02-11) – Block E Research R2
 
