@@ -40,6 +40,9 @@ export async function GET(req: NextRequest) {
         targetType: "set",
         targetIds: [set.code],
         title: set.title ?? null,
+        anlassraumId: set.anlassraumId ? String(set.anlassraumId) : null,
+        dossierId: set.dossierId ? String(set.dossierId) : null,
+        roundSlug: set.roundSlug ?? null,
       },
     });
   }

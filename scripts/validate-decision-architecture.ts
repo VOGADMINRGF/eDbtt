@@ -2,12 +2,10 @@ import fs from "fs";
 import path from "path";
 
 const root = path.resolve(__dirname, "..");
-const part16Path = path.join(
-  root,
-  "docs",
-  "E150",
-  "Part16_Digitale_Entscheidungsarchitektur.md",
-);
+const part16Candidates = [
+  path.join(root, "docs", "E150", "Part16_Anlassraum_Model.md"),
+  path.join(root, "docs", "E150", "Part16_Digitale_Entscheidungsarchitektur.md"),
+];
 const docxPath = path.join(
   root,
   "apps",
@@ -37,6 +35,13 @@ function ensureFile(filePath: string, label: string) {
   }
 }
 
+function resolveExistingFile(filePaths: string[], label: string): string {
+  for (const filePath of filePaths) {
+    if (fs.existsSync(filePath)) return filePath;
+  }
+  fail(`${label} fehlt: ${filePaths.join(" | ")}`);
+}
+
 function readText(filePath: string): string {
   try {
     return fs.readFileSync(filePath, "utf8");
@@ -57,7 +62,7 @@ function mustInclude(content: string, token: string, label?: string) {
   }
 }
 
-ensureFile(part16Path, "Part16_Digitale_Entscheidungsarchitektur.md");
+const part16Path = resolveExistingFile(part16Candidates, "Part16");
 ensureFile(docxPath, "DecisionArchitecture_v2_0.docx");
 ensureFile(contentPath, "referenzarchitektur_v2_0.ts");
 

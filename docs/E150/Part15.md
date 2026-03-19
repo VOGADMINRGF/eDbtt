@@ -1,11 +1,29 @@
 # E150 Master Spec – Part 15: Offene Pfade & Restarbeiten
 
-> Status-Hinweis (2026-02-12): Dieses Part ist eine Spezifikation/Zusammenfassung. Der verbindliche Aufgabenstand liegt in `docs/E150/OpenTasks.md`. Keine neuen Runs aus diesem Part ableiten.
+> Status-Hinweis (2026-03-19): Dieses Part ist eine Spezifikation/Zusammenfassung. Der verbindliche Aufgabenstand liegt in `docs/E150/OpenTasks.md`. Keine neuen Runs aus diesem Part ableiten.
 
 
 ## Zweck
 
 Dieses Dokument dient als Status-Zusammenfassung der Pfade (Part00–Part15). Es ist **kein** Run-Plan. Der verbindliche Aufgabenstand liegt in `docs/E150/OpenTasks.md`, der Lieferrahmen in `docs/E150/Pflichtenheft.md`.
+
+## Update (2026-03-19) — Wave 1 Governance Foundation
+
+- GOV-01, GOV-02 und DOCS-GOV-01 sind als Wave-1-Basis umgesetzt.
+- Neue Kernmodelle fuer `Entity`, `Anlassraum` und Trust-/Publish-Gates sind im Code verankert.
+- Anlassraum-Lifecycle ist als zustandsgepruefter Manual-Flow (`draft -> curated -> reviewed -> approved -> active -> archived`) verfuegbar.
+- Publish-Gate ist aktiv: `reviewedBy` + `approvedBy` + Guardrails.
+- Minimaler Admin-Manual-Pfad fuer Lifecycle-Transitions und manuelle Erstellung (API-first) ist vorhanden.
+- Naechster Architektur-Run: **GOV-ANLASS-01** (Welle 2).
+
+## Update (2026-03-19) — Wave 2 Core Baseline (Anlassraum/Event/Feed Review)
+
+- Feed-Review-Queue ist als expliziter Manual-Flow erweitert (`ignore`, `attach_to_anlassraum`, `create_anlassraum_candidate`, `mark_as_weak_signal`).
+- Governance-Permissions gelten jetzt auch fuer Feed-Draft-Routen (nicht mehr nur admin-only); Scope bleibt auf Entity-/Anlassraum-Kontext gebunden.
+- Publish-Gate fuer Anlassraum ist gehaertet: nicht nur Quellenanzahl, sondern auch Quellenrollen, Publisher-Diversitaet, strukturierte Claims/Fragen und Weak-Signal-Korroboration.
+- Event-Route kann Anlassraeume direkt erzeugen/verknuepfen (`type=event`, `originType=event`).
+- GOV-ANLASS-02 Baseline aktiv: Anlassraum kann auf Dossier verlinkt werden inkl. `dossierType` (`exploration_dossier`, `decision_dossier`).
+- GOV-EVENT-02 Baseline aktiv: QR-Sets koennen Anlassraum/Dossier/Round referenzieren; Protokolle koennen in Anlassraum-Struktur nachgefuehrt werden.
 
 ## Status-Übersicht der Pfade 00–15
 
@@ -37,10 +55,9 @@ Status basiert auf Repo-Evidenz (Dateien/Routes/Modelle). Offener Arbeitsstand b
 | PR-0009 | Pilot Backbone (Feeds → Kandidaten → Faktencheck → Graph/Dossier) | `docs/E150/Pilot.md`, `/api/feeds/pull`, `/api/feeds/analyze-pending`, `features/feeds/*`, `/admin/feeds/drafts`, `/api/factcheck/enqueue`, `/admin/pilot`, `/api/admin/pilot/settings`, `/api/admin/pilot/run`, `core/pilotSettings/*` | Implemented | Monitoring/Polish |
 | PR-0010 | Admin Akquise Dashboard (Feeds/Regionen) | `/admin/acquisition`, `/api/admin/acquisition`, `core/acquisition/*` | Implemented | Monitoring/Polish |
 | PR-0011 | Offene Beitraege (Quelle/Option/Frage) | `/community/contributions`, `/admin/contributions`, `/api/community/contributions`, `/api/admin/community/contributions*`, `core/communityContributions/*` | Implemented | Monitoring/Polish |
-| PR-0012 | Media Ready Projekte (5–10 Themen, min 5 Optionen) | Projekt-Modelle + API/Pages aktiv | Implemented | Monitoring/Polish |
+| PR-0012 | Media Ready Projekte (3–5 Themen, min 5 Optionen) | Projekt-Modelle + API/Pages aktiv | Implemented | Monitoring/Polish |
 | PR-0013 | Live/Chat Skeleton | `/live`, `/api/live`, `/api/chat`, `core/liveChat/*` | Implemented | Monitoring/Polish |
 | PR-0030 | Unterstuetzen/Crowdfunding | `/support/[slug]`, `/admin/support` + Support-API vorhanden | Implemented | Nur Monitoring/Polish |
-| PR-0010B | DecisionArchitecture v2.0 (Part16) – Publishing Pack + Drift-Validator | `docs/E150/Part16_Digitale_Entscheidungsarchitektur.md`, `/[locale]/referenzarchitektur`, `apps/web/public/docs/DecisionArchitecture_v2_0.docx`, `scripts/validate-decision-architecture.ts` | Implemented | Monitoring/Polish |
 
 ## Aktueller Stand (Februar 2026)
 
@@ -96,9 +113,9 @@ Die folgenden Punkte dokumentieren die abgeschlossene Reihenfolge der Bloecke. K
 
 ## Optionaler Nachlauf (kanonisch in OpenTasks)
 
-- Social Preview: OG-Defaults aktiv; Reports/Stream/Profil ergaenzt, weitere Detailseiten sukzessive erweitern.
+- Social Preview: OG-Defaults aktiv; Detailseiten wie Reports/Archiv noch sukzessive erweitern.
 - Page Contracts (CI): `missing-h1`-Allowlist abgebaut; optional nur noch bei neuen Checks relevant.
-- Type Hygiene (Pages): restliche `any`-Verwendungen in Admin-Detailseiten reduzieren.
+- Type Hygiene (Pages): restliche `any`-Verwendungen in `page.tsx` reduzieren.
 - Admin Navigation: Kontextaktionen (Massenaktionen/Drilldown) erweitern.
 - Swipes Analytics: Vote-Aggregationen fuer Admin-Reports verfeinern.
 - Public Profile Polish: Avatar/Cover Upload + Impact-Ansicht fuer Buerger:innen.
@@ -163,178 +180,72 @@ Ist/Unerledigt:
 
 ## PR-Log
 
-### PR-0010B (2026-02-15) – DecisionArchitecture v2.0 Publishing Pack
+### PR-GOV-01 (2026-03-19) – Wave 1 Governance Foundation (GOV-01/GOV-02/DOCS-GOV-01)
 
 Ziel:
-- Referenzarchitektur veröffentlichen: Landingpage, Downloads, Drift-Validator, ohne Volltext-Doppel.
+- Gemeinsames Governance-Basismodell fuer Entity/Anlassraum/Trust herstellen und publish-gated verankern.
 
 Changes:
-- `apps/web/public/docs/DecisionArchitecture_v2_0.docx` hinzugefügt.
-- Landingpage `/[locale]/referenzarchitektur` inkl. Content-SSOT, TOC, FAQ, Downloads.
-- Validator `scripts/validate-decision-architecture.ts` + Wiring in `scripts/verify.sh`.
-- Navigation-Link in Header ergänzt.
+- Neue Domain-Module: `features/entities/*`, `features/trust/*`.
+- Anlassraum auf Wave-1-Felder und Lifecycle erweitert (`features/anlassraum/types.ts`, `service.ts`, `stateMachine.ts`, `governance.ts`).
+- Admin-Transitions fuer Anlassraum (Review/Approve/Activate/Archive) als manueller API-Pfad:
+  `apps/web/src/app/api/admin/feeds/anlassraum/[id]/transition/route.ts`.
+- Governance-Permissions auf Route-Ebene geoeffnet (nicht mehr strikt admin-only) fuer:
+  `reviewer`, `editorial_actor`, `institutional_actor`, `admin`
+  mit Scope-Pruefung auf relevanten Entity-/Anlassraum-Kontext.
+- API-first Manual-Surfaces fuer Erstellung:
+  `apps/web/src/app/api/admin/governance/entities/route.ts`,
+  `apps/web/src/app/api/admin/governance/anlassraum/route.ts`.
+- Detail-/Listen-Surface fuer Anlassraum um publish-gate und neue Modellfelder erweitert.
+- OpenTasks und Part15 auf Wave-1-Status synchronisiert.
 
 Verification:
-- `pnpm lint` (PASS)
-- `pnpm -C apps/web build` (PASS)
-- `./scripts/verify.sh` (PASS)
-
-Next Steps:
-- Optional: PDF/1‑Pager-Varianten ergänzen, Grafik-Slots mit realen Diagrammen füllen.
-
-### PR-0034 (2026-02-15) – Stream Moderations-Queue (MVP)
-
-Ziel:
-- Moderations-Queue im Stream-Cockpit bereitstellen (Bausteine sammeln, taggen, freigeben).
-
-Changes:
-- `stream_moderation_queue` Collection + Indexes.
-- API: `/api/streams/sessions/[id]/moderation-queue` (GET/POST/PATCH).
-- Stream-Cockpit: Moderations-Queue UI mit Status, Filtern, Freigabe/Ablehnung.
-
-Verification:
-- `pnpm lint` (PASS)
-- `pnpm -C apps/web build` (PASS)
-- `./scripts/verify.sh` (PASS)
-
-Next Steps:
-- Live-Dossier-Board + Follow-up-Tracker anbinden.
-
-### PR-0035 (2026-02-15) – Live-Dossier-Board (MVP)
-
-Ziel:
-- Live-Dossier-Board im Stream-Cockpit editierbar machen und im Public-Stream anzeigen.
-
-Changes:
-- `liveBoard` State in Stream-Session-Model ergänzt.
-- API: `/api/streams/sessions/[id]/live-board` (GET/PATCH).
-- Cockpit-UI: Board-Editor mit Optionen, Pro/Contra, Quellen, offenen Fragen.
-- Public-UI: Live-Dossier-Board auf `/stream/[slug]`.
-
-Verification:
-- `pnpm lint` (PASS)
-- `pnpm -C apps/web build` (PASS)
-- `./scripts/verify.sh` (PASS)
-
-Next Steps:
-- Follow-up-Tracker + Kleingruppen/Call-ins.
-
-### PR-0036 (2026-02-15) – Follow-up Tracker (MVP)
-
-Ziel:
-- Status-Updates nach Stream-Abstimmung erfassen und öffentlich anzeigen.
-
-Changes:
-- `followUp` State in Stream-Session-Model ergänzt.
-- API: `/api/streams/sessions/[id]/follow-up` (GET/PATCH).
-- Cockpit-UI: Follow-up Editor + Reminder (7/30/90 Tage).
-- Public-UI: Follow-up Timeline auf `/stream/[slug]`.
-
-Verification:
-- `pnpm lint` (PASS)
-- `pnpm -C apps/web build` (PASS)
-- `./scripts/verify.sh` (PASS)
-
-Next Steps:
-- Kleingruppen/Call-ins MVP.
-
-### PR-0037 (2026-02-15) – Call-ins & Kleingruppen (MVP)
-
-Ziel:
-- Call-ins im Stream-Cockpit verwalten (Einladung, Bereitschaft, Live-Status).
-
-Changes:
-- `stream_callins` Collection + Indexes.
-- API: `/api/streams/sessions/[id]/call-ins` (GET/POST/PATCH).
-- Cockpit-UI: Call-in Manager inkl. Statussteuerung.
-
-Verification:
-- `pnpm lint` (PASS)
-- `pnpm -C apps/web build` (PASS)
-- `./scripts/verify.sh` (PASS)
-
-Next Steps:
-- Optional: Auto-Rotation/Fairness-Logik + Stage/Voice-Integration.
-
-### PR-0038 (2026-02-15) – SwipeCards Context + Viewer-Gating
-
-Ziel:
-- SwipeCards mit leiser Graph-Randinfo ergaenzen und Viewer-Counts rollenbasiert verbergen.
-
-Changes:
-- SwipeCard: Context-Accordion "Warum sehe ich das?" + optionale Relation-Links/Dossier-CTA.
-- SwipeCard: Scope-Badge fuer Haupt-/Unterthema optional.
-- Stream-UI: Zuschauerzahlen nur fuer Admin/Creator/Mods sichtbar; Public nur wenn `hideViewerCount=false`.
-- StreamCard/Modal: Viewer-Counts rollenbasiert ausblendbar.
-
-Verification:
-- `pnpm lint` (PASS)
-- `pnpm -C apps/web build` (PASS)
-- `./scripts/verify.sh` (PASS)
-
-Next Steps:
-- Optional: Relation-Mapping aus Graph-API, Dossier-Link aus Statements ableiten.
-
-### PR-0039 (2026-02-15) – Optional Polish Batch
-
-Ziel:
-- Optionalen Nachlauf effizient abbauen (Social Preview, QR-UX, Support-UX, Stream-Kit QR).
-
-Changes:
-- Report/Reports: Metadata fuer Social Preview ergaenzt.
-- Stream/Profil: Metadata fuer Social Preview ergaenzt.
-- QR Landing: Redirects + Session-Label + Hinweise bereinigt, keine Dummy-Komponenten.
-- QR Resolve: Scan-Tracking in `qr_scans` erfasst.
-- Support: Guided-Payment-Hinweise nach Pledge ergänzt.
-- Stream-Kit: QR-Bildrendition im Cockpit.
-- Stream-Kit: Session-Vorlagen im Cockpit.
-- Admin Dashboard: Schnellaktionen fuer zentrale Warteschlangen.
-- Editorial Queue: Bulk-Status fuer Massenaktionen.
-- Content Hub: Swipe-Analytics (Counts) im KPI-Block + Admin-Swipes-Report (30d-Timeseries).
-- Public Profile: Avatar/Cover Upload via Profil-API + Anzeige im Public Profile.
-- Deliberation: Fairness/Rotation-Controls im Stream-Cockpit.
-- Admin Detailseiten: Error/Impact/Report-Views + Report-Assets typisiert (weniger `any`).
-
-Verification:
-- `pnpm lint` (PASS)
-- `pnpm -C apps/web typecheck` (PASS)
-
-Next Steps:
-- Remaining optional items: Type-Hygiene-Rest in Admin-Detailseiten, Admin-Massenaktionen, Swipes Detail-Reports, weitere Social-Preview-Details (Support/QR).
-
-### PR-0040 (2026-02-15) – Media/TV QR Studio (MVP)
-
-Ziel:
-- QR-Studios fuer TV/Events: Set-Builder + Live-Trend-Auswertung fuer QR-Fragen.
-
-Changes:
-- Admin-UI `/admin/media`: QR-Set Builder (bis 10 Fragen), Presets (Tendenz/Ja-Nein/NPS), QR-Link + Preview.
-- Admin-API `/api/admin/qr/sets/summary`: Live-Auswertung mit Counts pro Frage/Option.
-- QR-Set API: erweiterte Limits (bis 10 Fragen, bis 12 Optionen) + Relaxed Public-Attribution.
-
-Verification:
-- `pnpm lint` (PASS)
 - `pnpm -C apps/web run typecheck` (PASS)
+- `pnpm -C apps/web run lint` (PASS)
 
 Next Steps:
-- Optional: CSV/Export, Datei-Upload fuer Scripts, Snapshot/Reporting.
+- Welle 2 mit **GOV-ANLASS-01** starten (Anlassraum/Event/Feed-Review Vertiefung).
+- Manual-first bleibt aktiv; keine Auto-Publikation, kein Auto-Approval.
 
-### PR-0041 (2026-02-15) – Pricing Segmente + Pilotpakete
+### PR-GOV-02 (2026-03-19) – Wave 2 Core Baseline (GOV-ANLASS-01/02/03/04 + GOV-EVENT-01/02)
 
 Ziel:
-- /pricing klar nach Zielgruppen trennen: Privat (Basis/Start/Pro) und Pilotpakete (B2G/B2B).
+- Wave-2 Kernfluss von Feed-Review ueber Anlassraum bis Event/QR-Protokoll als manuellen Basispfad verankern.
 
 Changes:
-- Neue Pilotpakete (B2G/B2B) inkl. Vormerkung hinzugefuegt.
-- /pricing in Zielgruppen-Segmente gegliedert; Add-ons auf 5–10 Themen ausgerichtet.
-- /vormerken um Pilotpakete erweitert; Prelaunch/Account/Register bleiben auf Privat-Pakete fokussiert.
+- Feed-Review-Domain erweitert (`features/feeds/reviewQueue.ts`) mit Aktionen:
+  `ignore`, `attach_to_anlassraum`, `create_anlassraum_candidate`, `mark_as_weak_signal`.
+- Neue Review-Route:
+  `apps/web/src/app/api/admin/feeds/drafts/[id]/review/route.ts`.
+- Feed-Draft-Routen auf Governance-Permissions umgestellt (Scope-Pruefung, keine Community-Review-Rechte):
+  `apps/web/src/app/api/admin/feeds/drafts/route.ts`,
+  `apps/web/src/app/api/admin/feeds/drafts/[id]/route.ts`,
+  `apps/web/src/app/api/admin/feeds/drafts/[id]/status/route.ts`,
+  `apps/web/src/app/api/admin/feeds/drafts/[id]/publish/route.ts`.
+- Feed-Typenpfad gehaertet: `features/feeds/types.ts` ist kanonisch; aktive Verwendungen nutzen `@features/feeds/types` (kein paralleler zweiter Typ-Quellpfad).
+- Legacy-Publish-Route ebenfalls auf Governance+Publish-Gates gezogen:
+  `apps/web/src/app/api/feeds/drafts/[id]/publish/route.ts`.
+- Publish-Gate gehaertet in `features/anlassraum/governance.ts`:
+  Quellenrollen, Publisher-Diversitaet, strukturierte Claims/Fragen, Weak-Signal-Korroboration.
+- GOV-ANLASS-02 Baseline:
+  `dossierType` in Anlassraum-Modell und Dossier-Link-Route
+  `apps/web/src/app/api/admin/feeds/anlassraum/[id]/dossier/route.ts`.
+- GOV-EVENT-01 Baseline:
+  `apps/web/src/app/api/events/route.ts` kann Event als Anlassraum erzeugen/verknuepfen.
+- GOV-EVENT-02 Baseline:
+  QR-Set-Links zu Anlassraum/Dossier/Round + Protokoll-Route:
+  `apps/web/src/app/api/qr/sets/route.ts`,
+  `apps/web/src/app/api/qr/sets/[code]/protocol/route.ts`,
+  `apps/web/src/app/api/qr/resolve/route.ts`.
 
 Verification:
-- `pnpm lint` (PASS)
 - `pnpm -C apps/web run typecheck` (PASS)
+- `pnpm -C apps/web run lint` (PASS)
 
 Next Steps:
-- Optional: Pilotpakete mit separatem Aktivierungslink/Onboarding-Flow.
+- GOV-EVENT-02 ausbauen: Protokoll -> Dossier-Aktualisierung und Runden-Seed formalisieren.
+- GOV-ANLASS-04 UI/UX vertiefen (Queue-Sortierung, Bulk-Review, Review-Audit-Trail).
+- Manual-first bleibt unveraendert; keine Auto-Publikation, keine Auto-Approval-Kuerzung.
 
 ### PR-0017 (2026-02-11) – Block E Research R2
 
@@ -517,16 +428,16 @@ Verification:
 Next Steps:
 - Optional: Status-Automation mit cron/batch prüfen (z.B. nightly sync).
 
-### PR-0037 (2026-02-12) – Media Ready Projekte (5–10 Themen)
+### PR-0037 (2026-02-12) – Media Ready Projekte (3–5 Themen)
 
 Ziel:
-- Projekte mit 5–10 Themen, mindestens 5 Optionen je Thema und projektbezogenen Ergebnissen.
+- Projekte mit 3–5 Themen, mindestens 5 Optionen je Thema und projektbezogenen Ergebnissen.
 
 Changes:
 - Projekt-Modelle + Collections in triMongo eingefuehrt (Projects + Votes).
 - Admin-Projekte: Liste + Detailfreigabe fuer vorgeschlagene Optionen.
 - Public-Projektseite: Abstimmen, Ergebnisanzeige, Option vorschlagen.
-- ProjectForm erweitert: 5–10 Themen, min. 5 Optionen enforced.
+- ProjectForm erweitert: 3–5 Themen, min. 5 Optionen enforced.
 
 Verification:
 - `pnpm -C apps/web run lint` (PASS)
@@ -728,53 +639,6 @@ Verification:
 
 Next Steps:
 - Optional: Vote-Aggregationen/Analytics fuer Admin-Reports vorbereiten.
-
-### PR-0037 (2026-02-18) – Stream Identity Check & Pre-Stream Tutorial
-
-Ziel:
-- Identity-Check fuer Streams (Ausweis/Pass-Upload mit Vorder/Rueckseite).
-- Pre-Stream E-Mail-Code-Bestaetigung plus 3-Minuten-Tutorial im Cockpit.
-
-Changes:
-- PII: `user_identity_documents` plus API `GET/POST/DELETE /api/account/identity-document`.
-- Account: Identity-Check-Card mit Upload & kleiner Vorschau (nur intern sichtbar).
-- Stream-Cockpit: Pre-Stream-Panel fuer ID-Status, E-Mail-Code, Tutorial-Countdown.
-
-Verification:
-- Not run (nicht angefragt).
-
-Next Steps:
-- Optional: Stream-Start hart blocken, bis Identity-Check abgeschlossen ist.
-
-### PR-0038 (2026-02-18) – Identity UX Polish
-
-Ziel:
-- Identity-Check mit klarerem Status, Privacy-Hinweis und besserer Upload-UX.
-- Pre-Stream Panel als Checkliste mit Ready-Status und Tutorial-Steuerung.
-
-Changes:
-- Account: neue Identity-Check-Card mit Typ-Auswahl (Cards), Status-Badge, Vorschau-Markierung und Datei-Feedback.
-- Stream-Cockpit: Checkliste mit Ready-Status, optimierte E-Mail-Code-Steuerung, Tutorial-Status.
-- API: groessere Image-Data-URL-Limits fuer Uploads.
-
-Verification:
-- Not run (nicht angefragt).
-
-Next Steps:
-- Optional: Uploads auf verschluesseltes Storage auslagern (PII-Hardening).
-
-### PR-0039 (2026-02-18) – Stream Live Guard
-
-Ziel:
-- Stream-Start serverseitig blocken, bis Ausweis/Pass hinterlegt und E-Mail-Code bestaetigt ist.
-
-Changes:
-- Guard in `/api/streams/sessions/[id]/agenda` fuer `go_live`.
-- Neue Identity-Check-Helper in `core/streams/access.ts` und API-Utils.
-- Cockpit: `go_live` wird bei fehlender Identity blockiert und Fehlermeldung geklärt.
-
-Verification:
-- Not run (nicht angefragt).
 
 ### PR-0036 (2026-02-12) – Page Contracts Cleanup
 

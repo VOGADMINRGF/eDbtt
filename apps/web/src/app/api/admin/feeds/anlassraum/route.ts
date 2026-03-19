@@ -5,28 +5,25 @@ import {
   anlassraumSourceLinksCol,
   outputSeedCol,
 } from "@features/anlassraum/db";
-import type { AnlassraumStatus, AnlassraumSourceMode } from "@features/anlassraum/types";
-import { requireAdminOrResponse } from "@/lib/server/auth/admin";
+import { canActorAccessAnlassraum } from "@features/anlassraum/governance";
+import {
+  ANLASSRAUM_LIFECYCLE_STATUSES,
+  ANLASSRAUM_SOURCE_MODES,
+  LEGACY_ANLASSRAUM_STATUSES,
+  type AnlassraumSourceMode,
+  type AnlassraumStatus,
+} from "@features/anlassraum/types";
+import { requireGovernanceActorOrResponse } from "@/lib/server/auth/governance";
 
 const ALLOWED_STATUS: AnlassraumStatus[] = [
-  "auto_ingested",
-  "auto_clustered",
-  "needs_editor_review",
-  "ready_for_round",
-  "published",
-  "archived",
+  ...ANLASSRAUM_LIFECYCLE_STATUSES,
+  ...LEGACY_ANLASSRAUM_STATUSES,
 ];
 
-const ALLOWED_SOURCE_MODE: AnlassraumSourceMode[] = [
-  "manual",
-  "feed",
-  "single_source",
-  "cluster",
-  "ai_assist",
-];
+const ALLOWED_SOURCE_MODE: AnlassraumSourceMode[] = [...ANLASSRAUM_SOURCE_MODES];
 
 export async function GET(req: NextRequest) {
-  const gate = await requireAdminOrResponse(req);
+  const gate = await requireGovernanceActorOrResponse(req);
   if (gate instanceof Response) return gate;
 
   const params = req.nextUrl.searchParams;
@@ -34,7 +31,7 @@ export async function GET(req: NextRequest) {
   const status = String(params.get("status") ?? "all").toLowerCase();
   const sourceMode = String(params.get("sourceMode") ?? "all").toLowerCase();
 
-  const filter: Record<string, any> = {};
+  const filter: Record<string, unknown> = {};
   if (status !== "all" && ALLOWED_STATUS.includes(status as AnlassraumStatus)) {
     filter.status = status;
   }
@@ -44,8 +41,9 @@ export async function GET(req: NextRequest) {
 
   const rooms = await anlassraumCol();
   const docs = await rooms.find(filter).sort({ updatedAt: -1 }).limit(limit).toArray();
+  const visibleDocs = docs.filter((doc) => canActorAccessAnlassraum(doc, gate.actor, "read"));
 
-  const roomIds = docs.map((doc) => doc._id).filter(Boolean) as ObjectId[];
+  const roomIds = visibleDocs.map((doc) => doc._id).filter(Boolean) as ObjectId[];
   const [sources, outputs] = await Promise.all([
     roomIds.length
       ? (await anlassraumSourceLinksCol())
@@ -81,19 +79,28 @@ export async function GET(req: NextRequest) {
 
   return NextResponse.json({
     ok: true,
-    items: docs.map((doc) => {
+    items: visibleDocs.map((doc) => {
       const id = doc._id?.toHexString?.() ?? "";
       return {
         id,
         title: doc.title,
         slug: doc.slug,
+        type: doc.type ?? null,
         kind: doc.kind,
         sourceMode: doc.sourceMode,
         status: doc.status,
         scope: doc.scope ?? null,
+        decisionScope: doc.decisionScope ?? null,
+        maturity: doc.maturity ?? null,
         topicKey: doc.topicKey ?? null,
         clusterKey: doc.clusterKey ?? null,
         regionCode: doc.regionCode ?? null,
+        regionKey: doc.regionKey ?? null,
+        dossierId: doc.dossierId?.toHexString?.() ?? null,
+        dossierType: doc.dossierType ?? null,
+        isPublic: doc.isPublic ?? false,
+        reviewedBy: doc.reviewedBy ?? null,
+        approvedBy: doc.approvedBy ?? null,
         relevanceScore: doc.relevanceScore ?? 0,
         reviewMode: doc.reviewMode ?? "standard",
         riskFlags: Array.isArray(doc.riskFlags) ? doc.riskFlags : [],

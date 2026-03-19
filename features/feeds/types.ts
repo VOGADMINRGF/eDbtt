@@ -80,6 +80,12 @@ export interface StatementCandidateAnalyzeResultDoc {
 }
 
 export type VoteDraftStatus = "draft" | "review" | "published" | "discarded";
+export type FeedReviewState =
+  | "queued"
+  | "ignored"
+  | "attached"
+  | "candidate_created"
+  | "weak_signal";
 
 export interface VoteDraftDoc {
   _id?: ObjectId;
@@ -105,6 +111,16 @@ export interface VoteDraftDoc {
   createdBy?: string | null;
   reviewerId?: string | null;
   reviewNote?: string | null;
+  feedReviewState?: FeedReviewState;
+  weakSignal?: {
+    flagged: boolean;
+    reason?: string | null;
+    flaggedBy?: string | null;
+    flaggedAt?: Date | null;
+  } | null;
+  lastReviewAction?: string | null;
+  lastReviewActionBy?: string | null;
+  lastReviewActionAt?: Date | null;
 }
 
 export type FeedStatementStatus = "draft" | "readyForLive";
@@ -124,3 +140,71 @@ export interface FeedStatementDoc {
   createdAt: Date;
   updatedAt?: Date;
 }
+
+// API/view transport types (string ids / ISO dates) for web clients.
+export type FeedBatchItem = {
+  sourceId?: string;
+  url: string;
+  title?: string;
+  summary?: string;
+  content?: string;
+  publishedAt?: string;
+  language?: string;
+  regionCode?: string;
+  sourceLocale?: string;
+  topicHint?: string;
+};
+
+export type VoteDraft = {
+  _id: string;
+  statementCandidateId: string;
+  analyzeResultId: string;
+  anlassraumId?: string | null;
+  status: VoteDraftStatus;
+  title: string;
+  summary?: string | null;
+  claims: {
+    id: string;
+    text: string;
+    title?: string | null;
+    responsibility?: string | null;
+    topic?: string | null;
+    domain?: string | null;
+    importance?: number | null;
+  }[];
+  regionCode?: string | null;
+  regionName?: string | null;
+  sourceUrl?: string | null;
+  sourceLocale?: string | null;
+  pipeline: string;
+  createdAt: string;
+  updatedAt?: string;
+  analyzeCompletedAt?: string | null;
+  publishedAt?: string | null;
+  reviewNote?: string | null;
+  feedReviewState?: FeedReviewState | null;
+  weakSignal?: {
+    flagged: boolean;
+    reason?: string | null;
+    flaggedBy?: string | null;
+    flaggedAt?: string | null;
+  } | null;
+};
+
+export type VoteDraftSummary = {
+  id: string;
+  anlassraumId?: string | null;
+  title: string;
+  status: VoteDraftStatus;
+  regionCode: string | null;
+  regionName: string | null;
+  sourceUrl: string | null;
+  pipeline: string | null;
+  createdAt: string | null;
+  analyzeCompletedAt: string | null;
+  feedReviewState?: FeedReviewState | null;
+  weakSignal?: {
+    flagged: boolean;
+    reason?: string | null;
+  } | null;
+};

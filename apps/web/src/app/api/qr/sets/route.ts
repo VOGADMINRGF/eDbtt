@@ -3,7 +3,8 @@ export const dynamic = "force-dynamic";
 
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { coreCol } from "@core/db/triMongo";
+import { ObjectId, coreCol } from "@core/db/triMongo";
+import { anlassraumCol } from "@features/anlassraum/db";
 import { requireCreatorContext } from "../../streams/utils";
 
 const QuestionSchema = z.object({
@@ -17,6 +18,9 @@ const CreateSetSchema = z.object({
   title: z.string().min(3).max(140).optional(),
   streamSessionId: z.string().min(1).optional(),
   organizationId: z.string().min(1).optional(),
+  anlassraumId: z.string().min(1).optional(),
+  dossierId: z.string().min(1).optional(),
+  roundSlug: z.string().min(1).max(120).optional(),
   questions: z.array(QuestionSchema).min(1).max(10),
 });
 
@@ -66,7 +70,13 @@ export async function POST(req: NextRequest) {
   }
 
   if (!ctx) {
-    if (parsed.data.organizationId || parsed.data.streamSessionId) {
+    if (
+      parsed.data.organizationId ||
+      parsed.data.streamSessionId ||
+      parsed.data.anlassraumId ||
+      parsed.data.dossierId ||
+      parsed.data.roundSlug
+    ) {
       return NextResponse.json({ ok: false, error: "forbidden" }, { status: 403 });
     }
     if (questions.length > PUBLIC_MAX_QUESTIONS) {
@@ -83,6 +93,30 @@ export async function POST(req: NextRequest) {
 
   const code = await generateUniqueCode();
   const now = new Date();
+  let anlassraumId: ObjectId | null = null;
+  let dossierId: ObjectId | null = null;
+
+  if (parsed.data.anlassraumId) {
+    if (!ObjectId.isValid(parsed.data.anlassraumId)) {
+      return NextResponse.json({ ok: false, error: "invalid_anlassraum_id" }, { status: 400 });
+    }
+    const roomId = new ObjectId(parsed.data.anlassraumId);
+    const room = await (await anlassraumCol()).findOne({ _id: roomId });
+    if (!room) {
+      return NextResponse.json({ ok: false, error: "anlassraum_not_found" }, { status: 404 });
+    }
+    anlassraumId = roomId;
+    if (room.dossierId) {
+      dossierId = room.dossierId;
+    }
+  }
+
+  if (parsed.data.dossierId) {
+    if (!ObjectId.isValid(parsed.data.dossierId)) {
+      return NextResponse.json({ ok: false, error: "invalid_dossier_id" }, { status: 400 });
+    }
+    dossierId = new ObjectId(parsed.data.dossierId);
+  }
 
   const doc = {
     code,
@@ -91,6 +125,10 @@ export async function POST(req: NextRequest) {
     streamSessionId: ctx ? parsed.data.streamSessionId ?? null : null,
     title: parsed.data.title ?? null,
     questions,
+    anlassraumId,
+    dossierId,
+    roundSlug: parsed.data.roundSlug ?? null,
+    protocolStatus: "open",
     status: "active",
     source: ctx ? "creator" : "public_qr_studio",
     createdAt: now,
@@ -104,5 +142,8 @@ export async function POST(req: NextRequest) {
     ok: true,
     setId: result.insertedId.toString(),
     code,
+    anlassraumId: anlassraumId?.toHexString() ?? null,
+    dossierId: dossierId?.toHexString() ?? null,
+    roundSlug: parsed.data.roundSlug ?? null,
   });
 }

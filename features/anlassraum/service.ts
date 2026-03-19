@@ -1,21 +1,28 @@
 import { ObjectId } from "@core/db/triMongo";
 import { buildRegionKey, normalizeRegionCode } from "@core/regions/types";
+import { ensureSystemEntityForRegion } from "@features/entities/service";
 import type {
   StatementCandidate,
   StatementCandidateAnalyzeResultDoc,
   VoteDraftDoc,
 } from "@features/feeds/types";
+import type { GovernanceActor, RoomType } from "@features/trust/types";
 import {
   anlassraumCol,
   anlassraumSourceLinksCol,
   anlassraumStructureCol,
   outputSeedCol,
 } from "./db";
+import { assertActorCanCreateAnlassraum } from "./governance";
 import type {
   AnlassraumDoc,
+  AnlassraumMaturity,
+  AnlassraumOriginType,
+  AnlassraumScope,
   AnlassraumSourceMode,
   AnlassraumStatus,
   AnlassraumStructureDoc,
+  AnlassraumType,
   OutputSeedDoc,
   OutputSeedType,
 } from "./types";
@@ -32,6 +39,23 @@ type EnsureAnlassraumResult = {
   created: boolean;
 };
 
+type CreateManualAnlassraumInput = {
+  entityId: ObjectId | string;
+  type: AnlassraumType;
+  title: string;
+  summary: string;
+  topicKey: string;
+  regionKey?: string | null;
+  scope: AnlassraumScope;
+  decisionScope?: AnlassraumScope;
+  ownerType: AnlassraumDoc["ownerType"];
+  ownerId: string;
+  originType?: AnlassraumOriginType;
+  roomType?: RoomType;
+  createdBy: string;
+  actor?: GovernanceActor;
+};
+
 export async function ensureAnlassraumFromFeedDraft(
   input: EnsureAnlassraumInput,
 ): Promise<EnsureAnlassraumResult> {
@@ -45,6 +69,7 @@ export async function ensureAnlassraumFromFeedDraft(
   });
 
   if (existing?.anlassraumId) {
+    await ensureGovernanceDefaults(existing.anlassraumId, input);
     await upsertStructure(existing.anlassraumId, input);
     await ensureOutputSeeds(existing.anlassraumId, input);
     return { anlassraumId: existing.anlassraumId, created: false };
@@ -54,26 +79,55 @@ export async function ensureAnlassraumFromFeedDraft(
   const now = new Date();
   const topicKey = deriveTopicKey(input.draft, input.candidate);
   const regionKey = deriveRegionKey(input.draft.regionCode ?? input.candidate.regionCode ?? null);
+  const scope = scopeFromRegion(regionKey);
+  const summary = deriveSummary(input);
+  const entity = await ensureSystemEntityForRegion({
+    regionKey,
+    scope,
+    ownerId: "feed-pipeline",
+  });
   const clusterKey = buildClusterKey({
     regionKey,
     topicKey,
     publishedAt: input.candidate.publishedAt ?? null,
     sourceMode: "feed",
   });
+
   const room: AnlassraumDoc = {
-    kind: "event",
+    entityId: entity.entityId,
+    type: deriveType(input),
     title: input.draft.title || input.candidate.sourceTitle || "Anlassraum",
+    summary,
     slug: buildSlug(input.draft.title || input.candidate.sourceTitle || "anlassraum", input.candidate._id.toHexString()),
-    regionCode: input.draft.regionCode ?? input.candidate.regionCode ?? null,
-    scope: scopeFromRegion(regionKey),
     topicKey,
-    clusterKey,
+    regionKey,
+    regionCode: input.draft.regionCode ?? input.candidate.regionCode ?? null,
+    scope,
+    decisionScope: scope,
+    ownerType: "system",
+    ownerId: "feed-pipeline",
+    stewardUserId: null,
     sourceMode: "feed" as AnlassraumSourceMode,
+    originType: "feed",
     status: deriveStatus(input),
+    maturity: deriveMaturity(input),
+    roomType: "community",
+    contentTrust: input.candidate.sourceName ? "source_based" : "unverified",
+    parentAnlassraumId: null,
+    dossierId: null,
+    dossierType: null,
+    isPublic: false,
+    createdBy: "system:feeds",
+    reviewedBy: null,
+    approvedBy: null,
     relevanceScore: deriveRelevanceScore(input),
     reviewMode: deriveReviewMode(input),
     riskFlags: deriveRiskFlags(input),
+    clusterKey,
+    kind: "event",
     pipeline: input.draft.pipeline ?? "feeds_to_statementCandidate",
+    publishedAt: null,
+    archivedAt: null,
     createdAt: now,
     updatedAt: now,
   };
@@ -93,13 +147,18 @@ export async function ensureAnlassraumFromFeedDraft(
       createdAt: now,
       updatedAt: now,
     });
-  } catch (err: any) {
-    if (err?.code === 11000) {
+  } catch (err: unknown) {
+    const code =
+      typeof err === "object" && err && "code" in err
+        ? (err as { code?: number }).code
+        : undefined;
+    if (code === 11000) {
       const winner = await links.findOne({
         statementCandidateId: input.candidate._id,
       });
       if (winner?.anlassraumId) {
         await rooms.deleteOne({ _id: anlassraumId }).catch(() => {});
+        await ensureGovernanceDefaults(winner.anlassraumId, input);
         await upsertStructure(winner.anlassraumId, input);
         await ensureOutputSeeds(winner.anlassraumId, input);
         return { anlassraumId: winner.anlassraumId, created: false };
@@ -114,10 +173,78 @@ export async function ensureAnlassraumFromFeedDraft(
   return { anlassraumId, created: true };
 }
 
+export async function createManualAnlassraum(
+  input: CreateManualAnlassraumInput,
+): Promise<{ anlassraumId: ObjectId }> {
+  const rooms = await anlassraumCol();
+  const now = new Date();
+  const title = String(input.title || "").trim();
+  const topicKey = normalizeTopicKey(input.topicKey);
+  if (!title) {
+    throw new Error("anlassraum_title_required");
+  }
+  const roomType = input.roomType ?? "community";
+
+  if (input.actor) {
+    assertActorCanCreateAnlassraum(input.actor, {
+      ownerType: input.ownerType,
+      ownerId: input.ownerId,
+      roomType,
+      originType: input.originType ?? "manual",
+    });
+  }
+
+  const doc: AnlassraumDoc = {
+    entityId: toObjectId(input.entityId),
+    type: input.type,
+    title,
+    summary: String(input.summary || "").trim(),
+    slug: buildSlug(title, new ObjectId().toHexString()),
+    topicKey,
+    regionKey: normalizeRegionKey(input.regionKey ?? null),
+    regionCode: null,
+    scope: input.scope,
+    decisionScope: input.decisionScope ?? input.scope,
+    ownerType: input.ownerType,
+    ownerId: String(input.ownerId || "").trim(),
+    stewardUserId: String(input.createdBy || "").trim() || null,
+    sourceMode: "manual",
+    originType: input.originType ?? "manual",
+    status: "draft",
+    maturity: "signal",
+    roomType,
+    contentTrust: "unverified",
+    parentAnlassraumId: null,
+    dossierId: null,
+    dossierType: null,
+    isPublic: false,
+    createdBy: String(input.createdBy || "").trim() || "system:manual",
+    reviewedBy: null,
+    approvedBy: null,
+    relevanceScore: 0,
+    reviewMode: "standard",
+    riskFlags: [],
+    clusterKey: null,
+    kind: "issue",
+    pipeline: "manual",
+    publishedAt: null,
+    archivedAt: null,
+    createdAt: now,
+    updatedAt: now,
+  };
+
+  if (!doc.ownerId) {
+    throw new Error("anlassraum_owner_id_required");
+  }
+
+  const inserted = await rooms.insertOne(doc);
+  return { anlassraumId: inserted.insertedId };
+}
+
 function deriveStatus(input: EnsureAnlassraumInput): AnlassraumStatus {
   const riskFlags = deriveRiskFlags(input);
-  if (riskFlags.length >= 2) return "needs_editor_review";
-  return "auto_ingested";
+  if (riskFlags.length >= 2) return "draft";
+  return "curated";
 }
 
 function deriveReviewMode(input: EnsureAnlassraumInput): AnlassraumDoc["reviewMode"] {
@@ -146,14 +273,47 @@ function deriveRiskFlags(input: EnsureAnlassraumInput): string[] {
   return Array.from(out);
 }
 
+function deriveMaturity(input: EnsureAnlassraumInput): AnlassraumMaturity {
+  const claimCount = (input.analyzeResult.claims ?? []).length;
+  const questionCount = (input.analyzeResult.questions ?? []).length;
+  if (claimCount >= 4 && questionCount >= 2) return "structured";
+  if (claimCount >= 2) return "emerging";
+  return "signal";
+}
+
+function deriveType(input: EnsureAnlassraumInput): AnlassraumType {
+  const sourceType = String(input.candidate.sourceType || "").toLowerCase();
+  if (sourceType.includes("investig")) return "investigation";
+  if (sourceType.includes("crisis")) return "crisis";
+  return "event";
+}
+
 function deriveTopicKey(draft: VoteDraftDoc, candidate: StatementCandidate): string {
   const fromTags = Array.isArray(draft.tags) ? draft.tags.find((tag) => !!String(tag || "").trim()) : null;
   const fromCandidate = candidate.topic ?? null;
   const fromClaim = draft.claims?.find((claim) => !!claim?.topic)?.topic ?? null;
-  const value = String(fromTags ?? fromCandidate ?? fromClaim ?? "allgemein")
-    .toLowerCase()
-    .trim();
-  return value.replace(/\s+/g, "-").replace(/[^a-z0-9äöüß-]/g, "").slice(0, 64) || "allgemein";
+  return normalizeTopicKey(String(fromTags ?? fromCandidate ?? fromClaim ?? "allgemein"));
+}
+
+function normalizeTopicKey(value: string): string {
+  return (
+    String(value || "")
+      .toLowerCase()
+      .trim()
+      .replace(/\s+/g, "-")
+      .replace(/[^a-z0-9äöüß-]/g, "")
+      .slice(0, 64) || "allgemein"
+  );
+}
+
+function deriveSummary(input: EnsureAnlassraumInput): string {
+  const value = String(
+    input.draft.summary ??
+      input.candidate.sourceSummary ??
+      input.candidate.sourceContent?.slice(0, 400) ??
+      "",
+  ).trim();
+  return value || "Signalraum aus Feed-Kandidat";
 }
 
 function deriveRegionKey(region: VoteDraftDoc["regionCode"] | StatementCandidate["regionCode"] | null): string | null {
@@ -162,10 +322,12 @@ function deriveRegionKey(region: VoteDraftDoc["regionCode"] | StatementCandidate
   return buildRegionKey(normalized);
 }
 
-function scopeFromRegion(regionKey: string | null): string {
+function scopeFromRegion(regionKey: string | null): AnlassraumScope {
   if (!regionKey) return "global";
-  const country = regionKey.split(":")[0]?.toUpperCase() ?? "GLOBAL";
-  return country || "global";
+  const parts = regionKey.split(":");
+  if (parts[2]) return "local";
+  if (parts[1]) return "regional";
+  return "national";
 }
 
 function buildClusterKey(input: {
@@ -194,6 +356,50 @@ function toWindowBucket(date: Date, hours: number): string {
     String(floored.getUTCDate()).padStart(2, "0"),
     String(floored.getUTCHours()).padStart(2, "0"),
   ].join("");
+}
+
+async function ensureGovernanceDefaults(anlassraumId: ObjectId, input: EnsureAnlassraumInput) {
+  const rooms = await anlassraumCol();
+  const existing = await rooms.findOne({ _id: anlassraumId });
+  if (!existing) return;
+
+  const now = new Date();
+  const regionKey = existing.regionKey ?? deriveRegionKey(input.draft.regionCode ?? input.candidate.regionCode ?? null);
+  const scope = existing.scope ?? scopeFromRegion(regionKey);
+  const entity = existing.entityId
+    ? { entityId: existing.entityId }
+    : await ensureSystemEntityForRegion({
+        regionKey,
+        scope,
+        ownerId: "feed-pipeline",
+      });
+
+  const patch: Partial<AnlassraumDoc> = {
+    entityId: existing.entityId ?? entity.entityId,
+    type: existing.type ?? deriveType(input),
+    summary: existing.summary ?? deriveSummary(input),
+    topicKey: existing.topicKey ?? deriveTopicKey(input.draft, input.candidate),
+    regionKey: existing.regionKey ?? regionKey,
+    scope: existing.scope ?? scope,
+    decisionScope: existing.decisionScope ?? scope,
+    ownerType: existing.ownerType ?? "system",
+    ownerId: existing.ownerId ?? "feed-pipeline",
+    stewardUserId: existing.stewardUserId ?? null,
+    originType: existing.originType ?? "feed",
+    maturity: existing.maturity ?? deriveMaturity(input),
+    roomType: existing.roomType ?? "community",
+    contentTrust: existing.contentTrust ?? "unverified",
+    parentAnlassraumId: existing.parentAnlassraumId ?? null,
+    dossierId: existing.dossierId ?? null,
+    dossierType: existing.dossierType ?? null,
+    isPublic: existing.isPublic ?? false,
+    createdBy: existing.createdBy ?? "system:feeds",
+    reviewedBy: existing.reviewedBy ?? null,
+    approvedBy: existing.approvedBy ?? null,
+    updatedAt: now,
+  };
+
+  await rooms.updateOne({ _id: anlassraumId }, { $set: patch });
 }
 
 async function upsertStructure(anlassraumId: ObjectId, input: EnsureAnlassraumInput) {
@@ -333,4 +539,13 @@ function buildSlug(title: string, fallbackId: string): string {
     .slice(0, 70);
   if (!base) return `anlassraum-${fallbackId.slice(-8)}`;
   return `${base}-${fallbackId.slice(-6)}`;
+}
+
+function normalizeRegionKey(input: string | null): string | null {
+  const value = String(input || "").trim();
+  return value || null;
+}
+
+function toObjectId(value: ObjectId | string): ObjectId {
+  return typeof value === "string" ? new ObjectId(value) : value;
 }

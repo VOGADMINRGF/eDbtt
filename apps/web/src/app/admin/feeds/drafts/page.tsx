@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import type { VoteDraftSummary, VoteDraftStatus } from "@/features/feeds/types";
+import type { VoteDraftSummary, VoteDraftStatus } from "@features/feeds/types";
 
 type RegionOption = { value: string; label: string };
 
@@ -163,6 +163,9 @@ export default function AdminFeedDraftsPage() {
                   </td>
                   <td className="px-4 py-3">
                     <StatusBadge status={draft.status} />
+                    <p className="text-[11px] text-[rgb(var(--muted))]">
+                      queue: {draft.feedReviewState ?? "queued"}
+                    </p>
                   </td>
                   <td className="px-4 py-3">
                     <p className="font-medium text-[rgb(var(--fg))]">{draft.regionName ?? "–"}</p>

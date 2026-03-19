@@ -3,7 +3,7 @@
 
 import { closeAll } from "@/core/db/triMongo";
 import { statementCandidatesCol } from "@/features/feeds/db";
-import type { StatementCandidate } from "@/features/feeds/types";
+import type { StatementCandidate } from "@features/feeds/types";
 
 async function main() {
   const col = await statementCandidatesCol();

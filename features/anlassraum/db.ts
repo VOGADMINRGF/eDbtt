@@ -22,7 +22,10 @@ async function ensureAnlassraumIndexes() {
   if (ensured.anlassraum) return;
   const col = await coreCol<AnlassraumDoc>(ANLASSRAUM_COLLECTION);
   await col.createIndex({ slug: 1 }, { unique: true });
+  await col.createIndex({ entityId: 1, status: 1, updatedAt: -1 });
   await col.createIndex({ status: 1, sourceMode: 1, updatedAt: -1 });
+  await col.createIndex({ status: 1, isPublic: 1, updatedAt: -1 });
+  await col.createIndex({ dossierId: 1, status: 1 }, { sparse: true });
   await col.createIndex({ clusterKey: 1, "regionCode.countryCode": 1 }, { sparse: true });
   ensured.anlassraum = true;
 }

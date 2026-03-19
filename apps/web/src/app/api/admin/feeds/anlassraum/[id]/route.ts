@@ -6,13 +6,17 @@ import {
   anlassraumStructureCol,
   outputSeedCol,
 } from "@features/anlassraum/db";
-import { requireAdminOrResponse } from "@/lib/server/auth/admin";
+import {
+  canActorAccessAnlassraum,
+  getAnlassraumPublishGate,
+} from "@features/anlassraum/governance";
+import { requireGovernanceActorOrResponse } from "@/lib/server/auth/governance";
 
 export async function GET(
   req: NextRequest,
   context: { params: Promise<{ id: string }> },
 ) {
-  const gate = await requireAdminOrResponse(req);
+  const gate = await requireGovernanceActorOrResponse(req);
   if (gate instanceof Response) return gate;
 
   const { id } = await context.params;
@@ -28,26 +32,53 @@ export async function GET(
   if (!room) {
     return NextResponse.json({ ok: false, error: "not_found" }, { status: 404 });
   }
+  if (!canActorAccessAnlassraum(room, gate.actor, "read")) {
+    return NextResponse.json({ ok: false, error: "forbidden_scope" }, { status: 403 });
+  }
 
   const [sources, structure, outputs] = await Promise.all([
     (await anlassraumSourceLinksCol()).find({ anlassraumId: objectId }).toArray(),
     (await anlassraumStructureCol()).findOne({ anlassraumId: objectId }),
     (await outputSeedCol()).find({ anlassraumId: objectId }).toArray(),
   ]);
+  const publishGate = await getAnlassraumPublishGate(objectId).catch(() => ({
+    ok: false,
+    reasons: ["gate_eval_failed"],
+    sourceCount: sources.length,
+  }));
 
   return NextResponse.json({
     ok: true,
     item: {
       id: room._id?.toHexString?.() ?? "",
       title: room.title,
+      summary: room.summary ?? "",
       slug: room.slug,
+      type: room.type ?? null,
       kind: room.kind,
       sourceMode: room.sourceMode,
+      originType: room.originType ?? null,
       status: room.status,
+      maturity: room.maturity ?? null,
+      roomType: room.roomType ?? null,
+      contentTrust: room.contentTrust ?? null,
       scope: room.scope ?? null,
+      decisionScope: room.decisionScope ?? null,
       topicKey: room.topicKey ?? null,
       clusterKey: room.clusterKey ?? null,
       regionCode: room.regionCode ?? null,
+      regionKey: room.regionKey ?? null,
+      ownerType: room.ownerType ?? null,
+      ownerId: room.ownerId ?? null,
+      stewardUserId: room.stewardUserId ?? null,
+      entityId: room.entityId?.toHexString?.() ?? null,
+      parentAnlassraumId: room.parentAnlassraumId?.toHexString?.() ?? null,
+      dossierId: room.dossierId?.toHexString?.() ?? null,
+      dossierType: room.dossierType ?? null,
+      isPublic: room.isPublic ?? false,
+      createdBy: room.createdBy ?? null,
+      reviewedBy: room.reviewedBy ?? null,
+      approvedBy: room.approvedBy ?? null,
       relevanceScore: room.relevanceScore ?? 0,
       reviewMode: room.reviewMode ?? "standard",
       riskFlags: Array.isArray(room.riskFlags) ? room.riskFlags : [],
@@ -89,5 +120,6 @@ export async function GET(
       createdAt: out.createdAt?.toISOString?.() ?? null,
       updatedAt: out.updatedAt?.toISOString?.() ?? null,
     })),
+    publishGate,
   });
 }

@@ -1,14 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ObjectId } from "@core/db/triMongo";
 import { voteDraftsCol, statementCandidatesCol, analyzeResultsCol } from "@features/feeds/db";
+import { anlassraumCol } from "@features/anlassraum/db";
+import { canActorAccessAnlassraum } from "@features/anlassraum/governance";
 import { getRegionName } from "@core/regions/regionTranslations";
-import { requireAdminOrResponse } from "@/lib/server/auth/admin";
+import { requireGovernanceActorOrResponse } from "@/lib/server/auth/governance";
 
 export async function GET(
   req: NextRequest,
   context: { params: Promise<{ id: string }> },
 ) {
-  const gate = await requireAdminOrResponse(req);
+  const gate = await requireGovernanceActorOrResponse(req);
   if (gate instanceof Response) return gate;
 
   const { id } = await context.params;
@@ -23,6 +25,15 @@ export async function GET(
   const draft = await drafts.findOne({ _id: objectId });
   if (!draft) {
     return NextResponse.json({ ok: false, error: "draft_not_found" }, { status: 404 });
+  }
+
+  if (draft.anlassraumId) {
+    const room = await (await anlassraumCol()).findOne({ _id: draft.anlassraumId });
+    if (room && !canActorAccessAnlassraum(room, gate.actor, "read")) {
+      return NextResponse.json({ ok: false, error: "forbidden_scope" }, { status: 403 });
+    }
+  } else if (gate.actor.role === "institutional_actor") {
+    return NextResponse.json({ ok: false, error: "forbidden_scope" }, { status: 403 });
   }
 
   const candidates = await statementCandidatesCol();
@@ -66,6 +77,15 @@ function serializeDraft(draft: any, regionName: string) {
     analyzeCompletedAt: draft.analyzeCompletedAt?.toISOString?.() ?? null,
     publishedAt: draft.publishedAt?.toISOString?.() ?? null,
     reviewNote: draft.reviewNote ?? null,
+    feedReviewState: draft.feedReviewState ?? "queued",
+    weakSignal: draft.weakSignal
+      ? {
+          flagged: !!draft.weakSignal.flagged,
+          reason: draft.weakSignal.reason ?? null,
+          flaggedBy: draft.weakSignal.flaggedBy ?? null,
+          flaggedAt: draft.weakSignal.flaggedAt?.toISOString?.() ?? null,
+        }
+      : null,
   };
 }
 

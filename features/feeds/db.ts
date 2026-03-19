@@ -39,6 +39,7 @@ async function ensureVoteDraftIndexes() {
   const col = await coreCol<VoteDraftDoc>(VOTE_DRAFTS_COLLECTION);
   await col.createIndex({ statementCandidateId: 1 }, { unique: true });
   await col.createIndex({ status: 1, createdAt: -1 });
+  await col.createIndex({ feedReviewState: 1, createdAt: -1 }, { sparse: true });
   ensured.voteDrafts = true;
 }
 

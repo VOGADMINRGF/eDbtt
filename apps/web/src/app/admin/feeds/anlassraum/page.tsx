@@ -6,13 +6,22 @@ import Link from "next/link";
 type AnlassraumListItem = {
   id: string;
   title: string;
+  type: string | null;
   kind: string;
   sourceMode: string;
   status: string;
   scope: string | null;
+  decisionScope: string | null;
+  maturity: string | null;
   topicKey: string | null;
   clusterKey: string | null;
+  regionKey: string | null;
   regionCode: any;
+  dossierId: string | null;
+  dossierType: string | null;
+  isPublic: boolean;
+  reviewedBy: string | null;
+  approvedBy: string | null;
   relevanceScore: number;
   reviewMode: string;
   riskFlags: string[];
@@ -24,12 +33,17 @@ type AnlassraumListItem = {
 
 const STATUS_OPTIONS = [
   "all",
+  "draft",
+  "curated",
+  "reviewed",
+  "approved",
+  "active",
+  "archived",
   "auto_ingested",
   "auto_clustered",
   "needs_editor_review",
   "ready_for_round",
   "published",
-  "archived",
 ] as const;
 
 const SOURCE_MODE_OPTIONS = [
@@ -160,17 +174,21 @@ export default function AdminAnlassraumPage() {
                       {item.title}
                     </Link>
                     <p className="text-xs text-[rgb(var(--muted))]">
-                      {item.kind} · {item.sourceMode} · score {item.relevanceScore}
+                      {(item.type ?? item.kind) || "anlassraum"} · {item.sourceMode} · score {item.relevanceScore}
                     </p>
                   </td>
                   <td className="px-4 py-3 text-xs">
                     <p className="font-semibold text-[rgb(var(--fg))]">{item.status}</p>
-                    <p className="text-[rgb(var(--muted))]">{item.reviewMode}</p>
+                    <p className="text-[rgb(var(--muted))]">
+                      {item.maturity ?? "—"} · {item.reviewMode}
+                    </p>
                   </td>
                   <td className="px-4 py-3 text-xs text-[rgb(var(--muted))]">
                     <p>{formatRegion(item.regionCode) || "Global"}</p>
+                    <p>{item.scope ?? "—"} / {item.decisionScope ?? "—"}</p>
                     <p>{item.topicKey ?? "—"}</p>
                     <p>{item.clusterKey ?? "—"}</p>
+                    <p>dossier: {item.dossierType ?? "—"}</p>
                   </td>
                   <td className="px-4 py-3 text-xs text-[rgb(var(--muted))]">
                     <p>{item.sourceCount} Quellen</p>

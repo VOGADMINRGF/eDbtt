@@ -17,6 +17,8 @@ export default function AdminDraftDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
+  const [attachAnlassraumId, setAttachAnlassraumId] = useState("");
+  const [weakSignalReason, setWeakSignalReason] = useState("");
 
   useEffect(() => {
     let abort = false;
@@ -63,6 +65,57 @@ export default function AdminDraftDetailPage() {
       });
     } catch (err: any) {
       alert(err?.message ?? "Status konnte nicht geändert werden.");
+    } finally {
+      setActionLoading(false);
+    }
+  }
+
+  async function runReviewAction(
+    action: "ignore" | "attach_to_anlassraum" | "create_anlassraum_candidate" | "mark_as_weak_signal",
+  ) {
+    if (!data) return;
+    setActionLoading(true);
+    try {
+      const payload: Record<string, unknown> = {
+        action,
+      };
+      if (action === "attach_to_anlassraum") {
+        if (!attachAnlassraumId.trim()) {
+          throw new Error("Bitte Anlassraum-ID für Attach eintragen.");
+        }
+        payload.anlassraumId = attachAnlassraumId.trim();
+      }
+      if (action === "mark_as_weak_signal" && weakSignalReason.trim()) {
+        payload.weakSignalReason = weakSignalReason.trim();
+      }
+
+      const res = await fetch(`/api/admin/feeds/drafts/${params.id}/review`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok || !body?.ok) {
+        throw new Error(body?.error || res.statusText);
+      }
+
+      const nextDraft = body?.draft ?? {};
+      setData({
+        ...data,
+        draft: {
+          ...data.draft,
+          status: nextDraft.status ?? data.draft.status,
+          anlassraumId: nextDraft.anlassraumId ?? data.draft.anlassraumId,
+          reviewNote: nextDraft.reviewNote ?? data.draft.reviewNote,
+          feedReviewState: nextDraft.feedReviewState ?? data.draft.feedReviewState,
+          weakSignal: nextDraft.weakSignal ?? data.draft.weakSignal ?? null,
+        },
+      });
+      if (nextDraft.anlassraumId) {
+        setAttachAnlassraumId(nextDraft.anlassraumId);
+      }
+    } catch (err: any) {
+      alert(err?.message ?? "Review-Aktion fehlgeschlagen.");
     } finally {
       setActionLoading(false);
     }
@@ -122,6 +175,9 @@ export default function AdminDraftDetailPage() {
         <h1 className="text-2xl font-bold text-[rgb(var(--fg))]">{draft.title}</h1>
         <div className="flex flex-wrap items-center gap-2 text-sm text-[rgb(var(--muted))]">
           <StatusBadge status={draft.status} />
+          <span className="rounded-full border border-[rgb(var(--border))] px-2 py-1 text-xs">
+            review: {draft.feedReviewState ?? "queued"}
+          </span>
           <span className="text-[rgb(var(--muted))]">·</span>
           <span>{draft.regionName ?? "Global/Offen"}</span>
           {draft.anlassraumId && (
@@ -202,9 +258,9 @@ export default function AdminDraftDetailPage() {
             <button
               className="btn border border-rose-200 bg-rose-50 px-4 py-2 text-sm text-rose-700"
               disabled={actionLoading}
-              onClick={() => mutateStatus("discarded")}
+              onClick={() => runReviewAction("ignore")}
             >
-              Verwerfen
+              Ignore
             </button>
             <button
               className="btn bg-emerald-500 px-4 py-2 text-sm font-semibold text-white shadow-sm"
@@ -213,6 +269,51 @@ export default function AdminDraftDetailPage() {
             >
               Veröffentlichen
             </button>
+          </div>
+
+          <div className="mt-4 grid gap-2 rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
+            <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Feed Review Queue</p>
+            <div className="flex flex-wrap gap-2">
+              <button
+                className="btn border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm"
+                disabled={actionLoading}
+                onClick={() => runReviewAction("create_anlassraum_candidate")}
+              >
+                Candidate Create
+              </button>
+              <button
+                className="btn border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm"
+                disabled={actionLoading}
+                onClick={() => runReviewAction("attach_to_anlassraum")}
+              >
+                Source Attach
+              </button>
+              <button
+                className="btn border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800"
+                disabled={actionLoading}
+                onClick={() => runReviewAction("mark_as_weak_signal")}
+              >
+                Weak Signal
+              </button>
+            </div>
+            <label className="text-xs text-[rgb(var(--muted))]">
+              Anlassraum-ID für Attach
+              <input
+                value={attachAnlassraumId}
+                onChange={(e) => setAttachAnlassraumId(e.target.value)}
+                placeholder="652ab... (ObjectId)"
+                className="mt-1 w-full rounded border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm"
+              />
+            </label>
+            <label className="text-xs text-[rgb(var(--muted))]">
+              Weak-Signal Begründung (optional)
+              <input
+                value={weakSignalReason}
+                onChange={(e) => setWeakSignalReason(e.target.value)}
+                placeholder="z. B. nur Einzelquelle ohne Gegenperspektive"
+                className="mt-1 w-full rounded border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm"
+              />
+            </label>
           </div>
         </section>
       </div>

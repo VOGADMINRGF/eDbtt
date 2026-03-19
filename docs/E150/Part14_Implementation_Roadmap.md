@@ -1,433 +1,138 @@
-# E150 Master Spec – Part 14: Implementation Roadmap & Gaps
+# E150 Master Spec – Part 14: Implementation Roadmap
 
-> Status-Hinweis (2026-02-12): Dieses Part ist eine Spezifikation/Zusammenfassung. Der verbindliche Aufgabenstand liegt in `docs/E150/OpenTasks.md`. Keine neuen Runs aus diesem Part ableiten.
+> Status-Hinweis (2026-03-19): Dieser Part beschreibt die empfohlene Reihenfolge der Umsetzung. Der verbindliche Aufgabenstand liegt in `docs/E150/OpenTasks.md`.
 
+## 1. Ziel dieses Parts
 
-## 1. Zweck von Part14
+Nicht nach Zielgruppe zuerst bauen, sondern nach Architektur-Abhaengigkeit.
 
-Part00–13 definieren **WAS** eDebatte / eDebatte können soll.  
-Part14 beschreibt **WIE Codex den aktuellen Code Schritt für Schritt dorthin bringt**:
+Empfohlene Reihenfolge:
+
+1. Governance Core
+2. Anlassraum / Event / Feed Review
+3. Kommune / Verwaltung
+4. Pricing / Billing / Funding / Signals
+5. Journalismus
+6. Organisationen / Verbaende / Civic
 
-- fasst offene Lücken aus Part00–13 zusammen,
-- priorisiert sie in sinnvolle Blöcke,
-- gibt einen Arbeitsmodus vor, damit Codex ohne ständiges Nachfragen
-  blockweise durchimplementieren kann,
-- bleibt dabei strikt PII-sicher und E150-konform.
+## 2. Warum diese Reihenfolge?
 
-Part14 ist damit der **operative Fahrplan** für Codex.
+### 2.1 Governance vor Verticals
+Wenn Journalismus, Kommune und Organisationen zuerst separat gebaut werden, entstehen drei Modelle.
+Deshalb zuerst:
+- gemeinsames Lifecycle-Modell
+- Trust / Rollen / Raumtypen
+- Anlassraum / Dossier Trennung
 
----
+### 2.2 Anlassraum vor Automatik
+Bevor Automatik aus Feed oder KI irgendetwas erzeugt, muss der Anlassraum als Kernobjekt stehen.
 
-## 2. Überblick: Noch offene Lücken
+### 2.3 Kommune vor Journalismus
+Kommunen / Verwaltung sind der staerkste direkte Pilot- und Umsatzpfad.
+Journalismus baut danach auf denselben Kern auf.
 
-Stand nach den letzten Codex-Runs:
+## 3. Welle 1 — Governance Foundation
 
-- **Part05 Orchestrator**  
-  – Block A ist abgeschlossen (Gemini-Provider, Rollen-Guidance, Health/Score).
-
-- **Part06 Consequences & Fairness**  
-  – Block B ist abgeschlossen (Modelle, Persistenz, API, UI/Navigator).
-
-- **Part07 Graph & Reports**  
-  – Graph-Sync + Neo4j-Connector vorhanden, Admin-Reports nutzen Graph-Daten.
-
-- **Part08 Eventualities & DecisionTrees**  
-  – Eventuality/DecisionTree-Strukturen, Persistenz und Admin-UI vorhanden.
-
-_Update:_ Block E (Part09 Research Workflow / R2) ist umgesetzt (Tasks/Contributions, Seeding, Filter, Feedback, Graph-Backflow).
-
-- **Part10 Responsibility Navigator**  
-  – Directory/Navigator-UI und Responsibility-APIs sind umgesetzt (Block B done).
-
-- **Part11 Streams & „Brennende Bürger:innen“**  
-  – Stream-Modelle, Agenda/Overlay, Routen und XP-Gating vorhanden.
-
-- **Part12 Campaigns (jenseits Telemetry)**  
-  – Campaign-Modelle, Admin-UI und Join-Flow (MVP) implementiert.
-
-- **Part13 I18N, A11y, Community/Social**  
-  – I18N-Infra aktiv, A11y-Seite vorhanden, Community/Chat-Skeleton ergänzt.
-
-- **Steuerung/Transparenz**
-  – Offene Arbeit liegt kanonisch in `docs/E150/OpenTasks.md`; Scope/Abnahme fuer interne und externe Umsetzung liegt in `docs/E150/Pflichtenheft.md`.
-
-- **Part16 Referenzdokument (DecisionArchitecture)**
-  – Ein publikationsfaehiges Referenzdokument inkl. Publishing Pack (Downloads + neutrale Landingpage) und Validator gegen Parallelstrukturen.
-  – Umsetzung ist als Drift **PR-0010B** in `docs/E150/OpenTasks.md` gesteuert.
-
----
-
-## 3. Arbeitsmodus für Codex (Autopilot)
-
-Codex SOLL Part14 so verwenden:
-
-1. **Einlesen**
-   - Zuerst wie gewohnt: `tools/codex/e150_master_codex_briefing.ts`.
-   - Danach Part00–13 nur als Referenz.
-   - Abschließend Part14 (diese Datei) lesen.
-
-2. **Blockweises Arbeiten**
-   - Wähle **einen Block** aus Abschnitt 4 (z.B. „Block A – Orchestrator Feinschliff“).
-   - Implementiere ihn sauber und vollständig in PR-Größe.
-   - Schreibe am Ende immer:
-     - **Changes**
-     - **Verification**
-     - **Next Steps** (nur noch **konkrete Restaufgaben**, falls der Block nicht 100 % fertig ist).
-
-3. **Selbständige Fortsetzung**
-   - Wenn ein Block erledigt ist, wähle in der nächsten Runde **automatisch den nächsten sinnvollen Block** aus Abschnitt 4 – ohne erneute Rückfrage, solange keine Widersprüche auftauchen.
-   - Bei Unklarheiten konservativ entscheiden und im „Next Steps“-Teil kurz markieren.
-
-4. **Grenzen**
-   - Kein Billing-Code.
-   - Keine Monster-Refactorings ohne direkten Bezug zu Part00–14.
-   - Keine neuen Konzepte neben E150, nur Ausgestaltung des bereits Spezifizierten.
-
----
-
-## 4. Blöcke A–H: Konkrete Implementierungs-Roadmap
-
-### Block A – Part05 Orchestrator: Feinschliff Multi-Provider
-
-**Ziel:** Orchestrator erfüllt vollständig die Anforderungen aus Part05.
-
-**Status:** Done (PR-0018, 2026-02-12). Abschnitt bleibt als Referenz.
-
-Aufgaben:
-
-1. **Provider-Set komplettieren**
-   - Gemini-Provider implementieren (`features/ai/providers/gemini.ts` o.ä.).
-   - In `orchestratorE150.ts` env-gesteuert aktivieren (nur wenn Key gesetzt).
-
-2. **Rollen-/Prompt-Spezialisierung**
-   - Für jede `ProviderRole` (`structure`, `context`, `questions`, `knots`, `mixed`) ein eigenes Prompt-Template anlegen.
-   - Prompts strikt an Part05/Part06/Part08 ausrichten (Claims, Notes, Questions, Knots, Eventualities).
-
-3. **Scoring & Health**
-   - Health-Score pro Provider aus Telemetry ableiten (Fehlerrate, Latenz).
-   - `score` je Candidate aus:
-     - Health,
-     - Passung zur Rolle,
-     - ggf. einfacher Output-Heuristik (z.B. Anzahl Claims innerhalb Range).
-
-4. **Definition of Done**
-   - Orchestrator kann parallel min. 3 Provider nutzen.
-   - Fallback-Mechanismen funktionieren (immer valides `AnalyzeResult`).
-   - Telemetry zeichnet alle Provider-Calls konsistent auf.
-
----
-
-### Block B – Part06 & Part10: Consequences & Responsibility Navigator
-
-**Ziel:** Folgen + Zuständigkeiten sind als erste Bürger:innen-sichtbare Schicht implementiert.
-
-**Status:** Done (PR-0019, 2026-02-12). Abschnitt bleibt als Referenz.
-
-Aufgaben:
-
-1. **Modelle/Schemas**
-   - `Consequence`, `Responsibility`, `ResponsibilityPath`, `ResponsibilityDirectory` nach Part06/10 modellieren.
-   - In `AnalyzeResult` Referenzen zu Consequences/Responsibility ergänzen (optional, nullable).
-
-2. **Persistenz**
-   - Speichern von Consequences/Responsibility pro Statement/Eventuality (DB & Graph).
-
-3. **Responsibility Navigator UI**
-   - „Wer ist zuständig?“-Button in `/statement/*` und `/contributions/*`.
-   - Navigator-Komponente mit:
-     - Level-Strip (Gemeinde, Land, Bund, EU, Privat/NGO),
-     - Liste der Akteure pro Level (aus Directory),
-     - einfache Prozesshinweise.
-
-4. **Admin-Verwaltung**
-   - `/admin/responsibility` für ResponsibilityDirectory (Listen-/Detail-Ansicht).
-   - Import/Export-Skeleton (CSV/JSON).
-
-5. **Definition of Done**
-   - Für ein Statement kann die Redaktion einen ResponsibilityPfad hinterlegen.
-   - Bürger:innen sehen bei „Wer ist zuständig?“ eine verständliche, neutrale Übersicht.
-
----
-
-### Block C – Part07: Graph & Reports – Basisintegration
-
-**Ziel:** E150-Daten landen in einer konsistenten Graph-Schicht und fließen in Reports.
-
-Status: **Done (PR-0020, 2026-02-12)**. Abschnitt bleibt als Referenz.
-
-Aufgaben:
-
-1. **Graph-Abstraktion**
-   - Zentrales Modul für Graph-Operationen (z.B. `@core/graph`).
-   - Basis-Typen: Node (Statement, Question, Knot, Eventuality, Actor/Responsibility), Edge-Typen (`relates_to`, `conflicts_with`, `responsibility_of`, …).
-
-2. **Sync aus AnalyzeResult**
-   - Hook, der nach erfolgreicher Analyze-Operation:
-     - Claims/Notes/Questions/Knots/Eventualities als Nodes/Edges in den Graph schreibt (idempotent, z.B. via Hashes).
-
-3. **Report-Adapter**
-   - Topic-/RegionReport-Builder, der Graph-Daten nutzt (kein Mock mehr).
-   - Minimaler Endpunkt & UI, der reale Reportdaten anzeigt.
-
-4. **Definition of Done**
-   - Neue Statements landen im Graph.
-   - Ein einfacher Topic/Region-Report kann aus echten Graph-Daten generiert werden.
-
----
-
-### Block D – Part08: Eventualities & DecisionTrees
-
-**Ziel:** „Was-wäre-wenn“-Logik ist im System sichtbar (Modell + UI).
-
-Status: **Done (PR-0020, 2026-02-12)**. Abschnitt bleibt als Referenz.
-
-Aufgaben:
-
-1. **Typen**
-   - `EventualityNode` + `DecisionTree` nach Part08 definieren.
-   - `AnalyzeResult` + Schemas erweitern (Eventualities optional).
-
-2. **Orchestrator/Analyzer**
-   - Provider-Prompts erweitern, damit Eventualitäten/DecisionTrees optional geliefert werden.
-   - Normalisierung + Fallbacks implementieren (leere Arrays wenn nichts kommt).
-
-3. **UI**
-   - `/statement/new` + `/contributions/new`:
-     - kleine Eventualitäten-Sektion (Pro/Neutral/Contra-Pfad),
-     - nur Lesen in v1 (kein komplexer Editor).
-
-4. **Persistenz**
-   - Speicherung der Eventualitäten in DB + Graph.
-
-5. **Definition of Done**
-   - Für analysierte Beiträge können Nutzer:innen mind. simple Eventualitäten pro Statement sehen.
-
----
-
-### Block E – Part09: Community Research Workflow
-
-**Ziel:** Offene Fragen werden zu ResearchTasks, die Community kann systematisch mitarbeiten.
-
-Aufgaben:
-
-1. **Modelle**
-   - `ResearchTask`, `ResearchContribution` definieren.
-   - Felder: Bezug zu Statement/Question, Status, Qualität, XP-Wert, etc.
-
-2. **Erzeugung**
-   - Hook: Offene Fragen/Knots können in ResearchTasks umgewandelt werden (manuell + optional automatischer Vorschlag).
-
-3. **Research Hub UI**
-   - `/research`-Seite:
-     - Liste offener Tasks,
-     - Filter nach Thema/Region,
-     - Detailansicht mit Einreichungsformular.
-
-4. **XP-Integration**
-   - Research-Beiträge geben XP + ggf. Badges (Part02/13).
-
-5. **Definition of Done**
-   - Es existiert ein end-to-end Flow: offene Frage → Task → Community-Antwort → Review → Abschluss.
-
-Status: **Done (PR-0017)**.
-
----
-
-### Block F – Part11: Streams & Brennende Bürger:innen
-
-**Ziel:** Streams sind technisch an Plattform, Reports und XP angebunden.
-
-Status: **Done (PR-0020, 2026-02-12)**. Abschnitt bleibt als Referenz.
-
-Aufgaben:
-
-1. **Modelle**
-   - `StreamSession` (Host, Thema, Region, Typ, externe URL, Status).
-
-2. **Routen & UI**
-   - `/streams` (Übersicht),
-   - `/streams/:id` (Viewer-Seite mit eingebettetem Video + Interaktionspane),
-   - `/streams/:id/host` (Host-Panel mit Karten/Agenda).
-
-3. **Stream-Deck**
-   - Adapter, der aus Topic/Region-Report + Graph eine Karten-Liste für den Host baut (Statements, Fragen, Knoten, Eventualities).
-
-4. **XP & Gating**
-   - Stream-Hosting an Level/Plan koppeln (Brennend + Abo/Org),
-   - XP-Vergabe für Host/Teilnehmende.
-
-5. **Definition of Done**
-   - Mindestens ein funktionaler Stream-Flow ist möglich (manuell gepflegter StreamSession-Eintrag).
-
----
-
-### Block F2 – Creator-Cockpit (Deliberation Mode)
-
-**Ziel:** Live-Streams liefern strukturierte Ergebnisse (Optionen, Quellen, offene Fragen, Follow-up).
-
-Status: **Planned (MVP in kleinen Runs)**.
-
-Aufgaben:
-
-1. **Session-State**
-   - `StreamSession.deliberation` (Phase, Runde, Timer, letzter Update).
-
-2. **Cockpit-UI**
-   - Phase wechseln, Timer starten, Runde erhöhen.
-
-3. **Moderations-Queue (MVP)**
-   - Eingänge manuell markieren: Behauptung/Quelle/Frage/Option/Auswirkung.
-
-4. **Live-Dossier-Board (MVP)**
-   - Optionen + Pro/Contra + Quellen + offene Fragen sichtbar.
-
-5. **Follow-up-Tracker (MVP)**
-   - Status-Tafel inkl. 7/30/90 Tage Erinnerungen (minimal).
-
-**Definition of Done**
-- Phasensteuerung + Timer sind im Stream-Cockpit nutzbar.
-- Ergebnisse sind als Board sichtbar, auch ohne externe Chat-Integration.
-
----
-
-### Block G – Part12: Campaigns & QR-Sessions
-
-**Ziel:** Gemeinden/Organisationen können Kampagnen mit QR-Code fahren und Reports erhalten.
-
-Status: **Done (MVP, PR-0020, 2026-02-12)**. Abschnitt bleibt als Referenz.
-
-Aufgaben:
-
-1. **Modelle**
-   - `Campaign`, `CampaignQuestion`, `CampaignSession` (siehe Part12).
-
-2. **Admin-UI**
-   - `/admin/campaigns` zum Anlegen/Bearbeiten,
-   - Kampagnen-Statuswechsel (draft → running → finished).
-
-3. **QR-Flows**
-   - Endpunkt/Seite für `/:campaignSlug/:sessionCode`:
-     - schlanke UI, die nur Kampagnenfragen zeigt.
-
-4. **Kampagnen-Report**
-   - Aggregierte Auswertung pro Kampagne (Pro/Neutral/Contra, Eventualitäten, offene Fragen).
-
-5. **Definition of Done**
-   - Eine Gemeinde/Org kann eine Kampagne anlegen, QR-Codes nutzen und nachher einen Report sehen.
-
----
-
-### Block H – Part13: I18N, A11y & Community/Social Basis
-
-**Ziel:** Plattform ist mehrsprachig vorbereitet, a11y-freundlich und hat minimale soziale Features.
-
-Status: **Done (Skeleton, PR-0020, 2026-02-12)**. Abschnitt bleibt als Referenz.
-
-Aufgaben:
-
-1. **I18N-Infra**
-   - zentrale Übersetzungsfiles (z.B. `@features/i18n`),
-   - Locale-Switch, Speicherung im Profil.
-
-2. **A11y-Pass**
-   - Basis-Check für Hauptseiten (Landing, Swipes, Contributions, Statements, Admin):
-     - sinnvolle Headings,
-     - Focus-Styles,
-     - Kontraste,
-     - Labels/ARIA.
-
-3. **Community-Basis**
-   - Profil-Ansicht verfeinern (Level, Badges),
-   - einfache öffentliche Themen-/Regionsräume oder minimaler Chat-Mechanismus mit Engagement-Gate.
-
-4. **Sharing-Meta**
-   - OG-Tags für Statements & Reports konsistent setzen.
-
-5. **Definition of Done**
-   - UI ist in min. 2 Sprachen nutzbar,
-   - grundlegende a11y-Regeln erfüllt,
-   - erste soziale Interaktionsform jenseits Swipes vorhanden.
-
----
-
-### Block I – Unterstuetzen/Crowdfunding (ohne Payment-Integration)
-
-**Ziel:** Kampagnen/Projekte koennen zweckgebundene Unterstuetzung einsammeln, sichtbar machen und administrativ verbuchen.
-
-Status: **Done (PR-0030, 2026-02-12)**.
-
-Aufgaben:
-
-1. **Modelle**
-   - `SupportCampaign` (targetType, targetId, slug, goal, status).
-   - `SupportPledge` (amount, status, paymentReference, anonym/public flags).
-
-2. **Public-Flow**
-   - `/support/[slug]` mit Zielbetrag, Fortschritt, letzten Unterstuetzungen.
-   - Pledge-Erstellung mit Zahlungsreferenz (`CF-xxxxxx`), kein direkter Payment-Provider.
-
-3. **Campaign-Integration**
-   - CTA "Unterstuetzen" auf Campaign/Projekt, wenn `supportEnabled`.
-   - Optionaler Owner/Staff-CTA "Unterstuetzen aktivieren".
-
-4. **Admin-Flow**
-   - `/admin/support` + Detailseite fuer Pledges.
-   - Statuswechsel `waiting_payment -> paid|canceled`, Export/Filter.
-
-5. **Definition of Done**
-   - End-to-End: Pledge erzeugen, Zahlungsreferenz anzeigen, Admin markiert paid, Fortschritt aktualisiert.
-   - Sichtbarer Hinweis in UI: Unterstuetzung aendert keine Stimmen/XP/Credits.
-
-Ist/Unerledigt:
-
-| Bereich | Ist | Unerledigt |
-| --- | --- | --- |
-| Campaign-Backbone | Campaign-Modelle, Join/QR, Reports + SupportCampaign/SupportPledge aktiv | Optional: weitere Target-Typen produktiv nutzen |
-| Zahlungsprinzip | Zahlungsreferenz + mark-paid/cancel + Admin-CSV aktiv | Optional: Guided Payment UX |
-| Produkt-UX | `/support/[slug]`, Campaign-CTA und `/admin/support` aktiv | Optional: owner-self-service Aktivierung |
-
----
-
-## 5. Definition of Done – Gesamt
-
-E150 gilt als **„Phase 1 vollständig implementiert“**, wenn:
-
-- Orchestrator (Part05) multi-provider-fähig, robust und telemetriert ist (Block A).  
-- Consequences & Responsibility Navigator in UI/Graph sichtbar sind (Block B).  
-- Graph & Reports echte Daten statt Mock verwenden (Block C).  
-- Eventualitäten/DecisionTrees in AnalyzeResult, DB, Graph und UI ankommen (Block D).  
-- Research-Workflow produktiv nutzbar ist (Block E).  
-- Streams & Campaigns für erste Pilotkunden (B2G/B2B) lauffähig sind (Blöcke F & G).  
-- I18N, A11y und Community-Features die Mindestanforderungen erfüllen (Block H).  
-- Unterstuetzen/Crowdfunding pro Projekt als transparenter Zusatzpfad funktioniert (Block I).  
-
----
-
-## 6. Kurz-Makro für Codex-Jobs
-
-Wenn du einen neuen „Großlauf“ startest, reicht z.B.:
-
-> „Nutze Part14 als Roadmap.  
->  Wähle den nächsten noch nicht abgeschlossenen Block (A–I) und arbeite ihn so weit wie möglich ab.  
->  Halte dich an Arbeitsmodus, Prioritäten und Definition-of-Done aus Part14.“
-
-Damit muss **nicht jedes Mal alles neu bestätigt werden**, und Codex weiß trotzdem genau,
-wo er weiterzumachen hat.
-
-### Block R2 – Research Workflow, Phase 2 (Part09.5)
-
-Status: Umgesetzt (Seeding, Filter/Sortierung, Contributor-Feedback, Graph-Backflow, Cooldowns).
-
-Hinweis:
-- Part15 führt den aktuellen Detailstand und PR-Logs.
-
-### Block M – Membership Apply (Snapshot & Payment)
-Update: Admin mark-paid/cancel, Overview-API + Dashboard, Dunning-Script (Reminder 1/2/final), Rhythmus yearly, PaymentInfo/Copy im Account. Admin-Statusliste + CTA im Account vorhanden. Household-Invite checkt Lock-Status; Telemetry-Events fuer Membership-Status gesetzt. Monitoring (pending Invites) sichtbar im Admin-Overview.
-
-Status: Done.
-
-- /api/memberships/apply erzeugt ein MembershipApplication mit Status `waiting_payment`, Payment-Reference `EDB-xxxxxx` und optionalem eDebatte-Block.  
-- Nutzer-Snapshot (`user.membership`) enthält Status, amountPerMonth, rhythm, householdSize/peopleCount, edebatte, paymentMethod, paymentReference, submittedAt.  
-- Bestätigungs-Mails: an Nutzer inkl. Zahlungsinfo/Verwendungszweck, optionaler eDebatte-Vorbestellung; an Admin (MAIL_ADMIN_TO) mit Betrag/Haushalt/Payment-Reference.  
-- Account-Seite zeigt Status inkl. „Zahlung ausstehend“-Hinweis bei waiting_payment; Thank-you-Banner bei redirect `?membership=thanks`.  
-- Admin-Statuswechsel, Verbuchen und Kuendigen aktualisieren User-Snapshot + Events.
+### Ziele
+- GOV-01
+- GOV-02
+- DOCS-GOV-01
+
+### Deliverables
+- Entity-Modell
+- Anlassraum-Grundmodell
+- Dossier-Abgrenzung
+- Trust-Level
+- Publish Gates
+- OpenTasks + Parts synchron
+
+## 4. Welle 2 — Anlassraum / Event / Feed Review
+
+### Ziele
+- GOV-ANLASS-01 bis 04
+- GOV-EVENT-01 und 02
+
+### Deliverables
+- Anlassraum anlegen / reviewen / publizieren
+- Feed-Review Queue
+- Event-/QR-/Protokoll-Fluss
+- Anlassraum -> Dossier Anbindung
+
+## 5. Welle 3 — Kommune / Verwaltung
+
+### Ziele
+- GOV-MUNI-01 / 02 / 03 / 05 / 06
+
+### Deliverables
+- Buergermeister-Dashboard
+- Verwaltungsmodus
+- Dezernatslogik
+- Prozessstatus
+- organisatorische Rollenzuordnung
+
+## 6. Welle 4 — Pricing / Funding / Signals
+
+### Ziele
+- GOV-PRICING-01 / 02
+- GOV-FUNDING-01 / 02 / 03
+- GOV-SIGNAL-01
+
+### Deliverables
+- Hybrid-Pricing
+- Admin Pricing Control
+- Rabatt-Engine
+- Signals / Thresholds / Trigger
+- Funding Intent / Readiness / Matching / Impact
+
+## 7. Welle 5 — Journalismus
+
+### Ziele
+- GOV-JOURNALISM-01 bis 04
+
+### Deliverables
+- source_anchor
+- Truth Guardrails
+- journalistische Anlassraeume
+- Embed / QR Companion
+- Redaktionsprofil
+
+## 8. Welle 6 — Organisationen / Verbaende / Civic
+
+### Ziele
+- GOV-ORG-01 / 02
+- GOV-CIVIC-01 / 02 / 03
+
+### Deliverables
+- dossierbasierte Organisationsidentitaet
+- offizieller Organisationsmodus
+- Initiative-Lifecycle
+- Impact-/Unterstuetzungslogiken
+
+## 9. Pilotdefinition
+
+Ein Pilot ist erfolgreich, wenn:
+
+- eine Entity angelegt werden kann,
+- mindestens ein Anlassraum sauber reviewt und publiziert wird,
+- Signals gesammelt werden,
+- ein Funding Intent oder ein Event-/Beteiligungsfluss stattfindet,
+- ein Dossier oder eine Nachbereitung entsteht.
+
+## 10. Was explizit nicht zuerst gebaut wird
+
+- keine 11.000 fertigen Seiten
+- keine Vollautomatik ohne Review
+- kein rein feed-getriebenes System
+- kein Coin-/Gamification-first Modell
+- keine komplexen Outcome-Abrechnungen vor stabilem Kern
+
+## 11. Definition of Done fuer die erste echte Umsetzungswelle
+
+- 1 Gemeinde oder Organisation sauber manuell anlegen
+- 1 Anlassraum sauber anlegen
+- Feed-Items reviewen und zuordnen
+- Review / Approval / Publish
+- Signals sammeln
+- Funding Intent sammeln
+- optional Funding starten
+- Admin kann Pricing / Rabatte steuern

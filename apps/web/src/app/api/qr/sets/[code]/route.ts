@@ -21,6 +21,10 @@ export async function GET(
       code: doc.code,
       title: doc.title ?? null,
       questions: doc.questions ?? [],
+      anlassraumId: doc.anlassraumId ? String(doc.anlassraumId) : null,
+      dossierId: doc.dossierId ? String(doc.dossierId) : null,
+      roundSlug: doc.roundSlug ?? null,
+      protocolStatus: doc.protocolStatus ?? "open",
     },
   });
 }
