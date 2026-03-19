@@ -99,6 +99,7 @@ export default async function RundenPage({
 }) {
   const resolved = searchParams ? await searchParams : {};
   const view = parseView(readStringParam(resolved?.view));
+  const compat = readStringParam(resolved?.compat) === "demo_runden";
 
   let entries: RundenEntryItem[] = [];
   let sourceError: string | null = null;
@@ -214,6 +215,12 @@ export default async function RundenPage({
           </div>
         </nav>
       </section>
+
+      {compat ? (
+        <section className="rounded-3xl border border-sky-200 bg-sky-50 p-4 text-sm text-sky-800">
+          Kompatibilitaetspfad: `/demo/runden` wurde auf die produktive Runden-Entry-Surface umgestellt. Es gibt keinen Demo-Seed-Fallback.
+        </section>
+      ) : null}
 
       {sourceError ? (
         <section className="rounded-3xl border border-rose-200 bg-rose-50 p-5 text-sm text-rose-800">

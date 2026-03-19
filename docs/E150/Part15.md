@@ -133,8 +133,23 @@ Dieses Dokument dient als Status-Zusammenfassung der Pfade (Part00–Part15). Es
   - expliziter Error-State bei Source-Ausfall
 - Testabdeckung hinzugefuegt:
   - `apps/web/tests/runden-entry.service.test.ts` (produktive Daten, leerer Bestand, Legacy-Normalisierung, Source-Failure)
-  - `apps/web/tests/runden-entry.route.test.ts` (Route-Response-Mapping inkl. `invalid_limit`/`503`)
+- `apps/web/tests/runden-entry.route.test.ts` (Route-Response-Mapping inkl. `invalid_limit`/`503`)
 - Governance bleibt unveraendert: kein Auto-Publish, kein Auto-Approval, kein Public-/Live-Bypass; AI/Source/Manual bleiben manual-first.
+
+## Update (2026-03-19) — PR-0037 Backward-Compatibility (`/demo/runden` -> `/runden`)
+
+- Kanonischer Entry-Pfad fuer Runden ist jetzt explizit `/runden` (produktive Quelle), ohne Demo-/Seed-Fallback.
+- Legacy-Demo-Pfad wurde auf kompatibles Verhalten umgestellt:
+  `apps/web/src/app/demo/runden/page.tsx` redirectet explizit auf `/runden` mit Compat-Marker (`compat=demo_runden`) und optionalem `view`.
+- Demo-Linkziele wurden auf den kanonischen Pfad gehoben:
+  - `apps/web/src/app/demo/page.tsx` (`/runden` statt `/demo/runden`)
+  - `apps/web/src/app/demo/DemoNavClient.tsx` (`/runden` als produktiver Einstieg)
+- `/runden` zeigt bei Compat-Redirect einen klaren Hinweis, dass kein Demo-Seed-Fallback mehr existiert.
+- Fokus-Tests fuer Compatibility-Matrix aktiv:
+  - `apps/web/tests/runden-compat.demo-route.test.ts`
+  - `apps/web/tests/runden-compat.links.test.ts`
+- Guardrails bleiben unveraendert:
+  kein Auto-Publish, kein Auto-Approval, kein Public-/Live-Bypass.
 
 ## Status-Übersicht der Pfade 00–15
 

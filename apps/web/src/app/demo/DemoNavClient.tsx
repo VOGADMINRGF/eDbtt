@@ -6,7 +6,7 @@ import { parseDemoPersona, withPersona } from "@/features/demo/personas";
 
 const DEMO_NAV = [
   { href: "/demo", label: "Studio" },
-  { href: "/demo/runden", label: "Runden" },
+  { href: "/runden", label: "Runden (produktiv)" },
   { href: "/demo/dossier", label: "Dossier" },
   { href: "/demo/abstimmungen", label: "Abstimmungen" },
   { href: "/demo/mandat", label: "Mandat" },

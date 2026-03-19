@@ -15,9 +15,9 @@ type SearchParamsShape =
 const MODULES = [
   {
     id: "runden",
-    href: "/demo/runden",
+    href: "/runden",
     title: "Topic & Runden",
-    baseLead: "Kanonisches Topic mit mehreren Runden (Artikel, Video, Stream, Podcast, Session, Event).",
+    baseLead: "Produktive Runden-Entry-Surface mit expliziten Empty/Error-Zustaenden (kein Demo-Seed-Fallback).",
     tags: ["Topic", "Round", "Roadmap", "Mitwirken"],
   },
   {

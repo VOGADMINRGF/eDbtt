@@ -116,9 +116,9 @@ Status: **In Progress (Core baseline / 2026-03-19)**
 
 | Task | Status | Naechster Run | Evidenz/Notiz |
 | --- | --- | --- | --- |
-| Create IA v2: dedizierte Mode-Module (`manual/source/ai`) statt nur Workspace-Parametrisierung | In Progress (canonical mode split active) | PR-0037 | Canonical `manual/source/ai` aktiv inkl. Legacy-Alias-Normalisierung + Persistenz in Create-Save/Finalize: `features/create/intents.ts`, `app/create/CreateClient.tsx`, `api/contributions/save|finalize`, `tests/create-mode.*` |
-| Runden Entry Surface auf produktive Quelle umstellen (statt Seed aus `features/topicRound/data.ts`) | In Progress (productive source active, no seed/demo fallback) | PR-0037 | `/runden` liest jetzt aus produktivem `output_seed`/`anlassraum`-Read-Model: `features/topicRound/entrySource.ts`, `apps/web/src/app/runden/page.tsx`, `GET /api/runden/entry`; stabile Empty/Error-States + Tests: `apps/web/tests/runden-entry.service.test.ts`, `apps/web/tests/runden-entry.route.test.ts` |
-| Backward-Compatibility finalisieren | Open | PR-0037 | Redirect-Matrix inkl. `/demo/runden`-Kommunikation |
+| Create IA v2: dedizierte Mode-Module (`manual/source/ai`) statt nur Workspace-Parametrisierung | In Progress (canonical mode split active) | PR-0038 | Canonical `manual/source/ai` aktiv inkl. Legacy-Alias-Normalisierung + Persistenz in Create-Save/Finalize: `features/create/intents.ts`, `app/create/CreateClient.tsx`, `api/contributions/save|finalize`, `tests/create-mode.*` |
+| Runden Entry Surface auf produktive Quelle umstellen (statt Seed aus `features/topicRound/data.ts`) | Done (productive source + compatibility matrix active / 2026-03-19) | PR-0038 | `/runden` liest aus produktivem `output_seed`/`anlassraum`-Read-Model (`features/topicRound/entrySource.ts`, `GET /api/runden/entry`); `/demo/runden` ist expliziter Compat-Redirect auf `/runden` (kein Seed-Fallback), inkl. Tests `apps/web/tests/runden-entry.*`, `apps/web/tests/runden-compat.*` |
+| Backward-Compatibility finalisieren | Done (legacy/demo round entry clarified / 2026-03-19) | PR-0038 | Canonical Round-Entry = `/runden`; alte Demo-Pfade zeigen explizit auf produktiven Einstieg (`apps/web/src/app/demo/runden/page.tsx`, `apps/web/src/app/demo/page.tsx`, `apps/web/src/app/demo/DemoNavClient.tsx`) |
 | E2E-Abnahme fuer `/create` + `/runden` | Open | PR-0038 | dedizierte E2E-Cases fehlen |
 | Community Group Surfaces entkoppeln | Open | PR-0039 | dedizierte Resolver/API |
 | Community Deep-Link Contracts vereinheitlichen | Open | PR-0040 | Guardrails + Validierung |
