@@ -80,7 +80,7 @@ Status: **In Progress (Core baseline / 2026-03-19)**
 - **GOV-ANLASS-01** universelles Anlassraum-Modell (**Core baseline active**)
 - **GOV-ANLASS-02** Anlassraum <-> Dossier Beziehung (**Core baseline active**)
 - **GOV-ANLASS-03** regionale / skalenfaehige Gruppierung (`local`, `regional`, `national`, `eu`, `global`) (**Core baseline active**)
-- **GOV-ANLASS-04** Feed-Review statt Feed-Leerlauf (**Queue ops deepened: filters/sort + bulk actions + legacy backfill path active**)
+- **GOV-ANLASS-04** Feed-Review statt Feed-Leerlauf (**Queue ops deepened + output-prep transitions active**)
 - **GOV-EVENT-01** Event-/Sitzungsmodell (**Event->Anlassraum linking active**)
 - **GOV-EVENT-02** QR -> Fragen -> Protokoll -> Dossier -> Runde (**Functionally complete: service+route acceptance + legacy backfill strategy (manual-first)**)
 
@@ -126,7 +126,7 @@ Status: **In Progress (Core baseline / 2026-03-19)**
 | Feed/Anlassraum Picker im `/create` anbinden | Open | PR-FEED-ANLASS-02 | echte Auswahl / Assignment-UI |
 | Feed/Anlassraum Cluster-Job | Open | PR-FEED-ANLASS-03 | dedizierter Worker fehlt |
 | Feed/Anlassraum Status-Transitions absichern | In Progress (Wave 2 deepening) | PR-FEED-ANLASS-04 | erweitert um Queue-Review-Aktionen + Bulk-Route + Queue-Triage: `features/feeds/reviewQueue.ts`, `apps/web/src/app/api/admin/feeds/drafts/bulk/route.ts`, `apps/web/src/app/api/admin/feeds/drafts/route.ts` |
-| Feed/Anlassraum Publish-Flows ausbauen | In Progress (Wave 2 core) | PR-FEED-ANLASS-05 | Publish-Gate gehaertet in `features/anlassraum/governance.ts` (nicht mehr nur `sourceCount > 0`) |
+| Feed/Anlassraum Publish-Flows ausbauen | In Progress (manual output-prep baseline active) | PR-FEED-ANLASS-05 | Output-Prep API-first aktiv: `features/anlassraum/outputPrep.ts`, `GET /api/admin/feeds/anlassraum/[id]/outputs`, `POST /api/admin/feeds/anlassraum/[id]/outputs/[seedId]/transition` |
 | Feed/Anlassraum Backfill | In Progress (admin-safe path active) | PR-FEED-ANLASS-06 | Detection + Remediation fuer `vote_drafts` ohne `anlassraumId`: `GET /api/admin/feeds/drafts/legacy`, `POST /api/admin/feeds/drafts/[id]/backfill` |
 | Swipes Kontextpfade haerten | Open | PR-0042 | thematisch passendes Ziel |
 | Swipes Mobile Gestures + Bottom-Actions | Open | PR-0043 | thumb-reachable |
@@ -280,9 +280,15 @@ Evidenz:
 - `apps/web/src/app/api/admin/feeds/drafts/legacy/route.ts`
 - `apps/web/src/app/api/admin/feeds/drafts/[id]/backfill/route.ts`
 - `apps/web/src/app/api/admin/feeds/drafts/[id]/route.ts`
+- `apps/web/src/app/api/admin/feeds/anlassraum/[id]/outputs/route.ts`
+- `apps/web/src/app/api/admin/feeds/anlassraum/[id]/outputs/[seedId]/transition/route.ts`
+- `apps/web/src/app/api/admin/feeds/anlassraum/outputPrepErrors.ts`
 - `apps/web/src/app/admin/feeds/drafts/page.tsx`
 - `apps/web/src/app/admin/feeds/drafts/[id]/page.tsx`
 - `apps/web/tests/feed-review.routes.test.ts`
+- `apps/web/tests/anlassraum-output-prep.routes.test.ts`
+- `features/anlassraum/outputPrep.ts`
+- `features/anlassraum/types.ts`
 
 Queue Deepening (2026-03-19):
 - Queue-Filter erweitert: `status`, `reviewState`, `region`, `hasAnlassraum`, `weakSignal`, `q` (Titel/Summary/Quelle).
@@ -290,6 +296,13 @@ Queue Deepening (2026-03-19):
 - Triage-Metadaten je Draft: `lastReviewAction*`, `queueMeta` (`priorityScore`, `priorityBucket`, `pendingHours`, `needsAnlassraumBackfill`, `reasons`).
 - Bulk-Review (manual-first, nicht publizierend): `POST /api/admin/feeds/drafts/bulk` fuer `ignore`, `mark_as_weak_signal`, `attach_to_anlassraum`, `create_anlassraum_candidate`.
 - Legacy-Backfill-Pfad (admin-safe): `GET /api/admin/feeds/drafts/legacy` + `POST /api/admin/feeds/drafts/[id]/backfill`.
+
+Output-Prep Deepening (PR-FEED-ANLASS-05 / 2026-03-19):
+- Output-Seed-Workflow ist API-first operationalisiert fuer `round_seed`, `dossier_seed`, `embed_seed`, `social_seed`, `regional_briefing_seed`, `editorial_pitch_seed`.
+- Output-Prep-Status-Transitions sind explizit/manuell: `draft`, `queued`, `review`, `ready`, `published`, `discarded`.
+- Transition-Aktionen (manual-first): `queue`, `send_to_review`, `approve_prep`, `reject_prep`, `mark_ready`, `publish`, `discard`, `reset_draft`.
+- `mark_ready`/`publish` bleiben publish-gated (`getAnlassraumPublishGate`) und setzen `reviewState=approved` voraus.
+- Kein Direktpfad aus Feed-Ingest in oeffentliche Publikation; `publish` ist nur Output-Prep-Status (kein Auto-Live-Release).
 
 ### GOV-EVENT-01 — Event-/Sitzungsmodell
 Status: **In Progress (Core baseline / 2026-03-19)**

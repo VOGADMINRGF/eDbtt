@@ -68,6 +68,23 @@ Dieses Dokument dient als Status-Zusammenfassung der Pfade (Part00–Part15). Es
   - Remediation: `POST /api/admin/feeds/drafts/[id]/backfill` (`attach` oder `create_candidate`)
 - Governance-/Manual-first-Regeln bleiben unveraendert: keine Auto-Publikation, keine Auto-Approval, keine Scope-Aufweichung.
 
+## Update (2026-03-19) — PR-FEED-ANLASS-05 Deepening (Manual Output-Prep Workflow)
+
+- Output-Seed-Preparation ist jetzt als expliziter API-Flow vorhanden:
+  `GET /api/admin/feeds/anlassraum/[id]/outputs` (List/Filter) und
+  `POST /api/admin/feeds/anlassraum/[id]/outputs/[seedId]/transition` (manuelle Transition).
+- Output-Prep-Statusraum ist operationalisiert:
+  `draft -> queued/review -> ready -> published -> discarded` (inkl. `reset_draft`).
+- Transitionen sind governance- und gate-gebunden:
+  `mark_ready`/`publish` verlangen `reviewState=approved` und erfolgreiches Anlassraum-Publish-Gate.
+- Error-Mapping fuer Output-Prep-Routen ist stabilisiert:
+  `apps/web/src/app/api/admin/feeds/anlassraum/outputPrepErrors.ts`.
+- Route-Acceptance ist hinzugefuegt:
+  `apps/web/tests/anlassraum-output-prep.routes.test.ts`
+  (valid transitions, gate-block, forbidden scope, invalid ids/states, bypass-block).
+- Manual-first bleibt unveraendert:
+  kein Auto-Publish, kein Auto-Approval, kein direkter Feed-Ingest -> Public-Publish.
+
 ## Status-Übersicht der Pfade 00–15
 
 - **Part00 Foundations / PII:** PII-Guardrails plus Klarname-Trennung (givenName/familyName) und Privacy-Flags dokumentiert; Alt-Migration optional.
@@ -419,6 +436,34 @@ Verification:
 
 Next Steps:
 - PR-FEED-ANLASS-05: Feed/Anlassraum Publish-Flows weiter ausbauen (Output-Redaktions-/Publish-UI) auf bestehendem, gehärtetem Queue- und Backfill-Fundament.
+
+### PR-GOV-08 (2026-03-19) – PR-FEED-ANLASS-05 Deepening (Manual Publish Output Workflow)
+
+Ziel:
+- Output-Prep fuer Anlassraum-Output-Seeds API-first operationalisieren, ohne Publish-Gates oder Scope-Policies zu umgehen.
+
+Changes:
+- Neuer Output-Prep-Service:
+  `features/anlassraum/outputPrep.ts`
+  mit authorisierten List-/Transition-Funktionen, Audit-Feldern (`lastAction*`) und expliziten Aktionen:
+  `queue`, `send_to_review`, `approve_prep`, `reject_prep`, `mark_ready`, `publish`, `discard`, `reset_draft`.
+- Output-Seed-Typen/-Status/-Review-State als Konstanten stabilisiert:
+  `features/anlassraum/types.ts`.
+- Neue API-Routen fuer Output-Prep:
+  - `apps/web/src/app/api/admin/feeds/anlassraum/[id]/outputs/route.ts`
+  - `apps/web/src/app/api/admin/feeds/anlassraum/[id]/outputs/[seedId]/transition/route.ts`
+- Stabiles Route-Error-Mapping:
+  `apps/web/src/app/api/admin/feeds/anlassraum/outputPrepErrors.ts`.
+- Neue Route-Acceptance-Suite:
+  `apps/web/tests/anlassraum-output-prep.routes.test.ts`.
+
+Verification:
+- `pnpm -C apps/web exec vitest run tests/anlassraum-output-prep.routes.test.ts` (PASS)
+- `pnpm -C apps/web run typecheck` (PASS)
+- `pnpm -C apps/web run lint` (PASS)
+
+Next Steps:
+- PR-FEED-ANLASS-05 Follow-up: minimale Admin-Output-Prep-Surfaces (list/transition wiring) und danach E2E-Abnahme fuer `/create` + `/runden` (PR-0038), ohne Governance-/Publish-Bypass.
 
 ### PR-0017 (2026-02-11) – Block E Research R2
 

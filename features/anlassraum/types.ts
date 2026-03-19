@@ -111,23 +111,28 @@ export type AnlassraumReviewMode = (typeof ANLASSRAUM_REVIEW_MODES)[number];
 
 export type AnlassraumSourceRole = "primary" | "supporting" | "counter" | "context";
 
-export type OutputSeedType =
-  | "round_seed"
-  | "dossier_seed"
-  | "embed_seed"
-  | "social_seed"
-  | "regional_briefing_seed"
-  | "editorial_pitch_seed";
+export const OUTPUT_SEED_TYPES = [
+  "round_seed",
+  "dossier_seed",
+  "embed_seed",
+  "social_seed",
+  "regional_briefing_seed",
+  "editorial_pitch_seed",
+] as const;
+export type OutputSeedType = (typeof OUTPUT_SEED_TYPES)[number];
 
-export type OutputSeedStatus =
-  | "draft"
-  | "queued"
-  | "review"
-  | "ready"
-  | "published"
-  | "discarded";
+export const OUTPUT_SEED_STATUSES = [
+  "draft",
+  "queued",
+  "review",
+  "ready",
+  "published",
+  "discarded",
+] as const;
+export type OutputSeedStatus = (typeof OUTPUT_SEED_STATUSES)[number];
 
-export type OutputSeedReviewState = "pending" | "approved" | "rejected";
+export const OUTPUT_SEED_REVIEW_STATES = ["pending", "approved", "rejected"] as const;
+export type OutputSeedReviewState = (typeof OUTPUT_SEED_REVIEW_STATES)[number];
 
 export interface AnlassraumDoc {
   _id?: ObjectId;
@@ -206,6 +211,10 @@ export interface OutputSeedDoc {
   targetAudience?: string | null;
   reviewState: OutputSeedReviewState;
   publishTarget?: string | null;
+  reviewNote?: string | null;
+  lastAction?: string | null;
+  lastActionBy?: string | null;
+  lastActionAt?: Date | null;
   createdAt: Date;
   updatedAt: Date;
 }
