@@ -178,6 +178,17 @@ export default function AdminDraftDetailPage() {
           <span className="rounded-full border border-[rgb(var(--border))] px-2 py-1 text-xs">
             review: {draft.feedReviewState ?? "queued"}
           </span>
+          <span className="rounded-full border border-[rgb(var(--border))] px-2 py-1 text-xs">
+            last: {draft.lastReviewAction ?? "—"} · {draft.lastReviewActionBy ?? "—"}
+          </span>
+          <span className="rounded-full border border-[rgb(var(--border))] px-2 py-1 text-xs">
+            at: {formatDate(draft.lastReviewActionAt)}
+          </span>
+          {draft.reviewNote && (
+            <span className="rounded-full border border-[rgb(var(--border))] px-2 py-1 text-xs">
+              note: {String(draft.reviewNote).slice(0, 80)}
+            </span>
+          )}
           <span className="text-[rgb(var(--muted))]">·</span>
           <span>{draft.regionName ?? "Global/Offen"}</span>
           {draft.anlassraumId && (
@@ -390,4 +401,16 @@ function StatusBadge({ status }: { status: string }) {
       {status}
     </span>
   );
+}
+
+function formatDate(value?: string | null) {
+  if (!value) return "–";
+  try {
+    return new Date(value).toLocaleString("de-DE", {
+      dateStyle: "short",
+      timeStyle: "short",
+    });
+  } catch {
+    return value;
+  }
 }

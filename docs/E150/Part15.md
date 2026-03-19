@@ -96,6 +96,21 @@ Dieses Dokument dient als Status-Zusammenfassung der Pfade (Part00–Part15). Es
   `apps/web/tests/anlassraum-output-prep.routes.test.ts`.
 - Ergebnis: PR-FEED-ANLASS-05 Baseline ist funktional geschlossen, weiterhin strikt manual-first.
 
+## Update (2026-03-19) — PR-FEED-ANLASS-06 Deepening (Legacy Draft Backfill UX + Audit)
+
+- Legacy-Remediation ist jetzt operabel im Admin-Drafts-Surface:
+  `apps/web/src/app/admin/feeds/drafts/page.tsx` listet unlinked Drafts aus `GET /api/admin/feeds/drafts/legacy` und erlaubt per Draft:
+  `attach` (mit expliziter Anlassraum-ID) oder `create_candidate`.
+- Audit-Sichtbarkeit fuer Remediation wurde sichtbar gemacht:
+  `lastReviewAction`, `lastReviewActionBy`, `lastReviewActionAt`, `reviewNote`, Weak-Signal-Status und Queue-Triage-Reasons.
+- Backfill-Response liefert expliziten Remediation-Typ:
+  `attached_existing_anlassraum` oder `created_candidate_anlassraum`.
+- Service-Hardening wurde mit echter Domainlogik getestet:
+  `apps/web/tests/feed-backfill.service.test.ts`
+  (attach/create_candidate, no publish side effect, retry-block, admin-only, attach target required).
+- Route-Acceptance fuer Legacy-/Backfill-Routen wurde erweitert:
+  `apps/web/tests/feed-review.routes.test.ts`.
+
 ## Status-Übersicht der Pfade 00–15
 
 - **Part00 Foundations / PII:** PII-Guardrails plus Klarname-Trennung (givenName/familyName) und Privacy-Flags dokumentiert; Alt-Migration optional.
@@ -506,6 +521,37 @@ Verification:
 
 Next Steps:
 - PR-FEED-ANLASS-06: Legacy-Backfill/Remediation fuer unlinked `vote_drafts -> anlassraumId` weiter operationalisieren (Detection/Remediation UX + Audit), ohne Publish-/Approval-Automation.
+
+### PR-GOV-10 (2026-03-19) – PR-FEED-ANLASS-06 Deepening (Legacy Backfill UX + Audit Closure)
+
+Ziel:
+- Legacy-Backfill fuer unlinked `vote_drafts` im Admin-Betrieb nutzbar machen und Audit-Sichtbarkeit schliessen, ohne Silent-Migration.
+
+Changes:
+- `features/feeds/reviewQueue.ts` erweitert:
+  - Legacy-Summary liefert jetzt Audit-/Review-Felder (`reviewNote`, `lastReviewAction*`, Weak-Signal-Reason).
+  - Backfill-Result liefert `remediationKind` (`attached_existing_anlassraum` | `created_candidate_anlassraum`).
+- Backfill-Route erweitert:
+  `apps/web/src/app/api/admin/feeds/drafts/[id]/backfill/route.ts`
+  liefert Auditfelder (`reviewNote`, `lastReviewAction*`) + `remediationKind`.
+- Draft-Liste/Detail fuer Auditdarstellung erweitert:
+  - `apps/web/src/app/api/admin/feeds/drafts/route.ts`
+  - `apps/web/src/app/api/admin/feeds/drafts/[id]/route.ts`
+  - `apps/web/src/app/admin/feeds/drafts/page.tsx`
+  - `apps/web/src/app/admin/feeds/drafts/[id]/page.tsx`
+- Neue Service-Test-Suite:
+  `apps/web/tests/feed-backfill.service.test.ts`
+  mit Szenarien A-D + Attach-Target-Requirement.
+- Route-Test-Suite gehaertet:
+  `apps/web/tests/feed-review.routes.test.ts` (forbidden/validation/response-mapping fuer Backfill).
+
+Verification:
+- `pnpm -C apps/web run typecheck` (PASS)
+- `pnpm -C apps/web run lint` (PASS)
+- `pnpm -C apps/web exec vitest run tests/feed-backfill.service.test.ts tests/feed-review.routes.test.ts` (PASS)
+
+Next Steps:
+- PR-FEED-ANLASS-06 Abschluss-Run: optionales UI-Polish fuer Legacy-Panel (kein Scope-Change) und danach PR-0038 (`/create` + `/runden` E2E-Abnahme).
 
 ### PR-0017 (2026-02-11) – Block E Research R2
 

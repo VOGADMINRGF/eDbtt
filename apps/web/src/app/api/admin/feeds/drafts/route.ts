@@ -137,6 +137,7 @@ export async function GET(req: NextRequest) {
               reason: draft.weakSignal.reason ?? null,
             }
           : null,
+        reviewNote: draft.reviewNote ?? null,
         lastReviewAction: draft.lastReviewAction ?? null,
         lastReviewActionBy: draft.lastReviewActionBy ?? null,
         lastReviewActionAt: draft.lastReviewActionAt?.toISOString?.() ?? null,

@@ -88,11 +88,13 @@ export async function POST(
       ok: true,
       draftId: response.draftId,
       mode: response.mode,
+      remediationKind: response.remediationKind,
       result: {
         anlassraumId: response.result.anlassraumId?.toHexString?.() ?? null,
         feedReviewState: response.result.feedReviewState,
         createdAnlassraum: response.result.createdAnlassraum,
         draftStatus: response.result.draft.status,
+        reviewNote: response.result.draft.reviewNote ?? null,
         lastReviewAction: response.result.draft.lastReviewAction ?? null,
         lastReviewActionBy: response.result.draft.lastReviewActionBy ?? null,
         lastReviewActionAt: response.result.draft.lastReviewActionAt?.toISOString?.() ?? null,

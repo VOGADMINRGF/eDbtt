@@ -207,6 +207,7 @@ export type VoteDraftSummary = {
     flagged: boolean;
     reason?: string | null;
   } | null;
+  reviewNote?: string | null;
   lastReviewAction?: string | null;
   lastReviewActionBy?: string | null;
   lastReviewActionAt?: string | null;

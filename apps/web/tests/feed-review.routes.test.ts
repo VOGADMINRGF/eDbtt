@@ -139,16 +139,50 @@ describe("feed review routes", () => {
     await expect(res.json()).resolves.toMatchObject({ ok: false, error: "draft_already_has_anlassraum" });
   });
 
+  it("backfill route maps admin-only policy to forbidden", async () => {
+    mocks.backfill.mockRejectedValue(new Error("forbidden_legacy_backfill_requires_admin"));
+
+    const res = await backfillPOST(
+      req("http://localhost/api/admin/feeds/drafts/65a111111111111111111111/backfill", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ mode: "create_candidate" }),
+      }),
+      params(),
+    );
+
+    expect(res.status).toBe(403);
+    await expect(res.json()).resolves.toMatchObject({
+      ok: false,
+      error: "forbidden_legacy_backfill_requires_admin",
+    });
+  });
+
+  it("backfill route validates attach target id", async () => {
+    const res = await backfillPOST(
+      req("http://localhost/api/admin/feeds/drafts/65a111111111111111111111/backfill", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ mode: "attach", anlassraumId: "bad" }),
+      }),
+      params(),
+    );
+    expect(res.status).toBe(400);
+    await expect(res.json()).resolves.toMatchObject({ ok: false, error: "invalid_anlassraum_id" });
+  });
+
   it("backfill route returns publish gate payload", async () => {
     mocks.backfill.mockResolvedValue({
       draftId: "65a111111111111111111111",
       mode: "create_candidate",
+      remediationKind: "created_candidate_anlassraum",
       result: {
         anlassraumId: { toHexString: () => "65a111111111111111111110" },
         feedReviewState: "candidate_created",
         createdAnlassraum: true,
         draft: {
           status: "review",
+          reviewNote: "[legacy-backfill] remediation",
           lastReviewAction: "create_anlassraum_candidate",
           lastReviewActionBy: "admin-1",
           lastReviewActionAt: new Date("2026-03-19T09:00:00.000Z"),
@@ -169,9 +203,11 @@ describe("feed review routes", () => {
     await expect(res.json()).resolves.toMatchObject({
       ok: true,
       mode: "create_candidate",
+      remediationKind: "created_candidate_anlassraum",
       result: {
         anlassraumId: "65a111111111111111111110",
         feedReviewState: "candidate_created",
+        reviewNote: "[legacy-backfill] remediation",
       },
     });
   });

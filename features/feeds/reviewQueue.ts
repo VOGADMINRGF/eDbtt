@@ -114,6 +114,11 @@ export type LegacyVoteDraftSummary = {
   anlassraumId: string | null;
   feedReviewState: FeedReviewState;
   weakSignalFlagged: boolean;
+  weakSignalReason: string | null;
+  reviewNote: string | null;
+  lastReviewAction: string | null;
+  lastReviewActionBy: string | null;
+  lastReviewActionAt: string | null;
   createdAt: string | null;
   updatedAt: string | null;
   queueMeta: FeedQueueMeta;
@@ -126,6 +131,7 @@ export type BackfillVoteDraftAnlassraumInput = Omit<ApplyFeedReviewActionInput, 
 export type BackfillVoteDraftAnlassraumResult = {
   draftId: string;
   mode: "attach" | "create_candidate";
+  remediationKind: "attached_existing_anlassraum" | "created_candidate_anlassraum";
   result: FeedReviewActionResult;
 };
 
@@ -425,6 +431,11 @@ export async function listLegacyVoteDraftsWithoutAnlassraumAuthorized(
     anlassraumId: draft.anlassraumId?.toHexString?.() ?? null,
     feedReviewState: draft.feedReviewState ?? "queued",
     weakSignalFlagged: !!draft.weakSignal?.flagged,
+    weakSignalReason: draft.weakSignal?.reason ?? null,
+    reviewNote: draft.reviewNote ?? null,
+    lastReviewAction: draft.lastReviewAction ?? null,
+    lastReviewActionBy: draft.lastReviewActionBy ?? null,
+    lastReviewActionAt: draft.lastReviewActionAt?.toISOString?.() ?? null,
     createdAt: draft.createdAt?.toISOString?.() ?? null,
     updatedAt: draft.updatedAt?.toISOString?.() ?? null,
     queueMeta: buildFeedQueueMeta(draft),
@@ -456,6 +467,7 @@ export async function backfillVoteDraftAnlassraumAuthorized(
     return {
       draftId: draftId.toHexString(),
       mode: "attach",
+      remediationKind: "attached_existing_anlassraum",
       result,
     };
   }
@@ -469,6 +481,7 @@ export async function backfillVoteDraftAnlassraumAuthorized(
   return {
     draftId: draftId.toHexString(),
     mode: "create_candidate",
+    remediationKind: "created_candidate_anlassraum",
     result,
   };
 }

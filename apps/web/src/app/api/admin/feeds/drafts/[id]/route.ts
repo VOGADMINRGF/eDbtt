@@ -78,6 +78,9 @@ function serializeDraft(draft: any, regionName: string) {
     publishedAt: draft.publishedAt?.toISOString?.() ?? null,
     reviewNote: draft.reviewNote ?? null,
     feedReviewState: draft.feedReviewState ?? "queued",
+    lastReviewAction: draft.lastReviewAction ?? null,
+    lastReviewActionBy: draft.lastReviewActionBy ?? null,
+    lastReviewActionAt: draft.lastReviewActionAt?.toISOString?.() ?? null,
     weakSignal: draft.weakSignal
       ? {
           flagged: !!draft.weakSignal.flagged,

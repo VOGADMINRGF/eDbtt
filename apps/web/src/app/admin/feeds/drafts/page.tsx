@@ -9,6 +9,47 @@ type QueueSort = "newest" | "oldest" | "review_recent" | "review_stale" | "prior
 type QueueLinkFilter = "all" | "linked" | "unlinked";
 type QueueWeakFilter = "all" | "flagged" | "clear";
 type BulkAction = "ignore" | "mark_as_weak_signal" | "attach_to_anlassraum" | "create_anlassraum_candidate";
+type LegacyBackfillMode = "attach" | "create_candidate";
+
+type LegacyDraftSummary = {
+  id: string;
+  title: string;
+  status: VoteDraftStatus;
+  regionCode: string | null;
+  anlassraumId: string | null;
+  feedReviewState: FeedReviewState;
+  weakSignalFlagged: boolean;
+  weakSignalReason: string | null;
+  reviewNote: string | null;
+  lastReviewAction: string | null;
+  lastReviewActionBy: string | null;
+  lastReviewActionAt: string | null;
+  createdAt: string | null;
+  updatedAt: string | null;
+  queueMeta: {
+    priorityScore: number;
+    priorityBucket: "high" | "medium" | "low";
+    pendingHours: number;
+    needsAnlassraumBackfill: boolean;
+    reasons: string[];
+  };
+};
+
+type LegacyBackfillOutcome = {
+  draftId: string;
+  mode: LegacyBackfillMode;
+  remediationKind: "attached_existing_anlassraum" | "created_candidate_anlassraum";
+  result: {
+    anlassraumId: string | null;
+    feedReviewState: FeedReviewState;
+    createdAnlassraum: boolean;
+    draftStatus: VoteDraftStatus;
+    reviewNote: string | null;
+    lastReviewAction: string | null;
+    lastReviewActionBy: string | null;
+    lastReviewActionAt: string | null;
+  };
+};
 
 const STATUS_FILTERS: { label: string; value: VoteDraftStatus | "all" }[] = [
   { label: "Alle", value: "all" },
@@ -84,6 +125,14 @@ export default function AdminFeedDraftsPage() {
   const [bulkBusy, setBulkBusy] = useState(false);
   const [bulkNotice, setBulkNotice] = useState<string | null>(null);
 
+  const [legacyItems, setLegacyItems] = useState<LegacyDraftSummary[]>([]);
+  const [legacyLoading, setLegacyLoading] = useState(false);
+  const [legacyError, setLegacyError] = useState<string | null>(null);
+  const [legacyAttachByDraft, setLegacyAttachByDraft] = useState<Record<string, string>>({});
+  const [legacyNoteByDraft, setLegacyNoteByDraft] = useState<Record<string, string>>({});
+  const [legacyBusyDraftId, setLegacyBusyDraftId] = useState<string | null>(null);
+  const [legacyOutcomeByDraft, setLegacyOutcomeByDraft] = useState<Record<string, LegacyBackfillOutcome>>({});
+
   useEffect(() => {
     let ignored = false;
     async function load() {
@@ -127,6 +176,51 @@ export default function AdminFeedDraftsPage() {
       ignored = true;
     };
   }, [statusFilter, reviewStateFilter, regionFilter, linkFilter, weakSignalFilter, sort, query, reloadToken]);
+
+  useEffect(() => {
+    let ignored = false;
+    async function loadLegacy() {
+      setLegacyLoading(true);
+      setLegacyError(null);
+      try {
+        const qs = new URLSearchParams();
+        qs.set("limit", "100");
+        if (statusFilter !== "all") qs.set("status", statusFilter);
+        if (reviewStateFilter !== "all") qs.set("reviewState", reviewStateFilter);
+        const res = await fetch(`/api/admin/feeds/drafts/legacy?${qs.toString()}`, { cache: "no-store" });
+        const body = (await res.json().catch(() => ({}))) as {
+          ok?: boolean;
+          items?: LegacyDraftSummary[];
+          error?: string;
+        };
+        if (!res.ok || !body?.ok) {
+          throw new Error(body?.error || res.statusText);
+        }
+        if (!ignored) {
+          const items = Array.isArray(body.items) ? body.items : [];
+          setLegacyItems(items);
+          setLegacyAttachByDraft((prev) => {
+            const next = { ...prev };
+            for (const item of items) {
+              if (!(item.id in next)) next[item.id] = "";
+            }
+            return next;
+          });
+        }
+      } catch (err: any) {
+        if (!ignored) {
+          setLegacyItems([]);
+          setLegacyError(err?.message ?? "legacy_backfill_list_failed");
+        }
+      } finally {
+        if (!ignored) setLegacyLoading(false);
+      }
+    }
+    loadLegacy();
+    return () => {
+      ignored = true;
+    };
+  }, [statusFilter, reviewStateFilter, reloadToken]);
 
   const allVisibleSelected = useMemo(
     () => items.length > 0 && items.every((item) => selectedIds.includes(item.id)),
@@ -196,6 +290,56 @@ export default function AdminFeedDraftsPage() {
       for (const item of items) merged.add(item.id);
       return Array.from(merged);
     });
+  }
+
+  async function runLegacyBackfill(draftId: string, mode: LegacyBackfillMode) {
+    const attachId = String(legacyAttachByDraft[draftId] ?? "").trim();
+    if (mode === "attach" && !attachId) {
+      setLegacyError("Für Attach ist eine Anlassraum-ID erforderlich.");
+      return;
+    }
+
+    setLegacyBusyDraftId(draftId);
+    setLegacyError(null);
+    try {
+      const payload: Record<string, unknown> = {
+        mode,
+      };
+      if (mode === "attach") payload.anlassraumId = attachId;
+
+      const note = String(legacyNoteByDraft[draftId] ?? "").trim();
+      if (note) payload.reviewNote = note;
+
+      const res = await fetch(`/api/admin/feeds/drafts/${draftId}/backfill`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const body = (await res.json().catch(() => ({}))) as {
+        ok?: boolean;
+        draftId?: string;
+        mode?: LegacyBackfillMode;
+        remediationKind?: LegacyBackfillOutcome["remediationKind"];
+        result?: LegacyBackfillOutcome["result"];
+        error?: string;
+      };
+      if (!res.ok || !body?.ok || !body.result || !body.mode || !body.remediationKind || !body.draftId) {
+        throw new Error(body?.error || res.statusText);
+      }
+
+      const outcome: LegacyBackfillOutcome = {
+        draftId: body.draftId,
+        mode: body.mode,
+        remediationKind: body.remediationKind,
+        result: body.result,
+      };
+      setLegacyOutcomeByDraft((prev) => ({ ...prev, [draftId]: outcome }));
+      setReloadToken((prev) => prev + 1);
+    } catch (err: any) {
+      setLegacyError(err?.message ?? "legacy_backfill_failed");
+    } finally {
+      setLegacyBusyDraftId(null);
+    }
   }
 
   return (
@@ -346,6 +490,123 @@ export default function AdminFeedDraftsPage() {
         {bulkNotice && <p className="text-xs text-[rgb(var(--muted))] lg:col-span-6">{bulkNotice}</p>}
       </section>
 
+      <section className="grid gap-3 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-3 shadow-sm">
+        <header className="space-y-1">
+          <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
+            Legacy Backfill (Admin-only)
+          </p>
+          <p className="text-xs text-[rgb(var(--muted))]">
+            Explizite Einzel-Remediation für Drafts ohne `anlassraumId` (kein Auto-Backfill, kein Silent-Migration).
+          </p>
+        </header>
+        {legacyError && <p className="rounded border border-rose-200 bg-rose-50 px-2 py-1 text-xs text-rose-700">{legacyError}</p>}
+        <div className="overflow-auto rounded-xl border border-[rgb(var(--border))]">
+          <table className="min-w-full divide-y divide-[rgb(var(--border))] text-xs">
+            <thead className="bg-[rgb(var(--bg))]">
+              <tr>
+                <th className="px-2 py-2 text-left font-semibold text-[rgb(var(--muted))]">Draft</th>
+                <th className="px-2 py-2 text-left font-semibold text-[rgb(var(--muted))]">Queue/Triage</th>
+                <th className="px-2 py-2 text-left font-semibold text-[rgb(var(--muted))]">Audit</th>
+                <th className="px-2 py-2 text-left font-semibold text-[rgb(var(--muted))]">Remediation</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-[rgb(var(--border))]">
+              {legacyLoading && (
+                <tr>
+                  <td colSpan={4} className="px-2 py-3 text-[rgb(var(--muted))]">
+                    Lade Legacy-Drafts …
+                  </td>
+                </tr>
+              )}
+              {!legacyLoading && legacyItems.length === 0 && (
+                <tr>
+                  <td colSpan={4} className="px-2 py-3 text-[rgb(var(--muted))]">
+                    Keine unlinked Legacy-Drafts im aktuellen Filter.
+                  </td>
+                </tr>
+              )}
+              {!legacyLoading &&
+                legacyItems.map((item) => {
+                  const outcome = legacyOutcomeByDraft[item.id];
+                  return (
+                    <tr key={item.id}>
+                      <td className="px-2 py-2 align-top">
+                        <Link href={`/admin/feeds/drafts/${item.id}`} className="font-semibold text-[rgb(var(--fg))] hover:underline">
+                          {item.title}
+                        </Link>
+                        <p className="text-[11px] text-[rgb(var(--muted))]">ID {item.id.slice(-8)} · status {item.status}</p>
+                        <p className="text-[11px] text-amber-700">anlassraumId fehlt</p>
+                      </td>
+                      <td className="px-2 py-2 align-top text-[rgb(var(--muted))]">
+                        <p>queue: {item.feedReviewState}</p>
+                        <p>prio: {item.queueMeta?.priorityBucket} ({item.queueMeta?.priorityScore})</p>
+                        <p>pending: {item.queueMeta?.pendingHours}h</p>
+                        <p>reasons: {(item.queueMeta?.reasons ?? []).join(", ") || "—"}</p>
+                        <p>weak: {item.weakSignalFlagged ? item.weakSignalReason ?? "flagged" : "clear"}</p>
+                      </td>
+                      <td className="px-2 py-2 align-top text-[rgb(var(--muted))]">
+                        <p>lastAction: {item.lastReviewAction ?? "—"}</p>
+                        <p>lastBy: {item.lastReviewActionBy ?? "—"}</p>
+                        <p>lastAt: {formatDate(item.lastReviewActionAt)}</p>
+                        <p>note: {item.reviewNote ?? "—"}</p>
+                        {outcome && (
+                          <p className="mt-1 rounded border border-emerald-200 bg-emerald-50 px-1 py-0.5 text-[11px] text-emerald-800">
+                            remediation: {outcome.remediationKind} · anlassraum {outcome.result.anlassraumId ?? "—"}
+                          </p>
+                        )}
+                      </td>
+                      <td className="px-2 py-2 align-top">
+                        <div className="flex min-w-[260px] flex-col gap-1">
+                          <input
+                            value={legacyAttachByDraft[item.id] ?? ""}
+                            onChange={(e) =>
+                              setLegacyAttachByDraft((prev) => ({
+                                ...prev,
+                                [item.id]: e.target.value,
+                              }))
+                            }
+                            placeholder="Anlassraum-ID für Attach"
+                            className="rounded border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-2 py-1 text-xs"
+                          />
+                          <input
+                            value={legacyNoteByDraft[item.id] ?? ""}
+                            onChange={(e) =>
+                              setLegacyNoteByDraft((prev) => ({
+                                ...prev,
+                                [item.id]: e.target.value,
+                              }))
+                            }
+                            placeholder="Remediation-Notiz (optional)"
+                            className="rounded border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-2 py-1 text-xs"
+                          />
+                          <div className="flex gap-1">
+                            <button
+                              type="button"
+                              disabled={legacyBusyDraftId !== null}
+                              onClick={() => runLegacyBackfill(item.id, "attach")}
+                              className="rounded border border-[rgb(var(--border))] px-2 py-1 text-xs font-semibold text-[rgb(var(--fg))] hover:bg-[rgb(var(--bg))] disabled:cursor-not-allowed disabled:opacity-60"
+                            >
+                              {legacyBusyDraftId === item.id ? "..." : "Attach"}
+                            </button>
+                            <button
+                              type="button"
+                              disabled={legacyBusyDraftId !== null}
+                              onClick={() => runLegacyBackfill(item.id, "create_candidate")}
+                              className="rounded border border-[rgb(var(--border))] px-2 py-1 text-xs font-semibold text-[rgb(var(--fg))] hover:bg-[rgb(var(--bg))] disabled:cursor-not-allowed disabled:opacity-60"
+                            >
+                              {legacyBusyDraftId === item.id ? "..." : "Create Candidate"}
+                            </button>
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
       {error && (
         <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
           {error}
@@ -415,6 +676,11 @@ export default function AdminFeedDraftsPage() {
                     {draft.lastReviewActionAt && (
                       <p className="text-[11px] text-[rgb(var(--muted))]">
                         last: {draft.lastReviewAction ?? "action"} · {formatDate(draft.lastReviewActionAt)}
+                      </p>
+                    )}
+                    {draft.reviewNote && (
+                      <p className="text-[11px] text-[rgb(var(--muted))]">
+                        note: {String(draft.reviewNote).slice(0, 80)}
                       </p>
                     )}
                   </td>

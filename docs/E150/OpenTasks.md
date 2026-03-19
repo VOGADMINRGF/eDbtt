@@ -127,7 +127,7 @@ Status: **In Progress (Core baseline / 2026-03-19)**
 | Feed/Anlassraum Cluster-Job | Open | PR-FEED-ANLASS-03 | dedizierter Worker fehlt |
 | Feed/Anlassraum Status-Transitions absichern | In Progress (Wave 2 deepening) | PR-FEED-ANLASS-04 | erweitert um Queue-Review-Aktionen + Bulk-Route + Queue-Triage: `features/feeds/reviewQueue.ts`, `apps/web/src/app/api/admin/feeds/drafts/bulk/route.ts`, `apps/web/src/app/api/admin/feeds/drafts/route.ts` |
 | Feed/Anlassraum Publish-Flows ausbauen | Done (manual output-prep baseline closed / 2026-03-19) | PR-FEED-ANLASS-06 | Output-Prep operabel inkl. Admin-Surface: `features/anlassraum/outputPrep.ts`, `GET /api/admin/feeds/anlassraum/[id]/outputs`, `POST /api/admin/feeds/anlassraum/[id]/outputs/[seedId]/transition`, `apps/web/src/app/admin/feeds/anlassraum/[id]/page.tsx` |
-| Feed/Anlassraum Backfill | In Progress (admin-safe path active) | PR-FEED-ANLASS-06 | Detection + Remediation fuer `vote_drafts` ohne `anlassraumId`: `GET /api/admin/feeds/drafts/legacy`, `POST /api/admin/feeds/drafts/[id]/backfill` |
+| Feed/Anlassraum Backfill | In Progress (legacy remediation UX + audit active) | PR-FEED-ANLASS-06 | Detection + per-draft Remediation inkl. Audit-Sichtbarkeit: `GET /api/admin/feeds/drafts/legacy`, `POST /api/admin/feeds/drafts/[id]/backfill`, `apps/web/src/app/admin/feeds/drafts/page.tsx` |
 | Swipes Kontextpfade haerten | Open | PR-0042 | thematisch passendes Ziel |
 | Swipes Mobile Gestures + Bottom-Actions | Open | PR-0043 | thumb-reachable |
 | Swipes Varianten-Schritt finalisieren | Open | PR-0044 | Ranking/Weighting/Exclude |
@@ -287,6 +287,7 @@ Evidenz:
 - `apps/web/src/app/admin/feeds/drafts/[id]/page.tsx`
 - `apps/web/src/app/admin/feeds/anlassraum/[id]/page.tsx`
 - `apps/web/tests/feed-review.routes.test.ts`
+- `apps/web/tests/feed-backfill.service.test.ts`
 - `apps/web/tests/anlassraum-output-prep.routes.test.ts`
 - `apps/web/tests/anlassraum-output-prep.service.test.ts`
 - `features/anlassraum/outputPrep.ts`
@@ -298,6 +299,15 @@ Queue Deepening (2026-03-19):
 - Triage-Metadaten je Draft: `lastReviewAction*`, `queueMeta` (`priorityScore`, `priorityBucket`, `pendingHours`, `needsAnlassraumBackfill`, `reasons`).
 - Bulk-Review (manual-first, nicht publizierend): `POST /api/admin/feeds/drafts/bulk` fuer `ignore`, `mark_as_weak_signal`, `attach_to_anlassraum`, `create_anlassraum_candidate`.
 - Legacy-Backfill-Pfad (admin-safe): `GET /api/admin/feeds/drafts/legacy` + `POST /api/admin/feeds/drafts/[id]/backfill`.
+
+Legacy Backfill UX + Audit (PR-FEED-ANLASS-06 / 2026-03-19):
+- Minimales Admin-Remediation-Surface in `apps/web/src/app/admin/feeds/drafts/page.tsx` listet unlinked Legacy-Drafts und bietet per Draft:
+  `attach` (explizite Anlassraum-ID) oder `create_candidate`.
+- Audit-Sichtbarkeit im Legacy-Panel:
+  `lastReviewAction`, `lastReviewActionBy`, `lastReviewActionAt`, `reviewNote`, Weak-Signal-Status, Triage-Reasons.
+- Backfill-Response liefert expliziten Remediation-Typ:
+  `attached_existing_anlassraum` oder `created_candidate_anlassraum`.
+- Kein Silent-Migration-Pfad: keine Bulk-Auto-Migration, keine Hintergrund-Migration, keine Publish-/Approval-Seiteneffekte.
 
 Output-Prep Deepening (PR-FEED-ANLASS-05 / 2026-03-19):
 - Output-Seed-Workflow ist API-first operationalisiert fuer `round_seed`, `dossier_seed`, `embed_seed`, `social_seed`, `regional_briefing_seed`, `editorial_pitch_seed`.
