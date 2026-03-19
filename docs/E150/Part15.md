@@ -111,6 +111,31 @@ Dieses Dokument dient als Status-Zusammenfassung der Pfade (Part00–Part15). Es
 - Route-Acceptance fuer Legacy-/Backfill-Routen wurde erweitert:
   `apps/web/tests/feed-review.routes.test.ts`.
 
+## Update (2026-03-19) — PR-0035 Deepening (Create IA v2 mode split)
+
+- `/create` nutzt jetzt einen kanonischen Create-Mode-Split: `manual`, `source`, `ai` (Single Source: `features/create/intents.ts`).
+- Legacy-Mode-Werte (`ai_assist`, `feed`, `cluster`) werden kompatibel auf den kanonischen Modus normalisiert, ohne stillen Intent-Verlust.
+- Mode wird entlang des Create-Flows mitgefuehrt:
+  Analyze-Request (`createMode`), Draft-Save (`contribution_drafts.createMode`) und Finalize-Propagation (`statement_proposals.createMode`).
+- Save/Finalize validieren `createMode` explizit; ungueltige Werte liefern stabil `invalid_create_mode` (400).
+- Manual-first bleibt unveraendert: AI-Mode ist nur Drafting-Intent, ohne Auto-Publish oder Auto-Approval.
+
+## Update (2026-03-19) — PR-0036 Deepening (Runden Entry auf produktive Quelle)
+
+- `/runden` ist von statischen TopicRound-Seeds entkoppelt; die Entry-Surface nutzt jetzt ein produktives Read-Model statt `features/topicRound/data.ts`.
+- Neue produktive Quelle:
+  `features/topicRound/entrySource.ts` liest `output_seed` (`outputType=round_seed`) + `anlassraum`, normalisiert Legacy-/unvollstaendige Datensaetze defensiv und liefert stabile Entry-Objekte.
+- Minimale API fuer Entry-Read:
+  `GET /api/runden/entry` (inkl. stabiler Fehler-/Validierungsantworten fuer `invalid_limit` und `round_entry_source_unavailable`).
+- `/runden` zeigt jetzt explizite Zustaende statt Demo-Fallback:
+  - produktive Liste
+  - expliziter Empty-State bei `0` Datensaetzen
+  - expliziter Error-State bei Source-Ausfall
+- Testabdeckung hinzugefuegt:
+  - `apps/web/tests/runden-entry.service.test.ts` (produktive Daten, leerer Bestand, Legacy-Normalisierung, Source-Failure)
+  - `apps/web/tests/runden-entry.route.test.ts` (Route-Response-Mapping inkl. `invalid_limit`/`503`)
+- Governance bleibt unveraendert: kein Auto-Publish, kein Auto-Approval, kein Public-/Live-Bypass; AI/Source/Manual bleiben manual-first.
+
 ## Status-Übersicht der Pfade 00–15
 
 - **Part00 Foundations / PII:** PII-Guardrails plus Klarname-Trennung (givenName/familyName) und Privacy-Flags dokumentiert; Alt-Migration optional.

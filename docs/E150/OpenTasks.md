@@ -116,8 +116,8 @@ Status: **In Progress (Core baseline / 2026-03-19)**
 
 | Task | Status | Naechster Run | Evidenz/Notiz |
 | --- | --- | --- | --- |
-| Create IA v2: dedizierte Mode-Module (`manual/source/ai`) statt nur Workspace-Parametrisierung | Open | PR-0035 | Aktuell produktiv: `apps/web/src/app/create/CreateClient.tsx` nutzt Mode-Switch auf bestehendem AnalyzeWorkspace |
-| Runden Entry Surface auf produktive Quelle umstellen (statt Seed aus `features/topicRound/data.ts`) | Open | PR-0036 | Aktuell produktiv: `apps/web/src/app/runden/page.tsx` basiert auf `@features/topicRound` Seed-Repository |
+| Create IA v2: dedizierte Mode-Module (`manual/source/ai`) statt nur Workspace-Parametrisierung | In Progress (canonical mode split active) | PR-0037 | Canonical `manual/source/ai` aktiv inkl. Legacy-Alias-Normalisierung + Persistenz in Create-Save/Finalize: `features/create/intents.ts`, `app/create/CreateClient.tsx`, `api/contributions/save|finalize`, `tests/create-mode.*` |
+| Runden Entry Surface auf produktive Quelle umstellen (statt Seed aus `features/topicRound/data.ts`) | In Progress (productive source active, no seed/demo fallback) | PR-0037 | `/runden` liest jetzt aus produktivem `output_seed`/`anlassraum`-Read-Model: `features/topicRound/entrySource.ts`, `apps/web/src/app/runden/page.tsx`, `GET /api/runden/entry`; stabile Empty/Error-States + Tests: `apps/web/tests/runden-entry.service.test.ts`, `apps/web/tests/runden-entry.route.test.ts` |
 | Backward-Compatibility finalisieren | Open | PR-0037 | Redirect-Matrix inkl. `/demo/runden`-Kommunikation |
 | E2E-Abnahme fuer `/create` + `/runden` | Open | PR-0038 | dedizierte E2E-Cases fehlen |
 | Community Group Surfaces entkoppeln | Open | PR-0039 | dedizierte Resolver/API |

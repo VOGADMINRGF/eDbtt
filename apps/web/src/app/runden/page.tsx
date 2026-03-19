@@ -1,11 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound } from "next/navigation";
-import {
-  listCompanionContextsByTopicSlug,
-  listRoundsByTopicSlug,
-  listTopics,
-} from "@features/topicRound";
+import { listRundenEntryItems, type RundenEntryItem } from "@features/topicRound/entrySource";
 
 type SearchParamsShape =
   | Promise<Record<string, string | string[] | undefined>>
@@ -37,58 +32,64 @@ function parseView(value?: string): RoundEntryView {
   return "active";
 }
 
-function roundTypeLabel(type: string) {
-  if (type === "event") return "Event";
-  if (type === "livestream") return "Livestream";
-  if (type === "video") return "Video";
-  if (type === "article") return "Artikel";
-  if (type === "podcast") return "Podcast";
-  if (type === "session") return "Session";
-  return "Offene Runde";
-}
-
-function roundSourceParam(type: string) {
-  if (type === "article") return "article";
-  if (type === "video") return "video";
-  if (type === "podcast") return "podcast";
-  if (type === "session") return "session";
-  if (type === "event") return "event";
-  if (type === "livestream") return "livestream";
-  return "session";
+function viewHref(view: RoundEntryView) {
+  return `/runden?view=${view}`;
 }
 
 function shortSummary(text: string) {
   const clean = text.trim();
   if (!clean) return "";
   const firstSentence = clean.split(/[.!?]/)[0]?.trim() ?? clean;
-  if (firstSentence.length <= 140) return firstSentence;
-  return `${firstSentence.slice(0, 137).trimEnd()}...`;
+  if (firstSentence.length <= 160) return firstSentence;
+  return `${firstSentence.slice(0, 157).trimEnd()}...`;
 }
 
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString("de-DE", {
+function formatDate(iso: string | null) {
+  if (!iso) return "-";
+  const parsed = new Date(iso);
+  if (Number.isNaN(parsed.getTime())) return "-";
+  return parsed.toLocaleDateString("de-DE", {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
   });
 }
 
-function summaryCountLabel(value: number, singular: string, plural: string) {
-  return `${value} ${value === 1 ? singular : plural}`;
+function outputStatusLabel(item: RundenEntryItem) {
+  if (item.outputStatus === "queued") return "queued";
+  if (item.outputStatus === "review") return "in review";
+  if (item.outputStatus === "ready") return "ready";
+  if (item.outputStatus === "published") return "published";
+  if (item.outputStatus === "discarded") return "discarded";
+  return "draft";
 }
 
-function roundRelevanceLabel(contributions: number, openPoints: number) {
-  if (openPoints > 0) {
-    return `${summaryCountLabel(openPoints, "offene Frage", "offene Fragen")} brauchen noch klares Feedback.`;
-  }
-  if (contributions >= 3) {
-    return `${summaryCountLabel(contributions, "aktueller Beitrag", "aktuelle Beitraege")} geben dir schnellen Kontext.`;
-  }
-  return "Guter Einstieg, um den aktuellen Stand mit einem Klick zu verstehen.";
+function reviewStateLabel(item: RundenEntryItem) {
+  if (item.reviewState === "approved") return "approved";
+  if (item.reviewState === "rejected") return "rejected";
+  return "pending";
 }
 
-function viewHref(view: RoundEntryView) {
-  return `/runden?view=${view}`;
+function typeLabel(item: RundenEntryItem) {
+  if (item.anlassraumType === "event") return "Event";
+  if (item.anlassraumType === "policy") return "Policy";
+  if (item.anlassraumType === "conflict") return "Konflikt";
+  if (item.anlassraumType === "investigation") return "Investigation";
+  if (item.anlassraumType === "proposal") return "Proposal";
+  if (item.anlassraumType === "crisis") return "Krise";
+  if (item.anlassraumType === "community_project") return "Community";
+  if (item.anlassraumType === "funding_case") return "Funding";
+  if (item.anlassraumType === "monitoring") return "Monitoring";
+  return "Anlassraum";
+}
+
+function sourceModeLabel(item: RundenEntryItem) {
+  if (item.sourceMode === "ai_assist") return "ai_assist";
+  if (item.sourceMode === "cluster") return "cluster";
+  if (item.sourceMode === "single_source") return "single_source";
+  if (item.sourceMode === "feed") return "feed";
+  if (item.sourceMode === "manual") return "manual";
+  return "unknown";
 }
 
 export default async function RundenPage({
@@ -99,41 +100,24 @@ export default async function RundenPage({
   const resolved = searchParams ? await searchParams : {};
   const view = parseView(readStringParam(resolved?.view));
 
-  const topics = listTopics();
-  const topic = topics[0];
-  if (!topic) notFound();
+  let entries: RundenEntryItem[] = [];
+  let sourceError: string | null = null;
 
-  const rounds = listRoundsByTopicSlug(topic.slug);
-  const companions = listCompanionContextsByTopicSlug(topic.slug);
-  const companionByRoundSlug = new Map(
-    companions
-      .filter((entry) => Boolean(entry.linkedRoundSlug))
-      .map((entry) => [entry.linkedRoundSlug as string, entry]),
-  );
+  try {
+    entries = await listRundenEntryItems({ limit: 80 });
+  } catch {
+    sourceError = "round_entry_source_unavailable";
+  }
 
-  const activeRounds = rounds.filter((round) => round.status === "open");
-  const fallbackRounds = rounds.slice(0, 3);
-  const visibleActiveRounds = activeRounds.length > 0 ? activeRounds : fallbackRounds;
-  const closedRounds = rounds.filter((round) => round.status === "closed");
-
-  const featuredRound = visibleActiveRounds[0] ?? null;
-  const remainingActiveRounds =
-    featuredRound === null
-      ? visibleActiveRounds
-      : visibleActiveRounds.filter((round) => round.id !== featuredRound.id);
-
-  const resolveRoundEntryHref = (round: (typeof rounds)[number]) => {
-    const companionContext = companionByRoundSlug.get(round.slug);
-    if (companionContext) {
-      return `/companion/${companionContext.slug}?entry=qr&source=${roundSourceParam(round.type)}`;
-    }
-    return `/round/${round.slug}?entry=qr&source=${roundSourceParam(round.type)}`;
-  };
-
-  const featuredRoundEntryHref = featuredRound ? resolveRoundEntryHref(featuredRound) : `/topic/${topic.slug}`;
-  const totalContributions = rounds.reduce((sum, round) => sum + round.contributions.length, 0);
-  const totalOpenPoints = rounds.reduce((sum, round) => sum + round.openPoints.length, 0);
-  const unresolvedRoadmap = topic.roadmap.filter((item) => item.status !== "done");
+  const activeEntries = entries.filter((entry) => entry.lifecycle === "active");
+  const closedEntries = entries.filter((entry) => entry.lifecycle === "closed");
+  const visibleActiveEntries = activeEntries.length > 0 ? activeEntries : entries.slice(0, 3);
+  const featuredEntry = visibleActiveEntries[0] ?? null;
+  const remainingActiveEntries =
+    featuredEntry === null
+      ? visibleActiveEntries
+      : visibleActiveEntries.filter((entry) => entry.id !== featuredEntry.id);
+  const legacyCount = entries.filter((entry) => entry.legacyIncomplete).length;
 
   return (
     <main className="mx-auto min-h-screen w-full max-w-[92rem] space-y-8 px-4 py-6 md:space-y-10 md:px-8 md:py-10 xl:px-10">
@@ -154,19 +138,19 @@ export default async function RundenPage({
                   color: "transparent",
                 }}
               >
-                Dein Einstieg in aktive Runden
+                Dein Einstieg in produktive Runden
               </h1>
               <p className="max-w-3xl text-sm text-[rgb(var(--muted))]">
-                Oeffne laufende Runden, starte neue Einreichungen ueber <code>/create</code> und halte Ergebnisse nachvollziehbar.
+                Diese Entry-Surface liest direkt aus produktiven Output-Seeds und nutzt keinen statischen Demo-Seed-Fallback.
               </p>
             </div>
 
             <div className="rounded-2xl border border-[rgb(var(--grad-from))]/35 bg-[rgb(var(--bg))]/85 p-4">
               <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Empfohlener Start</p>
               <p className="mt-2 text-sm text-[rgb(var(--fg))]">
-                {featuredRound ? featuredRound.title : "Direkt in das aktuelle Thema wechseln"}
+                {featuredEntry ? featuredEntry.title : "Neue Runde ueber /create vorbereiten"}
               </p>
-              <Link href={featuredRoundEntryHref} className="btn btn-primary mt-4 w-full text-sm">
+              <Link href={featuredEntry?.entryHref ?? "/create?mode=source"} className="btn btn-primary mt-4 w-full text-sm">
                 Jetzt einsteigen
               </Link>
             </div>
@@ -186,7 +170,7 @@ export default async function RundenPage({
               className="rounded-2xl border border-[rgb(var(--grad-from))]/50 bg-[rgb(var(--bg))] p-4 transition hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--grad-from))]"
             >
               <p className="text-sm font-semibold text-[rgb(var(--fg))]">In aktive Runde</p>
-              <p className="mt-1 text-xs text-[rgb(var(--muted))]">Laufende Runden mit einem Klick oeffnen.</p>
+              <p className="mt-1 text-xs text-[rgb(var(--muted))]">Laufende Round-Seeds mit einem Klick oeffnen.</p>
             </Link>
 
             <Link
@@ -194,14 +178,14 @@ export default async function RundenPage({
               className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4 transition hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--grad-from))]"
             >
               <p className="text-sm font-semibold text-[rgb(var(--fg))]">Ergebnisse ansehen</p>
-              <p className="mt-1 text-xs text-[rgb(var(--muted))]">Abgeschlossene Runden und offene Punkte vergleichen.</p>
+              <p className="mt-1 text-xs text-[rgb(var(--muted))]">Abgeschlossene Seeds ohne Demo-Fallback vergleichen.</p>
             </Link>
           </section>
 
           <div className="flex flex-wrap gap-x-6 gap-y-1 text-xs text-[rgb(var(--muted))]">
-            <span>Topic: {topic.title}</span>
-            <span>Runden: {rounds.length}</span>
-            <span>Aktiv: {activeRounds.length}</span>
+            <span>Gesamt: {entries.length}</span>
+            <span>Aktiv: {activeEntries.length}</span>
+            <span>Legacy-Luecken: {legacyCount}</span>
           </div>
         </div>
       </header>
@@ -231,35 +215,49 @@ export default async function RundenPage({
         </nav>
       </section>
 
-      {view === "active" ? (
+      {sourceError ? (
+        <section className="rounded-3xl border border-rose-200 bg-rose-50 p-5 text-sm text-rose-800">
+          Produktive Quelle derzeit nicht verfuegbar (`{sourceError}`). Es wird bewusst kein statischer Seed-Datensatz als Fallback angezeigt.
+        </section>
+      ) : null}
+
+      {!sourceError && entries.length === 0 ? (
+        <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-6 text-sm text-[rgb(var(--muted))]">
+          Noch keine produktiven Runden vorhanden. Starte eine neue Einreichung ueber <Link className="underline" href="/create?mode=source">/create</Link>.
+        </section>
+      ) : null}
+
+      {view === "active" && !sourceError && entries.length > 0 ? (
         <section id="aktive-runden" className="space-y-4">
           <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
             <div>
-              <h2 className="text-2xl font-semibold text-[rgb(var(--fg))]">{remainingActiveRounds.length > 0 ? "Weitere aktive Runden" : "Aktive Runden"}</h2>
-              <p className="text-sm text-[rgb(var(--muted))]">Jede Karte hat genau eine Hauptaktion.</p>
+              <h2 className="text-2xl font-semibold text-[rgb(var(--fg))]">
+                {remainingActiveEntries.length > 0 ? "Weitere aktive Runden" : "Aktive Runden"}
+              </h2>
+              <p className="text-sm text-[rgb(var(--muted))]">Produktive Quelle: `output_seed` + `anlassraum`.</p>
             </div>
-            <Link href={`/topic/${topic.slug}`} className="btn-secondary w-full text-sm sm:w-auto">
-              Aktuelles Thema ansehen
+            <Link href="/create?mode=source" className="btn-secondary w-full text-sm sm:w-auto">
+              Neue Runde vorbereiten
             </Link>
           </div>
 
-          {featuredRound ? (
+          {featuredEntry ? (
             <article className="rounded-3xl border border-[rgb(var(--grad-from))]/35 bg-[rgb(var(--card))] p-5 shadow-sm">
               <div className="grid gap-4 lg:grid-cols-[1.45fr_0.9fr] lg:items-end">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[rgb(var(--muted))]">Empfohlene Runde</p>
-                  <h3 className="mt-2 text-xl font-semibold text-[rgb(var(--fg))] md:text-2xl">{featuredRound.title}</h3>
-                  <p className="mt-2 text-sm text-[rgb(var(--muted))]">{shortSummary(featuredRound.summary)}</p>
-                  <p className="mt-3 text-sm text-[rgb(var(--fg))]">
-                    Warum jetzt: {roundRelevanceLabel(featuredRound.contributions.length, featuredRound.openPoints.length)}
+                  <h3 className="mt-2 text-xl font-semibold text-[rgb(var(--fg))] md:text-2xl">{featuredEntry.title}</h3>
+                  <p className="mt-2 text-sm text-[rgb(var(--muted))]">{shortSummary(featuredEntry.summary)}</p>
+                  <p className="mt-3 text-xs text-[rgb(var(--muted))]">
+                    {typeLabel(featuredEntry)} · {sourceModeLabel(featuredEntry)} · status {outputStatusLabel(featuredEntry)}
                   </p>
                 </div>
                 <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4">
-                  <p className="text-xs text-[rgb(var(--muted))]">{roundTypeLabel(featuredRound.type)} · zuletzt {formatDate(featuredRound.startedAt)}</p>
-                  <p className="mt-1 text-xs text-[rgb(var(--muted))]">
-                    {summaryCountLabel(featuredRound.contributions.length, "Beitrag", "Beitraege")} · {summaryCountLabel(featuredRound.openPoints.length, "offene Frage", "offene Fragen")}
+                  <p className="text-xs text-[rgb(var(--muted))]">
+                    review {reviewStateLabel(featuredEntry)} · update {formatDate(featuredEntry.updatedAt)}
                   </p>
-                  <Link href={featuredRoundEntryHref} className="btn btn-primary mt-4 w-full text-sm">
+                  <p className="mt-1 text-xs text-[rgb(var(--muted))]">{featuredEntry.legacyIncomplete ? "Legacy-Incomplete Datensatz" : "Produktiv normalisiert"}</p>
+                  <Link href={featuredEntry.entryHref} className="btn btn-primary mt-4 w-full text-sm">
                     Runde oeffnen
                   </Link>
                 </div>
@@ -267,65 +265,32 @@ export default async function RundenPage({
             </article>
           ) : null}
 
-          {remainingActiveRounds.length > 0 ? (
+          {remainingActiveEntries.length > 0 ? (
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-              {remainingActiveRounds.map((round) => (
-                <article key={round.id} className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm">
+              {remainingActiveEntries.map((entry) => (
+                <article key={entry.id} className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm">
                   <div className="flex flex-wrap items-center gap-2 text-xs text-[rgb(var(--muted))]">
-                    <span className="vog-chip">{roundTypeLabel(round.type)}</span>
-                    <span className="vog-chip vog-chip--status">{round.status === "open" ? "laeuft" : "abgeschlossen"}</span>
+                    <span className="vog-chip">{typeLabel(entry)}</span>
+                    <span className="vog-chip vog-chip--status">{outputStatusLabel(entry)}</span>
                   </div>
 
-                  <h3 className="mt-3 text-lg font-semibold text-[rgb(var(--fg))]">{round.title}</h3>
-                  <p className="mt-2 text-sm text-[rgb(var(--muted))]">{shortSummary(round.summary)}</p>
+                  <h3 className="mt-3 text-lg font-semibold text-[rgb(var(--fg))]">{entry.title}</h3>
+                  <p className="mt-2 text-sm text-[rgb(var(--muted))]">{shortSummary(entry.summary)}</p>
                   <p className="mt-3 text-xs text-[rgb(var(--muted))]">
-                    {summaryCountLabel(round.contributions.length, "Beitrag", "Beitraege")} · {summaryCountLabel(round.openPoints.length, "offene Frage", "offene Fragen")}
+                    review {reviewStateLabel(entry)} · update {formatDate(entry.updatedAt)}
                   </p>
 
-                  <Link href={resolveRoundEntryHref(round)} className="btn btn-primary mt-4 text-sm">
+                  <Link href={entry.entryHref} className="btn btn-primary mt-4 text-sm">
                     Runde oeffnen
                   </Link>
                 </article>
               ))}
             </div>
           ) : null}
-
-          <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm md:p-6">
-            <h3 className="text-base font-semibold text-[rgb(var(--fg))]">Sekundaere Orientierung</h3>
-            <p className="mt-1 text-sm text-[rgb(var(--muted))]">
-              Regeln, Verlauf und Kontext bleiben auffindbar, ohne den Einstieg zu ueberladen.
-            </p>
-
-            <div className="mt-4 grid gap-4 lg:grid-cols-3">
-              <article className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4">
-                <p className="text-sm font-semibold text-[rgb(var(--fg))]">Regeln & Transparenz</p>
-                <p className="mt-2 text-sm text-[rgb(var(--muted))]">Moderation und Review-Log im Governance-Bereich.</p>
-                <Link href={`/topic/manage/${topic.slug}/governance`} className="btn-secondary mt-3 text-xs">
-                  Governance
-                </Link>
-              </article>
-
-              <article className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4">
-                <p className="text-sm font-semibold text-[rgb(var(--fg))]">Naechste Schritte</p>
-                <ul className="mt-2 space-y-1 text-sm text-[rgb(var(--muted))]">
-                  {unresolvedRoadmap.slice(0, 3).map((item) => (
-                    <li key={item.id}>- {item.title}</li>
-                  ))}
-                </ul>
-              </article>
-
-              <article className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4">
-                <p className="text-sm font-semibold text-[rgb(var(--fg))]">Status gesamt</p>
-                <p className="mt-2 text-sm text-[rgb(var(--muted))]">
-                  {summaryCountLabel(totalContributions, "Beitrag", "Beitraege")} und {summaryCountLabel(totalOpenPoints, "offener Punkt", "offene Punkte")}.
-                </p>
-              </article>
-            </div>
-          </section>
         </section>
       ) : null}
 
-      {view === "mine" ? (
+      {view === "mine" && !sourceError ? (
         <section className="space-y-4">
           <h2 className="text-2xl font-semibold text-[rgb(var(--fg))]">Meine naechsten Schritte</h2>
           <div className="grid gap-4 md:grid-cols-3">
@@ -338,67 +303,74 @@ export default async function RundenPage({
             </article>
             <article className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm">
               <h3 className="text-base font-semibold text-[rgb(var(--fg))]">Runde wieder aufnehmen</h3>
-              <p className="mt-1 text-sm text-[rgb(var(--muted))]">Steig wieder in die empfohlene Runde ein.</p>
-              <Link href={featuredRoundEntryHref} className="btn-secondary mt-4 inline-flex text-sm">
+              <p className="mt-1 text-sm text-[rgb(var(--muted))]">Steig wieder in eine aktive produktive Runde ein.</p>
+              <Link href={featuredEntry?.entryHref ?? "/create?mode=source"} className="btn-secondary mt-4 inline-flex text-sm">
                 Runde oeffnen
               </Link>
             </article>
             <article className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm">
               <h3 className="text-base font-semibold text-[rgb(var(--fg))]">Kontext vertiefen</h3>
-              <p className="mt-1 text-sm text-[rgb(var(--muted))]">Gehe in Topic-Details und offenen Konflikten tiefer.</p>
-              <Link href={`/topic/${topic.slug}`} className="btn-secondary mt-4 inline-flex text-sm">
-                Topic ansehen
+              <p className="mt-1 text-sm text-[rgb(var(--muted))]">Arbeite mit Quellen-Setup und Anlassraum-Verknuepfung weiter.</p>
+              <Link href="/create?mode=source" className="btn-secondary mt-4 inline-flex text-sm">
+                Zu /create
               </Link>
             </article>
           </div>
         </section>
       ) : null}
 
-      {view === "results" ? (
+      {view === "results" && !sourceError ? (
         <section className="space-y-4">
           <h2 className="text-2xl font-semibold text-[rgb(var(--fg))]">Ergebnisse & vergangene Runden</h2>
-          <div className="grid gap-4 md:grid-cols-2">
-            {(closedRounds.length > 0 ? closedRounds : rounds.slice(0, 2)).map((round) => (
-              <article key={`${round.id}-results`} className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm">
-                <div className="flex flex-wrap gap-2 text-[11px]">
-                  <span className="vog-chip">{roundTypeLabel(round.type)}</span>
-                  <span className="vog-chip vog-chip--status">abgeschlossen</span>
-                </div>
-                <h3 className="mt-3 text-lg font-semibold text-[rgb(var(--fg))]">{round.title}</h3>
-                <p className="mt-1 text-sm text-[rgb(var(--muted))]">{shortSummary(round.summary)}</p>
-                <ul className="mt-4 space-y-1 text-sm text-[rgb(var(--muted))]">
-                  <li>- Beitraege: {round.contributions.length}</li>
-                  <li>- Offene Punkte: {round.openPoints.length}</li>
-                  <li>- Zuletzt aktiv: {formatDate(round.startedAt)}</li>
-                </ul>
-                <Link href={resolveRoundEntryHref(round)} className="btn-secondary mt-4 inline-flex text-sm">
-                  Ergebnis ansehen
-                </Link>
-              </article>
-            ))}
-          </div>
+          {closedEntries.length === 0 ? (
+            <div className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 text-sm text-[rgb(var(--muted))]">
+              Noch keine abgeschlossenen produktiven Runden vorhanden.
+            </div>
+          ) : (
+            <div className="grid gap-4 md:grid-cols-2">
+              {closedEntries.map((entry) => (
+                <article key={`${entry.id}-results`} className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm">
+                  <div className="flex flex-wrap gap-2 text-[11px]">
+                    <span className="vog-chip">{typeLabel(entry)}</span>
+                    <span className="vog-chip vog-chip--status">{outputStatusLabel(entry)}</span>
+                  </div>
+                  <h3 className="mt-3 text-lg font-semibold text-[rgb(var(--fg))]">{entry.title}</h3>
+                  <p className="mt-1 text-sm text-[rgb(var(--muted))]">{shortSummary(entry.summary)}</p>
+                  <ul className="mt-4 space-y-1 text-sm text-[rgb(var(--muted))]">
+                    <li>- Review: {reviewStateLabel(entry)}</li>
+                    <li>- Quelle: {sourceModeLabel(entry)}</li>
+                    <li>- Zuletzt aktiv: {formatDate(entry.updatedAt)}</li>
+                  </ul>
+                  <Link href={entry.entryHref} className="btn-secondary mt-4 inline-flex text-sm">
+                    Ergebnis ansehen
+                  </Link>
+                </article>
+              ))}
+            </div>
+          )}
         </section>
       ) : null}
 
-      {view === "organize" ? (
+      {view === "organize" && !sourceError ? (
         <section className="space-y-4">
           <h2 className="text-2xl font-semibold text-[rgb(var(--fg))]">Organisieren</h2>
           <div className="grid gap-4 md:grid-cols-3">
             <article className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm">
-              <h3 className="text-base font-semibold text-[rgb(var(--fg))]">Regeln & Transparenz</h3>
-              <p className="mt-1 text-sm text-[rgb(var(--muted))]">Review-Log und Rollen im Governance-Bereich.</p>
-              <Link href={`/topic/manage/${topic.slug}/governance`} className="btn btn-primary mt-4 text-sm">
-                Governance oeffnen
+              <h3 className="text-base font-semibold text-[rgb(var(--fg))]">Feed/Anlassraum Review</h3>
+              <p className="mt-1 text-sm text-[rgb(var(--muted))]">Queue, Backfill und Governance-Review im Admin-Bereich.</p>
+              <Link href="/admin/feeds/drafts" className="btn btn-primary mt-4 text-sm">
+                Review oeffnen
               </Link>
             </article>
             <article className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm">
-              <h3 className="text-base font-semibold text-[rgb(var(--fg))]">Runden-Review</h3>
-              <p className="mt-1 text-sm text-[rgb(var(--muted))]">Merge- und Assist-Vorschlaege pro Runde nachvollziehen.</p>
-              {rounds[0] ? (
-                <Link href={`/round/manage/${rounds[0].slug}/merge`} className="btn-secondary mt-4 inline-flex text-sm">
-                  Merge-Review
-                </Link>
-              ) : null}
+              <h3 className="text-base font-semibold text-[rgb(var(--fg))]">Output-Prep</h3>
+              <p className="mt-1 text-sm text-[rgb(var(--muted))]">Round-Seed-Outputs pro Anlassraum manuell in den Status bringen.</p>
+              <Link
+                href={featuredEntry?.anlassraumId ? `/admin/feeds/anlassraum/${featuredEntry.anlassraumId}` : "/admin/feeds/anlassraum"}
+                className="btn-secondary mt-4 inline-flex text-sm"
+              >
+                Anlassraum oeffnen
+              </Link>
             </article>
             <article className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm">
               <h3 className="text-base font-semibold text-[rgb(var(--fg))]">Neue Runde vorbereiten</h3>
