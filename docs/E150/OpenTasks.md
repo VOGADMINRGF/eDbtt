@@ -82,7 +82,7 @@ Status: **In Progress (Core baseline / 2026-03-19)**
 - **GOV-ANLASS-03** regionale / skalenfaehige Gruppierung (`local`, `regional`, `national`, `eu`, `global`) (**Core baseline active**)
 - **GOV-ANLASS-04** Feed-Review statt Feed-Leerlauf (**Queue actions active**)
 - **GOV-EVENT-01** Event-/Sitzungsmodell (**Event->Anlassraum linking active**)
-- **GOV-EVENT-02** QR -> Fragen -> Protokoll -> Dossier -> Runde (**QR protocol baseline active**)
+- **GOV-EVENT-02** QR -> Fragen -> Protokoll -> Dossier -> Runde (**Protocol->Dossier-Upsert + Round-Seed contracts active**)
 
 ### Welle 3 — Kommune / Verwaltung
 - **GOV-MUNI-01** Buergermeister-Dashboard
@@ -284,7 +284,7 @@ Evidenz:
 - `docs/event-and-session-model.md`
 
 ### GOV-EVENT-02 — QR -> Fragen -> Protokoll -> Dossier -> Runde
-Status: **In Progress (QR protocol baseline / 2026-03-19)**
+Status: **In Progress (Contract baseline / 2026-03-19)**
 
 Evidenz:
 - `apps/web/src/app/api/qr/sets/route.ts` (Anlassraum-/Dossier-/Round-Link)
@@ -292,6 +292,14 @@ Evidenz:
 - `apps/web/src/app/api/qr/resolve/route.ts`
 - `apps/web/src/app/api/qr/sets/[code]/protocol/route.ts`
 - `apps/web/src/app/api/qr/sets/summary/route.ts`
+- `features/dossier/protocolUpsert.ts` (protocol -> dossier-upsert contract, additive pending suggestions)
+- `features/topicRound/seedContract.ts` (protocol/anlassraum/dossier -> round-seed contract)
+- `apps/web/src/app/api/events/route.ts` (Event follow-up audit chain to QR/protocol/contracts)
+
+Manual-first Guardrails:
+- Kein Auto-Publish, kein Auto-Approval.
+- Protokollmaterial erzeugt nur reviewbare Dossier-Upsert-Contracts + pending Dossier-Suggestions.
+- Round-Seed wird als Contract (`review_required`) abgelegt, ohne automatische Live-Rundenerstellung.
 
 ### GOV-SIGNAL-01 — Signals
 Muss enthalten:

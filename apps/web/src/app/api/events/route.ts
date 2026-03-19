@@ -12,6 +12,8 @@ import {
 } from "@features/anlassraum/types";
 import type { GovernanceActor, RoomType } from "@features/trust/types";
 import { ensureSystemEntityForRegion } from "@features/entities/service";
+import { getLatestDossierUpsertContractByCode } from "@features/dossier/protocolUpsert";
+import { getLatestRoundSeedContractByCode } from "@features/topicRound/seedContract";
 import { requireGovernanceActorOrResponse } from "@/lib/server/auth/governance";
 
 function clamp(n: number, min: number, max: number) {
@@ -42,16 +44,49 @@ export async function GET(req: NextRequest) {
     .limit(limit)
     .toArray();
 
-  return NextResponse.json({
-    ok: true,
-    data: events.map((e: any) => ({
-      ...e,
-      id: String(e._id),
-      anlassraumId: e.anlassraumId ? String(e.anlassraumId) : null,
-      dossierId: e.dossierId ? String(e.dossierId) : null,
-      qrSetCode: e.qrSetCode ?? null,
-    })),
-  });
+  const protocolCol = await coreCol("qr_protocol_entries");
+  const data = await Promise.all(
+    events.map(async (event: any) => {
+      const qrSetCode = event.qrSetCode ? String(event.qrSetCode).trim() : null;
+      if (!qrSetCode) {
+        return {
+          ...event,
+          id: String(event._id),
+          anlassraumId: event.anlassraumId ? String(event.anlassraumId) : null,
+          dossierId: event.dossierId ? String(event.dossierId) : null,
+          qrSetCode: null,
+          followUp: null,
+        };
+      }
+
+      const [protocolEntryCount, latestProtocolEntry, latestDossierUpsertContract, latestRoundSeedContract] =
+        await Promise.all([
+          protocolCol.countDocuments({ code: qrSetCode }),
+          protocolCol.find({ code: qrSetCode }).sort({ createdAt: -1 }).limit(1).next(),
+          getLatestDossierUpsertContractByCode(qrSetCode),
+          getLatestRoundSeedContractByCode(qrSetCode),
+        ]);
+
+      return {
+        ...event,
+        id: String(event._id),
+        anlassraumId: event.anlassraumId ? String(event.anlassraumId) : null,
+        dossierId: event.dossierId ? String(event.dossierId) : null,
+        qrSetCode,
+        followUp: {
+          protocolEntryCount,
+          latestProtocolEntryId: latestProtocolEntry?._id
+            ? String(latestProtocolEntry._id)
+            : null,
+          latestProtocolAt: latestProtocolEntry?.createdAt?.toISOString?.() ?? null,
+          latestDossierUpsertContract,
+          latestRoundSeedContract,
+        },
+      };
+    }),
+  );
+
+  return NextResponse.json({ ok: true, data });
 }
 
 export async function POST(req: NextRequest) {

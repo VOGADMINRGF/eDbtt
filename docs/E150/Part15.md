@@ -25,6 +25,14 @@ Dieses Dokument dient als Status-Zusammenfassung der Pfade (Part00–Part15). Es
 - GOV-ANLASS-02 Baseline aktiv: Anlassraum kann auf Dossier verlinkt werden inkl. `dossierType` (`exploration_dossier`, `decision_dossier`).
 - GOV-EVENT-02 Baseline aktiv: QR-Sets koennen Anlassraum/Dossier/Round referenzieren; Protokolle koennen in Anlassraum-Struktur nachgefuehrt werden.
 
+## Update (2026-03-19) — GOV-EVENT-02 Deepening (Protocol -> Dossier Upsert -> Round Seed Contract)
+
+- Protokoll-Eintraege erzeugen nun einen expliziten Dossier-Upsert-Contract (`features/dossier/protocolUpsert.ts`) statt stiller direkter Dossier-Publikation.
+- Bei vorhandenem Dossier-Link werden nur additive `dossier_suggestions` im Status `pending` erzeugt (reviewbar/reversibel, kein destruktives Overwrite).
+- Protokoll-/Anlassraum-Kontext erzeugt einen Round-Seed-Contract (`features/topicRound/seedContract.ts`) mit Readiness-Feldern und Status `review_required`.
+- QR-/Resolve-/Summary-/Event-APIs geben Follow-up/Audit-Referenzen aus (Event <-> QR <-> Protocol <-> Dossier-Upsert-Contract <-> Round-Seed-Contract).
+- Manual-first bleibt unveraendert: keine automatische Live-Rundenerstellung, keine automatische öffentliche Dossier-Freigabe.
+
 ## Status-Übersicht der Pfade 00–15
 
 - **Part00 Foundations / PII:** PII-Guardrails plus Klarname-Trennung (givenName/familyName) und Privacy-Flags dokumentiert; Alt-Migration optional.
@@ -246,6 +254,32 @@ Next Steps:
 - GOV-EVENT-02 ausbauen: Protokoll -> Dossier-Aktualisierung und Runden-Seed formalisieren.
 - GOV-ANLASS-04 UI/UX vertiefen (Queue-Sortierung, Bulk-Review, Review-Audit-Trail).
 - Manual-first bleibt unveraendert; keine Auto-Publikation, keine Auto-Approval-Kuerzung.
+
+### PR-GOV-03 (2026-03-19) – GOV-EVENT-02 Deepening (Protocol -> Dossier Upsert + Round Seed Contract)
+
+Ziel:
+- Event/QR/Protocol-Flow von Baseline auf reviewbare Contract-Handoffs vertiefen.
+
+Changes:
+- Neuer Dossier-Upsert-Contract-Service:
+  `features/dossier/protocolUpsert.ts`.
+- Neuer Round-Seed-Contract-Service:
+  `features/topicRound/seedContract.ts`.
+- Protokoll-Route erweitert:
+  `apps/web/src/app/api/qr/sets/[code]/protocol/route.ts`
+  (Provenance, Contract-Erzeugung, Follow-up-Metadaten).
+- Follow-up/Audit-Ausgaben erweitert in:
+  `apps/web/src/app/api/events/route.ts`,
+  `apps/web/src/app/api/qr/sets/[code]/route.ts`,
+  `apps/web/src/app/api/qr/resolve/route.ts`,
+  `apps/web/src/app/api/qr/sets/summary/route.ts`.
+
+Verification:
+- `pnpm -C apps/web run typecheck` (PASS)
+- `pnpm -C apps/web run lint` (PASS)
+
+Next Steps:
+- GOV-EVENT-02 Next: manueller Review/Apply-Pfad fuer Dossier-Upsert-Contracts und Round-Seed-Contracts (explizite Freigabe-Aktionen, kein Auto-Apply).
 
 ### PR-0017 (2026-02-11) – Block E Research R2
 

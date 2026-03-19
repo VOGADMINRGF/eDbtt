@@ -4,6 +4,8 @@ export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 import { ObjectId, coreCol } from "@core/db/triMongo";
 import { campaignsCol } from "@features/campaign/db";
+import { getLatestDossierUpsertContractByCode } from "@features/dossier/protocolUpsert";
+import { getLatestRoundSeedContractByCode } from "@features/topicRound/seedContract";
 
 async function logScan(args: { code: string; targetType: string; targetIds: string[]; req: NextRequest }) {
   try {
@@ -33,6 +35,26 @@ export async function GET(req: NextRequest) {
   const setsCol = await coreCol("qr_question_sets");
   const set = await setsCol.findOne({ code: qrId, status: "active" });
   if (set) {
+    const [protocolEntryCount, latestProtocolEntry, relatedEvents, latestDossierUpsertContract, latestRoundSeedContract] =
+      await Promise.all([
+        (await coreCol("qr_protocol_entries")).countDocuments({ code: qrId }),
+        (await coreCol("qr_protocol_entries"))
+          .find({ code: qrId })
+          .sort({ createdAt: -1 })
+          .limit(1)
+          .next(),
+        (await coreCol("events"))
+          .find(
+            { qrSetCode: qrId },
+            { projection: { _id: 1, title: 1, startAt: 1, anlassraumId: 1, dossierId: 1 } },
+          )
+          .sort({ startAt: -1 })
+          .limit(10)
+          .toArray(),
+        getLatestDossierUpsertContractByCode(qrId),
+        getLatestRoundSeedContractByCode(qrId),
+      ]);
+
     void logScan({ code: qrId, targetType: "set", targetIds: [set.code], req });
     return NextResponse.json({
       success: true,
@@ -43,6 +65,23 @@ export async function GET(req: NextRequest) {
         anlassraumId: set.anlassraumId ? String(set.anlassraumId) : null,
         dossierId: set.dossierId ? String(set.dossierId) : null,
         roundSlug: set.roundSlug ?? null,
+        protocolStatus: set.protocolStatus ?? "open",
+        followUp: {
+          protocolEntryCount,
+          latestProtocolEntryId: latestProtocolEntry?._id
+            ? String(latestProtocolEntry._id)
+            : null,
+          latestProtocolAt: latestProtocolEntry?.createdAt?.toISOString?.() ?? null,
+          eventRefs: relatedEvents.map((event: any) => ({
+            id: String(event._id),
+            title: event.title ?? null,
+            startAt: event.startAt?.toISOString?.() ?? null,
+            anlassraumId: event.anlassraumId ? String(event.anlassraumId) : null,
+            dossierId: event.dossierId ? String(event.dossierId) : null,
+          })),
+          latestDossierUpsertContract,
+          latestRoundSeedContract,
+        },
       },
     });
   }

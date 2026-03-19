@@ -3,6 +3,8 @@ export const dynamic = "force-dynamic";
 
 import { NextRequest, NextResponse } from "next/server";
 import { coreCol } from "@core/db/triMongo";
+import { getLatestDossierUpsertContractByCode } from "@features/dossier/protocolUpsert";
+import { getLatestRoundSeedContractByCode } from "@features/topicRound/seedContract";
 import { VoteModel } from "@/models/votes/Vote";
 
 type SummaryOption = { label: string; count: number };
@@ -26,6 +28,25 @@ export async function GET(req: NextRequest) {
   if (!set) {
     return NextResponse.json({ ok: false, error: "not_found" }, { status: 404 });
   }
+  const [protocolEntryCount, latestProtocolEntry, relatedEvents, latestDossierUpsertContract, latestRoundSeedContract] =
+    await Promise.all([
+      (await coreCol("qr_protocol_entries")).countDocuments({ code }),
+      (await coreCol("qr_protocol_entries"))
+        .find({ code })
+        .sort({ createdAt: -1 })
+        .limit(1)
+        .next(),
+      (await coreCol("events"))
+        .find(
+          { qrSetCode: code },
+          { projection: { _id: 1, title: 1, startAt: 1, anlassraumId: 1, dossierId: 1 } },
+        )
+        .sort({ startAt: -1 })
+        .limit(10)
+        .toArray(),
+      getLatestDossierUpsertContractByCode(code),
+      getLatestRoundSeedContractByCode(code),
+    ]);
 
   const Vote = await VoteModel();
   const rows = await Vote.aggregate([
@@ -80,8 +101,27 @@ export async function GET(req: NextRequest) {
       dossierId: set.dossierId ? String(set.dossierId) : null,
       roundSlug: set.roundSlug ?? null,
       protocolStatus: set.protocolStatus ?? "open",
+      lastProtocolEntryId: set.lastProtocolEntryId ? String(set.lastProtocolEntryId) : null,
+      lastDossierUpsertContractId: set.lastDossierUpsertContractId ?? null,
+      lastRoundSeedContractId: set.lastRoundSeedContractId ?? null,
     },
     totalVotes,
     questions,
+    followUp: {
+      protocolEntryCount,
+      latestProtocolEntryId: latestProtocolEntry?._id
+        ? String(latestProtocolEntry._id)
+        : null,
+      latestProtocolAt: latestProtocolEntry?.createdAt?.toISOString?.() ?? null,
+      eventRefs: relatedEvents.map((event: any) => ({
+        id: String(event._id),
+        title: event.title ?? null,
+        startAt: event.startAt?.toISOString?.() ?? null,
+        anlassraumId: event.anlassraumId ? String(event.anlassraumId) : null,
+        dossierId: event.dossierId ? String(event.dossierId) : null,
+      })),
+      latestDossierUpsertContract,
+      latestRoundSeedContract,
+    },
   });
 }
