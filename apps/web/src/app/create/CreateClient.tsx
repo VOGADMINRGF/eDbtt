@@ -12,10 +12,25 @@ export type CreateClientProps = {
   initialEntitlements: CreateEntitlements;
   overview: AccountOverview;
   dossierId?: string | null;
+  initialAnlassraumId?: string | null;
   initialIntent?: "statement" | "contribution";
   initialMode?: CreateMode;
   initialText?: string | null;
 };
+
+type CreateContextPickerItem = {
+  anlassraumId: string;
+  title: string;
+  summary: string;
+  topicKey: string | null;
+  anlassraumType: string | null;
+  anlassraumStatus: string | null;
+  sourceMode: string | null;
+  outputStatus: string;
+  updatedAt: string | null;
+};
+
+type ContextLoadState = "idle" | "loading" | "ready" | "error";
 
 type GateState =
   | { status: "loading" }
@@ -87,10 +102,18 @@ function inferInitialMode(
   return "source";
 }
 
+function normalizeAnlassraumId(value?: string | null): string | null {
+  const normalized = String(value || "").trim().toLowerCase();
+  if (!normalized) return null;
+  if (!/^[a-f0-9]{24}$/.test(normalized)) return null;
+  return normalized;
+}
+
 export default function CreateClient({
   initialEntitlements,
   overview,
   dossierId,
+  initialAnlassraumId,
   initialIntent,
   initialMode,
   initialText,
@@ -102,6 +125,18 @@ export default function CreateClient({
     if (initialIntent) return initialIntent;
     return modeToIntent(inferInitialMode(initialMode, initialIntent), initialEntitlements.canSubmitContribution);
   });
+  const [contextItems, setContextItems] = React.useState<CreateContextPickerItem[]>([]);
+  const [contextLoadState, setContextLoadState] = React.useState<ContextLoadState>("idle");
+  const [contextLoadError, setContextLoadError] = React.useState<string | null>(null);
+  const [selectedAnlassraumId, setSelectedAnlassraumId] = React.useState<string | null>(() =>
+    normalizeAnlassraumId(initialAnlassraumId),
+  );
+  const [selectionInfo, setSelectionInfo] = React.useState<string | null>(() => {
+    if (!initialAnlassraumId) return null;
+    if (normalizeAnlassraumId(initialAnlassraumId)) return null;
+    return "Uebergebener Kontext ist ungueltig und wurde nicht uebernommen.";
+  });
+  const contextLoadedRef = React.useRef(false);
 
   React.useEffect(() => {
     let ignore = false;
@@ -130,6 +165,43 @@ export default function CreateClient({
       setIntent(nextIntent);
     }
   }, [mode, entitlements.canSubmitContribution, intent]);
+
+  const pickerEnabled = mode === "source" || mode === "ai";
+
+  const loadContextItems = React.useCallback(async () => {
+    setContextLoadState("loading");
+    setContextLoadError(null);
+    try {
+      const selected = selectedAnlassraumId ? `&selectedAnlassraumId=${encodeURIComponent(selectedAnlassraumId)}` : "";
+      const res = await fetch(`/api/create/context?limit=40${selected}`, { cache: "no-store" });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok || !body?.ok) {
+        throw new Error(body?.error || "create_context_source_unavailable");
+      }
+      const nextItems = Array.isArray(body.items) ? (body.items as CreateContextPickerItem[]) : [];
+      setContextItems(nextItems);
+      setContextLoadState("ready");
+      contextLoadedRef.current = true;
+
+      if (selectedAnlassraumId) {
+        const found = nextItems.some((item) => item.anlassraumId === selectedAnlassraumId);
+        if (!found) {
+          setSelectedAnlassraumId(null);
+          setSelectionInfo("Ausgewaehlter Kontext ist veraltet oder nicht mehr verfuegbar.");
+        }
+      }
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "create_context_source_unavailable";
+      setContextLoadState("error");
+      setContextLoadError(message);
+    }
+  }, [selectedAnlassraumId]);
+
+  React.useEffect(() => {
+    if (!pickerEnabled) return;
+    if (contextLoadedRef.current) return;
+    void loadContextItems();
+  }, [pickerEnabled, loadContextItems]);
 
   if (gate.status === "loading") {
     return (
@@ -173,6 +245,10 @@ export default function CreateClient({
 
   const afterFinalizeNavigateTo = dossierId ? `/dossier/${dossierId}` : "/runden";
   const useCaseAccess = deriveUseCaseAccess(overview);
+  const selectedContext = selectedAnlassraumId
+    ? contextItems.find((item) => item.anlassraumId === selectedAnlassraumId) ?? null
+    : null;
+  const effectiveSelectedAnlassraumId = mode === "manual" ? null : selectedAnlassraumId;
 
   const tierCfg = getAccessTierConfigForUser(overview);
   const tierLabel = getUserAccessTier(overview);
@@ -188,22 +264,12 @@ export default function CreateClient({
     {
       id: "source",
       title: "Aus Quelle",
-      body: "Aus Artikel, Stream oder Notiz strukturiert in eine Runde ueberfuehren.",
+      body: "Artikel, Stream, Feed-Treffer oder Cluster materialbasiert strukturieren.",
     },
     {
-      id: "feed",
-      title: "Feed-Treffer",
-      body: "Aus Ingest-Items einen Anlassraum und danach Outputs erzeugen.",
-    },
-    {
-      id: "cluster",
-      title: "Themencluster",
-      body: "Mehrere Quellen nach Region/Zeitraum/Thema gemeinsam strukturieren.",
-    },
-    {
-      id: "ai_assist",
+      id: "ai",
       title: "KI-Assist",
-      body: "Vorschlaege fuer Claims, Fragen, Segmente und Gegenpositionen.",
+      body: "KI-gestuetzte Draft-Hilfe. Ergebnis bleibt immer manuell und nicht auto-publiziert.",
     },
   ];
 
@@ -223,13 +289,14 @@ export default function CreateClient({
             Neue Runde starten
           </h2>
           <p className="max-w-3xl text-sm text-[rgb(var(--muted))]">
-            Ein Einstieg, fuenf Modi: manuell, Quelle, Feed, Cluster und KI-Assist. Die Erstellung bleibt im selben Flow.
+            Ein Einstieg, drei Modi: manuell, quellebasiert und KI-Assist. Die Erstellung bleibt im selben Flow.
           </p>
 
           <div className="flex flex-wrap items-center gap-2 text-[11px] text-[rgb(var(--muted))]">
             <span className="vog-chip">1 Modus waehlen</span>
             <span className="vog-chip">2 Inhalt strukturieren</span>
             <span className="vog-chip">3 Runde finalisieren</span>
+            <span className="vog-chip">Aktiver Modus: {mode}</span>
           </div>
         </div>
       </section>
@@ -268,21 +335,88 @@ export default function CreateClient({
         </section>
       ) : null}
 
-      {mode === "feed" ? (
-        <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-3 text-sm text-[rgb(var(--muted))]">
-          Feed-Treffer zuerst: ueberfuehre ingestierte Quellen in einen Anlassraum und waehle danach den passenden Output (Runde, Dossier, Embed, Social).
-        </section>
-      ) : null}
-
-      {mode === "cluster" ? (
-        <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-3 text-sm text-[rgb(var(--muted))]">
-          Cluster-Modus: gruppiere mehrere Quellen in einem Zeitfenster zu einem gemeinsamen Anlassraum mit Konfliktlinien.
-        </section>
-      ) : null}
-
-      {mode === "ai_assist" ? (
+      {mode === "ai" ? (
         <section className="rounded-2xl border border-[rgb(var(--grad-from))]/35 bg-[rgb(var(--card))] px-4 py-3 text-sm text-[rgb(var(--muted))]">
-          KI-Modus nutzt die bestehende Analyse-Route <code>/api/contributions/analyze</code>. Ergebnis bleibt editierbar, bevor du finalisierst.
+          KI-Modus nutzt die bestehende Analyse-Route <code>/api/contributions/analyze</code>. Ergebnis bleibt editierbar und manuell reviewbar, bevor du finalisierst.
+        </section>
+      ) : null}
+
+      {pickerEnabled ? (
+        <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 md:p-5">
+          <div className="space-y-2">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[rgb(var(--muted))]">Kontext-Picker</p>
+            <p className="text-sm text-[rgb(var(--muted))]">
+              Optional: Waehle einen bestehenden Anlassraum als Kontext. Auswahl bleibt manuell, read-only und loest kein Save/Finalize aus.
+            </p>
+          </div>
+
+          {contextLoadState === "loading" ? (
+            <p className="mt-3 text-sm text-[rgb(var(--muted))]">Lade produktive Kontextliste ...</p>
+          ) : null}
+
+          {contextLoadState === "error" ? (
+            <div className="mt-3 rounded-xl border border-rose-300/50 bg-rose-50/80 p-3 text-sm text-rose-700 dark:border-rose-500/40 dark:bg-rose-500/10 dark:text-rose-200">
+              <p>Kontextquelle derzeit nicht verfuegbar ({contextLoadError ?? "create_context_source_unavailable"}).</p>
+              <button type="button" onClick={() => void loadContextItems()} className="btn-secondary mt-2 text-xs">
+                Erneut laden
+              </button>
+            </div>
+          ) : null}
+
+          {contextLoadState === "ready" && contextItems.length === 0 ? (
+            <p className="mt-3 rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-sm text-[rgb(var(--muted))]">
+              Keine produktiven Kontext-Eintraege verfuegbar. Es wird kein Demo-/Static-Fallback genutzt.
+            </p>
+          ) : null}
+
+          {contextLoadState === "ready" && contextItems.length > 0 ? (
+            <ul className="mt-3 grid gap-2 sm:grid-cols-2">
+              {contextItems.map((item) => {
+                const isSelected = selectedAnlassraumId === item.anlassraumId;
+                return (
+                  <li key={item.anlassraumId}>
+                    <button
+                      type="button"
+                      className={`w-full rounded-xl border px-3 py-2 text-left ${
+                        isSelected
+                          ? "border-[rgb(var(--grad-from))] bg-[rgb(var(--bg))]"
+                          : "border-[rgb(var(--border))] bg-transparent hover:border-[rgb(var(--grad-from))]/40"
+                      }`}
+                      onClick={() => {
+                        setSelectionInfo(null);
+                        setSelectedAnlassraumId(item.anlassraumId);
+                      }}
+                    >
+                      <p className="text-sm font-semibold text-[rgb(var(--fg))]">{item.title}</p>
+                      <p className="mt-1 line-clamp-2 text-xs text-[rgb(var(--muted))]">{item.summary}</p>
+                      <p className="mt-2 text-[11px] text-[rgb(var(--muted))]">
+                        {item.topicKey ? `Topic: ${item.topicKey} · ` : ""}
+                        {item.anlassraumStatus ? `Status: ${item.anlassraumStatus}` : "Status: offen"}
+                      </p>
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          ) : null}
+
+          {selectedContext ? (
+            <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-[rgb(var(--muted))]">
+              <span className="vog-chip">Ausgewaehlt: {selectedContext.title}</span>
+              <span className="vog-chip">anlassraumId: {selectedContext.anlassraumId}</span>
+              <button
+                type="button"
+                className="vog-chip border border-[rgb(var(--border))] bg-transparent"
+                onClick={() => setSelectedAnlassraumId(null)}
+              >
+                Auswahl entfernen
+              </button>
+            </div>
+          ) : null}
+
+          {selectionInfo ? (
+            <p className="mt-3 text-xs text-amber-700 dark:text-amber-300">{selectionInfo}</p>
+          ) : null}
         </section>
       ) : null}
 
@@ -317,10 +451,11 @@ export default function CreateClient({
       <AnalyzeWorkspace
         key={`${mode}-${intent}-${dossierId ?? "no-dossier"}`}
         mode={intent}
+        createMode={mode}
         defaultLevel={
           mode === "manual"
             ? 1
-            : mode === "source" || mode === "feed"
+            : mode === "source"
               ? 2
               : 3
         }
@@ -329,17 +464,14 @@ export default function CreateClient({
             ? "vog_create_manual_statement_v1"
             : mode === "source"
               ? "vog_create_source_contribution_v1"
-              : mode === "feed"
-                ? "vog_create_feed_contribution_v1"
-                : mode === "cluster"
-                  ? "vog_create_cluster_contribution_v1"
-                  : "vog_create_ai_assist_contribution_v1"
+              : "vog_create_ai_assist_contribution_v1"
         }
         analyzeEndpoint="/api/create/analyze"
         saveEndpoint="/api/create/save"
         finalizeEndpoint="/api/create/finalize"
         afterFinalizeNavigateTo={afterFinalizeNavigateTo}
         dossierId={dossierId ?? undefined}
+        selectedAnlassraumId={effectiveSelectedAnlassraumId ?? undefined}
         verificationLevel={overview.verificationLevel ?? "none"}
         verificationStatus="ok"
         authorName={overview.displayName ?? overview.profile?.headline ?? ""}

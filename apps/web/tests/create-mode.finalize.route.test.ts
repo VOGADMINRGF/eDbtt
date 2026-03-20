@@ -182,6 +182,32 @@ describe("create mode split - finalize route", () => {
     expect(created[0].createMode).toBe("source");
   });
 
+  it("Scenario C: selected anlassraum context is forwarded through finalize boundary", async () => {
+    const draftId = seedDraft();
+
+    const res = await finalizePOST(
+      req({
+        draftId,
+        selectedClaimIds: ["c1"],
+        source: "contribution_new",
+        createMode: "source",
+        anlassraumId: "65f000000000000000000011",
+      }),
+    );
+
+    expect(res.status).toBe(200);
+    await expect(res.json()).resolves.toMatchObject({
+      ok: true,
+      createMode: "source",
+      anlassraumId: "65f000000000000000000011",
+    });
+
+    const savedDraft = mocks.readDraft(draftId);
+    expect(savedDraft?.anlassraumId).toBe("65f000000000000000000011");
+    const created = mocks.readProposals();
+    expect(created[0].anlassraumId).toBe("65f000000000000000000011");
+  });
+
   it("Scenario D: ai mode is forwarded as drafting intent only", async () => {
     const draftId = seedDraft();
 
@@ -218,6 +244,22 @@ describe("create mode split - finalize route", () => {
 
     expect(res.status).toBe(400);
     await expect(res.json()).resolves.toMatchObject({ ok: false, error: "invalid_create_mode" });
+  });
+
+  it("Scenario D: invalid context id is rejected with stable invalid_anlassraum_id", async () => {
+    const draftId = seedDraft();
+
+    const res = await finalizePOST(
+      req({
+        draftId,
+        selectedClaimIds: ["c1"],
+        createMode: "source",
+        anlassraumId: "bad-id",
+      }),
+    );
+
+    expect(res.status).toBe(400);
+    await expect(res.json()).resolves.toMatchObject({ ok: false, error: "invalid_anlassraum_id" });
   });
 
   it("Scenario F: create finalize flow does not write output seeds or publish rounds", async () => {

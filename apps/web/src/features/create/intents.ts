@@ -7,7 +7,8 @@ export type CreateIntent =
   | "option"
   | "factcheck";
 
-export type CreateMode = "manual" | "source" | "feed" | "cluster" | "ai_assist";
+export const CREATE_MODE_VALUES = ["manual", "source", "ai"] as const;
+export type CreateMode = (typeof CREATE_MODE_VALUES)[number];
 
 export type CreateIntentDefinition = {
   intent: CreateIntent;
@@ -54,13 +55,7 @@ export const CREATE_INTENT_DEFINITIONS: CreateIntentDefinition[] = [
 ];
 
 const VALID_INTENTS = new Set<CreateIntent>(CREATE_INTENT_DEFINITIONS.map((item) => item.intent));
-const VALID_MODES = new Set<CreateMode>([
-  "manual",
-  "source",
-  "feed",
-  "cluster",
-  "ai_assist",
-]);
+const VALID_MODES = new Set<CreateMode>(CREATE_MODE_VALUES);
 const CANONICAL_CREATE_PATH = "/create";
 
 export type BuildCreateHrefArgs = {
@@ -91,13 +86,20 @@ export function parseCreateIntent(raw?: string | null): CreateIntent | undefined
 
 export function parseCreateMode(raw?: string | null): CreateMode | undefined {
   if (!raw) return undefined;
-  const value = raw.toLowerCase();
+  const value = raw.toLowerCase().trim();
   if (VALID_MODES.has(value as CreateMode)) return value as CreateMode;
   if (value === "manuell") return "manual";
-  if (value === "ki" || value === "ai") return "ai_assist";
+  if (value === "ki" || value === "ai" || value === "ai_assist" || value === "ai-assist") return "ai";
   if (value === "quelle") return "source";
-  if (value === "feed-treffer" || value === "rss" || value === "feed") return "feed";
-  if (value === "cluster" || value === "themencluster") return "cluster";
+  if (
+    value === "feed-treffer" ||
+    value === "rss" ||
+    value === "feed" ||
+    value === "cluster" ||
+    value === "themencluster"
+  ) {
+    return "source";
+  }
   return undefined;
 }
 

@@ -141,6 +141,26 @@ export interface FeedStatementDoc {
   updatedAt?: Date;
 }
 
+export type FeedAnlassraumClusterCandidateStatus = "candidate";
+
+export interface FeedAnlassraumClusterCandidateDoc {
+  _id?: ObjectId;
+  clusterKey: string;
+  topicKey: string;
+  regionCode: RegionCode | string | null;
+  windowBucket: string;
+  windowHours: number;
+  source: "vote_drafts";
+  status: FeedAnlassraumClusterCandidateStatus;
+  draftIds: ObjectId[];
+  anlassraumIds: ObjectId[];
+  draftCount: number;
+  sampleTitles: string[];
+  fingerprint: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 // API/view transport types (string ids / ISO dates) for web clients.
 export type FeedBatchItem = {
   sourceId?: string;

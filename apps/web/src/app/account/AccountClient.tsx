@@ -15,6 +15,7 @@ import {
 } from "@features/pricing";
 import type { AccountFeatureInterestKey } from "@features/account/types";
 import { TOPIC_CHOICES, type TopicKey } from "@features/interests/topics";
+import { buildCommunityHref } from "@/features/community/deepLinkContract";
 import type { UserRole } from "@/types/user";
 import type { EngagementLevel } from "@features/user/engagement";
 import {
@@ -941,22 +942,6 @@ function CompactProfileHubSection({
     if (origin.topicLabel) return `Gemeinsames Thema ${origin.topicLabel}`;
     if (origin.regionLabel) return `Gleiche Region ${origin.regionLabel}`;
     return null;
-  };
-
-  const buildCommunityHref = (origin?: SocialOriginContext | null) => {
-    if (!origin?.communityKey) return "/community";
-    const params = new URLSearchParams();
-    params.set("group", origin.communityKey);
-    params.set("type", origin.type);
-    if (origin.scope) params.set("scope", origin.scope);
-    if (origin.topicKey) params.set("topic", origin.topicKey);
-    if (origin.topicLabel) params.set("topicLabel", origin.topicLabel);
-    if (origin.dossierId) params.set("dossierId", origin.dossierId);
-    if (origin.dossierTitle) params.set("dossierTitle", origin.dossierTitle);
-    if (origin.regionLabel) params.set("regionLabel", origin.regionLabel);
-    if (origin.communityLabel) params.set("communityLabel", origin.communityLabel);
-    if (origin.reasonLabel) params.set("reasonLabel", origin.reasonLabel);
-    return `/community?${params.toString()}`;
   };
 
   const profileHrefForShareId = (shareId?: string | null) =>

@@ -36,6 +36,7 @@ import RunReceiptPanel from "@/components/analyze/RunReceiptPanel";
 import ContentLanguageSelect from "@/components/ContentLanguageSelect";
 import { useContentLang } from "@/lib/i18n/contentLanguage";
 import { DEFAULT_BASE_LANG, LANGUAGE_CODES, type LanguageCode } from "@features/i18n/languages";
+import type { CreateMode } from "@/features/create/intents";
 
 const MAX_LEVEL1_STATEMENTS = 3;
 
@@ -243,6 +244,8 @@ export type UseCaseAccess = {
 
 type AnalyzeWorkspaceProps = {
   mode: "contribution" | "statement";
+  createMode?: CreateMode;
+  selectedAnlassraumId?: string | null;
   defaultLevel?: 1 | 2 | 3 | 4;
   storageKey: string;
   analyzeEndpoint: string;
@@ -615,6 +618,8 @@ function InlineEditableText({ value, onChange }: { value: string; onChange: (v: 
 
 export default function AnalyzeWorkspace({
   mode,
+  createMode,
+  selectedAnlassraumId,
   defaultLevel = 2,
   storageKey,
   analyzeEndpoint,
@@ -648,6 +653,7 @@ export default function AnalyzeWorkspace({
     return mode === "statement" ? ["journalism"] : ["civic", "journalism", "agenda"];
   }, [useCaseAccess?.allowed, mode]);
   const defaultUseCase: UseCaseId = mode === "statement" ? "journalism" : "civic";
+  const resolvedCreateMode: CreateMode = createMode ?? (mode === "statement" ? "manual" : "source");
   const resolvedDefaultUseCase = allowedUseCases.includes(defaultUseCase)
     ? defaultUseCase
     : allowedUseCases[0] ?? defaultUseCase;
@@ -1294,6 +1300,8 @@ export default function AnalyzeWorkspace({
         textPrepared: preparedText,
         locale,
         source: mode === "statement" ? "statement_new" : "contribution_new",
+        createMode: resolvedCreateMode,
+        anlassraumId: selectedAnlassraumId ?? undefined,
         authorName: authorName?.trim() || undefined,
         useCase,
         analysis: {
@@ -1348,6 +1356,8 @@ export default function AnalyzeWorkspace({
     knots,
     locale,
     mode,
+    resolvedCreateMode,
+    selectedAnlassraumId,
     notes,
     preparedText,
     questions,
@@ -1388,6 +1398,8 @@ export default function AnalyzeWorkspace({
           selectedClaimIds,
           dossierId: dossierId ?? undefined,
           source: mode === "statement" ? "statement_new" : "contribution_new",
+          createMode: resolvedCreateMode,
+          anlassraumId: selectedAnlassraumId ?? undefined,
         }),
       });
       const body = await res.json().catch(() => ({}));
@@ -1401,7 +1413,7 @@ export default function AnalyzeWorkspace({
     } finally {
       setIsFinalizing(false);
     }
-  }, [afterFinalizeNavigateTo, confirmUnderstanding, dossierId, draftId, finalizeEndpoint, mode, selectedClaimIds]);
+  }, [afterFinalizeNavigateTo, confirmUnderstanding, dossierId, draftId, finalizeEndpoint, mode, resolvedCreateMode, selectedAnlassraumId, selectedClaimIds]);
 
   const handleDeepResearch = React.useCallback(async () => {
     if (!preparedText.trim()) {
@@ -1522,6 +1534,7 @@ export default function AnalyzeWorkspace({
       detailLevel: viewLevel,
       locale,
       evidence: effectiveEvidenceInput,
+      anlassraumId: selectedAnlassraumId ?? null,
     });
     if (analyzeCtrlRef.current && analyzeKeyRef.current === key) return;
     analyzeCtrlRef.current?.abort();
@@ -1557,6 +1570,8 @@ export default function AnalyzeWorkspace({
           textOriginal: text,
           preparedText,
           text: preparedText,
+          createMode: resolvedCreateMode,
+          anlassraumId: selectedAnlassraumId ?? undefined,
           locale,
           maxClaims,
           detailPreset: viewLevel,
@@ -1723,6 +1738,8 @@ export default function AnalyzeWorkspace({
     locale,
     maxClaims,
     preparedText,
+    resolvedCreateMode,
+    selectedAnlassraumId,
     statements,
     text,
     viewLevel,

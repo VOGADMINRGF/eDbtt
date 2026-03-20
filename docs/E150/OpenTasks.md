@@ -120,11 +120,11 @@ Status: **In Progress (Core baseline / 2026-03-19)**
 | Runden Entry Surface auf produktive Quelle umstellen (statt Seed aus `features/topicRound/data.ts`) | Done (productive source + compatibility matrix active / 2026-03-19) | PR-0039 | `/runden` liest aus produktivem `output_seed`/`anlassraum`-Read-Model (`features/topicRound/entrySource.ts`, `GET /api/runden/entry`); `/demo/runden` ist expliziter Compat-Redirect auf `/runden` (kein Seed-Fallback), inkl. Tests `apps/web/tests/runden-entry.*`, `apps/web/tests/runden-compat.*`, `apps/web/tests/runden-page.acceptance.test.ts` |
 | Backward-Compatibility finalisieren | Done (legacy/demo round entry clarified / 2026-03-19) | PR-0039 | Canonical Round-Entry = `/runden`; alte Demo-Pfade zeigen explizit auf produktiven Einstieg (`apps/web/src/app/demo/runden/page.tsx`, `apps/web/src/app/demo/page.tsx`, `apps/web/src/app/demo/DemoNavClient.tsx`) |
 | E2E-Abnahme fuer `/create` + `/runden` | Done (acceptance baseline verified / 2026-03-19) | PR-0039 | Scenarios A-F abgedeckt: Compat-Redirect, `/runden` Empty/Error, `/create` Mode-Reflexion + Save/Finalize-Mode-Propagation, stabile `invalid_create_mode`-Fehler, kein Seed-Fallback/kein Publish-Bypass (`apps/web/tests/runden-page.acceptance.test.ts`, `apps/web/tests/create-mode.page.test.ts`, `apps/web/tests/create-mode.save.route.test.ts`, `apps/web/tests/create-mode.finalize.route.test.ts`) |
-| Community Group Surfaces entkoppeln | Open | PR-0039 | dedizierte Resolver/API |
-| Community Deep-Link Contracts vereinheitlichen | Open | PR-0040 | Guardrails + Validierung |
-| Community E2E absichern | Open | PR-0041 | mobile + desktop |
-| Feed/Anlassraum Picker im `/create` anbinden | Open | PR-FEED-ANLASS-02 | echte Auswahl / Assignment-UI |
-| Feed/Anlassraum Cluster-Job | Open | PR-FEED-ANLASS-03 | dedizierter Worker fehlt |
+| Community Group Surfaces entkoppeln | In Progress (resolver/API + deep-link contract boundary active) | PR-0041 | `/community` nutzt dedizierten Read-Resolver + Read-Route + kanonischen Deep-Link-Contract: `features/community/groupSurface.ts`, `features/community/deepLinkContract.ts`, `GET /api/community/groups`, `apps/web/src/app/community/page.tsx`, Tests `community-groups.*`, `community-page.states.test.ts`, `community-deep-links.contract.test.ts` |
+| Community Deep-Link Contracts vereinheitlichen | In Progress (canonical contract active) | PR-0041 | Shared Canonical Params + Alias-Normalisierung + Canonical Href-Builder aktiv in Page/Route/Resolver + Link-Producern (`AccountClient`/Discovery); stabile Invalid-Param-Mappings ohne Fallback |
+| Community E2E absichern | Done (acceptance coverage mobile+desktop active / 2026-03-19) | PR-FEED-ANLASS-02 | Community Read-Surfaces A-F abgedeckt inkl. Canonical/Legacy/Invalid/Unavailable/Read-only-Guardrails: `apps/web/tests/community-*.test.ts` |
+| Feed/Anlassraum Picker im `/create` anbinden | Done (manual productive context picker active / 2026-03-19) | PR-FEED-ANLASS-04 | Read-only Kontextauswahl in `/create` aktiv (`GET /api/create/context`, `features/create/contextPicker.ts`, `app/create/CreateClient.tsx`), explizite `anlassraumId`-Propagation in Analyze/Save/Finalize ohne Auto-Linking/Publish/Approval; Tests `apps/web/tests/create-context-picker.*`, `apps/web/tests/create-mode.*` |
+| Feed/Anlassraum Cluster-Job | Done (baseline worker active / 2026-03-19) | PR-FEED-ANLASS-04 | Dedizierter Cluster-Worker aktiv (`features/feeds/clusterJob.ts`) inkl. Runner `POST /api/admin/feeds/cluster/run`, persistente Candidate-Outputs (`feed_anlassraum_cluster_candidates`) und Idempotenz (`created/updated/unchanged`) ohne Publish-/Approval-Seiteneffekt; Tests `apps/web/tests/feed-cluster-job.*` |
 | Feed/Anlassraum Status-Transitions absichern | In Progress (Wave 2 deepening) | PR-FEED-ANLASS-04 | erweitert um Queue-Review-Aktionen + Bulk-Route + Queue-Triage: `features/feeds/reviewQueue.ts`, `apps/web/src/app/api/admin/feeds/drafts/bulk/route.ts`, `apps/web/src/app/api/admin/feeds/drafts/route.ts` |
 | Feed/Anlassraum Publish-Flows ausbauen | Done (manual output-prep baseline closed / 2026-03-19) | PR-FEED-ANLASS-06 | Output-Prep operabel inkl. Admin-Surface: `features/anlassraum/outputPrep.ts`, `GET /api/admin/feeds/anlassraum/[id]/outputs`, `POST /api/admin/feeds/anlassraum/[id]/outputs/[seedId]/transition`, `apps/web/src/app/admin/feeds/anlassraum/[id]/page.tsx` |
 | Feed/Anlassraum Backfill | In Progress (legacy remediation UX + audit active) | PR-FEED-ANLASS-06 | Detection + per-draft Remediation inkl. Audit-Sichtbarkeit: `GET /api/admin/feeds/drafts/legacy`, `POST /api/admin/feeds/drafts/[id]/backfill`, `apps/web/src/app/admin/feeds/drafts/page.tsx` |
@@ -322,6 +322,82 @@ Output-Prep Closure (PR-FEED-ANLASS-05 Abschluss / 2026-03-19):
 - Service-Level-Integrationstests gegen reale `outputPrep`-Domainlogik aktiv:
   `apps/web/tests/anlassraum-output-prep.service.test.ts`.
 - PR-FEED-ANLASS-05 Baseline gilt als funktional geschlossen; weitergehende Public-Release-Automation bleibt bewusst nicht automatisiert.
+
+Community Group Surface Decoupling (PR-0039 / 2026-03-19):
+- `/community` ist von Inline-Resolvern entkoppelt; produktiver Read-Shape laeuft zentral ueber `apps/web/src/features/community/groupSurface.ts`.
+- Neue explizite Read-Route: `GET /api/community/groups` (stabile Read-Response + 400 bei invaliden Parametern + 503 bei Source-Unavailable).
+- Kein Demo-/Seed-Fallback fuer Dossier-Linking im Group-Surface (`/dossier/demo` entfernt); fehlende Verknuepfungen bleiben explizit als Empty-State sichtbar.
+- Read-only Guardrail bleibt strikt: keine Publish-/Approval-/Mutation-Pfade in Resolver oder Route.
+
+Community Deep-Link Contracts (PR-0040 / 2026-03-19):
+- Kanonischer Community-Deep-Link-Contract ist zentralisiert in `apps/web/src/features/community/deepLinkContract.ts`.
+- Kanonische Parameter: `group`, `type`, `scope`, `topicKey`, `topicLabel`, `dossierId`, `dossierTitle`, `regionLabel`, `reasonLabel`, `communityLabel`.
+- Legacy-Aliasse bleiben lesbar und werden explizit normalisiert:
+  `topic -> topicKey`, `dossier -> dossierId`, `region -> regionLabel`, `reason -> reasonLabel`, `communityKey -> group`.
+- Gleiche Contract-Validierung/-Normalisierung in Resolver/Route/Page:
+  `apps/web/src/features/community/groupSurface.ts`,
+  `apps/web/src/app/api/community/groups/route.ts`,
+  `apps/web/src/app/community/page.tsx`.
+- Outgoing Links sind kanonisiert (kein Alias-Mix mehr) in:
+  `apps/web/src/features/community/groupSurface.ts` (Discovery-Hrefs),
+  `apps/web/src/app/account/AccountClient.tsx` (Inbox-/Match-Deep-Links).
+- Stabile Invalid-Mappings aktiv: `invalid_group_type`, `invalid_group_scope`, `invalid_group_context`;
+  API liefert `400`, Page zeigt expliziten Invalid-State; kein Demo-/Static-Fallback.
+- Read-only Guardrail unveraendert: keine Mutation, kein Publish-/Approval-Bypass.
+
+Community E2E Acceptance (PR-0041 / 2026-03-19):
+- Community Read-Stack ist als Acceptance-Baseline abgesichert fuer:
+  Canonical Group-Links, Discovery (groups/empty), Source-Unavailable, Invalid Params, Legacy-Alias-Lesbarkeit und Read-only Boundary.
+- Mobile/Desktop-Relevanz im Page-Layer ist explizit getestet (responsive Grid-States fuer Discovery/Group):
+  `md:grid-cols-2`, `lg:grid-cols-[1.25fr_1fr]`, `sm:grid-cols-2`.
+- Kein Fallback-/Bypass-Rueckfall:
+  kein Demo-/Static-Dataset, keine Mutation/Write-Pfade, kein Publish-/Approval-Bypass.
+- Evidenz:
+  `apps/web/tests/community-deep-links.contract.test.ts`,
+  `apps/web/tests/community-groups.resolver.test.ts`,
+  `apps/web/tests/community-groups.route.test.ts`,
+  `apps/web/tests/community-page.states.test.ts`,
+  `apps/web/tests/community-groups.no-demo-fallback.test.ts`,
+  `apps/web/tests/community-readonly-boundary.test.ts`.
+
+Feed/Anlassraum Picker in `/create` (PR-FEED-ANLASS-02 / 2026-03-19):
+- Manueller produktiver Kontext-Picker ist in `/create` verdrahtet (kein Demo-/Static-Fallback):
+  `apps/web/src/features/create/contextPicker.ts` + `GET /api/create/context`.
+- Picker-UI in `apps/web/src/app/create/CreateClient.tsx` zeigt produktive Kontextliste (source/ai), explizite Auswahl/Entfernung und stabile Empty-/Unavailable-/Stale-Selection-Hinweise.
+- Auswahl bleibt read-only: reines Client-State-Update, keine Save/Finalize-Trigger, keine Mutation nur durch Selektion.
+- Kontext-Propagation ist explizit:
+  `selectedAnlassraumId` -> `AnalyzeWorkspace` -> Analyze/Save/Finalize-Payload (`anlassraumId`).
+- Save/Finalize/Analyze validieren `anlassraumId` stabil (`invalid_anlassraum_id`), ohne Auto-Linking, Auto-Publish oder Auto-Approval.
+- Evidenz:
+  `apps/web/src/app/api/create/context/route.ts`,
+  `apps/web/src/components/analyze/AnalyzeWorkspace.tsx`,
+  `apps/web/src/app/api/contributions/save/route.ts`,
+  `apps/web/src/app/api/contributions/finalize/route.ts`,
+  `apps/web/src/app/api/contributions/analyze/parseAnalyzeRequest.ts`,
+  `apps/web/tests/create-context-picker.service.test.ts`,
+  `apps/web/tests/create-context-picker.route.test.ts`,
+  `apps/web/tests/create-mode.page.test.ts`,
+  `apps/web/tests/create-mode.save.route.test.ts`,
+  `apps/web/tests/create-mode.finalize.route.test.ts`,
+  `apps/web/tests/create-mode.analyze-parse.test.ts`.
+
+Feed/Anlassraum Cluster-Job (PR-FEED-ANLASS-03 / 2026-03-19):
+- Dedizierter produktiver Cluster-Worker ist als schmaler Domain-Service aktiv:
+  `features/feeds/clusterJob.ts`.
+- Cluster-Outputs sind explizit/persistent in einer dedizierten Collection:
+  `feed_anlassraum_cluster_candidates` via `features/feeds/db.ts`.
+- Runner ist API-first und manuell ausfuehrbar:
+  `POST /api/admin/feeds/cluster/run`
+  (`apps/web/src/app/api/admin/feeds/cluster/run/route.ts`).
+- Result-Mapping ist explizit:
+  `success|empty` + `created|updated|unchanged`,
+  sowie stabile Fehlercodes (`feed_anlassraum_cluster_source_unavailable`, `feed_anlassraum_cluster_job_failed`).
+- Idempotenz bleibt explizit: Reruns erzeugen keine unkontrollierten Duplikate (Fingerprint + `clusterKey` Unique-Index).
+- Guardrails bleiben unveraendert:
+  kein Auto-Publish, kein Auto-Approval, keine Live-/Round-Erstellung, keine Governance-Aufweichung.
+- Evidenz:
+  `apps/web/tests/feed-cluster-job.service.test.ts`,
+  `apps/web/tests/feed-cluster-job.route.test.ts`.
 
 ### GOV-EVENT-01 — Event-/Sitzungsmodell
 Status: **In Progress (Core baseline / 2026-03-19)**

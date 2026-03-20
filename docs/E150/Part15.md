@@ -169,6 +169,109 @@ Dieses Dokument dient als Status-Zusammenfassung der Pfade (Part00–Part15). Es
   - `apps/web/tests/runden-page.acceptance.test.ts`
   - plus bestehende `/runden` Service/Route/Compat-Suiten.
 
+## Update (2026-03-19) — PR-0039 Community Group Surfaces entkoppeln
+
+- Community-Group-Reads sind aus der Page-Logik in einen dedizierten Resolver verlagert:
+  `apps/web/src/features/community/groupSurface.ts`.
+- Neue explizite Read-Route ist aktiv:
+  `GET /api/community/groups`
+  mit stabilen Fehlercodes fuer Param-Validation (`invalid_group_type`/`invalid_group_scope`) und Source-Unavailable (`community_group_source_unavailable`).
+- `/community` nutzt jetzt den produktiven Resolver-Read-Shape statt Inline-Mix; Empty-/Unavailable-States sind explizit.
+- Demo-/Seed-Fallback fuer Dossier-Linking wurde entfernt (`/dossier/demo` nicht mehr Teil des Group-Surfaces).
+- Guardrails bleiben unveraendert:
+  kein Auto-Publish, kein Auto-Approval, keine Hidden-Mutation in Read-Surfaces.
+- Testabdeckung:
+  - `apps/web/tests/community-groups.resolver.test.ts`
+  - `apps/web/tests/community-groups.route.test.ts`
+  - `apps/web/tests/community-page.states.test.ts`
+  - `apps/web/tests/community-groups.no-demo-fallback.test.ts`
+
+## Update (2026-03-19) — PR-0040 Community Deep-Link Contracts vereinheitlichen
+
+- Kanonischer Deep-Link-Contract wurde zentralisiert:
+  `apps/web/src/features/community/deepLinkContract.ts`.
+- Kanonische Parameter sind jetzt eindeutig:
+  `group`, `type`, `scope`, `topicKey`, `topicLabel`, `dossierId`, `dossierTitle`, `regionLabel`, `reasonLabel`, `communityLabel`.
+- Legacy-Aliasse bleiben kompatibel lesbar und werden normalisiert:
+  `topic -> topicKey`, `dossier -> dossierId`, `region -> regionLabel`, `reason -> reasonLabel`, `communityKey -> group`.
+- Page + Route + Resolver nutzen denselben Contract:
+  - `apps/web/src/app/community/page.tsx`
+  - `apps/web/src/app/api/community/groups/route.ts`
+  - `apps/web/src/features/community/groupSurface.ts`
+- Outgoing `/community?...` Links wurden kanonisiert:
+  - Discovery-Hrefs in `groupSurface.ts`
+  - Inbox-/Match-Deep-Links in `apps/web/src/app/account/AccountClient.tsx`
+- Stabiles Invalid-Handling:
+  - API: `400` fuer `invalid_group_type`, `invalid_group_scope`, `invalid_group_context`
+  - Page: expliziter Invalid-State, kein stiller Fallback
+- Guardrails unveraendert:
+  kein Demo-/Static-Fallback, keine Mutation/Write-Pfade, kein Publish-/Approval-Bypass.
+- Testabdeckung erweitert:
+  - `apps/web/tests/community-deep-links.contract.test.ts`
+  - `apps/web/tests/community-groups.resolver.test.ts`
+  - `apps/web/tests/community-groups.route.test.ts`
+  - `apps/web/tests/community-page.states.test.ts`
+
+## Update (2026-03-19) — PR-0041 Community E2E absichern (mobile + desktop)
+
+- Community Read-Surfaces sind als Acceptance-Baseline fuer A-F abgesichert:
+  Canonical Group-Link, Discovery, Source-Unavailable, Invalid Params, Legacy-Alias-Lesbarkeit, Read-only Boundary.
+- Page-Layer deckt mobile/desktop-relevante Render-States explizit ab (Discovery/Group/Empty/Unavailable/Invalid), inkl. responsiver Klassen:
+  `md:grid-cols-2`, `lg:grid-cols-[1.25fr_1fr]`, `sm:grid-cols-2`.
+- Invalid-Deep-Link-Matrix ist route- und page-seitig stabil:
+  `invalid_group_type`, `invalid_group_scope`, `invalid_group_context`.
+- Legacy-Alias-Kompatibilitaet bleibt lesbar (`topic`, `dossier`, `region`, `reason`, `communityKey`) und wird in kanonische Felder normalisiert.
+- Outgoing Community-Deep-Links bleiben kanonisch (`topicKey`, `dossierId`, `regionLabel`, `reasonLabel`; keine Alias-Emission).
+- Guardrails unveraendert:
+  kein Demo-/Static-Fallback, keine Mutation/Write-Pfade, kein Publish-/Approval-Bypass.
+- Testabdeckung:
+  - `apps/web/tests/community-deep-links.contract.test.ts`
+  - `apps/web/tests/community-groups.resolver.test.ts`
+  - `apps/web/tests/community-groups.route.test.ts`
+  - `apps/web/tests/community-page.states.test.ts`
+  - `apps/web/tests/community-groups.no-demo-fallback.test.ts`
+  - `apps/web/tests/community-readonly-boundary.test.ts`
+
+## Update (2026-03-19) — PR-FEED-ANLASS-02 Feed/Anlassraum Picker im `/create`
+
+- `/create` hat jetzt einen manuellen produktiven Kontext-Picker (read-only, kein Demo-/Static-Fallback).
+- Dedizierter Read-Pfad aktiv:
+  `GET /api/create/context` mit stabilen Antworten fuer
+  `invalid_limit` (400), `invalid_anlassraum_id` (400) und `create_context_source_unavailable` (503).
+- Picker-Read-Model ist zentralisiert:
+  `apps/web/src/features/create/contextPicker.ts` (Produktivquelle aus `output_seed`/`anlassraum`, nur aktive + selektierbare Kontexte).
+- Picker-UI ist minimal in `/create` verdrahtet:
+  `apps/web/src/app/create/CreateClient.tsx` zeigt Liste/Empty/Unavailable, explizite Auswahl/Entfernung und sichtbare `anlassraumId`.
+- Auswahl bleibt strikt manuell:
+  kein Save/Finalize-Trigger durch Selektion, keine DB-Mutation durch Picker-State.
+- Propagation ist explizit und nachvollziehbar:
+  `selectedAnlassraumId` -> `AnalyzeWorkspace` -> Analyze/Save/Finalize-Payload (`anlassraumId`).
+- Save/Finalize/Analyze validieren Kontext-IDs stabil (`invalid_anlassraum_id`), ohne Auto-Linking, Auto-Publish oder Auto-Approval.
+- Testabdeckung erweitert:
+  - `apps/web/tests/create-context-picker.service.test.ts`
+  - `apps/web/tests/create-context-picker.route.test.ts`
+  - `apps/web/tests/create-mode.page.test.ts`
+  - `apps/web/tests/create-mode.save.route.test.ts`
+  - `apps/web/tests/create-mode.finalize.route.test.ts`
+  - `apps/web/tests/create-mode.analyze-parse.test.ts`
+
+## Update (2026-03-19) — PR-FEED-ANLASS-03 Feed/Anlassraum Cluster-Job
+
+- Dedizierter produktiver Cluster-Job ist als eigener Domain-Service umgesetzt:
+  `features/feeds/clusterJob.ts`.
+- Explizite, inspectable Cluster-Candidates werden persistent geschrieben in:
+  `feed_anlassraum_cluster_candidates` (Index/Collection-Wiring in `features/feeds/db.ts`).
+- Schmaler manueller Runner ist aktiv:
+  `POST /api/admin/feeds/cluster/run`
+  (`apps/web/src/app/api/admin/feeds/cluster/run/route.ts`).
+- Ergebnisobjekte bleiben explizit und idempotenzfreundlich:
+  `status: success|empty`, `action: created|updated|unchanged`, inkl. stable source/error mapping.
+- Guardrails bleiben unveraendert:
+  kein Auto-Publish, kein Auto-Approval, keine Live-/Round-Erstellung, keine Hidden-Migration.
+- Testabdeckung:
+  - `apps/web/tests/feed-cluster-job.service.test.ts`
+  - `apps/web/tests/feed-cluster-job.route.test.ts`
+
 ## Status-Übersicht der Pfade 00–15
 
 - **Part00 Foundations / PII:** PII-Guardrails plus Klarname-Trennung (givenName/familyName) und Privacy-Flags dokumentiert; Alt-Migration optional.

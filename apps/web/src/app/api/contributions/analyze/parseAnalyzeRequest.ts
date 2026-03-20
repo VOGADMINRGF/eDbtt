@@ -1,4 +1,6 @@
 import { z } from "zod";
+import { ObjectId } from "@core/db/triMongo";
+import { CREATE_MODE_VALUES, parseCreateMode } from "@/features/create/intents";
 
 /**
  * Backwards-compatible request parser for /api/contributions/analyze.
@@ -26,6 +28,25 @@ export const AnalyzeRequestSchemaV2 = z
     // existing compatibility hooks
     test: z.string().optional(),
     contributionId: z.string().min(3).max(100).optional(),
+    createMode: z.preprocess(
+      (value) => {
+        if (typeof value !== "string") return value;
+        const parsed = parseCreateMode(value);
+        return parsed ?? value.toLowerCase().trim();
+      },
+      z.enum(CREATE_MODE_VALUES).optional(),
+    ),
+    anlassraumId: z.preprocess(
+      (value) => {
+        if (typeof value !== "string") return value;
+        const normalized = value.trim().toLowerCase();
+        return normalized || undefined;
+      },
+      z
+        .string()
+        .refine((value) => ObjectId.isValid(value), "invalid_anlassraum_id")
+        .optional(),
+    ),
   })
   .superRefine((val, ctx) => {
     if (val.test === "ping") return;

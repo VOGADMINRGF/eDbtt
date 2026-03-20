@@ -74,6 +74,7 @@ export default async function CreatePage({
   const intent = mapIntent(readParam(resolved.intent));
   const mode = mapMode(readParam(resolved.mode));
   const dossierId = readParam(resolved.dossierId) ?? null;
+  const anlassraumId = readParam(resolved.anlassraumId) ?? null;
   const prefillText = decodeMaybe(readParam(resolved.prefill) ?? readParam(resolved.text));
   const draftId = readParam(resolved.draftId);
 
@@ -91,6 +92,7 @@ export default async function CreatePage({
           initialEntitlements={entitlements}
           overview={overview}
           dossierId={dossierId}
+          initialAnlassraumId={anlassraumId}
           initialIntent={intent}
           initialMode={mode}
           initialText={initialText}

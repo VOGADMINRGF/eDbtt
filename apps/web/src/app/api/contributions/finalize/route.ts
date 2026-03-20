@@ -5,6 +5,7 @@ import { coreCol, getCol, ObjectId } from "@core/db/triMongo";
 import { createAuditEvent } from "@features/dossier/infra/auditChain";
 import type { AuditEvent, MaterialLink } from "@features/dossier/infra/types";
 import { z } from "zod";
+import { CREATE_MODE_VALUES, parseCreateMode, type CreateMode } from "@/features/create/intents";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -14,6 +15,25 @@ const FinalizeSchema = z.object({
   selectedClaimIds: z.array(z.string()).min(1),
   topicTitle: z.string().optional(),
   source: z.enum(["contribution_new", "statement_new"]).optional(),
+  createMode: z.preprocess(
+    (value) => {
+      if (typeof value !== "string") return value;
+      const parsed = parseCreateMode(value);
+      return parsed ?? value.toLowerCase().trim();
+    },
+    z.enum(CREATE_MODE_VALUES).optional(),
+  ),
+  anlassraumId: z.preprocess(
+    (value) => {
+      if (typeof value !== "string") return value;
+      const normalized = value.trim().toLowerCase();
+      return normalized || undefined;
+    },
+    z
+      .string()
+      .refine((value) => ObjectId.isValid(value), "invalid_anlassraum_id")
+      .optional(),
+  ),
   dossierId: z.string().min(1).optional(),
 });
 
@@ -22,6 +42,8 @@ type DraftDoc = {
   authorId: string;
   authorName?: string | null;
   useCase?: "civic" | "journalism" | "agenda" | null;
+  createMode?: CreateMode | null;
+  anlassraumId?: string | null;
   analysis?: any;
   status?: "draft" | "finalized";
   proposalIds?: string[];
@@ -33,6 +55,8 @@ type ProposalDoc = {
   authorId: string;
   authorName?: string | null;
   useCase?: "civic" | "journalism" | "agenda" | null;
+  createMode?: CreateMode | null;
+  anlassraumId?: string | null;
   claimId: string;
   text: string;
   title?: string | null;
@@ -86,6 +110,9 @@ export async function POST(req: NextRequest) {
     if (selectedClaims.length === 0) {
       return NextResponse.json({ ok: false, error: "no_claims_selected" }, { status: 400 });
     }
+    const resolvedCreateMode: CreateMode =
+      body.createMode ?? draft.createMode ?? (body.source === "statement_new" ? "manual" : "source");
+    const resolvedAnlassraumId = body.anlassraumId ?? draft.anlassraumId ?? null;
 
     const now = new Date();
     const insertDocs: ProposalDoc[] = selectedClaims.map((claim: any) => ({
@@ -93,6 +120,8 @@ export async function POST(req: NextRequest) {
       authorId: draft.authorId,
       authorName: draft.authorName ?? null,
       useCase: draft.useCase ?? null,
+      createMode: resolvedCreateMode,
+      anlassraumId: resolvedAnlassraumId,
       claimId: String(claim.id),
       text: String(claim.text ?? ""),
       title: claim.title ?? null,
@@ -117,6 +146,8 @@ export async function POST(req: NextRequest) {
           status: "finalized",
           finalizedAt: now,
           proposalIds,
+          createMode: resolvedCreateMode,
+          anlassraumId: resolvedAnlassraumId,
         },
       },
     );
@@ -210,10 +241,22 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       ok: true,
       proposalIds,
+      createMode: resolvedCreateMode,
+      anlassraumId: resolvedAnlassraumId,
       redirectTo: body.dossierId ? `/dossier/${body.dossierId}` : `/swipes?fromDraft=${body.draftId}`,
     });
   } catch (err: any) {
-    const message = err?.issues?.[0]?.message ?? err?.message ?? "Finalize failed";
+    if (Array.isArray(err?.issues) && err.issues.length > 0) {
+      const issue = err.issues[0];
+      const message =
+        issue?.path?.[0] === "createMode"
+          ? "invalid_create_mode"
+          : issue?.path?.[0] === "anlassraumId"
+            ? "invalid_anlassraum_id"
+          : issue?.message ?? "invalid_body";
+      return NextResponse.json({ ok: false, error: message }, { status: 400 });
+    }
+    const message = err?.message ?? "Finalize failed";
     return NextResponse.json({ ok: false, error: message }, { status: 500 });
   }
 }

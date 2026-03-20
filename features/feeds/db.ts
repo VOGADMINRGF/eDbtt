@@ -4,18 +4,21 @@ import type {
   StatementCandidateAnalyzeResultDoc,
   VoteDraftDoc,
   FeedStatementDoc,
+  FeedAnlassraumClusterCandidateDoc,
 } from "./types";
 
 const CANDIDATE_COLLECTION = "statement_candidates";
 const ANALYZE_RESULTS_COLLECTION = "analyze_results";
 const VOTE_DRAFTS_COLLECTION = "vote_drafts";
 const FEED_STATEMENTS_COLLECTION = "feed_statements";
+const FEED_ANLASSRAUM_CLUSTER_CANDIDATES_COLLECTION = "feed_anlassraum_cluster_candidates";
 
 const ensured = {
   candidates: false,
   analyzeResults: false,
   voteDrafts: false,
   feedStatements: false,
+  clusterCandidates: false,
 };
 
 async function ensureCandidateIndexes() {
@@ -53,6 +56,17 @@ async function ensureFeedStatementIndexes() {
   ensured.feedStatements = true;
 }
 
+async function ensureClusterCandidateIndexes() {
+  if (ensured.clusterCandidates) return;
+  const col = await coreCol<FeedAnlassraumClusterCandidateDoc>(
+    FEED_ANLASSRAUM_CLUSTER_CANDIDATES_COLLECTION,
+  );
+  await col.createIndex({ clusterKey: 1 }, { unique: true });
+  await col.createIndex({ updatedAt: -1 });
+  await col.createIndex({ topicKey: 1, regionCode: 1, windowBucket: 1 });
+  ensured.clusterCandidates = true;
+}
+
 export async function statementCandidatesCol() {
   await ensureCandidateIndexes();
   return coreCol<StatementCandidate>(CANDIDATE_COLLECTION);
@@ -71,4 +85,9 @@ export async function voteDraftsCol() {
 export async function feedStatementsCol() {
   await ensureFeedStatementIndexes();
   return coreCol<FeedStatementDoc>(FEED_STATEMENTS_COLLECTION);
+}
+
+export async function feedAnlassraumClusterCandidatesCol() {
+  await ensureClusterCandidateIndexes();
+  return coreCol<FeedAnlassraumClusterCandidateDoc>(FEED_ANLASSRAUM_CLUSTER_CANDIDATES_COLLECTION);
 }

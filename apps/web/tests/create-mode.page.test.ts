@@ -102,4 +102,32 @@ describe("/create canonical mode rendering", () => {
       expect(lastCall?.createMode).toBe(mode);
     },
   );
+
+  it("Scenario E: source mode keeps explicit selected anlassraum context on workspace boundary", async () => {
+    const tree = await CreatePage({
+      searchParams: Promise.resolve({
+        mode: "source",
+        anlassraumId: "65f000000000000000000011",
+      }),
+    });
+    const html = renderToStaticMarkup(tree);
+    expect(html).toContain("Kontext-Picker");
+    const lastCall = mocks.analyzeWorkspaceCalls.at(-1);
+    expect(lastCall?.createMode).toBe("source");
+    expect(lastCall?.selectedAnlassraumId).toBe("65f000000000000000000011");
+  });
+
+  it("Scenario E: manual mode never forwards source context implicitly", async () => {
+    const tree = await CreatePage({
+      searchParams: Promise.resolve({
+        mode: "manual",
+        anlassraumId: "65f000000000000000000011",
+      }),
+    });
+    const html = renderToStaticMarkup(tree);
+    expect(html).not.toContain("Kontext-Picker");
+    const lastCall = mocks.analyzeWorkspaceCalls.at(-1);
+    expect(lastCall?.createMode).toBe("manual");
+    expect(lastCall?.selectedAnlassraumId).toBeUndefined();
+  });
 });
