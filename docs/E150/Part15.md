@@ -1,11 +1,25 @@
 # E150 Master Spec – Part 15: Offene Pfade & Restarbeiten
 
-> Status-Hinweis (2026-03-19): Dieses Part ist eine Spezifikation/Zusammenfassung. Der verbindliche Aufgabenstand liegt in `docs/E150/OpenTasks.md`. Keine neuen Runs aus diesem Part ableiten.
+> Status-Hinweis (2026-03-20): Dieses Part ist eine Spezifikation/Zusammenfassung. Der verbindliche Aufgabenstand liegt in `docs/E150/OpenTasks.md`. Keine neuen Runs aus diesem Part ableiten.
 
 
 ## Zweck
 
 Dieses Dokument dient als Status-Zusammenfassung der Pfade (Part00–Part15). Es ist **kein** Run-Plan. Der verbindliche Aufgabenstand liegt in `docs/E150/OpenTasks.md`, der Lieferrahmen in `docs/E150/Pflichtenheft.md`.
+
+## Update (2026-03-20) — Canonical AI/Product Architecture Shift (Freistart + Qualitaetsschicht)
+
+- Zwischenstand `manual/source/ai` als primaeres Zielbild fuer `/create` ist fachlich superseded.
+- Neuer kanonischer Produktpfad:
+  `Freistart -> Analyse/Qualitaet -> Graph-Matching -> CTA-Moment -> Anlassraum/Dossier/Beteiligung`.
+- Qualitaetsschicht ist verpflichtend (Strukturierung, Pruefhilfen, Claim-/Fragevorschlaege, Unsicherheiten, Rueckfragen) und nicht optional.
+- Graph-Matching + CTA-Layer sind verpflichtende Schicht bei belastbarem Kontext.
+- Anlassraum ist explizit Arbeitsort (nicht nur Zielobjekt) mit sauberem Dossier-Handoff.
+- Architektur wird als Hauptfluss plus spezialisierte Unter-Orchestrierungen gefuehrt (statt diffusem KI-Modus).
+- Meta-Layer (Audit/Governance/Provenance/Risk) ist verpflichtend quer ueber alle Stufen.
+- Stage-2/Stage-3 (Self-Host/Souveraenisierung) sind explizit hard-deferred und bleiben letzter Agenda-Punkt bis zur vollstaendigen operativen Baseline.
+- Governance bleibt unveraendert strikt:
+  manual-first, review-first, approval-first, no auto publish.
 
 ## Update (2026-03-19) — Wave 1 Governance Foundation
 
@@ -426,6 +440,63 @@ Ist/Unerledigt:
 | Admin-Betrieb | `/admin/support` + Detail + CSV aktiv | Optional: Bulk-Verbuchung |
 
 ## PR-Log
+
+### PR-GOV-12 (2026-03-20) – Canonical Multi-Orchestration Flow + Hard-Deferred Sovereignty Block
+
+Ziel:
+- Architektur klar von sichtbarem Mode-Split auf einen kanonischen Orchestrierungsfluss umstellen und Stage-2/Stage-3 explizit als letzten Agenda-Block parken.
+
+Changes:
+- Superseded den Zwischenrahmen aus PR-GOV-11 dort, wo er noch als sichtbarer Mode-Split gelesen werden konnte.
+- `docs/E150/Part16.md` auf kanonischen Zielstand umgestellt:
+  - ein gemeinsamer Produktfluss statt primaerer `manual/source/ai`-Nutzermodi
+  - fuenf spezialisierte Unter-Orchestrierungen
+  - verpflichtender Meta-Layer (Audit/Governance/Provenance/Bias-Risk/Layman Explanation)
+  - Language-aware Regeln inkl. Cross-lingual Matching
+  - Canonical Prompt Contracts mit typed Soll-Ausgaben fuer alle Kern-Orchestrierungen + Graph-Matching/CTA.
+- `docs/E150/OpenTasks.md` synchronisiert:
+  - Legacy-Mode-Split sichtbar als superseded intermediate state markiert
+  - GOV-AI-01 bis GOV-AI-07 als offene/planned/canonical Architektur-Tasks aufgenommen
+  - Hard-last-Regel im Run-Abschnitt verankert
+  - STAGE-2/STAGE-3 als expliziter Schlussblock am Dateiende geparkt (nicht vorziehbar).
+- Keine Re-Priorisierung von Stage-2/Stage-3 ohne explizite User-Entscheidung und ohne vollstaendige operative Baseline.
+
+Verification:
+- Docs-only Run: keine UI-/API-/Domain-Aenderung.
+- Konsistenzpruefung in:
+  `docs/E150/Part16.md`, `docs/E150/OpenTasks.md`, `docs/E150/Part15.md`.
+
+Next Steps:
+- GOV-AI-01 bis GOV-AI-04 auf operative Implementierungs-Slices aufteilen.
+- GOV-AI-05 bis GOV-AI-07 als typed contracts + auditfaehige Outputs vorziehen.
+- Stage-2/Stage-3 bis zum erreichten Kernbetrieb geparkt halten.
+
+### PR-GOV-11 (2026-03-20) – Freistart + verpflichtende Qualitaetsschicht + Multi-Orchestrierung kanonisiert
+
+Ziel:
+- Kanonischen Architekturentscheid dokumentieren: Freistart statt primaerer Mode-Wahl, verpflichtende Qualitaetsschicht, verpflichtendes Graph-Matching + CTA-Layer.
+
+Changes:
+- Neue kanonische Architektur-Doku angelegt:
+  `docs/E150/Part16.md`
+  mit Produktentscheid, Plattformregeln, Match-/CTA-Schicht, Anlassraum-Workbench, Multi-Orchestrierungen, Governance-Transparenz.
+- `docs/E150/OpenTasks.md` aktualisiert:
+  - frueheren Task `Create IA v2 ... manual/source/ai` als
+    `Superseded by GOV-AI-01 (legacy mode split active, but no longer target architecture)` markiert.
+  - GOV-AI-01 bis GOV-AI-05 als neue Architektur-Tasks aufgenommen.
+  - Priorisierung direkt unter Wave 2 (Wave 2.5) verankert.
+  - betroffene State-Machines, weiter geltende Publish-Gates und bewusst nicht automatisierte Bereiche explizit nachgefuehrt.
+- Dieser PR-Log-Eintrag dokumentiert den Shift als verbindliche Referenz fuer Folge-Runs.
+
+Verification:
+- Docs-only Run: keine UI-/API-/Domain-Codeaenderung vorgenommen.
+- Konsistenzpruefung der betroffenen Doku-Dateien:
+  `docs/E150/Part16.md`, `docs/E150/OpenTasks.md`, `docs/E150/Part15.md`.
+
+Next Steps:
+- GOV-AI-01 starten: `/create` auf Freistart + verpflichtende Qualitaetsschicht als produktiven Zielpfad umstellen.
+- GOV-AI-02 aufsetzen: Match-Staerken + CTA-Entscheidungslayer ohne Silent-Merge.
+- GOV-AI-05 vorbereiten: Provider-/Residency-Matrix fuer DSGVO-konformen Orchestrierungsbetrieb.
 
 ### PR-GOV-01 (2026-03-19) – Wave 1 Governance Foundation (GOV-01/GOV-02/DOCS-GOV-01)
 

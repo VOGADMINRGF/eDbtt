@@ -5,11 +5,15 @@
 Diese Datei ist der kanonische Aufgabenstand fuer E150.
 Wenn andere Parts, alte Drift-Prompts oder Zwischen-Notizen abweichen, gewinnt diese Datei.
 
-Stand: 2026-03-19
+Stand: 2026-03-20
 
 ## Leitbild
 
 Kernfluss des Systems:
+
+**Freistart -> Analyse/Qualitaet -> Graph-Matching -> CTA-Moment -> Anlassraum/Dossier/Beteiligung**
+
+Governance-/Umsetzungsfluss (weiterhin verbindlich):
 
 **Signal -> Anlassraum -> Dossier -> Runde -> Mandat -> Umsetzung -> Impact**
 
@@ -49,8 +53,8 @@ Regel:
 | I | Unterstuetzen / Crowdfunding | Implemented (legacy) | GOV-FUNDING-01 | In Signals/Funding-Modell ueberfuehren |
 | M | Membership Apply | Done | GOV-PRICING-01 | Membership mit neuer Paketlogik harmonisieren |
 | N | Demo / Screenshot Studio | Done | GOV-MUNI-01 | Kommune-/Pilot-Sales-Demos damit speisen |
-| O | Governance / Journalismus / Kommune / Initiative / Organisation | In Progress (Wave 2 core in progress) | GOV-ANLASS-04 | Gemeinsames Zielmodell voll verankern |
-| P | Anlassraum / Signals / Funding / Pricing | In Progress (Wave 2 core in progress) | GOV-ANLASS-04 | Manual-first Kernsystem produktiv verankern |
+| O | Governance / Journalismus / Kommune / Initiative / Organisation | In Progress (Wave 2 core in progress) | GOV-AI-01 | Gemeinsames Zielmodell voll verankern |
+| P | Anlassraum / Signals / Funding / Pricing | In Progress (Wave 2 core in progress) | GOV-AI-01 | Manual-first Kernsystem produktiv verankern |
 
 ## Drift Backlog (bestehend)
 
@@ -84,6 +88,17 @@ Status: **In Progress (Core baseline / 2026-03-19)**
 - **GOV-EVENT-01** Event-/Sitzungsmodell (**Event->Anlassraum linking active**)
 - **GOV-EVENT-02** QR -> Fragen -> Protokoll -> Dossier -> Runde (**Functionally complete: service+route acceptance + legacy backfill strategy (manual-first)**)
 
+### Welle 2.5 — Freistart / KI-Qualitaet / Match-CTA (neu priorisiert)
+Status: **Open (Architecture alignment required / 2026-03-20)**
+
+- **GOV-AI-01** Freistart + verpflichtende Qualitaetsschicht
+- **GOV-AI-02** Graph-Matching + CTA-Layer
+- **GOV-AI-03** Anlassraum als Arbeitsort
+- **GOV-AI-04** Canonical Multi-Orchestration Flow
+- **GOV-AI-05** Prompt Contracts + Typed Outputs
+- **GOV-AI-06** Language-Aware Core + Cross-Lingual Matching
+- **GOV-AI-07** Meta-Layer / Audit / Provenance / Layman Explanation
+
 ### Welle 3 — Kommune / Verwaltung
 - **GOV-MUNI-01** Buergermeister-Dashboard
 - **GOV-MUNI-02** Dezernatslogik
@@ -116,15 +131,15 @@ Status: **In Progress (Core baseline / 2026-03-19)**
 
 | Task | Status | Naechster Run | Evidenz/Notiz |
 | --- | --- | --- | --- |
-| Create IA v2: dedizierte Mode-Module (`manual/source/ai`) statt nur Workspace-Parametrisierung | In Progress (canonical mode split active + acceptance covered) | PR-0039 | Canonical `manual/source/ai` aktiv inkl. Legacy-Alias-Normalisierung + Persistenz in Create-Save/Finalize; Acceptance-Coverage fuer Page/Save/Finalize aktiv: `features/create/intents.ts`, `app/create/CreateClient.tsx`, `api/contributions/save|finalize`, `tests/create-mode.*` |
+| Create IA v2: dedizierte Mode-Module (`manual/source/ai`) statt nur Workspace-Parametrisierung | Superseded (legacy intermediate state, no longer target architecture) | GOV-AI-01 | `manual/source/ai` bleibt nur als Legacy-Kompatibilitaets-/Migrationsschicht aktiv (inkl. Alias-Normalisierung + Persistenz), ist aber nicht mehr der kanonische Produktpfad; kanonisch: Freistart + verpflichtende Qualitaetsschicht + Graph-Matching + CTA-Layer |
 | Runden Entry Surface auf produktive Quelle umstellen (statt Seed aus `features/topicRound/data.ts`) | Done (productive source + compatibility matrix active / 2026-03-19) | PR-0039 | `/runden` liest aus produktivem `output_seed`/`anlassraum`-Read-Model (`features/topicRound/entrySource.ts`, `GET /api/runden/entry`); `/demo/runden` ist expliziter Compat-Redirect auf `/runden` (kein Seed-Fallback), inkl. Tests `apps/web/tests/runden-entry.*`, `apps/web/tests/runden-compat.*`, `apps/web/tests/runden-page.acceptance.test.ts` |
 | Backward-Compatibility finalisieren | Done (legacy/demo round entry clarified / 2026-03-19) | PR-0039 | Canonical Round-Entry = `/runden`; alte Demo-Pfade zeigen explizit auf produktiven Einstieg (`apps/web/src/app/demo/runden/page.tsx`, `apps/web/src/app/demo/page.tsx`, `apps/web/src/app/demo/DemoNavClient.tsx`) |
 | E2E-Abnahme fuer `/create` + `/runden` | Done (acceptance baseline verified / 2026-03-19) | PR-0039 | Scenarios A-F abgedeckt: Compat-Redirect, `/runden` Empty/Error, `/create` Mode-Reflexion + Save/Finalize-Mode-Propagation, stabile `invalid_create_mode`-Fehler, kein Seed-Fallback/kein Publish-Bypass (`apps/web/tests/runden-page.acceptance.test.ts`, `apps/web/tests/create-mode.page.test.ts`, `apps/web/tests/create-mode.save.route.test.ts`, `apps/web/tests/create-mode.finalize.route.test.ts`) |
 | Community Group Surfaces entkoppeln | In Progress (resolver/API + deep-link contract boundary active) | PR-0041 | `/community` nutzt dedizierten Read-Resolver + Read-Route + kanonischen Deep-Link-Contract: `features/community/groupSurface.ts`, `features/community/deepLinkContract.ts`, `GET /api/community/groups`, `apps/web/src/app/community/page.tsx`, Tests `community-groups.*`, `community-page.states.test.ts`, `community-deep-links.contract.test.ts` |
 | Community Deep-Link Contracts vereinheitlichen | In Progress (canonical contract active) | PR-0041 | Shared Canonical Params + Alias-Normalisierung + Canonical Href-Builder aktiv in Page/Route/Resolver + Link-Producern (`AccountClient`/Discovery); stabile Invalid-Param-Mappings ohne Fallback |
 | Community E2E absichern | Done (acceptance coverage mobile+desktop active / 2026-03-19) | PR-FEED-ANLASS-02 | Community Read-Surfaces A-F abgedeckt inkl. Canonical/Legacy/Invalid/Unavailable/Read-only-Guardrails: `apps/web/tests/community-*.test.ts` |
-| Feed/Anlassraum Picker im `/create` anbinden | Done (manual productive context picker active / 2026-03-19) | PR-FEED-ANLASS-04 | Read-only Kontextauswahl in `/create` aktiv (`GET /api/create/context`, `features/create/contextPicker.ts`, `app/create/CreateClient.tsx`), explizite `anlassraumId`-Propagation in Analyze/Save/Finalize ohne Auto-Linking/Publish/Approval; Tests `apps/web/tests/create-context-picker.*`, `apps/web/tests/create-mode.*` |
-| Feed/Anlassraum Cluster-Job | Done (baseline worker active / 2026-03-19) | PR-FEED-ANLASS-04 | Dedizierter Cluster-Worker aktiv (`features/feeds/clusterJob.ts`) inkl. Runner `POST /api/admin/feeds/cluster/run`, persistente Candidate-Outputs (`feed_anlassraum_cluster_candidates`) und Idempotenz (`created/updated/unchanged`) ohne Publish-/Approval-Seiteneffekt; Tests `apps/web/tests/feed-cluster-job.*` |
+| Feed/Anlassraum Picker im `/create` anbinden | Done (manual productive context picker active / 2026-03-19) | PR-FEED-ANLASS-02 | Read-only Kontextauswahl in `/create` aktiv (`GET /api/create/context`, `features/create/contextPicker.ts`, `app/create/CreateClient.tsx`), explizite `anlassraumId`-Propagation in Analyze/Save/Finalize ohne Auto-Linking/Publish/Approval; Tests `apps/web/tests/create-context-picker.*`, `apps/web/tests/create-mode.*` |
+| Feed/Anlassraum Cluster-Job | Done (baseline worker active / 2026-03-19) | PR-FEED-ANLASS-03 | Dedizierter Cluster-Worker aktiv (`features/feeds/clusterJob.ts`) inkl. Runner `POST /api/admin/feeds/cluster/run`, persistente Candidate-Outputs (`feed_anlassraum_cluster_candidates`) und Idempotenz (`created/updated/unchanged`) ohne Publish-/Approval-Seiteneffekt; Tests `apps/web/tests/feed-cluster-job.*` |
 | Feed/Anlassraum Status-Transitions absichern | In Progress (Wave 2 deepening) | PR-FEED-ANLASS-04 | erweitert um Queue-Review-Aktionen + Bulk-Route + Queue-Triage: `features/feeds/reviewQueue.ts`, `apps/web/src/app/api/admin/feeds/drafts/bulk/route.ts`, `apps/web/src/app/api/admin/feeds/drafts/route.ts` |
 | Feed/Anlassraum Publish-Flows ausbauen | Done (manual output-prep baseline closed / 2026-03-19) | PR-FEED-ANLASS-06 | Output-Prep operabel inkl. Admin-Surface: `features/anlassraum/outputPrep.ts`, `GET /api/admin/feeds/anlassraum/[id]/outputs`, `POST /api/admin/feeds/anlassraum/[id]/outputs/[seedId]/transition`, `apps/web/src/app/admin/feeds/anlassraum/[id]/page.tsx` |
 | Feed/Anlassraum Backfill | In Progress (legacy remediation UX + audit active) | PR-FEED-ANLASS-06 | Detection + per-draft Remediation inkl. Audit-Sichtbarkeit: `GET /api/admin/feeds/drafts/legacy`, `POST /api/admin/feeds/drafts/[id]/backfill`, `apps/web/src/app/admin/feeds/drafts/page.tsx` |
@@ -450,6 +465,105 @@ Legacy Backfill Strategy (Abschluss 2026-03-19):
 - Fallback ohne Backfill bleibt explizit/manual: admin kann Dossier-Apply mit `targetDossierId` manuell ausfuehren; keine automatische Oeffentlich-Publikation.
 - Nicht automatisiert: Bulk-Backfill bleibt bewusst manuell/protokolliert pro Contract (keine Silent-Migration im Produktfluss).
 
+### GOV-AI-01 — Freistart + verpflichtende Qualitaetsschicht
+Scope:
+- `/create` als Freistart ohne primaere Moduswahl `manual/source/ai`
+- Analyse-/Pruefhilfen-/Claim-/Frage-Vorschlaege immer aktiv
+- Rueckfragen bei duennem Input statt stiller Fehlzuordnung
+- no auto publish / review-first / approval-first / manual-first bleibt verpflichtend
+
+Status: **Open (planned / canonical / 2026-03-20)**
+
+### GOV-AI-02 — Graph-Matching + CTA-Layer
+Scope:
+- Match gegen Claim-/Anlassraum-/Dossier-/Perspektivkontext
+- Match-Staerken: `high`, `medium`, `none`
+- CTA-Layer: `zustimmen`, `anders_sehen`, `dossier_oeffnen`, `anlassraum_oeffnen`, `perspektive_anhaengen`, `trotzdem_neu_anlegen`
+- kein Silent-Merge, keine Ursprungsausloeschung
+
+Status: **Open (planned / canonical / 2026-03-20)**
+
+### GOV-AI-03 — Anlassraum als Arbeitsort
+Scope:
+- Erfassung direkt im Anlassraum
+- Analyse im Anlassraum
+- CTA-Momente in bestehende Kontexte
+- sauberer Handoff Anlassraum <-> Dossier
+
+Status: **Open (planned / canonical / 2026-03-20)**
+
+### GOV-AI-04 — Canonical Multi-Orchestration Flow
+Scope:
+- kanonischen Hauptfluss definieren:
+  `Freistart -> Intake -> Pruef/Qualitaet -> Graph-Matching -> CTA/Routing -> Anlassraum/Dossier/Debatten-Setup/Beteiligung -> Output/API/Audit`
+- Unter-Orchestrierungen trennen:
+  `intake`, `pruefung`, `agenda_fragen`, `dossier`, `beteiligung_abstimmung`
+- gemeinsame Contracts / Events / Auditierbarkeit / Provenance
+
+Status: **Open (planned / canonical / 2026-03-20)**
+
+### GOV-AI-05 — Prompt Contracts + Typed Outputs
+Scope:
+- Canonical Prompt Contracts fuer:
+  `intake`, `pruefung`, `agenda_fragen`, `dossier`, `beteiligung_abstimmung`, `graph_matching_cta`
+- pro Orchestrierung stabile Soll-Ausgaben (typed output contracts)
+- Confidence-/Unsicherheitsfelder verpflichtend
+- keine ungekennzeichneten Freitext-Blackboxes in kritischen Uebergaengen
+- spaeter in versionierte `zod`-/`ts`-Schemas ueberfuehren
+- keine kritischen Orchestrierungsuebergaenge nur mit losem Freitext
+- versionierte Output-Contracts fuer Replay, Audit und Providerwechsel
+- typed Contracts gelten als Vorstufe fuer stabile Orchestrator-Adapter
+
+Status: **Open (planned / canonical / 2026-03-20)**
+
+### GOV-AI-06 — Language-Aware Core + Cross-Lingual Matching
+Scope:
+- `uiLocale != contentLanguage != sourceLanguage` sauber trennen
+- Originaltext als canonical source behalten
+- Uebersetzungen als abgeleitete Darstellung markieren
+- Cross-lingual Matching verpflichtend
+- Rueckfragen in Nutzersprache + Fragequalitaet pro Sprache
+
+Status: **Open (planned / canonical / 2026-03-20)**
+
+### GOV-AI-07 — Meta-Layer / Audit / Provenance / Layman Explanation
+Scope:
+- verpflichtender Meta-Layer ueber alle Orchestrierungsstufen
+- provenance-by-default + audit trail pro Schritt
+- trust/risk flags + bias/ethics checks
+- layman explanation in produktiver Ausspielung
+- Human-in-the-Loop fuer high-impact Faelle
+
+Status: **Open (planned / canonical / 2026-03-20)**
+
+Priorisierung (2026-03-20):
+- Ohne GOV-AI-01 bleibt `/create` fachlich widerspruechlich (legacy mode split vs. Freistart-Zielbild).
+- Ohne GOV-AI-02 bleibt der Graph-Moment ohne verbindliche CTA-Entscheidung ungenutzt.
+- Ohne GOV-AI-05 fehlen stabile Prompt-/Output-Vertraege fuer reproduzierbare Orchestrierung.
+- Ohne GOV-AI-06 bleibt Sprachkonsistenz und Cross-lingual Matching unzuverlaessig.
+- Ohne GOV-AI-07 bleibt Governance- und Audit-Transparenz unvollstaendig.
+
+Betroffene State-Machines (Programm-Ebene):
+- Create-Intake-Flow (Freistart -> Analysepflicht -> Match/CTA -> Handoff)
+- Anlassraum-Lifecycle (`draft -> curated -> reviewed -> approved -> active -> archived`)
+- Dossier-Upsert-Contract-Lifecycle (`pending_review -> partially_applied/applied -> rejected`)
+- Round-Seed-Contract-Lifecycle (`review_required -> draft_created/rejected`)
+- Output-Prep-Lifecycle (`draft -> queued -> review -> ready -> published/discarded`)
+
+Weiterhin aktive Publish-Gates:
+- no auto publish
+- review-first
+- approval-first
+- manual-first
+- scoped governance roles + publish-gate-pruefung
+
+Bewusst noch nicht automatisiert:
+- kein Auto-Publish aus Match/CTA
+- kein Silent-Merge bei Match
+- kein Auto-Handoff in Live-Runde/Public-Dossier
+- keine Bulk-Silent-Migration im Produktfluss
+- keine Stage-2/Stage-3 Self-Host-/Souveraenitaetsvorziehung in aktive Kern-Runs
+
 ### GOV-SIGNAL-01 — Signals
 Muss enthalten:
 - Signaltypen: `interest`, `support`, `concern`, `priority`
@@ -598,6 +712,7 @@ Rabatt:
    - welche State Machines eingefuehrt wurden
    - welche Publish Gates aktiv sind
    - welche Teile bewusst noch nicht automatisiert wurden
+7. Hard-last-Regel beachten: Stage-2 / Stage-3 duerfen nicht in aktive Runs gezogen werden, solange Kernorchestrierungen, Produktbaseline und Live-Betrieb nicht abgeschlossen sind.
 
 ## Erste Erfolgsdefinition
 
@@ -612,3 +727,53 @@ Sondern:
 - Signals
 - Funding Intent
 - optional Funding
+
+## Spaeter / bewusst hart nachgelagert (immer letzter Agenda-Punkt)
+
+Dieser Block ist dauerhaft nachgelagert.
+Er darf nicht vorgezogen werden.
+Er wird erst bearbeitet, wenn:
+- die Orchestrierungen fachlich und technisch beruecksichtigt sind
+- der operative Kern produktiv laeuft
+- die aktiven Kern-PRs abgeschlossen sind
+- der Produktbetrieb stabil ist
+- Evaluations-, Audit- und Governance-Baselines im Live-Betrieb vorliegen
+
+Er ist ausdruecklich NICHT Teil der aktuellen Priorisierung.
+
+#### Freigabekriterien fuer Stage-2 / Stage-3
+Diese Bloecke duerfen erst auf aktiv gesetzt werden, wenn:
+- produktiver Kernbetrieb ueber laengeren Zeitraum stabil ist
+- belastbare Eval-Suiten fuer alle Kern-Orchestrierungen vorliegen
+- Audit-/Review-/Publish-Pfade live verifiziert sind
+- Kostenbild je Orchestrierung bekannt ist
+- Fehlerraten / Fallback-Raten / Human-Review-Raten bekannt sind
+- i18n / cross-lingual baseline im Produktbetrieb validiert ist
+
+### STAGE-2 — Teilweise Souveraenisierung / Self-Host Expansion
+Status: Parked (hard-last)
+Naechster Run: erst nach vollstaendigem Kernbetrieb
+Regel:
+- immer letzter umsetzbarer Block nach Abschluss aller Kern-PRs
+- nicht in aktive Sprint-/PR-Planung ziehen
+- nur nach expliziter Re-Priorisierung durch den User
+
+Inhalt:
+- Self-host/private-host fuer standardisierbare Orchester pruefen
+- lokale/open-weight Modelle fuer Intake, Matching, Moderation, Embeddings
+- Exit-Vorbereitung aus punktueller Provider-Abhaengigkeit
+- nur auf Basis realer Produktionsdaten, Eval-Suiten und Kostenbilder
+
+### STAGE-3 — Weitgehende Provider-Unabhaengigkeit
+Status: Parked (hard-last)
+Naechster Run: erst nach Stage-2 und stabilem Produktbetrieb
+Regel:
+- absolut letzter Agenda-Punkt
+- keine Vorwegnahme in laufenden Architektur-/Produkt-PRs
+- nur wenn System, Governance und Betrieb bereits tragfaehig sind
+
+Inhalt:
+- weitere Internalisierung ausgewaehlter Orchester
+- Frontier-Abhaengigkeit auf Ausnahmefaelle reduzieren
+- eigene Modell-/Inference-Strategie nur nach nachgewiesenem Bedarf
+- kein Ziel `eigenes Frontier-Modell um jeden Preis`
