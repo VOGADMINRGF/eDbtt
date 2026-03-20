@@ -38,6 +38,15 @@ import { useContentLang } from "@/lib/i18n/contentLanguage";
 import { DEFAULT_BASE_LANG, LANGUAGE_CODES, type LanguageCode } from "@features/i18n/languages";
 import type { CreateMode } from "@/features/create/intents";
 import type { CreateAnalyzeResponse } from "@/features/create/analyzeContract";
+import {
+  buildCreateCtaHandoff,
+  cancelCreateCtaHandoff,
+  confirmCreateCtaHandoff,
+  createInitialCreateCtaHandoffState,
+  selectCreateCtaHandoff,
+  type CreateCtaHandoff,
+  type CreateCtaHandoffUiState,
+} from "@/features/create/ctaHandoff";
 
 const MAX_LEVEL1_STATEMENTS = 3;
 
@@ -770,6 +779,9 @@ export default function AnalyzeWorkspace({
   const [runReceipt, setRunReceipt] = React.useState<RunReceipt | null>(null);
   const [providerMatrix, setProviderMatrix] = React.useState<ProviderMatrixEntry[]>([]);
   const [createAnalyze, setCreateAnalyze] = React.useState<CreateAnalyzeResponse | null>(null);
+  const [ctaHandoffState, setCtaHandoffState] = React.useState<CreateCtaHandoffUiState>(
+    () => createInitialCreateCtaHandoffState(),
+  );
   const [steps, setSteps] = React.useState<AnalyzeStepState[]>(BASE_STEPS);
   const [analysisStatus, setAnalysisStatus] = React.useState<"idle" | "running" | "success" | "empty" | "error">("idle");
   const analyzing = analysisStatus === "running";
@@ -1323,6 +1335,8 @@ export default function AnalyzeWorkspace({
     : [];
   const createAnalyzeRoutingHint = createAnalyze ? deriveCreateAnalyzeRoutingHint(createAnalyze) : null;
   const createAnalyzeReasons = createAnalyze ? collectCreateAnalyzeReasons(createAnalyze) : [];
+  const pendingCtaHandoff = ctaHandoffState.pending;
+  const confirmedCtaHandoff = ctaHandoffState.confirmed;
 
   const deepResearchHints = React.useMemo(() => {
     if (!researchGuidance) return [] as string[];
@@ -1651,6 +1665,7 @@ export default function AnalyzeWorkspace({
     setEvidenceGraph(null);
     setRunReceipt(null);
     setCreateAnalyze(null);
+    setCtaHandoffState(createInitialCreateCtaHandoffState());
     setAnalysisStatus("running");
     setSteps(BASE_STEPS.map((s) => ({ ...s, state: "running" })));
 
@@ -1686,6 +1701,7 @@ export default function AnalyzeWorkspace({
       }
       const orchestrationSnapshot = parseCreateAnalyzeResponse(data?.createAnalyze);
       setCreateAnalyze(orchestrationSnapshot);
+      setCtaHandoffState(createInitialCreateCtaHandoffState());
 
       const resultPayload = data.result ?? data;
       if (!resultPayload) throw new Error("Analyse lieferte keine Ergebnisse.");
@@ -1813,6 +1829,7 @@ export default function AnalyzeWorkspace({
       setEvidenceGraph(null);
       setRunReceipt(null);
       setCreateAnalyze(null);
+      setCtaHandoffState(createInitialCreateCtaHandoffState());
       setSteps(
         computeStepStatesFromData({
           notes: [],
@@ -1849,6 +1866,40 @@ export default function AnalyzeWorkspace({
     text,
     viewLevel,
   ]);
+
+  const handleCreateCtaSelect = React.useCallback(
+    (ctaId: CreateCtaHandoff["ctaId"]) => {
+      if (!createAnalyze) return;
+      const handoff = buildCreateCtaHandoff({
+        ctaId,
+        createAnalyze,
+      });
+      setCtaHandoffState((prev) => selectCreateCtaHandoff(prev, handoff));
+    },
+    [createAnalyze],
+  );
+
+  const handleCreateCtaCancel = React.useCallback(() => {
+    setCtaHandoffState((prev) => cancelCreateCtaHandoff(prev));
+  }, []);
+
+  const handleCreateCtaConfirm = React.useCallback(() => {
+    const nextState = confirmCreateCtaHandoff(ctaHandoffState);
+    setCtaHandoffState(nextState);
+
+    const confirmed = nextState.confirmed;
+    if (!confirmed) return;
+
+    if (nextState.confirmAction.type === "navigate") {
+      setInfo(`CTA-Handoff bestaetigt: ${confirmed.ctaId}. Ziel wird geoeffnet (${nextState.confirmAction.targetRef}).`);
+      router.push(nextState.confirmAction.targetRef as Parameters<typeof router.push>[0]);
+      return;
+    }
+
+    setInfo(
+      `CTA-Handoff bestaetigt: ${confirmed.ctaId}. Prepare-only, keine Mutation, kein Auto-Publish, kein Silent-Merge.`,
+    );
+  }, [ctaHandoffState, router]);
 
   const scheduleTrace = React.useCallback(() => {
     const key = makeKey(preparedText, statements, { mode: "trace", locale });
@@ -2651,9 +2702,82 @@ export default function AnalyzeWorkspace({
                           ) : null}
                         </p>
                         <p className="mt-1 text-[10px]">{cta.reason}</p>
+                        <div className="mt-2">
+                          <button
+                            type="button"
+                            className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-2.5 py-1 text-[10px] font-semibold text-[rgb(var(--muted))] hover:text-[rgb(var(--fg))]"
+                            onClick={() => handleCreateCtaSelect(cta.id)}
+                          >
+                            Handoff vorbereiten
+                          </button>
+                        </div>
                       </li>
                     ))}
                   </ul>
+                </div>
+              )}
+
+              {pendingCtaHandoff && (
+                <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-[11px] text-[rgb(var(--muted))]">
+                  <p className="text-[10px] font-semibold uppercase tracking-wide">CTA Confirm-Step (manuell)</p>
+                  <p className="mt-1">
+                    CTA: <span className="font-semibold text-[rgb(var(--fg))]">{pendingCtaHandoff.ctaId}</span> · actionType:{" "}
+                    <span className="font-semibold text-[rgb(var(--fg))]">{pendingCtaHandoff.actionType}</span>
+                  </p>
+                  {pendingCtaHandoff.entityType ? (
+                    <p>
+                      Zieltyp: <span className="font-semibold text-[rgb(var(--fg))]">{pendingCtaHandoff.entityType}</span>
+                    </p>
+                  ) : null}
+                  {pendingCtaHandoff.entityId ? (
+                    <p>
+                      entityId: <span className="font-semibold text-[rgb(var(--fg))]">{pendingCtaHandoff.entityId}</span>
+                    </p>
+                  ) : null}
+                  {pendingCtaHandoff.targetRef ? (
+                    <p>
+                      targetRef: <span className="font-semibold text-[rgb(var(--fg))]">{pendingCtaHandoff.targetRef}</span>
+                    </p>
+                  ) : null}
+                  <p className="mt-1">{pendingCtaHandoff.summary}</p>
+
+                  {pendingCtaHandoff.warning ? (
+                    <p className="mt-1 rounded-md border border-amber-300/60 bg-amber-50/80 px-2 py-1 text-[10px] text-amber-800 dark:border-amber-400/40 dark:bg-amber-500/10 dark:text-amber-200">
+                      {pendingCtaHandoff.warning}
+                    </p>
+                  ) : null}
+
+                  <ul className="mt-2 list-disc space-y-1 pl-4">
+                    {pendingCtaHandoff.guardrails.map((guardrail) => (
+                      <li key={guardrail}>{guardrail}</li>
+                    ))}
+                  </ul>
+
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-2.5 py-1 text-[10px] font-semibold text-[rgb(var(--muted))] hover:text-[rgb(var(--fg))]"
+                      onClick={handleCreateCtaConfirm}
+                    >
+                      Bestaetigen
+                    </button>
+                    <button
+                      type="button"
+                      className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-2.5 py-1 text-[10px] font-semibold text-[rgb(var(--muted))] hover:text-[rgb(var(--fg))]"
+                      onClick={handleCreateCtaCancel}
+                    >
+                      Abbrechen
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {confirmedCtaHandoff && (
+                <div className="rounded-xl border border-emerald-300/60 bg-emerald-50/80 px-3 py-2 text-[11px] text-emerald-800 dark:border-emerald-400/40 dark:bg-emerald-500/10 dark:text-emerald-200">
+                  <p className="text-[10px] font-semibold uppercase tracking-wide">Bestaetigter CTA-Handoff</p>
+                  <p className="mt-1">
+                    {confirmedCtaHandoff.ctaId} bestaetigt. Vorbereitung abgeschlossen; keine implizite Mutation wurde ausgefuehrt.
+                  </p>
                 </div>
               )}
 
