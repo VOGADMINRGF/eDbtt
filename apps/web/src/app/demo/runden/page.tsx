@@ -31,5 +31,13 @@ export default async function DemoRundenCompatibilityPage({
 }) {
   const resolved = searchParams ? await searchParams : {};
   const view = parseView(readStringParam(resolved?.view));
-  redirect(buildCompatHref(view));
+  const targetHref = buildCompatHref(view);
+
+  redirect(targetHref);
+
+  return (
+    <main>
+      <h1 className="sr-only">Runden</h1>
+    </main>
+  );
 }

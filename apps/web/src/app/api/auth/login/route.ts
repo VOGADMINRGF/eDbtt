@@ -27,6 +27,7 @@ import {
 import { rateLimitOrThrow } from "@/utils/rateLimitHelpers";
 
 export const runtime = "nodejs";
+type LoginUser = CoreUserAuthSnapshot & { passwordHash?: string };
 
 type LoginBody = {
   identifier?: string;
@@ -71,7 +72,7 @@ async function issueTwoFactorChallenge(
 }
 
 function maybeBackfillCredentials(
-  user: CoreUserAuthSnapshot & { passwordHash?: string },
+  user: LoginUser,
   credentials: PiiUserCredentials | null,
   identifier: string,
 ) {
@@ -90,6 +91,37 @@ function maybeBackfillCredentials(
   );
 }
 
+function buildUserLookupQuery(identifier: string, rawIdentifier: string) {
+  const normalizedRaw = rawIdentifier.trim();
+  const orClauses: Record<string, string>[] = [{ email: identifier }];
+  if (normalizedRaw) {
+    orClauses.push(
+      { name: normalizedRaw },
+      { nickname: normalizedRaw },
+      { "profile.nickname": normalizedRaw },
+      { "profile.displayName": normalizedRaw },
+    );
+  }
+  return { $or: orClauses };
+}
+
+async function findUserByCredentialsCoreId(
+  usersCol: { findOne: (query: Record<string, unknown>) => Promise<LoginUser | null> },
+  credentials: PiiUserCredentials | null,
+) {
+  if (!credentials?.coreUserId) return null;
+
+  const direct = await usersCol.findOne({ _id: credentials.coreUserId as any });
+  if (direct) return direct;
+
+  const rawCoreId = credentials.coreUserId as unknown;
+  if (typeof rawCoreId === "string" && ObjectId.isValid(rawCoreId)) {
+    return usersCol.findOne({ _id: new ObjectId(rawCoreId) as any });
+  }
+
+  return null;
+}
+
 export async function POST(req: NextRequest) {
   const ip = (req.headers.get("x-forwarded-for") || "local").split(",")[0].trim();
   const ipLimit = await rateLimitOrThrow(`login:ip:${ip}`, 10, LOGIN_WINDOW_MS, {
@@ -100,7 +132,8 @@ export async function POST(req: NextRequest) {
   }
 
   const body = (await req.json().catch(() => ({}))) as LoginBody;
-  const identifier = normalizeIdentifier(body.identifier || body.email);
+  const rawIdentifier = (body.identifier || body.email || "").trim();
+  const identifier = normalizeIdentifier(rawIdentifier);
   const password = body.password?.trim();
   const redirectUrl = sanitizeRedirect(body.next || "/account");
 
@@ -120,21 +153,14 @@ export async function POST(req: NextRequest) {
   }
 
   const credsCol = await piiCol<PiiUserCredentials>(CREDENTIAL_COLLECTION);
-  const usersCol = await coreCol<CoreUserAuthSnapshot & { passwordHash?: string }>("users");
+  const usersCol = await coreCol<LoginUser>("users");
 
   const credentials = await credsCol.findOne({ email: identifier });
+  const userFromCredentials = await findUserByCredentialsCoreId(usersCol, credentials);
   const user =
-    (credentials
-      ? await usersCol.findOne({ _id: credentials.coreUserId })
-      : await usersCol.findOne({
-          $or: [
-            { email: identifier },
-            { name: body.identifier },
-            { nickname: body.identifier },
-            { "profile.nickname": body.identifier },
-            { "profile.displayName": body.identifier },
-          ],
-        })) || null;
+    userFromCredentials ||
+    (await usersCol.findOne(buildUserLookupQuery(identifier, rawIdentifier))) ||
+    null;
 
   if (!user || !(credentials?.passwordHash || user.passwordHash)) {
     await logAuthEvent("auth.login.failed", {
@@ -150,13 +176,47 @@ export async function POST(req: NextRequest) {
     return errorResponse("rate_limited", 429);
   }
 
-  const passwordHash = credentials?.passwordHash || user.passwordHash;
-  const passwordOk = passwordHash ? await verifyPassword(password, String(passwordHash)) : false;
+  const credentialsPasswordHash = credentials?.passwordHash ? String(credentials.passwordHash) : null;
+  const userPasswordHash = user.passwordHash ? String(user.passwordHash) : null;
+
+  let passwordOk = false;
+  let validatedPasswordSource: "credentials" | "user" | null = null;
+
+  if (credentialsPasswordHash) {
+    passwordOk = await verifyPassword(password, credentialsPasswordHash);
+    if (passwordOk) validatedPasswordSource = "credentials";
+  }
+
+  if (!passwordOk && userPasswordHash && (!credentialsPasswordHash || userPasswordHash !== credentialsPasswordHash)) {
+    passwordOk = await verifyPassword(password, userPasswordHash);
+    if (passwordOk) validatedPasswordSource = "user";
+  }
+
   if (!passwordOk) {
     await logAuthEvent("auth.login.failed", {
       meta: { reason: "invalid_password", ipHash: sha256(ip), userHash: sha256(String(user._id)) },
     });
     return errorResponse("invalid_credentials", 401);
+  }
+
+  if (
+    validatedPasswordSource === "user" &&
+    credentials &&
+    credentialsPasswordHash &&
+    userPasswordHash &&
+    credentialsPasswordHash !== userPasswordHash
+  ) {
+    const repairFilter = credentials._id
+      ? { _id: credentials._id }
+      : { email: credentials.email || identifier };
+    try {
+      await credsCol.updateOne(
+        repairFilter,
+        { $set: { passwordHash: userPasswordHash, updatedAt: new Date() } },
+      );
+    } catch {
+      console.warn("[auth.login] failed to repair stale credentials password hash");
+    }
   }
 
   maybeBackfillCredentials(user, credentials ?? null, identifier);
