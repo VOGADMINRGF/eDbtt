@@ -11,6 +11,8 @@ import {
 } from "@/features/create/prepareAttachDraft";
 import type { CreatePrepareAttachDraftQueueItem } from "@/features/create/attachDraftReviewQueue";
 
+type AttachTargetType = NonNullable<CreatePrepareAttachDraft["attachTargetType"]>;
+
 type CreatePrepareAttachDraftDoc = Omit<CreatePrepareAttachDraft, "draftId"> & {
   _id: ObjectId;
   draftId: string;
@@ -26,12 +28,29 @@ type StatementProposalDoc = {
   createPrepareAttachDraftIds?: string[] | null;
 };
 
+type AnlassraumDoc = {
+  _id: ObjectId;
+  title?: string | null;
+  summary?: string | null;
+  updatedAt?: Date | null;
+  createPrepareAttachDraftIds?: string[] | null;
+};
+
+type DossierDoc = {
+  _id: ObjectId;
+  dossierId?: string | null;
+  statementId?: string | null;
+  title?: string | null;
+  updatedAt?: Date | null;
+  createPrepareAttachDraftIds?: string[] | null;
+};
+
 type CreatePrepareAttachApplyEventDoc = {
   _id?: ObjectId;
   draftId: string;
   draftObjectId: ObjectId;
-  targetType: "claim";
-  targetId: string;
+  targetType: AttachTargetType | "unknown";
+  targetId: string | null;
   actorUserId: string;
   applyNote: string | null;
   createdAt: string;
@@ -39,6 +58,9 @@ type CreatePrepareAttachApplyEventDoc = {
   ctaId: CreatePrepareAttachDraft["ctaId"];
   reviewState: CreatePrepareAttachDraftReviewState;
   applyState: CreatePrepareAttachDraftApplyState;
+  result: "applied" | "failed";
+  mutationType?: string | null;
+  errorCode?: string | null;
 };
 
 export async function applyCreatePrepareAttachDraft(params: {
@@ -66,6 +88,8 @@ export async function applyCreatePrepareAttachDraft(params: {
   }
 
   const note = params.applyNote?.trim() || null;
+  const draftTargetType = draft.attachTargetType;
+  const draftTargetId = String(draft.attachTargetId || "").trim() || null;
   const markFailed = async (applyError: string) => {
     const failed = applyPrepareAttachDraftFailure({
       appliedAt: nowIso,
@@ -84,36 +108,35 @@ export async function applyCreatePrepareAttachDraft(params: {
     );
   };
 
-  if (draft.attachTargetType !== "claim") {
-    await markFailed("unsupported_attach_target_type");
-    throw new Error("unsupported_attach_target_type");
+  let applyResult: {
+    targetType: AttachTargetType;
+    targetId: string;
+    mutationType: string;
+  };
+  try {
+    applyResult = await dispatchApplyToTarget({
+      draft,
+      draftObjectId: _id,
+    });
+  } catch (error) {
+    const errorCode = error instanceof Error ? error.message : "attach_draft_apply_failed";
+    await markFailed(errorCode);
+    await writeApplyEvent({
+      draft,
+      draftObjectId: _id,
+      targetType: draftTargetType ?? "unknown",
+      targetId: draftTargetId,
+      actorUserId: params.actor.userId,
+      applyNote: note,
+      createdAt: nowIso,
+      reviewState: "accepted_for_apply",
+      applyState: "apply_failed",
+      result: "failed",
+      mutationType: null,
+      errorCode,
+    });
+    throw new Error(errorCode);
   }
-
-  const targetId = String(draft.attachTargetId || "").trim();
-  if (!ObjectId.isValid(targetId)) {
-    await markFailed("invalid_attach_target_id");
-    throw new Error("invalid_attach_target_id");
-  }
-
-  const targetObjectId = new ObjectId(targetId);
-  const Proposals = await getCol<StatementProposalDoc>("statement_proposals");
-  const proposal = await Proposals.findOne({ _id: targetObjectId });
-  if (!proposal?._id) {
-    await markFailed("attach_target_not_found");
-    throw new Error("attach_target_not_found");
-  }
-
-  await Proposals.updateOne(
-    { _id: targetObjectId },
-    {
-      $addToSet: {
-        createPrepareAttachDraftIds: draft.draftId || _id.toHexString(),
-      },
-      $set: {
-        updatedAt: new Date(),
-      },
-    },
-  );
 
   const applied = applyPrepareAttachDraftSuccess({
     appliedAt: nowIso,
@@ -131,19 +154,19 @@ export async function applyCreatePrepareAttachDraft(params: {
     },
   );
 
-  const events = await getCol<CreatePrepareAttachApplyEventDoc>("create_prepare_attach_apply_events");
-  await events.insertOne({
-    draftId: draft.draftId || _id.toHexString(),
+  await writeApplyEvent({
+    draft,
     draftObjectId: _id,
-    targetType: "claim",
-    targetId,
+    targetType: applyResult.targetType,
+    targetId: applyResult.targetId,
     actorUserId: params.actor.userId,
     applyNote: note,
     createdAt: nowIso,
-    sourceRunId: draft.sourceRunId,
-    ctaId: draft.ctaId,
     reviewState: "accepted_for_apply",
     applyState: "applied",
+    result: "applied",
+    mutationType: applyResult.mutationType,
+    errorCode: null,
   });
 
   const updated = await Drafts.findOne({ _id });
@@ -151,6 +174,160 @@ export async function applyCreatePrepareAttachDraft(params: {
     throw new Error("attach_draft_not_found");
   }
   return mapDocToQueueItem(updated);
+}
+
+async function dispatchApplyToTarget(input: {
+  draft: CreatePrepareAttachDraftDoc;
+  draftObjectId: ObjectId;
+}): Promise<{ targetType: AttachTargetType; targetId: string; mutationType: string }> {
+  const targetType = input.draft.attachTargetType;
+  const targetId = String(input.draft.attachTargetId || "").trim();
+  if (!targetType || !targetId) {
+    throw new Error("invalid_attach_target");
+  }
+
+  if (targetType === "claim") {
+    return applyToClaim({ draft: input.draft, draftObjectId: input.draftObjectId, targetId });
+  }
+  if (targetType === "anlassraum") {
+    return applyToAnlassraum({ draft: input.draft, draftObjectId: input.draftObjectId, targetId });
+  }
+  if (targetType === "dossier") {
+    return applyToDossier({ draft: input.draft, draftObjectId: input.draftObjectId, targetId });
+  }
+  if (targetType === "perspective") {
+    throw new Error("unsupported_attach_target_type");
+  }
+  throw new Error("unsupported_attach_target_type");
+}
+
+async function applyToClaim(input: {
+  draft: CreatePrepareAttachDraftDoc;
+  draftObjectId: ObjectId;
+  targetId: string;
+}): Promise<{ targetType: AttachTargetType; targetId: string; mutationType: string }> {
+  if (!ObjectId.isValid(input.targetId)) {
+    throw new Error("invalid_attach_target_id");
+  }
+  const targetObjectId = new ObjectId(input.targetId);
+  const Proposals = await getCol<StatementProposalDoc>("statement_proposals");
+  const proposal = await Proposals.findOne({ _id: targetObjectId });
+  if (!proposal?._id) {
+    throw new Error("attach_target_not_found");
+  }
+  await Proposals.updateOne(
+    { _id: targetObjectId },
+    {
+      $addToSet: {
+        createPrepareAttachDraftIds: input.draft.draftId || input.draftObjectId.toHexString(),
+      },
+      $set: {
+        updatedAt: new Date(),
+      },
+    },
+  );
+  return {
+    targetType: "claim",
+    targetId: targetObjectId.toHexString(),
+    mutationType: "attach_reference_claim",
+  };
+}
+
+async function applyToAnlassraum(input: {
+  draft: CreatePrepareAttachDraftDoc;
+  draftObjectId: ObjectId;
+  targetId: string;
+}): Promise<{ targetType: AttachTargetType; targetId: string; mutationType: string }> {
+  if (!ObjectId.isValid(input.targetId)) {
+    throw new Error("invalid_attach_target_id");
+  }
+  const targetObjectId = new ObjectId(input.targetId);
+  const Rooms = await getCol<AnlassraumDoc>("anlassraum");
+  const room = await Rooms.findOne({ _id: targetObjectId });
+  if (!room?._id) {
+    throw new Error("attach_target_not_found");
+  }
+  await Rooms.updateOne(
+    { _id: targetObjectId },
+    {
+      $addToSet: {
+        createPrepareAttachDraftIds: input.draft.draftId || input.draftObjectId.toHexString(),
+      },
+      $set: {
+        updatedAt: new Date(),
+      },
+    },
+  );
+  return {
+    targetType: "anlassraum",
+    targetId: targetObjectId.toHexString(),
+    mutationType: "attach_reference_anlassraum",
+  };
+}
+
+async function applyToDossier(input: {
+  draft: CreatePrepareAttachDraftDoc;
+  draftObjectId: ObjectId;
+  targetId: string;
+}): Promise<{ targetType: AttachTargetType; targetId: string; mutationType: string }> {
+  const clauses: Record<string, unknown>[] = [{ dossierId: input.targetId }, { statementId: input.targetId }];
+  if (ObjectId.isValid(input.targetId)) {
+    clauses.push({ _id: new ObjectId(input.targetId) });
+  }
+  const Dossiers = await getCol<DossierDoc>("dossiers");
+  const dossier = await Dossiers.findOne({ $or: clauses });
+  if (!dossier?._id) {
+    throw new Error("attach_target_not_found");
+  }
+  await Dossiers.updateOne(
+    { _id: dossier._id },
+    {
+      $addToSet: {
+        createPrepareAttachDraftIds: input.draft.draftId || input.draftObjectId.toHexString(),
+      },
+      $set: {
+        updatedAt: new Date(),
+      },
+    },
+  );
+  return {
+    targetType: "dossier",
+    targetId: String(dossier.dossierId || dossier.statementId || dossier._id.toHexString()),
+    mutationType: "attach_reference_dossier",
+  };
+}
+
+async function writeApplyEvent(input: {
+  draft: CreatePrepareAttachDraftDoc;
+  draftObjectId: ObjectId;
+  targetType: AttachTargetType | "unknown";
+  targetId: string | null;
+  actorUserId: string;
+  applyNote: string | null;
+  createdAt: string;
+  reviewState: CreatePrepareAttachDraftReviewState;
+  applyState: CreatePrepareAttachDraftApplyState;
+  result: "applied" | "failed";
+  mutationType: string | null;
+  errorCode: string | null;
+}) {
+  const events = await getCol<CreatePrepareAttachApplyEventDoc>("create_prepare_attach_apply_events");
+  await events.insertOne({
+    draftId: input.draft.draftId || input.draftObjectId.toHexString(),
+    draftObjectId: input.draftObjectId,
+    targetType: input.targetType,
+    targetId: input.targetId,
+    actorUserId: input.actorUserId,
+    applyNote: input.applyNote,
+    createdAt: input.createdAt,
+    sourceRunId: input.draft.sourceRunId,
+    ctaId: input.draft.ctaId,
+    reviewState: input.reviewState,
+    applyState: input.applyState,
+    result: input.result,
+    mutationType: input.mutationType,
+    errorCode: input.errorCode,
+  });
 }
 
 function assertApplyActor(actor: GovernanceActor) {

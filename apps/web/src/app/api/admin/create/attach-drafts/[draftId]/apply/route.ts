@@ -38,6 +38,8 @@ export async function POST(
     const status =
       message === "invalid_attach_draft_id"
         ? 400
+        : message === "invalid_attach_target"
+        ? 400
         : message === "attach_draft_not_found"
         ? 404
         : message === "actor_scope_forbidden"

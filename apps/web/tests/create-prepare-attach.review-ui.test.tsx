@@ -4,6 +4,7 @@ import {
   CreateAttachDraftReviewList,
   applyCreateAttachDraftLocalDecision,
   canApplyCreateAttachDraft,
+  isSupportedApplyTargetType,
 } from "@/features/create/reviewQueueUi";
 
 describe("create prepare-attach review UI", () => {
@@ -71,7 +72,8 @@ describe("create prepare-attach review UI", () => {
     expect(html).toContain("Draft");
     expect(html).toContain("duplicate_risk");
     expect(html).toContain("Duplicate-Risk");
-    expect(html).toContain("Noch kein Apply auf Live-Objekte");
+    expect(html).toContain("Kein Auto-Apply auf Live-Objekte");
+    expect(html).toContain("Apply bleibt manuell und additiv");
     expect(html).toContain("Akzeptieren fuer spaeteren Apply");
     expect(html).toContain("Ablehnen");
     expect(html).toContain("Parken");
@@ -204,5 +206,80 @@ describe("create prepare-attach review UI", () => {
         updatedAt: "2026-03-20T10:00:00.000Z",
       }),
     ).toBe(false);
+    expect(
+      canApplyCreateAttachDraft({
+        draftId: "d3",
+        ctaId: "perspektive_anhaengen",
+        matchType: "related_claim",
+        matchEntityType: "perspective",
+        attachTargetType: "perspective",
+        attachTargetId: "perspective-1",
+        attachTargetLabel: "Perspektive B",
+        sourceSummary: "Summary",
+        reasons: ["Semantische Naehe"],
+        duplicateRisk: false,
+        requiresReview: true,
+        reviewState: "accepted_for_apply",
+        applyState: "not_applied",
+        reviewNote: null,
+        reviewedAt: null,
+        reviewedBy: null,
+        appliedAt: null,
+        appliedBy: null,
+        applyNote: null,
+        applyError: null,
+        createdAt: "2026-03-20T10:00:00.000Z",
+        updatedAt: "2026-03-20T10:00:00.000Z",
+      }),
+    ).toBe(false);
+    expect(isSupportedApplyTargetType("claim")).toBe(true);
+    expect(isSupportedApplyTargetType("anlassraum")).toBe(true);
+    expect(isSupportedApplyTargetType("dossier")).toBe(true);
+    expect(isSupportedApplyTargetType("perspective")).toBe(false);
+  });
+
+  it("shows explicit unsupported-target note instead of apply button", () => {
+    const html = renderToStaticMarkup(
+      <CreateAttachDraftReviewList
+        items={[
+          {
+            draftId: "d1",
+            ctaId: "perspektive_anhaengen",
+            matchType: "related_claim",
+            matchEntityType: "perspective",
+            attachTargetType: "perspective",
+            attachTargetId: "perspective-1",
+            attachTargetLabel: "Perspective A",
+            sourceSummary: "Summary",
+            reasons: ["Semantische Naehe"],
+            duplicateRisk: false,
+            requiresReview: true,
+            reviewState: "accepted_for_apply",
+            applyState: "not_applied",
+            reviewNote: null,
+            reviewedAt: null,
+            reviewedBy: null,
+            appliedAt: null,
+            appliedBy: null,
+            applyNote: null,
+            applyError: null,
+            createdAt: "2026-03-20T10:00:00.000Z",
+            updatedAt: "2026-03-20T10:00:00.000Z",
+          },
+        ]}
+        decisionBusyDraftId={null}
+        applyBusyDraftId={null}
+        reviewNoteByDraft={{ d1: "" }}
+        applyNoteByDraft={{ d1: "" }}
+        decisionError={null}
+        applyError={null}
+        onReviewNoteChange={vi.fn()}
+        onApplyNoteChange={vi.fn()}
+        onReviewDecision={vi.fn()}
+        onApply={vi.fn()}
+      />,
+    );
+    expect(html).toContain("noch nicht freigeschaltet");
+    expect(html).not.toContain("Manuell applyen");
   });
 });

@@ -89,6 +89,17 @@ describe("create prepare-attach apply route", () => {
       { params: Promise.resolve({ draftId: "65f000000000000000000099" }) },
     );
     expect(res.status).toBe(404);
+
+    mocks.applyDraft.mockRejectedValueOnce(new Error("invalid_attach_target"));
+    res = await applyPOST(
+      req("http://localhost/api/admin/create/attach-drafts/65f000000000000000000099/apply", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({}),
+      }),
+      { params: Promise.resolve({ draftId: "65f000000000000000000099" }) },
+    );
+    expect(res.status).toBe(400);
   });
 
   it("maps wrong review state, already applied and unsupported target to conflict", async () => {
