@@ -40,6 +40,7 @@ export type CreatePrepareAttachTargetOption = {
 export type CreatePrepareAttachDraft = {
   schemaVersion: string;
   draftId: string;
+  version: number;
   sourceRunId: string;
   ctaId: CreatePrepareAttachCtaId;
   matchType?: CreateAnalyzeMatchType | null;
@@ -76,6 +77,7 @@ export type CreatePrepareAttachDraft = {
 export type CreatePrepareAttachDraftWriteInput = Omit<
   CreatePrepareAttachDraft,
   | "draftId"
+  | "version"
   | "createdAt"
   | "updatedAt"
   | "reviewState"
@@ -84,6 +86,13 @@ export type CreatePrepareAttachDraftWriteInput = Omit<
   | "reviewedAt"
   | "reviewedBy"
 >;
+
+export function normalizeCreatePrepareAttachDraftVersion(value: unknown): number {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return 1;
+  const rounded = Math.floor(numeric);
+  return rounded >= 1 ? rounded : 1;
+}
 
 export function isCreatePrepareAttachDraftReviewState(
   value: string | null | undefined,

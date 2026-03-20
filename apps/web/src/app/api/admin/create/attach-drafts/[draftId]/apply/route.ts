@@ -48,6 +48,8 @@ export async function POST(
         ? 409
         : message === "attach_draft_already_applied"
         ? 409
+        : message === "attach_draft_state_conflict"
+        ? 409
         : message === "unsupported_attach_target_type"
         ? 409
         : message === "invalid_attach_target_id"

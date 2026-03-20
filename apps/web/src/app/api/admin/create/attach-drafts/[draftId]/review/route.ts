@@ -52,6 +52,8 @@ export async function POST(
         ? 404
         : message === "actor_scope_forbidden"
         ? 403
+        : message === "attach_draft_state_conflict"
+        ? 409
         : message === "attach_draft_already_applied"
         ? 409
         : 500;

@@ -19,6 +19,10 @@ const mocks = vi.hoisted(() => {
       if (key === "$or" && Array.isArray(value)) {
         return value.some((clause) => matches(doc, clause as Record<string, unknown>));
       }
+      if (value && typeof value === "object" && "$exists" in (value as Record<string, unknown>)) {
+        const shouldExist = Boolean((value as Record<string, unknown>).$exists);
+        return shouldExist ? key in doc : !(key in doc);
+      }
       if (key === "_id") return sameId(doc._id, value);
       return doc[key] === value;
     });
@@ -61,6 +65,9 @@ const mocks = vi.hoisted(() => {
     getCol: vi.fn(async (name: string) => {
       if (name === "create_prepare_attach_drafts") {
         return {
+          async createIndex() {
+            return "ok";
+          },
           async findOne(filter: Record<string, unknown>) {
             const hit = drafts.find((entry) => matches(entry, filter));
             return hit ? { ...hit } : null;
@@ -158,11 +165,24 @@ const mocks = vi.hoisted(() => {
           },
         };
       }
-      if (name === "create_prepare_attach_apply_events") {
+      if (name === "create_prepare_attach_history_events") {
         return {
+          async createIndex() {
+            return "ok";
+          },
           async insertOne(doc: Record<string, unknown>) {
             applyEvents.push({ ...doc, _id: new ObjectId() });
             return { acknowledged: true };
+          },
+          find(filter: Record<string, unknown>) {
+            return {
+              sort() {
+                return this;
+              },
+              async toArray() {
+                return applyEvents.filter((entry) => matches(entry, filter)).map((entry) => ({ ...entry }));
+              },
+            };
           },
         };
       }
@@ -196,6 +216,7 @@ function seedAcceptedDraft(overrides?: Record<string, unknown>) {
   mocks.seedDraft({
     _id: draftId,
     draftId: draftId.toHexString(),
+    version: 1,
     authorId: "u-author",
     status: "draft_intent",
     schemaVersion: "create_prepare_attach_draft.v1",
@@ -253,6 +274,7 @@ describe("create prepare-attach apply service", () => {
 
     expect(result.reviewState).toBe("accepted_for_apply");
     expect(result.applyState).toBe("applied");
+    expect(result.version).toBe(2);
     expect(result.appliedBy).toBe("u-review");
     expect(result.applyNote).toBe("manual apply");
     const proposals = mocks.readProposals();
@@ -262,9 +284,14 @@ describe("create prepare-attach apply service", () => {
     expect(events[0]).toMatchObject({
       draftId,
       targetType: "claim",
+      eventType: "apply",
       result: "applied",
       mutationType: "attach_reference_claim",
       errorCode: null,
+      resultCode: "apply_success",
+      previousReviewState: "accepted_for_apply",
+      previousApplyState: "not_applied",
+      nextApplyState: "applied",
     });
   });
 
@@ -343,8 +370,11 @@ describe("create prepare-attach apply service", () => {
     expect(draft.applyError).toBe("unsupported_attach_target_type");
     expect(mocks.readApplyEvents()[0]).toMatchObject({
       targetType: "perspective",
+      eventType: "apply",
       result: "failed",
       errorCode: "unsupported_attach_target_type",
+      resultCode: "apply_failed_unsupported_target_type",
+      nextApplyState: "apply_failed",
     });
   });
 
@@ -358,8 +388,10 @@ describe("create prepare-attach apply service", () => {
     expect(draft.applyError).toBe("attach_target_not_found");
     expect(mocks.readApplyEvents()[0]).toMatchObject({
       targetType: "claim",
+      eventType: "apply",
       result: "failed",
       errorCode: "attach_target_not_found",
+      resultCode: "apply_failed_target_not_found",
     });
   });
 });

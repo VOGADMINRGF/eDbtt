@@ -1,15 +1,18 @@
 import { getCol, ObjectId } from "@core/db/triMongo";
 import type { GovernanceActor } from "@features/trust/types";
+import { createApplyHistoryEvent, type CreatePrepareAttachDraftErrorCode } from "@/features/create/attachDraftHistory";
+import { createPrepareAttachDraftsCol, createPrepareAttachHistoryEventsCol } from "@/features/create/attachDraftCollections";
+import type { CreatePrepareAttachDraftQueueItem } from "@/features/create/attachDraftReviewQueue";
 import {
   applyPrepareAttachDraftFailure,
   applyPrepareAttachDraftSuccess,
   isCreatePrepareAttachDraftApplyState,
   isCreatePrepareAttachDraftReviewState,
+  normalizeCreatePrepareAttachDraftVersion,
   type CreatePrepareAttachDraft,
   type CreatePrepareAttachDraftApplyState,
   type CreatePrepareAttachDraftReviewState,
 } from "@/features/create/prepareAttachDraft";
-import type { CreatePrepareAttachDraftQueueItem } from "@/features/create/attachDraftReviewQueue";
 
 type AttachTargetType = NonNullable<CreatePrepareAttachDraft["attachTargetType"]>;
 
@@ -45,24 +48,6 @@ type DossierDoc = {
   createPrepareAttachDraftIds?: string[] | null;
 };
 
-type CreatePrepareAttachApplyEventDoc = {
-  _id?: ObjectId;
-  draftId: string;
-  draftObjectId: ObjectId;
-  targetType: AttachTargetType | "unknown";
-  targetId: string | null;
-  actorUserId: string;
-  applyNote: string | null;
-  createdAt: string;
-  sourceRunId: string;
-  ctaId: CreatePrepareAttachDraft["ctaId"];
-  reviewState: CreatePrepareAttachDraftReviewState;
-  applyState: CreatePrepareAttachDraftApplyState;
-  result: "applied" | "failed";
-  mutationType?: string | null;
-  errorCode?: string | null;
-};
-
 export async function applyCreatePrepareAttachDraft(params: {
   actor: GovernanceActor;
   draftId: string;
@@ -74,9 +59,9 @@ export async function applyCreatePrepareAttachDraft(params: {
   }
 
   const nowIso = new Date().toISOString();
-  const Drafts = await getCol<CreatePrepareAttachDraftDoc>("create_prepare_attach_drafts");
+  const Drafts = await createPrepareAttachDraftsCol();
   const _id = new ObjectId(params.draftId);
-  const draft = await Drafts.findOne({ _id, status: "draft_intent" });
+  const draft = (await Drafts.findOne({ _id, status: "draft_intent" })) as CreatePrepareAttachDraftDoc | null;
   if (!draft) {
     throw new Error("attach_draft_not_found");
   }
@@ -87,26 +72,15 @@ export async function applyCreatePrepareAttachDraft(params: {
     throw new Error("attach_draft_already_applied");
   }
 
+  const draftId = draft.draftId || _id.toHexString();
   const note = params.applyNote?.trim() || null;
-  const draftTargetType = draft.attachTargetType;
-  const draftTargetId = String(draft.attachTargetId || "").trim() || null;
-  const markFailed = async (applyError: string) => {
-    const failed = applyPrepareAttachDraftFailure({
-      appliedAt: nowIso,
-      appliedBy: params.actor.userId,
-      applyNote: note,
-      applyError,
-    });
-    await Drafts.updateOne(
-      { _id },
-      {
-        $set: {
-          ...failed,
-          updatedAt: nowIso,
-        },
-      },
-    );
-  };
+  const previousReviewState = isCreatePrepareAttachDraftReviewState(draft.reviewState)
+    ? draft.reviewState
+    : "pending";
+  const previousApplyState = isCreatePrepareAttachDraftApplyState(draft.applyState)
+    ? draft.applyState
+    : "not_applied";
+  const expectedVersion = normalizeCreatePrepareAttachDraftVersion((draft as Record<string, unknown>).version);
 
   let applyResult: {
     targetType: AttachTargetType;
@@ -119,22 +93,49 @@ export async function applyCreatePrepareAttachDraft(params: {
       draftObjectId: _id,
     });
   } catch (error) {
-    const errorCode = error instanceof Error ? error.message : "attach_draft_apply_failed";
-    await markFailed(errorCode);
-    await writeApplyEvent({
-      draft,
-      draftObjectId: _id,
-      targetType: draftTargetType ?? "unknown",
-      targetId: draftTargetId,
-      actorUserId: params.actor.userId,
+    const errorCode = toAttachDraftErrorCode(error);
+    const failed = applyPrepareAttachDraftFailure({
+      appliedAt: nowIso,
+      appliedBy: params.actor.userId,
       applyNote: note,
-      createdAt: nowIso,
-      reviewState: "accepted_for_apply",
-      applyState: "apply_failed",
-      result: "failed",
-      mutationType: null,
-      errorCode,
+      applyError: errorCode,
     });
+    const updateRes = await Drafts.updateOne(
+      {
+        _id,
+        status: "draft_intent",
+        reviewState: previousReviewState,
+        applyState: previousApplyState,
+        $or: [{ version: expectedVersion }, { version: { $exists: false } }],
+      },
+      {
+        $set: {
+          ...failed,
+          version: expectedVersion + 1,
+          updatedAt: nowIso,
+        },
+      },
+    );
+    if (updateRes.modifiedCount !== 1) {
+      throw new Error("attach_draft_state_conflict");
+    }
+    await (await createPrepareAttachHistoryEventsCol()).insertOne(
+      createApplyHistoryEvent({
+        draftId,
+        actorUserId: params.actor.userId,
+        targetType: normalizeTargetTypeOrUnknown(draft.attachTargetType),
+        targetId: String(draft.attachTargetId || "").trim() || null,
+        result: "failed",
+        applyNote: note,
+        mutationType: null,
+        errorCode,
+        previousReviewState,
+        nextReviewState: previousReviewState,
+        previousApplyState,
+        nextApplyState: "apply_failed",
+        createdAt: nowIso,
+      }),
+    );
     throw new Error(errorCode);
   }
 
@@ -143,33 +144,46 @@ export async function applyCreatePrepareAttachDraft(params: {
     appliedBy: params.actor.userId,
     applyNote: note,
   });
-  await Drafts.updateOne(
-    { _id },
+  const appliedRes = await Drafts.updateOne(
+    {
+      _id,
+      status: "draft_intent",
+      reviewState: previousReviewState,
+      applyState: previousApplyState,
+      $or: [{ version: expectedVersion }, { version: { $exists: false } }],
+    },
     {
       $set: {
         ...applied,
         applyError: null,
+        version: expectedVersion + 1,
         updatedAt: nowIso,
       },
     },
   );
+  if (appliedRes.modifiedCount !== 1) {
+    throw new Error("attach_draft_state_conflict");
+  }
 
-  await writeApplyEvent({
-    draft,
-    draftObjectId: _id,
-    targetType: applyResult.targetType,
-    targetId: applyResult.targetId,
-    actorUserId: params.actor.userId,
-    applyNote: note,
-    createdAt: nowIso,
-    reviewState: "accepted_for_apply",
-    applyState: "applied",
-    result: "applied",
-    mutationType: applyResult.mutationType,
-    errorCode: null,
-  });
+  await (await createPrepareAttachHistoryEventsCol()).insertOne(
+    createApplyHistoryEvent({
+      draftId,
+      actorUserId: params.actor.userId,
+      targetType: applyResult.targetType,
+      targetId: applyResult.targetId,
+      result: "applied",
+      applyNote: note,
+      mutationType: applyResult.mutationType,
+      errorCode: null,
+      previousReviewState,
+      nextReviewState: previousReviewState,
+      previousApplyState,
+      nextApplyState: "applied",
+      createdAt: nowIso,
+    }),
+  );
 
-  const updated = await Drafts.findOne({ _id });
+  const updated = (await Drafts.findOne({ _id })) as CreatePrepareAttachDraftDoc | null;
   if (!updated) {
     throw new Error("attach_draft_not_found");
   }
@@ -297,39 +311,6 @@ async function applyToDossier(input: {
   };
 }
 
-async function writeApplyEvent(input: {
-  draft: CreatePrepareAttachDraftDoc;
-  draftObjectId: ObjectId;
-  targetType: AttachTargetType | "unknown";
-  targetId: string | null;
-  actorUserId: string;
-  applyNote: string | null;
-  createdAt: string;
-  reviewState: CreatePrepareAttachDraftReviewState;
-  applyState: CreatePrepareAttachDraftApplyState;
-  result: "applied" | "failed";
-  mutationType: string | null;
-  errorCode: string | null;
-}) {
-  const events = await getCol<CreatePrepareAttachApplyEventDoc>("create_prepare_attach_apply_events");
-  await events.insertOne({
-    draftId: input.draft.draftId || input.draftObjectId.toHexString(),
-    draftObjectId: input.draftObjectId,
-    targetType: input.targetType,
-    targetId: input.targetId,
-    actorUserId: input.actorUserId,
-    applyNote: input.applyNote,
-    createdAt: input.createdAt,
-    sourceRunId: input.draft.sourceRunId,
-    ctaId: input.draft.ctaId,
-    reviewState: input.reviewState,
-    applyState: input.applyState,
-    result: input.result,
-    mutationType: input.mutationType,
-    errorCode: input.errorCode,
-  });
-}
-
 function assertApplyActor(actor: GovernanceActor) {
   if (actor.isAdmin) return;
   if (actor.role === "reviewer") return;
@@ -363,7 +344,37 @@ function mapDocToQueueItem(doc: CreatePrepareAttachDraftDoc): CreatePrepareAttac
     appliedBy: doc.appliedBy ?? null,
     applyNote: doc.applyNote ?? null,
     applyError: doc.applyError ?? null,
+    version: normalizeCreatePrepareAttachDraftVersion((doc as Record<string, unknown>).version),
+    reviewEvents: [],
+    applyEvents: [],
     createdAt: doc.createdAt,
     updatedAt: doc.updatedAt,
   };
 }
+
+function toAttachDraftErrorCode(error: unknown): CreatePrepareAttachDraftErrorCode {
+  const message = error instanceof Error ? error.message : "attach_draft_apply_failed";
+  if (
+    message === "invalid_attach_draft_id" ||
+    message === "attach_draft_not_found" ||
+    message === "actor_scope_forbidden" ||
+    message === "attach_draft_review_state_not_accepted" ||
+    message === "attach_draft_already_applied" ||
+    message === "unsupported_attach_target_type" ||
+    message === "invalid_attach_target" ||
+    message === "invalid_attach_target_id" ||
+    message === "attach_target_not_found" ||
+    message === "attach_draft_state_conflict"
+  ) {
+    return message;
+  }
+  return "invalid_attach_target";
+}
+
+function normalizeTargetTypeOrUnknown(value: string | null | undefined): CreatePrepareAttachDraft["attachTargetType"] | "unknown" {
+  if (value === "claim" || value === "anlassraum" || value === "dossier" || value === "perspective") {
+    return value;
+  }
+  return "unknown";
+}
+

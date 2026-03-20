@@ -282,4 +282,88 @@ describe("create prepare-attach review UI", () => {
     expect(html).toContain("noch nicht freigeschaltet");
     expect(html).not.toContain("Manuell applyen");
   });
+
+  it("renders review/apply history timeline entries when available", () => {
+    const html = renderToStaticMarkup(
+      <CreateAttachDraftReviewList
+        items={[
+          {
+            draftId: "d1",
+            ctaId: "perspektive_anhaengen",
+            matchType: "related_claim",
+            matchEntityType: "claim",
+            attachTargetType: "claim",
+            attachTargetId: "claim-1",
+            attachTargetLabel: "Claim A",
+            sourceSummary: "Summary",
+            reasons: ["Semantische Naehe"],
+            duplicateRisk: false,
+            requiresReview: true,
+            reviewState: "accepted_for_apply",
+            applyState: "applied",
+            reviewNote: null,
+            reviewedAt: "2026-03-20T12:00:00.000Z",
+            reviewedBy: "u-review",
+            appliedAt: "2026-03-20T12:30:00.000Z",
+            appliedBy: "u-review",
+            applyNote: null,
+            applyError: null,
+            reviewEvents: [
+              {
+                eventId: "r1",
+                draftId: "d1",
+                actorUserId: "u-review",
+                decision: "accepted_for_apply",
+                previousReviewState: "pending",
+                nextReviewState: "accepted_for_apply",
+                previousApplyState: "not_applied",
+                nextApplyState: "not_applied",
+                reviewNote: "ok",
+                resultCode: "review_state_changed",
+                createdAt: "2026-03-20T12:00:00.000Z",
+              },
+            ],
+            applyEvents: [
+              {
+                eventId: "a1",
+                draftId: "d1",
+                actorUserId: "u-review",
+                targetType: "claim",
+                targetId: "claim-1",
+                result: "applied",
+                mutationType: "attach_reference_claim",
+                errorCode: null,
+                applyNote: null,
+                previousReviewState: "accepted_for_apply",
+                nextReviewState: "accepted_for_apply",
+                previousApplyState: "not_applied",
+                nextApplyState: "applied",
+                resultCode: "apply_success",
+                createdAt: "2026-03-20T12:30:00.000Z",
+              },
+            ],
+            createdAt: "2026-03-20T10:00:00.000Z",
+            updatedAt: "2026-03-20T12:30:00.000Z",
+          },
+        ]}
+        decisionBusyDraftId={null}
+        applyBusyDraftId={null}
+        reviewNoteByDraft={{ d1: "" }}
+        applyNoteByDraft={{ d1: "" }}
+        decisionError={null}
+        applyError={null}
+        onReviewNoteChange={vi.fn()}
+        onApplyNoteChange={vi.fn()}
+        onReviewDecision={vi.fn()}
+        onApply={vi.fn()}
+      />,
+    );
+
+    expect(html).toContain("Review-Historie");
+    expect(html).toContain("Apply-Historie");
+    expect(html).toContain("pending -&gt; accepted_for_apply");
+    expect(html).toContain("result: applied");
+    expect(html).toContain("code: review_state_changed");
+    expect(html).toContain("code: apply_success");
+  });
 });

@@ -1,12 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { getCol, ObjectId } from "@core/db/triMongo";
+import { ObjectId } from "@core/db/triMongo";
 import { z } from "zod";
 import {
   CREATE_PREPARE_ATTACH_DRAFT_SCHEMA_VERSION,
   createInitialPrepareAttachDraftReviewFields,
+  normalizeCreatePrepareAttachDraftVersion,
   type CreatePrepareAttachDraft,
 } from "@/features/create/prepareAttachDraft";
+import { createPrepareAttachDraftsCol } from "@/features/create/attachDraftCollections";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -82,7 +84,7 @@ export async function POST(req: NextRequest) {
 
   const now = new Date();
   const nowIso = now.toISOString();
-  const Drafts = await getCol<CreatePrepareAttachDraftDoc>("create_prepare_attach_drafts");
+  const Drafts = await createPrepareAttachDraftsCol();
   const normalizedSummary = body.sourceSummary.trim();
   const normalizedReasons = body.reasons.map((value) => value.trim()).filter(Boolean).slice(0, 12);
   const dedupeFilter: Record<string, unknown> = {
@@ -110,6 +112,7 @@ export async function POST(req: NextRequest) {
       duplicateRisk: existing.duplicateRisk,
       reviewState: existing.reviewState,
       applyState: existing.applyState,
+      version: normalizeCreatePrepareAttachDraftVersion(existing.version),
       createdAt: existing.createdAt,
       updatedAt: existing.updatedAt,
       attachTargetType: existing.attachTargetType,
@@ -122,6 +125,7 @@ export async function POST(req: NextRequest) {
   const draft: CreatePrepareAttachDraftDoc = {
     _id,
     draftId: _id.toHexString(),
+    version: 1,
     authorId: userId,
     schemaVersion: body.schemaVersion,
     sourceRunId: body.sourceRunId,
@@ -167,6 +171,7 @@ export async function POST(req: NextRequest) {
     duplicateRisk: draft.duplicateRisk,
     reviewState: draft.reviewState,
     applyState: draft.applyState,
+    version: draft.version,
     createdAt: draft.createdAt,
     updatedAt: draft.updatedAt,
     attachTargetType: draft.attachTargetType,

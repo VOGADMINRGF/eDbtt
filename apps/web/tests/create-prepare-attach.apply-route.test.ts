@@ -135,6 +135,17 @@ describe("create prepare-attach apply route", () => {
       { params: Promise.resolve({ draftId: "65f000000000000000000011" }) },
     );
     expect(res.status).toBe(409);
+
+    mocks.applyDraft.mockRejectedValueOnce(new Error("attach_draft_state_conflict"));
+    res = await applyPOST(
+      req("http://localhost/api/admin/create/attach-drafts/65f000000000000000000011/apply", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({}),
+      }),
+      { params: Promise.resolve({ draftId: "65f000000000000000000011" }) },
+    );
+    expect(res.status).toBe(409);
   });
 
   it("passes through governance gate response", async () => {

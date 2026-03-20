@@ -127,6 +127,38 @@ export function CreateAttachDraftReviewList(props: {
             </p>
           ) : null}
 
+          {(item.reviewEvents?.length ?? 0) > 0 ? (
+            <div className="mt-2 rounded-md border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-2 py-2 text-xs">
+              <p className="font-semibold text-[rgb(var(--fg))]">Review-Historie</p>
+              <ul className="mt-1 list-disc space-y-1 pl-4">
+                {(item.reviewEvents ?? []).map((event) => (
+                  <li key={event.eventId}>
+                    {event.createdAt || "-"} | by {event.actorUserId} | {event.previousReviewState} -&gt;{" "}
+                    {event.nextReviewState} | apply {event.previousApplyState} -&gt; {event.nextApplyState}
+                    {` | code: ${event.resultCode}`}
+                    {event.reviewNote ? ` | note: ${event.reviewNote}` : ""}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+          {(item.applyEvents?.length ?? 0) > 0 ? (
+            <div className="mt-2 rounded-md border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-2 py-2 text-xs">
+              <p className="font-semibold text-[rgb(var(--fg))]">Apply-Historie</p>
+              <ul className="mt-1 list-disc space-y-1 pl-4">
+                {(item.applyEvents ?? []).map((event) => (
+                  <li key={event.eventId}>
+                    {event.createdAt || "-"} | by {event.actorUserId} | result: {event.result} | target:{" "}
+                    {event.targetType ?? "-"}:{event.targetId ?? "-"} | apply {event.previousApplyState} -&gt;{" "}
+                    {event.nextApplyState}
+                    {` | code: ${event.resultCode}`}
+                    {event.errorCode ? ` | error: ${event.errorCode}` : ""}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+
           <div className="mt-2">
             <label className="text-xs font-semibold text-[rgb(var(--fg))]" htmlFor={`review-note-${item.draftId}`}>
               Review-Notiz (optional)
