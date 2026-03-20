@@ -223,6 +223,12 @@ export const NAV_SECTIONS: NavSection[] = [
         keywords: ["contributions", "community", "moderation"],
       },
       {
+        href: "/admin/create/attach-drafts",
+        label: "Create Attach Queue",
+        description: "Prepare-Attach Drafts manuell reviewen",
+        keywords: ["create", "attach", "drafts", "review", "queue"],
+      },
+      {
         href: "/admin/reports",
         label: "Reports",
         description: "Topic- und Region-Reports",

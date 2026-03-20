@@ -7,8 +7,22 @@ import type { CreateCtaHandoff } from "@/features/create/ctaHandoff";
 
 export type CreatePrepareAttachCtaId = "perspektive_anhaengen" | "zustimmen" | "anders_sehen";
 export type CreatePrepareAttachTargetType = "claim" | "anlassraum" | "dossier" | "perspective";
+export type CreatePrepareAttachDraftReviewState =
+  | "pending"
+  | "accepted_for_apply"
+  | "rejected"
+  | "parked";
+export type CreatePrepareAttachDraftApplyState = "not_applied";
+export type CreatePrepareAttachDraftReviewDecision = Exclude<
+  CreatePrepareAttachDraftReviewState,
+  "pending"
+>;
 
 export const CREATE_PREPARE_ATTACH_DRAFT_SCHEMA_VERSION = "create_prepare_attach_draft.v1";
+export const CREATE_PREPARE_ATTACH_REVIEW_STATES: ReadonlyArray<CreatePrepareAttachDraftReviewState> =
+  ["pending", "accepted_for_apply", "rejected", "parked"];
+export const CREATE_PREPARE_ATTACH_REVIEW_DECISIONS: ReadonlyArray<CreatePrepareAttachDraftReviewDecision> =
+  ["accepted_for_apply", "rejected", "parked"];
 
 export type CreatePrepareAttachTargetOption = {
   key: string;
@@ -43,6 +57,11 @@ export type CreatePrepareAttachDraft = {
   noSilentMerge: true;
   originPreserved: true;
   duplicateRisk: boolean;
+  reviewState: CreatePrepareAttachDraftReviewState;
+  applyState: CreatePrepareAttachDraftApplyState;
+  reviewNote?: string | null;
+  reviewedAt?: string | null;
+  reviewedBy?: string | null;
   userConfirmedAt?: string | null;
   createdAt: string;
   updatedAt: string;
@@ -50,8 +69,52 @@ export type CreatePrepareAttachDraft = {
 
 export type CreatePrepareAttachDraftWriteInput = Omit<
   CreatePrepareAttachDraft,
-  "draftId" | "createdAt" | "updatedAt"
+  | "draftId"
+  | "createdAt"
+  | "updatedAt"
+  | "reviewState"
+  | "applyState"
+  | "reviewNote"
+  | "reviewedAt"
+  | "reviewedBy"
 >;
+
+export function isCreatePrepareAttachDraftReviewState(
+  value: string | null | undefined,
+): value is CreatePrepareAttachDraftReviewState {
+  return (CREATE_PREPARE_ATTACH_REVIEW_STATES as readonly string[]).includes(String(value || ""));
+}
+
+export function isCreatePrepareAttachDraftReviewDecision(
+  value: string | null | undefined,
+): value is CreatePrepareAttachDraftReviewDecision {
+  return (CREATE_PREPARE_ATTACH_REVIEW_DECISIONS as readonly string[]).includes(String(value || ""));
+}
+
+export function createInitialPrepareAttachDraftReviewFields() {
+  return {
+    reviewState: "pending" as const,
+    applyState: "not_applied" as const,
+    reviewNote: null,
+    reviewedAt: null,
+    reviewedBy: null,
+  };
+}
+
+export function applyPrepareAttachDraftReviewDecision(params: {
+  decision: CreatePrepareAttachDraftReviewDecision;
+  reviewNote?: string | null;
+  reviewedAt: string;
+  reviewedBy: string;
+}) {
+  return {
+    reviewState: params.decision,
+    applyState: "not_applied" as const,
+    reviewNote: params.reviewNote?.trim() || null,
+    reviewedAt: params.reviewedAt,
+    reviewedBy: params.reviewedBy,
+  };
+}
 
 function toAttachTargetType(
   value: CreateAnalyzeMatchItem["matchEntityType"],

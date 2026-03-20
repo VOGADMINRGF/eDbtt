@@ -1,0 +1,175 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import type { CreatePrepareAttachDraftQueueItem } from "@/features/create/attachDraftReviewQueue";
+import type {
+  CreatePrepareAttachDraftReviewDecision,
+  CreatePrepareAttachDraftReviewState,
+} from "@/features/create/prepareAttachDraft";
+import {
+  CreateAttachDraftReviewList,
+  applyCreateAttachDraftLocalDecision,
+} from "@/features/create/reviewQueueUi";
+
+type ReviewStateFilter = CreatePrepareAttachDraftReviewState | "all";
+
+const FILTER_OPTIONS: Array<{ value: ReviewStateFilter; label: string }> = [
+  { value: "all", label: "Alle" },
+  { value: "pending", label: "Pending" },
+  { value: "accepted_for_apply", label: "Accepted for apply" },
+  { value: "rejected", label: "Rejected" },
+  { value: "parked", label: "Parked" },
+];
+
+export default function AdminCreateAttachDraftsPage() {
+  const [items, setItems] = useState<CreatePrepareAttachDraftQueueItem[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [filter, setFilter] = useState<ReviewStateFilter>("pending");
+  const [query, setQuery] = useState("");
+  const [reloadToken, setReloadToken] = useState(0);
+  const [reviewNoteByDraft, setReviewNoteByDraft] = useState<Record<string, string>>({});
+  const [decisionBusyDraftId, setDecisionBusyDraftId] = useState<string | null>(null);
+  const [decisionError, setDecisionError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let ignored = false;
+    async function load() {
+      setLoading(true);
+      setError(null);
+      try {
+        const qs = new URLSearchParams();
+        if (filter !== "all") qs.set("reviewState", filter);
+        if (query.trim()) qs.set("q", query.trim());
+
+        const res = await fetch(`/api/admin/create/attach-drafts?${qs.toString()}`, {
+          cache: "no-store",
+        });
+        const body = await res.json().catch(() => ({}));
+        if (!res.ok || !body?.ok) {
+          throw new Error(body?.error || res.statusText);
+        }
+        if (ignored) return;
+        const loaded = Array.isArray(body.items) ? (body.items as CreatePrepareAttachDraftQueueItem[]) : [];
+        setItems(loaded);
+        setReviewNoteByDraft((prev) => {
+          const next = { ...prev };
+          for (const item of loaded) {
+            if (!(item.draftId in next)) next[item.draftId] = item.reviewNote || "";
+          }
+          return next;
+        });
+      } catch (loadError: unknown) {
+        if (ignored) return;
+        setItems([]);
+        setError(loadError instanceof Error ? loadError.message : "create_attach_review_queue_failed");
+      } finally {
+        if (!ignored) setLoading(false);
+      }
+    }
+
+    void load();
+    return () => {
+      ignored = true;
+    };
+  }, [filter, query, reloadToken]);
+
+  async function handleReviewDecision(
+    draftId: string,
+    decision: CreatePrepareAttachDraftReviewDecision,
+  ) {
+    setDecisionBusyDraftId(draftId);
+    setDecisionError(null);
+    try {
+      const res = await fetch(`/api/admin/create/attach-drafts/${encodeURIComponent(draftId)}/review`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          decision,
+          reviewNote: reviewNoteByDraft[draftId]?.trim() || null,
+        }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok || !body?.ok || !body.item) {
+        throw new Error(body?.error || res.statusText);
+      }
+      setItems((prev) =>
+        applyCreateAttachDraftLocalDecision({
+          items: prev,
+          updated: body.item as CreatePrepareAttachDraftQueueItem,
+        }),
+      );
+    } catch (decisionErr: unknown) {
+      setDecisionError(decisionErr instanceof Error ? decisionErr.message : "attach_draft_review_failed");
+    } finally {
+      setDecisionBusyDraftId(null);
+    }
+  }
+
+  return (
+    <section className="space-y-4">
+      <header>
+        <h1 className="text-2xl font-semibold text-[rgb(var(--fg))]">Create Prepare-Attach Review Queue</h1>
+        <p className="mt-1 text-sm text-[rgb(var(--muted))]">
+          Manuelle Review-Queue fuer prepare-attach Drafts. Kein Live-Apply in diesem Schritt.
+        </p>
+      </header>
+
+      <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-3">
+        <div className="flex flex-wrap items-end gap-3">
+          <label className="text-xs font-semibold text-[rgb(var(--fg))]">
+            Review-Filter
+            <select
+              className="mt-1 block rounded-md border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-2 py-1 text-xs text-[rgb(var(--fg))]"
+              value={filter}
+              onChange={(event) => setFilter(event.target.value as ReviewStateFilter)}
+            >
+              {FILTER_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="text-xs font-semibold text-[rgb(var(--fg))]">
+            Suche
+            <input
+              className="mt-1 block rounded-md border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-2 py-1 text-xs text-[rgb(var(--fg))]"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Summary / Target / Label"
+            />
+          </label>
+
+          <button
+            type="button"
+            className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-1 text-xs font-semibold text-[rgb(var(--muted))] hover:text-[rgb(var(--fg))]"
+            onClick={() => setReloadToken((prev) => prev + 1)}
+          >
+            Neu laden
+          </button>
+        </div>
+      </div>
+
+      {loading ? (
+        <p className="text-sm text-[rgb(var(--muted))]">Queue wird geladen ...</p>
+      ) : error ? (
+        <p className="rounded-md border border-rose-300/60 bg-rose-50/80 px-3 py-2 text-sm text-rose-700 dark:border-rose-400/40 dark:bg-rose-500/10 dark:text-rose-200">
+          {error}
+        </p>
+      ) : (
+        <CreateAttachDraftReviewList
+          items={items}
+          decisionBusyDraftId={decisionBusyDraftId}
+          reviewNoteByDraft={reviewNoteByDraft}
+          decisionError={decisionError}
+          onReviewNoteChange={(draftId, value) =>
+            setReviewNoteByDraft((prev) => ({ ...prev, [draftId]: value }))
+          }
+          onReviewDecision={(draftId, decision) => void handleReviewDecision(draftId, decision)}
+        />
+      )}
+    </section>
+  );
+}

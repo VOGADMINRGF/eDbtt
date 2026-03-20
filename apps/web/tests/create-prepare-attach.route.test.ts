@@ -6,6 +6,9 @@ const mocks = vi.hoisted(() => {
   let userId: string | null = "user-1";
   const docs: Array<Record<string, unknown>> = [];
   const getColCalls: string[] = [];
+  function matchesFilter(doc: Record<string, unknown>, filter: Record<string, unknown>) {
+    return Object.entries(filter).every(([key, value]) => (doc as Record<string, unknown>)[key] === value);
+  }
 
   return {
     reset() {
@@ -34,6 +37,22 @@ const mocks = vi.hoisted(() => {
         throw new Error(`unexpected_collection_${name}`);
       }
       return {
+        async findOne(
+          filter: Record<string, unknown>,
+          opts?: { sort?: Record<string, 1 | -1> },
+        ) {
+          const matched = docs.filter((doc) => matchesFilter(doc, filter));
+          if (!matched.length) return null;
+          if (opts?.sort && "createdAt" in opts.sort) {
+            const direction = opts.sort.createdAt;
+            matched.sort((a, b) =>
+              direction === -1
+                ? String(b.createdAt || "").localeCompare(String(a.createdAt || ""))
+                : String(a.createdAt || "").localeCompare(String(b.createdAt || "")),
+            );
+          }
+          return { ...matched[0] };
+        },
         async insertOne(doc: Record<string, unknown>) {
           const next = { ...doc, _id: new ObjectId() };
           docs.push(next);
@@ -113,6 +132,8 @@ describe("/api/contributions/attach-drafts route", () => {
       noSilentMerge: true,
       originPreserved: true,
       duplicateRisk: false,
+      reviewState: "pending",
+      applyState: "not_applied",
       attachTargetType: "claim",
       attachTargetId: "claim-1",
     });
@@ -123,7 +144,23 @@ describe("/api/contributions/attach-drafts route", () => {
     expect(saved[0].ctaId).toBe("perspektive_anhaengen");
     expect(saved[0].schemaVersion).toBe(CREATE_PREPARE_ATTACH_DRAFT_SCHEMA_VERSION);
     expect(saved[0].originPreserved).toBe(true);
+    expect(saved[0].reviewState).toBe("pending");
+    expect(saved[0].applyState).toBe("not_applied");
     expect(saved[0].updatedAt).toBeTypeOf("string");
+  });
+
+  it("dedupes identical pending drafts and avoids hidden duplicate flood", async () => {
+    const first = await attachDraftPOST(req(basePayload()));
+    expect(first.status).toBe(200);
+    const second = await attachDraftPOST(req(basePayload()));
+    expect(second.status).toBe(200);
+    await expect(second.json()).resolves.toMatchObject({
+      ok: true,
+      deduped: true,
+      reviewState: "pending",
+      applyState: "not_applied",
+    });
+    expect(mocks.readDocs()).toHaveLength(1);
   });
 
   it("rejects invalid anlassraum target ids explicitly", async () => {

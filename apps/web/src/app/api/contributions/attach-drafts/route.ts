@@ -4,6 +4,7 @@ import { getCol, ObjectId } from "@core/db/triMongo";
 import { z } from "zod";
 import {
   CREATE_PREPARE_ATTACH_DRAFT_SCHEMA_VERSION,
+  createInitialPrepareAttachDraftReviewFields,
   type CreatePrepareAttachDraft,
 } from "@/features/create/prepareAttachDraft";
 
@@ -81,7 +82,43 @@ export async function POST(req: NextRequest) {
 
   const now = new Date();
   const nowIso = now.toISOString();
+  const Drafts = await getCol<CreatePrepareAttachDraftDoc>("create_prepare_attach_drafts");
+  const normalizedSummary = body.sourceSummary.trim();
+  const normalizedReasons = body.reasons.map((value) => value.trim()).filter(Boolean).slice(0, 12);
+  const dedupeFilter: Record<string, unknown> = {
+    authorId: userId,
+    schemaVersion: body.schemaVersion,
+    sourceRunId: body.sourceRunId,
+    ctaId: body.ctaId,
+    attachTargetType: body.attachTargetType,
+    attachTargetId: body.attachTargetId,
+    sourceSummary: normalizedSummary,
+    reviewState: "pending",
+    applyState: "not_applied",
+  };
+  const existing = await Drafts.findOne(dedupeFilter);
+  if (existing?._id) {
+    return NextResponse.json({
+      ok: true,
+      deduped: true,
+      draftId: existing.draftId,
+      status: existing.status,
+      requiresReview: existing.requiresReview,
+      noAutoPublish: existing.noAutoPublish,
+      noSilentMerge: existing.noSilentMerge,
+      originPreserved: existing.originPreserved,
+      duplicateRisk: existing.duplicateRisk,
+      reviewState: existing.reviewState,
+      applyState: existing.applyState,
+      createdAt: existing.createdAt,
+      updatedAt: existing.updatedAt,
+      attachTargetType: existing.attachTargetType,
+      attachTargetId: existing.attachTargetId,
+    });
+  }
+
   const _id = new ObjectId();
+  const initialReview = createInitialPrepareAttachDraftReviewFields();
   const draft: CreatePrepareAttachDraftDoc = {
     _id,
     draftId: _id.toHexString(),
@@ -95,9 +132,9 @@ export async function POST(req: NextRequest) {
     attachTargetId: body.attachTargetId,
     attachTargetRef: body.attachTargetRef ?? null,
     attachTargetLabel: body.attachTargetLabel?.trim() || null,
-    sourceSummary: body.sourceSummary.trim(),
+    sourceSummary: normalizedSummary,
     selectedReason: body.selectedReason?.trim() || null,
-    reasons: body.reasons.map((value) => value.trim()).filter(Boolean).slice(0, 12),
+    reasons: normalizedReasons,
     sourceLanguage: body.sourceLanguage.trim().toLowerCase(),
     contentLanguage: body.contentLanguage.trim().toLowerCase(),
     uiLocale: body.uiLocale.trim().toLowerCase(),
@@ -106,13 +143,17 @@ export async function POST(req: NextRequest) {
     noSilentMerge: true,
     originPreserved: true,
     duplicateRisk: body.duplicateRisk,
+    reviewState: initialReview.reviewState,
+    applyState: initialReview.applyState,
+    reviewNote: initialReview.reviewNote,
+    reviewedAt: initialReview.reviewedAt,
+    reviewedBy: initialReview.reviewedBy,
     userConfirmedAt: body.userConfirmedAt ?? null,
     createdAt: nowIso,
     updatedAt: nowIso,
     status: "draft_intent",
   };
 
-  const Drafts = await getCol<CreatePrepareAttachDraftDoc>("create_prepare_attach_drafts");
   await Drafts.insertOne(draft);
 
   return NextResponse.json({
@@ -124,6 +165,8 @@ export async function POST(req: NextRequest) {
     noSilentMerge: draft.noSilentMerge,
     originPreserved: draft.originPreserved,
     duplicateRisk: draft.duplicateRisk,
+    reviewState: draft.reviewState,
+    applyState: draft.applyState,
     createdAt: draft.createdAt,
     updatedAt: draft.updatedAt,
     attachTargetType: draft.attachTargetType,
