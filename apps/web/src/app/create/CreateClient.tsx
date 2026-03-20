@@ -88,12 +88,7 @@ function deriveGate(entitlements: CreateEntitlements): GateState {
   return { status: "allowed", entitlements };
 }
 
-function modeToIntent(mode: CreateMode, canContribution: boolean): "statement" | "contribution" {
-  if (mode === "manual") return "statement";
-  return canContribution ? "contribution" : "statement";
-}
-
-function inferInitialMode(
+function inferLegacyMode(
   initialMode: CreateMode | undefined,
   initialIntent: "statement" | "contribution" | undefined,
 ): CreateMode {
@@ -120,11 +115,11 @@ export default function CreateClient({
 }: CreateClientProps) {
   const [entitlements, setEntitlements] = React.useState<CreateEntitlements>(initialEntitlements);
   const [gate, setGate] = React.useState<GateState>(() => deriveGate(initialEntitlements));
-  const [mode, setMode] = React.useState<CreateMode>(() => inferInitialMode(initialMode, initialIntent));
-  const [intent, setIntent] = React.useState<"statement" | "contribution">(() => {
-    if (initialIntent) return initialIntent;
-    return modeToIntent(inferInitialMode(initialMode, initialIntent), initialEntitlements.canSubmitContribution);
-  });
+  const legacyMode = React.useMemo(
+    () => inferLegacyMode(initialMode, initialIntent),
+    [initialMode, initialIntent],
+  );
+
   const [contextItems, setContextItems] = React.useState<CreateContextPickerItem[]>([]);
   const [contextLoadState, setContextLoadState] = React.useState<ContextLoadState>("idle");
   const [contextLoadError, setContextLoadError] = React.useState<string | null>(null);
@@ -159,14 +154,11 @@ export default function CreateClient({
     };
   }, []);
 
-  React.useEffect(() => {
-    const nextIntent = modeToIntent(mode, entitlements.canSubmitContribution);
-    if (intent !== nextIntent) {
-      setIntent(nextIntent);
-    }
-  }, [mode, entitlements.canSubmitContribution, intent]);
-
-  const pickerEnabled = mode === "source" || mode === "ai";
+  const canonicalIntent: "statement" | "contribution" = entitlements.canSubmitContribution
+    ? "contribution"
+    : "statement";
+  const canonicalCreateMode: CreateMode = canonicalIntent === "statement" ? "manual" : "source";
+  const pickerEnabled = canonicalIntent === "contribution";
 
   const loadContextItems = React.useCallback(async () => {
     setContextLoadState("loading");
@@ -203,6 +195,12 @@ export default function CreateClient({
     void loadContextItems();
   }, [pickerEnabled, loadContextItems]);
 
+  React.useEffect(() => {
+    if (!pickerEnabled && selectedAnlassraumId) {
+      setSelectedAnlassraumId(null);
+    }
+  }, [pickerEnabled, selectedAnlassraumId]);
+
   if (gate.status === "loading") {
     return (
       <main className="mx-auto max-w-4xl px-4 py-12 text-center text-[rgb(var(--muted))]">
@@ -225,59 +223,35 @@ export default function CreateClient({
     );
   }
 
-  const modeRequiresContribution = mode !== "manual";
-  const canContribution = entitlements.canSubmitContribution;
-  const contributionBlocked = modeRequiresContribution && !canContribution;
-
   const maxClaimsCap =
-    intent === "statement"
+    canonicalIntent === "statement"
       ? Math.min(entitlements.maxVisibleAiProposals, 3)
-      : mode === "source"
-        ? Math.min(entitlements.maxVisibleAiProposals, 8)
-        : entitlements.maxVisibleAiProposals;
+      : Math.min(entitlements.maxVisibleAiProposals, 8);
 
   const maxFinalizeClaims =
-    intent === "statement"
+    canonicalIntent === "statement"
       ? 1
-      : mode === "source"
-        ? Math.min(entitlements.maxFinalizeClaimsPerInput, 4)
-        : entitlements.maxFinalizeClaimsPerInput;
+      : Math.min(entitlements.maxFinalizeClaimsPerInput, 4);
 
   const afterFinalizeNavigateTo = dossierId ? `/dossier/${dossierId}` : "/runden";
   const useCaseAccess = deriveUseCaseAccess(overview);
   const selectedContext = selectedAnlassraumId
     ? contextItems.find((item) => item.anlassraumId === selectedAnlassraumId) ?? null
     : null;
-  const effectiveSelectedAnlassraumId = mode === "manual" ? null : selectedAnlassraumId;
+  const effectiveSelectedAnlassraumId = canonicalIntent === "statement" ? null : selectedAnlassraumId;
 
   const tierCfg = getAccessTierConfigForUser(overview);
   const tierLabel = getUserAccessTier(overview);
   const monthlyLimit = tierCfg.monthlyContributionLimit;
   const credits = entitlements.contributionCredits;
 
-  const modeCards: Array<{ id: CreateMode; title: string; body: string }> = [
-    {
-      id: "manual",
-      title: "Manuell",
-      body: "Direkt selbst formulieren. KI bleibt optional ueber Analyse.",
-    },
-    {
-      id: "source",
-      title: "Aus Quelle",
-      body: "Artikel, Stream, Feed-Treffer oder Cluster materialbasiert strukturieren.",
-    },
-    {
-      id: "ai",
-      title: "KI-Assist",
-      body: "KI-gestuetzte Draft-Hilfe. Ergebnis bleibt immer manuell und nicht auto-publiziert.",
-    },
-  ];
+  const hasLegacyModeParam = Boolean(initialMode);
 
   return (
     <div className="space-y-5 md:space-y-6">
       <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 md:p-5">
         <div className="space-y-3">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[rgb(var(--muted))]">Runden-Setup</p>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[rgb(var(--muted))]">Create Freistart</p>
           <h2
             className="text-2xl font-semibold leading-tight md:text-3xl"
             style={{
@@ -286,58 +260,29 @@ export default function CreateClient({
               color: "transparent",
             }}
           >
-            Neue Runde starten
+            Freistart fuer Anlassraum- und Dossier-Flows
           </h2>
           <p className="max-w-3xl text-sm text-[rgb(var(--muted))]">
-            Ein Einstieg, drei Modi: manuell, quellebasiert und KI-Assist. Die Erstellung bleibt im selben Flow.
+            Ein gemeinsamer Einstieg: Text, Zitat, Quelle/URL oder Material. Die Plattform fuehrt danach immer durch
+            Intake, Pruef-/Qualitaet, Graph-Matching und CTA-Routing.
           </p>
 
           <div className="flex flex-wrap items-center gap-2 text-[11px] text-[rgb(var(--muted))]">
-            <span className="vog-chip">1 Modus waehlen</span>
-            <span className="vog-chip">2 Inhalt strukturieren</span>
-            <span className="vog-chip">3 Runde finalisieren</span>
-            <span className="vog-chip">Aktiver Modus: {mode}</span>
+            <span className="vog-chip">Freistart</span>
+            <span className="vog-chip">Intake</span>
+            <span className="vog-chip">Pruef/Qualitaet</span>
+            <span className="vog-chip">Graph-Matching</span>
+            <span className="vog-chip">CTA/Routing</span>
+            <span className="vog-chip">no auto publish</span>
+            <span className="vog-chip">no silent merge</span>
           </div>
         </div>
       </section>
 
-      <section className="grid gap-2 sm:grid-cols-3">
-        {modeCards.map((entry) => {
-          const active = mode === entry.id;
-          return (
-            <button
-              key={entry.id}
-              type="button"
-              onClick={() => setMode(entry.id)}
-              className={`rounded-2xl border px-4 py-3 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--grad-from))] ${
-                active
-                  ? "border-[rgb(var(--grad-from))] bg-[rgb(var(--bg))]"
-                  : "border-[rgb(var(--border))] bg-[rgb(var(--card))] hover:border-[rgb(var(--grad-from))]/50"
-              }`}
-              aria-pressed={active}
-            >
-              <p className="text-sm font-semibold text-[rgb(var(--fg))]">{entry.title}</p>
-              <p className="mt-1 text-xs text-[rgb(var(--muted))]">{entry.body}</p>
-            </button>
-          );
-        })}
-      </section>
-
-      {mode === "manual" ? (
+      {hasLegacyModeParam ? (
         <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-3 text-sm text-[rgb(var(--muted))]">
-          Du schreibst selbst vor. Die Analyse bleibt optional und dient nur zur Strukturhilfe.
-        </section>
-      ) : null}
-
-      {mode === "source" ? (
-        <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-3 text-sm text-[rgb(var(--muted))]">
-          Quelle zuerst: gib Link, Auszug oder Notiz ein. Der Flow uebernimmt Struktur und erzeugt daraus Vorschlaege fuer die Runde.
-        </section>
-      ) : null}
-
-      {mode === "ai" ? (
-        <section className="rounded-2xl border border-[rgb(var(--grad-from))]/35 bg-[rgb(var(--card))] px-4 py-3 text-sm text-[rgb(var(--muted))]">
-          KI-Modus nutzt die bestehende Analyse-Route <code>/api/contributions/analyze</code>. Ergebnis bleibt editierbar und manuell reviewbar, bevor du finalisierst.
+          Legacy-Mode-Parameter erkannt (<code>{legacyMode}</code>) und aus Kompatibilitaetsgruenden gelesen.
+          Der kanonische Einstieg bleibt Freistart; ein sichtbarer Primarsplit ist nicht mehr Ziel-UX.
         </section>
       ) : null}
 
@@ -346,7 +291,8 @@ export default function CreateClient({
           <div className="space-y-2">
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[rgb(var(--muted))]">Kontext-Picker</p>
             <p className="text-sm text-[rgb(var(--muted))]">
-              Optional: Waehle einen bestehenden Anlassraum als Kontext. Auswahl bleibt manuell, read-only und loest kein Save/Finalize aus.
+              Optional: Waehle einen bestehenden Anlassraum als Kontext. Kontext kann spaeter auch als Match-/Routing-Ergebnis
+              sichtbar werden. Keine automatische Verlinkung, kein Auto-Publish, kein Auto-Merge.
             </p>
           </div>
 
@@ -420,17 +366,6 @@ export default function CreateClient({
         </section>
       ) : null}
 
-      {contributionBlocked ? (
-        <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 text-sm text-[rgb(var(--muted))]">
-          <p>
-            Beitragseinreichung ist in deinem Paket aktuell gesperrt. Du kannst weiterhin im manuellen Modus arbeiten.
-          </p>
-          <button type="button" onClick={() => setMode("manual")} className="btn-secondary mt-3 text-xs">
-            Auf Manuell wechseln
-          </button>
-        </section>
-      ) : null}
-
       <details className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4">
         <summary className="cursor-pointer text-sm font-semibold text-[rgb(var(--fg))]">Kontingente und Zugriff</summary>
         <div className="mt-3 flex flex-wrap items-center gap-2 text-[11px] text-[rgb(var(--muted))]">
@@ -449,22 +384,14 @@ export default function CreateClient({
       </details>
 
       <AnalyzeWorkspace
-        key={`${mode}-${intent}-${dossierId ?? "no-dossier"}`}
-        mode={intent}
-        createMode={mode}
-        defaultLevel={
-          mode === "manual"
-            ? 1
-            : mode === "source"
-              ? 2
-              : 3
-        }
+        key={`${canonicalCreateMode}-${canonicalIntent}-${dossierId ?? "no-dossier"}`}
+        mode={canonicalIntent}
+        createMode={canonicalCreateMode}
+        defaultLevel={2}
         storageKey={
-          mode === "manual"
-            ? "vog_create_manual_statement_v1"
-            : mode === "source"
-              ? "vog_create_source_contribution_v1"
-              : "vog_create_ai_assist_contribution_v1"
+          canonicalIntent === "statement"
+            ? "vog_create_freistart_statement_v1"
+            : "vog_create_freistart_contribution_v1"
         }
         analyzeEndpoint="/api/create/analyze"
         saveEndpoint="/api/create/save"

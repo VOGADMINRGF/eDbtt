@@ -91,19 +91,21 @@ describe("/create canonical mode rendering", () => {
   });
 
   it.each(["manual", "source", "ai"] as const)(
-    "Scenario D: canonical /create?mode=%s is reflected in UI",
+    "Scenario D: legacy /create?mode=%s is read but freistart remains canonical",
     async (mode) => {
       const tree = await CreatePage({
         searchParams: Promise.resolve({ mode }),
       });
       const html = renderToStaticMarkup(tree);
-      expect(html).toContain(`Aktiver Modus: ${mode}`);
+      expect(html).toContain("Create Freistart");
+      expect(html).toContain("Freistart fuer Anlassraum- und Dossier-Flows");
+      expect(html).toContain("Legacy-Mode-Parameter erkannt");
       const lastCall = mocks.analyzeWorkspaceCalls.at(-1);
-      expect(lastCall?.createMode).toBe(mode);
+      expect(lastCall?.createMode).toBe("source");
     },
   );
 
-  it("Scenario E: source mode keeps explicit selected anlassraum context on workspace boundary", async () => {
+  it("Scenario E: selected anlassraum context stays available on canonical contribution flow", async () => {
     const tree = await CreatePage({
       searchParams: Promise.resolve({
         mode: "source",
@@ -117,7 +119,7 @@ describe("/create canonical mode rendering", () => {
     expect(lastCall?.selectedAnlassraumId).toBe("65f000000000000000000011");
   });
 
-  it("Scenario E: manual mode never forwards source context implicitly", async () => {
+  it("Scenario E: legacy manual mode no longer suppresses context in canonical contribution flow", async () => {
     const tree = await CreatePage({
       searchParams: Promise.resolve({
         mode: "manual",
@@ -125,7 +127,29 @@ describe("/create canonical mode rendering", () => {
       }),
     });
     const html = renderToStaticMarkup(tree);
+    expect(html).toContain("Kontext-Picker");
+    const lastCall = mocks.analyzeWorkspaceCalls.at(-1);
+    expect(lastCall?.createMode).toBe("source");
+    expect(lastCall?.selectedAnlassraumId).toBe("65f000000000000000000011");
+  });
+
+  it("Scenario E: statement-only entitlement keeps freistart but drops source context forwarding", async () => {
+    mocks.getCreateEntitlementsForRequest.mockResolvedValue({
+      ...AUTH_ENTITLEMENTS,
+      canSubmitContribution: false,
+      canSubmitStatement: true,
+    });
+
+    const tree = await CreatePage({
+      searchParams: Promise.resolve({
+        mode: "source",
+        anlassraumId: "65f000000000000000000011",
+      }),
+    });
+    const html = renderToStaticMarkup(tree);
+    expect(html).toContain("Create Freistart");
     expect(html).not.toContain("Kontext-Picker");
+
     const lastCall = mocks.analyzeWorkspaceCalls.at(-1);
     expect(lastCall?.createMode).toBe("manual");
     expect(lastCall?.selectedAnlassraumId).toBeUndefined();

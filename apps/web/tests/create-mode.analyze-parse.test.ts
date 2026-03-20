@@ -15,6 +15,18 @@ describe("create mode analyze parse boundary", () => {
     expect(parsed.value.anlassraumId).toBe("65f000000000000000000011");
   });
 
+  it("accepts preparedText alias and normalizes it into text", () => {
+    const parsed = parseAnalyzeRequestBody({
+      textOriginal: "Original text should not be primary here.",
+      preparedText: "Prepared alias text for canonical analyze flow.",
+      createMode: "source",
+    });
+
+    expect(parsed.ok).toBe(true);
+    if (!parsed.ok) return;
+    expect(parsed.value.text).toBe("Prepared alias text for canonical analyze flow.");
+  });
+
   it("rejects invalid anlassraum id explicitly", () => {
     const parsed = parseAnalyzeRequestBody({
       text: "Genug langer Analysetext fuer den Request.",

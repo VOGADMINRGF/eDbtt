@@ -37,6 +37,7 @@ import ContentLanguageSelect from "@/components/ContentLanguageSelect";
 import { useContentLang } from "@/lib/i18n/contentLanguage";
 import { DEFAULT_BASE_LANG, LANGUAGE_CODES, type LanguageCode } from "@features/i18n/languages";
 import type { CreateMode } from "@/features/create/intents";
+import type { CreateAnalyzeResponse } from "@/features/create/analyzeContract";
 
 const MAX_LEVEL1_STATEMENTS = 3;
 
@@ -198,6 +199,93 @@ type ResearchGuidance = {
   feeds: string[];
   risks: string[];
 };
+
+type CreateAnalyzeRoutingHint = {
+  tone: "info" | "warning";
+  message: string;
+  primaryCtaId: string | null;
+  primaryCtaLabel: string | null;
+};
+
+export function deriveCreateAnalyzeRoutingHint(
+  snapshot: Pick<CreateAnalyzeResponse, "matchType" | "suggestedCtas">,
+): CreateAnalyzeRoutingHint {
+  const primary = snapshot.suggestedCtas?.[0];
+  const base: CreateAnalyzeRoutingHint = {
+    tone: "info",
+    message: "Match ist ein Vorschlag. Handoff bleibt immer manuell.",
+    primaryCtaId: primary?.id ?? null,
+    primaryCtaLabel: primary?.label ?? null,
+  };
+
+  if (snapshot.matchType === "no_match") {
+    return {
+      ...base,
+      message: "Kein belastbarer Match. CTA 'Neu anlegen' bleibt der kanonische Pfad.",
+    };
+  }
+  if (snapshot.matchType === "same_anlassraum") {
+    return {
+      ...base,
+      message:
+        "Anlassraum-Kontext erkannt. Oeffnen/Anhaengen bleibt manuell zu bestaetigen; kein Auto-Attach.",
+    };
+  }
+  if (snapshot.matchType === "duplicate_risk") {
+    return {
+      ...base,
+      tone: "warning",
+      message: "Moegliches Duplikat. Manuell pruefen, kein Silent-Merge.",
+    };
+  }
+  if (snapshot.matchType === "related_dossier") {
+    return {
+      ...base,
+      message: "Dossier-Naehe erkannt. Erst manuell einlesen, dann bewusst weiterfuehren.",
+    };
+  }
+
+  return base;
+}
+
+export function collectCreateAnalyzeReasons(
+  snapshot: Pick<CreateAnalyzeResponse, "reasons" | "matches">,
+): string[] {
+  const out: string[] = [];
+  const seen = new Set<string>();
+  const push = (value: unknown) => {
+    if (typeof value !== "string") return;
+    const normalized = value.trim();
+    if (!normalized || seen.has(normalized)) return;
+    seen.add(normalized);
+    out.push(normalized);
+  };
+
+  for (const reason of snapshot.reasons ?? []) push(reason);
+  for (const match of snapshot.matches ?? []) {
+    for (const reason of match?.reasons ?? []) push(reason);
+    push(match?.reason);
+  }
+  return out;
+}
+
+function parseCreateAnalyzeResponse(value: unknown): CreateAnalyzeResponse | null {
+  if (!value || typeof value !== "object") return null;
+  const candidate = value as Partial<CreateAnalyzeResponse>;
+  if (typeof candidate.schemaVersion !== "string") return null;
+  if (typeof candidate.runId !== "string") return null;
+  if (typeof candidate.confidence !== "number" || Number.isNaN(candidate.confidence)) return null;
+  if (!Array.isArray(candidate.languages)) return null;
+  if (!Array.isArray(candidate.claims)) return null;
+  if (!Array.isArray(candidate.evidenceNeeds)) return null;
+  if (!Array.isArray(candidate.uncertainties)) return null;
+  if (!Array.isArray(candidate.matches)) return null;
+  if (!Array.isArray(candidate.reasons)) return null;
+  if (!Array.isArray(candidate.suggestedCtas)) return null;
+  if (candidate.matchSourceState !== "ok" && candidate.matchSourceState !== "degraded") return null;
+  if (!Array.isArray(candidate.matchSourceErrors)) return null;
+  return candidate as CreateAnalyzeResponse;
+}
 
 type StatementEntry = NormalizedClaim & {
   stance?: "pro" | "contra" | "neutral" | string | null;
@@ -681,6 +769,7 @@ export default function AnalyzeWorkspace({
   const [evidenceGraph, setEvidenceGraph] = React.useState<EvidenceGraph | null>(null);
   const [runReceipt, setRunReceipt] = React.useState<RunReceipt | null>(null);
   const [providerMatrix, setProviderMatrix] = React.useState<ProviderMatrixEntry[]>([]);
+  const [createAnalyze, setCreateAnalyze] = React.useState<CreateAnalyzeResponse | null>(null);
   const [steps, setSteps] = React.useState<AnalyzeStepState[]>(BASE_STEPS);
   const [analysisStatus, setAnalysisStatus] = React.useState<"idle" | "running" | "success" | "empty" | "error">("idle");
   const analyzing = analysisStatus === "running";
@@ -1224,6 +1313,16 @@ export default function AnalyzeWorkspace({
   const showProgress = !flowIsLite && (analysisStatus !== "idle" || hasAnyResults);
   const showOutputSection = analysisStatus === "success" || hasAnyResults;
   const showInsights = analysisStatus === "success" && (allowTrace || allowResearch) && hasStatements;
+  const createAnalyzePhases = createAnalyze
+    ? [
+        { key: "intake", value: createAnalyze.phases.intake },
+        { key: "quality", value: createAnalyze.phases.quality },
+        { key: "graph_matching", value: createAnalyze.phases.graph_matching },
+        { key: "cta_suggestions", value: createAnalyze.phases.cta_suggestions },
+      ]
+    : [];
+  const createAnalyzeRoutingHint = createAnalyze ? deriveCreateAnalyzeRoutingHint(createAnalyze) : null;
+  const createAnalyzeReasons = createAnalyze ? collectCreateAnalyzeReasons(createAnalyze) : [];
 
   const deepResearchHints = React.useMemo(() => {
     if (!researchGuidance) return [] as string[];
@@ -1551,6 +1650,7 @@ export default function AnalyzeWorkspace({
     setEditorialAudit(null);
     setEvidenceGraph(null);
     setRunReceipt(null);
+    setCreateAnalyze(null);
     setAnalysisStatus("running");
     setSteps(BASE_STEPS.map((s) => ({ ...s, state: "running" })));
 
@@ -1572,6 +1672,7 @@ export default function AnalyzeWorkspace({
           text: preparedText,
           createMode: resolvedCreateMode,
           anlassraumId: selectedAnlassraumId ?? undefined,
+          dossierId: dossierId ?? undefined,
           locale,
           maxClaims,
           detailPreset: viewLevel,
@@ -1583,6 +1684,8 @@ export default function AnalyzeWorkspace({
       if (!res.ok || !data?.ok) {
         throw new Error(data?.message || data?.error || `Analyse fehlgeschlagen (HTTP ${res.status}).`);
       }
+      const orchestrationSnapshot = parseCreateAnalyzeResponse(data?.createAnalyze);
+      setCreateAnalyze(orchestrationSnapshot);
 
       const resultPayload = data.result ?? data;
       if (!resultPayload) throw new Error("Analyse lieferte keine Ergebnisse.");
@@ -1709,6 +1812,7 @@ export default function AnalyzeWorkspace({
       setEditorialAudit(null);
       setEvidenceGraph(null);
       setRunReceipt(null);
+      setCreateAnalyze(null);
       setSteps(
         computeStepStatesFromData({
           notes: [],
@@ -1735,6 +1839,7 @@ export default function AnalyzeWorkspace({
     allowResearch,
     evidenceInput,
     fetchResearchGuidance,
+    dossierId,
     locale,
     maxClaims,
     preparedText,
@@ -2438,6 +2543,148 @@ export default function AnalyzeWorkspace({
               </div>
             )}
           </div>
+
+          {createAnalyze && (
+            <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm space-y-3">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
+                    Create-Orchestrierung
+                  </p>
+                  <h3 className="mt-1 text-sm font-semibold text-[rgb(var(--fg))]">
+                    Intake, Qualitaet, Match und CTA-Routing
+                  </h3>
+                </div>
+                <div className="flex flex-wrap gap-1">
+                  <span className="rounded-full bg-[rgb(var(--bg))] px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
+                    input: {createAnalyze.inputType}
+                  </span>
+                  <span className="rounded-full bg-[rgb(var(--bg))] px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
+                    match: {createAnalyze.matchStrength}
+                  </span>
+                </div>
+              </div>
+
+              <p className="text-[11px] text-[rgb(var(--muted))]">{createAnalyze.normalizedInputSummary || "Keine Zusammenfassung verfuegbar."}</p>
+
+              {createAnalyzeRoutingHint ? (
+                <div
+                  className={`rounded-xl border px-3 py-2 text-[11px] ${
+                    createAnalyzeRoutingHint.tone === "warning"
+                      ? "border-amber-300/60 bg-amber-50/80 text-amber-800 dark:border-amber-400/40 dark:bg-amber-500/10 dark:text-amber-200"
+                      : "border-[rgb(var(--border))] bg-[rgb(var(--bg))] text-[rgb(var(--muted))]"
+                  }`}
+                >
+                  <p className="text-[10px] font-semibold uppercase tracking-wide">Routing-Hinweis</p>
+                  <p className="mt-1">{createAnalyzeRoutingHint.message}</p>
+                  {createAnalyzeRoutingHint.primaryCtaLabel ? (
+                    <p className="mt-1">
+                      Primaere Richtung:{" "}
+                      <span className="font-semibold text-[rgb(var(--fg))]">
+                        {createAnalyzeRoutingHint.primaryCtaLabel}
+                      </span>
+                    </p>
+                  ) : null}
+                </div>
+              ) : null}
+
+              <div className="grid gap-2 sm:grid-cols-2">
+                <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-[11px] text-[rgb(var(--muted))]">
+                  <p className="text-[10px] font-semibold uppercase tracking-wide">Qualitaet</p>
+                  <p className="mt-1">Claims: {createAnalyze.claims.length}</p>
+                  <p>Quellenbedarf: {createAnalyze.evidenceNeeds.length}</p>
+                  <p>Unsicherheiten: {createAnalyze.uncertainties.length}</p>
+                  <p>Languages: {createAnalyze.languages.join(", ") || "-"}</p>
+                </div>
+                <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-[11px] text-[rgb(var(--muted))]">
+                  <p className="text-[10px] font-semibold uppercase tracking-wide">Governance</p>
+                  <p>requiresHumanReview: {createAnalyze.requiresHumanReview ? "true" : "false"}</p>
+                  <p>noAutoPublish: {createAnalyze.noAutoPublish ? "true" : "false"}</p>
+                  <p>noSilentMerge: {createAnalyze.noSilentMerge ? "true" : "false"}</p>
+                  <p>confidence: {createAnalyze.confidence.toFixed(2)}</p>
+                </div>
+              </div>
+
+              {createAnalyzeReasons.length > 0 && (
+                <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-[11px] text-[rgb(var(--muted))]">
+                  <p className="text-[10px] font-semibold uppercase tracking-wide">Match-Gruende</p>
+                  <ul className="mt-1 list-disc space-y-1 pl-4">
+                    {createAnalyzeReasons.slice(0, 6).map((reason, idx) => (
+                      <li key={`${reason}-${idx}`}>{reason}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {createAnalyze.matches.length > 0 && (
+                <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-[11px] text-[rgb(var(--muted))]">
+                  <p className="text-[10px] font-semibold uppercase tracking-wide">Graph-Matches</p>
+                  <ul className="mt-1 space-y-1">
+                    {createAnalyze.matches.map((match) => (
+                      <li key={match.id} className="rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-2 py-1.5">
+                        <p>
+                          <span className="font-semibold text-[rgb(var(--fg))]">{match.label}</span>
+                          <span> · {match.matchType} · {match.matchEntityType} · {match.strength}</span>
+                        </p>
+                        {match.reasons.length > 0 ? (
+                          <p className="mt-1 text-[10px] text-[rgb(var(--muted))]">{match.reasons[0]}</p>
+                        ) : null}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {createAnalyze.suggestedCtas.length > 0 && (
+                <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-[11px] text-[rgb(var(--muted))]">
+                  <p className="text-[10px] font-semibold uppercase tracking-wide">CTA-Routing</p>
+                  <ul className="mt-1 space-y-1">
+                    {createAnalyze.suggestedCtas.map((cta, idx) => (
+                      <li key={cta.id} className="rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-2 py-1.5">
+                        <p className="flex flex-wrap items-center gap-2">
+                          <span className="font-semibold text-[rgb(var(--fg))]">{cta.label}</span>
+                          <span className="text-[10px]">{cta.id}</span>
+                          {idx === 0 ? (
+                            <span className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-1.5 py-0.5 text-[10px]">
+                              priorisiert
+                            </span>
+                          ) : null}
+                        </p>
+                        <p className="mt-1 text-[10px]">{cta.reason}</p>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {createAnalyze.matchSourceState === "degraded" && (
+                <div className="rounded-xl border border-amber-300/60 bg-amber-50/80 px-3 py-2 text-[11px] text-amber-800 dark:border-amber-400/40 dark:bg-amber-500/10 dark:text-amber-200">
+                  <p className="text-[10px] font-semibold uppercase tracking-wide">Match-Quelle degradiert</p>
+                  <p className="mt-1">
+                    Produktive Match-Quellen waren nur eingeschraenkt verfuegbar. Kein Fake-Match; bitte manuell pruefen.
+                  </p>
+                  {createAnalyze.matchSourceErrors.length > 0 ? (
+                    <p className="mt-1 text-[10px]">errors: {createAnalyze.matchSourceErrors.join(", ")}</p>
+                  ) : null}
+                </div>
+              )}
+
+              {createAnalyzePhases.length > 0 && (
+                <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-[11px] text-[rgb(var(--muted))]">
+                  <p className="text-[10px] font-semibold uppercase tracking-wide">Phasen</p>
+                  <ul className="mt-1 space-y-1">
+                    {createAnalyzePhases.map((phase) => (
+                      <li key={phase.key}>
+                        <span className="font-semibold text-[rgb(var(--fg))]">{phase.key}</span>
+                        <span> · {phase.value.status}</span>
+                        <span> · {phase.value.summary}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          )}
 
           {showOutputSection && (
             <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm space-y-3">

@@ -17,6 +17,7 @@ export const AnalyzeRequestSchemaV2 = z
     // newer clients
     textOriginal: z.string().optional(),
     textPrepared: z.string().optional(),
+    preparedText: z.string().optional(),
 
     locale: z.string().min(2).max(8).optional(),
     maxClaims: z.number().int().min(1).max(30).optional(),
@@ -28,6 +29,7 @@ export const AnalyzeRequestSchemaV2 = z
     // existing compatibility hooks
     test: z.string().optional(),
     contributionId: z.string().min(3).max(100).optional(),
+    dossierId: z.string().min(1).max(120).optional(),
     createMode: z.preprocess(
       (value) => {
         if (typeof value !== "string") return value;
@@ -50,7 +52,7 @@ export const AnalyzeRequestSchemaV2 = z
   })
   .superRefine((val, ctx) => {
     if (val.test === "ping") return;
-    const candidate = (val.textPrepared ?? val.text ?? val.textOriginal ?? "").trim();
+    const candidate = (val.textPrepared ?? val.preparedText ?? val.text ?? val.textOriginal ?? "").trim();
     if (!candidate) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
@@ -72,7 +74,7 @@ export const AnalyzeRequestSchemaV2 = z
     }
   })
   .transform((val) => {
-    const effectiveText = (val.textPrepared ?? val.text ?? val.textOriginal ?? "").trim();
+    const effectiveText = (val.textPrepared ?? val.preparedText ?? val.text ?? val.textOriginal ?? "").trim();
     return {
       ...val,
       text: effectiveText,

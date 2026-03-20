@@ -20,6 +20,12 @@ import type { AiErrorKind } from "@core/telemetry/aiUsageTypes";
 import { buildHeuristicAnalyzeResult } from "@features/analyze/heuristics";
 import crypto from "crypto";
 import { parseAnalyzeRequestBody, type AnalyzeRequestParsed } from "./parseAnalyzeRequest";
+import {
+  buildCreateAnalyzeResponse,
+  summarizeCreateAnalyzeInput,
+  type CreateAnalyzeMatchResultInput,
+} from "@/features/create/analyzeContract";
+import { resolveCreateGraphMatches } from "@/features/create/matchService";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -165,6 +171,21 @@ export async function POST(req: NextRequest): Promise<Response> {
   try {
     const result = await withHardTimeout(runAnalyzeJob(analyzeInput), ANALYZE_HARD_TIMEOUT_MS);
     await finalizeResultPayload(result, analyzeInput);
+    const createMatch = await resolveCreateMatchesSafe({
+      text,
+      normalizedInputSummary: summarizeCreateAnalyzeInput(text),
+      claims: Array.isArray(result.claims) ? result.claims : [],
+      anlassraumId: body.anlassraumId ?? null,
+      dossierId: body.dossierId ?? null,
+      locale,
+    });
+    const createAnalyze = buildCreateAnalyzeResponse({
+      runId,
+      text,
+      locale,
+      result,
+      matchResult: createMatch,
+    });
     const providerMatrix = buildProviderMatrixResponse(
       null,
       (result as any)?._meta?.providerMatrix,
@@ -174,6 +195,7 @@ export async function POST(req: NextRequest): Promise<Response> {
       {
         ok: true,
         result,
+        createAnalyze,
         meta: {
           runId,
           providerMatrix,
@@ -198,12 +220,28 @@ export async function POST(req: NextRequest): Promise<Response> {
     const normalized = normalizeAnalyzerError(error);
     if (shouldUseFallback(normalized)) {
       const fallback = buildHeuristicAnalyzeResult({ text, locale });
+      const createMatch = await resolveCreateMatchesSafe({
+        text,
+        normalizedInputSummary: summarizeCreateAnalyzeInput(text),
+        claims: Array.isArray(fallback.claims) ? fallback.claims : [],
+        anlassraumId: body.anlassraumId ?? null,
+        dossierId: body.dossierId ?? null,
+        locale,
+      });
+      const createAnalyze = buildCreateAnalyzeResponse({
+        runId,
+        text,
+        locale,
+        result: fallback,
+        matchResult: createMatch,
+      });
       return NextResponse.json({
         ok: true,
         fallback: true,
         errorCode: normalized.code,
         message: normalized.message,
         result: fallback,
+        createAnalyze,
       });
     }
     if (normalized.code === "BAD_JSON" || normalized.code === "ANALYZE_PROVIDER_FAILED") {
@@ -251,6 +289,21 @@ export async function POST(req: NextRequest): Promise<Response> {
           contributionId,
         },
       };
+      const createMatch = await resolveCreateMatchesSafe({
+        text,
+        normalizedInputSummary: summarizeCreateAnalyzeInput(text),
+        claims: [],
+        anlassraumId: body.anlassraumId ?? null,
+        dossierId: body.dossierId ?? null,
+        locale,
+      });
+      const createAnalyze = buildCreateAnalyzeResponse({
+        runId,
+        text,
+        locale,
+        result: degradedResult,
+        matchResult: createMatch,
+      });
 
       return NextResponse.json(
         {
@@ -258,6 +311,7 @@ export async function POST(req: NextRequest): Promise<Response> {
           degraded: true,
           warning: "KI temporär nicht erreichbar; Analyse wird später erneut versucht.",
           result: degradedResult,
+          createAnalyze,
           meta: {
             runId,
             providerMatrix,
@@ -512,6 +566,53 @@ function shouldUseFallback(err: unknown) {
   const anyErr = err as { errorCode?: string; code?: string };
   const code = anyErr.errorCode ?? anyErr.code;
   return typeof code === "string" && FALLBACK_ELIGIBLE_CODES.has(code);
+}
+
+async function resolveCreateMatchesSafe(input: {
+  text: string;
+  normalizedInputSummary: string;
+  claims: unknown[];
+  anlassraumId?: string | null;
+  dossierId?: string | null;
+  locale?: string | null;
+}): Promise<CreateAnalyzeMatchResultInput> {
+  try {
+    return await resolveCreateGraphMatches(input);
+  } catch {
+    return {
+      matches: [
+        {
+          id: "no-match",
+          matchType: "no_match",
+          matchEntityType: "question",
+          strength: "none",
+          label: "Kein belastbarer Match",
+          reason: "Produktive Match-Quelle derzeit nicht verfuegbar.",
+          reasons: ["Produktive Match-Quelle derzeit nicht verfuegbar."],
+          entityId: null,
+          targetRef: null,
+        },
+      ],
+      matchStrength: "none",
+      matchType: "no_match",
+      matchEntityType: "question",
+      reasons: ["Produktive Match-Quelle derzeit nicht verfuegbar."],
+      suggestedCtas: [
+        {
+          id: "neu_anlegen",
+          label: "Neu anlegen",
+          reason: "Ohne belastbaren Match bleibt ein neuer Strang der kanonische Pfad.",
+        },
+        {
+          id: "perspektive_anhaengen",
+          label: "Perspektive anhaengen",
+          reason: "Alternativ kann eine Perspektive manuell angehaengt werden.",
+        },
+      ],
+      sourceState: "degraded",
+      sourceErrors: ["match_service_unavailable"],
+    };
+  }
 }
 
 const PROVIDER_LIST: ProviderMatrixEntry["provider"][] = [
