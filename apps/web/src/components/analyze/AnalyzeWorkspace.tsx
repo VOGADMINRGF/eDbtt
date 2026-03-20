@@ -47,6 +47,13 @@ import {
   type CreateCtaHandoff,
   type CreateCtaHandoffUiState,
 } from "@/features/create/ctaHandoff";
+import {
+  buildCreatePrepareAttachDraftInput,
+  canCreatePrepareAttachDraftFromHandoff,
+  derivePrepareAttachTargetOptions,
+  resolveInitialPrepareAttachTargetKey,
+  type CreatePrepareAttachTargetOption,
+} from "@/features/create/prepareAttachDraft";
 
 const MAX_LEVEL1_STATEMENTS = 3;
 
@@ -209,6 +216,17 @@ type ResearchGuidance = {
   risks: string[];
 };
 
+type CreatePrepareAttachReviewState = {
+  sourceRunId: string;
+  sourceSummary: string;
+  handoff: CreateCtaHandoff;
+  targets: CreatePrepareAttachTargetOption[];
+  selectedTargetKey: string | null;
+  selectedReason: string;
+  reasons: string[];
+  warning: string | null;
+};
+
 type CreateAnalyzeRoutingHint = {
   tone: "info" | "warning";
   message: string;
@@ -276,6 +294,33 @@ export function collectCreateAnalyzeReasons(
     push(match?.reason);
   }
   return out;
+}
+
+export function buildCreatePrepareAttachReviewState(params: {
+  createAnalyze: CreateAnalyzeResponse | null;
+  handoff: CreateCtaHandoff | null;
+}): CreatePrepareAttachReviewState | null {
+  if (!params.createAnalyze || !params.handoff) return null;
+  if (!canCreatePrepareAttachDraftFromHandoff(params.handoff)) return null;
+
+  const targets = derivePrepareAttachTargetOptions(params.createAnalyze.matches);
+  const selectedTargetKey = resolveInitialPrepareAttachTargetKey({
+    options: targets,
+    handoff: params.handoff,
+  });
+
+  if (targets.length === 0) return null;
+
+  return {
+    sourceRunId: params.createAnalyze.runId,
+    sourceSummary: params.createAnalyze.normalizedInputSummary || "",
+    handoff: params.handoff,
+    targets,
+    selectedTargetKey,
+    selectedReason: "",
+    reasons: collectCreateAnalyzeReasons(params.createAnalyze).slice(0, 6),
+    warning: params.handoff.warning,
+  };
 }
 
 function parseCreateAnalyzeResponse(value: unknown): CreateAnalyzeResponse | null {
@@ -782,6 +827,10 @@ export default function AnalyzeWorkspace({
   const [ctaHandoffState, setCtaHandoffState] = React.useState<CreateCtaHandoffUiState>(
     () => createInitialCreateCtaHandoffState(),
   );
+  const [prepareAttachReview, setPrepareAttachReview] = React.useState<CreatePrepareAttachReviewState | null>(null);
+  const [prepareAttachSaving, setPrepareAttachSaving] = React.useState(false);
+  const [prepareAttachError, setPrepareAttachError] = React.useState<string | null>(null);
+  const [prepareAttachSavedDraftId, setPrepareAttachSavedDraftId] = React.useState<string | null>(null);
   const [steps, setSteps] = React.useState<AnalyzeStepState[]>(BASE_STEPS);
   const [analysisStatus, setAnalysisStatus] = React.useState<"idle" | "running" | "success" | "empty" | "error">("idle");
   const analyzing = analysisStatus === "running";
@@ -1337,6 +1386,15 @@ export default function AnalyzeWorkspace({
   const createAnalyzeReasons = createAnalyze ? collectCreateAnalyzeReasons(createAnalyze) : [];
   const pendingCtaHandoff = ctaHandoffState.pending;
   const confirmedCtaHandoff = ctaHandoffState.confirmed;
+  const prepareAttachSelectedTarget = prepareAttachReview
+    ? prepareAttachReview.targets.find((item) => item.key === prepareAttachReview.selectedTargetKey) ?? null
+    : null;
+  const prepareAttachCanSave = Boolean(
+    prepareAttachReview &&
+      prepareAttachReview.selectedTargetKey &&
+      prepareAttachSelectedTarget &&
+      !prepareAttachSaving,
+  );
 
   const deepResearchHints = React.useMemo(() => {
     if (!researchGuidance) return [] as string[];
@@ -1666,6 +1724,10 @@ export default function AnalyzeWorkspace({
     setRunReceipt(null);
     setCreateAnalyze(null);
     setCtaHandoffState(createInitialCreateCtaHandoffState());
+    setPrepareAttachReview(null);
+    setPrepareAttachSaving(false);
+    setPrepareAttachError(null);
+    setPrepareAttachSavedDraftId(null);
     setAnalysisStatus("running");
     setSteps(BASE_STEPS.map((s) => ({ ...s, state: "running" })));
 
@@ -1702,6 +1764,10 @@ export default function AnalyzeWorkspace({
       const orchestrationSnapshot = parseCreateAnalyzeResponse(data?.createAnalyze);
       setCreateAnalyze(orchestrationSnapshot);
       setCtaHandoffState(createInitialCreateCtaHandoffState());
+      setPrepareAttachReview(null);
+      setPrepareAttachSaving(false);
+      setPrepareAttachError(null);
+      setPrepareAttachSavedDraftId(null);
 
       const resultPayload = data.result ?? data;
       if (!resultPayload) throw new Error("Analyse lieferte keine Ergebnisse.");
@@ -1830,6 +1896,10 @@ export default function AnalyzeWorkspace({
       setRunReceipt(null);
       setCreateAnalyze(null);
       setCtaHandoffState(createInitialCreateCtaHandoffState());
+      setPrepareAttachReview(null);
+      setPrepareAttachSaving(false);
+      setPrepareAttachError(null);
+      setPrepareAttachSavedDraftId(null);
       setSteps(
         computeStepStatesFromData({
           notes: [],
@@ -1881,6 +1951,10 @@ export default function AnalyzeWorkspace({
 
   const handleCreateCtaCancel = React.useCallback(() => {
     setCtaHandoffState((prev) => cancelCreateCtaHandoff(prev));
+    setPrepareAttachReview(null);
+    setPrepareAttachSaving(false);
+    setPrepareAttachError(null);
+    setPrepareAttachSavedDraftId(null);
   }, []);
 
   const handleCreateCtaConfirm = React.useCallback(() => {
@@ -1896,10 +1970,100 @@ export default function AnalyzeWorkspace({
       return;
     }
 
+    const reviewState = buildCreatePrepareAttachReviewState({
+      createAnalyze,
+      handoff: confirmed,
+    });
+    if (reviewState) {
+      setPrepareAttachReview(reviewState);
+      setPrepareAttachError(null);
+      setPrepareAttachSavedDraftId(null);
+      setInfo(
+        `CTA-Handoff bestaetigt: ${confirmed.ctaId}. Ziel waehlen, Review pruefen und explizit speichern.`,
+      );
+      return;
+    }
+
+    setPrepareAttachReview(null);
+    setPrepareAttachSaving(false);
+    setPrepareAttachError(null);
+    setPrepareAttachSavedDraftId(null);
+    if (confirmed.actionType === "prepare_attach") {
+      setInfo(
+        "CTA-Handoff bestaetigt, aber kein belastbares Attach-Ziel verfuegbar. Bitte 'Neu anlegen' nutzen.",
+      );
+      return;
+    }
     setInfo(
       `CTA-Handoff bestaetigt: ${confirmed.ctaId}. Prepare-only, keine Mutation, kein Auto-Publish, kein Silent-Merge.`,
     );
-  }, [ctaHandoffState, router]);
+  }, [ctaHandoffState, createAnalyze, router]);
+
+  const handlePrepareAttachTargetSelect = React.useCallback((key: string) => {
+    setPrepareAttachReview((prev) =>
+      prev
+        ? {
+            ...prev,
+            selectedTargetKey: key,
+          }
+        : prev,
+    );
+  }, []);
+
+  const handlePrepareAttachReasonChange = React.useCallback((value: string) => {
+    setPrepareAttachReview((prev) =>
+      prev
+        ? {
+            ...prev,
+            selectedReason: value,
+          }
+        : prev,
+    );
+  }, []);
+
+  const handlePrepareAttachSave = React.useCallback(async () => {
+    if (!prepareAttachReview) return;
+    const target = prepareAttachReview.targets.find(
+      (entry) => entry.key === prepareAttachReview.selectedTargetKey,
+    );
+    if (!target) {
+      setPrepareAttachError("Bitte zuerst ein gueltiges Ziel auswaehlen.");
+      return;
+    }
+
+    setPrepareAttachSaving(true);
+    setPrepareAttachError(null);
+    try {
+      const payload = buildCreatePrepareAttachDraftInput({
+        sourceRunId: prepareAttachReview.sourceRunId,
+        sourceSummary: prepareAttachReview.sourceSummary,
+        handoff: prepareAttachReview.handoff,
+        selectedTarget: target,
+        selectedReason: prepareAttachReview.selectedReason || null,
+      });
+
+      const res = await fetch("/api/create/attach-drafts", {
+        method: "POST",
+        cache: "no-store",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok || !body?.ok) {
+        throw new Error(body?.error || body?.message || "prepare_attach_save_failed");
+      }
+
+      const savedDraftId = String(body.draftId || "");
+      setPrepareAttachSavedDraftId(savedDraftId || null);
+      setInfo(
+        `Prepare-Attach Draft gespeichert (${savedDraftId || "n/a"}). Keine Live-Mutation, kein Auto-Publish.`,
+      );
+    } catch (error: unknown) {
+      setPrepareAttachError(error instanceof Error ? error.message : "prepare_attach_save_failed");
+    } finally {
+      setPrepareAttachSaving(false);
+    }
+  }, [prepareAttachReview]);
 
   const scheduleTrace = React.useCallback(() => {
     const key = makeKey(preparedText, statements, { mode: "trace", locale });
@@ -2778,6 +2942,128 @@ export default function AnalyzeWorkspace({
                   <p className="mt-1">
                     {confirmedCtaHandoff.ctaId} bestaetigt. Vorbereitung abgeschlossen; keine implizite Mutation wurde ausgefuehrt.
                   </p>
+                </div>
+              )}
+
+              {prepareAttachReview && (
+                <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-[11px] text-[rgb(var(--muted))] space-y-2">
+                  <p className="text-[10px] font-semibold uppercase tracking-wide">Prepare-Attach Review (manueller Write-Flow)</p>
+                  <p>
+                    CTA: <span className="font-semibold text-[rgb(var(--fg))]">{prepareAttachReview.handoff.ctaId}</span> · runId:{" "}
+                    <span className="font-semibold text-[rgb(var(--fg))]">{prepareAttachReview.sourceRunId}</span>
+                  </p>
+                  <p className="text-[10px]">
+                    Quelle: {prepareAttachReview.sourceSummary || "Keine Zusammenfassung verfuegbar."}
+                  </p>
+
+                  <div className="rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-2 py-2">
+                    <p className="text-[10px] font-semibold uppercase tracking-wide">Zielauswahl</p>
+                    {prepareAttachReview.targets.length === 1 ? (
+                      <p className="mt-1 text-[10px]">
+                        Ein plausibles Ziel erkannt. Vorausgewaehlt, aber noch nicht gespeichert.
+                      </p>
+                    ) : (
+                      <p className="mt-1 text-[10px]">
+                        Mehrere plausible Ziele erkannt. Bitte explizit waehlen.
+                      </p>
+                    )}
+                    <ul className="mt-2 space-y-1">
+                      {prepareAttachReview.targets.map((target) => {
+                        const checked = prepareAttachReview.selectedTargetKey === target.key;
+                        return (
+                          <li key={target.key} className="rounded-md border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-2 py-1.5">
+                            <label className="flex cursor-pointer items-start gap-2">
+                              <input
+                                type="radio"
+                                name="prepare-attach-target"
+                                checked={checked}
+                                onChange={() => handlePrepareAttachTargetSelect(target.key)}
+                              />
+                              <span>
+                                <span className="font-semibold text-[rgb(var(--fg))]">{target.title}</span>
+                                <span> · {target.attachTargetType} · {target.attachTargetId}</span>
+                                <span> · {target.matchType}</span>
+                                {target.attachTargetRef ? (
+                                  <span className="block text-[10px]">targetRef: {target.attachTargetRef}</span>
+                                ) : null}
+                              </span>
+                            </label>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </div>
+
+                  {prepareAttachReview.reasons.length > 0 ? (
+                    <div className="rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-2 py-2">
+                      <p className="text-[10px] font-semibold uppercase tracking-wide">Match-Gruende</p>
+                      <ul className="mt-1 list-disc space-y-1 pl-4">
+                        {prepareAttachReview.reasons.map((reason, idx) => (
+                          <li key={`${reason}-${idx}`}>{reason}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  ) : null}
+
+                  {prepareAttachReview.warning ? (
+                    <p className="rounded-md border border-amber-300/60 bg-amber-50/80 px-2 py-1 text-[10px] text-amber-800 dark:border-amber-400/40 dark:bg-amber-500/10 dark:text-amber-200">
+                      {prepareAttachReview.warning}
+                    </p>
+                  ) : null}
+
+                  <div className="rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-2 py-2">
+                    <p className="text-[10px] font-semibold uppercase tracking-wide">Guardrails</p>
+                    <ul className="mt-1 list-disc space-y-1 pl-4">
+                      {prepareAttachReview.handoff.guardrails.map((guardrail) => (
+                        <li key={guardrail}>{guardrail}</li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  <div className="rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-2 py-2">
+                    <p className="text-[10px] font-semibold uppercase tracking-wide">Review-Notiz (optional)</p>
+                    <textarea
+                      className="mt-1 w-full rounded-md border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-2 py-1 text-[11px]"
+                      rows={3}
+                      value={prepareAttachReview.selectedReason}
+                      onChange={(event) => handlePrepareAttachReasonChange(event.target.value)}
+                      placeholder="Warum soll diese Perspektive an dieses Ziel angehaengt werden?"
+                    />
+                  </div>
+
+                  {prepareAttachError ? (
+                    <p className="rounded-md border border-rose-300/60 bg-rose-50/80 px-2 py-1 text-[10px] text-rose-700 dark:border-rose-400/40 dark:bg-rose-500/10 dark:text-rose-200">
+                      {prepareAttachError}
+                    </p>
+                  ) : null}
+
+                  {prepareAttachSavedDraftId ? (
+                    <p className="rounded-md border border-emerald-300/60 bg-emerald-50/80 px-2 py-1 text-[10px] text-emerald-700 dark:border-emerald-400/40 dark:bg-emerald-500/10 dark:text-emerald-200">
+                      Draft gespeichert: {prepareAttachSavedDraftId}
+                    </p>
+                  ) : null}
+
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-2.5 py-1 text-[10px] font-semibold text-[rgb(var(--muted))] hover:text-[rgb(var(--fg))] disabled:opacity-60"
+                      disabled={!prepareAttachCanSave}
+                      onClick={() => void handlePrepareAttachSave()}
+                    >
+                      {prepareAttachSaving ? "Speichern ..." : "Prepare-Attach Draft speichern"}
+                    </button>
+                    <button
+                      type="button"
+                      className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-2.5 py-1 text-[10px] font-semibold text-[rgb(var(--muted))] hover:text-[rgb(var(--fg))]"
+                      onClick={() => {
+                        setPrepareAttachReview(null);
+                        setPrepareAttachError(null);
+                        setPrepareAttachSavedDraftId(null);
+                      }}
+                    >
+                      Review verlassen
+                    </button>
+                  </div>
                 </div>
               )}
 

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  buildCreatePrepareAttachReviewState,
   collectCreateAnalyzeReasons,
   deriveCreateAnalyzeRoutingHint,
 } from "@/components/analyze/AnalyzeWorkspace";
@@ -61,5 +62,76 @@ describe("create analyze workspace UI helpers", () => {
     expect(reasons).toContain("Explizit gesetzter Anlassraum-Kontext.");
     expect(reasons).toContain("Kontext wurde im produktiven Anlassraum-Read-Model gefunden.");
     expect(reasons.length).toBe(2);
+  });
+
+  it("builds explicit prepare-attach review state only after confirmed handoff", () => {
+    const review = buildCreatePrepareAttachReviewState({
+      createAnalyze: {
+        runId: "run-1",
+        normalizedInputSummary: "Kurzsummary",
+        matchType: "related_claim",
+        matchEntityType: "claim",
+        reasons: ["Semantische Naehe"],
+        matches: [
+          {
+            id: "m1",
+            label: "Claim A",
+            matchType: "related_claim",
+            matchEntityType: "claim",
+            strength: "medium",
+            reason: "Semantische Naehe",
+            reasons: ["Semantische Naehe"],
+            entityId: "claim-1",
+            targetRef: "/swipes?statementId=claim-1",
+          },
+        ],
+      } as any,
+      handoff: {
+        ctaId: "perspektive_anhaengen",
+        actionType: "prepare_attach",
+        entityType: "claim",
+        entityId: "claim-1",
+        targetRef: "/swipes?statementId=claim-1",
+        requiresConfirm: true,
+        noAutoPublish: true,
+        noSilentMerge: true,
+        summary: "Prepare attach",
+        warning: null,
+        guardrails: ["Kein Auto-Merge."],
+      },
+    });
+
+    expect(review).toBeTruthy();
+    expect(review?.targets.length).toBe(1);
+    expect(review?.selectedTargetKey).toBe("claim:claim-1");
+    expect(review?.handoff.ctaId).toBe("perspektive_anhaengen");
+  });
+
+  it("returns null review state when no valid attach target exists", () => {
+    const review = buildCreatePrepareAttachReviewState({
+      createAnalyze: {
+        runId: "run-2",
+        normalizedInputSummary: "Summary",
+        matchType: "no_match",
+        matchEntityType: "question",
+        reasons: [],
+        matches: [],
+      } as any,
+      handoff: {
+        ctaId: "perspektive_anhaengen",
+        actionType: "prepare_attach",
+        entityType: "question",
+        entityId: null,
+        targetRef: null,
+        requiresConfirm: true,
+        noAutoPublish: true,
+        noSilentMerge: true,
+        summary: "Prepare attach",
+        warning: null,
+        guardrails: ["Kein Auto-Merge."],
+      },
+    });
+
+    expect(review).toBeNull();
   });
 });
