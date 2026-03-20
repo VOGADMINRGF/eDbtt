@@ -2,22 +2,42 @@ import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { getCol, ObjectId } from "@core/db/triMongo";
 import { z } from "zod";
-import type { CreatePrepareAttachDraft } from "@/features/create/prepareAttachDraft";
+import {
+  CREATE_PREPARE_ATTACH_DRAFT_SCHEMA_VERSION,
+  type CreatePrepareAttachDraft,
+} from "@/features/create/prepareAttachDraft";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const AttachDraftSaveSchema = z.object({
+  schemaVersion: z.string().min(1).max(64),
   sourceRunId: z.string().min(1).max(120),
   ctaId: z.enum(["perspektive_anhaengen", "zustimmen", "anders_sehen"]),
+  matchType: z
+    .enum(["exact_claim", "related_claim", "same_anlassraum", "related_dossier", "duplicate_risk", "no_match"])
+    .nullable()
+    .optional(),
+  matchEntityType: z
+    .enum(["claim", "anlassraum", "dossier", "perspective", "question"])
+    .nullable()
+    .optional(),
   attachTargetType: z.enum(["claim", "anlassraum", "dossier", "perspective"]),
   attachTargetId: z.string().min(1).max(120),
   attachTargetRef: z.string().max(400).optional().nullable(),
+  attachTargetLabel: z.string().max(240).optional().nullable(),
   sourceSummary: z.string().min(3).max(1200),
   selectedReason: z.string().max(400).optional().nullable(),
-  requiresReview: z.literal(true).optional(),
-  noAutoPublish: z.literal(true).optional(),
-  noSilentMerge: z.literal(true).optional(),
+  reasons: z.array(z.string().min(1).max(240)).min(1).max(12),
+  sourceLanguage: z.string().min(2).max(16),
+  contentLanguage: z.string().min(2).max(16),
+  uiLocale: z.string().min(2).max(16),
+  requiresReview: z.literal(true),
+  noAutoPublish: z.literal(true),
+  noSilentMerge: z.literal(true),
+  originPreserved: z.literal(true),
+  duplicateRisk: z.boolean(),
+  userConfirmedAt: z.string().datetime().optional().nullable(),
 });
 
 type CreatePrepareAttachDraftDoc = Omit<CreatePrepareAttachDraft, "draftId"> & {
@@ -25,7 +45,6 @@ type CreatePrepareAttachDraftDoc = Omit<CreatePrepareAttachDraft, "draftId"> & {
   draftId: string;
   authorId: string;
   status: "draft_intent";
-  updatedAt: Date;
 };
 
 export async function POST(req: NextRequest) {
@@ -50,26 +69,47 @@ export async function POST(req: NextRequest) {
   if (body.attachTargetType === "anlassraum" && !ObjectId.isValid(body.attachTargetId)) {
     return NextResponse.json({ ok: false, error: "invalid_attach_target_id" }, { status: 400 });
   }
+  if (body.duplicateRisk && !body.selectedReason?.trim()) {
+    return NextResponse.json(
+      { ok: false, error: "duplicate_risk_requires_reason" },
+      { status: 400 },
+    );
+  }
+  if (body.schemaVersion !== CREATE_PREPARE_ATTACH_DRAFT_SCHEMA_VERSION) {
+    return NextResponse.json({ ok: false, error: "invalid_schema_version" }, { status: 400 });
+  }
 
   const now = new Date();
+  const nowIso = now.toISOString();
   const _id = new ObjectId();
   const draft: CreatePrepareAttachDraftDoc = {
     _id,
     draftId: _id.toHexString(),
     authorId: userId,
+    schemaVersion: body.schemaVersion,
     sourceRunId: body.sourceRunId,
     ctaId: body.ctaId,
+    matchType: body.matchType ?? null,
+    matchEntityType: body.matchEntityType ?? null,
     attachTargetType: body.attachTargetType,
     attachTargetId: body.attachTargetId,
     attachTargetRef: body.attachTargetRef ?? null,
+    attachTargetLabel: body.attachTargetLabel?.trim() || null,
     sourceSummary: body.sourceSummary.trim(),
     selectedReason: body.selectedReason?.trim() || null,
+    reasons: body.reasons.map((value) => value.trim()).filter(Boolean).slice(0, 12),
+    sourceLanguage: body.sourceLanguage.trim().toLowerCase(),
+    contentLanguage: body.contentLanguage.trim().toLowerCase(),
+    uiLocale: body.uiLocale.trim().toLowerCase(),
     requiresReview: true,
     noAutoPublish: true,
     noSilentMerge: true,
-    createdAt: now.toISOString(),
+    originPreserved: true,
+    duplicateRisk: body.duplicateRisk,
+    userConfirmedAt: body.userConfirmedAt ?? null,
+    createdAt: nowIso,
+    updatedAt: nowIso,
     status: "draft_intent",
-    updatedAt: now,
   };
 
   const Drafts = await getCol<CreatePrepareAttachDraftDoc>("create_prepare_attach_drafts");
@@ -82,7 +122,10 @@ export async function POST(req: NextRequest) {
     requiresReview: draft.requiresReview,
     noAutoPublish: draft.noAutoPublish,
     noSilentMerge: draft.noSilentMerge,
+    originPreserved: draft.originPreserved,
+    duplicateRisk: draft.duplicateRisk,
     createdAt: draft.createdAt,
+    updatedAt: draft.updatedAt,
     attachTargetType: draft.attachTargetType,
     attachTargetId: draft.attachTargetId,
   });

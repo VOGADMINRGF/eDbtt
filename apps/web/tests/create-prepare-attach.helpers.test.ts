@@ -10,6 +10,8 @@ import {
 function handoffFixture(overrides?: Partial<CreateCtaHandoff>): CreateCtaHandoff {
   return {
     ctaId: "perspektive_anhaengen",
+    matchType: "related_claim",
+    matchEntityType: "claim",
     entityType: "claim",
     entityId: "claim-1",
     targetRef: "/swipes?statementId=claim-1",
@@ -55,7 +57,7 @@ describe("prepare attach helpers", () => {
     expect(options.map((entry) => entry.attachTargetType)).toEqual(["claim", "anlassraum"]);
   });
 
-  it("prefers explicit handoff target when multiple options exist", () => {
+  it("requires explicit target selection when multiple options exist", () => {
     const options = derivePrepareAttachTargetOptions([
       {
         id: "m1",
@@ -84,7 +86,7 @@ describe("prepare attach helpers", () => {
       options,
       handoff: handoffFixture({ entityType: "dossier", entityId: "dossier-1" }),
     });
-    expect(key).toBe("dossier:dossier-1");
+    expect(key).toBeNull();
   });
 
   it("flags duplicate risk as review-safe and still allows prepare draft", () => {
@@ -96,6 +98,11 @@ describe("prepare attach helpers", () => {
     const payload = buildCreatePrepareAttachDraftInput({
       sourceRunId: "run-1",
       sourceSummary: "Summary",
+      sourceLanguage: "de",
+      contentLanguage: "de",
+      uiLocale: "de",
+      reasons: ["Semantische Naehe"],
+      userConfirmedAt: "2026-03-20T10:00:00.000Z",
       handoff,
       selectedTarget: {
         key: "claim:claim-1",
@@ -104,15 +111,21 @@ describe("prepare attach helpers", () => {
         attachTargetRef: "/swipes?statementId=claim-1",
         title: "Claim A",
         matchType: "duplicate_risk",
+        matchEntityType: "claim",
         reasons: ["Duplikatrisiko"],
       },
       selectedReason: "Manuelle Pruefung noetig",
     });
 
+    expect(payload.schemaVersion).toBe("create_prepare_attach_draft.v1");
     expect(payload.ctaId).toBe("perspektive_anhaengen");
+    expect(payload.matchType).toBe("duplicate_risk");
+    expect(payload.matchEntityType).toBe("claim");
     expect(payload.requiresReview).toBe(true);
     expect(payload.noAutoPublish).toBe(true);
     expect(payload.noSilentMerge).toBe(true);
+    expect(payload.originPreserved).toBe(true);
+    expect(payload.duplicateRisk).toBe(true);
   });
 
   it("does not create prepare-attach input for neu_anlegen handoff", () => {

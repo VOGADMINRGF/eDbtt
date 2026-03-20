@@ -57,6 +57,34 @@ vi.mock("@core/db/triMongo", async () => {
 });
 
 import { POST as attachDraftPOST } from "@/app/api/contributions/attach-drafts/route";
+import { CREATE_PREPARE_ATTACH_DRAFT_SCHEMA_VERSION } from "@/features/create/prepareAttachDraft";
+
+function basePayload(overrides?: Record<string, unknown>) {
+  return {
+    schemaVersion: CREATE_PREPARE_ATTACH_DRAFT_SCHEMA_VERSION,
+    sourceRunId: "run-1",
+    ctaId: "perspektive_anhaengen",
+    matchType: "related_claim",
+    matchEntityType: "claim",
+    attachTargetType: "claim",
+    attachTargetId: "claim-1",
+    attachTargetRef: "/swipes?statementId=claim-1",
+    attachTargetLabel: "Claim 1",
+    sourceSummary: "Kurzsummary",
+    selectedReason: "Perspektive soll angehaengt werden",
+    reasons: ["Semantische Naehe", "Kontext passt"],
+    sourceLanguage: "de",
+    contentLanguage: "de",
+    uiLocale: "de",
+    requiresReview: true,
+    noAutoPublish: true,
+    noSilentMerge: true,
+    originPreserved: true,
+    duplicateRisk: false,
+    userConfirmedAt: "2026-03-20T10:00:00.000Z",
+    ...overrides,
+  };
+}
 
 function req(body: Record<string, unknown>) {
   return new NextRequest("http://localhost/api/contributions/attach-drafts", {
@@ -73,17 +101,7 @@ describe("/api/contributions/attach-drafts route", () => {
   });
 
   it("saves manual prepare_attach draft with review-safe guardrails", async () => {
-    const res = await attachDraftPOST(
-      req({
-        sourceRunId: "run-1",
-        ctaId: "perspektive_anhaengen",
-        attachTargetType: "claim",
-        attachTargetId: "claim-1",
-        attachTargetRef: "/swipes?statementId=claim-1",
-        sourceSummary: "Kurzsummary",
-        selectedReason: "Perspektive soll angehaengt werden",
-      }),
-    );
+    const res = await attachDraftPOST(req(basePayload()));
 
     expect(res.status).toBe(200);
     const body = await res.json();
@@ -93,6 +111,8 @@ describe("/api/contributions/attach-drafts route", () => {
       requiresReview: true,
       noAutoPublish: true,
       noSilentMerge: true,
+      originPreserved: true,
+      duplicateRisk: false,
       attachTargetType: "claim",
       attachTargetId: "claim-1",
     });
@@ -101,17 +121,17 @@ describe("/api/contributions/attach-drafts route", () => {
     expect(saved).toHaveLength(1);
     expect(saved[0].status).toBe("draft_intent");
     expect(saved[0].ctaId).toBe("perspektive_anhaengen");
+    expect(saved[0].schemaVersion).toBe(CREATE_PREPARE_ATTACH_DRAFT_SCHEMA_VERSION);
+    expect(saved[0].originPreserved).toBe(true);
+    expect(saved[0].updatedAt).toBeTypeOf("string");
   });
 
   it("rejects invalid anlassraum target ids explicitly", async () => {
     const res = await attachDraftPOST(
-      req({
-        sourceRunId: "run-1",
-        ctaId: "perspektive_anhaengen",
+      req(basePayload({
         attachTargetType: "anlassraum",
         attachTargetId: "bad-id",
-        sourceSummary: "Kurzsummary",
-      }),
+      })),
     );
 
     expect(res.status).toBe(400);
@@ -120,13 +140,11 @@ describe("/api/contributions/attach-drafts route", () => {
 
   it("rejects unsupported payload shape cleanly", async () => {
     const res = await attachDraftPOST(
-      req({
-        sourceRunId: "run-1",
+      req(basePayload({
         ctaId: "neu_anlegen",
         attachTargetType: "question",
         attachTargetId: "q1",
-        sourceSummary: "Kurzsummary",
-      } as any),
+      } as any)),
     );
 
     expect(res.status).toBe(400);
@@ -135,13 +153,12 @@ describe("/api/contributions/attach-drafts route", () => {
 
   it("keeps write scope limited to create_prepare_attach_drafts only", async () => {
     const res = await attachDraftPOST(
-      req({
+      req(basePayload({
         sourceRunId: "run-2",
         ctaId: "zustimmen",
         attachTargetType: "claim",
         attachTargetId: "claim-2",
-        sourceSummary: "Zusammenfassung",
-      }),
+      })),
     );
 
     expect(res.status).toBe(200);
@@ -151,16 +168,40 @@ describe("/api/contributions/attach-drafts route", () => {
   it("requires authentication", async () => {
     mocks.setUser(null);
     const res = await attachDraftPOST(
-      req({
-        sourceRunId: "run-1",
-        ctaId: "perspektive_anhaengen",
-        attachTargetType: "claim",
-        attachTargetId: "claim-1",
-        sourceSummary: "Kurzsummary",
-      }),
+      req(basePayload()),
     );
 
     expect(res.status).toBe(401);
     await expect(res.json()).resolves.toMatchObject({ ok: false, error: "not_authenticated" });
+  });
+
+  it("rejects duplicate_risk saves without explicit review reason", async () => {
+    const res = await attachDraftPOST(
+      req(basePayload({
+        matchType: "duplicate_risk",
+        duplicateRisk: true,
+        selectedReason: null,
+      })),
+    );
+
+    expect(res.status).toBe(400);
+    await expect(res.json()).resolves.toMatchObject({
+      ok: false,
+      error: "duplicate_risk_requires_reason",
+    });
+  });
+
+  it("rejects unknown schema version", async () => {
+    const res = await attachDraftPOST(
+      req(basePayload({
+        schemaVersion: "create_prepare_attach_draft.v0",
+      })),
+    );
+
+    expect(res.status).toBe(400);
+    await expect(res.json()).resolves.toMatchObject({
+      ok: false,
+      error: "invalid_schema_version",
+    });
   });
 });

@@ -68,6 +68,9 @@ describe("create analyze workspace UI helpers", () => {
     const review = buildCreatePrepareAttachReviewState({
       createAnalyze: {
         runId: "run-1",
+        sourceLanguage: "de",
+        contentLanguage: "de",
+        uiLocale: "de",
         normalizedInputSummary: "Kurzsummary",
         matchType: "related_claim",
         matchEntityType: "claim",
@@ -88,6 +91,8 @@ describe("create analyze workspace UI helpers", () => {
       } as any,
       handoff: {
         ctaId: "perspektive_anhaengen",
+        matchType: "related_claim",
+        matchEntityType: "claim",
         actionType: "prepare_attach",
         entityType: "claim",
         entityId: "claim-1",
@@ -105,12 +110,77 @@ describe("create analyze workspace UI helpers", () => {
     expect(review?.targets.length).toBe(1);
     expect(review?.selectedTargetKey).toBe("claim:claim-1");
     expect(review?.handoff.ctaId).toBe("perspektive_anhaengen");
+    expect(review?.sourceLanguage).toBe("de");
+    expect(review?.contentLanguage).toBe("de");
+    expect(review?.uiLocale).toBe("de");
+    expect(typeof review?.userConfirmedAt).toBe("string");
+    expect(review?.reasons.length).toBeGreaterThan(0);
+  });
+
+  it("requires explicit target choice when multiple prepare-attach targets are plausible", () => {
+    const review = buildCreatePrepareAttachReviewState({
+      createAnalyze: {
+        runId: "run-1",
+        sourceLanguage: "de",
+        contentLanguage: "de",
+        uiLocale: "de",
+        normalizedInputSummary: "Kurzsummary",
+        matchType: "related_claim",
+        matchEntityType: "claim",
+        reasons: ["Semantische Naehe"],
+        matches: [
+          {
+            id: "m1",
+            label: "Claim A",
+            matchType: "related_claim",
+            matchEntityType: "claim",
+            strength: "medium",
+            reason: "Semantische Naehe",
+            reasons: ["Semantische Naehe"],
+            entityId: "claim-1",
+            targetRef: "/swipes?statementId=claim-1",
+          },
+          {
+            id: "m2",
+            label: "Dossier A",
+            matchType: "related_dossier",
+            matchEntityType: "dossier",
+            strength: "medium",
+            reason: "Dossier-Naehe",
+            reasons: ["Dossier-Naehe"],
+            entityId: "dossier-1",
+            targetRef: "/dossier/dossier-1",
+          },
+        ],
+      } as any,
+      handoff: {
+        ctaId: "perspektive_anhaengen",
+        matchType: "related_claim",
+        matchEntityType: "claim",
+        actionType: "prepare_attach",
+        entityType: "claim",
+        entityId: "claim-1",
+        targetRef: "/swipes?statementId=claim-1",
+        requiresConfirm: true,
+        noAutoPublish: true,
+        noSilentMerge: true,
+        summary: "Prepare attach",
+        warning: null,
+        guardrails: ["Kein Auto-Merge."],
+      },
+    });
+
+    expect(review?.targets.length).toBe(2);
+    expect(review?.selectedTargetKey).toBeNull();
   });
 
   it("returns null review state when no valid attach target exists", () => {
     const review = buildCreatePrepareAttachReviewState({
       createAnalyze: {
         runId: "run-2",
+        sourceLanguage: "de",
+        contentLanguage: "de",
+        uiLocale: "de",
         normalizedInputSummary: "Summary",
         matchType: "no_match",
         matchEntityType: "question",
@@ -119,6 +189,8 @@ describe("create analyze workspace UI helpers", () => {
       } as any,
       handoff: {
         ctaId: "perspektive_anhaengen",
+        matchType: "no_match",
+        matchEntityType: "question",
         actionType: "prepare_attach",
         entityType: "question",
         entityId: null,

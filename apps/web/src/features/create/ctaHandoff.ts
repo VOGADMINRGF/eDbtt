@@ -18,6 +18,8 @@ export type CreateCtaHandoffActionType = "open" | "prepare_attach" | "prepare_ne
 
 export type CreateCtaHandoff = {
   ctaId: CreateCtaHandoffId;
+  matchType: CreateAnalyzeMatchType | null;
+  matchEntityType: CreateAnalyzeMatchEntityType | null;
   entityType?: CreateAnalyzeMatchEntityType;
   entityId?: string | null;
   targetRef?: string | null;
@@ -156,6 +158,8 @@ export function buildCreateCtaHandoff(params: {
 
   return {
     ctaId,
+    matchType: matchType ?? null,
+    matchEntityType: entityType ?? null,
     entityType,
     entityId: match?.entityId ?? null,
     targetRef,

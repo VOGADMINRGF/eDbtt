@@ -219,6 +219,10 @@ type ResearchGuidance = {
 type CreatePrepareAttachReviewState = {
   sourceRunId: string;
   sourceSummary: string;
+  sourceLanguage: string;
+  contentLanguage: string;
+  uiLocale: string;
+  userConfirmedAt: string;
   handoff: CreateCtaHandoff;
   targets: CreatePrepareAttachTargetOption[];
   selectedTargetKey: string | null;
@@ -299,6 +303,7 @@ export function collectCreateAnalyzeReasons(
 export function buildCreatePrepareAttachReviewState(params: {
   createAnalyze: CreateAnalyzeResponse | null;
   handoff: CreateCtaHandoff | null;
+  userConfirmedAt?: string;
 }): CreatePrepareAttachReviewState | null {
   if (!params.createAnalyze || !params.handoff) return null;
   if (!canCreatePrepareAttachDraftFromHandoff(params.handoff)) return null;
@@ -310,15 +315,20 @@ export function buildCreatePrepareAttachReviewState(params: {
   });
 
   if (targets.length === 0) return null;
+  const reasons = collectCreateAnalyzeReasons(params.createAnalyze).slice(0, 6);
 
   return {
     sourceRunId: params.createAnalyze.runId,
     sourceSummary: params.createAnalyze.normalizedInputSummary || "",
+    sourceLanguage: params.createAnalyze.sourceLanguage || "de",
+    contentLanguage: params.createAnalyze.contentLanguage || "de",
+    uiLocale: params.createAnalyze.uiLocale || "de",
+    userConfirmedAt: params.userConfirmedAt ?? new Date().toISOString(),
     handoff: params.handoff,
     targets,
     selectedTargetKey,
     selectedReason: "",
-    reasons: collectCreateAnalyzeReasons(params.createAnalyze).slice(0, 6),
+    reasons: reasons.length > 0 ? reasons : [params.handoff.summary],
     warning: params.handoff.warning,
   };
 }
@@ -1973,6 +1983,7 @@ export default function AnalyzeWorkspace({
     const reviewState = buildCreatePrepareAttachReviewState({
       createAnalyze,
       handoff: confirmed,
+      userConfirmedAt: new Date().toISOString(),
     });
     if (reviewState) {
       setPrepareAttachReview(reviewState);
@@ -2035,8 +2046,13 @@ export default function AnalyzeWorkspace({
     setPrepareAttachError(null);
     try {
       const payload = buildCreatePrepareAttachDraftInput({
+        sourceLanguage: prepareAttachReview.sourceLanguage,
+        contentLanguage: prepareAttachReview.contentLanguage,
+        uiLocale: prepareAttachReview.uiLocale,
         sourceRunId: prepareAttachReview.sourceRunId,
         sourceSummary: prepareAttachReview.sourceSummary,
+        reasons: prepareAttachReview.reasons,
+        userConfirmedAt: prepareAttachReview.userConfirmedAt,
         handoff: prepareAttachReview.handoff,
         selectedTarget: target,
         selectedReason: prepareAttachReview.selectedReason || null,
@@ -2953,7 +2969,18 @@ export default function AnalyzeWorkspace({
                     <span className="font-semibold text-[rgb(var(--fg))]">{prepareAttachReview.sourceRunId}</span>
                   </p>
                   <p className="text-[10px]">
+                    matchType: <span className="font-semibold text-[rgb(var(--fg))]">{prepareAttachReview.handoff.matchType ?? "-"}</span> ·
+                    matchEntityType:{" "}
+                    <span className="font-semibold text-[rgb(var(--fg))]">{prepareAttachReview.handoff.matchEntityType ?? "-"}</span>
+                  </p>
+                  <p className="text-[10px]">
                     Quelle: {prepareAttachReview.sourceSummary || "Keine Zusammenfassung verfuegbar."}
+                  </p>
+                  <p className="text-[10px]">
+                    source/content/ui: {prepareAttachReview.sourceLanguage}/{prepareAttachReview.contentLanguage}/{prepareAttachReview.uiLocale}
+                  </p>
+                  <p className="text-[10px]">
+                    Confirmed at: {prepareAttachReview.userConfirmedAt} · Status: noch nichts publiziert, nichts gemerged.
                   </p>
 
                   <div className="rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-2 py-2">
