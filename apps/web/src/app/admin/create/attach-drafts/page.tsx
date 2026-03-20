@@ -29,8 +29,11 @@ export default function AdminCreateAttachDraftsPage() {
   const [query, setQuery] = useState("");
   const [reloadToken, setReloadToken] = useState(0);
   const [reviewNoteByDraft, setReviewNoteByDraft] = useState<Record<string, string>>({});
+  const [applyNoteByDraft, setApplyNoteByDraft] = useState<Record<string, string>>({});
   const [decisionBusyDraftId, setDecisionBusyDraftId] = useState<string | null>(null);
+  const [applyBusyDraftId, setApplyBusyDraftId] = useState<string | null>(null);
   const [decisionError, setDecisionError] = useState<string | null>(null);
+  const [applyError, setApplyError] = useState<string | null>(null);
 
   useEffect(() => {
     let ignored = false;
@@ -59,6 +62,13 @@ export default function AdminCreateAttachDraftsPage() {
           }
           return next;
         });
+        setApplyNoteByDraft((prev) => {
+          const next = { ...prev };
+          for (const item of loaded) {
+            if (!(item.draftId in next)) next[item.draftId] = item.applyNote || "";
+          }
+          return next;
+        });
       } catch (loadError: unknown) {
         if (ignored) return;
         setItems([]);
@@ -80,6 +90,7 @@ export default function AdminCreateAttachDraftsPage() {
   ) {
     setDecisionBusyDraftId(draftId);
     setDecisionError(null);
+    setApplyError(null);
     try {
       const res = await fetch(`/api/admin/create/attach-drafts/${encodeURIComponent(draftId)}/review`, {
         method: "POST",
@@ -103,6 +114,35 @@ export default function AdminCreateAttachDraftsPage() {
       setDecisionError(decisionErr instanceof Error ? decisionErr.message : "attach_draft_review_failed");
     } finally {
       setDecisionBusyDraftId(null);
+    }
+  }
+
+  async function handleApply(draftId: string) {
+    setApplyBusyDraftId(draftId);
+    setApplyError(null);
+    setDecisionError(null);
+    try {
+      const res = await fetch(`/api/admin/create/attach-drafts/${encodeURIComponent(draftId)}/apply`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          applyNote: applyNoteByDraft[draftId]?.trim() || null,
+        }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok || !body?.ok || !body.item) {
+        throw new Error(body?.error || res.statusText);
+      }
+      setItems((prev) =>
+        applyCreateAttachDraftLocalDecision({
+          items: prev,
+          updated: body.item as CreatePrepareAttachDraftQueueItem,
+        }),
+      );
+    } catch (applyErr: unknown) {
+      setApplyError(applyErr instanceof Error ? applyErr.message : "attach_draft_apply_failed");
+    } finally {
+      setApplyBusyDraftId(null);
     }
   }
 
@@ -162,12 +202,19 @@ export default function AdminCreateAttachDraftsPage() {
         <CreateAttachDraftReviewList
           items={items}
           decisionBusyDraftId={decisionBusyDraftId}
+          applyBusyDraftId={applyBusyDraftId}
           reviewNoteByDraft={reviewNoteByDraft}
+          applyNoteByDraft={applyNoteByDraft}
           decisionError={decisionError}
+          applyError={applyError}
           onReviewNoteChange={(draftId, value) =>
             setReviewNoteByDraft((prev) => ({ ...prev, [draftId]: value }))
           }
+          onApplyNoteChange={(draftId, value) =>
+            setApplyNoteByDraft((prev) => ({ ...prev, [draftId]: value }))
+          }
           onReviewDecision={(draftId, decision) => void handleReviewDecision(draftId, decision)}
+          onApply={(draftId) => void handleApply(draftId)}
         />
       )}
     </section>

@@ -22,13 +22,24 @@ export function reviewDecisionLabel(value: CreatePrepareAttachDraftReviewDecisio
   return "Parken";
 }
 
+export function canApplyCreateAttachDraft(item: CreatePrepareAttachDraftQueueItem) {
+  if (item.reviewState !== "accepted_for_apply") return false;
+  if (item.applyState === "applied") return false;
+  return true;
+}
+
 export function CreateAttachDraftReviewList(props: {
   items: CreatePrepareAttachDraftQueueItem[];
   decisionBusyDraftId: string | null;
+  applyBusyDraftId: string | null;
   reviewNoteByDraft: Record<string, string>;
+  applyNoteByDraft: Record<string, string>;
   decisionError: string | null;
+  applyError: string | null;
   onReviewNoteChange: (draftId: string, value: string) => void;
+  onApplyNoteChange: (draftId: string, value: string) => void;
   onReviewDecision: (draftId: string, decision: CreatePrepareAttachDraftReviewDecision) => void;
+  onApply: (draftId: string) => void;
 }) {
   if (props.items.length === 0) {
     return (
@@ -85,6 +96,22 @@ export function CreateAttachDraftReviewList(props: {
             </ul>
           </div>
 
+          {item.appliedAt || item.appliedBy ? (
+            <p className="mt-2 text-xs">
+              applyAt: {item.appliedAt ?? "-"} | applyBy: {item.appliedBy ?? "-"}
+            </p>
+          ) : null}
+          {item.applyNote ? (
+            <p className="mt-1 text-xs">
+              applyNote: <span className="font-semibold text-[rgb(var(--fg))]">{item.applyNote}</span>
+            </p>
+          ) : null}
+          {item.applyError ? (
+            <p className="mt-1 rounded-md border border-rose-300/60 bg-rose-50/80 px-2 py-1 text-xs text-rose-700 dark:border-rose-400/40 dark:bg-rose-500/10 dark:text-rose-200">
+              applyError: {item.applyError}
+            </p>
+          ) : null}
+
           <div className="mt-2">
             <label className="text-xs font-semibold text-[rgb(var(--fg))]" htmlFor={`review-note-${item.draftId}`}>
               Review-Notiz (optional)
@@ -95,6 +122,18 @@ export function CreateAttachDraftReviewList(props: {
               rows={2}
               value={props.reviewNoteByDraft[item.draftId] ?? ""}
               onChange={(event) => props.onReviewNoteChange(item.draftId, event.target.value)}
+            />
+          </div>
+          <div className="mt-2">
+            <label className="text-xs font-semibold text-[rgb(var(--fg))]" htmlFor={`apply-note-${item.draftId}`}>
+              Apply-Notiz (optional)
+            </label>
+            <textarea
+              id={`apply-note-${item.draftId}`}
+              className="mt-1 w-full rounded-md border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-2 py-1 text-xs"
+              rows={2}
+              value={props.applyNoteByDraft[item.draftId] ?? ""}
+              onChange={(event) => props.onApplyNoteChange(item.draftId, event.target.value)}
             />
           </div>
 
@@ -110,12 +149,27 @@ export function CreateAttachDraftReviewList(props: {
                 {reviewDecisionLabel(decision)}
               </button>
             ))}
+            {canApplyCreateAttachDraft(item) ? (
+              <button
+                type="button"
+                className="rounded-full border border-emerald-300/70 bg-emerald-50/70 px-2.5 py-1 text-xs font-semibold text-emerald-700 hover:text-emerald-800 disabled:opacity-60 dark:border-emerald-400/40 dark:bg-emerald-500/10 dark:text-emerald-200"
+                disabled={props.applyBusyDraftId === item.draftId}
+                onClick={() => props.onApply(item.draftId)}
+              >
+                {item.applyState === "apply_failed" ? "Apply erneut versuchen" : "Manuell applyen"}
+              </button>
+            ) : null}
           </div>
         </article>
       ))}
       {props.decisionError ? (
         <p className="rounded-md border border-rose-300/60 bg-rose-50/80 px-2 py-1 text-xs text-rose-700 dark:border-rose-400/40 dark:bg-rose-500/10 dark:text-rose-200">
           {props.decisionError}
+        </p>
+      ) : null}
+      {props.applyError ? (
+        <p className="rounded-md border border-rose-300/60 bg-rose-50/80 px-2 py-1 text-xs text-rose-700 dark:border-rose-400/40 dark:bg-rose-500/10 dark:text-rose-200">
+          {props.applyError}
         </p>
       ) : null}
     </div>

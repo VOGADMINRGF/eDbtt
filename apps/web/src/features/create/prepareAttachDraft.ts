@@ -12,11 +12,13 @@ export type CreatePrepareAttachDraftReviewState =
   | "accepted_for_apply"
   | "rejected"
   | "parked";
-export type CreatePrepareAttachDraftApplyState = "not_applied";
+export type CreatePrepareAttachDraftApplyState = "not_applied" | "applied" | "apply_failed";
 export type CreatePrepareAttachDraftReviewDecision = Exclude<
   CreatePrepareAttachDraftReviewState,
   "pending"
 >;
+export const CREATE_PREPARE_ATTACH_APPLY_STATES: ReadonlyArray<CreatePrepareAttachDraftApplyState> =
+  ["not_applied", "applied", "apply_failed"];
 
 export const CREATE_PREPARE_ATTACH_DRAFT_SCHEMA_VERSION = "create_prepare_attach_draft.v1";
 export const CREATE_PREPARE_ATTACH_REVIEW_STATES: ReadonlyArray<CreatePrepareAttachDraftReviewState> =
@@ -62,6 +64,10 @@ export type CreatePrepareAttachDraft = {
   reviewNote?: string | null;
   reviewedAt?: string | null;
   reviewedBy?: string | null;
+  appliedAt?: string | null;
+  appliedBy?: string | null;
+  applyNote?: string | null;
+  applyError?: string | null;
   userConfirmedAt?: string | null;
   createdAt: string;
   updatedAt: string;
@@ -91,6 +97,12 @@ export function isCreatePrepareAttachDraftReviewDecision(
   return (CREATE_PREPARE_ATTACH_REVIEW_DECISIONS as readonly string[]).includes(String(value || ""));
 }
 
+export function isCreatePrepareAttachDraftApplyState(
+  value: string | null | undefined,
+): value is CreatePrepareAttachDraftApplyState {
+  return (CREATE_PREPARE_ATTACH_APPLY_STATES as readonly string[]).includes(String(value || ""));
+}
+
 export function createInitialPrepareAttachDraftReviewFields() {
   return {
     reviewState: "pending" as const,
@@ -98,6 +110,10 @@ export function createInitialPrepareAttachDraftReviewFields() {
     reviewNote: null,
     reviewedAt: null,
     reviewedBy: null,
+    appliedAt: null,
+    appliedBy: null,
+    applyNote: null,
+    applyError: null,
   };
 }
 
@@ -113,6 +129,39 @@ export function applyPrepareAttachDraftReviewDecision(params: {
     reviewNote: params.reviewNote?.trim() || null,
     reviewedAt: params.reviewedAt,
     reviewedBy: params.reviewedBy,
+    appliedAt: null,
+    appliedBy: null,
+    applyNote: null,
+    applyError: null,
+  };
+}
+
+export function applyPrepareAttachDraftSuccess(params: {
+  appliedAt: string;
+  appliedBy: string;
+  applyNote?: string | null;
+}) {
+  return {
+    applyState: "applied" as const,
+    appliedAt: params.appliedAt,
+    appliedBy: params.appliedBy,
+    applyNote: params.applyNote?.trim() || null,
+    applyError: null,
+  };
+}
+
+export function applyPrepareAttachDraftFailure(params: {
+  appliedAt: string;
+  appliedBy: string;
+  applyNote?: string | null;
+  applyError: string;
+}) {
+  return {
+    applyState: "apply_failed" as const,
+    appliedAt: params.appliedAt,
+    appliedBy: params.appliedBy,
+    applyNote: params.applyNote?.trim() || null,
+    applyError: params.applyError,
   };
 }
 

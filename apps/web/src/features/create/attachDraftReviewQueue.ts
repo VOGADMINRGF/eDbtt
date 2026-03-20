@@ -1,9 +1,11 @@
 import { getCol, ObjectId } from "@core/db/triMongo";
 import type { GovernanceActor } from "@features/trust/types";
 import {
+  isCreatePrepareAttachDraftApplyState,
   applyPrepareAttachDraftReviewDecision,
   isCreatePrepareAttachDraftReviewState,
   type CreatePrepareAttachDraft,
+  type CreatePrepareAttachDraftApplyState,
   type CreatePrepareAttachDraftReviewDecision,
   type CreatePrepareAttachDraftReviewState,
 } from "@/features/create/prepareAttachDraft";
@@ -28,10 +30,14 @@ export type CreatePrepareAttachDraftQueueItem = {
   duplicateRisk: boolean;
   requiresReview: true;
   reviewState: CreatePrepareAttachDraftReviewState;
-  applyState: "not_applied";
+  applyState: CreatePrepareAttachDraftApplyState;
   reviewNote: string | null;
   reviewedAt: string | null;
   reviewedBy: string | null;
+  appliedAt: string | null;
+  appliedBy: string | null;
+  applyNote: string | null;
+  applyError: string | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -133,6 +139,9 @@ function assertReviewQueueActor(actor: GovernanceActor) {
 
 function mapDocToQueueItem(doc: CreatePrepareAttachDraftDoc): CreatePrepareAttachDraftQueueItem {
   const reviewState = isCreatePrepareAttachDraftReviewState(doc.reviewState) ? doc.reviewState : "pending";
+  const applyState = isCreatePrepareAttachDraftApplyState(doc.applyState)
+    ? doc.applyState
+    : "not_applied";
   return {
     draftId: doc.draftId || doc._id.toHexString(),
     ctaId: doc.ctaId,
@@ -146,10 +155,14 @@ function mapDocToQueueItem(doc: CreatePrepareAttachDraftDoc): CreatePrepareAttac
     duplicateRisk: !!doc.duplicateRisk,
     requiresReview: true,
     reviewState,
-    applyState: "not_applied",
+    applyState,
     reviewNote: doc.reviewNote ?? null,
     reviewedAt: doc.reviewedAt ?? null,
     reviewedBy: doc.reviewedBy ?? null,
+    appliedAt: doc.appliedAt ?? null,
+    appliedBy: doc.appliedBy ?? null,
+    applyNote: doc.applyNote ?? null,
+    applyError: doc.applyError ?? null,
     createdAt: doc.createdAt,
     updatedAt: doc.updatedAt,
   };
