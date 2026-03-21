@@ -5,7 +5,7 @@ import Link from "next/link";
 import type { FeedReviewState, VoteDraftSummary, VoteDraftStatus } from "@features/feeds/types";
 import {
   buildFeedDraftListSearchParams,
-  readFeedDraftAnlassraumIdFromSearch,
+  readFeedDraftFiltersFromSearch,
 } from "@/features/feedDraftsListFilters";
 
 type RegionOption = { value: string; label: string };
@@ -139,11 +139,14 @@ export default function AdminFeedDraftsPage() {
   const [legacyOutcomeByDraft, setLegacyOutcomeByDraft] = useState<Record<string, LegacyBackfillOutcome>>({});
 
   useEffect(() => {
-    const hydratedAnlassraumId = readFeedDraftAnlassraumIdFromSearch(window.location.search);
-    if (hydratedAnlassraumId) {
-      setAnlassraumIdFilter(hydratedAnlassraumId);
-      setLinkFilter("linked");
-    }
+    const hydrated = readFeedDraftFiltersFromSearch(window.location.search);
+    setStatusFilter(hydrated.statusFilter);
+    setReviewStateFilter(hydrated.reviewStateFilter);
+    setSort(hydrated.sort);
+    setQuery(hydrated.query);
+    setLinkFilter(hydrated.linkFilter);
+    setWeakSignalFilter(hydrated.weakSignalFilter);
+    setAnlassraumIdFilter(hydrated.anlassraumIdFilter);
   }, []);
 
   useEffect(() => {

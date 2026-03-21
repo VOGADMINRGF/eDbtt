@@ -1,15 +1,39 @@
 import { describe, expect, it } from "vitest";
 import {
   buildFeedDraftListSearchParams,
-  readFeedDraftAnlassraumIdFromSearch,
+  FEED_DRAFT_FILTER_DEFAULTS,
+  readFeedDraftFiltersFromSearch,
 } from "@/features/feedDraftsListFilters";
 
 describe("feed drafts page helpers", () => {
-  it("hydrates anlassraumId from URL search", () => {
-    const value = readFeedDraftAnlassraumIdFromSearch(
-      "?hasAnlassraum=linked&anlassraumId=%2065f000000000000000000111%20",
+  it("hydrates complete filter state from URL when values are valid", () => {
+    const hydrated = readFeedDraftFiltersFromSearch(
+      "?status=review&reviewState=queued&sort=oldest&q=%20Mobilitaet%20&hasAnlassraum=linked&weakSignal=flagged&anlassraumId=%2065f000000000000000000111%20",
     );
-    expect(value).toBe("65f000000000000000000111");
+    expect(hydrated).toEqual({
+      statusFilter: "review",
+      reviewStateFilter: "queued",
+      sort: "oldest",
+      query: "Mobilitaet",
+      linkFilter: "linked",
+      weakSignalFilter: "flagged",
+      anlassraumIdFilter: "65f000000000000000000111",
+    });
+  });
+
+  it("falls back to defensive defaults for invalid URL values", () => {
+    const hydrated = readFeedDraftFiltersFromSearch(
+      "?status=broken&reviewState=unknown&sort=fast&q=%20%20&hasAnlassraum=invalid&weakSignal=invalid&anlassraumId=not-object-id",
+    );
+    expect(hydrated).toEqual(FEED_DRAFT_FILTER_DEFAULTS);
+  });
+
+  it("defaults hasAnlassraum to linked when a valid anlassraumId is present", () => {
+    const hydrated = readFeedDraftFiltersFromSearch("?anlassraumId=65f000000000000000000111");
+    expect(hydrated).toMatchObject({
+      linkFilter: "linked",
+      anlassraumIdFilter: "65f000000000000000000111",
+    });
   });
 
   it("builds list query params including anlassraumId filter", () => {
