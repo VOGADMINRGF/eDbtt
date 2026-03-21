@@ -188,6 +188,7 @@ describe("feed/anlassraum cluster job service", () => {
       {
         _id: new ObjectId(),
         status: "draft",
+        pipeline: "feeds_to_statementCandidate",
         title: "Mobilitaet Ringbahn",
         claims: [{ id: "c1", text: "x", topic: "mobility" }],
         regionCode: "DE-BE",
@@ -198,6 +199,7 @@ describe("feed/anlassraum cluster job service", () => {
       {
         _id: new ObjectId(),
         status: "review",
+        pipeline: "feeds_to_statementCandidate",
         title: "Mobilitaet Kiezbus",
         claims: [{ id: "c2", text: "y", topic: "mobility" }],
         regionCode: "DE-BE",
@@ -245,6 +247,7 @@ describe("feed/anlassraum cluster job service", () => {
       {
         _id: new ObjectId("65f100000000000000000001"),
         status: "draft",
+        pipeline: "feeds_to_statementCandidate",
         title: "Energie Quartier",
         claims: [{ id: "c1", text: "x", topic: "energy" }],
         regionCode: "DE-BE",
@@ -254,6 +257,7 @@ describe("feed/anlassraum cluster job service", () => {
       {
         _id: new ObjectId("65f100000000000000000002"),
         status: "review",
+        pipeline: "feeds_to_statementCandidate",
         title: "Energie Netz",
         claims: [{ id: "c2", text: "y", topic: "energy" }],
         regionCode: "DE-BE",
@@ -279,6 +283,7 @@ describe("feed/anlassraum cluster job service", () => {
       {
         _id: new ObjectId(),
         status: "draft",
+        pipeline: "feeds_to_statementCandidate",
         title: "Wohnen Nord",
         claims: [{ id: "c1", text: "x", topic: "housing" }],
         regionCode: "DE-BE",
@@ -288,6 +293,7 @@ describe("feed/anlassraum cluster job service", () => {
       {
         _id: new ObjectId(),
         status: "review",
+        pipeline: "feeds_to_statementCandidate",
         title: "Wohnen Sued",
         claims: [{ id: "c2", text: "y", topic: "housing" }],
         regionCode: "DE-BE",
@@ -319,6 +325,7 @@ describe("feed/anlassraum cluster job service", () => {
       {
         _id: new ObjectId(),
         status: "draft",
+        pipeline: "feeds_to_statementCandidate",
         title: "Bildung Ost",
         claims: [{ id: "c1", text: "x", topic: "education" }],
         regionCode: "DE-BE",
@@ -328,6 +335,7 @@ describe("feed/anlassraum cluster job service", () => {
       {
         _id: new ObjectId(),
         status: "review",
+        pipeline: "feeds_to_statementCandidate",
         title: "Bildung West",
         claims: [{ id: "c2", text: "y", topic: "education" }],
         regionCode: "DE-BE",
@@ -339,5 +347,70 @@ describe("feed/anlassraum cluster job service", () => {
     await runFeedAnlassraumClusterJob({ minItemsPerCluster: 2 });
 
     expect(memory.writes()).toEqual(["feed_anlassraum_cluster_candidates"]);
+  });
+
+  it("excludes manual-origin drafts from clustering", async () => {
+    seedDrafts([
+      {
+        _id: new ObjectId(),
+        status: "draft",
+        pipeline: "manual_create",
+        title: "Manuell Mobilitaet 1",
+        claims: [{ id: "c1", text: "x", topic: "mobility" }],
+        regionCode: "DE-BE",
+        createdAt: new Date("2026-03-19T08:00:00.000Z"),
+        updatedAt: new Date("2026-03-19T08:10:00.000Z"),
+      },
+      {
+        _id: new ObjectId(),
+        status: "review",
+        pipeline: "manual_create",
+        title: "Manuell Mobilitaet 2",
+        claims: [{ id: "c2", text: "y", topic: "mobility" }],
+        regionCode: "DE-BE",
+        createdAt: new Date("2026-03-19T08:20:00.000Z"),
+        updatedAt: new Date("2026-03-19T08:30:00.000Z"),
+      },
+    ]);
+
+    const result = await runFeedAnlassraumClusterJob({ minItemsPerCluster: 2 });
+    expect(result.status).toBe("empty");
+    expect(result.emptyReason).toBe("no_source_items");
+    expect(result.source.scannedDrafts).toBe(0);
+    expect(memory.read("feed_anlassraum_cluster_candidates")).toHaveLength(0);
+  });
+
+  it("mixed feed/manual set only clusters feed-origin drafts", async () => {
+    seedDrafts([
+      {
+        _id: new ObjectId(),
+        status: "draft",
+        pipeline: "feeds_to_statementCandidate",
+        title: "Feed Wohnen 1",
+        claims: [{ id: "c1", text: "x", topic: "housing" }],
+        regionCode: "DE-BE",
+        createdAt: new Date("2026-03-19T08:00:00.000Z"),
+        updatedAt: new Date("2026-03-19T08:10:00.000Z"),
+      },
+      {
+        _id: new ObjectId(),
+        status: "review",
+        pipeline: "manual_create",
+        title: "Manual Wohnen 2",
+        claims: [{ id: "c2", text: "y", topic: "housing" }],
+        regionCode: "DE-BE",
+        createdAt: new Date("2026-03-19T08:20:00.000Z"),
+        updatedAt: new Date("2026-03-19T08:30:00.000Z"),
+      },
+    ]);
+
+    const result = await runFeedAnlassraumClusterJob({ minItemsPerCluster: 2 });
+    expect(result.status).toBe("empty");
+    expect(result.emptyReason).toBe("no_cluster_candidates");
+    expect(result.source).toMatchObject({
+      scannedDrafts: 1,
+      eligibleDrafts: 1,
+    });
+    expect(memory.read("feed_anlassraum_cluster_candidates")).toHaveLength(0);
   });
 });

@@ -7,6 +7,8 @@ import type {
 } from "@/features/create/prepareAttachDraft";
 
 export const CREATE_PREPARE_ATTACH_HISTORY_SCHEMA_VERSION = "create_prepare_attach_history.v1";
+export const CREATE_PREPARE_ATTACH_HISTORY_TYPES = ["all", "review", "apply"] as const;
+export type CreatePrepareAttachHistoryType = (typeof CREATE_PREPARE_ATTACH_HISTORY_TYPES)[number];
 
 export const ATTACH_DRAFT_ERROR_CODES = [
   "invalid_attach_draft_id",
@@ -47,6 +49,8 @@ export type CreatePrepareAttachReviewHistoryEvent = {
   nextApplyState: CreatePrepareAttachDraftApplyState;
   reviewNote: string | null;
   resultCode: "review_state_changed";
+  normalizedFromLegacy?: boolean;
+  legacyNormalizationReason?: string | null;
   createdAt: string;
 };
 
@@ -63,6 +67,8 @@ export type CreatePrepareAttachApplyHistoryEvent = {
   mutationType: string | null;
   errorCode: CreatePrepareAttachDraftErrorCode | null;
   resultCode: Exclude<CreatePrepareAttachDraftHistoryResultCode, "review_state_changed">;
+  normalizedFromLegacy?: boolean;
+  legacyNormalizationReason?: string | null;
   previousReviewState: CreatePrepareAttachDraftReviewState | null;
   nextReviewState: CreatePrepareAttachDraftReviewState | null;
   previousApplyState: CreatePrepareAttachDraftApplyState | null;
@@ -82,6 +88,10 @@ export function isCreatePrepareAttachDraftErrorCode(
   value: string | null | undefined,
 ): value is CreatePrepareAttachDraftErrorCode {
   return (ATTACH_DRAFT_ERROR_CODES as readonly string[]).includes(String(value || ""));
+}
+
+export function isCreatePrepareAttachHistoryType(value: string | null | undefined): value is CreatePrepareAttachHistoryType {
+  return (CREATE_PREPARE_ATTACH_HISTORY_TYPES as readonly string[]).includes(String(value || ""));
 }
 
 export function mapApplyFailureResultCode(
@@ -105,6 +115,8 @@ export function createReviewHistoryEvent(input: {
   previousApplyState: CreatePrepareAttachDraftApplyState | null;
   nextApplyState: CreatePrepareAttachDraftApplyState;
   reviewNote?: string | null;
+  normalizedFromLegacy?: boolean;
+  legacyNormalizationReason?: string | null;
   createdAt?: string;
   eventId?: string;
 }): CreatePrepareAttachReviewHistoryEvent {
@@ -120,6 +132,8 @@ export function createReviewHistoryEvent(input: {
     nextApplyState: input.nextApplyState,
     reviewNote: input.reviewNote?.trim() || null,
     resultCode: "review_state_changed",
+    normalizedFromLegacy: !!input.normalizedFromLegacy || undefined,
+    legacyNormalizationReason: input.legacyNormalizationReason?.trim() || null,
     createdAt: input.createdAt || new Date().toISOString(),
   };
 }
@@ -133,6 +147,8 @@ export function createApplyHistoryEvent(input: {
   applyNote?: string | null;
   mutationType?: string | null;
   errorCode?: string | null;
+  normalizedFromLegacy?: boolean;
+  legacyNormalizationReason?: string | null;
   previousReviewState: CreatePrepareAttachDraftReviewState | null;
   nextReviewState: CreatePrepareAttachDraftReviewState | null;
   previousApplyState: CreatePrepareAttachDraftApplyState | null;
@@ -158,6 +174,8 @@ export function createApplyHistoryEvent(input: {
     mutationType: input.mutationType ?? null,
     errorCode: normalizedError,
     resultCode,
+    normalizedFromLegacy: !!input.normalizedFromLegacy || undefined,
+    legacyNormalizationReason: input.legacyNormalizationReason?.trim() || null,
     previousReviewState: input.previousReviewState,
     nextReviewState: input.nextReviewState,
     previousApplyState: input.previousApplyState,
@@ -165,4 +183,3 @@ export function createApplyHistoryEvent(input: {
     createdAt: input.createdAt || new Date().toISOString(),
   };
 }
-

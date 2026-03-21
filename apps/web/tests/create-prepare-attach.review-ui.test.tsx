@@ -310,10 +310,10 @@ describe("create prepare-attach review UI", () => {
             applyError: null,
             reviewEvents: [
               {
+                eventType: "review",
                 eventId: "r1",
                 draftId: "d1",
                 actorUserId: "u-review",
-                decision: "accepted_for_apply",
                 previousReviewState: "pending",
                 nextReviewState: "accepted_for_apply",
                 previousApplyState: "not_applied",
@@ -325,6 +325,7 @@ describe("create prepare-attach review UI", () => {
             ],
             applyEvents: [
               {
+                eventType: "apply",
                 eventId: "a1",
                 draftId: "d1",
                 actorUserId: "u-review",
@@ -348,6 +349,9 @@ describe("create prepare-attach review UI", () => {
         ]}
         decisionBusyDraftId={null}
         applyBusyDraftId={null}
+        historyHasMoreByDraft={{ d1: true }}
+        historyLoadingDraftId={null}
+        historyErrorByDraft={{ d1: null }}
         reviewNoteByDraft={{ d1: "" }}
         applyNoteByDraft={{ d1: "" }}
         decisionError={null}
@@ -356,14 +360,17 @@ describe("create prepare-attach review UI", () => {
         onApplyNoteChange={vi.fn()}
         onReviewDecision={vi.fn()}
         onApply={vi.fn()}
+        onLoadMoreHistory={vi.fn()}
       />,
     );
 
-    expect(html).toContain("Review-Historie");
-    expect(html).toContain("Apply-Historie");
+    expect(html).toContain("Audit-Timeline");
+    expect(html).toContain("review | by u-review");
+    expect(html).toContain("apply | by u-review");
     expect(html).toContain("pending -&gt; accepted_for_apply");
     expect(html).toContain("result: applied");
-    expect(html).toContain("code: review_state_changed");
-    expect(html).toContain("code: apply_success");
+    expect(html).toContain("code: review_state_changed (Review-Status aktualisiert)");
+    expect(html).toContain("code: apply_success (Apply erfolgreich)");
+    expect(html).toContain("Mehr Verlauf laden");
   });
 });

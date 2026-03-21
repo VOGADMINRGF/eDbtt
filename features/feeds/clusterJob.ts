@@ -9,6 +9,7 @@ import type {
 const DEFAULT_LIMIT = 600;
 const DEFAULT_WINDOW_HOURS = 72;
 const DEFAULT_MIN_ITEMS = 2;
+const FEED_CLUSTER_SOURCE_PIPELINES = ["feeds_to_statementCandidate"] as const;
 
 export type FeedAnlassraumClusterJobAction = "created" | "updated" | "unchanged";
 export type FeedAnlassraumClusterJobStatus = "success" | "empty";
@@ -211,7 +212,10 @@ async function listSourceDrafts(limit: number): Promise<VoteDraftDoc[]> {
   try {
     const drafts = await voteDraftsCol();
     return drafts
-      .find({ status: { $in: ["draft", "review"] } })
+      .find({
+        status: { $in: ["draft", "review"] },
+        pipeline: { $in: [...FEED_CLUSTER_SOURCE_PIPELINES] },
+      })
       .sort({ updatedAt: -1, createdAt: -1 })
       .limit(limit)
       .toArray();

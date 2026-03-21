@@ -62,10 +62,15 @@ describe("create prepare-attach history route", () => {
       },
       reviewEvents: [],
       applyEvents: [],
+      hasMore: true,
+      nextCursor: "cursor-2",
+      nextScanCursor: "scan-2",
+      type: "all",
+      limit: 20,
     });
 
     const res = await historyGET(
-      req("http://localhost/api/admin/create/attach-drafts/65f000000000000000000011/history?maxEventsPerType=25"),
+      req("http://localhost/api/admin/create/attach-drafts/65f000000000000000000011/history?limit=20&type=all&cursor=cursor-1"),
       { params: Promise.resolve({ draftId: "65f000000000000000000011" }) },
     );
 
@@ -74,14 +79,32 @@ describe("create prepare-attach history route", () => {
       ok: true,
       draft: { draftId: "65f000000000000000000011", version: 3 },
       latestEvent: { eventId: "r1" },
+      hasMore: true,
+      nextCursor: "cursor-2",
+      nextScanCursor: "scan-2",
+      type: "all",
+      limit: 20,
     });
   });
 
   it("maps invalid id / not found / forbidden", async () => {
-    mocks.readHistory.mockRejectedValueOnce(new Error("invalid_attach_draft_id"));
     let res = await historyGET(
+      req("http://localhost/api/admin/create/attach-drafts/65f000000000000000000011/history?type=bad"),
+      { params: Promise.resolve({ draftId: "65f000000000000000000011" }) },
+    );
+    expect(res.status).toBe(400);
+
+    mocks.readHistory.mockRejectedValueOnce(new Error("invalid_attach_draft_id"));
+    res = await historyGET(
       req("http://localhost/api/admin/create/attach-drafts/bad/history"),
       { params: Promise.resolve({ draftId: "bad" }) },
+    );
+    expect(res.status).toBe(400);
+
+    mocks.readHistory.mockRejectedValueOnce(new Error("invalid_history_cursor"));
+    res = await historyGET(
+      req("http://localhost/api/admin/create/attach-drafts/65f000000000000000000011/history?cursor=bad"),
+      { params: Promise.resolve({ draftId: "65f000000000000000000011" }) },
     );
     expect(res.status).toBe(400);
 
@@ -102,4 +125,3 @@ describe("create prepare-attach history route", () => {
     expect(res.status).toBe(403);
   });
 });
-

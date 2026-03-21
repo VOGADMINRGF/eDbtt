@@ -1,5 +1,6 @@
 import type { CreatePrepareAttachDraftQueueItem } from "@/features/create/attachDraftReviewQueue";
 import type { CreatePrepareAttachDraftReviewDecision } from "@/features/create/prepareAttachDraft";
+import type { CreatePrepareAttachDraftHistoryEvent } from "@/features/create/attachDraftHistory";
 
 export const REVIEW_GUARDRAILS = [
   "Kein Auto-Apply auf Live-Objekte.",
@@ -24,6 +25,17 @@ export function reviewDecisionLabel(value: CreatePrepareAttachDraftReviewDecisio
 }
 
 const APPLY_SUPPORTED_TARGET_TYPES = new Set(["claim", "anlassraum", "dossier"]);
+const HISTORY_CODE_LABELS: Record<string, string> = {
+  review_state_changed: "Review-Status aktualisiert",
+  apply_success: "Apply erfolgreich",
+  apply_failed_target_not_found: "Apply fehlgeschlagen: Ziel nicht gefunden",
+  apply_failed_invalid_target: "Apply fehlgeschlagen: Ziel ungueltig",
+  apply_failed_unsupported_target_type: "Apply fehlgeschlagen: Zieltyp nicht unterstuetzt",
+  apply_failed_wrong_review_state: "Apply fehlgeschlagen: falscher Review-Status",
+  apply_failed_already_applied: "Apply fehlgeschlagen: bereits angewendet",
+  apply_failed_state_conflict: "Apply fehlgeschlagen: State-Konflikt",
+  apply_failed_unknown: "Apply fehlgeschlagen: unbekannter Fehler",
+};
 
 export function isSupportedApplyTargetType(value: string | null | undefined) {
   return APPLY_SUPPORTED_TARGET_TYPES.has(String(value || ""));
@@ -36,6 +48,21 @@ export function canApplyCreateAttachDraft(item: CreatePrepareAttachDraftQueueIte
   return true;
 }
 
+function historyCodeLabel(code: string | null | undefined) {
+  if (!code) return "ohne Code";
+  return HISTORY_CODE_LABELS[code] || "unbekannter Code";
+}
+
+function historySortDesc(left: CreatePrepareAttachDraftHistoryEvent, right: CreatePrepareAttachDraftHistoryEvent) {
+  const byCreated = String(right.createdAt || "").localeCompare(String(left.createdAt || ""));
+  if (byCreated !== 0) return byCreated;
+  return String(right.eventId || "").localeCompare(String(left.eventId || ""));
+}
+
+function buildTimeline(item: CreatePrepareAttachDraftQueueItem): CreatePrepareAttachDraftHistoryEvent[] {
+  return [...(item.reviewEvents ?? []), ...(item.applyEvents ?? [])].sort(historySortDesc);
+}
+
 export function CreateAttachDraftReviewList(props: {
   items: CreatePrepareAttachDraftQueueItem[];
   decisionBusyDraftId: string | null;
@@ -44,10 +71,14 @@ export function CreateAttachDraftReviewList(props: {
   applyNoteByDraft: Record<string, string>;
   decisionError: string | null;
   applyError: string | null;
+  historyLoadingDraftId?: string | null;
+  historyHasMoreByDraft?: Record<string, boolean>;
+  historyErrorByDraft?: Record<string, string | null | undefined>;
   onReviewNoteChange: (draftId: string, value: string) => void;
   onApplyNoteChange: (draftId: string, value: string) => void;
   onReviewDecision: (draftId: string, decision: CreatePrepareAttachDraftReviewDecision) => void;
   onApply: (draftId: string) => void;
+  onLoadMoreHistory?: (draftId: string) => void;
 }) {
   if (props.items.length === 0) {
     return (
@@ -64,6 +95,70 @@ export function CreateAttachDraftReviewList(props: {
           key={item.draftId}
           className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-3 text-sm text-[rgb(var(--muted))]"
         >
+          {(() => {
+            const timeline = buildTimeline(item);
+            const hasMore =
+              props.historyHasMoreByDraft?.[item.draftId] ??
+              item.historyHasMore ??
+              false;
+            const historyError = props.historyErrorByDraft?.[item.draftId];
+            const historyBusy = props.historyLoadingDraftId === item.draftId;
+            return (
+              <>
+                {(timeline.length > 0 || hasMore) ? (
+                  <div className="mt-2 rounded-md border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-2 py-2 text-xs">
+                    <p className="font-semibold text-[rgb(var(--fg))]">Audit-Timeline (neu -&gt; alt)</p>
+                    {timeline.length > 0 ? (
+                      <ul className="mt-1 list-disc space-y-1 pl-4">
+                        {timeline.map((event) => (
+                          <li key={event.eventId}>
+                            {event.createdAt || "-"} | {event.eventType} | by {event.actorUserId}
+                            {event.eventType === "review" ? (
+                              <>
+                                {` | review ${event.previousReviewState} -> ${event.nextReviewState}`}
+                                {` | apply ${event.previousApplyState} -> ${event.nextApplyState}`}
+                                {` | code: ${event.resultCode} (${historyCodeLabel(event.resultCode)})`}
+                                {event.reviewNote ? ` | note: ${event.reviewNote}` : ""}
+                              </>
+                            ) : (
+                              <>
+                                {` | result: ${event.result}`}
+                                {` | target: ${event.targetType ?? "-"}:${event.targetId ?? "-"}`}
+                                {` | apply ${event.previousApplyState} -> ${event.nextApplyState}`}
+                                {` | code: ${event.resultCode} (${historyCodeLabel(event.resultCode)})`}
+                                {event.errorCode
+                                  ? ` | error: ${event.errorCode} (${historyCodeLabel(event.resultCode)})`
+                                  : ""}
+                              </>
+                            )}
+                            {event.normalizedFromLegacy ? " | legacy-normalized" : ""}
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="mt-1 text-[rgb(var(--muted))]">Noch keine Timeline-Events geladen.</p>
+                    )}
+                    {historyError ? (
+                      <p className="mt-2 rounded-md border border-rose-300/60 bg-rose-50/80 px-2 py-1 text-xs text-rose-700 dark:border-rose-400/40 dark:bg-rose-500/10 dark:text-rose-200">
+                        {historyError}
+                      </p>
+                    ) : null}
+                    {props.onLoadMoreHistory && hasMore ? (
+                      <button
+                        type="button"
+                        className="mt-2 rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-2.5 py-1 text-xs font-semibold text-[rgb(var(--muted))] hover:text-[rgb(var(--fg))] disabled:opacity-60"
+                        disabled={historyBusy}
+                        onClick={() => props.onLoadMoreHistory?.(item.draftId)}
+                      >
+                        {historyBusy ? "Lade Verlauf ..." : "Mehr Verlauf laden"}
+                      </button>
+                    ) : null}
+                  </div>
+                ) : null}
+              </>
+            );
+          })()}
+
           <p className="text-xs uppercase tracking-wide text-[rgb(var(--muted))]">
             Draft <span className="font-semibold text-[rgb(var(--fg))]">{item.draftId}</span>
           </p>
@@ -125,38 +220,6 @@ export function CreateAttachDraftReviewList(props: {
             <p className="mt-1 rounded-md border border-rose-300/60 bg-rose-50/80 px-2 py-1 text-xs text-rose-700 dark:border-rose-400/40 dark:bg-rose-500/10 dark:text-rose-200">
               applyError: {item.applyError}
             </p>
-          ) : null}
-
-          {(item.reviewEvents?.length ?? 0) > 0 ? (
-            <div className="mt-2 rounded-md border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-2 py-2 text-xs">
-              <p className="font-semibold text-[rgb(var(--fg))]">Review-Historie</p>
-              <ul className="mt-1 list-disc space-y-1 pl-4">
-                {(item.reviewEvents ?? []).map((event) => (
-                  <li key={event.eventId}>
-                    {event.createdAt || "-"} | by {event.actorUserId} | {event.previousReviewState} -&gt;{" "}
-                    {event.nextReviewState} | apply {event.previousApplyState} -&gt; {event.nextApplyState}
-                    {` | code: ${event.resultCode}`}
-                    {event.reviewNote ? ` | note: ${event.reviewNote}` : ""}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ) : null}
-          {(item.applyEvents?.length ?? 0) > 0 ? (
-            <div className="mt-2 rounded-md border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-2 py-2 text-xs">
-              <p className="font-semibold text-[rgb(var(--fg))]">Apply-Historie</p>
-              <ul className="mt-1 list-disc space-y-1 pl-4">
-                {(item.applyEvents ?? []).map((event) => (
-                  <li key={event.eventId}>
-                    {event.createdAt || "-"} | by {event.actorUserId} | result: {event.result} | target:{" "}
-                    {event.targetType ?? "-"}:{event.targetId ?? "-"} | apply {event.previousApplyState} -&gt;{" "}
-                    {event.nextApplyState}
-                    {` | code: ${event.resultCode}`}
-                    {event.errorCode ? ` | error: ${event.errorCode}` : ""}
-                  </li>
-                ))}
-              </ul>
-            </div>
           ) : null}
 
           <div className="mt-2">

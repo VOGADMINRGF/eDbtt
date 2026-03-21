@@ -21,6 +21,21 @@ Dieses Dokument dient als Status-Zusammenfassung der Pfade (Part00–Part15). Es
 - Governance bleibt unveraendert strikt:
   manual-first, review-first, approval-first, no auto publish.
 
+## Update (2026-03-20) — PR-AI-CREATE-01 Implementation Baseline (`/create` Harmonization)
+
+- `/create` folgt jetzt sichtbar dem kanonischen Freistart-Entry; der primaere UX-Split `manual/source/ai` ist entfernt und bleibt nur als Legacy-Kompatibilitaet lesbar.
+- Analyze-Flow ist als typed Orchestrierungs-Snapshot verfuegbar:
+  `intake`, `quality`, `graph_matching`, `cta_suggestions`.
+- `/api/contributions/analyze` liefert zusaetzlich ein typed `createAnalyze`-Payload mit:
+  `schemaVersion`, `runId`, `inputType`, `languages`, `claims`, `evidenceNeeds`, `uncertainties`, `matches`, `matchStrength`, `matchType`, `matchEntityType`, `suggestedCtas`, `requiresHumanReview`, `noAutoPublish`, `noSilentMerge`.
+- `AnalyzeWorkspace` zeigt den Orchestrierungs-Snapshot explizit (Input-Typ, Qualitaetssignale, Matches, CTAs, Phasenstatus) ohne Publish-/Merge-Automatisierung.
+- Request-Kompatibilitaet wurde erweitert: `preparedText` wird als Analyze-Alias akzeptiert und stabil auf `text` normalisiert.
+- Legacy-Kompatibilitaet bleibt erhalten:
+  alte Mode-Parameter werden weiterhin gelesen, aber in den kanonischen Freistart-/Orchestrierungsfluss normalisiert.
+- Guardrails unveraendert:
+  no auto publish, no silent merge, review-first, approval-first, manual-first.
+- Stage-2/Stage-3 (Self-Host/Souveraenisierung) bleiben unberuehrt und hard-deferred.
+
 ## Update (2026-03-19) — Wave 1 Governance Foundation
 
 - GOV-01, GOV-02 und DOCS-GOV-01 sind als Wave-1-Basis umgesetzt.

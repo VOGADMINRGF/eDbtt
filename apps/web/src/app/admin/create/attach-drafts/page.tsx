@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { CreatePrepareAttachDraftQueueItem } from "@/features/create/attachDraftReviewQueue";
+import type { CreatePrepareAttachDraftHistoryEvent } from "@/features/create/attachDraftHistory";
 import type {
   CreatePrepareAttachDraftReviewDecision,
   CreatePrepareAttachDraftReviewState,
@@ -32,8 +33,13 @@ export default function AdminCreateAttachDraftsPage() {
   const [applyNoteByDraft, setApplyNoteByDraft] = useState<Record<string, string>>({});
   const [decisionBusyDraftId, setDecisionBusyDraftId] = useState<string | null>(null);
   const [applyBusyDraftId, setApplyBusyDraftId] = useState<string | null>(null);
+  const [historyLoadingDraftId, setHistoryLoadingDraftId] = useState<string | null>(null);
   const [decisionError, setDecisionError] = useState<string | null>(null);
   const [applyError, setApplyError] = useState<string | null>(null);
+  const [historyHasMoreByDraft, setHistoryHasMoreByDraft] = useState<Record<string, boolean>>({});
+  const [historyNextCursorByDraft, setHistoryNextCursorByDraft] = useState<Record<string, string | null>>({});
+  const [historyNextScanCursorByDraft, setHistoryNextScanCursorByDraft] = useState<Record<string, string | null>>({});
+  const [historyErrorByDraft, setHistoryErrorByDraft] = useState<Record<string, string | null>>({});
 
   useEffect(() => {
     let ignored = false;
@@ -55,6 +61,34 @@ export default function AdminCreateAttachDraftsPage() {
         if (ignored) return;
         const loaded = Array.isArray(body.items) ? (body.items as CreatePrepareAttachDraftQueueItem[]) : [];
         setItems(loaded);
+        setHistoryHasMoreByDraft((prev) => {
+          const next = { ...prev };
+          for (const item of loaded) {
+            next[item.draftId] = !!item.historyHasMore;
+          }
+          return next;
+        });
+        setHistoryNextCursorByDraft((prev) => {
+          const next = { ...prev };
+          for (const item of loaded) {
+            next[item.draftId] = item.historyNextCursor ?? null;
+          }
+          return next;
+        });
+        setHistoryNextScanCursorByDraft((prev) => {
+          const next = { ...prev };
+          for (const item of loaded) {
+            next[item.draftId] = null;
+          }
+          return next;
+        });
+        setHistoryErrorByDraft((prev) => {
+          const next = { ...prev };
+          for (const item of loaded) {
+            if (!(item.draftId in next)) next[item.draftId] = null;
+          }
+          return next;
+        });
         setReviewNoteByDraft((prev) => {
           const next = { ...prev };
           for (const item of loaded) {
@@ -146,6 +180,60 @@ export default function AdminCreateAttachDraftsPage() {
     }
   }
 
+  async function handleLoadMoreHistory(draftId: string) {
+    if (historyLoadingDraftId) return;
+    const cursor = historyNextScanCursorByDraft[draftId] ?? historyNextCursorByDraft[draftId] ?? null;
+    if (!cursor && !historyHasMoreByDraft[draftId]) return;
+    setHistoryLoadingDraftId(draftId);
+    setHistoryErrorByDraft((prev) => ({ ...prev, [draftId]: null }));
+    try {
+      const qs = new URLSearchParams();
+      qs.set("type", "all");
+      qs.set("limit", "20");
+      if (cursor) qs.set("cursor", cursor);
+      const res = await fetch(
+        `/api/admin/create/attach-drafts/${encodeURIComponent(draftId)}/history?${qs.toString()}`,
+        { cache: "no-store" },
+      );
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok || !body?.ok) {
+        throw new Error(body?.error || res.statusText);
+      }
+      const events = Array.isArray(body.events) ? (body.events as CreatePrepareAttachDraftHistoryEvent[]) : [];
+      const reviewEvents = events.filter(
+        (event): event is Extract<CreatePrepareAttachDraftHistoryEvent, { eventType: "review" }> =>
+          event?.eventType === "review",
+      );
+      const applyEvents = events.filter(
+        (event): event is Extract<CreatePrepareAttachDraftHistoryEvent, { eventType: "apply" }> =>
+          event?.eventType === "apply",
+      );
+
+      setItems((prev) =>
+        prev.map((item) => {
+          if (item.draftId !== draftId) return item;
+          return {
+            ...item,
+            reviewEvents: mergeHistoryEvents(item.reviewEvents ?? [], reviewEvents),
+            applyEvents: mergeHistoryEvents(item.applyEvents ?? [], applyEvents),
+            historyHasMore: !!body.hasMore,
+            historyNextCursor: body.nextCursor ?? null,
+          };
+        }),
+      );
+      setHistoryHasMoreByDraft((prev) => ({ ...prev, [draftId]: !!body.hasMore }));
+      setHistoryNextCursorByDraft((prev) => ({ ...prev, [draftId]: body.nextCursor ?? null }));
+      setHistoryNextScanCursorByDraft((prev) => ({ ...prev, [draftId]: body.nextScanCursor ?? null }));
+    } catch (historyErr: unknown) {
+      setHistoryErrorByDraft((prev) => ({
+        ...prev,
+        [draftId]: historyErr instanceof Error ? historyErr.message : "attach_draft_history_failed",
+      }));
+    } finally {
+      setHistoryLoadingDraftId(null);
+    }
+  }
+
   return (
     <section className="space-y-4">
       <header>
@@ -203,6 +291,9 @@ export default function AdminCreateAttachDraftsPage() {
           items={items}
           decisionBusyDraftId={decisionBusyDraftId}
           applyBusyDraftId={applyBusyDraftId}
+          historyLoadingDraftId={historyLoadingDraftId}
+          historyHasMoreByDraft={historyHasMoreByDraft}
+          historyErrorByDraft={historyErrorByDraft}
           reviewNoteByDraft={reviewNoteByDraft}
           applyNoteByDraft={applyNoteByDraft}
           decisionError={decisionError}
@@ -215,8 +306,21 @@ export default function AdminCreateAttachDraftsPage() {
           }
           onReviewDecision={(draftId, decision) => void handleReviewDecision(draftId, decision)}
           onApply={(draftId) => void handleApply(draftId)}
+          onLoadMoreHistory={(draftId) => void handleLoadMoreHistory(draftId)}
         />
       )}
     </section>
   );
+}
+
+function mergeHistoryEvents<T extends { eventId: string; createdAt: string }>(current: T[], next: T[]) {
+  const map = new Map<string, T>();
+  for (const event of [...current, ...next]) {
+    map.set(event.eventId, event);
+  }
+  return Array.from(map.values()).sort((left, right) => {
+    const byCreated = String(right.createdAt || "").localeCompare(String(left.createdAt || ""));
+    if (byCreated !== 0) return byCreated;
+    return String(right.eventId || "").localeCompare(String(left.eventId || ""));
+  });
 }

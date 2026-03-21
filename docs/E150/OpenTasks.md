@@ -131,6 +131,7 @@ Status: **Open (Architecture alignment required / 2026-03-20)**
 
 | Task | Status | Naechster Run | Evidenz/Notiz |
 | --- | --- | --- | --- |
+| PR-AI-CREATE-01 `/create` auf kanonischen Orchestrierungsfluss harmonisieren | In Progress (implementation baseline active / 2026-03-20) | GOV-AI-02 | Freistart-Entry ohne primaeren Modus-Split aktiv; `/api/contributions/analyze` liefert typed `createAnalyze`-Envelope (intake/quality/graph_matching/cta_suggestions, matchType/matchEntityType, noAutoPublish/noSilentMerge); `AnalyzeWorkspace` zeigt Input-Typ/Qualitaet/Matches/CTAs; Parser akzeptiert `preparedText`-Alias; Tests: `apps/web/tests/create-analyze.contract.test.ts`, `apps/web/tests/create-analyze.route.test.ts`, `apps/web/tests/create-mode.page.test.ts`, `apps/web/tests/create-mode.analyze-parse.test.ts` |
 | Create IA v2: dedizierte Mode-Module (`manual/source/ai`) statt nur Workspace-Parametrisierung | Superseded (legacy intermediate state, no longer target architecture) | GOV-AI-01 | `manual/source/ai` bleibt nur als Legacy-Kompatibilitaets-/Migrationsschicht aktiv (inkl. Alias-Normalisierung + Persistenz), ist aber nicht mehr der kanonische Produktpfad; kanonisch: Freistart + verpflichtende Qualitaetsschicht + Graph-Matching + CTA-Layer |
 | Runden Entry Surface auf produktive Quelle umstellen (statt Seed aus `features/topicRound/data.ts`) | Done (productive source + compatibility matrix active / 2026-03-19) | PR-0039 | `/runden` liest aus produktivem `output_seed`/`anlassraum`-Read-Model (`features/topicRound/entrySource.ts`, `GET /api/runden/entry`); `/demo/runden` ist expliziter Compat-Redirect auf `/runden` (kein Seed-Fallback), inkl. Tests `apps/web/tests/runden-entry.*`, `apps/web/tests/runden-compat.*`, `apps/web/tests/runden-page.acceptance.test.ts` |
 | Backward-Compatibility finalisieren | Done (legacy/demo round entry clarified / 2026-03-19) | PR-0039 | Canonical Round-Entry = `/runden`; alte Demo-Pfade zeigen explizit auf produktiven Einstieg (`apps/web/src/app/demo/runden/page.tsx`, `apps/web/src/app/demo/page.tsx`, `apps/web/src/app/demo/DemoNavClient.tsx`) |
@@ -472,7 +473,7 @@ Scope:
 - Rueckfragen bei duennem Input statt stiller Fehlzuordnung
 - no auto publish / review-first / approval-first / manual-first bleibt verpflichtend
 
-Status: **Open (planned / canonical / 2026-03-20)**
+Status: **In Progress (Create baseline active / 2026-03-20)**
 
 ### GOV-AI-02 — Graph-Matching + CTA-Layer
 Scope:

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireGovernanceActorOrResponse } from "@/lib/server/auth/governance";
 import { getCreatePrepareAttachDraftHistory } from "@/features/create/attachDraftReviewQueue";
+import { isCreatePrepareAttachHistoryType } from "@/features/create/attachDraftHistory";
 
 export async function GET(
   req: NextRequest,
@@ -11,13 +12,20 @@ export async function GET(
 
   const { draftId } = await ctx.params;
   const params = req.nextUrl.searchParams;
-  const maxEventsPerType = Number(params.get("maxEventsPerType") ?? 80);
+  const rawType = String(params.get("type") || "all").toLowerCase();
+  if (!isCreatePrepareAttachHistoryType(rawType)) {
+    return NextResponse.json({ ok: false, error: "invalid_history_type" }, { status: 400 });
+  }
+  const limit = Math.max(1, Math.min(100, Number(params.get("limit") ?? params.get("maxEventsPerType") ?? 80)));
+  const cursor = params.get("cursor");
 
   try {
     const result = await getCreatePrepareAttachDraftHistory({
       actor: gate.actor,
       draftId,
-      maxEventsPerType,
+      limit,
+      cursor,
+      type: rawType,
     });
     return NextResponse.json({
       ok: true,
@@ -26,11 +34,18 @@ export async function GET(
       latestEvent: result.latestEvent,
       reviewEvents: result.reviewEvents,
       applyEvents: result.applyEvents,
+      hasMore: result.hasMore,
+      nextCursor: result.nextCursor,
+      nextScanCursor: result.nextScanCursor,
+      type: result.type,
+      limit: result.limit,
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "attach_draft_history_failed";
     const status =
       message === "invalid_attach_draft_id"
+        ? 400
+        : message === "invalid_history_cursor"
         ? 400
         : message === "attach_draft_not_found"
         ? 404
@@ -40,4 +55,3 @@ export async function GET(
     return NextResponse.json({ ok: false, error: message }, { status });
   }
 }
-

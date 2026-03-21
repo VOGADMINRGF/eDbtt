@@ -11,6 +11,28 @@ const mocks = vi.hoisted(() => {
     return l === r;
   };
 
+  const compare = (actual: unknown, condition: Record<string, unknown>) => {
+    const toComparable = (value: unknown) => {
+      if (value instanceof ObjectId) return value.toHexString();
+      return String(value || "");
+    };
+    if ("$in" in condition) {
+      const set = (condition.$in as unknown[]) ?? [];
+      return set.some((entry) => toComparable(entry) === toComparable(actual));
+    }
+    if ("$exists" in condition) {
+      const shouldExist = Boolean(condition.$exists);
+      return shouldExist ? actual !== undefined : actual === undefined;
+    }
+    if ("$lt" in condition) {
+      return toComparable(actual) < toComparable(condition.$lt);
+    }
+    if ("$gt" in condition) {
+      return toComparable(actual) > toComparable(condition.$gt);
+    }
+    return false;
+  };
+
   const matches = (doc: Record<string, unknown>, filter: Record<string, unknown>): boolean =>
     Object.entries(filter).every(([key, value]) => {
       if (key === "$and" && Array.isArray(value)) {
@@ -19,14 +41,21 @@ const mocks = vi.hoisted(() => {
       if (key === "$or" && Array.isArray(value)) {
         return value.some((entry) => matches(doc, entry as Record<string, unknown>));
       }
-      if (key === "_id") return sameId(doc._id, value);
-      if (value && typeof value === "object" && "$in" in (value as Record<string, unknown>)) {
-        const set = ((value as Record<string, unknown>).$in as unknown[]) ?? [];
-        return set.some((entry) => String(entry || "") === String(doc[key] || ""));
+      if (key === "_id") {
+        if (
+          value &&
+          typeof value === "object" &&
+          ("$in" in (value as Record<string, unknown>) ||
+            "$exists" in (value as Record<string, unknown>) ||
+            "$lt" in (value as Record<string, unknown>) ||
+            "$gt" in (value as Record<string, unknown>))
+        ) {
+          return compare(doc._id, value as Record<string, unknown>);
+        }
+        return sameId(doc._id, value);
       }
-      if (value && typeof value === "object" && "$exists" in (value as Record<string, unknown>)) {
-        const shouldExist = Boolean((value as Record<string, unknown>).$exists);
-        return shouldExist ? key in doc : !(key in doc);
+      if (value && typeof value === "object") {
+        return compare(doc[key], value as Record<string, unknown>);
       }
       if (value instanceof RegExp) {
         return value.test(String(doc[key] || ""));
@@ -38,13 +67,26 @@ const mocks = vi.hoisted(() => {
     let current = rows.map((entry) => ({ ...entry }));
     return {
       sort(spec: Record<string, 1 | -1>) {
-        if ("createdAt" in spec) {
+        if ("createdAt" in spec || "_id" in spec) {
           const direction = spec.createdAt;
           current.sort((a, b) =>
             direction === -1
               ? String(b.createdAt || "").localeCompare(String(a.createdAt || ""))
               : String(a.createdAt || "").localeCompare(String(b.createdAt || "")),
           );
+          if ("_id" in spec) {
+            const dir = spec._id;
+            current.sort((a, b) => {
+              const byCreated =
+                direction === -1
+                  ? String(b.createdAt || "").localeCompare(String(a.createdAt || ""))
+                  : String(a.createdAt || "").localeCompare(String(b.createdAt || ""));
+              if (byCreated !== 0) return byCreated;
+              const aId = a._id instanceof ObjectId ? a._id.toHexString() : String(a._id || "");
+              const bId = b._id instanceof ObjectId ? b._id.toHexString() : String(b._id || "");
+              return dir === -1 ? bId.localeCompare(aId) : aId.localeCompare(bId);
+            });
+          }
         }
         return this;
       },
@@ -340,12 +382,245 @@ describe("create prepare-attach review/apply history service", () => {
     const result = await getCreatePrepareAttachDraftHistory({
       actor: actor as any,
       draftId,
-      maxEventsPerType: 20,
+      limit: 20,
+      type: "all",
     });
 
-    expect(result.events.map((event) => event.eventType)).toEqual(["review", "apply"]);
+    expect(result.events.map((event) => event.eventType)).toEqual(["apply", "review"]);
     expect(result.latestEvent?.eventType).toBe("apply");
     expect(result.draft.version).toBe(3);
+    expect(result.hasMore).toBe(false);
+    expect(result.nextCursor).toBeNull();
+  });
+
+  it("supports deterministic cursor pagination with type filters", async () => {
+    const draftId = seedDraft({ version: 1 });
+    for (let i = 0; i < 6; i += 1) {
+      const minute = 10 + i;
+      mocks.seedHistoryEvent({
+        _id: new ObjectId(`65f0000000000000000000${(10 + i).toString().padStart(2, "0")}`),
+        schemaVersion: "create_prepare_attach_history.v1",
+        eventType: i % 2 === 0 ? "review" : "apply",
+        eventId: `e-${i}`,
+        draftId,
+        actorUserId: "u-review",
+        previousReviewState: "pending",
+        nextReviewState: "accepted_for_apply",
+        previousApplyState: "not_applied",
+        nextApplyState: i % 2 === 0 ? "not_applied" : "applied",
+        reviewNote: i % 2 === 0 ? `r-${i}` : null,
+        result: i % 2 === 1 ? "applied" : undefined,
+        targetType: i % 2 === 1 ? "claim" : undefined,
+        targetId: i % 2 === 1 ? "claim-1" : undefined,
+        applyNote: null,
+        mutationType: i % 2 === 1 ? "attach_reference_claim" : undefined,
+        errorCode: null,
+        resultCode: i % 2 === 1 ? "apply_success" : "review_state_changed",
+        createdAt: `2026-03-20T12:${String(minute).padStart(2, "0")}:00.000Z`,
+      });
+    }
+
+    const page1 = await getCreatePrepareAttachDraftHistory({
+      actor: actor as any,
+      draftId,
+      limit: 2,
+      type: "all",
+    });
+    expect(page1.events).toHaveLength(2);
+    expect(page1.hasMore).toBe(true);
+    expect(page1.nextCursor).toBeTruthy();
+    expect(page1.nextScanCursor).toBeTruthy();
+
+    const page2 = await getCreatePrepareAttachDraftHistory({
+      actor: actor as any,
+      draftId,
+      limit: 2,
+      type: "all",
+      cursor: page1.nextCursor,
+    });
+    expect(page2.events).toHaveLength(2);
+    expect(page2.events[0].eventId).not.toBe(page1.events[0].eventId);
+
+    const reviewOnly = await getCreatePrepareAttachDraftHistory({
+      actor: actor as any,
+      draftId,
+      limit: 10,
+      type: "review",
+    });
+    expect(reviewOnly.events.every((event) => event.eventType === "review")).toBe(true);
+  });
+
+  it("keeps tie-break deterministic for same createdAt via _id ordering", async () => {
+    const draftId = seedDraft({ version: 2 });
+    mocks.seedHistoryEvent({
+      _id: new ObjectId("65f000000000000000000211"),
+      schemaVersion: "create_prepare_attach_history.v1",
+      eventType: "apply",
+      eventId: "e-low",
+      draftId,
+      actorUserId: "u-review",
+      targetType: "claim",
+      targetId: "c1",
+      result: "applied",
+      mutationType: "attach_reference_claim",
+      errorCode: null,
+      applyNote: null,
+      resultCode: "apply_success",
+      previousReviewState: "accepted_for_apply",
+      nextReviewState: "accepted_for_apply",
+      previousApplyState: "not_applied",
+      nextApplyState: "applied",
+      createdAt: "2026-03-20T15:00:00.000Z",
+    });
+    mocks.seedHistoryEvent({
+      _id: new ObjectId("65f000000000000000000299"),
+      schemaVersion: "create_prepare_attach_history.v1",
+      eventType: "apply",
+      eventId: "e-high",
+      draftId,
+      actorUserId: "u-review",
+      targetType: "claim",
+      targetId: "c2",
+      result: "applied",
+      mutationType: "attach_reference_claim",
+      errorCode: null,
+      applyNote: null,
+      resultCode: "apply_success",
+      previousReviewState: "accepted_for_apply",
+      nextReviewState: "accepted_for_apply",
+      previousApplyState: "not_applied",
+      nextApplyState: "applied",
+      createdAt: "2026-03-20T15:00:00.000Z",
+    });
+
+    const page = await getCreatePrepareAttachDraftHistory({
+      actor: actor as any,
+      draftId,
+      type: "apply",
+      limit: 2,
+    });
+    expect(page.events.map((event) => event.eventId)).toEqual(["e-high", "e-low"]);
+  });
+
+  it("normalizes legacy events without schemaVersion/eventType instead of dropping them", async () => {
+    const draftId = seedDraft({ version: 2 });
+    mocks.seedHistoryEvent({
+      _id: new ObjectId("65f000000000000000000111"),
+      draftId,
+      reviewedBy: "legacy-reviewer",
+      reviewState: "accepted_for_apply",
+      reviewNote: "legacy",
+      reviewedAt: "2026-03-20T14:00:00.000Z",
+      previousReviewState: "pending",
+      previousApplyState: "not_applied",
+      nextApplyState: "not_applied",
+    });
+    mocks.seedHistoryEvent({
+      _id: new ObjectId("65f000000000000000000112"),
+      draftId,
+      appliedBy: "legacy-applier",
+      result: "failed",
+      errorCode: "attach_target_not_found",
+      applyNote: "legacy failed",
+      appliedAt: "2026-03-20T14:05:00.000Z",
+      previousReviewState: "accepted_for_apply",
+      nextReviewState: "accepted_for_apply",
+      previousApplyState: "not_applied",
+      nextApplyState: "apply_failed",
+    });
+    mocks.seedHistoryEvent({
+      _id: "65f000000000000000000113",
+      draftId,
+      appliedBy: "legacy-string-object-id",
+      result: "failed",
+      errorCode: "attach_target_not_found",
+      applyNote: "legacy string object id",
+      createdAt: "2026-03-20T14:05:30.000Z",
+      previousReviewState: "accepted_for_apply",
+      nextReviewState: "accepted_for_apply",
+      previousApplyState: "not_applied",
+      nextApplyState: "apply_failed",
+      targetType: "claim",
+      targetId: "legacy-claim-2",
+    });
+    mocks.seedHistoryEvent({
+      // intentionally no _id and no eventId
+      draftId,
+      appliedBy: "legacy-string-id",
+      result: "failed",
+      errorCode: "invalid_attach_target",
+      applyNote: "legacy missing id",
+      createdAt: "2026-03-20T14:06:00.000Z",
+      previousReviewState: "accepted_for_apply",
+      nextReviewState: "accepted_for_apply",
+      previousApplyState: "not_applied",
+      nextApplyState: "apply_failed",
+      targetType: "claim",
+      targetId: "legacy-claim",
+    });
+
+    const result = await getCreatePrepareAttachDraftHistory({
+      actor: actor as any,
+      draftId,
+      limit: 10,
+      type: "all",
+    });
+
+    expect(result.events).toHaveLength(4);
+    expect(result.events.every((event) => event.normalizedFromLegacy)).toBe(true);
+    expect(result.events[0].legacyNormalizationReason).toContain("event_type_inferred");
+    expect(result.events[0].eventId).toBeTruthy();
+  });
+
+  it("rejects cursors that belong to another draft", async () => {
+    const draftIdA = seedDraft({ version: 1 });
+    const draftIdB = seedDraft({ version: 1 });
+    mocks.seedHistoryEvent({
+      _id: new ObjectId("65f000000000000000000311"),
+      schemaVersion: "create_prepare_attach_history.v1",
+      eventType: "review",
+      eventId: "a-1",
+      draftId: draftIdA,
+      actorUserId: "u-review",
+      previousReviewState: "pending",
+      nextReviewState: "accepted_for_apply",
+      previousApplyState: "not_applied",
+      nextApplyState: "not_applied",
+      reviewNote: null,
+      resultCode: "review_state_changed",
+      createdAt: "2026-03-20T16:00:00.000Z",
+    });
+    mocks.seedHistoryEvent({
+      _id: new ObjectId("65f000000000000000000312"),
+      schemaVersion: "create_prepare_attach_history.v1",
+      eventType: "review",
+      eventId: "a-2",
+      draftId: draftIdA,
+      actorUserId: "u-review",
+      previousReviewState: "accepted_for_apply",
+      nextReviewState: "parked",
+      previousApplyState: "not_applied",
+      nextApplyState: "not_applied",
+      reviewNote: null,
+      resultCode: "review_state_changed",
+      createdAt: "2026-03-20T15:59:00.000Z",
+    });
+
+    const first = await getCreatePrepareAttachDraftHistory({
+      actor: actor as any,
+      draftId: draftIdA,
+      type: "all",
+      limit: 1,
+    });
+    expect(first.nextCursor).toBeTruthy();
+    await expect(
+      getCreatePrepareAttachDraftHistory({
+        actor: actor as any,
+        draftId: draftIdB,
+        type: "all",
+        limit: 1,
+        cursor: first.nextCursor,
+      }),
+    ).rejects.toThrow("invalid_history_cursor");
   });
 });
-
