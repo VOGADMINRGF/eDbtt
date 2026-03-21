@@ -36,7 +36,6 @@ export async function GET(
       applyEvents: result.applyEvents,
       hasMore: result.hasMore,
       nextCursor: result.nextCursor,
-      nextScanCursor: result.nextScanCursor,
       type: result.type,
       limit: result.limit,
     });

@@ -1,6 +1,6 @@
 # Part16 - Canonical Orchestration Flow
 
-> Stand: 2026-03-20
+> Stand: 2026-03-21
 > Status: Canonical Architecture Baseline
 > Verbindlicher Task-Backlog: `docs/E150/OpenTasks.md`
 
@@ -284,6 +284,28 @@ Regeln:
 - manual-first
 - provenance-by-default
 - audit trail pro Schritt
+
+## Operational Addendum (2026-03-21) — Single Opaque History Cursor
+
+Create Prepare-Attach History Read:
+- Endpoint: `GET /api/admin/create/attach-drafts/[draftId]/history`
+- Query: `type`, `limit`, `cursor`
+- Response: `events`, `reviewEvents`, `applyEvents`, `latestEvent`, `hasMore`, `nextCursor`, `type`, `limit`, `draft`
+
+Cursor-Regel:
+- Extern ist nur ein Cursor sichtbar (`nextCursor`).
+- Der Cursor bleibt opaque; interne Scan-/Accepted-Informationen duerfen enthalten sein.
+- Cursor sind draft- und filter-gebunden (`type=all|review|apply`), nicht zwischen Drafts/Filtern wiederverwendbar.
+
+Legacy-Verhalten:
+- Read-time Legacy-Normalisierung bleibt unveraendert aktiv (`normalizedFromLegacy`, `legacyNormalizationReason`).
+
+Guardrails bleiben unveraendert:
+- kein Auto-Apply
+- kein Auto-Merge
+- kein Auto-Publish
+- keine neue Produkt-Mutation
+- Stage-2/Stage-3 bleiben unberuehrt
 
 ## Strategischer Leitsatz
 

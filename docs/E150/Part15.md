@@ -1,6 +1,6 @@
 # E150 Master Spec – Part 15: Offene Pfade & Restarbeiten
 
-> Status-Hinweis (2026-03-20): Dieses Part ist eine Spezifikation/Zusammenfassung. Der verbindliche Aufgabenstand liegt in `docs/E150/OpenTasks.md`. Keine neuen Runs aus diesem Part ableiten.
+> Status-Hinweis (2026-03-21): Dieses Part ist eine Spezifikation/Zusammenfassung. Der verbindliche Aufgabenstand liegt in `docs/E150/OpenTasks.md`. Keine neuen Runs aus diesem Part ableiten.
 
 
 ## Zweck
@@ -35,6 +35,21 @@ Dieses Dokument dient als Status-Zusammenfassung der Pfade (Part00–Part15). Es
 - Guardrails unveraendert:
   no auto publish, no silent merge, review-first, approval-first, manual-first.
 - Stage-2/Stage-3 (Self-Host/Souveraenisierung) bleiben unberuehrt und hard-deferred.
+
+## Update (2026-03-21) — PR-AI-MATCH-11 Single Opaque History Cursor
+
+- Der produktive History-Read-Contract fuer Prepare-Attach-Drafts ist vereinfacht:
+  `GET /api/admin/create/attach-drafts/[draftId]/history` liefert fuer Pagination extern nur noch `nextCursor`.
+- `nextScanCursor` ist nicht mehr Teil des externen API-Contracts.
+- Cursor bleiben fuer den Client opaque; intern darf der Cursor weiterhin Scan-/Accepted-Position und Tie-Break-Information tragen.
+- Cursor sind draft- und filter-gebunden (`type=all|review|apply`); Mismatch wird weiter als `invalid_history_cursor` abgewiesen.
+- Lazy History Loading in der Admin-Queue nutzt pro Draft nur noch einen Cursor-State.
+- Read-time Legacy-Normalisierung bleibt unveraendert aktiv:
+  - `normalizedFromLegacy`
+  - `legacyNormalizationReason`
+- Guardrails bleiben unveraendert:
+  kein Auto-Apply, kein Auto-Merge, kein Auto-Publish, keine neue Produkt-Mutation.
+- Stage-2/Stage-3 bleiben unberuehrt und hard-deferred.
 
 ## Update (2026-03-19) — Wave 1 Governance Foundation
 
