@@ -27,6 +27,13 @@ export async function GET(req: NextRequest) {
   const weakSignal = normalizeWeakSignalFilter(params.get("weakSignal"));
   const sort = normalizeSort(params.get("sort"));
   const query = String(params.get("q") || "").trim();
+  let anlassraumIdFilter: ObjectId | null = null;
+  try {
+    anlassraumIdFilter = normalizeAnlassraumIdFilter(params.get("anlassraumId"));
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "invalid_anlassraum_id_filter";
+    return NextResponse.json({ ok: false, error: message }, { status: 400 });
+  }
   const page = Math.max(1, Number(params.get("page") ?? 1));
   const pageSize = Math.max(1, Math.min(100, Number(params.get("pageSize") ?? 20)));
   const skip = (page - 1) * pageSize;
@@ -81,6 +88,9 @@ export async function GET(req: NextRequest) {
         { sourceUrl: searchPattern },
       ],
     });
+  }
+  if (anlassraumIdFilter) {
+    conditions.push({ anlassraumId: anlassraumIdFilter });
   }
 
   const filter: Record<string, any> = conditions.length ? { $and: conditions } : {};
@@ -172,6 +182,7 @@ export async function GET(req: NextRequest) {
       reviewState,
       hasAnlassraum,
       weakSignal,
+      anlassraumId: anlassraumIdFilter?.toHexString() ?? null,
       query: query || null,
     },
     triage: {
@@ -233,4 +244,13 @@ function sortToMongo(sort: FeedReviewQueueSort): Record<string, 1 | -1> {
 function buildQueryRegex(value: string): RegExp {
   const escaped = value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").slice(0, 120);
   return new RegExp(escaped, "i");
+}
+
+function normalizeAnlassraumIdFilter(value: string | null): ObjectId | null {
+  const normalized = String(value ?? "").trim();
+  if (!normalized) return null;
+  if (!ObjectId.isValid(normalized)) {
+    throw new Error("invalid_anlassraum_id_filter");
+  }
+  return new ObjectId(normalized);
 }

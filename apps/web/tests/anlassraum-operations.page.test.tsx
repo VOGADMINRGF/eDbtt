@@ -51,7 +51,7 @@ describe("anlassraum operations page", () => {
                 detailJson: "/api/admin/feeds/anlassraum/65f000000000000000000111",
                 createContext: "/create?anlassraumId=65f000000000000000000111",
                 attachQueue: "/admin/create/attach-drafts?reviewState=all&q=65f000000000000000000111",
-                feedDrafts: "/admin/feeds/drafts?hasAnlassraum=linked",
+                feedDrafts: "/admin/feeds/drafts?hasAnlassraum=linked&anlassraumId=65f000000000000000000111",
                 feedClusterRooms: "/admin/feeds/anlassraum?sourceMode=cluster",
                 feedInputRooms: "/admin/feeds/anlassraum?sourceMode=feed",
                 clusterControl: "/admin/feeds",

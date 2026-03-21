@@ -3,6 +3,10 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import type { FeedReviewState, VoteDraftSummary, VoteDraftStatus } from "@features/feeds/types";
+import {
+  buildFeedDraftListSearchParams,
+  readFeedDraftAnlassraumIdFromSearch,
+} from "@/features/feedDraftsListFilters";
 
 type RegionOption = { value: string; label: string };
 type QueueSort = "newest" | "oldest" | "review_recent" | "review_stale" | "priority_high";
@@ -110,6 +114,7 @@ export default function AdminFeedDraftsPage() {
   const [regionFilter, setRegionFilter] = useState<string>("all");
   const [linkFilter, setLinkFilter] = useState<QueueLinkFilter>("all");
   const [weakSignalFilter, setWeakSignalFilter] = useState<QueueWeakFilter>("all");
+  const [anlassraumIdFilter, setAnlassraumIdFilter] = useState("");
   const [sort, setSort] = useState<QueueSort>("priority_high");
   const [query, setQuery] = useState("");
   const [items, setItems] = useState<VoteDraftSummary[]>([]);
@@ -134,19 +139,29 @@ export default function AdminFeedDraftsPage() {
   const [legacyOutcomeByDraft, setLegacyOutcomeByDraft] = useState<Record<string, LegacyBackfillOutcome>>({});
 
   useEffect(() => {
+    const hydratedAnlassraumId = readFeedDraftAnlassraumIdFromSearch(window.location.search);
+    if (hydratedAnlassraumId) {
+      setAnlassraumIdFilter(hydratedAnlassraumId);
+      setLinkFilter("linked");
+    }
+  }, []);
+
+  useEffect(() => {
     let ignored = false;
     async function load() {
       setLoading(true);
       setError(null);
       try {
-        const qs = new URLSearchParams();
-        if (statusFilter !== "all") qs.set("status", statusFilter);
-        if (regionFilter !== "all") qs.set("regionCode", regionFilter);
-        if (reviewStateFilter !== "all") qs.set("reviewState", reviewStateFilter);
-        if (linkFilter !== "all") qs.set("hasAnlassraum", linkFilter);
-        if (weakSignalFilter !== "all") qs.set("weakSignal", weakSignalFilter);
-        if (sort !== "newest") qs.set("sort", sort);
-        if (query.trim()) qs.set("q", query.trim());
+        const qs = buildFeedDraftListSearchParams({
+          statusFilter,
+          regionFilter,
+          reviewStateFilter,
+          linkFilter,
+          weakSignalFilter,
+          anlassraumIdFilter,
+          sort,
+          query,
+        });
 
         const res = await fetch(`/api/admin/feeds/drafts?${qs.toString()}`, {
           cache: "no-store",
@@ -175,7 +190,17 @@ export default function AdminFeedDraftsPage() {
     return () => {
       ignored = true;
     };
-  }, [statusFilter, reviewStateFilter, regionFilter, linkFilter, weakSignalFilter, sort, query, reloadToken]);
+  }, [
+    statusFilter,
+    reviewStateFilter,
+    regionFilter,
+    linkFilter,
+    weakSignalFilter,
+    anlassraumIdFilter,
+    sort,
+    query,
+    reloadToken,
+  ]);
 
   useEffect(() => {
     let ignored = false;
@@ -226,6 +251,7 @@ export default function AdminFeedDraftsPage() {
     () => items.length > 0 && items.every((item) => selectedIds.includes(item.id)),
     [items, selectedIds],
   );
+  const normalizedAnlassraumIdFilter = anlassraumIdFilter.trim();
 
   async function runBulkAction() {
     if (!selectedIds.length) {
@@ -437,9 +463,21 @@ export default function AdminFeedDraftsPage() {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Suche in Titel/Summary/Quelle"
-          className="rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm lg:col-span-3"
+          className="rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm lg:col-span-2"
+        />
+
+        <input
+          value={anlassraumIdFilter}
+          onChange={(e) => setAnlassraumIdFilter(e.target.value)}
+          placeholder="Anlassraum-ID (optional)"
+          className="rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm lg:col-span-2"
         />
       </div>
+      {normalizedAnlassraumIdFilter ? (
+        <p className="text-xs text-[rgb(var(--muted))]">
+          Anlassraum-Filter aktiv: <span className="font-mono text-[rgb(var(--fg))]">{normalizedAnlassraumIdFilter}</span>
+        </p>
+      ) : null}
 
       <section className="grid gap-3 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-3 shadow-sm lg:grid-cols-6">
         <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))] lg:col-span-6">

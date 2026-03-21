@@ -341,7 +341,7 @@ export async function listAnlassraumOperations(input: {
         detailJson: `/api/admin/feeds/anlassraum/${encodeURIComponent(normalized.id)}`,
         createContext: `/create?anlassraumId=${encodeURIComponent(normalized.id)}`,
         attachQueue: `/admin/create/attach-drafts?reviewState=all&q=${encodeURIComponent(normalized.id)}`,
-        feedDrafts: `/admin/feeds/drafts?hasAnlassraum=linked`,
+        feedDrafts: `/admin/feeds/drafts?hasAnlassraum=linked&anlassraumId=${encodeURIComponent(normalized.id)}`,
         feedClusterRooms: `/admin/feeds/anlassraum?sourceMode=cluster`,
         feedInputRooms: `/admin/feeds/anlassraum?sourceMode=feed`,
         clusterControl: `/admin/feeds`,
