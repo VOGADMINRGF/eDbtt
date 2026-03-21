@@ -133,6 +133,7 @@ Status: **Open (Architecture alignment required / 2026-03-20)**
 | --- | --- | --- | --- |
 | PR-AI-CREATE-01 `/create` auf kanonischen Orchestrierungsfluss harmonisieren | In Progress (implementation baseline active / 2026-03-20) | GOV-AI-02 | Freistart-Entry ohne primaeren Modus-Split aktiv; `/api/contributions/analyze` liefert typed `createAnalyze`-Envelope (intake/quality/graph_matching/cta_suggestions, matchType/matchEntityType, noAutoPublish/noSilentMerge); `AnalyzeWorkspace` zeigt Input-Typ/Qualitaet/Matches/CTAs; Parser akzeptiert `preparedText`-Alias; Tests: `apps/web/tests/create-analyze.contract.test.ts`, `apps/web/tests/create-analyze.route.test.ts`, `apps/web/tests/create-mode.page.test.ts`, `apps/web/tests/create-mode.analyze-parse.test.ts` |
 | PR-AI-MATCH-11 Single Opaque History Cursor + lazy queue cleanup | Done (contract/UX polish active / 2026-03-21) | Monitoring/Polish | Produktiver History-Read-Contract fuer Prepare-Attach ist auf einen einzelnen opaquen Cursor reduziert: `GET /api/admin/create/attach-drafts/[draftId]/history` liefert `nextCursor` (kein `nextScanCursor` mehr). Interner Cursor bleibt robust (Scan+Accepted-Position im Payload, draft-/type-gebunden, `invalid_history_cursor` bei Mismatch). Queue-UI nutzt pro Draft nur noch einen Cursor-State fuer lazy "Mehr Verlauf laden". Legacy-Read-Normalisierung bleibt unveraendert aktiv (`normalizedFromLegacy`, `legacyNormalizationReason`); keine neue Auto-Mutation. |
+| PR-AI-MATCH-10 History Backfill Utility + Contract Docs | Done (maintenance slice active / 2026-03-21) | Monitoring/Polish | Legacy-History-Maintenance als expliziter Pfad: Utility `apps/web/src/features/create/attachDraftHistoryBackfill.ts`, Script `apps/web/scripts/create.history-backfill.ts`; Default dry-run, Apply nur explizit (`--apply`/`--mode=apply`), idempotent ohne Event-Duplikate. Sichere Legacy-Faelle sind `normalizable`; ambige/unsichere Faelle werden nur reportet (`unsafe_to_backfill`) und nicht umgeschrieben. Produktiver Read-Contract bleibt Single-Cursor (`nextCursor`), Legacy-Read-Normalisierung bleibt aktiv; keine neue Auto-Mutation. |
 | Create IA v2: dedizierte Mode-Module (`manual/source/ai`) statt nur Workspace-Parametrisierung | Superseded (legacy intermediate state, no longer target architecture) | GOV-AI-01 | `manual/source/ai` bleibt nur als Legacy-Kompatibilitaets-/Migrationsschicht aktiv (inkl. Alias-Normalisierung + Persistenz), ist aber nicht mehr der kanonische Produktpfad; kanonisch: Freistart + verpflichtende Qualitaetsschicht + Graph-Matching + CTA-Layer |
 | Runden Entry Surface auf produktive Quelle umstellen (statt Seed aus `features/topicRound/data.ts`) | Done (productive source + compatibility matrix active / 2026-03-19) | PR-0039 | `/runden` liest aus produktivem `output_seed`/`anlassraum`-Read-Model (`features/topicRound/entrySource.ts`, `GET /api/runden/entry`); `/demo/runden` ist expliziter Compat-Redirect auf `/runden` (kein Seed-Fallback), inkl. Tests `apps/web/tests/runden-entry.*`, `apps/web/tests/runden-compat.*`, `apps/web/tests/runden-page.acceptance.test.ts` |
 | Backward-Compatibility finalisieren | Done (legacy/demo round entry clarified / 2026-03-19) | PR-0039 | Canonical Round-Entry = `/runden`; alte Demo-Pfade zeigen explizit auf produktiven Einstieg (`apps/web/src/app/demo/runden/page.tsx`, `apps/web/src/app/demo/page.tsx`, `apps/web/src/app/demo/DemoNavClient.tsx`) |
@@ -159,7 +160,7 @@ Status: **Open (Architecture alignment required / 2026-03-20)**
 Produktiver Read-Contract:
 - Endpoint: `GET /api/admin/create/attach-drafts/[draftId]/history`
 - Query:
-  - `type=all|review|apply`
+  - `type=all|review|apply` (default: `all`)
   - `limit`
   - `cursor` (opaque)
 - Response:
@@ -167,17 +168,26 @@ Produktiver Read-Contract:
   - `hasMore`, `nextCursor`
   - `type`, `limit`, `draft`
 
-Contract-Polish:
+Cursor-/Contract-Polish:
 - Extern wird nur noch ein Cursor ausgegeben (`nextCursor`).
 - `nextScanCursor` ist nicht mehr Teil des oeffentlichen API-Contracts.
 - Intern darf der Cursor weiterhin robuste Scan-Semantik tragen (accepted/scan/tie-break), bleibt fuer Clients aber opaque.
-- Cursor sind draft- und filter-gebunden (`type`); Mismatch wird mit `invalid_history_cursor` abgelehnt.
+- Cursor sind draft- und filter-gebunden (`type`); fremde/ungueltige Cursor liefern `invalid_history_cursor` (400).
 
 Read-/Legacy-Verhalten:
 - deterministische Sortierung bleibt erhalten (`createdAt` desc, `_id` als tie-break)
 - Legacy-Rows werden weiterhin read-time defensiv normalisiert:
   - `normalizedFromLegacy`
   - `legacyNormalizationReason`
+
+Maintenance-/Backfill-Pfad:
+- Utility: `apps/web/src/features/create/attachDraftHistoryBackfill.ts`
+- Script: `apps/web/scripts/create.history-backfill.ts`
+- Default: `dry_run`
+- Apply nur explizit: `--apply` oder `--mode=apply`
+- Klassifikation: `canonical_already_ok`, `normalizable`, `unsafe_to_backfill`
+- Sichere Legacy-Faelle werden deterministisch normalisiert; ambige/unsichere Rows werden nur reportet.
+- Apply bleibt idempotent als in-place Update bestehender Rows (keine Event-Duplikate).
 
 Guardrails unveraendert:
 - kein Auto-Apply
