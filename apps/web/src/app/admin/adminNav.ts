@@ -229,6 +229,12 @@ export const NAV_SECTIONS: NavSection[] = [
         keywords: ["create", "attach", "drafts", "review", "queue"],
       },
       {
+        href: "/admin/create/attach-drafts/history-maintenance",
+        label: "Create History Maintenance",
+        description: "Dry-run Diagnose fuer Legacy-History-Events",
+        keywords: ["create", "history", "maintenance", "backfill", "dry-run"],
+      },
+      {
         href: "/admin/reports",
         label: "Reports",
         description: "Topic- und Region-Reports",
