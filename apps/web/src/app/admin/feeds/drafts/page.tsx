@@ -5,6 +5,7 @@ import Link from "next/link";
 import type { FeedReviewState, VoteDraftSummary, VoteDraftStatus } from "@features/feeds/types";
 import {
   buildFeedDraftListSearchParams,
+  buildFeedDraftUrlSearchParams,
   readFeedDraftFiltersFromSearch,
 } from "@/features/feedDraftsListFilters";
 
@@ -121,6 +122,7 @@ export default function AdminFeedDraftsPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [reloadToken, setReloadToken] = useState(0);
+  const [urlHydrated, setUrlHydrated] = useState(false);
 
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [bulkAction, setBulkAction] = useState<BulkAction>("ignore");
@@ -147,7 +149,41 @@ export default function AdminFeedDraftsPage() {
     setLinkFilter(hydrated.linkFilter);
     setWeakSignalFilter(hydrated.weakSignalFilter);
     setAnlassraumIdFilter(hydrated.anlassraumIdFilter);
+    setUrlHydrated(true);
   }, []);
+
+  useEffect(() => {
+    if (!urlHydrated) return;
+
+    const qs = buildFeedDraftUrlSearchParams({
+      statusFilter,
+      reviewStateFilter,
+      sort,
+      query,
+      linkFilter,
+      weakSignalFilter,
+      anlassraumIdFilter,
+    });
+
+    const nextSearch = qs.toString();
+    const currentSearch = window.location.search.startsWith("?")
+      ? window.location.search.slice(1)
+      : window.location.search;
+    if (nextSearch === currentSearch) return;
+
+    const hash = window.location.hash || "";
+    const nextUrl = `${window.location.pathname}${nextSearch ? `?${nextSearch}` : ""}${hash}`;
+    window.history.replaceState(window.history.state, "", nextUrl);
+  }, [
+    urlHydrated,
+    statusFilter,
+    reviewStateFilter,
+    sort,
+    query,
+    linkFilter,
+    weakSignalFilter,
+    anlassraumIdFilter,
+  ]);
 
   useEffect(() => {
     let ignored = false;

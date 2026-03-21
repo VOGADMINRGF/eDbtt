@@ -31,6 +31,16 @@ export type FeedDraftHydratedFilterState = {
   anlassraumIdFilter: string;
 };
 
+export type FeedDraftFilterStateInput = {
+  statusFilter?: string | null;
+  reviewStateFilter?: string | null;
+  sort?: string | null;
+  query?: string | null;
+  linkFilter?: string | null;
+  weakSignalFilter?: string | null;
+  anlassraumIdFilter?: string | null;
+};
+
 export const FEED_DRAFT_FILTER_DEFAULTS: FeedDraftHydratedFilterState = {
   statusFilter: "all",
   reviewStateFilter: "all",
@@ -86,38 +96,83 @@ export function buildFeedDraftListSearchParams(
   return qs;
 }
 
+export function buildFeedDraftUrlSearchParams(
+  input: FeedDraftFilterStateInput,
+): URLSearchParams {
+  const normalized = normalizeFeedDraftFilterState(input);
+  const qs = new URLSearchParams();
+
+  if (normalized.statusFilter !== FEED_DRAFT_FILTER_DEFAULTS.statusFilter) {
+    qs.set("status", normalized.statusFilter);
+  }
+  if (normalized.reviewStateFilter !== FEED_DRAFT_FILTER_DEFAULTS.reviewStateFilter) {
+    qs.set("reviewState", normalized.reviewStateFilter);
+  }
+  if (normalized.sort !== FEED_DRAFT_FILTER_DEFAULTS.sort) {
+    qs.set("sort", normalized.sort);
+  }
+  if (normalized.query) {
+    qs.set("q", normalized.query);
+  }
+  if (normalized.linkFilter !== FEED_DRAFT_FILTER_DEFAULTS.linkFilter) {
+    qs.set("hasAnlassraum", normalized.linkFilter);
+  }
+  if (normalized.weakSignalFilter !== FEED_DRAFT_FILTER_DEFAULTS.weakSignalFilter) {
+    qs.set("weakSignal", normalized.weakSignalFilter);
+  }
+  if (normalized.anlassraumIdFilter) {
+    qs.set("anlassraumId", normalized.anlassraumIdFilter);
+  }
+
+  return qs;
+}
+
 export function readFeedDraftFiltersFromSearch(search: string): FeedDraftHydratedFilterState {
   const params = new URLSearchParams(search.startsWith("?") ? search.slice(1) : search);
-  const anlassraumIdFilter = normalizeAnlassraumIdFilter(params.get("anlassraumId"));
-  const linkFilterFromSearch = normalizeEnumParam(
-    params.get("hasAnlassraum"),
+  return normalizeFeedDraftFilterState({
+    statusFilter: params.get("status"),
+    reviewStateFilter: params.get("reviewState"),
+    sort: params.get("sort"),
+    query: params.get("q"),
+    linkFilter: params.get("hasAnlassraum"),
+    weakSignalFilter: params.get("weakSignal"),
+    anlassraumIdFilter: params.get("anlassraumId"),
+  });
+}
+
+export function normalizeFeedDraftFilterState(
+  input: FeedDraftFilterStateInput,
+): FeedDraftHydratedFilterState {
+  const anlassraumIdFilter = normalizeAnlassraumIdFilter(input.anlassraumIdFilter);
+  const linkFilterFromInput = normalizeEnumValue(
+    input.linkFilter,
     LINK_FILTER_VALUES,
     FEED_DRAFT_FILTER_DEFAULTS.linkFilter,
   );
 
   return {
-    statusFilter: normalizeEnumParam(
-      params.get("status"),
+    statusFilter: normalizeEnumValue(
+      input.statusFilter,
       STATUS_FILTER_VALUES,
       FEED_DRAFT_FILTER_DEFAULTS.statusFilter,
     ),
-    reviewStateFilter: normalizeEnumParam(
-      params.get("reviewState"),
+    reviewStateFilter: normalizeEnumValue(
+      input.reviewStateFilter,
       REVIEW_STATE_FILTER_VALUES,
       FEED_DRAFT_FILTER_DEFAULTS.reviewStateFilter,
     ),
-    sort: normalizeEnumParam(
-      params.get("sort"),
+    sort: normalizeEnumValue(
+      input.sort,
       SORT_FILTER_VALUES,
       FEED_DRAFT_FILTER_DEFAULTS.sort,
     ),
-    query: normalizeFilterValue(params.get("q")),
+    query: normalizeFilterValue(input.query),
     linkFilter:
-      anlassraumIdFilter && linkFilterFromSearch === "all"
+      anlassraumIdFilter && linkFilterFromInput === "all"
         ? "linked"
-        : linkFilterFromSearch,
-    weakSignalFilter: normalizeEnumParam(
-      params.get("weakSignal"),
+        : linkFilterFromInput,
+    weakSignalFilter: normalizeEnumValue(
+      input.weakSignalFilter,
       WEAK_SIGNAL_FILTER_VALUES,
       FEED_DRAFT_FILTER_DEFAULTS.weakSignalFilter,
     ),
@@ -132,11 +187,11 @@ function normalizeFilterValue(value: string | null | undefined): string {
 function normalizeAnlassraumIdFilter(value: string | null | undefined): string {
   const normalized = normalizeFilterValue(value);
   if (!normalized) return "";
-  return /^[a-f0-9]{24}$/i.test(normalized) ? normalized : "";
+  return /^[a-f0-9]{24}$/i.test(normalized) ? normalized.toLowerCase() : "";
 }
 
-function normalizeEnumParam<T extends string>(
-  value: string | null,
+function normalizeEnumValue<T extends string>(
+  value: string | null | undefined,
   allowed: readonly T[],
   fallback: T,
 ): T {
