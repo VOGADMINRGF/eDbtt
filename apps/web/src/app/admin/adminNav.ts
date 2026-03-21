@@ -175,6 +175,12 @@ export const NAV_SECTIONS: NavSection[] = [
         keywords: ["feeds", "anlassraum", "outputs", "cluster"],
       },
       {
+        href: "/admin/anlassraeume",
+        label: "Anlassraum Operations",
+        description: "Read-only Operations-Surface fuer Anlassraeume",
+        keywords: ["anlassraum", "operations", "read-only", "admin"],
+      },
+      {
         href: "/admin/pilot",
         label: "Pilot Control",
         description: "Settings + Run Buttons",
