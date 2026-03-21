@@ -64,7 +64,6 @@ describe("create prepare-attach history route", () => {
       applyEvents: [],
       hasMore: true,
       nextCursor: "cursor-2",
-      nextScanCursor: "scan-2",
       type: "all",
       limit: 20,
     });
@@ -75,16 +74,17 @@ describe("create prepare-attach history route", () => {
     );
 
     expect(res.status).toBe(200);
-    await expect(res.json()).resolves.toMatchObject({
+    const body = await res.json();
+    expect(body).toMatchObject({
       ok: true,
       draft: { draftId: "65f000000000000000000011", version: 3 },
       latestEvent: { eventId: "r1" },
       hasMore: true,
       nextCursor: "cursor-2",
-      nextScanCursor: "scan-2",
       type: "all",
       limit: 20,
     });
+    expect(body.nextScanCursor).toBeUndefined();
   });
 
   it("maps invalid id / not found / forbidden", async () => {

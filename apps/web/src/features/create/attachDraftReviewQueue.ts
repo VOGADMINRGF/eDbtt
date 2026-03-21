@@ -66,13 +66,19 @@ type CreatePrepareAttachDraftHistoryPage = {
   applyEvents: CreatePrepareAttachApplyHistoryEvent[];
   hasMore: boolean;
   nextCursor: string | null;
-  nextScanCursor: string | null;
+};
+
+type HistoryCursorPoint = {
+  createdAt: string;
+  oid: string;
 };
 
 type HistoryCursorPayload = {
+  v: 2;
   draftId: string;
-  createdAt: string;
-  oid: string;
+  type: CreatePrepareAttachHistoryType;
+  accepted: HistoryCursorPoint | null;
+  scan: HistoryCursorPoint | null;
 };
 
 export async function listCreatePrepareAttachDraftQueue(params: {
@@ -113,7 +119,6 @@ export async function listCreatePrepareAttachDraftQueue(params: {
         applyEvents: [],
         hasMore: false,
         nextCursor: null,
-        nextScanCursor: null,
       };
       return {
         ...item,
@@ -172,7 +177,6 @@ export async function getCreatePrepareAttachDraftHistory(params: {
     applyEvents: page.applyEvents,
     hasMore: page.hasMore,
     nextCursor: page.nextCursor,
-    nextScanCursor: page.nextScanCursor,
     cursor: params.cursor ?? null,
     type,
     limit,
@@ -328,7 +332,6 @@ async function loadCreatePrepareAttachDraftHistory(params: {
       applyEvents: [],
       hasMore: false,
       nextCursor: null,
-      nextScanCursor: null,
     });
   }
   if (ids.length === 0) return map;
@@ -369,12 +372,16 @@ export async function getCreatePrepareAttachDraftHistoryPage(params: {
   const History = await createPrepareAttachHistoryEventsCol();
   const type = normalizeHistoryType(params.type);
   const limit = Math.max(1, Math.min(100, Number(params.limit) || 20));
-  let scanCursor = decodeHistoryCursor(params.cursor ?? null, params.draftId);
-  const accepted: Array<{ event: CreatePrepareAttachDraftHistoryEvent; cursor: HistoryCursorPayload }> = [];
+  const decodedCursor = decodeHistoryCursor(params.cursor ?? null, {
+    expectedDraftId: params.draftId,
+    expectedType: type,
+  });
+  let scanCursor = decodedCursor?.scan ?? decodedCursor?.accepted ?? null;
+  const accepted: Array<{ event: CreatePrepareAttachDraftHistoryEvent; cursor: HistoryCursorPoint }> = [];
   const batchSize = Math.max(20, Math.min(120, limit * 2));
   let exhausted = false;
   let safetyRuns = 0;
-  let lastScannedCursor: HistoryCursorPayload | null = null;
+  let lastScannedCursor: HistoryCursorPoint | null = null;
 
   while (accepted.length < limit + 1 && !exhausted && safetyRuns < 24) {
     safetyRuns += 1;
@@ -413,11 +420,18 @@ export async function getCreatePrepareAttachDraftHistoryPage(params: {
   const reviewEvents = events.filter((event): event is CreatePrepareAttachReviewHistoryEvent => event.eventType === "review");
   const applyEvents = events.filter((event): event is CreatePrepareAttachApplyHistoryEvent => event.eventType === "apply");
   const hasMore = accepted.length > limit;
+  const acceptedCursorForNextPage = pageAccepted[pageAccepted.length - 1]?.cursor ?? null;
+  const scanCursorForNextPage = lastScannedCursor ?? acceptedCursorForNextPage;
   const nextCursor =
-    hasMore && pageAccepted.length > 0
-      ? encodeHistoryCursor(pageAccepted[pageAccepted.length - 1]?.cursor ?? null)
+    hasMore && acceptedCursorForNextPage
+      ? encodeHistoryCursor({
+          v: 2,
+          draftId: params.draftId,
+          type,
+          accepted: acceptedCursorForNextPage,
+          scan: scanCursorForNextPage,
+        })
       : null;
-  const nextScanCursor = hasMore ? encodeHistoryCursor(lastScannedCursor) : null;
 
   return {
     events,
@@ -425,7 +439,6 @@ export async function getCreatePrepareAttachDraftHistoryPage(params: {
     applyEvents,
     hasMore,
     nextCursor,
-    nextScanCursor,
   };
 }
 
@@ -526,7 +539,7 @@ function normalizeHistoryDoc(
 function buildHistoryRawFilter(params: {
   draftId: string;
   type: CreatePrepareAttachHistoryType;
-  cursor: HistoryCursorPayload | null;
+  cursor: HistoryCursorPoint | null;
 }) {
   const clauses: Record<string, unknown>[] = [{ draftId: params.draftId }];
   if (params.type === "review") {
@@ -618,7 +631,7 @@ function normalizeEventTimestamp(raw: Record<string, unknown>, ...values: unknow
   return "1970-01-01T00:00:00.000Z";
 }
 
-function getRowCursor(row: CreatePrepareAttachDraftHistoryEventDoc, draftId: string): HistoryCursorPayload | null {
+function getRowCursor(row: CreatePrepareAttachDraftHistoryEventDoc, draftId: string): HistoryCursorPoint | null {
   const raw = row as Record<string, unknown>;
   const createdAt = normalizeEventTimestamp(raw, raw.createdAt, raw.reviewedAt, raw.appliedAt, raw.updatedAt);
   const objectId = parseObjectIdLike(raw._id);
@@ -628,16 +641,20 @@ function getRowCursor(row: CreatePrepareAttachDraftHistoryEventDoc, draftId: str
       `${draftId}|${createdAt}|${String(raw.eventId || "")}|${String(raw.actorUserId || raw.reviewedBy || raw.appliedBy || "")}`,
     );
   if (!ObjectId.isValid(oid)) return null;
-  return { draftId, createdAt, oid };
+  return { createdAt, oid };
 }
 
 function encodeHistoryCursor(payload: HistoryCursorPayload | null) {
   if (!payload) return null;
+  if (!payload.accepted && !payload.scan) return null;
   const raw = JSON.stringify(payload);
   return toBase64Url(raw);
 }
 
-function decodeHistoryCursor(value: string | null, expectedDraftId: string): HistoryCursorPayload | null {
+function decodeHistoryCursor(
+  value: string | null,
+  options: { expectedDraftId: string; expectedType: CreatePrepareAttachHistoryType },
+): HistoryCursorPayload | null {
   if (!value) return null;
   let parsed: unknown;
   try {
@@ -646,20 +663,54 @@ function decodeHistoryCursor(value: string | null, expectedDraftId: string): His
     throw new Error("invalid_history_cursor");
   }
   const obj = parsed as Record<string, unknown>;
-  const draftId = String(obj.draftId || "").trim();
-  const createdAt = String(obj.createdAt || "").trim();
-  const oid = String(obj.oid || "").trim();
+  const version = Number(obj.v || 0);
+  if (version === 2) {
+    const draftId = String(obj.draftId || "").trim();
+    const type = String(obj.type || "").trim();
+    if (!draftId || draftId !== options.expectedDraftId || type !== options.expectedType) {
+      throw new Error("invalid_history_cursor");
+    }
+    const accepted = parseHistoryCursorPoint(obj.accepted);
+    const scan = parseHistoryCursorPoint(obj.scan);
+    if (!accepted && !scan) {
+      throw new Error("invalid_history_cursor");
+    }
+    return {
+      v: 2,
+      draftId,
+      type: options.expectedType,
+      accepted,
+      scan,
+    };
+  }
+
+  // Legacy cursor compatibility: old payload had only draft + position and was effectively "all".
+  const legacyDraftId = String(obj.draftId || "").trim();
+  const legacyPoint = parseHistoryCursorPoint(obj);
   if (
-    !draftId ||
-    draftId !== expectedDraftId ||
-    !createdAt ||
-    Number.isNaN(Date.parse(createdAt)) ||
-    !ObjectId.isValid(oid)
+    !legacyDraftId ||
+    legacyDraftId !== options.expectedDraftId ||
+    options.expectedType !== "all" ||
+    !legacyPoint
   ) {
     throw new Error("invalid_history_cursor");
   }
   return {
-    draftId,
+    v: 2,
+    draftId: legacyDraftId,
+    type: "all",
+    accepted: legacyPoint,
+    scan: legacyPoint,
+  };
+}
+
+function parseHistoryCursorPoint(value: unknown): HistoryCursorPoint | null {
+  if (!value || typeof value !== "object") return null;
+  const obj = value as Record<string, unknown>;
+  const createdAt = String(obj.createdAt || "").trim();
+  const oid = String(obj.oid || "").trim();
+  if (!createdAt || Number.isNaN(Date.parse(createdAt)) || !ObjectId.isValid(oid)) return null;
+  return {
     createdAt,
     oid: new ObjectId(oid).toHexString(),
   };

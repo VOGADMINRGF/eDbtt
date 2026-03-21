@@ -429,7 +429,7 @@ describe("create prepare-attach review/apply history service", () => {
     expect(page1.events).toHaveLength(2);
     expect(page1.hasMore).toBe(true);
     expect(page1.nextCursor).toBeTruthy();
-    expect(page1.nextScanCursor).toBeTruthy();
+    expect((page1 as Record<string, unknown>).nextScanCursor).toBeUndefined();
 
     const page2 = await getCreatePrepareAttachDraftHistory({
       actor: actor as any,
@@ -619,6 +619,51 @@ describe("create prepare-attach review/apply history service", () => {
         draftId: draftIdB,
         type: "all",
         limit: 1,
+        cursor: first.nextCursor,
+      }),
+    ).rejects.toThrow("invalid_history_cursor");
+  });
+
+  it("rejects cursors that are reused with another history type filter", async () => {
+    const draftId = seedDraft({ version: 1 });
+    for (let i = 0; i < 4; i += 1) {
+      mocks.seedHistoryEvent({
+        _id: new ObjectId(`65f0000000000000000004${(10 + i).toString().padStart(2, "0")}`),
+        schemaVersion: "create_prepare_attach_history.v1",
+        eventType: i % 2 === 0 ? "review" : "apply",
+        eventId: `mix-${i}`,
+        draftId,
+        actorUserId: "u-review",
+        previousReviewState: "pending",
+        nextReviewState: "accepted_for_apply",
+        previousApplyState: "not_applied",
+        nextApplyState: i % 2 === 0 ? "not_applied" : "applied",
+        reviewNote: i % 2 === 0 ? `review-${i}` : null,
+        result: i % 2 === 1 ? "applied" : undefined,
+        targetType: i % 2 === 1 ? "claim" : undefined,
+        targetId: i % 2 === 1 ? "claim-1" : undefined,
+        applyNote: null,
+        mutationType: i % 2 === 1 ? "attach_reference_claim" : undefined,
+        errorCode: null,
+        resultCode: i % 2 === 1 ? "apply_success" : "review_state_changed",
+        createdAt: `2026-03-20T17:${String(10 + i).padStart(2, "0")}:00.000Z`,
+      });
+    }
+
+    const first = await getCreatePrepareAttachDraftHistory({
+      actor: actor as any,
+      draftId,
+      type: "all",
+      limit: 2,
+    });
+    expect(first.nextCursor).toBeTruthy();
+
+    await expect(
+      getCreatePrepareAttachDraftHistory({
+        actor: actor as any,
+        draftId,
+        type: "review",
+        limit: 2,
         cursor: first.nextCursor,
       }),
     ).rejects.toThrow("invalid_history_cursor");

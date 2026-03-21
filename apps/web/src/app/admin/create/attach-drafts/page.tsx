@@ -37,8 +37,7 @@ export default function AdminCreateAttachDraftsPage() {
   const [decisionError, setDecisionError] = useState<string | null>(null);
   const [applyError, setApplyError] = useState<string | null>(null);
   const [historyHasMoreByDraft, setHistoryHasMoreByDraft] = useState<Record<string, boolean>>({});
-  const [historyNextCursorByDraft, setHistoryNextCursorByDraft] = useState<Record<string, string | null>>({});
-  const [historyNextScanCursorByDraft, setHistoryNextScanCursorByDraft] = useState<Record<string, string | null>>({});
+  const [historyCursorByDraft, setHistoryCursorByDraft] = useState<Record<string, string | null>>({});
   const [historyErrorByDraft, setHistoryErrorByDraft] = useState<Record<string, string | null>>({});
 
   useEffect(() => {
@@ -68,17 +67,10 @@ export default function AdminCreateAttachDraftsPage() {
           }
           return next;
         });
-        setHistoryNextCursorByDraft((prev) => {
+        setHistoryCursorByDraft((prev) => {
           const next = { ...prev };
           for (const item of loaded) {
             next[item.draftId] = item.historyNextCursor ?? null;
-          }
-          return next;
-        });
-        setHistoryNextScanCursorByDraft((prev) => {
-          const next = { ...prev };
-          for (const item of loaded) {
-            next[item.draftId] = null;
           }
           return next;
         });
@@ -182,7 +174,7 @@ export default function AdminCreateAttachDraftsPage() {
 
   async function handleLoadMoreHistory(draftId: string) {
     if (historyLoadingDraftId) return;
-    const cursor = historyNextScanCursorByDraft[draftId] ?? historyNextCursorByDraft[draftId] ?? null;
+    const cursor = historyCursorByDraft[draftId] ?? null;
     if (!cursor && !historyHasMoreByDraft[draftId]) return;
     setHistoryLoadingDraftId(draftId);
     setHistoryErrorByDraft((prev) => ({ ...prev, [draftId]: null }));
@@ -222,8 +214,7 @@ export default function AdminCreateAttachDraftsPage() {
         }),
       );
       setHistoryHasMoreByDraft((prev) => ({ ...prev, [draftId]: !!body.hasMore }));
-      setHistoryNextCursorByDraft((prev) => ({ ...prev, [draftId]: body.nextCursor ?? null }));
-      setHistoryNextScanCursorByDraft((prev) => ({ ...prev, [draftId]: body.nextScanCursor ?? null }));
+      setHistoryCursorByDraft((prev) => ({ ...prev, [draftId]: body.nextCursor ?? null }));
     } catch (historyErr: unknown) {
       setHistoryErrorByDraft((prev) => ({
         ...prev,

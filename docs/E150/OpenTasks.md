@@ -5,7 +5,7 @@
 Diese Datei ist der kanonische Aufgabenstand fuer E150.
 Wenn andere Parts, alte Drift-Prompts oder Zwischen-Notizen abweichen, gewinnt diese Datei.
 
-Stand: 2026-03-20
+Stand: 2026-03-21
 
 ## Leitbild
 
@@ -132,6 +132,7 @@ Status: **Open (Architecture alignment required / 2026-03-20)**
 | Task | Status | Naechster Run | Evidenz/Notiz |
 | --- | --- | --- | --- |
 | PR-AI-CREATE-01 `/create` auf kanonischen Orchestrierungsfluss harmonisieren | In Progress (implementation baseline active / 2026-03-20) | GOV-AI-02 | Freistart-Entry ohne primaeren Modus-Split aktiv; `/api/contributions/analyze` liefert typed `createAnalyze`-Envelope (intake/quality/graph_matching/cta_suggestions, matchType/matchEntityType, noAutoPublish/noSilentMerge); `AnalyzeWorkspace` zeigt Input-Typ/Qualitaet/Matches/CTAs; Parser akzeptiert `preparedText`-Alias; Tests: `apps/web/tests/create-analyze.contract.test.ts`, `apps/web/tests/create-analyze.route.test.ts`, `apps/web/tests/create-mode.page.test.ts`, `apps/web/tests/create-mode.analyze-parse.test.ts` |
+| PR-AI-MATCH-11 Single Opaque History Cursor + lazy queue cleanup | Done (contract/UX polish active / 2026-03-21) | Monitoring/Polish | Produktiver History-Read-Contract fuer Prepare-Attach ist auf einen einzelnen opaquen Cursor reduziert: `GET /api/admin/create/attach-drafts/[draftId]/history` liefert `nextCursor` (kein `nextScanCursor` mehr). Interner Cursor bleibt robust (Scan+Accepted-Position im Payload, draft-/type-gebunden, `invalid_history_cursor` bei Mismatch). Queue-UI nutzt pro Draft nur noch einen Cursor-State fuer lazy "Mehr Verlauf laden". Legacy-Read-Normalisierung bleibt unveraendert aktiv (`normalizedFromLegacy`, `legacyNormalizationReason`); keine neue Auto-Mutation. |
 | Create IA v2: dedizierte Mode-Module (`manual/source/ai`) statt nur Workspace-Parametrisierung | Superseded (legacy intermediate state, no longer target architecture) | GOV-AI-01 | `manual/source/ai` bleibt nur als Legacy-Kompatibilitaets-/Migrationsschicht aktiv (inkl. Alias-Normalisierung + Persistenz), ist aber nicht mehr der kanonische Produktpfad; kanonisch: Freistart + verpflichtende Qualitaetsschicht + Graph-Matching + CTA-Layer |
 | Runden Entry Surface auf produktive Quelle umstellen (statt Seed aus `features/topicRound/data.ts`) | Done (productive source + compatibility matrix active / 2026-03-19) | PR-0039 | `/runden` liest aus produktivem `output_seed`/`anlassraum`-Read-Model (`features/topicRound/entrySource.ts`, `GET /api/runden/entry`); `/demo/runden` ist expliziter Compat-Redirect auf `/runden` (kein Seed-Fallback), inkl. Tests `apps/web/tests/runden-entry.*`, `apps/web/tests/runden-compat.*`, `apps/web/tests/runden-page.acceptance.test.ts` |
 | Backward-Compatibility finalisieren | Done (legacy/demo round entry clarified / 2026-03-19) | PR-0039 | Canonical Round-Entry = `/runden`; alte Demo-Pfade zeigen explizit auf produktiven Einstieg (`apps/web/src/app/demo/runden/page.tsx`, `apps/web/src/app/demo/page.tsx`, `apps/web/src/app/demo/DemoNavClient.tsx`) |
@@ -152,6 +153,39 @@ Status: **Open (Architecture alignment required / 2026-03-20)**
 | Account Dark-Mode Nacharbeit | Open | PR-0047 | Components/Token-Check |
 | Env-Key-Hardening abschliessen | Open | PR-ENV-01 | Runtime-Aliasse |
 | Mongo SRV `ECONNREFUSED` robust abfedern | Open | PR-ENV-02 | DNS/Netz/Config-Fallback |
+
+### Create Prepare-Attach History Contract (Single Opaque Cursor / 2026-03-21)
+
+Produktiver Read-Contract:
+- Endpoint: `GET /api/admin/create/attach-drafts/[draftId]/history`
+- Query:
+  - `type=all|review|apply`
+  - `limit`
+  - `cursor` (opaque)
+- Response:
+  - `events`, `reviewEvents`, `applyEvents`, `latestEvent`
+  - `hasMore`, `nextCursor`
+  - `type`, `limit`, `draft`
+
+Contract-Polish:
+- Extern wird nur noch ein Cursor ausgegeben (`nextCursor`).
+- `nextScanCursor` ist nicht mehr Teil des oeffentlichen API-Contracts.
+- Intern darf der Cursor weiterhin robuste Scan-Semantik tragen (accepted/scan/tie-break), bleibt fuer Clients aber opaque.
+- Cursor sind draft- und filter-gebunden (`type`); Mismatch wird mit `invalid_history_cursor` abgelehnt.
+
+Read-/Legacy-Verhalten:
+- deterministische Sortierung bleibt erhalten (`createdAt` desc, `_id` als tie-break)
+- Legacy-Rows werden weiterhin read-time defensiv normalisiert:
+  - `normalizedFromLegacy`
+  - `legacyNormalizationReason`
+
+Guardrails unveraendert:
+- kein Auto-Apply
+- kein Auto-Merge
+- kein Auto-Publish
+- keine neue Produkt-Mutation
+- Review/Apply bleiben getrennt
+- Stage-2/Stage-3 bleiben unberuehrt
 
 ## Neue Architektur-Tasks (V1 dauerhaft verankert)
 
