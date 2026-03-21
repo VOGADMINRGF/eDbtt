@@ -47,6 +47,14 @@ Dieses Dokument dient als Status-Zusammenfassung der Pfade (Part00–Part15). Es
 - Read-time Legacy-Normalisierung bleibt unveraendert aktiv:
   - `normalizedFromLegacy`
   - `legacyNormalizationReason`
+- Maintenance-/Backfill-Pfad (kein neuer Produkt-Mutationspfad):
+  - Utility: `apps/web/src/features/create/attachDraftHistoryBackfill.ts`
+  - Script: `apps/web/scripts/create.history-backfill.ts`
+  - Default: dry-run
+  - Apply nur explizit (`--apply` oder `--mode=apply`)
+  - Klassifikation: `canonical_already_ok`, `normalizable`, `unsafe_to_backfill`
+  - Apply bleibt idempotent als in-place Update ohne Event-Duplikate
+  - Unsichere/ambige Rows werden nur reportet, nicht blind umgeschrieben
 - Guardrails bleiben unveraendert:
   kein Auto-Apply, kein Auto-Merge, kein Auto-Publish, keine neue Produkt-Mutation.
 - Stage-2/Stage-3 bleiben unberuehrt und hard-deferred.

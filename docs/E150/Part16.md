@@ -300,6 +300,12 @@ Cursor-Regel:
 Legacy-Verhalten:
 - Read-time Legacy-Normalisierung bleibt unveraendert aktiv (`normalizedFromLegacy`, `legacyNormalizationReason`).
 
+Legacy-Backfill/Maintenance:
+- Nur expliziter Maintenance-Pfad (`apps/web/scripts/create.history-backfill.ts`, Utility `apps/web/src/features/create/attachDraftHistoryBackfill.ts`).
+- Default ist dry-run.
+- Apply nur explizit (`--apply` oder `--mode=apply`) und idempotent ohne Event-Duplikate.
+- Unsichere/ambige Rows werden reportet (`unsafe_to_backfill`), nicht blind umgeschrieben.
+
 Guardrails bleiben unveraendert:
 - kein Auto-Apply
 - kein Auto-Merge
