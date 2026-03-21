@@ -291,6 +291,15 @@ export default function AdminFeedDraftsPage() {
     [items, selectedIds],
   );
   const normalizedAnlassraumIdFilter = anlassraumIdFilter.trim();
+  const queueSummary = useMemo(
+    () => ({
+      total: items.length,
+      unlinked: items.filter((item) => !item.anlassraumId).length,
+      weak: items.filter((item) => item.weakSignal?.flagged).length,
+      highPriority: items.filter((item) => item.queueMeta?.priorityBucket === "high").length,
+    }),
+    [items],
+  );
 
   async function runBulkAction() {
     if (!selectedIds.length) {
@@ -408,28 +417,37 @@ export default function AdminFeedDraftsPage() {
   }
 
   return (
-    <div className="flex min-h-[80vh] w-full flex-col gap-6 py-4">
-      <header className="space-y-1">
+    <div className="flex min-h-[80vh] w-full flex-col gap-5 py-4">
+      <header className="space-y-2">
         <p className="text-sm font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
           Admin · Feed-Pipeline
         </p>
-        <h1 className="text-2xl font-bold text-[rgb(var(--fg))]">Drafts aus Feeds</h1>
+        <h1 className="text-2xl font-bold text-[rgb(var(--fg))]">Feed-Drafts: operative Kandidaten-Queue</h1>
         <p className="text-sm text-[rgb(var(--muted))]">
-          Queue-Review mit Filter/Sortierung, Prioritätsindikatoren und sicheren Bulk-Aktionen (kein Auto-Publish,
-          kein Auto-Approval).
+          Priorisiert nach Kandidaten, die jetzt eine Entscheidung brauchen. Bulk Review und Legacy Backfill bleiben
+          verfügbar, sind aber als sekundäre Maintenance-Bereiche nachgelagert.
         </p>
-        <p>
+        <div className="flex flex-wrap gap-3">
           <Link href="/admin/feeds" className="text-sm font-semibold text-sky-700 hover:underline">
             Zur Feed Control Plane
           </Link>
-        </p>
+          <Link href="/admin/feeds/anlassraum" className="text-sm font-semibold text-sky-700 hover:underline">
+            Zu Anlassräumen
+          </Link>
+          <Link href="/admin/anlassraeume" className="text-sm font-semibold text-sky-700 hover:underline">
+            Zu Anlassraum Operations
+          </Link>
+        </div>
       </header>
 
-      <div className="grid gap-3 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-3 shadow-sm lg:grid-cols-6">
+      <section className="grid gap-3 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm lg:grid-cols-6">
+        <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))] lg:col-span-6">
+          Kandidatenfilter
+        </p>
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value as VoteDraftStatus | "all")}
-          className="rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm"
+          className="rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm text-[rgb(var(--fg))]"
         >
           {STATUS_FILTERS.map((opt) => (
             <option key={opt.value} value={opt.value}>
@@ -437,11 +455,10 @@ export default function AdminFeedDraftsPage() {
             </option>
           ))}
         </select>
-
         <select
           value={reviewStateFilter}
           onChange={(e) => setReviewStateFilter(e.target.value as FeedReviewState | "all")}
-          className="rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm"
+          className="rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm text-[rgb(var(--fg))]"
         >
           {REVIEW_STATE_FILTERS.map((opt) => (
             <option key={opt.value} value={opt.value}>
@@ -449,11 +466,10 @@ export default function AdminFeedDraftsPage() {
             </option>
           ))}
         </select>
-
         <select
           value={regionFilter}
           onChange={(e) => setRegionFilter(e.target.value)}
-          className="rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm"
+          className="rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm text-[rgb(var(--fg))]"
         >
           {REGION_FILTERS.map((opt) => (
             <option key={opt.value} value={opt.value}>
@@ -461,11 +477,10 @@ export default function AdminFeedDraftsPage() {
             </option>
           ))}
         </select>
-
         <select
           value={linkFilter}
           onChange={(e) => setLinkFilter(e.target.value as QueueLinkFilter)}
-          className="rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm"
+          className="rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm text-[rgb(var(--fg))]"
         >
           {LINK_FILTERS.map((opt) => (
             <option key={opt.value} value={opt.value}>
@@ -473,11 +488,10 @@ export default function AdminFeedDraftsPage() {
             </option>
           ))}
         </select>
-
         <select
           value={weakSignalFilter}
           onChange={(e) => setWeakSignalFilter(e.target.value as QueueWeakFilter)}
-          className="rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm"
+          className="rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm text-[rgb(var(--fg))]"
         >
           {WEAK_SIGNAL_FILTERS.map((opt) => (
             <option key={opt.value} value={opt.value}>
@@ -485,11 +499,10 @@ export default function AdminFeedDraftsPage() {
             </option>
           ))}
         </select>
-
         <select
           value={sort}
           onChange={(e) => setSort(e.target.value as QueueSort)}
-          className="rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm"
+          className="rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm text-[rgb(var(--fg))]"
         >
           {SORT_OPTIONS.map((opt) => (
             <option key={opt.value} value={opt.value}>
@@ -497,87 +510,234 @@ export default function AdminFeedDraftsPage() {
             </option>
           ))}
         </select>
-
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Suche in Titel/Summary/Quelle"
-          className="rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm lg:col-span-2"
+          placeholder="Suche in Titel, Summary, Quelle"
+          className="rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm text-[rgb(var(--fg))] lg:col-span-2"
         />
-
         <input
           value={anlassraumIdFilter}
           onChange={(e) => setAnlassraumIdFilter(e.target.value)}
           placeholder="Anlassraum-ID (optional)"
-          className="rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm lg:col-span-2"
+          className="rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm text-[rgb(var(--fg))] lg:col-span-2"
         />
-      </div>
+      </section>
+
       {normalizedAnlassraumIdFilter ? (
         <p className="text-xs text-[rgb(var(--muted))]">
           Anlassraum-Filter aktiv: <span className="font-mono text-[rgb(var(--fg))]">{normalizedAnlassraumIdFilter}</span>
         </p>
       ) : null}
 
-      <section className="grid gap-3 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-3 shadow-sm lg:grid-cols-6">
-        <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))] lg:col-span-6">
-          Bulk Review ({selectedIds.length} ausgewählt)
-        </p>
+      <section className="overflow-hidden rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] shadow-sm">
+        <header className="grid gap-3 border-b border-[rgb(var(--border))] px-4 py-4 lg:grid-cols-6">
+          <div className="lg:col-span-2">
+            <h2 className="text-base font-semibold text-[rgb(var(--fg))]">Kandidatenliste</h2>
+            <p className="text-sm text-[rgb(var(--muted))]">
+              Fokus auf nächste sichere Aktion pro Draft: Kontext prüfen, Anlassraum zuordnen oder Review sauber
+              abschließen.
+            </p>
+          </div>
+          <SummaryChip label="Aktuelle Treffer" value={queueSummary.total} />
+          <SummaryChip label="Ohne Anlassraum" value={queueSummary.unlinked} />
+          <SummaryChip label="Weak Signal" value={queueSummary.weak} />
+          <SummaryChip label="Hohe Priorität" value={queueSummary.highPriority} />
+        </header>
 
-        <select
-          value={bulkAction}
-          onChange={(e) => setBulkAction(e.target.value as BulkAction)}
-          className="rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm"
-        >
-          {BULK_ACTIONS.map((opt) => (
-            <option key={opt.value} value={opt.value}>
-              {opt.label}
-            </option>
-          ))}
-        </select>
+        {error && (
+          <div className="m-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</div>
+        )}
 
-        <input
-          value={bulkAnlassraumId}
-          onChange={(e) => setBulkAnlassraumId(e.target.value)}
-          placeholder="Anlassraum-ID (nur für Attach)"
-          className="rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm"
-        />
-
-        <input
-          value={bulkWeakSignalReason}
-          onChange={(e) => setBulkWeakSignalReason(e.target.value)}
-          placeholder="Weak-Signal Grund (optional)"
-          className="rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm"
-        />
-
-        <input
-          value={bulkReviewNote}
-          onChange={(e) => setBulkReviewNote(e.target.value)}
-          placeholder="Review-Notiz (optional)"
-          className="rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm lg:col-span-2"
-        />
-
-        <button
-          disabled={bulkBusy || selectedIds.length === 0}
-          onClick={runBulkAction}
-          className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          {bulkBusy ? "läuft…" : "Bulk anwenden"}
-        </button>
-
-        {bulkNotice && <p className="text-xs text-[rgb(var(--muted))] lg:col-span-6">{bulkNotice}</p>}
+        <div className="overflow-auto">
+          <table className="min-w-full divide-y divide-[rgb(var(--border))] text-sm">
+            <thead className="bg-[rgb(var(--bg))]">
+              <tr>
+                <th className="px-3 py-3 text-left font-semibold text-[rgb(var(--muted))]">
+                  <input type="checkbox" checked={allVisibleSelected} onChange={toggleAllVisible} aria-label="Alle auswählen" />
+                </th>
+                <th className="px-4 py-3 text-left font-semibold text-[rgb(var(--muted))]">Kandidat</th>
+                <th className="px-4 py-3 text-left font-semibold text-[rgb(var(--muted))]">Queue-Kontext</th>
+                <th className="px-4 py-3 text-left font-semibold text-[rgb(var(--muted))]">Anlassraum & Hinweise</th>
+                <th className="px-4 py-3 text-left font-semibold text-[rgb(var(--muted))]">Nächster Schritt</th>
+                <th className="px-4 py-3 text-left font-semibold text-[rgb(var(--muted))]">Quelle</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-[rgb(var(--border))]">
+              {loading && (
+                <tr>
+                  <td colSpan={6} className="px-4 py-6 text-center text-[rgb(var(--muted))]">
+                    Lädt Drafts …
+                  </td>
+                </tr>
+              )}
+              {!loading && items.length === 0 && (
+                <tr>
+                  <td colSpan={6} className="px-4 py-6 text-center text-[rgb(var(--muted))]">
+                    Keine Drafts für die aktuellen Filter. Prüfe, ob Filter zu eng sind, oder öffne die
+                    <span>{" "}</span>
+                    <Link href="/admin/feeds" className="font-semibold text-sky-700 hover:underline">
+                      Feed Control Plane
+                    </Link>
+                    <span>{" "}</span>
+                    für neue Kandidaten.
+                  </td>
+                </tr>
+              )}
+              {!loading &&
+                items.map((draft) => {
+                  const nextStep = deriveOperationalNextStep(draft);
+                  return (
+                    <tr key={draft.id} className={draft.queueMeta?.priorityBucket === "high" ? "bg-amber-50/40" : ""}>
+                      <td className="px-3 py-3 align-top">
+                        <input
+                          type="checkbox"
+                          checked={selectedIds.includes(draft.id)}
+                          onChange={() => toggleRow(draft.id)}
+                          aria-label={`Draft ${draft.title} auswählen`}
+                        />
+                      </td>
+                      <td className="px-4 py-3 align-top">
+                        <Link href={`/admin/feeds/drafts/${draft.id}`} className="font-semibold text-[rgb(var(--fg))] hover:underline">
+                          {draft.title}
+                        </Link>
+                        <p className="mt-1 text-xs text-[rgb(var(--muted))]">
+                          {formatDate(draft.createdAt)} · ID {draft.id.slice(-6)}
+                        </p>
+                        <p className="text-xs text-[rgb(var(--muted))]">
+                          Region: {draft.regionName ?? "–"} ({draft.regionCode ?? "—"})
+                        </p>
+                      </td>
+                      <td className="px-4 py-3 align-top">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <StatusBadge status={draft.status} />
+                          <ReviewStateBadge state={draft.feedReviewState ?? "queued"} />
+                          <PriorityBadge bucket={draft.queueMeta?.priorityBucket ?? "low"} />
+                        </div>
+                        <p className="mt-1 text-xs text-[rgb(var(--muted))]">
+                          pending: {draft.queueMeta?.pendingHours ?? 0}h · weak: {draft.weakSignal?.flagged ? "ja" : "nein"}
+                        </p>
+                        <p className="text-xs text-[rgb(var(--muted))]">
+                          Gründe: {(draft.queueMeta?.reasons ?? []).join(", ") || "—"}
+                        </p>
+                        {draft.lastReviewActionAt && (
+                          <p className="text-xs text-[rgb(var(--muted))]">
+                            letzte Aktion: {draft.lastReviewAction ?? "action"} · {formatDate(draft.lastReviewActionAt)}
+                          </p>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 align-top text-xs">
+                        {draft.anlassraumId ? (
+                          <div className="space-y-1">
+                            <p className="font-semibold text-emerald-700">linked</p>
+                            <Link href={`/admin/feeds/anlassraum/${draft.anlassraumId}`} className="font-semibold text-sky-700 hover:underline">
+                              Anlassraum öffnen ({draft.anlassraumId.slice(-8)})
+                            </Link>
+                          </div>
+                        ) : (
+                          <div className="space-y-1">
+                            <p className="font-semibold text-amber-700">unlinked</p>
+                            <Link href="/admin/feeds/anlassraum" className="font-semibold text-sky-700 hover:underline">
+                              Anlassraum-Kontext prüfen
+                            </Link>
+                          </div>
+                        )}
+                        {draft.weakSignal?.flagged && (
+                          <p className="mt-2 rounded bg-amber-100 px-2 py-1 font-semibold text-amber-800">
+                            Weak Signal: {draft.weakSignal.reason ?? "markiert"}
+                          </p>
+                        )}
+                        {draft.reviewNote && (
+                          <p className="mt-1 text-[11px] text-[rgb(var(--muted))]">
+                            Notiz: {String(draft.reviewNote).slice(0, 100)}
+                          </p>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 align-top text-xs">
+                        <p className="font-semibold text-[rgb(var(--fg))]">{nextStep.title}</p>
+                        <p className="text-[rgb(var(--muted))]">{nextStep.detail}</p>
+                        <Link href={`/admin/feeds/drafts/${draft.id}`} className="mt-1 inline-flex font-semibold text-sky-700 hover:underline">
+                          Draft im Detail prüfen
+                        </Link>
+                      </td>
+                      <td className="px-4 py-3 align-top text-xs text-[rgb(var(--muted))]">
+                        {draft.sourceUrl ? (
+                          <a href={draft.sourceUrl} target="_blank" rel="noreferrer" className="font-semibold text-sky-600 hover:underline">
+                            {extractDomain(draft.sourceUrl)}
+                          </a>
+                        ) : (
+                          <span>–</span>
+                        )}
+                        <p>Analyse: {draft.analyzeCompletedAt ? formatDate(draft.analyzeCompletedAt) : "offen"}</p>
+                        <p>Pipeline: {draft.pipeline ?? "—"}</p>
+                      </td>
+                    </tr>
+                  );
+                })}
+            </tbody>
+          </table>
+        </div>
       </section>
 
-      <section className="grid gap-3 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-3 shadow-sm">
-        <header className="space-y-1">
-          <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
-            Legacy Backfill (Admin-only)
-          </p>
-          <p className="text-xs text-[rgb(var(--muted))]">
-            Explizite Einzel-Remediation für Drafts ohne `anlassraumId` (kein Auto-Backfill, kein Silent-Migration).
-          </p>
-        </header>
-        {legacyError && <p className="rounded border border-rose-200 bg-rose-50 px-2 py-1 text-xs text-rose-700">{legacyError}</p>}
-        <div className="overflow-auto rounded-xl border border-[rgb(var(--border))]">
+      <details className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-3 shadow-sm">
+        <summary className="cursor-pointer text-sm font-semibold text-[rgb(var(--fg))]">
+          Bulk Review (sekundär) · {selectedIds.length} ausgewählt
+        </summary>
+        <p className="mt-2 text-xs text-[rgb(var(--muted))]">
+          Sammelaktion für mehrere Drafts. Kein Auto-Publish und kein Auto-Approval.
+        </p>
+        <section className="mt-3 grid gap-3 lg:grid-cols-6">
+          <select
+            value={bulkAction}
+            onChange={(e) => setBulkAction(e.target.value as BulkAction)}
+            className="rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm text-[rgb(var(--fg))]"
+          >
+            {BULK_ACTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
+          <input
+            value={bulkAnlassraumId}
+            onChange={(e) => setBulkAnlassraumId(e.target.value)}
+            placeholder="Anlassraum-ID (nur für Attach)"
+            className="rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm text-[rgb(var(--fg))]"
+          />
+          <input
+            value={bulkWeakSignalReason}
+            onChange={(e) => setBulkWeakSignalReason(e.target.value)}
+            placeholder="Weak-Signal Grund (optional)"
+            className="rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm text-[rgb(var(--fg))]"
+          />
+          <input
+            value={bulkReviewNote}
+            onChange={(e) => setBulkReviewNote(e.target.value)}
+            placeholder="Review-Notiz (optional)"
+            className="rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm text-[rgb(var(--fg))] lg:col-span-2"
+          />
+          <button
+            disabled={bulkBusy || selectedIds.length === 0}
+            onClick={runBulkAction}
+            className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {bulkBusy ? "läuft…" : "Bulk anwenden"}
+          </button>
+          {bulkNotice && <p className="text-xs text-[rgb(var(--muted))] lg:col-span-6">{bulkNotice}</p>}
+        </section>
+      </details>
+
+      <details className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-3 shadow-sm">
+        <summary className="cursor-pointer text-sm font-semibold text-[rgb(var(--fg))]">
+          Legacy Backfill (Maintenance-Ausnahme)
+        </summary>
+        <p className="mt-2 text-xs text-[rgb(var(--muted))]">
+          Explizite Einzel-Remediation für Drafts ohne `anlassraumId` (kein Auto-Backfill, keine stille Migration).
+        </p>
+        {legacyError && (
+          <p className="mt-2 rounded border border-rose-200 bg-rose-50 px-2 py-1 text-xs text-rose-700">{legacyError}</p>
+        )}
+        <div className="mt-3 overflow-auto rounded-xl border border-[rgb(var(--border))]">
           <table className="min-w-full divide-y divide-[rgb(var(--border))] text-xs">
             <thead className="bg-[rgb(var(--bg))]">
               <tr>
@@ -643,7 +803,7 @@ export default function AdminFeedDraftsPage() {
                               }))
                             }
                             placeholder="Anlassraum-ID für Attach"
-                            className="rounded border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-2 py-1 text-xs"
+                            className="rounded border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-2 py-1 text-xs text-[rgb(var(--fg))]"
                           />
                           <input
                             value={legacyNoteByDraft[item.id] ?? ""}
@@ -654,7 +814,7 @@ export default function AdminFeedDraftsPage() {
                               }))
                             }
                             placeholder="Remediation-Notiz (optional)"
-                            className="rounded border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-2 py-1 text-xs"
+                            className="rounded border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-2 py-1 text-xs text-[rgb(var(--fg))]"
                           />
                           <div className="flex gap-1">
                             <button
@@ -682,128 +842,7 @@ export default function AdminFeedDraftsPage() {
             </tbody>
           </table>
         </div>
-      </section>
-
-      {error && (
-        <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
-          {error}
-        </div>
-      )}
-
-      <div className="overflow-hidden rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] shadow-sm">
-        <table className="min-w-full divide-y divide-[rgb(var(--border))] text-sm">
-          <thead className="bg-[rgb(var(--bg))]">
-            <tr>
-              <th className="px-3 py-3 text-left font-semibold text-[rgb(var(--muted))]">
-                <input type="checkbox" checked={allVisibleSelected} onChange={toggleAllVisible} aria-label="Alle auswählen" />
-              </th>
-              <th className="px-4 py-3 text-left font-semibold text-[rgb(var(--muted))]">Titel</th>
-              <th className="px-4 py-3 text-left font-semibold text-[rgb(var(--muted))]">Queue</th>
-              <th className="px-4 py-3 text-left font-semibold text-[rgb(var(--muted))]">Region</th>
-              <th className="px-4 py-3 text-left font-semibold text-[rgb(var(--muted))]">Anlassraum</th>
-              <th className="px-4 py-3 text-left font-semibold text-[rgb(var(--muted))]">Quelle</th>
-              <th className="px-4 py-3 text-left font-semibold text-[rgb(var(--muted))]">Analyse</th>
-              <th className="px-4 py-3 text-left font-semibold text-[rgb(var(--muted))]">Pipeline</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-[rgb(var(--border))]">
-            {loading && (
-              <tr>
-                <td colSpan={8} className="px-4 py-6 text-center text-[rgb(var(--muted))]">
-                  Lädt Drafts …
-                </td>
-              </tr>
-            )}
-            {!loading && items.length === 0 && (
-              <tr>
-                <td colSpan={8} className="px-4 py-6 text-center text-[rgb(var(--muted))]">
-                  Keine Drafts für die aktuellen Filter gefunden.
-                </td>
-              </tr>
-            )}
-            {!loading &&
-              items.map((draft) => (
-                <tr key={draft.id} className={draft.queueMeta?.priorityBucket === "high" ? "bg-amber-50/50" : ""}>
-                  <td className="px-3 py-3 align-top">
-                    <input
-                      type="checkbox"
-                      checked={selectedIds.includes(draft.id)}
-                      onChange={() => toggleRow(draft.id)}
-                      aria-label={`Draft ${draft.title} auswählen`}
-                    />
-                  </td>
-                  <td className="px-4 py-3">
-                    <Link
-                      href={`/admin/feeds/drafts/${draft.id}`}
-                      className="font-semibold text-[rgb(var(--fg))] hover:underline"
-                    >
-                      {draft.title}
-                    </Link>
-                    <p className="text-xs text-[rgb(var(--muted))]">
-                      {formatDate(draft.createdAt)} · ID {draft.id.slice(-6)}
-                    </p>
-                  </td>
-                  <td className="px-4 py-3">
-                    <StatusBadge status={draft.status} />
-                    <p className="text-[11px] text-[rgb(var(--muted))]">state: {draft.feedReviewState ?? "queued"}</p>
-                    <p className="text-[11px] text-[rgb(var(--muted))]">
-                      prio: {draft.queueMeta?.priorityBucket ?? "low"} ({draft.queueMeta?.priorityScore ?? 0})
-                    </p>
-                    <p className="text-[11px] text-[rgb(var(--muted))]">pending: {draft.queueMeta?.pendingHours ?? 0}h</p>
-                    {draft.lastReviewActionAt && (
-                      <p className="text-[11px] text-[rgb(var(--muted))]">
-                        last: {draft.lastReviewAction ?? "action"} · {formatDate(draft.lastReviewActionAt)}
-                      </p>
-                    )}
-                    {draft.reviewNote && (
-                      <p className="text-[11px] text-[rgb(var(--muted))]">
-                        note: {String(draft.reviewNote).slice(0, 80)}
-                      </p>
-                    )}
-                  </td>
-                  <td className="px-4 py-3">
-                    <p className="font-medium text-[rgb(var(--fg))]">{draft.regionName ?? "–"}</p>
-                    <p className="text-xs text-[rgb(var(--muted))]">{draft.regionCode ?? "—"}</p>
-                  </td>
-                  <td className="px-4 py-3 text-xs">
-                    {draft.anlassraumId ? (
-                      <Link href={`/admin/feeds/anlassraum/${draft.anlassraumId}`} className="text-sky-700 hover:underline">
-                        {draft.anlassraumId.slice(-8)}
-                      </Link>
-                    ) : (
-                      <span className="rounded bg-amber-100 px-2 py-1 text-amber-800">fehlend</span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3">
-                    {draft.sourceUrl ? (
-                      <a
-                        href={draft.sourceUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-sky-600 hover:underline"
-                      >
-                        {extractDomain(draft.sourceUrl)}
-                      </a>
-                    ) : (
-                      <span className="text-[rgb(var(--muted))]">–</span>
-                    )}
-                    {draft.weakSignal?.flagged && (
-                      <p className="mt-1 text-[11px] font-semibold text-amber-700">
-                        weak: {draft.weakSignal.reason ?? "markiert"}
-                      </p>
-                    )}
-                  </td>
-                  <td className="px-4 py-3 text-sm text-[rgb(var(--muted))]">
-                    {draft.analyzeCompletedAt ? formatDate(draft.analyzeCompletedAt) : "offen"}
-                  </td>
-                  <td className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
-                    {draft.pipeline}
-                  </td>
-                </tr>
-              ))}
-          </tbody>
-        </table>
-      </div>
+      </details>
     </div>
   );
 }
@@ -820,6 +859,69 @@ function StatusBadge({ status }: { status: VoteDraftStatus }) {
       {status}
     </span>
   );
+}
+
+function SummaryChip({ label, value }: { label: string; value: number }) {
+  return (
+    <article className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2">
+      <p className="text-[11px] font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">{label}</p>
+      <p className="text-lg font-semibold text-[rgb(var(--fg))]">{value}</p>
+    </article>
+  );
+}
+
+function ReviewStateBadge({ state }: { state: FeedReviewState }) {
+  const colors: Record<FeedReviewState, string> = {
+    queued: "bg-slate-100 text-slate-800",
+    ignored: "bg-zinc-200 text-zinc-800",
+    attached: "bg-emerald-100 text-emerald-800",
+    candidate_created: "bg-sky-100 text-sky-800",
+    weak_signal: "bg-amber-100 text-amber-800",
+  };
+
+  return <span className={`inline-flex rounded-full px-2 py-1 text-[11px] font-semibold ${colors[state]}`}>{state}</span>;
+}
+
+function PriorityBadge({ bucket }: { bucket: "high" | "medium" | "low" }) {
+  const colors: Record<"high" | "medium" | "low", string> = {
+    high: "bg-amber-100 text-amber-900",
+    medium: "bg-sky-100 text-sky-900",
+    low: "bg-slate-100 text-slate-800",
+  };
+
+  return (
+    <span className={`inline-flex rounded-full px-2 py-1 text-[11px] font-semibold uppercase tracking-wide ${colors[bucket]}`}>
+      prio {bucket}
+    </span>
+  );
+}
+
+function deriveOperationalNextStep(draft: VoteDraftSummary): { title: string; detail: string } {
+  if (draft.weakSignal?.flagged) {
+    return {
+      title: "Weak Signal validieren",
+      detail: "Signal bestätigen oder sauber als Ausnahme dokumentieren.",
+    };
+  }
+
+  if (!draft.anlassraumId) {
+    return {
+      title: "Anlassraum zuordnen",
+      detail: "Draft ist unlinked und braucht Kontext vor dem nächsten Review-Schritt.",
+    };
+  }
+
+  if (draft.status === "review" || draft.feedReviewState === "queued") {
+    return {
+      title: "Review abschließen",
+      detail: "Entscheidung prüfen und Status konsistent fortführen.",
+    };
+  }
+
+  return {
+    title: "Kandidat verifizieren",
+    detail: "Kontext, Analyse und Verlauf im Detailscreen prüfen.",
+  };
 }
 
 function formatDate(value?: string | null) {
