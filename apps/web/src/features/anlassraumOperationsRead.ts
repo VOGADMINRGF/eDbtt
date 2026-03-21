@@ -1,6 +1,7 @@
 import { ObjectId } from "@core/db/triMongo";
 import { anlassraumCol, anlassraumSourceLinksCol, outputSeedCol } from "@features/anlassraum/db";
 import { canActorAccessAnlassraum } from "@features/anlassraum/governance";
+import { feedAnlassraumClusterCandidatesCol, voteDraftsCol } from "@features/feeds/db";
 import {
   ANLASSRAUM_LIFECYCLE_STATUSES,
   ANLASSRAUM_SCOPES,
@@ -46,6 +47,19 @@ export type AnlassraumOperationsItem = {
   sourceCount: number;
   outputCount: number;
   outputTypes: string[];
+  feedContext: {
+    linkedDraftCount: number;
+    queuedDraftCount: number;
+    weakSignalDraftCount: number;
+    latestDraftCreatedAt: string | null;
+  };
+  clusterContext: {
+    clusterKey: string | null;
+    peerRoomCount: number;
+    candidateStatus: string | null;
+    candidateDraftCount: number;
+    candidateUpdatedAt: string | null;
+  };
   isPublic: boolean;
   dossierId: string | null;
   dossierType: string | null;
@@ -57,6 +71,10 @@ export type AnlassraumOperationsItem = {
     detailJson: string;
     createContext: string;
     attachQueue: string;
+    feedDrafts: string;
+    feedClusterRooms: string;
+    feedInputRooms: string;
+    clusterControl: string;
     dossierAdmin: string | null;
   };
 };
@@ -138,8 +156,15 @@ export async function listAnlassraumOperations(input: {
   const roomIds = pageDocs
     .map((doc) => toObjectId(doc._id))
     .filter((value): value is ObjectId => value instanceof ObjectId);
+  const clusterKeys = Array.from(
+    new Set(
+      pageDocs
+        .map((doc) => asText((doc as Record<string, unknown>).clusterKey))
+        .filter((value): value is string => Boolean(value)),
+    ),
+  );
 
-  const [sourceCounts, outputs] = await Promise.all([
+  const [sourceCounts, outputs, draftBuckets, clusterCandidates, clusterPeers] = await Promise.all([
     roomIds.length > 0
       ? (await anlassraumSourceLinksCol())
           .aggregate<{ _id: ObjectId; count: number }>([
@@ -152,6 +177,41 @@ export async function listAnlassraumOperations(input: {
       ? (await outputSeedCol())
           .find({ anlassraumId: { $in: roomIds } }, { projection: { anlassraumId: 1, outputType: 1 } })
           .toArray()
+      : [],
+    roomIds.length > 0
+      ? (await voteDraftsCol())
+          .aggregate<{
+            _id: { anlassraumId?: ObjectId; feedReviewState?: string };
+            count: number;
+            latestCreatedAt?: Date | string | null;
+          }>([
+            { $match: { anlassraumId: { $in: roomIds } } },
+            {
+              $group: {
+                _id: {
+                  anlassraumId: "$anlassraumId",
+                  feedReviewState: { $ifNull: ["$feedReviewState", "queued"] },
+                },
+                count: { $sum: 1 },
+                latestCreatedAt: { $max: "$createdAt" },
+              },
+            },
+          ])
+          .toArray()
+      : [],
+    clusterKeys.length > 0
+      ? (await feedAnlassraumClusterCandidatesCol())
+          .find(
+            { clusterKey: { $in: clusterKeys } },
+            { projection: { clusterKey: 1, status: 1, draftCount: 1, updatedAt: 1 } },
+          )
+          .toArray()
+      : [],
+    clusterKeys.length > 0
+      ? Rooms.aggregate<{ _id: string; count: number }>([
+          { $match: { clusterKey: { $in: clusterKeys } } },
+          { $group: { _id: "$clusterKey", count: { $sum: 1 } } },
+        ]).toArray()
       : [],
   ]);
 
@@ -171,21 +231,105 @@ export async function listAnlassraumOperations(input: {
     outputMetaByRoom.set(key, current);
   }
 
+  const feedContextByRoom = new Map<
+    string,
+    {
+      linkedDraftCount: number;
+      queuedDraftCount: number;
+      weakSignalDraftCount: number;
+      latestDraftCreatedAt: string | null;
+    }
+  >();
+  for (const bucket of draftBuckets) {
+    const roomId = bucket?._id?.anlassraumId;
+    if (!(roomId instanceof ObjectId)) continue;
+
+    const key = roomId.toHexString();
+    const current = feedContextByRoom.get(key) ?? {
+      linkedDraftCount: 0,
+      queuedDraftCount: 0,
+      weakSignalDraftCount: 0,
+      latestDraftCreatedAt: null,
+    };
+    current.linkedDraftCount += Number(bucket.count) || 0;
+
+    const state = String(bucket?._id?.feedReviewState ?? "queued").toLowerCase();
+    if (state === "queued") current.queuedDraftCount += Number(bucket.count) || 0;
+    if (state === "weak_signal") current.weakSignalDraftCount += Number(bucket.count) || 0;
+
+    const latest = asIso(bucket.latestCreatedAt);
+    if (latest && (!current.latestDraftCreatedAt || latest > current.latestDraftCreatedAt)) {
+      current.latestDraftCreatedAt = latest;
+    }
+    feedContextByRoom.set(key, current);
+  }
+
+  const clusterCandidateByKey = new Map<
+    string,
+    {
+      status: string | null;
+      draftCount: number;
+      updatedAt: string | null;
+    }
+  >();
+  for (const candidate of clusterCandidates) {
+    const key = asText((candidate as Record<string, unknown>).clusterKey);
+    if (!key) continue;
+    clusterCandidateByKey.set(key, {
+      status: asText((candidate as Record<string, unknown>).status),
+      draftCount: Math.max(0, Math.floor(asFiniteNumber((candidate as Record<string, unknown>).draftCount) ?? 0)),
+      updatedAt: asIso((candidate as Record<string, unknown>).updatedAt),
+    });
+  }
+
+  const clusterPeerCountByKey = new Map<string, number>();
+  for (const clusterPeer of clusterPeers) {
+    const key = asText(clusterPeer._id);
+    if (!key) continue;
+    clusterPeerCountByKey.set(key, Math.max(0, Math.floor(Number(clusterPeer.count) || 0)));
+  }
+
   const items = pageDocs.map((doc) => {
     const normalized = normalizeAnlassraumOperationsDoc(doc as Record<string, unknown>);
     const sourceCount = sourceCountByRoom.get(normalized.id) ?? 0;
     const outputMeta = outputMetaByRoom.get(normalized.id) ?? { count: 0, outputTypes: new Set<string>() };
     const outputTypes = Array.from(outputMeta.outputTypes).sort((left, right) => left.localeCompare(right));
+    const feedContext = feedContextByRoom.get(normalized.id) ?? {
+      linkedDraftCount: 0,
+      queuedDraftCount: 0,
+      weakSignalDraftCount: 0,
+      latestDraftCreatedAt: null,
+    };
+    const clusterContext = normalized.clusterKey
+      ? {
+          clusterKey: normalized.clusterKey,
+          peerRoomCount: clusterPeerCountByKey.get(normalized.clusterKey) ?? 0,
+          candidateStatus: clusterCandidateByKey.get(normalized.clusterKey)?.status ?? null,
+          candidateDraftCount: clusterCandidateByKey.get(normalized.clusterKey)?.draftCount ?? 0,
+          candidateUpdatedAt: clusterCandidateByKey.get(normalized.clusterKey)?.updatedAt ?? null,
+        }
+      : {
+          clusterKey: null,
+          peerRoomCount: 0,
+          candidateStatus: null,
+          candidateDraftCount: 0,
+          candidateUpdatedAt: null,
+        };
 
     return {
       ...normalized,
       sourceCount,
       outputCount: outputMeta.count,
       outputTypes,
+      feedContext,
+      clusterContext,
       operationalHints: buildOperationalHints({
         status: normalized.status,
+        sourceMode: normalized.sourceMode,
         summary: normalized.summary,
         topicKey: normalized.topicKey,
+        clusterKey: normalized.clusterKey,
+        clusterCandidateStatus: clusterContext.candidateStatus,
         dossierId: normalized.dossierId,
         riskFlags: normalized.riskFlags,
         sourceCount,
@@ -197,6 +341,10 @@ export async function listAnlassraumOperations(input: {
         detailJson: `/api/admin/feeds/anlassraum/${encodeURIComponent(normalized.id)}`,
         createContext: `/create?anlassraumId=${encodeURIComponent(normalized.id)}`,
         attachQueue: `/admin/create/attach-drafts?reviewState=all&q=${encodeURIComponent(normalized.id)}`,
+        feedDrafts: `/admin/feeds/drafts?hasAnlassraum=linked`,
+        feedClusterRooms: `/admin/feeds/anlassraum?sourceMode=cluster`,
+        feedInputRooms: `/admin/feeds/anlassraum?sourceMode=feed`,
+        clusterControl: `/admin/feeds`,
         dossierAdmin: normalized.dossierId
           ? `/admin/dossiers/${encodeURIComponent(normalized.dossierId)}`
           : null,
@@ -224,7 +372,10 @@ export async function listAnlassraumOperations(input: {
 
 export function normalizeAnlassraumOperationsDoc(
   doc: Record<string, unknown>,
-): Omit<AnlassraumOperationsItem, "sourceCount" | "outputCount" | "outputTypes" | "operationalHints" | "links"> {
+): Omit<
+  AnlassraumOperationsItem,
+  "sourceCount" | "outputCount" | "outputTypes" | "feedContext" | "clusterContext" | "operationalHints" | "links"
+> {
   const id = deriveDocId(doc);
   const title = asText(doc.title) || "Anlassraum ohne Titel";
   const slug = asText(doc.slug) || null;
@@ -261,8 +412,11 @@ export function normalizeAnlassraumOperationsDoc(
 
 function buildOperationalHints(input: {
   status: string;
+  sourceMode: string | null;
   summary: string | null;
   topicKey: string | null;
+  clusterKey: string | null;
+  clusterCandidateStatus: string | null;
   dossierId: string | null;
   riskFlags: string[];
   sourceCount: number;
@@ -275,6 +429,8 @@ function buildOperationalHints(input: {
   if (!input.topicKey) hints.add("missing_topic_key");
   if (input.sourceCount === 0) hints.add("missing_source_links");
   if (input.outputCount === 0) hints.add("missing_output_seeds");
+  if (input.sourceMode === "cluster" && !input.clusterKey) hints.add("missing_cluster_key");
+  if (input.clusterKey && !input.clusterCandidateStatus) hints.add("missing_cluster_candidate");
   if (!input.dossierId) hints.add("no_dossier_link");
   if (input.riskFlags.length > 0) hints.add("risk_flags_present");
   if ((LEGACY_ANLASSRAUM_STATUSES as readonly string[]).includes(input.status)) {

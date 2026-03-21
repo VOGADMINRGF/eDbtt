@@ -216,6 +216,25 @@ function AnlassraumOperationsCard({ item }: { item: AnlassraumOperationsItem }) 
         <p>{item.outputTypes.length > 0 ? item.outputTypes.join(", ") : "keine"}</p>
       </div>
 
+      <div className="mt-3 rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3 text-xs text-[rgb(var(--muted))]">
+        <p className="font-semibold text-[rgb(var(--fg))]">Feed-/Cluster-Kontext</p>
+        <p>
+          Linked Drafts: <span className="text-[rgb(var(--fg))]">{item.feedContext.linkedDraftCount}</span>{" "}
+          (queued {item.feedContext.queuedDraftCount}, weak-signal {item.feedContext.weakSignalDraftCount})
+        </p>
+        <p>
+          Letzter Draft: <span className="text-[rgb(var(--fg))]">{formatIso(item.feedContext.latestDraftCreatedAt)}</span>
+        </p>
+        <p>
+          Cluster: <span className="text-[rgb(var(--fg))]">{item.clusterContext.clusterKey ?? "--"}</span> · peers{" "}
+          <span className="text-[rgb(var(--fg))]">{item.clusterContext.peerRoomCount}</span>
+        </p>
+        <p>
+          Cluster Candidate: <span className="text-[rgb(var(--fg))]">{item.clusterContext.candidateStatus ?? "--"}</span> · drafts{" "}
+          {item.clusterContext.candidateDraftCount} · updated {formatIso(item.clusterContext.candidateUpdatedAt)}
+        </p>
+      </div>
+
       <div className="mt-4 flex flex-wrap gap-3 text-xs font-semibold">
         <Link href={item.links.detailAdmin} className="text-sky-700 hover:underline">
           Admin-Detail
@@ -225,6 +244,18 @@ function AnlassraumOperationsCard({ item }: { item: AnlassraumOperationsItem }) 
         </Link>
         <Link href={item.links.attachQueue} className="text-sky-700 hover:underline">
           Attach Queue
+        </Link>
+        <Link href={item.links.feedDrafts} className="text-sky-700 hover:underline">
+          Feed-Drafts
+        </Link>
+        <Link href={item.links.feedInputRooms} className="text-sky-700 hover:underline">
+          Feed-Input Rooms
+        </Link>
+        <Link href={item.links.feedClusterRooms} className="text-sky-700 hover:underline">
+          Cluster-Rooms
+        </Link>
+        <Link href={item.links.clusterControl} className="text-sky-700 hover:underline">
+          Cluster-Control
         </Link>
         <Link href={item.links.detailJson} className="text-sky-700 hover:underline">
           Feed/History JSON

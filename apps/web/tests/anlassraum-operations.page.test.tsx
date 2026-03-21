@@ -27,6 +27,19 @@ describe("anlassraum operations page", () => {
               sourceCount: 4,
               outputCount: 2,
               outputTypes: ["round_seed", "dossier_seed"],
+              feedContext: {
+                linkedDraftCount: 6,
+                queuedDraftCount: 2,
+                weakSignalDraftCount: 1,
+                latestDraftCreatedAt: "2026-03-21T11:00:00.000Z",
+              },
+              clusterContext: {
+                clusterKey: "cluster-verkehr",
+                peerRoomCount: 3,
+                candidateStatus: "candidate",
+                candidateDraftCount: 9,
+                candidateUpdatedAt: "2026-03-21T09:30:00.000Z",
+              },
               isPublic: false,
               dossierId: "65f000000000000000000211",
               dossierType: "exploration_dossier",
@@ -38,6 +51,10 @@ describe("anlassraum operations page", () => {
                 detailJson: "/api/admin/feeds/anlassraum/65f000000000000000000111",
                 createContext: "/create?anlassraumId=65f000000000000000000111",
                 attachQueue: "/admin/create/attach-drafts?reviewState=all&q=65f000000000000000000111",
+                feedDrafts: "/admin/feeds/drafts?hasAnlassraum=linked",
+                feedClusterRooms: "/admin/feeds/anlassraum?sourceMode=cluster",
+                feedInputRooms: "/admin/feeds/anlassraum?sourceMode=feed",
+                clusterControl: "/admin/feeds",
                 dossierAdmin: "/admin/dossiers/65f000000000000000000211",
               },
             },
@@ -74,6 +91,11 @@ describe("anlassraum operations page", () => {
     expect(html).toContain("Admin-Detail");
     expect(html).toContain("Create-Kontext");
     expect(html).toContain("Attach Queue");
+    expect(html).toContain("Feed-/Cluster-Kontext");
+    expect(html).toContain("Feed-Drafts");
+    expect(html).toContain("Feed-Input Rooms");
+    expect(html).toContain("Cluster-Rooms");
+    expect(html).toContain("Cluster-Control");
     expect(html).toContain("Feed/History JSON");
     expect(html).toContain("Dossier-Admin");
   });
