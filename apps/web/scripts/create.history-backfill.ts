@@ -2,11 +2,6 @@ import { existsSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { config } from "dotenv";
 import { fileURLToPath } from "node:url";
-import { closeAll } from "@core/db/triMongo";
-import {
-  parseCreatePrepareAttachHistoryBackfillArgs,
-  runCreatePrepareAttachHistoryBackfill,
-} from "@/features/create/attachDraftHistoryBackfill";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -24,6 +19,12 @@ for (const path of envCandidates) {
 }
 
 async function main() {
+  const { closeAll } = await import("@core/db/triMongo");
+  const {
+    parseCreatePrepareAttachHistoryBackfillArgs,
+    runCreatePrepareAttachHistoryBackfill,
+  } = await import("@/features/create/attachDraftHistoryBackfill");
+
   const options = parseCreatePrepareAttachHistoryBackfillArgs(process.argv.slice(2));
   const report = await runCreatePrepareAttachHistoryBackfill({
     mode: options.mode,
@@ -60,11 +61,13 @@ async function main() {
 
 main()
   .then(async () => {
+    const { closeAll } = await import("@core/db/triMongo");
     await closeAll();
     process.exit(0);
   })
   .catch(async (error: unknown) => {
     console.error(error instanceof Error ? error.message : String(error));
+    const { closeAll } = await import("@core/db/triMongo");
     await closeAll().catch(() => undefined);
     process.exit(1);
   });
