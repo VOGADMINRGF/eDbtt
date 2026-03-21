@@ -1,4 +1,6 @@
+import { useMemo, useState } from "react";
 import type { CreatePrepareAttachHistoryBackfillReport } from "@/features/create/attachDraftHistoryBackfill";
+import type { CreatePrepareAttachHistoryBackfillStatus } from "@/features/create/attachDraftHistoryBackfill";
 
 type Props = {
   report: CreatePrepareAttachHistoryBackfillReport | null;
@@ -11,6 +13,23 @@ type Props = {
   onReload: () => void;
 };
 
+type StatusFilter = "all" | CreatePrepareAttachHistoryBackfillStatus;
+type ReasonSort = "count_desc" | "count_asc" | "reason_asc" | "reason_desc";
+
+const STATUS_FILTER_OPTIONS: Array<{ value: StatusFilter; label: string }> = [
+  { value: "all", label: "Alle" },
+  { value: "canonical_already_ok", label: "canonical_already_ok" },
+  { value: "normalizable", label: "normalizable" },
+  { value: "unsafe_to_backfill", label: "unsafe_to_backfill" },
+];
+
+const REASON_SORT_OPTIONS: Array<{ value: ReasonSort; label: string }> = [
+  { value: "count_desc", label: "Count absteigend" },
+  { value: "count_asc", label: "Count aufsteigend" },
+  { value: "reason_asc", label: "Reason A-Z" },
+  { value: "reason_desc", label: "Reason Z-A" },
+];
+
 export function CreateHistoryMaintenanceDiagnosticsPanel({
   report,
   loading,
@@ -21,8 +40,32 @@ export function CreateHistoryMaintenanceDiagnosticsPanel({
   onScanLimitChange,
   onReload,
 }: Props) {
-  const reasonEntries = Object.entries(report?.reasonBuckets || {}).sort((left, right) => right[1] - left[1]);
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  const [reasonSort, setReasonSort] = useState<ReasonSort>("count_desc");
+
+  const reasonEntries = useMemo(() => {
+    const entries = Object.entries(report?.reasonBuckets || {});
+    return entries.sort((left, right) => {
+      if (reasonSort === "count_desc") {
+        const byCount = right[1] - left[1];
+        if (byCount !== 0) return byCount;
+        return left[0].localeCompare(right[0]);
+      }
+      if (reasonSort === "count_asc") {
+        const byCount = left[1] - right[1];
+        if (byCount !== 0) return byCount;
+        return left[0].localeCompare(right[0]);
+      }
+      if (reasonSort === "reason_desc") return right[0].localeCompare(left[0]);
+      return left[0].localeCompare(right[0]);
+    });
+  }, [report?.reasonBuckets, reasonSort]);
+
   const samples = report?.samples || [];
+  const filteredSamples = useMemo(() => {
+    if (statusFilter === "all") return samples;
+    return samples.filter((sample) => sample.status === statusFilter);
+  }, [samples, statusFilter]);
 
   return (
     <section className="space-y-4">
@@ -34,7 +77,10 @@ export function CreateHistoryMaintenanceDiagnosticsPanel({
       </header>
 
       <div className="rounded-xl border border-sky-300/50 bg-sky-50/70 p-3 text-sm text-sky-900 dark:border-sky-400/40 dark:bg-sky-500/10 dark:text-sky-100">
-        Read-only / dry-run only. Kein Backfill-Apply aus diesem Screen.
+        Read-only / dry-run only. Kein Backfill-Apply aus diesem Screen. Apply bleibt weiterhin nur per Script:
+        <code className="ml-1 rounded bg-sky-100/80 px-1 py-0.5 text-[11px] dark:bg-sky-700/30">
+          pnpm -C apps/web exec tsx scripts/create.history-backfill.ts --apply --json
+        </code>
       </div>
 
       <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-3">
@@ -69,6 +115,36 @@ export function CreateHistoryMaintenanceDiagnosticsPanel({
           >
             Neu laden
           </button>
+
+          <label className="text-xs font-semibold text-[rgb(var(--fg))]">
+            Sample-Status
+            <select
+              className="mt-1 block rounded-md border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-2 py-1 text-xs text-[rgb(var(--fg))]"
+              value={statusFilter}
+              onChange={(event) => setStatusFilter(event.target.value as StatusFilter)}
+            >
+              {STATUS_FILTER_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="text-xs font-semibold text-[rgb(var(--fg))]">
+            Reason-Sortierung
+            <select
+              className="mt-1 block rounded-md border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-2 py-1 text-xs text-[rgb(var(--fg))]"
+              value={reasonSort}
+              onChange={(event) => setReasonSort(event.target.value as ReasonSort)}
+            >
+              {REASON_SORT_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
         </div>
       </div>
 
@@ -133,7 +209,10 @@ export function CreateHistoryMaintenanceDiagnosticsPanel({
 
           <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-3">
             <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Samples</h2>
-            {samples.length === 0 ? (
+            <p className="mt-1 text-xs text-[rgb(var(--muted))]">
+              Zeige {filteredSamples.length} von {samples.length} Samples (Filter: {statusFilter}).
+            </p>
+            {filteredSamples.length === 0 ? (
               <p className="mt-2 text-sm text-[rgb(var(--muted))]">Keine Sample-Events im aktuellen Report.</p>
             ) : (
               <div className="mt-2 overflow-x-auto">
@@ -145,10 +224,11 @@ export function CreateHistoryMaintenanceDiagnosticsPanel({
                       <th className="px-2 py-1">status</th>
                       <th className="px-2 py-1">inferredEventType</th>
                       <th className="px-2 py-1">reasons</th>
+                      <th className="px-2 py-1">links</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {samples.map((sample) => (
+                    {filteredSamples.map((sample) => (
                       <tr key={`${sample.rowId ?? "missing"}:${sample.draftId ?? "missing"}:${sample.status}`} className="border-b border-[rgb(var(--border))]/60 align-top">
                         <td className="px-2 py-1 font-mono text-[11px] text-[rgb(var(--fg))]">{sample.rowId ?? "missing"}</td>
                         <td className="px-2 py-1 font-mono text-[11px] text-[rgb(var(--fg))]">{sample.draftId ?? "missing"}</td>
@@ -156,6 +236,26 @@ export function CreateHistoryMaintenanceDiagnosticsPanel({
                         <td className="px-2 py-1">{sample.inferredEventType ?? "unknown"}</td>
                         <td className="px-2 py-1">
                           {sample.reasons.length > 0 ? sample.reasons.join(", ") : "none"}
+                        </td>
+                        <td className="px-2 py-1">
+                          {sample.draftId ? (
+                            <div className="flex flex-col gap-1">
+                              <a
+                                className="font-semibold text-sky-700 underline decoration-sky-300 underline-offset-2 hover:text-sky-800 dark:text-sky-300 dark:hover:text-sky-200"
+                                href={`/admin/create/attach-drafts?reviewState=all&q=${encodeURIComponent(sample.draftId)}`}
+                              >
+                                Queue
+                              </a>
+                              <a
+                                className="font-semibold text-sky-700 underline decoration-sky-300 underline-offset-2 hover:text-sky-800 dark:text-sky-300 dark:hover:text-sky-200"
+                                href={`/api/admin/create/attach-drafts/${encodeURIComponent(sample.draftId)}/history?type=all&limit=20`}
+                              >
+                                History JSON
+                              </a>
+                            </div>
+                          ) : (
+                            "n/a"
+                          )}
                         </td>
                       </tr>
                     ))}

@@ -41,6 +41,17 @@ export default function AdminCreateAttachDraftsPage() {
   const [historyErrorByDraft, setHistoryErrorByDraft] = useState<Record<string, string | null>>({});
 
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const initialQuery = String(params.get("q") || params.get("draftId") || "").trim();
+    const initialReviewState = String(params.get("reviewState") || "").trim().toLowerCase();
+
+    if (initialQuery) setQuery(initialQuery);
+    if (isReviewStateFilter(initialReviewState)) {
+      setFilter(initialReviewState);
+    }
+  }, []);
+
+  useEffect(() => {
     let ignored = false;
     async function load() {
       setLoading(true);
@@ -302,6 +313,10 @@ export default function AdminCreateAttachDraftsPage() {
       )}
     </section>
   );
+}
+
+function isReviewStateFilter(value: string): value is ReviewStateFilter {
+  return FILTER_OPTIONS.some((option) => option.value === value);
 }
 
 function mergeHistoryEvents<T extends { eventId: string; createdAt: string }>(current: T[], next: T[]) {

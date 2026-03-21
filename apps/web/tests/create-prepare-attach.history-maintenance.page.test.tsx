@@ -41,6 +41,8 @@ describe("create prepare-attach history maintenance page ui", () => {
     expect(html).toContain("Create History Maintenance");
     expect(html).toContain("Read-only / dry-run only");
     expect(html).toContain("Kein Backfill-Apply aus diesem Screen");
+    expect(html).toContain("Apply bleibt weiterhin nur per Script");
+    expect(html).toContain("scripts/create.history-backfill.ts --apply --json");
     expect(html).toContain("Summary");
     expect(html).toContain("Total scanned");
     expect(html).toContain("Canonical");
@@ -55,6 +57,12 @@ describe("create prepare-attach history maintenance page ui", () => {
     expect(html).toContain("normalizable");
     expect(html).toContain("review");
     expect(html).toContain("Neu laden");
+    expect(html).toContain("Sample-Status");
+    expect(html).toContain("Reason-Sortierung");
+    expect(html).toContain("Queue");
+    expect(html).toContain("History JSON");
+    expect(html).toContain("/admin/create/attach-drafts?reviewState=all&amp;q=65f000000000000000000211");
+    expect(html).toContain("/api/admin/create/attach-drafts/65f000000000000000000211/history?type=all&amp;limit=20");
   });
 
   it("renders stable empty states for reason buckets and samples", () => {
