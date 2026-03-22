@@ -240,7 +240,7 @@ function AnlassraumOperationsCard({ item }: { item: AnlassraumOperationsItem }) 
           Admin-Detail
         </Link>
         <Link href={item.links.createContext} className="text-sky-700 hover:underline">
-          Manuell via /create
+          Manuellen Intake via /create starten
         </Link>
         <Link href={item.links.attachQueue} className="text-sky-700 hover:underline">
           Attach-Queue

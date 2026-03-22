@@ -173,6 +173,30 @@ export default function AdminDraftDetailPage() {
     weakSignalFlagged: draft.weakSignal?.flagged,
     feedReviewState: draft.feedReviewState ?? null,
   });
+  const manualCreateHref = buildCreateFastPathHref({
+    draftId: params.id,
+    candidateId: typeof candidate?.id === "string" ? candidate.id : null,
+    anlassraumId: draft.anlassraumId ?? null,
+    source: "feed_draft_detail",
+    signalTitle: draft.title ?? candidate?.sourceTitle ?? null,
+    sourceUrl: draft.sourceUrl ?? candidate?.sourceUrl ?? null,
+    sourceLabel: candidate?.sourceTitle ?? null,
+    region: draft.regionCode ?? candidate?.regionCode ?? null,
+    reviewState: draft.feedReviewState ?? "queued",
+    reason: currentDecisionPath,
+  });
+  const manualCreatePanelHref = buildCreateFastPathHref({
+    draftId: params.id,
+    candidateId: typeof candidate?.id === "string" ? candidate.id : null,
+    anlassraumId: draft.anlassraumId ?? null,
+    source: "feed_draft_detail_panel",
+    signalTitle: draft.title ?? candidate?.sourceTitle ?? null,
+    sourceUrl: draft.sourceUrl ?? candidate?.sourceUrl ?? null,
+    sourceLabel: candidate?.sourceTitle ?? null,
+    region: draft.regionCode ?? candidate?.regionCode ?? null,
+    reviewState: draft.feedReviewState ?? "queued",
+    reason: currentDecisionPath,
+  });
 
   return (
     <div className="flex w-full flex-col gap-6 py-4">
@@ -220,7 +244,7 @@ export default function AdminDraftDetailPage() {
           )}
           <span className="text-[rgb(var(--muted))]">·</span>
           <Link
-            href={buildCreateFastPathHref({ draftId: params.id, anlassraumId: draft.anlassraumId ?? null, source: "feed_draft_detail" })}
+            href={manualCreateHref}
             className="text-sky-600 hover:underline"
           >
             Manuell via /create
@@ -330,7 +354,7 @@ export default function AdminDraftDetailPage() {
                 Weak Signal
               </button>
               <Link
-                href={buildCreateFastPathHref({ draftId: params.id, anlassraumId: draft.anlassraumId ?? null, source: "feed_draft_detail_panel" })}
+                href={manualCreatePanelHref}
                 className="btn border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm text-[rgb(var(--fg))]"
               >
                 manual_fast_path_via_create

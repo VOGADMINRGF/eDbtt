@@ -67,6 +67,34 @@ describe("create CTA handoff helper", () => {
     expect(handoff.requiresConfirm).toBe(true);
   });
 
+  it("builds canonical /create fast-path fallback when anlassraum targetRef is missing", () => {
+    const handoff = buildCreateCtaHandoff({
+      ctaId: "anlassraum_oeffnen",
+      createAnalyze: {
+        matchType: "same_anlassraum",
+        matchEntityType: "anlassraum",
+        matches: [
+          {
+            id: "m1",
+            matchType: "same_anlassraum",
+            matchEntityType: "anlassraum",
+            strength: "high",
+            label: "Anlassraum Innenstadt",
+            reason: "Expliziter Kontext",
+            reasons: ["Expliziter Kontext"],
+            entityId: "65f000000000000000000011",
+            targetRef: null,
+          },
+        ],
+      },
+    });
+
+    expect(handoff.targetRef).toContain("/create?");
+    expect(handoff.targetRef).toContain("anlassraumId=65f000000000000000000011");
+    expect(handoff.targetRef).toContain("source=cta_handoff");
+    expect(handoff.targetRef).toContain("reason=same_anlassraum");
+  });
+
   it("maps no_match to neu_anlegen with prepare_new and no target mutation", () => {
     const handoff = buildCreateCtaHandoff({
       ctaId: "neu_anlegen",

@@ -343,6 +343,11 @@ export async function listAnlassraumOperations(input: {
         createContext: buildCreateFastPathHref({
           anlassraumId: normalized.id,
           source: "anlassraum_operations",
+          signalTitle: normalized.title,
+          region: normalized.regionKey,
+          scope: normalized.scope,
+          clusterHint: normalized.clusterKey,
+          reason: "manual_fast_path_via_create",
         }),
         attachQueue: `/admin/create/attach-drafts?reviewState=all&q=${encodeURIComponent(normalized.id)}`,
         feedDrafts: `/admin/feeds/drafts?hasAnlassraum=linked&anlassraumId=${encodeURIComponent(normalized.id)}`,

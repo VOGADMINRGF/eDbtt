@@ -220,6 +220,9 @@ describe("create match service", () => {
     expect(result.reasons.length).toBeGreaterThan(0);
     expect(result.suggestedCtas.some((cta) => cta.id === "anlassraum_oeffnen")).toBe(true);
     expect(result.suggestedCtas.some((cta) => cta.id === "perspektive_anhaengen")).toBe(true);
+    expect(result.matches[0]?.targetRef ?? "").toContain("/create?");
+    expect(result.matches[0]?.targetRef ?? "").toContain("anlassraumId=65f000000000000000000011");
+    expect(result.matches[0]?.targetRef ?? "").toContain("source=create_match_service");
   });
 
   it("returns related_claim for semantically close productive claim data", async () => {

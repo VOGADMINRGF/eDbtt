@@ -439,7 +439,13 @@ export default function AdminFeedDraftsPage() {
           <Link href="/admin/anlassraeume" className="text-sm font-semibold text-sky-700 hover:underline">
             Zu Anlassraum Operations
           </Link>
-          <Link href={buildCreateFastPathHref({ source: "feed_drafts_queue" })} className="text-sm font-semibold text-sky-700 hover:underline">
+          <Link
+            href={buildCreateFastPathHref({
+              source: "feed_drafts_queue",
+              reason: "manual_fast_path_via_create",
+            })}
+            className="text-sm font-semibold text-sky-700 hover:underline"
+          >
             4) manual_fast_path_via_create
           </Link>
         </div>
@@ -590,7 +596,13 @@ export default function AdminFeedDraftsPage() {
                       Feed Control Plane
                     </Link>
                     <span>{" "}bzw. starte einen manuellen Anlassraum-Einstieg via{" "}</span>
-                    <Link href={buildCreateFastPathHref({ source: "feed_drafts_empty_state" })} className="font-semibold text-sky-700 hover:underline">
+                    <Link
+                      href={buildCreateFastPathHref({
+                        source: "feed_drafts_empty_state",
+                        reason: "no_results_after_filter",
+                      })}
+                      className="font-semibold text-sky-700 hover:underline"
+                    >
                       /create
                     </Link>
                     .
@@ -605,6 +617,16 @@ export default function AdminFeedDraftsPage() {
                     feedReviewState: draft.feedReviewState ?? null,
                   });
                   const nextStep = deriveOperationalNextStep(draft, decisionPath);
+                  const manualCreateHref = buildCreateFastPathHref({
+                    draftId: draft.id,
+                    anlassraumId: draft.anlassraumId ?? null,
+                    source: "feed_drafts_queue",
+                    signalTitle: draft.title,
+                    sourceUrl: draft.sourceUrl ?? null,
+                    region: draft.regionCode ?? null,
+                    reviewState: draft.feedReviewState ?? "queued",
+                    reason: decisionPath,
+                  });
                   return (
                     <tr key={draft.id} className={draft.queueMeta?.priorityBucket === "high" ? "bg-amber-50/40" : ""}>
                       <td className="px-3 py-3 align-top">
@@ -660,7 +682,7 @@ export default function AdminFeedDraftsPage() {
                               Anlassraum-Kontext prüfen
                             </Link>
                             <Link
-                              href={buildCreateFastPathHref({ draftId: draft.id, source: "feed_drafts_row_unlinked" })}
+                              href={manualCreateHref}
                               className="font-semibold text-sky-700 hover:underline"
                             >
                               Manuell via /create fortsetzen
@@ -686,7 +708,7 @@ export default function AdminFeedDraftsPage() {
                         </Link>
                         {!draft.anlassraumId ? (
                           <Link
-                            href={buildCreateFastPathHref({ draftId: draft.id, source: "feed_drafts_next_step" })}
+                            href={manualCreateHref}
                             className="mt-1 inline-flex font-semibold text-sky-700 hover:underline"
                           >
                             4) manual_fast_path_via_create

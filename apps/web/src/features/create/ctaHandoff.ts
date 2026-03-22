@@ -102,6 +102,8 @@ function defaultTargetRef(
     return buildCreateFastPathHref({
       anlassraumId: match.entityId,
       source: "cta_handoff",
+      signalTitle: match.label,
+      reason: match.matchType ?? "same_anlassraum",
     });
   }
   if (ctaId === "dossier_oeffnen") {

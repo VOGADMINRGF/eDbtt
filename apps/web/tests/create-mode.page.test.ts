@@ -154,4 +154,28 @@ describe("/create canonical mode rendering", () => {
     expect(lastCall?.createMode).toBe("manual");
     expect(lastCall?.selectedAnlassraumId).toBeUndefined();
   });
+
+  it("hydrates intake context from URL and seeds workspace text when no draft/prefill exists", async () => {
+    const tree = await CreatePage({
+      searchParams: Promise.resolve({
+        anlassraumId: "65f000000000000000000011",
+        source: "feed_drafts_queue",
+        signalTitle: "Signal Innenstadt",
+        sourceUrl: "https://example.org/a",
+        region: "DE-BE",
+        scope: "regional",
+        reason: "manual_fast_path_via_create",
+      }),
+    });
+    const html = renderToStaticMarkup(tree);
+
+    expect(html).toContain("Intake-Kontext");
+    expect(html).toContain("Signal Innenstadt");
+    expect(html).toContain("source: feed_drafts_queue");
+
+    const lastCall = mocks.analyzeWorkspaceCalls.at(-1);
+    expect(String(lastCall?.initialText ?? "")).toContain("Intake-Kontext (Anlassraum-first)");
+    expect(String(lastCall?.initialText ?? "")).toContain("Signal: Signal Innenstadt");
+    expect(String(lastCall?.initialText ?? "")).toContain("Quelle-URL: https://example.org/a");
+  });
 });

@@ -71,6 +71,16 @@ export type BuildCreateFastPathHrefArgs = {
   mode?: CreateMode;
   anlassraumId?: string | null;
   draftId?: string | null;
+  candidateId?: string | null;
+  signalTitle?: string | null;
+  sourceUrl?: string | null;
+  sourceLabel?: string | null;
+  region?: string | null;
+  scope?: string | null;
+  clusterHint?: string | null;
+  reviewState?: string | null;
+  reason?: string | null;
+  prefill?: string | null;
   source?: string | null;
   next?: string | null;
 };
@@ -82,6 +92,24 @@ function withQuery(path: string, query: Record<string, string | undefined>) {
   });
   const qs = params.toString();
   return qs ? `${path}?${qs}` : path;
+}
+
+function normalizeQueryText(value: string | null | undefined, maxLen: number): string | undefined {
+  const normalized = String(value ?? "").trim();
+  if (!normalized) return undefined;
+  return normalized.slice(0, maxLen);
+}
+
+function normalizeQueryUrl(value: string | null | undefined): string | undefined {
+  const normalized = String(value ?? "").trim();
+  if (!normalized) return undefined;
+  try {
+    const url = new URL(normalized);
+    if (url.protocol !== "http:" && url.protocol !== "https:") return undefined;
+    return url.toString().slice(0, 1000);
+  } catch {
+    return undefined;
+  }
 }
 
 export function parseCreateIntent(raw?: string | null): CreateIntent | undefined {
@@ -139,14 +167,24 @@ export function buildCreateHref({
 }
 
 export function buildCreateFastPathHref(args: BuildCreateFastPathHrefArgs = {}): string {
-  const intent = args.intent ?? "claim";
-  const mode = args.mode ?? "manual";
+  const intent = args.intent ?? undefined;
+  const mode = args.mode ?? undefined;
   return withQuery(CANONICAL_CREATE_PATH, {
     intent,
     mode,
-    anlassraumId: args.anlassraumId ? args.anlassraumId.trim() : undefined,
-    draftId: args.draftId ? args.draftId.trim() : undefined,
-    source: args.source ? args.source.trim() : undefined,
+    anlassraumId: normalizeQueryText(args.anlassraumId, 64),
+    draftId: normalizeQueryText(args.draftId, 64),
+    candidateId: normalizeQueryText(args.candidateId, 64),
+    signalTitle: normalizeQueryText(args.signalTitle, 160),
+    sourceUrl: normalizeQueryUrl(args.sourceUrl),
+    sourceLabel: normalizeQueryText(args.sourceLabel, 120),
+    region: normalizeQueryText(args.region, 48),
+    scope: normalizeQueryText(args.scope, 48),
+    clusterHint: normalizeQueryText(args.clusterHint, 96),
+    reviewState: normalizeQueryText(args.reviewState, 48),
+    reason: normalizeQueryText(args.reason, 160),
+    prefill: normalizeQueryText(args.prefill, 2000),
+    source: normalizeQueryText(args.source, 64),
     next: args.next ?? undefined,
   });
 }

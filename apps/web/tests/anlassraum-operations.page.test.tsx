@@ -50,7 +50,7 @@ describe("anlassraum operations page", () => {
                 detailAdmin: "/admin/feeds/anlassraum/65f000000000000000000111",
                 detailJson: "/api/admin/feeds/anlassraum/65f000000000000000000111",
                 createContext:
-                  "/create?intent=claim&mode=manual&anlassraumId=65f000000000000000000111&source=anlassraum_operations",
+                  "/create?anlassraumId=65f000000000000000000111&signalTitle=Mobilitaet+Innenstadt&region=DE%3ABE&scope=regional&clusterHint=cluster-verkehr&reason=manual_fast_path_via_create&source=anlassraum_operations",
                 attachQueue: "/admin/create/attach-drafts?reviewState=all&q=65f000000000000000000111",
                 feedDrafts: "/admin/feeds/drafts?hasAnlassraum=linked&anlassraumId=65f000000000000000000111",
                 feedClusterRooms: "/admin/feeds/anlassraum?sourceMode=cluster",
@@ -90,7 +90,7 @@ describe("anlassraum operations page", () => {
     expect(html).toContain("Mobilitaet Innenstadt");
     expect(html).toContain("Operative Hinweise");
     expect(html).toContain("Admin-Detail");
-    expect(html).toContain("Manuell via /create");
+    expect(html).toContain("Manuellen Intake via /create starten");
     expect(html).toContain("Attach-Queue");
     expect(html).toContain("Feed-/Cluster-Kontext");
     expect(html).toContain("Signal-Drafts");

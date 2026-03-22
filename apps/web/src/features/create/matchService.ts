@@ -3,6 +3,7 @@ import { anlassraumCol } from "@features/anlassraum/db";
 import { normalizeGermanSearchText } from "@features/common/utils/textNormalization";
 import { dossiersCol } from "@features/dossier/db";
 import { listCreateContextPickerItems } from "@/features/create/contextPicker";
+import { buildCreateFastPathHref } from "@/features/create/intents";
 import type {
   CreateAnalyzeCtaSuggestion,
   CreateAnalyzeMatchEntityType,
@@ -402,7 +403,13 @@ export async function resolveCreateGraphMatches(
         reason: reasons[0],
         reasons,
         entityId: fromPicker.id,
-        targetRef: `/create?anlassraumId=${encodeURIComponent(fromPicker.id)}`,
+        targetRef: buildCreateFastPathHref({
+          anlassraumId: fromPicker.id,
+          source: "create_match_service",
+          signalTitle: fromPicker.title,
+          clusterHint: fromPicker.topicKey,
+          reason: "explicit_anlassraum_context",
+        }),
       });
     } else {
       try {
@@ -426,7 +433,13 @@ export async function resolveCreateGraphMatches(
               reason: reasons[0],
               reasons,
               entityId: room._id.toHexString(),
-              targetRef: `/create?anlassraumId=${encodeURIComponent(room._id.toHexString())}`,
+              targetRef: buildCreateFastPathHref({
+                anlassraumId: room._id.toHexString(),
+                source: "create_match_service",
+                signalTitle: asText(room.title),
+                clusterHint: asText(room.topicKey),
+                reason: "explicit_anlassraum_context",
+              }),
             });
             contextItems.push({
               id: room._id.toHexString(),
@@ -468,7 +481,13 @@ export async function resolveCreateGraphMatches(
         reason: reasons[0],
         reasons,
         entityId: room.id,
-        targetRef: `/create?anlassraumId=${encodeURIComponent(room.id)}`,
+        targetRef: buildCreateFastPathHref({
+          anlassraumId: room.id,
+          source: "create_match_service",
+          signalTitle: room.title,
+          clusterHint: room.topicKey,
+          reason: "same_anlassraum_match",
+        }),
       });
     }
   }

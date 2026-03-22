@@ -16,6 +16,21 @@ export type CreateClientProps = {
   initialIntent?: "statement" | "contribution";
   initialMode?: CreateMode;
   initialText?: string | null;
+  initialIntakeContext?: CreateIntakeContext | null;
+};
+
+export type CreateIntakeContext = {
+  source: string | null;
+  signalTitle: string | null;
+  sourceUrl: string | null;
+  sourceLabel: string | null;
+  region: string | null;
+  scope: string | null;
+  clusterHint: string | null;
+  reviewState: string | null;
+  candidateId: string | null;
+  draftId: string | null;
+  reason: string | null;
 };
 
 type CreateContextPickerItem = {
@@ -104,6 +119,23 @@ function normalizeAnlassraumId(value?: string | null): string | null {
   return normalized;
 }
 
+function hasIntakeContext(context?: CreateIntakeContext | null): boolean {
+  if (!context) return false;
+  return (
+    !!context.source ||
+    !!context.signalTitle ||
+    !!context.sourceUrl ||
+    !!context.sourceLabel ||
+    !!context.region ||
+    !!context.scope ||
+    !!context.clusterHint ||
+    !!context.reviewState ||
+    !!context.candidateId ||
+    !!context.draftId ||
+    !!context.reason
+  );
+}
+
 export default function CreateClient({
   initialEntitlements,
   overview,
@@ -112,6 +144,7 @@ export default function CreateClient({
   initialIntent,
   initialMode,
   initialText,
+  initialIntakeContext,
 }: CreateClientProps) {
   const [entitlements, setEntitlements] = React.useState<CreateEntitlements>(initialEntitlements);
   const [gate, setGate] = React.useState<GateState>(() => deriveGate(initialEntitlements));
@@ -246,6 +279,7 @@ export default function CreateClient({
   const credits = entitlements.contributionCredits;
 
   const hasLegacyModeParam = Boolean(initialMode);
+  const showIntakeContext = hasIntakeContext(initialIntakeContext);
 
   return (
     <div className="space-y-5 md:space-y-6">
@@ -283,6 +317,51 @@ export default function CreateClient({
         <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-3 text-sm text-[rgb(var(--muted))]">
           Legacy-Mode-Parameter erkannt (<code>{legacyMode}</code>) und aus Kompatibilitaetsgruenden gelesen.
           Der kanonische Einstieg bleibt Freistart; ein sichtbarer Primarsplit ist nicht mehr Ziel-UX.
+        </section>
+      ) : null}
+
+      {showIntakeContext ? (
+        <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 md:p-5">
+          <div className="space-y-2">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[rgb(var(--muted))]">
+              Intake-Kontext
+            </p>
+            <p className="text-sm text-[rgb(var(--muted))]">
+              Kontext wurde aus dem vorgelagerten Signal-/Review-Flow uebernommen und dient als manueller Startpunkt.
+            </p>
+          </div>
+          <div className="mt-3 flex flex-wrap gap-2 text-xs text-[rgb(var(--muted))]">
+            {initialIntakeContext?.source ? <span className="vog-chip">source: {initialIntakeContext.source}</span> : null}
+            {initialIntakeContext?.signalTitle ? (
+              <span className="vog-chip">signal: {initialIntakeContext.signalTitle}</span>
+            ) : null}
+            {initialIntakeContext?.sourceLabel ? (
+              <span className="vog-chip">quelle: {initialIntakeContext.sourceLabel}</span>
+            ) : null}
+            {initialIntakeContext?.region ? <span className="vog-chip">region: {initialIntakeContext.region}</span> : null}
+            {initialIntakeContext?.scope ? <span className="vog-chip">scope: {initialIntakeContext.scope}</span> : null}
+            {initialIntakeContext?.clusterHint ? (
+              <span className="vog-chip">cluster: {initialIntakeContext.clusterHint}</span>
+            ) : null}
+            {initialIntakeContext?.reviewState ? (
+              <span className="vog-chip">review: {initialIntakeContext.reviewState}</span>
+            ) : null}
+            {initialIntakeContext?.candidateId ? (
+              <span className="vog-chip">candidateId: {initialIntakeContext.candidateId}</span>
+            ) : null}
+            {initialIntakeContext?.draftId ? <span className="vog-chip">draftId: {initialIntakeContext.draftId}</span> : null}
+            {initialIntakeContext?.reason ? <span className="vog-chip">handoff: {initialIntakeContext.reason}</span> : null}
+            {initialIntakeContext?.sourceUrl ? (
+              <a
+                href={initialIntakeContext.sourceUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="vog-chip border border-[rgb(var(--border))] bg-transparent"
+              >
+                Quelle oeffnen
+              </a>
+            ) : null}
+          </div>
         </section>
       ) : null}
 
