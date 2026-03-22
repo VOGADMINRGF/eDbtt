@@ -1,4 +1,10 @@
 import Link from "next/link";
+import {
+  formatOriginTypeLabel,
+  formatOwnerTypeLabel,
+  formatRelevanceScopeLabel,
+  formatSourceModeLabel,
+} from "@/features/relevanceFraming";
 import type {
   AnlassraumOperationsItem,
   AnlassraumOperationsQuery,
@@ -31,7 +37,14 @@ const STATUS_FILTERS: AnlassraumOperationsStatusFilter[] = [
   "published",
 ];
 
-const SCOPE_FILTERS: AnlassraumOperationsScopeFilter[] = ["all", "local", "regional", "national", "eu", "global"];
+const SCOPE_FILTERS: Array<{ value: AnlassraumOperationsScopeFilter; label: string }> = [
+  { value: "all", label: "alle Relevanzräume" },
+  { value: "local", label: formatRelevanceScopeLabel("local") },
+  { value: "regional", label: formatRelevanceScopeLabel("regional") },
+  { value: "national", label: formatRelevanceScopeLabel("national") },
+  { value: "eu", label: formatRelevanceScopeLabel("eu") },
+  { value: "global", label: formatRelevanceScopeLabel("global") },
+];
 
 export function AnlassraumOperationsPanel({ data, loading, error, query, onQueryChange, onReload }: Props) {
   const items = data?.items ?? [];
@@ -41,7 +54,8 @@ export function AnlassraumOperationsPanel({ data, loading, error, query, onQuery
       <header>
         <h1 className="text-2xl font-semibold text-[rgb(var(--fg))]">Anlassraum Operations</h1>
         <p className="mt-1 text-sm text-[rgb(var(--muted))]">
-          Read-only Sicht auf Anlassräume als operative Einheiten. Keine Mutation, kein Apply, keine Auto-Aktion.
+          Read-only Sicht auf Anlassräume als operative Einheiten über lokale, regionale, bundesweite und institutionelle
+          Relevanzräume hinweg. Keine Mutation, kein Apply, keine Auto-Aktion.
         </p>
       </header>
 
@@ -77,15 +91,15 @@ export function AnlassraumOperationsPanel({ data, loading, error, query, onQuery
           </label>
 
           <label className="text-xs font-semibold text-[rgb(var(--fg))]">
-            Scope
+            Relevanzraum (Scope)
             <select
               className="mt-1 block rounded-md border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-2 py-1 text-xs text-[rgb(var(--fg))]"
               value={query.scope}
               onChange={(event) => onQueryChange({ scope: event.target.value as AnlassraumOperationsScopeFilter, page: 1 })}
             >
               {SCOPE_FILTERS.map((scope) => (
-                <option key={scope} value={scope}>
-                  {scope}
+                <option key={scope.value} value={scope.value}>
+                  {scope.label}
                 </option>
               ))}
             </select>
@@ -186,8 +200,8 @@ function AnlassraumOperationsCard({ item }: { item: AnlassraumOperationsItem }) 
         </div>
         <div className="text-right text-xs text-[rgb(var(--muted))]">
           <p className="font-semibold text-[rgb(var(--fg))]">{item.status}</p>
-          <p>{item.scope ?? "scope?"} / {item.decisionScope ?? "decisionScope?"}</p>
-          <p>{item.sourceMode ?? "sourceMode?"}</p>
+          <p>{formatRelevanceScopeLabel(item.scope)} / {formatRelevanceScopeLabel(item.decisionScope)}</p>
+          <p>{formatSourceModeLabel(item.sourceMode)}</p>
         </div>
       </header>
 
@@ -197,6 +211,8 @@ function AnlassraumOperationsCard({ item }: { item: AnlassraumOperationsItem }) 
         <p>Region: <span className="text-[rgb(var(--fg))]">{item.regionKey ?? "--"}</span></p>
         <p>Topic: <span className="text-[rgb(var(--fg))]">{item.topicKey ?? "--"}</span></p>
         <p>Cluster: <span className="text-[rgb(var(--fg))]">{item.clusterKey ?? "--"}</span></p>
+        <p>Herkunft: <span className="text-[rgb(var(--fg))]">{formatOriginTypeLabel(item.originType)}</span></p>
+        <p>Trägerschaft: <span className="text-[rgb(var(--fg))]">{formatOwnerTypeLabel(item.ownerType)}</span></p>
         <p>Dossier-Verdichtung: <span className="text-[rgb(var(--fg))]">{item.dossierType ?? "optional / noch offen"}</span></p>
         <p>Sources: <span className="text-[rgb(var(--fg))]">{item.sourceCount}</span></p>
         <p>Outputs: <span className="text-[rgb(var(--fg))]">{item.outputCount}</span></p>
@@ -221,7 +237,7 @@ function AnlassraumOperationsCard({ item }: { item: AnlassraumOperationsItem }) 
       </div>
 
       <div className="mt-3 rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3 text-xs text-[rgb(var(--muted))]">
-        <p className="font-semibold text-[rgb(var(--fg))]">Feed-/Cluster-Kontext</p>
+        <p className="font-semibold text-[rgb(var(--fg))]">Signal-/Cluster-Kontext</p>
         <p>
           Linked Drafts: <span className="text-[rgb(var(--fg))]">{item.feedContext.linkedDraftCount}</span>{" "}
           (queued {item.feedContext.queuedDraftCount}, weak-signal {item.feedContext.weakSignalDraftCount})
@@ -286,6 +302,9 @@ function formatOperationalHint(value: string): string {
   if (value === "missing_output_seeds") return "Output-Seeds fehlen";
   if (value === "missing_cluster_key") return "Cluster-Key fehlt";
   if (value === "missing_cluster_candidate") return "Cluster-Kandidat fehlt";
+  if (value === "supra_local_relevance") return "überlokaler Relevanzraum";
+  if (value === "official_source_signal") return "öffentliche/amtliche Quelle";
+  if (value === "community_signal_input") return "Community-/Hinweis-Eingang";
   if (value === "risk_flags_present") return "Risk-Flags vorhanden";
   if (value === "legacy_status") return "Legacy-Status";
   if (value === "stale_30d") return "Seit 30+ Tagen unverändert";

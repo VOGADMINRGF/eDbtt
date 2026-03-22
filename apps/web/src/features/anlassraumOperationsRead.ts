@@ -42,6 +42,7 @@ export type AnlassraumOperationsItem = {
   clusterKey: string | null;
   sourceMode: string | null;
   originType: string | null;
+  ownerType: string | null;
   maturity: string | null;
   relevanceScore: number | null;
   riskFlags: string[];
@@ -331,6 +332,8 @@ export async function listAnlassraumOperations(input: {
         topicKey: normalized.topicKey,
         clusterKey: normalized.clusterKey,
         clusterCandidateStatus: clusterContext.candidateStatus,
+        scope: normalized.scope,
+        originType: normalized.originType,
         dossierId: normalized.dossierId,
         riskFlags: normalized.riskFlags,
         sourceCount,
@@ -408,6 +411,7 @@ export function normalizeAnlassraumOperationsDoc(
     clusterKey: asText(doc.clusterKey),
     sourceMode: asText(doc.sourceMode),
     originType: asText(doc.originType),
+    ownerType: asText(doc.ownerType),
     maturity: asText(doc.maturity),
     relevanceScore: asFiniteNumber(doc.relevanceScore),
     riskFlags: asStringArray(doc.riskFlags),
@@ -426,6 +430,8 @@ function buildOperationalHints(input: {
   topicKey: string | null;
   clusterKey: string | null;
   clusterCandidateStatus: string | null;
+  scope: string | null;
+  originType: string | null;
   dossierId: string | null;
   riskFlags: string[];
   sourceCount: number;
@@ -440,6 +446,9 @@ function buildOperationalHints(input: {
   if (input.outputCount === 0) hints.add("missing_output_seeds");
   if (input.sourceMode === "cluster" && !input.clusterKey) hints.add("missing_cluster_key");
   if (input.clusterKey && !input.clusterCandidateStatus) hints.add("missing_cluster_candidate");
+  if (input.scope && ["national", "eu", "global"].includes(input.scope)) hints.add("supra_local_relevance");
+  if (input.originType === "official") hints.add("official_source_signal");
+  if (input.originType === "community" || input.originType === "tip") hints.add("community_signal_input");
   if (!input.dossierId) hints.add("dossier_optional_not_started");
   if (input.riskFlags.length > 0) hints.add("risk_flags_present");
   if ((LEGACY_ANLASSRAUM_STATUSES as readonly string[]).includes(input.status)) {

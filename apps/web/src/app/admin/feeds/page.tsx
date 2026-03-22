@@ -162,7 +162,8 @@ export default function AdminFeedsPage() {
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[rgb(var(--muted))]">Admin · Feeds</p>
         <h1 className="mt-1 text-2xl font-bold text-[rgb(var(--fg))]">Feed Control Plane</h1>
         <p className="mt-2 text-sm text-[rgb(var(--muted))]">
-          Signale einspeisen und Anlassräume strukturieren; Dossier-Verdichtung bleibt ein bewusster Folgeschritt.
+          Signale aus Feeds, öffentlichen Quellen und Hinweis-Eingängen in Anlassräume überführen; Dossier-Verdichtung
+          bleibt ein bewusster Folgeschritt.
         </p>
         <div className="mt-3 flex flex-wrap gap-2">
           <Link href="/admin/feeds/drafts" className="rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white">
@@ -242,7 +243,7 @@ export default function AdminFeedsPage() {
         <div className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm">
           <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Pull + Analyze</h2>
           <p className="mt-1 text-xs text-[rgb(var(--muted))]">
-            Pull lädt Feed-Artikel in `statement_candidates`; Analyze erzeugt `vote_drafts`.
+            Pull lädt Signale in `statement_candidates`; Analyze erzeugt daraus prüfbare `vote_drafts`.
           </p>
 
           <div className="mt-4 grid gap-3 sm:grid-cols-2">

@@ -4,6 +4,12 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { buildCreateFastPathHref } from "@/features/create/intents";
+import {
+  formatOriginTypeLabel,
+  formatOwnerTypeLabel,
+  formatRelevanceScopeLabel,
+  formatSourceModeLabel,
+} from "@/features/relevanceFraming";
 
 type AnlassraumDetailResponse = {
   ok: boolean;
@@ -165,7 +171,11 @@ export default function AdminAnlassraumDetailPage() {
         </p>
         <h1 className="text-2xl font-bold text-[rgb(var(--fg))]">{item.title}</h1>
         <p className="text-sm text-[rgb(var(--muted))]">
-          {item.status} · {item.sourceMode} · score {item.relevanceScore}
+          {item.status} · {formatSourceModeLabel(item.sourceMode)} · score {item.relevanceScore}
+        </p>
+        <p className="text-xs text-[rgb(var(--muted))]">
+          Relevanzraum: {formatRelevanceScopeLabel(item.scope)} / {formatRelevanceScopeLabel(item.decisionScope)} · Herkunft:{" "}
+          {formatOriginTypeLabel(item.originType)} · Trägerschaft: {formatOwnerTypeLabel(item.ownerType)}
         </p>
         <p className="text-xs text-[rgb(var(--muted))]">
           Publish gate: {publishGate.ok ? "ok" : "blocked"} · sources {publishGate.sourceCount}

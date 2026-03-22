@@ -6,6 +6,7 @@ import type { CreateIntakeContext } from "./CreateClient";
 import { getCreateEntitlementsForRequest } from "@/lib/server/entitlements/createEntitlements";
 import { getAccountOverview } from "@features/account/service";
 import { parseCreateIntent, parseCreateMode, type CreateMode } from "@/features/create/intents";
+import { formatRelevanceScopeLabel } from "@/features/relevanceFraming";
 
 export const metadata: Metadata = {
   title: "Erstellen - eDebatte",
@@ -98,8 +99,8 @@ function buildIntakeContextPrefill(context: CreateIntakeContext, anlassraumId?: 
     context.signalTitle ? `Signal: ${context.signalTitle}` : null,
     context.sourceLabel ? `Quelle: ${context.sourceLabel}` : null,
     context.sourceUrl ? `Quelle-URL: ${context.sourceUrl}` : null,
-    context.region ? `Region: ${context.region}` : null,
-    context.scope ? `Scope: ${context.scope}` : null,
+    context.region ? `Region/Bezug: ${context.region}` : null,
+    context.scope ? `Relevanzraum: ${formatRelevanceScopeLabel(context.scope, context.scope)}` : null,
     context.clusterHint ? `Cluster-Hinweis: ${context.clusterHint}` : null,
     anlassraumId ? `Anlassraum-Kontext: ${anlassraumId}` : null,
     context.candidateId ? `Candidate-ID: ${context.candidateId}` : null,

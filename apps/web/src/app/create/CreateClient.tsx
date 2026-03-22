@@ -7,6 +7,7 @@ import type { AccountOverview } from "@features/account/types";
 import { getAccessTierConfigForUser, getUserAccessTier } from "@core/access/accessTiers";
 import type { CreateEntitlements } from "@/lib/server/entitlements/createEntitlements";
 import type { CreateMode } from "@/features/create/intents";
+import { formatRelevanceScopeLabel } from "@/features/relevanceFraming";
 
 export type CreateClientProps = {
   initialEntitlements: CreateEntitlements;
@@ -339,7 +340,11 @@ export default function CreateClient({
               <span className="vog-chip">quelle: {initialIntakeContext.sourceLabel}</span>
             ) : null}
             {initialIntakeContext?.region ? <span className="vog-chip">region: {initialIntakeContext.region}</span> : null}
-            {initialIntakeContext?.scope ? <span className="vog-chip">scope: {initialIntakeContext.scope}</span> : null}
+            {initialIntakeContext?.scope ? (
+              <span className="vog-chip">
+                relevanzraum: {formatRelevanceScopeLabel(initialIntakeContext.scope, initialIntakeContext.scope)}
+              </span>
+            ) : null}
             {initialIntakeContext?.clusterHint ? (
               <span className="vog-chip">cluster: {initialIntakeContext.clusterHint}</span>
             ) : null}

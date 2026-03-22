@@ -21,6 +21,7 @@ describe("anlassraum operations page", () => {
               clusterKey: "cluster-verkehr",
               sourceMode: "feed",
               originType: "feed",
+              ownerType: "municipality",
               maturity: "structured",
               relevanceScore: 0.74,
               riskFlags: [],
@@ -92,7 +93,7 @@ describe("anlassraum operations page", () => {
     expect(html).toContain("Admin-Detail");
     expect(html).toContain("Manuellen Intake via /create starten");
     expect(html).toContain("Attach-Queue");
-    expect(html).toContain("Feed-/Cluster-Kontext");
+    expect(html).toContain("Signal-/Cluster-Kontext");
     expect(html).toContain("Signal-Drafts");
     expect(html).toContain("Signal-Input-Räume");
     expect(html).toContain("Cluster-Räume");

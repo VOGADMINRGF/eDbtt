@@ -2,6 +2,12 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import {
+  formatOriginTypeLabel,
+  formatOwnerTypeLabel,
+  formatRelevanceScopeLabel,
+  formatSourceModeLabel,
+} from "@/features/relevanceFraming";
 
 type AnlassraumListItem = {
   id: string;
@@ -9,6 +15,8 @@ type AnlassraumListItem = {
   type: string | null;
   kind: string;
   sourceMode: string;
+  originType: string | null;
+  ownerType: string | null;
   status: string;
   scope: string | null;
   decisionScope: string | null;
@@ -104,7 +112,8 @@ export default function AdminAnlassraumPage() {
         </p>
         <h1 className="text-2xl font-bold text-[rgb(var(--fg))]">Anlassräume</h1>
         <p className="text-sm text-[rgb(var(--muted))]">
-          Anlassräume strukturieren Signale zuerst; Dossier-Verdichtung folgt optional als bewusster nächster Schritt.
+          Anlassräume strukturieren Signale zuerst. Relevanz kann lokal, regional, bundesweit oder institutionell
+          sein; Dossier-Verdichtung folgt optional als bewusster nächster Schritt.
         </p>
         <p className="flex gap-3">
           <Link href="/admin/feeds" className="text-sm font-semibold text-sky-700 hover:underline">
@@ -177,7 +186,11 @@ export default function AdminAnlassraumPage() {
                       {item.title}
                     </Link>
                     <p className="text-xs text-[rgb(var(--muted))]">
-                      {(item.type ?? item.kind) || "anlassraum"} · {item.sourceMode} · score {item.relevanceScore}
+                      {(item.type ?? item.kind) || "anlassraum"} · {formatSourceModeLabel(item.sourceMode)} · score{" "}
+                      {item.relevanceScore}
+                    </p>
+                    <p className="text-xs text-[rgb(var(--muted))]">
+                      Herkunft: {formatOriginTypeLabel(item.originType)} · Trägerschaft: {formatOwnerTypeLabel(item.ownerType)}
                     </p>
                   </td>
                   <td className="px-4 py-3 text-xs">
@@ -187,8 +200,8 @@ export default function AdminAnlassraumPage() {
                     </p>
                   </td>
                   <td className="px-4 py-3 text-xs text-[rgb(var(--muted))]">
-                    <p>{formatRegion(item.regionCode) || "Global"}</p>
-                    <p>{item.scope ?? "—"} / {item.decisionScope ?? "—"}</p>
+                    <p>{formatRegion(item.regionCode) || "Global / offen"}</p>
+                    <p>{formatRelevanceScopeLabel(item.scope)} / {formatRelevanceScopeLabel(item.decisionScope)}</p>
                     <p>{item.topicKey ?? "—"}</p>
                     <p>{item.clusterKey ?? "—"}</p>
                     <p>dossier-verdichtung: {item.dossierType ?? "optional / nicht gestartet"}</p>

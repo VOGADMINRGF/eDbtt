@@ -88,6 +88,8 @@ export async function GET(req: NextRequest) {
         type: doc.type ?? null,
         kind: doc.kind,
         sourceMode: doc.sourceMode,
+        originType: doc.originType ?? null,
+        ownerType: doc.ownerType ?? null,
         status: doc.status,
         scope: doc.scope ?? null,
         decisionScope: doc.decisionScope ?? null,
