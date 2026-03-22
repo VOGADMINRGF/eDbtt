@@ -1,5 +1,6 @@
 import { getCol, ObjectId } from "@core/db/triMongo";
 import { anlassraumCol } from "@features/anlassraum/db";
+import { normalizeGermanSearchText } from "@features/common/utils/textNormalization";
 import { dossiersCol } from "@features/dossier/db";
 import { listCreateContextPickerItems } from "@/features/create/contextPicker";
 import type {
@@ -88,11 +89,7 @@ function asText(value: unknown): string {
 }
 
 function normalizeText(value: string): string {
-  return value
-    .toLowerCase()
-    .replace(/[^a-z0-9äöüß]+/gi, " ")
-    .replace(/\s+/g, " ")
-    .trim();
+  return normalizeGermanSearchText(value);
 }
 
 function tokenize(value: string): string[] {
@@ -622,4 +619,3 @@ export async function resolveCreateGraphMatches(
     sourceErrors,
   };
 }
-

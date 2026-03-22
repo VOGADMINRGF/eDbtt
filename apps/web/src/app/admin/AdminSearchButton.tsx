@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { NAV_SECTIONS, flattenNavItems } from "./adminNav";
+import { normalizeGermanSearchText } from "@features/common/utils/textNormalization";
 
 type InventoryRoute = {
   path: string;
@@ -91,23 +92,21 @@ export default function AdminSearchButton() {
   const navItems = useMemo(() => flattenNavItems(NAV_SECTIONS), []);
 
   const filteredNavItems = useMemo(() => {
-    const normalized = query.trim().toLowerCase();
+    const normalized = normalizeGermanSearchText(query);
     if (!normalized) return navItems;
     const terms = normalized.split(/\s+/).filter(Boolean);
     return navItems.filter((item) => {
-      const haystack = [item.label, item.description ?? "", item.href, ...(item.keywords ?? [])]
-        .join(" ")
-        .toLowerCase();
+      const haystack = normalizeGermanSearchText([item.label, item.description ?? "", item.href, ...(item.keywords ?? [])].join(" "));
       return terms.every((term) => haystack.includes(term));
     });
   }, [navItems, query]);
 
   const filteredInventory = useMemo(() => {
-    const normalized = query.trim().toLowerCase();
+    const normalized = normalizeGermanSearchText(query);
     if (!normalized) return [];
     const terms = normalized.split(/\s+/).filter(Boolean);
     return inventory.filter((item) => {
-      const haystack = [item.path, item.file, item.kind].join(" ").toLowerCase();
+      const haystack = normalizeGermanSearchText([item.path, item.file, item.kind].join(" "));
       return terms.every((term) => haystack.includes(term));
     });
   }, [inventory, query]);
@@ -176,10 +175,10 @@ export default function AdminSearchButton() {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="inline-flex items-center gap-2 rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-1.5 text-sm font-semibold text-[rgb(var(--muted))] hover:border-sky-300 hover:text-sky-700"
+        className="inline-flex items-center gap-2 rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-1.5 text-sm font-semibold text-[rgb(var(--fg))] hover:border-sky-300 hover:text-sky-700 dark:hover:text-sky-200"
       >
         Suche
-        <span className="rounded-full bg-[rgb(var(--bg))] px-2 py-0.5 text-[11px] text-[rgb(var(--muted))]">
+        <span className="rounded-full bg-[rgb(var(--bg))] px-2 py-0.5 text-[11px] text-[rgb(var(--fg))]/80">
           Cmd+K
         </span>
       </button>
@@ -193,12 +192,12 @@ export default function AdminSearchButton() {
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Suche in Navigation und Seiten (z.B. reports, users, /admin/...)"
-                className="flex-1 bg-transparent text-sm text-[rgb(var(--muted))] focus:outline-none"
+                className="flex-1 bg-transparent text-sm text-[rgb(var(--fg))] placeholder:text-[rgb(var(--muted))] focus:outline-none"
               />
               <button
                 type="button"
                 onClick={() => setOpen(false)}
-                className="rounded-full bg-[rgb(var(--bg))] px-3 py-1 text-xs font-semibold text-[rgb(var(--muted))]"
+                className="rounded-full bg-[rgb(var(--bg))] px-3 py-1 text-xs font-semibold text-[rgb(var(--fg))]/85 hover:text-sky-700 dark:hover:text-sky-200"
               >
                 Schliessen
               </button>
@@ -218,7 +217,7 @@ export default function AdminSearchButton() {
                             key={item.href}
                             href={item.href}
                             onClick={() => setOpen(false)}
-                            className="rounded-2xl border border-[rgb(var(--border))] px-3 py-2 text-sm text-[rgb(var(--fg))] hover:border-sky-200 hover:bg-sky-50"
+                            className="rounded-2xl border border-[rgb(var(--border))] px-3 py-2 text-sm text-[rgb(var(--fg))] hover:border-sky-200 hover:bg-sky-50 dark:hover:bg-sky-500/10"
                           >
                             <div className="font-semibold text-[rgb(var(--fg))]">{item.label}</div>
                             {item.description && (

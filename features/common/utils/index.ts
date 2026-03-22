@@ -3,3 +3,4 @@ export * from "./date";
 export { default as Error } from "./error";
 export * from "./error";
 export * from "./draftNavigation";
+export * from "./textNormalization";

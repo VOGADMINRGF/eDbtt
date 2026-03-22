@@ -1,5 +1,6 @@
 import { createHash } from "crypto";
 import { ObjectId } from "@core/db/triMongo";
+import { normalizeGermanSlug } from "@features/common/utils/textNormalization";
 import { feedAnlassraumClusterCandidatesCol, voteDraftsCol } from "./db";
 import type {
   FeedAnlassraumClusterCandidateDoc,
@@ -352,14 +353,7 @@ function normalizeRegionCode(value: unknown): string | null {
 }
 
 function normalizeTopicKey(value: unknown): string {
-  return (
-    String(value || "")
-      .toLowerCase()
-      .trim()
-      .replace(/\s+/g, "-")
-      .replace(/[^a-z0-9äöüß-]/g, "")
-      .slice(0, 64) || "allgemein"
-  );
+  return normalizeGermanSlug(String(value || ""), { maxLength: 64, fallback: "allgemein" });
 }
 
 function normalizeTitle(value: unknown, draftId: ObjectId): string {

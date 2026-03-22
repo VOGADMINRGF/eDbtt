@@ -4,26 +4,25 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { usePathname } from "next/navigation";
 import { NAV_SECTIONS, TOTAL_NAV_ITEMS } from "./adminNav";
+import { normalizeGermanSearchText } from "@features/common/utils/textNormalization";
 
 export default function AdminSidebar({ userEmail }: { userEmail?: string | null }) {
   const pathname = usePathname();
   const [query, setQuery] = useState("");
 
   const filteredSections = useMemo(() => {
-    const normalized = query.trim().toLowerCase();
+    const normalized = normalizeGermanSearchText(query);
     if (!normalized) return NAV_SECTIONS;
     const terms = normalized.split(/\s+/).filter(Boolean);
 
     return NAV_SECTIONS.map((section) => {
       const items = section.items.filter((item) => {
-        const haystack = [
+        const haystack = normalizeGermanSearchText([
           item.label,
           item.description ?? "",
           item.href,
           ...(item.keywords ?? []),
-        ]
-          .join(" ")
-          .toLowerCase();
+        ].join(" "));
         return terms.every((term) => haystack.includes(term));
       });
       return { ...section, items };

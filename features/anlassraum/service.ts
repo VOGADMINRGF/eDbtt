@@ -1,6 +1,7 @@
 import { ObjectId } from "@core/db/triMongo";
 import { buildRegionKey, normalizeRegionCode } from "@core/regions/types";
 import { ensureSystemEntityForRegion } from "@features/entities/service";
+import { normalizeGermanSlug } from "@features/common/utils/textNormalization";
 import type {
   StatementCandidate,
   StatementCandidateAnalyzeResultDoc,
@@ -529,14 +530,7 @@ function audienceForOutput(type: OutputSeedType): string {
 }
 
 function buildSlug(title: string, fallbackId: string): string {
-  const base = title
-    .toLowerCase()
-    .trim()
-    .replace(/\s+/g, "-")
-    .replace(/[^a-z0-9äöüß-]/g, "")
-    .replace(/-+/g, "-")
-    .replace(/^-|-$/g, "")
-    .slice(0, 70);
+  const base = normalizeGermanSlug(title, { maxLength: 70, fallback: "" });
   if (!base) return `anlassraum-${fallbackId.slice(-8)}`;
   return `${base}-${fallbackId.slice(-6)}`;
 }

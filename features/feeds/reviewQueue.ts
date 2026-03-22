@@ -14,6 +14,7 @@ import type {
   AnlassraumType,
 } from "@features/anlassraum/types";
 import { ensureSystemEntityForRegion } from "@features/entities/service";
+import { normalizeGermanSlug } from "@features/common/utils/textNormalization";
 import type { GovernanceActor, RoomType } from "@features/trust/types";
 import { analyzeResultsCol, statementCandidatesCol, voteDraftsCol } from "./db";
 import type {
@@ -828,14 +829,7 @@ function deriveTopicKey(draft: VoteDraftDoc, candidate: StatementCandidate): str
 }
 
 function normalizeTopicKey(value: string): string {
-  return (
-    String(value || "")
-      .toLowerCase()
-      .trim()
-      .replace(/\s+/g, "-")
-      .replace(/[^a-z0-9äöüß-]/g, "")
-      .slice(0, 64) || "allgemein"
-  );
+  return normalizeGermanSlug(value, { maxLength: 64, fallback: "allgemein" });
 }
 
 function deriveRegionKey(draft: VoteDraftDoc, candidate: StatementCandidate): string | null {
@@ -939,12 +933,7 @@ function normalizeBackfillNote(value?: string | null): string {
 }
 
 function slugifyShort(value: string): string {
-  return String(value || "")
-    .toLowerCase()
-    .trim()
-    .replace(/\s+/g, "-")
-    .replace(/[^a-z0-9-]/g, "")
-    .slice(0, 48);
+  return normalizeGermanSlug(value, { maxLength: 48, fallback: "" });
 }
 
 function toObjectId(value: ObjectId | string): ObjectId {
