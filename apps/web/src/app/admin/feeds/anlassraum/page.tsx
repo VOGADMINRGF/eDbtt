@@ -97,7 +97,7 @@ export default function AdminAnlassraumPage() {
   }, [statusFilter, sourceModeFilter]);
 
   return (
-    <main className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-8">
+    <main className="flex w-full flex-col gap-6 py-4">
       <header className="space-y-2">
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[rgb(var(--muted))]">
           Admin · Feed Pipeline

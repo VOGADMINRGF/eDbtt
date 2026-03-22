@@ -408,7 +408,7 @@ export default function AdminFeedDraftsPage() {
   }
 
   return (
-    <div className="mx-auto flex min-h-[80vh] max-w-7xl flex-col gap-6 px-4 py-8">
+    <div className="flex min-h-[80vh] w-full flex-col gap-6 py-4">
       <header className="space-y-1">
         <p className="text-sm font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
           Admin · Feed-Pipeline

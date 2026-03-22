@@ -157,7 +157,7 @@ export default function AdminFeedsPage() {
   }
 
   return (
-    <main className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-8">
+    <main className="flex w-full flex-col gap-6 py-4">
       <header className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm">
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[rgb(var(--muted))]">Admin · Feeds</p>
         <h1 className="mt-1 text-2xl font-bold text-[rgb(var(--fg))]">Feed Control Plane</h1>

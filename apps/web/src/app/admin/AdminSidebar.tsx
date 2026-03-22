@@ -40,29 +40,29 @@ export default function AdminSidebar({ userEmail }: { userEmail?: string | null 
     : `${TOTAL_NAV_ITEMS} Bereiche`;
 
   return (
-    <div className="flex h-full flex-col gap-4">
+    <div className="flex h-full flex-col gap-3">
       <div>
-        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-sky-600">Admin</p>
+        <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-sky-600">Admin</p>
         <p className="text-sm font-semibold text-[rgb(var(--fg))]">eDebatte</p>
         <p className="text-xs text-[rgb(var(--muted))] truncate">{userEmail ?? "admin"}</p>
       </div>
 
-      <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2">
+      <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2">
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Suchen (z.B. users, reports, telemetry)"
-          className="w-full bg-transparent text-xs text-[rgb(var(--muted))] placeholder:text-[rgb(var(--muted))] focus:outline-none"
+          className="w-full bg-transparent text-xs text-[rgb(var(--fg))] placeholder:text-[rgb(var(--muted))] focus:outline-none"
           aria-label="Admin Navigation durchsuchen"
         />
         <p className="mt-1 text-[11px] text-[rgb(var(--muted))]">{summaryLabel}</p>
       </div>
 
-      <nav className="flex-1 space-y-4 overflow-y-auto pr-1 text-sm font-semibold text-[rgb(var(--fg))]">
+      <nav className="flex-1 space-y-3 overflow-y-auto pr-1 text-sm font-semibold text-[rgb(var(--fg))]">
         {filteredSections.map((section) => (
           <div key={section.title}>
-            <p className="mb-2 text-[11px] uppercase tracking-[0.18em] text-[rgb(var(--muted))]">{section.title}</p>
-            <div className="space-y-2">
+            <p className="mb-1.5 text-[10px] uppercase tracking-[0.14em] text-[rgb(var(--muted))]">{section.title}</p>
+            <div className="space-y-1.5">
               {section.items.map((item) => {
                 const match = item.match ?? "prefix";
                 const active =
@@ -73,15 +73,15 @@ export default function AdminSidebar({ userEmail }: { userEmail?: string | null 
                   <Link
                     key={item.href}
                     href={item.href}
-                    className={`block rounded-2xl border px-3 py-2 transition ${
+                    className={`block rounded-xl border px-2.5 py-1.5 transition ${
                       active
-                        ? "border-sky-200 bg-sky-50 text-[rgb(var(--fg))]"
-                        : "border-[rgb(var(--border))] hover:border-sky-200 hover:bg-sky-50"
+                        ? "border-sky-200 bg-sky-50 text-[rgb(var(--fg))] shadow-[inset_0_0_0_1px_rgba(125,211,252,0.45)]"
+                        : "border-[rgb(var(--border))] hover:border-sky-200 hover:bg-sky-50/70"
                     }`}
                   >
-                    <div className="text-sm font-semibold text-[rgb(var(--fg))]">{item.label}</div>
+                    <div className="text-[13px] font-semibold leading-tight text-[rgb(var(--fg))]">{item.label}</div>
                     {item.description && (
-                      <div className="text-[11px] text-[rgb(var(--muted))]">{item.description}</div>
+                      <div className="mt-0.5 truncate text-[10px] text-[rgb(var(--muted))]">{item.description}</div>
                     )}
                   </Link>
                 );
