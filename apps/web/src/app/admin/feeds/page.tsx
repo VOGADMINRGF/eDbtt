@@ -3,7 +3,11 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useLocale } from "@/context/LocaleContext";
-import { getOperatorFeedsTexts, resolveOperatorLocale } from "@/features/i18n/operatorSystemTexts";
+import {
+  formatOperatorNumber,
+  getOperatorFeedsTexts,
+  resolveOperatorLocale,
+} from "@/features/i18n/operatorSystemTexts";
 
 type FeedConfigScope = {
   scope: string;
@@ -192,7 +196,9 @@ export default function AdminFeedsPage() {
       <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">{text.sourceConfigTitle}</h2>
-          <span className="text-xs text-[rgb(var(--muted))]">{feedCount} {text.dedupFeedsSuffix}</span>
+          <span className="text-xs text-[rgb(var(--muted))]">
+            {formatOperatorNumber(feedCount, operatorLocale)} {text.dedupFeedsSuffix}
+          </span>
         </div>
         {configLoading && <p className="mt-3 text-sm text-[rgb(var(--muted))]">{text.loadingConfig}</p>}
         {configError && <p className="mt-3 text-sm text-rose-700">{configError}</p>}
@@ -202,14 +208,16 @@ export default function AdminFeedsPage() {
               <p className="text-sm font-semibold text-[rgb(var(--fg))]">
                 {text.scopeLabel} `{scope.scope}` {scope.version ? `· v${scope.version}` : ""}
               </p>
-              <p className="text-xs text-[rgb(var(--muted))]">{scope.feeds?.length ?? 0} {text.feedRowsLabel}</p>
+              <p className="text-xs text-[rgb(var(--muted))]">
+                {formatOperatorNumber(scope.feeds?.length ?? 0, operatorLocale)} {text.feedRowsLabel}
+              </p>
             </div>
             {scope.ok ? (
               <>
                 <p className="mt-1 text-xs text-[rgb(var(--muted))]">{scope.source ?? text.sourceMissing}</p>
                 {Boolean(scope.invalidFeedUrls?.length) && (
                   <p className="mt-2 text-xs text-amber-700">
-                    {scope.invalidFeedUrls?.length} {text.invalidUrlsIgnoredSuffix}
+                    {formatOperatorNumber(scope.invalidFeedUrls?.length ?? 0, operatorLocale)} {text.invalidUrlsIgnoredSuffix}
                   </p>
                 )}
                 <div className="mt-3 overflow-x-auto">

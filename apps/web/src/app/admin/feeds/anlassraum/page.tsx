@@ -10,6 +10,8 @@ import {
   formatSourceModeLabel,
 } from "@/features/relevanceFraming";
 import {
+  formatOperatorNumber,
+  formatOperatorTokenLabel,
   getOperatorAnlassraumListTexts,
   resolveOperatorLocale,
 } from "@/features/i18n/operatorSystemTexts";
@@ -141,7 +143,7 @@ export default function AdminAnlassraumPage() {
         >
           {STATUS_OPTIONS.map((status) => (
             <option key={status} value={status}>
-              {text.statusFilterPrefix}: {status}
+              {text.statusFilterPrefix}: {formatOperatorTokenLabel(status)}
             </option>
           ))}
         </select>
@@ -152,7 +154,7 @@ export default function AdminAnlassraumPage() {
         >
           {SOURCE_MODE_OPTIONS.map((mode) => (
             <option key={mode} value={mode}>
-              {text.sourceModeFilterPrefix}: {mode}
+              {text.sourceModeFilterPrefix}: {formatOperatorTokenLabel(mode)}
             </option>
           ))}
         </select>
@@ -194,29 +196,29 @@ export default function AdminAnlassraumPage() {
                       {item.title}
                     </Link>
                     <p className="text-xs text-[rgb(var(--muted))]">
-                      {(item.type ?? item.kind) || "anlassraum"} · {formatSourceModeLabel(item.sourceMode)} · {text.scoreLabel}{" "}
-                      {item.relevanceScore}
+                      {formatOperatorTokenLabel(item.type ?? item.kind ?? "anlassraum")} · {formatSourceModeLabel(item.sourceMode)} ·{" "}
+                      {text.scoreLabel} {formatOperatorNumber(item.relevanceScore, operatorLocale)}
                     </p>
                     <p className="text-xs text-[rgb(var(--muted))]">
                       {text.originLabel}: {formatOriginTypeLabel(item.originType)} · {text.ownerLabel}: {formatOwnerTypeLabel(item.ownerType)}
                     </p>
                   </td>
                   <td className="px-4 py-3 text-xs">
-                    <p className="font-semibold text-[rgb(var(--fg))]">{item.status}</p>
+                    <p className="font-semibold text-[rgb(var(--fg))]">{formatOperatorTokenLabel(item.status)}</p>
                     <p className="text-[rgb(var(--muted))]">
-                      {item.maturity ?? "—"} · {item.reviewMode}
+                      {formatOperatorTokenLabel(item.maturity)} · {formatOperatorTokenLabel(item.reviewMode)}
                     </p>
                   </td>
                   <td className="px-4 py-3 text-xs text-[rgb(var(--muted))]">
                     <p>{formatRegion(item.regionCode) || text.globalOpen}</p>
                     <p>{formatRelevanceScopeLabel(item.scope)} / {formatRelevanceScopeLabel(item.decisionScope)}</p>
-                    <p>{item.topicKey ?? "—"}</p>
-                    <p>{item.clusterKey ?? "—"}</p>
-                    <p>{text.dossierConsolidationLabel}: {item.dossierType ?? text.optionalNotStarted}</p>
+                    <p>{formatOperatorTokenLabel(item.topicKey)}</p>
+                    <p>{formatOperatorTokenLabel(item.clusterKey)}</p>
+                    <p>{text.dossierConsolidationLabel}: {formatOperatorTokenLabel(item.dossierType, text.optionalNotStarted)}</p>
                   </td>
                   <td className="px-4 py-3 text-xs text-[rgb(var(--muted))]">
-                    <p>{item.sourceCount} {text.sourcesLabel}</p>
-                    <p>{item.outputs.map((out) => out.outputType).join(", ") || "—"}</p>
+                    <p>{formatOperatorNumber(item.sourceCount, operatorLocale)} {text.sourcesLabel}</p>
+                    <p>{item.outputs.map((out) => formatOperatorTokenLabel(out.outputType)).join(", ") || "—"}</p>
                   </td>
                   <td className="px-4 py-3 text-xs text-[rgb(var(--muted))]">
                     {item.riskFlags.length ? item.riskFlags.join(", ") : text.riskOk}

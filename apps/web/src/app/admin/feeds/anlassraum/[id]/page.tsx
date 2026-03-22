@@ -12,6 +12,9 @@ import {
   formatSourceModeLabel,
 } from "@/features/relevanceFraming";
 import {
+  formatOperatorDateTime,
+  formatOperatorNumber,
+  formatOperatorTokenLabel,
   formatOutputActionLabel,
   formatOutputSeedReviewStateLabel,
   formatOutputSeedStatusLabel,
@@ -180,6 +183,7 @@ export default function AdminAnlassraumDetailPage({
   });
   const operatorFocus = deriveOperatorFocus({
     text,
+    locale: operatorLocale,
     publishGateOk: publishGate.ok,
     hasDossier: Boolean(item.dossierId),
     publishGateReasons: publishGate.reasons,
@@ -195,7 +199,7 @@ export default function AdminAnlassraumDetailPage({
         <h1 className="text-2xl font-bold text-[rgb(var(--fg))]">{item.title}</h1>
         <p className="text-sm text-[rgb(var(--fg))]">
           {formatOutputSeedStatusLabel(String(item.status ?? ""), operatorLocale)} ·{" "}
-          {formatSourceModeLabel(item.sourceMode)} · {text.scoreLabel} {item.relevanceScore}
+          {formatSourceModeLabel(item.sourceMode)} · {text.scoreLabel} {formatOperatorNumber(item.relevanceScore, operatorLocale)}
         </p>
         <p className="text-sm text-[rgb(var(--muted))]">
           {text.relevanceLabel}: {formatRelevanceScopeLabel(item.scope)} / {formatRelevanceScopeLabel(item.decisionScope)} ·{" "}
@@ -213,9 +217,9 @@ export default function AdminAnlassraumDetailPage({
           <p className="mt-1 text-xs">{operatorFocus.detail}</p>
           <p className="mt-2 text-xs">
             {text.publishGateLabel}: {publishGate.ok ? text.publishGateReleased : text.publishGateBlocked} ·{" "}
-            {text.sourcesLabel} {publishGate.sourceCount}
+            {text.sourcesLabel} {formatOperatorNumber(publishGate.sourceCount, operatorLocale)}
             {typeof publishGate.requiredSourceCount === "number"
-              ? ` / ${text.requiredLabel} ${publishGate.requiredSourceCount}`
+              ? ` / ${text.requiredLabel} ${formatOperatorNumber(publishGate.requiredSourceCount, operatorLocale)}`
               : ""}
           </p>
           {!publishGate.ok && publishGate.reasons.length > 0 ? (
@@ -288,7 +292,8 @@ export default function AdminAnlassraumDetailPage({
               <span className="font-semibold">{text.clusterLabel}:</span> {item.clusterKey ?? formatOpenLabel(operatorLocale)}
             </p>
             <p className="text-[rgb(var(--fg))]">
-              <span className="font-semibold">{text.sourceSituationLabel}:</span> {sources.length} {text.sourcesLabel}
+              <span className="font-semibold">{text.sourceSituationLabel}:</span> {formatOperatorNumber(sources.length, operatorLocale)}{" "}
+              {text.sourcesLabel}
             </p>
             {sources.slice(0, 3).map((source, index) => (
               <p key={`source-preview-${index}`} className="text-xs text-[rgb(var(--muted))]">
@@ -343,9 +348,11 @@ export default function AdminAnlassraumDetailPage({
                       </td>
                       <td className="px-2 py-2 align-top text-[rgb(var(--fg))]">{seed.publishTarget ?? "—"}</td>
                       <td className="px-2 py-2 align-top text-[rgb(var(--fg))]">
-                        <p>{seed.lastAction ?? "—"}</p>
+                        <p>{formatOperatorTokenLabel(seed.lastAction)}</p>
                         <p className="text-xs text-[rgb(var(--muted))]">{seed.lastActionBy ?? "—"}</p>
-                        <p className="text-xs text-[rgb(var(--muted))]">{formatIso(seed.lastActionAt)}</p>
+                        <p className="text-xs text-[rgb(var(--muted))]">
+                          {formatOperatorDateTime(seed.lastActionAt, operatorLocale)}
+                        </p>
                       </td>
                       <td className="px-2 py-2 align-top">
                         <div className="flex min-w-[260px] flex-col gap-1">
@@ -515,18 +522,20 @@ export default function AdminAnlassraumDetailPage({
 
 function deriveOperatorFocus(input: {
   text: AnlassraumDetailTexts;
+  locale: OperatorLocale;
   publishGateOk: boolean;
   hasDossier: boolean;
   publishGateReasons: string[];
   sourceCount: number;
 }): { title: string; detail: string } {
-  const { text } = input;
+  const { text, locale } = input;
   if (!input.publishGateOk) {
     const reasonHint = input.publishGateReasons[0] ? ` ${text.hintLabel}: ${input.publishGateReasons[0]}.` : "";
     const sourceWord = input.sourceCount === 1 ? text.operatorFocusNeedsSourcesMiddle : text.sourcesLabel;
+    const formattedSourceCount = formatOperatorNumber(input.sourceCount, locale);
     return {
       title: text.operatorFocusNeedsSourcesTitle,
-      detail: `${text.operatorFocusNeedsSourcesPrefix} (${input.sourceCount} ${sourceWord}). ${text.operatorFocusNeedsSourcesSuffix}${reasonHint}`,
+      detail: `${text.operatorFocusNeedsSourcesPrefix} (${formattedSourceCount} ${sourceWord}). ${text.operatorFocusNeedsSourcesSuffix}${reasonHint}`,
     };
   }
   if (input.hasDossier) {
@@ -567,13 +576,6 @@ function defaultOutputAction(status: string): OutputAction {
   if (status === "ready") return "publish";
   if (status === "published") return "discard";
   return "reset_draft";
-}
-
-function formatIso(value: string | null | undefined): string {
-  if (!value) return "—";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return date.toISOString();
 }
 
 function formatAnlassraumActionLabel(action: (typeof ACTIONS)[number], text: AnlassraumDetailTexts): string {

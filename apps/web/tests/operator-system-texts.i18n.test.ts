@@ -2,6 +2,10 @@ import { describe, expect, it } from "vitest";
 import {
   formatDecisionPathLabel,
   formatFeedReviewStateLabel,
+  formatOperatorDateTime,
+  formatOperatorHours,
+  formatOperatorNumber,
+  formatOperatorTokenLabel,
   formatOutputActionLabel,
   formatOutputSeedReviewStateLabel,
   formatOutputSeedStatusLabel,
@@ -74,5 +78,19 @@ describe("operator system texts i18n", () => {
     expect(getOperatorSystemTexts("es").anlassraumDetail.actionCurate).toBe("Iniciar curación");
     expect(getOperatorSystemTexts("fr").anlassraumDetail.actionArchive).toBe("Archiver");
     expect(getOperatorSystemTexts("zh").anlassraumDetail.ownerLabel).toBe("归属");
+  });
+
+  it("formats operator meta values locale-aware", () => {
+    expect(formatOperatorNumber(12000, "de")).toBe("12.000");
+    expect(formatOperatorNumber(12000, "en")).toBe("12,000");
+    expect(formatOperatorHours(3.5, "de")).toBe("3,5h");
+    expect(formatOperatorHours(3.5, "en")).toBe("3.5h");
+    expect(formatOperatorTokenLabel("needs_editor_review")).toBe("needs editor review");
+    expect(formatOperatorTokenLabel("")).toBe("—");
+    expect(formatOperatorDateTime("not-a-date", "de")).toBe("not-a-date");
+
+    const localizedDate = formatOperatorDateTime("2026-03-22T10:00:00.000Z", "fr");
+    expect(localizedDate).not.toBe("—");
+    expect(localizedDate).not.toBe("2026-03-22T10:00:00.000Z");
   });
 });

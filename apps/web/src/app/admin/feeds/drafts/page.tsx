@@ -16,6 +16,9 @@ import {
   formatBulkActionLabel,
   formatDecisionPathLabel,
   formatFeedReviewStateLabel,
+  formatOperatorDateTime,
+  formatOperatorHours,
+  formatOperatorNumber,
   formatLinkFilterLabel,
   formatPriorityBucketLabel,
   formatQueueSortLabel,
@@ -643,7 +646,7 @@ export default function AdminFeedDraftsPage() {
                           {draft.title}
                         </Link>
                         <p className="mt-1 text-xs text-[rgb(var(--muted))]">
-                          {formatDate(draft.createdAt, operatorLocale)} · {text.idLabel} {draft.id.slice(-6)}
+                          {formatOperatorDateTime(draft.createdAt, operatorLocale)} · {text.idLabel} {draft.id.slice(-6)}
                         </p>
                         <p className="text-xs text-[rgb(var(--muted))]">
                           {text.regionLabel}: {draft.regionName ?? text.noValue} ({draft.regionCode ?? text.noValue})
@@ -657,7 +660,7 @@ export default function AdminFeedDraftsPage() {
                           <DecisionPathBadge path={decisionPath} locale={operatorLocale} />
                         </div>
                         <p className="mt-1 text-xs text-[rgb(var(--muted))]">
-                          {text.pendingLabel}: {draft.queueMeta?.pendingHours ?? 0}h · {text.weakLabel}:{" "}
+                          {text.pendingLabel}: {formatOperatorHours(draft.queueMeta?.pendingHours ?? 0, operatorLocale)} · {text.weakLabel}:{" "}
                           {formatBooleanLabel(Boolean(draft.weakSignal?.flagged), operatorLocale)}
                         </p>
                         <p className="text-xs text-[rgb(var(--muted))]">
@@ -666,7 +669,7 @@ export default function AdminFeedDraftsPage() {
                         {draft.lastReviewActionAt && (
                           <p className="text-xs text-[rgb(var(--muted))]">
                             {text.lastActionLabel}: {draft.lastReviewAction ?? text.unknownActionFallback} ·{" "}
-                            {formatDate(draft.lastReviewActionAt, operatorLocale)}
+                            {formatOperatorDateTime(draft.lastReviewActionAt, operatorLocale)}
                           </p>
                         )}
                       </td>
@@ -730,7 +733,7 @@ export default function AdminFeedDraftsPage() {
                         <p>{text.signalTrailLabel}: {text.signalTrailCandidate}</p>
                         <p>
                           {text.analysisLabel}:{" "}
-                          {draft.analyzeCompletedAt ? formatDate(draft.analyzeCompletedAt, operatorLocale) : text.sourceOpenLabel}
+                          {draft.analyzeCompletedAt ? formatOperatorDateTime(draft.analyzeCompletedAt, operatorLocale) : text.sourceOpenLabel}
                         </p>
                         <p>{text.pipelineLabel}: {draft.pipeline ?? text.noValue}</p>
                       </td>
@@ -843,9 +846,9 @@ export default function AdminFeedDraftsPage() {
                         <p>{text.queueLabel}: {formatFeedReviewStateLabel(item.feedReviewState, operatorLocale)}</p>
                         <p>
                           {text.priorityLabel}: {formatPriorityBucketLabel(item.queueMeta?.priorityBucket ?? "low", operatorLocale)} (
-                          {item.queueMeta?.priorityScore})
+                          {formatOperatorNumber(item.queueMeta?.priorityScore, operatorLocale)})
                         </p>
-                        <p>{text.openSinceLabel}: {item.queueMeta?.pendingHours}h</p>
+                        <p>{text.openSinceLabel}: {formatOperatorHours(item.queueMeta?.pendingHours, operatorLocale)}</p>
                         <p>{text.hintsLabel}: {(item.queueMeta?.reasons ?? []).join(", ") || text.noValue}</p>
                         <p>
                           {text.weakSignalLongLabel}:{" "}
@@ -855,7 +858,7 @@ export default function AdminFeedDraftsPage() {
                       <td className="px-2 py-2 align-top text-[rgb(var(--muted))]">
                         <p>{text.lastActionLabel}: {item.lastReviewAction ?? text.noValue}</p>
                         <p>{text.executedByLabel}: {item.lastReviewActionBy ?? text.noValue}</p>
-                        <p>{text.timestampLabel}: {formatDate(item.lastReviewActionAt, operatorLocale)}</p>
+                        <p>{text.timestampLabel}: {formatOperatorDateTime(item.lastReviewActionAt, operatorLocale)}</p>
                         <p>{text.noteLabel}: {item.reviewNote ?? text.noValue}</p>
                         {outcome && (
                           <p className="mt-1 rounded border border-emerald-200 bg-emerald-50 px-1 py-0.5 text-[11px] text-emerald-800">
@@ -1030,18 +1033,6 @@ function deriveOperationalNextStep(
     title: text.nextStepVerifyTitle,
     detail: text.nextStepVerifyDetail,
   };
-}
-
-function formatDate(value: string | null | undefined, locale: OperatorLocale) {
-  if (!value) return "—";
-  try {
-    return new Date(value).toLocaleString(locale === "en" ? "en-US" : "de-DE", {
-      dateStyle: "short",
-      timeStyle: "short",
-    });
-  } catch {
-    return value;
-  }
 }
 
 function extractDomain(url?: string | null) {

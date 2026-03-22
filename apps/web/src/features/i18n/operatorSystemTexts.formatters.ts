@@ -2,6 +2,16 @@ import type { SignalToAnlassraumPath } from "@features/feeds/signalDecisioning";
 import type { FeedReviewState, VoteDraftStatus } from "@features/feeds/types";
 import { humanizeOperatorToken, type OperatorLocale } from "./operatorSystemTexts.core";
 
+const OPERATOR_INTL_LOCALE: Record<OperatorLocale, string> = {
+  de: "de-DE",
+  en: "en-US",
+  es: "es-ES",
+  fr: "fr-FR",
+  zh: "zh-CN",
+};
+
+const OPERATOR_EMPTY = "—";
+
 export function formatDecisionPathLabel(path: SignalToAnlassraumPath, locale: OperatorLocale): string {
   const mapByLocale: Record<OperatorLocale, Record<SignalToAnlassraumPath, string>> = {
     de: {
@@ -480,4 +490,44 @@ export function formatOpenLabel(locale: OperatorLocale): string {
     zh: "开放",
   };
   return map[locale];
+}
+
+export function formatOperatorNumber(
+  value: number | null | undefined,
+  locale: OperatorLocale,
+  options?: Intl.NumberFormatOptions,
+): string {
+  if (value === null || value === undefined || Number.isNaN(value)) return OPERATOR_EMPTY;
+  try {
+    return new Intl.NumberFormat(OPERATOR_INTL_LOCALE[locale], options).format(value);
+  } catch {
+    return String(value);
+  }
+}
+
+export function formatOperatorDateTime(
+  value: string | number | Date | null | undefined,
+  locale: OperatorLocale,
+  options: Intl.DateTimeFormatOptions = { dateStyle: "short", timeStyle: "short" },
+): string {
+  if (value === null || value === undefined || value === "") return OPERATOR_EMPTY;
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return String(value);
+  try {
+    return new Intl.DateTimeFormat(OPERATOR_INTL_LOCALE[locale], options).format(date);
+  } catch {
+    return date.toISOString();
+  }
+}
+
+export function formatOperatorHours(value: number | null | undefined, locale: OperatorLocale): string {
+  const formatted = formatOperatorNumber(value, locale, { maximumFractionDigits: 1 });
+  if (formatted === OPERATOR_EMPTY) return OPERATOR_EMPTY;
+  return `${formatted}h`;
+}
+
+export function formatOperatorTokenLabel(value: string | null | undefined, fallback = OPERATOR_EMPTY): string {
+  const normalized = String(value ?? "").trim();
+  if (!normalized) return fallback;
+  return humanizeOperatorToken(normalized);
 }

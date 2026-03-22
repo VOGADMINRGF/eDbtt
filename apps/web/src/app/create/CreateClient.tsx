@@ -10,6 +10,7 @@ import type { CreateMode } from "@/features/create/intents";
 import { formatRelevanceScopeLabel } from "@/features/relevanceFraming";
 import { useLocale } from "@/context/LocaleContext";
 import {
+  formatOperatorNumber,
   getOperatorCreateTexts,
   resolveOperatorLocale,
   type OperatorCreateTexts,
@@ -461,13 +462,13 @@ export default function CreateClient({
         <summary className="cursor-pointer text-sm font-semibold text-[rgb(var(--fg))]">{text.quotasTitle}</summary>
         <div className="mt-3 flex flex-wrap items-center gap-2 text-[11px] text-[rgb(var(--muted))]">
           <span className="vog-chip">{text.tierLabel}: {tierLabel}</span>
-          <span className="vog-chip">{text.creditsLabel}: {credits}</span>
+          <span className="vog-chip">{text.creditsLabel}: {formatOperatorNumber(credits, operatorLocale)}</span>
           {monthlyLimit === null ? (
             <span className="vog-chip">{text.monthlyLimitLabel}: {text.monthlyLimitUnlimited}</span>
           ) : (
-            <span className="vog-chip">{text.monthlyLimitLabel}: {monthlyLimit}</span>
+            <span className="vog-chip">{text.monthlyLimitLabel}: {formatOperatorNumber(monthlyLimit, operatorLocale)}</span>
           )}
-          <span className="vog-chip">{text.maxClaimsLabel}: {maxFinalizeClaims}</span>
+          <span className="vog-chip">{text.maxClaimsLabel}: {formatOperatorNumber(maxFinalizeClaims, operatorLocale)}</span>
           <Link href="/runden" className="vog-chip">
             {text.goToRounds}
           </Link>
