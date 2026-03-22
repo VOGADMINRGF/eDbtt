@@ -292,6 +292,9 @@ type OperatorTexts = {
   };
 };
 
+// Terminology policy:
+// - Domain terms remain explicit across locales: Anlassraum, Dossier, Feed, Signal.
+// - Generic operator UI terms are localized per locale (e.g. queue/review/status/action labels).
 const DE: OperatorTexts = {
   create: {
     loadingAccess: "Lade deinen Zugang ...",
@@ -320,10 +323,10 @@ const DE: OperatorTexts = {
     signalTrailLabel: "Signalspur",
     signalLabel: "Signal",
     clusterLabel: "Cluster",
-    reviewLabel: "Review",
-    handoffLabel: "Handoff",
-    candidateIdLabel: "Candidate-ID (tech)",
-    draftIdLabel: "Draft-ID (tech)",
+    reviewLabel: "Prüfung",
+    handoffLabel: "Übergabe",
+    candidateIdLabel: "Kandidaten-ID (tech)",
+    draftIdLabel: "Entwurfs-ID (tech)",
     contextPickerTitle: "Kontext-Picker",
     contextPickerLead:
       "Optional: Wähle einen bestehenden Anlassraum als Kontext. Kontext kann später auch als Match-/Routing-Ergebnis sichtbar werden. Keine automatische Verlinkung, kein Auto-Publish, kein Auto-Merge.",
@@ -331,7 +334,7 @@ const DE: OperatorTexts = {
     contextUnavailable: "Kontextquelle derzeit nicht verfügbar",
     reload: "Erneut laden",
     contextEmpty: "Keine produktiven Kontext-Einträge verfügbar. Es wird kein Demo-/Static-Fallback genutzt.",
-    topicLabel: "Topic",
+    topicLabel: "Thema",
     statusLabel: "Status",
     statusOpen: "offen",
     selectedLabel: "Ausgewählt",
@@ -348,34 +351,34 @@ const DE: OperatorTexts = {
   },
   feeds: {
     headerKicker: "Admin · Feeds",
-    headerTitle: "Feed Control Plane",
+    headerTitle: "Feed-Leitstand",
     headerLead:
       "Signale aus Feeds, öffentlichen Quellen und Hinweis-Eingängen in Anlassräume überführen; Dossier-Verdichtung bleibt ein bewusster Folgeschritt. Primärquellen werden separat geprüft; es gibt kein automatisches Publishing aus Feed-Signalen.",
     linkToDrafts: "Zu Feed-Drafts",
     linkToAnlassraeume: "Zu Anlassräumen",
-    linkToAcquisition: "Zu Akquise Dashboard",
+    linkToAcquisition: "Zum Akquise-Dashboard",
     sourceConfigTitle: "Signalquellen-Konfiguration (Feed-Referenzen)",
     dedupFeedsSuffix: "deduplizierte Feeds",
     loadingConfig: "Lade Konfiguration ...",
     sourceMissing: "keine Signalquelle gefunden",
     invalidUrlsIgnoredSuffix: "ungültige Feed-URLs wurden ignoriert.",
     colRegion: "Region",
-    colTopic: "Topic",
-    colSignalSource: "Signalquelle (Feed URL)",
-    pullAnalyzeTitle: "Pull + Analyze",
+    colTopic: "Thema",
+    colSignalSource: "Signalquelle (Feed-URL)",
+    pullAnalyzeTitle: "Abruf + Analyse",
     pullAnalyzeLead:
-      "Pull lädt Signale in `statement_candidates`; Analyze erzeugt daraus prüfbare `vote_drafts`. Kein direkter Publish-Pfad.",
-    scopeLabel: "Scope",
-    regionCodeOptional: "RegionCode (optional)",
-    maxFeeds: "Max Feeds",
-    maxItemsPerFeed: "Max Items pro Feed",
+      "Abruf lädt Signale in `statement_candidates`; Analyse erzeugt daraus prüfbare `vote_drafts`. Kein direkter Publish-Pfad.",
+    scopeLabel: "Relevanzraum",
+    regionCodeOptional: "Regionscode (optional)",
+    maxFeeds: "Max. Feeds",
+    maxItemsPerFeed: "Max. Einträge pro Feed",
     dryRunLabel: "Dry-Run (nur zählen, nicht schreiben)",
     fetchSignalSources: "Signalquellen abrufen",
     pullRunning: "Pull läuft ...",
-    analyzeLimit: "Analyze limit",
+    analyzeLimit: "Analyse-Limit",
     startAnalyze: "Analyse starten",
-    analyzeRunning: "Analyze läuft ...",
-    batchTitle: "Batch Signal-Import (Maintenance)",
+    analyzeRunning: "Analyse läuft ...",
+    batchTitle: "Batch-Signalimport (Wartung)",
     batchLead:
       "JSON im Format {\"items\":[...]} oder direkt [...] einfügen und an /api/feeds/batch senden. Batch erzeugt Signalkandidaten, keine direkte Inhaltsübernahme und keine Veröffentlichung.",
     startImport: "Import starten",
@@ -383,12 +386,12 @@ const DE: OperatorTexts = {
   },
   feedDrafts: {
     headerKicker: "Admin · Feed-Pipeline",
-    headerTitle: "Signal-Drafts: Anlassraum-first Queue",
+    headerTitle: "Signal-Entwürfe: Anlassraum-first Warteschlange",
     headerLead:
       "Operativer Kernpfad: Signal -> Anlassraum -> Dossier -> Output. Feeds liefern Hinweise, keine direkte Publikationslogik. Primärquellen bleiben die fachliche Basis.",
-    linkToFeedControl: "Zur Feed Control Plane",
+    linkToFeedControl: "Zum Feed-Leitstand",
     linkToAnlassraumList: "Zu Anlassräumen",
-    linkToAnlassraumOps: "Zu Anlassraum Operations",
+    linkToAnlassraumOps: "Zu Anlassraum-Operationen",
     linkToCreateFastPath: "4) Manuell via /create fortsetzen",
     decisioningLeadPrefix: "Operator-Entscheidungspfade",
     decisioningLeadSuffix: "Kein Auto-Publish, keine automatische Feed-Übernahme.",
@@ -404,31 +407,31 @@ const DE: OperatorTexts = {
     anlassraumFilterActive: "Anlassraum-Filter aktiv",
     candidatesTitle: "Kandidatenliste",
     candidatesLead:
-      "Fokus auf nächste sichere Aktion pro Draft: Kontext prüfen, Anlassraum zuordnen oder Review sauber abschließen.",
+      "Fokus auf die nächste sichere Aktion pro Entwurf: Kontext prüfen, Anlassraum zuordnen oder Prüfung sauber abschließen.",
     summaryHits: "Aktuelle Treffer",
     summaryUnlinked: "Ohne Anlassraum",
-    summaryWeak: "Weak Signal",
+    summaryWeak: "Schwaches Signal",
     summaryHighPriority: "Hohe Priorität",
     tableCandidate: "Kandidat",
-    tableQueueContext: "Queue-Kontext",
+    tableQueueContext: "Warteschlangen-Kontext",
     tableAnlassraumHints: "Anlassraum & Hinweise",
     tableNextStep: "Nächster Schritt",
     tablePrimarySource: "Primärquelle / Signalspur",
-    loadingDrafts: "Lädt Drafts ...",
-    emptyDraftsPrefix: "Keine Drafts für die aktuellen Filter. Prüfe, ob Filter zu eng sind, oder öffne die",
-    emptyDraftsMiddle: "Feed Control Plane",
+    loadingDrafts: "Lade Entwürfe ...",
+    emptyDraftsPrefix: "Keine Entwürfe für die aktuellen Filter. Prüfe, ob Filter zu eng sind, oder öffne den",
+    emptyDraftsMiddle: "Feed-Leitstand",
     emptyDraftsSuffix: "bzw. starte einen manuellen Anlassraum-Einstieg via",
-    pendingLabel: "pending",
-    weakLabel: "weak",
+    pendingLabel: "offen",
+    weakLabel: "schwach",
     reasonsLabel: "Gründe",
     lastActionLabel: "letzte Aktion",
-    linkedLabel: "linked",
-    unlinkedLabel: "unlinked",
+    linkedLabel: "verknüpft",
+    unlinkedLabel: "nicht verknüpft",
     openAnlassraum: "Anlassraum öffnen",
     checkAnlassraumContext: "Anlassraum-Kontext prüfen",
-    weakSignalLabel: "Weak Signal",
+    weakSignalLabel: "Schwaches Signal",
     noteLabel: "Notiz",
-    draftDetailLink: "Draft im Detail prüfen",
+    draftDetailLink: "Entwurf im Detail prüfen",
     manualCreateLink: "Manuell via /create fortsetzen",
     primarySourceLabel: "Primärquelle",
     signalTrailLabel: "Signalspur",
@@ -436,35 +439,35 @@ const DE: OperatorTexts = {
     analysisLabel: "Analyse",
     pipelineLabel: "Pipeline",
     sourceOpenLabel: "offen",
-    bulkSummaryPrefix: "Bulk Review (sekundär)",
+    bulkSummaryPrefix: "Sammelprüfung (sekundär)",
     selectedSuffix: "ausgewählt",
-    bulkLead: "Sammelaktion für mehrere Signale. Kein Auto-Publish und kein Auto-Approval.",
+    bulkLead: "Sammelaktion für mehrere Signale. Kein Auto-Publish und keine automatische Freigabe.",
     bulkAnlassraumPlaceholder: "Anlassraum-ID (nur für Attach)",
-    bulkWeakReasonPlaceholder: "Weak-Signal Grund (optional)",
-    bulkReviewNotePlaceholder: "Review-Notiz (optional)",
-    applyBulk: "Bulk anwenden",
+    bulkWeakReasonPlaceholder: "Grund für schwaches Signal (optional)",
+    bulkReviewNotePlaceholder: "Prüfnotiz (optional)",
+    applyBulk: "Sammelaktion anwenden",
     applying: "läuft...",
-    legacySummary: "Legacy Backfill (nachgeordnete Maintenance-Ausnahme)",
+    legacySummary: "Legacy-Backfill (nachgeordnete Wartungsausnahme)",
     legacyLead:
-      "Explizite Einzel-Remediation für Drafts ohne `anlassraumId` (kein Auto-Backfill, keine stille Migration).",
-    legacyColDraft: "Draft",
-    legacyColQueue: "Queue/Triage",
+      "Explizite Einzelkorrektur für Entwürfe ohne `anlassraumId` (kein Auto-Backfill, keine stille Migration).",
+    legacyColDraft: "Entwurf",
+    legacyColQueue: "Warteschlange/Triage",
     legacyColAudit: "Audit",
-    legacyColRemediation: "Remediation",
-    loadingLegacy: "Lade Legacy-Drafts ...",
-    emptyLegacy: "Keine unlinked Legacy-Drafts im aktuellen Filter.",
+    legacyColRemediation: "Korrektur",
+    loadingLegacy: "Lade Legacy-Entwürfe ...",
+    emptyLegacy: "Keine nicht verknüpften Legacy-Entwürfe im aktuellen Filter.",
     missingAnlassraumId: "anlassraumId fehlt",
-    queueLabel: "Queue",
+    queueLabel: "Warteschlange",
     priorityLabel: "Priorität",
     openSinceLabel: "Offen seit",
     hintsLabel: "Hinweise",
-    weakSignalLongLabel: "Weak-Signal",
+    weakSignalLongLabel: "Schwaches Signal",
     noFlagLabel: "kein Flag",
     executedByLabel: "Durchgeführt von",
     timestampLabel: "Zeitpunkt",
-    remediationLabel: "Remediation",
+    remediationLabel: "Korrektur",
     remediationAnlassraumPlaceholder: "Anlassraum-ID für Attach",
-    remediationNotePlaceholder: "Remediation-Notiz (optional)",
+    remediationNotePlaceholder: "Korrektur-Notiz (optional)",
     remediationAttach: "Mit Anlassraum verknüpfen",
     remediationCreateCandidate: "Anlassraum-Kandidat anlegen",
     noValue: "—",
@@ -476,42 +479,42 @@ const DE: OperatorTexts = {
     nextStepAttachDetail: "Zuordnung steht im Vordergrund, neue Kandidatenanlage vermeiden.",
     nextStepCandidateTitle: "Anlassraum-Kandidat anlegen",
     nextStepCandidateDetail: "Signal ist unlinked und braucht einen neuen Anlassraum-Kandidaten als Basis.",
-    nextStepReviewTitle: "Review abschließen",
+    nextStepReviewTitle: "Prüfung abschließen",
     nextStepReviewDetail: "Entscheidung prüfen und Status konsistent fortführen.",
     nextStepVerifyTitle: "Kandidat verifizieren",
     nextStepVerifyDetail: "Kontext, Analyse und Verlauf im Detailscreen prüfen.",
     selectAtLeastOne: "Bitte mindestens einen Draft auswählen.",
-    attachNeedsAnlassraumId: "Für Attach ist eine Anlassraum-ID erforderlich.",
+    attachNeedsAnlassraumId: "Für das Verknüpfen ist eine Anlassraum-ID erforderlich.",
     bulkDonePrefix: "Bulk abgeschlossen:",
     bulkDoneMiddle: "erfolgreich,",
     bulkDoneSuffix: "fehlgeschlagen.",
-    bulkFailedFallback: "Bulk-Review fehlgeschlagen.",
-    legacyAttachNeedsAnlassraumId: "Für Attach ist eine Anlassraum-ID erforderlich.",
+    bulkFailedFallback: "Sammelprüfung fehlgeschlagen.",
+    legacyAttachNeedsAnlassraumId: "Für das Verknüpfen ist eine Anlassraum-ID erforderlich.",
     legacyBackfillFailed: "legacy_backfill_failed",
-    unknownLoadError: "Unbekannter Fehler beim Laden der Drafts",
-    unknownActionFallback: "action",
+    unknownLoadError: "Unbekannter Fehler beim Laden der Entwürfe",
+    unknownActionFallback: "Aktion",
   },
   anlassraumList: {
     headerKicker: "Admin · Signal-Pipeline",
     headerTitle: "Anlassräume",
     headerLead:
       "Anlassräume strukturieren Signale zuerst. Relevanz kann lokal, regional, bundesweit oder institutionell sein; Dossier-Verdichtung folgt optional als bewusster nächster Schritt.",
-    linkToFeedControl: "Zur Feed Control Plane",
-    linkToAnlassraumOps: "Zu Anlassraum Operations",
-    statusFilterPrefix: "status",
-    sourceModeFilterPrefix: "sourceMode",
+    linkToFeedControl: "Zum Feed-Leitstand",
+    linkToAnlassraumOps: "Zu Anlassraum-Operationen",
+    statusFilterPrefix: "Status",
+    sourceModeFilterPrefix: "Quellmodus",
     colAnlassraum: "Anlassraum",
     colStatus: "Status",
-    colRegionTopic: "Region/Topic",
-    colOutputs: "Outputs",
+    colRegionTopic: "Region/Thema",
+    colOutputs: "Ausgaben",
     colRisk: "Risiko",
     loading: "Lädt Anlassräume ...",
     empty: "Keine Anlassräume gefunden.",
     originLabel: "Herkunft",
     ownerLabel: "Trägerschaft",
-    scoreLabel: "score",
+    scoreLabel: "Score",
     globalOpen: "Global / offen",
-    dossierConsolidationLabel: "dossier-verdichtung",
+    dossierConsolidationLabel: "Dossier-Verdichtung",
     optionalNotStarted: "optional / nicht gestartet",
     sourcesLabel: "Quellen",
     riskOk: "ok",
@@ -532,39 +535,39 @@ const DE: OperatorTexts = {
     requiredLabel: "benötigt",
     hintLabel: "Hinweis",
     linkToCreate: "Manuell via /create weiterführen",
-    linkToDraftQueue: "Feed-Drafts Queue",
+    linkToDraftQueue: "Zu Feed-Entwürfen",
     linkToOverview: "Zur Übersicht",
     linkToDossier: "Dossier-Verdichtung öffnen",
     optionalDossierLead:
       "Anlassraum bleibt eigenständiger Arbeitsraum. Dossier-Verdichtung ist ein bewusster, optionaler Folgeschritt.",
     workspaceContext: "Arbeitskontext",
-    topicLabel: "Topic",
+    topicLabel: "Thema",
     clusterLabel: "Cluster",
     sourceSituationLabel: "Quellenlage",
     referencedSourceSuffix: "referenzierte Quelle",
     outputTransitions: "Output-Übergänge",
     colOutputType: "Output-Typ",
     colStatus: "Status",
-    colReviewState: "Review-Status",
-    colPublishTarget: "Publish-Ziel",
+    colReviewState: "Prüfstatus",
+    colPublishTarget: "Veröffentlichungsziel",
     colLastAction: "Letzte Aktion",
     colNextAction: "Nächste Aktion",
     loadingOutputSeeds: "Lade Output-Seeds ...",
     emptyOutputSeeds: "Keine Output-Seeds vorhanden.",
     publishTargetPlaceholder: "Publish-Ziel (nur bei manueller Publikation)",
-    reviewNotePlaceholder: "Review-Notiz (optional)",
+    reviewNotePlaceholder: "Prüfnotiz (optional)",
     apply: "Übernehmen",
     diagnosticsTitle: "Diagnose & JSON (nachgeordnet)",
     diagnosticsLead: "Audit-Readout für Deep-Dive und Fehlersuche. Der operative Arbeitsfluss bleibt oben.",
     metaJsonTitle: "Meta",
     sourcesJsonTitle: "Quellen-JSON",
     structureJsonTitle: "Struktur-JSON",
-    publishGateEvidenceTitle: "Publish-Gate Evidence",
+    publishGateEvidenceTitle: "Publish-Gate-Evidenz",
     sourcePrefix: "Quelle",
     sourceNoMetaSuffix: "ohne lesbare Metadaten",
     sourceNoTitleOrUrlSuffix: "ohne Titel/URL",
     actionCurate: "Kurationsstart",
-    actionReview: "In Review führen",
+    actionReview: "In Prüfung führen",
     actionApprove: "Freigeben",
     actionActivate: "Aktivieren",
     actionArchive: "Archivieren",
@@ -644,7 +647,7 @@ const EN: OperatorTexts = {
     headerLead:
       "Move signals from feeds, public sources, and incoming hints into Anlassräume; dossier consolidation remains a deliberate follow-up. Primary sources are reviewed separately; there is no automatic publishing from feed signals.",
     linkToDrafts: "Go to feed drafts",
-    linkToAnlassraeume: "Go to Anlassräume",
+    linkToAnlassraeume: "Go to Anlassraum list",
     linkToAcquisition: "Go to acquisition dashboard",
     sourceConfigTitle: "Signal source configuration (feed references)",
     dedupFeedsSuffix: "deduplicated feeds",
@@ -679,7 +682,7 @@ const EN: OperatorTexts = {
     headerLead:
       "Core operator path: signal -> Anlassraum -> dossier -> output. Feeds provide hints, not direct publishing logic. Primary sources remain the factual base.",
     linkToFeedControl: "To feed control plane",
-    linkToAnlassraumList: "To Anlassräume",
+    linkToAnlassraumList: "To Anlassraum list",
     linkToAnlassraumOps: "To Anlassraum operations",
     linkToCreateFastPath: "4) Continue manually via /create",
     decisioningLeadPrefix: "Operator decision paths",
@@ -757,28 +760,28 @@ const EN: OperatorTexts = {
     remediationLabel: "Remediation",
     remediationAnlassraumPlaceholder: "Anlassraum ID for attach",
     remediationNotePlaceholder: "Remediation note (optional)",
-    remediationAttach: "Attach to Anlassraum",
-    remediationCreateCandidate: "Create Anlassraum candidate",
+    remediationAttach: "Link to Anlassraum",
+    remediationCreateCandidate: "Create an Anlassraum candidate",
     noValue: "—",
     idLabel: "ID",
     regionLabel: "Region",
     nextStepWeakTitle: "Validate weak signal",
     nextStepWeakDetail: "Validate uncertain context manually via /create and document the reason.",
-    nextStepAttachTitle: "Attach to existing Anlassraum",
+    nextStepAttachTitle: "Link to existing Anlassraum",
     nextStepAttachDetail: "Mapping has priority; avoid creating a new candidate when possible.",
-    nextStepCandidateTitle: "Create Anlassraum candidate",
+    nextStepCandidateTitle: "Create an Anlassraum candidate",
     nextStepCandidateDetail: "Signal is unlinked and needs a new Anlassraum candidate as base.",
     nextStepReviewTitle: "Complete review",
     nextStepReviewDetail: "Check the decision and continue with consistent state.",
     nextStepVerifyTitle: "Verify candidate",
     nextStepVerifyDetail: "Check context, analysis, and history in the detail screen.",
     selectAtLeastOne: "Select at least one draft.",
-    attachNeedsAnlassraumId: "An Anlassraum ID is required for attach.",
+    attachNeedsAnlassraumId: "An Anlassraum ID is required for linking.",
     bulkDonePrefix: "Bulk completed:",
     bulkDoneMiddle: "successful,",
     bulkDoneSuffix: "failed.",
     bulkFailedFallback: "Bulk review failed.",
-    legacyAttachNeedsAnlassraumId: "An Anlassraum ID is required for attach.",
+    legacyAttachNeedsAnlassraumId: "An Anlassraum ID is required for linking.",
     legacyBackfillFailed: "legacy_backfill_failed",
     unknownLoadError: "Unknown error while loading drafts",
     unknownActionFallback: "action",
@@ -888,21 +891,21 @@ export function getOperatorSystemTexts(locale: OperatorLocale): OperatorTexts {
 export function formatDecisionPathLabel(path: SignalToAnlassraumPath, locale: OperatorLocale): string {
   const map: Record<SignalToAnlassraumPath, string> = {
     ignore: locale === "en" ? "Ignore" : "Ignorieren",
-    attach_to_existing_anlassraum: locale === "en" ? "Attach to Anlassraum" : "Mit Anlassraum verknüpfen",
-    create_anlassraum_candidate: locale === "en" ? "Create candidate" : "Kandidat anlegen",
+    attach_to_existing_anlassraum: locale === "en" ? "Link to Anlassraum" : "Mit Anlassraum verknüpfen",
+    create_anlassraum_candidate: locale === "en" ? "Create an Anlassraum candidate" : "Anlassraum-Kandidat anlegen",
     manual_fast_path_via_create: locale === "en" ? "Manual via /create" : "Manuell via /create",
   };
   return map[path];
 }
 
 export function formatFeedReviewStateLabel(state: FeedReviewState | "all", locale: OperatorLocale): string {
-  if (state === "all") return locale === "en" ? "All queue states" : "Alle Queue-States";
+  if (state === "all") return locale === "en" ? "All queue states" : "Alle Warteschlangen-Zustände";
   const map: Record<FeedReviewState, string> = {
-    queued: "Queued",
-    ignored: "Ignored",
-    attached: "Attached",
-    candidate_created: "Candidate Created",
-    weak_signal: "Weak Signal",
+    queued: locale === "en" ? "Queued" : "In Warteschlange",
+    ignored: locale === "en" ? "Ignored" : "Ignoriert",
+    attached: locale === "en" ? "Linked" : "Verknüpft",
+    candidate_created: locale === "en" ? "Candidate created" : "Kandidat angelegt",
+    weak_signal: locale === "en" ? "Weak signal" : "Schwaches Signal",
   };
   return map[state];
 }
@@ -910,8 +913,8 @@ export function formatFeedReviewStateLabel(state: FeedReviewState | "all", local
 export function formatVoteDraftStatusLabel(status: VoteDraftStatus | "all", locale: OperatorLocale): string {
   if (status === "all") return locale === "en" ? "All" : "Alle";
   const map: Record<VoteDraftStatus, string> = {
-    draft: "Draft",
-    review: "Review",
+    draft: locale === "en" ? "Draft" : "Entwurf",
+    review: locale === "en" ? "Review" : "Prüfung",
     published: locale === "en" ? "Published" : "Veröffentlicht",
     discarded: locale === "en" ? "Discarded" : "Verworfen",
   };
@@ -920,9 +923,9 @@ export function formatVoteDraftStatusLabel(status: VoteDraftStatus | "all", loca
 
 export function formatPriorityBucketLabel(bucket: "high" | "medium" | "low", locale: OperatorLocale): string {
   const map: Record<"high" | "medium" | "low", string> = {
-    high: locale === "en" ? "priority high" : "prio hoch",
-    medium: locale === "en" ? "priority medium" : "prio mittel",
-    low: locale === "en" ? "priority low" : "prio niedrig",
+    high: locale === "en" ? "High priority" : "Priorität hoch",
+    medium: locale === "en" ? "Medium priority" : "Priorität mittel",
+    low: locale === "en" ? "Low priority" : "Priorität niedrig",
   };
   return map[bucket];
 }
@@ -931,17 +934,17 @@ export function formatQueueSortLabel(sort: string, locale: OperatorLocale): stri
   const map: Record<string, string> = {
     newest: locale === "en" ? "Newest first" : "Neueste zuerst",
     oldest: locale === "en" ? "Oldest first" : "Älteste zuerst",
-    review_recent: locale === "en" ? "Recently reviewed" : "Zuletzt reviewed",
-    review_stale: locale === "en" ? "Stale review" : "Lange nicht reviewed",
-    priority_high: locale === "en" ? "Queue priority" : "Queue-Priorität",
+    review_recent: locale === "en" ? "Recently reviewed" : "Zuletzt geprüft",
+    review_stale: locale === "en" ? "Least recently reviewed" : "Lange nicht geprüft",
+    priority_high: locale === "en" ? "Queue priority" : "Warteschlangen-Priorität",
   };
   return map[sort] ?? humanizeToken(sort);
 }
 
 export function formatLinkFilterLabel(value: string, locale: OperatorLocale): string {
   const map: Record<string, string> = {
-    all: locale === "en" ? "All link states" : "Alle Link-States",
-    linked: locale === "en" ? "Linked to Anlassraum" : "Mit Anlassraum",
+    all: locale === "en" ? "All link states" : "Alle Verknüpfungszustände",
+    linked: locale === "en" ? "Linked to Anlassraum" : "Mit Anlassraum verknüpft",
     unlinked: locale === "en" ? "Without Anlassraum" : "Ohne Anlassraum",
   };
   return map[value] ?? humanizeToken(value);
@@ -949,29 +952,29 @@ export function formatLinkFilterLabel(value: string, locale: OperatorLocale): st
 
 export function formatWeakSignalFilterLabel(value: string, locale: OperatorLocale): string {
   const map: Record<string, string> = {
-    all: locale === "en" ? "All signal flags" : "Alle Signal-Flags",
-    flagged: "Weak Signal",
-    clear: locale === "en" ? "No weak signal" : "Kein Weak Signal",
+    all: locale === "en" ? "All signal flags" : "Alle Signalmarkierungen",
+    flagged: locale === "en" ? "Weak signal" : "Schwaches Signal",
+    clear: locale === "en" ? "No weak signal" : "Kein schwaches Signal",
   };
   return map[value] ?? humanizeToken(value);
 }
 
 export function formatBulkActionLabel(value: string, locale: OperatorLocale): string {
   const map: Record<string, string> = {
-    ignore: locale === "en" ? "1) ignore (discard signal)" : "1) ignore (Signal verwerfen)",
+    ignore: locale === "en" ? "1) Ignore (discard signal)" : "1) Ignorieren (Signal verwerfen)",
     attach_to_anlassraum:
-      locale === "en" ? "2) Attach to existing Anlassraum" : "2) Mit bestehendem Anlassraum verknüpfen",
+      locale === "en" ? "2) Link to existing Anlassraum" : "2) Mit bestehendem Anlassraum verknüpfen",
     create_anlassraum_candidate:
-      locale === "en" ? "3) Create Anlassraum candidate" : "3) Anlassraum-Kandidat anlegen",
-    mark_as_weak_signal: locale === "en" ? "Mark as weak signal" : "Weak Signal markieren",
+      locale === "en" ? "3) Create an Anlassraum candidate" : "3) Anlassraum-Kandidat anlegen",
+    mark_as_weak_signal: locale === "en" ? "Mark as weak signal" : "Als schwaches Signal markieren",
   };
   return map[value] ?? humanizeToken(value);
 }
 
 export function formatOutputActionLabel(value: string, locale: OperatorLocale): string {
   const map: Record<string, string> = {
-    queue: locale === "en" ? "Queue" : "In Queue setzen",
-    send_to_review: locale === "en" ? "Send to review" : "Zur Review senden",
+    queue: locale === "en" ? "Move to queue" : "In Warteschlange setzen",
+    send_to_review: locale === "en" ? "Send to review" : "Zur Prüfung senden",
     approve_prep: locale === "en" ? "Approve prep" : "Vorbereitet freigeben",
     reject_prep: locale === "en" ? "Reject prep" : "Vorbereitung ablehnen",
     mark_ready: locale === "en" ? "Mark as ready" : "Als bereit markieren",
@@ -985,7 +988,7 @@ export function formatOutputActionLabel(value: string, locale: OperatorLocale): 
 export function formatOutputSeedStatusLabel(value: string, locale: OperatorLocale): string {
   const map: Record<string, string> = {
     draft: locale === "en" ? "Draft" : "Entwurf",
-    queued: locale === "en" ? "Queued" : "Eingeordnet",
+    queued: locale === "en" ? "Queued" : "In Warteschlange",
     review: locale === "en" ? "In review" : "In Prüfung",
     ready: locale === "en" ? "Ready" : "Bereit",
     published: locale === "en" ? "Published" : "Veröffentlicht",
@@ -996,12 +999,12 @@ export function formatOutputSeedStatusLabel(value: string, locale: OperatorLocal
 
 export function formatOutputSeedReviewStateLabel(value: string, locale: OperatorLocale): string {
   const map: Record<string, string> = {
-    queued: locale === "en" ? "Queued" : "Queued",
+    queued: locale === "en" ? "Queued" : "In Warteschlange",
     in_review: locale === "en" ? "In review" : "In Prüfung",
     approved: locale === "en" ? "Approved" : "Freigegeben",
     rejected: locale === "en" ? "Rejected" : "Abgelehnt",
     blocked: locale === "en" ? "Blocked" : "Blockiert",
-    none: locale === "en" ? "None" : "Kein Status",
+    none: locale === "en" ? "None" : "Kein Prüfstatus",
   };
   return map[value] ?? humanizeToken(value);
 }
