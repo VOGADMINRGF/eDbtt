@@ -106,8 +106,8 @@ const WEAK_SIGNAL_FILTERS: { label: string; value: QueueWeakFilter }[] = [
 
 const BULK_ACTIONS: { label: string; value: BulkAction }[] = [
   { label: "1) ignore (Signal verwerfen)", value: "ignore" },
-  { label: "2) attach_to_existing_anlassraum", value: "attach_to_anlassraum" },
-  { label: "3) create_anlassraum_candidate", value: "create_anlassraum_candidate" },
+  { label: "2) Mit bestehendem Anlassraum verknüpfen", value: "attach_to_anlassraum" },
+  { label: "3) Anlassraum-Kandidat anlegen", value: "create_anlassraum_candidate" },
   { label: "Weak Signal markieren", value: "mark_as_weak_signal" },
 ];
 
@@ -446,14 +446,14 @@ export default function AdminFeedDraftsPage() {
             })}
             className="text-sm font-semibold text-sky-700 hover:underline"
           >
-            4) manual_fast_path_via_create
+            4) Manuell via /create fortsetzen
           </Link>
         </div>
       </header>
 
       <section className="rounded-xl border border-sky-300/60 bg-sky-50/80 px-4 py-3 text-xs text-sky-950 dark:border-sky-400/45 dark:bg-sky-500/14 dark:text-sky-100">
-        Entscheidungs-Pfade: <strong>ignore</strong>, <strong>attach_to_existing_anlassraum</strong>,{" "}
-        <strong>create_anlassraum_candidate</strong>, <strong>manual_fast_path_via_create</strong>. Kein Auto-Publish,
+        Operator-Entscheidungspfade: <strong>Ignorieren</strong>, <strong>mit bestehendem Anlassraum verknüpfen</strong>,{" "}
+        <strong>Anlassraum-Kandidat anlegen</strong>, <strong>manuell via /create fortsetzen</strong>. Kein Auto-Publish,
         keine automatische Feed-Übernahme.
       </section>
 
@@ -712,7 +712,7 @@ export default function AdminFeedDraftsPage() {
                             href={manualCreateHref}
                             className="mt-1 inline-flex font-semibold text-sky-700 hover:underline"
                           >
-                            4) manual_fast_path_via_create
+                            Manuell über /create fortsetzen
                           </Link>
                         ) : null}
                       </td>
@@ -785,9 +785,9 @@ export default function AdminFeedDraftsPage() {
         </section>
       </details>
 
-      <details className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-3 shadow-sm">
-        <summary className="cursor-pointer text-sm font-semibold text-[rgb(var(--fg))]">
-          Legacy Backfill (Maintenance-Ausnahme)
+      <details className="rounded-2xl border border-dashed border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-4 py-3">
+        <summary className="cursor-pointer text-sm font-medium text-[rgb(var(--muted))]">
+          Legacy Backfill (nachgeordnete Maintenance-Ausnahme)
         </summary>
         <p className="mt-2 text-xs text-[rgb(var(--muted))]">
           Explizite Einzel-Remediation für Drafts ohne `anlassraumId` (kein Auto-Backfill, keine stille Migration).
@@ -833,20 +833,20 @@ export default function AdminFeedDraftsPage() {
                         <p className="text-[11px] text-amber-700">anlassraumId fehlt</p>
                       </td>
                       <td className="px-2 py-2 align-top text-[rgb(var(--muted))]">
-                        <p>queue: {item.feedReviewState}</p>
-                        <p>prio: {item.queueMeta?.priorityBucket} ({item.queueMeta?.priorityScore})</p>
-                        <p>pending: {item.queueMeta?.pendingHours}h</p>
-                        <p>reasons: {(item.queueMeta?.reasons ?? []).join(", ") || "—"}</p>
-                        <p>weak: {item.weakSignalFlagged ? item.weakSignalReason ?? "flagged" : "clear"}</p>
+                        <p>Queue: {item.feedReviewState}</p>
+                        <p>Priorität: {item.queueMeta?.priorityBucket} ({item.queueMeta?.priorityScore})</p>
+                        <p>Offen seit: {item.queueMeta?.pendingHours}h</p>
+                        <p>Hinweise: {(item.queueMeta?.reasons ?? []).join(", ") || "—"}</p>
+                        <p>Weak-Signal: {item.weakSignalFlagged ? item.weakSignalReason ?? "markiert" : "kein Flag"}</p>
                       </td>
                       <td className="px-2 py-2 align-top text-[rgb(var(--muted))]">
-                        <p>lastAction: {item.lastReviewAction ?? "—"}</p>
-                        <p>lastBy: {item.lastReviewActionBy ?? "—"}</p>
-                        <p>lastAt: {formatDate(item.lastReviewActionAt)}</p>
-                        <p>note: {item.reviewNote ?? "—"}</p>
+                        <p>Letzte Aktion: {item.lastReviewAction ?? "—"}</p>
+                        <p>Durchgeführt von: {item.lastReviewActionBy ?? "—"}</p>
+                        <p>Zeitpunkt: {formatDate(item.lastReviewActionAt)}</p>
+                        <p>Notiz: {item.reviewNote ?? "—"}</p>
                         {outcome && (
                           <p className="mt-1 rounded border border-emerald-200 bg-emerald-50 px-1 py-0.5 text-[11px] text-emerald-800">
-                            remediation: {outcome.remediationKind} · anlassraum {outcome.result.anlassraumId ?? "—"}
+                            Remediation: {outcome.remediationKind} · Anlassraum {outcome.result.anlassraumId ?? "—"}
                           </p>
                         )}
                       </td>
@@ -881,7 +881,7 @@ export default function AdminFeedDraftsPage() {
                               onClick={() => runLegacyBackfill(item.id, "attach")}
                               className="rounded border border-[rgb(var(--border))] px-2 py-1 text-xs font-semibold text-[rgb(var(--fg))] hover:bg-[rgb(var(--bg))] disabled:cursor-not-allowed disabled:opacity-60"
                             >
-                              {legacyBusyDraftId === item.id ? "..." : "Attach"}
+                              {legacyBusyDraftId === item.id ? "..." : "Mit Anlassraum verknüpfen"}
                             </button>
                             <button
                               type="button"
@@ -889,7 +889,7 @@ export default function AdminFeedDraftsPage() {
                               onClick={() => runLegacyBackfill(item.id, "create_candidate")}
                               className="rounded border border-[rgb(var(--border))] px-2 py-1 text-xs font-semibold text-[rgb(var(--fg))] hover:bg-[rgb(var(--bg))] disabled:cursor-not-allowed disabled:opacity-60"
                             >
-                              {legacyBusyDraftId === item.id ? "..." : "Create Candidate"}
+                              {legacyBusyDraftId === item.id ? "..." : "Anlassraum-Kandidat anlegen"}
                             </button>
                           </div>
                         </div>
@@ -968,7 +968,13 @@ function DecisionPathBadge({ path }: { path: SignalToAnlassraumPath }) {
     manual_fast_path_via_create:
       "border border-amber-300/80 bg-amber-100 text-amber-950 dark:border-amber-400/55 dark:bg-amber-500/22 dark:text-amber-100",
   };
-  return <span className={`inline-flex rounded-full px-2 py-1 text-[11px] font-semibold ${colors[path]}`}>{path}</span>;
+  const labels: Record<SignalToAnlassraumPath, string> = {
+    ignore: "Ignorieren",
+    attach_to_existing_anlassraum: "Mit Anlassraum verknüpfen",
+    create_anlassraum_candidate: "Kandidat anlegen",
+    manual_fast_path_via_create: "Manuell via /create",
+  };
+  return <span className={`inline-flex rounded-full px-2 py-1 text-[11px] font-semibold ${colors[path]}`}>{labels[path]}</span>;
 }
 
 function deriveOperationalNextStep(

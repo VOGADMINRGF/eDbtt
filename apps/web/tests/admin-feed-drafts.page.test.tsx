@@ -10,13 +10,13 @@ describe("admin feed drafts page", () => {
     expect(html).toContain("Primärquellen bleiben die fachliche Basis");
     expect(html).toContain("Kandidatenfilter");
     expect(html).toContain("Kandidatenliste");
-    expect(html).toContain("manual_fast_path_via_create");
+    expect(html).toContain("Manuell via /create fortsetzen");
     expect(html).toContain("Bulk Review (sekundär)");
-    expect(html).toContain("Legacy Backfill (Maintenance-Ausnahme)");
+    expect(html).toContain("Legacy Backfill (nachgeordnete Maintenance-Ausnahme)");
 
     const candidateIndex = html.indexOf("Kandidatenliste");
     const bulkIndex = html.indexOf("Bulk Review (sekundär)");
-    const legacyIndex = html.indexOf("Legacy Backfill (Maintenance-Ausnahme)");
+    const legacyIndex = html.indexOf("Legacy Backfill (nachgeordnete Maintenance-Ausnahme)");
 
     expect(candidateIndex).toBeGreaterThan(-1);
     expect(bulkIndex).toBeGreaterThan(candidateIndex);

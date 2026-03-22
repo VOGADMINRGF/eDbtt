@@ -41,11 +41,11 @@ type OutputSeedItem = {
 };
 
 const ACTIONS = [
-  { id: "curate", label: "Curate" },
-  { id: "review", label: "Review" },
-  { id: "approve", label: "Approve" },
-  { id: "activate", label: "Activate" },
-  { id: "archive", label: "Archive" },
+  { id: "curate", label: "Kurationsstart" },
+  { id: "review", label: "In Review führen" },
+  { id: "approve", label: "Freigeben" },
+  { id: "activate", label: "Aktivieren" },
+  { id: "archive", label: "Archivieren" },
 ] as const;
 
 const OUTPUT_ACTIONS = [
@@ -60,6 +60,17 @@ const OUTPUT_ACTIONS = [
 ] as const;
 
 type OutputAction = (typeof OUTPUT_ACTIONS)[number];
+
+const OUTPUT_ACTION_LABELS: Record<OutputAction, string> = {
+  queue: "In Queue setzen",
+  send_to_review: "Zur Review senden",
+  approve_prep: "Vorbereitet freigeben",
+  reject_prep: "Vorbereitung ablehnen",
+  mark_ready: "Als bereit markieren",
+  publish: "Manuell publizieren",
+  discard: "Verwerfen",
+  reset_draft: "Auf Draft zurücksetzen",
+};
 
 export default function AdminAnlassraumDetailPage() {
   const params = useParams<{ id: string }>();
@@ -162,49 +173,69 @@ export default function AdminAnlassraumDetailPage() {
     clusterHint: typeof item.clusterKey === "string" ? item.clusterKey : null,
     reason: "manual_fast_path_via_create",
   });
+  const operatorFocus = deriveOperatorFocus({
+    publishGateOk: publishGate.ok,
+    hasDossier: Boolean(item.dossierId),
+    publishGateReasons: publishGate.reasons,
+    sourceCount: publishGate.sourceCount,
+  });
 
   return (
     <main className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-8">
-      <header className="space-y-1">
+      <header className="space-y-3">
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[rgb(var(--muted))]">
           Admin · Anlassraum
         </p>
         <h1 className="text-2xl font-bold text-[rgb(var(--fg))]">{item.title}</h1>
-        <p className="text-sm text-[rgb(var(--muted))]">
+        <p className="text-sm text-[rgb(var(--fg))]">
           {item.status} · {formatSourceModeLabel(item.sourceMode)} · score {item.relevanceScore}
         </p>
-        <p className="text-xs text-[rgb(var(--muted))]">
+        <p className="text-sm text-[rgb(var(--muted))]">
           Relevanzraum: {formatRelevanceScopeLabel(item.scope)} / {formatRelevanceScopeLabel(item.decisionScope)} · Herkunft:{" "}
           {formatOriginTypeLabel(item.originType)} · Trägerschaft: {formatOwnerTypeLabel(item.ownerType)}
         </p>
-        <p className="text-xs text-[rgb(var(--muted))]">
-          Publish gate: {publishGate.ok ? "ok" : "blocked"} · sources {publishGate.sourceCount}
-          {typeof publishGate.requiredSourceCount === "number" ? ` / required ${publishGate.requiredSourceCount}` : ""}
-        </p>
-        {!publishGate.ok && publishGate.reasons.length > 0 && (
-          <p className="text-xs text-rose-700">{publishGate.reasons.join(", ")}</p>
-        )}
-        {publishGate.evidence && (
-          <pre className="mt-2 overflow-auto rounded bg-[rgb(var(--bg))] p-2 text-[11px] text-[rgb(var(--muted))]">
-            {JSON.stringify(publishGate.evidence, null, 2)}
-          </pre>
-        )}
-        <p className="flex gap-3 text-sm">
-          <Link href="/admin/feeds/anlassraum" className="text-sky-700 hover:underline">
+        <div
+          className={`rounded-2xl border px-4 py-3 text-sm ${
+            publishGate.ok
+              ? "border-emerald-300/70 bg-emerald-50/70 text-emerald-900 dark:border-emerald-400/40 dark:bg-emerald-500/12 dark:text-emerald-100"
+              : "border-amber-300/70 bg-amber-50/70 text-amber-900 dark:border-amber-400/40 dark:bg-amber-500/12 dark:text-amber-100"
+          }`}
+        >
+          <p className="font-semibold">{operatorFocus.title}</p>
+          <p className="mt-1 text-xs">{operatorFocus.detail}</p>
+          <p className="mt-2 text-xs">
+            Publish-Gate: {publishGate.ok ? "freigegeben" : "blockiert"} · Quellen {publishGate.sourceCount}
+            {typeof publishGate.requiredSourceCount === "number" ? ` / benötigt ${publishGate.requiredSourceCount}` : ""}
+          </p>
+          {!publishGate.ok && publishGate.reasons.length > 0 ? (
+            <p className="mt-1 text-xs">{publishGate.reasons.join(", ")}</p>
+          ) : null}
+        </div>
+        <div className="flex flex-wrap gap-2 text-sm">
+          <Link href={createFromAnlassraumHref} className="rounded-full bg-slate-900 px-4 py-2 font-semibold text-white">
+            Manuell via /create weiterführen
+          </Link>
+          <Link
+            href="/admin/feeds/drafts"
+            className="rounded-full border border-[rgb(var(--border))] px-4 py-2 font-semibold text-[rgb(var(--fg))] hover:border-sky-300/70 hover:bg-sky-50 dark:hover:border-sky-300/45 dark:hover:bg-sky-500/12"
+          >
+            Feed-Drafts Queue
+          </Link>
+          <Link
+            href="/admin/feeds/anlassraum"
+            className="rounded-full border border-[rgb(var(--border))] px-4 py-2 font-semibold text-[rgb(var(--fg))] hover:border-sky-300/70 hover:bg-sky-50 dark:hover:border-sky-300/45 dark:hover:bg-sky-500/12"
+          >
             Zur Übersicht
           </Link>
-          <Link href="/admin/feeds/drafts" className="text-sky-700 hover:underline">
-            Zu Feed-Drafts
-          </Link>
-          <Link href={createFromAnlassraumHref} className="text-sky-700 hover:underline">
-            Anlassraum manuell via /create weiterführen
-          </Link>
           {item.dossierId ? (
-            <Link href={`/admin/dossiers/${encodeURIComponent(item.dossierId)}`} className="text-sky-700 hover:underline">
-              Zur Dossier-Verdichtung
+            <Link
+              href={`/admin/dossiers/${encodeURIComponent(item.dossierId)}`}
+              className="rounded-full border border-[rgb(var(--border))] px-4 py-2 font-semibold text-[rgb(var(--fg))] hover:border-sky-300/70 hover:bg-sky-50 dark:hover:border-sky-300/45 dark:hover:bg-sky-500/12"
+            >
+              Dossier-Verdichtung öffnen
             </Link>
           ) : null}
-        </p>
+        </div>
         <p className="text-xs text-[rgb(var(--muted))]">
           Anlassraum bleibt eigenständiger Arbeitsraum. Dossier-Verdichtung ist ein bewusster, optionaler Folgeschritt.
         </p>
@@ -223,30 +254,54 @@ export default function AdminAnlassraumDetailPage() {
         </div>
       </header>
 
-      <section className="grid gap-4 lg:grid-cols-2">
+      <section className="grid gap-4 lg:grid-cols-3">
         <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4">
-          <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Meta</h2>
-          <pre className="mt-2 overflow-auto rounded bg-[rgb(var(--bg))] p-3 text-xs text-[rgb(var(--muted))]">
-            {JSON.stringify(item, null, 2)}
-          </pre>
+          <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Arbeitskontext</h2>
+          <div className="mt-3 space-y-2 text-sm">
+            <p className="text-[rgb(var(--fg))]">
+              <span className="font-semibold">Relevanzraum:</span> {formatRelevanceScopeLabel(item.scope)} /{" "}
+              {formatRelevanceScopeLabel(item.decisionScope)}
+            </p>
+            <p className="text-[rgb(var(--fg))]">
+              <span className="font-semibold">Herkunft:</span> {formatOriginTypeLabel(item.originType)}
+            </p>
+            <p className="text-[rgb(var(--fg))]">
+              <span className="font-semibold">Trägerschaft:</span> {formatOwnerTypeLabel(item.ownerType)}
+            </p>
+            <p className="text-[rgb(var(--fg))]">
+              <span className="font-semibold">Topic:</span> {item.topicKey ?? "offen"}
+            </p>
+            <p className="text-[rgb(var(--fg))]">
+              <span className="font-semibold">Cluster:</span> {item.clusterKey ?? "offen"}
+            </p>
+            <p className="text-[rgb(var(--fg))]">
+              <span className="font-semibold">Quellenlage:</span> {sources.length} referenzierte Quelle
+              {sources.length === 1 ? "" : "n"}
+            </p>
+            {sources.slice(0, 3).map((source, index) => (
+              <p key={`source-preview-${index}`} className="text-xs text-[rgb(var(--muted))]">
+                {sourcePreviewLabel(source, index)}
+              </p>
+            ))}
+          </div>
         </div>
-        <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4">
-          <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Output Seeds</h2>
+        <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 lg:col-span-2">
+          <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Output-Übergänge</h2>
           {outputError && (
             <p className="mt-2 rounded border border-rose-200 bg-rose-50 px-2 py-1 text-xs text-rose-700">
               {outputError}
             </p>
           )}
           <div className="mt-3 overflow-auto rounded border border-[rgb(var(--border))]">
-            <table className="min-w-full divide-y divide-[rgb(var(--border))] text-xs">
+            <table className="min-w-full divide-y divide-[rgb(var(--border))] text-sm">
               <thead className="bg-[rgb(var(--bg))]">
                 <tr>
-                  <th className="px-2 py-2 text-left font-semibold text-[rgb(var(--muted))]">Type</th>
-                  <th className="px-2 py-2 text-left font-semibold text-[rgb(var(--muted))]">Status</th>
-                  <th className="px-2 py-2 text-left font-semibold text-[rgb(var(--muted))]">Review</th>
-                  <th className="px-2 py-2 text-left font-semibold text-[rgb(var(--muted))]">Publish Target</th>
-                  <th className="px-2 py-2 text-left font-semibold text-[rgb(var(--muted))]">Last Action</th>
-                  <th className="px-2 py-2 text-left font-semibold text-[rgb(var(--muted))]">Transition</th>
+                  <th className="px-2 py-2 text-left font-semibold text-[rgb(var(--fg))]">Output-Typ</th>
+                  <th className="px-2 py-2 text-left font-semibold text-[rgb(var(--fg))]">Status</th>
+                  <th className="px-2 py-2 text-left font-semibold text-[rgb(var(--fg))]">Review-Status</th>
+                  <th className="px-2 py-2 text-left font-semibold text-[rgb(var(--fg))]">Publish-Ziel</th>
+                  <th className="px-2 py-2 text-left font-semibold text-[rgb(var(--fg))]">Letzte Aktion</th>
+                  <th className="px-2 py-2 text-left font-semibold text-[rgb(var(--fg))]">Nächste Aktion</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[rgb(var(--border))]">
@@ -268,13 +323,13 @@ export default function AdminAnlassraumDetailPage() {
                   outputSeeds.map((seed) => (
                     <tr key={seed.id}>
                       <td className="px-2 py-2 align-top text-[rgb(var(--fg))]">{seed.outputType}</td>
-                      <td className="px-2 py-2 align-top text-[rgb(var(--muted))]">{seed.status}</td>
-                      <td className="px-2 py-2 align-top text-[rgb(var(--muted))]">{seed.reviewState}</td>
-                      <td className="px-2 py-2 align-top text-[rgb(var(--muted))]">{seed.publishTarget ?? "—"}</td>
-                      <td className="px-2 py-2 align-top text-[rgb(var(--muted))]">
+                      <td className="px-2 py-2 align-top text-[rgb(var(--fg))]">{seed.status}</td>
+                      <td className="px-2 py-2 align-top text-[rgb(var(--fg))]">{seed.reviewState}</td>
+                      <td className="px-2 py-2 align-top text-[rgb(var(--fg))]">{seed.publishTarget ?? "—"}</td>
+                      <td className="px-2 py-2 align-top text-[rgb(var(--fg))]">
                         <p>{seed.lastAction ?? "—"}</p>
-                        <p>{seed.lastActionBy ?? "—"}</p>
-                        <p>{formatIso(seed.lastActionAt)}</p>
+                        <p className="text-xs text-[rgb(var(--muted))]">{seed.lastActionBy ?? "—"}</p>
+                        <p className="text-xs text-[rgb(var(--muted))]">{formatIso(seed.lastActionAt)}</p>
                       </td>
                       <td className="px-2 py-2 align-top">
                         <div className="flex min-w-[260px] flex-col gap-1">
@@ -290,7 +345,7 @@ export default function AdminAnlassraumDetailPage() {
                           >
                             {OUTPUT_ACTIONS.map((action) => (
                               <option key={action} value={action}>
-                                {action}
+                                {OUTPUT_ACTION_LABELS[action]}
                               </option>
                             ))}
                           </select>
@@ -302,7 +357,7 @@ export default function AdminAnlassraumDetailPage() {
                                 [seed.id]: e.target.value,
                               }))
                             }
-                            placeholder="publishTarget (nur fuer publish)"
+                            placeholder="Publish-Ziel (nur bei manueller Publikation)"
                             className="rounded border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-2 py-1 text-xs"
                           />
                           <input
@@ -313,7 +368,7 @@ export default function AdminAnlassraumDetailPage() {
                                 [seed.id]: e.target.value,
                               }))
                             }
-                            placeholder="reviewNote (optional)"
+                            placeholder="Review-Notiz (optional)"
                             className="rounded border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-2 py-1 text-xs"
                           />
                           <button
@@ -322,7 +377,7 @@ export default function AdminAnlassraumDetailPage() {
                             onClick={() => runOutputTransition(seed.id)}
                             className="rounded border border-[rgb(var(--border))] px-2 py-1 text-xs font-semibold text-[rgb(var(--fg))] hover:bg-[rgb(var(--bg))] disabled:cursor-not-allowed disabled:opacity-60"
                           >
-                            {outputTransitioningSeedId === seed.id ? "..." : "Apply"}
+                            {outputTransitioningSeedId === seed.id ? "..." : "Übernehmen"}
                           </button>
                         </div>
                       </td>
@@ -334,20 +389,40 @@ export default function AdminAnlassraumDetailPage() {
         </div>
       </section>
 
-      <section className="grid gap-4 lg:grid-cols-2">
-        <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4">
-          <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Sources</h2>
-          <pre className="mt-2 overflow-auto rounded bg-[rgb(var(--bg))] p-3 text-xs text-[rgb(var(--muted))]">
-            {JSON.stringify(sources, null, 2)}
-          </pre>
-        </div>
-        <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4">
-          <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Structure</h2>
-          <pre className="mt-2 overflow-auto rounded bg-[rgb(var(--bg))] p-3 text-xs text-[rgb(var(--muted))]">
-            {JSON.stringify(structure ?? {}, null, 2)}
-          </pre>
-        </div>
-      </section>
+      <details className="rounded-2xl border border-dashed border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-4 py-3">
+        <summary className="cursor-pointer text-sm font-medium text-[rgb(var(--muted))]">Diagnose & JSON (nachgeordnet)</summary>
+        <p className="mt-2 text-xs text-[rgb(var(--muted))]">
+          Audit-Readout für Deep-Dive und Fehlersuche. Der operative Arbeitsfluss bleibt oben.
+        </p>
+        <section className="mt-3 grid gap-4 lg:grid-cols-3">
+          <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 lg:col-span-1">
+            <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Meta</h2>
+            <pre className="mt-2 overflow-auto rounded bg-[rgb(var(--bg))] p-3 text-xs text-[rgb(var(--muted))]">
+              {JSON.stringify(item, null, 2)}
+            </pre>
+          </div>
+          <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 lg:col-span-1">
+            <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Quellen-JSON</h2>
+            <pre className="mt-2 overflow-auto rounded bg-[rgb(var(--bg))] p-3 text-xs text-[rgb(var(--muted))]">
+              {JSON.stringify(sources, null, 2)}
+            </pre>
+          </div>
+          <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 lg:col-span-1">
+            <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Struktur-JSON</h2>
+            <pre className="mt-2 overflow-auto rounded bg-[rgb(var(--bg))] p-3 text-xs text-[rgb(var(--muted))]">
+              {JSON.stringify(structure ?? {}, null, 2)}
+            </pre>
+          </div>
+          {publishGate.evidence ? (
+            <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 lg:col-span-3">
+              <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Publish-Gate Evidence</h2>
+              <pre className="mt-2 overflow-auto rounded bg-[rgb(var(--bg))] p-3 text-xs text-[rgb(var(--muted))]">
+                {JSON.stringify(publishGate.evidence, null, 2)}
+              </pre>
+            </div>
+          ) : null}
+        </section>
+      </details>
     </main>
   );
 
@@ -420,6 +495,53 @@ export default function AdminAnlassraumDetailPage() {
       setOutputTransitioningSeedId(null);
     }
   }
+}
+
+function deriveOperatorFocus(input: {
+  publishGateOk: boolean;
+  hasDossier: boolean;
+  publishGateReasons: string[];
+  sourceCount: number;
+}): { title: string; detail: string } {
+  if (!input.publishGateOk) {
+    const reasonHint = input.publishGateReasons[0] ? ` Hinweis: ${input.publishGateReasons[0]}.` : "";
+    return {
+      title: "Quellenlage zuerst absichern",
+      detail: `Publikation bleibt blockiert (${input.sourceCount} Quelle${
+        input.sourceCount === 1 ? "" : "n"
+      }). Anlassraum strukturieren und Primärquellen prüfen, bevor Verdichtung/Publish weitergeführt wird.${reasonHint}`,
+    };
+  }
+  if (input.hasDossier) {
+    return {
+      title: "Anlassraum stabil halten, Verdichtung gezielt fortführen",
+      detail: "Dossier ist bereits verbunden. Anlassraum-Kontext weiter pflegen und Verdichtung bewusst steuern.",
+    };
+  }
+  return {
+    title: "Anlassraum weiter strukturieren",
+    detail:
+      "Signal- und Quellenkontext im Anlassraum ausarbeiten; Dossier-Verdichtung bleibt optional als bewusster nächster Schritt.",
+  };
+}
+
+function sourcePreviewLabel(source: unknown, index: number): string {
+  if (!source || typeof source !== "object") return `Quelle ${index + 1}: ohne lesbare Metadaten`;
+  const row = source as Record<string, unknown>;
+  const title = typeof row.title === "string" && row.title.trim() ? row.title.trim() : null;
+  const label = typeof row.label === "string" && row.label.trim() ? row.label.trim() : null;
+  const url = typeof row.url === "string" && row.url.trim() ? row.url.trim() : null;
+  if (title) return `Quelle ${index + 1}: ${title}`;
+  if (label) return `Quelle ${index + 1}: ${label}`;
+  if (url) {
+    try {
+      const host = new URL(url).hostname.replace(/^www\./, "");
+      return `Quelle ${index + 1}: ${host}`;
+    } catch {
+      return `Quelle ${index + 1}: ${url}`;
+    }
+  }
+  return `Quelle ${index + 1}: ohne Titel/URL`;
 }
 
 function defaultOutputAction(status: string): OutputAction {
