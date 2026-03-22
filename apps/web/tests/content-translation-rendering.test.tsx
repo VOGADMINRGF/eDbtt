@@ -75,4 +75,20 @@ describe("reader-locale content translation rendering", () => {
     expect(html).toContain("Kein FR-Text");
     expect(html).toContain("Aucune traduction pour FR.");
   });
+
+  it("keeps preferred-locale fallback stable for unsupported locale inputs", () => {
+    const resolved = resolveLocalizedContentForReader({
+      preferredLocale: "xx",
+      content: {
+        originalLanguage: "en",
+        originalText: "English original",
+        translations: { de: "Deutsche Uebersetzung" },
+        translationStatus: "translated",
+      },
+    });
+
+    expect(resolved?.preferredLocale).toBe("de");
+    expect(resolved?.state).toBe("translated");
+    expect(resolved?.displayText).toBe("Deutsche Uebersetzung");
+  });
 });

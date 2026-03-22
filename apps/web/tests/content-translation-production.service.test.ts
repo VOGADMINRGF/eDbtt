@@ -80,6 +80,26 @@ describe("content translation production lifecycle", () => {
     expect(finalized.missingLocales).toEqual([]);
   });
 
+  it("keeps originalText stable when lifecycle applies produced translations", () => {
+    const finalized = applyContentTranslationLifecycle({
+      content: {
+        originalLanguage: "de",
+        originalText: "Unveraendertes Original",
+        translations: {},
+        translationStatus: "pending",
+      },
+      targetLocales: ["en"],
+      producedTranslations: { en: "Translated" },
+      attemptedLocales: ["en"],
+      failedLocales: [],
+      provider: "openai",
+      model: "gpt-4o-mini",
+    });
+
+    expect(finalized.content?.originalText).toBe("Unveraendertes Original");
+    expect(finalized.content?.translationStatus).toBe("translated");
+  });
+
   it("marks failed when translation attempt was made but no missing locale could be produced", () => {
     const prepared = prepareContentTranslationForWrite({
       originalText: "Kurztext",
@@ -118,6 +138,26 @@ describe("content translation production lifecycle", () => {
     expect(result.content?.translations?.en).toBe("Bestehende EN Uebersetzung");
     expect(result.content?.translations?.fr).toBe("Neue EN Uebersetzung");
     expect(result.content?.originalText).toBe("Original");
+  });
+
+  it("never silently replaces existing translation values", () => {
+    const finalized = applyContentTranslationLifecycle({
+      content: {
+        originalLanguage: "de",
+        originalText: "Original",
+        translations: { en: "Existing EN" },
+        translationStatus: "missing",
+      },
+      targetLocales: ["en", "fr"],
+      producedTranslations: { en: "New EN", fr: "FR Value" },
+      attemptedLocales: ["en", "fr"],
+      failedLocales: [],
+      provider: "openai",
+      model: "gpt-4o-mini",
+    });
+
+    expect(finalized.content?.translations?.en).toBe("Existing EN");
+    expect(finalized.content?.translations?.fr).toBe("FR Value");
   });
 
   it("keeps missing status when provider is not configured", async () => {

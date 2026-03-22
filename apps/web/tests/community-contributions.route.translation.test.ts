@@ -122,4 +122,62 @@ describe("community contributions route translation write-path", () => {
     expect(payload.titleContent).toBeNull();
     expect(payload.bodyContent).toBeNull();
   });
+
+  it("stays backward-compatible when originalLanguage is omitted", async () => {
+    mocks.runContentTranslationProduction
+      .mockResolvedValueOnce({
+        content: {
+          originalLanguage: null,
+          originalText: "Titel ohne Locale",
+          translations: {},
+          translationStatus: "missing",
+          translatedAt: null,
+          translationProvider: null,
+          translationModel: null,
+        },
+        targetLocales: ["en"],
+        missingLocales: ["en"],
+        attemptedLocales: [],
+        producedLocales: [],
+        failedLocales: [],
+      })
+      .mockResolvedValueOnce({
+        content: {
+          originalLanguage: null,
+          originalText: "Body ohne Locale",
+          translations: {},
+          translationStatus: "missing",
+          translatedAt: null,
+          translationProvider: null,
+          translationModel: null,
+        },
+        targetLocales: ["en"],
+        missingLocales: ["en"],
+        attemptedLocales: [],
+        producedLocales: [],
+        failedLocales: [],
+      });
+
+    const req = new NextRequest("http://localhost/api/community/contributions", {
+      method: "POST",
+      body: JSON.stringify({
+        type: "option",
+        topicId: "energie",
+        title: "Titel ohne Locale",
+        body: "Body ohne Locale",
+      }),
+      headers: { "content-type": "application/json" },
+    });
+
+    const res = await contributionsPOST(req);
+    expect(res.status).toBe(200);
+    expect(mocks.runContentTranslationProduction).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({ originalLanguage: null }),
+    );
+    expect(mocks.runContentTranslationProduction).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({ originalLanguage: null }),
+    );
+  });
 });
