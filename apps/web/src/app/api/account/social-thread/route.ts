@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { assertStoreConfigured, ObjectId, coreCol } from "@core/db/triMongo";
 import { readSession } from "@/utils/session";
+import { runContentTranslationProduction } from "@/features/i18n/contentTranslationProduction";
 import { buildLocalizedContentRecord } from "@/features/i18n/contentTranslations";
 import {
   FOUNDER_ACCOUNT_EMAIL,
@@ -503,6 +504,7 @@ export async function POST(request: Request) {
   const targetUserId = clean(body?.targetUserId);
   const shareId = clean(body?.shareId);
   const text = ensureMessageText(body?.text);
+  const originalLanguage = clean(body?.originalLanguage);
 
   if (!text) {
     return NextResponse.json({ ok: false, error: "message_empty" }, { status: 400 });
@@ -591,17 +593,32 @@ export async function POST(request: Request) {
     });
   }
 
+  const translationLifecycle = await runContentTranslationProduction({
+    originalText: text,
+    originalLanguage: originalLanguage || null,
+    maxLength: 600,
+  });
+  const messageContent = translationLifecycle.content ?? {
+    originalLanguage: null,
+    originalText: text,
+    translations: {},
+    translationStatus: "missing" as const,
+    translatedAt: null,
+    translationProvider: null,
+    translationModel: null,
+  };
+
   const insertResult = await messageCol.insertOne({
     fromUserId: userId,
     toUserId: target.userId,
     text,
-    originalLanguage: null,
-    originalText: text,
-    translations: {},
-    translationStatus: "missing",
-    translatedAt: null,
-    translationProvider: null,
-    translationModel: null,
+    originalLanguage: messageContent.originalLanguage ?? null,
+    originalText: messageContent.originalText ?? text,
+    translations: messageContent.translations ?? {},
+    translationStatus: messageContent.translationStatus ?? "missing",
+    translatedAt: messageContent.translatedAt ?? null,
+    translationProvider: messageContent.translationProvider ?? null,
+    translationModel: messageContent.translationModel ?? null,
     kind: "direct",
     createdAt: now,
     updatedAt: now,
@@ -614,15 +631,7 @@ export async function POST(request: Request) {
     message: {
       id: String(insertResult.insertedId),
       text,
-      content: {
-        originalLanguage: null,
-        originalText: text,
-        translations: {},
-        translationStatus: "missing",
-        translatedAt: null,
-        translationProvider: null,
-        translationModel: null,
-      },
+      content: messageContent,
       kind: "direct",
       createdAt: now.toISOString(),
     },

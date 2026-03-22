@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import { runContentTranslationProduction } from "@/features/i18n/contentTranslationProduction";
 import {
   createCommunityContribution,
   listCommunityContributions,
@@ -19,6 +20,7 @@ const BodySchema = z
     body: z.string().trim().min(1).max(2000).optional(),
     url: z.string().url().optional(),
     authorName: z.string().trim().min(1).max(120).optional(),
+    originalLanguage: z.string().trim().min(2).max(10).optional(),
   })
   .refine((val) => Boolean(val.topicId || val.candidateId), {
     message: "missing_reference",
@@ -55,12 +57,24 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: false, error: parsed.error.flatten() }, { status: 400 });
   }
   const body = parsed.data;
+  const titleLocalized = await runContentTranslationProduction({
+    originalText: body.title ?? null,
+    originalLanguage: body.originalLanguage ?? null,
+    maxLength: 160,
+  });
+  const bodyLocalized = await runContentTranslationProduction({
+    originalText: body.body ?? null,
+    originalLanguage: body.originalLanguage ?? null,
+    maxLength: 2_000,
+  });
   const item = await createCommunityContribution({
     type: body.type as CommunityContributionType,
     topicId: body.topicId ?? null,
     candidateId: body.candidateId ?? null,
     title: body.title ?? null,
     body: body.body ?? null,
+    titleContent: titleLocalized.content,
+    bodyContent: bodyLocalized.content,
     url: body.url ?? null,
     authorName: body.authorName ?? null,
     status: "proposed",

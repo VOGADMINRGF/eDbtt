@@ -1,4 +1,5 @@
 import { assertStoreConfigured, getCol, ObjectId } from "@core/db/triMongo";
+import { runContentTranslationProduction } from "@/features/i18n/contentTranslationProduction";
 
 export const FOUNDER_ACCOUNT_EMAIL = "rgf@voiceopengov.org";
 export const FOUNDER_WELCOME_MESSAGE_KIND = "founder_welcome";
@@ -225,6 +226,21 @@ export async function ensureFounderWelcomeForUser(
 
   let friendRequestExists = false;
   let friendRequestCreated = false;
+  const welcomeText = buildFounderWelcomeText(founderDisplayName);
+  const welcomeContentLifecycle = await runContentTranslationProduction({
+    originalText: welcomeText,
+    originalLanguage: "de",
+    maxLength: 600,
+  });
+  const welcomeContent = welcomeContentLifecycle.content ?? {
+    originalLanguage: "de",
+    originalText: welcomeText,
+    translations: {},
+    translationStatus: "missing" as const,
+    translatedAt: null,
+    translationProvider: null,
+    translationModel: null,
+  };
   const existingRequest = await friendRequestsCol.findOne({
     fromUserId: founderId,
     toUserId: userId,
@@ -249,14 +265,14 @@ export async function ensureFounderWelcomeForUser(
     { fromUserId: founderId, toUserId: userId, kind: FOUNDER_WELCOME_MESSAGE_KIND },
     {
       $setOnInsert: {
-        text: buildFounderWelcomeText(founderDisplayName),
-        originalLanguage: "de",
-        originalText: buildFounderWelcomeText(founderDisplayName),
-        translations: {},
-        translationStatus: "missing",
-        translatedAt: null,
-        translationProvider: null,
-        translationModel: null,
+        text: welcomeText,
+        originalLanguage: welcomeContent.originalLanguage ?? "de",
+        originalText: welcomeContent.originalText ?? welcomeText,
+        translations: welcomeContent.translations ?? {},
+        translationStatus: welcomeContent.translationStatus ?? "missing",
+        translatedAt: welcomeContent.translatedAt ?? null,
+        translationProvider: welcomeContent.translationProvider ?? null,
+        translationModel: welcomeContent.translationModel ?? null,
         kind: FOUNDER_WELCOME_MESSAGE_KIND,
         readAt: null,
         createdAt: now,

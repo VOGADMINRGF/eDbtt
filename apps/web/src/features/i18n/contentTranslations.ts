@@ -25,6 +25,18 @@ export type LocalizedContentRenderResult = {
   showOriginalDisclosure: boolean;
 };
 
+export function resolveContentTranslationStatus(value?: unknown): ContentTranslationStatus {
+  if (!value) return "missing";
+  if (typeof value === "string") {
+    return value === "pending" || value === "translated" || value === "failed" ? value : "missing";
+  }
+  const status =
+    typeof value === "object" && value && "translationStatus" in value
+      ? (value as { translationStatus?: unknown }).translationStatus
+      : null;
+  return status === "pending" || status === "translated" || status === "failed" ? status : "missing";
+}
+
 function cleanText(value: unknown, maxLength = 4_000): string {
   if (typeof value !== "string") return "";
   const trimmed = value.trim();
@@ -48,8 +60,7 @@ export function resolveReaderLocale(value?: string | null): SupportedLocale {
 }
 
 function normalizeStatus(value: unknown): ContentTranslationStatus {
-  if (value === "pending" || value === "translated" || value === "failed") return value;
-  return "missing";
+  return resolveContentTranslationStatus(typeof value === "string" ? value : null);
 }
 
 function sanitizeTranslations(
@@ -203,4 +214,46 @@ const CONTENT_RENDER_UI_TEXTS: Partial<Record<SupportedLocale, ContentRenderUiTe
 export function getContentRenderUiText(locale?: string | null): ContentRenderUiText {
   const resolved = resolveReaderLocale(locale);
   return CONTENT_RENDER_UI_TEXTS[resolved] ?? CONTENT_RENDER_UI_TEXTS.en!;
+}
+
+const CONTENT_STATUS_LABELS: Partial<Record<SupportedLocale, Record<ContentTranslationStatus, string>>> = {
+  de: {
+    missing: "Uebersetzung fehlt",
+    pending: "Uebersetzung ausstehend",
+    translated: "Uebersetzt",
+    failed: "Uebersetzung fehlgeschlagen",
+  },
+  en: {
+    missing: "Translation missing",
+    pending: "Translation pending",
+    translated: "Translated",
+    failed: "Translation failed",
+  },
+  es: {
+    missing: "Traduccion faltante",
+    pending: "Traduccion pendiente",
+    translated: "Traducido",
+    failed: "Traduccion fallida",
+  },
+  fr: {
+    missing: "Traduction manquante",
+    pending: "Traduction en attente",
+    translated: "Traduit",
+    failed: "Echec de traduction",
+  },
+  zh: {
+    missing: "缺少翻译",
+    pending: "翻译处理中",
+    translated: "已翻译",
+    failed: "翻译失败",
+  },
+};
+
+export function formatContentTranslationStatusLabel(
+  status: ContentTranslationStatus,
+  locale?: string | null,
+): string {
+  const resolvedLocale = resolveReaderLocale(locale);
+  const map = CONTENT_STATUS_LABELS[resolvedLocale] ?? CONTENT_STATUS_LABELS.en!;
+  return map[resolveContentTranslationStatus(status)];
 }

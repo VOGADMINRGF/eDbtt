@@ -3,7 +3,11 @@
 import { useEffect, useState } from "react";
 import LocalizedContentDisplay from "@/components/i18n/LocalizedContentDisplay";
 import { useLocale } from "@/context/LocaleContext";
-import type { LocalizedContentRecord } from "@/features/i18n/contentTranslations";
+import {
+  formatContentTranslationStatusLabel,
+  resolveContentTranslationStatus,
+  type LocalizedContentRecord,
+} from "@/features/i18n/contentTranslations";
 
 type Contribution = {
   id: string;
@@ -142,6 +146,12 @@ export default function AdminContributionsPage() {
                   Quelle öffnen
                 </a>
               )}
+              <p className="mt-1 text-[10px] text-[rgb(var(--muted))]">
+                {formatContentTranslationStatusLabel(
+                  resolveContentTranslationStatus(item.bodyContent ?? item.titleContent ?? null),
+                  locale,
+                )}
+              </p>
               <div className="mt-3 flex flex-wrap gap-2 text-xs">
                 <button
                   className="rounded-full border border-emerald-200 px-3 py-1 text-emerald-700 disabled:opacity-60"

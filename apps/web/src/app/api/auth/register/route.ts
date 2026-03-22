@@ -17,6 +17,7 @@ import { verifyHumanTokenDetailed } from "@/lib/security/human-token";
 import { ensureFounderWelcomeForUser } from "@/lib/onboarding/founderWelcome";
 import { logOnboardingEvent } from "@/lib/onboarding/events";
 import { refreshUserPreferenceSnapshot } from "@/lib/onboarding/preferenceSnapshot";
+import { runContentTranslationProduction } from "@/features/i18n/contentTranslationProduction";
 import { upsertMembershipPaymentProfile } from "@core/db/pii/userPaymentProfiles";
 
 export const runtime = "nodejs";
@@ -215,18 +216,33 @@ async function applyReferralFlow({
   ]);
 
   const messagesCol = await getCol("social_messages");
+  const referralText = "hat sich über deinen Einladungslink registriert.";
+  const referralContentLifecycle = await runContentTranslationProduction({
+    originalText: referralText,
+    originalLanguage: "de",
+    maxLength: 600,
+  });
+  const referralContent = referralContentLifecycle.content ?? {
+    originalLanguage: "de",
+    originalText: referralText,
+    translations: {},
+    translationStatus: "missing" as const,
+    translatedAt: null,
+    translationProvider: null,
+    translationModel: null,
+  };
   await messagesCol.updateOne(
     { fromUserId: invitedUserIdStr, toUserId: inviterUserId, kind: "referral_signup" },
     {
       $setOnInsert: {
-        text: "hat sich über deinen Einladungslink registriert.",
-        originalLanguage: "de",
-        originalText: "hat sich über deinen Einladungslink registriert.",
-        translations: {},
-        translationStatus: "missing",
-        translatedAt: null,
-        translationProvider: null,
-        translationModel: null,
+        text: referralText,
+        originalLanguage: referralContent.originalLanguage ?? "de",
+        originalText: referralContent.originalText ?? referralText,
+        translations: referralContent.translations ?? {},
+        translationStatus: referralContent.translationStatus ?? "missing",
+        translatedAt: referralContent.translatedAt ?? null,
+        translationProvider: referralContent.translationProvider ?? null,
+        translationModel: referralContent.translationModel ?? null,
         readAt: null,
         createdAt: now,
       },

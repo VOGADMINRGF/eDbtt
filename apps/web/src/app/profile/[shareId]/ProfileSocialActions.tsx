@@ -179,11 +179,15 @@ export default function ProfileSocialActions({ shareId, preferredLocale = "de" }
 
     setSending(true);
     setActionMsg(null);
+    const browserLocale =
+      (typeof document !== "undefined" && document.documentElement.lang) ||
+      (typeof navigator !== "undefined" && navigator.language) ||
+      preferredLocale;
     try {
       const res = await fetch("/api/account/social-thread", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ targetUserId: context.targetUserId, text }),
+        body: JSON.stringify({ targetUserId: context.targetUserId, text, originalLanguage: browserLocale }),
       });
       const body = await res.json().catch(() => ({}));
       if (!res.ok || !body?.ok) {

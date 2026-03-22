@@ -3,7 +3,11 @@
 import { useEffect, useState } from "react";
 import LocalizedContentDisplay from "@/components/i18n/LocalizedContentDisplay";
 import { useLocale } from "@/context/LocaleContext";
-import type { LocalizedContentRecord } from "@/features/i18n/contentTranslations";
+import {
+  formatContentTranslationStatusLabel,
+  resolveContentTranslationStatus,
+  type LocalizedContentRecord,
+} from "@/features/i18n/contentTranslations";
 
 type ContributionType = "source" | "option" | "question" | "impact" | "view";
 
@@ -88,6 +92,7 @@ export default function CommunityContributionsPage() {
         body: body.trim() || undefined,
         url: url.trim() || undefined,
         authorName: authorName.trim() || undefined,
+        originalLanguage: locale,
       };
       const res = await fetch("/api/community/contributions", {
         method: "POST",
@@ -264,6 +269,12 @@ export default function CommunityContributionsPage() {
                   Quelle öffnen
                 </a>
               )}
+              <p className="mt-1 text-[10px] text-[rgb(var(--muted))]">
+                {formatContentTranslationStatusLabel(
+                  resolveContentTranslationStatus(item.bodyContent ?? item.titleContent ?? null),
+                  locale,
+                )}
+              </p>
             </article>
           ))}
         </div>

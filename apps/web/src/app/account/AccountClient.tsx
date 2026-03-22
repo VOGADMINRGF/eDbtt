@@ -1229,6 +1229,7 @@ function CompactProfileHubSection({
           targetUserId: socialThreadContext.targetUserId || socialDetail.targetUserId,
           shareId: socialThreadContext.targetShareId || socialDetail.shareId,
           text,
+          originalLanguage: preferredReaderLocale,
         }),
       });
       const body = await res.json().catch(() => ({}));
