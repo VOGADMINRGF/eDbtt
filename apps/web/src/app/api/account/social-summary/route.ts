@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { assertStoreConfigured, ObjectId, coreCol } from "@core/db/triMongo";
 import { readSession } from "@/utils/session";
+import { buildLocalizedContentRecord } from "@/features/i18n/contentTranslations";
 import {
   ensureFounderWelcomeForUser,
   FOUNDER_ACCOUNT_EMAIL,
@@ -28,6 +29,13 @@ type SocialMessageDoc = {
   text?: string | null;
   body?: string | null;
   kind?: "direct" | "founder_welcome" | "referral_signup" | "system_onboarding" | string | null;
+  originalLanguage?: string | null;
+  originalText?: string | null;
+  translations?: Record<string, string | null> | null;
+  translationStatus?: "missing" | "pending" | "translated" | "failed" | string | null;
+  translatedAt?: string | Date | null;
+  translationProvider?: string | null;
+  translationModel?: string | null;
   readAt?: string | Date | null;
   createdAt?: string | Date | null;
 };
@@ -562,10 +570,23 @@ export async function GET() {
       (typeof doc.text === "string" && doc.text.trim()) ||
       (typeof doc.body === "string" && doc.body.trim()) ||
       "Nachricht ohne Text";
+    const content = buildLocalizedContentRecord({
+      originalLanguage: doc.originalLanguage,
+      originalText: doc.originalText,
+      fallbackOriginalText: text,
+      translations: doc.translations,
+      translationStatus: doc.translationStatus,
+      translatedAt: doc.translatedAt,
+      translationProvider: doc.translationProvider,
+      translationModel: doc.translationModel,
+      maxOriginalLength: 180,
+      maxTranslationLength: 180,
+    });
     return {
       id: String(doc._id),
       fromLabel: sender.label,
       text: text.slice(0, 180),
+      content,
       kind,
       messageType,
       createdAt: toIso(doc.createdAt),

@@ -250,6 +250,13 @@ export async function ensureFounderWelcomeForUser(
     {
       $setOnInsert: {
         text: buildFounderWelcomeText(founderDisplayName),
+        originalLanguage: "de",
+        originalText: buildFounderWelcomeText(founderDisplayName),
+        translations: {},
+        translationStatus: "missing",
+        translatedAt: null,
+        translationProvider: null,
+        translationModel: null,
         kind: FOUNDER_WELCOME_MESSAGE_KIND,
         readAt: null,
         createdAt: now,

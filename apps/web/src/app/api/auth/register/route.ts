@@ -220,6 +220,13 @@ async function applyReferralFlow({
     {
       $setOnInsert: {
         text: "hat sich über deinen Einladungslink registriert.",
+        originalLanguage: "de",
+        originalText: "hat sich über deinen Einladungslink registriert.",
+        translations: {},
+        translationStatus: "missing",
+        translatedAt: null,
+        translationProvider: null,
+        translationModel: null,
         readAt: null,
         createdAt: now,
       },

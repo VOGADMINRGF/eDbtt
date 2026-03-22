@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { ChangeEvent, FormEvent, KeyboardEvent as ReactKeyboardEvent } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import LocalizedContentDisplay from "@/components/i18n/LocalizedContentDisplay";
 import { useMobileChromeVisibility } from "@/hooks/useMobileChromeVisibility";
 import { EDEBATTE_PACKAGES_WITH_NONE } from "@/config/edebatte";
 import { canEditTopTopics } from "@features/account/capabilities";
@@ -16,6 +17,7 @@ import {
 import type { AccountFeatureInterestKey } from "@features/account/types";
 import { TOPIC_CHOICES, type TopicKey } from "@features/interests/topics";
 import { buildCommunityHref } from "@/features/community/deepLinkContract";
+import type { LocalizedContentRecord } from "@/features/i18n/contentTranslations";
 import type { UserRole } from "@/types/user";
 import type { EngagementLevel } from "@features/user/engagement";
 import {
@@ -341,6 +343,7 @@ type SocialMessageItem = {
   id: string;
   fromLabel: string;
   text: string;
+  content?: LocalizedContentRecord | null;
   kind?: string;
   messageType?: "founder" | "system" | "direct";
   createdAt?: string | null;
@@ -449,6 +452,7 @@ type SocialDetailState = {
   avatarUrl?: string | null;
   shareId?: string | null;
   body?: string | null;
+  content?: LocalizedContentRecord | null;
   createdAt?: string | null;
   kindLabel?: string | null;
   sharedTopics?: string[];
@@ -486,6 +490,7 @@ type SocialThreadMessage = {
   fromAvatarUrl?: string | null;
   fromSelf: boolean;
   text: string;
+  content?: LocalizedContentRecord | null;
   kind?: string | null;
   createdAt?: string | null;
 };
@@ -793,6 +798,7 @@ function CompactProfileHubSection({
   const selectedTopicSignature = selectedTopics.join("|");
   const hasLocationContext = locationTerms.length > 0;
   const locationContextLabel = hasLocationContext ? locationTerms.join(" · ") : null;
+  const preferredReaderLocale = profile.preferredLocale || "de";
 
   const displayNamePreview = displayName.trim() || "Dein Anzeigename";
   const taglinePreview = tagline.trim() || "Kurzprofil hinzufügen";
@@ -980,6 +986,7 @@ function CompactProfileHubSection({
       avatarUrl: message.fromAvatarUrl ?? null,
       shareId: message.fromShareId ?? null,
       body: message.text,
+      content: message.content ?? null,
       createdAt: message.createdAt ?? null,
       kindLabel: messageKindLabel(message.kind),
       unread: !message.read,
@@ -2461,9 +2468,20 @@ function CompactProfileHubSection({
                       >
                         <SocialAvatar label={message.fromLabel} avatarUrl={message.fromAvatarUrl} />
                         <span className="min-w-0 flex-1">
-                          <span className="block min-w-0 text-[rgb(var(--fg))]">
-                            <span className="font-semibold">{message.fromLabel}:</span> {truncateText(message.text, 56)}
-                          </span>
+                          <div className="block min-w-0 text-[rgb(var(--fg))]">
+                            <span className="font-semibold">{message.fromLabel}:</span>
+                            <LocalizedContentDisplay
+                              className="mt-0.5"
+                              preferredLocale={preferredReaderLocale}
+                              content={message.content ?? null}
+                              fallbackText={message.text}
+                              truncateTo={56}
+                              textClassName="text-[rgb(var(--fg))]"
+                              metaClassName="mt-0.5 text-[10px] text-[rgb(var(--muted))]"
+                              originalTextClassName="mt-0.5 text-[rgb(var(--fg))]"
+                              missingClassName="mt-0.5 text-[10px] text-[rgb(var(--muted))]"
+                            />
+                          </div>
                           <span className="mt-0.5 inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.12em] text-[rgb(var(--muted))]">
                             Direkt
                             {message.originContext ? (
@@ -2504,9 +2522,20 @@ function CompactProfileHubSection({
                       >
                         <SocialAvatar label={message.fromLabel} avatarUrl={message.fromAvatarUrl} />
                         <span className="min-w-0 flex-1">
-                          <span className="block min-w-0 text-[rgb(var(--fg))]">
-                            <span className="font-semibold">{message.fromLabel}:</span> {truncateText(message.text, 56)}
-                          </span>
+                          <div className="block min-w-0 text-[rgb(var(--fg))]">
+                            <span className="font-semibold">{message.fromLabel}:</span>
+                            <LocalizedContentDisplay
+                              className="mt-0.5"
+                              preferredLocale={preferredReaderLocale}
+                              content={message.content ?? null}
+                              fallbackText={message.text}
+                              truncateTo={56}
+                              textClassName="text-[rgb(var(--fg))]"
+                              metaClassName="mt-0.5 text-[10px] text-[rgb(var(--muted))]"
+                              originalTextClassName="mt-0.5 text-[rgb(var(--fg))]"
+                              missingClassName="mt-0.5 text-[10px] text-[rgb(var(--muted))]"
+                            />
+                          </div>
                           <span className="mt-0.5 inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.12em] text-[rgb(var(--muted))]">
                             <span
                               className={`inline-flex items-center rounded-full border px-1.5 py-0.5 text-[9px] font-semibold ${
@@ -2799,9 +2828,17 @@ function CompactProfileHubSection({
                 </div>
               </div>
 
-              {socialDetail.body ? (
+              {socialDetail.body || socialDetail.content ? (
                 <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3 text-sm text-[rgb(var(--fg))]">
-                  {socialDetail.body}
+                  <LocalizedContentDisplay
+                    preferredLocale={preferredReaderLocale}
+                    content={socialDetail.content ?? null}
+                    fallbackText={socialDetail.body ?? null}
+                    textClassName="text-sm text-[rgb(var(--fg))]"
+                    metaClassName="mt-1 text-[10px] text-[rgb(var(--muted))]"
+                    originalTextClassName="mt-1 text-sm text-[rgb(var(--fg))]"
+                    missingClassName="mt-1 text-[10px] text-[rgb(var(--muted))]"
+                  />
                 </div>
               ) : null}
 
@@ -2880,7 +2917,16 @@ function CompactProfileHubSection({
                                 {messageKindLabel(entry.kind)}
                               </p>
                             ) : null}
-                            <p className={`whitespace-pre-wrap ${entry.fromSelf ? "" : "mt-0.5"}`}>{entry.text}</p>
+                            <LocalizedContentDisplay
+                              className={entry.fromSelf ? "" : "mt-0.5"}
+                              preferredLocale={preferredReaderLocale}
+                              content={entry.content ?? null}
+                              fallbackText={entry.text}
+                              textClassName="whitespace-pre-wrap text-xs text-[inherit]"
+                              metaClassName="mt-0.5 text-[10px] text-[rgb(var(--muted))]"
+                              originalTextClassName="mt-0.5 whitespace-pre-wrap text-xs text-[inherit]"
+                              missingClassName="mt-0.5 text-[10px] text-[rgb(var(--muted))]"
+                            />
                             <p className="mt-1 text-[10px] text-[rgb(var(--muted))]">{formatDateLabel(entry.createdAt)}</p>
                           </div>
                         </div>

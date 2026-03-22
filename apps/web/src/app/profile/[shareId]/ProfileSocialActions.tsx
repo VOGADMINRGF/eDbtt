@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from "react";
 import Link from "next/link";
+import LocalizedContentDisplay from "@/components/i18n/LocalizedContentDisplay";
+import type { LocalizedContentRecord } from "@/features/i18n/contentTranslations";
 
 type RelationshipState = "connected" | "incoming_pending" | "outgoing_pending" | "none";
 type OriginContext = {
@@ -42,12 +44,14 @@ type ThreadMessage = {
   fromLabel: string;
   fromSelf: boolean;
   text: string;
+  content?: LocalizedContentRecord | null;
   kind?: string | null;
   createdAt?: string | null;
 };
 
 type Props = {
   shareId: string;
+  preferredLocale?: string;
 };
 
 function relationshipLabel(state: RelationshipState) {
@@ -86,7 +90,7 @@ function originLabel(origin?: OriginContext | null) {
   return null;
 }
 
-export default function ProfileSocialActions({ shareId }: Props) {
+export default function ProfileSocialActions({ shareId, preferredLocale = "de" }: Props) {
   const [loading, setLoading] = useState(true);
   const [authRequired, setAuthRequired] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -396,7 +400,7 @@ export default function ProfileSocialActions({ shareId }: Props) {
               <p className="mt-1 text-xs text-[rgb(var(--muted))]">Lade Nachrichten …</p>
             ) : thread.length > 0 ? (
               <div className="mt-2 space-y-2.5">
-                {thread.map((entry) => (
+                    {thread.map((entry) => (
                   <div key={entry.id} className={`flex ${entry.fromSelf ? "justify-end" : "justify-start"}`}>
                     <div
                       className={`max-w-[84%] rounded-2xl border px-3 py-2 text-xs ${
@@ -411,8 +415,17 @@ export default function ProfileSocialActions({ shareId }: Props) {
                           {messageKindLabel(entry.kind)}
                         </p>
                       ) : null}
-                      <p className={`whitespace-pre-wrap ${entry.fromSelf ? "" : "mt-0.5"}`}>{entry.text}</p>
-                      <p className="mt-1 text-[10px] text-[rgb(var(--muted))]">{formatDate(entry.createdAt)}</p>
+                            <LocalizedContentDisplay
+                              className={entry.fromSelf ? "" : "mt-0.5"}
+                              preferredLocale={preferredLocale}
+                              content={entry.content ?? null}
+                              fallbackText={entry.text}
+                              textClassName="whitespace-pre-wrap text-[inherit]"
+                              metaClassName="mt-0.5 text-[10px] text-[rgb(var(--muted))]"
+                              originalTextClassName="mt-0.5 whitespace-pre-wrap text-[inherit]"
+                              missingClassName="mt-0.5 text-[10px] text-[rgb(var(--muted))]"
+                            />
+                            <p className="mt-1 text-[10px] text-[rgb(var(--muted))]">{formatDate(entry.createdAt)}</p>
                     </div>
                   </div>
                 ))}

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { assertStoreConfigured, ObjectId, coreCol } from "@core/db/triMongo";
 import { readSession } from "@/utils/session";
+import { buildLocalizedContentRecord } from "@/features/i18n/contentTranslations";
 import {
   FOUNDER_ACCOUNT_EMAIL,
   FOUNDER_FALLBACK_DISPLAY_NAME,
@@ -35,6 +36,13 @@ type SocialMessageDoc = {
   text?: string | null;
   body?: string | null;
   kind?: string | null;
+  originalLanguage?: string | null;
+  originalText?: string | null;
+  translations?: Record<string, string | null> | null;
+  translationStatus?: "missing" | "pending" | "translated" | "failed" | string | null;
+  translatedAt?: string | Date | null;
+  translationProvider?: string | null;
+  translationModel?: string | null;
   readAt?: string | Date | null;
   createdAt?: string | Date | null;
 };
@@ -351,6 +359,18 @@ async function loadThreadAndState(params: {
         (typeof doc.text === "string" && doc.text.trim()) ||
         (typeof doc.body === "string" && doc.body.trim()) ||
         "Nachricht ohne Text";
+      const content = buildLocalizedContentRecord({
+        originalLanguage: doc.originalLanguage,
+        originalText: doc.originalText,
+        fallbackOriginalText: text,
+        translations: doc.translations,
+        translationStatus: doc.translationStatus,
+        translatedAt: doc.translatedAt,
+        translationProvider: doc.translationProvider,
+        translationModel: doc.translationModel,
+        maxOriginalLength: 600,
+        maxTranslationLength: 600,
+      });
       return {
         id: String(doc._id),
         fromUserId: fromId || null,
@@ -358,6 +378,7 @@ async function loadThreadAndState(params: {
         fromAvatarUrl: sender.avatarUrl,
         fromSelf: currentIdSet.has(fromId),
         text: text.slice(0, 600),
+        content,
         kind: typeof doc.kind === "string" ? doc.kind : "direct",
         createdAt: toIso(doc.createdAt),
       };
@@ -544,12 +565,25 @@ export async function POST(request: Request) {
   );
 
   if (duplicate?._id) {
+    const duplicateContent = buildLocalizedContentRecord({
+      originalLanguage: duplicate.originalLanguage,
+      originalText: duplicate.originalText,
+      fallbackOriginalText: text,
+      translations: duplicate.translations,
+      translationStatus: duplicate.translationStatus,
+      translatedAt: duplicate.translatedAt,
+      translationProvider: duplicate.translationProvider,
+      translationModel: duplicate.translationModel,
+      maxOriginalLength: 600,
+      maxTranslationLength: 600,
+    });
     return NextResponse.json({
       ok: true,
       duplicate: true,
       message: {
         id: String(duplicate._id),
         text,
+        content: duplicateContent,
         kind: typeof duplicate.kind === "string" ? duplicate.kind : "direct",
         createdAt: toIso(duplicate.createdAt),
       },
@@ -561,6 +595,13 @@ export async function POST(request: Request) {
     fromUserId: userId,
     toUserId: target.userId,
     text,
+    originalLanguage: null,
+    originalText: text,
+    translations: {},
+    translationStatus: "missing",
+    translatedAt: null,
+    translationProvider: null,
+    translationModel: null,
     kind: "direct",
     createdAt: now,
     updatedAt: now,
@@ -573,6 +614,15 @@ export async function POST(request: Request) {
     message: {
       id: String(insertResult.insertedId),
       text,
+      content: {
+        originalLanguage: null,
+        originalText: text,
+        translations: {},
+        translationStatus: "missing",
+        translatedAt: null,
+        translationProvider: null,
+        translationModel: null,
+      },
       kind: "direct",
       createdAt: now.toISOString(),
     },

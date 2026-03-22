@@ -1,6 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import LocalizedContentDisplay from "@/components/i18n/LocalizedContentDisplay";
+import { useLocale } from "@/context/LocaleContext";
+import type { LocalizedContentRecord } from "@/features/i18n/contentTranslations";
 
 type ContributionType = "source" | "option" | "question" | "impact" | "view";
 
@@ -12,6 +15,8 @@ type Contribution = {
   candidateId?: string | null;
   title?: string | null;
   body?: string | null;
+  titleContent?: LocalizedContentRecord | null;
+  bodyContent?: LocalizedContentRecord | null;
   url?: string | null;
   authorName?: string | null;
   createdAt?: string;
@@ -32,6 +37,7 @@ const TYPE_OPTIONS: Array<{ value: ContributionType; label: string }> = [
 ];
 
 export default function CommunityContributionsPage() {
+  const { locale } = useLocale();
   const [type, setType] = useState<ContributionType>("source");
   const [topicId, setTopicId] = useState("");
   const [candidateId, setCandidateId] = useState("");
@@ -232,8 +238,27 @@ export default function CommunityContributionsPage() {
                 {item.candidateId && <span>Kandidat: {item.candidateId}</span>}
                 {item.authorName && <span>von {item.authorName}</span>}
               </div>
-              <p className="mt-2 font-semibold text-[rgb(var(--fg))]">{item.title || "Beitrag"}</p>
-              {item.body && <p className="mt-1 text-[rgb(var(--muted))]">{item.body}</p>}
+              <LocalizedContentDisplay
+                className="mt-2"
+                preferredLocale={locale}
+                content={item.titleContent ?? null}
+                fallbackText={item.title ?? null}
+                emptyFallback="Beitrag"
+                textClassName="font-semibold text-[rgb(var(--fg))]"
+                metaClassName="mt-0.5 text-[10px] text-[rgb(var(--muted))]"
+                originalTextClassName="mt-0.5 text-[rgb(var(--fg))]"
+                missingClassName="mt-0.5 text-[10px] text-[rgb(var(--muted))]"
+              />
+              <LocalizedContentDisplay
+                className="mt-1"
+                preferredLocale={locale}
+                content={item.bodyContent ?? null}
+                fallbackText={item.body ?? null}
+                textClassName="text-[rgb(var(--muted))]"
+                metaClassName="mt-0.5 text-[10px] text-[rgb(var(--muted))]"
+                originalTextClassName="mt-0.5 text-[rgb(var(--muted))]"
+                missingClassName="mt-0.5 text-[10px] text-[rgb(var(--muted))]"
+              />
               {item.url && (
                 <a className="mt-2 inline-block text-xs text-sky-600 underline" href={item.url} target="_blank" rel="noreferrer">
                   Quelle öffnen
