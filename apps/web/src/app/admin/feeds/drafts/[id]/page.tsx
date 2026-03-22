@@ -142,7 +142,7 @@ export default function AdminDraftDetailPage() {
             draft: { ...prev.draft, status: "published", publishedAt: new Date().toISOString() },
           },
       );
-      alert("Draft manuell veröffentlicht.");
+      alert("Draft manuell veröffentlicht (Ausnahmepfad).");
       router.refresh();
     } catch (err: any) {
       alert(err?.message ?? "Publish fehlgeschlagen.");
@@ -254,8 +254,8 @@ export default function AdminDraftDetailPage() {
 
       <div className="rounded-xl border border-sky-300/50 bg-sky-50/70 px-4 py-3 text-sm text-sky-900 dark:border-sky-400/40 dark:bg-sky-500/10 dark:text-sky-100">
         Anlassraum-first: Entscheidungs-Pfade = ignore, attach_to_existing_anlassraum, create_anlassraum_candidate,
-        manual_fast_path_via_create. Dossier folgt danach als Verdichtung. Feed-Signale bleiben Hinweise, kein
-        Auto-Publish.
+        manual_fast_path_via_create. Dossier folgt danach als Verdichtung. Feed-Signale bleiben Hinweise; ein Publish
+        ist nur als manuelle Ausnahme nach Primärquellenprüfung zulässig.
       </div>
 
       <div className="flex flex-col gap-4 lg:flex-row">
@@ -326,13 +326,16 @@ export default function AdminDraftDetailPage() {
               ignore (Signal verwerfen)
             </button>
             <button
-              className="btn bg-emerald-500 px-4 py-2 text-sm font-semibold text-white shadow-sm"
+              className="btn border border-amber-300 bg-amber-50 px-4 py-2 text-sm font-semibold text-amber-900"
               disabled={actionLoading || draft.status === "published"}
               onClick={publishDraft}
             >
-              Manuell veröffentlichen (Ausnahme, nach Quellenprüfung)
+              Manuell veröffentlichen (Ausnahmefall)
             </button>
           </div>
+          <p className="text-xs text-[rgb(var(--muted))]">
+            Publish bleibt ein Ausnahmepfad: nur nach Primärquellenprüfung und manueller Entscheidung.
+          </p>
 
           <div className="mt-4 grid gap-2 rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
             <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Signal-&gt;Anlassraum Review</p>

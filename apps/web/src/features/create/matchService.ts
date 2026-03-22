@@ -391,8 +391,8 @@ export async function resolveCreateGraphMatches(
     if (fromPicker) {
       explicitRoomLoaded = true;
       const reasons = [
-        "Explizit gesetzter Anlassraum-Kontext.",
-        "Kontext wurde im produktiven Anlassraum-Read-Model gefunden.",
+        "Anlassraum-Match: explizit gesetzter Anlassraum-Kontext.",
+        "Anlassraum-Match aus produktivem Anlassraum-Read-Model.",
       ];
       matches.push({
         id: fromPicker.id,
@@ -421,8 +421,8 @@ export async function resolveCreateGraphMatches(
           if (room?._id) {
             explicitRoomLoaded = true;
             const reasons = [
-              "Explizit gesetzter Anlassraum-Kontext.",
-              "Kontext wurde direkt gegen die produktive Anlassraum-Collection aufgeloest.",
+              "Anlassraum-Match: explizit gesetzter Anlassraum-Kontext.",
+              "Anlassraum-Match via direktem Lookup in der produktiven Anlassraum-Collection.",
             ];
             matches.push({
               id: room._id.toHexString(),
@@ -468,10 +468,10 @@ export async function resolveCreateGraphMatches(
       if (strength === "none") continue;
       const reasons = [
         topicOverlap
-          ? "Topic-Ueberschneidung mit produktivem Anlassraum-Kontext."
-          : "Semantische Naehe zwischen Input und Anlassraum-Kontext.",
+          ? "Anlassraum-Match: Topic-Ueberschneidung mit produktivem Anlassraum-Kontext."
+          : "Anlassraum-Match: semantische Naehe zwischen Input und Anlassraum-Kontext.",
       ];
-      if (room.summary) reasons.push("Anlassraum-Summary zeigt thematische Ueberschneidung.");
+      if (room.summary) reasons.push("Signalspur zeigt thematische Ueberschneidung mit Anlassraum-Summary.");
       matches.push({
         id: room.id,
         matchType: "same_anlassraum",
@@ -526,17 +526,17 @@ export async function resolveCreateGraphMatches(
       if (exact) {
         matchType = "exact_claim";
         strength = "high";
-        reasons.push("Input ist textnah identisch zu einem bestehenden Claim.");
+        reasons.push("Signalspur: Input ist textnah identisch zu einem bestehenden Claim.");
       } else if (baseSimilarity >= 0.9) {
         matchType = "duplicate_risk";
         matchEntityType = "claim";
         strength = "high";
-        reasons.push("Sehr hohe semantische Aehnlichkeit zu bestehendem Claim (Duplikatrisiko).");
+        reasons.push("Signalspur: sehr hohe semantische Aehnlichkeit zu bestehendem Claim (Duplikatrisiko).");
       } else if (topicOverlap && baseSimilarity < 0.62) {
         matchType = "related_claim";
         matchEntityType = "perspective";
         strength = "low";
-        reasons.push("Topic-Ueberschneidung mit bestehender Perspektive.");
+        reasons.push("Signalspur: Topic-Ueberschneidung mit bestehender Perspektive.");
       } else {
         reasons.push("Semantisch verwandter Claim aus produktivem Signal-/Quellenkontext.");
       }
@@ -581,8 +581,8 @@ export async function resolveCreateGraphMatches(
       if (!explicitDossier && score < 0.5) continue;
       const reasons = [
         explicitDossier
-          ? "Explizit gesetzter Dossier-Kontext."
-          : "Semantische Naehe zum produktiven Dossier-Titel.",
+          ? "Dossier-Naehe: explizit gesetzter Dossier-Kontext."
+          : "Dossier-Naehe: semantische Naehe zum produktiven Dossier-Titel.",
       ];
       matches.push({
         id: dossierId,
@@ -612,15 +612,18 @@ export async function resolveCreateGraphMatches(
     return fallbackNoMatch({
       reason:
         sourceState === "degraded"
-          ? "Produktive Match-Quellen derzeit nicht verfuegbar."
-          : "Kein belastbarer Match in produktiven Signal-/Quellenkontexten gefunden.",
+          ? "Produktive Anlassraum-/Dossier-/Signalquellen derzeit nicht verfuegbar."
+          : "Kein belastbarer Anlassraum-Match, keine Dossier-Naehe und keine belastbare Signalspur gefunden.",
       sourceState,
       sourceErrors,
     });
   }
 
   const top = dedupedMatches[0];
-  const reasons = top.reasons.length > 0 ? top.reasons : [top.reason || "Match aus produktivem Signal-/Quellenkontext."];
+  const reasons =
+    top.reasons.length > 0
+      ? top.reasons
+      : [top.reason || "Match aus produktivem Anlassraum-/Dossier-/Signalkontext."];
   const suggestedCtas = deriveSuggestedCtas({
     matchType: top.matchType,
     matchEntityType: top.matchEntityType,

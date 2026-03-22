@@ -171,11 +171,11 @@ describe("/create canonical mode rendering", () => {
 
     expect(html).toContain("Intake-Kontext");
     expect(html).toContain("Signal Innenstadt");
-    expect(html).toContain("source: feed_drafts_queue");
+    expect(html).toContain("signalspur: feed_drafts_queue");
 
     const lastCall = mocks.analyzeWorkspaceCalls.at(-1);
     expect(String(lastCall?.initialText ?? "")).toContain("Intake-Kontext (Anlassraum-first)");
-    expect(String(lastCall?.initialText ?? "")).toContain("Signal: Signal Innenstadt");
-    expect(String(lastCall?.initialText ?? "")).toContain("Quelle-URL: https://example.org/a");
+    expect(String(lastCall?.initialText ?? "")).toContain("Signal-Titel: Signal Innenstadt");
+    expect(String(lastCall?.initialText ?? "")).toContain("Primaerquelle-URL: https://example.org/a");
   });
 });

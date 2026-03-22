@@ -328,35 +328,14 @@ export default function CreateClient({
               Intake-Kontext
             </p>
             <p className="text-sm text-[rgb(var(--muted))]">
-              Kontext wurde aus dem vorgelagerten Signal-/Review-Flow weitergereicht und dient als manueller Startpunkt.
-              Primärquellen bitte prüfen; kein Auto-Publish.
+              Kontext wurde aus dem vorgelagerten Signal-/Review-Flow weitergereicht und dient als manueller Startpunkt:
+              zuerst Primärquelle, dann Relevanzraum, dann Signalspur. Primärquellen bitte prüfen; kein Auto-Publish.
             </p>
           </div>
           <div className="mt-3 flex flex-wrap gap-2 text-xs text-[rgb(var(--muted))]">
-            {initialIntakeContext?.source ? <span className="vog-chip">source: {initialIntakeContext.source}</span> : null}
-            {initialIntakeContext?.signalTitle ? (
-              <span className="vog-chip">signal: {initialIntakeContext.signalTitle}</span>
-            ) : null}
             {initialIntakeContext?.sourceLabel ? (
-              <span className="vog-chip">quelle: {initialIntakeContext.sourceLabel}</span>
+              <span className="vog-chip">primärquelle: {initialIntakeContext.sourceLabel}</span>
             ) : null}
-            {initialIntakeContext?.region ? <span className="vog-chip">region: {initialIntakeContext.region}</span> : null}
-            {initialIntakeContext?.scope ? (
-              <span className="vog-chip">
-                relevanzraum: {formatRelevanceScopeLabel(initialIntakeContext.scope, initialIntakeContext.scope)}
-              </span>
-            ) : null}
-            {initialIntakeContext?.clusterHint ? (
-              <span className="vog-chip">cluster: {initialIntakeContext.clusterHint}</span>
-            ) : null}
-            {initialIntakeContext?.reviewState ? (
-              <span className="vog-chip">review: {initialIntakeContext.reviewState}</span>
-            ) : null}
-            {initialIntakeContext?.candidateId ? (
-              <span className="vog-chip">candidateId: {initialIntakeContext.candidateId}</span>
-            ) : null}
-            {initialIntakeContext?.draftId ? <span className="vog-chip">draftId: {initialIntakeContext.draftId}</span> : null}
-            {initialIntakeContext?.reason ? <span className="vog-chip">handoff: {initialIntakeContext.reason}</span> : null}
             {initialIntakeContext?.sourceUrl ? (
               <a
                 href={initialIntakeContext.sourceUrl}
@@ -364,9 +343,30 @@ export default function CreateClient({
                 rel="noreferrer"
                 className="vog-chip border border-[rgb(var(--border))] bg-transparent"
               >
-                Quelle oeffnen
+                Primärquelle öffnen
               </a>
             ) : null}
+            {initialIntakeContext?.region ? <span className="vog-chip">region: {initialIntakeContext.region}</span> : null}
+            {initialIntakeContext?.scope ? (
+              <span className="vog-chip">
+                relevanzraum: {formatRelevanceScopeLabel(initialIntakeContext.scope, initialIntakeContext.scope)}
+              </span>
+            ) : null}
+            {initialIntakeContext?.source ? <span className="vog-chip">signalspur: {initialIntakeContext.source}</span> : null}
+            {initialIntakeContext?.signalTitle ? (
+              <span className="vog-chip">signal: {initialIntakeContext.signalTitle}</span>
+            ) : null}
+            {initialIntakeContext?.clusterHint ? (
+              <span className="vog-chip">cluster: {initialIntakeContext.clusterHint}</span>
+            ) : null}
+            {initialIntakeContext?.reviewState ? (
+              <span className="vog-chip">review: {initialIntakeContext.reviewState}</span>
+            ) : null}
+            {initialIntakeContext?.reason ? <span className="vog-chip">handoff: {initialIntakeContext.reason}</span> : null}
+            {initialIntakeContext?.candidateId ? (
+              <span className="vog-chip">candidateId (tech): {initialIntakeContext.candidateId}</span>
+            ) : null}
+            {initialIntakeContext?.draftId ? <span className="vog-chip">draftId (tech): {initialIntakeContext.draftId}</span> : null}
           </div>
         </section>
       ) : null}
