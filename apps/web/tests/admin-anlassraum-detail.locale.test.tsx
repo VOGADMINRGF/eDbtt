@@ -68,5 +68,8 @@ describe("admin anlassraum detail locale surface", () => {
     expect(html).toContain(escapeForHtml(text.linkToDraftQueue));
     expect(html).toContain(escapeForHtml(text.workspaceContext));
     expect(html).toContain(escapeForHtml(text.outputTransitions));
+    expect(html).toContain(escapeForHtml(text.colOutputType));
+    expect(html).toContain(escapeForHtml(text.actionCurate));
+    expect(html).toContain(escapeForHtml(text.originLabel));
   });
 });

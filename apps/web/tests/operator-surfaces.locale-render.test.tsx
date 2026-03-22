@@ -91,6 +91,7 @@ describe("operator surface locale render", () => {
 
       const draftsHtml = renderWithLocale(locale, <AdminFeedDraftsPage />);
       expect(draftsHtml).toContain(expected.feedDrafts.headerTitle);
+      expect(draftsHtml).toContain(`aria-label="${expected.feedDrafts.selectAllAriaLabel}"`);
 
       const anlassraumListHtml = renderWithLocale(locale, <AdminAnlassraumPage />);
       expect(anlassraumListHtml).toContain(expected.anlassraumList.loading);

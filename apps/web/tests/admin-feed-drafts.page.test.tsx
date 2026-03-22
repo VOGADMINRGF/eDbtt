@@ -19,6 +19,7 @@ describe("admin feed drafts page", () => {
     expect(html).toContain("Primärquellen bleiben die fachliche Basis");
     expect(html).toContain("Kandidatenfilter");
     expect(html).toContain("Kandidatenliste");
+    expect(html).toContain('aria-label="Alle auswählen"');
     expect(html).toContain("Manuell via /create fortsetzen");
     expect(html).toContain("Sammelprüfung (sekundär)");
     expect(html).toContain("Legacy-Backfill (nachgeordnete Wartungsausnahme)");

@@ -566,7 +566,12 @@ export default function AdminFeedDraftsPage() {
             <thead className="bg-[rgb(var(--bg))]">
               <tr>
                 <th className="px-3 py-3 text-left font-semibold text-slate-700 dark:text-slate-200">
-                  <input type="checkbox" checked={allVisibleSelected} onChange={toggleAllVisible} aria-label="Alle auswählen" />
+                  <input
+                    type="checkbox"
+                    checked={allVisibleSelected}
+                    onChange={toggleAllVisible}
+                    aria-label={text.selectAllAriaLabel}
+                  />
                 </th>
                 <th className="px-4 py-3 text-left font-semibold text-slate-700 dark:text-slate-200">{text.tableCandidate}</th>
                 <th className="px-4 py-3 text-left font-semibold text-slate-700 dark:text-slate-200">{text.tableQueueContext}</th>
@@ -630,7 +635,7 @@ export default function AdminFeedDraftsPage() {
                           type="checkbox"
                           checked={selectedIds.includes(draft.id)}
                           onChange={() => toggleRow(draft.id)}
-                          aria-label={`Draft ${draft.title}`}
+                          aria-label={`${text.selectDraftAriaPrefix} ${draft.title}`}
                         />
                       </td>
                       <td className="px-4 py-3 align-top">

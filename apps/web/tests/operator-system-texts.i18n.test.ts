@@ -67,5 +67,12 @@ describe("operator system texts i18n", () => {
     expect(getOperatorSystemTexts("es").feeds.headerTitle).toBe("Centro de control de Feed");
     expect(getOperatorSystemTexts("fr").feeds.headerTitle).toBe("Centre de contrôle Feed");
     expect(getOperatorSystemTexts("zh").feeds.headerTitle).toBe("Feed 控制台");
+    expect(getOperatorSystemTexts("de").feeds.regionCodeExamplePlaceholder).toBe("z.B. DE:BE");
+    expect(getOperatorSystemTexts("es").feeds.pullErrorPrefix).toBe("Extracción");
+    expect(getOperatorSystemTexts("fr").feeds.analyzeErrorPrefix).toBe("Analyse");
+    expect(getOperatorSystemTexts("zh").feedDrafts.selectAllAriaLabel).toBe("全选");
+    expect(getOperatorSystemTexts("es").anlassraumDetail.actionCurate).toBe("Iniciar curación");
+    expect(getOperatorSystemTexts("fr").anlassraumDetail.actionArchive).toBe("Archiver");
+    expect(getOperatorSystemTexts("zh").anlassraumDetail.ownerLabel).toBe("归属");
   });
 });

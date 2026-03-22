@@ -267,7 +267,7 @@ export default function AdminFeedsPage() {
               {text.regionCodeOptional}
               <input
                 className="mt-1 w-full rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm"
-                placeholder="z.B. DE:BE"
+                placeholder={text.regionCodeExamplePlaceholder}
                 value={pullRegionCode}
                 onChange={(e) => setPullRegionCode(e.target.value)}
               />
@@ -330,13 +330,21 @@ export default function AdminFeedsPage() {
             </button>
           </div>
 
-          {pullState.error && <p className="mt-3 text-sm text-rose-700">Pull: {pullState.error}</p>}
+          {pullState.error && (
+            <p className="mt-3 text-sm text-rose-700">
+              {text.pullErrorPrefix}: {pullState.error}
+            </p>
+          )}
           {pullState.result && (
             <pre className="mt-3 max-h-64 overflow-auto rounded-xl bg-[rgb(var(--bg))] p-3 text-xs text-[rgb(var(--fg))]">
               {JSON.stringify(pullState.result, null, 2)}
             </pre>
           )}
-          {analyzeState.error && <p className="mt-3 text-sm text-rose-700">Analyze: {analyzeState.error}</p>}
+          {analyzeState.error && (
+            <p className="mt-3 text-sm text-rose-700">
+              {text.analyzeErrorPrefix}: {analyzeState.error}
+            </p>
+          )}
           {analyzeState.result && (
             <pre className="mt-3 max-h-64 overflow-auto rounded-xl bg-[rgb(var(--bg))] p-3 text-xs text-[rgb(var(--fg))]">
               {JSON.stringify(analyzeState.result, null, 2)}
