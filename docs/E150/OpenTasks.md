@@ -5,7 +5,7 @@
 Diese Datei ist der kanonische Aufgabenstand fuer E150.
 Wenn andere Parts, alte Drift-Prompts oder Zwischen-Notizen abweichen, gewinnt diese Datei.
 
-Stand: 2026-03-21
+Stand: 2026-03-22
 
 ## Leitbild
 
@@ -82,11 +82,17 @@ Status: **Done (2026-03-19)**
 Status: **In Progress (Core baseline / 2026-03-19)**
 
 - **GOV-ANLASS-01** universelles Anlassraum-Modell (**Core baseline active**)
-- **GOV-ANLASS-02** Anlassraum <-> Dossier Beziehung (**Core baseline active**)
-- **GOV-ANLASS-03** regionale / skalenfaehige Gruppierung (`local`, `regional`, `national`, `eu`, `global`) (**Core baseline active**)
-- **GOV-ANLASS-04** Feed-Review statt Feed-Leerlauf (**Queue ops deepened + output-prep surface active**)
+- **GOV-ANLASS-02** Anlassraum <-> Dossier Beziehung (**Flow/Surface separation deepened: Anlassraum eigenstaendig, Dossier optional/bewusst**)
+- **GOV-ANLASS-03** regionale / skalenfaehige Gruppierung (`local`, `regional`, `national`, `eu`, `global`) (**Relevanz-Framing display-/surface-seitig geoeffnet**)
+- **GOV-ANLASS-04** Feed-Review statt Feed-Leerlauf (**Decisioning-Pfade geschaerft, Attach-Priorisierung bei bestehender Zuordnung**)
 - **GOV-EVENT-01** Event-/Sitzungsmodell (**Event->Anlassraum linking active**)
 - **GOV-EVENT-02** QR -> Fragen -> Protokoll -> Dossier -> Runde (**Functionally complete: service+route acceptance + legacy backfill strategy (manual-first)**)
+
+Anlassraum-first Deepening (2026-03-21 bis 2026-03-22):
+- PR-A: Signal-to-Anlassraum Decisioning geschaerft
+- PR-B: `/create` als kanonischer Intake kontextreicher verdrahtet
+- PR-C: Anlassraum vs. Dossier im Flow klarer getrennt
+- PR-D: Region / Scope / Relevanz display-/surface-seitig verbreitert
 
 ### Welle 2.5 — Freistart / KI-Qualitaet / Match-CTA (neu priorisiert)
 Status: **Open (Architecture alignment required / 2026-03-20)**
@@ -131,7 +137,7 @@ Status: **Open (Architecture alignment required / 2026-03-20)**
 
 | Task | Status | Naechster Run | Evidenz/Notiz |
 | --- | --- | --- | --- |
-| PR-AI-CREATE-01 `/create` auf kanonischen Orchestrierungsfluss harmonisieren | In Progress (implementation baseline active / 2026-03-20) | GOV-AI-02 | Freistart-Entry ohne primaeren Modus-Split aktiv; `/api/contributions/analyze` liefert typed `createAnalyze`-Envelope (intake/quality/graph_matching/cta_suggestions, matchType/matchEntityType, noAutoPublish/noSilentMerge); `AnalyzeWorkspace` zeigt Input-Typ/Qualitaet/Matches/CTAs; Parser akzeptiert `preparedText`-Alias; Tests: `apps/web/tests/create-analyze.contract.test.ts`, `apps/web/tests/create-analyze.route.test.ts`, `apps/web/tests/create-mode.page.test.ts`, `apps/web/tests/create-mode.analyze-parse.test.ts` |
+| PR-AI-CREATE-01 `/create` auf kanonischen Orchestrierungsfluss harmonisieren | In Progress (intake deepened / 2026-03-22) | GOV-AI-02 | `/create` ist als kanonischer Intake deutlich staerker verdrahtet: Fast-Path-Hrefs tragen kontextreiche Felder (`signalTitle`, `sourceUrl`, `sourceLabel`, `region`, `scope`, `clusterHint`, `reviewState`, `candidateId`, `reason`, `prefill`) ohne erzwungene Legacy-Defaults (`intent=claim&mode=manual`). Create-UI zeigt uebernommenen Handoff-Kontext sichtbar; relevante Einstiege aus Feed-Drafts, Anlassraum Operations, CTA-Handoff und Match-Service sind vereinheitlicht. Evidenz: `apps/web/src/features/create/intents.ts`, `apps/web/src/app/create/page.tsx`, `apps/web/src/app/create/CreateClient.tsx`, `apps/web/src/features/anlassraumOperationsRead.ts`, `apps/web/src/features/anlassraumOperationsUi.tsx`, `apps/web/src/features/create/ctaHandoff.ts`, `apps/web/src/features/create/matchService.ts`; Tests: `apps/web/tests/create-mode.intents.test.ts`, `apps/web/tests/create-mode.page.test.ts`, `apps/web/tests/create-cta-handoff.test.ts`, `apps/web/tests/create-match.service.test.ts` |
 | PR-AI-MATCH-11 Single Opaque History Cursor + lazy queue cleanup | Done (contract/UX polish active / 2026-03-21) | Monitoring/Polish | Produktiver History-Read-Contract fuer Prepare-Attach ist auf einen einzelnen opaquen Cursor reduziert: `GET /api/admin/create/attach-drafts/[draftId]/history` liefert `nextCursor` (kein `nextScanCursor` mehr). Interner Cursor bleibt robust (Scan+Accepted-Position im Payload, draft-/type-gebunden, `invalid_history_cursor` bei Mismatch). Queue-UI nutzt pro Draft nur noch einen Cursor-State fuer lazy "Mehr Verlauf laden". Legacy-Read-Normalisierung bleibt unveraendert aktiv (`normalizedFromLegacy`, `legacyNormalizationReason`); keine neue Auto-Mutation. |
 | PR-AI-MATCH-10 History Backfill Utility + Contract Docs | Done (maintenance slice active / 2026-03-21) | Monitoring/Polish | Legacy-History-Maintenance als expliziter Pfad: Utility `apps/web/src/features/create/attachDraftHistoryBackfill.ts`, Script `apps/web/scripts/create.history-backfill.ts`; Default dry-run, Apply nur explizit (`--apply`/`--mode=apply`), idempotent ohne Event-Duplikate. Sichere Legacy-Faelle sind `normalizable`; ambige/unsichere Faelle werden nur reportet (`unsafe_to_backfill`) und nicht umgeschrieben. Produktiver Read-Contract bleibt Single-Cursor (`nextCursor`), Legacy-Read-Normalisierung bleibt aktiv; keine neue Auto-Mutation. |
 | Create IA v2: dedizierte Mode-Module (`manual/source/ai`) statt nur Workspace-Parametrisierung | Superseded (legacy intermediate state, no longer target architecture) | GOV-AI-01 | `manual/source/ai` bleibt nur als Legacy-Kompatibilitaets-/Migrationsschicht aktiv (inkl. Alias-Normalisierung + Persistenz), ist aber nicht mehr der kanonische Produktpfad; kanonisch: Freistart + verpflichtende Qualitaetsschicht + Graph-Matching + CTA-Layer |
@@ -143,7 +149,7 @@ Status: **Open (Architecture alignment required / 2026-03-20)**
 | Community E2E absichern | Done (acceptance coverage mobile+desktop active / 2026-03-19) | PR-FEED-ANLASS-02 | Community Read-Surfaces A-F abgedeckt inkl. Canonical/Legacy/Invalid/Unavailable/Read-only-Guardrails: `apps/web/tests/community-*.test.ts` |
 | Feed/Anlassraum Picker im `/create` anbinden | Done (manual productive context picker active / 2026-03-19) | PR-FEED-ANLASS-02 | Read-only Kontextauswahl in `/create` aktiv (`GET /api/create/context`, `features/create/contextPicker.ts`, `app/create/CreateClient.tsx`), explizite `anlassraumId`-Propagation in Analyze/Save/Finalize ohne Auto-Linking/Publish/Approval; Tests `apps/web/tests/create-context-picker.*`, `apps/web/tests/create-mode.*` |
 | Feed/Anlassraum Cluster-Job | Done (baseline worker active / 2026-03-19) | PR-FEED-ANLASS-03 | Dedizierter Cluster-Worker aktiv (`features/feeds/clusterJob.ts`) inkl. Runner `POST /api/admin/feeds/cluster/run`, persistente Candidate-Outputs (`feed_anlassraum_cluster_candidates`) und Idempotenz (`created/updated/unchanged`) ohne Publish-/Approval-Seiteneffekt; Tests `apps/web/tests/feed-cluster-job.*` |
-| Feed/Anlassraum Status-Transitions absichern | In Progress (Wave 2 deepening) | PR-FEED-ANLASS-04 | erweitert um Queue-Review-Aktionen + Bulk-Route + Queue-Triage: `features/feeds/reviewQueue.ts`, `apps/web/src/app/api/admin/feeds/drafts/bulk/route.ts`, `apps/web/src/app/api/admin/feeds/drafts/route.ts` |
+| Feed/Anlassraum Status-Transitions absichern | In Progress (Wave 2 deepening / decisioning clarified) | PR-FEED-ANLASS-04 | Zentrale Decisioning-Utility eingefuehrt; bestehende Draft-Verlinkung priorisiert Attach statt Candidate-Create; Queue/Detail zeigen Decision Path nachvollziehbar; manual fast path via `/create` ist operativ sichtbarer. Evidenz: `features/feeds/signalDecisioning.ts`, `features/feeds/reviewQueue.ts`, `apps/web/src/app/admin/feeds/drafts/page.tsx`, `apps/web/src/app/admin/feeds/drafts/[id]/page.tsx`; Tests: `apps/web/tests/feed-signal-decisioning.test.ts`, `apps/web/tests/feed-backfill.service.test.ts` |
 | Feed/Anlassraum Publish-Flows ausbauen | Done (manual output-prep baseline closed / 2026-03-19) | PR-FEED-ANLASS-06 | Output-Prep operabel inkl. Admin-Surface: `features/anlassraum/outputPrep.ts`, `GET /api/admin/feeds/anlassraum/[id]/outputs`, `POST /api/admin/feeds/anlassraum/[id]/outputs/[seedId]/transition`, `apps/web/src/app/admin/feeds/anlassraum/[id]/page.tsx` |
 | Feed/Anlassraum Backfill | In Progress (legacy remediation UX + audit active) | PR-FEED-ANLASS-06 | Detection + per-draft Remediation inkl. Audit-Sichtbarkeit: `GET /api/admin/feeds/drafts/legacy`, `POST /api/admin/feeds/drafts/[id]/backfill`, `apps/web/src/app/admin/feeds/drafts/page.tsx` |
 | Swipes Kontextpfade haerten | Open | PR-0042 | thematisch passendes Ziel |
@@ -295,14 +301,23 @@ Regeln:
 - mehrere Anlassraeume duerfen in ein Dossier muenden
 - ein Anlassraum kann ohne Dossier bestehen
 - Dossier-Typen: `exploration_dossier`, `decision_dossier`
+- Anlassraum bleibt eigenstaendiger Arbeitsraum
+- Dossier ist bewusste, optionale Verdichtung
+- fehlendes Dossier ist kein impliziter Defekt
 
-Status: **In Progress (Core baseline / 2026-03-19)**
+Status: **In Progress (Flow separation deepened / 2026-03-22)**
 
 Evidenz:
 - `features/anlassraum/types.ts` (`dossierType`)
 - `apps/web/src/app/api/admin/feeds/anlassraum/[id]/dossier/route.ts`
 - `apps/web/src/app/api/admin/feeds/anlassraum/[id]/route.ts`
 - `apps/web/src/app/api/admin/feeds/anlassraum/route.ts`
+- `apps/web/src/features/anlassraumOperationsRead.ts`
+- `apps/web/src/features/anlassraumOperationsUi.tsx`
+- `apps/web/src/app/admin/feeds/anlassraum/page.tsx`
+- `apps/web/src/app/admin/feeds/anlassraum/[id]/page.tsx`
+- `apps/web/src/features/create/ctaHandoff.ts`
+- `apps/web/src/features/create/matchService.ts`
 
 ### GOV-ANLASS-03 — Regionen / Skalen
 Scopes:
@@ -314,13 +329,20 @@ Scopes:
 
 Regel:
 - Thema kann global sein, Entscheidung lokal oder national (`decisionScope`)
+- Scope-/Relevanz-Framing ist nicht nur modellseitig, sondern auch in Display-/Surface-Logik geoeffnet.
+- Relevanz ist sichtbar fuer lokal/regional ebenso wie bundesweit/gesellschaftlich/institutionell sowie Community-/Hinweis-Eingaenge.
 
-Status: **In Progress (Core baseline / 2026-03-19)**
+Status: **In Progress (Framing broadened / 2026-03-22)**
 
 Evidenz:
 - `features/anlassraum/types.ts` (`ANLASSRAUM_SCOPES`)
 - `features/anlassraum/service.ts` (region/scope derivation)
 - `apps/web/src/app/api/events/route.ts` (scope/decisionScope bei Event->Anlassraum)
+- `apps/web/src/features/relevanceFraming.ts`
+- `apps/web/src/app/create/page.tsx`
+- `apps/web/src/app/create/CreateClient.tsx`
+- `apps/web/src/app/api/admin/feeds/anlassraum/route.ts`
+- `apps/web/tests/relevance-framing.test.ts`
 
 ### GOV-ANLASS-04 — Feed Review statt Feed Leerlauf
 Queue-/Admin-Aktionen:
@@ -328,10 +350,14 @@ Queue-/Admin-Aktionen:
 - `attach_to_anlassraum`
 - `create_anlassraum_candidate`
 - `mark_as_weak_signal`
+- operative Decisioning-Pfade sichtbar: `ignore`, `attach_to_existing_anlassraum`, `create_anlassraum_candidate`, `manual_fast_path_via_create`
+- Attach wird bei bestehender Anlassraum-Zuordnung priorisiert
+- Queue-/Detail-Surfaces zeigen Decision Path nachvollziehbar
 
-Status: **In Progress (Queue deepening active / 2026-03-19)**
+Status: **In Progress (Decisioning deepening active / 2026-03-22)**
 
 Evidenz:
+- `features/feeds/signalDecisioning.ts`
 - `features/feeds/reviewQueue.ts`
 - `apps/web/src/app/api/admin/feeds/drafts/[id]/review/route.ts`
 - `apps/web/src/app/api/admin/feeds/drafts/reviewErrors.ts`
@@ -346,6 +372,7 @@ Evidenz:
 - `apps/web/src/app/admin/feeds/drafts/page.tsx`
 - `apps/web/src/app/admin/feeds/drafts/[id]/page.tsx`
 - `apps/web/src/app/admin/feeds/anlassraum/[id]/page.tsx`
+- `apps/web/tests/feed-signal-decisioning.test.ts`
 - `apps/web/tests/feed-review.routes.test.ts`
 - `apps/web/tests/feed-backfill.service.test.ts`
 - `apps/web/tests/anlassraum-output-prep.routes.test.ts`
