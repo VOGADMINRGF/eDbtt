@@ -22,7 +22,7 @@ import {
   type OperatorLocale,
 } from "@/features/i18n/operatorSystemTexts";
 
-type AnlassraumDetailResponse = {
+export type AnlassraumDetailResponse = {
   ok: boolean;
   item?: Record<string, any>;
   sources?: any[];
@@ -67,14 +67,18 @@ const OUTPUT_ACTIONS = [
 type OutputAction = (typeof OUTPUT_ACTIONS)[number];
 type AnlassraumDetailTexts = OperatorAnlassraumDetailTexts;
 
-export default function AdminAnlassraumDetailPage() {
+export default function AdminAnlassraumDetailPage({
+  initialDataForTest,
+}: {
+  initialDataForTest?: AnlassraumDetailResponse | null;
+} = {}) {
   const { locale } = useLocale();
   const operatorLocale = resolveOperatorLocale(locale);
   const text = getOperatorAnlassraumDetailTexts(operatorLocale);
 
   const params = useParams<{ id: string }>();
-  const [data, setData] = useState<AnlassraumDetailResponse | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [data, setData] = useState<AnlassraumDetailResponse | null>(initialDataForTest ?? null);
+  const [loading, setLoading] = useState(!initialDataForTest);
   const [error, setError] = useState<string | null>(null);
   const [transitioning, setTransitioning] = useState<string | null>(null);
   const [outputSeeds, setOutputSeeds] = useState<OutputSeedItem[]>([]);
@@ -86,6 +90,7 @@ export default function AdminAnlassraumDetailPage() {
   const [outputReviewNoteBySeed, setOutputReviewNoteBySeed] = useState<Record<string, string>>({});
 
   useEffect(() => {
+    if (initialDataForTest) return;
     let ignored = false;
     async function load() {
       setLoading(true);
@@ -108,9 +113,10 @@ export default function AdminAnlassraumDetailPage() {
     return () => {
       ignored = true;
     };
-  }, [params.id]);
+  }, [params.id, initialDataForTest]);
 
   useEffect(() => {
+    if (initialDataForTest) return;
     let ignored = false;
     async function loadOutputSeeds() {
       setOutputLoading(true);
@@ -151,7 +157,7 @@ export default function AdminAnlassraumDetailPage() {
     return () => {
       ignored = true;
     };
-  }, [params.id]);
+  }, [params.id, initialDataForTest]);
 
   if (loading) {
     return <main className="p-6 text-sm text-[rgb(var(--muted))]">{text.loading}</main>;

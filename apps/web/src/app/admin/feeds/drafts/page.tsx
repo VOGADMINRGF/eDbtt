@@ -830,7 +830,7 @@ export default function AdminFeedDraftsPage() {
                           {item.title}
                         </Link>
                         <p className="text-[11px] text-[rgb(var(--muted))]">
-                          {text.idLabel} {item.id.slice(-8)} · status {formatVoteDraftStatusLabel(item.status, operatorLocale)}
+                          {text.idLabel} {item.id.slice(-8)} · {formatVoteDraftStatusLabel(item.status, operatorLocale)}
                         </p>
                         <p className="text-[11px] text-amber-700">{text.missingAnlassraumId}</p>
                       </td>
