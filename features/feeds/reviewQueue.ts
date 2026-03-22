@@ -16,6 +16,7 @@ import type {
 import { ensureSystemEntityForRegion } from "@features/entities/service";
 import { normalizeGermanSlug } from "@features/common/utils/textNormalization";
 import type { GovernanceActor, RoomType } from "@features/trust/types";
+import { pathFromFeedReviewAction } from "./signalDecisioning";
 import { analyzeResultsCol, statementCandidatesCol, voteDraftsCol } from "./db";
 import type {
   FeedReviewState,
@@ -158,20 +159,45 @@ export async function applyFeedReviewAction(
     throw new Error("analyze_result_not_found");
   }
 
+  let existingDraftAnlassraumId: ObjectId | null = null;
   if (draft.anlassraumId) {
     const existingRoom = await (await anlassraumCol()).findOne({ _id: draft.anlassraumId });
     if (existingRoom) {
       assertActorCanAccessAnlassraum(existingRoom, input.actor, "read");
+      existingDraftAnlassraumId = existingRoom._id as ObjectId;
     }
   }
 
-  if (input.action === "ignore") {
+  let effectiveAction: FeedReviewAction = input.action;
+  let attachTargetId: ObjectId | null = null;
+
+  if (input.action === "attach_to_anlassraum") {
+    if (!input.anlassraumId) {
+      throw new Error("anlassraum_id_required");
+    }
+    attachTargetId = toObjectId(input.anlassraumId);
+  }
+
+  const preferredPath = pathFromFeedReviewAction({
+    action: input.action,
+    hasExistingAnlassraum: !!existingDraftAnlassraumId,
+  });
+  if (
+    input.action === "create_anlassraum_candidate" &&
+    preferredPath === "attach_to_existing_anlassraum" &&
+    existingDraftAnlassraumId
+  ) {
+    effectiveAction = "attach_to_anlassraum";
+    attachTargetId = existingDraftAnlassraumId;
+  }
+
+  if (effectiveAction === "ignore") {
     const updated = await updateDraftReviewFields(draftId, {
       status: "discarded",
       reviewNote: normalizeReviewNote(input.reviewNote),
       feedReviewState: "ignored",
       weakSignal: null,
-      lastReviewAction: input.action,
+      lastReviewAction: effectiveAction,
       lastReviewActionBy: input.actor.userId,
       lastReviewActionAt: new Date(),
     });
@@ -183,7 +209,7 @@ export async function applyFeedReviewAction(
     };
   }
 
-  if (input.action === "mark_as_weak_signal") {
+  if (effectiveAction === "mark_as_weak_signal") {
     const reason = normalizeWeakSignalReason(input.weakSignalReason);
     if (draft.anlassraumId) {
       await markAnlassraumWeakSignal(draft.anlassraumId, reason);
@@ -199,7 +225,7 @@ export async function applyFeedReviewAction(
         flaggedBy: input.actor.userId,
         flaggedAt: new Date(),
       },
-      lastReviewAction: input.action,
+      lastReviewAction: effectiveAction,
       lastReviewActionBy: input.actor.userId,
       lastReviewActionAt: new Date(),
     });
@@ -211,11 +237,11 @@ export async function applyFeedReviewAction(
     };
   }
 
-  if (input.action === "attach_to_anlassraum") {
-    if (!input.anlassraumId) {
+  if (effectiveAction === "attach_to_anlassraum") {
+    if (!attachTargetId) {
       throw new Error("anlassraum_id_required");
     }
-    const targetId = toObjectId(input.anlassraumId);
+    const targetId = attachTargetId;
     const targetRoom = await (await anlassraumCol()).findOne({ _id: targetId });
     if (!targetRoom) {
       throw new Error("anlassraum_not_found");
@@ -237,7 +263,7 @@ export async function applyFeedReviewAction(
       reviewNote: normalizeReviewNote(input.reviewNote),
       feedReviewState: "attached",
       weakSignal: draft.weakSignal ?? null,
-      lastReviewAction: input.action,
+      lastReviewAction: effectiveAction,
       lastReviewActionBy: input.actor.userId,
       lastReviewActionAt: new Date(),
     });
@@ -278,7 +304,7 @@ export async function applyFeedReviewAction(
     reviewNote: normalizeReviewNote(input.reviewNote),
     feedReviewState: "candidate_created",
     weakSignal: draft.weakSignal ?? null,
-    lastReviewAction: input.action,
+    lastReviewAction: effectiveAction,
     lastReviewActionBy: input.actor.userId,
     lastReviewActionAt: new Date(),
   });

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
+import { preferredPathFromDraftState } from "@features/feeds/signalDecisioning";
 import { buildCreateFastPathHref } from "@/features/create/intents";
 
 type DraftDetailResponse = {
@@ -167,6 +168,11 @@ export default function AdminDraftDetailPage() {
   }
 
   const { draft, candidate, analyzeResult } = data;
+  const currentDecisionPath = preferredPathFromDraftState({
+    anlassraumId: draft.anlassraumId ?? null,
+    weakSignalFlagged: draft.weakSignal?.flagged,
+    feedReviewState: draft.feedReviewState ?? null,
+  });
 
   return (
     <div className="flex w-full flex-col gap-6 py-4">
@@ -179,6 +185,9 @@ export default function AdminDraftDetailPage() {
           <StatusBadge status={draft.status} />
           <span className="rounded-full border border-[rgb(var(--border))] px-2 py-1 text-xs">
             review: {draft.feedReviewState ?? "queued"}
+          </span>
+          <span className="rounded-full border border-[rgb(var(--border))] px-2 py-1 text-xs">
+            path: {currentDecisionPath}
           </span>
           <span className="rounded-full border border-[rgb(var(--border))] px-2 py-1 text-xs">
             last: {draft.lastReviewAction ?? "—"} · {draft.lastReviewActionBy ?? "—"}
@@ -220,8 +229,8 @@ export default function AdminDraftDetailPage() {
       </div>
 
       <div className="rounded-xl border border-sky-300/50 bg-sky-50/70 px-4 py-3 text-sm text-sky-900 dark:border-sky-400/40 dark:bg-sky-500/10 dark:text-sky-100">
-        Anlassraum-first: Signal prüfen, Anlassraum zuordnen oder Anlassraum-Kandidat anlegen. Dossier folgt danach als
-        Verdichtung.
+        Anlassraum-first: Entscheidungs-Pfade = ignore, attach_to_existing_anlassraum, create_anlassraum_candidate,
+        manual_fast_path_via_create. Dossier folgt danach als Verdichtung.
       </div>
 
       <div className="flex flex-col gap-4 lg:flex-row">

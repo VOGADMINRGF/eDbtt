@@ -198,7 +198,7 @@ vi.mock("@core/db/triMongo", async () => {
   };
 });
 
-import { backfillVoteDraftAnlassraumAuthorized } from "@features/feeds/reviewQueue";
+import { applyFeedReviewAction, backfillVoteDraftAnlassraumAuthorized } from "@features/feeds/reviewQueue";
 
 const adminActor: GovernanceActor = {
   userId: "admin-1",
@@ -375,6 +375,28 @@ describe("feed legacy backfill service", () => {
     expect(createdRoom).toBeTruthy();
     expect(createdRoom?.isPublic).toBe(false);
     expect(createdRoom?.status).toBe("draft");
+  });
+
+  it("prioritizes attach_to_existing_anlassraum when create_candidate is requested on already linked drafts", async () => {
+    const draftId = new ObjectId();
+    const candidateId = new ObjectId();
+    const analyzeResultId = new ObjectId();
+    const roomId = new ObjectId();
+    seedDraftBase(draftId, candidateId, analyzeResultId, { anlassraumId: roomId });
+    seedCandidateAndAnalyze(candidateId, analyzeResultId);
+    seedExistingAnlassraum(roomId);
+
+    const result = await applyFeedReviewAction({
+      actor: adminActor,
+      draftId,
+      action: "create_anlassraum_candidate",
+    });
+
+    expect(result.feedReviewState).toBe("attached");
+    expect(result.createdAnlassraum).toBe(false);
+    expect(result.anlassraumId?.toHexString()).toBe(roomId.toHexString());
+    expect(result.draft.lastReviewAction).toBe("attach_to_anlassraum");
+    expect(memory.read("anlassraum")).toHaveLength(1);
   });
 
   it("Scenario C: already linked draft backfill retry is blocked", async () => {

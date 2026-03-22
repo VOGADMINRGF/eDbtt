@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import type { FeedReviewState, VoteDraftSummary, VoteDraftStatus } from "@features/feeds/types";
+import { preferredPathFromDraftState, type SignalToAnlassraumPath } from "@features/feeds/signalDecisioning";
 import {
   buildFeedDraftListSearchParams,
   buildFeedDraftUrlSearchParams,
@@ -598,7 +599,12 @@ export default function AdminFeedDraftsPage() {
               )}
               {!loading &&
                 items.map((draft) => {
-                  const nextStep = deriveOperationalNextStep(draft);
+                  const decisionPath = preferredPathFromDraftState({
+                    anlassraumId: draft.anlassraumId,
+                    weakSignalFlagged: draft.weakSignal?.flagged,
+                    feedReviewState: draft.feedReviewState ?? null,
+                  });
+                  const nextStep = deriveOperationalNextStep(draft, decisionPath);
                   return (
                     <tr key={draft.id} className={draft.queueMeta?.priorityBucket === "high" ? "bg-amber-50/40" : ""}>
                       <td className="px-3 py-3 align-top">
@@ -625,6 +631,7 @@ export default function AdminFeedDraftsPage() {
                           <StatusBadge status={draft.status} />
                           <ReviewStateBadge state={draft.feedReviewState ?? "queued"} />
                           <PriorityBadge bucket={draft.queueMeta?.priorityBucket ?? "low"} />
+                          <DecisionPathBadge path={decisionPath} />
                         </div>
                         <p className="mt-1 text-xs text-[rgb(var(--muted))]">
                           pending: {draft.queueMeta?.pendingHours ?? 0}h · weak: {draft.weakSignal?.flagged ? "ja" : "nein"}
@@ -922,18 +929,38 @@ function PriorityBadge({ bucket }: { bucket: "high" | "medium" | "low" }) {
   );
 }
 
-function deriveOperationalNextStep(draft: VoteDraftSummary): { title: string; detail: string } {
-  if (draft.weakSignal?.flagged) {
+function DecisionPathBadge({ path }: { path: SignalToAnlassraumPath }) {
+  const colors: Record<SignalToAnlassraumPath, string> = {
+    ignore: "bg-zinc-200 text-zinc-800",
+    attach_to_existing_anlassraum: "bg-emerald-100 text-emerald-800",
+    create_anlassraum_candidate: "bg-sky-100 text-sky-800",
+    manual_fast_path_via_create: "bg-amber-100 text-amber-800",
+  };
+  return <span className={`inline-flex rounded-full px-2 py-1 text-[11px] font-semibold ${colors[path]}`}>{path}</span>;
+}
+
+function deriveOperationalNextStep(
+  draft: VoteDraftSummary,
+  decisionPath: SignalToAnlassraumPath,
+): { title: string; detail: string } {
+  if (decisionPath === "manual_fast_path_via_create") {
     return {
       title: "Weak Signal validieren",
-      detail: "Signal bestätigen oder sauber als Ausnahme dokumentieren.",
+      detail: "Unsicheren Kontext manuell über /create prüfen und begründen.",
     };
   }
 
-  if (!draft.anlassraumId) {
+  if (decisionPath === "attach_to_existing_anlassraum") {
     return {
-      title: "Anlassraum zuordnen",
-      detail: "Draft ist unlinked und braucht Kontext vor dem nächsten Review-Schritt.",
+      title: "An bestehenden Anlassraum anhängen",
+      detail: "Zuordnung steht im Vordergrund, neue Kandidatenanlage vermeiden.",
+    };
+  }
+
+  if (decisionPath === "create_anlassraum_candidate" || !draft.anlassraumId) {
+    return {
+      title: "Anlassraum-Kandidat anlegen",
+      detail: "Signal ist unlinked und braucht einen neuen Anlassraum-Kandidaten als Basis.",
     };
   }
 
