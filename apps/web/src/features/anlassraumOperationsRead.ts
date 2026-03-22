@@ -10,6 +10,7 @@ import {
   type AnlassraumStatus,
 } from "@features/anlassraum/types";
 import type { GovernanceActor } from "@features/trust/types";
+import { buildCreateFastPathHref } from "@/features/create/intents";
 
 const KNOWN_STATUS = [...ANLASSRAUM_LIFECYCLE_STATUSES, ...LEGACY_ANLASSRAUM_STATUSES] as const;
 const KNOWN_SCOPE = [...ANLASSRAUM_SCOPES] as const;
@@ -339,7 +340,10 @@ export async function listAnlassraumOperations(input: {
       links: {
         detailAdmin: `/admin/feeds/anlassraum/${encodeURIComponent(normalized.id)}`,
         detailJson: `/api/admin/feeds/anlassraum/${encodeURIComponent(normalized.id)}`,
-        createContext: `/create?anlassraumId=${encodeURIComponent(normalized.id)}`,
+        createContext: buildCreateFastPathHref({
+          anlassraumId: normalized.id,
+          source: "anlassraum_operations",
+        }),
         attachQueue: `/admin/create/attach-drafts?reviewState=all&q=${encodeURIComponent(normalized.id)}`,
         feedDrafts: `/admin/feeds/drafts?hasAnlassraum=linked&anlassraumId=${encodeURIComponent(normalized.id)}`,
         feedClusterRooms: `/admin/feeds/anlassraum?sourceMode=cluster`,

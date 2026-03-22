@@ -49,7 +49,8 @@ describe("anlassraum operations page", () => {
               links: {
                 detailAdmin: "/admin/feeds/anlassraum/65f000000000000000000111",
                 detailJson: "/api/admin/feeds/anlassraum/65f000000000000000000111",
-                createContext: "/create?anlassraumId=65f000000000000000000111",
+                createContext:
+                  "/create?intent=claim&mode=manual&anlassraumId=65f000000000000000000111&source=anlassraum_operations",
                 attachQueue: "/admin/create/attach-drafts?reviewState=all&q=65f000000000000000000111",
                 feedDrafts: "/admin/feeds/drafts?hasAnlassraum=linked&anlassraumId=65f000000000000000000111",
                 feedClusterRooms: "/admin/feeds/anlassraum?sourceMode=cluster",
@@ -89,12 +90,12 @@ describe("anlassraum operations page", () => {
     expect(html).toContain("Mobilitaet Innenstadt");
     expect(html).toContain("Operative Hinweise");
     expect(html).toContain("Admin-Detail");
-    expect(html).toContain("Create-Kontext");
-    expect(html).toContain("Attach Queue");
+    expect(html).toContain("Manuell via /create");
+    expect(html).toContain("Attach-Queue");
     expect(html).toContain("Feed-/Cluster-Kontext");
-    expect(html).toContain("Feed-Drafts");
-    expect(html).toContain("Feed-Input Rooms");
-    expect(html).toContain("Cluster-Rooms");
+    expect(html).toContain("Signal-Drafts");
+    expect(html).toContain("Signal-Input-Räume");
+    expect(html).toContain("Cluster-Räume");
     expect(html).toContain("Cluster-Control");
     expect(html).toContain("Feed/History JSON");
     expect(html).toContain("Dossier-Admin");

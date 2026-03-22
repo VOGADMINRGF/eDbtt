@@ -8,6 +8,7 @@ import {
   buildFeedDraftUrlSearchParams,
   readFeedDraftFiltersFromSearch,
 } from "@/features/feedDraftsListFilters";
+import { buildCreateFastPathHref } from "@/features/create/intents";
 
 type RegionOption = { value: string; label: string };
 type QueueSort = "newest" | "oldest" | "review_recent" | "review_stale" | "priority_high";
@@ -103,10 +104,10 @@ const WEAK_SIGNAL_FILTERS: { label: string; value: QueueWeakFilter }[] = [
 ];
 
 const BULK_ACTIONS: { label: string; value: BulkAction }[] = [
-  { label: "Ignore", value: "ignore" },
+  { label: "1) ignore (Signal verwerfen)", value: "ignore" },
+  { label: "2) attach_to_existing_anlassraum", value: "attach_to_anlassraum" },
+  { label: "3) create_anlassraum_candidate", value: "create_anlassraum_candidate" },
   { label: "Weak Signal markieren", value: "mark_as_weak_signal" },
-  { label: "An Anlassraum anhängen", value: "attach_to_anlassraum" },
-  { label: "Candidate Create", value: "create_anlassraum_candidate" },
 ];
 
 export default function AdminFeedDraftsPage() {
@@ -422,10 +423,10 @@ export default function AdminFeedDraftsPage() {
         <p className="text-sm font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
           Admin · Feed-Pipeline
         </p>
-        <h1 className="text-2xl font-bold text-[rgb(var(--fg))]">Feed-Drafts: operative Kandidaten-Queue</h1>
+        <h1 className="text-2xl font-bold text-[rgb(var(--fg))]">Signal-Drafts: Anlassraum-first Queue</h1>
         <p className="text-sm text-[rgb(var(--muted))]">
-          Priorisiert nach Kandidaten, die jetzt eine Entscheidung brauchen. Bulk Review und Legacy Backfill bleiben
-          verfügbar, sind aber als sekundäre Maintenance-Bereiche nachgelagert.
+          Operativer Kernpfad: Signal -&gt; Anlassraum -&gt; Dossier -&gt; Output. Feeds liefern Hinweise, keine direkte
+          Publikationslogik.
         </p>
         <div className="flex flex-wrap gap-3">
           <Link href="/admin/feeds" className="text-sm font-semibold text-sky-700 hover:underline">
@@ -437,8 +438,16 @@ export default function AdminFeedDraftsPage() {
           <Link href="/admin/anlassraeume" className="text-sm font-semibold text-sky-700 hover:underline">
             Zu Anlassraum Operations
           </Link>
+          <Link href={buildCreateFastPathHref({ source: "feed_drafts_queue" })} className="text-sm font-semibold text-sky-700 hover:underline">
+            4) manual_fast_path_via_create
+          </Link>
         </div>
       </header>
+
+      <section className="rounded-xl border border-sky-300/50 bg-sky-50/70 px-4 py-3 text-xs text-sky-900 dark:border-sky-400/40 dark:bg-sky-500/10 dark:text-sky-100">
+        Entscheidungs-Pfade: <strong>ignore</strong>, <strong>attach_to_existing_anlassraum</strong>,{" "}
+        <strong>create_anlassraum_candidate</strong>, <strong>manual_fast_path_via_create</strong>.
+      </section>
 
       <section className="grid gap-3 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm lg:grid-cols-6">
         <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))] lg:col-span-6">
@@ -579,8 +588,11 @@ export default function AdminFeedDraftsPage() {
                     <Link href="/admin/feeds" className="font-semibold text-sky-700 hover:underline">
                       Feed Control Plane
                     </Link>
-                    <span>{" "}</span>
-                    für neue Kandidaten.
+                    <span>{" "}bzw. starte einen manuellen Anlassraum-Einstieg via{" "}</span>
+                    <Link href={buildCreateFastPathHref({ source: "feed_drafts_empty_state" })} className="font-semibold text-sky-700 hover:underline">
+                      /create
+                    </Link>
+                    .
                   </td>
                 </tr>
               )}
@@ -640,6 +652,12 @@ export default function AdminFeedDraftsPage() {
                             <Link href="/admin/feeds/anlassraum" className="font-semibold text-sky-700 hover:underline">
                               Anlassraum-Kontext prüfen
                             </Link>
+                            <Link
+                              href={buildCreateFastPathHref({ draftId: draft.id, source: "feed_drafts_row_unlinked" })}
+                              className="font-semibold text-sky-700 hover:underline"
+                            >
+                              Manuell via /create fortsetzen
+                            </Link>
                           </div>
                         )}
                         {draft.weakSignal?.flagged && (
@@ -659,6 +677,14 @@ export default function AdminFeedDraftsPage() {
                         <Link href={`/admin/feeds/drafts/${draft.id}`} className="mt-1 inline-flex font-semibold text-sky-700 hover:underline">
                           Draft im Detail prüfen
                         </Link>
+                        {!draft.anlassraumId ? (
+                          <Link
+                            href={buildCreateFastPathHref({ draftId: draft.id, source: "feed_drafts_next_step" })}
+                            className="mt-1 inline-flex font-semibold text-sky-700 hover:underline"
+                          >
+                            4) manual_fast_path_via_create
+                          </Link>
+                        ) : null}
                       </td>
                       <td className="px-4 py-3 align-top text-xs text-[rgb(var(--muted))]">
                         {draft.sourceUrl ? (
@@ -684,7 +710,7 @@ export default function AdminFeedDraftsPage() {
           Bulk Review (sekundär) · {selectedIds.length} ausgewählt
         </summary>
         <p className="mt-2 text-xs text-[rgb(var(--muted))]">
-          Sammelaktion für mehrere Drafts. Kein Auto-Publish und kein Auto-Approval.
+          Sammelaktion für mehrere Signale. Kein Auto-Publish und kein Auto-Approval.
         </p>
         <section className="mt-3 grid gap-3 lg:grid-cols-6">
           <select

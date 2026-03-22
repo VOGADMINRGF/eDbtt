@@ -66,6 +66,15 @@ export type BuildCreateHrefArgs = {
   next?: string | null;
 };
 
+export type BuildCreateFastPathHrefArgs = {
+  intent?: CreateIntent;
+  mode?: CreateMode;
+  anlassraumId?: string | null;
+  draftId?: string | null;
+  source?: string | null;
+  next?: string | null;
+};
+
 function withQuery(path: string, query: Record<string, string | undefined>) {
   const params = new URLSearchParams();
   Object.entries(query).forEach(([key, value]) => {
@@ -126,5 +135,18 @@ export function buildCreateHref({
     dossierId: dossierId ?? undefined,
     statementId: statementId ?? undefined,
     next: next ?? undefined,
+  });
+}
+
+export function buildCreateFastPathHref(args: BuildCreateFastPathHrefArgs = {}): string {
+  const intent = args.intent ?? "claim";
+  const mode = args.mode ?? "manual";
+  return withQuery(CANONICAL_CREATE_PATH, {
+    intent,
+    mode,
+    anlassraumId: args.anlassraumId ? args.anlassraumId.trim() : undefined,
+    draftId: args.draftId ? args.draftId.trim() : undefined,
+    source: args.source ? args.source.trim() : undefined,
+    next: args.next ?? undefined,
   });
 }

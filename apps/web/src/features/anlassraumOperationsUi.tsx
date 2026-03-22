@@ -41,12 +41,12 @@ export function AnlassraumOperationsPanel({ data, loading, error, query, onQuery
       <header>
         <h1 className="text-2xl font-semibold text-[rgb(var(--fg))]">Anlassraum Operations</h1>
         <p className="mt-1 text-sm text-[rgb(var(--muted))]">
-          Read-only Sicht auf Anlassraeume als operative Einheiten. Keine Mutation, kein Apply, keine Auto-Aktion.
+          Read-only Sicht auf Anlassräume als operative Einheiten. Keine Mutation, kein Apply, keine Auto-Aktion.
         </p>
       </header>
 
       <div className="rounded-xl border border-sky-300/50 bg-sky-50/70 p-3 text-sm text-sky-900 dark:border-sky-400/40 dark:bg-sky-500/10 dark:text-sky-100">
-        Read-only only. Diese Oberflaeche dient nur der operativen Sichtbarkeit und Navigation.
+        Read-only only. Diese Oberfläche dient nur der operativen Sichtbarkeit und Navigation.
       </div>
 
       <section className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-3">
@@ -105,7 +105,7 @@ export function AnlassraumOperationsPanel({ data, loading, error, query, onQuery
 
           <button
             type="button"
-            className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-1 text-xs font-semibold text-[rgb(var(--muted))] hover:text-[rgb(var(--fg))]"
+            className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-1 text-xs font-semibold text-[rgb(var(--fg))] hover:border-sky-300 hover:text-sky-700 dark:hover:text-sky-200"
             onClick={onReload}
           >
             Neu laden
@@ -113,7 +113,7 @@ export function AnlassraumOperationsPanel({ data, loading, error, query, onQuery
         </div>
       </section>
 
-      {loading ? <p className="text-sm text-[rgb(var(--muted))]">Anlassraeume werden geladen ...</p> : null}
+      {loading ? <p className="text-sm text-[rgb(var(--muted))]">Anlassräume werden geladen ...</p> : null}
 
       {error ? (
         <p className="rounded-md border border-rose-300/60 bg-rose-50/80 px-3 py-2 text-sm text-rose-700 dark:border-rose-400/40 dark:bg-rose-500/10 dark:text-rose-200">
@@ -140,7 +140,7 @@ export function AnlassraumOperationsPanel({ data, loading, error, query, onQuery
 
       {!loading && !error && items.length === 0 ? (
         <section className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 text-sm text-[rgb(var(--muted))]">
-          Keine Anlassraeume fuer den aktuellen Filter gefunden.
+          Keine Anlassräume für den aktuellen Filter gefunden.
         </section>
       ) : null}
 
@@ -166,7 +166,7 @@ export function AnlassraumOperationsPanel({ data, loading, error, query, onQuery
             onClick={() => onQueryChange({ page: query.page + 1 })}
             className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-1 text-xs font-semibold text-[rgb(var(--muted))] hover:text-[rgb(var(--fg))] disabled:cursor-not-allowed disabled:opacity-60"
           >
-            Naechste Seite
+            Nächste Seite
           </button>
         </section>
       ) : null}
@@ -240,19 +240,19 @@ function AnlassraumOperationsCard({ item }: { item: AnlassraumOperationsItem }) 
           Admin-Detail
         </Link>
         <Link href={item.links.createContext} className="text-sky-700 hover:underline">
-          Create-Kontext
+          Manuell via /create
         </Link>
         <Link href={item.links.attachQueue} className="text-sky-700 hover:underline">
-          Attach Queue
+          Attach-Queue
         </Link>
         <Link href={item.links.feedDrafts} className="text-sky-700 hover:underline">
-          Feed-Drafts
+          Signal-Drafts
         </Link>
         <Link href={item.links.feedInputRooms} className="text-sky-700 hover:underline">
-          Feed-Input Rooms
+          Signal-Input-Räume
         </Link>
         <Link href={item.links.feedClusterRooms} className="text-sky-700 hover:underline">
-          Cluster-Rooms
+          Cluster-Räume
         </Link>
         <Link href={item.links.clusterControl} className="text-sky-700 hover:underline">
           Cluster-Control

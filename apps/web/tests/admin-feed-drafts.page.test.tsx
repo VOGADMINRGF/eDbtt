@@ -6,9 +6,10 @@ describe("admin feed drafts page", () => {
   it("renders operator-first sections with candidate list before maintenance blocks", () => {
     const html = renderToStaticMarkup(<AdminFeedDraftsPage />);
 
-    expect(html).toContain("Feed-Drafts: operative Kandidaten-Queue");
+    expect(html).toContain("Signal-Drafts: Anlassraum-first Queue");
     expect(html).toContain("Kandidatenfilter");
     expect(html).toContain("Kandidatenliste");
+    expect(html).toContain("manual_fast_path_via_create");
     expect(html).toContain("Bulk Review (sekundär)");
     expect(html).toContain("Legacy Backfill (Maintenance-Ausnahme)");
 

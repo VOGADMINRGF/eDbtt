@@ -5,6 +5,7 @@ import type {
   CreateAnalyzeMatchType,
   CreateAnalyzeResponse,
 } from "@/features/create/analyzeContract";
+import { buildCreateFastPathHref } from "@/features/create/intents";
 
 export type CreateCtaHandoffId =
   | "anlassraum_oeffnen"
@@ -98,7 +99,10 @@ function defaultTargetRef(
   if (!match?.entityId) return null;
 
   if (ctaId === "anlassraum_oeffnen") {
-    return `/create?anlassraumId=${encodeURIComponent(match.entityId)}`;
+    return buildCreateFastPathHref({
+      anlassraumId: match.entityId,
+      source: "cta_handoff",
+    });
   }
   if (ctaId === "dossier_oeffnen") {
     return `/dossier/${encodeURIComponent(match.entityId)}`;

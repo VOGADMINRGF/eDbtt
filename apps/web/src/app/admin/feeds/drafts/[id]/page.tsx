@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
+import { buildCreateFastPathHref } from "@/features/create/intents";
 
 type DraftDetailResponse = {
   ok: true;
@@ -167,10 +169,10 @@ export default function AdminDraftDetailPage() {
   const { draft, candidate, analyzeResult } = data;
 
   return (
-    <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-8">
+    <div className="flex w-full flex-col gap-6 py-4">
       <div className="flex flex-col gap-2">
         <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
-          Admin · Draft Detail
+          Admin · Signal-Draft Detail
         </p>
         <h1 className="text-2xl font-bold text-[rgb(var(--fg))]">{draft.title}</h1>
         <div className="flex flex-wrap items-center gap-2 text-sm text-[rgb(var(--muted))]">
@@ -207,12 +209,24 @@ export default function AdminDraftDetailPage() {
               </a>
             </>
           )}
+          <span className="text-[rgb(var(--muted))]">·</span>
+          <Link
+            href={buildCreateFastPathHref({ draftId: params.id, anlassraumId: draft.anlassraumId ?? null, source: "feed_draft_detail" })}
+            className="text-sky-600 hover:underline"
+          >
+            Manuell via /create
+          </Link>
         </div>
+      </div>
+
+      <div className="rounded-xl border border-sky-300/50 bg-sky-50/70 px-4 py-3 text-sm text-sky-900 dark:border-sky-400/40 dark:bg-sky-500/10 dark:text-sky-100">
+        Anlassraum-first: Signal prüfen, Anlassraum zuordnen oder Anlassraum-Kandidat anlegen. Dossier folgt danach als
+        Verdichtung.
       </div>
 
       <div className="flex flex-col gap-4 lg:flex-row">
         <section className="flex-1 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm">
-          <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Original – Feed</h2>
+          <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Signalquelle (Referenz)</h2>
           <p className="mt-2 text-xs text-[rgb(var(--muted))]">
             Locale {candidate.sourceLocale ?? "unbekannt"} · Region {candidate.regionCode ?? "Global"}
           </p>
@@ -271,33 +285,33 @@ export default function AdminDraftDetailPage() {
               disabled={actionLoading}
               onClick={() => runReviewAction("ignore")}
             >
-              Ignore
+              ignore (Signal verwerfen)
             </button>
             <button
               className="btn bg-emerald-500 px-4 py-2 text-sm font-semibold text-white shadow-sm"
               disabled={actionLoading || draft.status === "published"}
               onClick={publishDraft}
             >
-              Veröffentlichen
+              Direkt veröffentlichen (Ausnahme)
             </button>
           </div>
 
           <div className="mt-4 grid gap-2 rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
-            <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Feed Review Queue</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Signal-&gt;Anlassraum Review</p>
             <div className="flex flex-wrap gap-2">
               <button
                 className="btn border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm"
                 disabled={actionLoading}
                 onClick={() => runReviewAction("create_anlassraum_candidate")}
               >
-                Candidate Create
+                create_anlassraum_candidate
               </button>
               <button
                 className="btn border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm"
                 disabled={actionLoading}
                 onClick={() => runReviewAction("attach_to_anlassraum")}
               >
-                Source Attach
+                attach_to_existing_anlassraum
               </button>
               <button
                 className="btn border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800"
@@ -306,6 +320,12 @@ export default function AdminDraftDetailPage() {
               >
                 Weak Signal
               </button>
+              <Link
+                href={buildCreateFastPathHref({ draftId: params.id, anlassraumId: draft.anlassraumId ?? null, source: "feed_draft_detail_panel" })}
+                className="btn border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm text-[rgb(var(--fg))]"
+              >
+                manual_fast_path_via_create
+              </Link>
             </div>
             <label className="text-xs text-[rgb(var(--muted))]">
               Anlassraum-ID für Attach
