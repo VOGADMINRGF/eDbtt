@@ -172,13 +172,13 @@ export default function AdminFeedsPage() {
           </Link>
           <Link
             href="/admin/feeds/anlassraum"
-            className="rounded-full border border-[rgb(var(--border))] px-4 py-2 text-sm font-semibold text-[rgb(var(--muted))]"
+            className="rounded-full border border-[rgb(var(--border))] px-4 py-2 text-sm font-semibold text-[rgb(var(--fg))] hover:border-sky-300/70 hover:bg-sky-50 dark:hover:border-sky-300/45 dark:hover:bg-sky-500/12"
           >
             Zu Anlassräumen
           </Link>
           <Link
             href="/admin/acquisition"
-            className="rounded-full border border-[rgb(var(--border))] px-4 py-2 text-sm font-semibold text-[rgb(var(--muted))]"
+            className="rounded-full border border-[rgb(var(--border))] px-4 py-2 text-sm font-semibold text-[rgb(var(--fg))] hover:border-sky-300/70 hover:bg-sky-50 dark:hover:border-sky-300/45 dark:hover:bg-sky-500/12"
           >
             Zu Akquise Dashboard
           </Link>
@@ -321,7 +321,7 @@ export default function AdminFeedsPage() {
             <button
               onClick={runAnalyze}
               disabled={analyzeState.loading}
-              className="rounded-full border border-[rgb(var(--border))] px-4 py-2 text-sm font-semibold text-[rgb(var(--muted))] disabled:opacity-70"
+              className="rounded-full border border-[rgb(var(--border))] px-4 py-2 text-sm font-semibold text-[rgb(var(--fg))] hover:border-sky-300/70 hover:bg-sky-50 dark:hover:border-sky-300/45 dark:hover:bg-sky-500/12 disabled:opacity-70"
             >
               {analyzeState.loading ? "Analyze läuft …" : "Analyse starten"}
             </button>

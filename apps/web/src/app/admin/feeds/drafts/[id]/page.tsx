@@ -207,20 +207,20 @@ export default function AdminDraftDetailPage() {
         <h1 className="text-2xl font-bold text-[rgb(var(--fg))]">{draft.title}</h1>
         <div className="flex flex-wrap items-center gap-2 text-sm text-[rgb(var(--muted))]">
           <StatusBadge status={draft.status} />
-          <span className="rounded-full border border-[rgb(var(--border))] px-2 py-1 text-xs">
+          <span className="vog-chip">
             review: {draft.feedReviewState ?? "queued"}
           </span>
-          <span className="rounded-full border border-[rgb(var(--border))] px-2 py-1 text-xs">
+          <span className="vog-chip">
             path: {currentDecisionPath}
           </span>
-          <span className="rounded-full border border-[rgb(var(--border))] px-2 py-1 text-xs">
+          <span className="vog-chip">
             last: {draft.lastReviewAction ?? "—"} · {draft.lastReviewActionBy ?? "—"}
           </span>
-          <span className="rounded-full border border-[rgb(var(--border))] px-2 py-1 text-xs">
+          <span className="vog-chip">
             at: {formatDate(draft.lastReviewActionAt)}
           </span>
           {draft.reviewNote && (
-            <span className="rounded-full border border-[rgb(var(--border))] px-2 py-1 text-xs">
+            <span className="vog-chip">
               note: {String(draft.reviewNote).slice(0, 80)}
             </span>
           )}
@@ -252,7 +252,7 @@ export default function AdminDraftDetailPage() {
         </div>
       </div>
 
-      <div className="rounded-xl border border-sky-300/50 bg-sky-50/70 px-4 py-3 text-sm text-sky-900 dark:border-sky-400/40 dark:bg-sky-500/10 dark:text-sky-100">
+      <div className="rounded-xl border border-sky-300/60 bg-sky-50/80 px-4 py-3 text-sm text-sky-950 dark:border-sky-400/45 dark:bg-sky-500/14 dark:text-sky-100">
         Anlassraum-first: Entscheidungs-Pfade = ignore, attach_to_existing_anlassraum, create_anlassraum_candidate,
         manual_fast_path_via_create. Dossier folgt danach als Verdichtung. Feed-Signale bleiben Hinweise; ein Publish
         ist nur als manuelle Ausnahme nach Primärquellenprüfung zulässig.
@@ -326,7 +326,7 @@ export default function AdminDraftDetailPage() {
               ignore (Signal verwerfen)
             </button>
             <button
-              className="btn border border-amber-300 bg-amber-50 px-4 py-2 text-sm font-semibold text-amber-900"
+              className="btn border border-amber-300 bg-amber-50 px-4 py-2 text-sm font-semibold text-amber-900 hover:bg-amber-100 dark:border-amber-400/55 dark:bg-amber-500/18 dark:text-amber-100 dark:hover:bg-amber-500/24"
               disabled={actionLoading || draft.status === "published"}
               onClick={publishDraft}
             >
@@ -452,13 +452,19 @@ export default function AdminDraftDetailPage() {
 
 function StatusBadge({ status }: { status: string }) {
   const colors: Record<string, string> = {
-    draft: "bg-[rgb(var(--bg))] text-[rgb(var(--fg))]",
-    review: "bg-amber-100 text-amber-800",
-    published: "bg-emerald-100 text-emerald-800",
-    discarded: "bg-rose-100 text-rose-800",
+    draft: "border border-slate-300/70 bg-slate-100 text-slate-900 dark:border-slate-500/55 dark:bg-slate-500/22 dark:text-slate-100",
+    review: "border border-amber-300/80 bg-amber-100 text-amber-950 dark:border-amber-400/55 dark:bg-amber-500/22 dark:text-amber-100",
+    published:
+      "border border-emerald-300/80 bg-emerald-100 text-emerald-950 dark:border-emerald-400/55 dark:bg-emerald-500/24 dark:text-emerald-100",
+    discarded: "border border-rose-300/80 bg-rose-100 text-rose-950 dark:border-rose-400/55 dark:bg-rose-500/22 dark:text-rose-100",
   };
   return (
-    <span className={`rounded-full px-3 py-1 text-xs font-semibold ${colors[status] ?? "bg-[rgb(var(--bg))]"}`}>
+    <span
+      className={`rounded-full px-3 py-1 text-xs font-semibold ${
+        colors[status] ??
+        "border border-slate-300/70 bg-slate-100 text-slate-900 dark:border-slate-500/55 dark:bg-slate-500/22 dark:text-slate-100"
+      }`}
+    >
       {status}
     </span>
   );

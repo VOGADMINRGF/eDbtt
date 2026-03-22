@@ -451,7 +451,7 @@ export default function AdminFeedDraftsPage() {
         </div>
       </header>
 
-      <section className="rounded-xl border border-sky-300/50 bg-sky-50/70 px-4 py-3 text-xs text-sky-900 dark:border-sky-400/40 dark:bg-sky-500/10 dark:text-sky-100">
+      <section className="rounded-xl border border-sky-300/60 bg-sky-50/80 px-4 py-3 text-xs text-sky-950 dark:border-sky-400/45 dark:bg-sky-500/14 dark:text-sky-100">
         Entscheidungs-Pfade: <strong>ignore</strong>, <strong>attach_to_existing_anlassraum</strong>,{" "}
         <strong>create_anlassraum_candidate</strong>, <strong>manual_fast_path_via_create</strong>. Kein Auto-Publish,
         keine automatische Feed-Übernahme.
@@ -570,14 +570,14 @@ export default function AdminFeedDraftsPage() {
           <table className="min-w-full divide-y divide-[rgb(var(--border))] text-sm">
             <thead className="bg-[rgb(var(--bg))]">
               <tr>
-                <th className="px-3 py-3 text-left font-semibold text-[rgb(var(--muted))]">
+                <th className="px-3 py-3 text-left font-semibold text-slate-700 dark:text-slate-200">
                   <input type="checkbox" checked={allVisibleSelected} onChange={toggleAllVisible} aria-label="Alle auswählen" />
                 </th>
-                <th className="px-4 py-3 text-left font-semibold text-[rgb(var(--muted))]">Kandidat</th>
-                <th className="px-4 py-3 text-left font-semibold text-[rgb(var(--muted))]">Queue-Kontext</th>
-                <th className="px-4 py-3 text-left font-semibold text-[rgb(var(--muted))]">Anlassraum & Hinweise</th>
-                <th className="px-4 py-3 text-left font-semibold text-[rgb(var(--muted))]">Nächster Schritt</th>
-                <th className="px-4 py-3 text-left font-semibold text-[rgb(var(--muted))]">Primärquelle / Signalspur</th>
+                <th className="px-4 py-3 text-left font-semibold text-slate-700 dark:text-slate-200">Kandidat</th>
+                <th className="px-4 py-3 text-left font-semibold text-slate-700 dark:text-slate-200">Queue-Kontext</th>
+                <th className="px-4 py-3 text-left font-semibold text-slate-700 dark:text-slate-200">Anlassraum & Hinweise</th>
+                <th className="px-4 py-3 text-left font-semibold text-slate-700 dark:text-slate-200">Nächster Schritt</th>
+                <th className="px-4 py-3 text-left font-semibold text-slate-700 dark:text-slate-200">Primärquelle / Signalspur</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[rgb(var(--border))]">
@@ -907,10 +907,11 @@ export default function AdminFeedDraftsPage() {
 
 function StatusBadge({ status }: { status: VoteDraftStatus }) {
   const colors: Record<VoteDraftStatus, string> = {
-    draft: "bg-[rgb(var(--bg))] text-[rgb(var(--fg))]",
-    review: "bg-amber-100 text-amber-800",
-    published: "bg-emerald-100 text-emerald-800",
-    discarded: "bg-rose-100 text-rose-800",
+    draft: "border border-slate-300/70 bg-slate-100 text-slate-900 dark:border-slate-500/55 dark:bg-slate-500/22 dark:text-slate-100",
+    review: "border border-amber-300/80 bg-amber-100 text-amber-950 dark:border-amber-400/55 dark:bg-amber-500/22 dark:text-amber-100",
+    published:
+      "border border-emerald-300/80 bg-emerald-100 text-emerald-950 dark:border-emerald-400/55 dark:bg-emerald-500/24 dark:text-emerald-100",
+    discarded: "border border-rose-300/80 bg-rose-100 text-rose-950 dark:border-rose-400/55 dark:bg-rose-500/22 dark:text-rose-100",
   };
   return (
     <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${colors[status]}`}>
@@ -921,8 +922,8 @@ function StatusBadge({ status }: { status: VoteDraftStatus }) {
 
 function SummaryChip({ label, value }: { label: string; value: number }) {
   return (
-    <article className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2">
-      <p className="text-[11px] font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">{label}</p>
+    <article className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
+      <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-700 dark:text-slate-200">{label}</p>
       <p className="text-lg font-semibold text-[rgb(var(--fg))]">{value}</p>
     </article>
   );
@@ -930,11 +931,14 @@ function SummaryChip({ label, value }: { label: string; value: number }) {
 
 function ReviewStateBadge({ state }: { state: FeedReviewState }) {
   const colors: Record<FeedReviewState, string> = {
-    queued: "bg-slate-100 text-slate-800",
-    ignored: "bg-zinc-200 text-zinc-800",
-    attached: "bg-emerald-100 text-emerald-800",
-    candidate_created: "bg-sky-100 text-sky-800",
-    weak_signal: "bg-amber-100 text-amber-800",
+    queued: "border border-slate-300/70 bg-slate-100 text-slate-900 dark:border-slate-500/55 dark:bg-slate-500/22 dark:text-slate-100",
+    ignored: "border border-zinc-300/70 bg-zinc-200 text-zinc-900 dark:border-zinc-500/55 dark:bg-zinc-500/24 dark:text-zinc-100",
+    attached:
+      "border border-emerald-300/80 bg-emerald-100 text-emerald-950 dark:border-emerald-400/55 dark:bg-emerald-500/24 dark:text-emerald-100",
+    candidate_created:
+      "border border-sky-300/80 bg-sky-100 text-sky-950 dark:border-sky-400/55 dark:bg-sky-500/24 dark:text-sky-100",
+    weak_signal:
+      "border border-amber-300/80 bg-amber-100 text-amber-950 dark:border-amber-400/55 dark:bg-amber-500/22 dark:text-amber-100",
   };
 
   return <span className={`inline-flex rounded-full px-2 py-1 text-[11px] font-semibold ${colors[state]}`}>{state}</span>;
@@ -942,9 +946,9 @@ function ReviewStateBadge({ state }: { state: FeedReviewState }) {
 
 function PriorityBadge({ bucket }: { bucket: "high" | "medium" | "low" }) {
   const colors: Record<"high" | "medium" | "low", string> = {
-    high: "bg-amber-100 text-amber-900",
-    medium: "bg-sky-100 text-sky-900",
-    low: "bg-slate-100 text-slate-800",
+    high: "border border-amber-300/80 bg-amber-100 text-amber-950 dark:border-amber-400/55 dark:bg-amber-500/22 dark:text-amber-100",
+    medium: "border border-sky-300/80 bg-sky-100 text-sky-950 dark:border-sky-400/55 dark:bg-sky-500/24 dark:text-sky-100",
+    low: "border border-slate-300/70 bg-slate-100 text-slate-900 dark:border-slate-500/55 dark:bg-slate-500/22 dark:text-slate-100",
   };
 
   return (
@@ -956,10 +960,13 @@ function PriorityBadge({ bucket }: { bucket: "high" | "medium" | "low" }) {
 
 function DecisionPathBadge({ path }: { path: SignalToAnlassraumPath }) {
   const colors: Record<SignalToAnlassraumPath, string> = {
-    ignore: "bg-zinc-200 text-zinc-800",
-    attach_to_existing_anlassraum: "bg-emerald-100 text-emerald-800",
-    create_anlassraum_candidate: "bg-sky-100 text-sky-800",
-    manual_fast_path_via_create: "bg-amber-100 text-amber-800",
+    ignore: "border border-zinc-300/70 bg-zinc-200 text-zinc-900 dark:border-zinc-500/55 dark:bg-zinc-500/24 dark:text-zinc-100",
+    attach_to_existing_anlassraum:
+      "border border-emerald-300/80 bg-emerald-100 text-emerald-950 dark:border-emerald-400/55 dark:bg-emerald-500/24 dark:text-emerald-100",
+    create_anlassraum_candidate:
+      "border border-sky-300/80 bg-sky-100 text-sky-950 dark:border-sky-400/55 dark:bg-sky-500/24 dark:text-sky-100",
+    manual_fast_path_via_create:
+      "border border-amber-300/80 bg-amber-100 text-amber-950 dark:border-amber-400/55 dark:bg-amber-500/22 dark:text-amber-100",
   };
   return <span className={`inline-flex rounded-full px-2 py-1 text-[11px] font-semibold ${colors[path]}`}>{path}</span>;
 }

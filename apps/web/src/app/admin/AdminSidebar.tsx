@@ -41,20 +41,20 @@ export default function AdminSidebar({ userEmail }: { userEmail?: string | null 
   return (
     <div className="flex h-full flex-col gap-3">
       <div>
-        <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-sky-600">Admin</p>
+        <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-sky-600 dark:text-sky-300">Admin</p>
         <p className="text-sm font-semibold text-[rgb(var(--fg))]">eDebatte</p>
         <p className="text-xs text-[rgb(var(--muted))] truncate">{userEmail ?? "admin"}</p>
       </div>
 
-      <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2">
+      <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))]/90 px-3 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.1)]">
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Suchen (z.B. users, reports, telemetry)"
-          className="w-full bg-transparent text-xs text-[rgb(var(--fg))] placeholder:text-[rgb(var(--muted))] focus:outline-none"
+          className="w-full bg-transparent text-xs text-[rgb(var(--fg))] placeholder:text-slate-500 dark:placeholder:text-slate-300 focus:outline-none"
           aria-label="Admin Navigation durchsuchen"
         />
-        <p className="mt-1 text-[11px] text-[rgb(var(--muted))]">{summaryLabel}</p>
+        <p className="mt-1 text-[11px] text-slate-600 dark:text-slate-300">{summaryLabel}</p>
       </div>
 
       <nav className="flex-1 space-y-3 overflow-y-auto pr-1 text-sm font-semibold text-[rgb(var(--fg))]">
@@ -74,13 +74,13 @@ export default function AdminSidebar({ userEmail }: { userEmail?: string | null 
                     href={item.href}
                     className={`block rounded-xl border px-2.5 py-1.5 transition ${
                       active
-                        ? "border-sky-200 bg-sky-50 text-[rgb(var(--fg))] shadow-[inset_0_0_0_1px_rgba(125,211,252,0.45)]"
-                        : "border-[rgb(var(--border))] hover:border-sky-200 hover:bg-sky-50/70"
+                        ? "border-sky-300 bg-sky-100/80 text-slate-900 shadow-[inset_0_0_0_1px_rgba(56,189,248,0.45)] dark:border-sky-300/45 dark:bg-sky-500/20 dark:text-sky-50"
+                        : "border-[rgb(var(--border))] bg-[rgb(var(--card))]/70 hover:border-sky-300/70 hover:bg-sky-100/60 dark:hover:border-sky-300/45 dark:hover:bg-sky-500/12"
                     }`}
                   >
                     <div className="text-[13px] font-semibold leading-tight text-[rgb(var(--fg))]">{item.label}</div>
                     {item.description && (
-                      <div className="mt-0.5 truncate text-[10px] text-[rgb(var(--muted))]">{item.description}</div>
+                      <div className="mt-0.5 truncate text-[10px] text-slate-600 dark:text-slate-300">{item.description}</div>
                     )}
                   </Link>
                 );

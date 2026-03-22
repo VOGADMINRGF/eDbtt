@@ -175,10 +175,10 @@ export default function AdminSearchButton() {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="inline-flex items-center gap-2 rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-1.5 text-sm font-semibold text-[rgb(var(--fg))] hover:border-sky-300 hover:text-sky-700 dark:hover:text-sky-200"
+        className="inline-flex items-center gap-2 rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-1.5 text-sm font-semibold text-[rgb(var(--fg))] hover:border-sky-300 hover:bg-sky-50/70 hover:text-sky-700 dark:hover:border-sky-300/45 dark:hover:bg-sky-500/12 dark:hover:text-sky-100"
       >
         Suche
-        <span className="rounded-full bg-[rgb(var(--bg))] px-2 py-0.5 text-[11px] text-[rgb(var(--fg))]/80">
+        <span className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-2 py-0.5 text-[11px] font-semibold text-[rgb(var(--fg))]">
           Cmd+K
         </span>
       </button>
@@ -197,7 +197,7 @@ export default function AdminSearchButton() {
               <button
                 type="button"
                 onClick={() => setOpen(false)}
-                className="rounded-full bg-[rgb(var(--bg))] px-3 py-1 text-xs font-semibold text-[rgb(var(--fg))]/85 hover:text-sky-700 dark:hover:text-sky-200"
+                className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-1 text-xs font-semibold text-[rgb(var(--fg))] hover:border-sky-300 hover:text-sky-700 dark:hover:border-sky-300/45 dark:hover:text-sky-100"
               >
                 Schliessen
               </button>
@@ -217,7 +217,7 @@ export default function AdminSearchButton() {
                             key={item.href}
                             href={item.href}
                             onClick={() => setOpen(false)}
-                            className="rounded-2xl border border-[rgb(var(--border))] px-3 py-2 text-sm text-[rgb(var(--fg))] hover:border-sky-200 hover:bg-sky-50 dark:hover:bg-sky-500/10"
+                            className="rounded-2xl border border-[rgb(var(--border))] px-3 py-2 text-sm text-[rgb(var(--fg))] hover:border-sky-300/70 hover:bg-sky-50 dark:hover:border-sky-300/45 dark:hover:bg-sky-500/12"
                           >
                             <div className="font-semibold text-[rgb(var(--fg))]">{item.label}</div>
                             {item.description && (
@@ -248,7 +248,7 @@ export default function AdminSearchButton() {
                           key={item.href}
                           href={item.href}
                           onClick={() => setOpen(false)}
-                          className="rounded-2xl border border-[rgb(var(--border))] px-3 py-2 text-sm text-[rgb(var(--fg))] hover:border-sky-200 hover:bg-sky-50"
+                          className="rounded-2xl border border-[rgb(var(--border))] px-3 py-2 text-sm text-[rgb(var(--fg))] hover:border-sky-300/70 hover:bg-sky-50 dark:hover:border-sky-300/45 dark:hover:bg-sky-500/12"
                         >
                           <div className="font-semibold text-[rgb(var(--fg))]">{item.label}</div>
                           <div className="text-[11px] text-[rgb(var(--muted))]">{item.href}</div>
@@ -294,7 +294,7 @@ export default function AdminSearchButton() {
                                   key={item.id}
                                   href={item.href}
                                   onClick={() => setOpen(false)}
-                                  className="flex items-center justify-between rounded-2xl border border-[rgb(var(--border))] px-3 py-2 text-sm text-[rgb(var(--fg))] hover:border-sky-200 hover:bg-sky-50"
+                                  className="flex items-center justify-between rounded-2xl border border-[rgb(var(--border))] px-3 py-2 text-sm text-[rgb(var(--fg))] hover:border-sky-300/70 hover:bg-sky-50 dark:hover:border-sky-300/45 dark:hover:bg-sky-500/12"
                                 >
                                   <div>
                                     <div className="font-semibold text-[rgb(var(--fg))]">
@@ -307,7 +307,7 @@ export default function AdminSearchButton() {
                                     )}
                                   </div>
                                   {item.badge && (
-                                    <span className="rounded-full bg-[rgb(var(--bg))] px-2 py-0.5 text-[11px] text-[rgb(var(--muted))]">
+                                    <span className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-2 py-0.5 text-[11px] text-[rgb(var(--fg))]">
                                       {item.badge}
                                     </span>
                                   )}
@@ -344,13 +344,13 @@ export default function AdminSearchButton() {
                           key={`${item.kind}-${item.path}`}
                           href={item.path}
                           onClick={() => setOpen(false)}
-                          className="flex items-center justify-between rounded-2xl border border-[rgb(var(--border))] px-3 py-2 text-sm text-[rgb(var(--fg))] hover:border-sky-200 hover:bg-sky-50"
+                          className="flex items-center justify-between rounded-2xl border border-[rgb(var(--border))] px-3 py-2 text-sm text-[rgb(var(--fg))] hover:border-sky-300/70 hover:bg-sky-50 dark:hover:border-sky-300/45 dark:hover:bg-sky-500/12"
                         >
                           <div>
                             <div className="font-semibold text-[rgb(var(--fg))]">{item.path}</div>
                             <div className="text-[11px] text-[rgb(var(--muted))]">{item.file}</div>
                           </div>
-                          <span className="rounded-full bg-[rgb(var(--bg))] px-2 py-0.5 text-[11px] text-[rgb(var(--muted))]">
+                          <span className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-2 py-0.5 text-[11px] text-[rgb(var(--fg))]">
                             {item.kind}
                           </span>
                         </a>
