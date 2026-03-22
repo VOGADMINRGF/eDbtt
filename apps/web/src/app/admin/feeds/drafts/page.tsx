@@ -10,13 +10,29 @@ import {
   readFeedDraftFiltersFromSearch,
 } from "@/features/feedDraftsListFilters";
 import { buildCreateFastPathHref } from "@/features/create/intents";
+import { useLocale } from "@/context/LocaleContext";
+import {
+  formatBooleanLabel,
+  formatBulkActionLabel,
+  formatDecisionPathLabel,
+  formatFeedReviewStateLabel,
+  formatLinkFilterLabel,
+  formatPriorityBucketLabel,
+  formatQueueSortLabel,
+  formatWeakSignalFilterLabel,
+  formatVoteDraftStatusLabel,
+  getOperatorSystemTexts,
+  resolveOperatorLocale,
+  type OperatorLocale,
+} from "@/features/i18n/operatorSystemTexts";
 
-type RegionOption = { value: string; label: string };
+type RegionOption = { value: string };
 type QueueSort = "newest" | "oldest" | "review_recent" | "review_stale" | "priority_high";
 type QueueLinkFilter = "all" | "linked" | "unlinked";
 type QueueWeakFilter = "all" | "flagged" | "clear";
 type BulkAction = "ignore" | "mark_as_weak_signal" | "attach_to_anlassraum" | "create_anlassraum_candidate";
 type LegacyBackfillMode = "attach" | "create_candidate";
+type FeedDraftTexts = ReturnType<typeof getOperatorSystemTexts>["feedDrafts"];
 
 type LegacyDraftSummary = {
   id: string;
@@ -58,60 +74,38 @@ type LegacyBackfillOutcome = {
   };
 };
 
-const STATUS_FILTERS: { label: string; value: VoteDraftStatus | "all" }[] = [
-  { label: "Alle", value: "all" },
-  { label: "Draft", value: "draft" },
-  { label: "Review", value: "review" },
-  { label: "Veröffentlicht", value: "published" },
-  { label: "Verworfen", value: "discarded" },
+const STATUS_FILTERS: Array<VoteDraftStatus | "all"> = ["all", "draft", "review", "published", "discarded"];
+const REVIEW_STATE_FILTERS: Array<FeedReviewState | "all"> = [
+  "all",
+  "queued",
+  "ignored",
+  "attached",
+  "candidate_created",
+  "weak_signal",
 ];
-
-const REVIEW_STATE_FILTERS: { label: string; value: FeedReviewState | "all" }[] = [
-  { label: "Alle Queue-States", value: "all" },
-  { label: "Queued", value: "queued" },
-  { label: "Ignored", value: "ignored" },
-  { label: "Attached", value: "attached" },
-  { label: "Candidate Created", value: "candidate_created" },
-  { label: "Weak Signal", value: "weak_signal" },
-];
-
-const SORT_OPTIONS: { label: string; value: QueueSort }[] = [
-  { label: "Neueste zuerst", value: "newest" },
-  { label: "Älteste zuerst", value: "oldest" },
-  { label: "Zuletzt reviewed", value: "review_recent" },
-  { label: "Lange nicht reviewed", value: "review_stale" },
-  { label: "Queue-Priorität", value: "priority_high" },
-];
-
+const SORT_OPTIONS: QueueSort[] = ["newest", "oldest", "review_recent", "review_stale", "priority_high"];
 const REGION_FILTERS: RegionOption[] = [
-  { value: "all", label: "Alle Regionen" },
-  { value: "global", label: "Global / offen" },
-  { value: "EU", label: "EU / Europa" },
-  { value: "DE", label: "Deutschland" },
-  { value: "AT", label: "Österreich" },
-  { value: "CH", label: "Schweiz" },
+  { value: "all" },
+  { value: "global" },
+  { value: "EU" },
+  { value: "DE" },
+  { value: "AT" },
+  { value: "CH" },
 ];
-
-const LINK_FILTERS: { label: string; value: QueueLinkFilter }[] = [
-  { label: "Alle Link-States", value: "all" },
-  { label: "Mit Anlassraum", value: "linked" },
-  { label: "Ohne Anlassraum", value: "unlinked" },
-];
-
-const WEAK_SIGNAL_FILTERS: { label: string; value: QueueWeakFilter }[] = [
-  { label: "Alle Signal-Flags", value: "all" },
-  { label: "Weak Signal", value: "flagged" },
-  { label: "Kein Weak Signal", value: "clear" },
-];
-
-const BULK_ACTIONS: { label: string; value: BulkAction }[] = [
-  { label: "1) ignore (Signal verwerfen)", value: "ignore" },
-  { label: "2) Mit bestehendem Anlassraum verknüpfen", value: "attach_to_anlassraum" },
-  { label: "3) Anlassraum-Kandidat anlegen", value: "create_anlassraum_candidate" },
-  { label: "Weak Signal markieren", value: "mark_as_weak_signal" },
+const LINK_FILTERS: QueueLinkFilter[] = ["all", "linked", "unlinked"];
+const WEAK_SIGNAL_FILTERS: QueueWeakFilter[] = ["all", "flagged", "clear"];
+const BULK_ACTIONS: BulkAction[] = [
+  "ignore",
+  "attach_to_anlassraum",
+  "create_anlassraum_candidate",
+  "mark_as_weak_signal",
 ];
 
 export default function AdminFeedDraftsPage() {
+  const { locale } = useLocale();
+  const operatorLocale = resolveOperatorLocale(locale);
+  const text = getOperatorSystemTexts(operatorLocale).feedDrafts;
+
   const [statusFilter, setStatusFilter] = useState<VoteDraftStatus | "all">("all");
   const [reviewStateFilter, setReviewStateFilter] = useState<FeedReviewState | "all">("all");
   const [regionFilter, setRegionFilter] = useState<string>("all");
@@ -221,7 +215,7 @@ export default function AdminFeedDraftsPage() {
         if (!ignored) {
           setItems([]);
           setSelectedIds([]);
-          setError(err?.message ?? "Unbekannter Fehler beim Laden der Drafts");
+          setError(err?.message ?? text.unknownLoadError);
         }
       } finally {
         if (!ignored) setLoading(false);
@@ -305,12 +299,12 @@ export default function AdminFeedDraftsPage() {
 
   async function runBulkAction() {
     if (!selectedIds.length) {
-      setBulkNotice("Bitte mindestens einen Draft auswählen.");
+      setBulkNotice(text.selectAtLeastOne);
       return;
     }
 
     if (bulkAction === "attach_to_anlassraum" && !bulkAnlassraumId.trim()) {
-      setBulkNotice("Für 'An Anlassraum anhängen' ist eine Anlassraum-ID erforderlich.");
+      setBulkNotice(text.attachNeedsAnlassraumId);
       return;
     }
 
@@ -342,11 +336,11 @@ export default function AdminFeedDraftsPage() {
 
       const successCount = Number(body?.successCount ?? 0);
       const failureCount = Number(body?.failureCount ?? 0);
-      setBulkNotice(`Bulk abgeschlossen: ${successCount} erfolgreich, ${failureCount} fehlgeschlagen.`);
+      setBulkNotice(`${text.bulkDonePrefix} ${successCount} ${text.bulkDoneMiddle} ${failureCount} ${text.bulkDoneSuffix}`);
       setSelectedIds([]);
       setReloadToken((prev) => prev + 1);
     } catch (err: any) {
-      setBulkNotice(err?.message ?? "Bulk-Review fehlgeschlagen.");
+      setBulkNotice(err?.message ?? text.bulkFailedFallback);
     } finally {
       setBulkBusy(false);
     }
@@ -371,7 +365,7 @@ export default function AdminFeedDraftsPage() {
   async function runLegacyBackfill(draftId: string, mode: LegacyBackfillMode) {
     const attachId = String(legacyAttachByDraft[draftId] ?? "").trim();
     if (mode === "attach" && !attachId) {
-      setLegacyError("Für Attach ist eine Anlassraum-ID erforderlich.");
+      setLegacyError(text.legacyAttachNeedsAnlassraumId);
       return;
     }
 
@@ -412,7 +406,7 @@ export default function AdminFeedDraftsPage() {
       setLegacyOutcomeByDraft((prev) => ({ ...prev, [draftId]: outcome }));
       setReloadToken((prev) => prev + 1);
     } catch (err: any) {
-      setLegacyError(err?.message ?? "legacy_backfill_failed");
+      setLegacyError(err?.message ?? text.legacyBackfillFailed);
     } finally {
       setLegacyBusyDraftId(null);
     }
@@ -422,22 +416,21 @@ export default function AdminFeedDraftsPage() {
     <div className="flex min-h-[80vh] w-full flex-col gap-5 py-4">
       <header className="space-y-2">
         <p className="text-sm font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
-          Admin · Feed-Pipeline
+          {text.headerKicker}
         </p>
-        <h1 className="text-2xl font-bold text-[rgb(var(--fg))]">Signal-Drafts: Anlassraum-first Queue</h1>
+        <h1 className="text-2xl font-bold text-[rgb(var(--fg))]">{text.headerTitle}</h1>
         <p className="text-sm text-[rgb(var(--muted))]">
-          Operativer Kernpfad: Signal -&gt; Anlassraum -&gt; Dossier -&gt; Output. Feeds liefern Hinweise, keine direkte
-          Publikationslogik. Primärquellen bleiben die fachliche Basis.
+          {text.headerLead}
         </p>
         <div className="flex flex-wrap gap-3">
           <Link href="/admin/feeds" className="text-sm font-semibold text-sky-700 hover:underline">
-            Zur Feed Control Plane
+            {text.linkToFeedControl}
           </Link>
           <Link href="/admin/feeds/anlassraum" className="text-sm font-semibold text-sky-700 hover:underline">
-            Zu Anlassräumen
+            {text.linkToAnlassraumList}
           </Link>
           <Link href="/admin/anlassraeume" className="text-sm font-semibold text-sky-700 hover:underline">
-            Zu Anlassraum Operations
+            {text.linkToAnlassraumOps}
           </Link>
           <Link
             href={buildCreateFastPathHref({
@@ -446,20 +439,21 @@ export default function AdminFeedDraftsPage() {
             })}
             className="text-sm font-semibold text-sky-700 hover:underline"
           >
-            4) Manuell via /create fortsetzen
+            {text.linkToCreateFastPath}
           </Link>
         </div>
       </header>
 
       <section className="rounded-xl border border-sky-300/60 bg-sky-50/80 px-4 py-3 text-xs text-sky-950 dark:border-sky-400/45 dark:bg-sky-500/14 dark:text-sky-100">
-        Operator-Entscheidungspfade: <strong>Ignorieren</strong>, <strong>mit bestehendem Anlassraum verknüpfen</strong>,{" "}
-        <strong>Anlassraum-Kandidat anlegen</strong>, <strong>manuell via /create fortsetzen</strong>. Kein Auto-Publish,
-        keine automatische Feed-Übernahme.
+        {text.decisioningLeadPrefix}: <strong>{formatDecisionPathLabel("ignore", operatorLocale)}</strong>,{" "}
+        <strong>{formatDecisionPathLabel("attach_to_existing_anlassraum", operatorLocale)}</strong>,{" "}
+        <strong>{formatDecisionPathLabel("create_anlassraum_candidate", operatorLocale)}</strong>,{" "}
+        <strong>{formatDecisionPathLabel("manual_fast_path_via_create", operatorLocale)}</strong>. {text.decisioningLeadSuffix}
       </section>
 
       <section className="grid gap-3 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm lg:grid-cols-6">
         <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))] lg:col-span-6">
-          Kandidatenfilter
+          {text.candidateFilters}
         </p>
         <select
           value={statusFilter}
@@ -467,8 +461,8 @@ export default function AdminFeedDraftsPage() {
           className="rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm text-[rgb(var(--fg))]"
         >
           {STATUS_FILTERS.map((opt) => (
-            <option key={opt.value} value={opt.value}>
-              {opt.label}
+            <option key={opt} value={opt}>
+              {formatVoteDraftStatusLabel(opt, operatorLocale)}
             </option>
           ))}
         </select>
@@ -478,8 +472,8 @@ export default function AdminFeedDraftsPage() {
           className="rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm text-[rgb(var(--fg))]"
         >
           {REVIEW_STATE_FILTERS.map((opt) => (
-            <option key={opt.value} value={opt.value}>
-              {opt.label}
+            <option key={opt} value={opt}>
+              {formatFeedReviewStateLabel(opt, operatorLocale)}
             </option>
           ))}
         </select>
@@ -490,7 +484,7 @@ export default function AdminFeedDraftsPage() {
         >
           {REGION_FILTERS.map((opt) => (
             <option key={opt.value} value={opt.value}>
-              {opt.label}
+              {formatRegionFilterLabel(opt.value, text)}
             </option>
           ))}
         </select>
@@ -500,8 +494,8 @@ export default function AdminFeedDraftsPage() {
           className="rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm text-[rgb(var(--fg))]"
         >
           {LINK_FILTERS.map((opt) => (
-            <option key={opt.value} value={opt.value}>
-              {opt.label}
+            <option key={opt} value={opt}>
+              {formatLinkFilterLabel(opt, operatorLocale)}
             </option>
           ))}
         </select>
@@ -511,8 +505,8 @@ export default function AdminFeedDraftsPage() {
           className="rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm text-[rgb(var(--fg))]"
         >
           {WEAK_SIGNAL_FILTERS.map((opt) => (
-            <option key={opt.value} value={opt.value}>
-              {opt.label}
+            <option key={opt} value={opt}>
+              {formatWeakSignalFilterLabel(opt, operatorLocale)}
             </option>
           ))}
         </select>
@@ -522,44 +516,44 @@ export default function AdminFeedDraftsPage() {
           className="rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm text-[rgb(var(--fg))]"
         >
           {SORT_OPTIONS.map((opt) => (
-            <option key={opt.value} value={opt.value}>
-              {opt.label}
+            <option key={opt} value={opt}>
+              {formatQueueSortLabel(opt, operatorLocale)}
             </option>
           ))}
         </select>
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Suche in Titel, Summary, Primärquelle"
+          placeholder={text.searchPlaceholder}
           className="rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm text-[rgb(var(--fg))] lg:col-span-2"
         />
         <input
           value={anlassraumIdFilter}
           onChange={(e) => setAnlassraumIdFilter(e.target.value)}
-          placeholder="Anlassraum-ID (optional)"
+          placeholder={text.anlassraumFilterPlaceholder}
           className="rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm text-[rgb(var(--fg))] lg:col-span-2"
         />
       </section>
 
       {normalizedAnlassraumIdFilter ? (
         <p className="text-xs text-[rgb(var(--muted))]">
-          Anlassraum-Filter aktiv: <span className="font-mono text-[rgb(var(--fg))]">{normalizedAnlassraumIdFilter}</span>
+          {text.anlassraumFilterActive}:{" "}
+          <span className="font-mono text-[rgb(var(--fg))]">{normalizedAnlassraumIdFilter}</span>
         </p>
       ) : null}
 
       <section className="overflow-hidden rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] shadow-sm">
         <header className="grid gap-3 border-b border-[rgb(var(--border))] px-4 py-4 lg:grid-cols-6">
           <div className="lg:col-span-2">
-            <h2 className="text-base font-semibold text-[rgb(var(--fg))]">Kandidatenliste</h2>
+            <h2 className="text-base font-semibold text-[rgb(var(--fg))]">{text.candidatesTitle}</h2>
             <p className="text-sm text-[rgb(var(--muted))]">
-              Fokus auf nächste sichere Aktion pro Draft: Kontext prüfen, Anlassraum zuordnen oder Review sauber
-              abschließen.
+              {text.candidatesLead}
             </p>
           </div>
-          <SummaryChip label="Aktuelle Treffer" value={queueSummary.total} />
-          <SummaryChip label="Ohne Anlassraum" value={queueSummary.unlinked} />
-          <SummaryChip label="Weak Signal" value={queueSummary.weak} />
-          <SummaryChip label="Hohe Priorität" value={queueSummary.highPriority} />
+          <SummaryChip label={text.summaryHits} value={queueSummary.total} />
+          <SummaryChip label={text.summaryUnlinked} value={queueSummary.unlinked} />
+          <SummaryChip label={text.summaryWeak} value={queueSummary.weak} />
+          <SummaryChip label={text.summaryHighPriority} value={queueSummary.highPriority} />
         </header>
 
         {error && (
@@ -573,30 +567,30 @@ export default function AdminFeedDraftsPage() {
                 <th className="px-3 py-3 text-left font-semibold text-slate-700 dark:text-slate-200">
                   <input type="checkbox" checked={allVisibleSelected} onChange={toggleAllVisible} aria-label="Alle auswählen" />
                 </th>
-                <th className="px-4 py-3 text-left font-semibold text-slate-700 dark:text-slate-200">Kandidat</th>
-                <th className="px-4 py-3 text-left font-semibold text-slate-700 dark:text-slate-200">Queue-Kontext</th>
-                <th className="px-4 py-3 text-left font-semibold text-slate-700 dark:text-slate-200">Anlassraum & Hinweise</th>
-                <th className="px-4 py-3 text-left font-semibold text-slate-700 dark:text-slate-200">Nächster Schritt</th>
-                <th className="px-4 py-3 text-left font-semibold text-slate-700 dark:text-slate-200">Primärquelle / Signalspur</th>
+                <th className="px-4 py-3 text-left font-semibold text-slate-700 dark:text-slate-200">{text.tableCandidate}</th>
+                <th className="px-4 py-3 text-left font-semibold text-slate-700 dark:text-slate-200">{text.tableQueueContext}</th>
+                <th className="px-4 py-3 text-left font-semibold text-slate-700 dark:text-slate-200">{text.tableAnlassraumHints}</th>
+                <th className="px-4 py-3 text-left font-semibold text-slate-700 dark:text-slate-200">{text.tableNextStep}</th>
+                <th className="px-4 py-3 text-left font-semibold text-slate-700 dark:text-slate-200">{text.tablePrimarySource}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[rgb(var(--border))]">
               {loading && (
                 <tr>
                   <td colSpan={6} className="px-4 py-6 text-center text-[rgb(var(--muted))]">
-                    Lädt Drafts …
+                    {text.loadingDrafts}
                   </td>
                 </tr>
               )}
               {!loading && items.length === 0 && (
                 <tr>
                   <td colSpan={6} className="px-4 py-6 text-center text-[rgb(var(--muted))]">
-                    Keine Drafts für die aktuellen Filter. Prüfe, ob Filter zu eng sind, oder öffne die
+                    {text.emptyDraftsPrefix}
                     <span>{" "}</span>
                     <Link href="/admin/feeds" className="font-semibold text-sky-700 hover:underline">
-                      Feed Control Plane
+                      {text.emptyDraftsMiddle}
                     </Link>
-                    <span>{" "}bzw. starte einen manuellen Anlassraum-Einstieg via{" "}</span>
+                    <span>{" "}{text.emptyDraftsSuffix}{" "}</span>
                     <Link
                       href={buildCreateFastPathHref({
                         source: "feed_drafts_empty_state",
@@ -617,7 +611,7 @@ export default function AdminFeedDraftsPage() {
                     weakSignalFlagged: draft.weakSignal?.flagged,
                     feedReviewState: draft.feedReviewState ?? null,
                   });
-                  const nextStep = deriveOperationalNextStep(draft, decisionPath);
+                  const nextStep = deriveOperationalNextStep(draft, decisionPath, text);
                   const manualCreateHref = buildCreateFastPathHref({
                     draftId: draft.id,
                     anlassraumId: draft.anlassraumId ?? null,
@@ -635,7 +629,7 @@ export default function AdminFeedDraftsPage() {
                           type="checkbox"
                           checked={selectedIds.includes(draft.id)}
                           onChange={() => toggleRow(draft.id)}
-                          aria-label={`Draft ${draft.title} auswählen`}
+                          aria-label={`Draft ${draft.title}`}
                         />
                       </td>
                       <td className="px-4 py-3 align-top">
@@ -643,61 +637,63 @@ export default function AdminFeedDraftsPage() {
                           {draft.title}
                         </Link>
                         <p className="mt-1 text-xs text-[rgb(var(--muted))]">
-                          {formatDate(draft.createdAt)} · ID {draft.id.slice(-6)}
+                          {formatDate(draft.createdAt, operatorLocale)} · {text.idLabel} {draft.id.slice(-6)}
                         </p>
                         <p className="text-xs text-[rgb(var(--muted))]">
-                          Region: {draft.regionName ?? "–"} ({draft.regionCode ?? "—"})
+                          {text.regionLabel}: {draft.regionName ?? text.noValue} ({draft.regionCode ?? text.noValue})
                         </p>
                       </td>
                       <td className="px-4 py-3 align-top">
                         <div className="flex flex-wrap items-center gap-2">
-                          <StatusBadge status={draft.status} />
-                          <ReviewStateBadge state={draft.feedReviewState ?? "queued"} />
-                          <PriorityBadge bucket={draft.queueMeta?.priorityBucket ?? "low"} />
-                          <DecisionPathBadge path={decisionPath} />
+                          <StatusBadge status={draft.status} locale={operatorLocale} />
+                          <ReviewStateBadge state={draft.feedReviewState ?? "queued"} locale={operatorLocale} />
+                          <PriorityBadge bucket={draft.queueMeta?.priorityBucket ?? "low"} locale={operatorLocale} />
+                          <DecisionPathBadge path={decisionPath} locale={operatorLocale} />
                         </div>
                         <p className="mt-1 text-xs text-[rgb(var(--muted))]">
-                          pending: {draft.queueMeta?.pendingHours ?? 0}h · weak: {draft.weakSignal?.flagged ? "ja" : "nein"}
+                          {text.pendingLabel}: {draft.queueMeta?.pendingHours ?? 0}h · {text.weakLabel}:{" "}
+                          {formatBooleanLabel(Boolean(draft.weakSignal?.flagged), operatorLocale)}
                         </p>
                         <p className="text-xs text-[rgb(var(--muted))]">
-                          Gründe: {(draft.queueMeta?.reasons ?? []).join(", ") || "—"}
+                          {text.reasonsLabel}: {(draft.queueMeta?.reasons ?? []).join(", ") || text.noValue}
                         </p>
                         {draft.lastReviewActionAt && (
                           <p className="text-xs text-[rgb(var(--muted))]">
-                            letzte Aktion: {draft.lastReviewAction ?? "action"} · {formatDate(draft.lastReviewActionAt)}
+                            {text.lastActionLabel}: {draft.lastReviewAction ?? text.unknownActionFallback} ·{" "}
+                            {formatDate(draft.lastReviewActionAt, operatorLocale)}
                           </p>
                         )}
                       </td>
                       <td className="px-4 py-3 align-top text-xs">
                         {draft.anlassraumId ? (
                           <div className="space-y-1">
-                            <p className="font-semibold text-emerald-700">linked</p>
+                            <p className="font-semibold text-emerald-700">{text.linkedLabel}</p>
                             <Link href={`/admin/feeds/anlassraum/${draft.anlassraumId}`} className="font-semibold text-sky-700 hover:underline">
-                              Anlassraum öffnen ({draft.anlassraumId.slice(-8)})
+                              {text.openAnlassraum} ({draft.anlassraumId.slice(-8)})
                             </Link>
                           </div>
                         ) : (
                           <div className="space-y-1">
-                            <p className="font-semibold text-amber-700">unlinked</p>
+                            <p className="font-semibold text-amber-700">{text.unlinkedLabel}</p>
                             <Link href="/admin/feeds/anlassraum" className="font-semibold text-sky-700 hover:underline">
-                              Anlassraum-Kontext prüfen
+                              {text.checkAnlassraumContext}
                             </Link>
                             <Link
                               href={manualCreateHref}
                               className="font-semibold text-sky-700 hover:underline"
                             >
-                              Manuell via /create fortsetzen
+                              {text.manualCreateLink}
                             </Link>
                           </div>
                         )}
                         {draft.weakSignal?.flagged && (
                           <p className="mt-2 rounded bg-amber-100 px-2 py-1 font-semibold text-amber-800">
-                            Weak Signal: {draft.weakSignal.reason ?? "markiert"}
+                            {text.weakSignalLabel}: {draft.weakSignal.reason ?? text.weakLabel}
                           </p>
                         )}
                         {draft.reviewNote && (
                           <p className="mt-1 text-[11px] text-[rgb(var(--muted))]">
-                            Notiz: {String(draft.reviewNote).slice(0, 100)}
+                            {text.noteLabel}: {String(draft.reviewNote).slice(0, 100)}
                           </p>
                         )}
                       </td>
@@ -705,29 +701,32 @@ export default function AdminFeedDraftsPage() {
                         <p className="font-semibold text-[rgb(var(--fg))]">{nextStep.title}</p>
                         <p className="text-[rgb(var(--muted))]">{nextStep.detail}</p>
                         <Link href={`/admin/feeds/drafts/${draft.id}`} className="mt-1 inline-flex font-semibold text-sky-700 hover:underline">
-                          Draft im Detail prüfen
+                          {text.draftDetailLink}
                         </Link>
                         {!draft.anlassraumId ? (
                           <Link
                             href={manualCreateHref}
                             className="mt-1 inline-flex font-semibold text-sky-700 hover:underline"
                           >
-                            Manuell über /create fortsetzen
+                            {text.manualCreateLink}
                           </Link>
                         ) : null}
                       </td>
                       <td className="px-4 py-3 align-top text-xs text-[rgb(var(--muted))]">
-                        <p className="font-semibold text-[rgb(var(--fg))]">Primärquelle</p>
+                        <p className="font-semibold text-[rgb(var(--fg))]">{text.primarySourceLabel}</p>
                         {draft.sourceUrl ? (
                           <a href={draft.sourceUrl} target="_blank" rel="noreferrer" className="font-semibold text-sky-600 hover:underline">
                             {extractDomain(draft.sourceUrl)}
                           </a>
                         ) : (
-                          <span>offen</span>
+                          <span>{text.sourceOpenLabel}</span>
                         )}
-                        <p>Signalspur: Feed-Kandidat</p>
-                        <p>Analyse: {draft.analyzeCompletedAt ? formatDate(draft.analyzeCompletedAt) : "offen"}</p>
-                        <p>Pipeline: {draft.pipeline ?? "—"}</p>
+                        <p>{text.signalTrailLabel}: {text.signalTrailCandidate}</p>
+                        <p>
+                          {text.analysisLabel}:{" "}
+                          {draft.analyzeCompletedAt ? formatDate(draft.analyzeCompletedAt, operatorLocale) : text.sourceOpenLabel}
+                        </p>
+                        <p>{text.pipelineLabel}: {draft.pipeline ?? text.noValue}</p>
                       </td>
                     </tr>
                   );
@@ -739,10 +738,10 @@ export default function AdminFeedDraftsPage() {
 
       <details className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-3 shadow-sm">
         <summary className="cursor-pointer text-sm font-semibold text-[rgb(var(--fg))]">
-          Bulk Review (sekundär) · {selectedIds.length} ausgewählt
+          {text.bulkSummaryPrefix} · {selectedIds.length} {text.selectedSuffix}
         </summary>
         <p className="mt-2 text-xs text-[rgb(var(--muted))]">
-          Sammelaktion für mehrere Signale. Kein Auto-Publish und kein Auto-Approval.
+          {text.bulkLead}
         </p>
         <section className="mt-3 grid gap-3 lg:grid-cols-6">
           <select
@@ -751,27 +750,27 @@ export default function AdminFeedDraftsPage() {
             className="rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm text-[rgb(var(--fg))]"
           >
             {BULK_ACTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
+              <option key={opt} value={opt}>
+                {formatBulkActionLabel(opt, operatorLocale)}
               </option>
             ))}
           </select>
           <input
             value={bulkAnlassraumId}
             onChange={(e) => setBulkAnlassraumId(e.target.value)}
-            placeholder="Anlassraum-ID (nur für Attach)"
+            placeholder={text.bulkAnlassraumPlaceholder}
             className="rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm text-[rgb(var(--fg))]"
           />
           <input
             value={bulkWeakSignalReason}
             onChange={(e) => setBulkWeakSignalReason(e.target.value)}
-            placeholder="Weak-Signal Grund (optional)"
+            placeholder={text.bulkWeakReasonPlaceholder}
             className="rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm text-[rgb(var(--fg))]"
           />
           <input
             value={bulkReviewNote}
             onChange={(e) => setBulkReviewNote(e.target.value)}
-            placeholder="Review-Notiz (optional)"
+            placeholder={text.bulkReviewNotePlaceholder}
             className="rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm text-[rgb(var(--fg))] lg:col-span-2"
           />
           <button
@@ -779,7 +778,7 @@ export default function AdminFeedDraftsPage() {
             onClick={runBulkAction}
             className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {bulkBusy ? "läuft…" : "Bulk anwenden"}
+            {bulkBusy ? text.applying : text.applyBulk}
           </button>
           {bulkNotice && <p className="text-xs text-[rgb(var(--muted))] lg:col-span-6">{bulkNotice}</p>}
         </section>
@@ -787,10 +786,10 @@ export default function AdminFeedDraftsPage() {
 
       <details className="rounded-2xl border border-dashed border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-4 py-3">
         <summary className="cursor-pointer text-sm font-medium text-[rgb(var(--muted))]">
-          Legacy Backfill (nachgeordnete Maintenance-Ausnahme)
+          {text.legacySummary}
         </summary>
         <p className="mt-2 text-xs text-[rgb(var(--muted))]">
-          Explizite Einzel-Remediation für Drafts ohne `anlassraumId` (kein Auto-Backfill, keine stille Migration).
+          {text.legacyLead}
         </p>
         {legacyError && (
           <p className="mt-2 rounded border border-rose-200 bg-rose-50 px-2 py-1 text-xs text-rose-700">{legacyError}</p>
@@ -799,24 +798,24 @@ export default function AdminFeedDraftsPage() {
           <table className="min-w-full divide-y divide-[rgb(var(--border))] text-xs">
             <thead className="bg-[rgb(var(--bg))]">
               <tr>
-                <th className="px-2 py-2 text-left font-semibold text-[rgb(var(--muted))]">Draft</th>
-                <th className="px-2 py-2 text-left font-semibold text-[rgb(var(--muted))]">Queue/Triage</th>
-                <th className="px-2 py-2 text-left font-semibold text-[rgb(var(--muted))]">Audit</th>
-                <th className="px-2 py-2 text-left font-semibold text-[rgb(var(--muted))]">Remediation</th>
+                <th className="px-2 py-2 text-left font-semibold text-[rgb(var(--muted))]">{text.legacyColDraft}</th>
+                <th className="px-2 py-2 text-left font-semibold text-[rgb(var(--muted))]">{text.legacyColQueue}</th>
+                <th className="px-2 py-2 text-left font-semibold text-[rgb(var(--muted))]">{text.legacyColAudit}</th>
+                <th className="px-2 py-2 text-left font-semibold text-[rgb(var(--muted))]">{text.legacyColRemediation}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[rgb(var(--border))]">
               {legacyLoading && (
                 <tr>
                   <td colSpan={4} className="px-2 py-3 text-[rgb(var(--muted))]">
-                    Lade Legacy-Drafts …
+                    {text.loadingLegacy}
                   </td>
                 </tr>
               )}
               {!legacyLoading && legacyItems.length === 0 && (
                 <tr>
                   <td colSpan={4} className="px-2 py-3 text-[rgb(var(--muted))]">
-                    Keine unlinked Legacy-Drafts im aktuellen Filter.
+                    {text.emptyLegacy}
                   </td>
                 </tr>
               )}
@@ -829,24 +828,33 @@ export default function AdminFeedDraftsPage() {
                         <Link href={`/admin/feeds/drafts/${item.id}`} className="font-semibold text-[rgb(var(--fg))] hover:underline">
                           {item.title}
                         </Link>
-                        <p className="text-[11px] text-[rgb(var(--muted))]">ID {item.id.slice(-8)} · status {item.status}</p>
-                        <p className="text-[11px] text-amber-700">anlassraumId fehlt</p>
+                        <p className="text-[11px] text-[rgb(var(--muted))]">
+                          {text.idLabel} {item.id.slice(-8)} · status {formatVoteDraftStatusLabel(item.status, operatorLocale)}
+                        </p>
+                        <p className="text-[11px] text-amber-700">{text.missingAnlassraumId}</p>
                       </td>
                       <td className="px-2 py-2 align-top text-[rgb(var(--muted))]">
-                        <p>Queue: {item.feedReviewState}</p>
-                        <p>Priorität: {item.queueMeta?.priorityBucket} ({item.queueMeta?.priorityScore})</p>
-                        <p>Offen seit: {item.queueMeta?.pendingHours}h</p>
-                        <p>Hinweise: {(item.queueMeta?.reasons ?? []).join(", ") || "—"}</p>
-                        <p>Weak-Signal: {item.weakSignalFlagged ? item.weakSignalReason ?? "markiert" : "kein Flag"}</p>
+                        <p>{text.queueLabel}: {formatFeedReviewStateLabel(item.feedReviewState, operatorLocale)}</p>
+                        <p>
+                          {text.priorityLabel}: {formatPriorityBucketLabel(item.queueMeta?.priorityBucket ?? "low", operatorLocale)} (
+                          {item.queueMeta?.priorityScore})
+                        </p>
+                        <p>{text.openSinceLabel}: {item.queueMeta?.pendingHours}h</p>
+                        <p>{text.hintsLabel}: {(item.queueMeta?.reasons ?? []).join(", ") || text.noValue}</p>
+                        <p>
+                          {text.weakSignalLongLabel}:{" "}
+                          {item.weakSignalFlagged ? item.weakSignalReason ?? text.weakLabel : text.noFlagLabel}
+                        </p>
                       </td>
                       <td className="px-2 py-2 align-top text-[rgb(var(--muted))]">
-                        <p>Letzte Aktion: {item.lastReviewAction ?? "—"}</p>
-                        <p>Durchgeführt von: {item.lastReviewActionBy ?? "—"}</p>
-                        <p>Zeitpunkt: {formatDate(item.lastReviewActionAt)}</p>
-                        <p>Notiz: {item.reviewNote ?? "—"}</p>
+                        <p>{text.lastActionLabel}: {item.lastReviewAction ?? text.noValue}</p>
+                        <p>{text.executedByLabel}: {item.lastReviewActionBy ?? text.noValue}</p>
+                        <p>{text.timestampLabel}: {formatDate(item.lastReviewActionAt, operatorLocale)}</p>
+                        <p>{text.noteLabel}: {item.reviewNote ?? text.noValue}</p>
                         {outcome && (
                           <p className="mt-1 rounded border border-emerald-200 bg-emerald-50 px-1 py-0.5 text-[11px] text-emerald-800">
-                            Remediation: {outcome.remediationKind} · Anlassraum {outcome.result.anlassraumId ?? "—"}
+                            {text.remediationLabel}: {outcome.remediationKind} · Anlassraum{" "}
+                            {outcome.result.anlassraumId ?? text.noValue}
                           </p>
                         )}
                       </td>
@@ -860,7 +868,7 @@ export default function AdminFeedDraftsPage() {
                                 [item.id]: e.target.value,
                               }))
                             }
-                            placeholder="Anlassraum-ID für Attach"
+                            placeholder={text.remediationAnlassraumPlaceholder}
                             className="rounded border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-2 py-1 text-xs text-[rgb(var(--fg))]"
                           />
                           <input
@@ -871,7 +879,7 @@ export default function AdminFeedDraftsPage() {
                                 [item.id]: e.target.value,
                               }))
                             }
-                            placeholder="Remediation-Notiz (optional)"
+                            placeholder={text.remediationNotePlaceholder}
                             className="rounded border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-2 py-1 text-xs text-[rgb(var(--fg))]"
                           />
                           <div className="flex gap-1">
@@ -881,7 +889,7 @@ export default function AdminFeedDraftsPage() {
                               onClick={() => runLegacyBackfill(item.id, "attach")}
                               className="rounded border border-[rgb(var(--border))] px-2 py-1 text-xs font-semibold text-[rgb(var(--fg))] hover:bg-[rgb(var(--bg))] disabled:cursor-not-allowed disabled:opacity-60"
                             >
-                              {legacyBusyDraftId === item.id ? "..." : "Mit Anlassraum verknüpfen"}
+                              {legacyBusyDraftId === item.id ? "..." : text.remediationAttach}
                             </button>
                             <button
                               type="button"
@@ -889,7 +897,7 @@ export default function AdminFeedDraftsPage() {
                               onClick={() => runLegacyBackfill(item.id, "create_candidate")}
                               className="rounded border border-[rgb(var(--border))] px-2 py-1 text-xs font-semibold text-[rgb(var(--fg))] hover:bg-[rgb(var(--bg))] disabled:cursor-not-allowed disabled:opacity-60"
                             >
-                              {legacyBusyDraftId === item.id ? "..." : "Anlassraum-Kandidat anlegen"}
+                              {legacyBusyDraftId === item.id ? "..." : text.remediationCreateCandidate}
                             </button>
                           </div>
                         </div>
@@ -905,7 +913,7 @@ export default function AdminFeedDraftsPage() {
   );
 }
 
-function StatusBadge({ status }: { status: VoteDraftStatus }) {
+function StatusBadge({ status, locale }: { status: VoteDraftStatus; locale: OperatorLocale }) {
   const colors: Record<VoteDraftStatus, string> = {
     draft: "border border-slate-300/70 bg-slate-100 text-slate-900 dark:border-slate-500/55 dark:bg-slate-500/22 dark:text-slate-100",
     review: "border border-amber-300/80 bg-amber-100 text-amber-950 dark:border-amber-400/55 dark:bg-amber-500/22 dark:text-amber-100",
@@ -915,7 +923,7 @@ function StatusBadge({ status }: { status: VoteDraftStatus }) {
   };
   return (
     <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${colors[status]}`}>
-      {status}
+      {formatVoteDraftStatusLabel(status, locale)}
     </span>
   );
 }
@@ -929,7 +937,7 @@ function SummaryChip({ label, value }: { label: string; value: number }) {
   );
 }
 
-function ReviewStateBadge({ state }: { state: FeedReviewState }) {
+function ReviewStateBadge({ state, locale }: { state: FeedReviewState; locale: OperatorLocale }) {
   const colors: Record<FeedReviewState, string> = {
     queued: "border border-slate-300/70 bg-slate-100 text-slate-900 dark:border-slate-500/55 dark:bg-slate-500/22 dark:text-slate-100",
     ignored: "border border-zinc-300/70 bg-zinc-200 text-zinc-900 dark:border-zinc-500/55 dark:bg-zinc-500/24 dark:text-zinc-100",
@@ -941,10 +949,14 @@ function ReviewStateBadge({ state }: { state: FeedReviewState }) {
       "border border-amber-300/80 bg-amber-100 text-amber-950 dark:border-amber-400/55 dark:bg-amber-500/22 dark:text-amber-100",
   };
 
-  return <span className={`inline-flex rounded-full px-2 py-1 text-[11px] font-semibold ${colors[state]}`}>{state}</span>;
+  return (
+    <span className={`inline-flex rounded-full px-2 py-1 text-[11px] font-semibold ${colors[state]}`}>
+      {formatFeedReviewStateLabel(state, locale)}
+    </span>
+  );
 }
 
-function PriorityBadge({ bucket }: { bucket: "high" | "medium" | "low" }) {
+function PriorityBadge({ bucket, locale }: { bucket: "high" | "medium" | "low"; locale: OperatorLocale }) {
   const colors: Record<"high" | "medium" | "low", string> = {
     high: "border border-amber-300/80 bg-amber-100 text-amber-950 dark:border-amber-400/55 dark:bg-amber-500/22 dark:text-amber-100",
     medium: "border border-sky-300/80 bg-sky-100 text-sky-950 dark:border-sky-400/55 dark:bg-sky-500/24 dark:text-sky-100",
@@ -953,12 +965,12 @@ function PriorityBadge({ bucket }: { bucket: "high" | "medium" | "low" }) {
 
   return (
     <span className={`inline-flex rounded-full px-2 py-1 text-[11px] font-semibold uppercase tracking-wide ${colors[bucket]}`}>
-      prio {bucket}
+      {formatPriorityBucketLabel(bucket, locale)}
     </span>
   );
 }
 
-function DecisionPathBadge({ path }: { path: SignalToAnlassraumPath }) {
+function DecisionPathBadge({ path, locale }: { path: SignalToAnlassraumPath; locale: OperatorLocale }) {
   const colors: Record<SignalToAnlassraumPath, string> = {
     ignore: "border border-zinc-300/70 bg-zinc-200 text-zinc-900 dark:border-zinc-500/55 dark:bg-zinc-500/24 dark:text-zinc-100",
     attach_to_existing_anlassraum:
@@ -968,57 +980,56 @@ function DecisionPathBadge({ path }: { path: SignalToAnlassraumPath }) {
     manual_fast_path_via_create:
       "border border-amber-300/80 bg-amber-100 text-amber-950 dark:border-amber-400/55 dark:bg-amber-500/22 dark:text-amber-100",
   };
-  const labels: Record<SignalToAnlassraumPath, string> = {
-    ignore: "Ignorieren",
-    attach_to_existing_anlassraum: "Mit Anlassraum verknüpfen",
-    create_anlassraum_candidate: "Kandidat anlegen",
-    manual_fast_path_via_create: "Manuell via /create",
-  };
-  return <span className={`inline-flex rounded-full px-2 py-1 text-[11px] font-semibold ${colors[path]}`}>{labels[path]}</span>;
+  return (
+    <span className={`inline-flex rounded-full px-2 py-1 text-[11px] font-semibold ${colors[path]}`}>
+      {formatDecisionPathLabel(path, locale)}
+    </span>
+  );
 }
 
 function deriveOperationalNextStep(
   draft: VoteDraftSummary,
   decisionPath: SignalToAnlassraumPath,
+  text: FeedDraftTexts,
 ): { title: string; detail: string } {
   if (decisionPath === "manual_fast_path_via_create") {
     return {
-      title: "Weak Signal validieren",
-      detail: "Unsicheren Kontext manuell über /create prüfen und begründen.",
+      title: text.nextStepWeakTitle,
+      detail: text.nextStepWeakDetail,
     };
   }
 
   if (decisionPath === "attach_to_existing_anlassraum") {
     return {
-      title: "An bestehenden Anlassraum anhängen",
-      detail: "Zuordnung steht im Vordergrund, neue Kandidatenanlage vermeiden.",
+      title: text.nextStepAttachTitle,
+      detail: text.nextStepAttachDetail,
     };
   }
 
   if (decisionPath === "create_anlassraum_candidate" || !draft.anlassraumId) {
     return {
-      title: "Anlassraum-Kandidat anlegen",
-      detail: "Signal ist unlinked und braucht einen neuen Anlassraum-Kandidaten als Basis.",
+      title: text.nextStepCandidateTitle,
+      detail: text.nextStepCandidateDetail,
     };
   }
 
   if (draft.status === "review" || draft.feedReviewState === "queued") {
     return {
-      title: "Review abschließen",
-      detail: "Entscheidung prüfen und Status konsistent fortführen.",
+      title: text.nextStepReviewTitle,
+      detail: text.nextStepReviewDetail,
     };
   }
 
   return {
-    title: "Kandidat verifizieren",
-    detail: "Kontext, Analyse und Verlauf im Detailscreen prüfen.",
+    title: text.nextStepVerifyTitle,
+    detail: text.nextStepVerifyDetail,
   };
 }
 
-function formatDate(value?: string | null) {
-  if (!value) return "–";
+function formatDate(value: string | null | undefined, locale: OperatorLocale) {
+  if (!value) return "—";
   try {
-    return new Date(value).toLocaleString("de-DE", {
+    return new Date(value).toLocaleString(locale === "en" ? "en-US" : "de-DE", {
       dateStyle: "short",
       timeStyle: "short",
     });
@@ -1028,10 +1039,20 @@ function formatDate(value?: string | null) {
 }
 
 function extractDomain(url?: string | null) {
-  if (!url) return "–";
+  if (!url) return "—";
   try {
     return new URL(url).hostname.replace(/^www\./, "");
   } catch {
     return url;
   }
+}
+
+function formatRegionFilterLabel(value: RegionOption["value"], text: FeedDraftTexts): string {
+  if (value === "all") return text.regionAll;
+  if (value === "global") return text.regionGlobal;
+  if (value === "EU") return text.regionEu;
+  if (value === "DE") return text.regionGermany;
+  if (value === "AT") return text.regionAustria;
+  if (value === "CH") return text.regionSwitzerland;
+  return value;
 }

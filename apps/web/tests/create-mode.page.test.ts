@@ -98,7 +98,7 @@ describe("/create canonical mode rendering", () => {
       });
       const html = renderToStaticMarkup(tree);
       expect(html).toContain("Create Freistart");
-      expect(html).toContain("Freistart fuer Anlassraum- und Dossier-Flows");
+      expect(html).toContain("Freistart für Anlassraum- und Dossier-Flows");
       expect(html).toContain("Legacy-Mode-Parameter erkannt");
       const lastCall = mocks.analyzeWorkspaceCalls.at(-1);
       expect(lastCall?.createMode).toBe("source");
@@ -171,11 +171,11 @@ describe("/create canonical mode rendering", () => {
 
     expect(html).toContain("Intake-Kontext");
     expect(html).toContain("Signal Innenstadt");
-    expect(html).toContain("signalspur: feed_drafts_queue");
+    expect(html).toContain("Signalspur: feed_drafts_queue");
 
     const lastCall = mocks.analyzeWorkspaceCalls.at(-1);
     expect(String(lastCall?.initialText ?? "")).toContain("Intake-Kontext (Anlassraum-first)");
-    expect(String(lastCall?.initialText ?? "")).toContain("Signal-Titel: Signal Innenstadt");
-    expect(String(lastCall?.initialText ?? "")).toContain("Primaerquelle-URL: https://example.org/a");
+    expect(String(lastCall?.initialText ?? "")).toContain("Signal: Signal Innenstadt");
+    expect(String(lastCall?.initialText ?? "")).toContain("Primärquelle öffnen URL: https://example.org/a");
   });
 });

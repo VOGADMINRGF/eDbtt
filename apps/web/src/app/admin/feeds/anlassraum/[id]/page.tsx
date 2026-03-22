@@ -4,12 +4,22 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { buildCreateFastPathHref } from "@/features/create/intents";
+import { useLocale } from "@/context/LocaleContext";
 import {
   formatOriginTypeLabel,
   formatOwnerTypeLabel,
   formatRelevanceScopeLabel,
   formatSourceModeLabel,
 } from "@/features/relevanceFraming";
+import {
+  formatOutputActionLabel,
+  formatOutputSeedReviewStateLabel,
+  formatOutputSeedStatusLabel,
+  formatOpenLabel,
+  getOperatorSystemTexts,
+  resolveOperatorLocale,
+  type OperatorLocale,
+} from "@/features/i18n/operatorSystemTexts";
 
 type AnlassraumDetailResponse = {
   ok: boolean;
@@ -40,13 +50,7 @@ type OutputSeedItem = {
   updatedAt: string | null;
 };
 
-const ACTIONS = [
-  { id: "curate", label: "Kurationsstart" },
-  { id: "review", label: "In Review führen" },
-  { id: "approve", label: "Freigeben" },
-  { id: "activate", label: "Aktivieren" },
-  { id: "archive", label: "Archivieren" },
-] as const;
+const ACTIONS = ["curate", "review", "approve", "activate", "archive"] as const;
 
 const OUTPUT_ACTIONS = [
   "queue",
@@ -60,19 +64,13 @@ const OUTPUT_ACTIONS = [
 ] as const;
 
 type OutputAction = (typeof OUTPUT_ACTIONS)[number];
-
-const OUTPUT_ACTION_LABELS: Record<OutputAction, string> = {
-  queue: "In Queue setzen",
-  send_to_review: "Zur Review senden",
-  approve_prep: "Vorbereitet freigeben",
-  reject_prep: "Vorbereitung ablehnen",
-  mark_ready: "Als bereit markieren",
-  publish: "Manuell publizieren",
-  discard: "Verwerfen",
-  reset_draft: "Auf Draft zurücksetzen",
-};
+type AnlassraumDetailTexts = ReturnType<typeof getOperatorSystemTexts>["anlassraumDetail"];
 
 export default function AdminAnlassraumDetailPage() {
+  const { locale } = useLocale();
+  const operatorLocale = resolveOperatorLocale(locale);
+  const text = getOperatorSystemTexts(operatorLocale).anlassraumDetail;
+
   const params = useParams<{ id: string }>();
   const [data, setData] = useState<AnlassraumDetailResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -155,11 +153,11 @@ export default function AdminAnlassraumDetailPage() {
   }, [params.id]);
 
   if (loading) {
-    return <main className="p-6 text-sm text-[rgb(var(--muted))]">Lade Anlassraum …</main>;
+    return <main className="p-6 text-sm text-[rgb(var(--muted))]">{text.loading}</main>;
   }
 
   if (error || !data?.item) {
-    return <main className="p-6 text-sm text-rose-700">{error ?? "Nicht gefunden"}</main>;
+    return <main className="p-6 text-sm text-rose-700">{error ?? text.notFound}</main>;
   }
 
   const { item, sources = [], structure } = data;
@@ -174,6 +172,7 @@ export default function AdminAnlassraumDetailPage() {
     reason: "manual_fast_path_via_create",
   });
   const operatorFocus = deriveOperatorFocus({
+    text,
     publishGateOk: publishGate.ok,
     hasDossier: Boolean(item.dossierId),
     publishGateReasons: publishGate.reasons,
@@ -184,15 +183,17 @@ export default function AdminAnlassraumDetailPage() {
     <main className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-8">
       <header className="space-y-3">
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[rgb(var(--muted))]">
-          Admin · Anlassraum
+          {text.headerKicker}
         </p>
         <h1 className="text-2xl font-bold text-[rgb(var(--fg))]">{item.title}</h1>
         <p className="text-sm text-[rgb(var(--fg))]">
-          {item.status} · {formatSourceModeLabel(item.sourceMode)} · score {item.relevanceScore}
+          {formatOutputSeedStatusLabel(String(item.status ?? ""), operatorLocale)} ·{" "}
+          {formatSourceModeLabel(item.sourceMode)} · {text.scoreLabel} {item.relevanceScore}
         </p>
         <p className="text-sm text-[rgb(var(--muted))]">
-          Relevanzraum: {formatRelevanceScopeLabel(item.scope)} / {formatRelevanceScopeLabel(item.decisionScope)} · Herkunft:{" "}
-          {formatOriginTypeLabel(item.originType)} · Trägerschaft: {formatOwnerTypeLabel(item.ownerType)}
+          {text.relevanceLabel}: {formatRelevanceScopeLabel(item.scope)} / {formatRelevanceScopeLabel(item.decisionScope)} ·{" "}
+          {text.originLabel}: {formatOriginTypeLabel(item.originType)} · {text.ownerLabel}:{" "}
+          {formatOwnerTypeLabel(item.ownerType)}
         </p>
         <div
           className={`rounded-2xl border px-4 py-3 text-sm ${
@@ -204,51 +205,56 @@ export default function AdminAnlassraumDetailPage() {
           <p className="font-semibold">{operatorFocus.title}</p>
           <p className="mt-1 text-xs">{operatorFocus.detail}</p>
           <p className="mt-2 text-xs">
-            Publish-Gate: {publishGate.ok ? "freigegeben" : "blockiert"} · Quellen {publishGate.sourceCount}
-            {typeof publishGate.requiredSourceCount === "number" ? ` / benötigt ${publishGate.requiredSourceCount}` : ""}
+            {text.publishGateLabel}: {publishGate.ok ? text.publishGateReleased : text.publishGateBlocked} ·{" "}
+            {text.sourcesLabel} {publishGate.sourceCount}
+            {typeof publishGate.requiredSourceCount === "number"
+              ? ` / ${text.requiredLabel} ${publishGate.requiredSourceCount}`
+              : ""}
           </p>
           {!publishGate.ok && publishGate.reasons.length > 0 ? (
-            <p className="mt-1 text-xs">{publishGate.reasons.join(", ")}</p>
+            <p className="mt-1 text-xs">
+              {text.hintLabel}: {publishGate.reasons.join(", ")}
+            </p>
           ) : null}
         </div>
         <div className="flex flex-wrap gap-2 text-sm">
           <Link href={createFromAnlassraumHref} className="rounded-full bg-slate-900 px-4 py-2 font-semibold text-white">
-            Manuell via /create weiterführen
+            {text.linkToCreate}
           </Link>
           <Link
             href="/admin/feeds/drafts"
             className="rounded-full border border-[rgb(var(--border))] px-4 py-2 font-semibold text-[rgb(var(--fg))] hover:border-sky-300/70 hover:bg-sky-50 dark:hover:border-sky-300/45 dark:hover:bg-sky-500/12"
           >
-            Feed-Drafts Queue
+            {text.linkToDraftQueue}
           </Link>
           <Link
             href="/admin/feeds/anlassraum"
             className="rounded-full border border-[rgb(var(--border))] px-4 py-2 font-semibold text-[rgb(var(--fg))] hover:border-sky-300/70 hover:bg-sky-50 dark:hover:border-sky-300/45 dark:hover:bg-sky-500/12"
           >
-            Zur Übersicht
+            {text.linkToOverview}
           </Link>
           {item.dossierId ? (
             <Link
               href={`/admin/dossiers/${encodeURIComponent(item.dossierId)}`}
               className="rounded-full border border-[rgb(var(--border))] px-4 py-2 font-semibold text-[rgb(var(--fg))] hover:border-sky-300/70 hover:bg-sky-50 dark:hover:border-sky-300/45 dark:hover:bg-sky-500/12"
             >
-              Dossier-Verdichtung öffnen
+              {text.linkToDossier}
             </Link>
           ) : null}
         </div>
         <p className="text-xs text-[rgb(var(--muted))]">
-          Anlassraum bleibt eigenständiger Arbeitsraum. Dossier-Verdichtung ist ein bewusster, optionaler Folgeschritt.
+          {text.optionalDossierLead}
         </p>
         <div className="flex flex-wrap gap-2 pt-2">
           {ACTIONS.map((action) => (
             <button
-              key={action.id}
+              key={action}
               type="button"
               disabled={Boolean(transitioning)}
-              onClick={() => runTransition(action.id)}
+              onClick={() => runTransition(action)}
               className="rounded-full border border-[rgb(var(--border))] px-3 py-1 text-xs font-semibold text-[rgb(var(--fg))] hover:bg-[rgb(var(--bg))] disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {transitioning === action.id ? "..." : action.label}
+              {transitioning === action ? "..." : formatAnlassraumActionLabel(action, text)}
             </button>
           ))}
         </div>
@@ -256,37 +262,37 @@ export default function AdminAnlassraumDetailPage() {
 
       <section className="grid gap-4 lg:grid-cols-3">
         <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4">
-          <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Arbeitskontext</h2>
+          <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">{text.workspaceContext}</h2>
           <div className="mt-3 space-y-2 text-sm">
             <p className="text-[rgb(var(--fg))]">
-              <span className="font-semibold">Relevanzraum:</span> {formatRelevanceScopeLabel(item.scope)} /{" "}
+              <span className="font-semibold">{text.relevanceLabel}:</span> {formatRelevanceScopeLabel(item.scope)} /{" "}
               {formatRelevanceScopeLabel(item.decisionScope)}
             </p>
             <p className="text-[rgb(var(--fg))]">
-              <span className="font-semibold">Herkunft:</span> {formatOriginTypeLabel(item.originType)}
+              <span className="font-semibold">{text.originLabel}:</span> {formatOriginTypeLabel(item.originType)}
             </p>
             <p className="text-[rgb(var(--fg))]">
-              <span className="font-semibold">Trägerschaft:</span> {formatOwnerTypeLabel(item.ownerType)}
+              <span className="font-semibold">{text.ownerLabel}:</span> {formatOwnerTypeLabel(item.ownerType)}
             </p>
             <p className="text-[rgb(var(--fg))]">
-              <span className="font-semibold">Topic:</span> {item.topicKey ?? "offen"}
+              <span className="font-semibold">{text.topicLabel}:</span> {item.topicKey ?? formatOpenLabel(operatorLocale)}
             </p>
             <p className="text-[rgb(var(--fg))]">
-              <span className="font-semibold">Cluster:</span> {item.clusterKey ?? "offen"}
+              <span className="font-semibold">{text.clusterLabel}:</span> {item.clusterKey ?? formatOpenLabel(operatorLocale)}
             </p>
             <p className="text-[rgb(var(--fg))]">
-              <span className="font-semibold">Quellenlage:</span> {sources.length} referenzierte Quelle
-              {sources.length === 1 ? "" : "n"}
+              <span className="font-semibold">{text.sourceSituationLabel}:</span> {sources.length} {text.referencedSourceSuffix}
+              {sources.length === 1 ? "" : operatorLocale === "en" ? "s" : "n"}
             </p>
             {sources.slice(0, 3).map((source, index) => (
               <p key={`source-preview-${index}`} className="text-xs text-[rgb(var(--muted))]">
-                {sourcePreviewLabel(source, index)}
+                {sourcePreviewLabel(source, index, text)}
               </p>
             ))}
           </div>
         </div>
         <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 lg:col-span-2">
-          <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Output-Übergänge</h2>
+          <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">{text.outputTransitions}</h2>
           {outputError && (
             <p className="mt-2 rounded border border-rose-200 bg-rose-50 px-2 py-1 text-xs text-rose-700">
               {outputError}
@@ -296,26 +302,26 @@ export default function AdminAnlassraumDetailPage() {
             <table className="min-w-full divide-y divide-[rgb(var(--border))] text-sm">
               <thead className="bg-[rgb(var(--bg))]">
                 <tr>
-                  <th className="px-2 py-2 text-left font-semibold text-[rgb(var(--fg))]">Output-Typ</th>
-                  <th className="px-2 py-2 text-left font-semibold text-[rgb(var(--fg))]">Status</th>
-                  <th className="px-2 py-2 text-left font-semibold text-[rgb(var(--fg))]">Review-Status</th>
-                  <th className="px-2 py-2 text-left font-semibold text-[rgb(var(--fg))]">Publish-Ziel</th>
-                  <th className="px-2 py-2 text-left font-semibold text-[rgb(var(--fg))]">Letzte Aktion</th>
-                  <th className="px-2 py-2 text-left font-semibold text-[rgb(var(--fg))]">Nächste Aktion</th>
+                  <th className="px-2 py-2 text-left font-semibold text-[rgb(var(--fg))]">{text.colOutputType}</th>
+                  <th className="px-2 py-2 text-left font-semibold text-[rgb(var(--fg))]">{text.colStatus}</th>
+                  <th className="px-2 py-2 text-left font-semibold text-[rgb(var(--fg))]">{text.colReviewState}</th>
+                  <th className="px-2 py-2 text-left font-semibold text-[rgb(var(--fg))]">{text.colPublishTarget}</th>
+                  <th className="px-2 py-2 text-left font-semibold text-[rgb(var(--fg))]">{text.colLastAction}</th>
+                  <th className="px-2 py-2 text-left font-semibold text-[rgb(var(--fg))]">{text.colNextAction}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[rgb(var(--border))]">
                 {outputLoading && (
                   <tr>
                     <td colSpan={6} className="px-2 py-3 text-[rgb(var(--muted))]">
-                      Lade Output-Seeds …
+                      {text.loadingOutputSeeds}
                     </td>
                   </tr>
                 )}
                 {!outputLoading && outputSeeds.length === 0 && (
                   <tr>
                     <td colSpan={6} className="px-2 py-3 text-[rgb(var(--muted))]">
-                      Keine Output-Seeds vorhanden.
+                      {text.emptyOutputSeeds}
                     </td>
                   </tr>
                 )}
@@ -323,8 +329,12 @@ export default function AdminAnlassraumDetailPage() {
                   outputSeeds.map((seed) => (
                     <tr key={seed.id}>
                       <td className="px-2 py-2 align-top text-[rgb(var(--fg))]">{seed.outputType}</td>
-                      <td className="px-2 py-2 align-top text-[rgb(var(--fg))]">{seed.status}</td>
-                      <td className="px-2 py-2 align-top text-[rgb(var(--fg))]">{seed.reviewState}</td>
+                      <td className="px-2 py-2 align-top text-[rgb(var(--fg))]">
+                        {formatOutputSeedStatusLabel(seed.status, operatorLocale)}
+                      </td>
+                      <td className="px-2 py-2 align-top text-[rgb(var(--fg))]">
+                        {formatOutputSeedReviewStateLabel(seed.reviewState, operatorLocale)}
+                      </td>
                       <td className="px-2 py-2 align-top text-[rgb(var(--fg))]">{seed.publishTarget ?? "—"}</td>
                       <td className="px-2 py-2 align-top text-[rgb(var(--fg))]">
                         <p>{seed.lastAction ?? "—"}</p>
@@ -345,7 +355,7 @@ export default function AdminAnlassraumDetailPage() {
                           >
                             {OUTPUT_ACTIONS.map((action) => (
                               <option key={action} value={action}>
-                                {OUTPUT_ACTION_LABELS[action]}
+                                {formatOutputActionLabel(action, operatorLocale)}
                               </option>
                             ))}
                           </select>
@@ -357,7 +367,7 @@ export default function AdminAnlassraumDetailPage() {
                                 [seed.id]: e.target.value,
                               }))
                             }
-                            placeholder="Publish-Ziel (nur bei manueller Publikation)"
+                            placeholder={text.publishTargetPlaceholder}
                             className="rounded border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-2 py-1 text-xs"
                           />
                           <input
@@ -368,7 +378,7 @@ export default function AdminAnlassraumDetailPage() {
                                 [seed.id]: e.target.value,
                               }))
                             }
-                            placeholder="Review-Notiz (optional)"
+                            placeholder={text.reviewNotePlaceholder}
                             className="rounded border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-2 py-1 text-xs"
                           />
                           <button
@@ -377,7 +387,7 @@ export default function AdminAnlassraumDetailPage() {
                             onClick={() => runOutputTransition(seed.id)}
                             className="rounded border border-[rgb(var(--border))] px-2 py-1 text-xs font-semibold text-[rgb(var(--fg))] hover:bg-[rgb(var(--bg))] disabled:cursor-not-allowed disabled:opacity-60"
                           >
-                            {outputTransitioningSeedId === seed.id ? "..." : "Übernehmen"}
+                            {outputTransitioningSeedId === seed.id ? "..." : text.apply}
                           </button>
                         </div>
                       </td>
@@ -390,32 +400,32 @@ export default function AdminAnlassraumDetailPage() {
       </section>
 
       <details className="rounded-2xl border border-dashed border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-4 py-3">
-        <summary className="cursor-pointer text-sm font-medium text-[rgb(var(--muted))]">Diagnose & JSON (nachgeordnet)</summary>
+        <summary className="cursor-pointer text-sm font-medium text-[rgb(var(--muted))]">{text.diagnosticsTitle}</summary>
         <p className="mt-2 text-xs text-[rgb(var(--muted))]">
-          Audit-Readout für Deep-Dive und Fehlersuche. Der operative Arbeitsfluss bleibt oben.
+          {text.diagnosticsLead}
         </p>
         <section className="mt-3 grid gap-4 lg:grid-cols-3">
           <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 lg:col-span-1">
-            <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Meta</h2>
+            <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">{text.metaJsonTitle}</h2>
             <pre className="mt-2 overflow-auto rounded bg-[rgb(var(--bg))] p-3 text-xs text-[rgb(var(--muted))]">
               {JSON.stringify(item, null, 2)}
             </pre>
           </div>
           <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 lg:col-span-1">
-            <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Quellen-JSON</h2>
+            <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">{text.sourcesJsonTitle}</h2>
             <pre className="mt-2 overflow-auto rounded bg-[rgb(var(--bg))] p-3 text-xs text-[rgb(var(--muted))]">
               {JSON.stringify(sources, null, 2)}
             </pre>
           </div>
           <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 lg:col-span-1">
-            <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Struktur-JSON</h2>
+            <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">{text.structureJsonTitle}</h2>
             <pre className="mt-2 overflow-auto rounded bg-[rgb(var(--bg))] p-3 text-xs text-[rgb(var(--muted))]">
               {JSON.stringify(structure ?? {}, null, 2)}
             </pre>
           </div>
           {publishGate.evidence ? (
             <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 lg:col-span-3">
-              <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Publish-Gate Evidence</h2>
+              <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">{text.publishGateEvidenceTitle}</h2>
               <pre className="mt-2 overflow-auto rounded bg-[rgb(var(--bg))] p-3 text-xs text-[rgb(var(--muted))]">
                 {JSON.stringify(publishGate.evidence, null, 2)}
               </pre>
@@ -426,7 +436,7 @@ export default function AdminAnlassraumDetailPage() {
     </main>
   );
 
-  async function runTransition(action: (typeof ACTIONS)[number]["id"]) {
+  async function runTransition(action: (typeof ACTIONS)[number]) {
     setTransitioning(action);
     setError(null);
     try {
@@ -451,7 +461,7 @@ export default function AdminAnlassraumDetailPage() {
         };
       });
     } catch (err: any) {
-      setError(err?.message ?? "transition_failed");
+      setError(err?.message ?? text.transitionFailed);
     } finally {
       setTransitioning(null);
     }
@@ -490,7 +500,7 @@ export default function AdminAnlassraumDetailPage() {
         [seedId]: defaultOutputAction(body.seed?.status ?? "draft"),
       }));
     } catch (err: any) {
-      setOutputError(err?.message ?? "output_seed_transition_failed");
+      setOutputError(err?.message ?? text.outputTransitionFailed);
     } finally {
       setOutputTransitioningSeedId(null);
     }
@@ -498,50 +508,50 @@ export default function AdminAnlassraumDetailPage() {
 }
 
 function deriveOperatorFocus(input: {
+  text: AnlassraumDetailTexts;
   publishGateOk: boolean;
   hasDossier: boolean;
   publishGateReasons: string[];
   sourceCount: number;
 }): { title: string; detail: string } {
+  const { text } = input;
   if (!input.publishGateOk) {
-    const reasonHint = input.publishGateReasons[0] ? ` Hinweis: ${input.publishGateReasons[0]}.` : "";
+    const reasonHint = input.publishGateReasons[0] ? ` ${text.hintLabel}: ${input.publishGateReasons[0]}.` : "";
+    const sourceWord = input.sourceCount === 1 ? text.operatorFocusNeedsSourcesMiddle : text.sourcesLabel;
     return {
-      title: "Quellenlage zuerst absichern",
-      detail: `Publikation bleibt blockiert (${input.sourceCount} Quelle${
-        input.sourceCount === 1 ? "" : "n"
-      }). Anlassraum strukturieren und Primärquellen prüfen, bevor Verdichtung/Publish weitergeführt wird.${reasonHint}`,
+      title: text.operatorFocusNeedsSourcesTitle,
+      detail: `${text.operatorFocusNeedsSourcesPrefix} (${input.sourceCount} ${sourceWord}). ${text.operatorFocusNeedsSourcesSuffix}${reasonHint}`,
     };
   }
   if (input.hasDossier) {
     return {
-      title: "Anlassraum stabil halten, Verdichtung gezielt fortführen",
-      detail: "Dossier ist bereits verbunden. Anlassraum-Kontext weiter pflegen und Verdichtung bewusst steuern.",
+      title: text.operatorFocusHasDossierTitle,
+      detail: text.operatorFocusHasDossierDetail,
     };
   }
   return {
-    title: "Anlassraum weiter strukturieren",
-    detail:
-      "Signal- und Quellenkontext im Anlassraum ausarbeiten; Dossier-Verdichtung bleibt optional als bewusster nächster Schritt.",
+    title: text.operatorFocusContinueTitle,
+    detail: text.operatorFocusContinueDetail,
   };
 }
 
-function sourcePreviewLabel(source: unknown, index: number): string {
-  if (!source || typeof source !== "object") return `Quelle ${index + 1}: ohne lesbare Metadaten`;
+function sourcePreviewLabel(source: unknown, index: number, text: AnlassraumDetailTexts): string {
+  if (!source || typeof source !== "object") return `${text.sourcePrefix} ${index + 1}: ${text.sourceNoMetaSuffix}`;
   const row = source as Record<string, unknown>;
   const title = typeof row.title === "string" && row.title.trim() ? row.title.trim() : null;
   const label = typeof row.label === "string" && row.label.trim() ? row.label.trim() : null;
   const url = typeof row.url === "string" && row.url.trim() ? row.url.trim() : null;
-  if (title) return `Quelle ${index + 1}: ${title}`;
-  if (label) return `Quelle ${index + 1}: ${label}`;
+  if (title) return `${text.sourcePrefix} ${index + 1}: ${title}`;
+  if (label) return `${text.sourcePrefix} ${index + 1}: ${label}`;
   if (url) {
     try {
       const host = new URL(url).hostname.replace(/^www\./, "");
-      return `Quelle ${index + 1}: ${host}`;
+      return `${text.sourcePrefix} ${index + 1}: ${host}`;
     } catch {
-      return `Quelle ${index + 1}: ${url}`;
+      return `${text.sourcePrefix} ${index + 1}: ${url}`;
     }
   }
-  return `Quelle ${index + 1}: ohne Titel/URL`;
+  return `${text.sourcePrefix} ${index + 1}: ${text.sourceNoTitleOrUrlSuffix}`;
 }
 
 function defaultOutputAction(status: string): OutputAction {
@@ -558,4 +568,12 @@ function formatIso(value: string | null | undefined): string {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
   return date.toISOString();
+}
+
+function formatAnlassraumActionLabel(action: (typeof ACTIONS)[number], text: AnlassraumDetailTexts): string {
+  if (action === "curate") return text.actionCurate;
+  if (action === "review") return text.actionReview;
+  if (action === "approve") return text.actionApprove;
+  if (action === "activate") return text.actionActivate;
+  return text.actionArchive;
 }

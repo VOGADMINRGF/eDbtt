@@ -8,6 +8,8 @@ import { getAccessTierConfigForUser, getUserAccessTier } from "@core/access/acce
 import type { CreateEntitlements } from "@/lib/server/entitlements/createEntitlements";
 import type { CreateMode } from "@/features/create/intents";
 import { formatRelevanceScopeLabel } from "@/features/relevanceFraming";
+import { useLocale } from "@/context/LocaleContext";
+import { getOperatorSystemTexts, resolveOperatorLocale } from "@/features/i18n/operatorSystemTexts";
 
 export type CreateClientProps = {
   initialEntitlements: CreateEntitlements;
@@ -147,6 +149,10 @@ export default function CreateClient({
   initialText,
   initialIntakeContext,
 }: CreateClientProps) {
+  const { locale } = useLocale();
+  const operatorLocale = resolveOperatorLocale(locale);
+  const text = getOperatorSystemTexts(operatorLocale).create;
+
   const [entitlements, setEntitlements] = React.useState<CreateEntitlements>(initialEntitlements);
   const [gate, setGate] = React.useState<GateState>(() => deriveGate(initialEntitlements));
   const legacyMode = React.useMemo(
@@ -238,21 +244,21 @@ export default function CreateClient({
   if (gate.status === "loading") {
     return (
       <main className="mx-auto max-w-4xl px-4 py-12 text-center text-[rgb(var(--muted))]">
-        Lade deinen Zugang ...
+        {text.loadingAccess}
       </main>
     );
   }
   if (gate.status === "anon") {
     return (
       <main className="mx-auto max-w-4xl px-4 py-12 text-center text-[rgb(var(--muted))]">
-        Bitte melde dich an, um eine Analyse zu starten.
+        {text.loginRequired}
       </main>
     );
   }
   if (gate.status === "blocked") {
     return (
       <main className="mx-auto max-w-4xl px-4 py-12 text-center text-[rgb(var(--muted))]">
-        Dein aktuelles Paket erlaubt keine Einreichung.
+        {text.submissionBlocked}
       </main>
     );
   }
@@ -286,7 +292,7 @@ export default function CreateClient({
     <div className="space-y-5 md:space-y-6">
       <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 md:p-5">
         <div className="space-y-3">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[rgb(var(--muted))]">Create Freistart</p>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[rgb(var(--muted))]">{text.freeStartKicker}</p>
           <h2
             className="text-2xl font-semibold leading-tight md:text-3xl"
             style={{
@@ -295,29 +301,27 @@ export default function CreateClient({
               color: "transparent",
             }}
           >
-            Freistart fuer Anlassraum- und Dossier-Flows
+            {text.freeStartHeadline}
           </h2>
           <p className="max-w-3xl text-sm text-[rgb(var(--muted))]">
-            Ein gemeinsamer Einstieg: Text, Zitat, Quelle/URL oder Material. Die Plattform fuehrt danach immer durch
-            Intake, Pruef-/Qualitaet, Graph-Matching und CTA-Routing.
+            {text.freeStartLead}
           </p>
 
           <div className="flex flex-wrap items-center gap-2 text-[11px] text-[rgb(var(--muted))]">
-            <span className="vog-chip">Freistart</span>
-            <span className="vog-chip">Intake</span>
-            <span className="vog-chip">Pruef/Qualitaet</span>
-            <span className="vog-chip">Graph-Matching</span>
-            <span className="vog-chip">CTA/Routing</span>
-            <span className="vog-chip">no auto publish</span>
-            <span className="vog-chip">no silent merge</span>
+            <span className="vog-chip">{text.chipFreeStart}</span>
+            <span className="vog-chip">{text.chipIntake}</span>
+            <span className="vog-chip">{text.chipQuality}</span>
+            <span className="vog-chip">{text.chipGraphMatching}</span>
+            <span className="vog-chip">{text.chipCtaRouting}</span>
+            <span className="vog-chip">{text.chipNoAutoPublish}</span>
+            <span className="vog-chip">{text.chipNoSilentMerge}</span>
           </div>
         </div>
       </section>
 
       {hasLegacyModeParam ? (
         <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-3 text-sm text-[rgb(var(--muted))]">
-          Legacy-Mode-Parameter erkannt (<code>{legacyMode}</code>) und aus Kompatibilitaetsgruenden gelesen.
-          Der kanonische Einstieg bleibt Freistart; ein sichtbarer Primarsplit ist nicht mehr Ziel-UX.
+          {text.legacyModePrefix} (<code>{legacyMode}</code>) {text.legacyModeSuffix}
         </section>
       ) : null}
 
@@ -325,16 +329,15 @@ export default function CreateClient({
         <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 md:p-5">
           <div className="space-y-2">
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[rgb(var(--muted))]">
-              Intake-Kontext
+              {text.intakeContextTitle}
             </p>
             <p className="text-sm text-[rgb(var(--muted))]">
-              Kontext wurde aus dem vorgelagerten Signal-/Review-Flow weitergereicht und dient als manueller Startpunkt:
-              zuerst Primärquelle, dann Relevanzraum, dann Signalspur. Primärquellen bitte prüfen; kein Auto-Publish.
+              {text.intakeContextLead}
             </p>
           </div>
           <div className="mt-3 flex flex-wrap gap-2 text-xs text-[rgb(var(--muted))]">
             {initialIntakeContext?.sourceLabel ? (
-              <span className="vog-chip">primärquelle: {initialIntakeContext.sourceLabel}</span>
+              <span className="vog-chip">{text.openPrimarySource}: {initialIntakeContext.sourceLabel}</span>
             ) : null}
             {initialIntakeContext?.sourceUrl ? (
               <a
@@ -343,30 +346,30 @@ export default function CreateClient({
                 rel="noreferrer"
                 className="vog-chip border border-[rgb(var(--border))] bg-transparent"
               >
-                Primärquelle öffnen
+                {text.openPrimarySource}
               </a>
             ) : null}
-            {initialIntakeContext?.region ? <span className="vog-chip">region: {initialIntakeContext.region}</span> : null}
+            {initialIntakeContext?.region ? <span className="vog-chip">{text.regionLabel}: {initialIntakeContext.region}</span> : null}
             {initialIntakeContext?.scope ? (
               <span className="vog-chip">
-                relevanzraum: {formatRelevanceScopeLabel(initialIntakeContext.scope, initialIntakeContext.scope)}
+                {text.scopeLabel}: {formatRelevanceScopeLabel(initialIntakeContext.scope, initialIntakeContext.scope)}
               </span>
             ) : null}
-            {initialIntakeContext?.source ? <span className="vog-chip">signalspur: {initialIntakeContext.source}</span> : null}
+            {initialIntakeContext?.source ? <span className="vog-chip">{text.signalTrailLabel}: {initialIntakeContext.source}</span> : null}
             {initialIntakeContext?.signalTitle ? (
-              <span className="vog-chip">signal: {initialIntakeContext.signalTitle}</span>
+              <span className="vog-chip">{text.signalLabel}: {initialIntakeContext.signalTitle}</span>
             ) : null}
             {initialIntakeContext?.clusterHint ? (
-              <span className="vog-chip">cluster: {initialIntakeContext.clusterHint}</span>
+              <span className="vog-chip">{text.clusterLabel}: {initialIntakeContext.clusterHint}</span>
             ) : null}
             {initialIntakeContext?.reviewState ? (
-              <span className="vog-chip">review: {initialIntakeContext.reviewState}</span>
+              <span className="vog-chip">{text.reviewLabel}: {initialIntakeContext.reviewState}</span>
             ) : null}
-            {initialIntakeContext?.reason ? <span className="vog-chip">handoff: {initialIntakeContext.reason}</span> : null}
+            {initialIntakeContext?.reason ? <span className="vog-chip">{text.handoffLabel}: {initialIntakeContext.reason}</span> : null}
             {initialIntakeContext?.candidateId ? (
-              <span className="vog-chip">candidateId (tech): {initialIntakeContext.candidateId}</span>
+              <span className="vog-chip">{text.candidateIdLabel}: {initialIntakeContext.candidateId}</span>
             ) : null}
-            {initialIntakeContext?.draftId ? <span className="vog-chip">draftId (tech): {initialIntakeContext.draftId}</span> : null}
+            {initialIntakeContext?.draftId ? <span className="vog-chip">{text.draftIdLabel}: {initialIntakeContext.draftId}</span> : null}
           </div>
         </section>
       ) : null}
@@ -374,29 +377,28 @@ export default function CreateClient({
       {pickerEnabled ? (
         <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 md:p-5">
           <div className="space-y-2">
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[rgb(var(--muted))]">Kontext-Picker</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[rgb(var(--muted))]">{text.contextPickerTitle}</p>
             <p className="text-sm text-[rgb(var(--muted))]">
-              Optional: Waehle einen bestehenden Anlassraum als Kontext. Kontext kann spaeter auch als Match-/Routing-Ergebnis
-              sichtbar werden. Keine automatische Verlinkung, kein Auto-Publish, kein Auto-Merge.
+              {text.contextPickerLead}
             </p>
           </div>
 
           {contextLoadState === "loading" ? (
-            <p className="mt-3 text-sm text-[rgb(var(--muted))]">Lade produktive Kontextliste ...</p>
+            <p className="mt-3 text-sm text-[rgb(var(--muted))]">{text.loadingContextList}</p>
           ) : null}
 
           {contextLoadState === "error" ? (
             <div className="mt-3 rounded-xl border border-rose-300/50 bg-rose-50/80 p-3 text-sm text-rose-700 dark:border-rose-500/40 dark:bg-rose-500/10 dark:text-rose-200">
-              <p>Kontextquelle derzeit nicht verfuegbar ({contextLoadError ?? "create_context_source_unavailable"}).</p>
+              <p>{text.contextUnavailable} ({contextLoadError ?? "create_context_source_unavailable"}).</p>
               <button type="button" onClick={() => void loadContextItems()} className="btn-secondary mt-2 text-xs">
-                Erneut laden
+                {text.reload}
               </button>
             </div>
           ) : null}
 
           {contextLoadState === "ready" && contextItems.length === 0 ? (
             <p className="mt-3 rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-sm text-[rgb(var(--muted))]">
-              Keine produktiven Kontext-Eintraege verfuegbar. Es wird kein Demo-/Static-Fallback genutzt.
+              {text.contextEmpty}
             </p>
           ) : null}
 
@@ -421,8 +423,8 @@ export default function CreateClient({
                       <p className="text-sm font-semibold text-[rgb(var(--fg))]">{item.title}</p>
                       <p className="mt-1 line-clamp-2 text-xs text-[rgb(var(--muted))]">{item.summary}</p>
                       <p className="mt-2 text-[11px] text-[rgb(var(--muted))]">
-                        {item.topicKey ? `Topic: ${item.topicKey} · ` : ""}
-                        {item.anlassraumStatus ? `Status: ${item.anlassraumStatus}` : "Status: offen"}
+                        {item.topicKey ? `${text.topicLabel}: ${item.topicKey} · ` : ""}
+                        {item.anlassraumStatus ? `${text.statusLabel}: ${item.anlassraumStatus}` : `${text.statusLabel}: ${text.statusOpen}`}
                       </p>
                     </button>
                   </li>
@@ -433,14 +435,14 @@ export default function CreateClient({
 
           {selectedContext ? (
             <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-[rgb(var(--muted))]">
-              <span className="vog-chip">Ausgewaehlt: {selectedContext.title}</span>
-              <span className="vog-chip">anlassraumId: {selectedContext.anlassraumId}</span>
+              <span className="vog-chip">{text.selectedLabel}: {selectedContext.title}</span>
+              <span className="vog-chip">{text.anlassraumIdLabel}: {selectedContext.anlassraumId}</span>
               <button
                 type="button"
                 className="vog-chip border border-[rgb(var(--border))] bg-transparent"
                 onClick={() => setSelectedAnlassraumId(null)}
               >
-                Auswahl entfernen
+                {text.clearSelection}
               </button>
             </div>
           ) : null}
@@ -452,18 +454,18 @@ export default function CreateClient({
       ) : null}
 
       <details className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4">
-        <summary className="cursor-pointer text-sm font-semibold text-[rgb(var(--fg))]">Kontingente und Zugriff</summary>
+        <summary className="cursor-pointer text-sm font-semibold text-[rgb(var(--fg))]">{text.quotasTitle}</summary>
         <div className="mt-3 flex flex-wrap items-center gap-2 text-[11px] text-[rgb(var(--muted))]">
-          <span className="vog-chip">Tier: {tierLabel}</span>
-          <span className="vog-chip">Credits: {credits}</span>
+          <span className="vog-chip">{text.tierLabel}: {tierLabel}</span>
+          <span className="vog-chip">{text.creditsLabel}: {credits}</span>
           {monthlyLimit === null ? (
-            <span className="vog-chip">Monatslimit: unbegrenzt</span>
+            <span className="vog-chip">{text.monthlyLimitLabel}: {text.monthlyLimitUnlimited}</span>
           ) : (
-            <span className="vog-chip">Monatslimit: {monthlyLimit}</span>
+            <span className="vog-chip">{text.monthlyLimitLabel}: {monthlyLimit}</span>
           )}
-          <span className="vog-chip">Max. Claims: {maxFinalizeClaims}</span>
+          <span className="vog-chip">{text.maxClaimsLabel}: {maxFinalizeClaims}</span>
           <Link href="/runden" className="vog-chip">
-            Zu /runden
+            {text.goToRounds}
           </Link>
         </div>
       </details>

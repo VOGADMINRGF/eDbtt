@@ -1,10 +1,19 @@
 import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import AdminFeedDraftsPage from "@/app/admin/feeds/drafts/page";
+import { LocaleProvider } from "@/context/LocaleContext";
+
+function renderPage() {
+  return renderToStaticMarkup(
+    <LocaleProvider initialLocale="de">
+      <AdminFeedDraftsPage />
+    </LocaleProvider>,
+  );
+}
 
 describe("admin feed drafts page", () => {
   it("renders operator-first sections with candidate list before maintenance blocks", () => {
-    const html = renderToStaticMarkup(<AdminFeedDraftsPage />);
+    const html = renderPage();
 
     expect(html).toContain("Signal-Drafts: Anlassraum-first Queue");
     expect(html).toContain("Primärquellen bleiben die fachliche Basis");
@@ -24,7 +33,7 @@ describe("admin feed drafts page", () => {
   });
 
   it("renders an actionable empty state hint for narrow filters", () => {
-    const html = renderToStaticMarkup(<AdminFeedDraftsPage />);
+    const html = renderPage();
 
     expect(html).toContain("Keine Drafts für die aktuellen Filter. Prüfe, ob Filter zu eng sind");
     expect(html).toContain("Feed Control Plane");

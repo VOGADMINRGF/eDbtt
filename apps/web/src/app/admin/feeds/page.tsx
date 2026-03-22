@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useLocale } from "@/context/LocaleContext";
+import { getOperatorSystemTexts, resolveOperatorLocale } from "@/features/i18n/operatorSystemTexts";
 
 type FeedConfigScope = {
   scope: string;
@@ -50,6 +52,10 @@ const SAMPLE_BATCH = JSON.stringify(
 );
 
 export default function AdminFeedsPage() {
+  const { locale } = useLocale();
+  const operatorLocale = resolveOperatorLocale(locale);
+  const text = getOperatorSystemTexts(operatorLocale).feeds;
+
   const [config, setConfig] = useState<FeedConfigResponse | null>(null);
   const [configLoading, setConfigLoading] = useState(true);
   const [configError, setConfigError] = useState<string | null>(null);
@@ -159,38 +165,36 @@ export default function AdminFeedsPage() {
   return (
     <main className="flex w-full flex-col gap-6 py-4">
       <header className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm">
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[rgb(var(--muted))]">Admin · Feeds</p>
-        <h1 className="mt-1 text-2xl font-bold text-[rgb(var(--fg))]">Feed Control Plane</h1>
+        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[rgb(var(--muted))]">{text.headerKicker}</p>
+        <h1 className="mt-1 text-2xl font-bold text-[rgb(var(--fg))]">{text.headerTitle}</h1>
         <p className="mt-2 text-sm text-[rgb(var(--muted))]">
-          Signale aus Feeds, öffentlichen Quellen und Hinweis-Eingängen in Anlassräume überführen; Dossier-Verdichtung
-          bleibt ein bewusster Folgeschritt. Primärquellen werden separat geprüft; es gibt kein automatisches
-          Publishing aus Feed-Signalen.
+          {text.headerLead}
         </p>
         <div className="mt-3 flex flex-wrap gap-2">
           <Link href="/admin/feeds/drafts" className="rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white">
-            Zu Feed-Drafts
+            {text.linkToDrafts}
           </Link>
           <Link
             href="/admin/feeds/anlassraum"
             className="rounded-full border border-[rgb(var(--border))] px-4 py-2 text-sm font-semibold text-[rgb(var(--fg))] hover:border-sky-300/70 hover:bg-sky-50 dark:hover:border-sky-300/45 dark:hover:bg-sky-500/12"
           >
-            Zu Anlassräumen
+            {text.linkToAnlassraeume}
           </Link>
           <Link
             href="/admin/acquisition"
             className="rounded-full border border-[rgb(var(--border))] px-4 py-2 text-sm font-semibold text-[rgb(var(--fg))] hover:border-sky-300/70 hover:bg-sky-50 dark:hover:border-sky-300/45 dark:hover:bg-sky-500/12"
           >
-            Zu Akquise Dashboard
+            {text.linkToAcquisition}
           </Link>
         </div>
       </header>
 
       <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Signalquellen-Konfiguration (Feed-Referenzen)</h2>
-          <span className="text-xs text-[rgb(var(--muted))]">{feedCount} deduplizierte Feeds</span>
+          <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">{text.sourceConfigTitle}</h2>
+          <span className="text-xs text-[rgb(var(--muted))]">{feedCount} {text.dedupFeedsSuffix}</span>
         </div>
-        {configLoading && <p className="mt-3 text-sm text-[rgb(var(--muted))]">Lade Konfiguration …</p>}
+        {configLoading && <p className="mt-3 text-sm text-[rgb(var(--muted))]">{text.loadingConfig}</p>}
         {configError && <p className="mt-3 text-sm text-rose-700">{configError}</p>}
         {!configLoading && !configError && config?.scopes?.map((scope) => (
           <div key={scope.scope} className="mt-4 rounded-2xl border border-[rgb(var(--border))] p-4">
@@ -202,19 +206,19 @@ export default function AdminFeedsPage() {
             </div>
             {scope.ok ? (
               <>
-                <p className="mt-1 text-xs text-[rgb(var(--muted))]">{scope.source ?? "keine Signalquelle gefunden"}</p>
+                <p className="mt-1 text-xs text-[rgb(var(--muted))]">{scope.source ?? text.sourceMissing}</p>
                 {Boolean(scope.invalidFeedUrls?.length) && (
                   <p className="mt-2 text-xs text-amber-700">
-                    {scope.invalidFeedUrls?.length} ungültige Feed-URLs wurden ignoriert.
+                    {scope.invalidFeedUrls?.length} {text.invalidUrlsIgnoredSuffix}
                   </p>
                 )}
                 <div className="mt-3 overflow-x-auto">
                   <table className="min-w-full divide-y divide-[rgb(var(--border))] text-sm">
                     <thead className="text-left text-xs uppercase tracking-wide text-[rgb(var(--muted))]">
                       <tr>
-                        <th className="px-2 py-2">Region</th>
-                        <th className="px-2 py-2">Topic</th>
-                        <th className="px-2 py-2">Signalquelle (Feed URL)</th>
+                        <th className="px-2 py-2">{text.colRegion}</th>
+                        <th className="px-2 py-2">{text.colTopic}</th>
+                        <th className="px-2 py-2">{text.colSignalSource}</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-[rgb(var(--border))]">
@@ -242,15 +246,14 @@ export default function AdminFeedsPage() {
 
       <section className="grid gap-4 lg:grid-cols-2">
         <div className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm">
-          <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Pull + Analyze</h2>
+          <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">{text.pullAnalyzeTitle}</h2>
           <p className="mt-1 text-xs text-[rgb(var(--muted))]">
-            Pull lädt Signale in `statement_candidates`; Analyze erzeugt daraus prüfbare `vote_drafts`. Kein direkter
-            Publish-Pfad.
+            {text.pullAnalyzeLead}
           </p>
 
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
             <label className="text-xs text-[rgb(var(--muted))]">
-              Scope
+              {text.scopeLabel}
               <select
                 className="mt-1 w-full rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm"
                 value={pullScope}
@@ -261,7 +264,7 @@ export default function AdminFeedsPage() {
               </select>
             </label>
             <label className="text-xs text-[rgb(var(--muted))]">
-              RegionCode (optional)
+              {text.regionCodeOptional}
               <input
                 className="mt-1 w-full rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm"
                 placeholder="z.B. DE:BE"
@@ -270,7 +273,7 @@ export default function AdminFeedsPage() {
               />
             </label>
             <label className="text-xs text-[rgb(var(--muted))]">
-              Max Feeds
+              {text.maxFeeds}
               <input
                 type="number"
                 className="mt-1 w-full rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm"
@@ -281,7 +284,7 @@ export default function AdminFeedsPage() {
               />
             </label>
             <label className="text-xs text-[rgb(var(--muted))]">
-              Max Items pro Feed
+              {text.maxItemsPerFeed}
               <input
                 type="number"
                 className="mt-1 w-full rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm"
@@ -295,7 +298,7 @@ export default function AdminFeedsPage() {
 
           <label className="mt-3 inline-flex items-center gap-2 text-xs text-[rgb(var(--muted))]">
             <input type="checkbox" checked={pullDryRun} onChange={(e) => setPullDryRun(e.target.checked)} />
-            Dry-Run (nur zählen, nicht schreiben)
+            {text.dryRunLabel}
           </label>
 
           <div className="mt-4 flex flex-wrap gap-2">
@@ -304,11 +307,11 @@ export default function AdminFeedsPage() {
               disabled={pullState.loading}
               className="rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white disabled:opacity-70"
             >
-              {pullState.loading ? "Pull läuft …" : "Signalquellen abrufen"}
+              {pullState.loading ? text.pullRunning : text.fetchSignalSources}
             </button>
 
             <div className="inline-flex items-center gap-2 rounded-full border border-[rgb(var(--border))] px-3 py-1.5 text-xs text-[rgb(var(--muted))]">
-              <span>Analyze limit</span>
+              <span>{text.analyzeLimit}</span>
               <input
                 type="number"
                 className="w-16 rounded border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-2 py-1 text-xs"
@@ -323,7 +326,7 @@ export default function AdminFeedsPage() {
               disabled={analyzeState.loading}
               className="rounded-full border border-[rgb(var(--border))] px-4 py-2 text-sm font-semibold text-[rgb(var(--fg))] hover:border-sky-300/70 hover:bg-sky-50 dark:hover:border-sky-300/45 dark:hover:bg-sky-500/12 disabled:opacity-70"
             >
-              {analyzeState.loading ? "Analyze läuft …" : "Analyse starten"}
+              {analyzeState.loading ? text.analyzeRunning : text.startAnalyze}
             </button>
           </div>
 
@@ -342,11 +345,9 @@ export default function AdminFeedsPage() {
         </div>
 
         <div className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm">
-          <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Batch Signal-Import (Maintenance)</h2>
+          <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">{text.batchTitle}</h2>
           <p className="mt-1 text-xs text-[rgb(var(--muted))]">
-            JSON im Format <code className="font-mono">{"{\"items\":[...]}"}</code> oder direkt{" "}
-            <code className="font-mono">[...]</code> einfügen und an <code className="font-mono">/api/feeds/batch</code>{" "}
-            senden. Batch erzeugt Signalkandidaten, keine direkte Inhaltsübernahme und keine Veröffentlichung.
+            {text.batchLead}
           </p>
           <textarea
             className="mt-3 min-h-[260px] w-full rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3 font-mono text-xs text-[rgb(var(--fg))]"
@@ -358,7 +359,7 @@ export default function AdminFeedsPage() {
             disabled={batchState.loading}
             className="mt-3 rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white disabled:opacity-70"
           >
-            {batchState.loading ? "Import läuft …" : "Import starten"}
+            {batchState.loading ? text.importRunning : text.startImport}
           </button>
           {batchState.error && <p className="mt-3 text-sm text-rose-700">{batchState.error}</p>}
           {batchState.result && (

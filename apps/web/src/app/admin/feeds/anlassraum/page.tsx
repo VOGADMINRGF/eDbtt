@@ -2,12 +2,17 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useLocale } from "@/context/LocaleContext";
 import {
   formatOriginTypeLabel,
   formatOwnerTypeLabel,
   formatRelevanceScopeLabel,
   formatSourceModeLabel,
 } from "@/features/relevanceFraming";
+import {
+  getOperatorSystemTexts,
+  resolveOperatorLocale,
+} from "@/features/i18n/operatorSystemTexts";
 
 type AnlassraumListItem = {
   id: string;
@@ -64,6 +69,10 @@ const SOURCE_MODE_OPTIONS = [
 ] as const;
 
 export default function AdminAnlassraumPage() {
+  const { locale } = useLocale();
+  const operatorLocale = resolveOperatorLocale(locale);
+  const text = getOperatorSystemTexts(operatorLocale).anlassraumList;
+
   const [items, setItems] = useState<AnlassraumListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -108,19 +117,18 @@ export default function AdminAnlassraumPage() {
     <main className="flex w-full flex-col gap-6 py-4">
       <header className="space-y-2">
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[rgb(var(--muted))]">
-          Admin · Signal-Pipeline
+          {text.headerKicker}
         </p>
-        <h1 className="text-2xl font-bold text-[rgb(var(--fg))]">Anlassräume</h1>
+        <h1 className="text-2xl font-bold text-[rgb(var(--fg))]">{text.headerTitle}</h1>
         <p className="text-sm text-[rgb(var(--muted))]">
-          Anlassräume strukturieren Signale zuerst. Relevanz kann lokal, regional, bundesweit oder institutionell
-          sein; Dossier-Verdichtung folgt optional als bewusster nächster Schritt.
+          {text.headerLead}
         </p>
         <p className="flex gap-3">
           <Link href="/admin/feeds" className="text-sm font-semibold text-sky-700 hover:underline">
-            Zur Feed Control Plane
+            {text.linkToFeedControl}
           </Link>
           <Link href="/admin/anlassraeume" className="text-sm font-semibold text-sky-700 hover:underline">
-            Zu Anlassraum Operations
+            {text.linkToAnlassraumOps}
           </Link>
         </p>
       </header>
@@ -133,7 +141,7 @@ export default function AdminAnlassraumPage() {
         >
           {STATUS_OPTIONS.map((status) => (
             <option key={status} value={status}>
-              status: {status}
+              {text.statusFilterPrefix}: {status}
             </option>
           ))}
         </select>
@@ -144,7 +152,7 @@ export default function AdminAnlassraumPage() {
         >
           {SOURCE_MODE_OPTIONS.map((mode) => (
             <option key={mode} value={mode}>
-              sourceMode: {mode}
+              {text.sourceModeFilterPrefix}: {mode}
             </option>
           ))}
         </select>
@@ -156,25 +164,25 @@ export default function AdminAnlassraumPage() {
         <table className="min-w-full divide-y divide-[rgb(var(--border))] text-sm">
           <thead className="bg-[rgb(var(--bg))]">
             <tr>
-              <th className="px-4 py-3 text-left font-semibold text-[rgb(var(--muted))]">Anlassraum</th>
-              <th className="px-4 py-3 text-left font-semibold text-[rgb(var(--muted))]">Status</th>
-              <th className="px-4 py-3 text-left font-semibold text-[rgb(var(--muted))]">Region/Topic</th>
-              <th className="px-4 py-3 text-left font-semibold text-[rgb(var(--muted))]">Outputs</th>
-              <th className="px-4 py-3 text-left font-semibold text-[rgb(var(--muted))]">Risiko</th>
+              <th className="px-4 py-3 text-left font-semibold text-[rgb(var(--muted))]">{text.colAnlassraum}</th>
+              <th className="px-4 py-3 text-left font-semibold text-[rgb(var(--muted))]">{text.colStatus}</th>
+              <th className="px-4 py-3 text-left font-semibold text-[rgb(var(--muted))]">{text.colRegionTopic}</th>
+              <th className="px-4 py-3 text-left font-semibold text-[rgb(var(--muted))]">{text.colOutputs}</th>
+              <th className="px-4 py-3 text-left font-semibold text-[rgb(var(--muted))]">{text.colRisk}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-[rgb(var(--border))]">
             {loading && (
               <tr>
                 <td colSpan={5} className="px-4 py-6 text-center text-[rgb(var(--muted))]">
-                  Lädt Anlassräume …
+                  {text.loading}
                 </td>
               </tr>
             )}
             {!loading && items.length === 0 && (
               <tr>
                 <td colSpan={5} className="px-4 py-6 text-center text-[rgb(var(--muted))]">
-                  Keine Anlassräume gefunden.
+                  {text.empty}
                 </td>
               </tr>
             )}
@@ -186,11 +194,11 @@ export default function AdminAnlassraumPage() {
                       {item.title}
                     </Link>
                     <p className="text-xs text-[rgb(var(--muted))]">
-                      {(item.type ?? item.kind) || "anlassraum"} · {formatSourceModeLabel(item.sourceMode)} · score{" "}
+                      {(item.type ?? item.kind) || "anlassraum"} · {formatSourceModeLabel(item.sourceMode)} · {text.scoreLabel}{" "}
                       {item.relevanceScore}
                     </p>
                     <p className="text-xs text-[rgb(var(--muted))]">
-                      Herkunft: {formatOriginTypeLabel(item.originType)} · Trägerschaft: {formatOwnerTypeLabel(item.ownerType)}
+                      {text.originLabel}: {formatOriginTypeLabel(item.originType)} · {text.ownerLabel}: {formatOwnerTypeLabel(item.ownerType)}
                     </p>
                   </td>
                   <td className="px-4 py-3 text-xs">
@@ -200,18 +208,18 @@ export default function AdminAnlassraumPage() {
                     </p>
                   </td>
                   <td className="px-4 py-3 text-xs text-[rgb(var(--muted))]">
-                    <p>{formatRegion(item.regionCode) || "Global / offen"}</p>
+                    <p>{formatRegion(item.regionCode) || text.globalOpen}</p>
                     <p>{formatRelevanceScopeLabel(item.scope)} / {formatRelevanceScopeLabel(item.decisionScope)}</p>
                     <p>{item.topicKey ?? "—"}</p>
                     <p>{item.clusterKey ?? "—"}</p>
-                    <p>dossier-verdichtung: {item.dossierType ?? "optional / nicht gestartet"}</p>
+                    <p>{text.dossierConsolidationLabel}: {item.dossierType ?? text.optionalNotStarted}</p>
                   </td>
                   <td className="px-4 py-3 text-xs text-[rgb(var(--muted))]">
-                    <p>{item.sourceCount} Quellen</p>
+                    <p>{item.sourceCount} {text.sourcesLabel}</p>
                     <p>{item.outputs.map((out) => out.outputType).join(", ") || "—"}</p>
                   </td>
                   <td className="px-4 py-3 text-xs text-[rgb(var(--muted))]">
-                    {item.riskFlags.length ? item.riskFlags.join(", ") : "ok"}
+                    {item.riskFlags.length ? item.riskFlags.join(", ") : text.riskOk}
                   </td>
                 </tr>
               ))}
