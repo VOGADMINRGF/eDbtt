@@ -140,7 +140,7 @@ function summaryForHandoff(input: {
     return "Anlassraum manuell oeffnen und Handoff bewusst bestaetigen.";
   }
   if (input.ctaId === "dossier_oeffnen") {
-    return "Dossier manuell oeffnen; kein implizites Dossier-Update.";
+    return "Dossier-Verdichtung manuell oeffnen; Anlassraum kann parallel eigenstaendig weitergefuehrt werden.";
   }
   if (input.matchType === "duplicate_risk") {
     return "Konflikt-/Duplikat-Hinweis manuell pruefen, bevor eine Anschlussaktion erfolgt.";

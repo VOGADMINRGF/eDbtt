@@ -162,7 +162,7 @@ export default function AdminFeedsPage() {
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[rgb(var(--muted))]">Admin · Feeds</p>
         <h1 className="mt-1 text-2xl font-bold text-[rgb(var(--fg))]">Feed Control Plane</h1>
         <p className="mt-2 text-sm text-[rgb(var(--muted))]">
-          Konfiguration einsehen, Pull/Analyse manuell ausführen und Batch-Imports als JSON starten.
+          Signale einspeisen und Anlassräume strukturieren; Dossier-Verdichtung bleibt ein bewusster Folgeschritt.
         </p>
         <div className="mt-3 flex flex-wrap gap-2">
           <Link href="/admin/feeds/drafts" className="rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white">

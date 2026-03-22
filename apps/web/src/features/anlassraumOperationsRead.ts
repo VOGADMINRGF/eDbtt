@@ -440,7 +440,7 @@ function buildOperationalHints(input: {
   if (input.outputCount === 0) hints.add("missing_output_seeds");
   if (input.sourceMode === "cluster" && !input.clusterKey) hints.add("missing_cluster_key");
   if (input.clusterKey && !input.clusterCandidateStatus) hints.add("missing_cluster_candidate");
-  if (!input.dossierId) hints.add("no_dossier_link");
+  if (!input.dossierId) hints.add("dossier_optional_not_started");
   if (input.riskFlags.length > 0) hints.add("risk_flags_present");
   if ((LEGACY_ANLASSRAUM_STATUSES as readonly string[]).includes(input.status)) {
     hints.add("legacy_status");

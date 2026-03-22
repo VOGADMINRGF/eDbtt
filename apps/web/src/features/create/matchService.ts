@@ -289,7 +289,7 @@ function deriveSuggestedCtas(input: {
     pushUnique(out, {
       id: "dossier_oeffnen",
       label: "Dossier oeffnen",
-      reason: "Dossier-Naehe erkannt; Einlesen vor jeder manuellen Uebernahme.",
+      reason: "Dossier-Naehe erkannt; Verdichtung ist moeglich, Anlassraum-Arbeit bleibt parallel eigenstaendig.",
     });
     pushUnique(out, {
       id: "perspektive_anhaengen",
@@ -340,7 +340,7 @@ function deriveSuggestedCtas(input: {
     pushUnique(out, {
       id: "dossier_oeffnen",
       label: "Dossier oeffnen",
-      reason: "Treffer liegt in Dossier-Naehe; manuelles Einlesen vor weiterer Aktion.",
+      reason: "Treffer liegt in Dossier-Naehe; bewusste Verdichtung moeglich, Anlassraum bleibt optional vorgelagert.",
     });
   }
 

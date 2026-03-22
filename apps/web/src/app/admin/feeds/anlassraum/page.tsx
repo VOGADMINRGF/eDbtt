@@ -104,11 +104,14 @@ export default function AdminAnlassraumPage() {
         </p>
         <h1 className="text-2xl font-bold text-[rgb(var(--fg))]">Anlassräume</h1>
         <p className="text-sm text-[rgb(var(--muted))]">
-          Semantische Zwischenebene zwischen Ingest-Items und Outputs (Runde, Dossier, Embed, Social).
+          Anlassräume strukturieren Signale zuerst; Dossier-Verdichtung folgt optional als bewusster nächster Schritt.
         </p>
-        <p>
+        <p className="flex gap-3">
           <Link href="/admin/feeds" className="text-sm font-semibold text-sky-700 hover:underline">
             Zur Feed Control Plane
+          </Link>
+          <Link href="/admin/anlassraeume" className="text-sm font-semibold text-sky-700 hover:underline">
+            Zu Anlassraum Operations
           </Link>
         </p>
       </header>
@@ -188,7 +191,7 @@ export default function AdminAnlassraumPage() {
                     <p>{item.scope ?? "—"} / {item.decisionScope ?? "—"}</p>
                     <p>{item.topicKey ?? "—"}</p>
                     <p>{item.clusterKey ?? "—"}</p>
-                    <p>dossier: {item.dossierType ?? "—"}</p>
+                    <p>dossier-verdichtung: {item.dossierType ?? "optional / nicht gestartet"}</p>
                   </td>
                   <td className="px-4 py-3 text-xs text-[rgb(var(--muted))]">
                     <p>{item.sourceCount} Quellen</p>

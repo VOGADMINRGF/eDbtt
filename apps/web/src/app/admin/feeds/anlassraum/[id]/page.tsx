@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
+import { buildCreateFastPathHref } from "@/features/create/intents";
 
 type AnlassraumDetailResponse = {
   ok: boolean;
@@ -146,6 +147,15 @@ export default function AdminAnlassraumDetailPage() {
 
   const { item, sources = [], structure } = data;
   const publishGate = data.publishGate ?? { ok: false, reasons: ["missing_gate"], sourceCount: 0 };
+  const createFromAnlassraumHref = buildCreateFastPathHref({
+    anlassraumId: String(item.id || ""),
+    source: "anlassraum_detail",
+    signalTitle: typeof item.title === "string" ? item.title : null,
+    region: typeof item.regionKey === "string" ? item.regionKey : null,
+    scope: typeof item.scope === "string" ? item.scope : null,
+    clusterHint: typeof item.clusterKey === "string" ? item.clusterKey : null,
+    reason: "manual_fast_path_via_create",
+  });
 
   return (
     <main className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-8">
@@ -176,6 +186,17 @@ export default function AdminAnlassraumDetailPage() {
           <Link href="/admin/feeds/drafts" className="text-sky-700 hover:underline">
             Zu Feed-Drafts
           </Link>
+          <Link href={createFromAnlassraumHref} className="text-sky-700 hover:underline">
+            Anlassraum manuell via /create weiterführen
+          </Link>
+          {item.dossierId ? (
+            <Link href={`/admin/dossiers/${encodeURIComponent(item.dossierId)}`} className="text-sky-700 hover:underline">
+              Zur Dossier-Verdichtung
+            </Link>
+          ) : null}
+        </p>
+        <p className="text-xs text-[rgb(var(--muted))]">
+          Anlassraum bleibt eigenständiger Arbeitsraum. Dossier-Verdichtung ist ein bewusster, optionaler Folgeschritt.
         </p>
         <div className="flex flex-wrap gap-2 pt-2">
           {ACTIONS.map((action) => (

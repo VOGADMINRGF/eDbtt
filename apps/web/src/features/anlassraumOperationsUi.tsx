@@ -197,7 +197,7 @@ function AnlassraumOperationsCard({ item }: { item: AnlassraumOperationsItem }) 
         <p>Region: <span className="text-[rgb(var(--fg))]">{item.regionKey ?? "--"}</span></p>
         <p>Topic: <span className="text-[rgb(var(--fg))]">{item.topicKey ?? "--"}</span></p>
         <p>Cluster: <span className="text-[rgb(var(--fg))]">{item.clusterKey ?? "--"}</span></p>
-        <p>Dossier: <span className="text-[rgb(var(--fg))]">{item.dossierType ?? "--"}</span></p>
+        <p>Dossier-Verdichtung: <span className="text-[rgb(var(--fg))]">{item.dossierType ?? "optional / noch offen"}</span></p>
         <p>Sources: <span className="text-[rgb(var(--fg))]">{item.sourceCount}</span></p>
         <p>Outputs: <span className="text-[rgb(var(--fg))]">{item.outputCount}</span></p>
         <p>Public: <span className="text-[rgb(var(--fg))]">{item.isPublic ? "ja" : "nein"}</span></p>
@@ -208,7 +208,11 @@ function AnlassraumOperationsCard({ item }: { item: AnlassraumOperationsItem }) 
 
       <div className="mt-3 text-xs text-[rgb(var(--muted))]">
         <p className="font-semibold text-[rgb(var(--fg))]">Operative Hinweise</p>
-        <p>{item.operationalHints.length > 0 ? item.operationalHints.join(", ") : "keine"}</p>
+        <p>
+          {item.operationalHints.length > 0
+            ? item.operationalHints.map((hint) => formatOperationalHint(hint)).join(", ")
+            : "keine"}
+        </p>
       </div>
 
       <div className="mt-3 text-xs text-[rgb(var(--muted))]">
@@ -262,12 +266,30 @@ function AnlassraumOperationsCard({ item }: { item: AnlassraumOperationsItem }) 
         </Link>
         {item.links.dossierAdmin ? (
           <Link href={item.links.dossierAdmin} className="text-sky-700 hover:underline">
-            Dossier-Admin
+            Zur Dossier-Verdichtung
           </Link>
-        ) : null}
+        ) : (
+          <span className="text-[rgb(var(--muted))]">Dossier-Verdichtung optional: Anlassraum bleibt eigenständig.</span>
+        )}
       </div>
     </article>
   );
+}
+
+function formatOperationalHint(value: string): string {
+  if (value === "dossier_optional_not_started" || value === "no_dossier_link") {
+    return "Dossier-Verdichtung optional noch nicht gestartet";
+  }
+  if (value === "missing_summary") return "Summary fehlt";
+  if (value === "missing_topic_key") return "Topic-Key fehlt";
+  if (value === "missing_source_links") return "Quellenverknüpfungen fehlen";
+  if (value === "missing_output_seeds") return "Output-Seeds fehlen";
+  if (value === "missing_cluster_key") return "Cluster-Key fehlt";
+  if (value === "missing_cluster_candidate") return "Cluster-Kandidat fehlt";
+  if (value === "risk_flags_present") return "Risk-Flags vorhanden";
+  if (value === "legacy_status") return "Legacy-Status";
+  if (value === "stale_30d") return "Seit 30+ Tagen unverändert";
+  return value;
 }
 
 function formatIso(value: string | null): string {

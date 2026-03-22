@@ -45,7 +45,7 @@ describe("anlassraum operations page", () => {
               dossierType: "exploration_dossier",
               createdAt: "2026-03-20T10:00:00.000Z",
               updatedAt: "2026-03-21T10:00:00.000Z",
-              operationalHints: ["no_dossier_link"],
+              operationalHints: ["dossier_optional_not_started"],
               links: {
                 detailAdmin: "/admin/feeds/anlassraum/65f000000000000000000111",
                 detailJson: "/api/admin/feeds/anlassraum/65f000000000000000000111",
@@ -98,6 +98,6 @@ describe("anlassraum operations page", () => {
     expect(html).toContain("Cluster-Räume");
     expect(html).toContain("Cluster-Control");
     expect(html).toContain("Feed/History JSON");
-    expect(html).toContain("Dossier-Admin");
+    expect(html).toContain("Zur Dossier-Verdichtung");
   });
 });
