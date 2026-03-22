@@ -79,7 +79,7 @@ Status: **Done (2026-03-19)**
 - **DOCS-GOV-01** Architekturtexte als verbindliche Single Source of Truth (**Done**)
 
 ### Welle 2 — Anlassraum / Event / Feed Review
-Status: **In Progress (Core baseline / 2026-03-19)**
+Status: **In Progress (Core baseline + deepening sync / 2026-03-22)**
 
 - **GOV-ANLASS-01** universelles Anlassraum-Modell (**Core baseline active**)
 - **GOV-ANLASS-02** Anlassraum <-> Dossier Beziehung (**Flow/Surface separation deepened: Anlassraum eigenstaendig, Dossier optional/bewusst**)
@@ -93,6 +93,8 @@ Anlassraum-first Deepening (2026-03-21 bis 2026-03-22):
 - PR-B: `/create` als kanonischer Intake kontextreicher verdrahtet
 - PR-C: Anlassraum vs. Dossier im Flow klarer getrennt
 - PR-D: Region / Scope / Relevanz display-/surface-seitig verbreitert
+- Policy-Alignment: Feed/Signal/Primärquelle sprachlich und flow-seitig konsistenter ausgerichtet
+- PR-F: regressionsrelevante Operator-State-/Variant-Probleme auf Admin-/Feed-/Create-Surfaces nachgeschaerft
 
 ### Welle 2.5 — Freistart / KI-Qualitaet / Match-CTA (neu priorisiert)
 Status: **Open (Architecture alignment required / 2026-03-20)**
@@ -156,7 +158,7 @@ Status: **Open (Architecture alignment required / 2026-03-20)**
 | Swipes Mobile Gestures + Bottom-Actions | Open | PR-0043 | thumb-reachable |
 | Swipes Varianten-Schritt finalisieren | Open | PR-0044 | Ranking/Weighting/Exclude |
 | Swipes UX-Dedupe | Open | PR-0045 | redundante Vertiefungen reduzieren |
-| UI-Konsistenz Light/Dark | Open | PR-0046 | Kontrast-/Schriftprobleme |
+| UI-Konsistenz Light/Dark | In Progress (operator states stabilized, global pass pending) | PR-0046 | Regressionsrelevante Operator-State-/Variant-Probleme nachgeschaerft in `apps/web/src/app/globals.css`, `apps/web/src/app/admin/layout.tsx`, `apps/web/src/app/admin/AdminSidebar.tsx`, `apps/web/src/app/admin/AdminSearchButton.tsx`, `apps/web/src/app/admin/feeds/page.tsx`, `apps/web/src/app/admin/feeds/drafts/page.tsx`, `apps/web/src/app/admin/feeds/drafts/[id]/page.tsx`; globaler kompletter Light/Dark-Pass bleibt offen |
 | Account Dark-Mode Nacharbeit | Open | PR-0047 | Components/Token-Check |
 | Env-Key-Hardening abschliessen | Open | PR-ENV-01 | Runtime-Aliasse |
 | Mongo SRV `ECONNREFUSED` robust abfedern | Open | PR-ENV-02 | DNS/Netz/Config-Fallback |
