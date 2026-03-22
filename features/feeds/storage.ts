@@ -5,6 +5,8 @@ import { statementCandidatesCol } from "./db";
 const FEED_COLLECTION = "feed_items";
 
 export async function saveFeedItemRaw(item: FeedItemInput & { canonicalHash: string }) {
+  // Raw feed payload stays in feed_items as a signal trace.
+  // Operational matching/review runs on statement_candidates with source references.
   const col = await coreCol(FEED_COLLECTION);
   await col.insertOne({
     ...item,

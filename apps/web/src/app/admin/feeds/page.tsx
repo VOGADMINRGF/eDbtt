@@ -163,7 +163,8 @@ export default function AdminFeedsPage() {
         <h1 className="mt-1 text-2xl font-bold text-[rgb(var(--fg))]">Feed Control Plane</h1>
         <p className="mt-2 text-sm text-[rgb(var(--muted))]">
           Signale aus Feeds, öffentlichen Quellen und Hinweis-Eingängen in Anlassräume überführen; Dossier-Verdichtung
-          bleibt ein bewusster Folgeschritt.
+          bleibt ein bewusster Folgeschritt. Primärquellen werden separat geprüft; es gibt kein automatisches
+          Publishing aus Feed-Signalen.
         </p>
         <div className="mt-3 flex flex-wrap gap-2">
           <Link href="/admin/feeds/drafts" className="rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white">
@@ -186,7 +187,7 @@ export default function AdminFeedsPage() {
 
       <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Feed-Konfiguration</h2>
+          <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Signalquellen-Konfiguration (Feed-Referenzen)</h2>
           <span className="text-xs text-[rgb(var(--muted))]">{feedCount} deduplizierte Feeds</span>
         </div>
         {configLoading && <p className="mt-3 text-sm text-[rgb(var(--muted))]">Lade Konfiguration …</p>}
@@ -201,7 +202,7 @@ export default function AdminFeedsPage() {
             </div>
             {scope.ok ? (
               <>
-                <p className="mt-1 text-xs text-[rgb(var(--muted))]">{scope.source ?? "keine Quelle gefunden"}</p>
+                <p className="mt-1 text-xs text-[rgb(var(--muted))]">{scope.source ?? "keine Signalquelle gefunden"}</p>
                 {Boolean(scope.invalidFeedUrls?.length) && (
                   <p className="mt-2 text-xs text-amber-700">
                     {scope.invalidFeedUrls?.length} ungültige Feed-URLs wurden ignoriert.
@@ -213,7 +214,7 @@ export default function AdminFeedsPage() {
                       <tr>
                         <th className="px-2 py-2">Region</th>
                         <th className="px-2 py-2">Topic</th>
-                        <th className="px-2 py-2">Feed URL</th>
+                        <th className="px-2 py-2">Signalquelle (Feed URL)</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-[rgb(var(--border))]">
@@ -243,7 +244,8 @@ export default function AdminFeedsPage() {
         <div className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm">
           <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Pull + Analyze</h2>
           <p className="mt-1 text-xs text-[rgb(var(--muted))]">
-            Pull lädt Signale in `statement_candidates`; Analyze erzeugt daraus prüfbare `vote_drafts`.
+            Pull lädt Signale in `statement_candidates`; Analyze erzeugt daraus prüfbare `vote_drafts`. Kein direkter
+            Publish-Pfad.
           </p>
 
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
@@ -302,7 +304,7 @@ export default function AdminFeedsPage() {
               disabled={pullState.loading}
               className="rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white disabled:opacity-70"
             >
-              {pullState.loading ? "Pull läuft …" : "Feeds abrufen"}
+              {pullState.loading ? "Pull läuft …" : "Signalquellen abrufen"}
             </button>
 
             <div className="inline-flex items-center gap-2 rounded-full border border-[rgb(var(--border))] px-3 py-1.5 text-xs text-[rgb(var(--muted))]">
@@ -340,11 +342,11 @@ export default function AdminFeedsPage() {
         </div>
 
         <div className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm">
-          <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Batch Import</h2>
+          <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Batch Signal-Import (Maintenance)</h2>
           <p className="mt-1 text-xs text-[rgb(var(--muted))]">
             JSON im Format <code className="font-mono">{"{\"items\":[...]}"}</code> oder direkt{" "}
-            <code className="font-mono">[...]</code> einfügen und an{" "}
-            <code className="font-mono">/api/feeds/batch</code> senden.
+            <code className="font-mono">[...]</code> einfügen und an <code className="font-mono">/api/feeds/batch</code>{" "}
+            senden. Batch erzeugt Signalkandidaten, keine direkte Inhaltsübernahme und keine Veröffentlichung.
           </p>
           <textarea
             className="mt-3 min-h-[260px] w-full rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3 font-mono text-xs text-[rgb(var(--fg))]"

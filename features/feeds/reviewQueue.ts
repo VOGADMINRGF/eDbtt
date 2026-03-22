@@ -563,7 +563,7 @@ async function ensureAnlassraumCandidate(input: {
   const created = await createManualAnlassraum({
     entityId,
     type: input.type ?? deriveAnlassraumType(input.candidate),
-    title: input.draft.title || input.candidate.sourceTitle || "Feed-Anlassraum",
+    title: input.draft.title || input.candidate.sourceTitle || "Signal-Anlassraum",
     summary: String(input.draft.summary || input.candidate.sourceSummary || "").trim(),
     topicKey: deriveTopicKey(input.draft, input.candidate),
     regionKey,

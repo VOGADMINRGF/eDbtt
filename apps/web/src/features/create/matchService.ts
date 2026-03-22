@@ -538,7 +538,7 @@ export async function resolveCreateGraphMatches(
         strength = "low";
         reasons.push("Topic-Ueberschneidung mit bestehender Perspektive.");
       } else {
-        reasons.push("Semantisch verwandter Claim aus produktiver Statement-Quelle.");
+        reasons.push("Semantisch verwandter Claim aus produktivem Signal-/Quellenkontext.");
       }
 
       if (proposalTopic) reasons.push(`Topic: ${proposalTopic}`);
@@ -613,14 +613,14 @@ export async function resolveCreateGraphMatches(
       reason:
         sourceState === "degraded"
           ? "Produktive Match-Quellen derzeit nicht verfuegbar."
-          : "Kein belastbarer Match in produktiven Quellen gefunden.",
+          : "Kein belastbarer Match in produktiven Signal-/Quellenkontexten gefunden.",
       sourceState,
       sourceErrors,
     });
   }
 
   const top = dedupedMatches[0];
-  const reasons = top.reasons.length > 0 ? top.reasons : [top.reason || "Match aus produktiver Quelle."];
+  const reasons = top.reasons.length > 0 ? top.reasons : [top.reason || "Match aus produktivem Signal-/Quellenkontext."];
   const suggestedCtas = deriveSuggestedCtas({
     matchType: top.matchType,
     matchEntityType: top.matchEntityType,

@@ -108,7 +108,7 @@ export default function AdminAnlassraumPage() {
     <main className="flex w-full flex-col gap-6 py-4">
       <header className="space-y-2">
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[rgb(var(--muted))]">
-          Admin · Feed Pipeline
+          Admin · Signal-Pipeline
         </p>
         <h1 className="text-2xl font-bold text-[rgb(var(--fg))]">Anlassräume</h1>
         <p className="text-sm text-[rgb(var(--muted))]">

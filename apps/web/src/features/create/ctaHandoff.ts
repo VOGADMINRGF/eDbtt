@@ -134,7 +134,7 @@ function summaryForHandoff(input: {
     return "Neuen Strang vorbereiten, ohne stilles Andocken an bestehende Kontexte.";
   }
   if (input.ctaId === "perspektive_anhaengen") {
-    return "Perspektive nur vorbereiten; kein direktes Speichern oder Attach in diesem Schritt.";
+    return "Perspektive nur vorbereiten; Signal-/Quellenursprung bleibt referenziert, kein direktes Speichern oder Attach.";
   }
   if (input.ctaId === "anlassraum_oeffnen") {
     return "Anlassraum manuell oeffnen und Handoff bewusst bestaetigen.";

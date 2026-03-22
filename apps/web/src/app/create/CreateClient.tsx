@@ -328,7 +328,8 @@ export default function CreateClient({
               Intake-Kontext
             </p>
             <p className="text-sm text-[rgb(var(--muted))]">
-              Kontext wurde aus dem vorgelagerten Signal-/Review-Flow uebernommen und dient als manueller Startpunkt.
+              Kontext wurde aus dem vorgelagerten Signal-/Review-Flow weitergereicht und dient als manueller Startpunkt.
+              Primärquellen bitte prüfen; kein Auto-Publish.
             </p>
           </div>
           <div className="mt-3 flex flex-wrap gap-2 text-xs text-[rgb(var(--muted))]">

@@ -7,6 +7,7 @@ describe("admin feed drafts page", () => {
     const html = renderToStaticMarkup(<AdminFeedDraftsPage />);
 
     expect(html).toContain("Signal-Drafts: Anlassraum-first Queue");
+    expect(html).toContain("Primärquellen bleiben die fachliche Basis");
     expect(html).toContain("Kandidatenfilter");
     expect(html).toContain("Kandidatenliste");
     expect(html).toContain("manual_fast_path_via_create");

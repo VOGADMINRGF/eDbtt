@@ -278,7 +278,7 @@ function AnlassraumOperationsCard({ item }: { item: AnlassraumOperationsItem }) 
           Cluster-Control
         </Link>
         <Link href={item.links.detailJson} className="text-sky-700 hover:underline">
-          Feed/History JSON
+          Signal/History JSON
         </Link>
         {item.links.dossierAdmin ? (
           <Link href={item.links.dossierAdmin} className="text-sky-700 hover:underline">

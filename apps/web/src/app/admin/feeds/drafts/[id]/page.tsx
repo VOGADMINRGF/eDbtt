@@ -142,7 +142,7 @@ export default function AdminDraftDetailPage() {
             draft: { ...prev.draft, status: "published", publishedAt: new Date().toISOString() },
           },
       );
-      alert("Draft veröffentlicht.");
+      alert("Draft manuell veröffentlicht.");
       router.refresh();
     } catch (err: any) {
       alert(err?.message ?? "Publish fehlgeschlagen.");
@@ -254,14 +254,19 @@ export default function AdminDraftDetailPage() {
 
       <div className="rounded-xl border border-sky-300/50 bg-sky-50/70 px-4 py-3 text-sm text-sky-900 dark:border-sky-400/40 dark:bg-sky-500/10 dark:text-sky-100">
         Anlassraum-first: Entscheidungs-Pfade = ignore, attach_to_existing_anlassraum, create_anlassraum_candidate,
-        manual_fast_path_via_create. Dossier folgt danach als Verdichtung.
+        manual_fast_path_via_create. Dossier folgt danach als Verdichtung. Feed-Signale bleiben Hinweise, kein
+        Auto-Publish.
       </div>
 
       <div className="flex flex-col gap-4 lg:flex-row">
         <section className="flex-1 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm">
-          <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Signalquelle (Referenz)</h2>
+          <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Signalspur & Primärquelle</h2>
           <p className="mt-2 text-xs text-[rgb(var(--muted))]">
             Locale {candidate.sourceLocale ?? "unbekannt"} · Region {candidate.regionCode ?? "Global"}
+          </p>
+          <p className="mt-1 text-xs text-[rgb(var(--muted))]">
+            Signalquelle: {candidate.sourceName ?? "Feed-Referenz"} ({candidate.sourceType ?? "unbekannt"}) ·
+            Primärquelle bitte manuell prüfen.
           </p>
           <div className="mt-4 space-y-3 text-sm text-[rgb(var(--muted))]">
             <div>
@@ -325,7 +330,7 @@ export default function AdminDraftDetailPage() {
               disabled={actionLoading || draft.status === "published"}
               onClick={publishDraft}
             >
-              Direkt veröffentlichen (Ausnahme)
+              Manuell veröffentlichen (Ausnahme, nach Quellenprüfung)
             </button>
           </div>
 

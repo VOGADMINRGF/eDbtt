@@ -427,7 +427,7 @@ export default function AdminFeedDraftsPage() {
         <h1 className="text-2xl font-bold text-[rgb(var(--fg))]">Signal-Drafts: Anlassraum-first Queue</h1>
         <p className="text-sm text-[rgb(var(--muted))]">
           Operativer Kernpfad: Signal -&gt; Anlassraum -&gt; Dossier -&gt; Output. Feeds liefern Hinweise, keine direkte
-          Publikationslogik.
+          Publikationslogik. Primärquellen bleiben die fachliche Basis.
         </p>
         <div className="flex flex-wrap gap-3">
           <Link href="/admin/feeds" className="text-sm font-semibold text-sky-700 hover:underline">
@@ -453,7 +453,8 @@ export default function AdminFeedDraftsPage() {
 
       <section className="rounded-xl border border-sky-300/50 bg-sky-50/70 px-4 py-3 text-xs text-sky-900 dark:border-sky-400/40 dark:bg-sky-500/10 dark:text-sky-100">
         Entscheidungs-Pfade: <strong>ignore</strong>, <strong>attach_to_existing_anlassraum</strong>,{" "}
-        <strong>create_anlassraum_candidate</strong>, <strong>manual_fast_path_via_create</strong>.
+        <strong>create_anlassraum_candidate</strong>, <strong>manual_fast_path_via_create</strong>. Kein Auto-Publish,
+        keine automatische Feed-Übernahme.
       </section>
 
       <section className="grid gap-3 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm lg:grid-cols-6">
@@ -529,7 +530,7 @@ export default function AdminFeedDraftsPage() {
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Suche in Titel, Summary, Quelle"
+          placeholder="Suche in Titel, Summary, Primärquelle"
           className="rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm text-[rgb(var(--fg))] lg:col-span-2"
         />
         <input
@@ -576,7 +577,7 @@ export default function AdminFeedDraftsPage() {
                 <th className="px-4 py-3 text-left font-semibold text-[rgb(var(--muted))]">Queue-Kontext</th>
                 <th className="px-4 py-3 text-left font-semibold text-[rgb(var(--muted))]">Anlassraum & Hinweise</th>
                 <th className="px-4 py-3 text-left font-semibold text-[rgb(var(--muted))]">Nächster Schritt</th>
-                <th className="px-4 py-3 text-left font-semibold text-[rgb(var(--muted))]">Quelle</th>
+                <th className="px-4 py-3 text-left font-semibold text-[rgb(var(--muted))]">Primärquelle / Signalspur</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[rgb(var(--border))]">
@@ -716,13 +717,15 @@ export default function AdminFeedDraftsPage() {
                         ) : null}
                       </td>
                       <td className="px-4 py-3 align-top text-xs text-[rgb(var(--muted))]">
+                        <p className="font-semibold text-[rgb(var(--fg))]">Primärquelle</p>
                         {draft.sourceUrl ? (
                           <a href={draft.sourceUrl} target="_blank" rel="noreferrer" className="font-semibold text-sky-600 hover:underline">
                             {extractDomain(draft.sourceUrl)}
                           </a>
                         ) : (
-                          <span>–</span>
+                          <span>offen</span>
                         )}
+                        <p>Signalspur: Feed-Kandidat</p>
                         <p>Analyse: {draft.analyzeCompletedAt ? formatDate(draft.analyzeCompletedAt) : "offen"}</p>
                         <p>Pipeline: {draft.pipeline ?? "—"}</p>
                       </td>

@@ -98,7 +98,7 @@ describe("anlassraum operations page", () => {
     expect(html).toContain("Signal-Input-Räume");
     expect(html).toContain("Cluster-Räume");
     expect(html).toContain("Cluster-Control");
-    expect(html).toContain("Feed/History JSON");
+    expect(html).toContain("Signal/History JSON");
     expect(html).toContain("Zur Dossier-Verdichtung");
   });
 });
