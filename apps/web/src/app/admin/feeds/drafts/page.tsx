@@ -21,8 +21,9 @@ import {
   formatQueueSortLabel,
   formatWeakSignalFilterLabel,
   formatVoteDraftStatusLabel,
-  getOperatorSystemTexts,
+  getOperatorFeedDraftsTexts,
   resolveOperatorLocale,
+  type OperatorFeedDraftsTexts,
   type OperatorLocale,
 } from "@/features/i18n/operatorSystemTexts";
 
@@ -32,7 +33,7 @@ type QueueLinkFilter = "all" | "linked" | "unlinked";
 type QueueWeakFilter = "all" | "flagged" | "clear";
 type BulkAction = "ignore" | "mark_as_weak_signal" | "attach_to_anlassraum" | "create_anlassraum_candidate";
 type LegacyBackfillMode = "attach" | "create_candidate";
-type FeedDraftTexts = ReturnType<typeof getOperatorSystemTexts>["feedDrafts"];
+type FeedDraftTexts = OperatorFeedDraftsTexts;
 
 type LegacyDraftSummary = {
   id: string;
@@ -104,7 +105,7 @@ const BULK_ACTIONS: BulkAction[] = [
 export default function AdminFeedDraftsPage() {
   const { locale } = useLocale();
   const operatorLocale = resolveOperatorLocale(locale);
-  const text = getOperatorSystemTexts(operatorLocale).feedDrafts;
+  const text = getOperatorFeedDraftsTexts(operatorLocale);
 
   const [statusFilter, setStatusFilter] = useState<VoteDraftStatus | "all">("all");
   const [reviewStateFilter, setReviewStateFilter] = useState<FeedReviewState | "all">("all");

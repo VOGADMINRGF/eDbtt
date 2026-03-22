@@ -16,8 +16,9 @@ import {
   formatOutputSeedReviewStateLabel,
   formatOutputSeedStatusLabel,
   formatOpenLabel,
-  getOperatorSystemTexts,
+  getOperatorAnlassraumDetailTexts,
   resolveOperatorLocale,
+  type OperatorAnlassraumDetailTexts,
   type OperatorLocale,
 } from "@/features/i18n/operatorSystemTexts";
 
@@ -64,12 +65,12 @@ const OUTPUT_ACTIONS = [
 ] as const;
 
 type OutputAction = (typeof OUTPUT_ACTIONS)[number];
-type AnlassraumDetailTexts = ReturnType<typeof getOperatorSystemTexts>["anlassraumDetail"];
+type AnlassraumDetailTexts = OperatorAnlassraumDetailTexts;
 
 export default function AdminAnlassraumDetailPage() {
   const { locale } = useLocale();
   const operatorLocale = resolveOperatorLocale(locale);
-  const text = getOperatorSystemTexts(operatorLocale).anlassraumDetail;
+  const text = getOperatorAnlassraumDetailTexts(operatorLocale);
 
   const params = useParams<{ id: string }>();
   const [data, setData] = useState<AnlassraumDetailResponse | null>(null);
@@ -281,8 +282,7 @@ export default function AdminAnlassraumDetailPage() {
               <span className="font-semibold">{text.clusterLabel}:</span> {item.clusterKey ?? formatOpenLabel(operatorLocale)}
             </p>
             <p className="text-[rgb(var(--fg))]">
-              <span className="font-semibold">{text.sourceSituationLabel}:</span> {sources.length} {text.referencedSourceSuffix}
-              {sources.length === 1 ? "" : operatorLocale === "en" ? "s" : "n"}
+              <span className="font-semibold">{text.sourceSituationLabel}:</span> {sources.length} {text.sourcesLabel}
             </p>
             {sources.slice(0, 3).map((source, index) => (
               <p key={`source-preview-${index}`} className="text-xs text-[rgb(var(--muted))]">

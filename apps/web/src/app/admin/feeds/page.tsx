@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useLocale } from "@/context/LocaleContext";
-import { getOperatorSystemTexts, resolveOperatorLocale } from "@/features/i18n/operatorSystemTexts";
+import { getOperatorFeedsTexts, resolveOperatorLocale } from "@/features/i18n/operatorSystemTexts";
 
 type FeedConfigScope = {
   scope: string;
@@ -54,7 +54,7 @@ const SAMPLE_BATCH = JSON.stringify(
 export default function AdminFeedsPage() {
   const { locale } = useLocale();
   const operatorLocale = resolveOperatorLocale(locale);
-  const text = getOperatorSystemTexts(operatorLocale).feeds;
+  const text = getOperatorFeedsTexts(operatorLocale);
 
   const [config, setConfig] = useState<FeedConfigResponse | null>(null);
   const [configLoading, setConfigLoading] = useState(true);
@@ -200,9 +200,9 @@ export default function AdminFeedsPage() {
           <div key={scope.scope} className="mt-4 rounded-2xl border border-[rgb(var(--border))] p-4">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <p className="text-sm font-semibold text-[rgb(var(--fg))]">
-                Scope `{scope.scope}` {scope.version ? `· v${scope.version}` : ""}
+                {text.scopeLabel} `{scope.scope}` {scope.version ? `· v${scope.version}` : ""}
               </p>
-              <p className="text-xs text-[rgb(var(--muted))]">{scope.feeds?.length ?? 0} Feeds</p>
+              <p className="text-xs text-[rgb(var(--muted))]">{scope.feeds?.length ?? 0} {text.feedRowsLabel}</p>
             </div>
             {scope.ok ? (
               <>
@@ -224,7 +224,7 @@ export default function AdminFeedsPage() {
                     <tbody className="divide-y divide-[rgb(var(--border))]">
                       {(scope.feeds ?? []).map((feed) => (
                         <tr key={`${scope.scope}:${feed.regionCode}:${feed.feedUrl}`}>
-                          <td className="px-2 py-2">{feed.regionCode ?? "GLOBAL"}</td>
+                          <td className="px-2 py-2">{feed.regionCode ?? text.globalLabel}</td>
                           <td className="px-2 py-2">{feed.topicHints?.join(", ") || "—"}</td>
                           <td className="px-2 py-2">
                             <a href={feed.feedUrl} className="text-sky-700 hover:underline" target="_blank" rel="noreferrer">

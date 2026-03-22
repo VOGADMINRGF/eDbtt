@@ -66,6 +66,21 @@ export type OperatorTexts = {
     maxClaimsLabel: string;
     goToRounds: string;
     srOnlyCreate: string;
+    workGoalTitle: string;
+    workGoalLineReview: string;
+    workGoalLineAttach: string;
+    workGoalLineContinue: string;
+    accessNoteDefault: string;
+    accessNoteStaff: string;
+    accessNoteMedia: string;
+    accessNoteAgenda: string;
+    accessNoteCivic: string;
+    lockLabelCivic: string;
+    lockLabelJournalism: string;
+    lockLabelAgenda: string;
+    upgradeLabel: string;
+    selectionInfoInvalidContext: string;
+    selectionInfoUnavailableContext: string;
   };
   feeds: {
     headerKicker: string;
@@ -79,6 +94,8 @@ export type OperatorTexts = {
     loadingConfig: string;
     sourceMissing: string;
     invalidUrlsIgnoredSuffix: string;
+    feedRowsLabel: string;
+    globalLabel: string;
     colRegion: string;
     colTopic: string;
     colSignalSource: string;
@@ -350,6 +367,21 @@ const DE: OperatorTexts = {
     maxClaimsLabel: "Max. Claims",
     goToRounds: "Zu /runden",
     srOnlyCreate: "Erstellen",
+    workGoalTitle: "Arbeitsziel:",
+    workGoalLineReview: "- Signal strukturiert prüfen",
+    workGoalLineAttach: "- Anlassraum zuordnen oder Kandidat sauber neu anlegen",
+    workGoalLineContinue: "- Dossier erst nachgelagert weiterführen",
+    accessNoteDefault: "Dein Bereich ist festgelegt. Für andere Use Cases brauchst du das passende Paket.",
+    accessNoteStaff: "Staff-Zugang: alle Use Cases sind freigeschaltet.",
+    accessNoteMedia: "Journalismus/Medien: Zugriff nur für journalistische Formate.",
+    accessNoteAgenda: "Verwaltung/Organisation: Zugriff nur für Agenda- und Verwaltungsformate.",
+    accessNoteCivic: "Bürgerbereich: Zugriff für Beiträge und Projekte.",
+    lockLabelCivic: "Bürger-Bereich",
+    lockLabelJournalism: "Nur Journalismus/Medien",
+    lockLabelAgenda: "Nur Verwaltung/Organisationen",
+    upgradeLabel: "Upgrade",
+    selectionInfoInvalidContext: "Übergebener Kontext ist ungültig und wurde nicht übernommen.",
+    selectionInfoUnavailableContext: "Ausgewählter Kontext ist veraltet oder nicht mehr verfügbar.",
   },
   feeds: {
     headerKicker: "Admin · Feeds",
@@ -364,6 +396,8 @@ const DE: OperatorTexts = {
     loadingConfig: "Lade Konfiguration ...",
     sourceMissing: "keine Signalquelle gefunden",
     invalidUrlsIgnoredSuffix: "ungültige Feed-URLs wurden ignoriert.",
+    feedRowsLabel: "Feeds",
+    globalLabel: "GLOBAL",
     colRegion: "Region",
     colTopic: "Thema",
     colSignalSource: "Signalquelle (Feed-URL)",
@@ -642,6 +676,21 @@ const EN: OperatorTexts = {
     maxClaimsLabel: "Max claims",
     goToRounds: "Go to /runden",
     srOnlyCreate: "Create",
+    workGoalTitle: "Work goal:",
+    workGoalLineReview: "- Review signal context in a structured way",
+    workGoalLineAttach: "- Attach to an Anlassraum or create a candidate deliberately",
+    workGoalLineContinue: "- Continue dossier work only as a follow-up",
+    accessNoteDefault: "Your area is fixed. For other use cases, you need the matching package.",
+    accessNoteStaff: "Staff access: all use cases are enabled.",
+    accessNoteMedia: "Journalism/media: access limited to journalism formats.",
+    accessNoteAgenda: "Administration/organizations: access limited to agenda and administration formats.",
+    accessNoteCivic: "Civic area: access for contributions and projects.",
+    lockLabelCivic: "Civic area",
+    lockLabelJournalism: "Journalism/media only",
+    lockLabelAgenda: "Administration/organizations only",
+    upgradeLabel: "Upgrade",
+    selectionInfoInvalidContext: "Passed context is invalid and was not applied.",
+    selectionInfoUnavailableContext: "Selected context is outdated or no longer available.",
   },
   feeds: {
     headerKicker: "Admin · Feeds",
@@ -656,6 +705,8 @@ const EN: OperatorTexts = {
     loadingConfig: "Loading configuration ...",
     sourceMissing: "no signal source found",
     invalidUrlsIgnoredSuffix: "invalid feed URLs were ignored.",
+    feedRowsLabel: "Feeds",
+    globalLabel: "GLOBAL",
     colRegion: "Region",
     colTopic: "Topic",
     colSignalSource: "Signal source (feed URL)",
@@ -922,6 +973,21 @@ const ES: OperatorTexts = {
     maxClaimsLabel: "Máx. claims",
     goToRounds: "Ir a /runden",
     srOnlyCreate: "Crear",
+    workGoalTitle: "Objetivo de trabajo:",
+    workGoalLineReview: "- Revisar el contexto de Signal de forma estructurada",
+    workGoalLineAttach: "- Vincular con un Anlassraum o crear un candidato de forma deliberada",
+    workGoalLineContinue: "- Continuar el trabajo de Dossier solo como paso posterior",
+    accessNoteDefault: "Tu área está fijada. Para otros casos de uso necesitas el paquete correspondiente.",
+    accessNoteStaff: "Acceso staff: todos los casos de uso están habilitados.",
+    accessNoteMedia: "Periodismo/medios: acceso limitado a formatos periodísticos.",
+    accessNoteAgenda: "Administración/organizaciones: acceso limitado a formatos de agenda y administración.",
+    accessNoteCivic: "Área cívica: acceso para contribuciones y proyectos.",
+    lockLabelCivic: "Área cívica",
+    lockLabelJournalism: "Solo periodismo/medios",
+    lockLabelAgenda: "Solo administración/organizaciones",
+    upgradeLabel: "Mejorar plan",
+    selectionInfoInvalidContext: "El contexto recibido no es válido y no se aplicó.",
+    selectionInfoUnavailableContext: "El contexto seleccionado está desactualizado o ya no está disponible.",
   },
   feeds: {
     ...EN.feeds,
@@ -933,6 +999,8 @@ const ES: OperatorTexts = {
     linkToAcquisition: "Ir al panel de adquisición",
     sourceConfigTitle: "Configuración de fuentes de Signal (referencias Feed)",
     loadingConfig: "Cargando configuración ...",
+    feedRowsLabel: "Feeds",
+    globalLabel: "GLOBAL",
     colSignalSource: "Fuente de Signal (URL de Feed)",
     pullAnalyzeTitle: "Extracción + análisis",
     pullAnalyzeLead:
@@ -1147,6 +1215,21 @@ const FR: OperatorTexts = {
     monthlyLimitUnlimited: "illimité",
     goToRounds: "Aller à /runden",
     srOnlyCreate: "Créer",
+    workGoalTitle: "Objectif de travail :",
+    workGoalLineReview: "- Vérifier le contexte Signal de manière structurée",
+    workGoalLineAttach: "- Lier à un Anlassraum ou créer un candidat de façon délibérée",
+    workGoalLineContinue: "- Poursuivre le travail Dossier uniquement en étape suivante",
+    accessNoteDefault: "Votre périmètre est fixé. Pour d'autres cas d'usage, il faut l'offre adaptée.",
+    accessNoteStaff: "Accès staff : tous les cas d'usage sont activés.",
+    accessNoteMedia: "Journalisme/médias : accès limité aux formats journalistiques.",
+    accessNoteAgenda: "Administration/organisations : accès limité aux formats agenda et administration.",
+    accessNoteCivic: "Espace civique : accès pour contributions et projets.",
+    lockLabelCivic: "Espace civique",
+    lockLabelJournalism: "Journalisme/médias uniquement",
+    lockLabelAgenda: "Administration/organisations uniquement",
+    upgradeLabel: "Mise à niveau",
+    selectionInfoInvalidContext: "Le contexte transmis est invalide et n'a pas été appliqué.",
+    selectionInfoUnavailableContext: "Le contexte sélectionné est obsolète ou indisponible.",
   },
   feeds: {
     ...EN.feeds,
@@ -1158,6 +1241,8 @@ const FR: OperatorTexts = {
     linkToAcquisition: "Aller au tableau acquisition",
     sourceConfigTitle: "Configuration des sources Signal (références Feed)",
     loadingConfig: "Chargement de la configuration ...",
+    feedRowsLabel: "Feeds",
+    globalLabel: "GLOBAL",
     colTopic: "Thème",
     colSignalSource: "Source Signal (URL Feed)",
     pullAnalyzeTitle: "Collecte + analyse",
@@ -1373,6 +1458,21 @@ const ZH: OperatorTexts = {
     monthlyLimitUnlimited: "无限制",
     goToRounds: "前往 /runden",
     srOnlyCreate: "创建",
+    workGoalTitle: "工作目标：",
+    workGoalLineReview: "- 以结构化方式核验 Signal 上下文",
+    workGoalLineAttach: "- 将其关联到 Anlassraum，或有意识地创建候选",
+    workGoalLineContinue: "- 仅在后续阶段继续 Dossier 工作",
+    accessNoteDefault: "你的使用范围已固定。若需其他用例，请升级到对应套餐。",
+    accessNoteStaff: "Staff 访问：全部用例均已开放。",
+    accessNoteMedia: "新闻/媒体：仅可访问新闻类格式。",
+    accessNoteAgenda: "行政/组织：仅可访问议程与行政类格式。",
+    accessNoteCivic: "公民区：可访问贡献与项目类内容。",
+    lockLabelCivic: "公民区",
+    lockLabelJournalism: "仅新闻/媒体",
+    lockLabelAgenda: "仅行政/组织",
+    upgradeLabel: "升级",
+    selectionInfoInvalidContext: "传入的上下文无效，未被应用。",
+    selectionInfoUnavailableContext: "所选上下文已过期或不再可用。",
   },
   feeds: {
     ...EN.feeds,
@@ -1384,6 +1484,8 @@ const ZH: OperatorTexts = {
     linkToAcquisition: "前往获客面板",
     sourceConfigTitle: "Signal 来源配置（Feed 引用）",
     loadingConfig: "正在加载配置...",
+    feedRowsLabel: "Feed 条目",
+    globalLabel: "全局",
     colTopic: "主题",
     colSignalSource: "Signal 来源（Feed URL）",
     pullAnalyzeTitle: "抓取 + 分析",

@@ -9,7 +9,11 @@ import type { CreateEntitlements } from "@/lib/server/entitlements/createEntitle
 import type { CreateMode } from "@/features/create/intents";
 import { formatRelevanceScopeLabel } from "@/features/relevanceFraming";
 import { useLocale } from "@/context/LocaleContext";
-import { getOperatorSystemTexts, resolveOperatorLocale } from "@/features/i18n/operatorSystemTexts";
+import {
+  getOperatorCreateTexts,
+  resolveOperatorLocale,
+  type OperatorCreateTexts,
+} from "@/features/i18n/operatorSystemTexts";
 
 export type CreateClientProps = {
   initialEntitlements: CreateEntitlements;
@@ -56,7 +60,7 @@ type GateState =
   | { status: "allowed"; entitlements: CreateEntitlements }
   | { status: "blocked"; entitlements: CreateEntitlements };
 
-function deriveUseCaseAccess(overview?: AccountOverview | null): UseCaseAccess {
+function deriveUseCaseAccess(overview: AccountOverview | null | undefined, text: OperatorCreateTexts): UseCaseAccess {
   const roles = (overview?.roles ?? []).map((r) => String(r).toLowerCase());
   const tier = overview ? getUserAccessTier(overview) : "citizenBasic";
   const isStaff = roles.some((r) => ["admin", "superadmin", "staff", "moderator"].includes(r));
@@ -69,32 +73,32 @@ function deriveUseCaseAccess(overview?: AccountOverview | null): UseCaseAccess {
     ) || tier.startsWith("institution");
 
   let allowed: UseCaseId[] = ["civic"];
-  let note = "Dein Bereich ist festgelegt. Fuer andere Use Cases brauchst du das passende Paket.";
+  let note = text.accessNoteDefault;
 
   if (isStaff) {
     allowed = ["civic", "journalism", "agenda"];
-    note = "Staff-Zugang: alle Use Cases sind freigeschaltet.";
+    note = text.accessNoteStaff;
   } else if (isMedia) {
     allowed = ["journalism"];
-    note = "Journalismus/Medien: Zugriff nur fuer journalistische Formate.";
+    note = text.accessNoteMedia;
   } else if (isAgenda) {
     allowed = ["agenda"];
-    note = "Verwaltung/Organisation: Zugriff nur fuer Agenda- und Verwaltungsformate.";
+    note = text.accessNoteAgenda;
   } else {
     allowed = ["civic"];
-    note = "Buergerbereich: Zugriff fuer Beitraege und Projekte.";
+    note = text.accessNoteCivic;
   }
 
   return {
     allowed,
     note,
     lockLabels: {
-      civic: "Buerger-Bereich",
-      journalism: "Nur Journalismus/Medien",
-      agenda: "Nur Verwaltung/Organisationen",
+      civic: text.lockLabelCivic,
+      journalism: text.lockLabelJournalism,
+      agenda: text.lockLabelAgenda,
     },
     ctaHref: "/pricing",
-    ctaLabel: "Upgrade",
+    ctaLabel: text.upgradeLabel,
   };
 }
 
@@ -151,7 +155,7 @@ export default function CreateClient({
 }: CreateClientProps) {
   const { locale } = useLocale();
   const operatorLocale = resolveOperatorLocale(locale);
-  const text = getOperatorSystemTexts(operatorLocale).create;
+  const text = getOperatorCreateTexts(operatorLocale);
 
   const [entitlements, setEntitlements] = React.useState<CreateEntitlements>(initialEntitlements);
   const [gate, setGate] = React.useState<GateState>(() => deriveGate(initialEntitlements));
@@ -169,7 +173,7 @@ export default function CreateClient({
   const [selectionInfo, setSelectionInfo] = React.useState<string | null>(() => {
     if (!initialAnlassraumId) return null;
     if (normalizeAnlassraumId(initialAnlassraumId)) return null;
-    return "Uebergebener Kontext ist ungueltig und wurde nicht uebernommen.";
+    return text.selectionInfoInvalidContext;
   });
   const contextLoadedRef = React.useRef(false);
 
@@ -219,7 +223,7 @@ export default function CreateClient({
         const found = nextItems.some((item) => item.anlassraumId === selectedAnlassraumId);
         if (!found) {
           setSelectedAnlassraumId(null);
-          setSelectionInfo("Ausgewaehlter Kontext ist veraltet oder nicht mehr verfuegbar.");
+          setSelectionInfo(text.selectionInfoUnavailableContext);
         }
       }
     } catch (error: unknown) {
@@ -227,7 +231,7 @@ export default function CreateClient({
       setContextLoadState("error");
       setContextLoadError(message);
     }
-  }, [selectedAnlassraumId]);
+  }, [selectedAnlassraumId, text.selectionInfoUnavailableContext]);
 
   React.useEffect(() => {
     if (!pickerEnabled) return;
@@ -274,7 +278,7 @@ export default function CreateClient({
       : Math.min(entitlements.maxFinalizeClaimsPerInput, 4);
 
   const afterFinalizeNavigateTo = dossierId ? `/dossier/${dossierId}` : "/runden";
-  const useCaseAccess = deriveUseCaseAccess(overview);
+  const useCaseAccess = deriveUseCaseAccess(overview, text);
   const selectedContext = selectedAnlassraumId
     ? contextItems.find((item) => item.anlassraumId === selectedAnlassraumId) ?? null
     : null;

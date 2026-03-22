@@ -10,7 +10,7 @@ import { parseCreateIntent, parseCreateMode, type CreateMode } from "@/features/
 import { formatRelevanceScopeLabel } from "@/features/relevanceFraming";
 import { DEFAULT_LOCALE, isSupportedLocale, type SupportedLocale } from "@/config/locales";
 import {
-  getOperatorSystemTexts,
+  getOperatorCreateTexts,
   resolveOperatorLocale,
   type OperatorLocale,
 } from "@/features/i18n/operatorSystemTexts";
@@ -105,20 +105,7 @@ function buildIntakeContextPrefill(
   locale: OperatorLocale,
 ): string | null {
   if (!hasCreateIntakeContext(context) && !anlassraumId) return null;
-  const text = getOperatorSystemTexts(locale).create;
-  const workGoalTitle = locale === "en" ? "Work goal:" : "Arbeitsziel:";
-  const workGoalLines =
-    locale === "en"
-      ? [
-          "- Review signal context in a structured way",
-          "- Attach to an Anlassraum or create a candidate deliberately",
-          "- Continue dossier work only as a follow-up",
-        ]
-      : [
-          "- Signal strukturiert prüfen",
-          "- Anlassraum zuordnen oder Kandidat sauber neu anlegen",
-          "- Dossier erst nachgelagert weiterführen",
-        ];
+  const text = getOperatorCreateTexts(locale);
 
   const lines = [
     `${text.intakeContextTitle} (Anlassraum-first):`,
@@ -135,8 +122,10 @@ function buildIntakeContextPrefill(
     context.candidateId ? `${text.candidateIdLabel}: ${context.candidateId}` : null,
     context.draftId ? `${text.draftIdLabel}: ${context.draftId}` : null,
     "",
-    workGoalTitle,
-    ...workGoalLines,
+    text.workGoalTitle,
+    text.workGoalLineReview,
+    text.workGoalLineAttach,
+    text.workGoalLineContinue,
   ].filter((entry): entry is string => typeof entry === "string" && entry.length > 0);
 
   return lines.join("\n");
@@ -187,7 +176,7 @@ export default async function CreatePage({
   const resolved = searchParams ? await searchParams : {};
   const query = toQueryString(resolved);
   const pageLocale = resolveOperatorLocale(await detectPageLocale());
-  const createText = getOperatorSystemTexts(pageLocale).create;
+  const createText = getOperatorCreateTexts(pageLocale);
 
   const entitlements = await getCreateEntitlementsForRequest();
   if (!entitlements.isAuthenticated || !entitlements.userId) {

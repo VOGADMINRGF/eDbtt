@@ -10,7 +10,7 @@ import {
   formatSourceModeLabel,
 } from "@/features/relevanceFraming";
 import {
-  getOperatorSystemTexts,
+  getOperatorAnlassraumListTexts,
   resolveOperatorLocale,
 } from "@/features/i18n/operatorSystemTexts";
 
@@ -71,7 +71,7 @@ const SOURCE_MODE_OPTIONS = [
 export default function AdminAnlassraumPage() {
   const { locale } = useLocale();
   const operatorLocale = resolveOperatorLocale(locale);
-  const text = getOperatorSystemTexts(operatorLocale).anlassraumList;
+  const text = getOperatorAnlassraumListTexts(operatorLocale);
 
   const [items, setItems] = useState<AnlassraumListItem[]>([]);
   const [loading, setLoading] = useState(true);
