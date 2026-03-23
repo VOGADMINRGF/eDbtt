@@ -5,7 +5,7 @@
 Diese Datei ist der kanonische Aufgabenstand fuer E150.
 Wenn andere Parts, alte Drift-Prompts oder Zwischen-Notizen abweichen, gewinnt diese Datei.
 
-Stand: 2026-03-22
+Stand: 2026-03-23
 
 ## Leitbild
 
@@ -27,6 +27,10 @@ Wichtige Produktregeln:
 - Publikation nur ueber Review + Approval.
 - Anonyme Hinweise sind erlaubt, aber nie allein publikationsfaehig.
 - Geld darf niemals Wahrheit, Faktenstatus oder Abstimmungsergebnis kaufen.
+- Soziale Naehe/Matching darf nicht aus fruehen inhaltlichen Treffern allein entstehen.
+- Sache zuerst: sozialer Austausch nur nach sichtbarem Sach-Commitment.
+- DM-/Gruppen-/Kontakt-Eskalation nur opt-in, gestuft und moderierbar.
+- Security/Privacy gilt als Architekturpflicht: PII trennen, KI-Datenfluesse minimieren, Audit Trail halten.
 
 ## Merge-Prinzip V1 + V2
 
@@ -107,6 +111,19 @@ Status: **Open (Architecture alignment required / 2026-03-20)**
 - **GOV-AI-06** Language-Aware Core + Cross-Lingual Matching
 - **GOV-AI-07** Meta-Layer / Audit / Provenance / Layman Explanation
 
+### Welle 2.6 — AI-Orchestration Governance + Social Safety/Security (top priority)
+Status: **In Progress (canonical docs hardening / 2026-03-23)**
+
+- **GOV-AI-ORCH-01** Kanonisches Zielbild der 5 Orchestrierungen verankern
+- **GOV-AI-ORCH-02** Bestehende KI-/Route-Anbindungen inventarisieren und gegen Zielbild mappen
+- **GOV-AI-ORCH-03** Provider-/Modellstrategie je Orchester festlegen
+- **GOV-SAFETY-01** Social-/Kontaktlogik auf Commitment-first statt Proximity-first umstellen
+- **GOV-SAFETY-02** Schutzregeln fuer Frauen / vulnerable / andersdenkende Nutzer verbindlich festlegen
+- **GOV-SAFETY-03** Fruehes Matching/DM/Gruppensog nur nach expliziten Schutz- und Freigaberegeln
+- **GOV-SEC-01** Security-Hardening / Secret-Hygiene / lokale Prod-URI-Risiken dokumentieren und absichern
+- **GOV-SEC-02** Route-/Auth-/AI-Anbindungs-Audit als Pflicht vor naechstem groesseren Slice
+- **GOV-SEC-03** PII-/Content-/AI-Zonenmodell + High-impact Audit-/Trace-/Review-Pflicht operationalisieren
+
 ### Welle 3 — Kommune / Verwaltung
 - **GOV-MUNI-01** Buergermeister-Dashboard
 - **GOV-MUNI-02** Dezernatslogik
@@ -139,6 +156,15 @@ Status: **Open (Architecture alignment required / 2026-03-20)**
 
 | Task | Status | Naechster Run | Evidenz/Notiz |
 | --- | --- | --- | --- |
+| GOV-AI-ORCH-01 Kanonisches Zielbild der 5 Orchestrierungen verankern | Done (canonical model documented / 2026-03-23) | GOV-AI-ORCH-02 | Kanonische Zielarchitektur inkl. Produktregeln, Safety/Security-Guardrails und Providerstrategie in `docs/E150/Part16_AI_Orchestration_and_Safety.md`; Verweise in `OpenTasks.md` + `Part15.md` aktualisiert. |
+| GOV-AI-ORCH-02 KI-/Route-Anbindungen inventarisieren und gegen Zielbild mappen | Open (inventory pending) | GOV-AI-ORCH-03 | Pflichtinventar fuer aktive KI-/Route-Pfade (`/api/contributions/analyze`, Match-/CTA-Handoffs, Dossier-/Pruefpfade) inkl. Gap-Map gegen die 5 Orchestrierungen; kein neuer Code ohne Mapping. |
+| GOV-AI-ORCH-03 Provider-/Modellstrategie je Orchester festlegen | In Progress (baseline strategy documented / 2026-03-23) | GOV-SEC-03 | Erste kanonische Empfehlung je Orchester liegt in `Part16_AI_Orchestration_and_Safety.md`; offene Punkte (DPA/Residency/Failover/Kosten) als Research-Aufgaben bestehen. |
+| GOV-SAFETY-01 Commitment-first statt Proximity-first verbindlich verankern | Done (policy canonized / 2026-03-23) | GOV-SAFETY-03 | Produktregel dokumentiert: kein direktes Personen-Matching nur auf Basis von Region + fruehen inhaltlichen Treffern; zuerst Sach-Commitment. |
+| GOV-SAFETY-02 Schutzregeln fuer Frauen / vulnerable / andersdenkende Nutzer dokumentieren | Done (policy canonized / 2026-03-23) | GOV-SAFETY-03 | Schutz vor Belaestigung, Anmachspruechen, zweideutigen Narrativen, sozialem Druck und Vereinnahmung als verbindliche Governance-Regel dokumentiert. |
+| GOV-SAFETY-03 Social-Eskalation (DM, Gruppen, Kontakt) nur gestuft/opt-in/moderierbar | Open (product gating pending) | GOV-SEC-02 | Community-/Inbox-/Matching-Ausbau bleibt gesperrt, bis stufenbasierte Freigabe-, Abuse- und Moderationsfaehigkeit explizit implementiert und getestet ist. |
+| GOV-SEC-01 Secret-Hygiene / lokale Prod-URI-Risiken dokumentieren und absichern | In Progress (doc baseline active / 2026-03-23) | GOV-SEC-02 | Klare Vorgabe: Prod-Secrets/Prod-URIs nicht als lokaler Alltagsstandard; Rotation/Hygiene/Risikoaufklaerung verpflichtend. |
+| GOV-SEC-02 Route-/Auth-/AI-Anbindungs-Audit als Pflicht vor naechstem groesseren Slice | Open (audit run pending) | GOV-SEC-03 | Vor naechstem grossen Architektur-/Feature-Slice ist ein strukturierter Auditlauf fuer Auth-/Route-/AI-Anbindung verpflichtend (inkl. Guardrails, Failure-Modes, Logs, Abuse-Surface). |
+| GOV-SEC-03 PII-/Content-/AI-Zonenmodell + High-impact Audit/Trace/Review operationalisieren | Open (implementation pending) | GOV-AI-ORCH-02 | Architekturpflicht: Datenzonen und minimierte externe KI-Payloads; High-impact Klassen (Moderation, Trust/Score, Dossier-Verdichtung, Publish-nahe Vorstufen, Personen-Matching) nur mit nachvollziehbarem Audit-/Review-Pfad. |
 | PR-AI-CREATE-01 `/create` auf kanonischen Orchestrierungsfluss harmonisieren | In Progress (intake deepened / 2026-03-22) | GOV-AI-02 | `/create` ist als kanonischer Intake deutlich staerker verdrahtet: Fast-Path-Hrefs tragen kontextreiche Felder (`signalTitle`, `sourceUrl`, `sourceLabel`, `region`, `scope`, `clusterHint`, `reviewState`, `candidateId`, `reason`, `prefill`) ohne erzwungene Legacy-Defaults (`intent=claim&mode=manual`). Create-UI zeigt uebernommenen Handoff-Kontext sichtbar; relevante Einstiege aus Feed-Drafts, Anlassraum Operations, CTA-Handoff und Match-Service sind vereinheitlicht. Evidenz: `apps/web/src/features/create/intents.ts`, `apps/web/src/app/create/page.tsx`, `apps/web/src/app/create/CreateClient.tsx`, `apps/web/src/features/anlassraumOperationsRead.ts`, `apps/web/src/features/anlassraumOperationsUi.tsx`, `apps/web/src/features/create/ctaHandoff.ts`, `apps/web/src/features/create/matchService.ts`; Tests: `apps/web/tests/create-mode.intents.test.ts`, `apps/web/tests/create-mode.page.test.ts`, `apps/web/tests/create-cta-handoff.test.ts`, `apps/web/tests/create-match.service.test.ts` |
 | PR-AI-MATCH-11 Single Opaque History Cursor + lazy queue cleanup | Done (contract/UX polish active / 2026-03-21) | Monitoring/Polish | Produktiver History-Read-Contract fuer Prepare-Attach ist auf einen einzelnen opaquen Cursor reduziert: `GET /api/admin/create/attach-drafts/[draftId]/history` liefert `nextCursor` (kein `nextScanCursor` mehr). Interner Cursor bleibt robust (Scan+Accepted-Position im Payload, draft-/type-gebunden, `invalid_history_cursor` bei Mismatch). Queue-UI nutzt pro Draft nur noch einen Cursor-State fuer lazy "Mehr Verlauf laden". Legacy-Read-Normalisierung bleibt unveraendert aktiv (`normalizedFromLegacy`, `legacyNormalizationReason`); keine neue Auto-Mutation. |
 | PR-AI-MATCH-10 History Backfill Utility + Contract Docs | Done (maintenance slice active / 2026-03-21) | Monitoring/Polish | Legacy-History-Maintenance als expliziter Pfad: Utility `apps/web/src/features/create/attachDraftHistoryBackfill.ts`, Script `apps/web/scripts/create.history-backfill.ts`; Default dry-run, Apply nur explizit (`--apply`/`--mode=apply`), idempotent ohne Event-Duplikate. Sichere Legacy-Faelle sind `normalizable`; ambige/unsichere Faelle werden nur reportet (`unsafe_to_backfill`) und nicht umgeschrieben. Produktiver Read-Contract bleibt Single-Cursor (`nextCursor`), Legacy-Read-Normalisierung bleibt aktiv; keine neue Auto-Mutation. |
@@ -609,6 +635,91 @@ Scope:
 - Human-in-the-Loop fuer high-impact Faelle
 
 Status: **Open (planned / canonical / 2026-03-20)**
+
+### Architektur-Drift Klarstellung (2026-03-23)
+
+- Das Zielbild "ein einzelner Orchestrator fuer alles" reicht nicht aus.
+- Der bestehende E150-Orchestrator bleibt der deterministische Hauptfluss/Backbone.
+- Spezialisierte Orchestrierungen kommen zusaetzlich hinzu:
+  - Intake-Orchestrierung
+  - Pruef-Orchestrierung
+  - Agenda-/Fragen-Orchestrierung
+  - Dossier-Orchestrierung
+  - Beteiligungs-/Abstimmungs-Orchestrierung
+- Die fruehere 11-Stufen-Pipeline bleibt als technische Unterpipeline/KI-Verarbeitungssicht wertvoll.
+- Die kanonische Produktsicht ist ab jetzt das 5-Orchester-Modell (siehe `docs/E150/Part16_AI_Orchestration_and_Safety.md`).
+
+### GOV-AI-ORCH-01 — Kanonisches Zielbild der 5 Orchestrierungen verankern
+Scope:
+- verbindliche Produkt-/Architekturregeln fuer alle 5 Orchestrierungen
+- eindeutige Abgrenzung zur alten monolithischen "ein Orchestrator fuer alles"-Annahme
+- klare Guardrails: no auto publish, no silent merge, human control visible
+
+Status: **Done (canonical docs baseline / 2026-03-23)**
+
+### GOV-AI-ORCH-02 — KI-/Route-Anbindungen inventarisieren und mappen
+Scope:
+- aktive KI-Routen und Feature-Andockpunkte inventarisieren
+- Mapping je Endpoint/Service auf das 5-Orchester-Zielbild
+- offene Gaps/Drifts als priorisierte Folgeaufgaben ausweisen
+
+Status: **Open (inventory run pending / 2026-03-23)**
+
+### GOV-AI-ORCH-03 — Provider-/Modellstrategie je Orchester
+Scope:
+- primaere/fallback Modellklasse pro Orchester definieren
+- Open-weight/self-host Eignung je Orchester markieren
+- Unsicherheiten (DPA/Residency/Kosten/SLA) explizit offenlegen
+
+Status: **In Progress (baseline documented / 2026-03-23)**
+
+### GOV-SAFETY-01 — Commitment-first statt Proximity-first
+Scope:
+- kein direktes Personen-Matching nur wegen aehnlicher Position/Region
+- zuerst sichtbares Sach-Commitment (Beitrag, Quellen, Optionen, Mitwirkung)
+- Social-Naehe nur als spaeterer, kontrollierter Schritt
+
+Status: **Done (policy canonized / 2026-03-23)**
+
+### GOV-SAFETY-02 — Schutzregeln fuer Frauen / vulnerable / andersdenkende Nutzer
+Scope:
+- Schutz vor Belaestigung, Anmachspruechen, zweideutigen Narrativen
+- Schutz vor sozialem Druck, Vereinnahmung und manipulativer Kontaktanbahnung
+- Moderations-/Abuse-Interventionsfaehigkeit als Pflicht
+
+Status: **Done (policy canonized / 2026-03-23)**
+
+### GOV-SAFETY-03 — Social-Eskalation nur gestuft/opt-in/moderierbar
+Scope:
+- kein ungefragtes DM-Default, keine aggressive 1:1-Kopplung
+- Gruppen-/Kontaktlogik nur opt-in, gestuft, missbrauchssensibel und nachvollziehbar
+- Community-/Inbox-Ausbau nur nach Schutz- und Freigaberegeln
+
+Status: **Open (product gating pending / 2026-03-23)**
+
+### GOV-SEC-01 — Secret-Hygiene / lokale Prod-URI-Risiken
+Scope:
+- Prod-Secrets/Prod-URIs nicht als lokaler Alltagsstandard
+- Rotation/Hygiene als Pflicht und nicht als optionales Ops-Detail
+- Security-Risiken explizit vor lokaler Bequemlichkeit priorisieren
+
+Status: **In Progress (doc baseline active / 2026-03-23)**
+
+### GOV-SEC-02 — Route-/Auth-/AI-Anbindungs-Auditpflicht
+Scope:
+- Auditpflicht vor naechstem groesseren Slice
+- Route/Auth/AI-Guardrails, Failure-Modes, Logs, Abuse-Surface dokumentiert pruefen
+- Findings in OpenTasks als harte Follow-ups verankern
+
+Status: **Open (audit run pending / 2026-03-23)**
+
+### GOV-SEC-03 — PII-/Content-/AI-Zonen + High-impact-Auditpflicht
+Scope:
+- Datenzonenmodell (`PII`, `Content`, `AI-Processing`, `Trust/Audit`) als Pflichtarchitektur
+- externe KI nur minimal-notwendige, moeglichst entpersonalisierte Ausschnitte
+- High-impact-Klassen nur mit Audit-/Trace-/Review-Anspruch
+
+Status: **Open (implementation pending / 2026-03-23)**
 
 Priorisierung (2026-03-20):
 - Ohne GOV-AI-01 bleibt `/create` fachlich widerspruechlich (legacy mode split vs. Freistart-Zielbild).

@@ -1,6 +1,6 @@
 # E150 Master Spec – Part 15: Offene Pfade & Restarbeiten
 
-> Status-Hinweis (2026-03-21): Dieses Part ist eine Spezifikation/Zusammenfassung. Der verbindliche Aufgabenstand liegt in `docs/E150/OpenTasks.md`. Keine neuen Runs aus diesem Part ableiten.
+> Status-Hinweis (2026-03-23): Dieses Part ist eine Spezifikation/Zusammenfassung. Der verbindliche Aufgabenstand liegt in `docs/E150/OpenTasks.md`. Keine neuen Runs aus diesem Part ableiten.
 
 
 ## Zweck
@@ -20,6 +20,25 @@ Dieses Dokument dient als Status-Zusammenfassung der Pfade (Part00–Part15). Es
 - Stage-2/Stage-3 (Self-Host/Souveraenisierung) sind explizit hard-deferred und bleiben letzter Agenda-Punkt bis zur vollstaendigen operativen Baseline.
 - Governance bleibt unveraendert strikt:
   manual-first, review-first, approval-first, no auto publish.
+
+## Update (2026-03-23) — Canonical AI Orchestration + Social Safety/Security Guardrails
+
+- Kanonische Referenz fuer das geschaerfte Zielbild:
+  `docs/E150/Part16_AI_Orchestration_and_Safety.md`.
+- Das 5-Orchester-Modell ist die verbindliche Produktsicht:
+  `intake`, `pruefung`, `agenda_fragen`, `dossier`, `beteiligung_abstimmung`.
+- Der bestehende E150-Orchestrator bleibt deterministischer Hauptfluss; spezialisierte Orchestrierungen werden zusaetzlich und kontrolliert angedockt.
+- Die fruehere 11-Stufen-Pipeline bleibt als technische Unterpipeline/KI-Verarbeitungssicht wertvoll, ersetzt aber nicht die neue Produktsicht.
+- Verbindliche Social-Safety-Regel:
+  kein fruehes Personen-Matching/DM/Gruppensog nur wegen aehnlicher Position + Region.
+- Verbindliche Reihenfolge:
+  Sache zuerst, Schutz zuerst, Austausch spaeter und kontrolliert.
+- Social-Eskalation ist nur zulaessig, wenn sie opt-in, gestuft, moderierbar und missbrauchssensibel ist.
+- Schutzdimension ist explizit:
+  Schutz vor Belaestigung, Anmachspruechen, zweideutigen Narrativen, sozialem Druck; besonderer Schutz fuer Frauen, vulnerable und andersdenkende Nutzer.
+- Security-/Privacy-Pflicht bleibt nicht optional:
+  Secret-Hygiene, PII-Trennung, minimierte externe KI-Payloads, Audit-Trail fuer High-impact-KI-Schritte.
+- Community-/Matching-/Inbox-Ausbau ist abhaengig von GOV-SAFETY-01..03 und GOV-SEC-01..03 (OpenTasks ist verbindlich).
 
 ## Update (2026-03-20) — PR-AI-CREATE-01 Implementation Baseline (`/create` Harmonization)
 
