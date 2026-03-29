@@ -14,7 +14,25 @@ import {
   type AnlassraumScope,
   type AnlassraumType,
 } from "@features/anlassraum/types";
+import { resolveJournalismTruthGuardrails } from "@features/anlassraum/journalismGuardrails";
+import { resolveJournalismCompanionContract } from "@features/anlassraum/journalismCompanionContract";
+import {
+  resolveJournalismRoleProfileContract,
+  validateJournalismContractConsistency,
+} from "@features/anlassraum/journalismRoleProfileContract";
+import { resolveMunicipalGovernanceModeContract } from "@features/anlassraum/municipalGovernanceModeContract";
+import { resolveMunicipalResponsibilityGuardrails } from "@features/anlassraum/municipalResponsibilityGuardrails";
+import { resolveMunicipalProcessStatusContract } from "@features/anlassraum/municipalProcessStatusContract";
+import {
+  resolveMunicipalRoleGovernanceContract,
+  validateMunicipalRoleGovernanceConsistency,
+} from "@features/anlassraum/municipalRoleGovernanceContract";
+import {
+  buildOrgContextAttachmentBaseline,
+  validateOrgContextAttachmentConsistency,
+} from "@features/anlassraum/orgContextAttachmentContract";
 import { ROOM_TYPES, type GovernanceActor, type RoomType } from "@features/trust/types";
+import { buildFundingImpactLifecycleBaseline } from "@/lib/server/funding/fundingImpactLifecycleContract";
 import { requireGovernanceActorOrResponse } from "@/lib/server/auth/governance";
 
 export async function POST(req: NextRequest) {
@@ -98,10 +116,91 @@ export async function POST(req: NextRequest) {
     });
 
     const publishGate = await getAnlassraumPublishGate(created.anlassraumId);
+    const journalismTruthGuardrails = resolveJournalismTruthGuardrails({ originType });
+    const journalismCompanionContract = resolveJournalismCompanionContract({
+      originType,
+      roomType,
+    });
+    const journalismRoleProfile = resolveJournalismRoleProfileContract({
+      originType,
+      actorRole: gate.actor.role,
+      ownerType,
+      roomType,
+    });
+    const journalismConsistency = validateJournalismContractConsistency({
+      truthGuardrails: journalismTruthGuardrails,
+      companionContract: journalismCompanionContract,
+      roleProfileContract: journalismRoleProfile,
+    });
+    const municipalResponsibilityGuardrails = resolveMunicipalResponsibilityGuardrails({
+      ownerType,
+      roomType,
+    });
+    const municipalProcessStatus = resolveMunicipalProcessStatusContract({
+      institutionalContext: municipalResponsibilityGuardrails.institutionalContext,
+      currentStatus: "beobachtet",
+      statusReason: "anlassraum_created_monitoring_entry",
+    });
+    const municipalGovernanceMode = resolveMunicipalGovernanceModeContract({
+      institutionalContext: municipalResponsibilityGuardrails.institutionalContext,
+      processStatus: municipalProcessStatus.currentStatus,
+      followUpStatus: "open",
+      releaseStatus: "not_requested",
+      transitionReason: "anlassraum_created_monitoring_entry",
+    });
+    const municipalRoleGovernance = resolveMunicipalRoleGovernanceContract({
+      institutionalContext: municipalResponsibilityGuardrails.institutionalContext,
+      actorRole: gate.actor.role,
+      responsibilityScope:
+        municipalResponsibilityGuardrails.institutionalContext && gate.actor.role === "admin"
+          ? "dezernat"
+          : "institution_team",
+      governanceMode: municipalGovernanceMode.governanceMode,
+    });
+    const municipalRoleGovernanceConsistency = validateMunicipalRoleGovernanceConsistency({
+      contract: municipalRoleGovernance,
+      processStatus: municipalProcessStatus.currentStatus,
+      releaseStatus: municipalGovernanceMode.releaseStatus,
+    });
+    const fundingImpactLifecycle = buildFundingImpactLifecycleBaseline({
+      supportScope: "anlassraum",
+      matchingFrame: "none",
+      anlassraumId: created.anlassraumId.toHexString(),
+      dossierId: null,
+    });
+    const orgContextAttachment = buildOrgContextAttachmentBaseline({
+      ownerType,
+      roomType,
+      actorRole: gate.actor.role,
+      ownerId: String(body.ownerId || createdBy),
+      anlassraumId: created.anlassraumId.toHexString(),
+      dossierId: null,
+    });
+    const orgContextConsistency = validateOrgContextAttachmentConsistency({
+      contract: orgContextAttachment,
+      journalismRoleProfile: journalismRoleProfile.roleProfile,
+      municipalInstitutionalContext: municipalResponsibilityGuardrails.institutionalContext,
+      pricingSegment: orgContextAttachment.compatibility.pricingSegmentHints[0] ?? null,
+      fundingSupportScope: fundingImpactLifecycle.supportScope,
+    });
     return NextResponse.json({
       ok: true,
       id: created.anlassraumId.toHexString(),
       publishGate,
+      meta: {
+        journalismTruthGuardrails,
+        journalismCompanionContract,
+        journalismRoleProfile,
+        journalismConsistency,
+        municipalResponsibilityGuardrails,
+        municipalProcessStatus,
+        municipalGovernanceMode,
+        municipalRoleGovernance,
+        municipalRoleGovernanceConsistency,
+        fundingImpactLifecycle,
+        orgContextAttachment,
+        orgContextConsistency,
+      },
     });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "create_failed";
