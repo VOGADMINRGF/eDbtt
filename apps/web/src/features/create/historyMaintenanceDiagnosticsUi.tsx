@@ -1,6 +1,8 @@
 import { useMemo, useState } from "react";
-import type { CreatePrepareAttachHistoryBackfillReport } from "@/features/create/attachDraftHistoryBackfill";
-import type { CreatePrepareAttachHistoryBackfillStatus } from "@/features/create/attachDraftHistoryBackfill";
+import type {
+  CreatePrepareAttachHistoryBackfillReport,
+  CreatePrepareAttachHistoryBackfillStatus,
+} from "@/features/create/attachDraftHistoryBackfillContract";
 
 type Props = {
   report: CreatePrepareAttachHistoryBackfillReport | null;

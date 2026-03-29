@@ -5,8 +5,8 @@ import {
   ANLASSRAUM_OPERATIONS_DEFAULT_LIMIT,
   normalizeAnlassraumOperationsQuery,
   type AnlassraumOperationsQuery,
-  type AnlassraumOperationsResult,
-} from "@/features/anlassraumOperationsRead";
+} from "@/features/anlassraumOperationsContract";
+import type { AnlassraumOperationsResult } from "@/features/anlassraumOperationsRead";
 import { AnlassraumOperationsPanel } from "@/features/anlassraumOperationsUi";
 
 const DEFAULT_QUERY: AnlassraumOperationsQuery = {
@@ -73,22 +73,25 @@ export default function AdminAnlassraumOperationsPage() {
   }, [query, reloadToken]);
 
   return (
-    <AnlassraumOperationsPanel
-      data={data}
-      loading={loading}
-      error={error}
-      query={query}
-      onQueryChange={(patch) => {
-        setQuery((prev) => {
-          const next = { ...prev, ...patch };
-          return {
-            ...next,
-            page: Math.max(1, Number(next.page) || 1),
-            limit: Math.max(1, Math.min(100, Number(next.limit) || ANLASSRAUM_OPERATIONS_DEFAULT_LIMIT)),
-          };
-        });
-      }}
-      onReload={() => setReloadToken((prev) => prev + 1)}
-    />
+    <main>
+      <h1 className="sr-only">Anlassraeume verwalten</h1>
+      <AnlassraumOperationsPanel
+        data={data}
+        loading={loading}
+        error={error}
+        query={query}
+        onQueryChange={(patch) => {
+          setQuery((prev) => {
+            const next = { ...prev, ...patch };
+            return {
+              ...next,
+              page: Math.max(1, Number(next.page) || 1),
+              limit: Math.max(1, Math.min(100, Number(next.limit) || ANLASSRAUM_OPERATIONS_DEFAULT_LIMIT)),
+            };
+          });
+        }}
+        onReload={() => setReloadToken((prev) => prev + 1)}
+      />
+    </main>
   );
 }

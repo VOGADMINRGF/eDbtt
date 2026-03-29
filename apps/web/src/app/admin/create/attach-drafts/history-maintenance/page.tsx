@@ -1,11 +1,11 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import type { CreatePrepareAttachHistoryBackfillReport } from "@/features/create/attachDraftHistoryBackfill";
 import {
   CREATE_PREPARE_ATTACH_HISTORY_BACKFILL_DEFAULT_PREVIEW_LIMIT,
   CREATE_PREPARE_ATTACH_HISTORY_BACKFILL_MAX_PREVIEW_LIMIT,
-} from "@/features/create/attachDraftHistoryBackfill";
+  type CreatePrepareAttachHistoryBackfillReport,
+} from "@/features/create/attachDraftHistoryBackfillContract";
 import { CreateHistoryMaintenanceDiagnosticsPanel } from "@/features/create/historyMaintenanceDiagnosticsUi";
 
 export default function AdminCreateAttachDraftHistoryMaintenancePage() {
@@ -65,27 +65,33 @@ export default function AdminCreateAttachDraftHistoryMaintenancePage() {
   }, [reloadToken]);
 
   return (
-    <CreateHistoryMaintenanceDiagnosticsPanel
-      report={report}
-      loading={loading}
-      error={error}
-      previewLimit={previewLimit}
-      scanLimit={scanLimit}
-      onPreviewLimitChange={(value) => {
-        if (!value.trim()) {
-          setPreviewLimit("");
-          return;
-        }
-        const numeric = Number(value);
-        if (!Number.isFinite(numeric)) {
-          setPreviewLimit(value);
-          return;
-        }
-        const clamped = Math.max(1, Math.min(CREATE_PREPARE_ATTACH_HISTORY_BACKFILL_MAX_PREVIEW_LIMIT, Math.floor(numeric)));
-        setPreviewLimit(String(clamped));
-      }}
-      onScanLimitChange={setScanLimit}
-      onReload={() => setReloadToken((prev) => prev + 1)}
-    />
+    <main>
+      <h1 className="sr-only">History-Maintenance fuer Attach-Drafts</h1>
+      <CreateHistoryMaintenanceDiagnosticsPanel
+        report={report}
+        loading={loading}
+        error={error}
+        previewLimit={previewLimit}
+        scanLimit={scanLimit}
+        onPreviewLimitChange={(value) => {
+          if (!value.trim()) {
+            setPreviewLimit("");
+            return;
+          }
+          const numeric = Number(value);
+          if (!Number.isFinite(numeric)) {
+            setPreviewLimit(value);
+            return;
+          }
+          const clamped = Math.max(
+            1,
+            Math.min(CREATE_PREPARE_ATTACH_HISTORY_BACKFILL_MAX_PREVIEW_LIMIT, Math.floor(numeric)),
+          );
+          setPreviewLimit(String(clamped));
+        }}
+        onScanLimitChange={setScanLimit}
+        onReload={() => setReloadToken((prev) => prev + 1)}
+      />
+    </main>
   );
 }
