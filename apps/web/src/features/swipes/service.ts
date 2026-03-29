@@ -25,6 +25,9 @@ import { FEATURE_MATRIX_DEFAULTS } from "@/config/featureMatrix";
 
 type ProposalDoc = {
   _id?: any;
+  draftId?: any;
+  anlassraumId?: string | null;
+  dossierId?: string | null;
   text: string;
   title?: string | null;
   topic?: string | null;
@@ -86,11 +89,21 @@ function deriveScopeLevel(responsibility?: string | null): SwipeItem["level"] {
   return "Bund";
 }
 
+function toObjectIdHex(value: unknown): string | null {
+  if (!value) return null;
+  if (value instanceof ObjectId) return value.toHexString();
+  const raw = String(value).trim();
+  if (!ObjectId.isValid(raw)) return null;
+  return new ObjectId(raw).toHexString();
+}
+
 function mapProposalToSwipe(proposal: ProposalDoc): SwipeItem {
   const responsibility = proposal.responsibility ?? "Zuständigkeit offen";
   const topic = proposal.topic ?? "";
   const title = proposal.title || proposal.text.slice(0, 120);
   const scope = deriveScopeLevel(responsibility);
+  const anlassraumId = toObjectIdHex(proposal.anlassraumId);
+  const sourceDraftId = toObjectIdHex(proposal.draftId);
   return {
     id: String(proposal._id ?? ""),
     title,
@@ -103,6 +116,12 @@ function mapProposalToSwipe(proposal: ProposalDoc): SwipeItem {
     domainLabel: topic || "–",
     hasEventualities: false,
     eventualitiesCount: 0,
+    sourceDraftId,
+    anlassraumId,
+    contextHref: anlassraumId
+      ? `/create?mode=source&anlassraumId=${encodeURIComponent(anlassraumId)}`
+      : null,
+    fromDraftMatch: false,
   };
 }
 
@@ -188,6 +207,7 @@ export async function getSwipeFeed(req: SwipeFeedRequest): Promise<SwipeFeedResp
   const topicQuery = filter?.topicQuery?.toLowerCase() ?? "";
   const level = filter?.level;
   const statementId = filter?.statementId;
+  const fromDraftId = toObjectIdHex(filter?.fromDraftId);
 
   let proposalDocs: ProposalDoc[] = [];
   try {
@@ -205,6 +225,12 @@ export async function getSwipeFeed(req: SwipeFeedRequest): Promise<SwipeFeedResp
 
   if (statementId) {
     items = items.filter((item) => item.id === statementId);
+  }
+
+  if (fromDraftId) {
+    items = items
+      .filter((item) => item.sourceDraftId === fromDraftId)
+      .map((item) => ({ ...item, fromDraftMatch: true }));
   }
 
   if (topicQuery) {
@@ -257,6 +283,10 @@ export async function getSwipeFeed(req: SwipeFeedRequest): Promise<SwipeFeedResp
     } catch (error) {
       console.error("[swipes] personalization ranking failed", error);
     }
+  }
+
+  if (fromDraftId && items.length === 0) {
+    return { items: [], nextCursor: null };
   }
 
   if (items.length === 0) {

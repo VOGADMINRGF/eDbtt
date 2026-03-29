@@ -1,5 +1,8 @@
 # Part 16 – Anlassraum Model
 
+> Stand: 2026-03-27
+> Einordnung: Domain-Addendum zu `docs/E150/Part16.md` (kanonischer Gesamtfluss) und `docs/E150/Part16_AI_Orchestration_and_Safety.md` (Safety/Orchestrierung).
+
 ## 1. Definition
 
 Ein Anlassraum ist der offene, strukturierbare Kontextraum eines Themas, Ereignisses, Konflikts oder Projekts.
@@ -10,6 +13,25 @@ Er ist die Eingangseinheit fuer:
 - Hinweise
 - Events
 - Parteien / Organisationen / Verbaende
+
+### 1.1 Surface-Abgrenzung (Ist-Code)
+
+- Anlassraum bleibt der Domaenenbegriff; oeffentlich ist er derzeit primaer ueber `/runden` sichtbar.
+- `/anlassraum` ist als offizieller Alias-/Zielbegriff festgelegt und als non-breaking Wrapper auf `/runden` aktiv; es gibt keine harte Migration und keine sofortige Umbenennung.
+- Dossier bleibt die strukturierte Verdichtung mit eigener Zielroute (`/dossier/<id>`).
+- Swipes bleibt Beteiligungs-/Einordnungsoberflaeche (`/swipes`) fuer Proposals/Eventualities.
+- Contribution-Finalize routed serverseitig konditional: mit Dossier nach `/dossier/<id>`, sonst nach `/swipes?fromDraft=<draftId>`.
+- Domain-Entscheidung `DOMAIN-HARM-01` (Option B, 2026-03-27) ist in der Matrix dokumentiert: `docs/E150/DOMAIN-HARM-01A_SURFACE_ROUTING_MATRIX_2026-03-27.md`.
+- Produktentscheidung `GOV-AI-03` (2026-03-27): Anlassraum ist der oeffentliche thematische Arbeits-/Kontextraum im Produktfluss.
+- Nicht Teil von `GOV-AI-03`: ein neuer Anlassraum-Editor-Modus oder neue Routinglogik.
+
+### 1.2 Handoff-Contract (GOV-AI-03B/03C, 2026-03-27)
+
+- `/create` bleibt der einzige kanonische Intake.
+- `/runden` bleibt die oeffentliche Surface fuer den Anlassraum-Arbeitskontext.
+- `/swipes` bleibt der Beteiligungsmodus (auch bei `fromDraft`-Arrival), nicht der Anlassraum selbst.
+- `/dossier/<id>` bleibt die Verdichtung und ist kein Ersatz fuer den Anlassraum-Arbeitskontext.
+- Surface-Hinweise und Abschlussmeldungen in Create/Analyze/Swipes/Dossier referenzieren denselben Contract ohne Routing-Aenderung.
 
 ## 2. Warum Anlassraum statt Feed oder nur Dossier?
 
@@ -165,3 +187,10 @@ Der Anlassraum waechst aus Community, Journalismus, Verwaltung und Hinweisen –
 - uebergreifendes Thema -> Parent/Child bauen
 - fehlende Quellen -> als schwach markieren
 - eskalierender Konflikt -> Moderator / Reviewer einschalten
+
+## 14. Zugeordnete Architekturquellen (harmonisiert 2026-03-26)
+
+- `docs/architecture/feed-anlassraum-output-model.md`
+- `docs/event-and-session-model.md`
+- `docs/governance-core-model.md`
+- `docs/create-intake-unification.md`

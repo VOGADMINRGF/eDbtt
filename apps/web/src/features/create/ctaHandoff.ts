@@ -19,6 +19,10 @@ export type CreateCtaHandoffActionType = "open" | "prepare_attach" | "prepare_ne
 
 export type CreateCtaHandoff = {
   ctaId: CreateCtaHandoffId;
+  sourceRunId: string | null;
+  sourceConfidence: number | null;
+  sourceMatchSourceState: "ok" | "degraded" | null;
+  sourcePhases: CreateAnalyzeResponse["phases"] | null;
   matchType: CreateAnalyzeMatchType | null;
   matchEntityType: CreateAnalyzeMatchEntityType | null;
   entityType?: CreateAnalyzeMatchEntityType;
@@ -44,7 +48,8 @@ export type CreateCtaHandoffUiState = {
 type CreateAnalyzeCtaContext = Pick<
   CreateAnalyzeResponse,
   "matchType" | "matchEntityType" | "matches"
->;
+> &
+  Partial<Pick<CreateAnalyzeResponse, "runId" | "confidence" | "matchSourceState" | "phases">>;
 
 function normalizeCtaId(value: CreateAnalyzeCtaId): CreateCtaHandoffId {
   if (value === "anlassraum_oeffnen") return "anlassraum_oeffnen";
@@ -164,6 +169,20 @@ export function buildCreateCtaHandoff(params: {
 
   return {
     ctaId,
+    sourceRunId: typeof params.createAnalyze.runId === "string" ? params.createAnalyze.runId : null,
+    sourceConfidence:
+      typeof params.createAnalyze.confidence === "number"
+        ? params.createAnalyze.confidence
+        : null,
+    sourceMatchSourceState:
+      params.createAnalyze.matchSourceState === "ok" ||
+      params.createAnalyze.matchSourceState === "degraded"
+        ? params.createAnalyze.matchSourceState
+        : null,
+    sourcePhases:
+      params.createAnalyze.phases && typeof params.createAnalyze.phases === "object"
+        ? params.createAnalyze.phases
+        : null,
     matchType: matchType ?? null,
     matchEntityType: entityType ?? null,
     entityType,

@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { formatError } from "@core/errors/formatError";
-import { hasPermission, PERMISSIONS, type Role } from "@core/auth/rbac";
+import { PERMISSIONS } from "@core/auth/rbac";
 import { mapOutcomeToStatus } from "@/core/factcheck/triage";
 import { stableHash } from "@core/utils/hash";
+import { logger } from "@core/observability/logger";
 import {
   dossierClaimsCol,
   dossierFindingsCol,
@@ -32,6 +33,12 @@ import {
   getStatementAliases,
 } from "@features/dossier/statement";
 import { requireDossierEditor } from "@/lib/server/auth/dossier";
+import { logPermissionDenied, resolveRoleFromRequest } from "@/lib/server/auth/requestRole";
+import {
+  internalSystemIdentityAuditFields,
+  resolveInternalSystemIdentity,
+  resolveTrustedInternalSystemIdentity,
+} from "@/lib/server/auth/systemIdentity";
 
 export const runtime = "nodejs";
 
@@ -65,18 +72,6 @@ const BodySchema = z.object({
   comparedJurisdictions: z.any().optional(),
   sources: z.array(SourceSchema).optional(),
 });
-
-function roleFromRequest(req: NextRequest): Role {
-  const cookieRole = req.cookies.get("u_role")?.value as Role | undefined;
-  const headerRole = (req.headers.get("x-role") as Role) || undefined;
-  let role: Role = cookieRole ?? headerRole ?? "guest";
-  if (process.env.NODE_ENV !== "production") {
-    const url = new URL(req.url);
-    const qRole = url.searchParams.get("role") as Role | null;
-    if (qRole) role = qRole;
-  }
-  return role;
-}
 
 function normalizeUrl(raw: string) {
   try {
@@ -142,13 +137,45 @@ function mapSourceKind(kind?: string, type?: string) {
 
 export async function POST(req: NextRequest) {
   try {
-    const role = roleFromRequest(req);
+    const systemIdentity = resolveInternalSystemIdentity(req);
+    const trustedSystemIdentity = resolveTrustedInternalSystemIdentity(req);
+    const roleContext = resolveRoleFromRequest(req);
+    const hasTrustedSystemAccess =
+      trustedSystemIdentity?.source === "finding_queue" ||
+      trustedSystemIdentity?.source === "finding_worker" ||
+      trustedSystemIdentity?.source === "factcheck_worker";
     let actorRole: "editor" | "admin" | "pipeline" = "pipeline";
     let actorUserId: string | undefined;
-    const hasSessionRole = Boolean(req.cookies.get("u_role")?.value);
-    if (hasSessionRole || !hasPermission(role, PERMISSIONS.EDITOR_ITEM_WRITE)) {
+    if (systemIdentity && !hasTrustedSystemAccess) {
+      logger.warn(
+        {
+          scope: "finding.upsert",
+          method: req.method,
+          path: req.nextUrl.pathname,
+          ...internalSystemIdentityAuditFields(systemIdentity),
+        },
+        "SYSTEM_IDENTITY_DENIED",
+      );
+      return NextResponse.json(formatError("FORBIDDEN", "Permission denied"), { status: 403 });
+    }
+    if (!hasTrustedSystemAccess) {
       const auth = await requireDossierEditor(req);
-      if (auth instanceof Response) return auth;
+      if (auth instanceof Response) {
+        if (roleContext.source === "header") {
+          logPermissionDenied({
+            req,
+            scope: "finding.upsert",
+            permission: PERMISSIONS.EDITOR_ITEM_WRITE,
+            role: roleContext.role,
+            source: roleContext.source,
+            details: {
+              denyReason: "header_role_not_allowed",
+              ...internalSystemIdentityAuditFields(systemIdentity),
+            },
+          });
+        }
+        return auth;
+      }
       actorRole = auth.actorRole === "admin" ? "admin" : "editor";
       actorUserId = auth.userId;
     }

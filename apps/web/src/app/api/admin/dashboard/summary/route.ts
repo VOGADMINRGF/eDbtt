@@ -6,6 +6,9 @@ import { orgsCol } from "@features/org/db";
 import { editorialItemsCol } from "@features/editorial/db";
 import { reportAssetsCol } from "@features/reportsAssets/db";
 import { graphRepairsCol } from "@features/graphAdmin/db";
+import { anlassraumCol } from "@features/anlassraum/db";
+import { dossiersCol } from "@features/dossier/db";
+import { buildAdminPricingControlReadModel } from "@/lib/server/pricing/adminPricingControlReadModel";
 
 type UserDoc = {
   _id: ObjectId;
@@ -118,6 +121,17 @@ export async function GET(req: NextRequest) {
       .toArray(),
   ]);
 
+  const [activeAnlassraeume, activeDossiers] = await Promise.all([
+    (await anlassraumCol()).countDocuments({ status: { $ne: "archived" } }),
+    (await dossiersCol()).countDocuments({ status: { $ne: "archived" } }),
+  ]);
+
+  const professionalLayerUsage = packageAgg.reduce((sum, row) => {
+    const code = String(row?._id ?? "none");
+    if (code === "none") return sum;
+    return sum + Number(row?.count ?? 0);
+  }, 0);
+
   const editorialCounts = editorialAgg.reduce(
     (acc: Record<string, number>, row: any) => {
       acc[String(row._id)] = row.count ?? 0;
@@ -125,6 +139,79 @@ export async function GET(req: NextRequest) {
     },
     {},
   );
+
+  const pricingReadModel = buildAdminPricingControlReadModel({
+    policy: {
+      segment: "public_free",
+      creatorType: "civic",
+      verificationStatus: "unverified",
+      pricingPlanKind: "public_core",
+      institutionType: "none",
+      publicEntityFlag: false,
+      feeRuleType: "none",
+      capPolicyType: "default_caps",
+      overrideType: "none",
+      specialOfferStatus: "none",
+      pilotStatus: "none",
+      source: "policy_default",
+      explainability: {
+        segment: {
+          factors: ["segment", "verification_status"],
+          note: "Globaler Start auf Public-Core-Defaults ohne stillen Override.",
+        },
+        plan: {
+          factors: ["plan", "creator_type"],
+          note: "Readmodel folgt manifestierter Segment-/Plan-Zuordnung.",
+        },
+        fee: {
+          factors: ["funding_fee_rule", "cap_policy"],
+          note: "Fee/Caps folgen dem kanonischen Guardrail-Rahmen.",
+        },
+        specialStatus: {
+          factors: ["special_offer_status", "pilot_status", "policy_source"],
+          note: "Special-/Pilotstatus bleibt transparent und auditierbar.",
+        },
+      },
+    },
+    kpiSnapshot: {
+      snapshotAt: now.toISOString(),
+      window: "rolling_30d",
+      activeAnlassraeume,
+      activeDossiers,
+      professionalLayerUsage,
+      fundingVolume: 0,
+      fundingFeeRevenue: 0,
+      exportUsage: 0,
+      embedUsage: 0,
+      qrUsage: 0,
+      reviewUsage: editorialCounts.review ?? 0,
+      factcheckUsage: editorialCounts.fact_check ?? 0,
+      conversionFreeToCreator: 0,
+      conversionCreatorToTeam: 0,
+      conversionTeamToOrganization: 0,
+      specialsUsage: 0,
+      pilotUsage: 0,
+      overrideUsage: 0,
+    },
+    sourceOfTruthHints: [
+      "users.membership.edebatte.planKey",
+      "users.accessTier",
+      "users.b2cPlanId",
+      "admin.editorialCounts",
+      "anlassraum.status",
+      "dossiers.status",
+    ],
+  });
+  let pricingControlReadModel: unknown;
+  if ("value" in pricingReadModel) {
+    pricingControlReadModel = pricingReadModel.value;
+  } else {
+    pricingControlReadModel = {
+      status: "invalid",
+      error: pricingReadModel.error,
+      issues: pricingReadModel.issues,
+    };
+  }
 
   const data = {
     totalUsers,
@@ -149,6 +236,7 @@ export async function GET(req: NextRequest) {
       published: editorialCounts.published ?? 0,
       rejected: editorialCounts.rejected ?? 0,
     },
+    pricingControlReadModel,
   };
 
   return NextResponse.json({ data });

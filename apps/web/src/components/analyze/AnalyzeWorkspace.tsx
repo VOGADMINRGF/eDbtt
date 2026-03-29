@@ -39,6 +39,14 @@ import { DEFAULT_BASE_LANG, LANGUAGE_CODES, type LanguageCode } from "@features/
 import type { CreateMode } from "@/features/create/intents";
 import type { CreateAnalyzeResponse } from "@/features/create/analyzeContract";
 import {
+  parseCreateAnalyzeEnvelope,
+  type CreateAnalyzeEnvelopeProviderMatrixEntry,
+} from "@/features/create/analyzeEnvelope";
+import {
+  resolveAndNavigateAfterFinalize,
+  resolveFinalizeRedirectTarget,
+} from "@/features/create/finalizeRedirect";
+import {
   buildCreateCtaHandoff,
   cancelCreateCtaHandoff,
   confirmCreateCtaHandoff,
@@ -300,6 +308,8 @@ export function collectCreateAnalyzeReasons(
   return out;
 }
 
+export { resolveFinalizeRedirectTarget };
+
 export function buildCreatePrepareAttachReviewState(params: {
   createAnalyze: CreateAnalyzeResponse | null;
   handoff: CreateCtaHandoff | null;
@@ -318,7 +328,7 @@ export function buildCreatePrepareAttachReviewState(params: {
   const reasons = collectCreateAnalyzeReasons(params.createAnalyze).slice(0, 6);
 
   return {
-    sourceRunId: params.createAnalyze.runId,
+    sourceRunId: params.handoff.sourceRunId || params.createAnalyze.runId,
     sourceSummary: params.createAnalyze.normalizedInputSummary || "",
     sourceLanguage: params.createAnalyze.sourceLanguage || "de",
     contentLanguage: params.createAnalyze.contentLanguage || "de",
@@ -331,24 +341,6 @@ export function buildCreatePrepareAttachReviewState(params: {
     reasons: reasons.length > 0 ? reasons : [params.handoff.summary],
     warning: params.handoff.warning,
   };
-}
-
-function parseCreateAnalyzeResponse(value: unknown): CreateAnalyzeResponse | null {
-  if (!value || typeof value !== "object") return null;
-  const candidate = value as Partial<CreateAnalyzeResponse>;
-  if (typeof candidate.schemaVersion !== "string") return null;
-  if (typeof candidate.runId !== "string") return null;
-  if (typeof candidate.confidence !== "number" || Number.isNaN(candidate.confidence)) return null;
-  if (!Array.isArray(candidate.languages)) return null;
-  if (!Array.isArray(candidate.claims)) return null;
-  if (!Array.isArray(candidate.evidenceNeeds)) return null;
-  if (!Array.isArray(candidate.uncertainties)) return null;
-  if (!Array.isArray(candidate.matches)) return null;
-  if (!Array.isArray(candidate.reasons)) return null;
-  if (!Array.isArray(candidate.suggestedCtas)) return null;
-  if (candidate.matchSourceState !== "ok" && candidate.matchSourceState !== "degraded") return null;
-  if (!Array.isArray(candidate.matchSourceErrors)) return null;
-  return candidate as CreateAnalyzeResponse;
 }
 
 type StatementEntry = NormalizedClaim & {
@@ -373,16 +365,7 @@ type AnalyzeStepState = {
   reason?: string | null;
 };
 
-type ProviderMatrixEntry = {
-  provider: string;
-  state: "queued" | "running" | "ok" | "failed" | "cancelled" | "skipped" | "disabled";
-  attempt?: number | null;
-  errorKind?: string | null;
-  status?: number | null;
-  durationMs?: number | null;
-  model?: string | null;
-  reason?: string | null;
-};
+type ProviderMatrixEntry = CreateAnalyzeEnvelopeProviderMatrixEntry;
 
 export type UseCaseId = "civic" | "journalism" | "agenda";
 
@@ -1570,6 +1553,7 @@ export default function AnalyzeWorkspace({
 
     setIsFinalizing(true);
     setFinalizeInfo(null);
+    setFinalizeRedirectTo(null);
     try {
       const res = await fetch(finalizeEndpoint, {
         method: "POST",
@@ -1587,14 +1571,41 @@ export default function AnalyzeWorkspace({
       if (!res.ok || !body?.ok) {
         throw new Error(body?.error || "Einreichen fehlgeschlagen");
       }
-      setFinalizeInfo("Erfolgreich eingereicht. Deine Vorschlaege erscheinen jetzt im Swipe-Pool.");
-      setFinalizeRedirectTo(body.redirectTo ?? afterFinalizeNavigateTo ?? null);
+      const redirectTo = resolveAndNavigateAfterFinalize({
+        apiRedirectTo: body?.redirectTo,
+        fallbackRedirectTo: afterFinalizeNavigateTo,
+        navigate: (target) => {
+          router.replace(target as Parameters<typeof router.replace>[0]);
+        },
+      });
+
+      setFinalizeRedirectTo(redirectTo);
+      if (redirectTo?.startsWith("/dossier/")) {
+        setFinalizeInfo("Erfolgreich eingereicht. Weiterleitung ins Dossier zur strukturierten Verdichtung.");
+      } else if (redirectTo) {
+        setFinalizeInfo(
+          "Erfolgreich eingereicht. Weiterleitung in die Beteiligungsoberfläche /swipes (Themenkontext bleibt im Anlassraum über /runden).",
+        );
+      } else {
+        setFinalizeInfo("Erfolgreich eingereicht.");
+      }
     } catch (err: any) {
       setFinalizeInfo(err?.message ?? "Einreichen fehlgeschlagen.");
     } finally {
       setIsFinalizing(false);
     }
-  }, [afterFinalizeNavigateTo, confirmUnderstanding, dossierId, draftId, finalizeEndpoint, mode, resolvedCreateMode, selectedAnlassraumId, selectedClaimIds]);
+  }, [
+    afterFinalizeNavigateTo,
+    confirmUnderstanding,
+    dossierId,
+    draftId,
+    finalizeEndpoint,
+    mode,
+    resolvedCreateMode,
+    router,
+    selectedAnlassraumId,
+    selectedClaimIds,
+  ]);
 
   const handleDeepResearch = React.useCallback(async () => {
     if (!preparedText.trim()) {
@@ -1771,8 +1782,8 @@ export default function AnalyzeWorkspace({
       if (!res.ok || !data?.ok) {
         throw new Error(data?.message || data?.error || `Analyse fehlgeschlagen (HTTP ${res.status}).`);
       }
-      const orchestrationSnapshot = parseCreateAnalyzeResponse(data?.createAnalyze);
-      setCreateAnalyze(orchestrationSnapshot);
+      const parsedEnvelope = parseCreateAnalyzeEnvelope(data);
+      setCreateAnalyze(parsedEnvelope.createAnalyze);
       setCtaHandoffState(createInitialCreateCtaHandoffState());
       setPrepareAttachReview(null);
       setPrepareAttachSaving(false);
@@ -1839,12 +1850,9 @@ export default function AnalyzeWorkspace({
       setEvidenceGraph((result as any)?.evidenceGraph ?? null);
       setRunReceipt((result as any)?.runReceipt ?? null);
 
-      const matrixFromResponse: ProviderMatrixEntry[] = Array.isArray(data?.meta?.providerMatrix)
-        ? data.meta.providerMatrix
-        : [];
-      setProviderMatrix(matrixFromResponse);
+      setProviderMatrix(parsedEnvelope.providerMatrix);
 
-      const degraded = Boolean(data?.degraded);
+      const degraded = parsedEnvelope.degraded;
       const degradedReason = degraded ? "KI temporär nicht erreichbar" : null;
 
       setSteps(
@@ -2217,7 +2225,7 @@ export default function AnalyzeWorkspace({
 
   const handleRedirect = React.useCallback(() => {
     if (!finalizeRedirectTo) return;
-    router.push(finalizeRedirectTo as any);
+    router.replace(finalizeRedirectTo as Parameters<typeof router.replace>[0]);
   }, [finalizeRedirectTo, router]);
 
   return (
@@ -3697,7 +3705,18 @@ export default function AnalyzeWorkspace({
           </div>
           {finalizeInfo && (
             <div className="mx-auto mt-2 max-w-3xl rounded-2xl bg-emerald-50 px-3 py-2 text-xs text-emerald-700 ring-1 ring-emerald-100 dark:bg-emerald-500/15 dark:text-emerald-200 dark:ring-emerald-400/30">
-              {finalizeInfo}
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span>{finalizeInfo}</span>
+                {finalizeRedirectTo ? (
+                  <button
+                    type="button"
+                    onClick={handleRedirect}
+                    className="text-[11px] font-semibold underline underline-offset-2"
+                  >
+                    Weiter zur Zielansicht
+                  </button>
+                ) : null}
+              </div>
             </div>
           )}
         </div>

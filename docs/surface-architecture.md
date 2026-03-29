@@ -16,11 +16,14 @@
   - `capabilities`: `canSubmit | canModerate | canVote | readOnly`
 
 ## Kanonische Bereiche (aktuell)
+- Surface-Contract (Ist-Stand): `/create` = Intake, `/runden` = Anlassraum-Kontext, `/swipes` = Beteiligung, `/dossier/[id]` = Verdichtung.
 - `/studio`
 - `/dossier` + `/dossier/[id]`
 - `/abstimmungen` + `/abstimmungen/[id]` (Alias auf bestehende Votes-Surface)
 - `/mandat` + `/mandat/[id]`
 - `/factcheck` + `/factcheck/[id]`
+- `/runden` (oeffentliche Anlassraum-/Round-Entry-Surface auf produktivem `output_seed` + `anlassraum`)
+- `/anlassraum` ist als offizieller Alias-/Zielbegriff technisch als non-breaking Wrapper aktiv und verweist auf `/runden` (keine harte Migration).
 - `/swipes`
 - `/mitwirken`
 - `/topic/[slug]`
@@ -42,10 +45,17 @@
 - `/demo/mandat`
 - `/demo/factcheck`
 - `/demo/swipes`
-- `/demo/runden` als gefuehrter Wrapper ueber produktive Topic/Round-Logik
+- `/demo/runden` als gefuehrter Wrapper auf die produktive `/runden`-Surface
 
 ## Umgesetzte gemeinsame Surfaces
 - `MandatSurface`: genutzt von `/mandat` und `/demo/mandat`
 - `FactcheckSurface`: genutzt von `/factcheck` und `/demo/factcheck`
+- `Runden Entry`: `/runden` als produktiver Anlassraum-/Round-Einstieg (Demo verweist auf denselben Entry)
 - `SwipesSurface`: genutzt von `/swipes` und `/demo/swipes`
 - `TopicRound`-Surfaces: genutzt von `/topic/[slug]`, `/round/[slug]` und Demo-Wrapper `/demo/runden`
+
+## Routeninventar (generated/read-only)
+- `docs/ROUTES.generated.md` und `docs/ROUTES.generated.json` sind generated Artefakte (read-only).
+- Keine manuellen Änderungen in diesen Dateien vornehmen.
+- Änderungen an Routen immer in `apps/web/src/app/**/page.tsx` oder `apps/web/src/app/**/route.ts` umsetzen.
+- Danach das Inventar neu erzeugen: `node scripts/route-inventory.mjs` (Repo-Root).

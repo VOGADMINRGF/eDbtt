@@ -2,6 +2,52 @@
 
 > Status-Hinweis (2026-02-12): Dieses Part ist eine Spezifikation/Zusammenfassung. Der verbindliche Aufgabenstand liegt in `docs/E150/OpenTasks.md`. Keine neuen Runs aus diesem Part ableiten.
 
+## 1.1 Ist-Inventar / Contract-Mapping (GOV-ANLASS-08A, Stand 2026-03-26)
+
+Dieses Addendum dokumentiert nur den aktuellen Ist-Codepfad von Community-Research zu Review/Anlassraum.
+Es fuehrt keine neue Produktlogik ein.
+
+### A. Vorhandene Einstiege (Surfaces)
+
+- Community-Research Board: `/research/tasks` (`apps/web/src/app/research/tasks/page.tsx`)
+- Community-Beitraege (leichtgewichtig): `/community/contributions` (`apps/web/src/app/community/contributions/page.tsx`)
+- Admin-Research-Review: `/admin/research/tasks` (`apps/web/src/app/admin/research/tasks/page.tsx`)
+- Governance-Review fuer Feed-Drafts/Anlassraum: `admin/feeds/*` APIs (siehe Abschnitt B/C)
+
+### B. Vorhandene Research-Contracts (APIs)
+
+- Read/List: `GET /api/research/tasks/list` (alias `GET /api/research/list`)
+- Detail: `GET /api/research/tasks/[id]`
+- Submit: `POST /api/research/tasks/[id]/contribute`
+- Admin Review/Steuerung:
+  - `GET /api/admin/research/tasks/list`
+  - `POST /api/admin/research/tasks/save`
+  - `POST /api/admin/research/tasks/seed`
+  - `POST /api/admin/research/contributions/status`
+  - `POST /api/admin/research/contributions/feedback`
+- Safety-Startform-Contract wird in Research-Responses explizit mitgegeben (`meta.socialEscalationStartform`): kein Kontakt-/Gruppen-Default, nur moderiert/kuratiert mit Opt-in + Trust/Verifikation + Abuse-/Moderations-Bindung.
+
+### C. Anschluss an Review/Anlassraum (Ist)
+
+- Feed-Draft-Review bleibt governance-gesteuert (`/api/admin/feeds/drafts/[id]/review`, `/bulk`, `/backfill`).
+- Anlassraum-Verwaltung bleibt governance-gesteuert (`/api/admin/feeds/anlassraum`, `...[id]`, `...[id]/transition`, `...[id]/outputs`, `...[id]/dossier`).
+- Dossier-Andockung existiert als explizite kuratierte Aktion (`POST /api/admin/feeds/anlassraum/[id]/dossier`), nicht als Auto-Pfad.
+
+### D. Manifestierte Guardrails im Ist-Code
+
+- Community-Research Read/Submit verlangt Session + Verifikation (`u_id`, `u_verified`) und nutzt Rate-Limits.
+- Research-Review/Status/Feedback/Seed ist admin-gatet (`requireAdminOrResponse`).
+- Feed-/Anlassraum-Review und Transition sind governance-gatet (`requireGovernanceActorOrResponse`) plus Zugriffspruefung (`canActorAccessAnlassraum`).
+- Publish bleibt explizit und gate-geprueft (`getAnlassraumPublishGate`, `canRoleApprove`), kein stilles Auto-Publish.
+
+### E. Entscheidungsstand und verbleibende Umsetzungsslices (Stand 2026-03-26)
+
+- `GOV-SAFETY-03` ist entschieden: Social-/Kontakt-Eskalation nur gestuft, kein DM-/Gruppen-Default, Start nur in moderierten/kuratierten Kontexten.
+- Jede Oeffnung bleibt an Opt-in, Verifikation/Trust-Signal, Cooldown/Rate-Limits, Abuse-/Moderations-Gates und Auditierbarkeit gebunden.
+- Implementierungsstand 2026-03-27: `GOV-SAFETY-03A` + `GOV-SAFETY-03B` sind umgesetzt (zentraler Policy-Resolver + Rate-Limit/Cooldown/Abuse/Audit-Hardening auf `match.request`).
+- Implementierungsstand 2026-03-27: `GOV-ANLASS-08B` ist umgesetzt (Research-/Review-Anschluss referenziert die Safety-Startform explizit in Contracts/Logs, kein Kontakt-/Gruppen-Default).
+- `GOV-ANLASS-08` bleibt damit ein technischer Anschluss-/Hardening-Task, keine offene Produktentscheidung.
+
 
 ## 1. Zweck dieses Dokuments
 

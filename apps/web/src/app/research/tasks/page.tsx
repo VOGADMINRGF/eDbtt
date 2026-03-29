@@ -97,6 +97,9 @@ export default function ResearchTasksPage() {
         <p className="text-sm text-[rgb(var(--muted))]">
           Wähle eine Aufgabe aus und reiche deine Recherche ein, um XP zu verdienen.
         </p>
+        <p className="text-xs text-[rgb(var(--muted))]">
+          Kontakt-/Gruppenwege sind hier kein Default. Eine soziale Eskalation bleibt an moderierte/kuratierte Kontexte, Opt-in sowie Trust-/Verifikationssignale gebunden.
+        </p>
       </header>
 
       {feedback && (

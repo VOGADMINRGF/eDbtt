@@ -59,6 +59,32 @@ Dazu:
    - JSON: `{ ok: true, result }`
    - SSE: `progress` + `result` + `error`
 
+### 2.3 Canonical Intake-/Surface-Regel (2026-03-27)
+
+- Canonical Create-Entry bleibt `/create` (Intent-gesteuert), nicht mehrere parallele Create-Architekturen.
+- Kompatibilitaetsrouten (`/contributions/new`, `/statements/new`, `/demo/create`) bleiben Wrapper um dieselbe Semantik.
+- Post-Finalize-Ziel wird serverseitig entschieden (`/api/contributions/finalize`): mit Dossier nach `/dossier/<id>`, sonst nach `/swipes?fromDraft=<draftId>`.
+- `/swipes` bleibt Beteiligungs-/Bewertungssurface; thematischer Kontext liegt weiterhin primaer auf der Anlassraum-Surface `/runden`.
+- `Anlassraum` bleibt der Domaenenbegriff; `/anlassraum` ist als offizieller Alias-/Zielbegriff als non-breaking Wrapper auf `/runden` aktiv (ohne harte Migration).
+- CTA-Startkanon bleibt konservativ-deterministisch und wird shared ueber `apps/web/src/features/create/ctaResolver.ts` referenziert (kein neues CTA-Keyset, keine neue Priorisierung).
+- Surface-Handoffs bleiben klar getrennt: `/create` (Intake) -> `/runden` (Kontext) -> `/swipes` (Beteiligung) bzw. `/dossier/<id>` (Verdichtung), ohne neue Routinglogik.
+- Review-first/no-auto-publish/no-silent-merge bleibt unveraendert.
+
+### 2.4 Entscheidungsstand `GOV-AI-04` (strict staged, 2026-03-27)
+
+- Der produktive Multi-Orchestration-Hauptfluss folgt einem **strict-staged** Startkanon.
+- Direkte Providerpfade ausserhalb dieses Hauptflusses bleiben **Ausnahme-/Legacy-/Nebenspuren** und sind nicht gleichwertiger Hauptfluss.
+- Degraded-Antworten bleiben erlaubt, aber muessen im Hauptcontract sichtbar markiert sein.
+- Nachgezogene Contract-Slices:
+  - `GOV-AI-04B`: Stage-/Boundary-Contract fuer den Hauptfluss eingefroren
+  - `GOV-AI-04C`: direkte Providerpfade als Ausnahme-/Legacy-Contract abgegrenzt
+  - `GOV-AI-04D`: Analyze->Match->CTA State-/Meta-Transfer gehaertet
+
+Querverweise:
+- `docs/create-intake-unification.md`
+- `docs/architecture/feed-anlassraum-output-model.md`
+- `docs/surface-architecture.md`
+
 ---
 
 ## 3. Zentrale Typen (Zielbild)

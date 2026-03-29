@@ -2,6 +2,7 @@
 
 > Status-Hinweis (2026-02-12): Dieses Part ist eine Spezifikation/Zusammenfassung. Der verbindliche Aufgabenstand liegt in `docs/E150/OpenTasks.md`. Keine neuen Runs aus diesem Part ableiten.
 
+> Einordnung (2026-03-26): Dieses Dokument ist der kompakte Themenkatalog-Appendix zu `docs/E150/Part06_Consequences_Fairness.md` und wird nicht als separates Konkurrenz-Part zu Part06 gefuehrt.
 
 ## 1. Zweck
 
@@ -38,4 +39,3 @@ Dieser Part bündelt den verbindlichen Themenkatalog mit 15 Hauptkategorien. All
 - Part01 verweist auf diesen Katalog als Backbone der Systemvision.
 - Part02 nutzt die Kategorien für Profil-Freischaltungen (Top-Themen) entlang der Engagement-Levels.
 - Part03/Part04 verwenden dieselben Labels für B2C/B2B/B2G Profile-Pakete und öffentliche Darstellungen.
-

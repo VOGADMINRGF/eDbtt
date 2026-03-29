@@ -33,6 +33,9 @@ export default function DossierPageClient({ dossierId }: { dossierId: string }) 
       {!loaded ? (
         <p className="text-xs text-[rgb(var(--muted))]">Dossier wird geladen…</p>
       ) : null}
+      <p className="mb-3 text-xs text-[rgb(var(--muted))]">
+        Dossier = strukturierte Verdichtung; der thematische Arbeitskontext bleibt bei den Anlässen (/runden).
+      </p>
       <DossierViewer dossier={dossier} />
     </div>
   );

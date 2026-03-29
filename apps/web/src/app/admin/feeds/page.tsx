@@ -55,6 +55,11 @@ const SAMPLE_BATCH = JSON.stringify(
   2,
 );
 
+const PRIMARY_ACTION_CLASS =
+  "rounded-full border border-sky-500/60 bg-sky-600 px-4 py-2 text-sm font-semibold text-white hover:bg-sky-500 disabled:opacity-70 dark:border-sky-400/45 dark:bg-sky-500/25 dark:text-sky-50 dark:hover:bg-sky-500/35";
+
+const INLINE_LINK_CLASS = "text-sky-700 hover:underline dark:text-sky-300 dark:hover:text-sky-200";
+
 export default function AdminFeedsPage() {
   const { locale } = useLocale();
   const operatorLocale = resolveOperatorLocale(locale);
@@ -175,7 +180,7 @@ export default function AdminFeedsPage() {
           {text.headerLead}
         </p>
         <div className="mt-3 flex flex-wrap gap-2">
-          <Link href="/admin/feeds/drafts" className="rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white">
+          <Link href="/admin/feeds/drafts" className={PRIMARY_ACTION_CLASS}>
             {text.linkToDrafts}
           </Link>
           <Link
@@ -235,7 +240,7 @@ export default function AdminFeedsPage() {
                           <td className="px-2 py-2">{feed.regionCode ?? text.globalLabel}</td>
                           <td className="px-2 py-2">{feed.topicHints?.join(", ") || "—"}</td>
                           <td className="px-2 py-2">
-                            <a href={feed.feedUrl} className="text-sky-700 hover:underline" target="_blank" rel="noreferrer">
+                            <a href={feed.feedUrl} className={INLINE_LINK_CLASS} target="_blank" rel="noreferrer">
                               {feed.feedUrl}
                             </a>
                           </td>
@@ -313,7 +318,7 @@ export default function AdminFeedsPage() {
             <button
               onClick={runPull}
               disabled={pullState.loading}
-              className="rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white disabled:opacity-70"
+              className={PRIMARY_ACTION_CLASS}
             >
               {pullState.loading ? text.pullRunning : text.fetchSignalSources}
             </button>
@@ -373,7 +378,7 @@ export default function AdminFeedsPage() {
           <button
             onClick={runBatch}
             disabled={batchState.loading}
-            className="mt-3 rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white disabled:opacity-70"
+            className={`mt-3 ${PRIMARY_ACTION_CLASS}`}
           >
             {batchState.loading ? text.importRunning : text.startImport}
           </button>

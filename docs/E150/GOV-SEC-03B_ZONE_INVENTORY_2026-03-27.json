@@ -1,0 +1,374 @@
+{
+  "id": "GOV-SEC-03B",
+  "version": "2026-03-27",
+  "derivedFrom": "docs/E150/GOV-SEC-03A_ZONE_MATRIX_2026-03-27.md",
+  "statusLegend": [
+    "klar",
+    "gemischt",
+    "unklar"
+  ],
+  "zones": [
+    "core",
+    "votes_usage",
+    "pii",
+    "logs_telemetry",
+    "external_ai_provider",
+    "cross_store"
+  ],
+  "entries": [
+    {
+      "id": "auth_core_pii_log_sink",
+      "routePathGroup": [
+        "/api/auth/login",
+        "/api/auth/verify-2fa"
+      ],
+      "centralStoresCollections": [
+        "core.users",
+        "pii.user_credentials",
+        "pii.twofactor_challenges",
+        "pii.user_profiles"
+      ],
+      "logsAuditTelemetrySinks": [
+        "auth_events via ai_core_reader with core fallback"
+      ],
+      "hasAiProviderTransition": false,
+      "zoneAssignment": [
+        "core",
+        "pii",
+        "logs_telemetry"
+      ],
+      "status": "klar",
+      "statusNote": "Routepfade klar; Log-Sink bleibt gemischt (ai_core_reader -> core fallback).",
+      "sourceAnchors": [
+        {
+          "file": "apps/web/src/app/api/auth/login/route.ts",
+          "contains": [
+            "coreCol<LoginUser>(\"users\")",
+            "piiCol<PiiUserCredentials>(CREDENTIAL_COLLECTION)",
+            "logAuthEvent(\"auth.login.failed\""
+          ]
+        },
+        {
+          "file": "apps/web/src/app/api/auth/verify-2fa/route.ts",
+          "contains": [
+            "piiCol<TwoFactorChallengeDoc>(TWO_FA_COLLECTION)",
+            "logAuthEvent(\"auth.2fa.success\""
+          ]
+        },
+        {
+          "file": "core/telemetry/authEvents.ts",
+          "contains": [
+            "aiReaderCol<AuthEventDoc>(COLLECTION)",
+            "coreCol<AuthEventDoc>(COLLECTION)"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "analyze_orchestrator_path",
+      "routePathGroup": [
+        "/api/contributions/analyze"
+      ],
+      "centralStoresCollections": [
+        "core.eventuality_nodes",
+        "core.eventuality_decision_trees",
+        "core.eventuality_snapshots",
+        "core.run_receipts"
+      ],
+      "logsAuditTelemetrySinks": [
+        "core.ai_usage",
+        "core.ai_usage_daily",
+        "structured logger events"
+      ],
+      "hasAiProviderTransition": true,
+      "zoneAssignment": [
+        "core",
+        "logs_telemetry",
+        "external_ai_provider"
+      ],
+      "status": "gemischt",
+      "statusNote": "Multi-Zonen-Pfad mit Orchestrator + externem Provider-Uebergang.",
+      "sourceAnchors": [
+        {
+          "file": "apps/web/src/app/api/contributions/analyze/route.ts",
+          "contains": [
+            "syncAnalyzeResultToGraph",
+            "persistEventualitiesSnapshot",
+            "upsertRunReceipt"
+          ]
+        },
+        {
+          "file": "features/analyze/analyzeContribution.ts",
+          "contains": [
+            "callE150Orchestrator"
+          ]
+        },
+        {
+          "file": "apps/web/src/lib/db/runReceiptsRepo.ts",
+          "contains": [
+            "const COLLECTION = \"run_receipts\"",
+            "coreCol<RunReceiptDoc>(COLLECTION)"
+          ]
+        },
+        {
+          "file": "core/telemetry/aiUsage.ts",
+          "contains": [
+            "const COLLECTION_USAGE = \"ai_usage\"",
+            "const COLLECTION_DAILY = \"ai_usage_daily\""
+          ]
+        }
+      ]
+    },
+    {
+      "id": "finalize_dossier_audit_path",
+      "routePathGroup": [
+        "/api/contributions/finalize",
+        "/api/create/finalize"
+      ],
+      "centralStoresCollections": [
+        "core.contribution_drafts",
+        "core.statement_proposals",
+        "core.dossier_audit_chain",
+        "core.dossier_material_links"
+      ],
+      "logsAuditTelemetrySinks": [
+        "dossier_audit_chain hash events",
+        "dossier_material_links updates"
+      ],
+      "hasAiProviderTransition": false,
+      "zoneAssignment": [
+        "core",
+        "logs_telemetry"
+      ],
+      "status": "klar",
+      "statusNote": "Finalize + Dossier-Audit sind als servergefuehrter Kernpfad konsistent.",
+      "sourceAnchors": [
+        {
+          "file": "apps/web/src/app/api/contributions/finalize/route.ts",
+          "contains": [
+            "coreCol<AuditEvent>(\"dossier_audit_chain\")",
+            "coreCol<MaterialLink>(\"dossier_material_links\")",
+            "buildFinalizeRedirectPath"
+          ]
+        },
+        {
+          "file": "apps/web/src/app/api/create/finalize/route.ts",
+          "contains": [
+            "return handleFinalize(req);"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "factcheck_enqueue_status_paths",
+      "routePathGroup": [
+        "/api/factcheck/enqueue",
+        "/api/factcheck/status",
+        "/api/factcheck/status/[jobId]"
+      ],
+      "centralStoresCollections": [
+        "core.factcheck_jobs",
+        "core.vote_drafts",
+        "core.dossier_*",
+        "core.open_questions"
+      ],
+      "logsAuditTelemetrySinks": [
+        "RBAC_PERMISSION_DENIED",
+        "SYSTEM_IDENTITY_DENIED",
+        "dossier revision chain"
+      ],
+      "hasAiProviderTransition": true,
+      "zoneAssignment": [
+        "core",
+        "logs_telemetry",
+        "external_ai_provider"
+      ],
+      "status": "klar",
+      "statusNote": "High-impact Pfad mit klarem Identity-Contract, aber heterogenen Provider-Aufrufen.",
+      "sourceAnchors": [
+        {
+          "file": "apps/web/src/app/api/factcheck/enqueue/route.ts",
+          "contains": [
+            "factcheckJobsCol",
+            "callAriSearchSerp",
+            "internalSystemIdentityAuditFields"
+          ]
+        },
+        {
+          "file": "apps/web/src/app/api/factcheck/status/route.ts",
+          "contains": [
+            "factcheckJobsCol",
+            "resolveTrustedInternalSystemIdentity"
+          ]
+        },
+        {
+          "file": "apps/web/src/app/api/factcheck/status/[jobId]/route.ts",
+          "contains": [
+            "factcheckJobsCol",
+            "resolveTrustedInternalSystemIdentity"
+          ]
+        },
+        {
+          "file": "features/factcheck/db.ts",
+          "contains": [
+            "const JOBS_COLLECTION = \"factcheck_jobs\""
+          ]
+        }
+      ]
+    },
+    {
+      "id": "finding_upsert_cross_store_path",
+      "routePathGroup": [
+        "/api/finding/upsert"
+      ],
+      "centralStoresCollections": [
+        "prisma.finding",
+        "prisma.factcheckClaim",
+        "prisma.evidence",
+        "core.dossier_findings",
+        "core.dossier_claims",
+        "core.dossier_sources",
+        "core.dossier_edges"
+      ],
+      "logsAuditTelemetrySinks": [
+        "SYSTEM_IDENTITY_DENIED",
+        "dossier revision chain"
+      ],
+      "hasAiProviderTransition": false,
+      "zoneAssignment": [
+        "core",
+        "cross_store",
+        "logs_telemetry"
+      ],
+      "status": "gemischt",
+      "statusNote": "Dual-Write Prisma + Mongo bleibt risikobehafteter Sonderpfad.",
+      "sourceAnchors": [
+        {
+          "file": "apps/web/src/app/api/finding/upsert/route.ts",
+          "contains": [
+            "const prisma = await getPrismaClient();",
+            "const findingModel = (prisma as any).finding;",
+            "dossierFindingsCol()",
+            "resolveTrustedInternalSystemIdentity"
+          ]
+        },
+        {
+          "file": "features/dossier/db.ts",
+          "contains": [
+            "const FINDINGS_COLLECTION = \"dossier_findings\"",
+            "const CLAIMS_COLLECTION = \"dossier_claims\"",
+            "const SOURCES_COLLECTION = \"dossier_sources\""
+          ]
+        }
+      ]
+    },
+    {
+      "id": "swipes_votes_usage_split",
+      "routePathGroup": [
+        "/api/swipes/*",
+        "/api/votes/summary",
+        "/api/votes/user"
+      ],
+      "centralStoresCollections": [
+        "core.statement_proposals",
+        "core.swipe_votes",
+        "core.statement_swipes",
+        "core.swipe_events",
+        "votes.votes",
+        "core.statements"
+      ],
+      "logsAuditTelemetrySinks": [
+        "core.swipe_events"
+      ],
+      "hasAiProviderTransition": false,
+      "zoneAssignment": [
+        "core",
+        "votes_usage",
+        "logs_telemetry"
+      ],
+      "status": "gemischt",
+      "statusNote": "Usage/Vote-Daten laufen parallel ueber core- und votes-store.",
+      "sourceAnchors": [
+        {
+          "file": "apps/web/src/features/swipes/service.ts",
+          "contains": [
+            "getCol<SwipeVoteDoc>(\"swipe_votes\")",
+            "getCol<SwipeTelemetryDoc>(\"swipe_events\")",
+            "getCol<ProposalDoc>(\"statement_proposals\")"
+          ]
+        },
+        {
+          "file": "apps/web/src/app/api/votes/summary/route.ts",
+          "contains": [
+            "const stmtsRef = await coreCol(\"statements\")",
+            "const votesRef = await votesCol(\"votes\")"
+          ]
+        },
+        {
+          "file": "apps/web/src/models/votes/Vote.ts",
+          "contains": [
+            "return votesCol<VoteDoc>(\"votes\")"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "direct_ai_diag_paths",
+      "routePathGroup": [
+        "/api/_diag/gpt",
+        "/api/admin/ai/orchestrator-smoke",
+        "/api/contributions/analyze/save",
+        "/api/contributions/refine",
+        "/api/quality/clarify"
+      ],
+      "centralStoresCollections": [
+        "no shared collection contract in direct routes"
+      ],
+      "logsAuditTelemetrySinks": [
+        "runtime logs only on direct routes",
+        "orchestrator smoke includes probe metadata"
+      ],
+      "hasAiProviderTransition": true,
+      "zoneAssignment": [
+        "external_ai_provider",
+        "logs_telemetry"
+      ],
+      "status": "unklar",
+      "statusNote": "Direkte Provider-Pfade sind nicht vollstaendig am einheitlichen Telemetrie-Contract ausgerichtet.",
+      "sourceAnchors": [
+        {
+          "file": "apps/web/src/app/api/_diag/gpt/route.ts",
+          "contains": [
+            "callOpenAI(",
+            "requireAdminOrEditor"
+          ]
+        },
+        {
+          "file": "apps/web/src/app/api/admin/ai/orchestrator-smoke/route.ts",
+          "contains": [
+            "callE150Orchestrator",
+            "callOpenAIJson"
+          ]
+        },
+        {
+          "file": "apps/web/src/app/api/contributions/analyze/save/route.ts",
+          "contains": [
+            "openai.responses.create"
+          ]
+        },
+        {
+          "file": "apps/web/src/app/api/contributions/refine/route.ts",
+          "contains": [
+            "fetch(`${base}/chat/completions`"
+          ]
+        },
+        {
+          "file": "apps/web/src/app/api/quality/clarify/route.ts",
+          "contains": [
+            "fetch(\"https://api.openai.com/v1/responses\""
+          ]
+        }
+      ]
+    }
+  ]
+}

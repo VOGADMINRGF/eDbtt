@@ -49,11 +49,11 @@ export default async function ReferenzarchitekturPage({
               {content.eyebrow}
             </p>
 
-            <h1 className="mt-3 text-3xl font-semibold tracking-tight text-[rgb(var(--fg))] sm:text-4xl lg:text-5xl">
+            <h1 className="mt-3 text-3xl font-semibold tracking-tight text-cyan-400 sm:text-4xl lg:text-5xl">
               {content.title}
             </h1>
 
-            <p className="mt-4 max-w-3xl text-lg leading-8 text-[rgb(var(--fg))]">
+            <p className="mt-4 max-w-3xl text-lg leading-8 text-cyan-700 dark:text-cyan-200">
               {content.subtitle}
             </p>
 
@@ -90,7 +90,7 @@ export default async function ReferenzarchitekturPage({
                 href="#prozess-vom-beitrag-zum-mandat"
                 className="btn-secondary text-sm"
               >
-                Wie es funktioniert
+                Vom Beitrag zur Entscheidung
               </a>
               <a href="#wer-dahintersteht" className="btn-secondary text-sm">
                 Hintergrund
@@ -105,7 +105,7 @@ export default async function ReferenzarchitekturPage({
 
             <div className="mt-4 space-y-3">
               <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4">
-                <p className="text-sm font-semibold text-[rgb(var(--fg))]">
+                <p className="text-sm font-semibold text-cyan-300">
                   Mehr als ein Beteiligungstool
                 </p>
                 <p className="mt-1 text-sm leading-6 text-[rgb(var(--muted))]">
@@ -116,7 +116,7 @@ export default async function ReferenzarchitekturPage({
               </div>
 
               <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4">
-                <p className="text-sm font-semibold text-[rgb(var(--fg))]">
+                <p className="text-sm font-semibold text-cyan-300">
                   Anlassraum ist nicht gleich Dossier
                 </p>
                 <p className="mt-1 text-sm leading-6 text-[rgb(var(--muted))]">
@@ -127,7 +127,7 @@ export default async function ReferenzarchitekturPage({
               </div>
 
               <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4">
-                <p className="text-sm font-semibold text-[rgb(var(--fg))]">
+                <p className="text-sm font-semibold text-cyan-300">
                   Keine unsichtbaren Sprünge
                 </p>
                 <p className="mt-1 text-sm leading-6 text-[rgb(var(--muted))]">
@@ -147,7 +147,7 @@ export default async function ReferenzarchitekturPage({
             key={card.title}
             className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm"
           >
-            <h2 className="text-base font-semibold text-[rgb(var(--fg))]">
+            <h2 className="text-base font-semibold text-cyan-300">
               {card.title}
             </h2>
             <p className="mt-2 text-sm leading-6 text-[rgb(var(--muted))]">
@@ -163,7 +163,7 @@ export default async function ReferenzarchitekturPage({
             key={card.title}
             className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm"
           >
-            <h2 className="text-base font-semibold text-[rgb(var(--fg))]">
+            <h2 className="text-base font-semibold text-cyan-300">
               {card.title}
             </h2>
             <p className="mt-2 text-sm leading-6 text-[rgb(var(--muted))]">
@@ -176,7 +176,7 @@ export default async function ReferenzarchitekturPage({
       <section className="mt-10 rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm">
         <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
           <div>
-            <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">
+            <h2 className="text-sm font-semibold text-cyan-300">
               Inhalt / Navigationspunkte
             </h2>
             <p className="mt-1 text-sm leading-6 text-[rgb(var(--muted))]">
@@ -191,7 +191,7 @@ export default async function ReferenzarchitekturPage({
             <a
               key={item.id}
               href={`#${item.id}`}
-              className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-1 text-xs font-semibold text-[rgb(var(--muted))] transition hover:border-sky-300 hover:text-[rgb(var(--fg))]"
+              className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-1 text-xs font-semibold text-[rgb(var(--muted))] transition hover:border-cyan-300 hover:text-cyan-300"
             >
               {item.label}
             </a>
@@ -211,7 +211,7 @@ export default async function ReferenzarchitekturPage({
               className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-6 shadow-sm lg:p-7"
             >
               <div className="max-w-3xl">
-                <h2 className="text-xl font-semibold text-[rgb(var(--fg))] sm:text-2xl">
+                <h2 className="text-xl font-semibold text-cyan-300 sm:text-2xl">
                   {section.title}
                 </h2>
 
@@ -225,13 +225,13 @@ export default async function ReferenzarchitekturPage({
                   <div className="mt-6 flex flex-wrap gap-3">
                     <Link
                       href="/howtoworks/bewegung"
-                      className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-4 py-2 text-sm font-semibold text-[rgb(var(--fg))] transition hover:border-sky-300"
+                      className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-4 py-2 text-sm font-semibold text-[rgb(var(--fg))] transition hover:border-cyan-300 hover:text-cyan-300"
                     >
                       Zur Bewegung
                     </Link>
                     <a
                       href="#vertiefung"
-                      className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-4 py-2 text-sm font-semibold text-[rgb(var(--fg))] transition hover:border-sky-300"
+                      className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-4 py-2 text-sm font-semibold text-[rgb(var(--fg))] transition hover:border-cyan-300 hover:text-cyan-300"
                     >
                       Zur Vertiefung
                     </a>
@@ -245,7 +245,7 @@ export default async function ReferenzarchitekturPage({
 
       <section className="mt-10 rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-6 shadow-sm">
         <div className="max-w-3xl">
-          <h2 className="text-xl font-semibold text-[rgb(var(--fg))]">Kurz-FAQ</h2>
+          <h2 className="text-xl font-semibold text-cyan-300">Kurz-FAQ</h2>
           <p className="mt-2 text-sm leading-6 text-[rgb(var(--muted))]">
             Häufige Einordnungsfragen zur Rolle der Referenzarchitektur, zur
             Abgrenzung von Arbeitsraum und Dossier sowie zum Anspruch dokumentierter
@@ -259,7 +259,7 @@ export default async function ReferenzarchitekturPage({
               key={idx}
               className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-4 py-4"
             >
-              <p className="text-sm font-semibold text-[rgb(var(--fg))]">{item.q}</p>
+              <p className="text-sm font-semibold text-cyan-300">{item.q}</p>
               <p className="mt-2 text-sm leading-6 text-[rgb(var(--muted))]">
                 {item.a}
               </p>
@@ -273,7 +273,7 @@ export default async function ReferenzarchitekturPage({
         className="mt-10 rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-6 shadow-sm"
       >
         <div className="max-w-3xl">
-          <h2 className="text-xl font-semibold text-[rgb(var(--fg))]">
+          <h2 className="text-xl font-semibold text-cyan-300">
             Weiterdenken / Weitergehen
           </h2>
           <p className="mt-2 text-sm leading-6 text-[rgb(var(--muted))]">
@@ -293,19 +293,19 @@ export default async function ReferenzarchitekturPage({
         <div className="mt-5 flex flex-wrap gap-3">
           <Link
             href="/howtoworks/bewegung"
-            className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-4 py-2 text-sm font-semibold text-[rgb(var(--fg))] transition hover:border-sky-300"
+            className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-4 py-2 text-sm font-semibold text-[rgb(var(--fg))] transition hover:border-cyan-300 hover:text-cyan-300"
           >
             Zur Bewegung
           </Link>
           <a
             href="#prozess-vom-beitrag-zum-mandat"
-            className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-4 py-2 text-sm font-semibold text-[rgb(var(--fg))] transition hover:border-sky-300"
+            className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-4 py-2 text-sm font-semibold text-[rgb(var(--fg))] transition hover:border-cyan-300 hover:text-cyan-300"
           >
-            Wie es funktioniert
+            Vom Beitrag zur Entscheidung
           </a>
           <Link
             href="/kontakt"
-            className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-4 py-2 text-sm font-semibold text-[rgb(var(--fg))] transition hover:border-sky-300"
+            className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-4 py-2 text-sm font-semibold text-[rgb(var(--fg))] transition hover:border-cyan-300 hover:text-cyan-300"
           >
             Kontakt
           </Link>
@@ -317,7 +317,7 @@ export default async function ReferenzarchitekturPage({
         className="mt-10 rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-6 shadow-sm"
       >
         <div className="max-w-3xl">
-          <h2 className="text-xl font-semibold text-[rgb(var(--fg))]">
+          <h2 className="text-xl font-semibold text-cyan-300">
             Feedback / Kontakt
           </h2>
           <p className="mt-2 text-sm leading-6 text-[rgb(var(--muted))]">

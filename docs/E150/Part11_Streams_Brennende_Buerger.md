@@ -24,6 +24,14 @@ Streams sollen **Demokratie-Abende** werden – keine Shitstorms.
 - Overlay: `/overlay/stream/[id]`
 - Onboarding: `/howtoworks/streamer`, `/streamer/werden`
 
+### 1.2 Event-/Demo-/Operator-Abgrenzung (harmonisiert 2026-03-26)
+
+- Event/Sitzung kann Anlassraum sein: siehe `docs/event-and-session-model.md`.
+- Demo-Surfaces sind Wrapper und besitzen keine eigene Domainlogik:
+  `docs/surface-architecture.md`.
+- Operator-/Governance-Entscheidungen bleiben in Management-Surfaces:
+  `docs/architecture/topic-round-governance-pr04.md`.
+
 ---
 
 ## 2. Rollen & Gating

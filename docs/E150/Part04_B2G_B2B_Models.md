@@ -230,16 +230,21 @@ Ziel:
 
 ## 11. Admin Pricing Control
 
-Institutionelle Kunden brauchen individuelle Preise.
-Dafuer wird im Admin vorgesehen:
-- Preisprofil je Entity
-- Basispreis
-- Anlassraumpreise
-- Teilnehmerpreise
-- Caps
-- Rabatte
-- Approval
-- Audit Log
+Admin Pricing Control folgt dem manifestierten Pricing-Kanon (`GOV-PRICING-01`) und bleibt
+ausdruecklich governance-gebunden (`GOV-PRICING-02`):
+
+- Segment-/Tarif-/Verifizierungsstatus steuerbar
+- Creator-Typ (Civic/Media/Publisher-Team-Organization) sichtbar
+- Kommune/Institution/oeffentlicher Traeger Status sichtbar
+- Funding-Fee-Regel und Caps/Obergrenzen steuerbar
+- Specials/Add-ons/Pilotstatus transparent steuerbar
+- Overrides nur mit Begruendung + Auditspur
+- Explainability-Pflicht: warum Tarif/Fee/Segment/Sonderstatus greift
+
+Der operative Vorbereitungscontract ist dokumentiert in:
+`docs/E150/GOV-PRICING-02_ADMIN_PRICING_CONTROL_CONTRACT_2026-03-29.md`.
+Policy-/Override-/Explainability-Contract (`02A`), Audit-/KPI-Contract (`02B`) und
+Readmodel-Integration (`02C`) sind umgesetzt; weiterhin ohne Checkout-/Payment-Ausbau.
 
 ## 12. Erfolgsdefinition
 
@@ -248,3 +253,17 @@ Ein institutionelles Modell ist erfolgreich, wenn:
 - Anlassraeume sauber reviewt und publiziert werden,
 - Entscheidungen nachvollziehbarer werden,
 - Beteiligung und Wirkung gemeinsam sichtbar werden.
+
+## 13. Zugeordnete Vertikal-Dokumente (harmonisiert 2026-03-26)
+
+Die folgenden `/docs`-Dateien sind inhaltlich diesem Part zugeordnet:
+
+- `docs/municipality-operating-model.md` (kommunaler Betriebsfluss)
+- `docs/mayor-dashboard.md` (Executive-Surface fuer Kommunen)
+- `docs/journalism-open-dossier-model.md` (Journalismus als Anlassgeber, nicht Wahrheitsautomat)
+- `docs/organization-and-association-publishing.md` (Organisations-/Verbandsmodus)
+- `docs/civic-initiative-lifecycle.md` (Civic-Lifecycle inkl. Funding-Modi)
+
+Review-/Operator-Logik bleibt part-uebergreifend:
+- Governance/Review-Pflicht: `docs/E150/Part01_Systemvision_Mission_Governance.md`
+- Operativer Backlog: `docs/E150/OpenTasks.md`

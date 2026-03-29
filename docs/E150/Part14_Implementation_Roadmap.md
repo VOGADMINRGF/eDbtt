@@ -31,6 +31,16 @@ Bevor Automatik aus Feed oder KI irgendetwas erzeugt, muss der Anlassraum als Ke
 Kommunen / Verwaltung sind der staerkste direkte Pilot- und Umsatzpfad.
 Journalismus baut danach auf denselben Kern auf.
 
+### 2.4 Surface-Kanon (DOMAIN-HARM-01, Option B)
+- `Anlassraum` bleibt der Domaenenbegriff.
+- `/runden` bleibt die kanonische oeffentliche Surface.
+- `/anlassraum` ist offizieller Alias-/Zielbegriff ohne harte Migration im Ist-Stand.
+
+### 2.5 KI-Orchestrierungs-Kanon (GOV-AI-04, Option A)
+- Startkanon fuer den produktiven Multi-Orchestration-Hauptfluss ist `strict staged`.
+- Direkte Providerpfade ausserhalb dieses Hauptflusses bleiben Ausnahme-/Legacy-Nebenpfade.
+- Keine implizite Gleichstellung direkter Providerpfade mit dem produktiven Hauptfluss.
+
 ## 3. Welle 1 — Governance Foundation
 
 ### Ziele
@@ -80,9 +90,14 @@ Journalismus baut danach auf denselben Kern auf.
 ### Deliverables
 - Hybrid-Pricing
 - Admin Pricing Control
-- Rabatt-Engine
+- Pricing-Control-Contract (Segment/Fee/Caps/Overrides/KPI/Explainability/Audit)
 - Signals / Thresholds / Trigger
 - Funding Intent / Readiness / Matching / Impact
+
+Hinweis (Stand 2026-03-29):
+- `GOV-PRICING-01` ist manifestiert.
+- `GOV-PRICING-02` ist als Runtime-Folge vorbereitet; der operative Contract liegt in
+  `docs/E150/GOV-PRICING-02_ADMIN_PRICING_CONTROL_CONTRACT_2026-03-29.md`.
 
 ## 7. Welle 5 — Journalismus
 
@@ -136,3 +151,24 @@ Ein Pilot ist erfolgreich, wenn:
 - Funding Intent sammeln
 - optional Funding starten
 - Admin kann Pricing / Rabatte steuern
+
+## 12. Repo-Themenzuordnung fuer Part01-16 (harmonisiert 2026-03-26)
+
+| Part | Primärthema | Zugeordnete `/docs`-Quellen |
+| --- | --- | --- |
+| Part01 | Governance, Leitbild, Review-first | `docs/governance-core-model.md`, `docs/truth-guardrails.md`, `docs/surface-architecture.md` |
+| Part02 | Rollen, Levels, Gating | `docs/auth/admin-flows.md` (Rollen-/2FA-Gates) |
+| Part03 | B2C Access/Pricing | `docs/E150/membership_pricing.md` (B2C-Ableitung) |
+| Part04 | B2G/B2B/B2O/Journalismus/Civic | `docs/municipality-operating-model.md`, `docs/mayor-dashboard.md`, `docs/journalism-open-dossier-model.md`, `docs/organization-and-association-publishing.md`, `docs/civic-initiative-lifecycle.md` |
+| Part05 | Orchestrator, Intake, Post-Finalize-Routing (konditional) | `docs/create-intake-unification.md`, `docs/architecture/feed-anlassraum-output-model.md` |
+| Part06 | Consequences + Themenkatalog | `docs/E150/Part06_Themenkatalog_und_Zustaendigkeiten.md` |
+| Part07 | Graph/Dossier/Report-Kern | `docs/architecture/TRIMONGO_GRAPH_CONTRACT.md`, `docs/ops/dossier-hardening-v1_1.md`, `docs/ops/mega-hardening-plan.md` |
+| Part08 | Eventualitaeten/Decision Trees | (direkt im Part gepflegt, keine separate Drift-Quelle) |
+| Part09 | Community Research | `docs/E150/Pilot.md` (Research-Block), `docs/E150_NEEDS_REVIEW.md` |
+| Part10 | Responsibility Navigator | `docs/E150/Part06_Consequences_Fairness.md`, `docs/E150/Part06_Themenkatalog_und_Zustaendigkeiten.md` |
+| Part11 | Streams/Event-Integration | `docs/event-and-session-model.md`, `docs/mobile-navigation-pattern.md` |
+| Part12 | Campaigns/Admin/Telemetry/Operator | `docs/auth/admin-flows.md`, `docs/surface-architecture.md` |
+| Part13 | I18N/A11y/Community/Social | `docs/E150/ContentTranslationLifecycle.md`, `docs/account-social-consolidation.md`, `docs/mobile-navigation-pattern.md` |
+| Part14 | Roadmap/Wellen | `docs/E150/OpenTasks.md`, `docs/E150/Pflichtenheft.md` |
+| Part15 | Laufende PR-/Drift-Evidenz | `docs/E150/OpenTasks.md`, `docs/E150/Pilot.md` |
+| Part16 | KI-Orchestrierung, Anlassraum, CTA/Review/Beteiligung | `docs/E150/Part16_AI_Orchestration_and_Safety.md`, `docs/E150/Part16_Anlassraum_Model.md`, `docs/architecture/topic-round-*.md`, `docs/architecture/feed-anlassraum-output-model.md`, `docs/create-intake-unification.md` |

@@ -5,6 +5,17 @@ import Link from "next/link";
 import { buildSwipeDossierHref, buildSwipeEvidenceHref, buildSwipeVotingHref } from "@/features/surfaces/swipes/detailRoutes";
 import { useMobileChromeVisibility } from "@/hooks/useMobileChromeVisibility";
 import {
+  buildSwipesFeedFilter,
+  countFromDraftFocusItems,
+  resolveFromDraftArrivalStatus,
+  resolveInitialSwipesArrivalMode,
+  resolveSwipesArrivalToggle,
+  resolveSwipesEmptyStateMessage,
+  resolveThematicContextHref,
+  shouldShowArrivalContextReminder,
+  type SwipesArrivalMode,
+} from "@/features/surfaces/swipes/arrival";
+import {
   SwipeAuthGate,
   SwipeDetailSheet,
   SwipeEventualitiesStep,
@@ -97,6 +108,7 @@ function buildTransitionHint(decision: SwipeDecision, remainingToAnalysis: numbe
 
 type SwipesClientProps = {
   initialTopic?: string;
+  fromDraftId?: string | null;
   focusStatementId?: string;
   variant?: "full" | "solo";
   mode?: SurfaceMode;
@@ -113,6 +125,7 @@ type LastVoteSnapshot = {
 
 export function SwipesClient({
   initialTopic = "",
+  fromDraftId = null,
   focusStatementId,
   variant = "full",
   mode = "live",
@@ -121,6 +134,7 @@ export function SwipesClient({
 }: SwipesClientProps) {
   const [topicQuery, setTopicQuery] = useState(variant === "solo" ? "" : initialTopic);
   const [activeLevel, setActiveLevel] = useState<"ALL" | "Bund" | "Land" | "Kommune" | "EU">("ALL");
+  const [arrivalMode, setArrivalMode] = useState<SwipesArrivalMode>(() => resolveInitialSwipesArrivalMode(fromDraftId));
   const [searchOpen, setSearchOpen] = useState(false);
   const [items, setItems] = useState<SwipeItem[]>([]);
   const [loading, setLoading] = useState(false);
@@ -152,6 +166,8 @@ export function SwipesClient({
 
   const isSolo = variant === "solo";
   const isSwipeFocusMode = !isSolo;
+  const fromDraftArrivalEnabled = !isSolo && Boolean(fromDraftId);
+  const showingFromDraftOnly = fromDraftArrivalEnabled && arrivalMode === "from_draft";
 
   const freeVote = useFreeVoteLimit({
     enabled: requireAuthAfterFreeVotes && mode === "live" && !isSolo,
@@ -239,15 +255,21 @@ export function SwipesClient({
   }, [isSwipeFocusMode]);
 
   useEffect(() => {
+    setArrivalMode(resolveInitialSwipesArrivalMode(fromDraftId));
+  }, [fromDraftId]);
+
+  useEffect(() => {
     let cancelled = false;
     async function load() {
       setLoading(true);
       const resp = await fetchSwipeFeed(
-        {
+        buildSwipesFeedFilter({
           topicQuery: variant === "solo" ? undefined : topicQuery,
           level: activeLevel,
           statementId: focusStatementId,
-        },
+          fromDraftId: showingFromDraftOnly ? fromDraftId : null,
+          arrivalMode,
+        }),
         null,
       );
       if (!cancelled) {
@@ -260,9 +282,15 @@ export function SwipesClient({
     return () => {
       cancelled = true;
     };
-  }, [topicQuery, activeLevel, focusStatementId, variant]);
+  }, [topicQuery, activeLevel, focusStatementId, fromDraftId, showingFromDraftOnly, arrivalMode, variant]);
 
   const activeItem = useMemo(() => items[0] ?? null, [items]);
+  const fromDraftFocusCount = useMemo(() => countFromDraftFocusItems(items), [items]);
+  const thematicContextHref = useMemo(() => resolveThematicContextHref(activeItem), [activeItem]);
+  const showArrivalContextReminder = useMemo(
+    () => shouldShowArrivalContextReminder(thematicContextHref),
+    [thematicContextHref],
+  );
 
   const openDetail = useCallback(async (item: SwipeItem) => {
     setDetailItem(item);
@@ -510,6 +538,16 @@ export function SwipesClient({
         <SwipesHeaderProgress swipeCount={swipeProgressCount} onOpenSearch={() => setSearchOpen(true)} />
       ) : null}
 
+      {fromDraftArrivalEnabled && fromDraftId ? (
+        <FinalizeArrivalBanner
+          draftId={fromDraftId}
+          arrivalMode={arrivalMode}
+          focusedCount={fromDraftFocusCount}
+          showContextReminder={showArrivalContextReminder}
+          onSwitchMode={setArrivalMode}
+        />
+      ) : null}
+
       {!isSolo ? (
         <SwipesSearchTrigger
           open={searchOpen}
@@ -537,14 +575,25 @@ export function SwipesClient({
             />
           ) : (
             <EmptyState
-              message="Aktuell keine weiteren Themen im Stream. Passe Filter an oder starte mit Trendthemen."
+              message={resolveSwipesEmptyStateMessage({ showingFromDraftOnly })}
               onResetFilters={() => {
                 setTopicQuery("");
                 setActiveLevel("ALL");
+                if (fromDraftArrivalEnabled) {
+                  setArrivalMode("all");
+                }
               }}
             />
           )}
           {!isSolo && transitionHint ? <p className="text-xs text-[rgb(var(--muted))]">{transitionHint}</p> : null}
+          {!isSolo && thematicContextHref ? (
+            <Link
+              href={thematicContextHref}
+              className="inline-flex items-center rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-1.5 text-xs font-semibold text-[rgb(var(--fg))] hover:bg-[rgb(var(--bg))]"
+            >
+              Zum Themenkontext in /create
+            </Link>
+          ) : null}
           {!isSolo && lastVote ? (
             <button
               type="button"
@@ -693,6 +742,50 @@ export function SwipesClient({
         }}
       />
     </div>
+  );
+}
+
+function FinalizeArrivalBanner({
+  draftId,
+  arrivalMode,
+  focusedCount,
+  showContextReminder,
+  onSwitchMode,
+}: {
+  draftId: string;
+  arrivalMode: SwipesArrivalMode;
+  focusedCount: number;
+  showContextReminder: boolean;
+  onSwitchMode: (mode: SwipesArrivalMode) => void;
+}) {
+  const showingFromDraftOnly = arrivalMode === "from_draft";
+  const shortDraftId = draftId.slice(-8);
+  const toggle = resolveSwipesArrivalToggle(arrivalMode);
+  const statusText = resolveFromDraftArrivalStatus({
+    showingFromDraftOnly,
+    focusedCount,
+  });
+  return (
+    <section className="rounded-2xl border border-emerald-200/80 bg-emerald-50/70 px-3 py-2 text-xs text-emerald-800 dark:border-emerald-400/30 dark:bg-emerald-500/10 dark:text-emerald-100">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p>
+          Beitrag eingereicht (Entwurf <span className="font-semibold">…{shortDraftId}</span>). {statusText}
+        </p>
+        <button
+          type="button"
+          onClick={() => onSwitchMode(toggle.nextMode)}
+          aria-pressed={showingFromDraftOnly}
+          className="inline-flex items-center rounded-full border border-emerald-300/70 bg-white/70 px-3 py-1 text-[11px] font-semibold text-emerald-800 hover:bg-white dark:border-emerald-400/40 dark:bg-emerald-400/10 dark:text-emerald-100"
+        >
+          {toggle.label}
+        </button>
+      </div>
+      {showContextReminder ? (
+        <p className="mt-1 text-[11px] text-emerald-700/90 dark:text-emerald-100/90">
+          Der Themenkontext bleibt im Anlassraum über /runden; Swipes ist der Beteiligungsmodus.
+        </p>
+      ) : null}
+    </section>
   );
 }
 

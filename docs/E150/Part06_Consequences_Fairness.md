@@ -21,6 +21,13 @@ Ziel:
 **Jede Aussage strukturiert und demokratisch verständlich einordnen.**  
 Nicht bewerten – nicht beeinflussen.
 
+### Abgrenzung innerhalb Part 6 (2026-03-26)
+
+- Dieses Dokument bleibt das Haupt-Part fuer Consequences/Fairness/Responsibility.
+- Der 15er-Themenkatalog liegt als kompakter Appendix in
+  `docs/E150/Part06_Themenkatalog_und_Zustaendigkeiten.md`.
+- Part10 (`Responsibility Navigator`) baut auf beiden Dokumenten auf.
+
 ---
 
 ## 2. Warum Consequences?

@@ -5,6 +5,7 @@ import AnalyzeWorkspace, { type UseCaseAccess, type UseCaseId } from "@/componen
 import type { AccountOverview } from "@features/account/types";
 import { getAccessTierConfigForUser, getUserAccessTier, hasUnlimitedContributions } from "@core/access/accessTiers";
 import type { VerificationLevel } from "@core/auth/verificationTypes";
+import { buildFinalizeFallbackPath } from "@/features/create/finalizeRedirect";
 
 export type ContributionNewClientProps = {
   initialOverview: AccountOverview;
@@ -126,7 +127,8 @@ export function ContributionNewClient({ initialOverview, dossierId }: Contributi
 
   const overview = gate.overview;
   const useCaseAccess = deriveUseCaseAccess(overview);
-  const afterFinalizeNavigateTo = dossierId ? `/dossier/${dossierId}` : "/swipes";
+  // Keep fallback aligned with server finalize behavior when redirectTo is missing.
+  const afterFinalizeNavigateTo = buildFinalizeFallbackPath({ dossierId });
 
   return (
     <>
@@ -177,8 +179,8 @@ function ContributionGate({ variant, overview }: ContributionGateProps) {
       : "Du brauchst einen Contribution-Credit oder citizenPremium+";
   const description =
     variant === "anon"
-      ? "Mit einem kostenlosen citizenBasic-Konto sammelst du XP, Swipes und erhaelst nach 100 Swipes einen Contribution-Credit (1 Beitrag mit bis zu 3 Statements)."
-      : `Freie Plaene erlauben ${tierLimit || 0} Beiträge/Monat. Du hast ${swipes} Swipes gesammelt – dir fehlen noch ${nextCreditIn} bis zum nächsten Credit oder du wechselst auf citizenPremium, citizenPro oder citizenUltra.`;
+      ? "Mit einem kostenlosen citizenBasic-Konto sammelst du XP, Swipes und erhältst nach 100 Swipes einen Contribution-Credit (1 Beitrag mit bis zu 3 Statements)."
+      : `Freie Pläne erlauben ${tierLimit || 0} Beiträge/Monat. Du hast ${swipes} Swipes gesammelt – dir fehlen noch ${nextCreditIn} bis zum nächsten Credit oder du wechselst auf citizenPremium, citizenPro oder citizenUltra.`;
 
   return (
     <main className="mx-auto max-w-4xl px-4 py-12">

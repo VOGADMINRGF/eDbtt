@@ -9,6 +9,11 @@ import type { CreateEntitlements } from "@/lib/server/entitlements/createEntitle
 import type { CreateMode } from "@/features/create/intents";
 import { formatRelevanceScopeLabel } from "@/features/relevanceFraming";
 import { useLocale } from "@/context/LocaleContext";
+import { buildFinalizeFallbackPath } from "@/features/create/finalizeRedirect";
+import {
+  hasCreateIntakeContext,
+  type CreateIntakeContext,
+} from "@/features/create/intakeContext";
 import {
   formatOperatorNumber,
   getOperatorCreateTexts,
@@ -25,20 +30,6 @@ export type CreateClientProps = {
   initialMode?: CreateMode;
   initialText?: string | null;
   initialIntakeContext?: CreateIntakeContext | null;
-};
-
-export type CreateIntakeContext = {
-  source: string | null;
-  signalTitle: string | null;
-  sourceUrl: string | null;
-  sourceLabel: string | null;
-  region: string | null;
-  scope: string | null;
-  clusterHint: string | null;
-  reviewState: string | null;
-  candidateId: string | null;
-  draftId: string | null;
-  reason: string | null;
 };
 
 type CreateContextPickerItem = {
@@ -125,23 +116,6 @@ function normalizeAnlassraumId(value?: string | null): string | null {
   if (!normalized) return null;
   if (!/^[a-f0-9]{24}$/.test(normalized)) return null;
   return normalized;
-}
-
-function hasIntakeContext(context?: CreateIntakeContext | null): boolean {
-  if (!context) return false;
-  return (
-    !!context.source ||
-    !!context.signalTitle ||
-    !!context.sourceUrl ||
-    !!context.sourceLabel ||
-    !!context.region ||
-    !!context.scope ||
-    !!context.clusterHint ||
-    !!context.reviewState ||
-    !!context.candidateId ||
-    !!context.draftId ||
-    !!context.reason
-  );
 }
 
 export default function CreateClient({
@@ -278,7 +252,7 @@ export default function CreateClient({
       ? 1
       : Math.min(entitlements.maxFinalizeClaimsPerInput, 4);
 
-  const afterFinalizeNavigateTo = dossierId ? `/dossier/${dossierId}` : "/runden";
+  const afterFinalizeNavigateTo = buildFinalizeFallbackPath({ dossierId });
   const useCaseAccess = deriveUseCaseAccess(overview, text);
   const selectedContext = selectedAnlassraumId
     ? contextItems.find((item) => item.anlassraumId === selectedAnlassraumId) ?? null
@@ -291,7 +265,7 @@ export default function CreateClient({
   const credits = entitlements.contributionCredits;
 
   const hasLegacyModeParam = Boolean(initialMode);
-  const showIntakeContext = hasIntakeContext(initialIntakeContext);
+  const showIntakeContext = hasCreateIntakeContext(initialIntakeContext);
 
   return (
     <div className="space-y-5 md:space-y-6">
@@ -310,6 +284,10 @@ export default function CreateClient({
           </h2>
           <p className="max-w-3xl text-sm text-[rgb(var(--muted))]">
             {text.freeStartLead}
+          </p>
+          <p className="max-w-3xl text-xs text-[rgb(var(--muted))]">
+            Themenkontext in den <Link href="/runden" className="underline underline-offset-2">Anlässen</Link>, Beteiligung in{" "}
+            <Link href="/swipes" className="underline underline-offset-2">Swipes</Link>, Verdichtung im Dossier.
           </p>
 
           <div className="flex flex-wrap items-center gap-2 text-[11px] text-[rgb(var(--muted))]">
@@ -469,9 +447,7 @@ export default function CreateClient({
             <span className="vog-chip">{text.monthlyLimitLabel}: {formatOperatorNumber(monthlyLimit, operatorLocale)}</span>
           )}
           <span className="vog-chip">{text.maxClaimsLabel}: {formatOperatorNumber(maxFinalizeClaims, operatorLocale)}</span>
-          <Link href="/runden" className="vog-chip">
-            {text.goToRounds}
-          </Link>
+          <Link href="/runden" className="vog-chip">Anlässe öffnen</Link>
         </div>
       </details>
 

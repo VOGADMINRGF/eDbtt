@@ -1,4 +1,6 @@
 import { MongoClient, Collection } from "mongodb";
+import { hasCoreMongoRuntimeConfig, resolveCoreMongoRuntimeConfig } from "@/lib/server/env/runtimeMongo";
+import { toMongoRuntimeError } from "@/lib/server/env/runtimeMongoErrors";
 
 export type Draft = {
   id: string;
@@ -21,11 +23,17 @@ function rid(){ return Math.random().toString(36).slice(2) + Math.random().toStr
 
 /** --- Mongo-Implementierung --- */
 async function mongoCol(): Promise<Collection<Draft>> {
-  const uri = process.env.MONGODB_URI!;
-  const dbName = process.env.MONGODB_DB!;
-  const client = new MongoClient(uri);
-  await client.connect();
-  return client.db(dbName).collection<Draft>("drafts");
+  try {
+    const mongo = resolveCoreMongoRuntimeConfig();
+    if (!mongo.uri || !mongo.dbName) {
+      throw new Error("Missing CORE_MONGODB_URI/CORE_DB_NAME (or legacy MONGODB_URI/MONGODB_DB)");
+    }
+    const client = new MongoClient(mongo.uri);
+    await client.connect();
+    return client.db(mongo.dbName).collection<Draft>("drafts");
+  } catch (error) {
+    throw toMongoRuntimeError(error, "draftStore:mongoCol");
+  }
 }
 const mongoStore: Store = {
   async create(d) {
@@ -70,7 +78,7 @@ const memoryStore: Store = {
 
 /** --- Factory: Prod (Mongo) wenn ENV da, sonst Dev (Memory) --- */
 function pickStore(): Store {
-  const hasMongo = !!process.env.MONGODB_URI && !!process.env.MONGODB_DB;
+  const hasMongo = hasCoreMongoRuntimeConfig();
   return hasMongo ? mongoStore : memoryStore;
 }
 

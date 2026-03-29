@@ -1,0 +1,133 @@
+import { afterEach, describe, expect, it, vi } from "vitest";
+import {
+  hasCoreMongoRuntimeConfig,
+  resolveCoreMongoRuntimeConfig,
+  resolveMongoUriForZone,
+} from "@/lib/server/env/runtimeMongo";
+import { classifyMongoRuntimeError } from "@/lib/server/env/runtimeMongoErrors";
+
+describe("runtime mongo env aliases", () => {
+  it("prefers core-specific env keys over legacy keys", () => {
+    const resolved = resolveCoreMongoRuntimeConfig({
+      CORE_MONGODB_URI: "mongodb://core-uri",
+      CORE_DB_NAME: "core-db",
+      MONGODB_URI: "mongodb://legacy-uri",
+      MONGODB_DB: "legacy-db",
+    });
+
+    expect(resolved).toMatchObject({
+      uri: "mongodb://core-uri",
+      dbName: "core-db",
+      usedLegacyUri: false,
+      usedLegacyDbName: false,
+    });
+  });
+
+  it("falls back to legacy keys when core keys are missing", () => {
+    const resolved = resolveCoreMongoRuntimeConfig({
+      MONGODB_URI: "mongodb://legacy-uri",
+      MONGODB_DB: "legacy-db",
+    });
+
+    expect(resolved).toMatchObject({
+      uri: "mongodb://legacy-uri",
+      dbName: "legacy-db",
+      usedLegacyUri: true,
+      usedLegacyDbName: true,
+    });
+    expect(hasCoreMongoRuntimeConfig({ MONGODB_URI: "mongodb://legacy-uri", MONGODB_DB: "legacy-db" })).toBe(true);
+  });
+
+  it("resolves zone URIs with zone-first and legacy fallback behavior", () => {
+    const source = {
+      MONGODB_URI: "mongodb://legacy-uri",
+      CORE_MONGODB_URI: "mongodb://core-uri",
+      VOTES_MONGODB_URI: "mongodb://votes-uri",
+    };
+    expect(resolveMongoUriForZone("core", source)).toBe("mongodb://core-uri");
+    expect(resolveMongoUriForZone("votes", source)).toBe("mongodb://votes-uri");
+    expect(resolveMongoUriForZone("pii", source)).toBe("mongodb://legacy-uri");
+  });
+});
+
+describe("runtime mongo error classification", () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.resetModules();
+    vi.doUnmock("mongodb");
+  });
+
+  it("classifies SRV lookup failures deterministically", () => {
+    const err = Object.assign(
+      new Error("querySrv ENOTFOUND _mongodb._tcp.cluster.local"),
+      { code: "ENOTFOUND" },
+    );
+    expect(classifyMongoRuntimeError(err)).toMatchObject({
+      kind: "srv",
+      code: "ENOTFOUND",
+    });
+  });
+
+  it("classifies DNS lookup failures deterministically", () => {
+    const err = Object.assign(new Error("getaddrinfo EAI_AGAIN cluster.local"), { code: "EAI_AGAIN" });
+    expect(classifyMongoRuntimeError(err)).toMatchObject({
+      kind: "dns",
+      code: "EAI_AGAIN",
+    });
+  });
+
+  it("classifies ECONNREFUSED failures deterministically", () => {
+    const err = Object.assign(new Error("connect ECONNREFUSED 127.0.0.1:27017"), { code: "ECONNREFUSED" });
+    expect(classifyMongoRuntimeError(err)).toMatchObject({
+      kind: "conn_refused",
+      code: "ECONNREFUSED",
+    });
+  });
+
+  it("uses shared classification in mongoPing runtime errors", async () => {
+    vi.stubEnv("CORE_MONGODB_URI", "mongodb://localhost:27017/core");
+    vi.doMock("mongodb", () => ({
+      MongoClient: class MockMongoClient {
+        constructor(_uri: string) {}
+        async connect() {
+          throw Object.assign(
+            new Error("querySrv ENOTFOUND _mongodb._tcp.cluster.local"),
+            { code: "ENOTFOUND" },
+          );
+        }
+        db() {
+          return { command: async () => ({ ok: 1 }) };
+        }
+      },
+    }));
+    const { mongoPing } = await import("@/utils/mongoPing");
+    await expect(mongoPing("core")).rejects.toThrow("[srv]");
+  });
+
+  it("uses shared classification in draftStore runtime errors", async () => {
+    vi.stubEnv("CORE_MONGODB_URI", "mongodb://localhost:27017/core");
+    vi.stubEnv("CORE_DB_NAME", "core");
+    vi.doMock("mongodb", () => ({
+      MongoClient: class MockMongoClient {
+        constructor(_uri: string) {}
+        async connect() {
+          throw Object.assign(
+            new Error("connect ECONNREFUSED 127.0.0.1:27017"),
+            { code: "ECONNREFUSED" },
+          );
+        }
+        db() {
+          return {
+            collection() {
+              return { insertOne: async () => ({ acknowledged: true }) };
+            },
+          };
+        }
+      },
+    }));
+    const { createDraft } = await import("@/server/draftStore");
+    await expect(
+      createDraft({ kind: "contribution", text: "test" }),
+    ).rejects.toThrow("[conn_refused]");
+  });
+});

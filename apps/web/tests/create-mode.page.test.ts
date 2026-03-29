@@ -155,6 +155,26 @@ describe("/create canonical mode rendering", () => {
     expect(lastCall?.selectedAnlassraumId).toBeUndefined();
   });
 
+  it("uses /swipes as finalize fallback in canonical create flow without dossier", async () => {
+    const tree = await CreatePage({
+      searchParams: Promise.resolve({}),
+    });
+    renderToStaticMarkup(tree);
+
+    const lastCall = mocks.analyzeWorkspaceCalls.at(-1);
+    expect(lastCall?.afterFinalizeNavigateTo).toBe("/swipes");
+  });
+
+  it("uses dossier redirect as finalize fallback when dossierId is present", async () => {
+    const tree = await CreatePage({
+      searchParams: Promise.resolve({ dossierId: "dossier-42" }),
+    });
+    renderToStaticMarkup(tree);
+
+    const lastCall = mocks.analyzeWorkspaceCalls.at(-1);
+    expect(lastCall?.afterFinalizeNavigateTo).toBe("/dossier/dossier-42");
+  });
+
   it("hydrates intake context from URL and seeds workspace text when no draft/prefill exists", async () => {
     const tree = await CreatePage({
       searchParams: Promise.resolve({
@@ -177,5 +197,20 @@ describe("/create canonical mode rendering", () => {
     expect(String(lastCall?.initialText ?? "")).toContain("Intake-Kontext (Anlassraum-first)");
     expect(String(lastCall?.initialText ?? "")).toContain("Signal: Signal Innenstadt");
     expect(String(lastCall?.initialText ?? "")).toContain("Primärquelle öffnen URL: https://example.org/a");
+  });
+
+  it("ignores unknown legacy query params for intake-context hydration", async () => {
+    const tree = await CreatePage({
+      searchParams: Promise.resolve({
+        legacyMode: "manual",
+        unknown: "drop-me",
+      }),
+    });
+    const html = renderToStaticMarkup(tree);
+    expect(html).not.toContain("Intake-Kontext");
+
+    const lastCall = mocks.analyzeWorkspaceCalls.at(-1);
+    expect(lastCall?.createMode).toBe("source");
+    expect(lastCall?.initialText).toBeUndefined();
   });
 });

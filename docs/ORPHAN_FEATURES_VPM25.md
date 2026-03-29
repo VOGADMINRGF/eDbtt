@@ -1,5 +1,7 @@
 # ORPHAN_FEATURES_VPM25
 
+> Hygiene-/Evidenzquelle (kein operativer Backlog): Verbindliche Umsetzung und Priorisierung laufen ausschließlich über `docs/E150/OpenTasks.md` (SSOT). Kontext- und Statuszusammenfassung liegt in `docs/E150/Part15.md`.
+
 Zweck: Überblick über Features und Module, die aus VPM25 stammen oder dafür gedacht waren, aber im aktuellen eDbtt-Stand nicht (mehr) sinnvoll verdrahtet sind.
 
 ## Status (automatisch per Script gesammelt)
@@ -26,6 +28,13 @@ Lauf `pnpm exec tsx scripts/orphan_features_scan.ts` aus dem Repo-Root. Aktuelle
 - [legacy_keep] features/tv – TV/Overlay-Prototyp, bewusst nicht löschen (Streams/Events)
 
 > Vollständige Liste inkl. „Used Features“ liefert das Script im Markdown-Output.
+
+## Operativer Anschluss
+
+- Operative SSOT: `docs/E150/OpenTasks.md`
+- Status-/Kontextsammlung: `docs/E150/Part15.md`
+- Ergänzende Hardening-Notizen: `docs/E150_NEEDS_REVIEW.md`
+- Regel: Punkte aus dieser Datei werden erst nach Einordnung mit Task-ID in `OpenTasks.md` umgesetzt.
 
 ## Manuell bekannte Orphans / Kandidaten
 

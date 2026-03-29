@@ -10,6 +10,16 @@
     "kind": "page"
   },
   {
+    "path": "/abstimmungen",
+    "file": "abstimmungen/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/abstimmungen/:id",
+    "file": "abstimmungen/[id]/page.tsx",
+    "kind": "page"
+  },
+  {
     "path": "/account",
     "file": "account/page.tsx",
     "kind": "page"
@@ -55,6 +65,11 @@
     "kind": "page"
   },
   {
+    "path": "/admin/anlassraeume",
+    "file": "admin/anlassraeume/page.tsx",
+    "kind": "page"
+  },
+  {
     "path": "/admin/audit",
     "file": "admin/audit/page.tsx",
     "kind": "page"
@@ -77,6 +92,16 @@
   {
     "path": "/admin/contributions",
     "file": "admin/contributions/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/admin/create/attach-drafts",
+    "file": "admin/create/attach-drafts/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/admin/create/attach-drafts/history-maintenance",
+    "file": "admin/create/attach-drafts/history-maintenance/page.tsx",
     "kind": "page"
   },
   {
@@ -142,6 +167,26 @@
   {
     "path": "/admin/factcheck",
     "file": "admin/factcheck/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/admin/features",
+    "file": "admin/features/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/admin/feeds",
+    "file": "admin/feeds/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/admin/feeds/anlassraum",
+    "file": "admin/feeds/anlassraum/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/admin/feeds/anlassraum/:id",
+    "file": "admin/feeds/anlassraum/[id]/page.tsx",
     "kind": "page"
   },
   {
@@ -345,13 +390,28 @@
     "kind": "page"
   },
   {
+    "path": "/anlassraum",
+    "file": "anlassraum/page.tsx",
+    "kind": "page"
+  },
+  {
     "path": "/api/access/check",
     "file": "api/access/check/route.ts",
     "kind": "api"
   },
   {
+    "path": "/api/account/consent",
+    "file": "api/account/consent/route.ts",
+    "kind": "api"
+  },
+  {
     "path": "/api/account/identity-document",
     "file": "api/account/identity-document/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/account/matches",
+    "file": "api/account/matches/route.ts",
     "kind": "api"
   },
   {
@@ -392,6 +452,21 @@
   {
     "path": "/api/account/signature",
     "file": "api/account/signature/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/account/social-actions",
+    "file": "api/account/social-actions/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/account/social-summary",
+    "file": "api/account/social-summary/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/account/social-thread",
+    "file": "api/account/social-thread/route.ts",
     "kind": "api"
   },
   {
@@ -460,6 +535,11 @@
     "kind": "api"
   },
   {
+    "path": "/api/admin/anlassraeume",
+    "file": "api/admin/anlassraeume/route.ts",
+    "kind": "api"
+  },
+  {
     "path": "/api/admin/audit",
     "file": "api/admin/audit/route.ts",
     "kind": "api"
@@ -497,6 +577,31 @@
   {
     "path": "/api/admin/content/metrics",
     "file": "api/admin/content/metrics/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/create/attach-drafts",
+    "file": "api/admin/create/attach-drafts/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/create/attach-drafts/:draftId/apply",
+    "file": "api/admin/create/attach-drafts/[draftId]/apply/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/create/attach-drafts/:draftId/history",
+    "file": "api/admin/create/attach-drafts/[draftId]/history/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/create/attach-drafts/:draftId/review",
+    "file": "api/admin/create/attach-drafts/[draftId]/review/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/create/attach-drafts/history-maintenance",
+    "file": "api/admin/create/attach-drafts/history-maintenance/route.ts",
     "kind": "api"
   },
   {
@@ -665,6 +770,56 @@
     "kind": "api"
   },
   {
+    "path": "/api/admin/features",
+    "file": "api/admin/features/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/features/:featureKey",
+    "file": "api/admin/features/[featureKey]/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/feeds/anlassraum",
+    "file": "api/admin/feeds/anlassraum/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/feeds/anlassraum/:id",
+    "file": "api/admin/feeds/anlassraum/[id]/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/feeds/anlassraum/:id/dossier",
+    "file": "api/admin/feeds/anlassraum/[id]/dossier/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/feeds/anlassraum/:id/outputs",
+    "file": "api/admin/feeds/anlassraum/[id]/outputs/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/feeds/anlassraum/:id/outputs/:seedId/transition",
+    "file": "api/admin/feeds/anlassraum/[id]/outputs/[seedId]/transition/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/feeds/anlassraum/:id/transition",
+    "file": "api/admin/feeds/anlassraum/[id]/transition/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/feeds/cluster/run",
+    "file": "api/admin/feeds/cluster/run/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/feeds/config",
+    "file": "api/admin/feeds/config/route.ts",
+    "kind": "api"
+  },
+  {
     "path": "/api/admin/feeds/drafts",
     "file": "api/admin/feeds/drafts/route.ts",
     "kind": "api"
@@ -675,13 +830,103 @@
     "kind": "api"
   },
   {
+    "path": "/api/admin/feeds/drafts/:id/backfill",
+    "file": "api/admin/feeds/drafts/[id]/backfill/route.ts",
+    "kind": "api"
+  },
+  {
     "path": "/api/admin/feeds/drafts/:id/publish",
     "file": "api/admin/feeds/drafts/[id]/publish/route.ts",
     "kind": "api"
   },
   {
+    "path": "/api/admin/feeds/drafts/:id/review",
+    "file": "api/admin/feeds/drafts/[id]/review/route.ts",
+    "kind": "api"
+  },
+  {
     "path": "/api/admin/feeds/drafts/:id/status",
     "file": "api/admin/feeds/drafts/[id]/status/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/feeds/drafts/bulk",
+    "file": "api/admin/feeds/drafts/bulk/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/feeds/drafts/legacy",
+    "file": "api/admin/feeds/drafts/legacy/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/governance/anlassraum",
+    "file": "api/admin/governance/anlassraum/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/governance/dossier-upsert-contracts",
+    "file": "api/admin/governance/dossier-upsert-contracts/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/governance/dossier-upsert-contracts/:contractId",
+    "file": "api/admin/governance/dossier-upsert-contracts/[contractId]/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/governance/dossier-upsert-contracts/:contractId/apply",
+    "file": "api/admin/governance/dossier-upsert-contracts/[contractId]/apply/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/governance/dossier-upsert-contracts/:contractId/backfill",
+    "file": "api/admin/governance/dossier-upsert-contracts/[contractId]/backfill/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/governance/dossier-upsert-contracts/:contractId/reject",
+    "file": "api/admin/governance/dossier-upsert-contracts/[contractId]/reject/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/governance/dossier-upsert-contracts/legacy",
+    "file": "api/admin/governance/dossier-upsert-contracts/legacy/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/governance/entities",
+    "file": "api/admin/governance/entities/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/governance/round-seed-contracts",
+    "file": "api/admin/governance/round-seed-contracts/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/governance/round-seed-contracts/:contractId",
+    "file": "api/admin/governance/round-seed-contracts/[contractId]/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/governance/round-seed-contracts/:contractId/backfill",
+    "file": "api/admin/governance/round-seed-contracts/[contractId]/backfill/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/governance/round-seed-contracts/:contractId/handoff",
+    "file": "api/admin/governance/round-seed-contracts/[contractId]/handoff/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/governance/round-seed-contracts/:contractId/reject",
+    "file": "api/admin/governance/round-seed-contracts/[contractId]/reject/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/governance/round-seed-contracts/legacy",
+    "file": "api/admin/governance/round-seed-contracts/legacy/route.ts",
     "kind": "api"
   },
   {
@@ -767,6 +1012,11 @@
   {
     "path": "/api/admin/memberships/overview",
     "file": "api/admin/memberships/overview/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/admin/onboarding/founder-welcome/backfill",
+    "file": "api/admin/onboarding/founder-welcome/backfill/route.ts",
     "kind": "api"
   },
   {
@@ -1040,6 +1290,11 @@
     "kind": "api"
   },
   {
+    "path": "/api/auth/2fa/request-email",
+    "file": "api/auth/2fa/request-email/route.ts",
+    "kind": "api"
+  },
+  {
     "path": "/api/auth/email/confirm",
     "file": "api/auth/email/confirm/route.ts",
     "kind": "api"
@@ -1185,6 +1440,11 @@
     "kind": "api"
   },
   {
+    "path": "/api/community/groups",
+    "file": "api/community/groups/route.ts",
+    "kind": "api"
+  },
+  {
     "path": "/api/consequence/:id",
     "file": "api/consequence/[id]/route.ts",
     "kind": "api"
@@ -1225,6 +1485,11 @@
     "kind": "api"
   },
   {
+    "path": "/api/contributions/attach-drafts",
+    "file": "api/contributions/attach-drafts/route.ts",
+    "kind": "api"
+  },
+  {
     "path": "/api/contributions/drafts",
     "file": "api/contributions/drafts/route.ts",
     "kind": "api"
@@ -1262,6 +1527,36 @@
   {
     "path": "/api/contributions/trace",
     "file": "api/contributions/trace/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/create/analyze",
+    "file": "api/create/analyze/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/create/attach-drafts",
+    "file": "api/create/attach-drafts/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/create/context",
+    "file": "api/create/context/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/create/entitlements",
+    "file": "api/create/entitlements/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/create/finalize",
+    "file": "api/create/finalize/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/create/save",
+    "file": "api/create/save/route.ts",
     "kind": "api"
   },
   {
@@ -1317,6 +1612,11 @@
   {
     "path": "/api/dossier/export/:id",
     "file": "api/dossier/export/[id]/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/dossier/material/link",
+    "file": "api/dossier/material/link/route.ts",
     "kind": "api"
   },
   {
@@ -1790,6 +2090,11 @@
     "kind": "api"
   },
   {
+    "path": "/api/qr/sets/:code/protocol",
+    "file": "api/qr/sets/[code]/protocol/route.ts",
+    "kind": "api"
+  },
+  {
     "path": "/api/qr/sets/:code/vote",
     "file": "api/qr/sets/[code]/vote/route.ts",
     "kind": "api"
@@ -1880,6 +2185,21 @@
     "kind": "api"
   },
   {
+    "path": "/api/rounds/:slug/assist-runs",
+    "file": "api/rounds/[slug]/assist-runs/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/rounds/:slug/assist-runs/:runId/suggestions/:suggestionId",
+    "file": "api/rounds/[slug]/assist-runs/[runId]/suggestions/[suggestionId]/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/runden/entry",
+    "file": "api/runden/entry/route.ts",
+    "kind": "api"
+  },
+  {
     "path": "/api/runreceipts",
     "file": "api/runreceipts/route.ts",
     "kind": "api"
@@ -1947,6 +2267,11 @@
   {
     "path": "/api/statements/create",
     "file": "api/statements/create/route.ts",
+    "kind": "api"
+  },
+  {
+    "path": "/api/statements/finalize",
+    "file": "api/statements/finalize/route.ts",
     "kind": "api"
   },
   {
@@ -2150,6 +2475,11 @@
     "kind": "page"
   },
   {
+    "path": "/aussagen/neu",
+    "file": "aussagen/neu/page.tsx",
+    "kind": "page"
+  },
+  {
     "path": "/auth/2fa-setup",
     "file": "auth/2fa-setup/page.tsx",
     "kind": "page"
@@ -2220,6 +2550,11 @@
     "kind": "page"
   },
   {
+    "path": "/companion/:slug",
+    "file": "companion/[slug]/page.tsx",
+    "kind": "page"
+  },
+  {
     "path": "/contact",
     "file": "contact/page.tsx",
     "kind": "page"
@@ -2235,6 +2570,11 @@
     "kind": "page"
   },
   {
+    "path": "/contributions/:id",
+    "file": "contributions/[id]/page.tsx",
+    "kind": "page"
+  },
+  {
     "path": "/contributions/analyze",
     "file": "contributions/analyze/page.tsx",
     "kind": "page"
@@ -2242,6 +2582,11 @@
   {
     "path": "/contributions/new",
     "file": "contributions/new/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/create",
+    "file": "create/page.tsx",
     "kind": "page"
   },
   {
@@ -2290,6 +2635,26 @@
     "kind": "page"
   },
   {
+    "path": "/demo/abstimmungen",
+    "file": "demo/abstimmungen/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/demo/abstimmungen/:id",
+    "file": "demo/abstimmungen/[id]/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/demo/buerger",
+    "file": "demo/buerger/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/demo/create",
+    "file": "demo/create/page.tsx",
+    "kind": "page"
+  },
+  {
     "path": "/demo/dossier",
     "file": "demo/dossier/page.tsx",
     "kind": "page"
@@ -2300,8 +2665,28 @@
     "kind": "page"
   },
   {
+    "path": "/demo/journalist",
+    "file": "demo/journalist/page.tsx",
+    "kind": "page"
+  },
+  {
     "path": "/demo/mandat",
     "file": "demo/mandat/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/demo/runden",
+    "file": "demo/runden/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/demo/swipes",
+    "file": "demo/swipes/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/demo/verwaltung",
+    "file": "demo/verwaltung/page.tsx",
     "kind": "page"
   },
   {
@@ -2312,11 +2697,6 @@
   {
     "path": "/demo/votes/:id",
     "file": "demo/votes/[id]/page.tsx",
-    "kind": "page"
-  },
-  {
-    "path": "/dossier/:dossierId",
-    "file": "dossier/[dossierId]/page.tsx",
     "kind": "page"
   },
   {
@@ -2335,6 +2715,16 @@
     "kind": "page"
   },
   {
+    "path": "/embed/round/:slug",
+    "file": "embed/round/[slug]/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/embed/topic/:slug",
+    "file": "embed/topic/[slug]/page.tsx",
+    "kind": "page"
+  },
+  {
     "path": "/evidence/:regionCode",
     "file": "evidence/[regionCode]/page.tsx",
     "kind": "page"
@@ -2346,7 +2736,12 @@
   },
   {
     "path": "/factcheck",
-    "file": "(admin)/factcheck/page.tsx",
+    "file": "factcheck/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/factcheck/:id",
+    "file": "factcheck/[id]/page.tsx",
     "kind": "page"
   },
   {
@@ -2425,6 +2820,16 @@
     "kind": "page"
   },
   {
+    "path": "/mandat",
+    "file": "mandat/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/mandat/:id",
+    "file": "mandat/[id]/page.tsx",
+    "kind": "page"
+  },
+  {
     "path": "/map",
     "file": "map/page.tsx",
     "kind": "page"
@@ -2437,6 +2842,11 @@
   {
     "path": "/mitglied-werden",
     "file": "mitglied-werden/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/mitwirken",
+    "file": "mitwirken/page.tsx",
     "kind": "page"
   },
   {
@@ -2515,6 +2925,11 @@
     "kind": "page"
   },
   {
+    "path": "/regist",
+    "file": "regist/page.tsx",
+    "kind": "page"
+  },
+  {
     "path": "/register",
     "file": "register/page.tsx",
     "kind": "page"
@@ -2565,8 +2980,23 @@
     "kind": "page"
   },
   {
+    "path": "/round/:slug",
+    "file": "round/[slug]/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/round/manage/:slug/merge",
+    "file": "round/manage/[slug]/merge/page.tsx",
+    "kind": "page"
+  },
+  {
     "path": "/run/:id",
     "file": "run/[id]/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/runden",
+    "file": "runden/page.tsx",
     "kind": "page"
   },
   {
@@ -2625,6 +3055,11 @@
     "kind": "page"
   },
   {
+    "path": "/studio",
+    "file": "studio/page.tsx",
+    "kind": "page"
+  },
+  {
     "path": "/support/:slug",
     "file": "support/[slug]/page.tsx",
     "kind": "page"
@@ -2657,6 +3092,16 @@
   {
     "path": "/thema-einreichen",
     "file": "thema-einreichen/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/topic/:slug",
+    "file": "topic/[slug]/page.tsx",
+    "kind": "page"
+  },
+  {
+    "path": "/topic/manage/:slug/governance",
+    "file": "topic/manage/[slug]/governance/page.tsx",
     "kind": "page"
   },
   {

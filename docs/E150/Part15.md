@@ -7,6 +7,26 @@
 
 Dieses Dokument dient als Status-Zusammenfassung der Pfade (Part00–Part15). Es ist **kein** Run-Plan. Der verbindliche Aufgabenstand liegt in `docs/E150/OpenTasks.md`, der Lieferrahmen in `docs/E150/Pflichtenheft.md`.
 
+## Hygiene-Boards (Einordnung)
+
+- Operative SSOT bleibt ausschließlich: `docs/E150/OpenTasks.md`
+- Hygiene-/Evidenzquellen:
+  - `docs/ORPHAN_FEATURES_VPM25.md`
+  - `docs/E150_NEEDS_REVIEW.md`
+- Diese Boards sind für Sichtung/Drift/Review gedacht und dürfen keinen konkurrierenden operativen Backlog bilden.
+- Wenn ein Punkt daraus umgesetzt werden soll, wird er zuerst als Task-ID im OpenTasks-Katalog geführt.
+
+## Update (2026-03-26) — Docs-Harmonisierung Part01-16 + OpenTasks
+
+- `/docs`-Bestandsaufnahme gegen Part01-16 erneut synchronisiert.
+- Themenzuordnung wurde in Part14 als explizite Mapping-Tabelle verankert (`Section 12`).
+- Drift-Abgrenzungen sind jetzt direkt in betroffenen Parts dokumentiert:
+  - Part01 (normativ vs. operative Uebersicht),
+  - Part06 (Consequences-Hauptpart vs. Themenkatalog-Appendix),
+  - Part16 (kanonischer Flow + AI-/Anlassraum-Ergaenzungen).
+- Querverweise fuer Event/Demo/Operator sowie I18N/Social-Runtime wurden in Part11, Part12, Part13 nachgezogen.
+- OpenTasks wurde um Dokumentationsdrift, offene Harmonisierungspunkte und Abhaengigkeiten ergaenzt.
+
 ## Update (2026-03-20) — Canonical AI/Product Architecture Shift (Freistart + Qualitaetsschicht)
 
 - Zwischenstand `manual/source/ai` als primaeres Zielbild fuer `/create` ist fachlich superseded.

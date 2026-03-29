@@ -3,6 +3,7 @@ import { createContribution, getLatestContributionByAuthor, getTaskById } from "
 import { logger } from "@/utils/logger";
 import { getCookie } from "@/lib/http/typedCookies";
 import { rateLimitOrThrow } from "@/utils/rateLimitHelpers";
+import { SOCIAL_ESCALATION_STARTFORM_CONTRACT } from "@/lib/social/escalationPolicy";
 
 async function readCookie(name: string): Promise<string | undefined> {
   const raw = await getCookie(name);
@@ -71,7 +72,13 @@ export async function POST(req: NextRequest, context: any) {
     }
 
     logger.info({ msg: "research.contribution.submitted", taskId, authorId: userId });
-    return NextResponse.json({ ok: true, contribution });
+    return NextResponse.json({
+      ok: true,
+      contribution,
+      meta: {
+        socialEscalationStartform: SOCIAL_ESCALATION_STARTFORM_CONTRACT,
+      },
+    });
   } catch (err: any) {
     logger.error({ msg: "research.contribution.failed", taskId, err: err?.message });
     return NextResponse.json({ ok: false, error: "server_error" }, { status: 500 });

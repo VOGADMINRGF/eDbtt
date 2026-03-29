@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { getTaskById } from "@core/research";
 import { logger } from "@/utils/logger";
 import { getCookie } from "@/lib/http/typedCookies";
+import { SOCIAL_ESCALATION_STARTFORM_CONTRACT } from "@/lib/social/escalationPolicy";
 
 async function readCookie(name: string): Promise<string | undefined> {
   const raw = await getCookie(name);
@@ -22,7 +23,13 @@ export async function GET(req: NextRequest, context: any) {
   try {
     const task = taskId ? await getTaskById(taskId) : null;
     if (!task) return NextResponse.json({ ok: false, error: "not_found" }, { status: 404 });
-    return NextResponse.json({ ok: true, task });
+    return NextResponse.json({
+      ok: true,
+      task,
+      meta: {
+        socialEscalationStartform: SOCIAL_ESCALATION_STARTFORM_CONTRACT,
+      },
+    });
   } catch (err: any) {
     logger.error({ msg: "research.tasks.detail_failed", id: taskId, err: err?.message });
     return NextResponse.json({ ok: false, error: "server_error" }, { status: 500 });

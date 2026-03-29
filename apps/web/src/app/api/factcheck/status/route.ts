@@ -1,27 +1,43 @@
 import { NextRequest, NextResponse } from "next/server";
-import { hasPermission, PERMISSIONS, type Role } from "@core/auth/rbac";
+import { hasPermission, PERMISSIONS } from "@core/auth/rbac";
 import { formatError } from "@core/errors/formatError";
 import { factcheckJobsCol } from "@features/factcheck/db";
+import { logPermissionDenied, resolveRoleFromRequest } from "@/lib/server/auth/requestRole";
+import {
+  internalSystemIdentityAuditFields,
+  resolveInternalSystemIdentity,
+  resolveTrustedInternalSystemIdentity,
+} from "@/lib/server/auth/systemIdentity";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-function roleFromRequest(req: NextRequest): Role {
-  const cookieRole = req.cookies.get("u_role")?.value as Role | undefined;
-  const headerRole = (req.headers.get("x-role") as Role) || undefined;
-  let role: Role = cookieRole ?? headerRole ?? "guest";
-  if (process.env.NODE_ENV !== "production") {
-    const url = new URL(req.url);
-    const qRole = url.searchParams.get("role") as Role | null;
-    if (qRole) role = qRole;
-  }
-  return role;
-}
-
 export async function GET(req: NextRequest) {
-  const role = roleFromRequest(req);
-  if (!hasPermission(role, PERMISSIONS.FACTCHECK_STATUS)) {
-    const fe = formatError("FORBIDDEN", "Permission denied", { role });
+  const systemIdentity = resolveInternalSystemIdentity(req);
+  const trustedSystemIdentity = resolveTrustedInternalSystemIdentity(req);
+  const roleContext = resolveRoleFromRequest(req);
+  const hasSessionAccess =
+    roleContext.source === "cookie" && hasPermission(roleContext.role, PERMISSIONS.FACTCHECK_STATUS);
+  const hasTrustedSystemAccess =
+    trustedSystemIdentity?.source === "factcheck_queue" ||
+    trustedSystemIdentity?.source === "factcheck_worker";
+  if (!hasSessionAccess && !hasTrustedSystemAccess) {
+    logPermissionDenied({
+      req,
+      scope: "factcheck.status.list",
+      permission: PERMISSIONS.FACTCHECK_STATUS,
+      role: roleContext.role,
+      source: roleContext.source,
+      details: {
+        ...internalSystemIdentityAuditFields(systemIdentity),
+        denyReason: systemIdentity
+          ? "system_identity_untrusted_or_disallowed"
+          : roleContext.source === "header"
+            ? "header_role_not_allowed"
+            : "missing_permission",
+      },
+    });
+    const fe = formatError("FORBIDDEN", "Permission denied", { role: roleContext.role });
     return NextResponse.json(fe, { status: 403 });
   }
 

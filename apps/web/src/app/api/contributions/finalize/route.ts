@@ -6,6 +6,10 @@ import { createAuditEvent } from "@features/dossier/infra/auditChain";
 import type { AuditEvent, MaterialLink } from "@features/dossier/infra/types";
 import { z } from "zod";
 import { CREATE_MODE_VALUES, parseCreateMode, type CreateMode } from "@/features/create/intents";
+import {
+  buildFinalizeRedirectPath,
+  type InternalRedirectPath,
+} from "@/features/create/finalizeRedirect";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -71,6 +75,14 @@ type ProposalDoc = {
   createdAt: Date;
 };
 
+type FinalizeSuccessResponse = {
+  ok: true;
+  proposalIds: string[];
+  createMode?: CreateMode;
+  anlassraumId?: string | null;
+  redirectTo: InternalRedirectPath;
+};
+
 export async function POST(req: NextRequest) {
   try {
     const cookieStore = await cookies();
@@ -96,11 +108,15 @@ export async function POST(req: NextRequest) {
     }
 
     if (draft.status === "finalized" && Array.isArray(draft.proposalIds) && draft.proposalIds.length > 0) {
-      return NextResponse.json({
+      const response: FinalizeSuccessResponse = {
         ok: true,
         proposalIds: draft.proposalIds,
-        redirectTo: body.dossierId ? `/dossier/${body.dossierId}` : `/swipes?fromDraft=${body.draftId}`,
-      });
+        redirectTo: buildFinalizeRedirectPath({
+          draftId: body.draftId,
+          dossierId: body.dossierId,
+        }),
+      };
+      return NextResponse.json(response);
     }
 
     const claims = Array.isArray(draft.analysis?.claims) ? draft.analysis.claims : [];
@@ -238,13 +254,17 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    return NextResponse.json({
+    const response: FinalizeSuccessResponse = {
       ok: true,
       proposalIds,
       createMode: resolvedCreateMode,
       anlassraumId: resolvedAnlassraumId,
-      redirectTo: body.dossierId ? `/dossier/${body.dossierId}` : `/swipes?fromDraft=${body.draftId}`,
-    });
+      redirectTo: buildFinalizeRedirectPath({
+        draftId: body.draftId,
+        dossierId: body.dossierId,
+      }),
+    };
+    return NextResponse.json(response);
   } catch (err: any) {
     if (Array.isArray(err?.issues) && err.issues.length > 0) {
       const issue = err.issues[0];

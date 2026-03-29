@@ -148,6 +148,7 @@ describe("runden entry source service", () => {
         type: "policy",
         sourceMode: "feed",
         status: "reviewed",
+        isPublic: true,
       },
     ]);
 
@@ -158,6 +159,7 @@ describe("runden entry source service", () => {
         outputType: "round_seed",
         status: "review",
         reviewState: "pending",
+        publishTarget: "/round/mobilitaet-innenstadt",
         createdAt: new Date("2026-03-19T08:00:00.000Z"),
         updatedAt: new Date("2026-03-19T09:00:00.000Z"),
       },
@@ -171,9 +173,10 @@ describe("runden entry source service", () => {
       anlassraumId: roomId.toHexString(),
       title: "Mobilitaet Innenstadt",
       sourceKind: "output_seed_with_anlassraum",
+      isPublic: true,
       outputStatus: "review",
       lifecycle: "active",
-      entryHref: `/create?mode=source&anlassraumId=${roomId.toHexString()}`,
+      entryHref: `/round/mobilitaet-innenstadt?anlassraumId=${roomId.toHexString()}`,
     });
   });
 
@@ -205,16 +208,55 @@ describe("runden entry source service", () => {
     expect(items[0]).toMatchObject({
       id: seedId.toHexString(),
       anlassraumId: null,
+      isPublic: null,
       outputStatus: "draft",
       reviewState: "pending",
       legacyIncomplete: true,
       sourceKind: "output_seed_legacy_incomplete",
-      entryHref: "/create?mode=source",
+      entryHref: null,
     });
     expect(items[0].createdAt).toBeNull();
   });
 
-  it("Scenario D: source failure is mapped to stable service error", async () => {
+  it("Scenario D: non-public room ignores publish target and stays room-scoped", async () => {
+    const roomId = new ObjectId("65f000000000000000000031");
+    const seedId = new ObjectId("65f000000000000000000041");
+
+    memory.seed("anlassraum", [
+      {
+        _id: roomId,
+        title: "Nicht öffentliche Sitzung",
+        summary: "Interner Anlassraum",
+        type: "event",
+        sourceMode: "manual",
+        status: "active",
+        isPublic: false,
+      },
+    ]);
+
+    memory.seed("output_seed", [
+      {
+        _id: seedId,
+        anlassraumId: roomId,
+        outputType: "round_seed",
+        status: "review",
+        reviewState: "pending",
+        publishTarget: "/round/interne-sitzung",
+        updatedAt: new Date("2026-03-19T11:00:00.000Z"),
+      },
+    ]);
+
+    const items = await listRundenEntryItems();
+    expect(items).toHaveLength(1);
+    expect(items[0]).toMatchObject({
+      id: seedId.toHexString(),
+      anlassraumId: roomId.toHexString(),
+      isPublic: false,
+      entryHref: `/create?mode=source&anlassraumId=${roomId.toHexString()}`,
+    });
+  });
+
+  it("Scenario E: source failure is mapped to stable service error", async () => {
     memory.failOutputSeedReads();
     await expect(listRundenEntryItems()).rejects.toThrow("round_entry_source_unavailable");
   });

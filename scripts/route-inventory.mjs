@@ -72,9 +72,17 @@ function normalizeSegment(segment) {
 }
 
 function toMarkdown(items) {
+  const preamble = [
+    "<!-- GENERATED FILE - DO NOT EDIT MANUALLY -->",
+    "",
+    "> **Generated artifact (read-only).**",
+    "> Änderungen an Routen in `apps/web/src/app/**/page.tsx` oder `apps/web/src/app/**/route.ts` vornehmen,",
+    "> dann `node scripts/route-inventory.mjs` ausführen.",
+    "",
+  ].join("\n");
   const header = "| Route | Typ | Datei |\n|---|---|---|";
   const rows = items.map((item) => `| \`${item.path}\` | ${item.kind} | \`${item.file}\` |`);
-  return [header, ...rows].join("\n");
+  return [preamble, header, ...rows].join("\n");
 }
 
 async function run() {

@@ -1,6 +1,12 @@
-Part 00 – Foundations, PII & Security Framework
+# Part 00 – Foundations, PII & Security Framework
 
 > Status-Hinweis (2026-02-12): Dieses Part ist eine Spezifikation/Zusammenfassung. Der verbindliche Aufgabenstand liegt in `docs/E150/OpenTasks.md`. Keine neuen Runs aus diesem Part ableiten.
+
+> Mapping-Hinweis (2026-03-26): Dieses Part beschreibt den normativen Security-/PII-Rahmen. Operative Umsetzung und Priorisierung laufen ausschließlich über `docs/E150/OpenTasks.md`, insbesondere `GOV-SEC-03`, `GOV-SEC-04`, `PR-ENV-01`. Für den letzten Auditlauf siehe `docs/E150/GOV-SEC-02_Audit_2026-03-26.md`.
+
+> Decision-Stand (2026-03-28): `GOV-SEC-03` ist manifestiert. Der votes/core Split wird komplett umgesetzt; Neo4j- und Prisma-Cross-Store-Pfade sind beide kritisch (Neo4j zuerst tiefer haerten, Prisma direkt danach); direkte Providerpfade unterliegen dem Mindestcontract aus Auditfeldern, PII-Redaction und Allowlist.
+
+> Inventory-/Drift-Basis (2026-03-27): `GOV-SEC-03A` liefert die repo-nahe Zonenmatrix (`docs/E150/GOV-SEC-03A_ZONE_MATRIX_2026-03-27.md`), `GOV-SEC-03B` friert den High-impact-Subset als machine-readable Inventar + Drift-Checks ein (`docs/E150/GOV-SEC-03B_ZONE_INVENTORY_2026-03-27.json`, `apps/web/tests/gov-sec-03b.zone-inventory.test.ts`).
 
 0.0 Zweck dieses Parts
 
@@ -9,48 +15,58 @@ Alles, was später in den anderen Parts (Orchestrator, Graph, Streams, Kampagnen
 
 Ziele:
 
-klare Trennung von PII (personenbezogenen Daten) und inhaltlichen Daten,
-
-konsistente Datenzonen (Tri-Mongo, Logs, Telemetrie),
-
-eindeutige Rollen & Berechtigungen,
-
-saubere Basis für Auth, OTP, 2FA & Device-Limits,
-
-so wenig Daten wie nötig, so viel Schutz wie möglich.
+- klare Trennung von PII (personenbezogenen Daten) und inhaltlichen Daten
+- konsistente Datenzonen (Tri-Mongo, Logs, Telemetrie)
+- eindeutige Rollen & Berechtigungen
+- saubere Basis für Auth, OTP, 2FA & Device-Limits
+- so wenig Daten wie nötig, so viel Schutz wie möglich
 
 Wichtig:
 Die technischen Details aus docs/PII_ZONES_E150.md, core/pii/redact.ts, core/observability/logger.ts und apps/web/src/utils/logger.ts gelten als Referenz-Implementierung.
 Part 00 beschreibt die Leitplanken & Pflichten, nicht den Quelltext im Detail.
+
+0.0.1 Querverweise (kanonisch)
+
+- Orchestrierung/Safety-Governance: `docs/E150/Part16_AI_Orchestration_and_Safety.md`
+- Rollen/Trust/Surface-Kontext: `docs/E150/Part01_Overview_Roles_Access.md`
+- Operative Tasks/Status/Abhängigkeiten: `docs/E150/OpenTasks.md`
+- Audit-Evidenz Route/Auth/AI: `docs/E150/GOV-SEC-02_Audit_2026-03-26.md`
+
+0.0.2 Entscheidungsstand 2026-03-26 (Sicherheitsrelevant)
+
+- `GOV-SAFETY-03` ist entschieden: Social-/Kontakt-Eskalation nur gestuft, kein DM-/Gruppen-Default, Start nur in moderierten/kuratierten Kontexten mit Opt-in, Verifikation/Trust, Cooldown/Rate-Limits, Abuse-/Moderations-Gates und Auditierbarkeit.
+- `GOV-SEC-05` ist entschieden: Nicht-interaktive Factcheck-/Finding-Zugriffe nur ueber interne Queue-/Worker-Pfade mit kontrollierter Systemidentitaet; kein Query-/Header-Rollenbypass als Maschinen-Contract.
+- Operative Umsetzung bleibt in `docs/E150/OpenTasks.md` ueber `GOV-SAFETY-03A/B`, `GOV-ANLASS-08B` und `GOV-SEC-05A/B/C`.
+
+0.0.3 Entscheidungsstand `GOV-SEC-06` (2026-03-27)
+
+- `EDITOR_TOKEN` ist als explizit begrenzter Break-Glass-/Ops-Fallback freigegeben, nur fuer den dokumentierten Feed-/Diag-Allowlist-Subset.
+- `EDITOR_TOKEN` ist **kein** allgemeiner Admin-/User-Auth-Mechanismus.
+- Session-/Admin-Gates bleiben der Primaerpfad.
+- Keine stillschweigende Scope-Ausweitung und kein Rollenmodell aus Query/Headern.
+- Evidenzbasis: `GOV-SEC-06A` + `GOV-SEC-06B`, insbesondere `docs/E150/GOV-SEC-06B_EDITOR_TOKEN_ROUTE_MATRIX_2026-03-27.md`.
+- Technische Scope-Haertung ist ueber `GOV-SEC-06C` umgesetzt (zentrale Allowlist-Assertion fuer den Token-Fallback).
+- Moegliche Transport-/Env-Nacharbeit bleibt separat (`GOV-SEC-06D`), ohne neuen Auth-Standard.
 
 0.1 Begriffe & Grundprinzipien
 0.1.1 PII vs. Inhaltsdaten
 
 PII (Personally Identifiable Information):
 
-alles, was eine Person direkt oder indirekt identifizierbar macht,
-
-Beispiele:
-
-Name, E-Mail, Telefonnummer,
-
-Adresse, PLZ + exakte Kombination mit anderen Merkmalen,
-
-Ausweis- / Kundennummern,
-
-Bankdaten, IBAN, Kreditkarte,
-
-IP-Adressen, Geräte-IDs (abhängig vom Kontext),
-
-Kombination von Merkmalen, die eine Person eindeutig machen.
+- alles, was eine Person direkt oder indirekt identifizierbar macht
+- Beispiele:
+  - Name, E-Mail, Telefonnummer
+  - Adresse, PLZ + exakte Kombination mit anderen Merkmalen
+  - Ausweis- / Kundennummern
+  - Bankdaten, IBAN, Kreditkarte
+  - IP-Adressen, Geräte-IDs (abhängig vom Kontext)
+  - Kombination von Merkmalen, die eine Person eindeutig machen
 
 Inhaltsdaten:
 
-politische Meinungen, Statements, Eventualitäten, Fragen,
-
-Abstimmungen (Swipes) als abstrakte Votes,
-
-Statistiken, Aggregationen, Reports.
+- politische Meinungen, Statements, Eventualitäten, Fragen
+- Abstimmungen (Swipes) als abstrakte Votes
+- Statistiken, Aggregationen, Reports
 
 Regel:
 PII und Inhaltsdaten dürfen nie unkontrolliert vermischt werden. Jede Speicherung oder Verarbeitung muss einer klaren Zone zugeordnet sein (siehe 0.2).
@@ -59,47 +75,30 @@ PII und Inhaltsdaten dürfen nie unkontrolliert vermischt werden. Jede Speicheru
 
 Standards:
 
-Datensparsamkeit:
-Nur speichern, was für den Zweck zwingend erforderlich ist.
-
-Zweckbindung:
-PII darf nur für klar definierte Zwecke eingesetzt werden (z.B. Auth, Identitätsprüfung, Abrechnung).
-
-Trennung von Schichten:
-PII-Storage, App-Logic, Auswertung, Telemetrie – getrennte Zonen.
-
-Transparenz:
-User sollen jederzeit nachvollziehen können:
-
-welche Daten gespeichert sind,
-
-wofür sie genutzt werden,
-
-wie sie gelöscht/exportiert werden können.
-
-Security by Design:
-
-Verschlüsselung at rest und in transit,
-
-principled minimal access,
-
-kein „God-Admin“, der alles ohne Protokoll sieht.
+- Datensparsamkeit: Nur speichern, was für den Zweck zwingend erforderlich ist.
+- Zweckbindung: PII darf nur für klar definierte Zwecke eingesetzt werden (z.B. Auth, Identitätsprüfung, Abrechnung).
+- Trennung von Schichten: PII-Storage, App-Logic, Auswertung, Telemetrie – getrennte Zonen.
+- Transparenz: User sollen jederzeit nachvollziehen können:
+  - welche Daten gespeichert sind
+  - wofür sie genutzt werden
+  - wie sie gelöscht/exportiert werden können
+- Security by Design:
+  - Verschlüsselung at rest und in transit
+  - principled minimal access
+  - kein „God-Admin“, der alles ohne Protokoll sieht
 
 0.2 Datenzonen & Tri-Mongo-Logik
 
 eDebatte nutzt eine Zonen-Architektur, typischerweise mit einer Tri-Mongo-artigen Aufteilung:
 
-Core-Zone (fachliche Kernobjekte)
-
-Votes-/Usage-Zone (Beteiligungs- & Nutzungsdaten ohne direkt identifizierende PII)
-
-PII-Zone (personenbezogene Stammdaten, Auth-Daten, Billing, sensible Informationen)
+- Core-Zone (fachliche Kernobjekte)
+- Votes-/Usage-Zone (Beteiligungs- & Nutzungsdaten ohne direkt identifizierende PII)
+- PII-Zone (personenbezogene Stammdaten, Auth-Daten, Billing, sensible Informationen)
 
 Zusätzlich:
 
-Logs & Telemetrie (stark redigiert, PII-masked)
-
-External AI / Provider-Zone (nur Pseudonyme & Inhalte, keine Klar-PII)
+- Logs & Telemetrie (stark redigiert, PII-masked)
+- External AI / Provider-Zone (nur Pseudonyme & Inhalte, keine Klar-PII)
 
 0.2.1 Core-Zone
 
@@ -277,6 +276,19 @@ PII-Felder (Klarname, Stadt, Beruf, Bankdaten, Telefonnummer etc.) bleiben aussc
 - `showStats` – Beteiligungszahlen (Swipes, Beiträge etc.) öffentlich anzeigen.
 
 Standard: alle Flags `false`, bis der/die Nutzer:in aktiv zustimmt.
+
+0.2.9 Runtime-ENV-Aliasse (Übergangsregel)
+
+Für Mongo-Runtime-Konfiguration gilt bis zur vollständigen Migration:
+
+- bevorzugt: `CORE_MONGODB_URI` + `CORE_DB_NAME`
+- Legacy-Fallback: `MONGODB_URI` + `MONGODB_DB`
+
+Wichtig:
+
+- Neue oder gehärtete Runtime-Pfade sollen primär die Core-Schlüssel lesen und Legacy nur als Fallback nutzen.
+- Alias-Drift (abweichende Key-Paare je Surface) ist ein operativer Hardening-Punkt in `PR-ENV-01`.
+- Folge-Hardening (z. B. SRV/DNS-Failure-Modi) bleibt in `PR-ENV-02`.
 
 0.3 PII-Kategorien & Schutzniveaus
 

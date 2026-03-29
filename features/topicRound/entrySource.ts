@@ -17,6 +17,7 @@ export type RundenEntrySourceKind =
 export type RundenEntryItem = {
   id: string;
   anlassraumId: string | null;
+  isPublic: boolean | null;
   title: string;
   summary: string;
   topicKey: string | null;
@@ -26,7 +27,7 @@ export type RundenEntryItem = {
   outputStatus: OutputSeedStatus;
   reviewState: OutputSeedReviewState;
   publishTarget: string | null;
-  entryHref: string;
+  entryHref: string | null;
   lifecycle: RundenEntryLifecycle;
   lastAction: string | null;
   lastActionBy: string | null;
@@ -94,11 +95,8 @@ function mapToEntry(
   const outputStatus = normalizeOutputStatus(seed?.status);
   const reviewState = normalizeReviewState(seed?.reviewState);
   const publishTarget = normalizePublishTarget(seed?.publishTarget);
-  const entryHref =
-    publishTarget ??
-    (anlassraumId
-      ? `/create?mode=source&anlassraumId=${encodeURIComponent(anlassraumId)}`
-      : "/create?mode=source");
+  const isPublic = normalizeIsPublic(room?.isPublic);
+  const entryHref = resolveSafeEntryHref({ anlassraumId, publishTarget, isPublic });
 
   const title =
     firstNonEmpty(
@@ -124,6 +122,7 @@ function mapToEntry(
   return {
     id: seedId,
     anlassraumId,
+    isPublic,
     title,
     summary,
     topicKey: asString(room?.topicKey),
@@ -194,6 +193,44 @@ function normalizePublishTarget(value: unknown): string | null {
   if (!target) return null;
   if (!target.startsWith("/")) return null;
   return target.slice(0, 200);
+}
+
+type ResolveSafeEntryHrefInput = {
+  anlassraumId: string | null;
+  publishTarget: string | null;
+  isPublic: boolean | null;
+};
+
+export function buildRoomContextHref(anlassraumId: string) {
+  return `/create?mode=source&anlassraumId=${encodeURIComponent(anlassraumId)}`;
+}
+
+export function appendRoomIdToInternalTarget(target: string, anlassraumId: string): string | null {
+  if (!target.startsWith("/")) return null;
+  if (target.startsWith("//")) return null;
+  try {
+    const base = "https://edebatte.local";
+    const parsed = new URL(target, base);
+    if (parsed.origin !== base) return null;
+    parsed.searchParams.set("anlassraumId", anlassraumId);
+    return `${parsed.pathname}${parsed.search}${parsed.hash}`;
+  } catch {
+    return null;
+  }
+}
+
+export function resolveSafeEntryHref(input: ResolveSafeEntryHrefInput): string | null {
+  if (!input.anlassraumId) return null;
+  const roomContextHref = buildRoomContextHref(input.anlassraumId);
+  if (input.isPublic !== true) return roomContextHref;
+  if (!input.publishTarget) return roomContextHref;
+  return appendRoomIdToInternalTarget(input.publishTarget, input.anlassraumId) ?? roomContextHref;
+}
+
+function normalizeIsPublic(value: unknown): boolean | null {
+  if (typeof value === "boolean") return value;
+  if (value === null || typeof value === "undefined") return null;
+  return null;
 }
 
 function normalizeAnlassraumType(value: unknown): AnlassraumType | null {

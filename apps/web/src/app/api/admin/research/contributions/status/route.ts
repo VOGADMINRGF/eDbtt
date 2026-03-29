@@ -4,6 +4,7 @@ import { syncResearchContributionToGraph } from "@core/graph";
 import { logger } from "@/utils/logger";
 import { awardResearchXp } from "@features/account/service";
 import { requireAdminOrResponse } from "@/lib/server/auth/admin";
+import { SOCIAL_ESCALATION_STARTFORM_CONTRACT } from "@/lib/social/escalationPolicy";
 
 export async function POST(req: NextRequest) {
   const gate = await requireAdminOrResponse(req);
@@ -50,8 +51,19 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    logger.info({ msg: "admin.research.contribution.status_updated", contributionId, status });
-    return NextResponse.json({ ok: true, contribution: updated });
+    logger.info({
+      msg: "admin.research.contribution.status_updated",
+      contributionId,
+      status,
+      socialEscalationStartform: SOCIAL_ESCALATION_STARTFORM_CONTRACT,
+    });
+    return NextResponse.json({
+      ok: true,
+      contribution: updated,
+      meta: {
+        socialEscalationStartform: SOCIAL_ESCALATION_STARTFORM_CONTRACT,
+      },
+    });
   } catch (err: any) {
     logger.error({ msg: "admin.research.contribution.status_failed", contributionId, err: err?.message });
     return NextResponse.json({ ok: false, error: "server_error" }, { status: 500 });

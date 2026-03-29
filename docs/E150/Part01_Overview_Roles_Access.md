@@ -2,6 +2,7 @@
 
 > Status-Hinweis (2026-02-12): Dieses Part ist eine Spezifikation/Zusammenfassung. Der verbindliche Aufgabenstand liegt in `docs/E150/OpenTasks.md`. Keine neuen Runs aus diesem Part ableiten.
 
+> Einordnung (2026-03-26): Dieses Dokument bleibt die operative Uebersicht fuer Rollen/Zugaenge/Nutzung. Normative Leitplanken liegen in `docs/E150/Part01_Systemvision_Mission_Governance.md`; Detailregeln liegen in Part02 bis Part04.
 
 Dieses Dokument ist die **zentrale Übersicht** über Rollen, Zugänge, Levels und Nutzung der Plattform eDebatte / eDebatte.  
 Es dient als **Single Source of Truth** für Implementierung (Codex), UX, Pricing und spätere Governance.
@@ -12,6 +13,31 @@ Grundprinzipien:
 - **Konfigurierbar**: Zahlen (Preise, Limits, XP) liegen in Config/DB, nicht hart im Code.
 - **PII-sicher**: Personendaten bleiben strikt in der PII-Zone (siehe Part00).
 - **Gesellschaft zuerst**: Produkte (eDebatte) sind Werkzeuge. eDebatte ist die Bewegung dahinter.
+
+---
+
+## 0.1 Kurzglossar (Begriffsdrift reduziert)
+
+- **Registry**: operative Sammel-/Einordnungsebene fuer eingereichte Vorschlaege; im Ist-Code primaer als Beteiligungsfeed in `/swipes` sichtbar.
+- **Review**: expliziter Pruef-/Freigabeschritt (manuell, auditierbar), kein stiller Vollzug.
+- **Operator**: Verwaltungs-/Governance-Kontext fuer kuratierende oder administrierende Aktionen; nicht identisch mit Buerger-Surfaces.
+- **Demo**: explizit gekennzeichneter Demo-/Pilot-Kontext, getrennt vom produktiven Standardfluss.
+- **Beteiligung**: nutzerseitige Einordnung/Abstimmung/Positionierung (z. B. in `/swipes`), getrennt von Dossier-Verdichtung.
+
+Querverweise:
+- Detailabgrenzung Surface/Domain: `docs/E150/Part16.md`
+- Sicherheits-/Providerkontext: `docs/E150/Part16_AI_Orchestration_and_Safety.md`
+- Operative Task-SSOT: `docs/E150/OpenTasks.md`
+
+## 0.2 Produktlinien-Rahmen (Decision-Prep, 2026-03-28)
+
+- Public Core bleibt offen und niedrigschwellig.
+- Professional Layer bleibt bezahlbar und ist klar von epistemischer Macht getrennt.
+- Bezahlt werden professionelle Arbeits-/Orga-Funktionen (z. B. Anlassraum-Steuerung, Dossier-/Briefing-Vorbereitung, Factcheck-/Review-Workflows, Team-/Admin-Funktionen, Exporte/Embeds/QR/Ergebnisraeume).
+- Nicht bepreist werden Wahrheit, Debattenausgang oder Sondermacht.
+- Dieser Rahmen ist kanonische Guidance fuer `GOV-FUNDING-01` und `GOV-PRICING-01` (beide manifestiert); Runtime-Umsetzung von Pricing-Admin-Controls bleibt als Folgeslice offen.
+- Signale bleiben als Relevanz-/Dynamik-/Priorisierungslogik getrennt von Funding und sind profilfaehig fuer Medien, Verbaende, Firmen, Kommunen, Veranstaltungen sowie offene/geschlossene Raeume.
+- Journalismus ist als Anlassgeber manifestiert (`GOV-JOURNALISM-01`), aber ohne Sonderwahrheit; redaktionelle Teamkontexte und institutionelle/verwaltungsnahe Kontexte nutzen dieselbe Grundinfrastruktur mit unterschiedlicher Fachlogik.
 
 ---
 
@@ -411,6 +437,7 @@ Offen bleiben (für spätere Parts):
 
 - Detail-Design Orchestrator & Evidence-Graph (Part 2–4).
 - Vollständige Telemetrie-Spec (Events & KPIs in Part 3.x).
-- Tiefen-Spezifikation der Admin-Dashboards (Part 6/7).
+- Tiefen-Spezifikation der Admin-Dashboards (Part 6/7), aufbauend auf manifestiertem `GOV-MUNI-01` Monitoring-first-Kanon (keine hidden scoring-/Uebersteuerungslogik).
+- Kommunaler Rollen-/Governance-Unterbau ist kontraktnah vorgezogen (`GOV-MUNI-02/03/05/06`): Zustaendigkeit, Prozessstatus, Governance-Gates und Rollenprofile sind route-nah als explainable Meta-Contracts verankert; verbleibend ist primar Dashboard-/Workflow-Tiefenspezifikation, nicht mehr der Rollenkanon selbst.
 
 Dieses Dokument ist der verbindliche Rahmen für alle Rollen-, Access- und Nutzungsentscheidungen in E150/E200.

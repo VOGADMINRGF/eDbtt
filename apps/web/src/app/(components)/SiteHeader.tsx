@@ -42,8 +42,8 @@ const NAV_SECTIONS: NavSection[] = [
   {
     id: "how",
     href: "/howtoworks/edebatte",
-    label: "So funktionierts",
-    description: "Abstimmen · Einreichen · Präsentieren",
+    label: "So funktioniert’s",
+    description: "Abstimmen · Beitrag einreichen · Präsentieren",
     items: [
       {
         href: "/howtoworks/edebatte/abstimmen",
@@ -52,7 +52,7 @@ const NAV_SECTIONS: NavSection[] = [
       },
       {
         href: "/create?mode=manual&intent=claim",
-        label: "Einreichen",
+        label: "Beitrag einreichen",
         description: "Themen, Hinweise und Perspektiven einspeisen.",
       },
       {

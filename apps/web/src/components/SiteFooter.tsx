@@ -10,7 +10,7 @@ import { VOG_SUPPORT_URL } from "@/config/links";
 
 const infoLinks = [
   { href: "/ueber-uns", label: "Über uns" },
-  { href: "/howtoworks/edebatte", label: "So funktioniert's" },
+  { href: "/howtoworks/edebatte", label: "So funktioniert’s" },
   { href: "/howtoworks/bewegung", label: "Die Bewegung" },
   { href: "/pricing", label: "Preise" },
   { href: "/transparenzbericht", label: "Transparenzbericht" },
@@ -19,9 +19,9 @@ const infoLinks = [
 
 const platformLinks = [
   { href: "/swipes", label: "Abstimmen" },
-  { href: "/statements", label: "Einreichen" },
+  { href: "/statements", label: "Beitrag einreichen" },
   { href: "/stream", label: "Präsentieren" },
-  { href: "/reports", label: "Archiv nachschlagen" },
+  { href: "/reports", label: "Ergebnisse ansehen" },
 ];
 
 const legalLinks = [

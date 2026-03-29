@@ -13,6 +13,8 @@ type DraftDetailResponse = {
   analyzeResult: any;
 };
 
+const INLINE_LINK_CLASS = "text-sky-700 hover:underline dark:text-sky-300 dark:hover:text-sky-200";
+
 export default function AdminDraftDetailPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
@@ -161,7 +163,7 @@ export default function AdminDraftDetailPage() {
 
   if (error || !data) {
     return (
-      <div className="p-6 text-sm text-rose-600">
+      <div className="p-6 text-sm text-rose-600 dark:text-rose-300">
         {error ?? "Draft nicht gefunden."}
       </div>
     );
@@ -202,26 +204,26 @@ export default function AdminDraftDetailPage() {
     <div className="flex w-full flex-col gap-6 py-4">
       <div className="flex flex-col gap-2">
         <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
-          Admin · Signal-Draft Detail
+          Admin · Signal-Entwurf im Detail
         </p>
         <h1 className="text-2xl font-bold text-[rgb(var(--fg))]">{draft.title}</h1>
         <div className="flex flex-wrap items-center gap-2 text-sm text-[rgb(var(--muted))]">
           <StatusBadge status={draft.status} />
           <span className="vog-chip">
-            review: {draft.feedReviewState ?? "queued"}
+            Prüfung: {draft.feedReviewState ?? "queued"}
           </span>
           <span className="vog-chip">
-            path: {currentDecisionPath}
+            Pfad: {currentDecisionPath}
           </span>
           <span className="vog-chip">
-            last: {draft.lastReviewAction ?? "—"} · {draft.lastReviewActionBy ?? "—"}
+            Letzte Aktion: {draft.lastReviewAction ?? "—"} · {draft.lastReviewActionBy ?? "—"}
           </span>
           <span className="vog-chip">
-            at: {formatDate(draft.lastReviewActionAt)}
+            Zeitpunkt: {formatDate(draft.lastReviewActionAt)}
           </span>
           {draft.reviewNote && (
             <span className="vog-chip">
-              note: {String(draft.reviewNote).slice(0, 80)}
+              Notiz: {String(draft.reviewNote).slice(0, 80)}
             </span>
           )}
           <span className="text-[rgb(var(--muted))]">·</span>
@@ -229,7 +231,7 @@ export default function AdminDraftDetailPage() {
           {draft.anlassraumId && (
             <>
               <span className="text-[rgb(var(--muted))]">·</span>
-              <a href={`/admin/feeds/anlassraum/${draft.anlassraumId}`} className="text-sky-600 hover:underline">
+              <a href={`/admin/feeds/anlassraum/${draft.anlassraumId}`} className={INLINE_LINK_CLASS}>
                 Anlassraum
               </a>
             </>
@@ -237,7 +239,7 @@ export default function AdminDraftDetailPage() {
           {draft.sourceUrl && (
             <>
               <span className="text-[rgb(var(--muted))]">·</span>
-              <a href={draft.sourceUrl} target="_blank" className="text-sky-600 hover:underline" rel="noreferrer">
+              <a href={draft.sourceUrl} target="_blank" className={INLINE_LINK_CLASS} rel="noreferrer">
                 Quelle öffnen
               </a>
             </>
@@ -245,7 +247,7 @@ export default function AdminDraftDetailPage() {
           <span className="text-[rgb(var(--muted))]">·</span>
           <Link
             href={manualCreateHref}
-            className="text-sky-600 hover:underline"
+            className={INLINE_LINK_CLASS}
           >
             Manuell via /create
           </Link>
@@ -319,7 +321,7 @@ export default function AdminDraftDetailPage() {
               Zur Review markieren
             </button>
             <button
-              className="btn border border-rose-200 bg-rose-50 px-4 py-2 text-sm text-rose-700"
+              className="btn border border-rose-200 bg-rose-50 px-4 py-2 text-sm text-rose-700 dark:border-rose-400/45 dark:bg-rose-500/14 dark:text-rose-200"
               disabled={actionLoading}
               onClick={() => runReviewAction("ignore")}
             >
@@ -338,7 +340,9 @@ export default function AdminDraftDetailPage() {
           </p>
 
           <div className="mt-4 grid gap-2 rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
-            <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Signal-&gt;Anlassraum Review</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
+              Signal-&gt;Anlassraum-Prüfung
+            </p>
             <div className="flex flex-wrap gap-2">
               <button
                 className="btn border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm"
@@ -355,11 +359,11 @@ export default function AdminDraftDetailPage() {
                 attach_to_existing_anlassraum
               </button>
               <button
-                className="btn border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800"
+                className="btn border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:border-amber-400/55 dark:bg-amber-500/18 dark:text-amber-100"
                 disabled={actionLoading}
                 onClick={() => runReviewAction("mark_as_weak_signal")}
               >
-                Weak Signal
+                Schwaches Signal
               </button>
               <Link
                 href={manualCreatePanelHref}

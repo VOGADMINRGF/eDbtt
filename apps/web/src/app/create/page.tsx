@@ -3,10 +3,14 @@ import { redirect } from "next/navigation";
 import { cookies, headers } from "next/headers";
 import { getDraft } from "@/server/draftStore";
 import CreateClient from "./CreateClient";
-import type { CreateIntakeContext } from "./CreateClient";
 import { getCreateEntitlementsForRequest } from "@/lib/server/entitlements/createEntitlements";
 import { getAccountOverview } from "@features/account/service";
 import { parseCreateIntent, parseCreateMode, type CreateMode } from "@/features/create/intents";
+import {
+  hasCreateIntakeContext,
+  parseCreateIntakeContextFromQuery,
+  type CreateIntakeContext,
+} from "@/features/create/intakeContext";
 import { formatRelevanceScopeLabel } from "@/features/relevanceFraming";
 import { DEFAULT_LOCALE, isSupportedLocale, type SupportedLocale } from "@/config/locales";
 import {
@@ -47,56 +51,6 @@ function mapIntent(raw?: string | null): "statement" | "contribution" | undefine
 
 function mapMode(raw?: string | null): CreateMode | undefined {
   return parseCreateMode(raw);
-}
-
-function normalizeContextValue(value?: string | null, maxLen = 160) {
-  const normalized = String(value ?? "").trim();
-  if (!normalized) return null;
-  return normalized.slice(0, maxLen);
-}
-
-function normalizeContextUrl(value?: string | null) {
-  const normalized = String(value ?? "").trim();
-  if (!normalized) return null;
-  try {
-    const url = new URL(normalized);
-    if (url.protocol !== "http:" && url.protocol !== "https:") return null;
-    return url.toString().slice(0, 1000);
-  } catch {
-    return null;
-  }
-}
-
-function buildCreateIntakeContext(resolved: Record<string, string | string[] | undefined>): CreateIntakeContext {
-  return {
-    source: normalizeContextValue(readParam(resolved.source), 64),
-    signalTitle: normalizeContextValue(decodeMaybe(readParam(resolved.signalTitle)), 160),
-    sourceUrl: normalizeContextUrl(decodeMaybe(readParam(resolved.sourceUrl))),
-    sourceLabel: normalizeContextValue(decodeMaybe(readParam(resolved.sourceLabel)), 120),
-    region: normalizeContextValue(decodeMaybe(readParam(resolved.region)), 64),
-    scope: normalizeContextValue(decodeMaybe(readParam(resolved.scope)), 64),
-    clusterHint: normalizeContextValue(decodeMaybe(readParam(resolved.clusterHint)), 120),
-    reviewState: normalizeContextValue(decodeMaybe(readParam(resolved.reviewState)), 64),
-    candidateId: normalizeContextValue(readParam(resolved.candidateId), 64),
-    draftId: normalizeContextValue(readParam(resolved.draftId), 64),
-    reason: normalizeContextValue(decodeMaybe(readParam(resolved.reason)), 200),
-  };
-}
-
-function hasCreateIntakeContext(context: CreateIntakeContext): boolean {
-  return (
-    !!context.source ||
-    !!context.signalTitle ||
-    !!context.sourceUrl ||
-    !!context.sourceLabel ||
-    !!context.region ||
-    !!context.scope ||
-    !!context.clusterHint ||
-    !!context.reviewState ||
-    !!context.candidateId ||
-    !!context.draftId ||
-    !!context.reason
-  );
 }
 
 function buildIntakeContextPrefill(
@@ -192,7 +146,7 @@ export default async function CreatePage({
   const mode = mapMode(readParam(resolved.mode));
   const dossierId = readParam(resolved.dossierId) ?? null;
   const anlassraumId = readParam(resolved.anlassraumId) ?? null;
-  const intakeContext = buildCreateIntakeContext(resolved);
+  const intakeContext = parseCreateIntakeContextFromQuery(resolved);
   const prefillText = decodeMaybe(readParam(resolved.prefill) ?? readParam(resolved.text));
   const draftId = readParam(resolved.draftId);
 

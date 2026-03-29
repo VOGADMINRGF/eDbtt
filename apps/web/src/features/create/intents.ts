@@ -1,3 +1,5 @@
+import { normalizeCreateIntakeContextInput } from "@/features/create/intakeContext";
+
 export type CreateIntent =
   | "claim"
   | "source"
@@ -100,18 +102,6 @@ function normalizeQueryText(value: string | null | undefined, maxLen: number): s
   return normalized.slice(0, maxLen);
 }
 
-function normalizeQueryUrl(value: string | null | undefined): string | undefined {
-  const normalized = String(value ?? "").trim();
-  if (!normalized) return undefined;
-  try {
-    const url = new URL(normalized);
-    if (url.protocol !== "http:" && url.protocol !== "https:") return undefined;
-    return url.toString().slice(0, 1000);
-  } catch {
-    return undefined;
-  }
-}
-
 export function parseCreateIntent(raw?: string | null): CreateIntent | undefined {
   if (!raw) return undefined;
   const value = raw.toLowerCase();
@@ -167,24 +157,37 @@ export function buildCreateHref({
 }
 
 export function buildCreateFastPathHref(args: BuildCreateFastPathHrefArgs = {}): string {
+  const intake = normalizeCreateIntakeContextInput({
+    source: args.source,
+    signalTitle: args.signalTitle,
+    sourceUrl: args.sourceUrl,
+    sourceLabel: args.sourceLabel,
+    region: args.region,
+    scope: args.scope,
+    clusterHint: args.clusterHint,
+    reviewState: args.reviewState,
+    candidateId: args.candidateId,
+    draftId: args.draftId,
+    reason: args.reason,
+  });
   const intent = args.intent ?? undefined;
   const mode = args.mode ?? undefined;
   return withQuery(CANONICAL_CREATE_PATH, {
     intent,
     mode,
     anlassraumId: normalizeQueryText(args.anlassraumId, 64),
-    draftId: normalizeQueryText(args.draftId, 64),
-    candidateId: normalizeQueryText(args.candidateId, 64),
-    signalTitle: normalizeQueryText(args.signalTitle, 160),
-    sourceUrl: normalizeQueryUrl(args.sourceUrl),
-    sourceLabel: normalizeQueryText(args.sourceLabel, 120),
-    region: normalizeQueryText(args.region, 48),
-    scope: normalizeQueryText(args.scope, 48),
-    clusterHint: normalizeQueryText(args.clusterHint, 96),
-    reviewState: normalizeQueryText(args.reviewState, 48),
-    reason: normalizeQueryText(args.reason, 160),
+    draftId: intake.draftId ?? undefined,
+    candidateId: intake.candidateId ?? undefined,
+    signalTitle: intake.signalTitle ?? undefined,
+    sourceUrl: intake.sourceUrl ?? undefined,
+    sourceLabel: intake.sourceLabel ?? undefined,
+    region: intake.region ?? undefined,
+    scope: intake.scope ?? undefined,
+    clusterHint: intake.clusterHint ?? undefined,
+    reviewState: intake.reviewState ?? undefined,
+    reason: intake.reason ?? undefined,
     prefill: normalizeQueryText(args.prefill, 2000),
-    source: normalizeQueryText(args.source, 64),
+    source: intake.source ?? undefined,
     next: args.next ?? undefined,
   });
 }

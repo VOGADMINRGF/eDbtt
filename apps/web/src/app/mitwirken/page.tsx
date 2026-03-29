@@ -6,15 +6,14 @@ export default function MitwirkenPage() {
     <main className="mx-auto min-h-screen max-w-4xl px-4 py-10 space-y-6">
       <header className="space-y-2">
         <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Mitwirken</p>
-        <h1 className="text-3xl font-semibold text-[rgb(var(--fg))]">Einreichen ohne Parallelpfade</h1>
+        <h1 className="text-3xl font-semibold text-[rgb(var(--fg))]">Beitrag einreichen ohne Umwege</h1>
         <p className="text-sm text-[rgb(var(--muted))]">
-          Der kanonische Einstieg ist <code>/create</code>. Diese Route bleibt als Bereichs-URL stabil
-          und führt in dieselbe Fachlogik.
+          Der Einreichungsassistent führt immer in denselben Ablauf für Anlass, Thema und Beitrag.
         </p>
       </header>
       <div className="grid gap-3 sm:grid-cols-2">
         <Link href={buildCreateHref({ intent: "source" })} className="btn btn-primary text-sm">
-          Quelle einreichen
+          Anlass eröffnen
         </Link>
         <Link href={buildCreateHref({ intent: "question" })} className="btn-secondary text-sm">
           Frage einreichen

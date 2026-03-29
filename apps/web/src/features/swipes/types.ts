@@ -28,6 +28,10 @@ export type SwipeItem = {
   domainLabel: string;
   hasEventualities: boolean;
   eventualitiesCount: number;
+  sourceDraftId?: string | null;
+  anlassraumId?: string | null;
+  contextHref?: string | null;
+  fromDraftMatch?: boolean;
 };
 
 export type Eventuality = {
@@ -41,6 +45,7 @@ export type SwipeFeedFilter = {
   topicQuery?: string;
   level?: SwipeScopeLevel | "ALL";
   statementId?: string;
+  fromDraftId?: string;
 };
 
 export type SwipeFeedRequest = {

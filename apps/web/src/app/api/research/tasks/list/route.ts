@@ -3,6 +3,7 @@ import { listTasks } from "@core/research";
 import { logger } from "@/utils/logger";
 import { getCookie } from "@/lib/http/typedCookies";
 import { rateLimitOrThrow } from "@/utils/rateLimitHelpers";
+import { SOCIAL_ESCALATION_STARTFORM_CONTRACT } from "@/lib/social/escalationPolicy";
 
 async function readCookie(name: string): Promise<string | undefined> {
   const raw = await getCookie(name);
@@ -47,7 +48,13 @@ export async function GET(req: NextRequest) {
       sort: sort as any,
       limit,
     });
-    return NextResponse.json({ ok: true, items });
+    return NextResponse.json({
+      ok: true,
+      items,
+      meta: {
+        socialEscalationStartform: SOCIAL_ESCALATION_STARTFORM_CONTRACT,
+      },
+    });
   } catch (err: any) {
     logger.error({ msg: "research.tasks.list_failed", err: err?.message });
     return NextResponse.json({ ok: false, error: "server_error" }, { status: 500 });

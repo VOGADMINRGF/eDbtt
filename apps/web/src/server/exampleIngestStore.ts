@@ -1,4 +1,5 @@
 import { MongoClient, Collection } from "mongodb";
+import { hasCoreMongoRuntimeConfig, resolveCoreMongoRuntimeConfig } from "@/lib/server/env/runtimeMongo";
 
 export type ExampleIngest = {
   id: string;
@@ -28,11 +29,13 @@ function rid() {
 }
 
 async function mongoCol(): Promise<Collection<ExampleIngest>> {
-  const uri = process.env.MONGODB_URI!;
-  const dbName = process.env.MONGODB_DB!;
-  const client = new MongoClient(uri);
+  const mongo = resolveCoreMongoRuntimeConfig();
+  if (!mongo.uri || !mongo.dbName) {
+    throw new Error("Missing CORE_MONGODB_URI/CORE_DB_NAME (or legacy MONGODB_URI/MONGODB_DB)");
+  }
+  const client = new MongoClient(mongo.uri);
   await client.connect();
-  return client.db(dbName).collection<ExampleIngest>("example_ingests");
+  return client.db(mongo.dbName).collection<ExampleIngest>("example_ingests");
 }
 
 const mongoStore: Store = {
@@ -57,7 +60,7 @@ const memoryStore: Store = {
 };
 
 function pickStore(): Store {
-  const hasMongo = !!process.env.MONGODB_URI && !!process.env.MONGODB_DB;
+  const hasMongo = hasCoreMongoRuntimeConfig();
   return hasMongo ? mongoStore : memoryStore;
 }
 

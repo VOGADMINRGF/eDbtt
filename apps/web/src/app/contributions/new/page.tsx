@@ -4,9 +4,32 @@ type SearchParamsShape =
   | Promise<Record<string, string | string[] | undefined>>
   | Record<string, string | string[] | undefined>;
 
+const ALLOWED_CREATE_QUERY_KEYS = new Set([
+  "intent",
+  "mode",
+  "dossierId",
+  "statementId",
+  "anlassraumId",
+  "draftId",
+  "candidateId",
+  "signalTitle",
+  "sourceUrl",
+  "sourceLabel",
+  "region",
+  "scope",
+  "clusterHint",
+  "reviewState",
+  "reason",
+  "prefill",
+  "text",
+  "source",
+  "next",
+]);
+
 function toQueryString(resolved: Record<string, string | string[] | undefined>) {
   const params = new URLSearchParams();
   Object.entries(resolved).forEach(([key, value]) => {
+    if (!ALLOWED_CREATE_QUERY_KEYS.has(key)) return;
     if (Array.isArray(value)) {
       value.forEach((item) => {
         if (typeof item === "string") params.append(key, item);

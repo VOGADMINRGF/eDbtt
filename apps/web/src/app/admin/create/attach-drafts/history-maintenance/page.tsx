@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { CreatePrepareAttachHistoryBackfillReport } from "@/features/create/attachDraftHistoryBackfill";
 import {
   CREATE_PREPARE_ATTACH_HISTORY_BACKFILL_DEFAULT_PREVIEW_LIMIT,
@@ -17,6 +17,13 @@ export default function AdminCreateAttachDraftHistoryMaintenancePage() {
   );
   const [scanLimit, setScanLimit] = useState("");
   const [reloadToken, setReloadToken] = useState(0);
+  const previewLimitRef = useRef(previewLimit);
+  const scanLimitRef = useRef(scanLimit);
+
+  useEffect(() => {
+    previewLimitRef.current = previewLimit;
+    scanLimitRef.current = scanLimit;
+  }, [previewLimit, scanLimit]);
 
   useEffect(() => {
     let ignored = false;
@@ -26,8 +33,8 @@ export default function AdminCreateAttachDraftHistoryMaintenancePage() {
       setError(null);
       try {
         const params = new URLSearchParams();
-        if (previewLimit.trim()) params.set("previewLimit", previewLimit.trim());
-        if (scanLimit.trim()) params.set("scanLimit", scanLimit.trim());
+        if (previewLimitRef.current.trim()) params.set("previewLimit", previewLimitRef.current.trim());
+        if (scanLimitRef.current.trim()) params.set("scanLimit", scanLimitRef.current.trim());
 
         const res = await fetch(
           `/api/admin/create/attach-drafts/history-maintenance?${params.toString()}`,

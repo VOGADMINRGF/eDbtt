@@ -38,19 +38,37 @@ function baseUrl() {
     ? (process.env.NEXT_PUBLIC_APP_ORIGIN ?? "http://localhost:3000")
     : "";
 }
-function roleHeaders(role?: string) {
+
+function internalWorkerToken(): string {
+  return (process.env.INTERNAL_WORKER_TOKEN ?? process.env.INTERNAL_HEALTH_TOKEN ?? "").trim();
+}
+
+function requestRef(): string {
+  return `run_${Date.now()}`;
+}
+
+function systemHeaders(source: "factcheck_queue" | "factcheck_worker", jobRef?: string) {
   const h: Record<string, string> = { "Content-Type": "application/json" };
-  if (role) h["x-role"] = role;
+  if (!isServer) return h;
+  const token = internalWorkerToken();
+  if (!token) {
+    throw new Error("internal_worker_token_missing");
+  }
+  h.authorization = `Bearer ${token}`;
+  h["x-internal-source"] = source;
+  h["x-internal-actor-kind"] = "queue_worker";
+  h["x-internal-run-ref"] = requestRef();
+  if (jobRef) h["x-internal-job-ref"] = jobRef;
   return h;
 }
 
 export async function enqueueFactcheck(
   payload: EnqueuePayload,
-  role = "editor",
+  _role = "editor",
 ): Promise<EnqueueResponse> {
   const res = await fetch(`${baseUrl()}/api/factcheck/enqueue`, {
     method: "POST",
-    headers: roleHeaders(role),
+    headers: systemHeaders("factcheck_queue"),
     body: JSON.stringify(payload),
   });
   try {
@@ -62,13 +80,12 @@ export async function enqueueFactcheck(
 
 export async function getFactcheckStatus(
   jobId: string,
-  role = "editor",
+  _role = "editor",
 ): Promise<StatusResponse> {
   const base = `${baseUrl()}/api/factcheck/status/${encodeURIComponent(jobId)}`;
-  const url =
-    !isServer && isDev ? `${base}?role=${encodeURIComponent(role)}` : base;
+  const url = !isServer && isDev ? `${base}` : base;
   const res = await fetch(url, {
-    headers: isServer ? roleHeaders(role) : undefined,
+    headers: isServer ? systemHeaders("factcheck_worker", jobId) : undefined,
     cache: "no-store",
   });
   try {

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z, ZodError } from "zod";
 import { formatError } from "@core/errors/formatError";
 import { logger } from "@core/observability/logger";
-import { hasPermission, PERMISSIONS, type Role } from "@core/auth/rbac";
+import { hasPermission, PERMISSIONS } from "@core/auth/rbac";
 import { safeRandomId } from "@core/utils/random";
 import { analyzeContribution } from "@features/analyze/analyzeContribution";
 import { voteDraftsCol } from "@features/feeds/db";
@@ -24,6 +24,12 @@ import {
 import { seedDossierFromAnalysis } from "@features/dossier/seed";
 import { logDossierRevision } from "@features/dossier/revisions";
 import { clampPublisher, clampSnippet, clampTitle } from "@features/dossier/limits";
+import { logPermissionDenied, resolveRoleFromRequest } from "@/lib/server/auth/requestRole";
+import {
+  internalSystemIdentityAuditFields,
+  resolveInternalSystemIdentity,
+  resolveTrustedInternalSystemIdentity,
+} from "@/lib/server/auth/systemIdentity";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -47,18 +53,6 @@ function toShortLang(v?: string | null): string {
   const t = (v ?? "").trim().toLowerCase();
   if (!t) return "de";
   return t.split(/[-_]/)[0] || "de";
-}
-
-function roleFromRequest(req: NextRequest): Role {
-  const cookieRole = req.cookies.get("u_role")?.value as Role | undefined;
-  const headerRole = (req.headers.get("x-role") as Role) || undefined;
-  let role: Role = cookieRole ?? headerRole ?? "guest";
-  if (process.env.NODE_ENV !== "production") {
-    const url = new URL(req.url);
-    const qRole = url.searchParams.get("role") as Role | null;
-    if (qRole) role = qRole;
-  }
-  return role;
 }
 
 function json(data: any, status = 200) {
@@ -316,9 +310,31 @@ async function syncDossierFromFactcheck(params: {
 export async function POST(req: NextRequest) {
   const t0 = Date.now();
   try {
-    const role = roleFromRequest(req);
-    if (!hasPermission(role, PERMISSIONS.FACTCHECK_ENQUEUE)) {
-      const fe = formatError("FORBIDDEN", "Permission denied", { role });
+    const systemIdentity = resolveInternalSystemIdentity(req);
+    const trustedSystemIdentity = resolveTrustedInternalSystemIdentity(req);
+    const roleContext = resolveRoleFromRequest(req);
+    const hasSessionAccess =
+      roleContext.source === "cookie" && hasPermission(roleContext.role, PERMISSIONS.FACTCHECK_ENQUEUE);
+    const hasTrustedSystemAccess =
+      trustedSystemIdentity?.source === "factcheck_queue" ||
+      trustedSystemIdentity?.source === "factcheck_worker";
+    if (!hasSessionAccess && !hasTrustedSystemAccess) {
+      logPermissionDenied({
+        req,
+        scope: "factcheck.enqueue",
+        permission: PERMISSIONS.FACTCHECK_ENQUEUE,
+        role: roleContext.role,
+        source: roleContext.source,
+        details: {
+          ...internalSystemIdentityAuditFields(systemIdentity),
+          denyReason: systemIdentity
+            ? "system_identity_untrusted_or_disallowed"
+            : roleContext.source === "header"
+              ? "header_role_not_allowed"
+              : "missing_permission",
+        },
+      });
+      const fe = formatError("FORBIDDEN", "Permission denied", { role: roleContext.role });
       return json(fe, 403);
     }
 

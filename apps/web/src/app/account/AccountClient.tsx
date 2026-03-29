@@ -437,7 +437,7 @@ const ACCOUNT_HUB_TABS: Array<{ key: AccountHubTab; label: string; icon: IconTyp
 
 const MOBILE_CORE_ACTIONS: Array<{ key: "swipes" | "create" | "dossier" | "profile"; label: string; icon: IconType; href?: string }> = [
   { key: "swipes", label: "Swipes", icon: FiSliders, href: "/swipes" },
-  { key: "create", label: "Create", icon: FiEdit2, href: "/create" },
+  { key: "create", label: "Anlass", icon: FiEdit2, href: "/create" },
   { key: "dossier", label: "Dossier", icon: FiPackage, href: "/dossier/demo" },
   { key: "profile", label: "Profil", icon: FiUser },
 ];

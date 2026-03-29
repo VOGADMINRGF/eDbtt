@@ -105,6 +105,11 @@ const BULK_ACTIONS: BulkAction[] = [
   "mark_as_weak_signal",
 ];
 
+const HEADER_LINK_CLASS = "text-sm font-semibold text-sky-700 hover:underline dark:text-sky-300 dark:hover:text-sky-200";
+const INLINE_LINK_CLASS = "font-semibold text-sky-700 hover:underline dark:text-sky-300 dark:hover:text-sky-200";
+const PRIMARY_ACTION_CLASS =
+  "rounded-lg border border-sky-500/60 bg-sky-600 px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50 dark:border-sky-400/45 dark:bg-sky-500/25 dark:text-sky-50";
+
 export default function AdminFeedDraftsPage() {
   const { locale } = useLocale();
   const operatorLocale = resolveOperatorLocale(locale);
@@ -239,6 +244,7 @@ export default function AdminFeedDraftsPage() {
     sort,
     query,
     reloadToken,
+    text.unknownLoadError,
   ]);
 
   useEffect(() => {
@@ -427,13 +433,13 @@ export default function AdminFeedDraftsPage() {
           {text.headerLead}
         </p>
         <div className="flex flex-wrap gap-3">
-          <Link href="/admin/feeds" className="text-sm font-semibold text-sky-700 hover:underline">
+          <Link href="/admin/feeds" className={HEADER_LINK_CLASS}>
             {text.linkToFeedControl}
           </Link>
-          <Link href="/admin/feeds/anlassraum" className="text-sm font-semibold text-sky-700 hover:underline">
+          <Link href="/admin/feeds/anlassraum" className={HEADER_LINK_CLASS}>
             {text.linkToAnlassraumList}
           </Link>
-          <Link href="/admin/anlassraeume" className="text-sm font-semibold text-sky-700 hover:underline">
+          <Link href="/admin/anlassraeume" className={HEADER_LINK_CLASS}>
             {text.linkToAnlassraumOps}
           </Link>
           <Link
@@ -441,7 +447,7 @@ export default function AdminFeedDraftsPage() {
               source: "feed_drafts_queue",
               reason: "manual_fast_path_via_create",
             })}
-            className="text-sm font-semibold text-sky-700 hover:underline"
+            className={HEADER_LINK_CLASS}
           >
             {text.linkToCreateFastPath}
           </Link>
@@ -561,7 +567,9 @@ export default function AdminFeedDraftsPage() {
         </header>
 
         {error && (
-          <div className="m-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</div>
+          <div className="m-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:border-rose-400/35 dark:bg-rose-500/12 dark:text-rose-200">
+            {error}
+          </div>
         )}
 
         <div className="overflow-auto">
@@ -596,7 +604,7 @@ export default function AdminFeedDraftsPage() {
                   <td colSpan={6} className="px-4 py-6 text-center text-[rgb(var(--muted))]">
                     {text.emptyDraftsPrefix}
                     <span>{" "}</span>
-                    <Link href="/admin/feeds" className="font-semibold text-sky-700 hover:underline">
+                    <Link href="/admin/feeds" className={INLINE_LINK_CLASS}>
                       {text.emptyDraftsMiddle}
                     </Link>
                     <span>{" "}{text.emptyDraftsSuffix}{" "}</span>
@@ -605,7 +613,7 @@ export default function AdminFeedDraftsPage() {
                         source: "feed_drafts_empty_state",
                         reason: "no_results_after_filter",
                       })}
-                      className="font-semibold text-sky-700 hover:underline"
+                      className={INLINE_LINK_CLASS}
                     >
                       /create
                     </Link>
@@ -632,7 +640,7 @@ export default function AdminFeedDraftsPage() {
                     reason: decisionPath,
                   });
                   return (
-                    <tr key={draft.id} className={draft.queueMeta?.priorityBucket === "high" ? "bg-amber-50/40" : ""}>
+                    <tr key={draft.id} className={draft.queueMeta?.priorityBucket === "high" ? "bg-amber-50/40 dark:bg-amber-500/10" : ""}>
                       <td className="px-3 py-3 align-top">
                         <input
                           type="checkbox"
@@ -677,26 +685,26 @@ export default function AdminFeedDraftsPage() {
                         {draft.anlassraumId ? (
                           <div className="space-y-1">
                             <p className="font-semibold text-emerald-700">{text.linkedLabel}</p>
-                            <Link href={`/admin/feeds/anlassraum/${draft.anlassraumId}`} className="font-semibold text-sky-700 hover:underline">
+                            <Link href={`/admin/feeds/anlassraum/${draft.anlassraumId}`} className={INLINE_LINK_CLASS}>
                               {text.openAnlassraum} ({draft.anlassraumId.slice(-8)})
                             </Link>
                           </div>
                         ) : (
                           <div className="space-y-1">
                             <p className="font-semibold text-amber-700">{text.unlinkedLabel}</p>
-                            <Link href="/admin/feeds/anlassraum" className="font-semibold text-sky-700 hover:underline">
+                            <Link href="/admin/feeds/anlassraum" className={INLINE_LINK_CLASS}>
                               {text.checkAnlassraumContext}
                             </Link>
                             <Link
                               href={manualCreateHref}
-                              className="font-semibold text-sky-700 hover:underline"
+                              className={INLINE_LINK_CLASS}
                             >
                               {text.manualCreateLink}
                             </Link>
                           </div>
                         )}
                         {draft.weakSignal?.flagged && (
-                          <p className="mt-2 rounded bg-amber-100 px-2 py-1 font-semibold text-amber-800">
+                          <p className="mt-2 rounded bg-amber-100 px-2 py-1 font-semibold text-amber-800 dark:bg-amber-500/22 dark:text-amber-100">
                             {text.weakSignalLabel}: {draft.weakSignal.reason ?? text.weakLabel}
                           </p>
                         )}
@@ -709,13 +717,13 @@ export default function AdminFeedDraftsPage() {
                       <td className="px-4 py-3 align-top text-xs">
                         <p className="font-semibold text-[rgb(var(--fg))]">{nextStep.title}</p>
                         <p className="text-[rgb(var(--muted))]">{nextStep.detail}</p>
-                        <Link href={`/admin/feeds/drafts/${draft.id}`} className="mt-1 inline-flex font-semibold text-sky-700 hover:underline">
+                        <Link href={`/admin/feeds/drafts/${draft.id}`} className={`mt-1 inline-flex ${INLINE_LINK_CLASS}`}>
                           {text.draftDetailLink}
                         </Link>
                         {!draft.anlassraumId ? (
                           <Link
                             href={manualCreateHref}
-                            className="mt-1 inline-flex font-semibold text-sky-700 hover:underline"
+                            className={`mt-1 inline-flex ${INLINE_LINK_CLASS}`}
                           >
                             {text.manualCreateLink}
                           </Link>
@@ -724,7 +732,7 @@ export default function AdminFeedDraftsPage() {
                       <td className="px-4 py-3 align-top text-xs text-[rgb(var(--muted))]">
                         <p className="font-semibold text-[rgb(var(--fg))]">{text.primarySourceLabel}</p>
                         {draft.sourceUrl ? (
-                          <a href={draft.sourceUrl} target="_blank" rel="noreferrer" className="font-semibold text-sky-600 hover:underline">
+                          <a href={draft.sourceUrl} target="_blank" rel="noreferrer" className={INLINE_LINK_CLASS}>
                             {extractDomain(draft.sourceUrl)}
                           </a>
                         ) : (
@@ -785,7 +793,7 @@ export default function AdminFeedDraftsPage() {
           <button
             disabled={bulkBusy || selectedIds.length === 0}
             onClick={runBulkAction}
-            className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
+            className={PRIMARY_ACTION_CLASS}
           >
             {bulkBusy ? text.applying : text.applyBulk}
           </button>
@@ -801,7 +809,9 @@ export default function AdminFeedDraftsPage() {
           {text.legacyLead}
         </p>
         {legacyError && (
-          <p className="mt-2 rounded border border-rose-200 bg-rose-50 px-2 py-1 text-xs text-rose-700">{legacyError}</p>
+          <p className="mt-2 rounded border border-rose-200 bg-rose-50 px-2 py-1 text-xs text-rose-700 dark:border-rose-400/35 dark:bg-rose-500/12 dark:text-rose-200">
+            {legacyError}
+          </p>
         )}
         <div className="mt-3 overflow-auto rounded-xl border border-[rgb(var(--border))]">
           <table className="min-w-full divide-y divide-[rgb(var(--border))] text-xs">
@@ -840,7 +850,7 @@ export default function AdminFeedDraftsPage() {
                         <p className="text-[11px] text-[rgb(var(--muted))]">
                           {text.idLabel} {item.id.slice(-8)} · {formatVoteDraftStatusLabel(item.status, operatorLocale)}
                         </p>
-                        <p className="text-[11px] text-amber-700">{text.missingAnlassraumId}</p>
+                        <p className="text-[11px] text-amber-700 dark:text-amber-200">{text.missingAnlassraumId}</p>
                       </td>
                       <td className="px-2 py-2 align-top text-[rgb(var(--muted))]">
                         <p>{text.queueLabel}: {formatFeedReviewStateLabel(item.feedReviewState, operatorLocale)}</p>
@@ -861,7 +871,7 @@ export default function AdminFeedDraftsPage() {
                         <p>{text.timestampLabel}: {formatOperatorDateTime(item.lastReviewActionAt, operatorLocale)}</p>
                         <p>{text.noteLabel}: {item.reviewNote ?? text.noValue}</p>
                         {outcome && (
-                          <p className="mt-1 rounded border border-emerald-200 bg-emerald-50 px-1 py-0.5 text-[11px] text-emerald-800">
+                          <p className="mt-1 rounded border border-emerald-200 bg-emerald-50 px-1 py-0.5 text-[11px] text-emerald-800 dark:border-emerald-400/35 dark:bg-emerald-500/12 dark:text-emerald-100">
                             {text.remediationLabel}: {outcome.remediationKind} · Anlassraum{" "}
                             {outcome.result.anlassraumId ?? text.noValue}
                           </p>

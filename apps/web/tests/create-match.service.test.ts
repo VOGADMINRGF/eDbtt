@@ -186,6 +186,10 @@ vi.mock("@features/anlassraum/db", () => ({
 
 import { resolveCreateGraphMatches } from "@/features/create/matchService";
 
+function ctaIds(result: { suggestedCtas: Array<{ id: string }> }) {
+  return result.suggestedCtas.map((cta) => cta.id);
+}
+
 describe("create match service", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -218,8 +222,12 @@ describe("create match service", () => {
     expect(result.matchEntityType).toBe("anlassraum");
     expect(result.matchStrength).toBe("high");
     expect(result.reasons.length).toBeGreaterThan(0);
-    expect(result.suggestedCtas.some((cta) => cta.id === "anlassraum_oeffnen")).toBe(true);
-    expect(result.suggestedCtas.some((cta) => cta.id === "perspektive_anhaengen")).toBe(true);
+    expect(ctaIds(result)).toEqual([
+      "anlassraum_oeffnen",
+      "perspektive_anhaengen",
+      "anders_sehen",
+      "neu_anlegen",
+    ]);
     expect(result.matches[0]?.targetRef ?? "").toContain("/create?");
     expect(result.matches[0]?.targetRef ?? "").toContain("anlassraumId=65f000000000000000000011");
     expect(result.matches[0]?.targetRef ?? "").toContain("source=create_match_service");
@@ -246,7 +254,12 @@ describe("create match service", () => {
     expect(result.matchEntityType === "claim" || result.matchEntityType === "perspective").toBe(true);
     expect(result.matchStrength === "low" || result.matchStrength === "medium" || result.matchStrength === "high").toBe(true);
     expect(result.reasons.length).toBeGreaterThan(0);
-    expect(result.suggestedCtas.some((cta) => cta.id === "zustimmen")).toBe(true);
+    expect(ctaIds(result)).toEqual([
+      "zustimmen",
+      "anders_sehen",
+      "perspektive_anhaengen",
+      "neu_anlegen",
+    ]);
   });
 
   it("returns related_dossier when dossier title is the closest productive hit", async () => {
@@ -267,7 +280,11 @@ describe("create match service", () => {
 
     expect(result.matchType).toBe("related_dossier");
     expect(result.matchEntityType).toBe("dossier");
-    expect(result.suggestedCtas.some((cta) => cta.id === "dossier_oeffnen")).toBe(true);
+    expect(ctaIds(result)).toEqual([
+      "dossier_oeffnen",
+      "perspektive_anhaengen",
+      "neu_anlegen",
+    ]);
     expect(result.reasons.length).toBeGreaterThan(0);
   });
 
@@ -291,8 +308,11 @@ describe("create match service", () => {
     expect(result.matchType).toBe("duplicate_risk");
     expect(result.matchEntityType).toBe("claim");
     expect(result.matchStrength).toBe("high");
-    expect(result.suggestedCtas.some((cta) => cta.id === "anders_sehen")).toBe(true);
-    expect(result.suggestedCtas.some((cta) => cta.id === "neu_anlegen")).toBe(true);
+    expect(ctaIds(result)).toEqual([
+      "anders_sehen",
+      "perspektive_anhaengen",
+      "neu_anlegen",
+    ]);
   });
 
   it("returns explicit no_match with neu_anlegen CTA when no productive hit exists", async () => {
@@ -304,8 +324,10 @@ describe("create match service", () => {
 
     expect(result.matchType).toBe("no_match");
     expect(result.matchStrength).toBe("none");
-    expect(result.reasons.length).toBeGreaterThan(0);
-    expect(result.suggestedCtas.some((cta) => cta.id === "neu_anlegen")).toBe(true);
+    expect(result.reasons).toEqual([
+      "Kein belastbarer Anlassraum-Match, keine Dossier-Naehe und keine belastbare Signalspur gefunden.",
+    ]);
+    expect(ctaIds(result)).toEqual(["neu_anlegen", "perspektive_anhaengen"]);
   });
 
   it("degrades explicitly when productive sources are unavailable", async () => {
@@ -321,6 +343,9 @@ describe("create match service", () => {
     expect(result.matchStrength).toBe("none");
     expect(result.sourceState).toBe("degraded");
     expect(result.sourceErrors.length).toBeGreaterThan(0);
-    expect(result.suggestedCtas.some((cta) => cta.id === "neu_anlegen")).toBe(true);
+    expect(result.reasons).toEqual([
+      "Produktive Anlassraum-/Dossier-/Signalquellen derzeit nicht verfuegbar.",
+    ]);
+    expect(ctaIds(result)).toEqual(["neu_anlegen", "perspektive_anhaengen"]);
   });
 });

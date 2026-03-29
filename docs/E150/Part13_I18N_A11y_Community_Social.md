@@ -220,3 +220,13 @@ Codex MUSS:
 
 Part13 sorgt dafür, dass alle vorherigen Parts nicht nur technisch funktionieren,  
 sondern auch **sprachlich, sozial und barrierearm** bei den Menschen ankommen, für die die Plattform gebaut wird.
+
+## 8. Zugeordnete Runtime-Dokumente (harmonisiert 2026-03-26)
+
+- `docs/E150/ContentTranslationLifecycle.md` (Content-Lifecycle und Uebersetzungsregeln)
+- `docs/account-social-consolidation.md` (aktueller Social-/Inbox-/Community-Runtime-Stand)
+- `docs/mobile-navigation-pattern.md` (mobile Navigations-/Fokusregeln fuer Swipes, Social, Eventualitaeten)
+
+Abhaengigkeit zu Part16:
+- Social-Safety-/Kontakt-Eskalation bleibt an die Guardrails aus
+  `docs/E150/Part16_AI_Orchestration_and_Safety.md` gebunden.

@@ -31,6 +31,8 @@ describe("create CTA handoff helper", () => {
     });
 
     expect(handoff.ctaId).toBe("anlassraum_oeffnen");
+    expect(handoff.sourceRunId).toBeNull();
+    expect(handoff.sourceMatchSourceState).toBeNull();
     expect(handoff.actionType).toBe("open");
     expect(handoff.requiresConfirm).toBe(true);
     expect(handoff.entityType).toBe("anlassraum");
@@ -65,6 +67,31 @@ describe("create CTA handoff helper", () => {
     expect(handoff.actionType).toBe("open");
     expect(handoff.targetRef).toBe("/dossier/dossier-1");
     expect(handoff.requiresConfirm).toBe(true);
+  });
+
+  it("keeps source meta from createAnalyze for analyze -> match -> CTA transfer", () => {
+    const handoff = buildCreateCtaHandoff({
+      ctaId: "neu_anlegen",
+      createAnalyze: {
+        runId: "run-source-1",
+        confidence: 0.66,
+        matchSourceState: "degraded",
+        phases: {
+          intake: { status: "done", summary: "ok" },
+          quality: { status: "review_required", summary: "ok" },
+          graph_matching: { status: "review_required", summary: "ok" },
+          cta_suggestions: { status: "done", summary: "ok" },
+        },
+        matchType: "no_match",
+        matchEntityType: "question",
+        matches: [],
+      },
+    } as any);
+
+    expect(handoff.sourceRunId).toBe("run-source-1");
+    expect(handoff.sourceConfidence).toBe(0.66);
+    expect(handoff.sourceMatchSourceState).toBe("degraded");
+    expect(handoff.sourcePhases?.graph_matching.status).toBe("review_required");
   });
 
   it("builds canonical /create fast-path fallback when anlassraum targetRef is missing", () => {

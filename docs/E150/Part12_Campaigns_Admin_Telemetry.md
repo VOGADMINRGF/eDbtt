@@ -242,6 +242,14 @@ Zugriffspfade,
 
 Einstellbare Retention-Zeiten.
 
+### 3.3 Auth-/Operator-Logik (harmonisiert 2026-03-26)
+
+- Admin-Surfaces bleiben role- und 2FA-gebunden (staff/superadmin/operator-Kontext).
+- Bindende Auth-/Gate-Referenz:
+  `docs/auth/admin-flows.md`.
+- Demo darf Admin-/Operator-Logik nicht spiegeln oder umgehen
+  (`demo != management`), siehe `docs/surface-architecture.md`.
+
 ## 4. Telemetry (AI & Plattform)
 ### 4.1 AI Telemetry (E150-Stufe)
 Bereits in Code vorhanden (siehe Codex-Änderungen):

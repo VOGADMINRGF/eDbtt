@@ -26,4 +26,12 @@ describe("runden backward-compat links", () => {
     expect(compatPage).not.toContain("listRoundsByTopicSlug");
     expect(compatPage).not.toContain("listTopics");
   });
+
+  it("Scenario D: /anlassraum stays a thin alias wrapper to canonical /runden", () => {
+    const aliasPage = read("app/anlassraum/page.tsx");
+
+    expect(aliasPage).toContain("redirect(");
+    expect(aliasPage).toContain('"/runden"');
+    expect(aliasPage).not.toContain("@features/topicRound");
+  });
 });

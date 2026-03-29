@@ -1,4 +1,5 @@
 import type { AnalyzeResult } from "@features/analyze/schemas";
+import { resolveCreateCtaSuggestions } from "@/features/create/ctaResolver";
 
 export type CreateAnalyzeInputType =
   | "free_text"
@@ -190,18 +191,11 @@ function fallbackNoMatchResult(): CreateAnalyzeMatchResultInput {
     matchType: "no_match",
     matchEntityType: "question",
     reasons,
-    suggestedCtas: [
-      {
-        id: "neu_anlegen",
-        label: "Neu anlegen",
-        reason: "Ohne belastbaren Match bleibt ein neuer Strang der kanonische Pfad.",
-      },
-      {
-        id: "perspektive_anhaengen",
-        label: "Perspektive anhaengen",
-        reason: "Alternativ kann ein bestehender Kontext manuell ausgewaehlt werden.",
-      },
-    ],
+    suggestedCtas: resolveCreateCtaSuggestions({
+      matchType: "no_match",
+      matchEntityType: "question",
+      matchStrength: "none",
+    }),
     sourceState: "degraded",
     sourceErrors: ["match_result_missing"],
   };

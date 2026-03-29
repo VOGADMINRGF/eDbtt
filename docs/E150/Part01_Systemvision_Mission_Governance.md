@@ -323,3 +323,18 @@ Jeder Implementierungsrun muss diese Leitlinien erfuellen:
 - Funding-separiert
 - Edge Cases dokumentiert
 - keine Auto-Publikation
+
+## 16. Repo-Querverweise (harmonisiert 2026-03-26)
+
+Diese Leitplanken werden in folgenden Architektur-Dokumenten konkretisiert:
+
+- `docs/governance-core-model.md` (kompakter Kernfluss)
+- `docs/truth-guardrails.md` (Wahrheit/Fakten/Funding-Abgrenzung)
+- `docs/surface-architecture.md` (produktive Surfaces vs. Demo-Wrapper)
+- `docs/architecture/feed-anlassraum-output-model.md` (Signal->Anlassraum->Dossier)
+
+Abgrenzung innerhalb Part01-16:
+
+- Rollen/Levels/Gamification: `docs/E150/Part02_Roles_Levels_XP_Gamification.md`
+- Access/Pricing (B2C): `docs/E150/Part03_AccessTiers_Pricing_B2C.md`
+- Institutionelle Modelle: `docs/E150/Part04_B2G_B2B_Models.md`

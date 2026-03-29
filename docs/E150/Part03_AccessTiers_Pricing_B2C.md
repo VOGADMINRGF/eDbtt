@@ -2,7 +2,6 @@
 
 > Status-Hinweis (2026-02-12): Dieses Part ist eine Spezifikation/Zusammenfassung. Der verbindliche Aufgabenstand liegt in `docs/E150/OpenTasks.md`. Keine neuen Runs aus diesem Part ableiten.
 
-
 ## 1. Zweck dieses Parts
 
 Dieser Part beschreibt **alle B2C-Zugangsmodelle (Tiers)** und das vollständige **Pricing-Modell für Endnutzer:innen** der Plattform eDebatte / eDebatte.
@@ -262,18 +261,16 @@ Part 02 und Part 03 sind verzahnt:
 
 Codex muss eine klare Matrix implementieren:
 
-can(user, action) → boolean
-
+```ts
+can(user, action) => boolean
+```
 
 Basierend auf:
 
-
-
-user.role
-user.level
-user.xpTotal
-user.credits
-
+- `user.role`
+- `user.level`
+- `user.xpTotal`
+- `user.credits`
 
 Keine direkte Logik in UI/Server-Endpoints verstreuen.
 

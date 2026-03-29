@@ -22,10 +22,22 @@ Result: duplicated entry logic and hard-coupled links.
 ## Architecture Rule (Binding)
 
 - `/create` is the canonical product entry for all create intents.
-- `/runden` is the canonical entry surface for round overview and guided return.
+- `/runden` is the canonical public entry surface for thematic Anlassraum/Round overview.
+- `Anlassraum` remains the domain term; `/anlassraum` is the official alias/target term and is active as a non-breaking wrapper to `/runden`.
+- Post-finalize routing is server-driven: with dossier to `/dossier/{id}`, otherwise to `/swipes?fromDraft=...`.
+- `/swipes` is the participation/voting surface, not the thematic top-domain.
+- CTA handling follows the conservative/deterministic start canon (`GOV-AI-02`): no silent merge, no auto publish, `neu_anlegen` remains the safe fallback.
+- The shared CTA contract is resolved via `apps/web/src/features/create/ctaResolver.ts` and reused by analyze/match contracts.
 - `/demo/create` is a demo wrapper only (persona-sensitive showcase) and must
   reuse the same intent definitions and routing semantics.
 - No parallel create architecture is allowed.
+
+## Surface handoff contract (current state)
+
+- `/create` is the only canonical intake and handoff origin.
+- `/runden` remains the public Anlassraum context surface.
+- `/swipes` remains participation mode; `fromDraft` is an arrival focus, not a context replacement.
+- `/dossier/{id}` remains structured consolidation and does not replace Anlassraum context.
 
 ## Target Model
 

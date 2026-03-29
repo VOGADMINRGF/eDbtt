@@ -25,6 +25,7 @@ import {
   summarizeCreateAnalyzeInput,
   type CreateAnalyzeMatchResultInput,
 } from "@/features/create/analyzeContract";
+import { resolveCreateCtaSuggestions } from "@/features/create/ctaResolver";
 import { resolveCreateGraphMatches } from "@/features/create/matchService";
 
 export const runtime = "nodejs";
@@ -597,18 +598,11 @@ async function resolveCreateMatchesSafe(input: {
       matchType: "no_match",
       matchEntityType: "question",
       reasons: ["Produktive Match-Quelle derzeit nicht verfuegbar."],
-      suggestedCtas: [
-        {
-          id: "neu_anlegen",
-          label: "Neu anlegen",
-          reason: "Ohne belastbaren Match bleibt ein neuer Strang der kanonische Pfad.",
-        },
-        {
-          id: "perspektive_anhaengen",
-          label: "Perspektive anhaengen",
-          reason: "Alternativ kann eine Perspektive manuell angehaengt werden.",
-        },
-      ],
+      suggestedCtas: resolveCreateCtaSuggestions({
+        matchType: "no_match",
+        matchEntityType: "question",
+        matchStrength: "none",
+      }),
       sourceState: "degraded",
       sourceErrors: ["match_service_unavailable"],
     };

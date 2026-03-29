@@ -207,6 +207,11 @@ describe("/api/contributions/analyze create orchestration envelope", () => {
     const body = await res.json();
     expect(body.ok).toBe(true);
     expect(body.createAnalyze).toBeTruthy();
+    expect(body.createAnalyze.schemaVersion).toBe("create_analyze.v1");
+    expect(body.createAnalyze.orchestrator).toBe("create_orchestration");
+    expect(body.createAnalyze.inputRef).toBe(body.createAnalyze.runId);
+    expect(body.createAnalyze.provenanceRefs).toContain(body.createAnalyze.runId);
+    expect(body.meta?.runId).toBe(body.createAnalyze.runId);
     expect(body.createAnalyze.inputType).toBe("free_text");
     expect(body.createAnalyze.matchStrength).toBe("high");
     expect(body.createAnalyze.matchType).toBe("same_anlassraum");
@@ -334,6 +339,7 @@ describe("/api/contributions/analyze create orchestration envelope", () => {
     expect(body.createAnalyze.matchType).toBe("no_match");
     expect(body.createAnalyze.matchSourceState).toBe("degraded");
     expect(body.createAnalyze.matchSourceErrors).toContain("match_service_unavailable");
+    expect(body.createAnalyze.phases.graph_matching.status).toBe("review_required");
     expect(body.createAnalyze.suggestedCtas.some((item: any) => item.id === "neu_anlegen")).toBe(true);
   });
 });

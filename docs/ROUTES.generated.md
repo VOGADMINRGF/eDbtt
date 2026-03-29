@@ -1,7 +1,15 @@
+<!-- GENERATED FILE - DO NOT EDIT MANUALLY -->
+
+> **Generated artifact (read-only).**
+> Änderungen an Routen in `apps/web/src/app/**/page.tsx` oder `apps/web/src/app/**/route.ts` vornehmen,
+> dann `node scripts/route-inventory.mjs` ausführen.
+
 | Route | Typ | Datei |
 |---|---|---|
 | `/` | page | `page.tsx` |
 | `/:locale/referenzarchitektur` | page | `[locale]/referenzarchitektur/page.tsx` |
+| `/abstimmungen` | page | `abstimmungen/page.tsx` |
+| `/abstimmungen/:id` | page | `abstimmungen/[id]/page.tsx` |
 | `/account` | page | `account/page.tsx` |
 | `/account/payment` | page | `account/payment/page.tsx` |
 | `/account/security` | page | `account/security/page.tsx` |
@@ -11,11 +19,14 @@
 | `/admin/access/users/:id` | page | `admin/access/users/[id]/page.tsx` |
 | `/admin/acquisition` | page | `admin/acquisition/page.tsx` |
 | `/admin/analytics` | page | `admin/analytics/page.tsx` |
+| `/admin/anlassraeume` | page | `admin/anlassraeume/page.tsx` |
 | `/admin/audit` | page | `admin/audit/page.tsx` |
 | `/admin/campaigns` | page | `admin/campaigns/page.tsx` |
 | `/admin/campaigns/:id` | page | `admin/campaigns/[id]/page.tsx` |
 | `/admin/content` | page | `admin/content/page.tsx` |
 | `/admin/contributions` | page | `admin/contributions/page.tsx` |
+| `/admin/create/attach-drafts` | page | `admin/create/attach-drafts/page.tsx` |
+| `/admin/create/attach-drafts/history-maintenance` | page | `admin/create/attach-drafts/history-maintenance/page.tsx` |
 | `/admin/dossiers/:dossierId` | page | `admin/dossiers/[dossierId]/page.tsx` |
 | `/admin/editorial/items/:id` | page | `admin/editorial/items/[id]/page.tsx` |
 | `/admin/editorial/published` | page | `admin/editorial/published/page.tsx` |
@@ -29,6 +40,10 @@
 | `/admin/evidence/items` | page | `admin/evidence/items/page.tsx` |
 | `/admin/evidence/items/:id` | page | `admin/evidence/items/[id]/page.tsx` |
 | `/admin/factcheck` | page | `admin/factcheck/page.tsx` |
+| `/admin/features` | page | `admin/features/page.tsx` |
+| `/admin/feeds` | page | `admin/feeds/page.tsx` |
+| `/admin/feeds/anlassraum` | page | `admin/feeds/anlassraum/page.tsx` |
+| `/admin/feeds/anlassraum/:id` | page | `admin/feeds/anlassraum/[id]/page.tsx` |
 | `/admin/feeds/drafts` | page | `admin/feeds/drafts/page.tsx` |
 | `/admin/feeds/drafts/:id` | page | `admin/feeds/drafts/[id]/page.tsx` |
 | `/admin/graph/health` | page | `admin/graph/health/page.tsx` |
@@ -69,8 +84,11 @@
 | `/admin/telemetry/identity` | page | `admin/telemetry/identity/page.tsx` |
 | `/admin/users` | page | `admin/users/page.tsx` |
 | `/agb` | page | `agb/page.tsx` |
+| `/anlassraum` | page | `anlassraum/page.tsx` |
 | `/api/access/check` | api | `api/access/check/route.ts` |
+| `/api/account/consent` | api | `api/account/consent/route.ts` |
 | `/api/account/identity-document` | api | `api/account/identity-document/route.ts` |
+| `/api/account/matches` | api | `api/account/matches/route.ts` |
 | `/api/account/overview` | api | `api/account/overview/route.ts` |
 | `/api/account/payment-profile` | api | `api/account/payment-profile/route.ts` |
 | `/api/account/personal` | api | `api/account/personal/route.ts` |
@@ -79,6 +97,9 @@
 | `/api/account/self-service` | api | `api/account/self-service/route.ts` |
 | `/api/account/settings` | api | `api/account/settings/route.ts` |
 | `/api/account/signature` | api | `api/account/signature/route.ts` |
+| `/api/account/social-actions` | api | `api/account/social-actions/route.ts` |
+| `/api/account/social-summary` | api | `api/account/social-summary/route.ts` |
+| `/api/account/social-thread` | api | `api/account/social-thread/route.ts` |
 | `/api/admin/access/routes` | api | `api/admin/access/routes/route.ts` |
 | `/api/admin/access/routes/:routeId` | api | `api/admin/access/routes/[routeId]/route.ts` |
 | `/api/admin/access/routes/custom` | api | `api/admin/access/routes/custom/route.ts` |
@@ -92,6 +113,7 @@
 | `/api/admin/alerts/test` | api | `api/admin/alerts/test/route.ts` |
 | `/api/admin/analytics/summary` | api | `api/admin/analytics/summary/route.ts` |
 | `/api/admin/analytics/summary/contrib-timeseries` | api | `api/admin/analytics/summary/contrib-timeseries/route.ts` |
+| `/api/admin/anlassraeume` | api | `api/admin/anlassraeume/route.ts` |
 | `/api/admin/audit` | api | `api/admin/audit/route.ts` |
 | `/api/admin/audit/:id` | api | `api/admin/audit/[id]/route.ts` |
 | `/api/admin/campaigns/:id/qr` | api | `api/admin/campaigns/[id]/qr/route.ts` |
@@ -100,6 +122,11 @@
 | `/api/admin/community/contributions` | api | `api/admin/community/contributions/route.ts` |
 | `/api/admin/community/contributions/approve` | api | `api/admin/community/contributions/approve/route.ts` |
 | `/api/admin/content/metrics` | api | `api/admin/content/metrics/route.ts` |
+| `/api/admin/create/attach-drafts` | api | `api/admin/create/attach-drafts/route.ts` |
+| `/api/admin/create/attach-drafts/:draftId/apply` | api | `api/admin/create/attach-drafts/[draftId]/apply/route.ts` |
+| `/api/admin/create/attach-drafts/:draftId/history` | api | `api/admin/create/attach-drafts/[draftId]/history/route.ts` |
+| `/api/admin/create/attach-drafts/:draftId/review` | api | `api/admin/create/attach-drafts/[draftId]/review/route.ts` |
+| `/api/admin/create/attach-drafts/history-maintenance` | api | `api/admin/create/attach-drafts/history-maintenance/route.ts` |
 | `/api/admin/dashboard/newsletter/export` | api | `api/admin/dashboard/newsletter/export/route.ts` |
 | `/api/admin/dashboard/newsletter/manage` | api | `api/admin/dashboard/newsletter/manage/route.ts` |
 | `/api/admin/dashboard/summary` | api | `api/admin/dashboard/summary/route.ts` |
@@ -133,10 +160,38 @@
 | `/api/admin/evidence/claims/:id` | api | `api/admin/evidence/claims/[id]/route.ts` |
 | `/api/admin/evidence/items` | api | `api/admin/evidence/items/route.ts` |
 | `/api/admin/evidence/items/:id` | api | `api/admin/evidence/items/[id]/route.ts` |
+| `/api/admin/features` | api | `api/admin/features/route.ts` |
+| `/api/admin/features/:featureKey` | api | `api/admin/features/[featureKey]/route.ts` |
+| `/api/admin/feeds/anlassraum` | api | `api/admin/feeds/anlassraum/route.ts` |
+| `/api/admin/feeds/anlassraum/:id` | api | `api/admin/feeds/anlassraum/[id]/route.ts` |
+| `/api/admin/feeds/anlassraum/:id/dossier` | api | `api/admin/feeds/anlassraum/[id]/dossier/route.ts` |
+| `/api/admin/feeds/anlassraum/:id/outputs` | api | `api/admin/feeds/anlassraum/[id]/outputs/route.ts` |
+| `/api/admin/feeds/anlassraum/:id/outputs/:seedId/transition` | api | `api/admin/feeds/anlassraum/[id]/outputs/[seedId]/transition/route.ts` |
+| `/api/admin/feeds/anlassraum/:id/transition` | api | `api/admin/feeds/anlassraum/[id]/transition/route.ts` |
+| `/api/admin/feeds/cluster/run` | api | `api/admin/feeds/cluster/run/route.ts` |
+| `/api/admin/feeds/config` | api | `api/admin/feeds/config/route.ts` |
 | `/api/admin/feeds/drafts` | api | `api/admin/feeds/drafts/route.ts` |
 | `/api/admin/feeds/drafts/:id` | api | `api/admin/feeds/drafts/[id]/route.ts` |
+| `/api/admin/feeds/drafts/:id/backfill` | api | `api/admin/feeds/drafts/[id]/backfill/route.ts` |
 | `/api/admin/feeds/drafts/:id/publish` | api | `api/admin/feeds/drafts/[id]/publish/route.ts` |
+| `/api/admin/feeds/drafts/:id/review` | api | `api/admin/feeds/drafts/[id]/review/route.ts` |
 | `/api/admin/feeds/drafts/:id/status` | api | `api/admin/feeds/drafts/[id]/status/route.ts` |
+| `/api/admin/feeds/drafts/bulk` | api | `api/admin/feeds/drafts/bulk/route.ts` |
+| `/api/admin/feeds/drafts/legacy` | api | `api/admin/feeds/drafts/legacy/route.ts` |
+| `/api/admin/governance/anlassraum` | api | `api/admin/governance/anlassraum/route.ts` |
+| `/api/admin/governance/dossier-upsert-contracts` | api | `api/admin/governance/dossier-upsert-contracts/route.ts` |
+| `/api/admin/governance/dossier-upsert-contracts/:contractId` | api | `api/admin/governance/dossier-upsert-contracts/[contractId]/route.ts` |
+| `/api/admin/governance/dossier-upsert-contracts/:contractId/apply` | api | `api/admin/governance/dossier-upsert-contracts/[contractId]/apply/route.ts` |
+| `/api/admin/governance/dossier-upsert-contracts/:contractId/backfill` | api | `api/admin/governance/dossier-upsert-contracts/[contractId]/backfill/route.ts` |
+| `/api/admin/governance/dossier-upsert-contracts/:contractId/reject` | api | `api/admin/governance/dossier-upsert-contracts/[contractId]/reject/route.ts` |
+| `/api/admin/governance/dossier-upsert-contracts/legacy` | api | `api/admin/governance/dossier-upsert-contracts/legacy/route.ts` |
+| `/api/admin/governance/entities` | api | `api/admin/governance/entities/route.ts` |
+| `/api/admin/governance/round-seed-contracts` | api | `api/admin/governance/round-seed-contracts/route.ts` |
+| `/api/admin/governance/round-seed-contracts/:contractId` | api | `api/admin/governance/round-seed-contracts/[contractId]/route.ts` |
+| `/api/admin/governance/round-seed-contracts/:contractId/backfill` | api | `api/admin/governance/round-seed-contracts/[contractId]/backfill/route.ts` |
+| `/api/admin/governance/round-seed-contracts/:contractId/handoff` | api | `api/admin/governance/round-seed-contracts/[contractId]/handoff/route.ts` |
+| `/api/admin/governance/round-seed-contracts/:contractId/reject` | api | `api/admin/governance/round-seed-contracts/[contractId]/reject/route.ts` |
+| `/api/admin/governance/round-seed-contracts/legacy` | api | `api/admin/governance/round-seed-contracts/legacy/route.ts` |
 | `/api/admin/graph/ensure` | api | `api/admin/graph/ensure/route.ts` |
 | `/api/admin/graph/health` | api | `api/admin/graph/health/route.ts` |
 | `/api/admin/graph/impact/summary` | api | `api/admin/graph/impact/summary/route.ts` |
@@ -154,6 +209,7 @@
 | `/api/admin/memberships/:id/cancel` | api | `api/admin/memberships/[id]/cancel/route.ts` |
 | `/api/admin/memberships/:id/mark-paid` | api | `api/admin/memberships/[id]/mark-paid/route.ts` |
 | `/api/admin/memberships/overview` | api | `api/admin/memberships/overview/route.ts` |
+| `/api/admin/onboarding/founder-welcome/backfill` | api | `api/admin/onboarding/founder-welcome/backfill/route.ts` |
 | `/api/admin/orgs` | api | `api/admin/orgs/route.ts` |
 | `/api/admin/orgs/:orgId` | api | `api/admin/orgs/[orgId]/route.ts` |
 | `/api/admin/orgs/:orgId/members` | api | `api/admin/orgs/[orgId]/members/route.ts` |
@@ -208,6 +264,7 @@
 | `/api/analyze/stream` | api | `api/analyze/stream/route.ts` |
 | `/api/ari` | page | `api/ari/page.tsx` |
 | `/api/auth/:nextauth*` | api | `api/auth/[...nextauth]/route.ts` |
+| `/api/auth/2fa/request-email` | api | `api/auth/2fa/request-email/route.ts` |
 | `/api/auth/email/confirm` | api | `api/auth/email/confirm/route.ts` |
 | `/api/auth/email/start-verify` | api | `api/auth/email/start-verify/route.ts` |
 | `/api/auth/identity/email/start` | api | `api/auth/identity/email/start/route.ts` |
@@ -237,6 +294,7 @@
 | `/api/chat` | api | `api/chat/route.ts` |
 | `/api/claims/pipeline` | api | `api/claims/pipeline/route.ts` |
 | `/api/community/contributions` | api | `api/community/contributions/route.ts` |
+| `/api/community/groups` | api | `api/community/groups/route.ts` |
 | `/api/consequence/:id` | api | `api/consequence/[id]/route.ts` |
 | `/api/contact` | api | `api/contact/route.ts` |
 | `/api/contributions` | api | `api/contributions/route.ts` |
@@ -245,6 +303,7 @@
 | `/api/contributions/analytics/summary` | api | `api/contributions/analytics/summary/route.ts` |
 | `/api/contributions/analyze` | api | `api/contributions/analyze/route.ts` |
 | `/api/contributions/analyze/save` | api | `api/contributions/analyze/save/route.ts` |
+| `/api/contributions/attach-drafts` | api | `api/contributions/attach-drafts/route.ts` |
 | `/api/contributions/drafts` | api | `api/contributions/drafts/route.ts` |
 | `/api/contributions/finalize` | api | `api/contributions/finalize/route.ts` |
 | `/api/contributions/ingest` | api | `api/contributions/ingest/route.ts` |
@@ -253,6 +312,12 @@
 | `/api/contributions/research` | api | `api/contributions/research/route.ts` |
 | `/api/contributions/save` | api | `api/contributions/save/route.ts` |
 | `/api/contributions/trace` | api | `api/contributions/trace/route.ts` |
+| `/api/create/analyze` | api | `api/create/analyze/route.ts` |
+| `/api/create/attach-drafts` | api | `api/create/attach-drafts/route.ts` |
+| `/api/create/context` | api | `api/create/context/route.ts` |
+| `/api/create/entitlements` | api | `api/create/entitlements/route.ts` |
+| `/api/create/finalize` | api | `api/create/finalize/route.ts` |
+| `/api/create/save` | api | `api/create/save/route.ts` |
 | `/api/csrf` | api | `api/csrf/route.ts` |
 | `/api/debug/env` | api | `api/debug/env/route.ts` |
 | `/api/demo/dossier` | api | `api/demo/dossier/route.ts` |
@@ -264,6 +329,7 @@
 | `/api/dossier/create-from-suggestion` | api | `api/dossier/create-from-suggestion/route.ts` |
 | `/api/dossier/delegate` | api | `api/dossier/delegate/route.ts` |
 | `/api/dossier/export/:id` | api | `api/dossier/export/[id]/route.ts` |
+| `/api/dossier/material/link` | api | `api/dossier/material/link/route.ts` |
 | `/api/dossier/request-clarification` | api | `api/dossier/request-clarification/route.ts` |
 | `/api/dossier/snapshot` | api | `api/dossier/snapshot/route.ts` |
 | `/api/dossier/transition` | api | `api/dossier/transition/route.ts` |
@@ -358,6 +424,7 @@
 | `/api/qr/resolve` | api | `api/qr/resolve/route.ts` |
 | `/api/qr/sets` | api | `api/qr/sets/route.ts` |
 | `/api/qr/sets/:code` | api | `api/qr/sets/[code]/route.ts` |
+| `/api/qr/sets/:code/protocol` | api | `api/qr/sets/[code]/protocol/route.ts` |
 | `/api/qr/sets/:code/vote` | api | `api/qr/sets/[code]/vote/route.ts` |
 | `/api/qr/sets/summary` | api | `api/qr/sets/summary/route.ts` |
 | `/api/qualify/start` | api | `api/qualify/start/route.ts` |
@@ -376,6 +443,9 @@
 | `/api/research/tasks/list` | api | `api/research/tasks/list/route.ts` |
 | `/api/responsibility/:id` | api | `api/responsibility/[id]/route.ts` |
 | `/api/responsibility/directory` | api | `api/responsibility/directory/route.ts` |
+| `/api/rounds/:slug/assist-runs` | api | `api/rounds/[slug]/assist-runs/route.ts` |
+| `/api/rounds/:slug/assist-runs/:runId/suggestions/:suggestionId` | api | `api/rounds/[slug]/assist-runs/[runId]/suggestions/[suggestionId]/route.ts` |
+| `/api/runden/entry` | api | `api/runden/entry/route.ts` |
 | `/api/runreceipts` | api | `api/runreceipts/route.ts` |
 | `/api/runreceipts/:id` | api | `api/runreceipts/[id]/route.ts` |
 | `/api/runreceipts/by-hash/:hash` | api | `api/runreceipts/by-hash/[hash]/route.ts` |
@@ -390,6 +460,7 @@
 | `/api/statements/:id/timeseries` | api | `api/statements/[id]/timeseries/route.ts` |
 | `/api/statements/:id/vote` | api | `api/statements/[id]/vote/route.ts` |
 | `/api/statements/create` | api | `api/statements/create/route.ts` |
+| `/api/statements/finalize` | api | `api/statements/finalize/route.ts` |
 | `/api/statements/prepare` | api | `api/statements/prepare/route.ts` |
 | `/api/statements/similar` | api | `api/statements/similar/route.ts` |
 | `/api/stream/append` | api | `api/stream/append/route.ts` |
@@ -430,6 +501,7 @@
 | `/api/you/ping` | api | `api/you/ping/route.ts` |
 | `/api/you/query` | api | `api/you/query/route.ts` |
 | `/archiv` | page | `archiv/page.tsx` |
+| `/aussagen/neu` | page | `aussagen/neu/page.tsx` |
 | `/auth/2fa-setup` | page | `auth/2fa-setup/page.tsx` |
 | `/auth/onboarding/location` | page | `auth/onboarding/location/page.tsx` |
 | `/barrierefreiheit` | page | `barrierefreiheit/page.tsx` |
@@ -444,11 +516,14 @@
 | `/chat` | page | `chat/page.tsx` |
 | `/community` | page | `community/page.tsx` |
 | `/community/contributions` | page | `community/contributions/page.tsx` |
+| `/companion/:slug` | page | `companion/[slug]/page.tsx` |
 | `/contact` | page | `contact/page.tsx` |
 | `/context` | page | `context/page.tsx` |
 | `/contribute` | page | `contribute/page.tsx` |
+| `/contributions/:id` | page | `contributions/[id]/page.tsx` |
 | `/contributions/analyze` | page | `contributions/analyze/page.tsx` |
 | `/contributions/new` | page | `contributions/new/page.tsx` |
+| `/create` | page | `create/page.tsx` |
 | `/dashboard/admin/memberships` | page | `dashboard/admin/memberships/page.tsx` |
 | `/dashboard/admin/routes` | page | `dashboard/admin/routes/page.tsx` |
 | `/dashboard/memberships` | page | `dashboard/memberships/page.tsx` |
@@ -458,18 +533,28 @@
 | `/dashboard/usage` | page | `dashboard/usage/page.tsx` |
 | `/datenschutz` | page | `datenschutz/page.tsx` |
 | `/demo` | page | `demo/page.tsx` |
+| `/demo/abstimmungen` | page | `demo/abstimmungen/page.tsx` |
+| `/demo/abstimmungen/:id` | page | `demo/abstimmungen/[id]/page.tsx` |
+| `/demo/buerger` | page | `demo/buerger/page.tsx` |
+| `/demo/create` | page | `demo/create/page.tsx` |
 | `/demo/dossier` | page | `demo/dossier/page.tsx` |
 | `/demo/factcheck` | page | `demo/factcheck/page.tsx` |
+| `/demo/journalist` | page | `demo/journalist/page.tsx` |
 | `/demo/mandat` | page | `demo/mandat/page.tsx` |
+| `/demo/runden` | page | `demo/runden/page.tsx` |
+| `/demo/swipes` | page | `demo/swipes/page.tsx` |
+| `/demo/verwaltung` | page | `demo/verwaltung/page.tsx` |
 | `/demo/votes` | page | `demo/votes/page.tsx` |
 | `/demo/votes/:id` | page | `demo/votes/[id]/page.tsx` |
-| `/dossier/:dossierId` | page | `dossier/[dossierId]/page.tsx` |
 | `/dossier/:id` | page | `dossier/[id]/page.tsx` |
 | `/dossier/demo` | page | `dossier/demo/page.tsx` |
 | `/embed/dossier/:dossierId` | page | `embed/dossier/[dossierId]/page.tsx` |
+| `/embed/round/:slug` | page | `embed/round/[slug]/page.tsx` |
+| `/embed/topic/:slug` | page | `embed/topic/[slug]/page.tsx` |
 | `/evidence/:regionCode` | page | `evidence/[regionCode]/page.tsx` |
 | `/evidence/:regionCode/:topicKey` | page | `evidence/[regionCode]/[topicKey]/page.tsx` |
-| `/factcheck` | page | `(admin)/factcheck/page.tsx` |
+| `/factcheck` | page | `factcheck/page.tsx` |
+| `/factcheck/:id` | page | `factcheck/[id]/page.tsx` |
 | `/faq` | page | `faq/page.tsx` |
 | `/howtoworks` | page | `howtoworks/page.tsx` |
 | `/howtoworks/bewegung` | page | `howtoworks/bewegung/page.tsx` |
@@ -485,9 +570,12 @@
 | `/live` | page | `live/page.tsx` |
 | `/login` | page | `login/page.tsx` |
 | `/logout` | page | `logout/page.tsx` |
+| `/mandat` | page | `mandat/page.tsx` |
+| `/mandat/:id` | page | `mandat/[id]/page.tsx` |
 | `/map` | page | `map/page.tsx` |
 | `/mitglied-antrag` | page | `mitglied-antrag/page.tsx` |
 | `/mitglied-werden` | page | `mitglied-werden/page.tsx` |
+| `/mitwirken` | page | `mitwirken/page.tsx` |
 | `/not-found` | page | `not-found/page.tsx` |
 | `/nutzungsmodell` | page | `nutzungsmodell/page.tsx` |
 | `/overlay/stream/:id` | page | `overlay/stream/[id]/page.tsx` |
@@ -503,6 +591,7 @@
 | `/qrcodegenerator` | page | `qrcodegenerator/page.tsx` |
 | `/qrcodewizard` | page | `qrcodewizard/page.tsx` |
 | `/region/:codeOrSlug` | page | `region/[codeOrSlug]/page.tsx` |
+| `/regist` | page | `regist/page.tsx` |
 | `/register` | page | `register/page.tsx` |
 | `/register/identity` | page | `register/identity/page.tsx` |
 | `/register/preorder` | page | `register/preorder/page.tsx` |
@@ -513,7 +602,10 @@
 | `/reports/topic` | page | `reports/topic/page.tsx` |
 | `/research/tasks` | page | `research/tasks/page.tsx` |
 | `/reset` | page | `reset/page.tsx` |
+| `/round/:slug` | page | `round/[slug]/page.tsx` |
+| `/round/manage/:slug/merge` | page | `round/manage/[slug]/merge/page.tsx` |
 | `/run/:id` | page | `run/[id]/page.tsx` |
+| `/runden` | page | `runden/page.tsx` |
 | `/satzung` | page | `satzung/page.tsx` |
 | `/settings` | page | `settings/page.tsx` |
 | `/start` | page | `start/page.tsx` |
@@ -525,6 +617,7 @@
 | `/streamer/werden` | page | `streamer/werden/page.tsx` |
 | `/streams` | page | `streams/page.tsx` |
 | `/streams/:id` | page | `streams/[id]/page.tsx` |
+| `/studio` | page | `studio/page.tsx` |
 | `/support/:slug` | page | `support/[slug]/page.tsx` |
 | `/sw` | page | `sw/page.tsx` |
 | `/swipe` | page | `swipe/page.tsx` |
@@ -532,6 +625,8 @@
 | `/swipes/:id` | page | `swipes/[id]/page.tsx` |
 | `/team` | page | `team/page.tsx` |
 | `/thema-einreichen` | page | `thema-einreichen/page.tsx` |
+| `/topic/:slug` | page | `topic/[slug]/page.tsx` |
+| `/topic/manage/:slug/governance` | page | `topic/manage/[slug]/governance/page.tsx` |
 | `/transparenzbericht` | page | `transparenzbericht/page.tsx` |
 | `/ueber-uns` | page | `ueber-uns/page.tsx` |
 | `/unterstuetzen` | page | `unterstuetzen/page.tsx` |

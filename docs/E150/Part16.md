@@ -14,6 +14,13 @@ Superseded Altannahme:
 Kanonische Form:
 - `Freistart -> Intake-Orchestrierung -> Pruef-/Qualitaetsschicht -> Graph-Matching -> CTA-/Routing-Layer -> Anlassraum/Dossier/Debatten-Setup/Beteiligung -> Output/UI/API -> Meta-Layer/Audit/Governance`
 
+## Einordnung der Part16-Familie (harmonisiert 2026-03-26)
+
+- `docs/E150/Part16.md` bleibt das kanonische Hauptdokument.
+- `docs/E150/Part16_AI_Orchestration_and_Safety.md` konkretisiert Safety/Security/Providerstrategie.
+- `docs/E150/Part16_Anlassraum_Model.md` konkretisiert Anlassraum-Domainregeln.
+- Operativer Aufgabenstand bleibt in `docs/E150/OpenTasks.md`.
+
 ## A. Warum ein Fluss statt mehrerer Produkt-Modi
 
 - Es gibt keinen primaeren Nutzer-Modus-Split `manual/source/ai` mehr.
@@ -87,6 +94,10 @@ Der Meta-Layer laeuft verbindlich querschnittlich und umfasst:
 - monitoring / anomaly detection
 - policy / law update readiness
 
+Decision-Stand (2026-03-28):
+- `GOV-AI-07`: Meta-Basissatz ist auf allen Pfaden verpflichtend; der Pflichtkern fuer Nachvollziehbarkeit/Erklaerbarkeit bleibt synchron.
+- `GOV-SEC-03`: votes/core Split wird komplett umgesetzt; direkte Providerpfade bleiben nur mit Mindestcontract (Auditfelder + PII-Redaction + Allowlist) zulaessig.
+
 ## E. Language-Aware Regeln
 
 - `uiLocale != contentLanguage != sourceLanguage` ist explizit erlaubt und erwartbar.
@@ -115,15 +126,72 @@ Guardrails:
 - kein Silent-Merge
 - kein stilles Ueberschreiben des Ursprungs
 - Human control bleibt sichtbar
+- GOV-AI-02 Entscheidung (2026-03-27): konservativ-deterministischer Startkanon auf Basis des eingefrorenen Ist-Contracts (`GOV-AI-02A/B`), ohne neue Priorisierungslogik.
+- GOV-AI-02D Sync (2026-03-27): derselbe Startkanon wird in Analyze-/Create-Flows und im shared Resolver `apps/web/src/features/create/ctaResolver.ts` referenziert (kein neues CTA-Keyset, keine neue Priorisierung).
+
+Post-Finalize-Regel (Ist-Code, servergefuehrt):
+- `api/contributions/finalize` entscheidet das Ziel.
+- Mit Dossier: Redirect nach `/dossier/<id>`.
+- Ohne Dossier: Redirect nach `/swipes?fromDraft=<draftId>`.
+- Quelle fuer Create-Semantik: `docs/create-intake-unification.md`.
+
+Surface-/Handoff-Contract (Ist-Stand, GOV-AI-03C):
+- `/create`: kanonischer Intake + Handoff-Ausgangspunkt.
+- `/runden`: oeffentliche Anlassraum-Surface fuer Arbeits- und Themenkontext.
+- `/swipes`: Beteiligungsmodus (inkl. `fromDraft`-Arrival), ohne Anlassraum-Kontext zu ersetzen.
+- `/dossier/<id>`: strukturierte Verdichtung; ersetzt weder Intake noch Anlassraum-Kontext.
+
+## F.1 Signal-/Funding-/Pricing-Leitplanke (Decision-Prep)
+
+- Signal-Logik bleibt Relevanz-/Dynamik-/Priorisierungssteuerung und ersetzt weder Wahrheit noch Faktenstatus.
+- `GOV-SIGNAL-01` ist als konservativer Startkanon freigegeben (Option A): Signal bleibt Relevanz-/Dynamik-/Priorisierungslogik, Decay bleibt policy-/profilgesteuert, keine Wahrheits-/Fakten-/Voting-/Funding-Sondermacht.
+- `GOV-FUNDING-01` ist als Ermoeglichungslogik freigegeben: Funding folgt dem Anlassraum (nicht umgekehrt) und bleibt strikt getrennt von Wahrheit/Faktenstatus/Voting/Legitimation.
+- `GOV-FUNDING-02` ist als Contract-Folgeslice umgesetzt: Ressourcen-/Sachleistungs-/Begleit-Funding ist typed operationalisiert, Anlassraum-first bleibt Pflicht, Matching bleibt projektbezogen (`docs/E150/GOV-FUNDING-02_RESOURCE_SUPPORT_CONTRACT_2026-03-29.md`).
+- `GOV-FUNDING-03` ist als Contract-Folgeslice umgesetzt: Impact-/Follow-up-/Refunding-Lifecycle ist typed gehaertet, reason-/audit-pflichtig und weiter ohne Payment-/Checkout-Engine (`docs/E150/GOV-FUNDING-03_IMPACT_REFUNDING_CONTRACT_2026-03-29.md`).
+- Public Core bleibt offen; Professional Layer bepreist Umsetzungs-/Orga-Leistung statt epistemischer Sondermacht.
+- `GOV-PRICING-01` ist manifestiert: Hybridmodell mit Caps, klare Segmentlogik (Public/Free, Civic Creator, Media Creator, Team/Organization, Kommune) und rote Linien gegen Wahrheits-/Signal-/Abstimmungs-Monetarisierung.
+- `GOV-PRICING-02` ist operativ umgesetzt: `02A` (Policy-/Override-/Explainability-Contract), `02B` (Audit-/KPI-Contract) und `02C` (Readmodel-Integration in bestehende Admin-Reads) sind abgeschlossen; weiterhin ohne Checkout/Payment/Billing-Engine (`docs/E150/GOV-PRICING-02_ADMIN_PRICING_CONTROL_CONTRACT_2026-03-29.md`).
+- `GOV-JOURNALISM-01` ist manifestiert: Journalismus kann Anlass geben und strukturieren, aber weder Sonderwahrheit noch Prioritaetsprivileg ableiten; Anlassraeume bleiben epistemisch offen.
+- `GOV-MUNI-01` ist manifestiert: kommunale Dashboard-Logik startet Monitoring-first (Kontext/Status/Transparenz) und bleibt ohne Anlassraum-/Dossier-Uebersteuerung, hidden scoring oder privilegierte Verwaltungswahrheit.
+- `GOV-MUNI-02` und `GOV-MUNI-03` sind kontraktnah umgesetzt: Dezernats-/Zustaendigkeits-Guardrails sowie Status-/Prozess-Guardrails werden route-nah als Meta-Contracts ausgegeben und sichern Monitoring-first ohne institutionellen Sonderkanal.
+- `GOV-MUNI-05` ist kontraktnah umgesetzt: Verwaltungsmodus-/Governance-Gates mit reason-/audit-pflichtigen Follow-up-/Release-Uebergaengen sind route-nah angeschlossen, ohne hidden scoring und ohne Uebersteuerung des Kernkanons.
+- `GOV-MUNI-06` ist kontraktnah umgesetzt: Rollen-/Rechte-/Governance-Profil-Contract vervollstaendigt den kommunalen Unterbau mit rollenbezogenen Aktionen und Stack-Konsistenzpruefung, ohne neue Sondermachtpfade.
+- Empfehlungen im Muni-Kontext bleiben Folgephase und muessen nicht-bindend, transparent und auditierbar bleiben.
 
 ## G. Wording
 
-- `Runden` ist als Leitbegriff fachlich zu schwach.
-- Zielbegriffe:
-  - Debatten-Setup
-  - Agenda-Sparring
-  - Diskussionsarchitektur
-  - Anlassraum-Workbench
+Glossar/Abgrenzung (Ist-Stand):
+- `Anlassraum`: Domaenenbegriff fuer thematischen Arbeits- und Kontextraum.
+- `/runden`: aktuelle oeffentliche Surface fuer Anlassraum-/Round-Einstieg.
+- `/anlassraum`: offizieller Alias-/Zielbegriff; als non-breaking Wrapper auf `/runden` aktiv, ohne harte Migration.
+- `Dossier`: strukturierte Verdichtung als eigenes Zielobjekt.
+- `Swipes`: Voting-/Einordnungsoberflaeche fuer Beteiligung; nicht thematische Oberdomaene.
+- `Registry`: operative Einordnungs-/Sammelansicht fuer Beteiligungsobjekte (im Ist-Code primaer `/swipes`).
+- `Review/Operator`: Governance-/Management-Kontext, getrennt von Buerger-Surfaces.
+- `Demo`: explizit gekennzeichneter Demo-/Pilot-Kontext, getrennt vom produktiven Standardfluss.
+- DOMAIN-HARM-01 Entscheidung (2026-03-27): Option B (`/runden` bleibt kanonische Surface, `/anlassraum` als Alias-Zielrichtung ohne harte Migration). Evidenz: `docs/E150/DOMAIN-HARM-01A_SURFACE_ROUTING_MATRIX_2026-03-27.md`.
+- GOV-AI-03 Entscheidung (2026-03-27): Anlassraum ist der oeffentliche thematische Arbeits-/Kontextraum; Dossier bleibt Verdichtung und Swipes bleibt Beteiligung/Bewertung.
+
+## H. Ist-Mapping Community-Research -> Review/Anlassraum (GOV-ANLASS-08A)
+
+Nur Ist-Stand, keine neue Produktentscheidung:
+
+- Community-Einstiege:
+  - `/research/tasks` (Research Board)
+  - `/community/contributions` (strukturierte Community-Beitraege)
+- Research-API-Pfade:
+  - `/api/research/tasks/list`, `/api/research/tasks/[id]`, `/api/research/tasks/[id]/contribute`
+  - Admin-Review: `/api/admin/research/tasks/*`, `/api/admin/research/contributions/*`
+- Review/Anlassraum-Anschluss:
+  - Feed-Review ueber `/api/admin/feeds/drafts/*`
+  - Anlassraum-Steuerung ueber `/api/admin/feeds/anlassraum/*`
+  - Dossier-Link ueber explizite kuratierte Aktion `/api/admin/feeds/anlassraum/[id]/dossier`
+- Manifestierte Guardrails:
+  - Community-Research erfordert Session + Verifikation + Rate-Limits
+  - Review/Transition bleiben admin-/governance-gatet
+  - Publish bleibt gate-geprueft und explizit, kein Auto-Publish
+- Offene Entscheidungsgrenze:
+  - Produkt-/Safety-Freigabe fuer Social-/Kontakt-Eskalation bleibt in `GOV-SAFETY-03` und ist bewusst nicht Teil dieses Mappings.
 
 ## Canonical Prompt Contracts
 

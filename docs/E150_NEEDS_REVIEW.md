@@ -1,5 +1,7 @@
 # E150_NEEDS_REVIEW
 
+> Hygiene-/Review-Board (kein operativer Backlog): Verbindliche Umsetzung und Priorisierung laufen über `docs/E150/OpenTasks.md` (SSOT). Kontext- und Verlaufssicht liegt in `docs/E150/Part15.md`.
+
 Diese Datei sammelt Stellen im Code, an denen weiterer Feinschliff oder E150-Hardening sinnvoll wäre.
 
 ## Potenzielle Baustellen
@@ -22,7 +24,14 @@ Offen bleibend:
 
 - [ ] `features/ai/orchestratorE150.ts` – [hardening] Monitoring-/Retry-Strategie weiterhin ausstehend; erfordert definiertes Fehlerschwellen-Konzept.
 
+## OpenTasks-Anschluss (Stand 2026-03-26)
+
+- `features/ai/orchestratorE150.ts` Monitoring/Retry ist im operativen System über `GOV-AI-ORCH-03` (research_only) und `GOV-AI-05` (research_only) geführt.
+- Weitere Punkte in dieser Datei bleiben Review-/Hygiene-Hinweise, bis sie mit klarer Scope/Abhängigkeit als Task-ID in `docs/E150/OpenTasks.md` eingeordnet sind.
+
 ## Vorschläge für nächsten Codex-Run
+
+Hinweis: Die folgende Liste ist eine Ideensammlung und kein autonomer Run-Plan außerhalb von `OpenTasks.md`.
 
 - Streams/Events-Hardening: Logging- und Retry-Strategien für Streaming-/Overlay-Pfade prüfen, ohne Legacy-Komponenten zu löschen.
 - Orchestrator E150: Fehlerbudgets und Backoff/Retry zentralisieren, Healthscore-gestützte Routing-Entscheidungen dokumentieren.

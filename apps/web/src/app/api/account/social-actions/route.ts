@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { assertStoreConfigured, ObjectId, coreCol } from "@core/db/triMongo";
+import { logger } from "@core/observability/logger";
 import { readSession } from "@/utils/session";
+import { resolveSocialEscalationPolicy } from "@/lib/social/escalationPolicy";
+import { incrementRateLimit } from "@/lib/security/rate-limit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -20,6 +23,25 @@ type PairState = {
   incomingPending: SocialFriendRequestDoc | null;
   outgoingPending: SocialFriendRequestDoc | null;
 };
+
+type UserDoc = {
+  _id: ObjectId;
+  verifiedEmail?: boolean | null;
+  emailVerified?: boolean | null;
+  verification?: {
+    level?: string | null;
+    methods?: string[] | null;
+    twoFA?: {
+      enabled?: boolean | null;
+      secret?: string | null;
+    } | null;
+  } | null;
+};
+
+const MATCH_REQUEST_RATE_WINDOW_SECONDS = 15 * 60;
+const MATCH_REQUEST_RATE_LIMIT = 12;
+const MATCH_REQUEST_COOLDOWN_MS = 2 * 60 * 1000;
+const MATCH_REQUEST_PENDING_LIMIT = 20;
 
 function clean(value: unknown) {
   return typeof value === "string" ? value.trim() : "";
@@ -91,6 +113,31 @@ function summarizePairState(
   }
 
   return { connected, incomingPending, outgoingPending };
+}
+
+function toDate(value: unknown): Date | null {
+  if (!value) return null;
+  const parsed = value instanceof Date ? value : new Date(String(value));
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+function deriveVerificationSignal(user: UserDoc | null): boolean {
+  if (!user) return false;
+  const level = clean(user.verification?.level).toLowerCase();
+  const methods = Array.isArray(user.verification?.methods) ? user.verification?.methods : [];
+  return (
+    Boolean(user.verifiedEmail) ||
+    Boolean(user.emailVerified) ||
+    level === "soft" ||
+    level === "strong" ||
+    methods.length > 0
+  );
+}
+
+function deriveTrustSignal(user: UserDoc | null): boolean {
+  if (!user) return false;
+  const twoFA = user.verification?.twoFA;
+  return Boolean(twoFA?.enabled || twoFA?.secret) || deriveVerificationSignal(user);
 }
 
 export async function POST(request: Request) {
@@ -220,10 +267,81 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: false, error: "cannot_request_self" }, { status: 400 });
     }
 
-    const usersCol = await coreCol<any>("users");
-    const targetExists = await usersCol.findOne({ _id: new ObjectId(targetUserId) }, { projection: { _id: 1 } });
+    const usersCol = await coreCol<UserDoc>("users");
+    const [targetExists, actorUser] = await Promise.all([
+      usersCol.findOne({ _id: new ObjectId(targetUserId) }, { projection: { _id: 1 } }),
+      ObjectId.isValid(userId)
+        ? usersCol.findOne(
+            { _id: new ObjectId(userId) },
+            {
+              projection: {
+                _id: 1,
+                verifiedEmail: 1,
+                emailVerified: 1,
+                verification: 1,
+              },
+            },
+          )
+        : Promise.resolve(null),
+    ]);
     if (!targetExists) {
       return NextResponse.json({ ok: false, error: "target_user_not_found" }, { status: 404 });
+    }
+
+    const escalation = resolveSocialEscalationPolicy({
+      context: body?.context ?? body?.contextType ?? body?.socialContext ?? null,
+      optIn: body?.optIn ?? body?.socialOptIn ?? false,
+      trustSignal: deriveTrustSignal(actorUser),
+      verificationSignal: deriveVerificationSignal(actorUser),
+    });
+    if (!escalation.allowed) {
+      logger.warn(
+        {
+          scope: "social.match.request",
+          userId,
+          targetUserId,
+          reason: escalation.reason,
+          context: escalation.context,
+          optIn: escalation.flags.optIn,
+          trustSignal: escalation.flags.trustSignal,
+          verificationSignal: escalation.flags.verificationSignal,
+        },
+        "SOCIAL_ESCALATION_DENIED",
+      );
+      return NextResponse.json(
+        {
+          ok: false,
+          error: "social_escalation_not_allowed",
+          reason: escalation.reason,
+          context: escalation.context,
+        },
+        { status: 403 },
+      );
+    }
+
+    const rateCount = await incrementRateLimit(
+      `social:match_request:${userId}`,
+      MATCH_REQUEST_RATE_WINDOW_SECONDS,
+    );
+    if (rateCount > MATCH_REQUEST_RATE_LIMIT) {
+      logger.warn(
+        {
+          scope: "social.match.request",
+          userId,
+          targetUserId,
+          rateCount,
+          rateWindowSeconds: MATCH_REQUEST_RATE_WINDOW_SECONDS,
+        },
+        "SOCIAL_ESCALATION_DENIED",
+      );
+      return NextResponse.json(
+        {
+          ok: false,
+          error: "social_escalation_rate_limited",
+          retryAfterSeconds: MATCH_REQUEST_RATE_WINDOW_SECONDS,
+        },
+        { status: 429 },
+      );
     }
 
     const currentUserIds = idCandidates(userId);
@@ -233,6 +351,56 @@ export async function POST(request: Request) {
       .sort({ createdAt: -1, _id: -1 })
       .limit(20)
       .toArray();
+
+    const latestOutgoing = pairDocs.find((doc) => {
+      const status = normalizeStatus(doc.status);
+      if (status !== "pending" && status !== "rejected" && status !== "canceled") return false;
+      return (
+        currentUserIds.map((id) => normalizeId(id)).includes(normalizeId(doc.fromUserId)) &&
+        targetUserIds.map((id) => normalizeId(id)).includes(normalizeId(doc.toUserId))
+      );
+    });
+    const latestOutgoingAt = toDate(latestOutgoing?.createdAt);
+    if (latestOutgoingAt && Date.now() - latestOutgoingAt.getTime() < MATCH_REQUEST_COOLDOWN_MS) {
+      logger.warn(
+        {
+          scope: "social.match.request",
+          userId,
+          targetUserId,
+          cooldownMs: MATCH_REQUEST_COOLDOWN_MS,
+          lastRequestAt: latestOutgoingAt.toISOString(),
+        },
+        "SOCIAL_ESCALATION_DENIED",
+      );
+      return NextResponse.json(
+        {
+          ok: false,
+          error: "social_escalation_cooldown",
+          retryAfterMs: MATCH_REQUEST_COOLDOWN_MS,
+        },
+        { status: 429 },
+      );
+    }
+
+    const pendingOutgoingCount = await requestsCol.countDocuments({
+      fromUserId: { $in: currentUserIds },
+      status: statusFilter("pending"),
+    });
+    if (pendingOutgoingCount > MATCH_REQUEST_PENDING_LIMIT) {
+      logger.warn(
+        {
+          scope: "social.match.request",
+          userId,
+          targetUserId,
+          pendingOutgoingCount,
+        },
+        "SOCIAL_ESCALATION_DENIED",
+      );
+      return NextResponse.json(
+        { ok: false, error: "social_escalation_abuse_gate" },
+        { status: 403 },
+      );
+    }
 
     const pairState = summarizePairState(pairDocs, userId, targetUserId);
     if (pairState.connected) {
@@ -280,9 +448,21 @@ export async function POST(request: Request) {
       } as any);
     }
 
+    logger.info(
+      {
+        scope: "social.match.request",
+        userId,
+        targetUserId,
+        state: "pending",
+        mode: recycled ? "recycled" : "inserted",
+        context: escalation.context,
+        pendingOutgoingCount,
+      },
+      "SOCIAL_ESCALATION_ALLOWED",
+    );
+
     return NextResponse.json({ ok: true, state: "pending", message: "Verbindungsanfrage gesendet." });
   }
 
   return NextResponse.json({ ok: false, error: "invalid_action" }, { status: 400 });
 }
-

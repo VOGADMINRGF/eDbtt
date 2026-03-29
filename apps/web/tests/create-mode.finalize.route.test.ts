@@ -8,6 +8,8 @@ const mocks = vi.hoisted(() => {
   let userId: string | null = "user-1";
   const drafts = new Map<string, AnyDoc>();
   const proposals: AnyDoc[] = [];
+  const auditEvents: AnyDoc[] = [];
+  const materialLinks: AnyDoc[] = [];
   const getColCalls: string[] = [];
 
   function toKey(value: unknown) {
@@ -26,6 +28,8 @@ const mocks = vi.hoisted(() => {
       userId = "user-1";
       drafts.clear();
       proposals.length = 0;
+      auditEvents.length = 0;
+      materialLinks.length = 0;
       getColCalls.length = 0;
     },
     seedDraft(doc: AnyDoc) {
@@ -83,7 +87,44 @@ const mocks = vi.hoisted(() => {
       throw new Error(`unexpected_collection_${name}`);
     }),
     coreCol: vi.fn(async () => {
-      throw new Error("unexpected_core_col_call");
+      return {
+        find(filter: AnyDoc) {
+          const entries = auditEvents.filter((evt) => String(evt?.dossierId) === String(filter?.dossierId));
+          return {
+            sort() {
+              return {
+                limit() {
+                  return {
+                    async next() {
+                      return entries.at(-1) ?? null;
+                    },
+                  };
+                },
+              };
+            },
+          };
+        },
+        async insertOne(doc: AnyDoc) {
+          auditEvents.push({ ...doc });
+          return { acknowledged: true };
+        },
+        async updateOne(filter: AnyDoc, update: AnyDoc) {
+          const idx = materialLinks.findIndex(
+            (entry) =>
+              String(entry?.dossierId) === String(filter?.dossierId) &&
+              String(entry?.kind) === String(filter?.kind) &&
+              String(entry?.itemId) === String(filter?.itemId),
+          );
+          const next = update?.$set && typeof update.$set === "object" ? { ...update.$set } : null;
+          if (!next) return { acknowledged: true, matchedCount: 0, modifiedCount: 0 };
+          if (idx >= 0) {
+            materialLinks[idx] = next;
+            return { acknowledged: true, matchedCount: 1, modifiedCount: 1 };
+          }
+          materialLinks.push(next);
+          return { acknowledged: true, matchedCount: 0, modifiedCount: 0, upsertedCount: 1 };
+        },
+      };
     }),
   };
 });
@@ -102,9 +143,18 @@ vi.mock("@core/db/triMongo", async () => {
 });
 
 import { POST as finalizePOST } from "@/app/api/contributions/finalize/route";
+import { POST as createFinalizePOST } from "@/app/api/create/finalize/route";
 
 function req(body: Record<string, unknown>) {
   return new NextRequest("http://localhost/api/contributions/finalize", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(body),
+  });
+}
+
+function createReq(body: Record<string, unknown>) {
+  return new NextRequest("http://localhost/api/create/finalize", {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify(body),
@@ -182,6 +232,82 @@ describe("create mode split - finalize route", () => {
     expect(created[0].createMode).toBe("source");
   });
 
+  it("returns dossier redirect target when finalize is dossier-bound", async () => {
+    const draftId = seedDraft();
+    const dossierId = "dossier-42";
+
+    const res = await finalizePOST(
+      req({
+        draftId,
+        selectedClaimIds: ["c1"],
+        source: "contribution_new",
+        createMode: "source",
+        dossierId,
+      }),
+    );
+
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.ok).toBe(true);
+    expect(body.redirectTo).toBe(`/dossier/${dossierId}`);
+  });
+
+  it("returns swipes redirect target with fromDraft for non-dossier finalize", async () => {
+    const draftId = seedDraft();
+
+    const res = await finalizePOST(
+      req({
+        draftId,
+        selectedClaimIds: ["c1"],
+        source: "contribution_new",
+        createMode: "source",
+      }),
+    );
+
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.ok).toBe(true);
+    expect(body.redirectTo).toBe(`/swipes?fromDraft=${draftId}`);
+  });
+
+  it("create finalize boundary keeps swipes redirect contract for non-dossier flows", async () => {
+    const draftId = seedDraft();
+
+    const res = await createFinalizePOST(
+      createReq({
+        draftId,
+        selectedClaimIds: ["c1"],
+        source: "contribution_new",
+        createMode: "source",
+      }),
+    );
+
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.ok).toBe(true);
+    expect(body.redirectTo).toBe(`/swipes?fromDraft=${draftId}`);
+  });
+
+  it("create finalize boundary keeps dossier redirect contract for dossier-bound flows", async () => {
+    const draftId = seedDraft();
+    const dossierId = "dossier-99";
+
+    const res = await createFinalizePOST(
+      createReq({
+        draftId,
+        selectedClaimIds: ["c1"],
+        source: "contribution_new",
+        createMode: "source",
+        dossierId,
+      }),
+    );
+
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.ok).toBe(true);
+    expect(body.redirectTo).toBe(`/dossier/${dossierId}`);
+  });
+
   it("Scenario C: selected anlassraum context is forwarded through finalize boundary", async () => {
     const draftId = seedDraft();
 
@@ -236,6 +362,21 @@ describe("create mode split - finalize route", () => {
 
     const res = await finalizePOST(
       req({
+        draftId,
+        selectedClaimIds: ["c1"],
+        createMode: "robot",
+      }),
+    );
+
+    expect(res.status).toBe(400);
+    await expect(res.json()).resolves.toMatchObject({ ok: false, error: "invalid_create_mode" });
+  });
+
+  it("create finalize boundary keeps invalid_create_mode contract", async () => {
+    const draftId = seedDraft();
+
+    const res = await createFinalizePOST(
+      createReq({
         draftId,
         selectedClaimIds: ["c1"],
         createMode: "robot",

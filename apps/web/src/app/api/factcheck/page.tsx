@@ -14,7 +14,7 @@ export default function FactcheckPage() {
     try {
       const enq = await fetch("/api/factcheck/enqueue", {
         method: "POST",
-        headers: { "Content-Type": "application/json", "x-role": "admin" },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ text, language: "de" }),
       });
       const ej = await enq.json();
@@ -22,9 +22,7 @@ export default function FactcheckPage() {
 
       // sanft pollen, max. 30s
       for (let i = 0; i < 30; i++) {
-        const st = await fetch(`/api/factcheck/status/${ej.jobId}`, {
-          headers: { "x-role": "admin" },
-        });
+        const st = await fetch(`/api/factcheck/status/${ej.jobId}`);
         const sj = await st.json();
         if (st.ok && (sj.job.status === "completed" || sj.job.status === "failed")) {
           setResult({

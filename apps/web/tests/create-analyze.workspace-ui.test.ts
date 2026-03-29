@@ -1,9 +1,14 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   buildCreatePrepareAttachReviewState,
   collectCreateAnalyzeReasons,
   deriveCreateAnalyzeRoutingHint,
+  resolveFinalizeRedirectTarget,
 } from "@/components/analyze/AnalyzeWorkspace";
+import {
+  buildFinalizeFallbackPath,
+  resolveAndNavigateAfterFinalize,
+} from "@/features/create/finalizeRedirect";
 
 describe("create analyze workspace UI helpers", () => {
   it("prioritizes neu_anlegen messaging for no_match", () => {
@@ -91,6 +96,10 @@ describe("create analyze workspace UI helpers", () => {
       } as any,
       handoff: {
         ctaId: "perspektive_anhaengen",
+        sourceRunId: "run-1",
+        sourceConfidence: 0.71,
+        sourceMatchSourceState: "ok",
+        sourcePhases: null,
         matchType: "related_claim",
         matchEntityType: "claim",
         actionType: "prepare_attach",
@@ -115,6 +124,55 @@ describe("create analyze workspace UI helpers", () => {
     expect(review?.uiLocale).toBe("de");
     expect(typeof review?.userConfirmedAt).toBe("string");
     expect(review?.reasons.length).toBeGreaterThan(0);
+  });
+
+  it("prefers handoff sourceRunId to keep analyze -> CTA transfer stable", () => {
+    const review = buildCreatePrepareAttachReviewState({
+      createAnalyze: {
+        runId: "run-create",
+        sourceLanguage: "de",
+        contentLanguage: "de",
+        uiLocale: "de",
+        normalizedInputSummary: "Kurzsummary",
+        matchType: "related_claim",
+        matchEntityType: "claim",
+        reasons: ["Semantische Naehe"],
+        matches: [
+          {
+            id: "m1",
+            label: "Claim A",
+            matchType: "related_claim",
+            matchEntityType: "claim",
+            strength: "medium",
+            reason: "Semantische Naehe",
+            reasons: ["Semantische Naehe"],
+            entityId: "claim-1",
+            targetRef: "/swipes?statementId=claim-1",
+          },
+        ],
+      } as any,
+      handoff: {
+        ctaId: "perspektive_anhaengen",
+        sourceRunId: "run-handoff",
+        sourceConfidence: 0.5,
+        sourceMatchSourceState: "ok",
+        sourcePhases: null,
+        matchType: "related_claim",
+        matchEntityType: "claim",
+        actionType: "prepare_attach",
+        entityType: "claim",
+        entityId: "claim-1",
+        targetRef: "/swipes?statementId=claim-1",
+        requiresConfirm: true,
+        noAutoPublish: true,
+        noSilentMerge: true,
+        summary: "Prepare attach",
+        warning: null,
+        guardrails: ["Kein Auto-Merge."],
+      },
+    });
+
+    expect(review?.sourceRunId).toBe("run-handoff");
   });
 
   it("requires explicit target choice when multiple prepare-attach targets are plausible", () => {
@@ -155,6 +213,10 @@ describe("create analyze workspace UI helpers", () => {
       } as any,
       handoff: {
         ctaId: "perspektive_anhaengen",
+        sourceRunId: "run-1",
+        sourceConfidence: 0.52,
+        sourceMatchSourceState: "ok",
+        sourcePhases: null,
         matchType: "related_claim",
         matchEntityType: "claim",
         actionType: "prepare_attach",
@@ -189,6 +251,10 @@ describe("create analyze workspace UI helpers", () => {
       } as any,
       handoff: {
         ctaId: "perspektive_anhaengen",
+        sourceRunId: "run-2",
+        sourceConfidence: 0.33,
+        sourceMatchSourceState: "degraded",
+        sourcePhases: null,
         matchType: "no_match",
         matchEntityType: "question",
         actionType: "prepare_attach",
@@ -205,5 +271,58 @@ describe("create analyze workspace UI helpers", () => {
     });
 
     expect(review).toBeNull();
+  });
+
+  it("resolves finalize redirects to internal paths only", () => {
+    expect(
+      resolveFinalizeRedirectTarget({
+        apiRedirectTo: "/swipes?fromDraft=abc",
+        fallbackRedirectTo: "/runden",
+      }),
+    ).toBe("/swipes?fromDraft=abc");
+
+    expect(
+      resolveFinalizeRedirectTarget({
+        apiRedirectTo: "https://evil.example/phish",
+        fallbackRedirectTo: "/swipes",
+      }),
+    ).toBe("/swipes");
+
+    expect(
+      resolveFinalizeRedirectTarget({
+        apiRedirectTo: "//evil.example/phish",
+        fallbackRedirectTo: "/swipes",
+      }),
+    ).toBe("/swipes");
+  });
+
+  it("triggers navigation immediately after finalize target resolution", () => {
+    const navigate = vi.fn();
+    const target = resolveAndNavigateAfterFinalize({
+      apiRedirectTo: "/swipes?fromDraft=65f000000000000000000011",
+      fallbackRedirectTo: "/swipes",
+      navigate,
+    });
+
+    expect(target).toBe("/swipes?fromDraft=65f000000000000000000011");
+    expect(navigate).toHaveBeenCalledTimes(1);
+    expect(navigate).toHaveBeenCalledWith("/swipes?fromDraft=65f000000000000000000011");
+  });
+
+  it("does not navigate when api and fallback redirects are both external/invalid", () => {
+    const navigate = vi.fn();
+    const target = resolveAndNavigateAfterFinalize({
+      apiRedirectTo: "https://evil.example",
+      fallbackRedirectTo: "javascript:alert(1)",
+      navigate,
+    });
+
+    expect(target).toBeNull();
+    expect(navigate).not.toHaveBeenCalled();
+  });
+
+  it("derives wrapper fallback path with dossier priority", () => {
+    expect(buildFinalizeFallbackPath({ dossierId: "dossier-1" })).toBe("/dossier/dossier-1");
+    expect(buildFinalizeFallbackPath({ dossierId: null })).toBe("/swipes");
   });
 });
