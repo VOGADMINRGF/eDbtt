@@ -169,9 +169,9 @@ Alle nachfolgenden Abschnitte bleiben als Evidenz/Archiv erhalten, sind aber nic
 | GOV-MUNI-06 | done | medium | GOV-MUNI-01 | Beamten-/Verwaltungsrollen | Rollenmodell fuer Verwaltung vervollstaendigen | Rollenrechte konsistent mit GOV-02/Governance | no | Erledigt (2026-03-29): shared Rollen-/Governance-Profil-Contract in `features/anlassraum/municipalRoleGovernanceContract.ts` eingefuehrt (inkl. Rollenprofil-Mapping, rollenbezogene Governance-Aktionen, Reason-/Audit-Pflichten und Stack-Konsistenzpruefung); route-nahe Meta-Einbindung in `apps/web/src/app/api/admin/governance/anlassraum/route.ts` als `meta.municipalRoleGovernance` + `meta.municipalRoleGovernanceConsistency`; Tests in `apps/web/tests/municipal-role-governance-contract.test.ts`, `apps/web/tests/municipal-governance-stack-contract.test.ts` und `apps/web/tests/admin-governance-anlassraum.route.test.ts`; operative Evidenz: `docs/E150/GOV-MUNI-06_ROLE_GOVERNANCE_PROFILE_CONTRACT_2026-03-29.md`. |
 | GOV-ORG-01 | done | medium | GOV-ANLASS-02 | Dossierbasierte Organisationsidentitaet | Organisationskontext sauber an Dossier/Anlassraum andocken | Organisationsidentitaet ohne Parallel-Domaene definiert | no | Erledigt (2026-03-29): typed Org-Context-/Attachment-Contract in `features/anlassraum/orgContextAttachmentContract.ts` inkl. Anlassraum-/Dossier-Andockung, Guardrails und Konsistenzcheck; route-nahe Meta-Einbindung in `apps/web/src/app/api/admin/governance/anlassraum/route.ts` (`meta.orgContextAttachment`, `meta.orgContextConsistency`); Tests: `apps/web/tests/org-context-attachment-contract.test.ts`, `apps/web/tests/admin-governance-anlassraum.route.test.ts`; Evidenz: `docs/E150/GOV-ORG-01_DOSSIER_ANLASSRAUM_ORG_CONTEXT_CONTRACT_2026-03-29.md`. |
 | GOV-ORG-02 | open | medium | GOV-ORG-01 | offizieller Release-/Trust-Modus | Trust-/Release-Pfade fuer Organisationen festlegen | Freigaberegeln mit Governance-Rollen und Audit kompatibel | no | Auf GOV-ORG-01 aufbauend; naechster sinnvoller ORG-Folgeblock. |
-| GOV-CIVIC-01 | open | medium | GOV-ANLASS-01 | Wirkungsverlauf fuer Buergerprofile | Civic-Wirkungsverlauf domain-konsistent aufbauen | Wirkungsverlauf an Anlassraum/Dossier gekoppelt, kein Parallelmodell | no | Strategischer Folgetask |
-| GOV-CIVIC-02 | open | medium | GOV-CIVIC-01 | Initiative-Lifecycle | Initiative-Prozess an Governance-Kern anbinden | Lifecycle-Status inkl. Übergaben dokumentiert | no | Auf CIVIC-01 aufbauend |
-| GOV-CIVIC-03 | open | medium | GOV-CIVIC-01, GOV-FUNDING-01 | Impact-/Unterstuetzungslogik fuer Initiativen | Impact/Funding-Logik fuer Initiativen konsistent integrieren | Impact-/Unterstuetzungspfade kompatibel zu Funding-/Signal-Kanon | no | Abhaengig von Funding-Kanon |
+| GOV-CIVIC-01 | done | medium | GOV-ANLASS-01 | Civic Rollen-/Sichtbarkeits-/Repraesentanzbaseline + Wirkungsverlauf | Civic-Rollen/Arbeitsstufen/Repraesentanzachsen (Thema vs Region) domain-konsistent aufbauen und an Wirkungsverlauf anbinden | Typed Role-/Visibility-/Representation-Contract liegt vor, an Anlassraum/Dossier/Companion angebunden, ohne Wahrheits-/Prioritaets-/Voting-Sondermacht; CIVIC-02 und CIVIC-03 setzen Lifecycle sowie Impact-/Unterstuetzungslogik darauf auf | no | Erledigt (2026-03-30): shared Contract `features/anlassraum/civicCreatorRepresentationContract.ts` inkl. route-naher Meta-Ausgabe (`meta.civicCreatorRepresentation`, `meta.civicCreatorRepresentationConsistency`) in `apps/web/src/app/api/admin/governance/anlassraum/route.ts`; Tests in `apps/web/tests/civic-creator-representation-contract.test.ts` und `apps/web/tests/admin-governance-anlassraum.route.test.ts`; Evidenz: `docs/E150/GOV-CIVIC-01_CREATOR_STREAM_REPRESENTATION_CONTRACT_2026-03-29.md`. |
+| GOV-CIVIC-02 | done | medium | GOV-CIVIC-01 | Initiative-Lifecycle | Initiative-Prozess an Governance-Kern anbinden | Lifecycle-Status inkl. Uebergaengen ist explizit modelliert; erlaubte/gesperrte Transitionen sind profile-/capability-basiert definiert; keine Wahrheits-/Prioritaets-/Voting-Sondermacht | no | Erledigt (2026-03-30): typed Lifecycle-/Transition-Contract in `features/anlassraum/civicCreatorLifecycleContract.ts` inkl. Transition-Evaluator/Consistency-Validator, route-nahe Meta-Einbindung (`meta.civicCreatorLifecycle`, `meta.civicCreatorLifecycleConsistency`) in `apps/web/src/app/api/admin/governance/anlassraum/route.ts`; Tests in `apps/web/tests/civic-creator-lifecycle-contract.test.ts` und `apps/web/tests/admin-governance-anlassraum.route.test.ts`; Evidenz: `docs/E150/GOV-CIVIC-02_INITIATIVE_LIFECYCLE_TRANSITION_CONTRACT_2026-03-30.md`. |
+| GOV-CIVIC-03 | done | medium | GOV-CIVIC-01, GOV-FUNDING-01 | Impact-/Unterstuetzungslogik fuer Initiativen | Impact/Funding-Logik fuer Initiativen konsistent integrieren | Explizite Support-/Impact-Kontexte sind lifecycle-gebunden modelliert; Unterstuetzung bleibt von Wahrheit/Prioritaet/Abstimmungsgewicht/Faktenstatus getrennt; keine Billing-/Funding-Engine im CIVIC-Block | no | Erledigt (2026-03-30): typed Impact-/Unterstuetzungs-Contract in `features/anlassraum/civicCreatorImpactSupportContract.ts` inkl. lifecycle-basierter Supportableitung, Guardrails und Consistency-Validator; route-nahe Meta-Einbindung (`meta.civicCreatorImpactSupport`, `meta.civicCreatorImpactSupportConsistency`) in `apps/web/src/app/api/admin/governance/anlassraum/route.ts`; Tests in `apps/web/tests/civic-creator-impact-support-contract.test.ts` und `apps/web/tests/admin-governance-anlassraum.route.test.ts`; Evidenz: `docs/E150/GOV-CIVIC-03_IMPACT_SUPPORT_CONTRACT_2026-03-30.md`. |
 
 ### F. Foundation / Completed Anchors (coverage-relevant)
 
@@ -202,7 +202,7 @@ Alle nachfolgenden Abschnitte bleiben als Evidenz/Archiv erhalten, sind aber nic
 
 Aktuell freigegebene `codex_ready` Tasks:
 
-1. Aktuell keine `codex_ready` Tasks. Naechster sinnvoller Folgeblock: `GOV-ORG-02` (derzeit `open`).
+1. `GOV-ORG-02` (open): offizieller Release-/Trust-Modus auf Basis `GOV-ORG-01` finalisieren.
 
 ## Legacy-Kontext (read-only, fuer Evidenz)
 
@@ -380,7 +380,7 @@ Status: **In Progress (canonical docs hardening / 2026-03-23)**
 ### Welle 6 — Organisationen / Verbaende / Civic
 - **GOV-ORG-01** dossierbasierte Organisationsidentitaet
 - **GOV-ORG-02** offizieller Release-/Trust-Modus
-- **GOV-CIVIC-01** Wirkungsverlauf fuer Buergerprofile
+- **GOV-CIVIC-01** Rollen-/Sichtbarkeits-/Repraesentanzbaseline + Wirkungsverlauf
 - **GOV-CIVIC-02** Initiative-Lifecycle
 - **GOV-CIVIC-03** Impact-/Unterstuetzungslogik fuer Initiativen
 
@@ -1061,9 +1061,9 @@ Nicht zuerst Einwohner-Billing priorisieren, sondern:
 - `GOV-ORG-02` bleibt offen: offizieller Release-/Trust-Modus auf Basis des neuen Org-Context-Contracts.
 
 ### GOV-CIVIC-01 / 02 / 03
-- Wirkungsverlauf fuer Buergerprofile
-- Initiative-Lifecycle
-- Impact-/Unterstuetzungslogik
+- `GOV-CIVIC-01` ist abgeschlossen: shared Civic-/Creator-/Stream-/Repraesentanz-Contract steht (`features/anlassraum/civicCreatorRepresentationContract.ts`) inkl. Thema-vs-Region-Achsentrennung und route-naher Meta-Ausgabe (`meta.civicCreatorRepresentation`).
+- `GOV-CIVIC-02` ist abgeschlossen: typed Lifecycle-/Transition-Contract steht (`features/anlassraum/civicCreatorLifecycleContract.ts`) inkl. route-naher Meta-Ausgabe (`meta.civicCreatorLifecycle`).
+- `GOV-CIVIC-03` ist abgeschlossen: typed Impact-/Unterstuetzungs-Contract steht (`features/anlassraum/civicCreatorImpactSupportContract.ts`) inkl. route-naher Meta-Ausgabe (`meta.civicCreatorImpactSupport`).
 
 ## Pricing- / Produktleitlinien
 

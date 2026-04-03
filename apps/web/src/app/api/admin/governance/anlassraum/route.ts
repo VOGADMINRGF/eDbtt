@@ -31,6 +31,18 @@ import {
   buildOrgContextAttachmentBaseline,
   validateOrgContextAttachmentConsistency,
 } from "@features/anlassraum/orgContextAttachmentContract";
+import {
+  buildCivicCreatorRepresentationBaseline,
+  validateCivicCreatorRepresentationConsistency,
+} from "@features/anlassraum/civicCreatorRepresentationContract";
+import {
+  buildCivicCreatorLifecycleBaseline,
+  validateCivicCreatorLifecycleConsistency,
+} from "@features/anlassraum/civicCreatorLifecycleContract";
+import {
+  buildCivicCreatorImpactSupportBaseline,
+  validateCivicCreatorImpactSupportConsistency,
+} from "@features/anlassraum/civicCreatorImpactSupportContract";
 import { ROOM_TYPES, type GovernanceActor, type RoomType } from "@features/trust/types";
 import { buildFundingImpactLifecycleBaseline } from "@/lib/server/funding/fundingImpactLifecycleContract";
 import { requireGovernanceActorOrResponse } from "@/lib/server/auth/governance";
@@ -183,6 +195,39 @@ export async function POST(req: NextRequest) {
       pricingSegment: orgContextAttachment.compatibility.pricingSegmentHints[0] ?? null,
       fundingSupportScope: fundingImpactLifecycle.supportScope,
     });
+    const civicCreatorRepresentation = buildCivicCreatorRepresentationBaseline({
+      actorRole: gate.actor.role,
+      ownerType,
+      originType,
+      roomType,
+    });
+    const civicCreatorRepresentationConsistency = validateCivicCreatorRepresentationConsistency({
+      contract: civicCreatorRepresentation,
+      journalismRoleProfile: journalismRoleProfile.roleProfile,
+      orgContextProfile: orgContextAttachment.orgContextProfile,
+      municipalInstitutionalContext: municipalResponsibilityGuardrails.institutionalContext,
+    });
+    const civicCreatorLifecycle = buildCivicCreatorLifecycleBaseline({
+      representationContract: civicCreatorRepresentation,
+    });
+    const civicCreatorLifecycleConsistency = validateCivicCreatorLifecycleConsistency({
+      lifecycleContract: civicCreatorLifecycle,
+      representationContract: civicCreatorRepresentation,
+      journalismRoleProfile: journalismRoleProfile.roleProfile,
+      orgContextProfile: orgContextAttachment.orgContextProfile,
+      municipalInstitutionalContext: municipalResponsibilityGuardrails.institutionalContext,
+    });
+    const civicCreatorImpactSupport = buildCivicCreatorImpactSupportBaseline({
+      lifecycleContract: civicCreatorLifecycle,
+      representationContract: civicCreatorRepresentation,
+    });
+    const civicCreatorImpactSupportConsistency = validateCivicCreatorImpactSupportConsistency({
+      supportContract: civicCreatorImpactSupport,
+      lifecycleContract: civicCreatorLifecycle,
+      representationContract: civicCreatorRepresentation,
+      journalismRoleProfile: journalismRoleProfile.roleProfile,
+      orgContextProfile: orgContextAttachment.orgContextProfile,
+    });
     return NextResponse.json({
       ok: true,
       id: created.anlassraumId.toHexString(),
@@ -200,6 +245,12 @@ export async function POST(req: NextRequest) {
         fundingImpactLifecycle,
         orgContextAttachment,
         orgContextConsistency,
+        civicCreatorRepresentation,
+        civicCreatorRepresentationConsistency,
+        civicCreatorLifecycle,
+        civicCreatorLifecycleConsistency,
+        civicCreatorImpactSupport,
+        civicCreatorImpactSupportConsistency,
       },
     });
   } catch (error: unknown) {

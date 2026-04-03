@@ -43,12 +43,31 @@ Operativer Contract-Stand (`GOV-JOURNALISM-04`, 2026-03-29):
 - route-nahe Meta-Ausgabe: `meta.journalismRoleProfile` + `meta.journalismConsistency` in `apps/web/src/app/api/admin/governance/anlassraum/route.ts`
 - Evidenz: `docs/E150/GOV-JOURNALISM-04_ROLE_PROFILE_PUBLISHER_CONTRACT_2026-03-29.md`
 
+Operativer Anschluss (`GOV-CIVIC-01`, 2026-03-29):
+- shared Civic-/Creator-/Stream-/Repraesentanz-Contract: `features/anlassraum/civicCreatorRepresentationContract.ts`
+- route-nahe Meta-Ausgabe: `meta.civicCreatorRepresentation` + `meta.civicCreatorRepresentationConsistency` in `apps/web/src/app/api/admin/governance/anlassraum/route.ts`
+- Thema-vs-Region-Achsen bleiben getrennt (`representationAxes.topic` vs `representationAxes.region`)
+- Evidenz: `docs/E150/GOV-CIVIC-01_CREATOR_STREAM_REPRESENTATION_CONTRACT_2026-03-29.md`
+
+Operativer Anschluss (`GOV-CIVIC-02`, 2026-03-30):
+- typed Lifecycle-/Transition-Contract: `features/anlassraum/civicCreatorLifecycleContract.ts`
+- route-nahe Meta-Ausgabe: `meta.civicCreatorLifecycle` + `meta.civicCreatorLifecycleConsistency` in `apps/web/src/app/api/admin/governance/anlassraum/route.ts`
+- Companion/Stream bleibt Lifecycle-seitig Begleitformat (kein Wahrheits-/Prioritaetskanal), Thema-vs-Region-Achsen bleiben getrennt
+- Evidenz: `docs/E150/GOV-CIVIC-02_INITIATIVE_LIFECYCLE_TRANSITION_CONTRACT_2026-03-30.md`
+
+Operativer Anschluss (`GOV-CIVIC-03`, 2026-03-30):
+- typed Impact-/Unterstuetzungs-Contract: `features/anlassraum/civicCreatorImpactSupportContract.ts`
+- route-nahe Meta-Ausgabe: `meta.civicCreatorImpactSupport` + `meta.civicCreatorImpactSupportConsistency` in `apps/web/src/app/api/admin/governance/anlassraum/route.ts`
+- Unterstuetzung bleibt lifecycle-gebunden und nicht-hierarchisch (kein Wahrheits-/Prioritaets-/Voting-/Faktenstatus-Privileg)
+- Evidenz: `docs/E150/GOV-CIVIC-03_IMPACT_SUPPORT_CONTRACT_2026-03-30.md`
+
 ## Team-/Rollenanschluss
 
 - Redaktion/Publisher/journalistische Teams sind teamfaehige professionelle Kontexte (Review/Publish/Moderation), nicht nur Einzeluser.
 - Institutionelle/verwaltungsnahe Nutzung kann auf derselben Grundinfrastruktur andocken, folgt aber eigener Fachlogik.
 - Gleiche Grundinfrastruktur bedeutet nicht gleiche Rolle, Prioritaet oder UI-Logik.
 - Kein Zwang zur Vollredaktion: auch kleinere Formate, Einzeljournalisten und regionale Medien bleiben anschlussfaehig.
+- Repraesentanz bleibt Kontextlogik, nie Wahrheits-/Prioritaets-/Voting-Privileg.
 
 ## Sondertools / Spezialpfade
 

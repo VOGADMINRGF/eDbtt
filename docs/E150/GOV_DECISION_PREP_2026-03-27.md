@@ -679,6 +679,104 @@ Klarstellung Creator-Segmente:
 
 ---
 
+## 9) GOV-CIVIC-01 — Civic / Creator / Stream / Dossier / Repraesentanz
+
+### Implementierungsstand (2026-03-29)
+
+- `GOV-CIVIC-01` ist als kontraktnaher Baseline-Slice gestartet (`in_progress`):
+  - shared Contract: `features/anlassraum/civicCreatorRepresentationContract.ts`
+  - Evidenz: `docs/E150/GOV-CIVIC-01_CREATOR_STREAM_REPRESENTATION_CONTRACT_2026-03-29.md`
+- Ziel des Slices: kein neues Wahrheits-/Machtsystem, sondern ein belastbarer Arbeits-/Sichtbarkeits-/Repraesentanzrahmen fuer civic/creator/publisher/org Kontexte.
+
+### Verbindlicher Contract-Rahmen
+
+- Work-Profile (nicht-hierarchisch, arbeitsbezogen):
+  - `civic_participant`
+  - `anlassraum_host`
+  - `creator_format_host`
+  - `editorial_dossier_host`
+  - `publisher_team_context`
+  - `org_context_actor`
+- Work-Levels:
+  - `participation_only`
+  - `anlassraum_hosting`
+  - `format_companion`
+  - `dossier_companion`
+  - `organization_followup`
+- Repraesentanzachsen sind getrennt:
+  - `representationAxes.topic`
+  - `representationAxes.region`
+  - `separatedAxes = true`, `forbidsCrossAxisShortcut = true`
+
+### Verbindliche Guardrails
+
+- keine Wahrheits-/Prioritaets-/Voting-/Faktenstatus-/Reach-Sondermacht aus Rolle, Kanal oder Reichweite
+- keine Parallel-Domaene neben Anlassraum/Dossier
+- Dossier bleibt Oberraum; Companion/Stream bleibt an offenen Dossier-/Pruef-/Fragenkern gebunden
+- Thema und Region bleiben explizit getrennte Repraesentationsachsen
+
+### Route-nahe Operationalisierung
+
+- `/api/admin/governance/anlassraum` liefert zusaetzlich:
+  - `meta.civicCreatorRepresentation`
+  - `meta.civicCreatorRepresentationConsistency`
+- Konsistenzpruefung bleibt gekoppelt an:
+  - journalism role profile
+  - org context profile
+  - municipal institutional context
+
+### GOV-CIVIC-02 Implementierungsstand (2026-03-30)
+
+- `GOV-CIVIC-02` ist abgeschlossen:
+  - shared Lifecycle-/Transition-Contract: `features/anlassraum/civicCreatorLifecycleContract.ts`
+  - route-nahe Meta-Ausgabe:
+    - `meta.civicCreatorLifecycle`
+    - `meta.civicCreatorLifecycleConsistency`
+  - Evidenz: `docs/E150/GOV-CIVIC-02_INITIATIVE_LIFECYCLE_TRANSITION_CONTRACT_2026-03-30.md`
+- Lifecycle-Zustaende sind explizit modelliert:
+  - `initiated`
+  - `open_followup`
+  - `accompanied`
+  - `dossier_linked`
+  - `companion_active`
+  - `stream_active`
+  - `paused`
+  - `closed_context`
+  - `archived`
+- Transitionen sind profile-/capability-basiert gehaertet:
+  - kein stilles Upgrade in Dossier/Companion/Stream ohne passende Capability
+  - kein `stream_active` fuer institutionelle Org-Kontexte
+  - Companion/Stream bleibt Begleitformat, nicht Wahrheitskanal
+  - Thema/Region bleibt in allen Lifecycle-Phasen getrennt
+
+### GOV-CIVIC-03 Implementierungsstand (2026-03-30)
+
+- `GOV-CIVIC-03` ist abgeschlossen:
+  - shared Impact-/Unterstuetzungs-Contract: `features/anlassraum/civicCreatorImpactSupportContract.ts`
+  - route-nahe Meta-Ausgabe:
+    - `meta.civicCreatorImpactSupport`
+    - `meta.civicCreatorImpactSupportConsistency`
+  - Evidenz: `docs/E150/GOV-CIVIC-03_IMPACT_SUPPORT_CONTRACT_2026-03-30.md`
+- Explizite Support-Typen (nicht-hierarchisch):
+  - `participation_support`
+  - `context_support`
+  - `format_support`
+  - `followup_support`
+  - `regional_visibility_support`
+  - `documentation_support`
+- Lifecycle-gebundene Guardrails:
+  - fruehe Phasen (`initiated`, `open_followup`) ohne Format-/Follow-up-Aufwertung
+  - `stream_active` bleibt formatbezogen und erzeugt kein Wahrheits-/Prioritaetsprivileg
+  - institutionelle Org-Kontexte erhalten keinen Stream-Supportmodus
+  - Unterstuetzung bleibt explizit getrennt von Wahrheit, Prioritaet, Abstimmungsgewicht und Faktenstatus
+
+### Folgearbeit (bewusst offen)
+
+- CIVIC-Strang ist kontraktnah fuer den Zielrahmen abgeschlossen.
+- Naechster sinnvoller Folgeblock ausserhalb CIVIC: `GOV-ORG-02`.
+
+---
+
 ## Priorisierter Entscheidungshebel (Reihenfolge)
 
 Aktuell keine offenen grossen Leitentscheidungsbloecke mehr im Decision-Prep.

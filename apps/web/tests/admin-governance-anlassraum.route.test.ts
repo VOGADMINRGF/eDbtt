@@ -124,6 +124,22 @@ describe("admin governance anlassraum route journalism guardrails", () => {
     expect(body?.meta?.orgContextAttachment?.attachmentMode).toBe("anlassraum_primary");
     expect(body?.meta?.orgContextAttachment?.guardrails?.forbidsParallelDomain).toBe(true);
     expect(body?.meta?.orgContextConsistency?.ok).toBe(true);
+    expect(body?.meta?.civicCreatorRepresentation?.workProfile).toBe("editorial_dossier_host");
+    expect(body?.meta?.civicCreatorRepresentation?.representationAxes?.topic).toBe("context_curator");
+    expect(body?.meta?.civicCreatorRepresentation?.representationAxes?.region).toBe("none");
+    expect(body?.meta?.civicCreatorRepresentation?.guardrails?.forbidsTruthPrivilege).toBe(true);
+    expect(body?.meta?.civicCreatorRepresentationConsistency?.ok).toBe(true);
+    expect(body?.meta?.civicCreatorLifecycle?.currentStatus).toBe("initiated");
+    expect(body?.meta?.civicCreatorLifecycle?.allowedTransitions).toContain("accompanied");
+    expect(body?.meta?.civicCreatorLifecycle?.allowedTransitions).toContain("open_followup");
+    expect(body?.meta?.civicCreatorLifecycle?.guardrails?.keepsCompanionAsFormatNotTruth).toBe(true);
+    expect(body?.meta?.civicCreatorLifecycleConsistency?.ok).toBe(true);
+    expect(body?.meta?.civicCreatorImpactSupport?.lifecycleStatus).toBe("initiated");
+    expect(body?.meta?.civicCreatorImpactSupport?.supportTypes).toContain("participation_support");
+    expect(body?.meta?.civicCreatorImpactSupport?.supportTypes).toContain("documentation_support");
+    expect(body?.meta?.civicCreatorImpactSupport?.supportTypes).not.toContain("format_support");
+    expect(body?.meta?.civicCreatorImpactSupport?.guardrails?.forbidsTruthPrivilege).toBe(true);
+    expect(body?.meta?.civicCreatorImpactSupportConsistency?.ok).toBe(true);
   });
 
   it("keeps guardrails active for non-source origins", async () => {
@@ -168,6 +184,20 @@ describe("admin governance anlassraum route journalism guardrails", () => {
     expect(body?.meta?.orgContextAttachment?.orgContextProfile).toBe("media_house");
     expect(body?.meta?.orgContextAttachment?.compatibility?.supportsTeamContext).toBe(true);
     expect(body?.meta?.orgContextConsistency?.ok).toBe(true);
+    expect(body?.meta?.civicCreatorRepresentation?.workProfile).toBe("publisher_team_context");
+    expect(body?.meta?.civicCreatorRepresentation?.allowsDossierCompanionCuration).toBe(true);
+    expect(body?.meta?.civicCreatorRepresentation?.representationAxes?.topic).toBe("context_curator");
+    expect(body?.meta?.civicCreatorRepresentation?.representationAxes?.region).toBe("none");
+    expect(body?.meta?.civicCreatorRepresentationConsistency?.ok).toBe(true);
+    expect(body?.meta?.civicCreatorLifecycle?.lifecycleContextScope).toBe("anlassraum_followup");
+    expect(body?.meta?.civicCreatorLifecycle?.allowedTransitions).toContain("accompanied");
+    expect(body?.meta?.civicCreatorLifecycle?.guardrails?.forbidsRepresentationPriorityShortcut).toBe(true);
+    expect(body?.meta?.civicCreatorLifecycleConsistency?.ok).toBe(true);
+    expect(body?.meta?.civicCreatorImpactSupport?.supportTypes).toContain("participation_support");
+    expect(body?.meta?.civicCreatorImpactSupport?.supportTypes).not.toContain("followup_support");
+    expect(body?.meta?.civicCreatorImpactSupport?.impactContexts).toContain("documentation_trace");
+    expect(body?.meta?.civicCreatorImpactSupport?.guardrails?.forbidsRankingBoostFromSupport).toBe(true);
+    expect(body?.meta?.civicCreatorImpactSupportConsistency?.ok).toBe(true);
   });
 
   it("marks municipality/official contexts as institutional responsibility scope", async () => {
@@ -229,5 +259,19 @@ describe("admin governance anlassraum route journalism guardrails", () => {
     expect(body?.meta?.orgContextAttachment?.orgContextProfile).toBe("institutional_organization");
     expect(body?.meta?.orgContextAttachment?.compatibility?.supportsMunicipalContext).toBe(true);
     expect(body?.meta?.orgContextConsistency?.ok).toBe(true);
+    expect(body?.meta?.civicCreatorRepresentation?.workProfile).toBe("org_context_actor");
+    expect(body?.meta?.civicCreatorRepresentation?.representationAxes?.topic).toBe("context_visible");
+    expect(body?.meta?.civicCreatorRepresentation?.representationAxes?.region).toBe("context_visible");
+    expect(body?.meta?.civicCreatorRepresentation?.guardrails?.forbidsParallelDomain).toBe(true);
+    expect(body?.meta?.civicCreatorRepresentationConsistency?.ok).toBe(true);
+    expect(body?.meta?.civicCreatorLifecycle?.allowedTransitions).not.toContain("stream_active");
+    expect(body?.meta?.civicCreatorLifecycle?.allowedTransitions).not.toContain("dossier_linked");
+    expect(body?.meta?.civicCreatorLifecycle?.guardrails?.keepsTopicRegionSeparated).toBe(true);
+    expect(body?.meta?.civicCreatorLifecycleConsistency?.ok).toBe(true);
+    expect(body?.meta?.civicCreatorImpactSupport?.supportTypes).toContain("participation_support");
+    expect(body?.meta?.civicCreatorImpactSupport?.supportTypes).toContain("documentation_support");
+    expect(body?.meta?.civicCreatorImpactSupport?.supportTypes).not.toContain("regional_visibility_support");
+    expect(body?.meta?.civicCreatorImpactSupport?.guardrails?.keepsSupportNonMonetaryByDefault).toBe(true);
+    expect(body?.meta?.civicCreatorImpactSupportConsistency?.ok).toBe(true);
   });
 });
