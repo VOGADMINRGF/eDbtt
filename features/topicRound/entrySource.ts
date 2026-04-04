@@ -2,6 +2,7 @@ import { ObjectId } from "@core/db/triMongo";
 import { anlassraumCol, outputSeedCol } from "@features/anlassraum/db";
 import {
   resolveShareReadyAssetContract,
+  type ShareSocialQualification,
   type ShareReadyTargetKind,
 } from "@features/anlassraum/shareReadyAssetContract";
 import type {
@@ -35,6 +36,9 @@ export type RundenEntryShareActions = {
   shareSummary: string;
   socialCandidate: boolean;
   needsReviewBeforeOfficialSocial: boolean;
+  socialQualification?: ShareSocialQualification;
+  factcheckSuggested?: boolean;
+  existingContextHint?: string | null;
 };
 
 export type RundenEntryItem = {
@@ -244,6 +248,9 @@ function resolveEntryShareActions(input: {
     socialCandidate: shareReady.socialPublication.socialCandidate,
     needsReviewBeforeOfficialSocial:
       shareReady.socialPublication.needsReviewBeforeOfficialSocial,
+    socialQualification: shareReady.socialPublication.qualification,
+    factcheckSuggested: shareReady.qualityHints.factcheckSuggested,
+    existingContextHint: shareReady.qualityHints.existingContextHint,
   };
 }
 
