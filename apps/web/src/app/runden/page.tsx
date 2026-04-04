@@ -5,6 +5,7 @@ import {
   type RundenEntryItem,
 } from "@features/topicRound/entrySource";
 import { readSession } from "@/utils/session";
+import RundenShareActions from "./RundenShareActions";
 
 export const metadata: Metadata = {
   title: "Anlässe - eDebatte",
@@ -343,6 +344,10 @@ export default async function RundenPage({
                       In /create weiter vorbereiten
                     </Link>
                   ) : null}
+
+                  {featured.shareActions ? (
+                    <RundenShareActions share={featured.shareActions} />
+                  ) : null}
                 </article>
               )}
 
@@ -470,6 +475,10 @@ export default async function RundenPage({
                   >
                     Ergebnis öffnen →
                   </Link>
+
+                  {entry.shareActions ? (
+                    <RundenShareActions share={entry.shareActions} />
+                  ) : null}
                 </article>
               ))}
             </div>

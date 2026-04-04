@@ -177,4 +177,104 @@ describe("/runden acceptance states", () => {
     expect(html).toContain("Meine Anlässe");
     expect(html).not.toContain(">Verwalten<");
   });
+
+  it("Scenario G: share actions are visible on featured and result contexts when share targets exist", async () => {
+    mocks.readSession.mockResolvedValue({
+      uid: "65f000000000000000000131",
+      roles: ["user"],
+    });
+    mocks.listRundenEntryItems.mockResolvedValue([
+      {
+        id: "seed-active",
+        anlassraumId: "65f000000000000000000231",
+        isPublic: true,
+        title: "Laufender Anlass mit Share",
+        summary: "Aktiver Kontext",
+        topicKey: "energy",
+        anlassraumType: "policy",
+        sourceMode: "feed",
+        anlassraumStatus: "active",
+        outputStatus: "review",
+        reviewState: "pending",
+        publishTarget: "/round/laufender-anlass",
+        intakeHref: "/create?mode=source&anlassraumId=65f000000000000000000231",
+        operatingHref: "/round/laufender-anlass?anlassraumId=65f000000000000000000231",
+        resultsHref: null,
+        entryHref: "/round/laufender-anlass?anlassraumId=65f000000000000000000231",
+        lifecycle: "active",
+        finished: false,
+        finishedAt: null,
+        lastAction: null,
+        lastActionBy: null,
+        lastActionAt: null,
+        createdAt: null,
+        updatedAt: null,
+        legacyIncomplete: false,
+        sourceKind: "output_seed_with_anlassraum",
+        shareActions: {
+          contextKind: "runde",
+          primaryTargetKind: "round_operating_target",
+          canonicalTarget: "/round/laufender-anlass?anlassraumId=65f000000000000000000231",
+          qrTarget: "/round/laufender-anlass?anlassraumId=65f000000000000000000231",
+          shareTitle: "Laufender Anlass mit Share",
+          sharePrompt: "Laufenden Kontext teilen",
+          shareSummary: "Zusammenfassung",
+          socialCandidate: false,
+          needsReviewBeforeOfficialSocial: true,
+        },
+      },
+      {
+        id: "seed-closed",
+        anlassraumId: "65f000000000000000000232",
+        isPublic: true,
+        title: "Abgeschlossener Anlass mit Share",
+        summary: "Abschlusskontext",
+        topicKey: "energy",
+        anlassraumType: "policy",
+        sourceMode: "feed",
+        anlassraumStatus: "published",
+        outputStatus: "published",
+        reviewState: "approved",
+        publishTarget: "/round/abgeschlossener-anlass",
+        intakeHref: "/create?mode=source&anlassraumId=65f000000000000000000232",
+        operatingHref: "/round/abgeschlossener-anlass?anlassraumId=65f000000000000000000232",
+        resultsHref: "/round/abgeschlossener-anlass?anlassraumId=65f000000000000000000232",
+        entryHref: "/round/abgeschlossener-anlass?anlassraumId=65f000000000000000000232",
+        lifecycle: "closed",
+        finished: true,
+        finishedAt: "2026-04-04T10:00:00.000Z",
+        lastAction: null,
+        lastActionBy: null,
+        lastActionAt: null,
+        createdAt: null,
+        updatedAt: null,
+        legacyIncomplete: false,
+        sourceKind: "output_seed_with_anlassraum",
+        shareActions: {
+          contextKind: "ergebnis",
+          primaryTargetKind: "round_results_target",
+          canonicalTarget: "/round/abgeschlossener-anlass?anlassraumId=65f000000000000000000232",
+          qrTarget: "/round/abgeschlossener-anlass?anlassraumId=65f000000000000000000232",
+          shareTitle: "Abgeschlossener Anlass mit Share",
+          sharePrompt: "Ergebnis teilen",
+          shareSummary: "Zusammenfassung",
+          socialCandidate: true,
+          needsReviewBeforeOfficialSocial: true,
+        },
+      },
+    ]);
+
+    const tree = await RundenPage({ searchParams: Promise.resolve({}) });
+    const html = renderToStaticMarkup(tree);
+
+    expect(html).toContain("Link kopieren");
+    expect(html).toContain("QR anzeigen");
+    expect(html).toContain("Ziel: Runde");
+
+    const resultsTree = await RundenPage({
+      searchParams: Promise.resolve({ view: "results" }),
+    });
+    const resultsHtml = renderToStaticMarkup(resultsTree);
+    expect(resultsHtml).toContain("Ziel: Ergebnis");
+  });
 });

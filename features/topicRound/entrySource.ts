@@ -1,5 +1,9 @@
 import { ObjectId } from "@core/db/triMongo";
 import { anlassraumCol, outputSeedCol } from "@features/anlassraum/db";
+import {
+  resolveShareReadyAssetContract,
+  type ShareReadyTargetKind,
+} from "@features/anlassraum/shareReadyAssetContract";
 import type {
   AnlassraumSourceMode,
   AnlassraumStatus,
@@ -13,6 +17,25 @@ export type RundenEntryLifecycle = "active" | "closed";
 export type RundenEntrySourceKind =
   | "output_seed_with_anlassraum"
   | "output_seed_legacy_incomplete";
+
+export type RundenEntryShareContextKind =
+  | "anlass"
+  | "runde"
+  | "ergebnis"
+  | "dossier"
+  | "companion";
+
+export type RundenEntryShareActions = {
+  contextKind: RundenEntryShareContextKind;
+  primaryTargetKind: ShareReadyTargetKind;
+  canonicalTarget: string;
+  qrTarget: string;
+  shareTitle: string;
+  sharePrompt: string;
+  shareSummary: string;
+  socialCandidate: boolean;
+  needsReviewBeforeOfficialSocial: boolean;
+};
 
 export type RundenEntryItem = {
   id: string;
@@ -41,6 +64,7 @@ export type RundenEntryItem = {
   updatedAt: string | null;
   legacyIncomplete: boolean;
   sourceKind: RundenEntrySourceKind;
+  shareActions: RundenEntryShareActions | null;
 };
 
 export type ListRundenEntryItemsInput = {
@@ -137,6 +161,18 @@ function mapToEntry(
   const legacyIncomplete =
     !room || !asString(room.title) || !asString(room.summary) || !anlassraumId;
 
+  const shareActions = resolveEntryShareActions({
+    anlassraumId,
+    publishTarget,
+    dossierId: toHex(room?.dossierId),
+    companionSlug: asString(room?.companionSlug),
+    title,
+    summary,
+    lifecycleStatus: asString(room?.status),
+    outputStatus,
+    isPublic,
+  });
+
   return {
     id: seedId,
     anlassraumId,
@@ -164,7 +200,61 @@ function mapToEntry(
     updatedAt: toIso(seed?.updatedAt),
     legacyIncomplete,
     sourceKind,
+    shareActions,
   };
+}
+
+function resolveEntryShareActions(input: {
+  anlassraumId: string | null;
+  publishTarget: string | null;
+  dossierId: string | null;
+  companionSlug: string | null;
+  title: string;
+  summary: string;
+  lifecycleStatus: string | null;
+  outputStatus: OutputSeedStatus;
+  isPublic: boolean | null;
+}): RundenEntryShareActions | null {
+  if (!input.anlassraumId) return null;
+  if (input.isPublic !== true) return null;
+
+  const shareReady = resolveShareReadyAssetContract({
+    anlassraumId: input.anlassraumId,
+    publishTarget: input.publishTarget,
+    dossierId: input.dossierId,
+    companionSlug: input.companionSlug,
+    title: input.title,
+    summary: input.summary,
+    lifecycleStatus: input.lifecycleStatus,
+    outputStatus: input.outputStatus,
+    isPublic: true,
+    factcheckSuggested:
+      input.outputStatus === "review" || input.outputStatus === "published",
+    existingContextHint: "Bestehender Anlassraum kann weitergefuehrt werden.",
+  });
+
+  return {
+    contextKind: contextKindFromTargetKind(shareReady.primaryTargetKind),
+    primaryTargetKind: shareReady.primaryTargetKind,
+    canonicalTarget: shareReady.canonicalPublicTarget,
+    qrTarget: shareReady.qrTarget,
+    shareTitle: shareReady.shareMeta.shareTitle,
+    sharePrompt: shareReady.shareMeta.sharePrompt,
+    shareSummary: shareReady.shareMeta.shareSummary,
+    socialCandidate: shareReady.socialPublication.socialCandidate,
+    needsReviewBeforeOfficialSocial:
+      shareReady.socialPublication.needsReviewBeforeOfficialSocial,
+  };
+}
+
+function contextKindFromTargetKind(
+  targetKind: ShareReadyTargetKind,
+): RundenEntryShareContextKind {
+  if (targetKind === "round_operating_target") return "runde";
+  if (targetKind === "round_results_target") return "ergebnis";
+  if (targetKind === "dossier_public_target") return "dossier";
+  if (targetKind === "companion_public_target") return "companion";
+  return "anlass";
 }
 
 function toLifecycle(status: OutputSeedStatus): RundenEntryLifecycle {

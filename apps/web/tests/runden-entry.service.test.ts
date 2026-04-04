@@ -181,7 +181,15 @@ describe("runden entry source service", () => {
       operatingHref: `/round/mobilitaet-innenstadt?anlassraumId=${roomId.toHexString()}`,
       resultsHref: null,
       entryHref: `/round/mobilitaet-innenstadt?anlassraumId=${roomId.toHexString()}`,
+      shareActions: {
+        contextKind: "runde",
+        primaryTargetKind: "round_operating_target",
+        socialCandidate: false,
+        needsReviewBeforeOfficialSocial: true,
+      },
     });
+    expect(items[0]?.shareActions?.canonicalTarget).toContain("/round/mobilitaet-innenstadt");
+    expect(items[0]?.shareActions?.qrTarget).toContain("/round/mobilitaet-innenstadt");
   });
 
   it("Scenario B: empty productive source returns explicit empty list", async () => {
@@ -263,6 +271,7 @@ describe("runden entry source service", () => {
       operatingHref: `/anlassraum?anlassraumId=${roomId.toHexString()}`,
       resultsHref: null,
       entryHref: `/create?mode=source&anlassraumId=${roomId.toHexString()}`,
+      shareActions: null,
     });
   });
 
@@ -301,6 +310,12 @@ describe("runden entry source service", () => {
       lifecycle: "closed",
       finished: true,
       resultsHref: `/round/fernwaerme-ausbau?anlassraumId=${roomId.toHexString()}`,
+      shareActions: {
+        contextKind: "ergebnis",
+        primaryTargetKind: "round_results_target",
+        socialCandidate: true,
+        needsReviewBeforeOfficialSocial: true,
+      },
     });
     expect(items[0].finishedAt).toBe("2026-03-21T13:00:00.000Z");
   });
