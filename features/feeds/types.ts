@@ -6,6 +6,7 @@ import type {
   QuestionRecord,
   KnotRecord,
 } from "@features/analyze/schemas";
+import type { FeedAnlassraumSurfaceComposition } from "@features/feeds/anlassraumSurfaceComposition";
 
 export type AnalyzeStatus = "pending" | "processing" | "success" | "error";
 
@@ -238,4 +239,5 @@ export type VoteDraftSummary = {
     needsAnlassraumBackfill: boolean;
     reasons: string[];
   } | null;
+  surfaceComposition?: FeedAnlassraumSurfaceComposition | null;
 };

@@ -140,6 +140,11 @@ describe("admin governance anlassraum route journalism guardrails", () => {
     expect(body?.meta?.civicCreatorImpactSupport?.supportTypes).not.toContain("format_support");
     expect(body?.meta?.civicCreatorImpactSupport?.guardrails?.forbidsTruthPrivilege).toBe(true);
     expect(body?.meta?.civicCreatorImpactSupportConsistency?.ok).toBe(true);
+    expect(body?.meta?.orgPublisherTeamContext?.primaryContext).toBe("editorial_team_context");
+    expect(body?.meta?.orgPublisherTeamContext?.activeContexts).toContain("org_context");
+    expect(body?.meta?.orgPublisherTeamContext?.allowedBindings?.dossier).toBe(true);
+    expect(body?.meta?.orgPublisherTeamContext?.guardrails?.forbidsPublisherAsDossierHoheit).toBe(true);
+    expect(body?.meta?.orgPublisherTeamContextConsistency?.ok).toBe(true);
   });
 
   it("keeps guardrails active for non-source origins", async () => {
@@ -198,6 +203,11 @@ describe("admin governance anlassraum route journalism guardrails", () => {
     expect(body?.meta?.civicCreatorImpactSupport?.impactContexts).toContain("documentation_trace");
     expect(body?.meta?.civicCreatorImpactSupport?.guardrails?.forbidsRankingBoostFromSupport).toBe(true);
     expect(body?.meta?.civicCreatorImpactSupportConsistency?.ok).toBe(true);
+    expect(body?.meta?.orgPublisherTeamContext?.primaryContext).toBe("publisher_context");
+    expect(body?.meta?.orgPublisherTeamContext?.activeContexts).toContain("editorial_team_context");
+    expect(body?.meta?.orgPublisherTeamContext?.allowedBindings?.companion).toBe(true);
+    expect(body?.meta?.orgPublisherTeamContext?.guardrails?.forbidsOrgAsThemeOwnership).toBe(true);
+    expect(body?.meta?.orgPublisherTeamContextConsistency?.ok).toBe(true);
   });
 
   it("marks municipality/official contexts as institutional responsibility scope", async () => {
@@ -273,5 +283,10 @@ describe("admin governance anlassraum route journalism guardrails", () => {
     expect(body?.meta?.civicCreatorImpactSupport?.supportTypes).not.toContain("regional_visibility_support");
     expect(body?.meta?.civicCreatorImpactSupport?.guardrails?.keepsSupportNonMonetaryByDefault).toBe(true);
     expect(body?.meta?.civicCreatorImpactSupportConsistency?.ok).toBe(true);
+    expect(body?.meta?.orgPublisherTeamContext?.primaryContext).toBe("org_context");
+    expect(body?.meta?.orgPublisherTeamContext?.activeContexts).toEqual(["org_context"]);
+    expect(body?.meta?.orgPublisherTeamContext?.allowedBindings?.stream).toBe(false);
+    expect(body?.meta?.orgPublisherTeamContext?.guardrails?.forbidsTeamAsPriorityAutomatism).toBe(true);
+    expect(body?.meta?.orgPublisherTeamContextConsistency?.ok).toBe(true);
   });
 });

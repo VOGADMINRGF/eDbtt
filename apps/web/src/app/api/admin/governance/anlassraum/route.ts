@@ -43,6 +43,10 @@ import {
   buildCivicCreatorImpactSupportBaseline,
   validateCivicCreatorImpactSupportConsistency,
 } from "@features/anlassraum/civicCreatorImpactSupportContract";
+import {
+  buildOrgPublisherTeamContextBaseline,
+  validateOrgPublisherTeamContextConsistency,
+} from "@features/anlassraum/orgPublisherTeamContextContract";
 import { ROOM_TYPES, type GovernanceActor, type RoomType } from "@features/trust/types";
 import { buildFundingImpactLifecycleBaseline } from "@/lib/server/funding/fundingImpactLifecycleContract";
 import { requireGovernanceActorOrResponse } from "@/lib/server/auth/governance";
@@ -228,6 +232,23 @@ export async function POST(req: NextRequest) {
       journalismRoleProfile: journalismRoleProfile.roleProfile,
       orgContextProfile: orgContextAttachment.orgContextProfile,
     });
+    const orgPublisherTeamContext = buildOrgPublisherTeamContextBaseline({
+      ownerType,
+      roomType,
+      actorRole: civicCreatorRepresentation.actorRole,
+      orgContextProfile: orgContextAttachment.orgContextProfile,
+      journalismRoleProfile: journalismRoleProfile.roleProfile,
+      civicWorkProfile: civicCreatorRepresentation.workProfile,
+      lifecycleStatus: civicCreatorLifecycle.currentStatus,
+      topicRepresentation: civicCreatorRepresentation.representationAxes.topic,
+      regionRepresentation: civicCreatorRepresentation.representationAxes.region,
+      allowsCompanionBinding: civicCreatorRepresentation.allowsCompanionEmbedQrUsage,
+      allowsStreamBinding: civicCreatorRepresentation.allowsStreamCompanionUsage,
+      allowsDossierBinding: civicCreatorRepresentation.allowsDossierCompanionCuration,
+    });
+    const orgPublisherTeamContextConsistency = validateOrgPublisherTeamContextConsistency({
+      contract: orgPublisherTeamContext,
+    });
     return NextResponse.json({
       ok: true,
       id: created.anlassraumId.toHexString(),
@@ -251,6 +272,8 @@ export async function POST(req: NextRequest) {
         civicCreatorLifecycleConsistency,
         civicCreatorImpactSupport,
         civicCreatorImpactSupportConsistency,
+        orgPublisherTeamContext,
+        orgPublisherTeamContextConsistency,
       },
     });
   } catch (error: unknown) {

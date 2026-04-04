@@ -675,7 +675,37 @@ Klarstellung Creator-Segmente:
 
 ### Folge-Task
 
-- `GOV-ORG-02`: offizieller Release-/Trust-Modus auf Basis des neuen Org-Context-Contracts.
+- `GOV-ORG-02`: Org-/Publisher-/Redaktions-/Team-Kontext als Arbeits-/Traegerlogik.
+
+### GOV-ORG-02 Implementierungsstand (2026-04-03)
+
+- `GOV-ORG-02` ist abgeschlossen:
+  - shared Org-/Publisher-/Team-Context-Contract:
+    - `features/anlassraum/orgPublisherTeamContextContract.ts`
+  - route-nahe Meta-Ausgabe:
+    - `meta.orgPublisherTeamContext`
+    - `meta.orgPublisherTeamContextConsistency`
+  - Evidenz:
+    - `docs/E150/GOV-ORG-02_ORG_PUBLISHER_TEAM_CONTEXT_CONTRACT_2026-04-03.md`
+
+- Minimaler Kontextsatz (nicht-hierarchisch):
+  - `org_context`
+  - `publisher_context`
+  - `editorial_team_context`
+  - `association_context`
+  - `civic_collective_context`
+
+- Verbindliche Abgrenzung:
+  - Org-/Publisher-/Team-Zuordnung bleibt Arbeits-/Traegerkontext.
+  - Keine Wahrheits-/Prioritaets-/Voting-/Faktenstatus-Aufwertung.
+  - Keine Themen- oder Regionshoheit aus Org-Kontext.
+  - Kein Dossier-Hoheitsprivileg aus Publisher-Kontext.
+  - Keine Prioritaetsautomatik aus Team-Kontext.
+
+- Anschlussfaehigkeit:
+  - Einzelakteure und kleine Creator bleiben anschlussfaehig.
+  - Regionale Medien, Redaktionen, Publisher-Teams, Verbaende und institutionelle Orga-Kontexte bleiben anschlussfaehig.
+  - Thema-vs-Region-Achsentrennung bleibt explizit erhalten.
 
 ---
 
@@ -770,13 +800,59 @@ Klarstellung Creator-Segmente:
   - institutionelle Org-Kontexte erhalten keinen Stream-Supportmodus
   - Unterstuetzung bleibt explizit getrennt von Wahrheit, Prioritaet, Abstimmungsgewicht und Faktenstatus
 
+### GOV-CIVIC-04 Implementierungsstand (2026-04-04)
+
+- `GOV-CIVIC-04` ist abgeschlossen:
+  - shared Share-ready-/Target-Contract: `features/anlassraum/shareReadyAssetContract.ts`
+  - Evidenz: `docs/E150/GOV-CIVIC-04_SHARE_READY_TARGET_CONTRACT_2026-04-04.md`
+- Zielkontexte sind explizit und getrennt modelliert:
+  - `anlass_public_target`
+  - `round_operating_target`
+  - `round_results_target`
+  - `dossier_public_target`
+  - `companion_public_target`
+- Share-ready-Asset-Layer (ohne Social-Autopilot):
+  - `canonicalPublicTarget` und `qrTarget` sind deterministisch ableitbar.
+  - `shareMeta` (`shareTitle`, `sharePrompt`, `shareSummary`) ist kontraktnah vorhanden.
+  - `socialPublication.shareReady` ist aktiv, aber `autoPostEligible` bleibt im Startkanon immer `false`.
+  - Offizielle Kanaele bleiben review-/kurationspflichtig (`needsReviewBeforeOfficialSocial = true`).
+- Optionaler Qualitaetsmehrwert bleibt non-blocking:
+  - `factcheckSuggested` und `existingContextHint` sind Hinweise, kein Pflichtgate.
+  - Kein Auto-Merge/Auto-Posting/Auto-Wahrheitsupgrade.
+
 ### Folgearbeit (bewusst offen)
 
 - CIVIC-Strang ist kontraktnah fuer den Zielrahmen abgeschlossen.
-- Naechster sinnvoller Folgeblock ausserhalb CIVIC: `GOV-ORG-02`.
+- Naechster sinnvoller Folgeblock ausserhalb CIVIC/ORG: `GOV-AI-02` (nach gesonderter Freigabe im OpenTasks-Backlog).
 
 ---
 
 ## Priorisierter Entscheidungshebel (Reihenfolge)
 
 Aktuell keine offenen grossen Leitentscheidungsbloecke mehr im Decision-Prep.
+
+---
+
+## 10) PR-AI-CREATE-01C — `/create` als intent-basierter Multi-Entry-Orchestrator
+
+### Implementierungsstand (2026-04-03)
+
+- Kontraktnaher Slice umgesetzt:
+  - `apps/web/src/features/create/orchestratorIntentContract.ts`
+  - Evidenz: `docs/E150/PR-AI-CREATE-01C_CREATE_MULTI_ENTRY_ORCHESTRATOR_2026-04-03.md`
+- `/create` bleibt gemeinsamer Intake-/Analyse-/Routing-Kern.
+- Explizite Entry-Intents sind klein und nicht-hierarchisch geschnitten:
+  - `issue_signal`
+  - `content_companion`
+  - `round_setup`
+  - `org_context_setup`
+- Entry-Modi:
+  - `guided`
+  - `direct`
+
+### Guardrail-Stand
+
+- Analyse bleibt Vorschlagsschicht mit erhaltenem Originalinput.
+- Nutzerentscheidung bleibt zentral (uebernehmen/anpassen/verwerfen/spaeter).
+- Kein Auto-Publish, kein Silent-Merge, keine Wahrheits-/Prioritaets-/Ranking-Aufwertung.
+- `/create` bleibt Einstiegs-/Orchestrierungsflaeche, `/runden` bleibt laufende Betriebsflaeche.

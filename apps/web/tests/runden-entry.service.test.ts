@@ -176,6 +176,10 @@ describe("runden entry source service", () => {
       isPublic: true,
       outputStatus: "review",
       lifecycle: "active",
+      finished: false,
+      intakeHref: `/create?mode=source&anlassraumId=${roomId.toHexString()}`,
+      operatingHref: `/round/mobilitaet-innenstadt?anlassraumId=${roomId.toHexString()}`,
+      resultsHref: null,
       entryHref: `/round/mobilitaet-innenstadt?anlassraumId=${roomId.toHexString()}`,
     });
   });
@@ -213,6 +217,9 @@ describe("runden entry source service", () => {
       reviewState: "pending",
       legacyIncomplete: true,
       sourceKind: "output_seed_legacy_incomplete",
+      intakeHref: null,
+      operatingHref: null,
+      resultsHref: null,
       entryHref: null,
     });
     expect(items[0].createdAt).toBeNull();
@@ -252,11 +259,53 @@ describe("runden entry source service", () => {
       id: seedId.toHexString(),
       anlassraumId: roomId.toHexString(),
       isPublic: false,
+      intakeHref: `/create?mode=source&anlassraumId=${roomId.toHexString()}`,
+      operatingHref: `/anlassraum?anlassraumId=${roomId.toHexString()}`,
+      resultsHref: null,
       entryHref: `/create?mode=source&anlassraumId=${roomId.toHexString()}`,
     });
   });
 
-  it("Scenario E: source failure is mapped to stable service error", async () => {
+  it("Scenario E: closed public round exposes stable results href and finished metadata", async () => {
+    const roomId = new ObjectId("65f000000000000000000051");
+    const seedId = new ObjectId("65f000000000000000000061");
+
+    memory.seed("anlassraum", [
+      {
+        _id: roomId,
+        title: "Fernwaerme Ausbau",
+        summary: "Abgeschlossener Anlass",
+        type: "policy",
+        sourceMode: "manual",
+        status: "published",
+        isPublic: true,
+      },
+    ]);
+
+    memory.seed("output_seed", [
+      {
+        _id: seedId,
+        anlassraumId: roomId,
+        outputType: "round_seed",
+        status: "published",
+        reviewState: "approved",
+        publishTarget: "/round/fernwaerme-ausbau",
+        updatedAt: new Date("2026-03-21T13:00:00.000Z"),
+      },
+    ]);
+
+    const items = await listRundenEntryItems();
+    expect(items).toHaveLength(1);
+    expect(items[0]).toMatchObject({
+      id: seedId.toHexString(),
+      lifecycle: "closed",
+      finished: true,
+      resultsHref: `/round/fernwaerme-ausbau?anlassraumId=${roomId.toHexString()}`,
+    });
+    expect(items[0].finishedAt).toBe("2026-03-21T13:00:00.000Z");
+  });
+
+  it("Scenario F: source failure is mapped to stable service error", async () => {
     memory.failOutputSeedReads();
     await expect(listRundenEntryItems()).rejects.toThrow("round_entry_source_unavailable");
   });

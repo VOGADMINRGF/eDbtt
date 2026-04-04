@@ -27,8 +27,13 @@ export type RundenEntryItem = {
   outputStatus: OutputSeedStatus;
   reviewState: OutputSeedReviewState;
   publishTarget: string | null;
+  intakeHref: string | null;
+  operatingHref: string | null;
+  resultsHref: string | null;
   entryHref: string | null;
   lifecycle: RundenEntryLifecycle;
+  finished: boolean;
+  finishedAt: string | null;
   lastAction: string | null;
   lastActionBy: string | null;
   lastActionAt: string | null;
@@ -96,7 +101,20 @@ function mapToEntry(
   const reviewState = normalizeReviewState(seed?.reviewState);
   const publishTarget = normalizePublishTarget(seed?.publishTarget);
   const isPublic = normalizeIsPublic(room?.isPublic);
+  const intakeHref = anlassraumId ? buildRoomContextHref(anlassraumId) : null;
+  const operatingHref = resolveOperatingHref({ anlassraumId, publishTarget, isPublic });
   const entryHref = resolveSafeEntryHref({ anlassraumId, publishTarget, isPublic });
+  const lifecycle = toLifecycle(outputStatus);
+  const finished = lifecycle === "closed";
+  const resultsHref = resolveResultsHref({
+    anlassraumId,
+    publishTarget,
+    isPublic,
+    lifecycle,
+  });
+  const finishedAt = finished
+    ? firstNonEmpty(toIso(seed?.finishedAt), toIso(seed?.publishedAt), toIso(seed?.lastActionAt), toIso(seed?.updatedAt))
+    : null;
 
   const title =
     firstNonEmpty(
@@ -132,8 +150,13 @@ function mapToEntry(
     outputStatus,
     reviewState,
     publishTarget,
+    intakeHref,
+    operatingHref,
+    resultsHref,
     entryHref,
-    lifecycle: toLifecycle(outputStatus),
+    lifecycle,
+    finished,
+    finishedAt,
     lastAction: asString(seed?.lastAction),
     lastActionBy: asString(seed?.lastActionBy),
     lastActionAt: toIso(seed?.lastActionAt),
@@ -205,6 +228,10 @@ export function buildRoomContextHref(anlassraumId: string) {
   return `/create?mode=source&anlassraumId=${encodeURIComponent(anlassraumId)}`;
 }
 
+export function buildRundenContextHref(anlassraumId: string) {
+  return `/anlassraum?anlassraumId=${encodeURIComponent(anlassraumId)}`;
+}
+
 export function appendRoomIdToInternalTarget(target: string, anlassraumId: string): string | null {
   if (!target.startsWith("/")) return null;
   if (target.startsWith("//")) return null;
@@ -225,6 +252,35 @@ export function resolveSafeEntryHref(input: ResolveSafeEntryHrefInput): string |
   if (input.isPublic !== true) return roomContextHref;
   if (!input.publishTarget) return roomContextHref;
   return appendRoomIdToInternalTarget(input.publishTarget, input.anlassraumId) ?? roomContextHref;
+}
+
+type ResolveOperatingHrefInput = {
+  anlassraumId: string | null;
+  publishTarget: string | null;
+  isPublic: boolean | null;
+};
+
+function resolveOperatingHref(input: ResolveOperatingHrefInput): string | null {
+  if (!input.anlassraumId) return null;
+  const rundenContextHref = buildRundenContextHref(input.anlassraumId);
+  if (input.isPublic !== true) return rundenContextHref;
+  if (!input.publishTarget) return rundenContextHref;
+  return appendRoomIdToInternalTarget(input.publishTarget, input.anlassraumId) ?? rundenContextHref;
+}
+
+type ResolveResultsHrefInput = {
+  anlassraumId: string | null;
+  publishTarget: string | null;
+  isPublic: boolean | null;
+  lifecycle: RundenEntryLifecycle;
+};
+
+function resolveResultsHref(input: ResolveResultsHrefInput): string | null {
+  if (input.lifecycle !== "closed") return null;
+  if (!input.anlassraumId) return null;
+  if (input.isPublic !== true) return null;
+  if (!input.publishTarget) return null;
+  return appendRoomIdToInternalTarget(input.publishTarget, input.anlassraumId);
 }
 
 function normalizeIsPublic(value: unknown): boolean | null {

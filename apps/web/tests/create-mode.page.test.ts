@@ -97,8 +97,8 @@ describe("/create canonical mode rendering", () => {
         searchParams: Promise.resolve({ mode }),
       });
       const html = renderToStaticMarkup(tree);
-      expect(html).toContain("Create Freistart");
-      expect(html).toContain("Freistart für Anlassraum- und Dossier-Flows");
+      expect(html).toContain("Anlass eröffnen und Beitrag einreichen");
+      expect(html).toContain("Ein gemeinsamer Einstieg");
       expect(html).toContain("Legacy-Mode-Parameter erkannt");
       const lastCall = mocks.analyzeWorkspaceCalls.at(-1);
       expect(lastCall?.createMode).toBe("source");
@@ -147,7 +147,7 @@ describe("/create canonical mode rendering", () => {
       }),
     });
     const html = renderToStaticMarkup(tree);
-    expect(html).toContain("Create Freistart");
+    expect(html).toContain("Anlass eröffnen und Beitrag einreichen");
     expect(html).not.toContain("Kontext-Picker");
 
     const lastCall = mocks.analyzeWorkspaceCalls.at(-1);
@@ -163,6 +163,17 @@ describe("/create canonical mode rendering", () => {
 
     const lastCall = mocks.analyzeWorkspaceCalls.at(-1);
     expect(lastCall?.afterFinalizeNavigateTo).toBe("/swipes");
+  });
+
+  it("routes explicit round_setup entry towards /runden operating surface", async () => {
+    const tree = await CreatePage({
+      searchParams: Promise.resolve({ entry_intent: "round_setup", entry_mode: "guided" }),
+    });
+    renderToStaticMarkup(tree);
+
+    const lastCall = mocks.analyzeWorkspaceCalls.at(-1);
+    expect(lastCall?.createMode).toBe("source");
+    expect(lastCall?.afterFinalizeNavigateTo).toBe("/runden");
   });
 
   it("uses dossier redirect as finalize fallback when dossierId is present", async () => {

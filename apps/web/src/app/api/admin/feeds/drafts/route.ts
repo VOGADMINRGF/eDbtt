@@ -9,8 +9,9 @@ import {
   type FeedQueueWeakSignalFilter,
   type FeedReviewQueueSort,
 } from "@features/feeds/reviewQueue";
-import { anlassraumCol } from "@features/anlassraum/db";
+import { anlassraumCol, outputSeedCol } from "@features/anlassraum/db";
 import { canActorAccessAnlassraum } from "@features/anlassraum/governance";
+import { resolveFeedAnlassraumSurfaceComposition } from "@features/feeds/anlassraumSurfaceComposition";
 import { getRegionName } from "@core/regions/regionTranslations";
 import { formatObjectId } from "../utils";
 import { requireGovernanceActorOrResponse } from "@/lib/server/auth/governance";
@@ -107,6 +108,7 @@ export async function GET(req: NextRequest) {
     .map((draft) => draft.anlassraumId)
     .filter(Boolean) as ObjectId[];
   const roomMap = new Map<string, any>();
+  const latestRoundSeedByRoomId = new Map<string, { publishTarget: string | null }>();
   if (roomIds.length) {
     const rooms = await (await anlassraumCol())
       .find({ _id: { $in: roomIds } })
@@ -114,6 +116,26 @@ export async function GET(req: NextRequest) {
     for (const room of rooms) {
       if (!room?._id) continue;
       roomMap.set(room._id.toHexString(), room);
+    }
+
+    const roundSeeds = await (await outputSeedCol())
+      .find({
+        anlassraumId: { $in: roomIds },
+        outputType: "round_seed",
+      })
+      .sort({ updatedAt: -1 })
+      .toArray();
+
+    for (const seed of roundSeeds) {
+      const roomId = formatObjectId(seed?.anlassraumId);
+      if (!roomId) continue;
+      if (latestRoundSeedByRoomId.has(roomId)) continue;
+      latestRoundSeedByRoomId.set(roomId, {
+        publishTarget:
+          typeof seed?.publishTarget === "string" && seed.publishTarget.startsWith("/")
+            ? seed.publishTarget
+            : null,
+      });
     }
   }
 
@@ -130,6 +152,10 @@ export async function GET(req: NextRequest) {
   const summaries = await Promise.all(
     visibleItems.map(async (draft) => {
       const anlassraumId = formatObjectId(draft.anlassraumId ?? null) || null;
+      const room = anlassraumId ? roomMap.get(anlassraumId) ?? null : null;
+      const latestRoundSeed = anlassraumId
+        ? latestRoundSeedByRoomId.get(anlassraumId) ?? null
+        : null;
       const queueMeta = buildFeedQueueMeta(draft);
       return {
         id: formatObjectId(draft._id),
@@ -154,6 +180,31 @@ export async function GET(req: NextRequest) {
         queueMeta,
         createdAt: draft.createdAt?.toISOString?.() ?? null,
         analyzeCompletedAt: draft.analyzeCompletedAt?.toISOString?.() ?? null,
+        surfaceComposition: resolveFeedAnlassraumSurfaceComposition({
+          draftTitle: draft.title,
+          draftSummary: draft.summary ?? null,
+          draftStatus: draft.status ?? null,
+          feedReviewState: draft.feedReviewState ?? null,
+          weakSignalFlagged: !!draft.weakSignal?.flagged,
+          sourceUrl: draft.sourceUrl ?? null,
+          sourcePipeline: draft.pipeline ?? null,
+          anlassraumId,
+          anlassraumType: room?.type ?? null,
+          anlassraumScope: room?.scope ?? null,
+          regionCode: draft.regionCode ?? room?.regionCode ?? null,
+          anlassraumStatus: room?.status ?? null,
+          anlassraumMaturity: room?.maturity ?? null,
+          ownerType: room?.ownerType ?? null,
+          roomType: room?.roomType ?? null,
+          originType: room?.originType ?? null,
+          sourceMode: room?.sourceMode ?? null,
+          dossierId: formatObjectId(room?.dossierId ?? null) || null,
+          publishTarget: latestRoundSeed?.publishTarget ?? null,
+          factcheckSuggested:
+            !!draft.weakSignal?.flagged ||
+            draft.status === "review" ||
+            draft.status === "published",
+        }),
       };
     }),
   );

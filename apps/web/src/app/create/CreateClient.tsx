@@ -9,11 +9,16 @@ import type { CreateEntitlements } from "@/lib/server/entitlements/createEntitle
 import type { CreateMode } from "@/features/create/intents";
 import { formatRelevanceScopeLabel } from "@/features/relevanceFraming";
 import { useLocale } from "@/context/LocaleContext";
-import { buildFinalizeFallbackPath } from "@/features/create/finalizeRedirect";
 import {
   hasCreateIntakeContext,
   type CreateIntakeContext,
 } from "@/features/create/intakeContext";
+import {
+  buildCreateIntentFallbackPath,
+  resolveCreateOrchestratorIntentContract,
+  type CreateEntryIntent,
+  type CreateEntryMode,
+} from "@/features/create/orchestratorIntentContract";
 import {
   formatOperatorNumber,
   getOperatorCreateTexts,
@@ -28,6 +33,8 @@ export type CreateClientProps = {
   initialAnlassraumId?: string | null;
   initialIntent?: "statement" | "contribution";
   initialMode?: CreateMode;
+  initialEntryIntent?: CreateEntryIntent;
+  initialEntryMode?: CreateEntryMode;
   initialText?: string | null;
   initialIntakeContext?: CreateIntakeContext | null;
 };
@@ -125,6 +132,8 @@ export default function CreateClient({
   initialAnlassraumId,
   initialIntent,
   initialMode,
+  initialEntryIntent,
+  initialEntryMode,
   initialText,
   initialIntakeContext,
 }: CreateClientProps) {
@@ -173,10 +182,28 @@ export default function CreateClient({
     };
   }, []);
 
-  const canonicalIntent: "statement" | "contribution" = entitlements.canSubmitContribution
-    ? "contribution"
-    : "statement";
-  const canonicalCreateMode: CreateMode = canonicalIntent === "statement" ? "manual" : "source";
+  const createOrchestration = React.useMemo(
+    () =>
+      resolveCreateOrchestratorIntentContract({
+        rawEntryIntent: initialEntryIntent,
+        rawEntryMode: initialEntryMode,
+        canSubmitContribution: entitlements.canSubmitContribution,
+        canSubmitStatement: entitlements.canSubmitStatement,
+        dossierId,
+        selectedAnlassraumId,
+      }),
+    [
+      dossierId,
+      entitlements.canSubmitContribution,
+      entitlements.canSubmitStatement,
+      initialEntryIntent,
+      initialEntryMode,
+      selectedAnlassraumId,
+    ],
+  );
+
+  const canonicalIntent: "statement" | "contribution" = createOrchestration.workspaceMode;
+  const canonicalCreateMode: CreateMode = createOrchestration.createMode;
   const pickerEnabled = canonicalIntent === "contribution";
 
   const loadContextItems = React.useCallback(async () => {
@@ -252,7 +279,10 @@ export default function CreateClient({
       ? 1
       : Math.min(entitlements.maxFinalizeClaimsPerInput, 4);
 
-  const afterFinalizeNavigateTo = buildFinalizeFallbackPath({ dossierId });
+  const afterFinalizeNavigateTo = buildCreateIntentFallbackPath({
+    contract: createOrchestration,
+    dossierId,
+  });
   const useCaseAccess = deriveUseCaseAccess(overview, text);
   const selectedContext = selectedAnlassraumId
     ? contextItems.find((item) => item.anlassraumId === selectedAnlassraumId) ?? null

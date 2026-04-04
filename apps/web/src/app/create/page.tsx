@@ -7,6 +7,12 @@ import { getCreateEntitlementsForRequest } from "@/lib/server/entitlements/creat
 import { getAccountOverview } from "@features/account/service";
 import { parseCreateIntent, parseCreateMode, type CreateMode } from "@/features/create/intents";
 import {
+  parseCreateEntryIntent,
+  parseCreateEntryMode,
+  type CreateEntryIntent,
+  type CreateEntryMode,
+} from "@/features/create/orchestratorIntentContract";
+import {
   hasCreateIntakeContext,
   parseCreateIntakeContextFromQuery,
   type CreateIntakeContext,
@@ -51,6 +57,14 @@ function mapIntent(raw?: string | null): "statement" | "contribution" | undefine
 
 function mapMode(raw?: string | null): CreateMode | undefined {
   return parseCreateMode(raw);
+}
+
+function mapEntryIntent(raw?: string | null): CreateEntryIntent | undefined {
+  return parseCreateEntryIntent(raw);
+}
+
+function mapEntryMode(raw?: string | null): CreateEntryMode | undefined {
+  return parseCreateEntryMode(raw);
 }
 
 function buildIntakeContextPrefill(
@@ -144,6 +158,12 @@ export default async function CreatePage({
 
   const intent = mapIntent(readParam(resolved.intent));
   const mode = mapMode(readParam(resolved.mode));
+  const entryIntent =
+    mapEntryIntent(readParam(resolved.entryIntent) ?? readParam(resolved.entry_intent)) ??
+    mapEntryIntent(readParam(resolved.intent));
+  const entryMode =
+    mapEntryMode(readParam(resolved.entryMode) ?? readParam(resolved.entry_mode)) ??
+    mapEntryMode(readParam(resolved.mode));
   const dossierId = readParam(resolved.dossierId) ?? null;
   const anlassraumId = readParam(resolved.anlassraumId) ?? null;
   const intakeContext = parseCreateIntakeContextFromQuery(resolved);
@@ -171,6 +191,8 @@ export default async function CreatePage({
             initialAnlassraumId={anlassraumId}
             initialIntent={intent}
             initialMode={mode}
+            initialEntryIntent={entryIntent}
+            initialEntryMode={entryMode}
             initialText={initialText}
             initialIntakeContext={intakeContext}
           />

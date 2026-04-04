@@ -28,8 +28,8 @@ describe("/runden acceptance states", () => {
     const tree = await RundenPage({ searchParams: Promise.resolve({}) });
     const html = renderToStaticMarkup(tree);
 
-    expect(html).toContain("Noch keine laufenden Anlässe vorhanden.");
-    expect(html).toContain("Eröffne jetzt deinen ersten");
+    expect(html).toContain("Noch keine Anlässe vorhanden.");
+    expect(html).toContain("Jetzt ersten Anlass eröffnen");
     expect(html).not.toContain("Ansicht");
     expect(html).not.toContain("Gesamt:");
   });
@@ -40,11 +40,11 @@ describe("/runden acceptance states", () => {
     const tree = await RundenPage({ searchParams: Promise.resolve({}) });
     const html = renderToStaticMarkup(tree);
 
-    expect(html).toContain("Rundendaten sind gerade nicht verfügbar");
+    expect(html).toContain("Anlassdaten sind gerade nicht verfügbar");
     expect(html).toContain("später erneut");
   });
 
-  it("Scenario D: entries without safe href render hint instead of direct link", async () => {
+  it("Scenario D: entries without operating link still keep active view stable", async () => {
     mocks.readSession.mockResolvedValue({
       uid: "65f000000000000000000111",
       roles: ["user"],
@@ -63,8 +63,13 @@ describe("/runden acceptance states", () => {
         outputStatus: "review",
         reviewState: "pending",
         publishTarget: "/round/legacy",
+        intakeHref: null,
+        operatingHref: null,
+        resultsHref: null,
         entryHref: null,
         lifecycle: "active",
+        finished: false,
+        finishedAt: null,
         lastAction: null,
         lastActionBy: null,
         lastActionAt: null,
@@ -78,9 +83,10 @@ describe("/runden acceptance states", () => {
     const tree = await RundenPage({ searchParams: Promise.resolve({}) });
     const html = renderToStaticMarkup(tree);
 
-    expect(html).toContain("nicht direkt verfügbar");
+    expect(html).toContain("Laufende Anlässe");
+    expect(html).toContain("Runde öffnen");
     expect(html).toContain("Ansicht");
-    expect(html).not.toContain("Anlass öffnen</a>");
+    expect(html).not.toContain("In /create weiter vorbereiten");
   });
 
   it("Scenario E: public state stays compact without work tabs or stats", async () => {
@@ -98,8 +104,13 @@ describe("/runden acceptance states", () => {
         outputStatus: "review",
         reviewState: "pending",
         publishTarget: "/round/mobilitaet",
+        intakeHref: "/create?mode=source&anlassraumId=65f000000000000000000211",
+        operatingHref: "/round/mobilitaet?anlassraumId=65f000000000000000000211",
+        resultsHref: null,
         entryHref: "/round/mobilitaet?anlassraumId=65f000000000000000000211",
         lifecycle: "active",
+        finished: false,
+        finishedAt: null,
         lastAction: null,
         lastActionBy: null,
         lastActionAt: null,
@@ -114,8 +125,8 @@ describe("/runden acceptance states", () => {
     const html = renderToStaticMarkup(tree);
 
     expect(html).toContain("ANLÄSSE");
-    expect(html).toContain("Anlass eröffnen");
-    expect(html).toContain("Bestehenden Anlass öffnen");
+    expect(html).toContain("Neu starten in /create");
+    expect(html).toContain("Laufendes in /runden");
     expect(html).toContain("Ergebnisse ansehen");
     expect(html).not.toContain("Ansicht");
     expect(html).not.toContain("Meine Anlässe");
@@ -142,8 +153,13 @@ describe("/runden acceptance states", () => {
         outputStatus: "review",
         reviewState: "pending",
         publishTarget: "/round/energiepreise",
+        intakeHref: "/create?mode=source&anlassraumId=65f000000000000000000221",
+        operatingHref: "/round/energiepreise?anlassraumId=65f000000000000000000221",
+        resultsHref: null,
         entryHref: "/round/energiepreise?anlassraumId=65f000000000000000000221",
         lifecycle: "active",
+        finished: false,
+        finishedAt: null,
         lastAction: null,
         lastActionBy: null,
         lastActionAt: null,

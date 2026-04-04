@@ -6,6 +6,7 @@ const mocks = vi.hoisted(() => ({
   requireGate: vi.fn(),
   voteDraftsCol: vi.fn(),
   anlassraumCol: vi.fn(),
+  outputSeedCol: vi.fn(),
   canAccess: vi.fn(),
   getRegionName: vi.fn(),
   buildQueueMeta: vi.fn(),
@@ -21,6 +22,7 @@ vi.mock("@features/feeds/db", () => ({
 
 vi.mock("@features/anlassraum/db", () => ({
   anlassraumCol: (...args: unknown[]) => mocks.anlassraumCol(...args),
+  outputSeedCol: (...args: unknown[]) => mocks.outputSeedCol(...args),
 }));
 
 vi.mock("@features/anlassraum/governance", () => ({
@@ -71,6 +73,13 @@ describe("feed drafts route", () => {
     mocks.requireGate.mockResolvedValue(gateAccess);
     mocks.canAccess.mockReturnValue(true);
     mocks.getRegionName.mockResolvedValue("Berlin");
+    mocks.outputSeedCol.mockResolvedValue({
+      find: vi.fn(() => ({
+        sort: vi.fn(() => ({
+          toArray: vi.fn(async () => []),
+        })),
+      })),
+    });
     mocks.buildQueueMeta.mockReturnValue({
       priorityScore: 5,
       priorityBucket: "medium",
@@ -93,6 +102,7 @@ describe("feed drafts route", () => {
   it("applies anlassraumId filter to read query and response filters", async () => {
     const roomId = new ObjectId("65a111111111111111111110");
     const draftId = new ObjectId("65a111111111111111111111");
+    const dossierId = new ObjectId("65a111111111111111111112");
     const chain = createFindChain([
       {
         _id: draftId,
@@ -120,6 +130,36 @@ describe("feed drafts route", () => {
     mocks.anlassraumCol.mockResolvedValue({
       find: vi.fn(() => roomsFind),
     });
+    mocks.outputSeedCol.mockResolvedValue({
+      find: vi.fn(() => ({
+        sort: vi.fn(() => ({
+          toArray: vi.fn(async () => [
+            {
+              _id: new ObjectId("65a111111111111111111120"),
+              anlassraumId: roomId,
+              outputType: "round_seed",
+              publishTarget: "/round/anlassraum-a",
+              updatedAt: new Date("2026-03-21T10:00:00.000Z"),
+            },
+          ]),
+        })),
+      })),
+    });
+    roomsFind.toArray.mockResolvedValueOnce([
+      {
+        _id: roomId,
+        title: "Anlassraum A",
+        type: "policy",
+        scope: "regional",
+        status: "active",
+        maturity: "emerging",
+        ownerType: "association",
+        roomType: "community",
+        originType: "feed",
+        sourceMode: "feed",
+        dossierId,
+      },
+    ]);
 
     const res = await draftsGET(
       req(
@@ -135,6 +175,13 @@ describe("feed drafts route", () => {
       anlassraumId: roomId.toHexString(),
     });
     expect(body.items[0]?.anlassraumId).toBe(roomId.toHexString());
+    expect(body.items[0]?.surfaceComposition?.anlass?.hasExistingContext).toBe(true);
+    expect(body.items[0]?.surfaceComposition?.anlassgeber?.signalPathHint).toBe(
+      "attach_to_existing_anlassraum",
+    );
+    expect(
+      body.items[0]?.surfaceComposition?.anschlussflaechen?.canonicalPublicTarget,
+    ).toContain("/dossier/");
 
     const filterArg = countDocuments.mock.calls[0]?.[0] as { $and?: Array<Record<string, unknown>> };
     expect(Array.isArray(filterArg?.$and)).toBe(true);
