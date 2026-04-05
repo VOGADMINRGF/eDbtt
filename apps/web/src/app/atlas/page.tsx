@@ -21,5 +21,10 @@ export default async function AtlasPage() {
     });
   });
 
-  return <AtlasClient atlas={atlas} sourceState={sourceState} />;
+  return (
+    <>
+      <h1 className="sr-only">Atlas</h1>
+      <AtlasClient atlas={atlas} sourceState={sourceState} />
+    </>
+  );
 }

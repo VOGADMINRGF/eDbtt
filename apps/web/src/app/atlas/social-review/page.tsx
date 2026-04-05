@@ -39,5 +39,10 @@ export default async function AtlasSocialReviewPage() {
     return emptyQueue();
   });
 
-  return <SocialReviewQueueClient queue={queue} sourceState={sourceState} />;
+  return (
+    <>
+      <h1 className="sr-only">Atlas Social Review</h1>
+      <SocialReviewQueueClient queue={queue} sourceState={sourceState} />
+    </>
+  );
 }

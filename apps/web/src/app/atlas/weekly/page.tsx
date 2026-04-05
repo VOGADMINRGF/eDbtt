@@ -37,10 +37,13 @@ export default async function AtlasWeeklyPage({
   });
 
   return (
-    <WeeklySnapshotSurface
-      snapshot={snapshot}
-      sourceState={sourceState}
-      showInternal={showInternal}
-    />
+    <>
+      <h1 className="sr-only">Atlas Weekly</h1>
+      <WeeklySnapshotSurface
+        snapshot={snapshot}
+        sourceState={sourceState}
+        showInternal={showInternal}
+      />
+    </>
   );
 }
