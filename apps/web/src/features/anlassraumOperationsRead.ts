@@ -98,6 +98,14 @@ export type AnlassraumOperationsResult = {
   };
 };
 
+export type AnlassraumDossierLinkState = "dossier_linked" | "optional_not_started";
+
+export function deriveAnlassraumDossierLinkState(
+  dossierId: string | null,
+): AnlassraumDossierLinkState {
+  return dossierId ? "dossier_linked" : "optional_not_started";
+}
+
 export function normalizeAnlassraumOperationsQuery(
   params: URLSearchParams | Record<string, unknown>,
 ): AnlassraumOperationsQuery {
@@ -449,7 +457,9 @@ function buildOperationalHints(input: {
   if (input.scope && ["national", "eu", "global"].includes(input.scope)) hints.add("supra_local_relevance");
   if (input.originType === "official") hints.add("official_source_signal");
   if (input.originType === "community" || input.originType === "tip") hints.add("community_signal_input");
-  if (!input.dossierId) hints.add("dossier_optional_not_started");
+  if (deriveAnlassraumDossierLinkState(input.dossierId) === "optional_not_started") {
+    hints.add("dossier_optional_not_started");
+  }
   if (input.riskFlags.length > 0) hints.add("risk_flags_present");
   if ((LEGACY_ANLASSRAUM_STATUSES as readonly string[]).includes(input.status)) {
     hints.add("legacy_status");

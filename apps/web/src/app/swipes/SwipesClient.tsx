@@ -515,7 +515,7 @@ export function SwipesClient({
   }, [activeItem, eventualityStepOpen, handlePrimaryVote, openDetail]);
 
   return (
-    <div className={`mx-auto flex flex-col gap-3 px-3 pt-1.5 md:gap-4 md:px-4 md:pt-6 ${isSolo ? "max-w-3xl" : "max-w-6xl"} pb-32 md:pb-24`}>
+    <div className={`mx-auto flex flex-col gap-3 px-3 pt-1.5 md:gap-4 md:px-4 md:pt-6 ${isSolo ? "max-w-3xl" : "max-w-6xl"} pb-36 md:pb-24`}>
       <div className="sr-only" aria-live="polite" aria-atomic="true">
         {liveMessage}
       </div>
@@ -628,42 +628,51 @@ export function SwipesClient({
 
       {!isSolo && activeItem && !eventualityStepOpen && !detailOpen && !freeVote.gateOpen ? (
         <nav
-          className={`fixed inset-x-0 bottom-0 z-30 border-t border-[rgb(var(--border))] bg-[rgb(var(--card))]/95 px-2 pt-1.5 pb-[max(env(safe-area-inset-bottom),0.45rem)] backdrop-blur transition-all duration-200 md:hidden ${
+          className={`fixed inset-x-0 bottom-0 z-30 border-t border-[rgb(var(--border))] bg-[rgb(var(--card))]/95 px-3 pt-2 pb-[max(env(safe-area-inset-bottom),0.75rem)] backdrop-blur transition-all duration-200 md:hidden ${
             mobileActionChromeVisible ? "translate-y-0 opacity-100" : "pointer-events-none translate-y-[120%] opacity-0"
           }`}
         >
           <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-sky-500/10 to-transparent" />
-          <div className="relative mx-auto max-w-xl space-y-1.5">
-            <div className={`grid gap-1.5 ${lastVote ? "grid-cols-2" : "grid-cols-1"}`}>
+          <div className="relative mx-auto max-w-xl space-y-2">
+            <div className="mx-auto h-1.5 w-12 rounded-full bg-[rgb(var(--border))]/80" aria-hidden />
+            <p className="text-center text-[11px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--muted))]">
+              Schnellaktionen
+            </p>
+            <div className={`grid gap-2 ${lastVote ? "grid-cols-2" : "grid-cols-1"}`}>
               <button
                 type="button"
                 onClick={() => {
                   void openDetail(activeItem);
                 }}
-                className="btn-secondary w-full rounded-xl px-3 py-1.5 text-xs"
+                className="btn-secondary min-h-[44px] w-full rounded-xl px-3 py-2 text-sm"
               >
-                Mehr Kontext öffnen
+                Mehr Kontext
               </button>
               {lastVote ? (
                 <button
                   type="button"
                   onClick={handleUndoLastVote}
-                  className="btn-secondary w-full rounded-xl px-3 py-1.5 text-xs"
+                  className="btn-secondary min-h-[44px] w-full rounded-xl px-3 py-2 text-sm"
                 >
                   Rückgängig
                 </button>
               ) : null}
             </div>
-            <div className="grid grid-cols-3 gap-1.5">
+            <div className="grid grid-cols-3 gap-2">
               <button
                 type="button"
                 onClick={() => {
                   void handlePrimaryVote(activeItem, "disagree");
                 }}
                 aria-label="Ablehnen"
-                className="btn-vote btn-vote-disagree rounded-xl px-2 py-1.5 text-xs"
+                className="btn-vote btn-vote-disagree min-h-[52px] rounded-xl px-2 py-2 text-xs"
               >
-                👎 Nein
+                <span className="flex flex-col items-center gap-0.5 leading-none">
+                  <span className="text-sm" aria-hidden>
+                    👎
+                  </span>
+                  <span>Nein</span>
+                </span>
               </button>
               <button
                 type="button"
@@ -671,9 +680,14 @@ export function SwipesClient({
                   void handlePrimaryVote(activeItem, "neutral");
                 }}
                 aria-label="Neutral"
-                className="btn-vote btn-vote-neutral rounded-xl px-2 py-1.5 text-xs"
+                className="btn-vote btn-vote-neutral min-h-[52px] rounded-xl px-2 py-2 text-xs"
               >
-                😐 Offen
+                <span className="flex flex-col items-center gap-0.5 leading-none">
+                  <span className="text-sm" aria-hidden>
+                    😐
+                  </span>
+                  <span>Offen</span>
+                </span>
               </button>
               <button
                 type="button"
@@ -681,9 +695,14 @@ export function SwipesClient({
                   void handlePrimaryVote(activeItem, "agree");
                 }}
                 aria-label="Zustimmen"
-                className="btn-vote btn-vote-agree rounded-xl px-2 py-1.5 text-xs"
+                className="btn-vote btn-vote-agree min-h-[52px] rounded-xl px-2 py-2 text-xs"
               >
-                👍 Ja
+                <span className="flex flex-col items-center gap-0.5 leading-none">
+                  <span className="text-sm" aria-hidden>
+                    👍
+                  </span>
+                  <span>Ja</span>
+                </span>
               </button>
             </div>
           </div>

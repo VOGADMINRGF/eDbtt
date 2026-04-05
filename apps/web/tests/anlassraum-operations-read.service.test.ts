@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { ObjectId } from "mongodb";
 import {
+  deriveAnlassraumDossierLinkState,
   normalizeAnlassraumOperationsDoc,
   normalizeAnlassraumOperationsQuery,
 } from "@/features/anlassraumOperationsRead";
@@ -74,5 +75,10 @@ describe("anlassraum operations read service", () => {
     });
     expect(normalized.createdAt).toBe("2026-03-20T10:00:00.000Z");
     expect(normalized.updatedAt).toBe("2026-03-21T10:00:00.000Z");
+  });
+
+  it("keeps missing dossier linkage as optional state, not as defect baseline", () => {
+    expect(deriveAnlassraumDossierLinkState(null)).toBe("optional_not_started");
+    expect(deriveAnlassraumDossierLinkState("65f000000000000000000211")).toBe("dossier_linked");
   });
 });

@@ -177,6 +177,19 @@ function seedDraft() {
   return draftId.toHexString();
 }
 
+function seedDraftWithoutClaims() {
+  const draftId = new ObjectId();
+  mocks.seedDraft({
+    _id: draftId,
+    authorId: "user-1",
+    status: "draft",
+    analysis: {
+      claims: [],
+    },
+  });
+  return draftId.toHexString();
+}
+
 describe("create mode split - finalize route", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -425,5 +438,21 @@ describe("create mode split - finalize route", () => {
     expect(colCalls).not.toContain("output_seed");
     expect(colCalls).not.toContain("anlassraum");
     expect(mocks.coreCol).not.toHaveBeenCalled();
+  });
+
+  it("rejects finalize when no analyzed claims are available", async () => {
+    const draftId = seedDraftWithoutClaims();
+
+    const res = await finalizePOST(
+      req({
+        draftId,
+        selectedClaimIds: ["c1"],
+        source: "contribution_new",
+        createMode: "source",
+      }),
+    );
+
+    expect(res.status).toBe(400);
+    await expect(res.json()).resolves.toMatchObject({ ok: false, error: "no_claims_selected" });
   });
 });

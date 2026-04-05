@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { PointerEvent } from "react";
 import type { SwipeDecision, SwipeItem } from "@/features/swipes/types";
+import { resolveSwipeGestureDecision } from "@/features/surfaces/swipes/gestureContract";
 
 type SwipeTopicStepProps = {
   item: SwipeItem;
@@ -144,18 +145,19 @@ export function SwipeTopicStep({ item, onVote, step = 1 }: SwipeTopicStepProps) 
     const dx = event.clientX - gesture.x;
     const dy = event.clientY - gesture.y;
     const cardWidth = cardRef.current?.offsetWidth ?? window.innerWidth;
-    const distanceThreshold = Math.min(140, Math.max(72, cardWidth * 0.22));
-    const totalDuration = Math.max(performance.now() - gesture.startTs, 1);
-    const averageVelocity = dx / totalDuration;
-    const isFastFlick = Math.abs(averageVelocity) >= 0.55 && Math.abs(dx) >= 32;
-    const isHorizontalSwipe =
-      (Math.abs(dx) >= distanceThreshold || isFastFlick) && Math.abs(dx) > Math.abs(dy) * 1.15;
-    if (!isHorizontalSwipe) {
+    const totalDuration = performance.now() - gesture.startTs;
+    const decision = resolveSwipeGestureDecision({
+      dx,
+      dy,
+      cardWidth,
+      durationMs: totalDuration,
+    });
+    if (!decision) {
       resetCardPosition();
       return;
     }
 
-    commitSwipe(dx > 0 ? "agree" : "disagree", dy);
+    commitSwipe(decision, dy);
   }
 
   const rotate = dragX / 34;

@@ -26,4 +26,21 @@ describe("parseAnalyzeRequestBody", () => {
     const res = parseAnalyzeRequestBody({ textOriginal: "   " });
     expect(res.ok).toBe(false);
   });
+
+  it("rejects thin text below minimum length", () => {
+    const res = parseAnalyzeRequestBody({ textOriginal: "zu kurz" });
+    expect(res.ok).toBe(false);
+    if (!("error" in res)) throw new Error("expected parse error for thin text");
+    expect(res.error.message).toContain("min. 10 Zeichen");
+  });
+
+  it("rejects invalid anlassraumId instead of silently degrading context", () => {
+    const res = parseAnalyzeRequestBody({
+      textOriginal: "Das ist ein ausreichend langer Text fuer den Analyze-Pfad.",
+      anlassraumId: "not-a-valid-object-id",
+    });
+    expect(res.ok).toBe(false);
+    if (!("error" in res)) throw new Error("expected parse error for invalid anlassraumId");
+    expect(res.error.message).toContain("invalid_anlassraum_id");
+  });
 });

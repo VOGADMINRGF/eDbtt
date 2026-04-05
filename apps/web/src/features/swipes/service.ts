@@ -10,6 +10,7 @@ import type {
   SwipeDecision,
 } from "./types";
 import { filterSwipeSeedItems, getSwipeSeedEventualities } from "./seed";
+import { normalizeSwipeVotePayload } from "./variantSelectionContract";
 import { recordSwipeVoteInGraph } from "@/features/graph/swipes";
 import { getCol } from "@core/db/triMongo";
 import { eventualityNodesCol } from "@core/eventualities/db";
@@ -323,22 +324,25 @@ export async function getEventualitiesForStatement(req: EventualitiesRequest): P
 }
 
 export async function recordSwipeVote(payload: SwipeVotePayload): Promise<void> {
+  const normalizedPayload = normalizeSwipeVotePayload(payload);
   const now = new Date();
   const col = await swipeVotesCol();
   const write = await col.updateOne(
     {
-      userId: payload.userId,
-      statementId: payload.statementId,
-      eventualityId: payload.eventualityId ?? null,
-      source: payload.source,
+      userId: normalizedPayload.userId,
+      statementId: normalizedPayload.statementId,
+      eventualityId: normalizedPayload.eventualityId ?? null,
+      source: normalizedPayload.source,
     },
     {
       $set: {
-        decision: payload.decision,
-        variantWeight: payload.variantWeight ?? null,
-        variantReason: payload.variantReason?.trim() ? payload.variantReason.trim() : null,
-        variantRankedIds: payload.variantRankedIds?.length ? payload.variantRankedIds : null,
-        excludedEventualityIds: payload.excludedEventualityIds?.length ? payload.excludedEventualityIds : null,
+        decision: normalizedPayload.decision,
+        variantWeight: normalizedPayload.variantWeight ?? null,
+        variantReason: normalizedPayload.variantReason?.trim() ? normalizedPayload.variantReason.trim() : null,
+        variantRankedIds: normalizedPayload.variantRankedIds?.length ? normalizedPayload.variantRankedIds : null,
+        excludedEventualityIds: normalizedPayload.excludedEventualityIds?.length
+          ? normalizedPayload.excludedEventualityIds
+          : null,
         updatedAt: now,
       },
       $setOnInsert: {
@@ -348,18 +352,18 @@ export async function recordSwipeVote(payload: SwipeVotePayload): Promise<void> 
     { upsert: true },
   );
 
-  if (write.upsertedId && payload.source === "swipes") {
+  if (write.upsertedId && normalizedPayload.source === "swipes") {
     try {
       const votesForStatement = await col.countDocuments({
-        userId: payload.userId,
-        statementId: payload.statementId,
+        userId: normalizedPayload.userId,
+        statementId: normalizedPayload.statementId,
         source: "swipes",
       });
       if (votesForStatement === 1) {
         await applySwipeProgressForVote({
-          userId: payload.userId,
-          statementId: payload.statementId,
-          decision: payload.decision,
+          userId: normalizedPayload.userId,
+          statementId: normalizedPayload.statementId,
+          decision: normalizedPayload.decision,
           now,
         });
       }
@@ -368,7 +372,7 @@ export async function recordSwipeVote(payload: SwipeVotePayload): Promise<void> 
     }
   }
   try {
-    await recordSwipeVoteInGraph(payload);
+    await recordSwipeVoteInGraph(normalizedPayload);
   } catch (err) {
     console.error("[swipes] graph integration failed", err);
   }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { coreCol, votesCol, piiCol } from "@core/db/triMongo";
 import { requireAdminOrResponse } from "@/lib/server/auth/admin";
+import { mongoPing } from "@/utils/mongoPing";
+import { classifyMongoRuntimeError } from "@/lib/server/env/runtimeMongoErrors";
 
 export async function GET(req: NextRequest) {
   const gate = await requireAdminOrResponse(req);
@@ -13,22 +14,29 @@ export async function GET(req: NextRequest) {
       await fn();
       out.services.push({ name, ok: true });
     } catch (e: any) {
-      out.services.push({ name, ok: false, err: String(e?.message ?? e) });
+      if (name.startsWith("mongo:")) {
+        const mongoRuntime = classifyMongoRuntimeError(e);
+        out.services.push({
+          name,
+          ok: false,
+          err: mongoRuntime.message,
+          mongoRuntime,
+        });
+      } else {
+        out.services.push({ name, ok: false, err: String(e?.message ?? e) });
+      }
       out.ok = false;
     }
   }
 
   await check("mongo:core", async () => {
-    const c = await coreCol("statements");
-    await c.estimatedDocumentCount();
+    await mongoPing("core");
   });
   await check("mongo:votes", async () => {
-    const c = await votesCol("votes");
-    await c.estimatedDocumentCount();
+    await mongoPing("votes");
   });
   await check("mongo:pii", async () => {
-    const c = await piiCol("tokens");
-    await c.estimatedDocumentCount();
+    await mongoPing("pii");
   });
 
   // optional Redis

@@ -99,4 +99,65 @@ describe("feeds editor token auth contract", () => {
     expect(gate).toBeInstanceOf(Response);
     expect((gate as Response).status).toBe(403);
   });
+
+  it("returns explicit misconfiguration when token is presented but EDITOR_TOKEN is missing", async () => {
+    mocks.requireAdminOrResponse.mockResolvedValue(new Response("forbidden", { status: 403 }));
+    delete process.env.EDITOR_TOKEN;
+    const gate = await requireAdminOrEditor(
+      req({ authorization: "Bearer editor-secret" }),
+    );
+    expect(gate).toBeInstanceOf(Response);
+    expect((gate as Response).status).toBe(500);
+    const body = await (gate as Response).json();
+    expect(body?.error).toBe("editor_token_not_configured");
+    expect(JSON.stringify(body)).not.toContain("editor-secret");
+  });
+
+  it("keeps non-allowlisted paths on admin gate response even when token env is missing", async () => {
+    mocks.requireAdminOrResponse.mockResolvedValue(new Response("forbidden", { status: 403 }));
+    delete process.env.EDITOR_TOKEN;
+    const gate = await requireAdminOrEditor(
+      req({ authorization: "Bearer editor-secret" }, "/api/admin/research/tasks"),
+    );
+    expect(gate).toBeInstanceOf(Response);
+    expect((gate as Response).status).toBe(403);
+  });
+
+  it("treats whitespace-padded EDITOR_TOKEN as misconfigured", async () => {
+    mocks.requireAdminOrResponse.mockResolvedValue(new Response("forbidden", { status: 403 }));
+    process.env.EDITOR_TOKEN = " editor-secret ";
+    const gate = await requireAdminOrEditor(
+      req({ authorization: "Bearer editor-secret" }),
+    );
+    expect(gate).toBeInstanceOf(Response);
+    expect((gate as Response).status).toBe(500);
+    const body = await (gate as Response).json();
+    expect(body?.error).toBe("editor_token_not_configured");
+  });
+
+  it("rejects malformed authorization header even when x-editor-token matches", async () => {
+    mocks.requireAdminOrResponse.mockResolvedValue(new Response("forbidden", { status: 403 }));
+    process.env.EDITOR_TOKEN = "editor-secret";
+    const gate = await requireAdminOrEditor(
+      req({
+        authorization: "Basic abc123",
+        "x-editor-token": "editor-secret",
+      }),
+    );
+    expect(gate).toBeInstanceOf(Response);
+    expect((gate as Response).status).toBe(403);
+  });
+
+  it("rejects conflicting token sources", async () => {
+    mocks.requireAdminOrResponse.mockResolvedValue(new Response("forbidden", { status: 403 }));
+    process.env.EDITOR_TOKEN = "editor-secret";
+    const gate = await requireAdminOrEditor(
+      req({
+        authorization: "Bearer editor-secret",
+        "x-editor-token": "other-secret",
+      }),
+    );
+    expect(gate).toBeInstanceOf(Response);
+    expect((gate as Response).status).toBe(403);
+  });
 });

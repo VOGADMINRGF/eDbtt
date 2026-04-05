@@ -58,4 +58,15 @@ describe("/contributions/new legacy wrapper", () => {
       }),
     ).rejects.toThrow("/create?signalTitle=Signal+Innenstadt&source=legacy_entry&mode=source&intent=source");
   });
+
+  it("forwards entry intent/mode hints for canonical create orchestration", async () => {
+    await expect(
+      ContributionNewPage({
+        searchParams: Promise.resolve({
+          entry_intent: "round_setup",
+          entry_mode: "guided",
+        }),
+      }),
+    ).rejects.toThrow("/create?entry_intent=round_setup&entry_mode=guided&intent=source");
+  });
 });

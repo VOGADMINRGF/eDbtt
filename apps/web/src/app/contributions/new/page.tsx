@@ -7,6 +7,10 @@ type SearchParamsShape =
 const ALLOWED_CREATE_QUERY_KEYS = new Set([
   "intent",
   "mode",
+  "entryIntent",
+  "entryMode",
+  "entry_intent",
+  "entry_mode",
   "dossierId",
   "statementId",
   "anlassraumId",

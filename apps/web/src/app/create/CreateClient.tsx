@@ -14,11 +14,11 @@ import {
   type CreateIntakeContext,
 } from "@/features/create/intakeContext";
 import {
-  buildCreateIntentFallbackPath,
   resolveCreateOrchestratorIntentContract,
   type CreateEntryIntent,
   type CreateEntryMode,
 } from "@/features/create/orchestratorIntentContract";
+import { buildFinalizeFallbackPath } from "@/features/create/finalizeRedirect";
 import {
   formatOperatorNumber,
   getOperatorCreateTexts,
@@ -279,10 +279,7 @@ export default function CreateClient({
       ? 1
       : Math.min(entitlements.maxFinalizeClaimsPerInput, 4);
 
-  const afterFinalizeNavigateTo = buildCreateIntentFallbackPath({
-    contract: createOrchestration,
-    dossierId,
-  });
+  const afterFinalizeNavigateTo = buildFinalizeFallbackPath({ dossierId });
   const useCaseAccess = deriveUseCaseAccess(overview, text);
   const selectedContext = selectedAnlassraumId
     ? contextItems.find((item) => item.anlassraumId === selectedAnlassraumId) ?? null

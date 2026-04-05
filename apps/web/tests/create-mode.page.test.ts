@@ -165,7 +165,7 @@ describe("/create canonical mode rendering", () => {
     expect(lastCall?.afterFinalizeNavigateTo).toBe("/swipes");
   });
 
-  it("routes explicit round_setup entry towards /runden operating surface", async () => {
+  it("keeps finalize fallback server-parity for explicit round_setup entry", async () => {
     const tree = await CreatePage({
       searchParams: Promise.resolve({ entry_intent: "round_setup", entry_mode: "guided" }),
     });
@@ -173,7 +173,18 @@ describe("/create canonical mode rendering", () => {
 
     const lastCall = mocks.analyzeWorkspaceCalls.at(-1);
     expect(lastCall?.createMode).toBe("source");
-    expect(lastCall?.afterFinalizeNavigateTo).toBe("/runden");
+    expect(lastCall?.afterFinalizeNavigateTo).toBe("/swipes");
+  });
+
+  it("keeps canonical defaults when entry intent/mode are invalid", async () => {
+    const tree = await CreatePage({
+      searchParams: Promise.resolve({ entry_intent: "unknown", entry_mode: "broken" }),
+    });
+    renderToStaticMarkup(tree);
+
+    const lastCall = mocks.analyzeWorkspaceCalls.at(-1);
+    expect(lastCall?.createMode).toBe("source");
+    expect(lastCall?.afterFinalizeNavigateTo).toBe("/swipes");
   });
 
   it("uses dossier redirect as finalize fallback when dossierId is present", async () => {

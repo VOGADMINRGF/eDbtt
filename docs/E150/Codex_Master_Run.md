@@ -1,5 +1,7 @@
 # Codex Master Run — eDebatte Core Implementation
 
+> Hinweis (2026-04-04): Historischer Batch-/Prompt-Kontext. Operative Steuerung erfolgt über `docs/E150/OpenTasks.md` (SSOT) und den Kurzeinstieg `docs/E150/CURRENT_STATE_2026-04-04.md`.
+
 ## CONTEXT
 
 You are working inside a Next.js monorepo:

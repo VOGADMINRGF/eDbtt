@@ -1,13 +1,29 @@
-
 import { NextResponse } from "next/server";
-import { coreCol } from "@core/db/triMongo";
+import { mongoPing } from "@/utils/mongoPing";
+import { classifyMongoRuntimeError } from "@/lib/server/env/runtimeMongoErrors";
+
+function runtimeStatus(kind: "srv" | "dns" | "conn_refused" | "unknown") {
+  return kind === "unknown" ? 500 : 503;
+}
+
 export async function GET() {
   try {
-    const col = await coreCol("_health");
-    await col.insertOne?.({ _t: Date.now(), ok: true }).catch(()=>{});
-    const ping = await col.findOne?.({});
-    return NextResponse.json({ ok: true, ping: !!ping });
-  } catch (e:any) {
-    return NextResponse.json({ ok: false, error: e?.message || String(e) }, { status: 500 });
+    await mongoPing("core");
+    return NextResponse.json({
+      ok: true,
+      service: "mongo:core",
+      runtime: "connected",
+    });
+  } catch (error) {
+    const mongoRuntime = classifyMongoRuntimeError(error);
+    return NextResponse.json(
+      {
+        ok: false,
+        error: "mongo_runtime_failure",
+        service: "mongo:core",
+        mongoRuntime,
+      },
+      { status: runtimeStatus(mongoRuntime.kind) },
+    );
   }
 }

@@ -87,4 +87,44 @@ describe("dossier atlas readmodel mapper", () => {
       resultId: null,
     });
   });
+
+  it("keeps dossier linkage stable when one dossier references multiple anlassraeume", () => {
+    const dossierId = new ObjectId();
+    const roomA = new ObjectId();
+    const roomB = new ObjectId();
+
+    const records = mapAtlasSourceRecords({
+      roundSeeds: [
+        { _id: new ObjectId(), anlassraumId: roomA, status: "ready" },
+        { _id: new ObjectId(), anlassraumId: roomB, status: "review" },
+      ],
+      roomById: new Map([
+        [
+          roomA.toHexString(),
+          {
+            _id: roomA,
+            title: "Anlass A",
+            topicKey: "mobilitaet",
+            dossierId,
+            status: "active",
+          },
+        ],
+        [
+          roomB.toHexString(),
+          {
+            _id: roomB,
+            title: "Anlass B",
+            topicKey: "mobilitaet",
+            dossierId,
+            status: "active",
+          },
+        ],
+      ]),
+    });
+
+    expect(records).toHaveLength(2);
+    expect(records[0]?.dossierId).toBe(dossierId.toHexString());
+    expect(records[1]?.dossierId).toBe(dossierId.toHexString());
+    expect(records[0]?.anlassId).not.toBe(records[1]?.anlassId);
+  });
 });
