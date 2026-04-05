@@ -4,9 +4,9 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useLocale } from "@/context/LocaleContext";
 import {
+  formatRelevanceScopePairLabel,
   formatOriginTypeLabel,
   formatOwnerTypeLabel,
-  formatRelevanceScopeLabel,
   formatSourceModeLabel,
 } from "@/features/relevanceFraming";
 import {
@@ -211,7 +211,7 @@ export default function AdminAnlassraumPage() {
                   </td>
                   <td className="px-4 py-3 text-xs text-[rgb(var(--muted))]">
                     <p>{formatRegion(item.regionCode) || text.globalOpen}</p>
-                    <p>{formatRelevanceScopeLabel(item.scope)} / {formatRelevanceScopeLabel(item.decisionScope)}</p>
+                    <p>{formatRelevanceScopePairLabel(item.scope, item.decisionScope)}</p>
                     <p>{formatOperatorTokenLabel(item.topicKey)}</p>
                     <p>{formatOperatorTokenLabel(item.clusterKey)}</p>
                     <p>{text.dossierConsolidationLabel}: {formatOperatorTokenLabel(item.dossierType, text.optionalNotStarted)}</p>

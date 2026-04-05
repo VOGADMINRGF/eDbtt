@@ -59,7 +59,7 @@ export default function AdminPitchPage() {
       return;
     }
     setLoading(true);
-    setStatus("Pull laeuft...");
+    setStatus("Pull läuft...");
     try {
       const pullRes = await fetch("/api/feeds/pull", {
         method: "POST",

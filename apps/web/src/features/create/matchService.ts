@@ -357,10 +357,10 @@ export async function resolveCreateGraphMatches(
       if (strength === "none") continue;
       const reasons = [
         topicOverlap
-          ? "Anlassraum-Match: Topic-Ueberschneidung mit produktivem Anlassraum-Kontext."
-          : "Anlassraum-Match: semantische Naehe zwischen Input und Anlassraum-Kontext.",
+          ? "Anlassraum-Match: Topic-Überschneidung mit produktivem Anlassraum-Kontext."
+          : "Anlassraum-Match: semantische Nähe zwischen Input und Anlassraum-Kontext.",
       ];
-      if (room.summary) reasons.push("Signalspur zeigt thematische Ueberschneidung mit Anlassraum-Summary.");
+      if (room.summary) reasons.push("Signalspur zeigt thematische Überschneidung mit Anlassraum-Summary.");
       matches.push({
         id: room.id,
         matchType: "same_anlassraum",
@@ -420,12 +420,12 @@ export async function resolveCreateGraphMatches(
         matchType = "duplicate_risk";
         matchEntityType = "claim";
         strength = "high";
-        reasons.push("Signalspur: sehr hohe semantische Aehnlichkeit zu bestehendem Claim (Duplikatrisiko).");
+        reasons.push("Signalspur: sehr hohe semantische Ähnlichkeit zu bestehendem Claim (Duplikatrisiko).");
       } else if (topicOverlap && baseSimilarity < 0.62) {
         matchType = "related_claim";
         matchEntityType = "perspective";
         strength = "low";
-        reasons.push("Signalspur: Topic-Ueberschneidung mit bestehender Perspektive.");
+        reasons.push("Signalspur: Topic-Überschneidung mit bestehender Perspektive.");
       } else {
         reasons.push("Semantisch verwandter Claim aus produktivem Signal-/Quellenkontext.");
       }
@@ -470,8 +470,8 @@ export async function resolveCreateGraphMatches(
       if (!explicitDossier && score < 0.5) continue;
       const reasons = [
         explicitDossier
-          ? "Dossier-Naehe: explizit gesetzter Dossier-Kontext."
-          : "Dossier-Naehe: semantische Naehe zum produktiven Dossier-Titel.",
+          ? "Dossier-Nähe: explizit gesetzter Dossier-Kontext."
+          : "Dossier-Nähe: semantische Nähe zum produktiven Dossier-Titel.",
       ];
       matches.push({
         id: dossierId,
@@ -501,8 +501,8 @@ export async function resolveCreateGraphMatches(
     return fallbackNoMatch({
       reason:
         sourceState === "degraded"
-          ? "Produktive Anlassraum-/Dossier-/Signalquellen derzeit nicht verfuegbar."
-          : "Kein belastbarer Anlassraum-Match, keine Dossier-Naehe und keine belastbare Signalspur gefunden.",
+          ? "Produktive Anlassraum-/Dossier-/Signalquellen derzeit nicht verfügbar."
+          : "Kein belastbarer Anlassraum-Match, keine Dossier-Nähe und keine belastbare Signalspur gefunden.",
       sourceState,
       sourceErrors,
     });

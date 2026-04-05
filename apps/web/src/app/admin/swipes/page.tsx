@@ -11,6 +11,31 @@ type SwipeSummary = {
   };
   timeseries?: Array<{ date: string; count: number }>;
   topStatements: Array<{ id: string; title: string; count: number }>;
+  variantAggregation?: {
+    windowDays: number;
+    scope: string;
+    transparency: string;
+    guardrails: {
+      noTruthBoost: boolean;
+      noPriorityBoost: boolean;
+      noFeedOrAtlasSortingImpact: boolean;
+      noPublishAutomationImpact: boolean;
+    };
+    statements: Array<{
+      statementId: string;
+      title: string;
+      totalVariantSelections: number;
+      eventualities: Array<{
+        eventualityId: string;
+        label: string;
+        selectedCount: number;
+        weightedScore: number;
+        averageWeight: number | null;
+        rankedMentions: number;
+        averageRank: number | null;
+      }>;
+    }>;
+  };
 };
 
 export default function AdminSwipesPage() {
@@ -107,6 +132,49 @@ export default function AdminSwipesPage() {
                 </div>
                 <span className="font-semibold text-[rgb(var(--muted))]">{nf.format(row.count)}</span>
               </div>
+            ))}
+          </div>
+        ) : null}
+      </section>
+
+      <section className="rounded-3xl bg-[rgb(var(--card))] p-4 shadow ring-1 ring-[rgb(var(--border))]">
+        <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">
+          Variantenaggregation ({data?.variantAggregation?.windowDays ?? 30} Tage)
+        </h2>
+        <p className="mt-1 text-xs text-[rgb(var(--muted))]">
+          Transparente, lokale Auswertung auf Statement-/Eventuality-Ebene. Keine automatische Wirkung auf Feed, Atlas, Publish oder Governance.
+        </p>
+        {loading && <SkeletonLines lines={3} />}
+        {!loading && !data?.variantAggregation?.statements?.length && (
+          <p className="mt-3 text-sm text-[rgb(var(--muted))]">Noch keine Variantenaggregation verfügbar.</p>
+        )}
+        {!loading && data?.variantAggregation?.statements?.length ? (
+          <div className="mt-3 space-y-3">
+            {data.variantAggregation.statements.slice(0, 5).map((statement) => (
+              <article key={statement.statementId} className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="line-clamp-1 text-sm font-semibold text-[rgb(var(--fg))]">{statement.title}</p>
+                    <Link href={`/statements/${encodeURIComponent(statement.statementId)}`} className="text-xs text-sky-700 underline">
+                      Statement öffnen
+                    </Link>
+                  </div>
+                  <span className="shrink-0 rounded-full border border-[rgb(var(--border))] px-2 py-1 text-xs font-semibold text-[rgb(var(--muted))]">
+                    {nf.format(statement.totalVariantSelections)} Selektionen
+                  </span>
+                </div>
+                <div className="mt-2 space-y-1.5">
+                  {statement.eventualities.slice(0, 3).map((eventuality) => (
+                    <div key={`${statement.statementId}-${eventuality.eventualityId}`} className="flex items-center justify-between gap-2 rounded-xl bg-[rgb(var(--card))] px-2.5 py-2 text-xs">
+                      <p className="line-clamp-1 text-[rgb(var(--fg))]">{eventuality.label}</p>
+                      <p className="shrink-0 text-[rgb(var(--muted))]">
+                        sel: {nf.format(eventuality.selectedCount)} · weight: {nf.format(eventuality.weightedScore)} · rank:{" "}
+                        {eventuality.averageRank === null ? "–" : eventuality.averageRank.toFixed(2)}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </article>
             ))}
           </div>
         ) : null}

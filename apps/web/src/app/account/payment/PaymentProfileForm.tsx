@@ -69,7 +69,7 @@ export function PaymentProfileForm({ initial }: PaymentProfileFormProps) {
           <input
             id="holderName"
             name="holderName"
-            className="w-full rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm text-[rgb(var(--fg))] shadow-inner focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100"
+            className="w-full rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm text-[rgb(var(--fg))] shadow-inner focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100 dark:focus:ring-sky-500/30"
             value={holderName}
             onChange={(e) => setHolderName(e.target.value)}
             placeholder={initial?.holderName ?? "Vor- und Nachname / Organisation"}
@@ -84,7 +84,7 @@ export function PaymentProfileForm({ initial }: PaymentProfileFormProps) {
           <input
             id="bic"
             name="bic"
-            className="w-full rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm text-[rgb(var(--fg))] shadow-inner focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100"
+            className="w-full rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm text-[rgb(var(--fg))] shadow-inner focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100 dark:focus:ring-sky-500/30"
             value={bic}
             onChange={(e) => setBic(e.target.value)}
             placeholder="z.B. COLSDE33"
@@ -101,7 +101,7 @@ export function PaymentProfileForm({ initial }: PaymentProfileFormProps) {
           name="iban"
           inputMode="text"
           autoComplete="off"
-          className="w-full rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm text-[rgb(var(--fg))] shadow-inner focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100"
+          className="w-full rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm text-[rgb(var(--fg))] shadow-inner focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100 dark:focus:ring-sky-500/30"
           value={iban}
           onChange={(e) => setIban(e.target.value)}
           placeholder={initial?.ibanMasked ?? "DE00 0000 0000 0000 0000 00"}
@@ -110,8 +110,8 @@ export function PaymentProfileForm({ initial }: PaymentProfileFormProps) {
         <p className="text-[11px] text-[rgb(var(--muted))]">IBAN wird geprüft und nur maskiert gespeichert.</p>
       </div>
 
-      {message && <p className="text-[11px] font-medium text-emerald-700">{message}</p>}
-      {error && <p className="text-[11px] font-medium text-red-600">{error}</p>}
+      {message && <p className="text-[11px] font-medium text-emerald-700 dark:text-emerald-300">{message}</p>}
+      {error && <p className="text-[11px] font-medium text-red-600 dark:text-rose-300">{error}</p>}
 
       <div className="flex justify-end">
         <button

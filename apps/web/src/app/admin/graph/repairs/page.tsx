@@ -249,7 +249,7 @@ export default function AdminGraphRepairsPage() {
               {loading && (
                 <tr>
                   <td colSpan={4} className="px-4 py-6 text-center text-[rgb(var(--muted))]">
-                    Laedt Repairs...
+                    Lädt Repairs...
                   </td>
                 </tr>
               )}
@@ -299,7 +299,7 @@ export default function AdminGraphRepairsPage() {
           disabled={page <= 1}
           onClick={() => setPage((prev) => Math.max(1, prev - 1))}
         >
-          Zurueck
+          Zurück
         </button>
         <span>
           Seite {page} / {Math.max(1, Math.ceil((data?.total ?? 1) / (data?.pageSize ?? 1)))}

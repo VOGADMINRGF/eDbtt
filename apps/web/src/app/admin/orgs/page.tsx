@@ -178,7 +178,7 @@ export default function AdminOrgsPage() {
             {loading && (
               <tr>
                 <td colSpan={4} className="px-4 py-6 text-center text-[rgb(var(--muted))]">
-                  Laedt Organisationen...
+                  Lädt Organisationen...
                 </td>
               </tr>
             )}
@@ -223,7 +223,7 @@ export default function AdminOrgsPage() {
           disabled={page <= 1}
           onClick={() => setPage((prev) => Math.max(1, prev - 1))}
         >
-          Zurueck
+          Zurück
         </button>
         <span>
           Seite {page} / {totalPages}

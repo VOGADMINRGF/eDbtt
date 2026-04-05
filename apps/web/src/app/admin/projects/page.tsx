@@ -87,7 +87,7 @@ export default function AdminProjectsPage() {
               <th className="px-4 py-3">Projekt</th>
               <th className="px-4 py-3">Region</th>
               <th className="px-4 py-3">Themen</th>
-              <th className="px-4 py-3">Vorschlaege</th>
+              <th className="px-4 py-3">Vorschläge</th>
               <th className="px-4 py-3">Status</th>
               <th className="px-4 py-3 text-right">Aktion</th>
             </tr>
@@ -96,7 +96,7 @@ export default function AdminProjectsPage() {
             {loading && (
               <tr>
                 <td colSpan={6} className="px-4 py-6 text-center text-[rgb(var(--muted))]">
-                  Laedt Projekte ...
+                  Lädt Projekte ...
                 </td>
               </tr>
             )}

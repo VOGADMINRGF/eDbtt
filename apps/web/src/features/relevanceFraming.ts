@@ -83,6 +83,21 @@ export function normalizeScopeForFraming(
   return SCOPE_ALIAS_TO_CANONICAL[token] ?? null;
 }
 
+export function resolveRelevanceScopePairForDisplay(
+  scope: string | null | undefined,
+  decisionScope: string | null | undefined,
+): {
+  scope: "local" | "regional" | "national" | "eu" | "global" | null;
+  decisionScope: "local" | "regional" | "national" | "eu" | "global" | null;
+} {
+  const normalizedScope = normalizeScopeForFraming(scope);
+  const normalizedDecisionScope = normalizeScopeForFraming(decisionScope) ?? normalizedScope;
+  return {
+    scope: normalizedScope,
+    decisionScope: normalizedDecisionScope,
+  };
+}
+
 export function formatRelevanceScopeLabel(
   scope: string | null | undefined,
   fallback = "offen",
@@ -90,6 +105,15 @@ export function formatRelevanceScopeLabel(
   const normalized = normalizeScopeForFraming(scope);
   if (!normalized) return fallback;
   return SCOPE_LABELS[normalized];
+}
+
+export function formatRelevanceScopePairLabel(
+  scope: string | null | undefined,
+  decisionScope: string | null | undefined,
+  fallback = "offen",
+): string {
+  const normalized = resolveRelevanceScopePairForDisplay(scope, decisionScope);
+  return `${formatRelevanceScopeLabel(normalized.scope, fallback)} / ${formatRelevanceScopeLabel(normalized.decisionScope, fallback)}`;
 }
 
 export function formatSourceModeLabel(

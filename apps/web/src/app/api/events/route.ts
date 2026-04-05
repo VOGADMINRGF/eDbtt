@@ -10,6 +10,7 @@ import {
   type AnlassraumOwnerType,
   type AnlassraumScope,
 } from "@features/anlassraum/types";
+import { anlassraumCol } from "@features/anlassraum/db";
 import type { GovernanceActor, RoomType } from "@features/trust/types";
 import { ensureSystemEntityForRegion } from "@features/entities/service";
 import { getLatestDossierUpsertContractByCode } from "@features/dossier/protocolUpsert";
@@ -100,10 +101,20 @@ export async function POST(req: NextRequest) {
     if (!ObjectId.isValid(explicitAnlassraumId)) {
       return NextResponse.json({ ok: false, error: "invalid_anlassraum_id" }, { status: 400 });
     }
-    linkedAnlassraumId = new ObjectId(explicitAnlassraumId);
+    const room = await (await anlassraumCol()).findOne(
+      { _id: new ObjectId(explicitAnlassraumId) },
+      { projection: { _id: 1 } },
+    );
+    if (!room?._id) {
+      return NextResponse.json({ ok: false, error: "anlassraum_not_found" }, { status: 404 });
+    }
+    linkedAnlassraumId = room._id;
   }
 
   const createAnlassraum = body?.createAnlassraum === true;
+  if (createAnlassraum && linkedAnlassraumId) {
+    return NextResponse.json({ ok: false, error: "anlassraum_link_conflict" }, { status: 409 });
+  }
   if (createAnlassraum) {
     const gate = await requireGovernanceActorOrResponse(req);
     if (gate instanceof Response) return gate;

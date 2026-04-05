@@ -66,7 +66,7 @@ export default function AdminCreateAttachDraftHistoryMaintenancePage() {
 
   return (
     <main>
-      <h1 className="sr-only">History-Maintenance fuer Attach-Drafts</h1>
+      <h1 className="sr-only">History-Maintenance für Attach-Drafts</h1>
       <CreateHistoryMaintenanceDiagnosticsPanel
         report={report}
         loading={loading}

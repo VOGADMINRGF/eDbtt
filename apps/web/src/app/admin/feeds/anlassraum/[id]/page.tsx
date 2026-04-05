@@ -6,9 +6,9 @@ import { useParams } from "next/navigation";
 import { buildCreateFastPathHref } from "@/features/create/intents";
 import { useLocale } from "@/context/LocaleContext";
 import {
+  formatRelevanceScopePairLabel,
   formatOriginTypeLabel,
   formatOwnerTypeLabel,
-  formatRelevanceScopeLabel,
   formatSourceModeLabel,
 } from "@/features/relevanceFraming";
 import {
@@ -202,7 +202,7 @@ export default function AdminAnlassraumDetailPage({
           {formatSourceModeLabel(item.sourceMode)} · {text.scoreLabel} {formatOperatorNumber(item.relevanceScore, operatorLocale)}
         </p>
         <p className="text-sm text-[rgb(var(--muted))]">
-          {text.relevanceLabel}: {formatRelevanceScopeLabel(item.scope)} / {formatRelevanceScopeLabel(item.decisionScope)} ·{" "}
+          {text.relevanceLabel}: {formatRelevanceScopePairLabel(item.scope, item.decisionScope)} ·{" "}
           {text.originLabel}: {formatOriginTypeLabel(item.originType)} · {text.ownerLabel}:{" "}
           {formatOwnerTypeLabel(item.ownerType)}
         </p>
@@ -276,8 +276,8 @@ export default function AdminAnlassraumDetailPage({
           <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">{text.workspaceContext}</h2>
           <div className="mt-3 space-y-2 text-sm">
             <p className="text-[rgb(var(--fg))]">
-              <span className="font-semibold">{text.relevanceLabel}:</span> {formatRelevanceScopeLabel(item.scope)} /{" "}
-              {formatRelevanceScopeLabel(item.decisionScope)}
+              <span className="font-semibold">{text.relevanceLabel}:</span>{" "}
+              {formatRelevanceScopePairLabel(item.scope, item.decisionScope)}
             </p>
             <p className="text-[rgb(var(--fg))]">
               <span className="font-semibold">{text.originLabel}:</span> {formatOriginTypeLabel(item.originType)}

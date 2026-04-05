@@ -4,11 +4,13 @@ import { ObjectId } from "mongodb";
 const mocks = vi.hoisted(() => {
   let proposalDocs: Array<Record<string, any>> = [];
   let eventualityCounts: Record<string, number> = {};
+  let failProposalCollection = false;
 
   return {
     reset() {
       proposalDocs = [];
       eventualityCounts = {};
+      failProposalCollection = false;
     },
     setProposals(docs: Array<Record<string, any>>) {
       proposalDocs = docs.map((doc) => ({ ...doc }));
@@ -16,8 +18,12 @@ const mocks = vi.hoisted(() => {
     setEventualityCounts(counts: Record<string, number>) {
       eventualityCounts = { ...counts };
     },
+    setProposalCollectionFailure(enabled: boolean) {
+      failProposalCollection = enabled;
+    },
     getCol: vi.fn(async (name: string) => {
       if (name !== "statement_proposals") throw new Error(`unexpected_collection_${name}`);
+      if (failProposalCollection) throw new Error("proposal_collection_unavailable");
       return {
         find() {
           return {
@@ -154,6 +160,32 @@ describe("swipes feed arrival mode", () => {
 
   it("keeps seed fallback for non-arrival requests", async () => {
     mocks.setProposals([]);
+
+    const feed = await getSwipeFeed({
+      edebattePackage: "none",
+      filter: {},
+      limit: 20,
+    });
+
+    expect(feed.items.length).toBeGreaterThan(0);
+    expect(feed.items[0]?.id.startsWith("seed-")).toBe(true);
+  });
+
+  it("preserves fromDraft no-match fallback when proposal collection is unavailable", async () => {
+    const fromDraftId = new ObjectId().toHexString();
+    mocks.setProposalCollectionFailure(true);
+
+    const feed = await getSwipeFeed({
+      edebattePackage: "none",
+      filter: { fromDraftId },
+      limit: 20,
+    });
+
+    expect(feed.items).toEqual([]);
+  });
+
+  it("keeps seed fallback for non-arrival requests when proposal collection is unavailable", async () => {
+    mocks.setProposalCollectionFailure(true);
 
     const feed = await getSwipeFeed({
       edebattePackage: "none",

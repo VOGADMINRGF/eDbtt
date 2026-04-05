@@ -74,7 +74,7 @@ export default function AdminAnlassraumOperationsPage() {
 
   return (
     <main>
-      <h1 className="sr-only">Anlassraeume verwalten</h1>
+      <h1 className="sr-only">Anlassräume verwalten</h1>
       <AnlassraumOperationsPanel
         data={data}
         loading={loading}

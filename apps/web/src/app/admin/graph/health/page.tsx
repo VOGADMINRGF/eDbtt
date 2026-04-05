@@ -62,7 +62,7 @@ export default function AdminGraphHealthPage() {
       <header className="space-y-1">
         <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Admin · Graph</p>
         <h1 className="text-2xl font-bold text-[rgb(var(--fg))]">Graph Health</h1>
-        <p className="text-sm text-[rgb(var(--muted))]">Uebersicht ueber Knoten, Pfade und Reparatur-Backlog.</p>
+        <p className="text-sm text-[rgb(var(--muted))]">Übersicht über Knoten, Pfade und Reparatur-Backlog.</p>
       </header>
 
       {error && (
@@ -95,7 +95,7 @@ export default function AdminGraphHealthPage() {
           href="/admin/graph/repairs"
           className="rounded-full border border-[rgb(var(--border))] px-4 py-2 text-sm font-semibold"
         >
-          Repairs oeffnen
+          Repairs öffnen
         </Link>
       </div>
     </div>

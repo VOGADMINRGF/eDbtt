@@ -44,17 +44,17 @@ export function MicroTransferVerificationForm({
       setMessage("TAN bestätigt. Mitgliedschaft wird freigeschaltet.");
       setCode("");
       router.refresh();
-      } catch (err: any) {
-        const code = err?.message ?? "";
-        if (code === "invalid_code") {
-          setError("Der TAN-Code ist ungültig. Bitte prüfe die 0,01 €-Überweisung.");
-        } else if (code === "expired") {
-          setError("Der TAN-Code ist abgelaufen. Bitte kontaktiere den Support.");
-        } else if (code === "too_many_attempts") {
-          setError("Zu viele Fehlversuche. Bitte kontaktiere den Support.");
-        } else if (code === "not_pending") {
-          setError("Die Verifikation ist aktuell nicht möglich.");
-        } else {
+    } catch (err: any) {
+      const code = err?.message ?? "";
+      if (code === "invalid_code") {
+        setError("Der TAN-Code ist ungültig. Bitte prüfe die 0,01 €-Überweisung.");
+      } else if (code === "expired") {
+        setError("Der TAN-Code ist abgelaufen. Bitte kontaktiere den Support.");
+      } else if (code === "too_many_attempts") {
+        setError("Zu viele Fehlversuche. Bitte kontaktiere den Support.");
+      } else if (code === "not_pending") {
+        setError("Die Verifikation ist aktuell nicht möglich.");
+      } else {
         setError("Verifikation fehlgeschlagen. Bitte später erneut versuchen.");
       }
     } finally {
@@ -87,7 +87,7 @@ export function MicroTransferVerificationForm({
           inputMode="numeric"
           pattern="[0-9]{6}"
           maxLength={6}
-          className="w-full rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm text-[rgb(var(--fg))] shadow-inner focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100"
+          className="w-full rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm text-[rgb(var(--fg))] shadow-inner focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100 dark:focus:ring-sky-500/30"
           value={code}
           onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
           placeholder="6-stelliger Code"
@@ -95,8 +95,8 @@ export function MicroTransferVerificationForm({
         />
       </div>
 
-      {message && <p className="text-[11px] font-medium text-emerald-700">{message}</p>}
-      {error && <p className="text-[11px] font-medium text-red-600">{error}</p>}
+      {message && <p className="text-[11px] font-medium text-emerald-700 dark:text-emerald-300">{message}</p>}
+      {error && <p className="text-[11px] font-medium text-red-600 dark:text-rose-300">{error}</p>}
 
       <div className="flex justify-end">
         <button

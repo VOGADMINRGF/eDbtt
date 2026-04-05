@@ -37,7 +37,7 @@ const SECTIONS: Array<{ title: string; items: HubItem[] }> = [
     items: [
       {
         title: "Newsletter",
-        description: "Abonnenten hinzufuegen und bereinigen",
+        description: "Abonnenten hinzufügen und bereinigen",
         href: "/admin/newsletter",
       },
     ],

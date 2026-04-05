@@ -73,7 +73,7 @@ export default function AdminSupportPage() {
     setError(null);
     try {
       const goal = Math.round(Number(goalEuro.replace(",", ".")) * 100);
-      if (!Number.isFinite(goal) || goal < 100) throw new Error("Zielbetrag ungueltig.");
+      if (!Number.isFinite(goal) || goal < 100) throw new Error("Zielbetrag ungültig.");
       const res = await fetch("/api/support/campaigns", {
         method: "POST",
         headers: { "content-type": "application/json" },
@@ -187,7 +187,7 @@ export default function AdminSupportPage() {
               {loading ? (
                 <tr>
                   <td className="px-3 py-4 text-[rgb(var(--muted))]" colSpan={8}>
-                    Laedt …
+                    Lädt …
                   </td>
                 </tr>
               ) : null}

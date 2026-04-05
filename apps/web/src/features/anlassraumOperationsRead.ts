@@ -11,6 +11,7 @@ import {
 } from "@features/anlassraum/types";
 import type { GovernanceActor } from "@features/trust/types";
 import { buildCreateFastPathHref } from "@/features/create/intents";
+import { resolveRelevanceScopePairForDisplay } from "@/features/relevanceFraming";
 
 const KNOWN_STATUS = [...ANLASSRAUM_LIFECYCLE_STATUSES, ...LEGACY_ANLASSRAUM_STATUSES] as const;
 const KNOWN_SCOPE = [...ANLASSRAUM_SCOPES] as const;
@@ -400,8 +401,7 @@ export function normalizeAnlassraumOperationsDoc(
   const title = asText(doc.title) || "Anlassraum ohne Titel";
   const slug = asText(doc.slug) || null;
   const status = normalizeStatusForDisplay(doc.status);
-  const scope = normalizeScopeForDisplay(doc.scope);
-  const decisionScope = normalizeScopeForDisplay(doc.decisionScope);
+  const scopePair = resolveRelevanceScopePairForDisplay(asText(doc.scope), asText(doc.decisionScope));
   const summary = normalizeSummary(doc.summary);
   const createdAt = asIso(doc.createdAt);
   const updatedAt = asIso(doc.updatedAt);
@@ -411,8 +411,8 @@ export function normalizeAnlassraumOperationsDoc(
     title,
     slug,
     status,
-    scope,
-    decisionScope,
+    scope: scopePair.scope,
+    decisionScope: scopePair.decisionScope,
     summary,
     regionKey: asText(doc.regionKey),
     topicKey: asText(doc.topicKey),
@@ -491,13 +491,6 @@ function normalizeStatusForDisplay(value: unknown): string {
   if (!raw) return "unknown";
   if (KNOWN_STATUS.includes(raw as AnlassraumStatus)) return raw;
   return "unknown";
-}
-
-function normalizeScopeForDisplay(value: unknown): string | null {
-  const raw = asText(value);
-  if (!raw) return null;
-  if (KNOWN_SCOPE.includes(raw as AnlassraumScope)) return raw;
-  return null;
 }
 
 function normalizeSummary(value: unknown): string | null {

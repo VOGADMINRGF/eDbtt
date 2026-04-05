@@ -13,7 +13,7 @@ export type NavSection = {
 
 export const NAV_SECTIONS: NavSection[] = [
   {
-    title: "Uebersicht",
+    title: "Übersicht",
     items: [
       {
         href: "/admin",
@@ -147,12 +147,12 @@ export const NAV_SECTIONS: NavSection[] = [
       {
         href: "/admin/responsibility",
         label: "Responsibility Directory",
-        description: "Zustaendigkeiten pflegen",
+        description: "Zuständigkeiten pflegen",
         keywords: ["responsibility", "paths"],
       },
       {
         href: "/admin/eventualities",
-        label: "Eventualitaeten",
+        label: "Eventualitäten",
         description: "Snapshots & Status",
         keywords: ["eventualities", "scenarios"],
       },
@@ -165,19 +165,19 @@ export const NAV_SECTIONS: NavSection[] = [
       {
         href: "/admin/feeds/drafts",
         label: "Feed Drafts",
-        description: "Entwuerfe aus Feeds",
+        description: "Entwürfe aus Feeds",
         keywords: ["feeds", "drafts"],
       },
       {
         href: "/admin/feeds/anlassraum",
-        label: "Anlassraeume",
+        label: "Anlassräume",
         description: "Feed -> Anlassraum -> Outputs",
         keywords: ["feeds", "anlassraum", "outputs", "cluster"],
       },
       {
         href: "/admin/anlassraeume",
         label: "Anlassraum Operations",
-        description: "Read-only Operations-Surface fuer Anlassraeume",
+        description: "Read-only Operations-Surface für Anlassräume",
         keywords: ["anlassraum", "operations", "read-only", "admin"],
       },
       {
@@ -225,7 +225,7 @@ export const NAV_SECTIONS: NavSection[] = [
       {
         href: "/admin/contributions",
         label: "Community Contributions",
-        description: "Vorschlaege moderieren",
+        description: "Vorschläge moderieren",
         keywords: ["contributions", "community", "moderation"],
       },
       {
@@ -237,7 +237,7 @@ export const NAV_SECTIONS: NavSection[] = [
       {
         href: "/admin/create/attach-drafts/history-maintenance",
         label: "Create History Maintenance",
-        description: "Dry-run Diagnose fuer Legacy-History-Events",
+        description: "Dry-run Diagnose für Legacy-History-Events",
         keywords: ["create", "history", "maintenance", "backfill", "dry-run"],
       },
       {

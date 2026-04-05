@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ObjectId } from "@core/db/triMongo";
 import { voteDraftsCol } from "@features/feeds/db";
-import type { VoteDraftDoc, VoteDraftStatus } from "@features/feeds/types";
+import type { FeedReviewState, VoteDraftDoc, VoteDraftStatus } from "@features/feeds/types";
 import { anlassraumCol } from "@features/anlassraum/db";
 import { canActorAccessAnlassraum } from "@features/anlassraum/governance";
 import { requireGovernanceActorOrResponse } from "@/lib/server/auth/governance";
@@ -51,8 +51,13 @@ export async function POST(
   }
 
   const now = new Date();
+  const nextFeedReviewState = deriveFeedReviewStateForManualStatus({
+    current: currentDraft.feedReviewState ?? null,
+    status,
+  });
   const update: any = {
     status,
+    feedReviewState: nextFeedReviewState,
     updatedAt: now,
     reviewerId: gate.actor.userId,
     lastReviewAction: "set_status",
@@ -80,8 +85,21 @@ export async function POST(
     draft: {
       id: updatedDraft._id.toHexString(),
       status: updatedDraft.status,
+      feedReviewState: updatedDraft.feedReviewState ?? nextFeedReviewState,
       reviewNote: updatedDraft.reviewNote ?? null,
+      lastReviewAction: updatedDraft.lastReviewAction ?? null,
+      lastReviewActionBy: updatedDraft.lastReviewActionBy ?? null,
+      lastReviewActionAt: updatedDraft.lastReviewActionAt?.toISOString?.() ?? null,
       updatedAt: updatedDraft.updatedAt?.toISOString?.() ?? null,
     },
   });
+}
+
+function deriveFeedReviewStateForManualStatus(input: {
+  current: FeedReviewState | null;
+  status: VoteDraftStatus;
+}): FeedReviewState {
+  if (input.status === "discarded") return "ignored";
+  if (input.current === "ignored") return "queued";
+  return input.current ?? "queued";
 }

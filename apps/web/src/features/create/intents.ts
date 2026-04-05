@@ -27,32 +27,32 @@ export const CREATE_INTENT_DEFINITIONS: CreateIntentDefinition[] = [
   {
     intent: "question",
     title: "Offene Frage melden",
-    lead: "Ungeklaerte Punkte sichtbar halten und priorisieren.",
+    lead: "Ungeklärte Punkte sichtbar halten und priorisieren.",
   },
   {
     intent: "perspective",
-    title: "Perspektive ergaenzen",
-    lead: "Argumente, Betroffenheit oder Kontext hinzufuegen.",
+    title: "Perspektive ergänzen",
+    lead: "Argumente, Betroffenheit oder Kontext hinzufügen.",
   },
   {
     intent: "objection",
     title: "Widerspruch einreichen",
-    lead: "Einordnung, Evidenz oder Schlussfolgerung begruendet hinterfragen.",
+    lead: "Einordnung, Evidenz oder Schlussfolgerung begründet hinterfragen.",
   },
   {
     intent: "option",
     title: "Option vorschlagen",
-    lead: "Umsetzbare Alternative fuer Entscheidung und Abstimmung vorschlagen.",
+    lead: "Umsetzbare Alternative für Entscheidung und Abstimmung vorschlagen.",
   },
   {
     intent: "claim",
     title: "Kernaussage formulieren",
-    lead: "Abstimmungsfaehige Aussage mit klarer Verantwortung erstellen.",
+    lead: "Abstimmungsfähige Aussage mit klarer Verantwortung erstellen.",
   },
   {
     intent: "factcheck",
     title: "Factcheck starten",
-    lead: "Pruefhinweis zu Text, Link, Anlage oder Video-URL einreichen.",
+    lead: "Prüfhinweis zu Text, Link, Anlage oder Video-URL einreichen.",
   },
 ];
 

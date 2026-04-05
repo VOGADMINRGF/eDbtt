@@ -32,9 +32,9 @@ export function resolveCreateCtaSuggestions(
     });
     pushUnique(out, {
       id: "perspektive_anhaengen",
-      label: "Perspektive anhaengen",
+      label: "Perspektive anhängen",
       reason:
-        "Optional kann eine Perspektive manuell an einen bestehenden Kontext angehaengt werden.",
+        "Optional kann eine Perspektive manuell an einen bestehenden Kontext angehängt werden.",
     });
     return out;
   }
@@ -42,14 +42,14 @@ export function resolveCreateCtaSuggestions(
   if (input.matchType === "same_anlassraum") {
     pushUnique(out, {
       id: "anlassraum_oeffnen",
-      label: "Anlassraum oeffnen",
+      label: "Anlassraum öffnen",
       reason:
-        "Kontext wurde im selben Anlassraum erkannt; manuelle Bestaetigung bleibt erforderlich.",
+        "Kontext wurde im selben Anlassraum erkannt; manuelle Bestätigung bleibt erforderlich.",
     });
     pushUnique(out, {
       id: "perspektive_anhaengen",
-      label: "Perspektive anhaengen",
-      reason: "Ursprung bleibt erhalten; Perspektive wird additiv angehaengt.",
+      label: "Perspektive anhängen",
+      reason: "Ursprung bleibt erhalten; Perspektive wird additiv angehängt.",
     });
     pushUnique(out, {
       id: "anders_sehen",
@@ -61,15 +61,15 @@ export function resolveCreateCtaSuggestions(
   if (input.matchType === "related_dossier") {
     pushUnique(out, {
       id: "dossier_oeffnen",
-      label: "Dossier oeffnen",
+      label: "Dossier öffnen",
       reason:
-        "Dossier-Naehe erkannt; Verdichtung ist moeglich, Anlassraum-Arbeit bleibt parallel eigenstaendig.",
+        "Dossier-Nähe erkannt; Verdichtung ist möglich, Anlassraum-Arbeit bleibt parallel eigenständig.",
     });
     pushUnique(out, {
       id: "perspektive_anhaengen",
-      label: "Perspektive anhaengen",
+      label: "Perspektive anhängen",
       reason:
-        "Perspektive kann ohne implizites Zusammenfuehren angehaengt werden.",
+        "Perspektive kann ohne implizites Zusammenführen angehängt werden.",
     });
   }
 
@@ -78,13 +78,13 @@ export function resolveCreateCtaSuggestions(
       id: "anders_sehen",
       label: "Anders sehen",
       reason:
-        "Moegliches Duplikat erkannt. Bitte manuell pruefen statt automatisch mergen.",
+        "Mögliches Duplikat erkannt. Bitte manuell prüfen statt automatisch mergen.",
     });
     pushUnique(out, {
       id: "perspektive_anhaengen",
-      label: "Perspektive anhaengen",
+      label: "Perspektive anhängen",
       reason:
-        "Bei inhaltlicher Naehe als Perspektive fuehren, nicht still zusammenfuehren.",
+        "Bei inhaltlicher Nähe als Perspektive führen, nicht still zusammenführen.",
     });
   }
 
@@ -93,7 +93,7 @@ export function resolveCreateCtaSuggestions(
       id: "zustimmen",
       label: "Zustimmen",
       reason:
-        "Claim-Naehe erkannt. Zustimmung ist ein manueller Schritt, kein Publish-Ersatz.",
+        "Claim-Nähe erkannt. Zustimmung ist ein manueller Schritt, kein Publish-Ersatz.",
     });
     pushUnique(out, {
       id: "anders_sehen",
@@ -102,33 +102,33 @@ export function resolveCreateCtaSuggestions(
     });
     pushUnique(out, {
       id: "perspektive_anhaengen",
-      label: "Perspektive anhaengen",
+      label: "Perspektive anhängen",
       reason:
-        "Claim kann um Perspektiven erweitert werden, ohne Ursprung zu loeschen.",
+        "Claim kann um Perspektiven erweitert werden, ohne Ursprung zu löschen.",
     });
   }
 
   if (input.matchEntityType === "anlassraum") {
     pushUnique(out, {
       id: "anlassraum_oeffnen",
-      label: "Anlassraum oeffnen",
+      label: "Anlassraum öffnen",
       reason:
-        "Treffer liegt im Anlassraum-Kontext und bleibt manuell zu bestaetigen.",
+        "Treffer liegt im Anlassraum-Kontext und bleibt manuell zu bestätigen.",
     });
   }
   if (input.matchEntityType === "dossier") {
     pushUnique(out, {
       id: "dossier_oeffnen",
-      label: "Dossier oeffnen",
+      label: "Dossier öffnen",
       reason:
-        "Treffer liegt in Dossier-Naehe; bewusste Verdichtung moeglich, Anlassraum bleibt optional vorgelagert.",
+        "Treffer liegt in Dossier-Nähe; bewusste Verdichtung möglich, Anlassraum bleibt optional vorgelagert.",
     });
   }
 
   pushUnique(out, {
     id: "neu_anlegen",
     label: "Neu anlegen",
-    reason: "Unabhaengiger neuer Strang bleibt jederzeit moeglich.",
+    reason: "Unabhängiger neuer Strang bleibt jederzeit möglich.",
   });
 
   return out;

@@ -228,7 +228,7 @@ export default function AdminReportAssetsPage() {
             {loading && (
               <tr>
                 <td colSpan={5} className="px-4 py-6 text-center text-[rgb(var(--muted))]">
-                  Laedt Assets...
+                  Lädt Assets...
                 </td>
               </tr>
             )}
@@ -266,7 +266,7 @@ export default function AdminReportAssetsPage() {
           disabled={page <= 1}
           onClick={() => setPage((prev) => Math.max(1, prev - 1))}
         >
-          Zurueck
+          Zurück
         </button>
         <span>
           Seite {page} / {totalPages}

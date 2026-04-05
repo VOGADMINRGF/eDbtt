@@ -1755,7 +1755,7 @@ function CompactProfileHubSection({
                 className={`inline-flex min-h-[40px] items-center justify-center gap-1 rounded-[10px] px-1.5 text-[11px] font-semibold transition ${
                   active
                     ? selectedSurfaceClass
-                    : "text-[rgb(var(--muted))] hover:bg-white/5 hover:text-[rgb(var(--fg))]"
+                    : "text-[rgb(var(--muted))] hover:bg-[rgb(var(--card))] hover:text-[rgb(var(--fg))]"
                 }`}
               >
                 <tab.icon className={`h-3.5 w-3.5 ${active ? "text-sky-700 dark:text-sky-200" : "text-sky-500/90"}`} aria-hidden />
@@ -1826,7 +1826,7 @@ function CompactProfileHubSection({
                 <label className="space-y-1">
                   <span className="text-[11px] text-[rgb(var(--muted))]">Vorname</span>
                   <input
-                    className="w-full rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm text-[rgb(var(--fg))] focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100"
+                    className="w-full rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm text-[rgb(var(--fg))] focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100 dark:focus:ring-sky-500/30"
                     value={personalDraft.givenName}
                     onChange={(event) =>
                       setPersonalDraft((prev) => ({ ...prev, givenName: event.target.value }))
@@ -1836,7 +1836,7 @@ function CompactProfileHubSection({
                 <label className="space-y-1">
                   <span className="text-[11px] text-[rgb(var(--muted))]">Nachname</span>
                   <input
-                    className="w-full rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm text-[rgb(var(--fg))] focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100"
+                    className="w-full rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm text-[rgb(var(--fg))] focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100 dark:focus:ring-sky-500/30"
                     value={personalDraft.familyName}
                     onChange={(event) =>
                       setPersonalDraft((prev) => ({ ...prev, familyName: event.target.value }))
@@ -1848,7 +1848,7 @@ function CompactProfileHubSection({
                 <label className="space-y-1">
                   <span className="text-[11px] text-[rgb(var(--muted))]">Anschrift</span>
                   <input
-                    className="w-full rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm text-[rgb(var(--fg))] focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100"
+                    className="w-full rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm text-[rgb(var(--fg))] focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100 dark:focus:ring-sky-500/30"
                     placeholder="Straße und Hausnummer"
                     value={personalDraft.street}
                     onChange={(event) =>
@@ -1858,7 +1858,7 @@ function CompactProfileHubSection({
                 </label>
                 <div className="grid grid-cols-4 gap-2">
                   <input
-                    className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm text-[rgb(var(--fg))] focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100"
+                    className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm text-[rgb(var(--fg))] focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100 dark:focus:ring-sky-500/30"
                     placeholder="PLZ"
                     value={personalDraft.postalCode}
                     onChange={(event) =>
@@ -1866,7 +1866,7 @@ function CompactProfileHubSection({
                     }
                   />
                   <input
-                    className="col-span-2 rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm text-[rgb(var(--fg))] focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100"
+                    className="col-span-2 rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm text-[rgb(var(--fg))] focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100 dark:focus:ring-sky-500/30"
                     placeholder="Stadt"
                     value={personalDraft.city}
                     onChange={(event) =>
@@ -1874,7 +1874,7 @@ function CompactProfileHubSection({
                     }
                   />
                   <input
-                    className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm uppercase text-[rgb(var(--fg))] focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100"
+                    className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm uppercase text-[rgb(var(--fg))] focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100 dark:focus:ring-sky-500/30"
                     placeholder="Land"
                     value={personalDraft.country}
                     onChange={(event) =>
@@ -1918,7 +1918,7 @@ function CompactProfileHubSection({
                 <label className="mt-2 block space-y-1">
                   <span className="text-[11px] text-[rgb(var(--muted))]">Nickname</span>
                   <input
-                    className="w-full rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm text-[rgb(var(--fg))] focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100"
+                    className="w-full rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm text-[rgb(var(--fg))] focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100 dark:focus:ring-sky-500/30"
                     value={personalDraft.nickname}
                     onChange={(event) =>
                       setPersonalDraft((prev) => ({ ...prev, nickname: event.target.value }))
@@ -2124,7 +2124,7 @@ function CompactProfileHubSection({
                       : "border-[rgb(var(--border))] bg-[rgb(var(--bg))] text-[rgb(var(--muted))] hover:text-[rgb(var(--fg))]"
                   }`}
                 >
-                  <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-slate-950/40 text-sky-400 ring-1 ring-sky-400/30">
+                  <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-sky-100 text-sky-700 ring-1 ring-sky-300/60 dark:bg-sky-500/18 dark:text-sky-200 dark:ring-sky-400/40">
                     <TopicIcon className="h-3.5 w-3.5" aria-hidden />
                   </span>
                   <span className="flex-1 leading-tight">{topic.label}</span>
@@ -2177,7 +2177,7 @@ function CompactProfileHubSection({
             <button
               type="button"
               onClick={() => void loadSocialSummary()}
-              className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-[rgb(var(--bg))] text-[rgb(var(--muted))] ring-1 ring-[rgb(var(--border))] transition hover:text-[rgb(var(--fg))] focus:outline-none focus:ring-2 focus:ring-sky-200"
+              className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-[rgb(var(--bg))] text-[rgb(var(--muted))] ring-1 ring-[rgb(var(--border))] transition hover:text-[rgb(var(--fg))] focus:outline-none focus:ring-2 focus:ring-sky-200 dark:focus:ring-sky-500/30"
               aria-label="Inbox aktualisieren"
             >
               <FiRefreshCw className="h-3.5 w-3.5 text-sky-500" aria-hidden />
@@ -2758,7 +2758,7 @@ function CompactProfileHubSection({
       <button
         type="button"
         onClick={() => setActiveTab("inbox")}
-        className={`fixed right-3 z-40 inline-flex h-11 w-11 items-center justify-center rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))]/95 text-[rgb(var(--muted))] shadow-[0_10px_26px_rgba(15,23,42,0.28)] backdrop-blur transition-all duration-200 hover:text-[rgb(var(--fg))] focus:outline-none focus:ring-2 focus:ring-sky-200 md:hidden ${mobileUtilityVisibilityClass} ${
+        className={`fixed right-3 z-40 inline-flex h-11 w-11 items-center justify-center rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))]/95 text-[rgb(var(--muted))] shadow-[0_10px_26px_rgba(15,23,42,0.28)] backdrop-blur transition-all duration-200 hover:text-[rgb(var(--fg))] focus:outline-none focus:ring-2 focus:ring-sky-200 dark:focus:ring-sky-500/30 md:hidden ${mobileUtilityVisibilityClass} ${
           activeTab === "inbox"
             ? "bottom-[calc(env(safe-area-inset-bottom)+6.1rem)] text-sky-600 dark:text-sky-200"
             : "bottom-[calc(env(safe-area-inset-bottom)+5rem)]"
@@ -2962,7 +2962,7 @@ function CompactProfileHubSection({
                     onChange={(event) => setDmDraft(event.target.value)}
                     onKeyDown={handleDmComposerKeyDown}
                     placeholder="Kurze Nachricht schreiben …"
-                    className="w-full resize-none rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm text-[rgb(var(--fg))] focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100"
+                    className="w-full resize-none rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm text-[rgb(var(--fg))] focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100 dark:focus:ring-sky-500/30"
                   />
                   <button
                     type="button"
@@ -3181,7 +3181,7 @@ function CompactProfileHubSection({
               <label className="block space-y-1">
                 <span className="text-xs font-medium text-[rgb(var(--muted))]">Anzeigename</span>
                 <input
-                  className="w-full rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-sm text-[rgb(var(--fg))] focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100"
+                  className="w-full rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-sm text-[rgb(var(--fg))] focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100 dark:focus:ring-sky-500/30"
                   value={displayName}
                   onChange={(event) => setDisplayName(event.target.value)}
                 />
@@ -3189,7 +3189,7 @@ function CompactProfileHubSection({
               <label className="block space-y-1">
                 <span className="text-xs font-medium text-[rgb(var(--muted))]">Kurzprofil</span>
                 <input
-                  className="w-full rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-sm text-[rgb(var(--fg))] focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100"
+                  className="w-full rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-sm text-[rgb(var(--fg))] focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100 dark:focus:ring-sky-500/30"
                   value={tagline}
                   onChange={(event) => setTagline(event.target.value)}
                   placeholder="z. B. Studentin, Lokaljournalist, Klima-Aktiv"
@@ -3199,7 +3199,7 @@ function CompactProfileHubSection({
                 <span className="text-xs font-medium text-[rgb(var(--muted))]">Selbstdarstellung</span>
                 <textarea
                   rows={4}
-                  className="w-full resize-none rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-sm text-[rgb(var(--fg))] focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100"
+                  className="w-full resize-none rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-sm text-[rgb(var(--fg))] focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100 dark:focus:ring-sky-500/30"
                   value={bio}
                   onChange={(event) => setBio(event.target.value)}
                   placeholder="Was treibt dich politisch oder lokal an?"
@@ -3709,7 +3709,7 @@ function ProfileCard({ profile, onRefresh }: ProfileCardProps) {
             <input
               id="displayName"
               name="displayName"
-              className="w-full rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-sm text-[rgb(var(--fg))] shadow-inner focus:border-sky-400 focus:bg-[rgb(var(--card))] focus:outline-none focus:ring-2 focus:ring-sky-100"
+              className="w-full rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-sm text-[rgb(var(--fg))] shadow-inner focus:border-sky-400 focus:bg-[rgb(var(--card))] focus:outline-none focus:ring-2 focus:ring-sky-100 dark:focus:ring-sky-500/30"
               value={draft.displayName}
               onChange={(event) => handleFieldChange({ displayName: event.target.value })}
             />
@@ -3730,7 +3730,7 @@ function ProfileCard({ profile, onRefresh }: ProfileCardProps) {
               <select
                 id="preferredLocale"
                 name="preferredLocale"
-                className="w-full rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-sm text-[rgb(var(--fg))] focus:border-sky-400 focus:bg-[rgb(var(--card))] focus:outline-none focus:ring-2 focus:ring-sky-100"
+                className="w-full rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-sm text-[rgb(var(--fg))] focus:border-sky-400 focus:bg-[rgb(var(--card))] focus:outline-none focus:ring-2 focus:ring-sky-100 dark:focus:ring-sky-500/30"
                 value={draft.preferredLocale}
                 onChange={(event) => handleFieldChange({ preferredLocale: event.target.value })}
               >
@@ -3743,7 +3743,7 @@ function ProfileCard({ profile, onRefresh }: ProfileCardProps) {
           <label className="inline-flex items-start gap-2 rounded-2xl bg-[rgb(var(--bg))] px-3 py-2 text-xs text-[rgb(var(--muted))]">
             <input
               type="checkbox"
-              className="mt-[2px] h-4 w-4 rounded border-[rgb(var(--border))] text-sky-600 focus:ring-sky-500"
+              className="mt-[2px] h-4 w-4 rounded border-[rgb(var(--border))] text-sky-600 focus:ring-sky-500 dark:focus:ring-sky-500/30"
               checked={draft.newsletterOptIn}
               onChange={(event) => handleFieldChange({ newsletterOptIn: event.target.checked })}
             />
@@ -4013,7 +4013,7 @@ function EDebattePackageModal({ currentPackage, onClose, onRefresh }: EDebattePa
             ref={closeButtonRef}
             type="button"
             onClick={onClose}
-            className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-[rgb(var(--bg))] text-xs font-semibold text-[rgb(var(--muted))] hover:bg-[rgb(var(--bg))] focus:outline-none focus:ring-2 focus:ring-sky-200"
+            className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-[rgb(var(--bg))] text-xs font-semibold text-[rgb(var(--muted))] hover:bg-[rgb(var(--bg))] focus:outline-none focus:ring-2 focus:ring-sky-200 dark:focus:ring-sky-500/30"
             aria-label="Auswahl schließen"
           >
             ✕
@@ -4031,13 +4031,13 @@ function EDebattePackageModal({ currentPackage, onClose, onRefresh }: EDebattePa
 
             if (isCurrent && currentPackage.status === "active") {
               statusText = "Aktuelles Paket";
-              statusClass = "inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-emerald-700 ring-1 ring-emerald-200";
+              statusClass = "inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-emerald-700 ring-1 ring-emerald-200 dark:bg-emerald-500/14 dark:text-emerald-100 dark:ring-emerald-400/40";
             } else if (isCurrent && currentPackage.status === "preorder") {
               statusText = "Vorgemerkt";
-              statusClass = "inline-flex items-center rounded-full bg-sky-50 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-sky-700 ring-1 ring-sky-200";
+              statusClass = "inline-flex items-center rounded-full bg-sky-50 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-sky-700 ring-1 ring-sky-200 dark:bg-sky-500/14 dark:text-sky-100 dark:ring-sky-400/40";
             } else if (isCanceled) {
               statusText = "Zuletzt gekündigt";
-              statusClass = "inline-flex items-center rounded-full bg-amber-50 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-amber-700 ring-1 ring-amber-200";
+              statusClass = "inline-flex items-center rounded-full bg-amber-50 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-amber-700 ring-1 ring-amber-200 dark:bg-amber-500/14 dark:text-amber-100 dark:ring-amber-400/40";
             }
 
             const disabled = isCurrent;
@@ -4206,7 +4206,7 @@ function PublicProfileCard({ initial, onRefresh }: PublicProfileCardProps) {
             <textarea
               id="public-bio"
               rows={4}
-              className="w-full resize-none rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-sm text-[rgb(var(--fg))] focus:border-sky-400 focus:bg-[rgb(var(--card))] focus:outline-none focus:ring-2 focus:ring-sky-100"
+              className="w-full resize-none rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-sm text-[rgb(var(--fg))] focus:border-sky-400 focus:bg-[rgb(var(--card))] focus:outline-none focus:ring-2 focus:ring-sky-100 dark:focus:ring-sky-500/30"
               value={draft.bio ?? ""}
               onChange={(event) => handleFieldChange({ bio: event.target.value })}
               placeholder="Zum Beispiel: Engagiert mich für bezahlbaren Wohnraum und konsequenten Klimaschutz in meiner Stadt."
@@ -4219,7 +4219,7 @@ function PublicProfileCard({ initial, onRefresh }: PublicProfileCardProps) {
             </label>
             <input
               id="public-tagline"
-              className="w-full rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-sm text-[rgb(var(--fg))] focus:border-sky-400 focus:bg-[rgb(var(--card))] focus:outline-none focus:ring-2 focus:ring-sky-100"
+              className="w-full rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-sm text-[rgb(var(--fg))] focus:border-sky-400 focus:bg-[rgb(var(--card))] focus:outline-none focus:ring-2 focus:ring-sky-100 dark:focus:ring-sky-500/30"
               value={draft.tagline ?? ""}
               onChange={(event) => handleFieldChange({ tagline: event.target.value })}
               placeholder="z.B. Pflegekraft, Student, Kommunalpolitikerin"
@@ -4253,7 +4253,7 @@ function PublicProfileCard({ initial, onRefresh }: PublicProfileCardProps) {
               </label>
               <input
                 id="public-city"
-                className="w-full rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-sm text-[rgb(var(--fg))] focus:border-sky-400 focus:bg-[rgb(var(--card))] focus:outline-none focus:ring-2 focus:ring-sky-100"
+                className="w-full rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-sm text-[rgb(var(--fg))] focus:border-sky-400 focus:bg-[rgb(var(--card))] focus:outline-none focus:ring-2 focus:ring-sky-100 dark:focus:ring-sky-500/30"
                 value={draft.city ?? ""}
                 onChange={(event) => handleFieldChange({ city: event.target.value })}
                 placeholder="z. B. Köln"
@@ -4265,7 +4265,7 @@ function PublicProfileCard({ initial, onRefresh }: PublicProfileCardProps) {
               </label>
               <input
                 id="public-region"
-                className="w-full rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-sm text-[rgb(var(--fg))] focus:border-sky-400 focus:bg-[rgb(var(--card))] focus:outline-none focus:ring-2 focus:ring-sky-100"
+                className="w-full rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-sm text-[rgb(var(--fg))] focus:border-sky-400 focus:bg-[rgb(var(--card))] focus:outline-none focus:ring-2 focus:ring-sky-100 dark:focus:ring-sky-500/30"
                 value={draft.region ?? ""}
                 onChange={(event) => handleFieldChange({ region: event.target.value })}
                 placeholder="z. B. NRW"
@@ -4277,7 +4277,7 @@ function PublicProfileCard({ initial, onRefresh }: PublicProfileCardProps) {
               </label>
               <input
                 id="public-country"
-                className="w-full rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-sm uppercase text-[rgb(var(--fg))] focus:border-sky-400 focus:bg-[rgb(var(--card))] focus:outline-none focus:ring-2 focus:ring-sky-100"
+                className="w-full rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-sm uppercase text-[rgb(var(--fg))] focus:border-sky-400 focus:bg-[rgb(var(--card))] focus:outline-none focus:ring-2 focus:ring-sky-100 dark:focus:ring-sky-500/30"
                 value={draft.countryCode ?? ""}
                 onChange={(event) => handleFieldChange({ countryCode: event.target.value.toUpperCase() })}
                 placeholder="DE"
@@ -4300,13 +4300,13 @@ function PublicProfileCard({ initial, onRefresh }: PublicProfileCardProps) {
                         key={topic.key}
                         className={`inline-flex items-start gap-2 rounded-2xl px-3 py-2 text-[11px] ring-1 ${
                           checked
-                            ? "bg-sky-50 text-sky-800 ring-sky-100"
+                            ? "bg-sky-50 text-sky-800 ring-sky-100 dark:bg-sky-500/16 dark:text-sky-100 dark:ring-sky-400/40"
                             : "bg-[rgb(var(--bg))] text-[rgb(var(--muted))] ring-[rgb(var(--border))]"
                         } ${disabled ? "opacity-60" : ""}`}
                       >
                         <input
                           type="checkbox"
-                          className="mt-[2px] h-4 w-4 rounded border-[rgb(var(--border))] text-sky-600 focus:ring-sky-500"
+                          className="mt-[2px] h-4 w-4 rounded border-[rgb(var(--border))] text-sky-600 focus:ring-sky-500 dark:focus:ring-sky-500/30"
                           checked={checked}
                           disabled={disabled}
                           onChange={(event) => toggleTopTopic(topic.key, event.target.checked)}
@@ -4353,7 +4353,7 @@ function ToggleRow({ label, checked, onChange }: ToggleRowProps) {
     <label className="inline-flex items-start gap-2 rounded-2xl bg-[rgb(var(--bg))] px-3 py-2 text-[11px] text-[rgb(var(--muted))]">
       <input
         type="checkbox"
-        className="mt-[2px] h-4 w-4 rounded border-[rgb(var(--border))] text-sky-600 focus:ring-sky-500"
+        className="mt-[2px] h-4 w-4 rounded border-[rgb(var(--border))] text-sky-600 focus:ring-sky-500 dark:focus:ring-sky-500/30"
         checked={checked}
         onChange={(event) => onChange(event.target.checked)}
       />
@@ -4403,8 +4403,8 @@ function VOGMembershipCard({ membership, membershipStatus, paymentReference }: V
   const isWaitingPayment = membershipStatus === "waiting_payment";
   const paymentHint = paymentReference ? `Verwendungszweck: ${paymentReference}` : null;
   const badgeClass = membership.isMember
-    ? "inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-emerald-700 ring-1 ring-emerald-200"
-    : "inline-flex items-center rounded-full bg-amber-50 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-amber-700 ring-1 ring-amber-200";
+    ? "inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-emerald-700 ring-1 ring-emerald-200 dark:bg-emerald-500/14 dark:text-emerald-100 dark:ring-emerald-400/40"
+    : "inline-flex items-center rounded-full bg-amber-50 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-amber-700 ring-1 ring-amber-200 dark:bg-amber-500/14 dark:text-amber-100 dark:ring-amber-400/40";
 
   return (
     <section className="rounded-3xl bg-[rgb(var(--card))] p-5 shadow-[0_18px_55px_rgba(15,23,42,0.08)] ring-1 ring-[rgb(var(--border))] sm:p-6">
@@ -4476,7 +4476,7 @@ function RolesCard({ roles }: RolesCardProps) {
                 )}
               </div>
               {role.badge && (
-                <span className="inline-flex items-center rounded-full bg-sky-50 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-sky-700 ring-1 ring-sky-100">
+                <span className="inline-flex items-center rounded-full bg-sky-50 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-sky-700 ring-1 ring-sky-100 dark:bg-sky-500/14 dark:text-sky-100 dark:ring-sky-400/40">
                   {role.badge}
                 </span>
               )}
@@ -4489,7 +4489,7 @@ function RolesCard({ roles }: RolesCardProps) {
           </div>
         )}
         {hasSuperadmin && (
-          <div className="rounded-2xl bg-emerald-50/70 px-3 py-2 text-[11px] font-semibold text-emerald-800 ring-1 ring-emerald-100">
+          <div className="rounded-2xl bg-emerald-50/70 px-3 py-2 text-[11px] font-semibold text-emerald-800 ring-1 ring-emerald-100 dark:bg-emerald-500/12 dark:text-emerald-100 dark:ring-emerald-400/35">
             Superadmin aktiv
           </div>
         )}
@@ -4580,8 +4580,8 @@ function IdentityCheckCard() {
   const requiresBack = docType === "id_card";
   const hasDoc = Boolean(doc);
   const badgeClass = hasDoc
-    ? "inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-emerald-700 ring-1 ring-emerald-200"
-    : "inline-flex items-center rounded-full bg-amber-50 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-amber-700 ring-1 ring-amber-200";
+    ? "inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-emerald-700 ring-1 ring-emerald-200 dark:bg-emerald-500/14 dark:text-emerald-100 dark:ring-emerald-400/40"
+    : "inline-flex items-center rounded-full bg-amber-50 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-amber-700 ring-1 ring-amber-200 dark:bg-amber-500/14 dark:text-amber-100 dark:ring-amber-400/40";
 
   const updatedAtLabel = doc?.updatedAt
     ? new Intl.DateTimeFormat("de-DE", { dateStyle: "medium", timeStyle: "short" }).format(
@@ -4782,7 +4782,7 @@ function IdentityCheckCard() {
               <label
                 className={`cursor-pointer rounded-xl border px-3 py-2 text-[11px] ${
                   docType === "id_card"
-                    ? "border-sky-200 bg-sky-50 text-sky-700"
+                    ? "border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-400/45 dark:bg-sky-500/16 dark:text-sky-100"
                     : "border-[rgb(var(--border))] bg-[rgb(var(--card))] text-[rgb(var(--muted))]"
                 }`}
               >
@@ -4801,7 +4801,7 @@ function IdentityCheckCard() {
               <label
                 className={`cursor-pointer rounded-xl border px-3 py-2 text-[11px] ${
                   docType === "passport"
-                    ? "border-sky-200 bg-sky-50 text-sky-700"
+                    ? "border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-400/45 dark:bg-sky-500/16 dark:text-sky-100"
                     : "border-[rgb(var(--border))] bg-[rgb(var(--card))] text-[rgb(var(--muted))]"
                 }`}
               >
@@ -4901,8 +4901,8 @@ function StatusRow({ label, positive }: StatusRowProps) {
       <span
         className={
           positive
-            ? "inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-emerald-700 ring-1 ring-emerald-200"
-            : "inline-flex items-center rounded-full bg-amber-50 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-amber-700 ring-1 ring-amber-200"
+            ? "inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-emerald-700 ring-1 ring-emerald-200 dark:bg-emerald-500/14 dark:text-emerald-100 dark:ring-emerald-400/40"
+            : "inline-flex items-center rounded-full bg-amber-50 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-amber-700 ring-1 ring-amber-200 dark:bg-amber-500/14 dark:text-amber-100 dark:ring-amber-400/40"
         }
       >
         {positive ? "aktiv" : "empfohlen"}
@@ -5085,7 +5085,7 @@ function FeatureCard({ title, description, enabled, interested, onInterestChange
           <input
             id={checkboxId}
             type="checkbox"
-            className="mt-[2px] h-4 w-4 rounded border-[rgb(var(--border))] text-sky-600 focus:ring-sky-500"
+            className="mt-[2px] h-4 w-4 rounded border-[rgb(var(--border))] text-sky-600 focus:ring-sky-500 dark:focus:ring-sky-500/30"
             checked={interested}
             onChange={(event) => onInterestChange(event.target.checked)}
           />
@@ -5096,7 +5096,7 @@ function FeatureCard({ title, description, enabled, interested, onInterestChange
         <span
           className={
             enabled
-              ? "inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-emerald-700 ring-1 ring-emerald-200"
+              ? "inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-emerald-700 ring-1 ring-emerald-200 dark:bg-emerald-500/14 dark:text-emerald-100 dark:ring-emerald-400/40"
               : "inline-flex items-center rounded-full bg-[rgb(var(--bg))] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))] ring-1 ring-[rgb(var(--border))]"
           }
         >

@@ -14,16 +14,16 @@ import {
 
 export const metadata: Metadata = {
   title: "Community",
-  description: "Raeume und Austausch fuer sachliche Debatten, Moderation und Themenarbeit.",
+  description: "Räume und Austausch für sachliche Debatten, Moderation und Themenarbeit.",
   openGraph: {
     title: "Community",
-    description: "Raeume und Austausch fuer sachliche Debatten, Moderation und Themenarbeit.",
+    description: "Räume und Austausch für sachliche Debatten, Moderation und Themenarbeit.",
     url: `${BRAND.baseUrl}/community`,
     siteName: BRAND.name,
   },
   twitter: {
     title: "Community",
-    description: "Raeume und Austausch fuer sachliche Debatten, Moderation und Themenarbeit.",
+    description: "Räume und Austausch für sachliche Debatten, Moderation und Themenarbeit.",
   },
 };
 
@@ -55,7 +55,7 @@ function t(entry: { de: string; en: string }, locale: SupportedLocale) {
 function groupTypeLabel(type: OriginType, locale: SupportedLocale): string {
   const map = {
     regional_group: { de: "Regional", en: "Regional" },
-    interest_match: { de: "Ueberregional", en: "Cross-regional" },
+    interest_match: { de: "Überregional", en: "Cross-regional" },
     dossier: { de: "Dossier", en: "Dossier" },
     topic_round: { de: "Themenrunde", en: "Topic round" },
     founder: { de: "Founder-Kanal", en: "Founder channel" },
@@ -93,7 +93,7 @@ function groupWhyLine(context: GroupContext, locale: SupportedLocale): string {
   }
   return locale === "en"
     ? "Discovery area for context-based contacts."
-    : "Discovery-Raum fuer kontextbasierte Kontakte.";
+    : "Discovery-Raum für kontextbasierte Kontakte.";
 }
 
 function relationshipLabel(state: GroupMember["relationshipState"], locale: SupportedLocale): string {
@@ -112,13 +112,13 @@ function relationshipPrimaryCta(member: GroupMember, locale: SupportedLocale): {
   }
   if (member.relationshipState === "incoming_pending") {
     return {
-      label: locale === "en" ? "Review request" : "Anfrage pruefen",
+      label: locale === "en" ? "Review request" : "Anfrage prüfen",
       href: "/account#inbox",
     };
   }
   if (member.relationshipState === "outgoing_pending") {
     return {
-      label: locale === "en" ? "Request running" : "Anfrage laeuft",
+      label: locale === "en" ? "Request running" : "Anfrage läuft",
       href: "/account#inbox",
     };
   }
@@ -146,11 +146,11 @@ export default async function CommunityPage({ searchParams }: Props) {
         <section className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800">
           {locale === "en"
             ? `Invalid community deep-link parameters (${deepLinkValidation.error}).`
-            : `Ungueltige Community-Deep-Link-Parameter (${deepLinkValidation.error}).`}
+            : `Ungültige Community-Deep-Link-Parameter (${deepLinkValidation.error}).`}
         </section>
         <div className="flex flex-wrap gap-2 text-xs">
           <Link href="/community" className="font-semibold text-[rgb(var(--muted))] hover:text-[rgb(var(--fg))]">
-            {locale === "en" ? "Open community overview" : "Community-Uebersicht oeffnen"}
+            {locale === "en" ? "Open community overview" : "Community-Übersicht öffnen"}
           </Link>
         </div>
       </main>
@@ -173,13 +173,13 @@ export default async function CommunityPage({ searchParams }: Props) {
           <p className="text-sm text-[rgb(var(--muted))]">
             {locale === "en"
               ? "Discovery, context and contributions. Not a realtime messenger."
-              : "Discovery, Kontext und Beitraege. Kein Realtime-Messenger."}
+              : "Discovery, Kontext und Beiträge. Kein Realtime-Messenger."}
           </p>
         </header>
 
         {model.source.unavailable ? (
           <section className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800">
-            Produktive Community-Quelle aktuell nicht verfuegbar (`{model.source.error}`).
+            Produktive Community-Quelle aktuell nicht verfügbar (`{model.source.error}`).
           </section>
         ) : null}
 
@@ -212,14 +212,14 @@ export default async function CommunityPage({ searchParams }: Props) {
           <p className="mt-2 text-[rgb(var(--muted))]">
             {locale === "en"
               ? "Community currently means discovery + context + contributions + connections. Messaging remains DM v1 in inbox."
-              : "Community bedeutet aktuell Discovery + Kontext + Beitraege + Verbindungen. Nachrichten bleiben DM v1 in der Inbox."}
+              : "Community bedeutet aktuell Discovery + Kontext + Beiträge + Verbindungen. Nachrichten bleiben DM v1 in der Inbox."}
           </p>
           <div className="mt-3 flex flex-wrap gap-2 text-xs">
             <Link href="/community/contributions" className="font-semibold text-[rgb(var(--muted))] hover:text-[rgb(var(--fg))]">
-              {locale === "en" ? "Open contributions" : "Beitraege oeffnen"}
+              {locale === "en" ? "Open contributions" : "Beiträge öffnen"}
             </Link>
             <Link href="/account#inbox" className="font-semibold text-[rgb(var(--muted))] hover:text-[rgb(var(--fg))]">
-              {locale === "en" ? "Open inbox" : "Inbox oeffnen"}
+              {locale === "en" ? "Open inbox" : "Inbox öffnen"}
             </Link>
           </div>
         </section>
@@ -233,7 +233,7 @@ export default async function CommunityPage({ searchParams }: Props) {
     <main className="mx-auto flex max-w-6xl flex-col gap-5 px-4 py-8 md:py-10">
       {model.source.unavailable ? (
         <section className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800">
-          Produktive Community-Quelle aktuell nicht verfuegbar (`{model.source.error}`). Es wird kein statischer Demo-Fallback geladen.
+          Produktive Community-Quelle aktuell nicht verfügbar (`{model.source.error}`). Es wird kein statischer Demo-Fallback geladen.
         </section>
       ) : null}
 
@@ -249,7 +249,7 @@ export default async function CommunityPage({ searchParams }: Props) {
                 : "Regionaler Scope"
               : locale === "en"
                 ? "Cross-regional scope"
-                : "Ueberregionaler Scope"}
+                : "Überregionaler Scope"}
           </span>
         </div>
         <h1 className="mt-2 text-2xl font-semibold text-[rgb(var(--fg))] sm:text-3xl">{context.label}</h1>
@@ -294,7 +294,7 @@ export default async function CommunityPage({ searchParams }: Props) {
                           href={`/profile/${encodeURIComponent(member.shareId)}`}
                           className="inline-flex w-full items-center justify-center rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-1.5 text-[11px] font-semibold text-[rgb(var(--muted))] hover:text-[rgb(var(--fg))]"
                         >
-                          {locale === "en" ? "Open profile" : "Profil oeffnen"}
+                          {locale === "en" ? "Open profile" : "Profil öffnen"}
                         </Link>
                       ) : (
                         <button
@@ -320,7 +320,7 @@ export default async function CommunityPage({ searchParams }: Props) {
             <p className="text-xs text-[rgb(var(--muted))]">
               {locale === "en"
                 ? "No matching people yet. Save interests and region to strengthen this group."
-                : "Noch keine passenden Menschen sichtbar. Interessen und Region staerken diese Gruppe."}
+                : "Noch keine passenden Menschen sichtbar. Interessen und Region stärken diese Gruppe."}
             </p>
           )}
         </div>
@@ -343,7 +343,7 @@ export default async function CommunityPage({ searchParams }: Props) {
               <p className="mt-2 text-xs text-[rgb(var(--muted))]">
                 {locale === "en"
                   ? "No content mapped yet for this context."
-                  : "Fuer diesen Kontext sind noch keine Inhalte zugeordnet."}
+                  : "Für diesen Kontext sind noch keine Inhalte zugeordnet."}
               </p>
             )}
             <div className="mt-3 flex flex-wrap gap-2">
@@ -351,7 +351,7 @@ export default async function CommunityPage({ searchParams }: Props) {
                 href={topicHref}
                 className="inline-flex items-center justify-center rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-1.5 text-[11px] font-semibold text-[rgb(var(--muted))] hover:text-[rgb(var(--fg))]"
               >
-                {locale === "en" ? "Open topic in swipes" : "Thema in Swipes oeffnen"}
+                {locale === "en" ? "Open topic in swipes" : "Thema in Swipes öffnen"}
               </Link>
               <Link
                 href="/community/contributions"
@@ -372,7 +372,7 @@ export default async function CommunityPage({ searchParams }: Props) {
                 <p className="mt-0.5 text-xs text-[rgb(var(--muted))]">
                   {locale === "en"
                     ? "Shared dossier context for this group."
-                    : "Gemeinsamer Dossier-Kontext fuer diese Gruppe."}
+                    : "Gemeinsamer Dossier-Kontext für diese Gruppe."}
                 </p>
               </div>
             ) : (
@@ -388,7 +388,7 @@ export default async function CommunityPage({ searchParams }: Props) {
                   href={dossierHref}
                   className="inline-flex items-center justify-center rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-1.5 text-[11px] font-semibold text-[rgb(var(--muted))] hover:text-[rgb(var(--fg))]"
                 >
-                  {locale === "en" ? "Open dossier" : "Dossier oeffnen"}
+                  {locale === "en" ? "Open dossier" : "Dossier öffnen"}
                 </Link>
               ) : (
                 <button
@@ -396,7 +396,7 @@ export default async function CommunityPage({ searchParams }: Props) {
                   disabled
                   className="inline-flex items-center justify-center rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-1.5 text-[11px] font-semibold text-[rgb(var(--muted))] opacity-70"
                 >
-                  {locale === "en" ? "No dossier linked" : "Kein Dossier verknuepft"}
+                  {locale === "en" ? "No dossier linked" : "Kein Dossier verknüpft"}
                 </button>
               )}
               <Link
@@ -417,7 +417,7 @@ export default async function CommunityPage({ searchParams }: Props) {
         <p className="mt-1">
           {locale === "en"
             ? "Discovery + context + contributions + connections. No realtime group chat and no full messenger promise."
-            : "Discovery + Kontext + Beitraege + Verbindungen. Kein Realtime-Gruppenchat und kein Voll-Messenger-Versprechen."}
+            : "Discovery + Kontext + Beiträge + Verbindungen. Kein Realtime-Gruppenchat und kein Voll-Messenger-Versprechen."}
         </p>
       </section>
     </main>

@@ -122,10 +122,10 @@ function guardrailsForHandoff(matchType: CreateAnalyzeMatchType | undefined): st
     "Kein Auto-Merge.",
     "Kein Auto-Publish.",
     "Ursprung bleibt erhalten.",
-    "Handoff ist vorbereitend und manuell bestaetigt.",
+    "Handoff ist vorbereitend und manuell bestätigt.",
   ];
   if (matchType === "duplicate_risk") {
-    guardrails.push("Duplikatrisiko: vor jeder Weiterfuehrung manuell pruefen.");
+    guardrails.push("Duplikatrisiko: vor jeder Weiterführung manuell prüfen.");
   }
   return guardrails;
 }
@@ -142,15 +142,15 @@ function summaryForHandoff(input: {
     return "Perspektive nur vorbereiten; Signal-/Quellenursprung bleibt referenziert, kein direktes Speichern oder Attach.";
   }
   if (input.ctaId === "anlassraum_oeffnen") {
-    return "Anlassraum manuell oeffnen und Handoff bewusst bestaetigen.";
+    return "Anlassraum manuell öffnen und Handoff bewusst bestätigen.";
   }
   if (input.ctaId === "dossier_oeffnen") {
-    return "Dossier-Verdichtung manuell oeffnen; Anlassraum kann parallel eigenstaendig weitergefuehrt werden.";
+    return "Dossier-Verdichtung manuell öffnen; Anlassraum kann parallel eigenständig weitergeführt werden.";
   }
   if (input.matchType === "duplicate_risk") {
-    return "Konflikt-/Duplikat-Hinweis manuell pruefen, bevor eine Anschlussaktion erfolgt.";
+    return "Konflikt-/Duplikat-Hinweis manuell prüfen, bevor eine Anschlussaktion erfolgt.";
   }
-  return `CTA ${input.ctaId} wird als manueller Prepare-Handoff fuer ${input.entityType ?? "Kontext"} gefuehrt.`;
+  return `CTA ${input.ctaId} wird als manueller Prepare-Handoff für ${input.entityType ?? "Kontext"} geführt.`;
 }
 
 export function buildCreateCtaHandoff(params: {
@@ -164,7 +164,7 @@ export function buildCreateCtaHandoff(params: {
   const matchType = match?.matchType ?? params.createAnalyze.matchType;
   const targetRef = defaultTargetRef(ctaId, match);
   const warning = matchType === "duplicate_risk"
-    ? "Moegliches Duplikat erkannt. Kein Auto-Attach; bitte manuell pruefen."
+    ? "Mögliches Duplikat erkannt. Kein Auto-Attach; bitte manuell prüfen."
     : null;
 
   return {

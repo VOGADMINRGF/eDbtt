@@ -114,7 +114,7 @@ export default function AdminSupportDetailPage() {
 
       <div className="flex flex-wrap items-center gap-3 text-sm">
         <Link href="/admin/support" className="font-semibold text-[rgb(var(--muted))] hover:text-[rgb(var(--fg))]">
-          Zurueck zu Support
+          Zurück zu Support
         </Link>
         {data?.supportCampaign?.targetType === "campaign" && data.supportCampaign.targetId ? (
           <Link
@@ -137,7 +137,7 @@ export default function AdminSupportDetailPage() {
       {error ? <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</div> : null}
 
       {loading ? (
-        <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-6 text-sm text-[rgb(var(--muted))]">Laedt …</section>
+        <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-6 text-sm text-[rgb(var(--muted))]">Lädt …</section>
       ) : null}
 
       {data ? (

@@ -218,6 +218,11 @@ export async function getSwipeFeed(req: SwipeFeedRequest): Promise<SwipeFeedResp
       .limit(req.limit ?? 20)
       .toArray();
   } catch (error) {
+    if (fromDraftId) {
+      // fromDraft arrival must not fabricate unrelated fallback cards.
+      console.error("[swipes] proposal feed unavailable, preserving explicit fromDraft no-match", error);
+      return { items: [], nextCursor: null };
+    }
     console.error("[swipes] proposal feed unavailable, using seed fallback", error);
     return { items: filterSwipeSeedItems(req.filter), nextCursor: null };
   }

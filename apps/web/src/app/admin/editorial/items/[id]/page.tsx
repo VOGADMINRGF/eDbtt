@@ -380,7 +380,7 @@ export default function AdminEditorialItemPage() {
           className="mt-3 rounded-2xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white"
           onClick={handleSourceAdd}
         >
-          Quelle hinzufuegen
+          Quelle hinzufügen
         </button>
         <div className="mt-4 space-y-2 text-sm">
           {sources.map((source) => (
@@ -420,7 +420,7 @@ export default function AdminEditorialItemPage() {
 
       {loading && (
         <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-3 text-sm text-[rgb(var(--muted))]">
-          Laedt Item...
+          Lädt Item...
         </div>
       )}
     </div>

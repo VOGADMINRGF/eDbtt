@@ -182,8 +182,8 @@ const CONTENT_RENDER_UI_TEXTS: Partial<Record<SupportedLocale, ContentRenderUiTe
   de: {
     showOriginal: "Original anzeigen",
     originalLabel: "Original",
-    translatedFrom: (language) => `Uebersetzt aus ${language ?? "unbekannt"}`,
-    translationMissing: (locale) => `Keine Uebersetzung fuer ${locale.toUpperCase()} vorhanden.`,
+    translatedFrom: (language) => `Übersetzt aus ${language ?? "unbekannt"}`,
+    translationMissing: (locale) => `Keine Übersetzung für ${locale.toUpperCase()} vorhanden.`,
   },
   en: {
     showOriginal: "Show original",
@@ -218,10 +218,10 @@ export function getContentRenderUiText(locale?: string | null): ContentRenderUiT
 
 const CONTENT_STATUS_LABELS: Partial<Record<SupportedLocale, Record<ContentTranslationStatus, string>>> = {
   de: {
-    missing: "Uebersetzung fehlt",
-    pending: "Uebersetzung ausstehend",
-    translated: "Uebersetzt",
-    failed: "Uebersetzung fehlgeschlagen",
+    missing: "Übersetzung fehlt",
+    pending: "Übersetzung ausstehend",
+    translated: "Übersetzt",
+    failed: "Übersetzung fehlgeschlagen",
   },
   en: {
     missing: "Translation missing",

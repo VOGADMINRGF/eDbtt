@@ -338,7 +338,7 @@ export default function AccessCenterPage() {
                           if (!route.routeId.startsWith("custom:") && route.overrides === 0) return;
                           const label = route.routeId.startsWith("custom:")
                             ? "Custom-Policy entfernen?"
-                            : "Overrides zuruecksetzen?";
+                            : "Overrides zurücksetzen?";
                           if (!window.confirm(label)) return;
                           try {
                             await resetPolicy(route.routeId);
@@ -348,7 +348,7 @@ export default function AccessCenterPage() {
                         }}
                         className="text-xs font-semibold text-[rgb(var(--muted))] underline-offset-2 hover:underline disabled:opacity-50"
                       >
-                        {route.routeId.startsWith("custom:") ? "Entfernen" : "Zuruecksetzen"}
+                        {route.routeId.startsWith("custom:") ? "Entfernen" : "Zurücksetzen"}
                       </button>
                     )}
                   </td>
@@ -371,7 +371,7 @@ export default function AccessCenterPage() {
             </p>
           </div>
           <span className="text-xs text-[rgb(var(--muted))]">
-            {inventoryLoading ? "laedt" : `${filteredUnmanaged.length} Eintraege`}
+            {inventoryLoading ? "lädt" : `${filteredUnmanaged.length} Einträge`}
           </span>
         </div>
 
@@ -403,7 +403,7 @@ export default function AccessCenterPage() {
                   target="_blank"
                   rel="noreferrer"
                 >
-                  oeffnen
+                  öffnen
                 </a>
                 <button
                   type="button"

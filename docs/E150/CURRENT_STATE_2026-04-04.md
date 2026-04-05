@@ -45,4 +45,3 @@ Diese Dateien bleiben erhalten, sind aber **nicht** operative Tagessteuerung:
 
 ### Parken
 - `GOV-AI-05`, `GOV-AI-06` (research_only)
-- Swipes-Folgepunkt mit offener Fachentscheidung (`PR-0044`, nach Contract-Prep `PR-0044A`)

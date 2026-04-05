@@ -1262,7 +1262,7 @@ export default function StreamCockpitPage() {
           >
             <p className="font-semibold">Support blind schalten</p>
             <p className="text-xs text-[rgb(var(--muted))]">
-              Support laeuft im Hintergrund, ohne öffentliche Anzeige.
+              Support läuft im Hintergrund, ohne öffentliche Anzeige.
             </p>
           </button>
           <button

@@ -10,19 +10,25 @@ export async function GET(req: NextRequest) {
 
   const params = req.nextUrl.searchParams;
   const limit = Number(params.get("limit") ?? 100);
-  const status = normalizeStatus(params.get("status"));
-  const reviewState = normalizeReviewState(params.get("reviewState"));
+  const status = parseStatusFilter(params.get("status"));
+  const reviewState = parseReviewStateFilter(params.get("reviewState"));
 
   if (!Number.isFinite(limit) || limit < 1 || limit > 200) {
     return NextResponse.json({ ok: false, error: "invalid_limit" }, { status: 400 });
+  }
+  if (!status.ok) {
+    return NextResponse.json({ ok: false, error: "invalid_status_filter" }, { status: 400 });
+  }
+  if (!reviewState.ok) {
+    return NextResponse.json({ ok: false, error: "invalid_review_state_filter" }, { status: 400 });
   }
 
   try {
     const items = await listLegacyVoteDraftsWithoutAnlassraumAuthorized({
       actor: gate.actor,
       limit,
-      status,
-      reviewState,
+      status: status.value,
+      reviewState: reviewState.value,
     });
 
     return NextResponse.json({
@@ -30,8 +36,8 @@ export async function GET(req: NextRequest) {
       items,
       total: items.length,
       filters: {
-        status,
-        reviewState,
+        status: status.value,
+        reviewState: reviewState.value,
         limit,
       },
     });
@@ -41,16 +47,22 @@ export async function GET(req: NextRequest) {
   }
 }
 
-function normalizeStatus(value: string | null): VoteDraftStatus | "all" {
-  const normalized = String(value || "all").toLowerCase();
+function parseStatusFilter(
+  value: string | null,
+): { ok: true; value: VoteDraftStatus | "all" } | { ok: false } {
+  if (value === null || !String(value).trim()) return { ok: true, value: "all" };
+  const normalized = String(value).toLowerCase();
   if (normalized === "draft" || normalized === "review" || normalized === "published" || normalized === "discarded") {
-    return normalized;
+    return { ok: true, value: normalized };
   }
-  return "all";
+  return { ok: false };
 }
 
-function normalizeReviewState(value: string | null): FeedReviewState | "all" {
-  const normalized = String(value || "all").toLowerCase();
+function parseReviewStateFilter(
+  value: string | null,
+): { ok: true; value: FeedReviewState | "all" } | { ok: false } {
+  if (value === null || !String(value).trim()) return { ok: true, value: "all" };
+  const normalized = String(value).toLowerCase();
   if (
     normalized === "queued" ||
     normalized === "ignored" ||
@@ -58,7 +70,7 @@ function normalizeReviewState(value: string | null): FeedReviewState | "all" {
     normalized === "candidate_created" ||
     normalized === "weak_signal"
   ) {
-    return normalized;
+    return { ok: true, value: normalized };
   }
-  return "all";
+  return { ok: false };
 }

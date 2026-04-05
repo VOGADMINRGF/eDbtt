@@ -330,7 +330,7 @@ export default function AdminDossierClient({ dossierId }: { dossierId: string })
             ID: <span className="font-mono">{dossierKey}</span>
           </span>
           <Link href={`/dossier/${encodeURIComponent(dossierKey)}`} className="underline">
-            Viewer oeffnen
+            Viewer öffnen
           </Link>
           <Link href={`/api/dossiers/${encodeURIComponent(dossierKey)}/export.json`} className="underline">
             Export JSON
@@ -341,7 +341,7 @@ export default function AdminDossierClient({ dossierId }: { dossierId: string })
         </div>
         {message ? <div className="text-xs text-emerald-600">{message}</div> : null}
         {error ? <div className="text-xs text-rose-600">{error}</div> : null}
-        {busy ? <div className="text-xs text-[rgb(var(--muted))]">Aktion laeuft...</div> : null}
+        {busy ? <div className="text-xs text-[rgb(var(--muted))]">Aktion läuft...</div> : null}
       </header>
 
       <section className="rounded-3xl bg-[rgb(var(--card))] p-4 shadow ring-1 ring-[rgb(var(--border))]">
@@ -794,10 +794,10 @@ export default function AdminDossierClient({ dossierId }: { dossierId: string })
       </section>
 
       <section className="rounded-3xl bg-[rgb(var(--card))] p-4 shadow ring-1 ring-[rgb(var(--border))]">
-        <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Vorschlaege (Queue)</h2>
+        <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Vorschläge (Queue)</h2>
         <div className="mt-3 space-y-3">
           {suggestions.length === 0 ? (
-            <div className="text-sm text-[rgb(var(--muted))]">Keine Vorschlaege offen.</div>
+            <div className="text-sm text-[rgb(var(--muted))]">Keine Vorschläge offen.</div>
           ) : (
             suggestions.map((s) => (
               <div key={s.suggestionId} className="rounded-2xl border border-[rgb(var(--border))] p-3 text-sm">

@@ -234,7 +234,7 @@ export default function AdminEditorialQueuePage() {
             {loading && (
               <tr>
                 <td colSpan={6} className="px-4 py-6 text-center text-[rgb(var(--muted))]">
-                  Laedt Queue...
+                  Lädt Queue...
                 </td>
               </tr>
             )}
@@ -285,7 +285,7 @@ export default function AdminEditorialQueuePage() {
           disabled={page <= 1}
           onClick={() => setPage((prev) => Math.max(1, prev - 1))}
         >
-          Zurueck
+          Zurück
         </button>
         <span>
           Seite {page} / {totalPages}

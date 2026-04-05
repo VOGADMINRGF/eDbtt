@@ -128,7 +128,7 @@ export default function AdminAuditPage() {
             {loading && (
               <tr>
                 <td colSpan={5} className="px-4 py-6 text-center text-[rgb(var(--muted))]">
-                  Laedt Audit...
+                  Lädt Audit...
                 </td>
               </tr>
             )}
@@ -162,7 +162,7 @@ export default function AdminAuditPage() {
           disabled={page <= 1}
           onClick={() => setPage((prev) => Math.max(1, prev - 1))}
         >
-          Zurueck
+          Zurück
         </button>
         <span>
           Seite {page} / {totalPages}

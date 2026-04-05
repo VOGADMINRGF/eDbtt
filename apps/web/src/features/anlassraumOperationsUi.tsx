@@ -1,5 +1,6 @@
 import Link from "next/link";
 import {
+  formatRelevanceScopePairLabel,
   formatOriginTypeLabel,
   formatOwnerTypeLabel,
   formatRelevanceScopeLabel,
@@ -200,7 +201,7 @@ function AnlassraumOperationsCard({ item }: { item: AnlassraumOperationsItem }) 
         </div>
         <div className="text-right text-xs text-[rgb(var(--muted))]">
           <p className="font-semibold text-[rgb(var(--fg))]">{item.status}</p>
-          <p>{formatRelevanceScopeLabel(item.scope)} / {formatRelevanceScopeLabel(item.decisionScope)}</p>
+          <p>{formatRelevanceScopePairLabel(item.scope, item.decisionScope)}</p>
           <p>{formatSourceModeLabel(item.sourceMode)}</p>
         </div>
       </header>

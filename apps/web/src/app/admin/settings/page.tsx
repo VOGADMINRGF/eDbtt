@@ -106,7 +106,7 @@ export default function AdminSettingsPage() {
             }
           />
           <label htmlFor="autopost" className="text-sm">
-            Auto-Draft fuer neue Themen aktiv
+            Auto-Draft für neue Themen aktiv
           </label>
         </div>
 
@@ -129,7 +129,7 @@ export default function AdminSettingsPage() {
         Speichern (env-basiert)
       </button>
       <p className="mt-2 text-xs text-[rgb(var(--muted))]">
-        Hinweis: Werte werden aus ENV gelesen. Persistenz via Admin-API ergaenzen.
+        Hinweis: Werte werden aus ENV gelesen. Persistenz via Admin-API ergänzen.
       </p>
     </div>
   );

@@ -148,7 +148,7 @@ export default function FactcheckReviewPage() {
             value={reviewNote}
             onChange={(e) => setReviewNote(e.target.value)}
             className="w-full rounded-xl border border-[rgb(var(--border))] px-3 py-2 text-sm"
-            placeholder="Kommentar fuer Freigabe/Reject"
+            placeholder="Kommentar für Freigabe/Reject"
           />
         </div>
         {actionStatus && <p className="text-xs text-[rgb(var(--muted))]">{actionStatus}</p>}
@@ -160,7 +160,7 @@ export default function FactcheckReviewPage() {
         </div>
       ) : items.length === 0 ? (
         <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-4 py-3 text-sm text-[rgb(var(--muted))]">
-          Keine Eintraege fuer diesen Filter.
+          Keine Einträge für diesen Filter.
         </div>
       ) : (
         <div className="grid gap-4 lg:grid-cols-2">

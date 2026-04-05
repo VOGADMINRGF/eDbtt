@@ -66,7 +66,16 @@ export default function AdminDraftDetailPage() {
       const response = await res.json();
       setData({
         ...data,
-        draft: { ...data.draft, status: response.draft.status, reviewNote: response.draft.reviewNote },
+        draft: {
+          ...data.draft,
+          status: response.draft.status,
+          feedReviewState: response.draft.feedReviewState ?? data.draft.feedReviewState,
+          reviewNote: response.draft.reviewNote,
+          lastReviewAction: response.draft.lastReviewAction ?? data.draft.lastReviewAction,
+          lastReviewActionBy: response.draft.lastReviewActionBy ?? data.draft.lastReviewActionBy,
+          lastReviewActionAt: response.draft.lastReviewActionAt ?? data.draft.lastReviewActionAt,
+          updatedAt: response.draft.updatedAt ?? data.draft.updatedAt,
+        },
       });
     } catch (err: any) {
       alert(err?.message ?? "Status konnte nicht geändert werden.");

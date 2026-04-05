@@ -5,7 +5,14 @@ import { SignJWT, jwtVerify, type JWTPayload } from "jose";
 const DEFAULT_SECRET = "dev-humanchk-secret";
 
 function getSecretKey() {
-  const secret = process.env.HUMAN_CHECK_SECRET || process.env.NEXTAUTH_SECRET || DEFAULT_SECRET;
+  const configuredSecret = process.env.HUMAN_CHECK_SECRET || process.env.NEXTAUTH_SECRET;
+  if (configuredSecret) {
+    return createSecretKey(Buffer.from(configuredSecret));
+  }
+  if (process.env.NODE_ENV === "production") {
+    throw new Error("human_token_secret_not_configured");
+  }
+  const secret = DEFAULT_SECRET;
   return createSecretKey(Buffer.from(secret));
 }
 

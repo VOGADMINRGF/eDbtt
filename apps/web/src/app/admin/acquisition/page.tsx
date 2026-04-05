@@ -104,7 +104,7 @@ export default function AcquisitionAdminPage() {
           <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Admin · Akquise</p>
           <h1 className="text-2xl font-bold text-[rgb(var(--fg))]">Akquise Dashboard</h1>
           <p className="text-sm text-[rgb(var(--muted))]">
-            Feed-Status, Regionen und Top-Themen fuer Outreach & Pilot.
+            Feed-Status, Regionen und Top-Themen für Outreach & Pilot.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">

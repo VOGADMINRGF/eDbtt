@@ -192,7 +192,7 @@ export default function AdminMediaPage() {
         <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Admin · Media &amp; TV</p>
         <h1 className="text-2xl font-bold text-[rgb(var(--fg))]">QR Studio &amp; Live-Trends</h1>
         <p className="text-sm text-[rgb(var(--muted))]">
-          Erstelle QR-Fragen-Sets fuer Veranstaltungen, TV-Formate oder Leserbrief-Aktionen.
+          Erstelle QR-Fragen-Sets für Veranstaltungen, TV-Formate oder Leserbrief-Aktionen.
           Pro Frage ein QR – oder ein geschlossenes Set mit allen Fragen in einer Sitzung.
         </p>
       </header>
@@ -242,7 +242,7 @@ export default function AdminMediaPage() {
               className="w-fit rounded-full border border-[rgb(var(--border))] px-4 py-2 text-xs font-semibold text-[rgb(var(--muted))] hover:bg-[rgb(var(--bg))]"
               onClick={handleAdoptScript}
             >
-              Aus Script uebernehmen
+              Aus Script übernehmen
             </button>
 
             <label className="grid gap-1 text-sm font-medium text-[rgb(var(--muted))]">
@@ -334,7 +334,7 @@ export default function AdminMediaPage() {
           <div>
             <h2 className="text-lg font-semibold text-[rgb(var(--fg))]">Live-Auswertung</h2>
             <p className="text-sm text-[rgb(var(--muted))]">
-              Trends in Echtzeit fuer TV, Events oder Leserbriefe. Code eingeben und aktualisieren.
+              Trends in Echtzeit für TV, Events oder Leserbriefe. Code eingeben und aktualisieren.
             </p>
           </div>
           <button
@@ -343,7 +343,7 @@ export default function AdminMediaPage() {
             className="rounded-full border border-[rgb(var(--border))] px-4 py-2 text-xs font-semibold text-[rgb(var(--muted))] hover:bg-[rgb(var(--bg))]"
             disabled={summaryLoading}
           >
-            {summaryLoading ? "Laedt…" : "Aktualisieren"}
+            {summaryLoading ? "Lädt…" : "Aktualisieren"}
           </button>
         </div>
 

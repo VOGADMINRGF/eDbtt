@@ -241,7 +241,7 @@ export default function AdminCreateAttachDraftsPage() {
       <header>
         <h1 className="text-2xl font-semibold text-[rgb(var(--fg))]">Create Prepare-Attach Review Queue</h1>
         <p className="mt-1 text-sm text-[rgb(var(--muted))]">
-          Manuelle Review-Queue fuer prepare-attach Drafts. Apply bleibt explizit, additiv und guardrail-gesichert.
+          Manuelle Review-Queue für prepare-attach Drafts. Apply bleibt explizit, additiv und guardrail-gesichert.
         </p>
       </header>
 

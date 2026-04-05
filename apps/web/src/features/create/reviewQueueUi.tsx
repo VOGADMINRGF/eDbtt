@@ -19,7 +19,7 @@ export function applyCreateAttachDraftLocalDecision(params: {
 }
 
 export function reviewDecisionLabel(value: CreatePrepareAttachDraftReviewDecision) {
-  if (value === "accepted_for_apply") return "Akzeptieren fuer spaeteren Apply";
+  if (value === "accepted_for_apply") return "Akzeptieren für späteren Apply";
   if (value === "rejected") return "Ablehnen";
   return "Parken";
 }
@@ -29,8 +29,8 @@ const HISTORY_CODE_LABELS: Record<string, string> = {
   review_state_changed: "Review-Status aktualisiert",
   apply_success: "Apply erfolgreich",
   apply_failed_target_not_found: "Apply fehlgeschlagen: Ziel nicht gefunden",
-  apply_failed_invalid_target: "Apply fehlgeschlagen: Ziel ungueltig",
-  apply_failed_unsupported_target_type: "Apply fehlgeschlagen: Zieltyp nicht unterstuetzt",
+  apply_failed_invalid_target: "Apply fehlgeschlagen: Ziel ungültig",
+  apply_failed_unsupported_target_type: "Apply fehlgeschlagen: Zieltyp nicht unterstützt",
   apply_failed_wrong_review_state: "Apply fehlgeschlagen: falscher Review-Status",
   apply_failed_already_applied: "Apply fehlgeschlagen: bereits angewendet",
   apply_failed_state_conflict: "Apply fehlgeschlagen: State-Konflikt",
@@ -186,14 +186,14 @@ export function CreateAttachDraftReviewList(props: {
 
           {item.duplicateRisk ? (
             <p className="mt-2 rounded-md border border-amber-300/60 bg-amber-50/80 px-2 py-1 text-xs text-amber-800 dark:border-amber-400/40 dark:bg-amber-500/10 dark:text-amber-200">
-              Duplicate-Risk: nicht still durchwinken. Manuelle Pruefung erforderlich.
+              Duplicate-Risk: nicht still durchwinken. Manuelle Prüfung erforderlich.
             </p>
           ) : null}
           {item.reviewState === "accepted_for_apply" &&
           item.applyState !== "applied" &&
           !isSupportedApplyTargetType(item.attachTargetType) ? (
             <p className="mt-2 rounded-md border border-amber-300/60 bg-amber-50/80 px-2 py-1 text-xs text-amber-800 dark:border-amber-400/40 dark:bg-amber-500/10 dark:text-amber-200">
-              Apply ist fuer diesen Zieltyp noch nicht freigeschaltet. Draft bleibt reviewbar ohne Live-Apply.
+              Apply ist für diesen Zieltyp noch nicht freigeschaltet. Draft bleibt reviewbar ohne Live-Apply.
             </p>
           ) : null}
 

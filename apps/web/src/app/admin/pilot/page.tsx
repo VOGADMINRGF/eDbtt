@@ -158,7 +158,7 @@ export default function AdminPilotPage() {
         <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[rgb(var(--muted))]">Pilot</p>
         <h1 className="mt-1 text-2xl font-semibold text-[rgb(var(--fg))]">Pilot Control Plane</h1>
         <p className="mt-2 text-sm text-[rgb(var(--muted))]">
-          Settings fuer Feeds, Kandidaten und Faktencheck. Ziel: Kostenkontrolle und reproduzierbare Runs.
+          Settings für Feeds, Kandidaten und Faktencheck. Ziel: Kostenkontrolle und reproduzierbare Runs.
         </p>
       </header>
 
@@ -264,7 +264,7 @@ export default function AdminPilotPage() {
 
       <section className="rounded-3xl bg-[rgb(var(--card))] p-4 shadow ring-1 ring-[rgb(var(--border))]">
         <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Quick Actions</h2>
-        <p className="mt-1 text-sm text-[rgb(var(--muted))]">Manuelle Runs fuer Feeds und Analyze-Pending (MVP).</p>
+        <p className="mt-1 text-sm text-[rgb(var(--muted))]">Manuelle Runs für Feeds und Analyze-Pending (MVP).</p>
 
         <div className="mt-3 flex flex-wrap gap-2">
           <button

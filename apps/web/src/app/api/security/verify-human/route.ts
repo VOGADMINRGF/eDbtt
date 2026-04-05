@@ -48,7 +48,15 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: false, code: "speed" }, { status: 400 });
   }
 
-  const humanToken = await signHumanToken({ formId, timeToSolve, puzzleSeed });
+  let humanToken: string;
+  try {
+    humanToken = await signHumanToken({ formId, timeToSolve, puzzleSeed });
+  } catch (error) {
+    if (error instanceof Error && error.message === "human_token_secret_not_configured") {
+      return NextResponse.json({ ok: false, code: "human_token_secret_not_configured" }, { status: 503 });
+    }
+    throw error;
+  }
 
   return NextResponse.json({ ok: true, humanToken });
 }

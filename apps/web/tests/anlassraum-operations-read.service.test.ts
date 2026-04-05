@@ -61,7 +61,7 @@ describe("anlassraum operations read service", () => {
       slug: null,
       status: "unknown",
       scope: "regional",
-      decisionScope: null,
+      decisionScope: "regional",
       summary: null,
       regionKey: "DE:BE",
       topicKey: "verkehr",

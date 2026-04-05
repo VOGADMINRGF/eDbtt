@@ -110,6 +110,20 @@ describe("feed review routes", () => {
     await expect(res.json()).resolves.toMatchObject({ ok: false, error: "forbidden_legacy_backfill_requires_admin" });
   });
 
+  it("legacy route rejects invalid status filter to keep detection reproducible", async () => {
+    const res = await legacyGET(req("http://localhost/api/admin/feeds/drafts/legacy?status=invalid"));
+    expect(res.status).toBe(400);
+    await expect(res.json()).resolves.toMatchObject({ ok: false, error: "invalid_status_filter" });
+    expect(mocks.legacyList).not.toHaveBeenCalled();
+  });
+
+  it("legacy route rejects invalid reviewState filter to avoid silent all-fallback", async () => {
+    const res = await legacyGET(req("http://localhost/api/admin/feeds/drafts/legacy?reviewState=broken"));
+    expect(res.status).toBe(400);
+    await expect(res.json()).resolves.toMatchObject({ ok: false, error: "invalid_review_state_filter" });
+    expect(mocks.legacyList).not.toHaveBeenCalled();
+  });
+
   it("backfill route rejects invalid mode", async () => {
     const res = await backfillPOST(
       req("http://localhost/api/admin/feeds/drafts/65a111111111111111111111/backfill", {

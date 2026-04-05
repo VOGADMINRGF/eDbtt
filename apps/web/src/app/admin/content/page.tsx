@@ -86,7 +86,7 @@ const SECTIONS: Array<{ title: string; items: HubItem[] }> = [
         href: "/admin/feeds/drafts",
       },
       {
-        title: "Anlassraeume",
+        title: "Anlassräume",
         description: "Anlassraum-Container und Output-Seeds",
         href: "/admin/feeds/anlassraum",
       },
@@ -182,7 +182,7 @@ export default function AdminContentHubPage() {
         </p>
         <h1 className="text-2xl font-bold text-[rgb(var(--fg))]">Content Hub</h1>
         <p className="text-sm text-[rgb(var(--muted))]">
-          Zentrale Navigation fuer Evidence, Graph, Feeds und Reports.
+          Zentrale Navigation für Evidence, Graph, Feeds und Reports.
         </p>
       </header>
 
@@ -199,8 +199,8 @@ export default function AdminContentHubPage() {
           </div>
         )}
         <div className="mt-3 grid gap-3 md:grid-cols-2 lg:grid-cols-4">
-          <MetricCard label="Beitraege gesamt" value={metrics?.totals.contributions} loading={loading} href="/admin/contributions" />
-          <MetricCard label="Beitraege (30d)" value={metrics?.totals.contributions30d} loading={loading} href="/admin/contributions" />
+          <MetricCard label="Beiträge gesamt" value={metrics?.totals.contributions} loading={loading} href="/admin/contributions" />
+          <MetricCard label="Beiträge (30d)" value={metrics?.totals.contributions30d} loading={loading} href="/admin/contributions" />
           <MetricCard label="Statements gesamt" value={metrics?.totals.statements} loading={loading} href="/admin/evidence/claims" />
           <MetricCard label="Feed-Statements (AI)" value={metrics?.totals.feedStatements} loading={loading} href="/admin/feeds/drafts" />
           <MetricCard label="Evidence Claims" value={metrics?.totals.evidenceClaims} loading={loading} href="/admin/evidence/claims" />

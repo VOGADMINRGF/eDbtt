@@ -74,7 +74,7 @@ export function CreateHistoryMaintenanceDiagnosticsPanel({
       <header>
         <h1 className="text-2xl font-semibold text-[rgb(var(--fg))]">Create History Maintenance</h1>
         <p className="mt-1 text-sm text-[rgb(var(--muted))]">
-          Read-only Diagnose fuer Legacy-History-Events. Dieser Screen ist dry-run only und fuehrt kein Apply aus.
+          Read-only Diagnose für Legacy-History-Events. Dieser Screen ist dry-run only und führt kein Apply aus.
         </p>
       </header>
 
