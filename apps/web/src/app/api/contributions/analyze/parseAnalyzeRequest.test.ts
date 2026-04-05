@@ -17,6 +17,23 @@ describe("parseAnalyzeRequestBody", () => {
     if (res.ok) expect(res.value.text).toContain("Prepared");
   });
 
+  it("normalizes and keeps explicit language triplet fields", () => {
+    const res = parseAnalyzeRequestBody({
+      textOriginal: "Das ist ein ausreichend langer Text fuer den Analyze-Pfad.",
+      locale: "EN-us",
+      uiLocale: "FR-fr",
+      contentLanguage: "DE-de",
+      sourceLanguage: "es-ES",
+    });
+    expect(res.ok).toBe(true);
+    if (res.ok) {
+      expect(res.value.locale).toBe("fr");
+      expect(res.value.uiLocale).toBe("fr");
+      expect(res.value.contentLanguage).toBe("de");
+      expect(res.value.sourceLanguage).toBe("es");
+    }
+  });
+
   it("accepts only textOriginal", () => {
     const res = parseAnalyzeRequestBody({ textOriginal: "Das ist ein ausreichend langer Text." });
     expect(res.ok).toBe(true);

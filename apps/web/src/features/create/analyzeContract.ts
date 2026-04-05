@@ -1,5 +1,6 @@
 import type { AnalyzeResult } from "@features/analyze/schemas";
 import { resolveCreateCtaSuggestions } from "@/features/create/ctaResolver";
+import { resolveCreateLanguageContext } from "@/features/create/languageContextContract";
 
 export type CreateAnalyzeInputType =
   | "free_text"
@@ -60,7 +61,10 @@ export type CreateAnalyzeMatchResultInput = {
   suggestedCtas: CreateAnalyzeCtaSuggestion[];
   sourceState: "ok" | "degraded";
   sourceErrors: string[];
+  languageMode?: CreateAnalyzeMatchingLanguageMode;
 };
+
+export type CreateAnalyzeMatchingLanguageMode = "same_language_only";
 
 export type CreateAnalyzeResponse = {
   schemaVersion: string;
@@ -85,6 +89,7 @@ export type CreateAnalyzeResponse = {
   suggestedCtas: CreateAnalyzeCtaSuggestion[];
   matchSourceState: "ok" | "degraded";
   matchSourceErrors: string[];
+  matchingLanguageMode: CreateAnalyzeMatchingLanguageMode;
   phases: {
     intake: { status: "done"; summary: string };
     quality: { status: "done" | "review_required"; summary: string };
@@ -198,6 +203,7 @@ function fallbackNoMatchResult(): CreateAnalyzeMatchResultInput {
     }),
     sourceState: "degraded",
     sourceErrors: ["match_result_missing"],
+    languageMode: "same_language_only",
   };
 }
 
@@ -205,6 +211,11 @@ export function buildCreateAnalyzeResponse(params: {
   runId: string;
   text: string;
   locale?: string | null;
+  languageContext?: {
+    uiLocale?: string | null;
+    contentLanguage?: string | null;
+    sourceLanguage?: string | null;
+  } | null;
   result: AnalyzeResult;
   matchResult?: CreateAnalyzeMatchResultInput | null;
 }): CreateAnalyzeResponse {
@@ -245,18 +256,23 @@ export function buildCreateAnalyzeResponse(params: {
     matchResult.sourceState === "degraded";
 
   const createdAt = new Date().toISOString();
-  const sourceLanguage = languages[0] ?? "de";
-  const contentLanguage = (locale || sourceLanguage || "de").slice(0, 2).toLowerCase();
-  const uiLocale = (locale || contentLanguage || "de").slice(0, 2).toLowerCase();
+  const inferredSourceLanguage = languages[0] ?? "de";
+  const languageContext = resolveCreateLanguageContext({
+    locale,
+    uiLocale: params.languageContext?.uiLocale,
+    contentLanguage: params.languageContext?.contentLanguage,
+    sourceLanguage: params.languageContext?.sourceLanguage,
+    inferredSourceLanguage,
+  });
 
   return {
     schemaVersion: "create_analyze.v1",
     orchestrator: "create_orchestration",
     runId,
     inputRef: runId,
-    sourceLanguage,
-    contentLanguage,
-    uiLocale,
+    sourceLanguage: languageContext.sourceLanguage,
+    contentLanguage: languageContext.contentLanguage,
+    uiLocale: languageContext.uiLocale,
     inputType,
     languages,
     normalizedInputSummary,
@@ -272,6 +288,7 @@ export function buildCreateAnalyzeResponse(params: {
     suggestedCtas: matchResult.suggestedCtas,
     matchSourceState: matchResult.sourceState,
     matchSourceErrors: matchResult.sourceErrors,
+    matchingLanguageMode: matchResult.languageMode ?? "same_language_only",
     phases: {
       intake: {
         status: "done",

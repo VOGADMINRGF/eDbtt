@@ -2,10 +2,17 @@
 import { NextRequest } from "next/server";
 import OpenAI from "openai";
 import { postprocessClaims } from "@features/analyze/postprocess";
+import {
+  extractPromptOutputPayload,
+  PROMPT_OUTPUT_CONTRACT_VERSION,
+  type PromptOutputMeta,
+} from "@/features/ai/promptOutputEnvelope";
 
 /* ---- config ---- */
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY! });
 const MODEL = (process.env.OPENAI_MODEL || "gpt-4o-mini").trim();
+const ANALYZE_SAVE_PROMPT_VERSION = "contributions_analyze_save.prompt.v1";
+const ANALYZE_SAVE_OUTPUT_VERSION = "contributions_analyze_save.output.v1";
 
 /* ---- helpers ---- */
 const JSON_HEADERS = { "content-type": "application/json" } as const;
@@ -57,7 +64,7 @@ function frameClaims(clean: any[]) {
 }
 
 /* ---- schema (entspannt, robust) ---- */
-const ANALYZE_RESULT_SCHEMA = {
+const ANALYZE_RESULT_DATA_SCHEMA = {
   type: "object",
   additionalProperties: false,
   properties: {
@@ -111,14 +118,40 @@ const ANALYZE_RESULT_SCHEMA = {
   required: ["outline", "claims"],
 } as const;
 
+const ANALYZE_RESULT_SCHEMA = {
+  type: "object",
+  additionalProperties: false,
+  properties: {
+    contractVersion: { type: "string" },
+    promptVersion: { type: "string" },
+    outputVersion: { type: "string" },
+    data: ANALYZE_RESULT_DATA_SCHEMA,
+  },
+  required: ["contractVersion", "promptVersion", "outputVersion", "data"],
+} as const;
+
 /* ---- prompt ---- */
 const SYSTEM = (locale: "de" | "en", maxClaims: number) =>
   [
     "Du extrahierst atomare, 1-satzige Claims samt Metadaten.",
     "Vervollständige Felder; unbekannt = '-' (listen: []).",
     `maxClaims: ${maxClaims}. Sprache: ${locale}.`,
-    "Antwort NUR als JSON (outline[], claims[]).",
+    `Nutze contractVersion='${PROMPT_OUTPUT_CONTRACT_VERSION}', promptVersion='${ANALYZE_SAVE_PROMPT_VERSION}', outputVersion='${ANALYZE_SAVE_OUTPUT_VERSION}'.`,
+    "Antwort NUR als JSON mit {contractVersion,promptVersion,outputVersion,data:{outline[],claims[]}}.",
   ].join("\n");
+
+function buildPromptOutputMeta(
+  parserMode: PromptOutputMeta["parserMode"],
+  promptVersion = ANALYZE_SAVE_PROMPT_VERSION,
+  outputVersion = ANALYZE_SAVE_OUTPUT_VERSION,
+): PromptOutputMeta {
+  return {
+    contractVersion: PROMPT_OUTPUT_CONTRACT_VERSION,
+    promptVersion,
+    outputVersion,
+    parserMode,
+  };
+}
 
 /* ---- route ---- */
 export async function POST(req: NextRequest) {
@@ -157,8 +190,19 @@ export async function POST(req: NextRequest) {
       return fail("INVALID_JSON_FROM_MODEL", trace, 502, { raw });
     }
 
-    const outline = Array.isArray(parsed?.outline) ? parsed.outline : [];
-    const claimsIn = Array.isArray(parsed?.claims) ? parsed.claims : [];
+    const extracted = extractPromptOutputPayload<Record<string, unknown>>(parsed, {
+      fallbackPromptVersion: ANALYZE_SAVE_PROMPT_VERSION,
+      fallbackOutputVersion: ANALYZE_SAVE_OUTPUT_VERSION,
+    });
+    const payload = extracted.payload;
+    if (!payload || typeof payload !== "object") {
+      return fail("INVALID_ENVELOPE_FROM_MODEL", trace, 502, {
+        promptOutput: buildPromptOutputMeta(extracted.meta.parserMode),
+      });
+    }
+
+    const outline = Array.isArray((payload as any)?.outline) ? (payload as any).outline : [];
+    const claimsIn = Array.isArray((payload as any)?.claims) ? (payload as any).claims : [];
 
     // ===== Post-Processing =====
     // 1) Normalize + hard-cap
@@ -191,6 +235,11 @@ export async function POST(req: NextRequest) {
       claims: reps,   // Kompatibel für bestehende UI
       frames,         // Neu: Buckets {facts, policies, values, concerns, questions}
       meta: { model: MODEL, trace },
+      promptOutput: {
+        ...buildPromptOutputMeta(extracted.meta.parserMode),
+        promptVersion: extracted.meta.promptVersion,
+        outputVersion: extracted.meta.outputVersion,
+      },
     });
   } catch (e: any) {
     return fail(e?.message || "AI_ERROR", trace, 500);

@@ -45,6 +45,7 @@ describe("/api/create/analyze route", () => {
         suggestedCtas: [{ id: "neu_anlegen", label: "Neu anlegen", reason: "Kein Match" }],
         matchSourceState: "ok",
         matchSourceErrors: [],
+        matchingLanguageMode: "same_language_only",
         phases: {
           intake: { status: "done", summary: "ok" },
           quality: { status: "review_required", summary: "ok" },
@@ -104,6 +105,7 @@ describe("/api/create/analyze route", () => {
         suggestedCtas: [{ id: "neu_anlegen", label: "Neu anlegen", reason: "Fallback" }],
         matchSourceState: "degraded",
         matchSourceErrors: ["match_service_unavailable"],
+        matchingLanguageMode: "same_language_only",
         phases: {
           intake: { status: "done", summary: "ok" },
           quality: { status: "review_required", summary: "ok" },

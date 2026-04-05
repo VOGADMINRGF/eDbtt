@@ -1,4 +1,10 @@
 import { NextRequest } from "next/server";
+import {
+  extractPromptOutputPayload,
+  parsePromptOutputJson,
+  PROMPT_OUTPUT_CONTRACT_VERSION,
+  type PromptOutputMeta,
+} from "@/features/ai/promptOutputEnvelope";
 
 /* -------------------- JSON helpers -------------------- */
 function jsonOk(data: any, status = 200) {
@@ -18,6 +24,8 @@ const isArray = (x: any): x is any[] => Array.isArray(x);
 /* -------------------- Config -------------------- */
 const REFINE_BUDGET_MS = Number(process.env.REFINE_BUDGET_MS ?? 20000);
 const MODEL = (process.env.OPENAI_MODEL || "gpt-4o-mini").trim();
+const REFINE_PROMPT_VERSION = "contributions_refine.prompt.v1";
+const REFINE_OUTPUT_VERSION = "contributions_refine.output.v1";
 
 /* -------------------- OpenAI: chat/completions + json_object -------------------- */
 type AskArgs = { prompt: string; maxOutputTokens?: number; signal?: AbortSignal };
@@ -67,21 +75,26 @@ Ziele:
 
 Gib **nur** JSON mit exakt dieser Struktur zurück:
 {
-  "primaryIndex": number,
-  "claims": [
-    {
-      "text": string,
-      "sachverhalt": string,
-      "zeitraum": string,
-      "ort": string,
-      "zustaendigkeit": "EU"|"Bund"|"Land"|"Kommune"|"-",
-      "betroffene": string[],
-      "messgroesse": string,
-      "unsicherheiten": string,
-      "sources": string[]
-    }
-  ],
-  "draftIndexes": number[]
+  "contractVersion": "${PROMPT_OUTPUT_CONTRACT_VERSION}",
+  "promptVersion": "${REFINE_PROMPT_VERSION}",
+  "outputVersion": "${REFINE_OUTPUT_VERSION}",
+  "data": {
+    "primaryIndex": number,
+    "claims": [
+      {
+        "text": string,
+        "sachverhalt": string,
+        "zeitraum": string,
+        "ort": string,
+        "zustaendigkeit": "EU"|"Bund"|"Land"|"Kommune"|"-",
+        "betroffene": string[],
+        "messgroesse": string,
+        "unsicherheiten": string,
+        "sources": string[]
+      }
+    ],
+    "draftIndexes": number[]
+  }
 }
 
 INPUT_CLAIMS (JSON):
@@ -109,6 +122,19 @@ function coerceOutput(x: any) {
   return { primaryIndex, claims, draftIndexes };
 }
 
+function buildPromptOutputMeta(
+  parserMode: PromptOutputMeta["parserMode"],
+  promptVersion = REFINE_PROMPT_VERSION,
+  outputVersion = REFINE_OUTPUT_VERSION,
+): PromptOutputMeta {
+  return {
+    contractVersion: PROMPT_OUTPUT_CONTRACT_VERSION,
+    promptVersion,
+    outputVersion,
+    parserMode,
+  };
+}
+
 export const dynamic = "force-dynamic";
 
 /* -------------------- POST -------------------- */
@@ -131,21 +157,45 @@ export async function POST(req: NextRequest) {
       clearTimeout(timer);
     }
 
-    let parsed: any = null;
-    try { parsed = JSON.parse(outText); } catch {}
+    const parsedRaw = parsePromptOutputJson(outText);
+    const extracted = extractPromptOutputPayload<Record<string, unknown>>(parsedRaw, {
+      fallbackPromptVersion: REFINE_PROMPT_VERSION,
+      fallbackOutputVersion: REFINE_OUTPUT_VERSION,
+    });
+    const parsed = extracted.payload;
 
     if (!parsed || typeof parsed !== "object") {
       // Degrade: Input beibehalten, primary=0, Rest als Drafts
       const drafts = claims.length > 1 ? [...Array(claims.length).keys()].slice(1) : [];
-      return jsonOk({ degraded: true, reason: "AI_PARSE", primaryIndex: 0, claims, draftIndexes: drafts });
+      return jsonOk({
+        degraded: true,
+        reason: "AI_PARSE",
+        primaryIndex: 0,
+        claims,
+        draftIndexes: drafts,
+        promptOutput: buildPromptOutputMeta(extracted.meta.parserMode),
+      });
     }
 
     const norm = coerceOutput(parsed);
-    return jsonOk({ degraded: false, ...norm });
+    return jsonOk({
+      degraded: false,
+      ...norm,
+      promptOutput: {
+        ...buildPromptOutputMeta(extracted.meta.parserMode),
+        promptVersion: extracted.meta.promptVersion,
+        outputVersion: extracted.meta.outputVersion,
+      },
+    });
   } catch (e: any) {
     const msg = String(e?.message || "INTERNAL_ERROR");
     const degraded = /AI_TIMEOUT|AbortError/i.test(msg);
     const base = { primaryIndex: 0, claims: [], draftIndexes: [] as number[] };
-    return jsonOk({ degraded, reason: degraded ? "AI_TIMEOUT" : msg, ...base });
+    return jsonOk({
+      degraded,
+      reason: degraded ? "AI_TIMEOUT" : msg,
+      ...base,
+      promptOutput: buildPromptOutputMeta("invalid"),
+    });
   }
 }

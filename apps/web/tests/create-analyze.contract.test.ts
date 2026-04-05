@@ -46,6 +46,7 @@ describe("create analyze contract", () => {
     expect(response.uncertaintyFlags).toContain("input_too_thin");
     expect(response.suggestedCtas.some((item) => item.id === "neu_anlegen")).toBe(true);
     expect(response.requiresHumanReview).toBe(true);
+    expect(response.matchingLanguageMode).toBe("same_language_only");
   });
 
   it("emits typed match + CTA metadata and strict governance flags", () => {
@@ -99,5 +100,29 @@ describe("create analyze contract", () => {
     expect(response.reasons.length).toBeGreaterThan(0);
     expect(response.noAutoPublish).toBe(true);
     expect(response.noSilentMerge).toBe(true);
+    expect(response.matchingLanguageMode).toBe("same_language_only");
+    expect(response.sourceLanguage).toBe("de");
+    expect(response.contentLanguage).toBe("de");
+    expect(response.uiLocale).toBe("de");
+  });
+
+  it("respects explicit language triplet overrides", () => {
+    const response = buildCreateAnalyzeResponse({
+      runId: "run-language-override",
+      text: "Das ist ein Beitrag mit deutschem Inhalt.",
+      locale: "en-US",
+      languageContext: {
+        uiLocale: "en-US",
+        contentLanguage: "de-DE",
+        sourceLanguage: "fr-FR",
+      },
+      result: analyzeResultFixture({
+        claims: [{ id: "c2", text: "Pruefbarer Claim" }],
+      }),
+    });
+
+    expect(response.uiLocale).toBe("en");
+    expect(response.contentLanguage).toBe("de");
+    expect(response.sourceLanguage).toBe("fr");
   });
 });

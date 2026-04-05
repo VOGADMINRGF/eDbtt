@@ -27,6 +27,7 @@ function buildValidSnapshot() {
     suggestedCtas: [{ id: "neu_anlegen", label: "Neu anlegen", reason: "Fallback" }],
     matchSourceState: "ok",
     matchSourceErrors: [],
+    matchingLanguageMode: "same_language_only",
     phases: {
       intake: { status: "done", summary: "ok" },
       quality: { status: "review_required", summary: "ok" },
@@ -62,6 +63,14 @@ describe("create analyze boundary contract parser", () => {
     expect(parseCreateAnalyzeBoundarySnapshot(snapshot)).toBeNull();
   });
 
+  it("rejects snapshots with missing language triplet fields", () => {
+    const snapshot = {
+      ...buildValidSnapshot(),
+      sourceLanguage: "",
+    } as const;
+    expect(parseCreateAnalyzeBoundarySnapshot(snapshot)).toBeNull();
+  });
+
   it("rejects degraded snapshots when graph_matching is not review_required", () => {
     const snapshot = {
       ...buildValidSnapshot(),
@@ -73,6 +82,14 @@ describe("create analyze boundary contract parser", () => {
         cta_suggestions: { status: "done", summary: "ok" },
       },
     } as const;
+    expect(parseCreateAnalyzeBoundarySnapshot(snapshot)).toBeNull();
+  });
+
+  it("rejects snapshots with unsupported matchingLanguageMode", () => {
+    const snapshot = {
+      ...buildValidSnapshot(),
+      matchingLanguageMode: "cross_lingual",
+    } as any;
     expect(parseCreateAnalyzeBoundarySnapshot(snapshot)).toBeNull();
   });
 

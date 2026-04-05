@@ -27,6 +27,7 @@ import {
 } from "@/features/create/analyzeContract";
 import { resolveCreateCtaSuggestions } from "@/features/create/ctaResolver";
 import { resolveCreateGraphMatches } from "@/features/create/matchService";
+import { resolveCreateLanguageContext } from "@/features/create/languageContextContract";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -144,7 +145,14 @@ export async function POST(req: NextRequest): Promise<Response> {
     return ok({ result: { ping: "pong" } });
   }
 
-  const locale = sanitizeLocale(body.locale);
+  const requestLocale = sanitizeLocale(body.locale);
+  const languageContext = resolveCreateLanguageContext({
+    locale: requestLocale,
+    uiLocale: body.uiLocale,
+    contentLanguage: body.contentLanguage,
+    sourceLanguage: body.sourceLanguage,
+  });
+  const locale = languageContext.contentLanguage;
   const maxClaims = sanitizeMaxClaims(body.maxClaims);
   const text = body.text?.trim() || "";
   const userId = req.cookies.get("u_id")?.value ?? null;
@@ -178,12 +186,14 @@ export async function POST(req: NextRequest): Promise<Response> {
       claims: Array.isArray(result.claims) ? result.claims : [],
       anlassraumId: body.anlassraumId ?? null,
       dossierId: body.dossierId ?? null,
-      locale,
+      locale: languageContext.contentLanguage,
+      languageMode: "same_language_only",
     });
     const createAnalyze = buildCreateAnalyzeResponse({
       runId,
       text,
-      locale,
+      locale: languageContext.contentLanguage,
+      languageContext,
       result,
       matchResult: createMatch,
     });
@@ -227,12 +237,14 @@ export async function POST(req: NextRequest): Promise<Response> {
         claims: Array.isArray(fallback.claims) ? fallback.claims : [],
         anlassraumId: body.anlassraumId ?? null,
         dossierId: body.dossierId ?? null,
-        locale,
+        locale: languageContext.contentLanguage,
+        languageMode: "same_language_only",
       });
       const createAnalyze = buildCreateAnalyzeResponse({
         runId,
         text,
-        locale,
+        locale: languageContext.contentLanguage,
+        languageContext,
         result: fallback,
         matchResult: createMatch,
       });
@@ -296,12 +308,14 @@ export async function POST(req: NextRequest): Promise<Response> {
         claims: [],
         anlassraumId: body.anlassraumId ?? null,
         dossierId: body.dossierId ?? null,
-        locale,
+        locale: languageContext.contentLanguage,
+        languageMode: "same_language_only",
       });
       const createAnalyze = buildCreateAnalyzeResponse({
         runId,
         text,
-        locale,
+        locale: languageContext.contentLanguage,
+        languageContext,
         result: degradedResult,
         matchResult: createMatch,
       });
@@ -576,6 +590,7 @@ async function resolveCreateMatchesSafe(input: {
   anlassraumId?: string | null;
   dossierId?: string | null;
   locale?: string | null;
+  languageMode?: "same_language_only";
 }): Promise<CreateAnalyzeMatchResultInput> {
   try {
     return await resolveCreateGraphMatches(input);
@@ -605,6 +620,7 @@ async function resolveCreateMatchesSafe(input: {
       }),
       sourceState: "degraded",
       sourceErrors: ["match_service_unavailable"],
+      languageMode: "same_language_only",
     };
   }
 }

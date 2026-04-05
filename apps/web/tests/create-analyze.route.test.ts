@@ -341,5 +341,33 @@ describe("/api/contributions/analyze create orchestration envelope", () => {
     expect(body.createAnalyze.matchSourceErrors).toContain("match_service_unavailable");
     expect(body.createAnalyze.phases.graph_matching.status).toBe("review_required");
     expect(body.createAnalyze.suggestedCtas.some((item: any) => item.id === "neu_anlegen")).toBe(true);
+    expect(body.createAnalyze.matchingLanguageMode).toBe("same_language_only");
+  });
+
+  it("uses explicit language triplet with contentLanguage as analyze language", async () => {
+    mocks.analyzeContribution.mockResolvedValue(buildAnalyzeResult({ claims: [] }));
+
+    const res = await analyzePOST(
+      req({
+        text: "Dies ist ein laengerer Text fuer die Sprachkontext-Pruefung.",
+        locale: "en-US",
+        uiLocale: "fr-FR",
+        contentLanguage: "de-DE",
+        sourceLanguage: "es-ES",
+      }),
+    );
+
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.ok).toBe(true);
+    expect(body.createAnalyze.uiLocale).toBe("fr");
+    expect(body.createAnalyze.contentLanguage).toBe("de");
+    expect(body.createAnalyze.sourceLanguage).toBe("es");
+    expect(body.createAnalyze.matchingLanguageMode).toBe("same_language_only");
+    expect(mocks.analyzeContribution).toHaveBeenCalledWith(
+      expect.objectContaining({
+        locale: "de",
+      }),
+    );
   });
 });

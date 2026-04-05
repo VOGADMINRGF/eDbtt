@@ -1,13 +1,14 @@
 import { z } from "zod";
 import { ObjectId } from "@core/db/triMongo";
 import { CREATE_MODE_VALUES, parseCreateMode } from "@/features/create/intents";
+import { resolveCreateLanguageContext } from "@/features/create/languageContextContract";
 
 /**
  * Backwards-compatible request parser for /api/contributions/analyze.
  *
  * Supports:
  * - legacy: { text, locale }
- * - newer clients: { textOriginal, textPrepared, locale, maxClaims, detailPreset, evidenceItems }
+ * - newer clients: { textOriginal, textPrepared, locale, uiLocale, contentLanguage, sourceLanguage, maxClaims, detailPreset, evidenceItems }
  */
 export const AnalyzeRequestSchemaV2 = z
   .object({
@@ -20,6 +21,9 @@ export const AnalyzeRequestSchemaV2 = z
     preparedText: z.string().optional(),
 
     locale: z.string().min(2).max(8).optional(),
+    uiLocale: z.string().min(2).max(16).optional(),
+    contentLanguage: z.string().min(2).max(16).optional(),
+    sourceLanguage: z.string().min(2).max(16).optional(),
     maxClaims: z.number().int().min(1).max(30).optional(),
     detailPreset: z.number().int().min(1).max(4).optional(),
     evidenceItems: z.array(z.any()).optional(),
@@ -75,9 +79,19 @@ export const AnalyzeRequestSchemaV2 = z
   })
   .transform((val) => {
     const effectiveText = (val.textPrepared ?? val.preparedText ?? val.text ?? val.textOriginal ?? "").trim();
+    const languageContext = resolveCreateLanguageContext({
+      locale: val.locale,
+      uiLocale: val.uiLocale,
+      contentLanguage: val.contentLanguage,
+      sourceLanguage: val.sourceLanguage,
+    });
     return {
       ...val,
       text: effectiveText,
+      locale: languageContext.uiLocale,
+      uiLocale: languageContext.uiLocale,
+      contentLanguage: languageContext.contentLanguage,
+      sourceLanguage: languageContext.sourceLanguage,
     };
   });
 

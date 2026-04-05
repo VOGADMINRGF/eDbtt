@@ -6,6 +6,7 @@ import { listCreateContextPickerItems } from "@/features/create/contextPicker";
 import { resolveCreateCtaSuggestions } from "@/features/create/ctaResolver";
 import { buildCreateFastPathHref } from "@/features/create/intents";
 import type {
+  CreateAnalyzeMatchingLanguageMode,
   CreateAnalyzeMatchEntityType,
   CreateAnalyzeMatchItem,
   CreateAnalyzeMatchResultInput,
@@ -21,6 +22,7 @@ type ResolveCreateGraphMatchesInput = {
   topicKey?: string | null;
   dossierId?: string | null;
   locale?: string | null;
+  languageMode?: CreateAnalyzeMatchingLanguageMode;
   maxMatches?: number;
 };
 
@@ -212,6 +214,7 @@ function fallbackNoMatch(args: {
   reason: string;
   sourceState: "ok" | "degraded";
   sourceErrors: string[];
+  languageMode: CreateAnalyzeMatchingLanguageMode;
 }): CreateAnalyzeMatchResultInput {
   const reasons = [args.reason];
   return {
@@ -239,12 +242,17 @@ function fallbackNoMatch(args: {
     }),
     sourceState: args.sourceState,
     sourceErrors: args.sourceErrors,
+    languageMode: args.languageMode,
   };
 }
 
 export async function resolveCreateGraphMatches(
   input: ResolveCreateGraphMatchesInput,
 ): Promise<CreateAnalyzeMatchResultInput> {
+  const languageMode: CreateAnalyzeMatchingLanguageMode =
+    input.languageMode === "same_language_only"
+      ? "same_language_only"
+      : "same_language_only";
   const sourceErrors: string[] = [];
   const matches: CreateAnalyzeMatchItem[] = [];
   const maxMatches = Math.max(1, Math.min(12, Number(input.maxMatches ?? DEFAULT_MAX_MATCHES)));
@@ -505,6 +513,7 @@ export async function resolveCreateGraphMatches(
           : "Kein belastbarer Anlassraum-Match, keine Dossier-Nähe und keine belastbare Signalspur gefunden.",
       sourceState,
       sourceErrors,
+      languageMode,
     });
   }
 
@@ -528,5 +537,6 @@ export async function resolveCreateGraphMatches(
     suggestedCtas,
     sourceState,
     sourceErrors,
+    languageMode,
   };
 }

@@ -23,6 +23,7 @@ function buildCreateAnalyze() {
     suggestedCtas: [{ id: "neu_anlegen", label: "Neu anlegen", reason: "Fallback" }],
     matchSourceState: "ok",
     matchSourceErrors: [],
+    matchingLanguageMode: "same_language_only",
     phases: {
       intake: { status: "done", summary: "ok" },
       quality: { status: "review_required", summary: "ok" },

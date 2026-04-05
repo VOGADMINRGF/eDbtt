@@ -231,6 +231,7 @@ describe("create match service", () => {
     expect(result.matches[0]?.targetRef ?? "").toContain("/create?");
     expect(result.matches[0]?.targetRef ?? "").toContain("anlassraumId=65f000000000000000000011");
     expect(result.matches[0]?.targetRef ?? "").toContain("source=create_match_service");
+    expect(result.languageMode).toBe("same_language_only");
   });
 
   it("returns related_claim for semantically close productive claim data", async () => {
@@ -325,9 +326,10 @@ describe("create match service", () => {
     expect(result.matchType).toBe("no_match");
     expect(result.matchStrength).toBe("none");
     expect(result.reasons).toEqual([
-      "Kein belastbarer Anlassraum-Match, keine Dossier-Naehe und keine belastbare Signalspur gefunden.",
+      "Kein belastbarer Anlassraum-Match, keine Dossier-Nähe und keine belastbare Signalspur gefunden.",
     ]);
     expect(ctaIds(result)).toEqual(["neu_anlegen", "perspektive_anhaengen"]);
+    expect(result.languageMode).toBe("same_language_only");
   });
 
   it("degrades explicitly when productive sources are unavailable", async () => {
@@ -344,8 +346,9 @@ describe("create match service", () => {
     expect(result.sourceState).toBe("degraded");
     expect(result.sourceErrors.length).toBeGreaterThan(0);
     expect(result.reasons).toEqual([
-      "Produktive Anlassraum-/Dossier-/Signalquellen derzeit nicht verfuegbar.",
+      "Produktive Anlassraum-/Dossier-/Signalquellen derzeit nicht verfügbar.",
     ]);
     expect(ctaIds(result)).toEqual(["neu_anlegen", "perspektive_anhaengen"]);
+    expect(result.languageMode).toBe("same_language_only");
   });
 });

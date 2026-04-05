@@ -27,6 +27,10 @@ function isStringArray(value: unknown): value is string[] {
   return Array.isArray(value) && value.every((entry) => typeof entry === "string");
 }
 
+function isNonEmptyString(value: unknown): value is string {
+  return typeof value === "string" && value.trim().length > 0;
+}
+
 function hasValidStageContract(phases: unknown): phases is CreateAnalyzeResponse["phases"] {
   if (!isRecord(phases)) return false;
 
@@ -51,6 +55,14 @@ export function parseCreateAnalyzeBoundarySnapshot(
   if (typeof candidate.runId !== "string" || !candidate.runId.trim()) return null;
   if (candidate.inputRef !== candidate.runId) return null;
   if (typeof candidate.createdAt !== "string" || !candidate.createdAt.trim()) return null;
+  if (!isNonEmptyString(candidate.uiLocale)) return null;
+  if (!isNonEmptyString(candidate.contentLanguage)) return null;
+  if (!isNonEmptyString(candidate.sourceLanguage)) return null;
+  if (
+    candidate.matchingLanguageMode !== "same_language_only"
+  ) {
+    return null;
+  }
 
   if (typeof candidate.confidence !== "number" || Number.isNaN(candidate.confidence)) return null;
   if (candidate.confidence < 0 || candidate.confidence > 1) return null;

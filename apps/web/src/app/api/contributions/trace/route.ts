@@ -5,6 +5,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import callOpenAI from "@features/ai/providers/openai";
 import { rateLimitOrThrow } from "@/utils/rateLimitHelpers";
+import {
+  extractPromptOutputPayload,
+  parsePromptOutputJson,
+  PROMPT_OUTPUT_CONTRACT_VERSION,
+  type PromptOutputMeta,
+} from "@/features/ai/promptOutputEnvelope";
 
 const TraceSchema = z.object({
   textOriginal: z.string().min(1).max(10_000),
@@ -15,6 +21,9 @@ const TraceSchema = z.object({
     .max(30)
     .default([]),
 });
+
+const TRACE_PROMPT_VERSION = "contributions_trace.prompt.v1";
+const TRACE_OUTPUT_VERSION = "contributions_trace.output.v1";
 
 function buildPrompt(args: z.infer<typeof TraceSchema>) {
   const baseText = (args.textPrepared?.trim() || args.textOriginal.trim()).slice(0, 10_000);
@@ -43,18 +52,36 @@ ${list}
 
 Gib zurück (JSON):
 {
-  "attribution": { "<id>": { "mode": "verbatim|paraphrase|inference", "quotes": ["...","..."], "why": "..." } },
-  "guidance": {
-    "concern": "...",
-    "scopeHints": { "levels": ["Kommune","Land","Bund","EU/International"], "why": "..." },
-    "istStandChecklist": { "society": ["..."], "media": ["..."], "politics": ["..."] },
-    "proFrames": [ { "frame":"...", "stakeholders":["z.B. ..."] } ],
-    "contraFrames": [ { "frame":"...", "stakeholders":["z.B. ..."] } ],
-    "alternatives": ["..."],
-    "searchQueries": ["..."],
-    "sourceTypes": ["z.B. Gesetzestexte", "z.B. Fachstudien", "z.B. Stellungnahmen", "z.B. Statistiken"]
+  "contractVersion": "${PROMPT_OUTPUT_CONTRACT_VERSION}",
+  "promptVersion": "${TRACE_PROMPT_VERSION}",
+  "outputVersion": "${TRACE_OUTPUT_VERSION}",
+  "data": {
+    "attribution": { "<id>": { "mode": "verbatim|paraphrase|inference", "quotes": ["...","..."], "why": "..." } },
+    "guidance": {
+      "concern": "...",
+      "scopeHints": { "levels": ["Kommune","Land","Bund","EU/International"], "why": "..." },
+      "istStandChecklist": { "society": ["..."], "media": ["..."], "politics": ["..."] },
+      "proFrames": [ { "frame":"...", "stakeholders":["z.B. ..."] } ],
+      "contraFrames": [ { "frame":"...", "stakeholders":["z.B. ..."] } ],
+      "alternatives": ["..."],
+      "searchQueries": ["..."],
+      "sourceTypes": ["z.B. Gesetzestexte", "z.B. Fachstudien", "z.B. Stellungnahmen", "z.B. Statistiken"]
+    }
   }
 }`.trim();
+}
+
+function buildPromptOutputMeta(
+  parserMode: PromptOutputMeta["parserMode"],
+  promptVersion = TRACE_PROMPT_VERSION,
+  outputVersion = TRACE_OUTPUT_VERSION,
+): PromptOutputMeta {
+  return {
+    contractVersion: PROMPT_OUTPUT_CONTRACT_VERSION,
+    promptVersion,
+    outputVersion,
+    parserMode,
+  };
 }
 
 export async function POST(req: NextRequest) {
@@ -81,16 +108,35 @@ export async function POST(req: NextRequest) {
     timeoutMs: 20_000,
   });
 
-  let data: any = null;
-  try {
-    data = JSON.parse(text);
-  } catch {
-    data = null;
-  }
+  const parsedRaw = parsePromptOutputJson(text);
+  const extracted = extractPromptOutputPayload<Record<string, unknown>>(parsedRaw, {
+    fallbackPromptVersion: TRACE_PROMPT_VERSION,
+    fallbackOutputVersion: TRACE_OUTPUT_VERSION,
+  });
+  const data = extracted.payload;
 
   if (!data || typeof data !== "object") {
-    return NextResponse.json({ ok: false, error: "trace_parse_failed" }, { status: 502 });
+    return NextResponse.json(
+      {
+        ok: false,
+        error: "trace_parse_failed",
+        promptOutput: buildPromptOutputMeta(extracted.meta.parserMode),
+      },
+      { status: 502 },
+    );
   }
 
-  return NextResponse.json({ ok: true, guidanceOnly, ...data }, { status: 200 });
+  return NextResponse.json(
+    {
+      ok: true,
+      guidanceOnly,
+      ...data,
+      promptOutput: {
+        ...buildPromptOutputMeta(extracted.meta.parserMode),
+        promptVersion: extracted.meta.promptVersion,
+        outputVersion: extracted.meta.outputVersion,
+      },
+    },
+    { status: 200 },
+  );
 }
