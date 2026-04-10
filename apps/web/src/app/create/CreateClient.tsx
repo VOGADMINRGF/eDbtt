@@ -125,6 +125,18 @@ function normalizeAnlassraumId(value?: string | null): string | null {
   return normalized;
 }
 
+export function hasPrimaryIntakeText(value?: string | null): boolean {
+  return Boolean(String(value ?? "").trim());
+}
+
+export function shouldShowCreatePostInputModules(params: {
+  hasStarted: boolean;
+  intakeText: string;
+}): boolean {
+  if (!params.hasStarted) return false;
+  return hasPrimaryIntakeText(params.intakeText);
+}
+
 export default function CreateClient({
   initialEntitlements,
   overview,
@@ -160,6 +172,9 @@ export default function CreateClient({
     return text.selectionInfoInvalidContext;
   });
   const contextLoadedRef = React.useRef(false);
+  const [intakeText, setIntakeText] = React.useState(initialText ?? "");
+  const [hasStarted, setHasStarted] = React.useState<boolean>(() => hasPrimaryIntakeText(initialText));
+  const [intakeError, setIntakeError] = React.useState<string | null>(null);
 
   React.useEffect(() => {
     let ignore = false;
@@ -236,16 +251,26 @@ export default function CreateClient({
   }, [selectedAnlassraumId, text.selectionInfoUnavailableContext]);
 
   React.useEffect(() => {
+    if (!hasStarted) return;
     if (!pickerEnabled) return;
     if (contextLoadedRef.current) return;
     void loadContextItems();
-  }, [pickerEnabled, loadContextItems]);
+  }, [hasStarted, pickerEnabled, loadContextItems]);
 
   React.useEffect(() => {
     if (!pickerEnabled && selectedAnlassraumId) {
       setSelectedAnlassraumId(null);
     }
   }, [pickerEnabled, selectedAnlassraumId]);
+
+  const handleStart = React.useCallback(() => {
+    if (!hasPrimaryIntakeText(intakeText)) {
+      setIntakeError("Bitte beschreibe zuerst deinen Beitrag.");
+      return;
+    }
+    setIntakeError(null);
+    setHasStarted(true);
+  }, [intakeText]);
 
   if (gate.status === "loading") {
     return (
@@ -293,49 +318,55 @@ export default function CreateClient({
 
   const hasLegacyModeParam = Boolean(initialMode);
   const showIntakeContext = hasCreateIntakeContext(initialIntakeContext);
+  const showPostInputModules = shouldShowCreatePostInputModules({
+    hasStarted,
+    intakeText,
+  });
 
   return (
     <div className="space-y-5 md:space-y-6">
-      <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 md:p-5">
-        <div className="space-y-3">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[rgb(var(--muted))]">{text.freeStartKicker}</p>
-          <h2
-            className="text-2xl font-semibold leading-tight md:text-3xl"
-            style={{
-              backgroundImage: "linear-gradient(120deg,var(--brand-cyan),var(--brand-blue))",
-              WebkitBackgroundClip: "text",
-              color: "transparent",
-            }}
-          >
-            {text.freeStartHeadline}
-          </h2>
+      <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 md:p-6">
+        <div className="mx-auto w-full max-w-4xl space-y-3">
+          <h2 className="text-2xl font-semibold leading-tight md:text-3xl">Beitrag erfassen</h2>
           <p className="max-w-3xl text-sm text-[rgb(var(--muted))]">
-            {text.freeStartLead}
+            Beschreibe dein Anliegen, deinen Hinweis oder deinen Beitrag in eigenen Worten. Du kannst hier auch Kontext,
+            Fragen oder Quellenhinweise angeben.
           </p>
-          <p className="max-w-3xl text-xs text-[rgb(var(--muted))]">
-            Themenkontext in den <Link href="/runden" className="underline underline-offset-2">Anlässen</Link>, Beteiligung in{" "}
-            <Link href="/swipes" className="underline underline-offset-2">Swipes</Link>, Verdichtung im Dossier.
-          </p>
-
-          <div className="flex flex-wrap items-center gap-2 text-[11px] text-[rgb(var(--muted))]">
-            <span className="vog-chip">{text.chipFreeStart}</span>
-            <span className="vog-chip">{text.chipIntake}</span>
-            <span className="vog-chip">{text.chipQuality}</span>
-            <span className="vog-chip">{text.chipGraphMatching}</span>
-            <span className="vog-chip">{text.chipCtaRouting}</span>
-            <span className="vog-chip">{text.chipNoAutoPublish}</span>
-            <span className="vog-chip">{text.chipNoSilentMerge}</span>
+          <label className="sr-only" htmlFor="create-primary-intake">
+            Beitrag
+          </label>
+          <textarea
+            id="create-primary-intake"
+            value={intakeText}
+            onChange={(event) => {
+              setIntakeText(event.target.value);
+              if (intakeError) setIntakeError(null);
+            }}
+            rows={12}
+            className="w-full resize-y rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-4 py-3 text-base leading-relaxed text-[rgb(var(--fg))] shadow-sm focus:border-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-200"
+            placeholder="Beschreibe dein Anliegen, deinen Hinweis oder deinen Beitrag in eigenen Worten. Du kannst hier auch Kontext, Fragen oder Quellenhinweise mit angeben."
+          />
+          <div className="flex flex-wrap items-center gap-3">
+            <button type="button" onClick={handleStart} className="btn-primary">
+              Beitrag analysieren
+            </button>
+            <Link href="/runden" className="text-sm text-[rgb(var(--muted))] underline underline-offset-4">
+              Zu den Anlässen
+            </Link>
           </div>
+          {intakeError ? (
+            <p className="text-sm text-rose-700 dark:text-rose-300">{intakeError}</p>
+          ) : null}
         </div>
       </section>
 
-      {hasLegacyModeParam ? (
+      {showPostInputModules && hasLegacyModeParam ? (
         <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-3 text-sm text-[rgb(var(--muted))]">
           {text.legacyModePrefix} (<code>{legacyMode}</code>) {text.legacyModeSuffix}
         </section>
       ) : null}
 
-      {showIntakeContext ? (
+      {showPostInputModules && showIntakeContext ? (
         <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 md:p-5">
           <div className="space-y-2">
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[rgb(var(--muted))]">
@@ -384,7 +415,7 @@ export default function CreateClient({
         </section>
       ) : null}
 
-      {pickerEnabled ? (
+      {showPostInputModules && pickerEnabled ? (
         <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 md:p-5">
           <div className="space-y-2">
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[rgb(var(--muted))]">{text.contextPickerTitle}</p>
@@ -463,6 +494,7 @@ export default function CreateClient({
         </section>
       ) : null}
 
+      {showPostInputModules ? (
       <details className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4">
         <summary className="cursor-pointer text-sm font-semibold text-[rgb(var(--fg))]">{text.quotasTitle}</summary>
         <div className="mt-3 flex flex-wrap items-center gap-2 text-[11px] text-[rgb(var(--muted))]">
@@ -477,31 +509,35 @@ export default function CreateClient({
           <Link href="/runden" className="vog-chip">Anlässe öffnen</Link>
         </div>
       </details>
+      ) : null}
 
-      <AnalyzeWorkspace
-        key={`${canonicalCreateMode}-${canonicalIntent}-${dossierId ?? "no-dossier"}`}
-        mode={canonicalIntent}
-        createMode={canonicalCreateMode}
-        defaultLevel={2}
-        storageKey={
-          canonicalIntent === "statement"
-            ? "vog_create_freistart_statement_v1"
-            : "vog_create_freistart_contribution_v1"
-        }
-        analyzeEndpoint="/api/create/analyze"
-        saveEndpoint="/api/create/save"
-        finalizeEndpoint="/api/create/finalize"
-        afterFinalizeNavigateTo={afterFinalizeNavigateTo}
-        dossierId={dossierId ?? undefined}
-        selectedAnlassraumId={effectiveSelectedAnlassraumId ?? undefined}
-        verificationLevel={overview.verificationLevel ?? "none"}
-        verificationStatus="ok"
-        authorName={overview.displayName ?? overview.profile?.headline ?? ""}
-        useCaseAccess={useCaseAccess}
-        initialText={initialText ?? undefined}
-        maxClaimsCap={maxClaimsCap}
-        maxFinalizeClaims={maxFinalizeClaims}
-      />
+      {showPostInputModules ? (
+        <AnalyzeWorkspace
+          key={`${canonicalCreateMode}-${canonicalIntent}-${dossierId ?? "no-dossier"}`}
+          mode={canonicalIntent}
+          createMode={canonicalCreateMode}
+          defaultLevel={2}
+          storageKey={
+            canonicalIntent === "statement"
+              ? "vog_create_freistart_statement_v1"
+              : "vog_create_freistart_contribution_v1"
+          }
+          analyzeEndpoint="/api/create/analyze"
+          saveEndpoint="/api/create/save"
+          finalizeEndpoint="/api/create/finalize"
+          afterFinalizeNavigateTo={afterFinalizeNavigateTo}
+          dossierId={dossierId ?? undefined}
+          selectedAnlassraumId={effectiveSelectedAnlassraumId ?? undefined}
+          verificationLevel={overview.verificationLevel ?? "none"}
+          verificationStatus="ok"
+          authorName={overview.displayName ?? overview.profile?.headline ?? ""}
+          useCaseAccess={useCaseAccess}
+          initialText={intakeText}
+          maxClaimsCap={maxClaimsCap}
+          maxFinalizeClaims={maxFinalizeClaims}
+          analysisEntryVariant="single_button"
+        />
+      ) : null}
     </div>
   );
 }

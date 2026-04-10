@@ -91,25 +91,27 @@ describe("/create canonical mode rendering", () => {
   });
 
   it.each(["manual", "source", "ai"] as const)(
-    "Scenario D: legacy /create?mode=%s is read but freistart remains canonical",
+    "Scenario D: legacy /create?mode=%s keeps minimal intake first and no eager workspace render",
     async (mode) => {
       const tree = await CreatePage({
         searchParams: Promise.resolve({ mode }),
       });
       const html = renderToStaticMarkup(tree);
-      expect(html).toContain("Anlass eröffnen und Beitrag einreichen");
-      expect(html).toContain("Ein gemeinsamer Einstieg");
-      expect(html).toContain("Legacy-Mode-Parameter erkannt");
-      const lastCall = mocks.analyzeWorkspaceCalls.at(-1);
-      expect(lastCall?.createMode).toBe("source");
+      expect(html).toContain("Beitrag erfassen");
+      expect(html).toContain("Beitrag analysieren");
+      expect(html).not.toContain("Kontext-Picker");
+      expect(html).not.toContain("Bürger-Bereich");
+      expect(html).not.toContain("Journalismus/Medien");
+      expect(mocks.analyzeWorkspaceCalls.length).toBe(0);
     },
   );
 
-  it("Scenario E: selected anlassraum context stays available on canonical contribution flow", async () => {
+  it("Scenario E: selected anlassraum context stays available after intake text exists", async () => {
     const tree = await CreatePage({
       searchParams: Promise.resolve({
         mode: "source",
         anlassraumId: "65f000000000000000000011",
+        prefill: "Kontext liegt vor.",
       }),
     });
     const html = renderToStaticMarkup(tree);
@@ -119,11 +121,12 @@ describe("/create canonical mode rendering", () => {
     expect(lastCall?.selectedAnlassraumId).toBe("65f000000000000000000011");
   });
 
-  it("Scenario E: legacy manual mode no longer suppresses context in canonical contribution flow", async () => {
+  it("Scenario E: legacy manual mode no longer suppresses context on canonical contribution flow", async () => {
     const tree = await CreatePage({
       searchParams: Promise.resolve({
         mode: "manual",
         anlassraumId: "65f000000000000000000011",
+        prefill: "Weiter mit Kontext",
       }),
     });
     const html = renderToStaticMarkup(tree);
@@ -133,7 +136,7 @@ describe("/create canonical mode rendering", () => {
     expect(lastCall?.selectedAnlassraumId).toBe("65f000000000000000000011");
   });
 
-  it("Scenario E: statement-only entitlement keeps freistart but drops source context forwarding", async () => {
+  it("Scenario E: statement-only entitlement keeps intake minimal without eager workspace", async () => {
     mocks.getCreateEntitlementsForRequest.mockResolvedValue({
       ...AUTH_ENTITLEMENTS,
       canSubmitContribution: false,
@@ -143,31 +146,49 @@ describe("/create canonical mode rendering", () => {
     const tree = await CreatePage({
       searchParams: Promise.resolve({
         mode: "source",
-        anlassraumId: "65f000000000000000000011",
       }),
     });
     const html = renderToStaticMarkup(tree);
-    expect(html).toContain("Anlass eröffnen und Beitrag einreichen");
+    expect(html).toContain("Beitrag erfassen");
     expect(html).not.toContain("Kontext-Picker");
+    expect(mocks.analyzeWorkspaceCalls.length).toBe(0);
+  });
+
+  it("Scenario E: statement-only entitlement keeps source context out of statement workspace", async () => {
+    mocks.getCreateEntitlementsForRequest.mockResolvedValue({
+      ...AUTH_ENTITLEMENTS,
+      canSubmitContribution: false,
+      canSubmitStatement: true,
+    });
+
+    const tree = await CreatePage({
+      searchParams: Promise.resolve({
+        mode: "source",
+        prefill: "Starttext",
+        anlassraumId: "65f000000000000000000011",
+      }),
+    });
+    renderToStaticMarkup(tree);
 
     const lastCall = mocks.analyzeWorkspaceCalls.at(-1);
     expect(lastCall?.createMode).toBe("manual");
     expect(lastCall?.selectedAnlassraumId).toBeUndefined();
   });
 
-  it("uses /swipes as finalize fallback in canonical create flow without dossier", async () => {
+  it("uses /swipes as finalize fallback in canonical create flow when workspace starts", async () => {
     const tree = await CreatePage({
-      searchParams: Promise.resolve({}),
+      searchParams: Promise.resolve({ prefill: "Starttext" }),
     });
     renderToStaticMarkup(tree);
 
     const lastCall = mocks.analyzeWorkspaceCalls.at(-1);
     expect(lastCall?.afterFinalizeNavigateTo).toBe("/swipes");
+    expect(lastCall?.analysisEntryVariant).toBe("single_button");
   });
 
   it("keeps finalize fallback server-parity for explicit round_setup entry", async () => {
     const tree = await CreatePage({
-      searchParams: Promise.resolve({ entry_intent: "round_setup", entry_mode: "guided" }),
+      searchParams: Promise.resolve({ entry_intent: "round_setup", entry_mode: "guided", prefill: "Starttext" }),
     });
     renderToStaticMarkup(tree);
 
@@ -178,7 +199,7 @@ describe("/create canonical mode rendering", () => {
 
   it("keeps canonical defaults when entry intent/mode are invalid", async () => {
     const tree = await CreatePage({
-      searchParams: Promise.resolve({ entry_intent: "unknown", entry_mode: "broken" }),
+      searchParams: Promise.resolve({ entry_intent: "unknown", entry_mode: "broken", prefill: "Starttext" }),
     });
     renderToStaticMarkup(tree);
 
@@ -189,7 +210,7 @@ describe("/create canonical mode rendering", () => {
 
   it("uses dossier redirect as finalize fallback when dossierId is present", async () => {
     const tree = await CreatePage({
-      searchParams: Promise.resolve({ dossierId: "dossier-42" }),
+      searchParams: Promise.resolve({ dossierId: "dossier-42", prefill: "Starttext" }),
     });
     renderToStaticMarkup(tree);
 
@@ -219,6 +240,7 @@ describe("/create canonical mode rendering", () => {
     expect(String(lastCall?.initialText ?? "")).toContain("Intake-Kontext (Anlassraum-first)");
     expect(String(lastCall?.initialText ?? "")).toContain("Signal: Signal Innenstadt");
     expect(String(lastCall?.initialText ?? "")).toContain("Primärquelle öffnen URL: https://example.org/a");
+    expect(lastCall?.analysisEntryVariant).toBe("single_button");
   });
 
   it("ignores unknown legacy query params for intake-context hydration", async () => {
@@ -231,8 +253,6 @@ describe("/create canonical mode rendering", () => {
     const html = renderToStaticMarkup(tree);
     expect(html).not.toContain("Intake-Kontext");
 
-    const lastCall = mocks.analyzeWorkspaceCalls.at(-1);
-    expect(lastCall?.createMode).toBe("source");
-    expect(lastCall?.initialText).toBeUndefined();
+    expect(mocks.analyzeWorkspaceCalls.length).toBe(0);
   });
 });

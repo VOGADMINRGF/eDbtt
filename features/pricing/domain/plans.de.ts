@@ -16,7 +16,7 @@ export const EDEBATTE_PACKAGES_DE: EDebattePackageDefinition[] = [
   {
     id: "basis",
     titel: "eDebatte Basis",
-    zielgruppe: "Buergerinnen und Buerger",
+    zielgruppe: "Bürgerinnen und Bürger",
     typ: "buerger",
     status: "pilot",
     preisMonat: 0,
@@ -33,11 +33,11 @@ export const EDEBATTE_PACKAGES_DE: EDebattePackageDefinition[] = [
   {
     id: "start",
     titel: "eDebatte Start",
-    zielgruppe: "Buergerinnen und Buerger",
+    zielgruppe: "Bürgerinnen und Bürger",
     typ: "buerger",
     status: "vormerkung",
-    preisMonat: 9.9,
-    beschreibungKurz: "Regelmaessig mitbestimmen und eigene Vorschlaege einbringen.",
+    preisMonat: 9.99,
+    beschreibungKurz: "Regelmäßig mitbestimmen und eigene Vorschläge einbringen.",
     leistungen: [
       "Mehr eigene Beitraege und Abstimmungen",
       "Zugang zu Debatten, Datenpaketen und Direktformaten",
@@ -52,12 +52,12 @@ export const EDEBATTE_PACKAGES_DE: EDebattePackageDefinition[] = [
   {
     id: "pro",
     titel: "eDebatte Pro",
-    zielgruppe: "Initiativen und Teams",
-    typ: "organisation",
+    zielgruppe: "Engagierte Bürger:innen und Initiativen",
+    typ: "buerger",
     status: "vormerkung",
-    preisMonat: 29.99,
+    preisMonat: 29,
     beschreibungKurz:
-      "Fuer Initiativen und Teams: Themenpakete, gefuehrte Agenda/Umfragen und optionaler Recherche-Schub.",
+      "Für intensive Nutzung: mehr Credits, strukturierte Beteiligung und optionaler Recherche-Schub.",
     leistungen: [
       "5-10 Themen pro Projekt (2-5 Optionen je Thema)",
       "Zusatzthemen: 1,99 EUR je Thema (Add-on, nur mit Pro, 24 Monate)",

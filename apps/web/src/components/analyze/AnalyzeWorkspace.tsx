@@ -395,6 +395,7 @@ type AnalyzeWorkspaceProps = {
   useCaseAccess?: UseCaseAccess;
   maxClaimsCap?: number;
   maxFinalizeClaims?: number;
+  analysisEntryVariant?: "use_case_cards" | "single_button";
 };
 
 const BASE_STEPS: AnalyzeStepState[] = [
@@ -767,6 +768,7 @@ export default function AnalyzeWorkspace({
   initialText,
   authorName: initialAuthorName,
   useCaseAccess,
+  analysisEntryVariant = "use_case_cards",
 }: AnalyzeWorkspaceProps) {
   const router = useRouter();
   const { locale } = useLocale();
@@ -894,6 +896,7 @@ export default function AnalyzeWorkspace({
       text: "Zustaendigkeiten, Folgen und Umsetzungslogik.",
     },
   ];
+  const showUseCaseCards = analysisEntryVariant === "use_case_cards";
   const contextCount = notes.length + (report?.summary ? 1 : 0);
   const responsibilityCount =
     responsibilities.length +
@@ -3551,9 +3554,15 @@ export default function AnalyzeWorkspace({
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <p className="text-[11px] font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Analyse starten</p>
-                <p className="text-[11px] text-[rgb(var(--muted))]">
-                  Waehle deinen Bereich – die Analyse startet sofort mit dem passenden Ablauf.
-                </p>
+                {showUseCaseCards ? (
+                  <p className="text-[11px] text-[rgb(var(--muted))]">
+                    Waehle deinen Bereich – die Analyse startet sofort mit dem passenden Ablauf.
+                  </p>
+                ) : (
+                  <p className="text-[11px] text-[rgb(var(--muted))]">
+                    Dein Bereich wird aus deinem Login-Kontext abgeleitet. Die Analyse startet mit einem Klick.
+                  </p>
+                )}
                 {useCaseNote ? (
                   <p className="mt-1 text-[11px] text-[rgb(var(--muted))]">{useCaseNote}</p>
                 ) : null}
@@ -3563,56 +3572,67 @@ export default function AnalyzeWorkspace({
               </span>
             </div>
 
-            <div className="grid gap-2 sm:grid-cols-3">
-              {useCaseOptions.map((item) => {
-                const active = useCase === item.id;
-                const allowed = isUseCaseAllowed(item.id);
-                const lockLabel = lockLabelFor(item.id);
-                const isDisabled = analyzeDisabled;
-                return (
-                  <button
-                    key={item.id}
-                    type="button"
-                    aria-pressed={active && allowed}
-                    aria-disabled={!allowed || isDisabled}
-                    onClick={() => {
-                      if (!allowed) {
-                        setFlowInfo(lockLabel);
-                        return;
-                      }
-                      if (isDisabled) return;
-                      setUseCase(item.id);
-                      void handleAnalyze();
-                    }}
-                    className={[
-                      "group rounded-2xl border px-3 py-3 text-left transition shadow-sm",
-                      active && allowed
-                        ? "border-sky-200 bg-gradient-to-r from-sky-500/10 via-cyan-500/10 to-emerald-500/10"
-                        : "border-[rgb(var(--border))] bg-[rgb(var(--card))]",
-                      allowed ? "hover:border-sky-200 hover:shadow-md" : "cursor-not-allowed opacity-60",
-                      isDisabled ? "opacity-70" : "",
-                    ].join(" ")}
-                    disabled={isDisabled}
-                  >
-                    <div className="flex items-center justify-between gap-2">
-                      <p className="text-sm font-semibold text-[rgb(var(--fg))]">{item.title}</p>
-                      <span className="rounded-full bg-[rgb(var(--bg))] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
-                        {analyzeButtonLabel}
-                      </span>
-                    </div>
-                    <p className="mt-1 text-[11px] text-[rgb(var(--muted))]">{item.text}</p>
-                    {!allowed ? (
-                      <div className="mt-2 flex items-center justify-between text-[10px] text-[rgb(var(--muted))]">
-                        <span className="font-semibold uppercase tracking-wide">{lockLabel}</span>
-                        <a href={useCaseCtaHref} className="font-semibold underline underline-offset-4">
-                          {useCaseCtaLabel}
-                        </a>
+            {showUseCaseCards ? (
+              <div className="grid gap-2 sm:grid-cols-3">
+                {useCaseOptions.map((item) => {
+                  const active = useCase === item.id;
+                  const allowed = isUseCaseAllowed(item.id);
+                  const lockLabel = lockLabelFor(item.id);
+                  const isDisabled = analyzeDisabled;
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      aria-pressed={active && allowed}
+                      aria-disabled={!allowed || isDisabled}
+                      onClick={() => {
+                        if (!allowed) {
+                          setFlowInfo(lockLabel);
+                          return;
+                        }
+                        if (isDisabled) return;
+                        setUseCase(item.id);
+                        void handleAnalyze();
+                      }}
+                      className={[
+                        "group rounded-2xl border px-3 py-3 text-left transition shadow-sm",
+                        active && allowed
+                          ? "border-sky-200 bg-gradient-to-r from-sky-500/10 via-cyan-500/10 to-emerald-500/10"
+                          : "border-[rgb(var(--border))] bg-[rgb(var(--card))]",
+                        allowed ? "hover:border-sky-200 hover:shadow-md" : "cursor-not-allowed opacity-60",
+                        isDisabled ? "opacity-70" : "",
+                      ].join(" ")}
+                      disabled={isDisabled}
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-sm font-semibold text-[rgb(var(--fg))]">{item.title}</p>
+                        <span className="rounded-full bg-[rgb(var(--bg))] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
+                          {analyzeButtonLabel}
+                        </span>
                       </div>
-                    ) : null}
-                  </button>
-                );
-              })}
-            </div>
+                      <p className="mt-1 text-[11px] text-[rgb(var(--muted))]">{item.text}</p>
+                      {!allowed ? (
+                        <div className="mt-2 flex items-center justify-between text-[10px] text-[rgb(var(--muted))]">
+                          <span className="font-semibold uppercase tracking-wide">{lockLabel}</span>
+                          <a href={useCaseCtaHref} className="font-semibold underline underline-offset-4">
+                            {useCaseCtaLabel}
+                          </a>
+                        </div>
+                      ) : null}
+                    </button>
+                  );
+                })}
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => void handleAnalyze()}
+                className="inline-flex items-center justify-center rounded-full bg-brand-grad px-5 py-3 text-sm font-semibold text-white shadow-lg disabled:cursor-not-allowed disabled:opacity-70"
+                disabled={analyzeDisabled}
+              >
+                {analyzeButtonLabel}
+              </button>
+            )}
 
             <div className="grid gap-3 md:grid-cols-2">
               <label className="grid gap-1 text-[11px] font-semibold text-[rgb(var(--muted))]">
