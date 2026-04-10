@@ -1,20 +1,29 @@
 import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import PricingPage from "@/app/pricing/page";
+import { PRICING_JOURNEY_SEGMENTS } from "@features/pricing";
 
 describe("/pricing canonical landing", () => {
   it("renders canonical segments and b2c core prices", () => {
     const html = renderToStaticMarkup(PricingPage());
 
     expect(html).toContain("Pakete &amp; Preise");
-    expect(html).toContain("Privat");
-    expect(html).toContain("Organisationen");
-    expect(html).toContain("Kommunen / Verwaltung");
+    PRICING_JOURNEY_SEGMENTS.forEach((segment) => {
+      expect(html).toContain(segment.shortLabel);
+    });
     expect(html).toContain("0 €");
     expect(html).toContain("9,99 €");
     expect(html).toContain("29 €");
     expect(html).toContain("citizenPremium");
     expect(html).toContain("citizenPro");
+  });
+
+  it("keeps package-start and activation semantics explicit", () => {
+    const html = renderToStaticMarkup(PricingPage());
+
+    expect(html).toContain("Pakete können direkt gewählt und beauftragt werden");
+    expect(html).toContain("Leistungsumfang und Aktivierung sind getrennt organisiert");
+    expect(html).not.toContain("wir melden uns irgendwann");
   });
 
   it("shows hybrid institutional model, add-ons, and doc examples", () => {
@@ -37,7 +46,7 @@ describe("/pricing canonical landing", () => {
 
     expect(html).toContain('href="/vormerken"');
     expect(html).toContain('href="/mitglied-antrag"');
-    expect(html).toContain('href="/vormerken?paket=b2b_pro"');
-    expect(html).toContain('href="/vormerken?paket=b2g_pro"');
+    expect(html).toContain('href="/vormerken?segment=organisationen"');
+    expect(html).toContain('href="/vormerken?segment=kommunen"');
   });
 });

@@ -96,7 +96,7 @@ export async function createPreorderLead(
   }
 
   const now = deps.now ? deps.now() : new Date();
-  const source = data.source ?? "vormerken";
+  const source = data.source ?? "package_start";
   const emailFromPayload = normalizeEmail(data.email);
   const payloadType: PackageAudience | null = data.type ?? plan.typ ?? null;
 

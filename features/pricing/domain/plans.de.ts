@@ -1,14 +1,14 @@
 import type { EDebattePackageDefinition, EDebattePackageId, PackageAudience, PackageStatus } from "./types";
 
 export const PACKAGE_STATUS_LABELS: Record<PackageStatus, string> = {
-  verfuegbar: "Verfuegbar",
-  pilot: "Pilot",
-  vormerkung: "Vormerkung",
-  bald: "Bald",
+  verfuegbar: "Direktstart",
+  pilot: "Pilotbetrieb",
+  vormerkung: "Paketstart",
+  bald: "In Vorbereitung",
 };
 
 export const PACKAGE_AUDIENCE_LABELS: Record<PackageAudience, string> = {
-  buerger: "Buergerinnen und Buerger",
+  buerger: "Bürgerinnen und Bürger",
   organisation: "Organisationen",
 };
 
@@ -24,10 +24,10 @@ export const EDEBATTE_PACKAGES_DE: EDebattePackageDefinition[] = [
       "Kostenfreier Einstieg: Inhalte ansehen, mitwirken und die Gemeinschaft kennenlernen.",
     leistungen: [
       "Lesen und wischen bleiben frei",
-      "Eigene Beitraege ueber Aktivitaet freischalten",
+      "Eigene Beiträge über Aktivität freischalten",
       "Teilnahme an Direktformaten und Abstimmungen",
     ],
-    ctaText: "Kostenfrei vormerken",
+    ctaText: "Paket starten",
     ctaHref: "/vormerken?paket=basis",
   },
   {
@@ -44,7 +44,7 @@ export const EDEBATTE_PACKAGES_DE: EDebattePackageDefinition[] = [
       "Frueher Zugriff auf neue Funktionen",
     ],
     hervorgehoben: true,
-    ctaText: "Vormerken",
+    ctaText: "Paketstart beauftragen",
     ctaHref: "/vormerken?paket=start",
     sekundarCtaText: "VoiceOpenGov unterstuetzen",
     sekundarCtaHref: "https://voiceopengov.org/unterstuetzen#voiceopengov-support",
@@ -66,7 +66,7 @@ export const EDEBATTE_PACKAGES_DE: EDebattePackageDefinition[] = [
       "Optional: Contributions-Hilfe (Alternativen/Eventualitaeten) mit Preisstaffel",
       "Mindestlaufzeit 24 Monate (Setup, Vertrag)",
     ],
-    ctaText: "Vormerken",
+    ctaText: "Paketstart beauftragen",
     ctaHref: "/vormerken?paket=pro",
     sekundarCtaText: "VoiceOpenGov unterstuetzen",
     sekundarCtaHref: "https://voiceopengov.org/unterstuetzen#voiceopengov-support",
@@ -78,14 +78,14 @@ export const EDEBATTE_PACKAGES_DE: EDebattePackageDefinition[] = [
     typ: "organisation",
     status: "vormerkung",
     beschreibungKurz:
-      "Ein Projekt, klare Rollen und Export/Embed-Basics fuer Teams und Organisationen.",
+      "Ein Projekt, klare Rollen und Export/Embed-Basics für Teams und Organisationen.",
     leistungen: [
       "1 Projekt",
       "Rollen: Owner, Editor, Viewer",
       "Begrenzte Themen je Projekt",
       "Export & Embed (Basis)",
     ],
-    ctaText: "Vormerken",
+    ctaText: "Paketstart Organisation",
     ctaHref: "/vormerken?paket=b2b_basis",
   },
   {
@@ -95,7 +95,7 @@ export const EDEBATTE_PACKAGES_DE: EDebattePackageDefinition[] = [
     typ: "organisation",
     status: "vormerkung",
     beschreibungKurz:
-      "Mehrere Projekte, Team-Workflow und erweiterte Exporte fuer professionelle Nutzung.",
+      "Mehrere Projekte, Team-Workflow und erweiterte Exporte für professionelle Nutzung.",
     leistungen: [
       "Mehrere Projekte & Teams",
       "Rollen & Team-Logik (Owner/Editor/Viewer)",
@@ -103,7 +103,7 @@ export const EDEBATTE_PACKAGES_DE: EDebattePackageDefinition[] = [
       "Moderations- und Freigabe-Workflow",
     ],
     hervorgehoben: true,
-    ctaText: "Vormerken",
+    ctaText: "Paketstart Organisation",
     ctaHref: "/vormerken?paket=b2b_pro",
   },
   {
@@ -120,7 +120,7 @@ export const EDEBATTE_PACKAGES_DE: EDebattePackageDefinition[] = [
       "Feeds/Quellen je Kommune",
       "Projekt-Reports (Basis)",
     ],
-    ctaText: "Vormerken",
+    ctaText: "Paketstart Kommune",
     ctaHref: "/vormerken?paket=b2g_basis",
   },
   {
@@ -138,7 +138,7 @@ export const EDEBATTE_PACKAGES_DE: EDebattePackageDefinition[] = [
       "Schnittstellen & Exporte",
     ],
     hervorgehoben: true,
-    ctaText: "Vormerken",
+    ctaText: "Paketstart Kommune",
     ctaHref: "/vormerken?paket=b2g_pro",
   },
 ];

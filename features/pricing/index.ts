@@ -1,6 +1,7 @@
 // client-safe exports (keine server-only Dateien!)
 export * from "./domain/types";
 export * from "./domain/plans.de";
+export * from "./domain/journey.de";
 export * from "./domain/helpers";
 
 // reine Logik/Typen (client-safe)

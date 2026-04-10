@@ -497,14 +497,14 @@ export function buildEdebatePreorderMail({
             <tr>
               <td style="padding:20px 24px;background:#0f172a;">
                 <div style="font-size:11px;letter-spacing:0.3em;text-transform:uppercase;color:#94a3b8;">eDebatte</div>
-                <div style="margin-top:6px;font-size:22px;font-weight:700;color:#ffffff;">Vormerkung bestaetigt</div>
+                <div style="margin-top:6px;font-size:22px;font-weight:700;color:#ffffff;">Paketstart bestaetigt</div>
               </td>
             </tr>
             <tr>
               <td style="padding:20px 24px;">
                 <p style="margin:0 0 10px 0;font-size:15px;">${greeting},</p>
                 <p style="margin:0 0 14px 0;font-size:14px;line-height:1.6;color:#334155;">
-                  danke für deine Vormerkung. Sie ist unverbindlich und ohne Zahlung. Hier die Zusammenfassung:
+                  danke, dein Paketstart ist eingegangen. Hier die Zusammenfassung:
                 </p>
 
                 <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:16px;">
@@ -525,7 +525,7 @@ export function buildEdebatePreorderMail({
                 </table>
 
                 <p style="margin:14px 0 0 0;font-size:12px;color:#64748b;line-height:1.6;">
-                  Du findest deine Vormerkung jederzeit im Konto. Wenn du Rückfragen hast, antworte einfach auf diese E-Mail.
+                  Als Nächstes stimmen wir Freischaltung, Rollen und Einführung passend zum Nutzungskontext ab.
                 </p>
 
                 ${accountBlock}
@@ -540,16 +540,18 @@ export function buildEdebatePreorderMail({
 
   const text = `${greeting},
 
-danke für deine Vormerkung. Sie ist unverbindlich und ohne Zahlung.
+danke, dein Paketstart ist eingegangen.
 
 Paket: ${planLabel}
 Preis: ${amount}${typeof monthlyPrice === "number" && monthlyPrice > 0 ? " / Monat" : ""}
+
+Als Nächstes stimmen wir Freischaltung, Rollen und Einführung passend zum Nutzungskontext ab.
 
 ${accountUrl ? `Zum Konto: ${accountUrl}` : ""}
 
 – Dein eDebatte Team`;
 
-  return { subject: "eDebatte – Vormerkung bestaetigt", html, text };
+  return { subject: "eDebatte – Paketstart bestaetigt", html, text };
 }
 
 export function buildEdebatePreorderPledgeUserMail(args: {

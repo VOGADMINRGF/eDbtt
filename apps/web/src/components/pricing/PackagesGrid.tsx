@@ -29,7 +29,7 @@ function priceLine(pkg: { preisMonat?: number; preisJahr?: number }) {
   if (pkg.preisMonat === 0) return "Kostenfrei";
   if (typeof pkg.preisMonat === "number") return `${CURRENCY.format(pkg.preisMonat)} / Monat`;
   if (typeof pkg.preisJahr === "number") return `${CURRENCY.format(pkg.preisJahr)} / Jahr`;
-  return "Preis folgt";
+  return "Preis nach Modell";
 }
 
 type PackagesGridProps = {
@@ -122,8 +122,8 @@ function PackagesGrid({ packages }: PackagesGridProps) {
 
             <p className="mt-4 text-xs text-[rgb(var(--muted))]">
               {pkg.id.startsWith("b2b_") || pkg.id.startsWith("b2g_")
-                ? "Vormerkung = unverbindlich. Wir klaeren Setup, Umfang und Starttermin."
-                : "Vormerkung = unverbindlich. Keine Zahlung, kein Abo."}
+                ? "Paketstart = Beauftragung. Freischaltung und Einführung folgen abgestimmt."
+                : "Paketstart = direkte Auswahl. Freischaltung erfolgt anschließend."}
             </p>
           </article>
         </div>

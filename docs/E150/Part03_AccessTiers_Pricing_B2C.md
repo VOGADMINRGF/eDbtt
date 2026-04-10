@@ -349,8 +349,11 @@ Part 03 bildet die Grundlage für:
 Canonical: `/pricing` (Pakete/Preise/Add-ons) und `/mitglied-antrag` (Mitgliedschafts-Antrag).
 
 - `/pricing` ist die kanonische Landing fuer:
-  - Pakete (z.B. Basis/Start/Pro) inkl. Vormerkung
+  - Pakete (z.B. Basis/Start/Pro) inkl. direkter Paketbeauftragung
   - Add-ons (z.B. Zusatzthemen, Agenda/Umfragen pro Teilnehmer, optionale Faktencheck-/Contributions-Hilfe)
+- `/vormerken` ist der kanonische Folgepfad nach der Preisorientierung:
+  - Paketstart/Paketabschluss anlegen (Buerger, Organisationen, Kommunen)
+  - Freischaltung/Einrichtung erfolgt anschliessend getrennt je Nutzungskontext
 - `/mitglied-werden` ist **Legacy** und redirectet auf `/pricing` (keine neuen Flows darauf aufbauen).
 - `/mitglied-antrag` ist der Mitgliedschafts-Antrag (Wizard):
   - erzwingt Login und sammelt Pflichtfelder (Vor-/Nachname, Adresse inkl. PLZ, Land, Geburtsdatum; Telefon optional)
