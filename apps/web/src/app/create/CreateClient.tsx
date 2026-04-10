@@ -495,20 +495,20 @@ export default function CreateClient({
       ) : null}
 
       {showPostInputModules ? (
-      <details className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4">
-        <summary className="cursor-pointer text-sm font-semibold text-[rgb(var(--fg))]">{text.quotasTitle}</summary>
-        <div className="mt-3 flex flex-wrap items-center gap-2 text-[11px] text-[rgb(var(--muted))]">
-          <span className="vog-chip">{text.tierLabel}: {tierLabel}</span>
-          <span className="vog-chip">{text.creditsLabel}: {formatOperatorNumber(credits, operatorLocale)}</span>
-          {monthlyLimit === null ? (
-            <span className="vog-chip">{text.monthlyLimitLabel}: {text.monthlyLimitUnlimited}</span>
-          ) : (
-            <span className="vog-chip">{text.monthlyLimitLabel}: {formatOperatorNumber(monthlyLimit, operatorLocale)}</span>
-          )}
-          <span className="vog-chip">{text.maxClaimsLabel}: {formatOperatorNumber(maxFinalizeClaims, operatorLocale)}</span>
-          <Link href="/runden" className="vog-chip">Anlässe öffnen</Link>
-        </div>
-      </details>
+        <details className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4">
+          <summary className="cursor-pointer text-sm font-semibold text-[rgb(var(--fg))]">{text.quotasTitle}</summary>
+          <div className="mt-3 flex flex-wrap items-center gap-2 text-[11px] text-[rgb(var(--muted))]">
+            <span className="vog-chip">{text.tierLabel}: {tierLabel}</span>
+            <span className="vog-chip">{text.creditsLabel}: {formatOperatorNumber(credits, operatorLocale)}</span>
+            {monthlyLimit === null ? (
+              <span className="vog-chip">{text.monthlyLimitLabel}: {text.monthlyLimitUnlimited}</span>
+            ) : (
+              <span className="vog-chip">{text.monthlyLimitLabel}: {formatOperatorNumber(monthlyLimit, operatorLocale)}</span>
+            )}
+            <span className="vog-chip">{text.maxClaimsLabel}: {formatOperatorNumber(maxFinalizeClaims, operatorLocale)}</span>
+            <Link href="/runden" className="vog-chip">Anlässe öffnen</Link>
+          </div>
+        </details>
       ) : null}
 
       {showPostInputModules ? (
