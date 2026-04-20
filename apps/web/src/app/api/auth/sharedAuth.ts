@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { createSession } from "@/utils/session";
 import { normalizeAccessTier } from "@/config/accessTiers";
 import { getEngagementLevelFromXp, normalizeEngagementLevel } from "@/config/engagement";
+import { normalizeInternalRedirectPath } from "@/features/create/finalizeRedirect";
 import { ensureVerificationDefaults } from "@core/auth/verificationTypes";
 import type { ObjectId } from "@core/db/triMongo";
 import type { UserRole } from "@/types/user";
@@ -84,7 +85,8 @@ export function sanitizeRedirect(raw?: string | null) {
   if (!raw) return DEFAULT_REDIRECT;
   try {
     const url = new URL(raw, "http://localhost");
-    return url.pathname + url.search;
+    const normalized = normalizeInternalRedirectPath(url.pathname + url.search);
+    return normalized ?? DEFAULT_REDIRECT;
   } catch {
     return DEFAULT_REDIRECT;
   }

@@ -370,4 +370,102 @@ describe("/api/contributions/analyze create orchestration envelope", () => {
       }),
     );
   });
+
+  it("maps create analysis modes to explicit audience/profile hints", async () => {
+    mocks.analyzeContribution.mockResolvedValue(buildAnalyzeResult({ claims: [] }));
+
+    await analyzePOST(
+      req({
+        text: "Dies ist ein ausreichend langer Text fuer den Medienmodus-Test.",
+        locale: "de-DE",
+        analysisMode: "media",
+      }),
+    );
+    expect(mocks.analyzeContribution).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        analysisMode: "media",
+        audienceRole: "staff",
+      }),
+    );
+
+    await analyzePOST(
+      req({
+        text: "Dies ist ein ausreichend langer Text fuer den Guided-Modus-Test.",
+        locale: "de-DE",
+        analysisMode: "guided",
+      }),
+    );
+    expect(mocks.analyzeContribution).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        analysisMode: "guided",
+        audienceRole: "institution",
+      }),
+    );
+  });
+
+  it("passes upload-aware source grounding prompt addon to analyzer", async () => {
+    mocks.analyzeContribution.mockResolvedValue(
+      buildAnalyzeResult({ claims: [{ id: "c1", text: "Dokumentbasierter Claim mit Mobilität." }] }),
+    );
+
+    const res = await analyzePOST(
+      req({
+        text: "Bitte den hochgeladenen Bericht auswerten.",
+        locale: "de-DE",
+        analysisMode: "analyze",
+        evidenceItems: [
+          {
+            kind: "upload_document",
+            id: "doc-1",
+            title: "Bericht Mobilität",
+            documentText:
+              "Die Mobilität im Quartier hat sich im mittleren Abschnitt stark verändert. Der Bericht nennt konkrete Konflikte.",
+          },
+        ],
+      }),
+    );
+
+    expect(res.status).toBe(200);
+    expect(mocks.analyzeContribution).toHaveBeenCalledWith(
+      expect.objectContaining({
+        analysisMode: "analyze",
+        sourceGroundingPromptAddon: expect.stringContaining("SOURCE ORCHESTRATION CONTRACT"),
+      }),
+    );
+  });
+
+  it("returns source grounding audit metadata with upload priority and contradiction signals", async () => {
+    mocks.analyzeContribution.mockResolvedValue(
+      buildAnalyzeResult({
+        claims: [{ id: "c1", text: "Der Bericht beschreibt einen Mobilitätskonflikt im Quartier." }],
+      }),
+    );
+
+    const res = await analyzePOST(
+      req({
+        text: "Bitte den Bericht analysieren und Widersprüche markieren.",
+        locale: "de-DE",
+        analysisMode: "analyze",
+        evidenceItems: [
+          {
+            kind: "upload_document",
+            id: "doc-1",
+            title: "Mobilitätsbericht",
+            documentText:
+              "Im mittleren Abschnitt beschreibt der Bericht einen Mobilitätskonflikt im Quartier und offene Fragen zur Umsetzung.",
+          },
+        ],
+      }),
+    );
+
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.ok).toBe(true);
+    expect(body.meta?.sourceGrounding).toBeTruthy();
+    expect(body.meta?.sourceGrounding?.sourceInventory?.uploadDocuments).toBe(1);
+    expect(body.meta?.sourceGrounding?.documentGroundingPass?.required).toBe(true);
+    expect(body.meta?.sourceGrounding?.documentGroundingPass?.middleCoverage).toBe(true);
+    expect(body.meta?.sourceGrounding?.noSourceBluffing?.passed).toBe(true);
+    expect(body.meta?.sourceGrounding?.synthesis?.documentGroundedClaims).toBeGreaterThanOrEqual(1);
+  });
 });

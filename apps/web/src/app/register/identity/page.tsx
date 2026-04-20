@@ -4,19 +4,11 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import QRCode from "qrcode";
 import { RegisterStepper } from "../RegisterStepper";
+import { resolvePostRegistrationRedirect } from "@/features/auth/roleExperienceContract";
 
 type OtpPhase = "idle" | "loading" | "ready" | "verifying" | "success" | "error";
 type EmailPhase = "idle" | "sending" | "sent" | "verifying" | "success" | "error";
 type MethodTab = "otp" | "email";
-
-function sanitizeNext(value: string | null) {
-  if (!value) return null;
-  const trimmed = value.trim();
-  if (!trimmed.startsWith("/")) return null;
-  if (trimmed.startsWith("//")) return null;
-  if (trimmed.includes("://")) return null;
-  return trimmed;
-}
 
 export default function IdentityStepPage() {
   const router = useRouter();
@@ -41,11 +33,11 @@ export default function IdentityStepPage() {
   const [emailMessage, setEmailMessage] = useState<string | null>(null);
   const [emailCode, setEmailCode] = useState("");
   const finalNext = useMemo(
-    () => sanitizeNext(searchParams.get("next")) ?? "/account?welcome=1",
+    () => resolvePostRegistrationRedirect({ requestedRedirect: searchParams.get("next"), roleId: "citizens" }),
     [searchParams],
   );
   const nextAfterVerify = useMemo(
-    () => `/register/preorder?next=${encodeURIComponent(finalNext)}`,
+    () => `/order?source=register&next=${encodeURIComponent(finalNext)}`,
     [finalNext],
   );
 
@@ -204,7 +196,7 @@ export default function IdentityStepPage() {
         <h1 className="text-2xl font-semibold text-[rgb(var(--fg))]">Identität sichern</h1>
         <p className="text-sm text-[rgb(var(--muted))]">
           Wähle Authenticator-App (TOTP) oder E-Mail-Code, um Missbrauch vorzubeugen. Im nächsten Schritt kannst du optional
-          dein eDebatte-Paket vormerken.
+          deinen eDebatte-Paketstart anlegen.
         </p>
       </header>
 
@@ -428,7 +420,7 @@ export default function IdentityStepPage() {
         <ul className="list-disc pl-5 space-y-1">
           <li>Bürgerabstimmungen werden international beobachtet – starke Legitimation schützt Ergebnisse vor Manipulation.</li>
           <li>Doppelter Opt-in: Du bestätigst E-Mail und Identität, damit wir keine fremden Accounts freischalten.</li>
-          <li>Nach der Identitätsprüfung kannst du dein Paket vormerken – unverbindlich und ohne Zahlung.</li>
+          <li>Nach der Identitätsprüfung kannst du deinen Paketstart anlegen und die Freischaltung abstimmen.</li>
           <li>Familien- oder Teamkonten: Du kannst später in deinem Profil zusätzliche Personen einladen oder Gönner-E-Mails hinterlegen.</li>
         </ul>
         <p className="text-xs text-[rgb(var(--muted))]">

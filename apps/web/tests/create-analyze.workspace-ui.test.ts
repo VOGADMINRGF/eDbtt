@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import {
   buildCreatePrepareAttachReviewState,
   collectCreateAnalyzeReasons,
+  deriveSourceGroundingUiHint,
   deriveCreateAnalyzeRoutingHint,
   resolveFinalizeRedirectTarget,
 } from "@/components/analyze/AnalyzeWorkspace";
@@ -273,6 +274,90 @@ describe("create analyze workspace UI helpers", () => {
     expect(review).toBeNull();
   });
 
+  it("shows warning source-grounding hint when no-source-bluffing fails", () => {
+    const hint = deriveSourceGroundingUiHint({
+      taskType: "analyze",
+      sourceInventory: {
+        total: 1,
+        uploadDocuments: 1,
+        webReferences: 0,
+        freeNotes: 0,
+      },
+      documentGroundingPass: {
+        required: true,
+        documentsWithText: 0,
+        startCoverage: false,
+        middleCoverage: false,
+        endCoverage: false,
+        contextRotRisk: "high",
+      },
+      externalContextPass: {
+        webReferences: 0,
+        policy: "supplement_only",
+      },
+      synthesis: {
+        documentGroundedClaims: 0,
+        webGroundedClaims: 0,
+        inferredClaims: 2,
+        openClaims: 1,
+      },
+      contradictionAudit: {
+        contradictionSignals: [],
+        hasSignal: false,
+      },
+      noSourceBluffing: {
+        passed: false,
+        reason: "Uploads vorhanden, aber kein dokumentgestützter Befund.",
+      },
+      requiresManualReview: true,
+    });
+
+    expect(hint?.tone).toBe("warning");
+    expect(hint?.message).toContain("Uploads vorhanden");
+  });
+
+  it("shows info source-grounding hint when audit is healthy", () => {
+    const hint = deriveSourceGroundingUiHint({
+      taskType: "media",
+      sourceInventory: {
+        total: 3,
+        uploadDocuments: 1,
+        webReferences: 1,
+        freeNotes: 1,
+      },
+      documentGroundingPass: {
+        required: true,
+        documentsWithText: 1,
+        startCoverage: true,
+        middleCoverage: true,
+        endCoverage: true,
+        contextRotRisk: "low",
+      },
+      externalContextPass: {
+        webReferences: 1,
+        policy: "supplement_only",
+      },
+      synthesis: {
+        documentGroundedClaims: 3,
+        webGroundedClaims: 1,
+        inferredClaims: 0,
+        openClaims: 0,
+      },
+      contradictionAudit: {
+        contradictionSignals: [],
+        hasSignal: false,
+      },
+      noSourceBluffing: {
+        passed: true,
+        reason: null,
+      },
+      requiresManualReview: false,
+    });
+
+    expect(hint?.tone).toBe("info");
+    expect(hint?.title).toContain("Quellenbindung");
+  });
+
   it("resolves finalize redirects to internal paths only", () => {
     expect(
       resolveFinalizeRedirectTarget({
@@ -324,5 +409,25 @@ describe("create analyze workspace UI helpers", () => {
   it("derives wrapper fallback path with dossier priority", () => {
     expect(buildFinalizeFallbackPath({ dossierId: "dossier-1" })).toBe("/dossier/dossier-1");
     expect(buildFinalizeFallbackPath({ dossierId: null })).toBe("/swipes");
+    expect(
+      buildFinalizeFallbackPath({
+        dossierId: null,
+        preferredSurface: "runden",
+        anlassraumId: "65f000000000000000000011",
+      }),
+    ).toBe("/runden?view=active&anlassraumId=65f000000000000000000011");
+    expect(
+      buildFinalizeFallbackPath({
+        dossierId: null,
+        preferredSurface: "runden",
+      }),
+    ).toBe("/runden?view=active");
+    expect(
+      buildFinalizeFallbackPath({
+        dossierId: null,
+        preferredSurface: "runden",
+        fallbackReturnTo: "/runden?view=results",
+      }),
+    ).toBe("/runden?view=results");
   });
 });

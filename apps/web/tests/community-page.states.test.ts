@@ -127,7 +127,7 @@ describe("community page states", () => {
 
     const tree = await CommunityPage({ searchParams: Promise.resolve({ group: "mobility-berlin" }) as any });
     const html = renderToStaticMarkup(tree);
-    expect(html).toContain("Produktive Community-Quelle aktuell nicht verfuegbar");
+    expect(html).toContain("Produktive Community-Quelle aktuell nicht verfügbar");
     expect(html).toContain("kein statischer Demo-Fallback");
   });
 
@@ -136,7 +136,7 @@ describe("community page states", () => {
       searchParams: Promise.resolve({ group: "mobility-berlin", scope: "invalid" }) as any,
     });
     const html = renderToStaticMarkup(tree);
-    expect(html).toContain("Ungueltige Community-Deep-Link-Parameter (invalid_group_scope).");
+    expect(html).toContain("Ungültige Community-Deep-Link-Parameter (invalid_group_scope).");
     expect(mocks.resolveCommunityGroupSurface).not.toHaveBeenCalled();
   });
 
@@ -145,7 +145,7 @@ describe("community page states", () => {
       searchParams: Promise.resolve({ topic: "mobility" }) as any,
     });
     const html = renderToStaticMarkup(tree);
-    expect(html).toContain("Ungueltige Community-Deep-Link-Parameter (invalid_group_context).");
+    expect(html).toContain("Ungültige Community-Deep-Link-Parameter (invalid_group_context).");
     expect(mocks.resolveCommunityGroupSurface).not.toHaveBeenCalled();
   });
 });

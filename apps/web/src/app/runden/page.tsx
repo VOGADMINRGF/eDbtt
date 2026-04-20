@@ -1,26 +1,22 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import {
-  listRundenEntryItems,
-  type RundenEntryItem,
-} from "@features/topicRound/entrySource";
+import { listRundenEntryItems, type RundenEntryItem } from "@features/topicRound/entrySource";
 import { readSession } from "@/utils/session";
 import RundenShareActions from "./RundenShareActions";
 
 export const metadata: Metadata = {
   title: "Anlässe - eDebatte",
-  description: "Geführter Einstieg in laufende Anlässe, Beiträge und Ergebnisse.",
+  description: "Laufende Anlassräume als Arbeitsstand mit Beteiligung, Beiträgen und nächstem Schritt.",
 };
 
-type RoundEntryView = "active" | "mine" | "results" | "organize";
+type RoundEntryView = "active" | "mine" | "results";
 
-const VIEW_ORDER: RoundEntryView[] = ["active", "mine", "results", "organize"];
+const VIEW_ORDER: RoundEntryView[] = ["active", "mine", "results"];
 
 const VIEW_LABELS: Record<RoundEntryView, string> = {
   active: "Laufend",
   mine: "Meine Anlässe",
   results: "Ergebnisse",
-  organize: "Verwalten",
 };
 
 const MANAGE_ROLES = new Set([
@@ -32,6 +28,23 @@ const MANAGE_ROLES = new Set([
   "admin",
   "superadmin",
   "owner",
+  "creator",
+]);
+
+const QR_ACTION_ROLES = new Set([
+  "editor",
+  "journalist",
+  "redaktion",
+  "moderator",
+  "staff",
+  "admin",
+  "superadmin",
+  "owner",
+  "creator",
+  "ngo",
+  "politics",
+  "legitimized",
+  "kurator",
 ]);
 
 function readStringParam(val?: string | string[]): string | undefined {
@@ -39,7 +52,7 @@ function readStringParam(val?: string | string[]): string | undefined {
 }
 
 function parseView(val?: string): RoundEntryView {
-  if (val === "mine" || val === "results" || val === "organize") return val;
+  if (val === "mine" || val === "results") return val;
   return "active";
 }
 
@@ -49,6 +62,19 @@ function viewHref(view: RoundEntryView): string {
 
 function hasManageAccess(roles: string[]): boolean {
   return roles.some((role) => MANAGE_ROLES.has(role));
+}
+
+function hasQrRoleAccess(roles: string[]): boolean {
+  return roles.some((role) => QR_ACTION_ROLES.has(role));
+}
+
+function hasEntryOwnership(entry: RundenEntryItem, sessionUid: string | null): boolean {
+  if (!sessionUid) return false;
+  return (
+    entry.stewardUserId === sessionUid ||
+    entry.createdBy === sessionUid ||
+    entry.ownerId === sessionUid
+  );
 }
 
 function formatDate(value?: string | Date | null): string {
@@ -63,27 +89,269 @@ function formatDate(value?: string | Date | null): string {
   }).format(date);
 }
 
-function buildStartCards(existingHref: string | null) {
+function normalizeAnlassraumId(value?: string | null): string | null {
+  const normalized = String(value ?? "").trim().toLowerCase();
+  if (!/^[a-f0-9]{24}$/.test(normalized)) return null;
+  return normalized;
+}
+
+function buildRundenReturnHref(anlassraumId?: string | null) {
+  const params = new URLSearchParams();
+  params.set("view", "active");
+  const normalizedAnlassraumId = normalizeAnlassraumId(anlassraumId);
+  if (normalizedAnlassraumId) {
+    params.set("anlassraumId", normalizedAnlassraumId);
+  }
+  return `/runden?${params.toString()}`;
+}
+
+function buildStartCards(params: {
+  existingHref: string | null;
+  hasActiveEntries: boolean;
+  hasClosedEntries: boolean;
+}) {
+  const resultsHref = params.hasClosedEntries ? viewHref("results") : viewHref("active");
   return [
     {
       href: "/create?mode=source",
-      title: "Neu starten in /create",
-      body: "Intake, Analyse und Routing für neue Anlässe.",
-      emphasize: true,
+      title: "Neuen Anlass öffnen",
+      body: "Ein Thema, eine Frage oder ein Konflikt bekommt einen eigenen Raum für Beiträge, Kontext und Weiterarbeit.",
+      cta: "Öffnen",
+      priority: "primary" as const,
     },
     {
-      href: existingHref ?? viewHref("active"),
-      title: "Laufendes in /runden",
-      body: "Aktive Runden führen, verfolgen und fortsetzen.",
-      emphasize: false,
+      href: params.existingHref ?? viewHref("active"),
+      title: "Laufenden Anlass weiterführen",
+      body: "Aktive Anlässe pflegen, Rückmeldungen bündeln und den aktuellen Stand sichtbar halten.",
+      cta: "Weiterführen",
+      priority: params.hasActiveEntries ? ("secondary" as const) : ("tertiary" as const),
     },
     {
-      href: viewHref("results"),
-      title: "Ergebnisse ansehen",
-      body: "Abgeschlossene Anlässe und Ergebnisse öffnen.",
-      emphasize: false,
+      href: resultsHref,
+      title: "Stand und Ergebnisse ansehen",
+      body:
+        "Sobald ein Anlass gewachsen ist, werden Arbeitsstand, Dossier und spätere Ergebnisse nachvollziehbar sichtbar.",
+      cta: "Ansehen",
+      priority: params.hasClosedEntries ? ("secondary" as const) : ("tertiary" as const),
     },
   ] as const;
+}
+
+function buildContributionStartHref(entry: RundenEntryItem) {
+  const params = new URLSearchParams();
+  params.set("mode", "source");
+  params.set("intent", "contribution");
+  params.set("entryIntent", "content_companion");
+  params.set("entryMode", "direct");
+  params.set("source", "runden");
+  params.set("reason", "round_inline_contribution");
+  params.set("signalTitle", entry.title.slice(0, 160));
+  if (entry.anlassraumId) params.set("anlassraumId", entry.anlassraumId);
+  params.set("returnTo", buildRundenReturnHref(entry.anlassraumId));
+  return `/create?${params.toString()}`;
+}
+
+function roundOpenHref(entry: RundenEntryItem) {
+  return entry.operatingHref ?? entry.entryHref ?? entry.intakeHref ?? "/runden";
+}
+
+function roundResultsHref(entry: RundenEntryItem) {
+  return entry.resultsHref ?? roundOpenHref(entry);
+}
+
+function deriveOperationalStatus(entry: RundenEntryItem): string {
+  if (entry.anlassraumStatus) return entry.anlassraumStatus;
+  if (entry.outputStatus) return entry.outputStatus;
+  return entry.lifecycle === "active" ? "active" : "closed";
+}
+
+function deriveLastActivity(entry: RundenEntryItem): string {
+  return formatDate(entry.lastActionAt ?? entry.updatedAt ?? entry.createdAt);
+}
+
+function RoundQuickActions(props: {
+  entry: RundenEntryItem;
+  isSignedIn: boolean;
+  canManageEntry: boolean;
+  canQrActions: boolean;
+}) {
+  const createHref = buildContributionStartHref(props.entry);
+  const openHref = roundOpenHref(props.entry);
+  const resultsHref = roundResultsHref(props.entry);
+  const qrAnchorHref = `#share-${props.entry.id}`;
+  const composeAnchorHref = `#compose-${props.entry.id}`;
+
+  if (!props.isSignedIn) {
+    return (
+      <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
+        <Link
+          href={`/login?next=${encodeURIComponent(createHref)}`}
+          className="inline-flex items-center justify-center rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm font-semibold text-[rgb(var(--fg))] transition hover:bg-[rgb(var(--bg))]"
+        >
+          Beitrag verfassen
+        </Link>
+        <Link
+          href={openHref}
+          className="inline-flex items-center justify-center rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm font-semibold text-[rgb(var(--fg))] transition hover:bg-[rgb(var(--bg))]"
+        >
+          Anlass öffnen / teilnehmen
+        </Link>
+      </div>
+    );
+  }
+
+  if (props.canManageEntry) {
+    return (
+      <>
+        <div
+          data-round-quick-actions="manager"
+          className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4"
+        >
+          {props.canQrActions && props.entry.shareActions ? (
+            <a
+              href={qrAnchorHref}
+              className="inline-flex items-center justify-center rounded-lg bg-[rgb(var(--grad-from))] px-3 py-2 text-sm font-semibold text-white transition hover:opacity-90"
+            >
+              Teilnahme öffnen
+            </a>
+          ) : null}
+          <a
+            href={composeAnchorHref}
+            className="inline-flex items-center justify-center rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm font-semibold text-[rgb(var(--fg))] transition hover:bg-[rgb(var(--bg))]"
+          >
+            Beitrag verfassen
+          </a>
+          <Link
+            href={props.entry.intakeHref ?? viewHref("active")}
+            className="inline-flex items-center justify-center rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm font-semibold text-[rgb(var(--fg))] transition hover:bg-[rgb(var(--bg))]"
+          >
+            Arbeitsstand pflegen
+          </Link>
+          <Link
+            href={resultsHref}
+            className="inline-flex items-center justify-center rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm font-semibold text-[rgb(var(--fg))] transition hover:bg-[rgb(var(--bg))]"
+          >
+            Ergebnisse ansehen
+          </Link>
+        </div>
+        {!props.canQrActions || !props.entry.shareActions ? (
+          <p className="mt-2 text-xs text-[rgb(var(--muted))]">
+            Teilnahmelink und QR erscheinen, sobald der laufende Anlass im passenden Verteilkontext verfügbar ist.
+          </p>
+        ) : null}
+      </>
+    );
+  }
+
+  return (
+    <>
+      <div
+        data-round-quick-actions="participant"
+        className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-3"
+      >
+        <a
+          href={composeAnchorHref}
+          className="inline-flex items-center justify-center rounded-lg bg-[rgb(var(--grad-from))] px-3 py-2 text-sm font-semibold text-white transition hover:opacity-90"
+        >
+          Beitrag verfassen
+        </a>
+        <Link
+          href={openHref}
+          className="inline-flex items-center justify-center rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm font-semibold text-[rgb(var(--fg))] transition hover:bg-[rgb(var(--bg))]"
+        >
+          Anlass öffnen
+        </Link>
+        <Link
+          href={resultsHref}
+          className="inline-flex items-center justify-center rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm font-semibold text-[rgb(var(--fg))] transition hover:bg-[rgb(var(--bg))]"
+        >
+          Ergebnisse ansehen
+        </Link>
+      </div>
+      <p className="mt-2 text-xs text-[rgb(var(--muted))]">
+        QR und Verteilung stehen für berechtigte Rollen im laufenden Anlass zur Verfügung.
+      </p>
+    </>
+  );
+}
+
+function RoundInlineContributionModule(props: {
+  entry: RundenEntryItem;
+  isSignedIn: boolean;
+}) {
+  const createHref = buildContributionStartHref(props.entry);
+  const composeId = `compose-${props.entry.id}`;
+
+  if (!props.isSignedIn) {
+    return null;
+  }
+
+  return (
+    <section id={composeId} className="mt-4 rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
+      <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
+        Beitrag verfassen
+      </p>
+      <p className="mt-1 text-xs leading-5 text-[rgb(var(--muted))]">
+        Schnellstart im Kontext dieses laufenden Anlasses. Hinweis, Frage, Beitrag oder Widerspruch werden direkt in den passenden Arbeitsstand geführt.
+      </p>
+      <form action="/create" method="get" className="mt-3 space-y-2">
+        <input type="hidden" name="mode" value="source" />
+        <input type="hidden" name="intent" value="contribution" />
+        <input type="hidden" name="entryIntent" value="content_companion" />
+        <input type="hidden" name="entryMode" value="direct" />
+        <input type="hidden" name="source" value="runden" />
+        <input type="hidden" name="reason" value="round_inline_contribution" />
+        <input type="hidden" name="signalTitle" value={props.entry.title.slice(0, 160)} />
+        {props.entry.anlassraumId ? (
+          <input type="hidden" name="anlassraumId" value={props.entry.anlassraumId} />
+        ) : null}
+        <input type="hidden" name="returnTo" value={buildRundenReturnHref(props.entry.anlassraumId)} />
+        <textarea
+          name="prefill"
+          className="min-h-[96px] w-full rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm text-[rgb(var(--fg))] outline-none focus:border-sky-300 focus:ring-2 focus:ring-sky-100"
+          placeholder="Was möchtest du ergänzen? Hinweise, Quelle, Frage oder Einordnung."
+        />
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="submit"
+            className="inline-flex items-center justify-center rounded-lg bg-[rgb(var(--grad-from))] px-3 py-2 text-sm font-semibold text-white transition hover:opacity-90"
+          >
+            Beitrag verfassen
+          </button>
+          <Link
+            href={createHref}
+            className="inline-flex items-center justify-center rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm font-semibold text-[rgb(var(--fg))] transition hover:bg-[rgb(var(--bg))]"
+          >
+            Ohne Text starten
+          </Link>
+        </div>
+      </form>
+    </section>
+  );
+}
+
+function RoundParticipationModule(props: {
+  entry: RundenEntryItem;
+  canQrActions: boolean;
+}) {
+  if (!props.canQrActions || !props.entry.shareActions) {
+    return (
+      <p className="mt-3 text-xs text-[rgb(var(--muted))]">
+        Sobald ein laufender Anlass existiert, kannst du hier Teilnahmelink und QR für die Verteilung nutzen.
+      </p>
+    );
+  }
+
+  return (
+    <section id={`share-${props.entry.id}`} className="mt-4">
+      <h4 className="text-sm font-semibold text-[rgb(var(--fg))]">Teilnahme öffnen</h4>
+      <p className="mt-1 text-xs leading-5 text-[rgb(var(--muted))]">
+        Mit QR oder Link führst du Menschen direkt in diesen Anlass. So fließen Rückmeldungen mobil, vor Ort oder digital
+        in genau den richtigen Arbeitsstand.
+      </p>
+      <RundenShareActions share={props.entry.shareActions} />
+    </section>
+  );
 }
 
 export default async function RundenPage({
@@ -95,14 +363,14 @@ export default async function RundenPage({
 
   const session = await readSession().catch(() => null);
   const isSignedIn = Boolean(session?.uid);
+  const sessionUid = session?.uid ?? null;
   const sessionRoles = (session?.roles ?? []).map((role) =>
     String(role).toLowerCase(),
   );
   const canManage = hasManageAccess(sessionRoles);
+  const canQrByRole = hasQrRoleAccess(sessionRoles);
 
-  const signedInViewOrder = canManage
-    ? VIEW_ORDER
-    : VIEW_ORDER.filter((view) => view !== "organize");
+  const signedInViewOrder = VIEW_ORDER;
 
   const requestedView = parseView(readStringParam(resolvedSearchParams.view));
   const view: RoundEntryView =
@@ -111,6 +379,9 @@ export default async function RundenPage({
       : "active";
 
   const compat = readStringParam(resolvedSearchParams.compat) === "demo_runden";
+  const queryAnlassraumId = normalizeAnlassraumId(
+    readStringParam(resolvedSearchParams.anlassraumId) ?? null,
+  );
 
   let entries: RundenEntryItem[] = [];
   let sourceError: string | null = null;
@@ -124,7 +395,12 @@ export default async function RundenPage({
   const activeEntries = entries.filter((entry) => entry.lifecycle === "active");
   const closedEntries = entries.filter((entry) => entry.lifecycle === "closed");
 
-  const featured = activeEntries[0] ?? null;
+  const featured =
+    (queryAnlassraumId
+      ? activeEntries.find((entry) => entry.anlassraumId === queryAnlassraumId)
+      : null) ??
+    activeEntries[0] ??
+    null;
   const remainingActive = featured
     ? activeEntries.filter((entry) => entry.id !== featured.id)
     : activeEntries;
@@ -136,8 +412,17 @@ export default async function RundenPage({
     featured?.entryHref ??
     null;
 
-  const startCards = buildStartCards(existingHref);
+  const startCards = buildStartCards({
+    existingHref,
+    hasActiveEntries: activeEntries.length > 0,
+    hasClosedEntries: closedEntries.length > 0,
+  });
   const legacyCount = entries.filter((entry) => entry.legacyIncomplete).length;
+  const featuredOwned = featured ? hasEntryOwnership(featured, sessionUid) : false;
+  const canManageFeatured = featured ? canManage || featuredOwned : false;
+  const canQrFeatured = featured
+    ? (canQrByRole || featuredOwned) && Boolean(featured.shareActions)
+    : false;
 
   return (
     <main className="mx-auto min-h-screen w-full max-w-[92rem] space-y-6 px-4 py-6 md:px-8 md:py-10 lg:px-10">
@@ -161,14 +446,16 @@ export default async function RundenPage({
                 color: "transparent",
               }}
             >
-              /create startet, /runden führt laufende Arbeit
+              Anlässe führen
             </h1>
 
             <p className="max-w-3xl text-sm leading-6 text-[rgb(var(--muted))]">
-              Nutze <span className="font-semibold text-[rgb(var(--fg))]">/create</span> für
-              neue Starts mit Analyse und Routing. Nutze{" "}
-              <span className="font-semibold text-[rgb(var(--fg))]">/runden</span> für
-              laufende Statusführung, Weiterarbeit und Ergebnisse.
+              Hier sammelst du Beiträge, teilst einen Anlass per QR oder Link und führst den Stand eines Themas
+              sichtbar weiter.
+            </p>
+            <p className="max-w-3xl text-sm leading-6 text-[rgb(var(--muted))]">
+              Ein Anlassraum hilft dabei, Hinweise, Fragen, Widerspruch und Vorschläge nicht im Kommentarstrom zu
+              verlieren, sondern geordnet in einen gemeinsamen Arbeitsstand mit offenen Fragen und nächsten Schritten zu überführen.
             </p>
           </div>
 
@@ -183,9 +470,11 @@ export default async function RundenPage({
                 aria-label={card.title}
                 className={
                   "group block h-full rounded-xl border bg-[rgb(var(--bg))] p-4 transition hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--grad-from))] " +
-                  (card.emphasize
+                  (card.priority === "primary"
                     ? "border-[rgb(var(--grad-from))]/45"
-                    : "border-[rgb(var(--border))]")
+                    : card.priority === "secondary"
+                      ? "border-[rgb(var(--border))]"
+                      : "border-[rgb(var(--border))] opacity-75")
                 }
               >
                 <p className="text-sm font-semibold text-[rgb(var(--fg))]">
@@ -195,11 +484,16 @@ export default async function RundenPage({
                   {card.body}
                 </p>
                 <p className="mt-3 text-xs font-semibold text-[rgb(var(--grad-from))] transition group-hover:text-[rgb(var(--grad-to))]">
-                  Öffnen →
+                  {card.cta} →
                 </p>
               </Link>
             ))}
           </section>
+          <p className="text-xs text-[rgb(var(--muted))]">
+            <Link href="/runden/demo" className="underline underline-offset-4 hover:text-[rgb(var(--fg))]">
+              So funktioniert ein Anlassraum
+            </Link>
+          </p>
 
           {!isSignedIn ? (
             <p className="text-xs text-[rgb(var(--muted))]">
@@ -220,7 +514,7 @@ export default async function RundenPage({
 
       {isSignedIn && (
         <section className="space-y-3">
-          <p className="text-sm font-semibold text-[rgb(var(--fg))]">Ansicht</p>
+          <p className="text-sm font-semibold text-[rgb(var(--fg))]">Arbeitsbereiche</p>
 
           <nav aria-label="Rundenbereiche" className="overflow-x-auto pb-1">
             <div className="inline-flex min-w-full gap-1 rounded-lg border bg-[rgb(var(--card))] p-1">
@@ -264,13 +558,66 @@ export default async function RundenPage({
 
       {!sourceError && entries.length === 0 && (
         <section className="rounded-2xl border bg-[rgb(var(--card))] p-6 text-sm text-[rgb(var(--muted))]">
-          <p>Noch keine Anlässe vorhanden.</p>
-          <Link
-            href="/create?mode=source"
-            className="mt-3 inline-block font-semibold text-[rgb(var(--grad-from))] hover:text-[rgb(var(--grad-to))]"
-          >
-            Jetzt ersten Anlass eröffnen →
-          </Link>
+          <h2 className="text-lg font-semibold text-[rgb(var(--fg))]">
+            Noch kein Anlass aktiv
+          </h2>
+          <p className="mt-2">
+            Nutze den Arbeitsstart in drei Schritten. Sobald ein Anlass läuft, wird dieser Bereich zur operativen
+            Fläche für Beiträge, Verteilung und Status.
+          </p>
+          <ol className="mt-4 grid gap-3 md:grid-cols-3">
+            <li className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
+              <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Schritt 1</p>
+              <p className="mt-1 text-sm font-semibold text-[rgb(var(--fg))]">Anlass öffnen</p>
+              <p className="mt-1 text-xs text-[rgb(var(--muted))]">
+                Ein Thema, eine Frage oder ein Konflikt bekommt einen eigenen Raum.
+              </p>
+            </li>
+            <li className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
+              <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Schritt 2</p>
+              <p className="mt-1 text-sm font-semibold text-[rgb(var(--fg))]">Beiträge einsammeln</p>
+              <p className="mt-1 text-xs text-[rgb(var(--muted))]">
+                Menschen kommen per Link oder QR direkt in genau diesen Anlass und können Hinweise, Fragen oder Beiträge
+                einreichen.
+              </p>
+            </li>
+            <li className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
+              <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Schritt 3</p>
+              <p className="mt-1 text-sm font-semibold text-[rgb(var(--fg))]">Stand sichtbar weiterführen</p>
+              <p className="mt-1 text-xs text-[rgb(var(--muted))]">
+                Beiträge werden gebündelt statt verstreut, damit daraus ein nachvollziehbarer Arbeitsstand entstehen
+                kann.
+              </p>
+            </li>
+          </ol>
+          <div className="mt-5 flex flex-wrap gap-2">
+            <Link
+              href="/create?mode=source"
+              className="inline-flex items-center justify-center rounded-lg bg-[rgb(var(--grad-from))] px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90"
+            >
+              Neuen Anlass öffnen
+            </Link>
+            <Link
+              href={`/create?${new URLSearchParams({
+                mode: "source",
+                intent: "contribution",
+                entryIntent: "content_companion",
+                entryMode: "direct",
+                source: "runden",
+                reason: "round_first_contribution",
+                returnTo: buildRundenReturnHref(null),
+              }).toString()}`}
+              className="inline-flex items-center justify-center rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-2 text-sm font-semibold text-[rgb(var(--fg))] transition hover:bg-[rgb(var(--bg))]"
+            >
+              Ersten Beitrag vorbereiten
+            </Link>
+            <Link
+              href="/runden/demo"
+              className="inline-flex items-center justify-center rounded-lg border border-[rgb(var(--border))] bg-transparent px-4 py-2 text-sm font-semibold text-[rgb(var(--muted))] transition hover:text-[rgb(var(--fg))]"
+            >
+              Mehr erfahren
+            </Link>
+          </div>
         </section>
       )}
 
@@ -282,8 +629,7 @@ export default async function RundenPage({
                 Laufende Anlässe
               </h2>
               <p className="text-sm text-[rgb(var(--muted))]">
-                Runde = laufender Prozesskontext. Anlassraum bleibt der offene
-                Kontext, Dossier der größere Zusammenhangsraum.
+                Hier führst du laufende Anlässe weiter, bündelst Rückmeldungen und hältst den Arbeitsstand nachvollziehbar.
               </p>
             </div>
 
@@ -291,13 +637,17 @@ export default async function RundenPage({
               href="/create?mode=source"
               className="inline-flex w-full items-center justify-center rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-2 text-sm font-semibold text-[rgb(var(--fg))] transition hover:bg-[rgb(var(--bg))] sm:w-auto"
             >
-              Neu in /create starten
+              Neuen Anlass öffnen
             </Link>
           </div>
 
           {activeEntries.length === 0 ? (
             <div className="rounded-2xl border bg-[rgb(var(--card))] p-5 text-sm text-[rgb(var(--muted))]">
-              Aktuell sind keine laufenden Anlässe vorhanden.
+              <p>Aktuell sind keine laufenden Anlässe vorhanden.</p>
+              <p className="mt-2">
+                Öffne zuerst einen Anlass. Sobald er läuft, erscheinen hier direkte Arbeitsaktionen für Beiträge,
+                Teilnahme, Verteilung und Status.
+              </p>
             </div>
           ) : (
             <>
@@ -321,19 +671,29 @@ export default async function RundenPage({
                       <p className="text-xs text-[rgb(var(--muted))]">
                         Eröffnet: {formatDate(featured.createdAt)}
                       </p>
+                      <p className="text-xs text-[rgb(var(--muted))]">
+                        Letzte Aktivität: {deriveLastActivity(featured)}
+                      </p>
                     </div>
                   </div>
 
+                  <div className="mt-3 flex flex-wrap gap-2 text-xs text-[rgb(var(--muted))]">
+                    <span className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-2 py-0.5">
+                      Status: {deriveOperationalStatus(featured)}
+                    </span>
+                    <span className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-2 py-0.5">
+                      Prozess: {featured.lifecycle === "active" ? "laufend" : "abgeschlossen"}
+                    </span>
+                    <span className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-2 py-0.5">
+                      Letzte Aktion: {featured.lastAction ?? "noch offen"}
+                    </span>
+                  </div>
+
                   <Link
-                    href={
-                      featured.operatingHref ??
-                      featured.entryHref ??
-                      featured.intakeHref ??
-                      "/runden"
-                    }
+                    href={roundOpenHref(featured)}
                     className="mt-4 block w-full rounded-md bg-[rgb(var(--grad-from))] px-4 py-2 text-center text-sm font-semibold text-white shadow transition hover:opacity-90"
                   >
-                    Runde öffnen
+                    Anlass öffnen
                   </Link>
 
                   {featured.intakeHref ? (
@@ -341,63 +701,81 @@ export default async function RundenPage({
                       href={featured.intakeHref}
                       className="mt-2 block w-full text-center text-xs font-semibold text-[rgb(var(--muted))] hover:text-[rgb(var(--fg))]"
                     >
-                      In /create weiter vorbereiten
+                      Anlass weiter vorbereiten
                     </Link>
                   ) : null}
 
-                  {featured.shareActions ? (
-                    <RundenShareActions share={featured.shareActions} />
-                  ) : null}
+                  <RoundQuickActions
+                    entry={featured}
+                    isSignedIn={isSignedIn}
+                    canManageEntry={canManageFeatured}
+                    canQrActions={canQrFeatured}
+                  />
+
+                  <RoundInlineContributionModule
+                    entry={featured}
+                    isSignedIn={isSignedIn}
+                  />
+
+                  <RoundParticipationModule
+                    entry={featured}
+                    canQrActions={canQrFeatured}
+                  />
                 </article>
               )}
 
               {remainingActive.length > 0 && (
                 <div className="grid gap-4 lg:grid-cols-2">
-                  {remainingActive.map((entry) => (
-                    <article
-                      key={entry.id}
-                      className="rounded-2xl border bg-[rgb(var(--card))] p-5 shadow-sm"
-                    >
-                      <div className="flex flex-wrap items-center gap-2 text-xs text-[rgb(var(--muted))]">
-                        <span>Eröffnet: {formatDate(entry.createdAt)}</span>
-                        {entry.legacyIncomplete ? (
-                          <span className="rounded-full border border-amber-300 bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-800">
-                            Altstand offen
-                          </span>
-                        ) : null}
-                      </div>
+                  {remainingActive.map((entry) => {
+                    const entryOwned = hasEntryOwnership(entry, sessionUid);
+                    const canManageEntry = canManage || entryOwned;
+                    const canQrActions = (canQrByRole || entryOwned) && Boolean(entry.shareActions);
 
-                      <h3 className="mt-2 text-lg font-semibold text-[rgb(var(--fg))]">
-                        {entry.title}
-                      </h3>
-
-                      <p className="mt-1 text-sm leading-6 text-[rgb(var(--muted))]">
-                        Anlass öffnen, um Beiträge und aktuellen Stand
-                        einzusehen.
-                      </p>
-
-                      <Link
-                        href={
-                          entry.operatingHref ??
-                          entry.entryHref ??
-                          entry.intakeHref ??
-                          "/runden"
-                        }
-                        className="mt-3 inline-block text-sm font-semibold text-[rgb(var(--grad-from))] hover:text-[rgb(var(--grad-to))]"
+                    return (
+                      <article
+                        key={entry.id}
+                        className="rounded-2xl border bg-[rgb(var(--card))] p-5 shadow-sm"
                       >
-                        Runde öffnen →
-                      </Link>
+                        <div className="flex flex-wrap items-center gap-2 text-xs text-[rgb(var(--muted))]">
+                          <span>Eröffnet: {formatDate(entry.createdAt)}</span>
+                          {entry.legacyIncomplete ? (
+                            <span className="rounded-full border border-amber-300 bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-800">
+                              Altstand offen
+                            </span>
+                          ) : null}
+                        </div>
 
-                      {entry.intakeHref ? (
-                        <Link
-                          href={entry.intakeHref}
-                          className="ml-4 mt-3 inline-block text-xs font-semibold text-[rgb(var(--muted))] hover:text-[rgb(var(--fg))]"
-                        >
-                          in /create fortführen
-                        </Link>
-                      ) : null}
-                    </article>
-                  ))}
+                        <h3 className="mt-2 text-lg font-semibold text-[rgb(var(--fg))]">
+                          {entry.title}
+                        </h3>
+
+                        <p className="mt-1 text-sm leading-6 text-[rgb(var(--muted))]">
+                          Anlass öffnen, um Beiträge und aktuellen Stand einzusehen.
+                        </p>
+
+                        <RoundQuickActions
+                          entry={entry}
+                          isSignedIn={isSignedIn}
+                          canManageEntry={canManageEntry}
+                          canQrActions={canQrActions}
+                        />
+
+                        {entry.intakeHref ? (
+                          <Link
+                            href={entry.intakeHref}
+                            className="mt-3 inline-block text-xs font-semibold text-[rgb(var(--muted))] hover:text-[rgb(var(--fg))]"
+                          >
+                            Anlass weiter vorbereiten
+                          </Link>
+                        ) : null}
+
+                        <RoundParticipationModule
+                          entry={entry}
+                          canQrActions={canQrActions}
+                        />
+                      </article>
+                    );
+                  })}
                 </div>
               )}
             </>
@@ -412,14 +790,13 @@ export default async function RundenPage({
               Meine Anlässe
             </h2>
             <p className="text-sm text-[rgb(var(--muted))]">
-              Für persönliche Zuständigkeit und Follow-up. Die Quelle liefert
-              derzeit noch keine getrennte persönliche Zuordnung.
+              Für persönliche Zuständigkeit, Follow-up und Nachverfolgung.
             </p>
           </div>
 
           <div className="rounded-2xl border bg-[rgb(var(--card))] p-5 text-sm text-[rgb(var(--muted))]">
-            Sobald persönliche Anlass-Zuordnungen im Entry-Contract verfügbar
-            sind, kann diese Ansicht hier sauber differenziert werden.
+            Persönliche Zuordnungen werden fortlaufend erweitert. Bis dahin bleiben laufende Anlässe weiterhin im Bereich
+            „Laufend“ vollständig sichtbar.
           </div>
         </section>
       )}
@@ -441,69 +818,52 @@ export default async function RundenPage({
             </div>
           ) : (
             <div className="grid gap-4 lg:grid-cols-2">
-              {closedEntries.map((entry) => (
-                <article
-                  key={entry.id}
-                  className="rounded-2xl border bg-[rgb(var(--card))] p-5 shadow-sm"
-                >
-                  <div className="flex items-center justify-between gap-3 text-xs text-[rgb(var(--muted))]">
-                    <span>Eröffnet: {formatDate(entry.createdAt)}</span>
-                    <span className="rounded-full border border-emerald-300 bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-800">
-                      Abgeschlossen
-                    </span>
-                  </div>
-                  <p className="mt-1 text-xs text-[rgb(var(--muted))]">
-                    Abschluss: {formatDate(entry.finishedAt)}
-                  </p>
+              {closedEntries.map((entry) => {
+                const entryOwned = hasEntryOwnership(entry, sessionUid);
+                const canQrActions = (canQrByRole || entryOwned) && Boolean(entry.shareActions);
 
-                  <h3 className="mt-2 text-lg font-semibold text-[rgb(var(--fg))]">
-                    {entry.title}
-                  </h3>
-
-                  <p className="mt-1 text-sm leading-6 text-[rgb(var(--muted))]">
-                    Anlass öffnen, um Verlauf und Abschlussstand anzusehen.
-                  </p>
-
-                  <Link
-                    href={
-                      entry.resultsHref ??
-                      entry.operatingHref ??
-                      entry.entryHref ??
-                      "/runden"
-                    }
-                    className="mt-3 inline-block text-sm font-semibold text-[rgb(var(--grad-from))] hover:text-[rgb(var(--grad-to))]"
+                return (
+                  <article
+                    key={entry.id}
+                    className="rounded-2xl border bg-[rgb(var(--card))] p-5 shadow-sm"
                   >
-                    Ergebnis öffnen →
-                  </Link>
+                    <div className="flex items-center justify-between gap-3 text-xs text-[rgb(var(--muted))]">
+                      <span>Eröffnet: {formatDate(entry.createdAt)}</span>
+                      <span className="rounded-full border border-emerald-300 bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-800">
+                        Abgeschlossen
+                      </span>
+                    </div>
+                    <p className="mt-1 text-xs text-[rgb(var(--muted))]">
+                      Abschluss: {formatDate(entry.finishedAt)}
+                    </p>
 
-                  {entry.shareActions ? (
-                    <RundenShareActions share={entry.shareActions} />
-                  ) : null}
-                </article>
-              ))}
+                    <h3 className="mt-2 text-lg font-semibold text-[rgb(var(--fg))]">
+                      {entry.title}
+                    </h3>
+
+                    <p className="mt-1 text-sm leading-6 text-[rgb(var(--muted))]">
+                      Anlass öffnen, um Verlauf und Abschlussstand anzusehen.
+                    </p>
+
+                    <Link
+                      href={roundResultsHref(entry)}
+                      className="mt-3 inline-block text-sm font-semibold text-[rgb(var(--grad-from))] hover:text-[rgb(var(--grad-to))]"
+                    >
+                      Ergebnis öffnen →
+                    </Link>
+
+                    <RoundParticipationModule
+                      entry={entry}
+                      canQrActions={canQrActions}
+                    />
+                  </article>
+                );
+              })}
             </div>
           )}
         </section>
       )}
 
-      {!sourceError && isSignedIn && canManage && view === "organize" && (
-        <section className="space-y-4">
-          <div>
-            <h2 className="text-2xl font-semibold text-[rgb(var(--fg))]">
-              Verwalten
-            </h2>
-            <p className="text-sm text-[rgb(var(--muted))]">
-              Bereich für Governance-, Moderations- und Follow-up-Arbeit an
-              laufenden Runden.
-            </p>
-          </div>
-
-          <div className="rounded-2xl border bg-[rgb(var(--card))] p-5 text-sm text-[rgb(var(--muted))]">
-            Diese Verwaltungsansicht kann hier im nächsten Schritt mit echten
-            Operator- oder Moderationsaktionen ergänzt werden.
-          </div>
-        </section>
-      )}
     </main>
   );
 }

@@ -1291,3 +1291,26 @@ Verification:
 
 Next Steps:
 - Optional: Live/Chat Features nur bei Bedarf weiter ausbauen (keine Provider/Keys).
+
+### PR-OPS-STATUS-REPORT-01 (2026-04-19) – Interner automatischer SMTP-Statusreport
+
+Ziel:
+- Plattforminternen Statusreport als Scheduler-Mechanismus aufsetzen (05:00/17:00, Europe/Berlin), inkl. aktiver AI-Smokechecks und robuster Laufhistorie.
+
+Changes:
+- Neues Ops-Feature `apps/web/src/features/ops/statusReport/*` mit:
+  - typed Report-Contracts
+  - Status-Collector fuer Plattform/AI/Themenradar/Order-Pfade
+  - SMTP-Mail-Rendering
+  - persistenter Run-Repo inkl. Slot-Dedupe
+  - Scheduler mit festen Slots + Grace-Window
+- Scheduler-Start via `apps/web/src/instrumentation.ts`.
+- Admin-API fuer Run/History: `apps/web/src/app/api/admin/ops/status-report/route.ts`.
+- ENV-Erweiterung in `apps/web/.env.example` (`STATUS_REPORT_*`).
+
+Verification:
+- `pnpm -C apps/web run typecheck` (PASS)
+- `pnpm -C apps/web exec vitest run tests/status-report-shape.contract.test.ts tests/ai-route-smoke.contract.test.ts tests/ai-route-fallback-status.contract.test.ts tests/status-report-mail-render.contract.test.ts tests/status-report-scheduler.contract.test.ts tests/status-report-no-double-send.contract.test.ts tests/smtp-config-guard.contract.test.ts` (PASS)
+
+Next Steps:
+- Optional: kleine interne Admin-UI fuer Berichtslauf-Historie aufsetzen (aktuell API-only).

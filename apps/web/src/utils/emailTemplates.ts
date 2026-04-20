@@ -453,6 +453,7 @@ type EdebatePreorderMailInput = {
   planLabel: string;
   monthlyPrice?: number | null;
   accountUrl?: string;
+  locale?: string;
 };
 
 const EURO_EDEB = new Intl.NumberFormat("de-DE", {
@@ -474,14 +475,26 @@ export function buildEdebatePreorderMail({
   planLabel,
   monthlyPrice,
   accountUrl,
+  locale,
 }: EdebatePreorderMailInput) {
-  const greeting = displayName ? `Hallo ${displayName}` : "Hallo";
+  const isEnglish = typeof locale === "string" && locale.toLowerCase().startsWith("en");
+  const greeting = displayName
+    ? isEnglish
+      ? `Hello ${displayName}`
+      : `Hallo ${displayName}`
+    : isEnglish
+      ? "Hello"
+      : "Hallo";
   const amount =
     typeof monthlyPrice === "number"
       ? monthlyPrice === 0
-        ? "Kostenfrei"
+        ? isEnglish
+          ? "Free"
+          : "Kostenfrei"
         : formatEuroEdeb(monthlyPrice)
-      : "Preis folgt";
+      : isEnglish
+        ? "Price follows"
+        : "Preis folgt";
 
   const accountBlock = accountUrl
     ? `<p style="margin:12px 0 0 0;">
@@ -497,14 +510,18 @@ export function buildEdebatePreorderMail({
             <tr>
               <td style="padding:20px 24px;background:#0f172a;">
                 <div style="font-size:11px;letter-spacing:0.3em;text-transform:uppercase;color:#94a3b8;">eDebatte</div>
-                <div style="margin-top:6px;font-size:22px;font-weight:700;color:#ffffff;">Paketstart bestaetigt</div>
+                <div style="margin-top:6px;font-size:22px;font-weight:700;color:#ffffff;">${isEnglish ? "Package start confirmed" : "Paketstart bestaetigt"}</div>
               </td>
             </tr>
             <tr>
               <td style="padding:20px 24px;">
                 <p style="margin:0 0 10px 0;font-size:15px;">${greeting},</p>
                 <p style="margin:0 0 14px 0;font-size:14px;line-height:1.6;color:#334155;">
-                  danke, dein Paketstart ist eingegangen. Hier die Zusammenfassung:
+                  ${
+                    isEnglish
+                      ? "thank you, your package order was received. Here is your summary:"
+                      : "danke, dein Paketstart ist eingegangen. Hier die Zusammenfassung:"
+                  }
                 </p>
 
                 <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:16px;">
@@ -512,12 +529,12 @@ export function buildEdebatePreorderMail({
                     <td style="padding:14px;">
                       <table width="100%" cellpadding="0" cellspacing="0" role="presentation">
                         <tr>
-                          <td style="padding:6px 0;font-size:12px;color:#64748b;">Paket</td>
+                          <td style="padding:6px 0;font-size:12px;color:#64748b;">${isEnglish ? "Package" : "Paket"}</td>
                           <td style="padding:6px 0;font-size:14px;font-weight:600;text-align:right;color:#0f172a;">${planLabel}</td>
                         </tr>
                         <tr>
-                          <td style="padding:6px 0;font-size:12px;color:#64748b;">Preis</td>
-                          <td style="padding:6px 0;font-size:14px;font-weight:600;text-align:right;color:#0f172a;">${amount}${typeof monthlyPrice === "number" && monthlyPrice > 0 ? " / Monat" : ""}</td>
+                          <td style="padding:6px 0;font-size:12px;color:#64748b;">${isEnglish ? "Price" : "Preis"}</td>
+                          <td style="padding:6px 0;font-size:14px;font-weight:600;text-align:right;color:#0f172a;">${amount}${typeof monthlyPrice === "number" && monthlyPrice > 0 ? isEnglish ? " / month" : " / Monat" : ""}</td>
                         </tr>
                       </table>
                     </td>
@@ -525,11 +542,17 @@ export function buildEdebatePreorderMail({
                 </table>
 
                 <p style="margin:14px 0 0 0;font-size:12px;color:#64748b;line-height:1.6;">
-                  Als Nächstes stimmen wir Freischaltung, Rollen und Einführung passend zum Nutzungskontext ab.
+                  ${
+                    isEnglish
+                      ? "Next, we coordinate activation, roles and onboarding to match your operating context."
+                      : "Als Nächstes stimmen wir Freischaltung, Rollen und Einführung passend zum Nutzungskontext ab."
+                  }
                 </p>
 
                 ${accountBlock}
-                <p style="margin:14px 0 0 0;font-size:13px;color:#0f172a;font-weight:600;">– Dein eDebatte Team</p>
+                <p style="margin:14px 0 0 0;font-size:13px;color:#0f172a;font-weight:600;">${
+                  isEnglish ? "– Your eDebatte team" : "– Dein eDebatte Team"
+                }</p>
               </td>
             </tr>
           </table>
@@ -540,18 +563,20 @@ export function buildEdebatePreorderMail({
 
   const text = `${greeting},
 
-danke, dein Paketstart ist eingegangen.
+${isEnglish ? "thank you, your package order was received." : "danke, dein Paketstart ist eingegangen."}
 
-Paket: ${planLabel}
-Preis: ${amount}${typeof monthlyPrice === "number" && monthlyPrice > 0 ? " / Monat" : ""}
+${isEnglish ? "Package" : "Paket"}: ${planLabel}
+${isEnglish ? "Price" : "Preis"}: ${amount}${typeof monthlyPrice === "number" && monthlyPrice > 0 ? isEnglish ? " / month" : " / Monat" : ""}
 
-Als Nächstes stimmen wir Freischaltung, Rollen und Einführung passend zum Nutzungskontext ab.
+${isEnglish
+    ? "Next, we coordinate activation, roles and onboarding to match your operating context."
+    : "Als Nächstes stimmen wir Freischaltung, Rollen und Einführung passend zum Nutzungskontext ab."}
 
-${accountUrl ? `Zum Konto: ${accountUrl}` : ""}
+${accountUrl ? `${isEnglish ? "Open account" : "Zum Konto"}: ${accountUrl}` : ""}
 
-– Dein eDebatte Team`;
+${isEnglish ? "– Your eDebatte team" : "– Dein eDebatte Team"}`;
 
-  return { subject: "eDebatte – Paketstart bestaetigt", html, text };
+  return { subject: isEnglish ? "eDebatte – Package start confirmed" : "eDebatte – Paketstart bestaetigt", html, text };
 }
 
 export function buildEdebatePreorderPledgeUserMail(args: {

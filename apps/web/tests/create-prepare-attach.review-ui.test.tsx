@@ -74,7 +74,7 @@ describe("create prepare-attach review UI", () => {
     expect(html).toContain("Duplicate-Risk");
     expect(html).toContain("Kein Auto-Apply auf Live-Objekte");
     expect(html).toContain("Apply bleibt manuell und additiv");
-    expect(html).toContain("Akzeptieren fuer spaeteren Apply");
+    expect(html).toContain("Akzeptieren für späteren Apply");
     expect(html).toContain("Ablehnen");
     expect(html).toContain("Parken");
   });

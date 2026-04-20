@@ -83,8 +83,8 @@ export default async function ReferenzarchitekturPage({
             </div>
 
             <div className="mt-8 flex flex-wrap gap-3">
-              <Link href="/howtoworks/bewegung" className="btn-secondary text-sm">
-                Zur Bewegung
+              <Link href="/howtoworks/initiative" className="btn-secondary text-sm">
+                Zur Initiative
               </Link>
               <a
                 href="#prozess-vom-beitrag-zum-mandat"
@@ -224,10 +224,10 @@ export default async function ReferenzarchitekturPage({
                 {item.id === "wer-dahintersteht" ? (
                   <div className="mt-6 flex flex-wrap gap-3">
                     <Link
-                      href="/howtoworks/bewegung"
+                      href="/howtoworks/initiative"
                       className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-4 py-2 text-sm font-semibold text-[rgb(var(--fg))] transition hover:border-cyan-300 hover:text-cyan-300"
                     >
-                      Zur Bewegung
+                      Zur Initiative
                     </Link>
                     <a
                       href="#vertiefung"
@@ -292,10 +292,10 @@ export default async function ReferenzarchitekturPage({
 
         <div className="mt-5 flex flex-wrap gap-3">
           <Link
-            href="/howtoworks/bewegung"
+            href="/howtoworks/initiative"
             className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-4 py-2 text-sm font-semibold text-[rgb(var(--fg))] transition hover:border-cyan-300 hover:text-cyan-300"
           >
-            Zur Bewegung
+            Zur Initiative
           </Link>
           <a
             href="#prozess-vom-beitrag-zum-mandat"

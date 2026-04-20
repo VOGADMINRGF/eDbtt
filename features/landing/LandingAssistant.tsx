@@ -841,7 +841,7 @@ const [humanError, setHumanError] = React.useState<string | null>(null);
             {t.buttons.howItWorks}
           </a>
           <a
-            href="/howtoworks/bewegung"
+            href="/howtoworks/initiative"
             className="inline-flex items-center justify-center rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-2 text-sm font-medium text-[rgb(var(--muted))] shadow-sm transition hover:bg-[color-mix(in_oklab,rgb(var(--card))_85%,rgb(var(--bg))_15%)] hover:text-[rgb(var(--fg))] active:translate-y-[0.5px]"
           >
             {t.buttons.origin}

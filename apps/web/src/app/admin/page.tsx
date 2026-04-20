@@ -94,6 +94,8 @@ export default function AdminDashboardPage() {
             { label: "Graph Repairs", href: "/admin/graph/repairs?status=pending" },
             { label: "Report Assets", href: "/admin/reports/assets" },
             { label: "Support Ledger", href: "/admin/support" },
+            { label: "Pricing Orders", href: "/admin/pricing/orders" },
+            { label: "VOG Themenradar", href: "/admin/themenradar" },
             { label: "Research Tasks", href: "/admin/research/tasks" },
             { label: "Eventualities", href: "/admin/eventualities" },
             { label: "Access Center", href: "/admin/access" },
@@ -249,8 +251,10 @@ export default function AdminDashboardPage() {
           <LinkCard title="Graph Health" href="/admin/graph/health" description="Health KPIs & Repairs" />
           <LinkCard title="Report Assets" href="/admin/reports/assets" description="Revisionen & Freigabe" />
           <LinkCard title="Audit Logs" href="/admin/audit" description="Mutationen & Nachvollziehbarkeit" />
+          <LinkCard title="Pricing Orders" href="/admin/pricing/orders" description="Bestellungen prüfen und freigeben" />
           <LinkCard title="Support Ledger" href="/admin/support" description="Pledges, Paid, CSV Export" />
           <LinkCard title="Campaign Desk" href="/admin/campaigns" description="Kampagnenstatus und Sessionfluss" />
+          <LinkCard title="VOG Themenradar" href="/admin/themenradar" description="Themen qualifizieren, Content vorbereiten, review-ready führen" />
           <LinkCard title="Swipe Analytics" href="/admin/swipes" description="Swipe Votes & Top Statements" />
           <LinkCard title="Factcheck Desk" href="/admin/factcheck" description="Editoriale Freigaben und Checks" />
           <LinkCard title="Identity Desk" href="/admin/identity" description="Verification-Level und Abdeckung" />

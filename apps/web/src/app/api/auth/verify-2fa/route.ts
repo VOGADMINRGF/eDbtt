@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { coreCol, piiCol, ObjectId } from "@core/db/triMongo";
 import { logAuthEvent } from "@core/telemetry/authEvents";
 import { isDemoUser } from "@/lib/demo/demoAccess";
+import { resolvePostLoginRedirect } from "@/features/auth/roleExperienceContract";
 import {
   applySessionCookies,
   CREDENTIAL_COLLECTION,
@@ -50,7 +51,7 @@ export async function POST(req: NextRequest) {
 
     const body = (await req.json().catch(() => ({}))) as VerifyBody;
     const method = body.method === "totp" ? "otp" : body.method;
-    const redirectUrl = sanitizeRedirect(body.next);
+    const requestedRedirect = body.next ? sanitizeRedirect(body.next) : null;
     if (!method) {
       return errorResponse("method_required", 400);
     }
@@ -150,6 +151,11 @@ export async function POST(req: NextRequest) {
     );
     await clearPendingTwoFactorCookie();
     await applySessionCookies(user);
+    const redirectUrl = resolvePostLoginRedirect({
+      requestedRedirect,
+      roles: user.roles,
+      primaryRole: user.role,
+    });
 
     await logAuthEvent("auth.2fa.success", {
       meta: { method, ipHash: sha256(ip), userHash: sha256(String(challenge.userId)) },

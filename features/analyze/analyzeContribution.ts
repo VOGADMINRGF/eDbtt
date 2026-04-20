@@ -6,6 +6,7 @@ import { parseJsonLoose } from "./llmJson";
 import { computeEditorialAudit } from "./editorialAudit";
 import { computeRunReceipt } from "./runReceipt";
 import { computeEvidenceGraph } from "./evidenceGraph";
+import type { ZodIssue } from "zod";
 import {
   callE150Orchestrator,
   OrchestratorNoProviderError,
@@ -19,6 +20,8 @@ export type AnalyzeInput = {
   text: string;
   locale?: string; // "de" | "en" | ...
   audienceRole?: "citizen" | "staff" | "institution";
+  analysisMode?: "analyze" | "media" | "guided";
+  sourceGroundingPromptAddon?: string | null;
   maxClaims?: number;
   pipeline?: AiPipelineName;
   domain?: string;
@@ -73,9 +76,44 @@ function validateAnalyzeRaw(rawText: string, sourceText: string): boolean {
 // --- NEU: Helper zum "String picken" ---
 function pickString(...vals: any[]): string | null {
   for (const v of vals) {
-    if (typeof v === "string" && v.trim()) return v.trim();
+    const normalized = asOptionalString(v);
+    if (normalized) return normalized;
   }
   return null;
+}
+
+function asOptionalString(value: unknown): string | undefined {
+  if (value == null) return undefined;
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    return trimmed ? trimmed : undefined;
+  }
+  if (typeof value === "number" || typeof value === "boolean" || typeof value === "bigint") {
+    const normalized = String(value).trim();
+    return normalized ? normalized : undefined;
+  }
+  return undefined;
+}
+
+function asRequiredString(value: unknown, fallback = ""): string {
+  return asOptionalString(value) ?? fallback;
+}
+
+function asStringArray(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((entry) => asOptionalString(entry))
+    .filter((entry): entry is string => Boolean(entry));
+}
+
+function formatZodIssues(issues: readonly ZodIssue[]) {
+  return issues.map((issue) => ({
+    path: issue.path.join("."),
+    code: issue.code,
+    message: issue.message,
+    expected: (issue as any).expected,
+    received: (issue as any).received,
+  }));
 }
 
 // --- NEU: typisierte Sanitizer (lösen deine TS-unknown[] Errors) ---
@@ -207,7 +245,7 @@ function sanitizeParticipationCandidates(
         const text = pickString(p.text, p.statement, p.title, p.label);
         if (!text) return null;
         const id = pickString(p.id) ?? `pc-${idx + 1}`;
-        const rationale = pickString(p.rationale, p.reason, p.body) ?? undefined;
+        const rationale = pickString(p.rationale, p.reason, p.body, p.description) ?? undefined;
         const stanceRaw = pickString(p.stance);
         const stance =
           stanceRaw === "pro" || stanceRaw === "neutral" || stanceRaw === "contra"
@@ -276,16 +314,42 @@ function sanitizeResponsibilityPaths(
       if (!p || typeof p !== "object") return null;
 
       const id = pickString(p.id) ?? `path-${idx + 1}`;
-      const statementId = pickString(p.statementId, p.rootStatementId);
+      const statementId = pickString(p.statementId, p.rootStatementId, p.claimId);
       if (!statementId) return null;
 
       const locale = pickString(p.locale) ?? "de";
       const nodesRaw = Array.isArray(p.nodes) ? p.nodes : [];
       const nodes = nodesRaw
         .filter((n: any) => n && typeof n === "object")
-        .map((n: any) => ({ ...n, level: normRespLevel(n.level) }));
+        .map((n: any) => {
+          const actorKey = asOptionalString(n.actorKey) ?? asOptionalString(n.actor) ?? asOptionalString(n.key);
+          const displayName =
+            asOptionalString(n.displayName) ?? asOptionalString(n.label) ?? asOptionalString(n.name);
+          if (!actorKey || !displayName) return null;
+          const relevance =
+            typeof n.relevance === "number" && n.relevance >= 0 && n.relevance <= 1 ? n.relevance : undefined;
+          return {
+            level: normRespLevel(n.level),
+            actorKey,
+            displayName,
+            description: asOptionalString(n.description ?? n.text) ?? null,
+            contactUrl: asOptionalString(n.contactUrl ?? n.url) ?? null,
+            processHint: asOptionalString(n.processHint ?? n.hint) ?? null,
+            ...(typeof relevance === "number" ? { relevance } : {}),
+          };
+        })
+        .filter((n): n is NonNullable<typeof n> => Boolean(n));
 
-      return { ...p, id, statementId, locale, nodes } as RespPathT;
+      const createdAt = asOptionalString(p.createdAt);
+      const updatedAt = asOptionalString(p.updatedAt);
+      return {
+        id,
+        statementId,
+        locale,
+        nodes,
+        ...(createdAt ? { createdAt } : {}),
+        ...(updatedAt ? { updatedAt } : {}),
+      } as RespPathT;
     })
     .filter((x): x is RespPathT => Boolean(x));
 }
@@ -332,12 +396,67 @@ function buildSystemPrompt(locale: string = "de"): string {
   ].join("\n");
 }
 
+function buildModeSpecificPromptNote(
+  analysisMode: AnalyzeInput["analysisMode"],
+  locale: string,
+): string[] {
+  const mode = analysisMode ?? "analyze";
+  const isDe = locale.toLowerCase().startsWith("de");
+  if (isDe) {
+    if (mode === "media") {
+      return [
+        "MODUS: Für Bericht nutzen.",
+        "- Originaltext unverändert lassen und nicht journalistisch umschreiben.",
+        "- Ergänze nur Prüfstellen, Faktencheck-Hinweise, Recherchelücken und kontextrelevante Rückfragen.",
+        "- Konflikte und Unsicherheiten klar markieren, aber ohne Abstimmungsaufruf.",
+      ];
+    }
+    if (mode === "guided") {
+      return [
+        "MODUS: Thema gemeinsam erarbeiten.",
+        "- Priorisiere klärende Rückfragen und nächsten sinnvollen Arbeitsschritt.",
+        "- Formuliere offene Punkte so, dass ein iterativer Dossier-Prozess möglich wird.",
+        "- Fokus auf Konfliktlinien, Akteure, Quellenbedarf und konkrete Folgefragen.",
+      ];
+    }
+    return [
+      "MODUS: Beitrag analysieren.",
+      "- Priorisiere Themenstruktur, Standpunkte, Spannungen und offene Fragen.",
+      "- Zeige mögliche Anknüpfungen zu bestehendem Kontext, ohne Auto-Zuordnung oder Auto-Publish.",
+    ];
+  }
+
+  if (mode === "media") {
+    return [
+      "MODE: Prepare for report usage.",
+      "- Preserve the original text and do not rewrite it into journalistic prose.",
+      "- Add verification points, fact-check hints, research gaps, and contextual follow-up questions only.",
+    ];
+  }
+  if (mode === "guided") {
+    return [
+      "MODE: Co-develop the topic.",
+      "- Prioritize clarifying questions and the next practical work step.",
+      "- Surface conflict lines, actors, source needs, and unresolved points for iterative dossier work.",
+    ];
+  }
+  return [
+    "MODE: Analyze contribution.",
+    "- Prioritize topic structure, stances, tensions, and open questions.",
+    "- Suggest contextual anchoring without auto-linking or auto-publish behavior.",
+  ];
+}
+
 function buildUserPrompt(
   text: string,
   locale: string = "de",
-  maxClaims: number = DEFAULT_MAX_CLAIMS
+  maxClaims: number = DEFAULT_MAX_CLAIMS,
+  analysisMode: AnalyzeInput["analysisMode"] = "analyze",
+  sourceGroundingPromptAddon?: string | null,
 ): string {
   const isDe = locale.toLowerCase().startsWith("de");
+  const modeNotes = buildModeSpecificPromptNote(analysisMode, locale);
+  const groundingNotes = asOptionalString(sourceGroundingPromptAddon);
 
   if (isDe) {
     return [
@@ -412,6 +531,9 @@ function buildUserPrompt(
       "11) Do NOT echo the input text. Keep sourceText null unless we explicitly ask you to quote the contribution.",
       "",
       "12) Antworte NUR mit JSON – keine Erklärungen, keine Kommentare, keine Markdown-Formatierung. Beende alle Objekte und Arrays vollständig.",
+      "",
+      ...modeNotes,
+      ...(groundingNotes ? ["", groundingNotes] : []),
       "",
       "BEITRAG:",
       text,
@@ -491,12 +613,15 @@ function buildUserPrompt(
     "",
     "10) Return ONLY raw JSON (no markdown fences), all keys present; missing data = null or [].",
     "",
+    ...modeNotes,
+    "",
       '   }',
       "",
       "11) Do NOT echo the input text. Keep sourceText null unless we explicitly ask you to quote the contribution.",
     "",
     "12) Output must be JSON only – no commentary, no Markdown, no trailing text. Close all objects and arrays.",
     "",
+    ...(groundingNotes ? [groundingNotes, ""] : []),
     "CONTRIBUTION:",
     text,
   ].join("\n");
@@ -539,7 +664,13 @@ export async function analyzeContribution(
   try {
     orchestration = await callE150Orchestrator({
       systemPrompt: buildSystemPrompt(language),
-      userPrompt: buildUserPrompt(sourceText, language, maxClaims),
+      userPrompt: buildUserPrompt(
+        sourceText,
+        language,
+        maxClaims,
+        input.analysisMode ?? "analyze",
+        input.sourceGroundingPromptAddon ?? null,
+      ),
       locale: language,
       audienceRole: input.audienceRole ?? "citizen",
       maxClaims,
@@ -679,6 +810,10 @@ throw e;
   } satisfies AnalyzeResult);
 
   if (!parsed.success) {
+    console.error(
+      "[analyzeContribution] Zod-Validierung fehlgeschlagen:",
+      formatZodIssues(parsed.error.issues),
+    );
     // Fallback: try loose JSON extraction once more before failing
     const loose = parseJsonLoose(rawText, AnalyzeResultSchema);
     if (loose.ok) {
@@ -703,7 +838,7 @@ throw e;
       if (!parsedRetry.success) {
         console.error(
           "[analyzeContribution] Zod-Validierung fehlgeschlagen (retry):",
-          parsedRetry.error?.message
+          formatZodIssues(parsedRetry.error.issues),
         );
         throw new Error(
           "AnalyzeContribution: KI-Antwort entsprach nicht dem erwarteten Schema."
@@ -717,7 +852,7 @@ throw e;
     } else {
       console.error(
         "[analyzeContribution] Zod-Validierung fehlgeschlagen:",
-        parsed.error?.message
+        formatZodIssues(parsed.error.issues),
       );
       throw new Error(
         "AnalyzeContribution: KI-Antwort entsprach nicht dem erwarteten Schema."
@@ -970,8 +1105,45 @@ function ensureConsequenceBundle(value: unknown): AnalyzeResult["consequences"] 
 function ensureImpactAndResponsibility(value: unknown): AnalyzeResult["impactAndResponsibility"] {
   const v = value && typeof value === "object" ? (value as any) : {};
 
-  const impacts = Array.isArray(v.impacts) ? v.impacts : [];
-  const responsibleActors = Array.isArray(v.responsibleActors) ? v.responsibleActors : [];
+  const impacts = Array.isArray(v.impacts)
+    ? v.impacts
+        .map((item: any) => {
+          if (!item || typeof item !== "object") return null;
+          const description = asOptionalString(item.description ?? item.text ?? item.body);
+          if (!description) return null;
+          const type = asRequiredString(item.type ?? item.kind ?? item.label, "unknown");
+          const confidence =
+            typeof item.confidence === "number" && item.confidence >= 0 && item.confidence <= 1
+              ? item.confidence
+              : undefined;
+          return {
+            type,
+            description,
+            ...(typeof confidence === "number" ? { confidence } : {}),
+          };
+        })
+        .filter((item): item is NonNullable<typeof item> => Boolean(item))
+    : [];
+
+  const responsibleActors = Array.isArray(v.responsibleActors)
+    ? v.responsibleActors
+        .map((item: any) => {
+          if (!item || typeof item !== "object") return null;
+          const hint = asOptionalString(item.hint ?? item.text ?? item.description ?? item.displayName);
+          if (!hint) return null;
+          const level = asRequiredString(item.level, "unknown");
+          const confidence =
+            typeof item.confidence === "number" && item.confidence >= 0 && item.confidence <= 1
+              ? item.confidence
+              : undefined;
+          return {
+            level,
+            hint,
+            ...(typeof confidence === "number" ? { confidence } : {}),
+          };
+        })
+        .filter((item): item is NonNullable<typeof item> => Boolean(item))
+    : [];
 
   return {
     impacts: impacts.slice(0, 12),
@@ -984,13 +1156,13 @@ function ensureReport(value: unknown): AnalyzeResult["report"] {
   const facts = v.facts && typeof v.facts === "object" ? (v.facts as any) : {};
 
   return {
-    summary: typeof v.summary === "string" ? v.summary : null,
-    keyConflicts: Array.isArray(v.keyConflicts) ? v.keyConflicts.slice(0, 12) : [],
+    summary: asOptionalString(v.summary) ?? null,
+    keyConflicts: asStringArray(v.keyConflicts).slice(0, 12),
     facts: {
-      local: Array.isArray(facts.local) ? facts.local.slice(0, 12) : [],
-      international: Array.isArray(facts.international) ? facts.international.slice(0, 12) : [],
+      local: asStringArray(facts.local).slice(0, 12),
+      international: asStringArray(facts.international).slice(0, 12),
     },
-    openQuestions: Array.isArray(v.openQuestions) ? v.openQuestions.slice(0, 12) : [],
-    takeaways: Array.isArray(v.takeaways) ? v.takeaways.slice(0, 12) : [],
+    openQuestions: asStringArray(v.openQuestions).slice(0, 12),
+    takeaways: asStringArray(v.takeaways).slice(0, 12),
   };
 }

@@ -5,7 +5,7 @@ import { getDraft } from "@/server/draftStore";
 import CreateClient from "./CreateClient";
 import { getCreateEntitlementsForRequest } from "@/lib/server/entitlements/createEntitlements";
 import { getAccountOverview } from "@features/account/service";
-import { parseCreateIntent, parseCreateMode, type CreateMode } from "@/features/create/intents";
+import { parseCreateMode, type CreateMode } from "@/features/create/intents";
 import {
   parseCreateEntryIntent,
   parseCreateEntryMode,
@@ -13,16 +13,12 @@ import {
   type CreateEntryMode,
 } from "@/features/create/orchestratorIntentContract";
 import {
-  hasCreateIntakeContext,
   parseCreateIntakeContextFromQuery,
-  type CreateIntakeContext,
 } from "@/features/create/intakeContext";
-import { formatRelevanceScopeLabel } from "@/features/relevanceFraming";
 import { DEFAULT_LOCALE, isSupportedLocale, type SupportedLocale } from "@/config/locales";
 import {
   getOperatorCreateTexts,
   resolveOperatorLocale,
-  type OperatorLocale,
 } from "@/features/i18n/operatorSystemTexts";
 import { LocaleProvider } from "@/context/LocaleContext";
 
@@ -49,12 +45,6 @@ function decodeMaybe(value?: string) {
   }
 }
 
-function mapIntent(raw?: string | null): "statement" | "contribution" | undefined {
-  const parsed = parseCreateIntent(raw);
-  if (!parsed) return undefined;
-  return parsed === "claim" ? "statement" : "contribution";
-}
-
 function mapMode(raw?: string | null): CreateMode | undefined {
   return parseCreateMode(raw);
 }
@@ -65,38 +55,6 @@ function mapEntryIntent(raw?: string | null): CreateEntryIntent | undefined {
 
 function mapEntryMode(raw?: string | null): CreateEntryMode | undefined {
   return parseCreateEntryMode(raw);
-}
-
-function buildIntakeContextPrefill(
-  context: CreateIntakeContext,
-  anlassraumId: string | null | undefined,
-  locale: OperatorLocale,
-): string | null {
-  if (!hasCreateIntakeContext(context) && !anlassraumId) return null;
-  const text = getOperatorCreateTexts(locale);
-
-  const lines = [
-    `${text.intakeContextTitle} (Anlassraum-first):`,
-    context.sourceLabel ? `${text.openPrimarySource}: ${context.sourceLabel}` : null,
-    context.sourceUrl ? `${text.openPrimarySource} URL: ${context.sourceUrl}` : null,
-    context.region ? `${text.regionLabel}: ${context.region}` : null,
-    context.scope ? `${text.scopeLabel}: ${formatRelevanceScopeLabel(context.scope, context.scope)}` : null,
-    context.source ? `${text.signalTrailLabel}: ${context.source}` : null,
-    context.signalTitle ? `${text.signalLabel}: ${context.signalTitle}` : null,
-    context.clusterHint ? `${text.clusterLabel}: ${context.clusterHint}` : null,
-    context.reviewState ? `${text.reviewLabel}: ${context.reviewState}` : null,
-    context.reason ? `${text.handoffLabel}: ${context.reason}` : null,
-    anlassraumId ? `${text.anlassraumIdLabel}: ${anlassraumId}` : null,
-    context.candidateId ? `${text.candidateIdLabel}: ${context.candidateId}` : null,
-    context.draftId ? `${text.draftIdLabel}: ${context.draftId}` : null,
-    "",
-    text.workGoalTitle,
-    text.workGoalLineReview,
-    text.workGoalLineAttach,
-    text.workGoalLineContinue,
-  ].filter((entry): entry is string => typeof entry === "string" && entry.length > 0);
-
-  return lines.join("\n");
 }
 
 async function detectPageLocale(): Promise<SupportedLocale> {
@@ -156,7 +114,6 @@ export default async function CreatePage({
     redirect(`/login?next=${encodeURIComponent(query ? `/create?${query}` : "/create")}`);
   }
 
-  const intent = mapIntent(readParam(resolved.intent));
   const mode = mapMode(readParam(resolved.mode));
   const entryIntent =
     mapEntryIntent(readParam(resolved.entryIntent) ?? readParam(resolved.entry_intent)) ??
@@ -166,6 +123,7 @@ export default async function CreatePage({
     mapEntryMode(readParam(resolved.mode));
   const dossierId = readParam(resolved.dossierId) ?? null;
   const anlassraumId = readParam(resolved.anlassraumId) ?? null;
+  const returnTo = readParam(resolved.returnTo) ?? null;
   const intakeContext = parseCreateIntakeContextFromQuery(resolved);
   const prefillText = decodeMaybe(readParam(resolved.prefill) ?? readParam(resolved.text));
   const draftId = readParam(resolved.draftId);
@@ -175,26 +133,23 @@ export default async function CreatePage({
     const draft = await getDraft(draftId).catch(() => null);
     initialText = draft?.text ?? null;
   }
-  if (!initialText) {
-    initialText = buildIntakeContextPrefill(intakeContext, anlassraumId, pageLocale);
-  }
 
   return (
     <main className="min-h-screen bg-[rgb(var(--bg))]">
       <h1 className="sr-only">{createText.srOnlyCreate}</h1>
-      <div className="mx-auto w-full max-w-6xl px-4 py-6 md:py-8">
+      <div className="mx-auto w-full max-w-[1560px] px-4 py-7 sm:px-6 sm:py-9 lg:px-8 lg:py-11">
         <LocaleProvider initialLocale={pageLocale}>
           <CreateClient
             initialEntitlements={entitlements}
             overview={overview}
             dossierId={dossierId}
             initialAnlassraumId={anlassraumId}
-            initialIntent={intent}
             initialMode={mode}
             initialEntryIntent={entryIntent}
             initialEntryMode={entryMode}
             initialText={initialText}
             initialIntakeContext={intakeContext}
+            initialReturnTo={returnTo}
           />
         </LocaleProvider>
       </div>

@@ -18,6 +18,7 @@ import SiteFooter from "@/components/SiteFooter";
 import { ThemeProvider } from "@/components/providers/theme-provider";
 import { ReadingModeProvider } from "@/components/providers/reading-mode-provider";
 import { normalizeAccessTier } from "@/config/accessTiers";
+import { MobileAppShellChrome } from "@/components/mobile/MobileAppShellChrome";
 
 export const metadata: Metadata = {
   metadataBase: new URL(BRAND.baseUrl),
@@ -59,9 +60,12 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             <LocaleProvider initialLocale={initialLocale}>
               <div className="flex min-h-screen flex-col">
                 <SiteHeader initialUser={initialUser} />
-                <main className="flex-1">{children}</main>
+                <main data-site-main="true" className="flex-1">
+                  {children}
+                </main>
                 <SiteFooter />
-                <div className="h-[env(safe-area-inset-bottom)]" />
+                <MobileAppShellChrome />
+                <div data-site-safe-area-spacer="true" />
                 <AnalyticsTracker />
                 <CookieConsentBanner strings={privacyStrings} initialConsent={initialConsent} />
               </div>

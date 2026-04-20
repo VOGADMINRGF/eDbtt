@@ -1,52 +1,75 @@
 import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import PricingPage from "@/app/pricing/page";
-import { PRICING_JOURNEY_SEGMENTS } from "@features/pricing";
+
+async function renderPricing(params?: Record<string, string>) {
+  const element = await PricingPage({ searchParams: params });
+  return renderToStaticMarkup(element);
+}
 
 describe("/pricing canonical landing", () => {
-  it("renders canonical segments and b2c core prices", () => {
-    const html = renderToStaticMarkup(PricingPage());
+  it("renders short decision-first private package flow without legacy tier naming", async () => {
+    const html = await renderPricing();
 
     expect(html).toContain("Pakete &amp; Preise");
-    PRICING_JOURNEY_SEGMENTS.forEach((segment) => {
-      expect(html).toContain(segment.shortLabel);
-    });
-    expect(html).toContain("0 €");
-    expect(html).toContain("9,99 €");
-    expect(html).toContain("29 €");
-    expect(html).toContain("citizenPremium");
-    expect(html).toContain("citizenPro");
+    expect(html).toContain("eDebatte Interessiert");
+    expect(html).toContain("eDebatte Aktiv");
+    expect(html).toContain("eDebatte Mitgestaltend");
+    expect(html).toContain("0 € für VoiceOpenGov-Mitglieder");
+    expect(html).toContain("3,99 € regulär");
+    expect(html).toContain("9,90 €");
+    expect(html).toContain("29,90 €");
+    expect(html).not.toContain("eDebatte Basis");
+    expect(html).not.toContain("eDebatte Start");
+    expect(html).not.toContain("eDebatte Pro");
+    expect(html).not.toContain("citizenBasic");
+    expect(html).not.toContain("citizenPremium");
+    expect(html).not.toContain("citizenPro");
+    expect(html).not.toContain("Technisches Mapping");
   });
 
-  it("keeps package-start and activation semantics explicit", () => {
-    const html = renderToStaticMarkup(PricingPage());
+  it("keeps hero short with two primary CTAs", async () => {
+    const html = await renderPricing();
 
-    expect(html).toContain("Pakete können direkt gewählt und beauftragt werden");
-    expect(html).toContain("Leistungsumfang und Aktivierung sind getrennt organisiert");
-    expect(html).not.toContain("wir melden uns irgendwann");
+    expect(html).toContain("Wähle eines von drei Privatpaketen");
+    expect(html).toContain("Paket wählen");
+    expect(html).toContain("B2B/B2G-Konditionen ansehen");
+    expect(html).toContain('href="/pricing/institutionen"');
   });
 
-  it("shows hybrid institutional model, add-ons, and doc examples", () => {
-    const html = renderToStaticMarkup(PricingPage());
+  it("keeps initiative membership logic visible in pricing decision area", async () => {
+    const html = await renderPricing();
 
-    expect(html).toContain("Base ab 2.500 € / Monat");
-    expect(html).toContain("Small: 300 €");
-    expect(html).toContain("Medium: 600–1.000 €");
-    expect(html).toContain("Large: 1.000–1.500 €");
-    expect(html).toContain("4.475 €");
-    expect(html).toContain("6.825 €");
-    expect(html).toContain("Event");
-    expect(html).toContain("Assistenz");
-    expect(html).toContain("Reports");
-    expect(html).toContain("Managed Governance");
+    expect(html).toContain("Als Mitglied der Initiative ist das Paket „Interessiert“ kostenfrei.");
+    expect(html).toContain("Empfohlen sind 5,63 €");
+    expect(html).toContain("Zur Initiative");
+    expect(html).toContain("So funktioniert eDebatte");
   });
 
-  it("keeps main cta targets on existing product routes", () => {
-    const html = renderToStaticMarkup(PricingPage());
+  it("keeps institutional and newsroom conditions as short secondary hint", async () => {
+    const html = await renderPricing();
 
-    expect(html).toContain('href="/vormerken"');
-    expect(html).toContain('href="/mitglied-antrag"');
-    expect(html).toContain('href="/vormerken?segment=organisationen"');
-    expect(html).toContain('href="/vormerken?segment=kommunen"');
+    expect(html).toContain("Organisationen, Kommunen, Verbände und Redaktionen");
+    expect(html).toContain("B2B/B2G-Konditionen ansehen");
+  });
+
+  it("keeps primary pricing CTAs on existing routes", async () => {
+    const html = await renderPricing();
+
+    expect(html).toContain('href="#pricing-privat"');
+    expect(html).toContain('href="/pricing/institutionen"');
+    expect(html).toContain('href="/order?paket=basis"');
+    expect(html).toContain('href="/order?paket=start"');
+    expect(html).toContain('href="/order?paket=pro"');
+  });
+
+  it("keeps locale-aware links in EN mode", async () => {
+    const html = await renderPricing({ lang: "en" });
+
+    expect(html).toContain("Packages &amp; pricing");
+    expect(html).toContain("Choose package");
+    expect(html).toContain("View B2B/B2G conditions");
+    expect(html).toContain('href="/pricing/institutionen?lang=en"');
+    expect(html).toContain('href="/order?paket=pro&amp;lang=en"');
   });
 });

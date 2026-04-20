@@ -8,6 +8,7 @@ import { buildTwoFactorCodeMail } from "@/utils/emailTemplates";
 import { logAuthEvent } from "@core/telemetry/authEvents";
 import { ensureBasicPiiProfile } from "@core/pii/userProfileService";
 import { ensureEnvSuperadminSeed } from "@/lib/server/auth/superadminSeed";
+import { resolvePostLoginRedirect } from "@/features/auth/roleExperienceContract";
 import {
   applySessionCookies,
   CREDENTIAL_COLLECTION,
@@ -135,7 +136,7 @@ export async function POST(req: NextRequest) {
   const rawIdentifier = (body.identifier || body.email || "").trim();
   const identifier = normalizeIdentifier(rawIdentifier);
   const password = body.password?.trim();
-  const redirectUrl = sanitizeRedirect(body.next || "/account");
+  const requestedRedirect = body.next ? sanitizeRedirect(body.next) : null;
 
   if (!identifier || !password) {
     return errorResponse("invalid_input", 400);
@@ -228,6 +229,11 @@ export async function POST(req: NextRequest) {
   const twoFactorMethod = resolveTwoFactorMethod(credentials, user);
   const twoFactorEnabled = credentials?.twoFactorEnabled || user.verification?.twoFA?.enabled;
   const allowEmailFallback = true;
+  const redirectUrl = resolvePostLoginRedirect({
+    requestedRedirect,
+    roles: user.roles,
+    primaryRole: user.role,
+  });
 
   if (!twoFactorEnabled || !twoFactorMethod) {
     await applySessionCookies(user);

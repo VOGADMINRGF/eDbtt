@@ -113,87 +113,90 @@ export function CookieConsentBanner({ strings, initialConsent }: CookieConsentBa
   if (!show) return null;
 
   return (
-    <div className="pointer-events-none fixed bottom-4 left-0 right-0 z-50 flex justify-center px-3">
-      <div className="pointer-events-auto w-full max-w-5xl overflow-hidden rounded-2xl border border-[rgb(var(--border))] bg-[var(--glass-bg)] shadow-soft backdrop-blur-xl">
-        <div className="h-1 bg-brand-grad" />
-        <div className="grid gap-5 p-4 md:grid-cols-[1.35fr_1fr] md:p-6">
-          <div className="space-y-3">
-            <div className="inline-flex items-center gap-2">
-              <span className="vog-chip">{copy.banner.title}</span>
-            </div>
-            <p className="text-sm text-[rgb(var(--muted))]">{copy.banner.lead}</p>
-            <p className="text-[11px] text-[rgb(var(--muted))]">{copy.dialog.aiUsageBody}</p>
-            <div className="flex flex-wrap gap-4 text-xs text-[rgb(var(--muted))]">
-              <Link
-                href="/datenschutz"
-                className="font-semibold text-[rgb(var(--fg))] underline decoration-[rgb(var(--grad-from))]/70 underline-offset-4 hover:decoration-[rgb(var(--grad-to))]"
-              >
-                {copy.banner.links.privacy}
-              </Link>
-              <Link
-                href="/impressum"
-                className="font-semibold text-[rgb(var(--fg))] underline decoration-[rgb(var(--grad-from))]/70 underline-offset-4 hover:decoration-[rgb(var(--grad-to))]"
-              >
-                {copy.banner.links.imprint}
-              </Link>
-              <Link
-                href="/ki-nutzung"
-                className="font-semibold text-[rgb(var(--fg))] underline decoration-[rgb(var(--grad-from))]/70 underline-offset-4 hover:decoration-[rgb(var(--grad-to))]"
-              >
-                {copy.banner.links.aiUsage}
-              </Link>
-            </div>
-          </div>
-
-          <div className="space-y-4 rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-[0_12px_28px_rgba(15,23,42,0.08)]">
-            <div className="space-y-1 rounded-lg border border-[rgb(var(--border))] bg-[color-mix(in_oklab,rgb(var(--card))_88%,rgb(var(--bg))_12%)] p-3">
-              <p className="text-xs font-semibold text-[rgb(var(--fg))]">{copy.banner.essentialTitle}</p>
-              <p className="text-xs text-[rgb(var(--muted))]">{copy.banner.essentialBody}</p>
+    <div className="fixed inset-0 z-50">
+      <div className="absolute inset-0 bg-black/35 backdrop-blur-[1px]" />
+      <div className="absolute inset-0 flex items-end justify-center p-0 sm:items-center sm:p-4">
+        <div className="w-full max-w-4xl overflow-hidden rounded-t-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] shadow-[0_24px_80px_rgba(2,6,23,0.45)] sm:rounded-3xl">
+          <div className="h-1 bg-brand-grad" />
+          <div className="grid gap-5 p-4 md:grid-cols-[1.35fr_1fr] md:p-6">
+            <div className="space-y-3">
+              <div className="inline-flex items-center gap-2">
+                <span className="vog-chip">{copy.banner.title}</span>
+              </div>
+              <p className="text-sm text-[rgb(var(--muted))]">{copy.banner.lead}</p>
+              <p className="text-[11px] text-[rgb(var(--muted))]">{copy.dialog.aiUsageBody}</p>
+              <div className="flex flex-wrap gap-4 text-xs text-[rgb(var(--muted))]">
+                <Link
+                  href="/datenschutz"
+                  className="font-semibold text-[rgb(var(--fg))] underline decoration-[rgb(var(--grad-from))]/70 underline-offset-4 hover:decoration-[rgb(var(--grad-to))]"
+                >
+                  {copy.banner.links.privacy}
+                </Link>
+                <Link
+                  href="/impressum"
+                  className="font-semibold text-[rgb(var(--fg))] underline decoration-[rgb(var(--grad-from))]/70 underline-offset-4 hover:decoration-[rgb(var(--grad-to))]"
+                >
+                  {copy.banner.links.imprint}
+                </Link>
+                <Link
+                  href="/ki-nutzung"
+                  className="font-semibold text-[rgb(var(--fg))] underline decoration-[rgb(var(--grad-from))]/70 underline-offset-4 hover:decoration-[rgb(var(--grad-to))]"
+                >
+                  {copy.banner.links.aiUsage}
+                </Link>
+              </div>
             </div>
 
-            <div className="space-y-2 rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-3">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <p className="text-xs font-semibold text-[rgb(var(--fg))]">{copy.banner.analyticsTitle}</p>
-                  <p className="text-[11px] text-[rgb(var(--muted))]">{copy.banner.analyticsBody}</p>
-                </div>
-                <label className="relative inline-flex cursor-pointer items-center">
-                  <input
-                    type="checkbox"
-                    className="peer sr-only"
-                    checked={analyticsOptIn}
-                    onChange={(e) => setAnalyticsOptIn(e.target.checked)}
-                  />
-                  <div className="h-6 w-11 rounded-full bg-[rgb(var(--border))] transition peer-checked:bg-gradient-to-r peer-checked:from-[rgb(var(--grad-from))] peer-checked:to-[rgb(var(--grad-to))]" />
-                  <div className="absolute left-1 top-1 h-4 w-4 rounded-full bg-[rgb(var(--card))] shadow-sm transition peer-checked:translate-x-5" />
-                </label>
+            <div className="space-y-4 rounded-xl border border-[rgb(var(--border))] bg-[color-mix(in_oklab,rgb(var(--card))_92%,rgb(var(--bg))_8%)] p-4">
+              <div className="space-y-1 rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-3">
+                <p className="text-xs font-semibold text-[rgb(var(--fg))]">{copy.banner.essentialTitle}</p>
+                <p className="text-xs text-[rgb(var(--muted))]">{copy.banner.essentialBody}</p>
               </div>
 
-              {settingsOpen ? <p className="text-[11px] text-[rgb(var(--muted))]">{copy.dialog.intro}</p> : null}
-            </div>
+              <div className="space-y-2 rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-3">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-xs font-semibold text-[rgb(var(--fg))]">{copy.banner.analyticsTitle}</p>
+                    <p className="text-[11px] text-[rgb(var(--muted))]">{copy.banner.analyticsBody}</p>
+                  </div>
+                  <label className="relative inline-flex cursor-pointer items-center">
+                    <input
+                      type="checkbox"
+                      className="peer sr-only"
+                      checked={analyticsOptIn}
+                      onChange={(e) => setAnalyticsOptIn(e.target.checked)}
+                    />
+                    <div className="h-6 w-11 rounded-full bg-[rgb(var(--border))] transition peer-checked:bg-gradient-to-r peer-checked:from-[rgb(var(--grad-from))] peer-checked:to-[rgb(var(--grad-to))]" />
+                    <div className="absolute left-1 top-1 h-4 w-4 rounded-full bg-[rgb(var(--card))] shadow-sm transition peer-checked:translate-x-5" />
+                  </label>
+                </div>
 
-            <div className="flex flex-wrap items-center gap-2">
-              <button
-                type="button"
-                className="btn btn-primary flex-1 text-sm"
-                onClick={() => persistConsent({ essential: true, analytics: true })}
-              >
-                {copy.banner.buttons.acceptAll}
-              </button>
-              <button
-                type="button"
-                className="btn btn-ghost flex-1 text-sm"
-                onClick={() => persistConsent({ essential: true, analytics: false })}
-              >
-                {copy.banner.buttons.onlyEssential}
-              </button>
-              <button
-                type="button"
-                className="btn btn-ghost px-3 text-xs"
-                onClick={() => setSettingsOpen((prev) => !prev)}
-              >
-                {copy.banner.buttons.settings}
-              </button>
+                {settingsOpen ? <p className="text-[11px] text-[rgb(var(--muted))]">{copy.dialog.intro}</p> : null}
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  className="btn btn-primary flex-1 text-sm"
+                  onClick={() => persistConsent({ essential: true, analytics: true })}
+                >
+                  {copy.banner.buttons.acceptAll}
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-ghost flex-1 text-sm"
+                  onClick={() => persistConsent({ essential: true, analytics: false })}
+                >
+                  {copy.banner.buttons.onlyEssential}
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-ghost px-3 text-xs"
+                  onClick={() => setSettingsOpen((prev) => !prev)}
+                >
+                  {copy.banner.buttons.settings}
+                </button>
+              </div>
             </div>
           </div>
         </div>

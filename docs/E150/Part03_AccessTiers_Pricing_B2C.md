@@ -1,6 +1,17 @@
 # E150 Master Spec – Part 3: Access Tiers & Pricing (B2C)
 
 > Status-Hinweis (2026-02-12): Dieses Part ist eine Spezifikation/Zusammenfassung. Der verbindliche Aufgabenstand liegt in `docs/E150/OpenTasks.md`. Keine neuen Runs aus diesem Part ableiten.
+>
+> Legacy-Hinweis (2026-04-18): Dieses Part enthaelt historische Tier-Namen (`citizenBasic`, `citizenPremium`, `citizenPro`) als technische/archivarische Referenz. Fuer user-facing Produktlogik sind verbindlich:
+> - `features/pricing/domain/*` (SSOT)
+> - `/pricing` (Uebersicht)
+> - `/pricing/institutionen` (B2B/B2G-Details)
+> - `/order` (Paketstart)
+> - `/vormerken` bleibt als Legacy-Alias auf denselben Paketstart erreichbar
+> - `docs/E150/membership_pricing.md` und `docs/E150/Part19_Pricing_Packaging.md`
+> - Sichtbare B2C-Hauptlogik (2026-04-18): `eDebatte Interessiert` (0 € Mitglieder / 3,99 € regulaer), `eDebatte Aktiv` (9,90 €), `eDebatte Mitgestaltend` (29,90 €)
+> - Mitgliedschaft kann im `/order`-Bestellformular optional per Checkbox mitbeantragt werden.
+> - B2B/B2G-Zugaenge laufen ueber `/pricing/institutionen` als direkten Shop-/Bestellpfad mit optionalem Kontakt fuer Sonderkonditionen.
 
 ## 1. Zweck dieses Parts
 
@@ -45,7 +56,7 @@ Dieser Part ergänzt Part 02 (Roles, Levels, XP) und Part 01 (Systemvision).
 Im B2C existieren die folgenden Tiers:
 
 - `public` (Gast)
-- `citizenBasic` (kostenfrei, registriert)
+- `citizenBasic` (Mitgliedervorteil: 0 €, regulär 3,99 €)
 - `citizenPremium`
 - `citizenPro`
 - `citizenUltra`
@@ -55,7 +66,7 @@ Im B2C existieren die folgenden Tiers:
 | Tier | Preis | Zielgruppe | Hauptnutzen |
 |------|--------|-------------|--------------|
 | **public** | 0 € | Besucher | bis 3 Swipes, keine Beiträge, kein Stream |
-| **citizenBasic** | 0 € | registrierte Bürger | unbegrenzt swipes, 100 Swipes → 1 Contribution |
+| **citizenBasic** | 0 € für VoiceOpenGov-Mitglieder, 3,99 € regulär | registrierte Bürger | unbegrenzt swipes, 100 Swipes → 1 Contribution |
 | **citizenPremium** | 9,99 € | engagierter Bürger | mehr Contribution Credits, bessere Tools |
 | **citizenPro** | 29 € | sehr aktiver Bürger | Streams möglich (ab Level „Brennend“), mehr Credits |
 | **citizenUltra** | 49–99 € | maximal engagiert | frühe Features, große Credits, Community Leadership |
@@ -70,9 +81,9 @@ Alle Preise sind über Config steuerbar.
 
 ---
 
-## 4. Free Plan – citizenBasic
+## 4. Basis-Plan – citizenBasic
 
-Der Free-Plan ist das Herzstück der Plattform. Er muss stark genug sein, um echte demokratische Beteiligung zu ermöglichen.
+Der Basis-Plan ist das Herzstück der Plattform. Er muss stark genug sein, um echte demokratische Beteiligung zu ermöglichen.
 
 ### 4.1 Rechte im Free-Plan
 
@@ -351,7 +362,7 @@ Canonical: `/pricing` (Pakete/Preise/Add-ons) und `/mitglied-antrag` (Mitgliedsc
 - `/pricing` ist die kanonische Landing fuer:
   - Pakete (z.B. Basis/Start/Pro) inkl. direkter Paketbeauftragung
   - Add-ons (z.B. Zusatzthemen, Agenda/Umfragen pro Teilnehmer, optionale Faktencheck-/Contributions-Hilfe)
-- `/vormerken` ist der kanonische Folgepfad nach der Preisorientierung:
+- `/order` ist der kanonische Folgepfad nach der Preisorientierung:
   - Paketstart/Paketabschluss anlegen (Buerger, Organisationen, Kommunen)
   - Freischaltung/Einrichtung erfolgt anschliessend getrennt je Nutzungskontext
 - `/mitglied-werden` ist **Legacy** und redirectet auf `/pricing` (keine neuen Flows darauf aufbauen).

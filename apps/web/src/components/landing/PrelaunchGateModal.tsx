@@ -4,13 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import type { Lang } from "@features/landing/landingCopy";
 import { PRELAUNCH_GATE_COPY } from "./prelaunchGateCopy";
-import { PACKAGE_STATUS_LABELS, getPackagesByIds, PRIVATE_PACKAGE_IDS } from "@features/pricing";
-
-const CURRENCY = new Intl.NumberFormat("de-DE", {
-  style: "currency",
-  currency: "EUR",
-  minimumFractionDigits: 2,
-});
+import { formatPackagePriceLabel, getPackagesByIds, PRIVATE_PACKAGE_IDS } from "@features/pricing";
 
 type PrelaunchGateModalProps = {
   lang: Lang;
@@ -28,7 +22,7 @@ export function PrelaunchGateModal({
   onClose,
   onRefine,
   onSubmit,
-  preorderHref = "/vormerken",
+  preorderHref = "/order",
   registerHref = "/register?next=%2Fcreate",
 }: PrelaunchGateModalProps) {
   if (!open) return null;
@@ -113,31 +107,19 @@ export function PrelaunchGateModal({
 
                 <div className="mt-3 flex gap-4 overflow-x-auto pb-2 [-webkit-overflow-scrolling:touch] snap-x snap-mandatory">
                   {getPackagesByIds(PRIVATE_PACKAGE_IDS).map((pkg) => {
-                    const isFree = pkg.preisMonat === 0;
                     const isHighlighted = pkg.hervorgehoben;
-                    const priceLabel = isFree
-                      ? "Kostenfrei"
-                      : pkg.preisMonat != null
-                        ? `${CURRENCY.format(pkg.preisMonat)} / Monat`
-                        : "Preis folgt";
+                    const priceLabel = formatPackagePriceLabel(pkg);
                     const cardClassName = isHighlighted
                       ? "rounded-2xl border border-[rgb(var(--grad-from))] bg-[rgb(var(--card))] p-5 shadow-sm ring-1 ring-[rgb(var(--grad-from))]/30"
                       : "rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm";
                     const ctaClassName = isHighlighted
                       ? "btn-primary inline-flex w-full items-center justify-center px-4 py-2.5 text-sm font-extrabold"
-                      : isFree
+                      : pkg.preisMonat === 0
                         ? "inline-flex w-full items-center justify-center rounded-full bg-[rgb(var(--fg))] px-4 py-2.5 text-sm font-extrabold text-[rgb(var(--bg))] shadow-sm hover:opacity-95"
                         : "btn-secondary inline-flex w-full items-center justify-center px-4 py-2.5 text-sm";
                     return (
                       <div key={pkg.id} className={`min-w-[240px] max-w-[280px] flex-1 snap-start ${cardClassName}`}>
-                        <div className="flex items-center justify-between gap-2">
-                          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">
-                            eDebatte
-                          </p>
-                          <span className="rounded-full bg-[rgb(var(--bg))] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
-                            {PACKAGE_STATUS_LABELS[pkg.status]}
-                          </span>
-                        </div>
+                        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">eDebatte</p>
                         <p className="mt-2 text-sm font-semibold text-[rgb(var(--fg))]">{pkg.titel}</p>
                         <p className="mt-2 text-sm text-[rgb(var(--muted))]">{pkg.beschreibungKurz}</p>
                         <p className="mt-2 text-xs font-semibold text-[rgb(var(--muted))]">{priceLabel}</p>

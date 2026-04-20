@@ -5,7 +5,7 @@ type StepDef = { id: StepId; title: string; subtitle: string };
 const DEFAULT_STEPS: StepDef[] = [
   { id: 1, title: "Konto", subtitle: "Basisdaten" },
   { id: 2, title: "Verifikation", subtitle: "E-Mail und OTP" },
-  { id: 3, title: "Vormerkung", subtitle: "Optional" },
+  { id: 3, title: "Paketstart", subtitle: "Optional" },
 ];
 
 export function RegisterStepper({ current, steps = DEFAULT_STEPS }: { current: StepId; steps?: StepDef[] }) {

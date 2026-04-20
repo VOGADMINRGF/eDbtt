@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
       {
         ok: false,
         error: "requires_preorder",
-        message: "Für Start/Pro bitte zuerst den Paketstart über /vormerken anlegen. Die Freischaltung folgt anschließend.",
+        message: "Für Start/Pro bitte zuerst den Paketstart über /order anlegen. Die Freischaltung folgt anschließend.",
       },
       { status: 400 },
     );

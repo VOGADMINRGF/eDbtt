@@ -86,6 +86,12 @@ export const NAV_SECTIONS: NavSection[] = [
         keywords: ["features", "limits", "tiers", "engagement", "credits"],
       },
       {
+        href: "/admin/pricing/orders",
+        label: "Pricing Orders",
+        description: "Bestellungen, Prüfung, Freigabe",
+        keywords: ["pricing", "orders", "review", "approval", "billing"],
+      },
+      {
         href: "/admin/newsletter",
         label: "Newsletter",
         description: "Abonnenten verwalten",
@@ -173,6 +179,12 @@ export const NAV_SECTIONS: NavSection[] = [
         label: "Anlassräume",
         description: "Feed -> Anlassraum -> Outputs",
         keywords: ["feeds", "anlassraum", "outputs", "cluster"],
+      },
+      {
+        href: "/admin/themenradar",
+        label: "VOG Themenradar",
+        description: "Themen qualifizieren und review-ready vorbereiten",
+        keywords: ["themenradar", "operator", "review-first", "campaign"],
       },
       {
         href: "/admin/anlassraeume",

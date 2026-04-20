@@ -111,18 +111,18 @@ export default function RundenShareActions({ share }: RundenShareActionsProps) {
         // ignore and use copy fallback
       }
     }
-    await handleCopy(shareText, "Share-Text");
+    await handleCopy(shareText, "Teilnahmehinweis");
   }
 
   return (
     <section className="mt-3 rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
       <div className="flex flex-wrap items-center gap-2 text-[11px] text-[rgb(var(--muted))]">
         <span className="rounded-full border border-[rgb(var(--border))] px-2 py-0.5 font-semibold text-[rgb(var(--fg))]">
-          Ziel: {targetLabel}
+          Teilnahmekontext: {targetLabel}
         </span>
         {share.socialCandidate ? (
           <span className="rounded-full border border-sky-300/70 bg-sky-100 px-2 py-0.5 font-semibold text-sky-800 dark:border-sky-400/45 dark:bg-sky-500/16 dark:text-sky-100">
-            Social-Kandidat
+            Öffentlich in Prüfung
           </span>
         ) : null}
       </div>
@@ -133,21 +133,21 @@ export default function RundenShareActions({ share }: RundenShareActionsProps) {
           onClick={() => void handleCopy(canonicalUrl, "Link")}
           className="rounded-md border border-[rgb(var(--border))] px-3 py-1.5 text-xs font-semibold text-[rgb(var(--fg))] hover:bg-[rgb(var(--card))]"
         >
-          Link kopieren
+          Teilnahmelink kopieren
         </button>
         <button
           type="button"
           onClick={() => setShowQr((prev) => !prev)}
           className="rounded-md border border-[rgb(var(--border))] px-3 py-1.5 text-xs font-semibold text-[rgb(var(--fg))] hover:bg-[rgb(var(--card))]"
         >
-          {showQr ? "QR ausblenden" : "QR anzeigen"}
+          {showQr ? "QR-Ansicht schließen" : "Teilnahme per QR öffnen"}
         </button>
         <button
           type="button"
           onClick={() => void handleShare()}
           className="rounded-md border border-[rgb(var(--border))] px-3 py-1.5 text-xs font-semibold text-[rgb(var(--fg))] hover:bg-[rgb(var(--card))]"
         >
-          Teilen
+          Teilnahme teilen
         </button>
       </div>
 
@@ -167,7 +167,7 @@ export default function RundenShareActions({ share }: RundenShareActionsProps) {
             )}
             <div className="space-y-1 text-xs text-[rgb(var(--muted))]">
               <p className="font-semibold text-[rgb(var(--fg))]">
-                QR-Ziel: {targetLabel}
+                Teilnahmeziel (QR): {targetLabel}
               </p>
               <p className="break-all">{qrTargetUrl}</p>
               {qrDataUrl ? (
@@ -176,7 +176,7 @@ export default function RundenShareActions({ share }: RundenShareActionsProps) {
                   download={`anlass-${share.contextKind}-qr.png`}
                   className="inline-block font-semibold text-[rgb(var(--grad-from))] hover:text-[rgb(var(--grad-to))]"
                 >
-                  QR herunterladen
+                  QR speichern
                 </a>
               ) : null}
             </div>
@@ -188,7 +188,7 @@ export default function RundenShareActions({ share }: RundenShareActionsProps) {
         {share.shareSummary}
       </p>
       <p className="mt-1 text-[11px] text-[rgb(var(--muted))]">
-        Offizielle Social-Veröffentlichung bleibt kuratiert oder qualifiziert.
+        Öffentliche Veröffentlichung bleibt kuratiert oder qualifiziert.
       </p>
       {message ? (
         <p className="mt-1 text-[11px] text-[rgb(var(--muted))]">{message}</p>

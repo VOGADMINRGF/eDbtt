@@ -92,7 +92,7 @@ export const DEFAULT_ROUTE_POLICIES: RoutePolicy[] = [
   },
   {
     routeId: "howtoworks_movement",
-    pathPattern: "/howtoworks/bewegung",
+    pathPattern: "/howtoworks/initiative",
     label: "HowToWorks – Bewegung",
     defaultGroups: ["public"],
     allowAnonymous: true,

@@ -166,6 +166,10 @@ body {
   min-height: 100%;
 }
 
+html {
+  background: rgb(var(--bg));
+}
+
 body {
   background: rgb(var(--bg));
   color: rgb(var(--fg));
@@ -1206,11 +1210,36 @@ body:not([data-analysis-ready="1"]) [data-requires-analysis] {
 }
 
 @media (max-width: 767px) {
+  body.vog-mobile-app-shell [data-site-footer="true"] {
+    display: none;
+  }
+
+  body.vog-mobile-app-shell-nav [data-site-main="true"] {
+    padding-bottom: calc(env(safe-area-inset-bottom) + 4.75rem);
+  }
+
+  body.vog-mobile-app-shell [data-site-safe-area-spacer="true"] {
+    height: 0;
+  }
+
+  body:not(.vog-mobile-app-shell) [data-site-safe-area-spacer="true"] {
+    height: 0;
+  }
+
+  body.vog-mobile-app-shell-compact [data-site-header="true"] {
+    border-bottom-color: color-mix(in oklab, rgb(var(--border)) 85%, transparent);
+    box-shadow: 0 8px 18px rgba(2, 6, 23, 0.12);
+  }
+
   /* Swipe focus fallback: component-level route logic is primary, this guards edge-cases. */
   body.vog-mobile-swipe-focus [data-site-header="true"],
   body.vog-mobile-swipe-focus [data-demo-header="true"] {
     display: none;
   }
+}
+
+[data-site-safe-area-spacer="true"] {
+  height: 0;
 }
 
 /* === Accessibility ======================================================== */

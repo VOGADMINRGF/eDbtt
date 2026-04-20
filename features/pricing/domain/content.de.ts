@@ -1,0 +1,516 @@
+import { PRICING_TRUST_LOOP_DE, PRICING_TRUST_LOOP_EN } from "./trustLoop.de";
+
+export const PRICING_PAGE_CONTENT = {
+  pageKicker: "Preis",
+  heroTitle: "Pakete & Preise",
+  heroParagraphs: [
+    "VoiceOpenGov und eDebatte sollen unabhängig, fair und langfristig tragfähig bleiben. Gleichzeitig entstehen reale Kosten für Infrastruktur, Sicherheit, Moderation, Weiterentwicklung und KI-gestützte Verarbeitung.",
+    "Darum arbeiten wir bewusst mit einem klaren Mindestbeitrag statt mit Pay-to-Win-Logiken, Werbung für Einfluss oder dem Verkauf personenbezogener Beteiligungsdaten.",
+    "Unser Ziel: Die Plattform soll gesellschaftlich getragen werden, unabhängig bleiben und perspektivisch trotz KI-Verbrauch für möglichst viele Menschen kostenfrei oder sehr niedrigschwellig nutzbar sein.",
+  ],
+  initiativeLoopShort: PRICING_TRUST_LOOP_DE.leitsatz,
+  initiativeLoopMedium: PRICING_TRUST_LOOP_DE.medium,
+  initiativeLoopLong: PRICING_TRUST_LOOP_DE.long,
+  privateIntroTitle: "Fairer Einstieg ohne Pay-to-Win",
+  privateKicker: "Privat",
+  privateIntroText:
+    "Unsere Privatpakete richten sich an Menschen, die sich informieren, einbringen und an gesellschaftlicher Orientierung mitwirken wollen. Geld verändert dabei keine demokratischen Rechte, sondern trägt Infrastruktur und Betrieb mit.",
+  membershipAgeTitle: "Mitgliedschaft und Alter",
+  membershipAgeParagraphs: [
+    "Mitgliedschaft kann ab 14 Jahren beantragt werden. Für Mitglieder bleibt der Einstieg kostenfrei, regulär liegt der Basistarif bei 3,99 €.",
+    "Rabatte für Ausbildung oder Studium sind derzeit nicht vorgesehen, weil wir bewusst mit einem klaren und einheitlichen Mindestbeitrag arbeiten.",
+    "Die VoiceOpenGov-Mitgliedschaft kann im Profil beantragt bzw. beauftragt werden. Die formale Bestätigung erfolgt anschließend separat. Mitgliedschaft und Paketfreischaltung werden transparent getrennt geführt.",
+  ],
+  minimumContributionTitle: "Warum es einen Mindestbeitrag gibt",
+  minimumContributionParagraphs: [
+    "VoiceOpenGov und eDebatte sollen unabhängig, fair und langfristig tragfähig bleiben. Dafür entstehen reale Kosten für Infrastruktur, Sicherheit, Moderation, Weiterentwicklung und KI-gestützte Verarbeitung.",
+    "Wir finanzieren uns bewusst nicht über personenbezogene Beteiligungsdaten oder politische Bevorzugung, sondern über faire Mindestbeiträge, professionelle Nutzungspakete und anonymisierte Auswertungen.",
+    "Unsere Orientierung im Basistarif ist ein bewusst niedrig gehaltener gesellschaftlicher Mindestmaßstab: aktuell 3,99 € regulär. So bleibt Beteiligung zugänglich, ohne die Plattform in Abhängigkeiten zu drängen.",
+  ],
+  journalismTitle: "Recherche, Anlassraum, Dossier und Öffentlichkeit nachvollziehbar öffnen",
+  journalismKicker: "Presse / Medien / freie Journalist:innen",
+  journalismIntro:
+    "Für freie Journalist:innen soll eDebatte kein schweres Enterprise-Modell sein, sondern ein professionelles Werkzeug für Recherche, Quellenlage, Anlassraum-Aufbau, Dossier-Struktur und öffentliche Anschlussfähigkeit.",
+  journalismFitLabel: "Geeignet für",
+  journalismHighlights: [
+    "Anlassraum",
+    "Offenes Dossier",
+    "Quellenlage",
+    "Companion / QR",
+    "Optionales Faktencheck-Kontingent",
+  ],
+  journalismOrderCta: "Segment bestellen",
+  journalismFitItems: [
+    "Offener Anlassraum zu Recherche, Beitrag oder Format",
+    "Offenes Dossier",
+    "Sichtbare Quellen-, Fragen- und Widerspruchslagen",
+    "QR- und Companion-Nutzung rund um Artikel, Podcast, Video oder Sendung",
+    "Nachvollziehbare Einbindung von Öffentlichkeit statt Kommentar-Chaos",
+    "Optionales Faktencheck-Kontingent für strittige Behauptungen und öffentlich relevante Einzelthemen",
+  ],
+  organizationTitle: "Strukturierte Beteiligung mit professionellem Betriebsrahmen",
+  organizationKicker: "Organisationen / Verbände / Vereine",
+  organizationIntro:
+    "Organisationen finanzieren bei uns keinen politischen Einfluss, sondern einen professionellen Rahmen für strukturierte Beteiligung, Teams, Governance und auswertbare Prozesse.",
+  organizationItems: [
+    "Themenräume und Anlassräume",
+    "Strukturierte Beteiligung",
+    "Teams und Rollen",
+    "Governance, Moderation und Routing",
+    "Reports, Outcomes und Auswertung",
+  ],
+  municipalityTitle: "Transparente Struktur für kommunale Beteiligung",
+  municipalityKicker: "Kommunen / Verwaltungen",
+  municipalityIntro:
+    "Kommunen und Verwaltungen brauchen keine unübersichtliche Plattformlogik, sondern nachvollziehbare Beteiligung, klare Governance, belastbare Rückläufe und anschlussfähige Auswertung.",
+  municipalityItems: [
+    "Beteiligungsbetrieb",
+    "Anlassräume und Themenräume",
+    "Transparenz",
+    "Governance",
+    "Rückläufe",
+    "Reports",
+    "Anonymisierte Mehrheits-, Minderheits- und Spannungsbilder",
+  ],
+  addOnsTitle: "Add-ons",
+  addOnsHeadline: "Produktbausteine mit klarem Einsatzkontext",
+  addOnsIntro:
+    "Add-ons sind klar getrennt von Grundpaketen und direkt im Bestellfluss auswählbar.",
+  addOnsFocusedIntro:
+    "Für das aktive Segment sind die relevanten Add-ons hervorgehoben. Alle Add-ons bleiben direkt bestellbar.",
+  addOnsItems: [
+    "Event-Begleitung",
+    "Moderation und Assistenz",
+    "Reports und Outcomes",
+    "Managed Governance",
+    "Companion- und Kommunikationsformate",
+    "Optionales Faktencheck-Kontingent",
+  ],
+  independenceTitle: "Unabhängigkeit",
+  independenceParagraphs: [
+    "Wir wollen keine personenbezogenen Stimmen, Rohdaten oder individuellen Beteiligungsprofile verkaufen.",
+    "Dabei gilt: keine Vermarktung einzelner Stimmen, keine Weitergabe personenbezogener Beteiligungsdaten und keine politische Bevorzugung gegen Geld.",
+  ],
+  independenceRules: [
+    "Keine Vermarktung einzelner Stimmen",
+    "Keine Weitergabe personenbezogener Beteiligungsdaten",
+    "Keine politische Bevorzugung gegen Geld",
+    "Fokus auf anonymisierte Mehrheits-, Minderheits- und Spannungsbilder",
+  ],
+  revenueTitle: "Erlöslogik",
+  revenueParagraphs: [
+    "Was perspektivisch finanziert werden kann, sind anonymisierte Auswertungen, Prognosen, Lagebilder und Ergebnisräume – etwa für Bürgermeister, Verwaltungen, Landkreise, Parteien, Verbände, Medien oder andere repräsentative Akteure.",
+    "Die daraus entstehenden Einnahmen fließen wieder in Betrieb und Ausbau der Plattform, Reichweite und gesellschaftliches Wachstum sowie die Weiterentwicklung von eDebatte und der Initiative VoiceOpenGov.",
+  ],
+  trustTitle: "Unser Prinzip",
+  trustLines: [
+    "Keine Pay-to-Win-Logik.",
+    "Keine Bevorzugung nach Geld.",
+    "Keine Vermarktung personenbezogener Stimmen.",
+    "Finanzierung über faire Beiträge, professionelle Nutzungspakete und anonymisierte Auswertungen.",
+  ],
+  focusActivePrefix: "Fokus aktiv",
+  focusActiveSuffix:
+    "Preise und Unterschiede dieses Segments sind direkt sichtbar, weitere Segmente sind nachgelagert.",
+  moreSegmentsTitle: "Weitere Segmente",
+  openSegmentLabel: "Segment öffnen",
+  focusSegmentCta: "Segment fokussieren",
+  reservePackagesCta: "Pakete vormerken",
+  openProfileCta: "Profil öffnen",
+  detailOrganizationCta: "Institutionelle Preise im Detail",
+  detailMunicipalityCta: "Preise für Organisationen & Kommunen ansehen",
+  segmentIntendedLabel: "Wofür gedacht",
+  segmentIncludedLabel: "Was enthalten ist",
+  segmentActivationLabel: "Aktivierung / Freischaltung",
+  trustSectionKicker: "Fairness / Unabhängigkeit / Erlöslogik",
+  trustSectionTitle: "Vertrauen und tragfähiger Betrieb",
+  closingTitle: "Paketstart vorbereiten",
+  closingText:
+    "Alle Segmente nutzen dieselbe finale Paketwelt. Du kannst dein Paket jetzt vormerken und den nächsten Schritt für Freischaltung und Einführung strukturiert anschließen.",
+  membershipApplyCta: "Mitgliedschaft beantragen",
+} as const;
+
+export const PRICING_PAGE_CONTENT_EN = {
+  pageKicker: "Pricing",
+  heroTitle: "Packages & Pricing",
+  heroParagraphs: [
+    "VoiceOpenGov and eDebatte are designed to remain independent, fair and sustainable over time. At the same time, real costs arise for infrastructure, security, moderation, product development and AI-supported processing.",
+    "That is why we intentionally work with a clear minimum contribution instead of pay-to-win logic, influence advertising or selling personal participation data.",
+    "Our goal: the platform should be socially supported, independent, and remain free or very low-threshold for as many people as possible despite AI usage costs.",
+  ],
+  initiativeLoopShort: PRICING_TRUST_LOOP_EN.leitsatz,
+  initiativeLoopMedium: PRICING_TRUST_LOOP_EN.medium,
+  initiativeLoopLong: PRICING_TRUST_LOOP_EN.long,
+  privateIntroTitle: "Fair entry without pay-to-win",
+  privateKicker: "Civic",
+  privateIntroText:
+    "Our civic packages are designed for people who want to stay informed, contribute and help shape civic orientation. Money does not change democratic rights, it helps fund infrastructure and operations.",
+  membershipAgeTitle: "Membership and age",
+  membershipAgeParagraphs: [
+    "Membership can be requested from age 14. Entry stays free for members, while the regular base tariff is €3.99.",
+    "We currently do not offer student or apprenticeship discounts because we intentionally use one clear and consistent minimum contribution.",
+    "VoiceOpenGov membership can be requested via profile. Formal confirmation follows separately. Membership and package activation are transparently handled as separate steps.",
+  ],
+  minimumContributionTitle: "Why there is a minimum contribution",
+  minimumContributionParagraphs: [
+    "VoiceOpenGov and eDebatte are designed to stay independent, fair and sustainable. Real costs arise for infrastructure, security, moderation, product development and AI-supported processing.",
+    "We intentionally do not finance through personal participation data or political preference, but through fair minimum contributions, professional usage packages and anonymized analytics.",
+    "Our base tariff orientation is an intentionally low civic minimum benchmark: currently €3.99 regular. This keeps participation accessible without creating dependencies.",
+  ],
+  journalismTitle: "Open research, issue room, dossier and public continuity",
+  journalismKicker: "Press / media / independent journalists",
+  journalismIntro:
+    "For independent journalists, eDebatte should not feel like heavy enterprise sales. It should be a professional workflow for research, source context, issue-room setup, dossier structure and public continuity.",
+  journalismFitLabel: "Suitable for",
+  journalismHighlights: [
+    "Issue room",
+    "Open dossier",
+    "Source context",
+    "Companion / QR",
+    "Optional fact-check quota",
+  ],
+  journalismOrderCta: "Order segment",
+  journalismFitItems: [
+    "Open issue room for research, article or format",
+    "Open dossier",
+    "Visible source, question and contradiction context",
+    "QR and companion usage around article, podcast, video or broadcast",
+    "Traceable public integration instead of comment chaos",
+    "Optional fact-check quota for disputed claims and publicly relevant topics",
+  ],
+  organizationTitle: "Structured participation with a professional operating framework",
+  organizationKicker: "Organizations / associations / NGOs",
+  organizationIntro:
+    "Organizations do not finance political influence on this platform. They finance a professional framework for structured participation, teams, governance and analyzable processes.",
+  organizationItems: [
+    "Topic rooms and issue rooms",
+    "Structured participation",
+    "Teams and roles",
+    "Governance, moderation and routing",
+    "Reports, outcomes and analysis",
+  ],
+  municipalityTitle: "Transparent structure for municipal participation",
+  municipalityKicker: "Municipalities / public administration",
+  municipalityIntro:
+    "Municipalities and administrations do not need unclear platform logic. They need traceable participation, clear governance, reliable feedback loops and actionable analysis.",
+  municipalityItems: [
+    "Participation operations",
+    "Issue rooms and topic rooms",
+    "Transparency",
+    "Governance",
+    "Feedback loops",
+    "Reports",
+    "Anonymized majority, minority and tension insights",
+  ],
+  addOnsTitle: "Add-ons",
+  addOnsHeadline: "Product modules with clear usage context",
+  addOnsIntro:
+    "Add-ons are clearly separated from base packages and directly selectable in the order flow.",
+  addOnsFocusedIntro:
+    "For the active segment, relevant add-ons are prioritized. All add-ons remain orderable.",
+  addOnsItems: [
+    "Event support",
+    "Moderation and assistance",
+    "Reports and outcomes",
+    "Managed governance",
+    "Companion and communication formats",
+    "Optional fact-check quota",
+  ],
+  independenceTitle: "Independence",
+  independenceParagraphs: [
+    "We do not want to sell personal votes, raw participation data or individual participation profiles.",
+    "This means: no marketing of individual votes, no transfer of personal participation data and no political preference in exchange for money.",
+  ],
+  independenceRules: [
+    "No marketing of individual votes",
+    "No transfer of personal participation data",
+    "No political preference for money",
+    "Focus on anonymized majority, minority and tension insights",
+  ],
+  revenueTitle: "Revenue logic",
+  revenueParagraphs: [
+    "What can be financed over time are anonymized evaluations, forecasts, situational insights and result spaces — for example for mayors, administrations, districts, parties, associations, media or other representative actors.",
+    "These revenues flow back into platform operations and growth, societal reach, and the continued development of eDebatte and the VoiceOpenGov initiative.",
+  ],
+  trustTitle: "Our principle",
+  trustLines: [
+    "No pay-to-win logic.",
+    "No preference based on money.",
+    "No commercialization of personal votes.",
+    "Financing through fair contributions, professional usage packages and anonymized analytics.",
+  ],
+  focusActivePrefix: "Focus active",
+  focusActiveSuffix:
+    "Pricing and package differences for this segment are shown directly. Other segments are reduced and shown later.",
+  moreSegmentsTitle: "Other segments",
+  openSegmentLabel: "Open segment",
+  focusSegmentCta: "Focus segment",
+  reservePackagesCta: "Reserve packages",
+  openProfileCta: "Open profile",
+  detailOrganizationCta: "Institutional pricing in detail",
+  detailMunicipalityCta: "View pricing for organizations & municipalities",
+  segmentIntendedLabel: "Intended for",
+  segmentIncludedLabel: "What is included",
+  segmentActivationLabel: "Activation / enablement",
+  trustSectionKicker: "Fairness / independence / revenue logic",
+  trustSectionTitle: "Trust and sustainable operations",
+  closingTitle: "Prepare package onboarding",
+  closingText:
+    "All segments use the same final package world. You can reserve your package now and continue with activation and onboarding in a structured flow.",
+  membershipApplyCta: "Apply for membership",
+} as const;
+
+export const VORMERKEN_PAGE_CONTENT = {
+  pageKicker: "Paketstart",
+  heroTitle: "Paket buchen und Einführung abstimmen",
+  heroParagraph:
+    "Die Paketwelt entspricht /pricing: Beitragen, Prüfen, Entwerfen. Paketstart ist direkt, Freischaltung folgt anschließend als klarer nächster Schritt.",
+  overview: [
+    {
+      id: "interessiert",
+      title: "Interessiert · Beitragen · 0 € / 3,99 €",
+      items: [
+        "0 € für VoiceOpenGov-Mitglieder",
+        "3,99 € regulär",
+        "Anliegen einbringen und Themenzuordnung erhalten",
+      ],
+    },
+    {
+      id: "aktiv",
+      title: "Aktiv · Prüfen · 9,90 €",
+      items: [
+        "Agenda, Artikel oder Beitrag prüfen lassen",
+        "Richtlinien-/Companion-Hinweise ohne Umschreibung",
+        "Optional Anlassraum für Resonanz öffnen",
+      ],
+    },
+    {
+      id: "mitgestaltend",
+      title: "Mitgestaltend · Entwerfen · 29,90 €",
+      items: [
+        "Geführte Erarbeitung mit Human Loop",
+        "Dossier-nahe Verdichtung und Arbeitsstand",
+        "Für tiefere gemeinsame Themenarbeit",
+      ],
+    },
+    {
+      id: "sonderzugang",
+      title: "Sonderzugänge vorbereitet",
+      items: ["Journalismus, Organisationen und Kommunen per separatem Einstieg"],
+    },
+  ],
+  membershipTitle: "Mitgliedschaft",
+  membershipText:
+    "Mitgliedschaft ist getrennt vom Paketabschluss. Paketstart, Freischaltung und formale Mitgliedschaft laufen als separate Schritte.",
+  registryGateHint: PRICING_TRUST_LOOP_DE.context.registryVerificationHint,
+  initiativeLoopShort: PRICING_TRUST_LOOP_DE.short,
+  whatNextTitle: "Was jetzt passiert",
+  focusActivePrefix: "Fokus aktiv",
+  focusActiveSuffix:
+    "Dieses Segment steht im Vordergrund, weitere Segmente sind reduziert nachgelagert.",
+  moreSegmentsTitle: "Vorbereitete Sonderzugänge",
+  toPricingCta: "Zur Preisübersicht",
+  openProfileCta: "Profil öffnen",
+  trustKicker: "Vertrauen",
+  trustText:
+    "Keine Pay-to-Win-Logik. Keine Bevorzugung nach Geld. Keine Vermarktung personenbezogener Stimmen.",
+  trustCta: "Preislogik ansehen",
+  membershipSeparateCta: "Mitgliedschaft separat",
+  conversationOptionalLabel: "Gespräch optional vereinbaren (kein Pflichttermin)",
+  addOnFieldsetLabel: "Optionale Add-ons",
+  removeCta: "Entfernen",
+  selectedPackageTitle: "Ausgewähltes Paket",
+  selectedLabel: "Ausgewählt",
+  selectPackageLabel: "Paket auswählen",
+  orderReceivedTitle: "Bestellung eingegangen",
+  orderIdLabel: "Order-ID",
+  priceModelLabel: "Preis / Modell",
+  addOnsLabel: "Add-ons",
+  noAddOns: "keine",
+  factcheckQuotaLabel: "Faktencheck-Kontingent",
+  selectedAddOnsLabel: "Gewählte Add-ons",
+  emailLabel: "E-Mail für Bestätigung",
+  nameLabel: "Name (optional)",
+  phoneLabel: "Telefon (optional)",
+  postalCodeLabel: "PLZ (optional)",
+  contextLabel: "Einsatzkontext (optional)",
+  contextPlaceholder:
+    "Welche Einführung, Rollen oder Anlässe sollen wir beim Start berücksichtigen?",
+  organizationLabel: "Organisation / Kommune",
+  roleLabel: "Rolle (optional)",
+  rolePlaceholder: "z. B. Projektleitung, Pressestelle, Fachbereich",
+  namePlaceholder: "Vor- und Nachname",
+  phonePlaceholder: "+49 …",
+  postalCodePlaceholder: "10115",
+  organizationPlaceholder: "Name der Institution",
+  factcheckNoneOption: "Kein Kontingent",
+  factcheckBasisOption: "Kontingent Standard",
+  factcheckPlusOption: "Kontingent Plus",
+  orderSaveError: "Bestellung konnte nicht gespeichert werden",
+  institutionDetailCta: "Institutionelle Preise im Detail",
+  packageAndMembershipHint:
+    PRICING_TRUST_LOOP_DE.context.orderActivationHint,
+  preparedAccessHint:
+    "Journalismus-, Organisations- und Kommunalzugänge bleiben vorbereitet und folgen über eigene, nachgeordnete Startpfade.",
+  sendingCta: "Sende …",
+} as const;
+
+export const VORMERKEN_PAGE_CONTENT_EN = {
+  pageKicker: "Package start",
+  heroTitle: "Book package and align activation",
+  heroParagraph:
+    "The package world matches /pricing: contribute, review, draft together. Package start is direct, activation follows as a clear next step.",
+  registryGateHint: PRICING_TRUST_LOOP_EN.context.registryVerificationHint,
+  initiativeLoopShort: PRICING_TRUST_LOOP_EN.short,
+  overview: [
+    {
+      id: "interested",
+      title: "Interested · Contribute · €0 / €3.99",
+      items: [
+        "€0 for VoiceOpenGov members",
+        "€3.99 regular",
+        "Submit concerns with topic mapping",
+      ],
+    },
+    {
+      id: "active",
+      title: "Active · Review · €9.90",
+      items: [
+        "Check agendas, articles and contributions",
+        "Companion/policy hints without rewriting",
+        "Optionally open issue-room resonance",
+      ],
+    },
+    {
+      id: "co_creating",
+      title: "Co-creating · Draft together · €29.90",
+      items: [
+        "Guided collaboration with human loop",
+        "Dossier-near iterative progress",
+        "For deep collaborative topic work",
+      ],
+    },
+    {
+      id: "prepared_access",
+      title: "Prepared special access",
+      items: ["Journalism, organization and municipal access via dedicated path"],
+    },
+  ],
+  membershipTitle: "Membership",
+  membershipText:
+    "Membership is separate from package booking. Package start, activation and formal membership run as distinct steps.",
+  whatNextTitle: "What happens next",
+  focusActivePrefix: "Focus active",
+  focusActiveSuffix:
+    "This segment is in focus, while other segments are reduced and shown later.",
+  moreSegmentsTitle: "Prepared special access",
+  toPricingCta: "Back to pricing",
+  openProfileCta: "Open profile",
+  trustKicker: "Trust",
+  trustText:
+    "No pay-to-win logic. No preference by money. No commercialization of personal votes.",
+  trustCta: "View pricing logic",
+  membershipSeparateCta: "Membership separately",
+  conversationOptionalLabel: "Optionally schedule a conversation (not mandatory)",
+  addOnFieldsetLabel: "Optional add-ons",
+  removeCta: "Remove",
+  selectedPackageTitle: "Selected package",
+  selectedLabel: "Selected",
+  selectPackageLabel: "Select package",
+  orderReceivedTitle: "Order received",
+  orderIdLabel: "Order ID",
+  priceModelLabel: "Price / model",
+  addOnsLabel: "Add-ons",
+  noAddOns: "none",
+  factcheckQuotaLabel: "Fact-check quota",
+  selectedAddOnsLabel: "Selected add-ons",
+  emailLabel: "Email for confirmation",
+  nameLabel: "Name (optional)",
+  phoneLabel: "Phone (optional)",
+  postalCodeLabel: "Postal code (optional)",
+  contextLabel: "Operating context (optional)",
+  contextPlaceholder:
+    "Which onboarding, roles or issue contexts should we account for at start?",
+  organizationLabel: "Organization / municipality",
+  roleLabel: "Role (optional)",
+  rolePlaceholder: "e.g. project lead, press office, department",
+  namePlaceholder: "First and last name",
+  phonePlaceholder: "+49 …",
+  postalCodePlaceholder: "10115",
+  organizationPlaceholder: "Name of institution",
+  factcheckNoneOption: "No quota",
+  factcheckBasisOption: "Quota standard",
+  factcheckPlusOption: "Quota plus",
+  orderSaveError: "Order could not be saved",
+  institutionDetailCta: "Institutional pricing in detail",
+  packageAndMembershipHint:
+    PRICING_TRUST_LOOP_EN.context.orderActivationHint,
+  preparedAccessHint:
+    "Journalism, organization and municipal access remain prepared and follow dedicated secondary onboarding paths.",
+  sendingCta: "Sending …",
+} as const;
+
+export const PRICING_UI_LABELS = {
+  de: {
+    targetGroupNavigatorTitle: "Zielgruppen-Navigator",
+    forWhom: "Für wen?",
+    intendedFor: "Wofür gedacht?",
+    differenceToNext: "Unterschied zur nächsten Stufe",
+    recommendedFor: "Empfohlen für",
+    whenUseful: "Wann sinnvoll",
+    maturity: "Reifestand",
+    focusActivePrefix: "Fokus aktiv",
+    moreSegments: "Weitere Segmente",
+    openSegment: "Segment öffnen",
+    focusSegment: "Segment fokussieren",
+    selectedLabel: "Ausgewählt",
+    selectPackage: "Paket auswählen",
+    selectedPackageTitle: "Ausgewähltes Paket",
+    selectedAddOns: "Gewählte Add-ons",
+    none: "keine",
+    submitOrder: "Bestellung absenden",
+    orderSubmitted: "Bestellung eingegangen",
+    priceModel: "Preis / Modell",
+    addOns: "Add-ons",
+    nextStep: "Was jetzt passiert",
+    membershipSeparateHint:
+      "Bestellung und Mitgliedschaft sind getrennt. Die formale Bestätigung erfolgt im nächsten Schritt separat.",
+  },
+  en: {
+    targetGroupNavigatorTitle: "Target group navigator",
+    forWhom: "For whom?",
+    intendedFor: "Intended for",
+    differenceToNext: "Difference to the next tier",
+    recommendedFor: "Recommended for",
+    whenUseful: "When useful",
+    maturity: "Maturity",
+    focusActivePrefix: "Focus active",
+    moreSegments: "Other segments",
+    openSegment: "Open segment",
+    focusSegment: "Focus segment",
+    selectedLabel: "Selected",
+    selectPackage: "Select package",
+    selectedPackageTitle: "Selected package",
+    selectedAddOns: "Selected add-ons",
+    none: "none",
+    submitOrder: "Submit order",
+    orderSubmitted: "Order received",
+    priceModel: "Price / model",
+    addOns: "Add-ons",
+    nextStep: "What happens next",
+    membershipSeparateHint:
+      "Ordering and membership are separate. Formal confirmation follows in a separate next step.",
+  },
+} as const;
+
+export function getPricingPageContent(locale: "de" | "en" = "de") {
+  return locale === "en" ? PRICING_PAGE_CONTENT_EN : PRICING_PAGE_CONTENT;
+}
+
+export function getVormerkenPageContent(locale: "de" | "en" = "de") {
+  return locale === "en" ? VORMERKEN_PAGE_CONTENT_EN : VORMERKEN_PAGE_CONTENT;
+}
+
+export function getPricingUiLabels(locale: "de" | "en" = "de") {
+  return PRICING_UI_LABELS[locale];
+}

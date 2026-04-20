@@ -86,4 +86,54 @@ describe("create analyze envelope parser", () => {
     expect(parsed.degraded).toBe(true);
     expect(parsed.fallback).toBe(true);
   });
+
+  it("parses source-grounding audit from response meta when shape is valid", () => {
+    const parsed = parseCreateAnalyzeEnvelope({
+      ok: true,
+      createAnalyze: buildCreateAnalyze(),
+      meta: {
+        runId: "run-123",
+        sourceGrounding: {
+          taskType: "analyze",
+          sourceInventory: {
+            total: 2,
+            uploadDocuments: 1,
+            webReferences: 1,
+            freeNotes: 0,
+          },
+          documentGroundingPass: {
+            required: true,
+            documentsWithText: 1,
+            startCoverage: true,
+            middleCoverage: true,
+            endCoverage: true,
+            contextRotRisk: "low",
+          },
+          externalContextPass: {
+            webReferences: 1,
+            policy: "supplement_only",
+          },
+          synthesis: {
+            documentGroundedClaims: 2,
+            webGroundedClaims: 1,
+            inferredClaims: 0,
+            openClaims: 0,
+          },
+          contradictionAudit: {
+            contradictionSignals: [],
+            hasSignal: false,
+          },
+          noSourceBluffing: {
+            passed: true,
+            reason: null,
+          },
+          requiresManualReview: false,
+        },
+      },
+    });
+
+    expect(parsed.sourceGrounding).toBeTruthy();
+    expect(parsed.sourceGrounding?.sourceInventory.uploadDocuments).toBe(1);
+    expect(parsed.sourceGrounding?.externalContextPass.policy).toBe("supplement_only");
+  });
 });

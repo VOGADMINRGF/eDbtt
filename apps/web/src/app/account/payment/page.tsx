@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { readSession } from "@/utils/session";
 import { getAccountOverview } from "@features/account/service";
+import { PRICING_TRUST_LOOP_DE } from "@features/pricing";
 import { PaymentProfileForm } from "./PaymentProfileForm";
 import { MicroTransferVerificationForm } from "./MicroTransferVerificationForm";
 
@@ -43,6 +44,7 @@ export default async function PaymentPage() {
           <p className="text-sm text-[rgb(var(--muted))]">
             Hinterlegte Bankverbindung für Beiträge und Abrechnungen. Du kannst dein Standardkonto hier aktualisieren; bei Fragen helfen wir dir im Support.
           </p>
+          <p className="text-xs text-[rgb(var(--muted))]">{PRICING_TRUST_LOOP_DE.context.registryVerificationHint}</p>
         </header>
 
         <section className="space-y-4 rounded-3xl bg-[rgb(var(--card))] p-5 shadow-[0_18px_55px_rgba(15,23,42,0.08)] ring-1 ring-[rgb(var(--border))]">
@@ -78,6 +80,7 @@ export default async function PaymentPage() {
           <div className="space-y-1 rounded-2xl bg-[rgb(var(--bg))] px-3 py-2">
             <p className="text-[11px] font-medium text-[rgb(var(--muted))]">Bevorzugte Zahlungsart</p>
             <p className="text-sm text-[rgb(var(--fg))]">Aktuell Bankeinzug / Überweisung. Weitere Optionen (z.B. Karte) folgen.</p>
+            <p className="mt-1 text-xs text-[rgb(var(--muted))]">{PRICING_TRUST_LOOP_DE.context.orderActivationHint}</p>
           </div>
 
           <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-4 py-3 text-[11px] text-[rgb(var(--muted))]">

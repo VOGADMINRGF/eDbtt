@@ -11,39 +11,40 @@ export default function UnterstuetzenPage() {
 
       <section className="relative mx-auto max-w-4xl px-4 py-16 space-y-10">
         <header className="text-center space-y-3">
-          <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Vorbestellung</p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Paketstart</p>
           <h1 className="text-4xl font-extrabold tracking-tight text-[rgb(var(--fg))]">
-            eDebatte vorbestellen
+            eDebatte-Pakete starten
           </h1>
           <p className="mx-auto max-w-2xl text-sm leading-relaxed text-[rgb(var(--muted))]">
-            eDebatte ist aktuell im Aufbau. Mit einer Vorbestellung hilfst du uns, Funktionen sauber zu priorisieren,
-            realistische Starttermine zu planen und den Betrieb stabil aufzubauen.
+            Du kannst Pakete direkt auswählen und starten. Freischaltung und Aktivierung erfolgen anschließend passend zum
+            Nutzungskontext.
           </p>
         </header>
 
         <div className="grid gap-4 md:grid-cols-2">
           <div className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-6 shadow-sm">
             <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
-              Warum Vorbestellung?
+              Warum Paketstart?
             </p>
             <ul className="mt-3 list-disc space-y-2 pl-5 text-sm text-[rgb(var(--muted))]">
-              <li>Server- und Moderationskosten sauber planen.</li>
+              <li>Infrastruktur, Moderation und Betriebsprozesse verlässlich finanzieren.</li>
               <li>Keine Werbung, kein Verkauf von Daten.</li>
-              <li>Früher Zugriff auf neue Funktionen und Pilot-Formate.</li>
+              <li>Aktivierung wird je nach Paket und Einsatzkontext abgestimmt.</li>
             </ul>
           </div>
 
           <div className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-6 shadow-sm">
             <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Was jetzt?</p>
             <p className="mt-2 text-sm text-[rgb(var(--muted))]">
-              Wähle dein Paket auf der Pricing-Seite. Dort kannst du dein Interesse unverbindlich vormerken.
+              Wähle dein Paket auf der Pricing-Seite. Danach kannst du den Paketstart verbindlich anlegen und die
+              Freischaltung abstimmen.
             </p>
             <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-start">
               <Link
                 href="/pricing"
                 className="inline-flex items-center justify-center rounded-full bg-gradient-to-r from-[rgb(var(--grad-from))] to-[rgb(var(--grad-to))] px-5 py-2.5 text-sm font-semibold text-white shadow-[0_12px_30px_rgba(24,165,255,0.25)] hover:opacity-95"
               >
-                Vorbestellung ansehen
+                Pakete & Preise
               </Link>
               <a
                 href={VOG_SUPPORT_URL}

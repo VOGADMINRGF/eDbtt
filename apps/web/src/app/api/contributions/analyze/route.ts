@@ -18,6 +18,11 @@ import { maskUserId } from "@core/pii/redact";
 import type { ProviderMatrixEntry } from "@features/ai/orchestratorE150";
 import type { AiErrorKind } from "@core/telemetry/aiUsageTypes";
 import { buildHeuristicAnalyzeResult } from "@features/analyze/heuristics";
+import {
+  buildSourceGroundingContext,
+  finalizeSourceGroundingAudit,
+  type SourceGroundingContext,
+} from "@features/analyze/sourceGroundingContract";
 import crypto from "crypto";
 import { parseAnalyzeRequestBody, type AnalyzeRequestParsed } from "./parseAnalyzeRequest";
 import {
@@ -28,6 +33,7 @@ import {
 import { resolveCreateCtaSuggestions } from "@/features/create/ctaResolver";
 import { resolveCreateGraphMatches } from "@/features/create/matchService";
 import { resolveCreateLanguageContext } from "@/features/create/languageContextContract";
+import type { CreateProductMode } from "@/features/create/createProductModes";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -95,6 +101,8 @@ type AnalyzeJobInput = {
   locale: string;
   maxClaims: number;
   contributionId: string;
+  analysisMode: CreateProductMode;
+  sourceGrounding: SourceGroundingContext;
   userId?: string | null;
 };
 
@@ -110,6 +118,12 @@ function sanitizeMaxClaims(maxClaims?: number): number {
     return Math.min(50, Math.max(1, Math.floor(maxClaims)));
   }
   return DEFAULT_MAX_CLAIMS;
+}
+
+function resolveAnalyzeAudienceRole(mode: CreateProductMode): "citizen" | "staff" | "institution" {
+  if (mode === "media") return "staff";
+  if (mode === "guided") return "institution";
+  return "citizen";
 }
 
 /**
@@ -155,8 +169,13 @@ export async function POST(req: NextRequest): Promise<Response> {
   const locale = languageContext.contentLanguage;
   const maxClaims = sanitizeMaxClaims(body.maxClaims);
   const text = body.text?.trim() || "";
+  const analysisMode = body.analysisMode ?? "analyze";
   const userId = req.cookies.get("u_id")?.value ?? null;
   const contributionId = resolveContributionId(body.contributionId, text);
+  const sourceGrounding = buildSourceGroundingContext({
+    analysisMode,
+    evidenceItems: body.evidenceItems,
+  });
   const ip = (req.headers.get("x-forwarded-for") || "local").split(",")[0].trim();
 
   const rl = await rateLimitOrThrow(`analyze:ip:${ip}`, 15, 10 * 60 * 1000, { salt: "analyze" });
@@ -170,6 +189,8 @@ export async function POST(req: NextRequest): Promise<Response> {
     locale,
     maxClaims,
     contributionId,
+    analysisMode,
+    sourceGrounding,
     userId,
   };
 
@@ -180,6 +201,10 @@ export async function POST(req: NextRequest): Promise<Response> {
   try {
     const result = await withHardTimeout(runAnalyzeJob(analyzeInput), ANALYZE_HARD_TIMEOUT_MS);
     await finalizeResultPayload(result, analyzeInput);
+    const sourceGroundingAudit = finalizeSourceGroundingAudit({
+      context: analyzeInput.sourceGrounding,
+      result: toSourceGroundingResultInput(result),
+    });
     const createMatch = await resolveCreateMatchesSafe({
       text,
       normalizedInputSummary: summarizeCreateAnalyzeInput(text),
@@ -210,6 +235,7 @@ export async function POST(req: NextRequest): Promise<Response> {
         meta: {
           runId,
           providerMatrix,
+          sourceGrounding: sourceGroundingAudit,
         },
       },
       { status: 200 },
@@ -231,6 +257,10 @@ export async function POST(req: NextRequest): Promise<Response> {
     const normalized = normalizeAnalyzerError(error);
     if (shouldUseFallback(normalized)) {
       const fallback = buildHeuristicAnalyzeResult({ text, locale });
+      const sourceGroundingAudit = finalizeSourceGroundingAudit({
+        context: analyzeInput.sourceGrounding,
+        result: toSourceGroundingResultInput(fallback),
+      });
       const createMatch = await resolveCreateMatchesSafe({
         text,
         normalizedInputSummary: summarizeCreateAnalyzeInput(text),
@@ -255,6 +285,10 @@ export async function POST(req: NextRequest): Promise<Response> {
         message: normalized.message,
         result: fallback,
         createAnalyze,
+        meta: {
+          runId,
+          sourceGrounding: sourceGroundingAudit,
+        },
       });
     }
     if (normalized.code === "BAD_JSON" || normalized.code === "ANALYZE_PROVIDER_FAILED") {
@@ -319,6 +353,10 @@ export async function POST(req: NextRequest): Promise<Response> {
         result: degradedResult,
         matchResult: createMatch,
       });
+      const sourceGroundingAudit = finalizeSourceGroundingAudit({
+        context: analyzeInput.sourceGrounding,
+        result: toSourceGroundingResultInput(degradedResult),
+      });
 
       return NextResponse.json(
         {
@@ -334,6 +372,7 @@ export async function POST(req: NextRequest): Promise<Response> {
             disabledProviders: meta?.disabledProviders ?? meta?.disabled ?? [],
             skippedProviders: meta?.skippedProviders ?? meta?.skipped ?? [],
             probes: meta?.probes ?? [],
+            sourceGrounding: sourceGroundingAudit,
           },
         },
         { status: 200 },
@@ -375,9 +414,13 @@ function startAnalyzeSseStream(input: AnalyzeJobInput): Response {
         sendProgress("analyzing", 35);
         const result = await runAnalyzeJob(input);
         await finalizeResultPayload(result, input);
+        const sourceGroundingAudit = finalizeSourceGroundingAudit({
+          context: input.sourceGrounding,
+          result: toSourceGroundingResultInput(result),
+        });
 
         sendProgress("finalizing", 85);
-        sendEvent("result", { result });
+        sendEvent("result", { result, meta: { sourceGrounding: sourceGroundingAudit } });
         sendProgress("complete", 100);
         controller.close();
       } catch (error) {
@@ -405,7 +448,9 @@ async function runAnalyzeJob(input: AnalyzeJobInput): Promise<AnalyzeResultWithM
     text: input.text,
     locale: input.locale,
     maxClaims: input.maxClaims,
-    audienceRole: "citizen",
+    audienceRole: resolveAnalyzeAudienceRole(input.analysisMode),
+    analysisMode: input.analysisMode,
+    sourceGroundingPromptAddon: input.sourceGrounding.promptAddon,
   });
   return finalizeAnalyzeResult(analyzed);
 }
@@ -507,6 +552,34 @@ function normalizeConsequenceBundle(
   return {
     consequences: Array.isArray(bundle?.consequences) ? bundle!.consequences : [],
     responsibilities: Array.isArray(bundle?.responsibilities) ? bundle!.responsibilities : [],
+  };
+}
+
+function toSourceGroundingResultInput(
+  result: AnalyzeResultWithMeta,
+): {
+  claims?: Array<{ text?: string | null }>;
+  notes?: Array<{ text?: string | null }>;
+  report?: { keyConflicts?: unknown[] } | null;
+} {
+  return {
+    claims: Array.isArray(result.claims)
+      ? result.claims.map((claim) => ({
+          text: typeof claim?.text === "string" ? claim.text : null,
+        }))
+      : [],
+    notes: Array.isArray(result.notes)
+      ? result.notes.map((note) => ({
+          text: typeof note?.text === "string" ? note.text : null,
+        }))
+      : [],
+    report: result.report
+      ? {
+          keyConflicts: Array.isArray(result.report.keyConflicts)
+            ? result.report.keyConflicts
+            : [],
+        }
+      : null,
   };
 }
 

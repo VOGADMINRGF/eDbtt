@@ -27,12 +27,33 @@ export function buildFinalizeRedirectPath(params: {
 
 export function buildFinalizeFallbackPath(params: {
   dossierId?: string | null;
+  preferredSurface?: "swipes" | "runden";
+  anlassraumId?: string | null;
+  fallbackReturnTo?: string | null;
 }): InternalRedirectPath {
+  const explicitReturn = normalizeInternalRedirectPath(params.fallbackReturnTo);
+  if (explicitReturn) return explicitReturn;
+
   const dossierId = trimString(params.dossierId);
   if (dossierId) {
     return `/dossier/${encodeURIComponent(dossierId)}` as InternalRedirectPath;
   }
+
+  if (params.preferredSurface === "runden") {
+    const normalizedAnlassraumId = normalizeAnlassraumId(params.anlassraumId);
+    if (normalizedAnlassraumId) {
+      return `/runden?view=active&anlassraumId=${encodeURIComponent(normalizedAnlassraumId)}` as InternalRedirectPath;
+    }
+    return "/runden?view=active";
+  }
+
   return "/swipes";
+}
+
+function normalizeAnlassraumId(value: unknown): string | null {
+  const normalized = String(value ?? "").trim().toLowerCase();
+  if (!/^[a-f0-9]{24}$/.test(normalized)) return null;
+  return normalized;
 }
 
 export function resolveFinalizeRedirectTarget(params: {

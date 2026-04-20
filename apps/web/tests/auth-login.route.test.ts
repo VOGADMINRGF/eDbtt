@@ -207,7 +207,12 @@ vi.mock("@/app/api/auth/sharedAuth", () => ({
   LOGIN_WINDOW_MS: 15 * 60 * 1000,
   TWO_FA_WINDOW_MS: 10 * 60 * 1000,
   normalizeIdentifier: (raw?: string | null) => (raw ?? "").trim().toLowerCase(),
-  sanitizeRedirect: () => "/account",
+  sanitizeRedirect: (value?: string | null) => {
+    if (!value) return "/";
+    const trimmed = String(value).trim();
+    if (!trimmed.startsWith("/") || trimmed.startsWith("//")) return "/";
+    return trimmed;
+  },
   sha256: (value: string) => `sha:${value}`,
   resolveTwoFactorMethod: (creds?: Record<string, any> | null, user?: Record<string, any> | null) => {
     const method = creds?.twoFactorMethod || user?.verification?.twoFA?.method;
@@ -360,5 +365,68 @@ describe("auth login route regressions", () => {
     });
     expect(mocks.applySessionCookies).not.toHaveBeenCalled();
     expect(mocks.setPendingTwoFactorCookie).toHaveBeenCalledTimes(1);
+  });
+
+  it("routes admin/backoffice users to /admin when no explicit next target exists", async () => {
+    mocks.seedUser({
+      _id: "user-5",
+      email: "admin@example.org",
+      role: "admin",
+      roles: ["admin"],
+      passwordHash: "admin-hash",
+    });
+    mocks.seedCredentials({
+      _id: "cred-5",
+      coreUserId: "user-5",
+      email: "admin@example.org",
+      passwordHash: "admin-hash",
+    });
+    mocks.allowPassword("correct-pass", "admin-hash");
+
+    const res = await POST(
+      loginReq({
+        identifier: "admin@example.org",
+        password: "correct-pass",
+      }),
+    );
+
+    expect(res.status).toBe(200);
+    await expect(res.json()).resolves.toMatchObject({
+      ok: true,
+      require2fa: false,
+      redirectUrl: "/admin",
+    });
+  });
+
+  it("prevents non-admin users from being redirected to admin-only targets", async () => {
+    mocks.seedUser({
+      _id: "user-6",
+      email: "journal@example.org",
+      role: "journalist",
+      roles: ["journalist"],
+      passwordHash: "journal-hash",
+    });
+    mocks.seedCredentials({
+      _id: "cred-6",
+      coreUserId: "user-6",
+      email: "journal@example.org",
+      passwordHash: "journal-hash",
+    });
+    mocks.allowPassword("correct-pass", "journal-hash");
+
+    const res = await POST(
+      loginReq({
+        identifier: "journal@example.org",
+        password: "correct-pass",
+        next: "/admin/pricing/orders",
+      }),
+    );
+
+    expect(res.status).toBe(200);
+    await expect(res.json()).resolves.toMatchObject({
+      ok: true,
+      require2fa: false,
+      redirectUrl: "/account?context=journalismus",
+    });
   });
 });

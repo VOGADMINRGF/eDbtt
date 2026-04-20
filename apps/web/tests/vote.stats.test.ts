@@ -1,9 +1,12 @@
 import { getVoteStats } from "@/lib/vote/stats";
 import { VoteModel } from "@/models/Vote";
+import { mongo } from "@/db/mongoose";
 import mongoose from "mongoose";
-import { mongo } from "@core/mongoose";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-describe("vote stats", () => {
+const suite = process.env.MONGODB_URI ? describe : describe.skip;
+
+suite("vote stats", () => {
   beforeAll(async () => {
     await mongo();
     const Vote = await VoteModel();

@@ -11,7 +11,7 @@ import { useAutoTranslateText } from "@/lib/i18n/autoTranslate";
  * - Mission + Einordnung (ohne „Dokumentfamilie“-Behauptungen)
  * - Wissenschaftlicher Ton, aber klarer Fokus: Warum, wofür, wie andocken?
  * - Teaser zur Referenzarchitektur führt nach /howtoworks/edebatte
- * - CTA: /vormerken
+ * - CTA: /order
  */
 
 const HEADLINE_GRAD = "headline-grad";
@@ -198,9 +198,9 @@ const qa = {
       q_de: "Wie kann ich mitmachen?",
       q_en: "How can I participate?",
       a_de:
-        "Du kannst Themen einreichen, abstimmen oder einen Pilot vormerken.",
+        "Du kannst Themen einreichen, abstimmen oder einen Paketstart für Pilot- und Betriebskontexte anlegen.",
       a_en:
-        "You can submit topics, vote, or register interest for a pilot.",
+        "You can submit topics, vote, or start a package path for pilot and operating contexts.",
     },
   ],
 };
@@ -328,8 +328,8 @@ export default function UeberUnsPage() {
             </p>
 
             <div className="mt-5 flex flex-wrap gap-3">
-              <Link href="/vormerken" className={BUTTON_PRIMARY}>
-                {pick("Pilot vormerken", "Register pilot interest")}
+              <Link href="/order" className={BUTTON_PRIMARY}>
+                {pick("Paketstart anlegen", "Start package path")}
               </Link>
               <Link href="/howtoworks/edebatte" className={BUTTON_GHOST}>
                 {pick("So funktioniert eDebatte", "How eDebatte works")}
@@ -494,13 +494,13 @@ export default function UeberUnsPage() {
           <div className={`mt-5 ${SUBCARD}`}>
             <p className="text-sm leading-relaxed text-[rgb(var(--muted))]">
               {pick(
-                "Wenn du einen Pilot prüfen willst, genügt Vormerken. Wir melden uns mit Ablauf, Rollen und einem realistischen Themenset.",
-                "If you want to evaluate a pilot, registering is enough. We’ll respond with process, roles and a realistic topic set.",
+                "Wenn du einen Pilot prüfen willst, lege den Paketstart an. Danach stimmen wir Ablauf, Rollen und ein realistisches Themenset ab.",
+                "If you want to evaluate a pilot, start the package path. We then align process, roles and a realistic topic set.",
               )}
             </p>
             <div className="mt-4 flex flex-wrap gap-3">
-              <Link href="/vormerken" className={BUTTON_PRIMARY}>
-                {pick("Pilot vormerken", "Register pilot interest")}
+              <Link href="/order" className={BUTTON_PRIMARY}>
+                {pick("Paketstart anlegen", "Start package path")}
               </Link>
               <Link href="/kontakt" className={BUTTON_GHOST}>
                 {pick("Kontakt", "Contact")}

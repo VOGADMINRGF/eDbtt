@@ -5,9 +5,20 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { CORE_LOCALES, EXTENDED_LOCALES } from "@/config/locales";
 import { HumanCheck } from "@/components/security/HumanCheck";
+import { PRICING_TRUST_LOOP_DE } from "@features/pricing";
 import { RegisterStepper } from "./RegisterStepper";
+import { resolveRegisterBridge } from "./registerFlowBridge";
 
 type RegisterStep = 1 | 2 | 3;
+type GeoAddressSuggestion = {
+  id: string;
+  label: string;
+  street?: string;
+  houseNumber?: string;
+  postalCode?: string;
+  city?: string;
+  countryCode?: string;
+};
 
 const MIN_PARTICIPATION_AGE = 14;
 const DEFAULT_COUNTRY = "Deutschland";
@@ -193,10 +204,14 @@ function RegisterPageClient({ personCount = 1, searchParams }: RegisterPageClien
   const [humanNote, setHumanNote] = useState<string | null>(null);
   const [formStartedAt, setFormStartedAt] = useState<number | null>(null);
   const [hpRegister, setHpRegister] = useState("");
+  const [geoSuggestions, setGeoSuggestions] = useState<GeoAddressSuggestion[]>([]);
+  const [geoLoading, setGeoLoading] = useState(false);
+  const geoTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const router = useRouter();
   const birthDateIso = toIsoBirthdate(birthDate);
   const latestBirthDateIso = latestBirthDateForMinAge(MIN_PARTICIPATION_AGE);
+  const registerBridge = resolveRegisterBridge(nextParam);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -210,6 +225,12 @@ function RegisterPageClient({ personCount = 1, searchParams }: RegisterPageClien
 
   useEffect(() => {
     setFormStartedAt(Date.now());
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (geoTimeoutRef.current) clearTimeout(geoTimeoutRef.current);
+    };
   }, []);
 
   const openDatePicker = () => {
@@ -289,6 +310,49 @@ function RegisterPageClient({ personCount = 1, searchParams }: RegisterPageClien
     setErrMsg(undefined);
     setStep((prev) => Math.max(1, prev - 1) as RegisterStep);
     scrollUp();
+  }
+
+  function applyGeoSuggestion(suggestion: GeoAddressSuggestion) {
+    setStreet(suggestion.street ?? street);
+    setHouseNumber(suggestion.houseNumber ?? houseNumber);
+    setPostalCode(suggestion.postalCode ?? postalCode);
+    setCity(suggestion.city ?? city);
+    if (suggestion.countryCode === "DE") {
+      setCountry("Deutschland");
+    } else if (suggestion.countryCode) {
+      setCountry(suggestion.countryCode);
+    }
+    setGeoSuggestions([]);
+    setGeoLoading(false);
+  }
+
+  function handleStreetChange(value: string) {
+    setStreet(value);
+    if (geoTimeoutRef.current) clearTimeout(geoTimeoutRef.current);
+
+    const query = value.trim();
+    if (query.length < 3) {
+      setGeoSuggestions([]);
+      setGeoLoading(false);
+      return;
+    }
+
+    setGeoLoading(true);
+    geoTimeoutRef.current = setTimeout(async () => {
+      try {
+        const response = await fetch(`/api/geo/search?q=${encodeURIComponent(query)}`);
+        const body = await response.json().catch(() => null);
+        if (!response.ok || !body?.ok || !Array.isArray(body.suggestions)) {
+          setGeoSuggestions([]);
+          return;
+        }
+        setGeoSuggestions(body.suggestions.slice(0, 6));
+      } catch {
+        setGeoSuggestions([]);
+      } finally {
+        setGeoLoading(false);
+      }
+    }, 250);
   }
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -434,12 +498,24 @@ function RegisterPageClient({ personCount = 1, searchParams }: RegisterPageClien
 
   return (
     <div className="space-y-4 rounded-[24px] bg-[rgb(var(--card))] p-4 shadow-[0_20px_60px_rgba(15,23,42,0.08)] ring-1 ring-[rgb(var(--border))] sm:p-5">
+      {registerBridge && (
+        <section className="rounded-2xl border border-sky-400/35 bg-sky-500/10 px-3 py-2.5 text-xs text-sky-900 dark:border-sky-400/30 dark:bg-sky-500/15 dark:text-sky-100">
+          <p className="text-sm font-semibold">{registerBridge.title}</p>
+          <p className="mt-1">{registerBridge.text}</p>
+        </section>
+      )}
+
       <header className="space-y-2">
         <h1 className="text-xl font-semibold leading-tight sm:text-2xl">
           <span className={HEADLINE_GRADIENT_CLASS}>Registrieren</span>
         </h1>
         <p className="text-xs text-[rgb(var(--muted))]">Kompakter Onboarding-Flow: Konto, Legitimation, Zugang.</p>
       </header>
+
+      <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2.5 text-xs text-[rgb(var(--muted))]">
+        <p className="font-semibold text-[rgb(var(--fg))]">{PRICING_TRUST_LOOP_DE.leitsatz}</p>
+        <p className="mt-1">{PRICING_TRUST_LOOP_DE.context.registryVerificationHint}</p>
+      </section>
 
       <RegisterStepper current={step} steps={REGISTER_STEPS} />
 
@@ -549,17 +625,41 @@ function RegisterPageClient({ personCount = 1, searchParams }: RegisterPageClien
             <div className="grid gap-3 sm:grid-cols-[1fr_auto]">
               <div className="space-y-1">
                 <label htmlFor="street" className="text-xs font-medium text-[rgb(var(--muted))]">Straße</label>
-                <input
-                  id="street"
-                  name="street"
-                  className="w-full rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm text-[rgb(var(--fg))] outline-none focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
-                  value={street}
-                  onChange={(e) => setStreet(e.target.value)}
-                  placeholder="Straße"
-                  autoComplete="street-address"
-                  maxLength={120}
-                  disabled={busy}
-                />
+                <div className="relative">
+                  <input
+                    id="street"
+                    name="street"
+                    className="w-full rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-sm text-[rgb(var(--fg))] outline-none focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
+                    value={street}
+                    onChange={(e) => handleStreetChange(e.target.value)}
+                    placeholder="Straße"
+                    autoComplete="street-address"
+                    maxLength={120}
+                    disabled={busy}
+                  />
+                  {geoLoading ? (
+                    <p className="mt-1 text-[11px] text-[rgb(var(--muted))]">Adresshilfe lädt …</p>
+                  ) : null}
+                  {!geoLoading && geoSuggestions.length > 0 ? (
+                    <ul className="absolute z-20 mt-1 w-full divide-y divide-[rgb(var(--border))] overflow-hidden rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] shadow-lg">
+                      {geoSuggestions.map((suggestion) => (
+                        <li key={suggestion.id}>
+                          <button
+                            type="button"
+                            onClick={() => applyGeoSuggestion(suggestion)}
+                            className="flex w-full flex-col px-3 py-2 text-left hover:bg-[rgb(var(--bg))]"
+                          >
+                            <span className="text-sm text-[rgb(var(--fg))]">{suggestion.label}</span>
+                            <span className="text-[11px] text-[rgb(var(--muted))]">
+                              {[suggestion.postalCode, suggestion.city].filter(Boolean).join(" ")}
+                            </span>
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : null}
+                </div>
+                <p className="text-[11px] text-[rgb(var(--muted))]">Adresshilfe auf Basis OpenStreetMap (datenschutzfreundlich, optional).</p>
               </div>
               <div className="space-y-1 sm:w-28">
                 <label htmlFor="houseNumber" className="text-xs font-medium text-[rgb(var(--muted))]">Nr.</label>
@@ -722,8 +822,12 @@ function RegisterPageClient({ personCount = 1, searchParams }: RegisterPageClien
                 onChange={(e) => setEmail(e.target.value)}
                 autoComplete="email"
                 inputMode="email"
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck={false}
                 disabled={busy}
               />
+              <p className="text-[11px] text-[rgb(var(--muted))]">Bei mobilen Tastaturen: Feld antippen, dann wird die E-Mail-Tastatur mit „@“ geladen.</p>
             </div>
 
             <div className="space-y-1">
@@ -740,6 +844,9 @@ function RegisterPageClient({ personCount = 1, searchParams }: RegisterPageClien
                   minLength={12}
                   pattern="^(?=.*[0-9])(?=.*[^A-Za-z0-9]).{12,}$"
                   autoComplete="new-password"
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  spellCheck={false}
                   disabled={busy}
                   aria-describedby="pw-help"
                 />
@@ -897,7 +1004,10 @@ function RegisterPageClient({ personCount = 1, searchParams }: RegisterPageClien
 
       <p className="text-xs text-[rgb(var(--muted))]">
         Schon ein Konto?{" "}
-        <Link className="font-semibold text-[rgb(var(--fg))] underline" href="/login">
+        <Link
+          className="font-semibold text-[rgb(var(--fg))] underline"
+          href={nextParam ? `/login?next=${encodeURIComponent(nextParam)}` : "/login"}
+        >
           Login
         </Link>
       </p>

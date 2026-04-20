@@ -24,6 +24,7 @@ import type {
   EvidenceGraph,
   RunReceipt,
 } from "@features/analyze/schemas";
+import type { SourceGroundingAudit } from "@features/analyze/sourceGroundingContract";
 import { useLocale } from "@/context/LocaleContext";
 import { selectE150Questions } from "@features/e150/questions/catalog";
 import { VERIFICATION_REQUIREMENTS, meetsVerificationLevel } from "@features/auth/verificationRules";
@@ -37,6 +38,7 @@ import ContentLanguageSelect from "@/components/ContentLanguageSelect";
 import { useContentLang } from "@/lib/i18n/contentLanguage";
 import { DEFAULT_BASE_LANG, LANGUAGE_CODES, type LanguageCode } from "@features/i18n/languages";
 import type { CreateMode } from "@/features/create/intents";
+import type { CreateProductMode } from "@/features/create/createProductModes";
 import type { CreateAnalyzeResponse } from "@/features/create/analyzeContract";
 import {
   parseCreateAnalyzeEnvelope,
@@ -246,6 +248,13 @@ type CreateAnalyzeRoutingHint = {
   primaryCtaLabel: string | null;
 };
 
+type SourceGroundingUiHint = {
+  tone: "info" | "warning";
+  title: string;
+  message: string;
+  details: string[];
+};
+
 export function deriveCreateAnalyzeRoutingHint(
   snapshot: Pick<CreateAnalyzeResponse, "matchType" | "suggestedCtas">,
 ): CreateAnalyzeRoutingHint {
@@ -306,6 +315,62 @@ export function collectCreateAnalyzeReasons(
     push(match?.reason);
   }
   return out;
+}
+
+export function deriveSourceGroundingUiHint(audit: SourceGroundingAudit | null): SourceGroundingUiHint | null {
+  if (!audit) return null;
+  const details: string[] = [];
+  if (audit.sourceInventory.uploadDocuments > 0) {
+    details.push(
+      `Uploads im Lauf: ${audit.sourceInventory.uploadDocuments} · mit Text verarbeitet: ${audit.documentGroundingPass.documentsWithText}`,
+    );
+  }
+  if (audit.sourceInventory.webReferences > 0) {
+    details.push(`Web-Ergänzung: ${audit.sourceInventory.webReferences} Quelle(n), nur ergänzend.`);
+  }
+  if (audit.contradictionAudit.hasSignal) {
+    const firstSignal = audit.contradictionAudit.contradictionSignals[0];
+    details.push(firstSignal ? `Widerspruch markiert: ${firstSignal}` : "Widersprüche wurden markiert.");
+  }
+
+  if (!audit.noSourceBluffing.passed) {
+    return {
+      tone: "warning",
+      title: "Beleglage prüfen",
+      message:
+        audit.noSourceBluffing.reason ??
+        "Die Analyse enthält offene Beleglücken. Bitte Aussagen vor der Weiterverarbeitung manuell prüfen.",
+      details,
+    };
+  }
+
+  if (audit.documentGroundingPass.contextRotRisk === "high") {
+    return {
+      tone: "warning",
+      title: "Dokumentabdeckung unvollständig",
+      message:
+        "Die Dokumentabdeckung ist noch lückenhaft. Bitte besonders mittlere Abschnitte vor der nächsten Entscheidung gegenprüfen.",
+      details,
+    };
+  }
+
+  if (audit.requiresManualReview) {
+    return {
+      tone: "warning",
+      title: "Manuelle Prüfung empfohlen",
+      message:
+        "Die Analyse bleibt ein strukturierter Vorschlag. Für strittige Punkte ist eine manuelle Review-Runde erforderlich.",
+      details,
+    };
+  }
+
+  return {
+    tone: "info",
+    title: "Quellenbindung aktiv",
+    message:
+      "Die Analyse wurde mit Quellenbindung erzeugt. Dokumente bleiben Primärquelle, Web-Hinweise werden nur ergänzend genutzt.",
+    details,
+  };
 }
 
 export { resolveFinalizeRedirectTarget };
@@ -396,6 +461,7 @@ type AnalyzeWorkspaceProps = {
   maxClaimsCap?: number;
   maxFinalizeClaims?: number;
   analysisEntryVariant?: "use_case_cards" | "single_button";
+  analysisModeHint?: CreateProductMode;
 };
 
 const BASE_STEPS: AnalyzeStepState[] = [
@@ -769,6 +835,7 @@ export default function AnalyzeWorkspace({
   authorName: initialAuthorName,
   useCaseAccess,
   analysisEntryVariant = "use_case_cards",
+  analysisModeHint,
 }: AnalyzeWorkspaceProps) {
   const router = useRouter();
   const { locale } = useLocale();
@@ -819,6 +886,7 @@ export default function AnalyzeWorkspace({
   const [runReceipt, setRunReceipt] = React.useState<RunReceipt | null>(null);
   const [providerMatrix, setProviderMatrix] = React.useState<ProviderMatrixEntry[]>([]);
   const [createAnalyze, setCreateAnalyze] = React.useState<CreateAnalyzeResponse | null>(null);
+  const [sourceGroundingAudit, setSourceGroundingAudit] = React.useState<SourceGroundingAudit | null>(null);
   const [ctaHandoffState, setCtaHandoffState] = React.useState<CreateCtaHandoffUiState>(
     () => createInitialCreateCtaHandoffState(),
   );
@@ -1370,6 +1438,8 @@ export default function AnalyzeWorkspace({
   const showProgress = !flowIsLite && (analysisStatus !== "idle" || hasAnyResults);
   const showOutputSection = analysisStatus === "success" || hasAnyResults;
   const showInsights = analysisStatus === "success" && (allowTrace || allowResearch) && hasStatements;
+  const usesCreateSingleStartSurface = analysisEntryVariant === "single_button";
+  const sourceGroundingHint = deriveSourceGroundingUiHint(sourceGroundingAudit);
   const createAnalyzePhases = createAnalyze
     ? [
         { key: "intake", value: createAnalyze.phases.intake },
@@ -1585,6 +1655,8 @@ export default function AnalyzeWorkspace({
       setFinalizeRedirectTo(redirectTo);
       if (redirectTo?.startsWith("/dossier/")) {
         setFinalizeInfo("Erfolgreich eingereicht. Weiterleitung ins Dossier zur strukturierten Verdichtung.");
+      } else if (redirectTo?.startsWith("/runden")) {
+        setFinalizeInfo("Erfolgreich eingereicht. Weiterleitung in den laufenden Anlasskontext /runden.");
       } else if (redirectTo) {
         setFinalizeInfo(
           "Erfolgreich eingereicht. Weiterleitung in die Beteiligungsoberfläche /swipes (Themenkontext bleibt im Anlassraum über /runden).",
@@ -1747,6 +1819,7 @@ export default function AnalyzeWorkspace({
     setEvidenceGraph(null);
     setRunReceipt(null);
     setCreateAnalyze(null);
+    setSourceGroundingAudit(null);
     setCtaHandoffState(createInitialCreateCtaHandoffState());
     setPrepareAttachReview(null);
     setPrepareAttachSaving(false);
@@ -1772,6 +1845,7 @@ export default function AnalyzeWorkspace({
           preparedText,
           text: preparedText,
           createMode: resolvedCreateMode,
+          analysisMode: analysisModeHint ?? undefined,
           anlassraumId: selectedAnlassraumId ?? undefined,
           dossierId: dossierId ?? undefined,
           locale,
@@ -1787,6 +1861,7 @@ export default function AnalyzeWorkspace({
       }
       const parsedEnvelope = parseCreateAnalyzeEnvelope(data);
       setCreateAnalyze(parsedEnvelope.createAnalyze);
+      setSourceGroundingAudit(parsedEnvelope.sourceGrounding);
       setCtaHandoffState(createInitialCreateCtaHandoffState());
       setPrepareAttachReview(null);
       setPrepareAttachSaving(false);
@@ -1856,6 +1931,7 @@ export default function AnalyzeWorkspace({
       setProviderMatrix(parsedEnvelope.providerMatrix);
 
       const degraded = parsedEnvelope.degraded;
+      const fallback = parsedEnvelope.fallback;
       const degradedReason = degraded ? "KI temporär nicht erreichbar" : null;
 
       setSteps(
@@ -1890,7 +1966,11 @@ export default function AnalyzeWorkspace({
       } else {
         setInsightTab("input");
         setAnalysisStatus("success");
-        setInfo(null);
+        setInfo(
+          fallback
+            ? "Die Analyse wurde über einen vereinfachten Fallback erzeugt. Bitte Kernaussagen vor dem Weitergehen manuell prüfen."
+            : null,
+        );
         setError(null);
       }
     } catch (err: any) {
@@ -1916,6 +1996,7 @@ export default function AnalyzeWorkspace({
       setEvidenceGraph(null);
       setRunReceipt(null);
       setCreateAnalyze(null);
+      setSourceGroundingAudit(null);
       setCtaHandoffState(createInitialCreateCtaHandoffState());
       setPrepareAttachReview(null);
       setPrepareAttachSaving(false);
@@ -1944,6 +2025,7 @@ export default function AnalyzeWorkspace({
   }, [
     analyzeDisabled,
     analyzeEndpoint,
+    analysisModeHint,
     allowResearch,
     evidenceInput,
     fetchResearchGuidance,
@@ -2786,7 +2868,190 @@ export default function AnalyzeWorkspace({
             )}
           </div>
 
-          {createAnalyze && (
+          {createAnalyze && usesCreateSingleStartSurface && (
+            <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm space-y-3">
+              <div className="space-y-1">
+                <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
+                  Nächste Schritte
+                </p>
+                <h3 className="text-sm font-semibold text-[rgb(var(--fg))]">
+                  Einordnung und manuelle Entscheidung
+                </h3>
+                <p className="text-[11px] text-[rgb(var(--muted))]">
+                  {createAnalyze.normalizedInputSummary || "Die Analyse ist bereit. Du kannst jetzt den nächsten Schritt bewusst auswählen."}
+                </p>
+              </div>
+
+              {sourceGroundingHint ? (
+                <div
+                  className={`rounded-xl border px-3 py-2 text-[11px] ${
+                    sourceGroundingHint.tone === "warning"
+                      ? "border-amber-300/60 bg-amber-50/80 text-amber-800 dark:border-amber-400/40 dark:bg-amber-500/10 dark:text-amber-200"
+                      : "border-[rgb(var(--border))] bg-[rgb(var(--bg))] text-[rgb(var(--muted))]"
+                  }`}
+                >
+                  <p className="text-[10px] font-semibold uppercase tracking-wide">{sourceGroundingHint.title}</p>
+                  <p className="mt-1">{sourceGroundingHint.message}</p>
+                  {sourceGroundingHint.details.length > 0 ? (
+                    <ul className="mt-1 list-disc space-y-1 pl-4">
+                      {sourceGroundingHint.details.map((detail) => (
+                        <li key={detail}>{detail}</li>
+                      ))}
+                    </ul>
+                  ) : null}
+                </div>
+              ) : null}
+
+              {createAnalyzeRoutingHint ? (
+                <div
+                  className={`rounded-xl border px-3 py-2 text-[11px] ${
+                    createAnalyzeRoutingHint.tone === "warning"
+                      ? "border-amber-300/60 bg-amber-50/80 text-amber-800 dark:border-amber-400/40 dark:bg-amber-500/10 dark:text-amber-200"
+                      : "border-[rgb(var(--border))] bg-[rgb(var(--bg))] text-[rgb(var(--muted))]"
+                  }`}
+                >
+                  <p className="text-[10px] font-semibold uppercase tracking-wide">Richtung aus der Analyse</p>
+                  <p className="mt-1">{createAnalyzeRoutingHint.message}</p>
+                  {createAnalyzeRoutingHint.primaryCtaLabel ? (
+                    <p className="mt-1">
+                      Empfohlene Richtung:{" "}
+                      <span className="font-semibold text-[rgb(var(--fg))]">
+                        {createAnalyzeRoutingHint.primaryCtaLabel}
+                      </span>
+                    </p>
+                  ) : null}
+                </div>
+              ) : null}
+
+              {createAnalyze.suggestedCtas.length > 0 ? (
+                <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-[11px] text-[rgb(var(--muted))]">
+                  <p className="text-[10px] font-semibold uppercase tracking-wide">Vorschläge</p>
+                  <ul className="mt-2 space-y-2">
+                    {createAnalyze.suggestedCtas.map((cta, idx) => (
+                      <li key={cta.id} className="rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-2 py-2">
+                        <p className="font-semibold text-[rgb(var(--fg))]">
+                          {cta.label}
+                          {idx === 0 ? " · priorisiert" : ""}
+                        </p>
+                        <p className="mt-1 text-[10px]">{cta.reason}</p>
+                        <div className="mt-2">
+                          <button
+                            type="button"
+                            className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-2.5 py-1 text-[10px] font-semibold text-[rgb(var(--muted))] hover:text-[rgb(var(--fg))]"
+                            onClick={() => handleCreateCtaSelect(cta.id)}
+                          >
+                            Auswahl vorbereiten
+                          </button>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+
+              {pendingCtaHandoff ? (
+                <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-[11px] text-[rgb(var(--muted))]">
+                  <p className="text-[10px] font-semibold uppercase tracking-wide">Manuell bestätigen</p>
+                  <p className="mt-1">{pendingCtaHandoff.summary}</p>
+                  {pendingCtaHandoff.warning ? (
+                    <p className="mt-1 rounded-md border border-amber-300/60 bg-amber-50/80 px-2 py-1 text-[10px] text-amber-800 dark:border-amber-400/40 dark:bg-amber-500/10 dark:text-amber-200">
+                      {pendingCtaHandoff.warning}
+                    </p>
+                  ) : null}
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-2.5 py-1 text-[10px] font-semibold text-[rgb(var(--muted))] hover:text-[rgb(var(--fg))]"
+                      onClick={handleCreateCtaConfirm}
+                    >
+                      Bestätigen
+                    </button>
+                    <button
+                      type="button"
+                      className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-2.5 py-1 text-[10px] font-semibold text-[rgb(var(--muted))] hover:text-[rgb(var(--fg))]"
+                      onClick={handleCreateCtaCancel}
+                    >
+                      Abbrechen
+                    </button>
+                  </div>
+                </div>
+              ) : null}
+
+              {confirmedCtaHandoff ? (
+                <div className="rounded-xl border border-emerald-300/60 bg-emerald-50/80 px-3 py-2 text-[11px] text-emerald-800 dark:border-emerald-400/40 dark:bg-emerald-500/10 dark:text-emerald-200">
+                  <p className="text-[10px] font-semibold uppercase tracking-wide">Auswahl bestätigt</p>
+                  <p className="mt-1">Die Vorbereitung ist abgeschlossen. Es wurde keine automatische Veröffentlichung ausgelöst.</p>
+                </div>
+              ) : null}
+
+              {prepareAttachReview ? (
+                <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-[11px] text-[rgb(var(--muted))] space-y-2">
+                  <p className="text-[10px] font-semibold uppercase tracking-wide">Ziel prüfen und Entwurf speichern</p>
+                  <p className="text-[10px]">
+                    Wähle das passende Ziel für die Weiterbearbeitung. Die Zuordnung bleibt manuell und reviewbar.
+                  </p>
+                  <ul className="space-y-1">
+                    {prepareAttachReview.targets.map((target) => {
+                      const checked = prepareAttachReview.selectedTargetKey === target.key;
+                      return (
+                        <li key={target.key} className="rounded-md border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-2 py-1.5">
+                          <label className="flex cursor-pointer items-start gap-2">
+                            <input
+                              type="radio"
+                              name="prepare-attach-target-mobile"
+                              checked={checked}
+                              onChange={() => handlePrepareAttachTargetSelect(target.key)}
+                            />
+                            <span className="font-semibold text-[rgb(var(--fg))]">{target.title}</span>
+                          </label>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                  <textarea
+                    className="w-full rounded-md border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-2 py-1 text-[11px]"
+                    rows={3}
+                    value={prepareAttachReview.selectedReason}
+                    onChange={(event) => handlePrepareAttachReasonChange(event.target.value)}
+                    placeholder="Optionale Review-Notiz zur Zuordnung"
+                  />
+                  {prepareAttachError ? (
+                    <p className="rounded-md border border-rose-300/60 bg-rose-50/80 px-2 py-1 text-[10px] text-rose-700 dark:border-rose-400/40 dark:bg-rose-500/10 dark:text-rose-200">
+                      {prepareAttachError}
+                    </p>
+                  ) : null}
+                  {prepareAttachSavedDraftId ? (
+                    <p className="rounded-md border border-emerald-300/60 bg-emerald-50/80 px-2 py-1 text-[10px] text-emerald-700 dark:border-emerald-400/40 dark:bg-emerald-500/10 dark:text-emerald-200">
+                      Entwurf gespeichert: {prepareAttachSavedDraftId}
+                    </p>
+                  ) : null}
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-2.5 py-1 text-[10px] font-semibold text-[rgb(var(--muted))] hover:text-[rgb(var(--fg))] disabled:opacity-60"
+                      disabled={!prepareAttachCanSave}
+                      onClick={() => void handlePrepareAttachSave()}
+                    >
+                      {prepareAttachSaving ? "Speichern ..." : "Entwurf speichern"}
+                    </button>
+                    <button
+                      type="button"
+                      className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-2.5 py-1 text-[10px] font-semibold text-[rgb(var(--muted))] hover:text-[rgb(var(--fg))]"
+                      onClick={() => {
+                        setPrepareAttachReview(null);
+                        setPrepareAttachError(null);
+                        setPrepareAttachSavedDraftId(null);
+                      }}
+                    >
+                      Abbrechen
+                    </button>
+                  </div>
+                </div>
+              ) : null}
+            </div>
+          )}
+
+          {createAnalyze && !usesCreateSingleStartSurface && (
             <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm space-y-3">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
@@ -2808,6 +3073,26 @@ export default function AnalyzeWorkspace({
               </div>
 
               <p className="text-[11px] text-[rgb(var(--muted))]">{createAnalyze.normalizedInputSummary || "Keine Zusammenfassung verfuegbar."}</p>
+
+              {sourceGroundingHint ? (
+                <div
+                  className={`rounded-xl border px-3 py-2 text-[11px] ${
+                    sourceGroundingHint.tone === "warning"
+                      ? "border-amber-300/60 bg-amber-50/80 text-amber-800 dark:border-amber-400/40 dark:bg-amber-500/10 dark:text-amber-200"
+                      : "border-[rgb(var(--border))] bg-[rgb(var(--bg))] text-[rgb(var(--muted))]"
+                  }`}
+                >
+                  <p className="text-[10px] font-semibold uppercase tracking-wide">{sourceGroundingHint.title}</p>
+                  <p className="mt-1">{sourceGroundingHint.message}</p>
+                  {sourceGroundingHint.details.length > 0 ? (
+                    <ul className="mt-1 list-disc space-y-1 pl-4">
+                      {sourceGroundingHint.details.map((detail) => (
+                        <li key={detail}>{detail}</li>
+                      ))}
+                    </ul>
+                  ) : null}
+                </div>
+              ) : null}
 
               {createAnalyzeRoutingHint ? (
                 <div

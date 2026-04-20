@@ -1,227 +1,155 @@
 import Link from "next/link";
-import type { ReactNode } from "react";
+import PackagesGrid from "@/components/pricing/PackagesGrid";
+import ProductSurfaceShell from "@/components/layout/ProductSurfaceShell";
 import {
-  PRICING_JOURNEY_HEADLINES,
-  PRICING_JOURNEY_SEGMENTS,
-  getB2cAccessTierMapping,
   getPackagesForJourneySegment,
+  normalizePricingLocale,
+  type PricingLocale,
 } from "@features/pricing";
 
-const INSTITUTION_MODEL_ITEMS = [
-  "Base ab 2.500 € / Monat",
-  "+ aktive Anlassräume",
-  "+ optionale aktive Teilnehmende",
-  "+ optionale Outcomes / Reports / Add-ons",
-  "- Pilot- und Jahresrabatte nach Modell",
-];
+type PageProps = {
+  searchParams?: Promise<Record<string, string | string[] | undefined>> | Record<string, string | string[] | undefined>;
+};
 
-const ANLASSRAUM_STAFFEL = ["Small: 300 €", "Medium: 600–1.000 €", "Large: 1.000–1.500 €"];
-
-const EXAMPLE_CALCULATIONS = [
-  "Beispiel 1: Base 2.500 € + 2 mittlere Anlassräume + 500 aktive Teilnehmende = 4.475 € vor Rabatt.",
-  "Beispiel 2: Base 2.500 € + 4 gemischte Anlassräume + 1.500 aktive Teilnehmende = 6.825 € vor Rabatt.",
-];
-
-const INSTITUTION_ADD_ONS = [
-  {
-    title: "Event",
-    detail: "Begleitung für Live-Formate, Sitzungen und kommunale Beteiligungstermine.",
-  },
-  {
-    title: "Assistenz",
-    detail: "Operative Unterstützung für Moderation, Routing und Ablaufstabilität.",
-  },
-  {
-    title: "Reports",
-    detail: "Outcomes- und Wirkungsberichte für Gremien, Verwaltung und Stakeholder.",
-  },
-  {
-    title: "Managed Governance",
-    detail: "Begleitete Governance-Setups mit klaren Guardrails und Verantwortlichkeiten.",
-  },
-];
-
-function SectionCard(props: { title: string; subtitle?: string; children: ReactNode }) {
-  return (
-    <article className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-6 shadow-sm">
-      <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">{props.title}</p>
-      {props.subtitle ? <h3 className="mt-2 text-xl font-semibold text-[rgb(var(--fg))]">{props.subtitle}</h3> : null}
-      <div className="mt-3 text-sm leading-relaxed text-[rgb(var(--muted))]">{props.children}</div>
-    </article>
-  );
+function firstString(value?: string | string[]) {
+  if (typeof value === "string") return value;
+  if (Array.isArray(value)) return value[0];
+  return null;
 }
 
-export default function PricingPage() {
-  const privatePackages = getPackagesForJourneySegment("privat");
-  const organizationsSegment = PRICING_JOURNEY_SEGMENTS.find((segment) => segment.id === "organisationen");
-  const municipalitiesSegment = PRICING_JOURNEY_SEGMENTS.find((segment) => segment.id === "kommunen");
+function withLocaleHref(href: string, locale: PricingLocale) {
+  if (locale !== "en") return href;
+
+  const [pathAndQuery, hash = ""] = href.split("#");
+  const [path, query = ""] = pathAndQuery.split("?");
+  const params = new URLSearchParams(query);
+  params.set("lang", "en");
+  const queryString = params.toString();
+  return `${path}${queryString ? `?${queryString}` : ""}${hash ? `#${hash}` : ""}`;
+}
+
+export default async function PricingPage({ searchParams }: PageProps = {}) {
+  const params = (await searchParams) ?? {};
+  const locale = normalizePricingLocale(firstString(params.lang));
+  const privatePackages = getPackagesForJourneySegment("privat", locale);
+
+  const labels =
+    locale === "en"
+      ? {
+          pageKicker: "Pricing",
+          heroTitle: "Packages & pricing",
+          heroText: "Choose one of three private packages: Interested, Active or Co-creating.",
+          packageCta: "Choose package",
+          institutionalCta: "View B2B/B2G conditions",
+          initiativeCta: "About the initiative",
+          howItWorksCta: "How eDebatte works",
+          privateKicker: "Private packages",
+          privateTitle: "Private packages for individuals",
+          privateText: "Interested: €0 for members / €3.99 regular · Active: €9.90 · Co-creating: €29.90.",
+          membershipTitle: "Membership in the initiative",
+          membershipIntro: "As a member of the initiative, package “Interested” is free.",
+          membershipPriceMember: "Member price for “Interested”: €0",
+          membershipPriceRegular: "Regular price for “Interested”: €3.99",
+          membershipPointOne: "Regular price for “Interested” is €3.99.",
+          membershipPointTwo: "The freely chosen membership contribution stays independent from package pricing.",
+          membershipPointThree: "Recommended contribution: €5.63.",
+          membershipPointFour:
+            "Membership request and contribution amount are finalized via separate email link.",
+          membershipPointFive:
+            "eDebatte.org and VoiceOpenGov.org can be operated in separate systems with additional security boundaries.",
+          institutionalHintText:
+            "For organizations, municipalities, associations and newsrooms we provide dedicated conditions.",
+        }
+      : {
+          pageKicker: "Pricing",
+          heroTitle: "Pakete & Preise",
+          heroText: "Wähle eines von drei Privatpaketen: Interessiert, Aktiv oder Mitgestaltend.",
+          packageCta: "Paket wählen",
+          institutionalCta: "B2B/B2G-Konditionen ansehen",
+          initiativeCta: "Zur Initiative",
+          howItWorksCta: "So funktioniert eDebatte",
+          privateKicker: "Privatpakete",
+          privateTitle: "Privatpakete für Einzelpersonen",
+          privateText: "Interessiert: 0 € für Mitglieder / 3,99 € regulär · Aktiv: 9,90 € · Mitgestaltend: 29,90 €.",
+          membershipTitle: "Mitgliedschaft in der Initiative",
+          membershipIntro: "Als Mitglied der Initiative ist das Paket „Interessiert“ kostenfrei.",
+          membershipPriceMember: "Mitgliedspreis für „Interessiert“: 0 €",
+          membershipPriceRegular: "Regulärer Preis für „Interessiert“: 3,99 €",
+          membershipPointOne: "Regulär kostet „Interessiert“ 3,99 €.",
+          membershipPointTwo: "Der frei gewählte Mitgliedsbeitrag bleibt davon unabhängig.",
+          membershipPointThree: "Empfohlen sind 5,63 €.",
+          membershipPointFour:
+            "Mitgliedsantrag und Beitragshöhe werden separat per E-Mail-Link final bestätigt.",
+          membershipPointFive:
+            "eDebatte.org und VoiceOpenGov.org können organisatorisch und technisch getrennt geführt werden; zusätzliche Sicherheits- und Trennlogik ist bewusst möglich.",
+          institutionalHintText: "Für Organisationen, Kommunen, Verbände und Redaktionen gibt es gesonderte Konditionen.",
+        };
 
   return (
-    <main className="min-h-screen bg-[rgb(var(--bg))] pb-16">
-      <section className="mx-auto w-full max-w-7xl px-4 py-12 lg:px-8 lg:py-16">
-        <header className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-6 lg:p-8">
-          <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Kanonische Pricing-Seite</p>
-          <h1 className="mt-2 text-3xl font-bold tracking-tight text-[rgb(var(--fg))] lg:text-4xl">
-            {PRICING_JOURNEY_HEADLINES.pricingTitle}
-          </h1>
-          <p className="mt-3 max-w-4xl text-sm leading-relaxed text-[rgb(var(--muted))]">
-            {PRICING_JOURNEY_HEADLINES.pricingIntro}
-          </p>
-          <p className="mt-3 max-w-4xl text-sm leading-relaxed text-[rgb(var(--muted))]">
-            {PRICING_JOURNEY_HEADLINES.activationSeparation}
-          </p>
-          <div className="mt-5 flex flex-wrap gap-3">
-            <Link href="/vormerken" className="btn-primary">
-              Paketstart vorbereiten
-            </Link>
-            <Link href="/mitglied-antrag" className="btn-secondary">
-              Mitgliedsantrag öffnen
-            </Link>
-          </div>
-        </header>
-
-        <nav
-          aria-label="Pricing-Segmente"
-          className="mt-6 flex flex-wrap gap-2 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-3"
-        >
-          {PRICING_JOURNEY_SEGMENTS.map((segment) => (
-            <a key={segment.id} href={`#${segment.pricingAnchor}`} className="vog-chip">
-              {segment.shortLabel}
+    <ProductSurfaceShell>
+      <header className="relative overflow-hidden rounded-[1.75rem] border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-6 shadow-sm sm:p-8 lg:p-10">
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_95%_0%,rgba(14,165,233,0.1),transparent_42%)]" />
+        <div className="relative">
+          <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">{labels.pageKicker}</p>
+          <h1 className="mt-2 text-3xl font-bold tracking-tight text-[rgb(var(--fg))] sm:text-4xl">{labels.heroTitle}</h1>
+          <p className="mt-4 max-w-4xl text-base leading-relaxed text-[rgb(var(--muted))]">{labels.heroText}</p>
+          <div className="mt-6 flex flex-wrap gap-3">
+            <a href="#pricing-privat" className="btn-primary">
+              {labels.packageCta}
             </a>
-          ))}
-        </nav>
-
-        <section id="pricing-privat" className="mt-10 space-y-5">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Privat</p>
-            <h2 className="mt-1 text-2xl font-semibold text-[rgb(var(--fg))]">Bürgerpakete: Basis, Start, Pro</h2>
-            <p className="mt-2 max-w-4xl text-sm text-[rgb(var(--muted))]">
-              {PRICING_JOURNEY_SEGMENTS.find((segment) => segment.id === "privat")?.pricingIntro}
-            </p>
-          </div>
-
-          <div className="grid gap-4 lg:grid-cols-3">
-            {privatePackages.map((pkg) => {
-              const mapping = getB2cAccessTierMapping(pkg.id);
-              if (!mapping) return null;
-              const price = typeof pkg.preisMonat === "number" ? `${String(pkg.preisMonat).replace(".", ",")} €` : "Preis folgt";
-              return (
-                <article
-                  key={pkg.id}
-                  className={`rounded-3xl border p-6 shadow-sm ${
-                    pkg.hervorgehoben
-                      ? "border-sky-300 bg-sky-500/5"
-                      : "border-[rgb(var(--border))] bg-[rgb(var(--card))]"
-                  }`}
-                >
-                  <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
-                    eDebatte {mapping.marketingLabel}
-                  </p>
-                  <h3 className="mt-1 text-xl font-semibold text-[rgb(var(--fg))]">{pkg.titel}</h3>
-                  <p className="mt-1 text-3xl font-bold tracking-tight text-[rgb(var(--fg))]">{price}</p>
-                  <p className="mt-2 text-sm text-[rgb(var(--muted))]">{pkg.beschreibungKurz}</p>
-                  <p className="mt-4 rounded-lg bg-[rgb(var(--bg))] px-3 py-2 text-xs text-[rgb(var(--muted))]">
-                    Technisches Mapping: <code>{mapping.accessTierId}</code>
-                  </p>
-                  <Link href={pkg.ctaHref} className="btn-primary mt-5 inline-flex">
-                    Paketstart {mapping.marketingLabel}
-                  </Link>
-                </article>
-              );
-            })}
-          </div>
-
-          <div className="rounded-2xl border border-emerald-300/60 bg-emerald-500/10 p-4 text-sm text-emerald-900 dark:text-emerald-100">
-            {PRICING_JOURNEY_HEADLINES.trustNote}
-          </div>
-
-          <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4">
-            <p className="text-sm font-semibold text-[rgb(var(--fg))]">Zusatzoption für besonders Engagierte</p>
-            <p className="mt-1 text-sm text-[rgb(var(--muted))]">
-              citizenUltra liegt im Korridor von 49–99 € und bleibt als gesonderte Ausbauoption geführt, nicht als
-              dominante Hauptkarte.
-            </p>
-          </div>
-        </section>
-
-        <section className="mt-10">
-          <SectionCard title="Profil-Pakete" subtitle="Darstellung und Komfort, nicht demokratische Rechte">
-            <p>
-              Profil-Pakete (profileBasic, profilePro, profilePremium) bilden eine zweite Dimension für Darstellung,
-              Sichtbarkeit und Komfort. Sie sind strikt von Access-Tiers getrennt.
-            </p>
-            <p className="mt-2">
-              Auch hier gilt: Profil-Pakete verändern keine Beteiligungsrechte, keine Wahrheitslogik und keine
-              Prioritätslogik.
-            </p>
-          </SectionCard>
-        </section>
-
-        <section id="pricing-organisationen" className="mt-10 grid gap-4 xl:grid-cols-2">
-          <SectionCard title="Organisationen" subtitle="Hybridmodell statt fester Pauschale">
-            <p>{organizationsSegment?.pricingIntro}</p>
-            <ul className="mt-3 space-y-1">
-              {INSTITUTION_MODEL_ITEMS.map((item) => (
-                <li key={item}>{item}</li>
-              ))}
-            </ul>
-            <div className="mt-4 rounded-xl bg-[rgb(var(--bg))] px-3 py-3">
-              <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Anlassraum-Staffel</p>
-              <ul className="mt-2 space-y-1">
-                {ANLASSRAUM_STAFFEL.map((item) => (
-                  <li key={item}>{item}</li>
-                ))}
-              </ul>
-            </div>
-            <Link href={organizationsSegment?.primaryCtaHref ?? "/vormerken?paket=b2b_pro"} className="btn-secondary mt-4 inline-flex">
-              {organizationsSegment?.primaryCtaLabel ?? "Paketstart Organisation"}
+            <Link href={withLocaleHref("/pricing/institutionen", locale)} className="btn-secondary">
+              {labels.institutionalCta}
             </Link>
-          </SectionCard>
+          </div>
+        </div>
+      </header>
 
-          <SectionCard title="Kommunen / Verwaltung" subtitle="Transparente Struktur für kommunale Beteiligung">
-            <p>{municipalitiesSegment?.pricingIntro}</p>
-            <ul className="mt-3 space-y-1">
-              {EXAMPLE_CALCULATIONS.map((item) => (
-                <li key={item}>{item}</li>
-              ))}
-            </ul>
-            <Link href={municipalitiesSegment?.primaryCtaHref ?? "/vormerken?paket=b2g_pro"} className="btn-secondary mt-4 inline-flex">
-              {municipalitiesSegment?.primaryCtaLabel ?? "Paketstart Kommune"}
-            </Link>
-          </SectionCard>
-        </section>
+      <section id="pricing-privat" className="mt-10 space-y-5 scroll-mt-28">
+        <div className="max-w-5xl">
+          <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">{labels.privateKicker}</p>
+          <h2 className="mt-2 text-2xl font-semibold text-[rgb(var(--fg))] sm:text-3xl">{labels.privateTitle}</h2>
+          <p className="mt-1 text-sm leading-relaxed text-[rgb(var(--muted))]">{labels.privateText}</p>
+        </div>
 
-        <section id="pricing-kommunen" className="mt-10">
-          <SectionCard title="Add-ons / Zusatzleistungen" subtitle="Optional und klar ausgewiesen">
-            <div className="grid gap-3 md:grid-cols-2">
-              {INSTITUTION_ADD_ONS.map((item) => (
-                <div key={item.title} className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
-                  <p className="text-sm font-semibold text-[rgb(var(--fg))]">{item.title}</p>
-                  <p className="mt-1 text-sm text-[rgb(var(--muted))]">{item.detail}</p>
-                </div>
-              ))}
-            </div>
-          </SectionCard>
-        </section>
+        <PackagesGrid packages={privatePackages} locale={locale} compact />
 
-        <section className="mt-10 rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-6">
-          <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Mitgliedschaft</p>
-          <h2 className="mt-1 text-xl font-semibold text-[rgb(var(--fg))]">Paketabschluss, Freischaltung und Mitgliedschaft getrennt</h2>
-          <p className="mt-2 max-w-4xl text-sm text-[rgb(var(--muted))]">
-            Paketwahl und Preise laufen über <code>/pricing</code>. Der Paketstart wird über <code>/vormerken</code> angelegt
-            und anschließend freigeschaltet. Der Mitgliedsantrag und die Mitgliedschaft laufen separat über{" "}
-            <code>/mitglied-antrag</code>. Der Legacy-Pfad <code>/mitglied-werden</code> leitet auf diese Seite um.
-          </p>
+        <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm sm:p-6">
+          <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">{labels.membershipTitle}</p>
+          <p className="mt-2 text-sm font-semibold text-[rgb(var(--fg))]">{labels.membershipIntro}</p>
+          <div className="mt-3 grid gap-2 sm:grid-cols-2">
+            <p className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-800">
+              {labels.membershipPriceMember}
+            </p>
+            <p className="rounded-xl border border-sky-200 bg-sky-50 px-3 py-2 text-sm font-semibold text-sky-800">
+              {labels.membershipPriceRegular}
+            </p>
+          </div>
+          <ul className="mt-3 space-y-1.5 text-sm text-[rgb(var(--muted))]">
+            <li>{labels.membershipPointOne}</li>
+            <li>{labels.membershipPointTwo}</li>
+            <li>{labels.membershipPointThree}</li>
+            <li>{labels.membershipPointFour}</li>
+            <li>{labels.membershipPointFive}</li>
+          </ul>
           <div className="mt-4 flex flex-wrap gap-3">
-            <Link href="/vormerken" className="btn-primary">
-              Paketstart anlegen
+            <Link href={withLocaleHref("/howtoworks/initiative", locale)} className="btn-secondary inline-flex">
+              {labels.initiativeCta}
             </Link>
-            <Link href="/mitglied-antrag" className="btn-secondary">
-              Mitgliedsantrag öffnen
+            <Link href={withLocaleHref("/howtoworks/edebatte", locale)} className="btn-secondary inline-flex">
+              {labels.howItWorksCta}
             </Link>
           </div>
         </section>
       </section>
-    </main>
+
+      <section className="mt-8 rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm sm:p-5">
+        <p className="text-sm leading-relaxed text-[rgb(var(--muted))]">{labels.institutionalHintText}</p>
+        <div className="mt-3">
+          <Link href={withLocaleHref("/pricing/institutionen", locale)} className="btn-secondary inline-flex">
+            {labels.institutionalCta}
+          </Link>
+        </div>
+      </section>
+    </ProductSurfaceShell>
   );
 }

@@ -16,6 +16,7 @@ import { getLocaleConfig, isCoreLocale, type SupportedLocale } from "@/config/lo
 import { useCurrentUser, clearCachedUser, primeCachedUser } from "@/hooks/auth";
 import type { AuthUser } from "@/hooks/auth";
 import ThemeToggle from "@/components/ThemeToggle";
+import { classifyMobileAppShellPath } from "@/features/wrapper/mobileAppShellContract";
 
 type NavItem = {
   href: string;
@@ -29,12 +30,12 @@ const NAV_LINKS: Array<{ id: string; href: string; label: string }> = [
   {
     id: "how",
     href: "/pricing",
-    label: "Vorbestellung eDebatte",
+    label: "Pakete & Preise",
   },
   {
     id: "about",
-    href: "/howtoworks/bewegung",
-    label: "Zur Bewegung",
+    href: "/howtoworks/initiative",
+    label: "Zur Initiative",
   },
 ];
 
@@ -71,11 +72,11 @@ const NAV_SECTIONS: NavSection[] = [
     id: "about",
     href: "/ueber-uns",
     label: "Über uns",
-    description: "Die Bewegung · Transparenzbericht · FAQ & Hilfe",
+    description: "Die Initiative · Transparenzbericht · FAQ & Hilfe",
     items: [
       {
-        href: "/howtoworks/bewegung",
-        label: "Die Bewegung",
+        href: "/howtoworks/initiative",
+        label: "Die Initiative",
         description: "Vision, Auftrag und Grundprinzipien.",
       },
       {
@@ -109,6 +110,8 @@ export function SiteHeader({ initialUser }: { initialUser?: AuthUser | null }) {
   const router = useRouter();
   const pathname = usePathname();
   const isSwipeFocusPath = pathname?.startsWith("/swipes") || pathname?.startsWith("/demo/swipes");
+  const mobileShellPolicy = useMemo(() => classifyMobileAppShellPath(pathname), [pathname]);
+  const compactMobileShell = mobileShellPolicy.compactHeader;
   const [loggingOut, setLoggingOut] = useState(false);
   const avatarLabel = deriveInitials(user?.name || user?.email || "Du");
   const avatarUrl = user?.avatarUrl ?? null;
@@ -219,15 +222,15 @@ export function SiteHeader({ initialUser }: { initialUser?: AuthUser | null }) {
     <header
       ref={headerRef}
       data-site-header="true"
-      className={`sticky top-0 z-40 border-b border-[rgb(var(--border))] bg-[rgb(var(--bg))] backdrop-blur-md ${
+      className={`sticky top-0 z-40 border-b border-[rgb(var(--border))] bg-[color-mix(in_oklab,rgb(var(--bg))_90%,rgb(var(--card))_10%)] backdrop-blur-xl ${
         isSwipeFocusPath ? "max-md:hidden" : ""
       }`}
     >
-      <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3">
+      <div className={`mx-auto flex max-w-6xl items-center justify-between gap-2 px-3 py-2 md:gap-3 md:px-4 md:py-3 ${compactMobileShell ? "max-md:py-1.5" : ""}`}>
         {/* Logo / Brand */}
         <Link href="/" className="flex items-center gap-2">
           <span
-            className="text-lg font-extrabold leading-tight tracking-tight"
+            className="text-base font-extrabold leading-tight tracking-tight md:text-lg"
             style={{
               backgroundImage:
                 "linear-gradient(120deg,var(--brand-cyan),var(--brand-blue))",
@@ -317,7 +320,9 @@ export function SiteHeader({ initialUser }: { initialUser?: AuthUser | null }) {
                 : t("Navigation öffnen", "aria.navigation")
             }
             onClick={() => setMobileOpen((v) => !v)}
-            className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] text-sm font-semibold text-[rgb(var(--muted))] shadow-sm hover:border-[rgb(var(--grad-from))] hover:text-[rgb(var(--fg))]"
+            className={`inline-flex h-9 w-9 items-center justify-center rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] text-sm font-semibold text-[rgb(var(--muted))] shadow-sm hover:border-[rgb(var(--grad-from))] hover:text-[rgb(var(--fg))] md:h-10 md:w-10 ${
+              compactMobileShell ? "hidden md:inline-flex" : ""
+            }`}
           >
             {user ? (
               avatarUrl ? (

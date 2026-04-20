@@ -2,6 +2,7 @@ import {
   parseCreateAnalyzeBoundarySnapshot,
 } from "@/features/create/analyzeBoundaryContract";
 import type { CreateAnalyzeResponse } from "@/features/create/analyzeContract";
+import type { SourceGroundingAudit } from "@features/analyze/sourceGroundingContract";
 
 export type CreateAnalyzeEnvelopeProviderMatrixEntry = {
   provider: string;
@@ -19,6 +20,7 @@ export type ParsedCreateAnalyzeEnvelope = {
   providerMatrix: CreateAnalyzeEnvelopeProviderMatrixEntry[];
   degraded: boolean;
   fallback: boolean;
+  sourceGrounding: SourceGroundingAudit | null;
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -69,18 +71,108 @@ function resolveProviderMatrixForCreateAnalyze(params: {
   return normalizeProviderMatrix(meta.providerMatrix);
 }
 
+function asRiskLevel(value: unknown): "low" | "medium" | "high" | null {
+  if (value === "low" || value === "medium" || value === "high") return value;
+  return null;
+}
+
+function asSourceTaskType(value: unknown): "analyze" | "media" | "guided" | null {
+  if (value === "analyze" || value === "media" || value === "guided") return value;
+  return null;
+}
+
+function normalizeStringList(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value.filter((entry): entry is string => typeof entry === "string" && entry.trim().length > 0);
+}
+
+function normalizeSourceGroundingAudit(value: unknown): SourceGroundingAudit | null {
+  if (!isRecord(value)) return null;
+  const taskType = asSourceTaskType(value.taskType);
+  const sourceInventory = isRecord(value.sourceInventory) ? value.sourceInventory : null;
+  const documentGroundingPass = isRecord(value.documentGroundingPass) ? value.documentGroundingPass : null;
+  const externalContextPass = isRecord(value.externalContextPass) ? value.externalContextPass : null;
+  const synthesis = isRecord(value.synthesis) ? value.synthesis : null;
+  const contradictionAudit = isRecord(value.contradictionAudit) ? value.contradictionAudit : null;
+  const noSourceBluffing = isRecord(value.noSourceBluffing) ? value.noSourceBluffing : null;
+
+  const contextRotRisk = asRiskLevel(documentGroundingPass?.contextRotRisk);
+  const policy = externalContextPass?.policy === "supplement_only" ? "supplement_only" : null;
+
+  if (
+    !taskType ||
+    !sourceInventory ||
+    !documentGroundingPass ||
+    !externalContextPass ||
+    !synthesis ||
+    !contradictionAudit ||
+    !noSourceBluffing ||
+    !contextRotRisk ||
+    !policy
+  ) {
+    return null;
+  }
+
+  return {
+    taskType,
+    sourceInventory: {
+      total: typeof sourceInventory.total === "number" ? sourceInventory.total : 0,
+      uploadDocuments:
+        typeof sourceInventory.uploadDocuments === "number" ? sourceInventory.uploadDocuments : 0,
+      webReferences:
+        typeof sourceInventory.webReferences === "number" ? sourceInventory.webReferences : 0,
+      freeNotes: typeof sourceInventory.freeNotes === "number" ? sourceInventory.freeNotes : 0,
+    },
+    documentGroundingPass: {
+      required: Boolean(documentGroundingPass.required),
+      documentsWithText:
+        typeof documentGroundingPass.documentsWithText === "number"
+          ? documentGroundingPass.documentsWithText
+          : 0,
+      startCoverage: Boolean(documentGroundingPass.startCoverage),
+      middleCoverage: Boolean(documentGroundingPass.middleCoverage),
+      endCoverage: Boolean(documentGroundingPass.endCoverage),
+      contextRotRisk,
+    },
+    externalContextPass: {
+      webReferences:
+        typeof externalContextPass.webReferences === "number" ? externalContextPass.webReferences : 0,
+      policy,
+    },
+    synthesis: {
+      documentGroundedClaims:
+        typeof synthesis.documentGroundedClaims === "number" ? synthesis.documentGroundedClaims : 0,
+      webGroundedClaims: typeof synthesis.webGroundedClaims === "number" ? synthesis.webGroundedClaims : 0,
+      inferredClaims: typeof synthesis.inferredClaims === "number" ? synthesis.inferredClaims : 0,
+      openClaims: typeof synthesis.openClaims === "number" ? synthesis.openClaims : 0,
+    },
+    contradictionAudit: {
+      contradictionSignals: normalizeStringList(contradictionAudit.contradictionSignals),
+      hasSignal: Boolean(contradictionAudit.hasSignal),
+    },
+    noSourceBluffing: {
+      passed: Boolean(noSourceBluffing.passed),
+      reason: typeof noSourceBluffing.reason === "string" ? noSourceBluffing.reason : null,
+    },
+    requiresManualReview: Boolean(value.requiresManualReview),
+  };
+}
+
 export function parseCreateAnalyzeEnvelope(value: unknown): ParsedCreateAnalyzeEnvelope {
   const root = isRecord(value) ? value : {};
+  const meta = isRecord(root.meta) ? root.meta : {};
   const createAnalyze = parseCreateAnalyzeBoundarySnapshot(root.createAnalyze);
   const providerMatrix = resolveProviderMatrixForCreateAnalyze({
     createAnalyze,
-    meta: root.meta,
+    meta,
   });
+  const sourceGrounding = normalizeSourceGroundingAudit(meta.sourceGrounding);
 
   return {
     createAnalyze,
     providerMatrix,
     degraded: Boolean(root.degraded) || createAnalyze?.matchSourceState === "degraded",
     fallback: Boolean(root.fallback),
+    sourceGrounding,
   };
 }

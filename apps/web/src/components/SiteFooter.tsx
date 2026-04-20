@@ -11,7 +11,7 @@ import { VOG_SUPPORT_URL } from "@/config/links";
 const infoLinks = [
   { href: "/ueber-uns", label: "Über uns" },
   { href: "/howtoworks/edebatte", label: "So funktioniert’s" },
-  { href: "/howtoworks/bewegung", label: "Die Bewegung" },
+  { href: "/howtoworks/initiative", label: "Zur Initiative" },
   { href: "/pricing", label: "Preise" },
   { href: "/transparenzbericht", label: "Transparenzbericht" },
   { href: "/faq", label: "FAQ & Hilfe" },
@@ -71,10 +71,36 @@ export default function SiteFooter() {
   const donationLabel = t("Spenden:", "donation.label");
 
   return (
-    <footer className={`mt-16 ${TOP_BORDER} ${FOOTER_BG}`} role="contentinfo">
-      <div className="mx-auto max-w-6xl px-4 py-10">
+    <footer data-site-footer="true" className={`mt-10 ${TOP_BORDER} ${FOOTER_BG}`} role="contentinfo">
+      <div className="mx-auto max-w-6xl px-4 py-4 md:hidden">
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2">
+          <Link
+            href="/"
+            className="inline-flex text-sm font-extrabold tracking-tight"
+            style={{
+              backgroundImage: "linear-gradient(120deg,var(--brand-cyan),var(--brand-blue))",
+              WebkitBackgroundClip: "text",
+              color: "transparent",
+            }}
+          >
+            {BRAND.name}
+          </Link>
+          <div className="flex flex-wrap items-center gap-2 text-[11px] font-semibold text-[rgb(var(--muted))]">
+            <Link href="/impressum" className="underline decoration-[rgb(var(--border))] underline-offset-4">
+              Impressum
+            </Link>
+            <Link href="/datenschutz" className="underline decoration-[rgb(var(--border))] underline-offset-4">
+              Datenschutz
+            </Link>
+            <Link href="/faq" className="underline decoration-[rgb(var(--border))] underline-offset-4">
+              Hilfe
+            </Link>
+          </div>
+        </div>
+      </div>
+
+      <div className="mx-auto hidden max-w-6xl px-4 py-10 md:block">
         <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-4">
-          {/* Brand / Claim */}
           <div className="space-y-3">
             <Link
               href="/"
@@ -88,33 +114,24 @@ export default function SiteFooter() {
             >
               {BRAND.name}
             </Link>
-
             <p className="text-sm font-semibold text-[rgb(var(--fg))]">{tagline}</p>
-
             <div className={SOFT_RULE} />
-
             <p className="text-sm leading-relaxed text-[rgb(var(--muted))]">{brandCopy}</p>
-
             <div className="flex flex-wrap gap-2 pt-2">
               <ReadingModeToggle />
             </div>
           </div>
 
-          {/* Über eDebatte */}
           <FooterNav
             title={t("Über eDebatte", "nav.about")}
             ariaLabel={t("Footer Navigation: Über eDebatte", "aria.about")}
             links={info}
           />
-
-          {/* Plattform nutzen */}
           <FooterNav
             title={t("Plattform nutzen", "nav.platform")}
             ariaLabel={t("Footer Navigation: Plattform nutzen", "aria.platform")}
             links={platform}
           />
-
-          {/* Kontakt & Rechtliches */}
           <FooterNav
             title={t("Kontakt & Rechtliches", "nav.legal")}
             ariaLabel={t("Footer Navigation: Kontakt und Rechtliches", "aria.legal")}
@@ -124,7 +141,6 @@ export default function SiteFooter() {
 
         <div className="mt-8 border-t border-[rgb(var(--border))] pt-6 text-xs text-[rgb(var(--muted))] md:flex md:items-center md:justify-between md:gap-6">
           <p>© {currentYear} {BRAND.name}</p>
-
           <div className="mt-2 flex flex-col gap-1 text-[11px] text-[rgb(var(--muted))] md:mt-0 md:items-end">
             <p>
               {t("Kontakt:", "contact.label")}{" "}

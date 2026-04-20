@@ -28,8 +28,18 @@ describe("/runden acceptance states", () => {
     const tree = await RundenPage({ searchParams: Promise.resolve({}) });
     const html = renderToStaticMarkup(tree);
 
-    expect(html).toContain("Noch keine Anlässe vorhanden.");
-    expect(html).toContain("Jetzt ersten Anlass eröffnen");
+    expect(html).toContain("Noch kein Anlass aktiv");
+    expect(html).toContain("Schritt 1");
+    expect(html).toContain("Schritt 2");
+    expect(html).toContain("Schritt 3");
+    expect(html).toContain("Neuen Anlass öffnen");
+    expect(html).toContain("Ersten Beitrag vorbereiten");
+    expect(html).toContain("Mehr erfahren");
+    expect(html).toContain('href="/runden/demo"');
+    expect(html).toContain("Beiträge einsammeln");
+    expect(html).toContain("Stand sichtbar weiterführen");
+    expect(html).not.toContain("Neu starten in /create");
+    expect(html).not.toContain("Laufendes in /runden");
     expect(html).not.toContain("Ansicht");
     expect(html).not.toContain("Gesamt:");
   });
@@ -84,8 +94,8 @@ describe("/runden acceptance states", () => {
     const html = renderToStaticMarkup(tree);
 
     expect(html).toContain("Laufende Anlässe");
-    expect(html).toContain("Runde öffnen");
-    expect(html).toContain("Ansicht");
+    expect(html).toContain("Anlass öffnen");
+    expect(html).toContain("Arbeitsbereiche");
     expect(html).not.toContain("In /create weiter vorbereiten");
   });
 
@@ -125,9 +135,11 @@ describe("/runden acceptance states", () => {
     const html = renderToStaticMarkup(tree);
 
     expect(html).toContain("ANLÄSSE");
-    expect(html).toContain("Neu starten in /create");
-    expect(html).toContain("Laufendes in /runden");
-    expect(html).toContain("Ergebnisse ansehen");
+    expect(html).toContain("Anlässe führen");
+    expect(html).toContain("Neuen Anlass öffnen");
+    expect(html).toContain("Laufenden Anlass weiterführen");
+    expect(html).toContain("Stand und Ergebnisse ansehen");
+    expect(html).toContain("So funktioniert ein Anlassraum");
     expect(html).not.toContain("Ansicht");
     expect(html).not.toContain("Meine Anlässe");
     expect(html).not.toContain("Verwalten");
@@ -173,12 +185,12 @@ describe("/runden acceptance states", () => {
     const tree = await RundenPage({ searchParams: Promise.resolve({}) });
     const html = renderToStaticMarkup(tree);
 
-    expect(html).toContain("Ansicht");
+    expect(html).toContain("Arbeitsbereiche");
     expect(html).toContain("Meine Anlässe");
     expect(html).not.toContain(">Verwalten<");
   });
 
-  it("Scenario G: share actions are visible on featured and result contexts when share targets exist", async () => {
+  it("Scenario G: participant keeps contribution actions but no QR/share controls", async () => {
     mocks.readSession.mockResolvedValue({
       uid: "65f000000000000000000131",
       roles: ["user"],
@@ -267,14 +279,124 @@ describe("/runden acceptance states", () => {
     const tree = await RundenPage({ searchParams: Promise.resolve({}) });
     const html = renderToStaticMarkup(tree);
 
-    expect(html).toContain("Link kopieren");
-    expect(html).toContain("QR anzeigen");
-    expect(html).toContain("Ziel: Runde");
+    expect(html).toContain("data-round-quick-actions=\"participant\"");
+    expect(html).toContain("Beitrag verfassen");
+    expect(html).toContain("id=\"compose-seed-active\"");
+    expect(html).toContain("QR und Verteilung stehen für berechtigte Rollen");
+    expect(html).not.toContain("Teilnahme öffnen");
+    expect(html).not.toContain("Teilnahmelink kopieren");
+    expect(html).not.toContain("Teilnahme per QR öffnen");
 
     const resultsTree = await RundenPage({
       searchParams: Promise.resolve({ view: "results" }),
     });
     const resultsHtml = renderToStaticMarkup(resultsTree);
-    expect(resultsHtml).toContain("Ziel: Ergebnis");
+    expect(resultsHtml).not.toContain("Teilnahmeziel (QR): Ergebnis");
+  });
+
+  it("Scenario H: creator role sees manager quick actions including QR/share when targets exist", async () => {
+    mocks.readSession.mockResolvedValue({
+      uid: "65f000000000000000000141",
+      roles: ["creator"],
+    });
+    mocks.listRundenEntryItems.mockResolvedValue([
+      {
+        id: "seed-active-manager",
+        anlassraumId: "65f000000000000000000241",
+        isPublic: true,
+        title: "Laufender Anlass mit Manager-Rechten",
+        summary: "Aktiver Kontext",
+        topicKey: "energy",
+        anlassraumType: "policy",
+        sourceMode: "feed",
+        anlassraumStatus: "active",
+        outputStatus: "review",
+        reviewState: "pending",
+        publishTarget: "/round/laufender-anlass-manager",
+        intakeHref: "/create?mode=source&anlassraumId=65f000000000000000000241",
+        operatingHref: "/round/laufender-anlass-manager?anlassraumId=65f000000000000000000241",
+        resultsHref: null,
+        entryHref: "/round/laufender-anlass-manager?anlassraumId=65f000000000000000000241",
+        lifecycle: "active",
+        finished: false,
+        finishedAt: null,
+        lastAction: null,
+        lastActionBy: null,
+        lastActionAt: null,
+        createdAt: null,
+        updatedAt: null,
+        legacyIncomplete: false,
+        sourceKind: "output_seed_with_anlassraum",
+        shareActions: {
+          contextKind: "runde",
+          primaryTargetKind: "round_operating_target",
+          canonicalTarget: "/round/laufender-anlass-manager?anlassraumId=65f000000000000000000241",
+          qrTarget: "/round/laufender-anlass-manager?anlassraumId=65f000000000000000000241",
+          shareTitle: "Laufender Anlass mit Manager-Rechten",
+          sharePrompt: "Laufenden Kontext teilen",
+          shareSummary: "Zusammenfassung",
+          socialCandidate: false,
+          needsReviewBeforeOfficialSocial: true,
+        },
+      },
+    ]);
+
+    const tree = await RundenPage({ searchParams: Promise.resolve({}) });
+    const html = renderToStaticMarkup(tree);
+
+    expect(html).toContain("data-round-quick-actions=\"manager\"");
+    expect(html).toContain("lg:grid-cols-4");
+    expect(html).toContain("Teilnahme öffnen");
+    expect(html).toContain("Arbeitsstand pflegen");
+    expect(html).toContain("Teilnahmekontext: Runde");
+    expect(html).toContain("Teilnahmelink kopieren");
+    expect(html).toContain("Teilnahme per QR öffnen");
+    expect(html).toContain("Teilnahme teilen");
+  });
+
+  it("Scenario I: contribution start links from /runden keep round context parameters", async () => {
+    mocks.readSession.mockResolvedValue({
+      uid: "65f000000000000000000151",
+      roles: ["creator"],
+    });
+    mocks.listRundenEntryItems.mockResolvedValue([
+      {
+        id: "seed-active-context",
+        anlassraumId: "65f000000000000000000251",
+        isPublic: true,
+        title: "Kontextgebundener Anlass",
+        summary: "Aktiver Kontext",
+        topicKey: "mobility",
+        anlassraumType: "policy",
+        sourceMode: "feed",
+        anlassraumStatus: "active",
+        outputStatus: "review",
+        reviewState: "pending",
+        publishTarget: "/round/kontextgebundener-anlass",
+        intakeHref: "/create?mode=source&anlassraumId=65f000000000000000000251",
+        operatingHref: "/round/kontextgebundener-anlass?anlassraumId=65f000000000000000000251",
+        resultsHref: null,
+        entryHref: "/round/kontextgebundener-anlass?anlassraumId=65f000000000000000000251",
+        lifecycle: "active",
+        finished: false,
+        finishedAt: null,
+        lastAction: "reviewed",
+        lastActionBy: null,
+        lastActionAt: null,
+        createdAt: null,
+        updatedAt: null,
+        legacyIncomplete: false,
+        sourceKind: "output_seed_with_anlassraum",
+      },
+    ]);
+
+    const tree = await RundenPage({ searchParams: Promise.resolve({}) });
+    const html = renderToStaticMarkup(tree);
+
+    expect(html).toContain("source=runden");
+    expect(html).toContain("entryIntent=content_companion");
+    expect(html).toContain("entryMode=direct");
+    expect(html).toContain("reason=round_inline_contribution");
+    expect(html).toContain("returnTo=%2Frunden%3Fview%3Dactive%26anlassraumId%3D65f000000000000000000251");
   });
 });

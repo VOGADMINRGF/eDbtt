@@ -10,6 +10,7 @@ import { EDEBATTE_PACKAGES_WITH_NONE } from "@/config/edebatte";
 import { canEditTopTopics } from "@features/account/capabilities";
 import {
   EDEBATTE_PACKAGES_DE,
+  formatPackagePriceLabel,
   getPackagesByIds,
   PRIVATE_PACKAGE_IDS,
   type EDebattePackageDefinition,
@@ -3413,10 +3414,9 @@ function MembershipBanner() {
       aria-label="Bestätigung eDebatte-Paket"
       className="rounded-3xl border border-emerald-100 bg-emerald-50/80 px-4 py-3 text-sm text-emerald-900 shadow-sm dark:border-emerald-500/35 dark:bg-emerald-500/12 dark:text-emerald-100"
     >
-      <p className="font-medium">Vielen Dank für deine Vormerkung von eDebatte!</p>
+      <p className="font-medium">Vielen Dank für deinen eDebatte-Paketstart.</p>
       <p className="mt-1 text-xs text-emerald-800 dark:text-emerald-200">
-        Dein eDebatte-Paket ist in deinem Konto hinterlegt. Sobald eDebatte startet, erhältst du eine separate Bestätigung mit allen Details per
-        E-Mail.
+        Dein eDebatte-Paket ist in deinem Konto hinterlegt. Als Nächstes wird die Freischaltung passend zum Nutzungskontext abgestimmt.
       </p>
     </section>
   );
@@ -3786,7 +3786,7 @@ function getEDebatteLabel(pkg: EDebattePackage): string {
 function getEDebatteStatusLabel(info: EDebattePackageInfo): string {
   switch (info.status) {
     case "preorder":
-      return "Vorgemerkt – unverbindlich, ohne Zahlung. Wir informieren dich zum Start.";
+      return "Paketstart erfasst – Freischaltung und Aktivierung folgen im nächsten Schritt.";
     case "active":
       return "Aktiv";
     case "canceled":
@@ -3934,12 +3934,7 @@ function isPrivatePackage(
 const EDEBATTE_CHOICES: EDebatteChoice[] = getPackagesByIds(PRIVATE_PACKAGE_IDS)
   .filter(isPrivatePackage)
   .map((pkg) => {
-  const priceLabel =
-    pkg.preisMonat === 0
-      ? "Kostenfrei"
-      : pkg.preisMonat != null
-        ? `${formatEuro(pkg.preisMonat)} / Monat`
-        : "Preis folgt";
+  const priceLabel = formatPackagePriceLabel(pkg);
   return {
     id: pkg.id,
     name: pkg.titel,
@@ -3968,7 +3963,7 @@ function EDebattePackageModal({ currentPackage, onClose, onRefresh }: EDebattePa
   const handleSelect = (choiceId: EDebattePackage) => {
     if (choiceId !== "basis") {
       const next = encodeURIComponent("/account");
-      window.location.assign(`/register/preorder?plan=${choiceId}&next=${next}`);
+      window.location.assign(`/order?paket=${choiceId}&source=account&next=${next}`);
       return;
     }
     fetch("/api/edebatte/package", {

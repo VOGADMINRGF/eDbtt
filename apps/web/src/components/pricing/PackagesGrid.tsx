@@ -2,98 +2,139 @@
 
 import Link from "next/link";
 import {
-  EDEBATTE_PACKAGES_DE,
-  PACKAGE_STATUS_LABELS,
+  formatPackagePriceLabel,
   type EDebattePackageDefinition,
-  type PackageStatus,
+  type PricingLocale,
 } from "@features/pricing";
-
-const CURRENCY = new Intl.NumberFormat("de-DE", {
-  style: "currency",
-  currency: "EUR",
-  minimumFractionDigits: 2,
-});
-
-const STATUS_CLASS: Record<PackageStatus, string> = {
-  verfuegbar: "bg-emerald-50 text-emerald-700 ring-emerald-200",
-  pilot: "bg-sky-50 text-sky-700 ring-sky-200",
-  vormerkung: "bg-amber-50 text-amber-700 ring-amber-200",
-  bald: "bg-[rgb(var(--bg))] text-[rgb(var(--muted))] ring-[rgb(var(--border))]",
-};
-
-function cx(...classes: Array<string | false | null | undefined>) {
-  return classes.filter(Boolean).join(" ");
-}
-
-function priceLine(pkg: { preisMonat?: number; preisJahr?: number }) {
-  if (pkg.preisMonat === 0) return "Kostenfrei";
-  if (typeof pkg.preisMonat === "number") return `${CURRENCY.format(pkg.preisMonat)} / Monat`;
-  if (typeof pkg.preisJahr === "number") return `${CURRENCY.format(pkg.preisJahr)} / Jahr`;
-  return "Preis nach Modell";
-}
 
 type PackagesGridProps = {
   packages?: EDebattePackageDefinition[];
+  tone?: "default" | "journalism";
+  locale?: PricingLocale;
+  compact?: boolean;
+  labels?: {
+    forWhom: string;
+    intendedFor: string;
+    differenceToNext: string;
+    included: string;
+  };
 };
 
-function PackagesGrid({ packages }: PackagesGridProps) {
-  const items = packages ?? EDEBATTE_PACKAGES_DE;
+const DEFAULT_LABELS = {
+  de: {
+    forWhom: "Für wen?",
+    intendedFor: "Wofür gedacht?",
+    differenceToNext: "Unterschied zur nächsten Stufe",
+    included: "Was ist enthalten?",
+  },
+  en: {
+    forWhom: "For whom?",
+    intendedFor: "Intended for",
+    differenceToNext: "Difference to the next tier",
+    included: "What is included?",
+  },
+} as const;
+
+function withLocaleHref(href: string, locale: PricingLocale) {
+  if (locale !== "en") return href;
+  if (/^[a-z]+:/i.test(href)) return href;
+
+  const [pathAndQuery, hash = ""] = href.split("#");
+  const [path, query = ""] = pathAndQuery.split("?");
+  const params = new URLSearchParams(query);
+  params.set("lang", "en");
+  const queryString = params.toString();
+  return `${path}${queryString ? `?${queryString}` : ""}${hash ? `#${hash}` : ""}`;
+}
+
+function PackagesGrid({ packages = [], tone = "default", locale = "de", compact = false, labels }: PackagesGridProps) {
+  const items = packages;
+  const text = labels || DEFAULT_LABELS[locale];
   const gridColsClass =
     items.length === 1 ? "lg:grid-cols-1" : items.length === 2 ? "lg:grid-cols-2" : "lg:grid-cols-3";
+
   return (
-    <div className={`grid gap-4 ${gridColsClass}`}>
-      {items.map((pkg) => (
-        <div
-          key={pkg.id}
-          className={cx(
-            "rounded-3xl p-[1px] shadow-sm",
-            pkg.hervorgehoben
-              ? "bg-[linear-gradient(135deg,rgba(14,165,233,0.75),rgba(16,185,129,0.75))]"
-              : "bg-[linear-gradient(135deg,rgba(14,165,233,0.45),rgba(16,185,129,0.45))]",
-          )}
-        >
-          <article className="rounded-[22px] bg-[rgb(var(--card))] p-6">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="text-[11px] font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
-                  {pkg.zielgruppe}
-                </p>
-                <h3 className="mt-1 text-xl font-semibold text-[rgb(var(--fg))]">{pkg.titel}</h3>
+    <div className={`grid items-stretch gap-6 ${gridColsClass}`}>
+      {items.map((pkg) => {
+        const isAccent = tone === "journalism";
+        return (
+          <article
+            key={pkg.id}
+            className={[
+              "flex h-full flex-col rounded-3xl border bg-[rgb(var(--card))] p-7 shadow-sm sm:p-8",
+              isAccent
+                ? "border-amber-200/80"
+                : "border-[rgb(var(--border))]",
+              pkg.hervorgehoben
+                ? "ring-1 ring-sky-200/80"
+                : "",
+            ]
+              .filter(Boolean)
+              .join(" ")}
+          >
+            <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">{pkg.zielgruppe}</p>
+            <h3 className="mt-2 min-h-[3.7rem] text-2xl font-semibold leading-tight text-[rgb(var(--fg))]">{pkg.titel}</h3>
+
+            <p className="mt-6 text-[1.65rem] font-bold tracking-tight text-[rgb(var(--fg))]">{formatPackagePriceLabel(pkg, locale)}</p>
+            {!compact ? (
+              <p className="mt-4 min-h-[5rem] text-base leading-relaxed text-[rgb(var(--muted))]">{pkg.beschreibungKurz}</p>
+            ) : null}
+
+            <dl className="mt-6 space-y-3 text-xs leading-relaxed text-[rgb(var(--muted))]">
+              {compact ? (
+                <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3.5 py-3">
+                  <dt className="font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
+                    {text.forWhom} · {text.intendedFor}
+                  </dt>
+                  <dd className="mt-1 text-sm leading-relaxed">
+                    <p>{pkg.fuerWen}</p>
+                    <p className="mt-1">{pkg.wofuerGedacht}</p>
+                  </dd>
+                </div>
+              ) : (
+                <>
+                  <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3.5 py-3">
+                    <dt className="font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">{text.forWhom}</dt>
+                    <dd className="mt-1 text-sm leading-relaxed">{pkg.fuerWen}</dd>
+                  </div>
+                  <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3.5 py-3">
+                    <dt className="font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">{text.intendedFor}</dt>
+                    <dd className="mt-1 text-sm leading-relaxed">{pkg.wofuerGedacht}</dd>
+                  </div>
+                </>
+              )}
+              <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3.5 py-3">
+                <dt className="font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">{text.differenceToNext}</dt>
+                <dd className="mt-1 text-sm leading-relaxed">{pkg.unterschiedZurNaechstenStufe}</dd>
               </div>
+              {compact ? (
+                <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3.5 py-3">
+                  <dt className="font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">{text.included}</dt>
+                  <dd className="mt-1">
+                    <ul className="space-y-1 text-sm leading-relaxed">
+                      {pkg.leistungen.slice(0, 4).map((item) => (
+                        <li key={item}>{item}</li>
+                      ))}
+                    </ul>
+                  </dd>
+                </div>
+              ) : null}
+            </dl>
 
-              <div className="flex flex-col items-end gap-2">
-                {pkg.hervorgehoben ? (
-                  <span className="inline-flex items-center rounded-full bg-sky-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-sky-700 ring-1 ring-sky-200">
-                    Empfohlen
-                  </span>
-                ) : null}
-                <span
-                  className={cx(
-                    "inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] ring-1",
-                    STATUS_CLASS[pkg.status],
-                  )}
-                >
-                  {PACKAGE_STATUS_LABELS[pkg.status]}
-                </span>
-              </div>
-            </div>
+            {!compact ? (
+              <ul className="mt-6 space-y-2.5 text-sm text-[rgb(var(--muted))]">
+                {pkg.leistungen.slice(0, 4).map((item) => (
+                  <li key={item} className="flex gap-2">
+                    <span className="mt-2 h-1.5 w-1.5 rounded-full bg-emerald-500" aria-hidden="true" />
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
 
-            <p className="mt-3 text-sm text-[rgb(var(--muted))]">{pkg.beschreibungKurz}</p>
-
-            <p className="mt-5 text-2xl font-extrabold tracking-tight text-[rgb(var(--fg))]">{priceLine(pkg)}</p>
-
-            <ul className="mt-4 space-y-2 text-sm text-[rgb(var(--muted))]">
-              {pkg.leistungen.slice(0, 4).map((item) => (
-                <li key={item} className="flex gap-2">
-                  <span className="mt-2 h-2 w-2 rounded-full bg-emerald-500" aria-hidden="true" />
-                  <span>{item}</span>
-                </li>
-              ))}
-            </ul>
-
-            <div className="mt-6 space-y-2">
+            <div className="mt-auto space-y-2 pt-8">
               <Link
-                href={pkg.ctaHref}
+                href={withLocaleHref(pkg.ctaHref, locale)}
                 className="inline-flex w-full items-center justify-center rounded-full bg-[linear-gradient(135deg,#0ea5e9,#22c55e)] px-5 py-3 text-sm font-semibold text-white shadow-[0_10px_24px_rgba(14,165,233,0.25)] hover:opacity-90"
               >
                 {pkg.ctaText}
@@ -111,7 +152,7 @@ function PackagesGrid({ packages }: PackagesGridProps) {
                   </a>
                 ) : (
                   <Link
-                    href={pkg.sekundarCtaHref}
+                    href={withLocaleHref(pkg.sekundarCtaHref, locale)}
                     className="inline-flex w-full items-center justify-center rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-5 py-3 text-sm font-semibold text-[rgb(var(--muted))] hover:bg-[rgb(var(--bg))]"
                   >
                     {pkg.sekundarCtaText}
@@ -119,15 +160,9 @@ function PackagesGrid({ packages }: PackagesGridProps) {
                 )
               ) : null}
             </div>
-
-            <p className="mt-4 text-xs text-[rgb(var(--muted))]">
-              {pkg.id.startsWith("b2b_") || pkg.id.startsWith("b2g_")
-                ? "Paketstart = Beauftragung. Freischaltung und Einführung folgen abgestimmt."
-                : "Paketstart = direkte Auswahl. Freischaltung erfolgt anschließend."}
-            </p>
           </article>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }

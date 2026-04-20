@@ -9,6 +9,7 @@ import type {
   AnlassraumSourceMode,
   AnlassraumStatus,
   AnlassraumType,
+  AnlassraumOwnerType,
   OutputSeedReviewState,
   OutputSeedStatus,
 } from "@features/anlassraum/types";
@@ -44,6 +45,10 @@ export type RundenEntryShareActions = {
 export type RundenEntryItem = {
   id: string;
   anlassraumId: string | null;
+  ownerType: AnlassraumOwnerType | null;
+  ownerId: string | null;
+  stewardUserId: string | null;
+  createdBy: string | null;
   isPublic: boolean | null;
   title: string;
   summary: string;
@@ -180,6 +185,10 @@ function mapToEntry(
   return {
     id: seedId,
     anlassraumId,
+    ownerType: normalizeOwnerType(room?.ownerType),
+    ownerId: asString(room?.ownerId),
+    stewardUserId: asString(room?.stewardUserId),
+    createdBy: asString(room?.createdBy),
     isPublic,
     title,
     summary,
@@ -423,6 +432,26 @@ function normalizeAnlassraumStatus(value: unknown): AnlassraumStatus | null {
   if (normalized === "needs_editor_review") return "needs_editor_review";
   if (normalized === "ready_for_round") return "ready_for_round";
   if (normalized === "published") return "published";
+  return null;
+}
+
+function normalizeOwnerType(value: unknown): AnlassraumOwnerType | null {
+  const normalized = String(value || "").trim();
+  if (normalized === "platform") return "platform";
+  if (normalized === "municipality") return "municipality";
+  if (normalized === "government") return "government";
+  if (normalized === "party") return "party";
+  if (normalized === "organization") return "organization";
+  if (normalized === "association") return "association";
+  if (normalized === "ngo") return "ngo";
+  if (normalized === "company") return "company";
+  if (normalized === "media") return "media";
+  if (normalized === "initiative") return "initiative";
+  if (normalized === "community") return "community";
+  if (normalized === "editorial") return "editorial";
+  if (normalized === "user") return "user";
+  if (normalized === "system") return "system";
+  if (normalized === "other") return "other";
   return null;
 }
 

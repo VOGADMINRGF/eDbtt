@@ -74,7 +74,7 @@ export function LoginPageShell({
       </div>
 
       {forceTwoFactor && step === "twofactor" && (
-        <div className="mb-4 rounded-2xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
+        <div className="mb-4 rounded-2xl border border-amber-300/60 bg-amber-200/20 px-3 py-2 text-xs text-amber-800 dark:border-amber-400/35 dark:bg-amber-400/10 dark:text-amber-100">
           2FA erforderlich: Bitte den Code aus E-Mail oder Authenticator eingeben, um fortzufahren.
         </div>
       )}
@@ -91,6 +91,9 @@ export function LoginPageShell({
               value={identifier}
               onChange={(e) => setIdentifier(e.target.value)}
               autoComplete="username"
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
               required
             />
           </div>
@@ -106,6 +109,9 @@ export function LoginPageShell({
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 autoComplete="current-password"
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck={false}
                 required
               />
               <button

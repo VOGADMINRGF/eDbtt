@@ -23,6 +23,31 @@ Menschen und Institutionen zahlen **nicht fuer Wahrheit**, sondern fuer:
 - Reporting
 - Umsetzung / Begleitung
 
+## 2.1 Frontend-Finalstand (2026-04-18)
+
+Kanonischer Produktstand fuer die user-facing Paketwelt auf `/pricing` und `/order`:
+
+- Privat / Civic (sichtbare Hauptlogik):
+  - `eDebatte Interessiert`: `0 € fuer VoiceOpenGov-Mitglieder`, `3,99 € regulaer`
+  - `eDebatte Aktiv`: `9,90 €`
+  - `eDebatte Mitgestaltend`: `29,90 €`
+- Paketlogik ist direkt an `/create` gekoppelt:
+  - Anliegen einbringen
+  - Beitrag/Agenda pruefen
+  - Thema gemeinsam erarbeiten
+- Mitgliedschaft und Paketfreischaltung sind getrennt:
+  - Mitgliedschaft kann im `/order`-Bestellformular optional per Checkbox mitbeantragt werden
+  - formale Bestätigung erfolgt separat
+  - Paketstart/Freischaltung folgt eigenständig im Nutzungskontext
+- `/pricing` bleibt kurz und entscheidungsorientiert (Hero + 2 CTAs + 3 Privatpakete).
+- Freie Journalist:innen, Organisationen und Kommunen sind als vorbereitete Sonderzugaenge sichtbar, aber nicht Teil der primaeren 3er-B2C-Hauptlogik.
+- B2B/B2G-Konditionen laufen ueber `/pricing/institutionen` in einen direkten Shop-/Bestellpfad; Kontakt bleibt fuer Sonderkonditionen optional verfuegbar.
+- Unabhängigkeitsprinzip:
+  - keine Vermarktung einzelner Stimmen
+  - keine Weitergabe personenbezogener Beteiligungsdaten
+  - keine politische Bevorzugung gegen Geld
+  - Finanzierung über faire Beiträge, professionelle Nutzungspakete und anonymisierte Auswertungen
+
 ## 3. Trennung der Ebenen
 
 ### 3.1 Membership / VoiceOpenGov
@@ -67,59 +92,160 @@ Funding darf nie:
 - Faktenstatus kaufen
 - Stimmen kaufen
 
-## 4. Institutionelles Hybrid-Pricing
+### 3.5 Seitenrollen fuer Paketstart
+- `/pricing`: kanonische Seite fuer Pakete, Preise und Segmentlogik.
+- `/pricing/institutionen`: kanonische Detailseite fuer vollstaendige B2B-/B2G-Preise (Organisationen + Kommunen).
+- `/order`: kanonischer Folgepfad fuer Paketstart/Bestellung (privat + institutionell, segmentgefuehrt).
+- `/vormerken`: Legacy-Alias auf denselben Order-Flow (fuer bestehende Deep-Links/Wrappers).
+- `/mitglied-antrag`: nur Mitgliedschafts-Antrag, keine Paketlogik.
+- Segmentfokus fuer Sonderzugaenge bleibt auf `/pricing/institutionen` ueber Query moeglich (`?segment=organisationen|kommunen`) und verdraengt nicht die 3er-B2C-Hauptlogik.
+
+Paketabschluss und Freischaltung bleiben getrennt:
+- zuerst Paketstart/Paketbeauftragung
+- danach Aktivierung/Freischaltung je Einsatzkontext
+
+### 3.6 Bestell-/Prueffluss (minimal, billing-ready)
+
+Oeffentlich:
+- Privat, Journalismus, Organisationen und Kommunen sind direkt bestellbar.
+- `/pricing/institutionen` fuehrt als Shop-Einstieg in segmentgefuehrte Paketbeauftragung auf `/order`.
+- Kostenvoranschlag (inkl. Leistungsuebersicht) ist im Bestellpfad per Knopfdruck erzeugbar.
+- Optionales Gespraech ueber `sales@edebatte.org` bleibt fuer Sonderkonditionen verfuegbar.
+
+Intern:
+- institutionelle Bestellungen koennen vor Aktivierung geprueft/angepasst werden
+- kein verpflichtender Sales-Call als Gate in der Public Journey
+
+Kanonische Status:
+- `submitted`
+- `under_review`
+- `approved`
+- `adjusted`
+- `rejected`
+- `active`
+- `paused`
+- `cancelled`
+
+Diese Status sind als leichtgewichtiger Admin-/Billing-Anschluss gedacht, ohne in diesem Slice eine vollstaendige Finance-Suite zu bauen.
+
+Qualitaets-/Rollenpfad-Hinweis (2026-04-12):
+- Rollen-Zielbilder, Redirect-Contracts, Dashboard-Erwartungspfade und Add-on-Reifestand sind in
+  `docs/E150/PR-QUALITY-HARM-01_ROLE_ROUTING_DASHBOARD_CONTRACT_2026-04-12.md`
+  als operativer Quality-Slice dokumentiert.
+- Der E2E-/Manual-QA-Hardening-Slice ist als **essentieller Pflichtblock** dokumentiert in
+  `docs/E150/PR-QUALITY-HARM-02_E2E_MANUAL_QA_HARDENING_2026-04-12.md`.
+- Die manuelle Abnahme fuer kritische Kernreisen erfolgt nach
+  `docs/E150/QA_MANUAL_CHECKLIST_CRITICAL_JOURNEYS_2026-04-12.md`.
+
+### 3.7 Bilingual Pricing-/Order-Contract (DE/EN)
+
+- Die kanonischen Pricing-Surfaces laufen bilingual (DE/EN), ohne fachliche Parallelwelt:
+  - `/pricing`
+  - `/order`
+  - `/pricing/institutionen`
+- Reifestandsbegriffe sind sprachlich lokalisiert, fachlich identisch (oeffentlicher Kern):
+  - DE: `Direkt bestellbar`, `Bestellbar, intern geprueft`, `Bestellbar, mit Folgeabstimmung`
+  - EN: `Directly orderable`, `Orderable, internally reviewed`, `Orderable, with follow-up coordination`
+- `in_rollout` / `Rolling out gradually` bleibt intern reserviert und ist fuer den aktuellen oeffentlichen Kernbestand nicht aktiv.
+- Segment-/Add-on-Querylogik (`segment`, `addon`, `addons`) bleibt sprachunabhaengig stabil; Sprache beeinflusst nur Darstellung.
+- Englisch darf keine staerkere Produktreife behaupten als Deutsch (kein Over-Promise ueber Review-/Follow-up-Pfade).
+
+### 3.8 Endzustandsregel (Final Closure)
+
+Fuer oeffentliche Produktflaechen gilt verbindlich:
+
+1. fertig und abgesichert
+2. intern vorhanden, aber oeffentlich nicht versprochen
+3. aus UX, CTA und oeffentlicher Doku entfernt
+
+Keine Zwischenversprechen im Kernprodukt.
+
+### 3.9 Trust-/Legitimations-Loop (DE/EN)
+
+Pricing-, Membership-, Registry- und Order-Followup-Kommunikation ist um einen
+einheitlichen Trust-Loop ergaenzt:
+
+- VoiceOpenGov ist bewusst keine Partei.
+- VoiceOpenGov ist eine unabhaengige Initiative fuer strukturierte gesellschaftliche Beteiligung und das Mehrheitsprinzip.
+- Hohe Legitimation bleibt Pflicht (Missbrauchsschutz, Nachvollziehbarkeit, Verlaesslichkeit).
+- Hohe Legitimation bedeutet nicht papierhafte Trägheit; Ziel ist starke digitale Verifikation mit moeglichst wenig unnoetiger Reibung.
+
+Kanonische Textstufen (DE/EN, semantisch deckungsgleich):
+
+- Leitsatz
+- Kurzform
+- Mittelform
+- Langform (inkl. FAQ-Kontexte)
+
+Kanonische source of truth:
+
+- `features/pricing/domain/trustLoop.de.ts`
+
+Die produktnahe Nutzung umfasst:
+
+- `/pricing`
+- `/order`
+- `/pricing/institutionen`
+- registry-/payment-nahe Hinweise
+- order-/activation-followup-Texte
+
+## 4. Institutionelles Hybrid-Pricing (`/pricing/institutionen`)
 
 ### 4.1 Formel
 
 **Total = Base + Anlassraeume + optionale aktive Teilnehmende + Add-ons + optionale Outcome-/Report-Komponente - Discount**
 
-### 4.2 Base
+### 4.2 Segment: Organisationen / Verbaende / Vereine
 
-Die Grundinfrastruktur deckt:
-- Betrieb
-- Admin
-- Review / Publish Gates
-- Radar / Grundsetup
-- Hosting / Wartung / Security
+Preisstruktur (Orientierungswerte):
+- Grundaktivierung: **ab 1.500 EUR / Monat**
+- Laufender Betrieb (Betrieb Plus): **ab 2.900 EUR / Monat**
+- Raeume/Themenraeume/Anlassraeume: **Small 300 EUR · Medium 600–1.000 EUR · Large 1.000–1.500 EUR je aktivem Raum**
+- Optionale aktive Beteiligung: **ab 0,75 EUR je aktivem Teilnehmenden und Zeitraum**
+- Reports/Auswertung: **ab 390 EUR / Monat**
+- Moderation/Governance: **ab 450 EUR / Monat**
 
-Startpunkt:
-- **ab 2.500 EUR / Monat** fuer institutionelle Nutzung
+### 4.3 Segment: Kommunen / Verwaltung / Landkreise
 
-### 4.3 Anlassraum-Komponente
+Preisstruktur (Orientierungswerte):
+- Grundaktivierung: **ab 2.500 EUR / Monat**
+- Laufender Betrieb (Betrieb Plus): **ab 4.500 EUR / Monat**
+- Raeume/Themenraeume/Anlassraeume: **Small 300 EUR · Medium 600–1.000 EUR · Large 1.000–1.500 EUR je aktivem Raum**
+- Optionale aktive Beteiligung: **ab 0,75 EUR je aktivem Teilnehmenden und Zeitraum**
+- Reports/Auswertung: **ab 590 EUR / Monat**
+- Moderation/Governance: **ab 790 EUR / Monat**
 
-Anlassraeume werden nicht nur nach Anzahl, sondern auch nach Komplexitaet bepreist.
-Beispielhafte Range:
-- klein: 300 EUR
-- mittel: 600–1.000 EUR
-- hoch: 1.000–1.500 EUR
+### 4.4 Add-ons (klar getrennt von Grundpaketen)
 
-Moegliche Einflussfaktoren:
-- Teilnehmerzahl
-- Quellenanzahl
-- Konfliktgrad
-- Stakeholder-Dichte
-- Event-/QR-Komponente
-- Entscheidungsnaehe
+- Event-Begleitung: **ab 690 EUR je Einsatz**
+- Moderation/Assistenz: **ab 450 EUR / Monat**
+- Reports/Outcomes: **ab 390 EUR / Monat**
+- Managed Governance: **ab 1.200 EUR / Monat**
+- Companion-/Kommunikationsformate: **ab 290 EUR / Monat**
+- Optionales Faktencheck-Kontingent: **ab 290 EUR / Monat**
 
-### 4.4 Teilnehmenden-Komponente
+Produktfuehrung Add-ons:
+- nicht als lose Preisliste, sondern als progressive Auswahl im Guided-Flow
+- zuerst 2-3 empfohlene Erweiterungen, weitere Optionen nachgeordnet
+- je Add-on mit Einsatzkontext (wann sinnvoll / wann eher nicht noetig), Reifestand und Bestellbarkeit
+- Rueckfragen erscheinen erst bei Auswahl des jeweiligen Add-ons
 
-Nicht pro Einwohner.
-Nicht pauschal pro registriertem Account.
+Standardisierte Reifestandslogik (SSOT):
+- `direct_orderable` -> **Direkt bestellbar**
+- `orderable_review_required` -> **Bestellbar, intern geprueft**
+- `followup_required` -> **Bestellbar, mit Folgeabstimmung**
+- `in_rollout` -> intern reserviert (nicht fuer den aktuellen oeffentlichen Kernbestand aktiv)
 
-Sondern optional pro **aktivem** Teilnehmenden in einem relevanten Anlassraum / Zeitraum.
+CTA-Leitsprache auf `/pricing/institutionen` (Guided-Flow):
+- DE: `Direkt zur Auswahl`, `Empfehlung übernehmen`, `Direkt bestellen`, `Kostenvoranschlag anfordern`, `Gespräch anfragen`, `Kontakt`
+- EN: `Jump to guided selection`, `Apply recommendation`, `Direct order`, `Request quote`, `Request conversation`, `Contact`
 
-Grundsatz:
-- inaktive Accounts kosten nichts
-- aktive Beteiligung kann als variable Komponente herangezogen werden
-- dies ist optional und je Paket / Entity steuerbar
+### 4.5 Aktivierung / Freischaltung
 
-### 4.5 Outcome-/Report-Komponente
-
-Optional fuer hoehere Pakete:
-- Executive Reports
-- Entscheidungsreports
-- abgeschlossene Governance-Zyklen
-- spezielle Impact-Auswertungen
+- Paketkonditionen ueber `/pricing/institutionen` vorauswaehlen und direkt beauftragen
+- Aktivierung mit Rollen-, Team- und Prozessabstimmung
+- Freischaltung entlang abgestimmtem Betriebsrahmen
+- Mitgliedschaft und Paketfreischaltung bleiben getrennt
 
 ## 5. Zielgruppen-Pakete
 

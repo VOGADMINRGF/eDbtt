@@ -212,6 +212,13 @@ Reports,
 
 ResearchTasks.
 
+Neu (2026-04-19):
+
+- Operator-Surface `/admin/themenradar` fuer Themenqualifizierung und review-first Content-Prep
+- Lifecycle `raw -> qualified -> content_ready -> review_ready` als admin-internes Arbeitsmodell
+- Share-ready Candidate nur kontraktgebunden und ohne Auto-Posting-Bypass
+- Interner Ops-Statusreport (`PR-OPS-STATUS-REPORT-01`): geplanter SMTP-Bericht um `05:00` und `17:00` (Europe/Berlin), inkl. aktiver AI-Routen-Smokes und persistenter Laufhistorie; kein Marketing-Mailpfad, kein Auto-Publish-Bezug
+
 Streams
 
 Übersicht kommender Streams,
@@ -257,6 +264,12 @@ Bereits in Code vorhanden (siehe Codex-Änderungen):
 features/ai/telemetry.ts
 
 /admin/telemetry/ai/dashboard
+
+Ergaenzung (2026-04-19, Themenradar-Slice):
+
+- Themenradar nutzt aggregierte kampagnennahe Operator-Telemetrie (`clicks`, `leads`, `memberships`)
+- Keine Tracking-Orgie, keine neue Scoring-Wahrheit, nur vorbereitender Funnel-Status fuer spaetere Reports
+- Themenradar-PR-02 haertet die Report-Andockfaehigkeit mit einer stabilen Server-Report-Shape (`/api/admin/themenradar/report`) fuer Aggregationen nach Thema/Status/Kampagne, weiterhin ohne personenbezogene Ausweitung
 
 Part12 spezifiziert:
 

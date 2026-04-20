@@ -1,0 +1,25 @@
+{
+  "name": "@vog/wrapper-android",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "cap:add:android": "cap add android",
+    "cap:copy": "cap copy android",
+    "cap:sync": "cap sync android",
+    "cap:open:android": "cap open android",
+    "doctor": "cap doctor",
+    "doctor:java": "node ./scripts/check-android-java.mjs",
+    "build:android:debug": "pnpm run doctor:java && cd android && ./gradlew :app:assembleDebug",
+    "build:android:release": "pnpm run doctor:java && cd android && ./gradlew :app:assembleRelease"
+  },
+  "dependencies": {
+    "@capacitor/app": "^7.0.1",
+    "@capacitor/core": "^7.4.3"
+  },
+  "devDependencies": {
+    "@capacitor/android": "^7.4.3",
+    "@capacitor/cli": "^7.4.3",
+    "typescript": "^5.9.3"
+  }
+}

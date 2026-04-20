@@ -15,7 +15,7 @@ export function useLoginFlow(opts?: {
     opts?.initialMethod ?? (opts?.initialStep === "twofactor" ? "email" : null);
   const [method, setMethod] = useState<TwoFactorMethod | null>(initialMethod);
   const [expiresAt, setExpiresAt] = useState<string | null>(null);
-  const [redirectUrl, setRedirectUrl] = useState(opts?.redirectTo || "/account");
+  const [redirectUrl, setRedirectUrl] = useState(opts?.redirectTo || "");
   const [loading, setLoading] = useState(false);
   const [requestingEmail, setRequestingEmail] = useState(false);
   const [allowEmailFallback, setAllowEmailFallback] = useState(false);
@@ -29,7 +29,7 @@ export function useLoginFlow(opts?: {
         const res = await fetch("/api/auth/login", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ identifier, password, next: redirectUrl }),
+          body: JSON.stringify({ identifier, password, next: redirectUrl || undefined }),
         });
         const body = await res.json().catch(() => ({}));
         if (!res.ok || !body) {
@@ -39,13 +39,13 @@ export function useLoginFlow(opts?: {
         if (body.require2fa) {
           setMethod(body.method ?? null);
           setExpiresAt(body.expiresAt ?? null);
-          setRedirectUrl(body.redirectUrl || redirectUrl);
+          setRedirectUrl(body.redirectUrl || redirectUrl || "/account");
           setAllowEmailFallback(Boolean(body.allowEmailFallback));
           setStep("twofactor");
           return;
         }
 
-        window.location.href = body.redirectUrl || redirectUrl || "/";
+        window.location.href = body.redirectUrl || redirectUrl || "/account";
       } catch (e: any) {
         setError(mapLoginError(e?.message));
       } finally {
@@ -67,7 +67,7 @@ export function useLoginFlow(opts?: {
         const res = await fetch("/api/auth/verify-2fa", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ code, method, next: redirectUrl }),
+        body: JSON.stringify({ code, method, next: redirectUrl }),
         });
         const body = await res.json().catch(() => ({}));
         if (!res.ok || !body?.ok) {
