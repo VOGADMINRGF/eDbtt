@@ -483,6 +483,10 @@ export default function CreateClient({
     fallbackReturnTo: contextualReturnHref,
   });
   const useCaseAccess = deriveUseCaseAccessForProductMode(productMode, text, productModeConfig);
+  const workspaceVerificationLevel =
+    overview.verificationLevel && overview.verificationLevel !== "none"
+      ? overview.verificationLevel
+      : undefined;
 
   const tierCfg = getAccessTierConfigForUser(overview);
   const tierLabel = getUserAccessTier(overview);
@@ -738,7 +742,7 @@ export default function CreateClient({
           afterFinalizeNavigateTo={afterFinalizeNavigateTo}
           dossierId={dossierId ?? undefined}
           selectedAnlassraumId={effectiveSelectedAnlassraumId ?? undefined}
-          verificationLevel={overview.verificationLevel ?? "none"}
+          verificationLevel={workspaceVerificationLevel}
           verificationStatus="ok"
           authorName={overview.displayName ?? overview.profile?.headline ?? ""}
           useCaseAccess={useCaseAccess}
