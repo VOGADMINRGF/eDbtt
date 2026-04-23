@@ -1,7 +1,11 @@
 import type { ScheduledStatusReportSlot } from "./contracts";
-import { STATUS_REPORT_SCHEDULED_SLOT_VALUES } from "./contracts";
+import {
+  STATUS_REPORT_DEFAULT_SCHEDULED_SLOT_VALUES,
+  isScheduledStatusReportSlot,
+} from "./contracts";
 
 const TRUE_VALUES = new Set(["1", "true", "yes", "on"]);
+const STATUS_REPORT_ALLOWED_RECIPIENT = "rgf@voiceopengov.de";
 
 export type StatusReportConfig = {
   enabled: boolean;
@@ -27,8 +31,20 @@ function parseRecipients(value: string | undefined): string[] {
   if (typeof value !== "string") return [];
   return value
     .split(",")
-    .map((entry) => entry.trim())
+    .map((entry) => entry.trim().toLowerCase())
     .filter((entry, idx, list) => entry.length > 0 && list.indexOf(entry) === idx);
+}
+
+function parseScheduleSlots(value: string | undefined): readonly ScheduledStatusReportSlot[] {
+  if (typeof value !== "string") return STATUS_REPORT_DEFAULT_SCHEDULED_SLOT_VALUES;
+
+  const parsed = value
+    .split(",")
+    .map((entry) => entry.trim())
+    .filter((entry, idx, list) => entry.length > 0 && list.indexOf(entry) === idx)
+    .filter((entry): entry is ScheduledStatusReportSlot => isScheduledStatusReportSlot(entry));
+
+  return parsed.length > 0 ? parsed : STATUS_REPORT_DEFAULT_SCHEDULED_SLOT_VALUES;
 }
 
 function parsePositiveInt(value: string | undefined, fallback: number, min: number, max: number): number {
@@ -56,7 +72,9 @@ export function hasSmtpConfig(env: EnvShape = process.env): boolean {
 }
 
 export function readStatusReportConfig(env: EnvShape = process.env): StatusReportConfig {
-  const recipients = parseRecipients(env.STATUS_REPORT_RECIPIENTS);
+  const recipients = parseRecipients(env.STATUS_REPORT_RECIPIENTS).filter(
+    (recipient) => recipient === STATUS_REPORT_ALLOWED_RECIPIENT,
+  );
   const enabled = parseBool(env.STATUS_REPORT_ENABLED, false);
 
   return {
@@ -69,6 +87,6 @@ export function readStatusReportConfig(env: EnvShape = process.env): StatusRepor
       env.STATUS_REPORT_BASE_URL ?? env.NEXT_PUBLIC_APP_ORIGIN ?? env.NEXT_PUBLIC_BASE_URL,
     ),
     slotGraceMinutes: parsePositiveInt(env.STATUS_REPORT_SLOT_GRACE_MINUTES, 20, 5, 120),
-    scheduleSlots: STATUS_REPORT_SCHEDULED_SLOT_VALUES,
+    scheduleSlots: parseScheduleSlots(env.STATUS_REPORT_SLOTS),
   };
 }

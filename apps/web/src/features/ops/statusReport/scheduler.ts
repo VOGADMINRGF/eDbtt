@@ -1,6 +1,6 @@
 import { readStatusReportConfig } from "./config";
 import type { ScheduledStatusReportSlot } from "./contracts";
-import { runScheduledStatusReportSlot } from "./run";
+import { triggerScheduledStatusReportRun } from "./schedulerTrigger";
 
 const SCHEDULER_INTERVAL_MS = 30_000;
 
@@ -77,9 +77,13 @@ export async function runScheduledStatusReportTick(now = new Date()) {
   state.running = true;
   try {
     for (const slot of dueSlots) {
-      const result = await runScheduledStatusReportSlot({ slot, now });
+      const result = await triggerScheduledStatusReportRun({
+        slot,
+        now,
+        config,
+      });
       if (!result.ok) {
-        console.error("[status-report] scheduled run failed", {
+        console.error("[status-report] scheduled trigger failed", {
           slot,
           reason: result.reason,
         });

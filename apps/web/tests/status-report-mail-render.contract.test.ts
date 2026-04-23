@@ -55,6 +55,7 @@ describe("status-report-mail-render.contract", () => {
     expect(subject).toContain("[ops]");
     expect(subject).toContain("GELB");
     expect(rendered.text).toContain("AI-Routen-Smokechecks");
-    expect(rendered.html).toContain("Plattformstatus");
+    expect(rendered.html).toContain("Ops Statusbericht");
+    expect(rendered.html).toContain("Executive Summary");
   });
 });
