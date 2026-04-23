@@ -12,6 +12,11 @@ import { factcheckJobsCol, type FactcheckJobStatus } from "@features/factcheck/d
 import type { AnalyzeResult, StatementRecord } from "@features/analyze/schemas";
 import { stableHash } from "@core/utils/hash";
 import {
+  buildSealedFactcheckContract,
+  getSealedFactcheckJourneyProfile,
+} from "@features/ai/e150/factcheckProfiles";
+import { deriveVerificationLabel } from "@features/ai/e150/verificationContract";
+import {
   ensureDossierForStatement,
   dossierSourcesCol,
   dossierEdgesCol,
@@ -47,6 +52,7 @@ const EnqueueSchema = z.object({
   claims: z.array(z.any()).optional().nullable(),
   // evidence lookup
   withSerp: z.boolean().optional().default(true),
+  deepSearch: z.boolean().optional().default(false),
 });
 
 function toShortLang(v?: string | null): string {
@@ -393,6 +399,9 @@ export async function POST(req: NextRequest) {
           pipeline: "factcheck" as any,
           maxClaims: MAX_CLAIMS,
           audienceRole: "staff",
+          routePath: "/api/factcheck/enqueue",
+          journeyHint: "sealed_factcheck",
+          sealedFactcheck: true,
         });
       } catch (err: any) {
         analysisError = err?.message ?? "analyze_failed";
@@ -448,6 +457,16 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    const journeyProfile = getSealedFactcheckJourneyProfile();
+    const verification = buildSealedFactcheckContract({
+      deepSearch: payload.deepSearch === true,
+      sealGranted: false,
+    });
+    const verificationLabel = deriveVerificationLabel({
+      verificationMode: verification.verificationMode,
+      sealGranted: verification.sealGranted,
+    });
+
     const durationMs = Date.now() - t0;
     return json({
       ok: true,
@@ -457,6 +476,21 @@ export async function POST(req: NextRequest) {
       serpCount: serpResults.length,
       durationMs,
       analysisError: analysisError ?? undefined,
+      verificationMode: verification.verificationMode,
+      researchUsed: verification.researchUsed,
+      sealEligible: verification.sealEligible,
+      sealGranted: verification.sealGranted,
+      verificationLabel,
+      meta: {
+        journeyProfile: journeyProfile.journey,
+        lane: journeyProfile.lane,
+        roleProviderMapping: {
+          primary: journeyProfile.primaryRoles,
+          secondary: journeyProfile.secondaryRoles,
+          fallback: journeyProfile.fallbackProviders,
+          openAiRoles: journeyProfile.openAiRoles,
+        },
+      },
     });
   } catch (e: any) {
     const fe = formatError("INTERNAL_ERROR", "Unexpected failure", e?.message ?? String(e));

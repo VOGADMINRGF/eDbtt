@@ -25,6 +25,17 @@ import { callGemini as askGemini } from "@features/ai/providers/gemini";
 import { callAriLLM as askAri } from "@features/ai/providers/ari_llm";
 import { healthScore, type ProviderId } from "@features/ai/orchestrator_health";
 import { PROVIDER_CAPABILITIES, providerSupports } from "./e150/providers";
+import {
+  flattenRoleProviders,
+  getJourneyProfile,
+  type E150JourneyKey,
+  type E150JourneyProfile,
+  type E150Lane,
+} from "./e150/journeyProfiles";
+import type {
+  ResearchUsed,
+  VerificationMode,
+} from "./e150/verificationContract";
 import { AnalyzeResultSchema, type AnalyzeResult } from "@features/analyze/schemas";
 import { parseJsonLoose } from "@features/analyze/llmJson";
 
@@ -56,6 +67,8 @@ type ProviderCallResult = {
 export type E150OrchestratorArgs = {
   systemPrompt: string;
   userPrompt: string;
+  journey?: E150JourneyKey;
+  journeyProfile?: E150JourneyProfile;
   locale?: string | null;
   audienceRole?: AudienceRole;
   maxClaims?: number;
@@ -114,7 +127,6 @@ type ProviderHealthState = "healthy" | "degraded" | "unknown" | "down";
 
 type CancelReason =
   | "budget_abort"
-  | "winner_abort"
   | "outer_abort"
   | "aborted_before_start"
   | "probe_blocked";
@@ -200,6 +212,24 @@ export type E150OrchestratorMeta = {
   skippedProviders: { provider: E150ProviderName; reason: string }[];
   probes?: { provider: E150ProviderName; ok: boolean; errorKind: AiErrorKind | null; durationMs: number }[];
   providerMatrix?: ProviderMatrixEntry[];
+  journeyProfile?: E150JourneyKey;
+  lane?: E150Lane;
+  roleProviderMapping?: {
+    primary: Record<string, readonly E150ProviderName[]>;
+    secondary: Record<string, readonly E150ProviderName[]>;
+    fallback: readonly E150ProviderName[];
+    openAiRoles: readonly ("fallback" | "presentation_pass")[];
+  };
+  fallbackUsed?: boolean;
+  disagreement?: {
+    present: boolean;
+    successfulProviders: E150ProviderName[];
+    failedProviders: E150ProviderName[];
+  };
+  verificationMode?: VerificationMode;
+  researchUsed?: ResearchUsed;
+  sealEligible?: boolean;
+  sealGranted?: boolean;
 };
 
 /**
@@ -674,6 +704,34 @@ function sleep(ms: number, signal?: AbortSignal): Promise<void> {
   });
 }
 
+function mergeAbortSignals(
+  signals: Array<AbortSignal | null | undefined>,
+): { signal: AbortSignal; cleanup: () => void } {
+  const controller = new AbortController();
+  const cleanups: Array<() => void> = [];
+
+  const abortFrom = (signal: AbortSignal) => {
+    if (controller.signal.aborted) return;
+    controller.abort(signal.reason ?? "outer_abort");
+  };
+
+  signals.forEach((signal) => {
+    if (!signal) return;
+    if (signal.aborted) {
+      abortFrom(signal);
+      return;
+    }
+    const handler = () => abortFrom(signal);
+    signal.addEventListener("abort", handler);
+    cleanups.push(() => signal.removeEventListener("abort", handler));
+  });
+
+  return {
+    signal: controller.signal,
+    cleanup: () => cleanups.forEach((fn) => fn()),
+  };
+}
+
 function hedgeDelay(provider: E150ProviderName): number {
   switch (provider) {
     case "openai":
@@ -1040,9 +1098,7 @@ async function runProvider(
       const message =
         abortReason === "budget_abort"
           ? `${profile.label} cancelled (budget)`
-          : abortReason === "winner_abort"
-            ? `${profile.label} cancelled (winner)`
-            : abortReason
+          : abortReason
               ? `${profile.label} cancelled (${abortReason})`
               : err?.name === "AbortError"
                 ? `${profile.label} timed out nach ${timeoutMs}ms`
@@ -1366,15 +1422,16 @@ function logProviderTelemetry(matrix: ProviderMatrixEntry[]) {
 /**
  * Orchestriert die E150-Analyse über mehrere Provider.
  *
- * Aktuell ist technisch nur OpenAI aktiv, die Struktur ist
- * jedoch von Anfang an auf Multi-Provider, Scoring und Health ausgelegt.
+ * Journey-Profile bestimmen Primary/Secondary/Fallback-Rollen.
+ * OpenAI bleibt im Zielmodell auf Fallback-/Presentation-Rollen begrenzt.
  */
 export async function callE150Orchestrator(
   args: E150OrchestratorArgs,
 ): Promise<E150OrchestratorResult> {
   const capability = args.requiredCapability ?? "core_analysis";
-  const { active: profiles, disabled, skipped } = resolveProviderPool(capability);
-  if (!profiles.length) {
+  const journeyProfile = args.journeyProfile ?? getJourneyProfile(args.journey ?? "analyze");
+  const { active: poolProfiles, disabled, skipped } = resolveProviderPool(capability);
+  if (!poolProfiles.length) {
     const reason =
       disabled[0]?.reason || skipped[0]?.reason || "Kein aktiver Provider konfiguriert";
     throw new OrchestratorNoProviderError(
@@ -1384,14 +1441,14 @@ export async function callE150Orchestrator(
   }
 
   const probeResults = await Promise.all(
-    profiles.map((profile) =>
+    poolProfiles.map((profile) =>
       runProviderProbeCached(profile, args.telemetry).catch(() => null),
     ),
   );
 
   // Decide which providers to keep without mutating during iteration
   const hardBlockKinds: AiErrorKind[] = ["UNAUTHORIZED", "INVALID_API_KEY", "MODEL_NOT_FOUND"];
-  const decisions = profiles.map((profile, idx) => ({
+  const decisions = poolProfiles.map((profile, idx) => ({
     profile,
     probe: probeResults[idx],
   }));
@@ -1419,11 +1476,68 @@ export async function callE150Orchestrator(
     keptProfiles.push(profile);
   });
 
-  profiles.length = 0;
-  profiles.push(...keptProfiles);
+  const profiles = keptProfiles;
+  const activeByName = new Map(profiles.map((profile) => [profile.name, profile]));
+
+  const primaryProviderNames = flattenRoleProviders(journeyProfile.primaryRoles);
+  const secondaryProviderNames = flattenRoleProviders(journeyProfile.secondaryRoles).filter(
+    (provider) => !primaryProviderNames.includes(provider),
+  );
+  const fallbackProviderNames = [...journeyProfile.fallbackProviders].filter(
+    (provider, idx, list) =>
+      list.indexOf(provider) === idx &&
+      !primaryProviderNames.includes(provider) &&
+      !secondaryProviderNames.includes(provider),
+  );
+
+  const toProfiles = (providers: E150ProviderName[]): ProviderProfile[] =>
+    providers
+      .map((provider) => activeByName.get(provider))
+      .filter((profile): profile is ProviderProfile => Boolean(profile));
+
+  const primaryProfiles = toProfiles(primaryProviderNames);
+  const secondaryProfiles = toProfiles(secondaryProviderNames);
+  const fallbackProfiles = toProfiles(fallbackProviderNames);
+
+  const plannedProviders = new Set<E150ProviderName>([
+    ...primaryProfiles.map((profile) => profile.name),
+    ...secondaryProfiles.map((profile) => profile.name),
+    ...fallbackProfiles.map((profile) => profile.name),
+  ]);
+  const dynamicSkipped: { provider: E150ProviderName; reason: string }[] = [];
+
+  profiles.forEach((profile) => {
+    if (plannedProviders.has(profile.name)) return;
+    dynamicSkipped.push({
+      provider: profile.name,
+      reason: "not_in_journey_plan",
+    });
+  });
+
+  const executionPrimary =
+    primaryProfiles.length > 0
+      ? primaryProfiles
+      : profiles.filter((profile) => !fallbackProviderNames.includes(profile.name));
+  const executionFallback = fallbackProfiles;
+
+  if (executionPrimary.length === 0 && executionFallback.length === 0) {
+    const reason =
+      disabled[0]?.reason || skipped[0]?.reason || "Kein passender Journey-Provider aktiv";
+    throw new OrchestratorNoProviderError(
+      `E150-Orchestrator: Kein passender Journey-Provider aktiv (${reason})`,
+      {
+        disabled,
+        skipped: [...skipped, ...dynamicSkipped],
+      },
+    );
+  }
 
   const budgetController = new AbortController();
-  const budgetTimer = setTimeout(() => budgetController.abort("budget_abort"), ORCHESTRATOR_BUDGET_MS);
+  const budgetTimer = setTimeout(
+    () => budgetController.abort("budget_abort"),
+    ORCHESTRATOR_BUDGET_MS,
+  );
+  const mergedAbort = mergeAbortSignals([args.outerSignal, budgetController.signal]);
 
   const candidates: E150OrchestratorCandidate[] = [];
   const providerOutcomes: ProviderResult[] = [];
@@ -1433,50 +1547,7 @@ export async function callE150Orchestrator(
 
   const failedProviders: { provider: E150ProviderName; error: string; errorKind?: AiErrorKind }[] = [];
   const dynamicDisabled: { provider: E150ProviderName; reason: string }[] = [];
-  const providerControllers = new Map<E150ProviderName, AbortController>();
-  const providerCancelReasons = new Map<E150ProviderName, CancelReason>();
-  const controllerCleanups: (() => void)[] = [];
-
-  const abortProvider = (provider: E150ProviderName, reason: CancelReason) => {
-    const controller = providerControllers.get(provider);
-    if (!controller) return;
-    if (controller.signal.aborted) return;
-    providerCancelReasons.set(provider, reason);
-    controller.abort(reason);
-  };
-
-  const abortAllProviders = (reason: CancelReason, except?: E150ProviderName) => {
-    profiles.forEach((p) => {
-      if (except && p.name === except) return;
-      abortProvider(p.name, reason);
-    });
-  };
-
-  const linkAbortSources = (provider: E150ProviderName, controller: AbortController) => {
-    const sources: { signal: AbortSignal; reason: CancelReason }[] = [
-      { signal: budgetController.signal, reason: "budget_abort" },
-    ];
-    if (args.outerSignal) {
-      sources.push({ signal: args.outerSignal, reason: "outer_abort" });
-    }
-    const cleanups: (() => void)[] = [];
-    sources.forEach(({ signal, reason }) => {
-      const handler = () => abortProvider(provider, reason);
-      if (signal.aborted) {
-        handler();
-        return;
-      }
-      signal.addEventListener("abort", handler);
-      cleanups.push(() => signal.removeEventListener("abort", handler));
-    });
-    return () => cleanups.forEach((fn) => fn());
-  };
-
-  profiles.forEach((profile) => {
-    const controller = new AbortController();
-    providerControllers.set(profile.name, controller);
-    controllerCleanups.push(linkAbortSources(profile.name, controller));
-  });
+  const executedProviders: E150ProviderName[] = [];
 
   const registerFailure = (failure: ProviderFailure) => {
     providerOutcomes.push(failure);
@@ -1492,44 +1563,17 @@ export async function callE150Orchestrator(
     }
   };
 
-  const validateAndNormalize = async (
+  const validateAndNormalize = (
     profile: ProviderProfile,
     result: ProviderResult,
-    outerSignal: AbortSignal | undefined,
   ): Promise<{ outcome: ProviderResult; candidate?: E150OrchestratorCandidate }> => {
-    const attemptValidation = (res: ProviderSuccess) =>
-      validateCandidate(res.rawText, args.validateRaw);
-
     if (!result.ok) {
       timings[result.provider] = result.durationMs ?? timings[result.provider];
-      return { outcome: result };
+      return Promise.resolve({ outcome: result });
     }
 
-    let current = result as ProviderSuccess;
-    let validation = attemptValidation(current);
-
-    const canRetryJson =
-      !validation.ok &&
-      !budgetController.signal.aborted &&
-      !outerSignal?.aborted;
-
-    if (validation.ok === false && canRetryJson) {
-      const retryResult = await runProvider(profile, {
-        ...args,
-        maxTokens: 800,
-        timeoutMs: (args.timeoutMs ?? profile.timeoutMs) + 5_000,
-        userPrompt: `${args.userPrompt}\n\nJSON only. No extra keys. No input echo.`,
-        outerSignal,
-      });
-      if (retryResult.ok) {
-        current = retryResult as ProviderSuccess;
-        validation = attemptValidation(retryResult as ProviderSuccess);
-      } else {
-        timings[retryResult.provider] = retryResult.durationMs ?? timings[retryResult.provider];
-        return { outcome: retryResult };
-      }
-    }
-
+    const current = result as ProviderSuccess;
+    const validation = validateCandidate(current.rawText, args.validateRaw);
     if (validation.ok === false) {
       const failure: ProviderFailure = {
         ok: false,
@@ -1544,7 +1588,7 @@ export async function callE150Orchestrator(
         openaiErrorCode: current.openaiErrorCode,
         openaiErrorMessage: current.openaiErrorMessage,
       };
-      return { outcome: failure };
+      return Promise.resolve({ outcome: failure });
     }
 
     const score = scoreCandidate(profile, validation.jsonText, current.durationMs);
@@ -1565,82 +1609,66 @@ export async function callE150Orchestrator(
       parsed: validation.parsed,
     };
     timings[current.provider] = current.durationMs;
-    return { outcome: success, candidate };
+    return Promise.resolve({ outcome: success, candidate });
   };
 
-  const hedgedRuns = profiles.map((profile) => {
-    const controller = providerControllers.get(profile.name)!;
-    return (async () => {
-      try {
-        await sleep(hedgeDelay(profile.name), controller.signal);
-      } catch {
-        const reason =
-          providerCancelReasons.get(profile.name) ??
-          ((controller.signal.reason as CancelReason | undefined) ?? "aborted_before_start");
-        const failure: ProviderFailure = {
-          ok: false,
-          provider: profile.name,
-          error: `cancelled: ${reason}`,
-          durationMs: 0,
-          errorKind: "CANCELLED",
-          cancelReason: reason,
-          attempt: undefined,
-        };
-        return { outcome: failure, candidate: undefined };
-      }
-
-      const baseResult = await runProvider(profile, { ...args, outerSignal: controller.signal });
-      return validateAndNormalize(profile, baseResult, controller.signal);
-    })().catch((err) => {
-      const failure: ProviderFailure = {
-        ok: false,
-        provider: profile.name,
-        error:
-          err?.message ?? `Unbekannter Fehler bei ${profile.label}`,
-        durationMs: 0,
-        errorKind: mapErrorToKind(err),
-        httpStatus: typeof err?.status === "number" ? err.status : null,
-        errorMessageShort:
-          typeof err?.message === "string"
-            ? err.message.slice(0, 200)
-            : undefined,
-      };
-      return { outcome: failure, candidate: undefined };
+  const runPhase = async (
+    phaseProfiles: ProviderProfile[],
+    phaseLabel: "primary" | "secondary" | "fallback",
+  ) => {
+    if (phaseProfiles.length === 0) return;
+    phaseProfiles.forEach((profile) => {
+      if (!executedProviders.includes(profile.name)) executedProviders.push(profile.name);
     });
-  });
 
-  let winner: E150OrchestratorCandidate | null = null;
-
-  while (hedgedRuns.length) {
-    const indexed = hedgedRuns.map((p, idx) =>
-      p.then((res) => ({ idx, res })),
-    );
-    const { idx, res } = await Promise.race(indexed);
-    hedgedRuns.splice(idx, 1);
-
-    const { outcome, candidate } = res;
-    if (outcome.ok && candidate) {
-      providerOutcomes.push(outcome);
-      candidates.push(candidate);
-      if (!winner) {
-        winner = candidate;
-        abortAllProviders("winner_abort", outcome.provider);
+    const runs = phaseProfiles.map(async (profile) => {
+      const baseResult = await runProvider(profile, {
+        ...args,
+        outerSignal: mergedAbort.signal,
+      });
+      const normalized = await validateAndNormalize(profile, baseResult);
+      const { outcome, candidate } = normalized;
+      if (outcome.ok && candidate) {
+        providerOutcomes.push(outcome);
+        candidates.push(candidate);
+        return;
       }
-      continue;
-    }
+      registerFailure(outcome as ProviderFailure);
+    });
+    await Promise.all(runs);
 
-    const failure = outcome as ProviderFailure;
-    registerFailure(failure);
+    if (phaseLabel !== "fallback") return;
+  };
+
+  await runPhase(executionPrimary, "primary");
+  await runPhase(secondaryProfiles, "secondary");
+
+  let fallbackExecuted = false;
+  if (candidates.length === 0) {
+    fallbackExecuted = true;
+    await runPhase(executionFallback, "fallback");
+  } else {
+    executionFallback.forEach((profile) => {
+      dynamicSkipped.push({
+        provider: profile.name,
+        reason: "fallback_not_needed",
+      });
+    });
   }
 
-  controllerCleanups.forEach((fn) => fn());
   clearTimeout(budgetTimer);
+  mergedAbort.cleanup();
 
   const telemetryMeta = args.telemetry ?? {};
   const pipelineName: AiPipelineName =
     telemetryMeta.pipeline ?? "contribution_analyze";
 
-  const profileByName = new Map(profiles.map((p) => [p.name, p]));
+  const profileByName = new Map(
+    [...executionPrimary, ...secondaryProfiles, ...executionFallback].map((profile) => [
+      profile.name,
+      profile,
+    ]),
+  );
   const usageLogs = providerOutcomes.map((outcome) => {
     const success = outcome.ok ? (outcome as ProviderSuccess) : null;
     const failure = outcome.ok ? null : (outcome as ProviderFailure);
@@ -1669,6 +1697,13 @@ export async function callE150Orchestrator(
 
   await Promise.all(usageLogs);
 
+  const providerMatrix = buildProviderMatrix(
+    providerOutcomes,
+    [...disabled, ...dynamicDisabled],
+    [...skipped, ...dynamicSkipped],
+    probeResults.filter((p): p is ProbeResult => Boolean(p)),
+  );
+
   if (!candidates.length) {
     const msg =
       budgetController.signal.aborted
@@ -1678,18 +1713,28 @@ export async function callE150Orchestrator(
           : "E150-Orchestrator: Alle Provider fehlgeschlagen.";
     throw new OrchestratorAllFailedError(msg, {
       disabled: [...disabled, ...dynamicDisabled],
-      skipped,
+      skipped: [...skipped, ...dynamicSkipped],
       failedProviders,
-      providerMatrix: buildProviderMatrix(
-        providerOutcomes,
-        [...disabled, ...dynamicDisabled],
-        skipped,
-        probeResults.filter((p): p is ProbeResult => Boolean(p)),
-      ),
+      providerMatrix,
     });
   }
 
-  const best = winner ?? candidates[0];
+  const fallbackSet = new Set(executionFallback.map((profile) => profile.name));
+  const sortedCandidates = [...candidates].sort((a, b) => b.score - a.score);
+  const nonFallbackBest = sortedCandidates.find(
+    (candidate) => !fallbackSet.has(candidate.provider),
+  );
+  const best = nonFallbackBest ?? sortedCandidates[0];
+  const fallbackUsed = fallbackSet.has(best.provider);
+  const successfulProviders = providerOutcomes
+    .filter((outcome): outcome is ProviderSuccess => outcome.ok)
+    .map((outcome) => outcome.provider);
+  const failedProviderNames = providerOutcomes
+    .filter((outcome): outcome is ProviderFailure => !outcome.ok)
+    .map((outcome) => outcome.provider);
+  const disagreementPresent =
+    new Set(successfulProviders).size > 1 ||
+    (successfulProviders.length > 0 && failedProviderNames.length > 0);
 
   const telemetryEvents = providerOutcomes.map((outcome) => {
     const success = outcome.ok ? (outcome as ProviderSuccess) : null;
@@ -1704,18 +1749,12 @@ export async function callE150Orchestrator(
       durationMs: outcome.durationMs,
       tokensIn: success?.tokensIn,
       tokensOut: success?.tokensOut,
-      fallbackUsed: success ? success.provider !== best.provider : true,
+      fallbackUsed: success ? fallbackSet.has(success.provider) : fallbackExecuted,
       errorKind: failure?.errorKind ?? null,
     }).catch(() => {});
   });
   await Promise.all(telemetryEvents);
 
-  const providerMatrix = buildProviderMatrix(
-    providerOutcomes,
-    [...disabled, ...dynamicDisabled],
-    skipped,
-    probeResults.filter((p): p is ProbeResult => Boolean(p)),
-  );
   logProviderTelemetry(providerMatrix);
 
   return {
@@ -1723,13 +1762,31 @@ export async function callE150Orchestrator(
     best,
     candidates,
     meta: {
-      usedProviders: profiles.map((p) => p.name),
+      usedProviders: executedProviders,
       failedProviders,
       timings,
       disabledProviders: [...disabled, ...dynamicDisabled],
-      skippedProviders: skipped,
+      skippedProviders: [...skipped, ...dynamicSkipped],
       probes: probeResults.filter((p): p is ProbeResult => Boolean(p)),
       providerMatrix,
+      journeyProfile: journeyProfile.journey,
+      lane: journeyProfile.lane,
+      roleProviderMapping: {
+        primary: journeyProfile.primaryRoles as Record<string, readonly E150ProviderName[]>,
+        secondary: journeyProfile.secondaryRoles as Record<string, readonly E150ProviderName[]>,
+        fallback: journeyProfile.fallbackProviders as readonly E150ProviderName[],
+        openAiRoles: journeyProfile.openAiRoles,
+      },
+      fallbackUsed,
+      disagreement: {
+        present: disagreementPresent,
+        successfulProviders,
+        failedProviders: failedProviderNames,
+      },
+      verificationMode: journeyProfile.verificationDefaults.verificationMode,
+      researchUsed: journeyProfile.verificationDefaults.researchUsed,
+      sealEligible: journeyProfile.verificationDefaults.sealEligible,
+      sealGranted: journeyProfile.verificationDefaults.sealGranted,
     },
   };
 }
