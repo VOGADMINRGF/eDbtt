@@ -104,6 +104,40 @@ type GateState =
   | { status: "allowed"; entitlements: CreateEntitlements }
   | { status: "blocked"; entitlements: CreateEntitlements };
 
+type CreatePrimaryIntakeSnapshot = {
+  intakeText: string;
+  hasStarted: boolean;
+  updatedAt: string;
+};
+
+const CREATE_PRIMARY_INTAKE_STORAGE_KEY_PREFIX = "vog_create_primary_intake_v1";
+
+export function buildCreatePrimaryIntakeStorageKey(userId?: string | null): string {
+  const normalizedUserId = String(userId ?? "").trim() || "anon";
+  return `${CREATE_PRIMARY_INTAKE_STORAGE_KEY_PREFIX}:${normalizedUserId}`;
+}
+
+export function parseCreatePrimaryIntakeSnapshot(raw: string | null): CreatePrimaryIntakeSnapshot | null {
+  if (typeof raw !== "string" || !raw.trim()) return null;
+  try {
+    const parsed = JSON.parse(raw) as Partial<CreatePrimaryIntakeSnapshot>;
+    if (!parsed || typeof parsed !== "object") return null;
+    const intakeText = typeof parsed.intakeText === "string" ? parsed.intakeText : "";
+    const hasStarted = parsed.hasStarted === true;
+    if (!hasPrimaryIntakeText(intakeText) && !hasStarted) return null;
+    return {
+      intakeText,
+      hasStarted,
+      updatedAt:
+        typeof parsed.updatedAt === "string" && parsed.updatedAt.trim()
+          ? parsed.updatedAt
+          : new Date().toISOString(),
+    };
+  } catch {
+    return null;
+  }
+}
+
 function deriveUseCaseAccessForProductMode(
   productMode: CreateProductMode,
   text: OperatorCreateTexts,
@@ -292,14 +326,66 @@ export default function CreateClient({
     if (normalizeAnlassraumId(initialAnlassraumId)) return null;
     return text.selectionInfoInvalidContext;
   });
+  const intakeStorageKey = React.useMemo(
+    () => buildCreatePrimaryIntakeStorageKey(overview.userId),
+    [overview.userId],
+  );
+  const intakeRestoreInfoText =
+    surfaceLocale === "en"
+      ? "Your draft was restored from local browser storage."
+      : "Dein Entwurf wurde aus der lokalen Browser-Sicherung wiederhergestellt.";
   const contextLoadedRef = React.useRef(false);
+  const intakeHydratedRef = React.useRef(false);
   const [intakeText, setIntakeText] = React.useState(initialText ?? "");
   const [activeContextAnchorId, setActiveContextAnchorId] = React.useState<CreateIntent | null>(null);
   const [hasStarted, setHasStarted] = React.useState<boolean>(false);
+  const [analysisAutoRunToken, setAnalysisAutoRunToken] = React.useState<number>(0);
   const [intakeError, setIntakeError] = React.useState<string | null>(null);
+  const [intakeRestoreInfo, setIntakeRestoreInfo] = React.useState<string | null>(null);
   const [guidedBridgeAnswer, setGuidedBridgeAnswer] = React.useState("");
   const [guidedBridgeConfirmed, setGuidedBridgeConfirmed] = React.useState(false);
   const [guidedBridgeError, setGuidedBridgeError] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    if (intakeHydratedRef.current) return;
+    intakeHydratedRef.current = true;
+    try {
+      const snapshot = parseCreatePrimaryIntakeSnapshot(window.localStorage.getItem(intakeStorageKey));
+      if (!snapshot) return;
+
+      const hasServerPrefill = hasPrimaryIntakeText(initialText);
+      if (hasServerPrefill) return;
+
+      if (hasPrimaryIntakeText(snapshot.intakeText)) {
+        setIntakeText(snapshot.intakeText);
+        setIntakeRestoreInfo(intakeRestoreInfoText);
+      }
+      if (snapshot.hasStarted && hasPrimaryIntakeText(snapshot.intakeText)) {
+        setHasStarted(true);
+        setGuidedBridgeConfirmed(productMode !== "guided");
+      }
+    } catch {
+      // ignore local restore issues
+    }
+  }, [initialText, intakeRestoreInfoText, intakeStorageKey, productMode]);
+
+  React.useEffect(() => {
+    try {
+      if (!hasPrimaryIntakeText(intakeText) && !hasStarted) {
+        window.localStorage.removeItem(intakeStorageKey);
+        return;
+      }
+
+      const snapshot: CreatePrimaryIntakeSnapshot = {
+        intakeText,
+        hasStarted,
+        updatedAt: new Date().toISOString(),
+      };
+      window.localStorage.setItem(intakeStorageKey, JSON.stringify(snapshot));
+    } catch {
+      // ignore local draft persistence errors
+    }
+  }, [hasStarted, intakeStorageKey, intakeText]);
 
   React.useEffect(() => {
     let ignore = false;
@@ -417,10 +503,14 @@ export default function CreateClient({
       setIntakeError(surfaceTexts.intakeMissingError);
       return;
     }
+    setIntakeRestoreInfo(null);
     setIntakeError(null);
     setHasStarted(true);
     setGuidedBridgeConfirmed(productMode !== "guided");
     setGuidedBridgeError(null);
+    if (productMode !== "guided") {
+      setAnalysisAutoRunToken((current) => current + 1);
+    }
   }, [intakeText, productMode, surfaceTexts.intakeMissingError]);
 
   const handleGuidedBridgeConfirm = React.useCallback(() => {
@@ -521,6 +611,11 @@ export default function CreateClient({
         badge={surfaceTexts.badgeCanonical}
         subline={surfaceTexts.sublineCanonical}
         texts={surfaceComposerTexts}
+        topMeta={
+          intakeRestoreInfo ? (
+            <p className="max-w-2xl text-xs text-[rgb(var(--muted))]">{intakeRestoreInfo}</p>
+          ) : undefined
+        }
         modeOrder={CREATE_PRODUCT_MODES}
         modeDefinitions={surfaceModeDefinitions}
         activeMode={productMode}
@@ -537,6 +632,7 @@ export default function CreateClient({
         inputPlaceholder={intakePlaceholder}
         onInputChange={(value) => {
           setIntakeText(value);
+          if (intakeRestoreInfo) setIntakeRestoreInfo(null);
           if (intakeError) setIntakeError(null);
         }}
         onStart={handleStart}
@@ -747,6 +843,9 @@ export default function CreateClient({
           authorName={overview.displayName ?? overview.profile?.headline ?? ""}
           useCaseAccess={useCaseAccess}
           initialText={workspaceInitialText}
+          embeddedSingleIntake
+          syncTextFromParent
+          autoRunToken={analysisAutoRunToken}
           maxClaimsCap={maxClaimsCap}
           maxFinalizeClaims={maxFinalizeClaims}
           analysisEntryVariant="single_button"

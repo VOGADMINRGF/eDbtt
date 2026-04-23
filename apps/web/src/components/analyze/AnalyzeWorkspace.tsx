@@ -462,6 +462,9 @@ type AnalyzeWorkspaceProps = {
   maxFinalizeClaims?: number;
   analysisEntryVariant?: "use_case_cards" | "single_button";
   analysisModeHint?: CreateProductMode;
+  embeddedSingleIntake?: boolean;
+  syncTextFromParent?: boolean;
+  autoRunToken?: number;
 };
 
 const BASE_STEPS: AnalyzeStepState[] = [
@@ -471,6 +474,24 @@ const BASE_STEPS: AnalyzeStepState[] = [
   { key: "consequences", label: "Wirkung", state: "empty" },
   { key: "responsibility", label: "Zuständigkeit", state: "empty" },
 ];
+
+export function shouldRenderWorkspacePrimaryTextInput(params: {
+  embeddedSingleIntake?: boolean;
+}): boolean {
+  return params.embeddedSingleIntake !== true;
+}
+
+export function shouldTriggerEmbeddedAutoAnalyze(params: {
+  autoRunToken?: number;
+  lastHandledToken: number;
+  preparedText: string;
+}): boolean {
+  const nextToken = typeof params.autoRunToken === "number" ? params.autoRunToken : 0;
+  if (nextToken <= 0) return false;
+  if (nextToken === params.lastHandledToken) return false;
+  if (!params.preparedText.trim()) return false;
+  return true;
+}
 
 type DraftStorage = {
   text?: string;
@@ -836,6 +857,9 @@ export default function AnalyzeWorkspace({
   useCaseAccess,
   analysisEntryVariant = "use_case_cards",
   analysisModeHint,
+  embeddedSingleIntake,
+  syncTextFromParent,
+  autoRunToken,
 }: AnalyzeWorkspaceProps) {
   const router = useRouter();
   const { locale } = useLocale();
@@ -921,6 +945,9 @@ export default function AnalyzeWorkspace({
   const [flowInfo, setFlowInfo] = React.useState<string | null>(null);
   const [articleDraft, setArticleDraft] = React.useState<string>("");
   const [articleDraftEdited, setArticleDraftEdited] = React.useState(false);
+  const showWorkspacePrimaryInput = shouldRenderWorkspacePrimaryTextInput({
+    embeddedSingleIntake,
+  });
 
   const flowConfig = FLOW_OPTIONS.find((opt) => opt.id === flow) ?? FLOW_OPTIONS[0];
   const allowTrace = flowConfig.allowTrace;
@@ -1165,6 +1192,7 @@ export default function AnalyzeWorkspace({
   const researchCtrlRef = React.useRef<AbortController | null>(null);
   const researchKeyRef = React.useRef<string | null>(null);
   const researchRunRef = React.useRef(0);
+  const autoRunHandledTokenRef = React.useRef(0);
   const ctaRef = React.useRef<HTMLDivElement | null>(null);
   const workspaceRef = React.useRef<HTMLDivElement | null>(null);
   function makeKey(
@@ -1223,10 +1251,13 @@ export default function AnalyzeWorkspace({
         return;
       }
       const parsed = JSON.parse(raw) as DraftStorage;
-      if (parsed.text) {
+      const shouldHydrateTextFromStorage = !syncTextFromParent;
+      if (shouldHydrateTextFromStorage && parsed.text) {
         setText(parsed.text);
       } else if (initialText) {
         setText(initialText);
+      } else if (syncTextFromParent) {
+        setText("");
       }
       if (parsed.evidenceInput) setEvidenceInput(parsed.evidenceInput);
       if (parsed.draftId) setDraftId(parsed.draftId);
@@ -1239,7 +1270,12 @@ export default function AnalyzeWorkspace({
     } catch {
       // ignore
     }
-  }, [storageKey, initialText, allowedUseCases]);
+  }, [storageKey, initialText, allowedUseCases, syncTextFromParent]);
+
+  React.useEffect(() => {
+    if (!syncTextFromParent) return;
+    setText(initialText ?? "");
+  }, [initialText, syncTextFromParent]);
 
   React.useEffect(() => {
     try {
@@ -2040,6 +2076,20 @@ export default function AnalyzeWorkspace({
     viewLevel,
   ]);
 
+  React.useEffect(() => {
+    if (
+      !shouldTriggerEmbeddedAutoAnalyze({
+        autoRunToken,
+        lastHandledToken: autoRunHandledTokenRef.current,
+        preparedText,
+      })
+    ) {
+      return;
+    }
+    autoRunHandledTokenRef.current = Number(autoRunToken ?? 0);
+    void handleAnalyze();
+  }, [autoRunToken, handleAnalyze, preparedText]);
+
   const handleCreateCtaSelect = React.useCallback(
     (ctaId: CreateCtaHandoff["ctaId"]) => {
       if (!createAnalyze) return;
@@ -2358,24 +2408,32 @@ export default function AnalyzeWorkspace({
 
         <div className="max-w-4xl mx-auto space-y-5">
           <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm space-y-4">
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div>
-                <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Dein Text</h2>
-                <p className="text-[11px] text-[rgb(var(--muted))]">
-                  {flowIsLite
-                    ? "Kurz und klar. Wir nutzen nur deinen Text."
-                    : "Dieser Text bildet die Basis fuer Kernaussagen, Fragen und Wirkung."}
-                </p>
-              </div>
-            </div>
+            {showWorkspacePrimaryInput ? (
+              <>
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Dein Text</h2>
+                    <p className="text-[11px] text-[rgb(var(--muted))]">
+                      {flowIsLite
+                        ? "Kurz und klar. Wir nutzen nur deinen Text."
+                        : "Dieser Text bildet die Basis fuer Kernaussagen, Fragen und Wirkung."}
+                    </p>
+                  </div>
+                </div>
 
-            <HighlightedTextarea
-              value={text}
-              onChange={setText}
-              analyzing={analysisStatus === "running"}
-              rows={14}
-              readOnly={textLocked}
-            />
+                <HighlightedTextarea
+                  value={text}
+                  onChange={setText}
+                  analyzing={analysisStatus === "running"}
+                  rows={14}
+                  readOnly={textLocked}
+                />
+              </>
+            ) : (
+              <div className="rounded-xl border border-dashed border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-[11px] text-[rgb(var(--muted))]">
+                Primärer Input wird im oberen Composer geführt. Analyse und Speichern nutzen diesen Text.
+              </div>
+            )}
             <div className="rounded-xl border border-dashed border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-[11px] text-[rgb(var(--muted))]">
               Echtzeit-Feedback erscheint hier, sobald die Live-Analyse stabil verfuegbar ist.
             </div>
