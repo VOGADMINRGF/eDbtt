@@ -127,7 +127,6 @@ type ProviderHealthState = "healthy" | "degraded" | "unknown" | "down";
 
 type CancelReason =
   | "budget_abort"
-  | "winner_abort"
   | "outer_abort"
   | "aborted_before_start"
   | "probe_blocked";
@@ -1099,9 +1098,7 @@ async function runProvider(
       const message =
         abortReason === "budget_abort"
           ? `${profile.label} cancelled (budget)`
-          : abortReason === "winner_abort"
-            ? `${profile.label} cancelled (winner)`
-            : abortReason
+          : abortReason
               ? `${profile.label} cancelled (${abortReason})`
               : err?.name === "AbortError"
                 ? `${profile.label} timed out nach ${timeoutMs}ms`
@@ -1425,8 +1422,8 @@ function logProviderTelemetry(matrix: ProviderMatrixEntry[]) {
 /**
  * Orchestriert die E150-Analyse über mehrere Provider.
  *
- * Aktuell ist technisch nur OpenAI aktiv, die Struktur ist
- * jedoch von Anfang an auf Multi-Provider, Scoring und Health ausgelegt.
+ * Journey-Profile bestimmen Primary/Secondary/Fallback-Rollen.
+ * OpenAI bleibt im Zielmodell auf Fallback-/Presentation-Rollen begrenzt.
  */
 export async function callE150Orchestrator(
   args: E150OrchestratorArgs,

@@ -23,6 +23,7 @@ import {
   deriveVerificationLabel,
   type VerificationContract,
 } from "@features/ai/e150/verificationContract";
+import { resolveJourneyProfile } from "@features/ai/e150/roleRouting";
 import {
   buildSourceGroundingContext,
   finalizeSourceGroundingAudit,
@@ -175,6 +176,10 @@ export async function POST(req: NextRequest): Promise<Response> {
   const maxClaims = sanitizeMaxClaims(body.maxClaims);
   const text = body.text?.trim() || "";
   const analysisMode = body.analysisMode ?? "analyze";
+  const routeJourneyProfile = resolveJourneyProfile({
+    analysisMode,
+    routePath: "/api/contributions/analyze",
+  });
   const userId = req.cookies.get("u_id")?.value ?? null;
   const contributionId = resolveContributionId(body.contributionId, text);
   const sourceGrounding = buildSourceGroundingContext({
@@ -251,9 +256,14 @@ export async function POST(req: NextRequest): Promise<Response> {
           sealEligible: verification.sealEligible,
           sealGranted: verification.sealGranted,
           verificationLabel: deriveVerificationLabel(verification),
-          journeyProfile: (result as any)?._meta?.journeyProfile ?? "analyze",
-          lane: (result as any)?._meta?.lane ?? "standard",
-          roleProviderMapping: (result as any)?._meta?.roleProviderMapping ?? null,
+          journeyProfile: (result as any)?._meta?.journeyProfile ?? routeJourneyProfile.journey,
+          lane: (result as any)?._meta?.lane ?? routeJourneyProfile.lane,
+          roleProviderMapping: (result as any)?._meta?.roleProviderMapping ?? {
+            primary: routeJourneyProfile.primaryRoles,
+            secondary: routeJourneyProfile.secondaryRoles,
+            fallback: routeJourneyProfile.fallbackProviders,
+            openAiRoles: routeJourneyProfile.openAiRoles,
+          },
           fallbackUsed: (result as any)?._meta?.fallbackUsed ?? false,
           disagreement: (result as any)?._meta?.disagreement ?? {
             present: false,
@@ -323,9 +333,14 @@ export async function POST(req: NextRequest): Promise<Response> {
           sealEligible: verification.sealEligible,
           sealGranted: verification.sealGranted,
           verificationLabel: deriveVerificationLabel(verification),
-          journeyProfile: "analyze",
-          lane: "standard",
-          roleProviderMapping: null,
+          journeyProfile: routeJourneyProfile.journey,
+          lane: routeJourneyProfile.lane,
+          roleProviderMapping: {
+            primary: routeJourneyProfile.primaryRoles,
+            secondary: routeJourneyProfile.secondaryRoles,
+            fallback: routeJourneyProfile.fallbackProviders,
+            openAiRoles: routeJourneyProfile.openAiRoles,
+          },
           fallbackUsed: true,
           disagreement: {
             present: false,
@@ -428,9 +443,14 @@ export async function POST(req: NextRequest): Promise<Response> {
             sealEligible: verification.sealEligible,
             sealGranted: verification.sealGranted,
             verificationLabel: deriveVerificationLabel(verification),
-            journeyProfile: "analyze",
-            lane: "standard",
-            roleProviderMapping: null,
+            journeyProfile: routeJourneyProfile.journey,
+            lane: routeJourneyProfile.lane,
+            roleProviderMapping: {
+              primary: routeJourneyProfile.primaryRoles,
+              secondary: routeJourneyProfile.secondaryRoles,
+              fallback: routeJourneyProfile.fallbackProviders,
+              openAiRoles: routeJourneyProfile.openAiRoles,
+            },
             fallbackUsed: true,
             disagreement: {
               present: false,
