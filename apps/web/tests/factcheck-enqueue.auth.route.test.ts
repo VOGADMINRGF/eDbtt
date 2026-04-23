@@ -3,6 +3,8 @@ import { NextRequest } from "next/server";
 
 const mocks = vi.hoisted(() => ({
   loggerWarn: vi.fn(),
+  insertOne: vi.fn(),
+  callAriSearchSerp: vi.fn(),
 }));
 
 vi.mock("@core/observability/logger", () => ({
@@ -13,12 +15,24 @@ vi.mock("@core/observability/logger", () => ({
   },
 }));
 
+vi.mock("@features/factcheck/db", () => ({
+  factcheckJobsCol: vi.fn(async () => ({
+    insertOne: (...args: unknown[]) => mocks.insertOne(...args),
+  })),
+}));
+
+vi.mock("@features/ai/providers/ari_search", () => ({
+  callAriSearchSerp: (...args: unknown[]) => mocks.callAriSearchSerp(...args),
+}));
+
 import { POST as factcheckEnqueuePOST } from "@/app/api/factcheck/enqueue/route";
 
 describe("factcheck enqueue auth contract", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     delete process.env.INTERNAL_WORKER_TOKEN;
+    mocks.insertOne.mockResolvedValue({ acknowledged: true });
+    mocks.callAriSearchSerp.mockResolvedValue({ ok: true, results: [] });
   });
 
   it("blocks query role bypass and keeps denied audit structured", async () => {
@@ -69,5 +83,35 @@ describe("factcheck enqueue auth contract", () => {
     expect(res.status).toBe(400);
     const body = await res.json();
     expect(body?.code).toBe("MISSING_INPUT");
+  });
+
+  it("returns sealed factcheck contract fields for enqueue responses", async () => {
+    process.env.INTERNAL_WORKER_TOKEN = "system_secret";
+    const req = new NextRequest("http://localhost/api/factcheck/enqueue", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        authorization: "Bearer system_secret",
+        "x-internal-source": "factcheck_queue",
+        "x-internal-actor-kind": "queue_worker",
+      },
+      body: JSON.stringify({
+        text: "Belastbarer Ausgangstext",
+        claims: [{ text: "Claim A" }],
+        withSerp: false,
+      }),
+    });
+    const res = await factcheckEnqueuePOST(req);
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body?.ok).toBe(true);
+    expect(body?.verificationMode).toBe("sealed");
+    expect(body?.researchUsed).toBe("search");
+    expect(body?.sealEligible).toBe(true);
+    expect(body?.sealGranted).toBe(false);
+    expect(body?.verificationLabel).toBe("geprueft");
+    expect(body?.meta?.lane).toBe("sealed_factcheck");
+    expect(body?.meta?.journeyProfile).toBe("sealed_factcheck");
+    expect(body?.meta?.roleProviderMapping?.fallback).toEqual(["openai"]);
   });
 });

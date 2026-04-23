@@ -12,6 +12,8 @@ import {
   OrchestratorNoProviderError,
   OrchestratorAllFailedError,
 } from "@features/ai/orchestratorE150";
+import { resolveJourneyProfile } from "@features/ai/e150/roleRouting";
+import { deriveVerificationLabel } from "@features/ai/e150/verificationContract";
 import type { AiPipelineName } from "@core/telemetry/aiUsageTypes";
 import { EDITORIAL_DOMAIN_GUIDE } from "./domainLabels";
 export type { AnalyzeResult } from "./schemas";
@@ -21,6 +23,9 @@ export type AnalyzeInput = {
   locale?: string; // "de" | "en" | ...
   audienceRole?: "citizen" | "staff" | "institution";
   analysisMode?: "analyze" | "media" | "guided";
+  journeyHint?: "analyze" | "media" | "guided" | "sealed_factcheck";
+  routePath?: string;
+  sealedFactcheck?: boolean;
   sourceGroundingPromptAddon?: string | null;
   maxClaims?: number;
   pipeline?: AiPipelineName;
@@ -642,6 +647,25 @@ export type AnalyzeResultWithMeta = AnalyzeResult & {
     eventualitiesReviewed?: boolean;
     eventualitiesReviewedAt?: string | null;
     providerMatrix?: import("@features/ai/orchestratorE150").ProviderMatrixEntry[];
+    journeyProfile?: "analyze" | "media" | "guided" | "sealed_factcheck";
+    lane?: "standard" | "sealed_factcheck";
+    roleProviderMapping?: {
+      primary: Record<string, readonly ("openai" | "anthropic" | "mistral" | "gemini" | "ari")[]>;
+      secondary: Record<string, readonly ("openai" | "anthropic" | "mistral" | "gemini" | "ari")[]>;
+      fallback: readonly ("openai" | "anthropic" | "mistral" | "gemini" | "ari")[];
+      openAiRoles: readonly ("fallback" | "presentation_pass")[];
+    };
+    fallbackUsed?: boolean;
+    disagreement?: {
+      present: boolean;
+      successfulProviders: ("openai" | "anthropic" | "mistral" | "gemini" | "ari")[];
+      failedProviders: ("openai" | "anthropic" | "mistral" | "gemini" | "ari")[];
+    };
+    verificationMode?: "none" | "precheck" | "sealed";
+    researchUsed?: "none" | "lite" | "search" | "deep_search";
+    sealEligible?: boolean;
+    sealGranted?: boolean;
+    verificationLabel?: "analysiert" | "geprueft" | "verifiziert";
     trace?: { providerUsed?: string | null; jsonCoercion?: "none" | "fence" | "braces" | "backticks" | undefined };
   };
 };
@@ -659,6 +683,14 @@ export async function analyzeContribution(
     typeof input.maxClaims === "number" && input.maxClaims > 0
       ? Math.min(input.maxClaims, DEFAULT_MAX_CLAIMS)
       : DEFAULT_MAX_CLAIMS;
+  const journeyProfile = resolveJourneyProfile({
+    analysisMode: input.analysisMode ?? "analyze",
+    audienceRole: input.audienceRole ?? "citizen",
+    pipeline: input.pipeline ?? null,
+    routePath: input.routePath ?? null,
+    journeyHint: input.journeyHint ?? null,
+    sealedFactcheck: input.sealedFactcheck === true,
+  });
 
   let orchestration;
   try {
@@ -671,6 +703,8 @@ export async function analyzeContribution(
         input.analysisMode ?? "analyze",
         input.sourceGroundingPromptAddon ?? null,
       ),
+      journey: journeyProfile.journey,
+      journeyProfile,
       locale: language,
       audienceRole: input.audienceRole ?? "citizen",
       maxClaims,
@@ -952,7 +986,36 @@ throw e;
     costEur: orchestration.best?.costEur ?? 0,
     pipeline: input.pipeline ?? "contribution_analyze",
     providerMatrix: orchestration.meta.providerMatrix,
-    trace: { providerUsed: orchestration.best?.provider ?? orchestration.best?.providerId, jsonCoercion },
+    journeyProfile: orchestration.meta.journeyProfile ?? journeyProfile.journey,
+    lane: orchestration.meta.lane ?? journeyProfile.lane,
+    roleProviderMapping: orchestration.meta.roleProviderMapping ?? {
+      primary: journeyProfile.primaryRoles,
+      secondary: journeyProfile.secondaryRoles,
+      fallback: journeyProfile.fallbackProviders,
+      openAiRoles: journeyProfile.openAiRoles,
+    },
+    fallbackUsed: orchestration.meta.fallbackUsed ?? false,
+    disagreement: orchestration.meta.disagreement ?? {
+      present: false,
+      successfulProviders: [],
+      failedProviders: [],
+    },
+    verificationMode:
+      orchestration.meta.verificationMode ?? journeyProfile.verificationDefaults.verificationMode,
+    researchUsed:
+      orchestration.meta.researchUsed ?? journeyProfile.verificationDefaults.researchUsed,
+    sealEligible:
+      orchestration.meta.sealEligible ?? journeyProfile.verificationDefaults.sealEligible,
+    sealGranted:
+      orchestration.meta.sealGranted ?? journeyProfile.verificationDefaults.sealGranted,
+    verificationLabel: deriveVerificationLabel({
+      verificationMode:
+        orchestration.meta.verificationMode ??
+        journeyProfile.verificationDefaults.verificationMode,
+      sealGranted:
+        orchestration.meta.sealGranted ?? journeyProfile.verificationDefaults.sealGranted,
+    }),
+    trace: { providerUsed: orchestration.best?.provider ?? null, jsonCoercion },
   };
 
   const finalResult: AnalyzeResult = {

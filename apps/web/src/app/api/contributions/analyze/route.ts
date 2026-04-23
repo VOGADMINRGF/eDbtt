@@ -19,6 +19,11 @@ import type { ProviderMatrixEntry } from "@features/ai/orchestratorE150";
 import type { AiErrorKind } from "@core/telemetry/aiUsageTypes";
 import { buildHeuristicAnalyzeResult } from "@features/analyze/heuristics";
 import {
+  buildStandardLaneContract,
+  deriveVerificationLabel,
+  type VerificationContract,
+} from "@features/ai/e150/verificationContract";
+import {
   buildSourceGroundingContext,
   finalizeSourceGroundingAudit,
   type SourceGroundingContext,
@@ -201,6 +206,7 @@ export async function POST(req: NextRequest): Promise<Response> {
   try {
     const result = await withHardTimeout(runAnalyzeJob(analyzeInput), ANALYZE_HARD_TIMEOUT_MS);
     await finalizeResultPayload(result, analyzeInput);
+    const verification = resolveAnalyzeVerificationContract(result, analysisMode);
     const sourceGroundingAudit = finalizeSourceGroundingAudit({
       context: analyzeInput.sourceGrounding,
       result: toSourceGroundingResultInput(result),
@@ -232,9 +238,28 @@ export async function POST(req: NextRequest): Promise<Response> {
         ok: true,
         result,
         createAnalyze,
+        verificationMode: verification.verificationMode,
+        researchUsed: verification.researchUsed,
+        sealEligible: verification.sealEligible,
+        sealGranted: verification.sealGranted,
+        verificationLabel: deriveVerificationLabel(verification),
         meta: {
           runId,
           providerMatrix,
+          verificationMode: verification.verificationMode,
+          researchUsed: verification.researchUsed,
+          sealEligible: verification.sealEligible,
+          sealGranted: verification.sealGranted,
+          verificationLabel: deriveVerificationLabel(verification),
+          journeyProfile: (result as any)?._meta?.journeyProfile ?? "analyze",
+          lane: (result as any)?._meta?.lane ?? "standard",
+          roleProviderMapping: (result as any)?._meta?.roleProviderMapping ?? null,
+          fallbackUsed: (result as any)?._meta?.fallbackUsed ?? false,
+          disagreement: (result as any)?._meta?.disagreement ?? {
+            present: false,
+            successfulProviders: [],
+            failedProviders: [],
+          },
           sourceGrounding: sourceGroundingAudit,
         },
       },
@@ -261,6 +286,7 @@ export async function POST(req: NextRequest): Promise<Response> {
         context: analyzeInput.sourceGrounding,
         result: toSourceGroundingResultInput(fallback),
       });
+      const verification = resolveAnalyzeVerificationContract(fallback, analysisMode);
       const createMatch = await resolveCreateMatchesSafe({
         text,
         normalizedInputSummary: summarizeCreateAnalyzeInput(text),
@@ -285,8 +311,27 @@ export async function POST(req: NextRequest): Promise<Response> {
         message: normalized.message,
         result: fallback,
         createAnalyze,
+        verificationMode: verification.verificationMode,
+        researchUsed: verification.researchUsed,
+        sealEligible: verification.sealEligible,
+        sealGranted: verification.sealGranted,
+        verificationLabel: deriveVerificationLabel(verification),
         meta: {
           runId,
+          verificationMode: verification.verificationMode,
+          researchUsed: verification.researchUsed,
+          sealEligible: verification.sealEligible,
+          sealGranted: verification.sealGranted,
+          verificationLabel: deriveVerificationLabel(verification),
+          journeyProfile: "analyze",
+          lane: "standard",
+          roleProviderMapping: null,
+          fallbackUsed: true,
+          disagreement: {
+            present: false,
+            successfulProviders: [],
+            failedProviders: [],
+          },
           sourceGrounding: sourceGroundingAudit,
         },
       });
@@ -357,6 +402,7 @@ export async function POST(req: NextRequest): Promise<Response> {
         context: analyzeInput.sourceGrounding,
         result: toSourceGroundingResultInput(degradedResult),
       });
+      const verification = resolveAnalyzeVerificationContract(degradedResult, analysisMode);
 
       return NextResponse.json(
         {
@@ -365,6 +411,11 @@ export async function POST(req: NextRequest): Promise<Response> {
           warning: "KI temporär nicht erreichbar; Analyse wird später erneut versucht.",
           result: degradedResult,
           createAnalyze,
+          verificationMode: verification.verificationMode,
+          researchUsed: verification.researchUsed,
+          sealEligible: verification.sealEligible,
+          sealGranted: verification.sealGranted,
+          verificationLabel: deriveVerificationLabel(verification),
           meta: {
             runId,
             providerMatrix,
@@ -372,6 +423,20 @@ export async function POST(req: NextRequest): Promise<Response> {
             disabledProviders: meta?.disabledProviders ?? meta?.disabled ?? [],
             skippedProviders: meta?.skippedProviders ?? meta?.skipped ?? [],
             probes: meta?.probes ?? [],
+            verificationMode: verification.verificationMode,
+            researchUsed: verification.researchUsed,
+            sealEligible: verification.sealEligible,
+            sealGranted: verification.sealGranted,
+            verificationLabel: deriveVerificationLabel(verification),
+            journeyProfile: "analyze",
+            lane: "standard",
+            roleProviderMapping: null,
+            fallbackUsed: true,
+            disagreement: {
+              present: false,
+              successfulProviders: [],
+              failedProviders: [],
+            },
             sourceGrounding: sourceGroundingAudit,
           },
         },
@@ -450,9 +515,28 @@ async function runAnalyzeJob(input: AnalyzeJobInput): Promise<AnalyzeResultWithM
     maxClaims: input.maxClaims,
     audienceRole: resolveAnalyzeAudienceRole(input.analysisMode),
     analysisMode: input.analysisMode,
+    routePath: "/api/contributions/analyze",
     sourceGroundingPromptAddon: input.sourceGrounding.promptAddon,
   });
   return finalizeAnalyzeResult(analyzed);
+}
+
+function resolveAnalyzeVerificationContract(
+  result: AnalyzeResultWithMeta,
+  analysisMode: CreateProductMode,
+): VerificationContract {
+  const meta = (result as any)?._meta ?? {};
+  const modeFromMeta = meta?.verificationMode;
+  const verificationMode: "none" | "precheck" =
+    modeFromMeta === "none" || modeFromMeta === "precheck"
+      ? modeFromMeta
+      : analysisMode === "analyze"
+        ? "none"
+        : "precheck";
+
+  return buildStandardLaneContract({
+    verificationMode,
+  });
 }
 
 async function finalizeResultPayload(

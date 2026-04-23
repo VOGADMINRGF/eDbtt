@@ -221,6 +221,15 @@ describe("/api/contributions/analyze create orchestration envelope", () => {
     expect(body.createAnalyze.noSilentMerge).toBe(true);
     expect(body.createAnalyze.phases.intake.status).toBe("done");
     expect(Array.isArray(body.createAnalyze.suggestedCtas)).toBe(true);
+    expect(body.verificationMode).toBe("none");
+    expect(body.researchUsed).toBe("none");
+    expect(body.sealEligible).toBe(false);
+    expect(body.sealGranted).toBe(false);
+    expect(body.verificationLabel).toBe("analysiert");
+    expect(body.meta?.journeyProfile).toBe("analyze");
+    expect(body.meta?.lane).toBe("standard");
+    expect(body.meta?.fallbackUsed).toBe(false);
+    expect(body.meta?.disagreement?.present).toBe(false);
     expect(mocks.resolveCreateGraphMatches).toHaveBeenCalledTimes(1);
   });
 

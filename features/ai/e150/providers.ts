@@ -1,7 +1,7 @@
 // features/ai/e150/providers.ts
 import type { AiProviderName } from "@core/telemetry/aiUsageTypes";
 
-const DEFAULT_ALLOW = ["openai", "mistral", "gemini"] as const;
+const DEFAULT_ALLOW = ["openai", "anthropic", "mistral", "gemini", "ari"] as const;
 const ALLOWLIST: Set<AiProviderName> = (() => {
   const env = process.env.E150_PROVIDER_ALLOWLIST;
   if (env && typeof env === "string") {

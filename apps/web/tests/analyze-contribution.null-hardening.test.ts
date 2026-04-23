@@ -45,6 +45,55 @@ describe("analyzeContribution null hardening", () => {
     vi.clearAllMocks();
   });
 
+  it("uses standard journey specialist routing without OpenAI in primary providers", async () => {
+    mocks.callE150Orchestrator.mockResolvedValue(
+      orchestratorResult({
+        claims: [{ id: "claim-1", text: "Ein pruefbarer Beitragstext." }],
+      }),
+    );
+
+    await analyzeContribution({
+      text: "Das ist ein laengerer Beitragstext mit genug Kontext.",
+      locale: "de",
+      analysisMode: "guided",
+      audienceRole: "institution",
+    });
+
+    const args = mocks.callE150Orchestrator.mock.calls[0]?.[0] as any;
+    expect(args?.journey).toBe("guided");
+    expect(args?.journeyProfile?.lane).toBe("standard");
+    expect(Object.values(args?.journeyProfile?.primaryRoles ?? {}).flat()).not.toContain("openai");
+    expect(args?.journeyProfile?.fallbackProviders).toEqual(["openai"]);
+    expect(args?.journeyProfile?.openAiRoles).toEqual(["fallback", "presentation_pass"]);
+  });
+
+  it("routes factcheck contexts into sealed_factcheck defaults", async () => {
+    mocks.callE150Orchestrator.mockResolvedValue(
+      orchestratorResult({
+        claims: [{ id: "claim-1", text: "Factcheck-Claim." }],
+      }),
+    );
+
+    const result = await analyzeContribution({
+      text: "Pruefbarer Factcheck-Ausgangstext mit Kontext.",
+      locale: "de",
+      pipeline: "factcheck" as any,
+      journeyHint: "sealed_factcheck",
+      sealedFactcheck: true,
+      audienceRole: "staff",
+    });
+
+    const args = mocks.callE150Orchestrator.mock.calls[0]?.[0] as any;
+    expect(args?.journey).toBe("sealed_factcheck");
+    expect(args?.journeyProfile?.lane).toBe("sealed_factcheck");
+    expect(args?.journeyProfile?.verificationDefaults?.verificationMode).toBe("sealed");
+    expect(args?.journeyProfile?.verificationDefaults?.researchUsed).toBe("search");
+    expect(result?._meta?.verificationMode).toBe("sealed");
+    expect(result?._meta?.researchUsed).toBe("search");
+    expect(result?._meta?.sealEligible).toBe(true);
+    expect(result?._meta?.sealGranted).toBe(false);
+  });
+
   it("normalizes null-heavy AI payloads before strict AnalyzeResultSchema validation", async () => {
     mocks.callE150Orchestrator.mockResolvedValue(
       orchestratorResult({
