@@ -5,6 +5,8 @@ import {
   deriveSourceGroundingUiHint,
   deriveCreateAnalyzeRoutingHint,
   resolveFinalizeRedirectTarget,
+  shouldRenderWorkspacePrimaryTextInput,
+  shouldTriggerEmbeddedAutoAnalyze,
 } from "@/components/analyze/AnalyzeWorkspace";
 import {
   buildFinalizeFallbackPath,
@@ -429,5 +431,42 @@ describe("create analyze workspace UI helpers", () => {
         fallbackReturnTo: "/runden?view=results",
       }),
     ).toBe("/runden?view=results");
+  });
+
+  it("hides the workspace primary text input in embedded single-intake mode", () => {
+    expect(
+      shouldRenderWorkspacePrimaryTextInput({
+        embeddedSingleIntake: true,
+      }),
+    ).toBe(false);
+    expect(
+      shouldRenderWorkspacePrimaryTextInput({
+        embeddedSingleIntake: false,
+      }),
+    ).toBe(true);
+  });
+
+  it("triggers embedded auto-analyze only on fresh token with non-empty prepared text", () => {
+    expect(
+      shouldTriggerEmbeddedAutoAnalyze({
+        autoRunToken: 2,
+        lastHandledToken: 1,
+        preparedText: "Neuer Start aus Composer",
+      }),
+    ).toBe(true);
+    expect(
+      shouldTriggerEmbeddedAutoAnalyze({
+        autoRunToken: 2,
+        lastHandledToken: 2,
+        preparedText: "Neuer Start aus Composer",
+      }),
+    ).toBe(false);
+    expect(
+      shouldTriggerEmbeddedAutoAnalyze({
+        autoRunToken: 3,
+        lastHandledToken: 2,
+        preparedText: "   ",
+      }),
+    ).toBe(false);
   });
 });
