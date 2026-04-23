@@ -42,7 +42,7 @@ export default function AdminReportAssetsPage() {
 
   useEffect(() => {
     const qParam = searchParams.get("q") ?? "";
-    if (qParam) setQuery(qParam);
+    setQuery((prev) => (prev === qParam ? prev : qParam));
   }, [searchParams]);
 
   useEffect(() => {

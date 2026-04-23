@@ -4,11 +4,13 @@ export type StatusReportCheckStatus = (typeof STATUS_REPORT_CHECK_STATUS_VALUES)
 export const STATUS_REPORT_OVERALL_STATUS_VALUES = ["green", "yellow", "red"] as const;
 export type StatusReportOverallStatus = (typeof STATUS_REPORT_OVERALL_STATUS_VALUES)[number];
 
-export const STATUS_REPORT_SCHEDULED_SLOT_VALUES = ["05:00", "17:00"] as const;
-export type ScheduledStatusReportSlot = (typeof STATUS_REPORT_SCHEDULED_SLOT_VALUES)[number];
+export const STATUS_REPORT_DEFAULT_SCHEDULED_SLOT_VALUES = ["05:00", "17:00"] as const;
+export type ScheduledStatusReportSlot = `${number}${number}:${number}${number}`;
 
-export const STATUS_REPORT_SLOT_VALUES = [...STATUS_REPORT_SCHEDULED_SLOT_VALUES, "manual"] as const;
-export type StatusReportSlot = (typeof STATUS_REPORT_SLOT_VALUES)[number];
+export const STATUS_REPORT_MANUAL_RUN_TYPE_VALUES = ["full", "health_only"] as const;
+export type StatusReportManualRunType = (typeof STATUS_REPORT_MANUAL_RUN_TYPE_VALUES)[number];
+
+export type StatusReportSlot = ScheduledStatusReportSlot | "manual";
 
 export type StatusReportCheck = {
   key: string;
@@ -84,6 +86,23 @@ export function deriveOverallStatusFromTotals(
   return "green";
 }
 
-export function isScheduledStatusReportSlot(value: string): value is ScheduledStatusReportSlot {
-  return STATUS_REPORT_SCHEDULED_SLOT_VALUES.includes(value as ScheduledStatusReportSlot);
+function isSlotFormat(value: string): value is ScheduledStatusReportSlot {
+  if (!/^\d{2}:\d{2}$/.test(value)) return false;
+  const [hourRaw, minuteRaw] = value.split(":");
+  const hour = Number(hourRaw);
+  const minute = Number(minuteRaw);
+  if (!Number.isInteger(hour) || !Number.isInteger(minute)) return false;
+  if (hour < 0 || hour > 23) return false;
+  if (minute < 0 || minute > 59) return false;
+  return true;
+}
+
+export function isScheduledStatusReportSlot(
+  value: string,
+  allowedSlots?: readonly ScheduledStatusReportSlot[],
+): value is ScheduledStatusReportSlot {
+  const normalized = value.trim();
+  if (!isSlotFormat(normalized)) return false;
+  if (!allowedSlots || allowedSlots.length === 0) return true;
+  return allowedSlots.includes(normalized);
 }

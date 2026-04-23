@@ -2,10 +2,15 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireAdminOrResponse } from "@/lib/server/auth/admin";
 import {
   isScheduledStatusReportSlot,
+  STATUS_REPORT_MANUAL_RUN_TYPE_VALUES,
+  type StatusReportManualRunType,
+} from "@/features/ops/statusReport/contracts";
+import { readStatusReportConfig } from "@/features/ops/statusReport/config";
+import {
   listStatusReportRuns,
   runManualStatusReportNow,
   runScheduledStatusReportSlot,
-} from "@/features/ops/statusReport";
+} from "@/features/ops/statusReport/run";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -31,17 +36,29 @@ export async function POST(req: NextRequest) {
 
   const body = await req.json().catch(() => ({}));
   const rawSlot = typeof body?.slot === "string" ? body.slot.trim() : "";
+  const runTypeRaw = typeof body?.runType === "string" ? body.runType.trim() : "";
+  const runType: StatusReportManualRunType = runTypeRaw
+    ? (runTypeRaw as StatusReportManualRunType)
+    : "full";
+  const config = readStatusReportConfig();
 
-  if (rawSlot && !isScheduledStatusReportSlot(rawSlot)) {
+  if (runTypeRaw && !STATUS_REPORT_MANUAL_RUN_TYPE_VALUES.includes(runType)) {
     return NextResponse.json(
-      { ok: false, error: "invalid_slot", expected: ["05:00", "17:00"] },
+      { ok: false, error: "invalid_run_type", expected: STATUS_REPORT_MANUAL_RUN_TYPE_VALUES },
+      { status: 400 },
+    );
+  }
+
+  if (rawSlot && !isScheduledStatusReportSlot(rawSlot, config.scheduleSlots)) {
+    return NextResponse.json(
+      { ok: false, error: "invalid_slot", expected: config.scheduleSlots },
       { status: 400 },
     );
   }
 
   const result = rawSlot
     ? await runScheduledStatusReportSlot({ slot: rawSlot })
-    : await runManualStatusReportNow();
+    : await runManualStatusReportNow({ runType });
 
   return NextResponse.json({ ok: result.ok, skipped: result.skipped, reason: result.reason, run: result.run });
 }
