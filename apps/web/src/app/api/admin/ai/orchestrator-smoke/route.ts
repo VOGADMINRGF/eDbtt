@@ -41,6 +41,7 @@ type ProviderSmokeResult = {
   errorKind: string | null;
   status: number | null;
   reason: string | null;
+  errorMessage: string | null;
   model: string | null;
   formatUsed: "json_schema" | "json_object" | null;
   didFallback: boolean | null;
@@ -106,6 +107,7 @@ function mapProviderMatrixEntry(entry: ProviderMatrixEntry): ProviderSmokeResult
     errorKind: entry.errorKind ?? null,
     status: typeof entry.status === "number" ? entry.status : null,
     reason: entry.reason ?? null,
+    errorMessage: entry.reason ?? null,
     model: entry.model ?? null,
     formatUsed: entry.formatUsed ?? null,
     didFallback: typeof entry.didFallback === "boolean" ? entry.didFallback : null,
@@ -133,6 +135,7 @@ function buildProviderResultsFromMeta(
       errorKind: null,
       status: null,
       reason: errorMessage || "orchestrator_failed_without_provider_matrix",
+      errorMessage: errorMessage || "orchestrator_failed_without_provider_matrix",
       model: null,
       formatUsed: null,
       didFallback: null,
@@ -147,6 +150,7 @@ function buildProviderResultsFromMeta(
       ...byProvider.get(item.provider)!,
       state: "disabled",
       reason: item.reason ?? "disabled",
+      errorMessage: item.reason ?? "disabled",
     });
   }
   for (const item of meta?.skippedProviders ?? []) {
@@ -155,14 +159,17 @@ function buildProviderResultsFromMeta(
       ...byProvider.get(item.provider)!,
       state: "skipped",
       reason: item.reason ?? "skipped",
+      errorMessage: item.reason ?? "skipped",
     });
   }
   for (const item of meta?.failedProviders ?? []) {
     if (!byProvider.has(item.provider)) continue;
+    const nextReason = item.error ?? byProvider.get(item.provider)!.reason;
     byProvider.set(item.provider, {
       ...byProvider.get(item.provider)!,
       state: "failed",
-      reason: item.error ?? byProvider.get(item.provider)!.reason,
+      reason: nextReason,
+      errorMessage: nextReason,
       errorKind: item.errorKind ?? null,
     });
   }
@@ -383,6 +390,7 @@ async function runFullSmoke() {
         state: "failed",
         ok: false,
         reason: "candidate_missing_for_ok_provider",
+        errorMessage: "candidate_missing_for_ok_provider",
       } satisfies ProviderSmokeResult;
     }
     const validation = validateOrchestratorCandidate(candidate.rawText);
@@ -392,6 +400,7 @@ async function runFullSmoke() {
       state: "failed",
       ok: false,
       reason: validation.message ?? "invalid_json_shape",
+      errorMessage: validation.message ?? "invalid_json_shape",
     } satisfies ProviderSmokeResult;
   });
 

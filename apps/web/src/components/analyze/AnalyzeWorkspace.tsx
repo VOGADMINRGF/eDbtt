@@ -493,6 +493,12 @@ export function shouldTriggerEmbeddedAutoAnalyze(params: {
   return true;
 }
 
+export function shouldHydrateDraftIdentityFromStorage(params: {
+  syncTextFromParent?: boolean;
+}): boolean {
+  return params.syncTextFromParent !== true;
+}
+
 type DraftStorage = {
   text?: string;
   draftId?: string | null;
@@ -1248,10 +1254,18 @@ export default function AnalyzeWorkspace({
       const raw = window.localStorage.getItem(storageKey);
       if (!raw) {
         if (initialText) setText(initialText);
+        if (!shouldHydrateDraftIdentityFromStorage({ syncTextFromParent })) {
+          setDraftId(null);
+          setLocalDraftId(null);
+          setSavedAt(null);
+        }
         return;
       }
       const parsed = JSON.parse(raw) as DraftStorage;
       const shouldHydrateTextFromStorage = !syncTextFromParent;
+      const shouldHydrateDraftIdentity = shouldHydrateDraftIdentityFromStorage({
+        syncTextFromParent,
+      });
       if (shouldHydrateTextFromStorage && parsed.text) {
         setText(parsed.text);
       } else if (initialText) {
@@ -1260,9 +1274,15 @@ export default function AnalyzeWorkspace({
         setText("");
       }
       if (parsed.evidenceInput) setEvidenceInput(parsed.evidenceInput);
-      if (parsed.draftId) setDraftId(parsed.draftId);
-      if (parsed.localDraftId) setLocalDraftId(parsed.localDraftId);
-      if (parsed.savedAt) setSavedAt(parsed.savedAt);
+      if (shouldHydrateDraftIdentity) {
+        if (parsed.draftId) setDraftId(parsed.draftId);
+        if (parsed.localDraftId) setLocalDraftId(parsed.localDraftId);
+        if (parsed.savedAt) setSavedAt(parsed.savedAt);
+      } else {
+        setDraftId(null);
+        setLocalDraftId(null);
+        setSavedAt(null);
+      }
       if (parsed.authorName) setAuthorName(parsed.authorName);
       if (parsed.useCase && allowedUseCases.includes(parsed.useCase)) {
         setUseCase(parsed.useCase);

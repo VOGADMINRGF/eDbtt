@@ -5,6 +5,7 @@ import {
   deriveSourceGroundingUiHint,
   deriveCreateAnalyzeRoutingHint,
   resolveFinalizeRedirectTarget,
+  shouldHydrateDraftIdentityFromStorage,
   shouldRenderWorkspacePrimaryTextInput,
   shouldTriggerEmbeddedAutoAnalyze,
 } from "@/components/analyze/AnalyzeWorkspace";
@@ -468,5 +469,18 @@ describe("create analyze workspace UI helpers", () => {
         preparedText: "   ",
       }),
     ).toBe(false);
+  });
+
+  it("does not hydrate persisted draft identifiers when text is parent-synced", () => {
+    expect(
+      shouldHydrateDraftIdentityFromStorage({
+        syncTextFromParent: true,
+      }),
+    ).toBe(false);
+    expect(
+      shouldHydrateDraftIdentityFromStorage({
+        syncTextFromParent: false,
+      }),
+    ).toBe(true);
   });
 });

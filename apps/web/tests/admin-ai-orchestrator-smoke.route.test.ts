@@ -78,6 +78,11 @@ describe("/api/admin/ai/orchestrator-smoke", () => {
       "disabled",
       "skipped",
     ]);
+    expect(body.results.map((entry: any) => entry.errorMessage)).toEqual([
+      "timeout",
+      "disabled_by_env",
+      "quota_guard",
+    ]);
     expect(body.createAnalyzeApi).toMatchObject({
       state: "skipped",
       reason: "full_mode_only",
