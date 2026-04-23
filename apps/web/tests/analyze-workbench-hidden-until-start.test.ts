@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
+  buildCreatePrimaryIntakeStorageKey,
   buildGuidedWorkspaceText,
+  parseCreatePrimaryIntakeSnapshot,
   shouldRenderCreateAnalyzeWorkspace,
   shouldShowCreatePostInputModules,
 } from "@/app/create/CreateClient";
@@ -65,5 +67,34 @@ describe("analyze workbench progressive disclosure", () => {
         guidedWorkspacePrefix: "Guided focus",
       }),
     ).toContain("Guided focus");
+  });
+
+  it("uses stable per-user local draft keys for primary intake persistence", () => {
+    expect(buildCreatePrimaryIntakeStorageKey("user-1")).toBe("vog_create_primary_intake_v1:user-1");
+    expect(buildCreatePrimaryIntakeStorageKey("")).toBe("vog_create_primary_intake_v1:anon");
+    expect(buildCreatePrimaryIntakeStorageKey(null)).toBe("vog_create_primary_intake_v1:anon");
+  });
+
+  it("parses valid primary intake snapshots and ignores empty/no-op payloads", () => {
+    const parsed = parseCreatePrimaryIntakeSnapshot(
+      JSON.stringify({
+        intakeText: "Beitrag bleibt erhalten",
+        hasStarted: true,
+        updatedAt: "2026-04-22T10:00:00.000Z",
+      }),
+    );
+    expect(parsed).toMatchObject({
+      intakeText: "Beitrag bleibt erhalten",
+      hasStarted: true,
+      updatedAt: "2026-04-22T10:00:00.000Z",
+    });
+
+    const ignored = parseCreatePrimaryIntakeSnapshot(
+      JSON.stringify({
+        intakeText: "   ",
+        hasStarted: false,
+      }),
+    );
+    expect(ignored).toBeNull();
   });
 });
