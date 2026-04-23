@@ -22,6 +22,18 @@ describe("status-report-scheduler.contract", () => {
     expect(due).toEqual([]);
   });
 
+  it("treats late-night slots as due across midnight within grace window", () => {
+    expect(resolveDueScheduledSlots(new Date("2026-04-23T23:58:00.000Z"), "UTC", 20, ["23:55"])).toEqual([
+      "23:55",
+    ]);
+    expect(resolveDueScheduledSlots(new Date("2026-04-24T00:05:00.000Z"), "UTC", 20, ["23:55"])).toEqual([
+      "23:55",
+    ]);
+    expect(resolveDueScheduledSlots(new Date("2026-04-24T00:20:00.000Z"), "UTC", 20, ["23:55"])).toEqual(
+      [],
+    );
+  });
+
   it("keeps instrumentation scheduler free from static run imports", () => {
     const source = fs.readFileSync(
       path.resolve(process.cwd(), "src/features/ops/statusReport/scheduler.ts"),

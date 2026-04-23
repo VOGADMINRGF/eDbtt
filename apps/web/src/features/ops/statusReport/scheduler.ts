@@ -49,12 +49,19 @@ export function resolveDueScheduledSlots(
   graceMinutes: number,
   slots: readonly ScheduledStatusReportSlot[],
 ): ScheduledStatusReportSlot[] {
+  const MINUTES_PER_DAY = 24 * 60;
   const { hour, minute } = parseClockInTimezone(now, timezone);
   const currentMinutes = hour * 60 + minute;
 
   return slots.filter((slot) => {
     const slotMinutes = slotToMinutes(slot);
-    return currentMinutes >= slotMinutes && currentMinutes < slotMinutes + graceMinutes;
+    const endMinutes = slotMinutes + graceMinutes;
+    if (endMinutes <= MINUTES_PER_DAY) {
+      return currentMinutes >= slotMinutes && currentMinutes < endMinutes;
+    }
+
+    const wrappedEndMinutes = endMinutes % MINUTES_PER_DAY;
+    return currentMinutes >= slotMinutes || currentMinutes < wrappedEndMinutes;
   });
 }
 

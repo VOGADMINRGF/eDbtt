@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 const KIND_OPTIONS = ["topic", "region", "custom"] as const;
 const STATUS_OPTIONS = ["draft", "review", "published", "archived"] as const;
@@ -26,6 +26,7 @@ type AssetResponse = {
 
 export default function AdminReportAssetsPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [kind, setKind] = useState("all");
   const [status, setStatus] = useState("all");
   const [query, setQuery] = useState("");
@@ -40,10 +41,9 @@ export default function AdminReportAssetsPage() {
   const [createSlug, setCreateSlug] = useState("");
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
-    const qParam = new URLSearchParams(window.location.search).get("q") ?? "";
-    if (qParam) setQuery(qParam);
-  }, []);
+    const qParam = searchParams.get("q") ?? "";
+    setQuery((prev) => (prev === qParam ? prev : qParam));
+  }, [searchParams]);
 
   useEffect(() => {
     let active = true;
