@@ -1,3 +1,5 @@
+import fs from "node:fs";
+import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { resolveDueScheduledSlots } from "@/features/ops/statusReport/scheduler";
 
@@ -18,5 +20,25 @@ describe("status-report-scheduler.contract", () => {
     const now = new Date("2026-04-19T12:30:00.000Z");
     const due = resolveDueScheduledSlots(now, "Europe/Berlin", 20, ["05:00", "17:00"]);
     expect(due).toEqual([]);
+  });
+
+  it("treats late-night slots as due across midnight within grace window", () => {
+    expect(resolveDueScheduledSlots(new Date("2026-04-23T23:58:00.000Z"), "UTC", 20, ["23:55"])).toEqual([
+      "23:55",
+    ]);
+    expect(resolveDueScheduledSlots(new Date("2026-04-24T00:05:00.000Z"), "UTC", 20, ["23:55"])).toEqual([
+      "23:55",
+    ]);
+    expect(resolveDueScheduledSlots(new Date("2026-04-24T00:20:00.000Z"), "UTC", 20, ["23:55"])).toEqual(
+      [],
+    );
+  });
+
+  it("keeps instrumentation scheduler free from static run imports", () => {
+    const source = fs.readFileSync(
+      path.resolve(process.cwd(), "src/features/ops/statusReport/scheduler.ts"),
+      "utf8",
+    );
+    expect(source).not.toMatch(/from\s+["']\.\/run["']/);
   });
 });

@@ -1,7 +1,7 @@
 import type { StatusReportSummary } from "./contracts";
 
 function statusLabel(status: string): string {
-  if (status === "green") return "GRUEN";
+  if (status === "green") return "GRÜN";
   if (status === "yellow") return "GELB";
   if (status === "red") return "ROT";
   return "GRAU";
@@ -16,52 +16,84 @@ function escapeHtml(value: string): string {
     .replace(/'/g, "&#039;");
 }
 
-function statusColor(status: string): string {
-  if (status === "green") return "#15803d";
-  if (status === "yellow") return "#b45309";
-  if (status === "red") return "#b91c1c";
-  return "#64748b";
+function statusTone(status: string): { bg: string; border: string; text: string } {
+  if (status === "green") return { bg: "#dcfce7", border: "#86efac", text: "#166534" };
+  if (status === "yellow") return { bg: "#fef3c7", border: "#fcd34d", text: "#92400e" };
+  if (status === "red") return { bg: "#fee2e2", border: "#fca5a5", text: "#991b1b" };
+  return { bg: "#e2e8f0", border: "#cbd5e1", text: "#334155" };
+}
+
+function summarizeExecutiveStatus(summary: StatusReportSummary): string {
+  if (summary.overallStatus === "green") return "Betrieb stabil. Keine kritischen Auffälligkeiten.";
+  if (summary.overallStatus === "yellow") return "Betrieb eingeschränkt. Beobachtung und Nachverfolgung empfohlen.";
+  return "Kritische Auffälligkeiten erkannt. Operatives Eingreifen erforderlich.";
+}
+
+function metaItem(label: string, value: string): string {
+  return `<span style="display:inline-block;margin-right:12px;color:#475569;font-size:13px;">
+    <strong style="color:#0f172a;">${escapeHtml(label)}:</strong> ${escapeHtml(value)}
+  </span>`;
 }
 
 function sectionToText(section: StatusReportSummary["sections"][number]): string[] {
   const lines: string[] = [];
   lines.push(`${section.label}:`);
+  if (section.checks.length === 0) {
+    lines.push("- Keine Checks in diesem Abschnitt.");
+    return lines;
+  }
   for (const check of section.checks) {
     const suffix = check.error ? ` | Fehler: ${check.error}` : "";
-    const latency = typeof check.latencyMs === "number" ? ` (${check.latencyMs}ms)` : "";
+    const latency = typeof check.latencyMs === "number" ? ` (${check.latencyMs} ms)` : "";
     lines.push(`- [${statusLabel(check.status)}] ${check.label}${latency}: ${check.detail}${suffix}`);
   }
   return lines;
 }
 
 function sectionToHtml(section: StatusReportSummary["sections"][number]): string {
+  if (section.checks.length === 0) {
+    return `<section style="margin-top:16px;">
+      <div style="border:1px solid #dbe4ee;border-radius:12px;background:#ffffff;overflow:hidden;">
+        <div style="padding:12px 14px;border-bottom:1px solid #eef2f7;background:#f8fafc;">
+          <h3 style="margin:0;font-size:15px;color:#0f172a;">${escapeHtml(section.label)}</h3>
+        </div>
+        <div style="padding:12px 14px;color:#64748b;font-size:13px;">Keine Checks in diesem Abschnitt.</div>
+      </div>
+    </section>`;
+  }
+
   const rows = section.checks
     .map((check) => {
       const latency = typeof check.latencyMs === "number" ? ` (${check.latencyMs} ms)` : "";
-      const error = check.error
-        ? `<div style="color:#b91c1c;font-size:12px;margin-top:4px;">${escapeHtml(check.error)}</div>`
+      const tone = statusTone(check.status);
+      const errorLine = check.error
+        ? `<div style="margin-top:4px;color:#991b1b;font-size:12px;">Fehler: ${escapeHtml(check.error)}</div>`
         : "";
 
       return `<tr>
-        <td style="padding:8px 10px;border-bottom:1px solid #e2e8f0;white-space:nowrap;">
-          <span style="display:inline-block;padding:2px 8px;border-radius:999px;background:${statusColor(
-            check.status,
-          )};color:#fff;font-weight:700;font-size:11px;">${statusLabel(check.status)}</span>
+        <td style="padding:10px 12px;border-bottom:1px solid #eef2f7;white-space:nowrap;vertical-align:top;">
+          <span style="display:inline-block;padding:3px 9px;border-radius:999px;border:1px solid ${tone.border};background:${tone.bg};color:${tone.text};font-weight:700;font-size:11px;letter-spacing:0.02em;">
+            ${statusLabel(check.status)}
+          </span>
         </td>
-        <td style="padding:8px 10px;border-bottom:1px solid #e2e8f0;">
-          <div style="font-weight:600;">${escapeHtml(check.label)}${escapeHtml(latency)}</div>
-          <div style="font-size:13px;color:#1f2937;">${escapeHtml(check.detail)}</div>
-          ${error}
+        <td style="padding:10px 12px;border-bottom:1px solid #eef2f7;vertical-align:top;">
+          <div style="font-size:14px;font-weight:600;color:#0f172a;">${escapeHtml(check.label)}${escapeHtml(latency)}</div>
+          <div style="margin-top:3px;font-size:13px;color:#334155;">${escapeHtml(check.detail)}</div>
+          ${errorLine}
         </td>
       </tr>`;
     })
     .join("");
 
-  return `<section style="margin-top:18px;">
-    <h3 style="margin:0 0 8px 0;font-size:16px;">${escapeHtml(section.label)}</h3>
-    <table role="presentation" style="width:100%;border-collapse:collapse;background:#fff;border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;">
-      ${rows}
-    </table>
+  return `<section style="margin-top:16px;">
+    <div style="border:1px solid #dbe4ee;border-radius:12px;background:#ffffff;overflow:hidden;">
+      <div style="padding:12px 14px;border-bottom:1px solid #eef2f7;background:#f8fafc;">
+        <h3 style="margin:0;font-size:15px;color:#0f172a;">${escapeHtml(section.label)}</h3>
+      </div>
+      <table role="presentation" style="width:100%;border-collapse:collapse;">
+        ${rows}
+      </table>
+    </div>
   </section>`;
 }
 
@@ -71,7 +103,7 @@ export function buildStatusReportSubject(params: {
 }): string {
   const prefix = params.subjectPrefix ? `${params.subjectPrefix.trim()} ` : "";
   const datePart = params.summary.generatedAt.slice(0, 10);
-  return `${prefix}[${statusLabel(params.summary.overallStatus)}] Plattformstatus ${datePart} ${params.summary.slot}`.trim();
+  return `${prefix}Ops Statusbericht | ${statusLabel(params.summary.overallStatus)} | ${datePart} | Slot ${params.summary.slot}`.trim();
 }
 
 export function renderStatusReportMail(summary: StatusReportSummary): {
@@ -79,14 +111,13 @@ export function renderStatusReportMail(summary: StatusReportSummary): {
   html: string;
 } {
   const textLines: string[] = [];
-  textLines.push(`Plattformstatus: ${statusLabel(summary.overallStatus)}`);
+  textLines.push(`Ops Statusbericht: ${statusLabel(summary.overallStatus)}`);
   textLines.push(`Slot: ${summary.slot}`);
   textLines.push(`Zeitpunkt: ${summary.generatedAt} (${summary.timezone})`);
-  textLines.push(
-    `Checks: ${summary.totals.green} gruen, ${summary.totals.yellow} gelb, ${summary.totals.red} rot, ${summary.totals.grey} grau`,
-  );
+  textLines.push(`Kurzlage: ${summarizeExecutiveStatus(summary)}`);
+  textLines.push(`Checks: ${summary.totals.green} grün, ${summary.totals.yellow} gelb, ${summary.totals.red} rot, ${summary.totals.grey} grau`);
   textLines.push("");
-  textLines.push("Zusammenfassung:");
+  textLines.push("Executive Summary:");
   for (const point of summary.summaryPoints) {
     textLines.push(`- ${point}`);
   }
@@ -98,16 +129,34 @@ export function renderStatusReportMail(summary: StatusReportSummary): {
 
   const htmlSections = summary.sections.map(sectionToHtml).join("\n");
   const htmlSummary = summary.summaryPoints
-    .map((point) => `<li style="margin:0 0 6px 0;">${escapeHtml(point)}</li>`)
+    .map((point) => `<li style="margin:0 0 6px 0;color:#334155;">${escapeHtml(point)}</li>`)
     .join("");
 
-  const html = `<div style="font-family:Inter,Segoe UI,Arial,sans-serif;color:#0f172a;line-height:1.45;">
-    <h2 style="margin:0 0 8px 0;">Plattformstatus ${escapeHtml(statusLabel(summary.overallStatus))}</h2>
-    <p style="margin:0 0 2px 0;font-size:14px;"><strong>Slot:</strong> ${escapeHtml(summary.slot)}</p>
-    <p style="margin:0 0 2px 0;font-size:14px;"><strong>Zeitpunkt:</strong> ${escapeHtml(summary.generatedAt)} (${escapeHtml(summary.timezone)})</p>
-    <p style="margin:0 0 10px 0;font-size:14px;"><strong>Checks:</strong> ${summary.totals.green} gruen, ${summary.totals.yellow} gelb, ${summary.totals.red} rot, ${summary.totals.grey} grau</p>
-    <ul style="margin:0 0 16px 16px;padding:0;">${htmlSummary}</ul>
-    ${htmlSections}
+  const overallTone = statusTone(summary.overallStatus);
+  const html = `<div style="background:#f3f6fb;padding:24px 12px;font-family:Inter,Segoe UI,Arial,sans-serif;line-height:1.45;color:#0f172a;">
+    <div style="max-width:760px;margin:0 auto;">
+      <div style="border:1px solid #dbe4ee;border-radius:14px;overflow:hidden;background:#ffffff;">
+        <div style="padding:14px 16px;border-bottom:1px solid #eef2f7;background:#f8fafc;">
+          <span style="display:inline-block;padding:4px 10px;border-radius:999px;border:1px solid ${overallTone.border};background:${overallTone.bg};color:${overallTone.text};font-weight:700;font-size:11px;letter-spacing:0.03em;">
+            ${statusLabel(summary.overallStatus)}
+          </span>
+          <h2 style="margin:8px 0 8px 0;font-size:20px;color:#0f172a;">Ops Statusbericht</h2>
+          <div>
+            ${metaItem("Zeitpunkt", `${summary.generatedAt} (${summary.timezone})`)}
+            ${metaItem("Slot", summary.slot)}
+            ${metaItem("Checks", `${summary.totals.green} grün · ${summary.totals.yellow} gelb · ${summary.totals.red} rot · ${summary.totals.grey} grau`)}
+          </div>
+        </div>
+        <div style="padding:14px 16px;">
+          <div style="border:1px solid #dbe4ee;border-radius:12px;background:#ffffff;padding:12px 14px;">
+            <h3 style="margin:0 0 6px 0;font-size:15px;color:#0f172a;">Executive Summary</h3>
+            <p style="margin:0 0 8px 0;font-size:14px;color:#334155;">${escapeHtml(summarizeExecutiveStatus(summary))}</p>
+            <ul style="margin:0;padding-left:18px;">${htmlSummary}</ul>
+          </div>
+          ${htmlSections}
+        </div>
+      </div>
+    </div>
   </div>`;
 
   return {

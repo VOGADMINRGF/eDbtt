@@ -14,22 +14,23 @@ vi.mock("@/features/ops/statusReport/collect", () => ({
 }));
 
 import { createInMemoryStatusReportRepo, setStatusReportRepoForTests } from "@/features/ops/statusReport/repo";
-import { runScheduledStatusReportSlot } from "@/features/ops/statusReport/run";
+import { runManualStatusReportNow } from "@/features/ops/statusReport/run";
 
-describe("status-report-no-double-send.contract", () => {
+describe("status-report-health-only.contract", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     process.env.STATUS_REPORT_ENABLED = "true";
-    process.env.STATUS_REPORT_RECIPIENTS = "rgf@voiceopengov.de,ops@example.org";
+    process.env.STATUS_REPORT_RECIPIENTS = "";
     process.env.STATUS_REPORT_TZ = "Europe/Berlin";
-    process.env.SMTP_HOST = "smtp.example.org";
+    delete process.env.SMTP_HOST;
+    delete process.env.SMTP_URL;
 
     setStatusReportRepoForTests(createInMemoryStatusReportRepo());
 
     mocks.collectStatusReportSummary.mockResolvedValue({
       generatedAt: new Date().toISOString(),
       timezone: "Europe/Berlin",
-      slot: "05:00",
+      slot: "manual",
       overallStatus: "green",
       summaryPoints: ["alles ok"],
       totals: { green: 1, yellow: 0, red: 0, grey: 0 },
@@ -38,21 +39,24 @@ describe("status-report-no-double-send.contract", () => {
     mocks.sendMail.mockResolvedValue({ ok: true, smtp: true });
   });
 
-  it("sends only once for the same scheduled slot key", async () => {
-    const now = new Date("2026-04-19T03:02:00.000Z");
+  it("allows health_only manual runs without recipients and without mail delivery", async () => {
+    const result = await runManualStatusReportNow({ runType: "health_only" });
 
-    const first = await runScheduledStatusReportSlot({ slot: "05:00", now });
-    const second = await runScheduledStatusReportSlot({ slot: "05:00", now });
+    expect(result.ok).toBe(true);
+    expect(result.skipped).toBe(true);
+    expect(result.reason).toBe("status_report_health_only_completed");
+    expect(result.run?.status).toBe("skipped");
+    expect(result.run?.mailSent).toBe(false);
+    expect(result.run?.report).not.toBeNull();
+    expect(mocks.sendMail).not.toHaveBeenCalled();
+  });
 
-    expect(first.ok).toBe(true);
-    expect(first.skipped).toBe(false);
-    expect(second.skipped).toBe(true);
-    expect(second.reason).toBe("status_report_slot_already_processed");
-    expect(mocks.sendMail).toHaveBeenCalledTimes(1);
-    expect(mocks.sendMail).toHaveBeenCalledWith(
-      expect.objectContaining({
-        to: "rgf@voiceopengov.de",
-      }),
-    );
+  it("keeps recipients mandatory for full manual runs", async () => {
+    const result = await runManualStatusReportNow({ runType: "full" });
+
+    expect(result.ok).toBe(false);
+    expect(result.skipped).toBe(true);
+    expect(result.reason).toBe("status_report_no_recipients");
+    expect(mocks.sendMail).not.toHaveBeenCalled();
   });
 });

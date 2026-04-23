@@ -3,7 +3,12 @@ import { collectStatusReportSummary } from "./collect";
 import { buildStatusReportSubject, renderStatusReportMail } from "./mail";
 import { hasSmtpConfig, readStatusReportConfig } from "./config";
 import { getStatusReportRepo } from "./repo";
-import type { ScheduledStatusReportSlot, StatusReportRunRecord, StatusReportSlot } from "./contracts";
+import type {
+  ScheduledStatusReportSlot,
+  StatusReportManualRunType,
+  StatusReportRunRecord,
+  StatusReportSlot,
+} from "./contracts";
 
 export type StatusReportRunResult = {
   ok: boolean;
@@ -60,6 +65,7 @@ async function finalizeRun(input: {
 async function executeClaimedRun(params: {
   runId: string;
   slot: StatusReportSlot;
+  runType: StatusReportManualRunType;
 }): Promise<StatusReportRunResult> {
   const config = readStatusReportConfig();
 
@@ -68,6 +74,25 @@ async function executeClaimedRun(params: {
       config,
       slot: params.slot,
     });
+
+    if (params.runType === "health_only") {
+      const updated = await finalizeRun({
+        runId: params.runId,
+        status: "skipped",
+        overallStatus: summary.overallStatus,
+        summaryPoints: summary.summaryPoints,
+        mailSent: false,
+        error: null,
+        report: summary,
+      });
+
+      return {
+        ok: true,
+        skipped: true,
+        reason: "status_report_health_only_completed",
+        run: updated,
+      };
+    }
 
     if (!hasSmtpConfig()) {
       console.error("[status-report] smtp config missing; report mail was not sent");
@@ -196,27 +221,32 @@ export async function runScheduledStatusReportSlot(params: {
   return executeClaimedRun({
     runId: claim.run.id,
     slot: params.slot,
+    runType: "full",
   });
 }
 
-export async function runManualStatusReportNow(): Promise<StatusReportRunResult> {
+export async function runManualStatusReportNow(options?: {
+  runType?: StatusReportManualRunType;
+}): Promise<StatusReportRunResult> {
   const config = readStatusReportConfig();
+  const runType = options?.runType ?? "full";
   if (!config.enabled) {
     return { ok: true, skipped: true, reason: "status_report_disabled", run: null };
   }
-  if (config.recipients.length === 0) {
+  if (runType === "full" && config.recipients.length === 0) {
     return { ok: false, skipped: true, reason: "status_report_no_recipients", run: null };
   }
 
   const repo = getStatusReportRepo();
   const run = await repo.createManualRun({
     timezone: config.timezone,
-    recipients: config.recipients,
+    recipients: runType === "full" ? config.recipients : [],
   });
 
   return executeClaimedRun({
     runId: run.id,
     slot: "manual",
+    runType,
   });
 }
 

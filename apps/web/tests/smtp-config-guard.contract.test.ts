@@ -20,7 +20,7 @@ describe("smtp-config-guard.contract", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     process.env.STATUS_REPORT_ENABLED = "true";
-    process.env.STATUS_REPORT_RECIPIENTS = "ops@example.org";
+    process.env.STATUS_REPORT_RECIPIENTS = "rgf@voiceopengov.de";
     process.env.STATUS_REPORT_TZ = "Europe/Berlin";
     delete process.env.SMTP_HOST;
     delete process.env.SMTP_URL;

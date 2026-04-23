@@ -1,6 +1,6 @@
 import { readStatusReportConfig } from "./config";
 import type { ScheduledStatusReportSlot } from "./contracts";
-import { runScheduledStatusReportSlot } from "./run";
+import { triggerScheduledStatusReportRun } from "./schedulerTrigger";
 
 const SCHEDULER_INTERVAL_MS = 30_000;
 
@@ -49,12 +49,19 @@ export function resolveDueScheduledSlots(
   graceMinutes: number,
   slots: readonly ScheduledStatusReportSlot[],
 ): ScheduledStatusReportSlot[] {
+  const MINUTES_PER_DAY = 24 * 60;
   const { hour, minute } = parseClockInTimezone(now, timezone);
   const currentMinutes = hour * 60 + minute;
 
   return slots.filter((slot) => {
     const slotMinutes = slotToMinutes(slot);
-    return currentMinutes >= slotMinutes && currentMinutes < slotMinutes + graceMinutes;
+    const endMinutes = slotMinutes + graceMinutes;
+    if (endMinutes <= MINUTES_PER_DAY) {
+      return currentMinutes >= slotMinutes && currentMinutes < endMinutes;
+    }
+
+    const wrappedEndMinutes = endMinutes % MINUTES_PER_DAY;
+    return currentMinutes >= slotMinutes || currentMinutes < wrappedEndMinutes;
   });
 }
 
@@ -77,9 +84,13 @@ export async function runScheduledStatusReportTick(now = new Date()) {
   state.running = true;
   try {
     for (const slot of dueSlots) {
-      const result = await runScheduledStatusReportSlot({ slot, now });
+      const result = await triggerScheduledStatusReportRun({
+        slot,
+        now,
+        config,
+      });
       if (!result.ok) {
-        console.error("[status-report] scheduled run failed", {
+        console.error("[status-report] scheduled trigger failed", {
           slot,
           reason: result.reason,
         });
