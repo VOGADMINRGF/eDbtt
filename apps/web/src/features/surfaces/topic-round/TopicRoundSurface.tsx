@@ -10,6 +10,7 @@ import {
 } from "./distribution";
 import SharePanel from "./SharePanel";
 import PublicFollowUpBlock from "./PublicFollowUpBlock";
+import RouteBoundCompanionPanel from "@/components/ai/RouteBoundCompanionPanel";
 
 const ROUND_TYPE_LABELS: Record<Round["type"], string> = {
   event: "Event",
@@ -432,6 +433,22 @@ export function CompanionSurface({
           </div>
         ) : null}
       </section>
+
+      <RouteBoundCompanionPanel
+        contextKind="journalist_companion"
+        title={companion.title}
+        routePath={`/companion/${companion.slug}`}
+        analysisMode="media"
+        intro="Companion-Dialog für journalistische Anschlussfragen, ohne implizite Verifikation."
+        placeholder="Welche Einordnung oder Quelle soll als Nächstes geklärt werden?"
+        parentStatus={{
+          lane: "standard",
+          verificationMode: "precheck",
+          researchUsed: "none",
+          sealEligible: false,
+          sealGranted: false,
+        }}
+      />
 
       <section id="fragen" className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm">
         <h2 className="text-lg font-semibold text-[rgb(var(--fg))]">Fragen & Einwände</h2>

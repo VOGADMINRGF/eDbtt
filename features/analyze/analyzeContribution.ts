@@ -13,7 +13,15 @@ import {
   OrchestratorAllFailedError,
 } from "@features/ai/orchestratorE150";
 import { resolveJourneyProfile } from "@features/ai/e150/roleRouting";
+import { resolveAiRouteClassification } from "@features/ai/e150/routeClassification";
 import { deriveVerificationLabel } from "@features/ai/e150/verificationContract";
+import {
+  normalizePresentationText,
+  normalizePresentationTextList,
+  runNonMutativePresentationPass,
+  type PresentationPassApplyResult,
+  type PresentationPassProtectedSnapshot,
+} from "@features/ai/e150/presentationPass";
 import type { AiPipelineName } from "@core/telemetry/aiUsageTypes";
 import { EDITORIAL_DOMAIN_GUIDE } from "./domainLabels";
 export type { AnalyzeResult } from "./schemas";
@@ -33,6 +41,7 @@ export type AnalyzeInput = {
   domains?: string[];
   contextPackIds?: string[];
   contextPacks?: string[];
+  presentationPassEnabled?: boolean;
 };
 
 // Reduzierte Default-Anzahl, um JSON-Truncation zu vermeiden
@@ -658,14 +667,61 @@ export type AnalyzeResultWithMeta = AnalyzeResult & {
     fallbackUsed?: boolean;
     disagreement?: {
       present: boolean;
+      specialistAgreementScore?: number;
+      specialistAgreement?: "high" | "mixed" | "low";
+      missingSpecialists?: ("openai" | "anthropic" | "mistral" | "gemini" | "ari")[];
       successfulProviders: ("openai" | "anthropic" | "mistral" | "gemini" | "ari")[];
       failedProviders: ("openai" | "anthropic" | "mistral" | "gemini" | "ari")[];
+      fallbackReliance?: "none" | "full";
+      fallbackRelianceScore?: number;
+      coverage?: {
+        requiredPrimary: number;
+        successfulPrimary: number;
+        missingPrimary: number;
+      };
+    };
+    confidence?: {
+      score: number;
+      bucket: "low" | "medium" | "high";
+      reasons: string[];
     };
     verificationMode?: "none" | "precheck" | "sealed";
     researchUsed?: "none" | "lite" | "search" | "deep_search";
     sealEligible?: boolean;
     sealGranted?: boolean;
     verificationLabel?: "analysiert" | "geprueft" | "verifiziert";
+    tonePassUsed?: boolean;
+    presentationPass?: {
+      attempted: boolean;
+      enabled: boolean;
+      applied: boolean;
+      provider: "openai" | null;
+      reason:
+        | "disabled"
+        | "provider_not_allowed"
+        | "failed"
+        | "no_change"
+        | "guard_blocked"
+        | "applied";
+      nonMutativeGuardPassed: boolean;
+      changedFields: string[];
+      failure: string | null;
+      policy?: {
+        provider: "openai";
+        role: "presentation_pass";
+        nonMutative: true;
+        rules: readonly string[];
+      } | null;
+    };
+    routeClassification?: {
+      routePath: string;
+      routeProfile: "e150_canonical" | "sealed_factcheck" | "legacy_exception" | "diagnostic" | "unknown";
+      canonical: boolean;
+      notCanonical: boolean;
+      legacyExceptionPath: boolean;
+      directProviderPath: boolean;
+      note: string;
+    };
     trace?: { providerUsed?: string | null; jsonCoercion?: "none" | "fence" | "braces" | "backticks" | undefined };
   };
 };
@@ -691,6 +747,9 @@ export async function analyzeContribution(
     journeyHint: input.journeyHint ?? null,
     sealedFactcheck: input.sealedFactcheck === true,
   });
+  const routeClassification = resolveAiRouteClassification(
+    input.routePath ?? "/api/contributions/analyze",
+  );
 
   let orchestration;
   try {
@@ -977,7 +1036,7 @@ throw e;
     // ignore
   }
 
-  const meta = {
+  const metaBase = {
     provider: orchestration.best?.provider,
     model: orchestration.best?.modelName,
     durationMs: orchestration.best?.durationMs,
@@ -1000,6 +1059,11 @@ throw e;
       successfulProviders: [],
       failedProviders: [],
     },
+    confidence: orchestration.meta.confidence ?? {
+      score: 0.5,
+      bucket: "medium",
+      reasons: ["fallback_confidence_default"],
+    },
     verificationMode:
       orchestration.meta.verificationMode ?? journeyProfile.verificationDefaults.verificationMode,
     researchUsed:
@@ -1015,6 +1079,7 @@ throw e;
       sealGranted:
         orchestration.meta.sealGranted ?? journeyProfile.verificationDefaults.sealGranted,
     }),
+    routeClassification,
     trace: { providerUsed: orchestration.best?.provider ?? null, jsonCoercion },
   };
 
@@ -1025,14 +1090,50 @@ throw e;
     ...(runReceipt ? { runReceipt } : {}),
   };
 
+  const presentationPassEnabled = resolvePresentationPassEnabled(input);
+  const presentationPassResult = runNonMutativePresentationPass({
+    provider: "openai",
+    enabled: presentationPassEnabled,
+    payload: finalResult,
+    snapshot: (payload) =>
+      buildPresentationProtectedSnapshot({
+        result: payload,
+        verificationMode: metaBase.verificationMode,
+        researchUsed: metaBase.researchUsed,
+        sealEligible: metaBase.sealEligible,
+        sealGranted: metaBase.sealGranted,
+        trust: {
+          confidence: metaBase.confidence,
+          disagreement: metaBase.disagreement,
+        },
+        laneMeta: {
+          lane: metaBase.lane,
+          journeyProfile: metaBase.journeyProfile,
+        },
+        providerMeta: {
+          provider: metaBase.provider,
+          model: metaBase.model,
+          roleProviderMapping: metaBase.roleProviderMapping,
+        },
+      }),
+    apply: (payload) => applyPresentationToneToAnalyzeResult(payload),
+  });
+  const presentedResult = presentationPassResult.payload;
+
+  const meta = {
+    ...metaBase,
+    tonePassUsed: presentationPassResult.meta.applied,
+    presentationPass: presentationPassResult.meta,
+  };
+
   return {
-    ...finalResult,
-    claims: base.claims ?? [],
-    notes: base.notes ?? [],
-    questions: base.questions ?? [],
-    knots: base.knots ?? [],
-    eventualities: base.eventualities ?? [],
-    decisionTrees: base.decisionTrees ?? [],
+    ...presentedResult,
+    claims: presentedResult.claims ?? [],
+    notes: presentedResult.notes ?? [],
+    questions: presentedResult.questions ?? [],
+    knots: presentedResult.knots ?? [],
+    eventualities: presentedResult.eventualities ?? [],
+    decisionTrees: presentedResult.decisionTrees ?? [],
     _meta: meta,
   };
 }
@@ -1065,6 +1166,128 @@ function safeParseJson(payload: string): any {
       throw new Error("invalid-json");
     }
   }
+}
+
+function resolvePresentationPassEnabled(input: AnalyzeInput): boolean {
+  if (typeof input.presentationPassEnabled === "boolean") {
+    return input.presentationPassEnabled;
+  }
+  if (process.env.E150_PRESENTATION_PASS_DEFAULT !== "true") {
+    return false;
+  }
+  return input.analysisMode === "media" || input.analysisMode === "guided";
+}
+
+function buildPresentationProtectedSnapshot(params: {
+  result: AnalyzeResult;
+  verificationMode: "none" | "precheck" | "sealed";
+  researchUsed: "none" | "lite" | "search" | "deep_search";
+  sealEligible: boolean;
+  sealGranted: boolean;
+  trust: unknown;
+  laneMeta?: unknown;
+  providerMeta?: unknown;
+}): PresentationPassProtectedSnapshot {
+  return {
+    claims: params.result.claims ?? [],
+    evidence: {
+      findings: params.result.findings ?? [],
+      editorialAudit: params.result.editorialAudit ?? null,
+      evidenceGraph: params.result.evidenceGraph ?? null,
+      runReceipt: params.result.runReceipt ?? null,
+    },
+    trust: params.trust,
+    verificationMode: params.verificationMode,
+    researchUsed: params.researchUsed,
+    sealEligible: params.sealEligible,
+    sealGranted: params.sealGranted,
+    laneMeta: params.laneMeta ?? null,
+    providerMeta: params.providerMeta ?? null,
+  };
+}
+
+function applyPresentationToneToAnalyzeResult(
+  result: AnalyzeResult,
+): PresentationPassApplyResult<AnalyzeResult> {
+  const changedFields: string[] = [];
+  let changed = false;
+
+  const reportSummary = result.report?.summary;
+  const normalizedSummary =
+    typeof reportSummary === "string" ? normalizePresentationText(reportSummary) : reportSummary;
+  if (typeof reportSummary === "string" && normalizedSummary !== reportSummary) {
+    changed = true;
+    changedFields.push("report.summary");
+  }
+
+  const keyConflictsBefore = Array.isArray(result.report?.keyConflicts)
+    ? result.report.keyConflicts
+    : [];
+  const keyConflictsAfter = normalizePresentationTextList(keyConflictsBefore);
+  if (JSON.stringify(keyConflictsAfter) !== JSON.stringify(keyConflictsBefore)) {
+    changed = true;
+    changedFields.push("report.keyConflicts");
+  }
+
+  const openQuestionsBefore = Array.isArray(result.report?.openQuestions)
+    ? result.report.openQuestions
+    : [];
+  const openQuestionsAfter = normalizePresentationTextList(openQuestionsBefore);
+  if (JSON.stringify(openQuestionsAfter) !== JSON.stringify(openQuestionsBefore)) {
+    changed = true;
+    changedFields.push("report.openQuestions");
+  }
+
+  const takeawaysBefore = Array.isArray(result.report?.takeaways)
+    ? result.report.takeaways
+    : [];
+  const takeawaysAfter = normalizePresentationTextList(takeawaysBefore);
+  if (JSON.stringify(takeawaysAfter) !== JSON.stringify(takeawaysBefore)) {
+    changed = true;
+    changedFields.push("report.takeaways");
+  }
+
+  const notesBefore = Array.isArray(result.notes) ? result.notes : [];
+  const notesAfter = notesBefore.map((note) => {
+    const normalized = normalizePresentationText(note.text);
+    if (normalized !== note.text) {
+      changed = true;
+      if (!changedFields.includes("notes.text")) changedFields.push("notes.text");
+    }
+    return { ...note, text: normalized };
+  });
+
+  const questionsBefore = Array.isArray(result.questions) ? result.questions : [];
+  const questionsAfter = questionsBefore.map((question) => {
+    const normalized = normalizePresentationText(question.text);
+    if (normalized !== question.text) {
+      changed = true;
+      if (!changedFields.includes("questions.text")) changedFields.push("questions.text");
+    }
+    return { ...question, text: normalized };
+  });
+
+  const nextResult: AnalyzeResult = {
+    ...result,
+    notes: notesAfter,
+    questions: questionsAfter,
+    report: {
+      ...result.report,
+      summary: normalizedSummary ?? null,
+      keyConflicts: keyConflictsAfter,
+      openQuestions: openQuestionsAfter,
+      takeaways: takeawaysAfter,
+      facts: {
+        ...result.report.facts,
+      },
+    },
+  };
+
+  return {
+    payload: nextResult,
+    changed,
+    changedFields,
+  };
 }
 
 function sanitizeDecisionTree(tree: any, idx: number): DecisionTreeT | null {

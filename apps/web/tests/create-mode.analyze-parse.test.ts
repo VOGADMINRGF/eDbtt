@@ -38,4 +38,16 @@ describe("create mode analyze parse boundary", () => {
     if (parsed.ok) return;
     expect(parsed.error.message).toBe("invalid_anlassraum_id");
   });
+
+  it("keeps optional presentationPass flag for controlled non-mutative tone pass", () => {
+    const parsed = parseAnalyzeRequestBody({
+      text: "Genug langer Text fuer den Presentation-Pass Parse-Test.",
+      analysisMode: "media",
+      presentationPass: true,
+    });
+
+    expect(parsed.ok).toBe(true);
+    if (!parsed.ok) return;
+    expect(parsed.value.presentationPass).toBe(true);
+  });
 });

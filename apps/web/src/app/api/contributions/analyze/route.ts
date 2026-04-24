@@ -24,6 +24,7 @@ import {
   type VerificationContract,
 } from "@features/ai/e150/verificationContract";
 import { resolveJourneyProfile } from "@features/ai/e150/roleRouting";
+import { resolveAiRouteClassification } from "@features/ai/e150/routeClassification";
 import {
   buildSourceGroundingContext,
   finalizeSourceGroundingAudit,
@@ -108,6 +109,7 @@ type AnalyzeJobInput = {
   maxClaims: number;
   contributionId: string;
   analysisMode: CreateProductMode;
+  presentationPassEnabled: boolean;
   sourceGrounding: SourceGroundingContext;
   userId?: string | null;
 };
@@ -130,6 +132,19 @@ function resolveAnalyzeAudienceRole(mode: CreateProductMode): "citizen" | "staff
   if (mode === "media") return "staff";
   if (mode === "guided") return "institution";
   return "citizen";
+}
+
+function resolvePresentationPassEnabled(params: {
+  analysisMode: CreateProductMode;
+  requested?: boolean;
+}): boolean {
+  if (typeof params.requested === "boolean") {
+    return params.requested;
+  }
+  if (process.env.E150_PRESENTATION_PASS_DEFAULT !== "true") {
+    return false;
+  }
+  return params.analysisMode === "media" || params.analysisMode === "guided";
 }
 
 /**
@@ -180,6 +195,7 @@ export async function POST(req: NextRequest): Promise<Response> {
     analysisMode,
     routePath: "/api/contributions/analyze",
   });
+  const routeClassification = resolveAiRouteClassification("/api/contributions/analyze");
   const userId = req.cookies.get("u_id")?.value ?? null;
   const contributionId = resolveContributionId(body.contributionId, text);
   const sourceGrounding = buildSourceGroundingContext({
@@ -200,6 +216,10 @@ export async function POST(req: NextRequest): Promise<Response> {
     maxClaims,
     contributionId,
     analysisMode,
+    presentationPassEnabled: resolvePresentationPassEnabled({
+      analysisMode,
+      requested: body.presentationPass,
+    }),
     sourceGrounding,
     userId,
   };
@@ -270,6 +290,12 @@ export async function POST(req: NextRequest): Promise<Response> {
             successfulProviders: [],
             failedProviders: [],
           },
+          confidence: (result as any)?._meta?.confidence ?? {
+            score: 0.5,
+            bucket: "medium",
+            reasons: ["fallback_confidence_default"],
+          },
+          routeClassification: (result as any)?._meta?.routeClassification ?? routeClassification,
           sourceGrounding: sourceGroundingAudit,
         },
       },
@@ -347,6 +373,12 @@ export async function POST(req: NextRequest): Promise<Response> {
             successfulProviders: [],
             failedProviders: [],
           },
+          confidence: {
+            score: 0.35,
+            bucket: "low",
+            reasons: ["heuristic_fallback_path"],
+          },
+          routeClassification,
           sourceGrounding: sourceGroundingAudit,
         },
       });
@@ -457,6 +489,12 @@ export async function POST(req: NextRequest): Promise<Response> {
               successfulProviders: [],
               failedProviders: [],
             },
+            confidence: {
+              score: 0.25,
+              bucket: "low",
+              reasons: ["degraded_provider_path"],
+            },
+            routeClassification,
             sourceGrounding: sourceGroundingAudit,
           },
         },
@@ -537,6 +575,7 @@ async function runAnalyzeJob(input: AnalyzeJobInput): Promise<AnalyzeResultWithM
     analysisMode: input.analysisMode,
     routePath: "/api/contributions/analyze",
     sourceGroundingPromptAddon: input.sourceGrounding.promptAddon,
+    presentationPassEnabled: input.presentationPassEnabled,
   });
   return finalizeAnalyzeResult(analyzed);
 }

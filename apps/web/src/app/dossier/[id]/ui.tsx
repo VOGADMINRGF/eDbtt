@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import type { Dossier } from "@features/dossier";
 import demoFallback from "@features/dossier/data/demoDossier";
 import { DossierViewer } from "@/components/dossier/DossierViewer";
+import RouteBoundCompanionPanel from "@/components/ai/RouteBoundCompanionPanel";
 
 type ApiResponse =
   | { ok: true; dossier: Dossier }
@@ -36,6 +37,23 @@ export default function DossierPageClient({ dossierId }: { dossierId: string }) 
       <p className="mb-3 text-xs text-[rgb(var(--muted))]">
         Dossier = strukturierte Verdichtung; der thematische Arbeitskontext bleibt bei den Anlässen (/runden).
       </p>
+      <div className="mb-4">
+        <RouteBoundCompanionPanel
+          contextKind="dossier"
+          title="Dossier"
+          routePath={`/dossier/${dossierId}`}
+          analysisMode="media"
+          intro="Companion für Dossier-Nachfragen auf Media-/Dossier-Journey, ohne implizites Siegel."
+          placeholder="Welche Konfliktlinie oder Quelle soll im Dossier als Nächstes geklärt werden?"
+          parentStatus={{
+            lane: "standard",
+            verificationMode: "precheck",
+            researchUsed: "none",
+            sealEligible: false,
+            sealGranted: false,
+          }}
+        />
+      </div>
       <DossierViewer dossier={dossier} />
     </div>
   );
