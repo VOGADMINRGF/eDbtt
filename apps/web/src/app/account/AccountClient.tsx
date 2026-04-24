@@ -1706,24 +1706,6 @@ function CompactProfileHubSection({
         <div className="mt-2 flex flex-wrap gap-1.5">
           <button
             type="button"
-            onClick={() => setActiveTab("interests")}
-            className={`inline-flex items-center justify-center rounded-full px-3 py-1.5 text-[11px] font-semibold ${
-              activeTab === "interests" ? selectedSurfaceClass : secondaryLightButtonClass
-            }`}
-          >
-            Interessen
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab("inbox")}
-            className={`inline-flex items-center justify-center rounded-full px-3 py-1.5 text-[11px] font-semibold ${
-              activeTab === "inbox" ? selectedSurfaceClass : secondaryLightButtonClass
-            }`}
-          >
-            Inbox
-          </button>
-          <button
-            type="button"
             onClick={() => {
               setActiveTab("profile");
               setProfileEditorOpen(true);

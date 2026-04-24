@@ -2,12 +2,19 @@ type SwipesHeaderProgressProps = {
   swipeCount: number;
   goal?: number;
   onOpenSearch: () => void;
+  mode?: "idle" | "active";
 };
 
-export function SwipesHeaderProgress({ swipeCount, goal = 100, onOpenSearch }: SwipesHeaderProgressProps) {
+export function SwipesHeaderProgress({
+  swipeCount,
+  goal = 100,
+  onOpenSearch,
+  mode = "active",
+}: SwipesHeaderProgressProps) {
   const clamped = Math.max(0, Math.min(swipeCount, goal));
   const remaining = Math.max(goal - clamped, 0);
   const progress = goal > 0 ? Math.min((clamped / goal) * 100, 100) : 0;
+  const isActive = mode === "active";
 
   return (
     <header className="relative overflow-hidden rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))]/95 px-3 py-2 shadow-[0_16px_45px_rgba(2,6,23,0.18)] backdrop-blur md:py-3">
@@ -16,10 +23,23 @@ export function SwipesHeaderProgress({ swipeCount, goal = 100, onOpenSearch }: S
       <div className="flex items-start justify-between gap-3 text-xs">
         <div>
           <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">Analysefortschritt</p>
-          <p className="mt-0.5 text-[15px] font-semibold text-[rgb(var(--fg))] md:mt-1 md:text-base">
-            {clamped} von {goal} Swipes
-          </p>
-          <p className="mt-1 hidden text-[rgb(var(--muted))] sm:block">{remaining} bis zur Analyse · 1 Analyse pro {goal} Swipes</p>
+          {isActive ? (
+            <>
+              <p className="mt-0.5 text-[15px] font-semibold text-[rgb(var(--fg))] md:mt-1 md:text-base">
+                {clamped} von {goal} Swipes
+              </p>
+              <p className="mt-1 hidden text-[rgb(var(--muted))] sm:block">{remaining} bis zur Analyse · 1 Analyse pro {goal} Swipes</p>
+            </>
+          ) : (
+            <>
+              <p className="mt-0.5 text-[15px] font-semibold text-[rgb(var(--fg))] md:mt-1 md:text-base">
+                Schnell reagieren
+              </p>
+              <p className="mt-1 hidden text-[rgb(var(--muted))] sm:block">
+                Starte mit Ja, Nein oder Offen. Vertiefung bleibt optional.
+              </p>
+            </>
+          )}
         </div>
         <button
           type="button"
@@ -30,14 +50,16 @@ export function SwipesHeaderProgress({ swipeCount, goal = 100, onOpenSearch }: S
           <SearchIcon />
         </button>
       </div>
-      <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-[rgb(var(--bg))]">
-        <div
-          className="relative h-full rounded-full bg-gradient-to-r from-sky-500 via-cyan-500 to-emerald-500 transition-all"
-          style={{ width: `${progress}%` }}
-        >
-          <span className="absolute inset-y-0 right-0 w-8 bg-gradient-to-r from-white/0 to-white/35 dark:to-white/10" />
+      {isActive ? (
+        <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-[rgb(var(--bg))]">
+          <div
+            className="relative h-full rounded-full bg-gradient-to-r from-sky-500 via-cyan-500 to-emerald-500 transition-all"
+            style={{ width: `${progress}%` }}
+          >
+            <span className="absolute inset-y-0 right-0 w-8 bg-gradient-to-r from-white/0 to-white/35 dark:to-white/10" />
+          </div>
         </div>
-      </div>
+      ) : null}
     </header>
   );
 }

@@ -6,10 +6,12 @@ import type { CreateProductMode } from "@/features/create/createProductModes";
 import type { CreateIntent } from "@/features/create/intents";
 import type {
   CreateComposerTexts,
+  CreateComposerHeadlineText,
   CreateContextAnchorDefinition,
   CreateHelperLinkDefinition,
   CreateSurfaceModeDefinition,
 } from "@/features/create/createSurfaceConfig";
+import EntryHeroHeading from "@/components/surfaces/EntryHeroHeading";
 
 type SpeechRecognitionLike = {
   lang: string;
@@ -59,36 +61,6 @@ function IconMic() {
   );
 }
 
-function AccentWord({
-  children,
-  gradient,
-}: {
-  children: React.ReactNode;
-  gradient: "opinion" | "voice" | "weight";
-}) {
-  const backgroundImage =
-    gradient === "opinion"
-      ? "linear-gradient(90deg, rgba(26,140,255,1), rgba(24,207,200,1))"
-      : gradient === "voice"
-        ? "linear-gradient(90deg, rgba(139,92,246,1), rgba(236,72,153,1), rgba(56,189,248,1))"
-        : "linear-gradient(90deg, rgba(20,184,166,1), rgba(24,207,200,1), rgba(26,140,255,1))";
-
-  return (
-    <span
-      className="font-extrabold text-[rgb(var(--fg))] supports-[background-clip:text]:bg-clip-text supports-[background-clip:text]:text-transparent"
-      style={{
-        backgroundImage,
-        WebkitBackgroundClip: "text",
-        backgroundClip: "text",
-        WebkitTextFillColor: "transparent",
-        color: "transparent",
-      }}
-    >
-      {children}
-    </span>
-  );
-}
-
 export type SharedCreateComposerProps = {
   badge: string;
   subline: string;
@@ -119,6 +91,10 @@ export type SharedCreateComposerProps = {
   allowVoice?: boolean;
   onAttachmentsChange?: (files: File[]) => void;
   minRows?: number;
+  heroTone?: "calm" | "lively";
+  heroHeadlineOverride?: CreateComposerHeadlineText;
+  heroSublineOverride?: string;
+  heroBadgeOverride?: string;
 };
 
 export default function SharedCreateComposer({
@@ -148,6 +124,10 @@ export default function SharedCreateComposer({
   allowVoice = true,
   onAttachmentsChange,
   minRows = 9,
+  heroTone = "calm",
+  heroHeadlineOverride,
+  heroSublineOverride,
+  heroBadgeOverride,
 }: SharedCreateComposerProps) {
   const [attachments, setAttachments] = React.useState<File[]>([]);
   const [attachmentsError, setAttachmentsError] = React.useState<string | null>(null);
@@ -301,24 +281,16 @@ export default function SharedCreateComposer({
   }, [stopVoice]);
 
   return (
-    <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-6 shadow-[0_24px_64px_rgba(2,6,23,0.18)] md:p-9 lg:p-10">
+    <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-[0_24px_64px_rgba(2,6,23,0.18)] sm:p-6 md:p-9 lg:p-10">
       <div className="mx-auto w-full max-w-5xl space-y-6 md:space-y-7">
-        <div className="space-y-3">
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[rgb(var(--muted))]">{badge}</p>
-          <h2 className="max-w-3xl text-balance text-2xl font-semibold leading-[1.1] tracking-tight text-[rgb(var(--fg))] md:text-4xl">
-            <span className="block">
-              {texts.headline.line1Lead} <AccentWord gradient="opinion">{texts.headline.line1Accent}</AccentWord>{" "}
-              {texts.headline.line1Tail}
-            </span>
-            <span className="block">
-              {texts.headline.line2Lead} <AccentWord gradient="voice">{texts.headline.line2Accent}</AccentWord>{" "}
-              {texts.headline.line2Mid} <AccentWord gradient="weight">{texts.headline.line2AccentB}</AccentWord>
-              {texts.headline.line2Tail}
-            </span>
-          </h2>
-          <p className="max-w-2xl text-sm leading-relaxed text-[rgb(var(--muted))]">{subline}</p>
-          {topMeta}
-        </div>
+        <EntryHeroHeading
+          badge={heroBadgeOverride ?? badge}
+          headline={heroHeadlineOverride ?? texts.headline}
+          subline={heroSublineOverride ?? subline}
+          tone={heroTone}
+          topMeta={topMeta}
+          headingTag="h2"
+        />
 
         <div className="space-y-3">
           <div aria-label={texts.modeSwitchAriaLabel} className="grid gap-2 md:grid-cols-3">
@@ -365,11 +337,11 @@ export default function SharedCreateComposer({
                 value={inputValue}
                 onChange={(event) => onInputChange(event.target.value)}
                 rows={minRows}
-                className="w-full min-h-[220px] resize-y border-0 bg-transparent px-5 py-5 text-base leading-relaxed text-[rgb(var(--fg))] outline-none shadow-none placeholder:text-[rgb(var(--muted))] focus-visible:ring-2 focus-visible:ring-[rgb(var(--grad-from))]"
+                className="w-full min-h-[170px] resize-y border-0 bg-transparent px-4 py-4 text-base leading-relaxed text-[rgb(var(--fg))] outline-none shadow-none placeholder:text-[rgb(var(--muted))] focus-visible:ring-2 focus-visible:ring-[rgb(var(--grad-from))] sm:min-h-[220px] sm:px-5 sm:py-5"
                 placeholder={inputPlaceholder}
               />
 
-              <div className="flex flex-col gap-3 px-5 pb-5 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex flex-col gap-3 px-4 pb-4 sm:flex-row sm:items-center sm:justify-between sm:px-5 sm:pb-5">
                 <div className="flex flex-wrap items-center gap-2.5">
                   <button
                     type="button"

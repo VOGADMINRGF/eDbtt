@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { BRAND } from "@/lib/brand";
 import { resolveSurfaceContext } from "@/features/surface";
 import {
   companionTypeToDistributionSource,
@@ -13,6 +12,7 @@ import {
   getTopicBySlug,
   listRoundsByTopicSlug,
 } from "@features/topicRound";
+import { buildShareMetadata } from "@/features/share/metadata";
 
 type Params = {
   params: Promise<{ slug: string }>;
@@ -25,24 +25,13 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const companion = getCompanionContextBySlug(slug);
   if (!companion) return { title: "Begleitraum nicht gefunden" };
   const topic = getTopicBySlug(companion.linkedTopicSlug);
-  return {
+  return buildShareMetadata({
+    objectType: "companion",
+    pathOrUrl: `/companion/${companion.slug}`,
     title: companion.title,
-    description: companion.intro,
-    alternates: {
-      canonical: `/companion/${companion.slug}`,
-    },
-    openGraph: {
-      title: companion.title,
-      description: companion.mainQuestion,
-      url: `${BRAND.baseUrl}/companion/${companion.slug}`,
-      siteName: BRAND.name,
-      type: "article",
-    },
-    twitter: {
-      title: companion.title,
-      description: topic ? `${companion.mainQuestion} · Thema: ${topic.title}` : companion.mainQuestion,
-    },
-  };
+    description: topic ? `${companion.mainQuestion} · Thema: ${topic.title}` : companion.intro,
+    ogType: "article",
+  });
 }
 
 export default async function CompanionPage({

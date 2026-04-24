@@ -7,9 +7,10 @@ type SwipeTopicStepProps = {
   item: SwipeItem;
   onVote: (decision: SwipeDecision) => void;
   step?: number;
+  onQuickFollowup?: (action: "more_context" | "variants" | "later") => void;
 };
 
-export function SwipeTopicStep({ item, onVote, step = 1 }: SwipeTopicStepProps) {
+export function SwipeTopicStep({ item, onVote, step = 1, onQuickFollowup }: SwipeTopicStepProps) {
   const chips = buildMetaChips(item);
   const cardRef = useRef<HTMLElement | null>(null);
   const gestureRef = useRef<{
@@ -217,6 +218,35 @@ export function SwipeTopicStep({ item, onVote, step = 1 }: SwipeTopicStepProps) 
         <MetaCard label="Evidenz" value={`${item.evidenceCount} Quellenhinweise`} />
         <MetaCard label="Eventualitäten" value={`${item.eventualitiesCount} Varianten`} />
       </div>
+
+      {onQuickFollowup ? (
+        <div className="relative mt-3 flex flex-wrap gap-2 text-xs">
+          <button
+            type="button"
+            onClick={() => onQuickFollowup("more_context")}
+            className="vog-chip"
+            data-swipe-no-drag
+          >
+            🤔 Mehr Kontext
+          </button>
+          <button
+            type="button"
+            onClick={() => onQuickFollowup("variants")}
+            className="vog-chip"
+            data-swipe-no-drag
+          >
+            ⚖️ Varianten
+          </button>
+          <button
+            type="button"
+            onClick={() => onQuickFollowup("later")}
+            className="vog-chip"
+            data-swipe-no-drag
+          >
+            ⏭️ Später vertiefen
+          </button>
+        </div>
+      ) : null}
 
       <div className="relative mt-3 hidden grid-cols-3 gap-2 md:grid">
         <button

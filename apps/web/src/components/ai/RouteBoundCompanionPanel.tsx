@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import VerificationStatusPanel from "./VerificationStatusPanel";
+import ShareDeepLinkActions from "@/components/mobile/ShareDeepLinkActions";
 
 type CompanionContextKind =
   | "dossier"
@@ -108,6 +109,14 @@ export default function RouteBoundCompanionPanel(props: RouteBoundCompanionPanel
         sealGranted={props.parentStatus?.sealGranted}
         showHint
       />
+
+      {props.routePath ? (
+        <ShareDeepLinkActions
+          path={props.routePath}
+          title={props.title ? `${props.title} · Companion` : "eDebatte Companion"}
+          text="Routegebundener Companion-Link"
+        />
+      ) : null}
 
       <div className="space-y-2">
         <textarea

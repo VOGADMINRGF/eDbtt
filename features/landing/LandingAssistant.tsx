@@ -4,6 +4,8 @@ import * as React from "react";
 import { useLocale } from "@/context/LocaleContext";
 import { useCurrentUser } from "@/hooks/auth";
 import { mapTranslatableStrings, useAutoTranslateText } from "@/lib/i18n/autoTranslate";
+import EntryHeroHeading from "@/components/surfaces/EntryHeroHeading";
+import { resolveSharedEntryHeroIdentity } from "@/features/surfaces/entryHeroIdentity";
 import type { LandingScope, LandingTile } from "./landingSeeds";
 import { LANDING_COPY, type Lang } from "./landingCopy";
 
@@ -62,37 +64,6 @@ function scopeFromLevel(level: string | null, lang: Lang): LandingScope {
   }
   if (lang === "en" && value.includes("state")) return "region";
   return "country";
-}
-
-/** Gradient-Text OHNE Balken/Underline (Bug: “Buzzword-Balken”) */
-function AccentWord({
-  scheme,
-  children,
-}: {
-  scheme: "opinion" | "voice" | "weight";
-  children: React.ReactNode;
-}) {
-  const gradient =
-    scheme === "opinion"
-      ? "linear-gradient(90deg, rgba(26,140,255,1), rgba(24,207,200,1))"
-      : scheme === "voice"
-        ? "linear-gradient(90deg, rgba(139,92,246,1), rgba(236,72,153,1), rgba(56,189,248,1))"
-        : "linear-gradient(90deg, rgba(20,184,166,1), rgba(24,207,200,1), rgba(26,140,255,1))";
-
-  return (
-    <span
-      className="font-extrabold text-[rgb(var(--fg))] supports-[background-clip:text]:text-transparent supports-[background-clip:text]:bg-clip-text"
-      style={{
-        backgroundImage: gradient,
-        WebkitBackgroundClip: "text",
-        backgroundClip: "text",
-        WebkitTextFillColor: "transparent",
-        color: "transparent",
-      }}
-    >
-      {children}
-    </span>
-  );
 }
 
 function IconPlay() {
@@ -185,6 +156,14 @@ export default function LandingAssistant({
       },
     };
   }, [baseCopy, locale, translate]);
+  const heroIdentity = React.useMemo(
+    () =>
+      resolveSharedEntryHeroIdentity({
+        locale,
+        surface: "default",
+      }),
+    [locale],
+  );
 
   const [text, setText] = React.useState("");
   const [loading, setLoading] = React.useState(false);
@@ -543,23 +522,13 @@ const [humanError, setHumanError] = React.useState<string | null>(null);
   return (
     <div className="w-full max-w-3xl">
       <div className="rounded-3xl border border-[rgb(var(--border))] bg-[color-mix(in_oklab,rgb(var(--card))_85%,rgb(var(--bg))_15%)] p-6 text-[rgb(var(--fg))] shadow-[0_30px_80px_rgba(2,6,23,0.22)] backdrop-blur-md sm:p-8">
-        <p className="text-[12px] font-semibold tracking-[0.18em] text-[rgb(var(--muted))]">{t.brand}</p>
-
-        <h1 className="mt-2 text-balance text-3xl font-semibold leading-[1.05] tracking-tight text-[rgb(var(--fg))] sm:text-4xl lg:text-5xl">
-          <span className="block">
-            {t.headline.line1Lead} <AccentWord scheme="opinion">{t.headline.line1Accent}</AccentWord>{" "}
-            {t.headline.line1Tail}
-          </span>
-          <span className="block">
-            {t.headline.line2Lead} <AccentWord scheme="voice">{t.headline.line2Accent}</AccentWord>{" "}
-            {t.headline.line2Mid} <AccentWord scheme="weight">{t.headline.line2AccentB}</AccentWord>
-            {t.headline.line2Tail}
-          </span>
-        </h1>
-
-        <p className="mt-3 max-w-2xl text-pretty text-sm leading-6 text-[rgb(var(--muted))] sm:text-base">
-          {t.subline}
-        </p>
+        <EntryHeroHeading
+          badge={heroIdentity.badge || t.brand}
+          headline={heroIdentity.headline}
+          subline={heroIdentity.subline}
+          tone="lively"
+          headingTag="h1"
+        />
 
         {/* Honeypot */}
         <div className="sr-only" aria-hidden="true">

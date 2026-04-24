@@ -668,7 +668,7 @@ export default function CreateClient({
             </div>
           ) : null
         }
-        minRows={11}
+        minRows={8}
       />
 
       {showPostInputModules ? (

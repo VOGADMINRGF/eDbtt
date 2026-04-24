@@ -6,6 +6,7 @@ import { useSearchParams } from "next/navigation";
 import ProductSurfaceShell from "@/components/layout/ProductSurfaceShell";
 import { HumanCheck } from "@/components/security/HumanCheck";
 import {
+  ORDER_SEGMENT_ORDER,
   formatPackagePriceLabel,
   getInstitutionalAddonFollowupQuestions,
   getInstitutionalAddOnMaturityMeta,
@@ -20,9 +21,8 @@ import {
   normalizeInstitutionalSelectionGoalId,
   normalizePackageId,
   normalizePricingLocale,
-  normalizePricingSegmentId,
   recommendInstitutionalConfiguration,
-  resolvePricingSegmentForPackage,
+  resolvePricingOrderEntrySelection,
   type EDebattePackageDefinition,
   type EDebattePackageId,
   type InstitutionalCompletionPathId,
@@ -34,8 +34,6 @@ import {
 } from "@features/pricing";
 
 const SALES_EMAIL = "sales@edebatte.org";
-
-const SEGMENT_ORDER: readonly PricingSegmentId[] = ["privat", "journalismus", "organisationen", "kommunen"];
 
 type QuoteCadence = "monthly" | "variable";
 
@@ -56,6 +54,9 @@ const VORMERKEN_LABELS = {
       "Ein klarer Bestellfluss: Segment und Paket wählen, relevante Angaben ergänzen und Bestellung absenden.",
     toPricing: "Zur Preisübersicht",
     toInstitutional: "Zu B2B/B2G-Konditionen",
+    orderEntryHintTitle: "Vorauswahl aktiv",
+    orderEntryHintText:
+      "Du bist im Order-Einstieg. Segment- und Paketwahl bleiben jederzeit direkt hier änderbar.",
     segmentTitle: "Segment wählen",
     segmentLabels: {
       privat: "Einzelpersonen",
@@ -187,6 +188,9 @@ const VORMERKEN_LABELS = {
       "One clear ordering flow: choose segment and package, complete relevant details and submit.",
     toPricing: "Back to pricing",
     toInstitutional: "Go to B2B/B2G conditions",
+    orderEntryHintTitle: "Preselection active",
+    orderEntryHintText:
+      "You are in the order entry path. Segment and package can still be changed here at any time.",
     segmentTitle: "Choose segment",
     segmentLabels: {
       privat: "Individuals",
@@ -457,15 +461,23 @@ function buildVormerkenHref(args: {
   return `/order?${params.toString()}`;
 }
 
-export default function VormerkenPage() {
+type VormerkenPageProps = {
+  entrySurface?: "order" | "vormerken";
+};
+
+export default function VormerkenPage({ entrySurface = "vormerken" }: VormerkenPageProps = {}) {
   const searchParams = useSearchParams();
   const locale = useMemo(() => normalizePricingLocale(searchParams.get("lang")), [searchParams]);
   const text = VORMERKEN_LABELS[locale];
 
   const queryPackageId = useMemo(() => searchParams.get("paket"), [searchParams]);
-  const querySegmentId = useMemo(
-    () => normalizePricingSegmentId(searchParams.get("segment")),
-    [searchParams],
+  const querySelection = useMemo(
+    () =>
+      resolvePricingOrderEntrySelection({
+        segmentId: searchParams.get("segment"),
+        packageId: queryPackageId,
+      }),
+    [searchParams, queryPackageId],
   );
   const queryQuoteRequested = useMemo(() => searchParams.get("quote") === "1", [searchParams]);
   const queryAddOnIds = useMemo(() => parseAddOnQuery(searchParams), [searchParams]);
@@ -481,14 +493,10 @@ export default function VormerkenPage() {
     () => normalizeInstitutionalCompletionPathId(searchParams.get("completion")),
     [searchParams],
   );
-  const inferredSegmentFromPackage = useMemo(() => {
-    const normalized = normalizePackageId(queryPackageId);
-    return normalized ? resolvePricingSegmentForPackage(normalized) : null;
-  }, [queryPackageId]);
   const nextParam = useMemo(() => sanitizeNext(searchParams.get("next")), [searchParams]);
 
   const [selectedSegment, setSelectedSegment] = useState<PricingSegmentId>(
-    () => querySegmentId ?? inferredSegmentFromPackage ?? "privat",
+    () => querySelection.segmentId,
   );
   const isPrivateSegment = selectedSegment === "privat";
   const isInstitutionalSegment = selectedSegment === "organisationen" || selectedSegment === "kommunen";
@@ -584,11 +592,11 @@ export default function VormerkenPage() {
   }, []);
 
   useEffect(() => {
-    const nextSegment = querySegmentId ?? inferredSegmentFromPackage ?? "privat";
+    const nextSegment = querySelection.segmentId;
     if (nextSegment !== selectedSegment) {
       setSelectedSegment(nextSegment);
     }
-  }, [querySegmentId, inferredSegmentFromPackage, selectedSegment]);
+  }, [querySelection.segmentId, selectedSegment]);
 
   useEffect(() => {
     const nextGoal = queryGoalId ?? institutionalGoals[0]?.id ?? "beteiligung_starten";
@@ -961,6 +969,12 @@ export default function VormerkenPage() {
               {text.toInstitutional}
             </Link>
           </div>
+          {entrySurface === "order" ? (
+            <div className="mt-4 rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-900">
+              <p className="font-semibold">{text.orderEntryHintTitle}</p>
+              <p className="mt-1">{text.orderEntryHintText}</p>
+            </div>
+          ) : null}
         </div>
       </header>
 
@@ -968,7 +982,7 @@ export default function VormerkenPage() {
         <div className="max-w-5xl">
           <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">{text.segmentTitle}</p>
           <div className="mt-3 flex flex-wrap gap-2">
-            {SEGMENT_ORDER.map((segmentId) => (
+            {ORDER_SEGMENT_ORDER.map((segmentId) => (
               <button
                 key={segmentId}
                 type="button"

@@ -50,7 +50,7 @@ describe("/vormerken package-start flow", () => {
     expect(html).toContain("Kommune / Verwaltung Betrieb Plus");
     expect(html).toContain("Organisation / Kommune");
     expect(html).toContain("Kostenvoranschlag aktualisieren");
-    expect(html).toContain("Kostenvoranschlag downloaden");
+    expect(html).toContain("Downloadlink per E-Mail anfordern");
     expect(html).toContain("Monatlich planbare Positionen");
   });
 

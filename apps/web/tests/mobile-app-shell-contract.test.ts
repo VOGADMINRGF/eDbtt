@@ -10,6 +10,33 @@ describe("mobile app shell contract", () => {
     expect(surface.reason).toBe("core");
   });
 
+  it("keeps create/factcheck/companion in mobile core shell", () => {
+    const create = classifyMobileAppShellPath("/create?mode=guided");
+    expect(create.shellEnabled).toBe(true);
+    expect(create.bottomNavEnabled).toBe(true);
+    expect(create.reason).toBe("core");
+
+    const factcheck = classifyMobileAppShellPath("/factcheck");
+    expect(factcheck.shellEnabled).toBe(true);
+    expect(factcheck.bottomNavEnabled).toBe(true);
+    expect(factcheck.reason).toBe("core");
+
+    const companion = classifyMobileAppShellPath("/companion/mobilitaet-berlin");
+    expect(companion.shellEnabled).toBe(true);
+    expect(companion.bottomNavEnabled).toBe(true);
+    expect(companion.reason).toBe("core");
+
+    const themen = classifyMobileAppShellPath("/themen");
+    expect(themen.shellEnabled).toBe(true);
+    expect(themen.bottomNavEnabled).toBe(true);
+    expect(themen.reason).toBe("core");
+
+    const topicDetail = classifyMobileAppShellPath("/topic/bezahlbare-energie-und-waermewende-berlin");
+    expect(topicDetail.shellEnabled).toBe(true);
+    expect(topicDetail.bottomNavEnabled).toBe(true);
+    expect(topicDetail.reason).toBe("core");
+  });
+
   it("keeps nested pricing routes inside core shell", () => {
     const pricing = classifyMobileAppShellPath("/pricing?segment=journalismus");
     expect(pricing.shellEnabled).toBe(true);

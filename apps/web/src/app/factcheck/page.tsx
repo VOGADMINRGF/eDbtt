@@ -1,7 +1,17 @@
+import type { Metadata } from "next";
 import { parseDemoPersona } from "@/features/demo/personas";
 import { readSession } from "@/utils/session";
 import { readStringParam, resolveSurfaceContext } from "@/features/surface";
 import { FactcheckSurface } from "@/features/surfaces/factcheck";
+import { buildShareMetadata } from "@/features/share/metadata";
+
+export const metadata: Metadata = buildShareMetadata({
+  objectType: "factcheck",
+  pathOrUrl: "/factcheck",
+  title: "Factcheck",
+  description: "Factcheck-Workflow mit transparentem Status und nachvollziehbarer Prüfung.",
+  ogType: "article",
+});
 
 type SearchParamsShape =
   | Promise<Record<string, string | string[] | undefined>>

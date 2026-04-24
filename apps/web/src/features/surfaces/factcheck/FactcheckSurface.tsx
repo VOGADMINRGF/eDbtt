@@ -7,7 +7,14 @@ import { getDemoPersonaConfig, type DemoPersona } from "@/features/demo/personas
 import { DEMO_STATUS_GLOSSARY, getDemoStatusLabel } from "@/features/demo/statusLanguage";
 import VerificationStatusPanel from "@/components/ai/VerificationStatusPanel";
 import RouteBoundCompanionPanel from "@/components/ai/RouteBoundCompanionPanel";
+import ShareDeepLinkActions from "@/components/mobile/ShareDeepLinkActions";
+import SocialOutputPreviewPanel from "@/components/share/SocialOutputPreviewPanel";
 import type { SurfaceContext } from "@/features/surface";
+import {
+  buildNeutralCarouselDraft,
+  buildShareOutputAsset,
+} from "@features/share/socialOutputContract";
+import { BRAND } from "@/lib/brand";
 
 type Verdict = "LIKELY_TRUE" | "LIKELY_FALSE" | "MIXED" | "UNDETERMINED";
 type IntakeChannel = "text" | "link" | "file" | "video";
@@ -155,6 +162,35 @@ export function FactcheckSurface({ context, persona }: FactcheckSurfaceProps) {
   const stepOrder: FlowStep[] = ["eingang", "pruefung", "ergebnis", "redaktion"];
   const stepIndex = stepOrder.indexOf(flowStep);
 
+  const leadingClaimText =
+    aiClaims[0]?.text ??
+    manualEntries[0]?.claim ??
+    input.trim() ??
+    "Factcheck-Vorgang";
+
+  const shareAsset = buildShareOutputAsset({
+    baseUrl: BRAND.baseUrl,
+    canonicalPathOrUrl: jobId ? `/factcheck/${jobId}` : "/factcheck",
+    objectType: "factcheck",
+    title: "Factcheck",
+    subtitle:
+      leadingClaimText.length > 0
+        ? `Prüfgegenstand: ${leadingClaimText}`
+        : "Prüfung mit transparentem Workflow und Evidenzbezug.",
+    lane: "sealed_factcheck",
+    verificationMode,
+    researchUsed,
+    sealEligible,
+    sealGranted,
+    topic: context.audience,
+    neutralCtaLabel: "Factcheck öffnen",
+    deepLinkPath: jobId ? `/factcheck/${jobId}` : "/factcheck",
+  });
+
+  const shareCarousel = buildNeutralCarouselDraft(shareAsset, {
+    highlights: aiClaims.slice(0, 2).map((claim: any) => claim?.text).filter(Boolean),
+  });
+
   function resetManualForm() {
     setEditingId(null);
     setManualClaim("");
@@ -277,8 +313,8 @@ export function FactcheckSurface({ context, persona }: FactcheckSurfaceProps) {
   }
 
   return (
-    <div className="mx-auto max-w-4xl p-6 space-y-4">
-      <div className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm space-y-3">
+    <div className="mx-auto max-w-4xl space-y-4 px-4 py-6 sm:p-6">
+      <div className="space-y-2 rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm sm:p-5">
         <div className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
           {context.mode === "demo" ? "Demo - Factcheck" : "Factcheck"} · {personaCfg.label}
         </div>
@@ -303,7 +339,10 @@ export function FactcheckSurface({ context, persona }: FactcheckSurfaceProps) {
             </Link>
           ))}
         </div>
+        <ShareDeepLinkActions path="/factcheck" title="Factcheck" text="Factcheck-Link in eDebatte" />
       </div>
+
+      <SocialOutputPreviewPanel asset={shareAsset} carousel={shareCarousel} />
 
       <div className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm space-y-2">
         <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Ablauf</p>

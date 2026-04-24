@@ -13,7 +13,7 @@ import {
   getRoundBySlug,
   getTopicBySlug,
 } from "@features/topicRound";
-import { BRAND } from "@/lib/brand";
+import { buildShareMetadata } from "@/features/share/metadata";
 
 type Params = {
   params: Promise<{ slug: string }>;
@@ -26,24 +26,13 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const round = getRoundBySlug(slug);
   if (!round) return { title: "Round nicht gefunden" };
   const topic = getTopicBySlug(round.topicSlug);
-  return {
+  return buildShareMetadata({
+    objectType: "topic_round",
+    pathOrUrl: `/round/${round.slug}`,
     title: round.title,
-    description: round.summary,
-    alternates: {
-      canonical: `/round/${round.slug}`,
-    },
-    openGraph: {
-      title: round.title,
-      description: round.summary,
-      url: `${BRAND.baseUrl}/round/${round.slug}`,
-      siteName: BRAND.name,
-      type: "article",
-    },
-    twitter: {
-      title: round.title,
-      description: topic ? `${round.summary} · Topic: ${topic.title}` : round.summary,
-    },
-  };
+    description: topic ? `${round.summary} · Thema: ${topic.title}` : round.summary,
+    ogType: "article",
+  });
 }
 
 export default async function RoundPage({

@@ -1,0 +1,87 @@
+import type { Metadata } from "next";
+import { BRAND } from "@/lib/brand";
+import type { ShareObjectType } from "@features/share/socialOutputContract";
+
+type BuildShareMetadataInput = {
+  objectType: ShareObjectType;
+  pathOrUrl: string;
+  title: string;
+  description?: string | null;
+  imageUrl?: string | null;
+  ogType?: "website" | "article" | "video.other";
+};
+
+const DESCRIPTION_FALLBACK: Record<ShareObjectType, string> = {
+  dossier: "Dossier mit Kontext, Konfliktlinien und nachvollziehbaren Anschlussfragen.",
+  factcheck: "Factcheck mit Prüfstatus, Evidenzbezug und transparentem Workflow.",
+  companion: "Companion als Kontextdialog mit routegebundenem Bezug.",
+  topic_round: "Themenrunde mit offenem Anlasskontext und Anschlussoptionen.",
+  stream: "Stream-Kontext mit sachlicher Einordnung und transparenten Hinweisen.",
+  report: "Report mit neutraler Auswertung und nachvollziehbaren Grundlagen.",
+  analyze: "Analyse mit strukturierter Einordnung und offenen Fragen.",
+};
+
+function toClean(value: unknown, max = 220): string {
+  if (typeof value !== "string") return "";
+  const normalized = value
+    .trim()
+    .replace(/\s+/g, " ")
+    .replace(/\s+([,.;:!?])/g, "$1");
+  if (!normalized) return "";
+  if (normalized.length <= max) return normalized;
+  return `${normalized.slice(0, max - 1).trimEnd()}…`;
+}
+
+function toAbsolute(pathOrUrl: string): string {
+  const raw = toClean(pathOrUrl, 600);
+  if (!raw) return BRAND.baseUrl;
+  if (raw.startsWith("http://") || raw.startsWith("https://")) return raw;
+  const normalized = raw.startsWith("/") ? raw : `/${raw}`;
+  return `${BRAND.baseUrl}${normalized}`;
+}
+
+function toCanonicalPath(pathOrUrl: string): string {
+  const raw = toClean(pathOrUrl, 600);
+  if (!raw) return "/";
+  if (raw.startsWith("http://") || raw.startsWith("https://")) {
+    try {
+      const parsed = new URL(raw);
+      return `${parsed.pathname || "/"}${parsed.search || ""}${parsed.hash || ""}`;
+    } catch {
+      return "/";
+    }
+  }
+  return raw.startsWith("/") ? raw : `/${raw}`;
+}
+
+export function buildShareMetadata(input: BuildShareMetadataInput): Metadata {
+  const title = toClean(input.title, 110) || "eDebatte";
+  const description =
+    toClean(input.description, 220) || DESCRIPTION_FALLBACK[input.objectType];
+  const canonicalPath = toCanonicalPath(input.pathOrUrl);
+  const absoluteUrl = toAbsolute(input.pathOrUrl);
+  const imageUrl = toClean(input.imageUrl, 600) || null;
+  const ogType = input.ogType ?? "article";
+
+  return {
+    title,
+    description,
+    alternates: {
+      canonical: canonicalPath,
+    },
+    openGraph: {
+      title,
+      description,
+      url: absoluteUrl,
+      siteName: BRAND.name,
+      type: ogType,
+      images: imageUrl ? [{ url: imageUrl }] : undefined,
+    },
+    twitter: {
+      card: imageUrl ? "summary_large_image" : "summary",
+      title,
+      description,
+      images: imageUrl ? [imageUrl] : undefined,
+    },
+  };
+}
