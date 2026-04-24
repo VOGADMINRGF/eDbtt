@@ -97,7 +97,9 @@ const CivicCreatorLifecycleSchema = z
   })
   .strict()
   .superRefine((value, ctx) => {
-    if (value.currentStatus === "archived" && value.allowedTransitions.length > 0) {
+    const allowedTransitions = Array.isArray(value.allowedTransitions) ? value.allowedTransitions : [];
+
+    if (value.currentStatus === "archived" && allowedTransitions.length > 0) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["allowedTransitions"],
@@ -107,9 +109,9 @@ const CivicCreatorLifecycleSchema = z
 
     if (
       value.capabilities.allowsOnlyParticipation &&
-      (value.allowedTransitions.includes("dossier_linked") ||
-        value.allowedTransitions.includes("companion_active") ||
-        value.allowedTransitions.includes("stream_active"))
+      (allowedTransitions.includes("dossier_linked") ||
+        allowedTransitions.includes("companion_active") ||
+        allowedTransitions.includes("stream_active"))
     ) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
