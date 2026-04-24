@@ -113,6 +113,7 @@ describe("/api/contributions/analyze create orchestration envelope", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     process.env.ANALYZE_ENABLED = "true";
+    delete process.env.E150_PRESENTATION_PASS_DEFAULT;
 
     mocks.rateLimitOrThrow.mockResolvedValue({ ok: true, retryIn: 0 });
     mocks.deriveContextNotes.mockReturnValue([]);
@@ -408,6 +409,27 @@ describe("/api/contributions/analyze create orchestration envelope", () => {
       expect.objectContaining({
         analysisMode: "guided",
         audienceRole: "institution",
+      }),
+    );
+  });
+
+  it("forwards explicit presentationPass flag to analyzeContribution as optional tone pass switch", async () => {
+    mocks.analyzeContribution.mockResolvedValue(buildAnalyzeResult({ claims: [] }));
+
+    const res = await analyzePOST(
+      req({
+        text: "Das ist ein ausreichend langer Text fuer den Presentation-Pass-Test.",
+        locale: "de-DE",
+        analysisMode: "media",
+        presentationPass: true,
+      }),
+    );
+
+    expect(res.status).toBe(200);
+    expect(mocks.analyzeContribution).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        analysisMode: "media",
+        presentationPassEnabled: true,
       }),
     );
   });

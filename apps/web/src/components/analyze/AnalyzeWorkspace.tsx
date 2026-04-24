@@ -34,6 +34,8 @@ import SerpResultsList from "@/features/research/SerpResultsList";
 import EditorialAuditPanel from "@/components/analyze/EditorialAuditPanel";
 import EvidenceGraphPanel from "@/components/analyze/EvidenceGraphPanel";
 import RunReceiptPanel from "@/components/analyze/RunReceiptPanel";
+import VerificationStatusPanel from "@/components/ai/VerificationStatusPanel";
+import RouteBoundCompanionPanel from "@/components/ai/RouteBoundCompanionPanel";
 import ContentLanguageSelect from "@/components/ContentLanguageSelect";
 import { useContentLang } from "@/lib/i18n/contentLanguage";
 import { DEFAULT_BASE_LANG, LANGUAGE_CODES, type LanguageCode } from "@features/i18n/languages";
@@ -43,6 +45,7 @@ import type { CreateAnalyzeResponse } from "@/features/create/analyzeContract";
 import {
   parseCreateAnalyzeEnvelope,
   type CreateAnalyzeEnvelopeProviderMatrixEntry,
+  type ParsedCreateAnalyzeVerification,
 } from "@/features/create/analyzeEnvelope";
 import {
   resolveAndNavigateAfterFinalize,
@@ -107,6 +110,23 @@ function TinyPill({
     >
       {children}
     </span>
+  );
+}
+
+function AnalyzeVerificationPanel({
+  verification,
+}: {
+  verification: ParsedCreateAnalyzeVerification;
+}) {
+  return (
+    <VerificationStatusPanel
+      lane={verification.lane}
+      verificationMode={verification.verificationMode}
+      researchUsed={verification.researchUsed}
+      sealEligible={verification.sealEligible}
+      sealGranted={verification.sealGranted}
+      showHint
+    />
   );
 }
 
@@ -916,7 +936,10 @@ export default function AnalyzeWorkspace({
   const [runReceipt, setRunReceipt] = React.useState<RunReceipt | null>(null);
   const [providerMatrix, setProviderMatrix] = React.useState<ProviderMatrixEntry[]>([]);
   const [createAnalyze, setCreateAnalyze] = React.useState<CreateAnalyzeResponse | null>(null);
+  const [analysisVerification, setAnalysisVerification] = React.useState<ParsedCreateAnalyzeVerification | null>(null);
   const [sourceGroundingAudit, setSourceGroundingAudit] = React.useState<SourceGroundingAudit | null>(null);
+  const showGuidedCompanion =
+    analysisModeHint === "guided" || flow === "guided";
   const [ctaHandoffState, setCtaHandoffState] = React.useState<CreateCtaHandoffUiState>(
     () => createInitialCreateCtaHandoffState(),
   );
@@ -1875,6 +1898,7 @@ export default function AnalyzeWorkspace({
     setEvidenceGraph(null);
     setRunReceipt(null);
     setCreateAnalyze(null);
+    setAnalysisVerification(null);
     setSourceGroundingAudit(null);
     setCtaHandoffState(createInitialCreateCtaHandoffState());
     setPrepareAttachReview(null);
@@ -1917,6 +1941,7 @@ export default function AnalyzeWorkspace({
       }
       const parsedEnvelope = parseCreateAnalyzeEnvelope(data);
       setCreateAnalyze(parsedEnvelope.createAnalyze);
+      setAnalysisVerification(parsedEnvelope.verification);
       setSourceGroundingAudit(parsedEnvelope.sourceGrounding);
       setCtaHandoffState(createInitialCreateCtaHandoffState());
       setPrepareAttachReview(null);
@@ -2052,6 +2077,7 @@ export default function AnalyzeWorkspace({
       setEvidenceGraph(null);
       setRunReceipt(null);
       setCreateAnalyze(null);
+      setAnalysisVerification(null);
       setSourceGroundingAudit(null);
       setCtaHandoffState(createInitialCreateCtaHandoffState());
       setPrepareAttachReview(null);
@@ -2980,6 +3006,25 @@ export default function AnalyzeWorkspace({
                 </div>
               ) : null}
 
+              {analysisVerification ? <AnalyzeVerificationPanel verification={analysisVerification} /> : null}
+              {showGuidedCompanion ? (
+                <RouteBoundCompanionPanel
+                  contextKind="guided_workspace"
+                  title="Guided Workspace"
+                  routePath="/create"
+                  analysisMode="guided"
+                  intro="Guided-Companion für Rückfragen zur Struktur, Zuständigkeit und nächsten Schritten."
+                  placeholder="Welche offene Frage oder welcher nächste Schritt soll geklärt werden?"
+                  parentStatus={{
+                    lane: analysisVerification?.lane ?? "standard",
+                    verificationMode: analysisVerification?.verificationMode ?? "precheck",
+                    researchUsed: analysisVerification?.researchUsed ?? "none",
+                    sealEligible: analysisVerification?.sealEligible ?? false,
+                    sealGranted: analysisVerification?.sealGranted ?? false,
+                  }}
+                />
+              ) : null}
+
               {createAnalyzeRoutingHint ? (
                 <div
                   className={`rounded-xl border px-3 py-2 text-[11px] ${
@@ -3170,6 +3215,25 @@ export default function AnalyzeWorkspace({
                     </ul>
                   ) : null}
                 </div>
+              ) : null}
+
+              {analysisVerification ? <AnalyzeVerificationPanel verification={analysisVerification} /> : null}
+              {showGuidedCompanion ? (
+                <RouteBoundCompanionPanel
+                  contextKind="guided_workspace"
+                  title="Guided Workspace"
+                  routePath="/create"
+                  analysisMode="guided"
+                  intro="Guided-Companion für Rückfragen zur Struktur, Zuständigkeit und nächsten Schritten."
+                  placeholder="Welche offene Frage oder welcher nächste Schritt soll geklärt werden?"
+                  parentStatus={{
+                    lane: analysisVerification?.lane ?? "standard",
+                    verificationMode: analysisVerification?.verificationMode ?? "precheck",
+                    researchUsed: analysisVerification?.researchUsed ?? "none",
+                    sealEligible: analysisVerification?.sealEligible ?? false,
+                    sealGranted: analysisVerification?.sealGranted ?? false,
+                  }}
+                />
               ) : null}
 
               {createAnalyzeRoutingHint ? (

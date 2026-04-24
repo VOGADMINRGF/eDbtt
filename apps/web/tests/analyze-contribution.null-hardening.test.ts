@@ -169,4 +169,45 @@ describe("analyzeContribution null hardening", () => {
     expect(result.responsibilityPaths[0]?.nodes[0]?.actorKey).toBe("bundestag");
     expect(result.responsibilityPaths[0]?.nodes[0]?.displayName).toBe("Deutscher Bundestag");
   });
+
+  it("applies optional presentation pass only to display text and keeps verification fields stable", async () => {
+    mocks.callE150Orchestrator.mockResolvedValue(
+      orchestratorResult({
+        claims: [{ id: "claim-1", text: "Claim bleibt gleich." }],
+        notes: [{ id: "n1", text: "  Kontext   ;  knapp  " }],
+        questions: [{ id: "q1", text: "  Welche  Daten  fehlen ?  " }],
+        report: {
+          summary: "  Kompakt   ;  neutral !!  ",
+          keyConflicts: ["  Konflikt   A  "],
+          facts: { local: ["Fakt"], international: [] },
+          openQuestions: ["  Offen ?  "],
+          takeaways: ["  Nächster   Schritt  "],
+        },
+      }),
+    );
+
+    const result = await analyzeContribution({
+      text: "Ein längerer Medienbeitrag mit Kontext und Detailpunkten.",
+      locale: "de",
+      analysisMode: "media",
+      audienceRole: "staff",
+      presentationPassEnabled: true,
+    });
+
+    expect(result.claims).toEqual(
+      expect.arrayContaining([expect.objectContaining({ id: "claim-1", text: "Claim bleibt gleich." })]),
+    );
+    expect(result.report.summary).toBe("Kompakt; neutral!");
+    expect(result.report.keyConflicts).toEqual(["Konflikt A"]);
+    expect(result.report.openQuestions).toEqual(["Offen?"]);
+    expect(result.report.takeaways).toEqual(["Nächster Schritt"]);
+    expect(result.notes[0]?.text).toBe("Kontext; knapp");
+    expect(result.questions[0]?.text).toBe("Welche Daten fehlen?");
+    expect(result?._meta?.verificationMode).toBe("precheck");
+    expect(result?._meta?.researchUsed).toBe("none");
+    expect(result?._meta?.sealEligible).toBe(false);
+    expect(result?._meta?.sealGranted).toBe(false);
+    expect(result?._meta?.tonePassUsed).toBe(true);
+    expect(result?._meta?.presentationPass?.applied).toBe(true);
+  });
 });

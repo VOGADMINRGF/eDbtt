@@ -52,6 +52,7 @@ export const AnalyzeRequestSchemaV2 = z
         z.enum(CREATE_PRODUCT_MODE_VALUES).optional(),
       )
       .optional(),
+    presentationPass: z.boolean().optional(),
     anlassraumId: z.preprocess(
       (value) => {
         if (typeof value !== "string") return value;

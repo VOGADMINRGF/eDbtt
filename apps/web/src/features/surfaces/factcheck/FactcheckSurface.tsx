@@ -5,6 +5,8 @@ import { useFactcheckJob } from "@/hooks/useFactcheckJob";
 import { buildCreateHref } from "@/features/create/intents";
 import { getDemoPersonaConfig, type DemoPersona } from "@/features/demo/personas";
 import { DEMO_STATUS_GLOSSARY, getDemoStatusLabel } from "@/features/demo/statusLanguage";
+import VerificationStatusPanel from "@/components/ai/VerificationStatusPanel";
+import RouteBoundCompanionPanel from "@/components/ai/RouteBoundCompanionPanel";
 import type { SurfaceContext } from "@/features/surface";
 
 type Verdict = "LIKELY_TRUE" | "LIKELY_FALSE" | "MIXED" | "UNDETERMINED";
@@ -88,7 +90,19 @@ export function FactcheckSurface({ context, persona }: FactcheckSurfaceProps) {
   const [manualConfidence, setManualConfidence] = useState(70);
   const [manualNote, setManualNote] = useState("");
   const [manualSources, setManualSources] = useState("");
-  const { jobId, status, claims, loading, error, enqueue, done } =
+  const {
+    jobId,
+    status,
+    claims,
+    loading,
+    error,
+    enqueue,
+    done,
+    verificationMode,
+    researchUsed,
+    sealEligible,
+    sealGranted,
+  } =
     useFactcheckJob();
 
   const aiClaims = useMemo(() => {
@@ -417,6 +431,34 @@ export function FactcheckSurface({ context, persona }: FactcheckSurfaceProps) {
           {jobId && <div className="text-xs text-[rgb(var(--muted))]">Lauf-ID: {jobId}</div>}
           {status && <div className="text-xs text-[rgb(var(--muted))]">Status: {status}</div>}
         </div>
+
+        {status !== "idle" ? (
+          <VerificationStatusPanel
+            lane="sealed_factcheck"
+            status={status}
+            verificationMode={verificationMode}
+            researchUsed={researchUsed}
+            sealEligible={sealEligible}
+            sealGranted={sealGranted}
+            showHint
+          />
+        ) : null}
+
+        <RouteBoundCompanionPanel
+          contextKind="factcheck"
+          title="Factcheck"
+          routePath="/factcheck"
+          intro="Companion für Rückfragen im Factcheck-Lane. Kein Siegel ohne abgeschlossenen sealed Workflow."
+          placeholder="Welche Aussage oder Quelle soll als Nächstes geprüft werden?"
+          parentStatus={{
+            status: status === "idle" ? "started" : status,
+            lane: "sealed_factcheck",
+            verificationMode: verificationMode,
+            researchUsed: researchUsed,
+            sealEligible: sealEligible,
+            sealGranted: sealGranted,
+          }}
+        />
 
         {error && <div className="text-sm text-red-600">Fehler: {error}</div>}
         {manualStatus && <div className="text-xs text-[rgb(var(--muted))]">{manualStatus}</div>}
