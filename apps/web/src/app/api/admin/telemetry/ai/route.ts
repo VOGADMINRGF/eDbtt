@@ -11,14 +11,17 @@ export const dynamic = "force-dynamic";
 
 function parseRange(value: string | null): number {
   switch (value) {
+    case "7":
     case "week":
       return 7;
+    case "30":
     case "month":
       return 30;
+    case "90":
     case "quarter":
       return 90;
     default:
-      return 1;
+      return 30;
   }
 }
 
