@@ -6,7 +6,9 @@ const API_BASE = (process.env.ANTHROPIC_BASE_URL || "https://api.anthropic.com")
   /\/+$/,
   "",
 );
-const MODEL = process.env.ANTHROPIC_MODEL || "claude-3-5-sonnet-latest";
+const MODEL = process.env.ANTHROPIC_MODEL || "claude-sonnet-4-20250514";
+const FALLBACK_MODEL =
+  process.env.ANTHROPIC_MODEL_FALLBACK || "claude-sonnet-4-20250514";
 const VERSION = process.env.ANTHROPIC_VERSION || "2023-06-01";
 
 export type AskArgs = {
@@ -57,6 +59,12 @@ async function post(body: Record<string, unknown>, signal?: AbortSignal) {
     const err: any = new Error(`Anthropic error ${res.status}: ${msg}`);
     err.status = res.status;
     err.payload = data;
+    err.code = data?.error?.type ?? data?.error?.code ?? null;
+    err.meta = {
+      model: typeof body?.model === "string" ? body.model : null,
+      code: err.code,
+      messageShort: typeof msg === "string" ? msg.slice(0, 200) : null,
+    };
     throw err;
   }
   return data;
@@ -69,8 +77,8 @@ async function askAnthropic({
 }: AskArgs): Promise<AskResult> {
   if (!prompt) throw new Error("prompt darf nicht leer sein");
 
-  const body = {
-    model: MODEL,
+  const buildBody = (modelName: string) => ({
+    model: modelName,
     max_tokens: maxOutputTokens,
     system:
       "Return strictly valid JSON (RFC8259). No explanations, no Markdown, no code fences.",
@@ -80,13 +88,27 @@ async function askAnthropic({
         content: prompt,
       },
     ],
-  };
+  });
 
-  const data = await post(body, signal);
+  let selectedModel = MODEL;
+  let data;
+  try {
+    data = await post(buildBody(selectedModel), signal);
+  } catch (err: any) {
+    const canFallbackModel =
+      err?.status === 404 &&
+      typeof FALLBACK_MODEL === "string" &&
+      FALLBACK_MODEL.length > 0 &&
+      FALLBACK_MODEL !== selectedModel;
+    if (!canFallbackModel) throw err;
+    selectedModel = FALLBACK_MODEL;
+    data = await post(buildBody(selectedModel), signal);
+  }
+
   return {
     text: extractText(data),
     raw: data,
-    model: data?.model,
+    model: data?.model ?? selectedModel,
     tokensIn: data?.usage?.input_tokens,
     tokensOut: data?.usage?.output_tokens,
   };

@@ -59,6 +59,12 @@ async function post(body: Record<string, unknown>, signal?: AbortSignal) {
     const err: any = new Error(`Mistral error ${res.status}: ${msg}`);
     err.status = res.status;
     err.payload = data;
+    err.code = data?.error?.code ?? data?.error?.type ?? null;
+    err.meta = {
+      model: typeof body?.model === "string" ? body.model : null,
+      code: err.code,
+      messageShort: typeof msg === "string" ? msg.slice(0, 200) : null,
+    };
     throw err;
   }
   return data;
@@ -75,6 +81,7 @@ async function askMistral({
     model: MODEL,
     max_tokens: maxOutputTokens,
     temperature: 0.2,
+    response_format: { type: "json_object" },
     messages: [
       {
         role: "system",

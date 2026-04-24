@@ -42,7 +42,7 @@ import type {
   VerificationMode,
 } from "./e150/verificationContract";
 import { AnalyzeResultSchema, type AnalyzeResult } from "@features/analyze/schemas";
-import { parseJsonLoose } from "@features/analyze/llmJson";
+import { extractJsonCandidate, parseJsonLoose } from "@features/analyze/llmJson";
 
 /* ------------------------------------------------------------------------- */
 /* Typen                                                                     */
@@ -89,6 +89,7 @@ export type E150OrchestratorArgs = {
    */
   validateRaw?: (rawText: string) => boolean;
   requiredCapability?: ProviderProfile["capabilities"][number];
+  validationMode?: "analyze_schema" | "json_only";
   /**
    * Gesamt-Timeout pro Provider (ms). Ohne Angabe wird
    * OPENAI_TIMEOUT_MS bzw. ein Default genutzt.
@@ -162,6 +163,7 @@ type ProviderFailure = {
   errorKind: AiErrorKind;
   httpStatus?: number | null;
   errorMessageShort?: string;
+  providerErrorCode?: string | null;
   attempt?: 1 | 2;
   modelName?: string;
   cancelReason?: CancelReason | null;
@@ -169,6 +171,10 @@ type ProviderFailure = {
   didFallback?: boolean;
   openaiErrorCode?: string | null;
   openaiErrorMessage?: string | null;
+  parseError?: string | null;
+  schemaError?: string | null;
+  schemaPath?: string | null;
+  rawExcerpt?: string | null;
 };
 
 type ProviderResult = ProviderSuccess | ProviderFailure;
@@ -203,15 +209,28 @@ export type ProviderMatrixEntry = {
   durationMs?: number | null;
   model?: string | null;
   reason?: string | null;
+  errorMessage?: string | null;
+  providerErrorCode?: string | null;
   formatUsed?: "json_schema" | "json_object" | null;
   didFallback?: boolean | null;
   openaiErrorCode?: string | null;
   openaiErrorMessage?: string | null;
+  parseError?: string | null;
+  schemaError?: string | null;
+  schemaPath?: string | null;
+  rawExcerpt?: string | null;
 };
 
 export type E150OrchestratorMeta = {
   usedProviders: E150ProviderName[];
-  failedProviders: { provider: E150ProviderName; error: string; errorKind?: AiErrorKind }[];
+  failedProviders: {
+    provider: E150ProviderName;
+    error: string;
+    errorKind?: AiErrorKind;
+    httpStatus?: number | null;
+    errorMessageShort?: string;
+    providerErrorCode?: string | null;
+  }[];
   timings: Record<E150ProviderName, number | null>;
   disabledProviders: { provider: E150ProviderName; reason: string }[];
   skippedProviders: { provider: E150ProviderName; reason: string }[];
@@ -260,7 +279,9 @@ export class OrchestratorNoProviderError extends Error {
 
 export class OrchestratorAllFailedError extends Error {
   code = "ANALYZE_PROVIDER_FAILED";
-  meta?: OrchestratorNoProviderError["meta"] & { failedProviders?: { provider: E150ProviderName; error: string; errorKind?: AiErrorKind }[] };
+  meta?: OrchestratorNoProviderError["meta"] & {
+    failedProviders?: E150OrchestratorMeta["failedProviders"];
+  };
   constructor(message: string, meta?: OrchestratorAllFailedError["meta"]) {
     super(message);
     this.name = "OrchestratorAllFailedError";
@@ -296,6 +317,26 @@ function mapErrorToKind(error: unknown): AiErrorKind {
   if (/context_length|maximum context length|too long/i.test(message)) return "INTERNAL";
   if (/json/i.test(message) || /zod/i.test(message) || /parse/i.test(message)) return "BAD_JSON";
   return status ? "INTERNAL" : "UNKNOWN";
+}
+
+function extractProviderErrorCode(error: unknown): string | null {
+  const err = error as any;
+  const fromCode = typeof err?.code === "string" ? err.code : null;
+  if (fromCode) return fromCode;
+
+  const fromMetaCode = typeof err?.meta?.code === "string" ? err.meta.code : null;
+  if (fromMetaCode) return fromMetaCode;
+
+  const fromMetaType = typeof err?.meta?.type === "string" ? err.meta.type : null;
+  if (fromMetaType) return fromMetaType;
+
+  const fromPayloadCode = typeof err?.payload?.error?.code === "string" ? err.payload.error.code : null;
+  if (fromPayloadCode) return fromPayloadCode;
+
+  const fromPayloadType = typeof err?.payload?.error?.type === "string" ? err.payload.error.type : null;
+  if (fromPayloadType) return fromPayloadType;
+
+  return null;
 }
 
 const OPENAI_TIMEOUT_DEFAULT = Number(process.env.OPENAI_TIMEOUT_MS ?? 45_000);
@@ -573,10 +614,17 @@ function buildProviderMatrix(
         status: null,
         durationMs: o.durationMs,
         model: o.modelName ?? null,
+        reason: null,
+        errorMessage: null,
+        providerErrorCode: null,
         formatUsed: o.formatUsed ?? null,
         didFallback: o.didFallback ?? null,
         openaiErrorCode: o.openaiErrorCode ?? null,
         openaiErrorMessage: o.openaiErrorMessage ?? null,
+        parseError: null,
+        schemaError: null,
+        schemaPath: null,
+        rawExcerpt: null,
       };
     }
     if (outcome && !outcome.ok) {
@@ -591,10 +639,16 @@ function buildProviderMatrix(
           durationMs: o.durationMs,
           model: o.modelName ?? null,
           reason: o.cancelReason ?? o.error ?? null,
+          errorMessage: o.errorMessageShort ?? o.error ?? null,
+          providerErrorCode: o.providerErrorCode ?? null,
           formatUsed: o.formatUsed ?? null,
           didFallback: o.didFallback ?? null,
           openaiErrorCode: o.openaiErrorCode ?? null,
           openaiErrorMessage: o.openaiErrorMessage ?? null,
+          parseError: o.parseError ?? null,
+          schemaError: o.schemaError ?? null,
+          schemaPath: o.schemaPath ?? null,
+          rawExcerpt: o.rawExcerpt ?? null,
         };
       }
     }
@@ -608,11 +662,17 @@ function buildProviderMatrix(
         status: o.httpStatus ?? null,
         durationMs: o.durationMs,
         model: o.modelName ?? null,
-        reason: o.cancelReason ?? null,
+        reason: o.cancelReason ?? o.error ?? null,
+        errorMessage: o.errorMessageShort ?? o.error ?? null,
+        providerErrorCode: o.providerErrorCode ?? null,
         formatUsed: o.formatUsed ?? null,
         didFallback: o.didFallback ?? null,
         openaiErrorCode: o.openaiErrorCode ?? null,
         openaiErrorMessage: o.openaiErrorMessage ?? null,
+        parseError: o.parseError ?? null,
+        schemaError: o.schemaError ?? null,
+        schemaPath: o.schemaPath ?? null,
+        rawExcerpt: o.rawExcerpt ?? null,
       };
     }
     if (disabledSet.has(p.name)) {
@@ -623,6 +683,12 @@ function buildProviderMatrix(
         status: probe?.status ?? null,
         model: null,
         reason: disabled.find((d) => d.provider === p.name)?.reason ?? null,
+        errorMessage: disabled.find((d) => d.provider === p.name)?.reason ?? null,
+        providerErrorCode: null,
+        parseError: null,
+        schemaError: null,
+        schemaPath: null,
+        rawExcerpt: null,
       };
     }
     if (skippedSet.has(p.name)) {
@@ -633,6 +699,12 @@ function buildProviderMatrix(
         status: probe?.status ?? null,
         model: null,
         reason: skipped.find((s) => s.provider === p.name)?.reason ?? null,
+        errorMessage: skipped.find((s) => s.provider === p.name)?.reason ?? null,
+        providerErrorCode: null,
+        parseError: null,
+        schemaError: null,
+        schemaPath: null,
+        rawExcerpt: null,
       };
     }
     return {
@@ -642,10 +714,16 @@ function buildProviderMatrix(
       status: probe?.status ?? null,
       model: null,
       reason: null,
+      errorMessage: null,
+      providerErrorCode: null,
       formatUsed: null,
       didFallback: null,
       openaiErrorCode: null,
       openaiErrorMessage: null,
+      parseError: null,
+      schemaError: null,
+      schemaPath: null,
+      rawExcerpt: null,
     };
   });
 }
@@ -1115,6 +1193,7 @@ async function runProvider(
         errorKind: lastKind,
         httpStatus: typeof err?.status === "number" ? err.status : null,
         errorMessageShort: typeof err?.message === "string" ? err.message.slice(0, 200) : undefined,
+        providerErrorCode: extractProviderErrorCode(err),
         attempt: (attempt + 1) as 1 | 2,
         modelName: (err as any)?.meta?.model ?? undefined,
         cancelReason: abortReason,
@@ -1132,6 +1211,7 @@ async function runProvider(
     httpStatus: typeof lastError?.status === "number" ? lastError.status : null,
     errorMessageShort:
       typeof lastError?.message === "string" ? lastError.message.slice(0, 200) : undefined,
+    providerErrorCode: extractProviderErrorCode(lastError),
     attempt: 2,
   };
 }
@@ -1308,49 +1388,160 @@ function clampAnalysis(data: any): AnalyzeResult {
   } as AnalyzeResult;
 }
 
+type ValidateCandidateSuccess = {
+  ok: true;
+  jsonText: string;
+  parsed: AnalyzeResult;
+};
+
+type ValidateCandidateFailure = {
+  ok: false;
+  reason: "BAD_JSON" | "SCHEMA_INVALID";
+  errorKind: AiErrorKind;
+  providerErrorCode: "BAD_JSON" | "SCHEMA_INVALID";
+  errorMessage: string;
+  parseError?: string | null;
+  schemaError?: string | null;
+  schemaPath?: string | null;
+  rawExcerpt?: string | null;
+};
+
+function normalizeCandidateJson(
+  rawText: string,
+): { ok: true; value: unknown; jsonText: string; rawExcerpt: string } | { ok: false; parseError: string; rawExcerpt: string | null } {
+  const candidate = extractJsonCandidate(rawText) ?? sanitizeJsonText(rawText);
+  const cleaned = candidate?.trim() ?? "";
+  if (!cleaned) {
+    return { ok: false, parseError: "no_json_object_found", rawExcerpt: sanitizeJsonText(rawText).slice(0, 500) || null };
+  }
+  const parsed = tryParseJson(cleaned);
+  if (!parsed.ok) {
+    return {
+      ok: false,
+      parseError: "json_parse_failed",
+      rawExcerpt: cleaned.slice(0, 500),
+    };
+  }
+  return {
+    ok: true,
+    value: parsed.value,
+    jsonText: JSON.stringify(parsed.value),
+    rawExcerpt: cleaned.slice(0, 500),
+  };
+}
+
 function parseAnalyzeResult(
   rawText: string,
-): { ok: true; value: AnalyzeResult } | { ok: false; reason: "BAD_JSON" } {
-  const cleaned = rawText
-    .replace(/```json/gi, "```")
-    .replace(/```/g, "")
-    .trim();
+): ValidateCandidateSuccess | ValidateCandidateFailure {
+  const normalized = normalizeCandidateJson(rawText);
+  if (normalized.ok === false) {
+    const loose = parseJsonLoose(rawText, AnalyzeResultSchema);
+    if (loose.ok) {
+      return {
+        ok: true,
+        jsonText: JSON.stringify(loose.value),
+        parsed: clampAnalysis(loose.value),
+      };
+    }
+    return {
+      ok: false,
+      reason: "BAD_JSON",
+      errorKind: "BAD_JSON",
+      providerErrorCode: "BAD_JSON",
+      errorMessage: normalized.parseError,
+      parseError: normalized.parseError,
+      rawExcerpt: normalized.rawExcerpt,
+    };
+  }
 
-  const direct = tryParseJson(cleaned);
-  if (direct.ok) {
-    const validated = AnalyzeResultSchema.safeParse(direct.value);
-    if (validated.success) return { ok: true, value: clampAnalysis(validated.data) };
+  const validated = AnalyzeResultSchema.safeParse(normalized.value);
+  if (validated.success) {
+    return {
+      ok: true,
+      jsonText: JSON.stringify(validated.data),
+      parsed: clampAnalysis(validated.data),
+    };
   }
 
   const loose = parseJsonLoose(rawText, AnalyzeResultSchema);
-  if (loose.ok) return { ok: true, value: clampAnalysis(loose.value) };
+  if (loose.ok) {
+    return {
+      ok: true,
+      jsonText: JSON.stringify(loose.value),
+      parsed: clampAnalysis(loose.value),
+    };
+  }
 
-  return { ok: false, reason: "BAD_JSON" };
+  const firstIssue = validated.error.issues[0];
+  const schemaError = firstIssue?.message ?? "schema_validation_failed";
+  const schemaPath = Array.isArray(firstIssue?.path) ? firstIssue.path.join(".") || "$" : "$";
+  return {
+    ok: false,
+    reason: "SCHEMA_INVALID",
+    errorKind: "INTERNAL",
+    providerErrorCode: "SCHEMA_INVALID",
+    errorMessage: schemaError,
+    schemaError,
+    schemaPath,
+    rawExcerpt: normalized.rawExcerpt,
+  };
 }
 
 function validateCandidate(
   rawText: string,
+  validationMode: "analyze_schema" | "json_only" = "analyze_schema",
   validateRaw?: (raw: string) => boolean,
-): { ok: true; jsonText: string; parsed: AnalyzeResult } | { ok: false; reason: string } {
+): ValidateCandidateSuccess | ValidateCandidateFailure {
   const cleaned = sanitizeJsonText(rawText);
 
   if (validateRaw) {
     try {
       const valid = validateRaw(cleaned);
-      if (valid === false) return { ok: false, reason: "BAD_JSON" };
+      if (valid === false) {
+        return {
+          ok: false,
+          reason: "BAD_JSON",
+          errorKind: "BAD_JSON",
+          providerErrorCode: "BAD_JSON",
+          errorMessage: "validate_raw_failed",
+          parseError: "validate_raw_failed",
+          rawExcerpt: cleaned.slice(0, 500),
+        };
+      }
     } catch {
-      return { ok: false, reason: "BAD_JSON" };
+      return {
+        ok: false,
+        reason: "BAD_JSON",
+        errorKind: "BAD_JSON",
+        providerErrorCode: "BAD_JSON",
+        errorMessage: "validate_raw_threw",
+        parseError: "validate_raw_threw",
+        rawExcerpt: cleaned.slice(0, 500),
+      };
     }
   }
 
-  const parsed = parseAnalyzeResult(rawText);
-  if (!parsed.ok) return { ok: false, reason: "BAD_JSON" };
+  if (validationMode === "json_only") {
+    const normalized = normalizeCandidateJson(cleaned || rawText);
+    if (normalized.ok === false) {
+      return {
+        ok: false,
+        reason: "BAD_JSON",
+        errorKind: "BAD_JSON",
+        providerErrorCode: "BAD_JSON",
+        errorMessage: normalized.parseError,
+        parseError: normalized.parseError,
+        rawExcerpt: normalized.rawExcerpt,
+      };
+    }
+    return {
+      ok: true,
+      jsonText: normalized.jsonText,
+      parsed: clampAnalysis(normalized.value),
+    };
+  }
 
-  return {
-    ok: true,
-    jsonText: JSON.stringify(parsed.value),
-    parsed: parsed.value,
-  };
+  return parseAnalyzeResult(rawText);
 }
 
 async function runProviderProbe(
@@ -1547,7 +1738,7 @@ export async function callE150Orchestrator(
     PROVIDERS.map((p) => [p.name, null]),
   ) as Record<E150ProviderName, number | null>;
 
-  const failedProviders: { provider: E150ProviderName; error: string; errorKind?: AiErrorKind }[] = [];
+  const failedProviders: E150OrchestratorMeta["failedProviders"] = [];
   const dynamicDisabled: { provider: E150ProviderName; reason: string }[] = [];
   const executedProviders: E150ProviderName[] = [];
 
@@ -1561,6 +1752,9 @@ export async function callE150Orchestrator(
         provider: failure.provider,
         error: failure.error,
         errorKind: failure.errorKind,
+        httpStatus: failure.httpStatus ?? null,
+        errorMessageShort: failure.errorMessageShort,
+        providerErrorCode: failure.providerErrorCode ?? null,
       });
     }
   };
@@ -1575,20 +1769,29 @@ export async function callE150Orchestrator(
     }
 
     const current = result as ProviderSuccess;
-    const validation = validateCandidate(current.rawText, args.validateRaw);
+    const validation = validateCandidate(
+      current.rawText,
+      args.validationMode ?? "analyze_schema",
+      args.validateRaw,
+    );
     if (validation.ok === false) {
       const failure: ProviderFailure = {
         ok: false,
         provider: current.provider,
-        error: validation.reason,
+        error: validation.errorMessage,
         durationMs: current.durationMs,
-        errorKind: "BAD_JSON",
+        errorKind: validation.errorKind,
         attempt: current.attempt,
-        errorMessageShort: validation.reason.slice(0, 200),
+        errorMessageShort: validation.errorMessage.slice(0, 200),
+        providerErrorCode: validation.providerErrorCode,
         formatUsed: current.formatUsed,
         didFallback: current.didFallback,
         openaiErrorCode: current.openaiErrorCode,
         openaiErrorMessage: current.openaiErrorMessage,
+        parseError: validation.parseError ?? null,
+        schemaError: validation.schemaError ?? null,
+        schemaPath: validation.schemaPath ?? null,
+        rawExcerpt: validation.rawExcerpt ?? null,
       };
       return Promise.resolve({ outcome: failure });
     }

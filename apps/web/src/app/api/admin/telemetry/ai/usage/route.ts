@@ -8,6 +8,10 @@ export const dynamic = "force-dynamic";
 
 function parseRange(value: string | null): number {
   switch (value) {
+    case "1":
+    case "24h":
+    case "day":
+      return 1;
     case "7":
     case "week":
       return 7;
