@@ -2,6 +2,11 @@ import { coreCol, type ObjectId } from "@core/db/triMongo";
 import type { StatementRecord } from "@features/analyze/schemas";
 import type { FactVerdict } from "./types";
 import type { SerpResultLite } from "@features/ai/providers/ari_search";
+import type { ResearchUsed, VerificationMode } from "@features/ai/e150/verificationContract";
+import type {
+  E150ConfidenceMeta,
+  E150DisagreementMeta,
+} from "@features/ai/e150/disagreementConfidence";
 
 export type FactcheckJobStatus = "queued" | "processing" | "completed" | "failed" | "error";
 
@@ -22,6 +27,15 @@ export type FactcheckJobDoc = {
 
   claims: StatementRecord[];
   serpResults?: SerpResultLite[];
+
+  verificationMode?: VerificationMode;
+  researchUsed?: ResearchUsed;
+  sealEligible?: boolean;
+  sealGranted?: boolean;
+  sealedAt?: Date;
+  fallbackUsed?: boolean;
+  disagreement?: E150DisagreementMeta | null;
+  orchestrationConfidence?: E150ConfidenceMeta | null;
 
   error?: string | null;
 

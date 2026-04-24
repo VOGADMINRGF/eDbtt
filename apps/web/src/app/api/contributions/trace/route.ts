@@ -11,6 +11,7 @@ import {
   PROMPT_OUTPUT_CONTRACT_VERSION,
   type PromptOutputMeta,
 } from "@/features/ai/promptOutputEnvelope";
+import { resolveAiRouteClassification } from "@features/ai/e150/routeClassification";
 
 const TraceSchema = z.object({
   textOriginal: z.string().min(1).max(10_000),
@@ -85,15 +86,27 @@ function buildPromptOutputMeta(
 }
 
 export async function POST(req: NextRequest) {
+  const routeClassification = resolveAiRouteClassification("/api/contributions/trace");
   const ip = (req.headers.get("x-forwarded-for") || "local").split(",")[0].trim();
   const rl = await rateLimitOrThrow(`trace:ip:${ip}`, 30, 10 * 60 * 1000, { salt: "trace" });
   if (!rl.ok) {
-    return NextResponse.json({ ok: false, error: "rate_limited" }, { status: 429 });
+    return NextResponse.json(
+      { ok: false, error: "rate_limited", meta: { routeClassification } },
+      { status: 429 },
+    );
   }
 
   const body = TraceSchema.safeParse(await req.json().catch(() => ({})));
   if (!body.success) {
-    return NextResponse.json({ ok: false, error: "invalid_body", issues: body.error.issues }, { status: 400 });
+    return NextResponse.json(
+      {
+        ok: false,
+        error: "invalid_body",
+        issues: body.error.issues,
+        meta: { routeClassification },
+      },
+      { status: 400 },
+    );
   }
 
   const prompt = buildPrompt(body.data);
@@ -121,6 +134,7 @@ export async function POST(req: NextRequest) {
         ok: false,
         error: "trace_parse_failed",
         promptOutput: buildPromptOutputMeta(extracted.meta.parserMode),
+        meta: { routeClassification },
       },
       { status: 502 },
     );
@@ -136,6 +150,7 @@ export async function POST(req: NextRequest) {
         promptVersion: extracted.meta.promptVersion,
         outputVersion: extracted.meta.outputVersion,
       },
+      meta: { routeClassification },
     },
     { status: 200 },
   );

@@ -16,6 +16,8 @@ import {
   getSealedFactcheckJourneyProfile,
 } from "@features/ai/e150/factcheckProfiles";
 import { deriveVerificationLabel } from "@features/ai/e150/verificationContract";
+import { resolveSealedFactcheckStatusView } from "@features/ai/e150/factcheckStatus";
+import { resolveAiRouteClassification } from "@features/ai/e150/routeClassification";
 import {
   ensureDossierForStatement,
   dossierSourcesCol,
@@ -361,6 +363,7 @@ export async function POST(req: NextRequest) {
 
     const lang = toShortLang(payload.language);
     const jobId = safeRandomId();
+    const routeClassification = resolveAiRouteClassification("/api/factcheck/enqueue");
 
     // 1) Input bestimmen: Text oder Draft laden
     let inputText = (payload.text ?? "").trim();
@@ -413,6 +416,11 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    const analysisMeta = analysis && typeof (analysis as any)?._meta === "object" ? (analysis as any)._meta : null;
+    const disagreement = analysisMeta?.disagreement ?? null;
+    const orchestrationConfidence = analysisMeta?.confidence ?? null;
+    const fallbackUsed = typeof analysisMeta?.fallbackUsed === "boolean" ? analysisMeta.fallbackUsed : false;
+
     const status: FactcheckJobStatus = analysisError ? "failed" : "completed";
 
     // 3) SERP (optional, schnell & begrenzt)
@@ -425,6 +433,11 @@ export async function POST(req: NextRequest) {
     // 4) Persist Job (triMongo)
     const col = await factcheckJobsCol();
     const now = new Date();
+    const verification = buildSealedFactcheckContract({
+      deepSearch: payload.deepSearch === true,
+      sealGranted: false,
+    });
+
     await col.insertOne({
       jobId,
       draftId: payload.draftId ?? null,
@@ -436,6 +449,13 @@ export async function POST(req: NextRequest) {
       confidence: 0.5,
       claims,
       serpResults,
+      verificationMode: verification.verificationMode,
+      researchUsed: verification.researchUsed,
+      sealEligible: verification.sealEligible,
+      sealGranted: verification.sealGranted,
+      fallbackUsed,
+      disagreement,
+      orchestrationConfidence,
       error: analysisError,
       createdAt: now,
       updatedAt: now,
@@ -458,13 +478,13 @@ export async function POST(req: NextRequest) {
     }
 
     const journeyProfile = getSealedFactcheckJourneyProfile();
-    const verification = buildSealedFactcheckContract({
-      deepSearch: payload.deepSearch === true,
-      sealGranted: false,
+    const verificationStatus = resolveSealedFactcheckStatusView({
+      status,
+      verification,
     });
     const verificationLabel = deriveVerificationLabel({
-      verificationMode: verification.verificationMode,
-      sealGranted: verification.sealGranted,
+      verificationMode: verificationStatus.verificationMode,
+      sealGranted: verificationStatus.sealGranted,
     });
 
     const durationMs = Date.now() - t0;
@@ -476,11 +496,17 @@ export async function POST(req: NextRequest) {
       serpCount: serpResults.length,
       durationMs,
       analysisError: analysisError ?? undefined,
-      verificationMode: verification.verificationMode,
-      researchUsed: verification.researchUsed,
-      sealEligible: verification.sealEligible,
-      sealGranted: verification.sealGranted,
+      verificationMode: verificationStatus.verificationMode,
+      researchUsed: verificationStatus.researchUsed,
+      sealEligible: verificationStatus.sealEligible,
+      sealGranted: verificationStatus.sealGranted,
       verificationLabel,
+      fallbackUsed,
+      disagreement,
+      orchestrationConfidence,
+      workflowStage: verificationStatus.workflowStage,
+      workflowLabel: verificationStatus.workflowLabel,
+      sealStatus: verificationStatus.sealLabel,
       meta: {
         journeyProfile: journeyProfile.journey,
         lane: journeyProfile.lane,
@@ -490,6 +516,18 @@ export async function POST(req: NextRequest) {
           fallback: journeyProfile.fallbackProviders,
           openAiRoles: journeyProfile.openAiRoles,
         },
+        verificationMode: verificationStatus.verificationMode,
+        researchUsed: verificationStatus.researchUsed,
+        sealEligible: verificationStatus.sealEligible,
+        sealGranted: verificationStatus.sealGranted,
+        verificationLabel,
+        workflowStage: verificationStatus.workflowStage,
+        workflowLabel: verificationStatus.workflowLabel,
+        sealStatus: verificationStatus.sealLabel,
+        fallbackUsed,
+        disagreement,
+        orchestrationConfidence,
+        routeClassification,
       },
     });
   } catch (e: any) {

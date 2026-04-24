@@ -9,7 +9,9 @@ import { resolveJourneyKey } from "@features/ai/e150/roleRouting";
 import {
   applyPresentationPassStub,
   canUsePresentationPass,
+  isPresentationPassNonMutative,
 } from "@features/ai/e150/presentationPass";
+import { resolveSealedFactcheckStatusView } from "@features/ai/e150/factcheckStatus";
 
 describe("GOV-AI-ORCH-05 journey defaults", () => {
   const standardJourneys: E150JourneyKey[] = ["analyze", "media", "guided"];
@@ -59,5 +61,62 @@ describe("GOV-AI-ORCH-05 journey defaults", () => {
     expect(applied.applied).toBe(false);
     expect(applied.text).toBe(sample);
     expect(applied.policy?.nonMutative).toBe(true);
+
+    const before = {
+      claims: [{ id: "c1", text: "A" }],
+      evidence: [{ id: "e1" }],
+      trust: { score: 0.7 },
+      verificationMode: "sealed" as const,
+      researchUsed: "search" as const,
+      sealEligible: true,
+      sealGranted: false,
+    };
+
+    const afterStyleOnly = {
+      ...before,
+      trust: { score: 0.7 },
+    };
+    const afterMutative = {
+      ...before,
+      claims: [{ id: "c2", text: "Changed" }],
+    };
+
+    expect(isPresentationPassNonMutative(before, afterStyleOnly)).toBe(true);
+    expect(isPresentationPassNonMutative(before, afterMutative)).toBe(false);
+  });
+
+  it("maps sealed status stages and keeps seal pending until granted", () => {
+    const started = resolveSealedFactcheckStatusView({
+      status: "started",
+      verificationMode: "sealed",
+      researchUsed: "search",
+      sealEligible: true,
+      sealGranted: false,
+    });
+    expect(started.workflowStage).toBe("started");
+    expect(started.verificationLabel).toBe("geprueft");
+    expect(started.sealLabel).toBe("Siegel ausstehend");
+
+    const queued = resolveSealedFactcheckStatusView({
+      status: "queued",
+      verificationMode: "sealed",
+      researchUsed: "search",
+      sealEligible: true,
+      sealGranted: false,
+    });
+    expect(queued.workflowStage).toBe("queued");
+    expect(queued.verificationLabel).toBe("geprueft");
+    expect(queued.sealLabel).toBe("Siegel ausstehend");
+
+    const completed = resolveSealedFactcheckStatusView({
+      status: "completed",
+      verificationMode: "sealed",
+      researchUsed: "deep_search",
+      sealEligible: true,
+      sealGranted: true,
+    });
+    expect(completed.workflowStage).toBe("completed");
+    expect(completed.verificationLabel).toBe("verifiziert");
+    expect(completed.sealLabel).toBe("Siegel erteilt");
   });
 });

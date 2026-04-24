@@ -4,6 +4,8 @@ import { formatError } from "@core/errors/formatError";
 import { logger } from "@core/observability/logger";
 import { hasPermission, PERMISSIONS } from "@core/auth/rbac";
 import { factcheckJobsCol } from "@features/factcheck/db";
+import { resolveSealedFactcheckStatusView } from "@features/ai/e150/factcheckStatus";
+import { resolveAiRouteClassification } from "@features/ai/e150/routeClassification";
 import { logPermissionDenied, resolveRoleFromRequest } from "@/lib/server/auth/requestRole";
 import {
   internalSystemIdentityAuditFields,
@@ -58,6 +60,7 @@ export async function GET(
     }
 
     const { jobId } = await resolveParams(ctx.params);
+    const routeClassification = resolveAiRouteClassification(`/api/factcheck/status/${jobId}`);
 
     const col = await factcheckJobsCol();
     const job = await col.findOne(
@@ -75,6 +78,14 @@ export async function GET(
           contributionId: 1,
           claims: 1,
           serpResults: 1,
+          verificationMode: 1,
+          researchUsed: 1,
+          sealEligible: 1,
+          sealGranted: 1,
+          sealedAt: 1,
+          fallbackUsed: 1,
+          disagreement: 1,
+          orchestrationConfidence: 1,
           error: 1,
         },
       },
@@ -84,6 +95,14 @@ export async function GET(
       logger.warn({ fe }, "FACTCHECK_STATUS_NOT_FOUND");
       return NextResponse.json(fe, { status: 404 });
     }
+
+    const sealedStatus = resolveSealedFactcheckStatusView({
+      status: job.status,
+      verificationMode: (job as any)?.verificationMode,
+      researchUsed: (job as any)?.researchUsed,
+      sealEligible: (job as any)?.sealEligible,
+      sealGranted: (job as any)?.sealGranted,
+    });
 
     const durationMs = Date.now() - t0;
     return NextResponse.json({
@@ -99,10 +118,42 @@ export async function GET(
         durationMs,
         draftId: job.draftId ?? null,
         contributionId: job.contributionId ?? null,
+        verificationMode: sealedStatus.verificationMode,
+        researchUsed: sealedStatus.researchUsed,
+        sealEligible: sealedStatus.sealEligible,
+        sealGranted: sealedStatus.sealGranted,
+        sealedAt: (job as any)?.sealedAt ?? null,
+        verificationLabel: sealedStatus.verificationLabel,
+        workflowStage: sealedStatus.workflowStage,
+        workflowLabel: sealedStatus.workflowLabel,
+        sealStatus: sealedStatus.sealLabel,
+        fallbackUsed: (job as any)?.fallbackUsed ?? false,
+        disagreement: (job as any)?.disagreement ?? null,
+        orchestrationConfidence: (job as any)?.orchestrationConfidence ?? null,
+        lane: "sealed_factcheck",
+        journeyProfile: "sealed_factcheck",
       },
       claims: job.claims ?? [],
       serpResults: job.serpResults ?? [],
       error: job.error ?? null,
+      verificationMode: sealedStatus.verificationMode,
+      researchUsed: sealedStatus.researchUsed,
+      sealEligible: sealedStatus.sealEligible,
+      sealGranted: sealedStatus.sealGranted,
+      sealedAt: (job as any)?.sealedAt ?? null,
+      verificationLabel: sealedStatus.verificationLabel,
+      workflowStage: sealedStatus.workflowStage,
+      workflowLabel: sealedStatus.workflowLabel,
+      sealStatus: sealedStatus.sealLabel,
+      confidence: job.confidence ?? null,
+      fallbackUsed: (job as any)?.fallbackUsed ?? false,
+      disagreement: (job as any)?.disagreement ?? null,
+      orchestrationConfidence: (job as any)?.orchestrationConfidence ?? null,
+      meta: {
+        lane: "sealed_factcheck",
+        journeyProfile: "sealed_factcheck",
+        routeClassification,
+      },
     });
   } catch (e: any) {
     if (e instanceof ZodError) {

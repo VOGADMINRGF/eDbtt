@@ -5,6 +5,7 @@ import {
   PROMPT_OUTPUT_CONTRACT_VERSION,
   type PromptOutputMeta,
 } from "@/features/ai/promptOutputEnvelope";
+import { resolveAiRouteClassification } from "@features/ai/e150/routeClassification";
 
 /* -------------------- JSON helpers -------------------- */
 function jsonOk(data: any, status = 200) {
@@ -139,11 +140,14 @@ export const dynamic = "force-dynamic";
 
 /* -------------------- POST -------------------- */
 export async function POST(req: NextRequest) {
+  const routeClassification = resolveAiRouteClassification("/api/contributions/refine");
   try {
     const body = await req.json().catch(() => null);
     const claims = isArray(body?.claims) ? body!.claims : null;
     const locale: "de" | "en" = body?.locale === "en" ? "en" : "de";
-    if (!claims || claims.length === 0) return jsonErr("INVALID_PAYLOAD", { hint: "claims[]" }, 400);
+    if (!claims || claims.length === 0) {
+      return jsonErr("INVALID_PAYLOAD", { hint: "claims[]", meta: { routeClassification } }, 400);
+    }
 
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort("AI_TIMEOUT"), REFINE_BUDGET_MS);
@@ -174,6 +178,7 @@ export async function POST(req: NextRequest) {
         claims,
         draftIndexes: drafts,
         promptOutput: buildPromptOutputMeta(extracted.meta.parserMode),
+        meta: { routeClassification },
       });
     }
 
@@ -186,6 +191,7 @@ export async function POST(req: NextRequest) {
         promptVersion: extracted.meta.promptVersion,
         outputVersion: extracted.meta.outputVersion,
       },
+      meta: { routeClassification },
     });
   } catch (e: any) {
     const msg = String(e?.message || "INTERNAL_ERROR");
@@ -196,6 +202,7 @@ export async function POST(req: NextRequest) {
       reason: degraded ? "AI_TIMEOUT" : msg,
       ...base,
       promptOutput: buildPromptOutputMeta("invalid"),
+      meta: { routeClassification },
     });
   }
 }

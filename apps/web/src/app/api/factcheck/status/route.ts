@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { hasPermission, PERMISSIONS } from "@core/auth/rbac";
 import { formatError } from "@core/errors/formatError";
 import { factcheckJobsCol } from "@features/factcheck/db";
+import { resolveSealedFactcheckStatusView } from "@features/ai/e150/factcheckStatus";
+import { resolveAiRouteClassification } from "@features/ai/e150/routeClassification";
 import { logPermissionDenied, resolveRoleFromRequest } from "@/lib/server/auth/requestRole";
 import {
   internalSystemIdentityAuditFields,
@@ -43,6 +45,7 @@ export async function GET(req: NextRequest) {
 
   const url = new URL(req.url);
   const limit = Math.min(Number(url.searchParams.get("limit") || 20), 100);
+  const routeClassification = resolveAiRouteClassification("/api/factcheck/status");
 
   const col = await factcheckJobsCol();
   const jobs = await col
@@ -61,10 +64,53 @@ export async function GET(req: NextRequest) {
           contributionId: { $ifNull: ["$contributionId", null] },
           claimsCount: { $size: { $ifNull: ["$claims", []] } },
           serpCount: { $size: { $ifNull: ["$serpResults", []] } },
+          verificationMode: { $ifNull: ["$verificationMode", null] },
+          researchUsed: { $ifNull: ["$researchUsed", null] },
+          sealEligible: { $ifNull: ["$sealEligible", null] },
+          sealGranted: { $ifNull: ["$sealGranted", null] },
+          sealedAt: { $ifNull: ["$sealedAt", null] },
+          fallbackUsed: { $ifNull: ["$fallbackUsed", false] },
+          disagreement: { $ifNull: ["$disagreement", null] },
+          orchestrationConfidence: { $ifNull: ["$orchestrationConfidence", null] },
         },
       },
     ])
     .toArray();
 
-  return NextResponse.json({ ok: true, jobs });
+  const normalizedJobs = jobs.map((job: any) => {
+    const sealedStatus = resolveSealedFactcheckStatusView({
+      status: job.status,
+      verificationMode: job.verificationMode,
+      researchUsed: job.researchUsed,
+      sealEligible: job.sealEligible,
+      sealGranted: job.sealGranted,
+    });
+    return {
+      ...job,
+      verificationMode: sealedStatus.verificationMode,
+      researchUsed: sealedStatus.researchUsed,
+      sealEligible: sealedStatus.sealEligible,
+      sealGranted: sealedStatus.sealGranted,
+      sealedAt: job.sealedAt ?? null,
+      verificationLabel: sealedStatus.verificationLabel,
+      workflowStage: sealedStatus.workflowStage,
+      workflowLabel: sealedStatus.workflowLabel,
+      sealStatus: sealedStatus.sealLabel,
+      fallbackUsed: job.fallbackUsed ?? false,
+      disagreement: job.disagreement ?? null,
+      orchestrationConfidence: job.orchestrationConfidence ?? null,
+      lane: "sealed_factcheck",
+      journeyProfile: "sealed_factcheck",
+    };
+  });
+
+  return NextResponse.json({
+    ok: true,
+    jobs: normalizedJobs,
+    meta: {
+      lane: "sealed_factcheck",
+      journeyProfile: "sealed_factcheck",
+      routeClassification,
+    },
+  });
 }

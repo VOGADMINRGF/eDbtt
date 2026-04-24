@@ -11,23 +11,64 @@ type EnqueuePayload = {
   language?: string;
   topic?: string;
   priority?: number;
+  deepSearch?: boolean;
+  withSerp?: boolean;
 };
 
 type EnqueueResponse =
-  | { ok: true; jobId: string; message?: string }
+  | {
+      ok: true;
+      jobId: string;
+      status?: string;
+      message?: string;
+      verificationMode?: "none" | "precheck" | "sealed";
+      researchUsed?: "none" | "lite" | "search" | "deep_search";
+      sealEligible?: boolean;
+      sealGranted?: boolean;
+      verificationLabel?: "analysiert" | "geprueft" | "verifiziert";
+      workflowStage?: "started" | "queued" | "in_progress" | "completed";
+      workflowLabel?: string;
+      sealStatus?: string;
+      meta?: {
+        lane?: "standard" | "sealed_factcheck";
+        journeyProfile?: "analyze" | "media" | "guided" | "sealed_factcheck";
+      };
+    }
   | { ok: false; reason?: string; code?: string; message?: string };
 
 type StatusResponse =
   | {
       ok: true;
       job: {
-        id: string;
+        id?: string;
         jobId: string;
-        status: "PENDING" | "PROCESSING" | "COMPLETED" | "FAILED";
-        tokensUsed: number;
-        durationMs: number;
+        status: string;
+        tokensUsed?: number;
+        durationMs?: number;
+        verificationMode?: "none" | "precheck" | "sealed";
+        researchUsed?: "none" | "lite" | "search" | "deep_search";
+        sealEligible?: boolean;
+        sealGranted?: boolean;
+        verificationLabel?: "analysiert" | "geprueft" | "verifiziert";
+        workflowStage?: "started" | "queued" | "in_progress" | "completed";
+        workflowLabel?: string;
+        sealStatus?: string;
+        lane?: "standard" | "sealed_factcheck";
+        journeyProfile?: "analyze" | "media" | "guided" | "sealed_factcheck";
       };
       claims: any[];
+      verificationMode?: "none" | "precheck" | "sealed";
+      researchUsed?: "none" | "lite" | "search" | "deep_search";
+      sealEligible?: boolean;
+      sealGranted?: boolean;
+      verificationLabel?: "analysiert" | "geprueft" | "verifiziert";
+      workflowStage?: "started" | "queued" | "in_progress" | "completed";
+      workflowLabel?: string;
+      sealStatus?: string;
+      meta?: {
+        lane?: "standard" | "sealed_factcheck";
+        journeyProfile?: "analyze" | "media" | "guided" | "sealed_factcheck";
+      };
     }
   | { ok: false; reason?: string; code?: string; message?: string };
 
