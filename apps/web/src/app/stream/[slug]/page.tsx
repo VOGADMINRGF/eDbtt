@@ -5,6 +5,14 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { ObjectId } from "@core/db/triMongo";
 import { streamSessionsCol } from "@features/stream/db";
+import { buildShareMetadata } from "@/features/share/metadata";
+import SocialOutputPreviewPanel from "@/components/share/SocialOutputPreviewPanel";
+import {
+  buildNeutralCarouselDraft,
+  buildShareOutputAsset,
+  buildStreamPreparationOutput,
+} from "@features/share/socialOutputContract";
+import { BRAND } from "@/lib/brand";
 import {
   resolveSessionStatus,
   type StreamFollowUpState,
@@ -68,20 +76,13 @@ export async function generateMetadata({
   const description =
     session.description ??
     `Live-Stream zu ${session.topicKey ?? "aktuellen Themen"}${session.regionCode ? ` in ${session.regionCode}` : ""}.`;
-  return {
+  return buildShareMetadata({
+    objectType: "stream",
+    pathOrUrl: `/stream/${slug}`,
     title,
     description,
-    openGraph: {
-      title,
-      description,
-      type: "video.other",
-    },
-    twitter: {
-      card: "summary_large_image",
-      title,
-      description,
-    },
-  };
+    ogType: "video.other",
+  });
 }
 
 export default async function StreamDetail({
@@ -103,6 +104,38 @@ export default async function StreamDetail({
   const supportEnabled = Boolean(session.supportEnabled);
   const supportBlind = Boolean(session.supportBlind);
   const hideViewerCount = session.hideViewerCount !== false;
+  const canonicalPath = `/stream/${slug}`;
+  const streamPreparation = buildStreamPreparationOutput({
+    title: session.title,
+    summary: session.description,
+    highlights: [
+      ...(liveBoard?.options?.slice(0, 2).map((option) => option.title) ?? []),
+      ...(followUp?.updates?.slice(0, 1).map((entry) => entry.note) ?? []),
+    ],
+    transcriptSnippets: [],
+    quoteCandidate: liveBoard?.summary ?? null,
+  });
+  const shareAsset = buildShareOutputAsset({
+    baseUrl: BRAND.baseUrl,
+    canonicalPathOrUrl: canonicalPath,
+    objectType: "stream",
+    title: session.title,
+    subtitle:
+      session.description ??
+      `Diskussionskontext zu ${session.topicKey ?? "aktuellen Themen"}${session.regionCode ? ` in ${session.regionCode}` : ""}.`,
+    lane: "standard",
+    verificationMode: "none",
+    researchUsed: "none",
+    sealEligible: false,
+    sealGranted: false,
+    topic: session.topicKey ?? null,
+    region: session.regionCode ?? null,
+    neutralCtaLabel: "Stream öffnen",
+    deepLinkPath: canonicalPath,
+  });
+  const shareCarousel = buildNeutralCarouselDraft(shareAsset, {
+    highlights: streamPreparation.highlightBullets,
+  });
   const policyCards = [
     requireVerifiedParticipants && {
       title: "Teilnahme nur verifiziert",
@@ -224,6 +257,12 @@ export default async function StreamDetail({
         {session.description && (
           <p className="text-base text-[rgb(var(--muted))] md:text-lg">{session.description}</p>
         )}
+
+        <SocialOutputPreviewPanel
+          asset={shareAsset}
+          carousel={shareCarousel}
+          streamPreparation={streamPreparation}
+        />
 
         {policyCards.length > 0 && (
           <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-6 shadow-sm space-y-4">

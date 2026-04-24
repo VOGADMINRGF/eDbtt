@@ -22,11 +22,18 @@ import { MobileAppShellChrome } from "@/components/mobile/MobileAppShellChrome";
 
 export const metadata: Metadata = {
   metadataBase: new URL(BRAND.baseUrl),
+  applicationName: BRAND.name,
+  manifest: "/manifest.webmanifest",
   title: {
     default: BRAND.name,
     template: `%s | ${BRAND.name}`,
   },
   description: BRAND.tagline_de,
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: BRAND.name,
+  },
   openGraph: {
     title: BRAND.name,
     description: BRAND.tagline_de,
@@ -40,6 +47,9 @@ export const metadata: Metadata = {
   },
 };
 export const viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
   themeColor: "#06b6d4",
 };
 

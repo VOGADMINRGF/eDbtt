@@ -1,8 +1,21 @@
+import type { Metadata } from "next";
 import Link from "next/link";
+import { buildShareMetadata } from "@/features/share/metadata";
 
 type PageProps = {
   params: Promise<{ id: string }>;
 };
+
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const { id } = await params;
+  return buildShareMetadata({
+    objectType: "factcheck",
+    pathOrUrl: `/factcheck/${id}`,
+    title: `Factcheck ${id}`,
+    description: "Detailansicht für Factcheck-Status, Evidenzbezug und Workflowfortschritt.",
+    ogType: "article",
+  });
+}
 
 export default async function FactcheckDetailPage({ params }: PageProps) {
   const { id } = await params;

@@ -1,12 +1,19 @@
 import type { Metadata } from "next";
 import DossierPageClient from "./ui";
-
-export const metadata: Metadata = {
-  title: "Dossier",
-  description: "Dossier-Ansicht mit institutioneller Infrastruktur.",
-};
+import { buildShareMetadata } from "@/features/share/metadata";
 
 type PageProps = { params: Promise<{ id: string }> };
+
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const { id } = await params;
+  return buildShareMetadata({
+    objectType: "dossier",
+    pathOrUrl: `/dossier/${id}`,
+    title: `Dossier ${id}`,
+    description: "Dossier-Ansicht mit Kontext, Einordnung und offenen Anschlussfragen.",
+    ogType: "article",
+  });
+}
 
 export default async function DossierPage({ params }: PageProps) {
   const { id } = await params;

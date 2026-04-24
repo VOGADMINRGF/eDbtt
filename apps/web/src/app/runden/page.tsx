@@ -3,6 +3,7 @@ import Link from "next/link";
 import { listRundenEntryItems, type RundenEntryItem } from "@features/topicRound/entrySource";
 import { readSession } from "@/utils/session";
 import RundenShareActions from "./RundenShareActions";
+import RundenGuidedQuestionBuilder from "./RundenGuidedQuestionBuilder";
 
 export const metadata: Metadata = {
   title: "Anlässe - eDebatte",
@@ -423,6 +424,10 @@ export default async function RundenPage({
   const canQrFeatured = featured
     ? (canQrByRole || featuredOwned) && Boolean(featured.shareActions)
     : false;
+  const quickStartParticipationHref =
+    featured ? roundOpenHref(featured) : existingHref ?? "/runden?view=active";
+  const quickStartParticipationAnchorId =
+    featured && canQrFeatured ? `share-${featured.id}` : null;
 
   return (
     <main className="mx-auto min-h-screen w-full max-w-[92rem] space-y-6 px-4 py-6 md:px-8 md:py-10 lg:px-10">
@@ -511,6 +516,13 @@ export default async function RundenPage({
           )}
         </div>
       </header>
+
+      <RundenGuidedQuestionBuilder
+        returnTo={buildRundenReturnHref(featured?.anlassraumId)}
+        featuredAnlassraumId={featured?.anlassraumId ?? null}
+        participationHref={quickStartParticipationHref}
+        participationAnchorId={quickStartParticipationAnchorId}
+      />
 
       {isSignedIn && (
         <section className="space-y-3">

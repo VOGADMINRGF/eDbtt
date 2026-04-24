@@ -26,6 +26,7 @@ import {
   type DecisionHistoryItem,
 } from "@/features/surfaces/swipes/components";
 import { useFreeVoteLimit } from "@/features/surfaces/swipes/useFreeVoteLimit";
+import { resolveSwipesProgressState } from "@/features/surfaces/swipes/progressContract";
 import type {
   Eventuality,
   SwipeDecision,
@@ -97,9 +98,9 @@ async function deleteSwipeVote(statementId: string) {
 }
 
 function transitionLabel(decision: SwipeDecision) {
-  if (decision === "agree") return "Grundhaltung: eher zustimmend. Jetzt Variante wählen.";
-  if (decision === "disagree") return "Grundhaltung: eher ablehnend. Optional engere Variante wählen.";
-  return "Grundhaltung: offen. Jetzt passende Variante wählen.";
+  if (decision === "agree") return "Ja gespeichert. Optional direkt Variante wählen.";
+  if (decision === "disagree") return "Nein gespeichert. Optional direkt Variante wählen.";
+  return "Offen gespeichert. Optional direkt Variante wählen.";
 }
 
 function buildTransitionHint(decision: SwipeDecision, remainingToAnalysis: number) {
@@ -184,6 +185,11 @@ export function SwipesClient({
 
   const isVoteLocked = freeVote.enabled && !freeVote.canVote;
   const swipeProgressCount = Math.max(completedCount, freeVote.count);
+  const progressState = resolveSwipesProgressState({
+    swipeCount: swipeProgressCount,
+    decisionCount: decisionHistory.length,
+    fromDraftMode: showingFromDraftOnly,
+  });
 
   const openDossierRoute = useCallback(
     (statementId: string) => buildSwipeDossierHref(statementId, { mode, audience }),
@@ -535,7 +541,11 @@ export function SwipesClient({
       {isSolo ? <SoloHeader statementId={focusStatementId} /> : null}
 
       {!isSolo ? (
-        <SwipesHeaderProgress swipeCount={swipeProgressCount} onOpenSearch={() => setSearchOpen(true)} />
+        <SwipesHeaderProgress
+          swipeCount={swipeProgressCount}
+          mode={progressState.mode}
+          onOpenSearch={() => setSearchOpen(true)}
+        />
       ) : null}
 
       {fromDraftArrivalEnabled && fromDraftId ? (
@@ -571,6 +581,18 @@ export function SwipesClient({
               step={completedCount + 1}
               onVote={(decision) => {
                 void handlePrimaryVote(activeItem, decision);
+              }}
+              onQuickFollowup={(action) => {
+                if (action === "more_context") {
+                  void openDetail(activeItem);
+                  return;
+                }
+                if (action === "variants") {
+                  void beginEventualityStep(activeItem, "neutral", false);
+                  return;
+                }
+                setTransitionHint("Als später vertiefbar markiert. Nächstes Thema bleibt frei wählbar.");
+                setChromeRevealSignal((prev) => prev + 1);
               }}
             />
           ) : (
@@ -628,7 +650,7 @@ export function SwipesClient({
 
       {!isSolo && activeItem && !eventualityStepOpen && !detailOpen && !freeVote.gateOpen ? (
         <nav
-          className={`fixed inset-x-0 bottom-0 z-30 border-t border-[rgb(var(--border))] bg-[rgb(var(--card))]/95 px-3 pt-2 pb-[max(env(safe-area-inset-bottom),0.75rem)] backdrop-blur transition-all duration-200 md:hidden ${
+          className={`fixed inset-x-0 bottom-[calc(env(safe-area-inset-bottom)+4.75rem)] z-30 border-t border-[rgb(var(--border))] bg-[rgb(var(--card))]/95 px-3 pt-2 pb-3 backdrop-blur transition-all duration-200 md:hidden ${
             mobileActionChromeVisible ? "translate-y-0 opacity-100" : "pointer-events-none translate-y-[120%] opacity-0"
           }`}
         >

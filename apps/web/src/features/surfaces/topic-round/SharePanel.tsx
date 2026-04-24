@@ -1,6 +1,12 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import SocialOutputPreviewPanel from "@/components/share/SocialOutputPreviewPanel";
+import {
+  buildNeutralCarouselDraft,
+  buildShareOutputAsset,
+} from "@features/share/socialOutputContract";
+import { BRAND } from "@/lib/brand";
 
 type SharePanelProps = {
   title: string;
@@ -46,6 +52,44 @@ export default function SharePanel({
     () =>
       `https://api.qrserver.com/v1/create-qr-code/?size=220x220&margin=0&data=${encodeURIComponent(publicUrl)}`,
     [publicUrl],
+  );
+  const shareAsset = useMemo(
+    () => {
+      const loweredUrl = `${publicUrl} ${canonicalTopicUrl}`.toLowerCase();
+      const objectType =
+        loweredUrl.includes("/companion/")
+          ? "companion"
+          : loweredUrl.includes("/dossier/")
+            ? "dossier"
+            : "topic_round";
+      return buildShareOutputAsset({
+        baseUrl: BRAND.baseUrl,
+        canonicalPathOrUrl: canonicalTopicUrl,
+        objectType,
+        title,
+        subtitle: description,
+        lane: "standard",
+        verificationMode: "none",
+        researchUsed: "none",
+        sealEligible: false,
+        sealGranted: false,
+        neutralCtaLabel:
+          objectType === "companion"
+            ? "Companion öffnen"
+            : objectType === "dossier"
+              ? "Dossier öffnen"
+              : "Themenkontext öffnen",
+        deepLinkPath: publicUrl,
+      });
+    },
+    [canonicalTopicUrl, description, publicUrl, title],
+  );
+  const shareCarousel = useMemo(
+    () =>
+      buildNeutralCarouselDraft(shareAsset, {
+        highlights: [description],
+      }),
+    [description, shareAsset],
   );
 
   async function handleCopy(value: string, label: string) {
@@ -94,6 +138,13 @@ export default function SharePanel({
           >
             Follow-up Link kopieren
           </button>
+          <button
+            type="button"
+            className="btn-secondary text-xs w-full justify-center"
+            onClick={() => handleCopy(shareAsset.sharePayload.text, "Neutraler Teaser")}
+          >
+            Neutralen Teaser kopieren
+          </button>
         </div>
 
         <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3 flex flex-col items-center gap-2">
@@ -104,12 +155,7 @@ export default function SharePanel({
         </div>
       </div>
 
-      <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3 space-y-1">
-        <p className="text-xs font-semibold text-[rgb(var(--fg))]">Vorschau</p>
-        <p className="text-sm font-semibold text-[rgb(var(--fg))]">{title}</p>
-        <p className="text-xs text-[rgb(var(--muted))]">{description}</p>
-        <p className="text-[11px] text-[rgb(var(--muted))] break-all">{publicUrl}</p>
-      </div>
+      <SocialOutputPreviewPanel asset={shareAsset} carousel={shareCarousel} />
 
       {message ? (
         <p className="text-xs text-[rgb(var(--muted))]">{message}</p>
