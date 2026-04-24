@@ -2,8 +2,12 @@ import Link from "next/link";
 import PackagesGrid from "@/components/pricing/PackagesGrid";
 import ProductSurfaceShell from "@/components/layout/ProductSurfaceShell";
 import {
+  ORDER_SEGMENT_ORDER,
+  buildOrderEntryHref,
   getPackagesForJourneySegment,
   normalizePricingLocale,
+  resolvePricingOrderEntrySelection,
+  type PricingSegmentId,
   type PricingLocale,
 } from "@features/pricing";
 
@@ -31,7 +35,14 @@ function withLocaleHref(href: string, locale: PricingLocale) {
 export default async function PricingPage({ searchParams }: PageProps = {}) {
   const params = (await searchParams) ?? {};
   const locale = normalizePricingLocale(firstString(params.lang));
-  const privatePackages = getPackagesForJourneySegment("privat", locale);
+  const selectedOrderEntry = resolvePricingOrderEntrySelection({
+    segmentId: firstString(params.segment),
+    packageId: firstString(params.paket),
+  });
+  const selectedSegment = selectedOrderEntry.segmentId;
+  const segmentPackages = getPackagesForJourneySegment(selectedSegment, locale);
+  const segmentHref = (segment: PricingSegmentId) =>
+    withLocaleHref(`/pricing?segment=${segment}`, locale);
 
   const labels =
     locale === "en"
@@ -46,6 +57,23 @@ export default async function PricingPage({ searchParams }: PageProps = {}) {
           privateKicker: "Private packages",
           privateTitle: "Private packages for individuals",
           privateText: "Interested: €0 for members / €3.99 regular · Active: €9.90 · Co-creating: €29.90.",
+          segmentTitle: "Segments",
+          segmentLabels: {
+            privat: "Individuals",
+            journalismus: "Journalism",
+            organisationen: "Organizations",
+            kommunen: "Municipalities",
+          } as Record<PricingSegmentId, string>,
+          segmentTexts: {
+            privat: "Interested: €0 for members / €3.99 regular · Active: €9.90 · Co-creating: €29.90.",
+            journalismus: "Journalism packages for editorial framing, verification prep and source-based context work.",
+            organisationen: "Organization packages for onboarding, role setup and operational rollout.",
+            kommunen: "Municipal packages for participation operations and implementation-ready governance paths.",
+          } as Record<PricingSegmentId, string>,
+          orderHintTitle: "Shared package logic with /order",
+          orderHintText:
+            "Pricing and order use the same package model. Preselection is optional and can be changed anytime in /order.",
+          orderHintCta: "Open /order with current segment",
           membershipTitle: "Membership in the initiative",
           membershipIntro: "As a member of the initiative, package “Interested” is free.",
           membershipPriceMember: "Member price for “Interested”: €0",
@@ -71,6 +99,23 @@ export default async function PricingPage({ searchParams }: PageProps = {}) {
           privateKicker: "Privatpakete",
           privateTitle: "Privatpakete für Einzelpersonen",
           privateText: "Interessiert: 0 € für Mitglieder / 3,99 € regulär · Aktiv: 9,90 € · Mitgestaltend: 29,90 €.",
+          segmentTitle: "Segmente",
+          segmentLabels: {
+            privat: "Einzelpersonen",
+            journalismus: "Journalismus",
+            organisationen: "Organisationen",
+            kommunen: "Kommunen",
+          } as Record<PricingSegmentId, string>,
+          segmentTexts: {
+            privat: "Interessiert: 0 € für Mitglieder / 3,99 € regulär · Aktiv: 9,90 € · Mitgestaltend: 29,90 €.",
+            journalismus: "Journalistische Pakete für Einordnung, Quellenarbeit und prüfbare Anschlussfähigkeit.",
+            organisationen: "Pakete für Organisationen mit klarer Einführung, Rollenaufbau und Betriebsmodell.",
+            kommunen: "Kommunale Pakete für Beteiligungsbetrieb und umsetzungsfähige Entscheidungsprozesse.",
+          } as Record<PricingSegmentId, string>,
+          orderHintTitle: "Gemeinsame Paketlogik mit /order",
+          orderHintText:
+            "Pricing und Order nutzen dieselbe Paketlogik. Eine Vorauswahl ist möglich und in /order jederzeit änderbar.",
+          orderHintCta: "Mit aktuellem Segment in /order starten",
           membershipTitle: "Mitgliedschaft in der Initiative",
           membershipIntro: "Als Mitglied der Initiative ist das Paket „Interessiert“ kostenfrei.",
           membershipPriceMember: "Mitgliedspreis für „Interessiert“: 0 €",
@@ -107,11 +152,47 @@ export default async function PricingPage({ searchParams }: PageProps = {}) {
       <section id="pricing-privat" className="mt-10 space-y-5 scroll-mt-28">
         <div className="max-w-5xl">
           <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">{labels.privateKicker}</p>
-          <h2 className="mt-2 text-2xl font-semibold text-[rgb(var(--fg))] sm:text-3xl">{labels.privateTitle}</h2>
-          <p className="mt-1 text-sm leading-relaxed text-[rgb(var(--muted))]">{labels.privateText}</p>
+          <h2 className="mt-2 text-2xl font-semibold text-[rgb(var(--fg))] sm:text-3xl">
+            {selectedSegment === "privat"
+              ? labels.privateTitle
+              : `${labels.segmentLabels[selectedSegment]} · ${locale === "en" ? "package overview" : "Paketübersicht"}`}
+          </h2>
+          <p className="mt-1 text-sm leading-relaxed text-[rgb(var(--muted))]">{labels.segmentTexts[selectedSegment]}</p>
+          <div className="mt-4">
+            <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">{labels.segmentTitle}</p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {ORDER_SEGMENT_ORDER.map((segment) => (
+                <Link
+                  key={`pricing-segment-${segment}`}
+                  href={segmentHref(segment)}
+                  className={[
+                    "inline-flex items-center justify-center rounded-full border px-3 py-1.5 text-xs font-semibold",
+                    selectedSegment === segment
+                      ? "border-sky-300 bg-sky-50 text-sky-800"
+                      : "border-[rgb(var(--border))] bg-[rgb(var(--card))] text-[rgb(var(--muted))]",
+                  ].join(" ")}
+                >
+                  {labels.segmentLabels[segment]}
+                </Link>
+              ))}
+            </div>
+          </div>
         </div>
 
-        <PackagesGrid packages={privatePackages} locale={locale} compact />
+        <PackagesGrid packages={segmentPackages} locale={locale} compact />
+
+        <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm">
+          <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">{labels.orderHintTitle}</p>
+          <p className="mt-2 text-sm text-[rgb(var(--muted))]">{labels.orderHintText}</p>
+          <div className="mt-3">
+            <Link
+              href={buildOrderEntryHref({ segmentId: selectedSegment, locale })}
+              className="btn-secondary inline-flex"
+            >
+              {labels.orderHintCta}
+            </Link>
+          </div>
+        </section>
 
         <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm sm:p-6">
           <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">{labels.membershipTitle}</p>

@@ -34,9 +34,12 @@ const EXCLUDED_PREFIX_PATHS: readonly InternalRedirectPath[] = [
 const CORE_EXACT_PATHS = new Set<InternalRedirectPath>([
   "/",
   "/start",
+  "/create",
   "/swipes",
+  "/themen",
   "/runden",
   "/anlassraum",
+  "/factcheck",
   "/stream",
   "/pricing",
   "/order",
@@ -47,9 +50,13 @@ const CORE_EXACT_PATHS = new Set<InternalRedirectPath>([
 ]);
 
 const CORE_PREFIX_PATHS: readonly InternalRedirectPath[] = [
+  "/create/",
   "/swipes/",
   "/dossier/",
+  "/factcheck/",
+  "/companion/",
   "/stream/",
+  "/topic/",
   "/round/",
   "/pricing/",
 ];

@@ -86,6 +86,8 @@ type DomainFilter =
   | "g7"
   | "eu";
 
+type StreamStatusSectionId = "live" | "upcoming" | "replay";
+
 /** v2-Props */
 export type V2Props = {
   endpoint?: string;
@@ -100,6 +102,7 @@ export type V2Props = {
   defaultFilterTag?: string;
   defaultFilterKind?: string;
   showViews?: boolean;
+  statusSections?: boolean;
 };
 
 /** v1-Props (Kompatibilität) */
@@ -204,6 +207,31 @@ function countryLabel(code?: string, lang: "de" | "en" = "de") {
   return m[(code || "DE").toUpperCase()] || (lang === "en" ? "National" : "National");
 }
 
+function resolveStreamStatusSection(item: StreamItem): StreamStatusSectionId {
+  const statusRaw = (item.status || item.kind || "").toString().toLowerCase();
+  if (statusRaw.includes("live")) return "live";
+  if (
+    statusRaw.includes("replay") ||
+    statusRaw.includes("vergangen") ||
+    statusRaw.includes("closed") ||
+    statusRaw.includes("archiv")
+  ) {
+    return "replay";
+  }
+  if (statusRaw.includes("geplant") || statusRaw.includes("kommend") || statusRaw.includes("upcoming")) {
+    return "upcoming";
+  }
+
+  const startsAtCandidate = item.data?.startsAt ?? item.createdAt;
+  if (startsAtCandidate) {
+    const startsAtMs = new Date(startsAtCandidate).getTime();
+    if (!Number.isNaN(startsAtMs) && startsAtMs > Date.now()) {
+      return "upcoming";
+    }
+  }
+  return "replay";
+}
+
 /* ------------------------------- Component -------------------------------- */
 
 export default function StreamListV3({
@@ -220,6 +248,7 @@ export default function StreamListV3({
   defaultFilterTag,
   defaultFilterKind,
   showViews = false,
+  statusSections = false,
 
   /* v1 */
   user,
@@ -342,6 +371,18 @@ export default function StreamListV3({
 
     return arr;
   }, [items, matchDomainFilter, search, activeTag, activeKind, sort]);
+
+  const statusSectionRows = useMemo(() => {
+    const grouped: Record<StreamStatusSectionId, StreamItem[]> = {
+      live: [],
+      upcoming: [],
+      replay: [],
+    };
+    visibleItems.forEach((item) => {
+      grouped[resolveStreamStatusSection(item)].push(item);
+    });
+    return grouped;
+  }, [visibleItems]);
 
   // --- build URL (server-side filtering ready) ---
   const buildURL = useCallback(
@@ -502,6 +543,20 @@ export default function StreamListV3({
     );
   }
 
+  const statusSectionMeta: Record<StreamStatusSectionId, { title: string; subtitle: string }> =
+    language === "en"
+      ? {
+          live: { title: "Live", subtitle: "Running now" },
+          upcoming: { title: "Upcoming", subtitle: "Scheduled and next sessions" },
+          replay: { title: "Replay & highlights", subtitle: "Finished sessions and recap" },
+        }
+      : {
+          live: { title: "Live", subtitle: "Läuft gerade" },
+          upcoming: { title: "Kommend", subtitle: "Geplante und nächste Sessions" },
+          replay: { title: "Replay & Highlights", subtitle: "Abgeschlossene Sessions und Rückblick" },
+        };
+  const statusSectionOrder: StreamStatusSectionId[] = ["live", "upcoming", "replay"];
+
   return (
     <div className={cn("w-full", className)}>
       {/* Toolbar */}
@@ -611,36 +666,91 @@ export default function StreamListV3({
       )}
 
       {/* Liste */}
-      <ul className="grid grid-cols-1 gap-3">
-        {visibleItems.map((item, idx) => {
-          const showViewsForItem = showViewerStats || item.hideViewerCount === false;
-          const node = renderItem ? (
-            renderItem(item)
-          ) : (
-            <DefaultStreamCard item={item} onClick={onItemClick} showViews={showViewsForItem} />
-          );
+      {statusSections ? (
+        <div className="space-y-6">
+          {statusSectionOrder.map((sectionId) => {
+            const sectionItems = statusSectionRows[sectionId];
+            const meta = statusSectionMeta[sectionId];
+            return (
+              <section key={`status-section-${sectionId}`} aria-label={meta.title} className="space-y-2.5">
+                <div className="flex items-center justify-between gap-3 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3.5 py-2.5">
+                  <div>
+                    <p className="text-sm font-semibold text-[rgb(var(--fg))]">{meta.title}</p>
+                    <p className="text-[11px] text-[rgb(var(--muted))]">{meta.subtitle}</p>
+                  </div>
+                  <span className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-2.5 py-1 text-xs font-semibold text-[rgb(var(--muted))]">
+                    {sectionItems.length}
+                  </span>
+                </div>
+                {sectionItems.length === 0 ? (
+                  <div className="rounded-xl border border-dashed border-[rgb(var(--border))] px-3 py-2 text-xs text-[rgb(var(--muted))]">
+                    {language === "en"
+                      ? "No entries in this section yet."
+                      : "In diesem Abschnitt sind aktuell keine Einträge."}
+                  </div>
+                ) : (
+                  <ul className="grid grid-cols-1 gap-3">
+                    {sectionItems.map((item, idx) => {
+                      const showViewsForItem = showViewerStats || item.hideViewerCount === false;
+                      const node = renderItem ? (
+                        renderItem(item)
+                      ) : (
+                        <DefaultStreamCard item={item} onClick={onItemClick} showViews={showViewsForItem} />
+                      );
+                      return (
+                        <motion.li
+                          key={`${sectionId}-${item.id}`}
+                          initial={{ opacity: 0, y: 6 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ duration: 0.18, delay: Math.min(idx * 0.015, 0.2) }}
+                        >
+                          {node}
+                        </motion.li>
+                      );
+                    })}
+                  </ul>
+                )}
+              </section>
+            );
+          })}
+          {loading && (
+            <ul className="grid grid-cols-1 gap-3">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <SkeletonRow key={`sk-${i}`} />
+              ))}
+            </ul>
+          )}
+        </div>
+      ) : (
+        <ul className="grid grid-cols-1 gap-3">
+          {visibleItems.map((item, idx) => {
+            const showViewsForItem = showViewerStats || item.hideViewerCount === false;
+            const node = renderItem ? (
+              renderItem(item)
+            ) : (
+              <DefaultStreamCard item={item} onClick={onItemClick} showViews={showViewsForItem} />
+            );
 
-          return (
-            <motion.li
-              key={item.id}
-              initial={{ opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.18, delay: Math.min(idx * 0.015, 0.2) }}
-            >
-              {node}
-            </motion.li>
-          );
-        })}
-
-        {/* Skeletons */}
-        {loading && (
-          <>
-            {Array.from({ length: 3 }).map((_, i) => (
-              <SkeletonRow key={`sk-${i}`} />
-            ))}
-          </>
-        )}
-      </ul>
+            return (
+              <motion.li
+                key={item.id}
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.18, delay: Math.min(idx * 0.015, 0.2) }}
+              >
+                {node}
+              </motion.li>
+            );
+          })}
+          {loading && (
+            <>
+              {Array.from({ length: 3 }).map((_, i) => (
+                <SkeletonRow key={`sk-${i}`} />
+              ))}
+            </>
+          )}
+        </ul>
+      )}
 
       {/* Mehr laden (ohne Infinite-Scroll) */}
       {disableInfiniteScroll && hasMore && (

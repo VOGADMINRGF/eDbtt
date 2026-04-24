@@ -27,11 +27,13 @@ const MOBILE_NAV_ITEMS: readonly MobileNavItem[] = [
   },
   {
     id: "topics",
-    href: "/runden",
+    href: "/themen",
     label: "Themen",
     isActive: (pathname) =>
+      pathname === "/themen" ||
       pathname === "/runden" ||
       pathname === "/anlassraum" ||
+      pathname.startsWith("/topic/") ||
       pathname.startsWith("/round/") ||
       pathname.startsWith("/dossier/"),
     icon: (active) => (
