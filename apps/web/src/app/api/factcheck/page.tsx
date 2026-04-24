@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import VerificationStatusPanel from "@/components/ai/VerificationStatusPanel";
 
 export default function FactcheckPage() {
   const [text, setText] = useState("");
@@ -67,6 +68,15 @@ export default function FactcheckPage() {
           <div className="text-sm text-gray-600">
             Job #{result.job.jobId} – {result.job.status}
           </div>
+          <VerificationStatusPanel
+            lane={result.job?.lane ?? "sealed_factcheck"}
+            status={result.job?.status}
+            verificationMode={result.job?.verificationMode}
+            researchUsed={result.job?.researchUsed}
+            sealEligible={result.job?.sealEligible}
+            sealGranted={result.job?.sealGranted}
+            showHint
+          />
           {result.job?.verdict && (
             <div className="text-xs text-gray-500">
               Verdict: <b>{result.job.verdict}</b>

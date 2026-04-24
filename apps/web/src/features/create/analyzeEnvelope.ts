@@ -3,6 +3,13 @@ import {
 } from "@/features/create/analyzeBoundaryContract";
 import type { CreateAnalyzeResponse } from "@/features/create/analyzeContract";
 import type { SourceGroundingAudit } from "@features/analyze/sourceGroundingContract";
+import {
+  deriveVerificationLabel,
+  type ResearchUsed,
+  type UserFacingVerificationLabel,
+  type VerificationMode,
+} from "@features/ai/e150/verificationContract";
+import type { E150Lane } from "@features/ai/e150/journeyProfiles";
 
 export type CreateAnalyzeEnvelopeProviderMatrixEntry = {
   provider: string;
@@ -21,6 +28,16 @@ export type ParsedCreateAnalyzeEnvelope = {
   degraded: boolean;
   fallback: boolean;
   sourceGrounding: SourceGroundingAudit | null;
+  verification: ParsedCreateAnalyzeVerification | null;
+};
+
+export type ParsedCreateAnalyzeVerification = {
+  lane: E150Lane;
+  verificationMode: VerificationMode;
+  researchUsed: ResearchUsed;
+  sealEligible: boolean;
+  sealGranted: boolean;
+  verificationLabel: UserFacingVerificationLabel;
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -158,6 +175,94 @@ function normalizeSourceGroundingAudit(value: unknown): SourceGroundingAudit | n
   };
 }
 
+function asVerificationMode(value: unknown): VerificationMode | null {
+  if (value === "none" || value === "precheck" || value === "sealed") return value;
+  return null;
+}
+
+function asResearchUsed(value: unknown): ResearchUsed | null {
+  if (
+    value === "none" ||
+    value === "lite" ||
+    value === "search" ||
+    value === "deep_search"
+  ) {
+    return value;
+  }
+  return null;
+}
+
+function asVerificationLabel(value: unknown): UserFacingVerificationLabel | null {
+  if (value === "analysiert" || value === "geprueft" || value === "verifiziert") return value;
+  return null;
+}
+
+function asLane(value: unknown): E150Lane | null {
+  if (value === "standard" || value === "sealed_factcheck") return value;
+  return null;
+}
+
+function resolveCreateAnalyzeVerification(value: {
+  root: Record<string, unknown>;
+  meta: Record<string, unknown>;
+}): ParsedCreateAnalyzeVerification | null {
+  const verificationMode = asVerificationMode(
+    value.root.verificationMode ?? value.meta.verificationMode,
+  );
+  const researchUsed = asResearchUsed(value.root.researchUsed ?? value.meta.researchUsed);
+  const sealEligibleRaw = value.root.sealEligible ?? value.meta.sealEligible;
+  const sealGrantedRaw = value.root.sealGranted ?? value.meta.sealGranted;
+  const sealEligible = typeof sealEligibleRaw === "boolean" ? sealEligibleRaw : null;
+  const sealGranted = typeof sealGrantedRaw === "boolean" ? sealGrantedRaw : null;
+  const verificationLabel = asVerificationLabel(
+    value.root.verificationLabel ?? value.meta.verificationLabel,
+  );
+  const lane = asLane(value.root.lane ?? value.meta.lane);
+
+  if (
+    !verificationMode &&
+    !verificationLabel &&
+    !researchUsed &&
+    sealEligible === null &&
+    sealGranted === null
+  ) {
+    return null;
+  }
+
+  const inferredModeFromLabel: VerificationMode | null =
+    verificationLabel === "analysiert"
+      ? "none"
+      : verificationLabel === "verifiziert"
+        ? "sealed"
+        : sealEligible === true
+          ? "sealed"
+          : "precheck";
+
+  const resolvedVerificationMode = verificationMode ?? inferredModeFromLabel;
+  if (!resolvedVerificationMode) return null;
+
+  const resolvedSealGranted = sealGranted ?? verificationLabel === "verifiziert";
+  const resolvedSealEligible =
+    sealEligible ?? resolvedVerificationMode === "sealed";
+  const resolvedResearchUsed =
+    researchUsed ?? (resolvedVerificationMode === "sealed" ? "search" : "none");
+  const resolvedLane = lane ?? "standard";
+
+  return {
+    lane: resolvedLane,
+    verificationMode: resolvedVerificationMode,
+    researchUsed: resolvedResearchUsed,
+    sealEligible: resolvedSealEligible,
+    sealGranted: resolvedSealGranted,
+    verificationLabel:
+      verificationLabel ??
+      deriveVerificationLabel({
+        verificationMode: resolvedVerificationMode,
+        sealGranted: resolvedSealGranted,
+      }),
+  };
+}
+
 export function parseCreateAnalyzeEnvelope(value: unknown): ParsedCreateAnalyzeEnvelope {
   const root = isRecord(value) ? value : {};
   const meta = isRecord(root.meta) ? root.meta : {};
@@ -167,6 +272,10 @@ export function parseCreateAnalyzeEnvelope(value: unknown): ParsedCreateAnalyzeE
     meta,
   });
   const sourceGrounding = normalizeSourceGroundingAudit(meta.sourceGrounding);
+  const verification = resolveCreateAnalyzeVerification({
+    root,
+    meta,
+  });
 
   return {
     createAnalyze,
@@ -174,5 +283,6 @@ export function parseCreateAnalyzeEnvelope(value: unknown): ParsedCreateAnalyzeE
     degraded: Boolean(root.degraded) || createAnalyze?.matchSourceState === "degraded",
     fallback: Boolean(root.fallback),
     sourceGrounding,
+    verification,
   };
 }
