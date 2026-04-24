@@ -197,6 +197,38 @@ export default function AdminAiHubPage() {
         />
       </section>
 
+      {!loading && usage && (usage.attentionFlags?.length ?? 0) > 0 && (
+        <section className="rounded-3xl bg-[rgb(var(--card))] p-4 shadow ring-1 ring-[rgb(var(--border))]">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-[rgb(var(--fg))]">Attention Needed</h2>
+            <Link
+              href="/admin/telemetry/ai/usage"
+              className="text-sm font-semibold text-sky-700 underline-offset-2 hover:underline"
+            >
+              Details öffnen
+            </Link>
+          </div>
+          <div className="mt-3 grid gap-2 md:grid-cols-2">
+            {usage.attentionFlags.slice(0, 4).map((flag) => (
+              <div
+                key={flag.id}
+                className={`rounded-2xl px-3 py-2 text-sm ${
+                  flag.severity === "critical"
+                    ? "border border-rose-300 bg-rose-50 text-rose-800"
+                    : flag.severity === "warning"
+                      ? "border border-amber-300 bg-amber-50 text-amber-800"
+                      : "border border-[rgb(var(--border))] bg-[rgb(var(--bg))] text-[rgb(var(--fg))]"
+                }`}
+              >
+                <p className="text-xs font-semibold uppercase tracking-wide">{flag.title}</p>
+                <p className="mt-1 font-semibold">{flag.value}</p>
+                <p className="mt-1 text-xs opacity-90">{flag.hint}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
       <section className="grid gap-4 lg:grid-cols-3">
         <div className="lg:col-span-2 space-y-3 rounded-3xl bg-[rgb(var(--card))] p-4 shadow ring-1 ring-[rgb(var(--border))]">
           <div className="flex items-center justify-between">
