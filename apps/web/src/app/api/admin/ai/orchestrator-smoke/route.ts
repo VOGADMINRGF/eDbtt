@@ -5,25 +5,54 @@ import {
   type E150ProviderName,
   type ProviderMatrixEntry,
 } from "@features/ai/orchestratorE150";
+import { callOpenAI } from "@features/ai/providers/openai";
+import { callAnthropic } from "@features/ai/providers/anthropic";
+import { callMistral } from "@features/ai/providers/mistral";
+import { callGemini } from "@features/ai/providers/gemini";
+import { callAriLLM } from "@features/ai/providers/ari_llm";
 import { analyzeContribution } from "@features/analyze/analyzeContribution";
+import { AnalyzeResultSchema } from "@features/analyze/schemas";
+import { extractJsonCandidate } from "@features/analyze/llmJson";
+import {
+  defaultModelForProvider,
+  deriveNextAction,
+  deriveProviderStatus,
+  deriveRootCause,
+  extractProviderErrorCode,
+  mapErrorToKind,
+  looksConfigMissing,
+  providerDisplayName,
+  resolveJourneyDecision,
+  sanitizeRawExcerpt,
+  sortProviderDiagnostics,
+  type ProviderDiagnostic,
+  type SmokeMode,
+  PROVIDER_ORDER,
+} from "@/features/ai/adminTelemetryDiagnostics";
+import { recordAdminAiRun } from "@/features/ai/adminTelemetryStore";
 import { requireAdminOrResponse } from "@/lib/server/auth/admin";
+import type { AiErrorKind } from "@core/telemetry/aiUsageTypes";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const SMOKE_SYSTEM_PROMPT =
-  "You are the E150 orchestration smoke-tester. Respond exactly with 'OK'.";
-const SMOKE_USER_PROMPT =
-  "E150 Orchestrator Smoke Test. Please respond with exactly 'OK'.";
 const FULL_SAMPLE_TEXT =
-  "In unserer Stadt soll ein autofreier Sonntag pro Monat eingeführt werden, um die Luftqualität zu verbessern und den ÖPNV zu stärken. Gleichzeitig gibt es Bedenken wegen Umsatzeinbußen im Einzelhandel und fehlender Barrierefreiheit für ältere Menschen.";
-const PROVIDER_ORDER: readonly E150ProviderName[] = [
-  "openai",
-  "anthropic",
-  "mistral",
-  "gemini",
-  "ari",
-];
+  "In unserer Stadt soll ein autofreier Sonntag pro Monat eingefuehrt werden, um die Luftqualitaet zu verbessern und den OePNV zu staerken. Gleichzeitig gibt es Bedenken wegen Umsatzeinbussen im Einzelhandel und fehlender Barrierefreiheit fuer aeltere Menschen.";
+
+const RUNTIME_SYSTEM_PROMPT =
+  "You are the E150 runtime smoke-tester. Return strict RFC8259 JSON with keys: ok (true), ping ('OK'), providerNote (short string).";
+const RUNTIME_USER_PROMPT =
+  "Runtime probe for admin orchestrator smoke. Respond only with the required JSON object.";
+const DIRECT_PROBE_PROMPT =
+  "Return only valid JSON: {\"ok\":true,\"ping\":\"pong\",\"provider\":\"<name>\"}. No markdown.";
+const FULL_CONTRACT_SYSTEM_PROMPT = [
+  "You are the E150 orchestrator.",
+  "Return strictly valid RFC8259 JSON only. No markdown. No prose.",
+  "Required top-level keys:",
+  "mode, sourceText, language, claims, notes, questions, knots, consequences, responsibilityPaths, decisionTrees, eventualities, impactAndResponsibility, report.",
+  "Required nested keys:",
+  "consequences.consequences, consequences.responsibilities, impactAndResponsibility.impacts, impactAndResponsibility.responsibleActors, report.summary, report.keyConflicts, report.facts, report.openQuestions, report.takeaways, report.facts.local, report.facts.international.",
+].join(" ");
 
 type ProviderSmokeState =
   | "ok"
@@ -33,7 +62,7 @@ type ProviderSmokeState =
   | "cancelled"
   | "running";
 
-type ProviderSmokeResult = {
+type LegacyProviderSmokeResult = {
   providerId: E150ProviderName;
   state: ProviderSmokeState;
   ok: boolean;
@@ -42,6 +71,7 @@ type ProviderSmokeResult = {
   status: number | null;
   reason: string | null;
   errorMessage: string | null;
+  providerErrorCode: string | null;
   model: string | null;
   formatUsed: "json_schema" | "json_object" | null;
   didFallback: boolean | null;
@@ -68,10 +98,16 @@ type ProbeSnapshot = {
 
 type OrchestratorSmokeResponse = {
   ok: boolean;
+  mode: SmokeMode;
+  runId: string;
+  correlationId: string;
+  startedAt: number;
+  finishedAt: number;
   orchestratorOk: boolean;
   bestProviderId?: E150ProviderName | null;
   bestRawText?: string | null;
-  results: ProviderSmokeResult[];
+  rows: ProviderDiagnostic[];
+  results: LegacyProviderSmokeResult[];
   error?: string;
   probeStatus?: Record<string, { ok: boolean; errorKind: string | null; durationMs: number }>;
   probes?: Record<
@@ -87,94 +123,23 @@ type OrchestratorSmokeResponse = {
   createAnalyzeApi: CreateAnalyzeApiSmoke;
 };
 
-function providerIndex(providerId: E150ProviderName): number {
-  const index = PROVIDER_ORDER.indexOf(providerId);
-  return index >= 0 ? index : PROVIDER_ORDER.length + 1;
+function cleanJson(raw: string): string {
+  let cleaned = raw.trim();
+  if (cleaned.startsWith("```")) {
+    const firstNewline = cleaned.indexOf("\n");
+    if (firstNewline !== -1) cleaned = cleaned.slice(firstNewline + 1);
+    const lastFence = cleaned.lastIndexOf("```");
+    if (lastFence !== -1) cleaned = cleaned.slice(0, lastFence);
+    cleaned = cleaned.trim();
+  }
+  return cleaned;
 }
 
-function sortProviderResults(results: ProviderSmokeResult[]): ProviderSmokeResult[] {
-  return [...results].sort(
-    (left, right) => providerIndex(left.providerId) - providerIndex(right.providerId),
-  );
-}
-
-function mapProviderMatrixEntry(entry: ProviderMatrixEntry): ProviderSmokeResult {
-  return {
-    providerId: entry.provider,
-    state: entry.state,
-    ok: entry.state === "ok",
-    durationMs: typeof entry.durationMs === "number" ? entry.durationMs : null,
-    errorKind: entry.errorKind ?? null,
-    status: typeof entry.status === "number" ? entry.status : null,
-    reason: entry.reason ?? null,
-    errorMessage: entry.reason ?? null,
-    model: entry.model ?? null,
-    formatUsed: entry.formatUsed ?? null,
-    didFallback: typeof entry.didFallback === "boolean" ? entry.didFallback : null,
-    openaiErrorCode: entry.openaiErrorCode ?? null,
-    openaiErrorMessage: entry.openaiErrorMessage ?? null,
-  };
-}
-
-function buildProviderResultsFromMeta(
-  meta: Partial<E150OrchestratorMeta> | null | undefined,
-  errorMessage: string | null,
-): ProviderSmokeResult[] {
-  const providerMatrix = Array.isArray(meta?.providerMatrix) ? meta.providerMatrix : [];
-  if (providerMatrix.length > 0) {
-    return sortProviderResults(providerMatrix.map(mapProviderMatrixEntry));
-  }
-
-  const byProvider = new Map<E150ProviderName, ProviderSmokeResult>();
-  for (const providerId of PROVIDER_ORDER) {
-    byProvider.set(providerId, {
-      providerId,
-      state: "failed",
-      ok: false,
-      durationMs: null,
-      errorKind: null,
-      status: null,
-      reason: errorMessage || "orchestrator_failed_without_provider_matrix",
-      errorMessage: errorMessage || "orchestrator_failed_without_provider_matrix",
-      model: null,
-      formatUsed: null,
-      didFallback: null,
-      openaiErrorCode: null,
-      openaiErrorMessage: null,
-    });
-  }
-
-  for (const item of meta?.disabledProviders ?? []) {
-    if (!byProvider.has(item.provider)) continue;
-    byProvider.set(item.provider, {
-      ...byProvider.get(item.provider)!,
-      state: "disabled",
-      reason: item.reason ?? "disabled",
-      errorMessage: item.reason ?? "disabled",
-    });
-  }
-  for (const item of meta?.skippedProviders ?? []) {
-    if (!byProvider.has(item.provider)) continue;
-    byProvider.set(item.provider, {
-      ...byProvider.get(item.provider)!,
-      state: "skipped",
-      reason: item.reason ?? "skipped",
-      errorMessage: item.reason ?? "skipped",
-    });
-  }
-  for (const item of meta?.failedProviders ?? []) {
-    if (!byProvider.has(item.provider)) continue;
-    const nextReason = item.error ?? byProvider.get(item.provider)!.reason;
-    byProvider.set(item.provider, {
-      ...byProvider.get(item.provider)!,
-      state: "failed",
-      reason: nextReason,
-      errorMessage: nextReason,
-      errorKind: item.errorKind ?? null,
-    });
-  }
-
-  return sortProviderResults(Array.from(byProvider.values()));
+function normalizeMode(value: string | null): SmokeMode {
+  if (!value || value === "runtime") return "runtime_smoke";
+  if (value === "probe" || value === "provider_probe") return "provider_probe";
+  if (value === "full" || value === "full_contract") return "full_contract";
+  return "runtime_smoke";
 }
 
 function buildProbeMaps(probes: ProbeSnapshot[] | undefined): Pick<OrchestratorSmokeResponse, "probeStatus" | "probes"> {
@@ -205,24 +170,6 @@ function buildProbeMaps(probes: ProbeSnapshot[] | undefined): Pick<OrchestratorS
   };
 }
 
-function extractOrchestratorMeta(error: unknown): Partial<E150OrchestratorMeta> | null {
-  const rawMeta = (error as { meta?: unknown })?.meta;
-  if (!rawMeta || typeof rawMeta !== "object") return null;
-  return rawMeta as Partial<E150OrchestratorMeta>;
-}
-
-function cleanJson(raw: string): string {
-  let cleaned = raw.trim();
-  if (cleaned.startsWith("```")) {
-    const firstNewline = cleaned.indexOf("\n");
-    if (firstNewline !== -1) cleaned = cleaned.slice(firstNewline + 1);
-    const lastFence = cleaned.lastIndexOf("```");
-    if (lastFence !== -1) cleaned = cleaned.slice(0, lastFence);
-    cleaned = cleaned.trim();
-  }
-  return cleaned;
-}
-
 function validateAnalyzeShapePayload(payload: any): { ok: boolean; message?: string } {
   if (!payload || typeof payload !== "object") return { ok: false, message: "empty payload" };
   if (!Array.isArray(payload.claims)) return { ok: false, message: "claims missing" };
@@ -232,12 +179,447 @@ function validateAnalyzeShapePayload(payload: any): { ok: boolean; message?: str
   return { ok: true };
 }
 
-function validateOrchestratorCandidate(rawText: string): { ok: boolean; message?: string } {
+function baseDiagnostic(params: {
+  provider: E150ProviderName;
+  mode: SmokeMode;
+  stage: "provider_probe" | "runtime" | "analyze_contract";
+  pipeline: "provider_probe" | "orchestrator_smoke";
+  model?: string | null;
+  status: ProviderDiagnostic["status"];
+  errorKind?: AiErrorKind | null;
+  providerErrorCode?: string | null;
+  httpStatus?: number | null;
+  errorMessage?: string | null;
+  reason?: string | null;
+  validationMode: ProviderDiagnostic["validationMode"];
+  providerStatus?: ProviderDiagnostic["providerStatus"];
+  adapterStatus?: ProviderDiagnostic["adapterStatus"];
+  parseStatus?: ProviderDiagnostic["parseStatus"];
+  schemaStatus?: ProviderDiagnostic["schemaStatus"];
+  parseError?: string | null;
+  schemaError?: string | null;
+  schemaPath?: string | null;
+  rawExcerpt?: string | null;
+  durationMs?: number | null;
+  tokensIn?: number | null;
+  tokensOut?: number | null;
+  fallbackUsed?: boolean | null;
+  fallbackReason?: string | null;
+  journeyDecision?: ProviderDiagnostic["journeyDecision"];
+}): ProviderDiagnostic {
+  const row: ProviderDiagnostic = {
+    provider: params.provider,
+    displayName: providerDisplayName(params.provider),
+    model: params.model ?? defaultModelForProvider(params.provider),
+    pipeline: params.pipeline,
+    mode: params.mode,
+    stage: params.stage,
+    status: params.status,
+    errorKind: params.errorKind ?? null,
+    providerErrorCode: params.providerErrorCode ?? null,
+    httpStatus: typeof params.httpStatus === "number" ? params.httpStatus : null,
+    errorMessage: params.errorMessage ?? null,
+    reason: params.reason ?? null,
+    validationMode: params.validationMode,
+    providerStatus:
+      params.providerStatus ?? deriveProviderStatus(params.errorKind ?? null, params.status),
+    adapterStatus: params.adapterStatus ?? (params.status === "ok" ? "ok" : "failed"),
+    parseStatus: params.parseStatus ?? "not_started",
+    schemaStatus: params.schemaStatus ?? "not_started",
+    parseError: params.parseError ?? null,
+    schemaError: params.schemaError ?? null,
+    schemaPath: params.schemaPath ?? null,
+    rawExcerpt: sanitizeRawExcerpt(params.rawExcerpt ?? params.errorMessage ?? params.reason ?? null),
+    durationMs: typeof params.durationMs === "number" ? params.durationMs : null,
+    tokensIn: typeof params.tokensIn === "number" ? params.tokensIn : null,
+    tokensOut: typeof params.tokensOut === "number" ? params.tokensOut : null,
+    fallbackUsed: typeof params.fallbackUsed === "boolean" ? params.fallbackUsed : null,
+    fallbackReason: params.fallbackReason ?? null,
+    journeyDecision: params.journeyDecision ?? "selected",
+    rootCause: "RUNTIME_FAILED",
+    nextAction: "Adapter-/Runtime-Logs pruefen.",
+  };
+
+  row.rootCause = deriveRootCause(row);
+  row.nextAction = deriveNextAction(row);
+  return row;
+}
+
+function legacyState(status: ProviderDiagnostic["status"], journeyDecision: ProviderDiagnostic["journeyDecision"]): ProviderSmokeState {
+  if (status === "ok") return "ok";
+  if (status === "skipped") return "skipped";
+  if (journeyDecision === "not_in_plan") return "skipped";
+  if (status === "config_missing") return "disabled";
+  return "failed";
+}
+
+function toLegacyResult(row: ProviderDiagnostic): LegacyProviderSmokeResult {
+  return {
+    providerId: row.provider,
+    state: legacyState(row.status, row.journeyDecision),
+    ok: row.status === "ok",
+    durationMs: row.durationMs,
+    errorKind: row.errorKind,
+    status: row.httpStatus,
+    reason: row.reason,
+    errorMessage: row.errorMessage,
+    providerErrorCode: row.providerErrorCode,
+    model: row.model,
+    formatUsed: null,
+    didFallback: row.fallbackUsed,
+    openaiErrorCode: row.provider === "openai" ? row.providerErrorCode : null,
+    openaiErrorMessage: row.provider === "openai" ? row.errorMessage : null,
+  };
+}
+
+function extractOrchestratorMeta(error: unknown): Partial<E150OrchestratorMeta> | null {
+  const rawMeta = (error as { meta?: unknown })?.meta;
+  if (!rawMeta || typeof rawMeta !== "object") return null;
+  return rawMeta as Partial<E150OrchestratorMeta>;
+}
+
+function mapMatrixStatusToDiagnosticStatus(
+  entry: ProviderMatrixEntry,
+  journeyDecision: ProviderDiagnostic["journeyDecision"],
+): ProviderDiagnostic["status"] {
+  if (entry.state === "ok") return "ok";
+  if (entry.state === "skipped") return "skipped";
+  if (entry.state === "disabled") {
+    return journeyDecision === "config_missing" ? "config_missing" : "skipped";
+  }
+  if (entry.state === "running") return "degraded";
+  return "failed";
+}
+
+function mapRowsFromProviderMatrix(
+  mode: SmokeMode,
+  providerMatrix: ProviderMatrixEntry[] | undefined,
+  probes: ProbeSnapshot[] | undefined,
+  fallbackError: string | null,
+): ProviderDiagnostic[] {
+  const matrix = Array.isArray(providerMatrix) ? providerMatrix : [];
+  const probeMap = new Map((Array.isArray(probes) ? probes : []).map((item) => [item.provider, item]));
+
+  if (matrix.length === 0) {
+    return sortProviderDiagnostics(
+      PROVIDER_ORDER.map((provider) =>
+        baseDiagnostic({
+          provider,
+          mode,
+          stage: mode === "provider_probe" ? "provider_probe" : mode === "runtime_smoke" ? "runtime" : "analyze_contract",
+          pipeline: mode === "provider_probe" ? "provider_probe" : "orchestrator_smoke",
+          status: "failed",
+          errorKind: "UNKNOWN",
+          errorMessage: fallbackError ?? "orchestrator_failed_without_provider_matrix",
+          reason: fallbackError ?? "orchestrator_failed_without_provider_matrix",
+          validationMode: mode === "runtime_smoke" ? "json_only" : mode === "full_contract" ? "analyze_schema" : "none",
+          adapterStatus: "failed",
+          parseStatus: "not_started",
+          schemaStatus: "not_started",
+          journeyDecision: "selected",
+        }),
+      ),
+    );
+  }
+
+  return sortProviderDiagnostics(
+    matrix.map((entry) => {
+      const reason = entry.reason ?? entry.errorMessage ?? null;
+      const providerCode = entry.providerErrorCode ?? entry.openaiErrorCode ?? null;
+      const journeyDecision = resolveJourneyDecision(entry.state, reason);
+      const status = mapMatrixStatusToDiagnosticStatus(entry, journeyDecision);
+      const probe = probeMap.get(entry.provider);
+      const derivedProviderStatus = probe
+        ? probe.ok
+          ? "reachable"
+          : deriveProviderStatus((probe.errorKind as AiErrorKind | null) ?? null, status)
+        : deriveProviderStatus(entry.errorKind ?? null, status);
+      const adapterStatus: ProviderDiagnostic["adapterStatus"] =
+        entry.state === "ok"
+          ? "ok"
+          : entry.state === "disabled" || entry.state === "skipped"
+            ? "not_started"
+            : "failed";
+      const parseStatus: ProviderDiagnostic["parseStatus"] =
+        mode === "runtime_smoke"
+          ? entry.state === "ok"
+            ? "ok"
+            : entry.errorKind === "BAD_JSON" || providerCode === "BAD_JSON"
+              ? "failed"
+              : "not_started"
+          : mode === "full_contract"
+            ? entry.state === "ok"
+              ? "ok"
+              : entry.errorKind === "BAD_JSON" || providerCode === "BAD_JSON"
+                ? "failed"
+                : providerCode === "SCHEMA_INVALID"
+                  ? "ok"
+                : "not_started"
+            : "not_started";
+      const schemaStatus: ProviderDiagnostic["schemaStatus"] =
+        mode === "full_contract"
+          ? entry.state === "ok"
+            ? "ok"
+            : providerCode === "SCHEMA_INVALID"
+              ? "failed"
+              : "not_started"
+          : "not_started";
+
+      return baseDiagnostic({
+        provider: entry.provider,
+        mode,
+        stage: mode === "runtime_smoke" ? "runtime" : mode === "full_contract" ? "analyze_contract" : "provider_probe",
+        pipeline: mode === "provider_probe" ? "provider_probe" : "orchestrator_smoke",
+        model: entry.model ?? defaultModelForProvider(entry.provider),
+        status,
+        errorKind: entry.errorKind ?? null,
+        providerErrorCode: providerCode,
+        httpStatus: entry.status ?? probe?.status ?? null,
+        errorMessage: entry.errorMessage ?? reason,
+        reason,
+        validationMode: mode === "runtime_smoke" ? "json_only" : mode === "full_contract" ? "analyze_schema" : "none",
+        providerStatus: derivedProviderStatus,
+        adapterStatus,
+        parseStatus,
+        schemaStatus,
+        parseError: providerCode === "BAD_JSON" ? entry.parseError ?? entry.errorMessage ?? reason : null,
+        schemaError: providerCode === "SCHEMA_INVALID" ? entry.schemaError ?? entry.errorMessage ?? reason : null,
+        schemaPath: providerCode === "SCHEMA_INVALID" ? entry.schemaPath ?? null : null,
+        rawExcerpt: entry.rawExcerpt ?? entry.errorMessage ?? reason ?? null,
+        durationMs: entry.durationMs ?? probe?.durationMs ?? null,
+        fallbackUsed: typeof entry.didFallback === "boolean" ? entry.didFallback : null,
+        fallbackReason:
+          entry.didFallback === true
+            ? entry.openaiErrorMessage ?? entry.openaiErrorCode ?? entry.providerErrorCode ?? reason
+            : null,
+        journeyDecision,
+      });
+    }),
+  );
+}
+
+function validateProbePayload(rawText: string): {
+  ok: boolean;
+  parseStatus: ProviderDiagnostic["parseStatus"];
+  parseError: string | null;
+} {
+  const cleaned = cleanJson(rawText ?? "");
+  if (!cleaned) {
+    return { ok: false, parseStatus: "failed", parseError: "empty_output" };
+  }
+
+  const normalized = cleaned.trim().toLowerCase();
+  if (normalized === "pong" || normalized === "ok") {
+    return { ok: true, parseStatus: "not_started", parseError: null };
+  }
+
   try {
-    const parsed = JSON.parse(cleanJson(rawText));
-    return validateAnalyzeShapePayload(parsed);
+    const parsed = JSON.parse(cleaned);
+    if (parsed && typeof parsed === "object") {
+      return { ok: true, parseStatus: "ok", parseError: null };
+    }
+    return { ok: false, parseStatus: "failed", parseError: "json_not_object" };
   } catch (error: any) {
-    return { ok: false, message: error?.message ?? "parse failed" };
+    return {
+      ok: false,
+      parseStatus: "failed",
+      parseError: error?.message ?? "json_parse_failed",
+    };
+  }
+}
+
+function ariConfigMissingReason(): string | null {
+  const hasBase = Boolean(
+    process.env.ARI_BASE_URL ||
+      process.env.ARI_URL ||
+      process.env.ARI_API_URL ||
+      process.env.YOUCOM_ARI_API_URL,
+  );
+  const hasKey = Boolean(process.env.ARI_API_KEY || process.env.YOUCOM_ARI_API_KEY);
+  if (hasBase && hasKey) return null;
+  return "missing ARI_BASE_URL / ARI_API_KEY or compatible env";
+}
+
+function configMissingReason(provider: E150ProviderName): string | null {
+  switch (provider) {
+    case "openai":
+      return process.env.OPENAI_API_KEY ? null : "missing OPENAI_API_KEY";
+    case "anthropic":
+      return process.env.ANTHROPIC_API_KEY ? null : "missing ANTHROPIC_API_KEY";
+    case "mistral":
+      return process.env.MISTRAL_API_KEY ? null : "missing MISTRAL_API_KEY";
+    case "gemini":
+      return process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY
+        ? null
+        : "missing GEMINI_API_KEY / GOOGLE_API_KEY";
+    case "ari":
+      return ariConfigMissingReason();
+    default:
+      return "missing config";
+  }
+}
+
+async function runDirectProviderProbe(provider: E150ProviderName): Promise<ProviderDiagnostic> {
+  const missingReason = configMissingReason(provider);
+  if (missingReason) {
+    return baseDiagnostic({
+      provider,
+      mode: "provider_probe",
+      stage: "provider_probe",
+      pipeline: "provider_probe",
+      model: defaultModelForProvider(provider),
+      status: "config_missing",
+      errorKind: "INVALID_API_KEY",
+      providerErrorCode: "CONFIG_MISSING",
+      httpStatus: null,
+      errorMessage: missingReason,
+      reason: missingReason,
+      validationMode: "none",
+      providerStatus: "unknown",
+      adapterStatus: "not_started",
+      parseStatus: "not_started",
+      schemaStatus: "not_started",
+      rawExcerpt: missingReason,
+      durationMs: 0,
+      journeyDecision: "config_missing",
+    });
+  }
+
+  const started = Date.now();
+  try {
+    let text = "";
+    let model: string | undefined;
+    let tokensIn: number | undefined;
+    let tokensOut: number | undefined;
+
+    if (provider === "openai") {
+      const res = await callOpenAI({
+        prompt: DIRECT_PROBE_PROMPT.replace("<name>", "openai"),
+        asJson: true,
+        forceJsonFormat: true,
+        maxOutputTokens: 160,
+      });
+      text = res.text;
+      model = res.model;
+      tokensIn = res.tokensIn;
+      tokensOut = res.tokensOut;
+    } else if (provider === "anthropic") {
+      const res = await callAnthropic({
+        prompt: DIRECT_PROBE_PROMPT.replace("<name>", "anthropic"),
+        maxOutputTokens: 160,
+      });
+      text = res.text;
+      model = res.model;
+      tokensIn = res.tokensIn;
+      tokensOut = res.tokensOut;
+    } else if (provider === "mistral") {
+      const res = await callMistral({
+        prompt: DIRECT_PROBE_PROMPT.replace("<name>", "mistral"),
+        maxOutputTokens: 160,
+      });
+      text = res.text;
+      model = res.model;
+      tokensIn = res.tokensIn;
+      tokensOut = res.tokensOut;
+    } else if (provider === "gemini") {
+      const res = await callGemini({
+        prompt: DIRECT_PROBE_PROMPT.replace("<name>", "gemini"),
+        maxOutputTokens: 160,
+        expectJson: true,
+      });
+      text = res.text;
+      model = res.model;
+      tokensIn = res.tokensIn;
+      tokensOut = res.tokensOut;
+    } else {
+      const res = await callAriLLM({
+        prompt: DIRECT_PROBE_PROMPT.replace("<name>", "ari"),
+        asJson: true,
+        maxOutputTokens: 160,
+      });
+      text = res.text;
+      model = res.model;
+      tokensIn = res.tokensIn;
+      tokensOut = res.tokensOut;
+    }
+
+    const payload = validateProbePayload(text ?? "");
+    if (!payload.ok) {
+      const parseError = payload.parseError ?? "json_parse_failed";
+      return baseDiagnostic({
+        provider,
+        mode: "provider_probe",
+        stage: "provider_probe",
+        pipeline: "provider_probe",
+        model: model ?? defaultModelForProvider(provider),
+        status: "failed",
+        errorKind: "BAD_JSON",
+        providerErrorCode: "BAD_JSON",
+        httpStatus: 200,
+        errorMessage: parseError,
+        reason: parseError,
+        validationMode: "none",
+        providerStatus: "reachable",
+        adapterStatus: "failed",
+        parseStatus: payload.parseStatus,
+        schemaStatus: "not_started",
+        parseError,
+        rawExcerpt: text,
+        durationMs: Date.now() - started,
+        tokensIn,
+        tokensOut,
+        journeyDecision: "selected",
+      });
+    }
+
+    return baseDiagnostic({
+      provider,
+      mode: "provider_probe",
+      stage: "provider_probe",
+      pipeline: "provider_probe",
+      model: model ?? defaultModelForProvider(provider),
+      status: "ok",
+      errorKind: null,
+      providerErrorCode: null,
+      httpStatus: 200,
+      errorMessage: null,
+      reason: null,
+      validationMode: "none",
+      providerStatus: "reachable",
+      adapterStatus: "ok",
+      parseStatus: payload.parseStatus,
+      schemaStatus: "not_started",
+      rawExcerpt: text,
+      durationMs: Date.now() - started,
+      tokensIn,
+      tokensOut,
+      journeyDecision: "selected",
+    });
+  } catch (error: any) {
+    const errorKind = mapErrorToKind(error);
+    const providerCode = extractProviderErrorCode(error);
+    const status = typeof error?.status === "number" ? error.status : null;
+    return baseDiagnostic({
+      provider,
+      mode: "provider_probe",
+      stage: "provider_probe",
+      pipeline: "provider_probe",
+      model: (error as any)?.meta?.model ?? defaultModelForProvider(provider),
+      status: looksConfigMissing(error?.message) ? "config_missing" : "failed",
+      errorKind,
+      providerErrorCode: providerCode,
+      httpStatus: status,
+      errorMessage: error?.message ?? "provider_probe_failed",
+      reason: error?.message ?? "provider_probe_failed",
+      validationMode: "none",
+      providerStatus: deriveProviderStatus(errorKind, "failed"),
+      adapterStatus: "failed",
+      parseStatus: "not_started",
+      schemaStatus: "not_started",
+      rawExcerpt: error?.payload ?? error?.message,
+      durationMs: Date.now() - started,
+      journeyDecision: looksConfigMissing(error?.message) ? "config_missing" : "selected",
+    });
   }
 }
 
@@ -270,38 +652,220 @@ async function runCreateAnalyzeApiSmoke(): Promise<CreateAnalyzeApiSmoke> {
   }
 }
 
-export async function POST(req: NextRequest) {
-  const gate = await requireAdminOrResponse(req);
-  if (gate instanceof Response) return gate;
+function applyFullContractValidation(
+  rows: ProviderDiagnostic[],
+  candidates: Array<{ provider: E150ProviderName; rawText: string }> | undefined,
+): ProviderDiagnostic[] {
+  const parseCandidate = (rawText: string): { ok: true; parsed: unknown; excerpt: string } | { ok: false; parseError: string; excerpt: string | null } => {
+    const candidate = extractJsonCandidate(rawText) ?? cleanJson(rawText);
+    const cleaned = candidate.trim();
+    if (!cleaned) return { ok: false, parseError: "no_json_object_found", excerpt: null };
+    try {
+      return { ok: true, parsed: JSON.parse(cleaned), excerpt: cleaned.slice(0, 500) };
+    } catch (error: any) {
+      return {
+        ok: false,
+        parseError: error?.message ?? "json_parse_failed",
+        excerpt: cleaned.slice(0, 500),
+      };
+    }
+  };
 
-  const mode = req.nextUrl.searchParams.get("mode");
-  if (mode === "full") {
-    return runFullSmoke();
-  }
+  const candidateMap = new Map((candidates ?? []).map((item) => [item.provider, item]));
+  return rows.map((row) => {
+    if (row.status !== "ok") return row;
+    const candidate = candidateMap.get(row.provider);
+    if (!candidate) {
+      return baseDiagnostic({
+        ...row,
+        status: "failed",
+        errorKind: "INTERNAL",
+        providerErrorCode: "CANDIDATE_MISSING",
+        errorMessage: "candidate_missing_for_ok_provider",
+        reason: "candidate_missing_for_ok_provider",
+        validationMode: "analyze_schema",
+        providerStatus: row.providerStatus,
+        adapterStatus: "failed",
+        parseStatus: "not_started",
+        schemaStatus: "not_started",
+        parseError: null,
+        schemaError: null,
+        schemaPath: null,
+        rawExcerpt: null,
+      });
+    }
 
+    const normalized = parseCandidate(candidate.rawText ?? "");
+    if (normalized.ok === false) {
+      return baseDiagnostic({
+        ...row,
+        status: "failed",
+        errorKind: "BAD_JSON",
+        providerErrorCode: "BAD_JSON",
+        errorMessage: normalized.parseError,
+        reason: normalized.parseError,
+        validationMode: "analyze_schema",
+        providerStatus: "reachable",
+        adapterStatus: "failed",
+        parseStatus: "failed",
+        schemaStatus: "not_started",
+        parseError: normalized.parseError,
+        schemaError: null,
+        schemaPath: null,
+        rawExcerpt: normalized.excerpt,
+      });
+    }
+
+    const schema = AnalyzeResultSchema.safeParse(normalized.parsed);
+    if (!schema.success) {
+      const first = schema.error.issues[0];
+      return baseDiagnostic({
+        ...row,
+        status: "failed",
+        errorKind: "INTERNAL",
+        providerErrorCode: "SCHEMA_INVALID",
+        errorMessage: first?.message ?? "schema_validation_failed",
+        reason: first?.message ?? "schema_validation_failed",
+        validationMode: "analyze_schema",
+        providerStatus: "reachable",
+        adapterStatus: "failed",
+        parseStatus: "ok",
+        schemaStatus: "failed",
+        parseError: null,
+        schemaError: first?.message ?? "schema_validation_failed",
+        schemaPath: Array.isArray(first?.path) ? first.path.join(".") || "$" : null,
+        rawExcerpt: normalized.excerpt,
+      });
+    }
+
+    return baseDiagnostic({
+      ...row,
+      status: "ok",
+      validationMode: "analyze_schema",
+      providerStatus: "reachable",
+      adapterStatus: "ok",
+      parseStatus: "ok",
+      schemaStatus: "ok",
+      rawExcerpt: normalized.excerpt,
+    });
+  });
+}
+
+function buildResponse(params: {
+  mode: SmokeMode;
+  runId: string;
+  correlationId: string;
+  startedAt: number;
+  finishedAt: number;
+  rows: ProviderDiagnostic[];
+  orchestratorOk: boolean;
+  bestProviderId: E150ProviderName | null;
+  bestRawText: string | null;
+  error?: string;
+  probeMaps?: Pick<OrchestratorSmokeResponse, "probeStatus" | "probes">;
+  createAnalyzeApi: CreateAnalyzeApiSmoke;
+}): OrchestratorSmokeResponse {
+  const sortedRows = sortProviderDiagnostics(params.rows);
+  const ok =
+    params.mode === "full_contract"
+      ? params.orchestratorOk && params.createAnalyzeApi.ok
+      : sortedRows.some((row) => row.status === "ok");
+
+  const response: OrchestratorSmokeResponse = {
+    ok,
+    mode: params.mode,
+    runId: params.runId,
+    correlationId: params.correlationId,
+    startedAt: params.startedAt,
+    finishedAt: params.finishedAt,
+    orchestratorOk: params.orchestratorOk,
+    bestProviderId: params.bestProviderId,
+    bestRawText: params.bestRawText,
+    rows: sortedRows,
+    results: sortedRows.map(toLegacyResult),
+    error: params.error,
+    ...(params.probeMaps ?? {}),
+    createAnalyzeApi: params.createAnalyzeApi,
+  };
+
+  recordAdminAiRun({
+    runId: params.runId,
+    correlationId: params.correlationId,
+    mode: params.mode,
+    startedAt: params.startedAt,
+    finishedAt: params.finishedAt,
+    ok: response.ok,
+    rows: sortedRows,
+    bestProviderId: params.bestProviderId,
+  });
+
+  return response;
+}
+
+async function runProviderProbeMode(base: {
+  runId: string;
+  correlationId: string;
+  startedAt: number;
+}): Promise<OrchestratorSmokeResponse> {
+  const rows = await Promise.all(PROVIDER_ORDER.map((provider) => runDirectProviderProbe(provider)));
+  return buildResponse({
+    mode: "provider_probe",
+    runId: base.runId,
+    correlationId: base.correlationId,
+    startedAt: base.startedAt,
+    finishedAt: Date.now(),
+    rows,
+    orchestratorOk: rows.some((row) => row.status === "ok"),
+    bestProviderId: rows.find((row) => row.status === "ok")?.provider ?? null,
+    bestRawText: null,
+    createAnalyzeApi: {
+      state: "skipped",
+      ok: false,
+      durationMs: 0,
+      reason: "provider_probe_mode",
+      code: "SKIPPED",
+    },
+  });
+}
+
+async function runRuntimeMode(base: {
+  runId: string;
+  correlationId: string;
+  startedAt: number;
+}): Promise<OrchestratorSmokeResponse> {
   try {
     const orchestratorResult = await callE150Orchestrator({
-      systemPrompt: SMOKE_SYSTEM_PROMPT,
-      userPrompt: SMOKE_USER_PROMPT,
-      maxTokens: 64,
-      timeoutMs: 10_000,
+      systemPrompt: RUNTIME_SYSTEM_PROMPT,
+      userPrompt: RUNTIME_USER_PROMPT,
+      maxTokens: 320,
+      timeoutMs: 15_000,
       requiredCapability: "core_analysis",
+      validationMode: "json_only",
       telemetry: {
         pipeline: "orchestrator_smoke",
       },
     });
 
-    const results = buildProviderResultsFromMeta(orchestratorResult.meta, null);
+    const rows = mapRowsFromProviderMatrix(
+      "runtime_smoke",
+      orchestratorResult.meta.providerMatrix,
+      orchestratorResult.meta.probes as ProbeSnapshot[] | undefined,
+      null,
+    );
     const probeMaps = buildProbeMaps(orchestratorResult.meta.probes as ProbeSnapshot[] | undefined);
-    const orchestratorOk = results.some((entry) => entry.ok);
+    const orchestratorOk = rows.some((entry) => entry.status === "ok");
 
-    return NextResponse.json({
-      ok: orchestratorOk,
+    return buildResponse({
+      mode: "runtime_smoke",
+      runId: base.runId,
+      correlationId: base.correlationId,
+      startedAt: base.startedAt,
+      finishedAt: Date.now(),
+      rows,
       orchestratorOk,
       bestProviderId: orchestratorResult.best.provider,
       bestRawText: orchestratorResult.best.rawText,
-      results,
-      ...probeMaps,
+      probeMaps,
       createAnalyzeApi: {
         state: "skipped",
         ok: false,
@@ -309,20 +873,29 @@ export async function POST(req: NextRequest) {
         reason: "full_mode_only",
         code: "SKIPPED",
       },
-    } satisfies OrchestratorSmokeResponse);
+    });
   } catch (error: any) {
     const meta = extractOrchestratorMeta(error);
-    const results = buildProviderResultsFromMeta(meta, error?.message ?? "orchestrator_error");
+    const rows = mapRowsFromProviderMatrix(
+      "runtime_smoke",
+      meta?.providerMatrix,
+      (meta?.probes ?? []) as ProbeSnapshot[],
+      error?.message ?? "orchestrator_error",
+    );
     const probeMaps = buildProbeMaps((meta?.probes ?? []) as ProbeSnapshot[]);
 
-    return NextResponse.json({
-      ok: false,
+    return buildResponse({
+      mode: "runtime_smoke",
+      runId: base.runId,
+      correlationId: base.correlationId,
+      startedAt: base.startedAt,
+      finishedAt: Date.now(),
+      rows,
       orchestratorOk: false,
       bestProviderId: null,
       bestRawText: null,
-      results,
       error: error?.message ?? "orchestrator error",
-      ...probeMaps,
+      probeMaps,
       createAnalyzeApi: {
         state: "skipped",
         ok: false,
@@ -330,24 +903,26 @@ export async function POST(req: NextRequest) {
         reason: "full_mode_only",
         code: "SKIPPED",
       },
-    } satisfies OrchestratorSmokeResponse);
+    });
   }
 }
 
-async function runFullSmoke() {
-  let orchestratorResult:
-    | Awaited<ReturnType<typeof callE150Orchestrator>>
-    | null = null;
+async function runFullMode(base: {
+  runId: string;
+  correlationId: string;
+  startedAt: number;
+}): Promise<OrchestratorSmokeResponse> {
+  let orchestratorResult: Awaited<ReturnType<typeof callE150Orchestrator>> | null = null;
   let orchestratorError: unknown = null;
 
   try {
     orchestratorResult = await callE150Orchestrator({
-      systemPrompt:
-        "You are the E150 orchestrator. Return strictly valid JSON for contribution analysis, including claims, notes, questions and knots.",
+      systemPrompt: FULL_CONTRACT_SYSTEM_PROMPT,
       userPrompt: FULL_SAMPLE_TEXT,
       maxTokens: 1_400,
       timeoutMs: 20_000,
       requiredCapability: "core_analysis",
+      validationMode: "analyze_schema",
       telemetry: {
         pipeline: "orchestrator_smoke",
       },
@@ -360,60 +935,72 @@ async function runFullSmoke() {
 
   if (!orchestratorResult) {
     const meta = extractOrchestratorMeta(orchestratorError);
-    const results = buildProviderResultsFromMeta(
-      meta,
+    const rows = mapRowsFromProviderMatrix(
+      "full_contract",
+      meta?.providerMatrix,
+      (meta?.probes ?? []) as ProbeSnapshot[],
       (orchestratorError as any)?.message ?? "full smoke orchestrator failed",
     );
     const probeMaps = buildProbeMaps((meta?.probes ?? []) as ProbeSnapshot[]);
 
-    return NextResponse.json(
-      {
-        ok: false,
-        orchestratorOk: false,
-        bestProviderId: null,
-        bestRawText: null,
-        results,
-        error: (orchestratorError as any)?.message ?? "full smoke failed",
-        ...probeMaps,
-        createAnalyzeApi,
-      } satisfies OrchestratorSmokeResponse,
-      { status: 200 },
-    );
+    return buildResponse({
+      mode: "full_contract",
+      runId: base.runId,
+      correlationId: base.correlationId,
+      startedAt: base.startedAt,
+      finishedAt: Date.now(),
+      rows,
+      orchestratorOk: false,
+      bestProviderId: null,
+      bestRawText: null,
+      error: (orchestratorError as any)?.message ?? "full smoke failed",
+      probeMaps,
+      createAnalyzeApi,
+    });
   }
 
-  const validatedResults = buildProviderResultsFromMeta(orchestratorResult.meta, null).map((entry) => {
-    if (entry.state !== "ok") return entry;
-    const candidate = orchestratorResult?.candidates.find((item) => item.provider === entry.providerId);
-    if (!candidate) {
-      return {
-        ...entry,
-        state: "failed",
-        ok: false,
-        reason: "candidate_missing_for_ok_provider",
-        errorMessage: "candidate_missing_for_ok_provider",
-      } satisfies ProviderSmokeResult;
-    }
-    const validation = validateOrchestratorCandidate(candidate.rawText);
-    if (validation.ok) return entry;
-    return {
-      ...entry,
-      state: "failed",
-      ok: false,
-      reason: validation.message ?? "invalid_json_shape",
-      errorMessage: validation.message ?? "invalid_json_shape",
-    } satisfies ProviderSmokeResult;
-  });
-
+  const rows = mapRowsFromProviderMatrix(
+    "full_contract",
+    orchestratorResult.meta.providerMatrix,
+    orchestratorResult.meta.probes as ProbeSnapshot[] | undefined,
+    null,
+  );
+  const validatedRows = applyFullContractValidation(rows, orchestratorResult.candidates);
   const probeMaps = buildProbeMaps(orchestratorResult.meta.probes as ProbeSnapshot[] | undefined);
-  const orchestratorOk = validatedResults.some((entry) => entry.ok);
 
-  return NextResponse.json({
-    ok: orchestratorOk && createAnalyzeApi.ok,
-    orchestratorOk,
+  return buildResponse({
+    mode: "full_contract",
+    runId: base.runId,
+    correlationId: base.correlationId,
+    startedAt: base.startedAt,
+    finishedAt: Date.now(),
+    rows: validatedRows,
+    orchestratorOk: validatedRows.some((entry) => entry.status === "ok"),
     bestProviderId: orchestratorResult.best.provider,
     bestRawText: orchestratorResult.best.rawText,
-    results: validatedResults,
-    ...probeMaps,
+    probeMaps,
     createAnalyzeApi,
-  } satisfies OrchestratorSmokeResponse);
+  });
+}
+
+export async function POST(req: NextRequest) {
+  const gate = await requireAdminOrResponse(req);
+  if (gate instanceof Response) return gate;
+
+  const mode = normalizeMode(req.nextUrl.searchParams.get("mode"));
+  const runId = crypto.randomUUID();
+  const correlationId = runId;
+  const startedAt = Date.now();
+
+  if (mode === "provider_probe") {
+    const response = await runProviderProbeMode({ runId, correlationId, startedAt });
+    return NextResponse.json(response);
+  }
+  if (mode === "full_contract") {
+    const response = await runFullMode({ runId, correlationId, startedAt });
+    return NextResponse.json(response);
+  }
+
+  const response = await runRuntimeMode({ runId, correlationId, startedAt });
+  return NextResponse.json(response);
 }

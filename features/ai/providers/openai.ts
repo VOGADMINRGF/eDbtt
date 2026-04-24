@@ -48,6 +48,22 @@ const DEFAULT_TEXT_FORMAT: "json_schema" | "json_object" =
 const fallbackTextFormat = (format: "json_schema" | "json_object") =>
   format === "json_schema" ? "json_object" : "json_schema";
 
+type OpenAiReasoningEffort = "minimal" | "low" | "medium" | "high";
+
+function parseReasoningEffort(value: unknown): OpenAiReasoningEffort | null {
+  if (typeof value !== "string") return null;
+  const normalized = value.trim().toLowerCase();
+  if (
+    normalized === "minimal" ||
+    normalized === "low" ||
+    normalized === "medium" ||
+    normalized === "high"
+  ) {
+    return normalized;
+  }
+  return null;
+}
+
 async function post(body: any, signal?: AbortSignal) {
   const res = await fetch(`${API_BASE}/responses`, {
     method: "POST",
@@ -219,11 +235,19 @@ async function askOpenAI({
     schemaEnabled &&
     (Boolean(jsonSchema) || forceJsonFormat || DEFAULT_TEXT_FORMAT === "json_schema");
   const preferredFormat: "json_schema" | "json_object" = preferSchema ? "json_schema" : "json_object";
+  const jsonReasoningEffort =
+    parseReasoningEffort(process.env.OPENAI_REASONING_EFFORT_JSON) ?? "minimal";
+  const defaultReasoningEffort = parseReasoningEffort(process.env.OPENAI_REASONING_EFFORT);
+  const reasoningEffort =
+    asJson || forceJsonFormat
+      ? jsonReasoningEffort
+      : defaultReasoningEffort;
 
   const buildBody = (format: "json_schema" | "json_object") => ({
     model: resolvedModel,
     input: mergedInput,
     max_output_tokens: resolvedMaxTokens,
+    reasoning: reasoningEffort ? { effort: reasoningEffort } : undefined,
     text:
       asJson || forceJsonFormat
         ? {

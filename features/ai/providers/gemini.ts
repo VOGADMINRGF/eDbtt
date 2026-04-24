@@ -3,7 +3,9 @@ import { withMetrics } from "../orchestrator_health";
 
 const API_BASE =
   process.env.GOOGLE_GENAI_BASE_URL || "https://generativelanguage.googleapis.com";
-const MODEL = process.env.GEMINI_MODEL || "gemini-1.5-pro";
+const MODEL = process.env.GEMINI_MODEL || "gemini-2.5-flash";
+const FALLBACK_MODEL =
+  process.env.GEMINI_MODEL_FALLBACK || "gemini-2.5-flash";
 
 export type AskArgs = {
   prompt: string;
@@ -37,13 +39,22 @@ function extractText(data: any): string {
   return "";
 }
 
-async function post(body: Record<string, unknown>, signal?: AbortSignal) {
+function normalizeModelName(modelName: string): string {
+  return modelName.replace(/^models\//, "");
+}
+
+async function post(
+  body: Record<string, unknown>,
+  signal: AbortSignal | undefined,
+  modelName: string,
+) {
   const apiKey = process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY;
   if (!apiKey) {
     throw new Error("Missing GOOGLE_API_KEY or GEMINI_API_KEY");
   }
 
-  const url = `${API_BASE}/v1beta/models/${MODEL}:generateContent?key=${apiKey}`;
+  const resolvedModel = normalizeModelName(modelName);
+  const url = `${API_BASE}/v1beta/models/${resolvedModel}:generateContent?key=${apiKey}`;
   const res = await fetch(url, {
     method: "POST",
     headers: {
@@ -59,6 +70,15 @@ async function post(body: Record<string, unknown>, signal?: AbortSignal) {
     const err: any = new Error(`Gemini error ${res.status}: ${msg}`);
     err.status = res.status;
     err.payload = data;
+    err.code =
+      data?.error?.status ??
+      (typeof data?.error?.code === "string" ? data.error.code : null) ??
+      null;
+    err.meta = {
+      model: resolvedModel,
+      code: err.code,
+      messageShort: typeof msg === "string" ? msg.slice(0, 200) : null,
+    };
     throw err;
   }
   return data;
@@ -83,36 +103,55 @@ async function askGemini({
         ],
       },
     ],
-  };
+  } as const;
 
-  const genConfig: Record<string, unknown> = {
-    temperature: 0.25,
-    maxOutputTokens,
-  };
-
-  if (expectJson) {
-    genConfig.responseMimeType = "application/json";
-  }
-
-  const body = { ...baseBody, generationConfig: genConfig };
-
-  let data;
-  try {
-    data = await post(body, signal);
-  } catch (err: any) {
-    // Fallback: retry once without responseMimeType if Gemini rejects it
-    if (expectJson && err?.status === 400) {
-      const retryBody = { ...baseBody, generationConfig: { temperature: 0.25, maxOutputTokens } };
-      data = await post(retryBody, signal);
-    } else {
+  const requestModel = async (modelName: string) => {
+    const generationConfig: Record<string, unknown> = {
+      temperature: 0.25,
+      maxOutputTokens,
+    };
+    if (expectJson) {
+      generationConfig.responseMimeType = "application/json";
+    }
+    try {
+      return await post({ ...baseBody, generationConfig }, signal, modelName);
+    } catch (err: any) {
+      if (expectJson && err?.status === 400) {
+        return post(
+          {
+            ...baseBody,
+            generationConfig: {
+              temperature: 0.25,
+              maxOutputTokens,
+            },
+          },
+          signal,
+          modelName,
+        );
+      }
       throw err;
     }
+  };
+
+  let selectedModel = MODEL;
+  let data;
+  try {
+    data = await requestModel(selectedModel);
+  } catch (err: any) {
+    const canFallbackModel =
+      err?.status === 404 &&
+      typeof FALLBACK_MODEL === "string" &&
+      FALLBACK_MODEL.length > 0 &&
+      normalizeModelName(FALLBACK_MODEL) !== normalizeModelName(selectedModel);
+    if (!canFallbackModel) throw err;
+    selectedModel = FALLBACK_MODEL;
+    data = await requestModel(selectedModel);
   }
 
   return {
     text: extractText(data),
     raw: data,
-    model: data?.model,
+    model: data?.model ?? normalizeModelName(selectedModel),
     tokensIn: data?.usageMetadata?.promptTokenCount,
     tokensOut: data?.usageMetadata?.candidatesTokenCount,
   };
