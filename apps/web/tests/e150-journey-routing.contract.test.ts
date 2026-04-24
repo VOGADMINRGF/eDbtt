@@ -10,6 +10,7 @@ import {
   applyPresentationPassStub,
   canUsePresentationPass,
 } from "@features/ai/e150/presentationPass";
+import { resolveSealedFactcheckStatusView } from "@features/ai/e150/factcheckStatus";
 
 describe("GOV-AI-ORCH-05 journey defaults", () => {
   const standardJourneys: E150JourneyKey[] = ["analyze", "media", "guided"];
@@ -59,5 +60,41 @@ describe("GOV-AI-ORCH-05 journey defaults", () => {
     expect(applied.applied).toBe(false);
     expect(applied.text).toBe(sample);
     expect(applied.policy?.nonMutative).toBe(true);
+
+  });
+
+  it("maps sealed status stages and keeps seal pending until granted", () => {
+    const started = resolveSealedFactcheckStatusView({
+      status: "started",
+      verificationMode: "sealed",
+      researchUsed: "search",
+      sealEligible: true,
+      sealGranted: false,
+    });
+    expect(started.workflowStage).toBe("started");
+    expect(started.verificationLabel).toBe("geprueft");
+    expect(started.sealLabel).toBe("Siegel ausstehend");
+
+    const queued = resolveSealedFactcheckStatusView({
+      status: "queued",
+      verificationMode: "sealed",
+      researchUsed: "search",
+      sealEligible: true,
+      sealGranted: false,
+    });
+    expect(queued.workflowStage).toBe("queued");
+    expect(queued.verificationLabel).toBe("geprueft");
+    expect(queued.sealLabel).toBe("Siegel ausstehend");
+
+    const completed = resolveSealedFactcheckStatusView({
+      status: "completed",
+      verificationMode: "sealed",
+      researchUsed: "deep_search",
+      sealEligible: true,
+      sealGranted: true,
+    });
+    expect(completed.workflowStage).toBe("completed");
+    expect(completed.verificationLabel).toBe("verifiziert");
+    expect(completed.sealLabel).toBe("Siegel erteilt");
   });
 });

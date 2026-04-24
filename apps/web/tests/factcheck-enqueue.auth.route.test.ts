@@ -110,8 +110,12 @@ describe("factcheck enqueue auth contract", () => {
     expect(body?.sealEligible).toBe(true);
     expect(body?.sealGranted).toBe(false);
     expect(body?.verificationLabel).toBe("geprueft");
+    expect(body?.workflowStage).toBe("completed");
+    expect(body?.workflowLabel).toBe("abgeschlossen");
+    expect(body?.sealStatus).toBe("Siegel ausstehend");
     expect(body?.meta?.lane).toBe("sealed_factcheck");
     expect(body?.meta?.journeyProfile).toBe("sealed_factcheck");
+    expect(body?.meta?.verificationMode).toBe("sealed");
     expect(body?.meta?.roleProviderMapping?.fallback).toEqual(["openai"]);
   });
 });

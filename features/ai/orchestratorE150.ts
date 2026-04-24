@@ -32,6 +32,11 @@ import {
   type E150JourneyProfile,
   type E150Lane,
 } from "./e150/journeyProfiles";
+import {
+  computeDisagreementConfidence,
+  type E150ConfidenceMeta,
+  type E150DisagreementMeta,
+} from "./e150/disagreementConfidence";
 import type {
   ResearchUsed,
   VerificationMode,
@@ -221,11 +226,8 @@ export type E150OrchestratorMeta = {
     openAiRoles: readonly ("fallback" | "presentation_pass")[];
   };
   fallbackUsed?: boolean;
-  disagreement?: {
-    present: boolean;
-    successfulProviders: E150ProviderName[];
-    failedProviders: E150ProviderName[];
-  };
+  disagreement?: E150DisagreementMeta;
+  confidence?: E150ConfidenceMeta;
   verificationMode?: VerificationMode;
   researchUsed?: ResearchUsed;
   sealEligible?: boolean;
@@ -1732,9 +1734,18 @@ export async function callE150Orchestrator(
   const failedProviderNames = providerOutcomes
     .filter((outcome): outcome is ProviderFailure => !outcome.ok)
     .map((outcome) => outcome.provider);
-  const disagreementPresent =
-    new Set(successfulProviders).size > 1 ||
-    (successfulProviders.length > 0 && failedProviderNames.length > 0);
+  const disagreementConfidence = computeDisagreementConfidence({
+    primaryProviders: primaryProviderNames,
+    successfulProviders,
+    failedProviders: failedProviderNames,
+    candidateScores: sortedCandidates.map((candidate) => ({
+      provider: candidate.provider,
+      score: candidate.score,
+    })),
+    bestProvider: best?.provider ?? null,
+    fallbackProviders: fallbackProviderNames,
+    fallbackUsed,
+  });
 
   const telemetryEvents = providerOutcomes.map((outcome) => {
     const success = outcome.ok ? (outcome as ProviderSuccess) : null;
@@ -1778,11 +1789,8 @@ export async function callE150Orchestrator(
         openAiRoles: journeyProfile.openAiRoles,
       },
       fallbackUsed,
-      disagreement: {
-        present: disagreementPresent,
-        successfulProviders,
-        failedProviders: failedProviderNames,
-      },
+      disagreement: disagreementConfidence.disagreement,
+      confidence: disagreementConfidence.confidence,
       verificationMode: journeyProfile.verificationDefaults.verificationMode,
       researchUsed: journeyProfile.verificationDefaults.researchUsed,
       sealEligible: journeyProfile.verificationDefaults.sealEligible,

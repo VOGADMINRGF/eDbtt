@@ -1,11 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
+import { resolveAiRouteClassification } from "@features/ai/e150/routeClassification";
 export const runtime = "nodejs"; export const dynamic = "force-dynamic";
 type PolishOut = { improved: string; notes: string[]; claimsHint: { count: number; split?: string[] } | null; };
 
 export async function POST(req: NextRequest){
+  const routeClassification = resolveAiRouteClassification("/api/quality/polish");
   const { text } = await req.json().catch(()=>({text:""}));
   const t = String(text||"").trim();
-  if(!t) return NextResponse.json({ improved:"", notes:["Kein Text."], claimsHint:null });
+  if(!t) {
+    return NextResponse.json({
+      improved:"",
+      notes:["Kein Text."],
+      claimsHint:null,
+      meta: { routeClassification },
+    });
+  }
 
   try{
     const mod = await import("@/core/gpt").catch(()=>null) as any;
@@ -28,7 +37,7 @@ TEXT:
           ? { count: Number(j.claimsHint.count||0), split: Array.isArray(j.claimsHint.split)? j.claimsHint.split.slice(0,5):[] }
           : { count: 1, split: [t] }
       };
-      return NextResponse.json(safe);
+      return NextResponse.json({ ...safe, meta: { routeClassification } });
     }
   }catch(_e){}
   const sentences = t.split(/[.!?]\s+/).filter(Boolean);
@@ -38,5 +47,10 @@ TEXT:
     "Begriffe schärfen (was genau ist gemeint?).",
     "Falls mehrere Punkte: in getrennte Aussagen teilen.",
   ];
-  return NextResponse.json({ improved, notes, claimsHint: { count: sentences.length, split: sentences.slice(0,5) } });
+  return NextResponse.json({
+    improved,
+    notes,
+    claimsHint: { count: sentences.length, split: sentences.slice(0,5) },
+    meta: { routeClassification },
+  });
 }

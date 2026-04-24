@@ -2,9 +2,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { callOpenAI } from "@features/ai/providers/openai";
 import { requireAdminOrEditor } from "../../feeds/_auth";
+import { resolveAiRouteClassification } from "@features/ai/e150/routeClassification";
 export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
+  const routeClassification = resolveAiRouteClassification("/api/_diag/gpt");
   const gate = await requireAdminOrEditor(req);
   if (gate) return gate;
 
@@ -18,8 +20,17 @@ export async function GET(req: NextRequest) {
         Number(process.env.OPENAI_TIMEOUT_MS || 18000),
       ),
     });
-    return NextResponse.json({ ok: true, text, model: (raw as any)?.model ?? null, timeMs: Date.now() - t0 });
+    return NextResponse.json({
+      ok: true,
+      text,
+      model: (raw as any)?.model ?? null,
+      timeMs: Date.now() - t0,
+      meta: { routeClassification },
+    });
   } catch (e: any) {
-    return NextResponse.json({ ok: false, error: String(e) }, { status: 500 });
+    return NextResponse.json(
+      { ok: false, error: String(e), meta: { routeClassification } },
+      { status: 500 },
+    );
   }
 }
