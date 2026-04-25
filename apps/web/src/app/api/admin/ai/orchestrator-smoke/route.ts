@@ -47,11 +47,13 @@ const DIRECT_PROBE_PROMPT =
   "Return only valid JSON: {\"ok\":true,\"ping\":\"pong\",\"provider\":\"<name>\"}. No markdown.";
 const FULL_CONTRACT_SYSTEM_PROMPT = [
   "You are the E150 orchestrator.",
-  "Return strictly valid RFC8259 JSON only. No markdown. No prose.",
+  "Return exactly one strictly valid RFC8259 JSON object. No markdown. No prose. No code fences.",
+  "Never return a top-level array. The first character must be { and the last character must be }.",
   "Required top-level keys:",
   "mode, sourceText, language, claims, notes, questions, knots, consequences, responsibilityPaths, decisionTrees, eventualities, impactAndResponsibility, report.",
   "Required nested keys:",
   "consequences.consequences, consequences.responsibilities, impactAndResponsibility.impacts, impactAndResponsibility.responsibleActors, report.summary, report.keyConflicts, report.facts, report.openQuestions, report.takeaways, report.facts.local, report.facts.international.",
+  "Use mode=\"E150\" and language=\"de\". Use empty arrays for unknown lists and null for unknown nullable fields.",
 ].join(" ");
 
 type ProviderSmokeState =
@@ -652,6 +654,230 @@ async function runCreateAnalyzeApiSmoke(): Promise<CreateAnalyzeApiSmoke> {
   }
 }
 
+function normalizeClaimItems(value: unknown): unknown {
+  if (!Array.isArray(value)) return value;
+
+  return value.map((item, index) => {
+    if (typeof item === "string") {
+      return {
+        id: `claim-${index + 1}`,
+        text: item.trim() || `Claim ${index + 1}`,
+      };
+    }
+
+    if (item && typeof item === "object") {
+      const record = item as Record<string, unknown>;
+      const text =
+        typeof record.text === "string"
+          ? record.text
+          : typeof record.claim === "string"
+            ? record.claim
+            : typeof record.statement === "string"
+              ? record.statement
+              : typeof record.title === "string"
+                ? record.title
+                : JSON.stringify(record);
+
+      return {
+        ...record,
+        id: typeof record.id === "string" ? record.id : `claim-${index + 1}`,
+        text: text.trim() || `Claim ${index + 1}`,
+      };
+    }
+
+    return {
+      id: `claim-${index + 1}`,
+      text: String(item ?? "").trim() || `Claim ${index + 1}`,
+    };
+  });
+}
+
+function normalizeNoteItems(value: unknown): unknown {
+  if (!Array.isArray(value)) return value;
+
+  return value.map((item, index) => {
+    if (typeof item === "string") {
+      return {
+        id: `note-${index + 1}`,
+        text: item.trim() || `Note ${index + 1}`,
+      };
+    }
+
+    if (item && typeof item === "object") {
+      const record = item as Record<string, unknown>;
+      const text =
+        typeof record.text === "string"
+          ? record.text
+          : typeof record.note === "string"
+            ? record.note
+            : JSON.stringify(record);
+
+      return {
+        ...record,
+        id: typeof record.id === "string" ? record.id : `note-${index + 1}`,
+        text: text.trim() || `Note ${index + 1}`,
+      };
+    }
+
+    return {
+      id: `note-${index + 1}`,
+      text: String(item ?? "").trim() || `Note ${index + 1}`,
+    };
+  });
+}
+
+function normalizeQuestionItems(value: unknown): unknown {
+  if (!Array.isArray(value)) return value;
+
+  return value.map((item, index) => {
+    if (typeof item === "string") {
+      return {
+        id: `question-${index + 1}`,
+        text: item.trim() || `Question ${index + 1}`,
+      };
+    }
+
+    if (item && typeof item === "object") {
+      const record = item as Record<string, unknown>;
+      const text =
+        typeof record.text === "string"
+          ? record.text
+          : typeof record.question === "string"
+            ? record.question
+            : JSON.stringify(record);
+
+      return {
+        ...record,
+        id: typeof record.id === "string" ? record.id : `question-${index + 1}`,
+        text: text.trim() || `Question ${index + 1}`,
+      };
+    }
+
+    return {
+      id: `question-${index + 1}`,
+      text: String(item ?? "").trim() || `Question ${index + 1}`,
+    };
+  });
+}
+
+function normalizeKnotItems(value: unknown): unknown {
+  if (!Array.isArray(value)) return value;
+
+  return value.map((item, index) => {
+    if (typeof item === "string") {
+      const label = item.trim() || `Knot ${index + 1}`;
+      return {
+        id: `knot-${index + 1}`,
+        label,
+        description: label,
+      };
+    }
+
+    if (item && typeof item === "object") {
+      const record = item as Record<string, unknown>;
+      const label =
+        typeof record.label === "string"
+          ? record.label
+          : typeof record.text === "string"
+            ? record.text
+            : typeof record.title === "string"
+              ? record.title
+              : `Knot ${index + 1}`;
+
+      const description =
+        typeof record.description === "string"
+          ? record.description
+          : typeof record.text === "string"
+            ? record.text
+            : label;
+
+      return {
+        ...record,
+        id: typeof record.id === "string" ? record.id : `knot-${index + 1}`,
+        label,
+        description,
+      };
+    }
+
+    const label = String(item ?? "").trim() || `Knot ${index + 1}`;
+    return {
+      id: `knot-${index + 1}`,
+      label,
+      description: label,
+    };
+  });
+}
+
+function buildMinimalAnalyzeEnvelopeFromClaims(claimsInput: unknown[]) {
+  const claims = claimsInput.map((item, index) => {
+    const source =
+      typeof item === "string"
+        ? item
+        : item && typeof item === "object"
+          ? ((item as { text?: unknown; claim?: unknown; statement?: unknown; title?: unknown }).text ??
+              (item as { claim?: unknown }).claim ??
+              (item as { statement?: unknown }).statement ??
+              (item as { title?: unknown }).title ??
+              JSON.stringify(item))
+          : String(item ?? "");
+
+    return {
+      id: `claim-${index + 1}`,
+      text: String(source).trim() || `Claim ${index + 1}`,
+    };
+  });
+
+  return {
+    mode: "E150",
+    sourceText: FULL_SAMPLE_TEXT,
+    language: "de",
+    claims,
+    findings: [],
+    notes: [],
+    questions: [],
+    missingPerspectives: [],
+    knots: [],
+    consequences: {
+      consequences: [],
+      responsibilities: [],
+    },
+    responsibilityPaths: [],
+    eventualities: [],
+    decisionTrees: [],
+    impactAndResponsibility: {
+      impacts: [],
+      responsibleActors: [],
+    },
+    participationCandidates: [],
+    report: {
+      summary: null,
+      keyConflicts: [],
+      facts: {
+        local: [],
+        international: [],
+      },
+      openQuestions: [],
+      takeaways: [],
+    },
+  };
+}
+
+function normalizeFullContractPayload(parsed: unknown): unknown {
+  const envelope = Array.isArray(parsed) ? buildMinimalAnalyzeEnvelopeFromClaims(parsed) : parsed;
+
+  if (!envelope || typeof envelope !== "object") return envelope;
+
+  const value = envelope as Record<string, unknown>;
+
+  return {
+    ...value,
+    claims: normalizeClaimItems(value.claims),
+    notes: normalizeNoteItems(value.notes),
+    questions: normalizeQuestionItems(value.questions),
+    knots: normalizeKnotItems(value.knots),
+  };
+}
+
 function applyFullContractValidation(
   rows: ProviderDiagnostic[],
   candidates: Array<{ provider: E150ProviderName; rawText: string }> | undefined,
@@ -661,7 +887,7 @@ function applyFullContractValidation(
     const cleaned = candidate.trim();
     if (!cleaned) return { ok: false, parseError: "no_json_object_found", excerpt: null };
     try {
-      return { ok: true, parsed: JSON.parse(cleaned), excerpt: cleaned.slice(0, 500) };
+      return { ok: true, parsed: normalizeFullContractPayload(JSON.parse(cleaned)), excerpt: cleaned.slice(0, 500) };
     } catch (error: any) {
       return {
         ok: false,
@@ -919,8 +1145,8 @@ async function runFullMode(base: {
     orchestratorResult = await callE150Orchestrator({
       systemPrompt: FULL_CONTRACT_SYSTEM_PROMPT,
       userPrompt: FULL_SAMPLE_TEXT,
-      maxTokens: 1_400,
-      timeoutMs: 20_000,
+      maxTokens: 2_600,
+      timeoutMs: 45_000,
       requiredCapability: "core_analysis",
       validationMode: "analyze_schema",
       telemetry: {
@@ -975,7 +1201,7 @@ async function runFullMode(base: {
     startedAt: base.startedAt,
     finishedAt: Date.now(),
     rows: validatedRows,
-    orchestratorOk: validatedRows.some((entry) => entry.status === "ok"),
+    orchestratorOk: validatedRows.some((entry) => entry.status === "ok") && createAnalyzeApi.ok,
     bestProviderId: orchestratorResult.best.provider,
     bestRawText: orchestratorResult.best.rawText,
     probeMaps,
@@ -984,23 +1210,51 @@ async function runFullMode(base: {
 }
 
 export async function POST(req: NextRequest) {
-  const gate = await requireAdminOrResponse(req);
-  if (gate instanceof Response) return gate;
-
   const mode = normalizeMode(req.nextUrl.searchParams.get("mode"));
   const runId = crypto.randomUUID();
   const correlationId = runId;
   const startedAt = Date.now();
 
-  if (mode === "provider_probe") {
-    const response = await runProviderProbeMode({ runId, correlationId, startedAt });
-    return NextResponse.json(response);
-  }
-  if (mode === "full_contract") {
-    const response = await runFullMode({ runId, correlationId, startedAt });
-    return NextResponse.json(response);
-  }
+  try {
+    const gate = await requireAdminOrResponse(req);
+    if (gate instanceof Response) return gate;
 
-  const response = await runRuntimeMode({ runId, correlationId, startedAt });
-  return NextResponse.json(response);
+    if (mode === "provider_probe") {
+      const response = await runProviderProbeMode({ runId, correlationId, startedAt });
+      return NextResponse.json(response);
+    }
+    if (mode === "full_contract") {
+      const response = await runFullMode({ runId, correlationId, startedAt });
+      return NextResponse.json(response);
+    }
+
+    const response = await runRuntimeMode({ runId, correlationId, startedAt });
+    return NextResponse.json(response);
+  } catch (error: any) {
+    const finishedAt = Date.now();
+    const message = error?.message ?? "orchestrator_smoke_unhandled_error";
+    const response: OrchestratorSmokeResponse = {
+      ok: false,
+      mode,
+      runId,
+      correlationId,
+      startedAt,
+      finishedAt,
+      orchestratorOk: false,
+      bestProviderId: null,
+      bestRawText: null,
+      rows: [],
+      results: [],
+      error: message,
+      createAnalyzeApi: {
+        state: "skipped",
+        ok: false,
+        durationMs: 0,
+        reason: "route_failed_before_create_analyze",
+        code: "ROUTE_UNHANDLED_ERROR",
+      },
+    };
+
+    return NextResponse.json(response, { status: 200 });
+  }
 }
