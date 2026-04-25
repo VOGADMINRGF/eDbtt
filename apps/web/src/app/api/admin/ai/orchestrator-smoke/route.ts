@@ -109,6 +109,7 @@ type OrchestratorSmokeResponse = {
   bestProviderId?: E150ProviderName | null;
   bestRawText?: string | null;
   rows: ProviderDiagnostic[];
+  directContractRows?: ProviderDiagnostic[];
   results: LegacyProviderSmokeResult[];
   error?: string;
   probeStatus?: Record<string, { ok: boolean; errorKind: string | null; durationMs: number }>;
@@ -625,6 +626,231 @@ async function runDirectProviderProbe(provider: E150ProviderName): Promise<Provi
   }
 }
 
+function validateFullContractPayload(rawText: string): {
+  status: ProviderDiagnostic["status"];
+  errorKind: AiErrorKind | null;
+  providerErrorCode: string | null;
+  errorMessage: string | null;
+  reason: string | null;
+  adapterStatus: ProviderDiagnostic["adapterStatus"];
+  parseStatus: ProviderDiagnostic["parseStatus"];
+  schemaStatus: ProviderDiagnostic["schemaStatus"];
+  parseError: string | null;
+  schemaError: string | null;
+  schemaPath: string | null;
+  rawExcerpt: string | null;
+} {
+  const candidate = extractJsonCandidate(rawText) ?? cleanJson(rawText);
+  const cleaned = candidate.trim();
+
+  if (!cleaned) {
+    return {
+      status: "failed",
+      errorKind: "BAD_JSON",
+      providerErrorCode: "BAD_JSON",
+      errorMessage: "no_json_object_found",
+      reason: "no_json_object_found",
+      adapterStatus: "failed",
+      parseStatus: "failed",
+      schemaStatus: "not_started",
+      parseError: "no_json_object_found",
+      schemaError: null,
+      schemaPath: null,
+      rawExcerpt: null,
+    };
+  }
+
+  let parsed: unknown;
+  try {
+    parsed = normalizeFullContractPayload(JSON.parse(cleaned));
+  } catch (error: any) {
+    const parseError = error?.message ?? "json_parse_failed";
+    return {
+      status: "failed",
+      errorKind: "BAD_JSON",
+      providerErrorCode: "BAD_JSON",
+      errorMessage: parseError,
+      reason: parseError,
+      adapterStatus: "failed",
+      parseStatus: "failed",
+      schemaStatus: "not_started",
+      parseError,
+      schemaError: null,
+      schemaPath: null,
+      rawExcerpt: cleaned.slice(0, 500),
+    };
+  }
+
+  const schema = AnalyzeResultSchema.safeParse(parsed);
+  if (!schema.success) {
+    const first = schema.error.issues[0];
+    const schemaError = first?.message ?? "schema_validation_failed";
+    return {
+      status: "failed",
+      errorKind: "INTERNAL",
+      providerErrorCode: "SCHEMA_INVALID",
+      errorMessage: schemaError,
+      reason: schemaError,
+      adapterStatus: "failed",
+      parseStatus: "ok",
+      schemaStatus: "failed",
+      parseError: null,
+      schemaError,
+      schemaPath: Array.isArray(first?.path) ? first.path.join(".") || "$" : null,
+      rawExcerpt: cleaned.slice(0, 500),
+    };
+  }
+
+  return {
+    status: "ok",
+    errorKind: null,
+    providerErrorCode: null,
+    errorMessage: null,
+    reason: null,
+    adapterStatus: "ok",
+    parseStatus: "ok",
+    schemaStatus: "ok",
+    parseError: null,
+    schemaError: null,
+    schemaPath: null,
+    rawExcerpt: cleaned.slice(0, 500),
+  };
+}
+
+async function runDirectFullContractProvider(provider: E150ProviderName): Promise<ProviderDiagnostic> {
+  const missingReason = configMissingReason(provider);
+  if (missingReason) {
+    return baseDiagnostic({
+      provider,
+      mode: "full_contract",
+      stage: "analyze_contract",
+      pipeline: "provider_probe",
+      model: defaultModelForProvider(provider),
+      status: "config_missing",
+      errorKind: "INVALID_API_KEY",
+      providerErrorCode: "CONFIG_MISSING",
+      httpStatus: null,
+      errorMessage: missingReason,
+      reason: missingReason,
+      validationMode: "analyze_schema",
+      providerStatus: "unknown",
+      adapterStatus: "not_started",
+      parseStatus: "not_started",
+      schemaStatus: "not_started",
+      rawExcerpt: missingReason,
+      durationMs: 0,
+      journeyDecision: "selected",
+    });
+  }
+
+  const started = Date.now();
+  const prompt = `${FULL_CONTRACT_SYSTEM_PROMPT}\n\nInput:\n${FULL_SAMPLE_TEXT}`;
+
+  try {
+    let text = "";
+    let model: string | undefined;
+    let tokensIn: number | undefined;
+    let tokensOut: number | undefined;
+
+    if (provider === "openai") {
+      const res = await callOpenAI({
+        prompt,
+        asJson: true,
+        forceJsonFormat: true,
+        maxOutputTokens: 2600,
+      });
+      text = res.text;
+      model = res.model;
+      tokensIn = res.tokensIn;
+      tokensOut = res.tokensOut;
+    } else if (provider === "anthropic") {
+      const res = await callAnthropic({ prompt, maxOutputTokens: 2600 });
+      text = res.text;
+      model = res.model;
+      tokensIn = res.tokensIn;
+      tokensOut = res.tokensOut;
+    } else if (provider === "mistral") {
+      const res = await callMistral({ prompt, maxOutputTokens: 2600 });
+      text = res.text;
+      model = res.model;
+      tokensIn = res.tokensIn;
+      tokensOut = res.tokensOut;
+    } else if (provider === "gemini") {
+      const res = await callGemini({ prompt, maxOutputTokens: 2600, expectJson: true });
+      text = res.text;
+      model = res.model;
+      tokensIn = res.tokensIn;
+      tokensOut = res.tokensOut;
+    } else {
+      const res = await callAriLLM({ prompt, asJson: true, maxOutputTokens: 2600 });
+      text = res.text;
+      model = res.model;
+      tokensIn = res.tokensIn;
+      tokensOut = res.tokensOut;
+    }
+
+    const validation = validateFullContractPayload(text ?? "");
+
+    return baseDiagnostic({
+      provider,
+      mode: "full_contract",
+      stage: "analyze_contract",
+      pipeline: "provider_probe",
+      model: model ?? defaultModelForProvider(provider),
+      status: validation.status,
+      errorKind: validation.errorKind,
+      providerErrorCode: validation.providerErrorCode,
+      httpStatus: 200,
+      errorMessage: validation.errorMessage,
+      reason: validation.reason,
+      validationMode: "analyze_schema",
+      providerStatus: "reachable",
+      adapterStatus: validation.adapterStatus,
+      parseStatus: validation.parseStatus,
+      schemaStatus: validation.schemaStatus,
+      parseError: validation.parseError,
+      schemaError: validation.schemaError,
+      schemaPath: validation.schemaPath,
+      rawExcerpt: validation.rawExcerpt ?? text,
+      durationMs: Date.now() - started,
+      tokensIn,
+      tokensOut,
+      journeyDecision: "selected",
+    });
+  } catch (error: any) {
+    const errorKind = mapErrorToKind(error);
+    const providerCode = extractProviderErrorCode(error);
+    const status = typeof error?.status === "number" ? error.status : null;
+
+    return baseDiagnostic({
+      provider,
+      mode: "full_contract",
+      stage: "analyze_contract",
+      pipeline: "provider_probe",
+      model: error?.meta?.model ?? defaultModelForProvider(provider),
+      status: looksConfigMissing(error?.message) ? "config_missing" : "failed",
+      errorKind,
+      providerErrorCode: providerCode,
+      httpStatus: status,
+      errorMessage: error?.message ?? "direct_full_contract_failed",
+      reason: error?.message ?? "direct_full_contract_failed",
+      validationMode: "analyze_schema",
+      providerStatus: deriveProviderStatus(errorKind, "failed"),
+      adapterStatus: "failed",
+      parseStatus: "not_started",
+      schemaStatus: "not_started",
+      rawExcerpt: error?.payload ?? error?.message,
+      durationMs: Date.now() - started,
+      journeyDecision: "selected",
+    });
+  }
+}
+
+async function runDirectFullContractProviders(): Promise<ProviderDiagnostic[]> {
+  const rows = await Promise.all(PROVIDER_ORDER.map((provider) => runDirectFullContractProvider(provider)));
+  return sortProviderDiagnostics(rows);
+}
+
 async function runCreateAnalyzeApiSmoke(): Promise<CreateAnalyzeApiSmoke> {
   const started = Date.now();
   try {
@@ -984,6 +1210,7 @@ function buildResponse(params: {
   startedAt: number;
   finishedAt: number;
   rows: ProviderDiagnostic[];
+  directContractRows?: ProviderDiagnostic[];
   orchestratorOk: boolean;
   bestProviderId: E150ProviderName | null;
   bestRawText: string | null;
@@ -1008,6 +1235,7 @@ function buildResponse(params: {
     bestProviderId: params.bestProviderId,
     bestRawText: params.bestRawText,
     rows: sortedRows,
+    directContractRows: params.directContractRows ? sortProviderDiagnostics(params.directContractRows) : undefined,
     results: sortedRows.map(toLegacyResult),
     error: params.error,
     ...(params.probeMaps ?? {}),
@@ -1157,7 +1385,10 @@ async function runFullMode(base: {
     orchestratorError = error;
   }
 
-  const createAnalyzeApi = await runCreateAnalyzeApiSmoke();
+  const [createAnalyzeApi, directContractRows] = await Promise.all([
+    runCreateAnalyzeApiSmoke(),
+    runDirectFullContractProviders(),
+  ]);
 
   if (!orchestratorResult) {
     const meta = extractOrchestratorMeta(orchestratorError);
@@ -1176,6 +1407,7 @@ async function runFullMode(base: {
       startedAt: base.startedAt,
       finishedAt: Date.now(),
       rows,
+      directContractRows,
       orchestratorOk: false,
       bestProviderId: null,
       bestRawText: null,
@@ -1201,6 +1433,7 @@ async function runFullMode(base: {
     startedAt: base.startedAt,
     finishedAt: Date.now(),
     rows: validatedRows,
+    directContractRows,
     orchestratorOk: validatedRows.some((entry) => entry.status === "ok") && createAnalyzeApi.ok,
     bestProviderId: orchestratorResult.best.provider,
     bestRawText: orchestratorResult.best.rawText,
@@ -1244,6 +1477,7 @@ export async function POST(req: NextRequest) {
       bestProviderId: null,
       bestRawText: null,
       rows: [],
+      directContractRows: [],
       results: [],
       error: message,
       createAnalyzeApi: {

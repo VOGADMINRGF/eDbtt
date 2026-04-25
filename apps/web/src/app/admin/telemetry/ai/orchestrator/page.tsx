@@ -44,6 +44,7 @@ type SmokeResponse = {
   bestProviderId?: string | null;
   orchestratorOk: boolean;
   rows: ProviderDiagnostic[];
+  directContractRows?: ProviderDiagnostic[];
   error?: string;
   createAnalyzeApi: {
     state: "ok" | "failed" | "skipped";
@@ -219,6 +220,83 @@ export default function OrchestratorTelemetryPage() {
                 </div>
               )}
 
+              {data && card.mode === "full_contract" && (data.directContractRows?.length ?? 0) > 0 && (
+                <div className="mt-4 rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
+                  <h3 className="text-sm font-semibold text-[rgb(var(--fg))]">Direkter Provider-Contract</h3>
+                  <p className="mt-1 text-xs text-[rgb(var(--muted))]">
+                    Prüft OpenAI/GPT, Anthropic, Mistral, Gemini und ARI direkt gegen den AnalyzeResultSchema-Contract – unabhängig vom Journey-Plan.
+                  </p>
+                  <div className="mt-3 overflow-x-auto">
+                    <table className="min-w-full divide-y divide-[rgb(var(--border))] text-sm">
+                      <thead className="bg-[rgb(var(--card))] text-left text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
+                        <tr>
+                          <th className="px-3 py-2">Provider</th>
+                          <th className="px-3 py-2">Modell</th>
+                          <th className="px-3 py-2">Result</th>
+                          <th className="px-3 py-2">Root Cause</th>
+                          <th className="px-3 py-2">Next Action</th>
+                          <th className="px-3 py-2">Diagnose</th>
+                          <th className="px-3 py-2">Dauer</th>
+                          <th className="px-3 py-2">Tokens in/out</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-[rgb(var(--border))]">
+                        {data.directContractRows?.map((row) => {
+                          const rowKey = `${card.mode}-direct-${row.provider}`;
+                          const expanded = expandedRows[rowKey] ?? false;
+                          return (
+                            <Fragment key={rowKey}>
+                              <tr>
+                                <td className="px-3 py-2">
+                                  <div className="font-semibold text-[rgb(var(--fg))]">{row.provider}</div>
+                                  <div className="text-xs text-[rgb(var(--muted))]">{row.displayName}</div>
+                                </td>
+                                <td className="px-3 py-2 text-[rgb(var(--muted))]">{row.model ?? "unknown"}</td>
+                                <td className="px-3 py-2">
+                                  <span className={`rounded-full border px-2 py-1 text-xs font-semibold ${statusChipClass(row.status)}`}>
+                                    {row.status}
+                                  </span>
+                                  <div className="mt-1 text-xs text-[rgb(var(--muted))]">
+                                    provider={row.providerStatus} · adapter={row.adapterStatus} · parse={row.parseStatus} · schema={row.schemaStatus}
+                                  </div>
+                                </td>
+                                <td className="px-3 py-2 text-xs font-semibold text-[rgb(var(--fg))]">{row.rootCause}</td>
+                                <td className="px-3 py-2 text-xs text-[rgb(var(--muted))]">{row.nextAction}</td>
+                                <td className="px-3 py-2 text-xs text-[rgb(var(--muted))]">{compactReason(row)}</td>
+                                <td className="px-3 py-2">{typeof row.durationMs === "number" ? `${row.durationMs} ms` : "n/a"}</td>
+                                <td className="px-3 py-2">{formatTokens(row)}</td>
+                              </tr>
+                              {hasDetail(row) && (
+                                <tr>
+                                  <td className="px-3 pb-3" colSpan={8}>
+                                    <button
+                                      type="button"
+                                      className="text-xs font-semibold text-sky-700 underline"
+                                      onClick={() => setExpandedRows((prev) => ({ ...prev, [rowKey]: !expanded }))}
+                                    >
+                                      {expanded ? "Details ausblenden" : "Details anzeigen"}
+                                    </button>
+                                    {expanded && (
+                                      <div className="mt-2 rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-3 text-xs text-[rgb(var(--muted))]">
+                                        <div>mode={formatModeLabel(row.mode)} · stage=direct_provider_contract · journeyDecision={row.journeyDecision} · validationMode={row.validationMode}</div>
+                                        <div>errorKind={row.errorKind ?? "none"} · providerCode={row.providerErrorCode ?? "none"} · httpStatus={row.httpStatus ?? "none"}</div>
+                                        <div>parseError={row.parseError ?? "none"} · schemaError={row.schemaError ?? "none"} · schemaPath={row.schemaPath ?? "none"}</div>
+                                        <div>fallbackUsed={String(row.fallbackUsed)} · fallbackReason={row.fallbackReason ?? "none"}</div>
+                                        <div className="mt-1">rawExcerpt: {row.rawExcerpt ?? "none"}</div>
+                                      </div>
+                                    )}
+                                  </td>
+                                </tr>
+                              )}
+                            </Fragment>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
               {rows.length > 0 && (
                 <div className="mt-4 overflow-x-auto">
                   <table className="min-w-full divide-y divide-[rgb(var(--border))] text-sm">
@@ -236,7 +314,7 @@ export default function OrchestratorTelemetryPage() {
                     </thead>
                     <tbody className="divide-y divide-[rgb(var(--border))]">
                       {rows.map((row) => {
-                        const rowKey = `${card.mode}-${row.provider}`;
+                        const rowKey = `${card.mode}-${row.stage}-${row.provider}`;
                         const expanded = expandedRows[rowKey] ?? false;
                         return (
                           <Fragment key={rowKey}>
