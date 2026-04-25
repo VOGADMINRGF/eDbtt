@@ -22,10 +22,11 @@ export async function piiDb(): Promise<Db> {
   return conn.getClient().db(dbName);
 }
 
-export function piiCol<TSchema extends PiiDocument = PiiDocument>(
+export async function piiCol<TSchema extends PiiDocument = PiiDocument>(
   name: string,
 ): Promise<Collection<TSchema>> {
-  return pii.getCol<TSchema>(name);
+  const collection = await pii.getCol(name);
+  return collection as unknown as Collection<TSchema>;
 }
 
 export default { piiConn, piiDb, piiCol };
