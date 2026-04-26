@@ -951,6 +951,37 @@ function validateFullContractPayload(rawText: string): {
   };
 }
 
+function buildDirectFullContractPrompt(provider: E150ProviderName): string {
+  const providerHint =
+    provider === "anthropic"
+      ? [
+          "Anthropic-specific contract reminder:",
+          "Return one JSON object only. Do not return a JSON array.",
+          "Your first non-whitespace character must be {.",
+          "Your last non-whitespace character must be }.",
+          "The top-level object itself is the AnalyzeResult envelope.",
+        ].join(" ")
+      : provider === "mistral"
+        ? [
+            "Mistral-specific contract reminder:",
+            "response_format=json_object is active. Use it to return one object envelope.",
+            "Do not return an array of claims. Do not return a list of records.",
+            "The top-level object itself is the AnalyzeResult envelope.",
+          ].join(" ")
+        : provider === "openai"
+          ? [
+              "OpenAI-specific contract reminder:",
+              "Structured JSON output is requested. Return the AnalyzeResult object itself.",
+              "Do not wrap the object in an array.",
+            ].join(" ")
+          : [
+              "Contract reminder:",
+              "Return exactly one AnalyzeResult object, not an array.",
+            ].join(" ");
+
+  return `${FULL_CONTRACT_SYSTEM_PROMPT}\n\n${providerHint}\n\nInput:\n${FULL_SAMPLE_TEXT}`;
+}
+
 async function runDirectFullContractProvider(provider: E150ProviderName): Promise<ProviderDiagnostic> {
   const missingReason = configMissingReason(provider);
   if (missingReason) {
@@ -978,7 +1009,7 @@ async function runDirectFullContractProvider(provider: E150ProviderName): Promis
   }
 
   const started = Date.now();
-  const prompt = `${FULL_CONTRACT_SYSTEM_PROMPT}\n\nInput:\n${FULL_SAMPLE_TEXT}`;
+  const prompt = buildDirectFullContractPrompt(provider);
 
   try {
     let text = "";
