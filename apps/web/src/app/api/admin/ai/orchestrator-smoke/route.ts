@@ -662,7 +662,7 @@ function validateFullContractPayload(rawText: string): {
 
   let parsed: unknown;
   try {
-    parsed = normalizeFullContractPayload(JSON.parse(cleaned));
+    parsed = JSON.parse(cleaned);
   } catch (error: any) {
     const parseError = error?.message ?? "json_parse_failed";
     return {

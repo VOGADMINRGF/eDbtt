@@ -133,6 +133,175 @@ function formatModeLabel(mode: SmokeMode): string {
   return "Runtime Smoke";
 }
 
+type ProviderHealthStatus = "green" | "yellow" | "red" | "gray";
+
+type ProviderHealthRow = {
+  provider: string;
+  displayName: string;
+  overall: ProviderHealthStatus;
+  connection: ProviderHealthStatus;
+  runtime: ProviderHealthStatus;
+  strictContract: ProviderHealthStatus;
+  journey: ProviderHealthStatus;
+  account: ProviderHealthStatus;
+  rootCause: string;
+  nextAction: string;
+  detail: string;
+};
+
+const HEALTH_PROVIDERS = ["openai", "anthropic", "mistral", "gemini", "ari"];
+
+function healthDotClass(status: ProviderHealthStatus): string {
+  if (status === "green") return "bg-emerald-500";
+  if (status === "yellow") return "bg-amber-500";
+  if (status === "red") return "bg-rose-500";
+  return "bg-slate-300";
+}
+
+function healthLabel(status: ProviderHealthStatus): string {
+  if (status === "green") return "grün";
+  if (status === "yellow") return "gelb";
+  if (status === "red") return "rot";
+  return "grau";
+}
+
+function StatusDot({ status, label }: { status: ProviderHealthStatus; label: string }) {
+  return (
+    <span className="inline-flex items-center gap-1.5 whitespace-nowrap text-xs text-[rgb(var(--muted))]">
+      <span className={`h-2.5 w-2.5 rounded-full ${healthDotClass(status)}`} />
+      <span>{label}</span>
+    </span>
+  );
+}
+
+function providerOf(row: ProviderDiagnostic | undefined): string {
+  return row?.displayName || row?.provider || "Provider";
+}
+
+function isAccountProblem(row: ProviderDiagnostic | undefined): boolean {
+  if (!row) return false;
+  const text = [
+    row.errorKind,
+    row.providerErrorCode,
+    row.reason,
+    row.errorMessage,
+    typeof row.httpStatus === "number" ? String(row.httpStatus) : null,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+
+  return (
+    text.includes("429") ||
+    text.includes("quota") ||
+    text.includes("rate") ||
+    text.includes("402") ||
+    text.includes("payment") ||
+    text.includes("billing") ||
+    text.includes("invalid_api_key") ||
+    text.includes("config_missing")
+  );
+}
+
+function statusFromDiagnostic(row: ProviderDiagnostic | undefined, skippedAsGray = true): ProviderHealthStatus {
+  if (!row) return "gray";
+  if (row.status === "ok") return "green";
+  if (row.status === "degraded") return "yellow";
+  if (row.status === "skipped" && skippedAsGray) return "gray";
+  if (row.status === "config_missing") return "red";
+  if (isAccountProblem(row)) return "red";
+  return "red";
+}
+
+function accountStatusFor(rows: Array<ProviderDiagnostic | undefined>): ProviderHealthStatus {
+  const present = rows.filter(Boolean) as ProviderDiagnostic[];
+  if (present.some(isAccountProblem)) return "red";
+  if (present.some((row) => row.status === "ok" || row.providerStatus === "reachable")) return "green";
+  return "gray";
+}
+
+function firstProblem(rows: Array<ProviderDiagnostic | undefined>): ProviderDiagnostic | undefined {
+  return rows.find((row) => row && row.status !== "ok" && row.status !== "skipped");
+}
+
+function buildProviderHealthRows(dataByMode: Partial<Record<SmokeMode, SmokeResponse>>): ProviderHealthRow[] {
+  const probeRows = dataByMode.provider_probe?.rows ?? [];
+  const runtimeRows = dataByMode.runtime_smoke?.rows ?? [];
+  const journeyRows = dataByMode.full_contract?.rows ?? [];
+  const strictRows = dataByMode.full_contract?.directContractRows ?? [];
+
+  return HEALTH_PROVIDERS.map((provider) => {
+    const probe = probeRows.find((row) => row.provider === provider);
+    const runtime = runtimeRows.find((row) => row.provider === provider);
+    const journey = journeyRows.find((row) => row.provider === provider);
+    const strict = strictRows.find((row) => row.provider === provider);
+
+    const connection = statusFromDiagnostic(probe);
+    const runtimeStatus = statusFromDiagnostic(runtime);
+    const journeyStatus = statusFromDiagnostic(journey);
+    const strictStatus = statusFromDiagnostic(strict, false);
+    const account = accountStatusFor([probe, runtime, journey, strict]);
+
+    const relevant = [probe, runtime, strict, journey];
+    const problem = firstProblem(relevant);
+
+    let overall: ProviderHealthStatus = "gray";
+    if (account === "red") {
+      overall = "red";
+    } else if (connection === "green" && runtimeStatus === "green" && strictStatus === "green") {
+      overall = "green";
+    } else if (connection === "green" && (runtimeStatus === "green" || runtimeStatus === "gray") && strictStatus !== "green") {
+      overall = "yellow";
+    } else if ([connection, runtimeStatus, strictStatus, journeyStatus].some((status) => status === "red")) {
+      overall = "red";
+    }
+
+    const displayName =
+      providerOf(probe) !== "Provider"
+        ? providerOf(probe)
+        : providerOf(runtime) !== "Provider"
+          ? providerOf(runtime)
+          : providerOf(strict) !== "Provider"
+            ? providerOf(strict)
+            : providerOf(journey) !== "Provider"
+              ? providerOf(journey)
+              : provider;
+
+    const detailParts = [
+      probe ? `Probe=${probe.status}` : "Probe=n/a",
+      runtime ? `Runtime=${runtime.status}` : "Runtime=n/a",
+      strict ? `Strict=${strict.status}${strict.schemaPath ? ` @ ${strict.schemaPath}` : ""}` : "Strict=n/a",
+      journey ? `Journey=${journey.status}` : "Journey=n/a",
+    ];
+
+    return {
+      provider,
+      displayName,
+      overall,
+      connection,
+      runtime: runtimeStatus,
+      strictContract: strictStatus,
+      journey: journeyStatus,
+      account,
+      rootCause: problem?.rootCause ?? (overall === "green" ? "OK" : "Noch nicht vollständig geprüft"),
+      nextAction:
+        problem?.nextAction ??
+        (overall === "green"
+          ? "Keine Aktion nötig."
+          : "Provider-Probe, Runtime und Full Contract ausführen."),
+      detail: detailParts.join(" · "),
+    };
+  });
+}
+
+function overallCardClass(status: ProviderHealthStatus): string {
+  if (status === "green") return "border-emerald-200 bg-emerald-50/60";
+  if (status === "yellow") return "border-amber-200 bg-amber-50/60";
+  if (status === "red") return "border-rose-200 bg-rose-50/60";
+  return "border-slate-200 bg-slate-50/60";
+}
+
+
 export default function OrchestratorTelemetryPage() {
   const [dataByMode, setDataByMode] = useState<Partial<Record<SmokeMode, SmokeResponse>>>({});
   const [expandedRows, setExpandedRows] = useState<Record<string, boolean>>({});
@@ -147,6 +316,8 @@ export default function OrchestratorTelemetryPage() {
     };
     return byMode;
   }, [dataByMode]);
+
+  const providerHealthRows = useMemo(() => buildProviderHealthRows(dataByMode), [dataByMode]);
 
   async function run(mode: SmokeMode) {
     setLoadingMode(mode);
@@ -184,6 +355,83 @@ export default function OrchestratorTelemetryPage() {
           {error}
         </div>
       )}
+
+      <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h2 className="text-lg font-semibold text-[rgb(var(--fg))]">Anbieter-Ampel</h2>
+            <p className="text-sm text-[rgb(var(--muted))]">
+              Provider-zentrierte Zusammenfassung aus Verbindung, Runtime, Strict Contract, Journey und Account-Status.
+            </p>
+            <p className="mt-1 text-xs text-[rgb(var(--muted))]">
+              Grün bedeutet: erreichbar, Runtime ok und Strict Analyze Contract ok. Gelb bedeutet: nutzbar/teilweise, aber Contract-Qualität nicht sauber. Rot bedeutet: blockierend.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2 text-xs">
+            <button
+              type="button"
+              className="rounded-full border border-[rgb(var(--border))] px-3 py-1 font-semibold text-[rgb(var(--fg))]"
+              disabled={loadingMode !== null}
+              onClick={() => run("provider_probe")}
+            >
+              Probe
+            </button>
+            <button
+              type="button"
+              className="rounded-full border border-[rgb(var(--border))] px-3 py-1 font-semibold text-[rgb(var(--fg))]"
+              disabled={loadingMode !== null}
+              onClick={() => run("runtime_smoke")}
+            >
+              Runtime
+            </button>
+            <button
+              type="button"
+              className="rounded-full border border-[rgb(var(--border))] px-3 py-1 font-semibold text-[rgb(var(--fg))]"
+              disabled={loadingMode !== null}
+              onClick={() => run("full_contract")}
+            >
+              Full Contract
+            </button>
+          </div>
+        </div>
+
+        <div className="mt-4 overflow-x-auto">
+          <table className="min-w-full divide-y divide-[rgb(var(--border))] text-sm">
+            <thead className="bg-[rgb(var(--bg))] text-left text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
+              <tr>
+                <th className="px-3 py-2">Provider</th>
+                <th className="px-3 py-2">Gesamt</th>
+                <th className="px-3 py-2">Verbindung</th>
+                <th className="px-3 py-2">Runtime</th>
+                <th className="px-3 py-2">Strict Contract</th>
+                <th className="px-3 py-2">Journey</th>
+                <th className="px-3 py-2">Account</th>
+                <th className="px-3 py-2">Hauptursache</th>
+                <th className="px-3 py-2">Next Action</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-[rgb(var(--border))]">
+              {providerHealthRows.map((row) => (
+                <tr key={row.provider} className={overallCardClass(row.overall)}>
+                  <td className="px-3 py-2">
+                    <div className="font-semibold text-[rgb(var(--fg))]">{row.provider}</div>
+                    <div className="text-xs text-[rgb(var(--muted))]">{row.displayName}</div>
+                    <div className="mt-1 text-[10px] text-[rgb(var(--muted))]">{row.detail}</div>
+                  </td>
+                  <td className="px-3 py-2"><StatusDot status={row.overall} label={healthLabel(row.overall)} /></td>
+                  <td className="px-3 py-2"><StatusDot status={row.connection} label={healthLabel(row.connection)} /></td>
+                  <td className="px-3 py-2"><StatusDot status={row.runtime} label={healthLabel(row.runtime)} /></td>
+                  <td className="px-3 py-2"><StatusDot status={row.strictContract} label={healthLabel(row.strictContract)} /></td>
+                  <td className="px-3 py-2"><StatusDot status={row.journey} label={healthLabel(row.journey)} /></td>
+                  <td className="px-3 py-2"><StatusDot status={row.account} label={healthLabel(row.account)} /></td>
+                  <td className="px-3 py-2 text-xs font-semibold text-[rgb(var(--fg))]">{row.rootCause}</td>
+                  <td className="px-3 py-2 text-xs text-[rgb(var(--muted))]">{row.nextAction}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
 
       <section className="grid gap-4">
         {MODE_CARDS.map((card) => {
