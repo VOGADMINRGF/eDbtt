@@ -193,6 +193,25 @@ const FULL_CONTRACT_SYSTEM_PROMPT = [
   FULL_CONTRACT_EXAMPLE_JSON,
 ].join(" ");
 
+function openAiSmokeModel(): string | undefined {
+  return (
+    process.env.OPENAI_SMOKE_MODEL ||
+    process.env.OPENAI_MODEL2 ||
+    process.env.OPENAI_MODEL ||
+    undefined
+  );
+}
+
+function openAiSmokeTimeoutMs(): number {
+  const raw = Number(process.env.OPENAI_SMOKE_TIMEOUT_MS ?? 60_000);
+  return Number.isFinite(raw) && raw > 0 ? raw : 60_000;
+}
+
+function openAiSmokeMaxOutputTokens(): number {
+  const raw = Number(process.env.OPENAI_SMOKE_MAX_OUTPUT_TOKENS ?? 2_200);
+  return Number.isFinite(raw) && raw > 0 ? raw : 2_200;
+}
+
 type ProviderSmokeState =
   | "ok"
   | "failed"
@@ -894,7 +913,9 @@ async function runDirectFullContractProvider(provider: E150ProviderName): Promis
         prompt,
         asJson: true,
         forceJsonFormat: true,
-        maxOutputTokens: 2600,
+        model: openAiSmokeModel(),
+        timeoutMs: openAiSmokeTimeoutMs(),
+        maxOutputTokens: openAiSmokeMaxOutputTokens(),
       });
       text = res.text;
       model = res.model;
