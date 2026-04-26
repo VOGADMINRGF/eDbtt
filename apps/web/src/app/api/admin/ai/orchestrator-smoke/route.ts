@@ -986,6 +986,176 @@ function normalizeQuestionItems(value: unknown): unknown {
   });
 }
 
+function normalizeConsequenceItems(value: unknown): unknown {
+  if (!Array.isArray(value)) return value;
+
+  return value.map((item, index) => {
+    if (typeof item === "string") {
+      return {
+        id: `consequence-${index + 1}`,
+        scope: "local_short",
+        statementIndex: 0,
+        text: item.trim() || `Consequence ${index + 1}`,
+      };
+    }
+
+    if (item && typeof item === "object") {
+      const record = item as Record<string, unknown>;
+      const text =
+        typeof record.text === "string"
+          ? record.text
+          : typeof record.description === "string"
+            ? record.description
+            : typeof record.consequence === "string"
+              ? record.consequence
+              : JSON.stringify(record);
+
+      const allowedScopes = new Set(["local_short", "local_long", "national", "global", "systemic"]);
+      const scope = typeof record.scope === "string" && allowedScopes.has(record.scope)
+        ? record.scope
+        : "local_short";
+
+      return {
+        ...record,
+        id: typeof record.id === "string" ? record.id : `consequence-${index + 1}`,
+        scope,
+        statementIndex: typeof record.statementIndex === "number" ? record.statementIndex : 0,
+        text: text.trim() || `Consequence ${index + 1}`,
+      };
+    }
+
+    return {
+      id: `consequence-${index + 1}`,
+      scope: "local_short",
+      statementIndex: 0,
+      text: String(item ?? "").trim() || `Consequence ${index + 1}`,
+    };
+  });
+}
+
+function normalizeResponsibilityItems(value: unknown): unknown {
+  if (!Array.isArray(value)) return value;
+
+  return value.map((item, index) => {
+    if (typeof item === "string") {
+      return {
+        id: `responsibility-${index + 1}`,
+        level: "unknown",
+        text: item.trim() || `Responsibility ${index + 1}`,
+      };
+    }
+
+    if (item && typeof item === "object") {
+      const record = item as Record<string, unknown>;
+      const text =
+        typeof record.text === "string"
+          ? record.text
+          : typeof record.description === "string"
+            ? record.description
+            : typeof record.responsibility === "string"
+              ? record.responsibility
+              : JSON.stringify(record);
+
+      const allowedLevels = new Set([
+        "municipality",
+        "district",
+        "state",
+        "federal",
+        "eu",
+        "ngo",
+        "private",
+        "unknown",
+      ]);
+      const level = typeof record.level === "string" && allowedLevels.has(record.level)
+        ? record.level
+        : "unknown";
+
+      return {
+        ...record,
+        id: typeof record.id === "string" ? record.id : `responsibility-${index + 1}`,
+        level,
+        text: text.trim() || `Responsibility ${index + 1}`,
+      };
+    }
+
+    return {
+      id: `responsibility-${index + 1}`,
+      level: "unknown",
+      text: String(item ?? "").trim() || `Responsibility ${index + 1}`,
+    };
+  });
+}
+
+function normalizeImpactItems(value: unknown): unknown {
+  if (!Array.isArray(value)) return value;
+
+  return value.map((item, index) => {
+    if (typeof item === "string") {
+      return {
+        type: "general",
+        description: item.trim() || `Impact ${index + 1}`,
+      };
+    }
+
+    if (item && typeof item === "object") {
+      const record = item as Record<string, unknown>;
+      const description =
+        typeof record.description === "string"
+          ? record.description
+          : typeof record.text === "string"
+            ? record.text
+            : JSON.stringify(record);
+
+      return {
+        ...record,
+        type: typeof record.type === "string" ? record.type : "general",
+        description: description.trim() || `Impact ${index + 1}`,
+      };
+    }
+
+    return {
+      type: "general",
+      description: String(item ?? "").trim() || `Impact ${index + 1}`,
+    };
+  });
+}
+
+function normalizeResponsibleActorItems(value: unknown): unknown {
+  if (!Array.isArray(value)) return value;
+
+  return value.map((item, index) => {
+    if (typeof item === "string") {
+      return {
+        level: "unknown",
+        hint: item.trim() || `Responsible actor ${index + 1}`,
+      };
+    }
+
+    if (item && typeof item === "object") {
+      const record = item as Record<string, unknown>;
+      const hint =
+        typeof record.hint === "string"
+          ? record.hint
+          : typeof record.text === "string"
+            ? record.text
+            : typeof record.actor === "string"
+              ? record.actor
+              : JSON.stringify(record);
+
+      return {
+        ...record,
+        level: typeof record.level === "string" ? record.level : "unknown",
+        hint: hint.trim() || `Responsible actor ${index + 1}`,
+      };
+    }
+
+    return {
+      level: "unknown",
+      hint: String(item ?? "").trim() || `Responsible actor ${index + 1}`,
+    };
+  });
+}
+
 function normalizeKnotItems(value: unknown): unknown {
   if (!Array.isArray(value)) return value;
 
@@ -1095,12 +1265,40 @@ function normalizeFullContractPayload(parsed: unknown): unknown {
 
   const value = envelope as Record<string, unknown>;
 
+  const consequences =
+    value.consequences && typeof value.consequences === "object"
+      ? {
+          ...(value.consequences as Record<string, unknown>),
+          consequences: normalizeConsequenceItems(
+            (value.consequences as Record<string, unknown>).consequences,
+          ),
+          responsibilities: normalizeResponsibilityItems(
+            (value.consequences as Record<string, unknown>).responsibilities,
+          ),
+        }
+      : value.consequences;
+
+  const impactAndResponsibility =
+    value.impactAndResponsibility && typeof value.impactAndResponsibility === "object"
+      ? {
+          ...(value.impactAndResponsibility as Record<string, unknown>),
+          impacts: normalizeImpactItems(
+            (value.impactAndResponsibility as Record<string, unknown>).impacts,
+          ),
+          responsibleActors: normalizeResponsibleActorItems(
+            (value.impactAndResponsibility as Record<string, unknown>).responsibleActors,
+          ),
+        }
+      : value.impactAndResponsibility;
+
   return {
     ...value,
     claims: normalizeClaimItems(value.claims),
     notes: normalizeNoteItems(value.notes),
     questions: normalizeQuestionItems(value.questions),
     knots: normalizeKnotItems(value.knots),
+    consequences,
+    impactAndResponsibility,
   };
 }
 
