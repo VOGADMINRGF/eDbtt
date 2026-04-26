@@ -295,10 +295,10 @@ function buildProviderHealthRows(dataByMode: Partial<Record<SmokeMode, SmokeResp
 }
 
 function overallCardClass(status: ProviderHealthStatus): string {
-  if (status === "green") return "border-emerald-200 bg-emerald-50/60";
-  if (status === "yellow") return "border-amber-200 bg-amber-50/60";
-  if (status === "red") return "border-rose-200 bg-rose-50/60";
-  return "border-slate-200 bg-slate-50/60";
+  if (status === "green") return "border-l-4 border-l-emerald-500 bg-[rgb(var(--card))]";
+  if (status === "yellow") return "border-l-4 border-l-amber-500 bg-[rgb(var(--card))]";
+  if (status === "red") return "border-l-4 border-l-rose-500 bg-[rgb(var(--card))]";
+  return "border-l-4 border-l-slate-500 bg-[rgb(var(--card))]";
 }
 
 

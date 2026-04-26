@@ -45,15 +45,152 @@ const RUNTIME_USER_PROMPT =
   "Runtime probe for admin orchestrator smoke. Respond only with the required JSON object.";
 const DIRECT_PROBE_PROMPT =
   "Return only valid JSON: {\"ok\":true,\"ping\":\"pong\",\"provider\":\"<name>\"}. No markdown.";
+const FULL_CONTRACT_EXAMPLE = {
+  mode: "E150",
+  sourceText: "...",
+  language: "de",
+  claims: [
+    {
+      id: "claim-1",
+      text: "...",
+      title: null,
+      responsibility: "municipality",
+      importance: 3,
+      topic: "Mobilitaet",
+      domain: "infrastruktur",
+      domains: ["infrastruktur"],
+      stance: "neutral",
+      statementType: "interpretation",
+    },
+  ],
+  findings: [],
+  notes: [{ id: "note-1", text: "...", kind: "context" }],
+  questions: [{ id: "question-1", text: "...", dimension: "implementation" }],
+  missingPerspectives: [],
+  knots: [{ id: "knot-1", label: "...", description: "..." }],
+  consequences: {
+    consequences: [
+      {
+        id: "consequence-1",
+        scope: "local_short",
+        statementIndex: 0,
+        text: "...",
+        confidence: 0.6,
+      },
+    ],
+    responsibilities: [
+      {
+        id: "responsibility-1",
+        level: "municipality",
+        actor: "Stadtverwaltung",
+        text: "...",
+        relevance: 0.7,
+      },
+    ],
+  },
+  responsibilityPaths: [
+    {
+      id: "path-1",
+      statementId: "claim-1",
+      locale: "de",
+      nodes: [
+        {
+          level: "municipality",
+          actorKey: "stadtverwaltung",
+          displayName: "Stadtverwaltung",
+          description: "...",
+          contactUrl: null,
+          processHint: "...",
+          relevance: 0.8,
+        },
+      ],
+    },
+  ],
+  eventualities: [
+    {
+      id: "ev-pro-1",
+      statementId: "claim-1",
+      label: "Pro",
+      narrative: "...",
+      stance: "pro",
+      likelihood: 0.5,
+      impact: 0.6,
+      consequences: [],
+      responsibilities: [],
+      children: [],
+    },
+  ],
+  decisionTrees: [
+    {
+      id: "tree-1",
+      rootStatementId: "claim-1",
+      locale: "de",
+      options: {
+        pro: {
+          id: "ev-pro-1",
+          statementId: "claim-1",
+          label: "Pro",
+          narrative: "...",
+          stance: "pro",
+          likelihood: 0.5,
+          impact: 0.6,
+          consequences: [],
+          responsibilities: [],
+          children: [],
+        },
+        contra: {
+          id: "ev-contra-1",
+          statementId: "claim-1",
+          label: "Contra",
+          narrative: "...",
+          stance: "contra",
+          likelihood: 0.5,
+          impact: 0.6,
+          consequences: [],
+          responsibilities: [],
+          children: [],
+        },
+      },
+    },
+  ],
+  impactAndResponsibility: {
+    impacts: [{ type: "local", description: "...", confidence: 0.6 }],
+    responsibleActors: [{ level: "municipality", hint: "Stadtverwaltung", confidence: 0.7 }],
+  },
+  participationCandidates: [],
+  report: {
+    summary: "...",
+    keyConflicts: ["..."],
+    facts: {
+      local: ["..."],
+      international: ["..."],
+    },
+    openQuestions: ["..."],
+    takeaways: ["..."],
+  },
+};
+
+const FULL_CONTRACT_EXAMPLE_JSON = JSON.stringify(FULL_CONTRACT_EXAMPLE);
+
 const FULL_CONTRACT_SYSTEM_PROMPT = [
-  "You are the E150 orchestrator.",
+  "You are the E150 orchestrator contract tester.",
   "Return exactly one strictly valid RFC8259 JSON object. No markdown. No prose. No code fences.",
-  "Never return a top-level array. The first character must be { and the last character must be }.",
-  "Required top-level keys:",
-  "mode, sourceText, language, claims, notes, questions, knots, consequences, responsibilityPaths, decisionTrees, eventualities, impactAndResponsibility, report.",
-  "Required nested keys:",
-  "consequences.consequences, consequences.responsibilities, impactAndResponsibility.impacts, impactAndResponsibility.responsibleActors, report.summary, report.keyConflicts, report.facts, report.openQuestions, report.takeaways, report.facts.local, report.facts.international.",
-  "Use mode=\"E150\" and language=\"de\". Use empty arrays for unknown lists and null for unknown nullable fields.",
+  "The first character must be { and the last character must be }.",
+  "You must satisfy the AnalyzeResultSchema exactly.",
+  "Do not use string arrays where object arrays are required.",
+  "claims must be StatementRecord objects: {id,text,title,responsibility,importance,topic,domain,domains,stance,statementType}.",
+  "notes must be objects: {id,text,kind}. questions must be objects: {id,text,dimension}. knots must be objects: {id,label,description}.",
+  "consequences.consequences must be objects: {id,scope,statementIndex,text,confidence}. Allowed scope: local_short, local_long, national, global, systemic.",
+  "consequences.responsibilities must be objects: {id,level,actor,text,relevance}. Allowed level: municipality, district, state, federal, eu, ngo, private, unknown.",
+  "responsibilityPaths must be objects: {id,statementId,locale,nodes}. nodes must be objects: {level,actorKey,displayName,description,contactUrl,processHint,relevance}.",
+  "eventualities must be EventualityNode objects: {id,statementId,label,narrative,stance,likelihood,impact,consequences,responsibilities,children}. children must be an array.",
+  "decisionTrees must be objects: {id,rootStatementId,locale,options}. options must contain pro and contra EventualityNode objects; neutral is optional.",
+  "impactAndResponsibility.impacts must be objects: {type,description,confidence}. impactAndResponsibility.responsibleActors must be objects: {level,hint,confidence}.",
+  "report.facts.local and report.facts.international must be string arrays. report.keyConflicts, report.openQuestions and report.takeaways must be string arrays.",
+  "Use mode exactly E150 and language de.",
+  "If uncertain, return empty arrays for optional arrays but never omit required top-level keys.",
+  "Minimal valid shape example:",
+  FULL_CONTRACT_EXAMPLE_JSON,
 ].join(" ");
 
 type ProviderSmokeState =
