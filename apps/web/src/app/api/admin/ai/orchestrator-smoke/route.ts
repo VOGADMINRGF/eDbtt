@@ -174,11 +174,11 @@ const FULL_CONTRACT_EXAMPLE_JSON = JSON.stringify(FULL_CONTRACT_EXAMPLE);
 
 const FULL_CONTRACT_SYSTEM_PROMPT = [
   "You are the E150 orchestrator contract tester.",
-  "Return exactly one strictly valid RFC8259 JSON object. No markdown. No prose. No code fences.",
-  "The first character must be { and the last character must be }.",
+  "Return exactly one strictly valid RFC8259 JSON object. No markdown. No prose. No code fences. Never return a top-level array.",
+  "The first character must be { and the last character must be }. The top-level value must be an object, never an array.",
   "You must satisfy the AnalyzeResultSchema exactly.",
   "Do not use string arrays where object arrays are required.",
-  "claims must be StatementRecord objects: {id,text,title,responsibility,importance,topic,domain,domains,stance,statementType}.",
+  "claims must be StatementRecord objects: {id,text,title,responsibility,importance,topic,domain,domains,stance,statementType}. statementType must be exactly one of: fact, interpretation, value, question. Never use policy, action, goal, proposal, measure or recommendation as statementType.",
   "notes must be objects: {id,text,kind}. questions must be objects: {id,text,dimension}. knots must be objects: {id,label,description}.",
   "consequences.consequences must be objects: {id,scope,statementIndex,text,confidence}. Allowed scope: local_short, local_long, national, global, systemic.",
   "consequences.responsibilities must be objects: {id,level,actor,text,relevance}. Allowed level: municipality, district, state, federal, eu, ngo, private, unknown.",
