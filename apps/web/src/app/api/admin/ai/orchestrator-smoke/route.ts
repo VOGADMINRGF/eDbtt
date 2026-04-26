@@ -782,6 +782,40 @@ async function runDirectProviderProbe(provider: E150ProviderName): Promise<Provi
   }
 }
 
+function looksLikeHtmlOrUpstreamError(rawText: string): boolean {
+  const s = rawText.trim().toLowerCase();
+  if (!s) return false;
+  return (
+    s.startsWith("<!doctype html") ||
+    s.startsWith("<html") ||
+    s.includes("<body") ||
+    s.includes("cloudflare") ||
+    s.includes("ddos-guard") ||
+    s.includes("bad gateway") ||
+    s.includes("502") ||
+    s.includes("504 gateway") ||
+    s.includes("upstream")
+  );
+}
+
+function topLevelJsonKind(value: unknown): "object" | "array" | "string" | "number" | "boolean" | "null" | "unknown" {
+  if (value === null) return "null";
+  if (Array.isArray(value)) return "array";
+  const type = typeof value;
+  if (type === "object") return "object";
+  if (type === "string") return "string";
+  if (type === "number") return "number";
+  if (type === "boolean") return "boolean";
+  return "unknown";
+}
+
+function topLevelContractErrorCode(kind: ReturnType<typeof topLevelJsonKind>): string {
+  if (kind === "array") return "TOP_LEVEL_ARRAY";
+  if (kind === "string") return "TOP_LEVEL_STRING";
+  if (kind === "null") return "TOP_LEVEL_NULL";
+  return "TOP_LEVEL_NOT_OBJECT";
+}
+
 function validateFullContractPayload(rawText: string): {
   status: ProviderDiagnostic["status"];
   errorKind: AiErrorKind | null;
@@ -796,23 +830,44 @@ function validateFullContractPayload(rawText: string): {
   schemaPath: string | null;
   rawExcerpt: string | null;
 } {
-  const candidate = extractJsonCandidate(rawText) ?? cleanJson(rawText);
+  const raw = rawText ?? "";
+  const candidate = extractJsonCandidate(raw) ?? cleanJson(raw);
   const cleaned = candidate.trim();
 
   if (!cleaned) {
+    const reason = looksLikeHtmlOrUpstreamError(raw)
+      ? "upstream_bad_response"
+      : "no_json_object_found";
     return {
       status: "failed",
-      errorKind: "BAD_JSON",
-      providerErrorCode: "BAD_JSON",
-      errorMessage: "no_json_object_found",
-      reason: "no_json_object_found",
+      errorKind: looksLikeHtmlOrUpstreamError(raw) ? "INTERNAL" : "BAD_JSON",
+      providerErrorCode: looksLikeHtmlOrUpstreamError(raw) ? "UPSTREAM_BAD_RESPONSE" : "BAD_JSON",
+      errorMessage: reason,
+      reason,
       adapterStatus: "failed",
       parseStatus: "failed",
       schemaStatus: "not_started",
-      parseError: "no_json_object_found",
+      parseError: reason,
       schemaError: null,
       schemaPath: null,
-      rawExcerpt: null,
+      rawExcerpt: raw.slice(0, 500) || null,
+    };
+  }
+
+  if (looksLikeHtmlOrUpstreamError(cleaned)) {
+    return {
+      status: "failed",
+      errorKind: "INTERNAL",
+      providerErrorCode: "UPSTREAM_BAD_RESPONSE",
+      errorMessage: "provider_returned_html_or_upstream_error",
+      reason: "provider_returned_html_or_upstream_error",
+      adapterStatus: "failed",
+      parseStatus: "failed",
+      schemaStatus: "not_started",
+      parseError: "provider_returned_html_or_upstream_error",
+      schemaError: null,
+      schemaPath: null,
+      rawExcerpt: cleaned.slice(0, 500),
     };
   }
 
@@ -833,6 +888,26 @@ function validateFullContractPayload(rawText: string): {
       parseError,
       schemaError: null,
       schemaPath: null,
+      rawExcerpt: cleaned.slice(0, 500),
+    };
+  }
+
+  const parsedKind = topLevelJsonKind(parsed);
+  if (parsedKind !== "object") {
+    const code = topLevelContractErrorCode(parsedKind);
+    const message = `expected top-level JSON object, received ${parsedKind}`;
+    return {
+      status: "failed",
+      errorKind: "INTERNAL",
+      providerErrorCode: code,
+      errorMessage: message,
+      reason: message,
+      adapterStatus: "failed",
+      parseStatus: "ok",
+      schemaStatus: "failed",
+      parseError: null,
+      schemaError: message,
+      schemaPath: "$",
       rawExcerpt: cleaned.slice(0, 500),
     };
   }
