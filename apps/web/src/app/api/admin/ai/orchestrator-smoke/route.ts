@@ -206,8 +206,8 @@ function openAiSmokeModel(): string | undefined {
 }
 
 function openAiSmokeTimeoutMs(): number {
-  const raw = Number(process.env.OPENAI_SMOKE_TIMEOUT_MS ?? 60_000);
-  return Number.isFinite(raw) && raw > 0 ? raw : 60_000;
+  const raw = Number(process.env.OPENAI_SMOKE_TIMEOUT_MS ?? 30_000);
+  return Number.isFinite(raw) && raw > 0 ? raw : 30_000;
 }
 
 function openAiSmokeMaxOutputTokens(): number {
