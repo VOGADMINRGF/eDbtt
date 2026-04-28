@@ -55,6 +55,10 @@ type ProviderDiagnostic = {
   diagnosticNotes: string[];
   formatUsed: "json_schema" | "json_object" | null;
   didFallback: boolean | null;
+  timeoutMs?: number | null;
+  maxOutputTokens?: number | null;
+  openaiErrorCode?: string | null;
+  openaiErrorMessage?: string | null;
   rootCause: string;
   nextAction: string;
 };
@@ -156,6 +160,10 @@ function hasDetail(row: ProviderDiagnostic): boolean {
       row.errorKind ||
       row.errorMessage ||
       row.reason ||
+      row.openaiErrorCode ||
+      row.openaiErrorMessage ||
+      typeof row.timeoutMs === "number" ||
+      typeof row.maxOutputTokens === "number" ||
       (Array.isArray(row.diagnosticNotes) && row.diagnosticNotes.length > 0),
   );
 }
@@ -541,7 +549,7 @@ export default function OrchestratorTelemetryPage() {
                                     strict={row.strictStatus} · repair={row.repairStatus} · repairAttempted={String(row.repairAttempted)}
                                   </div>
                                   <div className="mt-1 text-[10px] text-[rgb(var(--muted))]">
-                                    native={row.nativeStrategy} · preferred={row.preferredContractStrategy}
+                                    native={row.nativeStrategy} · preferred={row.preferredContractStrategy} · format={row.formatUsed ?? "none"} · fallback={String(row.didFallback)}
                                   </div>
                                 </td>
                                 <td className="px-3 py-2 text-xs font-semibold text-[rgb(var(--fg))]">{row.rootCause}</td>
@@ -564,9 +572,11 @@ export default function OrchestratorTelemetryPage() {
                                       <div className="mt-2 rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-3 text-xs text-[rgb(var(--muted))]">
                                         <div>mode={formatModeLabel(row.mode)} · stage=direct_provider_contract · finalContractStatus={row.finalContractStatus}</div>
                                         <div>nativeStrategy={row.nativeStrategy} · preferredContractStrategy={row.preferredContractStrategy} · fallbackStrategy={row.fallbackStrategy}</div>
+                                        <div>model={row.model ?? "unknown"} · timeoutMs={row.timeoutMs ?? "n/a"} · maxOutputTokens={row.maxOutputTokens ?? "n/a"}</div>
                                         <div>strictStatus={row.strictStatus} · strictProviderCode={row.strictProviderErrorCode ?? "none"} · strictSchemaPath={row.strictSchemaPath ?? "none"}</div>
                                         <div>repairStatus={row.repairStatus} · repairUsed={String(row.repairUsed)} · repairProviderCode={row.repairProviderErrorCode ?? "none"} · repairSchemaPath={row.repairSchemaPath ?? "none"} · repairReason={row.repairReason ?? "none"}</div>
                                         <div>formatUsed={row.formatUsed ?? "none"} · didFallback={String(row.didFallback)} · supportsPromptEnvelope={String(row.supportsPromptEnvelope)}</div>
+                                        <div>openaiErrorCode={row.openaiErrorCode ?? "none"} · openaiErrorMessage={row.openaiErrorMessage ?? "none"}</div>
                                         <div>errorKind={row.errorKind ?? "none"} · providerCode={row.providerErrorCode ?? "none"} · httpStatus={row.httpStatus ?? "none"}</div>
                                         <div>parseError={row.parseError ?? "none"} · schemaError={row.schemaError ?? "none"} · schemaPath={row.schemaPath ?? "none"}</div>
                                         <div>fallbackUsed={String(row.fallbackUsed)} · fallbackReason={row.fallbackReason ?? "none"}</div>

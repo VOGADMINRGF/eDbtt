@@ -401,6 +401,9 @@ describe("/api/admin/ai/orchestrator-smoke", () => {
 
   it("passes OpenAI formatUsed/didFallback metadata to direct diagnostics", async () => {
     vi.stubEnv("OPENAI_API_KEY", "test-openai-key");
+    vi.stubEnv("OPENAI_SMOKE_MODEL", "gpt-4.1");
+    vi.stubEnv("OPENAI_SMOKE_TIMEOUT_MS", "17000");
+    vi.stubEnv("OPENAI_SMOKE_MAX_OUTPUT_TOKENS", "1337");
     mockFullOrchestrator(JSON.stringify(VALID_ANALYZE_JSON));
     mocks.analyzeContribution.mockResolvedValue({
       claims: [],
@@ -424,9 +427,47 @@ describe("/api/admin/ai/orchestrator-smoke", () => {
     const openaiDirect = body.directContractRows.find((row: any) => row.provider === "openai");
     expect(openaiDirect.formatUsed).toBe("json_object");
     expect(openaiDirect.didFallback).toBe(true);
+    expect(openaiDirect.openaiErrorCode).toBe("json_schema_not_supported");
+    expect(openaiDirect.openaiErrorMessage).toBe("schema fallback");
+    expect(openaiDirect.timeoutMs).toBe(17000);
+    expect(openaiDirect.maxOutputTokens).toBe(1337);
     expect(openaiDirect.finalContractStatus).toBe("strict_ok");
     expect(Array.isArray(openaiDirect.diagnosticNotes)).toBe(true);
     expect(openaiDirect.diagnosticNotes.join(" ")).toContain("fallback");
+    expect(openaiDirect.diagnosticNotes.join(" ")).toContain("OPENAI_SMOKE_MODEL");
+    expect(openaiDirect.diagnosticNotes.join(" ")).toContain("OPENAI_SMOKE_TIMEOUT_MS");
+    expect(openaiDirect.diagnosticNotes.join(" ")).toContain("OPENAI_SMOKE_MAX_OUTPUT_TOKENS");
+
+    vi.unstubAllEnvs();
+  });
+
+  it("marks OpenAI strict json_schema success as final strict_ok without repair", async () => {
+    vi.stubEnv("OPENAI_API_KEY", "test-openai-key");
+    mockFullOrchestrator(JSON.stringify(VALID_ANALYZE_JSON));
+    mocks.analyzeContribution.mockResolvedValue({
+      claims: [],
+      notes: [],
+      questions: [],
+      knots: [],
+    });
+    mocks.callOpenAI.mockResolvedValue({
+      text: JSON.stringify(VALID_ANALYZE_JSON),
+      model: "gpt-4.1-mini",
+      formatUsed: "json_schema",
+      didFallback: false,
+    });
+
+    const response = await POST(req("?mode=full"));
+    expect(response.status).toBe(200);
+    const body = await response.json();
+
+    const openaiDirect = body.directContractRows.find((row: any) => row.provider === "openai");
+    expect(openaiDirect.strictStatus).toBe("ok");
+    expect(openaiDirect.repairAttempted).toBe(false);
+    expect(openaiDirect.repairStatus).toBe("not_attempted");
+    expect(openaiDirect.formatUsed).toBe("json_schema");
+    expect(openaiDirect.didFallback).toBe(false);
+    expect(openaiDirect.finalContractStatus).toBe("strict_ok");
 
     vi.unstubAllEnvs();
   });
