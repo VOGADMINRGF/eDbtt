@@ -209,14 +209,31 @@ function openAiSmokeModel(): string | undefined {
   );
 }
 
+function openAiSmokeModelSource(): "OPENAI_SMOKE_MODEL" | "OPENAI_MODEL2" | "OPENAI_MODEL" | "adapter_default" {
+  if (process.env.OPENAI_SMOKE_MODEL) return "OPENAI_SMOKE_MODEL";
+  if (process.env.OPENAI_MODEL2) return "OPENAI_MODEL2";
+  if (process.env.OPENAI_MODEL) return "OPENAI_MODEL";
+  return "adapter_default";
+}
+
 function openAiSmokeTimeoutMs(): number {
   const raw = Number(process.env.OPENAI_SMOKE_TIMEOUT_MS ?? 30_000);
   return Number.isFinite(raw) && raw > 0 ? raw : 30_000;
 }
 
+function openAiSmokeTimeoutSource(): "OPENAI_SMOKE_TIMEOUT_MS" | "default_30000" {
+  const raw = Number(process.env.OPENAI_SMOKE_TIMEOUT_MS ?? "");
+  return Number.isFinite(raw) && raw > 0 ? "OPENAI_SMOKE_TIMEOUT_MS" : "default_30000";
+}
+
 function openAiSmokeMaxOutputTokens(): number {
   const raw = Number(process.env.OPENAI_SMOKE_MAX_OUTPUT_TOKENS ?? 2_200);
   return Number.isFinite(raw) && raw > 0 ? raw : 2_200;
+}
+
+function openAiSmokeMaxOutputTokensSource(): "OPENAI_SMOKE_MAX_OUTPUT_TOKENS" | "default_2200" {
+  const raw = Number(process.env.OPENAI_SMOKE_MAX_OUTPUT_TOKENS ?? "");
+  return Number.isFinite(raw) && raw > 0 ? "OPENAI_SMOKE_MAX_OUTPUT_TOKENS" : "default_2200";
 }
 
 type ProviderSmokeState =
@@ -384,6 +401,10 @@ function baseDiagnostic(params: {
   finalContractStatus?: ProviderDiagnostic["finalContractStatus"];
   formatUsed?: ProviderDiagnostic["formatUsed"];
   didFallback?: boolean | null;
+  timeoutMs?: number | null;
+  maxOutputTokens?: number | null;
+  openaiErrorCode?: string | null;
+  openaiErrorMessage?: string | null;
   diagnosticNotes?: string[];
 }): ProviderDiagnostic {
   const capabilities = getProviderContractCapabilities(params.provider);
@@ -447,6 +468,10 @@ function baseDiagnostic(params: {
     diagnosticNotes: params.diagnosticNotes ?? [...capabilities.diagnosticNotes],
     formatUsed: params.formatUsed ?? null,
     didFallback: typeof params.didFallback === "boolean" ? params.didFallback : null,
+    timeoutMs: typeof params.timeoutMs === "number" ? params.timeoutMs : null,
+    maxOutputTokens: typeof params.maxOutputTokens === "number" ? params.maxOutputTokens : null,
+    openaiErrorCode: params.openaiErrorCode ?? null,
+    openaiErrorMessage: params.openaiErrorMessage ?? null,
     rootCause: "RUNTIME_FAILED",
     nextAction: "Adapter-/Runtime-Logs pruefen.",
   };
@@ -478,8 +503,8 @@ function toLegacyResult(row: ProviderDiagnostic): LegacyProviderSmokeResult {
     model: row.model,
     formatUsed: row.formatUsed,
     didFallback: row.didFallback ?? row.fallbackUsed,
-    openaiErrorCode: row.provider === "openai" ? row.providerErrorCode : null,
-    openaiErrorMessage: row.provider === "openai" ? row.errorMessage : null,
+    openaiErrorCode: row.provider === "openai" ? row.openaiErrorCode ?? row.providerErrorCode : null,
+    openaiErrorMessage: row.provider === "openai" ? row.openaiErrorMessage ?? row.errorMessage : null,
   };
 }
 
@@ -605,6 +630,8 @@ function mapRowsFromProviderMatrix(
             : null,
         formatUsed: entry.formatUsed ?? null,
         didFallback: typeof entry.didFallback === "boolean" ? entry.didFallback : null,
+        openaiErrorCode: entry.openaiErrorCode ?? null,
+        openaiErrorMessage: entry.openaiErrorMessage ?? null,
         journeyDecision,
       });
     }),
@@ -1018,6 +1045,7 @@ function normalizeErrorCode(input: {
   const kind = input.errorKind ?? null;
 
   if (looksConfigMissing(input.message)) return "CONFIG_MISSING";
+  if (message.includes("openai_empty_output")) return "OPENAI_EMPTY_OUTPUT";
   if (status === 402 || providerCode === "PAYMENT_REQUIRED" || message.includes("payment required")) {
     return "PAYMENT_REQUIRED";
   }
@@ -1064,6 +1092,16 @@ function mergeDiagnosticNotes(
     notes.push(trimmed);
   }
   return Array.from(new Set(notes));
+}
+
+function openAiSmokeConfigDiagnosticNote(): string {
+  const resolvedModel = openAiSmokeModel() ?? defaultModelForProvider("openai");
+  const modelSource = openAiSmokeModelSource();
+  const timeoutMs = openAiSmokeTimeoutMs();
+  const timeoutSource = openAiSmokeTimeoutSource();
+  const maxOutputTokens = openAiSmokeMaxOutputTokens();
+  const maxOutputSource = openAiSmokeMaxOutputTokensSource();
+  return `OpenAI smoke profile: model=${resolvedModel} (source=${modelSource}), timeoutMs=${timeoutMs} (source=${timeoutSource}), maxOutputTokens=${maxOutputTokens} (source=${maxOutputSource}).`;
 }
 
 function isRepairAttemptAllowedForStrictFailure(params: {
@@ -1175,16 +1213,20 @@ async function executeDirectFullContractCall(params: {
   didFallback: boolean | null;
   openaiErrorCode: string | null;
   openaiErrorMessage: string | null;
+  timeoutMs: number | null;
+  maxOutputTokens: number | null;
 }> {
   const provider = params.provider;
   if (provider === "openai") {
+    const timeoutMs = params.timeoutMs ?? openAiSmokeTimeoutMs();
+    const maxOutputTokens = params.maxOutputTokens ?? openAiSmokeMaxOutputTokens();
     const res = await callOpenAI({
       prompt: params.prompt,
       asJson: true,
       forceJsonFormat: true,
       model: openAiSmokeModel(),
-      timeoutMs: params.timeoutMs ?? openAiSmokeTimeoutMs(),
-      maxOutputTokens: params.maxOutputTokens ?? openAiSmokeMaxOutputTokens(),
+      timeoutMs,
+      maxOutputTokens,
     });
     return {
       text: res.text,
@@ -1195,6 +1237,8 @@ async function executeDirectFullContractCall(params: {
       didFallback: typeof res.didFallback === "boolean" ? res.didFallback : null,
       openaiErrorCode: res.openaiErrorCode ?? null,
       openaiErrorMessage: res.openaiErrorMessage ?? null,
+      timeoutMs,
+      maxOutputTokens,
     };
   }
   if (provider === "anthropic") {
@@ -1211,6 +1255,8 @@ async function executeDirectFullContractCall(params: {
       didFallback: null,
       openaiErrorCode: null,
       openaiErrorMessage: null,
+      timeoutMs: null,
+      maxOutputTokens: null,
     };
   }
   if (provider === "mistral") {
@@ -1227,6 +1273,8 @@ async function executeDirectFullContractCall(params: {
       didFallback: null,
       openaiErrorCode: null,
       openaiErrorMessage: null,
+      timeoutMs: null,
+      maxOutputTokens: null,
     };
   }
   if (provider === "gemini") {
@@ -1244,6 +1292,8 @@ async function executeDirectFullContractCall(params: {
       didFallback: null,
       openaiErrorCode: null,
       openaiErrorMessage: null,
+      timeoutMs: null,
+      maxOutputTokens: null,
     };
   }
 
@@ -1261,6 +1311,8 @@ async function executeDirectFullContractCall(params: {
     didFallback: null,
     openaiErrorCode: null,
     openaiErrorMessage: null,
+    timeoutMs: null,
+    maxOutputTokens: null,
   };
 }
 
@@ -1386,6 +1438,10 @@ async function runFullContractRepairAttempt(params: {
 
 async function runDirectFullContractProvider(provider: E150ProviderName): Promise<ProviderDiagnostic> {
   const missingReason = configMissingReason(provider);
+  const isOpenAi = provider === "openai";
+  const openAiTimeoutMs = isOpenAi ? openAiSmokeTimeoutMs() : null;
+  const openAiMaxOutputTokens = isOpenAi ? openAiSmokeMaxOutputTokens() : null;
+  const openAiProfileNote = isOpenAi ? openAiSmokeConfigDiagnosticNote() : null;
   if (missingReason) {
     return baseDiagnostic({
       provider,
@@ -1419,7 +1475,12 @@ async function runDirectFullContractProvider(provider: E150ProviderName): Promis
       finalContractStatus: "blocked",
       formatUsed: null,
       didFallback: null,
-      diagnosticNotes: mergeDiagnosticNotes(provider, ["Provider configuration missing."]),
+      timeoutMs: openAiTimeoutMs,
+      maxOutputTokens: openAiMaxOutputTokens,
+      diagnosticNotes: mergeDiagnosticNotes(provider, [
+        "Provider configuration missing.",
+        openAiProfileNote,
+      ]),
     });
   }
 
@@ -1468,9 +1529,16 @@ async function runDirectFullContractProvider(provider: E150ProviderName): Promis
         finalContractStatus: "strict_ok",
         formatUsed: strictCall.formatUsed,
         didFallback: strictCall.didFallback,
+        timeoutMs: strictCall.timeoutMs,
+        maxOutputTokens: strictCall.maxOutputTokens,
+        openaiErrorCode: strictCall.openaiErrorCode,
+        openaiErrorMessage: strictCall.openaiErrorMessage,
         diagnosticNotes: mergeDiagnosticNotes(provider, [
+          openAiProfileNote,
+          strictCall.formatUsed ? `formatUsed=${strictCall.formatUsed}` : null,
           strictCall.didFallback ? "Strict call used OpenAI json_object fallback." : null,
           strictCall.openaiErrorCode ? `openaiErrorCode=${strictCall.openaiErrorCode}` : null,
+          strictCall.openaiErrorMessage ? `openaiErrorMessage=${strictCall.openaiErrorMessage}` : null,
         ]),
       });
     }
@@ -1537,9 +1605,16 @@ async function runDirectFullContractProvider(provider: E150ProviderName): Promis
       finalContractStatus,
       formatUsed: strictCall.formatUsed,
       didFallback: strictCall.didFallback,
+      timeoutMs: strictCall.timeoutMs,
+      maxOutputTokens: strictCall.maxOutputTokens,
+      openaiErrorCode: strictCall.openaiErrorCode,
+      openaiErrorMessage: strictCall.openaiErrorMessage,
       diagnosticNotes: mergeDiagnosticNotes(provider, [
+        openAiProfileNote,
+        strictCall.formatUsed ? `formatUsed=${strictCall.formatUsed}` : null,
         strictCall.didFallback ? "Strict call used OpenAI json_object fallback." : null,
         strictCall.openaiErrorCode ? `openaiErrorCode=${strictCall.openaiErrorCode}` : null,
+        strictCall.openaiErrorMessage ? `openaiErrorMessage=${strictCall.openaiErrorMessage}` : null,
         repair.attempted ? "Repair attempt executed as degraded fallback." : "Repair not attempted.",
       ]),
     });
@@ -1590,7 +1665,12 @@ async function runDirectFullContractProvider(provider: E150ProviderName): Promis
       finalContractStatus,
       formatUsed: null,
       didFallback: null,
+      timeoutMs: openAiTimeoutMs,
+      maxOutputTokens: openAiMaxOutputTokens,
+      openaiErrorCode: isOpenAi ? providerCode : null,
+      openaiErrorMessage: isOpenAi ? error?.message ?? "direct_full_contract_failed" : null,
       diagnosticNotes: mergeDiagnosticNotes(provider, [
+        openAiProfileNote,
         blocked ? "Strict call blocked by account/runtime condition." : "Strict call failed before validation.",
       ]),
     });

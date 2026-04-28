@@ -119,6 +119,10 @@ export type ProviderDiagnostic = {
   diagnosticNotes: string[];
   formatUsed: "json_schema" | "json_object" | null;
   didFallback: boolean | null;
+  timeoutMs?: number | null;
+  maxOutputTokens?: number | null;
+  openaiErrorCode?: string | null;
+  openaiErrorMessage?: string | null;
   rootCause: string;
   nextAction: string;
 };
