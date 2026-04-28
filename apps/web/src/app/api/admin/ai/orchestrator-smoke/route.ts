@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import {
   callE150Orchestrator,
   type E150OrchestratorMeta,
@@ -11,7 +12,7 @@ import { callMistral } from "@features/ai/providers/mistral";
 import { callGemini } from "@features/ai/providers/gemini";
 import { callAriLLM } from "@features/ai/providers/ari_llm";
 import { analyzeContribution } from "@features/analyze/analyzeContribution";
-import { AnalyzeResultSchema } from "@features/analyze/schemas";
+import { AnalyzeResultSchema, type AnalyzeResult } from "@features/analyze/schemas";
 import { extractJsonCandidate } from "@features/analyze/llmJson";
 import {
   defaultModelForProvider,
@@ -119,7 +120,15 @@ const FULL_CONTRACT_EXAMPLE = {
       stance: "pro",
       likelihood: 0.5,
       impact: 0.6,
-      consequences: [],
+      consequences: [
+        {
+          id: "ev-pro-cons-1",
+          scope: "local_long",
+          statementIndex: 0,
+          text: "...",
+          confidence: 0.55,
+        },
+      ],
       responsibilities: [],
       children: [],
     },
@@ -138,7 +147,15 @@ const FULL_CONTRACT_EXAMPLE = {
           stance: "pro",
           likelihood: 0.5,
           impact: 0.6,
-          consequences: [],
+          consequences: [
+            {
+              id: "tree-pro-cons-1",
+              scope: "national",
+              statementIndex: 0,
+              text: "...",
+              confidence: 0.58,
+            },
+          ],
           responsibilities: [],
           children: [],
         },
@@ -150,7 +167,22 @@ const FULL_CONTRACT_EXAMPLE = {
           stance: "contra",
           likelihood: 0.5,
           impact: 0.6,
-          consequences: [],
+          consequences: [
+            {
+              id: "tree-contra-cons-1",
+              scope: "global",
+              statementIndex: 0,
+              text: "...",
+              confidence: 0.52,
+            },
+            {
+              id: "tree-contra-cons-2",
+              scope: "systemic",
+              statementIndex: 0,
+              text: "...",
+              confidence: 0.49,
+            },
+          ],
           responsibilities: [],
           children: [],
         },
@@ -175,10 +207,30 @@ const FULL_CONTRACT_EXAMPLE = {
 };
 
 const FULL_CONTRACT_EXAMPLE_JSON = JSON.stringify(FULL_CONTRACT_EXAMPLE);
+const FULL_CONTRACT_REQUIRED_TOP_LEVEL_KEYS = [
+  "mode",
+  "sourceText",
+  "language",
+  "claims",
+  "findings",
+  "notes",
+  "questions",
+  "missingPerspectives",
+  "knots",
+  "consequences",
+  "responsibilityPaths",
+  "eventualities",
+  "decisionTrees",
+  "impactAndResponsibility",
+  "participationCandidates",
+  "report",
+] as const;
+const FULL_CONTRACT_REQUIRED_TOP_LEVEL_KEYS_LABEL = FULL_CONTRACT_REQUIRED_TOP_LEVEL_KEYS.join(", ");
 
 const FULL_CONTRACT_SYSTEM_PROMPT = [
   "You are the E150 orchestrator contract tester.",
   "Return exactly one strictly valid RFC8259 JSON object. No markdown. No prose. No code fences. Never return a top-level array.",
+  "Never return an array as the top-level value.",
   "The first character must be { and the last character must be }. The top-level value must be an object, never an array.",
   "Do not return an array of claims, suggestions, records, candidates, options or alternatives. The response itself must be the AnalyzeResult object.",
   "Do not wrap the AnalyzeResult object in an array. Do not return multiple objects. Do not return a list.",
@@ -188,32 +240,32 @@ const FULL_CONTRACT_SYSTEM_PROMPT = [
   "claims must be StatementRecord objects: {id,text,title,responsibility,importance,topic,domain,domains,stance,statementType}. statementType must be exactly one of: fact, interpretation, value, question. Never use policy, action, goal, proposal, measure or recommendation as statementType.",
   "notes must be objects: {id,text,kind}. questions must be objects: {id,text,dimension}. knots must be objects: {id,label,description}.",
   "consequences.consequences must be objects: {id,scope,statementIndex,text,confidence}. Allowed scope: local_short, local_long, national, global, systemic.",
+  "Never use \"local\" as scope. For short-term local effects use \"local_short\". For long-term local effects use \"local_long\".",
+  "The allowed scope enum applies consistently to consequences.consequences[].scope, eventualities[].consequences[].scope, and decisionTrees.options.*.consequences[].scope.",
   "consequences.responsibilities must be objects: {id,level,actor,text,relevance}. Allowed level: municipality, district, state, federal, eu, ngo, private, unknown.",
   "responsibilityPaths must be objects: {id,statementId,locale,nodes}. nodes must be objects: {level,actorKey,displayName,description,contactUrl,processHint,relevance}.",
   "eventualities must be EventualityNode objects: {id,statementId,label,narrative,stance,likelihood,impact,consequences,responsibilities,children}. children must be an array.",
   "decisionTrees must be objects: {id,rootStatementId,locale,options}. options must contain pro and contra EventualityNode objects; neutral is optional.",
   "impactAndResponsibility.impacts must be objects: {type,description,confidence}. impactAndResponsibility.responsibleActors must be objects: {level,hint,confidence}.",
   "report.facts.local and report.facts.international must be string arrays. report.keyConflicts, report.openQuestions and report.takeaways must be string arrays.",
+  "report.facts.local must always be an array. report.facts.international must always be an array.",
+  "If no local facts are available, return report.facts.local: []. If no international facts are available, return report.facts.international: [].",
+  "Never omit report.facts.local or report.facts.international.",
   "Use mode exactly E150 and language de.",
   "If uncertain, return empty arrays for optional arrays but never omit required top-level keys.",
   "Minimal valid shape example:",
   FULL_CONTRACT_EXAMPLE_JSON,
 ].join(" ");
 
-function openAiSmokeModel(): string | undefined {
-  return (
-    process.env.OPENAI_SMOKE_MODEL ||
-    process.env.OPENAI_MODEL2 ||
-    process.env.OPENAI_MODEL ||
-    undefined
-  );
+const OPENAI_SMOKE_DEFAULT_MODEL = "gpt-4.1-mini";
+
+function openAiSmokeModel(): string {
+  return process.env.OPENAI_SMOKE_MODEL || OPENAI_SMOKE_DEFAULT_MODEL;
 }
 
-function openAiSmokeModelSource(): "OPENAI_SMOKE_MODEL" | "OPENAI_MODEL2" | "OPENAI_MODEL" | "adapter_default" {
+function openAiSmokeModelSource(): "OPENAI_SMOKE_MODEL" | "default_gpt-4.1-mini" {
   if (process.env.OPENAI_SMOKE_MODEL) return "OPENAI_SMOKE_MODEL";
-  if (process.env.OPENAI_MODEL2) return "OPENAI_MODEL2";
-  if (process.env.OPENAI_MODEL) return "OPENAI_MODEL";
-  return "adapter_default";
+  return "default_gpt-4.1-mini";
 }
 
 function openAiSmokeTimeoutMs(): number {
@@ -398,13 +450,26 @@ function baseDiagnostic(params: {
   repairSchemaPath?: string | null;
   repairReason?: string | null;
   repairUsed?: boolean;
+  directStrictStatus?: ProviderDiagnostic["directStrictStatus"];
+  draftStatus?: ProviderDiagnostic["draftStatus"];
+  envelopeBuildStatus?: ProviderDiagnostic["envelopeBuildStatus"];
+  finalSchemaStatus?: ProviderDiagnostic["finalSchemaStatus"];
   finalContractStatus?: ProviderDiagnostic["finalContractStatus"];
+  buildWarnings?: string[];
+  filledDefaults?: string[];
+  missingContainers?: string[];
+  normalizedEnumWarnings?: string[];
+  generatedIds?: string[];
   formatUsed?: ProviderDiagnostic["formatUsed"];
   didFallback?: boolean | null;
   timeoutMs?: number | null;
   maxOutputTokens?: number | null;
   openaiErrorCode?: string | null;
   openaiErrorMessage?: string | null;
+  selectedSmokeModel?: string | null;
+  smokeModelEnvPresent?: boolean | null;
+  effectiveModel?: string | null;
+  openAiSmokeModelMismatch?: boolean | null;
   diagnosticNotes?: string[];
 }): ProviderDiagnostic {
   const capabilities = getProviderContractCapabilities(params.provider);
@@ -448,6 +513,19 @@ function baseDiagnostic(params: {
     repairSchemaPath: params.repairSchemaPath ?? null,
     repairReason: params.repairReason ?? null,
     repairUsed: typeof params.repairUsed === "boolean" ? params.repairUsed : false,
+    directStrictStatus:
+      params.directStrictStatus ??
+      (params.strictStatus ??
+        (params.status === "ok" ? "ok" : params.status === "config_missing" ? "blocked" : "not_started")),
+    draftStatus: params.draftStatus ?? "not_attempted",
+    envelopeBuildStatus: params.envelopeBuildStatus ?? "not_attempted",
+    finalSchemaStatus:
+      params.finalSchemaStatus ??
+      (params.schemaStatus === "ok"
+        ? "ok"
+        : params.schemaStatus === "failed"
+          ? "failed"
+          : "not_started"),
     finalContractStatus:
       params.finalContractStatus ??
       (params.status === "ok"
@@ -455,8 +533,16 @@ function baseDiagnostic(params: {
         : params.status === "config_missing"
           ? "blocked"
           : "not_started"),
+    buildWarnings: Array.isArray(params.buildWarnings) ? params.buildWarnings : [],
+    filledDefaults: Array.isArray(params.filledDefaults) ? params.filledDefaults : [],
+    missingContainers: Array.isArray(params.missingContainers) ? params.missingContainers : [],
+    normalizedEnumWarnings: Array.isArray(params.normalizedEnumWarnings)
+      ? params.normalizedEnumWarnings
+      : [],
+    generatedIds: Array.isArray(params.generatedIds) ? params.generatedIds : [],
     nativeStrategy: capabilities.nativeStrategy,
     preferredContractStrategy: capabilities.preferredContractStrategy,
+    providerStrategy: capabilities.preferredContractStrategy,
     fallbackStrategy: capabilities.fallbackStrategy,
     supportsStrictJsonSchema: capabilities.supportsStrictJsonSchema,
     supportsJsonObjectMode: capabilities.supportsJsonObjectMode,
@@ -472,6 +558,12 @@ function baseDiagnostic(params: {
     maxOutputTokens: typeof params.maxOutputTokens === "number" ? params.maxOutputTokens : null,
     openaiErrorCode: params.openaiErrorCode ?? null,
     openaiErrorMessage: params.openaiErrorMessage ?? null,
+    selectedSmokeModel: params.selectedSmokeModel ?? null,
+    smokeModelEnvPresent:
+      typeof params.smokeModelEnvPresent === "boolean" ? params.smokeModelEnvPresent : null,
+    effectiveModel: params.effectiveModel ?? params.model ?? defaultModelForProvider(params.provider),
+    openAiSmokeModelMismatch:
+      typeof params.openAiSmokeModelMismatch === "boolean" ? params.openAiSmokeModelMismatch : null,
     rootCause: "RUNTIME_FAILED",
     nextAction: "Adapter-/Runtime-Logs pruefen.",
   };
@@ -910,6 +1002,8 @@ type FullContractValidation = {
   schemaError: string | null;
   schemaPath: string | null;
   rawExcerpt: string | null;
+  parsed: unknown | null;
+  cleanedCandidate: string | null;
 };
 
 function validateFullContractPayload(rawText: string): FullContractValidation {
@@ -934,6 +1028,8 @@ function validateFullContractPayload(rawText: string): FullContractValidation {
       schemaError: null,
       schemaPath: null,
       rawExcerpt: raw.slice(0, 500) || null,
+      parsed: null,
+      cleanedCandidate: null,
     };
   }
 
@@ -951,6 +1047,8 @@ function validateFullContractPayload(rawText: string): FullContractValidation {
       schemaError: null,
       schemaPath: null,
       rawExcerpt: cleaned.slice(0, 500),
+      parsed: null,
+      cleanedCandidate: cleaned,
     };
   }
 
@@ -972,6 +1070,8 @@ function validateFullContractPayload(rawText: string): FullContractValidation {
       schemaError: null,
       schemaPath: null,
       rawExcerpt: cleaned.slice(0, 500),
+      parsed: null,
+      cleanedCandidate: cleaned,
     };
   }
 
@@ -992,6 +1092,8 @@ function validateFullContractPayload(rawText: string): FullContractValidation {
       schemaError: message,
       schemaPath: "$",
       rawExcerpt: cleaned.slice(0, 500),
+      parsed,
+      cleanedCandidate: cleaned,
     };
   }
 
@@ -1012,6 +1114,8 @@ function validateFullContractPayload(rawText: string): FullContractValidation {
       schemaError,
       schemaPath: Array.isArray(first?.path) ? first.path.join(".") || "$" : null,
       rawExcerpt: cleaned.slice(0, 500),
+      parsed,
+      cleanedCandidate: cleaned,
     };
   }
 
@@ -1028,6 +1132,809 @@ function validateFullContractPayload(rawText: string): FullContractValidation {
     schemaError: null,
     schemaPath: null,
     rawExcerpt: cleaned.slice(0, 500),
+    parsed,
+    cleanedCandidate: cleaned,
+  };
+}
+
+const DRAFT_SCOPE_VALUES = ["local_short", "local_long", "national", "global", "systemic"] as const;
+const DRAFT_SCOPE_SET = new Set<string>(DRAFT_SCOPE_VALUES);
+const RESPONSIBILITY_LEVEL_VALUES = [
+  "municipality",
+  "district",
+  "state",
+  "federal",
+  "eu",
+  "ngo",
+  "private",
+  "unknown",
+] as const;
+const RESPONSIBILITY_LEVEL_SET = new Set<string>(RESPONSIBILITY_LEVEL_VALUES);
+const STANCE_VALUES = ["pro", "neutral", "contra"] as const;
+const STANCE_SET = new Set<string>(STANCE_VALUES);
+const STATEMENT_TYPE_VALUES = ["fact", "interpretation", "value", "question"] as const;
+const STATEMENT_TYPE_SET = new Set<string>(STATEMENT_TYPE_VALUES);
+const FINDING_VALUES = ["supports", "contradicts", "unclear", "mentions"] as const;
+const FINDING_SET = new Set<string>(FINDING_VALUES);
+
+const DraftAnalysisSchema = z
+  .object({
+    sourceText: z.string().nullable().optional(),
+    language: z.string().optional(),
+    claims: z.array(z.unknown()).optional(),
+    findings: z.array(z.unknown()).optional(),
+    notes: z.array(z.unknown()).optional(),
+    questions: z.array(z.unknown()).optional(),
+    missingPerspectives: z.array(z.unknown()).optional(),
+    knots: z.array(z.unknown()).optional(),
+    consequences: z
+      .object({
+        consequences: z.array(z.unknown()).optional(),
+        responsibilities: z.array(z.unknown()).optional(),
+      })
+      .partial()
+      .optional(),
+    responsibilities: z.array(z.unknown()).optional(),
+    responsibilityPaths: z.array(z.unknown()).optional(),
+    eventualities: z.array(z.unknown()).optional(),
+    decisionTrees: z.array(z.unknown()).optional(),
+    impactAndResponsibility: z
+      .object({
+        impacts: z.array(z.unknown()).optional(),
+        responsibleActors: z.array(z.unknown()).optional(),
+      })
+      .partial()
+      .optional(),
+    participationCandidates: z.array(z.unknown()).optional(),
+    report: z
+      .object({
+        summary: z.string().nullable().optional(),
+        keyConflicts: z.array(z.string()).optional(),
+        facts: z
+          .object({
+            local: z.array(z.string()).optional(),
+            international: z.array(z.string()).optional(),
+          })
+          .partial()
+          .optional(),
+        openQuestions: z.array(z.string()).optional(),
+        takeaways: z.array(z.string()).optional(),
+      })
+      .partial()
+      .optional(),
+  })
+  .passthrough();
+
+type DraftAnalysis = z.infer<typeof DraftAnalysisSchema>;
+
+type AnalyzeEnvelopeBuildDiagnostics = {
+  filledDefaults: string[];
+  missingContainers: string[];
+  normalizedEnumWarnings: string[];
+  generatedIds: string[];
+  buildWarnings: string[];
+};
+
+type DraftEnvelopeBuildResult = {
+  attempted: boolean;
+  draftStatus: ProviderDiagnostic["draftStatus"];
+  envelopeBuildStatus: ProviderDiagnostic["envelopeBuildStatus"];
+  finalSchemaStatus: ProviderDiagnostic["finalSchemaStatus"];
+  finalContractStatus: ProviderDiagnostic["finalContractStatus"] | null;
+  strictValidation: FullContractValidation;
+  candidate: AnalyzeResult | null;
+  diagnostics: AnalyzeEnvelopeBuildDiagnostics;
+};
+
+function uniqueStrings(values: string[]): string[] {
+  return Array.from(new Set(values.filter((value) => value.trim().length > 0)));
+}
+
+function asRecord(value: unknown): Record<string, unknown> | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  return value as Record<string, unknown>;
+}
+
+function asString(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : null;
+}
+
+function asNullableString(value: unknown): string | null {
+  if (value === null || value === undefined) return null;
+  return asString(value);
+}
+
+function asStringArray(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value.map((entry) => asString(entry)).filter((entry): entry is string => Boolean(entry));
+}
+
+function asBoundedProbability(value: unknown): number | null {
+  if (typeof value !== "number" || !Number.isFinite(value)) return null;
+  if (value < 0 || value > 1) return null;
+  return value;
+}
+
+function asStatementIndex(value: unknown): number {
+  if (typeof value === "number" && Number.isInteger(value) && value >= 0) return value;
+  return 0;
+}
+
+function buildNeutralSummary(sourceText: string | null): string {
+  const normalized = asString(sourceText);
+  if (!normalized) return "Keine belastbare Zusammenfassung aus dem Draft verfügbar.";
+  const capped = normalized.replace(/\s+/g, " ").trim().slice(0, 180);
+  return capped.length > 0 ? capped : "Keine belastbare Zusammenfassung aus dem Draft verfügbar.";
+}
+
+function resolveScopeValue(
+  raw: unknown,
+  path: string,
+  diagnostics: AnalyzeEnvelopeBuildDiagnostics,
+): AnalyzeResult["consequences"]["consequences"][number]["scope"] | null {
+  const scope = asString(raw);
+  if (!scope) return null;
+  if (scope === "local") {
+    diagnostics.normalizedEnumWarnings.push(`${path}: local -> local_short`);
+    return "local_short";
+  }
+  if (!DRAFT_SCOPE_SET.has(scope)) return null;
+  return scope as AnalyzeResult["consequences"]["consequences"][number]["scope"];
+}
+
+function resolveResponsibilityLevel(
+  raw: unknown,
+  path: string,
+  diagnostics: AnalyzeEnvelopeBuildDiagnostics,
+): AnalyzeResult["consequences"]["responsibilities"][number]["level"] {
+  const level = asString(raw);
+  if (!level || !RESPONSIBILITY_LEVEL_SET.has(level)) {
+    diagnostics.filledDefaults.push(`${path}:unknown`);
+    return "unknown";
+  }
+  return level as AnalyzeResult["consequences"]["responsibilities"][number]["level"];
+}
+
+function resolveStance(raw: unknown): "pro" | "neutral" | "contra" | null {
+  const stance = asString(raw);
+  if (!stance || !STANCE_SET.has(stance)) return null;
+  return stance as "pro" | "neutral" | "contra";
+}
+
+function resolveStatementType(raw: unknown): "fact" | "interpretation" | "value" | "question" | null {
+  const value = asString(raw);
+  if (!value || !STATEMENT_TYPE_SET.has(value)) return null;
+  return value as "fact" | "interpretation" | "value" | "question";
+}
+
+function resolveFindingType(raw: unknown): "supports" | "contradicts" | "unclear" | "mentions" | null {
+  const value = asString(raw);
+  if (!value || !FINDING_SET.has(value)) return null;
+  return value as "supports" | "contradicts" | "unclear" | "mentions";
+}
+
+function buildAnalyzeResultEnvelopeFromDraft(args: {
+  provider: E150ProviderName;
+  sourceText: string;
+  language: string;
+  draft: DraftAnalysis;
+  rawText?: string | null;
+}): { candidate: AnalyzeResult; diagnostics: AnalyzeEnvelopeBuildDiagnostics } {
+  const diagnostics: AnalyzeEnvelopeBuildDiagnostics = {
+    filledDefaults: [],
+    missingContainers: [],
+    normalizedEnumWarnings: [],
+    generatedIds: [],
+    buildWarnings: [],
+  };
+
+  const idCounters: Record<string, number> = {};
+  const nextId = (prefix: string, path: string): string => {
+    idCounters[prefix] = (idCounters[prefix] ?? 0) + 1;
+    const id = `${prefix}-${idCounters[prefix]}`;
+    diagnostics.generatedIds.push(path);
+    return id;
+  };
+
+  const draftClaims = Array.isArray(args.draft.claims) ? args.draft.claims : [];
+  if (!Array.isArray(args.draft.claims)) diagnostics.missingContainers.push("claims");
+  const claims: AnalyzeResult["claims"] = [];
+  for (let index = 0; index < draftClaims.length; index += 1) {
+    const entry = draftClaims[index];
+    if (typeof entry === "string") {
+      claims.push({
+        id: nextId("claim", `claims[${index}].id`),
+        text: entry,
+        title: null,
+        responsibility: null,
+        importance: null,
+        topic: null,
+        domain: null,
+        domains: null,
+        stance: null,
+        statementType: null,
+      });
+      continue;
+    }
+    const record = asRecord(entry);
+    if (!record) continue;
+    const text = asString(record.text ?? record.claim ?? record.statement);
+    if (!text) continue;
+    const domain = asNullableString(record.domain);
+    const domains = asStringArray(record.domains);
+    claims.push({
+      id: asString(record.id) ?? nextId("claim", `claims[${index}].id`),
+      text,
+      title: asNullableString(record.title),
+      responsibility: asNullableString(record.responsibility),
+      importance:
+        typeof record.importance === "number" &&
+        Number.isInteger(record.importance) &&
+        record.importance >= 1 &&
+        record.importance <= 5
+          ? record.importance
+          : null,
+      topic: asNullableString(record.topic),
+      domain,
+      domains: domains.length > 0 ? domains : domain ? [domain] : null,
+      stance: resolveStance(record.stance),
+      statementType: resolveStatementType(record.statementType),
+    });
+  }
+
+  const draftFindings = Array.isArray(args.draft.findings) ? args.draft.findings : [];
+  if (!Array.isArray(args.draft.findings)) diagnostics.filledDefaults.push("findings:[]");
+  const findings: AnalyzeResult["findings"] = [];
+  for (let index = 0; index < draftFindings.length; index += 1) {
+    const record = asRecord(draftFindings[index]);
+    if (!record) continue;
+    const finding = resolveFindingType(record.finding);
+    const claimId = asString(record.claimId);
+    const sourceId = asString(record.sourceId);
+    if (!finding || !claimId || !sourceId) continue;
+    findings.push({
+      id: asString(record.id) ?? nextId("finding", `findings[${index}].id`),
+      claimId,
+      sourceId,
+      finding,
+      rationale: asString(record.rationale) ?? undefined,
+      excerptRef: asString(record.excerptRef) ?? undefined,
+    });
+  }
+
+  const draftNotes = Array.isArray(args.draft.notes) ? args.draft.notes : [];
+  if (!Array.isArray(args.draft.notes)) diagnostics.missingContainers.push("notes");
+  const notes: AnalyzeResult["notes"] = [];
+  for (let index = 0; index < draftNotes.length; index += 1) {
+    const entry = draftNotes[index];
+    if (typeof entry === "string") {
+      notes.push({ id: nextId("note", `notes[${index}].id`), text: entry, kind: null });
+      continue;
+    }
+    const record = asRecord(entry);
+    if (!record) continue;
+    const text = asString(record.text ?? record.note);
+    if (!text) continue;
+    notes.push({
+      id: asString(record.id) ?? nextId("note", `notes[${index}].id`),
+      text,
+      kind: asNullableString(record.kind),
+    });
+  }
+
+  const draftQuestions = Array.isArray(args.draft.questions) ? args.draft.questions : [];
+  if (!Array.isArray(args.draft.questions)) diagnostics.missingContainers.push("questions");
+  const questions: AnalyzeResult["questions"] = [];
+  for (let index = 0; index < draftQuestions.length; index += 1) {
+    const entry = draftQuestions[index];
+    if (typeof entry === "string") {
+      questions.push({ id: nextId("question", `questions[${index}].id`), text: entry, dimension: null });
+      continue;
+    }
+    const record = asRecord(entry);
+    if (!record) continue;
+    const text = asString(record.text ?? record.question);
+    if (!text) continue;
+    questions.push({
+      id: asString(record.id) ?? nextId("question", `questions[${index}].id`),
+      text,
+      dimension: asNullableString(record.dimension),
+    });
+  }
+
+  const draftMissingPerspectives = Array.isArray(args.draft.missingPerspectives)
+    ? args.draft.missingPerspectives
+    : [];
+  if (!Array.isArray(args.draft.missingPerspectives)) {
+    diagnostics.filledDefaults.push("missingPerspectives:[]");
+  }
+  const missingPerspectives: AnalyzeResult["missingPerspectives"] = [];
+  for (let index = 0; index < draftMissingPerspectives.length; index += 1) {
+    const entry = draftMissingPerspectives[index];
+    if (typeof entry === "string") {
+      missingPerspectives.push({
+        id: nextId("missing-perspective", `missingPerspectives[${index}].id`),
+        text: entry,
+      });
+      continue;
+    }
+    const record = asRecord(entry);
+    if (!record) continue;
+    const text = asString(record.text);
+    if (!text) continue;
+    missingPerspectives.push({
+      id: asString(record.id) ?? nextId("missing-perspective", `missingPerspectives[${index}].id`),
+      text,
+      dimension: asString(record.dimension) ?? undefined,
+    });
+  }
+
+  const draftKnots = Array.isArray(args.draft.knots) ? args.draft.knots : [];
+  if (!Array.isArray(args.draft.knots)) diagnostics.missingContainers.push("knots");
+  const knots: AnalyzeResult["knots"] = [];
+  for (let index = 0; index < draftKnots.length; index += 1) {
+    const entry = draftKnots[index];
+    if (typeof entry === "string") {
+      knots.push({
+        id: nextId("knot", `knots[${index}].id`),
+        label: entry,
+        description: entry,
+      });
+      continue;
+    }
+    const record = asRecord(entry);
+    if (!record) continue;
+    const label = asString(record.label ?? record.text ?? record.title);
+    if (!label) continue;
+    knots.push({
+      id: asString(record.id) ?? nextId("knot", `knots[${index}].id`),
+      label,
+      description: asString(record.description ?? record.text) ?? label,
+    });
+  }
+
+  const draftConsequenceBundle = asRecord(args.draft.consequences) ?? {};
+  if (!asRecord(args.draft.consequences)) diagnostics.filledDefaults.push("consequences:empty_bundle");
+  const draftConsequences = Array.isArray(draftConsequenceBundle.consequences)
+    ? draftConsequenceBundle.consequences
+    : [];
+  const draftResponsibilities = Array.isArray(draftConsequenceBundle.responsibilities)
+    ? draftConsequenceBundle.responsibilities
+    : Array.isArray(args.draft.responsibilities)
+      ? args.draft.responsibilities
+      : [];
+
+  const mappedConsequences: AnalyzeResult["consequences"]["consequences"] = [];
+  for (let index = 0; index < draftConsequences.length; index += 1) {
+    const record = asRecord(draftConsequences[index]);
+    if (!record) continue;
+    const text = asString(record.text ?? record.description);
+    const scope = resolveScopeValue(record.scope, `consequences.consequences[${index}].scope`, diagnostics);
+    if (!text || !scope) continue;
+    if (scope === "local_short" && asString(record.scope) === "local") {
+      diagnostics.buildWarnings.push("scope value \"local\" was normalized to \"local_short\".");
+    }
+    mappedConsequences.push({
+      id: asString(record.id) ?? nextId("consequence", `consequences.consequences[${index}].id`),
+      scope,
+      statementIndex: asStatementIndex(record.statementIndex),
+      text,
+      confidence: asBoundedProbability(record.confidence),
+    });
+  }
+
+  const mappedResponsibilities: AnalyzeResult["consequences"]["responsibilities"] = [];
+  for (let index = 0; index < draftResponsibilities.length; index += 1) {
+    const record = asRecord(draftResponsibilities[index]);
+    if (!record) continue;
+    const text = asString(record.text ?? record.description);
+    if (!text) continue;
+    mappedResponsibilities.push({
+      id: asString(record.id) ?? nextId("responsibility", `consequences.responsibilities[${index}].id`),
+      level: resolveResponsibilityLevel(
+        record.level,
+        `consequences.responsibilities[${index}].level`,
+        diagnostics,
+      ),
+      actor: asNullableString(record.actor),
+      text,
+      relevance: asBoundedProbability(record.relevance),
+    });
+  }
+
+  const draftResponsibilityPaths = Array.isArray(args.draft.responsibilityPaths)
+    ? args.draft.responsibilityPaths
+    : [];
+  if (!Array.isArray(args.draft.responsibilityPaths)) {
+    diagnostics.filledDefaults.push("responsibilityPaths:[]");
+  }
+  const responsibilityPaths: AnalyzeResult["responsibilityPaths"] = [];
+  for (let index = 0; index < draftResponsibilityPaths.length; index += 1) {
+    const record = asRecord(draftResponsibilityPaths[index]);
+    if (!record) continue;
+    const statementId = asString(record.statementId);
+    if (!statementId) continue;
+    const rawNodes = Array.isArray(record.nodes) ? record.nodes : [];
+    const nodes: AnalyzeResult["responsibilityPaths"][number]["nodes"] = [];
+    for (let nodeIndex = 0; nodeIndex < rawNodes.length; nodeIndex += 1) {
+      const node = asRecord(rawNodes[nodeIndex]);
+      if (!node) continue;
+      const actorKey = asString(node.actorKey);
+      const displayName = asString(node.displayName);
+      if (!actorKey || !displayName) continue;
+      nodes.push({
+        level: resolveResponsibilityLevel(
+          node.level,
+          `responsibilityPaths[${index}].nodes[${nodeIndex}].level`,
+          diagnostics,
+        ),
+        actorKey,
+        displayName,
+        description: asNullableString(node.description),
+        contactUrl: asNullableString(node.contactUrl),
+        processHint: asNullableString(node.processHint),
+        relevance: asBoundedProbability(node.relevance) ?? undefined,
+      });
+    }
+    responsibilityPaths.push({
+      id: asString(record.id) ?? nextId("path", `responsibilityPaths[${index}].id`),
+      statementId,
+      locale: asString(record.locale) ?? args.language,
+      nodes,
+      createdAt: asString(record.createdAt) ?? undefined,
+      updatedAt: asString(record.updatedAt) ?? undefined,
+    });
+  }
+
+  const mapEventualityNode = (
+    value: unknown,
+    path: string,
+  ): AnalyzeResult["eventualities"][number] | null => {
+    const record = asRecord(value);
+    if (!record) return null;
+    const statementId = asString(record.statementId);
+    const label = asString(record.label);
+    const narrative = asString(record.narrative ?? record.text);
+    if (!statementId || !label || !narrative) return null;
+    const rawConsequences = Array.isArray(record.consequences) ? record.consequences : [];
+    const consequences: AnalyzeResult["eventualities"][number]["consequences"] = [];
+    for (let index = 0; index < rawConsequences.length; index += 1) {
+      const node = asRecord(rawConsequences[index]);
+      if (!node) continue;
+      const text = asString(node.text ?? node.description);
+      const scope = resolveScopeValue(node.scope, `${path}.consequences[${index}].scope`, diagnostics);
+      if (!text || !scope) continue;
+      if (scope === "local_short" && asString(node.scope) === "local") {
+        diagnostics.buildWarnings.push(`"${path}.consequences[${index}].scope" local -> local_short`);
+      }
+      consequences.push({
+        id: asString(node.id) ?? nextId("eventuality-consequence", `${path}.consequences[${index}].id`),
+        scope,
+        statementIndex: asStatementIndex(node.statementIndex),
+        text,
+        confidence: asBoundedProbability(node.confidence),
+      });
+    }
+    const rawResponsibilities = Array.isArray(record.responsibilities) ? record.responsibilities : [];
+    const responsibilities: AnalyzeResult["eventualities"][number]["responsibilities"] = [];
+    for (let index = 0; index < rawResponsibilities.length; index += 1) {
+      const node = asRecord(rawResponsibilities[index]);
+      if (!node) continue;
+      const text = asString(node.text ?? node.description);
+      if (!text) continue;
+      responsibilities.push({
+        id: asString(node.id) ?? nextId("eventuality-responsibility", `${path}.responsibilities[${index}].id`),
+        level: resolveResponsibilityLevel(
+          node.level,
+          `${path}.responsibilities[${index}].level`,
+          diagnostics,
+        ),
+        actor: asNullableString(node.actor),
+        text,
+        relevance: asBoundedProbability(node.relevance),
+      });
+    }
+    const rawChildren = Array.isArray(record.children) ? record.children : [];
+    const children = rawChildren
+      .map((child, childIndex) => mapEventualityNode(child, `${path}.children[${childIndex}]`))
+      .filter((child): child is AnalyzeResult["eventualities"][number] => Boolean(child));
+
+    return {
+      id: asString(record.id) ?? nextId("eventuality", `${path}.id`),
+      statementId,
+      label,
+      narrative,
+      stance: resolveStance(record.stance),
+      likelihood:
+        typeof record.likelihood === "number" &&
+        Number.isFinite(record.likelihood) &&
+        record.likelihood >= 0 &&
+        record.likelihood <= 1
+          ? record.likelihood
+          : undefined,
+      impact:
+        typeof record.impact === "number" &&
+        Number.isFinite(record.impact) &&
+        record.impact >= 0 &&
+        record.impact <= 1
+          ? record.impact
+          : undefined,
+      consequences,
+      responsibilities,
+      children,
+    };
+  };
+
+  const draftEventualities = Array.isArray(args.draft.eventualities) ? args.draft.eventualities : [];
+  if (!Array.isArray(args.draft.eventualities)) diagnostics.filledDefaults.push("eventualities:[]");
+  const eventualities = draftEventualities
+    .map((value, index) => mapEventualityNode(value, `eventualities[${index}]`))
+    .filter((item): item is AnalyzeResult["eventualities"][number] => Boolean(item));
+
+  const draftDecisionTrees = Array.isArray(args.draft.decisionTrees) ? args.draft.decisionTrees : [];
+  if (!Array.isArray(args.draft.decisionTrees)) diagnostics.filledDefaults.push("decisionTrees:[]");
+  const decisionTrees: AnalyzeResult["decisionTrees"] = [];
+  for (let index = 0; index < draftDecisionTrees.length; index += 1) {
+    const record = asRecord(draftDecisionTrees[index]);
+    if (!record) continue;
+    const rootStatementId = asString(record.rootStatementId);
+    const options = asRecord(record.options);
+    if (!rootStatementId || !options) continue;
+    const pro = mapEventualityNode(options.pro, `decisionTrees[${index}].options.pro`);
+    const contra = mapEventualityNode(options.contra, `decisionTrees[${index}].options.contra`);
+    if (!pro || !contra) continue;
+    const neutral = mapEventualityNode(options.neutral, `decisionTrees[${index}].options.neutral`);
+    decisionTrees.push({
+      id: asString(record.id) ?? nextId("decision-tree", `decisionTrees[${index}].id`),
+      rootStatementId,
+      locale: asString(record.locale) ?? args.language,
+      createdAt: asString(record.createdAt) ?? new Date().toISOString(),
+      updatedAt: asString(record.updatedAt) ?? undefined,
+      options: {
+        pro,
+        ...(neutral ? { neutral } : {}),
+        contra,
+      },
+    });
+  }
+
+  const impactSource = asRecord(args.draft.impactAndResponsibility);
+  if (!impactSource) diagnostics.filledDefaults.push("impactAndResponsibility:empty_containers");
+  const impactsRaw = Array.isArray(impactSource?.impacts) ? impactSource.impacts : [];
+  const responsibleActorsRaw = Array.isArray(impactSource?.responsibleActors)
+    ? impactSource.responsibleActors
+    : [];
+  const impacts: AnalyzeResult["impactAndResponsibility"]["impacts"] = impactsRaw
+    .map((value) => asRecord(value))
+    .filter((item): item is Record<string, unknown> => Boolean(item))
+    .map((item) => ({
+      type: asString(item.type) ?? "unknown",
+      description: asString(item.description) ?? "",
+      confidence: asBoundedProbability(item.confidence),
+    }))
+    .filter((item) => item.description.length > 0);
+  const responsibleActors: AnalyzeResult["impactAndResponsibility"]["responsibleActors"] =
+    responsibleActorsRaw
+      .map((value) => asRecord(value))
+      .filter((item): item is Record<string, unknown> => Boolean(item))
+      .map((item) => ({
+        level: asString(item.level) ?? "unknown",
+        hint: asString(item.hint ?? item.actor ?? item.displayName) ?? "",
+        confidence: asBoundedProbability(item.confidence),
+      }))
+      .filter((item) => item.hint.length > 0);
+
+  const participationRaw = Array.isArray(args.draft.participationCandidates)
+    ? args.draft.participationCandidates
+    : [];
+  if (!Array.isArray(args.draft.participationCandidates)) {
+    diagnostics.filledDefaults.push("participationCandidates:[]");
+  }
+  const participationCandidates: AnalyzeResult["participationCandidates"] = [];
+  for (let index = 0; index < participationRaw.length; index += 1) {
+    const entry = participationRaw[index];
+    if (typeof entry === "string") {
+      participationCandidates.push({
+        id: nextId("participation", `participationCandidates[${index}].id`),
+        text: entry,
+      });
+      continue;
+    }
+    const record = asRecord(entry);
+    if (!record) continue;
+    const text = asString(record.text);
+    if (!text) continue;
+    participationCandidates.push({
+      id: asString(record.id) ?? nextId("participation", `participationCandidates[${index}].id`),
+      text,
+      rationale: asString(record.rationale) ?? undefined,
+      stance: resolveStance(record.stance) ?? undefined,
+      dimension: asString(record.dimension) ?? undefined,
+    });
+  }
+
+  const reportSource = asRecord(args.draft.report);
+  if (!reportSource) diagnostics.missingContainers.push("report");
+  const reportFacts = asRecord(reportSource?.facts);
+  if (!reportFacts) diagnostics.filledDefaults.push("report.facts:{local:[],international:[]}");
+  const factsLocal = asStringArray(reportFacts?.local);
+  const factsInternational = asStringArray(reportFacts?.international);
+  if (!Array.isArray(reportFacts?.local)) diagnostics.filledDefaults.push("report.facts.local:[]");
+  if (!Array.isArray(reportFacts?.international)) {
+    diagnostics.filledDefaults.push("report.facts.international:[]");
+  }
+
+  const summary = asNullableString(reportSource?.summary);
+  if (summary === null) {
+    diagnostics.buildWarnings.push("report.summary missing in draft; neutral summary fallback was used.");
+  }
+
+  const candidate: AnalyzeResult = {
+    mode: "E150",
+    sourceText: args.draft.sourceText ?? args.sourceText,
+    language: asString(args.draft.language) ?? args.language,
+    claims,
+    findings,
+    notes,
+    questions,
+    missingPerspectives,
+    knots,
+    consequences: {
+      consequences: mappedConsequences,
+      responsibilities: mappedResponsibilities,
+    },
+    responsibilityPaths,
+    eventualities,
+    decisionTrees,
+    impactAndResponsibility: {
+      impacts,
+      responsibleActors,
+    },
+    participationCandidates,
+    report: {
+      summary: summary ?? buildNeutralSummary(args.sourceText),
+      keyConflicts: asStringArray(reportSource?.keyConflicts),
+      facts: {
+        local: factsLocal,
+        international: factsInternational,
+      },
+      openQuestions: asStringArray(reportSource?.openQuestions),
+      takeaways: asStringArray(reportSource?.takeaways),
+    },
+  };
+
+  diagnostics.filledDefaults = uniqueStrings(diagnostics.filledDefaults);
+  diagnostics.missingContainers = uniqueStrings(diagnostics.missingContainers);
+  diagnostics.normalizedEnumWarnings = uniqueStrings(diagnostics.normalizedEnumWarnings);
+  diagnostics.generatedIds = uniqueStrings(diagnostics.generatedIds);
+  diagnostics.buildWarnings = uniqueStrings(diagnostics.buildWarnings);
+
+  return { candidate, diagnostics };
+}
+
+function runDeterministicDraftEnvelopeBuild(params: {
+  provider: E150ProviderName;
+  sourceText: string;
+  strictValidation: FullContractValidation;
+  rawText: string;
+}): DraftEnvelopeBuildResult {
+  const emptyDiagnostics: AnalyzeEnvelopeBuildDiagnostics = {
+    filledDefaults: [],
+    missingContainers: [],
+    normalizedEnumWarnings: [],
+    generatedIds: [],
+    buildWarnings: [],
+  };
+
+  if (!params.strictValidation.parsed) {
+    return {
+      attempted: false,
+      draftStatus: "not_attempted",
+      envelopeBuildStatus: "not_attempted",
+      finalSchemaStatus: "not_started",
+      finalContractStatus: null,
+      strictValidation: params.strictValidation,
+      candidate: null,
+      diagnostics: emptyDiagnostics,
+    };
+  }
+
+  const parsedRoot = params.strictValidation.parsed;
+  let draftPayload: unknown = parsedRoot;
+  const preWarnings: string[] = [];
+  if (Array.isArray(parsedRoot)) {
+    draftPayload = { claims: parsedRoot };
+    preWarnings.push("Top-level array detected; treated as draft.claims for deterministic envelope build.");
+  } else if (!asRecord(parsedRoot)) {
+    return {
+      attempted: true,
+      draftStatus: "failed",
+      envelopeBuildStatus: "failed",
+      finalSchemaStatus: "failed",
+      finalContractStatus: null,
+      strictValidation: params.strictValidation,
+      candidate: null,
+      diagnostics: {
+        ...emptyDiagnostics,
+        buildWarnings: ["Draft payload is not an object and cannot be transformed deterministically."],
+      },
+    };
+  }
+
+  const draftParsed = DraftAnalysisSchema.safeParse(draftPayload);
+  if (!draftParsed.success) {
+    const first = draftParsed.error.issues[0];
+    return {
+      attempted: true,
+      draftStatus: "failed",
+      envelopeBuildStatus: "failed",
+      finalSchemaStatus: "failed",
+      finalContractStatus: null,
+      strictValidation: params.strictValidation,
+      candidate: null,
+      diagnostics: {
+        ...emptyDiagnostics,
+        buildWarnings: [
+          ...preWarnings,
+          `DraftAnalysis validation failed at ${Array.isArray(first?.path) ? first.path.join(".") || "$" : "$"}: ${first?.message ?? "invalid_draft"}`,
+        ],
+      },
+    };
+  }
+
+  const built = buildAnalyzeResultEnvelopeFromDraft({
+    provider: params.provider,
+    sourceText: params.sourceText,
+    language: "de",
+    draft: draftParsed.data,
+    rawText: params.rawText,
+  });
+  const mergedDiagnostics: AnalyzeEnvelopeBuildDiagnostics = {
+    ...built.diagnostics,
+    buildWarnings: uniqueStrings([...preWarnings, ...built.diagnostics.buildWarnings]),
+  };
+  const schema = AnalyzeResultSchema.safeParse(built.candidate);
+  if (schema.success) {
+    return {
+      attempted: true,
+      draftStatus: "ok",
+      envelopeBuildStatus: "ok",
+      finalSchemaStatus: "ok",
+      finalContractStatus: "built_valid",
+      strictValidation: params.strictValidation,
+      candidate: schema.data,
+      diagnostics: mergedDiagnostics,
+    };
+  }
+
+  const first = schema.error.issues[0];
+  const errorMessage = first?.message ?? "schema_validation_failed_after_envelope_build";
+  const schemaPath = Array.isArray(first?.path) ? first.path.join(".") || "$" : "$";
+  return {
+    attempted: true,
+    draftStatus: "ok",
+    envelopeBuildStatus: "failed",
+    finalSchemaStatus: "failed",
+    finalContractStatus: null,
+    strictValidation: {
+      ...params.strictValidation,
+      providerErrorCode: "SCHEMA_INVALID",
+      errorMessage,
+      reason: errorMessage,
+      schemaError: errorMessage,
+      schemaPath,
+      rawExcerpt: params.strictValidation.cleanedCandidate?.slice(0, 500) ?? params.strictValidation.rawExcerpt,
+    },
+    candidate: built.candidate,
+    diagnostics: {
+      ...mergedDiagnostics,
+      buildWarnings: uniqueStrings([
+        ...mergedDiagnostics.buildWarnings,
+        `Envelope build output failed AnalyzeResultSchema at ${schemaPath}: ${errorMessage}`,
+      ]),
+    },
   };
 }
 
@@ -1095,13 +2002,24 @@ function mergeDiagnosticNotes(
 }
 
 function openAiSmokeConfigDiagnosticNote(): string {
-  const resolvedModel = openAiSmokeModel() ?? defaultModelForProvider("openai");
+  const resolvedModel = openAiSmokeModel();
   const modelSource = openAiSmokeModelSource();
+  const smokeModelEnvPresent = Boolean(process.env.OPENAI_SMOKE_MODEL);
   const timeoutMs = openAiSmokeTimeoutMs();
   const timeoutSource = openAiSmokeTimeoutSource();
   const maxOutputTokens = openAiSmokeMaxOutputTokens();
   const maxOutputSource = openAiSmokeMaxOutputTokensSource();
-  return `OpenAI smoke profile: model=${resolvedModel} (source=${modelSource}), timeoutMs=${timeoutMs} (source=${timeoutSource}), maxOutputTokens=${maxOutputTokens} (source=${maxOutputSource}).`;
+  return `OpenAI smoke profile: selectedSmokeModel=${resolvedModel} (source=${modelSource}, OPENAI_SMOKE_MODEL=${smokeModelEnvPresent ? "present" : "missing"}), timeoutMs=${timeoutMs} (source=${timeoutSource}), maxOutputTokens=${maxOutputTokens} (source=${maxOutputSource}).`;
+}
+
+function isOpenAiSmokeModelMismatch(params: {
+  selectedSmokeModel: string | null;
+  effectiveModel: string | null;
+  smokeModelEnvPresent: boolean;
+}): boolean {
+  if (!params.smokeModelEnvPresent) return false;
+  if (!params.selectedSmokeModel || !params.effectiveModel) return false;
+  return params.selectedSmokeModel.trim().toLowerCase() !== params.effectiveModel.trim().toLowerCase();
 }
 
 function isRepairAttemptAllowedForStrictFailure(params: {
@@ -1136,32 +2054,53 @@ function isRepairAttemptAllowedForStrictFailure(params: {
   return { allowed: true, reason: null, blocked: false };
 }
 
-function buildDirectFullContractPrompt(provider: E150ProviderName): string {
+function buildProviderFullContractPrompt(provider: E150ProviderName): string {
+  const compactEnvelopeHint = [
+    "Required top-level keys (must all be present exactly once):",
+    FULL_CONTRACT_REQUIRED_TOP_LEVEL_KEYS_LABEL,
+    "Return exactly one top-level JSON object.",
+    "The top-level object must satisfy AnalyzeResultSchema.",
+    "Never return an array as the top-level value.",
+    "Never return only claims.",
+    "Include all required top-level keys.",
+    "report.facts.local must always be an array.",
+    "report.facts.international must always be an array.",
+    "If no local facts are available, return report.facts.local: [].",
+    "If no international facts are available, return report.facts.international: [].",
+    "Never omit either report.facts.local or report.facts.international.",
+    "For consequences.scope never use \"local\".",
+    "Allowed scope values are only: local_short, local_long, national, global, systemic.",
+  ].join(" ");
+
   const providerHint =
     provider === "anthropic"
       ? [
-          "Anthropic-specific contract reminder:",
-          "Return one JSON object only. Do not return a JSON array.",
-          "Your first non-whitespace character must be {.",
-          "Your last non-whitespace character must be }.",
-          "The top-level object itself is the AnalyzeResult envelope.",
+          "Anthropic-specific full-contract envelope:",
+          "Return exactly one top-level JSON object.",
+          "Never return a top-level array.",
+          "Never return only claims.",
+          compactEnvelopeHint,
         ].join(" ")
       : provider === "mistral"
         ? [
-            "Mistral-specific contract reminder:",
-            "response_format=json_object is active. Use it to return one object envelope.",
-            "Do not return an array of claims. Do not return a list of records.",
-            "The top-level object itself is the AnalyzeResult envelope.",
+            "Mistral-specific full-contract envelope:",
+            "response_format=json_object is active. Return the complete AnalyzeResult envelope.",
+            "Return exactly one top-level JSON object.",
+            "Never return a top-level array.",
+            "Never return only claims.",
+            compactEnvelopeHint,
           ].join(" ")
         : provider === "openai"
           ? [
               "OpenAI-specific contract reminder:",
               "Structured JSON output is requested. Return the AnalyzeResult object itself.",
               "Do not wrap the object in an array.",
+              compactEnvelopeHint,
             ].join(" ")
           : [
               "Contract reminder:",
               "Return exactly one AnalyzeResult object, not an array.",
+              compactEnvelopeHint,
             ].join(" ");
 
   return `${FULL_CONTRACT_SYSTEM_PROMPT}\n\n${providerHint}\n\nInput:\n${FULL_SAMPLE_TEXT}`;
@@ -1439,6 +2378,8 @@ async function runFullContractRepairAttempt(params: {
 async function runDirectFullContractProvider(provider: E150ProviderName): Promise<ProviderDiagnostic> {
   const missingReason = configMissingReason(provider);
   const isOpenAi = provider === "openai";
+  const openAiSelectedSmokeModel = isOpenAi ? openAiSmokeModel() : null;
+  const openAiSmokeEnvPresent = isOpenAi ? Boolean(process.env.OPENAI_SMOKE_MODEL) : null;
   const openAiTimeoutMs = isOpenAi ? openAiSmokeTimeoutMs() : null;
   const openAiMaxOutputTokens = isOpenAi ? openAiSmokeMaxOutputTokens() : null;
   const openAiProfileNote = isOpenAi ? openAiSmokeConfigDiagnosticNote() : null;
@@ -1472,11 +2413,19 @@ async function runDirectFullContractProvider(provider: E150ProviderName): Promis
       repairSchemaPath: null,
       repairReason: "config_missing",
       repairUsed: false,
+      directStrictStatus: "blocked",
+      draftStatus: "not_attempted",
+      envelopeBuildStatus: "not_attempted",
+      finalSchemaStatus: "not_started",
       finalContractStatus: "blocked",
       formatUsed: null,
       didFallback: null,
       timeoutMs: openAiTimeoutMs,
       maxOutputTokens: openAiMaxOutputTokens,
+      selectedSmokeModel: openAiSelectedSmokeModel,
+      smokeModelEnvPresent: openAiSmokeEnvPresent,
+      effectiveModel: openAiSelectedSmokeModel ?? defaultModelForProvider(provider),
+      openAiSmokeModelMismatch: false,
       diagnosticNotes: mergeDiagnosticNotes(provider, [
         "Provider configuration missing.",
         openAiProfileNote,
@@ -1485,11 +2434,19 @@ async function runDirectFullContractProvider(provider: E150ProviderName): Promis
   }
 
   const started = Date.now();
-  const prompt = buildDirectFullContractPrompt(provider);
+  const prompt = buildProviderFullContractPrompt(provider);
 
   try {
     const strictCall = await executeDirectFullContractCall({ provider, prompt, repairAttempt: false });
     const strictValidation = validateFullContractPayload(strictCall.text ?? "");
+    const strictEffectiveModel = strictCall.model ?? defaultModelForProvider(provider);
+    const openAiSmokeModelMismatch =
+      isOpenAi &&
+      isOpenAiSmokeModelMismatch({
+        selectedSmokeModel: openAiSelectedSmokeModel,
+        effectiveModel: strictEffectiveModel,
+        smokeModelEnvPresent: Boolean(openAiSmokeEnvPresent),
+      });
 
     if (strictValidation.ok) {
       return baseDiagnostic({
@@ -1497,7 +2454,7 @@ async function runDirectFullContractProvider(provider: E150ProviderName): Promis
         mode: "full_contract",
         stage: "analyze_contract",
         pipeline: "provider_probe",
-        model: strictCall.model ?? defaultModelForProvider(provider),
+        model: strictEffectiveModel,
         status: "ok",
         errorKind: null,
         providerErrorCode: null,
@@ -1526,6 +2483,10 @@ async function runDirectFullContractProvider(provider: E150ProviderName): Promis
         repairSchemaPath: null,
         repairReason: null,
         repairUsed: false,
+        directStrictStatus: "ok",
+        draftStatus: "not_attempted",
+        envelopeBuildStatus: "not_attempted",
+        finalSchemaStatus: "ok",
         finalContractStatus: "strict_ok",
         formatUsed: strictCall.formatUsed,
         didFallback: strictCall.didFallback,
@@ -1533,8 +2494,16 @@ async function runDirectFullContractProvider(provider: E150ProviderName): Promis
         maxOutputTokens: strictCall.maxOutputTokens,
         openaiErrorCode: strictCall.openaiErrorCode,
         openaiErrorMessage: strictCall.openaiErrorMessage,
+        selectedSmokeModel: openAiSelectedSmokeModel,
+        smokeModelEnvPresent: openAiSmokeEnvPresent,
+        effectiveModel: strictEffectiveModel,
+        openAiSmokeModelMismatch,
         diagnosticNotes: mergeDiagnosticNotes(provider, [
           openAiProfileNote,
+          isOpenAi ? `effectiveModel=${strictEffectiveModel}` : null,
+          openAiSmokeModelMismatch
+            ? "OPENAI_SMOKE_MODEL mismatch: provider returned a different effective model than selectedSmokeModel."
+            : null,
           strictCall.formatUsed ? `formatUsed=${strictCall.formatUsed}` : null,
           strictCall.didFallback ? "Strict call used OpenAI json_object fallback." : null,
           strictCall.openaiErrorCode ? `openaiErrorCode=${strictCall.openaiErrorCode}` : null,
@@ -1543,17 +2512,102 @@ async function runDirectFullContractProvider(provider: E150ProviderName): Promis
       });
     }
 
-    const strictCode = normalizeErrorCode({
+    let strictCode = normalizeErrorCode({
       providerErrorCode: strictValidation.providerErrorCode,
       errorKind: strictValidation.errorKind,
       httpStatus: 200,
       message: strictValidation.errorMessage,
     });
     const blockedStrict = isBlockedContractError(strictCode);
+    const built = runDeterministicDraftEnvelopeBuild({
+      provider,
+      sourceText: FULL_SAMPLE_TEXT,
+      strictValidation,
+      rawText: strictCall.text ?? "",
+    });
+
+    if (built.finalContractStatus === "built_valid") {
+      return baseDiagnostic({
+        provider,
+        mode: "full_contract",
+        stage: "analyze_contract",
+        pipeline: "provider_probe",
+        model: strictEffectiveModel,
+        status: "degraded",
+        errorKind: strictValidation.errorKind,
+        providerErrorCode: strictCode,
+        httpStatus: 200,
+        errorMessage: strictValidation.errorMessage,
+        reason: strictValidation.reason,
+        validationMode: "analyze_schema",
+        providerStatus: "reachable",
+        adapterStatus: strictValidation.adapterStatus,
+        parseStatus: strictValidation.parseStatus,
+        schemaStatus: strictValidation.schemaStatus,
+        parseError: strictValidation.parseError,
+        schemaError: strictValidation.schemaError,
+        schemaPath: strictValidation.schemaPath,
+        rawExcerpt: strictValidation.rawExcerpt ?? strictCall.text,
+        durationMs: Date.now() - started,
+        tokensIn: strictCall.tokensIn,
+        tokensOut: strictCall.tokensOut,
+        journeyDecision: "selected",
+        strictStatus: blockedStrict ? "blocked" : "failed",
+        strictProviderErrorCode: strictCode,
+        strictSchemaPath: strictValidation.schemaPath,
+        repairAttempted: false,
+        repairStatus: "not_attempted",
+        repairProviderErrorCode: null,
+        repairSchemaPath: null,
+        repairReason: "builder_preferred_over_repair",
+        repairUsed: false,
+        directStrictStatus: blockedStrict ? "blocked" : "failed",
+        draftStatus: built.draftStatus,
+        envelopeBuildStatus: built.envelopeBuildStatus,
+        finalSchemaStatus: built.finalSchemaStatus,
+        finalContractStatus: "built_valid",
+        buildWarnings: built.diagnostics.buildWarnings,
+        filledDefaults: built.diagnostics.filledDefaults,
+        missingContainers: built.diagnostics.missingContainers,
+        normalizedEnumWarnings: built.diagnostics.normalizedEnumWarnings,
+        generatedIds: built.diagnostics.generatedIds,
+        formatUsed: strictCall.formatUsed,
+        didFallback: strictCall.didFallback,
+        timeoutMs: strictCall.timeoutMs,
+        maxOutputTokens: strictCall.maxOutputTokens,
+        openaiErrorCode: strictCall.openaiErrorCode,
+        openaiErrorMessage: strictCall.openaiErrorMessage,
+        selectedSmokeModel: openAiSelectedSmokeModel,
+        smokeModelEnvPresent: openAiSmokeEnvPresent,
+        effectiveModel: strictEffectiveModel,
+        openAiSmokeModelMismatch,
+        diagnosticNotes: mergeDiagnosticNotes(provider, [
+          openAiProfileNote,
+          isOpenAi ? `effectiveModel=${strictEffectiveModel}` : null,
+          openAiSmokeModelMismatch
+            ? "OPENAI_SMOKE_MODEL mismatch: provider returned a different effective model than selectedSmokeModel."
+            : null,
+          strictCall.formatUsed ? `formatUsed=${strictCall.formatUsed}` : null,
+          strictCall.didFallback ? "Strict call used OpenAI json_object fallback." : null,
+          strictCall.openaiErrorCode ? `openaiErrorCode=${strictCall.openaiErrorCode}` : null,
+          strictCall.openaiErrorMessage ? `openaiErrorMessage=${strictCall.openaiErrorMessage}` : null,
+          "Direct strict failed; deterministic AnalyzeResult envelope build produced schema-valid output.",
+        ]),
+      });
+    }
+
+    if (built.strictValidation !== strictValidation) {
+      strictCode = normalizeErrorCode({
+        providerErrorCode: built.strictValidation.providerErrorCode,
+        errorKind: built.strictValidation.errorKind,
+        httpStatus: 200,
+        message: built.strictValidation.errorMessage,
+      });
+    }
     const repair = await runFullContractRepairAttempt({
       provider,
       rawText: strictCall.text ?? "",
-      strictValidation,
+      strictValidation: built.strictValidation,
     });
 
     const finalContractStatus: ProviderDiagnostic["finalContractStatus"] =
@@ -1568,7 +2622,7 @@ async function runDirectFullContractProvider(provider: E150ProviderName): Promis
       mode: "full_contract",
       stage: "analyze_contract",
       pipeline: "provider_probe",
-      model: strictCall.model ?? defaultModelForProvider(provider),
+      model: strictEffectiveModel,
       status:
         finalContractStatus === "repaired_degraded"
           ? "degraded"
@@ -1582,39 +2636,66 @@ async function runDirectFullContractProvider(provider: E150ProviderName): Promis
       reason: strictValidation.reason,
       validationMode: "analyze_schema",
       providerStatus: "reachable",
-      adapterStatus: strictValidation.adapterStatus,
-      parseStatus: strictValidation.parseStatus,
-      schemaStatus: strictValidation.schemaStatus,
-      parseError: strictValidation.parseError,
-      schemaError: strictValidation.schemaError,
-      schemaPath: strictValidation.schemaPath,
-      rawExcerpt: strictValidation.rawExcerpt ?? strictCall.text,
+      adapterStatus: built.strictValidation.adapterStatus,
+      parseStatus: built.strictValidation.parseStatus,
+      schemaStatus: built.strictValidation.schemaStatus,
+      parseError: built.strictValidation.parseError,
+      schemaError: built.strictValidation.schemaError,
+      schemaPath: built.strictValidation.schemaPath,
+      rawExcerpt: built.strictValidation.rawExcerpt ?? strictCall.text,
       durationMs: Date.now() - started,
       tokensIn: strictCall.tokensIn,
       tokensOut: strictCall.tokensOut,
       journeyDecision: "selected",
       strictStatus: blockedStrict ? "blocked" : "failed",
       strictProviderErrorCode: strictCode,
-      strictSchemaPath: strictValidation.schemaPath,
+      strictSchemaPath: built.strictValidation.schemaPath ?? strictValidation.schemaPath,
       repairAttempted: repair.attempted,
       repairStatus: repair.status,
       repairProviderErrorCode: repair.providerErrorCode,
       repairSchemaPath: repair.schemaPath,
       repairReason: repair.reason,
       repairUsed: repair.attempted,
+      directStrictStatus: blockedStrict ? "blocked" : "failed",
+      draftStatus: built.draftStatus,
+      envelopeBuildStatus: built.envelopeBuildStatus,
+      finalSchemaStatus:
+        finalContractStatus === "repaired_degraded"
+          ? "ok"
+          : built.finalSchemaStatus === "failed"
+            ? "failed"
+            : strictValidation.schemaStatus === "ok"
+              ? "ok"
+              : strictValidation.schemaStatus === "failed"
+                ? "failed"
+                : "not_started",
       finalContractStatus,
+      buildWarnings: built.diagnostics.buildWarnings,
+      filledDefaults: built.diagnostics.filledDefaults,
+      missingContainers: built.diagnostics.missingContainers,
+      normalizedEnumWarnings: built.diagnostics.normalizedEnumWarnings,
+      generatedIds: built.diagnostics.generatedIds,
       formatUsed: strictCall.formatUsed,
       didFallback: strictCall.didFallback,
       timeoutMs: strictCall.timeoutMs,
       maxOutputTokens: strictCall.maxOutputTokens,
       openaiErrorCode: strictCall.openaiErrorCode,
       openaiErrorMessage: strictCall.openaiErrorMessage,
+      selectedSmokeModel: openAiSelectedSmokeModel,
+      smokeModelEnvPresent: openAiSmokeEnvPresent,
+      effectiveModel: strictEffectiveModel,
+      openAiSmokeModelMismatch,
       diagnosticNotes: mergeDiagnosticNotes(provider, [
         openAiProfileNote,
+        isOpenAi ? `effectiveModel=${strictEffectiveModel}` : null,
+        openAiSmokeModelMismatch
+          ? "OPENAI_SMOKE_MODEL mismatch: provider returned a different effective model than selectedSmokeModel."
+          : null,
         strictCall.formatUsed ? `formatUsed=${strictCall.formatUsed}` : null,
         strictCall.didFallback ? "Strict call used OpenAI json_object fallback." : null,
         strictCall.openaiErrorCode ? `openaiErrorCode=${strictCall.openaiErrorCode}` : null,
         strictCall.openaiErrorMessage ? `openaiErrorMessage=${strictCall.openaiErrorMessage}` : null,
+        built.draftStatus === "ok" ? "Draft parsing completed for deterministic envelope build." : null,
         repair.attempted ? "Repair attempt executed as degraded fallback." : "Repair not attempted.",
       ]),
     });
@@ -1629,13 +2710,21 @@ async function runDirectFullContractProvider(provider: E150ProviderName): Promis
     const status = typeof error?.status === "number" ? error.status : null;
     const blocked = isBlockedContractError(providerCode);
     const finalContractStatus: ProviderDiagnostic["finalContractStatus"] = blocked ? "blocked" : "failed";
+    const effectiveModel = error?.meta?.model ?? defaultModelForProvider(provider);
+    const openAiSmokeModelMismatch =
+      isOpenAi &&
+      isOpenAiSmokeModelMismatch({
+        selectedSmokeModel: openAiSelectedSmokeModel,
+        effectiveModel,
+        smokeModelEnvPresent: Boolean(openAiSmokeEnvPresent),
+      });
 
     return baseDiagnostic({
       provider,
       mode: "full_contract",
       stage: "analyze_contract",
       pipeline: "provider_probe",
-      model: error?.meta?.model ?? defaultModelForProvider(provider),
+      model: effectiveModel,
       status:
         looksConfigMissing(error?.message) || providerCode === "CONFIG_MISSING"
           ? "config_missing"
@@ -1662,6 +2751,10 @@ async function runDirectFullContractProvider(provider: E150ProviderName): Promis
       repairSchemaPath: null,
       repairReason: blocked ? "account_or_runtime_blocked" : "strict_call_failed",
       repairUsed: false,
+      directStrictStatus: blocked ? "blocked" : "failed",
+      draftStatus: "not_attempted",
+      envelopeBuildStatus: "not_attempted",
+      finalSchemaStatus: "not_started",
       finalContractStatus,
       formatUsed: null,
       didFallback: null,
@@ -1669,8 +2762,16 @@ async function runDirectFullContractProvider(provider: E150ProviderName): Promis
       maxOutputTokens: openAiMaxOutputTokens,
       openaiErrorCode: isOpenAi ? providerCode : null,
       openaiErrorMessage: isOpenAi ? error?.message ?? "direct_full_contract_failed" : null,
+      selectedSmokeModel: openAiSelectedSmokeModel,
+      smokeModelEnvPresent: openAiSmokeEnvPresent,
+      effectiveModel,
+      openAiSmokeModelMismatch,
       diagnosticNotes: mergeDiagnosticNotes(provider, [
         openAiProfileNote,
+        isOpenAi ? `effectiveModel=${effectiveModel}` : null,
+        openAiSmokeModelMismatch
+          ? "OPENAI_SMOKE_MODEL mismatch: provider returned a different effective model than selectedSmokeModel."
+          : null,
         blocked ? "Strict call blocked by account/runtime condition." : "Strict call failed before validation.",
       ]),
     });

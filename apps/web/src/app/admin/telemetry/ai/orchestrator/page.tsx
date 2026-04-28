@@ -41,9 +41,25 @@ type ProviderDiagnostic = {
   repairSchemaPath: string | null;
   repairReason: string | null;
   repairUsed: boolean;
-  finalContractStatus: "strict_ok" | "repaired_degraded" | "failed" | "blocked" | "not_started";
+  directStrictStatus: "ok" | "failed" | "blocked" | "not_started";
+  draftStatus: "ok" | "failed" | "not_attempted";
+  envelopeBuildStatus: "ok" | "failed" | "not_attempted";
+  finalSchemaStatus: "ok" | "failed" | "not_started";
+  finalContractStatus:
+    | "strict_ok"
+    | "built_valid"
+    | "repaired_degraded"
+    | "failed"
+    | "blocked"
+    | "not_started";
+  buildWarnings: string[];
+  filledDefaults: string[];
+  missingContainers: string[];
+  normalizedEnumWarnings: string[];
+  generatedIds: string[];
   nativeStrategy: string;
   preferredContractStrategy: string;
+  providerStrategy: string;
   fallbackStrategy: string;
   supportsStrictJsonSchema: boolean;
   supportsJsonObjectMode: boolean | "prompt_only";
@@ -59,6 +75,10 @@ type ProviderDiagnostic = {
   maxOutputTokens?: number | null;
   openaiErrorCode?: string | null;
   openaiErrorMessage?: string | null;
+  selectedSmokeModel?: string | null;
+  smokeModelEnvPresent?: boolean | null;
+  effectiveModel?: string | null;
+  openAiSmokeModelMismatch?: boolean | null;
   rootCause: string;
   nextAction: string;
 };
@@ -126,6 +146,7 @@ function statusChipClass(status: ProviderDiagnostic["status"]): string {
 
 function contractStatusChipClass(status: ProviderDiagnostic["finalContractStatus"]): string {
   if (status === "strict_ok") return "bg-emerald-50 text-emerald-700 border-emerald-200";
+  if (status === "built_valid") return "bg-amber-50 text-amber-700 border-amber-200";
   if (status === "repaired_degraded") return "bg-amber-50 text-amber-700 border-amber-200";
   if (status === "blocked") return "bg-rose-50 text-rose-700 border-rose-200";
   if (status === "failed") return "bg-rose-50 text-rose-700 border-rose-200";
@@ -162,6 +183,15 @@ function hasDetail(row: ProviderDiagnostic): boolean {
       row.reason ||
       row.openaiErrorCode ||
       row.openaiErrorMessage ||
+      (Array.isArray(row.buildWarnings) && row.buildWarnings.length > 0) ||
+      (Array.isArray(row.filledDefaults) && row.filledDefaults.length > 0) ||
+      (Array.isArray(row.missingContainers) && row.missingContainers.length > 0) ||
+      (Array.isArray(row.normalizedEnumWarnings) && row.normalizedEnumWarnings.length > 0) ||
+      (Array.isArray(row.generatedIds) && row.generatedIds.length > 0) ||
+      row.selectedSmokeModel ||
+      row.effectiveModel ||
+      typeof row.smokeModelEnvPresent === "boolean" ||
+      row.openAiSmokeModelMismatch === true ||
       typeof row.timeoutMs === "number" ||
       typeof row.maxOutputTokens === "number" ||
       (Array.isArray(row.diagnosticNotes) && row.diagnosticNotes.length > 0),
@@ -272,6 +302,8 @@ function buildProviderHealthRows(dataByMode: Partial<Record<SmokeMode, SmokeResp
   const strictRows = dataByMode.full_contract?.directContractRows ?? [];
 
   return HEALTH_PROVIDERS.map((provider) => {
+    const isPrimaryContractProvider =
+      provider === "openai" || provider === "anthropic" || provider === "mistral";
     const probe = probeRows.find((row) => row.provider === provider);
     const runtime = runtimeRows.find((row) => row.provider === provider);
     const journey = journeyRows.find((row) => row.provider === provider);
@@ -289,6 +321,14 @@ function buildProviderHealthRows(dataByMode: Partial<Record<SmokeMode, SmokeResp
     let overall: ProviderHealthStatus = "gray";
     if (account === "red") {
       overall = "red";
+    } else if (isPrimaryContractProvider) {
+      if (strictStatus === "green" && connection === "green" && (runtimeStatus === "green" || runtimeStatus === "gray")) {
+        overall = "green";
+      } else if (strictStatus === "yellow" && connection === "green" && runtimeStatus !== "red") {
+        overall = "yellow";
+      } else if (strictStatus === "red" || [connection, runtimeStatus].includes("red")) {
+        overall = "red";
+      }
     } else if (connection === "green" && runtimeStatus === "green" && strictStatus === "green") {
       overall = "green";
     } else if (connection === "green" && (runtimeStatus === "green" || runtimeStatus === "gray") && strictStatus !== "green") {
@@ -546,7 +586,7 @@ export default function OrchestratorTelemetryPage() {
                                     {row.finalContractStatus}
                                   </span>
                                   <div className="mt-1 text-xs text-[rgb(var(--muted))]">
-                                    strict={row.strictStatus} · repair={row.repairStatus} · repairAttempted={String(row.repairAttempted)}
+                                    strict={row.strictStatus} · draft={row.draftStatus} · build={row.envelopeBuildStatus} · repair={row.repairStatus}
                                   </div>
                                   <div className="mt-1 text-[10px] text-[rgb(var(--muted))]">
                                     native={row.nativeStrategy} · preferred={row.preferredContractStrategy} · format={row.formatUsed ?? "none"} · fallback={String(row.didFallback)}
@@ -571,10 +611,15 @@ export default function OrchestratorTelemetryPage() {
                                     {expanded && (
                                       <div className="mt-2 rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-3 text-xs text-[rgb(var(--muted))]">
                                         <div>mode={formatModeLabel(row.mode)} · stage=direct_provider_contract · finalContractStatus={row.finalContractStatus}</div>
-                                        <div>nativeStrategy={row.nativeStrategy} · preferredContractStrategy={row.preferredContractStrategy} · fallbackStrategy={row.fallbackStrategy}</div>
+                                        <div>nativeStrategy={row.nativeStrategy} · providerStrategy={row.providerStrategy} · preferredContractStrategy={row.preferredContractStrategy} · fallbackStrategy={row.fallbackStrategy}</div>
                                         <div>model={row.model ?? "unknown"} · timeoutMs={row.timeoutMs ?? "n/a"} · maxOutputTokens={row.maxOutputTokens ?? "n/a"}</div>
+                                        <div>selectedSmokeModel={row.selectedSmokeModel ?? "n/a"} · smokeModelEnvPresent={typeof row.smokeModelEnvPresent === "boolean" ? String(row.smokeModelEnvPresent) : "n/a"} · effectiveModel={row.effectiveModel ?? "n/a"} · openAiSmokeModelMismatch={String(row.openAiSmokeModelMismatch ?? false)}</div>
                                         <div>strictStatus={row.strictStatus} · strictProviderCode={row.strictProviderErrorCode ?? "none"} · strictSchemaPath={row.strictSchemaPath ?? "none"}</div>
+                                        <div>directStrictStatus={row.directStrictStatus} · draftStatus={row.draftStatus} · envelopeBuildStatus={row.envelopeBuildStatus} · finalSchemaStatus={row.finalSchemaStatus}</div>
                                         <div>repairStatus={row.repairStatus} · repairUsed={String(row.repairUsed)} · repairProviderCode={row.repairProviderErrorCode ?? "none"} · repairSchemaPath={row.repairSchemaPath ?? "none"} · repairReason={row.repairReason ?? "none"}</div>
+                                        <div>filledDefaults={row.filledDefaults.join(",") || "none"} · missingContainers={row.missingContainers.join(",") || "none"}</div>
+                                        <div>normalizedEnumWarnings={row.normalizedEnumWarnings.join(" | ") || "none"} · generatedIds={row.generatedIds.join(",") || "none"}</div>
+                                        <div>buildWarnings={row.buildWarnings.join(" | ") || "none"}</div>
                                         <div>formatUsed={row.formatUsed ?? "none"} · didFallback={String(row.didFallback)} · supportsPromptEnvelope={String(row.supportsPromptEnvelope)}</div>
                                         <div>openaiErrorCode={row.openaiErrorCode ?? "none"} · openaiErrorMessage={row.openaiErrorMessage ?? "none"}</div>
                                         <div>errorKind={row.errorKind ?? "none"} · providerCode={row.providerErrorCode ?? "none"} · httpStatus={row.httpStatus ?? "none"}</div>
