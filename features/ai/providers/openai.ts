@@ -64,6 +64,21 @@ function parseReasoningEffort(value: unknown): OpenAiReasoningEffort | null {
   return null;
 }
 
+function supportsReasoningEffort(model: string): boolean {
+  const normalized = model.trim().toLowerCase();
+  if (!normalized) return false;
+
+  // Conservative allowlist: only enable reasoning.effort for known reasoning model family.
+  // For uncertain models, omit the parameter to avoid UNSUPPORTED_PARAMETER request failures.
+  if (normalized === "gpt-5" || normalized.startsWith("gpt-5-")) return true;
+
+  // Explicitly keep common non-reasoning models out.
+  if (normalized === "gpt-4.1" || normalized.startsWith("gpt-4.1-")) return false;
+  if (normalized === "gpt-4o" || normalized.startsWith("gpt-4o-")) return false;
+
+  return false;
+}
+
 async function post(body: any, signal?: AbortSignal) {
   const res = await fetch(`${API_BASE}/responses`, {
     method: "POST",
@@ -247,7 +262,10 @@ async function askOpenAI({
     model: resolvedModel,
     input: mergedInput,
     max_output_tokens: resolvedMaxTokens,
-    reasoning: reasoningEffort ? { effort: reasoningEffort } : undefined,
+    reasoning:
+      reasoningEffort && supportsReasoningEffort(resolvedModel)
+        ? { effort: reasoningEffort }
+        : undefined,
     text:
       asJson || forceJsonFormat
         ? {
