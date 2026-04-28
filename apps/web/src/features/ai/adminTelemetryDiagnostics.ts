@@ -34,10 +34,14 @@ export type ContractStrictStatus = "ok" | "failed" | "blocked" | "not_started";
 export type ContractRepairStatus = "ok" | "failed" | "blocked" | "not_attempted";
 export type FinalContractStatus =
   | "strict_ok"
+  | "built_valid"
   | "repaired_degraded"
   | "failed"
   | "blocked"
   | "not_started";
+export type DraftStatus = "ok" | "failed" | "not_attempted";
+export type EnvelopeBuildStatus = "ok" | "failed" | "not_attempted";
+export type FinalSchemaStatus = "ok" | "failed" | "not_started";
 export type ContractStrategy =
   | "json_schema"
   | "json_object_envelope"
@@ -105,9 +109,19 @@ export type ProviderDiagnostic = {
   repairSchemaPath: string | null;
   repairReason: string | null;
   repairUsed: boolean;
+  directStrictStatus: ContractStrictStatus;
+  draftStatus: DraftStatus;
+  envelopeBuildStatus: EnvelopeBuildStatus;
+  finalSchemaStatus: FinalSchemaStatus;
   finalContractStatus: FinalContractStatus;
+  buildWarnings: string[];
+  filledDefaults: string[];
+  missingContainers: string[];
+  normalizedEnumWarnings: string[];
+  generatedIds: string[];
   nativeStrategy: NativeStrategy;
   preferredContractStrategy: ContractStrategy;
+  providerStrategy: ContractStrategy;
   fallbackStrategy: ContractStrategy;
   supportsStrictJsonSchema: boolean;
   supportsJsonObjectMode: JsonObjectSupport;
@@ -123,6 +137,10 @@ export type ProviderDiagnostic = {
   maxOutputTokens?: number | null;
   openaiErrorCode?: string | null;
   openaiErrorMessage?: string | null;
+  selectedSmokeModel?: string | null;
+  smokeModelEnvPresent?: boolean | null;
+  effectiveModel?: string | null;
+  openAiSmokeModelMismatch?: boolean | null;
   rootCause: string;
   nextAction: string;
 };
@@ -447,6 +465,7 @@ export function deriveRootCause(row: Pick<
   | "finalContractStatus"
 >): string {
   if (row.finalContractStatus === "strict_ok") return "STRICT_OK";
+  if (row.finalContractStatus === "built_valid") return "BUILT_VALID";
   if (row.finalContractStatus === "repaired_degraded") return "REPAIRED_DEGRADED";
   if (row.finalContractStatus === "blocked") return "BLOCKED";
   if (row.status === "ok") return "OK";
@@ -464,6 +483,7 @@ export function deriveRootCause(row: Pick<
 
 export function deriveNextAction(row: Pick<
   ProviderDiagnostic,
+  | "provider"
   | "status"
   | "journeyDecision"
   | "errorKind"
@@ -472,8 +492,15 @@ export function deriveNextAction(row: Pick<
   | "schemaStatus"
   | "providerErrorCode"
   | "finalContractStatus"
+  | "openAiSmokeModelMismatch"
 >): string {
+  if (row.provider === "openai" && row.openAiSmokeModelMismatch) {
+    return "OPENAI_SMOKE_MODEL prüfen; Direct Contract sollte Smoke-Profil nutzen.";
+  }
   if (row.finalContractStatus === "strict_ok") return "Keine Aktion";
+  if (row.finalContractStatus === "built_valid") {
+    return "Direkter Strict-Contract fehlt; deterministischer Envelope ist nutzbar, Provider-Strict-Pfad nachhaerten.";
+  }
   if (row.finalContractStatus === "repaired_degraded") {
     return "Nur repaired/degraded nutzbar; strict Contract auf Providerseite nachhaerten.";
   }
