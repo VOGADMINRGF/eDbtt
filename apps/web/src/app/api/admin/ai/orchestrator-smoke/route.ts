@@ -19,6 +19,10 @@ import {
   deriveProviderStatus,
   deriveRootCause,
   extractProviderErrorCode,
+  getProviderContractCapabilities,
+  isAccountBlockedErrorCode,
+  isNonRepairableContractErrorCode,
+  isRepairableContractErrorCode,
   mapErrorToKind,
   looksConfigMissing,
   providerDisplayName,
@@ -368,7 +372,21 @@ function baseDiagnostic(params: {
   fallbackUsed?: boolean | null;
   fallbackReason?: string | null;
   journeyDecision?: ProviderDiagnostic["journeyDecision"];
+  strictStatus?: ProviderDiagnostic["strictStatus"];
+  strictProviderErrorCode?: string | null;
+  strictSchemaPath?: string | null;
+  repairAttempted?: boolean;
+  repairStatus?: ProviderDiagnostic["repairStatus"];
+  repairProviderErrorCode?: string | null;
+  repairSchemaPath?: string | null;
+  repairReason?: string | null;
+  repairUsed?: boolean;
+  finalContractStatus?: ProviderDiagnostic["finalContractStatus"];
+  formatUsed?: ProviderDiagnostic["formatUsed"];
+  didFallback?: boolean | null;
+  diagnosticNotes?: string[];
 }): ProviderDiagnostic {
+  const capabilities = getProviderContractCapabilities(params.provider);
   const row: ProviderDiagnostic = {
     provider: params.provider,
     displayName: providerDisplayName(params.provider),
@@ -398,6 +416,37 @@ function baseDiagnostic(params: {
     fallbackUsed: typeof params.fallbackUsed === "boolean" ? params.fallbackUsed : null,
     fallbackReason: params.fallbackReason ?? null,
     journeyDecision: params.journeyDecision ?? "selected",
+    strictStatus:
+      params.strictStatus ??
+      (params.status === "ok" ? "ok" : params.status === "config_missing" ? "blocked" : "not_started"),
+    strictProviderErrorCode: params.strictProviderErrorCode ?? params.providerErrorCode ?? null,
+    strictSchemaPath: params.strictSchemaPath ?? params.schemaPath ?? null,
+    repairAttempted: typeof params.repairAttempted === "boolean" ? params.repairAttempted : false,
+    repairStatus: params.repairStatus ?? "not_attempted",
+    repairProviderErrorCode: params.repairProviderErrorCode ?? null,
+    repairSchemaPath: params.repairSchemaPath ?? null,
+    repairReason: params.repairReason ?? null,
+    repairUsed: typeof params.repairUsed === "boolean" ? params.repairUsed : false,
+    finalContractStatus:
+      params.finalContractStatus ??
+      (params.status === "ok"
+        ? "strict_ok"
+        : params.status === "config_missing"
+          ? "blocked"
+          : "not_started"),
+    nativeStrategy: capabilities.nativeStrategy,
+    preferredContractStrategy: capabilities.preferredContractStrategy,
+    fallbackStrategy: capabilities.fallbackStrategy,
+    supportsStrictJsonSchema: capabilities.supportsStrictJsonSchema,
+    supportsJsonObjectMode: capabilities.supportsJsonObjectMode,
+    supportsPromptEnvelope: capabilities.supportsPromptEnvelope,
+    supportsRepairAttempt: capabilities.supportsRepairAttempt,
+    canBeUsedAsRepairProvider: capabilities.canBeUsedAsRepairProvider,
+    knownBlockers: [...capabilities.knownBlockers],
+    nonRepairableErrorCodes: [...capabilities.nonRepairableErrorCodes],
+    diagnosticNotes: params.diagnosticNotes ?? [...capabilities.diagnosticNotes],
+    formatUsed: params.formatUsed ?? null,
+    didFallback: typeof params.didFallback === "boolean" ? params.didFallback : null,
     rootCause: "RUNTIME_FAILED",
     nextAction: "Adapter-/Runtime-Logs pruefen.",
   };
@@ -427,8 +476,8 @@ function toLegacyResult(row: ProviderDiagnostic): LegacyProviderSmokeResult {
     errorMessage: row.errorMessage,
     providerErrorCode: row.providerErrorCode,
     model: row.model,
-    formatUsed: null,
-    didFallback: row.fallbackUsed,
+    formatUsed: row.formatUsed,
+    didFallback: row.didFallback ?? row.fallbackUsed,
     openaiErrorCode: row.provider === "openai" ? row.providerErrorCode : null,
     openaiErrorMessage: row.provider === "openai" ? row.errorMessage : null,
   };
@@ -554,6 +603,8 @@ function mapRowsFromProviderMatrix(
           entry.didFallback === true
             ? entry.openaiErrorMessage ?? entry.openaiErrorCode ?? entry.providerErrorCode ?? reason
             : null,
+        formatUsed: entry.formatUsed ?? null,
+        didFallback: typeof entry.didFallback === "boolean" ? entry.didFallback : null,
         journeyDecision,
       });
     }),
@@ -819,8 +870,8 @@ function topLevelContractErrorCode(kind: ReturnType<typeof topLevelJsonKind>): s
   return "TOP_LEVEL_NOT_OBJECT";
 }
 
-function validateFullContractPayload(rawText: string): {
-  status: ProviderDiagnostic["status"];
+type FullContractValidation = {
+  ok: boolean;
   errorKind: AiErrorKind | null;
   providerErrorCode: string | null;
   errorMessage: string | null;
@@ -832,7 +883,9 @@ function validateFullContractPayload(rawText: string): {
   schemaError: string | null;
   schemaPath: string | null;
   rawExcerpt: string | null;
-} {
+};
+
+function validateFullContractPayload(rawText: string): FullContractValidation {
   const raw = rawText ?? "";
   const candidate = extractJsonCandidate(raw) ?? cleanJson(raw);
   const cleaned = candidate.trim();
@@ -842,7 +895,7 @@ function validateFullContractPayload(rawText: string): {
       ? "upstream_bad_response"
       : "no_json_object_found";
     return {
-      status: "failed",
+      ok: false,
       errorKind: looksLikeHtmlOrUpstreamError(raw) ? "INTERNAL" : "BAD_JSON",
       providerErrorCode: looksLikeHtmlOrUpstreamError(raw) ? "UPSTREAM_BAD_RESPONSE" : "BAD_JSON",
       errorMessage: reason,
@@ -859,7 +912,7 @@ function validateFullContractPayload(rawText: string): {
 
   if (looksLikeHtmlOrUpstreamError(cleaned)) {
     return {
-      status: "failed",
+      ok: false,
       errorKind: "INTERNAL",
       providerErrorCode: "UPSTREAM_BAD_RESPONSE",
       errorMessage: "provider_returned_html_or_upstream_error",
@@ -880,7 +933,7 @@ function validateFullContractPayload(rawText: string): {
   } catch (error: any) {
     const parseError = error?.message ?? "json_parse_failed";
     return {
-      status: "failed",
+      ok: false,
       errorKind: "BAD_JSON",
       providerErrorCode: "BAD_JSON",
       errorMessage: parseError,
@@ -900,7 +953,7 @@ function validateFullContractPayload(rawText: string): {
     const code = topLevelContractErrorCode(parsedKind);
     const message = `expected top-level JSON object, received ${parsedKind}`;
     return {
-      status: "failed",
+      ok: false,
       errorKind: "INTERNAL",
       providerErrorCode: code,
       errorMessage: message,
@@ -920,7 +973,7 @@ function validateFullContractPayload(rawText: string): {
     const first = schema.error.issues[0];
     const schemaError = first?.message ?? "schema_validation_failed";
     return {
-      status: "failed",
+      ok: false,
       errorKind: "INTERNAL",
       providerErrorCode: "SCHEMA_INVALID",
       errorMessage: schemaError,
@@ -936,7 +989,7 @@ function validateFullContractPayload(rawText: string): {
   }
 
   return {
-    status: "ok",
+    ok: true,
     errorKind: null,
     providerErrorCode: null,
     errorMessage: null,
@@ -949,6 +1002,100 @@ function validateFullContractPayload(rawText: string): {
     schemaPath: null,
     rawExcerpt: cleaned.slice(0, 500),
   };
+}
+
+function normalizeErrorCode(input: {
+  providerErrorCode: string | null | undefined;
+  errorKind: AiErrorKind | null | undefined;
+  httpStatus: number | null | undefined;
+  message: string | null | undefined;
+}): string | null {
+  const providerCode = typeof input.providerErrorCode === "string" && input.providerErrorCode.trim().length > 0
+    ? input.providerErrorCode.trim().toUpperCase()
+    : null;
+  const message = (input.message ?? "").toLowerCase();
+  const status = typeof input.httpStatus === "number" ? input.httpStatus : null;
+  const kind = input.errorKind ?? null;
+
+  if (looksConfigMissing(input.message)) return "CONFIG_MISSING";
+  if (status === 402 || providerCode === "PAYMENT_REQUIRED" || message.includes("payment required")) {
+    return "PAYMENT_REQUIRED";
+  }
+  if (
+    status === 429 ||
+    providerCode === "RESOURCE_EXHAUSTED" ||
+    providerCode === "QUOTA_EXCEEDED" ||
+    providerCode === "RATE_LIMIT" ||
+    message.includes("resource_exhausted") ||
+    message.includes("quota")
+  ) {
+    return providerCode === "RESOURCE_EXHAUSTED" || message.includes("resource_exhausted")
+      ? "RESOURCE_EXHAUSTED"
+      : "RATE_LIMIT";
+  }
+  if (status === 503 || providerCode === "UNAVAILABLE" || message.includes("unavailable")) {
+    return "UNAVAILABLE";
+  }
+  if (status === 401 || status === 403 || kind === "UNAUTHORIZED" || kind === "INVALID_API_KEY") {
+    return "UNAUTHORIZED";
+  }
+  if (kind === "TIMEOUT") return "TIMEOUT";
+  if (providerCode) return providerCode;
+  if (kind === "BAD_JSON") return "BAD_JSON";
+  return null;
+}
+
+function isBlockedContractError(code: string | null): boolean {
+  if (!code) return false;
+  if (isAccountBlockedErrorCode(code)) return true;
+  return code === "TIMEOUT" || code === "UNAVAILABLE";
+}
+
+function mergeDiagnosticNotes(
+  provider: E150ProviderName,
+  extraNotes: Array<string | null | undefined>,
+): string[] {
+  const capabilities = getProviderContractCapabilities(provider);
+  const notes = [...capabilities.diagnosticNotes];
+  for (const note of extraNotes) {
+    if (typeof note !== "string") continue;
+    const trimmed = note.trim();
+    if (!trimmed) continue;
+    notes.push(trimmed);
+  }
+  return Array.from(new Set(notes));
+}
+
+function isRepairAttemptAllowedForStrictFailure(params: {
+  provider: E150ProviderName;
+  strictProviderErrorCode: string | null;
+  strictStatusCode: number | null;
+  strictMessage: string | null;
+}): { allowed: boolean; reason: string | null; blocked: boolean } {
+  const capabilities = getProviderContractCapabilities(params.provider);
+  const normalizedCode = normalizeErrorCode({
+    providerErrorCode: params.strictProviderErrorCode,
+    errorKind: null,
+    httpStatus: params.strictStatusCode,
+    message: params.strictMessage,
+  });
+
+  if (!capabilities.supportsRepairAttempt || !capabilities.canBeUsedAsRepairProvider) {
+    return { allowed: false, reason: "repair_not_supported_for_provider", blocked: false };
+  }
+  if (!normalizedCode) {
+    return { allowed: false, reason: "repair_not_attempted_unknown_error", blocked: false };
+  }
+  if (capabilities.accountBlockedCodes.includes(normalizedCode) || isBlockedContractError(normalizedCode)) {
+    return { allowed: false, reason: "account_or_runtime_blocked", blocked: true };
+  }
+  if (capabilities.nonRepairableErrorCodes.includes(normalizedCode) || isNonRepairableContractErrorCode(normalizedCode)) {
+    return { allowed: false, reason: "non_repairable_error_code", blocked: false };
+  }
+  if (!isRepairableContractErrorCode(normalizedCode)) {
+    return { allowed: false, reason: "strict_error_not_repairable", blocked: false };
+  }
+  return { allowed: true, reason: null, blocked: false };
 }
 
 function buildDirectFullContractPrompt(provider: E150ProviderName): string {
@@ -982,6 +1129,261 @@ function buildDirectFullContractPrompt(provider: E150ProviderName): string {
   return `${FULL_CONTRACT_SYSTEM_PROMPT}\n\n${providerHint}\n\nInput:\n${FULL_SAMPLE_TEXT}`;
 }
 
+function buildFullContractRepairPrompt(
+  provider: E150ProviderName,
+  rawText: string,
+  strictError: { providerErrorCode: string | null; schemaPath: string | null; message: string | null },
+): string {
+  const capabilities = getProviderContractCapabilities(provider);
+  const strictErrorParts = [
+    `code=${strictError.providerErrorCode ?? "unknown"}`,
+    `schemaPath=${strictError.schemaPath ?? "$"}`,
+    `message=${strictError.message ?? "unknown"}`,
+  ].join(" ; ");
+  const rawExcerpt = rawText.slice(0, 10_000);
+
+  return [
+    "You are repairing a failed AnalyzeResult contract response.",
+    "Convert the provider output into exactly one AnalyzeResult JSON object.",
+    "Do not output markdown. Do not output a list. Do not output explanations.",
+    "The top-level output must be a single JSON object. First non-whitespace character must be '{'.",
+    "Last non-whitespace character must be '}'.",
+    `Provider capability strategy: ${capabilities.preferredContractStrategy}.`,
+    "Target contract constraints:",
+    FULL_CONTRACT_SYSTEM_PROMPT,
+    "Strict validation failure:",
+    strictErrorParts,
+    "Raw provider output to repair:",
+    rawExcerpt,
+    "Minimal valid AnalyzeResult example:",
+    FULL_CONTRACT_EXAMPLE_JSON,
+  ].join("\n\n");
+}
+
+async function executeDirectFullContractCall(params: {
+  provider: E150ProviderName;
+  prompt: string;
+  timeoutMs?: number;
+  maxOutputTokens?: number;
+  repairAttempt?: boolean;
+}): Promise<{
+  text: string;
+  model: string | null;
+  tokensIn: number | null;
+  tokensOut: number | null;
+  formatUsed: "json_schema" | "json_object" | null;
+  didFallback: boolean | null;
+  openaiErrorCode: string | null;
+  openaiErrorMessage: string | null;
+}> {
+  const provider = params.provider;
+  if (provider === "openai") {
+    const res = await callOpenAI({
+      prompt: params.prompt,
+      asJson: true,
+      forceJsonFormat: true,
+      model: openAiSmokeModel(),
+      timeoutMs: params.timeoutMs ?? openAiSmokeTimeoutMs(),
+      maxOutputTokens: params.maxOutputTokens ?? openAiSmokeMaxOutputTokens(),
+    });
+    return {
+      text: res.text,
+      model: res.model ?? defaultModelForProvider(provider),
+      tokensIn: res.tokensIn ?? null,
+      tokensOut: res.tokensOut ?? null,
+      formatUsed: res.formatUsed ?? null,
+      didFallback: typeof res.didFallback === "boolean" ? res.didFallback : null,
+      openaiErrorCode: res.openaiErrorCode ?? null,
+      openaiErrorMessage: res.openaiErrorMessage ?? null,
+    };
+  }
+  if (provider === "anthropic") {
+    const res = await callAnthropic({
+      prompt: params.prompt,
+      maxOutputTokens: params.maxOutputTokens ?? (params.repairAttempt ? 2_300 : 2_600),
+    });
+    return {
+      text: res.text,
+      model: res.model ?? defaultModelForProvider(provider),
+      tokensIn: res.tokensIn ?? null,
+      tokensOut: res.tokensOut ?? null,
+      formatUsed: null,
+      didFallback: null,
+      openaiErrorCode: null,
+      openaiErrorMessage: null,
+    };
+  }
+  if (provider === "mistral") {
+    const res = await callMistral({
+      prompt: params.prompt,
+      maxOutputTokens: params.maxOutputTokens ?? (params.repairAttempt ? 2_300 : 2_600),
+    });
+    return {
+      text: res.text,
+      model: res.model ?? defaultModelForProvider(provider),
+      tokensIn: res.tokensIn ?? null,
+      tokensOut: res.tokensOut ?? null,
+      formatUsed: "json_object",
+      didFallback: null,
+      openaiErrorCode: null,
+      openaiErrorMessage: null,
+    };
+  }
+  if (provider === "gemini") {
+    const res = await callGemini({
+      prompt: params.prompt,
+      maxOutputTokens: params.maxOutputTokens ?? (params.repairAttempt ? 2_300 : 2_600),
+      expectJson: true,
+    });
+    return {
+      text: res.text,
+      model: res.model ?? defaultModelForProvider(provider),
+      tokensIn: res.tokensIn ?? null,
+      tokensOut: res.tokensOut ?? null,
+      formatUsed: "json_object",
+      didFallback: null,
+      openaiErrorCode: null,
+      openaiErrorMessage: null,
+    };
+  }
+
+  const res = await callAriLLM({
+    prompt: params.prompt,
+    asJson: true,
+    maxOutputTokens: params.maxOutputTokens ?? (params.repairAttempt ? 2_300 : 2_600),
+  });
+  return {
+    text: res.text,
+    model: res.model ?? defaultModelForProvider(provider),
+    tokensIn: res.tokensIn ?? null,
+    tokensOut: res.tokensOut ?? null,
+    formatUsed: null,
+    didFallback: null,
+    openaiErrorCode: null,
+    openaiErrorMessage: null,
+  };
+}
+
+async function runFullContractRepairAttempt(params: {
+  provider: E150ProviderName;
+  rawText: string;
+  strictValidation: FullContractValidation;
+}): Promise<{
+  attempted: boolean;
+  blocked: boolean;
+  reason: string | null;
+  status: ProviderDiagnostic["repairStatus"];
+  providerErrorCode: string | null;
+  schemaPath: string | null;
+  errorKind: AiErrorKind | null;
+  errorMessage: string | null;
+  parseStatus: ProviderDiagnostic["parseStatus"];
+  schemaStatus: ProviderDiagnostic["schemaStatus"];
+  rawExcerpt: string | null;
+}> {
+  const strictCode = normalizeErrorCode({
+    providerErrorCode: params.strictValidation.providerErrorCode,
+    errorKind: params.strictValidation.errorKind,
+    httpStatus: null,
+    message: params.strictValidation.errorMessage,
+  });
+  const gate = isRepairAttemptAllowedForStrictFailure({
+    provider: params.provider,
+    strictProviderErrorCode: strictCode,
+    strictStatusCode: null,
+    strictMessage: params.strictValidation.errorMessage,
+  });
+  if (!gate.allowed) {
+    return {
+      attempted: false,
+      blocked: gate.blocked,
+      reason: gate.reason,
+      status: gate.blocked ? "blocked" : "not_attempted",
+      providerErrorCode: strictCode,
+      schemaPath: params.strictValidation.schemaPath,
+      errorKind: null,
+      errorMessage: params.strictValidation.errorMessage,
+      parseStatus: "not_started",
+      schemaStatus: "not_started",
+      rawExcerpt: null,
+    };
+  }
+
+  const repairPrompt = buildFullContractRepairPrompt(params.provider, params.rawText, {
+    providerErrorCode: strictCode,
+    schemaPath: params.strictValidation.schemaPath,
+    message: params.strictValidation.errorMessage,
+  });
+
+  try {
+    const repairCall = await executeDirectFullContractCall({
+      provider: params.provider,
+      prompt: repairPrompt,
+      timeoutMs: params.provider === "openai" ? 30_000 : undefined,
+      repairAttempt: true,
+    });
+    const validation = validateFullContractPayload(repairCall.text ?? "");
+    if (validation.ok) {
+      return {
+        attempted: true,
+        blocked: false,
+        reason: "repair_strict_ok",
+        status: "ok",
+        providerErrorCode: null,
+        schemaPath: null,
+        errorKind: null,
+        errorMessage: null,
+        parseStatus: "ok",
+        schemaStatus: "ok",
+        rawExcerpt: validation.rawExcerpt,
+      };
+    }
+
+    const repairCode = normalizeErrorCode({
+      providerErrorCode: validation.providerErrorCode,
+      errorKind: validation.errorKind,
+      httpStatus: null,
+      message: validation.errorMessage,
+    });
+    const blocked = isBlockedContractError(repairCode);
+    return {
+      attempted: true,
+      blocked,
+      reason: validation.reason,
+      status: blocked ? "blocked" : "failed",
+      providerErrorCode: repairCode,
+      schemaPath: validation.schemaPath,
+      errorKind: validation.errorKind,
+      errorMessage: validation.errorMessage,
+      parseStatus: validation.parseStatus,
+      schemaStatus: validation.schemaStatus,
+      rawExcerpt: validation.rawExcerpt,
+    };
+  } catch (error: any) {
+    const errorKind = mapErrorToKind(error);
+    const code = normalizeErrorCode({
+      providerErrorCode: extractProviderErrorCode(error),
+      errorKind,
+      httpStatus: typeof error?.status === "number" ? error.status : null,
+      message: error?.message ?? null,
+    });
+    const blocked = isBlockedContractError(code);
+    return {
+      attempted: true,
+      blocked,
+      reason: error?.message ?? "repair_attempt_failed",
+      status: blocked ? "blocked" : "failed",
+      providerErrorCode: code,
+      schemaPath: null,
+      errorKind,
+      errorMessage: error?.message ?? "repair_attempt_failed",
+      parseStatus: "not_started",
+      schemaStatus: "not_started",
+      rawExcerpt: sanitizeRawExcerpt(error?.payload ?? error?.message ?? null),
+    };
+  }
+}
+
 async function runDirectFullContractProvider(provider: E150ProviderName): Promise<ProviderDiagnostic> {
   const missingReason = configMissingReason(provider);
   if (missingReason) {
@@ -1005,6 +1407,19 @@ async function runDirectFullContractProvider(provider: E150ProviderName): Promis
       rawExcerpt: missingReason,
       durationMs: 0,
       journeyDecision: "selected",
+      strictStatus: "blocked",
+      strictProviderErrorCode: "CONFIG_MISSING",
+      strictSchemaPath: null,
+      repairAttempted: false,
+      repairStatus: "not_attempted",
+      repairProviderErrorCode: null,
+      repairSchemaPath: null,
+      repairReason: "config_missing",
+      repairUsed: false,
+      finalContractStatus: "blocked",
+      formatUsed: null,
+      didFallback: null,
+      diagnosticNotes: mergeDiagnosticNotes(provider, ["Provider configuration missing."]),
     });
   }
 
@@ -1012,82 +1427,133 @@ async function runDirectFullContractProvider(provider: E150ProviderName): Promis
   const prompt = buildDirectFullContractPrompt(provider);
 
   try {
-    let text = "";
-    let model: string | undefined;
-    let tokensIn: number | undefined;
-    let tokensOut: number | undefined;
+    const strictCall = await executeDirectFullContractCall({ provider, prompt, repairAttempt: false });
+    const strictValidation = validateFullContractPayload(strictCall.text ?? "");
 
-    if (provider === "openai") {
-      const res = await callOpenAI({
-        prompt,
-        asJson: true,
-        forceJsonFormat: true,
-        model: openAiSmokeModel(),
-        timeoutMs: openAiSmokeTimeoutMs(),
-        maxOutputTokens: openAiSmokeMaxOutputTokens(),
+    if (strictValidation.ok) {
+      return baseDiagnostic({
+        provider,
+        mode: "full_contract",
+        stage: "analyze_contract",
+        pipeline: "provider_probe",
+        model: strictCall.model ?? defaultModelForProvider(provider),
+        status: "ok",
+        errorKind: null,
+        providerErrorCode: null,
+        httpStatus: 200,
+        errorMessage: null,
+        reason: null,
+        validationMode: "analyze_schema",
+        providerStatus: "reachable",
+        adapterStatus: "ok",
+        parseStatus: "ok",
+        schemaStatus: "ok",
+        parseError: null,
+        schemaError: null,
+        schemaPath: null,
+        rawExcerpt: strictValidation.rawExcerpt ?? strictCall.text,
+        durationMs: Date.now() - started,
+        tokensIn: strictCall.tokensIn,
+        tokensOut: strictCall.tokensOut,
+        journeyDecision: "selected",
+        strictStatus: "ok",
+        strictProviderErrorCode: null,
+        strictSchemaPath: null,
+        repairAttempted: false,
+        repairStatus: "not_attempted",
+        repairProviderErrorCode: null,
+        repairSchemaPath: null,
+        repairReason: null,
+        repairUsed: false,
+        finalContractStatus: "strict_ok",
+        formatUsed: strictCall.formatUsed,
+        didFallback: strictCall.didFallback,
+        diagnosticNotes: mergeDiagnosticNotes(provider, [
+          strictCall.didFallback ? "Strict call used OpenAI json_object fallback." : null,
+          strictCall.openaiErrorCode ? `openaiErrorCode=${strictCall.openaiErrorCode}` : null,
+        ]),
       });
-      text = res.text;
-      model = res.model;
-      tokensIn = res.tokensIn;
-      tokensOut = res.tokensOut;
-    } else if (provider === "anthropic") {
-      const res = await callAnthropic({ prompt, maxOutputTokens: 2600 });
-      text = res.text;
-      model = res.model;
-      tokensIn = res.tokensIn;
-      tokensOut = res.tokensOut;
-    } else if (provider === "mistral") {
-      const res = await callMistral({ prompt, maxOutputTokens: 2600 });
-      text = res.text;
-      model = res.model;
-      tokensIn = res.tokensIn;
-      tokensOut = res.tokensOut;
-    } else if (provider === "gemini") {
-      const res = await callGemini({ prompt, maxOutputTokens: 2600, expectJson: true });
-      text = res.text;
-      model = res.model;
-      tokensIn = res.tokensIn;
-      tokensOut = res.tokensOut;
-    } else {
-      const res = await callAriLLM({ prompt, asJson: true, maxOutputTokens: 2600 });
-      text = res.text;
-      model = res.model;
-      tokensIn = res.tokensIn;
-      tokensOut = res.tokensOut;
     }
 
-    const validation = validateFullContractPayload(text ?? "");
+    const strictCode = normalizeErrorCode({
+      providerErrorCode: strictValidation.providerErrorCode,
+      errorKind: strictValidation.errorKind,
+      httpStatus: 200,
+      message: strictValidation.errorMessage,
+    });
+    const blockedStrict = isBlockedContractError(strictCode);
+    const repair = await runFullContractRepairAttempt({
+      provider,
+      rawText: strictCall.text ?? "",
+      strictValidation,
+    });
+
+    const finalContractStatus: ProviderDiagnostic["finalContractStatus"] =
+      repair.status === "ok"
+        ? "repaired_degraded"
+        : blockedStrict || repair.blocked
+          ? "blocked"
+          : "failed";
 
     return baseDiagnostic({
       provider,
       mode: "full_contract",
       stage: "analyze_contract",
       pipeline: "provider_probe",
-      model: model ?? defaultModelForProvider(provider),
-      status: validation.status,
-      errorKind: validation.errorKind,
-      providerErrorCode: validation.providerErrorCode,
+      model: strictCall.model ?? defaultModelForProvider(provider),
+      status:
+        finalContractStatus === "repaired_degraded"
+          ? "degraded"
+          : finalContractStatus === "blocked" && strictCode === "CONFIG_MISSING"
+            ? "config_missing"
+            : "failed",
+      errorKind: strictValidation.errorKind,
+      providerErrorCode: strictCode,
       httpStatus: 200,
-      errorMessage: validation.errorMessage,
-      reason: validation.reason,
+      errorMessage: strictValidation.errorMessage,
+      reason: strictValidation.reason,
       validationMode: "analyze_schema",
       providerStatus: "reachable",
-      adapterStatus: validation.adapterStatus,
-      parseStatus: validation.parseStatus,
-      schemaStatus: validation.schemaStatus,
-      parseError: validation.parseError,
-      schemaError: validation.schemaError,
-      schemaPath: validation.schemaPath,
-      rawExcerpt: validation.rawExcerpt ?? text,
+      adapterStatus: strictValidation.adapterStatus,
+      parseStatus: strictValidation.parseStatus,
+      schemaStatus: strictValidation.schemaStatus,
+      parseError: strictValidation.parseError,
+      schemaError: strictValidation.schemaError,
+      schemaPath: strictValidation.schemaPath,
+      rawExcerpt: strictValidation.rawExcerpt ?? strictCall.text,
       durationMs: Date.now() - started,
-      tokensIn,
-      tokensOut,
+      tokensIn: strictCall.tokensIn,
+      tokensOut: strictCall.tokensOut,
       journeyDecision: "selected",
+      strictStatus: blockedStrict ? "blocked" : "failed",
+      strictProviderErrorCode: strictCode,
+      strictSchemaPath: strictValidation.schemaPath,
+      repairAttempted: repair.attempted,
+      repairStatus: repair.status,
+      repairProviderErrorCode: repair.providerErrorCode,
+      repairSchemaPath: repair.schemaPath,
+      repairReason: repair.reason,
+      repairUsed: repair.attempted,
+      finalContractStatus,
+      formatUsed: strictCall.formatUsed,
+      didFallback: strictCall.didFallback,
+      diagnosticNotes: mergeDiagnosticNotes(provider, [
+        strictCall.didFallback ? "Strict call used OpenAI json_object fallback." : null,
+        strictCall.openaiErrorCode ? `openaiErrorCode=${strictCall.openaiErrorCode}` : null,
+        repair.attempted ? "Repair attempt executed as degraded fallback." : "Repair not attempted.",
+      ]),
     });
   } catch (error: any) {
     const errorKind = mapErrorToKind(error);
-    const providerCode = extractProviderErrorCode(error);
+    const providerCode = normalizeErrorCode({
+      providerErrorCode: extractProviderErrorCode(error),
+      errorKind,
+      httpStatus: typeof error?.status === "number" ? error.status : null,
+      message: error?.message ?? null,
+    });
     const status = typeof error?.status === "number" ? error.status : null;
+    const blocked = isBlockedContractError(providerCode);
+    const finalContractStatus: ProviderDiagnostic["finalContractStatus"] = blocked ? "blocked" : "failed";
 
     return baseDiagnostic({
       provider,
@@ -1095,7 +1561,10 @@ async function runDirectFullContractProvider(provider: E150ProviderName): Promis
       stage: "analyze_contract",
       pipeline: "provider_probe",
       model: error?.meta?.model ?? defaultModelForProvider(provider),
-      status: looksConfigMissing(error?.message) ? "config_missing" : "failed",
+      status:
+        looksConfigMissing(error?.message) || providerCode === "CONFIG_MISSING"
+          ? "config_missing"
+          : "failed",
       errorKind,
       providerErrorCode: providerCode,
       httpStatus: status,
@@ -1109,6 +1578,21 @@ async function runDirectFullContractProvider(provider: E150ProviderName): Promis
       rawExcerpt: error?.payload ?? error?.message,
       durationMs: Date.now() - started,
       journeyDecision: "selected",
+      strictStatus: blocked ? "blocked" : "failed",
+      strictProviderErrorCode: providerCode,
+      strictSchemaPath: null,
+      repairAttempted: false,
+      repairStatus: blocked ? "blocked" : "not_attempted",
+      repairProviderErrorCode: null,
+      repairSchemaPath: null,
+      repairReason: blocked ? "account_or_runtime_blocked" : "strict_call_failed",
+      repairUsed: false,
+      finalContractStatus,
+      formatUsed: null,
+      didFallback: null,
+      diagnosticNotes: mergeDiagnosticNotes(provider, [
+        blocked ? "Strict call blocked by account/runtime condition." : "Strict call failed before validation.",
+      ]),
     });
   }
 }
@@ -1147,447 +1631,10 @@ async function runCreateAnalyzeApiSmoke(): Promise<CreateAnalyzeApiSmoke> {
   }
 }
 
-function normalizeClaimItems(value: unknown): unknown {
-  if (!Array.isArray(value)) return value;
-
-  return value.map((item, index) => {
-    if (typeof item === "string") {
-      return {
-        id: `claim-${index + 1}`,
-        text: item.trim() || `Claim ${index + 1}`,
-      };
-    }
-
-    if (item && typeof item === "object") {
-      const record = item as Record<string, unknown>;
-      const text =
-        typeof record.text === "string"
-          ? record.text
-          : typeof record.claim === "string"
-            ? record.claim
-            : typeof record.statement === "string"
-              ? record.statement
-              : typeof record.title === "string"
-                ? record.title
-                : JSON.stringify(record);
-
-      return {
-        ...record,
-        id: typeof record.id === "string" ? record.id : `claim-${index + 1}`,
-        text: text.trim() || `Claim ${index + 1}`,
-      };
-    }
-
-    return {
-      id: `claim-${index + 1}`,
-      text: String(item ?? "").trim() || `Claim ${index + 1}`,
-    };
-  });
-}
-
-function normalizeNoteItems(value: unknown): unknown {
-  if (!Array.isArray(value)) return value;
-
-  return value.map((item, index) => {
-    if (typeof item === "string") {
-      return {
-        id: `note-${index + 1}`,
-        text: item.trim() || `Note ${index + 1}`,
-      };
-    }
-
-    if (item && typeof item === "object") {
-      const record = item as Record<string, unknown>;
-      const text =
-        typeof record.text === "string"
-          ? record.text
-          : typeof record.note === "string"
-            ? record.note
-            : JSON.stringify(record);
-
-      return {
-        ...record,
-        id: typeof record.id === "string" ? record.id : `note-${index + 1}`,
-        text: text.trim() || `Note ${index + 1}`,
-      };
-    }
-
-    return {
-      id: `note-${index + 1}`,
-      text: String(item ?? "").trim() || `Note ${index + 1}`,
-    };
-  });
-}
-
-function normalizeQuestionItems(value: unknown): unknown {
-  if (!Array.isArray(value)) return value;
-
-  return value.map((item, index) => {
-    if (typeof item === "string") {
-      return {
-        id: `question-${index + 1}`,
-        text: item.trim() || `Question ${index + 1}`,
-      };
-    }
-
-    if (item && typeof item === "object") {
-      const record = item as Record<string, unknown>;
-      const text =
-        typeof record.text === "string"
-          ? record.text
-          : typeof record.question === "string"
-            ? record.question
-            : JSON.stringify(record);
-
-      return {
-        ...record,
-        id: typeof record.id === "string" ? record.id : `question-${index + 1}`,
-        text: text.trim() || `Question ${index + 1}`,
-      };
-    }
-
-    return {
-      id: `question-${index + 1}`,
-      text: String(item ?? "").trim() || `Question ${index + 1}`,
-    };
-  });
-}
-
-function normalizeConsequenceItems(value: unknown): unknown {
-  if (!Array.isArray(value)) return value;
-
-  return value.map((item, index) => {
-    if (typeof item === "string") {
-      return {
-        id: `consequence-${index + 1}`,
-        scope: "local_short",
-        statementIndex: 0,
-        text: item.trim() || `Consequence ${index + 1}`,
-      };
-    }
-
-    if (item && typeof item === "object") {
-      const record = item as Record<string, unknown>;
-      const text =
-        typeof record.text === "string"
-          ? record.text
-          : typeof record.description === "string"
-            ? record.description
-            : typeof record.consequence === "string"
-              ? record.consequence
-              : JSON.stringify(record);
-
-      const allowedScopes = new Set(["local_short", "local_long", "national", "global", "systemic"]);
-      const scope = typeof record.scope === "string" && allowedScopes.has(record.scope)
-        ? record.scope
-        : "local_short";
-
-      return {
-        ...record,
-        id: typeof record.id === "string" ? record.id : `consequence-${index + 1}`,
-        scope,
-        statementIndex: typeof record.statementIndex === "number" ? record.statementIndex : 0,
-        text: text.trim() || `Consequence ${index + 1}`,
-      };
-    }
-
-    return {
-      id: `consequence-${index + 1}`,
-      scope: "local_short",
-      statementIndex: 0,
-      text: String(item ?? "").trim() || `Consequence ${index + 1}`,
-    };
-  });
-}
-
-function normalizeResponsibilityItems(value: unknown): unknown {
-  if (!Array.isArray(value)) return value;
-
-  return value.map((item, index) => {
-    if (typeof item === "string") {
-      return {
-        id: `responsibility-${index + 1}`,
-        level: "unknown",
-        text: item.trim() || `Responsibility ${index + 1}`,
-      };
-    }
-
-    if (item && typeof item === "object") {
-      const record = item as Record<string, unknown>;
-      const text =
-        typeof record.text === "string"
-          ? record.text
-          : typeof record.description === "string"
-            ? record.description
-            : typeof record.responsibility === "string"
-              ? record.responsibility
-              : JSON.stringify(record);
-
-      const allowedLevels = new Set([
-        "municipality",
-        "district",
-        "state",
-        "federal",
-        "eu",
-        "ngo",
-        "private",
-        "unknown",
-      ]);
-      const level = typeof record.level === "string" && allowedLevels.has(record.level)
-        ? record.level
-        : "unknown";
-
-      return {
-        ...record,
-        id: typeof record.id === "string" ? record.id : `responsibility-${index + 1}`,
-        level,
-        text: text.trim() || `Responsibility ${index + 1}`,
-      };
-    }
-
-    return {
-      id: `responsibility-${index + 1}`,
-      level: "unknown",
-      text: String(item ?? "").trim() || `Responsibility ${index + 1}`,
-    };
-  });
-}
-
-function normalizeImpactItems(value: unknown): unknown {
-  if (!Array.isArray(value)) return value;
-
-  return value.map((item, index) => {
-    if (typeof item === "string") {
-      return {
-        type: "general",
-        description: item.trim() || `Impact ${index + 1}`,
-      };
-    }
-
-    if (item && typeof item === "object") {
-      const record = item as Record<string, unknown>;
-      const description =
-        typeof record.description === "string"
-          ? record.description
-          : typeof record.text === "string"
-            ? record.text
-            : JSON.stringify(record);
-
-      return {
-        ...record,
-        type: typeof record.type === "string" ? record.type : "general",
-        description: description.trim() || `Impact ${index + 1}`,
-      };
-    }
-
-    return {
-      type: "general",
-      description: String(item ?? "").trim() || `Impact ${index + 1}`,
-    };
-  });
-}
-
-function normalizeResponsibleActorItems(value: unknown): unknown {
-  if (!Array.isArray(value)) return value;
-
-  return value.map((item, index) => {
-    if (typeof item === "string") {
-      return {
-        level: "unknown",
-        hint: item.trim() || `Responsible actor ${index + 1}`,
-      };
-    }
-
-    if (item && typeof item === "object") {
-      const record = item as Record<string, unknown>;
-      const hint =
-        typeof record.hint === "string"
-          ? record.hint
-          : typeof record.text === "string"
-            ? record.text
-            : typeof record.actor === "string"
-              ? record.actor
-              : JSON.stringify(record);
-
-      return {
-        ...record,
-        level: typeof record.level === "string" ? record.level : "unknown",
-        hint: hint.trim() || `Responsible actor ${index + 1}`,
-      };
-    }
-
-    return {
-      level: "unknown",
-      hint: String(item ?? "").trim() || `Responsible actor ${index + 1}`,
-    };
-  });
-}
-
-function normalizeKnotItems(value: unknown): unknown {
-  if (!Array.isArray(value)) return value;
-
-  return value.map((item, index) => {
-    if (typeof item === "string") {
-      const label = item.trim() || `Knot ${index + 1}`;
-      return {
-        id: `knot-${index + 1}`,
-        label,
-        description: label,
-      };
-    }
-
-    if (item && typeof item === "object") {
-      const record = item as Record<string, unknown>;
-      const label =
-        typeof record.label === "string"
-          ? record.label
-          : typeof record.text === "string"
-            ? record.text
-            : typeof record.title === "string"
-              ? record.title
-              : `Knot ${index + 1}`;
-
-      const description =
-        typeof record.description === "string"
-          ? record.description
-          : typeof record.text === "string"
-            ? record.text
-            : label;
-
-      return {
-        ...record,
-        id: typeof record.id === "string" ? record.id : `knot-${index + 1}`,
-        label,
-        description,
-      };
-    }
-
-    const label = String(item ?? "").trim() || `Knot ${index + 1}`;
-    return {
-      id: `knot-${index + 1}`,
-      label,
-      description: label,
-    };
-  });
-}
-
-function buildMinimalAnalyzeEnvelopeFromClaims(claimsInput: unknown[]) {
-  const claims = claimsInput.map((item, index) => {
-    const source =
-      typeof item === "string"
-        ? item
-        : item && typeof item === "object"
-          ? ((item as { text?: unknown; claim?: unknown; statement?: unknown; title?: unknown }).text ??
-              (item as { claim?: unknown }).claim ??
-              (item as { statement?: unknown }).statement ??
-              (item as { title?: unknown }).title ??
-              JSON.stringify(item))
-          : String(item ?? "");
-
-    return {
-      id: `claim-${index + 1}`,
-      text: String(source).trim() || `Claim ${index + 1}`,
-    };
-  });
-
-  return {
-    mode: "E150",
-    sourceText: FULL_SAMPLE_TEXT,
-    language: "de",
-    claims,
-    findings: [],
-    notes: [],
-    questions: [],
-    missingPerspectives: [],
-    knots: [],
-    consequences: {
-      consequences: [],
-      responsibilities: [],
-    },
-    responsibilityPaths: [],
-    eventualities: [],
-    decisionTrees: [],
-    impactAndResponsibility: {
-      impacts: [],
-      responsibleActors: [],
-    },
-    participationCandidates: [],
-    report: {
-      summary: null,
-      keyConflicts: [],
-      facts: {
-        local: [],
-        international: [],
-      },
-      openQuestions: [],
-      takeaways: [],
-    },
-  };
-}
-
-function normalizeFullContractPayload(parsed: unknown): unknown {
-  const envelope = Array.isArray(parsed) ? buildMinimalAnalyzeEnvelopeFromClaims(parsed) : parsed;
-
-  if (!envelope || typeof envelope !== "object") return envelope;
-
-  const value = envelope as Record<string, unknown>;
-
-  const consequences =
-    value.consequences && typeof value.consequences === "object"
-      ? {
-          ...(value.consequences as Record<string, unknown>),
-          consequences: normalizeConsequenceItems(
-            (value.consequences as Record<string, unknown>).consequences,
-          ),
-          responsibilities: normalizeResponsibilityItems(
-            (value.consequences as Record<string, unknown>).responsibilities,
-          ),
-        }
-      : value.consequences;
-
-  const impactAndResponsibility =
-    value.impactAndResponsibility && typeof value.impactAndResponsibility === "object"
-      ? {
-          ...(value.impactAndResponsibility as Record<string, unknown>),
-          impacts: normalizeImpactItems(
-            (value.impactAndResponsibility as Record<string, unknown>).impacts,
-          ),
-          responsibleActors: normalizeResponsibleActorItems(
-            (value.impactAndResponsibility as Record<string, unknown>).responsibleActors,
-          ),
-        }
-      : value.impactAndResponsibility;
-
-  return {
-    ...value,
-    claims: normalizeClaimItems(value.claims),
-    notes: normalizeNoteItems(value.notes),
-    questions: normalizeQuestionItems(value.questions),
-    knots: normalizeKnotItems(value.knots),
-    consequences,
-    impactAndResponsibility,
-  };
-}
-
 function applyFullContractValidation(
   rows: ProviderDiagnostic[],
   candidates: Array<{ provider: E150ProviderName; rawText: string }> | undefined,
 ): ProviderDiagnostic[] {
-  const parseCandidate = (rawText: string): { ok: true; parsed: unknown; excerpt: string } | { ok: false; parseError: string; excerpt: string | null } => {
-    const candidate = extractJsonCandidate(rawText) ?? cleanJson(rawText);
-    const cleaned = candidate.trim();
-    if (!cleaned) return { ok: false, parseError: "no_json_object_found", excerpt: null };
-    try {
-      return { ok: true, parsed: normalizeFullContractPayload(JSON.parse(cleaned)), excerpt: cleaned.slice(0, 500) };
-    } catch (error: any) {
-      return {
-        ok: false,
-        parseError: error?.message ?? "json_parse_failed",
-        excerpt: cleaned.slice(0, 500),
-      };
-    }
-  };
-
   const candidateMap = new Map((candidates ?? []).map((item) => [item.provider, item]));
   return rows.map((row) => {
     if (row.status !== "ok") return row;
@@ -1609,49 +1656,52 @@ function applyFullContractValidation(
         schemaError: null,
         schemaPath: null,
         rawExcerpt: null,
+        strictStatus: "failed",
+        strictProviderErrorCode: "CANDIDATE_MISSING",
+        strictSchemaPath: null,
+        repairAttempted: false,
+        repairStatus: "not_attempted",
+        repairProviderErrorCode: null,
+        repairSchemaPath: null,
+        repairReason: "candidate_missing_for_ok_provider",
+        finalContractStatus: "failed",
       });
     }
 
-    const normalized = parseCandidate(candidate.rawText ?? "");
-    if (normalized.ok === false) {
-      return baseDiagnostic({
-        ...row,
-        status: "failed",
-        errorKind: "BAD_JSON",
-        providerErrorCode: "BAD_JSON",
-        errorMessage: normalized.parseError,
-        reason: normalized.parseError,
-        validationMode: "analyze_schema",
-        providerStatus: "reachable",
-        adapterStatus: "failed",
-        parseStatus: "failed",
-        schemaStatus: "not_started",
-        parseError: normalized.parseError,
-        schemaError: null,
-        schemaPath: null,
-        rawExcerpt: normalized.excerpt,
+    const strictValidation = validateFullContractPayload(candidate.rawText ?? "");
+    if (!strictValidation.ok) {
+      const strictCode = normalizeErrorCode({
+        providerErrorCode: strictValidation.providerErrorCode,
+        errorKind: strictValidation.errorKind,
+        httpStatus: row.httpStatus,
+        message: strictValidation.errorMessage,
       });
-    }
-
-    const schema = AnalyzeResultSchema.safeParse(normalized.parsed);
-    if (!schema.success) {
-      const first = schema.error.issues[0];
+      const blocked = isBlockedContractError(strictCode);
       return baseDiagnostic({
         ...row,
         status: "failed",
-        errorKind: "INTERNAL",
-        providerErrorCode: "SCHEMA_INVALID",
-        errorMessage: first?.message ?? "schema_validation_failed",
-        reason: first?.message ?? "schema_validation_failed",
+        errorKind: strictValidation.errorKind,
+        providerErrorCode: strictCode,
+        errorMessage: strictValidation.errorMessage,
+        reason: strictValidation.reason,
         validationMode: "analyze_schema",
         providerStatus: "reachable",
         adapterStatus: "failed",
-        parseStatus: "ok",
-        schemaStatus: "failed",
-        parseError: null,
-        schemaError: first?.message ?? "schema_validation_failed",
-        schemaPath: Array.isArray(first?.path) ? first.path.join(".") || "$" : null,
-        rawExcerpt: normalized.excerpt,
+        parseStatus: strictValidation.parseStatus,
+        schemaStatus: strictValidation.schemaStatus,
+        parseError: strictValidation.parseError,
+        schemaError: strictValidation.schemaError,
+        schemaPath: strictValidation.schemaPath,
+        rawExcerpt: strictValidation.rawExcerpt,
+        strictStatus: blocked ? "blocked" : "failed",
+        strictProviderErrorCode: strictCode,
+        strictSchemaPath: strictValidation.schemaPath,
+        repairAttempted: false,
+        repairStatus: blocked ? "blocked" : "not_attempted",
+        repairProviderErrorCode: null,
+        repairSchemaPath: null,
+        repairReason: blocked ? "account_or_runtime_blocked" : null,
+        finalContractStatus: blocked ? "blocked" : "failed",
       });
     }
 
@@ -1663,7 +1713,16 @@ function applyFullContractValidation(
       adapterStatus: "ok",
       parseStatus: "ok",
       schemaStatus: "ok",
-      rawExcerpt: normalized.excerpt,
+      rawExcerpt: strictValidation.rawExcerpt,
+      strictStatus: "ok",
+      strictProviderErrorCode: null,
+      strictSchemaPath: null,
+      repairAttempted: false,
+      repairStatus: "not_attempted",
+      repairProviderErrorCode: null,
+      repairSchemaPath: null,
+      repairReason: null,
+      finalContractStatus: "strict_ok",
     });
   });
 }

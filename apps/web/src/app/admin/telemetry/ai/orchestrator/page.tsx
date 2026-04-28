@@ -32,6 +32,29 @@ type ProviderDiagnostic = {
   fallbackUsed: boolean | null;
   fallbackReason: string | null;
   journeyDecision: string;
+  strictStatus: "ok" | "failed" | "blocked" | "not_started";
+  strictProviderErrorCode: string | null;
+  strictSchemaPath: string | null;
+  repairAttempted: boolean;
+  repairStatus: "ok" | "failed" | "blocked" | "not_attempted";
+  repairProviderErrorCode: string | null;
+  repairSchemaPath: string | null;
+  repairReason: string | null;
+  repairUsed: boolean;
+  finalContractStatus: "strict_ok" | "repaired_degraded" | "failed" | "blocked" | "not_started";
+  nativeStrategy: string;
+  preferredContractStrategy: string;
+  fallbackStrategy: string;
+  supportsStrictJsonSchema: boolean;
+  supportsJsonObjectMode: boolean | "prompt_only";
+  supportsPromptEnvelope: boolean;
+  supportsRepairAttempt: boolean;
+  canBeUsedAsRepairProvider: boolean;
+  knownBlockers: string[];
+  nonRepairableErrorCodes: string[];
+  diagnosticNotes: string[];
+  formatUsed: "json_schema" | "json_object" | null;
+  didFallback: boolean | null;
   rootCause: string;
   nextAction: string;
 };
@@ -91,9 +114,18 @@ function modeToQuery(mode: SmokeMode): string {
 
 function statusChipClass(status: ProviderDiagnostic["status"]): string {
   if (status === "ok") return "bg-emerald-50 text-emerald-700 border-emerald-200";
+  if (status === "degraded") return "bg-amber-50 text-amber-700 border-amber-200";
   if (status === "config_missing") return "bg-amber-50 text-amber-700 border-amber-200";
   if (status === "skipped") return "bg-slate-100 text-slate-700 border-slate-200";
   return "bg-rose-50 text-rose-700 border-rose-200";
+}
+
+function contractStatusChipClass(status: ProviderDiagnostic["finalContractStatus"]): string {
+  if (status === "strict_ok") return "bg-emerald-50 text-emerald-700 border-emerald-200";
+  if (status === "repaired_degraded") return "bg-amber-50 text-amber-700 border-amber-200";
+  if (status === "blocked") return "bg-rose-50 text-rose-700 border-rose-200";
+  if (status === "failed") return "bg-rose-50 text-rose-700 border-rose-200";
+  return "bg-slate-100 text-slate-700 border-slate-200";
 }
 
 function formatTokens(row: ProviderDiagnostic): string {
@@ -123,7 +155,8 @@ function hasDetail(row: ProviderDiagnostic): boolean {
       row.providerErrorCode ||
       row.errorKind ||
       row.errorMessage ||
-      row.reason,
+      row.reason ||
+      (Array.isArray(row.diagnosticNotes) && row.diagnosticNotes.length > 0),
   );
 }
 
@@ -501,11 +534,14 @@ export default function OrchestratorTelemetryPage() {
                                 </td>
                                 <td className="px-3 py-2 text-[rgb(var(--muted))]">{row.model ?? "unknown"}</td>
                                 <td className="px-3 py-2">
-                                  <span className={`rounded-full border px-2 py-1 text-xs font-semibold ${statusChipClass(row.status)}`}>
-                                    {row.status}
+                                  <span className={`rounded-full border px-2 py-1 text-xs font-semibold ${contractStatusChipClass(row.finalContractStatus)}`}>
+                                    {row.finalContractStatus}
                                   </span>
                                   <div className="mt-1 text-xs text-[rgb(var(--muted))]">
-                                    provider={row.providerStatus} · adapter={row.adapterStatus} · parse={row.parseStatus} · schema={row.schemaStatus}
+                                    strict={row.strictStatus} · repair={row.repairStatus} · repairAttempted={String(row.repairAttempted)}
+                                  </div>
+                                  <div className="mt-1 text-[10px] text-[rgb(var(--muted))]">
+                                    native={row.nativeStrategy} · preferred={row.preferredContractStrategy}
                                   </div>
                                 </td>
                                 <td className="px-3 py-2 text-xs font-semibold text-[rgb(var(--fg))]">{row.rootCause}</td>
@@ -526,10 +562,18 @@ export default function OrchestratorTelemetryPage() {
                                     </button>
                                     {expanded && (
                                       <div className="mt-2 rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-3 text-xs text-[rgb(var(--muted))]">
-                                        <div>mode={formatModeLabel(row.mode)} · stage=direct_provider_contract · journeyDecision={row.journeyDecision} · validationMode={row.validationMode}</div>
+                                        <div>mode={formatModeLabel(row.mode)} · stage=direct_provider_contract · finalContractStatus={row.finalContractStatus}</div>
+                                        <div>nativeStrategy={row.nativeStrategy} · preferredContractStrategy={row.preferredContractStrategy} · fallbackStrategy={row.fallbackStrategy}</div>
+                                        <div>strictStatus={row.strictStatus} · strictProviderCode={row.strictProviderErrorCode ?? "none"} · strictSchemaPath={row.strictSchemaPath ?? "none"}</div>
+                                        <div>repairStatus={row.repairStatus} · repairUsed={String(row.repairUsed)} · repairProviderCode={row.repairProviderErrorCode ?? "none"} · repairSchemaPath={row.repairSchemaPath ?? "none"} · repairReason={row.repairReason ?? "none"}</div>
+                                        <div>formatUsed={row.formatUsed ?? "none"} · didFallback={String(row.didFallback)} · supportsPromptEnvelope={String(row.supportsPromptEnvelope)}</div>
                                         <div>errorKind={row.errorKind ?? "none"} · providerCode={row.providerErrorCode ?? "none"} · httpStatus={row.httpStatus ?? "none"}</div>
                                         <div>parseError={row.parseError ?? "none"} · schemaError={row.schemaError ?? "none"} · schemaPath={row.schemaPath ?? "none"}</div>
                                         <div>fallbackUsed={String(row.fallbackUsed)} · fallbackReason={row.fallbackReason ?? "none"}</div>
+                                        <div>knownBlockers={row.knownBlockers.join(",") || "none"} · nonRepairable={row.nonRepairableErrorCodes.join(",") || "none"}</div>
+                                        {row.diagnosticNotes.length > 0 && (
+                                          <div className="mt-1">diagnosticNotes: {row.diagnosticNotes.join(" | ")}</div>
+                                        )}
                                         <div className="mt-1">rawExcerpt: {row.rawExcerpt ?? "none"}</div>
                                       </div>
                                     )}

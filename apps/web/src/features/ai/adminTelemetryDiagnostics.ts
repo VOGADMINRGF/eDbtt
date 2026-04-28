@@ -30,6 +30,43 @@ export type ProviderReachability = "reachable" | "down" | "unknown";
 export type AdapterStatus = "ok" | "failed" | "not_started";
 export type ParseStatus = "ok" | "failed" | "not_started";
 export type SchemaStatus = "ok" | "failed" | "not_started";
+export type ContractStrictStatus = "ok" | "failed" | "blocked" | "not_started";
+export type ContractRepairStatus = "ok" | "failed" | "blocked" | "not_attempted";
+export type FinalContractStatus =
+  | "strict_ok"
+  | "repaired_degraded"
+  | "failed"
+  | "blocked"
+  | "not_started";
+export type ContractStrategy =
+  | "json_schema"
+  | "json_object_envelope"
+  | "prompt_envelope"
+  | "provider_native";
+export type JsonObjectSupport = boolean | "prompt_only";
+export type NativeStrategy =
+  | "openai_responses_json_schema"
+  | "mistral_response_format_json_object"
+  | "gemini_response_mime_json"
+  | "anthropic_prompt_envelope_only"
+  | "ari_prompt_envelope_only"
+  | "provider_native_unknown";
+
+export type ProviderContractCapabilities = {
+  provider: E150ProviderName;
+  nativeStrategy: NativeStrategy;
+  preferredContractStrategy: ContractStrategy;
+  fallbackStrategy: ContractStrategy;
+  supportsStrictJsonSchema: boolean;
+  supportsJsonObjectMode: JsonObjectSupport;
+  supportsPromptEnvelope: boolean;
+  supportsRepairAttempt: boolean;
+  canBeUsedAsRepairProvider: boolean;
+  knownBlockers: string[];
+  accountBlockedCodes: string[];
+  nonRepairableErrorCodes: string[];
+  diagnosticNotes: string[];
+};
 
 export type ProviderDiagnostic = {
   provider: E150ProviderName;
@@ -59,9 +96,193 @@ export type ProviderDiagnostic = {
   fallbackUsed: boolean | null;
   fallbackReason: string | null;
   journeyDecision: JourneyDecision;
+  strictStatus: ContractStrictStatus;
+  strictProviderErrorCode: string | null;
+  strictSchemaPath: string | null;
+  repairAttempted: boolean;
+  repairStatus: ContractRepairStatus;
+  repairProviderErrorCode: string | null;
+  repairSchemaPath: string | null;
+  repairReason: string | null;
+  repairUsed: boolean;
+  finalContractStatus: FinalContractStatus;
+  nativeStrategy: NativeStrategy;
+  preferredContractStrategy: ContractStrategy;
+  fallbackStrategy: ContractStrategy;
+  supportsStrictJsonSchema: boolean;
+  supportsJsonObjectMode: JsonObjectSupport;
+  supportsPromptEnvelope: boolean;
+  supportsRepairAttempt: boolean;
+  canBeUsedAsRepairProvider: boolean;
+  knownBlockers: string[];
+  nonRepairableErrorCodes: string[];
+  diagnosticNotes: string[];
+  formatUsed: "json_schema" | "json_object" | null;
+  didFallback: boolean | null;
   rootCause: string;
   nextAction: string;
 };
+
+const REPAIRABLE_CONTRACT_ERROR_CODES = new Set([
+  "TOP_LEVEL_ARRAY",
+  "TOP_LEVEL_STRING",
+  "TOP_LEVEL_NOT_OBJECT",
+  "SCHEMA_INVALID",
+  "BAD_JSON",
+]);
+
+const NON_REPAIRABLE_CONTRACT_ERROR_CODES = new Set([
+  "RATE_LIMIT",
+  "PAYMENT_REQUIRED",
+  "UNAUTHORIZED",
+  "CONFIG_MISSING",
+  "TIMEOUT",
+  "RESOURCE_EXHAUSTED",
+  "UNAVAILABLE",
+  "UPSTREAM_BAD_RESPONSE",
+]);
+
+const ACCOUNT_BLOCKED_ERROR_CODES = new Set([
+  "RATE_LIMIT",
+  "RESOURCE_EXHAUSTED",
+  "PAYMENT_REQUIRED",
+  "UNAUTHORIZED",
+  "INVALID_API_KEY",
+  "CONFIG_MISSING",
+]);
+
+export function isRepairableContractErrorCode(code: string | null | undefined): boolean {
+  if (!code) return false;
+  return REPAIRABLE_CONTRACT_ERROR_CODES.has(code);
+}
+
+export function isNonRepairableContractErrorCode(code: string | null | undefined): boolean {
+  if (!code) return false;
+  return NON_REPAIRABLE_CONTRACT_ERROR_CODES.has(code);
+}
+
+export function isAccountBlockedErrorCode(code: string | null | undefined): boolean {
+  if (!code) return false;
+  return ACCOUNT_BLOCKED_ERROR_CODES.has(code);
+}
+
+export function getProviderContractCapabilities(provider: E150ProviderName): ProviderContractCapabilities {
+  // Capabilities are intentionally derived only from adapter behavior implemented in this repo.
+  switch (provider) {
+    case "openai":
+      return {
+        provider,
+        nativeStrategy: "openai_responses_json_schema",
+        preferredContractStrategy: "json_schema",
+        fallbackStrategy: "json_object_envelope",
+        supportsStrictJsonSchema: true,
+        supportsJsonObjectMode: true,
+        supportsPromptEnvelope: true,
+        supportsRepairAttempt: true,
+        canBeUsedAsRepairProvider: true,
+        knownBlockers: ["TIMEOUT", "RATE_LIMIT", "UNAUTHORIZED", "PAYMENT_REQUIRED"],
+        accountBlockedCodes: ["RATE_LIMIT", "UNAUTHORIZED", "INVALID_API_KEY", "PAYMENT_REQUIRED"],
+        nonRepairableErrorCodes: ["TIMEOUT", "RATE_LIMIT", "UNAUTHORIZED", "PAYMENT_REQUIRED"],
+        diagnosticNotes: [
+          "Adapter nutzt OpenAI Responses API mit json_schema und json_object Fallback.",
+          "formatUsed/didFallback koennen aus Adapter-Metadaten transportiert werden.",
+          "TIMEOUT/OPENAI_EMPTY_OUTPUT bleiben runtime/contract blocker.",
+        ],
+      };
+    case "anthropic":
+      return {
+        provider,
+        nativeStrategy: "provider_native_unknown",
+        preferredContractStrategy: "prompt_envelope",
+        fallbackStrategy: "prompt_envelope",
+        supportsStrictJsonSchema: false,
+        supportsJsonObjectMode: "prompt_only",
+        supportsPromptEnvelope: true,
+        supportsRepairAttempt: true,
+        canBeUsedAsRepairProvider: true,
+        knownBlockers: ["TIMEOUT", "RATE_LIMIT", "UNAUTHORIZED"],
+        accountBlockedCodes: ["RATE_LIMIT", "UNAUTHORIZED", "INVALID_API_KEY"],
+        nonRepairableErrorCodes: ["TIMEOUT", "RATE_LIMIT", "UNAUTHORIZED"],
+        diagnosticNotes: [
+          "Aktueller Adapter implementiert keinen nativen Tool-use/JSON-Schema Contract-Pfad.",
+          "TODO: Anthropic tool-use / structured-output nativ evaluieren und nur bei Adapter-Implementierung aktivieren.",
+        ],
+      };
+    case "mistral":
+      return {
+        provider,
+        nativeStrategy: "mistral_response_format_json_object",
+        preferredContractStrategy: "json_object_envelope",
+        fallbackStrategy: "prompt_envelope",
+        supportsStrictJsonSchema: false,
+        supportsJsonObjectMode: true,
+        supportsPromptEnvelope: true,
+        supportsRepairAttempt: true,
+        canBeUsedAsRepairProvider: true,
+        knownBlockers: ["TIMEOUT", "RATE_LIMIT", "UNAUTHORIZED"],
+        accountBlockedCodes: ["RATE_LIMIT", "UNAUTHORIZED", "INVALID_API_KEY"],
+        nonRepairableErrorCodes: ["TIMEOUT", "RATE_LIMIT", "UNAUTHORIZED"],
+        diagnosticNotes: [
+          "Adapter setzt response_format=json_object.",
+          "TODO: nativen JSON-Schema-Pfad erst nach belegbarer Adapter-Implementierung markieren.",
+        ],
+      };
+    case "gemini":
+      return {
+        provider,
+        nativeStrategy: "gemini_response_mime_json",
+        preferredContractStrategy: "json_object_envelope",
+        fallbackStrategy: "prompt_envelope",
+        supportsStrictJsonSchema: false,
+        supportsJsonObjectMode: true,
+        supportsPromptEnvelope: true,
+        supportsRepairAttempt: true,
+        canBeUsedAsRepairProvider: true,
+        knownBlockers: ["RATE_LIMIT", "RESOURCE_EXHAUSTED", "UNAUTHORIZED", "TIMEOUT", "UNAVAILABLE"],
+        accountBlockedCodes: ["RATE_LIMIT", "RESOURCE_EXHAUSTED", "UNAUTHORIZED", "INVALID_API_KEY"],
+        nonRepairableErrorCodes: ["TIMEOUT", "RATE_LIMIT", "RESOURCE_EXHAUSTED", "UNAUTHORIZED", "UNAVAILABLE"],
+        diagnosticNotes: [
+          "Adapter nutzt responseMimeType=application/json mit 400-Fallback ohne responseMimeType.",
+          "Bei 429/503/RESOURCE_EXHAUSTED/UNAVAILABLE bleibt Provider blocked/non-repairable.",
+        ],
+      };
+    case "ari":
+      return {
+        provider,
+        nativeStrategy: "ari_prompt_envelope_only",
+        preferredContractStrategy: "prompt_envelope",
+        fallbackStrategy: "prompt_envelope",
+        supportsStrictJsonSchema: false,
+        supportsJsonObjectMode: "prompt_only",
+        supportsPromptEnvelope: true,
+        supportsRepairAttempt: true,
+        canBeUsedAsRepairProvider: false,
+        knownBlockers: ["PAYMENT_REQUIRED", "UNAUTHORIZED", "CONFIG_MISSING", "TIMEOUT"],
+        accountBlockedCodes: ["PAYMENT_REQUIRED", "UNAUTHORIZED", "INVALID_API_KEY", "CONFIG_MISSING"],
+        nonRepairableErrorCodes: ["TIMEOUT", "PAYMENT_REQUIRED", "UNAUTHORIZED", "CONFIG_MISSING"],
+        diagnosticNotes: [
+          "ARI bleibt bei 402/PAYMENT_REQUIRED blocked und non-repairable.",
+          "TODO: ARI perspektivisch als arbiter/router/research/verification layer evaluieren.",
+        ],
+      };
+    default:
+      return {
+        provider,
+        nativeStrategy: "anthropic_prompt_envelope_only",
+        preferredContractStrategy: "provider_native",
+        fallbackStrategy: "prompt_envelope",
+        supportsStrictJsonSchema: false,
+        supportsJsonObjectMode: "prompt_only",
+        supportsPromptEnvelope: true,
+        supportsRepairAttempt: false,
+        canBeUsedAsRepairProvider: false,
+        knownBlockers: [],
+        accountBlockedCodes: [],
+        nonRepairableErrorCodes: [],
+        diagnosticNotes: [],
+      };
+  }
+}
 
 export function providerDisplayName(provider: E150ProviderName): string {
   switch (provider) {
@@ -219,7 +440,11 @@ export function deriveRootCause(row: Pick<
   | "schemaStatus"
   | "providerErrorCode"
   | "providerStatus"
+  | "finalContractStatus"
 >): string {
+  if (row.finalContractStatus === "strict_ok") return "STRICT_OK";
+  if (row.finalContractStatus === "repaired_degraded") return "REPAIRED_DEGRADED";
+  if (row.finalContractStatus === "blocked") return "BLOCKED";
   if (row.status === "ok") return "OK";
   if (row.status === "config_missing" || row.journeyDecision === "config_missing") return "CONFIG_MISSING";
   if (row.journeyDecision === "not_in_plan") return "NOT_IN_JOURNEY_PLAN";
@@ -242,7 +467,15 @@ export function deriveNextAction(row: Pick<
   | "parseStatus"
   | "schemaStatus"
   | "providerErrorCode"
+  | "finalContractStatus"
 >): string {
+  if (row.finalContractStatus === "strict_ok") return "Keine Aktion";
+  if (row.finalContractStatus === "repaired_degraded") {
+    return "Nur repaired/degraded nutzbar; strict Contract auf Providerseite nachhaerten.";
+  }
+  if (row.finalContractStatus === "blocked") {
+    return "Account-/Quota-/Billing-/Auth-Blocker pruefen.";
+  }
   if (row.status === "ok") return "Keine Aktion";
   if (row.status === "config_missing" || row.journeyDecision === "config_missing") {
     return "ENV pruefen.";

@@ -45,6 +45,7 @@ vi.mock("@features/ai/providers/ari_llm", () => ({
 }));
 
 import { clearAdminAiRunsForTests } from "@/features/ai/adminTelemetryStore";
+import { getProviderContractCapabilities } from "@/features/ai/adminTelemetryDiagnostics";
 import { POST } from "@/app/api/admin/ai/orchestrator-smoke/route";
 
 function req(query = "") {
@@ -371,5 +372,248 @@ describe("/api/admin/ai/orchestrator-smoke", () => {
     expect(openai.schemaStatus).toBe("failed");
     expect(openai.schemaPath).toContain("notes");
     expect(openai.errorKind).toBe("INTERNAL");
+  });
+
+  it("exposes stable provider capability mapping", () => {
+    const openai = getProviderContractCapabilities("openai");
+    expect(openai.nativeStrategy).toBe("openai_responses_json_schema");
+    expect(openai.preferredContractStrategy).toBe("json_schema");
+    expect(openai.fallbackStrategy).toBe("json_object_envelope");
+    expect(openai.supportsStrictJsonSchema).toBe(true);
+
+    const anthropic = getProviderContractCapabilities("anthropic");
+    expect(anthropic.preferredContractStrategy).toBe("prompt_envelope");
+    expect(anthropic.supportsStrictJsonSchema).toBe(false);
+    expect(anthropic.supportsJsonObjectMode).toBe("prompt_only");
+
+    const mistral = getProviderContractCapabilities("mistral");
+    expect(mistral.nativeStrategy).toBe("mistral_response_format_json_object");
+    expect(mistral.preferredContractStrategy).toBe("json_object_envelope");
+    expect(mistral.supportsStrictJsonSchema).toBe(false);
+
+    const gemini = getProviderContractCapabilities("gemini");
+    expect(gemini.nonRepairableErrorCodes).toContain("UNAVAILABLE");
+
+    const ari = getProviderContractCapabilities("ari");
+    expect(ari.canBeUsedAsRepairProvider).toBe(false);
+    expect(ari.nonRepairableErrorCodes).toContain("PAYMENT_REQUIRED");
+  });
+
+  it("passes OpenAI formatUsed/didFallback metadata to direct diagnostics", async () => {
+    vi.stubEnv("OPENAI_API_KEY", "test-openai-key");
+    mockFullOrchestrator(JSON.stringify(VALID_ANALYZE_JSON));
+    mocks.analyzeContribution.mockResolvedValue({
+      claims: [],
+      notes: [],
+      questions: [],
+      knots: [],
+    });
+    mocks.callOpenAI.mockResolvedValue({
+      text: JSON.stringify(VALID_ANALYZE_JSON),
+      model: "gpt-4.1-mini",
+      formatUsed: "json_object",
+      didFallback: true,
+      openaiErrorCode: "json_schema_not_supported",
+      openaiErrorMessage: "schema fallback",
+    });
+
+    const response = await POST(req("?mode=full"));
+    expect(response.status).toBe(200);
+    const body = await response.json();
+
+    const openaiDirect = body.directContractRows.find((row: any) => row.provider === "openai");
+    expect(openaiDirect.formatUsed).toBe("json_object");
+    expect(openaiDirect.didFallback).toBe(true);
+    expect(openaiDirect.finalContractStatus).toBe("strict_ok");
+    expect(Array.isArray(openaiDirect.diagnosticNotes)).toBe(true);
+    expect(openaiDirect.diagnosticNotes.join(" ")).toContain("fallback");
+
+    vi.unstubAllEnvs();
+  });
+
+  it("keeps strict failed for TOP_LEVEL_ARRAY and marks repaired_degraded when repair succeeds", async () => {
+    vi.stubEnv("OPENAI_API_KEY", "test-openai-key");
+    mockFullOrchestrator(JSON.stringify(VALID_ANALYZE_JSON));
+    mocks.analyzeContribution.mockResolvedValue({
+      claims: [],
+      notes: [],
+      questions: [],
+      knots: [],
+    });
+    mocks.callOpenAI
+      .mockResolvedValueOnce({
+        text: JSON.stringify([{ id: "claim-1", text: "foo" }]),
+        model: "gpt-4.1-mini",
+        tokensIn: 12,
+        tokensOut: 40,
+      })
+      .mockResolvedValueOnce({
+        text: JSON.stringify(VALID_ANALYZE_JSON),
+        model: "gpt-4.1-mini",
+        tokensIn: 20,
+        tokensOut: 120,
+      });
+
+    const response = await POST(req("?mode=full"));
+    expect(response.status).toBe(200);
+    const body = await response.json();
+
+    const openaiDirect = body.directContractRows.find((row: any) => row.provider === "openai");
+    expect(openaiDirect).toBeTruthy();
+    expect(openaiDirect.strictStatus).toBe("failed");
+    expect(openaiDirect.strictProviderErrorCode).toBe("TOP_LEVEL_ARRAY");
+    expect(openaiDirect.repairAttempted).toBe(true);
+    expect(openaiDirect.repairStatus).toBe("ok");
+    expect(openaiDirect.finalContractStatus).toBe("repaired_degraded");
+    expect(openaiDirect.status).toBe("degraded");
+
+    vi.unstubAllEnvs();
+  });
+
+  it("keeps final contract failed when repair fails", async () => {
+    vi.stubEnv("OPENAI_API_KEY", "test-openai-key");
+    mockFullOrchestrator(JSON.stringify(VALID_ANALYZE_JSON));
+    mocks.analyzeContribution.mockResolvedValue({
+      claims: [],
+      notes: [],
+      questions: [],
+      knots: [],
+    });
+    mocks.callOpenAI
+      .mockResolvedValueOnce({
+        text: JSON.stringify([{ id: "claim-1", text: "foo" }]),
+        model: "gpt-4.1-mini",
+      })
+      .mockResolvedValueOnce({
+        text: "not-json-after-repair",
+        model: "gpt-4.1-mini",
+      });
+
+    const response = await POST(req("?mode=full"));
+    expect(response.status).toBe(200);
+    const body = await response.json();
+
+    const openaiDirect = body.directContractRows.find((row: any) => row.provider === "openai");
+    expect(openaiDirect.strictStatus).toBe("failed");
+    expect(openaiDirect.repairAttempted).toBe(true);
+    expect(openaiDirect.repairStatus).toBe("failed");
+    expect(openaiDirect.finalContractStatus).toBe("failed");
+
+    vi.unstubAllEnvs();
+  });
+
+  it("does not attempt repair for Gemini 429 and reports blocked contract status", async () => {
+    vi.stubEnv("GEMINI_API_KEY", "test-gemini-key");
+    mockFullOrchestrator(JSON.stringify(VALID_ANALYZE_JSON));
+    mocks.analyzeContribution.mockResolvedValue({
+      claims: [],
+      notes: [],
+      questions: [],
+      knots: [],
+    });
+    mocks.callGemini.mockRejectedValue(
+      Object.assign(new Error("Gemini error 429: RESOURCE_EXHAUSTED"), {
+        status: 429,
+        code: "RESOURCE_EXHAUSTED",
+      }),
+    );
+
+    const response = await POST(req("?mode=full"));
+    expect(response.status).toBe(200);
+    const body = await response.json();
+
+    const geminiDirect = body.directContractRows.find((row: any) => row.provider === "gemini");
+    expect(geminiDirect.repairAttempted).toBe(false);
+    expect(geminiDirect.finalContractStatus).toBe("blocked");
+    expect(geminiDirect.strictStatus).toBe("blocked");
+
+    vi.unstubAllEnvs();
+  });
+
+  it("does not attempt repair for Gemini 503 UNAVAILABLE and reports blocked", async () => {
+    vi.stubEnv("GEMINI_API_KEY", "test-gemini-key");
+    mockFullOrchestrator(JSON.stringify(VALID_ANALYZE_JSON));
+    mocks.analyzeContribution.mockResolvedValue({
+      claims: [],
+      notes: [],
+      questions: [],
+      knots: [],
+    });
+    mocks.callGemini.mockRejectedValue(
+      Object.assign(new Error("Gemini error 503: UNAVAILABLE"), {
+        status: 503,
+        code: "UNAVAILABLE",
+      }),
+    );
+
+    const response = await POST(req("?mode=full"));
+    expect(response.status).toBe(200);
+    const body = await response.json();
+
+    const geminiDirect = body.directContractRows.find((row: any) => row.provider === "gemini");
+    expect(geminiDirect.strictProviderErrorCode).toBe("UNAVAILABLE");
+    expect(geminiDirect.repairAttempted).toBe(false);
+    expect(geminiDirect.finalContractStatus).toBe("blocked");
+    expect(geminiDirect.strictStatus).toBe("blocked");
+
+    vi.unstubAllEnvs();
+  });
+
+  it("does not attempt repair for ARI 402 and reports blocked contract status", async () => {
+    vi.stubEnv("ARI_BASE_URL", "https://ari.example");
+    vi.stubEnv("ARI_API_KEY", "test-ari-key");
+    mockFullOrchestrator(JSON.stringify(VALID_ANALYZE_JSON));
+    mocks.analyzeContribution.mockResolvedValue({
+      claims: [],
+      notes: [],
+      questions: [],
+      knots: [],
+    });
+    mocks.callAriLLM.mockRejectedValue(
+      Object.assign(new Error("ARI request failed: 402 Payment Required"), {
+        status: 402,
+        code: "PAYMENT_REQUIRED",
+      }),
+    );
+
+    const response = await POST(req("?mode=full"));
+    expect(response.status).toBe(200);
+    const body = await response.json();
+
+    const ariDirect = body.directContractRows.find((row: any) => row.provider === "ari");
+    expect(ariDirect.repairAttempted).toBe(false);
+    expect(ariDirect.finalContractStatus).toBe("blocked");
+    expect(ariDirect.strictStatus).toBe("blocked");
+
+    vi.unstubAllEnvs();
+  });
+
+  it("keeps OpenAI TIMEOUT non-repairable and blocked", async () => {
+    vi.stubEnv("OPENAI_API_KEY", "test-openai-key");
+    mockFullOrchestrator(JSON.stringify(VALID_ANALYZE_JSON));
+    mocks.analyzeContribution.mockResolvedValue({
+      claims: [],
+      notes: [],
+      questions: [],
+      knots: [],
+    });
+    mocks.callOpenAI.mockRejectedValue(
+      Object.assign(new Error("request timeout after 30s"), {
+        status: 504,
+      }),
+    );
+
+    const response = await POST(req("?mode=full"));
+    expect(response.status).toBe(200);
+    const body = await response.json();
+
+    const openaiDirect = body.directContractRows.find((row: any) => row.provider === "openai");
+    expect(openaiDirect.strictProviderErrorCode).toBe("TIMEOUT");
+    expect(openaiDirect.repairAttempted).toBe(false);
+    expect(openaiDirect.finalContractStatus).toBe("blocked");
+    expect(openaiDirect.strictStatus).toBe("blocked");
+    expect(mocks.callOpenAI).toHaveBeenCalledTimes(1);
+
+    vi.unstubAllEnvs();
   });
 });
