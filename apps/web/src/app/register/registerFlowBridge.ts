@@ -16,7 +16,7 @@ export function resolveRegisterBridge(next: string | null): RegisterFlowBridge |
   if (path.startsWith("/mitglied-antrag") || path.startsWith("/mitglied-werden")) {
     return {
       title: "Willkommen bei eDebatte",
-      text: "Du kommst aus dem Mitgliedschafts-Flow. Nach der Registrierung führen wir dich ohne Umweg zurück in den Antrag.",
+      text: "Du kommst aus dem Initiativ-Flow. Nach der Registrierung führen wir dich ohne Umweg zurück zum Mitgliedsantrag.",
     };
   }
   if (path.startsWith("/stream")) {

@@ -23,6 +23,7 @@ export default function VerifyEmailPage() {
   const router = useRouter();
   const emailParam = useMemo(() => search.get("email") ?? "", [search]);
   const tokenParam = search.get("token");
+  const mailStatusParam = search.get("mail");
   const nextParam = useMemo(() => sanitizeNext(search.get("next")), [search]);
   const nextAfterVerify = useMemo(
     () => (nextParam ? `/register/identity?next=${encodeURIComponent(nextParam)}` : "/register/identity"),
@@ -138,6 +139,12 @@ export default function VerifyEmailPage() {
           {TOKEN_VALIDITY_HOURS} Stunden gültig. Öffne die E-Mail und bestätige den Link oder gib den Sicherheitscode
           hier ein.
         </p>
+        {mailStatusParam === "pending" ? (
+          <p className="text-sm text-amber-700 dark:text-amber-300">
+            Dein Konto wurde erstellt. Falls die Verifizierungs-E-Mail noch nicht angekommen ist, nutze bitte
+            „E-Mail erneut senden“.
+          </p>
+        ) : null}
       </header>
 
       <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-6 shadow-sm">

@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { CORE_LOCALES, EXTENDED_LOCALES } from "@/config/locales";
 import { HumanCheck } from "@/components/security/HumanCheck";
-import { PRICING_TRUST_LOOP_DE } from "@features/pricing";
 import { RegisterStepper } from "./RegisterStepper";
 import { resolveRegisterBridge } from "./registerFlowBridge";
 
@@ -479,12 +478,23 @@ function RegisterPageClient({ personCount = 1, searchParams }: RegisterPageClien
           setStep(2);
           return;
         }
+        if (data?.error === "email_in_use") {
+          setErrMsg("Diese E-Mail wird bereits verwendet. Bitte melde dich an oder nutze eine andere E-Mail.");
+          setStep(3);
+          return;
+        }
         throw new Error(data?.error || data?.message || `HTTP ${r.status}`);
       }
 
-      setOkMsg("Konto erstellt. Weiterleitung zur E-Mail-Verifizierung …");
+      const emailVerificationPending = data?.emailVerification?.status === "pending";
+      setOkMsg(
+        emailVerificationPending
+          ? "Konto erstellt. Wir leiten dich zur Verifizierung weiter. Falls keine E-Mail ankommt, kannst du den Versand dort erneut auslösen."
+          : "Konto erstellt. Weiterleitung zur E-Mail-Verifizierung …",
+      );
       const nextQuery = nextParam ? `&next=${encodeURIComponent(nextParam)}` : "";
-      router.push(`/register/verify-email?email=${encodeURIComponent(email)}${nextQuery}`);
+      const mailQuery = emailVerificationPending ? "&mail=pending" : "";
+      router.push(`/register/verify-email?email=${encodeURIComponent(email)}${nextQuery}${mailQuery}`);
     } catch (err: any) {
       setErrMsg(
         err?.name === "AbortError"
@@ -509,12 +519,25 @@ function RegisterPageClient({ personCount = 1, searchParams }: RegisterPageClien
         <h1 className="text-xl font-semibold leading-tight sm:text-2xl">
           <span className={HEADLINE_GRADIENT_CLASS}>Registrieren</span>
         </h1>
-        <p className="text-xs text-[rgb(var(--muted))]">Kompakter Onboarding-Flow: Konto, Legitimation, Zugang.</p>
+        <p className="text-xs text-[rgb(var(--muted))]">
+          Dein eDebatte-Konto: sicherer Zugang, verlässliche Identitätsprüfung und klarer Datenschutz.
+        </p>
       </header>
 
       <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2.5 text-xs text-[rgb(var(--muted))]">
-        <p className="font-semibold text-[rgb(var(--fg))]">{PRICING_TRUST_LOOP_DE.leitsatz}</p>
-        <p className="mt-1">{PRICING_TRUST_LOOP_DE.context.registryVerificationHint}</p>
+        <p className="font-semibold text-[rgb(var(--fg))]">Datenschutz und Vertrauen bei eDebatte</p>
+        <p className="mt-1">
+          Wir verarbeiten nur notwendige Angaben und trennen sensible Daten technisch, damit Sicherheit und
+          Nachvollziehbarkeit im Vordergrund stehen.
+        </p>
+        <p className="mt-1">
+          Beschlossene Ergebnisse werden strukturiert dokumentiert und evidenzbasiert weitergeführt, damit aus Debatte
+          belastbare, faktenorientierte Entwicklungswege entstehen können.
+        </p>
+        <p className="mt-1">
+          Wenn du darüber hinaus die Initiative unterstützen möchtest, kannst du nach der Registrierung optional einen
+          Mitgliedsantrag stellen.
+        </p>
       </section>
 
       <RegisterStepper current={step} steps={REGISTER_STEPS} />

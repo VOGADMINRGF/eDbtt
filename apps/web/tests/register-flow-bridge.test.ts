@@ -11,7 +11,7 @@ describe("register flow bridge", () => {
   it("returns membership-specific bridge copy", () => {
     const bridge = resolveRegisterBridge("/mitglied-antrag?betrag=20");
     expect(bridge).not.toBeNull();
-    expect(bridge?.text).toContain("Mitgliedschafts-Flow");
+    expect(bridge?.text).toContain("Initiativ-Flow");
   });
 
   it("returns generic bridge copy for unknown internal targets", () => {
