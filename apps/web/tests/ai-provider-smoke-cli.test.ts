@@ -13,6 +13,10 @@ import {
   writeProviderSmokeJsonLog,
 } from "@/features/ai/providerSmokeCli";
 import { estimateAiRunCost } from "@/features/ai/aiCostTelemetry";
+import {
+  OPTIONAL_RESEARCH_PROVIDER_POLICIES,
+  RESEARCH_ENTITLEMENT_KEYS,
+} from "@/features/ai/researchProviderPolicy";
 
 const providerMocks = vi.hoisted(() => ({
   callOpenAI: vi.fn(),
@@ -181,11 +185,14 @@ describe("ai provider smoke cli helpers", () => {
 
   it("redacts secrets from text and nested objects", () => {
     vi.stubEnv("OPENAI_API_KEY", "sk-test-secret-token");
+    vi.stubEnv("PERPLEXITY_API_KEY", "pplx-test-secret-token");
     const text = "failure with key sk-test-secret-token in payload";
     const redactedText = redactSecretsInText(text);
     const redactedObj = redactSecretsInValue({ note: text });
     expect(redactedText).not.toContain("sk-test-secret-token");
     expect(redactedObj.note).not.toContain("sk-test-secret-token");
+    const perplexityText = "failure with key pplx-test-secret-token in payload";
+    expect(redactSecretsInText(perplexityText)).not.toContain("pplx-test-secret-token");
     vi.unstubAllEnvs();
   });
 
@@ -342,6 +349,33 @@ describe("ai provider smoke cli helpers", () => {
     const primary = parseProviderSmokeCliArgs(["--providers=all-primary"]);
     expect(primary.providers).toEqual(["openai", "anthropic", "mistral"]);
     expect(primary.providers.includes("gemini")).toBe(false);
+  });
+
+  it("keeps Perplexity prepared only as optional research discovery and not as analyze provider", () => {
+    const perplexity = OPTIONAL_RESEARCH_PROVIDER_POLICIES.find((entry) => entry.provider === "perplexity");
+    expect(perplexity).toBeTruthy();
+    expect(perplexity?.role).toBe("research_discovery");
+    expect(perplexity?.strictPrimary).toBe(false);
+    expect(perplexity?.analyzeProvider).toBe(false);
+    expect(perplexity?.coreOrchestrator).toBe(false);
+    expect(RESEARCH_ENTITLEMENT_KEYS).toEqual([
+      "search_credit",
+      "deep_research_credit",
+      "dossier_boost",
+      "research_supporter",
+      "initiator",
+    ]);
+  });
+
+  it("documents Perplexity environment preparation keys in env example", async () => {
+    const envExamplePath = path.resolve(process.cwd(), ".env.example");
+    const body = await readFile(envExamplePath, "utf8");
+    expect(body).toContain("PERPLEXITY_API_KEY=");
+    expect(body).toContain("PERPLEXITY_BASE_URL=https://api.perplexity.ai");
+    expect(body).toContain("PERPLEXITY_SEARCH_MODEL=sonar");
+    expect(body).toContain("PERPLEXITY_TIMEOUT_MS=15000");
+    expect(body).toContain("PERPLEXITY_MAX_OUTPUT_TOKENS=1200");
+    expect(body).toContain("PERPLEXITY_DISABLED=0");
   });
 
   it("full mode uses draft/envelope pipeline and can produce built_valid", async () => {
@@ -503,6 +537,107 @@ describe("ai provider smoke cli helpers", () => {
     expect(providerMocks.callAnthropic).not.toHaveBeenCalled();
     expect(providerMocks.callMistral).not.toHaveBeenCalled();
     expect(providerMocks.callGemini).not.toHaveBeenCalled();
+  });
+
+  it("uses tiny token budgets for probe/runtime smoke profiles", async () => {
+    vi.stubEnv("OPENAI_API_KEY", "test-key");
+    vi.stubEnv("ANTHROPIC_API_KEY", "test-key");
+
+    providerMocks.callOpenAI.mockResolvedValue({
+      text: JSON.stringify({ ok: true, ping: "pong", provider: "openai" }),
+      model: "gpt-4.1-mini",
+      tokensIn: 5,
+      tokensOut: 10,
+      formatUsed: "json_schema",
+      didFallback: false,
+      openaiErrorCode: null,
+      openaiErrorMessage: null,
+    });
+    providerMocks.callAnthropic.mockResolvedValue({
+      text: JSON.stringify({ ok: true, ping: "pong", provider: "anthropic" }),
+      model: "claude-sonnet-test",
+      tokensIn: 6,
+      tokensOut: 12,
+    });
+
+    const probeOutDir = await mkdtemp(path.join(tmpdir(), "ai-provider-smoke-probe-budget-"));
+    await runProviderSmokeCli({
+      mode: "probe",
+      providers: ["openai"],
+      allowBuiltValid: false,
+      allowDegraded: false,
+      noRepair: false,
+      dryRun: false,
+      maxOutputTokens: null,
+      jsonOnly: false,
+      help: false,
+      outputDir: probeOutDir,
+    });
+    const openAiProbeCall = providerMocks.callOpenAI.mock.calls[0]?.[0] as { maxOutputTokens?: number };
+    expect(openAiProbeCall?.maxOutputTokens).toBe(96);
+
+    const runtimeOutDir = await mkdtemp(path.join(tmpdir(), "ai-provider-smoke-runtime-budget-"));
+    await runProviderSmokeCli({
+      mode: "runtime",
+      providers: ["anthropic"],
+      allowBuiltValid: false,
+      allowDegraded: false,
+      noRepair: false,
+      dryRun: false,
+      maxOutputTokens: null,
+      jsonOnly: false,
+      help: false,
+      outputDir: runtimeOutDir,
+    });
+    const anthropicRuntimeCall = providerMocks.callAnthropic.mock.calls[0]?.[0] as {
+      maxOutputTokens?: number;
+    };
+    expect(anthropicRuntimeCall?.maxOutputTokens).toBe(192);
+  });
+
+  it("prints n/a for unknown costs instead of 0", () => {
+    const text = formatProviderSmokeSummary({
+      mode: "full-lite",
+      outputFilePath: "/tmp/test-unknown-cost.json",
+      evaluation: { ok: true, exitCode: 0, failures: [] },
+      summary: [
+        {
+          provider: "gemini",
+          model: "gemini-2.5-flash",
+          status: "ok",
+          rootCause: "STRICT_OK",
+          finalContractStatus: "strict_ok",
+          directStrictStatus: "ok",
+          draftStatus: "not_attempted",
+          envelopeBuildStatus: "not_attempted",
+          finalSchemaStatus: "ok",
+          repairStatus: "not_attempted",
+          providerErrorCode: null,
+          schemaPath: null,
+          durationMs: 10,
+          tokensIn: 100,
+          tokensOut: 200,
+          estimatedCostUsd: null,
+          estimatedCostEur: null,
+          costKnown: false,
+          pricingSource: "internal_smoke_estimate_2026-04-29",
+          costReason: "pricing_unknown_for_model",
+          runCostGroup: "tiny",
+          smokeMode: "runtime",
+          budgetProfile: "runtime_tiny",
+          nextAction: "none",
+        },
+      ],
+      totals: {
+        totalEstimatedCostUsd: null,
+        totalEstimatedCostEur: null,
+        totalCostKnown: false,
+        unknownCostProviders: ["gemini"],
+      },
+    });
+    expect(text).toContain("estimatedCostUsd=n/a");
+    expect(text).toContain("estimatedCostEur=n/a");
+    expect(text).not.toContain("estimatedCostEur=0.000000");
   });
 
   it("gemini config missing returns blocked diagnostic in probe mode", async () => {

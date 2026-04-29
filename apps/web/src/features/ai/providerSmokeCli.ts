@@ -21,6 +21,11 @@ const ALLOWED_PROVIDER_VALUES = [...CLI_PROVIDER_ORDER, "all-primary", "all-opti
 const FULL_DEFAULT_MAX_OUTPUT_TOKENS = 2_600;
 const FULL_LITE_MAX_OUTPUT_TOKENS = 1_200;
 const OPENAI_SMOKE_DEFAULT_MODEL = "gpt-4.1-mini";
+const PROBE_TINY_MAX_OUTPUT_TOKENS = 96;
+const RUNTIME_TINY_MAX_OUTPUT_TOKENS = 192;
+const PROBE_TINY_ESTIMATED_TOKENS_IN = 60;
+const RUNTIME_TINY_ESTIMATED_TOKENS_IN = 120;
+const FULL_ESTIMATED_TOKENS_IN = 900;
 
 export type ProviderSmokeCliArgs = {
   mode: ProviderSmokeCliMode;
@@ -523,6 +528,7 @@ function getRedactionSecrets(): string[] {
     "MISTRAL_API_KEY",
     "GEMINI_API_KEY",
     "GOOGLE_API_KEY",
+    "PERPLEXITY_API_KEY",
     "ARI_API_KEY",
     "YOUCOM_ARI_API_KEY",
   ] as const;
@@ -638,14 +644,23 @@ function resolveRepairPolicy(args: ProviderSmokeCliArgs): "enabled" | "disabled"
 function buildDryRunPlan(args: ProviderSmokeCliArgs): ProviderSmokeDryRunPlanRow[] {
   const repairPolicy = resolveRepairPolicy(args);
   const fullLike = args.mode === "full" || args.mode === "full-lite";
-  const estimatedTokensIn = args.mode === "probe" ? 80 : args.mode === "runtime" ? 180 : 900;
+  const estimatedTokensIn =
+    args.mode === "probe"
+      ? PROBE_TINY_ESTIMATED_TOKENS_IN
+      : args.mode === "runtime"
+        ? RUNTIME_TINY_ESTIMATED_TOKENS_IN
+        : FULL_ESTIMATED_TOKENS_IN;
 
   return args.providers.map((provider) => {
     const model =
       provider === "openai"
         ? openAiSmokeModel()
         : defaultModelForProvider(provider);
-    const maxOutputTokens = fullLike ? resolveFullModeMaxOutputTokens(args, provider) : args.mode === "probe" ? 160 : 320;
+    const maxOutputTokens = fullLike
+      ? resolveFullModeMaxOutputTokens(args, provider)
+      : args.mode === "probe"
+        ? PROBE_TINY_MAX_OUTPUT_TOKENS
+        : RUNTIME_TINY_MAX_OUTPUT_TOKENS;
     const timeoutMs = provider === "openai" ? openAiSmokeTimeoutMs() : null;
     const runCostGroup: ProviderSmokeDryRunPlanRow["runCostGroup"] =
       args.mode === "probe" || args.mode === "runtime"
