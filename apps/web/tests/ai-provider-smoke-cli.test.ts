@@ -6,6 +6,7 @@ import type { ProviderDiagnostic } from "@/features/ai/adminTelemetryDiagnostics
 import {
   evaluateProviderSmokeRows,
   formatProviderSmokeSummary,
+  parseProviderSmokeCliArgs,
   runProviderSmokeCli,
   redactSecretsInText,
   redactSecretsInValue,
@@ -249,6 +250,43 @@ describe("ai provider smoke cli helpers", () => {
     expect(text).toContain("tokensOut=13");
   });
 
+  it("defaults to all-primary providers when provider flag is missing", () => {
+    const args = parseProviderSmokeCliArgs([]);
+    expect(args.providers).toEqual(["openai", "anthropic", "mistral"]);
+  });
+
+  it("fails fast on invalid provider and does not call providers", () => {
+    expect(() => parseProviderSmokeCliArgs(["--provider=openia"])).toThrow(
+      /Allowed: openai, anthropic, mistral, all-primary/,
+    );
+    expect(providerMocks.callOpenAI).not.toHaveBeenCalled();
+    expect(providerMocks.callAnthropic).not.toHaveBeenCalled();
+    expect(providerMocks.callMistral).not.toHaveBeenCalled();
+  });
+
+  it("fails fast on invalid provider list and does not call providers", () => {
+    expect(() => parseProviderSmokeCliArgs(["--providers=openai,openia"])).toThrow(
+      /Invalid provider value/,
+    );
+    expect(providerMocks.callOpenAI).not.toHaveBeenCalled();
+    expect(providerMocks.callAnthropic).not.toHaveBeenCalled();
+    expect(providerMocks.callMistral).not.toHaveBeenCalled();
+  });
+
+  it("defaults mode to full when mode flag is missing", () => {
+    const args = parseProviderSmokeCliArgs(["--provider=openai"]);
+    expect(args.mode).toBe("full");
+  });
+
+  it("fails fast on invalid mode and does not call providers", () => {
+    expect(() => parseProviderSmokeCliArgs(["--provider=openai", "--mode=ful"])).toThrow(
+      /Allowed: probe, runtime, full/,
+    );
+    expect(providerMocks.callOpenAI).not.toHaveBeenCalled();
+    expect(providerMocks.callAnthropic).not.toHaveBeenCalled();
+    expect(providerMocks.callMistral).not.toHaveBeenCalled();
+  });
+
   it("full mode uses draft/envelope pipeline and can produce built_valid", async () => {
     vi.stubEnv("ANTHROPIC_API_KEY", "test-key");
     providerMocks.callAnthropic.mockResolvedValue({
@@ -310,6 +348,7 @@ describe("ai provider smoke cli helpers", () => {
 
   it("full mode passes OpenAI smoke profile metadata through diagnostics", async () => {
     vi.stubEnv("OPENAI_API_KEY", "test-key");
+    vi.stubEnv("OPENAI_MODEL", "gpt-5");
     vi.stubEnv("OPENAI_SMOKE_MODEL", "gpt-4.1-mini");
     vi.stubEnv("OPENAI_SMOKE_TIMEOUT_MS", "31000");
     vi.stubEnv("OPENAI_SMOKE_MAX_OUTPUT_TOKENS", "2300");
@@ -362,10 +401,15 @@ describe("ai provider smoke cli helpers", () => {
     const row = result.rows[0];
     expect(row.finalContractStatus).toBe("strict_ok");
     expect(row.selectedSmokeModel).toBe("gpt-4.1-mini");
+    expect(row.model).toBe("gpt-4.1-mini");
+    expect(row.effectiveModel).toBe("gpt-4.1-mini");
     expect(row.timeoutMs).toBe(31_000);
     expect(row.maxOutputTokens).toBe(2_300);
     expect(row.formatUsed).toBe("json_schema");
     expect(row.didFallback).toBe(false);
+    expect(providerMocks.callOpenAI).toHaveBeenCalled();
+    const openAiCall = providerMocks.callOpenAI.mock.calls[0]?.[0] as { model?: string };
+    expect(openAiCall?.model).toBe("gpt-4.1-mini");
     expect(result.evaluation.exitCode).toBe(0);
   });
 });

@@ -2550,12 +2550,13 @@ async function runDirectFullContractProvider(provider: E150ProviderName): Promis
   const openAiMaxOutputTokens = isOpenAi ? openAiSmokeMaxOutputTokens() : null;
   const openAiProfileNote = isOpenAi ? openAiSmokeConfigDiagnosticNote() : null;
   if (missingReason) {
+    const missingModel = isOpenAi ? openAiSelectedSmokeModel ?? OPENAI_SMOKE_DEFAULT_MODEL : defaultModelForProvider(provider);
     return baseDiagnostic({
       provider,
       mode: "full_contract",
       stage: "analyze_contract",
       pipeline: "provider_probe",
-      model: defaultModelForProvider(provider),
+      model: missingModel,
       status: "config_missing",
       errorKind: "INVALID_API_KEY",
       providerErrorCode: "CONFIG_MISSING",
@@ -2590,7 +2591,7 @@ async function runDirectFullContractProvider(provider: E150ProviderName): Promis
       maxOutputTokens: openAiMaxOutputTokens,
       selectedSmokeModel: openAiSelectedSmokeModel,
       smokeModelEnvPresent: openAiSmokeEnvPresent,
-      effectiveModel: openAiSelectedSmokeModel ?? defaultModelForProvider(provider),
+      effectiveModel: missingModel,
       openAiSmokeModelMismatch: false,
       diagnosticNotes: mergeDiagnosticNotes(provider, [
         "Provider configuration missing.",
@@ -2876,7 +2877,9 @@ async function runDirectFullContractProvider(provider: E150ProviderName): Promis
     const status = typeof error?.status === "number" ? error.status : null;
     const blocked = isBlockedContractError(providerCode);
     const finalContractStatus: ProviderDiagnostic["finalContractStatus"] = blocked ? "blocked" : "failed";
-    const effectiveModel = error?.meta?.model ?? defaultModelForProvider(provider);
+    const effectiveModel = isOpenAi
+      ? error?.meta?.model ?? openAiSelectedSmokeModel ?? OPENAI_SMOKE_DEFAULT_MODEL
+      : error?.meta?.model ?? defaultModelForProvider(provider);
     const openAiSmokeModelMismatch =
       isOpenAi &&
       isOpenAiSmokeModelMismatch({
