@@ -1164,6 +1164,113 @@ describe("/api/admin/ai/orchestrator-smoke", () => {
     expect(body.operationalSummary.researchRequired).toBe(true);
     expect(body.operationalSummary.productionEligible).toBe(false);
     expect(String(body.operationalSummary.nextAction)).toContain("Research");
+    expect(body.operationalSummary.researchProviderAvailable).toBe(false);
+    expect(body.operationalSummary.safeToRunStandardAnalyze).toBe(true);
+    expect(body.operationalSummary.safeToRunSealedFactcheck).toBe(false);
+    expect(body.operationalSummary.standardAnalyzeUnaffected).toBe(true);
+    expect(body.operationalSummary.blockedResearchProviders.some((entry: any) => entry.provider === "perplexity")).toBe(true);
+
+    vi.unstubAllEnvs();
+  });
+
+  it("keeps standard_analyze safe when all research providers are disabled", async () => {
+    vi.stubEnv("OPENAI_API_KEY", "test-openai-key");
+    vi.stubEnv("PERPLEXITY_DISABLED", "1");
+    vi.stubEnv("ARI_RESEARCH_ENABLED", "0");
+    vi.stubEnv("OPENAI_DEEP_RESEARCH_ENABLED", "0");
+    mockFullOrchestrator(JSON.stringify(VALID_ANALYZE_JSON));
+    mocks.analyzeContribution.mockResolvedValue({
+      claims: [],
+      notes: [],
+      questions: [],
+      knots: [],
+    });
+    mocks.callOpenAI.mockResolvedValue({
+      text: JSON.stringify(STRICT_ANALYZE_JSON),
+      model: "gpt-4.1-mini",
+      formatUsed: "json_schema",
+      didFallback: false,
+    });
+
+    const response = await POST(req("?mode=full&lane=standard_analyze"));
+    expect(response.status).toBe(200);
+    const body = await response.json();
+
+    expect(body.operationalSummary.selectedLane).toBe("standard_analyze");
+    expect(body.operationalSummary.researchRequired).toBe(false);
+    expect(body.operationalSummary.standardAnalyzeUnaffected).toBe(true);
+    expect(body.operationalSummary.safeToRunStandardAnalyze).toBe(true);
+    expect(body.operationalSummary.productionEligible).toBe(true);
+    expect(body.operationalSummary.researchProviderAvailable).toBe(false);
+    expect(body.operationalSummary.selectedResearchProvider).toBeNull();
+    expect(body.operationalSummary.blockedResearchProviders.some((entry: any) => entry.provider === "openai_deep_research")).toBe(true);
+
+    vi.unstubAllEnvs();
+  });
+
+  it("marks Perplexity as config_missing when explicitly enabled without API key", async () => {
+    vi.stubEnv("OPENAI_API_KEY", "test-openai-key");
+    vi.stubEnv("PERPLEXITY_DISABLED", "0");
+    vi.stubEnv("PERPLEXITY_API_KEY", "");
+    vi.stubEnv("PERPLEXITY_BASE_URL", "https://api.perplexity.ai");
+    vi.stubEnv("SEARCH_CREDIT_AVAILABLE", "1");
+    mockFullOrchestrator(JSON.stringify(VALID_ANALYZE_JSON));
+    mocks.analyzeContribution.mockResolvedValue({
+      claims: [],
+      notes: [],
+      questions: [],
+      knots: [],
+    });
+    mocks.callOpenAI.mockResolvedValue({
+      text: JSON.stringify(STRICT_ANALYZE_JSON),
+      model: "gpt-4.1-mini",
+      formatUsed: "json_schema",
+      didFallback: false,
+    });
+
+    const response = await POST(req("?mode=full&lane=sealed_factcheck"));
+    expect(response.status).toBe(200);
+    const body = await response.json();
+
+    const perplexityBlocked = body.operationalSummary.blockedResearchProviders.find((entry: any) => entry.provider === "perplexity");
+    expect(perplexityBlocked).toBeTruthy();
+    expect(String(perplexityBlocked.reason)).toContain("missing_perplexity_api_key");
+
+    vi.unstubAllEnvs();
+  });
+
+  it("enables premium lane with OpenAI deep research only when explicitly configured with credit", async () => {
+    vi.stubEnv("OPENAI_API_KEY", "test-openai-key");
+    vi.stubEnv("OPENAI_DEEP_RESEARCH_ENABLED", "1");
+    vi.stubEnv("OPENAI_DEEP_RESEARCH_MODEL", "o4-deep-research-preview");
+    vi.stubEnv("DEEP_RESEARCH_CREDIT_AVAILABLE", "1");
+    vi.stubEnv("PERPLEXITY_DISABLED", "1");
+    vi.stubEnv("ARI_RESEARCH_ENABLED", "0");
+    mockFullOrchestrator(JSON.stringify(VALID_ANALYZE_JSON));
+    mocks.analyzeContribution.mockResolvedValue({
+      claims: [],
+      notes: [],
+      questions: [],
+      knots: [],
+    });
+    mocks.callOpenAI.mockResolvedValue({
+      text: JSON.stringify(STRICT_ANALYZE_JSON),
+      model: "gpt-4.1-mini",
+      formatUsed: "json_schema",
+      didFallback: false,
+    });
+
+    const response = await POST(req("?mode=full&lane=premium_deep_research"));
+    expect(response.status).toBe(200);
+    const body = await response.json();
+
+    expect(body.operationalSummary.selectedLane).toBe("premium_deep_research");
+    expect(body.operationalSummary.researchRequired).toBe(true);
+    expect(body.operationalSummary.researchCreditRequired).toBe(true);
+    expect(body.operationalSummary.researchCreditSatisfied).toBe(true);
+    expect(body.operationalSummary.selectedResearchProvider).toBe("openai_deep_research");
+    expect(body.operationalSummary.safeToRunPremiumDeepResearch).toBe(true);
+    expect(body.operationalSummary.primaryAnalyzeProvider).toBe("openai");
 
     vi.unstubAllEnvs();
   });

@@ -17,6 +17,7 @@ import {
   OPTIONAL_RESEARCH_PROVIDER_POLICIES,
   RESEARCH_ENTITLEMENT_KEYS,
 } from "@/features/ai/researchProviderPolicy";
+import { buildResearchProviderRegistry } from "@/features/ai/researchProviderRegistry";
 
 const providerMocks = vi.hoisted(() => ({
   callOpenAI: vi.fn(),
@@ -365,6 +366,38 @@ describe("ai provider smoke cli helpers", () => {
       "research_supporter",
       "initiator",
     ]);
+    const openAiDeep = OPTIONAL_RESEARCH_PROVIDER_POLICIES.find(
+      (entry) => entry.provider === "openai_deep_research",
+    );
+    expect(openAiDeep).toBeTruthy();
+    expect(openAiDeep?.strictPrimary).toBe(false);
+    expect(openAiDeep?.analyzeProvider).toBe(false);
+    expect(openAiDeep?.coreOrchestrator).toBe(false);
+  });
+
+  it("marks Perplexity as disabled-by-default when no explicit enable flag is set", () => {
+    vi.unstubAllEnvs();
+    vi.stubEnv("PERPLEXITY_API_KEY", "test-key");
+    vi.stubEnv("PERPLEXITY_BASE_URL", "https://api.perplexity.ai");
+    vi.stubEnv("PERPLEXITY_DISABLED", "");
+    const registry = buildResearchProviderRegistry();
+    const perplexity = registry.activeProviders.find((entry) => entry.provider === "perplexity");
+    expect(perplexity?.availability).toBe("disabled");
+  });
+
+  it("marks OpenAI deep research unavailable when disabled and available only with explicit config", () => {
+    vi.unstubAllEnvs();
+    vi.stubEnv("OPENAI_API_KEY", "test-key");
+    vi.stubEnv("OPENAI_DEEP_RESEARCH_ENABLED", "0");
+    let registry = buildResearchProviderRegistry();
+    let deep = registry.activeProviders.find((entry) => entry.provider === "openai_deep_research");
+    expect(deep?.availability).toBe("disabled");
+
+    vi.stubEnv("OPENAI_DEEP_RESEARCH_ENABLED", "1");
+    vi.stubEnv("OPENAI_DEEP_RESEARCH_MODEL", "o4-deep-research-preview");
+    registry = buildResearchProviderRegistry();
+    deep = registry.activeProviders.find((entry) => entry.provider === "openai_deep_research");
+    expect(deep?.availability).toBe("available");
   });
 
   it("documents Perplexity environment preparation keys in env example", async () => {
