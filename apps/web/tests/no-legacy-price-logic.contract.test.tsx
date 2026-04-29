@@ -18,9 +18,9 @@ describe("no legacy price logic contract", () => {
     const vormerkenHtml = renderToStaticMarkup(<VormerkenPage />);
     const combined = `${pricingHtml}\n${vormerkenHtml}`;
 
-    expect(combined).toContain("3,99 € regulär");
-    expect(combined).toContain("9,90 €");
-    expect(combined).toContain("29,90 €");
+    expect(combined).toContain("Interessiert: 3,99 €");
+    expect(combined).toContain("9,99 €");
+    expect(combined).toContain("29,99 €");
     expect(combined).toContain("5,63");
 
     expect(combined).not.toContain("eDebatte Basis");

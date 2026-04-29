@@ -15,10 +15,10 @@ describe("/pricing canonical landing", () => {
     expect(html).toContain("eDebatte Interessiert");
     expect(html).toContain("eDebatte Aktiv");
     expect(html).toContain("eDebatte Mitgestaltend");
-    expect(html).toContain("0 € für VoiceOpenGov-Mitglieder");
-    expect(html).toContain("3,99 € regulär");
-    expect(html).toContain("9,90 €");
-    expect(html).toContain("29,90 €");
+    expect(html).toContain("Beteiligung frei: 0 €");
+    expect(html).toContain("Interessiert: 3,99 €");
+    expect(html).toContain("9,99 €");
+    expect(html).toContain("29,99 €");
     expect(html).not.toContain("eDebatte Basis");
     expect(html).not.toContain("eDebatte Start");
     expect(html).not.toContain("eDebatte Pro");
@@ -31,7 +31,7 @@ describe("/pricing canonical landing", () => {
   it("keeps hero short with two primary CTAs", async () => {
     const html = await renderPricing();
 
-    expect(html).toContain("Wähle eines von drei Privatpaketen");
+    expect(html).toContain("Wähle eines von vier privaten Paketwegen");
     expect(html).toContain("Paket wählen");
     expect(html).toContain("B2B/B2G-Konditionen ansehen");
     expect(html).toContain('href="/pricing/institutionen"');
@@ -40,10 +40,21 @@ describe("/pricing canonical landing", () => {
   it("keeps initiative membership logic visible in pricing decision area", async () => {
     const html = await renderPricing();
 
-    expect(html).toContain("Als Mitglied der Initiative ist das Paket „Interessiert“ kostenfrei.");
-    expect(html).toContain("Empfohlen sind 5,63 €");
+    expect(html).toContain("Der Mitgliedschaftsantrag bleibt optional. Paketpreis und Mitgliedsbeitrag werden getrennt behandelt.");
+    expect(html).toContain("Paketpreise bleiben unabhängig vom Mitgliedschaftsantrag gleich.");
+    expect(html).toContain("Empfohlener Mitgliedsbeitrag: 5,63 €.");
+    expect(html).toContain("Search Credit / Dossier Search: ca. 10 € je Credit (einzeln buchbar)");
+    expect(html).toContain("Deep Research Credit: ca. 20 € je Credit (einzeln buchbar)");
     expect(html).toContain("Zur Initiative");
     expect(html).toContain("So funktioniert eDebatte");
+  });
+
+  it("keeps membership optional but non-discounted in journalism segment", async () => {
+    const html = await renderPricing({ segment: "journalismus" });
+
+    expect(html).toContain("Journalistische Pakete mit Einstiegskontingent");
+    expect(html).toContain("Der Mitgliedschaftsantrag bleibt optional. Paketpreis und Mitgliedsbeitrag werden getrennt behandelt.");
+    expect(html).toContain("Paketpreise bleiben unabhängig vom Mitgliedschaftsantrag gleich.");
   });
 
   it("keeps institutional and newsroom conditions as short secondary hint", async () => {
@@ -58,9 +69,10 @@ describe("/pricing canonical landing", () => {
 
     expect(html).toContain('href="#pricing-privat"');
     expect(html).toContain('href="/pricing/institutionen"');
-    expect(html).toContain('href="/order?paket=basis"');
-    expect(html).toContain('href="/order?paket=start"');
-    expect(html).toContain('href="/order?paket=pro"');
+    expect(html).toContain('href="/vormerken?paket=basis"');
+    expect(html).toContain('href="/vormerken?paket=start"');
+    expect(html).toContain('href="/vormerken?paket=pro"');
+    expect(html).not.toContain('href="/order?paket=');
   });
 
   it("keeps locale-aware links in EN mode", async () => {
@@ -70,6 +82,6 @@ describe("/pricing canonical landing", () => {
     expect(html).toContain("Choose package");
     expect(html).toContain("View B2B/B2G conditions");
     expect(html).toContain('href="/pricing/institutionen?lang=en"');
-    expect(html).toContain('href="/order?paket=pro&amp;lang=en"');
+    expect(html).toContain('href="/vormerken?paket=pro&amp;lang=en"');
   });
 });

@@ -66,8 +66,8 @@ const VORMERKEN_LABELS = {
     } as Record<PricingSegmentId, string>,
     packageSectionTitle: "Paketauswahl",
     packageSectionText: {
-      privat: "Interessiert: 0 € für Mitglieder / 3,99 € regulär · Aktiv: 9,90 € · Mitgestaltend: 29,90 €",
-      journalismus: "Journalistische Pakete mit Anlassraum-/Dossier-Fokus und optionalen Prüfpfaden.",
+      privat: "Beteiligung frei: 0 € · Interessiert: 3,99 € · Aktiv: 9,99 € · Mitgestaltend: 29,99 €",
+      journalismus: "Journalistische Pakete mit Einstiegskontingent (3 Beiträge/1 Anlassraum) oder Arbeitskontingent (10 Beiträge/1 Anlassraum).",
       organisationen: "Organisationen wählen zwischen Aktivierung und Betrieb Plus.",
       kommunen: "Kommunen wählen zwischen Aktivierung und Betrieb Plus mit kommunalem Betriebsrahmen.",
     } as Record<PricingSegmentId, string>,
@@ -130,7 +130,9 @@ const VORMERKEN_LABELS = {
     membershipHint:
       "Mitgliedschaft und Paketfreischaltung werden getrennt geführt. Die finale Bestätigung erfolgt separat per E-Mail-Link.",
     membershipInterestedHint:
-      "Für Mitglieder gilt beim Paket „Interessiert“ der kostenfreie Einstieg. Regulär sind es 3,99 €.",
+      "Der Mitgliedschaftsantrag verändert den Paketpreis nicht.",
+    membershipNoDiscountHint:
+      "Für Journalismus, Organisationen und Kommunen erzeugt der Mitgliedsantrag keinen Paketrabatt.",
     membershipContributionHint:
       "Der frei gewählte Mitgliedsbeitrag bleibt davon unabhängig. Empfohlener Mitgliedsbeitrag: 5,63 € (aus sozialen Erwägungen).",
     membershipSystemsHint:
@@ -200,8 +202,8 @@ const VORMERKEN_LABELS = {
     } as Record<PricingSegmentId, string>,
     packageSectionTitle: "Package selection",
     packageSectionText: {
-      privat: "Interested: €0 for members / €3.99 regular · Active: €9.90 · Co-creating: €29.90",
-      journalismus: "Journalism packages with issue-room/dossier focus and optional review paths.",
+      privat: "Participation Free: €0 · Interested: €3.99 · Active: €9.99 · Co-creating: €29.99",
+      journalismus: "Journalism packages with starter quota (3 contributions/1 issue room) or working quota (10 contributions/1 issue room).",
       organisationen: "Organizations choose between activation and operations plus.",
       kommunen: "Municipalities choose between activation and operations plus in municipal operating mode.",
     } as Record<PricingSegmentId, string>,
@@ -263,7 +265,9 @@ const VORMERKEN_LABELS = {
     membershipHint:
       "Membership and package activation are handled separately. Final confirmation runs via a dedicated email link.",
     membershipInterestedHint:
-      "For members, package “Interested” stays free. Regular price is €3.99.",
+      "Membership request does not change package pricing.",
+    membershipNoDiscountHint:
+      "For journalism, organizations and municipalities, membership request does not create a package discount.",
     membershipContributionHint:
       "The freely chosen membership contribution stays independent from package pricing. Recommended membership contribution: €5.63 (social benchmark).",
     membershipSystemsHint:
@@ -656,12 +660,6 @@ export default function VormerkenPage({ entrySurface = "vormerken" }: VormerkenP
   }, [isInstitutionalSegment, quoteVisible]);
 
   useEffect(() => {
-    if (selectedSegment !== "privat" && membershipRequested) {
-      setMembershipRequested(false);
-    }
-  }, [selectedSegment, membershipRequested]);
-
-  useEffect(() => {
     const selected = new Set(selectedAddOnIds);
     setFollowupAnswers((prev) => {
       const next: Record<string, string> = {};
@@ -898,7 +896,7 @@ export default function VormerkenPage({ entrySurface = "vormerken" }: VormerkenP
             : undefined,
           conversationRequested: isInstitutionalSegment ? completionPath === "conversation_request" : false,
           conversationChannel: isInstitutionalSegment && completionPath === "conversation_request" ? "email" : undefined,
-          membershipRequested: isPrivateSegment ? membershipRequested : false,
+          membershipRequested,
           humanToken,
           formStartedAt: formStartedAt ?? Date.now(),
           hp_preorder: hpPreorder,
@@ -1585,27 +1583,29 @@ export default function VormerkenPage({ entrySurface = "vormerken" }: VormerkenP
                   />
                 </div>
 
-                {isPrivateSegment ? (
-                  <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-3 text-sm text-[rgb(var(--muted))]">
-                    <p className="text-xs font-semibold uppercase tracking-wide">{text.membershipSectionTitle}</p>
-                    <p className="mt-2 text-sm">{text.membershipSectionIntro}</p>
-                    <label className="mt-3 flex items-start gap-2">
-                      <input
-                        type="checkbox"
-                        checked={membershipRequested}
-                        onChange={(event) => setMembershipRequested(event.target.checked)}
-                        className="mt-1 h-4 w-4"
-                      />
-                      <span>
-                        {text.membershipCheckbox}
-                        <span className="mt-1 block text-xs">{text.membershipHint}</span>
+                <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-3 text-sm text-[rgb(var(--muted))]">
+                  <p className="text-xs font-semibold uppercase tracking-wide">{text.membershipSectionTitle}</p>
+                  <p className="mt-2 text-sm">{text.membershipSectionIntro}</p>
+                  <label className="mt-3 flex items-start gap-2">
+                    <input
+                      type="checkbox"
+                      checked={membershipRequested}
+                      onChange={(event) => setMembershipRequested(event.target.checked)}
+                      className="mt-1 h-4 w-4"
+                    />
+                    <span>
+                      {text.membershipCheckbox}
+                      <span className="mt-1 block text-xs">{text.membershipHint}</span>
+                      {isPrivateSegment ? (
                         <span className="mt-1 block text-xs">{text.membershipInterestedHint}</span>
-                        <span className="mt-1 block text-xs">{text.membershipContributionHint}</span>
-                        <span className="mt-1 block text-xs">{text.membershipSystemsHint}</span>
-                      </span>
-                    </label>
-                  </div>
-                ) : null}
+                      ) : (
+                        <span className="mt-1 block text-xs">{text.membershipNoDiscountHint}</span>
+                      )}
+                      <span className="mt-1 block text-xs">{text.membershipContributionHint}</span>
+                      <span className="mt-1 block text-xs">{text.membershipSystemsHint}</span>
+                    </span>
+                  </label>
+                </div>
 
                 <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-3 text-xs text-[rgb(var(--muted))]">
                   <label className="flex items-start gap-2">

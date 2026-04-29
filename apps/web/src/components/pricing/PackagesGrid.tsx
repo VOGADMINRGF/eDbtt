@@ -82,15 +82,27 @@ function PackagesGrid({ packages = [], tone = "default", locale = "de", compact 
 
             <dl className="mt-6 space-y-3 text-xs leading-relaxed text-[rgb(var(--muted))]">
               {compact ? (
-                <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3.5 py-3">
-                  <dt className="font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
-                    {text.forWhom} · {text.intendedFor}
-                  </dt>
-                  <dd className="mt-1 text-sm leading-relaxed">
-                    <p>{pkg.fuerWen}</p>
-                    <p className="mt-1">{pkg.wofuerGedacht}</p>
-                  </dd>
-                </div>
+                <>
+                  <div className="rounded-xl border border-sky-200 bg-sky-50 px-3.5 py-3">
+                    <dt className="font-semibold uppercase tracking-wide text-sky-800">{text.included}</dt>
+                    <dd className="mt-1">
+                      <ul className="space-y-1 text-sm leading-relaxed text-sky-900">
+                        {pkg.leistungen.slice(0, 6).map((item) => (
+                          <li key={item}>{item}</li>
+                        ))}
+                      </ul>
+                    </dd>
+                  </div>
+                  <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3.5 py-3">
+                    <dt className="font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
+                      {text.forWhom} · {text.intendedFor}
+                    </dt>
+                    <dd className="mt-1 text-sm leading-relaxed">
+                      <p>{pkg.fuerWen}</p>
+                      <p className="mt-1">{pkg.wofuerGedacht}</p>
+                    </dd>
+                  </div>
+                </>
               ) : (
                 <>
                   <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3.5 py-3">
@@ -107,18 +119,6 @@ function PackagesGrid({ packages = [], tone = "default", locale = "de", compact 
                 <dt className="font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">{text.differenceToNext}</dt>
                 <dd className="mt-1 text-sm leading-relaxed">{pkg.unterschiedZurNaechstenStufe}</dd>
               </div>
-              {compact ? (
-                <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3.5 py-3">
-                  <dt className="font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">{text.included}</dt>
-                  <dd className="mt-1">
-                    <ul className="space-y-1 text-sm leading-relaxed">
-                      {pkg.leistungen.slice(0, 4).map((item) => (
-                        <li key={item}>{item}</li>
-                      ))}
-                    </ul>
-                  </dd>
-                </div>
-              ) : null}
             </dl>
 
             {!compact ? (

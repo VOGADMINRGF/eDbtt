@@ -17,7 +17,7 @@ export const PRICING_PAGE_CONTENT = {
     "Unsere Privatpakete richten sich an Menschen, die sich informieren, einbringen und an gesellschaftlicher Orientierung mitwirken wollen. Geld verändert dabei keine demokratischen Rechte, sondern trägt Infrastruktur und Betrieb mit.",
   membershipAgeTitle: "Mitgliedschaft und Alter",
   membershipAgeParagraphs: [
-    "Mitgliedschaft kann ab 14 Jahren beantragt werden. Für Mitglieder bleibt der Einstieg kostenfrei, regulär liegt der Basistarif bei 3,99 €.",
+    "Mitgliedschaft kann ab 14 Jahren beantragt werden. Die Paketpreise bleiben davon unabhängig; der Basistarif liegt bei 3,99 €.",
     "Rabatte für Ausbildung oder Studium sind derzeit nicht vorgesehen, weil wir bewusst mit einem klaren und einheitlichen Mindestbeitrag arbeiten.",
     "Die VoiceOpenGov-Mitgliedschaft kann im Profil beantragt bzw. beauftragt werden. Die formale Bestätigung erfolgt anschließend separat. Mitgliedschaft und Paketfreischaltung werden transparent getrennt geführt.",
   ],
@@ -147,7 +147,7 @@ export const PRICING_PAGE_CONTENT_EN = {
     "Our civic packages are designed for people who want to stay informed, contribute and help shape civic orientation. Money does not change democratic rights, it helps fund infrastructure and operations.",
   membershipAgeTitle: "Membership and age",
   membershipAgeParagraphs: [
-    "Membership can be requested from age 14. Entry stays free for members, while the regular base tariff is €3.99.",
+    "Membership can be requested from age 14. Package pricing stays independent, and the base tariff is €3.99.",
     "We currently do not offer student or apprenticeship discounts because we intentionally use one clear and consistent minimum contribution.",
     "VoiceOpenGov membership can be requested via profile. Formal confirmation follows separately. Membership and package activation are transparently handled as separate steps.",
   ],
@@ -268,16 +268,16 @@ export const VORMERKEN_PAGE_CONTENT = {
   overview: [
     {
       id: "interessiert",
-      title: "Interessiert · Beitragen · 0 € / 3,99 €",
+      title: "Interessiert · Beitragen · 3,99 €",
       items: [
-        "0 € für VoiceOpenGov-Mitglieder",
-        "3,99 € regulär",
+        "1 Beitrag pro Monat",
+        "Paketpreis: 3,99 €",
         "Anliegen einbringen und Themenzuordnung erhalten",
       ],
     },
     {
       id: "aktiv",
-      title: "Aktiv · Prüfen · 9,90 €",
+      title: "Aktiv · Prüfen · 9,99 €",
       items: [
         "Agenda, Artikel oder Beitrag prüfen lassen",
         "Richtlinien-/Companion-Hinweise ohne Umschreibung",
@@ -286,7 +286,7 @@ export const VORMERKEN_PAGE_CONTENT = {
     },
     {
       id: "mitgestaltend",
-      title: "Mitgestaltend · Entwerfen · 29,90 €",
+      title: "Mitgestaltend · Entwerfen · 29,99 €",
       items: [
         "Geführte Erarbeitung mit Human Loop",
         "Dossier-nahe Verdichtung und Arbeitsstand",
@@ -365,16 +365,16 @@ export const VORMERKEN_PAGE_CONTENT_EN = {
   overview: [
     {
       id: "interested",
-      title: "Interested · Contribute · €0 / €3.99",
+      title: "Interested · Contribute · €3.99",
       items: [
-        "€0 for VoiceOpenGov members",
-        "€3.99 regular",
+        "1 contribution per month",
+        "Package price: €3.99",
         "Submit concerns with topic mapping",
       ],
     },
     {
       id: "active",
-      title: "Active · Review · €9.90",
+      title: "Active · Review · €9.99",
       items: [
         "Check agendas, articles and contributions",
         "Companion/policy hints without rewriting",
@@ -383,7 +383,7 @@ export const VORMERKEN_PAGE_CONTENT_EN = {
     },
     {
       id: "co_creating",
-      title: "Co-creating · Draft together · €29.90",
+      title: "Co-creating · Draft together · €29.99",
       items: [
         "Guided collaboration with human loop",
         "Dossier-near iterative progress",

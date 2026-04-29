@@ -189,6 +189,33 @@ Die produktnahe Nutzung umfasst:
 - registry-/payment-nahe Hinweise
 - order-/activation-followup-Texte
 
+### 3.10 Pricing/Credit Alignment (Issue #64, 2026-04-29)
+
+Privatmodell (verbindlich):
+
+- `0 EUR`: Voting/Participation frei, keine externen Research-Credits.
+- `3,99 EUR` (`Interessiert`): 1 Contribution/Monat, keine externen Search-/Deep-Research-Credits.
+- `9,99 EUR` (`Aktiv`): 3 Contributions/Monat, 1 Anlassraum-Credit, kein automatischer externer Search.
+- `29,99 EUR` (`Mitgestaltend`): 10 Contributions/Monat, 1 Anlassraum-Credit, 1 Entwicklungsthema; optional 1 Perplexity Search Credit bei aktivierter Provider-/Kosten-Policy; kein ARI Deep Research inklusive.
+
+Add-ons (explizit optional):
+
+- Search Credit / Dossier Search: rund `10 EUR`.
+- Deep Research Credit / Premium Research: rund `20 EUR`.
+
+Segment-Kontingente:
+
+- Journalismus: Starter-Kontingent (3 Contributions/Monat + 1 Anlassraum) bzw. Arbeitskontingent (10 Contributions/Monat + 1 Anlassraum).
+- Kleine Vereine (Organization Activation): Starter-Kontingent (3 Contributions/Monat + 1 Anlassraum).
+- Membership-Antrag bleibt in allen Segmenten optional, erzeugt aber außerhalb des privaten Basispakets keinen automatischen Segmentrabatt.
+
+Architektur- und Produktgrenzen:
+
+- Standard Analyze läuft ohne Perplexity und ohne ARI.
+- Perplexity bleibt optionales Search-/Research-Discovery-Tool.
+- ARI bleibt optionales Premium-Deep-Research-Tool.
+- Unbekannte Providerkosten werden nie als `0 EUR` angezeigt (`costKnown=false`, Darstellung `n/a`/`unknown`).
+
 ## 4. Institutionelles Hybrid-Pricing (`/pricing/institutionen`)
 
 ### 4.1 Formel

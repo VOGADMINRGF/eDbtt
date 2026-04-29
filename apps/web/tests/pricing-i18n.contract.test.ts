@@ -13,12 +13,12 @@ describe("/pricing i18n contract", () => {
     const en = await renderPricing({ lang: "en" });
 
     expect(de).toContain("eDebatte Interessiert");
-    expect(de).toContain("0 € für VoiceOpenGov-Mitglieder");
-    expect(de).toContain("29,90 €");
+    expect(de).toContain("Beteiligung frei: 0 €");
+    expect(de).toContain("29,99 €");
 
     expect(en).toContain("eDebatte Interested");
-    expect(en).toContain("€0 for VoiceOpenGov members");
-    expect(en).toContain("€29.90");
+    expect(en).toContain("Participation Free: €0");
+    expect(en).toContain("€29.99");
 
     expect(en).not.toContain("Technisches Mapping");
     expect(en).not.toContain("citizenBasic");
@@ -30,7 +30,7 @@ describe("/pricing i18n contract", () => {
     const html = await renderPricing({ lang: "en", segment: "organisationen" });
 
     expect(html).toContain('href="/pricing/institutionen?lang=en"');
-    expect(html).toContain('href="/order?paket=basis&amp;lang=en"');
-    expect(html).toContain('href="/order?paket=pro&amp;lang=en"');
+    expect(html).toContain('href="/vormerken?paket=b2b_basis&amp;lang=en"');
+    expect(html).toContain('href="/vormerken?paket=b2b_pro&amp;lang=en"');
   });
 });

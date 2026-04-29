@@ -16,11 +16,11 @@ describe("vormerken private package prices contract", () => {
     const html = renderToStaticMarkup(<VormerkenPage />);
 
     expect(html).toContain("eDebatte Interessiert");
-    expect(html).toContain("0 € für VoiceOpenGov-Mitglieder");
-    expect(html).toContain("3,99 € regulär");
+    expect(html).toContain("Beteiligung frei: 0 €");
+    expect(html).toContain("Interessiert: 3,99 €");
     expect(html).toContain("eDebatte Aktiv");
-    expect(html).toContain("9,90 €");
+    expect(html).toContain("9,99 €");
     expect(html).toContain("eDebatte Mitgestaltend");
-    expect(html).toContain("29,90 €");
+    expect(html).toContain("29,99 €");
   });
 });

@@ -45,8 +45,7 @@ describe("e2e critical journeys", () => {
     expect(result.ok).toBe(true);
     expect(record?.status).toBe("submitted");
     expect(record?.requiresReview).toBe(false);
-    expect(record?.publicPriceSummary.packagePriceLabel).toContain("0 € für VoiceOpenGov-Mitglieder");
-    expect(record?.publicPriceSummary.packagePriceLabel).toContain("3,99 € regulär");
+    expect(record?.publicPriceSummary.packagePriceLabel).toContain("3,99 €");
 
     const followup = getPricingOrderFollowupContract("privat");
     expect(followup.expectedInitialStatus).toBe("submitted");
