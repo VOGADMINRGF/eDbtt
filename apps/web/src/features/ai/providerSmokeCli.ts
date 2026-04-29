@@ -12,15 +12,19 @@ import {
 
 const PRIMARY_PROVIDER_ORDER = ["openai", "anthropic", "mistral"] as const;
 export type PrimaryProvider = (typeof PRIMARY_PROVIDER_ORDER)[number];
+const OPTIONAL_PROVIDER_ORDER = ["gemini"] as const;
+export type OptionalProvider = (typeof OPTIONAL_PROVIDER_ORDER)[number];
+const CLI_PROVIDER_ORDER = [...PRIMARY_PROVIDER_ORDER, ...OPTIONAL_PROVIDER_ORDER] as const;
+export type SmokeCliProvider = (typeof CLI_PROVIDER_ORDER)[number];
 export type ProviderSmokeCliMode = "probe" | "runtime" | "full" | "full-lite";
-const ALLOWED_PROVIDER_VALUES = [...PRIMARY_PROVIDER_ORDER, "all-primary"] as const;
+const ALLOWED_PROVIDER_VALUES = [...CLI_PROVIDER_ORDER, "all-primary", "all-optional"] as const;
 const FULL_DEFAULT_MAX_OUTPUT_TOKENS = 2_600;
 const FULL_LITE_MAX_OUTPUT_TOKENS = 1_200;
 const OPENAI_SMOKE_DEFAULT_MODEL = "gpt-4.1-mini";
 
 export type ProviderSmokeCliArgs = {
   mode: ProviderSmokeCliMode;
-  providers: PrimaryProvider[];
+  providers: SmokeCliProvider[];
   allowBuiltValid: boolean;
   allowDegraded: boolean;
   noRepair: boolean;
@@ -32,7 +36,7 @@ export type ProviderSmokeCliArgs = {
 };
 
 export type ProviderSmokeSummaryRow = {
-  provider: PrimaryProvider;
+  provider: SmokeCliProvider;
   model: string | null;
   status: string;
   rootCause: string;
@@ -59,7 +63,7 @@ export type ProviderSmokeSummaryRow = {
 };
 
 export type ProviderSmokeDryRunPlanRow = {
-  provider: PrimaryProvider;
+  provider: SmokeCliProvider;
   mode: ProviderSmokeCliMode;
   model: string;
   timeoutMs: number | null;
@@ -78,18 +82,18 @@ export type ProviderSmokeCostTotals = {
   totalEstimatedCostUsd: number | null;
   totalEstimatedCostEur: number | null;
   totalCostKnown: boolean;
-  unknownCostProviders: PrimaryProvider[];
+  unknownCostProviders: SmokeCliProvider[];
 };
 
 export type ProviderSmokeEvaluation = {
   ok: boolean;
   exitCode: number;
-  failures: Array<{ provider: PrimaryProvider; reason: string }>;
+  failures: Array<{ provider: SmokeCliProvider; reason: string }>;
 };
 
 export type ProviderSmokeCliRunResult = {
   mode: ProviderSmokeCliMode;
-  providers: PrimaryProvider[];
+  providers: SmokeCliProvider[];
   allowBuiltValid: boolean;
   allowDegraded: boolean;
   noRepair: boolean;
@@ -106,25 +110,26 @@ export type ProviderSmokeCliRunResult = {
   outputFilePath: string;
 };
 
-function isPrimaryProvider(value: string): value is PrimaryProvider {
-  return PRIMARY_PROVIDER_ORDER.includes(value as PrimaryProvider);
+function isSmokeCliProvider(value: string): value is SmokeCliProvider {
+  return CLI_PROVIDER_ORDER.includes(value as SmokeCliProvider);
 }
 
-function parseProvidersOrThrow(values: string[], providerFlagSupplied: boolean): PrimaryProvider[] {
+function parseProvidersOrThrow(values: string[], providerFlagSupplied: boolean): SmokeCliProvider[] {
   if (!providerFlagSupplied) return [...PRIMARY_PROVIDER_ORDER];
 
   const expanded = values.flatMap((value) => {
     const token = value.trim().toLowerCase();
     if (!token) return [];
     if (token === "all-primary") return [...PRIMARY_PROVIDER_ORDER];
+    if (token === "all-optional") return [...OPTIONAL_PROVIDER_ORDER];
     return token.split(",").map((part) => part.trim().toLowerCase());
   });
 
   const invalidValues: string[] = [];
-  const out: PrimaryProvider[] = [];
+  const out: SmokeCliProvider[] = [];
   for (const provider of expanded) {
     if (!provider) continue;
-    if (!isPrimaryProvider(provider)) {
+    if (!isSmokeCliProvider(provider)) {
       invalidValues.push(provider);
       continue;
     }
@@ -293,7 +298,7 @@ export function parseProviderSmokeCliArgs(argv: string[]): ProviderSmokeCliArgs 
 
 export function buildProviderSmokeSummaryRow(row: ProviderDiagnostic): ProviderSmokeSummaryRow {
   return {
-    provider: row.provider as PrimaryProvider,
+    provider: row.provider as SmokeCliProvider,
     model: row.model ?? null,
     status: row.status,
     rootCause: row.rootCause,
@@ -326,11 +331,11 @@ export function evaluateProviderSmokeRows(params: {
   allowBuiltValid: boolean;
   allowDegraded: boolean;
 }): ProviderSmokeEvaluation {
-  const failures: Array<{ provider: PrimaryProvider; reason: string }> = [];
+  const failures: Array<{ provider: SmokeCliProvider; reason: string }> = [];
   const fullLikeMode = params.mode === "full" || params.mode === "full-lite";
 
   for (const row of params.rows) {
-    const provider = row.provider as PrimaryProvider;
+    const provider = row.provider as SmokeCliProvider;
     if (!fullLikeMode) {
       if (row.status !== "ok") {
         failures.push({
@@ -381,10 +386,10 @@ function computeCostTotals(rows: ProviderDiagnostic[]): ProviderSmokeCostTotals 
   let usdTotal = 0;
   let eurTotal = 0;
   let allKnown = true;
-  const unknownCostProviders: PrimaryProvider[] = [];
+  const unknownCostProviders: SmokeCliProvider[] = [];
 
   for (const row of rows) {
-    const provider = row.provider as PrimaryProvider;
+    const provider = row.provider as SmokeCliProvider;
     const known = row.costKnown === true;
     if (!known) {
       allKnown = false;
@@ -407,7 +412,7 @@ function computeDryRunCostTotals(plan: ProviderSmokeDryRunPlanRow[]): ProviderSm
   let usdTotal = 0;
   let eurTotal = 0;
   let allKnown = true;
-  const unknownCostProviders: PrimaryProvider[] = [];
+  const unknownCostProviders: SmokeCliProvider[] = [];
 
   for (const row of plan) {
     if (!row.budgetCostKnown) {
@@ -589,9 +594,13 @@ export async function writeProviderSmokeJsonLog(
 }
 
 function sortRowsByPrimaryOrder(rows: ProviderDiagnostic[]): ProviderDiagnostic[] {
+  const indexOfProvider = (provider: string): number => {
+    const index = CLI_PROVIDER_ORDER.indexOf(provider as SmokeCliProvider);
+    return index >= 0 ? index : 99;
+  };
   return [...rows].sort((a, b) => {
-    const left = PRIMARY_PROVIDER_ORDER.indexOf(a.provider as PrimaryProvider);
-    const right = PRIMARY_PROVIDER_ORDER.indexOf(b.provider as PrimaryProvider);
+    const left = indexOfProvider(a.provider);
+    const right = indexOfProvider(b.provider);
     return left - right;
   });
 }
@@ -610,7 +619,7 @@ function openAiSmokeMaxOutputTokens(): number {
   return Number.isFinite(raw) && raw > 0 ? Math.floor(raw) : 2_200;
 }
 
-function resolveFullModeMaxOutputTokens(args: ProviderSmokeCliArgs, provider: PrimaryProvider): number {
+function resolveFullModeMaxOutputTokens(args: ProviderSmokeCliArgs, provider: SmokeCliProvider): number {
   if (typeof args.maxOutputTokens === "number" && args.maxOutputTokens > 0) {
     return args.maxOutputTokens;
   }
@@ -677,7 +686,7 @@ function buildDryRunPlan(args: ProviderSmokeCliArgs): ProviderSmokeDryRunPlanRow
 }
 
 async function runSingleProviderMode(
-  provider: PrimaryProvider,
+  provider: SmokeCliProvider,
   args: ProviderSmokeCliArgs,
 ): Promise<ProviderDiagnostic> {
   if (args.mode === "probe") return runDirectProbeDiagnostic(provider);
