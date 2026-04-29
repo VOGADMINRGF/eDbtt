@@ -503,7 +503,10 @@ export async function POST(req: NextRequest) {
     { upsert: true },
   );
 
-  const { rawToken } = await createEmailVerificationToken(userId, email);
+  let emailVerification:
+    | { status: "sent" }
+    | { status: "pending"; reason: "token_create_failed" | "mail_dispatch_failed" | "unknown" } = { status: "sent" };
+  let rawToken: string | null = null;
 
   let piiProfileError: string | null = null;
   let bankProfileError: string | null = null;
@@ -597,27 +600,52 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const origin = publicOrigin();
-  const verifyUrl = `${origin.replace(
-    /\/$/,
-    "",
-  )}/register/verify-email?token=${encodeURIComponent(
-    rawToken,
-  )}&email=${encodeURIComponent(email)}`;
+  try {
+    const tokenResult = await createEmailVerificationToken(userId, email);
+    rawToken = tokenResult.rawToken;
+  } catch (err) {
+    emailVerification = { status: "pending", reason: "token_create_failed" };
+    console.error("[register] createEmailVerificationToken failed", err);
+  }
 
-  const mail = buildVerificationMail({
-    verifyUrl,
-    displayName: body.name.trim(),
-  });
+  if (rawToken) {
+    try {
+      const origin = publicOrigin();
+      const verifyUrl = `${origin.replace(
+        /\/$/,
+        "",
+      )}/register/verify-email?token=${encodeURIComponent(
+        rawToken,
+      )}&email=${encodeURIComponent(email)}`;
 
-  await sendMail({
-    to: email,
-    subject: mail.subject,
-    html: mail.html,
-    text: mail.text,
-  });
+      const mail = buildVerificationMail({
+        verifyUrl,
+        displayName: body.name.trim(),
+      });
 
-  return NextResponse.json({ ok: true }, { status: 201 });
+      const mailResult = await sendMail({
+        to: email,
+        subject: mail.subject,
+        html: mail.html,
+        text: mail.text,
+      });
+
+      if (!mailResult?.ok) {
+        emailVerification = { status: "pending", reason: "mail_dispatch_failed" };
+      }
+    } catch (err) {
+      emailVerification = { status: "pending", reason: "mail_dispatch_failed" };
+      console.error("[register] verification mail dispatch failed", err);
+    }
+  }
+
+  return NextResponse.json(
+    {
+      ok: true,
+      emailVerification,
+    },
+    { status: 201 },
+  );
 }
 
 function isPasswordStrong(value: string) {
