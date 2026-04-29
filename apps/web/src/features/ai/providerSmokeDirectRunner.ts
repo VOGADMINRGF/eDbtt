@@ -4,6 +4,7 @@ import type { E150ProviderName } from "@features/ai/orchestratorE150";
 import { callOpenAI } from "@features/ai/providers/openai";
 import { callAnthropic } from "@features/ai/providers/anthropic";
 import { callMistral } from "@features/ai/providers/mistral";
+import { callGemini } from "@features/ai/providers/gemini";
 import {
   defaultModelForProvider,
   deriveNextAction,
@@ -81,6 +82,10 @@ function configMissingReason(provider: E150ProviderName): string | null {
       return process.env.ANTHROPIC_API_KEY ? null : "missing ANTHROPIC_API_KEY";
     case "mistral":
       return process.env.MISTRAL_API_KEY ? null : "missing MISTRAL_API_KEY";
+    case "gemini":
+      return process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY
+        ? null
+        : "missing GEMINI_API_KEY / GOOGLE_API_KEY";
     default:
       return "unsupported provider";
   }
@@ -377,6 +382,23 @@ async function callProvider(params: {
       tokensIn: result.tokensIn ?? null,
       tokensOut: result.tokensOut ?? null,
       formatUsed: null,
+      didFallback: null,
+      openaiErrorCode: null,
+      openaiErrorMessage: null,
+    };
+  }
+  if (params.provider === "gemini") {
+    const result = await callGemini({
+      prompt: params.prompt,
+      maxOutputTokens: params.maxOutputTokens,
+      expectJson: true,
+    });
+    return {
+      text: result.text,
+      model: result.model ?? defaultModelForProvider(params.provider),
+      tokensIn: result.tokensIn ?? null,
+      tokensOut: result.tokensOut ?? null,
+      formatUsed: "json_object",
       didFallback: null,
       openaiErrorCode: null,
       openaiErrorMessage: null,

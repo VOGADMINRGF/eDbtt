@@ -18,6 +18,7 @@ const providerMocks = vi.hoisted(() => ({
   callOpenAI: vi.fn(),
   callAnthropic: vi.fn(),
   callMistral: vi.fn(),
+  callGemini: vi.fn(),
 }));
 
 vi.mock("@features/ai/providers/openai", () => ({
@@ -30,6 +31,10 @@ vi.mock("@features/ai/providers/anthropic", () => ({
 
 vi.mock("@features/ai/providers/mistral", () => ({
   callMistral: (...args: unknown[]) => providerMocks.callMistral(...args),
+}));
+
+vi.mock("@features/ai/providers/gemini", () => ({
+  callGemini: (...args: unknown[]) => providerMocks.callGemini(...args),
 }));
 
 function buildRow(overrides: Partial<ProviderDiagnostic> = {}): ProviderDiagnostic {
@@ -288,15 +293,17 @@ describe("ai provider smoke cli helpers", () => {
   it("defaults to all-primary providers when provider flag is missing", () => {
     const args = parseProviderSmokeCliArgs([]);
     expect(args.providers).toEqual(["openai", "anthropic", "mistral"]);
+    expect(args.providers.includes("gemini")).toBe(false);
   });
 
   it("fails fast on invalid provider and does not call providers", () => {
     expect(() => parseProviderSmokeCliArgs(["--provider=openia"])).toThrow(
-      /Allowed: openai, anthropic, mistral, all-primary/,
+      /Allowed: openai, anthropic, mistral, gemini, all-primary, all-optional/,
     );
     expect(providerMocks.callOpenAI).not.toHaveBeenCalled();
     expect(providerMocks.callAnthropic).not.toHaveBeenCalled();
     expect(providerMocks.callMistral).not.toHaveBeenCalled();
+    expect(providerMocks.callGemini).not.toHaveBeenCalled();
   });
 
   it("fails fast on invalid provider list and does not call providers", () => {
@@ -306,6 +313,7 @@ describe("ai provider smoke cli helpers", () => {
     expect(providerMocks.callOpenAI).not.toHaveBeenCalled();
     expect(providerMocks.callAnthropic).not.toHaveBeenCalled();
     expect(providerMocks.callMistral).not.toHaveBeenCalled();
+    expect(providerMocks.callGemini).not.toHaveBeenCalled();
   });
 
   it("defaults mode to full when mode flag is missing", () => {
@@ -320,11 +328,20 @@ describe("ai provider smoke cli helpers", () => {
     expect(providerMocks.callOpenAI).not.toHaveBeenCalled();
     expect(providerMocks.callAnthropic).not.toHaveBeenCalled();
     expect(providerMocks.callMistral).not.toHaveBeenCalled();
+    expect(providerMocks.callGemini).not.toHaveBeenCalled();
   });
 
   it("accepts full-lite mode", () => {
     const args = parseProviderSmokeCliArgs(["--provider=openai", "--mode=full-lite"]);
     expect(args.mode).toBe("full-lite");
+  });
+
+  it("accepts gemini as optional provider and keeps all-primary unchanged", () => {
+    const single = parseProviderSmokeCliArgs(["--provider=gemini", "--mode=probe"]);
+    expect(single.providers).toEqual(["gemini"]);
+    const primary = parseProviderSmokeCliArgs(["--providers=all-primary"]);
+    expect(primary.providers).toEqual(["openai", "anthropic", "mistral"]);
+    expect(primary.providers.includes("gemini")).toBe(false);
   });
 
   it("full mode uses draft/envelope pipeline and can produce built_valid", async () => {
@@ -485,6 +502,48 @@ describe("ai provider smoke cli helpers", () => {
     expect(providerMocks.callOpenAI).not.toHaveBeenCalled();
     expect(providerMocks.callAnthropic).not.toHaveBeenCalled();
     expect(providerMocks.callMistral).not.toHaveBeenCalled();
+    expect(providerMocks.callGemini).not.toHaveBeenCalled();
+  });
+
+  it("gemini config missing returns blocked diagnostic in probe mode", async () => {
+    vi.unstubAllEnvs();
+    const outDir = await mkdtemp(path.join(tmpdir(), "ai-provider-smoke-gemini-missing-"));
+    const result = await runProviderSmokeCli({
+      mode: "probe",
+      providers: ["gemini"],
+      allowBuiltValid: false,
+      allowDegraded: false,
+      noRepair: false,
+      dryRun: false,
+      maxOutputTokens: null,
+      jsonOnly: false,
+      help: false,
+      outputDir: outDir,
+    });
+    expect(result.rows).toHaveLength(1);
+    expect(result.rows[0]?.status).toBe("config_missing");
+    expect(result.rows[0]?.finalContractStatus).toBe("blocked");
+    expect(result.rows[0]?.providerErrorCode).toBe("CONFIG_MISSING");
+    expect(providerMocks.callGemini).not.toHaveBeenCalled();
+  });
+
+  it("gemini dry-run makes no provider call", async () => {
+    const outDir = await mkdtemp(path.join(tmpdir(), "ai-provider-smoke-gemini-dryrun-"));
+    const result = await runProviderSmokeCli({
+      mode: "full-lite",
+      providers: ["gemini"],
+      allowBuiltValid: false,
+      allowDegraded: false,
+      noRepair: true,
+      dryRun: true,
+      maxOutputTokens: null,
+      jsonOnly: false,
+      help: false,
+      outputDir: outDir,
+    });
+    expect(result.dryRunPlan).toHaveLength(1);
+    expect(result.dryRunPlan[0]?.provider).toBe("gemini");
+    expect(providerMocks.callGemini).not.toHaveBeenCalled();
   });
 
   it("full mode with --no-repair disables repair fallback", async () => {
@@ -561,6 +620,16 @@ describe("ai provider smoke cli helpers", () => {
     expect(unknown.costKnown).toBe(false);
     expect(unknown.estimatedCostUsd).toBeNull();
     expect(unknown.estimatedCostEur).toBeNull();
+
+    const geminiUnknown = estimateAiRunCost({
+      provider: "gemini",
+      model: "gemini-2.5-flash",
+      tokensIn: 1000,
+      tokensOut: 500,
+    });
+    expect(geminiUnknown.costKnown).toBe(false);
+    expect(geminiUnknown.estimatedCostUsd).toBeNull();
+    expect(geminiUnknown.estimatedCostEur).toBeNull();
   });
 
   it("json log contains cost telemetry metadata", async () => {
