@@ -12,6 +12,7 @@ import {
   redactSecretsInValue,
   writeProviderSmokeJsonLog,
 } from "@/features/ai/providerSmokeCli";
+import { estimateAiRunCost } from "@/features/ai/aiCostTelemetry";
 
 const providerMocks = vi.hoisted(() => ({
   callOpenAI: vi.fn(),
@@ -57,6 +58,14 @@ function buildRow(overrides: Partial<ProviderDiagnostic> = {}): ProviderDiagnost
     durationMs: 100,
     tokensIn: 10,
     tokensOut: 20,
+    estimatedCostUsd: 0.000036,
+    estimatedCostEur: 0.00003312,
+    costKnown: true,
+    pricingSource: "internal_smoke_estimate_2026-04-29",
+    costReason: null,
+    runCostGroup: "full",
+    smokeMode: "full",
+    budgetProfile: "full_default",
     fallbackUsed: null,
     fallbackReason: null,
     journeyDecision: "selected",
@@ -183,10 +192,20 @@ describe("ai provider smoke cli helpers", () => {
       providers: ["openai"],
       allowBuiltValid: false,
       allowDegraded: false,
+      noRepair: false,
+      dryRun: false,
+      maxOutputTokens: null,
       startedAt: 1,
       finishedAt: 2,
       durationMs: 1,
       rows: [buildRow({ rawExcerpt: "contains sk-test-secret-token" })],
+      totals: {
+        totalEstimatedCostUsd: 0.000036,
+        totalEstimatedCostEur: 0.00003312,
+        totalCostKnown: true,
+        unknownCostProviders: [],
+      },
+      dryRunPlan: [],
       summary: [
         {
           provider: "openai",
@@ -204,6 +223,14 @@ describe("ai provider smoke cli helpers", () => {
           durationMs: 1,
           tokensIn: 1,
           tokensOut: 1,
+          estimatedCostUsd: 0.000002,
+          estimatedCostEur: 0.00000184,
+          costKnown: true,
+          pricingSource: "internal_smoke_estimate_2026-04-29",
+          costReason: null,
+          runCostGroup: "full",
+          smokeMode: "full",
+          budgetProfile: "full_default",
           nextAction: "none",
         },
       ],
@@ -240,6 +267,14 @@ describe("ai provider smoke cli helpers", () => {
           durationMs: 10,
           tokensIn: 7,
           tokensOut: 13,
+          estimatedCostUsd: 0.00002,
+          estimatedCostEur: 0.0000184,
+          costKnown: true,
+          pricingSource: "internal_smoke_estimate_2026-04-29",
+          costReason: null,
+          runCostGroup: "full",
+          smokeMode: "full",
+          budgetProfile: "full_default",
           nextAction: "none",
         },
       ],
@@ -280,11 +315,16 @@ describe("ai provider smoke cli helpers", () => {
 
   it("fails fast on invalid mode and does not call providers", () => {
     expect(() => parseProviderSmokeCliArgs(["--provider=openai", "--mode=ful"])).toThrow(
-      /Allowed: probe, runtime, full/,
+      /Allowed: probe, runtime, full, full-lite/,
     );
     expect(providerMocks.callOpenAI).not.toHaveBeenCalled();
     expect(providerMocks.callAnthropic).not.toHaveBeenCalled();
     expect(providerMocks.callMistral).not.toHaveBeenCalled();
+  });
+
+  it("accepts full-lite mode", () => {
+    const args = parseProviderSmokeCliArgs(["--provider=openai", "--mode=full-lite"]);
+    expect(args.mode).toBe("full-lite");
   });
 
   it("full mode uses draft/envelope pipeline and can produce built_valid", async () => {
@@ -302,6 +342,9 @@ describe("ai provider smoke cli helpers", () => {
       providers: ["anthropic"],
       allowBuiltValid: true,
       allowDegraded: false,
+      noRepair: false,
+      dryRun: false,
+      maxOutputTokens: null,
       jsonOnly: false,
       help: false,
       outputDir: outDir,
@@ -335,6 +378,9 @@ describe("ai provider smoke cli helpers", () => {
       providers: ["mistral"],
       allowBuiltValid: false,
       allowDegraded: false,
+      noRepair: false,
+      dryRun: false,
+      maxOutputTokens: null,
       jsonOnly: false,
       help: false,
       outputDir: outDir,
@@ -393,6 +439,9 @@ describe("ai provider smoke cli helpers", () => {
       providers: ["openai"],
       allowBuiltValid: false,
       allowDegraded: false,
+      noRepair: false,
+      dryRun: false,
+      maxOutputTokens: null,
       jsonOnly: false,
       help: false,
       outputDir: outDir,
@@ -411,5 +460,166 @@ describe("ai provider smoke cli helpers", () => {
     const openAiCall = providerMocks.callOpenAI.mock.calls[0]?.[0] as { model?: string };
     expect(openAiCall?.model).toBe("gpt-4.1-mini");
     expect(result.evaluation.exitCode).toBe(0);
+  });
+
+  it("dry-run does not call providers and returns a budget plan", async () => {
+    const outDir = await mkdtemp(path.join(tmpdir(), "ai-provider-smoke-dry-run-"));
+    const result = await runProviderSmokeCli({
+      mode: "full-lite",
+      providers: ["openai", "anthropic", "mistral"],
+      allowBuiltValid: true,
+      allowDegraded: false,
+      noRepair: false,
+      dryRun: true,
+      maxOutputTokens: null,
+      jsonOnly: false,
+      help: false,
+      outputDir: outDir,
+    });
+
+    expect(result.evaluation.exitCode).toBe(0);
+    expect(result.rows).toHaveLength(0);
+    expect(result.dryRunPlan).toHaveLength(3);
+    expect(typeof result.totals.totalEstimatedCostUsd).toBe("number");
+    expect((result.totals.totalEstimatedCostUsd ?? 0) > 0).toBe(true);
+    expect(providerMocks.callOpenAI).not.toHaveBeenCalled();
+    expect(providerMocks.callAnthropic).not.toHaveBeenCalled();
+    expect(providerMocks.callMistral).not.toHaveBeenCalled();
+  });
+
+  it("full mode with --no-repair disables repair fallback", async () => {
+    vi.stubEnv("ANTHROPIC_API_KEY", "test-key");
+    providerMocks.callAnthropic.mockResolvedValue({
+      text: "not-json",
+      model: "claude-sonnet-test",
+      tokensIn: 5,
+      tokensOut: 8,
+    });
+
+    const outDir = await mkdtemp(path.join(tmpdir(), "ai-provider-smoke-no-repair-"));
+    const result = await runProviderSmokeCli({
+      mode: "full",
+      providers: ["anthropic"],
+      allowBuiltValid: false,
+      allowDegraded: false,
+      noRepair: true,
+      dryRun: false,
+      maxOutputTokens: null,
+      jsonOnly: false,
+      help: false,
+      outputDir: outDir,
+    });
+
+    expect(result.rows[0]?.repairStatus).toBe("not_attempted");
+    expect(result.rows[0]?.repairReason).toBe("repair_disabled");
+    expect(providerMocks.callAnthropic).toHaveBeenCalledTimes(1);
+  });
+
+  it("max-output-tokens override affects full-lite budget planning", async () => {
+    const args = parseProviderSmokeCliArgs([
+      "--providers=openai,anthropic,mistral",
+      "--mode=full-lite",
+      "--dry-run",
+      "--max-output-tokens=777",
+    ]);
+    expect(args.maxOutputTokens).toBe(777);
+
+    const outDir = await mkdtemp(path.join(tmpdir(), "ai-provider-smoke-budget-"));
+    const result = await runProviderSmokeCli({
+      ...args,
+      allowBuiltValid: false,
+      allowDegraded: false,
+      outputDir: outDir,
+      help: false,
+      jsonOnly: false,
+      noRepair: false,
+      dryRun: true,
+    });
+
+    for (const plan of result.dryRunPlan) {
+      expect(plan.maxOutputTokens).toBe(777);
+    }
+  });
+
+  it("estimates known model pricing and returns unknown for unmapped models", () => {
+    const known = estimateAiRunCost({
+      provider: "openai",
+      model: "gpt-4.1-mini",
+      tokensIn: 1_000,
+      tokensOut: 500,
+    });
+    expect(known.costKnown).toBe(true);
+    expect(known.estimatedCostUsd).toBeGreaterThan(0);
+    expect(known.estimatedCostEur).toBeGreaterThan(0);
+
+    const unknown = estimateAiRunCost({
+      provider: "openai",
+      model: "gpt-unknown-x",
+      tokensIn: 1_000,
+      tokensOut: 500,
+    });
+    expect(unknown.costKnown).toBe(false);
+    expect(unknown.estimatedCostUsd).toBeNull();
+    expect(unknown.estimatedCostEur).toBeNull();
+  });
+
+  it("json log contains cost telemetry metadata", async () => {
+    vi.stubEnv("OPENAI_API_KEY", "test-key");
+    providerMocks.callOpenAI.mockResolvedValue({
+      text: JSON.stringify({
+        mode: "E150",
+        sourceText: null,
+        language: "de",
+        claims: [],
+        findings: [],
+        notes: [],
+        questions: [],
+        missingPerspectives: [],
+        knots: [],
+        consequences: { consequences: [], responsibilities: [] },
+        responsibilityPaths: [],
+        eventualities: [],
+        decisionTrees: [],
+        impactAndResponsibility: { impacts: [], responsibleActors: [] },
+        participationCandidates: [],
+        report: {
+          summary: null,
+          keyConflicts: [],
+          facts: { local: [], international: [] },
+          openQuestions: [],
+          takeaways: [],
+        },
+      }),
+      model: "gpt-4.1-mini",
+      tokensIn: 120,
+      tokensOut: 340,
+      formatUsed: "json_schema",
+      didFallback: false,
+      openaiErrorCode: null,
+      openaiErrorMessage: null,
+    });
+
+    const outDir = await mkdtemp(path.join(tmpdir(), "ai-provider-smoke-cost-json-"));
+    const result = await runProviderSmokeCli({
+      mode: "full",
+      providers: ["openai"],
+      allowBuiltValid: false,
+      allowDegraded: false,
+      noRepair: false,
+      dryRun: false,
+      maxOutputTokens: null,
+      jsonOnly: false,
+      help: false,
+      outputDir: outDir,
+    });
+
+    const body = await readFile(result.outputFilePath, "utf8");
+    const parsed = JSON.parse(body) as {
+      summary: Array<{ estimatedCostUsd: number | null; costKnown: boolean }>;
+      totals: { totalEstimatedCostUsd: number | null };
+    };
+    expect(parsed.summary[0]?.costKnown).toBe(true);
+    expect(typeof parsed.summary[0]?.estimatedCostUsd).toBe("number");
+    expect(typeof parsed.totals.totalEstimatedCostUsd).toBe("number");
   });
 });

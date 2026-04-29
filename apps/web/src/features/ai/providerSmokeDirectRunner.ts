@@ -19,6 +19,7 @@ import {
   sanitizeRawExcerpt,
   type ProviderDiagnostic,
 } from "@/features/ai/adminTelemetryDiagnostics";
+import { estimateAiRunCost } from "@/features/ai/aiCostTelemetry";
 
 const FULL_SAMPLE_TEXT =
   "In unserer Stadt soll ein autofreier Sonntag pro Monat eingefuehrt werden, um die Luftqualitaet zu verbessern und den OePNV zu staerken.";
@@ -40,7 +41,16 @@ const FULL_CONTRACT_PROMPT = [
   "No markdown. No explanations. JSON object only.",
 ].join(" ");
 
-type RouteFullInternal = (provider: E150ProviderName) => Promise<ProviderDiagnostic>;
+export type DirectFullContractRunOptions = {
+  mode?: "full" | "full-lite";
+  maxOutputTokens?: number | null;
+  disableRepair?: boolean;
+};
+
+type RouteFullInternal = (
+  provider: E150ProviderName,
+  options?: DirectFullContractRunOptions,
+) => Promise<ProviderDiagnostic>;
 
 declare global {
   // eslint-disable-next-line no-var
@@ -83,10 +93,25 @@ function buildRow(
   partial: Partial<ProviderDiagnostic>,
 ): ProviderDiagnostic {
   const capabilities = getProviderContractCapabilities(provider);
+  const model = partial.model ?? defaultModelForProvider(provider);
+  const tokensIn = typeof partial.tokensIn === "number" ? partial.tokensIn : null;
+  const tokensOut = typeof partial.tokensOut === "number" ? partial.tokensOut : null;
+  const costEstimate = estimateAiRunCost({
+    provider,
+    model,
+    tokensIn,
+    tokensOut,
+  });
+  const smokeMode: ProviderDiagnostic["smokeMode"] =
+    mode === "provider_probe" ? "probe" : mode === "runtime_smoke" ? "runtime" : "full";
+  const runCostGroup: ProviderDiagnostic["runCostGroup"] =
+    smokeMode === "probe" || smokeMode === "runtime" ? "tiny" : "full";
+  const budgetProfile: ProviderDiagnostic["budgetProfile"] =
+    smokeMode === "probe" ? "probe_tiny" : smokeMode === "runtime" ? "runtime_tiny" : "full_default";
   const row: ProviderDiagnostic = {
     provider,
     displayName: providerDisplayName(provider),
-    model: partial.model ?? defaultModelForProvider(provider),
+    model,
     pipeline: "provider_probe",
     mode,
     stage,
@@ -106,8 +131,16 @@ function buildRow(
     schemaPath: partial.schemaPath ?? null,
     rawExcerpt: sanitizeRawExcerpt(partial.rawExcerpt ?? partial.errorMessage ?? null),
     durationMs: partial.durationMs ?? null,
-    tokensIn: partial.tokensIn ?? null,
-    tokensOut: partial.tokensOut ?? null,
+    tokensIn,
+    tokensOut,
+    estimatedCostUsd: costEstimate.estimatedCostUsd,
+    estimatedCostEur: costEstimate.estimatedCostEur,
+    costKnown: costEstimate.costKnown,
+    pricingSource: costEstimate.pricingSource,
+    costReason: costEstimate.reason,
+    runCostGroup,
+    smokeMode,
+    budgetProfile,
     fallbackUsed: partial.fallbackUsed ?? null,
     fallbackReason: partial.fallbackReason ?? null,
     journeyDecision: partial.journeyDecision ?? "selected",
@@ -572,11 +605,14 @@ function buildFullRepairPrompt(raw: string, errorCode: string | null, schemaPath
   ].join("\n");
 }
 
-export async function runDirectFullContractDiagnostic(provider: E150ProviderName): Promise<ProviderDiagnostic> {
+export async function runDirectFullContractDiagnostic(
+  provider: E150ProviderName,
+  options?: DirectFullContractRunOptions,
+): Promise<ProviderDiagnostic> {
   await import("@/app/api/admin/ai/orchestrator-smoke/route");
   const internal = globalThis.__EDEBATTE_ROUTE_DIRECT_FULL_PROVIDER__;
   if (!internal) {
     throw new Error("route_direct_full_provider_internal_missing");
   }
-  return internal(provider);
+  return internal(provider, options);
 }

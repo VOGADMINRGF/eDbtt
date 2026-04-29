@@ -31,9 +31,13 @@ import {
   sanitizeRawExcerpt,
   sortProviderDiagnostics,
   type ProviderDiagnostic,
+  type RunCostGroup,
+  type SmokeBudgetProfile,
+  type SmokeExecutionMode,
   type SmokeMode,
   PROVIDER_ORDER,
 } from "@/features/ai/adminTelemetryDiagnostics";
+import { estimateAiRunCost } from "@/features/ai/aiCostTelemetry";
 import { recordAdminAiRun } from "@/features/ai/adminTelemetryStore";
 import type { AiErrorKind } from "@core/telemetry/aiUsageTypes";
 
@@ -257,6 +261,47 @@ const FULL_CONTRACT_SYSTEM_PROMPT = [
 ].join(" ");
 
 const OPENAI_SMOKE_DEFAULT_MODEL = "gpt-4.1-mini";
+const FULL_CONTRACT_DEFAULT_MAX_OUTPUT_TOKENS = 2_600;
+const FULL_CONTRACT_LITE_MAX_OUTPUT_TOKENS = 1_200;
+const FULL_CONTRACT_REPAIR_MAX_OUTPUT_TOKENS = 2_300;
+
+export type DirectFullContractMode = "full" | "full-lite";
+export type DirectFullContractRunOptions = {
+  mode?: DirectFullContractMode;
+  maxOutputTokens?: number | null;
+  disableRepair?: boolean;
+};
+
+type ResolvedDirectFullContractRunOptions = {
+  mode: DirectFullContractMode;
+  maxOutputTokens: number;
+  disableRepair: boolean;
+};
+
+function normalizePositiveNumber(value: unknown): number | null {
+  if (typeof value !== "number" || !Number.isFinite(value) || value <= 0) return null;
+  return Math.floor(value);
+}
+
+function resolveDirectFullContractOptions(
+  provider: E150ProviderName,
+  options: DirectFullContractRunOptions | undefined,
+): ResolvedDirectFullContractRunOptions {
+  const mode: DirectFullContractMode = options?.mode === "full-lite" ? "full-lite" : "full";
+  const overrideMax = normalizePositiveNumber(options?.maxOutputTokens ?? null);
+  const baseMax =
+    provider === "openai"
+      ? openAiSmokeMaxOutputTokens()
+      : mode === "full-lite"
+        ? FULL_CONTRACT_LITE_MAX_OUTPUT_TOKENS
+        : FULL_CONTRACT_DEFAULT_MAX_OUTPUT_TOKENS;
+  const maxOutputTokens = overrideMax ?? (mode === "full-lite" ? Math.min(baseMax, FULL_CONTRACT_LITE_MAX_OUTPUT_TOKENS) : baseMax);
+  return {
+    mode,
+    maxOutputTokens,
+    disableRepair: Boolean(options?.disableRepair),
+  };
+}
 
 function openAiSmokeModel(): string {
   return process.env.OPENAI_SMOKE_MODEL || OPENAI_SMOKE_DEFAULT_MODEL;
@@ -470,12 +515,34 @@ function baseDiagnostic(params: {
   effectiveModel?: string | null;
   openAiSmokeModelMismatch?: boolean | null;
   diagnosticNotes?: string[];
+  runCostGroup?: RunCostGroup | null;
+  smokeMode?: SmokeExecutionMode | null;
+  budgetProfile?: SmokeBudgetProfile | null;
 }): ProviderDiagnostic {
   const capabilities = getProviderContractCapabilities(params.provider);
+  const resolvedModel = params.model ?? defaultModelForProvider(params.provider);
+  const tokensIn = typeof params.tokensIn === "number" ? params.tokensIn : null;
+  const tokensOut = typeof params.tokensOut === "number" ? params.tokensOut : null;
+  const costEstimate = estimateAiRunCost({
+    provider: params.provider,
+    model: resolvedModel,
+    tokensIn,
+    tokensOut,
+  });
+  const defaultSmokeMode: SmokeExecutionMode =
+    params.mode === "provider_probe" ? "probe" : params.mode === "runtime_smoke" ? "runtime" : "full";
+  const defaultBudgetProfile: SmokeBudgetProfile =
+    defaultSmokeMode === "probe"
+      ? "probe_tiny"
+      : defaultSmokeMode === "runtime"
+        ? "runtime_tiny"
+        : "full_default";
+  const defaultRunCostGroup: RunCostGroup =
+    defaultSmokeMode === "probe" || defaultSmokeMode === "runtime" ? "tiny" : "full";
   const row: ProviderDiagnostic = {
     provider: params.provider,
     displayName: providerDisplayName(params.provider),
-    model: params.model ?? defaultModelForProvider(params.provider),
+    model: resolvedModel,
     pipeline: params.pipeline,
     mode: params.mode,
     stage: params.stage,
@@ -496,8 +563,16 @@ function baseDiagnostic(params: {
     schemaPath: params.schemaPath ?? null,
     rawExcerpt: sanitizeRawExcerpt(params.rawExcerpt ?? params.errorMessage ?? params.reason ?? null),
     durationMs: typeof params.durationMs === "number" ? params.durationMs : null,
-    tokensIn: typeof params.tokensIn === "number" ? params.tokensIn : null,
-    tokensOut: typeof params.tokensOut === "number" ? params.tokensOut : null,
+    tokensIn,
+    tokensOut,
+    estimatedCostUsd: costEstimate.estimatedCostUsd,
+    estimatedCostEur: costEstimate.estimatedCostEur,
+    costKnown: costEstimate.costKnown,
+    pricingSource: costEstimate.pricingSource,
+    costReason: costEstimate.reason,
+    runCostGroup: params.runCostGroup ?? defaultRunCostGroup,
+    smokeMode: params.smokeMode ?? defaultSmokeMode,
+    budgetProfile: params.budgetProfile ?? defaultBudgetProfile,
     fallbackUsed: typeof params.fallbackUsed === "boolean" ? params.fallbackUsed : null,
     fallbackReason: params.fallbackReason ?? null,
     journeyDecision: params.journeyDecision ?? "selected",
@@ -2308,6 +2383,7 @@ async function executeDirectFullContractCall(params: {
   prompt: string;
   timeoutMs?: number;
   maxOutputTokens?: number;
+  profileMaxOutputTokens?: number;
   repairAttempt?: boolean;
 }): Promise<{
   text: string;
@@ -2324,7 +2400,8 @@ async function executeDirectFullContractCall(params: {
   const provider = params.provider;
   if (provider === "openai") {
     const timeoutMs = params.timeoutMs ?? openAiSmokeTimeoutMs();
-    const maxOutputTokens = params.maxOutputTokens ?? openAiSmokeMaxOutputTokens();
+    const maxOutputTokens =
+      params.maxOutputTokens ?? params.profileMaxOutputTokens ?? openAiSmokeMaxOutputTokens();
     const res = await callOpenAI({
       prompt: params.prompt,
       asJson: true,
@@ -2349,7 +2426,11 @@ async function executeDirectFullContractCall(params: {
   if (provider === "anthropic") {
     const res = await callAnthropic({
       prompt: params.prompt,
-      maxOutputTokens: params.maxOutputTokens ?? (params.repairAttempt ? 2_300 : 2_600),
+      maxOutputTokens:
+        params.maxOutputTokens ??
+        (params.repairAttempt
+          ? Math.min(params.profileMaxOutputTokens ?? FULL_CONTRACT_REPAIR_MAX_OUTPUT_TOKENS, FULL_CONTRACT_REPAIR_MAX_OUTPUT_TOKENS)
+          : params.profileMaxOutputTokens ?? FULL_CONTRACT_DEFAULT_MAX_OUTPUT_TOKENS),
     });
     return {
       text: res.text,
@@ -2367,7 +2448,11 @@ async function executeDirectFullContractCall(params: {
   if (provider === "mistral") {
     const res = await callMistral({
       prompt: params.prompt,
-      maxOutputTokens: params.maxOutputTokens ?? (params.repairAttempt ? 2_300 : 2_600),
+      maxOutputTokens:
+        params.maxOutputTokens ??
+        (params.repairAttempt
+          ? Math.min(params.profileMaxOutputTokens ?? FULL_CONTRACT_REPAIR_MAX_OUTPUT_TOKENS, FULL_CONTRACT_REPAIR_MAX_OUTPUT_TOKENS)
+          : params.profileMaxOutputTokens ?? FULL_CONTRACT_DEFAULT_MAX_OUTPUT_TOKENS),
     });
     return {
       text: res.text,
@@ -2385,7 +2470,11 @@ async function executeDirectFullContractCall(params: {
   if (provider === "gemini") {
     const res = await callGemini({
       prompt: params.prompt,
-      maxOutputTokens: params.maxOutputTokens ?? (params.repairAttempt ? 2_300 : 2_600),
+      maxOutputTokens:
+        params.maxOutputTokens ??
+        (params.repairAttempt
+          ? Math.min(params.profileMaxOutputTokens ?? FULL_CONTRACT_REPAIR_MAX_OUTPUT_TOKENS, FULL_CONTRACT_REPAIR_MAX_OUTPUT_TOKENS)
+          : params.profileMaxOutputTokens ?? FULL_CONTRACT_DEFAULT_MAX_OUTPUT_TOKENS),
       expectJson: true,
     });
     return {
@@ -2405,7 +2494,11 @@ async function executeDirectFullContractCall(params: {
   const res = await callAriLLM({
     prompt: params.prompt,
     asJson: true,
-    maxOutputTokens: params.maxOutputTokens ?? (params.repairAttempt ? 2_300 : 2_600),
+    maxOutputTokens:
+      params.maxOutputTokens ??
+      (params.repairAttempt
+        ? Math.min(params.profileMaxOutputTokens ?? FULL_CONTRACT_REPAIR_MAX_OUTPUT_TOKENS, FULL_CONTRACT_REPAIR_MAX_OUTPUT_TOKENS)
+        : params.profileMaxOutputTokens ?? FULL_CONTRACT_DEFAULT_MAX_OUTPUT_TOKENS),
   });
   return {
     text: res.text,
@@ -2425,6 +2518,8 @@ async function runFullContractRepairAttempt(params: {
   provider: E150ProviderName;
   rawText: string;
   strictValidation: FullContractValidation;
+  disableRepair?: boolean;
+  profileMaxOutputTokens?: number;
 }): Promise<{
   attempted: boolean;
   blocked: boolean;
@@ -2438,6 +2533,22 @@ async function runFullContractRepairAttempt(params: {
   schemaStatus: ProviderDiagnostic["schemaStatus"];
   rawExcerpt: string | null;
 }> {
+  if (params.disableRepair) {
+    return {
+      attempted: false,
+      blocked: false,
+      reason: "repair_disabled",
+      status: "not_attempted",
+      providerErrorCode: null,
+      schemaPath: params.strictValidation.schemaPath,
+      errorKind: null,
+      errorMessage: params.strictValidation.errorMessage,
+      parseStatus: "not_started",
+      schemaStatus: "not_started",
+      rawExcerpt: null,
+    };
+  }
+
   const strictCode = normalizeErrorCode({
     providerErrorCode: params.strictValidation.providerErrorCode,
     errorKind: params.strictValidation.errorKind,
@@ -2477,6 +2588,7 @@ async function runFullContractRepairAttempt(params: {
       provider: params.provider,
       prompt: repairPrompt,
       timeoutMs: params.provider === "openai" ? 30_000 : undefined,
+      profileMaxOutputTokens: params.profileMaxOutputTokens,
       repairAttempt: true,
     });
     const validation = validateFullContractPayload(repairCall.text ?? "");
@@ -2541,13 +2653,20 @@ async function runFullContractRepairAttempt(params: {
   }
 }
 
-async function runDirectFullContractProvider(provider: E150ProviderName): Promise<ProviderDiagnostic> {
+async function runDirectFullContractProvider(
+  provider: E150ProviderName,
+  options?: DirectFullContractRunOptions,
+): Promise<ProviderDiagnostic> {
+  const resolvedOptions = resolveDirectFullContractOptions(provider, options);
+  const runCostGroup: RunCostGroup = resolvedOptions.mode === "full-lite" ? "lite" : "full";
+  const budgetProfile: SmokeBudgetProfile =
+    resolvedOptions.mode === "full-lite" ? "full_lite" : "full_default";
   const missingReason = configMissingReason(provider);
   const isOpenAi = provider === "openai";
   const openAiSelectedSmokeModel = isOpenAi ? openAiSmokeModel() : null;
   const openAiSmokeEnvPresent = isOpenAi ? Boolean(process.env.OPENAI_SMOKE_MODEL) : null;
   const openAiTimeoutMs = isOpenAi ? openAiSmokeTimeoutMs() : null;
-  const openAiMaxOutputTokens = isOpenAi ? openAiSmokeMaxOutputTokens() : null;
+  const openAiMaxOutputTokens = isOpenAi ? resolvedOptions.maxOutputTokens : null;
   const openAiProfileNote = isOpenAi ? openAiSmokeConfigDiagnosticNote() : null;
   if (missingReason) {
     const missingModel = isOpenAi ? openAiSelectedSmokeModel ?? OPENAI_SMOKE_DEFAULT_MODEL : defaultModelForProvider(provider);
@@ -2593,9 +2712,14 @@ async function runDirectFullContractProvider(provider: E150ProviderName): Promis
       smokeModelEnvPresent: openAiSmokeEnvPresent,
       effectiveModel: missingModel,
       openAiSmokeModelMismatch: false,
+      runCostGroup,
+      smokeMode: resolvedOptions.mode,
+      budgetProfile,
       diagnosticNotes: mergeDiagnosticNotes(provider, [
         "Provider configuration missing.",
         openAiProfileNote,
+        `repairPolicy=${resolvedOptions.disableRepair ? "disabled" : "enabled"}`,
+        `budgetProfile=${budgetProfile}`,
       ]),
     });
   }
@@ -2604,7 +2728,12 @@ async function runDirectFullContractProvider(provider: E150ProviderName): Promis
   const prompt = buildProviderFullContractPrompt(provider);
 
   try {
-    const strictCall = await executeDirectFullContractCall({ provider, prompt, repairAttempt: false });
+    const strictCall = await executeDirectFullContractCall({
+      provider,
+      prompt,
+      repairAttempt: false,
+      profileMaxOutputTokens: resolvedOptions.maxOutputTokens,
+    });
     const strictValidation = validateFullContractPayload(strictCall.text ?? "");
     const strictEffectiveModel = strictCall.model ?? defaultModelForProvider(provider);
     const openAiSmokeModelMismatch =
@@ -2665,6 +2794,9 @@ async function runDirectFullContractProvider(provider: E150ProviderName): Promis
         smokeModelEnvPresent: openAiSmokeEnvPresent,
         effectiveModel: strictEffectiveModel,
         openAiSmokeModelMismatch,
+        runCostGroup,
+        smokeMode: resolvedOptions.mode,
+        budgetProfile,
         diagnosticNotes: mergeDiagnosticNotes(provider, [
           openAiProfileNote,
           isOpenAi ? `effectiveModel=${strictEffectiveModel}` : null,
@@ -2675,6 +2807,8 @@ async function runDirectFullContractProvider(provider: E150ProviderName): Promis
           strictCall.didFallback ? "Strict call used OpenAI json_object fallback." : null,
           strictCall.openaiErrorCode ? `openaiErrorCode=${strictCall.openaiErrorCode}` : null,
           strictCall.openaiErrorMessage ? `openaiErrorMessage=${strictCall.openaiErrorMessage}` : null,
+          `repairPolicy=${resolvedOptions.disableRepair ? "disabled" : "enabled"}`,
+          `budgetProfile=${budgetProfile}`,
         ]),
       });
     }
@@ -2748,6 +2882,9 @@ async function runDirectFullContractProvider(provider: E150ProviderName): Promis
         smokeModelEnvPresent: openAiSmokeEnvPresent,
         effectiveModel: strictEffectiveModel,
         openAiSmokeModelMismatch,
+        runCostGroup,
+        smokeMode: resolvedOptions.mode,
+        budgetProfile,
         diagnosticNotes: mergeDiagnosticNotes(provider, [
           openAiProfileNote,
           isOpenAi ? `effectiveModel=${strictEffectiveModel}` : null,
@@ -2759,6 +2896,8 @@ async function runDirectFullContractProvider(provider: E150ProviderName): Promis
           strictCall.openaiErrorCode ? `openaiErrorCode=${strictCall.openaiErrorCode}` : null,
           strictCall.openaiErrorMessage ? `openaiErrorMessage=${strictCall.openaiErrorMessage}` : null,
           "Direct strict failed; deterministic AnalyzeResult envelope build produced schema-valid output.",
+          `repairPolicy=${resolvedOptions.disableRepair ? "disabled" : "enabled"}`,
+          `budgetProfile=${budgetProfile}`,
         ]),
       });
     }
@@ -2775,6 +2914,8 @@ async function runDirectFullContractProvider(provider: E150ProviderName): Promis
       provider,
       rawText: strictCall.text ?? "",
       strictValidation: built.strictValidation,
+      disableRepair: resolvedOptions.disableRepair,
+      profileMaxOutputTokens: resolvedOptions.maxOutputTokens,
     });
 
     const finalContractStatus: ProviderDiagnostic["finalContractStatus"] =
@@ -2852,6 +2993,9 @@ async function runDirectFullContractProvider(provider: E150ProviderName): Promis
       smokeModelEnvPresent: openAiSmokeEnvPresent,
       effectiveModel: strictEffectiveModel,
       openAiSmokeModelMismatch,
+      runCostGroup,
+      smokeMode: resolvedOptions.mode,
+      budgetProfile,
       diagnosticNotes: mergeDiagnosticNotes(provider, [
         openAiProfileNote,
         isOpenAi ? `effectiveModel=${strictEffectiveModel}` : null,
@@ -2864,6 +3008,8 @@ async function runDirectFullContractProvider(provider: E150ProviderName): Promis
         strictCall.openaiErrorMessage ? `openaiErrorMessage=${strictCall.openaiErrorMessage}` : null,
         built.draftStatus === "ok" ? "Draft parsing completed for deterministic envelope build." : null,
         repair.attempted ? "Repair attempt executed as degraded fallback." : "Repair not attempted.",
+        `repairPolicy=${resolvedOptions.disableRepair ? "disabled" : "enabled"}`,
+        `budgetProfile=${budgetProfile}`,
       ]),
     });
   } catch (error: any) {
@@ -2935,6 +3081,9 @@ async function runDirectFullContractProvider(provider: E150ProviderName): Promis
       smokeModelEnvPresent: openAiSmokeEnvPresent,
       effectiveModel,
       openAiSmokeModelMismatch,
+      runCostGroup,
+      smokeMode: resolvedOptions.mode,
+      budgetProfile,
       diagnosticNotes: mergeDiagnosticNotes(provider, [
         openAiProfileNote,
         isOpenAi ? `effectiveModel=${effectiveModel}` : null,
@@ -2942,6 +3091,8 @@ async function runDirectFullContractProvider(provider: E150ProviderName): Promis
           ? "OPENAI_SMOKE_MODEL mismatch: provider returned a different effective model than selectedSmokeModel."
           : null,
         blocked ? "Strict call blocked by account/runtime condition." : "Strict call failed before validation.",
+        `repairPolicy=${resolvedOptions.disableRepair ? "disabled" : "enabled"}`,
+        `budgetProfile=${budgetProfile}`,
       ]),
     });
   }
@@ -2950,7 +3101,7 @@ async function runDirectFullContractProvider(provider: E150ProviderName): Promis
 declare global {
   // eslint-disable-next-line no-var
   var __EDEBATTE_ROUTE_DIRECT_FULL_PROVIDER__:
-    | ((provider: E150ProviderName) => Promise<ProviderDiagnostic>)
+    | ((provider: E150ProviderName, options?: DirectFullContractRunOptions) => Promise<ProviderDiagnostic>)
     | undefined;
 }
 

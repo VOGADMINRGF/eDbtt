@@ -10,6 +10,9 @@ export const PROVIDER_ORDER: readonly E150ProviderName[] = [
 ];
 
 export type SmokeMode = "provider_probe" | "runtime_smoke" | "full_contract";
+export type SmokeExecutionMode = "probe" | "runtime" | "full" | "full-lite";
+export type RunCostGroup = "tiny" | "lite" | "full";
+export type SmokeBudgetProfile = "probe_tiny" | "runtime_tiny" | "full_default" | "full_lite";
 
 export type DiagnosticStatus =
   | "ok"
@@ -97,6 +100,14 @@ export type ProviderDiagnostic = {
   durationMs: number | null;
   tokensIn: number | null;
   tokensOut: number | null;
+  estimatedCostUsd?: number | null;
+  estimatedCostEur?: number | null;
+  costKnown?: boolean;
+  pricingSource?: string | null;
+  costReason?: string | null;
+  runCostGroup?: RunCostGroup | null;
+  smokeMode?: SmokeExecutionMode | null;
+  budgetProfile?: SmokeBudgetProfile | null;
   fallbackUsed: boolean | null;
   fallbackReason: string | null;
   journeyDecision: JourneyDecision;
