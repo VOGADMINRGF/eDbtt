@@ -35,7 +35,6 @@ import {
   PROVIDER_ORDER,
 } from "@/features/ai/adminTelemetryDiagnostics";
 import { recordAdminAiRun } from "@/features/ai/adminTelemetryStore";
-import { requireAdminOrResponse } from "@/lib/server/auth/admin";
 import type { AiErrorKind } from "@core/telemetry/aiUsageTypes";
 
 export const runtime = "nodejs";
@@ -944,6 +943,173 @@ async function runDirectProviderProbe(provider: E150ProviderName): Promise<Provi
       errorMessage: error?.message ?? "provider_probe_failed",
       reason: error?.message ?? "provider_probe_failed",
       validationMode: "none",
+      providerStatus: deriveProviderStatus(errorKind, "failed"),
+      adapterStatus: "failed",
+      parseStatus: "not_started",
+      schemaStatus: "not_started",
+      rawExcerpt: error?.payload ?? error?.message,
+      durationMs: Date.now() - started,
+      journeyDecision: looksConfigMissing(error?.message) ? "config_missing" : "selected",
+    });
+  }
+}
+
+async function runDirectProviderRuntime(provider: E150ProviderName): Promise<ProviderDiagnostic> {
+  const missingReason = configMissingReason(provider);
+  if (missingReason) {
+    return baseDiagnostic({
+      provider,
+      mode: "runtime_smoke",
+      stage: "runtime",
+      pipeline: "provider_probe",
+      model: defaultModelForProvider(provider),
+      status: "config_missing",
+      errorKind: "INVALID_API_KEY",
+      providerErrorCode: "CONFIG_MISSING",
+      httpStatus: null,
+      errorMessage: missingReason,
+      reason: missingReason,
+      validationMode: "json_only",
+      providerStatus: "unknown",
+      adapterStatus: "not_started",
+      parseStatus: "not_started",
+      schemaStatus: "not_started",
+      rawExcerpt: missingReason,
+      durationMs: 0,
+      journeyDecision: "config_missing",
+    });
+  }
+
+  const started = Date.now();
+  const runtimePrompt = `${RUNTIME_SYSTEM_PROMPT}\n\n${RUNTIME_USER_PROMPT}`;
+  try {
+    let text = "";
+    let model: string | undefined;
+    let tokensIn: number | undefined;
+    let tokensOut: number | undefined;
+
+    if (provider === "openai") {
+      const res = await callOpenAI({
+        prompt: runtimePrompt,
+        asJson: true,
+        forceJsonFormat: true,
+        model: openAiSmokeModel(),
+        timeoutMs: openAiSmokeTimeoutMs(),
+        maxOutputTokens: 320,
+      });
+      text = res.text;
+      model = res.model;
+      tokensIn = res.tokensIn;
+      tokensOut = res.tokensOut;
+    } else if (provider === "anthropic") {
+      const res = await callAnthropic({
+        prompt: runtimePrompt,
+        maxOutputTokens: 320,
+      });
+      text = res.text;
+      model = res.model;
+      tokensIn = res.tokensIn;
+      tokensOut = res.tokensOut;
+    } else if (provider === "mistral") {
+      const res = await callMistral({
+        prompt: runtimePrompt,
+        maxOutputTokens: 320,
+      });
+      text = res.text;
+      model = res.model;
+      tokensIn = res.tokensIn;
+      tokensOut = res.tokensOut;
+    } else if (provider === "gemini") {
+      const res = await callGemini({
+        prompt: runtimePrompt,
+        maxOutputTokens: 320,
+        expectJson: true,
+      });
+      text = res.text;
+      model = res.model;
+      tokensIn = res.tokensIn;
+      tokensOut = res.tokensOut;
+    } else {
+      const res = await callAriLLM({
+        prompt: runtimePrompt,
+        asJson: true,
+        maxOutputTokens: 320,
+      });
+      text = res.text;
+      model = res.model;
+      tokensIn = res.tokensIn;
+      tokensOut = res.tokensOut;
+    }
+
+    const payload = validateProbePayload(text ?? "");
+    if (!payload.ok) {
+      const parseError = payload.parseError ?? "json_parse_failed";
+      return baseDiagnostic({
+        provider,
+        mode: "runtime_smoke",
+        stage: "runtime",
+        pipeline: "provider_probe",
+        model: model ?? defaultModelForProvider(provider),
+        status: "failed",
+        errorKind: "BAD_JSON",
+        providerErrorCode: "BAD_JSON",
+        httpStatus: 200,
+        errorMessage: parseError,
+        reason: parseError,
+        validationMode: "json_only",
+        providerStatus: "reachable",
+        adapterStatus: "failed",
+        parseStatus: payload.parseStatus,
+        schemaStatus: "not_started",
+        parseError,
+        rawExcerpt: text,
+        durationMs: Date.now() - started,
+        tokensIn,
+        tokensOut,
+        journeyDecision: "selected",
+      });
+    }
+
+    return baseDiagnostic({
+      provider,
+      mode: "runtime_smoke",
+      stage: "runtime",
+      pipeline: "provider_probe",
+      model: model ?? defaultModelForProvider(provider),
+      status: "ok",
+      errorKind: null,
+      providerErrorCode: null,
+      httpStatus: 200,
+      errorMessage: null,
+      reason: null,
+      validationMode: "json_only",
+      providerStatus: "reachable",
+      adapterStatus: "ok",
+      parseStatus: payload.parseStatus,
+      schemaStatus: "not_started",
+      rawExcerpt: text,
+      durationMs: Date.now() - started,
+      tokensIn,
+      tokensOut,
+      journeyDecision: "selected",
+    });
+  } catch (error: any) {
+    const errorKind = mapErrorToKind(error);
+    const providerCode = extractProviderErrorCode(error);
+    const status = typeof error?.status === "number" ? error.status : null;
+    return baseDiagnostic({
+      provider,
+      mode: "runtime_smoke",
+      stage: "runtime",
+      pipeline: "provider_probe",
+      model: (error as any)?.meta?.model ?? defaultModelForProvider(provider),
+      status: looksConfigMissing(error?.message) ? "config_missing" : "failed",
+      errorKind,
+      providerErrorCode: providerCode,
+      httpStatus: status,
+      errorMessage: error?.message ?? "provider_runtime_failed",
+      reason: error?.message ?? "provider_runtime_failed",
+      validationMode: "json_only",
       providerStatus: deriveProviderStatus(errorKind, "failed"),
       adapterStatus: "failed",
       parseStatus: "not_started",
@@ -2778,6 +2944,15 @@ async function runDirectFullContractProvider(provider: E150ProviderName): Promis
   }
 }
 
+declare global {
+  // eslint-disable-next-line no-var
+  var __EDEBATTE_ROUTE_DIRECT_FULL_PROVIDER__:
+    | ((provider: E150ProviderName) => Promise<ProviderDiagnostic>)
+    | undefined;
+}
+
+globalThis.__EDEBATTE_ROUTE_DIRECT_FULL_PROVIDER__ = runDirectFullContractProvider;
+
 async function runDirectFullContractProviders(): Promise<ProviderDiagnostic[]> {
   const rows = await Promise.all(PROVIDER_ORDER.map((provider) => runDirectFullContractProvider(provider)));
   return sortProviderDiagnostics(rows);
@@ -3154,6 +3329,7 @@ export async function POST(req: NextRequest) {
   const startedAt = Date.now();
 
   try {
+    const { requireAdminOrResponse } = await import("@/lib/server/auth/admin");
     const gate = await requireAdminOrResponse(req);
     if (gate instanceof Response) return gate;
 

@@ -12,6 +12,7 @@
     "build": "node ../../scripts/check-page-contracts.mjs && next build --webpack",
     "start": "next start -p 3000",
     "typecheck": "tsc --noEmit -p tsconfig.json",
+    "ai:provider-smoke": "pnpm exec tsx scripts/ai-provider-smoke.ts",
     "prisma:generate": "node ./scripts/prisma-generate-all.mjs",
     "postinstall": "pnpm run prisma:generate",
     "lint": "pnpm exec eslint --cache --cache-location .eslintcache --config eslint.config.js \"src/**/*.{ts,tsx}\""
