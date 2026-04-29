@@ -100,6 +100,22 @@ type SmokeResponse = {
   orchestratorOk: boolean;
   rows: ProviderDiagnostic[];
   directContractRows?: ProviderDiagnostic[];
+  operationalSummary?: {
+    selectedLane:
+      | "fast_draft"
+      | "standard_analyze"
+      | "dossier_enrichment"
+      | "sealed_factcheck"
+      | "premium_deep_research";
+    primaryAnalyzeProvider: string | null;
+    draftFallbackProviders: string[];
+    optionalProviders: string[];
+    researchProviders: string[];
+    blockedProviders: string[];
+    productionEligible: boolean;
+    researchRequired: boolean;
+    nextAction: string;
+  };
   error?: string;
   createAnalyzeApi: {
     state: "ok" | "failed" | "skipped";
@@ -414,6 +430,14 @@ export default function OrchestratorTelemetryPage() {
   }, [dataByMode]);
 
   const providerHealthRows = useMemo(() => buildProviderHealthRows(dataByMode), [dataByMode]);
+  const operationalSummary = useMemo(
+    () =>
+      dataByMode.full_contract?.operationalSummary ??
+      dataByMode.runtime_smoke?.operationalSummary ??
+      dataByMode.provider_probe?.operationalSummary ??
+      null,
+    [dataByMode],
+  );
 
   async function run(mode: SmokeMode) {
     setLoadingMode(mode);
@@ -450,6 +474,22 @@ export default function OrchestratorTelemetryPage() {
         <div className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
           {error}
         </div>
+      )}
+
+      {operationalSummary && (
+        <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm">
+          <h2 className="text-lg font-semibold text-[rgb(var(--fg))]">Operational Routing Summary</h2>
+          <p className="text-sm text-[rgb(var(--muted))]">
+            Lane-/Provider-Entscheidung gemäß Policy-Routing (#48) für Diagnose und spätere Orchestrierungsentscheide.
+          </p>
+          <div className="mt-3 grid gap-2 text-xs text-[rgb(var(--muted))]">
+            <div>selectedLane={operationalSummary.selectedLane} · productionEligible={String(operationalSummary.productionEligible)} · researchRequired={String(operationalSummary.researchRequired)}</div>
+            <div>primaryAnalyzeProvider={operationalSummary.primaryAnalyzeProvider ?? "none"} · draftFallbackProviders={operationalSummary.draftFallbackProviders.join(",") || "none"}</div>
+            <div>optionalProviders={operationalSummary.optionalProviders.join(",") || "none"} · researchProviders={operationalSummary.researchProviders.join(",") || "none"}</div>
+            <div>blockedProviders={operationalSummary.blockedProviders.join(",") || "none"}</div>
+            <div className="font-semibold text-[rgb(var(--fg))]">nextAction={operationalSummary.nextAction}</div>
+          </div>
+        </section>
       )}
 
       <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm">

@@ -1025,4 +1025,146 @@ describe("/api/admin/ai/orchestrator-smoke", () => {
 
     vi.unstubAllEnvs();
   });
+
+  it("selects OpenAI as strict_primary when direct contract is strict_ok", async () => {
+    vi.stubEnv("OPENAI_API_KEY", "test-openai-key");
+    mockFullOrchestrator(JSON.stringify(VALID_ANALYZE_JSON));
+    mocks.analyzeContribution.mockResolvedValue({
+      claims: [],
+      notes: [],
+      questions: [],
+      knots: [],
+    });
+    mocks.callOpenAI.mockResolvedValue({
+      text: JSON.stringify(STRICT_ANALYZE_JSON),
+      model: "gpt-4.1-mini",
+      formatUsed: "json_schema",
+      didFallback: false,
+    });
+
+    const response = await POST(req("?mode=full"));
+    expect(response.status).toBe(200);
+    const body = await response.json();
+
+    expect(body.operationalSummary.selectedLane).toBe("standard_analyze");
+    expect(body.operationalSummary.primaryAnalyzeProvider).toBe("openai");
+    expect(body.operationalSummary.productionEligible).toBe(true);
+    expect(body.operationalSummary.researchRequired).toBe(false);
+
+    vi.unstubAllEnvs();
+  });
+
+  it("treats Anthropic built_valid as draft fallback and not strict primary", async () => {
+    vi.stubEnv("OPENAI_API_KEY", "");
+    vi.stubEnv("ANTHROPIC_API_KEY", "test-anthropic-key");
+    mockFullOrchestrator(JSON.stringify(VALID_ANALYZE_JSON));
+    mocks.analyzeContribution.mockResolvedValue({
+      claims: [],
+      notes: [],
+      questions: [],
+      knots: [],
+    });
+    mocks.callAnthropic.mockResolvedValue({
+      text: JSON.stringify([{ id: "claim-1", text: "array-payload" }]),
+      model: "claude-sonnet-4-20250514",
+    });
+
+    const response = await POST(req("?mode=full"));
+    expect(response.status).toBe(200);
+    const body = await response.json();
+
+    expect(body.operationalSummary.primaryAnalyzeProvider).toBeNull();
+    expect(body.operationalSummary.draftFallbackProviders).toContain("anthropic");
+    expect(body.operationalSummary.productionEligible).toBe(true);
+    expect(body.operationalSummary.optionalProviders).toContain("gemini");
+    expect(body.operationalSummary.draftFallbackProviders).not.toContain("gemini");
+
+    vi.unstubAllEnvs();
+  });
+
+  it("treats Mistral built_valid as draft fallback and not strict primary", async () => {
+    vi.stubEnv("OPENAI_API_KEY", "");
+    vi.stubEnv("MISTRAL_API_KEY", "test-mistral-key");
+    mockFullOrchestrator(JSON.stringify(VALID_ANALYZE_JSON));
+    mocks.analyzeContribution.mockResolvedValue({
+      claims: [],
+      notes: [],
+      questions: [],
+      knots: [],
+    });
+    mocks.callMistral.mockResolvedValue({
+      text: JSON.stringify([{ id: "claim-1", text: "array-payload" }]),
+      model: "mistral-large-latest",
+    });
+
+    const response = await POST(req("?mode=full"));
+    expect(response.status).toBe(200);
+    const body = await response.json();
+
+    expect(body.operationalSummary.primaryAnalyzeProvider).toBeNull();
+    expect(body.operationalSummary.draftFallbackProviders).toContain("mistral");
+    expect(body.operationalSummary.productionEligible).toBe(true);
+    expect(body.operationalSummary.draftFallbackProviders).not.toContain("gemini");
+
+    vi.unstubAllEnvs();
+  });
+
+  it("keeps research providers out of strict primary selection", async () => {
+    vi.stubEnv("OPENAI_API_KEY", "test-openai-key");
+    mockFullOrchestrator(JSON.stringify(VALID_ANALYZE_JSON));
+    mocks.analyzeContribution.mockResolvedValue({
+      claims: [],
+      notes: [],
+      questions: [],
+      knots: [],
+    });
+    mocks.callOpenAI.mockResolvedValue({
+      text: JSON.stringify(STRICT_ANALYZE_JSON),
+      model: "gpt-4.1-mini",
+      formatUsed: "json_schema",
+      didFallback: false,
+    });
+
+    const response = await POST(req("?mode=full"));
+    expect(response.status).toBe(200);
+    const body = await response.json();
+
+    expect(body.operationalSummary.researchProviders).toContain("perplexity");
+    expect(body.operationalSummary.researchProviders).toContain("ari");
+    expect(body.operationalSummary.primaryAnalyzeProvider).not.toBe("ari");
+    expect(body.operationalSummary.primaryAnalyzeProvider).not.toBe("perplexity");
+
+    vi.unstubAllEnvs();
+  });
+
+  it("marks sealed_factcheck not production-eligible without research provider/credit", async () => {
+    vi.stubEnv("OPENAI_API_KEY", "test-openai-key");
+    vi.stubEnv("PERPLEXITY_DISABLED", "1");
+    vi.stubEnv("PERPLEXITY_API_KEY", "");
+    vi.stubEnv("SEARCH_CREDIT_AVAILABLE", "0");
+    mockFullOrchestrator(JSON.stringify(VALID_ANALYZE_JSON));
+    mocks.analyzeContribution.mockResolvedValue({
+      claims: [],
+      notes: [],
+      questions: [],
+      knots: [],
+    });
+    mocks.callOpenAI.mockResolvedValue({
+      text: JSON.stringify(STRICT_ANALYZE_JSON),
+      model: "gpt-4.1-mini",
+      formatUsed: "json_schema",
+      didFallback: false,
+    });
+
+    const response = await POST(req("?mode=full&lane=sealed_factcheck"));
+    expect(response.status).toBe(200);
+    const body = await response.json();
+
+    expect(body.operationalSummary.selectedLane).toBe("sealed_factcheck");
+    expect(body.operationalSummary.researchRequired).toBe(true);
+    expect(body.operationalSummary.productionEligible).toBe(false);
+    expect(String(body.operationalSummary.nextAction)).toContain("Research");
+
+    vi.unstubAllEnvs();
+  });
 });

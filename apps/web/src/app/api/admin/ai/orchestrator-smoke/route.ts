@@ -39,6 +39,12 @@ import {
 } from "@/features/ai/adminTelemetryDiagnostics";
 import { estimateAiRunCost } from "@/features/ai/aiCostTelemetry";
 import { recordAdminAiRun } from "@/features/ai/adminTelemetryStore";
+import {
+  defaultLaneForSmokeMode,
+  resolveOperationalProviderRoutingSummary,
+  type OperationalProviderRoutingSummary,
+  type OrchestrationLane,
+} from "@/features/ai/providerRoleRouting";
 import type { AiErrorKind } from "@core/telemetry/aiUsageTypes";
 
 export const runtime = "nodejs";
@@ -401,6 +407,7 @@ type OrchestratorSmokeResponse = {
       checkedAt?: number | null;
     }
   >;
+  operationalSummary: OperationalProviderRoutingSummary;
   createAnalyzeApi: CreateAnalyzeApiSmoke;
 };
 
@@ -421,6 +428,16 @@ function normalizeMode(value: string | null): SmokeMode {
   if (value === "probe" || value === "provider_probe") return "provider_probe";
   if (value === "full" || value === "full_contract") return "full_contract";
   return "runtime_smoke";
+}
+
+function normalizeLane(value: string | null, mode: SmokeMode): OrchestrationLane {
+  if (!value) return defaultLaneForSmokeMode(mode);
+  if (value === "fast_draft") return "fast_draft";
+  if (value === "standard_analyze") return "standard_analyze";
+  if (value === "dossier_enrichment") return "dossier_enrichment";
+  if (value === "sealed_factcheck") return "sealed_factcheck";
+  if (value === "premium_deep_research") return "premium_deep_research";
+  return defaultLaneForSmokeMode(mode);
 }
 
 function buildProbeMaps(probes: ProbeSnapshot[] | undefined): Pick<OrchestratorSmokeResponse, "probeStatus" | "probes"> {
@@ -3241,6 +3258,7 @@ function applyFullContractValidation(
 
 function buildResponse(params: {
   mode: SmokeMode;
+  lane: OrchestrationLane;
   runId: string;
   correlationId: string;
   startedAt: number;
@@ -3255,10 +3273,17 @@ function buildResponse(params: {
   createAnalyzeApi: CreateAnalyzeApiSmoke;
 }): OrchestratorSmokeResponse {
   const sortedRows = sortProviderDiagnostics(params.rows);
+  const directRows = params.directContractRows ? sortProviderDiagnostics(params.directContractRows) : undefined;
   const ok =
     params.mode === "full_contract"
       ? params.orchestratorOk && params.createAnalyzeApi.ok
       : sortedRows.some((row) => row.status === "ok");
+
+  const operationalSummary = resolveOperationalProviderRoutingSummary({
+    lane: params.lane,
+    rows: sortedRows,
+    directContractRows: directRows,
+  });
 
   const response: OrchestratorSmokeResponse = {
     ok,
@@ -3271,10 +3296,11 @@ function buildResponse(params: {
     bestProviderId: params.bestProviderId,
     bestRawText: params.bestRawText,
     rows: sortedRows,
-    directContractRows: params.directContractRows ? sortProviderDiagnostics(params.directContractRows) : undefined,
+    directContractRows: directRows,
     results: sortedRows.map(toLegacyResult),
     error: params.error,
     ...(params.probeMaps ?? {}),
+    operationalSummary,
     createAnalyzeApi: params.createAnalyzeApi,
   };
 
@@ -3293,6 +3319,7 @@ function buildResponse(params: {
 }
 
 async function runProviderProbeMode(base: {
+  lane: OrchestrationLane;
   runId: string;
   correlationId: string;
   startedAt: number;
@@ -3300,6 +3327,7 @@ async function runProviderProbeMode(base: {
   const rows = await Promise.all(PROVIDER_ORDER.map((provider) => runDirectProviderProbe(provider)));
   return buildResponse({
     mode: "provider_probe",
+    lane: base.lane,
     runId: base.runId,
     correlationId: base.correlationId,
     startedAt: base.startedAt,
@@ -3319,6 +3347,7 @@ async function runProviderProbeMode(base: {
 }
 
 async function runRuntimeMode(base: {
+  lane: OrchestrationLane;
   runId: string;
   correlationId: string;
   startedAt: number;
@@ -3347,6 +3376,7 @@ async function runRuntimeMode(base: {
 
     return buildResponse({
       mode: "runtime_smoke",
+      lane: base.lane,
       runId: base.runId,
       correlationId: base.correlationId,
       startedAt: base.startedAt,
@@ -3376,6 +3406,7 @@ async function runRuntimeMode(base: {
 
     return buildResponse({
       mode: "runtime_smoke",
+      lane: base.lane,
       runId: base.runId,
       correlationId: base.correlationId,
       startedAt: base.startedAt,
@@ -3398,6 +3429,7 @@ async function runRuntimeMode(base: {
 }
 
 async function runFullMode(base: {
+  lane: OrchestrationLane;
   runId: string;
   correlationId: string;
   startedAt: number;
@@ -3438,6 +3470,7 @@ async function runFullMode(base: {
 
     return buildResponse({
       mode: "full_contract",
+      lane: base.lane,
       runId: base.runId,
       correlationId: base.correlationId,
       startedAt: base.startedAt,
@@ -3464,6 +3497,7 @@ async function runFullMode(base: {
 
   return buildResponse({
     mode: "full_contract",
+    lane: base.lane,
     runId: base.runId,
     correlationId: base.correlationId,
     startedAt: base.startedAt,
@@ -3480,6 +3514,7 @@ async function runFullMode(base: {
 
 export async function POST(req: NextRequest) {
   const mode = normalizeMode(req.nextUrl.searchParams.get("mode"));
+  const lane = normalizeLane(req.nextUrl.searchParams.get("lane"), mode);
   const runId = crypto.randomUUID();
   const correlationId = runId;
   const startedAt = Date.now();
@@ -3490,15 +3525,15 @@ export async function POST(req: NextRequest) {
     if (gate instanceof Response) return gate;
 
     if (mode === "provider_probe") {
-      const response = await runProviderProbeMode({ runId, correlationId, startedAt });
+      const response = await runProviderProbeMode({ lane, runId, correlationId, startedAt });
       return NextResponse.json(response);
     }
     if (mode === "full_contract") {
-      const response = await runFullMode({ runId, correlationId, startedAt });
+      const response = await runFullMode({ lane, runId, correlationId, startedAt });
       return NextResponse.json(response);
     }
 
-    const response = await runRuntimeMode({ runId, correlationId, startedAt });
+    const response = await runRuntimeMode({ lane, runId, correlationId, startedAt });
     return NextResponse.json(response);
   } catch (error: any) {
     const finishedAt = Date.now();
@@ -3517,6 +3552,11 @@ export async function POST(req: NextRequest) {
       directContractRows: [],
       results: [],
       error: message,
+      operationalSummary: resolveOperationalProviderRoutingSummary({
+        lane,
+        rows: [],
+        directContractRows: [],
+      }),
       createAnalyzeApi: {
         state: "skipped",
         ok: false,
