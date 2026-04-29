@@ -70,6 +70,32 @@ Diese Entscheidung ist verbindlich:
 - #55 Perplexity/Cheap-Smoke/Research-Credits:
   Muss Cost-/Credit-Optimierung liefern, ohne neue Core-Abhaengigkeit auf Perplexity oder ARI.
 
+### Issue #55 Narrow-Scope Umsetzungsvorbereitung (Perplexity + Cheap-Smoke)
+
+Verbindliche Einordnung fuer den #55-Slice:
+- Perplexity ist **optional** und nur `research_discovery` / Search.
+- Perplexity ist **nicht** `strict_primary`, **nicht** Analyze-Provider und **nicht** Core-Orchestrator.
+- ARI bleibt optional fuer `premium_deep_research` und wird nicht Default.
+- `standard_analyze` laeuft ohne Perplexity und ohne ARI.
+
+Terminologievorbereitung (Entitlements/Produktsprache, ohne Checkout-Implementierung):
+- `search_credit`
+- `deep_research_credit`
+- `dossier_boost`
+- `research_supporter`
+- `initiator`
+
+Produkt-/Pricing-Notizen (Planungsrahmen, nicht als hartes Billing-Versprechen):
+- Ein Plan um 29,99 EUR kann perspektivisch 1 Perplexity Search Credit enthalten.
+- Search Add-on kann grob bei ~10 EUR liegen.
+- Deep Search / Premium Research kann grob bei ~20 EUR liegen.
+- Diese Notizen sind Vorbereitung fuer #49 (Research Provider Abstraction), nicht deren Vollumsetzung.
+
+Kosten-/Smoke-Leitplanken:
+- Probe/Runtime/Sample-Signale bleiben als guenstige Tiny-Profile ausgelegt.
+- `full-lite` bleibt der kostenguensige Diagnosemodus fuer tieferen Contract-Check.
+- Unknown pricing bleibt `costKnown=false` / `n/a` und wird nie als `0 EUR` dargestellt.
+
 ## Dokumentabgrenzung (harmonisiert 2026-03-26)
 
 - Kanonischer Gesamtfluss: `docs/E150/Part16.md`

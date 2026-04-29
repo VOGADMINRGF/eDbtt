@@ -264,6 +264,8 @@ const OPENAI_SMOKE_DEFAULT_MODEL = "gpt-4.1-mini";
 const FULL_CONTRACT_DEFAULT_MAX_OUTPUT_TOKENS = 2_600;
 const FULL_CONTRACT_LITE_MAX_OUTPUT_TOKENS = 1_200;
 const FULL_CONTRACT_REPAIR_MAX_OUTPUT_TOKENS = 2_300;
+const PROBE_TINY_MAX_OUTPUT_TOKENS = 96;
+const RUNTIME_TINY_MAX_OUTPUT_TOKENS = 192;
 
 export type DirectFullContractMode = "full" | "full-lite";
 export type DirectFullContractRunOptions = {
@@ -903,7 +905,7 @@ async function runDirectProviderProbe(provider: E150ProviderName): Promise<Provi
         prompt: DIRECT_PROBE_PROMPT.replace("<name>", "openai"),
         asJson: true,
         forceJsonFormat: true,
-        maxOutputTokens: 160,
+        maxOutputTokens: PROBE_TINY_MAX_OUTPUT_TOKENS,
       });
       text = res.text;
       model = res.model;
@@ -912,7 +914,7 @@ async function runDirectProviderProbe(provider: E150ProviderName): Promise<Provi
     } else if (provider === "anthropic") {
       const res = await callAnthropic({
         prompt: DIRECT_PROBE_PROMPT.replace("<name>", "anthropic"),
-        maxOutputTokens: 160,
+        maxOutputTokens: PROBE_TINY_MAX_OUTPUT_TOKENS,
       });
       text = res.text;
       model = res.model;
@@ -921,7 +923,7 @@ async function runDirectProviderProbe(provider: E150ProviderName): Promise<Provi
     } else if (provider === "mistral") {
       const res = await callMistral({
         prompt: DIRECT_PROBE_PROMPT.replace("<name>", "mistral"),
-        maxOutputTokens: 160,
+        maxOutputTokens: PROBE_TINY_MAX_OUTPUT_TOKENS,
       });
       text = res.text;
       model = res.model;
@@ -930,7 +932,7 @@ async function runDirectProviderProbe(provider: E150ProviderName): Promise<Provi
     } else if (provider === "gemini") {
       const res = await callGemini({
         prompt: DIRECT_PROBE_PROMPT.replace("<name>", "gemini"),
-        maxOutputTokens: 160,
+        maxOutputTokens: PROBE_TINY_MAX_OUTPUT_TOKENS,
         expectJson: true,
       });
       text = res.text;
@@ -941,7 +943,7 @@ async function runDirectProviderProbe(provider: E150ProviderName): Promise<Provi
       const res = await callAriLLM({
         prompt: DIRECT_PROBE_PROMPT.replace("<name>", "ari"),
         asJson: true,
-        maxOutputTokens: 160,
+        maxOutputTokens: PROBE_TINY_MAX_OUTPUT_TOKENS,
       });
       text = res.text;
       model = res.model;
@@ -1070,7 +1072,7 @@ async function runDirectProviderRuntime(provider: E150ProviderName): Promise<Pro
         forceJsonFormat: true,
         model: openAiSmokeModel(),
         timeoutMs: openAiSmokeTimeoutMs(),
-        maxOutputTokens: 320,
+        maxOutputTokens: RUNTIME_TINY_MAX_OUTPUT_TOKENS,
       });
       text = res.text;
       model = res.model;
@@ -1079,7 +1081,7 @@ async function runDirectProviderRuntime(provider: E150ProviderName): Promise<Pro
     } else if (provider === "anthropic") {
       const res = await callAnthropic({
         prompt: runtimePrompt,
-        maxOutputTokens: 320,
+        maxOutputTokens: RUNTIME_TINY_MAX_OUTPUT_TOKENS,
       });
       text = res.text;
       model = res.model;
@@ -1088,7 +1090,7 @@ async function runDirectProviderRuntime(provider: E150ProviderName): Promise<Pro
     } else if (provider === "mistral") {
       const res = await callMistral({
         prompt: runtimePrompt,
-        maxOutputTokens: 320,
+        maxOutputTokens: RUNTIME_TINY_MAX_OUTPUT_TOKENS,
       });
       text = res.text;
       model = res.model;
@@ -1097,7 +1099,7 @@ async function runDirectProviderRuntime(provider: E150ProviderName): Promise<Pro
     } else if (provider === "gemini") {
       const res = await callGemini({
         prompt: runtimePrompt,
-        maxOutputTokens: 320,
+        maxOutputTokens: RUNTIME_TINY_MAX_OUTPUT_TOKENS,
         expectJson: true,
       });
       text = res.text;
@@ -1108,7 +1110,7 @@ async function runDirectProviderRuntime(provider: E150ProviderName): Promise<Pro
       const res = await callAriLLM({
         prompt: runtimePrompt,
         asJson: true,
-        maxOutputTokens: 320,
+        maxOutputTokens: RUNTIME_TINY_MAX_OUTPUT_TOKENS,
       });
       text = res.text;
       model = res.model;

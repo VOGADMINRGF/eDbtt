@@ -30,6 +30,8 @@ const RUNTIME_USER_PROMPT =
   "Runtime probe for admin orchestrator smoke. Respond only with the required JSON object.";
 const DIRECT_PROBE_PROMPT =
   "Return only valid JSON: {\"ok\":true,\"ping\":\"pong\",\"provider\":\"<name>\"}. No markdown.";
+const PROBE_TINY_MAX_OUTPUT_TOKENS = 96;
+const RUNTIME_TINY_MAX_OUTPUT_TOKENS = 192;
 
 const FULL_CONTRACT_PROMPT = [
   "Return exactly one top-level AnalyzeResult JSON object (RFC8259).",
@@ -444,7 +446,7 @@ export async function runDirectProbeDiagnostic(provider: E150ProviderName): Prom
     const result = await callProvider({
       provider,
       prompt: DIRECT_PROBE_PROMPT.replace("<name>", provider),
-      maxOutputTokens: 160,
+      maxOutputTokens: PROBE_TINY_MAX_OUTPUT_TOKENS,
     });
     const validated = validateProbePayload(result.text);
     if (!validated.ok) {
@@ -543,7 +545,7 @@ function runDirectProbeDiagnosticWithPrompt(
       const result = await callProvider({
         provider,
         prompt,
-        maxOutputTokens: 320,
+        maxOutputTokens: RUNTIME_TINY_MAX_OUTPUT_TOKENS,
       });
       const validated = validateProbePayload(result.text);
       if (!validated.ok) {
