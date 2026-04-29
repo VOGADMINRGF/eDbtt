@@ -10,6 +10,7 @@ import {
 const PRIMARY_PROVIDER_ORDER = ["openai", "anthropic", "mistral"] as const;
 export type PrimaryProvider = (typeof PRIMARY_PROVIDER_ORDER)[number];
 export type ProviderSmokeCliMode = "probe" | "runtime" | "full";
+const ALLOWED_PROVIDER_VALUES = [...PRIMARY_PROVIDER_ORDER, "all-primary"] as const;
 
 export type ProviderSmokeCliArgs = {
   mode: ProviderSmokeCliMode;
@@ -64,26 +65,45 @@ function isPrimaryProvider(value: string): value is PrimaryProvider {
   return PRIMARY_PROVIDER_ORDER.includes(value as PrimaryProvider);
 }
 
-function toUniquePrimaryProviders(values: string[]): PrimaryProvider[] {
+function parseProvidersOrThrow(values: string[], providerFlagSupplied: boolean): PrimaryProvider[] {
+  if (!providerFlagSupplied) return [...PRIMARY_PROVIDER_ORDER];
+
   const expanded = values.flatMap((value) => {
     const token = value.trim().toLowerCase();
     if (!token) return [];
     if (token === "all-primary") return [...PRIMARY_PROVIDER_ORDER];
     return token.split(",").map((part) => part.trim().toLowerCase());
   });
+
+  const invalidValues: string[] = [];
   const out: PrimaryProvider[] = [];
   for (const provider of expanded) {
-    if (!isPrimaryProvider(provider)) continue;
+    if (!provider) continue;
+    if (!isPrimaryProvider(provider)) {
+      invalidValues.push(provider);
+      continue;
+    }
     if (!out.includes(provider)) out.push(provider);
   }
-  return out.length > 0 ? out : [...PRIMARY_PROVIDER_ORDER];
+
+  if (invalidValues.length > 0) {
+    throw new Error(
+      `Invalid provider value(s): ${Array.from(new Set(invalidValues)).join(", ")}. Allowed: ${ALLOWED_PROVIDER_VALUES.join(", ")}`,
+    );
+  }
+  if (out.length === 0) {
+    throw new Error(`No valid providers supplied. Allowed: ${ALLOWED_PROVIDER_VALUES.join(", ")}`);
+  }
+  return out;
 }
 
-function parseMode(value: string | null | undefined): ProviderSmokeCliMode {
+function parseModeOrThrow(value: string | null | undefined, modeFlagSupplied: boolean): ProviderSmokeCliMode {
+  if (!modeFlagSupplied) return "full";
   const normalized = (value ?? "").trim().toLowerCase();
   if (normalized === "probe") return "probe";
   if (normalized === "runtime") return "runtime";
-  return "full";
+  if (normalized === "full") return "full";
+  throw new Error(`Invalid mode value: ${value ?? ""}. Allowed: probe, runtime, full`);
 }
 
 function parseOutputDir(value: string | null | undefined): string {
@@ -103,6 +123,8 @@ function extractFlagValue(argv: string[], index: number, flag: string): string |
 export function parseProviderSmokeCliArgs(argv: string[]): ProviderSmokeCliArgs {
   const providerTokens: string[] = [];
   let modeToken: string | null = null;
+  let providerFlagSupplied = false;
+  let modeFlagSupplied = false;
   let allowBuiltValid = false;
   let allowDegraded = false;
   let jsonOnly = false;
@@ -129,6 +151,7 @@ export function parseProviderSmokeCliArgs(argv: string[]): ProviderSmokeCliArgs 
       continue;
     }
     if (token === "--provider" || token === "--providers") {
+      providerFlagSupplied = true;
       const next = argv[i + 1];
       if (next && !next.startsWith("--")) {
         providerTokens.push(next);
@@ -137,6 +160,7 @@ export function parseProviderSmokeCliArgs(argv: string[]): ProviderSmokeCliArgs 
       continue;
     }
     if (token === "--mode") {
+      modeFlagSupplied = true;
       const next = argv[i + 1];
       if (next && !next.startsWith("--")) {
         modeToken = next;
@@ -156,11 +180,13 @@ export function parseProviderSmokeCliArgs(argv: string[]): ProviderSmokeCliArgs 
     const providerValue =
       extractFlagValue(argv, i, "--provider") ?? extractFlagValue(argv, i, "--providers");
     if (providerValue !== null) {
+      providerFlagSupplied = true;
       providerTokens.push(providerValue);
       continue;
     }
     const modeValue = extractFlagValue(argv, i, "--mode");
     if (modeValue !== null) {
+      modeFlagSupplied = true;
       modeToken = modeValue;
       continue;
     }
@@ -172,8 +198,8 @@ export function parseProviderSmokeCliArgs(argv: string[]): ProviderSmokeCliArgs 
   }
 
   return {
-    mode: parseMode(modeToken),
-    providers: toUniquePrimaryProviders(providerTokens),
+    mode: parseModeOrThrow(modeToken, modeFlagSupplied),
+    providers: parseProvidersOrThrow(providerTokens, providerFlagSupplied),
     allowBuiltValid,
     allowDegraded,
     jsonOnly,
