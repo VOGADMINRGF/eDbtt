@@ -114,6 +114,18 @@ type SmokeResponse = {
     blockedProviders: string[];
     productionEligible: boolean;
     researchRequired: boolean;
+    selectedResearchProvider: string | null;
+    availableResearchProviders: string[];
+    blockedResearchProviders: Array<{ provider: string; reason: string | null }>;
+    researchProviderAvailable: boolean;
+    researchCreditRequired: boolean;
+    researchCreditSatisfied: boolean;
+    researchDisabledReason: string | null;
+    standardAnalyzeUnaffected: boolean;
+    safeToRunStandardAnalyze: boolean;
+    safeToRunSealedFactcheck: boolean;
+    safeToRunPremiumDeepResearch: boolean;
+    nextResearchAction: string;
     nextAction: string;
   };
   error?: string;
@@ -487,6 +499,11 @@ export default function OrchestratorTelemetryPage() {
             <div>primaryAnalyzeProvider={operationalSummary.primaryAnalyzeProvider ?? "none"} · draftFallbackProviders={operationalSummary.draftFallbackProviders.join(",") || "none"}</div>
             <div>optionalProviders={operationalSummary.optionalProviders.join(",") || "none"} · researchProviders={operationalSummary.researchProviders.join(",") || "none"}</div>
             <div>blockedProviders={operationalSummary.blockedProviders.join(",") || "none"}</div>
+            <div>selectedResearchProvider={operationalSummary.selectedResearchProvider ?? "none"} · researchProviderAvailable={String(operationalSummary.researchProviderAvailable)}</div>
+            <div>availableResearchProviders={operationalSummary.availableResearchProviders.join(",") || "none"} · blockedResearchProviders={operationalSummary.blockedResearchProviders.map((entry) => `${entry.provider}:${entry.reason ?? "blocked"}`).join(",") || "none"}</div>
+            <div>researchCreditRequired={String(operationalSummary.researchCreditRequired)} · researchCreditSatisfied={String(operationalSummary.researchCreditSatisfied)} · researchDisabledReason={operationalSummary.researchDisabledReason ?? "none"}</div>
+            <div>safeToRunStandardAnalyze={String(operationalSummary.safeToRunStandardAnalyze)} · safeToRunSealedFactcheck={String(operationalSummary.safeToRunSealedFactcheck)} · safeToRunPremiumDeepResearch={String(operationalSummary.safeToRunPremiumDeepResearch)}</div>
+            <div>standardAnalyzeUnaffected={String(operationalSummary.standardAnalyzeUnaffected)} · nextResearchAction={operationalSummary.nextResearchAction}</div>
             <div className="font-semibold text-[rgb(var(--fg))]">nextAction={operationalSummary.nextAction}</div>
           </div>
         </section>

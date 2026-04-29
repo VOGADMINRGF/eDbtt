@@ -1,5 +1,10 @@
 import type { E150ProviderName } from "@features/ai/orchestratorE150";
 import type { ProviderDiagnostic } from "@/features/ai/adminTelemetryDiagnostics";
+import {
+  buildResearchProviderRegistry,
+  resolveResearchEntitlements,
+  type ResearchProviderId,
+} from "@/features/ai/researchProviderRegistry";
 
 export type OrchestrationLane =
   | "fast_draft"
@@ -21,7 +26,7 @@ export type ProviderRole =
   | "premium_deep_research"
   | "arbiter";
 
-export type ProviderRoleId = E150ProviderName | "perplexity";
+export type ProviderRoleId = E150ProviderName | "perplexity" | "openai_deep_research";
 
 export type ProviderRoleMatrixEntry = {
   provider: ProviderRoleId;
@@ -37,7 +42,7 @@ export type LaneRoutingPolicy = {
   primaryAnalyzeCandidates: ProviderRoleId[];
   draftFallbackCandidates: ProviderRoleId[];
   optionalCandidates: ProviderRoleId[];
-  researchCandidates: ProviderRoleId[];
+  researchCandidates: Array<Extract<ResearchProviderId, "perplexity" | "ari" | "openai_deep_research">>;
   researchRequired: boolean;
   requiredCredits: Array<"search_credit" | "deep_research_credit">;
 };
@@ -51,6 +56,18 @@ export type OperationalProviderRoutingSummary = {
   blockedProviders: ProviderRoleId[];
   productionEligible: boolean;
   researchRequired: boolean;
+  selectedResearchProvider: ResearchProviderId | null;
+  availableResearchProviders: ResearchProviderId[];
+  blockedResearchProviders: Array<{ provider: ResearchProviderId; reason: string | null }>;
+  researchProviderAvailable: boolean;
+  researchCreditRequired: boolean;
+  researchCreditSatisfied: boolean;
+  researchDisabledReason: string | null;
+  standardAnalyzeUnaffected: boolean;
+  safeToRunStandardAnalyze: boolean;
+  safeToRunSealedFactcheck: boolean;
+  safeToRunPremiumDeepResearch: boolean;
+  nextResearchAction: string;
   nextAction: string;
 };
 
@@ -103,6 +120,14 @@ export const PROVIDER_ROLE_MATRIX: readonly ProviderRoleMatrixEntry[] = [
     optionalOnly: true,
     notes: ["Optional premium deep research/arbiter. Never default analyze provider."],
   },
+  {
+    provider: "openai_deep_research",
+    roles: ["premium_deep_research"],
+    analyzeProvider: false,
+    strictPrimaryCandidate: false,
+    optionalOnly: true,
+    notes: ["Optional premium deep research fallback. Never default analyze provider."],
+  },
 ];
 
 export const LANE_ROUTING_POLICY: readonly LaneRoutingPolicy[] = [
@@ -111,7 +136,7 @@ export const LANE_ROUTING_POLICY: readonly LaneRoutingPolicy[] = [
     primaryAnalyzeCandidates: ["openai"],
     draftFallbackCandidates: ["anthropic", "mistral"],
     optionalCandidates: ["gemini"],
-    researchCandidates: ["perplexity", "ari"],
+    researchCandidates: ["perplexity", "ari", "openai_deep_research"],
     researchRequired: false,
     requiredCredits: [],
   },
@@ -120,7 +145,7 @@ export const LANE_ROUTING_POLICY: readonly LaneRoutingPolicy[] = [
     primaryAnalyzeCandidates: ["openai"],
     draftFallbackCandidates: ["anthropic", "mistral"],
     optionalCandidates: ["gemini"],
-    researchCandidates: ["perplexity", "ari"],
+    researchCandidates: ["perplexity", "ari", "openai_deep_research"],
     researchRequired: false,
     requiredCredits: [],
   },
@@ -129,7 +154,7 @@ export const LANE_ROUTING_POLICY: readonly LaneRoutingPolicy[] = [
     primaryAnalyzeCandidates: ["openai"],
     draftFallbackCandidates: ["anthropic", "mistral"],
     optionalCandidates: ["gemini"],
-    researchCandidates: ["perplexity", "ari"],
+    researchCandidates: ["perplexity", "ari", "openai_deep_research"],
     researchRequired: false,
     requiredCredits: [],
   },
@@ -138,7 +163,7 @@ export const LANE_ROUTING_POLICY: readonly LaneRoutingPolicy[] = [
     primaryAnalyzeCandidates: ["openai"],
     draftFallbackCandidates: ["anthropic", "mistral"],
     optionalCandidates: ["gemini"],
-    researchCandidates: ["perplexity", "ari"],
+    researchCandidates: ["perplexity", "ari", "openai_deep_research"],
     researchRequired: true,
     requiredCredits: ["search_credit"],
   },
@@ -147,41 +172,11 @@ export const LANE_ROUTING_POLICY: readonly LaneRoutingPolicy[] = [
     primaryAnalyzeCandidates: ["openai"],
     draftFallbackCandidates: ["anthropic", "mistral"],
     optionalCandidates: ["gemini"],
-    researchCandidates: ["ari", "perplexity"],
+    researchCandidates: ["ari", "openai_deep_research", "perplexity"],
     researchRequired: true,
     requiredCredits: ["deep_research_credit"],
   },
 ];
-
-function hasAnyValue(...values: Array<string | null | undefined>): boolean {
-  return values.some((value) => typeof value === "string" && value.trim().length > 0);
-}
-
-function ariConfigured(): boolean {
-  return hasAnyValue(
-    process.env.ARI_BASE_URL,
-    process.env.ARI_URL,
-    process.env.ARI_API_URL,
-    process.env.YOUCOM_ARI_API_URL,
-  ) && hasAnyValue(process.env.ARI_API_KEY, process.env.YOUCOM_ARI_API_KEY);
-}
-
-function perplexityConfigured(): boolean {
-  const disabled = (process.env.PERPLEXITY_DISABLED ?? "0").toLowerCase();
-  if (disabled === "1" || disabled === "true" || disabled === "yes") return false;
-  const hasBase = hasAnyValue(process.env.PERPLEXITY_BASE_URL) || true;
-  return hasBase && hasAnyValue(process.env.PERPLEXITY_API_KEY);
-}
-
-function hasSearchCredit(): boolean {
-  const value = (process.env.SEARCH_CREDIT_AVAILABLE ?? "").toLowerCase();
-  return value === "1" || value === "true" || value === "yes";
-}
-
-function hasDeepResearchCredit(): boolean {
-  const value = (process.env.DEEP_RESEARCH_CREDIT_AVAILABLE ?? "").toLowerCase();
-  return value === "1" || value === "true" || value === "yes";
-}
 
 function findLanePolicy(lane: OrchestrationLane): LaneRoutingPolicy {
   return LANE_ROUTING_POLICY.find((entry) => entry.lane === lane) ?? LANE_ROUTING_POLICY[1];
@@ -195,9 +190,9 @@ function isBlocked(row: ProviderDiagnostic | undefined): boolean {
   return false;
 }
 
-function byProvider(rows: ProviderDiagnostic[]): Map<ProviderRoleId, ProviderDiagnostic> {
-  const out = new Map<ProviderRoleId, ProviderDiagnostic>();
-  for (const row of rows) out.set(row.provider as ProviderRoleId, row);
+function byProvider(rows: ProviderDiagnostic[]): Map<E150ProviderName, ProviderDiagnostic> {
+  const out = new Map<E150ProviderName, ProviderDiagnostic>();
+  for (const row of rows) out.set(row.provider, row);
   return out;
 }
 
@@ -209,19 +204,100 @@ function hasDraftFallback(row: ProviderDiagnostic | undefined): boolean {
   return row?.finalContractStatus === "built_valid" || row?.finalContractStatus === "strict_ok";
 }
 
-function researchProviderAvailable(provider: ProviderRoleId): boolean {
-  if (provider === "perplexity") return perplexityConfigured();
-  if (provider === "ari") return ariConfigured();
+function isResearchProviderEligibleForLane(
+  provider: ResearchProviderId,
+  lane: OrchestrationLane,
+): boolean {
+  if (provider === "disabled") return false;
+  if (lane === "premium_deep_research") return provider === "ari" || provider === "openai_deep_research";
+  if (lane === "sealed_factcheck") return provider === "perplexity" || provider === "ari" || provider === "openai_deep_research";
+  if (lane === "dossier_enrichment") return provider === "perplexity";
   return false;
 }
 
-function requiredCreditsAvailable(requiredCredits: LaneRoutingPolicy["requiredCredits"]): boolean {
-  if (requiredCredits.length === 0) return true;
-  return requiredCredits.every((credit) => {
-    if (credit === "search_credit") return hasSearchCredit();
-    if (credit === "deep_research_credit") return hasDeepResearchCredit();
+function resolveResearchCreditSatisfied(policy: LaneRoutingPolicy): boolean {
+  const entitlements = resolveResearchEntitlements();
+  if (policy.requiredCredits.length === 0) return true;
+  if (entitlements.premiumResearchOverride) return true;
+  return policy.requiredCredits.every((credit) => {
+    if (credit === "search_credit") return entitlements.searchCredit;
+    if (credit === "deep_research_credit") return entitlements.deepResearchCredit;
     return false;
   });
+}
+
+function toProviderRoleId(provider: ResearchProviderId): ProviderRoleId | null {
+  if (provider === "perplexity") return "perplexity";
+  if (provider === "ari") return "ari";
+  if (provider === "openai_deep_research") return "openai_deep_research";
+  return null;
+}
+
+function buildResearchDecision(params: { lane: OrchestrationLane; policy: LaneRoutingPolicy }) {
+  const registry = buildResearchProviderRegistry();
+  const candidateProviders = registry.activeProviders.filter((entry) =>
+    params.policy.researchCandidates.includes(
+      entry.provider as Extract<ResearchProviderId, "perplexity" | "ari" | "openai_deep_research">,
+    ),
+  );
+
+  const eligibleProviders = candidateProviders.filter(
+    (entry) =>
+      isResearchProviderEligibleForLane(entry.provider, params.lane),
+  );
+
+  const availableEligible = eligibleProviders.filter((entry) => entry.availability === "available");
+  const availableCandidates = candidateProviders.filter((entry) => entry.availability === "available");
+  const selectedResearchProvider = availableEligible[0]?.provider ?? null;
+  const researchProviderAvailable = availableEligible.length > 0;
+
+  const researchCreditRequired = params.policy.requiredCredits.length > 0;
+  const researchCreditSatisfied = resolveResearchCreditSatisfied(params.policy);
+
+  let researchDisabledReason: string | null = null;
+  if (params.policy.researchRequired && !researchProviderAvailable) {
+    researchDisabledReason = "no_research_provider_available";
+  } else if (researchCreditRequired && !researchCreditSatisfied) {
+    researchDisabledReason = "missing_research_credit";
+  }
+
+  const safeToRunStandardAnalyze = true;
+  const safeToRunSealedFactcheck = Boolean(
+    availableCandidates.some((entry) => isResearchProviderEligibleForLane(entry.provider, "sealed_factcheck")) &&
+      researchCreditSatisfied,
+  );
+  const safeToRunPremiumDeepResearch = Boolean(
+    availableCandidates.some((entry) => isResearchProviderEligibleForLane(entry.provider, "premium_deep_research")) &&
+      researchCreditSatisfied,
+  );
+
+  let nextResearchAction = "Keine Aktion";
+  if (params.lane === "standard_analyze") {
+    nextResearchAction = "Standard Analyze bleibt ohne externen Research-Provider lauffähig.";
+  } else if (params.policy.researchRequired && !researchProviderAvailable) {
+    nextResearchAction = "Research-Provider fehlt oder ist deaktiviert; Perplexity/ARI/OpenAI Deep Research Konfiguration prüfen.";
+  } else if (researchCreditRequired && !researchCreditSatisfied) {
+    nextResearchAction = "Benötigte Research-Credits oder premium_research_override fehlen.";
+  } else if (selectedResearchProvider) {
+    nextResearchAction = `Research-Provider ${selectedResearchProvider} ist für den Lane-Pfad verfügbar.`;
+  }
+
+  return {
+    selectedResearchProvider,
+    researchProviderAvailable,
+    availableResearchProviders: availableCandidates.map((entry) => entry.provider),
+    blockedResearchProviders: candidateProviders
+      .filter((entry) => entry.availability !== "available")
+      .map((entry) => ({ provider: entry.provider, reason: entry.reason })),
+    researchCreditRequired,
+    researchCreditSatisfied,
+    researchDisabledReason,
+    standardAnalyzeUnaffected: true,
+    safeToRunStandardAnalyze,
+    safeToRunSealedFactcheck,
+    safeToRunPremiumDeepResearch,
+    nextResearchAction,
+  };
 }
 
 export function defaultLaneForSmokeMode(
@@ -248,29 +324,31 @@ export function resolveOperationalProviderRoutingSummary(params: {
   const primaryAnalyzeProvider = hasStrictOk(openaiRow) ? "openai" : null;
 
   const draftFallbackProviders = policy.draftFallbackCandidates.filter((provider) =>
-    hasDraftFallback(providerMap.get(provider)),
+    provider === "anthropic" || provider === "mistral" ? hasDraftFallback(providerMap.get(provider)) : false,
   );
   const optionalProviders = policy.optionalCandidates.filter((provider) => provider !== "perplexity");
-  const researchProviders = policy.researchCandidates;
-  const blockedProviders = PROVIDER_ROLE_MATRIX.map((entry) => entry.provider).filter((provider) =>
-    isBlocked(providerMap.get(provider as ProviderRoleId)),
+  const researchProviders = policy.researchCandidates
+    .map((provider) => toProviderRoleId(provider))
+    .filter((provider): provider is ProviderRoleId => provider !== null);
+  const blockedProviders = (["openai", "anthropic", "mistral", "gemini", "ari"] as const).filter((provider) =>
+    isBlocked(providerMap.get(provider)),
   );
 
   const baseAnalyzeEligible = Boolean(primaryAnalyzeProvider) || draftFallbackProviders.length > 0;
   const researchRequired = policy.researchRequired;
-  const availableResearchProviders = researchProviders.filter((provider) => researchProviderAvailable(provider));
-  const creditsOk = requiredCreditsAvailable(policy.requiredCredits);
-  const researchEligible = !researchRequired || (availableResearchProviders.length > 0 && creditsOk);
+  const researchDecision = buildResearchDecision({ lane: params.lane, policy });
+  const researchEligible =
+    !researchRequired || (researchDecision.researchProviderAvailable && researchDecision.researchCreditSatisfied);
   const productionEligible = baseAnalyzeEligible && researchEligible;
 
   let nextAction = "Keine Aktion";
   if (!baseAnalyzeEligible) {
     nextAction =
       "OpenAI strict_primary stabilisieren oder Anthropic/Mistral als built_valid/strict fallback herstellen.";
-  } else if (researchRequired && availableResearchProviders.length === 0) {
-    nextAction = "Research-Provider fehlt: Perplexity/ARI Verfügbarkeit und ENV prüfen.";
-  } else if (researchRequired && !creditsOk) {
-    nextAction = "Research-Credits fehlen: search_credit/deep_research_credit Entitlements prüfen.";
+  } else if (researchRequired && !researchDecision.researchProviderAvailable) {
+    nextAction = "Research-Provider fehlt: Perplexity/ARI/OpenAI Deep Research Verfügbarkeit und ENV prüfen.";
+  } else if (researchRequired && !researchDecision.researchCreditSatisfied) {
+    nextAction = "Research-Credits fehlen: search_credit/deep_research_credit oder premium_research_override prüfen.";
   } else if (!primaryAnalyzeProvider && draftFallbackProviders.length > 0) {
     nextAction = "Standard läuft über Draft-Fallback; OpenAI strict_primary weiter härten.";
   }
@@ -284,6 +362,18 @@ export function resolveOperationalProviderRoutingSummary(params: {
     blockedProviders,
     productionEligible,
     researchRequired,
+    selectedResearchProvider: researchDecision.selectedResearchProvider,
+    availableResearchProviders: researchDecision.availableResearchProviders,
+    blockedResearchProviders: researchDecision.blockedResearchProviders,
+    researchProviderAvailable: researchDecision.researchProviderAvailable,
+    researchCreditRequired: researchDecision.researchCreditRequired,
+    researchCreditSatisfied: researchDecision.researchCreditSatisfied,
+    researchDisabledReason: researchDecision.researchDisabledReason,
+    standardAnalyzeUnaffected: researchDecision.standardAnalyzeUnaffected,
+    safeToRunStandardAnalyze: researchDecision.safeToRunStandardAnalyze,
+    safeToRunSealedFactcheck: researchDecision.safeToRunSealedFactcheck,
+    safeToRunPremiumDeepResearch: researchDecision.safeToRunPremiumDeepResearch,
+    nextResearchAction: researchDecision.nextResearchAction,
     nextAction,
   };
 }

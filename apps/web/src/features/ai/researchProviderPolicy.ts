@@ -1,5 +1,8 @@
-export type ResearchProviderId = "perplexity" | "ari";
-export type ResearchProviderRole = "research_discovery" | "deep_research_optional";
+export type ResearchProviderId = "perplexity" | "ari" | "openai_deep_research";
+export type ResearchProviderRole =
+  | "research_discovery"
+  | "deep_research_optional"
+  | "premium_deep_research_fallback";
 
 export type ResearchProviderPolicy = {
   provider: ResearchProviderId;
@@ -43,6 +46,18 @@ export const OPTIONAL_RESEARCH_PROVIDER_POLICIES: readonly ResearchProviderPolic
       "Optional premium deep research provider.",
       "Not a strict AnalyzeResult provider.",
       "Never core orchestrator.",
+    ],
+  },
+  {
+    provider: "openai_deep_research",
+    role: "premium_deep_research_fallback",
+    strictPrimary: false,
+    analyzeProvider: false,
+    coreOrchestrator: false,
+    notes: [
+      "Optional premium deep research fallback provider.",
+      "Separate from normal OpenAI analyze/smoke provider.",
+      "Never default and never standard_analyze fallback.",
     ],
   },
 ];
