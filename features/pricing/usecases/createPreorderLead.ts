@@ -217,6 +217,11 @@ export async function createPreorderLead(
             ? "Additional VoiceOpenGov membership request is marked."
             : "Zusätzlicher VoiceOpenGov-Mitgliedschaftsantrag ist markiert."
           : null,
+        data.membershipRequested && segmentFromPackage !== "privat"
+          ? locale === "en"
+            ? "Membership request does not change package pricing in this segment."
+            : "Mitgliedschaftsantrag verändert den Paketpreis in diesem Segment nicht."
+          : null,
         requiresReview
           ? locale === "en"
             ? "Order is internally reviewed before activation."

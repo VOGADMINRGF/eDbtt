@@ -3,7 +3,6 @@ import PackagesGrid from "@/components/pricing/PackagesGrid";
 import ProductSurfaceShell from "@/components/layout/ProductSurfaceShell";
 import {
   ORDER_SEGMENT_ORDER,
-  buildOrderEntryHref,
   getPackagesForJourneySegment,
   normalizePricingLocale,
   resolvePricingOrderEntrySelection,
@@ -41,6 +40,10 @@ export default async function PricingPage({ searchParams }: PageProps = {}) {
   });
   const selectedSegment = selectedOrderEntry.segmentId;
   const segmentPackages = getPackagesForJourneySegment(selectedSegment, locale);
+  const pricingPackages = segmentPackages.map((pkg) => ({
+    ...pkg,
+    ctaHref: pkg.ctaHref.replace("/order?", "/vormerken?"),
+  }));
   const segmentHref = (segment: PricingSegmentId) =>
     withLocaleHref(`/pricing?segment=${segment}`, locale);
 
@@ -49,14 +52,14 @@ export default async function PricingPage({ searchParams }: PageProps = {}) {
       ? {
           pageKicker: "Pricing",
           heroTitle: "Packages & pricing",
-          heroText: "Choose one of three private packages: Interested, Active or Co-creating.",
+          heroText: "Choose one of four private package paths: Participation Free, Interested, Active or Co-creating.",
           packageCta: "Choose package",
           institutionalCta: "View B2B/B2G conditions",
           initiativeCta: "About the initiative",
           howItWorksCta: "How eDebatte works",
           privateKicker: "Private packages",
           privateTitle: "Private packages for individuals",
-          privateText: "Interested: €0 for members / €3.99 regular · Active: €9.90 · Co-creating: €29.90.",
+          privateText: "Participation Free: €0 · Interested: €3.99 · Active: €9.99 · Co-creating: €29.99.",
           segmentTitle: "Segments",
           segmentLabels: {
             privat: "Individuals",
@@ -65,40 +68,47 @@ export default async function PricingPage({ searchParams }: PageProps = {}) {
             kommunen: "Municipalities",
           } as Record<PricingSegmentId, string>,
           segmentTexts: {
-            privat: "Interested: €0 for members / €3.99 regular · Active: €9.90 · Co-creating: €29.90.",
-            journalismus: "Journalism packages for editorial framing, verification prep and source-based context work.",
-            organisationen: "Organization packages for onboarding, role setup and operational rollout.",
+            privat: "Participation Free: €0 · Interested: €3.99 · Active: €9.99 · Co-creating: €29.99.",
+            journalismus:
+              "Journalism packages with starter quota (3 contributions/1 issue room) or working quota (10 contributions/1 issue room).",
+            organisationen:
+              "Organization packages include a starter quota for small associations plus onboarding, role setup and operational rollout.",
             kommunen: "Municipal packages for participation operations and implementation-ready governance paths.",
           } as Record<PricingSegmentId, string>,
-          orderHintTitle: "Shared package logic with /order",
-          orderHintText:
-            "Pricing and order use the same package model. Preselection is optional and can be changed anytime in /order.",
-          orderHintCta: "Open /order with current segment",
           membershipTitle: "Membership in the initiative",
-          membershipIntro: "As a member of the initiative, package “Interested” is free.",
-          membershipPriceMember: "Member price for “Interested”: €0",
-          membershipPriceRegular: "Regular price for “Interested”: €3.99",
-          membershipPointOne: "Regular price for “Interested” is €3.99.",
-          membershipPointTwo: "The freely chosen membership contribution stays independent from package pricing.",
-          membershipPointThree: "Recommended contribution: €5.63.",
+          membershipIntro:
+            "Membership remains optional. Package pricing and membership contribution are handled separately.",
+          membershipPointOne: "Package prices are identical, regardless of membership request.",
+          membershipPointTwo: "Membership and package activation run as separate, transparent steps.",
+          membershipPointThree: "Recommended membership contribution: €5.63.",
           membershipPointFour:
             "Membership request and contribution amount are finalized via separate email link.",
           membershipPointFive:
             "eDebatte.org and VoiceOpenGov.org can be operated in separate systems with additional security boundaries.",
+          addOnsTitle: "Optional add-ons",
+          addOnsIntro: "Add-ons are optional and can be purchased individually as needed.",
+          addOnsItems: [
+            "Search Credit / Dossier Search: around €10 per credit (single purchase)",
+            "Deep Research Credit: around €20 per credit (single purchase)",
+            "Fact-check quota: from €290 / month",
+            "Moderation and assistance: from €450 / month",
+            "Event support: from €690 per engagement",
+            "Reports and outcomes: from €390 / month",
+          ],
           institutionalHintText:
             "For organizations, municipalities, associations and newsrooms we provide dedicated conditions.",
         }
       : {
           pageKicker: "Pricing",
           heroTitle: "Pakete & Preise",
-          heroText: "Wähle eines von drei Privatpaketen: Interessiert, Aktiv oder Mitgestaltend.",
+          heroText: "Wähle eines von vier privaten Paketwegen: Beteiligung frei, Interessiert, Aktiv oder Mitgestaltend.",
           packageCta: "Paket wählen",
           institutionalCta: "B2B/B2G-Konditionen ansehen",
           initiativeCta: "Zur Initiative",
           howItWorksCta: "So funktioniert eDebatte",
           privateKicker: "Privatpakete",
           privateTitle: "Privatpakete für Einzelpersonen",
-          privateText: "Interessiert: 0 € für Mitglieder / 3,99 € regulär · Aktiv: 9,90 € · Mitgestaltend: 29,90 €.",
+          privateText: "Beteiligung frei: 0 € · Interessiert: 3,99 € · Aktiv: 9,99 € · Mitgestaltend: 29,99 €.",
           segmentTitle: "Segmente",
           segmentLabels: {
             privat: "Einzelpersonen",
@@ -107,26 +117,33 @@ export default async function PricingPage({ searchParams }: PageProps = {}) {
             kommunen: "Kommunen",
           } as Record<PricingSegmentId, string>,
           segmentTexts: {
-            privat: "Interessiert: 0 € für Mitglieder / 3,99 € regulär · Aktiv: 9,90 € · Mitgestaltend: 29,90 €.",
-            journalismus: "Journalistische Pakete für Einordnung, Quellenarbeit und prüfbare Anschlussfähigkeit.",
-            organisationen: "Pakete für Organisationen mit klarer Einführung, Rollenaufbau und Betriebsmodell.",
+            privat: "Beteiligung frei: 0 € · Interessiert: 3,99 € · Aktiv: 9,99 € · Mitgestaltend: 29,99 €.",
+            journalismus:
+              "Journalistische Pakete mit Einstiegskontingent (3 Beiträge/1 Anlassraum) oder Arbeitskontingent (10 Beiträge/1 Anlassraum).",
+            organisationen:
+              "Pakete für Organisationen mit Einstiegskontingent für kleine Vereine plus klarer Einführung, Rollenaufbau und Betriebsmodell.",
             kommunen: "Kommunale Pakete für Beteiligungsbetrieb und umsetzungsfähige Entscheidungsprozesse.",
           } as Record<PricingSegmentId, string>,
-          orderHintTitle: "Gemeinsame Paketlogik mit /order",
-          orderHintText:
-            "Pricing und Order nutzen dieselbe Paketlogik. Eine Vorauswahl ist möglich und in /order jederzeit änderbar.",
-          orderHintCta: "Mit aktuellem Segment in /order starten",
           membershipTitle: "Mitgliedschaft in der Initiative",
-          membershipIntro: "Als Mitglied der Initiative ist das Paket „Interessiert“ kostenfrei.",
-          membershipPriceMember: "Mitgliedspreis für „Interessiert“: 0 €",
-          membershipPriceRegular: "Regulärer Preis für „Interessiert“: 3,99 €",
-          membershipPointOne: "Regulär kostet „Interessiert“ 3,99 €.",
-          membershipPointTwo: "Der frei gewählte Mitgliedsbeitrag bleibt davon unabhängig.",
-          membershipPointThree: "Empfohlen sind 5,63 €.",
+          membershipIntro:
+            "Der Mitgliedschaftsantrag bleibt optional. Paketpreis und Mitgliedsbeitrag werden getrennt behandelt.",
+          membershipPointOne: "Paketpreise bleiben unabhängig vom Mitgliedschaftsantrag gleich.",
+          membershipPointTwo: "Mitgliedschaftsantrag und Paketfreischaltung laufen als getrennte, transparente Schritte.",
+          membershipPointThree: "Empfohlener Mitgliedsbeitrag: 5,63 €.",
           membershipPointFour:
             "Mitgliedsantrag und Beitragshöhe werden separat per E-Mail-Link final bestätigt.",
           membershipPointFive:
             "eDebatte.org und VoiceOpenGov.org können organisatorisch und technisch getrennt geführt werden; zusätzliche Sicherheits- und Trennlogik ist bewusst möglich.",
+          addOnsTitle: "Optionale Add-ons",
+          addOnsIntro: "Add-ons sind optional und können bei Bedarf einzeln hinzugebucht werden.",
+          addOnsItems: [
+            "Search Credit / Dossier Search: ca. 10 € je Credit (einzeln buchbar)",
+            "Deep Research Credit: ca. 20 € je Credit (einzeln buchbar)",
+            "Faktencheck-Kontingent: ab 290 € / Monat",
+            "Moderation und Assistenz: ab 450 € / Monat",
+            "Event-Begleitung: ab 690 € je Einsatz",
+            "Reports und Outcomes: ab 390 € / Monat",
+          ],
           institutionalHintText: "Für Organisationen, Kommunen, Verbände und Redaktionen gibt es gesonderte Konditionen.",
         };
 
@@ -179,32 +196,38 @@ export default async function PricingPage({ searchParams }: PageProps = {}) {
           </div>
         </div>
 
-        <PackagesGrid packages={segmentPackages} locale={locale} compact />
+        {selectedSegment === "privat" ? (
+          <article className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-6 shadow-sm">
+            <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
+              {locale === "en" ? "Participation Free" : "Beteiligung frei"}
+            </p>
+            <h3 className="mt-2 text-2xl font-semibold text-[rgb(var(--fg))]">
+              {locale === "en" ? "eDebatte Participation" : "eDebatte Beteiligung"}
+            </h3>
+            <p className="mt-3 text-sm leading-relaxed text-[rgb(var(--muted))]">
+              {locale === "en"
+                ? "Voting and participation remain free. This path includes no external research credits and no paid drafting quota."
+                : "Abstimmung und Teilnahme bleiben kostenfrei. Dieser Weg enthält keine externen Recherche-Credits und kein bezahltes Entwurfskontingent."}
+            </p>
+            <div className="mt-4">
+              <Link href={withLocaleHref("/register", locale)} className="btn-secondary inline-flex">
+                {locale === "en" ? "Start free participation" : "Kostenfrei teilnehmen"}
+              </Link>
+            </div>
+          </article>
+        ) : null}
 
-        <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm">
-          <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">{labels.orderHintTitle}</p>
-          <p className="mt-2 text-sm text-[rgb(var(--muted))]">{labels.orderHintText}</p>
-          <div className="mt-3">
-            <Link
-              href={buildOrderEntryHref({ segmentId: selectedSegment, locale })}
-              className="btn-secondary inline-flex"
-            >
-              {labels.orderHintCta}
-            </Link>
-          </div>
-        </section>
+        <PackagesGrid packages={pricingPackages} locale={locale} compact />
+
+        <p className="mt-2 text-sm font-semibold text-[rgb(var(--fg))]">
+          {locale === "en"
+            ? "What is included is shown directly in each package card."
+            : "Was enthalten ist, siehst du direkt in jeder Paketkarte."}
+        </p>
 
         <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm sm:p-6">
           <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">{labels.membershipTitle}</p>
           <p className="mt-2 text-sm font-semibold text-[rgb(var(--fg))]">{labels.membershipIntro}</p>
-          <div className="mt-3 grid gap-2 sm:grid-cols-2">
-            <p className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-800">
-              {labels.membershipPriceMember}
-            </p>
-            <p className="rounded-xl border border-sky-200 bg-sky-50 px-3 py-2 text-sm font-semibold text-sky-800">
-              {labels.membershipPriceRegular}
-            </p>
-          </div>
           <ul className="mt-3 space-y-1.5 text-sm text-[rgb(var(--muted))]">
             <li>{labels.membershipPointOne}</li>
             <li>{labels.membershipPointTwo}</li>
@@ -212,6 +235,15 @@ export default async function PricingPage({ searchParams }: PageProps = {}) {
             <li>{labels.membershipPointFour}</li>
             <li>{labels.membershipPointFive}</li>
           </ul>
+          <div className="mt-5 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-4 py-3">
+            <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">{labels.addOnsTitle}</p>
+            <p className="mt-2 text-sm text-[rgb(var(--muted))]">{labels.addOnsIntro}</p>
+            <ul className="mt-2 space-y-1.5 text-sm text-[rgb(var(--muted))]">
+              {labels.addOnsItems.map((item) => (
+                <li key={item}>{item}</li>
+              ))}
+            </ul>
+          </div>
           <div className="mt-4 flex flex-wrap gap-3">
             <Link href={withLocaleHref("/howtoworks/initiative", locale)} className="btn-secondary inline-flex">
               {labels.initiativeCta}

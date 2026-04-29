@@ -3,13 +3,13 @@ import { renderToStaticMarkup } from "react-dom/server";
 import PricingPage from "@/app/pricing/page";
 
 describe("pricing-private-member-price.contract", () => {
-  it("shows private member pricing and initiative contribution guidance on /pricing", async () => {
+  it("shows private package pricing and initiative contribution guidance on /pricing", async () => {
     const html = renderToStaticMarkup(await PricingPage({}));
 
-    expect(html).toContain("0 € für VoiceOpenGov-Mitglieder");
-    expect(html).toContain("3,99 € regulär");
-    expect(html).toContain("9,90 €");
-    expect(html).toContain("29,90 €");
-    expect(html).toContain("Empfohlen sind 5,63 €");
+    expect(html).toContain("Beteiligung frei: 0 €");
+    expect(html).toContain("Interessiert: 3,99 €");
+    expect(html).toContain("9,99 €");
+    expect(html).toContain("29,99 €");
+    expect(html).toContain("Empfohlener Mitgliedsbeitrag: 5,63 €.");
   });
 });

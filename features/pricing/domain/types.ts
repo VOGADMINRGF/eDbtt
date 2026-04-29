@@ -50,6 +50,12 @@ export type EDebattePackageDefinition = {
   ctaHref: string;
   sekundarCtaText?: string;
   sekundarCtaHref?: string;
+  contributionCreditsPerMonth: number;
+  anlassraumCredits: number;
+  searchCredits: number;
+  deepResearchCredits: number;
+  dossierBoostEligible: boolean;
+  premiumResearchEligible: boolean;
 };
 
 export type CreatePreorderLeadInput = {

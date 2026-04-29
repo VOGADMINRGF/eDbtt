@@ -7,23 +7,23 @@ describe("pricing private package prices contract", () => {
     const html = renderToStaticMarkup(await PricingPage({}));
 
     expect(html).toContain("eDebatte Interessiert");
-    expect(html).toContain("0 € für VoiceOpenGov-Mitglieder");
-    expect(html).toContain("3,99 € regulär");
+    expect(html).toContain("Beteiligung frei: 0 €");
+    expect(html).toContain("Interessiert: 3,99 €");
     expect(html).toContain("eDebatte Aktiv");
-    expect(html).toContain("9,90 €");
+    expect(html).toContain("9,99 €");
     expect(html).toContain("eDebatte Mitgestaltend");
-    expect(html).toContain("29,90 €");
+    expect(html).toContain("29,99 €");
   });
 
   it("shows the final private price logic in EN", async () => {
     const html = renderToStaticMarkup(await PricingPage({ searchParams: { lang: "en" } }));
 
     expect(html).toContain("eDebatte Interested");
-    expect(html).toContain("€0 for VoiceOpenGov members");
-    expect(html).toContain("€3.99 regular");
+    expect(html).toContain("Participation Free: €0");
+    expect(html).toContain("Interested: €3.99");
     expect(html).toContain("eDebatte Active");
-    expect(html).toContain("€9.90");
+    expect(html).toContain("€9.99");
     expect(html).toContain("eDebatte Co-creating");
-    expect(html).toContain("€29.90");
+    expect(html).toContain("€29.99");
   });
 });

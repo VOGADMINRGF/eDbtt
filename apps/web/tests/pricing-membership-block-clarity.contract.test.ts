@@ -6,14 +6,12 @@ describe("pricing-membership-block-clarity.contract", () => {
   it("explains membership clearly and compactly", async () => {
     const html = renderToStaticMarkup(await PricingPage({}));
 
-    expect(html).toContain("Als Mitglied der Initiative ist das Paket „Interessiert“ kostenfrei.");
-    expect(html).toContain("Regulär kostet „Interessiert“ 3,99 €.");
-    expect(html).toContain("Der frei gewählte Mitgliedsbeitrag bleibt davon unabhängig.");
-    expect(html).toContain("Empfohlen sind 5,63 €.");
+    expect(html).toContain("Der Mitgliedschaftsantrag bleibt optional. Paketpreis und Mitgliedsbeitrag werden getrennt behandelt.");
+    expect(html).toContain("Paketpreise bleiben unabhängig vom Mitgliedschaftsantrag gleich.");
+    expect(html).toContain("Empfohlener Mitgliedsbeitrag: 5,63 €.");
     expect(html).toContain("separat per E-Mail-Link final bestätigt");
     expect(html).toContain("zusätzliche Sicherheits- und Trennlogik ist bewusst möglich");
-    expect(html).toContain("Mitgliedspreis für „Interessiert“: 0 €");
-    expect(html).toContain("Regulärer Preis für „Interessiert“: 3,99 €");
-    expect(html).toContain('href="/mitglied-werden"');
+    expect(html).toContain("Add-ons sind optional und können bei Bedarf einzeln hinzugebucht werden.");
+    expect(html).toContain("Search Credit / Dossier Search: ca. 10 € je Credit (einzeln buchbar)");
   });
 });

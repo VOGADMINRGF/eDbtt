@@ -54,7 +54,51 @@ Fuer die oeffentliche Produktdarstellung gilt verbindlich:
 - B2B/B2G-Konditionen sind bewusst auf `/pricing/institutionen` ausgelagert, damit `/pricing` eine klare B2C-Entscheidungsseite bleibt.
 - Keine user-facing internen Tier-Begriffe oder technisches Mapping-Wording
 
-### 2.3 Bestellbarkeit + interne Steuerbarkeit
+### 2.3 Research-Credit Alignment (Issue #64, 2026-04-29)
+
+Verbindliche Privatpreis- und Credit-Zielwelt:
+
+- `0 EUR`:
+  - Voting/Participation bleibt frei.
+  - Keine externen Research-Credits enthalten.
+- `3,99 EUR` (`eDebatte Interessiert`):
+  - 1 Contribution pro Monat.
+  - Keine externen Search-/Deep-Research-Credits enthalten.
+- `9,99 EUR` (`eDebatte Aktiv`):
+  - 3 Contributions pro Monat.
+  - 1 Anlassraum-Credit.
+  - Kein automatischer externer Search-Call.
+- `29,99 EUR` (`eDebatte Mitgestaltend`):
+  - 10 Contributions pro Monat.
+  - 1 Anlassraum-Credit.
+  - 1 Entwicklungsthema.
+  - Optional 1 Perplexity Search Credit, sobald Provider-/Kosten-Policy aktiv ist.
+  - Kein ARI Deep Research inklusive.
+
+Segment-Kontingente (ohne automatische Membership-Rabattlogik):
+
+- Journalismus:
+  - Fokus: `Starter-Kontingent` (3 Contributions/Monat + 1 Anlassraum) oder `Arbeitskontingent` (10 Contributions/Monat + 1 Anlassraum).
+- Kleine Vereine (Organization Activation):
+  - `Starter-Kontingent` (3 Contributions/Monat + 1 Anlassraum) als Einstiegspfad.
+- Membership bleibt optionaler Antrag in allen Segmenten, erzeugt aber außerhalb des privaten Basispakets keinen automatischen Paketrabatt.
+
+Add-on-Rahmen (orientierend, explizit optional):
+
+- Search Credit / Dossier Search: rund `10 EUR`.
+- Deep Research Credit / Premium Research: rund `20 EUR`.
+- ARI Premium Deep Research bleibt optionales Premium-Add-on und wird erst nach Kostenvalidierung produktisch geschaltet.
+
+Guardrails:
+
+- Contributions sind nicht gleich externer Search.
+- Anlassraum ist nicht gleich Deep Research.
+- Dossier ist nicht automatisch ARI.
+- Keine unbegrenzte externe Research-Nutzung in günstigen Paketen.
+- Unbekannte Providerkosten bleiben `unknown`/`n/a` (`costKnown=false`) und werden nie als `0 EUR` dargestellt.
+- Standard Analyze bleibt ohne Perplexity und ohne ARI lauffähig.
+
+### 2.4 Bestellbarkeit + interne Steuerbarkeit
 
 - Privatpakete: direkt bestellbar (low friction).
 - Journalismus/Organisationen/Kommunen: direkt bestellbar ueber den Shoppfad (`/pricing/institutionen` -> `/order`), bei internem Review weiterhin admin-pruefbar.
@@ -76,7 +120,7 @@ Order-Statusmodell (minimal, anschlussfaehig fuer Billing):
 
 Damit bleibt die Public Journey einfach, waehrend intern Freigabe-/Anpassungslogik vorbereitet ist.
 
-### 2.4 Bilingual Pricing Contract (DE/EN)
+### 2.5 Bilingual Pricing Contract (DE/EN)
 
 - Pricing-/Order-/Add-on-Flows werden aus einer gemeinsamen SSOT gespeist; Sprache aendert Darstellung, nicht Logik.
 - Bilingual abgesicherte Kernflaechen:
@@ -92,7 +136,7 @@ Damit bleibt die Public Journey einfach, waehrend intern Freigabe-/Anpassungslog
 - Kern-CTA-Links auf `/pricing`, `/order` und `/pricing/institutionen` erhalten `lang=en` konsistent in EN-Ansicht.
 - EN darf keine staerkere Verfuegbarkeit behaupten als DE (kein semantisches Over-Promise).
 
-### 2.5 Endzustandsregel (Final Closure)
+### 2.6 Endzustandsregel (Final Closure)
 
 Fuer oeffentliche Produktflaechen gilt verbindlich:
 
@@ -102,7 +146,7 @@ Fuer oeffentliche Produktflaechen gilt verbindlich:
 
 Keine Zwischenzusagen im Kernprodukt.
 
-### 2.6 Trust-/Legitimations-Loop (DE/EN, SSOT-gebunden)
+### 2.7 Trust-/Legitimations-Loop (DE/EN, SSOT-gebunden)
 
 Der Pricing-/Membership-/Registry-Umfang fuehrt einen zentralen Trust-Contract:
 

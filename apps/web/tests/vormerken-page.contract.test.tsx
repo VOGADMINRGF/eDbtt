@@ -33,10 +33,10 @@ describe("/vormerken package-start flow", () => {
     expect(html).toContain("eDebatte Interessiert");
     expect(html).toContain("eDebatte Aktiv");
     expect(html).toContain("eDebatte Mitgestaltend");
-    expect(html).toContain("0 € für VoiceOpenGov-Mitglieder");
-    expect(html).toContain("3,99 € regulär");
-    expect(html).toContain("9,90 €");
-    expect(html).toContain("29,90 €");
+    expect(html).toContain("Beteiligung frei: 0 €");
+    expect(html).toContain("Interessiert: 3,99 €");
+    expect(html).toContain("9,99 €");
+    expect(html).toContain("29,99 €");
     expect(html).not.toContain("eDebatte Basis");
     expect(html).not.toContain("eDebatte Start");
     expect(html).not.toContain("eDebatte Pro");
@@ -69,5 +69,14 @@ describe("/vormerken package-start flow", () => {
 
     expect(html).toContain("Ich möchte zusätzlich die VoiceOpenGov-Mitgliedschaft beantragen.");
     expect(html).toContain("Mitgliedschaft und Paketfreischaltung werden getrennt geführt.");
+  });
+
+  it("keeps membership optional without discount in journalism segment", () => {
+    setSearch("segment=journalismus");
+    const html = renderToStaticMarkup(<VormerkenPage />);
+
+    expect(html).toContain("Ich möchte zusätzlich die VoiceOpenGov-Mitgliedschaft beantragen.");
+    expect(html).toContain("Mitgliedsantrag keinen Paketrabatt");
+    expect(html).toContain("Journalistische Pakete mit Einstiegskontingent (3 Beiträge/1 Anlassraum)");
   });
 });
