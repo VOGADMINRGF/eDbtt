@@ -29,6 +29,14 @@ type ProviderDiagnostic = {
   durationMs: number | null;
   tokensIn: number | null;
   tokensOut: number | null;
+  estimatedCostUsd?: number | null;
+  estimatedCostEur?: number | null;
+  costKnown?: boolean;
+  pricingSource?: string | null;
+  costReason?: string | null;
+  runCostGroup?: string | null;
+  smokeMode?: string | null;
+  budgetProfile?: string | null;
   fallbackUsed: boolean | null;
   fallbackReason: string | null;
   journeyDecision: string;
@@ -158,6 +166,13 @@ function formatTokens(row: ProviderDiagnostic): string {
     return `${row.tokensIn ?? 0}/${row.tokensOut ?? 0}`;
   }
   return "n/a";
+}
+
+function formatEstimatedCost(row: ProviderDiagnostic): string {
+  if (row.costKnown !== true) return "n/a";
+  const eur = typeof row.estimatedCostEur === "number" ? row.estimatedCostEur.toFixed(6) : "n/a";
+  const usd = typeof row.estimatedCostUsd === "number" ? row.estimatedCostUsd.toFixed(6) : "n/a";
+  return `EUR ${eur} · USD ${usd}`;
 }
 
 function compactReason(row: ProviderDiagnostic): string {
@@ -613,6 +628,7 @@ export default function OrchestratorTelemetryPage() {
                                         <div>mode={formatModeLabel(row.mode)} · stage=direct_provider_contract · finalContractStatus={row.finalContractStatus}</div>
                                         <div>nativeStrategy={row.nativeStrategy} · providerStrategy={row.providerStrategy} · preferredContractStrategy={row.preferredContractStrategy} · fallbackStrategy={row.fallbackStrategy}</div>
                                         <div>model={row.model ?? "unknown"} · timeoutMs={row.timeoutMs ?? "n/a"} · maxOutputTokens={row.maxOutputTokens ?? "n/a"}</div>
+                                        <div>smokeMode={row.smokeMode ?? "n/a"} · budgetProfile={row.budgetProfile ?? "n/a"} · runCostGroup={row.runCostGroup ?? "n/a"} · estimatedCost={formatEstimatedCost(row)}</div>
                                         <div>selectedSmokeModel={row.selectedSmokeModel ?? "n/a"} · smokeModelEnvPresent={typeof row.smokeModelEnvPresent === "boolean" ? String(row.smokeModelEnvPresent) : "n/a"} · effectiveModel={row.effectiveModel ?? "n/a"} · openAiSmokeModelMismatch={String(row.openAiSmokeModelMismatch ?? false)}</div>
                                         <div>strictStatus={row.strictStatus} · strictProviderCode={row.strictProviderErrorCode ?? "none"} · strictSchemaPath={row.strictSchemaPath ?? "none"}</div>
                                         <div>directStrictStatus={row.directStrictStatus} · draftStatus={row.draftStatus} · envelopeBuildStatus={row.envelopeBuildStatus} · finalSchemaStatus={row.finalSchemaStatus}</div>
