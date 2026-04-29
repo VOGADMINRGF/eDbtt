@@ -22,6 +22,54 @@ Es gilt fuer:
 - Das fruehere lineare 11-Stufen-Modell bleibt als technische Unterpipeline/KI-Verarbeitungssicht wertvoll.
 - Die kanonische Produktsicht ist das 5-Orchester-Modell in diesem Dokument.
 
+## Binding Architecture Decision: Graph-guided Policy Orchestration Authority (#58)
+
+Diese Entscheidung ist verbindlich:
+- eDebatte nutzt **graph-guided policy orchestration**.
+- eDebatte nutzt **nicht** ARI als Kern-Orchestrator.
+- eDebatte nutzt **nicht** eine graph-only Orchestrierung ohne deterministische Policy-Engine.
+
+### Rollenmodell der Autoritaet
+
+- Graph:
+  Liefert Knowledge, Context, State, Zustaendigkeiten, Dossier-Verbindungen, aehnliche Claims, Akteure, Eventualities und Mandatsbezug.
+- Orchestrator / Policy Engine:
+  Entscheidet Lane, Provider, Research-Pfad, Cost-/Credit-Regel, Fallback und Publishability.
+- Providers:
+  Sind Werkzeuge mit klaren Rollen, nicht Kontrollzentrum.
+- Validator / Quality Gate:
+  Validiert Schema, Qualitaet und Nutzbarkeit.
+- Admin Policy:
+  Steuert Provider-Verfuegbarkeit, Kostenbudgets, Research-Gates und Entitlements.
+
+### Verbindliche Architekturregeln
+
+- ARI darf nie Core-Orchestrator sein.
+- ARI ist optional nur fuer `premium_deep_research`.
+- Perplexity ist optional nur fuer Search-/Research-Discovery.
+- Standard-Analyze darf nie Perplexity oder ARI voraussetzen.
+- Der Graph liefert Kontext/Regeln, waehlt aber Provider nicht frei selbst.
+- Der Orchestrator bleibt deterministischer, auditierbarer Code.
+- `AnalyzeResultSchema` bleibt final SSOT.
+- Kein Implementierungspfad darf ARI, Perplexity oder den Graph allein als Orchestrator etablieren.
+
+### Verbindliches Lane-Modell
+
+- `fast_draft`
+- `standard_analyze`
+- `dossier_enrichment`
+- `sealed_factcheck`
+- `premium_deep_research`
+
+### Abhaengige Umsetzungsslices (verbindlich verknuepft)
+
+- #48 Provider Role Routing:
+  Muss Rollen so durchsetzen, dass Provider Werkzeuge bleiben und die Policy-Engine die Autoritaet behaelt.
+- #49 Research Provider Abstraction:
+  Muss Research-Tools abstrahieren, ohne das Kontrollzentrum zu werden.
+- #55 Perplexity/Cheap-Smoke/Research-Credits:
+  Muss Cost-/Credit-Optimierung liefern, ohne neue Core-Abhaengigkeit auf Perplexity oder ARI.
+
 ## Dokumentabgrenzung (harmonisiert 2026-03-26)
 
 - Kanonischer Gesamtfluss: `docs/E150/Part16.md`
