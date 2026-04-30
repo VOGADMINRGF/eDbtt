@@ -16,7 +16,7 @@ describe("/pricing/institutionen guided flow contract", () => {
     expect(html).toContain("1. Wer seid ihr?");
     expect(html).toContain("2. Was steht im Vordergrund?");
     expect(html).toContain("3. Wie sieht euer Einsatzrahmen aus?");
-    expect(html).toContain("Organisation / Verband / Verein");
+    expect(html).toContain("Beteiligungsbüro / Agentur / Organisation");
     expect(html).toContain("Kommune / Verwaltung / Landkreis");
   });
 

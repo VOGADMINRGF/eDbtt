@@ -66,7 +66,8 @@ const VORMERKEN_LABELS = {
     } as Record<PricingSegmentId, string>,
     packageSectionTitle: "Paketauswahl",
     packageSectionText: {
-      privat: "Beteiligung frei: 0 € · Interessiert: 3,99 € · Aktiv: 9,99 € · Mitgestaltend: 29,99 €",
+      privat:
+        "Beteiligung frei: 0 € · Interessiert: 4,99 € mtl. inkl. MwSt. · Aktiv: 14,99 € mtl. inkl. MwSt. · Mitgestaltend: 29,99 € mtl. inkl. MwSt.",
       journalismus: "Journalistische Pakete mit Einstiegskontingent (3 Beiträge/1 Anlassraum) oder Arbeitskontingent (10 Beiträge/1 Anlassraum).",
       organisationen: "Organisationen wählen zwischen Aktivierung und Betrieb Plus.",
       kommunen: "Kommunen wählen zwischen Aktivierung und Betrieb Plus mit kommunalem Betriebsrahmen.",
@@ -202,7 +203,8 @@ const VORMERKEN_LABELS = {
     } as Record<PricingSegmentId, string>,
     packageSectionTitle: "Package selection",
     packageSectionText: {
-      privat: "Participation Free: €0 · Interested: €3.99 · Active: €9.99 · Co-creating: €29.99",
+      privat:
+        "Participation Free: €0 · Interested: €4.99/month incl. VAT · Active: €14.99/month incl. VAT · Co-creating: €29.99/month incl. VAT",
       journalismus: "Journalism packages with starter quota (3 contributions/1 issue room) or working quota (10 contributions/1 issue room).",
       organisationen: "Organizations choose between activation and operations plus.",
       kommunen: "Municipalities choose between activation and operations plus in municipal operating mode.",
