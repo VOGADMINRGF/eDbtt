@@ -61,6 +61,23 @@ CTAs unterscheiden explizit:
 - Die eigentliche kommunale Auswahl (Bedarf, Rahmen, Leistungslogik) bleibt auf:
   - `/pricing/institutionen?segment=kommunen#guided-selection`
 
+## UI-Hierarchie im B2G-Konfigurator
+
+Auf `/pricing/institutionen?segment=kommunen` ist die Reihenfolge kanonisch:
+
+1. Hero / institutionelle Konditionen
+2. Segment-Unterscheidung B2G vs B2B
+3. Guided Selection
+4. Kommunale Einordnung
+5. Vergabe- & Ausschreibungspakete (fachlich primär)
+6. Empfohlener Betriebs- und Preisrahmen (sekundär)
+7. Add-ons / Kontakt / Hinweise
+
+Wichtig:
+
+- Die vier B2G-Stufen sind die **fachliche Hauptentscheidung**.
+- Der Betriebs-/Preisrahmen ergänzt diese Entscheidung und ersetzt sie nicht.
+
 ## Vergabe-/Ausschreibungsabgrenzung
 
 B2G-Texte sind als Orientierungs- und Vorbereitungssprache formuliert:
