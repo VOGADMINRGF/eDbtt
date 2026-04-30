@@ -116,6 +116,19 @@ type PageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>> | Record<string, string | string[] | undefined>;
 };
 
+type MunicipalTenderCard = {
+  id: "beteiligungs_check" | "dossier_runde" | "betrieb_kommune" | "vergabe_rahmenvertrag";
+  name: string;
+  purpose: string;
+  typicalUseCases: readonly string[];
+  services: readonly string[];
+  deliverable: string;
+  orderability: string;
+  procurementHint: string;
+  ctaLabel: string;
+  href: string;
+};
+
 function firstString(value?: string | string[]) {
   if (typeof value === "string") return value;
   if (Array.isArray(value)) return value[0];
@@ -168,6 +181,227 @@ function buildVormerkenHref(args: {
   if (args.completion) params.set("completion", args.completion);
   if (args.locale === "en") params.set("lang", "en");
   return `/order?${params.toString()}`;
+}
+
+function buildMunicipalTenderCards(args: {
+  locale: PricingLocale;
+  goal: string;
+  frame: string;
+}): readonly MunicipalTenderCard[] {
+  const card1Href = buildVormerkenHref({
+    locale: args.locale,
+    segment: "kommunen",
+    packageId: "b2g_basis",
+    goal: args.goal,
+    frame: args.frame,
+    completion: "direct_order",
+    addOnIds: ["reports_outcomes"],
+  });
+  const card2Href = buildVormerkenHref({
+    locale: args.locale,
+    segment: "kommunen",
+    packageId: "b2g_basis",
+    goal: args.goal,
+    frame: args.frame,
+    completion: "quote_request",
+    addOnIds: ["reports_outcomes", "companion_kommunikation"],
+    quote: true,
+  });
+  const card3Href = buildVormerkenHref({
+    locale: args.locale,
+    segment: "kommunen",
+    packageId: "b2g_pro",
+    goal: args.goal,
+    frame: args.frame,
+    completion: "conversation_request",
+    addOnIds: ["managed_governance", "reports_outcomes", "moderation_assistenz"],
+  });
+  const card4Href = buildVormerkenHref({
+    locale: args.locale,
+    segment: "kommunen",
+    packageId: "b2g_pro",
+    goal: args.goal,
+    frame: args.frame,
+    completion: "quote_request",
+    addOnIds: ["managed_governance", "reports_outcomes", "faktencheck_kontingent"],
+    quote: true,
+  });
+
+  if (args.locale === "en") {
+    return [
+      {
+        id: "beteiligungs_check",
+        name: "Participation Check",
+        purpose: "Early-stage pre-check for municipalities and public buyers.",
+        typicalUseCases: [
+          "Topic scoping before public launch",
+          "Pre-briefing for administration and committees",
+          "Pilot assessment before procurement escalation",
+        ],
+        services: [
+          "Classify topic and trigger context",
+          "Check source landscape and open issues",
+          "Assess participation readiness",
+          "Recommend suitable next format",
+        ],
+        deliverable: "Participation check memo with next-step recommendation and pilot scope.",
+        orderability: "Cost estimate possible · directly reservable",
+        procurementHint: "Suitable as pilot package and preparatory service package.",
+        ctaLabel: "Reserve pilot",
+        href: card1Href,
+      },
+      {
+        id: "dossier_runde",
+        name: "Dossier & Participation Round",
+        purpose: "For one concrete municipal topic with public feedback loop.",
+        typicalUseCases: [
+          "District-level issue discussions",
+          "Topic-focused feedback rounds",
+          "Project-specific pilot participation",
+        ],
+        services: [
+          "Dossier with source and position structure",
+          "Options/eventualities and participation question",
+          "QR/link access and response channel",
+          "Result overview and result documentation",
+        ],
+        deliverable: "Topic dossier plus documented participation round with outcome summary.",
+        orderability: "Orderable with follow-up questions · pilot package suitable",
+        procurementHint: "Cost estimate and service description request available.",
+        ctaLabel: "Request cost estimate",
+        href: card2Href,
+      },
+      {
+        id: "betrieb_kommune",
+        name: "Municipal Participation Operations",
+        purpose: "For recurring participation across multiple topics.",
+        typicalUseCases: [
+          "Recurring participation operations",
+          "Cross-department participation coordination",
+          "Continuous reporting to administration and councils",
+        ],
+        services: [
+          "Multiple topics/dossiers/rounds",
+          "Role and rights concept",
+          "Admin access, templates and status logic",
+          "Regular reports and outcomes",
+        ],
+        deliverable: "Operational participation framework with reusable templates and reporting cadence.",
+        orderability: "Offer after clarification",
+        procurementHint: "Framework-agreement suitable.",
+        ctaLabel: "Request conversation",
+        href: card3Href,
+      },
+      {
+        id: "vergabe_rahmenvertrag",
+        name: "Procurement / Framework Package",
+        purpose: "For formal tender preparation and framework agreement setup.",
+        typicalUseCases: [
+          "Preparation of procurement documents",
+          "Service package and lot structure definition",
+          "Structured support for follow-up operations",
+        ],
+        services: [
+          "Service description draft package",
+          "Optional lot structure",
+          "Data protection / security appendix draft",
+          "Support, acceptance and documentation logic",
+        ],
+        deliverable: "Procurement-oriented service description draft with annex structure and acceptance logic.",
+        orderability: "Only after clarification",
+        procurementHint: "Orientation only: no legal procurement advice.",
+        ctaLabel: "Request service description",
+        href: card4Href,
+      },
+    ] as const;
+  }
+
+  return [
+    {
+      id: "beteiligungs_check",
+      name: "Beteiligungs-Check",
+      purpose: "Frühe Vorprüfung für Kommunen, Verwaltungen und öffentliche Auftraggeber.",
+      typicalUseCases: [
+        "Thema vor öffentlichem Start einordnen",
+        "Vorbereitung für Verwaltung und Gremien",
+        "Pilotprüfung vor weiterer Vergabetiefe",
+      ],
+      services: [
+        "Thema und Anlass einordnen",
+        "Quellenlage und offene Fragen prüfen",
+        "Beteiligungsreife bewerten",
+        "Empfehlung für Format und nächsten Schritt",
+      ],
+      deliverable: "Kurzbericht zur Beteiligungsreife mit nächstem Schritt und Pilotrahmen.",
+      orderability: "Kostenvoranschlag möglich · direkt vormerkbar",
+      procurementHint: "Als Pilotpaket und vorbereitender Leistungsbaustein geeignet.",
+      ctaLabel: "Pilot vormerken",
+      href: card1Href,
+    },
+    {
+      id: "dossier_runde",
+      name: "Dossier & Beteiligungsrunde",
+      purpose: "Für ein konkretes kommunales Thema mit nachvollziehbarer Rückmeldung.",
+      typicalUseCases: [
+        "Stadtteil- und Projektthemen",
+        "Beteiligungsrunde zu klarer Fragestellung",
+        "Pilotpaket mit dokumentierter Ergebnislage",
+      ],
+      services: [
+        "Dossier mit Quellen- und Positionenstruktur",
+        "Optionen/Eventualitäten und Beteiligungsfrage",
+        "QR-/Link-Zugang und Rückmeldekanal",
+        "Ergebnisübersicht und Ergebnisdokumentation",
+      ],
+      deliverable: "Themenbezogenes Dossier plus dokumentierte Beteiligungsrunde mit Ergebnissicht.",
+      orderability: "Mit Rückfragen bestellbar · als Pilotpaket geeignet",
+      procurementHint: "Kostenvoranschlag und Leistungsbeschreibung anforderbar.",
+      ctaLabel: "Kostenvoranschlag anfordern",
+      href: card2Href,
+    },
+    {
+      id: "betrieb_kommune",
+      name: "Beteiligungsbetrieb Kommune",
+      purpose: "Für wiederkehrende Beteiligung über mehrere Themen hinweg.",
+      typicalUseCases: [
+        "Regelbetrieb mit mehreren Beteiligungsanlässen",
+        "Koordination über Fachbereiche",
+        "Regelmäßige Berichte für Verwaltung und Gremien",
+      ],
+      services: [
+        "Mehrere Themen, Dossiers und Runden",
+        "Rollen- und Rechtekonzept",
+        "Adminzugang, Vorlagen und Statuslogik",
+        "Regelmäßige Reports und Outcomes",
+      ],
+      deliverable: "Beteiligungsbetriebsrahmen mit wiederverwendbaren Vorlagen und Report-Taktung.",
+      orderability: "Angebot nach Klärung",
+      procurementHint: "Rahmenvertrag geeignet.",
+      ctaLabel: "Gespräch anfragen",
+      href: card3Href,
+    },
+    {
+      id: "vergabe_rahmenvertrag",
+      name: "Rahmenvertrag / Vergabepaket",
+      purpose: "Für formale Ausschreibungsvorbereitung und Rahmenvertrag.",
+      typicalUseCases: [
+        "Vorbereitung von Ausschreibungsunterlagen",
+        "Leistungsbausteine und Losstruktur abstimmen",
+        "Betriebs- und Supportrahmen vorbereiten",
+      ],
+      services: [
+        "Leistungsbeschreibung als Entwurfs-/Anforderungspaket",
+        "Optionale Losstruktur",
+        "Datenschutz-/Sicherheitsanhang als Entwurf",
+        "Support-, Abnahme- und Dokumentationslogik",
+      ],
+      deliverable: "Vergabeorientierter Leistungsbeschreibung-Entwurf mit Anhangsstruktur und Abnahmelogik.",
+      orderability: "Nur nach Klärung",
+      procurementHint: "Vergabehinweis zur Orientierung, keine Rechtsberatung.",
+      ctaLabel: "Leistungsbeschreibung anfordern",
+      href: card4Href,
+    },
+  ] as const;
 }
 
 export default async function InstitutionalPricingPage({ searchParams }: PageProps = {}) {
@@ -286,6 +520,40 @@ export default async function InstitutionalPricingPage({ searchParams }: PagePro
   const teamContactHref = withLocaleHref("/kontakt?channel=team", locale);
   const phoneContactHref = withLocaleHref("/kontakt?channel=phone", locale);
   const teamsHref = "https://teams.microsoft.com/l/chat/0/0?users=sales@edebatte.org";
+  const municipalTenderCards =
+    segment === "kommunen"
+      ? buildMunicipalTenderCards({
+          locale,
+          goal: selectedGoal,
+          frame: selectedFrame,
+        })
+      : [];
+  const municipalAddOnCatalog =
+    locale === "en"
+      ? [
+          "Dossier Search / Search Credit",
+          "Deep Research Credit",
+          "Fact-check quota",
+          "Moderation & assistance",
+          "Event support",
+          "Reports & outcomes",
+          "QR / print package",
+          "Training / role setup",
+          "Data protection / security appendix",
+          "Procurement / service-description draft package",
+        ]
+      : [
+          "Dossier Search / Search Credit",
+          "Deep Research Credit",
+          "Faktencheck-Kontingent",
+          "Moderation & Assistenz",
+          "Event-Begleitung",
+          "Reports & Outcomes",
+          "QR-/Printpaket",
+          "Schulung / Rollen-Setup",
+          "Datenschutz-/Sicherheitsanhang",
+          "Vergabe-/Leistungsbeschreibungspaket als Entwurf",
+        ];
 
   return (
     <ProductSurfaceShell>
@@ -454,6 +722,98 @@ export default async function InstitutionalPricingPage({ searchParams }: PagePro
           </div>
         </div>
       </section>
+
+      {segment === "kommunen" ? (
+        <section className="mt-8 rounded-3xl border border-amber-200 bg-amber-50/60 p-6 shadow-sm">
+          <p className="text-xs font-semibold uppercase tracking-wide text-amber-900">
+            {locale === "en" ? "Procurement-ready service packages" : "Vergabe- & Ausschreibungspakete"}
+          </p>
+          <p className="mt-2 text-sm leading-relaxed text-amber-900/90">
+            {locale === "en"
+              ? "Municipal B2G flow: public buyers can evaluate pilot, dossier round, operations and framework depth as service packages."
+              : "Kommunaler B2G-Modus: öffentliche Auftraggeber sehen Pilot, Dossier-Runde, Beteiligungsbetrieb und Vergabepaket als Leistungsbausteine."}
+          </p>
+          <div className="mt-4 grid gap-4 lg:grid-cols-2">
+            {municipalTenderCards.map((entry) => (
+              <article key={entry.id} className="rounded-2xl border border-amber-200 bg-white p-4 text-sm shadow-sm">
+                <h3 className="text-lg font-semibold text-[rgb(var(--fg))]">{entry.name}</h3>
+                <p className="mt-1 text-[rgb(var(--muted))]">{entry.purpose}</p>
+                <p className="mt-3 text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
+                  {locale === "en" ? "Typical use cases" : "Typische Einsatzfälle"}
+                </p>
+                <ul className="mt-1 list-disc space-y-1 pl-5 text-[rgb(var(--muted))]">
+                  {entry.typicalUseCases.map((line) => (
+                    <li key={line}>{line}</li>
+                  ))}
+                </ul>
+                <p className="mt-3 text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
+                  {locale === "en" ? "Included services" : "Enthaltene Leistungen"}
+                </p>
+                <ul className="mt-1 list-disc space-y-1 pl-5 text-[rgb(var(--muted))]">
+                  {entry.services.map((line) => (
+                    <li key={line}>{line}</li>
+                  ))}
+                </ul>
+                <p className="mt-3 text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
+                  {locale === "en" ? "Result / deliverable" : "Ergebnis / Deliverable"}
+                </p>
+                <p className="mt-1 text-[rgb(var(--muted))]">{entry.deliverable}</p>
+                <p className="mt-3 text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
+                  {locale === "en" ? "Orderability" : "Bestellbarkeit"}
+                </p>
+                <p className="mt-1 text-[rgb(var(--muted))]">{entry.orderability}</p>
+                <p className="mt-3 text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
+                  {locale === "en" ? "Procurement note" : "Vergabehinweis"}
+                </p>
+                <p className="mt-1 text-[rgb(var(--muted))]">{entry.procurementHint}</p>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <Link href={entry.href} className="btn-secondary">
+                    {entry.ctaLabel}
+                  </Link>
+                  {entry.id === "vergabe_rahmenvertrag" ? (
+                    <Link
+                      href={buildVormerkenHref({
+                        locale,
+                        segment: "kommunen",
+                        packageId: "b2g_pro",
+                        goal: selectedGoal,
+                        frame: selectedFrame,
+                        completion: "conversation_request",
+                        addOnIds: ["managed_governance"],
+                      })}
+                      className="inline-flex items-center rounded-full px-3 py-2 text-xs font-semibold text-[rgb(var(--muted))] underline-offset-2 hover:underline"
+                    >
+                      {locale === "en" ? "Check procurement package" : "Vergabepaket prüfen"}
+                    </Link>
+                  ) : null}
+                </div>
+              </article>
+            ))}
+          </div>
+          <div className="mt-5 rounded-2xl border border-amber-200 bg-white p-4 text-sm">
+            <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
+              {locale === "en" ? "Typical municipal add-ons" : "Typische kommunale Add-ons"}
+            </p>
+            <ul className="mt-2 grid gap-1 text-[rgb(var(--muted))] sm:grid-cols-2">
+              {municipalAddOnCatalog.map((line) => (
+                <li key={line}>{line}</li>
+              ))}
+            </ul>
+          </div>
+          <div className="mt-5 rounded-2xl border border-amber-200 bg-white p-4 text-sm text-[rgb(var(--muted))]">
+            <p>
+              {locale === "en"
+                ? "Procurement note: this is orientation support and a service-description draft package, not legal advice and not an automated public tender."
+                : "Vergabehinweis: Das ist eine Orientierung und ein Leistungsbeschreibung-Entwurf, keine Rechtsberatung und keine automatische Ausschreibung."}
+            </p>
+            <p className="mt-2">
+              {locale === "en"
+                ? "eDebatte supports preparation, execution, documentation and continuity. It does not replace formal statutory participation obligations."
+                : "eDebatte unterstützt Vorbereitung, Durchführung, Dokumentation und Anschlussfähigkeit. Es ersetzt keine formelle gesetzliche Beteiligungspflicht."}
+            </p>
+          </div>
+        </section>
+      ) : null}
 
       <section className="mt-8 rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-6 shadow-sm">
         <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">{text.recommendedAddOns}</p>
