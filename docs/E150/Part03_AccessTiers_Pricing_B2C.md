@@ -9,6 +9,7 @@
 > - `/order` (Paketstart)
 > - `/vormerken` bleibt als Legacy-Alias auf denselben Paketstart erreichbar
 > - `docs/E150/membership_pricing.md` und `docs/E150/Part19_Pricing_Packaging.md`
+> - B2G-Vergabe-/Leistungspaket-Erweiterung: `docs/E150/pricing-b2g-vergabe.md`
 > - Sichtbare B2C-Hauptlogik (2026-04-18): `eDebatte Interessiert` (0 € Mitglieder / 3,99 € regulaer), `eDebatte Aktiv` (9,90 €), `eDebatte Mitgestaltend` (29,90 €)
 > - Mitgliedschaft kann im `/order`-Bestellformular optional per Checkbox mitbeantragt werden.
 > - B2B/B2G-Zugaenge laufen ueber `/pricing/institutionen` als direkten Shop-/Bestellpfad mit optionalem Kontakt fuer Sonderkonditionen.

@@ -1,0 +1,50 @@
+import { describe, expect, it } from "vitest";
+import { renderToStaticMarkup } from "react-dom/server";
+import InstitutionalPricingPage from "@/app/pricing/institutionen/page";
+
+async function renderMunicipalPage() {
+  const element = await InstitutionalPricingPage({
+    searchParams: {
+      segment: "kommunen",
+    },
+  });
+  return renderToStaticMarkup(element);
+}
+
+describe("pricing-institutionen-b2g-vergabe.contract", () => {
+  it("shows municipal procurement package block with four service depths", async () => {
+    const html = await renderMunicipalPage();
+
+    expect(html).toContain("Vergabe- &amp; Ausschreibungspakete");
+    expect(html).toContain("Beteiligungs-Check");
+    expect(html).toContain("Dossier &amp; Beteiligungsrunde");
+    expect(html).toContain("Beteiligungsbetrieb Kommune");
+    expect(html).toContain("Rahmenvertrag / Vergabepaket");
+  });
+
+  it("uses procurement wording and completion handoff for municipal CTAs", async () => {
+    const html = await renderMunicipalPage();
+
+    expect(html).toContain("Leistungsbeschreibung");
+    expect(html).toContain("Losstruktur");
+    expect(html).toContain("Kostenvoranschlag");
+    expect(html).toContain("Pilotpaket");
+    expect(html).toContain("Rahmenvertrag geeignet");
+    expect(html).toContain("Ergebnisdokumentation");
+    expect(html).toContain("segment=kommunen");
+    expect(html).toContain("completion=quote_request");
+    expect(html).toContain("completion=conversation_request");
+  });
+
+  it("keeps legal guardrails explicit and avoids absolute legal claims", async () => {
+    const html = await renderMunicipalPage();
+
+    expect(html).toContain("keine Rechtsberatung");
+    expect(html).toContain("keine automatische Ausschreibung");
+    expect(html).toContain("ersetzt keine formelle gesetzliche Beteiligungspflicht");
+    expect(html).not.toContain("rechtssicher");
+    expect(html).not.toContain("automatisch ausschreiben");
+    expect(html).not.toContain("Vergabeberatung");
+  });
+});
+

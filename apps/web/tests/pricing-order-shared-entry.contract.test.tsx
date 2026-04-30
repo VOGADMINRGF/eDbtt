@@ -17,12 +17,13 @@ function setOrderSearch(query = "") {
 }
 
 describe("pricing/order shared entry contract", () => {
-  it("shows shared package logic and segment-aware order entry on /pricing", async () => {
+  it("keeps segment-aware package entry on /pricing", async () => {
     const html = renderToStaticMarkup(await PricingPage({ searchParams: { segment: "organisationen" } }));
 
-    expect(html).toContain("Gemeinsame Paketlogik mit /order");
-    expect(html).toContain("Mit aktuellem Segment in /order starten");
-    expect(html).toContain('href="/order?segment=organisationen"');
+    expect(html).toContain("Organisationen · Paketübersicht");
+    expect(html).toContain("Segmente");
+    expect(html).toContain('href="/pricing?segment=organisationen"');
+    expect(html).toContain("B2B/B2G-Konditionen ansehen");
   });
 
   it("keeps /order as preselected entry while preserving segment/package switching", () => {
