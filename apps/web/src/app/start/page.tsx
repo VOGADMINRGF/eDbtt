@@ -56,7 +56,7 @@ export default async function StartPage() {
   return (
     <main className="min-h-screen">
       <h1 className="sr-only">Start</h1>
-      <LandingStart blocks={blocks} geo={geo} />
+      <LandingStart blocks={blocks} />
     </main>
   );
 }

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import ProductSurfaceShell from "@/components/layout/ProductSurfaceShell";
 import {
+  formatPackageBillingModeLabel,
   getInstitutionalAddOnById,
   getInstitutionalAddOnMaturityMeta,
   getInstitutionalPricingSegments,
@@ -83,6 +84,7 @@ const PAGE_COPY = {
     ],
     legalPricingHint: "B2B- und B2G-Preise verstehen sich zzgl. MwSt.",
     annualHint: "Jährliche Zahlung wird bevorzugt.",
+    billingModeLabel: "Abrechnungsmodus",
   },
   en: {
     heroTitle: "Institutional conditions",
@@ -149,6 +151,7 @@ const PAGE_COPY = {
     ],
     legalPricingHint: "B2B and B2G prices are stated plus VAT.",
     annualHint: "Annual billing is preferred.",
+    billingModeLabel: "Billing mode",
   },
 } as const;
 
@@ -160,6 +163,7 @@ type MunicipalTenderCard = {
   id: "beteiligungs_check" | "dossier_runde" | "betrieb_kommune" | "vergabe_rahmenvertrag";
   name: string;
   priceTag: string;
+  billingMode: string;
   purpose: string;
   typicalUseCases: readonly string[];
   services: readonly string[];
@@ -174,6 +178,7 @@ type B2BPartnerCard = {
   id: "starter" | "projektpartner" | "buero_betrieb" | "partner_rahmen";
   name: string;
   priceTag: string;
+  billingMode: string;
   forWhom: string;
   typicalUse: string;
   services: readonly string[];
@@ -295,6 +300,7 @@ function buildMunicipalTenderCards(args: {
         id: "beteiligungs_check",
         name: "Participation Check",
         priceTag: "from €2,500 one-time + VAT",
+        billingMode: "one-time",
         purpose: "Early-stage pre-check for municipalities and public buyers.",
         typicalUseCases: [
           "Topic scoping before public launch",
@@ -317,6 +323,7 @@ function buildMunicipalTenderCards(args: {
         id: "dossier_runde",
         name: "Dossier & Participation Round",
         priceTag: "project-based + VAT (typically one-time)",
+        billingMode: "project-based / one-time",
         purpose: "For one concrete municipal topic with public feedback loop.",
         typicalUseCases: [
           "District-level issue discussions",
@@ -339,6 +346,7 @@ function buildMunicipalTenderCards(args: {
         id: "betrieb_kommune",
         name: "Municipal Participation Operations",
         priceTag: "from €4,500 / month + VAT",
+        billingMode: "monthly · annual billing preferred",
         purpose: "For recurring participation across multiple topics.",
         typicalUseCases: [
           "Recurring participation operations",
@@ -361,6 +369,7 @@ function buildMunicipalTenderCards(args: {
         id: "vergabe_rahmenvertrag",
         name: "Procurement / Framework Package",
         priceTag: "offer after clarification + VAT",
+        billingMode: "clarification-first / framework-based",
         purpose: "For formal tender preparation and framework agreement setup.",
         typicalUseCases: [
           "Preparation of procurement documents",
@@ -387,6 +396,7 @@ function buildMunicipalTenderCards(args: {
       id: "beteiligungs_check",
       name: "Beteiligungs-Check",
       priceTag: "ab 2.500 € einmalig zzgl. MwSt.",
+      billingMode: "einmalig",
       purpose: "Frühe Vorprüfung für Kommunen, Verwaltungen und öffentliche Auftraggeber.",
       typicalUseCases: [
         "Thema vor öffentlichem Start einordnen",
@@ -409,6 +419,7 @@ function buildMunicipalTenderCards(args: {
       id: "dossier_runde",
       name: "Dossier & Beteiligungsrunde",
       priceTag: "projektbezogen zzgl. MwSt. (typisch einmalig)",
+      billingMode: "projektbezogen / einmalig",
       purpose: "Für ein konkretes kommunales Thema mit nachvollziehbarer Rückmeldung.",
       typicalUseCases: [
         "Stadtteil- und Projektthemen",
@@ -431,6 +442,7 @@ function buildMunicipalTenderCards(args: {
       id: "betrieb_kommune",
       name: "Beteiligungsbetrieb Kommune",
       priceTag: "ab 4.500 € / Monat zzgl. MwSt.",
+      billingMode: "monatlich · jährliche Zahlung bevorzugt",
       purpose: "Für wiederkehrende Beteiligung über mehrere Themen hinweg.",
       typicalUseCases: [
         "Regelbetrieb mit mehreren Beteiligungsanlässen",
@@ -453,6 +465,7 @@ function buildMunicipalTenderCards(args: {
       id: "vergabe_rahmenvertrag",
       name: "Rahmenvertrag / Vergabepaket",
       priceTag: "Angebot nach Klärung zzgl. MwSt.",
+      billingMode: "nach Klärung / rahmenvertragsbasiert",
       purpose: "Für formale Ausschreibungsvorbereitung und Rahmenvertrag.",
       typicalUseCases: [
         "Vorbereitung von Ausschreibungsunterlagen",
@@ -532,6 +545,7 @@ function buildB2BPartnerCards(args: {
         id: "starter",
         name: "Participation Office Starter",
         priceTag: "from €1,500 / month + VAT",
+        billingMode: "monthly · annual billing preferred",
         forWhom: "Small participation offices and moderation teams launching first studio-enabled projects.",
         typicalUse: "1-3 dossiers with one participation round and communication-ready outputs.",
         services: [
@@ -552,6 +566,7 @@ function buildB2BPartnerCards(args: {
         id: "projektpartner",
         name: "Project Partner Participation",
         priceTag: "project-based + VAT (typically one-time)",
+        billingMode: "project-based / one-time",
         forWhom: "Participation, planning and communication offices running one concrete client project.",
         typicalUse: "A project-bound dossier room with roles for office, client and moderation/editorial teams.",
         services: [
@@ -570,6 +585,7 @@ function buildB2BPartnerCards(args: {
         id: "buero_betrieb",
         name: "Agency / Office Operations",
         priceTag: "from €2,900 / month + VAT",
+        billingMode: "monthly · annual billing preferred",
         forWhom: "Offices with recurring client projects and cross-team delivery.",
         typicalUse: "Multi-project setup with templates, team roles and recurring reporting cadence.",
         services: [
@@ -588,6 +604,7 @@ function buildB2BPartnerCards(args: {
         id: "partner_rahmen",
         name: "Partner / Framework Model",
         priceTag: "offer after clarification + VAT",
+        billingMode: "clarification-first / framework-based",
         forWhom: "Larger networks, foundations, media partners and public-dialogue consultancies.",
         typicalUse: "Recurring cooperation model with pilots, training and support framework.",
         services: [
@@ -612,6 +629,7 @@ function buildB2BPartnerCards(args: {
       id: "starter",
       name: "Beteiligungsbüro Starter",
       priceTag: "ab 1.500 € / Monat zzgl. MwSt.",
+      billingMode: "monatlich · jährliche Zahlung bevorzugt",
       forWhom:
         "Kleine Beteiligungsbüros, Moderationsbüros und Dialogteams mit ersten Studio-gestützten Projekten.",
       typicalUse: "1-3 Dossiers mit einer Beteiligungsrunde und direkt nutzbaren Kommunikationsbausteinen.",
@@ -633,6 +651,7 @@ function buildB2BPartnerCards(args: {
       id: "projektpartner",
       name: "Projektpartner Beteiligung",
       priceTag: "projektbezogen zzgl. MwSt. (typisch einmalig)",
+      billingMode: "projektbezogen / einmalig",
       forWhom:
         "Beteiligungsbüros, Planungsbüros und Kommunikationsagenturen mit einem konkreten Kundenprojekt.",
       typicalUse:
@@ -653,6 +672,7 @@ function buildB2BPartnerCards(args: {
       id: "buero_betrieb",
       name: "Agentur-/Büro-Betrieb",
       priceTag: "ab 2.900 € / Monat zzgl. MwSt.",
+      billingMode: "monatlich · jährliche Zahlung bevorzugt",
       forWhom: "Beteiligungs- und Dialogprofis mit wiederkehrenden Mandaten über mehrere Teams.",
       typicalUse: "Mehrere Projekte, Vorlagen, Teamrollen und kontinuierliche Ergebnisberichte.",
       services: [
@@ -671,6 +691,7 @@ function buildB2BPartnerCards(args: {
       id: "partner_rahmen",
       name: "Partner-/Rahmenmodell",
       priceTag: "Angebot nach Klärung zzgl. MwSt.",
+      billingMode: "nach Klärung / rahmenvertragsbasiert",
       forWhom:
         "Größere Büros, Netzwerke, Stiftungsprogramme, Medien- und Public-Affairs-Dienstleister.",
       typicalUse: "Wiederkehrende Partnerschaft mit Pilotkommunen/-themen, Schulung und Support.",
@@ -955,13 +976,28 @@ export default async function InstitutionalPricingPage({ searchParams }: PagePro
           b2g_basis: "from €2,500 / month + VAT",
           b2g_pro: "from €4,500 / month + VAT",
         }
-      : {
+        : {
           b2b_basis: "ab 1.500 € / Monat zzgl. MwSt.",
           b2b_pro: "ab 2.900 € / Monat zzgl. MwSt.",
           b2g_basis: "ab 2.500 € / Monat zzgl. MwSt.",
           b2g_pro: "ab 4.500 € / Monat zzgl. MwSt.",
         };
+  const packageBillingModeHintById: Partial<Record<string, string>> =
+    locale === "en"
+      ? {
+          b2b_basis: "monthly · annual billing preferred",
+          b2b_pro: "monthly · annual billing preferred",
+          b2g_basis: "monthly · annual billing preferred",
+          b2g_pro: "monthly · annual billing preferred",
+        }
+      : {
+          b2b_basis: "monatlich · jährliche Zahlung bevorzugt",
+          b2b_pro: "monatlich · jährliche Zahlung bevorzugt",
+          b2g_basis: "monatlich · jährliche Zahlung bevorzugt",
+          b2g_pro: "monatlich · jährliche Zahlung bevorzugt",
+        };
   const recommendedPackagePriceHint = packagePriceHintById[recommendation.recommendedPackageId];
+  const recommendedPackageBillingModeHint = packageBillingModeHintById[recommendation.recommendedPackageId];
   const showDirectOrderCta = segment !== "kommunen";
   const recommendationTitle =
     segment === "kommunen"
@@ -1111,6 +1147,9 @@ export default async function InstitutionalPricingPage({ searchParams }: PagePro
               <article key={entry.id} className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4 text-sm shadow-sm">
                 <h3 className="text-lg font-semibold text-[rgb(var(--fg))]">{entry.name}</h3>
                 <p className="mt-1 text-sm font-semibold text-[rgb(var(--fg))]">{entry.priceTag}</p>
+                <p className="mt-1 text-xs text-[rgb(var(--muted))]">
+                  {text.billingModeLabel}: {entry.billingMode}
+                </p>
                 <p className="mt-3 text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
                   {locale === "en" ? "For whom" : "Für wen"}
                 </p>
@@ -1185,6 +1224,9 @@ export default async function InstitutionalPricingPage({ searchParams }: PagePro
               <article key={entry.id} className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4 text-sm shadow-sm">
                 <h3 className="text-lg font-semibold text-[rgb(var(--fg))]">{entry.name}</h3>
                 <p className="mt-1 text-sm font-semibold text-[rgb(var(--fg))]">{entry.priceTag}</p>
+                <p className="mt-1 text-xs text-[rgb(var(--muted))]">
+                  {text.billingModeLabel}: {entry.billingMode}
+                </p>
                 <p className="mt-1 text-[rgb(var(--muted))]">{entry.purpose}</p>
                 <p className="mt-3 text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
                   {locale === "en" ? "Typical use cases" : "Typische Einsatzfälle"}
@@ -1301,6 +1343,11 @@ export default async function InstitutionalPricingPage({ searchParams }: PagePro
           </h2>
           {recommendedPackagePriceHint ? (
             <p className="mt-1 text-sm font-semibold text-[rgb(var(--fg))]">{recommendedPackagePriceHint}</p>
+          ) : null}
+          {recommendedPackageBillingModeHint ? (
+            <p className="mt-1 text-xs text-[rgb(var(--muted))]">
+              {text.billingModeLabel}: {recommendedPackageBillingModeHint}
+            </p>
           ) : null}
           <p className="mt-2 text-[rgb(var(--muted))]">{recommendation.whyRecommended}</p>
           <p className="mt-3 text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">{text.coveredBy}</p>

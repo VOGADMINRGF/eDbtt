@@ -69,9 +69,9 @@ describe("/pricing canonical landing", () => {
 
     expect(html).toContain('href="#pricing-privat"');
     expect(html).toContain('href="/pricing/institutionen"');
-    expect(html).toContain('href="/vormerken?paket=basis"');
-    expect(html).toContain('href="/vormerken?paket=start"');
-    expect(html).toContain('href="/vormerken?paket=pro"');
+    expect(html).toContain('href="/vormerken?paket=basis&amp;segment=privat"');
+    expect(html).toContain('href="/vormerken?paket=start&amp;segment=privat"');
+    expect(html).toContain('href="/vormerken?paket=pro&amp;segment=privat"');
     expect(html).not.toContain('href="/order?paket=');
   });
 
@@ -82,6 +82,13 @@ describe("/pricing canonical landing", () => {
     expect(html).toContain("Choose package");
     expect(html).toContain("View B2B/B2G conditions");
     expect(html).toContain('href="/pricing/institutionen?lang=en"');
-    expect(html).toContain('href="/vormerken?paket=pro&amp;lang=en"');
+    expect(html).toContain('href="/vormerken?paket=pro&amp;segment=privat&amp;lang=en"');
+  });
+
+  it("shows billing mode labels and annual preference on package cards", async () => {
+    const html = await renderPricing();
+
+    expect(html).toContain("Abrechnungsmodus:");
+    expect(html).toContain("monatlich · jährliche Zahlung bevorzugt");
   });
 });

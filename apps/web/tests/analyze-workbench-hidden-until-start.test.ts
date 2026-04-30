@@ -3,6 +3,7 @@ import {
   buildCreatePrimaryIntakeStorageKey,
   buildGuidedWorkspaceText,
   parseCreatePrimaryIntakeSnapshot,
+  resolveFollowupSurfaceOnStart,
   shouldRenderCreateAnalyzeWorkspace,
   shouldShowCreatePostInputModules,
 } from "@/app/create/CreateClient";
@@ -119,5 +120,21 @@ describe("analyze workbench progressive disclosure", () => {
         guidedBridgeConfirmed: true,
       }),
     ).toBe(true);
+  });
+
+  it("maps mode-specific follow-up surfaces so Beitragen stays lightweight by default", () => {
+    expect(resolveFollowupSurfaceOnStart("analyze")).toBe("lightweight");
+    expect(resolveFollowupSurfaceOnStart("media")).toBe("analysis");
+    expect(resolveFollowupSurfaceOnStart("guided")).toBe("none");
+
+    expect(
+      shouldRenderCreateAnalyzeWorkspace({
+        followupActivated: resolveFollowupSurfaceOnStart("analyze") === "analysis",
+        hasStarted: true,
+        intakeText: "Beitragstext",
+        productMode: "analyze",
+        guidedBridgeConfirmed: true,
+      }),
+    ).toBe(false);
   });
 });

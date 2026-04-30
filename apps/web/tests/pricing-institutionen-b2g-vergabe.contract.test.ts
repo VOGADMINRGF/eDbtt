@@ -23,6 +23,7 @@ describe("pricing-institutionen-b2g-vergabe.contract", () => {
     expect(html).toContain("Beteiligungsbetrieb Kommune");
     expect(html).toContain("Rahmenvertrag / Vergabepaket");
     expect(html).toContain("Empfohlener Betriebs- und Preisrahmen");
+    expect(html).toContain("Abrechnungsmodus");
     expect(html).not.toContain("Empfohlene Konfiguration");
 
     const procurementIndex = html.indexOf("Vergabe- &amp; Ausschreibungspakete");
