@@ -17,7 +17,7 @@ export const PRICING_PAGE_CONTENT = {
     "Unsere Privatpakete richten sich an Menschen, die sich informieren, einbringen und an gesellschaftlicher Orientierung mitwirken wollen. Geld verändert dabei keine demokratischen Rechte, sondern trägt Infrastruktur und Betrieb mit.",
   membershipAgeTitle: "Mitgliedschaft und Alter",
   membershipAgeParagraphs: [
-    "Mitgliedschaft kann ab 14 Jahren beantragt werden. Die Paketpreise bleiben davon unabhängig; der Basistarif liegt bei 3,99 €.",
+    "Mitgliedschaft kann ab 14 Jahren beantragt werden. Die Paketpreise bleiben davon unabhängig; der Basistarif liegt bei 4,99 € mtl. inkl. MwSt.",
     "Rabatte für Ausbildung oder Studium sind derzeit nicht vorgesehen, weil wir bewusst mit einem klaren und einheitlichen Mindestbeitrag arbeiten.",
     "Die VoiceOpenGov-Mitgliedschaft kann im Profil beantragt bzw. beauftragt werden. Die formale Bestätigung erfolgt anschließend separat. Mitgliedschaft und Paketfreischaltung werden transparent getrennt geführt.",
   ],
@@ -25,7 +25,7 @@ export const PRICING_PAGE_CONTENT = {
   minimumContributionParagraphs: [
     "VoiceOpenGov und eDebatte sollen unabhängig, fair und langfristig tragfähig bleiben. Dafür entstehen reale Kosten für Infrastruktur, Sicherheit, Moderation, Weiterentwicklung und KI-gestützte Verarbeitung.",
     "Wir finanzieren uns bewusst nicht über personenbezogene Beteiligungsdaten oder politische Bevorzugung, sondern über faire Mindestbeiträge, professionelle Nutzungspakete und anonymisierte Auswertungen.",
-    "Unsere Orientierung im Basistarif ist ein bewusst niedrig gehaltener gesellschaftlicher Mindestmaßstab: aktuell 3,99 € regulär. So bleibt Beteiligung zugänglich, ohne die Plattform in Abhängigkeiten zu drängen.",
+    "Unsere Orientierung im Basistarif ist ein bewusst niedrig gehaltener gesellschaftlicher Mindestmaßstab: aktuell 4,99 € mtl. inkl. MwSt. regulär. So bleibt Beteiligung zugänglich, ohne die Plattform in Abhängigkeiten zu drängen.",
   ],
   journalismTitle: "Recherche, Anlassraum, Dossier und Öffentlichkeit nachvollziehbar öffnen",
   journalismKicker: "Presse / Medien / freie Journalist:innen",
@@ -147,7 +147,7 @@ export const PRICING_PAGE_CONTENT_EN = {
     "Our civic packages are designed for people who want to stay informed, contribute and help shape civic orientation. Money does not change democratic rights, it helps fund infrastructure and operations.",
   membershipAgeTitle: "Membership and age",
   membershipAgeParagraphs: [
-    "Membership can be requested from age 14. Package pricing stays independent, and the base tariff is €3.99.",
+    "Membership can be requested from age 14. Package pricing stays independent, and the base tariff is €4.99/month incl. VAT.",
     "We currently do not offer student or apprenticeship discounts because we intentionally use one clear and consistent minimum contribution.",
     "VoiceOpenGov membership can be requested via profile. Formal confirmation follows separately. Membership and package activation are transparently handled as separate steps.",
   ],
@@ -155,7 +155,7 @@ export const PRICING_PAGE_CONTENT_EN = {
   minimumContributionParagraphs: [
     "VoiceOpenGov and eDebatte are designed to stay independent, fair and sustainable. Real costs arise for infrastructure, security, moderation, product development and AI-supported processing.",
     "We intentionally do not finance through personal participation data or political preference, but through fair minimum contributions, professional usage packages and anonymized analytics.",
-    "Our base tariff orientation is an intentionally low civic minimum benchmark: currently €3.99 regular. This keeps participation accessible without creating dependencies.",
+    "Our base tariff orientation is an intentionally low civic minimum benchmark: currently €4.99/month incl. VAT regular. This keeps participation accessible without creating dependencies.",
   ],
   journalismTitle: "Open research, issue room, dossier and public continuity",
   journalismKicker: "Press / media / independent journalists",
@@ -268,16 +268,16 @@ export const VORMERKEN_PAGE_CONTENT = {
   overview: [
     {
       id: "interessiert",
-      title: "Interessiert · Beitragen · 3,99 €",
+      title: "Interessiert · Beitragen · 4,99 € mtl. inkl. MwSt.",
       items: [
         "1 Beitrag pro Monat",
-        "Paketpreis: 3,99 €",
+        "Paketpreis: 4,99 € mtl. inkl. MwSt.",
         "Anliegen einbringen und Themenzuordnung erhalten",
       ],
     },
     {
       id: "aktiv",
-      title: "Aktiv · Prüfen · 9,99 €",
+      title: "Aktiv · Prüfen · 14,99 € mtl. inkl. MwSt.",
       items: [
         "Agenda, Artikel oder Beitrag prüfen lassen",
         "Richtlinien-/Companion-Hinweise ohne Umschreibung",
@@ -365,16 +365,16 @@ export const VORMERKEN_PAGE_CONTENT_EN = {
   overview: [
     {
       id: "interested",
-      title: "Interested · Contribute · €3.99",
+      title: "Interested · Contribute · €4.99/month incl. VAT",
       items: [
         "1 contribution per month",
-        "Package price: €3.99",
+        "Package price: €4.99/month incl. VAT",
         "Submit concerns with topic mapping",
       ],
     },
     {
       id: "active",
-      title: "Active · Review · €9.99",
+      title: "Active · Review · €14.99/month incl. VAT",
       items: [
         "Check agendas, articles and contributions",
         "Companion/policy hints without rewriting",
