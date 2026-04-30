@@ -13,6 +13,22 @@ const ALLOWED_EVENT_TYPES: ThemenradarTelemetryEventType[] = [
   "membership",
 ];
 
+const FORBIDDEN_TRACKING_FIELDS = [
+  "userId",
+  "user_id",
+  "sessionId",
+  "session_id",
+  "trackingId",
+  "tracking_id",
+  "pixelId",
+  "pixel_id",
+  "visitorId",
+  "visitor_id",
+  "fingerprint",
+  "ipHash",
+  "ip_hash",
+] as const;
+
 export async function POST(req: NextRequest, context: Context) {
   const gate = await requireAdminOrResponse(req);
   if (gate instanceof Response) return gate;
@@ -22,6 +38,16 @@ export async function POST(req: NextRequest, context: Context) {
   if (!body || typeof body !== "object") {
     return NextResponse.json(
       { ok: false, error: "invalid_body" },
+      { status: 400 },
+    );
+  }
+
+  const hasForbiddenTrackingField = FORBIDDEN_TRACKING_FIELDS.some((key) =>
+    Object.prototype.hasOwnProperty.call(body, key),
+  );
+  if (hasForbiddenTrackingField) {
+    return NextResponse.json(
+      { ok: false, error: "tracking_fields_not_allowed" },
       { status: 400 },
     );
   }

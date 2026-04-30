@@ -98,6 +98,23 @@ describe("/api/admin/themenradar/[id] action routes", () => {
     expect(mocks.applyThemenradarTelemetry).not.toHaveBeenCalled();
   });
 
+  it("rejects telemetry payloads with tracking identifiers", async () => {
+    const req = new NextRequest("http://localhost/api/admin/themenradar/thema_1/telemetry", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ type: "click", sessionId: "sess_123" }),
+    });
+    const res = await TELEMETRY_POST(req, {
+      params: Promise.resolve({ id: "thema_1" }),
+    });
+    expect(res.status).toBe(400);
+    await expect(res.json()).resolves.toMatchObject({
+      ok: false,
+      error: "tracking_fields_not_allowed",
+    });
+    expect(mocks.applyThemenradarTelemetry).not.toHaveBeenCalled();
+  });
+
   it("passes through auth gate failures", async () => {
     mocks.requireAdminOrResponse.mockResolvedValue(new Response("forbidden", { status: 403 }));
     const req = new NextRequest("http://localhost/api/admin/themenradar/thema_1/share-ready", {
