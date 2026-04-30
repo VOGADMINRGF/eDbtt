@@ -29,6 +29,8 @@ const PAGE_COPY = {
     step1: "1. Wer seid ihr?",
     step2: "2. Was steht im Vordergrund?",
     step3: "3. Wie sieht euer Einsatzrahmen aus?",
+    step2Municipal: "2. Welcher Beteiligungs- oder Vergabebedarf steht im Vordergrund?",
+    step3Municipal: "3. Welcher Beschaffungs- und Einsatzrahmen passt?",
     segmentOrganization: "Organisation / Verband / Verein",
     segmentMunicipality: "Kommune / Verwaltung / Landkreis",
     recommendationTitle: "Empfohlene Konfiguration",
@@ -63,6 +65,24 @@ const PAGE_COPY = {
     forWhom: "Für wen",
     recommendedFor: "Typisch für",
     maturity: "Bestellbarkeit",
+    segmentBoundaryTitle: "B2G und B2B klar getrennt",
+    segmentBoundaryMunicipal:
+      "Kommunen kaufen Beteiligungsleistungen, Pilotpakete oder vergabefähige Leistungsbausteine.",
+    segmentBoundaryOrg:
+      "Organisationen/Beteiligungsbüros nutzen eDebatte als Werkzeug-, Dossier-, Studio- und Beteiligungsinfrastruktur für eigene Projekte.",
+    municipalContextTitle: "Kommunale Einordnung vor dem Paket",
+    municipalContextText:
+      "Vor einer Beteiligungsleistung müssen Anlass, Region, Sachstand, Zuständigkeit und Verfahren sauber eingeordnet werden. eDebatte unterstützt diese Strukturierung, ersetzt aber keine Rechtsprüfung und keine gesetzlich vorgeschriebene formelle Beteiligung.",
+    municipalContextPoints: [
+      "Regionaler Anlass / Gebiet",
+      "Kommunaler Sachstand",
+      "Zuständigkeit / Fachbereich",
+      "formelle oder informelle Beteiligung",
+      "Quellenlage und offene Fragen",
+      "gewünschtes Ergebnis: Check, Dossier, Runde, Betrieb oder Vergabepaket",
+    ],
+    legalPricingHint: "B2B- und B2G-Preise verstehen sich zzgl. MwSt.",
+    annualHint: "Jährliche Zahlung wird bevorzugt.",
   },
   en: {
     heroTitle: "Institutional conditions",
@@ -75,6 +95,8 @@ const PAGE_COPY = {
     step1: "1. Who are you?",
     step2: "2. What is your primary goal?",
     step3: "3. What is your operating frame?",
+    step2Municipal: "2. Which participation or procurement need is primary?",
+    step3Municipal: "3. Which procurement and deployment frame fits?",
     segmentOrganization: "Organization / association / NGO",
     segmentMunicipality: "Municipality / administration / district",
     recommendationTitle: "Recommended configuration",
@@ -109,6 +131,24 @@ const PAGE_COPY = {
     forWhom: "For whom",
     recommendedFor: "Typical for",
     maturity: "Orderability",
+    segmentBoundaryTitle: "B2G and B2B are distinct",
+    segmentBoundaryMunicipal:
+      "Municipalities buy participation services, pilot packages or procurement-ready service modules.",
+    segmentBoundaryOrg:
+      "Organizations/participation offices use eDebatte as tooling, dossier, studio and participation infrastructure for their own projects.",
+    municipalContextTitle: "Municipal classification before package choice",
+    municipalContextText:
+      "Before any participation service, trigger, region, status, responsibility and procedure must be classified. eDebatte supports this structure but does not replace legal review or statutory formal participation duties.",
+    municipalContextPoints: [
+      "Regional trigger / territory",
+      "Municipal status baseline",
+      "Responsibility / department",
+      "Formal or informal participation path",
+      "Source context and open questions",
+      "Desired outcome: check, dossier, round, operations or procurement package",
+    ],
+    legalPricingHint: "B2B and B2G prices are stated plus VAT.",
+    annualHint: "Annual billing is preferred.",
   },
 } as const;
 
@@ -119,6 +159,7 @@ type PageProps = {
 type MunicipalTenderCard = {
   id: "beteiligungs_check" | "dossier_runde" | "betrieb_kommune" | "vergabe_rahmenvertrag";
   name: string;
+  priceTag: string;
   purpose: string;
   typicalUseCases: readonly string[];
   services: readonly string[];
@@ -143,6 +184,11 @@ function withLocaleHref(href: string, locale: PricingLocale) {
   params.set("lang", "en");
   const queryString = params.toString();
   return `${path}${queryString ? `?${queryString}` : ""}${hash ? `#${hash}` : ""}`;
+}
+
+function withVatSuffix(priceLabel: string, locale: PricingLocale) {
+  if (/mwst|vat/i.test(priceLabel)) return priceLabel;
+  return locale === "en" ? `${priceLabel} + VAT` : `${priceLabel} zzgl. MwSt.`;
 }
 
 function buildInstitutionalStateHref(args: {
@@ -232,6 +278,7 @@ function buildMunicipalTenderCards(args: {
       {
         id: "beteiligungs_check",
         name: "Participation Check",
+        priceTag: "from €2,500 one-time + VAT",
         purpose: "Early-stage pre-check for municipalities and public buyers.",
         typicalUseCases: [
           "Topic scoping before public launch",
@@ -253,6 +300,7 @@ function buildMunicipalTenderCards(args: {
       {
         id: "dossier_runde",
         name: "Dossier & Participation Round",
+        priceTag: "project-based + VAT (typically one-time)",
         purpose: "For one concrete municipal topic with public feedback loop.",
         typicalUseCases: [
           "District-level issue discussions",
@@ -274,6 +322,7 @@ function buildMunicipalTenderCards(args: {
       {
         id: "betrieb_kommune",
         name: "Municipal Participation Operations",
+        priceTag: "from €4,500 / month + VAT",
         purpose: "For recurring participation across multiple topics.",
         typicalUseCases: [
           "Recurring participation operations",
@@ -295,6 +344,7 @@ function buildMunicipalTenderCards(args: {
       {
         id: "vergabe_rahmenvertrag",
         name: "Procurement / Framework Package",
+        priceTag: "offer after clarification + VAT",
         purpose: "For formal tender preparation and framework agreement setup.",
         typicalUseCases: [
           "Preparation of procurement documents",
@@ -320,6 +370,7 @@ function buildMunicipalTenderCards(args: {
     {
       id: "beteiligungs_check",
       name: "Beteiligungs-Check",
+      priceTag: "ab 2.500 € einmalig zzgl. MwSt.",
       purpose: "Frühe Vorprüfung für Kommunen, Verwaltungen und öffentliche Auftraggeber.",
       typicalUseCases: [
         "Thema vor öffentlichem Start einordnen",
@@ -341,6 +392,7 @@ function buildMunicipalTenderCards(args: {
     {
       id: "dossier_runde",
       name: "Dossier & Beteiligungsrunde",
+      priceTag: "projektbezogen zzgl. MwSt. (typisch einmalig)",
       purpose: "Für ein konkretes kommunales Thema mit nachvollziehbarer Rückmeldung.",
       typicalUseCases: [
         "Stadtteil- und Projektthemen",
@@ -362,6 +414,7 @@ function buildMunicipalTenderCards(args: {
     {
       id: "betrieb_kommune",
       name: "Beteiligungsbetrieb Kommune",
+      priceTag: "ab 4.500 € / Monat zzgl. MwSt.",
       purpose: "Für wiederkehrende Beteiligung über mehrere Themen hinweg.",
       typicalUseCases: [
         "Regelbetrieb mit mehreren Beteiligungsanlässen",
@@ -383,6 +436,7 @@ function buildMunicipalTenderCards(args: {
     {
       id: "vergabe_rahmenvertrag",
       name: "Rahmenvertrag / Vergabepaket",
+      priceTag: "Angebot nach Klärung zzgl. MwSt.",
       purpose: "Für formale Ausschreibungsvorbereitung und Rahmenvertrag.",
       typicalUseCases: [
         "Vorbereitung von Ausschreibungsunterlagen",
@@ -419,6 +473,103 @@ export default async function InstitutionalPricingPage({ searchParams }: PagePro
   const selectedFrame = normalizeInstitutionalSelectionFrameId(firstString(params.frame)) ?? frames[1].id;
   const selectedGoalOption = goals.find((goal) => goal.id === selectedGoal) ?? goals[0] ?? null;
   const selectedFrameOption = frames.find((frame) => frame.id === selectedFrame) ?? frames[0] ?? null;
+  type FrameOptionId = (typeof frames)[number]["id"];
+
+  const municipalGoalOverrides =
+    locale === "en"
+      ? {
+          beteiligung_starten: {
+            title: "Clarify status and participation readiness",
+            detail: "Classify trigger, source context and participation readiness first.",
+          },
+          moderation_begleitung: {
+            title: "Prepare concrete topic / dossier",
+            detail: "Structure one concrete municipal topic dossier for execution.",
+          },
+          auswertung_reports: {
+            title: "Run participation round",
+            detail: "Execute a documented round with question, response and outcome view.",
+          },
+          betrieb_aufsetzen: {
+            title: "Set up recurring participation operations",
+            detail: "Build reusable operating routines across multiple topics.",
+          },
+          oeffentliche_anschlussfaehigkeit: {
+            title: "Prepare service description / lot structure",
+            detail: "Prepare procurement-oriented service modules and optional lot structure.",
+          },
+          faktencheck_strittig: {
+            title: "Framework agreement / recurring demand",
+            detail: "Frame recurring demand for framework-level procurement.",
+          },
+        }
+      : {
+          beteiligung_starten: {
+            title: "Sachstand & Beteiligungsreife klären",
+            detail: "Anlass, Quellenlage und Beteiligungsreife zuerst sauber einordnen.",
+          },
+          moderation_begleitung: {
+            title: "Konkretes Thema / Dossier vorbereiten",
+            detail: "Ein kommunales Thema als belastbares Dossier vorbereiten.",
+          },
+          auswertung_reports: {
+            title: "Beteiligungsrunde durchführen",
+            detail: "Rückmeldungen strukturiert erfassen und Ergebnisdokumentation aufbauen.",
+          },
+          betrieb_aufsetzen: {
+            title: "Laufenden Beteiligungsbetrieb aufbauen",
+            detail: "Wiederkehrende Beteiligung mit Rollen, Vorlagen und Betriebslogik aufsetzen.",
+          },
+          oeffentliche_anschlussfaehigkeit: {
+            title: "Leistungsbeschreibung / Losstruktur vorbereiten",
+            detail: "Vergabeorientierte Leistungsbausteine und optionale Losstruktur vorbereiten.",
+          },
+          faktencheck_strittig: {
+            title: "Rahmenvertrag / wiederkehrender Bedarf",
+            detail: "Wiederkehrenden Bedarf für Rahmenvertrag und Folgebeauftragung strukturieren.",
+          },
+        };
+
+  const municipalFrameOptions: readonly { id: FrameOptionId; title: string; detail: string }[] =
+    locale === "en"
+      ? [
+          { id: "pilot", title: "Pilot / small service module", detail: "Small pilot module with clear scope." },
+          { id: "einmaliger_einsatz", title: "Single project / concrete procedure", detail: "One defined municipal procedure." },
+          { id: "laufender_betrieb", title: "Recurring operations", detail: "Continuous participation operations." },
+          { id: "fokus_reporting", title: "Framework agreement / multiple topics", detail: "Multi-topic frame for recurring procurement." },
+          { id: "fokus_moderation", title: "Offer after clarification", detail: "Needs follow-up alignment before final order path." },
+        ]
+      : [
+          { id: "pilot", title: "Pilot / kleiner Leistungsbaustein", detail: "Kleiner Pilot mit klar abgegrenztem Umfang." },
+          { id: "einmaliger_einsatz", title: "Einzelprojekt / konkretes Verfahren", detail: "Ein definiertes kommunales Verfahren." },
+          { id: "laufender_betrieb", title: "wiederkehrender Betrieb", detail: "Regelbetrieb über mehrere Beteiligungsanlässe." },
+          { id: "fokus_reporting", title: "Rahmenvertrag / mehrere Themen", detail: "Mehrere Themen als wiederkehrender Beschaffungsrahmen." },
+          { id: "fokus_moderation", title: "Angebot nach Klärung", detail: "Vor Bestellung ist eine fachliche Klärung erforderlich." },
+        ];
+
+  const frameOptionMap = new Map(frames.map((frame) => [frame.id, frame]));
+  const displayedGoals =
+    segment === "kommunen"
+      ? goals.map((goal) => {
+          const override = municipalGoalOverrides[goal.id];
+          if (!override) return goal;
+          return { ...goal, ...override };
+        })
+      : goals;
+  const displayedFrames =
+    segment === "kommunen"
+      ? municipalFrameOptions
+          .map((frame) => {
+            const base = frameOptionMap.get(frame.id);
+            if (!base) return null;
+            return { ...base, title: frame.title, detail: frame.detail };
+          })
+          .filter((entry): entry is NonNullable<typeof entry> => Boolean(entry))
+      : frames;
+  const displayedSelectedGoalOption =
+    displayedGoals.find((goal) => goal.id === selectedGoal) ?? selectedGoalOption;
+  const displayedSelectedFrameOption =
+    displayedFrames.find((frame) => frame.id === selectedFrame) ?? selectedFrameOption;
 
   const recommendation = recommendInstitutionalConfiguration({
     segmentId: segment,
@@ -555,6 +706,23 @@ export default async function InstitutionalPricingPage({ searchParams }: PagePro
           "Vergabe-/Leistungsbeschreibungspaket als Entwurf",
         ];
 
+  const packagePriceHintById: Partial<Record<string, string>> =
+    locale === "en"
+      ? {
+          b2b_basis: "from €1,500 / month + VAT",
+          b2b_pro: "from €2,900 / month + VAT",
+          b2g_basis: "from €2,500 / month + VAT",
+          b2g_pro: "from €4,500 / month + VAT",
+        }
+      : {
+          b2b_basis: "ab 1.500 € / Monat zzgl. MwSt.",
+          b2b_pro: "ab 2.900 € / Monat zzgl. MwSt.",
+          b2g_basis: "ab 2.500 € / Monat zzgl. MwSt.",
+          b2g_pro: "ab 4.500 € / Monat zzgl. MwSt.",
+        };
+  const recommendedPackagePriceHint = packagePriceHintById[recommendation.recommendedPackageId];
+  const showDirectOrderCta = !(segment === "kommunen" && recommendation.recommendedPackageId === "b2g_pro");
+
   return (
     <ProductSurfaceShell>
       <header className="rounded-[1.75rem] border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-6 shadow-sm sm:p-8">
@@ -563,6 +731,9 @@ export default async function InstitutionalPricingPage({ searchParams }: PagePro
         </p>
         <h1 className="mt-2 text-3xl font-bold tracking-tight text-[rgb(var(--fg))] sm:text-4xl">{text.heroTitle}</h1>
         <p className="mt-4 max-w-3xl text-sm leading-relaxed text-[rgb(var(--muted))]">{text.heroIntro}</p>
+        <p className="mt-2 text-xs text-[rgb(var(--muted))]">
+          {text.legalPricingHint} {text.annualHint}
+        </p>
         <div className="mt-6 flex flex-wrap gap-3">
           <a href="#guided-selection" className="btn-primary">
             {text.directToSelection}
@@ -575,6 +746,12 @@ export default async function InstitutionalPricingPage({ searchParams }: PagePro
           </Link>
         </div>
       </header>
+
+      <section className="mt-6 rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm sm:p-6">
+        <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">{text.segmentBoundaryTitle}</p>
+        <p className="mt-2 text-sm text-[rgb(var(--muted))]">{text.segmentBoundaryMunicipal}</p>
+        <p className="mt-1 text-sm text-[rgb(var(--muted))]">{text.segmentBoundaryOrg}</p>
+      </section>
 
       <section id="guided-selection" className="mt-8 rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm sm:p-6">
         <div className="space-y-5">
@@ -610,9 +787,11 @@ export default async function InstitutionalPricingPage({ searchParams }: PagePro
           </div>
 
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">{text.step2}</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
+              {segment === "kommunen" ? text.step2Municipal : text.step2}
+            </p>
             <div className="mt-2 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
-              {goals.map((goal) => (
+              {displayedGoals.map((goal) => (
                 <Link
                   key={goal.id}
                   href={stateHref({ goal: goal.id })}
@@ -631,9 +810,11 @@ export default async function InstitutionalPricingPage({ searchParams }: PagePro
           </div>
 
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">{text.step3}</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
+              {segment === "kommunen" ? text.step3Municipal : text.step3}
+            </p>
             <div className="mt-2 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
-              {frames.map((frame) => (
+              {displayedFrames.map((frame) => (
                 <Link
                   key={frame.id}
                   href={stateHref({ frame: frame.id })}
@@ -651,11 +832,23 @@ export default async function InstitutionalPricingPage({ searchParams }: PagePro
             </div>
           </div>
           <p className="text-xs text-[rgb(var(--muted))]">
-            {(segment === "kommunen" ? text.segmentMunicipality : text.segmentOrganization)} · {selectedGoalOption?.title ?? ""} ·{" "}
-            {selectedFrameOption?.title ?? ""}
+            {(segment === "kommunen" ? text.segmentMunicipality : text.segmentOrganization)} ·{" "}
+            {displayedSelectedGoalOption?.title ?? ""} · {displayedSelectedFrameOption?.title ?? ""}
           </p>
         </div>
       </section>
+
+      {segment === "kommunen" ? (
+        <section className="mt-6 rounded-3xl border border-amber-200 bg-amber-50/70 p-5 shadow-sm">
+          <p className="text-xs font-semibold uppercase tracking-wide text-amber-900">{text.municipalContextTitle}</p>
+          <p className="mt-2 text-sm text-amber-900/90">{text.municipalContextText}</p>
+          <ul className="mt-3 space-y-1 text-sm text-amber-900/90">
+            {text.municipalContextPoints.map((line) => (
+              <li key={line}>{line}</li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
 
       <section className="mt-8 rounded-3xl border-2 border-sky-400/80 bg-[linear-gradient(145deg,rgba(14,165,233,0.16),rgba(255,255,255,0.9))] p-7 shadow-[0_22px_60px_rgba(14,165,233,0.18)] dark:bg-[linear-gradient(145deg,rgba(14,165,233,0.2),rgba(15,23,42,0.5))]">
         <p className="text-xs font-semibold uppercase tracking-wide text-sky-900 dark:text-sky-100">{text.recommendationTitle}</p>
@@ -665,6 +858,9 @@ export default async function InstitutionalPricingPage({ searchParams }: PagePro
           <h2 className="text-2xl font-semibold text-[rgb(var(--fg))]">
             {recommendedPackage?.title ?? recommendation.recommendedPackageId}
           </h2>
+          {recommendedPackagePriceHint ? (
+            <p className="mt-1 text-sm font-semibold text-[rgb(var(--fg))]">{recommendedPackagePriceHint}</p>
+          ) : null}
           <p className="mt-2 text-[rgb(var(--muted))]">{recommendation.whyRecommended}</p>
           <p className="mt-3 text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">{text.coveredBy}</p>
           <p className="mt-1 text-[rgb(var(--muted))]">{recommendation.coveredByPackage}</p>
@@ -690,9 +886,11 @@ export default async function InstitutionalPricingPage({ searchParams }: PagePro
           <Link href={applyRecommendationHref} className="btn-primary">
             {text.ctaApply}
           </Link>
-          <Link href={directOrderHref} className="btn-primary">
-            {text.ctaOrder}
-          </Link>
+          {showDirectOrderCta ? (
+            <Link href={directOrderHref} className="btn-primary">
+              {text.ctaOrder}
+            </Link>
+          ) : null}
           <Link href={quoteHref} className="btn-secondary">
             {text.ctaQuote}
           </Link>
@@ -730,13 +928,14 @@ export default async function InstitutionalPricingPage({ searchParams }: PagePro
           </p>
           <p className="mt-2 text-sm leading-relaxed text-amber-900/90">
             {locale === "en"
-              ? "Municipal B2G flow: public buyers can evaluate pilot, dossier round, operations and framework depth as service packages."
-              : "Kommunaler B2G-Modus: öffentliche Auftraggeber sehen Pilot, Dossier-Runde, Beteiligungsbetrieb und Vergabepaket als Leistungsbausteine."}
+              ? "Municipal B2G flow: this is a service-framework selection for public buyers, not a generic SaaS package picker."
+              : "Kommunaler B2G-Modus: Hier wählen öffentliche Auftraggeber keinen normalen SaaS-Tarif, sondern einen passenden Leistungsrahmen."}
           </p>
           <div className="mt-4 grid gap-4 lg:grid-cols-2">
             {municipalTenderCards.map((entry) => (
               <article key={entry.id} className="rounded-2xl border border-amber-200 bg-white p-4 text-sm shadow-sm">
                 <h3 className="text-lg font-semibold text-[rgb(var(--fg))]">{entry.name}</h3>
+                <p className="mt-1 text-sm font-semibold text-[rgb(var(--fg))]">{entry.priceTag}</p>
                 <p className="mt-1 text-[rgb(var(--muted))]">{entry.purpose}</p>
                 <p className="mt-3 text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
                   {locale === "en" ? "Typical use cases" : "Typische Einsatzfälle"}
@@ -828,7 +1027,7 @@ export default async function InstitutionalPricingPage({ searchParams }: PagePro
             return (
               <article key={addOn.id} className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4">
                 <p className="text-sm font-semibold text-[rgb(var(--fg))]">{addOn.title}</p>
-                <p className="mt-1 text-sm font-semibold text-[rgb(var(--fg))]">{addOn.priceLabel}</p>
+                <p className="mt-1 text-sm font-semibold text-[rgb(var(--fg))]">{withVatSuffix(addOn.priceLabel, locale)}</p>
                 <p className="mt-2 text-sm leading-relaxed text-[rgb(var(--muted))]">{addOn.whenUseful}</p>
                 <p className="mt-2 text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">{text.statusLabel}</p>
                 <p className="mt-1 text-xs leading-relaxed text-[rgb(var(--muted))]">{status}</p>
@@ -864,7 +1063,7 @@ export default async function InstitutionalPricingPage({ searchParams }: PagePro
               return (
                 <li key={addOn.id} className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-3">
                   <p className="font-semibold text-[rgb(var(--fg))]">{addOn.title}</p>
-                  <p>{addOn.priceLabel}</p>
+                  <p>{withVatSuffix(addOn.priceLabel, locale)}</p>
                   <p className="mt-1 text-xs">{addOn.whenUseful}</p>
                   <p className="mt-1 text-xs">{text.statusLabel}: {status}</p>
                 </li>
@@ -880,7 +1079,7 @@ export default async function InstitutionalPricingPage({ searchParams }: PagePro
             {needBasedAddOns.map((addOn) => (
               <li key={addOn.id} className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-3">
                 <p className="font-semibold text-[rgb(var(--fg))]">{addOn.title}</p>
-                <p>{addOn.priceLabel}</p>
+                <p>{withVatSuffix(addOn.priceLabel, locale)}</p>
                 <p className="mt-1 text-xs">{addOn.whenUseful}</p>
                 <p className="mt-1 text-xs">{text.statusLabel}: {text.statusClarification}</p>
               </li>

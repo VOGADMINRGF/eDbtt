@@ -5,7 +5,13 @@ Status: umgesetzt als eigener Pricing-Slice `PR-PRICING-B2G-VERGABE-01`
 
 ## Zielbild
 
-`/pricing/institutionen` bildet fuer Segment `kommunen` nicht nur Paketpreise ab, sondern klar beschreibbare Beteiligungsleistungen fuer:
+Die B2G-Preislogik ist kanonisch in drei Ebenen getrennt:
+
+1. `/pricing` = allgemeiner Einstieg fuer Privat, Journalismus, Organisationen und Kommunen.
+2. `/pricing?segment=kommunen` = B2G-Bridge, kein zweiter Voll-Konfigurator.
+3. `/pricing/institutionen?segment=kommunen` = kanonischer B2G-Konfigurator.
+
+`/pricing/institutionen?segment=kommunen` bildet fuer Segment `kommunen` nicht nur Paketpreise ab, sondern klar beschreibbare Beteiligungsleistungen fuer:
 
 - Kommunen / Verwaltungen / Landkreise
 - oeffentliche Auftraggeber
@@ -45,6 +51,16 @@ CTAs unterscheiden explizit:
 - Gespraech anfragen (`conversation_request`)
 - Vergabepaket pruefen (`conversation_request`)
 
+## Entry-Dedup / kanonischer Flow
+
+- Auf `/pricing?segment=kommunen` wird **keine zweite vollstaendige Kommunen-Paketlogik** gerendert.
+- Die Seite zeigt stattdessen eine kompakte Bruecke:
+  - "Kommunen & oeffentliche Auftraggeber"
+  - Kurzvorschau der vier B2G-Stufen
+  - klarer CTA "Zum B2G-Konfigurator"
+- Die eigentliche kommunale Auswahl (Bedarf, Rahmen, Leistungslogik) bleibt auf:
+  - `/pricing/institutionen?segment=kommunen#guided-selection`
+
 ## Vergabe-/Ausschreibungsabgrenzung
 
 B2G-Texte sind als Orientierungs- und Vorbereitungssprache formuliert:
@@ -73,6 +89,27 @@ Trennung bleibt sichtbar:
 - Keine automatische Erzeugung einer oeffentlichen Ausschreibung.
 - Keine Behauptung, dass eDebatte formelle Beteiligungspflichten ersetzt.
 - Mitgliedschaft und Paketfreischaltung bleiben getrennte Prozesse.
+
+## Kommunale Einordnung vor Paketwahl
+
+Im kommunalen Konfigurator ist vor der Paketauswahl ein fachlicher Einordnungsblock sichtbar:
+
+- regionaler Anlass / Gebiet
+- kommunaler Sachstand
+- Zustaendigkeit / Fachbereich
+- formelle oder informelle Beteiligung
+- Quellenlage und offene Fragen
+- gewuenschtes Ergebnis (Check, Dossier, Runde, Betrieb oder Vergabepaket)
+
+Klarstellung:
+
+- eDebatte unterstuetzt Strukturierung, Vorbereitung, Durchfuehrung und Ergebnisdokumentation.
+- eDebatte ersetzt keine Rechtspruefung und keine formelle gesetzliche Beteiligungspflicht.
+
+## Abgrenzung zu B2B
+
+- Kommunen (B2G): kaufen Beteiligungsleistungen, Pilotpakete oder vergabefaehige Leistungsbausteine.
+- Organisationen/Beteiligungsbueros (B2B): nutzen eDebatte als Werkzeug-, Dossier-, Studio- und Beteiligungsinfrastruktur fuer eigene Projekte.
 
 ## Anschluss an Beteiligungsradar (spaeter)
 
