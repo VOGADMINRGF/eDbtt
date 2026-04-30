@@ -22,6 +22,14 @@ describe("pricing-institutionen-b2g-vergabe.contract", () => {
     expect(html).toContain("Dossier &amp; Beteiligungsrunde");
     expect(html).toContain("Beteiligungsbetrieb Kommune");
     expect(html).toContain("Rahmenvertrag / Vergabepaket");
+    expect(html).toContain("Empfohlener Betriebs- und Preisrahmen");
+    expect(html).not.toContain("Empfohlene Konfiguration");
+
+    const procurementIndex = html.indexOf("Vergabe- &amp; Ausschreibungspakete");
+    const frameIndex = html.indexOf("Empfohlener Betriebs- und Preisrahmen");
+    expect(procurementIndex).toBeGreaterThan(-1);
+    expect(frameIndex).toBeGreaterThan(-1);
+    expect(procurementIndex).toBeLessThan(frameIndex);
   });
 
   it("uses procurement wording and completion handoff for municipal CTAs", async () => {
@@ -40,6 +48,7 @@ describe("pricing-institutionen-b2g-vergabe.contract", () => {
     expect(html).toContain("segment=kommunen");
     expect(html).toContain("completion=quote_request");
     expect(html).toContain("completion=conversation_request");
+    expect(html).not.toContain(">Direkt bestellen<");
   });
 
   it("keeps legal guardrails explicit and avoids absolute legal claims", async () => {
@@ -47,7 +56,7 @@ describe("pricing-institutionen-b2g-vergabe.contract", () => {
 
     expect(html).toContain("keine Rechtsberatung");
     expect(html).toContain("keine automatische Ausschreibung");
-    expect(html).toContain("ersetzt keine formelle gesetzliche Beteiligungspflicht");
+    expect(html).toContain("ersetzt keine formelle Beteiligungspflicht");
     expect(html).not.toContain("rechtssicher");
     expect(html).not.toContain("automatisch ausschreiben");
     expect(html).not.toContain("Vergabeberatung");

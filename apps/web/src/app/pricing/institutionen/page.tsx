@@ -721,7 +721,19 @@ export default async function InstitutionalPricingPage({ searchParams }: PagePro
           b2g_pro: "ab 4.500 € / Monat zzgl. MwSt.",
         };
   const recommendedPackagePriceHint = packagePriceHintById[recommendation.recommendedPackageId];
-  const showDirectOrderCta = !(segment === "kommunen" && recommendation.recommendedPackageId === "b2g_pro");
+  const showDirectOrderCta = segment !== "kommunen";
+  const recommendationTitle =
+    segment === "kommunen"
+      ? locale === "en"
+        ? "Recommended operations and pricing frame"
+        : "Empfohlener Betriebs- und Preisrahmen"
+      : text.recommendationTitle;
+  const recommendationSubtitle =
+    segment === "kommunen"
+      ? locale === "en"
+        ? "The pricing frame complements the selected service tier. The primary municipal decision is made above in the B2G procurement and participation packages."
+        : "Der Preisrahmen ergänzt die gewählte Leistungsstufe. Die fachliche Auswahl erfolgt oben über die B2G-Vergabe- und Beteiligungspakete."
+      : text.recommendationSubtitle;
 
   return (
     <ProductSurfaceShell>
@@ -839,10 +851,10 @@ export default async function InstitutionalPricingPage({ searchParams }: PagePro
       </section>
 
       {segment === "kommunen" ? (
-        <section className="mt-6 rounded-3xl border border-amber-200 bg-amber-50/70 p-5 shadow-sm">
-          <p className="text-xs font-semibold uppercase tracking-wide text-amber-900">{text.municipalContextTitle}</p>
-          <p className="mt-2 text-sm text-amber-900/90">{text.municipalContextText}</p>
-          <ul className="mt-3 space-y-1 text-sm text-amber-900/90">
+        <section className="mt-6 rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm">
+          <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">{text.municipalContextTitle}</p>
+          <p className="mt-2 text-sm text-[rgb(var(--muted))]">{text.municipalContextText}</p>
+          <ul className="mt-3 space-y-1 text-sm text-[rgb(var(--muted))]">
             {text.municipalContextPoints.map((line) => (
               <li key={line}>{line}</li>
             ))}
@@ -850,90 +862,19 @@ export default async function InstitutionalPricingPage({ searchParams }: PagePro
         </section>
       ) : null}
 
-      <section className="mt-8 rounded-3xl border-2 border-sky-400/80 bg-[linear-gradient(145deg,rgba(14,165,233,0.16),rgba(255,255,255,0.9))] p-7 shadow-[0_22px_60px_rgba(14,165,233,0.18)] dark:bg-[linear-gradient(145deg,rgba(14,165,233,0.2),rgba(15,23,42,0.5))]">
-        <p className="text-xs font-semibold uppercase tracking-wide text-sky-900 dark:text-sky-100">{text.recommendationTitle}</p>
-        <p className="mt-1 text-sm font-medium text-sky-900/90 dark:text-sky-100/90">{text.recommendationSubtitle}</p>
-
-        <div className="mt-4 rounded-2xl border border-sky-300/80 bg-white/90 p-5 text-sm shadow-sm dark:bg-slate-900/40">
-          <h2 className="text-2xl font-semibold text-[rgb(var(--fg))]">
-            {recommendedPackage?.title ?? recommendation.recommendedPackageId}
-          </h2>
-          {recommendedPackagePriceHint ? (
-            <p className="mt-1 text-sm font-semibold text-[rgb(var(--fg))]">{recommendedPackagePriceHint}</p>
-          ) : null}
-          <p className="mt-2 text-[rgb(var(--muted))]">{recommendation.whyRecommended}</p>
-          <p className="mt-3 text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">{text.coveredBy}</p>
-          <p className="mt-1 text-[rgb(var(--muted))]">{recommendation.coveredByPackage}</p>
-          <p className="mt-3 text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">{text.gapHint}</p>
-          <p className="mt-1 text-[rgb(var(--muted))]">{recommendation.gapHint}</p>
-          <p className="mt-3 text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">{text.valueTitle}</p>
-          <ul className="mt-2 list-disc space-y-1 pl-5 text-[rgb(var(--muted))]">
-            {recommendation.roiHighlights.map((line) => (
-              <li key={line}>{line}</li>
-            ))}
-          </ul>
-        </div>
-
-        {alternativePackage ? (
-          <div className="mt-4 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 text-sm">
-            <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">{text.alternativeTitle}</p>
-            <p className="mt-1 font-semibold text-[rgb(var(--fg))]">{alternativePackage.title}</p>
-            <p className="mt-1 text-[rgb(var(--muted))]">{alternativePackage.detail}</p>
-          </div>
-        ) : null}
-
-        <div className="mt-5 flex flex-wrap gap-3">
-          <Link href={applyRecommendationHref} className="btn-primary">
-            {text.ctaApply}
-          </Link>
-          {showDirectOrderCta ? (
-            <Link href={directOrderHref} className="btn-primary">
-              {text.ctaOrder}
-            </Link>
-          ) : null}
-          <Link href={quoteHref} className="btn-secondary">
-            {text.ctaQuote}
-          </Link>
-          <Link href={quoteDownloadHref} className="btn-secondary">
-            {text.ctaQuoteDownload}
-          </Link>
-          <Link href={conversationHref} className="inline-flex items-center rounded-full px-3 py-2 text-sm font-semibold text-[rgb(var(--muted))] underline-offset-2 hover:underline">
-            {text.ctaConversation}
-          </Link>
-        </div>
-        <p className="mt-3 text-xs text-[rgb(var(--muted))]">{text.quoteDownloadHint}</p>
-        <div className="mt-2 flex flex-wrap gap-3 text-sm">
-          <Link href={withLocaleHref("/pricing", locale)} className="text-[rgb(var(--muted))] underline-offset-2 hover:underline">
-            {text.ctaBackPricing}
-          </Link>
-          <a href={`mailto:${SALES_EMAIL}`} className="text-[rgb(var(--muted))] underline-offset-2 hover:underline">
-            {text.ctaContactSales}
-          </a>
-        </div>
-        <div className="mt-4 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 text-sm">
-          <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">{text.contactPathsTitle}</p>
-          <div className="mt-3 flex flex-wrap gap-3">
-            <a href={teamContactHref} className="btn-secondary">{text.contactPathTeam}</a>
-            <a href={teamsHref} target="_blank" rel="noreferrer" className="btn-secondary">{text.contactPathTeams}</a>
-            <a href={`mailto:${SALES_EMAIL}`} className="btn-secondary">{text.contactPathEmail}</a>
-            <a href={phoneContactHref} className="btn-secondary">{text.contactPathPhone}</a>
-          </div>
-        </div>
-      </section>
-
       {segment === "kommunen" ? (
-        <section className="mt-8 rounded-3xl border border-amber-200 bg-amber-50/60 p-6 shadow-sm">
-          <p className="text-xs font-semibold uppercase tracking-wide text-amber-900">
+        <section className="mt-8 rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-6 shadow-sm">
+          <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
             {locale === "en" ? "Procurement-ready service packages" : "Vergabe- & Ausschreibungspakete"}
           </p>
-          <p className="mt-2 text-sm leading-relaxed text-amber-900/90">
+          <p className="mt-2 text-sm leading-relaxed text-[rgb(var(--muted))]">
             {locale === "en"
               ? "Municipal B2G flow: this is a service-framework selection for public buyers, not a generic SaaS package picker."
               : "Kommunaler B2G-Modus: Hier wählen öffentliche Auftraggeber keinen normalen SaaS-Tarif, sondern einen passenden Leistungsrahmen."}
           </p>
           <div className="mt-4 grid gap-4 lg:grid-cols-2">
             {municipalTenderCards.map((entry) => (
-              <article key={entry.id} className="rounded-2xl border border-amber-200 bg-white p-4 text-sm shadow-sm">
+              <article key={entry.id} className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4 text-sm shadow-sm">
                 <h3 className="text-lg font-semibold text-[rgb(var(--fg))]">{entry.name}</h3>
                 <p className="mt-1 text-sm font-semibold text-[rgb(var(--fg))]">{entry.priceTag}</p>
                 <p className="mt-1 text-[rgb(var(--muted))]">{entry.purpose}</p>
@@ -989,7 +930,7 @@ export default async function InstitutionalPricingPage({ searchParams }: PagePro
               </article>
             ))}
           </div>
-          <div className="mt-5 rounded-2xl border border-amber-200 bg-white p-4 text-sm">
+          <div className="mt-5 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4 text-sm">
             <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
               {locale === "en" ? "Typical municipal add-ons" : "Typische kommunale Add-ons"}
             </p>
@@ -999,7 +940,7 @@ export default async function InstitutionalPricingPage({ searchParams }: PagePro
               ))}
             </ul>
           </div>
-          <div className="mt-5 rounded-2xl border border-amber-200 bg-white p-4 text-sm text-[rgb(var(--muted))]">
+          <div className="mt-5 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4 text-sm text-[rgb(var(--muted))]">
             <p>
               {locale === "en"
                 ? "Procurement note: this is orientation support and a service-description draft package, not legal advice and not an automated public tender."
@@ -1008,11 +949,110 @@ export default async function InstitutionalPricingPage({ searchParams }: PagePro
             <p className="mt-2">
               {locale === "en"
                 ? "eDebatte supports preparation, execution, documentation and continuity. It does not replace formal statutory participation obligations."
-                : "eDebatte unterstützt Vorbereitung, Durchführung, Dokumentation und Anschlussfähigkeit. Es ersetzt keine formelle gesetzliche Beteiligungspflicht."}
+                : "eDebatte unterstützt Vorbereitung, Durchführung, Dokumentation und Anschlussfähigkeit. Es ersetzt keine formelle Beteiligungspflicht."}
             </p>
           </div>
         </section>
       ) : null}
+
+      <section
+        className={[
+          "mt-8 rounded-3xl p-6 shadow-sm sm:p-7",
+          segment === "kommunen"
+            ? "border border-[rgb(var(--border))] bg-[rgb(var(--card))]"
+            : "border-2 border-sky-400/80 bg-[linear-gradient(145deg,rgba(14,165,233,0.16),rgba(255,255,255,0.9))] shadow-[0_22px_60px_rgba(14,165,233,0.18)] dark:bg-[linear-gradient(145deg,rgba(14,165,233,0.2),rgba(15,23,42,0.5))]",
+        ].join(" ")}
+      >
+        <p
+          className={[
+            "text-xs font-semibold uppercase tracking-wide",
+            segment === "kommunen" ? "text-[rgb(var(--muted))]" : "text-sky-900 dark:text-sky-100",
+          ].join(" ")}
+        >
+          {recommendationTitle}
+        </p>
+        <p
+          className={[
+            "mt-1 text-sm font-medium",
+            segment === "kommunen" ? "text-[rgb(var(--muted))]" : "text-sky-900/90 dark:text-sky-100/90",
+          ].join(" ")}
+        >
+          {recommendationSubtitle}
+        </p>
+
+        <div
+          className={[
+            "mt-4 rounded-2xl p-5 text-sm shadow-sm",
+            segment === "kommunen"
+              ? "border border-[rgb(var(--border))] bg-[rgb(var(--bg))]"
+              : "border border-sky-300/80 bg-white/90 dark:bg-slate-900/40",
+          ].join(" ")}
+        >
+          <h2 className="text-2xl font-semibold text-[rgb(var(--fg))]">
+            {recommendedPackage?.title ?? recommendation.recommendedPackageId}
+          </h2>
+          {recommendedPackagePriceHint ? (
+            <p className="mt-1 text-sm font-semibold text-[rgb(var(--fg))]">{recommendedPackagePriceHint}</p>
+          ) : null}
+          <p className="mt-2 text-[rgb(var(--muted))]">{recommendation.whyRecommended}</p>
+          <p className="mt-3 text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">{text.coveredBy}</p>
+          <p className="mt-1 text-[rgb(var(--muted))]">{recommendation.coveredByPackage}</p>
+          <p className="mt-3 text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">{text.gapHint}</p>
+          <p className="mt-1 text-[rgb(var(--muted))]">{recommendation.gapHint}</p>
+          <p className="mt-3 text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">{text.valueTitle}</p>
+          <ul className="mt-2 list-disc space-y-1 pl-5 text-[rgb(var(--muted))]">
+            {recommendation.roiHighlights.map((line) => (
+              <li key={line}>{line}</li>
+            ))}
+          </ul>
+        </div>
+
+        {alternativePackage ? (
+          <div className="mt-4 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 text-sm">
+            <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">{text.alternativeTitle}</p>
+            <p className="mt-1 font-semibold text-[rgb(var(--fg))]">{alternativePackage.title}</p>
+            <p className="mt-1 text-[rgb(var(--muted))]">{alternativePackage.detail}</p>
+          </div>
+        ) : null}
+
+        <div className="mt-5 flex flex-wrap gap-3">
+          <Link href={applyRecommendationHref} className={segment === "kommunen" ? "btn-secondary" : "btn-primary"}>
+            {segment === "kommunen" ? (locale === "en" ? "Apply frame" : "Rahmen übernehmen") : text.ctaApply}
+          </Link>
+          {showDirectOrderCta ? (
+            <Link href={directOrderHref} className="btn-primary">
+              {text.ctaOrder}
+            </Link>
+          ) : null}
+          <Link href={quoteHref} className="btn-secondary">
+            {segment === "kommunen" ? (locale === "en" ? "Request cost estimate" : "Kostenvoranschlag anfordern") : text.ctaQuote}
+          </Link>
+          <Link href={quoteDownloadHref} className="btn-secondary">
+            {segment === "kommunen" ? (locale === "en" ? "Request service description" : "Leistungsbeschreibung anfordern") : text.ctaQuoteDownload}
+          </Link>
+          <Link href={conversationHref} className="inline-flex items-center rounded-full px-3 py-2 text-sm font-semibold text-[rgb(var(--muted))] underline-offset-2 hover:underline">
+            {text.ctaConversation}
+          </Link>
+        </div>
+        <p className="mt-3 text-xs text-[rgb(var(--muted))]">{text.quoteDownloadHint}</p>
+        <div className="mt-2 flex flex-wrap gap-3 text-sm">
+          <Link href={withLocaleHref("/pricing", locale)} className="text-[rgb(var(--muted))] underline-offset-2 hover:underline">
+            {text.ctaBackPricing}
+          </Link>
+          <a href={`mailto:${SALES_EMAIL}`} className="text-[rgb(var(--muted))] underline-offset-2 hover:underline">
+            {text.ctaContactSales}
+          </a>
+        </div>
+        <div className="mt-4 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 text-sm">
+          <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">{text.contactPathsTitle}</p>
+          <div className="mt-3 flex flex-wrap gap-3">
+            <a href={teamContactHref} className="btn-secondary">{text.contactPathTeam}</a>
+            <a href={teamsHref} target="_blank" rel="noreferrer" className="btn-secondary">{text.contactPathTeams}</a>
+            <a href={`mailto:${SALES_EMAIL}`} className="btn-secondary">{text.contactPathEmail}</a>
+            <a href={phoneContactHref} className="btn-secondary">{text.contactPathPhone}</a>
+          </div>
+        </div>
+      </section>
 
       <section className="mt-8 rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-6 shadow-sm">
         <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">{text.recommendedAddOns}</p>
