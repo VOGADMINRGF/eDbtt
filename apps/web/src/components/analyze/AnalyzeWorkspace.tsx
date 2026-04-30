@@ -1402,10 +1402,22 @@ export default function AnalyzeWorkspace({
 
   const analyzeButtonLabel =
     analysisStatus === "running"
-      ? analyzeButtonTexts.running
+      ? analysisModeHint === "media"
+        ? "Prüfung läuft …"
+        : analysisModeHint === "guided"
+          ? "Entwurf wird strukturiert …"
+          : analyzeButtonTexts.running
       : analysisStatus === "error" || analysisStatus === "empty"
-      ? analyzeButtonTexts.retry
-      : analyzeButtonTexts.start;
+        ? analysisModeHint === "media"
+          ? "Prüfung erneut starten"
+          : analysisModeHint === "guided"
+            ? "Entwurf erneut strukturieren"
+            : analyzeButtonTexts.retry
+        : analysisModeHint === "media"
+          ? "Prüfung starten"
+          : analysisModeHint === "guided"
+            ? "Entwurf strukturieren"
+            : analyzeButtonTexts.start;
 
   const outputClassification = React.useMemo(() => {
     if (analysisStatus !== "success") {
@@ -2409,35 +2421,65 @@ export default function AnalyzeWorkspace({
     router.replace(finalizeRedirectTo as Parameters<typeof router.replace>[0]);
   }, [finalizeRedirectTo, router]);
 
+  const workspaceHeading =
+    analysisModeHint === "media"
+      ? { lead: "Beitrag", tail: "prüfen" }
+      : analysisModeHint === "guided"
+        ? { lead: "Entwurf", tail: "ausarbeiten" }
+        : mode === "statement"
+          ? { lead: "Statement", tail: "analysieren" }
+          : { lead: "Beitrag", tail: "analysieren" };
+  const workspaceFlowPrefix =
+    analysisModeHint === "media"
+      ? "Prüf-Flow"
+      : analysisModeHint === "guided"
+        ? "Arbeits-Flow"
+        : "Auto-Flow";
+  const workspacePlanChip =
+    allowResearch
+      ? analysisModeHint === "guided"
+        ? "Leitplan an"
+        : "Prüfplan an"
+      : analysisModeHint === "guided"
+        ? "Leitplan aus"
+        : "Prüfplan aus";
+  const workspaceEntryTitle =
+    analysisModeHint === "media"
+      ? "Prüfung starten"
+      : analysisModeHint === "guided"
+        ? "Entwurf strukturieren"
+        : "Analyse starten";
+  const workspaceEntryLeadCards =
+    analysisModeHint === "media"
+      ? "Wähle deinen Bereich – die Prüfung startet sofort mit dem passenden Ablauf."
+      : analysisModeHint === "guided"
+        ? "Wähle deinen Bereich – der Entwurf startet mit klaren Leitfragen und Arbeitsstruktur."
+        : "Wähle deinen Bereich – die Analyse startet sofort mit dem passenden Ablauf.";
+  const workspaceEntryLeadSingle =
+    analysisModeHint === "media"
+      ? "Dein Bereich wird aus dem Login-Kontext abgeleitet. Die Prüfung startet mit einem Klick."
+      : analysisModeHint === "guided"
+        ? "Dein Bereich wird aus dem Login-Kontext abgeleitet. Die Entwurfsstruktur startet mit einem Klick."
+        : "Dein Bereich wird aus deinem Login-Kontext abgeleitet. Die Analyse startet mit einem Klick.";
+
   return (
     <div ref={workspaceRef} className="min-h-[calc(100vh-64px)] bg-[rgb(var(--bg))]">
       <div className={["container-vog max-w-none px-4 space-y-4 pt-6", totalStatements > 0 ? "pb-40" : "pb-24"].join(" ")}>
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div className="space-y-2">
             <h1 className="vog-head text-3xl sm:text-4xl">
-              {mode === "statement" ? (
-                <>
-                  <span className="bg-gradient-to-r from-sky-500 via-cyan-500 to-emerald-500 bg-clip-text text-transparent">
-                    Statement
-                  </span>{" "}
-                  analysieren
-                </>
-              ) : (
-                <>
-                  <span className="bg-gradient-to-r from-sky-500 via-cyan-500 to-emerald-500 bg-clip-text text-transparent">
-                    Beitrag
-                  </span>{" "}
-                  analysieren
-                </>
-              )}
+              <span className="bg-gradient-to-r from-sky-500 via-cyan-500 to-emerald-500 bg-clip-text text-transparent">
+                {workspaceHeading.lead}
+              </span>{" "}
+              {workspaceHeading.tail}
             </h1>
             <p className="text-xs text-[rgb(var(--muted))]">
-              Auto-Flow: <span className="font-semibold text-[rgb(var(--muted))]">{flowConfig.label}</span> ·{" "}
+              {workspaceFlowPrefix}: <span className="font-semibold text-[rgb(var(--muted))]">{flowConfig.label}</span> ·{" "}
               {flowConfig.description}
             </p>
             <div className="flex flex-wrap gap-2 text-[10px] text-[rgb(var(--muted))]">
               <span className="inline-flex rounded-full bg-[rgb(var(--card))] px-2 py-1 ring-1 ring-inset ring-[rgb(var(--border))]">
-                {allowResearch ? "Pruefplan an" : "Pruefplan aus"}
+                {workspacePlanChip}
               </span>
               <span className="inline-flex rounded-full bg-[rgb(var(--card))] px-2 py-1 ring-1 ring-inset ring-[rgb(var(--border))]">
                 {flowIsLite ? "Schnellstart" : "Vertieft"}
@@ -3980,14 +4022,14 @@ export default function AnalyzeWorkspace({
           <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-4 shadow-sm space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
-                <p className="text-[11px] font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Analyse starten</p>
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">{workspaceEntryTitle}</p>
                 {showUseCaseCards ? (
                   <p className="text-[11px] text-[rgb(var(--muted))]">
-                    Waehle deinen Bereich – die Analyse startet sofort mit dem passenden Ablauf.
+                    {workspaceEntryLeadCards}
                   </p>
                 ) : (
                   <p className="text-[11px] text-[rgb(var(--muted))]">
-                    Dein Bereich wird aus deinem Login-Kontext abgeleitet. Die Analyse startet mit einem Klick.
+                    {workspaceEntryLeadSingle}
                   </p>
                 )}
                 {useCaseNote ? (

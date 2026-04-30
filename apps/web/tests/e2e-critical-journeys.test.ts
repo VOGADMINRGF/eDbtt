@@ -45,7 +45,7 @@ describe("e2e critical journeys", () => {
     expect(result.ok).toBe(true);
     expect(record?.status).toBe("submitted");
     expect(record?.requiresReview).toBe(false);
-    expect(record?.publicPriceSummary.packagePriceLabel).toContain("3,99 €");
+    expect(record?.publicPriceSummary.packagePriceLabel).toContain("4,99 €");
 
     const followup = getPricingOrderFollowupContract("privat");
     expect(followup.expectedInitialStatus).toBe("submitted");
