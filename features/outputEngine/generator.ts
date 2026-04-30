@@ -93,7 +93,7 @@ function buildStructuredSummary(dossier: MinimalDossierInput): string[] {
   const sourceCount = dossier.sources.length;
   const status = toCleanString(dossier.status) || "unknown";
   const lines = [
-    summary || `Dossier ${dossier.id} without editorial summary.`,
+    summary || `Dossier ${dossier.id} ohne redaktionelle Zusammenfassung.`,
     `Status: ${status}. Claims: ${claimCount}. Sources: ${sourceCount}.`,
   ];
 
@@ -177,7 +177,7 @@ export function generateOutputPackage(
 
   const title = truncate(toCleanString(dossier.title) || `Dossier ${dossierId}`, 160);
   const summary = truncate(toCleanString(dossier.summary), 280);
-  const shortSummary = summary || "No verified summary available yet.";
+  const shortSummary = summary || "Noch keine verifizierte Zusammenfassung verfügbar.";
   const structuredSummary = buildStructuredSummary(dossier);
   const sourceTraces = buildSourceTraces(dossier);
   const openQuestions = dossier.openQuestions.map(normalizeOpenQuestion).filter(Boolean);
@@ -210,21 +210,21 @@ export function generateOutputPackage(
       notes:
         sourceTraces.length > 0
           ? []
-          : ["No traceable sources linked. Package must stay in review queue."],
+          : ["Keine belastbaren Quellen verknüpft. Paket bleibt in der Review-Warteschlange."],
     },
     sourceTraces,
     openQuestions,
     options: decisionOptions,
     needsInputMarkers,
     cta: {
-      label: "Open dossier and review evidence",
+      label: "Dossier prüfen und Quellenlage nachvollziehen",
       action: "open_dossier",
       target: dossierBacklinkTarget,
     },
     dossierBacklinkTarget,
     qrCodeTarget: {
       type: "dossier",
-      label: "Dossier QR",
+      label: "Dossier-QR",
       target: dossierBacklinkTarget,
     },
     distributionOutputs: buildDistributionOutputs({

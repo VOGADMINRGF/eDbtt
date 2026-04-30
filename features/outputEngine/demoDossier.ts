@@ -2,23 +2,23 @@ import type { MinimalDossierInput } from "./generator";
 
 export const demoDossierForOutputEngine: MinimalDossierInput = {
   id: "dossier_demo_mobility_berlin",
-  title: "Mobility Transition in Berlin Districts",
+  title: "Mobilitätswende in Berliner Bezirken",
   summary:
-    "The dossier compares implementation options for bus lane expansion, cycling safety upgrades and phased delivery logistics with open cost and equity questions.",
+    "Das Dossier vergleicht Umsetzungsoptionen für den Ausbau von Busspuren, mehr Radverkehrssicherheit und eine gestufte Lieferlogistik bei offenen Kosten- und Verteilungsfragen.",
   claims: [
     {
       id: "claim_1",
-      text: "Dedicated bus lanes on key corridors can reduce average peak-time delays.",
+      text: "Eigene Busspuren auf zentralen Korridoren können durchschnittliche Verzögerungen im Berufsverkehr senken.",
       status: "supported",
     },
     {
       id: "claim_2",
-      text: "Protected cycling segments reduce severe accidents at conflict intersections.",
+      text: "Geschützte Radverkehrsabschnitte reduzieren schwere Unfälle an konfliktträchtigen Kreuzungen.",
       status: "supported",
     },
     {
       id: "claim_3",
-      text: "Delivery-zone redesign may shift congestion if enforcement stays inconsistent.",
+      text: "Eine Neuordnung von Lieferzonen kann Stau verlagern, wenn Kontrollen uneinheitlich bleiben.",
       status: "unclear",
     },
   ],
@@ -35,13 +35,13 @@ export const demoDossierForOutputEngine: MinimalDossierInput = {
     },
   ],
   openQuestions: [
-    "How should neighborhood-level delivery access be phased during construction?",
-    "Which equity metrics should gate district rollouts?",
+    "Wie soll quartierbezogener Lieferverkehr während Bauphasen gestuft geregelt werden?",
+    "Welche Verteilungsindikatoren sollen den Rollout je Bezirk steuern?",
   ],
   options: [
-    "Option A: prioritize bus lanes first",
-    "Option B: prioritize cycling safety first",
-    "Option C: phased mixed rollout by district",
+    "Option A: zuerst Busspuren priorisieren",
+    "Option B: zuerst Radverkehrssicherheit priorisieren",
+    "Option C: gestufter Misch-Rollout nach Bezirk",
   ],
   status: "in_review",
   updatedAt: "2026-04-28T08:00:00.000Z",
