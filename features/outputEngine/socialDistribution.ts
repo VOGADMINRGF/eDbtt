@@ -1,7 +1,9 @@
 import { z } from "zod";
+import type { MasterPost } from "./masterPost";
 import type { SocialCarouselOutput } from "./socialCarousel";
 
 export const SOCIAL_DISTRIBUTION_CHANNELS = [
+  "website_embed",
   "instagram",
   "facebook",
   "linkedin",
@@ -12,11 +14,11 @@ export const SOCIAL_DISTRIBUTION_CHANNELS = [
   "bluesky",
   "whatsapp_channel",
   "telegram",
-  "website_embed",
+  "newsletter",
+  "qr_print",
 ] as const;
 
 export const SOCIAL_DISTRIBUTION_MODES = [
-  "disabled",
   "draft_only",
   "review_required",
   "scheduled",
@@ -25,17 +27,16 @@ export const SOCIAL_DISTRIBUTION_MODES = [
 
 export const SOCIAL_DISTRIBUTION_STATUSES = [
   "draft",
-  "needs_review",
-  "approved",
+  "review_required",
+  "ready_for_schedule",
   "scheduled",
-  "ready_to_publish",
-  "published",
-  "blocked",
-  "failed",
+  "prepared",
+  "export_ready",
 ] as const;
 
 export const SOCIAL_CONNECTOR_STATUSES = [
-  "not_configured",
+  "internal_available",
+  "not_connected",
   "configured",
   "disabled_by_policy",
   "requires_review",
@@ -56,12 +57,11 @@ export type SocialConnectorStatus = (typeof SOCIAL_CONNECTOR_STATUSES)[number];
 export type SocialScheduleMode = (typeof SOCIAL_SCHEDULE_MODES)[number];
 
 export type SocialPublishingPolicy = {
-  mode: SocialDistributionMode;
-  canSchedule: boolean;
-  canRealtimePublish: boolean;
-  requiresManualReview: boolean;
-  autoPublishEnabled: false;
   externalApisEnabled: false;
+  autoPublishEnabled: false;
+  canSchedule: boolean;
+  canRealtimePublish: false;
+  requiresManualReview: boolean;
 };
 
 export type SocialDistributionTarget = {
@@ -70,7 +70,12 @@ export type SocialDistributionTarget = {
   connectorStatus: SocialConnectorStatus;
   selected: boolean;
   suggested: boolean;
-  note: string;
+  distributionStatus: SocialDistributionStatus;
+  nextAction: string;
+  scheduleModes: SocialScheduleMode[];
+  suggestedWindow: string;
+  postText: string;
+  hashtags: string[];
 };
 
 export type SocialDistributionPlan = {
@@ -87,24 +92,26 @@ export type SocialDistributionPlan = {
   suggestedPostText: string;
   suggestedHashtags: string[];
   suggestedPostingWindows: string[];
-  suggestedChannelFit: string[];
+  channelFit: string[];
   regionalContext: string;
   participationQuestion: string;
+  backlinkTarget: string;
   publicationStatus: "draft_review_required";
   canAutoPublish: false;
-  policy: SocialPublishingPolicy;
-  automationHint: string;
+  canRealtimePublish: false;
+  externalApisUsed: false;
   publishActionEnabled: false;
+  policy: SocialPublishingPolicy;
+  policyHints: string[];
 };
 
 const SocialPublishingPolicySchema = z
   .object({
-    mode: z.enum(SOCIAL_DISTRIBUTION_MODES),
-    canSchedule: z.boolean(),
-    canRealtimePublish: z.boolean(),
-    requiresManualReview: z.boolean(),
-    autoPublishEnabled: z.literal(false),
     externalApisEnabled: z.literal(false),
+    autoPublishEnabled: z.literal(false),
+    canSchedule: z.boolean(),
+    canRealtimePublish: z.literal(false),
+    requiresManualReview: z.boolean(),
   })
   .strict();
 
@@ -115,7 +122,12 @@ const SocialDistributionTargetSchema = z
     connectorStatus: z.enum(SOCIAL_CONNECTOR_STATUSES),
     selected: z.boolean(),
     suggested: z.boolean(),
-    note: z.string().trim().min(1),
+    distributionStatus: z.enum(SOCIAL_DISTRIBUTION_STATUSES),
+    nextAction: z.string().trim().min(1),
+    scheduleModes: z.array(z.enum(SOCIAL_SCHEDULE_MODES)).min(1),
+    suggestedWindow: z.string().trim().min(1),
+    postText: z.string().trim().min(1),
+    hashtags: z.array(z.string().trim().min(2)).min(1),
   })
   .strict();
 
@@ -129,23 +141,27 @@ export const SocialDistributionPlanSchema = z
     scheduleModes: z.array(z.enum(SOCIAL_SCHEDULE_MODES)).min(1),
     selectedChannels: z.array(z.enum(SOCIAL_DISTRIBUTION_CHANNELS)),
     suggestedChannels: z.array(z.enum(SOCIAL_DISTRIBUTION_CHANNELS)).min(1),
-    targets: z.array(SocialDistributionTargetSchema).length(11),
-    selectedCount: z.number().int().min(0).max(11),
+    targets: z.array(SocialDistributionTargetSchema).length(SOCIAL_DISTRIBUTION_CHANNELS.length),
+    selectedCount: z.number().int().min(0),
     suggestedPostText: z.string().trim().min(1),
     suggestedHashtags: z.array(z.string().trim().min(2)).min(1),
     suggestedPostingWindows: z.array(z.string().trim().min(1)).min(1),
-    suggestedChannelFit: z.array(z.string().trim().min(1)).min(1),
+    channelFit: z.array(z.string().trim().min(1)).min(1),
     regionalContext: z.string().trim().min(1),
     participationQuestion: z.string().trim().min(1),
+    backlinkTarget: z.string().trim().min(1),
     publicationStatus: z.literal("draft_review_required"),
     canAutoPublish: z.literal(false),
-    policy: SocialPublishingPolicySchema,
-    automationHint: z.string().trim().min(1),
+    canRealtimePublish: z.literal(false),
+    externalApisUsed: z.literal(false),
     publishActionEnabled: z.literal(false),
+    policy: SocialPublishingPolicySchema,
+    policyHints: z.array(z.string().trim().min(1)).min(1),
   })
   .strict();
 
 const CHANNEL_LABELS: Record<SocialDistributionChannel, string> = {
+  website_embed: "Website / Dossier-Post",
   instagram: "Instagram",
   facebook: "Facebook",
   linkedin: "LinkedIn",
@@ -156,14 +172,9 @@ const CHANNEL_LABELS: Record<SocialDistributionChannel, string> = {
   bluesky: "Bluesky",
   whatsapp_channel: "WhatsApp Channel",
   telegram: "Telegram",
-  website_embed: "Website Embed",
+  newsletter: "Newsletter",
+  qr_print: "QR / Print",
 };
-
-const SUGGESTED_CHANNELS: SocialDistributionChannel[] = [
-  "website_embed",
-  "linkedin",
-  "instagram",
-];
 
 function envFlag(name: string, fallback: boolean): boolean {
   const raw = process.env[name];
@@ -172,87 +183,135 @@ function envFlag(name: string, fallback: boolean): boolean {
 }
 
 export function getSocialPublishingPolicy(): SocialPublishingPolicy {
-  const distributionEnabled = envFlag("SOCIAL_DISTRIBUTION_ENABLED", false);
-  const canSchedule = envFlag("SOCIAL_SCHEDULE_ENABLED", true);
-  const requiresManualReview = envFlag("SOCIAL_REQUIRE_REVIEW", true);
+  const canSchedule = envFlag("SOCIAL_DISTRIBUTION_ENABLED", false)
+    ? true
+    : envFlag("SOCIAL_REQUIRE_REVIEW", true);
 
   return SocialPublishingPolicySchema.parse({
-    mode: distributionEnabled ? "review_required" : "draft_only",
+    externalApisEnabled: false,
+    autoPublishEnabled: false,
     canSchedule,
     canRealtimePublish: false,
-    requiresManualReview,
-    autoPublishEnabled: false,
-    externalApisEnabled: false,
+    requiresManualReview: envFlag("SOCIAL_REQUIRE_REVIEW", true),
   });
 }
 
-function channelNote(status: SocialConnectorStatus): string {
-  if (status === "configured") return "Verbunden";
-  if (status === "disabled_by_policy") return "Per Admin deaktiviert";
-  if (status === "requires_review") return "Review erforderlich";
-  if (status === "available_later") return "Später verfügbar";
-  return "Noch nicht verbunden";
+function resolveConnectorStatus(
+  channel: SocialDistributionChannel,
+  policy: SocialPublishingPolicy,
+): SocialConnectorStatus {
+  if (channel === "website_embed" || channel === "qr_print") return "internal_available";
+
+  if (channel === "newsletter") {
+    if (!policy.externalApisEnabled) return "not_connected";
+    return "configured";
+  }
+
+  if (!policy.externalApisEnabled) return "disabled_by_policy";
+  return "not_connected";
+}
+
+function resolveNextAction(status: SocialConnectorStatus): string {
+  if (status === "internal_available") return "Internen Entwurf prüfen und planen";
+  if (status === "configured") return "Kanaltext prüfen und Planung übernehmen";
+  if (status === "requires_review") return "Review abschließen";
+  if (status === "available_later") return "Später aktivieren";
+  if (status === "disabled_by_policy") return "Nur Export/Kopieren möglich";
+  return "Kanalverbindung vorbereiten";
+}
+
+function resolveDistributionStatus(
+  selected: boolean,
+  connectorStatus: SocialConnectorStatus,
+): SocialDistributionStatus {
+  if (!selected) return "draft";
+  if (connectorStatus === "internal_available") return "ready_for_schedule";
+  if (connectorStatus === "disabled_by_policy" || connectorStatus === "not_connected") return "export_ready";
+  if (connectorStatus === "requires_review") return "review_required";
+  return "ready_for_schedule";
+}
+
+function hashtagStrings(masterPost: MasterPost): string[] {
+  return masterPost.suggestedHashtags.map((entry) => entry.tag);
 }
 
 export function buildSocialDistributionPlan(
+  masterPost: MasterPost,
   carouselOutput: SocialCarouselOutput,
   options?: {
     policy?: SocialPublishingPolicy;
     scheduleMode?: SocialScheduleMode;
+    selectedChannels?: SocialDistributionChannel[];
   },
 ): SocialDistributionPlan {
   const policy = options?.policy ?? getSocialPublishingPolicy();
+  const scheduleModes: SocialScheduleMode[] = [
+    "manual",
+    "suggested_window",
+    "scheduled_at",
+    "immediate_after_review",
+  ];
   const scheduleMode = options?.scheduleMode ?? "suggested_window";
 
+  const safeSuggestions: SocialDistributionChannel[] = ["website_embed", "linkedin"];
+  const defaultSelected = options?.selectedChannels?.length
+    ? options.selectedChannels
+    : ["website_embed", "linkedin", "qr_print"];
+
+  const postText = masterPost.body;
+  const hashtags = hashtagStrings(masterPost);
+  const suggestedWindow = masterPost.suggestedPostingWindows[0]?.window ?? "Mo-Fr 08:00-10:00";
+
   const targets: SocialDistributionTarget[] = SOCIAL_DISTRIBUTION_CHANNELS.map((channel) => {
-    const suggested = SUGGESTED_CHANNELS.includes(channel);
-
-    let connectorStatus: SocialConnectorStatus = "not_configured";
-    if (channel === "website_embed") connectorStatus = "configured";
-    if (channel !== "website_embed" && !policy.externalApisEnabled) {
-      connectorStatus = "disabled_by_policy";
-    }
-
-    const selected = channel === "website_embed";
+    const connectorStatus = resolveConnectorStatus(channel, policy);
+    const selected = defaultSelected.includes(channel);
 
     return {
       channel,
       label: CHANNEL_LABELS[channel],
       connectorStatus,
       selected,
-      suggested,
-      note: channelNote(connectorStatus),
+      suggested: safeSuggestions.includes(channel),
+      distributionStatus: resolveDistributionStatus(selected, connectorStatus),
+      nextAction: resolveNextAction(connectorStatus),
+      scheduleModes,
+      suggestedWindow,
+      postText,
+      hashtags,
     };
   });
 
   const selectedChannels = targets.filter((target) => target.selected).map((target) => target.channel);
-  const status: SocialDistributionStatus =
-    carouselOutput.reviewStatus === "draft" || carouselOutput.reviewStatus === "needs_review"
-      ? "needs_review"
-      : "approved";
+  const status: SocialDistributionStatus = masterPost.reviewStatus === "approved" ? "ready_for_schedule" : "review_required";
 
   const plan: SocialDistributionPlan = {
-    dossierId: carouselOutput.dossierId,
-    packageId: carouselOutput.packageId,
-    mode: policy.mode,
+    dossierId: masterPost.dossierId,
+    packageId: masterPost.packageId,
+    mode: "review_required",
     status,
     scheduleMode,
-    scheduleModes: ["manual", "suggested_window", "scheduled_at", "immediate_after_review"],
+    scheduleModes,
     selectedChannels,
-    suggestedChannels: SUGGESTED_CHANNELS,
+    suggestedChannels: safeSuggestions,
     targets,
     selectedCount: selectedChannels.length,
     suggestedPostText: carouselOutput.suggestedPostText,
-    suggestedHashtags: carouselOutput.suggestedHashtags,
-    suggestedPostingWindows: carouselOutput.suggestedPostingWindows,
-    suggestedChannelFit: carouselOutput.suggestedChannelFit,
-    regionalContext: carouselOutput.regionalContext,
-    participationQuestion: carouselOutput.participationQuestion,
+    suggestedHashtags: hashtags,
+    suggestedPostingWindows: masterPost.suggestedPostingWindows.map((entry) => entry.window),
+    channelFit: masterPost.channelFit.map((entry) => entry.channel),
+    regionalContext: masterPost.regionalContext,
+    participationQuestion: masterPost.participationQuestion,
+    backlinkTarget: masterPost.backlinkTarget,
     publicationStatus: "draft_review_required",
     canAutoPublish: false,
-    policy,
-    automationHint: "Automatisierung erst nach Admin-Freigabe.",
+    canRealtimePublish: false,
+    externalApisUsed: false,
     publishActionEnabled: false,
+    policy,
+    policyHints: [
+      "Echtzeit-Veröffentlichung ist aktuell deaktiviert.",
+      "Automatisierung erst nach Admin-Freigabe.",
+    ],
   };
 
   return SocialDistributionPlanSchema.parse(plan);
