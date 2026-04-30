@@ -86,6 +86,16 @@ export type CreateSurfaceTexts = {
   guidedHint: string;
   guidedMissingError: string;
   guidedWorkspacePrefix: string;
+  followupContributeStatus: string;
+  followupContributeTitle: string;
+  followupContributeLead: string;
+  followupGuidedStatus: string;
+  followupGuidedTitle: string;
+  followupGuidedLead: string;
+  followupReviewFrameTitle: string;
+  followupReviewFrameLead: string;
+  followupActionToReview: string;
+  followupActionToGuided: string;
   demoBadge: (personaLabel: string) => string;
   demoSubline: string;
   demoStatusLine: (submitted: string, inReview: string, confirmed: string) => string;
@@ -258,6 +268,19 @@ const CREATE_SURFACE_BUNDLES: Record<CreateSurfaceLocale, CreateSurfaceLocaleBun
       guidedMissingError:
         "Bitte beantworte die erste Rückfrage, damit der Arbeitsstand starten kann.",
       guidedWorkspacePrefix: "Geführter Fokus",
+      followupContributeStatus: "Beitrag aufgenommen",
+      followupContributeTitle: "Dein Beitrag ist im Einordnungsfluss",
+      followupContributeLead:
+        "Wir ordnen den Beitrag thematisch ein und halten den nächsten sinnvollen Schritt offen, ohne direkt in den Prüf-Workbench zu wechseln.",
+      followupGuidedStatus: "Entwurfsmodus aktiv",
+      followupGuidedTitle: "Der Entwurf läuft jetzt als gemeinsamer Arbeitsstand",
+      followupGuidedLead:
+        "Du kannst den Entwurf im Anlasskontext weiterführen oder ihn bei Bedarf bewusst in den Prüfbereich übergeben.",
+      followupReviewFrameTitle: "Prüfbereich aktiv",
+      followupReviewFrameLead:
+        "Die Prüfung wird vorbereitet. Der folgende Bereich ist auf Analyse, Fakten- und Qualitätsprüfung ausgerichtet.",
+      followupActionToReview: "Zur Prüfung weitergeben",
+      followupActionToGuided: "Als Entwurf weiterführen",
       demoBadge: (personaLabel) => `Demo · ${personaLabel}`,
       demoSubline:
         "Teile deine Aussage, Frage, Quelle oder Einschätzung in einem Feld. Die Demo nutzt dieselbe Eingabemaske wie `/create` und hält den Persona-Kontext stabil.",
@@ -418,6 +441,19 @@ const CREATE_SURFACE_BUNDLES: Record<CreateSurfaceLocale, CreateSurfaceLocaleBun
       guidedHint: "After this, guided drafting starts in the next step.",
       guidedMissingError: "Please answer the first follow-up question to start the working state.",
       guidedWorkspacePrefix: "Guided focus",
+      followupContributeStatus: "Contribution received",
+      followupContributeTitle: "Your contribution is now in the classification flow",
+      followupContributeLead:
+        "We classify your contribution by topic and keep the next step explicit without forcing the full review workspace.",
+      followupGuidedStatus: "Draft mode active",
+      followupGuidedTitle: "The draft now continues as a shared working state",
+      followupGuidedLead:
+        "You can continue drafting in context or explicitly hand over to the review area when needed.",
+      followupReviewFrameTitle: "Review area active",
+      followupReviewFrameLead:
+        "Review preparation is running. The following area focuses on analysis, fact-checking and quality review.",
+      followupActionToReview: "Hand over to review",
+      followupActionToGuided: "Continue as draft",
       demoBadge: (personaLabel) => `Demo · ${personaLabel}`,
       demoSubline:
         "Share your statement, question, source or assessment in one field. The demo uses the same entry mask as `/create` while keeping persona context stable.",
