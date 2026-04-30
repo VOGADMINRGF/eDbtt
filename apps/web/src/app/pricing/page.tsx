@@ -39,6 +39,7 @@ export default async function PricingPage({ searchParams }: PageProps = {}) {
     packageId: firstString(params.paket),
   });
   const selectedSegment = selectedOrderEntry.segmentId;
+  const isMunicipalBridge = selectedSegment === "kommunen";
   const segmentPackages = getPackagesForJourneySegment(selectedSegment, locale);
   const pricingPackages = segmentPackages.map((pkg) => ({
     ...pkg,
@@ -59,22 +60,39 @@ export default async function PricingPage({ searchParams }: PageProps = {}) {
           howItWorksCta: "How eDebatte works",
           privateKicker: "Private packages",
           privateTitle: "Private packages for individuals",
-          privateText: "Participation Free: €0 · Interested: €3.99 · Active: €9.99 · Co-creating: €29.99.",
+          privateText:
+            "Participation Free: €0 · Interested: €4.99/month incl. VAT · Active: €14.99/month incl. VAT · Co-creating: €29.99/month incl. VAT.",
           segmentTitle: "Segments",
           segmentLabels: {
             privat: "Individuals",
             journalismus: "Journalism",
             organisationen: "Organizations",
-            kommunen: "Municipalities",
+            kommunen: "Municipalities & public buyers",
           } as Record<PricingSegmentId, string>,
           segmentTexts: {
-            privat: "Participation Free: €0 · Interested: €3.99 · Active: €9.99 · Co-creating: €29.99.",
+            privat:
+              "Participation Free: €0 · Interested: €4.99/month incl. VAT · Active: €14.99/month incl. VAT · Co-creating: €29.99/month incl. VAT.",
             journalismus:
               "Journalism packages with starter quota (3 contributions/1 issue room) or working quota (10 contributions/1 issue room).",
             organisationen:
               "Organization packages include a starter quota for small associations plus onboarding, role setup and operational rollout.",
-            kommunen: "Municipal packages for participation operations and implementation-ready governance paths.",
+            kommunen:
+              "Municipalities use procurement-ready participation services, not a second generic SaaS package list.",
           } as Record<PricingSegmentId, string>,
+          municipalBridgeTitle: "Municipalities & public buyers",
+          municipalBridgeIntro:
+            "For municipalities we provide procurement-ready participation services — from participation check to framework package.",
+          municipalBridgeHint: "The full selection happens in the institutional B2G configurator.",
+          municipalBridgeCta: "Go to B2G configurator",
+          municipalBridgeQuoteCta: "Request service description",
+          municipalStagesTitle: "Compact B2G preview",
+          municipalStages: [
+            "Participation Check · from €2,500 one-time + VAT",
+            "Dossier & Participation Round · project-based, quote-oriented + VAT",
+            "Municipal Participation Operations · from €4,500/month + VAT",
+            "Framework Package / Procurement Package · after clarification, quote-based + VAT",
+          ],
+          annualHint: "Annual payment is preferred across paid package paths.",
           membershipTitle: "Membership in the initiative",
           membershipIntro:
             "Membership remains optional. Package pricing and membership contribution are handled separately.",
@@ -108,22 +126,39 @@ export default async function PricingPage({ searchParams }: PageProps = {}) {
           howItWorksCta: "So funktioniert eDebatte",
           privateKicker: "Privatpakete",
           privateTitle: "Privatpakete für Einzelpersonen",
-          privateText: "Beteiligung frei: 0 € · Interessiert: 3,99 € · Aktiv: 9,99 € · Mitgestaltend: 29,99 €.",
+          privateText:
+            "Beteiligung frei: 0 € · Interessiert: 4,99 € mtl. inkl. MwSt. · Aktiv: 14,99 € mtl. inkl. MwSt. · Mitgestaltend: 29,99 € mtl. inkl. MwSt.",
           segmentTitle: "Segmente",
           segmentLabels: {
             privat: "Einzelpersonen",
             journalismus: "Journalismus",
             organisationen: "Organisationen",
-            kommunen: "Kommunen",
+            kommunen: "Kommunen & öffentliche Auftraggeber",
           } as Record<PricingSegmentId, string>,
           segmentTexts: {
-            privat: "Beteiligung frei: 0 € · Interessiert: 3,99 € · Aktiv: 9,99 € · Mitgestaltend: 29,99 €.",
+            privat:
+              "Beteiligung frei: 0 € · Interessiert: 4,99 € mtl. inkl. MwSt. · Aktiv: 14,99 € mtl. inkl. MwSt. · Mitgestaltend: 29,99 € mtl. inkl. MwSt.",
             journalismus:
               "Journalistische Pakete mit Einstiegskontingent (3 Beiträge/1 Anlassraum) oder Arbeitskontingent (10 Beiträge/1 Anlassraum).",
             organisationen:
               "Pakete für Organisationen mit Einstiegskontingent für kleine Vereine plus klarer Einführung, Rollenaufbau und Betriebsmodell.",
-            kommunen: "Kommunale Pakete für Beteiligungsbetrieb und umsetzungsfähige Entscheidungsprozesse.",
+            kommunen:
+              "Kommunen nutzen vergabefähige Beteiligungsleistungen. Die kanonische Auswahl läuft im B2G-Konfigurator.",
           } as Record<PricingSegmentId, string>,
+          municipalBridgeTitle: "Kommunen & öffentliche Auftraggeber",
+          municipalBridgeIntro:
+            "Für Kommunen gibt es vergabefähige Beteiligungsleistungen – vom Beteiligungs-Check bis zum Rahmenvertrag.",
+          municipalBridgeHint: "Die eigentliche Auswahl erfolgt im institutionellen B2G-Konfigurator.",
+          municipalBridgeCta: "Zum B2G-Konfigurator",
+          municipalBridgeQuoteCta: "Leistungsbeschreibung anfordern",
+          municipalStagesTitle: "Kompakte Vorschau der vier B2G-Stufen",
+          municipalStages: [
+            "Beteiligungs-Check · ab 2.500 € einmalig zzgl. MwSt.",
+            "Dossier & Beteiligungsrunde · projektbezogen, als Leistungsbaustein zzgl. MwSt.",
+            "Beteiligungsbetrieb Kommune · ab 4.500 € / Monat zzgl. MwSt.",
+            "Rahmenvertrag / Vergabepaket · Angebot nach Klärung zzgl. MwSt.",
+          ],
+          annualHint: "Jährliche Zahlung wird bei kostenpflichtigen Paketwegen bevorzugt.",
           membershipTitle: "Mitgliedschaft in der Initiative",
           membershipIntro:
             "Der Mitgliedschaftsantrag bleibt optional. Paketpreis und Mitgliedsbeitrag werden getrennt behandelt.",
@@ -170,11 +205,16 @@ export default async function PricingPage({ searchParams }: PageProps = {}) {
         <div className="max-w-5xl">
           <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">{labels.privateKicker}</p>
           <h2 className="mt-2 text-2xl font-semibold text-[rgb(var(--fg))] sm:text-3xl">
-            {selectedSegment === "privat"
+            {isMunicipalBridge
+              ? labels.municipalBridgeTitle
+              : selectedSegment === "privat"
               ? labels.privateTitle
               : `${labels.segmentLabels[selectedSegment]} · ${locale === "en" ? "package overview" : "Paketübersicht"}`}
           </h2>
-          <p className="mt-1 text-sm leading-relaxed text-[rgb(var(--muted))]">{labels.segmentTexts[selectedSegment]}</p>
+          <p className="mt-1 text-sm leading-relaxed text-[rgb(var(--muted))]">
+            {isMunicipalBridge ? labels.municipalBridgeIntro : labels.segmentTexts[selectedSegment]}
+          </p>
+          <p className="mt-1 text-xs leading-relaxed text-[rgb(var(--muted))]">{labels.annualHint}</p>
           <div className="mt-4">
             <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">{labels.segmentTitle}</p>
             <div className="mt-2 flex flex-wrap gap-2">
@@ -217,7 +257,36 @@ export default async function PricingPage({ searchParams }: PageProps = {}) {
           </article>
         ) : null}
 
-        <PackagesGrid packages={pricingPackages} locale={locale} compact />
+        {isMunicipalBridge ? (
+          <article className="rounded-3xl border border-sky-300 bg-sky-50/70 p-6 shadow-sm">
+            <p className="text-xs font-semibold uppercase tracking-wide text-sky-900">{labels.municipalStagesTitle}</p>
+            <ul className="mt-3 space-y-2 text-sm text-sky-900">
+              {labels.municipalStages.map((line) => (
+                <li key={line}>{line}</li>
+              ))}
+            </ul>
+            <p className="mt-4 text-sm text-sky-900">{labels.municipalBridgeHint}</p>
+            <div className="mt-4 flex flex-wrap gap-3">
+              <Link
+                href={withLocaleHref("/pricing/institutionen?segment=kommunen#guided-selection", locale)}
+                className="btn-primary inline-flex"
+              >
+                {labels.municipalBridgeCta}
+              </Link>
+              <Link
+                href={withLocaleHref(
+                  "/pricing/institutionen?segment=kommunen&goal=oeffentliche_anschlussfaehigkeit&frame=laufender_betrieb#guided-selection",
+                  locale,
+                )}
+                className="btn-secondary inline-flex"
+              >
+                {labels.municipalBridgeQuoteCta}
+              </Link>
+            </div>
+          </article>
+        ) : (
+          <PackagesGrid packages={pricingPackages} locale={locale} compact />
+        )}
 
         <p className="mt-2 text-sm font-semibold text-[rgb(var(--fg))]">
           {locale === "en"
