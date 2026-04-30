@@ -7,6 +7,7 @@ import ProductSurfaceShell from "@/components/layout/ProductSurfaceShell";
 import { HumanCheck } from "@/components/security/HumanCheck";
 import {
   ORDER_SEGMENT_ORDER,
+  formatPackageBillingModeLabel,
   formatPackagePriceLabel,
   getInstitutionalAddonFollowupQuestions,
   getInstitutionalAddOnMaturityMeta,
@@ -65,6 +66,7 @@ const VORMERKEN_LABELS = {
       kommunen: "Kommunen / Verwaltung",
     } as Record<PricingSegmentId, string>,
     packageSectionTitle: "Paketauswahl",
+    billingModeLabel: "Abrechnungsmodus",
     packageSectionText: {
       privat:
         "Beteiligung frei: 0 € · Interessiert: 4,99 € mtl. inkl. MwSt. · Aktiv: 14,99 € mtl. inkl. MwSt. · Mitgestaltend: 29,99 € mtl. inkl. MwSt.",
@@ -177,6 +179,7 @@ const VORMERKEN_LABELS = {
     contactSales: "Kontakt an sales@edebatte.org",
     institutionalHint:
       "Direktbestellung bleibt möglich. Alternativ kannst du einen Downloadlink anfordern oder das Team kontaktieren.",
+    annualPreferredHint: "Bei kostenpflichtigen Monatsmodellen wird jährliche Zahlung bevorzugt.",
     contactPathsTitle: "Kontaktwege",
     contactPathsIntro: "Bei Bedarf erreichst du das Team über den passenden Kanal.",
     contactPathTeam: "Kontakt zum Team",
@@ -202,6 +205,7 @@ const VORMERKEN_LABELS = {
       kommunen: "Municipalities / administration",
     } as Record<PricingSegmentId, string>,
     packageSectionTitle: "Package selection",
+    billingModeLabel: "Billing mode",
     packageSectionText: {
       privat:
         "Participation Free: €0 · Interested: €4.99/month incl. VAT · Active: €14.99/month incl. VAT · Co-creating: €29.99/month incl. VAT",
@@ -313,6 +317,7 @@ const VORMERKEN_LABELS = {
     contactSales: "Contact sales@edebatte.org",
     institutionalHint:
       "Direct order remains available. Alternatively request a download link or contact the team.",
+    annualPreferredHint: "Annual billing is preferred for paid monthly models.",
     contactPathsTitle: "Contact paths",
     contactPathsIntro: "Use the channel that best fits your process.",
     contactPathTeam: "Contact team",
@@ -376,6 +381,10 @@ function parseAddOnQuery(params: { getAll: (name: string) => string[] }) {
 
 function priceLabel(pkg: EDebattePackageDefinition, locale: PricingLocale) {
   return formatPackagePriceLabel(pkg, locale);
+}
+
+function packageBillingModeLabel(pkg: EDebattePackageDefinition, locale: PricingLocale) {
+  return formatPackageBillingModeLabel(pkg, locale);
 }
 
 function parseEuroAmount(value: string) {
@@ -961,6 +970,7 @@ export default function VormerkenPage({ entrySurface = "vormerken" }: VormerkenP
           <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">{text.pageKicker}</p>
           <h1 className="mt-2 text-3xl font-bold tracking-tight text-[rgb(var(--fg))] sm:text-4xl">{text.heroTitle}</h1>
           <p className="mt-4 max-w-4xl text-base leading-relaxed text-[rgb(var(--muted))]">{text.heroText}</p>
+          <p className="mt-2 text-xs text-[rgb(var(--muted))]">{text.annualPreferredHint}</p>
           <div className="mt-6 flex flex-wrap gap-3">
             <Link href={withLocaleHref("/pricing", locale)} className="btn-secondary">
               {text.toPricing}
@@ -1071,6 +1081,9 @@ export default function VormerkenPage({ entrySurface = "vormerken" }: VormerkenP
               >
                 <p className="text-sm font-semibold text-[rgb(var(--fg))]">{pkg.titel}</p>
                 <p className="mt-1 text-lg font-semibold text-[rgb(var(--fg))]">{priceLabel(pkg, locale)}</p>
+                <p className="mt-1 text-xs text-[rgb(var(--muted))]">
+                  {text.billingModeLabel}: {packageBillingModeLabel(pkg, locale)}
+                </p>
                 {isInstitutionalSegment ? (
                   <div className="mt-3 space-y-2 text-xs leading-relaxed text-[rgb(var(--muted))]">
                     <p>{pkg.wofuerGedacht}</p>

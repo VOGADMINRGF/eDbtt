@@ -31,6 +31,17 @@ function withLocaleHref(href: string, locale: PricingLocale) {
   return `${path}${queryString ? `?${queryString}` : ""}${hash ? `#${hash}` : ""}`;
 }
 
+function withSegmentOnInternalOrderHref(href: string, segment: PricingSegmentId) {
+  if (!href.startsWith("/")) return href;
+  const [pathAndQuery, hash = ""] = href.split("#");
+  const [path, query = ""] = pathAndQuery.split("?");
+  const normalizedPath = path === "/order" ? "/vormerken" : path;
+  const params = new URLSearchParams(query);
+  if (!params.get("segment")) params.set("segment", segment);
+  const queryString = params.toString();
+  return `${normalizedPath}${queryString ? `?${queryString}` : ""}${hash ? `#${hash}` : ""}`;
+}
+
 export default async function PricingPage({ searchParams }: PageProps = {}) {
   const params = (await searchParams) ?? {};
   const locale = normalizePricingLocale(firstString(params.lang));
@@ -43,7 +54,10 @@ export default async function PricingPage({ searchParams }: PageProps = {}) {
   const segmentPackages = getPackagesForJourneySegment(selectedSegment, locale);
   const pricingPackages = segmentPackages.map((pkg) => ({
     ...pkg,
-    ctaHref: pkg.ctaHref.replace("/order?", "/vormerken?"),
+    ctaHref: withSegmentOnInternalOrderHref(pkg.ctaHref, selectedSegment),
+    sekundarCtaHref: pkg.sekundarCtaHref
+      ? withSegmentOnInternalOrderHref(pkg.sekundarCtaHref, selectedSegment)
+      : pkg.sekundarCtaHref,
   }));
   const segmentHref = (segment: PricingSegmentId) =>
     withLocaleHref(`/pricing?segment=${segment}`, locale);

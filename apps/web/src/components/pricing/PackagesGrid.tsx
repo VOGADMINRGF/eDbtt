@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import {
+  formatPackageBillingModeLabel,
   formatPackagePriceLabel,
   type EDebattePackageDefinition,
   type PricingLocale,
@@ -76,6 +77,9 @@ function PackagesGrid({ packages = [], tone = "default", locale = "de", compact 
             <h3 className="mt-2 min-h-[3.7rem] text-2xl font-semibold leading-tight text-[rgb(var(--fg))]">{pkg.titel}</h3>
 
             <p className="mt-6 text-[1.65rem] font-bold tracking-tight text-[rgb(var(--fg))]">{formatPackagePriceLabel(pkg, locale)}</p>
+            <p className="mt-1 text-xs font-medium text-[rgb(var(--muted))]">
+              {locale === "en" ? "Billing mode:" : "Abrechnungsmodus:"} {formatPackageBillingModeLabel(pkg, locale)}
+            </p>
             {!compact ? (
               <p className="mt-4 min-h-[5rem] text-base leading-relaxed text-[rgb(var(--muted))]">{pkg.beschreibungKurz}</p>
             ) : null}

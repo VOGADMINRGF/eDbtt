@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
   SOCIAL_DISTRIBUTION_CHANNELS,
+  buildSocialDistributionDraft,
   buildSocialDistributionPlan,
+  buildSocialDistributionQueue,
   demoDossierForOutputEngine,
   generateMasterPost,
   generateOutputPackage,
@@ -58,6 +60,8 @@ describe("output engine social distribution plan", () => {
     expect(plan.suggestedPostText.length).toBeGreaterThan(20);
     expect(plan.suggestedHashtags).toContain("#eDebatte");
     expect(plan.suggestedPostingWindows.length).toBeGreaterThan(0);
+    expect(plan.channelVersions.length).toBeGreaterThanOrEqual(7);
+    expect(plan.channelVersions.some((entry) => entry.title.includes("TikTok"))).toBe(true);
   });
 
   it("keeps policy defaults with no external API publishing", () => {
@@ -67,5 +71,33 @@ describe("output engine social distribution plan", () => {
     expect(policy.autoPublishEnabled).toBe(false);
     expect(policy.canRealtimePublish).toBe(false);
     expect(policy.requiresManualReview).toBe(true);
+  });
+
+  it("builds a deterministic queue for selected channels", () => {
+    const plan = buildPlan();
+    const queue = buildSocialDistributionQueue(plan, ["website_embed", "linkedin"]);
+
+    expect(queue).toHaveLength(2);
+    expect(queue[0]?.channel).toBe("website_embed");
+    expect(queue[1]?.channel).toBe("linkedin");
+    expect(queue.every((entry) => entry.recommendedWindow.length > 0)).toBe(true);
+  });
+
+  it("creates a persistent draft contract for manual handoff without external publish", () => {
+    const plan = buildPlan();
+    const draft = buildSocialDistributionDraft({
+      plan,
+      selectedChannels: ["website_embed", "linkedin"],
+      scheduleMode: "suggested_window",
+      reviewRequired: true,
+      status: "planned",
+      savedAt: "2026-04-30T10:30:00.000Z",
+    });
+
+    expect(draft.dossierId).toBe(plan.dossierId);
+    expect(draft.status).toBe("planned");
+    expect(draft.externalPublish).toBe(false);
+    expect(draft.queue.length).toBeGreaterThan(0);
+    expect(draft.notes.some((entry) => entry.includes("Keine externe Live-Veröffentlichung"))).toBe(true);
   });
 });

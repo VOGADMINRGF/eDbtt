@@ -37,7 +37,11 @@ describe("/dossier/[id]/studio social distribution workspace", () => {
     expect(html).toContain("Nur Export/Kopieren möglich");
     expect(html).toContain("Echtzeit-Veröffentlichung ist aktuell deaktiviert");
     expect(html).toContain("Automatisierung erst nach Admin-Freigabe");
-    expect(html).toContain("Plan speichern");
+    expect(html).toContain("Verteilplan als Entwurf speichern");
+    expect(html).toContain("Verteilplan übernehmen");
+    expect(html).toContain("Empfohlener Verteilplan");
+    expect(html).toContain("Kanal-Versionen");
+    expect(html).toContain("TikTok / Reels / YouTube Shorts");
     expect(html).toContain("Kanäle verbinden");
     expect(html).toContain("Post-Entwurf prüfen");
     expect(html).toContain("Zurück zum Dossier");
@@ -46,8 +50,7 @@ describe("/dossier/[id]/studio social distribution workspace", () => {
   it("keeps publish action non-active and preserves source/review warning", async () => {
     const html = await renderStudioPage("dossier-31");
 
-    expect(html).toContain("Veröffentlichen (deaktiviert – nur Vorbereitung)");
-    expect(html).toContain("disabled");
+    expect(html).toContain("Veröffentlichung vorbereiten");
     expect(html).toContain("Quellenlage");
     expect(html).toContain("Review erforderlich");
     expect(html).not.toContain("extern veröffentlicht");

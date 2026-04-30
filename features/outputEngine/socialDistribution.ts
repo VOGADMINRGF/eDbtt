@@ -103,6 +103,52 @@ export type SocialDistributionPlan = {
   publishActionEnabled: false;
   policy: SocialPublishingPolicy;
   policyHints: string[];
+  channelVersions: SocialDistributionChannelVersion[];
+};
+
+export type SocialDistributionChannelVersion = {
+  id: string;
+  channel: SocialDistributionChannel;
+  title: string;
+  postType: string;
+  excerpt: string;
+  detail: string;
+};
+
+export const SOCIAL_DISTRIBUTION_DRAFT_STATUSES = [
+  "draft_saved",
+  "review_requested",
+  "planned",
+  "prepared_internal",
+  "external_export_only",
+] as const;
+
+export type SocialDistributionDraftStatus =
+  (typeof SOCIAL_DISTRIBUTION_DRAFT_STATUSES)[number];
+
+export type SocialDistributionQueueItem = {
+  id: string;
+  channel: SocialDistributionChannel;
+  label: string;
+  recommendedWindow: string;
+  status: SocialDistributionStatus;
+  connectorStatus: SocialConnectorStatus;
+  actionLabel: string;
+};
+
+export type SocialDistributionDraft = {
+  draftId: string;
+  dossierId: string;
+  packageId: string;
+  savedAt: string;
+  status: SocialDistributionDraftStatus;
+  scheduleMode: SocialScheduleMode;
+  selectedChannels: SocialDistributionChannel[];
+  reviewRequired: boolean;
+  backlinkTarget: string;
+  queue: SocialDistributionQueueItem[];
+  notes: string[];
+  externalPublish: false;
 };
 
 const SocialPublishingPolicySchema = z
@@ -128,6 +174,46 @@ const SocialDistributionTargetSchema = z
     suggestedWindow: z.string().trim().min(1),
     postText: z.string().trim().min(1),
     hashtags: z.array(z.string().trim().min(2)).min(1),
+  })
+  .strict();
+
+const SocialDistributionChannelVersionSchema = z
+  .object({
+    id: z.string().trim().min(1),
+    channel: z.enum(SOCIAL_DISTRIBUTION_CHANNELS),
+    title: z.string().trim().min(1),
+    postType: z.string().trim().min(1),
+    excerpt: z.string().trim().min(1),
+    detail: z.string().trim().min(1),
+  })
+  .strict();
+
+const SocialDistributionQueueItemSchema = z
+  .object({
+    id: z.string().trim().min(1),
+    channel: z.enum(SOCIAL_DISTRIBUTION_CHANNELS),
+    label: z.string().trim().min(1),
+    recommendedWindow: z.string().trim().min(1),
+    status: z.enum(SOCIAL_DISTRIBUTION_STATUSES),
+    connectorStatus: z.enum(SOCIAL_CONNECTOR_STATUSES),
+    actionLabel: z.string().trim().min(1),
+  })
+  .strict();
+
+export const SocialDistributionDraftSchema = z
+  .object({
+    draftId: z.string().trim().min(1),
+    dossierId: z.string().trim().min(1),
+    packageId: z.string().trim().min(1),
+    savedAt: z.string().datetime({ offset: true }),
+    status: z.enum(SOCIAL_DISTRIBUTION_DRAFT_STATUSES),
+    scheduleMode: z.enum(SOCIAL_SCHEDULE_MODES),
+    selectedChannels: z.array(z.enum(SOCIAL_DISTRIBUTION_CHANNELS)).min(1),
+    reviewRequired: z.boolean(),
+    backlinkTarget: z.string().trim().min(1),
+    queue: z.array(SocialDistributionQueueItemSchema).min(1),
+    notes: z.array(z.string().trim().min(1)),
+    externalPublish: z.literal(false),
   })
   .strict();
 
@@ -157,6 +243,7 @@ export const SocialDistributionPlanSchema = z
     publishActionEnabled: z.literal(false),
     policy: SocialPublishingPolicySchema,
     policyHints: z.array(z.string().trim().min(1)).min(1),
+    channelVersions: z.array(SocialDistributionChannelVersionSchema).min(5),
   })
   .strict();
 
@@ -167,10 +254,10 @@ const CHANNEL_LABELS: Record<SocialDistributionChannel, string> = {
   linkedin: "LinkedIn",
   tiktok: "TikTok",
   youtube_shorts: "YouTube Shorts",
-  x_twitter: "X / Twitter",
+  x_twitter: "X",
   mastodon: "Mastodon",
   bluesky: "Bluesky",
-  whatsapp_channel: "WhatsApp Channel",
+  whatsapp_channel: "WhatsApp-Kanal",
   telegram: "Telegram",
   newsletter: "Newsletter",
   qr_print: "QR / Print",
@@ -231,8 +318,161 @@ function resolveDistributionStatus(
   return "ready_for_schedule";
 }
 
+function stableKey(input: string): string {
+  let hash = 0;
+  for (let i = 0; i < input.length; i += 1) {
+    hash = (hash * 31 + input.charCodeAt(i)) >>> 0;
+  }
+  return hash.toString(36);
+}
+
 function hashtagStrings(masterPost: MasterPost): string[] {
   return masterPost.suggestedHashtags.map((entry) => entry.tag);
+}
+
+function compact(input: string, max = 170): string {
+  const normalized = input.replace(/\s+/g, " ").trim();
+  if (normalized.length <= max) return normalized;
+  return `${normalized.slice(0, max - 1).trimEnd()}…`;
+}
+
+function buildChannelVersions(input: {
+  masterPost: MasterPost;
+  carouselOutput: SocialCarouselOutput;
+  hashtags: string[];
+}): SocialDistributionChannelVersion[] {
+  const { masterPost, carouselOutput, hashtags } = input;
+  const hashtagLine = hashtags.join(" ");
+  const slideOutline = carouselOutput.slides
+    .map((slide) => slide.title)
+    .slice(0, 6)
+    .join(" · ");
+
+  return [
+    {
+      id: "version_instagram",
+      channel: "instagram",
+      title: "Instagram",
+      postType: "Caption + Carousel-Outline",
+      excerpt: compact(carouselOutput.suggestedPostText, 180),
+      detail: `Carousel: ${slideOutline}. ${hashtagLine}`,
+    },
+    {
+      id: "version_tiktok",
+      channel: "tiktok",
+      title: "TikTok / Reels / YouTube Shorts",
+      postType: "Hook + Szenenplan + Voiceover",
+      excerpt: compact(masterPost.hook, 170),
+      detail:
+        "Szenenplan: 1) Leitfrage, 2) Anlass, 3) Belegt/Offen, 4) Optionen, 5) Beteiligung + Dossier-Link.",
+    },
+    {
+      id: "version_linkedin",
+      channel: "linkedin",
+      title: "LinkedIn",
+      postType: "Professioneller Sachpost",
+      excerpt: compact(masterPost.body, 210),
+      detail: "Fokus auf Quellenlage, Übertragbarkeit, offene Fragen und umsetzbare Optionen.",
+    },
+    {
+      id: "version_facebook",
+      channel: "facebook",
+      title: "Facebook",
+      postType: "Lokaler Community-Post",
+      excerpt: compact(masterPost.participationQuestion, 180),
+      detail: "Fokus auf lokale Betroffenheit und konkrete Hinweise aus der Bürgerschaft.",
+    },
+    {
+      id: "version_micro",
+      channel: "x_twitter",
+      title: "X / Mastodon / Bluesky",
+      postType: "Kurzpost",
+      excerpt: compact(`${masterPost.hook} ${masterPost.cta}`, 150),
+      detail: "Kurzformat mit Dossier-Link und klarer Review-Hinweispflicht.",
+    },
+    {
+      id: "version_newsletter",
+      channel: "newsletter",
+      title: "Newsletter",
+      postType: "Briefing",
+      excerpt: compact(masterPost.body, 200),
+      detail: "Kurzbriefing mit Quellenlage, offenen Fragen und Entscheidungsoptionen.",
+    },
+    {
+      id: "version_print",
+      channel: "qr_print",
+      title: "QR / Print",
+      postType: "Poster-/Handout-Text",
+      excerpt: "Kurzfassung mit Beteiligungsfrage, QR-Ziel und Review-Hinweis.",
+      detail: "Geeignet für Auslage, Veranstaltungsmaterial und Vor-Ort-Dialog.",
+    },
+  ];
+}
+
+export function buildSocialDistributionQueue(
+  plan: SocialDistributionPlan,
+  selectedChannels?: SocialDistributionChannel[],
+): SocialDistributionQueueItem[] {
+  const selectedSet = new Set(selectedChannels ?? plan.selectedChannels);
+  const fallbackWindow = plan.suggestedPostingWindows[0] ?? "Mo-Fr 08:00-10:00";
+
+  const queue = plan.targets
+    .filter((target) => selectedSet.has(target.channel))
+    .map((target, index) => ({
+      id: `queue_${index + 1}_${target.channel}`,
+      channel: target.channel,
+      label: target.label,
+      recommendedWindow: target.suggestedWindow || fallbackWindow,
+      status: target.distributionStatus,
+      connectorStatus: target.connectorStatus,
+      actionLabel: target.nextAction,
+    }));
+
+  return queue;
+}
+
+export function buildSocialDistributionDraft(input: {
+  plan: SocialDistributionPlan;
+  selectedChannels?: SocialDistributionChannel[];
+  scheduleMode: SocialScheduleMode;
+  reviewRequired: boolean;
+  status: SocialDistributionDraftStatus;
+  savedAt?: string;
+}): SocialDistributionDraft {
+  const selectedChannels =
+    input.selectedChannels && input.selectedChannels.length > 0
+      ? input.selectedChannels
+      : input.plan.selectedChannels;
+  const queue = buildSocialDistributionQueue(input.plan, selectedChannels);
+  const savedAt = (() => {
+    if (!input.savedAt) return new Date().toISOString();
+    const parsed = new Date(input.savedAt);
+    return Number.isNaN(parsed.getTime()) ? new Date().toISOString() : parsed.toISOString();
+  })();
+
+  const notes = [
+    "Keine externe Live-Veröffentlichung.",
+    input.reviewRequired
+      ? "Review erforderlich vor externer Nutzung."
+      : "Review-Status vorhanden, dennoch manuelle Freigabe beachten.",
+  ];
+
+  const draft: SocialDistributionDraft = {
+    draftId: `distdraft_${stableKey([input.plan.packageId, savedAt, selectedChannels.join(",")].join("|"))}`,
+    dossierId: input.plan.dossierId,
+    packageId: input.plan.packageId,
+    savedAt,
+    status: input.status,
+    scheduleMode: input.scheduleMode,
+    selectedChannels,
+    reviewRequired: input.reviewRequired,
+    backlinkTarget: input.plan.backlinkTarget,
+    queue,
+    notes,
+    externalPublish: false,
+  };
+
+  return SocialDistributionDraftSchema.parse(draft);
 }
 
 export function buildSocialDistributionPlan(
@@ -312,6 +552,11 @@ export function buildSocialDistributionPlan(
       "Echtzeit-Veröffentlichung ist aktuell deaktiviert.",
       "Automatisierung erst nach Admin-Freigabe.",
     ],
+    channelVersions: buildChannelVersions({
+      masterPost,
+      carouselOutput,
+      hashtags,
+    }),
   };
 
   return SocialDistributionPlanSchema.parse(plan);

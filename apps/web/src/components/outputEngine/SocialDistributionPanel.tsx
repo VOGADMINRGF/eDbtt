@@ -2,7 +2,14 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import type { SocialDistributionPlan, SocialDistributionTarget } from "@features/outputEngine";
+import {
+  buildSocialDistributionDraft,
+  buildSocialDistributionQueue,
+  type SocialDistributionChannel,
+  type SocialDistributionPlan,
+  type SocialDistributionTarget,
+  type SocialScheduleMode,
+} from "@features/outputEngine";
 
 type SocialDistributionPanelProps = {
   plan: SocialDistributionPlan;
@@ -19,7 +26,7 @@ function keyForPlan(dossierId: string) {
 
 function connectorLabel(status: SocialDistributionTarget["connectorStatus"]): string {
   if (status === "internal_available") return "Intern verfügbar";
-  if (status === "not_connected") return "Noch nicht verbunden";
+  if (status === "not_connected") return "Kanal nicht verbunden";
   if (status === "configured") return "Konfiguriert";
   if (status === "disabled_by_policy") return "Per Admin deaktiviert";
   if (status === "requires_review") return "Review erforderlich";
@@ -41,7 +48,7 @@ function connectorHint(status: SocialDistributionTarget["connectorStatus"]): str
   if (status === "disabled_by_policy") return "Nur Export/Kopieren möglich.";
   if (status === "requires_review") return "Review vor weiterer Planung abschließen.";
   if (status === "available_later") return "Geplanter Anschluss in späterem Slice.";
-  return "Kanal noch nicht verbunden.";
+  return "Kanal nicht verbunden.";
 }
 
 function formatTypeForChannel(channel: SocialDistributionTarget["channel"]): string {
@@ -68,7 +75,7 @@ export default function SocialDistributionPanel({
   reviewRequired,
   dossierBacklink,
 }: SocialDistributionPanelProps) {
-  const [selectedChannels, setSelectedChannels] = useState<Set<string>>(
+  const [selectedChannels, setSelectedChannels] = useState<Set<SocialDistributionChannel>>(
     new Set(plan.selectedChannels),
   );
   const [scheduleChoice, setScheduleChoice] = useState<StudioScheduleChoice>("suggested");
@@ -84,7 +91,17 @@ export default function SocialDistributionPanel({
     [plan.targets, selectedChannels],
   );
 
-  const toggleChannel = (channel: string) => {
+  const selectedList = useMemo(
+    () => Array.from(selectedChannels.values()),
+    [selectedChannels],
+  );
+
+  const queueItems = useMemo(
+    () => buildSocialDistributionQueue(plan, selectedList),
+    [plan, selectedList],
+  );
+
+  const toggleChannel = (channel: SocialDistributionChannel) => {
     setSelectedChannels((current) => {
       const next = new Set(current);
       if (next.has(channel)) {
@@ -96,25 +113,47 @@ export default function SocialDistributionPanel({
     });
   };
 
+  const scheduleModeFromChoice = (choice: StudioScheduleChoice): SocialScheduleMode => {
+    if (choice === "draft") return "manual";
+    if (choice === "scheduled") return "scheduled_at";
+    if (choice === "after_review") return "immediate_after_review";
+    return "suggested_window";
+  };
+
   const savePlan = () => {
-    const payload = {
-      savedAt: new Date().toISOString(),
-      scheduleChoice,
-      selectedChannels: Array.from(selectedChannels),
-      nextWindow,
-    };
-    localStorage.setItem(keyForPlan(dossierId), JSON.stringify(payload));
-    setNotice("Plan gespeichert.");
+    const draft = buildSocialDistributionDraft({
+      plan,
+      selectedChannels: selectedList,
+      scheduleMode: scheduleModeFromChoice(scheduleChoice),
+      reviewRequired,
+      status: scheduleChoice === "draft" ? "draft_saved" : "planned",
+    });
+    localStorage.setItem(keyForPlan(dossierId), JSON.stringify(draft));
+    setNotice("Verteilplan als Entwurf gespeichert.");
   };
 
   const requestReview = () => {
-    const payload = {
-      reviewedAt: new Date().toISOString(),
-      action: "post_draft_review",
-      selectedChannels: Array.from(selectedChannels),
-    };
-    localStorage.setItem(`${keyForPlan(dossierId)}:review`, JSON.stringify(payload));
+    const draft = buildSocialDistributionDraft({
+      plan,
+      selectedChannels: selectedList,
+      scheduleMode: "suggested_window",
+      reviewRequired: true,
+      status: "review_requested",
+    });
+    localStorage.setItem(`${keyForPlan(dossierId)}:review`, JSON.stringify(draft));
     setNotice("Post-Entwurf für Review markiert.");
+  };
+
+  const preparePublication = () => {
+    const draft = buildSocialDistributionDraft({
+      plan,
+      selectedChannels: selectedList,
+      scheduleMode: scheduleModeFromChoice(scheduleChoice),
+      reviewRequired,
+      status: "prepared_internal",
+    });
+    localStorage.setItem(`${keyForPlan(dossierId)}:prepared`, JSON.stringify(draft));
+    setNotice("Veröffentlichung intern vorbereitet.");
   };
 
   return (
@@ -267,19 +306,65 @@ export default function SocialDistributionPanel({
             onClick={savePlan}
             className="inline-flex items-center rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-4 py-2 text-sm font-semibold"
           >
-            Plan speichern
+            Verteilplan als Entwurf speichern
           </button>
           <button
             type="button"
-            disabled
-            aria-disabled="true"
-            className="inline-flex cursor-not-allowed items-center rounded-full border border-[rgb(var(--border))] px-4 py-2 text-sm font-semibold text-[rgb(var(--muted))] opacity-70"
+            onClick={savePlan}
+            className="inline-flex items-center rounded-full border border-[rgb(var(--border))] px-4 py-2 text-sm font-semibold text-[rgb(var(--muted))]"
           >
-            Veröffentlichen (deaktiviert – nur Vorbereitung)
+            Verteilplan übernehmen
+          </button>
+          <button
+            type="button"
+            onClick={preparePublication}
+            className="inline-flex items-center rounded-full border border-[rgb(var(--border))] px-4 py-2 text-sm font-semibold text-[rgb(var(--muted))]"
+          >
+            Veröffentlichung vorbereiten
           </button>
         </div>
 
         {notice ? <p className="mt-2 text-xs text-[rgb(var(--muted))]">{notice}</p> : null}
+      </section>
+
+      <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5">
+        <h3 className="text-lg font-semibold">Empfohlener Verteilplan</h3>
+        <p className="mt-1 text-sm text-[rgb(var(--muted))]">
+          Ein Batch-Plan für ausgewählte Kanäle. Kein externer Live-Publish.
+        </p>
+        <ul className="mt-4 space-y-2">
+          {queueItems.map((item) => (
+            <li key={item.id} className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
+              <p className="text-sm font-semibold">{item.label}</p>
+              <p className="mt-1 text-xs text-[rgb(var(--muted))]">
+                Zeitfenster: {item.recommendedWindow}
+              </p>
+              <p className="mt-1 text-xs text-[rgb(var(--muted))]">
+                Status: {distributionStatusLabel(item.status)}
+              </p>
+              <p className="mt-1 text-xs text-[rgb(var(--muted))]">
+                Aktion: {item.actionLabel}
+              </p>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5">
+        <h3 className="text-lg font-semibold">Kanal-Versionen</h3>
+        <p className="mt-1 text-sm text-[rgb(var(--muted))]">
+          Alle Versionen werden aus dem Master-Post abgeleitet.
+        </p>
+        <div className="mt-4 grid gap-3 lg:grid-cols-2">
+          {plan.channelVersions.map((version) => (
+            <article key={version.id} className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4">
+              <p className="text-base font-semibold">{version.title}</p>
+              <p className="text-xs text-[rgb(var(--muted))]">{version.postType}</p>
+              <p className="mt-2 text-sm">{shortText(version.excerpt, 190)}</p>
+              <p className="mt-1 text-xs text-[rgb(var(--muted))]">{version.detail}</p>
+            </article>
+          ))}
+        </div>
       </section>
     </section>
   );

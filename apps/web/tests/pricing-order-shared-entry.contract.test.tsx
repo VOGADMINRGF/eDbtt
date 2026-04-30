@@ -23,6 +23,8 @@ describe("pricing/order shared entry contract", () => {
     expect(html).toContain("Organisationen · Paketübersicht");
     expect(html).toContain("Segmente");
     expect(html).toContain('href="/pricing?segment=organisationen"');
+    expect(html).toContain("segment=organisationen");
+    expect(html).toContain('href="/vormerken?paket=b2b_basis&amp;segment=organisationen"');
     expect(html).toContain("B2B/B2G-Konditionen ansehen");
   });
 
