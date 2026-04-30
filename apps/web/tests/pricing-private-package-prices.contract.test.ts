@@ -8,9 +8,9 @@ describe("pricing private package prices contract", () => {
 
     expect(html).toContain("eDebatte Interessiert");
     expect(html).toContain("Beteiligung frei: 0 €");
-    expect(html).toContain("Interessiert: 3,99 €");
+    expect(html).toContain("Interessiert: 4,99 €");
     expect(html).toContain("eDebatte Aktiv");
-    expect(html).toContain("9,99 €");
+    expect(html).toContain("14,99 €");
     expect(html).toContain("eDebatte Mitgestaltend");
     expect(html).toContain("29,99 €");
   });
@@ -20,9 +20,9 @@ describe("pricing private package prices contract", () => {
 
     expect(html).toContain("eDebatte Interested");
     expect(html).toContain("Participation Free: €0");
-    expect(html).toContain("Interested: €3.99");
+    expect(html).toContain("Interested: €4.99");
     expect(html).toContain("eDebatte Active");
-    expect(html).toContain("€9.99");
+    expect(html).toContain("€14.99");
     expect(html).toContain("eDebatte Co-creating");
     expect(html).toContain("€29.99");
   });

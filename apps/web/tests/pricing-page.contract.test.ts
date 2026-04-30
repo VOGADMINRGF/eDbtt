@@ -16,8 +16,8 @@ describe("/pricing canonical landing", () => {
     expect(html).toContain("eDebatte Aktiv");
     expect(html).toContain("eDebatte Mitgestaltend");
     expect(html).toContain("Beteiligung frei: 0 €");
-    expect(html).toContain("Interessiert: 3,99 €");
-    expect(html).toContain("9,99 €");
+    expect(html).toContain("Interessiert: 4,99 €");
+    expect(html).toContain("14,99 €");
     expect(html).toContain("29,99 €");
     expect(html).not.toContain("eDebatte Basis");
     expect(html).not.toContain("eDebatte Start");

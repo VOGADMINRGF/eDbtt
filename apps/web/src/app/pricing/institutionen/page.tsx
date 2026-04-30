@@ -31,7 +31,7 @@ const PAGE_COPY = {
     step3: "3. Wie sieht euer Einsatzrahmen aus?",
     step2Municipal: "2. Welcher Beteiligungs- oder Vergabebedarf steht im Vordergrund?",
     step3Municipal: "3. Welcher Beschaffungs- und Einsatzrahmen passt?",
-    segmentOrganization: "Organisation / Verband / Verein",
+    segmentOrganization: "Beteiligungsbüro / Agentur / Organisation",
     segmentMunicipality: "Kommune / Verwaltung / Landkreis",
     recommendationTitle: "Empfohlene Konfiguration",
     recommendationSubtitle: "Basispaket, Mehrwert im Arbeitsalltag und sinnvolle Erweiterungen",
@@ -97,7 +97,7 @@ const PAGE_COPY = {
     step3: "3. What is your operating frame?",
     step2Municipal: "2. Which participation or procurement need is primary?",
     step3Municipal: "3. Which procurement and deployment frame fits?",
-    segmentOrganization: "Organization / association / NGO",
+    segmentOrganization: "Participation office / agency / organization",
     segmentMunicipality: "Municipality / administration / district",
     recommendationTitle: "Recommended configuration",
     recommendationSubtitle: "Base package, practical value and useful extensions",
@@ -168,6 +168,22 @@ type MunicipalTenderCard = {
   procurementHint: string;
   ctaLabel: string;
   href: string;
+};
+
+type B2BPartnerCard = {
+  id: "starter" | "projektpartner" | "buero_betrieb" | "partner_rahmen";
+  name: string;
+  priceTag: string;
+  forWhom: string;
+  typicalUse: string;
+  services: readonly string[];
+  result: string;
+  orderability: string;
+  note: string;
+  ctaLabel: string;
+  href: string;
+  secondaryCtaLabel?: string;
+  secondaryHref?: string;
 };
 
 function firstString(value?: string | string[]) {
@@ -458,6 +474,223 @@ function buildMunicipalTenderCards(args: {
   ] as const;
 }
 
+function buildB2BPartnerCards(args: {
+  locale: PricingLocale;
+  goal: string;
+  frame: string;
+}): readonly B2BPartnerCard[] {
+  const starterHref = buildVormerkenHref({
+    locale: args.locale,
+    segment: "organisationen",
+    packageId: "b2b_basis",
+    goal: args.goal,
+    frame: args.frame,
+    completion: "direct_order",
+    addOnIds: ["reports_outcomes"],
+  });
+  const starterDemoHref = buildVormerkenHref({
+    locale: args.locale,
+    segment: "organisationen",
+    packageId: "b2b_basis",
+    goal: args.goal,
+    frame: args.frame,
+    completion: "conversation_request",
+  });
+  const projectHref = buildVormerkenHref({
+    locale: args.locale,
+    segment: "organisationen",
+    packageId: "b2b_basis",
+    goal: args.goal,
+    frame: args.frame,
+    completion: "quote_request",
+    addOnIds: ["companion_kommunikation", "reports_outcomes"],
+    quote: true,
+  });
+  const officeOpsHref = buildVormerkenHref({
+    locale: args.locale,
+    segment: "organisationen",
+    packageId: "b2b_pro",
+    goal: args.goal,
+    frame: args.frame,
+    completion: "conversation_request",
+    addOnIds: ["managed_governance", "moderation_assistenz", "reports_outcomes"],
+  });
+  const frameworkHref = buildVormerkenHref({
+    locale: args.locale,
+    segment: "organisationen",
+    packageId: "b2b_pro",
+    goal: args.goal,
+    frame: args.frame,
+    completion: "quote_request",
+    addOnIds: ["managed_governance", "faktencheck_kontingent", "companion_kommunikation"],
+    quote: true,
+  });
+
+  if (args.locale === "en") {
+    return [
+      {
+        id: "starter",
+        name: "Participation Office Starter",
+        priceTag: "from €1,500 / month + VAT",
+        forWhom: "Small participation offices and moderation teams launching first studio-enabled projects.",
+        typicalUse: "1-3 dossiers with one participation round and communication-ready outputs.",
+        services: [
+          "Dossier setup with source and question structure",
+          "Simple participation round with QR/link access",
+          "Output Studio export preparation",
+          "Result documentation for client handover",
+        ],
+        result: "Pilot-ready dossier and communication package for first client projects.",
+        orderability: "Directly reservable as pilot package",
+        note: "eDebatte supports process design work, it does not replace participation offices.",
+        ctaLabel: "Reserve pilot",
+        href: starterHref,
+        secondaryCtaLabel: "Request demo",
+        secondaryHref: starterDemoHref,
+      },
+      {
+        id: "projektpartner",
+        name: "Project Partner Participation",
+        priceTag: "project-based + VAT (typically one-time)",
+        forWhom: "Participation, planning and communication offices running one concrete client project.",
+        typicalUse: "A project-bound dossier room with roles for office, client and moderation/editorial teams.",
+        services: [
+          "Project dossier space with open questions and options",
+          "Participation round with channel-ready outputs",
+          "Reports/outcomes module for client communication",
+          "Optional moderation and evaluation support",
+        ],
+        result: "Documented project participation package with reusable communication outputs.",
+        orderability: "Cost estimate and project inquiry available",
+        note: "Designed as infrastructure partner model for external client delivery.",
+        ctaLabel: "Request project package",
+        href: projectHref,
+      },
+      {
+        id: "buero_betrieb",
+        name: "Agency / Office Operations",
+        priceTag: "from €2,900 / month + VAT",
+        forWhom: "Offices with recurring client projects and cross-team delivery.",
+        typicalUse: "Multi-project setup with templates, team roles and recurring reporting cadence.",
+        services: [
+          "Multiple projects, dossiers and rounds",
+          "Team roles and reusable participation templates",
+          "Client-facing reporting and status logic",
+          "Studio-supported output preparation per project",
+        ],
+        result: "Reusable delivery operations for recurring participation projects.",
+        orderability: "Offer after alignment",
+        note: "Mandate/client capability depends on configured operating context.",
+        ctaLabel: "Schedule partner conversation",
+        href: officeOpsHref,
+      },
+      {
+        id: "partner_rahmen",
+        name: "Partner / Framework Model",
+        priceTag: "offer after clarification + VAT",
+        forWhom: "Larger networks, foundations, media partners and public-dialogue consultancies.",
+        typicalUse: "Recurring cooperation model with pilots, training and support framework.",
+        services: [
+          "Partner terms and recurring support scope",
+          "Method catalog and enablement/training",
+          "Optional export/branding extensions (where available)",
+          "Operational support and governance alignment",
+        ],
+        result: "Partner-ready cooperation framework for recurring project portfolios.",
+        orderability: "Only after clarification",
+        note: "No fake white-label promise and no autonomous external publishing.",
+        ctaLabel: "Request framework model",
+        href: frameworkHref,
+        secondaryCtaLabel: "Check partnership",
+        secondaryHref: officeOpsHref,
+      },
+    ] as const;
+  }
+
+  return [
+    {
+      id: "starter",
+      name: "Beteiligungsbüro Starter",
+      priceTag: "ab 1.500 € / Monat zzgl. MwSt.",
+      forWhom:
+        "Kleine Beteiligungsbüros, Moderationsbüros und Dialogteams mit ersten Studio-gestützten Projekten.",
+      typicalUse: "1-3 Dossiers mit einer Beteiligungsrunde und direkt nutzbaren Kommunikationsbausteinen.",
+      services: [
+        "Dossier-Struktur mit Quellen- und Fragenraum",
+        "Einfache Beteiligungsrunde mit QR-/Link-Zugang",
+        "Output-Studio für Export-/Veröffentlichungsvorbereitung",
+        "Ergebnisdokumentation für Auftraggeber",
+      ],
+      result: "Pilotfähiges Dossier- und Kommunikationspaket für erste Kundenprojekte.",
+      orderability: "Direkt vormerkbar als Pilotpaket",
+      note: "eDebatte ersetzt keine Moderation, sondern ergänzt bestehende Beteiligungsarbeit.",
+      ctaLabel: "Pilot vormerken",
+      href: starterHref,
+      secondaryCtaLabel: "Demo anfragen",
+      secondaryHref: starterDemoHref,
+    },
+    {
+      id: "projektpartner",
+      name: "Projektpartner Beteiligung",
+      priceTag: "projektbezogen zzgl. MwSt. (typisch einmalig)",
+      forWhom:
+        "Beteiligungsbüros, Planungsbüros und Kommunikationsagenturen mit einem konkreten Kundenprojekt.",
+      typicalUse:
+        "Projektbezogener Dossierraum mit Rollen für Büro, Auftraggeber und Moderation/Redaktion.",
+      services: [
+        "Projekt-Dossierraum mit offenen Fragen und Optionen",
+        "Beteiligungsrunde mit kanalbezogener Aufbereitung",
+        "Reports/Outcomes für Auftraggeberkommunikation",
+        "Optionale Moderations- und Auswertungsunterstützung",
+      ],
+      result: "Dokumentiertes Projektpaket mit nachvollziehbarer Beteiligung und Output-Bausteinen.",
+      orderability: "Kostenvoranschlag und Projektanfrage möglich",
+      note: "Positioniert eDebatte als Infrastrukturpartner in laufenden Beteiligungsprojekten.",
+      ctaLabel: "Projektpaket anfragen",
+      href: projectHref,
+    },
+    {
+      id: "buero_betrieb",
+      name: "Agentur-/Büro-Betrieb",
+      priceTag: "ab 2.900 € / Monat zzgl. MwSt.",
+      forWhom: "Beteiligungs- und Dialogprofis mit wiederkehrenden Mandaten über mehrere Teams.",
+      typicalUse: "Mehrere Projekte, Vorlagen, Teamrollen und kontinuierliche Ergebnisberichte.",
+      services: [
+        "Mehrere Projekte, Dossiers und Runden",
+        "Teamrollen und wiederverwendbare Beteiligungsformate",
+        "Mandatsfähige Status- und Reportinglogik",
+        "Studio-gestützte Veröffentlichungs- und Exportvorbereitung",
+      ],
+      result: "Wiederverwendbarer Betriebsrahmen für kontinuierliche Beteiligungsproduktion.",
+      orderability: "Angebot nach Klärung",
+      note: "Mandanten-/Kundenfähigkeit wird je nach technischem Setup konkretisiert.",
+      ctaLabel: "Partnergespräch vereinbaren",
+      href: officeOpsHref,
+    },
+    {
+      id: "partner_rahmen",
+      name: "Partner-/Rahmenmodell",
+      priceTag: "Angebot nach Klärung zzgl. MwSt.",
+      forWhom:
+        "Größere Büros, Netzwerke, Stiftungsprogramme, Medien- und Public-Affairs-Dienstleister.",
+      typicalUse: "Wiederkehrende Partnerschaft mit Pilotkommunen/-themen, Schulung und Support.",
+      services: [
+        "Partnerkonditionen und Betriebsrahmen",
+        "Methodenkatalog und Enablement",
+        "Optionale Export-/Branding-Erweiterungen (falls verfügbar)",
+        "Governance- und Supportabstimmung",
+      ],
+      result: "Partnerschaftsmodell für wiederkehrende Projektportfolios.",
+      orderability: "Nur nach Klärung",
+      note: "Keine Fake-White-Label-Zusage und keine automatische externe Veröffentlichung.",
+      ctaLabel: "Kostenvoranschlag anfordern",
+      href: frameworkHref,
+      secondaryCtaLabel: "Partnerschaft prüfen",
+      secondaryHref: officeOpsHref,
+    },
+  ] as const;
+}
+
 export default async function InstitutionalPricingPage({ searchParams }: PageProps = {}) {
   const params = (await searchParams) ?? {};
   const locale = normalizePricingLocale(firstString(params.lang));
@@ -679,6 +912,14 @@ export default async function InstitutionalPricingPage({ searchParams }: PagePro
           frame: selectedFrame,
         })
       : [];
+  const b2bPartnerCards =
+    segment === "organisationen"
+      ? buildB2BPartnerCards({
+          locale,
+          goal: selectedGoal,
+          frame: selectedFrame,
+        })
+      : [];
   const municipalAddOnCatalog =
     locale === "en"
       ? [
@@ -849,6 +1090,73 @@ export default async function InstitutionalPricingPage({ searchParams }: PagePro
           </p>
         </div>
       </section>
+
+      {segment === "organisationen" ? (
+        <section className="mt-8 rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-6 shadow-sm">
+          <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
+            {locale === "en" ? "For participation offices and dialogue professionals" : "Für Beteiligungsbüros & Dialogprofis"}
+          </p>
+          <p className="mt-2 text-sm leading-relaxed text-[rgb(var(--muted))]">
+            {locale === "en"
+              ? "eDebatte does not replace moderation. It makes participation delivery more structured, visible and reusable."
+              : "eDebatte ersetzt keine Moderation. Es macht Beteiligungsarbeit strukturierter, sichtbarer und wiederverwendbar."}
+          </p>
+          <p className="mt-2 text-sm leading-relaxed text-[rgb(var(--muted))]">
+            {locale === "en"
+              ? "B2B means tooling, dossier, studio and participation infrastructure for your own client projects."
+              : "B2B heißt: Werkzeug-, Dossier-, Studio- und Beteiligungsinfrastruktur für eigene Kundenprojekte."}
+          </p>
+          <div className="mt-4 grid gap-4 lg:grid-cols-2">
+            {b2bPartnerCards.map((entry) => (
+              <article key={entry.id} className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4 text-sm shadow-sm">
+                <h3 className="text-lg font-semibold text-[rgb(var(--fg))]">{entry.name}</h3>
+                <p className="mt-1 text-sm font-semibold text-[rgb(var(--fg))]">{entry.priceTag}</p>
+                <p className="mt-3 text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
+                  {locale === "en" ? "For whom" : "Für wen"}
+                </p>
+                <p className="mt-1 text-[rgb(var(--muted))]">{entry.forWhom}</p>
+                <p className="mt-3 text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
+                  {locale === "en" ? "Typical use" : "Typischer Einsatz"}
+                </p>
+                <p className="mt-1 text-[rgb(var(--muted))]">{entry.typicalUse}</p>
+                <p className="mt-3 text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
+                  {locale === "en" ? "Included services" : "Enthaltene Leistungen"}
+                </p>
+                <ul className="mt-1 list-disc space-y-1 pl-5 text-[rgb(var(--muted))]">
+                  {entry.services.map((line) => (
+                    <li key={line}>{line}</li>
+                  ))}
+                </ul>
+                <p className="mt-3 text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
+                  {locale === "en" ? "Result" : "Ergebnis"}
+                </p>
+                <p className="mt-1 text-[rgb(var(--muted))]">{entry.result}</p>
+                <p className="mt-3 text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
+                  {locale === "en" ? "Orderability" : "Bestellbarkeit"}
+                </p>
+                <p className="mt-1 text-[rgb(var(--muted))]">{entry.orderability}</p>
+                <p className="mt-3 text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
+                  {locale === "en" ? "Note" : "Hinweis"}
+                </p>
+                <p className="mt-1 text-[rgb(var(--muted))]">{entry.note}</p>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <Link href={entry.href} className="btn-secondary">
+                    {entry.ctaLabel}
+                  </Link>
+                  {entry.secondaryCtaLabel && entry.secondaryHref ? (
+                    <Link
+                      href={entry.secondaryHref}
+                      className="inline-flex items-center rounded-full px-3 py-2 text-xs font-semibold text-[rgb(var(--muted))] underline-offset-2 hover:underline"
+                    >
+                      {entry.secondaryCtaLabel}
+                    </Link>
+                  ) : null}
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>
+      ) : null}
 
       {segment === "kommunen" ? (
         <section className="mt-6 rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm">
