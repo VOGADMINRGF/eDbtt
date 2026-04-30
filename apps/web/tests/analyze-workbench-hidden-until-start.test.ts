@@ -29,6 +29,7 @@ describe("analyze workbench progressive disclosure", () => {
   it("keeps guided analyze workspace hidden until guided bridge is confirmed", () => {
     expect(
       shouldRenderCreateAnalyzeWorkspace({
+        followupActivated: true,
         hasStarted: true,
         intakeText: "Vollständiger Beitrag",
         productMode: "guided",
@@ -37,6 +38,7 @@ describe("analyze workbench progressive disclosure", () => {
     ).toBe(false);
     expect(
       shouldRenderCreateAnalyzeWorkspace({
+        followupActivated: true,
         hasStarted: true,
         intakeText: "Vollständiger Beitrag",
         productMode: "guided",
@@ -96,5 +98,27 @@ describe("analyze workbench progressive disclosure", () => {
       }),
     );
     expect(ignored).toBeNull();
+  });
+
+  it("keeps analyze workspace hidden until explicit follow-up activation", () => {
+    expect(
+      shouldRenderCreateAnalyzeWorkspace({
+        followupActivated: false,
+        hasStarted: true,
+        intakeText: "Persistierter Entwurf",
+        productMode: "analyze",
+        guidedBridgeConfirmed: true,
+      }),
+    ).toBe(false);
+
+    expect(
+      shouldRenderCreateAnalyzeWorkspace({
+        followupActivated: true,
+        hasStarted: true,
+        intakeText: "Persistierter Entwurf",
+        productMode: "analyze",
+        guidedBridgeConfirmed: true,
+      }),
+    ).toBe(true);
   });
 });

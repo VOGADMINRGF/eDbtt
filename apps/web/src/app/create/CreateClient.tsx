@@ -213,11 +213,13 @@ export function buildGuidedWorkspaceText(params: {
 }
 
 export function shouldRenderCreateAnalyzeWorkspace(params: {
+  followupActivated: boolean;
   hasStarted: boolean;
   intakeText: string;
   productMode: CreateProductMode;
   guidedBridgeConfirmed: boolean;
 }): boolean {
+  if (!params.followupActivated) return false;
   const postInputReady = shouldShowCreatePostInputModules({
     hasStarted: params.hasStarted,
     intakeText: params.intakeText,
@@ -339,6 +341,7 @@ export default function CreateClient({
   const [intakeText, setIntakeText] = React.useState(initialText ?? "");
   const [activeContextAnchorId, setActiveContextAnchorId] = React.useState<CreateIntent | null>(null);
   const [hasStarted, setHasStarted] = React.useState<boolean>(false);
+  const [followupActivated, setFollowupActivated] = React.useState<boolean>(false);
   const [analysisAutoRunToken, setAnalysisAutoRunToken] = React.useState<number>(0);
   const [intakeError, setIntakeError] = React.useState<string | null>(null);
   const [intakeRestoreInfo, setIntakeRestoreInfo] = React.useState<string | null>(null);
@@ -360,14 +363,13 @@ export default function CreateClient({
         setIntakeText(snapshot.intakeText);
         setIntakeRestoreInfo(intakeRestoreInfoText);
       }
-      if (snapshot.hasStarted && hasPrimaryIntakeText(snapshot.intakeText)) {
-        setHasStarted(true);
-        setGuidedBridgeConfirmed(productMode !== "guided");
-      }
+      // Never auto-open follow-up surfaces from local storage.
+      // Restoring text is helpful; restoring "started" would re-open the legacy
+      // analysis workspace on initial page load and reintroduce dual-surface drift.
     } catch {
       // ignore local restore issues
     }
-  }, [initialText, intakeRestoreInfoText, intakeStorageKey, productMode]);
+  }, [initialText, intakeRestoreInfoText, intakeStorageKey]);
 
   React.useEffect(() => {
     try {
@@ -506,6 +508,7 @@ export default function CreateClient({
     setIntakeRestoreInfo(null);
     setIntakeError(null);
     setHasStarted(true);
+    setFollowupActivated(true);
     setGuidedBridgeConfirmed(productMode !== "guided");
     setGuidedBridgeError(null);
     if (productMode !== "guided") {
@@ -519,6 +522,7 @@ export default function CreateClient({
       return;
     }
     setGuidedBridgeError(null);
+    setFollowupActivated(true);
     setGuidedBridgeConfirmed(true);
   }, [guidedBridgeAnswer, surfaceTexts.guidedMissingError]);
 
@@ -591,6 +595,7 @@ export default function CreateClient({
     intakeText,
   });
   const showAnalyzeWorkspace = shouldRenderCreateAnalyzeWorkspace({
+    followupActivated,
     hasStarted,
     intakeText,
     productMode,
