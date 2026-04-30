@@ -56,7 +56,7 @@ type RouteFullInternal = (
 ) => Promise<ProviderDiagnostic>;
 
 declare global {
-  // eslint-disable-next-line no-var
+   
   var __EDEBATTE_ROUTE_DIRECT_FULL_PROVIDER__: RouteFullInternal | undefined;
 }
 

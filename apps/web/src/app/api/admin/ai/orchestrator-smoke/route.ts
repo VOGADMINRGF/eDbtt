@@ -3118,7 +3118,7 @@ async function runDirectFullContractProvider(
 }
 
 declare global {
-  // eslint-disable-next-line no-var
+   
   var __EDEBATTE_ROUTE_DIRECT_FULL_PROVIDER__:
     | ((provider: E150ProviderName, options?: DirectFullContractRunOptions) => Promise<ProviderDiagnostic>)
     | undefined;
