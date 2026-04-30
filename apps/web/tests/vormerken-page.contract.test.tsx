@@ -22,6 +22,7 @@ describe("/vormerken package-start flow", () => {
 
     expect(html).toContain("Paket wählen und Start vorbereiten");
     expect(html).toContain("Ein klarer Bestellfluss");
+    expect(html).toContain("jährliche Zahlung bevorzugt");
     expect(html).toContain("Segment wählen");
     expect(html).toContain("Bestellung absenden");
   });
@@ -33,6 +34,7 @@ describe("/vormerken package-start flow", () => {
     expect(html).toContain("eDebatte Interessiert");
     expect(html).toContain("eDebatte Aktiv");
     expect(html).toContain("eDebatte Mitgestaltend");
+    expect(html).toContain("Abrechnungsmodus");
     expect(html).toContain("Beteiligung frei: 0 €");
     expect(html).toContain("Interessiert: 4,99 €");
     expect(html).toContain("14,99 €");

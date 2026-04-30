@@ -147,6 +147,7 @@ describe("output engine social carousel", () => {
     expect(carousel.suggestedHashtags).toContain("#eDebatte");
     expect(carousel.suggestedHashtags).toContain("#Beteiligung");
     expect(carousel.suggestedPostText.length).toBeGreaterThan(20);
+    expect(carousel.suggestedPostText).not.toContain("Open dossier");
     expect(carousel.suggestedChannelFit.length).toBeGreaterThan(0);
     expect(carousel.participationQuestion).toContain("Wie");
     expect(carousel.motifHint).toContain("Verlauf");

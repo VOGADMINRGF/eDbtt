@@ -111,6 +111,7 @@ type CreatePrimaryIntakeSnapshot = {
 };
 
 type CreateFollowupSurface = "none" | "lightweight" | "analysis";
+export type { CreateFollowupSurface };
 
 const CREATE_PRIMARY_INTAKE_STORAGE_KEY_PREFIX = "vog_create_primary_intake_v1";
 
@@ -231,7 +232,7 @@ export function shouldRenderCreateAnalyzeWorkspace(params: {
   return params.guidedBridgeConfirmed;
 }
 
-function resolveFollowupSurfaceOnStart(productMode: CreateProductMode): CreateFollowupSurface {
+export function resolveFollowupSurfaceOnStart(productMode: CreateProductMode): CreateFollowupSurface {
   if (productMode === "media") return "analysis";
   if (productMode === "analyze") return "lightweight";
   return "none";
