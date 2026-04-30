@@ -2,8 +2,9 @@ import type { Metadata } from "next";
 import DossierDemoClient from "./ui";
 
 export const metadata: Metadata = {
-  title: "Dossier-Demo – Schulentwicklung",
-  description: "Demonstrationsdossier einer standardisierten digitalen Entscheidungsakte.",
+  title: "Dossier-Demo – Innenstadt von morgen",
+  description:
+    "Demonstrationsdossier zur Frage fairer Zugangsrechte und Beteiligung in der Innenstadt.",
 };
 
 export default function DossierDemoPage() {

@@ -69,6 +69,43 @@ type OptionLink = { optionId: string; claimId: string };
 
 type EvidenceLink = { claimId: string; sourceId: string; weight?: number; kind?: string };
 
+type SourceMatrixEntry = {
+  id: string;
+  title: string;
+  source: string;
+  canonicalUrl?: string;
+  geography?: string;
+  period?: string;
+  sourceType?: string;
+  cluster?: string;
+  takeaway?: string;
+  notAutomatic?: string;
+  evidenceStatus?: string;
+  transferability?: string;
+  criticalCaveat?: string;
+};
+
+type ZahlenAuditEntry = {
+  metric: string;
+  source: string;
+  measured: string;
+  denominator: string;
+  period: string;
+  geography: string;
+  method: string;
+  controlGroup?: string;
+  transferabilityCaveat: string;
+  evidenceStatus: string;
+};
+
+type BeteiligungsAuditData = {
+  section: string;
+  score?: { level: string; rationale?: string };
+  auditQuestions?: string[];
+  mandateRule?: string;
+  checklist?: Record<string, boolean>;
+};
+
 const DIMENSIONS: DimensionMeta[] = [
   { key: "haushalt", label: "Haushalt" },
   { key: "paedagogik", label: "Pädagogik" },
@@ -77,19 +114,21 @@ const DIMENSIONS: DimensionMeta[] = [
 ];
 
 const OPTION_BUDGET: Record<string, string> = {
-  "opt-a": "26–32 Mio €",
-  "opt-b": "45–55 Mio €",
-  "opt-c": "32–40 Mio €",
-  "opt-d": "8–12 Mio €",
-  "opt-f": "2–4 Mio €",
+  "opt-a": "Regelwerk + Umbau in Stufen",
+  "opt-b": "Betriebs- und Logistikfenster",
+  "opt-c": "Geringe Umstellungskosten",
+  "opt-d": "Pilotbudget (befristet)",
+  "opt-e": "Monitoring + Infrastruktur",
+  "opt-f": "Ausnahme- und Inklusionsprozess",
 };
 
 const OPTION_RISK: Record<string, string> = {
   "opt-a": "mittel",
-  "opt-b": "hoch",
-  "opt-c": "mittel",
-  "opt-d": "niedrig",
-  "opt-f": "niedrig",
+  "opt-b": "mittel",
+  "opt-c": "hoch",
+  "opt-d": "mittel",
+  "opt-e": "hoch",
+  "opt-f": "mittel",
 };
 
 const QUESTION_STATUS_LABELS: Record<string, string> = {
@@ -148,6 +187,26 @@ const ROLE_LABELS = {
   staff: "Redaktion/Staff",
 } as const;
 
+const SOURCE_TYPE_LABELS: Record<string, string> = {
+  academic: "Wissenschaft",
+  policy: "Policy",
+  city_report: "Stadtbericht",
+  evaluation: "Evaluation",
+  survey: "Umfrage",
+  legal_framework: "Rechtsrahmen",
+};
+
+const SOURCE_CLUSTER_LABELS: Record<string, string> = {
+  air_quality: "Luftqualität",
+  traffic_displacement: "Verkehrsverlagerung",
+  logistics: "Logistik",
+  accessibility: "Barrierefreiheit & Zugang",
+  economics: "Ökonomie",
+  micromobility: "Mikromobilität",
+  participation: "Beteiligung",
+  governance: "Governance",
+};
+
 function formatDate(value?: string | null) {
   if (!value) return "-";
   const d = new Date(value);
@@ -169,6 +228,16 @@ function formatLanguage(value?: string | null) {
   if (value.toLowerCase() === "de") return "Deutsch";
   if (value.toLowerCase() === "en") return "Englisch";
   return value.toUpperCase();
+}
+
+function parseJsonContextNote<T>(notes: Dossier["analyze"]["notes"], noteId: string): T | null {
+  const note = notes.find((entry) => entry.id === noteId && entry.kind === "context");
+  if (!note?.text) return null;
+  try {
+    return JSON.parse(note.text) as T;
+  } catch {
+    return null;
+  }
 }
 
 function deriveStatementStats(claims: Dossier["analyze"]["claims"]) {
@@ -551,6 +620,67 @@ export function DossierViewer({
     contributions.length || (typeof rawContributionCount === "number" ? rawContributionCount : 0);
 
   const sources = dossier.sourceSet.length ? dossier.sourceSet : analyze.runReceipt?.sourceSet ?? [];
+
+  const sourceMatrixData = useMemo(
+    () =>
+      parseJsonContextNote<{ section?: string; entries?: SourceMatrixEntry[] }>(
+        analyze.notes,
+        "note-source-matrix",
+      ),
+    [analyze.notes],
+  );
+  const sourceMatrixEntries = sourceMatrixData?.entries ?? [];
+
+  const zahlenAuditData = useMemo(
+    () =>
+      parseJsonContextNote<{ section?: string; entries?: ZahlenAuditEntry[] }>(
+        analyze.notes,
+        "note-zahlen-audit",
+      ),
+    [analyze.notes],
+  );
+  const zahlenAuditEntries = zahlenAuditData?.entries ?? [];
+
+  const beteiligungsAuditData = useMemo(
+    () => parseJsonContextNote<BeteiligungsAuditData>(analyze.notes, "note-beteiligungs-audit"),
+    [analyze.notes],
+  );
+
+  const topTakeaways = useMemo(() => {
+    const defaults = [
+      "Zugangsrechte statt einfacher Auto-ja/nein-Debatte.",
+      "Verkehrsbeschränkungen können wirken, aber Verlagerung bleibt kritisch.",
+      "Innenstadtökonomie hängt stark vom Nutzungsmix ab.",
+      "Lieferlogistik, Barrierefreiheit und Mikromobilität müssen mitgeplant werden.",
+      "Prozentzahlen sind nur mit Grundgesamtheit und Methode belastbar.",
+    ];
+    const merged = [...(analyze.report.takeaways ?? []), ...defaults];
+    return Array.from(new Set(merged)).slice(0, 6);
+  }, [analyze.report.takeaways]);
+
+  const topOpenIssues = useMemo(() => {
+    const defaults = [
+      "Absolute Zahlen hinter Prozentwerten fehlen teilweise.",
+      "Teilnehmerzahl und Beteiligungsqualität sind noch nicht vollständig belegt.",
+      "Verlagerung auf Randstraßen ist lokal zu prüfen.",
+      "Ausnahmen für Mobilitätseinschränkungen sind konkret zu definieren.",
+      "E-Autos, E-Mopeds und Lieferfahrzeuge brauchen klare Zugangsgrenzen.",
+      "Fahrradstellplätze, Lastenräder und E-Scooter-Zonen sind operativ zu planen.",
+    ];
+    const merged = [...(analyze.report.openQuestions ?? []), ...defaults];
+    return Array.from(new Set(merged)).slice(0, 6);
+  }, [analyze.report.openQuestions]);
+
+  const sourceClusters = useMemo(() => {
+    const map = new Map<string, SourceMatrixEntry[]>();
+    for (const entry of sourceMatrixEntries) {
+      const cluster = entry.cluster ?? "governance";
+      const list = map.get(cluster) ?? [];
+      list.push(entry);
+      map.set(cluster, list);
+    }
+    return Array.from(map.entries()).sort((a, b) => b[1].length - a[1].length);
+  }, [sourceMatrixEntries]);
 
   const statementTitleById = new Map(analyze.claims.map((claim) => [claim.id, claim.title ?? claim.id]));
 
@@ -973,10 +1103,10 @@ export function DossierViewer({
           </p>
           <div className="space-y-3">
             <p className="text-sm uppercase tracking-[0.3em] text-[rgb(var(--muted))]">
-              Kommunale Bildungsinfrastruktur
+              Innenstadt-Dossier
             </p>
             <h1 className="headline-grad text-5xl font-extrabold leading-[1.02] tracking-tight md:text-7xl">
-              Sanierung oder Neubau einer bestehenden Schule
+              {dossier.meta.title}
             </h1>
           </div>
           <div className="text-[11px] uppercase tracking-[0.18em] text-[rgb(var(--muted))]">[ Kontext · Evidenz · Optionen · Beteiligung ]</div>
@@ -1180,6 +1310,167 @@ export function DossierViewer({
         </div>
       </section>
 
+      <section id="graph" className="space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
+            Evidenzlage & Quellenintelligenz
+          </div>
+          <span className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-2 py-1 text-[10px] text-[rgb(var(--muted))]">
+            First-Screen Orientierung
+          </span>
+        </div>
+        <EvidenceField
+          options={votingOptions.map((opt) => ({ id: opt.id, label: opt.label }))}
+          claims={claimNodes}
+          sources={sourceNodes}
+          edges={graphEdges}
+          optionLinks={optionLinks}
+          optionRanking={majorityMap}
+          contestedClaimIds={contestedClaimIds}
+          findings={analyze.findings}
+        />
+      </section>
+
+      <section className="grid gap-4 lg:grid-cols-2">
+        <article className="vog-card p-5 space-y-3">
+          <h2 className="text-sm font-semibold tracking-wide text-[rgb(var(--fg))]">Was wir aktuell daraus mitnehmen</h2>
+          <ul className="space-y-2 text-sm text-[rgb(var(--muted))]">
+            {topTakeaways.map((item) => (
+              <li key={item} className="rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2">
+                {item}
+              </li>
+            ))}
+          </ul>
+        </article>
+        <article className="vog-card p-5 space-y-3">
+          <h2 className="text-sm font-semibold tracking-wide text-[rgb(var(--fg))]">Was offen bleibt</h2>
+          <ul className="space-y-2 text-sm text-[rgb(var(--muted))]">
+            {topOpenIssues.map((item) => (
+              <li key={item} className="rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2">
+                {item}
+              </li>
+            ))}
+          </ul>
+        </article>
+      </section>
+
+      <section id="smart-sources" className="space-y-4">
+        <div className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Quellenlage (Smart Source Cards)</div>
+        {sourceClusters.length ? (
+          <div className="space-y-3">
+            {sourceClusters.map(([cluster, entries]) => (
+              <details key={cluster} className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4" open>
+                <summary className="cursor-pointer text-sm font-semibold text-[rgb(var(--fg))]">
+                  {SOURCE_CLUSTER_LABELS[cluster] ?? cluster} ({entries.length})
+                </summary>
+                <div className="mt-3 grid gap-3 md:grid-cols-2">
+                  {entries.map((entry) => (
+                    <article key={entry.id} className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4">
+                      <h3 className="text-sm font-semibold text-[rgb(var(--fg))]">{entry.title}</h3>
+                      <div className="mt-2 flex flex-wrap gap-2 text-[10px]">
+                        <span className="rounded-full border border-[rgb(var(--border))] px-2 py-0.5 text-[rgb(var(--muted))]">
+                          {SOURCE_TYPE_LABELS[entry.sourceType ?? ""] ?? (entry.sourceType ?? "Quelle")}
+                        </span>
+                        <span className="rounded-full border border-[rgb(var(--border))] px-2 py-0.5 text-[rgb(var(--muted))]">
+                          Evidenzstatus: {entry.evidenceStatus ?? "offen"}
+                        </span>
+                        <span className="rounded-full border border-[rgb(var(--border))] px-2 py-0.5 text-[rgb(var(--muted))]">
+                          Übertragbarkeit: {entry.transferability ?? "mittel"}
+                        </span>
+                      </div>
+                      <div className="mt-3 space-y-2 text-xs text-[rgb(var(--muted))]">
+                        <p>
+                          <span className="font-semibold text-[rgb(var(--fg))]">Nehmen wir daraus mit:</span>{" "}
+                          {entry.takeaway ?? "Relevanter Kontextbaustein für die Abwägung."}
+                        </p>
+                        <p>
+                          <span className="font-semibold text-[rgb(var(--fg))]">Nicht automatisch ableitbar:</span>{" "}
+                          {entry.notAutomatic ?? "Keine direkte Übertragbarkeit ohne lokale Prüfung."}
+                        </p>
+                        <p>
+                          <span className="font-semibold text-[rgb(var(--fg))]">Kritischer Caveat:</span>{" "}
+                          {entry.criticalCaveat ?? "Lokaler Kontext kann die Aussage stark verändern."}
+                        </p>
+                        <p className="text-[10px]">
+                          Quelle: {entry.source} · Raum: {entry.geography ?? "-"} · Zeitraum: {entry.period ?? "-"}
+                        </p>
+                      </div>
+                      {entry.canonicalUrl ? (
+                        <a
+                          href={entry.canonicalUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="mt-3 inline-block text-xs text-[rgb(var(--grad-from))] underline"
+                        >
+                          Quelle öffnen
+                        </a>
+                      ) : null}
+                    </article>
+                  ))}
+                </div>
+              </details>
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm text-[rgb(var(--muted))]">Keine strukturierte Quellenmatrix hinterlegt.</p>
+        )}
+      </section>
+
+      <section id="zahlen-audit" className="space-y-4">
+        <div className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Zahlen-Audit</div>
+        <div className="grid gap-3 md:grid-cols-2">
+          {zahlenAuditEntries.map((entry) => (
+            <article key={entry.metric} className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 space-y-2">
+              <h3 className="text-sm font-semibold text-[rgb(var(--fg))]">{entry.metric}</h3>
+              <p className="text-xs text-[rgb(var(--muted))]">Quelle: {entry.source}</p>
+              <p className="text-xs text-[rgb(var(--muted))]">
+                Gemessen: {entry.measured}
+              </p>
+              <p className="text-xs text-[rgb(var(--muted))]">
+                Grundgesamtheit: {entry.denominator}
+              </p>
+              <p className="text-xs text-[rgb(var(--muted))]">
+                Raum/Zeit: {entry.geography} · {entry.period}
+              </p>
+              <p className="text-xs text-[rgb(var(--muted))]">
+                Methode: {entry.method}
+              </p>
+              {entry.controlGroup ? (
+                <p className="text-xs text-[rgb(var(--muted))]">Kontrolllogik: {entry.controlGroup}</p>
+              ) : null}
+              <p className="text-xs text-[rgb(var(--muted))]">
+                Caveat: {entry.transferabilityCaveat}
+              </p>
+              <div className="text-[11px] font-semibold text-[rgb(var(--fg))]">
+                Evidenzstatus: {entry.evidenceStatus}
+              </div>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section id="beteiligungs-audit" className="space-y-4">
+        <div className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Beteiligungs-Audit</div>
+        <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 space-y-3">
+          <p className="text-sm font-semibold text-[rgb(var(--fg))]">
+            Beteiligungsqualität: {beteiligungsAuditData?.score?.level ?? "offen"}
+          </p>
+          {beteiligungsAuditData?.score?.rationale ? (
+            <p className="text-xs text-[rgb(var(--muted))]">{beteiligungsAuditData.score.rationale}</p>
+          ) : null}
+          <ul className="grid gap-2 text-xs text-[rgb(var(--muted))] md:grid-cols-2">
+            {(beteiligungsAuditData?.auditQuestions ?? []).map((item) => (
+              <li key={item} className="rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2">
+                {item}
+              </li>
+            ))}
+          </ul>
+          <p className="text-xs font-semibold text-[rgb(var(--fg))]">
+            {beteiligungsAuditData?.mandateRule ?? "Mandatsfähigkeit bleibt zu prüfen."}
+          </p>
+        </div>
+      </section>
+
       <InputsPanel
         streams={streams}
         contributions={contributions}
@@ -1247,24 +1538,6 @@ export function DossierViewer({
         </div>
       </section>
     </>
-  );
-
-  const fullWidth = (
-    <section id="graph" className="space-y-4">
-      <div className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
-        Evidenz-Topologie
-      </div>
-      <EvidenceField
-        options={votingOptions.map((opt) => ({ id: opt.id, label: opt.label }))}
-        claims={claimNodes}
-        sources={sourceNodes}
-        edges={graphEdges}
-        optionLinks={optionLinks}
-        optionRanking={majorityMap}
-        contestedClaimIds={contestedClaimIds}
-        findings={analyze.findings}
-      />
-    </section>
   );
 
   const afterLeft = (
@@ -1769,7 +2042,6 @@ export function DossierViewer({
       header={header}
       mainLeft={mainLeft}
       sidebar={sidebar}
-      fullWidth={fullWidth}
       afterLeft={afterLeft}
       afterSidebar={afterSidebar}
     />

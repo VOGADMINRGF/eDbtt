@@ -8,8 +8,24 @@ This document defines the canonical foundation for dossier-bound public outputs 
 
 - Dossier = truth/source/structure core.
 - Output Engine = controlled, deterministic transformation layer from dossier -> output package.
-- eDebatte Studio = review and preview workspace for output editing and approval.
+- eDebatte Studio = publication and distribution workspace with review and approval gates.
 - Distribution outputs = format-specific deliverables generated from one reviewed package.
+
+## Studio Product Framing (B2B)
+
+eDebatte Studio is positioned as a distribution and publication layer for participation professionals:
+
+- target users: Beteiligungsbüros, Moderationsbüros, Planungsbüros, Kommunikationsagenturen, Dialogprofis
+- workflow: `Dossier -> Master-Post -> Kanal-Versionen -> Review -> Planung -> Export/Veröffentlichungsvorbereitung`
+- purpose: professional communication outputs from participation work (not a moderation replacement)
+
+Guardrails:
+
+- Studio does not replace moderation, process design, or participation offices.
+- Dossier remains source of truth for all derived outputs.
+- No fake live publishing and no fake connected social channels.
+- External channels stay export/copy only until real adapters exist.
+- No claim of legal advisory or formal governance replacement.
 
 ## Core Principles
 
@@ -56,6 +72,79 @@ Supported formats:
 - `citizen_letter`
 - `administrative_note`
 - `mandate_summary`
+
+## Social Carousel Mapper (local slice)
+
+The first concrete format mapper is `Social Carousel` as a deterministic local output.
+
+- Source: `OutputPackage`
+- Target: `SocialCarouselOutput` with 5-7 slides
+- Slide canon: headline question, anlass, documented state, disputed/open state, options, CTA, optional review note
+- Every slide keeps a dossier backlink target
+- Review warnings stay visible when sources/options are incomplete
+- No auto-publish, no external social APIs, no tracking, no export automation
+- Variant metadata is prepared for later export (`square`, `story`, `linkedin`, `print_preview`) without enabling export runtime
+- Studio renders a reusable visual card preview (mobile-first, dark/light safe, review-gated)
+- Post-ready metadata is deterministic and local only: `suggestedPostText`, `suggestedHashtags`, `suggestedPostingWindows`, `suggestedChannelFit`, `regionalContext`, `participationQuestion`, `motifHint`
+- Publication guardrails stay explicit: `publicationStatus=draft_review_required`, `canAutoPublish=false`, `automationHint` documents policy boundary
+
+## Social Distribution Studio (local prototype)
+
+The Studio now includes a local distribution planning surface for social outputs.
+
+- Post preview remains review-gated and dossier-bound.
+- Distribution planning is deterministic and local via `SocialDistributionPlan`.
+- Channel targets cover `instagram`, `facebook`, `linkedin`, `tiktok`, `youtube_shorts`, `x_twitter`, `mastodon`, `bluesky`, `whatsapp_channel`, `telegram`, `website_embed`.
+- Scheduling options are prepared (`manual`, `suggested_window`, `scheduled_at`, `immediate_after_review`) without live publishing.
+- Policy gate is explicit via `getSocialPublishingPolicy()`:
+  - `externalApisEnabled=false`
+  - `autoPublishEnabled=false`
+  - `canRealtimePublish=false`
+  - `requiresManualReview=true`
+- Connector/OAuth integration is intentionally deferred; this slice only provides contracts/UI/policy readiness.
+- UX-Fokus ist als Publishing-Cockpit ausgerichtet:
+  - Master-Post-first statt Format-first
+  - Kanalorientierte Planung (Auswahl, Verbindungen, Modus, Verteilplan)
+  - `Dossier-Qualität & Hinweise` als kollabierter Detailbereich statt technischer Startansicht
+
+## Master-Post-First Workflow (local hardening)
+
+Aktueller Studio-Flow ist lokal auf ein produktnahes Arbeitsmodell gehärtet:
+
+1. Dossier-Kontext
+2. Fertiger Beitrag / Dossier-Post (primäres Objekt)
+3. Hauptaktionen (`Bearbeiten`, `Kopieren`, `Als Entwurf speichern`, `Review anfordern`, `Zeitpunkt planen`, `Veröffentlichung vorbereiten`)
+4. Kanäle auswählen
+5. Kanalverbindungen
+6. Veröffentlichungsmodus
+7. Empfohlener Verteilplan
+8. Kanal-Versionen (sekundär, aus dem Master-Post abgeleitet)
+9. Dossier-Qualität & Hinweise (kollabiert)
+
+### Guardrails
+
+- Kein Auto-Publish.
+- Keine Fake-Live-Veröffentlichung auf externen Kanälen.
+- Externe Kanäle ohne Adapter sind explizit als `Kanal nicht verbunden` / `Konfiguration erforderlich` / `Nur Export/Kopieren möglich` markiert.
+- Dossier bleibt Source of Truth, Studio bleibt review-gebundener Veröffentlichungsraum.
+
+### Interaktionsstatus (lokal)
+
+- Teile der Aktionen sind bewusst lokal umgesetzt (Component State / localStorage), um produktive UX-Flows vorzubereiten ohne externe API-Integrationen.
+- Interne Veröffentlichungsvorbereitung bleibt review-gebunden; externer Live-Publish ist weiterhin nicht implementiert.
+
+## Abgrenzung zum Beteiligungsradar-Slice
+
+Dieser Studio-/Output-Engine-Slice umfasst **nicht**:
+
+- Beteiligungsradar
+- Ausschreibungs-/Signal-Ingestion
+- Anlassraum-Automation
+- Runde-/Mandat-Erzeugung
+- Feed-/Crawler-Logik
+- externe Social OAuth/API-Liveintegration
+
+Der spätere Beteiligungsradar-Flow (`Signale/Ausschreibungen -> Anlassraum -> Dossier -> Runde -> Mandat`) bleibt ein separater Slice.
 
 ## Review Model
 
