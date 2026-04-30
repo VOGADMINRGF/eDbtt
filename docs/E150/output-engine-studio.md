@@ -133,6 +133,66 @@ Aktueller Studio-Flow ist lokal auf ein produktnahes Arbeitsmodell gehärtet:
 - Teile der Aktionen sind bewusst lokal umgesetzt (Component State / localStorage), um produktive UX-Flows vorzubereiten ohne externe API-Integrationen.
 - Interne Veröffentlichungsvorbereitung bleibt review-gebunden; externer Live-Publish ist weiterhin nicht implementiert.
 
+## Master Post Contract (local slice)
+
+Der Studio-Flow besitzt nun einen zentralen `MasterPost` als verbindliches Vorveröffentlichungsobjekt.
+
+- Erzeugung aus `OutputPackage` ohne AI-Call (`generateMasterPost(...)`).
+- Pflichtfelder: `backlinkTarget`, `participationQuestion`, `sourceState`, `reviewStatus`, `publicationStatus`.
+- Standard-Guardrails bleiben hart:
+  - `canAutoPublish=false`
+  - `canRealtimePublish=false`
+  - `externalApisUsed=false`
+  - `publicationStatus=draft_review_required`
+- Copy bleibt neutral-civic, anlassbezogen und ohne Gründer-/Persönlichkeitsframing.
+- Offene Fragen/Quellenwarnungen werden als `reviewGuardrails` sichtbar weitergetragen.
+
+## Social Distribution Contract (local slice)
+
+`buildSocialDistributionPlan(masterPost, carouselOutput, options?)` bildet den manuellen Verteilpfad ohne Live-APIs:
+
+- Vollständige Kanalliste:
+  - `website_embed`, `instagram`, `facebook`, `linkedin`, `tiktok`, `youtube_shorts`, `x_twitter`, `mastodon`, `bluesky`, `whatsapp_channel`, `telegram`, `newsletter`, `qr_print`
+- Connector-Status transparent und ehrlich:
+  - `internal_available`, `not_connected`, `configured`, `disabled_by_policy`, `requires_review`, `available_later`
+- Planungsmodi:
+  - `manual`, `suggested_window`, `scheduled_at`, `immediate_after_review`
+- Policy bleibt restriktiv:
+  - `externalApisEnabled=false`
+  - `autoPublishEnabled=false`
+  - `canRealtimePublish=false`
+  - `requiresManualReview=true`
+
+## No Fake Publish Boundary
+
+- Kein externer Publish-Call und kein OAuth-Connect-Bypass.
+- Publish-nahe UI bleibt als Vorbereitung kenntlich (deaktivierte Publish-Aktion).
+- Studio bleibt ein Review-/Planungs-Workspace, kein Live-Distribution-Service.
+
+## Future Connector/OAuth Work (deferred)
+
+Spätere Slices können echte Connector-Pfade ergänzen, aber nur mit:
+
+- expliziter Adapter-Verfügbarkeit pro Kanal
+- separaten Secret-/Credential-Flows
+- auditierbarer Review-/Freigabelogik
+- klarer Trennung zwischen internem Entwurf und externer Veröffentlichung
+
+## Chat Backlog Anchor (Issue #74)
+
+Unresolved follow-up ideas from the Studio/Dossier chat are tracked in the SSOT task queue under:
+
+- `PR-CHAT-BACKLOG-01` (collector)
+- `PR-OUT-STUDIO-CHANNELS-01`
+- `PR-DOSSIER-EVIDENCE-FIRST-01`
+- `PR-DOSSIER-NUMBERS-AUDIT-01`
+- `PR-DOSSIER-PARTICIPATION-AUDIT-01`
+- `PR-DEMO-MASTER-DOSSIER-02`
+- `PR-OUT-POST-GENERATOR-01`
+- `PR-OUT-EXPORT-01`
+- `PR-OUT-TELEMETRY-01`
+- `PR-BETEILIGUNGSRADAR-00` (scope/docs only, no implementation)
+
 ## Abgrenzung zum Beteiligungsradar-Slice
 
 Dieser Studio-/Output-Engine-Slice umfasst **nicht**:
