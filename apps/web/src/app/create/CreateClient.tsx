@@ -110,6 +110,8 @@ type CreatePrimaryIntakeSnapshot = {
   updatedAt: string;
 };
 
+type CreateFollowupSurface = "none" | "lightweight" | "analysis";
+
 const CREATE_PRIMARY_INTAKE_STORAGE_KEY_PREFIX = "vog_create_primary_intake_v1";
 
 export function buildCreatePrimaryIntakeStorageKey(userId?: string | null): string {
@@ -213,11 +215,13 @@ export function buildGuidedWorkspaceText(params: {
 }
 
 export function shouldRenderCreateAnalyzeWorkspace(params: {
+  followupActivated: boolean;
   hasStarted: boolean;
   intakeText: string;
   productMode: CreateProductMode;
   guidedBridgeConfirmed: boolean;
 }): boolean {
+  if (!params.followupActivated) return false;
   const postInputReady = shouldShowCreatePostInputModules({
     hasStarted: params.hasStarted,
     intakeText: params.intakeText,
@@ -225,6 +229,12 @@ export function shouldRenderCreateAnalyzeWorkspace(params: {
   if (!postInputReady) return false;
   if (params.productMode !== "guided") return true;
   return params.guidedBridgeConfirmed;
+}
+
+function resolveFollowupSurfaceOnStart(productMode: CreateProductMode): CreateFollowupSurface {
+  if (productMode === "media") return "analysis";
+  if (productMode === "analyze") return "lightweight";
+  return "none";
 }
 
 export function resolveInitialCreateProductMode(params: {
@@ -339,6 +349,7 @@ export default function CreateClient({
   const [intakeText, setIntakeText] = React.useState(initialText ?? "");
   const [activeContextAnchorId, setActiveContextAnchorId] = React.useState<CreateIntent | null>(null);
   const [hasStarted, setHasStarted] = React.useState<boolean>(false);
+  const [followupSurface, setFollowupSurface] = React.useState<CreateFollowupSurface>("none");
   const [analysisAutoRunToken, setAnalysisAutoRunToken] = React.useState<number>(0);
   const [intakeError, setIntakeError] = React.useState<string | null>(null);
   const [intakeRestoreInfo, setIntakeRestoreInfo] = React.useState<string | null>(null);
@@ -360,14 +371,12 @@ export default function CreateClient({
         setIntakeText(snapshot.intakeText);
         setIntakeRestoreInfo(intakeRestoreInfoText);
       }
-      if (snapshot.hasStarted && hasPrimaryIntakeText(snapshot.intakeText)) {
-        setHasStarted(true);
-        setGuidedBridgeConfirmed(productMode !== "guided");
-      }
+      // Do not auto-open follow-up surfaces from local restore.
+      // We restore text only; activation stays explicit via CTA.
     } catch {
       // ignore local restore issues
     }
-  }, [initialText, intakeRestoreInfoText, intakeStorageKey, productMode]);
+  }, [initialText, intakeRestoreInfoText, intakeStorageKey]);
 
   React.useEffect(() => {
     try {
@@ -508,7 +517,9 @@ export default function CreateClient({
     setHasStarted(true);
     setGuidedBridgeConfirmed(productMode !== "guided");
     setGuidedBridgeError(null);
-    if (productMode !== "guided") {
+    const nextFollowupSurface = resolveFollowupSurfaceOnStart(productMode);
+    setFollowupSurface(nextFollowupSurface);
+    if (nextFollowupSurface === "analysis") {
       setAnalysisAutoRunToken((current) => current + 1);
     }
   }, [intakeText, productMode, surfaceTexts.intakeMissingError]);
@@ -519,8 +530,27 @@ export default function CreateClient({
       return;
     }
     setGuidedBridgeError(null);
+    setFollowupSurface("lightweight");
     setGuidedBridgeConfirmed(true);
   }, [guidedBridgeAnswer, surfaceTexts.guidedMissingError]);
+
+  const handlePromoteToReview = React.useCallback(() => {
+    setProductMode("media");
+    setActiveContextAnchorId(null);
+    setGuidedBridgeConfirmed(true);
+    setGuidedBridgeError(null);
+    setFollowupSurface("analysis");
+    setAnalysisAutoRunToken((current) => current + 1);
+  }, []);
+
+  const handleSwitchToGuided = React.useCallback(() => {
+    setProductMode("guided");
+    setActiveContextAnchorId(null);
+    setGuidedBridgeConfirmed(false);
+    setGuidedBridgeError(null);
+    setGuidedBridgeAnswer("");
+    setFollowupSurface("none");
+  }, []);
 
   if (gate.status === "loading") {
     return (
@@ -590,12 +620,19 @@ export default function CreateClient({
     hasStarted,
     intakeText,
   });
+  const analyzeFollowupActivated = followupSurface === "analysis";
+  const lightweightFollowupActivated = followupSurface === "lightweight";
   const showAnalyzeWorkspace = shouldRenderCreateAnalyzeWorkspace({
+    followupActivated: analyzeFollowupActivated,
     hasStarted,
     intakeText,
     productMode,
     guidedBridgeConfirmed,
   });
+  const showLightweightFollowup =
+    showPostInputModules &&
+    lightweightFollowupActivated &&
+    (productMode !== "guided" || guidedBridgeConfirmed);
   const workspaceInitialText =
     productMode === "guided"
       ? buildGuidedWorkspaceText({
@@ -623,6 +660,7 @@ export default function CreateClient({
           setProductMode(modeOption);
           setActiveContextAnchorId(null);
           if (!hasStarted) return;
+          setFollowupSurface("none");
           setGuidedBridgeConfirmed(modeOption !== "guided");
           setGuidedBridgeError(null);
         }}
@@ -649,6 +687,7 @@ export default function CreateClient({
           if (!anchor) return;
           setProductMode(anchor.mode);
           if (!hasStarted) return;
+          setFollowupSurface("none");
           setGuidedBridgeConfirmed(anchor.mode !== "guided");
           setGuidedBridgeError(null);
         }}
@@ -819,6 +858,48 @@ export default function CreateClient({
             </Link>
           </div>
         </details>
+      ) : null}
+
+      {showLightweightFollowup ? (
+        <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 md:p-5">
+          <div className="space-y-2">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[rgb(var(--muted))]">
+              {productMode === "guided"
+                ? surfaceTexts.followupGuidedStatus
+                : surfaceTexts.followupContributeStatus}
+            </p>
+            <p className="text-sm font-semibold text-[rgb(var(--fg))]">
+              {productMode === "guided"
+                ? surfaceTexts.followupGuidedTitle
+                : surfaceTexts.followupContributeTitle}
+            </p>
+            <p className="text-sm text-[rgb(var(--muted))]">
+              {productMode === "guided"
+                ? surfaceTexts.followupGuidedLead
+                : surfaceTexts.followupContributeLead}
+            </p>
+          </div>
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <Link href={contextualReturnHref ?? "/runden"} className="btn-secondary text-xs">
+              {contextualReturnHref ? surfaceTexts.returnToContextLabel : surfaceTexts.goToRoundsLabel}
+            </Link>
+            <button type="button" className="btn-secondary text-xs" onClick={handlePromoteToReview}>
+              {surfaceTexts.followupActionToReview}
+            </button>
+            {productMode !== "guided" ? (
+              <button type="button" className="btn-secondary text-xs" onClick={handleSwitchToGuided}>
+                {surfaceTexts.followupActionToGuided}
+              </button>
+            ) : null}
+          </div>
+        </section>
+      ) : null}
+
+      {showAnalyzeWorkspace ? (
+        <section className="rounded-2xl border border-sky-200 bg-sky-50/80 p-4 text-xs text-sky-900 dark:border-sky-500/40 dark:bg-sky-500/10 dark:text-sky-100">
+          <p className="font-semibold">{surfaceTexts.followupReviewFrameTitle}</p>
+          <p className="mt-1">{surfaceTexts.followupReviewFrameLead}</p>
+        </section>
       ) : null}
 
       {showAnalyzeWorkspace ? (
