@@ -5,3 +5,5 @@ export * from "./socialCarousel";
 export * from "./socialDistribution";
 export * from "./masterPost";
 export * from "./formatMappers";
+export * from "./distributionExport";
+export * from "./studioTelemetry";

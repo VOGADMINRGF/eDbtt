@@ -1,14 +1,21 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
-  buildSocialDistributionDraft,
+  buildCopyText,
+  buildDistributionPlan,
+  buildDraftRecord,
+  buildQrPrintPreview,
   buildSocialDistributionQueue,
+  recordStudioTelemetryEvent,
   type SocialDistributionChannel,
+  type SocialConnectorStatus,
   type SocialDistributionPlan,
   type SocialDistributionTarget,
   type SocialScheduleMode,
+  type MasterPost,
+  validateDistributionExport,
 } from "@features/outputEngine";
 
 type SocialDistributionPanelProps = {
@@ -16,6 +23,7 @@ type SocialDistributionPanelProps = {
   dossierId: string;
   reviewRequired: boolean;
   dossierBacklink: string;
+  masterPost: MasterPost;
 };
 
 type StudioScheduleChoice = "draft" | "suggested" | "scheduled" | "after_review";
@@ -24,11 +32,15 @@ function keyForPlan(dossierId: string) {
   return `edebatte:studio:distribution-plan:${dossierId}`;
 }
 
+function keyForQueue(dossierId: string) {
+  return `edebatte:studio:distribution-queue:${dossierId}`;
+}
+
 function connectorLabel(status: SocialDistributionTarget["connectorStatus"]): string {
   if (status === "internal_available") return "Intern verfügbar";
-  if (status === "not_connected") return "Kanal nicht verbunden";
-  if (status === "configured") return "Konfiguriert";
-  if (status === "disabled_by_policy") return "Per Admin deaktiviert";
+  if (status === "not_connected") return "Nicht verbunden";
+  if (status === "configured") return "Konfiguration erforderlich";
+  if (status === "disabled_by_policy") return "Nur Export";
   if (status === "requires_review") return "Review erforderlich";
   return "Später verfügbar";
 }
@@ -74,21 +86,35 @@ export default function SocialDistributionPanel({
   dossierId,
   reviewRequired,
   dossierBacklink,
+  masterPost,
 }: SocialDistributionPanelProps) {
   const [selectedChannels, setSelectedChannels] = useState<Set<SocialDistributionChannel>>(
     new Set(plan.selectedChannels),
   );
+  const [connectorOverrides, setConnectorOverrides] = useState<
+    Partial<Record<SocialDistributionChannel, SocialConnectorStatus>>
+  >({});
   const [scheduleChoice, setScheduleChoice] = useState<StudioScheduleChoice>("suggested");
   const [notice, setNotice] = useState<string | null>(null);
+  const [queueCancelled, setQueueCancelled] = useState<Set<string>>(new Set());
 
   const nextWindow = plan.suggestedPostingWindows[0] ?? "Kein Zeitfenster vorhanden";
 
+  const targetsWithOverrides = useMemo(
+    () =>
+      plan.targets.map((target) => ({
+        ...target,
+        connectorStatus: connectorOverrides[target.channel] ?? target.connectorStatus,
+      })),
+    [plan.targets, connectorOverrides],
+  );
+
   const selectedLabels = useMemo(
     () =>
-      plan.targets
+      targetsWithOverrides
         .filter((target) => selectedChannels.has(target.channel))
         .map((target) => target.label),
-    [plan.targets, selectedChannels],
+    [targetsWithOverrides, selectedChannels],
   );
 
   const selectedList = useMemo(
@@ -97,9 +123,24 @@ export default function SocialDistributionPanel({
   );
 
   const queueItems = useMemo(
-    () => buildSocialDistributionQueue(plan, selectedList),
-    [plan, selectedList],
+    () =>
+      buildSocialDistributionQueue(
+        {
+          ...plan,
+          targets: targetsWithOverrides,
+        },
+        selectedList,
+      ),
+    [plan, selectedList, targetsWithOverrides],
   );
+  const qrPrintPreview = useMemo(() => buildQrPrintPreview(masterPost), [masterPost]);
+
+  useEffect(() => {
+    recordStudioTelemetryEvent({
+      name: "master_post_generated",
+      dossierId,
+    });
+  }, [dossierId]);
 
   const toggleChannel = (channel: SocialDistributionChannel) => {
     setSelectedChannels((current) => {
@@ -121,39 +162,121 @@ export default function SocialDistributionPanel({
   };
 
   const savePlan = () => {
-    const draft = buildSocialDistributionDraft({
-      plan,
+    const draft = buildDistributionPlan({
+      plan: {
+        ...plan,
+        targets: targetsWithOverrides,
+      },
       selectedChannels: selectedList,
       scheduleMode: scheduleModeFromChoice(scheduleChoice),
       reviewRequired,
-      status: scheduleChoice === "draft" ? "draft_saved" : "planned",
     });
     localStorage.setItem(keyForPlan(dossierId), JSON.stringify(draft));
+    localStorage.setItem(keyForQueue(dossierId), JSON.stringify(queueItems));
+    recordStudioTelemetryEvent({
+      name: "plan_adopted",
+      dossierId,
+      meta: {
+        selectedCount: selectedList.length,
+      },
+    });
     setNotice("Verteilplan als Entwurf gespeichert.");
   };
 
   const requestReview = () => {
-    const draft = buildSocialDistributionDraft({
-      plan,
+    const draft = buildDistributionPlan({
+      plan: {
+        ...plan,
+        targets: targetsWithOverrides,
+      },
       selectedChannels: selectedList,
-      scheduleMode: "suggested_window",
+      scheduleMode: scheduleModeFromChoice(scheduleChoice),
       reviewRequired: true,
-      status: "review_requested",
     });
     localStorage.setItem(`${keyForPlan(dossierId)}:review`, JSON.stringify(draft));
+    recordStudioTelemetryEvent({
+      name: "review_prepared",
+      dossierId,
+      meta: {
+        selectedCount: selectedList.length,
+      },
+    });
     setNotice("Post-Entwurf für Review markiert.");
   };
 
   const preparePublication = () => {
-    const draft = buildSocialDistributionDraft({
-      plan,
+    const validation = validateDistributionExport(masterPost);
+    const draft = buildDistributionPlan({
+      plan: {
+        ...plan,
+        targets: targetsWithOverrides,
+      },
       selectedChannels: selectedList,
       scheduleMode: scheduleModeFromChoice(scheduleChoice),
-      reviewRequired,
-      status: "prepared_internal",
+      reviewRequired: reviewRequired || validation.reviewRequired,
     });
     localStorage.setItem(`${keyForPlan(dossierId)}:prepared`, JSON.stringify(draft));
-    setNotice("Veröffentlichung intern vorbereitet.");
+    const preview = buildQrPrintPreview(masterPost);
+    localStorage.setItem(`${keyForPlan(dossierId)}:qr-print-preview`, JSON.stringify(preview));
+    setNotice(
+      validation.errors.length > 0
+        ? "Veröffentlichung nur als Review-Entwurf vorbereitet (Pflichtfelder im QR/Print-Kontext fehlen)."
+        : "Veröffentlichung intern vorbereitet.",
+    );
+  };
+
+  const saveDraft = () => {
+    const draft = buildDraftRecord({
+      plan: {
+        ...plan,
+        targets: targetsWithOverrides,
+      },
+      selectedChannels: selectedList,
+      reviewRequired,
+    });
+    localStorage.setItem(`${keyForPlan(dossierId)}:draft`, JSON.stringify(draft));
+    recordStudioTelemetryEvent({
+      name: "draft_saved",
+      dossierId,
+      meta: {
+        selectedCount: selectedList.length,
+      },
+    });
+    setNotice("Entwurf gespeichert.");
+  };
+
+  const copyPost = async () => {
+    const text = buildCopyText(masterPost);
+    try {
+      await navigator.clipboard.writeText(text);
+      recordStudioTelemetryEvent({ name: "copied", dossierId });
+      setNotice("Text kopiert.");
+    } catch {
+      setNotice("Kopieren nicht möglich.");
+    }
+  };
+
+  const setConnectorState = (channel: SocialDistributionChannel, status: SocialConnectorStatus) => {
+    setConnectorOverrides((current) => ({
+      ...current,
+      [channel]: status,
+    }));
+    if (status === "not_connected" || status === "disabled_by_policy") {
+      recordStudioTelemetryEvent({
+        name: "connector_missing",
+        dossierId,
+        channel,
+      });
+    }
+  };
+
+  const toggleQueueCancel = (id: string) => {
+    setQueueCancelled((current) => {
+      const next = new Set(current);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
   };
 
   return (
@@ -165,7 +288,7 @@ export default function SocialDistributionPanel({
         </p>
 
         <div className="mt-4 grid gap-3 md:grid-cols-2">
-          {plan.targets.map((target) => {
+          {targetsWithOverrides.map((target) => {
             const selected = selectedChannels.has(target.channel);
             return (
               <article
@@ -202,6 +325,20 @@ export default function SocialDistributionPanel({
         <div className="mt-4 flex flex-wrap gap-2">
           <button
             type="button"
+            onClick={copyPost}
+            className="inline-flex items-center rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-4 py-2 text-sm font-semibold"
+          >
+            Text kopieren
+          </button>
+          <button
+            type="button"
+            onClick={saveDraft}
+            className="inline-flex items-center rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-4 py-2 text-sm font-semibold"
+          >
+            Entwurf speichern
+          </button>
+          <button
+            type="button"
             onClick={requestReview}
             className="inline-flex items-center rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-4 py-2 text-sm font-semibold"
           >
@@ -225,7 +362,7 @@ export default function SocialDistributionPanel({
           Verbindungsstatus pro Kanal ohne Fake-OAuth und ohne Live-Publish.
         </p>
         <div className="mt-4 grid gap-3 md:grid-cols-2">
-          {plan.targets.map((target) => (
+          {targetsWithOverrides.map((target) => (
             <article
               key={`connection-${target.channel}`}
               className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3"
@@ -233,6 +370,23 @@ export default function SocialDistributionPanel({
               <p className="text-sm font-semibold">{target.label}</p>
               <p className="mt-1 text-xs text-[rgb(var(--muted))]">Status: {connectorLabel(target.connectorStatus)}</p>
               <p className="mt-1 text-xs text-[rgb(var(--muted))]">{connectorHint(target.connectorStatus)}</p>
+              <label className="mt-2 block text-xs text-[rgb(var(--muted))]">
+                Admin-Konfiguration
+                <select
+                  className="mt-1 w-full rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-2 py-1 text-xs text-[rgb(var(--fg))]"
+                  value={target.connectorStatus}
+                  onChange={(event) =>
+                    setConnectorState(target.channel, event.target.value as SocialConnectorStatus)
+                  }
+                >
+                  <option value="internal_available">Intern verfügbar</option>
+                  <option value="not_connected">Nicht verbunden</option>
+                  <option value="configured">Konfiguration erforderlich</option>
+                  <option value="disabled_by_policy">Nur Export</option>
+                  <option value="requires_review">Review erforderlich</option>
+                  <option value="available_later">Später verfügbar</option>
+                </select>
+              </label>
             </article>
           ))}
         </div>
@@ -334,7 +488,14 @@ export default function SocialDistributionPanel({
         </p>
         <ul className="mt-4 space-y-2">
           {queueItems.map((item) => (
-            <li key={item.id} className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
+            <li
+              key={item.id}
+              className={`rounded-xl border p-3 ${
+                queueCancelled.has(item.id)
+                  ? "border-rose-300 bg-rose-50/60 dark:border-rose-500/40 dark:bg-rose-500/10"
+                  : "border-[rgb(var(--border))] bg-[rgb(var(--bg))]"
+              }`}
+            >
               <p className="text-sm font-semibold">{item.label}</p>
               <p className="mt-1 text-xs text-[rgb(var(--muted))]">
                 Zeitfenster: {item.recommendedWindow}
@@ -345,9 +506,64 @@ export default function SocialDistributionPanel({
               <p className="mt-1 text-xs text-[rgb(var(--muted))]">
                 Aktion: {item.actionLabel}
               </p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => setNotice(`Queue-Eintrag ${item.label} zur Bearbeitung geöffnet.`)}
+                  className="rounded-full border border-[rgb(var(--border))] px-2.5 py-0.5 text-[11px] font-semibold"
+                >
+                  Bearbeiten
+                </button>
+                <button
+                  type="button"
+                  onClick={() => toggleQueueCancel(item.id)}
+                  className="rounded-full border border-[rgb(var(--border))] px-2.5 py-0.5 text-[11px] font-semibold"
+                >
+                  {queueCancelled.has(item.id) ? "Storno zurücknehmen" : "Stornieren"}
+                </button>
+              </div>
             </li>
           ))}
         </ul>
+      </section>
+
+      <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5">
+        <h3 className="text-lg font-semibold">Admin: Kanal-Konfiguration & Review-Routing</h3>
+        <p className="mt-1 text-sm text-[rgb(var(--muted))]">
+          Connector-Status, Queue und Review-Checkpoints bleiben intern steuerbar und reversibel.
+        </p>
+        <ul className="mt-3 space-y-2 text-sm text-[rgb(var(--muted))]">
+          <li>Realtime-Switch bleibt deaktiviert, bis Admin-Freigabe vorliegt.</li>
+          <li>Queue-Einträge sind bearbeitbar oder stornierbar.</li>
+          <li>Review-Checkpoints werden vor Export oder interner Vorbereitung gespeichert.</li>
+        </ul>
+      </section>
+
+      <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5">
+        <h3 className="text-lg font-semibold">QR-/Print-Vorschau</h3>
+        <p className="mt-1 text-sm text-[rgb(var(--muted))]">
+          Print-Output mit sichtbarem Quellen- und Review-Status.
+        </p>
+        <div className="mt-3 grid gap-2 text-sm md:grid-cols-2">
+          <article className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
+            <p className="text-xs uppercase tracking-wide text-[rgb(var(--muted))]">CTA</p>
+            <p className="mt-1 font-medium">{qrPrintPreview.cta}</p>
+          </article>
+          <article className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
+            <p className="text-xs uppercase tracking-wide text-[rgb(var(--muted))]">Dossier-Backlink</p>
+            <p className="mt-1 font-medium">{qrPrintPreview.dossierBacklink}</p>
+          </article>
+          <article className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
+            <p className="text-xs uppercase tracking-wide text-[rgb(var(--muted))]">QR Target</p>
+            <p className="mt-1 font-medium">{qrPrintPreview.qrTarget}</p>
+          </article>
+          <article className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
+            <p className="text-xs uppercase tracking-wide text-[rgb(var(--muted))]">Review / Quellen</p>
+            <p className="mt-1 font-medium">
+              {qrPrintPreview.reviewStatus} · {qrPrintPreview.sourceStatus}
+            </p>
+          </article>
+        </div>
       </section>
 
       <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5">
