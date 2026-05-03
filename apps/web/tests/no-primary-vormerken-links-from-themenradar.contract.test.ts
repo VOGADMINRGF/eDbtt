@@ -8,6 +8,7 @@ describe("no-primary-vormerken-links-from-themenradar.contract", () => {
       readFileSync(resolve(process.cwd(), "src/app/admin/themenradar/page.tsx"), "utf8"),
       readFileSync(resolve(process.cwd(), "src/app/admin/themenradar/[id]/page.tsx"), "utf8"),
       readFileSync(resolve(process.cwd(), "../../features/themenradar/contentPrep.ts"), "utf8"),
+      readFileSync(resolve(process.cwd(), "../../features/themenradar/membershipCta.ts"), "utf8"),
     ].join("\n");
 
     expect(content).not.toContain("/vormerken");
