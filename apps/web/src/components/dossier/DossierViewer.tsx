@@ -179,7 +179,7 @@ const STATEMENT_TYPE_LABELS: Record<string, string> = {
 
 const ROLE_LABELS = {
   citizen: "Bürgersicht",
-  organization: "Organisation",
+  organization: "Organisation (gekennzeichnet)",
   administration: "Verwaltung",
   journalist: "Journalismus",
   research: "Forschung",
@@ -221,6 +221,13 @@ function labelList(items?: string[] | null) {
 
 function clampScore(value: number) {
   return Math.max(0, Math.min(100, Math.round(value)));
+}
+
+function isOrganizationLikeLabel(value?: string | null): boolean {
+  if (!value) return false;
+  return /amt|behörde|dienststelle|ministerium|kammer|verein|verband|organisation|fraktion/i.test(
+    value,
+  );
 }
 
 function formatLanguage(value?: string | null) {
@@ -834,6 +841,24 @@ export function DossierViewer({
   const evidenceCountByClaim = new Map<string, number>();
   for (const link of evidenceLinks) {
     evidenceCountByClaim.set(link.claimId, (evidenceCountByClaim.get(link.claimId) ?? 0) + 1);
+  }
+
+  const contributionPolicy = presentation.contributionPolicy;
+
+  function claimEvidenceCount(claimId: string): number {
+    return evidenceCountByClaim.get(claimId) ?? 0;
+  }
+
+  function claimReviewStatus(claimId: string): string {
+    if (contestedClaimSet.has(claimId)) return "Einspruch offen";
+    const count = claimEvidenceCount(claimId);
+    if (count <= 0) return "Quellenprüfung offen";
+    if (count === 1) return "Einfach belegt";
+    return "Mehrfach belegt";
+  }
+
+  function isFactLikeClaim(claim: Dossier["analyze"]["claims"][number]): boolean {
+    return (claim as { statementType?: string }).statementType === "fact";
   }
 
   const optionCards: OptionCard[] = votingOptions.map((vote) => {
@@ -1537,6 +1562,44 @@ export function DossierViewer({
           />
         </div>
       </section>
+      <section className="space-y-3">
+        <div className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
+          Beitrags- und Rollenhinweise
+        </div>
+        <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-4 text-sm text-[rgb(var(--muted))] space-y-2">
+          <p>
+            {contributionPolicy?.publicContributionLanguage ??
+              "Menschen, Organisationen und verantwortliche Personen können öffentlich beitragen."}
+          </p>
+          <p>
+            {contributionPolicy?.citizenVotesSeparatedFromOrganizationPositions === false
+              ? "Abstimmungs- und Rollenlogik wird geprüft."
+              : "Öffentliche Bürgerabstimmungen bleiben getrennt von Organisationspositionen."}
+          </p>
+          {contributionPolicy?.hostedRoomVisibility === "closed_hosted" ? (
+            <p className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-rose-800">
+              {contributionPolicy.hostedRoomLabel ??
+                "Geschlossener Hosted Room: Ergebnisse gelten nur für den definierten Teilnehmerkreis."}
+            </p>
+          ) : null}
+          <p>
+            {contributionPolicy?.hostedRoomPublicOpinionNote ??
+              "Ergebnisse aus geschlossenen Hosted Rooms werden nicht als allgemeines öffentliches Meinungsbild dargestellt."}
+          </p>
+          <p>
+            {contributionPolicy?.closedRoomProcessingNote ??
+              "Eingaben aus geschlossenen Räumen fließen als Fragen, Claims, Quellen, Varianten, Argumente und offene Punkte in die Dossier-Verarbeitung."}
+          </p>
+          <p>
+            {contributionPolicy?.confidentialHintNote ??
+              "Vertrauliche Hinweise werden intern geprüft und nicht automatisch an eine hostende Organisation weitergeleitet."}
+          </p>
+          <p className="text-xs">
+            {contributionPolicy?.noWhistleblowerPromise ??
+              "Hinweis: Keine Überzusage zum Whistleblower-Schutz. Für rechtlich sensible Meldungen bitte gesicherte Beratungswege nutzen."}
+          </p>
+        </div>
+      </section>
     </>
   );
 
@@ -1630,6 +1693,11 @@ export function DossierViewer({
                   <span className="vog-chip">Position: {STANCE_LABELS[claim.stance ?? ""] ?? "-"}</span>
                   <span className="vog-chip">Wichtigkeit: {claim.importance ?? "-"}</span>
                   <span className="vog-chip">Zuständigkeit: {claim.responsibility ?? "-"}</span>
+                  <span className="vog-chip">
+                    Evidenz: {claimEvidenceCount(claim.id)} Quelle
+                    {claimEvidenceCount(claim.id) === 1 ? "" : "n"}
+                  </span>
+                  <span className="vog-chip">Prüfstatus: {claimReviewStatus(claim.id)}</span>
                   {(claim as { statementType?: string }).statementType ? (
                     <span className="vog-chip">
                       Typ:{" "}
@@ -1643,6 +1711,11 @@ export function DossierViewer({
                     </span>
                   ) : null}
                 </div>
+                {isFactLikeClaim(claim) && claimEvidenceCount(claim.id) === 0 ? (
+                  <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+                    Faktische Aussage ohne belastbaren Quellennachweis: vor prominenter Nutzung zuerst Quelle/Evidenz/Factcheck-Status ergänzen.
+                  </p>
+                ) : null}
                 <div>
                   <p className="text-base font-semibold text-[rgb(var(--fg))]">{claim.title ?? "Kernaussage"}</p>
                   <p className="mt-2 text-sm text-[rgb(var(--muted))]">{claim.text}</p>
@@ -1670,6 +1743,11 @@ export function DossierViewer({
                   <span className="vog-chip">Position: {STANCE_LABELS[claim.stance ?? ""] ?? "-"}</span>
                   <span className="vog-chip">Wichtigkeit: {claim.importance ?? "-"}</span>
                   <span className="vog-chip">Zuständigkeit: {claim.responsibility ?? "-"}</span>
+                  <span className="vog-chip">
+                    Evidenz: {claimEvidenceCount(claim.id)} Quelle
+                    {claimEvidenceCount(claim.id) === 1 ? "" : "n"}
+                  </span>
+                  <span className="vog-chip">Prüfstatus: {claimReviewStatus(claim.id)}</span>
                   {(claim as { statementType?: string }).statementType ? (
                     <span className="vog-chip">
                       Typ:{" "}
@@ -1683,6 +1761,11 @@ export function DossierViewer({
                     </span>
                   ) : null}
                 </div>
+                {isFactLikeClaim(claim) && claimEvidenceCount(claim.id) === 0 ? (
+                  <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+                    Faktische Aussage ohne belastbaren Quellennachweis: vor prominenter Nutzung zuerst Quelle/Evidenz/Factcheck-Status ergänzen.
+                  </p>
+                ) : null}
                 <p className="text-sm font-semibold text-[rgb(var(--fg))]">{claim.title ?? "Kernaussage"}</p>
                 <p className="text-sm text-[rgb(var(--muted))]">{claim.text}</p>
               </article>
@@ -1873,18 +1956,20 @@ export function DossierViewer({
             const supportActors = (q as { supportActors?: string[] }).supportActors ?? [];
             const lastUpdate = (q as { lastUpdate?: string }).lastUpdate;
             const resolution = (q as { resolution?: string }).resolution;
+            const answeredByName = (q as { answeredByName?: string }).answeredByName;
+            const answeredByRole = (q as { answeredByRole?: string }).answeredByRole;
+            const answeredByKind = (q as { answeredByKind?: string }).answeredByKind;
             const sourceNote = (q as { sourceNote?: string }).sourceNote;
             const delegation = delegationByQuestionId.get(q.id);
             const delegationStatus = delegation?.status as string | undefined;
             const delegatedTo = delegation?.delegatedTo as string | undefined;
             const delegatedLevel = delegation?.level as string | undefined;
             const delegatedAt = delegation?.requestedAt as string | undefined;
-            const coordination =
-              responsible && /amt|behörde|dienststelle|ministerium|kammer/i.test(responsible)
-                ? "Behörde/Fachstelle"
-                : responsible
-                  ? "Plattform/Community"
-                  : "Plattform";
+            const coordination = isOrganizationLikeLabel(responsible)
+              ? "Organisation/Fachstelle"
+              : responsible
+                ? "Benannte Person / Community"
+                : "Plattform";
             const statusNote =
               status === "beantwortet" || status === "answered"
                 ? "Antwort dokumentiert."
@@ -1919,6 +2004,21 @@ export function DossierViewer({
                     <p className="text-[11px] text-[rgb(var(--muted))]">
                       Antwortdokumentation: {resolution}
                     </p>
+                  ) : null}
+                  {status === "beantwortet" || status === "answered" ? (
+                    answeredByName ? (
+                      <p className="text-[11px] text-[rgb(var(--muted))]">
+                        Antwort durch: {answeredByName}
+                        {answeredByRole ? ` (${answeredByRole})` : ""}
+                        {answeredByKind === "organization"
+                          ? " · Hinweis: Antworten müssen als benannte verantwortliche Person geführt werden."
+                          : ""}
+                      </p>
+                    ) : (
+                      <p className="rounded-md border border-amber-200 bg-amber-50 px-2 py-1 text-[11px] text-amber-900">
+                        Für Bürgerfragen fehlt eine benannte verantwortliche Person in der Antwortdokumentation.
+                      </p>
+                    )
                   ) : null}
                   {sourceNote ? (
                     <p className="text-[11px] text-[rgb(var(--muted))]">Hinweis: {sourceNote}</p>
@@ -1962,7 +2062,7 @@ export function DossierViewer({
           })}
         </div>
         <p className="text-[11px] text-[rgb(var(--muted))]">
-          Antworten können aus Fachbehörden, Gutachten oder lokalen Quellen stammen. Anfragen werden durch die Plattform koordiniert und dokumentiert.
+          Antworten stammen aus benannten verantwortlichen Personen, Fachstellen, Gutachten oder lokalen Quellen. Anfragen werden durch die Plattform koordiniert und dokumentiert.
         </p>
         {canTriggerClarification ? (
           <div className="flex flex-wrap items-center gap-2">

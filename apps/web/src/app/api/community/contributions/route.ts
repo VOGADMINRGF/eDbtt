@@ -20,6 +20,12 @@ const BodySchema = z
     body: z.string().trim().min(1).max(2000).optional(),
     url: z.string().url().optional(),
     authorName: z.string().trim().min(1).max(120).optional(),
+    authorVisibility: z.enum(["anonymous", "nickname", "real_name"] as const).optional(),
+    authorKind: z.enum(["person", "organization", "representative_person"] as const).optional(),
+    organizationLabel: z.string().trim().min(1).max(120).optional(),
+    representativeName: z.string().trim().min(1).max(120).optional(),
+    hostedRoomScope: z.enum(["public_open", "closed_hosted"] as const).optional(),
+    confidentialHint: z.boolean().optional(),
     originalLanguage: z.string().trim().min(2).max(10).optional(),
   })
   .refine((val) => Boolean(val.topicId || val.candidateId), {
@@ -32,6 +38,34 @@ const BodySchema = z
       return Boolean(val.body || val.title);
     },
     { message: "missing_content", path: ["body"] },
+  )
+  .refine(
+    (val) => {
+      const visibility = val.authorVisibility ?? "anonymous";
+      if (visibility === "anonymous") return true;
+      return Boolean(val.authorName);
+    },
+    { message: "author_name_required_for_visibility", path: ["authorName"] },
+  )
+  .refine(
+    (val) => {
+      if (val.authorKind !== "organization") return true;
+      return Boolean(val.organizationLabel || val.authorName);
+    },
+    {
+      message: "organization_label_required",
+      path: ["organizationLabel"],
+    },
+  )
+  .refine(
+    (val) => {
+      if (val.authorKind !== "representative_person") return true;
+      return Boolean(val.representativeName || val.authorName);
+    },
+    {
+      message: "representative_name_required",
+      path: ["representativeName"],
+    },
   );
 
 const STATUS_VALUES = new Set<CommunityContributionStatus>(["approved", "proposed", "rejected"]);
@@ -57,6 +91,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: false, error: parsed.error.flatten() }, { status: 400 });
   }
   const body = parsed.data;
+  const authorVisibility = body.authorVisibility ?? "anonymous";
+  const authorName =
+    authorVisibility === "anonymous" ? null : body.authorName ?? null;
   const titleLocalized = await runContentTranslationProduction({
     originalText: body.title ?? null,
     originalLanguage: body.originalLanguage ?? null,
@@ -76,7 +113,13 @@ export async function POST(req: NextRequest) {
     titleContent: titleLocalized.content,
     bodyContent: bodyLocalized.content,
     url: body.url ?? null,
-    authorName: body.authorName ?? null,
+    authorName,
+    authorVisibility,
+    authorKind: body.authorKind ?? "person",
+    organizationLabel: body.organizationLabel ?? null,
+    representativeName: body.representativeName ?? null,
+    hostedRoomScope: body.hostedRoomScope ?? "public_open",
+    confidentialHint: body.confidentialHint ?? false,
     status: "proposed",
   });
 

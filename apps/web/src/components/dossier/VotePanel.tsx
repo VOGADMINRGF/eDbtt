@@ -90,8 +90,8 @@ export function VotePanel({
 
       {!canVote ? (
         <p className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-[11px] text-[rgb(var(--muted))]">
-          Abstimmen ist Bürgerinnen und Bürgern vorbehalten. In der Rollenansicht „{roleLabel ?? "Organisation"}“
-          werden Materialien bereitgestellt und Prozesse moderiert.
+          Öffentliche Bürgerabstimmungen bleiben getrennt von Organisationspositionen. In der Rollenansicht „
+          {roleLabel ?? "Organisation (gekennzeichnet)"}“ werden Materialien bereitgestellt und Prozesse moderiert.
         </p>
       ) : null}
 
