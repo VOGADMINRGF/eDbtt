@@ -47,4 +47,14 @@ describe("dossier evidence-first UX", () => {
     expect(html).toContain("Beteiligungs-Audit");
     expect(html).toContain("Beteiligungsqualität:");
   });
+
+  it("keeps neutral evidence language and avoids truth-claims wording", () => {
+    const html = renderToStaticMarkup(<DossierViewer dossier={demoDossier} />);
+
+    expect(html).not.toContain("KI sagt Wahrheit");
+    expect(html).not.toContain("KI bestätigt");
+    expect(html).not.toContain("unumstößlich bewiesen");
+    expect(html).toContain("Caveat:");
+    expect(html).toContain("Nicht automatisch ableitbar");
+  });
 });
