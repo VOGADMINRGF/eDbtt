@@ -34,6 +34,9 @@ describe("/dossier/[id]/studio social distribution workspace", () => {
     expect(html).toContain("LinkedIn");
     expect(html).toContain("Newsletter");
     expect(html).toContain("QR / Print");
+    expect(html).toContain("Nicht verbunden");
+    expect(html).toContain("Konfiguration erforderlich");
+    expect(html).toContain("Nur Export");
     expect(html).toContain("Nur Export/Kopieren möglich");
     expect(html).toContain("Echtzeit-Veröffentlichung ist aktuell deaktiviert");
     expect(html).toContain("Automatisierung erst nach Admin-Freigabe");
@@ -45,6 +48,10 @@ describe("/dossier/[id]/studio social distribution workspace", () => {
     expect(html).toContain("Kanäle verbinden");
     expect(html).toContain("Post-Entwurf prüfen");
     expect(html).toContain("Zurück zum Dossier");
+    expect(html).toContain("Text kopieren");
+    expect(html).toContain("Entwurf speichern");
+    expect(html).toContain("Admin: Kanal-Konfiguration &amp; Review-Routing");
+    expect(html).toContain("QR-/Print-Vorschau");
   });
 
   it("keeps publish action non-active and preserves source/review warning", async () => {

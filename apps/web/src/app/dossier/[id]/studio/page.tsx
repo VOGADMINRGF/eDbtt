@@ -72,9 +72,7 @@ export default async function DossierOutputStudioPage({ params }: PageProps) {
   const masterPost = generateMasterPost(pkg);
   const policy = getSocialPublishingPolicy();
   const distributionPlan = buildSocialDistributionPlan(masterPost, carousel, { policy });
-  const sourceNarrative =
-    pkg.sourceState.notes[0] ??
-    "Quellenlage ist vorhanden, bleibt aber lokal einzuordnen und nicht automatisch übertragbar.";
+  const sourceNarrative = masterPost.sourceSituation;
   const reviewStateLabel = reviewRequired ? "Review erforderlich" : "Review abgeschlossen";
 
   return (
@@ -154,6 +152,11 @@ export default async function DossierOutputStudioPage({ params }: PageProps) {
           </section>
 
           <section>
+            <p className="text-xs uppercase tracking-wide text-cyan-200">Gesamtbild bisher</p>
+            <p className="mt-1 text-sm text-slate-100">{masterPost.overallPicture}</p>
+          </section>
+
+          <section>
             <p className="text-xs uppercase tracking-wide text-cyan-200">Quellenlage</p>
             <p className="mt-1 text-sm text-slate-100">{sourceNarrative}</p>
             <p className="mt-1 text-xs text-slate-300">
@@ -165,7 +168,7 @@ export default async function DossierOutputStudioPage({ params }: PageProps) {
           <section>
             <p className="text-xs uppercase tracking-wide text-[rgb(var(--muted))]">Offene Fragen</p>
             <ul className="mt-1 list-disc space-y-1 pl-5 text-sm">
-              {pkg.openQuestions.slice(0, 6).map((question) => (
+              {masterPost.openQuestions.map((question) => (
                 <li key={question}>{question}</li>
               ))}
             </ul>
@@ -174,7 +177,7 @@ export default async function DossierOutputStudioPage({ params }: PageProps) {
           <section>
             <p className="text-xs uppercase tracking-wide text-[rgb(var(--muted))]">Eventualitäten / Optionen</p>
             <ul className="mt-1 list-disc space-y-1 pl-5 text-sm">
-              {pkg.options.slice(0, 6).map((option) => (
+              {masterPost.options.map((option) => (
                 <li key={option}>{option}</li>
               ))}
             </ul>
@@ -192,7 +195,7 @@ export default async function DossierOutputStudioPage({ params }: PageProps) {
               Dossier-Link: {masterPost.backlinkTarget}
             </p>
             <p className="mt-1 text-xs text-emerald-100">
-              QR-Ziel: {pkg.qrCodeTarget.target}
+              QR-Ziel: {masterPost.qrTarget}
             </p>
             <div className="mt-2 flex flex-wrap gap-2">
               {masterPost.suggestedHashtags.map((entry) => (
@@ -232,6 +235,7 @@ export default async function DossierOutputStudioPage({ params }: PageProps) {
           dossierId={id}
           reviewRequired={reviewRequired}
           dossierBacklink={pkg.dossierBacklinkTarget}
+          masterPost={masterPost}
         />
         <SocialCarouselPreview carousel={carousel} reviewRequired={reviewRequired} />
       </section>
