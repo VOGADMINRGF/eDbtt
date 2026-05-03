@@ -97,6 +97,17 @@ export default function MandatPage() {
         </header>
 
         <div className="overflow-hidden rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] shadow-sm">
+          <div className="border-b border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-4 py-2">
+            <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
+              {t("Beispielhafte Produktansicht", "mockup.label")}
+            </p>
+            <p className="text-xs text-[rgb(var(--muted))]">
+              {t(
+                "Mockup-Stand: zeigt die Designrichtung, solange die Live-Workbench noch nicht identisch ist.",
+                "mockup.note",
+              )}
+            </p>
+          </div>
           <div className="aspect-[16/9]">
             <img
               src={heroImage.src}
@@ -134,6 +145,12 @@ export default function MandatPage() {
         <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm">
           <h2 className="text-base font-semibold text-[rgb(var(--fg))]">{text(example, "title")}</h2>
           <p className="mt-2 text-sm text-[rgb(var(--muted))]">{text(example, "body")}</p>
+          <p className="mt-2 text-xs text-[rgb(var(--muted))]">
+            {t(
+              "Mandat bleibt ein Nachweis- und Umsetzungsraum und wird nicht als Kommentarspalte oder neue Debattenfläche geführt.",
+              "mockup.guardrail",
+            )}
+          </p>
         </section>
       </section>
     </main>
