@@ -219,7 +219,7 @@ export default function KontaktForm({ sent, error, challenge }: Props) {
             <option value="juristisch">{t("Juristische / rechtliche Anfrage", "category.legal")}</option>
             <option value="presse">{t("Presse- / Interviewanfrage", "category.press")}</option>
             <option value="medien">{t("Medien / Kooperation", "category.media")}</option>
-            <option value="partei">{t("Partei, Fraktion oder Mandatsträger:in", "category.party")}</option>
+            <option value="partei">{t("Verantwortliche Person aus Fraktion/Mandat/Organisation", "category.party")}</option>
             <option value="bewerbung">{t("Bewerbung / Mitarbeit", "category.apply")}</option>
             <option value="sonstiges">{t("Sonstiges Anliegen", "category.other")}</option>
           </select>

@@ -131,6 +131,18 @@ type PresentationRoadmapItem = {
   note?: string;
 };
 
+type PresentationContributionPolicy = {
+  publicContributionLanguage?: string;
+  citizenVotesSeparatedFromOrganizationPositions?: boolean;
+  hostedRoomVisibility?: "public_open" | "closed_hosted";
+  hostedRoomLabel?: string;
+  hostedRoomPublicOpinionNote?: string;
+  closedRoomProcessingNote?: string;
+  confidentialHintFlow?: "internal_only" | "host_visible_after_review";
+  confidentialHintNote?: string;
+  noWhistleblowerPromise?: string;
+};
+
 type PresentationPayload = {
   topic?: PresentationTopic;
   hero?: PresentationHero;
@@ -163,6 +175,7 @@ type PresentationPayload = {
   editorialInbox?: PresentationInboxItem[];
   watchlist?: PresentationWatchlistItem[];
   roadmap?: PresentationRoadmapItem[];
+  contributionPolicy?: PresentationContributionPolicy;
 };
 
 type PresentationNote = {
@@ -279,6 +292,12 @@ export function getPresentation(dossier: Dossier): PresentationResult {
       if (Array.isArray(parsed.editorialInbox)) editorialInbox.push(...parsed.editorialInbox);
       if (Array.isArray(parsed.watchlist)) watchlist.push(...parsed.watchlist);
       if (Array.isArray(parsed.roadmap)) roadmap.push(...parsed.roadmap);
+      if (parsed.contributionPolicy) {
+        result.contributionPolicy = {
+          ...(result.contributionPolicy ?? {}),
+          ...parsed.contributionPolicy,
+        };
+      }
 
       const inputStreams = parsed.inputs?.streams;
       if (Array.isArray(inputStreams)) {

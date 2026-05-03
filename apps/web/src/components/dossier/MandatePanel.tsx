@@ -12,7 +12,7 @@ const ROLE_LABELS: Record<string, string> = {
   journalist: "Journalismus",
   administration: "Verwaltung",
   research: "Forschung",
-  organization: "Organisation",
+  organization: "Organisation (gekennzeichnet)",
   admin: "Admin",
   staff: "Staff",
 };
@@ -22,7 +22,10 @@ const RIGHTS: Record<string, string[]> = {
   journalist: ["Beiträge erstellen", "Analyse ergänzen"],
   administration: ["Workflow ändern", "Delegieren", "Veröffentlichen"],
   research: ["Analyse vertiefen"],
-  organization: ["Stellungnahmen einreichen", "Material beisteuern"],
+  organization: [
+    "Stellungnahmen einreichen (sichtbar gekennzeichnet)",
+    "Material beisteuern",
+  ],
   admin: ["Workflow ändern", "Delegieren", "Veröffentlichen", "Audit prüfen"],
   staff: ["Workflow ändern", "Delegieren", "Veröffentlichen"],
 };

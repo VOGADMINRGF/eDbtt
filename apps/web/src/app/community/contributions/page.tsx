@@ -23,6 +23,12 @@ type Contribution = {
   bodyContent?: LocalizedContentRecord | null;
   url?: string | null;
   authorName?: string | null;
+  authorVisibility?: "anonymous" | "nickname" | "real_name" | null;
+  authorKind?: "person" | "organization" | "representative_person" | null;
+  organizationLabel?: string | null;
+  representativeName?: string | null;
+  hostedRoomScope?: "public_open" | "closed_hosted" | null;
+  confidentialHint?: boolean | null;
   createdAt?: string;
 };
 
@@ -40,6 +46,24 @@ const TYPE_OPTIONS: Array<{ value: ContributionType; label: string }> = [
   { value: "view", label: "Ansicht" },
 ];
 
+const AUTHOR_VISIBILITY_OPTIONS: Array<{
+  value: "anonymous" | "nickname" | "real_name";
+  label: string;
+}> = [
+  { value: "anonymous", label: "Anonym öffentlich" },
+  { value: "nickname", label: "Mit Nickname" },
+  { value: "real_name", label: "Mit Realname" },
+];
+
+const AUTHOR_KIND_OPTIONS: Array<{
+  value: "person" | "organization" | "representative_person";
+  label: string;
+}> = [
+  { value: "person", label: "Mensch" },
+  { value: "organization", label: "Organisation" },
+  { value: "representative_person", label: "Verantwortliche Person" },
+];
+
 export default function CommunityContributionsPage() {
   const { locale } = useLocale();
   const [type, setType] = useState<ContributionType>("source");
@@ -49,6 +73,18 @@ export default function CommunityContributionsPage() {
   const [body, setBody] = useState("");
   const [url, setUrl] = useState("");
   const [authorName, setAuthorName] = useState("");
+  const [authorVisibility, setAuthorVisibility] = useState<
+    "anonymous" | "nickname" | "real_name"
+  >("anonymous");
+  const [authorKind, setAuthorKind] = useState<
+    "person" | "organization" | "representative_person"
+  >("person");
+  const [organizationLabel, setOrganizationLabel] = useState("");
+  const [representativeName, setRepresentativeName] = useState("");
+  const [hostedRoomScope, setHostedRoomScope] = useState<
+    "public_open" | "closed_hosted"
+  >("public_open");
+  const [confidentialHint, setConfidentialHint] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
 
@@ -91,7 +127,18 @@ export default function CommunityContributionsPage() {
         title: title.trim() || undefined,
         body: body.trim() || undefined,
         url: url.trim() || undefined,
-        authorName: authorName.trim() || undefined,
+        authorName:
+          authorVisibility === "anonymous" ? undefined : authorName.trim() || undefined,
+        authorVisibility,
+        authorKind,
+        organizationLabel:
+          authorKind === "organization" ? organizationLabel.trim() || undefined : undefined,
+        representativeName:
+          authorKind === "representative_person"
+            ? representativeName.trim() || undefined
+            : undefined,
+        hostedRoomScope,
+        confidentialHint,
         originalLanguage: locale,
       };
       const res = await fetch("/api/community/contributions", {
@@ -107,6 +154,10 @@ export default function CommunityContributionsPage() {
       setTitle("");
       setBody("");
       setUrl("");
+      setAuthorName("");
+      setOrganizationLabel("");
+      setRepresentativeName("");
+      setConfidentialHint(false);
       await loadList();
     } catch (err: any) {
       setFeedback(err?.message ?? "Beitrag konnte nicht gespeichert werden.");
@@ -121,7 +172,7 @@ export default function CommunityContributionsPage() {
         <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Community · Beiträge</p>
         <h1 className="text-3xl font-bold text-[rgb(var(--fg))]">Strukturierte Beiträge einreichen</h1>
         <p className="text-sm text-[rgb(var(--muted))]">
-          Quellen, Optionen, Fragen oder Folgen vorschlagen. Beiträge werden vor Freigabe moderiert.
+          Menschen, Organisationen und verantwortliche Personen können Quellen, Optionen, Fragen oder Folgen einreichen. Beiträge werden vor Freigabe moderiert.
         </p>
       </header>
 
@@ -189,14 +240,106 @@ export default function CommunityContributionsPage() {
             </label>
           )}
           <label className="text-sm text-[rgb(var(--muted))]">
-            Name (optional)
+            Rolle im Beitrag
+            <select
+              className="mt-1 w-full rounded-lg border border-[rgb(var(--border))] px-3 py-2 text-sm"
+              value={authorKind}
+              onChange={(event) =>
+                setAuthorKind(
+                  event.target.value as "person" | "organization" | "representative_person",
+                )
+              }
+            >
+              {AUTHOR_KIND_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="text-sm text-[rgb(var(--muted))]">
+            Öffentliche Anzeige
+            <select
+              className="mt-1 w-full rounded-lg border border-[rgb(var(--border))] px-3 py-2 text-sm"
+              value={authorVisibility}
+              onChange={(event) =>
+                setAuthorVisibility(
+                  event.target.value as "anonymous" | "nickname" | "real_name",
+                )
+              }
+            >
+              {AUTHOR_VISIBILITY_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          {authorKind === "organization" ? (
+            <label className="text-sm text-[rgb(var(--muted))]">
+              Organisationslabel (sichtbar)
+              <input
+                className="mt-1 w-full rounded-lg border border-[rgb(var(--border))] px-3 py-2 text-sm"
+                value={organizationLabel}
+                onChange={(event) => setOrganizationLabel(event.target.value)}
+                placeholder="z. B. Stadtteilverein Altstadt"
+              />
+            </label>
+          ) : null}
+          {authorKind === "representative_person" ? (
+            <label className="text-sm text-[rgb(var(--muted))]">
+              Verantwortliche Person (sichtbar)
+              <input
+                className="mt-1 w-full rounded-lg border border-[rgb(var(--border))] px-3 py-2 text-sm"
+                value={representativeName}
+                onChange={(event) => setRepresentativeName(event.target.value)}
+                placeholder="z. B. Maria Beispiel"
+              />
+            </label>
+          ) : null}
+          <label className="text-sm text-[rgb(var(--muted))]">
+            Anzeigename
             <input
               className="mt-1 w-full rounded-lg border border-[rgb(var(--border))] px-3 py-2 text-sm"
               value={authorName}
               onChange={(e) => setAuthorName(e.target.value)}
-              placeholder="Dein Name oder Organisation"
+              placeholder={
+                authorVisibility === "anonymous"
+                  ? "Bei anonymer Anzeige leer lassen"
+                  : authorVisibility === "nickname"
+                    ? "Nickname"
+                    : "Realname"
+              }
+              disabled={authorVisibility === "anonymous"}
             />
           </label>
+          <label className="text-sm text-[rgb(var(--muted))]">
+            Raumkontext
+            <select
+              className="mt-1 w-full rounded-lg border border-[rgb(var(--border))] px-3 py-2 text-sm"
+              value={hostedRoomScope}
+              onChange={(event) =>
+                setHostedRoomScope(event.target.value as "public_open" | "closed_hosted")
+              }
+            >
+              <option value="public_open">Öffentlicher Kontext</option>
+              <option value="closed_hosted">Geschlossener Hosted Room</option>
+            </select>
+          </label>
+          <label className="flex items-start gap-2 text-xs text-[rgb(var(--muted))] md:col-span-2">
+            <input
+              type="checkbox"
+              checked={confidentialHint}
+              onChange={(event) => setConfidentialHint(event.target.checked)}
+              className="mt-0.5"
+            />
+            <span>
+              Vertraulicher Hinweis: wird intern geprüft und nicht automatisch an eine hostende Organisation weitergeleitet.
+            </span>
+          </label>
+          <p className="text-xs text-[rgb(var(--muted))] md:col-span-2">
+            Hinweis: Wir kennzeichnen geschlossene Hosted Rooms sichtbar und zeigen deren Ergebnisse nicht als allgemeines öffentliches Meinungsbild.
+          </p>
           <div className="flex items-end">
             <button
               type="submit"
@@ -241,7 +384,27 @@ export default function CommunityContributionsPage() {
                 <span className="rounded-full bg-[rgb(var(--card))] px-2 py-1">{item.type}</span>
                 {item.topicId && <span>Topic: {item.topicId}</span>}
                 {item.candidateId && <span>Kandidat: {item.candidateId}</span>}
-                {item.authorName && <span>von {item.authorName}</span>}
+                {item.authorVisibility === "anonymous" ? (
+                  <span>Anonym</span>
+                ) : item.authorName ? (
+                  <span>von {item.authorName}</span>
+                ) : null}
+                {item.authorKind === "organization" ? (
+                  <span className="rounded-full bg-amber-100 px-2 py-1 text-amber-800">
+                    Organisation gekennzeichnet
+                    {item.organizationLabel ? `: ${item.organizationLabel}` : ""}
+                  </span>
+                ) : null}
+                {item.authorKind === "representative_person" && item.representativeName ? (
+                  <span className="rounded-full bg-sky-100 px-2 py-1 text-sky-800">
+                    Verantwortliche Person: {item.representativeName}
+                  </span>
+                ) : null}
+                {item.hostedRoomScope === "closed_hosted" ? (
+                  <span className="rounded-full bg-rose-100 px-2 py-1 text-rose-800">
+                    Geschlossener Hosted Room (kein allgemeines Meinungsbild)
+                  </span>
+                ) : null}
               </div>
               <LocalizedContentDisplay
                 className="mt-2"

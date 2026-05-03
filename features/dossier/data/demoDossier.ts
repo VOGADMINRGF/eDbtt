@@ -922,10 +922,15 @@ export const demoDossier: Dossier = {
             {
               id: "q1",
               text: "Lösen Beschränkungen das Problem oder verlagern sie Verkehr in Nachbarquartiere?",
-              status: "in_pruefung",
+              status: "beantwortet",
               responsible: "Verkehrsplanung",
               supportActors: ["Umweltamt", "Statistikstelle"],
               lastUpdate: "2026-04-28",
+              resolution:
+                "Monitoring zeigt in den ersten 6 Monaten keine signifikante Nettoverlagerung, aber Randzeiten bleiben zu beobachten.",
+              answeredByName: "Dr. Jana Albers",
+              answeredByRole: "Leitung Verkehrsplanung",
+              answeredByKind: "representative_person",
             },
             {
               id: "q2",
@@ -944,6 +949,23 @@ export const demoDossier: Dossier = {
               lastUpdate: "2026-04-29",
             },
           ],
+          contributionPolicy: {
+            publicContributionLanguage:
+              "Menschen, Organisationen und verantwortliche Personen können Beiträge einreichen.",
+            citizenVotesSeparatedFromOrganizationPositions: true,
+            hostedRoomVisibility: "closed_hosted",
+            hostedRoomLabel:
+              "Geschlossener Hosted Room: Ergebnisse gelten nur für den definierten Teilnehmerkreis.",
+            hostedRoomPublicOpinionNote:
+              "Nicht als allgemeines öffentliches Meinungsbild interpretieren.",
+            closedRoomProcessingNote:
+              "Eingaben fließen trotzdem in die Dossier-Verarbeitung als Fragen, Claims, Quellen, Varianten, Argumente und offene Punkte.",
+            confidentialHintFlow: "internal_only",
+            confidentialHintNote:
+              "Vertrauliche Hinweise werden intern geprüft und nicht automatisch an die hostende Organisation weitergeleitet.",
+            noWhistleblowerPromise:
+              "Kein automatisches Whistleblower-Schutzversprechen: Bei Bedarf bitte gesicherte Rechts-/Beratungswege nutzen.",
+          },
           openIssueManagement: {
             issues: [
               {

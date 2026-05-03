@@ -17,7 +17,7 @@ type FaqCategory = {
   faqs: FaqItem[];
 };
 
-const howItWorksSteps = [
+const FAQ_HOW_IT_WORKS_STEPS = [
   {
     title: "Thema & Vorlage",
     subtitle: "Worum geht es genau?",
@@ -41,7 +41,7 @@ const howItWorksSteps = [
   },
 ];
 
-const faqCategories: FaqCategory[] = [
+const FAQ_CATEGORIES: FaqCategory[] = [
   {
     id: "grundlagen",
     label: "Grundlagen",
@@ -62,7 +62,7 @@ const faqCategories: FaqCategory[] = [
         id: "grundlagen-2",
         question: "Ist eDebatte eine Partei?",
         answer:
-          "Nein. eDebatte ist keine Partei, sondern eine unabhängige Bewegung und Infrastruktur. Mit eDebatte stellen wir Werkzeuge bereit, mit denen Bürger:innen, Initiativen, Parteien oder Kommunen Themen einbringen, diskutieren und abstimmen können. Niemand erhält Sonderstimmrechte aufgrund von Rolle oder finanziellen Beiträgen.",
+          "Nein. eDebatte ist keine Partei, sondern eine unabhängige Bewegung und Infrastruktur. Mit eDebatte stellen wir Werkzeuge bereit, mit denen Menschen, Organisationen und verantwortliche Personen Themen einbringen, diskutieren und abstimmen können. Niemand erhält Sonderstimmrechte aufgrund von Rolle oder finanziellen Beiträgen.",
       },
       {
         id: "grundlagen-3",
@@ -120,9 +120,9 @@ const faqCategories: FaqCategory[] = [
       },
       {
         id: "mitmachen-3",
-        question: "Wie können Politik, Verwaltung oder Kommunen eDebatte nutzen?",
+        question: "Wie können Organisationen, Verwaltung und verantwortliche Personen eDebatte nutzen?",
         answer:
-          "Parteien, Fraktionen, Initiativen und Kommunen können eDebatte unabhängig ihrer Politischen oder religiösen gesinnung. nutzen, um Stimmungsbilder einzuholen, Vorschläge zu testen oder verbindliche Mitglieder- bzw. Bürgerentscheide durchzuführen. Wir stellen aufbereitete Entscheidungsgrundlagen, Datenpakete und Dossiers bereit, damit Beschlüsse nachvollziehbar bleiben. Die Regeln bleiben dabei für alle gleich: eine Person, eine Stimme – keine Zusatzstimmen für Organisationen.",
+          "Organisationen, Initiativen, Kommunen und verantwortliche Personen können eDebatte nutzen, um Stimmungsbilder einzuholen, Vorschläge zu testen oder verbindliche Mitglieder- bzw. Bürgerentscheide durchzuführen. Wir stellen aufbereitete Entscheidungsgrundlagen, Datenpakete und Dossiers bereit, damit Beschlüsse nachvollziehbar bleiben. Die Regeln bleiben dabei für alle gleich: eine Person, eine Stimme – keine Zusatzstimmen für Organisationen.",
       },
       {
         id: "mitmachen-3b",
@@ -174,12 +174,12 @@ export default function FaqPage() {
   const { locale } = useLocale();
   const t = useAutoTranslateText({ locale, namespace: "faq" });
   const steps = useMemo(() => {
-    if (locale === "de" || locale === "en") return howItWorksSteps;
-    return mapTranslatableStrings(howItWorksSteps, t, { namespace: "faq.steps" });
+    if (locale === "de" || locale === "en") return FAQ_HOW_IT_WORKS_STEPS;
+    return mapTranslatableStrings(FAQ_HOW_IT_WORKS_STEPS, t, { namespace: "faq.steps" });
   }, [locale, t]);
   const categories = useMemo(() => {
-    if (locale === "de" || locale === "en") return faqCategories;
-    return mapTranslatableStrings(faqCategories, t, { namespace: "faq.categories" });
+    if (locale === "de" || locale === "en") return FAQ_CATEGORIES;
+    return mapTranslatableStrings(FAQ_CATEGORIES, t, { namespace: "faq.categories" });
   }, [locale, t]);
 
   const [activeCategoryId, setActiveCategoryId] = useState<string>("grundlagen");

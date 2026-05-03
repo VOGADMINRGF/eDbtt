@@ -1,6 +1,12 @@
 export type CommunityContributionType = "source" | "option" | "question" | "impact" | "view";
 export type CommunityContributionStatus = "proposed" | "approved" | "rejected";
 export type CommunityContributionTranslationStatus = "missing" | "pending" | "translated" | "failed";
+export type CommunityContributionAuthorVisibility = "anonymous" | "nickname" | "real_name";
+export type CommunityContributionAuthorKind =
+  | "person"
+  | "organization"
+  | "representative_person";
+export type CommunityContributionHostedRoomScope = "public_open" | "closed_hosted";
 
 export interface CommunityContributionLocalizedText {
   originalLanguage?: string | null;
@@ -24,6 +30,12 @@ export interface CommunityContribution {
   bodyContent?: CommunityContributionLocalizedText | null;
   url?: string | null;
   authorName?: string | null;
+  authorVisibility?: CommunityContributionAuthorVisibility | null;
+  authorKind?: CommunityContributionAuthorKind | null;
+  organizationLabel?: string | null;
+  representativeName?: string | null;
+  hostedRoomScope?: CommunityContributionHostedRoomScope | null;
+  confidentialHint?: boolean | null;
   authorId?: string | null;
   reviewNote?: string | null;
   createdAt?: Date | string;
