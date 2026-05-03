@@ -139,6 +139,39 @@ export default function LandingStart({ blocks }: LandingStartProps) {
       <div className="relative z-10 mx-auto grid h-full w-full max-w-5xl place-items-center px-4 py-6 sm:px-6 [@media(max-height:740px)]:py-3">
         <div className="w-full max-w-3xl">
           <div className="max-h-[calc(100svh-3rem)] overflow-y-auto [scrollbar-gutter:stable]">
+            <section className="mb-4 rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm sm:p-5">
+              <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
+                {lang === "en" ? "Public participation clarity" : "Öffentliche Beteiligung klar erklärt"}
+              </p>
+              <h2 className="mt-2 text-xl font-semibold tracking-tight text-[rgb(var(--fg))] sm:text-2xl">
+                {lang === "en"
+                  ? "Public participation starts with a clear dossier."
+                  : "Öffentliche Beteiligung beginnt mit einem klaren Dossier."}
+              </h2>
+              <p className="mt-2 text-sm leading-relaxed text-[rgb(var(--muted))]">
+                {lang === "en"
+                  ? "eDebatte is the participation and dossier tool. VoiceOpenGov is the initiative and civic framework behind it."
+                  : "eDebatte ist das Beteiligungs- und Dossier-Tool. VoiceOpenGov ist die Initiative und der Beteiligungsrahmen dahinter."}
+              </p>
+              <p className="mt-2 text-sm leading-relaxed text-[rgb(var(--muted))]">
+                {lang === "en"
+                  ? "Signal -> Dossier -> Round -> Mandate -> Implementation"
+                  : "Signal -> Dossier -> Runde -> Mandat -> Umsetzung"}
+              </p>
+              <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                {(lang === "en"
+                  ? ["Citizens", "Municipalities", "Participation offices", "Journalists"]
+                  : ["Bürger:innen", "Kommunen", "Beteiligungsbüros", "Journalist:innen"]
+                ).map((label) => (
+                  <article
+                    key={label}
+                    className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-sm text-[rgb(var(--fg))]"
+                  >
+                    {label}
+                  </article>
+                ))}
+              </div>
+            </section>
             <SharedCreateComposer
               badge={surfaceTexts.badgeCanonical}
               subline={surfaceTexts.sublineCanonical}
