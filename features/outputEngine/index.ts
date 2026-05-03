@@ -4,3 +4,4 @@ export * from "./demoDossier";
 export * from "./socialCarousel";
 export * from "./socialDistribution";
 export * from "./masterPost";
+export * from "./formatMappers";
