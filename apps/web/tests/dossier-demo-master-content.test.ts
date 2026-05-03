@@ -15,7 +15,14 @@ describe("demo master dossier: Innenstadt evidenzkritisch", () => {
     expect(matrixNote?.text).toBeTruthy();
     const parsed = JSON.parse(matrixNote!.text) as {
       section: string;
-      entries: Array<{ title: string }>;
+      entries: Array<{
+        title: string;
+        cluster?: string;
+        takeaway?: string;
+        criticalCaveat?: string;
+        transferability?: string;
+        evidenceStatus?: string;
+      }>;
     };
 
     expect(parsed.section).toBe("Quellenmatrix");
@@ -36,6 +43,14 @@ describe("demo master dossier: Innenstadt evidenzkritisch", () => {
     expect(titles).toContain("OECD Distributional Effects");
     expect(titles).toContain("IEEP");
     expect(titles).toContain("DfT LTN Review");
+
+    for (const entry of parsed.entries) {
+      expect(entry.cluster).toBeTruthy();
+      expect(entry.takeaway).toBeTruthy();
+      expect(entry.criticalCaveat).toBeTruthy();
+      expect(entry.transferability).toBeTruthy();
+      expect(entry.evidenceStatus).toBeTruthy();
+    }
   });
 
   it("enthält striktes Zahlen-Audit mit Pflichtfeldern pro Kennzahl", () => {
@@ -58,6 +73,12 @@ describe("demo master dossier: Innenstadt evidenzkritisch", () => {
       expect(entry.method).toBeTruthy();
       expect(entry.transferabilityCaveat).toBeTruthy();
       expect(entry.evidenceStatus).toBeTruthy();
+
+      const hasPercent = /\d+\s*%/.test(entry.measured ?? "");
+      if (hasPercent) {
+        expect(entry.denominator.length).toBeGreaterThan(8);
+        expect(entry.transferabilityCaveat.length).toBeGreaterThan(12);
+      }
     }
   });
 
