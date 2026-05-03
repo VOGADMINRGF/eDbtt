@@ -629,7 +629,7 @@ export function DossierViewer({
       ),
     [analyze.notes],
   );
-  const sourceMatrixEntries = sourceMatrixData?.entries ?? [];
+  const sourceMatrixEntries = useMemo(() => sourceMatrixData?.entries ?? [], [sourceMatrixData]);
 
   const zahlenAuditData = useMemo(
     () =>
