@@ -211,7 +211,7 @@ const CREATE_SURFACE_BUNDLES: Record<CreateSurfaceLocale, CreateSurfaceLocaleBun
     helperLinks: [
       { href: "/runden/demo", label: "So funktioniert's" },
       { href: "/dossier/demo", label: "Dossier & Faktencheck" },
-      { href: "/pricing", label: "Preise & Pakete" },
+      { href: "/pricing", label: "Preise" },
       { href: "/unterstuetzen", label: "Zur Initiative" },
     ] as const,
     composer: {
@@ -386,7 +386,7 @@ const CREATE_SURFACE_BUNDLES: Record<CreateSurfaceLocale, CreateSurfaceLocaleBun
     helperLinks: [
       { href: "/runden/demo", label: "How it works" },
       { href: "/dossier/demo", label: "Dossier & fact check" },
-      { href: "/pricing", label: "Pricing & packages" },
+      { href: "/pricing", label: "Pricing" },
       { href: "/unterstuetzen", label: "About the initiative" },
     ] as const,
     composer: {
