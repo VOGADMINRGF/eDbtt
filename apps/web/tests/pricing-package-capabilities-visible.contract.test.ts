@@ -12,6 +12,6 @@ describe("pricing-package-capabilities-visible.contract", () => {
     expect(html).toContain("Prüfen: Beiträge, Texte, Agenden");
     expect(html).toContain("Guided Flow");
     expect(html).toContain("Human-Loop");
-    expect(html).toContain("optionalen Add-ons");
+    expect(html).toContain("Optionale Add-ons");
   });
 });

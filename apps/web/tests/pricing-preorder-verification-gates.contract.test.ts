@@ -72,6 +72,9 @@ function makeRequest(body: Record<string, unknown>) {
       name: "Max Mustermann",
       humanToken: "token",
       formStartedAt: Date.now() - 5000,
+      acceptedPrivacy: true,
+      acceptedTerms: true,
+      acceptedContact: true,
       ...body,
     }),
   });

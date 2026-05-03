@@ -15,7 +15,7 @@ describe("/pricing/institutionen i18n guided flow contract", () => {
     expect(html).toContain("1. Who are you?");
     expect(html).toContain("2. What is your primary goal?");
     expect(html).toContain("3. What is your operating frame?");
-    expect(html).toContain("Organization / association / NGO");
+    expect(html).toContain("Participation office / agency / organization");
     expect(html).toContain("Recommended configuration");
     expect(html).toContain("Apply recommendation");
     expect(html).toContain("Request quote");

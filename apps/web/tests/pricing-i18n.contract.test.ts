@@ -30,7 +30,7 @@ describe("/pricing i18n contract", () => {
     const html = await renderPricing({ lang: "en", segment: "organisationen" });
 
     expect(html).toContain('href="/pricing/institutionen?lang=en"');
-    expect(html).toContain('href="/vormerken?paket=b2b_basis&amp;lang=en"');
-    expect(html).toContain('href="/vormerken?paket=b2b_pro&amp;lang=en"');
+    expect(html).toContain('href="/vormerken?paket=b2b_basis&amp;segment=organisationen&amp;lang=en"');
+    expect(html).toContain('href="/vormerken?paket=b2b_pro&amp;segment=organisationen&amp;lang=en"');
   });
 });
