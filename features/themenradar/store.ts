@@ -22,6 +22,11 @@ import {
   type ThemenradarTelemetryEvent,
 } from "@features/themenradar/telemetry";
 import {
+  buildThemenradarManualExportDraft,
+  type ThemenradarExportFormat,
+  type ThemenradarManualExportDraft,
+} from "@features/themenradar/exportDraft";
+import {
   getThemenradarRepo,
   setThemenradarRepoForTests,
   type ThemenradarRepo,
@@ -595,6 +600,48 @@ export async function createShareReadyForThemenradarItem(
 
   await repo.upsertRecord(record);
   return buildDetail(repo, record);
+}
+
+export async function createThemenradarManualExport(
+  id: string,
+  format: ThemenradarExportFormat,
+  actorInput?: ThemenradarActorContext,
+): Promise<ThemenradarManualExportDraft> {
+  const repo = resolveRepo();
+  const record = await repo.getRecordById(id);
+  if (!record) throw new Error("themenradar_item_not_found");
+
+  const actor = normalizeActor(actorInput);
+  const draft = buildThemenradarManualExportDraft({
+    item: record.item,
+    contentPrep: record.contentPrep,
+    format,
+  });
+
+  await appendAuditEventAndBumpVersion({
+    repo,
+    record,
+    actor,
+    eventType: "lifecycle_transition",
+    fromStatus: record.item.lifecycleStatus,
+    toStatus: record.item.lifecycleStatus,
+    note: `manual_export_generated:${format}`,
+    metadata: {
+      exportFormat: format,
+      reviewRequired: true,
+      autoPostEligible: false,
+      officialSocialAutoPosting: false,
+    },
+  });
+
+  record.item = assertThemenradarItem({
+    ...record.item,
+    updatedBy: actor.userId ?? record.item.updatedBy,
+    updatedAt: nowIsoString(),
+  });
+  await repo.upsertRecord(record);
+
+  return draft;
 }
 
 export async function applyThemenradarTelemetry(

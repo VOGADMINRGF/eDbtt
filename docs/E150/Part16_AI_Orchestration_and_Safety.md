@@ -1,6 +1,6 @@
 # Part16 AI Orchestration and Safety
 
-> Stand: 2026-03-23
+> Stand: 2026-05-03
 > Status: Canonical Architecture Baseline (verbindlich)
 > Verbindlicher Task-Backlog: `docs/E150/OpenTasks.md`
 
@@ -69,6 +69,13 @@ Diese Entscheidung ist verbindlich:
   Muss Research-Tools abstrahieren, ohne das Kontrollzentrum zu werden.
 - #55 Perplexity/Cheap-Smoke/Research-Credits:
   Muss Cost-/Credit-Optimierung liefern, ohne neue Core-Abhaengigkeit auf Perplexity oder ARI.
+
+### Implementierungsstand (Revalidierung 2026-05-03)
+
+- `PR-AI-ORCH-POLICY-01` ist als Architektur-/Policy-Slice abgeschlossen.
+- Die Rollen- und Lane-Autoritaet liegt deterministisch im Routing (`apps/web/src/features/ai/providerRoleRouting.ts`).
+- Research-Provider bleiben optional/gated ueber Registry/Policy (`apps/web/src/features/ai/researchProviderRegistry.ts`, `apps/web/src/features/ai/researchProviderPolicy.ts`).
+- `standard_analyze` bleibt ohne Perplexity/ARI lauffaehig; `sealed_factcheck` und `premium_deep_research` bleiben research-gated.
 
 ### Issue #55 Narrow-Scope Umsetzungsvorbereitung (Perplexity + Cheap-Smoke)
 

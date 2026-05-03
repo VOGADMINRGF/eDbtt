@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
+import { resolveThemenradarMembershipEntry } from "@features/themenradar/membershipCta";
 
 type ThemenradarLifecycleStatus =
   | "raw"
@@ -11,6 +12,49 @@ type ThemenradarLifecycleStatus =
   | "review_ready"
   | "published"
   | "archived";
+
+type ThemenradarExportFormat = "post" | "carousel" | "script";
+
+type ThemenradarExportDraft = {
+  format: ThemenradarExportFormat;
+  generatedAt: string;
+  manualReleaseOnly: true;
+  reviewRequired: true;
+  autoPostEligible: false;
+  officialSocialAutoPosting: false;
+  source: {
+    itemId: string;
+    title: string;
+    lifecycleStatus: "review_ready" | "published";
+    campaignKey: string | null;
+    linkedAnlassraumId: string | null;
+    linkedDossierId: string | null;
+    canonicalPublicTarget: string;
+    qrTarget: string;
+  };
+  payload:
+    | {
+        kind: "post";
+        title: string;
+        hook: string;
+        caption: string;
+        cta: string;
+        reviewHint: string;
+      }
+    | {
+        kind: "carousel";
+        intro: string;
+        slides: Array<{ index: number; title: string; message: string }>;
+        closingCta: string;
+      }
+    | {
+        kind: "script";
+        targetDurationSeconds: number;
+        lines: string[];
+        voiceover: string[];
+        closingCta: string;
+      };
+};
 
 type ThemenradarDetailPayload = {
   item: {
@@ -115,6 +159,7 @@ export default function AdminThemenradarDetailPage() {
   const [detail, setDetail] = useState<ThemenradarDetailPayload | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [exportDraft, setExportDraft] = useState<ThemenradarExportDraft | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const [title, setTitle] = useState("");
@@ -153,6 +198,7 @@ export default function AdminThemenradarDetailPage() {
       setCampaignKey(payload.item.campaignKey ?? "");
       setStatus(payload.item.lifecycleStatus);
       setPublishIntent(false);
+      setExportDraft(null);
       setScores({
         heatScore: payload.item.heatScore,
         everydayRelevanceScore: payload.item.everydayRelevanceScore,
@@ -173,6 +219,17 @@ export default function AdminThemenradarDetailPage() {
   }, [itemId]);
 
   const telemetry = useMemo(() => detail?.item.telemetrySnapshot ?? null, [detail]);
+  const membershipEntry = useMemo(() => {
+    if (!detail) return null;
+    return resolveThemenradarMembershipEntry({
+      id: detail.item.id,
+      title: detail.item.title,
+      membershipPotentialScore: detail.item.membershipPotentialScore,
+    });
+  }, [detail]);
+  const exportAllowed =
+    detail?.item.lifecycleStatus === "review_ready" ||
+    detail?.item.lifecycleStatus === "published";
 
   async function patchItem() {
     if (!itemId) return;
@@ -271,6 +328,33 @@ export default function AdminThemenradarDetailPage() {
       await loadDetail();
     } catch (telemetryError: any) {
       setError(telemetryError?.message ?? "themenradar_telemetry_failed");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function generateManualExport(format: ThemenradarExportFormat) {
+    if (!itemId) return;
+    setSaving(true);
+    setError(null);
+    try {
+      const res = await fetch(
+        `/api/admin/themenradar/${encodeURIComponent(itemId)}/export`,
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ format }),
+        },
+      );
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok || !body?.ok) {
+        throw new Error(body?.error ?? "themenradar_export_failed");
+      }
+      setExportDraft((body?.draft as ThemenradarExportDraft) ?? null);
+      await loadDetail();
+    } catch (exportError: any) {
+      setExportDraft(null);
+      setError(exportError?.message ?? "themenradar_export_failed");
     } finally {
       setSaving(false);
     }
@@ -476,6 +560,80 @@ export default function AdminThemenradarDetailPage() {
               Share-ready Candidate
             </button>
           </div>
+          <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-3 space-y-2">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">
+              Manuelle Exporte (review-gebunden)
+            </p>
+            <p className="text-xs text-[rgb(var(--muted))]">
+              Export ist nur in `review_ready` oder `published` erlaubt. Kein
+              Auto-Publish, kein offizielles Social-Autoposting.
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <button
+                data-testid="themenradar-export-post"
+                type="button"
+                onClick={() => generateManualExport("post")}
+                disabled={saving || !exportAllowed}
+                className="inline-flex items-center rounded-full border border-[rgb(var(--border))] px-3 py-1 text-xs font-semibold disabled:opacity-50"
+              >
+                Export Post
+              </button>
+              <button
+                data-testid="themenradar-export-carousel"
+                type="button"
+                onClick={() => generateManualExport("carousel")}
+                disabled={saving || !exportAllowed}
+                className="inline-flex items-center rounded-full border border-[rgb(var(--border))] px-3 py-1 text-xs font-semibold disabled:opacity-50"
+              >
+                Export Carousel
+              </button>
+              <button
+                data-testid="themenradar-export-script"
+                type="button"
+                onClick={() => generateManualExport("script")}
+                disabled={saving || !exportAllowed}
+                className="inline-flex items-center rounded-full border border-[rgb(var(--border))] px-3 py-1 text-xs font-semibold disabled:opacity-50"
+              >
+                Export Script
+              </button>
+            </div>
+            {exportDraft ? (
+              <pre
+                data-testid="themenradar-export-preview"
+                className="overflow-x-auto whitespace-pre-wrap rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-2 text-[11px] leading-relaxed text-[rgb(var(--muted))]"
+              >
+                {JSON.stringify(exportDraft, null, 2)}
+              </pre>
+            ) : (
+              <p className="text-xs text-[rgb(var(--muted))]">
+                Noch kein Export-Entwurf erzeugt.
+              </p>
+            )}
+          </div>
+          {membershipEntry ? (
+            <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-3 space-y-2">
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">
+                Membership-/Mitmach-Einstiege
+              </p>
+              <p className="text-xs text-[rgb(var(--muted))]">
+                {membershipEntry.contextLabel}
+              </p>
+              <p className="text-xs text-[rgb(var(--muted))]">
+                {membershipEntry.separationHint}
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {membershipEntry.callsToAction.map((entry) => (
+                  <Link
+                    key={entry.id}
+                    href={entry.href}
+                    className="inline-flex items-center rounded-full border border-[rgb(var(--border))] px-3 py-1 text-xs font-semibold hover:border-sky-300 hover:text-sky-700"
+                  >
+                    {entry.label}
+                  </Link>
+                ))}
+              </div>
+            </div>
+          ) : null}
           {detail.item.shareContractSnapshot ? (
             <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-3 text-xs text-[rgb(var(--muted))] space-y-1">
               <p>

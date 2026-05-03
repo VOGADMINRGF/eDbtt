@@ -10,6 +10,7 @@ describe("themenradar-order-path-alignment.contract", () => {
       resolve(process.cwd(), "src/app/api/admin/themenradar/route.ts"),
       resolve(process.cwd(), "src/app/api/admin/themenradar/[id]/route.ts"),
       resolve(process.cwd(), "../../features/themenradar/contentPrep.ts"),
+      resolve(process.cwd(), "../../features/themenradar/membershipCta.ts"),
     ];
 
     for (const file of files) {
