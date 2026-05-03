@@ -378,25 +378,23 @@ export function generateSocialCarouselOutput(outputPackage: OutputPackage): Soci
     },
   ];
 
-  if (outputPackage.sourceState.notes.length > 0 || outputPackage.needsInputMarkers.length > 0) {
-    slides.push({
-      id: "slide_7",
-      kind: "note",
-      eyebrow: "Quellenstand / Review-Hinweis",
-      title: "Quellenstand und Review-Hinweis",
-      body: joinList(
-        [...outputPackage.sourceState.notes, ...outputPackage.needsInputMarkers],
-        "• Keine zusätzlichen Hinweise.",
-        4,
-      ),
-      cta: {
-        label: "Zurück zum Dossier",
-        target: outputPackage.dossierBacklinkTarget,
-      },
-      backlinkTarget: outputPackage.dossierBacklinkTarget,
-      reviewWarning,
-    });
-  }
+  slides.push({
+    id: "slide_7",
+    kind: "note",
+    eyebrow: "Quellenstand / Review-Hinweis",
+    title: "Quellenstand und Review-Hinweis",
+    body: joinList(
+      [...outputPackage.sourceState.notes, ...outputPackage.needsInputMarkers],
+      "• Keine zusätzlichen Hinweise.",
+      4,
+    ),
+    cta: {
+      label: "Zurück zum Dossier",
+      target: outputPackage.dossierBacklinkTarget,
+    },
+    backlinkTarget: outputPackage.dossierBacklinkTarget,
+    reviewWarning,
+  });
 
   const suggestedPostText = compactSentence(
     `${framing.participationQuestion} ${outputPackage.cta.label} ${outputPackage.dossierBacklinkTarget}`,

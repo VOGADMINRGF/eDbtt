@@ -9,7 +9,7 @@ import {
 } from "@features/outputEngine";
 
 describe("output engine social carousel", () => {
-  it("creates 5-7 slides from demo dossier", () => {
+  it("creates canonical 7 slides from demo dossier", () => {
     const pkg = generateOutputPackage(demoDossierForOutputEngine, {
       generatedAt: "2026-04-30T09:00:00.000Z",
       baseUrl: "https://edebatte.org",
@@ -17,8 +17,7 @@ describe("output engine social carousel", () => {
 
     const carousel = generateSocialCarouselOutput(pkg);
 
-    expect(carousel.slides.length).toBeGreaterThanOrEqual(5);
-    expect(carousel.slides.length).toBeLessThanOrEqual(7);
+    expect(carousel.slides.length).toBe(7);
     expect(carousel.slideCount).toBe(carousel.slides.length);
     expect(carousel.slides.map((slide) => slide.id)).toEqual(
       carousel.slides.map((_, index) => `slide_${index + 1}`),

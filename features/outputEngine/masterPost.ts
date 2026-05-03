@@ -56,11 +56,16 @@ export type MasterPost = {
   title: string;
   regionalContext: string;
   topic: string;
+  overallPicture: string;
+  sourceSituation: string;
+  openQuestions: string[];
+  options: string[];
   hook: string;
   body: string;
   participationQuestion: string;
   cta: string;
   backlinkTarget: string;
+  qrTarget: string;
   suggestedHashtags: MasterPostHashtag[];
   suggestedPostingWindows: MasterPostScheduleHint[];
   channelFit: MasterPostChannelVariant[];
@@ -115,11 +120,16 @@ export const MasterPostSchema = z
     title: z.string().trim().min(1),
     regionalContext: z.string().trim().min(1),
     topic: z.string().trim().min(1),
+    overallPicture: z.string().trim().min(1),
+    sourceSituation: z.string().trim().min(1),
+    openQuestions: z.array(z.string().trim().min(1)),
+    options: z.array(z.string().trim().min(1)),
     hook: z.string().trim().min(1),
     body: z.string().trim().min(1),
     participationQuestion: z.string().trim().min(1),
     cta: z.string().trim().min(1),
     backlinkTarget: z.string().trim().min(1),
+    qrTarget: z.string().trim().min(1),
     suggestedHashtags: z.array(MasterPostHashtagSchema).min(3),
     suggestedPostingWindows: z.array(MasterPostScheduleHintSchema).min(1),
     channelFit: z.array(MasterPostChannelVariantSchema).min(1),
@@ -223,6 +233,25 @@ export function generateMasterPost(
     ? `In ${location} wird aktuell über ${topic} diskutiert.`
     : `Aktuell wird ${regionalContext} über ${topic} diskutiert.`;
 
+  const overallPicture =
+    compact(outputPackage.structuredSummary[0] ?? outputPackage.shortSummary, 240) ||
+    "Gesamtbild wird aus dem Dossier laufend präzisiert.";
+
+  const sourceSituation =
+    outputPackage.sourceState.status === "missing"
+      ? "Quellenlage ist noch unvollständig und bleibt review-pflichtig."
+      : `Quellenlage mit ${outputPackage.sourceState.sourceCount} verknüpften Quellen dokumentiert.`;
+
+  const openQuestions =
+    outputPackage.openQuestions.length > 0
+      ? outputPackage.openQuestions.slice(0, 6)
+      : ["Offene Fragen sind aktuell noch zu ergänzen."];
+
+  const decisionOptions =
+    outputPackage.options.length > 0
+      ? outputPackage.options.slice(0, 6)
+      : ["Optionen/Eventualitäten sind noch zu ergänzen."];
+
   const body = [
     `${hook} Das Dossier bündelt den bisherigen Sachstand, macht Quellen sichtbar und markiert offene Fragen.`,
     `Damit Beteiligung nachvollziehbar bleibt, werden Optionen und Eventualitäten transparent gegenübergestellt.`,
@@ -315,11 +344,16 @@ export function generateMasterPost(
     title: outputPackage.title,
     regionalContext,
     topic,
+    overallPicture,
+    sourceSituation,
+    openQuestions,
+    options: decisionOptions,
     hook,
     body,
     participationQuestion,
     cta,
     backlinkTarget: outputPackage.dossierBacklinkTarget,
+    qrTarget: outputPackage.qrCodeTarget.target,
     suggestedHashtags: hashtags,
     suggestedPostingWindows,
     channelFit,
