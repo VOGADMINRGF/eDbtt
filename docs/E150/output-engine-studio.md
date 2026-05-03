@@ -163,6 +163,51 @@ Der Studio-Flow besitzt nun einen zentralen `MasterPost` als verbindliches Vorve
   - `canRealtimePublish=false`
   - `requiresManualReview=true`
 
+## Distribution Export Helpers (local slice)
+
+Manuelle Export-/Handoff-Flows sind contract-first und ohne externe APIs umgesetzt:
+
+- `buildCopyText(...)`
+- `buildDraftRecord(...)`
+- `buildDistributionPlan(...)`
+- `buildQrPrintPreview(...)`
+- `validateDistributionExport(...)`
+
+Guardrails:
+
+- Kein externer Publish-Call.
+- `Kanal nicht verbunden` blockiert nicht Entwurf/Kopieren/Export.
+- QR/Print bleibt an Pflichtfelder gebunden (`cta`, `dossierBacklink`, `qrTarget`), sonst `review_required`.
+- Print-/QR-Vorschau zeigt Review- und Quellenstatus sichtbar.
+
+## Admin / Queue / Review Routing (local slice)
+
+Studio enthält einen lokalen operativen Block für:
+
+- Connector-Status pro Kanal verwalten
+- Queue-Einträge bearbeiten/stornieren
+- Review-Checkpoints markieren
+- Realtime-Vorbereitung nur explizit und reversibel
+
+Dabei gilt weiterhin:
+
+- kein offizielles Social-Autoposting
+- kein externer Live-Publish
+- nur interne Planung/Vorbereitung und Export-Handoff
+
+## Internal Studio Telemetry Stub (local slice)
+
+Ohne externe Tracker ist eine interne, austauschbare Event-Schnittstelle vorhanden:
+
+- `master_post_generated`
+- `copied`
+- `draft_saved`
+- `plan_adopted`
+- `connector_missing`
+- `review_prepared`
+
+Implementiert als lokaler Adapter (`features/outputEngine/studioTelemetry.ts`) für spätere Infrastruktur-Anbindung, ohne zusätzliche externe Telemetrie-Abhängigkeit.
+
 ## No Fake Publish Boundary
 
 - Kein externer Publish-Call und kein OAuth-Connect-Bypass.
