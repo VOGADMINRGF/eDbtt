@@ -14,31 +14,31 @@ vi.mock("@/context/LocaleContext", () => ({
 }));
 
 describe("landing information architecture contract", () => {
-  it("keeps core civic-tech flow and trust boundaries visible", () => {
+  it("keeps the human landing journey and trust boundaries visible", () => {
     const html = renderToStaticMarkup(<LandingStart blocks={[]} />);
 
-    expect(html).toContain("Informationsstruktur für öffentliche Debatten");
     expect(html).toContain("Was Menschen bewegt, wird sichtbar.");
-    expect(html).toContain("Signal");
-    expect(html).toContain("Dossier");
-    expect(html).toContain("Runde");
-    expect(html).toContain("Mandat");
-    expect(html).toContain("Umsetzung");
-    expect(html).toContain("Wirkung");
+    expect(html).toContain("Nicht noch ein Feed. Nicht nur Ja oder Nein.");
+    expect(html).toContain("Schnell einsteigen mit Swipe.");
+    expect(html).toContain("Der Anlassraum");
+    expect(html).toContain("Faktencheck statt Behauptung gegen Behauptung.");
+    expect(html).toContain("Aus Hinweisen wird ein Dossier.");
+    expect(html).toContain("Kostenlos mitmachen. Verbindlich weiterentwickeln.");
+    expect(html).toContain("Ein Thema. Verschiedene Blickpunkte.");
+    expect(html).toContain("Keine Datenverkäufe");
+    expect(html).toContain("VoiceOpenGov ist die Initiative");
 
     const primaryIndex = html.indexOf("Thema prüfen");
-    const secondaryIndex = html.indexOf("Beispiel-Dossier ansehen");
+    const secondaryIndex = html.indexOf("Anliegen einbringen");
     expect(primaryIndex).toBeGreaterThan(-1);
     expect(secondaryIndex).toBeGreaterThan(primaryIndex);
-    expect(html).not.toContain("Jetzt swipen");
+    expect(html).toContain("href=\"/create?intent=check\"");
+    expect(html).toContain("href=\"/create?intent=contribute\"");
+    expect(html).toContain("href=\"/swipes\"");
 
-    expect(html).toContain("Öffentliche Debatten nachvollziehbar machen.");
-    expect(html).toContain("Politisch unabhängig");
-    expect(html).toContain("Quellen und KI-Nutzung transparent");
-    expect(html).toContain("Anonym, mit Nickname oder verifiziert teilnehmen");
-    expect(html).toContain("Keine Umsetzungsgarantie");
-    expect(html).toContain("VoiceOpenGov ist die Initiative");
-    expect(html).toContain("ersetzt keine demokratischen Verfahren");
+    expect(html).toContain("Öffentliche Beteiligung braucht einen besseren Ort.");
+    expect(html).toContain("Nicht Partei");
+    expect(html).toContain("Mehr als Bürgerbüro");
 
     expect(html).not.toContain("Kanonischer Einstieg");
     expect(html).not.toContain("start-primary-intake");
