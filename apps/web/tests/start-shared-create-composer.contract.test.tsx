@@ -11,21 +11,20 @@ vi.mock("next/navigation", () => ({
 }));
 
 describe("/start shared create composer contract", () => {
-  it("renders the canonical create composer system with mode and action parity", () => {
+  it("does not use the shared create composer as primary start interaction", () => {
     const html = renderToStaticMarkup(
       <LocaleProvider initialLocale="de">
         <LandingStart blocks={[]} />
       </LocaleProvider>,
     );
 
-    expect(html).toContain("Kanonischer Einstieg");
-    expect(html).toContain("Beitragen");
-    expect(html).toContain("Prüfen");
-    expect(html).toContain("Entwerfen");
-    expect(html).toContain("start-primary-intake");
-    expect(html).toContain("Anhang");
-    expect(html).toContain("Sprache");
-    expect(html).toContain("So funktioniert&#x27;s");
-    expect(html).not.toContain("Was möchtest du einreichen?");
+    expect(html).not.toContain("Kanonischer Einstieg");
+    expect(html).not.toContain("start-primary-intake");
+    expect(html).not.toContain("Anhang");
+    expect(html).not.toContain("Jetzt swipen");
+    expect(html).toContain("Themen");
+    expect(html).toContain("Thema prüfen");
+    expect(html).toContain("Beispiel-Dossier ansehen");
+    expect(html).toContain("Debattenradar");
   });
 });
