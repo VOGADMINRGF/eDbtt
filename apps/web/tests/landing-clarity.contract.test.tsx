@@ -29,23 +29,39 @@ const demoBlocks = [
 ];
 
 describe("landing clarity contract", () => {
-  it("keeps marquee + shared composer and renders the clarity block", () => {
+  it("renders the debattenradar and dossier-first landing with clear public actions", () => {
     const html = renderToStaticMarkup(<LandingStart blocks={demoBlocks as any} />);
 
-    expect(html).toContain("Informationsinfrastruktur für öffentliche Debatten");
-    expect(html).toContain("eDebatte macht sichtbar, was Menschen bewegt");
-    expect(html).toContain("Starte kostenlos über Themen, Swipes und Hinweise");
-    expect(html).toContain("Signal -&gt; Dossier -&gt; Runde -&gt; Mandat -&gt; Umsetzung");
-    expect(html).toContain("Themen ansehen");
-    expect(html).toContain("Jetzt swipen");
-    expect(html).toContain("Hinweis einreichen");
+    expect(html).toContain("Informationsstruktur für öffentliche Debatten");
+    expect(html).toContain("Was Menschen bewegt, wird sichtbar.");
+    expect(html).toContain("Was offen ist, wird klärbar.");
+    expect(html).toContain("eDebatte sammelt Hinweise, Themen, Quellen, Argumente");
+    expect(html).toContain("Thema prüfen");
+    expect(html).toContain("Beispiel-Dossier ansehen");
     expect(html).toContain("Professionell nutzen");
-    expect(html).toContain("Pakete &amp; Preise");
-    expect(html).toContain("Bürger:innen");
-    expect(html).toContain("Kommunen");
-    expect(html).toContain("Beteiligungsbüros");
-    expect(html).toContain("Journalist:innen");
+    expect(html).toContain("Dossier öffnen");
+    expect(html).toContain("Pakete &amp; Preise ansehen");
+    expect(html).toContain("Für Institutionen");
+    expect(html).toContain("Mehr zur Initiative");
+    expect(html).toContain("So funktioniert’s");
+    expect(html).toContain("Zur Initiative");
+    expect(html).toContain("Anmelden");
+    expect(html).toContain("href=\"/themen\"");
+    expect(html).toContain("href=\"/create\"");
+    expect(html).toContain("href=\"/dossier/demo\"");
+    expect(html).toContain("href=\"/pricing\"");
+    expect(html).toContain("href=\"/pricing/institutionen\"");
+    expect(html).toContain("Worum geht es?");
+    expect(html).toContain("Was ist belegt?");
+    expect(html).toContain("Was ist offen?");
+    expect(html).toContain("Welche Optionen gibt es?");
+    expect(html).toContain("Wer ist zuständig?");
+    expect(html).toContain("Wie sehen andere es?");
     expect(html).toContain("WORLD");
-    expect(html).toContain("Arbeitsfläche (Vorschau)");
+    expect(html).not.toContain("Jetzt swipen");
+    expect(html).not.toContain("Arbeitsfläche (Vorschau)");
+    expect(html).not.toContain("start-primary-intake");
+    expect(html).not.toContain("Beteiligungs- und Dossier-Tool");
+    expect(html).not.toContain("Kanonischer Einstieg");
   });
 });
