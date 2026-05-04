@@ -3,6 +3,7 @@ import { ObjectId } from "@core/db/triMongo";
 import { CREATE_MODE_VALUES, parseCreateMode } from "@/features/create/intents";
 import { CREATE_PRODUCT_MODE_VALUES } from "@/features/create/createProductModes";
 import { resolveCreateLanguageContext } from "@/features/create/languageContextContract";
+import { CREATE_INTENT_VALUES } from "@/features/create/intentFlows";
 
 /**
  * Backwards-compatible request parser for /api/contributions/analyze.
@@ -43,6 +44,15 @@ export const AnalyzeRequestSchemaV2 = z
       },
       z.enum(CREATE_MODE_VALUES).optional(),
     ),
+    intent: z
+      .preprocess(
+        (value) => {
+          if (typeof value !== "string") return value;
+          return value.trim().toLowerCase();
+        },
+        z.enum(CREATE_INTENT_VALUES).optional(),
+      )
+      .optional(),
     analysisMode: z
       .preprocess(
         (value) => {

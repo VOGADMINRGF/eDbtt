@@ -54,6 +54,9 @@ export function parseCreateAnalyzeBoundarySnapshot(
   if (candidate.orchestrator !== CREATE_ANALYZE_ORCHESTRATOR) return null;
   if (typeof candidate.runId !== "string" || !candidate.runId.trim()) return null;
   if (candidate.inputRef !== candidate.runId) return null;
+  if (candidate.intent !== "contribute" && candidate.intent !== "check" && candidate.intent !== "draft") {
+    return null;
+  }
   if (typeof candidate.createdAt !== "string" || !candidate.createdAt.trim()) return null;
   if (!isNonEmptyString(candidate.uiLocale)) return null;
   if (!isNonEmptyString(candidate.contentLanguage)) return null;

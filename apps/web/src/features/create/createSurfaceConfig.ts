@@ -13,9 +13,17 @@ export type CreateSurfaceModeDefinition = {
   id: CreateProductMode;
   label: string;
   description: string;
+  inputLabel: string;
   helperText: string;
   placeholder: string;
   ctaLabel: string;
+  minimumInputHint: string;
+  firstQuestion: string;
+  firstQuestionPlaceholder: string;
+  workingStateTitle: string;
+  recognizedTypeLabel: string;
+  openPoints: string[];
+  nextActions: string[];
   postStartTitle: string;
   postStartLead: string;
   entryIntent: CreateEntryIntent;
@@ -70,6 +78,10 @@ export type CreateComposerTexts = {
 export type CreateSurfaceTexts = {
   badgeCanonical: string;
   sublineCanonical: string;
+  followupQuestionLabel: string;
+  followupQuestionSaveLabel: string;
+  followupQuestionSavedLabel: string;
+  actionNotAvailableLabel: string;
   returnToContextLabel: string;
   goToRoundsLabel: string;
   rundenContextTitle: string;
@@ -86,9 +98,18 @@ export type CreateSurfaceTexts = {
   guidedHint: string;
   guidedMissingError: string;
   guidedWorkspacePrefix: string;
+  startBusyStatus: string;
+  startBusyLead: string;
+  startFailedError: string;
   followupContributeStatus: string;
   followupContributeTitle: string;
   followupContributeLead: string;
+  followupOriginalTextLabel: string;
+  followupUnderstandingLabel: string;
+  followupUnderstandingLine: (label: string) => string;
+  followupNotPublishedLabel: string;
+  followupNextStepLabel: string;
+  followupNextStepLead: string;
   followupGuidedStatus: string;
   followupGuidedTitle: string;
   followupGuidedLead: string;
@@ -117,26 +138,65 @@ const CREATE_SURFACE_BUNDLES: Record<CreateSurfaceLocale, CreateSurfaceLocaleBun
       analyze: {
         id: "analyze",
         label: "Beitragen",
-        description: "Anliegen, Hinweise und Fragen einbringen.",
+        description: "Hinweise, Quellen oder Anliegen einbringen.",
+        inputLabel: "Beitrag einbringen",
         helperText:
-          "Bringe dein Anliegen, deinen Hinweis oder deine Frage ein. Wir ordnen den Text thematisch ein und zeigen die nächsten Schritte.",
+          "Teile einen Hinweis, eine Beobachtung, eine Quelle oder ein Anliegen. eDebatte ordnet deinen Beitrag einem Thema, Dossier oder Anlassraum zu.",
         placeholder:
-          "Beschreibe dein Anliegen, deinen Hinweis oder eine offene Frage. Du kannst auch Links oder Quellenhinweise ergänzen.",
-        ctaLabel: "Beitrag einbringen",
+          "Beschreibe deinen Hinweis, deine Beobachtung oder dein Anliegen …",
+        ctaLabel: "Beitrag strukturieren",
+        minimumInputHint:
+          "Beschreibe dein Anliegen noch etwas genauer, damit eDebatte daraus einen Arbeitsstand bilden kann.",
+        firstQuestion: "Was ist der wichtigste Punkt, der aus deinem Beitrag nicht verloren gehen darf?",
+        firstQuestionPlaceholder:
+          "Formuliere den Kernpunkt in einem Satz, damit die Einordnung belastbar bleibt.",
+        workingStateTitle: "Erster Arbeitsstand für deinen Beitrag",
+        recognizedTypeLabel: "Erkannter Beitragstyp",
+        openPoints: [
+          "Welche Quelle stützt den Kernpunkt?",
+          "Welche Perspektive fehlt noch?",
+          "Wer sollte als Nächstes eingebunden werden?",
+        ],
+        nextActions: [
+          "Als Hinweis speichern",
+          "Dossier-Bezug prüfen",
+          "Weitere Quelle ergänzen",
+          "Beteiligung vorbereiten",
+        ],
         postStartTitle: "Beitragsmodus aktiv",
-        postStartLead: "Der Beitrag wird strukturiert ausgewertet und mit passenden Anknüpfungen ergänzt.",
+        postStartLead:
+          "Dein Text wurde aufgenommen. Prüfe die Einordnung und wähle danach den nächsten Schritt.",
         entryIntent: "issue_signal",
         entryMode: "direct",
       },
       media: {
         id: "media",
         label: "Prüfen",
-        description: "Texte, Agenden und Berichte auf Abstimmungsfähigkeit prüfen.",
+        description: "Aussagen, Texte oder Themen auf Belege und offene Fragen prüfen.",
+        inputLabel: "Thema oder Aussage prüfen",
         helperText:
-          "Originaltext beibehalten und gezielt um Prüfstellen, Faktencheck-Hinweise und thematische Einordnung ergänzen.",
+          "Prüfe eine Behauptung, einen Text, eine Quelle oder ein Thema auf Belege, offene Fragen, Gegenpositionen und Zuständigkeiten.",
         placeholder:
-          "Füge hier deinen Text, Entwurf oder Link ein. Wir prüfen Eignung, Resonanzpotenzial und nächste sinnvolle Schritte.",
+          "Füge eine Aussage, einen Text, eine Quelle oder ein Thema ein, das geprüft werden soll …",
         ctaLabel: "Prüfung starten",
+        minimumInputHint:
+          "Nenne die Aussage oder den Text etwas genauer, damit die Prüfung sinnvoll starten kann.",
+        firstQuestion: "Welche Aussage oder Entscheidung soll besonders genau geprüft werden?",
+        firstQuestionPlaceholder:
+          "Benenne die zentrale Aussage oder Entscheidung, die im Fokus stehen soll.",
+        workingStateTitle: "Erster Prüfstand",
+        recognizedTypeLabel: "Erkannter Prüfgegenstand",
+        openPoints: [
+          "Welche Belege fehlen noch?",
+          "Welche Gegenposition ist bisher unterbelichtet?",
+          "Welche Stelle ist zuständig für die Entscheidung?",
+        ],
+        nextActions: [
+          "Als Dossier weiterführen",
+          "Quellen ergänzen",
+          "Gegenpositionen sammeln",
+          "Prüfbericht vorbereiten",
+        ],
         postStartTitle: "Prüfmodus aktiv",
         postStartLead: "Der Originaltext bleibt erhalten. Das System ergänzt Prüfstellen und redaktionelle Hinweise.",
         entryIntent: "content_companion",
@@ -145,11 +205,32 @@ const CREATE_SURFACE_BUNDLES: Record<CreateSurfaceLocale, CreateSurfaceLocaleBun
       guided: {
         id: "guided",
         label: "Entwerfen",
-        description: "Thema gemeinsam mit Guided Flow und Human Loop ausarbeiten.",
-        helperText: "Skizziere das Thema und entwickle es Schritt für Schritt zu einem belastbaren gemeinsamen Arbeitsstand.",
+        description: "Dossiers, Fragenkataloge oder Beteiligungsrunden vorbereiten.",
+        inputLabel: "Entwurf vorbereiten",
+        helperText:
+          "Skizziere ein Thema, eine Idee oder ein Ziel. eDebatte hilft dir, daraus einen strukturierten Entwurf, Fragenkatalog oder Beteiligungsansatz zu entwickeln.",
         placeholder:
-          "Skizziere Thema, Ziel oder Streitpunkt. Wir führen den Entwurf gemeinsam weiter und halten offene Punkte sichtbar.",
-        ctaLabel: "Gemeinsam ausarbeiten",
+          "Beschreibe, was entstehen soll — zum Beispiel ein Dossier, eine Beteiligungsrunde, ein Fragenkatalog oder ein Vorschlag …",
+        ctaLabel: "Entwurf ausarbeiten",
+        minimumInputHint:
+          "Beschreibe den Entwurfswunsch etwas konkreter, damit daraus ein belastbarer Arbeitsstand werden kann.",
+        firstQuestion:
+          "Für wen soll der Entwurf am Ende nutzbar sein und welche Entscheidung soll vorbereitet werden?",
+        firstQuestionPlaceholder:
+          "Beschreibe Zielgruppe und Entscheidungskontext, damit der Entwurf sauber ausgerichtet werden kann.",
+        workingStateTitle: "Erster Entwurfsstand",
+        recognizedTypeLabel: "Erkannter Entwurfszweck",
+        openPoints: [
+          "Welche Bausteine fehlen für einen belastbaren Entwurf?",
+          "Welche Perspektiven müssen vorab einbezogen werden?",
+          "Welche Zuständigkeit entscheidet über die Umsetzung?",
+        ],
+        nextActions: [
+          "Dossier-Struktur erstellen",
+          "Fragenkatalog ausarbeiten",
+          "Beteiligungsrunde vorbereiten",
+          "Mandatslogik skizzieren",
+        ],
         postStartTitle: "Entwurfsmodus aktiv",
         postStartLead:
           "Der Einstieg fokussiert Rückfragen und nächsten Arbeitsschritt statt einer einmaligen Snapshot-Analyse.",
@@ -216,14 +297,14 @@ const CREATE_SURFACE_BUNDLES: Record<CreateSurfaceLocale, CreateSurfaceLocaleBun
     ] as const,
     composer: {
       headline: {
-        line1Lead: "Deine",
-        line1Accent: "Meinung",
-        line1Tail: "zählt.",
-        line2Lead: "Gib deiner",
-        line2Accent: "Stimme",
-        line2Mid: "ein neues",
-        line2AccentB: "Gewicht",
-        line2Tail: "!",
+        line1Lead: "Beschreibe,",
+        line1Accent: "was geklärt werden soll",
+        line1Tail: ".",
+        line2Lead: "",
+        line2Accent: "",
+        line2Mid: "",
+        line2AccentB: "",
+        line2Tail: "",
       },
       modeSwitchAriaLabel: "Modusauswahl",
       inputLabel: "Beitrag",
@@ -246,9 +327,13 @@ const CREATE_SURFACE_BUNDLES: Record<CreateSurfaceLocale, CreateSurfaceLocaleBun
       voiceFailed: "Sprachaufnahme ist fehlgeschlagen. Bitte erneut versuchen.",
     },
     texts: {
-      badgeCanonical: "Kanonischer Einstieg",
+      badgeCanonical: "THEMA STARTEN",
       sublineCanonical:
-        "Ein Feld, drei Wege: Dein Text wird je nach Modus als Beitrag eingeordnet, als Text geprüft oder als gemeinsamer Entwurf weitergeführt.",
+        "Ob Hinweis, Prüfanfrage oder Entwurf: eDebatte macht aus deinem Text einen strukturierten Arbeitsstand mit offenen Fragen, möglichen Quellen, Optionen und Zuständigkeiten.",
+      followupQuestionLabel: "Erste Rückfrage zum Arbeitsstart",
+      followupQuestionSaveLabel: "Rückfrage speichern",
+      followupQuestionSavedLabel: "Rückfrage beantwortet. Nächster Schritt ist möglich.",
+      actionNotAvailableLabel: "Dieser Schritt ist in diesem Pfad noch nicht verfügbar.",
       returnToContextLabel: "Zum Anlass zurück",
       goToRoundsLabel: "Zu den Anlässen",
       rundenContextTitle: "Aus laufendem Anlass gestartet",
@@ -268,10 +353,21 @@ const CREATE_SURFACE_BUNDLES: Record<CreateSurfaceLocale, CreateSurfaceLocaleBun
       guidedMissingError:
         "Bitte beantworte die erste Rückfrage, damit der Arbeitsstand starten kann.",
       guidedWorkspacePrefix: "Geführter Fokus",
+      startBusyStatus: "Wird eingeordnet …",
+      startBusyLead: "Wir ordnen deinen Beitrag ein …",
+      startFailedError:
+        "Dein Beitrag konnte gerade nicht aufgenommen werden. Bitte versuche es erneut.",
       followupContributeStatus: "Beitrag aufgenommen",
-      followupContributeTitle: "Dein Beitrag ist im Einordnungsfluss",
+      followupContributeTitle: "Dein Text wurde aufgenommen.",
       followupContributeLead:
-        "Wir ordnen den Beitrag thematisch ein und halten den nächsten sinnvollen Schritt offen, ohne direkt in den Prüf-Workbench zu wechseln.",
+        "Bitte prüfe die Einordnung, bevor er weiterverwendet wird.",
+      followupOriginalTextLabel: "Dein Originaltext",
+      followupUnderstandingLabel: "So haben wir es verstanden",
+      followupUnderstandingLine: (label) => `Eingeordnet als: ${label}`,
+      followupNotPublishedLabel: "Noch nicht veröffentlicht.",
+      followupNextStepLabel: "Nächster Schritt",
+      followupNextStepLead:
+        "Wähle den nächsten Schritt: Anlass öffnen, prüfen oder als Entwurf weiterführen.",
       followupGuidedStatus: "Entwurfsmodus aktiv",
       followupGuidedTitle: "Der Entwurf läuft jetzt als gemeinsamer Arbeitsstand",
       followupGuidedLead:
@@ -296,13 +392,32 @@ const CREATE_SURFACE_BUNDLES: Record<CreateSurfaceLocale, CreateSurfaceLocaleBun
         id: "analyze",
         label: "Contribute",
         description: "Bring in concerns, signals and open questions.",
+        inputLabel: "Contribute input",
         helperText:
           "Share your concern, signal or question. We classify the text and make next steps visible.",
         placeholder:
           "Describe your concern, signal or open question. You can also include links or source references.",
         ctaLabel: "Contribute",
+        minimumInputHint:
+          "Please add a little more detail so eDebatte can create a useful working state.",
+        firstQuestion: "What is the one point from your contribution that must not get lost?",
+        firstQuestionPlaceholder: "Summarize the key point in one sentence.",
+        workingStateTitle: "First working state for your contribution",
+        recognizedTypeLabel: "Recognized contribution type",
+        openPoints: [
+          "Which source best supports the key point?",
+          "Which perspective is still missing?",
+          "Who should be involved next?",
+        ],
+        nextActions: [
+          "Save as signal",
+          "Check dossier relation",
+          "Add another source",
+          "Prepare participation",
+        ],
         postStartTitle: "Issue mode active",
-        postStartLead: "Your input is structured and enriched with relevant follow-up paths.",
+        postStartLead:
+          "Your text was captured. Review the classification and choose the next step.",
         entryIntent: "issue_signal",
         entryMode: "direct",
       },
@@ -310,11 +425,29 @@ const CREATE_SURFACE_BUNDLES: Record<CreateSurfaceLocale, CreateSurfaceLocaleBun
         id: "media",
         label: "Review",
         description: "Check texts, agendas and reports for vote readiness.",
+        inputLabel: "Review target",
         helperText:
           "Keep the original text intact and add only review points, fact-check hints and context where needed.",
         placeholder:
           "Paste your text, draft or link. We check suitability, resonance potential and useful next steps.",
         ctaLabel: "Start review",
+        minimumInputHint:
+          "Please define the statement or text more clearly so the review can start reliably.",
+        firstQuestion: "Which statement or decision needs the closest review?",
+        firstQuestionPlaceholder: "Name the key statement or decision in focus.",
+        workingStateTitle: "First review state",
+        recognizedTypeLabel: "Recognized review target",
+        openPoints: [
+          "Which evidence is still missing?",
+          "Which counter-position is underrepresented?",
+          "Which authority owns the decision?",
+        ],
+        nextActions: [
+          "Continue as dossier",
+          "Add sources",
+          "Collect counter-positions",
+          "Prepare review brief",
+        ],
         postStartTitle: "Review mode active",
         postStartLead: "The original text stays intact while review and editorial hints are added.",
         entryIntent: "content_companion",
@@ -324,10 +457,30 @@ const CREATE_SURFACE_BUNDLES: Record<CreateSurfaceLocale, CreateSurfaceLocaleBun
         id: "guided",
         label: "Draft together",
         description: "Develop a topic together with guided flow and human loop.",
+        inputLabel: "Draft objective",
         helperText: "Outline the topic and shape it step by step into a robust shared working state.",
         placeholder:
           "Sketch the topic, objective or conflict. We guide the draft forward and keep open questions explicit.",
         ctaLabel: "Co-create draft",
+        minimumInputHint:
+          "Please add more context on what should be drafted so a structured working state can be formed.",
+        firstQuestion:
+          "Who should use this draft in the end, and which decision should it prepare?",
+        firstQuestionPlaceholder:
+          "Describe target audience and decision context for this draft.",
+        workingStateTitle: "First draft state",
+        recognizedTypeLabel: "Recognized draft purpose",
+        openPoints: [
+          "Which building blocks are still missing?",
+          "Which perspectives should be included early?",
+          "Which authority decides on implementation?",
+        ],
+        nextActions: [
+          "Create dossier structure",
+          "Expand question set",
+          "Prepare participation round",
+          "Sketch mandate logic",
+        ],
         postStartTitle: "Draft mode active",
         postStartLead:
           "This path focuses on follow-up questions and working progress instead of a one-shot snapshot.",
@@ -424,6 +577,10 @@ const CREATE_SURFACE_BUNDLES: Record<CreateSurfaceLocale, CreateSurfaceLocaleBun
       badgeCanonical: "Canonical entry",
       sublineCanonical:
         "One field, three paths: your text can enter as contribution, be reviewed for readiness, or move into collaborative drafting.",
+      followupQuestionLabel: "First follow-up question",
+      followupQuestionSaveLabel: "Save answer",
+      followupQuestionSavedLabel: "Follow-up answered. Next step is ready.",
+      actionNotAvailableLabel: "This step is not available in the current flow yet.",
       returnToContextLabel: "Back to round",
       goToRoundsLabel: "Open rounds",
       rundenContextTitle: "Started from an active round",
@@ -441,10 +598,19 @@ const CREATE_SURFACE_BUNDLES: Record<CreateSurfaceLocale, CreateSurfaceLocaleBun
       guidedHint: "After this, guided drafting starts in the next step.",
       guidedMissingError: "Please answer the first follow-up question to start the working state.",
       guidedWorkspacePrefix: "Guided focus",
+      startBusyStatus: "Classifying …",
+      startBusyLead: "We are classifying your contribution …",
+      startFailedError: "Your contribution could not be captured right now. Please try again.",
       followupContributeStatus: "Contribution received",
-      followupContributeTitle: "Your contribution is now in the classification flow",
+      followupContributeTitle: "Your text was captured.",
       followupContributeLead:
-        "We classify your contribution by topic and keep the next step explicit without forcing the full review workspace.",
+        "Please review the classification before it is reused.",
+      followupOriginalTextLabel: "Your original text",
+      followupUnderstandingLabel: "How we understood it",
+      followupUnderstandingLine: (label) => `Classified as: ${label}`,
+      followupNotPublishedLabel: "Not published yet.",
+      followupNextStepLabel: "Next step",
+      followupNextStepLead: "Choose the next step: open a round, review, or continue as draft.",
       followupGuidedStatus: "Draft mode active",
       followupGuidedTitle: "The draft now continues as a shared working state",
       followupGuidedLead:

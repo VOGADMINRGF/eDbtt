@@ -22,7 +22,13 @@ import {
   CREATE_PRODUCT_MODE_VALUES,
   type CreateProductMode,
 } from "@/features/create/createProductModes";
-import type { CreateIntent } from "@/features/create/intents";
+import type { CreateIntent as CreateContextIntent } from "@/features/create/intents";
+import {
+  mapCreateIntentToProductMode,
+  mapProductModeToCreateIntent,
+  resolveInitialCreateIntent,
+  type CreateIntent,
+} from "@/features/create/intentFlows";
 import {
   buildFinalizeFallbackPath,
   normalizeInternalRedirectPath,
@@ -30,6 +36,7 @@ import {
 import {
   getCreateComposerTexts,
   getCreateContextAnchorDefinitions,
+  type CreateSurfaceTexts,
   type CreateContextAnchorDefinition,
   getCreateHelperLinks,
   getCreateSurfaceModeDefinitions,
@@ -52,6 +59,8 @@ export type CreateClientProps = {
   dossierId?: string | null;
   initialAnlassraumId?: string | null;
   initialMode?: CreateMode;
+  initialIntentParam?: string | null;
+  initialModeParam?: string | null;
   initialEntryIntent?: CreateEntryIntent;
   initialEntryMode?: CreateEntryMode;
   initialText?: string | null;
@@ -60,6 +69,14 @@ export type CreateClientProps = {
 };
 
 export const CREATE_PRODUCT_MODES = CREATE_PRODUCT_MODE_VALUES;
+
+const MIN_INTENT_INPUT_LENGTH = 24;
+
+type CreateWorkingState = {
+  summary: string;
+  recognizedType: string;
+  suggestedAssignment: string;
+};
 
 type CreateProductModeConfig = ReturnType<typeof resolveCreateModeDefinition> & {
   preferredUseCase: UseCaseId;
@@ -112,6 +129,25 @@ type CreatePrimaryIntakeSnapshot = {
 
 type CreateFollowupSurface = "none" | "lightweight" | "analysis";
 export type { CreateFollowupSurface };
+
+export type CreateLightweightFollowupSnapshot = {
+  originalText: string;
+  understandingLine: string;
+};
+
+export function buildCreateLightweightFollowupSnapshot(params: {
+  intakeText: string;
+  modeLabel: string;
+  contextAnchorLabel?: string | null;
+  surfaceTexts: Pick<CreateSurfaceTexts, "followupUnderstandingLine">;
+}): CreateLightweightFollowupSnapshot {
+  const originalText = params.intakeText.trim();
+  const understandingLabel = String(params.contextAnchorLabel ?? "").trim() || params.modeLabel;
+  return {
+    originalText,
+    understandingLine: params.surfaceTexts.followupUnderstandingLine(understandingLabel),
+  };
+}
 
 const CREATE_PRIMARY_INTAKE_STORAGE_KEY_PREFIX = "vog_create_primary_intake_v1";
 
@@ -239,13 +275,49 @@ export function resolveFollowupSurfaceOnStart(productMode: CreateProductMode): C
 }
 
 export function resolveInitialCreateProductMode(params: {
+  initialIntentParam?: string | null;
+  initialModeParam?: string | null;
   initialEntryIntent?: CreateEntryIntent;
   initialEntryMode?: CreateEntryMode;
+  initialMode?: CreateMode;
 }): CreateProductMode {
-  if (params.initialEntryIntent === "content_companion") return "media";
-  if (params.initialEntryIntent === "round_setup" || params.initialEntryIntent === "org_context_setup") return "guided";
-  if (params.initialEntryMode === "guided") return "guided";
-  return "analyze";
+  return mapCreateIntentToProductMode(
+    resolveInitialCreateIntent({
+      rawIntentParam: params.initialIntentParam,
+      rawModeParam: params.initialModeParam,
+      initialEntryIntent: params.initialEntryIntent,
+      initialEntryMode: params.initialEntryMode,
+      initialMode: params.initialMode,
+    }),
+  );
+}
+
+function summarizeWorkingText(value: string): string {
+  const normalized = value.replace(/\s+/g, " ").trim();
+  if (!normalized) return "";
+  if (normalized.length <= 220) return normalized;
+  return `${normalized.slice(0, 217).trim()}...`;
+}
+
+function detectRecognizedType(intent: CreateIntent, value: string): string {
+  const text = value.toLowerCase();
+  if (intent === "contribute") {
+    if (/https?:\/\/|www\./i.test(text) || /quelle|link|dokument|bericht/i.test(text)) return "Quelle";
+    if (/frage|warum|wie|wo|wer|wann|\?/i.test(text)) return "Frage";
+    if (/vorschlag|option|lösung|loesung/i.test(text)) return "Vorschlag";
+    if (/erfahrung|erlebt|beobachtung|wahrnehmung/i.test(text)) return "Erfahrung";
+    return "Hinweis";
+  }
+  if (intent === "check") {
+    if (/https?:\/\/|www\./i.test(text)) return "Quelle";
+    if (/entscheidung|beschluss|abstimmung/i.test(text)) return "Entscheidung";
+    if (/forderung|these|behauptung|aussage/i.test(text)) return "Behauptung";
+    return "Aussage";
+  }
+  if (/fragenkatalog|fragebogen|leitfrage/i.test(text)) return "Fragenkatalog";
+  if (/beteiligungsrunde|workshop|beteiligung/i.test(text)) return "Beteiligungsansatz";
+  if (/antrag|vorschlag|vorlage/i.test(text)) return "Vorschlag";
+  return "Dossier-Entwurf";
 }
 
 export function resolveCreateProductModeConfig(
@@ -292,6 +364,8 @@ export default function CreateClient({
   dossierId,
   initialAnlassraumId,
   initialMode,
+  initialIntentParam,
+  initialModeParam,
   initialEntryIntent,
   initialEntryMode,
   initialText,
@@ -321,8 +395,11 @@ export default function CreateClient({
   const [gate, setGate] = React.useState<GateState>(() => deriveGate(initialEntitlements));
   const [productMode, setProductMode] = React.useState<CreateProductMode>(() =>
     resolveInitialCreateProductMode({
+      initialIntentParam,
+      initialModeParam,
       initialEntryIntent,
       initialEntryMode,
+      initialMode,
     }),
   );
 
@@ -348,15 +425,30 @@ export default function CreateClient({
   const contextLoadedRef = React.useRef(false);
   const intakeHydratedRef = React.useRef(false);
   const [intakeText, setIntakeText] = React.useState(initialText ?? "");
-  const [activeContextAnchorId, setActiveContextAnchorId] = React.useState<CreateIntent | null>(null);
+  const [activeContextAnchorId, setActiveContextAnchorId] = React.useState<CreateContextIntent | null>(null);
   const [hasStarted, setHasStarted] = React.useState<boolean>(false);
+  const [isStarting, setIsStarting] = React.useState(false);
   const [followupSurface, setFollowupSurface] = React.useState<CreateFollowupSurface>("none");
+  const [followupSnapshot, setFollowupSnapshot] =
+    React.useState<CreateLightweightFollowupSnapshot | null>(null);
   const [analysisAutoRunToken, setAnalysisAutoRunToken] = React.useState<number>(0);
   const [intakeError, setIntakeError] = React.useState<string | null>(null);
   const [intakeRestoreInfo, setIntakeRestoreInfo] = React.useState<string | null>(null);
-  const [guidedBridgeAnswer, setGuidedBridgeAnswer] = React.useState("");
+  const [guidedBridgeAnswer] = React.useState("");
   const [guidedBridgeConfirmed, setGuidedBridgeConfirmed] = React.useState(false);
-  const [guidedBridgeError, setGuidedBridgeError] = React.useState<string | null>(null);
+  const [workingState, setWorkingState] = React.useState<CreateWorkingState | null>(null);
+  const [followupAnswers, setFollowupAnswers] = React.useState<Record<CreateIntent, string>>({
+    contribute: "",
+    check: "",
+    draft: "",
+  });
+  const [followupAnswerSaved, setFollowupAnswerSaved] = React.useState<Record<CreateIntent, boolean>>({
+    contribute: false,
+    check: false,
+    draft: false,
+  });
+  const [actionNotice, setActionNotice] = React.useState<string | null>(null);
+  const startTimerRef = React.useRef<number | null>(null);
 
   React.useEffect(() => {
     if (intakeHydratedRef.current) return;
@@ -422,6 +514,7 @@ export default function CreateClient({
     () => resolveCreateProductModeConfig(productMode, surfaceLocale),
     [productMode, surfaceLocale],
   );
+  const activeIntent = React.useMemo(() => mapProductModeToCreateIntent(productMode), [productMode]);
   const surfaceContextAnchors = React.useMemo(
     () =>
       getCreateContextAnchorsForMode({
@@ -437,6 +530,8 @@ export default function CreateClient({
   );
   const intakeHelperText = activeContextAnchor?.helperText ?? productModeConfig.helperText;
   const intakePlaceholder = activeContextAnchor?.placeholder ?? productModeConfig.placeholder;
+  const activeFollowupAnswer = followupAnswers[activeIntent];
+  const activeFollowupSaved = followupAnswerSaved[activeIntent];
 
   const createOrchestration = React.useMemo(
     () =>
@@ -508,50 +603,174 @@ export default function CreateClient({
     }
   }, [pickerEnabled, selectedAnlassraumId]);
 
+  React.useEffect(
+    () => () => {
+      if (startTimerRef.current !== null) {
+        window.clearTimeout(startTimerRef.current);
+      }
+    },
+    [],
+  );
+
   const handleStart = React.useCallback(() => {
-    if (!hasPrimaryIntakeText(intakeText)) {
+    if (isStarting) return;
+    const normalizedText = intakeText.trim();
+    if (!normalizedText) {
       setIntakeError(surfaceTexts.intakeMissingError);
       return;
     }
-    setIntakeRestoreInfo(null);
-    setIntakeError(null);
-    setHasStarted(true);
-    setGuidedBridgeConfirmed(productMode !== "guided");
-    setGuidedBridgeError(null);
-    const nextFollowupSurface = resolveFollowupSurfaceOnStart(productMode);
-    setFollowupSurface(nextFollowupSurface);
-    if (nextFollowupSurface === "analysis") {
-      setAnalysisAutoRunToken((current) => current + 1);
-    }
-  }, [intakeText, productMode, surfaceTexts.intakeMissingError]);
-
-  const handleGuidedBridgeConfirm = React.useCallback(() => {
-    if (!hasPrimaryIntakeText(guidedBridgeAnswer)) {
-      setGuidedBridgeError(surfaceTexts.guidedMissingError);
+    if (normalizedText.length < MIN_INTENT_INPUT_LENGTH) {
+      setIntakeError(productModeConfig.minimumInputHint);
       return;
     }
-    setGuidedBridgeError(null);
-    setFollowupSurface("lightweight");
-    setGuidedBridgeConfirmed(true);
-  }, [guidedBridgeAnswer, surfaceTexts.guidedMissingError]);
+    try {
+      const activeSelectedContext = selectedAnlassraumId
+        ? contextItems.find((item) => item.anlassraumId === selectedAnlassraumId) ?? null
+        : null;
+      const snapshot = buildCreateLightweightFollowupSnapshot({
+        intakeText,
+        modeLabel: productModeConfig.label,
+        contextAnchorLabel: activeContextAnchor?.label,
+        surfaceTexts,
+      });
+      setIntakeRestoreInfo(null);
+      setIntakeError(null);
+      setIsStarting(true);
+      startTimerRef.current = window.setTimeout(() => {
+        startTimerRef.current = null;
+        const recognizedType = detectRecognizedType(activeIntent, normalizedText);
+        const suggestedAssignment = activeSelectedContext
+          ? activeSelectedContext.title
+          : initialIntakeContext?.sourceLabel
+            ? initialIntakeContext.sourceLabel
+            : productMode === "guided"
+              ? "Neuer Entwurfsraum"
+              : productMode === "media"
+                ? "Prüfstand ohne feste Zuordnung"
+                : "Themen- oder Anlassraum-Zuordnung offen";
+        setFollowupSnapshot(snapshot);
+        setWorkingState({
+          summary: summarizeWorkingText(normalizedText),
+          recognizedType,
+          suggestedAssignment,
+        });
+        setActionNotice(null);
+        setHasStarted(true);
+        setGuidedBridgeConfirmed(productMode !== "guided");
+        const nextFollowupSurface = resolveFollowupSurfaceOnStart(productMode);
+        setFollowupSurface(nextFollowupSurface);
+        if (nextFollowupSurface === "analysis") {
+          setAnalysisAutoRunToken((current) => current + 1);
+        }
+        setIsStarting(false);
+      }, 360);
+    } catch {
+      if (startTimerRef.current !== null) {
+        window.clearTimeout(startTimerRef.current);
+        startTimerRef.current = null;
+      }
+      setIsStarting(false);
+      setIntakeError(surfaceTexts.startFailedError);
+    }
+  }, [
+    activeContextAnchor?.label,
+    activeIntent,
+    intakeText,
+    initialIntakeContext?.sourceLabel,
+    isStarting,
+    productMode,
+    productModeConfig.label,
+    productModeConfig.minimumInputHint,
+    contextItems,
+    selectedAnlassraumId,
+    surfaceTexts,
+  ]);
 
-  const handlePromoteToReview = React.useCallback(() => {
-    setProductMode("media");
-    setActiveContextAnchorId(null);
-    setGuidedBridgeConfirmed(true);
-    setGuidedBridgeError(null);
-    setFollowupSurface("analysis");
-    setAnalysisAutoRunToken((current) => current + 1);
-  }, []);
+  const handleSaveFollowupAnswer = React.useCallback(() => {
+    const normalized = activeFollowupAnswer.trim();
+    if (!normalized) {
+      setActionNotice(productModeConfig.firstQuestionPlaceholder);
+      return;
+    }
+    setFollowupAnswerSaved((current) => ({
+      ...current,
+      [activeIntent]: true,
+    }));
+    setActionNotice(surfaceTexts.followupQuestionSavedLabel);
+  }, [activeFollowupAnswer, activeIntent, productModeConfig.firstQuestionPlaceholder, surfaceTexts.followupQuestionSavedLabel]);
 
-  const handleSwitchToGuided = React.useCallback(() => {
-    setProductMode("guided");
-    setActiveContextAnchorId(null);
-    setGuidedBridgeConfirmed(false);
-    setGuidedBridgeError(null);
-    setGuidedBridgeAnswer("");
-    setFollowupSurface("none");
-  }, []);
+  const triggerActionNotice = React.useCallback(
+    (message?: string) => {
+      setActionNotice(message ?? surfaceTexts.actionNotAvailableLabel);
+    },
+    [surfaceTexts.actionNotAvailableLabel],
+  );
+
+  const handleIntentAction = React.useCallback(
+    (actionIndex: number) => {
+      if (activeIntent === "contribute") {
+        if (actionIndex === 0) {
+          triggerActionNotice("Hinweis markiert. Du kannst ihn im nächsten Schritt weiterführen.");
+          return;
+        }
+        if (actionIndex === 1) {
+          setProductMode("media");
+          setFollowupSurface("analysis");
+          setAnalysisAutoRunToken((current) => current + 1);
+          triggerActionNotice("Dossier-Bezug wird im Prüfmodus vorbereitet.");
+          return;
+        }
+        if (actionIndex === 2) {
+          setProductMode("media");
+          setActiveContextAnchorId("source");
+          triggerActionNotice("Quelle ergänzen aktiviert. Ergänze jetzt die Referenz im Textfeld.");
+          return;
+        }
+        triggerActionNotice("Beteiligung vorbereiten: als nächstes in Swipes weiterführen.");
+        return;
+      }
+
+      if (activeIntent === "check") {
+        if (actionIndex === 0) {
+          setFollowupSurface("analysis");
+          setAnalysisAutoRunToken((current) => current + 1);
+          triggerActionNotice("Dossier-Weiterführung wird als Prüfstand vorbereitet.");
+          return;
+        }
+        if (actionIndex === 1) {
+          setActiveContextAnchorId("source");
+          triggerActionNotice("Quellen ergänzen aktiviert. Ergänze jetzt die Referenzen im Textfeld.");
+          return;
+        }
+        if (actionIndex === 2) {
+          setProductMode("analyze");
+          setActiveContextAnchorId("objection");
+          triggerActionNotice("Gegenpositionen sammeln aktiviert.");
+          return;
+        }
+        setFollowupSurface("analysis");
+        setAnalysisAutoRunToken((current) => current + 1);
+        triggerActionNotice("Prüfbericht-Vorbereitung gestartet.");
+        return;
+      }
+
+      if (actionIndex === 0) {
+        triggerActionNotice("Dossier-Struktur kann im nächsten Schritt übernommen werden.");
+        return;
+      }
+      if (actionIndex === 1) {
+        setActiveContextAnchorId("question");
+        triggerActionNotice("Fragenkatalog-Fokus aktiviert.");
+        return;
+      }
+      if (actionIndex === 2) {
+        triggerActionNotice("Beteiligungsrunde vorbereiten: als nächstes in /runden weiterführen.");
+        return;
+      }
+      triggerActionNotice("Mandatslogik skizzieren ist als nächster Arbeitsschritt markiert.");
+    },
+    [activeIntent, triggerActionNotice],
+  );
 
   if (gate.status === "loading") {
     return (
@@ -622,7 +841,6 @@ export default function CreateClient({
     intakeText,
   });
   const analyzeFollowupActivated = followupSurface === "analysis";
-  const lightweightFollowupActivated = followupSurface === "lightweight";
   const showAnalyzeWorkspace = shouldRenderCreateAnalyzeWorkspace({
     followupActivated: analyzeFollowupActivated,
     hasStarted,
@@ -630,10 +848,6 @@ export default function CreateClient({
     productMode,
     guidedBridgeConfirmed,
   });
-  const showLightweightFollowup =
-    showPostInputModules &&
-    lightweightFollowupActivated &&
-    (productMode !== "guided" || guidedBridgeConfirmed);
   const workspaceInitialText =
     productMode === "guided"
       ? buildGuidedWorkspaceText({
@@ -642,6 +856,10 @@ export default function CreateClient({
           guidedWorkspacePrefix: surfaceTexts.guidedWorkspacePrefix,
         })
       : intakeText;
+  const normalizedIntakeText = intakeText.trim();
+  const startDisabled = normalizedIntakeText.length < MIN_INTENT_INPUT_LENGTH || isStarting;
+  const showTooShortHint =
+    normalizedIntakeText.length > 0 && normalizedIntakeText.length < MIN_INTENT_INPUT_LENGTH;
 
   return (
     <div className="space-y-6 md:space-y-8">
@@ -663,10 +881,10 @@ export default function CreateClient({
           if (!hasStarted) return;
           setFollowupSurface("none");
           setGuidedBridgeConfirmed(modeOption !== "guided");
-          setGuidedBridgeError(null);
         }}
         helperText={intakeHelperText}
         inputId="create-primary-intake"
+        inputLabel={productModeConfig.inputLabel}
         inputValue={intakeText}
         inputPlaceholder={intakePlaceholder}
         onInputChange={(value) => {
@@ -676,6 +894,9 @@ export default function CreateClient({
         }}
         onStart={handleStart}
         startLabel={productModeConfig.ctaLabel}
+        startDisabled={startDisabled}
+        startBusy={isStarting}
+        startBusyLabel={surfaceTexts.startBusyStatus}
         secondaryAction={{
           href: contextualReturnHref ?? "/runden",
           label: contextualReturnHref ? surfaceTexts.returnToContextLabel : surfaceTexts.goToRoundsLabel,
@@ -690,7 +911,6 @@ export default function CreateClient({
           if (!hasStarted) return;
           setFollowupSurface("none");
           setGuidedBridgeConfirmed(anchor.mode !== "guided");
-          setGuidedBridgeError(null);
         }}
         activeContextAnchorLead={activeContextAnchor?.lead}
         helperLinks={surfaceHelperLinks}
@@ -710,6 +930,21 @@ export default function CreateClient({
         }
         minRows={8}
       />
+
+      {showTooShortHint ? (
+        <p className="rounded-xl border border-amber-300/45 bg-amber-500/10 px-3 py-2 text-sm text-amber-100">
+          {productModeConfig.minimumInputHint}
+        </p>
+      ) : null}
+
+      {isStarting ? (
+        <section className="rounded-2xl border border-sky-200 bg-sky-50/80 p-4 md:p-5 dark:border-sky-500/40 dark:bg-sky-500/10">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-sky-800 dark:text-sky-100">
+            {surfaceTexts.startBusyStatus}
+          </p>
+          <p className="mt-1 text-sm text-sky-900 dark:text-sky-100">{surfaceTexts.startBusyLead}</p>
+        </section>
+      ) : null}
 
       {showPostInputModules ? (
         <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 md:p-5">
@@ -731,34 +966,42 @@ export default function CreateClient({
         </section>
       ) : null}
 
-      {showPostInputModules && productMode === "guided" && !guidedBridgeConfirmed ? (
+      {showPostInputModules ? (
         <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 md:p-5">
-          <p className="text-sm font-semibold text-[rgb(var(--fg))]">{surfaceTexts.guidedTitle}</p>
-          <p className="mt-1 text-sm text-[rgb(var(--muted))]">{surfaceTexts.guidedLead}</p>
-          <label className="sr-only" htmlFor="create-guided-bridge-answer">
-            {surfaceTexts.guidedInputLabel}
+          <p className="text-sm font-semibold text-[rgb(var(--fg))]">{surfaceTexts.followupQuestionLabel}</p>
+          <p className="mt-1 text-sm text-[rgb(var(--muted))]">{productModeConfig.firstQuestion}</p>
+          <label className="sr-only" htmlFor="create-followup-answer">
+            {surfaceTexts.followupQuestionLabel}
           </label>
           <textarea
-            id="create-guided-bridge-answer"
+            id="create-followup-answer"
             rows={5}
-            value={guidedBridgeAnswer}
+            value={activeFollowupAnswer}
             onChange={(event) => {
-              setGuidedBridgeAnswer(event.target.value);
-              if (guidedBridgeError) setGuidedBridgeError(null);
+              const value = event.target.value;
+              setFollowupAnswers((current) => ({
+                ...current,
+                [activeIntent]: value,
+              }));
+              setFollowupAnswerSaved((current) => ({
+                ...current,
+                [activeIntent]: false,
+              }));
+              if (actionNotice) setActionNotice(null);
             }}
             className="mt-3 w-full resize-y rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-sm text-[rgb(var(--fg))] shadow-sm focus:border-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-200"
-            placeholder={surfaceTexts.guidedPlaceholder}
+            placeholder={productModeConfig.firstQuestionPlaceholder}
           />
           <div className="mt-3 flex flex-wrap items-center gap-2">
-            <button type="button" className="btn-primary" onClick={handleGuidedBridgeConfirm}>
-              {surfaceTexts.guidedCta}
+            <button type="button" className="btn-primary" onClick={handleSaveFollowupAnswer}>
+              {surfaceTexts.followupQuestionSaveLabel}
             </button>
             <span className="text-xs text-[rgb(var(--muted))]">
-              {surfaceTexts.guidedHint}
+              {productModeConfig.inputLabel}
             </span>
           </div>
-          {guidedBridgeError ? (
-            <p className="mt-2 text-sm text-rose-700 dark:text-rose-300">{guidedBridgeError}</p>
+          {activeFollowupSaved ? (
+            <p className="mt-2 text-sm text-emerald-700 dark:text-emerald-300">{surfaceTexts.followupQuestionSavedLabel}</p>
           ) : null}
         </section>
       ) : null}
@@ -778,7 +1021,13 @@ export default function CreateClient({
 
           {contextLoadState === "error" ? (
             <div className="mt-3 rounded-xl border border-rose-300/50 bg-rose-50/80 p-3 text-sm text-rose-700 dark:border-rose-500/40 dark:bg-rose-500/10 dark:text-rose-200">
-              <p>{text.contextUnavailable} ({contextLoadError ?? "create_context_source_unavailable"}).</p>
+              <p>{text.contextUnavailable}.</p>
+              {contextLoadError ? (
+                <details className="mt-2">
+                  <summary className="cursor-pointer text-xs font-semibold">Developer-Hinweis</summary>
+                  <p className="mt-1 text-xs">{contextLoadError}</p>
+                </details>
+              ) : null}
               <button type="button" onClick={() => void loadContextItems()} className="btn-secondary mt-2 text-xs">
                 {text.reload}
               </button>
@@ -861,40 +1110,81 @@ export default function CreateClient({
         </details>
       ) : null}
 
-      {showLightweightFollowup ? (
+      {showPostInputModules && workingState ? (
         <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 md:p-5">
-          <div className="space-y-2">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[rgb(var(--muted))]">
-              {productMode === "guided"
-                ? surfaceTexts.followupGuidedStatus
-                : surfaceTexts.followupContributeStatus}
-            </p>
-            <p className="text-sm font-semibold text-[rgb(var(--fg))]">
-              {productMode === "guided"
-                ? surfaceTexts.followupGuidedTitle
-                : surfaceTexts.followupContributeTitle}
-            </p>
-            <p className="text-sm text-[rgb(var(--muted))]">
-              {productMode === "guided"
-                ? surfaceTexts.followupGuidedLead
-                : surfaceTexts.followupContributeLead}
-            </p>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[rgb(var(--muted))]">
+            {productModeConfig.workingStateTitle}
+          </p>
+
+          <div className="mt-3 grid gap-3">
+            <div>
+              <p className="text-sm font-semibold text-[rgb(var(--fg))]">Kurzfassung</p>
+              <p className="mt-1 rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-sm text-[rgb(var(--fg))]">
+                {workingState.summary}
+              </p>
+            </div>
+            <div className="grid gap-2 sm:grid-cols-2">
+              <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2">
+                <p className="text-xs font-semibold text-[rgb(var(--muted))]">{productModeConfig.recognizedTypeLabel}</p>
+                <p className="mt-1 text-sm text-[rgb(var(--fg))]">{workingState.recognizedType}</p>
+              </div>
+              <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2">
+                <p className="text-xs font-semibold text-[rgb(var(--muted))]">Mögliche Zuordnung</p>
+                <p className="mt-1 text-sm text-[rgb(var(--fg))]">{workingState.suggestedAssignment}</p>
+              </div>
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-[rgb(var(--fg))]">Offene Klärungsfragen</p>
+              <ul className="mt-1 list-disc space-y-1 pl-5 text-sm text-[rgb(var(--muted))]">
+                {productModeConfig.openPoints.map((point) => (
+                  <li key={point}>{point}</li>
+                ))}
+              </ul>
+            </div>
           </div>
-          <div className="mt-3 flex flex-wrap items-center gap-2">
+
+          <div className="mt-4">
+            <p className="text-sm font-semibold text-[rgb(var(--fg))]">{surfaceTexts.followupNextStepLabel}</p>
+            <div className="mt-2 grid gap-2 sm:grid-cols-2">
+              {productModeConfig.nextActions.map((actionLabel, actionIndex) => (
+                <button
+                  key={actionLabel}
+                  type="button"
+                  className="btn-secondary justify-start text-left text-xs"
+                  onClick={() => handleIntentAction(actionIndex)}
+                >
+                  {actionLabel}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="mt-3 flex flex-wrap gap-2">
+            <Link href="/dossier/demo" className="btn-secondary text-xs">
+              Dossier öffnen
+            </Link>
+            <Link href="/swipes" className="btn-secondary text-xs">
+              Beteiligung öffnen
+            </Link>
             <Link href={contextualReturnHref ?? "/runden"} className="btn-secondary text-xs">
               {contextualReturnHref ? surfaceTexts.returnToContextLabel : surfaceTexts.goToRoundsLabel}
             </Link>
-            <button type="button" className="btn-secondary text-xs" onClick={handlePromoteToReview}>
-              {surfaceTexts.followupActionToReview}
-            </button>
-            {productMode !== "guided" ? (
-              <button type="button" className="btn-secondary text-xs" onClick={handleSwitchToGuided}>
-                {surfaceTexts.followupActionToGuided}
-              </button>
-            ) : null}
           </div>
+
+          {followupSnapshot ? (
+            <p className="mt-3 text-xs text-[rgb(var(--muted))]">
+              {surfaceTexts.followupUnderstandingLabel}: {followupSnapshot.understandingLine}
+            </p>
+          ) : null}
+          <p className="mt-2 text-xs text-[rgb(var(--muted))]">{surfaceTexts.followupNotPublishedLabel}</p>
+          {actionNotice ? (
+            <p className="mt-2 rounded-xl border border-cyan-300/35 bg-cyan-500/10 px-3 py-2 text-xs text-cyan-100">
+              {actionNotice}
+            </p>
+          ) : null}
         </section>
       ) : null}
+
 
       {showAnalyzeWorkspace ? (
         <section className="rounded-2xl border border-sky-200 bg-sky-50/80 p-4 text-xs text-sky-900 dark:border-sky-500/40 dark:bg-sky-500/10 dark:text-sky-100">
@@ -932,6 +1222,7 @@ export default function CreateClient({
           maxFinalizeClaims={maxFinalizeClaims}
           analysisEntryVariant="single_button"
           analysisModeHint={productMode}
+          analysisIntentHint={activeIntent}
         />
       ) : null}
     </div>

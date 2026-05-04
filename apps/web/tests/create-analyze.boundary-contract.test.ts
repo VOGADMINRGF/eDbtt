@@ -11,6 +11,7 @@ function buildValidSnapshot() {
     orchestrator: CREATE_ANALYZE_ORCHESTRATOR,
     runId: "run-123",
     inputRef: "run-123",
+    intent: "contribute",
     sourceLanguage: "de",
     contentLanguage: "de",
     uiLocale: "de",

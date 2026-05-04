@@ -72,11 +72,15 @@ export type SharedCreateComposerProps = {
   onModeChange: (mode: CreateProductMode) => void;
   helperText: string;
   inputId: string;
+  inputLabel?: string;
   inputValue: string;
   inputPlaceholder: string;
   onInputChange: (value: string) => void;
   onStart: () => void;
   startLabel: string;
+  startDisabled?: boolean;
+  startBusy?: boolean;
+  startBusyLabel?: string;
   secondaryAction: {
     href: string;
     label: string;
@@ -108,11 +112,15 @@ export default function SharedCreateComposer({
   onModeChange,
   helperText,
   inputId,
+  inputLabel,
   inputValue,
   inputPlaceholder,
   onInputChange,
   onStart,
   startLabel,
+  startDisabled = false,
+  startBusy = false,
+  startBusyLabel,
   secondaryAction,
   contextAnchors,
   activeContextAnchorId,
@@ -308,6 +316,7 @@ export default function SharedCreateComposer({
                       : "border-[rgb(var(--border))] bg-[rgb(var(--bg))] text-[rgb(var(--fg))] hover:border-[rgb(var(--grad-from))]/35"
                   }`}
                   aria-pressed={isActive}
+                  aria-selected={isActive}
                 >
                   <span className="block text-sm font-semibold">{modeConfig.label}</span>
                   <span
@@ -330,7 +339,7 @@ export default function SharedCreateComposer({
           <div className="rounded-2xl bg-[linear-gradient(135deg,rgba(26,140,255,0.36),rgba(139,92,246,0.24),rgba(24,207,200,0.34))] p-[1px] shadow-[0_14px_30px_rgba(2,6,23,0.13)]">
             <div className="rounded-2xl bg-[color-mix(in_oklab,rgb(var(--card))_94%,rgb(var(--bg))_6%)] shadow-[inset_0_1px_0_rgba(255,255,255,0.1)]">
               <label className="sr-only" htmlFor={inputId}>
-                {texts.inputLabel}
+                {inputLabel ?? texts.inputLabel}
               </label>
               <textarea
                 id={inputId}
@@ -377,8 +386,14 @@ export default function SharedCreateComposer({
                 </div>
 
                 <div className="flex flex-wrap items-center gap-3.5">
-                  <button type="button" onClick={onStart} className="btn-primary">
-                    {startLabel}
+                  <button
+                    type="button"
+                    onClick={onStart}
+                    className="btn-primary"
+                    disabled={startBusy || startDisabled}
+                    aria-busy={startBusy}
+                  >
+                    {startBusy ? startBusyLabel ?? startLabel : startLabel}
                   </button>
                   <Link
                     href={secondaryAction.href}

@@ -60,6 +60,13 @@ export default function EntryHeroHeading({
       : "max-w-2xl text-sm leading-relaxed text-[rgb(var(--muted))]";
 
   const HeadingTag = headingTag;
+  const hasSecondLine = Boolean(
+    headline.line2Lead ||
+      headline.line2Accent ||
+      headline.line2Mid ||
+      headline.line2AccentB ||
+      headline.line2Tail,
+  );
 
   return (
     <div className="space-y-3">
@@ -69,11 +76,13 @@ export default function EntryHeroHeading({
           {headline.line1Lead} <AccentWord gradient="opinion">{headline.line1Accent}</AccentWord>{" "}
           {headline.line1Tail}
         </span>
-        <span className="block">
-          {headline.line2Lead} <AccentWord gradient="voice">{headline.line2Accent}</AccentWord>{" "}
-          {headline.line2Mid} <AccentWord gradient="weight">{headline.line2AccentB}</AccentWord>
-          {headline.line2Tail}
-        </span>
+        {hasSecondLine ? (
+          <span className="block">
+            {headline.line2Lead} <AccentWord gradient="voice">{headline.line2Accent}</AccentWord>{" "}
+            {headline.line2Mid} <AccentWord gradient="weight">{headline.line2AccentB}</AccentWord>
+            {headline.line2Tail}
+          </span>
+        ) : null}
       </HeadingTag>
       <p className={sublineClass}>{subline}</p>
       {topMeta}

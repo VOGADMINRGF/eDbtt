@@ -34,9 +34,37 @@ describe("create mode selector contract", () => {
     expect(resolveInitialCreateProductMode({})).toBe("analyze");
   });
 
+  it("accepts explicit intent params and legacy mode aliases for deep-link compatibility", () => {
+    expect(
+      resolveInitialCreateProductMode({
+        initialIntentParam: "check",
+      }),
+    ).toBe("media");
+    expect(
+      resolveInitialCreateProductMode({
+        initialIntentParam: "draft",
+      }),
+    ).toBe("guided");
+    expect(
+      resolveInitialCreateProductMode({
+        initialModeParam: "source",
+      }),
+    ).toBe("analyze");
+    expect(
+      resolveInitialCreateProductMode({
+        initialModeParam: "check",
+      }),
+    ).toBe("media");
+    expect(
+      resolveInitialCreateProductMode({
+        initialModeParam: "draft",
+      }),
+    ).toBe("guided");
+  });
+
   it("defines stable CTA copy for each mode", () => {
-    expect(resolveCreateProductModeConfig("analyze").ctaLabel).toBe("Beitrag einbringen");
+    expect(resolveCreateProductModeConfig("analyze").ctaLabel).toBe("Beitrag strukturieren");
     expect(resolveCreateProductModeConfig("media").ctaLabel).toBe("Prüfung starten");
-    expect(resolveCreateProductModeConfig("guided").ctaLabel).toBe("Gemeinsam ausarbeiten");
+    expect(resolveCreateProductModeConfig("guided").ctaLabel).toBe("Entwurf ausarbeiten");
   });
 });

@@ -413,6 +413,26 @@ describe("/api/contributions/analyze create orchestration envelope", () => {
     );
   });
 
+  it("forwards explicit create intent as journey hint", async () => {
+    mocks.analyzeContribution.mockResolvedValue(buildAnalyzeResult({ claims: [] }));
+
+    await analyzePOST(
+      req({
+        text: "Dies ist ein ausreichend langer Text fuer den Intent-Check.",
+        locale: "de-DE",
+        intent: "check",
+        analysisMode: "media",
+      }),
+    );
+
+    expect(mocks.analyzeContribution).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        analysisMode: "media",
+        journeyHint: "media",
+      }),
+    );
+  });
+
   it("forwards explicit presentationPass flag to analyzeContribution as optional tone pass switch", async () => {
     mocks.analyzeContribution.mockResolvedValue(buildAnalyzeResult({ claims: [] }));
 
