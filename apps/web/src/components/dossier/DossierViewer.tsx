@@ -1095,19 +1095,19 @@ export function DossierViewer({
   const legitimacyMetrics: LegitimacyMetric[] = [
     {
       key: "evidenz",
-      label: "Evidenz (Beleglage)",
+      label: "Quellenlage",
       value: evidenceIndex,
       description: "Wie viele Aussagen sind mit Quellen verknüpft?",
     },
     {
       key: "klaerung",
-      label: "Klärung (offene Punkte)",
+      label: "Was ist noch offen?",
       value: clarificationIndex,
       description: "Welche Fragen sind noch offen oder in Bearbeitung?",
     },
     {
       key: "perspektiven",
-      label: "Perspektiven (Beteiligung)",
+      label: "Perspektivenabdeckung",
       value: perspectivesIndex,
       description: "Welche Gruppen sollten mitreden oder eingebunden werden?",
     },
@@ -1122,54 +1122,60 @@ export function DossierViewer({
   const header = (
     <header className="space-y-8 border-b border-[rgb(var(--border))] pb-10">
       <div className="grid gap-8 xl:grid-cols-[1.6fr_1fr]">
-        <div className="space-y-6">
+        <div className="space-y-5">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[rgb(var(--muted))]">
             Dossier (Demonstrationsfall)
           </p>
-          <div className="space-y-3">
-            <p className="text-sm uppercase tracking-[0.3em] text-[rgb(var(--muted))]">
-              Innenstadt-Dossier
-            </p>
-            <h1 className="headline-grad text-5xl font-extrabold leading-[1.02] tracking-tight md:text-7xl">
+          <div className="flex flex-wrap items-center gap-2 text-[11px]">
+            <span className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-2 py-1 font-semibold text-[rgb(var(--fg))]">
+              Status: {legitimacyStatus.label}
+            </span>
+            <span className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-2 py-1 text-[rgb(var(--muted))]">
+              Ebene: {(JURISDICTION_LABELS as any)[meta.jurisdiction] ?? meta.jurisdiction}
+            </span>
+            <span className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-2 py-1 text-[rgb(var(--muted))]">
+              Region: {meta.region ?? presentation.topic?.municipality ?? "—"}
+            </span>
+          </div>
+          <div className="space-y-2">
+            <p className="text-sm uppercase tracking-[0.24em] text-[rgb(var(--muted))]">Innenstadt-Dossier</p>
+            <h1 className="headline-grad text-3xl font-extrabold leading-tight tracking-tight md:text-5xl">
               {dossier.meta.title}
             </h1>
           </div>
-          <div className="text-[11px] uppercase tracking-[0.18em] text-[rgb(var(--muted))]">[ Kontext · Evidenz · Optionen · Beteiligung ]</div>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-3">
-              <p className="text-[11px] uppercase tracking-wide text-[rgb(var(--muted))]">Wirkungsniveau</p>
+          <p className="max-w-3xl text-base leading-relaxed text-[rgb(var(--muted))]">
+            {analyze.sourceText ?? "Fragestellung des Dossiers."} Warum jetzt? Das Thema hat direkte
+            Auswirkungen auf Alltag, Zuständigkeiten und nächste Entscheidungen.
+          </p>
+          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2">
+              <p className="text-[10px] uppercase tracking-wide text-[rgb(var(--muted))]">Wirkungsniveau</p>
               <p className="text-sm font-semibold text-[rgb(var(--fg))]">{heroImpact}</p>
             </div>
-            <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-3">
-              <p className="text-[11px] uppercase tracking-wide text-[rgb(var(--muted))]">Entscheidungsrelevanz</p>
+            <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2">
+              <p className="text-[10px] uppercase tracking-wide text-[rgb(var(--muted))]">Relevanz</p>
               <p className="text-sm font-semibold text-[rgb(var(--fg))]">{heroRelevance}</p>
             </div>
-            <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-3">
-              <p className="text-[11px] uppercase tracking-wide text-[rgb(var(--muted))]">Budgetdimension</p>
+            <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2">
+              <p className="text-[10px] uppercase tracking-wide text-[rgb(var(--muted))]">Budget</p>
               <p className="text-sm font-semibold text-[rgb(var(--fg))]">{heroBudget}</p>
             </div>
-            <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-3">
-              <p className="text-[11px] uppercase tracking-wide text-[rgb(var(--muted))]">Abstimmungsmodus</p>
+            <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2">
+              <p className="text-[10px] uppercase tracking-wide text-[rgb(var(--muted))]">Abstimmungsmodus</p>
               <p className="text-sm font-semibold text-[rgb(var(--fg))]">{heroParticipation}</p>
             </div>
           </div>
-          <p className="max-w-prose text-lg leading-relaxed text-[rgb(var(--muted))]">
-            {analyze.sourceText ?? "Fragestellung des Dossiers."} Dieses Demonstrationsdossier zeigt eine digitale Entscheidungsakte: strukturierte Kernaussagen, normierter Optionenraum, Evidenzverknüpfung und Zuständigkeitswege.
-          </p>
-          <p className="text-sm leading-relaxed text-[rgb(var(--muted))]">
-            Die Abstimmungsdarstellung ist in dieser Demo simuliert und dient der Veranschaulichung der Beteiligungsebene.
-          </p>
-          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-            {metaChips.map((chip) => (
-              <div
-                key={`${chip.label}-${chip.value}`}
-                className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-[11px] shadow-soft"
-              >
-                <p className="uppercase tracking-wide text-[rgb(var(--muted))]">{chip.label}</p>
-                <p className="truncate font-semibold text-[rgb(var(--fg))]">{chip.value}</p>
-              </div>
-            ))}
-          </div>
+          <details className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-[11px] text-[rgb(var(--muted))]">
+            <summary className="cursor-pointer font-semibold text-[rgb(var(--fg))]">Mehr Details</summary>
+            <div className="mt-2 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+              {metaChips.map((chip) => (
+                <div key={`${chip.label}-${chip.value}`} className="rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-2 py-1.5">
+                  <p className="uppercase tracking-wide text-[rgb(var(--muted))]">{chip.label}</p>
+                  <p className="truncate font-semibold text-[rgb(var(--fg))]">{chip.value}</p>
+                </div>
+              ))}
+            </div>
+          </details>
         </div>
         <div className="flex h-full flex-col gap-4">
           {primaryOrigin ? (
@@ -1335,10 +1341,39 @@ export function DossierViewer({
         </div>
       </section>
 
+      <section className="grid gap-3 sm:grid-cols-2">
+        <article className="vog-card p-4 space-y-1">
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Warum jetzt?</p>
+          <p className="text-sm text-[rgb(var(--fg))]">
+            {topTakeaways[0] ?? "Die Debatte wirkt direkt auf Alltag, Ressourcen und nächste Entscheidungen."}
+          </p>
+        </article>
+        <article className="vog-card p-4 space-y-1">
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Was ist noch offen?</p>
+          <p className="text-sm text-[rgb(var(--fg))]">
+            {topOpenIssues[0] ?? "Offene Fragen und fehlende Quellen sind sichtbar markiert."}
+          </p>
+        </article>
+        <article className="vog-card p-4 space-y-1">
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Welche Folgen sind möglich?</p>
+          <p className="text-sm text-[rgb(var(--fg))]">
+            Varianten und mögliche Folgen werden im unteren Teil des Dossiers Schritt für Schritt gezeigt.
+          </p>
+        </article>
+        <article className="vog-card p-4 space-y-1">
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Wer kann handeln?</p>
+          <p className="text-sm text-[rgb(var(--fg))]">
+            {analyze.responsibilityPaths.length
+              ? "Verantwortungswege sind benannt und je Aussage nachvollziehbar."
+              : "Zuständigkeiten werden ergänzt, sobald belastbare Daten vorliegen."}
+          </p>
+        </article>
+      </section>
+
       <section id="graph" className="space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
-            Evidenzlage & Quellenintelligenz
+            Quellenlage & Überblick
           </div>
           <span className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-2 py-1 text-[10px] text-[rgb(var(--muted))]">
             First-Screen Orientierung
@@ -1397,7 +1432,7 @@ export function DossierViewer({
                           {SOURCE_TYPE_LABELS[entry.sourceType ?? ""] ?? (entry.sourceType ?? "Quelle")}
                         </span>
                         <span className="rounded-full border border-[rgb(var(--border))] px-2 py-0.5 text-[rgb(var(--muted))]">
-                          Evidenzstatus: {entry.evidenceStatus ?? "offen"}
+                          Quellenstatus: {entry.evidenceStatus ?? "offen"}
                         </span>
                         <span className="rounded-full border border-[rgb(var(--border))] px-2 py-0.5 text-[rgb(var(--muted))]">
                           Übertragbarkeit: {entry.transferability ?? "mittel"}
@@ -1467,7 +1502,7 @@ export function DossierViewer({
                 Caveat: {entry.transferabilityCaveat}
               </p>
               <div className="text-[11px] font-semibold text-[rgb(var(--fg))]">
-                Evidenzstatus: {entry.evidenceStatus}
+                Quellenstatus: {entry.evidenceStatus}
               </div>
             </article>
           ))}
@@ -1694,7 +1729,7 @@ export function DossierViewer({
                   <span className="vog-chip">Wichtigkeit: {claim.importance ?? "-"}</span>
                   <span className="vog-chip">Zuständigkeit: {claim.responsibility ?? "-"}</span>
                   <span className="vog-chip">
-                    Evidenz: {claimEvidenceCount(claim.id)} Quelle
+                    Quellenlage: {claimEvidenceCount(claim.id)} Quelle
                     {claimEvidenceCount(claim.id) === 1 ? "" : "n"}
                   </span>
                   <span className="vog-chip">Prüfstatus: {claimReviewStatus(claim.id)}</span>
@@ -1713,7 +1748,7 @@ export function DossierViewer({
                 </div>
                 {isFactLikeClaim(claim) && claimEvidenceCount(claim.id) === 0 ? (
                   <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
-                    Faktische Aussage ohne belastbaren Quellennachweis: vor prominenter Nutzung zuerst Quelle/Evidenz/Factcheck-Status ergänzen.
+                    Faktische Aussage ohne belastbaren Quellennachweis: vor prominenter Nutzung zuerst Quellenlage/Factcheck-Status ergänzen.
                   </p>
                 ) : null}
                 <div>
@@ -1744,7 +1779,7 @@ export function DossierViewer({
                   <span className="vog-chip">Wichtigkeit: {claim.importance ?? "-"}</span>
                   <span className="vog-chip">Zuständigkeit: {claim.responsibility ?? "-"}</span>
                   <span className="vog-chip">
-                    Evidenz: {claimEvidenceCount(claim.id)} Quelle
+                    Quellenlage: {claimEvidenceCount(claim.id)} Quelle
                     {claimEvidenceCount(claim.id) === 1 ? "" : "n"}
                   </span>
                   <span className="vog-chip">Prüfstatus: {claimReviewStatus(claim.id)}</span>
@@ -1763,7 +1798,7 @@ export function DossierViewer({
                 </div>
                 {isFactLikeClaim(claim) && claimEvidenceCount(claim.id) === 0 ? (
                   <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
-                    Faktische Aussage ohne belastbaren Quellennachweis: vor prominenter Nutzung zuerst Quelle/Evidenz/Factcheck-Status ergänzen.
+                    Faktische Aussage ohne belastbaren Quellennachweis: vor prominenter Nutzung zuerst Quellenlage/Factcheck-Status ergänzen.
                   </p>
                 ) : null}
                 <p className="text-sm font-semibold text-[rgb(var(--fg))]">{claim.title ?? "Kernaussage"}</p>
@@ -1831,7 +1866,7 @@ export function DossierViewer({
         <div className="h-1 w-12 rounded-full bg-brand-grad opacity-70" />
         <div className="vog-card p-5 space-y-3">
           <p className="text-[11px] text-[rgb(var(--muted))]">
-            Transparenzhinweis: Die Empfehlung basiert auf Evidenzlage, Klärungsstand, Perspektiven und Zuständigkeiten.
+            Transparenzhinweis: Die Empfehlung basiert auf Quellenlage, offenen Punkten, Perspektiven und Zuständigkeiten.
           </p>
           {canSeeRecommendation ? (
             <>
@@ -1929,7 +1964,7 @@ export function DossierViewer({
 
       <section className="vog-card p-5 space-y-2">
         <div className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
-          Evidenz-Überblick
+          Quellenlage-Überblick
         </div>
         <div className="text-sm text-[rgb(var(--fg))]">
           Kernaussagen: {analyze.evidenceGraph?.summary.claimCount ?? analyze.claims.length}

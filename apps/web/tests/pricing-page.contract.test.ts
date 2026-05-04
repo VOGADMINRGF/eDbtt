@@ -28,19 +28,22 @@ describe("/pricing canonical landing", () => {
     expect(html).not.toContain("Technisches Mapping");
   });
 
-  it("keeps hero short with two primary CTAs", async () => {
+  it("keeps hero short with public-entry CTAs", async () => {
     const html = await renderPricing();
 
-    expect(html).toContain("Wähle eines von vier privaten Paketwegen");
+    expect(html).toContain("Du kannst eDebatte kostenlos nutzen, Themen swipen und Hinweise einbringen.");
+    expect(html).toContain("Kostenlos starten");
+    expect(html).toContain("Anonym / vertraulich Hinweis geben");
     expect(html).toContain("Paket wählen");
-    expect(html).toContain("B2B/B2G-Konditionen ansehen");
+    expect(html).toContain("Professionell nutzen");
     expect(html).toContain('href="/pricing/institutionen"');
   });
 
   it("keeps initiative membership logic visible in pricing decision area", async () => {
     const html = await renderPricing();
 
-    expect(html).toContain("Der Mitgliedschaftsantrag bleibt optional. Paketpreis und Mitgliedsbeitrag werden getrennt behandelt.");
+    expect(html).toContain("Nutzung ist freiwillig. eDebatte strukturiert Informationen und garantiert keine politische Umsetzung.");
+    expect(html).toContain("Mitgliedschaft bleibt freiwillig und getrennt vom Paketkauf.");
     expect(html).toContain("Paketpreise bleiben unabhängig vom Mitgliedschaftsantrag gleich.");
     expect(html).toContain("Empfohlener Mitgliedsbeitrag: 5,63 €.");
     expect(html).toContain("Search Credit / Dossier Search: ca. 10 € je Credit (einzeln buchbar)");
@@ -53,21 +56,22 @@ describe("/pricing canonical landing", () => {
     const html = await renderPricing({ segment: "journalismus" });
 
     expect(html).toContain("Journalistische Pakete mit Einstiegskontingent");
-    expect(html).toContain("Der Mitgliedschaftsantrag bleibt optional. Paketpreis und Mitgliedsbeitrag werden getrennt behandelt.");
+    expect(html).toContain("Mitgliedschaft bleibt freiwillig und getrennt vom Paketkauf.");
     expect(html).toContain("Paketpreise bleiben unabhängig vom Mitgliedschaftsantrag gleich.");
   });
 
   it("keeps institutional and newsroom conditions as short secondary hint", async () => {
     const html = await renderPricing();
 
-    expect(html).toContain("Organisationen, Kommunen, Verbände und Redaktionen");
-    expect(html).toContain("B2B/B2G-Konditionen ansehen");
+    expect(html).toContain("Organisationen, Kommunen, Verbände, Medien und Forschung");
+    expect(html).toContain("Professionell nutzen");
   });
 
   it("keeps primary pricing CTAs on existing routes", async () => {
     const html = await renderPricing();
 
     expect(html).toContain('href="#pricing-privat"');
+    expect(html).toContain('href="/community/contributions"');
     expect(html).toContain('href="/pricing/institutionen"');
     expect(html).toContain('href="/vormerken?paket=basis&amp;segment=privat"');
     expect(html).toContain('href="/vormerken?paket=start&amp;segment=privat"');
@@ -80,7 +84,7 @@ describe("/pricing canonical landing", () => {
 
     expect(html).toContain("Packages &amp; pricing");
     expect(html).toContain("Choose package");
-    expect(html).toContain("View B2B/B2G conditions");
+    expect(html).toContain("Use professionally");
     expect(html).toContain('href="/pricing/institutionen?lang=en"');
     expect(html).toContain('href="/vormerken?paket=pro&amp;segment=privat&amp;lang=en"');
   });
@@ -90,5 +94,6 @@ describe("/pricing canonical landing", () => {
 
     expect(html).toContain("Abrechnungsmodus:");
     expect(html).toContain("monatlich · jährliche Zahlung bevorzugt");
+    expect(html).toContain("Jahreszahlung spart 15 %");
   });
 });

@@ -8,6 +8,7 @@ import type {
   Eventuality,
   SwipeVotePayload,
   SwipeDecision,
+  SwipeNeutralReason,
 } from "./types";
 import { filterSwipeSeedItems, getSwipeSeedEventualities } from "./seed";
 import { normalizeSwipeVotePayload } from "./variantSelectionContract";
@@ -45,6 +46,7 @@ type SwipeVoteDoc = {
   statementId: string;
   eventualityId: string | null;
   decision: SwipeDecision;
+  neutralReason?: SwipeNeutralReason | null;
   variantWeight?: 1 | 3 | 5 | null;
   variantReason?: string | null;
   variantRankedIds?: string[] | null;
@@ -342,6 +344,7 @@ export async function recordSwipeVote(payload: SwipeVotePayload): Promise<void> 
     {
       $set: {
         decision: normalizedPayload.decision,
+        neutralReason: normalizedPayload.decision === "neutral" ? normalizedPayload.neutralReason ?? null : null,
         variantWeight: normalizedPayload.variantWeight ?? null,
         variantReason: normalizedPayload.variantReason?.trim() ? normalizedPayload.variantReason.trim() : null,
         variantRankedIds: normalizedPayload.variantRankedIds?.length ? normalizedPayload.variantRankedIds : null,

@@ -77,7 +77,7 @@ export default function ContribChatOrchestrator(){
       try{
         if (isPreflight) stamp("Prüfe ähnliche Inhalte & poliere Formulierung…");
         if (isAnalyze)   stamp("Extrahiere Claims…");
-        if (isStance)    stamp("Erzeuge Lager/Varianten…");
+        if (isStance)    stamp("Erzeuge Positions-/Variantenbild…");
         if (isCivic && Date.now() - lastClaimDump.current > 4000) {
           stamp("Recherche / Newsfeeds laufen…");
           lastClaimDump.current = Date.now();

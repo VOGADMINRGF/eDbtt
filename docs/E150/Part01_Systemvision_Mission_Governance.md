@@ -2,6 +2,17 @@
 
 > Status-Hinweis (2026-03-19): Dieses Part ist normativ. Der verbindliche Aufgabenstand liegt in `docs/E150/OpenTasks.md`. Dieses Dokument definiert jedoch die Leitplanken, an die alle Folge-Parts gebunden sind.
 
+## Update 2026-05-03 (Public Journey)
+
+- Oeffentliche Erstfuehrung bleibt informationsorientiert: Themen -> Swipes -> Dossier -> Beitrag/Hinweis -> Follow.
+- Leitsatz fuer die Public Surface: Nicht wer etwas sagt ist primaer, sondern was es ist (Meinung, Quelle, Frage, Vorschlag, Verantwortung).
+- VoiceOpenGov bleibt Initiative/Register-/Mitgliedschaftsebene; eDebatte bleibt Arbeits- und Beteiligungsflaeche.
+
+## Update 2026-05-04 (Journey Completion)
+
+- Die Public-Journey-Slices sind geschlossen: `PR-UX-PUBLIC-FUNNEL-01`, `PR-UX-SWIPES-02`, `PR-UX-DOSSIER-02`, `PR-UX-LIVE-01`, `PR-UX-PRICING-02`.
+- Oeffentliche Sprache bleibt informationsorientiert: kein Parteienfokus, klare Trennung von Beitragstypen und Verantwortungslogik.
+
 ## 1. Zweck dieses Parts
 
 Part 01 beschreibt die Systemvision, Mission und Governance-Prinzipien von eDebatte / VoiceOpenGov.

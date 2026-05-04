@@ -8,7 +8,7 @@ describe("pricing-main-page-simplified-decision-flow.contract", () => {
 
     expect(html).toContain("Pakete &amp; Preise");
     expect(html).toContain("Paket wählen");
-    expect(html).toContain("B2B/B2G-Konditionen ansehen");
+    expect(html).toContain("Professionell nutzen");
 
     const heroIndex = html.indexOf("Pakete &amp; Preise");
     const packageIndex = html.indexOf("eDebatte Interessiert");

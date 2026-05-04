@@ -3,6 +3,16 @@
 > Stand: 2026-03-27
 > Einordnung: Domain-Addendum zu `docs/E150/Part16.md` (kanonischer Gesamtfluss) und `docs/E150/Part16_AI_Orchestration_and_Safety.md` (Safety/Orchestrierung).
 
+## Update 2026-05-03 (Public Funnel Sync)
+
+- Keine harte `/anlassraum`-Migration: Alias-/Wrapper-Regel bleibt unveraendert.
+- Public-Einstieg startet niedrigschwellig ueber Themen/Swipes; Anlassraum bleibt der tiefergehende Kontext- und Arbeitsraum.
+
+## Update 2026-05-04 (Dossier/Live/Pricing Sync)
+
+- Der Public-Einstieg bleibt `Themen -> Swipes`, waehrend Dossier als Kontexttiefe und Live als ruhige Folgesurface ausgebaut wurden.
+- Pricing bleibt nachgelagert als optionaler Vertiefungspfad und veraendert den Anlassraum-Contract nicht.
+
 ## 1. Definition
 
 Ein Anlassraum ist der offene, strukturierbare Kontextraum eines Themas, Ereignisses, Konflikts oder Projekts.

@@ -27,6 +27,6 @@ describe("swipe topic quick follow-up contract", () => {
 
     expect(html).toContain("🤔 Mehr Kontext");
     expect(html).toContain("⚖️ Varianten");
-    expect(html).toContain("⏭️ Später vertiefen");
+    expect(html).toContain("🔖 Später vertiefen");
   });
 });

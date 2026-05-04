@@ -21,11 +21,11 @@ describe("pricing/order shared entry contract", () => {
     const html = renderToStaticMarkup(await PricingPage({ searchParams: { segment: "organisationen" } }));
 
     expect(html).toContain("Organisationen · Paketübersicht");
-    expect(html).toContain("Segmente");
+    expect(html).toContain("Weitere Segmente");
     expect(html).toContain('href="/pricing?segment=organisationen"');
     expect(html).toContain("segment=organisationen");
     expect(html).toContain('href="/vormerken?paket=b2b_basis&amp;segment=organisationen"');
-    expect(html).toContain("B2B/B2G-Konditionen ansehen");
+    expect(html).toContain("Professionell nutzen");
   });
 
   it("keeps /order as preselected entry while preserving segment/package switching", () => {

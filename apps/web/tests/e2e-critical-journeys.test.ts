@@ -34,7 +34,7 @@ async function createLead(payload: CreatePreorderLeadInput) {
 describe("e2e critical journeys", () => {
   it("A) Bürger:innen journey: registration/login target, package order and follow-up are coherent", async () => {
     expect(resolvePostLoginRedirect({ roles: ["user"] })).toBe("/account");
-    expect(getRoleExperienceContract("citizens").expectedPostRegistrationRoute).toBe("/account?welcome=1");
+    expect(getRoleExperienceContract("citizens").expectedPostRegistrationRoute).toBe("/swipes?welcome=1");
 
     const { result, record } = await createLead({
       package: "basis",

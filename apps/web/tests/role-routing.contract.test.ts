@@ -49,14 +49,14 @@ describe("role routing contract", () => {
   });
 
   it("keeps registration defaults deterministic and safe", () => {
-    expect(resolvePostRegistrationRedirect({ roleId: "citizens" })).toBe("/account?welcome=1");
+    expect(resolvePostRegistrationRedirect({ roleId: "citizens" })).toBe("/swipes?welcome=1");
     expect(resolvePostRegistrationRedirect({ roleId: "admin_backoffice" })).toBe("/admin");
     expect(
       resolvePostRegistrationRedirect({ requestedRedirect: "/account?preorder=thanks", roleId: "journalists" }),
     ).toBe("/account?preorder=thanks");
     expect(
       resolvePostRegistrationRedirect({ requestedRedirect: "/admin", roleId: "journalists" }),
-    ).toBe("/account?context=journalismus&welcome=1");
+    ).toBe("/swipes?welcome=1");
   });
 
   it("ships a complete matrix with modules, ctas and visibility declarations", () => {

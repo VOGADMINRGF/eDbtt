@@ -16,6 +16,12 @@ import {
   type SwipesArrivalMode,
 } from "@/features/surfaces/swipes/arrival";
 import {
+  derivePreferredSwipeTopics,
+  filterSwipeItemsByDiscoverySegment,
+  SWIPE_DISCOVERY_SEGMENTS,
+  type SwipeDiscoverySegment,
+} from "@/features/surfaces/swipes/discoveryContract";
+import {
   SwipeAuthGate,
   SwipeDetailSheet,
   SwipeEventualitiesStep,
@@ -32,8 +38,21 @@ import type {
   SwipeDecision,
   SwipeFeedFilter,
   SwipeItem,
+  SwipeNeutralReason,
 } from "@/features/swipes/types";
 import type { SurfaceAudience, SurfaceMode } from "@/features/surface";
+
+const SWIPES_SESSION_COUNT_KEY = "edb_swipes_session_count";
+const SWIPES_SAVED_IDS_KEY = "edb_swipes_saved_ids";
+const SWIPES_TOPIC_HINTS_KEY = "edb_swipes_topic_hints";
+
+const NEUTRAL_REASON_OPTIONS: ReadonlyArray<{ id: SwipeNeutralReason; label: string }> = [
+  { id: "missing_sources", label: "Mir fehlen Quellen" },
+  { id: "responsibility_unclear", label: "Zuständigkeit unklar" },
+  { id: "impacts_unclear", label: "Folgen unklar" },
+  { id: "missing_option", label: "Mir fehlt eine Option" },
+  { id: "decide_later", label: "Ich möchte später entscheiden" },
+];
 
 async function fetchSwipeFeed(
   filter: SwipeFeedFilter,
@@ -69,6 +88,7 @@ type SwipeVotePersistPayload = {
   statementId: string;
   eventualityId?: string;
   decision: SwipeDecision;
+  neutralReason?: SwipeNeutralReason;
   variantWeight?: 1 | 3 | 5;
   variantReason?: string;
   variantRankedIds?: string[];
@@ -115,6 +135,7 @@ type SwipesClientProps = {
   mode?: SurfaceMode;
   audience?: SurfaceAudience;
   requireAuthAfterFreeVotes?: boolean;
+  showWelcomeHint?: boolean;
 };
 
 type LastVoteSnapshot = {
@@ -132,17 +153,24 @@ export function SwipesClient({
   mode = "live",
   audience = "none",
   requireAuthAfterFreeVotes = false,
+  showWelcomeHint = false,
 }: SwipesClientProps) {
   const [topicQuery, setTopicQuery] = useState(variant === "solo" ? "" : initialTopic);
   const [activeLevel, setActiveLevel] = useState<"ALL" | "Bund" | "Land" | "Kommune" | "EU">("ALL");
+  const [activeSegment, setActiveSegment] = useState<SwipeDiscoverySegment>("all");
   const [arrivalMode, setArrivalMode] = useState<SwipesArrivalMode>(() => resolveInitialSwipesArrivalMode(fromDraftId));
   const [searchOpen, setSearchOpen] = useState(false);
   const [items, setItems] = useState<SwipeItem[]>([]);
+  const [deckSize, setDeckSize] = useState(0);
   const [loading, setLoading] = useState(false);
   const [decisionStats, setDecisionStats] = useState({ agree: 0, neutral: 0, disagree: 0 });
   const [decisionHistory, setDecisionHistory] = useState<DecisionHistoryItem[]>([]);
   const [transitionHint, setTransitionHint] = useState<string | null>(null);
   const [completedCount, setCompletedCount] = useState(0);
+  const [sessionVoteCount, setSessionVoteCount] = useState(0);
+  const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
+  const [savedTopicHints, setSavedTopicHints] = useState<string[]>([]);
+  const [pendingNeutralReasonStatementId, setPendingNeutralReasonStatementId] = useState<string | null>(null);
   const [lastVote, setLastVote] = useState<LastVoteSnapshot | null>(null);
 
   const [screenFlash, setScreenFlash] = useState<SwipeDecision | null>(null);
@@ -184,12 +212,22 @@ export function SwipesClient({
   });
 
   const isVoteLocked = freeVote.enabled && !freeVote.canVote;
-  const swipeProgressCount = Math.max(completedCount, freeVote.count);
+  const swipeProgressCount = Math.max(sessionVoteCount, freeVote.count);
   const progressState = resolveSwipesProgressState({
     swipeCount: swipeProgressCount,
     decisionCount: decisionHistory.length,
     fromDraftMode: showingFromDraftOnly,
   });
+  const deckProgressLabel = `${Math.min(completedCount, deckSize)}/${deckSize || 0} im aktuellen Deck`;
+  const savedIdsKey = useMemo(() => [...savedIds].sort().join(","), [savedIds]);
+  const preferredTopics = useMemo(() => {
+    const historyHints = decisionHistory.map((entry) => entry.category);
+    return derivePreferredSwipeTopics({
+      savedTopicHints,
+      decisionTopicHints: historyHints,
+    });
+  }, [decisionHistory, savedTopicHints]);
+  const preferredTopicsKey = useMemo(() => preferredTopics.join("|"), [preferredTopics]);
 
   const openDossierRoute = useCallback(
     (statementId: string) => buildSwipeDossierHref(statementId, { mode, audience }),
@@ -253,6 +291,54 @@ export function SwipesClient({
   );
 
   useEffect(() => {
+    if (typeof window === "undefined") return;
+    const sessionRaw = window.sessionStorage.getItem(SWIPES_SESSION_COUNT_KEY);
+    const parsedSession = Number(sessionRaw ?? "0");
+    if (Number.isFinite(parsedSession) && parsedSession > 0) {
+      setSessionVoteCount(Math.trunc(parsedSession));
+    }
+
+    const savedRaw = window.localStorage.getItem(SWIPES_SAVED_IDS_KEY);
+    if (savedRaw) {
+      try {
+        const parsed = JSON.parse(savedRaw);
+        if (Array.isArray(parsed)) {
+          setSavedIds(new Set(parsed.map((entry) => String(entry))));
+        }
+      } catch {
+        // ignore malformed local state
+      }
+    }
+
+    const topicHintsRaw = window.localStorage.getItem(SWIPES_TOPIC_HINTS_KEY);
+    if (topicHintsRaw) {
+      try {
+        const parsed = JSON.parse(topicHintsRaw);
+        if (Array.isArray(parsed)) {
+          setSavedTopicHints(parsed.map((entry) => String(entry)).filter(Boolean));
+        }
+      } catch {
+        // ignore malformed local state
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem(SWIPES_SAVED_IDS_KEY, JSON.stringify([...savedIds]));
+  }, [savedIds]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem(SWIPES_TOPIC_HINTS_KEY, JSON.stringify(savedTopicHints));
+  }, [savedTopicHints]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.sessionStorage.setItem(SWIPES_SESSION_COUNT_KEY, String(Math.max(0, sessionVoteCount)));
+  }, [sessionVoteCount]);
+
+  useEffect(() => {
     if (typeof document === "undefined" || !isSwipeFocusMode) return;
     document.body.classList.add("vog-mobile-swipe-focus");
     return () => {
@@ -279,7 +365,16 @@ export function SwipesClient({
         null,
       );
       if (!cancelled) {
-        setItems(resp.items);
+        const nextItems = filterSwipeItemsByDiscoverySegment({
+          items: resp.items,
+          segment: activeSegment,
+          savedIds,
+          preferredTopics,
+        });
+        setItems(nextItems);
+        setDeckSize(nextItems.length);
+        setCompletedCount(0);
+        setPendingNeutralReasonStatementId(null);
         setLoading(false);
         setLastVote(null);
       }
@@ -288,7 +383,20 @@ export function SwipesClient({
     return () => {
       cancelled = true;
     };
-  }, [topicQuery, activeLevel, focusStatementId, fromDraftId, showingFromDraftOnly, arrivalMode, variant]);
+  }, [
+    activeLevel,
+    activeSegment,
+    arrivalMode,
+    focusStatementId,
+    fromDraftId,
+    preferredTopics,
+    preferredTopicsKey,
+    savedIds,
+    savedIdsKey,
+    showingFromDraftOnly,
+    topicQuery,
+    variant,
+  ]);
 
   const activeItem = useMemo(() => items[0] ?? null, [items]);
   const fromDraftFocusCount = useMemo(() => countFromDraftFocusItems(items), [items]);
@@ -310,6 +418,23 @@ export function SwipesClient({
   const moveToNextTopic = useCallback(() => {
     setItems((prev) => prev.slice(1));
     setCompletedCount((prev) => prev + 1);
+  }, []);
+
+  const adjustSessionVoteCount = useCallback((delta: number) => {
+    setSessionVoteCount((prev) => Math.max(0, prev + delta));
+  }, []);
+
+  const saveItemForLater = useCallback((item: SwipeItem) => {
+    setSavedIds((prev) => {
+      if (prev.has(item.id)) return prev;
+      const next = new Set(prev);
+      next.add(item.id);
+      return next;
+    });
+    setSavedTopicHints((prev) => {
+      const next = [...prev, ...item.topicTags].map((entry) => entry.trim()).filter(Boolean);
+      return Array.from(new Set(next)).slice(0, 10);
+    });
   }, []);
 
   const beginEventualityStep = useCallback(
@@ -376,6 +501,7 @@ export function SwipesClient({
         ...prev,
         [decision]: prev[decision] + 1,
       }));
+      adjustSessionVoteCount(1);
       setLastVote({
         item,
         decision,
@@ -389,6 +515,11 @@ export function SwipesClient({
 
       setScreenFlash(decision);
       setTransitionHint(buildTransitionHint(decision, remainingToAnalysis));
+      if (decision === "neutral") {
+        setPendingNeutralReasonStatementId(item.id);
+      } else {
+        setPendingNeutralReasonStatementId(null);
+      }
       announce(
         decision === "agree"
           ? "Zustimmung gespeichert."
@@ -404,7 +535,17 @@ export function SwipesClient({
 
       await beginEventualityStep(item, decision, openGateAfterTopic);
     },
-    [announce, beginEventualityStep, completedCount, freeVote, isVoteLocked, openDossierRoute, queueVotePayload, transitionHint],
+    [
+      adjustSessionVoteCount,
+      announce,
+      beginEventualityStep,
+      completedCount,
+      freeVote,
+      isVoteLocked,
+      openDossierRoute,
+      queueVotePayload,
+      transitionHint,
+    ],
   );
 
   const handleUndoLastVote = useCallback(() => {
@@ -417,6 +558,7 @@ export function SwipesClient({
       ...prev,
       [decision]: Math.max(prev[decision] - 1, 0),
     }));
+    adjustSessionVoteCount(-1);
     setDecisionHistory((prev) => {
       const idx = [...prev].reverse().findIndex((entry) => entry.id === historyEntry.id && entry.decision === historyEntry.decision);
       if (idx === -1) return prev;
@@ -448,11 +590,12 @@ export function SwipesClient({
     if (freeVote.enabled) {
       freeVote.unregisterVote();
     }
+    setPendingNeutralReasonStatementId((prev) => (prev === item.id ? null : prev));
     freeVote.setGateOpen(false);
     announce("Letzte Bewertung wurde zurückgenommen.");
     setChromeRevealSignal((prev) => prev + 1);
     setLastVote(null);
-  }, [activeItem, announce, cancelPendingVote, eventualityStepOpen, freeVote, lastVote]);
+  }, [activeItem, adjustSessionVoteCount, announce, cancelPendingVote, eventualityStepOpen, freeVote, lastVote]);
 
   const finishEventualityStep = useCallback(() => {
     setEventualityStepOpen(false);
@@ -492,6 +635,24 @@ export function SwipesClient({
       finishEventualityStep();
     },
     [eventualityStepDecision, eventualityStepItem, finishEventualityStep, queueVotePayload],
+  );
+
+  const handleNeutralReasonSelect = useCallback(
+    (reason: SwipeNeutralReason | null) => {
+      const statementId = pendingNeutralReasonStatementId;
+      if (!statementId) return;
+      if (reason) {
+        void postSwipeVote({
+          statementId,
+          decision: "neutral",
+          neutralReason: reason,
+        });
+        const selectedLabel = NEUTRAL_REASON_OPTIONS.find((option) => option.id === reason)?.label ?? "Grund erfasst";
+        setTransitionHint(`Offen-Grund erfasst: ${selectedLabel}.`);
+      }
+      setPendingNeutralReasonStatementId(null);
+    },
+    [pendingNeutralReasonStatementId],
   );
 
   useEffect(() => {
@@ -543,9 +704,17 @@ export function SwipesClient({
       {!isSolo ? (
         <SwipesHeaderProgress
           swipeCount={swipeProgressCount}
+          sessionCount={sessionVoteCount}
+          deckProgressLabel={deckProgressLabel}
           mode={progressState.mode}
           onOpenSearch={() => setSearchOpen(true)}
         />
+      ) : null}
+
+      {!isSolo && showWelcomeHint ? (
+        <section className="rounded-2xl border border-sky-200/80 bg-sky-50/70 px-3 py-2 text-xs text-sky-900 dark:border-sky-400/30 dark:bg-sky-500/10 dark:text-sky-100">
+          Willkommen. Starte mit bestehenden Themen oder bringe ein eigenes Anliegen ein.
+        </section>
       ) : null}
 
       {fromDraftArrivalEnabled && fromDraftId ? (
@@ -563,10 +732,31 @@ export function SwipesClient({
           open={searchOpen}
           topicQuery={topicQuery}
           activeLevel={activeLevel}
+          activeSegment={activeSegment}
+          segmentOptions={[...SWIPE_DISCOVERY_SEGMENTS]}
           onClose={() => setSearchOpen(false)}
           onTopicChange={setTopicQuery}
           onLevelChange={setActiveLevel}
+          onSegmentChange={setActiveSegment}
         />
+      ) : null}
+
+      {!isSolo ? (
+        <div className="flex flex-wrap gap-2">
+          {SWIPE_DISCOVERY_SEGMENTS.map((segment) => {
+            const active = activeSegment === segment.id;
+            return (
+              <button
+                key={segment.id}
+                type="button"
+                onClick={() => setActiveSegment(segment.id)}
+                className={active ? "vog-chip vog-chip--active" : "vog-chip"}
+              >
+                {segment.label}
+              </button>
+            );
+          })}
+        </div>
       ) : null}
 
       <div className={isSolo ? "space-y-3" : "grid gap-4 md:grid-cols-[minmax(0,2.2fr)_minmax(0,1.2fr)]"}>
@@ -591,8 +781,10 @@ export function SwipesClient({
                   void beginEventualityStep(activeItem, "neutral", false);
                   return;
                 }
-                setTransitionHint("Als später vertiefbar markiert. Nächstes Thema bleibt frei wählbar.");
+                saveItemForLater(activeItem);
+                setTransitionHint("Für später vertiefen gespeichert. Du findest das Thema unter „Gespeichert“.");
                 setChromeRevealSignal((prev) => prev + 1);
+                moveToNextTopic();
               }}
             />
           ) : (
@@ -601,6 +793,7 @@ export function SwipesClient({
               onResetFilters={() => {
                 setTopicQuery("");
                 setActiveLevel("ALL");
+                setActiveSegment("all");
                 if (fromDraftArrivalEnabled) {
                   setArrivalMode("all");
                 }
@@ -660,7 +853,7 @@ export function SwipesClient({
             <p className="text-center text-[11px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--muted))]">
               Schnellaktionen
             </p>
-            <div className={`grid gap-2 ${lastVote ? "grid-cols-2" : "grid-cols-1"}`}>
+            <div className={`grid gap-2 ${lastVote ? "grid-cols-3" : "grid-cols-2"}`}>
               <button
                 type="button"
                 onClick={() => {
@@ -669,6 +862,17 @@ export function SwipesClient({
                 className="btn-secondary min-h-[44px] w-full rounded-xl px-3 py-2 text-sm"
               >
                 Mehr Kontext
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  saveItemForLater(activeItem);
+                  setTransitionHint("Für später vertiefen gespeichert.");
+                  setChromeRevealSignal((prev) => prev + 1);
+                }}
+                className="btn-secondary min-h-[44px] w-full rounded-xl px-3 py-2 text-sm"
+              >
+                Später vertiefen
               </button>
               {lastVote ? (
                 <button
@@ -782,6 +986,10 @@ export function SwipesClient({
           setDetailEventualities(null);
         }}
       />
+
+      {!isSolo && pendingNeutralReasonStatementId ? (
+        <NeutralReasonPrompt onSelect={handleNeutralReasonSelect} />
+      ) : null}
     </div>
   );
 }
@@ -857,11 +1065,11 @@ function DesktopDetailHint({ item, onOpenDetail }: { item: SwipeItem | null; onO
       {item ? (
         <>
           <h3 className="mt-2 text-base font-semibold text-[rgb(var(--fg))]">Aktives Thema vertiefen</h3>
-          <p className="mt-2 text-sm text-[rgb(var(--muted))]">Dossier, Evidenz und Varianten im Detail prüfen.</p>
+          <p className="mt-2 text-sm text-[rgb(var(--muted))]">Dossier, Quellenlage und Varianten im Detail prüfen.</p>
           <div className="mt-2 flex flex-wrap gap-1.5 text-[11px]">
             <span className="vog-chip">Dossier</span>
-            <span className="vog-chip">Evidenz</span>
-            <span className="vog-chip">Eventualitäten</span>
+            <span className="vog-chip">Quellenlage</span>
+            <span className="vog-chip">Mögliche Folgen</span>
           </div>
           <button
             type="button"
@@ -915,6 +1123,34 @@ function EmptyState({
           {ctaLabel}
         </Link>
       ) : null}
+    </section>
+  );
+}
+
+function NeutralReasonPrompt({ onSelect }: { onSelect: (reason: SwipeNeutralReason | null) => void }) {
+  return (
+    <section className="fixed inset-x-3 bottom-[calc(env(safe-area-inset-bottom)+10.5rem)] z-40 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))]/95 p-3 shadow-[0_20px_50px_rgba(2,6,23,0.25)] backdrop-blur md:right-4 md:left-auto md:w-[25rem]">
+      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">Optional bei Offen</p>
+      <p className="mt-1 text-sm text-[rgb(var(--fg))]">Was fehlt dir gerade für eine Entscheidung?</p>
+      <div className="mt-2 flex flex-wrap gap-2">
+        {NEUTRAL_REASON_OPTIONS.map((option) => (
+          <button
+            key={option.id}
+            type="button"
+            onClick={() => onSelect(option.id)}
+            className="vog-chip"
+          >
+            {option.label}
+          </button>
+        ))}
+      </div>
+      <button
+        type="button"
+        onClick={() => onSelect(null)}
+        className="mt-3 text-xs font-semibold text-[rgb(var(--muted))] underline-offset-4 hover:underline"
+      >
+        Jetzt überspringen
+      </button>
     </section>
   );
 }

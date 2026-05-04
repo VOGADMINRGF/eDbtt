@@ -20,6 +20,7 @@ export default async function SwipesPage({ searchParams }: Props) {
   if (!userId) {
     const context = resolveSurfaceContext({ mode: "live", audience: "none", viewerRole: "public", dataSource: "live" });
     const fromDraftId = parseFromDraftParam(searchParams?.fromDraft);
+    const showWelcomeHint = searchParams?.welcome === "1";
     return (
       <>
         <h1 className="sr-only">Swipes</h1>
@@ -28,6 +29,7 @@ export default async function SwipesPage({ searchParams }: Props) {
           initialTopic={typeof searchParams?.topic === "string" ? searchParams.topic : ""}
           fromDraftId={fromDraftId}
           requireAuthAfterFreeVotes
+          showWelcomeHint={showWelcomeHint}
         />
       </>
     );
@@ -35,6 +37,7 @@ export default async function SwipesPage({ searchParams }: Props) {
 
   const initialTopic = typeof searchParams?.topic === "string" ? searchParams.topic : "";
   const fromDraftId = parseFromDraftParam(searchParams?.fromDraft);
+  const showWelcomeHint = searchParams?.welcome === "1";
   const context = resolveSurfaceContext({ mode: "live", audience: "none", dataSource: "live" });
 
   return (
@@ -45,6 +48,7 @@ export default async function SwipesPage({ searchParams }: Props) {
         initialTopic={initialTopic}
         fromDraftId={fromDraftId}
         requireAuthAfterFreeVotes={false}
+        showWelcomeHint={showWelcomeHint}
       />
     </>
   );

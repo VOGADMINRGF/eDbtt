@@ -58,7 +58,7 @@ const heroCopy = {
   lead_en:
     "VoiceOpenGov is a non-partisan commitment to fair procedures and transparent participation. eDebatte makes it practical: structure contributions, verify facts, compare options, decide — and document impact.",
   secondary_de:
-    "Wir sind keine Partei und kein Lager. Entscheidend ist nicht, wer am lautesten ist, sondern ob ein Ergebnis nachvollziehbar zustande kam – mit Quellen, offenen Fragen, Alternativen und dokumentierten Minderheitenpositionen.",
+    "Wir sind keine Partei und kein politischer Block. Entscheidend ist nicht, wer am lautesten ist, sondern ob ein Ergebnis nachvollziehbar zustande kam – mit Quellen, offenen Fragen, Alternativen und dokumentierten Minderheitenpositionen.",
   secondary_en:
     "We are not a party and not a camp. What matters is not who is loudest, but whether outcomes are traceable — with sources, open questions, alternatives and documented minority positions.",
 };
@@ -81,7 +81,7 @@ const independenceSection = {
     {
       id: "ind-1",
       body_de:
-        "VoiceOpenGov ist keine Partei, keine Liste und kein neues Lager. Es ist eine Bewegung, die Verfahren wieder sichtbar macht: Was wird behauptet? Was ist belegt? Was ist offen? Welche Optionen gibt es – und welche Folgen hätten sie?",
+        "VoiceOpenGov ist keine Partei, keine Liste und kein neuer politischer Block. Es ist eine Bewegung, die Verfahren wieder sichtbar macht: Was wird behauptet? Was ist belegt? Was ist offen? Welche Optionen gibt es – und welche Folgen hätten sie?",
       body_en:
         "VoiceOpenGov is not a party, not a list, and not a new camp. It's a movement to make procedures visible again: what's claimed, what's evidenced, what's open, what options exist, and what consequences they have.",
     },

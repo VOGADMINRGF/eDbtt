@@ -13,6 +13,13 @@ export type EDebattePackage =
 
 export type SwipeDecision = "agree" | "neutral" | "disagree";
 
+export type SwipeNeutralReason =
+  | "missing_sources"
+  | "responsibility_unclear"
+  | "impacts_unclear"
+  | "missing_option"
+  | "decide_later";
+
 export type SwipeScopeLevel = "Bund" | "Land" | "Kommune" | "EU";
 
 export type SwipeItem = {
@@ -77,6 +84,7 @@ export type SwipeVotePayload = {
   statementId: string;
   eventualityId?: string; // optional: Vote auf konkrete Eventualität
   decision: SwipeDecision;
+  neutralReason?: SwipeNeutralReason;
   variantWeight?: 1 | 3 | 5;
   variantReason?: string;
   variantRankedIds?: string[];

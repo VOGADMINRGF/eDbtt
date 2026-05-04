@@ -2,6 +2,16 @@
 
 > Status-Hinweis (2026-02-12): Dieses Part ist eine Spezifikation/Zusammenfassung. Der verbindliche Aufgabenstand liegt in `docs/E150/OpenTasks.md`. Keine neuen Runs aus diesem Part ableiten.
 
+## Update 2026-05-03 (Journey Alignment)
+
+- Oeffentlicher Register-Abschluss fuehrt standardmaessig in den Swipe-Einstieg (`/swipes?welcome=1`) statt in `/account`, sofern kein gueltiges internes `next` gesetzt ist.
+- Damit bleibt der orchestrierte Kernfluss intakt, waehrend die Public Journey niedriger Einstiegshuerden fuer Themen/Swipes/Hinweise priorisiert.
+
+## Update 2026-05-04 (Dossier/Live/Pricing Surface Sync)
+
+- `PR-UX-DOSSIER-02`, `PR-UX-LIVE-01` und `PR-UX-PRICING-02` sind umgesetzt, ohne Orchestrator-Autoritaet oder Safety-Gates zu veraendern.
+- Die Anpassungen bleiben Surface-/Wording-seitig (Public Guidance), nicht Pipeline-seitig.
+
 
 ## 1. Zweck dieses Parts
 

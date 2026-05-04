@@ -18,7 +18,7 @@ export default function StanceSpectrum({ claimText }:{ claimText:string }){
   return (
     <div className="vog-card p-4 space-y-3">
       <div className="flex items-center justify-between">
-        <div className="font-semibold">Lager-Spektrum</div>
+        <div className="font-semibold">Positionen-Spektrum</div>
         <div className="text-xs text-[rgb(var(--muted))]">Coverage: {Math.round(data.coverageScore*5)}/5 · Balance: {data.symmetry.toFixed(2)}</div>
       </div>
       <div className="flex flex-wrap gap-2">

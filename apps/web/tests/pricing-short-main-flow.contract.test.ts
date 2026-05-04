@@ -8,7 +8,7 @@ describe("pricing short main flow contract", () => {
 
     expect(html).toContain("Pakete &amp; Preise");
     expect(html).toContain("Paket wählen");
-    expect(html).toContain("B2B/B2G-Konditionen ansehen");
+    expect(html).toContain("Professionell nutzen");
     expect(html).toContain("Privatpakete");
     expect(html).toContain("eDebatte Interessiert");
     expect(html).toContain("eDebatte Aktiv");

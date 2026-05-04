@@ -39,7 +39,7 @@ export function SwipeDetailSheet({
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[rgb(var(--muted))]">Vertiefung</p>
             <h3 className="text-lg font-semibold text-[rgb(var(--fg))]">{item.title}</h3>
             <p className="text-sm text-[rgb(var(--muted))]">
-              Haltungsentscheidung ist gespeichert. Starte mit Varianten und vertiefe danach Dossier und Evidenz.
+              Haltungsentscheidung ist gespeichert. Starte mit Varianten und vertiefe danach Dossier und Quellenlage.
             </p>
           </div>
           <button type="button" onClick={onClose} className="vog-chip">
@@ -48,7 +48,7 @@ export function SwipeDetailSheet({
         </header>
 
         <article className="mt-4 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
-          <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Eventualitäten / Varianten</p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Varianten / mögliche Folgen</p>
           {loadingEventualities ? (
             <p className="mt-2 text-sm text-[rgb(var(--muted))]">Lade Varianten …</p>
           ) : eventualities && eventualities.length > 0 ? (
@@ -81,13 +81,13 @@ export function SwipeDetailSheet({
           </article>
 
           <article className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
-            <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Quellen & Evidenz</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Quellenlage</p>
             <p className="mt-2 text-sm text-[rgb(var(--fg))]">
-              Evidenzstatus: {item.evidenceCount ?? 0} Hinweise. Prüfe Primärquellen und Gegenperspektiven.
+              Quellenstatus: {item.evidenceCount ?? 0} Hinweise. Prüfe Primärquellen und Gegenperspektiven.
             </p>
             {evidenceHref ? (
               <Link href={evidenceHref} className="mt-3 inline-flex vog-chip">
-                Evidenz ansehen
+                Quellenlage ansehen
               </Link>
             ) : null}
           </article>

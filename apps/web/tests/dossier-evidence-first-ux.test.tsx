@@ -15,11 +15,15 @@ describe("dossier evidence-first UX", () => {
   it("shows evidence navigation and key insight blocks near the top", () => {
     const html = renderToStaticMarkup(<DossierViewer dossier={demoDossier} />);
 
-    expect(html).toContain("Evidenzlage &amp; Quellenintelligenz");
+    expect(html).toContain("Warum jetzt?");
+    expect(html).toContain("Was ist noch offen?");
+    expect(html).toContain("Wer kann handeln?");
+    expect(html).toContain("Welche Folgen sind möglich?");
+    expect(html).toContain("Quellenlage &amp; Überblick");
     expect(html).toContain("Was wir aktuell daraus mitnehmen");
     expect(html).toContain("Was offen bleibt");
 
-    const evidenceIndex = html.indexOf("Evidenzlage &amp; Quellenintelligenz");
+    const evidenceIndex = html.indexOf("Quellenlage &amp; Überblick");
     const transparencyIndex = html.indexOf("Transparenz &amp; Protokoll");
     expect(evidenceIndex).toBeGreaterThan(-1);
     expect(transparencyIndex).toBeGreaterThan(-1);
@@ -33,7 +37,7 @@ describe("dossier evidence-first UX", () => {
     expect(html).toContain("Nehmen wir daraus mit");
     expect(html).toContain("Nicht automatisch ableitbar");
     expect(html).toContain("Kritischer Caveat");
-    expect(html).toContain("Evidenzstatus:");
+    expect(html).toContain("Quellenstatus:");
     expect(html).toContain("Übertragbarkeit:");
   });
 

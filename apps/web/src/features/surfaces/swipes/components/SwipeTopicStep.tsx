@@ -12,6 +12,7 @@ type SwipeTopicStepProps = {
 
 export function SwipeTopicStep({ item, onVote, step = 1, onQuickFollowup }: SwipeTopicStepProps) {
   const chips = buildMetaChips(item);
+  const coreThesis = resolveCoreThesis(item.text);
   const cardRef = useRef<HTMLElement | null>(null);
   const gestureRef = useRef<{
     pointerId: number;
@@ -205,18 +206,24 @@ export function SwipeTopicStep({ item, onVote, step = 1, onQuickFollowup }: Swip
           </span>
         ))}
       </div>
+      <p className="relative mt-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">Kernfrage</p>
       <h2 className="relative mt-3 text-2xl font-semibold leading-tight tracking-tight text-[rgb(var(--fg))] md:text-[2rem]">
         {item.title}
       </h2>
-      {item.text ? <p className="relative mt-2 text-[15px] text-[rgb(var(--muted))]">{item.text}</p> : null}
+      {coreThesis ? (
+        <p className="relative mt-2 text-sm text-[rgb(var(--muted))]">
+          <span className="font-semibold text-[rgb(var(--fg))]">Kernthese:</span> {coreThesis}
+        </p>
+      ) : null}
       <p className="relative mt-2 text-xs text-[rgb(var(--muted))] md:hidden">
         Wische links/rechts für Nein/Ja oder nutze die fixe Leiste unten.
       </p>
 
-      <div className="relative mt-4 grid grid-cols-1 gap-2 text-xs sm:grid-cols-3">
+      <div className="relative mt-4 grid grid-cols-1 gap-2 text-xs sm:grid-cols-2">
+        <MetaCard label="Quellenlage" value={`${item.evidenceCount} Quellenhinweise`} />
+        <MetaCard label="Was ist noch offen?" value={item.eventualitiesCount > 0 ? `${item.eventualitiesCount} Varianten offen` : "Keine Varianten hinterlegt"} />
+        <MetaCard label="Mögliche Folgen" value={item.hasEventualities ? "Abhängig von der gewählten Variante" : "Noch nicht ausgearbeitet"} />
         <MetaCard label="Zuständigkeit" value={item.responsibilityLabel.replace(/^Zuständigkeit:\\s*/i, "")} />
-        <MetaCard label="Evidenz" value={`${item.evidenceCount} Quellenhinweise`} />
-        <MetaCard label="Eventualitäten" value={`${item.eventualitiesCount} Varianten`} />
       </div>
 
       {onQuickFollowup ? (
@@ -231,19 +238,19 @@ export function SwipeTopicStep({ item, onVote, step = 1, onQuickFollowup }: Swip
           </button>
           <button
             type="button"
+            onClick={() => onQuickFollowup("later")}
+            className="vog-chip"
+            data-swipe-no-drag
+          >
+            🔖 Später vertiefen
+          </button>
+          <button
+            type="button"
             onClick={() => onQuickFollowup("variants")}
             className="vog-chip"
             data-swipe-no-drag
           >
             ⚖️ Varianten
-          </button>
-          <button
-            type="button"
-            onClick={() => onQuickFollowup("later")}
-            className="vog-chip"
-            data-swipe-no-drag
-          >
-            ⏭️ Später vertiefen
           </button>
         </div>
       ) : null}
@@ -306,6 +313,14 @@ function buildMetaChips(item: SwipeItem) {
 
 function normalize(value: string) {
   return value.trim().toLowerCase().replace(/[^a-z0-9äöüß]+/g, "");
+}
+
+function resolveCoreThesis(text?: string) {
+  if (!text) return null;
+  const trimmed = text.trim();
+  if (!trimmed) return null;
+  const [firstSentence] = trimmed.split(/(?<=[.!?])\s+/);
+  return firstSentence ?? trimmed;
 }
 
 function MetaCard({ label, value }: { label: string; value: string }) {

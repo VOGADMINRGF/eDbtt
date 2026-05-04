@@ -10,73 +10,73 @@ export default function StreamPage() {
   const canSeeViews = ["admin", "superadmin", "moderator", "creator"].includes(role);
 
   return (
-    <main className="min-h-screen bg-[rgb(var(--bg))] pb-16">
-      <section className="mx-auto max-w-6xl px-4 py-12 space-y-6">
+    <main className="min-h-screen overflow-x-clip bg-[rgb(var(--bg))] pb-[calc(4.5rem+env(safe-area-inset-bottom))]">
+      <section className="mx-auto max-w-6xl space-y-5 px-4 py-10">
         <header className="space-y-3">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-sky-600">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-sky-700">
             Live &amp; Replay
           </p>
-          <h1 className="text-3xl font-extrabold text-[rgb(var(--fg))] md:text-4xl">
+          <h1 className="text-2xl font-extrabold text-[rgb(var(--fg))] md:text-4xl">
             Streams zu aktuellen Themen
           </h1>
           <p className="text-sm text-[rgb(var(--muted))] md:text-base">
-            Schau live rein, diskutier mit und verfolge die wichtigsten Fragen im Kontext der
-            aktuellen Debatten.
+            Verfolge Debatten live, kommend oder im Replay. Wenn gerade nichts läuft, findest du
+            passende Themen zum Folgen.
           </p>
         </header>
 
-        <div className="grid gap-3 md:grid-cols-2">
-          {!user && (
-            <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-3 text-sm text-[rgb(var(--fg))]">
-              <p className="font-semibold">Teilnahme</p>
-              <p className="mt-1 text-[rgb(var(--muted))]">
-                Streams sind offen. Für Abstimmungen und eigene Fragen brauchst du ein Konto.
-              </p>
-              <div className="mt-3 flex flex-wrap gap-2">
-                <Link
-                  href="/login?next=/stream"
-                  className="inline-flex items-center justify-center rounded-full bg-sky-600 px-4 py-2 text-xs font-semibold text-white shadow-sm hover:bg-sky-700"
-                >
-                  Einloggen
-                </Link>
-                <Link
-                  href="/register?next=/stream"
-                  className="inline-flex items-center justify-center rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-4 py-2 text-xs font-semibold text-[rgb(var(--fg))] hover:border-sky-300"
-                >
-                  Konto anlegen
-                </Link>
-              </div>
-            </div>
-          )}
-
-          <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-3 text-sm text-[rgb(var(--fg))]">
-            <p className="font-semibold">Verifizierung</p>
-            <p className="mt-1 text-[rgb(var(--muted))]">
-              Live-Votes sind mit verifiziertem Konto möglich. Ohne Verifizierung bleibt der Stream
-              inklusive Replay nutzbar.
-            </p>
-            {needsVerification ? (
+        <div className="flex flex-wrap items-center gap-2 text-xs">
+          {!user ? (
+            <>
+              <span className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-1 text-[rgb(var(--muted))]">
+                Live ansehen ist offen, für Beiträge brauchst du ein Konto.
+              </span>
               <Link
-                href="/verify?next=/stream"
-                className="mt-3 inline-flex items-center justify-center rounded-full border border-amber-300 bg-amber-50 px-4 py-2 text-xs font-semibold text-amber-900 hover:border-amber-400"
+                href="/login?next=/stream"
+                className="inline-flex items-center justify-center rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-1 font-semibold text-[rgb(var(--fg))]"
               >
-                Verifizierung starten
+                Einloggen
               </Link>
-            ) : (
-              <p className="mt-3 text-xs text-[rgb(var(--muted))]">
-                Hinweis: Status wird im Stream pro Session transparent angezeigt.
-              </p>
-            )}
-          </div>
+              <Link
+                href="/register?next=/stream"
+                className="inline-flex items-center justify-center rounded-full bg-sky-600 px-3 py-1 font-semibold text-white"
+              >
+                Registrieren
+              </Link>
+            </>
+          ) : null}
+          <span className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-1 text-[rgb(var(--muted))]">
+            Live-Votes nur mit Verifizierung.
+          </span>
+          {needsVerification ? (
+            <Link
+              href="/verify?next=/stream"
+              className="inline-flex items-center justify-center rounded-full border border-amber-300 bg-amber-50 px-3 py-1 font-semibold text-amber-900"
+            >
+              Verifizierung starten
+            </Link>
+          ) : null}
         </div>
 
-        <div className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-[0_20px_60px_rgba(15,23,42,0.08)] md:p-6">
-          <div className="mb-4 flex flex-wrap items-center gap-2 text-xs text-[rgb(var(--muted))]">
+        <div className="min-w-0 overflow-hidden rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-[0_20px_60px_rgba(15,23,42,0.08)] md:p-6">
+          <div className="mb-4 flex flex-wrap items-center gap-2 overflow-x-auto text-xs text-[rgb(var(--muted))]">
             <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-emerald-800">Live</span>
             <span className="rounded-full border border-sky-200 bg-sky-50 px-2.5 py-1 text-sky-800">Kommend</span>
-            <span className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-2.5 py-1">Replay &amp; Highlights</span>
+            <span className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-2.5 py-1">Replay</span>
           </div>
           <StreamList showViews={canSeeViews} statusSections />
+          <div className="mt-4 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3 text-sm text-[rgb(var(--muted))]">
+            Aktuell läuft keine Live-Runde? Folge Themen, um informiert zu werden, wenn eine
+            Diskussion startet.
+            <div className="mt-3 flex flex-wrap gap-2">
+              <Link href="/themen" className="inline-flex items-center justify-center rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-1 text-xs font-semibold text-[rgb(var(--fg))]">
+                Themen folgen
+              </Link>
+              <Link href="/swipes" className="inline-flex items-center justify-center rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-1 text-xs font-semibold text-[rgb(var(--fg))]">
+                Zu Swipes
+              </Link>
+            </div>
+          </div>
         </div>
       </section>
     </main>

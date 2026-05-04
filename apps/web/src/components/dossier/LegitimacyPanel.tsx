@@ -30,10 +30,10 @@ export function LegitimacyPanel({ metrics, status, footnote }: LegitimacyPanelPr
     <section className="vog-card p-5 space-y-5">
       <div className="space-y-1">
         <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
-          Legitimitätsübersicht
+          Wie belastbar ist das Ergebnis?
         </p>
         <p className="text-sm text-[rgb(var(--muted))]">
-          Übersicht über Beleglage, Klärungsstand, Perspektiven und Transparenz.
+          Übersicht über Quellenlage, offene Punkte, Perspektivenabdeckung und Transparenz.
         </p>
       </div>
 
@@ -65,9 +65,9 @@ export function LegitimacyPanel({ metrics, status, footnote }: LegitimacyPanelPr
           Was bedeutet das?
         </summary>
         <div className="mt-3 space-y-2 text-[11px] text-[rgb(var(--muted))]">
-          <p>Evidenz: Wie viele Aussagen sind mit Quellen verknüpft?</p>
-          <p>Klärung: Welche Fragen sind noch offen und in Bearbeitung?</p>
-          <p>Perspektiven: Welche Gruppen sollten mitreden oder eingebunden werden?</p>
+          <p>Quellenlage: Wie viele Aussagen sind mit Quellen verknüpft?</p>
+          <p>Was ist noch offen?: Welche Fragen sind noch offen oder in Bearbeitung?</p>
+          <p>Perspektivenabdeckung: Welche Gruppen sollten mitreden oder eingebunden werden?</p>
           <p>Transparenz: Ist nachvollziehbar, wie das Ergebnis entstanden ist?</p>
           {footnote ? <div>{footnote}</div> : null}
         </div>
