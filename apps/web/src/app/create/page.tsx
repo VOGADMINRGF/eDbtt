@@ -115,6 +115,8 @@ export default async function CreatePage({
   }
 
   const mode = mapMode(readParam(resolved.mode));
+  const rawModeParam = readParam(resolved.mode) ?? null;
+  const rawIntentParam = readParam(resolved.intent) ?? null;
   const entryIntent =
     mapEntryIntent(readParam(resolved.entryIntent) ?? readParam(resolved.entry_intent)) ??
     mapEntryIntent(readParam(resolved.intent));
@@ -145,6 +147,8 @@ export default async function CreatePage({
             dossierId={dossierId}
             initialAnlassraumId={anlassraumId}
             initialMode={mode}
+            initialIntentParam={rawIntentParam}
+            initialModeParam={rawModeParam}
             initialEntryIntent={entryIntent}
             initialEntryMode={entryMode}
             initialText={initialText}

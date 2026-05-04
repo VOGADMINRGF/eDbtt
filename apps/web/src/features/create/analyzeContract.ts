@@ -1,6 +1,7 @@
 import type { AnalyzeResult } from "@features/analyze/schemas";
 import { resolveCreateCtaSuggestions } from "@/features/create/ctaResolver";
 import { resolveCreateLanguageContext } from "@/features/create/languageContextContract";
+import type { CreateIntent } from "@/features/create/intentFlows";
 
 export type CreateAnalyzeInputType =
   | "free_text"
@@ -71,6 +72,7 @@ export type CreateAnalyzeResponse = {
   orchestrator: "create_orchestration";
   runId: string;
   inputRef: string;
+  intent: CreateIntent;
   sourceLanguage: string;
   contentLanguage: string;
   uiLocale: string;
@@ -210,6 +212,7 @@ function fallbackNoMatchResult(): CreateAnalyzeMatchResultInput {
 export function buildCreateAnalyzeResponse(params: {
   runId: string;
   text: string;
+  intent: CreateIntent;
   locale?: string | null;
   languageContext?: {
     uiLocale?: string | null;
@@ -219,7 +222,7 @@ export function buildCreateAnalyzeResponse(params: {
   result: AnalyzeResult;
   matchResult?: CreateAnalyzeMatchResultInput | null;
 }): CreateAnalyzeResponse {
-  const { runId, text, locale, result } = params;
+  const { runId, text, intent, locale, result } = params;
 
   const inputType = inferCreateAnalyzeInputType(text);
   const languages = inferCreateAnalyzeLanguages(text, locale);
@@ -270,6 +273,7 @@ export function buildCreateAnalyzeResponse(params: {
     orchestrator: "create_orchestration",
     runId,
     inputRef: runId,
+    intent,
     sourceLanguage: languageContext.sourceLanguage,
     contentLanguage: languageContext.contentLanguage,
     uiLocale: languageContext.uiLocale,

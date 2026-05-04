@@ -41,6 +41,7 @@ import { useContentLang } from "@/lib/i18n/contentLanguage";
 import { DEFAULT_BASE_LANG, LANGUAGE_CODES, type LanguageCode } from "@features/i18n/languages";
 import type { CreateMode } from "@/features/create/intents";
 import type { CreateProductMode } from "@/features/create/createProductModes";
+import type { CreateIntent } from "@/features/create/intentFlows";
 import type { CreateAnalyzeResponse } from "@/features/create/analyzeContract";
 import {
   parseCreateAnalyzeEnvelope,
@@ -482,6 +483,7 @@ type AnalyzeWorkspaceProps = {
   maxFinalizeClaims?: number;
   analysisEntryVariant?: "use_case_cards" | "single_button";
   analysisModeHint?: CreateProductMode;
+  analysisIntentHint?: CreateIntent;
   embeddedSingleIntake?: boolean;
   syncTextFromParent?: boolean;
   autoRunToken?: number;
@@ -883,6 +885,7 @@ export default function AnalyzeWorkspace({
   useCaseAccess,
   analysisEntryVariant = "use_case_cards",
   analysisModeHint,
+  analysisIntentHint,
   embeddedSingleIntake,
   syncTextFromParent,
   autoRunToken,
@@ -1936,6 +1939,7 @@ export default function AnalyzeWorkspace({
           textOriginal: text,
           preparedText,
           text: preparedText,
+          intent: analysisIntentHint ?? undefined,
           createMode: resolvedCreateMode,
           analysisMode: analysisModeHint ?? undefined,
           anlassraumId: selectedAnlassraumId ?? undefined,
@@ -2119,6 +2123,7 @@ export default function AnalyzeWorkspace({
   }, [
     analyzeDisabled,
     analyzeEndpoint,
+    analysisIntentHint,
     analysisModeHint,
     allowResearch,
     evidenceInput,

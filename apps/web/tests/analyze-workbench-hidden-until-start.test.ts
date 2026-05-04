@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  buildCreateLightweightFollowupSnapshot,
   buildCreatePrimaryIntakeStorageKey,
   buildGuidedWorkspaceText,
   parseCreatePrimaryIntakeSnapshot,
@@ -136,5 +137,19 @@ describe("analyze workbench progressive disclosure", () => {
         guidedBridgeConfirmed: true,
       }),
     ).toBe(false);
+  });
+
+  it("builds a lightweight follow-up snapshot with original text and understandable classification", () => {
+    const snapshot = buildCreateLightweightFollowupSnapshot({
+      intakeText: "  Neuer Radweg entlang der Schule  ",
+      modeLabel: "Beitragen",
+      contextAnchorLabel: "Offene Frage",
+      surfaceTexts: {
+        followupUnderstandingLine: (label) => `Eingeordnet als: ${label}`,
+      },
+    });
+
+    expect(snapshot.originalText).toBe("Neuer Radweg entlang der Schule");
+    expect(snapshot.understandingLine).toBe("Eingeordnet als: Offene Frage");
   });
 });

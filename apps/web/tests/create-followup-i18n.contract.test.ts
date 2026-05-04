@@ -22,4 +22,21 @@ describe("create follow-up i18n contract", () => {
     expect(en.rundenContextTitle).toContain("round");
     expect(en.rundenContextWithLabel("Climate")).toBe("Context: Climate.");
   });
+
+  it("uses understandable contribute follow-up wording without classification-flow phrasing", () => {
+    const de = getCreateSurfaceTexts("de");
+    const en = getCreateSurfaceTexts("en");
+
+    expect(de.startBusyStatus).toBe("Wird eingeordnet …");
+    expect(de.startBusyLead).toBe("Wir ordnen deinen Beitrag ein …");
+    expect(de.followupContributeTitle).toBe("Dein Text wurde aufgenommen.");
+    expect(de.followupContributeLead).toBe("Bitte prüfe die Einordnung, bevor er weiterverwendet wird.");
+    expect(de.followupOriginalTextLabel).toBe("Dein Originaltext");
+    expect(de.followupUnderstandingLabel).toBe("So haben wir es verstanden");
+    expect(de.followupNotPublishedLabel).toBe("Noch nicht veröffentlicht.");
+    expect(de.followupNextStepLabel).toBe("Nächster Schritt");
+
+    expect(en.followupContributeTitle).toBe("Your text was captured.");
+    expect(en.followupContributeTitle.toLowerCase()).not.toContain("classification flow");
+  });
 });

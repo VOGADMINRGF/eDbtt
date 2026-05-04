@@ -37,11 +37,13 @@ describe("create analyze contract", () => {
     const response = buildCreateAnalyzeResponse({
       runId: "run-thin",
       text: "Kurztext",
+      intent: "contribute",
       locale: "de-DE",
       result: analyzeResultFixture(),
     });
 
     expect(response.inputType).toBe("free_text");
+    expect(response.intent).toBe("contribute");
     expect(response.matchStrength).toBe("none");
     expect(response.uncertaintyFlags).toContain("input_too_thin");
     expect(response.suggestedCtas.some((item) => item.id === "neu_anlegen")).toBe(true);
@@ -53,6 +55,7 @@ describe("create analyze contract", () => {
     const response = buildCreateAnalyzeResponse({
       runId: "run-match",
       text: "Ausfuehrlicher Beitrag mit klaren Aussagen und Kontext fuer den bestehenden Arbeitsraum.",
+      intent: "check",
       locale: "de-DE",
       result: analyzeResultFixture({
         claims: [{ id: "c1", text: "Pruefbarer Claim" }],
@@ -90,6 +93,7 @@ describe("create analyze contract", () => {
     });
 
     expect(response.matchStrength).toBe("high");
+    expect(response.intent).toBe("check");
     expect(response.matchType).toBe("same_anlassraum");
     expect(response.matchEntityType).toBe("anlassraum");
     expect(response.suggestedCtas.length).toBeGreaterThan(0);
@@ -110,6 +114,7 @@ describe("create analyze contract", () => {
     const response = buildCreateAnalyzeResponse({
       runId: "run-language-override",
       text: "Das ist ein Beitrag mit deutschem Inhalt.",
+      intent: "draft",
       locale: "en-US",
       languageContext: {
         uiLocale: "en-US",
@@ -122,6 +127,7 @@ describe("create analyze contract", () => {
     });
 
     expect(response.uiLocale).toBe("en");
+    expect(response.intent).toBe("draft");
     expect(response.contentLanguage).toBe("de");
     expect(response.sourceLanguage).toBe("fr");
   });

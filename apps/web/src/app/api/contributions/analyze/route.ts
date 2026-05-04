@@ -41,6 +41,7 @@ import { resolveCreateCtaSuggestions } from "@/features/create/ctaResolver";
 import { resolveCreateGraphMatches } from "@/features/create/matchService";
 import { resolveCreateLanguageContext } from "@/features/create/languageContextContract";
 import type { CreateProductMode } from "@/features/create/createProductModes";
+import type { CreateIntent } from "@/features/create/intentFlows";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -109,6 +110,7 @@ type AnalyzeJobInput = {
   maxClaims: number;
   contributionId: string;
   analysisMode: CreateProductMode;
+  intent: CreateIntent;
   presentationPassEnabled: boolean;
   sourceGrounding: SourceGroundingContext;
   userId?: string | null;
@@ -145,6 +147,18 @@ function resolvePresentationPassEnabled(params: {
     return false;
   }
   return params.analysisMode === "media" || params.analysisMode === "guided";
+}
+
+function resolveIntentFromAnalysisMode(mode: CreateProductMode): CreateIntent {
+  if (mode === "media") return "check";
+  if (mode === "guided") return "draft";
+  return "contribute";
+}
+
+function resolveJourneyHintFromIntent(intent: CreateIntent): "analyze" | "media" | "guided" {
+  if (intent === "check") return "media";
+  if (intent === "draft") return "guided";
+  return "analyze";
 }
 
 /**
@@ -216,6 +230,7 @@ export async function POST(req: NextRequest): Promise<Response> {
     maxClaims,
     contributionId,
     analysisMode,
+    intent: body.intent ?? resolveIntentFromAnalysisMode(analysisMode),
     presentationPassEnabled: resolvePresentationPassEnabled({
       analysisMode,
       requested: body.presentationPass,
@@ -248,6 +263,7 @@ export async function POST(req: NextRequest): Promise<Response> {
     const createAnalyze = buildCreateAnalyzeResponse({
       runId,
       text,
+      intent: analyzeInput.intent,
       locale: languageContext.contentLanguage,
       languageContext,
       result,
@@ -335,6 +351,7 @@ export async function POST(req: NextRequest): Promise<Response> {
       const createAnalyze = buildCreateAnalyzeResponse({
         runId,
         text,
+        intent: analyzeInput.intent,
         locale: languageContext.contentLanguage,
         languageContext,
         result: fallback,
@@ -440,6 +457,7 @@ export async function POST(req: NextRequest): Promise<Response> {
       const createAnalyze = buildCreateAnalyzeResponse({
         runId,
         text,
+        intent: analyzeInput.intent,
         locale: languageContext.contentLanguage,
         languageContext,
         result: degradedResult,
@@ -573,6 +591,7 @@ async function runAnalyzeJob(input: AnalyzeJobInput): Promise<AnalyzeResultWithM
     maxClaims: input.maxClaims,
     audienceRole: resolveAnalyzeAudienceRole(input.analysisMode),
     analysisMode: input.analysisMode,
+    journeyHint: resolveJourneyHintFromIntent(input.intent),
     routePath: "/api/contributions/analyze",
     sourceGroundingPromptAddon: input.sourceGrounding.promptAddon,
     presentationPassEnabled: input.presentationPassEnabled,

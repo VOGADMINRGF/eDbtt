@@ -77,7 +77,7 @@ describe("create entry hierarchy contract", () => {
     expect(html).toContain("Beitragen");
     expect(html).toContain("Prüfen");
     expect(html).toContain("Entwerfen");
-    expect(html).toContain("Beitrag einbringen");
+    expect(html).toContain("Beitrag strukturieren");
     expect(html).toContain("Kontext (optional)");
     expect(html).toContain("Hilfebereich");
 
