@@ -1,12 +1,16 @@
 type ScopeLevel = "ALL" | "Bund" | "Land" | "Kommune" | "EU";
+type DiscoverySegment = "mine" | "saved" | "region" | "all";
 
 type SwipesSearchTriggerProps = {
   open: boolean;
   topicQuery: string;
   activeLevel: ScopeLevel;
+  activeSegment: DiscoverySegment;
+  segmentOptions: Array<{ id: DiscoverySegment; label: string }>;
   onClose: () => void;
   onTopicChange: (value: string) => void;
   onLevelChange: (value: ScopeLevel) => void;
+  onSegmentChange: (value: DiscoverySegment) => void;
 };
 
 const SCOPE_OPTIONS: Array<{ label: string; value: ScopeLevel }> = [
@@ -22,9 +26,12 @@ export function SwipesSearchTrigger({
   open,
   topicQuery,
   activeLevel,
+  activeSegment,
+  segmentOptions,
   onClose,
   onTopicChange,
   onLevelChange,
+  onSegmentChange,
 }: SwipesSearchTriggerProps) {
   if (!open) return null;
 
@@ -52,6 +59,25 @@ export function SwipesSearchTrigger({
           placeholder="z. B. Wohnen, Mobilität, Bildung"
           className="mt-1 w-full rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-sm text-[rgb(var(--fg))] focus:outline-none focus:ring-2 focus:ring-sky-200"
         />
+
+        <div className="mt-3">
+          <p className="text-xs font-medium text-[rgb(var(--muted))]">Ansicht</p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {segmentOptions.map((option) => {
+              const active = activeSegment === option.id;
+              return (
+                <button
+                  key={option.id}
+                  type="button"
+                  onClick={() => onSegmentChange(option.id)}
+                  className={active ? "vog-chip vog-chip--active" : "vog-chip"}
+                >
+                  {option.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
 
         <div className="mt-3">
           <p className="text-xs font-medium text-[rgb(var(--muted))]">Scope</p>

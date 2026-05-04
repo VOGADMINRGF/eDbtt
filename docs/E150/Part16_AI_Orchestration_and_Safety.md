@@ -4,6 +4,16 @@
 > Status: Canonical Architecture Baseline (verbindlich)
 > Verbindlicher Task-Backlog: `docs/E150/OpenTasks.md`
 
+## Update 2026-05-03 (Registration/Public Entry)
+
+- Register-Default fuer nicht-admin Rollen fuehrt auf `/swipes?welcome=1`, sofern kein gueltiges internes `next` gesetzt ist.
+- Diese Routing-Anpassung ist ein Journey-/Surface-Contract und aendert keine AI-Orchestrierungsautoritaet oder Safety-Gates.
+
+## Update 2026-05-04 (Journey Surface Hardening)
+
+- Dossier-, Live- und Pricing-Journey-Slices wurden abgeschlossen, ohne Lane-/Provider-Autoritaet, Policy-Gates oder Schema-SSOT anzupassen.
+- Ergebnis: UX-Haertung auf Public Surface, unveraenderte AI-Safety-Architektur.
+
 ## Zweck
 
 Dieses Part verankert das aktuelle Zielbild fuer KI-Orchestrierung, Social-Safety und Security/Privacy als verbindliche Produkt- und Architekturregeln.

@@ -141,23 +141,51 @@ export default function LandingStart({ blocks }: LandingStartProps) {
           <div className="max-h-[calc(100svh-3rem)] overflow-y-auto [scrollbar-gutter:stable]">
             <section className="mb-4 rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm sm:p-5">
               <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
-                {lang === "en" ? "Public participation clarity" : "Öffentliche Beteiligung klar erklärt"}
+                {lang === "en" ? "Public debate information infrastructure" : "Informationsinfrastruktur für öffentliche Debatten"}
               </p>
               <h2 className="mt-2 text-xl font-semibold tracking-tight text-[rgb(var(--fg))] sm:text-2xl">
                 {lang === "en"
-                  ? "Public participation starts with a clear dossier."
-                  : "Öffentliche Beteiligung beginnt mit einem klaren Dossier."}
+                  ? "eDebatte structures what matters in public debates."
+                  : "eDebatte macht sichtbar, was Menschen bewegt, welche Quellen es gibt, welche Fragen offen sind und welche Lösungen möglich werden."}
               </h2>
               <p className="mt-2 text-sm leading-relaxed text-[rgb(var(--muted))]">
                 {lang === "en"
-                  ? "eDebatte is the participation and dossier tool. VoiceOpenGov is the initiative and civic framework behind it."
-                  : "eDebatte ist das Beteiligungs- und Dossier-Tool. VoiceOpenGov ist die Initiative und der Beteiligungsrahmen dahinter."}
+                  ? "Start free with topics, swipes and hints. VoiceOpenGov stays the initiative and register layer."
+                  : "Starte kostenlos über Themen, Swipes und Hinweise. VoiceOpenGov bleibt die Initiative, Register- und Mitgliedschaftsebene."}
               </p>
               <p className="mt-2 text-sm leading-relaxed text-[rgb(var(--muted))]">
                 {lang === "en"
                   ? "Signal -> Dossier -> Round -> Mandate -> Implementation"
                   : "Signal -> Dossier -> Runde -> Mandat -> Umsetzung"}
               </p>
+              <div className="mt-4 grid gap-2 sm:grid-cols-3">
+                <a href="/themen" className="rounded-full bg-sky-600 px-4 py-2 text-center text-sm font-semibold text-white hover:bg-sky-700">
+                  {lang === "en" ? "View topics" : "Themen ansehen"}
+                </a>
+                <a href="/swipes" className="rounded-full bg-emerald-600 px-4 py-2 text-center text-sm font-semibold text-white hover:bg-emerald-700">
+                  {lang === "en" ? "Swipe now" : "Jetzt swipen"}
+                </a>
+                <a
+                  href="/community/contributions"
+                  className="rounded-full bg-cyan-600 px-4 py-2 text-center text-sm font-semibold text-white hover:bg-cyan-700"
+                >
+                  {lang === "en" ? "Submit hint" : "Hinweis einreichen"}
+                </a>
+              </div>
+              <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                <a
+                  href="/pricing/institutionen"
+                  className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-4 py-2 text-center text-sm font-semibold text-[rgb(var(--fg))] hover:border-sky-300"
+                >
+                  {lang === "en" ? "Use professionally" : "Professionell nutzen"}
+                </a>
+                <a
+                  href="/pricing"
+                  className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-4 py-2 text-center text-sm font-semibold text-[rgb(var(--fg))] hover:border-sky-300"
+                >
+                  {lang === "en" ? "Packages & pricing" : "Pakete & Preise"}
+                </a>
+              </div>
               <div className="mt-3 grid gap-2 sm:grid-cols-2">
                 {(lang === "en"
                   ? ["Citizens", "Municipalities", "Participation offices", "Journalists"]
@@ -173,14 +201,18 @@ export default function LandingStart({ blocks }: LandingStartProps) {
               </div>
             </section>
             <SharedCreateComposer
-              badge={surfaceTexts.badgeCanonical}
-              subline={surfaceTexts.sublineCanonical}
+              badge={lang === "en" ? "Workspace preview" : "Arbeitsfläche (Vorschau)"}
+              subline={
+                lang === "en"
+                  ? "Free entry starts via topics, swipes and hints. Create remains optional for deeper work."
+                  : "Kostenloser Einstieg läuft über Themen, Swipes und Hinweise. Create ist die optionale Vertiefungsfläche."
+              }
               texts={surfaceComposerTexts}
               topMeta={
                 <p className="max-w-2xl text-xs text-[rgb(var(--muted))]">
                   {lang === "en"
-                    ? "Use one canonical input for contribute, review or draft."
-                    : "Nutze einen kanonischen Einstieg für Beitragen, Prüfen oder Entwerfen."}
+                    ? "Preview of the workspace for drafting, review and role-based collaboration."
+                    : "Vorschau der Arbeitsfläche für Einbringen, Prüfen und Entwerfen nach Rolle und Paket."}
                 </p>
               }
               modeOrder={CREATE_PRODUCT_MODE_VALUES}
@@ -201,8 +233,8 @@ export default function LandingStart({ blocks }: LandingStartProps) {
               onStart={handleStart}
               startLabel={productModeConfig.ctaLabel}
               secondaryAction={{
-                href: "/runden",
-                label: surfaceTexts.goToRoundsLabel,
+                href: "/themen",
+                label: lang === "en" ? "View topics" : "Themen ansehen",
               }}
               contextAnchors={surfaceContextAnchors}
               activeContextAnchorId={activeContextAnchorId}

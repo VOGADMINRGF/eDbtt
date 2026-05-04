@@ -19,77 +19,46 @@ import ThemeToggle from "@/components/ThemeToggle";
 import { classifyMobileAppShellPath } from "@/features/wrapper/mobileAppShellContract";
 
 type NavItem = {
+  id: string;
   href: string;
   label: string;
-  description: string;
 };
 
-type NavSection = NavItem & { id: string; items: NavItem[] };
-
-const NAV_LINKS: Array<{ id: string; href: string; label: string }> = [
+const NAV_LINKS: NavItem[] = [
   {
-    id: "how",
-    href: "/pricing",
-    label: "Pakete & Preise",
+    id: "topics",
+    href: "/themen",
+    label: "Themen",
   },
   {
-    id: "about",
-    href: "/howtoworks/initiative",
-    label: "Zur Initiative",
+    id: "swipes",
+    href: "/swipes",
+    label: "Swipes",
   },
-];
-
-const NAV_SECTIONS: NavSection[] = [
+  {
+    id: "hint",
+    href: "/community/contributions",
+    label: "Hinweis einreichen",
+  },
   {
     id: "how",
     href: "/howtoworks/edebatte",
     label: "So funktioniert’s",
-    description: "Abstimmen · Beitrag einreichen · Präsentieren",
-    items: [
-      {
-        href: "/howtoworks/edebatte/abstimmen",
-        label: "Abstimmen",
-        description: "Positionen bewerten und Mehrheiten sichtbar machen.",
-      },
-      {
-        href: "/create?mode=manual&intent=claim",
-        label: "Beitrag einreichen",
-        description: "Themen, Hinweise und Perspektiven einspeisen.",
-      },
-      {
-        href: "/howtoworks/streamer",
-        label: "Präsentieren",
-        description: "Streams, Agenda und Moderation sauber aufsetzen.",
-      },
-      {
-        href: "/referenzarchitektur",
-        label: "Referenzarchitektur",
-        description: "DecisionArchitecture v2.0 als Referenz",
-      },
-    ],
   },
   {
-    id: "about",
-    href: "/ueber-uns",
-    label: "Über uns",
-    description: "Die Initiative · Transparenzbericht · FAQ & Hilfe",
-    items: [
-      {
-        href: "/howtoworks/initiative",
-        label: "Die Initiative",
-        description: "Vision, Auftrag und Grundprinzipien.",
-      },
-      {
-        href: "/transparenzbericht",
-        label: "Transparenzbericht",
-        description: "Finanzierung, Prioritäten und Aufbauphase.",
-      },
-      {
-        href: "/faq",
-        label: "FAQ & Hilfe",
-        description: "Antworten und Support im Überblick.",
-      },
-    ],
+    id: "pricing",
+    href: "/pricing",
+    label: "Pakete & Preise",
+  },
+  {
+    id: "pro",
+    href: "/pricing/institutionen",
+    label: "Professionell nutzen",
+  },
+  {
+    id: "initiative",
+    href: "/howtoworks/initiative",
+    label: "Zur Initiative",
   },
 ];
 
@@ -136,13 +105,6 @@ export function SiteHeader({ initialUser }: { initialUser?: AuthUser | null }) {
   const navLinks = useMemo(() => {
     if (activeLang === "de") return NAV_LINKS;
     return NAV_LINKS.map((item) => mapTranslatableStrings(item, t, { namespace: "nav" }));
-  }, [activeLang, t]);
-  const navSections = useMemo(() => {
-    if (activeLang === "de") return NAV_SECTIONS;
-    return NAV_SECTIONS.map((section) => ({
-      ...mapTranslatableStrings(section, t, { namespace: "nav" }),
-      items: section.items.map((item) => mapTranslatableStrings(item, t, { namespace: "nav" })),
-    }));
   }, [activeLang, t]);
 
   const resolveHref = (href: string) => {
@@ -375,34 +337,24 @@ export function SiteHeader({ initialUser }: { initialUser?: AuthUser | null }) {
               aria-label={t("Mobile Navigation", "aria.mobile-nav")}
               className="flex flex-col gap-2 text-sm font-semibold text-[rgb(var(--fg))]"
             >
-              {navSections.map((section) => (
-                <div key={section.id} className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-3">
-                  <Link
-                    href={resolveHref(section.href)}
-                    onClick={() => setMobileOpen(false)}
-                    className="block rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-left hover:border-[rgb(var(--grad-from))]"
-                  >
-                    <span className="block text-sm font-semibold headline-grad">{section.label}</span>
-                    <span className="mt-0.5 block text-[11px] font-normal text-[rgb(var(--muted))]">
-                      {section.description}
-                    </span>
-                  </Link>
-                  <div className="mt-2 grid gap-2">
-                    {section.items.map((item) => (
-                      <Link
-                        key={item.href}
-                        href={resolveHref(item.href)}
-                        onClick={() => setMobileOpen(false)}
-                        className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-left text-sm text-[rgb(var(--fg))] hover:border-[rgb(var(--grad-from))]"
-                      >
-                        <span className="block text-sm font-semibold">{item.label}</span>
-                        <span className="mt-0.5 block text-[11px] font-normal text-[rgb(var(--muted))]">
-                          {item.description}
-                        </span>
-                      </Link>
-                    ))}
-                  </div>
-                </div>
+              {[
+                { id: "start", href: "/start", label: "Start" },
+                { id: "themen", href: "/themen", label: "Themen" },
+                { id: "swipes", href: "/swipes", label: "Swipes" },
+                { id: "hinweis", href: "/community/contributions", label: "Anliegen / Hinweis einbringen" },
+                { id: "how", href: "/howtoworks/edebatte", label: "So funktioniert’s" },
+                { id: "pricing", href: "/pricing", label: "Pakete & Preise" },
+                { id: "professional", href: "/pricing/institutionen", label: "Professionell nutzen" },
+                { id: "profile", href: user ? "/account" : "/login", label: user ? "Profil" : "Profil / Login" },
+              ].map((entry) => (
+                <Link
+                  key={entry.id}
+                  href={resolveHref(entry.href)}
+                  onClick={() => setMobileOpen(false)}
+                  className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 text-left text-sm text-[rgb(var(--fg))] hover:border-[rgb(var(--grad-from))]"
+                >
+                  {entry.label}
+                </Link>
               ))}
 
               {!user && (
@@ -444,15 +396,7 @@ export function SiteHeader({ initialUser }: { initialUser?: AuthUser | null }) {
                       : t("Abmelden", "logout")}
                   </button>
                 </div>
-              ) : (
-                <Link
-                  href="/pricing"
-                  onClick={() => setMobileOpen(false)}
-                  className="btn btn-primary text-center"
-                >
-                  {t("Vormerken", "cta.preorder.mobile")}
-                </Link>
-              )}
+              ) : null}
             </nav>
           </div>
         </div>

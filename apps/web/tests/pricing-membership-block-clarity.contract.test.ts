@@ -6,7 +6,7 @@ describe("pricing-membership-block-clarity.contract", () => {
   it("explains membership clearly and compactly", async () => {
     const html = renderToStaticMarkup(await PricingPage({}));
 
-    expect(html).toContain("Der Mitgliedschaftsantrag bleibt optional. Paketpreis und Mitgliedsbeitrag werden getrennt behandelt.");
+    expect(html).toContain("Mitgliedschaft bleibt freiwillig und getrennt vom Paketkauf.");
     expect(html).toContain("Paketpreise bleiben unabhängig vom Mitgliedschaftsantrag gleich.");
     expect(html).toContain("Empfohlener Mitgliedsbeitrag: 5,63 €.");
     expect(html).toContain("separat per E-Mail-Link final bestätigt");

@@ -32,15 +32,20 @@ describe("landing clarity contract", () => {
   it("keeps marquee + shared composer and renders the clarity block", () => {
     const html = renderToStaticMarkup(<LandingStart blocks={demoBlocks as any} />);
 
-    expect(html).toContain("Öffentliche Beteiligung beginnt mit einem klaren Dossier.");
-    expect(html).toContain("eDebatte ist das Beteiligungs- und Dossier-Tool.");
-    expect(html).toContain("VoiceOpenGov ist die Initiative");
+    expect(html).toContain("Informationsinfrastruktur für öffentliche Debatten");
+    expect(html).toContain("eDebatte macht sichtbar, was Menschen bewegt");
+    expect(html).toContain("Starte kostenlos über Themen, Swipes und Hinweise");
     expect(html).toContain("Signal -&gt; Dossier -&gt; Runde -&gt; Mandat -&gt; Umsetzung");
+    expect(html).toContain("Themen ansehen");
+    expect(html).toContain("Jetzt swipen");
+    expect(html).toContain("Hinweis einreichen");
+    expect(html).toContain("Professionell nutzen");
+    expect(html).toContain("Pakete &amp; Preise");
     expect(html).toContain("Bürger:innen");
     expect(html).toContain("Kommunen");
     expect(html).toContain("Beteiligungsbüros");
     expect(html).toContain("Journalist:innen");
     expect(html).toContain("WORLD");
-    expect(html).toContain("Kanonischer Einstieg");
+    expect(html).toContain("Arbeitsfläche (Vorschau)");
   });
 });

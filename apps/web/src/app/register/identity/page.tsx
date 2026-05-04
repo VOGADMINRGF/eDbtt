@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import QRCode from "qrcode";
 import { RegisterStepper } from "../RegisterStepper";
@@ -36,7 +37,8 @@ export default function IdentityStepPage() {
     () => resolvePostRegistrationRedirect({ requestedRedirect: searchParams.get("next"), roleId: "citizens" }),
     [searchParams],
   );
-  const nextAfterVerify = useMemo(
+  const nextAfterVerify = finalNext;
+  const optionalOrderPath = useMemo(
     () => `/order?source=register&next=${encodeURIComponent(finalNext)}`,
     [finalNext],
   );
@@ -198,6 +200,9 @@ export default function IdentityStepPage() {
           Wähle Authenticator-App (TOTP) oder E-Mail-Code, um Missbrauch vorzubeugen. Im nächsten Schritt kannst du optional
           deinen eDebatte-Paketstart anlegen.
         </p>
+        <p className="text-xs text-[rgb(var(--muted))]">
+          Standard nach Abschluss: Swipes. Paketstart bleibt optional.
+        </p>
       </header>
 
       <div className="flex flex-wrap items-center gap-3">
@@ -230,6 +235,12 @@ export default function IdentityStepPage() {
         <p className="text-xs text-[rgb(var(--muted))]">
           Alternativ kannst du dich per E-Mail-Code verifizieren.
         </p>
+        <Link
+          href={optionalOrderPath}
+          className="inline-flex items-center rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-1 text-xs font-semibold text-[rgb(var(--muted))] hover:border-[rgb(var(--grad-from))] hover:text-[rgb(var(--fg))]"
+        >
+          Optional: Paketstart öffnen
+        </Link>
       </div>
 
       {method === "otp" && (

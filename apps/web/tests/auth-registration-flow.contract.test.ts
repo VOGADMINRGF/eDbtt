@@ -22,11 +22,12 @@ describe("auth registration flow contracts", () => {
   });
 
   it("keeps post-registration default route safe and deterministic", () => {
-    expect(resolvePostRegistrationRedirect({ roleId: "citizens" })).toBe("/account?welcome=1");
-    expect(resolvePostRegistrationRedirect({ requestedRedirect: "https://evil.example" })).toBe("/account?welcome=1");
+    expect(resolvePostRegistrationRedirect({ roleId: "citizens" })).toBe("/swipes?welcome=1");
+    expect(resolvePostRegistrationRedirect({ requestedRedirect: "https://evil.example" })).toBe("/swipes?welcome=1");
     expect(resolvePostRegistrationRedirect({ requestedRedirect: "/vormerken?segment=journalismus" })).toBe(
       "/vormerken?segment=journalismus",
     );
+    expect(resolvePostRegistrationRedirect({ requestedRedirect: "/account?welcome=1" })).toBe("/account?welcome=1");
   });
 
   it("keeps /register/preorder as canonical alias to /order", () => {

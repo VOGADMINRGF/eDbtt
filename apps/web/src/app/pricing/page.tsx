@@ -67,16 +67,20 @@ export default async function PricingPage({ searchParams }: PageProps = {}) {
       ? {
           pageKicker: "Pricing",
           heroTitle: "Packages & pricing",
-          heroText: "Choose one of four private package paths: Participation Free, Interested, Active or Co-creating.",
+          heroText:
+            "Use eDebatte for free to swipe topics and submit hints. Upgrade only if you want deeper review and drafting workflows.",
+          freeStartCta: "Start free",
+          confidentialHintCta: "Submit confidential hint",
           packageCta: "Choose package",
-          institutionalCta: "View B2B/B2G conditions",
+          institutionalCta: "Use professionally",
+          contactCta: "Contact",
           initiativeCta: "About the initiative",
           howItWorksCta: "How eDebatte works",
           privateKicker: "Private packages",
           privateTitle: "Private packages for individuals",
           privateText:
             "Participation Free: €0 · Interested: €4.99/month incl. VAT · Active: €14.99/month incl. VAT · Co-creating: €29.99/month incl. VAT.",
-          segmentTitle: "Segments",
+          segmentTitle: "More segments",
           segmentLabels: {
             privat: "Individuals",
             journalismus: "Journalism",
@@ -106,10 +110,17 @@ export default async function PricingPage({ searchParams }: PageProps = {}) {
             "Municipal Participation Operations · from €4,500/month + VAT",
             "Framework Package / Procurement Package · after clarification, quote-based + VAT",
           ],
-          annualHint: "Annual payment is preferred across paid package paths.",
+          annualHint: "Monthly payment is possible. Annual payment saves 15% on paid package paths.",
+          trustTitle: "Trust & clarity",
+          trustIntro:
+            "Participation is voluntary. eDebatte structures information and does not guarantee political implementation.",
+          trustOne: "Contributions can be anonymous, with nickname or clear name depending on context.",
+          trustTwo: "Counting and status display are transparent and traceable.",
+          trustThree: "Cancellation, revocation and data protection are documented clearly.",
+          trustFour: "No official election result unless explicitly configured as legally binding.",
           membershipTitle: "Membership in the initiative",
           membershipIntro:
-            "Membership remains optional. Package pricing and membership contribution are handled separately.",
+            "Membership remains optional and separate from package purchase.",
           membershipPointOne: "Package prices are identical, regardless of membership request.",
           membershipPointTwo: "Membership and package activation run as separate, transparent steps.",
           membershipPointThree: "Recommended membership contribution: €5.63.",
@@ -128,21 +139,25 @@ export default async function PricingPage({ searchParams }: PageProps = {}) {
             "Reports and outcomes: from €390 / month",
           ],
           institutionalHintText:
-            "For organizations, municipalities, associations and newsrooms we provide dedicated conditions.",
+            "For organizations, municipalities, associations, media and research we provide dedicated conditions.",
         }
       : {
           pageKicker: "Pricing",
           heroTitle: "Pakete & Preise",
-          heroText: "Wähle eines von vier privaten Paketwegen: Beteiligung frei, Interessiert, Aktiv oder Mitgestaltend.",
+          heroText:
+            "Du kannst eDebatte kostenlos nutzen, Themen swipen und Hinweise einbringen. Pakete schalten mehr Tiefe für Prüfen und Entwerfen frei.",
+          freeStartCta: "Kostenlos starten",
+          confidentialHintCta: "Anonym / vertraulich Hinweis geben",
           packageCta: "Paket wählen",
-          institutionalCta: "B2B/B2G-Konditionen ansehen",
+          institutionalCta: "Professionell nutzen",
+          contactCta: "Kontakt aufnehmen",
           initiativeCta: "Zur Initiative",
           howItWorksCta: "So funktioniert eDebatte",
           privateKicker: "Privatpakete",
           privateTitle: "Privatpakete für Einzelpersonen",
           privateText:
             "Beteiligung frei: 0 € · Interessiert: 4,99 € mtl. inkl. MwSt. · Aktiv: 14,99 € mtl. inkl. MwSt. · Mitgestaltend: 29,99 € mtl. inkl. MwSt.",
-          segmentTitle: "Segmente",
+          segmentTitle: "Weitere Segmente",
           segmentLabels: {
             privat: "Einzelpersonen",
             journalismus: "Journalismus",
@@ -172,10 +187,18 @@ export default async function PricingPage({ searchParams }: PageProps = {}) {
             "Beteiligungsbetrieb Kommune · ab 4.500 € / Monat zzgl. MwSt.",
             "Rahmenvertrag / Vergabepaket · Angebot nach Klärung zzgl. MwSt.",
           ],
-          annualHint: "Jährliche Zahlung wird bei kostenpflichtigen Paketwegen bevorzugt.",
+          annualHint: "Monatliche Zahlung ist möglich. Jahreszahlung spart 15 % bei kostenpflichtigen Paketwegen.",
+          trustTitle: "Vertrauen & klare Regeln",
+          trustIntro:
+            "Nutzung ist freiwillig. eDebatte strukturiert Informationen und garantiert keine politische Umsetzung.",
+          trustOne: "Beiträge sind je Kontext anonym, mit Nickname oder mit Klarname möglich.",
+          trustTwo: "Zählung und Statusanzeige sind nachvollziehbar und transparent.",
+          trustThree: "Widerruf, Kündigung und Datenschutz sind verständlich dokumentiert.",
+          trustFour:
+            "Keine amtliche Wahl oder verbindliche Abstimmung, außer wenn ein rechtssicheres Verfahren ausdrücklich eingerichtet ist.",
           membershipTitle: "Mitgliedschaft in der Initiative",
           membershipIntro:
-            "Der Mitgliedschaftsantrag bleibt optional. Paketpreis und Mitgliedsbeitrag werden getrennt behandelt.",
+            "Mitgliedschaft bleibt freiwillig und getrennt vom Paketkauf.",
           membershipPointOne: "Paketpreise bleiben unabhängig vom Mitgliedschaftsantrag gleich.",
           membershipPointTwo: "Mitgliedschaftsantrag und Paketfreischaltung laufen als getrennte, transparente Schritte.",
           membershipPointThree: "Empfohlener Mitgliedsbeitrag: 5,63 €.",
@@ -193,7 +216,8 @@ export default async function PricingPage({ searchParams }: PageProps = {}) {
             "Event-Begleitung: ab 690 € je Einsatz",
             "Reports und Outcomes: ab 390 € / Monat",
           ],
-          institutionalHintText: "Für Organisationen, Kommunen, Verbände und Redaktionen gibt es gesonderte Konditionen.",
+          institutionalHintText:
+            "Für Organisationen, Kommunen, Verbände, Medien und Forschung gibt es gesonderte Konditionen.",
         };
 
   return (
@@ -205,11 +229,20 @@ export default async function PricingPage({ searchParams }: PageProps = {}) {
           <h1 className="mt-2 text-3xl font-bold tracking-tight text-[rgb(var(--fg))] sm:text-4xl">{labels.heroTitle}</h1>
           <p className="mt-4 max-w-4xl text-base leading-relaxed text-[rgb(var(--muted))]">{labels.heroText}</p>
           <div className="mt-6 flex flex-wrap gap-3">
+            <Link href={withLocaleHref("/register", locale)} className="btn-primary">
+              {labels.freeStartCta}
+            </Link>
+            <Link href={withLocaleHref("/community/contributions", locale)} className="btn-secondary">
+              {labels.confidentialHintCta}
+            </Link>
             <a href="#pricing-privat" className="btn-primary">
               {labels.packageCta}
             </a>
             <Link href={withLocaleHref("/pricing/institutionen", locale)} className="btn-secondary">
               {labels.institutionalCta}
+            </Link>
+            <Link href={withLocaleHref("/kontakt", locale)} className="btn-secondary">
+              {labels.contactCta}
             </Link>
           </div>
         </div>
@@ -229,8 +262,10 @@ export default async function PricingPage({ searchParams }: PageProps = {}) {
             {isMunicipalBridge ? labels.municipalBridgeIntro : labels.segmentTexts[selectedSegment]}
           </p>
           <p className="mt-1 text-xs leading-relaxed text-[rgb(var(--muted))]">{labels.annualHint}</p>
-          <div className="mt-4">
-            <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">{labels.segmentTitle}</p>
+          <details className="mt-4 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2">
+            <summary className="cursor-pointer text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
+              {labels.segmentTitle}
+            </summary>
             <div className="mt-2 flex flex-wrap gap-2">
               {ORDER_SEGMENT_ORDER.map((segment) => (
                 <Link
@@ -247,7 +282,7 @@ export default async function PricingPage({ searchParams }: PageProps = {}) {
                 </Link>
               ))}
             </div>
-          </div>
+          </details>
         </div>
 
         {selectedSegment === "privat" ? (
@@ -309,7 +344,15 @@ export default async function PricingPage({ searchParams }: PageProps = {}) {
         </p>
 
         <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm sm:p-6">
-          <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">{labels.membershipTitle}</p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">{labels.trustTitle}</p>
+          <p className="mt-2 text-sm font-semibold text-[rgb(var(--fg))]">{labels.trustIntro}</p>
+          <ul className="mt-3 space-y-1.5 text-sm text-[rgb(var(--muted))]">
+            <li>{labels.trustOne}</li>
+            <li>{labels.trustTwo}</li>
+            <li>{labels.trustThree}</li>
+            <li>{labels.trustFour}</li>
+          </ul>
+          <p className="mt-6 text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">{labels.membershipTitle}</p>
           <p className="mt-2 text-sm font-semibold text-[rgb(var(--fg))]">{labels.membershipIntro}</p>
           <ul className="mt-3 space-y-1.5 text-sm text-[rgb(var(--muted))]">
             <li>{labels.membershipPointOne}</li>

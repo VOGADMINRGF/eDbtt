@@ -204,7 +204,7 @@ export function SwipeEventualitiesStep({
 
         <div className="relative mt-1.5 min-h-0 flex-1 overflow-y-auto overscroll-y-contain pr-1 pb-[max(env(safe-area-inset-bottom),0.75rem)]" style={{ WebkitOverflowScrolling: "touch" }}>
           {loading ? (
-            <p className="text-sm text-[rgb(var(--muted))]">Lade Eventualitäten …</p>
+            <p className="text-sm text-[rgb(var(--muted))]">Lade Varianten …</p>
           ) : eventualities.length > 0 ? (
             <div className="grid gap-2">
               {eventualities.slice(0, 4).map((evt) => {

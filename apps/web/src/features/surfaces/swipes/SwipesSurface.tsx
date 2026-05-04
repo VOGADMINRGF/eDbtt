@@ -6,6 +6,7 @@ type SwipesSurfaceProps = {
   initialTopic?: string;
   fromDraftId?: string | null;
   requireAuthAfterFreeVotes?: boolean;
+  showWelcomeHint?: boolean;
 };
 
 export function SwipesSurface({
@@ -13,6 +14,7 @@ export function SwipesSurface({
   initialTopic = "",
   fromDraftId = null,
   requireAuthAfterFreeVotes = false,
+  showWelcomeHint = false,
 }: SwipesSurfaceProps) {
   return (
     <main className="relative min-h-screen overflow-hidden bg-[rgb(var(--bg))] pb-14 text-[rgb(var(--fg))]">
@@ -30,6 +32,7 @@ export function SwipesSurface({
           mode={context.mode}
           audience={context.audience}
           requireAuthAfterFreeVotes={requireAuthAfterFreeVotes}
+          showWelcomeHint={showWelcomeHint}
         />
       </div>
     </main>

@@ -13,6 +13,15 @@
 > - Sichtbare B2C-Hauptlogik (2026-04-18): `eDebatte Interessiert` (0 € Mitglieder / 3,99 € regulaer), `eDebatte Aktiv` (9,90 €), `eDebatte Mitgestaltend` (29,90 €)
 > - Mitgliedschaft kann im `/order`-Bestellformular optional per Checkbox mitbeantragt werden.
 > - B2B/B2G-Zugaenge laufen ueber `/pricing/institutionen` als direkten Shop-/Bestellpfad mit optionalem Kontakt fuer Sonderkonditionen.
+>
+> Update 2026-05-03 (Public Funnel):
+> - Register-Default geht fuer nicht-admin Rollen auf `/swipes?welcome=1` (internes `next` bleibt priorisiert/sanitized).
+> - Pricing bleibt klar nachgelagert: kostenloser Einstieg ueber Themen/Swipes/Hinweise, Paketwahl optional als Vertiefung.
+>
+> Update 2026-05-04 (Pricing Public Simplification):
+> - `/pricing` nutzt eine vereinfachte Public-Hero-Logik mit klaren CTAs: `Kostenlos starten`, `Anonym / vertraulich Hinweis geben`, `Paket wählen`, `Professionell nutzen`, `Kontakt aufnehmen`.
+> - Vier B2C-Pfade bleiben der Fokus (`Beteiligung frei`, `Interessiert`, `Aktiv`, `Mitgestaltend`), mit explizitem Jahresvorteil (15 %) bei weiter möglicher Monatszahlung.
+> - Trust-/Membership-Trennung ist sichtbarer: freiwillige Nutzung, keine Umsetzungs-Garantie, Mitgliedschaft getrennt vom Paketkauf.
 
 ## 1. Zweck dieses Parts
 

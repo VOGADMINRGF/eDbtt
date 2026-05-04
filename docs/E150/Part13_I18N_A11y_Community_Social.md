@@ -2,6 +2,18 @@
 
 > Status-Hinweis (2026-02-12): Dieses Part ist eine Spezifikation/Zusammenfassung. Der verbindliche Aufgabenstand liegt in `docs/E150/OpenTasks.md`. Keine neuen Runs aus diesem Part ableiten.
 
+## Update 2026-05-03 (Public Language + Mobile Navigation)
+
+- Oeffentliche UI-Sprache bleibt niedrigschwellig und informationsorientiert (kein Parteien-/Lager-Wording).
+- Mobile Navigation priorisiert den Public Funnel: Start, Themen, Swipes, Hinweis, So funktioniert’s, Pakete & Preise, Professionell, Profil/Login.
+- `Später vertiefen` in Swipes wird als Merken/Watchlist behandelt, nicht als manipulative Vote-Abkuerzung.
+
+## Update 2026-05-04 (Public Surface Copy Sync)
+
+- Dossier-Wording wurde weiter vereinfacht (`Quellenlage`, `Was ist noch offen?`, `Wer kann handeln?`, `Warum jetzt?`).
+- Live-Mobiloberflaeche wurde entlastet (kompaktere Hinweise, ein klarer Followup-Empty-State).
+- Pricing nutzt klarere Vertrauens-/Mitgliedschaftstrennung und niedrigschwellige Einstiegs-CTAs.
+
 
 ## 1. Zweck dieses Dokuments
 

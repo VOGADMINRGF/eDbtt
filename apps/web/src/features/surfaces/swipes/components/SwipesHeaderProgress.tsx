@@ -1,5 +1,7 @@
 type SwipesHeaderProgressProps = {
   swipeCount: number;
+  sessionCount: number;
+  deckProgressLabel: string;
   goal?: number;
   onOpenSearch: () => void;
   mode?: "idle" | "active";
@@ -7,6 +9,8 @@ type SwipesHeaderProgressProps = {
 
 export function SwipesHeaderProgress({
   swipeCount,
+  sessionCount,
+  deckProgressLabel,
   goal = 100,
   onOpenSearch,
   mode = "active",
@@ -28,7 +32,9 @@ export function SwipesHeaderProgress({
               <p className="mt-0.5 text-[15px] font-semibold text-[rgb(var(--fg))] md:mt-1 md:text-base">
                 {clamped} von {goal} Swipes
               </p>
-              <p className="mt-1 hidden text-[rgb(var(--muted))] sm:block">{remaining} bis zur Analyse · 1 Analyse pro {goal} Swipes</p>
+              <p className="mt-1 hidden text-[rgb(var(--muted))] sm:block">
+                {remaining} bis zur Analyse · {deckProgressLabel} · Session: {sessionCount}
+              </p>
             </>
           ) : (
             <>

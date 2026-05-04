@@ -106,7 +106,7 @@ export default async function ReferenzarchitekturPage({
             <div className="mt-4 space-y-3">
               <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4">
                 <p className="text-sm font-semibold text-cyan-300">
-                  Mehr als ein Beteiligungstool
+                  Mehr als ein klassisches Beteiligungsangebot
                 </p>
                 <p className="mt-1 text-sm leading-6 text-[rgb(var(--muted))]">
                   Die Architektur beschreibt keinen bloßen Kommentar- oder

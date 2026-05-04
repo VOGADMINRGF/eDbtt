@@ -22,11 +22,15 @@ describe("stream page surface staging", () => {
   it("shows calm hints and enforces live/upcoming/replay sectioning", () => {
     const html = renderToStaticMarkup(<StreamPage />);
 
-    expect(html).toContain("Teilnahme");
-    expect(html).toContain("Verifizierung");
+    expect(html).toContain("Live ansehen ist offen, für Beiträge brauchst du ein Konto.");
+    expect(html).toContain("Live-Votes nur mit Verifizierung.");
     expect(html).toContain("Live");
     expect(html).toContain("Kommend");
-    expect(html).toContain("Replay &amp; Highlights");
+    expect(html).toContain("Replay");
+    expect(html).toContain("Themen folgen");
+    expect(html).toContain("Aktuell läuft keine Live-Runde?");
+    expect(html).toContain("overflow-x-clip");
+    expect(html).toContain("min-w-0 overflow-hidden");
     expect(html).toContain("data-status-sections=\"enabled\"");
     expect(html).not.toContain("Abstimmungen erfordern Verifizierung");
   });
