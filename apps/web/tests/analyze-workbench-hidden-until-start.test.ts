@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
+  CREATE_INTELLIGENT_FOLLOWUP_SECTION_LABELS,
   buildCreateLightweightFollowupSnapshot,
   buildCreatePrimaryIntakeStorageKey,
   buildGuidedWorkspaceText,
   parseCreatePrimaryIntakeSnapshot,
   resolveFollowupSurfaceOnStart,
+  shouldRenderCreateIntelligentFollowup,
   shouldRenderCreateAnalyzeWorkspace,
   shouldShowCreatePostInputModules,
 } from "@/app/create/CreateClient";
@@ -151,5 +153,44 @@ describe("analyze workbench progressive disclosure", () => {
 
     expect(snapshot.originalText).toBe("Neuer Radweg entlang der Schule");
     expect(snapshot.understandingLine).toBe("Eingeordnet als: Offene Frage");
+  });
+
+  it("keeps intelligent follow-up hidden before start and shows it after start in Beitragen mode", () => {
+    expect(
+      shouldRenderCreateIntelligentFollowup({
+        hasStarted: false,
+        productMode: "analyze",
+        followup: null,
+      }),
+    ).toBe(false);
+
+    expect(
+      shouldRenderCreateIntelligentFollowup({
+        hasStarted: true,
+        productMode: "analyze",
+        followup: {
+          understanding: {
+            summary: "Kurzfassung",
+            categories: [],
+            topics: [],
+            statements: [],
+            scopes: ["unclear"],
+            confidence: "low",
+          },
+          suggestions: [],
+          sourceText: "Text",
+          generatedAt: "2026-05-05T00:00:00.000Z",
+        },
+      }),
+    ).toBe(true);
+    expect(CREATE_INTELLIGENT_FOLLOWUP_SECTION_LABELS.understanding).toBe(
+      "Wir haben deinen Beitrag vorläufig verstanden",
+    );
+    expect(CREATE_INTELLIGENT_FOLLOWUP_SECTION_LABELS.connections).toBe(
+      "Dazu würden wir deinen Beitrag anschließen",
+    );
+    expect(CREATE_INTELLIGENT_FOLLOWUP_SECTION_LABELS.voteNotice).toContain(
+      "nicht automatisch abgegeben",
+    );
   });
 });
