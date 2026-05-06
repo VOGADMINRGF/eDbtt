@@ -239,10 +239,19 @@ describe("analyze workbench progressive disclosure", () => {
     );
     expect(source).toContain("Dossiers & Abstimmungen");
     expect(source).toContain("Keine automatische Stimme oder Veröffentlichung.");
+    expect(source).toContain("Keine automatische Kostenbuchung.");
     expect(source).toContain("bg-cyan-50/80");
     expect(source).toContain("dark:bg-cyan-500/10");
     expect(source).toContain("border-cyan-500/35 bg-cyan-50 text-cyan-950");
     expect(source).toContain("dark:border-cyan-300/60 dark:bg-cyan-500/15 dark:text-cyan-50");
     expect(source).not.toContain('className="text-cyan-50"');
+  });
+
+  it("keeps create entry mode selection optional instead of dominant first view", () => {
+    const clientSource = readFileSync(resolve(process.cwd(), "src/app/create/CreateClient.tsx"), "utf8");
+    const composerSource = readFileSync(resolve(process.cwd(), "src/features/create/SharedCreateComposer.tsx"), "utf8");
+    expect(clientSource).toContain("collapseModeSelector");
+    expect(composerSource).toContain("Arbeitsweg wählen (optional)");
+    expect(composerSource).toContain("Ohne Auswahl startet eDebatte mit dem Standardfluss");
   });
 });

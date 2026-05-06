@@ -1025,6 +1025,7 @@ export default function CreateClient({
           ) : null
         }
         minRows={8}
+        collapseModeSelector
       />
 
       {showTooShortHint ? (

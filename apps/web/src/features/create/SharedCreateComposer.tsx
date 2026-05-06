@@ -99,6 +99,7 @@ export type SharedCreateComposerProps = {
   heroHeadlineOverride?: CreateComposerHeadlineText;
   heroSublineOverride?: string;
   heroBadgeOverride?: string;
+  collapseModeSelector?: boolean;
 };
 
 export default function SharedCreateComposer({
@@ -136,6 +137,7 @@ export default function SharedCreateComposer({
   heroHeadlineOverride,
   heroSublineOverride,
   heroBadgeOverride,
+  collapseModeSelector = false,
 }: SharedCreateComposerProps) {
   const [attachments, setAttachments] = React.useState<File[]>([]);
   const [attachmentsError, setAttachmentsError] = React.useState<string | null>(null);
@@ -301,35 +303,75 @@ export default function SharedCreateComposer({
         />
 
         <div className="space-y-3">
-          <div aria-label={texts.modeSwitchAriaLabel} className="grid gap-2 md:grid-cols-3">
-            {modeOrder.map((modeOption) => {
-              const modeConfig = modeDefinitions[modeOption];
-              const isActive = modeOption === activeMode;
-              return (
-                <button
-                  key={modeOption}
-                  type="button"
-                  onClick={() => onModeChange(modeOption)}
-                  className={`rounded-2xl border px-3 py-2 text-left transition ${
-                    isActive
-                      ? "border-[rgb(var(--grad-from))]/45 bg-[rgb(var(--card))] text-[rgb(var(--fg))] shadow-sm"
-                      : "border-[rgb(var(--border))] bg-[rgb(var(--bg))] text-[rgb(var(--fg))] hover:border-[rgb(var(--grad-from))]/35"
-                  }`}
-                  aria-pressed={isActive}
-                  aria-selected={isActive}
-                >
-                  <span className="block text-sm font-semibold">{modeConfig.label}</span>
-                  <span
-                    className={`mt-1 block text-xs leading-relaxed ${
-                      isActive ? "text-[rgb(var(--fg))]" : "text-[rgb(var(--muted))]"
+          {collapseModeSelector ? (
+            <details className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-4 py-3">
+              <summary className="cursor-pointer text-[11px] font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
+                Arbeitsweg wählen (optional)
+              </summary>
+              <p className="mt-2 text-sm leading-relaxed text-[rgb(var(--muted))]">
+                Ohne Auswahl startet eDebatte mit dem Standardfluss für Beiträge. Du kannst jederzeit zu Prüfen oder Entwerfen wechseln.
+              </p>
+              <div aria-label={texts.modeSwitchAriaLabel} className="mt-3 grid gap-2 md:grid-cols-3">
+                {modeOrder.map((modeOption) => {
+                  const modeConfig = modeDefinitions[modeOption];
+                  const isActive = modeOption === activeMode;
+                  return (
+                    <button
+                      key={modeOption}
+                      type="button"
+                      onClick={() => onModeChange(modeOption)}
+                      className={`rounded-2xl border px-3 py-2 text-left transition ${
+                        isActive
+                          ? "border-[rgb(var(--grad-from))]/45 bg-[rgb(var(--card))] text-[rgb(var(--fg))] shadow-sm"
+                          : "border-[rgb(var(--border))] bg-[rgb(var(--bg))] text-[rgb(var(--fg))] hover:border-[rgb(var(--grad-from))]/35"
+                      }`}
+                      aria-pressed={isActive}
+                      aria-selected={isActive}
+                    >
+                      <span className="block text-sm font-semibold">{modeConfig.label}</span>
+                      <span
+                        className={`mt-1 block text-xs leading-relaxed ${
+                          isActive ? "text-[rgb(var(--fg))]" : "text-[rgb(var(--muted))]"
+                        }`}
+                      >
+                        {modeConfig.description}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </details>
+          ) : (
+            <div aria-label={texts.modeSwitchAriaLabel} className="grid gap-2 md:grid-cols-3">
+              {modeOrder.map((modeOption) => {
+                const modeConfig = modeDefinitions[modeOption];
+                const isActive = modeOption === activeMode;
+                return (
+                  <button
+                    key={modeOption}
+                    type="button"
+                    onClick={() => onModeChange(modeOption)}
+                    className={`rounded-2xl border px-3 py-2 text-left transition ${
+                      isActive
+                        ? "border-[rgb(var(--grad-from))]/45 bg-[rgb(var(--card))] text-[rgb(var(--fg))] shadow-sm"
+                        : "border-[rgb(var(--border))] bg-[rgb(var(--bg))] text-[rgb(var(--fg))] hover:border-[rgb(var(--grad-from))]/35"
                     }`}
+                    aria-pressed={isActive}
+                    aria-selected={isActive}
                   >
-                    {modeConfig.description}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
+                    <span className="block text-sm font-semibold">{modeConfig.label}</span>
+                    <span
+                      className={`mt-1 block text-xs leading-relaxed ${
+                        isActive ? "text-[rgb(var(--fg))]" : "text-[rgb(var(--muted))]"
+                      }`}
+                    >
+                      {modeConfig.description}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
           <p className="max-w-2xl text-sm leading-relaxed text-[rgb(var(--muted))]">{helperText}</p>
         </div>
 
