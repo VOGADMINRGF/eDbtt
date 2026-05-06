@@ -6,24 +6,57 @@ import { parseCreateIntent } from "@/features/create/intentFlows";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+function readTextAlias(body: unknown): string {
+  if (!body || typeof body !== "object") return "";
+  const record = body as Record<string, unknown>;
+  const value =
+    typeof record.text === "string"
+      ? record.text
+      : typeof record.sourceText === "string"
+        ? record.sourceText
+        : typeof record.intakeText === "string"
+          ? record.intakeText
+          : typeof record.input === "string"
+            ? record.input
+            : "";
+  return value.trim();
+}
+
 const RequestSchema = z.object({
   text: z.string().trim().min(1),
-  locale: z.string().trim().optional(),
-  anlassraumId: z.string().trim().optional(),
-  dossierId: z.string().trim().optional(),
-  intent: z.string().trim().optional(),
+  locale: z.string().trim().optional().nullable(),
+  anlassraumId: z.string().trim().optional().nullable(),
+  dossierId: z.string().trim().optional().nullable(),
+  intent: z.string().trim().optional().nullable(),
 });
 
 export async function POST(req: Request) {
+  let rawBody: unknown;
   try {
-    const rawBody = await req.json().catch(() => ({}));
-    const parsed = RequestSchema.safeParse(rawBody);
+    rawBody = await req.json();
+  } catch {
+    return NextResponse.json(
+      {
+        ok: false,
+        errorCode: "INVALID_JSON",
+        message: "Die Anfrage konnte nicht gelesen werden.",
+      },
+      { status: 400 },
+    );
+  }
+
+  try {
+    const normalizedBody = {
+      ...(rawBody && typeof rawBody === "object" ? (rawBody as Record<string, unknown>) : {}),
+      text: readTextAlias(rawBody),
+    };
+    const parsed = RequestSchema.safeParse(normalizedBody);
     if (!parsed.success) {
       return NextResponse.json(
         {
           ok: false,
-          errorCode: "BAD_INPUT",
-          message: "text_missing_or_invalid",
+          errorCode: "TEXT_REQUIRED",
+          message: "Bitte gib zuerst einen Text ein.",
         },
         { status: 400 },
       );
