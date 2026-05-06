@@ -382,6 +382,26 @@ export default function CreateVisualFollowup({
         <p className="text-sm text-[rgb(var(--muted))] md:text-base">
           Du kannst bestätigen, einzelne Punkte ändern oder erst passende Dossiers und Abstimmungen ansehen.
         </p>
+        <div className="grid gap-2 md:grid-cols-2">
+          <div className="rounded-lg border border-emerald-300/45 bg-emerald-50 px-3 py-2 dark:border-emerald-300/35 dark:bg-emerald-500/10">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-emerald-900 dark:text-emerald-100">
+              Kostenlose nächste Schritte
+            </p>
+            <ul className="mt-1 list-disc pl-4 text-xs text-emerald-900/90 dark:text-emerald-100/90">
+              <li>Dossiers lesen und abstimmbare Claims prüfen</li>
+              <li>In Swipes aktiv zustimmen, ablehnen oder offen bleiben</li>
+              <li>Als neues Thema vorschlagen</li>
+            </ul>
+          </div>
+          <div className="rounded-lg border border-slate-300/55 bg-slate-50 px-3 py-2 dark:border-slate-300/30 dark:bg-slate-500/10">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-900 dark:text-slate-100">
+              Zusatzservice (optional)
+            </p>
+            <p className="mt-1 text-xs text-slate-800 dark:text-slate-200">
+              Erweiterte Prüfung oder Begleitung startest du nur bewusst im nächsten Schritt. Keine automatische Kostenbuchung.
+            </p>
+          </div>
+        </div>
         <div className="flex flex-wrap gap-2">
           <button type="button" className="btn-primary min-h-[40px] px-3 py-2 text-sm" onClick={onConfirm}>
             Ja, so einordnen
