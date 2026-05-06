@@ -84,8 +84,8 @@ type CreateWorkingState = {
 
 export const CREATE_INTELLIGENT_FOLLOWUP_SECTION_LABELS = {
   understanding: "eDebatte hat deinen Beitrag strukturiert",
-  extracted: "Aus deinem Text entsteht diese Struktur",
-  connections: "Dort könnte dein Beitrag Wirkung bekommen",
+  extracted: "So hängt dein Beitrag zusammen",
+  connections: "Dort würden wir deinen Beitrag anschließen",
   voteNotice: "Deine Stimme wird nicht automatisch abgegeben.",
 } as const;
 
