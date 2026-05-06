@@ -117,14 +117,26 @@ describe("create intelligent follow-up contract", () => {
         "Qualifikation",
         "Sanktionen",
         "Gesetzgebung",
+        "Abstimmungsoptionen",
       ]),
     );
     expect(result.understanding.statements[0]?.stance).toBe("pro");
     expect(result.suggestions.some((item) => item.title.includes("Politische Verantwortung"))).toBe(true);
     expect(result.suggestions.every((item) => item.requiresConfirmation)).toBe(true);
+    const visualMap = buildCreateVisualMap(result);
+    expect(visualMap.nodes.map((node) => node.label)).toEqual(
+      expect.arrayContaining([
+        "Politische Verantwortung",
+        "Amtsträger",
+        "Qualifikation",
+        "Sanktionen",
+        "Gesetzgebung",
+      ]),
+    );
     const sections = buildCreateVisualSections(result, 4);
     expect(sections.length).toBeGreaterThan(0);
     expect(sections[0]?.label).toContain("Abschnitt");
+    expect(sections[0]?.label).toMatch(/Forderung|Vorschlag|Aussage|Begründung|offene Frage/);
   });
 
   it("splits long source text into readable sections for visual follow-up", async () => {

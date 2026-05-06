@@ -190,13 +190,15 @@ describe("analyze workbench progressive disclosure", () => {
       "eDebatte hat deinen Beitrag strukturiert",
     );
     expect(CREATE_INTELLIGENT_FOLLOWUP_SECTION_LABELS.connections).toBe(
-      "Dort könnte dein Beitrag Wirkung bekommen",
+      "Dort würden wir deinen Beitrag anschließen",
     );
     expect(CREATE_INTELLIGENT_FOLLOWUP_SECTION_LABELS.voteNotice).toContain(
       "nicht automatisch abgegeben",
     );
-    expect(CREATE_VISUAL_FOLLOWUP_COPY.graphTitle).toBe("Aus deinem Text entsteht diese Struktur");
+    expect(CREATE_VISUAL_FOLLOWUP_COPY.structureTitle).toBe("Vorläufige Struktur");
+    expect(CREATE_VISUAL_FOLLOWUP_COPY.graphTitle).toBe("So hängt dein Beitrag zusammen");
     expect(CREATE_VISUAL_FOLLOWUP_COPY.confirmTitle).toBe("Stimmt diese Einordnung?");
+    expect(CREATE_VISUAL_FOLLOWUP_COPY.impactTitle).toBe("Dort würden wir deinen Beitrag anschließen");
     expect(CREATE_VISUAL_FOLLOWUP_COPY.guardrail).toContain("Keine automatische Veröffentlichung");
   });
 

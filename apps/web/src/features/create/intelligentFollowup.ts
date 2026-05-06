@@ -106,9 +106,8 @@ const FALLBACK_TOPIC_RULES: readonly FallbackTopicRule[] = [
   { label: "Qualifikation", pattern: /qualifikation|vorausbildung|mindestanforderung|kompetenz/ },
   { label: "Sanktionen", pattern: /sanktion|streichen|entzug|konsequenz/ },
   { label: "Gesetzgebung", pattern: /gesetzesentwurf|gesetzgebung|gesetz/ },
-  { label: "Option", pattern: /option\s*[a-z]|option b|option c|vorschlag/ },
-  { label: "Abstimmung", pattern: /abstimm|wertung|entscheidung/ },
-  { label: "Themenagenda", pattern: /agenda|themenagenda/ },
+  { label: "Abstimmungsoptionen", pattern: /option\s*[a-z]|option b|option c|vorschlag|abstimm/ },
+  { label: "Themenagenda / Optionen", pattern: /agenda|themenagenda/ },
 ];
 
 function buildFallbackTopics(normalizedText: string): Array<{ id: string; label: string; confidence: FollowupConfidence }> {

@@ -133,6 +133,23 @@ export function buildCreateVisualMap(result: CreateIntelligentFollowupResult): C
   const nodes: CreateVisualNode[] = [];
   const edges: CreateVisualEdge[] = [];
 
+  result.understanding.categories.slice(0, 3).forEach((category, index) => {
+    const nodeId = `category-${index + 1}`;
+    nodes.push({
+      id: nodeId,
+      kind: "statement",
+      label: category.label,
+      detail: "Kategorie",
+      confidence: category.confidence,
+    });
+    edges.push({
+      id: `edge-source-${nodeId}`,
+      from: center.id,
+      to: nodeId,
+      label: "Kernsignal",
+    });
+  });
+
   result.understanding.statements.slice(0, 6).forEach((statement, index) => {
     const nodeId = `statement-${index + 1}`;
     nodes.push({
@@ -215,11 +232,54 @@ export function buildCreateVisualMap(result: CreateIntelligentFollowupResult): C
     });
   });
 
+  const hasDossier = nodes.some((node) => node.kind === "dossier");
+  const hasVote = nodes.some((node) => node.kind === "vote");
+  const hasNewAnlassraum = nodes.some((node) => node.kind === "new_anlassraum");
+  if (!hasDossier) {
+    const nodeId = "suggestion-fallback-dossier";
+    nodes.push({
+      id: nodeId,
+      kind: "dossier",
+      label: "Dossier",
+      confidence: "medium",
+    });
+    edges.push({ id: `edge-source-${nodeId}`, from: center.id, to: nodeId, label: "Anschluss" });
+  }
+  if (!hasVote) {
+    const nodeId = "suggestion-fallback-vote";
+    nodes.push({
+      id: nodeId,
+      kind: "vote",
+      label: "Abstimmung",
+      confidence: "low",
+    });
+    edges.push({ id: `edge-source-${nodeId}`, from: center.id, to: nodeId, label: "Anschluss" });
+  }
+  if (!hasNewAnlassraum) {
+    const nodeId = "suggestion-fallback-new-anlassraum";
+    nodes.push({
+      id: nodeId,
+      kind: "new_anlassraum",
+      label: "Neuer Anlassraum",
+      confidence: "medium",
+    });
+    edges.push({ id: `edge-source-${nodeId}`, from: center.id, to: nodeId, label: "Anschluss" });
+  }
+
   return {
     center,
     nodes,
     edges,
   };
+}
+
+function resolveSectionKindLabel(section: CreateVisualSection): string {
+  const statement = (section.statementLabel ?? "").toLowerCase();
+  if (statement.includes("forderung") || statement.includes("mindestanforder")) return "Forderung";
+  if (statement.includes("option") || statement.includes("vorschlag")) return "Vorschlag";
+  if (statement.includes("weil") || statement.includes("begründ")) return "Begründung";
+  if (statement.includes("frage")) return "offene Frage";
+  return "Aussage";
 }
 
 function splitIntoSentenceGroups(text: string, maxSections: number): string[] {
@@ -263,7 +323,7 @@ export function buildCreateVisualSections(
     const statement = result.understanding.statements[index] ?? result.understanding.statements[0];
     const topic = result.understanding.topics[index] ?? result.understanding.topics[0];
     const suggestion = result.suggestions[index] ?? result.suggestions[0];
-    return {
+    const baseSection: CreateVisualSection = {
       id: `section-${index + 1}`,
       label: `Abschnitt ${index + 1}`,
       sourceText: chunk,
@@ -271,6 +331,10 @@ export function buildCreateVisualSections(
       topicLabel: topic?.label,
       stanceLabel: statement?.stance,
       connectionLabel: suggestion?.title,
+    };
+    return {
+      ...baseSection,
+      label: `${baseSection.label}: ${resolveSectionKindLabel(baseSection)}`,
     };
   });
 }
