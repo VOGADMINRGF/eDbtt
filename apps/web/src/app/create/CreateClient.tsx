@@ -54,7 +54,6 @@ import {
 import SharedCreateComposer from "@/features/create/SharedCreateComposer";
 import {
   deriveDominantUnderstandingStance,
-  type CreateConnectionSuggestion,
   type CreateIntelligentFollowupResult,
 } from "@/features/create/intelligentFollowupContract";
 
@@ -100,24 +99,8 @@ function resolveFollowupScopeLabel(value: string): string {
   return "Unklar";
 }
 
-function resolveSuggestionKindLabel(kind: CreateConnectionSuggestion["kind"]): string {
-  if (kind === "dossier") return "Dossier";
-  if (kind === "anlassraum") return "Anlassraum";
-  if (kind === "vote") return "Abstimmung";
-  if (kind === "topic") return "Thema";
-  return "Neuer Anlassraum";
-}
-
-function resolveSuggestionPrimaryLabel(kind: CreateConnectionSuggestion["kind"]): string {
-  if (kind === "dossier") return "Dort ergänzen";
-  if (kind === "anlassraum") return "Dort einordnen";
-  if (kind === "vote") return "Stimme bestätigen";
-  if (kind === "topic") return "Thema öffnen";
-  return "Neuen Anlassraum vorschlagen";
-}
-
 export const CREATE_INTELLIGENT_FOLLOWUP_SECTION_LABELS = {
-  understanding: "Wir haben deinen Beitrag vorläufig verstanden",
+  understanding: "eDebatte hat deinen Beitrag vorläufig verstanden",
   extracted: "Aus deinem Text erkannt",
   connections: "Dazu würden wir deinen Beitrag anschließen",
   voteNotice: "Deine Stimme wird nicht automatisch abgegeben.",
@@ -131,6 +114,29 @@ export function shouldRenderCreateIntelligentFollowup(params: {
   if (!params.hasStarted) return false;
   if (params.productMode !== "analyze") return false;
   return Boolean(params.followup);
+}
+
+export function shouldShowCreateFollowupQuestionCard(params: {
+  showPostInputModules: boolean;
+  productMode: CreateProductMode;
+}): boolean {
+  if (!params.showPostInputModules) return false;
+  return params.productMode !== "analyze";
+}
+
+export function resolveCreatePostStartSectionOrder(params: {
+  showIntelligentFollowup: boolean;
+  showPostInputModules: boolean;
+  showFollowupQuestionCard: boolean;
+  pickerEnabled: boolean;
+}): string[] {
+  const sections: string[] = [];
+  if (params.showIntelligentFollowup) sections.push("intelligent-followup");
+  if (params.showPostInputModules && !params.showIntelligentFollowup) sections.push("post-start-meta");
+  if (params.showFollowupQuestionCard) sections.push("followup-question");
+  if (params.showPostInputModules && params.pickerEnabled) sections.push("context-picker");
+  if (params.showPostInputModules) sections.push("quotas");
+  return sections;
 }
 
 type CreateProductModeConfig = ReturnType<typeof resolveCreateModeDefinition> & {
@@ -504,9 +510,9 @@ export default function CreateClient({
     check: false,
     draft: false,
   });
-  const [suggestionSelection, setSuggestionSelection] = React.useState<string | null>(null);
   const [understandingConfirmed, setUnderstandingConfirmed] = React.useState<boolean>(false);
   const [actionNotice, setActionNotice] = React.useState<string | null>(null);
+  const intelligentFollowupResultRef = React.useRef<HTMLDivElement | null>(null);
 
   React.useEffect(() => {
     if (intakeHydratedRef.current) return;
@@ -661,6 +667,12 @@ export default function CreateClient({
     }
   }, [pickerEnabled, selectedAnlassraumId]);
 
+  React.useEffect(() => {
+    if (!hasStarted) return;
+    if (!intelligentFollowup) return;
+    intelligentFollowupResultRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [hasStarted, intelligentFollowup]);
+
   const handleStart = React.useCallback(async () => {
     if (isStarting) return;
     const normalizedText = intakeText.trim();
@@ -728,7 +740,6 @@ export default function CreateClient({
             },
       );
       setIntelligentFollowup(nextIntelligentFollowup);
-      setSuggestionSelection(null);
       setUnderstandingConfirmed(false);
       setActionNotice(null);
       setHasStarted(true);
@@ -851,25 +862,6 @@ export default function CreateClient({
     [activeIntent, triggerActionNotice],
   );
 
-  const handleSuggestionConfirm = React.useCallback(
-    (suggestion: CreateConnectionSuggestion) => {
-      setSuggestionSelection(suggestion.id);
-      if (suggestion.kind === "vote") {
-        const stanceHint = suggestion.suggestedStance ? ` (${suggestion.suggestedStance})` : "";
-        setActionNotice(
-          `Abstimmungsbezug bestätigt${stanceHint}. Deine Stimme wird nicht automatisch abgegeben.`,
-        );
-        return;
-      }
-      if (suggestion.kind === "new_anlassraum") {
-        setActionNotice("Neuer Anlassraum als nächster Schritt markiert. Vor Veröffentlichung folgt eine Prüfung.");
-        return;
-      }
-      setActionNotice("Anschlussvorschlag markiert. Die Zuordnung wird erst nach Bestätigung weitergeführt.");
-    },
-    [],
-  );
-
   if (gate.status === "loading") {
     return (
       <main className="mx-auto max-w-4xl px-4 py-12 text-center text-[rgb(var(--muted))]">
@@ -943,6 +935,10 @@ export default function CreateClient({
     productMode,
     followup: intelligentFollowup,
   });
+  const showFollowupQuestionCard = shouldShowCreateFollowupQuestionCard({
+    showPostInputModules,
+    productMode,
+  });
   const analyzeFollowupActivated = followupSurface === "analysis";
   const showAnalyzeWorkspace = shouldRenderCreateAnalyzeWorkspace({
     followupActivated: analyzeFollowupActivated,
@@ -965,6 +961,18 @@ export default function CreateClient({
     normalizedIntakeText.length > 0 && normalizedIntakeText.length < MIN_INTENT_INPUT_LENGTH;
   const startBusyStatusLabel =
     productMode === "analyze" ? "Wir ordnen deinen Beitrag ein …" : surfaceTexts.startBusyStatus;
+  const dominantStanceLabel = intelligentFollowup
+    ? deriveDominantUnderstandingStance(intelligentFollowup.understanding)
+    : "offen/unklar";
+  const dominantCategoryLabel = intelligentFollowup?.understanding.categories[0]?.label ?? "Hinweis";
+  const actionSuggestionHref =
+    intelligentFollowup?.suggestions.find(
+      (suggestion) =>
+        suggestion.kind === "dossier" ||
+        suggestion.kind === "vote" ||
+        suggestion.kind === "anlassraum" ||
+        suggestion.kind === "topic",
+    )?.href ?? "/dossier/demo";
 
   return (
     <div className="space-y-6 md:space-y-8">
@@ -984,7 +992,6 @@ export default function CreateClient({
           setProductMode(modeOption);
           setActiveContextAnchorId(null);
           setIntelligentFollowup(null);
-          setSuggestionSelection(null);
           setUnderstandingConfirmed(false);
           if (!hasStarted) return;
           setFollowupSurface("none");
@@ -1015,7 +1022,6 @@ export default function CreateClient({
           const anchor = resolveCreateContextAnchorById(anchorId, surfaceLocale);
           setActiveContextAnchorId(anchorId);
           setIntelligentFollowup(null);
-          setSuggestionSelection(null);
           setUnderstandingConfirmed(false);
           if (!anchor) return;
           setProductMode(anchor.mode);
@@ -1057,6 +1063,87 @@ export default function CreateClient({
         </section>
       ) : null}
 
+      {showIntelligentFollowup && intelligentFollowup ? (
+        <section
+          ref={intelligentFollowupResultRef}
+          className="space-y-4 rounded-2xl border border-cyan-300/40 bg-cyan-500/10 p-4 md:p-5"
+        >
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-cyan-100">
+              Systemprüfung
+            </p>
+            <p className="mt-1 text-base font-semibold text-cyan-50">
+              {CREATE_INTELLIGENT_FOLLOWUP_SECTION_LABELS.understanding}
+            </p>
+            <p className="mt-2 text-sm text-cyan-100">
+              Du sprichst vor allem über {intelligentFollowup.understanding.topics.slice(0, 2).map((topic) => topic.label).join(" und ") || "ein öffentliches Thema"}.
+            </p>
+          </div>
+
+          <div className="grid gap-2 sm:grid-cols-2">
+            <p className="rounded-xl border border-cyan-300/40 bg-[rgb(var(--card))] px-3 py-2 text-sm text-[rgb(var(--fg))]">
+              <span className="font-semibold">Kategorie:</span> {dominantCategoryLabel}
+            </p>
+            <p className="rounded-xl border border-cyan-300/40 bg-[rgb(var(--card))] px-3 py-2 text-sm text-[rgb(var(--fg))]">
+              <span className="font-semibold">Themen:</span>{" "}
+              {intelligentFollowup.understanding.topics.map((topic) => topic.label).join(", ")}
+            </p>
+            <p className="rounded-xl border border-cyan-300/40 bg-[rgb(var(--card))] px-3 py-2 text-sm text-[rgb(var(--fg))]">
+              <span className="font-semibold">Haltung:</span> {dominantStanceLabel}
+            </p>
+            <p className="rounded-xl border border-cyan-300/40 bg-[rgb(var(--card))] px-3 py-2 text-sm text-[rgb(var(--fg))]">
+              <span className="font-semibold">Ebene:</span>{" "}
+              {intelligentFollowup.understanding.scopes.map(resolveFollowupScopeLabel).join(", ")}
+            </p>
+            <p className="rounded-xl border border-cyan-300/40 bg-[rgb(var(--card))] px-3 py-2 text-sm text-[rgb(var(--fg))] sm:col-span-2">
+              <span className="font-semibold">Kernpunkt:</span> {intelligentFollowup.understanding.summary}
+            </p>
+          </div>
+
+          <div className="rounded-xl border border-cyan-300/40 bg-[rgb(var(--card))] px-3 py-3">
+            <p className="text-sm font-semibold text-[rgb(var(--fg))]">So würden wir weitermachen</p>
+            <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-[rgb(var(--muted))]">
+              {intelligentFollowup.suggestions.slice(0, 3).map((suggestion) => (
+                <li key={suggestion.id}>{suggestion.title}</li>
+              ))}
+            </ul>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <button
+                type="button"
+                className="btn-primary text-xs"
+                onClick={() => {
+                  setUnderstandingConfirmed(true);
+                  setActionNotice("Einordnung bestätigt. Keine automatische Veröffentlichung.");
+                }}
+              >
+                Passt so
+              </button>
+              <button
+                type="button"
+                className="btn-secondary text-xs"
+                onClick={() => {
+                  setUnderstandingConfirmed(false);
+                  setActionNotice("Einordnung zur Korrektur geöffnet. Passe den Text an und starte erneut.");
+                }}
+              >
+                Einordnung ändern
+              </button>
+              <Link href={actionSuggestionHref} className="btn-secondary text-xs">
+                Dossier/Abstimmungen anzeigen
+              </Link>
+            </div>
+            <p className="mt-3 text-xs text-[rgb(var(--muted))]">
+              {CREATE_INTELLIGENT_FOLLOWUP_SECTION_LABELS.voteNotice} Keine automatische Veröffentlichung.
+            </p>
+            {actionNotice ? (
+              <p className="mt-2 rounded-xl border border-cyan-300/35 bg-cyan-500/10 px-3 py-2 text-xs text-cyan-100">
+                {actionNotice}
+              </p>
+            ) : null}
+          </div>
+        </section>
+      ) : null}
+
       {showPostInputModules && !showIntelligentFollowup ? (
         <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 md:p-5">
           <p className="text-sm font-semibold text-[rgb(var(--fg))]">{productModeConfig.postStartTitle}</p>
@@ -1077,7 +1164,7 @@ export default function CreateClient({
         </section>
       ) : null}
 
-      {showPostInputModules ? (
+      {showFollowupQuestionCard ? (
         <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 md:p-5">
           <p className="text-sm font-semibold text-[rgb(var(--fg))]">{surfaceTexts.followupQuestionLabel}</p>
           <p className="mt-1 text-sm text-[rgb(var(--muted))]">{productModeConfig.firstQuestion}</p>
@@ -1219,204 +1306,6 @@ export default function CreateClient({
             </Link>
           </div>
         </details>
-      ) : null}
-
-      {showIntelligentFollowup && intelligentFollowup ? (
-        <section className="space-y-4 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 md:p-5">
-          <div className="rounded-xl border border-cyan-300/35 bg-cyan-500/10 px-3 py-2">
-            <p className="text-sm font-semibold text-cyan-100">
-              {CREATE_INTELLIGENT_FOLLOWUP_SECTION_LABELS.understanding}
-            </p>
-            <p className="mt-1 text-xs text-cyan-100/90">
-              Zusammenfassung: {intelligentFollowup.understanding.summary}
-            </p>
-          </div>
-
-          <div className="grid gap-3">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">
-                Erkannte Kategorien
-              </p>
-              <div className="mt-2 flex gap-2 overflow-x-auto pb-1">
-                {intelligentFollowup.understanding.categories.map((category) => (
-                  <span key={category.id} className="vog-chip whitespace-nowrap">
-                    {category.label} · {resolveFollowupConfidenceLabel(category.confidence)}
-                  </span>
-                ))}
-              </div>
-            </div>
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">
-                Themen aus deinem Beitrag
-              </p>
-              <div className="mt-2 flex gap-2 overflow-x-auto pb-1">
-                {intelligentFollowup.understanding.topics.map((topic) => (
-                  <span key={topic.id} className="vog-chip whitespace-nowrap">
-                    {topic.label}
-                  </span>
-                ))}
-              </div>
-            </div>
-            <div className="grid gap-2 sm:grid-cols-3">
-              <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2">
-                <p className="text-xs font-semibold text-[rgb(var(--muted))]">Vermutete Haltung</p>
-                <p className="mt-1 text-sm text-[rgb(var(--fg))]">
-                  {deriveDominantUnderstandingStance(intelligentFollowup.understanding)}
-                </p>
-              </div>
-              <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2">
-                <p className="text-xs font-semibold text-[rgb(var(--muted))]">Ebene</p>
-                <p className="mt-1 text-sm text-[rgb(var(--fg))]">
-                  {intelligentFollowup.understanding.scopes.map(resolveFollowupScopeLabel).join(", ")}
-                </p>
-              </div>
-              <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2">
-                <p className="text-xs font-semibold text-[rgb(var(--muted))]">Sicherheit</p>
-                <p className="mt-1 text-sm text-[rgb(var(--fg))]">
-                  {resolveFollowupConfidenceLabel(intelligentFollowup.understanding.confidence)}
-                </p>
-              </div>
-            </div>
-            {intelligentFollowup.understanding.openQuestion ? (
-              <p className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-sm text-[rgb(var(--fg))]">
-                Offene Rückfrage: {intelligentFollowup.understanding.openQuestion}
-              </p>
-            ) : null}
-          </div>
-
-          <div className="sticky bottom-2 z-10 flex flex-wrap gap-2 rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))]/95 p-2 backdrop-blur">
-            <button
-              type="button"
-              className="btn-primary text-xs"
-              onClick={() => {
-                setUnderstandingConfirmed(true);
-                setActionNotice("Einordnung bestätigt. Als nächstes kannst du den Anschlussvorschlag auswählen.");
-              }}
-            >
-              Passt so
-            </button>
-            <button
-              type="button"
-              className="btn-secondary text-xs"
-              onClick={() => {
-                setUnderstandingConfirmed(false);
-                setActionNotice("Einordnung zur Korrektur geöffnet. Du kannst Text oder Modus anpassen und erneut starten.");
-              }}
-            >
-              Einordnung ändern
-            </button>
-            <button
-              type="button"
-              className="btn-secondary text-xs"
-              onClick={() => {
-                setActionNotice("Bitte lies zuerst die Anschlussvorschläge und bestätige dann den passenden Schritt.");
-              }}
-            >
-              Erst lesen
-            </button>
-          </div>
-
-          <div className="grid gap-3 lg:grid-cols-2">
-            <section className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
-              <p className="text-sm font-semibold text-[rgb(var(--fg))]">
-                {CREATE_INTELLIGENT_FOLLOWUP_SECTION_LABELS.extracted}
-              </p>
-              <details className="mt-2" open>
-                <summary className="cursor-pointer text-xs text-[rgb(var(--muted))]">Dein Originaltext</summary>
-                <pre className="mt-2 whitespace-pre-wrap rounded-lg bg-[rgb(var(--card))] px-3 py-2 text-sm text-[rgb(var(--fg))]">
-                  {intelligentFollowup.sourceText}
-                </pre>
-              </details>
-            </section>
-            <section className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
-              <p className="text-sm font-semibold text-[rgb(var(--fg))]">Systemnotizen und Aussagen</p>
-              <div className="mt-2 grid gap-2">
-                {intelligentFollowup.understanding.statements.map((statement) => (
-                  <article key={statement.id} className="rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2">
-                    <p className="text-xs text-[rgb(var(--muted))]">
-                      {statement.kind} · {statement.stance} · {resolveFollowupConfidenceLabel(statement.confidence)}
-                    </p>
-                    <p className="mt-1 text-sm text-[rgb(var(--fg))]">{statement.text}</p>
-                    {statement.sourceExcerpt ? (
-                      <p className="mt-2 text-xs text-[rgb(var(--muted))]">Auszug: {statement.sourceExcerpt}</p>
-                    ) : null}
-                  </article>
-                ))}
-              </div>
-            </section>
-          </div>
-
-          <section className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
-            <p className="text-sm font-semibold text-[rgb(var(--fg))]">
-              {CREATE_INTELLIGENT_FOLLOWUP_SECTION_LABELS.connections}
-            </p>
-            <div className="mt-3 grid gap-3">
-              {intelligentFollowup.suggestions.map((suggestion) => (
-                <article
-                  key={suggestion.id}
-                  className={`rounded-xl border px-3 py-3 ${
-                    suggestionSelection === suggestion.id
-                      ? "border-cyan-300/70 bg-cyan-500/10"
-                      : "border-[rgb(var(--border))] bg-[rgb(var(--card))]"
-                  }`}
-                >
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="vog-chip">{resolveSuggestionKindLabel(suggestion.kind)}</span>
-                    <span className="text-xs text-[rgb(var(--muted))]">
-                      Sicherheit: {resolveFollowupConfidenceLabel(suggestion.confidence)}
-                    </span>
-                  </div>
-                  <p className="mt-2 text-sm font-semibold text-[rgb(var(--fg))]">{suggestion.title}</p>
-                  <p className="mt-1 text-sm text-[rgb(var(--muted))]">Warum passt das? {suggestion.reason}</p>
-                  {suggestion.kind === "vote" ? (
-                    <p className="mt-2 rounded-md border border-amber-300/45 bg-amber-500/10 px-2 py-1 text-xs text-amber-100">
-                      {CREATE_INTELLIGENT_FOLLOWUP_SECTION_LABELS.voteNotice}
-                    </p>
-                  ) : null}
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    <button
-                      type="button"
-                      className="btn-primary text-xs"
-                      onClick={() => handleSuggestionConfirm(suggestion)}
-                    >
-                      {resolveSuggestionPrimaryLabel(suggestion.kind)}
-                    </button>
-                    {suggestion.href ? (
-                      <Link href={suggestion.href} className="btn-secondary text-xs">
-                        Erst lesen
-                      </Link>
-                    ) : (
-                      <button
-                        type="button"
-                        className="btn-secondary text-xs"
-                        onClick={() => setActionNotice("Für diesen Anschluss ist noch keine direkte Navigation verfügbar.")}
-                      >
-                        Erst lesen
-                      </button>
-                    )}
-                    <button
-                      type="button"
-                      className="btn-secondary text-xs"
-                      onClick={() => setActionNotice("Vorschlag als nicht passend markiert. Du kannst einen anderen Anschluss wählen.")}
-                    >
-                      Nicht passend
-                    </button>
-                  </div>
-                </article>
-              ))}
-            </div>
-          </section>
-
-          <p className="text-xs text-[rgb(var(--muted))]">
-            {surfaceTexts.followupNotPublishedLabel}
-            {understandingConfirmed ? " Einordnung bestätigt." : ""}
-          </p>
-          {intelligentFollowup.degraded ? (
-            <p className="rounded-xl border border-amber-300/45 bg-amber-500/10 px-3 py-2 text-xs text-amber-100">
-              Die aktuelle Einordnung basiert auf einer reduzierten Systemprüfung und sollte manuell geprüft werden.
-            </p>
-          ) : null}
-        </section>
       ) : null}
 
       {showPostInputModules && workingState && !showIntelligentFollowup ? (

@@ -31,6 +31,20 @@ function shouldSuggestVote(text: string): boolean {
   return /abstimm|stimme|vot|entscheid|beschluss|ja\/nein/.test(normalized);
 }
 
+function resolveHumanConnectionTitle(topics: Array<{ label: string }>): string {
+  const lowered = topics.map((topic) => topic.label.toLowerCase()).join(" ");
+  if (/verantwort|amtstr[aä]ger|qualifikation/.test(lowered)) {
+    return "Politische Verantwortung und Mindestanforderungen für Amtsträger";
+  }
+  if (/sanktion|kontroll|mandat/.test(lowered)) {
+    return "Sanktionen und Kontrolle öffentlicher Mandate";
+  }
+  if (/gesetz|gesetzgebung/.test(lowered)) {
+    return "Gesetzgebung und Verantwortung im Amt";
+  }
+  return "Politische Verantwortung und Mindestanforderungen für Amtsträger";
+}
+
 export function buildCreateConnectionSuggestions(
   input: BuildCreateConnectionSuggestionsInput,
 ): CreateConnectionSuggestion[] {
@@ -38,7 +52,6 @@ export function buildCreateConnectionSuggestions(
   const maxSuggestions = Math.max(2, Math.min(8, input.maxSuggestions ?? 5));
   const topics = input.understanding.topics.slice(0, 2);
   const topStatement = input.understanding.statements[0];
-  const strongestTopic = topics[0]?.label ?? "Themencluster";
 
   if (input.dossierId) {
     suggestions.push({
@@ -69,10 +82,11 @@ export function buildCreateConnectionSuggestions(
   }
 
   if (topics.length > 0) {
+    const topicalTitle = resolveHumanConnectionTitle(topics);
     suggestions.push({
       id: `topic:${topics[0].id}`,
       kind: "topic",
-      title: `Thema: ${topics[0].label}`,
+      title: topicalTitle,
       reason: "Thematische Nähe aus deinem Text erkannt.",
       confidence: topics[0].confidence,
       href: `/swipes?topic=${encodeURIComponent(topics[0].label)}`,
@@ -97,10 +111,11 @@ export function buildCreateConnectionSuggestions(
   }
 
   if (suggestions.length < maxSuggestions) {
+    const fallbackTitle = resolveHumanConnectionTitle(topics);
     suggestions.push({
       id: "new_anlassraum:auto",
       kind: "new_anlassraum",
-      title: `Neuen Anlassraum zu ${strongestTopic} vorschlagen`,
+      title: fallbackTitle,
       reason: "Kein vollständig passender Anschluss ist sicher genug.",
       confidence: input.understanding.confidence === "high" ? "medium" : "low",
       href: input.intent === "check" ? "/create?intent=check" : "/create?intent=contribute",

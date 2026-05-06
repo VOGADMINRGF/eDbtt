@@ -95,6 +95,97 @@ function summarizeText(text: string): string {
   return `${normalized.slice(0, 277).trim()}...`;
 }
 
+type FallbackTopicRule = {
+  label: string;
+  pattern: RegExp;
+};
+
+const FALLBACK_TOPIC_RULES: readonly FallbackTopicRule[] = [
+  { label: "Politische Verantwortung", pattern: /verantwort|pflicht/ },
+  { label: "Amtsträger", pattern: /minister|repr[aä]sentant|amtstr[aä]ger|mandat/ },
+  { label: "Qualifikation", pattern: /qualifikation|vorausbildung|mindestanforderung|kompetenz/ },
+  { label: "Sanktionen", pattern: /sanktion|streichen|entzug|konsequenz/ },
+  { label: "Gesetzgebung", pattern: /gesetzesentwurf|gesetzgebung|gesetz/ },
+  { label: "Option", pattern: /option\s*[a-z]|option b|option c|vorschlag/ },
+  { label: "Abstimmung", pattern: /abstimm|wertung|entscheidung/ },
+  { label: "Themenagenda", pattern: /agenda|themenagenda/ },
+];
+
+function buildFallbackTopics(normalizedText: string): Array<{ id: string; label: string; confidence: FollowupConfidence }> {
+  const topics: Array<{ id: string; label: string; confidence: FollowupConfidence }> = [];
+  const pushTopic = (label: string, confidence: FollowupConfidence = "medium") => {
+    if (topics.some((topic) => topic.label === label)) return;
+    topics.push({
+      id: `topic-${topics.length + 1}`,
+      label,
+      confidence,
+    });
+  };
+  for (const rule of FALLBACK_TOPIC_RULES) {
+    if (!rule.pattern.test(normalizedText)) continue;
+    pushTopic(rule.label);
+  }
+  if (
+    /minister|repr[aä]sentant|amtstr[aä]ger|mandat|gesetzesentwurf|gesetzgebung/.test(normalizedText)
+  ) {
+    pushTopic("Politische Verantwortung");
+  }
+  if (topics.length === 0) {
+    pushTopic("Öffentliches Anliegen", "low");
+  }
+  return topics;
+}
+
+function buildFallbackCategories(
+  normalizedText: string,
+  fallbackKind: CreateUnderstandingStatementKind,
+): Array<{ id: string; label: string; confidence: FollowupConfidence }> {
+  const categories: Array<{ id: string; label: string; confidence: FollowupConfidence }> = [];
+  const pushIfMissing = (id: string, label: string, confidence: FollowupConfidence) => {
+    if (categories.some((item) => item.id === id)) return;
+    categories.push({ id, label, confidence });
+  };
+
+  if (/soll|muss|fordern|fordere|verlangen|mindestanforderung/.test(normalizedText)) {
+    pushIfMissing("demand", "Forderung", "medium");
+  }
+  if (/kritik|zweifel|problem|fehlt|zu wenig|ungeeignet|widerspruch|wertung|verstö|verstoß|verstoe|verstoss/.test(normalizedText)) {
+    pushIfMissing("objection", "Kritik", "medium");
+  }
+  if (/vorschlag|option|agenda|alternativ/.test(normalizedText)) {
+    pushIfMissing("option", "Vorschlag", "medium");
+  }
+
+  if (categories.length > 0) return categories;
+  if (fallbackKind === "demand") return [{ id: "demand", label: "Forderung", confidence: "low" }];
+  if (fallbackKind === "objection") return [{ id: "objection", label: "Kritik", confidence: "low" }];
+  if (fallbackKind === "option") return [{ id: "option", label: "Vorschlag", confidence: "low" }];
+  if (fallbackKind === "question") return [{ id: "question", label: "Frage", confidence: "low" }];
+  if (fallbackKind === "source") return [{ id: "source", label: "Quelle", confidence: "low" }];
+  if (fallbackKind === "argument") return [{ id: "argument", label: "Argument", confidence: "low" }];
+  return [{ id: "hint", label: "Hinweis", confidence: "low" }];
+}
+
+function buildFallbackSummary(
+  normalizedText: string,
+  normalizedLower: string,
+  topics: Array<{ label: string }>,
+): string {
+  if (
+    /minister|amtstr[aä]ger|gesetzesentwurf|gesetzgebung/.test(normalizedLower) &&
+    /mindestanforderung|qualifikation|konsequenz|sanktion/.test(normalizedLower)
+  ) {
+    return "Du forderst klarere Mindestanforderungen und Konsequenzen für gewählte oder ernannte Amtsträger, insbesondere bei Ministerämtern und Gesetzgebung.";
+  }
+  if (topics.length > 0) {
+    return `Du benennst Handlungsbedarf zu ${topics
+      .slice(0, 3)
+      .map((topic) => topic.label.toLowerCase())
+      .join(", ")}.`;
+  }
+  return summarizeText(normalizedText);
+}
+
 function mapAnalyzeResultToUnderstanding(text: string, result: AnalyzeResult): CreateUnderstandingResult {
   const statements = result.claims.slice(0, 6).map((claim, index) => {
     const statementText = claim.text?.trim() || `Aussage ${index + 1}`;
@@ -187,40 +278,39 @@ function mapAnalyzeResultToUnderstanding(text: string, result: AnalyzeResult): C
 
 function buildFallbackUnderstanding(text: string): CreateUnderstandingResult {
   const normalized = text.replace(/\s+/g, " ").trim();
+  const normalizedLower = normalized.toLowerCase();
   const fallbackKind = inferStatementKind(normalized);
-  const fallbackLabel =
-    fallbackKind === "question"
-      ? "Frage"
-      : fallbackKind === "demand"
-        ? "Forderung"
-        : fallbackKind === "source"
-          ? "Quelle"
-          : fallbackKind === "option"
-            ? "Option"
-            : fallbackKind === "objection"
-              ? "Widerspruch"
-              : fallbackKind === "hint"
-                ? "Hinweis"
-                : fallbackKind === "argument"
-                  ? "Argument"
-                  : "Aussage";
+  const topics = buildFallbackTopics(normalizedLower);
+  const categories = buildFallbackCategories(normalizedLower, fallbackKind);
+  const inferredStance: "pro" | "contra" | "mixed" | "open" | "unclear" = /mindestanforderung|qualifikation|konsequenz|sanktion/.test(
+    normalizedLower,
+  )
+    ? "pro"
+    : /dagegen|ablehnen|nicht sinnvoll/.test(normalizedLower)
+      ? "contra"
+      : "open";
+  const scopes: CreateUnderstandingResult["scopes"] = [];
+  if (/minister|gesetzesentwurf|gesetzgebung|bund|bundes/.test(normalizedLower)) scopes.push("federal");
+  if (/bezirk/.test(normalizedLower)) scopes.push("district");
+  if (/kommune|stadt|gemeinde/.test(normalizedLower)) scopes.push("municipal");
+  if (scopes.length === 0) scopes.push("unclear");
 
   return {
-    summary: summarizeText(normalized),
-    categories: [{ id: fallbackKind, label: fallbackLabel, confidence: "low" }],
-    topics: [{ id: "topic-fallback", label: "Thema wird nach Bestätigung präzisiert", confidence: "low" }],
+    summary: buildFallbackSummary(normalized, normalizedLower, topics),
+    categories,
+    topics,
     statements: [
       {
         id: "fallback-1",
         text: summarizeText(normalized),
         kind: fallbackKind,
-        stance: "unclear",
-        confidence: "low",
+        stance: inferredStance,
+        confidence: "medium",
       },
     ],
-    scopes: ["unclear"],
+    scopes,
     openQuestion: null,
-    confidence: "low",
+    confidence: "medium",
   };
 }
 
