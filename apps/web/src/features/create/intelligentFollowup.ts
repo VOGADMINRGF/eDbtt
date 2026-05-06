@@ -19,6 +19,37 @@ type BuildCreateIntelligentFollowupInput = {
   maxSuggestions?: number;
 };
 
+const DEFAULT_FAST_FOLLOWUP_TIMEOUT_MS = 2_800;
+
+class CreateFollowupTimeoutError extends Error {
+  constructor(timeoutMs: number) {
+    super(`create_followup_timeout_after_${timeoutMs}ms`);
+    this.name = "CreateFollowupTimeoutError";
+  }
+}
+
+function resolveFastFollowupTimeoutMs(): number {
+  const raw = Number(process.env.CREATE_INTELLIGENT_FOLLOWUP_TIMEOUT_MS ?? DEFAULT_FAST_FOLLOWUP_TIMEOUT_MS);
+  if (!Number.isFinite(raw) || raw <= 0) return DEFAULT_FAST_FOLLOWUP_TIMEOUT_MS;
+  return Math.min(8_000, Math.max(800, Math.floor(raw)));
+}
+
+function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => reject(new CreateFollowupTimeoutError(timeoutMs)), timeoutMs);
+    promise.then(
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      (error) => {
+        clearTimeout(timer);
+        reject(error);
+      },
+    );
+  });
+}
+
 function normalizeConfidence(score: number): FollowupConfidence {
   if (score >= 0.74) return "high";
   if (score >= 0.44) return "medium";
@@ -188,7 +219,7 @@ function buildFallbackUnderstanding(text: string): CreateUnderstandingResult {
       },
     ],
     scopes: ["unclear"],
-    openQuestion: "Welche Zuordnung passt aus deiner Sicht am besten?",
+    openQuestion: null,
     confidence: "low",
   };
 }
@@ -199,13 +230,16 @@ export async function buildCreateIntelligentFollowup(
   const text = input.text.trim();
   const generatedAt = new Date().toISOString();
   try {
-    const result = await analyzeContribution({
-      text,
-      locale: input.locale,
-      analysisMode: "analyze",
-      journeyHint: input.intent === "check" ? "media" : input.intent === "draft" ? "guided" : "analyze",
-      maxClaims: 6,
-    });
+    const result = await withTimeout(
+      analyzeContribution({
+        text,
+        locale: input.locale,
+        analysisMode: "analyze",
+        journeyHint: input.intent === "check" ? "media" : input.intent === "draft" ? "guided" : "analyze",
+        maxClaims: 6,
+      }),
+      resolveFastFollowupTimeoutMs(),
+    );
     const understanding = mapAnalyzeResultToUnderstanding(text, result as AnalyzeResult);
     const suggestions = buildCreateConnectionSuggestions({
       text,
