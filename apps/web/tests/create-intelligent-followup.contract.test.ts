@@ -9,6 +9,10 @@ vi.mock("@features/analyze/analyzeContribution", () => ({
 }));
 
 import { buildCreateIntelligentFollowup } from "@/features/create/intelligentFollowup";
+import {
+  buildCreateVisualMap,
+  buildCreateVisualSections,
+} from "@/features/create/intelligentFollowupContract";
 
 function analyzeFixture() {
   return {
@@ -68,6 +72,12 @@ describe("create intelligent follow-up contract", () => {
     expect(result.understanding.statements.length).toBeGreaterThan(0);
     expect(result.suggestions.length).toBeGreaterThan(0);
     expect(result.suggestions.every((suggestion) => suggestion.requiresConfirmation === true)).toBe(true);
+    const visualMap = buildCreateVisualMap(result);
+    expect(visualMap.center.label).toBe("Dein Beitrag");
+    expect(visualMap.nodes.some((node) => node.kind === "statement")).toBe(true);
+    expect(visualMap.nodes.some((node) => node.kind === "topic")).toBe(true);
+    expect(visualMap.nodes.some((node) => node.kind === "stance")).toBe(true);
+    expect(visualMap.nodes.some((node) => node.kind === "dossier" || node.kind === "anlassraum" || node.kind === "vote" || node.kind === "new_anlassraum")).toBe(true);
   });
 
   it("falls back to degraded mode when analyzeContribution fails", async () => {
@@ -112,6 +122,27 @@ describe("create intelligent follow-up contract", () => {
     expect(result.understanding.statements[0]?.stance).toBe("pro");
     expect(result.suggestions.some((item) => item.title.includes("Politische Verantwortung"))).toBe(true);
     expect(result.suggestions.every((item) => item.requiresConfirmation)).toBe(true);
+    const sections = buildCreateVisualSections(result, 4);
+    expect(sections.length).toBeGreaterThan(0);
+    expect(sections[0]?.label).toContain("Abschnitt");
+  });
+
+  it("splits long source text into readable sections for visual follow-up", async () => {
+    mocks.analyzeContribution.mockRejectedValue(new Error("provider_failed"));
+    const longText = [
+      "Ich sehe ein Problem bei politischen Mandaten und fehlender Kontrolle.",
+      "Ministerämter brauchen nachvollziehbare Mindestanforderungen.",
+      "Bei Verstößen sollten Sanktionen greifen und transparent dokumentiert werden.",
+      "Option B und C sollten in der Agenda bleiben, statt gelöscht zu werden.",
+    ].join(" ");
+    const result = await buildCreateIntelligentFollowup({
+      text: longText,
+      locale: "de",
+      intent: "contribute",
+    });
+    const sections = buildCreateVisualSections(result, 4);
+    expect(sections.length).toBeGreaterThan(1);
+    expect(sections.every((section) => section.sourceText.length > 0)).toBe(true);
   });
 
   it("marks vote suggestions as explicit confirmation only", async () => {
