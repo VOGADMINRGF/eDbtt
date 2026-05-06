@@ -12,6 +12,7 @@ import {
   shouldRenderCreateAnalyzeWorkspace,
   shouldShowCreatePostInputModules,
 } from "@/app/create/CreateClient";
+import { CREATE_VISUAL_FOLLOWUP_COPY } from "@/features/create/CreateVisualFollowup";
 
 describe("analyze workbench progressive disclosure", () => {
   it("keeps post-input modules hidden before explicit start", () => {
@@ -186,14 +187,17 @@ describe("analyze workbench progressive disclosure", () => {
       }),
     ).toBe(true);
     expect(CREATE_INTELLIGENT_FOLLOWUP_SECTION_LABELS.understanding).toBe(
-      "eDebatte hat deinen Beitrag vorläufig verstanden",
+      "eDebatte hat deinen Beitrag strukturiert",
     );
     expect(CREATE_INTELLIGENT_FOLLOWUP_SECTION_LABELS.connections).toBe(
-      "Dazu würden wir deinen Beitrag anschließen",
+      "Dort könnte dein Beitrag Wirkung bekommen",
     );
     expect(CREATE_INTELLIGENT_FOLLOWUP_SECTION_LABELS.voteNotice).toContain(
       "nicht automatisch abgegeben",
     );
+    expect(CREATE_VISUAL_FOLLOWUP_COPY.graphTitle).toBe("Aus deinem Text entsteht diese Struktur");
+    expect(CREATE_VISUAL_FOLLOWUP_COPY.confirmTitle).toBe("Stimmt diese Einordnung?");
+    expect(CREATE_VISUAL_FOLLOWUP_COPY.guardrail).toContain("Keine automatische Veröffentlichung");
   });
 
   it("hides legacy follow-up question card in Beitragen mode after start", () => {
