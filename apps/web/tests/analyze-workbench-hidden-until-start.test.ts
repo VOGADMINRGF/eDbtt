@@ -5,7 +5,9 @@ import {
   buildCreatePrimaryIntakeStorageKey,
   buildGuidedWorkspaceText,
   parseCreatePrimaryIntakeSnapshot,
+  resolveCreatePostStartSectionOrder,
   resolveFollowupSurfaceOnStart,
+  shouldShowCreateFollowupQuestionCard,
   shouldRenderCreateIntelligentFollowup,
   shouldRenderCreateAnalyzeWorkspace,
   shouldShowCreatePostInputModules,
@@ -184,7 +186,7 @@ describe("analyze workbench progressive disclosure", () => {
       }),
     ).toBe(true);
     expect(CREATE_INTELLIGENT_FOLLOWUP_SECTION_LABELS.understanding).toBe(
-      "Wir haben deinen Beitrag vorläufig verstanden",
+      "eDebatte hat deinen Beitrag vorläufig verstanden",
     );
     expect(CREATE_INTELLIGENT_FOLLOWUP_SECTION_LABELS.connections).toBe(
       "Dazu würden wir deinen Beitrag anschließen",
@@ -192,5 +194,31 @@ describe("analyze workbench progressive disclosure", () => {
     expect(CREATE_INTELLIGENT_FOLLOWUP_SECTION_LABELS.voteNotice).toContain(
       "nicht automatisch abgegeben",
     );
+  });
+
+  it("hides legacy follow-up question card in Beitragen mode after start", () => {
+    expect(
+      shouldShowCreateFollowupQuestionCard({
+        showPostInputModules: true,
+        productMode: "analyze",
+      }),
+    ).toBe(false);
+    expect(
+      shouldShowCreateFollowupQuestionCard({
+        showPostInputModules: true,
+        productMode: "media",
+      }),
+    ).toBe(true);
+  });
+
+  it("keeps intelligent response before legacy post-start modules in section order", () => {
+    const order = resolveCreatePostStartSectionOrder({
+      showIntelligentFollowup: true,
+      showPostInputModules: true,
+      showFollowupQuestionCard: false,
+      pickerEnabled: true,
+    });
+    expect(order[0]).toBe("intelligent-followup");
+    expect(order).not.toContain("followup-question");
   });
 });

@@ -26,7 +26,7 @@ describe("/api/create/intelligent-followup route", () => {
     expect(response.status).toBe(400);
     await expect(response.json()).resolves.toMatchObject({
       ok: false,
-      errorCode: "BAD_INPUT",
+      errorCode: "TEXT_REQUIRED",
     });
   });
 

@@ -84,6 +84,36 @@ describe("create intelligent follow-up contract", () => {
     expect(result.suggestions[0]?.requiresConfirmation).toBe(true);
   });
 
+  it("derives policy fallback topics/categories/stance for governance-heavy text", async () => {
+    mocks.analyzeContribution.mockRejectedValue(new Error("provider_failed"));
+    const result = await buildCreateIntelligentFollowup({
+      text:
+        "Minister und gewählte Repräsentanten brauchen klare Qualifikation. Bei Verstößen sollten Sanktionen greifen. Option B und Option C sollen im Gesetzesentwurf geprüft werden.",
+      locale: "de",
+      intent: "contribute",
+    });
+
+    expect(result.degraded).toBe(true);
+    expect(result.understanding.openQuestion).toBeNull();
+    expect(result.understanding.summary).toContain("Mindestanforderungen");
+    expect(result.understanding.scopes).toContain("federal");
+    expect(result.understanding.categories.map((item) => item.label)).toEqual(
+      expect.arrayContaining(["Forderung", "Kritik", "Vorschlag"]),
+    );
+    expect(result.understanding.topics.map((item) => item.label)).toEqual(
+      expect.arrayContaining([
+        "Politische Verantwortung",
+        "Amtsträger",
+        "Qualifikation",
+        "Sanktionen",
+        "Gesetzgebung",
+      ]),
+    );
+    expect(result.understanding.statements[0]?.stance).toBe("pro");
+    expect(result.suggestions.some((item) => item.title.includes("Politische Verantwortung"))).toBe(true);
+    expect(result.suggestions.every((item) => item.requiresConfirmation)).toBe(true);
+  });
+
   it("marks vote suggestions as explicit confirmation only", async () => {
     mocks.analyzeContribution.mockResolvedValue({
       ...analyzeFixture(),
