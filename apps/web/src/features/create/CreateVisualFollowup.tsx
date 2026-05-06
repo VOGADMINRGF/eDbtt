@@ -6,9 +6,14 @@ import {
   buildCreateVisualMap,
   buildCreateVisualSections,
   deriveDominantUnderstandingStance,
+  type CreateConnectionSuggestion,
   type CreateIntelligentFollowupResult,
   type CreateVisualNode,
 } from "@/features/create/intelligentFollowupContract";
+import {
+  buildCreateFollowupPrimaryCtaHref,
+  buildCreateFollowupTargetHref,
+} from "@/features/create/followupTargetHref";
 
 type CreateVisualFollowupProps = {
   result: CreateIntelligentFollowupResult;
@@ -32,14 +37,28 @@ export const CREATE_VISUAL_FOLLOWUP_COPY = {
 } as const;
 
 function resolveNodeTone(kind: CreateVisualNode["kind"]): string {
-  if (kind === "source_text") return "border-cyan-300/60 bg-cyan-500/15";
-  if (kind === "statement") return "border-sky-300/45 bg-sky-500/10";
-  if (kind === "topic") return "border-violet-300/45 bg-violet-500/10";
-  if (kind === "stance") return "border-emerald-300/45 bg-emerald-500/10";
-  if (kind === "scope") return "border-amber-300/45 bg-amber-500/10";
-  if (kind === "dossier" || kind === "anlassraum") return "border-blue-300/45 bg-blue-500/10";
-  if (kind === "vote") return "border-fuchsia-300/45 bg-fuchsia-500/10";
-  return "border-slate-300/45 bg-slate-500/10";
+  if (kind === "source_text") {
+    return "border-cyan-500/35 bg-cyan-50 text-cyan-950 dark:border-cyan-300/60 dark:bg-cyan-500/15 dark:text-cyan-50";
+  }
+  if (kind === "statement") {
+    return "border-sky-500/30 bg-sky-50 text-sky-950 dark:border-sky-300/45 dark:bg-sky-500/10 dark:text-sky-50";
+  }
+  if (kind === "topic") {
+    return "border-violet-500/30 bg-violet-50 text-violet-950 dark:border-violet-300/45 dark:bg-violet-500/10 dark:text-violet-50";
+  }
+  if (kind === "stance") {
+    return "border-emerald-500/30 bg-emerald-50 text-emerald-950 dark:border-emerald-300/45 dark:bg-emerald-500/10 dark:text-emerald-50";
+  }
+  if (kind === "scope") {
+    return "border-amber-500/35 bg-amber-50 text-amber-950 dark:border-amber-300/45 dark:bg-amber-500/10 dark:text-amber-50";
+  }
+  if (kind === "dossier" || kind === "anlassraum") {
+    return "border-blue-500/30 bg-blue-50 text-blue-950 dark:border-blue-300/45 dark:bg-blue-500/10 dark:text-blue-50";
+  }
+  if (kind === "vote") {
+    return "border-fuchsia-500/30 bg-fuchsia-50 text-fuchsia-950 dark:border-fuchsia-300/45 dark:bg-fuchsia-500/10 dark:text-fuchsia-50";
+  }
+  return "border-slate-300/45 bg-slate-50 text-slate-900 dark:border-slate-300/45 dark:bg-slate-500/10 dark:text-slate-100";
 }
 
 function resolveStanceLead(label: string): string {
@@ -59,7 +78,7 @@ function resolveScopeLabel(scope: string): string {
   return "unklar";
 }
 
-function resolveSuggestionBadge(kind: CreateVisualNode["kind"]): string {
+function resolveSuggestionBadge(kind: CreateConnectionSuggestion["kind"]): string {
   if (kind === "dossier") return "Dossier";
   if (kind === "vote") return "Abstimmung";
   if (kind === "anlassraum") return "Anlassraum";
@@ -67,8 +86,8 @@ function resolveSuggestionBadge(kind: CreateVisualNode["kind"]): string {
   return "Thema";
 }
 
-function resolveSuggestionCta(kind: CreateVisualNode["kind"]): string {
-  if (kind === "dossier") return "Dossier ansehen";
+function resolveSuggestionCta(kind: CreateConnectionSuggestion["kind"]): string {
+  if (kind === "dossier") return "Ansehen";
   if (kind === "vote") return "Abstimmung ansehen";
   if (kind === "anlassraum") return "Anlassraum ansehen";
   if (kind === "new_anlassraum") return "Vorschlagen";
@@ -106,15 +125,11 @@ function resolveAssistantLead(params: {
     lowered.includes("sanktionen") &&
     lowered.includes("gesetzgebung")
   ) {
-    return "Ich erkenne eine Forderung nach klareren Mindestanforderungen und Konsequenzen für gewählte oder ernannte Amtsträger. Dein Beitrag berührt außerdem Gesetzgebung und die Frage, ob gestrichene Entwürfe als Optionen sichtbar bleiben sollten.";
+    return "Ich erkenne darin eine Forderung nach klareren Mindestanforderungen und Konsequenzen für Amtsträger. Außerdem berührt dein Text Gesetzgebung und mögliche Abstimmungsoptionen.";
   }
   const topicSentence = toSentenceList(params.topicLabels.slice(0, 4).map((label) => label.toLowerCase()));
-  if (topicSentence) {
-    return `Ich erkenne darin vor allem ${topicSentence}.`;
-  }
-  if (params.summary.trim().length > 0) {
-    return params.summary.trim();
-  }
+  if (topicSentence) return `Ich erkenne darin vor allem ${topicSentence}.`;
+  if (params.summary.trim().length > 0) return params.summary.trim();
   return params.statementText.trim();
 }
 
@@ -123,24 +138,23 @@ function resolveCoreClaim(params: {
   fallback: string;
 }): string {
   const lowered = params.topicLabels.join(" ").toLowerCase();
-  if (
-    lowered.includes("amtsträger") &&
-    lowered.includes("qualifikation") &&
-    lowered.includes("sanktionen")
-  ) {
+  if (lowered.includes("amtsträger") && lowered.includes("qualifikation") && lowered.includes("sanktionen")) {
     return "Du forderst klare Mindestanforderungen und Konsequenzen für Amtsträger.";
   }
   return params.fallback;
 }
 
-function sortConnectionNodes(nodes: CreateVisualNode[]): CreateVisualNode[] {
-  const priority: Record<string, number> = {
+function sortSuggestions(
+  suggestions: CreateConnectionSuggestion[],
+): CreateConnectionSuggestion[] {
+  const priority: Record<CreateConnectionSuggestion["kind"], number> = {
     dossier: 0,
     vote: 1,
     anlassraum: 2,
-    new_anlassraum: 3,
+    topic: 3,
+    new_anlassraum: 4,
   };
-  return [...nodes].sort((a, b) => (priority[a.kind] ?? 9) - (priority[b.kind] ?? 9));
+  return [...suggestions].sort((a, b) => priority[a.kind] - priority[b.kind]);
 }
 
 export default function CreateVisualFollowup({
@@ -156,21 +170,12 @@ export default function CreateVisualFollowup({
   const sections = React.useMemo(() => buildCreateVisualSections(result, 4), [result]);
   const [showCorrectionRow, setShowCorrectionRow] = React.useState(false);
   const [correctionFocus, setCorrectionFocus] = React.useState<string | null>(null);
+
   const topicLabels = result.understanding.topics.slice(0, 6).map((topic) => topic.label);
-  const topicLead = topicLabels.slice(0, 3).map((label) => label.toLowerCase()).join(", ");
   const dominantStance = deriveDominantUnderstandingStance(result.understanding);
-  const categoryNode = visualMap.nodes.find((node) => node.kind === "statement");
   const statementNodes = visualMap.nodes.filter((node) => node.kind === "statement").slice(0, 4);
   const topicNodes = visualMap.nodes.filter((node) => node.kind === "topic").slice(0, 6);
-  const connectionNodes = sortConnectionNodes(
-    visualMap.nodes.filter(
-      (node) =>
-        node.kind === "dossier" ||
-        node.kind === "anlassraum" ||
-        node.kind === "vote" ||
-        node.kind === "new_anlassraum",
-    ),
-  );
+  const sortedSuggestions = sortSuggestions(result.suggestions).slice(0, 3);
   const scopeChip = result.understanding.scopes[0] ?? "unclear";
   const assistantLead = resolveAssistantLead({
     topicLabels,
@@ -185,6 +190,12 @@ export default function CreateVisualFollowup({
   });
   const rootTopic = topicNodes[0]?.label ?? "Öffentliches Thema";
   const branchTopics = topicNodes.slice(1);
+  const primaryActionHref = buildCreateFollowupPrimaryCtaHref({
+    ctaHref,
+    topics: result.understanding.topics,
+    statements: result.understanding.statements,
+    suggestions: result.suggestions,
+  });
 
   const openCorrection = React.useCallback(
     (focus: string) => {
@@ -196,162 +207,155 @@ export default function CreateVisualFollowup({
   );
 
   return (
-    <section className="relative space-y-5 rounded-2xl border border-cyan-300/45 bg-cyan-500/10 p-4 pb-20 md:space-y-6 md:p-6 md:pb-24">
+    <section className="relative space-y-5 rounded-2xl border border-cyan-500/30 bg-cyan-50/80 p-4 pb-24 md:space-y-6 md:p-6 md:pb-20 dark:border-cyan-300/45 dark:bg-cyan-500/10">
       {showCompactUserBubble ? (
-        <div className="ml-auto max-w-3xl rounded-2xl rounded-tr-md border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-3">
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">Du</p>
-          <p className="mt-2 text-sm text-[rgb(var(--fg))] md:text-base">
+        <div className="ml-auto max-w-3xl rounded-2xl rounded-tr-md border border-slate-200 bg-white px-4 py-3 shadow-sm dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))] dark:shadow-none">
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-600 dark:text-[rgb(var(--muted))]">Du</p>
+          <p className="mt-2 text-sm text-slate-900 md:text-base dark:text-[rgb(var(--fg))]">
             {result.sourceText.slice(0, 260)}
             {result.sourceText.length > 260 ? " …" : ""}
           </p>
         </div>
       ) : (
-        <div className="ml-auto max-w-3xl rounded-2xl rounded-tr-md border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-3">
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">Du</p>
-          <p className="mt-2 text-sm text-[rgb(var(--fg))] md:text-base">Dein Beitrag wurde aufgenommen.</p>
+        <div className="ml-auto max-w-3xl rounded-2xl rounded-tr-md border border-slate-200 bg-white px-4 py-3 shadow-sm dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))] dark:shadow-none">
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-600 dark:text-[rgb(var(--muted))]">Du</p>
+          <p className="mt-2 text-sm text-slate-900 md:text-base dark:text-[rgb(var(--fg))]">Dein Beitrag wurde aufgenommen.</p>
           <details className="mt-2">
-            <summary className="cursor-pointer text-sm text-[rgb(var(--muted))]">Originaltext anzeigen</summary>
-            <pre className="mt-2 whitespace-pre-wrap rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-sm text-[rgb(var(--fg))]">
+            <summary className="cursor-pointer text-sm text-slate-700 dark:text-[rgb(var(--muted))]">Originaltext anzeigen</summary>
+            <pre className="mt-2 whitespace-pre-wrap rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--bg))] dark:text-[rgb(var(--fg))]">
               {result.sourceText}
             </pre>
           </details>
         </div>
       )}
 
-      <div className="mr-auto max-w-4xl rounded-2xl rounded-tl-md border border-cyan-300/45 bg-[rgb(var(--card))] px-4 py-4">
-        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-cyan-200">{CREATE_VISUAL_FOLLOWUP_COPY.structureTitle}</p>
-        <p className="mt-1 text-base font-semibold text-cyan-50 md:text-lg">{CREATE_VISUAL_FOLLOWUP_COPY.headline}</p>
-        <p className="mt-3 text-base text-cyan-100 md:text-lg">
-          {assistantLead || `Du sprichst vor allem über ${topicLead || "öffentliche Verantwortung und offene Fragen"}.`}
-        </p>
-        <div className="mt-4 rounded-xl border border-cyan-300/40 bg-cyan-500/10 px-4 py-3">
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-cyan-200">{CREATE_VISUAL_FOLLOWUP_COPY.coreTitle}</p>
-          <p className="mt-1 text-base font-semibold text-cyan-50 md:text-xl">{keyStatement}</p>
+      <div className="mr-auto max-w-4xl rounded-2xl rounded-tl-md border border-cyan-500/30 bg-white px-4 py-4 shadow-sm dark:border-cyan-300/45 dark:bg-[rgb(var(--card))] dark:shadow-none">
+        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-cyan-800 dark:text-cyan-200">{CREATE_VISUAL_FOLLOWUP_COPY.structureTitle}</p>
+        <p className="mt-1 text-base font-semibold text-cyan-950 md:text-lg dark:text-cyan-50">{CREATE_VISUAL_FOLLOWUP_COPY.headline}</p>
+        <p className="mt-3 text-base text-cyan-900 md:text-lg dark:text-cyan-100">{assistantLead}</p>
+        <div className="mt-4 rounded-xl border border-cyan-500/35 bg-cyan-50 px-4 py-3 dark:border-cyan-300/40 dark:bg-cyan-500/10">
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-cyan-800 dark:text-cyan-200">{CREATE_VISUAL_FOLLOWUP_COPY.coreTitle}</p>
+          <p className="mt-1 text-base font-semibold text-cyan-950 md:text-xl dark:text-cyan-50">{keyStatement}</p>
         </div>
         <div className="mt-3 flex flex-wrap gap-2">
-          {categoryNode ? (
-            <span className="rounded-full border border-sky-300/40 bg-sky-500/10 px-3 py-1 text-sm text-[rgb(var(--fg))]">
-              Kategorie: {categoryNode.label}
-            </span>
-          ) : null}
-          <span className="rounded-full border border-emerald-300/40 bg-emerald-500/10 px-3 py-1 text-sm text-[rgb(var(--fg))]">
+          <span className="rounded-full border border-emerald-500/30 bg-emerald-50 px-3 py-1 text-sm text-emerald-950 dark:border-emerald-300/40 dark:bg-emerald-500/10 dark:text-emerald-50">
             Haltung: {resolveStanceLead(dominantStance)}
           </span>
-          <span className="rounded-full border border-amber-300/40 bg-amber-500/10 px-3 py-1 text-sm text-[rgb(var(--fg))]">
+          <span className="rounded-full border border-amber-500/35 bg-amber-50 px-3 py-1 text-sm text-amber-950 dark:border-amber-300/40 dark:bg-amber-500/10 dark:text-amber-50">
             Ebene: {resolveScopeLabel(scopeChip)}
           </span>
         </div>
       </div>
 
-      <div className="space-y-4 rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-3 md:px-4 md:py-4">
+      <div className="space-y-4 rounded-xl border border-slate-200 bg-white px-3 py-3 shadow-sm md:px-4 md:py-4 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))] dark:shadow-none">
         <p className="text-sm font-semibold text-[rgb(var(--fg))] md:text-base">{CREATE_VISUAL_FOLLOWUP_COPY.graphTitle}</p>
 
         <div className="space-y-3 md:hidden">
-          <div className="rounded-lg border border-cyan-300/35 bg-cyan-500/10 px-3 py-2 text-sm font-semibold text-cyan-100">
-            1. Dein Beitrag
-          </div>
+          <div className="rounded-lg border border-cyan-500/35 bg-cyan-50 px-3 py-2 text-sm font-semibold text-cyan-900 dark:border-cyan-300/35 dark:bg-cyan-500/10 dark:text-cyan-100">1. Dein Beitrag</div>
           <div className={`rounded-xl border px-3 py-2 ${resolveNodeTone(visualMap.center.kind)}`}>
-            <p className="text-sm font-semibold text-[rgb(var(--fg))]">{visualMap.center.label}</p>
-            <p className="mt-1 text-sm text-[rgb(var(--muted))]">{visualMap.center.detail}</p>
+            <p className="text-sm font-semibold">{visualMap.center.label}</p>
+            <p className="mt-1 text-sm opacity-80">{visualMap.center.detail}</p>
           </div>
-          <div className="rounded-lg border border-cyan-300/35 bg-cyan-500/10 px-3 py-2 text-sm font-semibold text-cyan-100">
-            2. Kern erkannt
+          <div className="rounded-lg border border-cyan-500/35 bg-cyan-50 px-3 py-2 text-sm font-semibold text-cyan-900 dark:border-cyan-300/35 dark:bg-cyan-500/10 dark:text-cyan-100">2. Kern erkannt</div>
+          <div className={`rounded-xl border px-3 py-2 ${resolveNodeTone("statement")}`}>
+            <p className="text-sm font-semibold">{keyStatement}</p>
           </div>
-          <div className="ml-3 border-l border-cyan-300/45 pl-3">
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">Erkannte Aussage</p>
-            <div className={`mt-2 rounded-xl border px-3 py-2 ${resolveNodeTone(statementNodes[0]?.kind ?? "statement")}`}>
-              <p className="text-sm font-semibold text-[rgb(var(--fg))]">{keyStatement}</p>
-            </div>
+          <div className="rounded-lg border border-cyan-500/35 bg-cyan-50 px-3 py-2 text-sm font-semibold text-cyan-900 dark:border-cyan-300/35 dark:bg-cyan-500/10 dark:text-cyan-100">3. Themen</div>
+          <div className="flex flex-wrap gap-2">
+            {topicNodes.map((node) => (
+              <span key={node.id} className={`rounded-full border px-2.5 py-1 text-sm ${resolveNodeTone(node.kind)}`}>
+                {node.label}
+              </span>
+            ))}
           </div>
-          <div className="rounded-lg border border-cyan-300/35 bg-cyan-500/10 px-3 py-2 text-sm font-semibold text-cyan-100">
-            3. Themen
-          </div>
-          <div className="ml-3 border-l border-cyan-300/45 pl-3">
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">Themen</p>
-            <div className="mt-2 flex flex-wrap gap-2">
-              {topicNodes.map((node) => (
-                <span key={node.id} className={`rounded-full border px-2 py-1 text-sm ${resolveNodeTone(node.kind)}`}>
-                  {node.label}
-                </span>
-              ))}
-            </div>
-          </div>
-          <div className="rounded-lg border border-cyan-300/35 bg-cyan-500/10 px-3 py-2 text-sm font-semibold text-cyan-100">
-            4. Anschluss
-          </div>
+          <div className="rounded-lg border border-cyan-500/35 bg-cyan-50 px-3 py-2 text-sm font-semibold text-cyan-900 dark:border-cyan-300/35 dark:bg-cyan-500/10 dark:text-cyan-100">4. Anschluss</div>
         </div>
 
         <div className="hidden md:block">
-          <div className="grid gap-4 xl:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)]">
-            <div className="space-y-3">
-              <div className={`rounded-xl border px-4 py-3 ${resolveNodeTone(visualMap.center.kind)}`}>
-                <p className="text-sm font-semibold text-[rgb(var(--fg))]">Dein Beitrag</p>
-                <p className="mt-1 text-sm text-[rgb(var(--muted))]">{visualMap.center.detail}</p>
-              </div>
-              <div className="ml-6 border-l border-cyan-300/45 pl-4">
-                <div className={`rounded-xl border px-4 py-3 ${resolveNodeTone(statementNodes[0]?.kind ?? "statement")}`}>
-                  <p className="text-sm font-semibold text-[rgb(var(--fg))]">Kernforderung</p>
-                  <p className="mt-1 text-base font-semibold text-[rgb(var(--fg))]">{keyStatement}</p>
-                </div>
-                <div className="ml-6 mt-3 border-l border-violet-300/45 pl-4">
-                  <div className={`rounded-xl border px-4 py-3 ${resolveNodeTone(topicNodes[0]?.kind ?? "topic")}`}>
-                    <p className="text-sm font-semibold text-[rgb(var(--fg))]">Hauptthema</p>
-                    <p className="mt-1 text-base font-semibold text-[rgb(var(--fg))]">{rootTopic}</p>
-                  </div>
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {branchTopics.map((node) => (
-                      <span key={node.id} className={`rounded-full border px-3 py-1 text-sm ${resolveNodeTone(node.kind)}`}>
-                        {node.label}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              </div>
+          <div className="space-y-3">
+            <div className={`max-w-2xl rounded-xl border px-4 py-3 ${resolveNodeTone("source_text")}`}>
+              <p className="text-sm font-semibold">Dein Beitrag</p>
+              <p className="mt-1 text-sm opacity-85">{visualMap.center.detail}</p>
             </div>
-            <div className="rounded-xl border border-blue-300/35 bg-blue-500/10 px-4 py-3">
-              <p className="text-sm font-semibold text-[rgb(var(--fg))]">{CREATE_VISUAL_FOLLOWUP_COPY.impactTitle}</p>
-              <div className="mt-3 grid gap-3 lg:grid-cols-2">
-                {connectionNodes.slice(0, 3).map((node, index) => (
-                  <article key={`${node.id}-${index}`} className={`rounded-xl border px-3 py-3 ${resolveNodeTone(node.kind)}`}>
-                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">
-                      {resolveSuggestionBadge(node.kind)}
-                    </p>
-                    <p className="mt-1 text-base font-semibold text-[rgb(var(--fg))]">{node.label}</p>
-                    {node.detail ? (
-                      <p className="mt-1 text-sm text-[rgb(var(--muted))]">Warum passt das? {node.detail}</p>
-                    ) : null}
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      {node.kind === "new_anlassraum" ? (
-                        <button type="button" className="btn-secondary text-xs" onClick={onOpenNewAnlassraum}>
-                          {resolveSuggestionCta(node.kind)}
-                        </button>
-                      ) : (
-                        <Link href={ctaHref} className="btn-secondary text-xs">
-                          {resolveSuggestionCta(node.kind)}
-                        </Link>
-                      )}
-                      <button type="button" className="btn-secondary text-xs" onClick={() => openCorrection("Anschluss") }>
-                        Nicht passend
-                      </button>
-                    </div>
-                  </article>
-                ))}
+            <div className="ml-5 border-l-2 border-cyan-500/35 pl-4 dark:border-cyan-300/40">
+              <div className={`max-w-2xl rounded-xl border px-4 py-3 ${resolveNodeTone("statement")}`}>
+                <p className="text-sm font-semibold">Kernforderung</p>
+                <p className="mt-1 text-base font-semibold">{keyStatement}</p>
+              </div>
+              <div className="ml-6 mt-3 border-l-2 border-violet-500/30 pl-4 dark:border-violet-300/35">
+                <div className={`max-w-2xl rounded-xl border px-4 py-3 ${resolveNodeTone("topic")}`}>
+                  <p className="text-sm font-semibold">Hauptthema</p>
+                  <p className="mt-1 text-base font-semibold">{rootTopic}</p>
+                </div>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {branchTopics.map((node) => (
+                    <span key={node.id} className={`rounded-full border px-3 py-1 text-sm ${resolveNodeTone(node.kind)}`}>
+                      {node.label}
+                    </span>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
         </div>
       </div>
 
+      <div className="space-y-2 rounded-xl border border-slate-200 bg-white px-3 py-3 shadow-sm dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))] dark:shadow-none">
+        <p className="text-sm font-semibold text-[rgb(var(--fg))] md:text-base">{CREATE_VISUAL_FOLLOWUP_COPY.impactTitle}</p>
+        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+          {sortedSuggestions.map((suggestion) => {
+            const href = buildCreateFollowupTargetHref({
+              kind: suggestion.kind,
+              ctaHref,
+              topics: result.understanding.topics,
+              statements: result.understanding.statements,
+              stance: suggestion.suggestedStance ?? null,
+              suggestionTitle: suggestion.title,
+              suggestionHref: suggestion.href ?? null,
+            });
+            const toneKind: CreateVisualNode["kind"] =
+              suggestion.kind === "dossier"
+                ? "dossier"
+                : suggestion.kind === "vote"
+                  ? "vote"
+                  : suggestion.kind === "anlassraum"
+                    ? "anlassraum"
+                    : suggestion.kind === "new_anlassraum"
+                      ? "new_anlassraum"
+                      : "topic";
+            return (
+              <article key={suggestion.id} className={`rounded-xl border px-3 py-3 ${resolveNodeTone(toneKind)}`}>
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] opacity-80">{resolveSuggestionBadge(suggestion.kind)}</p>
+                <p className="mt-1 text-sm font-semibold md:text-base">{suggestion.title}</p>
+                <p className="mt-1 text-sm opacity-85">Warum passt das? {suggestion.reason}</p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {suggestion.kind === "new_anlassraum" ? (
+                    <button type="button" className="btn-secondary min-h-[40px] px-3 py-2 text-sm" onClick={onOpenNewAnlassraum}>
+                      {resolveSuggestionCta(suggestion.kind)}
+                    </button>
+                  ) : (
+                    <Link href={href} className="btn-secondary min-h-[40px] px-3 py-2 text-sm">
+                      {resolveSuggestionCta(suggestion.kind)}
+                    </Link>
+                  )}
+                  <button type="button" className="btn-secondary min-h-[40px] px-3 py-2 text-sm" onClick={() => openCorrection("Anschluss")}>
+                    Nicht passend
+                  </button>
+                </div>
+              </article>
+            );
+          })}
+        </div>
+      </div>
+
       {showSectionFlow ? (
-        <div className="space-y-3 rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-3">
-          <p className="text-sm font-semibold text-[rgb(var(--fg))] md:text-base">
-            Wir haben deinen Text in {sections.length} Teile gegliedert.
-          </p>
+        <div className="space-y-3 rounded-xl border border-slate-200 bg-white px-3 py-3 shadow-sm dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))] dark:shadow-none">
+          <p className="text-sm font-semibold text-[rgb(var(--fg))] md:text-base">Wir haben deinen Text in {sections.length} Teile gegliedert.</p>
           <div className="space-y-2">
             {sections.map((section, sectionIndex) => (
               <details
                 key={section.id}
-                className="rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2"
+                className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--bg))]"
                 open={sectionIndex === 0}
               >
                 <summary className="cursor-pointer text-sm font-semibold text-[rgb(var(--fg))] md:text-base">
@@ -361,9 +365,8 @@ export default function CreateVisualFollowup({
                 {section.statementLabel ? (
                   <p className="mt-2 text-sm text-[rgb(var(--muted))]"><span className="font-semibold text-[rgb(var(--fg))]">Erkannt als:</span> {section.statementLabel}</p>
                 ) : null}
-                {section.topicLabel ? <p className="mt-1 text-sm text-[rgb(var(--muted))]"><span className="font-semibold text-[rgb(var(--fg))]">Gehört zu:</span> {section.topicLabel}</p> : null}
-                {section.stanceLabel ? (
-                  <p className="mt-1 text-sm text-[rgb(var(--muted))]"><span className="font-semibold text-[rgb(var(--fg))]">Haltung:</span> {section.stanceLabel}</p>
+                {section.topicLabel ? (
+                  <p className="mt-1 text-sm text-[rgb(var(--muted))]"><span className="font-semibold text-[rgb(var(--fg))]">Gehört zu:</span> {section.topicLabel}</p>
                 ) : null}
                 {section.connectionLabel ? (
                   <p className="mt-1 text-sm text-[rgb(var(--muted))]"><span className="font-semibold text-[rgb(var(--fg))]">Möglicher Anschluss:</span> {section.connectionLabel}</p>
@@ -374,56 +377,22 @@ export default function CreateVisualFollowup({
         </div>
       ) : null}
 
-      <div className="space-y-2 rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-3 md:hidden">
-        <div className="rounded-lg border border-cyan-300/35 bg-cyan-500/10 px-3 py-2 text-sm font-semibold text-cyan-100">
-          5. Bestätigung
-        </div>
-        <p className="text-sm font-semibold text-[rgb(var(--fg))] md:text-base">{CREATE_VISUAL_FOLLOWUP_COPY.impactTitle}</p>
-        <div className="space-y-2">
-          {connectionNodes.slice(0, 3).map((node, index) => (
-            <article key={`${node.id}-mobile-${index}`} className={`rounded-xl border px-3 py-3 ${resolveNodeTone(node.kind)}`}>
-              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">{resolveSuggestionBadge(node.kind)}</p>
-              <p className="mt-1 text-sm font-semibold text-[rgb(var(--fg))]">{node.label}</p>
-              {node.detail ? <p className="mt-1 text-sm text-[rgb(var(--muted))]">Warum passt das? {node.detail}</p> : null}
-              <div className="mt-2 flex flex-wrap gap-2">
-                {node.kind === "new_anlassraum" ? (
-                  <button type="button" className="btn-secondary text-xs" onClick={onOpenNewAnlassraum}>
-                    {resolveSuggestionCta(node.kind)}
-                  </button>
-                ) : (
-                  <Link href={ctaHref} className="btn-secondary text-xs">
-                    {resolveSuggestionCta(node.kind)}
-                  </Link>
-                )}
-                <button type="button" className="btn-secondary text-xs" onClick={() => openCorrection("Anschluss") }>
-                  Nicht passend
-                </button>
-              </div>
-            </article>
-          ))}
-        </div>
-      </div>
-
-      <div className="space-y-3 rounded-xl border border-cyan-300/45 bg-[rgb(var(--card))] px-3 py-3">
+      <div className="space-y-3 rounded-xl border border-cyan-500/30 bg-white px-3 py-3 shadow-sm dark:border-cyan-300/45 dark:bg-[rgb(var(--card))] dark:shadow-none">
         <p className="text-sm font-semibold text-[rgb(var(--fg))] md:text-base">{CREATE_VISUAL_FOLLOWUP_COPY.confirmTitle}</p>
         <p className="text-sm text-[rgb(var(--muted))] md:text-base">
           Du kannst bestätigen, einzelne Punkte ändern oder erst passende Dossiers und Abstimmungen ansehen.
         </p>
         <div className="flex flex-wrap gap-2">
-          <button type="button" className="btn-primary text-xs" onClick={onConfirm}>
+          <button type="button" className="btn-primary min-h-[40px] px-3 py-2 text-sm" onClick={onConfirm}>
             Ja, so einordnen
           </button>
-          <button
-            type="button"
-            className="btn-secondary text-xs"
-            onClick={() => openCorrection("Thema")}
-          >
+          <button type="button" className="btn-secondary min-h-[40px] px-3 py-2 text-sm" onClick={() => openCorrection("Thema")}>
             Ein Thema stimmt nicht
           </button>
-          <Link href={ctaHref} className="btn-secondary text-xs">
+          <Link href={primaryActionHref} className="btn-secondary min-h-[40px] px-3 py-2 text-sm">
             Passende Dossiers ansehen
           </Link>
-          <button type="button" className="btn-secondary text-xs" onClick={onOpenNewAnlassraum}>
+          <button type="button" className="btn-secondary min-h-[40px] px-3 py-2 text-sm" onClick={onOpenNewAnlassraum}>
             Als neues Thema vorschlagen
           </button>
         </div>
@@ -438,7 +407,7 @@ export default function CreateVisualFollowup({
                   key={chip}
                   type="button"
                   className="rounded-full border border-[rgb(var(--border))] px-2 py-1 text-xs text-[rgb(var(--fg))] hover:border-cyan-300/60"
-                  onClick={() => onEdit()}
+                  onClick={onEdit}
                 >
                   {chip}
                 </button>
@@ -448,32 +417,33 @@ export default function CreateVisualFollowup({
         ) : null}
         <p className="text-xs text-[rgb(var(--muted))]">{CREATE_VISUAL_FOLLOWUP_COPY.guardrail}</p>
         {isConfirmed ? (
-          <p className="text-sm text-emerald-300">
+          <p className="text-sm text-emerald-700 dark:text-emerald-300">
             Einordnung bestätigt. Dein Beitrag ist noch nicht veröffentlicht. Wähle jetzt den nächsten Schritt.
           </p>
         ) : null}
         {actionNotice ? (
-          <p className="rounded-lg border border-cyan-300/35 bg-cyan-500/10 px-3 py-2 text-xs text-cyan-100">{actionNotice}</p>
+          <p className="rounded-lg border border-cyan-500/35 bg-cyan-50 px-3 py-2 text-xs text-cyan-900 dark:border-cyan-300/35 dark:bg-cyan-500/10 dark:text-cyan-100">
+            {actionNotice}
+          </p>
         ) : null}
       </div>
 
-      <div className="sticky bottom-3 z-10 rounded-xl border border-cyan-300/45 bg-[rgb(var(--card))]/95 px-3 py-3 shadow-lg shadow-black/20 backdrop-blur">
-        <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-          <div>
-            <p className="text-sm font-semibold text-[rgb(var(--fg))]">{CREATE_VISUAL_FOLLOWUP_COPY.confirmTitle}</p>
-            <p className="text-xs text-[rgb(var(--muted))]">{CREATE_VISUAL_FOLLOWUP_COPY.guardrail}</p>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <button type="button" className="btn-primary text-xs" onClick={onConfirm}>
-              Ja, so einordnen
-            </button>
-            <button type="button" className="btn-secondary text-xs" onClick={() => openCorrection("Thema") }>
-              Ändern
-            </button>
-            <Link href={ctaHref} className="btn-secondary text-xs">
-              Dossiers ansehen
-            </Link>
-          </div>
+      <div className="sticky bottom-2 z-10 rounded-xl border border-cyan-500/30 bg-white/95 px-3 py-2 shadow-xl shadow-cyan-950/10 backdrop-blur md:hidden dark:border-cyan-300/45 dark:bg-[rgb(var(--card))]/95 dark:shadow-black/20">
+        <p className="text-sm font-semibold text-[rgb(var(--fg))]">{CREATE_VISUAL_FOLLOWUP_COPY.confirmTitle}</p>
+        <p className="text-xs text-[rgb(var(--muted))]">Keine automatische Stimme oder Veröffentlichung.</p>
+        <div className="mt-2 grid grid-cols-2 gap-2">
+          <button type="button" className="btn-primary min-h-[40px] px-2 py-2 text-sm" onClick={onConfirm}>
+            Ja, so einordnen
+          </button>
+          <button type="button" className="btn-secondary min-h-[40px] px-2 py-2 text-sm" onClick={() => openCorrection("Thema")}>
+            Ändern
+          </button>
+          <Link href={primaryActionHref} className="btn-secondary min-h-[40px] px-2 py-2 text-sm">
+            Dossiers & Abstimmungen
+          </Link>
+          <button type="button" className="btn-secondary min-h-[40px] px-2 py-2 text-sm" onClick={onOpenNewAnlassraum}>
+            Neues Thema
+          </button>
         </div>
       </div>
     </section>
