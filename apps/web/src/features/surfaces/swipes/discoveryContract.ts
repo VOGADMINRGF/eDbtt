@@ -63,3 +63,56 @@ export function derivePreferredSwipeTopics(params: {
     .forEach((entry) => unique.add(entry));
   return [...unique].slice(0, 8);
 }
+
+type SeededSwipeMatch = {
+  items: SwipeItem[];
+  claimMatchCount: number;
+  topicMatchCount: number;
+};
+
+function hasClaimTextMatch(item: SwipeItem, claim: string): boolean {
+  const haystack = `${item.title} ${item.text ?? ""} ${item.category} ${item.domainLabel}`.toLowerCase();
+  return haystack.includes(claim.trim().toLowerCase());
+}
+
+function hasTopicTextMatch(item: SwipeItem, topic: string): boolean {
+  const haystack = buildTopicHaystack(item);
+  return haystack.includes(topic.trim().toLowerCase());
+}
+
+export function prioritizeSwipeItemsForCreateSeed(params: {
+  items: readonly SwipeItem[];
+  topic?: string;
+  claim?: string;
+}): SeededSwipeMatch {
+  const claim = (params.claim ?? "").trim();
+  const topic = (params.topic ?? "").trim();
+  if (!claim && !topic) {
+    return {
+      items: [...params.items],
+      claimMatchCount: 0,
+      topicMatchCount: 0,
+    };
+  }
+
+  const claimMatched: SwipeItem[] = [];
+  const topicMatched: SwipeItem[] = [];
+  const remainder: SwipeItem[] = [];
+  for (const item of params.items) {
+    if (claim && hasClaimTextMatch(item, claim)) {
+      claimMatched.push(item);
+      continue;
+    }
+    if (topic && hasTopicTextMatch(item, topic)) {
+      topicMatched.push(item);
+      continue;
+    }
+    remainder.push(item);
+  }
+
+  return {
+    items: [...claimMatched, ...topicMatched, ...remainder],
+    claimMatchCount: claimMatched.length,
+    topicMatchCount: topicMatched.length,
+  };
+}

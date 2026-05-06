@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   derivePreferredSwipeTopics,
   filterSwipeItemsByDiscoverySegment,
+  prioritizeSwipeItemsForCreateSeed,
   SWIPE_DISCOVERY_SEGMENTS,
 } from "@/features/surfaces/swipes/discoveryContract";
 import type { SwipeItem } from "@/features/swipes/types";
@@ -92,5 +93,16 @@ describe("swipes discovery contract", () => {
       segment: "all",
     });
     expect(all.map((item) => item.id)).toEqual(["a", "b", "c"]);
+  });
+
+  it("prioritizes claim/topic seeded items before general discovery", () => {
+    const seeded = prioritizeSwipeItemsForCreateSeed({
+      items: ITEMS,
+      topic: "Wohnen",
+      claim: "Mieten-Deckel",
+    });
+    expect(seeded.claimMatchCount).toBeGreaterThan(0);
+    expect(seeded.topicMatchCount).toBeGreaterThanOrEqual(0);
+    expect(seeded.items[0]?.id).toBe("b");
   });
 });

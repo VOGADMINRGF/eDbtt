@@ -18,6 +18,7 @@ import {
 import {
   derivePreferredSwipeTopics,
   filterSwipeItemsByDiscoverySegment,
+  prioritizeSwipeItemsForCreateSeed,
   SWIPE_DISCOVERY_SEGMENTS,
   type SwipeDiscoverySegment,
 } from "@/features/surfaces/swipes/discoveryContract";
@@ -129,6 +130,9 @@ function buildTransitionHint(decision: SwipeDecision, remainingToAnalysis: numbe
 
 type SwipesClientProps = {
   initialTopic?: string;
+  initialClaim?: string;
+  initialStance?: string;
+  fromCreate?: boolean;
   fromDraftId?: string | null;
   focusStatementId?: string;
   variant?: "full" | "solo";
@@ -147,6 +151,9 @@ type LastVoteSnapshot = {
 
 export function SwipesClient({
   initialTopic = "",
+  initialClaim = "",
+  initialStance = "",
+  fromCreate = false,
   fromDraftId = null,
   focusStatementId,
   variant = "full",
@@ -172,6 +179,8 @@ export function SwipesClient({
   const [savedTopicHints, setSavedTopicHints] = useState<string[]>([]);
   const [pendingNeutralReasonStatementId, setPendingNeutralReasonStatementId] = useState<string | null>(null);
   const [lastVote, setLastVote] = useState<LastVoteSnapshot | null>(null);
+  const [seededClaimMatchCount, setSeededClaimMatchCount] = useState(0);
+  const [seededTopicMatchCount, setSeededTopicMatchCount] = useState(0);
 
   const [screenFlash, setScreenFlash] = useState<SwipeDecision | null>(null);
   const [liveMessage, setLiveMessage] = useState("");
@@ -197,6 +206,9 @@ export function SwipesClient({
   const isSwipeFocusMode = !isSolo;
   const fromDraftArrivalEnabled = !isSolo && Boolean(fromDraftId);
   const showingFromDraftOnly = fromDraftArrivalEnabled && arrivalMode === "from_draft";
+  const seededClaim = initialClaim.trim();
+  const seededTopic = initialTopic.trim();
+  const hasCreateSeed = fromCreate && (seededClaim.length > 0 || seededTopic.length > 0);
 
   const freeVote = useFreeVoteLimit({
     enabled: requireAuthAfterFreeVotes && mode === "live" && !isSolo,
@@ -365,12 +377,25 @@ export function SwipesClient({
         null,
       );
       if (!cancelled) {
-        const nextItems = filterSwipeItemsByDiscoverySegment({
+        let nextItems = filterSwipeItemsByDiscoverySegment({
           items: resp.items,
           segment: activeSegment,
           savedIds,
           preferredTopics,
         });
+        if (hasCreateSeed) {
+          const seeded = prioritizeSwipeItemsForCreateSeed({
+            items: nextItems,
+            topic: seededTopic,
+            claim: seededClaim,
+          });
+          nextItems = seeded.items;
+          setSeededClaimMatchCount(seeded.claimMatchCount);
+          setSeededTopicMatchCount(seeded.topicMatchCount);
+        } else {
+          setSeededClaimMatchCount(0);
+          setSeededTopicMatchCount(0);
+        }
         setItems(nextItems);
         setDeckSize(nextItems.length);
         setCompletedCount(0);
@@ -394,11 +419,15 @@ export function SwipesClient({
     savedIds,
     savedIdsKey,
     showingFromDraftOnly,
+    hasCreateSeed,
+    seededClaim,
+    seededTopic,
     topicQuery,
     variant,
   ]);
 
   const activeItem = useMemo(() => items[0] ?? null, [items]);
+  const seededMatchFound = seededClaimMatchCount > 0 || seededTopicMatchCount > 0;
   const fromDraftFocusCount = useMemo(() => countFromDraftFocusItems(items), [items]);
   const thematicContextHref = useMemo(() => resolveThematicContextHref(activeItem), [activeItem]);
   const showArrivalContextReminder = useMemo(
@@ -714,6 +743,42 @@ export function SwipesClient({
       {!isSolo && showWelcomeHint ? (
         <section className="rounded-2xl border border-sky-200/80 bg-sky-50/70 px-3 py-2 text-xs text-sky-900 dark:border-sky-400/30 dark:bg-sky-500/10 dark:text-sky-100">
           Willkommen. Starte mit bestehenden Themen oder bringe ein eigenes Anliegen ein.
+        </section>
+      ) : null}
+
+      {!isSolo && hasCreateSeed ? (
+        <section className="rounded-2xl border border-cyan-200 bg-cyan-50/80 px-3 py-3 text-sm text-cyan-950 dark:border-cyan-400/30 dark:bg-cyan-500/10 dark:text-cyan-100">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-cyan-800 dark:text-cyan-200">Aus deinem Beitrag</p>
+          {seededClaim ? <p className="mt-1 font-semibold">{seededClaim}</p> : null}
+          <div className="mt-1 flex flex-wrap gap-2 text-xs">
+            {seededTopic ? <span className="vog-chip">{seededTopic}</span> : null}
+            {initialStance ? <span className="vog-chip">Vermutete Haltung: {initialStance}</span> : null}
+          </div>
+          <div className="mt-2 flex flex-wrap gap-2">
+            <button
+              type="button"
+              className="btn-secondary min-h-[40px] px-3 py-2 text-sm"
+              onClick={() => setTransitionHint("Du entscheidest aktiv. Es wird keine Stimme automatisch abgegeben.")}
+            >
+              Dazu abstimmen
+            </button>
+            <button
+              type="button"
+              className="btn-secondary min-h-[40px] px-3 py-2 text-sm"
+              onClick={() => {
+                setActiveSegment("all");
+                setSearchOpen(false);
+              }}
+            >
+              Erst ähnliche Positionen ansehen
+            </button>
+          </div>
+          {!seededMatchFound && !loading ? (
+            <p className="mt-2 text-xs text-cyan-900 dark:text-cyan-100">
+              Wir haben noch keine passende Abstimmung gefunden. Du kannst das Thema als neue Abstimmung vorschlagen.
+            </p>
+          ) : null}
+          <p className="mt-1 text-xs text-cyan-900 dark:text-cyan-100">Keine automatische Stimme.</p>
         </section>
       ) : null}
 

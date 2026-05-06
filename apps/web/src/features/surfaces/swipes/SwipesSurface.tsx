@@ -4,6 +4,9 @@ import type { SurfaceContext } from "@/features/surface";
 type SwipesSurfaceProps = {
   context: SurfaceContext;
   initialTopic?: string;
+  initialClaim?: string;
+  initialStance?: string;
+  fromCreate?: boolean;
   fromDraftId?: string | null;
   requireAuthAfterFreeVotes?: boolean;
   showWelcomeHint?: boolean;
@@ -12,6 +15,9 @@ type SwipesSurfaceProps = {
 export function SwipesSurface({
   context,
   initialTopic = "",
+  initialClaim = "",
+  initialStance = "",
+  fromCreate = false,
   fromDraftId = null,
   requireAuthAfterFreeVotes = false,
   showWelcomeHint = false,
@@ -28,6 +34,9 @@ export function SwipesSurface({
       <div className="relative z-10">
         <SwipesClient
           initialTopic={initialTopic}
+          initialClaim={initialClaim}
+          initialStance={initialStance}
+          fromCreate={fromCreate}
           fromDraftId={fromDraftId}
           mode={context.mode}
           audience={context.audience}

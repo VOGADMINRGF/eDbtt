@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vitest";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import {
   CREATE_INTELLIGENT_FOLLOWUP_SECTION_LABELS,
   buildCreateLightweightFollowupSnapshot,
@@ -228,5 +230,19 @@ describe("analyze workbench progressive disclosure", () => {
     });
     expect(order[0]).toBe("intelligent-followup");
     expect(order).not.toContain("followup-question");
+  });
+
+  it("keeps visual follow-up light/dark readable and sticky action wording", () => {
+    const source = readFileSync(
+      resolve(process.cwd(), "src/features/create/CreateVisualFollowup.tsx"),
+      "utf8",
+    );
+    expect(source).toContain("Dossiers & Abstimmungen");
+    expect(source).toContain("Keine automatische Stimme oder Veröffentlichung.");
+    expect(source).toContain("bg-cyan-50/80");
+    expect(source).toContain("dark:bg-cyan-500/10");
+    expect(source).toContain("border-cyan-500/35 bg-cyan-50 text-cyan-950");
+    expect(source).toContain("dark:border-cyan-300/60 dark:bg-cyan-500/15 dark:text-cyan-50");
+    expect(source).not.toContain('className="text-cyan-50"');
   });
 });

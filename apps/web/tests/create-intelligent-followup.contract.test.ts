@@ -127,6 +127,15 @@ describe("create intelligent follow-up contract", () => {
     );
     expect(result.understanding.statements[0]?.stance).toBe("pro");
     expect(result.suggestions.some((item) => item.title.includes("Politische Verantwortung"))).toBe(true);
+    const dossierSuggestion = result.suggestions.find((item) => item.kind === "dossier");
+    const voteSuggestion = result.suggestions.find((item) => item.kind === "vote");
+    expect(dossierSuggestion?.href).toContain("/dossier?");
+    expect(dossierSuggestion?.href).toContain("topic=");
+    expect(voteSuggestion?.href).toContain("/swipes?");
+    expect(voteSuggestion?.href).toContain("topic=");
+    expect(voteSuggestion?.href).toContain("claim=");
+    expect(voteSuggestion?.href).toContain("from=create");
+    expect(voteSuggestion?.title).toContain("Mindestanforderungen");
     expect(result.suggestions.every((item) => item.requiresConfirmation)).toBe(true);
     const visualMap = buildCreateVisualMap(result);
     expect(visualMap.nodes.map((node) => node.label)).toEqual(
@@ -190,5 +199,8 @@ describe("create intelligent follow-up contract", () => {
     expect(voteSuggestion).toBeTruthy();
     expect(voteSuggestion?.requiresConfirmation).toBe(true);
     expect(voteSuggestion?.suggestedStance).toBeDefined();
+    expect(voteSuggestion?.href).toContain("/swipes?");
+    expect(voteSuggestion?.href).toContain("claim=");
+    expect(voteSuggestion?.href).toContain("from=create");
   });
 });

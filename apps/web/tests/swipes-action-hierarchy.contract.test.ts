@@ -21,6 +21,11 @@ describe("swipes action hierarchy contract", () => {
 
     expect(source).toContain("Quellenlage");
     expect(source).toContain("Mögliche Folgen");
+    expect(source).toContain("Aus deinem Beitrag");
+    expect(source).toContain("Dazu abstimmen");
+    expect(source).toContain("Erst ähnliche Positionen ansehen");
+    expect(source).toContain("Wir haben noch keine passende Abstimmung gefunden.");
+    expect(source).toContain("Keine automatische Stimme.");
     expect(detailSource).toContain("Varianten / mögliche Folgen");
     expect(detailSource).toContain("Quellenlage ansehen");
     expect(detailSource).not.toContain("Evidenz ansehen");
