@@ -78,6 +78,11 @@ describe("create intelligent follow-up contract", () => {
     expect(visualMap.nodes.some((node) => node.kind === "topic")).toBe(true);
     expect(visualMap.nodes.some((node) => node.kind === "stance")).toBe(true);
     expect(visualMap.nodes.some((node) => node.kind === "dossier" || node.kind === "anlassraum" || node.kind === "vote" || node.kind === "new_anlassraum")).toBe(true);
+    const connectionKinds = visualMap.nodes
+      .filter((node) => node.kind === "dossier" || node.kind === "vote" || node.kind === "anlassraum" || node.kind === "new_anlassraum")
+      .map((node) => node.kind);
+    expect(connectionKinds).toEqual(expect.arrayContaining(["dossier", "vote"]));
+    expect(connectionKinds.some((kind) => kind === "anlassraum" || kind === "new_anlassraum")).toBe(true);
   });
 
   it("falls back to degraded mode when analyzeContribution fails", async () => {
@@ -155,6 +160,7 @@ describe("create intelligent follow-up contract", () => {
     const sections = buildCreateVisualSections(result, 4);
     expect(sections.length).toBeGreaterThan(1);
     expect(sections.every((section) => section.sourceText.length > 0)).toBe(true);
+    expect(sections[0]?.label).toContain("Abschnitt");
   });
 
   it("marks vote suggestions as explicit confirmation only", async () => {

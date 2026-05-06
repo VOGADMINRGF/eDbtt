@@ -196,10 +196,12 @@ describe("analyze workbench progressive disclosure", () => {
       "nicht automatisch abgegeben",
     );
     expect(CREATE_VISUAL_FOLLOWUP_COPY.structureTitle).toBe("Vorläufige Struktur");
+    expect(CREATE_VISUAL_FOLLOWUP_COPY.coreTitle).toBe("Kern erkannt");
     expect(CREATE_VISUAL_FOLLOWUP_COPY.graphTitle).toBe("So hängt dein Beitrag zusammen");
     expect(CREATE_VISUAL_FOLLOWUP_COPY.confirmTitle).toBe("Stimmt diese Einordnung?");
     expect(CREATE_VISUAL_FOLLOWUP_COPY.impactTitle).toBe("Dort würden wir deinen Beitrag anschließen");
     expect(CREATE_VISUAL_FOLLOWUP_COPY.guardrail).toContain("Keine automatische Veröffentlichung");
+    expect(Object.values(CREATE_VISUAL_FOLLOWUP_COPY).join(" ")).not.toContain("Systemprüfung");
   });
 
   it("hides legacy follow-up question card in Beitragen mode after start", () => {
