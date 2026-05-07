@@ -83,7 +83,7 @@ function resolveSuggestionBadge(kind: CreateConnectionSuggestion["kind"]): strin
   if (kind === "vote") return "Abstimmung";
   if (kind === "anlassraum") return "Anlassraum";
   if (kind === "new_anlassraum") return "Neuer Anlassraum";
-  return "Thema";
+  return "Themenfeld";
 }
 
 function resolveSuggestionCta(kind: CreateConnectionSuggestion["kind"]): string {

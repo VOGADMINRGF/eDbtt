@@ -63,6 +63,24 @@ export const FAQ_CATEGORIES: FaqCategory[] = [
         answer:
           "Weil wir digitale Teilhabe als dauerhaftes Fundament sehen. Mit eDebatte und eDebatte machen wir Entscheidungsprozesse sichtbar: Wer schlägt was vor, welche Belege gibt es, wie wurde abgestimmt – und warum. Diese Infrastruktur soll überall funktionieren, wo Menschen gemeinsam entscheiden.",
       },
+      {
+        id: "grundlagen-4",
+        question: "Sind Thema und Dossier dasselbe?",
+        answer:
+          "Nein. Ein Thema ist ein inhaltliches Feld, zum Beispiel Wohnen, Verkehr, Bildung oder Klima. Ein Dossier ist ein konkreter Arbeitsstand zu einer öffentlichen Frage. Ein Dossier hat meistens ein Hauptthema, kann aber mehrere Themenfelder berühren. Beispiel: Das Dossier „Kommunale Prioritäten und Zielkonflikte“ kann die Themenfelder Wohnen, Verkehr, Klima, Bildung, Sicherheit/Rechtsstaat, Gesundheit/Pflege, kommunale Finanzen und Bürgerbeteiligung enthalten.",
+      },
+      {
+        id: "grundlagen-5",
+        question: "Was ist ein Claim?",
+        answer:
+          "Ein Claim ist eine konkrete Aussage, Forderung, Frage oder Position innerhalb eines Dossiers. Ein Claim gehört zu einem Dossier und berührt ein oder mehrere Themen. Beispiel: „Kommunaler Wohnungsbau soll schneller genehmigt werden“ gehört zum Dossier „Kommunale Prioritäten und Zielkonflikte“ und berührt die Themen Wohnen, Verwaltung, Finanzen und soziale Gerechtigkeit.",
+      },
+      {
+        id: "grundlagen-6",
+        question: "Was ist eine Abstimmung?",
+        answer:
+          "Eine Abstimmung entsteht aus einem Claim oder aus einer übergeordneten Dossierfrage. Nutzer stimmen also nicht einfach über ein ganzes Thema ab, sondern über konkrete Fragen, Prioritäten, Positionen oder Entscheidungsoptionen. Beispiel: „Welche kommunalen Prioritäten sollen zuerst bearbeitet werden?“ ist eine Dossierfrage. „Soll kommunaler Wohnungsbau beschleunigt werden, auch wenn Auflagen reduziert werden?“ ist eine Abstimmungsfrage zu einem konkreten Claim.",
+      },
     ],
   },
   {
