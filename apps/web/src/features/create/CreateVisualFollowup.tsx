@@ -89,9 +89,9 @@ function resolveNodeTone(kind: CreateVisualNode["kind"]): string {
 }
 
 function resolveStanceLead(label: string): string {
-  if (label === "eher dafür") return "eher dafür: klare Mindestanforderungen und Konsequenzen";
-  if (label === "eher dagegen") return "eher dagegen: deutlicher Widerspruch im Beitrag";
-  return "offen/unklar: gemischte oder noch unklare Haltung";
+  if (label === "eher dafür") return "eher dafür";
+  if (label === "eher dagegen") return "eher dagegen";
+  return "offen/unklar";
 }
 
 function resolveScopeLabel(scope: string): string {
@@ -115,8 +115,8 @@ function resolveSuggestionBadge(kind: CreateConnectionSuggestion["kind"]): strin
 
 function resolveSuggestionCta(kind: CreateConnectionSuggestion["kind"]): string {
   if (kind === "dossier") return "Ansehen";
-  if (kind === "vote") return "Abstimmung ansehen";
-  if (kind === "anlassraum") return "Anlassraum ansehen";
+  if (kind === "vote") return "Abstimmungen ansehen";
+  if (kind === "anlassraum") return "Ansehen";
   if (kind === "new_anlassraum") return "Vorschlagen";
   return "Ansehen";
 }
@@ -176,7 +176,7 @@ function resolveAssistantLead(params: {
   dossierContext?: string;
 }): string {
   if (params.dossierContext === "Kommunale Prioritäten und Zielkonflikte") {
-    return "Ich sehe einen breiten kommunalen Prioritätenkonflikt. Es geht nicht um ein einzelnes Thema, sondern um mehrere Zielkonflikte: Wohnen, Verkehr, Klima, Bildung, Integration, Sicherheit, Pflege, Finanzen und Beteiligung. Ich fasse das zunächst als Dossier-Kontext zusammen und leite daraus mögliche Claims und Abstimmungsfragen ab.";
+    return "Ich sehe einen breiten kommunalen Prioritätenkonflikt. Es geht nicht um ein einzelnes Thema, sondern um mehrere Zielkonflikte, die zusammen priorisiert werden müssen.";
   }
   const lowered = params.topicLabels.join(" ").toLowerCase();
   if (
@@ -186,10 +186,10 @@ function resolveAssistantLead(params: {
     lowered.includes("sanktionen") &&
     lowered.includes("gesetzgebung")
   ) {
-    return "Ich erkenne darin eine Forderung nach klareren Mindestanforderungen und Konsequenzen für Amtsträger. Außerdem berührt dein Text Gesetzgebung und mögliche Abstimmungsoptionen.";
+    return "Ich erkenne eine Forderung nach klareren Mindestanforderungen und Konsequenzen für Amtsträger. Dein Beitrag berührt außerdem Gesetzgebung und mögliche Abstimmungsoptionen.";
   }
   const topicSentence = toSentenceList(params.topicLabels.slice(0, 4).map((label) => label.toLowerCase()));
-  if (topicSentence) return `Ich erkenne darin vor allem ${topicSentence}.`;
+  if (topicSentence) return `Du sprichst vor allem über ${topicSentence}.`;
   if (params.summary.trim().length > 0) return params.summary.trim();
   return params.statementText.trim();
 }
@@ -241,273 +241,288 @@ function derivePositionClusters(result: CreateIntelligentFollowupResult): string
   return clusters.slice(0, 3);
 }
 
-export default function CreateVisualFollowup({
-  result,
-  ctaHref,
-  actionNotice,
-  isConfirmed = false,
-  onConfirm,
-  onEdit,
-  onOpenNewAnlassraum,
-  onSaveForLater = () => {},
-  onStartOptionalService = () => {},
-}: CreateVisualFollowupProps) {
-  const visualMap = React.useMemo(() => buildCreateVisualMap(result), [result]);
-  const sections = React.useMemo(() => buildCreateVisualSections(result, 4), [result]);
-  const [showCorrectionRow, setShowCorrectionRow] = React.useState(false);
-  const [correctionFocus, setCorrectionFocus] = React.useState<string | null>(null);
-
-  const topicLabels = result.understanding.topics.map((topic) => topic.label);
-  const broadTopicFields = React.useMemo(() => deriveBroadTopicFields(topicLabels), [topicLabels]);
-  const dominantStance = deriveDominantUnderstandingStance(result.understanding);
-  const statementNodes = visualMap.nodes.filter((node) => node.kind === "statement").slice(0, 4);
-  const topicNodes = visualMap.nodes.filter((node) => node.kind === "topic");
-  const sortedSuggestions = sortSuggestions(result.suggestions)
-    .filter((suggestion) => suggestion.kind !== "topic")
-    .slice(0, 4);
-  const voteSuggestion = sortedSuggestions.find((suggestion) => suggestion.kind === "vote");
-  const voteQuestions = React.useMemo(
-    () =>
-      buildVoteQuestions({
-        dossierContext: result.understanding.dossierContext,
-        broadTopicFields,
-        suggestions: sortedSuggestions,
-        fallbackTopic: result.understanding.dossierContext ?? topicLabels[0] ?? "Öffentliches Thema",
-      }),
-    [broadTopicFields, result.understanding.dossierContext, sortedSuggestions, topicLabels],
-  );
-  const scopeChip = result.understanding.scopes[0] ?? "unclear";
-  const assistantLead = resolveAssistantLead({
-    topicLabels,
-    summary: result.understanding.summary,
-    statementText: result.understanding.statements[0]?.text ?? "",
-    dossierContext: result.understanding.dossierContext,
-  });
-  const showSectionFlow = result.sourceText.length > 500 || sections.length > 1;
-  const showCompactUserBubble = result.sourceText.length <= 420 && !showSectionFlow;
-  const positionClusters = React.useMemo(() => derivePositionClusters(result), [result]);
-  const keyStatement = resolveCoreClaim({
-    topicLabels,
-    fallback: statementNodes[0]?.label ?? result.understanding.summary,
-    dossierContext: result.understanding.dossierContext,
-  });
-  const dedupedCopy = dedupeCreateFollowupSections({
-    summary: result.understanding.summary,
-    coreClaim: keyStatement,
-    sourceText: result.sourceText,
-    statementText: result.understanding.statements[0]?.text ?? "",
-  });
-  const showCoreBlock = dedupedCopy.prominentCoreClaim !== dedupedCopy.prominentSummary;
-  const rootTopic = result.understanding.dossierContext ?? topicNodes[0]?.label ?? "Öffentliches Thema";
-  const branchTopics = topicLabels.filter((label) => label !== rootTopic);
-  const primaryActionHref = buildCreateFollowupPrimaryCtaHref({
-    ctaHref,
-    topics: result.understanding.topics,
-    statements: result.understanding.statements,
-    suggestions: sortedSuggestions,
-  });
-
-  const openCorrection = React.useCallback(
-    (focus: string) => {
-      setCorrectionFocus(focus);
-      setShowCorrectionRow(true);
-      onEdit();
-    },
-    [onEdit],
-  );
-
+function UserContributionBubble(props: { text: string; compact: boolean }) {
   return (
-    <section className="relative space-y-5 rounded-2xl border border-slate-300/55 bg-slate-50/90 p-4 pb-24 md:space-y-6 md:p-6 md:pb-20 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))]">
-      {showCompactUserBubble ? (
-        <div className="ml-auto max-w-3xl rounded-2xl rounded-tr-md border border-slate-200 bg-white px-4 py-3 shadow-sm dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))] dark:shadow-none">
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-600 dark:text-[rgb(var(--muted))]">Du</p>
-          <p className="mt-2 text-sm text-slate-900 md:text-base dark:text-[rgb(var(--fg))]">
-            {dedupedCopy.userBubbleText.slice(0, 260)}
-            {dedupedCopy.userBubbleText.length > 260 ? " …" : ""}
-          </p>
-        </div>
+    <div className="ml-auto max-w-3xl rounded-2xl rounded-tr-md border border-slate-200 bg-white px-4 py-3 shadow-sm dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))] dark:shadow-none">
+      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-600 dark:text-[rgb(var(--muted))]">Du</p>
+      {props.compact ? (
+        <p className="mt-2 text-sm text-slate-900 md:text-base dark:text-[rgb(var(--fg))]">
+          {props.text.slice(0, 260)}
+          {props.text.length > 260 ? " …" : ""}
+        </p>
       ) : (
-        <div className="ml-auto max-w-3xl rounded-2xl rounded-tr-md border border-slate-200 bg-white px-4 py-3 shadow-sm dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))] dark:shadow-none">
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-600 dark:text-[rgb(var(--muted))]">Du</p>
+        <>
           <p className="mt-2 text-sm text-slate-900 md:text-base dark:text-[rgb(var(--fg))]">Dein Beitrag wurde aufgenommen.</p>
           <details className="mt-2">
             <summary className="cursor-pointer text-sm text-slate-700 dark:text-[rgb(var(--muted))]">Originaltext anzeigen</summary>
             <pre className="mt-2 whitespace-pre-wrap rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--bg))] dark:text-[rgb(var(--fg))]">
-              {result.sourceText}
+              {props.text}
             </pre>
           </details>
-        </div>
+        </>
       )}
+    </div>
+  );
+}
 
-      <div className="mr-auto max-w-4xl rounded-2xl rounded-tl-md border border-cyan-500/25 bg-white px-4 py-4 shadow-sm dark:border-cyan-300/35 dark:bg-[rgb(var(--card))] dark:shadow-none">
-        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-700 dark:text-[rgb(var(--muted))]">eDebatte</p>
-        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-cyan-800 dark:text-cyan-200">{CREATE_VISUAL_FOLLOWUP_COPY.structureTitle}</p>
-        <p className="mt-1 text-base font-semibold text-cyan-950 md:text-lg dark:text-cyan-50">{CREATE_VISUAL_FOLLOWUP_COPY.headline}</p>
-        <p className="mt-3 text-base text-cyan-900 md:text-lg dark:text-cyan-100">{dedupedCopy.prominentSummary || assistantLead}</p>
-        <p className="mt-2 text-sm text-cyan-900/85 dark:text-cyan-100/85">Fortlaufender Struktur-Chat: Wir halten den Dossier-Kontext, Themenfelder und Claims im selben Arbeitsfenster zusammen.</p>
-        {showCoreBlock ? (
-          <div className="mt-4 rounded-xl border border-cyan-500/35 bg-cyan-50 px-4 py-3 dark:border-cyan-300/40 dark:bg-cyan-500/10">
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-cyan-800 dark:text-cyan-200">{CREATE_VISUAL_FOLLOWUP_COPY.coreTitle}</p>
-            <p className="mt-1 text-base font-semibold text-cyan-950 md:text-xl dark:text-cyan-50">
-              {dedupedCopy.prominentCoreClaim}
-            </p>
-          </div>
-        ) : null}
-        <div className="mt-3 flex flex-wrap gap-2">
-          <span className="rounded-full border border-emerald-500/30 bg-emerald-50 px-3 py-1 text-sm text-emerald-950 dark:border-emerald-300/40 dark:bg-emerald-500/10 dark:text-emerald-50">
-            Haltung: {resolveStanceLead(dominantStance)}
-          </span>
-          <span className="rounded-full border border-amber-500/35 bg-amber-50 px-3 py-1 text-sm text-amber-950 dark:border-amber-300/40 dark:bg-amber-500/10 dark:text-amber-50">
-            Ebene: {resolveScopeLabel(scopeChip)}
-          </span>
+function AssistantUnderstandingBubble(props: {
+  summary: string;
+  assistantLead: string;
+  coreClaim: string;
+  showCoreBlock: boolean;
+  stanceLabel: string;
+  scopeLabel: string;
+}) {
+  return (
+    <div className="mr-auto max-w-4xl rounded-2xl rounded-tl-md border border-cyan-500/30 bg-white px-4 py-4 shadow-sm dark:border-cyan-300/35 dark:bg-[rgb(var(--card))] dark:shadow-none">
+      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-700 dark:text-[rgb(var(--muted))]">eDebatte</p>
+      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-cyan-800 dark:text-cyan-200">{CREATE_VISUAL_FOLLOWUP_COPY.structureTitle}</p>
+      <p className="mt-1 text-base font-semibold text-cyan-950 md:text-lg dark:text-cyan-50">{CREATE_VISUAL_FOLLOWUP_COPY.headline}</p>
+      <p className="mt-3 text-base text-cyan-900 md:text-lg dark:text-cyan-100">{props.summary || props.assistantLead}</p>
+      <p className="mt-2 text-sm text-cyan-900/85 dark:text-cyan-100/85">{props.assistantLead}</p>
+      {props.showCoreBlock ? (
+        <div className="mt-4 rounded-xl border border-cyan-500/35 bg-cyan-50 px-4 py-3 dark:border-cyan-300/40 dark:bg-cyan-500/10">
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-cyan-800 dark:text-cyan-200">{CREATE_VISUAL_FOLLOWUP_COPY.coreTitle}</p>
+          <p className="mt-1 text-base font-semibold text-cyan-950 md:text-xl dark:text-cyan-50">{props.coreClaim}</p>
         </div>
+      ) : null}
+      <div className="mt-3 flex flex-wrap gap-2">
+        <span className="rounded-full border border-emerald-500/30 bg-emerald-50 px-3 py-1 text-sm text-emerald-950 dark:border-emerald-300/40 dark:bg-emerald-500/10 dark:text-emerald-50">
+          Haltung: {props.stanceLabel}
+        </span>
+        <span className="rounded-full border border-amber-500/35 bg-amber-50 px-3 py-1 text-sm text-amber-950 dark:border-amber-300/40 dark:bg-amber-500/10 dark:text-amber-50">
+          Ebene: {props.scopeLabel}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function TopicFieldList(props: { labels: string[]; onPick: (label: string) => void }) {
+  return (
+    <div className="mt-2 flex flex-wrap gap-2">
+      {props.labels.map((label) => (
+        <button
+          key={`topic-${label}`}
+          type="button"
+          onClick={() => props.onPick(`Thema: ${label}`)}
+          className={`rounded-full border px-2.5 py-1 text-sm ${resolveNodeTone("topic")}`}
+        >
+          {label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function PositionClusterList(props: { labels: string[]; onPick: (label: string) => void }) {
+  return (
+    <div className="mt-2 flex flex-wrap gap-2">
+      {props.labels.map((cluster) => (
+        <button
+          key={cluster}
+          type="button"
+          onClick={() => props.onPick(`Blickrichtung: ${cluster}`)}
+          className={`rounded-full border px-2.5 py-1 text-sm ${resolveNodeTone("stance")}`}
+        >
+          {cluster}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function VoteQuestionList(props: { questions: string[] }) {
+  return (
+    <ol className="mt-2 space-y-1 text-sm text-[rgb(var(--fg))]">
+      {props.questions.map((question, index) => (
+        <li key={`vote-question-${index}`}>{index + 1}. {question}</li>
+      ))}
+    </ol>
+  );
+}
+
+function StructuredWorkstateBlock(props: {
+  rootTopic: string;
+  topicLabels: string[];
+  positionClusters: string[];
+  voteQuestions: string[];
+  keyStatement: string;
+  onEdit: (focus: string) => void;
+}) {
+  return (
+    <section className="space-y-4 rounded-xl border border-slate-200 bg-white px-3 py-3 shadow-sm md:px-4 md:py-4 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))] dark:shadow-none">
+      <p className="text-sm font-semibold text-[rgb(var(--fg))] md:text-base">Vorgeschlagener Arbeitsstand</p>
+      <p className="text-sm text-[rgb(var(--muted))] md:text-base">
+        {CREATE_VISUAL_FOLLOWUP_COPY.graphTitle}
+      </p>
+
+      <div className="space-y-3 md:hidden">
+        <div className="rounded-lg border border-cyan-500/35 bg-cyan-50 px-3 py-2 text-sm font-semibold text-cyan-900 dark:border-cyan-300/35 dark:bg-cyan-500/10 dark:text-cyan-100">1. Dein Beitrag</div>
+        <div className={`rounded-xl border px-3 py-2 ${resolveNodeTone("source_text")}`}>
+          <p className="text-sm font-semibold">Ausgangspunkt im Dialog</p>
+        </div>
+        <div className="rounded-lg border border-cyan-500/35 bg-cyan-50 px-3 py-2 text-sm font-semibold text-cyan-900 dark:border-cyan-300/35 dark:bg-cyan-500/10 dark:text-cyan-100">2. Kern erkannt</div>
+        <div className={`rounded-xl border px-3 py-2 ${resolveNodeTone("statement")}`}>
+          <p className="text-sm font-semibold">{props.keyStatement}</p>
+        </div>
+        <div className="rounded-lg border border-cyan-500/35 bg-cyan-50 px-3 py-2 text-sm font-semibold text-cyan-900 dark:border-cyan-300/35 dark:bg-cyan-500/10 dark:text-cyan-100">3. Themenfelder</div>
+        <TopicFieldList labels={props.topicLabels} onPick={props.onEdit} />
+        <div className="rounded-lg border border-cyan-500/35 bg-cyan-50 px-3 py-2 text-sm font-semibold text-cyan-900 dark:border-cyan-300/35 dark:bg-cyan-500/10 dark:text-cyan-100">4. Blickrichtungen</div>
+        <PositionClusterList labels={props.positionClusters} onPick={props.onEdit} />
+        <div className="rounded-lg border border-cyan-500/35 bg-cyan-50 px-3 py-2 text-sm font-semibold text-cyan-900 dark:border-cyan-300/35 dark:bg-cyan-500/10 dark:text-cyan-100">5. Mögliche Abstimmungsfragen</div>
+        <VoteQuestionList questions={props.voteQuestions} />
       </div>
 
-      <div className="space-y-4 rounded-xl border border-slate-200 bg-white px-3 py-3 shadow-sm md:px-4 md:py-4 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))] dark:shadow-none">
-        <p className="text-sm font-semibold text-[rgb(var(--fg))] md:text-base">Vorgeschlagener Arbeitsstand</p>
+      <div className="hidden md:block">
+        <div className="space-y-3">
+          <div className={`max-w-2xl rounded-xl border px-4 py-3 ${resolveNodeTone("source_text")}`}>
+            <p className="text-sm font-semibold">Dein Beitrag</p>
+          </div>
+          <div className="ml-5 border-l-2 border-cyan-500/35 pl-4 dark:border-cyan-300/40">
+            <div className={`max-w-2xl rounded-xl border px-4 py-3 ${resolveNodeTone("statement")}`}>
+              <p className="text-sm font-semibold">Kern erkannt</p>
+              <p className="mt-1 text-base font-semibold">{props.keyStatement}</p>
+            </div>
+            <div className="ml-6 mt-3 border-l-2 border-violet-500/30 pl-4 dark:border-violet-300/35">
+              <div className={`max-w-2xl rounded-xl border px-4 py-3 ${resolveNodeTone("topic")}`}>
+                <p className="text-sm font-semibold">Dossier-Kontext / Oberthema</p>
+                <p className="mt-1 text-base font-semibold">{props.rootTopic}</p>
+              </div>
+              <TopicFieldList labels={props.topicLabels.filter((label) => label !== props.rootTopic)} onPick={props.onEdit} />
+              <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--bg))]">
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">Blickrichtungen</p>
+                <PositionClusterList labels={props.positionClusters} onPick={props.onEdit} />
+              </div>
+              <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--bg))]">
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">Mögliche Abstimmungsfragen</p>
+                <VoteQuestionList questions={props.voteQuestions} />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
 
-        <div className="space-y-3 md:hidden">
-          <div className="rounded-lg border border-cyan-500/35 bg-cyan-50 px-3 py-2 text-sm font-semibold text-cyan-900 dark:border-cyan-300/35 dark:bg-cyan-500/10 dark:text-cyan-100">1. Dein Beitrag</div>
-          <div className={`rounded-xl border px-3 py-2 ${resolveNodeTone(visualMap.center.kind)}`}>
-            <p className="text-sm font-semibold">{visualMap.center.label}</p>
-            <p className="mt-1 text-sm opacity-80">Originaltext bleibt im Detail einsehbar.</p>
-          </div>
-          <div className="rounded-lg border border-cyan-500/35 bg-cyan-50 px-3 py-2 text-sm font-semibold text-cyan-900 dark:border-cyan-300/35 dark:bg-cyan-500/10 dark:text-cyan-100">2. Kern erkannt</div>
-          <div className={`rounded-xl border px-3 py-2 ${resolveNodeTone("statement")}`}>
-            <p className="text-sm font-semibold">{keyStatement}</p>
-          </div>
-          <div className="rounded-lg border border-cyan-500/35 bg-cyan-50 px-3 py-2 text-sm font-semibold text-cyan-900 dark:border-cyan-300/35 dark:bg-cyan-500/10 dark:text-cyan-100">3. Themenfelder</div>
-          <div className="flex flex-wrap gap-2">
-            {topicLabels.map((label) => (
-              <span key={`mobile-topic-${label}`} className={`rounded-full border px-2.5 py-1 text-sm ${resolveNodeTone("topic")}`}>
-                {label}
-              </span>
+function FollowupActionRail(props: {
+  onConfirm: () => void;
+  onEdit: () => void;
+  onSaveForLater: () => void;
+  setCorrectionOpen: (focus: string) => void;
+  showCorrectionRow: boolean;
+  correctionFocus: string | null;
+}) {
+  return (
+    <section className="space-y-3 rounded-xl border border-cyan-500/30 bg-white px-3 py-3 shadow-sm dark:border-cyan-300/45 dark:bg-[rgb(var(--card))] dark:shadow-none">
+      <p className="text-sm font-semibold text-[rgb(var(--fg))] md:text-base">{CREATE_VISUAL_FOLLOWUP_COPY.confirmTitle}</p>
+      <p className="text-sm text-[rgb(var(--muted))] md:text-base">
+        Du kannst bestätigen, einzelne Punkte ändern oder erst passende Dossiers und Abstimmungen ansehen.
+      </p>
+      <div className="grid gap-2 md:grid-cols-2">
+        <button type="button" className="btn-primary min-h-[40px] px-3 py-2 text-sm" onClick={props.onConfirm}>
+          Ja, Struktur übernehmen
+        </button>
+        <button type="button" className="btn-secondary min-h-[40px] px-3 py-2 text-sm" onClick={() => props.setCorrectionOpen("Thema")}>
+          Einen Punkt ändern
+        </button>
+        <button type="button" className="btn-secondary min-h-[40px] px-3 py-2 text-sm" onClick={props.onSaveForLater}>
+          Für später speichern
+        </button>
+        <button type="button" className="btn-secondary min-h-[40px] px-3 py-2 text-sm" onClick={props.onEdit}>
+          Dossiers & Abstimmungen ansehen
+        </button>
+      </div>
+      {props.showCorrectionRow ? (
+        <div className="rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2">
+          <p className="text-sm text-[rgb(var(--fg))]">
+            Was soll anders eingeordnet werden{props.correctionFocus ? `: ${props.correctionFocus}` : ""}?
+          </p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {["Thema ändern", "Haltung ändern", "Anschluss ändern", "Aussage fehlt"].map((chip) => (
+              <button
+                key={chip}
+                type="button"
+                className="rounded-full border border-[rgb(var(--border))] px-2 py-1 text-xs text-[rgb(var(--fg))] hover:border-cyan-300/60"
+                onClick={props.onEdit}
+              >
+                {chip}
+              </button>
             ))}
           </div>
-          <div className="rounded-lg border border-cyan-500/35 bg-cyan-50 px-3 py-2 text-sm font-semibold text-cyan-900 dark:border-cyan-300/35 dark:bg-cyan-500/10 dark:text-cyan-100">4. Dossier-Kontext</div>
-          <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--bg))] dark:text-slate-100">
-            <p className="font-semibold">Dossier-Kontext / Oberthema</p>
-            <p className="mt-1">{rootTopic}</p>
-            <p className="mt-2 font-semibold">Themenfelder</p>
-            <div className="mt-1 flex flex-wrap gap-2">
-              {topicLabels.map((label) => (
-                <button
-                  key={`topic-correction-${label}`}
-                  type="button"
-                  onClick={() => openCorrection(`Thema: ${label}`)}
-                  className={`rounded-full border px-2.5 py-1 text-xs ${resolveNodeTone("topic")}`}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-            <p className="mt-2 font-semibold">Blickrichtungen</p>
-            <div className="mt-1 flex flex-wrap gap-2">
-              {positionClusters.map((cluster) => (
-                <button
-                  key={cluster}
-                  type="button"
-                  onClick={() => openCorrection(`Position: ${cluster}`)}
-                  className={`rounded-full border px-2.5 py-1 text-xs ${resolveNodeTone("stance")}`}
-                >
-                  {cluster}
-                </button>
-              ))}
-            </div>
-            <p className="mt-2 font-semibold">Mögliche Claims</p>
-            <div className="mt-1 space-y-1">
-              {statementNodes.slice(0, 2).map((node) => (
-                <button
-                  key={node.id}
-                  type="button"
-                  onClick={() => openCorrection(`Claim: ${node.label}`)}
-                  className="block w-full rounded-lg border border-sky-500/30 bg-sky-50 px-2.5 py-1.5 text-left text-xs text-sky-950 dark:border-sky-300/35 dark:bg-sky-500/10 dark:text-sky-50"
-                >
-                  {node.label}
-                </button>
-              ))}
-            </div>
-            <p className="mt-2 font-semibold">Mögliche Abstimmungsfragen</p>
-            <ol className="mt-1 space-y-1">
-              {voteQuestions.map((question, index) => (
-                <li key={`mobile-vote-question-${index}`} className="text-xs">
-                  {index + 1}. {question}
-                </li>
-              ))}
-            </ol>
-          </div>
         </div>
+      ) : null}
+      <p className="text-xs text-[rgb(var(--muted))]">{CREATE_VISUAL_FOLLOWUP_COPY.guardrail}</p>
+      <p className="text-xs text-[rgb(var(--muted))]">Keine automatische Kostenbuchung.</p>
+    </section>
+  );
+}
 
-        <div className="hidden md:block">
-          <div className="space-y-3">
-            <div className={`max-w-2xl rounded-xl border px-4 py-3 ${resolveNodeTone("source_text")}`}>
-              <p className="text-sm font-semibold">Dein Beitrag</p>
-              <p className="mt-1 text-sm opacity-85">Originaltext bleibt im Detail einsehbar.</p>
-            </div>
-            <div className="ml-5 border-l-2 border-cyan-500/35 pl-4 dark:border-cyan-300/40">
-              <div className={`max-w-2xl rounded-xl border px-4 py-3 ${resolveNodeTone("statement")}`}>
-                <p className="text-sm font-semibold">Kernforderung</p>
-                <p className="mt-1 text-base font-semibold">{keyStatement}</p>
-              </div>
-              <div className="ml-6 mt-3 border-l-2 border-violet-500/30 pl-4 dark:border-violet-300/35">
-                <div className={`max-w-2xl rounded-xl border px-4 py-3 ${resolveNodeTone("topic")}`}>
-                  <p className="text-sm font-semibold">Hauptthema</p>
-                  <p className="mt-1 text-base font-semibold">{rootTopic}</p>
-                </div>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {branchTopics.map((label) => (
-                    <button
-                      key={`branch-topic-${label}`}
-                      type="button"
-                      onClick={() => openCorrection(`Thema: ${label}`)}
-                      className={`rounded-full border px-3 py-1 text-sm ${resolveNodeTone("topic")}`}
-                    >
-                      {label}
-                    </button>
-                  ))}
-                </div>
-                <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--bg))]">
-                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">Blickrichtungen</p>
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    {positionClusters.map((cluster) => (
-                      <button
-                        key={cluster}
-                        type="button"
-                        onClick={() => openCorrection(`Position: ${cluster}`)}
-                        className={`rounded-full border px-2.5 py-1 text-xs ${resolveNodeTone("stance")}`}
-                      >
-                        {cluster}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--bg))]">
-                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">Mögliche Abstimmungsfragen</p>
-                  <ol className="mt-2 space-y-1 text-sm">
-                    {voteQuestions.map((question, index) => (
-                      <li key={`desktop-vote-question-${index}`}>
-                        {index + 1}. {question}
-                      </li>
-                    ))}
-                  </ol>
-                </div>
-              </div>
-            </div>
+function DetailsAccordion(props: {
+  result: CreateIntelligentFollowupResult;
+  sections: ReturnType<typeof buildCreateVisualSections>;
+  sortedSuggestions: CreateConnectionSuggestion[];
+  ctaHref: string;
+  onOpenNewAnlassraum: () => void;
+  onOpenCorrection: (focus: string) => void;
+  onStartOptionalService: () => void;
+}) {
+  const showSectionFlow = props.result.sourceText.length > 500 || props.sections.length > 1;
+  const hasFutureModules = false;
+
+  return (
+    <section className="space-y-3">
+      <details className="rounded-xl border border-slate-200 bg-white px-3 py-3 shadow-sm dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))] dark:shadow-none">
+        <summary className="cursor-pointer text-sm font-semibold text-[rgb(var(--fg))] md:text-base">
+          Details zum Originaltext
+        </summary>
+        <pre className="mt-3 whitespace-pre-wrap rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--bg))] dark:text-[rgb(var(--fg))]">
+          {props.result.sourceText}
+        </pre>
+      </details>
+
+      {showSectionFlow ? (
+        <details className="rounded-xl border border-slate-200 bg-white px-3 py-3 shadow-sm dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))] dark:shadow-none">
+          <summary className="cursor-pointer text-sm font-semibold text-[rgb(var(--fg))] md:text-base">
+            Sinnabschnitte ({props.sections.length})
+          </summary>
+          <div className="mt-3 space-y-2">
+            {props.sections.map((section) => (
+              <details
+                key={section.id}
+                className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--bg))]"
+              >
+                <summary className="cursor-pointer text-sm font-semibold text-[rgb(var(--fg))] md:text-base">
+                  {section.label}
+                </summary>
+                <p className="mt-2 text-sm text-[rgb(var(--fg))] md:text-base"><span className="font-semibold">Du sagst:</span> {section.sourceText}</p>
+                {section.statementLabel ? (
+                  <p className="mt-2 text-sm text-[rgb(var(--muted))]"><span className="font-semibold text-[rgb(var(--fg))]">Erkannt als:</span> {section.statementLabel}</p>
+                ) : null}
+                {section.topicLabel ? (
+                  <p className="mt-1 text-sm text-[rgb(var(--muted))]"><span className="font-semibold text-[rgb(var(--fg))]">Gehört zu:</span> {section.topicLabel}</p>
+                ) : null}
+                {section.connectionLabel ? (
+                  <p className="mt-1 text-sm text-[rgb(var(--muted))]"><span className="font-semibold text-[rgb(var(--fg))]">Möglicher Anschluss:</span> {section.connectionLabel}</p>
+                ) : null}
+              </details>
+            ))}
           </div>
-        </div>
-      </div>
+        </details>
+      ) : null}
 
       <details className="rounded-xl border border-slate-200 bg-white px-3 py-3 shadow-sm dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))] dark:shadow-none">
         <summary className="cursor-pointer text-sm font-semibold text-[rgb(var(--fg))] md:text-base">
-          {CREATE_VISUAL_FOLLOWUP_COPY.impactTitle} (optional)
+          {CREATE_VISUAL_FOLLOWUP_COPY.impactTitle}
         </summary>
         <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-          {sortedSuggestions.map((suggestion) => {
+          {props.sortedSuggestions.map((suggestion) => {
             const href = buildCreateFollowupTargetHref({
               kind: suggestion.kind,
-              ctaHref,
-              topics: result.understanding.topics,
-              statements: result.understanding.statements,
+              ctaHref: props.ctaHref,
+              topics: props.result.understanding.topics,
+              statements: props.result.understanding.statements,
               stance: suggestion.suggestedStance ?? null,
               suggestionTitle: suggestion.title,
               suggestionHref: suggestion.href ?? null,
@@ -529,7 +544,7 @@ export default function CreateVisualFollowup({
                 <p className="mt-1 text-sm opacity-85">Warum passt das? {suggestion.reason}</p>
                 <div className="mt-3 flex flex-wrap gap-2">
                   {suggestion.kind === "new_anlassraum" ? (
-                    <button type="button" className="btn-secondary min-h-[40px] px-3 py-2 text-sm" onClick={onOpenNewAnlassraum}>
+                    <button type="button" className="btn-secondary min-h-[40px] px-3 py-2 text-sm" onClick={props.onOpenNewAnlassraum}>
                       {resolveSuggestionCta(suggestion.kind)}
                     </button>
                   ) : (
@@ -537,7 +552,7 @@ export default function CreateVisualFollowup({
                       {resolveSuggestionCta(suggestion.kind)}
                     </Link>
                   )}
-                  <button type="button" className="btn-secondary min-h-[40px] px-3 py-2 text-sm" onClick={() => openCorrection("Anschluss")}>
+                  <button type="button" className="btn-secondary min-h-[40px] px-3 py-2 text-sm" onClick={() => props.onOpenCorrection("Anschluss")}>
                     Nicht passend
                   </button>
                 </div>
@@ -547,133 +562,183 @@ export default function CreateVisualFollowup({
         </div>
       </details>
 
-      {showSectionFlow ? (
-        <div className="space-y-3 rounded-xl border border-slate-200 bg-white px-3 py-3 shadow-sm dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))] dark:shadow-none">
-          <p className="text-sm font-semibold text-[rgb(var(--fg))] md:text-base">Wir haben deinen Text in {sections.length} Sinnabschnitte gegliedert.</p>
-          <div className="space-y-2">
-            {sections.map((section) => (
-              <details
-                key={section.id}
-                className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--bg))]"
+      <details className="rounded-xl border border-slate-200 bg-white px-3 py-3 shadow-sm dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))] dark:shadow-none">
+        <summary className="cursor-pointer text-sm font-semibold text-[rgb(var(--fg))] md:text-base">
+          Zusatzservices (optional)
+        </summary>
+        <p className="mt-3 text-sm text-[rgb(var(--muted))]">
+          Erweiterte Prüfung oder Begleitung startest du nur bewusst im nächsten Schritt. Keine automatische Kostenbuchung.
+        </p>
+        <button type="button" className="btn-secondary mt-3 min-h-[40px] px-3 py-2 text-sm" onClick={props.onStartOptionalService}>
+          Faktencheck / Deep Search starten
+        </button>
+      </details>
+
+      {hasFutureModules ? (
+        <div className="rounded-xl border border-slate-200 bg-white px-3 py-3 text-xs text-[rgb(var(--muted))] shadow-sm dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))]">
+          Erweiterbare Module: Quellen, Statistik, Artikel, Video, Faktencheck.
+        </div>
+      ) : null}
+    </section>
+  );
+}
+
+export default function CreateVisualFollowup({
+  result,
+  ctaHref,
+  actionNotice,
+  isConfirmed = false,
+  onConfirm,
+  onEdit,
+  onOpenNewAnlassraum,
+  onSaveForLater = () => {},
+  onStartOptionalService = () => {},
+}: CreateVisualFollowupProps) {
+  const visualMap = React.useMemo(() => buildCreateVisualMap(result), [result]);
+  const sections = React.useMemo(() => buildCreateVisualSections(result, 4), [result]);
+  const [showCorrectionRow, setShowCorrectionRow] = React.useState(false);
+  const [correctionFocus, setCorrectionFocus] = React.useState<string | null>(null);
+
+  const topicLabels = result.understanding.topics.map((topic) => topic.label);
+  const broadTopicFields = React.useMemo(() => deriveBroadTopicFields(topicLabels), [topicLabels]);
+  const dominantStance = deriveDominantUnderstandingStance(result.understanding);
+  const statementNodes = visualMap.nodes.filter((node) => node.kind === "statement").slice(0, 4);
+  const sortedSuggestions = sortSuggestions(result.suggestions)
+    .filter((suggestion) => suggestion.kind !== "topic")
+    .slice(0, 4);
+  const voteSuggestion = sortedSuggestions.find((suggestion) => suggestion.kind === "vote");
+  const voteQuestions = React.useMemo(
+    () =>
+      buildVoteQuestions({
+        dossierContext: result.understanding.dossierContext,
+        broadTopicFields,
+        suggestions: sortedSuggestions,
+        fallbackTopic: result.understanding.dossierContext ?? topicLabels[0] ?? "Öffentliches Thema",
+      }),
+    [broadTopicFields, result.understanding.dossierContext, sortedSuggestions, topicLabels],
+  );
+  const scopeChip = result.understanding.scopes[0] ?? "unclear";
+  const assistantLead = resolveAssistantLead({
+    topicLabels,
+    summary: result.understanding.summary,
+    statementText: result.understanding.statements[0]?.text ?? "",
+    dossierContext: result.understanding.dossierContext,
+  });
+  const showCompactUserBubble = result.sourceText.length <= 420 && sections.length <= 1;
+  const positionClusters = React.useMemo(() => derivePositionClusters(result), [result]);
+  const keyStatement = resolveCoreClaim({
+    topicLabels,
+    fallback: statementNodes[0]?.label ?? result.understanding.summary,
+    dossierContext: result.understanding.dossierContext,
+  });
+  const dedupedCopy = dedupeCreateFollowupSections({
+    summary: result.understanding.summary,
+    coreClaim: keyStatement,
+    sourceText: result.sourceText,
+    statementText: result.understanding.statements[0]?.text ?? "",
+  });
+  const showCoreBlock = dedupedCopy.prominentCoreClaim !== dedupedCopy.prominentSummary;
+  const rootTopic = result.understanding.dossierContext ?? topicLabels[0] ?? "Öffentliches Thema";
+  const primaryActionHref = buildCreateFollowupPrimaryCtaHref({
+    ctaHref,
+    topics: result.understanding.topics,
+    statements: result.understanding.statements,
+    suggestions: sortedSuggestions,
+  });
+
+  const openCorrection = React.useCallback(
+    (focus: string) => {
+      setCorrectionFocus(focus);
+      setShowCorrectionRow(true);
+      onEdit();
+    },
+    [onEdit],
+  );
+
+  return (
+    <section className="relative -mt-2 space-y-4 rounded-2xl border border-cyan-500/30 bg-cyan-50/80 p-4 pb-24 md:space-y-5 md:p-6 md:pb-20 dark:border-cyan-300/45 dark:bg-cyan-500/10">
+      <UserContributionBubble text={dedupedCopy.userBubbleText} compact={showCompactUserBubble} />
+
+      <AssistantUnderstandingBubble
+        summary={dedupedCopy.prominentSummary}
+        assistantLead={assistantLead}
+        coreClaim={dedupedCopy.prominentCoreClaim}
+        showCoreBlock={showCoreBlock}
+        stanceLabel={resolveStanceLead(dominantStance)}
+        scopeLabel={resolveScopeLabel(scopeChip)}
+      />
+
+      <StructuredWorkstateBlock
+        rootTopic={rootTopic}
+        topicLabels={topicLabels}
+        positionClusters={positionClusters}
+        voteQuestions={voteQuestions}
+        keyStatement={dedupedCopy.prominentCoreClaim}
+        onEdit={openCorrection}
+      />
+
+      <FollowupActionRail
+        onConfirm={onConfirm}
+        onEdit={onEdit}
+        onSaveForLater={onSaveForLater}
+        setCorrectionOpen={openCorrection}
+        showCorrectionRow={showCorrectionRow}
+        correctionFocus={correctionFocus}
+      />
+
+      {isConfirmed ? (
+        <div className="space-y-2 rounded-lg border border-emerald-300/45 bg-emerald-50 px-3 py-2 dark:border-emerald-300/35 dark:bg-emerald-500/10">
+          <p className="text-sm text-emerald-900 dark:text-emerald-100">
+            Einordnung bestätigt. Dein Beitrag ist noch nicht veröffentlicht. Wähle jetzt den nächsten Schritt.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <Link href={primaryActionHref} className="btn-secondary min-h-[40px] px-3 py-2 text-sm">
+              Dossier-Kontext öffnen
+            </Link>
+            {voteSuggestion ? (
+              <Link
+                href={buildCreateFollowupTargetHref({
+                  kind: "vote",
+                  ctaHref,
+                  topics: result.understanding.topics,
+                  statements: result.understanding.statements,
+                  suggestionTitle: voteSuggestion.title,
+                  suggestionHref: voteSuggestion.href ?? null,
+                })}
+                className="btn-secondary min-h-[40px] px-3 py-2 text-sm"
               >
-                <summary className="cursor-pointer text-sm font-semibold text-[rgb(var(--fg))] md:text-base">
-                  {section.label}
-                </summary>
-                <p className="mt-2 text-sm text-[rgb(var(--fg))] md:text-base"><span className="font-semibold">Du sagst:</span> {section.sourceText}</p>
-                {section.statementLabel ? (
-                  <p className="mt-2 text-sm text-[rgb(var(--muted))]"><span className="font-semibold text-[rgb(var(--fg))]">Erkannt als:</span> {section.statementLabel}</p>
-                ) : null}
-                {section.topicLabel ? (
-                  <p className="mt-1 text-sm text-[rgb(var(--muted))]"><span className="font-semibold text-[rgb(var(--fg))]">Gehört zu:</span> {section.topicLabel}</p>
-                ) : null}
-                {section.connectionLabel ? (
-                  <p className="mt-1 text-sm text-[rgb(var(--muted))]"><span className="font-semibold text-[rgb(var(--fg))]">Möglicher Anschluss:</span> {section.connectionLabel}</p>
-                ) : null}
-              </details>
-            ))}
+                Claims/Abstimmungen prüfen
+              </Link>
+            ) : (
+              <Link href={primaryActionHref} className="btn-secondary min-h-[40px] px-3 py-2 text-sm">
+                Abstimmungsfragen prüfen
+              </Link>
+            )}
+            <button type="button" className="btn-secondary min-h-[40px] px-3 py-2 text-sm" onClick={onStartOptionalService}>
+              Faktencheck / Deep Search starten
+            </button>
+            <button type="button" className="btn-secondary min-h-[40px] px-3 py-2 text-sm" onClick={onSaveForLater}>
+              Arbeitsstand speichern
+            </button>
           </div>
         </div>
       ) : null}
 
-      <div className="space-y-3 rounded-xl border border-cyan-500/30 bg-white px-3 py-3 shadow-sm dark:border-cyan-300/45 dark:bg-[rgb(var(--card))] dark:shadow-none">
-        <p className="text-sm font-semibold text-[rgb(var(--fg))] md:text-base">{CREATE_VISUAL_FOLLOWUP_COPY.confirmTitle}</p>
-        <p className="text-sm text-[rgb(var(--muted))] md:text-base">
-          Du kannst bestätigen, einzelne Punkte ändern oder den Arbeitsstand für später speichern.
+      <DetailsAccordion
+        result={result}
+        sections={sections}
+        sortedSuggestions={sortedSuggestions}
+        ctaHref={ctaHref}
+        onOpenNewAnlassraum={onOpenNewAnlassraum}
+        onOpenCorrection={openCorrection}
+        onStartOptionalService={onStartOptionalService}
+      />
+
+      {actionNotice ? (
+        <p className="rounded-lg border border-cyan-500/35 bg-cyan-50 px-3 py-2 text-xs text-cyan-900 dark:border-cyan-300/35 dark:bg-cyan-500/10 dark:text-cyan-100">
+          {actionNotice}
         </p>
-        <div className="grid gap-2 md:grid-cols-2">
-          <div className="rounded-lg border border-emerald-300/45 bg-emerald-50 px-3 py-2 dark:border-emerald-300/35 dark:bg-emerald-500/10">
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-emerald-900 dark:text-emerald-100">
-              Kostenlose nächste Schritte
-            </p>
-            <ul className="mt-1 list-disc pl-4 text-xs text-emerald-900/90 dark:text-emerald-100/90">
-              <li>Dossiers lesen und abstimmbare Claims prüfen</li>
-              <li>In Swipes aktiv zustimmen, ablehnen oder offen bleiben</li>
-              <li>Als neues Thema vorschlagen</li>
-            </ul>
-          </div>
-          <div className="rounded-lg border border-slate-300/55 bg-slate-50 px-3 py-2 dark:border-slate-300/30 dark:bg-slate-500/10">
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-900 dark:text-slate-100">
-              Zusatzservice (optional)
-            </p>
-            <p className="mt-1 text-xs text-slate-800 dark:text-slate-200">
-              Erweiterte Prüfung oder Begleitung startest du nur bewusst im nächsten Schritt. Keine automatische Kostenbuchung.
-            </p>
-          </div>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <button type="button" className="btn-primary min-h-[40px] px-3 py-2 text-sm" onClick={onConfirm}>
-            Ja, Struktur übernehmen
-          </button>
-          <button type="button" className="btn-secondary min-h-[40px] px-3 py-2 text-sm" onClick={() => openCorrection("Thema")}>
-            Ein Thema ändern
-          </button>
-          <button type="button" className="btn-secondary min-h-[40px] px-3 py-2 text-sm" onClick={onSaveForLater}>
-            Für später speichern
-          </button>
-        </div>
-        {showCorrectionRow ? (
-          <div className="rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2">
-            <p className="text-sm text-[rgb(var(--fg))]">
-              Was soll anders eingeordnet werden{correctionFocus ? `: ${correctionFocus}` : ""}?
-            </p>
-            <div className="mt-2 flex flex-wrap gap-2">
-              {["Thema ändern", "Haltung ändern", "Anschluss ändern", "Aussage fehlt"].map((chip) => (
-                <button
-                  key={chip}
-                  type="button"
-                  className="rounded-full border border-[rgb(var(--border))] px-2 py-1 text-xs text-[rgb(var(--fg))] hover:border-cyan-300/60"
-                  onClick={onEdit}
-                >
-                  {chip}
-                </button>
-              ))}
-            </div>
-          </div>
-        ) : null}
-        <p className="text-xs text-[rgb(var(--muted))]">{CREATE_VISUAL_FOLLOWUP_COPY.guardrail}</p>
-        {isConfirmed ? (
-          <div className="space-y-2 rounded-lg border border-emerald-300/45 bg-emerald-50 px-3 py-2 dark:border-emerald-300/35 dark:bg-emerald-500/10">
-            <p className="text-sm text-emerald-900 dark:text-emerald-100">
-              Einordnung bestätigt. Dein Beitrag ist noch nicht veröffentlicht. Wähle jetzt den nächsten Schritt.
-            </p>
-            <div className="flex flex-wrap gap-2">
-              <Link href={primaryActionHref} className="btn-secondary min-h-[40px] px-3 py-2 text-sm">
-                Dossier-Kontext öffnen
-              </Link>
-              {voteSuggestion ? (
-                <Link
-                  href={buildCreateFollowupTargetHref({
-                    kind: "vote",
-                    ctaHref,
-                    topics: result.understanding.topics,
-                    statements: result.understanding.statements,
-                    suggestionTitle: voteSuggestion.title,
-                    suggestionHref: voteSuggestion.href ?? null,
-                  })}
-                  className="btn-secondary min-h-[40px] px-3 py-2 text-sm"
-                >
-                  Claims/Abstimmungen prüfen
-                </Link>
-              ) : (
-                <Link href={primaryActionHref} className="btn-secondary min-h-[40px] px-3 py-2 text-sm">
-                  Abstimmungsfragen prüfen
-                </Link>
-              )}
-              <button type="button" className="btn-secondary min-h-[40px] px-3 py-2 text-sm" onClick={onStartOptionalService}>
-                Faktencheck / Deep Search starten
-              </button>
-              <button type="button" className="btn-secondary min-h-[40px] px-3 py-2 text-sm" onClick={onSaveForLater}>
-                Arbeitsstand speichern
-              </button>
-            </div>
-          </div>
-        ) : null}
-        {actionNotice ? (
-          <p className="rounded-lg border border-cyan-500/35 bg-cyan-50 px-3 py-2 text-xs text-cyan-900 dark:border-cyan-300/35 dark:bg-cyan-500/10 dark:text-cyan-100">
-            {actionNotice}
-          </p>
-        ) : null}
-      </div>
+      ) : null}
 
       <div className="sticky bottom-2 z-10 rounded-xl border border-cyan-500/30 bg-white/95 px-3 py-2 shadow-xl shadow-cyan-950/10 backdrop-blur md:hidden dark:border-cyan-300/45 dark:bg-[rgb(var(--card))]/95 dark:shadow-black/20">
         <p className="text-sm font-semibold text-[rgb(var(--fg))]">{CREATE_VISUAL_FOLLOWUP_COPY.confirmTitle}</p>
