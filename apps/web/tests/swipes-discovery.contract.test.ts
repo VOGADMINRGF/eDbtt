@@ -105,4 +105,15 @@ describe("swipes discovery contract", () => {
     expect(seeded.topicMatchCount).toBeGreaterThanOrEqual(0);
     expect(seeded.items[0]?.id).toBe("b");
   });
+
+  it("does not fall back to generic deck items when create seed has no match", () => {
+    const seeded = prioritizeSwipeItemsForCreateSeed({
+      items: ITEMS,
+      topic: "Unbekanntes Themenfeld",
+      claim: "Nicht vorhandener Claim",
+    });
+    expect(seeded.claimMatchCount).toBe(0);
+    expect(seeded.topicMatchCount).toBe(0);
+    expect(seeded.items).toEqual([]);
+  });
 });

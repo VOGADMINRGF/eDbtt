@@ -209,6 +209,7 @@ export function SwipesClient({
   const seededClaim = initialClaim.trim();
   const seededTopic = initialTopic.trim();
   const hasCreateSeed = fromCreate && (seededClaim.length > 0 || seededTopic.length > 0);
+  const [useCreateSeed, setUseCreateSeed] = useState(hasCreateSeed);
 
   const freeVote = useFreeVoteLimit({
     enabled: requireAuthAfterFreeVotes && mode === "live" && !isSolo,
@@ -363,6 +364,10 @@ export function SwipesClient({
   }, [fromDraftId]);
 
   useEffect(() => {
+    setUseCreateSeed(hasCreateSeed);
+  }, [hasCreateSeed]);
+
+  useEffect(() => {
     let cancelled = false;
     async function load() {
       setLoading(true);
@@ -383,7 +388,7 @@ export function SwipesClient({
           savedIds,
           preferredTopics,
         });
-        if (hasCreateSeed) {
+        if (useCreateSeed && hasCreateSeed) {
           const seeded = prioritizeSwipeItemsForCreateSeed({
             items: nextItems,
             topic: seededTopic,
@@ -420,6 +425,7 @@ export function SwipesClient({
     savedIdsKey,
     showingFromDraftOnly,
     hasCreateSeed,
+    useCreateSeed,
     seededClaim,
     seededTopic,
     topicQuery,
@@ -766,14 +772,24 @@ export function SwipesClient({
               type="button"
               className="btn-secondary min-h-[40px] px-3 py-2 text-sm"
               onClick={() => {
-                setActiveSegment("all");
+                setUseCreateSeed(false);
                 setSearchOpen(false);
+                setTransitionHint("Ähnliche Claims aus demselben Themenfeld werden angezeigt.");
               }}
             >
-              Erst ähnliche Positionen ansehen
+              Ähnliche Claims ansehen
             </button>
+            {!useCreateSeed ? (
+              <button
+                type="button"
+                className="btn-secondary min-h-[40px] px-3 py-2 text-sm"
+                onClick={() => setUseCreateSeed(true)}
+              >
+                Zurück zum Beitrags-Seed
+              </button>
+            ) : null}
           </div>
-          {!seededMatchFound && !loading ? (
+          {useCreateSeed && !seededMatchFound && !loading ? (
             <p className="mt-2 text-xs text-cyan-900 dark:text-cyan-100">
               Wir haben noch keine passende Abstimmung gefunden. Du kannst das Thema als neue Abstimmung vorschlagen.
             </p>

@@ -102,6 +102,12 @@ export type CreateVisualSection = {
   connectionLabel?: string;
 };
 
+export type CreateFollowupDedupeResult = {
+  prominentSummary: string;
+  prominentCoreClaim: string;
+  userBubbleText: string;
+};
+
 export function deriveDominantUnderstandingStance(
   understanding: CreateUnderstandingResult,
 ): "eher dafür" | "eher dagegen" | "offen/unklar" {
@@ -268,13 +274,77 @@ export function buildCreateVisualMap(result: CreateIntelligentFollowupResult): C
   };
 }
 
-function resolveSectionKindLabel(section: CreateVisualSection): string {
-  const statement = (section.statementLabel ?? "").toLowerCase();
-  if (statement.includes("forderung") || statement.includes("mindestanforder")) return "Forderung";
-  if (statement.includes("option") || statement.includes("vorschlag")) return "Vorschlag";
-  if (statement.includes("weil") || statement.includes("begründ")) return "Begründung";
-  if (statement.includes("frage")) return "offene Frage";
-  return "Aussage";
+function normalizeText(value: string): string {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}\s]/gu, " ")
+    .replace(/\s+/g, " ");
+}
+
+function areSimilarText(a: string, b: string): boolean {
+  const left = normalizeText(a);
+  const right = normalizeText(b);
+  if (!left || !right) return false;
+  if (left === right) return true;
+  if (left.length < 18 || right.length < 18) return false;
+  return left.includes(right) || right.includes(left);
+}
+
+export function dedupeCreateFollowupSections(params: {
+  summary: string;
+  coreClaim: string;
+  sourceText: string;
+  statementText?: string;
+}): CreateFollowupDedupeResult {
+  const summary = params.summary.trim();
+  const coreClaim = params.coreClaim.trim();
+  const statementText = String(params.statementText ?? "").trim();
+  const sourceText = params.sourceText.trim().replace(/\s+/g, " ");
+
+  let prominentSummary = summary || statementText || coreClaim || sourceText;
+  let prominentCoreClaim = coreClaim || statementText || summary || sourceText;
+
+  if (areSimilarText(prominentSummary, prominentCoreClaim)) {
+    prominentCoreClaim = prominentSummary;
+  }
+
+  const bubbleSeed =
+    statementText.length > 0 && !areSimilarText(statementText, prominentSummary)
+      ? statementText
+      : prominentSummary;
+
+  return {
+    prominentSummary,
+    prominentCoreClaim,
+    userBubbleText: bubbleSeed || sourceText,
+  };
+}
+
+function resolveSectionThemeLabel(params: {
+  sourceText: string;
+  statementLabel?: string;
+  topicLabel?: string;
+  index: number;
+}): string {
+  const haystack = normalizeText(
+    `${params.sourceText} ${params.statementLabel ?? ""} ${params.topicLabel ?? ""}`,
+  );
+
+  if (/wohn|miete|genehmigung|bau|leerstand/.test(haystack)) return "Wohnen und Genehmigungen";
+  if (/verkehr|mobilit|auto|rad|bus|bahn|klima/.test(haystack)) {
+    return "Verkehr, Klima und notwendige Autonutzung";
+  }
+  if (/bildung|schule|sprach|leistung|kita/.test(haystack)) {
+    return "Bildung, Sprache und Leistungsdruck";
+  }
+  if (/integration|migration|sicherheit|rechtsstaat|zust[aä]ndigkeit/.test(haystack)) {
+    return "Integration, Sicherheit und Zuständigkeiten";
+  }
+  if (/forderung|mindestanforder|soll|muss/.test(haystack)) return "Was du forderst";
+  if (/option|vorschlag|alternative/.test(haystack)) return "Welche Lösung du vorschlägst";
+  if (/frage|offen|unklar/.test(haystack)) return "Was noch offen ist";
+  return `Teil ${params.index + 1}`;
 }
 
 function splitIntoSentenceGroups(text: string, maxSections: number): string[] {
@@ -320,16 +390,18 @@ export function buildCreateVisualSections(
     const suggestion = result.suggestions[index] ?? result.suggestions[0];
     const baseSection: CreateVisualSection = {
       id: `section-${index + 1}`,
-      label: `Abschnitt ${index + 1}`,
+      label: resolveSectionThemeLabel({
+        sourceText: chunk,
+        statementLabel: statement?.text,
+        topicLabel: topic?.label,
+        index,
+      }),
       sourceText: chunk,
       statementLabel: statement?.text,
       topicLabel: topic?.label,
       stanceLabel: statement?.stance,
       connectionLabel: suggestion?.title,
     };
-    return {
-      ...baseSection,
-      label: `${baseSection.label}: ${resolveSectionKindLabel(baseSection)}`,
-    };
+    return baseSection;
   });
 }

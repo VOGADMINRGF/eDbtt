@@ -97,7 +97,6 @@ export function prioritizeSwipeItemsForCreateSeed(params: {
 
   const claimMatched: SwipeItem[] = [];
   const topicMatched: SwipeItem[] = [];
-  const remainder: SwipeItem[] = [];
   for (const item of params.items) {
     if (claim && hasClaimTextMatch(item, claim)) {
       claimMatched.push(item);
@@ -107,11 +106,10 @@ export function prioritizeSwipeItemsForCreateSeed(params: {
       topicMatched.push(item);
       continue;
     }
-    remainder.push(item);
   }
 
   return {
-    items: [...claimMatched, ...topicMatched, ...remainder],
+    items: [...claimMatched, ...topicMatched],
     claimMatchCount: claimMatched.length,
     topicMatchCount: topicMatched.length,
   };

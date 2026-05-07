@@ -247,12 +247,15 @@ describe("analyze workbench progressive disclosure", () => {
     expect(source).toContain("Fortlaufender Struktur-Chat");
     expect(source).toContain("Keine automatische Stimme oder Veröffentlichung.");
     expect(source).toContain("Keine automatische Kostenbuchung.");
+    expect(source).toContain("dedupeCreateFollowupSections");
+    expect(source).toContain("Abstimmungsfragen prüfen");
     expect(source).toContain("bg-slate-50/90");
     expect(source).toContain("dark:bg-[rgb(var(--card))]");
     expect(source).toContain("border-cyan-500/35 bg-cyan-50 text-cyan-950");
     expect(source).toContain("dark:border-cyan-300/60 dark:bg-cyan-500/15 dark:text-cyan-50");
     expect(source).not.toContain("topics.slice(0, 6)");
     expect(source).not.toContain('className="text-cyan-50"');
+    expect(source).not.toContain("Abschnitt 1");
   });
 
   it("keeps create entry mode selection optional instead of dominant first view", () => {

@@ -135,11 +135,8 @@ describe("create intelligent follow-up contract", () => {
     expect(result.suggestions.some((item) => item.title.includes("Politische Verantwortung"))).toBe(true);
     const dossierSuggestion = result.suggestions.find((item) => item.kind === "dossier");
     const voteSuggestion = result.suggestions.find((item) => item.kind === "vote");
-    const topicSuggestion = result.suggestions.find((item) => item.kind === "topic");
     expect(dossierSuggestion?.href).toContain("/dossier?");
     expect(dossierSuggestion?.href).toContain("topic=");
-    expect(topicSuggestion?.href).toContain("/dossier?");
-    expect(topicSuggestion?.href).not.toContain("/swipes?");
     expect(voteSuggestion?.href).toContain("/swipes?");
     expect(voteSuggestion?.href).toContain("topic=");
     expect(voteSuggestion?.href).toContain("claim=");
@@ -158,8 +155,8 @@ describe("create intelligent follow-up contract", () => {
     );
     const sections = buildCreateVisualSections(result, 4);
     expect(sections.length).toBeGreaterThan(0);
-    expect(sections[0]?.label).toContain("Abschnitt");
-    expect(sections[0]?.label).toMatch(/Forderung|Vorschlag|Aussage|Begründung|offene Frage/);
+    expect(sections[0]?.label).not.toContain("Abschnitt");
+    expect(sections[0]?.label).toMatch(/Teil|Wohnen|Verkehr|Bildung|Integration|Was du forderst|Welche Lösung du vorschlägst|Was noch offen ist/);
   });
 
   it("splits long source text into readable sections for visual follow-up", async () => {
@@ -178,7 +175,7 @@ describe("create intelligent follow-up contract", () => {
     const sections = buildCreateVisualSections(result, 4);
     expect(sections.length).toBeGreaterThan(1);
     expect(sections.every((section) => section.sourceText.length > 0)).toBe(true);
-    expect(sections[0]?.label).toContain("Abschnitt");
+    expect(sections[0]?.label).not.toContain("Abschnitt");
   });
 
   it("infers broad municipal dossier context and topic fields for wide civic texts", async () => {
@@ -215,12 +212,9 @@ describe("create intelligent follow-up contract", () => {
     );
 
     const dossierSuggestion = result.suggestions.find((item) => item.kind === "dossier");
-    const topicSuggestion = result.suggestions.find((item) => item.kind === "topic");
     expect(dossierSuggestion?.title).toContain("Kommunale Prioritäten und Zielkonflikte");
     expect(dossierSuggestion?.href).toContain("/dossier?");
     expect(dossierSuggestion?.href).not.toContain("/swipes?");
-    expect(topicSuggestion?.href).toContain("/dossier?");
-    expect(topicSuggestion?.href).not.toContain("/swipes?");
 
     const voteSuggestion = result.suggestions.find((item) => item.kind === "vote");
     if (voteSuggestion) {

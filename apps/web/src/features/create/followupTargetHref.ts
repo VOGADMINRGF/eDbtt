@@ -56,9 +56,11 @@ export function buildCreateFollowupTargetHref(input: BuildCreateFollowupTargetHr
           : statementStance;
 
   if (input.kind === "dossier") {
+    if (input.suggestionHref && input.suggestionHref.trim()) return input.suggestionHref.trim();
     return buildDossierHref(primaryTopic);
   }
   if (input.kind === "vote") {
+    if (input.suggestionHref && input.suggestionHref.trim()) return input.suggestionHref.trim();
     if (!primaryClaim) return buildDossierHref(primaryTopic);
     return buildSwipesHref({
       topic: primaryTopic,
@@ -67,6 +69,7 @@ export function buildCreateFollowupTargetHref(input: BuildCreateFollowupTargetHr
     });
   }
   if (input.kind === "topic") {
+    if (input.suggestionHref && input.suggestionHref.trim()) return input.suggestionHref.trim();
     return buildDossierHref(primaryTopic);
   }
   if (input.kind === "new_anlassraum") {

@@ -187,21 +187,6 @@ export function buildCreateConnectionSuggestions(
     });
   }
 
-  if (topics.length > 0) {
-    const topicalTitle = resolveHumanConnectionTitle(topics);
-    suggestions.push({
-      id: `topic:${topics[0].id}`,
-      kind: "topic",
-      title: topicalTitle,
-      reason: "Thematische Nähe im Dossier-Kontext aus deinem Text erkannt.",
-      confidence: topics[0].confidence,
-      href: buildSeededDossierHref(topics[0].label),
-      suggestedContributionKind: input.understanding.categories[0]?.id ?? "hint",
-      suggestedStance: mappedStance,
-      requiresConfirmation: true,
-    });
-  }
-
   if (topStatement && primaryClaim && isVoteableClaim({ statement: topStatement, sourceText: input.text })) {
     suggestions.push({
       id: `vote:${topStatement.id}`,

@@ -5,6 +5,7 @@ import Link from "next/link";
 import {
   buildCreateVisualMap,
   buildCreateVisualSections,
+  dedupeCreateFollowupSections,
   deriveDominantUnderstandingStance,
   type CreateConnectionSuggestion,
   type CreateIntelligentFollowupResult,
@@ -120,15 +121,6 @@ function resolveSuggestionCta(kind: CreateConnectionSuggestion["kind"]): string 
   return "Ansehen";
 }
 
-function resolveSectionTitle(label: string, sectionIndex: number): string {
-  const lowered = label.toLowerCase();
-  if (lowered.includes("forderung")) return `Teil ${sectionIndex + 1}: Was du forderst`;
-  if (lowered.includes("begründ")) return `Teil ${sectionIndex + 1}: Warum dir das wichtig ist`;
-  if (lowered.includes("vorschlag")) return `Teil ${sectionIndex + 1}: Dein Vorschlag`;
-  if (lowered.includes("frage")) return `Teil ${sectionIndex + 1}: Was noch offen ist`;
-  return `Teil ${sectionIndex + 1}: Woran es anschließt`;
-}
-
 function toSentenceList(labels: string[]): string {
   if (labels.length === 0) return "";
   if (labels.length === 1) return labels[0] ?? "";
@@ -224,8 +216,8 @@ function sortSuggestions(
     dossier: 0,
     vote: 1,
     anlassraum: 2,
-    topic: 3,
-    new_anlassraum: 4,
+    new_anlassraum: 3,
+    topic: 9,
   };
   return [...suggestions].sort((a, b) => priority[a.kind] - priority[b.kind]);
 }
@@ -270,7 +262,9 @@ export default function CreateVisualFollowup({
   const dominantStance = deriveDominantUnderstandingStance(result.understanding);
   const statementNodes = visualMap.nodes.filter((node) => node.kind === "statement").slice(0, 4);
   const topicNodes = visualMap.nodes.filter((node) => node.kind === "topic");
-  const sortedSuggestions = sortSuggestions(result.suggestions).slice(0, 4);
+  const sortedSuggestions = sortSuggestions(result.suggestions)
+    .filter((suggestion) => suggestion.kind !== "topic")
+    .slice(0, 4);
   const voteSuggestion = sortedSuggestions.find((suggestion) => suggestion.kind === "vote");
   const voteQuestions = React.useMemo(
     () =>
@@ -297,13 +291,20 @@ export default function CreateVisualFollowup({
     fallback: statementNodes[0]?.label ?? result.understanding.summary,
     dossierContext: result.understanding.dossierContext,
   });
+  const dedupedCopy = dedupeCreateFollowupSections({
+    summary: result.understanding.summary,
+    coreClaim: keyStatement,
+    sourceText: result.sourceText,
+    statementText: result.understanding.statements[0]?.text ?? "",
+  });
+  const showCoreBlock = dedupedCopy.prominentCoreClaim !== dedupedCopy.prominentSummary;
   const rootTopic = result.understanding.dossierContext ?? topicNodes[0]?.label ?? "Öffentliches Thema";
   const branchTopics = topicLabels.filter((label) => label !== rootTopic);
   const primaryActionHref = buildCreateFollowupPrimaryCtaHref({
     ctaHref,
     topics: result.understanding.topics,
     statements: result.understanding.statements,
-    suggestions: result.suggestions,
+    suggestions: sortedSuggestions,
   });
 
   const openCorrection = React.useCallback(
@@ -321,8 +322,8 @@ export default function CreateVisualFollowup({
         <div className="ml-auto max-w-3xl rounded-2xl rounded-tr-md border border-slate-200 bg-white px-4 py-3 shadow-sm dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))] dark:shadow-none">
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-600 dark:text-[rgb(var(--muted))]">Du</p>
           <p className="mt-2 text-sm text-slate-900 md:text-base dark:text-[rgb(var(--fg))]">
-            {result.sourceText.slice(0, 260)}
-            {result.sourceText.length > 260 ? " …" : ""}
+            {dedupedCopy.userBubbleText.slice(0, 260)}
+            {dedupedCopy.userBubbleText.length > 260 ? " …" : ""}
           </p>
         </div>
       ) : (
@@ -342,12 +343,16 @@ export default function CreateVisualFollowup({
         <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-700 dark:text-[rgb(var(--muted))]">eDebatte</p>
         <p className="text-xs font-semibold uppercase tracking-[0.16em] text-cyan-800 dark:text-cyan-200">{CREATE_VISUAL_FOLLOWUP_COPY.structureTitle}</p>
         <p className="mt-1 text-base font-semibold text-cyan-950 md:text-lg dark:text-cyan-50">{CREATE_VISUAL_FOLLOWUP_COPY.headline}</p>
-        <p className="mt-3 text-base text-cyan-900 md:text-lg dark:text-cyan-100">{assistantLead}</p>
+        <p className="mt-3 text-base text-cyan-900 md:text-lg dark:text-cyan-100">{dedupedCopy.prominentSummary || assistantLead}</p>
         <p className="mt-2 text-sm text-cyan-900/85 dark:text-cyan-100/85">Fortlaufender Struktur-Chat: Wir halten den Dossier-Kontext, Themenfelder und Claims im selben Arbeitsfenster zusammen.</p>
-        <div className="mt-4 rounded-xl border border-cyan-500/35 bg-cyan-50 px-4 py-3 dark:border-cyan-300/40 dark:bg-cyan-500/10">
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-cyan-800 dark:text-cyan-200">{CREATE_VISUAL_FOLLOWUP_COPY.coreTitle}</p>
-          <p className="mt-1 text-base font-semibold text-cyan-950 md:text-xl dark:text-cyan-50">{keyStatement}</p>
-        </div>
+        {showCoreBlock ? (
+          <div className="mt-4 rounded-xl border border-cyan-500/35 bg-cyan-50 px-4 py-3 dark:border-cyan-300/40 dark:bg-cyan-500/10">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-cyan-800 dark:text-cyan-200">{CREATE_VISUAL_FOLLOWUP_COPY.coreTitle}</p>
+            <p className="mt-1 text-base font-semibold text-cyan-950 md:text-xl dark:text-cyan-50">
+              {dedupedCopy.prominentCoreClaim}
+            </p>
+          </div>
+        ) : null}
         <div className="mt-3 flex flex-wrap gap-2">
           <span className="rounded-full border border-emerald-500/30 bg-emerald-50 px-3 py-1 text-sm text-emerald-950 dark:border-emerald-300/40 dark:bg-emerald-500/10 dark:text-emerald-50">
             Haltung: {resolveStanceLead(dominantStance)}
@@ -365,7 +370,7 @@ export default function CreateVisualFollowup({
           <div className="rounded-lg border border-cyan-500/35 bg-cyan-50 px-3 py-2 text-sm font-semibold text-cyan-900 dark:border-cyan-300/35 dark:bg-cyan-500/10 dark:text-cyan-100">1. Dein Beitrag</div>
           <div className={`rounded-xl border px-3 py-2 ${resolveNodeTone(visualMap.center.kind)}`}>
             <p className="text-sm font-semibold">{visualMap.center.label}</p>
-            <p className="mt-1 text-sm opacity-80">{visualMap.center.detail}</p>
+            <p className="mt-1 text-sm opacity-80">Originaltext bleibt im Detail einsehbar.</p>
           </div>
           <div className="rounded-lg border border-cyan-500/35 bg-cyan-50 px-3 py-2 text-sm font-semibold text-cyan-900 dark:border-cyan-300/35 dark:bg-cyan-500/10 dark:text-cyan-100">2. Kern erkannt</div>
           <div className={`rounded-xl border px-3 py-2 ${resolveNodeTone("statement")}`}>
@@ -437,7 +442,7 @@ export default function CreateVisualFollowup({
           <div className="space-y-3">
             <div className={`max-w-2xl rounded-xl border px-4 py-3 ${resolveNodeTone("source_text")}`}>
               <p className="text-sm font-semibold">Dein Beitrag</p>
-              <p className="mt-1 text-sm opacity-85">{visualMap.center.detail}</p>
+              <p className="mt-1 text-sm opacity-85">Originaltext bleibt im Detail einsehbar.</p>
             </div>
             <div className="ml-5 border-l-2 border-cyan-500/35 pl-4 dark:border-cyan-300/40">
               <div className={`max-w-2xl rounded-xl border px-4 py-3 ${resolveNodeTone("statement")}`}>
@@ -544,16 +549,15 @@ export default function CreateVisualFollowup({
 
       {showSectionFlow ? (
         <div className="space-y-3 rounded-xl border border-slate-200 bg-white px-3 py-3 shadow-sm dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))] dark:shadow-none">
-          <p className="text-sm font-semibold text-[rgb(var(--fg))] md:text-base">Wir haben deinen Text in {sections.length} Teile gegliedert.</p>
+          <p className="text-sm font-semibold text-[rgb(var(--fg))] md:text-base">Wir haben deinen Text in {sections.length} Sinnabschnitte gegliedert.</p>
           <div className="space-y-2">
-            {sections.map((section, sectionIndex) => (
+            {sections.map((section) => (
               <details
                 key={section.id}
                 className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--bg))]"
-                open={sectionIndex === 0}
               >
                 <summary className="cursor-pointer text-sm font-semibold text-[rgb(var(--fg))] md:text-base">
-                  {resolveSectionTitle(section.label, sectionIndex)}
+                  {section.label}
                 </summary>
                 <p className="mt-2 text-sm text-[rgb(var(--fg))] md:text-base"><span className="font-semibold">Du sagst:</span> {section.sourceText}</p>
                 {section.statementLabel ? (
@@ -652,7 +656,7 @@ export default function CreateVisualFollowup({
                 </Link>
               ) : (
                 <Link href={primaryActionHref} className="btn-secondary min-h-[40px] px-3 py-2 text-sm">
-                  Claims im Dossier prüfen
+                  Abstimmungsfragen prüfen
                 </Link>
               )}
               <button type="button" className="btn-secondary min-h-[40px] px-3 py-2 text-sm" onClick={onStartOptionalService}>
