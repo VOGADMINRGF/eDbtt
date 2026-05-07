@@ -42,6 +42,10 @@ import { resolveCreateGraphMatches } from "@/features/create/matchService";
 import { resolveCreateLanguageContext } from "@/features/create/languageContextContract";
 import type { CreateProductMode } from "@/features/create/createProductModes";
 import type { CreateIntent } from "@/features/create/intentFlows";
+import {
+  evaluateCreateInputSafety,
+  type CreateInputSafetyResult,
+} from "@/features/create/safety/createInputSafety";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -161,6 +165,19 @@ function resolveJourneyHintFromIntent(intent: CreateIntent): "analyze" | "media"
   return "analyze";
 }
 
+function attachSafetyToCreateAnalyze(
+  createAnalyze: ReturnType<typeof buildCreateAnalyzeResponse>,
+  safety: CreateInputSafetyResult,
+) {
+  return {
+    ...createAnalyze,
+    safety,
+    requiresHumanReview: createAnalyze.requiresHumanReview || safety.requiresHumanReview,
+    noAutoPublish: true as const,
+    noSilentMerge: true as const,
+  };
+}
+
 /**
  * E150 – Contribution-AI
  * - JSON: { ok: true, result: AnalyzeResult }
@@ -239,6 +256,108 @@ export async function POST(req: NextRequest): Promise<Response> {
     userId,
   };
 
+  const safety = evaluateCreateInputSafety({
+    text,
+    locale: requestLocale,
+    contentLanguage: languageContext.contentLanguage,
+    sourceLanguage: languageContext.sourceLanguage,
+    uiLocale: languageContext.uiLocale,
+  });
+
+  if (safety.decision === "blocked") {
+    return NextResponse.json(
+      {
+        ok: false,
+        errorCode: "CREATE_INPUT_BLOCKED",
+        message: "Beitrag enthält Inhalte, die vor der Analyse nicht verarbeitet werden können.",
+        safety,
+      },
+      { status: 422 },
+    );
+  }
+
+  if (safety.decision === "moderation_required") {
+    const moderatedResult = finalizeAnalyzeResult(
+      buildHeuristicAnalyzeResult({
+        text: safety.safeRewrite || safety.redactedText || text,
+        locale,
+      }),
+    );
+    const createMatch = await resolveCreateMatchesSafe({
+      text: safety.safeRewrite || safety.redactedText || text,
+      normalizedInputSummary: summarizeCreateAnalyzeInput(text),
+      claims: Array.isArray(moderatedResult.claims) ? moderatedResult.claims : [],
+      anlassraumId: body.anlassraumId ?? null,
+      dossierId: body.dossierId ?? null,
+      locale: languageContext.contentLanguage,
+      languageMode: "same_language_only",
+    });
+    const createAnalyze = attachSafetyToCreateAnalyze(
+      buildCreateAnalyzeResponse({
+        runId,
+        text,
+        intent: analyzeInput.intent,
+        locale: languageContext.contentLanguage,
+        languageContext,
+        result: moderatedResult,
+        matchResult: createMatch,
+      }),
+      safety,
+    );
+    const verification = resolveAnalyzeVerificationContract(moderatedResult, analysisMode);
+    const sourceGroundingAudit = finalizeSourceGroundingAudit({
+      context: analyzeInput.sourceGrounding,
+      result: toSourceGroundingResultInput(moderatedResult),
+    });
+
+    return NextResponse.json(
+      {
+        ok: true,
+        degraded: true,
+        warning: "Beitrag benötigt Moderation vor der Weiterverwendung.",
+        result: moderatedResult,
+        safety,
+        createAnalyze,
+        verificationMode: verification.verificationMode,
+        researchUsed: verification.researchUsed,
+        sealEligible: verification.sealEligible,
+        sealGranted: verification.sealGranted,
+        verificationLabel: deriveVerificationLabel(verification),
+        meta: {
+          runId,
+          safety,
+          verificationMode: verification.verificationMode,
+          researchUsed: verification.researchUsed,
+          sealEligible: verification.sealEligible,
+          sealGranted: verification.sealGranted,
+          verificationLabel: deriveVerificationLabel(verification),
+          journeyProfile: routeJourneyProfile.journey,
+          lane: routeJourneyProfile.lane,
+          roleProviderMapping: {
+            primary: routeJourneyProfile.primaryRoles,
+            secondary: routeJourneyProfile.secondaryRoles,
+            fallback: routeJourneyProfile.fallbackProviders,
+            openAiRoles: routeJourneyProfile.openAiRoles,
+          },
+          fallbackUsed: true,
+          disagreement: {
+            present: false,
+            successfulProviders: [],
+            failedProviders: [],
+          },
+          confidence: {
+            score: 0.2,
+            bucket: "low",
+            reasons: ["safety_moderation_required"],
+          },
+          routeClassification,
+          sourceGrounding: sourceGroundingAudit,
+        },
+      },
+      { status: 200 },
+    );
+  }
+
   if (wantsSse(req, body)) {
     return startAnalyzeSseStream(analyzeInput);
   }
@@ -260,15 +379,18 @@ export async function POST(req: NextRequest): Promise<Response> {
       locale: languageContext.contentLanguage,
       languageMode: "same_language_only",
     });
-    const createAnalyze = buildCreateAnalyzeResponse({
-      runId,
-      text,
-      intent: analyzeInput.intent,
-      locale: languageContext.contentLanguage,
-      languageContext,
-      result,
-      matchResult: createMatch,
-    });
+    const createAnalyze = attachSafetyToCreateAnalyze(
+      buildCreateAnalyzeResponse({
+        runId,
+        text,
+        intent: analyzeInput.intent,
+        locale: languageContext.contentLanguage,
+        languageContext,
+        result,
+        matchResult: createMatch,
+      }),
+      safety,
+    );
     const providerMatrix = buildProviderMatrixResponse(
       null,
       (result as any)?._meta?.providerMatrix,
@@ -278,6 +400,7 @@ export async function POST(req: NextRequest): Promise<Response> {
       {
         ok: true,
         result,
+        safety,
         createAnalyze,
         verificationMode: verification.verificationMode,
         researchUsed: verification.researchUsed,
@@ -286,6 +409,7 @@ export async function POST(req: NextRequest): Promise<Response> {
         verificationLabel: deriveVerificationLabel(verification),
         meta: {
           runId,
+          safety,
           providerMatrix,
           verificationMode: verification.verificationMode,
           researchUsed: verification.researchUsed,
@@ -348,21 +472,25 @@ export async function POST(req: NextRequest): Promise<Response> {
         locale: languageContext.contentLanguage,
         languageMode: "same_language_only",
       });
-      const createAnalyze = buildCreateAnalyzeResponse({
-        runId,
-        text,
-        intent: analyzeInput.intent,
-        locale: languageContext.contentLanguage,
-        languageContext,
-        result: fallback,
-        matchResult: createMatch,
-      });
+      const createAnalyze = attachSafetyToCreateAnalyze(
+        buildCreateAnalyzeResponse({
+          runId,
+          text,
+          intent: analyzeInput.intent,
+          locale: languageContext.contentLanguage,
+          languageContext,
+          result: fallback,
+          matchResult: createMatch,
+        }),
+        safety,
+      );
       return NextResponse.json({
         ok: true,
         fallback: true,
         errorCode: normalized.code,
         message: normalized.message,
         result: fallback,
+        safety,
         createAnalyze,
         verificationMode: verification.verificationMode,
         researchUsed: verification.researchUsed,
@@ -371,6 +499,7 @@ export async function POST(req: NextRequest): Promise<Response> {
         verificationLabel: deriveVerificationLabel(verification),
         meta: {
           runId,
+          safety,
           verificationMode: verification.verificationMode,
           researchUsed: verification.researchUsed,
           sealEligible: verification.sealEligible,
@@ -454,15 +583,18 @@ export async function POST(req: NextRequest): Promise<Response> {
         locale: languageContext.contentLanguage,
         languageMode: "same_language_only",
       });
-      const createAnalyze = buildCreateAnalyzeResponse({
-        runId,
-        text,
-        intent: analyzeInput.intent,
-        locale: languageContext.contentLanguage,
-        languageContext,
-        result: degradedResult,
-        matchResult: createMatch,
-      });
+      const createAnalyze = attachSafetyToCreateAnalyze(
+        buildCreateAnalyzeResponse({
+          runId,
+          text,
+          intent: analyzeInput.intent,
+          locale: languageContext.contentLanguage,
+          languageContext,
+          result: degradedResult,
+          matchResult: createMatch,
+        }),
+        safety,
+      );
       const sourceGroundingAudit = finalizeSourceGroundingAudit({
         context: analyzeInput.sourceGrounding,
         result: toSourceGroundingResultInput(degradedResult),
@@ -475,6 +607,7 @@ export async function POST(req: NextRequest): Promise<Response> {
           degraded: true,
           warning: "KI temporär nicht erreichbar; Analyse wird später erneut versucht.",
           result: degradedResult,
+          safety,
           createAnalyze,
           verificationMode: verification.verificationMode,
           researchUsed: verification.researchUsed,
@@ -483,6 +616,7 @@ export async function POST(req: NextRequest): Promise<Response> {
           verificationLabel: deriveVerificationLabel(verification),
           meta: {
             runId,
+            safety,
             providerMatrix,
             failedProviders: meta?.failedProviders ?? [],
             disabledProviders: meta?.disabledProviders ?? meta?.disabled ?? [],

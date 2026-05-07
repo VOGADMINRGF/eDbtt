@@ -6,6 +6,10 @@ import { cookies } from "next/headers";
 import { getCol, ObjectId } from "@core/db/triMongo";
 import { z } from "zod";
 import { CREATE_MODE_VALUES, parseCreateMode, type CreateMode } from "@/features/create/intents";
+import {
+  evaluateCreateInputSafety,
+  type CreateInputSafetyResult,
+} from "@/features/create/safety/createInputSafety";
 
 const DraftSaveSchema = z.object({
   draftId: z.string().optional(),
@@ -56,6 +60,29 @@ type ContributionDraftDoc = {
   proposalIds?: string[];
 };
 
+function hasPiiOrDoxxingFindings(safety: CreateInputSafetyResult): boolean {
+  return safety.findings.some((finding) =>
+    finding.kind === "email" ||
+    finding.kind === "phone" ||
+    finding.kind === "street_address" ||
+    finding.kind === "postal_code" ||
+    finding.kind === "doxxing",
+  );
+}
+
+function withSafetyAnalysis(
+  existing: unknown,
+  safety: CreateInputSafetyResult,
+): Record<string, unknown> {
+  if (existing && typeof existing === "object" && !Array.isArray(existing)) {
+    return {
+      ...(existing as Record<string, unknown>),
+      safety,
+    };
+  }
+  return { safety };
+}
+
 export async function POST(req: NextRequest) {
   const cookieStore = await cookies();
   const userId = cookieStore.get("u_id")?.value;
@@ -91,6 +118,21 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: false, error: "empty_text" }, { status: 422 });
   }
 
+  const safety = evaluateCreateInputSafety({
+    text: normalizedText,
+    locale: body.locale ?? "de",
+  });
+
+  if (safety.decision === "blocked") {
+    return NextResponse.json(
+      { ok: false, error: "create_input_blocked", safety },
+      { status: 422 },
+    );
+  }
+
+  const textToPersist = hasPiiOrDoxxingFindings(safety) ? safety.redactedText : normalizedText;
+  const analysisWithSafety = withSafetyAnalysis(body.analysis, safety);
+
   if (body.draftId) {
     let draftOid: ObjectId;
     try {
@@ -103,14 +145,14 @@ export async function POST(req: NextRequest) {
       { _id: draftOid, authorId: userId },
       {
         $set: {
-          text: normalizedText,
+          text: textToPersist,
           locale: body.locale ?? null,
           source: body.source ?? null,
           createMode: normalizedCreateMode,
           anlassraumId: normalizedAnlassraumId,
           authorName: body.authorName ?? null,
           useCase: body.useCase ?? null,
-          analysis: body.analysis ?? null,
+          analysis: analysisWithSafety,
           status: "draft",
           updatedAt: now,
         },
@@ -129,19 +171,20 @@ export async function POST(req: NextRequest) {
       createMode: updated.createMode ?? normalizedCreateMode,
       anlassraumId: updated.anlassraumId ?? normalizedAnlassraumId,
       updatedAt: updated.updatedAt?.toISOString() ?? now.toISOString(),
+      safety,
     });
   }
 
   const doc: ContributionDraftDoc = {
     authorId: userId,
-    text: normalizedText,
+    text: textToPersist,
     locale: body.locale ?? undefined,
     source: body.source ?? undefined,
     createMode: normalizedCreateMode,
     anlassraumId: normalizedAnlassraumId,
     authorName: body.authorName ?? null,
     useCase: body.useCase ?? null,
-    analysis: body.analysis ?? undefined,
+    analysis: analysisWithSafety,
     status: "draft",
     createdAt: now,
     updatedAt: now,
@@ -154,5 +197,6 @@ export async function POST(req: NextRequest) {
     createMode: normalizedCreateMode,
     anlassraumId: normalizedAnlassraumId,
     updatedAt: now.toISOString(),
+    safety,
   });
 }

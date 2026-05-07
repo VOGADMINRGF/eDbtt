@@ -48,6 +48,8 @@ import {
   type CreateAnalyzeEnvelopeProviderMatrixEntry,
   type ParsedCreateAnalyzeVerification,
 } from "@/features/create/analyzeEnvelope";
+import type { CreateInputSafetyResult } from "@/features/create/safety/createInputSafety";
+import CreateInputSafetyPanel from "@/components/analyze/CreateInputSafetyPanel";
 import {
   resolveAndNavigateAfterFinalize,
   resolveFinalizeRedirectTarget,
@@ -275,6 +277,23 @@ type SourceGroundingUiHint = {
   message: string;
   details: string[];
 };
+
+function parseSafetySnapshot(value: unknown): CreateInputSafetyResult | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const record = value as Record<string, unknown>;
+  const decision = record.decision;
+  if (
+    decision !== "allow" &&
+    decision !== "revise_required" &&
+    decision !== "factcheck_required" &&
+    decision !== "graph_review_required" &&
+    decision !== "moderation_required" &&
+    decision !== "blocked"
+  ) {
+    return null;
+  }
+  return value as CreateInputSafetyResult;
+}
 
 export function deriveCreateAnalyzeRoutingHint(
   snapshot: Pick<CreateAnalyzeResponse, "matchType" | "suggestedCtas">,
@@ -939,6 +958,7 @@ export default function AnalyzeWorkspace({
   const [runReceipt, setRunReceipt] = React.useState<RunReceipt | null>(null);
   const [providerMatrix, setProviderMatrix] = React.useState<ProviderMatrixEntry[]>([]);
   const [createAnalyze, setCreateAnalyze] = React.useState<CreateAnalyzeResponse | null>(null);
+  const [createInputSafety, setCreateInputSafety] = React.useState<CreateInputSafetyResult | null>(null);
   const [analysisVerification, setAnalysisVerification] = React.useState<ParsedCreateAnalyzeVerification | null>(null);
   const [sourceGroundingAudit, setSourceGroundingAudit] = React.useState<SourceGroundingAudit | null>(null);
   const showGuidedCompanion =
@@ -1913,6 +1933,7 @@ export default function AnalyzeWorkspace({
     setEvidenceGraph(null);
     setRunReceipt(null);
     setCreateAnalyze(null);
+    setCreateInputSafety(null);
     setAnalysisVerification(null);
     setSourceGroundingAudit(null);
     setCtaHandoffState(createInitialCreateCtaHandoffState());
@@ -1957,6 +1978,19 @@ export default function AnalyzeWorkspace({
       }
       const parsedEnvelope = parseCreateAnalyzeEnvelope(data);
       setCreateAnalyze(parsedEnvelope.createAnalyze);
+      const dataRecord = data as Record<string, unknown>;
+      const metaRecord =
+        dataRecord?.meta && typeof dataRecord.meta === "object"
+          ? (dataRecord.meta as Record<string, unknown>)
+          : null;
+      setCreateInputSafety(
+        parseSafetySnapshot(
+          dataRecord?.safety ??
+            metaRecord?.safety ??
+            parsedEnvelope.createAnalyze?.safety ??
+            null,
+        ),
+      );
       setAnalysisVerification(parsedEnvelope.verification);
       setSourceGroundingAudit(parsedEnvelope.sourceGrounding);
       setCtaHandoffState(createInitialCreateCtaHandoffState());
@@ -2093,6 +2127,7 @@ export default function AnalyzeWorkspace({
       setEvidenceGraph(null);
       setRunReceipt(null);
       setCreateAnalyze(null);
+      setCreateInputSafety(null);
       setAnalysisVerification(null);
       setSourceGroundingAudit(null);
       setCtaHandoffState(createInitialCreateCtaHandoffState());
@@ -3054,6 +3089,7 @@ export default function AnalyzeWorkspace({
               ) : null}
 
               {analysisVerification ? <AnalyzeVerificationPanel verification={analysisVerification} /> : null}
+              {createInputSafety ? <CreateInputSafetyPanel safety={createInputSafety} /> : null}
               {showGuidedCompanion ? (
                 <RouteBoundCompanionPanel
                   contextKind="guided_workspace"
@@ -3265,6 +3301,7 @@ export default function AnalyzeWorkspace({
               ) : null}
 
               {analysisVerification ? <AnalyzeVerificationPanel verification={analysisVerification} /> : null}
+              {createInputSafety ? <CreateInputSafetyPanel safety={createInputSafety} /> : null}
               {showGuidedCompanion ? (
                 <RouteBoundCompanionPanel
                   contextKind="guided_workspace"
