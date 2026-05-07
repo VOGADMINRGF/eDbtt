@@ -2,6 +2,7 @@ import type { AnalyzeResult } from "@features/analyze/schemas";
 import { resolveCreateCtaSuggestions } from "@/features/create/ctaResolver";
 import { resolveCreateLanguageContext } from "@/features/create/languageContextContract";
 import type { CreateIntent } from "@/features/create/intentFlows";
+import type { CreateInputSafetyResult } from "@/features/create/safety/createInputSafety";
 
 export type CreateAnalyzeInputType =
   | "free_text"
@@ -103,6 +104,7 @@ export type CreateAnalyzeResponse = {
   requiresHumanReview: boolean;
   noAutoPublish: true;
   noSilentMerge: true;
+  safety?: CreateInputSafetyResult;
   provenanceRefs: string[];
   createdAt: string;
 };

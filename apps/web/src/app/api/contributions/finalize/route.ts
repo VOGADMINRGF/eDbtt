@@ -10,6 +10,11 @@ import {
   buildFinalizeRedirectPath,
   type InternalRedirectPath,
 } from "@/features/create/finalizeRedirect";
+import {
+  evaluateCreateInputSafety,
+  type CreateInputSafetyDecision,
+  type CreateInputSafetyResult,
+} from "@/features/create/safety/createInputSafety";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -52,6 +57,34 @@ type DraftDoc = {
   status?: "draft" | "finalized";
   proposalIds?: string[];
 };
+
+function isSafetyDecision(value: unknown): value is CreateInputSafetyDecision {
+  return (
+    value === "allow" ||
+    value === "revise_required" ||
+    value === "factcheck_required" ||
+    value === "graph_review_required" ||
+    value === "moderation_required" ||
+    value === "blocked"
+  );
+}
+
+function readDraftSafety(analysis: unknown): CreateInputSafetyResult | null {
+  if (!analysis || typeof analysis !== "object" || Array.isArray(analysis)) return null;
+  const maybe = (analysis as Record<string, unknown>).safety;
+  if (!maybe || typeof maybe !== "object" || Array.isArray(maybe)) return null;
+  const decision = (maybe as Record<string, unknown>).decision;
+  if (!isSafetyDecision(decision)) return null;
+  return maybe as CreateInputSafetyResult;
+}
+
+function looksLikeSafeQuestionOrProofClaim(text: string): boolean {
+  const normalized = text.trim().toLowerCase();
+  if (!normalized) return false;
+  if (normalized.includes("?")) return true;
+  if (/quelle|beleg|nachweis|source|evidence|https?:\/\//.test(normalized)) return true;
+  return false;
+}
 
 type ProposalDoc = {
   _id?: ObjectId;
@@ -107,6 +140,18 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: false, error: "draft_not_found" }, { status: 404 });
     }
 
+    const draftSafety = readDraftSafety(draft.analysis);
+    if (draftSafety?.decision === "blocked" || draftSafety?.decision === "moderation_required") {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: "create_input_blocked",
+          safety: draftSafety,
+        },
+        { status: 422 },
+      );
+    }
+
     if (draft.status === "finalized" && Array.isArray(draft.proposalIds) && draft.proposalIds.length > 0) {
       const response: FinalizeSuccessResponse = {
         ok: true,
@@ -125,6 +170,57 @@ export async function POST(req: NextRequest) {
 
     if (selectedClaims.length === 0) {
       return NextResponse.json({ ok: false, error: "no_claims_selected" }, { status: 400 });
+    }
+
+    const selectedClaimSafety = selectedClaims.map((claim: any) =>
+      evaluateCreateInputSafety({
+        text: String(claim?.text ?? ""),
+        locale: "de",
+      }),
+    );
+
+    const hasUnsafeSelectedClaim = selectedClaimSafety.some((safety, index) => {
+      if (safety.decision === "allow" || safety.decision === "revise_required" || safety.decision === "graph_review_required") {
+        return false;
+      }
+      const claimText = String(selectedClaims[index]?.text ?? "");
+      return !looksLikeSafeQuestionOrProofClaim(claimText);
+    });
+
+    if (hasUnsafeSelectedClaim) {
+      const blockingSafety =
+        selectedClaimSafety.find((entry) => entry.decision === "blocked" || entry.decision === "moderation_required" || entry.decision === "factcheck_required") ??
+        selectedClaimSafety[0] ??
+        draftSafety;
+      return NextResponse.json(
+        {
+          ok: false,
+          error: "factcheck_required",
+          safety: blockingSafety ?? draftSafety ?? null,
+        },
+        { status: 422 },
+      );
+    }
+
+    if (draftSafety?.decision === "factcheck_required") {
+      const hasUnsupportedClaim = selectedClaims.some((claim: any) => {
+        const text = String(claim?.text ?? "");
+        const safety = evaluateCreateInputSafety({ text, locale: "de" });
+        return safety.findings.some(
+          (finding) =>
+            finding.kind === "unsupported_allegation" || finding.kind === "unverified_number",
+        );
+      });
+      if (hasUnsupportedClaim) {
+        return NextResponse.json(
+          {
+            ok: false,
+            error: "factcheck_required",
+            safety: draftSafety,
+          },
+          { status: 422 },
+        );
+      }
     }
     const resolvedCreateMode: CreateMode =
       body.createMode ?? draft.createMode ?? (body.source === "statement_new" ? "manual" : "source");
