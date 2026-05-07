@@ -23,6 +23,8 @@ type CreateVisualFollowupProps = {
   onConfirm: () => void;
   onEdit: () => void;
   onOpenNewAnlassraum: () => void;
+  onSaveForLater?: () => void;
+  onStartOptionalService?: () => void;
 };
 
 export const CREATE_VISUAL_FOLLOWUP_COPY = {
@@ -35,6 +37,30 @@ export const CREATE_VISUAL_FOLLOWUP_COPY = {
   guardrail:
     "Keine automatische Stimme. Keine automatische Veröffentlichung. Du bestätigst jeden nächsten Schritt selbst.",
 } as const;
+
+const BROAD_TOPIC_FIELD_ORDER = [
+  "Wohnen",
+  "Verkehr",
+  "Klima",
+  "Bildung",
+  "Migration/Integration",
+  "Sicherheit/Rechtsstaat",
+  "Gesundheit/Pflege",
+  "kommunale Finanzen",
+  "Bürgerbeteiligung",
+] as const;
+
+const BROAD_TOPIC_QUESTION_BY_FIELD: Record<(typeof BROAD_TOPIC_FIELD_ORDER)[number], string> = {
+  Wohnen: "Soll bezahlbarer Wohnraum Vorrang vor neuen Einzelprojekten bekommen?",
+  Verkehr: "Welche Verkehrsmaßnahmen sollen zuerst umgesetzt werden?",
+  Klima: "Wie sollen Klimaziele und soziale Tragfähigkeit ausbalanciert werden?",
+  Bildung: "Welche Bildungsmaßnahmen haben aktuell die höchste Priorität?",
+  "Migration/Integration": "Welche Integrationsmaßnahmen sollten zuerst gestärkt werden?",
+  "Sicherheit/Rechtsstaat": "Wie soll Sicherheit gestärkt werden, ohne den Rechtsstaat auszuhöhlen?",
+  "Gesundheit/Pflege": "Welche Pflege- und Gesundheitsmaßnahmen sind kurzfristig am dringendsten?",
+  "kommunale Finanzen": "Welche Prioritäten sind unter den aktuellen kommunalen Finanzen tragfähig?",
+  "Bürgerbeteiligung": "Wie kann Bürgerbeteiligung verbindlicher in Entscheidungen einfließen?",
+};
 
 function resolveNodeTone(kind: CreateVisualNode["kind"]): string {
   if (kind === "source_text") {
@@ -112,11 +138,54 @@ function toSentenceList(labels: string[]): string {
   return `${head} und ${last}`;
 }
 
+function normalizeTopicLabel(label: string): string {
+  return label.trim().toLowerCase();
+}
+
+function deriveBroadTopicFields(topicLabels: string[]): string[] {
+  const normalized = new Set(topicLabels.map(normalizeTopicLabel));
+  return BROAD_TOPIC_FIELD_ORDER.filter((label) => normalized.has(normalizeTopicLabel(label)));
+}
+
+function buildVoteQuestions(params: {
+  dossierContext?: string;
+  broadTopicFields: string[];
+  suggestions: CreateConnectionSuggestion[];
+  fallbackTopic: string;
+}): string[] {
+  const questions: string[] = [];
+  const pushQuestion = (value?: string | null) => {
+    const normalized = String(value ?? "").trim();
+    if (!normalized || questions.includes(normalized)) return;
+    questions.push(normalized);
+  };
+
+  if (params.dossierContext === "Kommunale Prioritäten und Zielkonflikte") {
+    pushQuestion("Welche kommunalen Prioritäten sollen zuerst bearbeitet werden?");
+    for (const field of params.broadTopicFields) {
+      pushQuestion(BROAD_TOPIC_QUESTION_BY_FIELD[field as (typeof BROAD_TOPIC_FIELD_ORDER)[number]]);
+    }
+  }
+
+  for (const suggestion of params.suggestions) {
+    if (suggestion.kind !== "vote") continue;
+    pushQuestion(suggestion.title);
+  }
+  if (questions.length === 0) {
+    pushQuestion(`Welche Prioritäten sollen im Kontext ${params.fallbackTopic} zuerst bearbeitet werden?`);
+  }
+  return questions;
+}
+
 function resolveAssistantLead(params: {
   topicLabels: string[];
   summary: string;
   statementText: string;
+  dossierContext?: string;
 }): string {
+  if (params.dossierContext === "Kommunale Prioritäten und Zielkonflikte") {
+    return "Ich sehe einen breiten kommunalen Prioritätenkonflikt. Es geht nicht um ein einzelnes Thema, sondern um mehrere Zielkonflikte: Wohnen, Verkehr, Klima, Bildung, Integration, Sicherheit, Pflege, Finanzen und Beteiligung. Ich fasse das zunächst als Dossier-Kontext zusammen und leite daraus mögliche Claims und Abstimmungsfragen ab.";
+  }
   const lowered = params.topicLabels.join(" ").toLowerCase();
   if (
     lowered.includes("politische verantwortung") &&
@@ -136,7 +205,11 @@ function resolveAssistantLead(params: {
 function resolveCoreClaim(params: {
   topicLabels: string[];
   fallback: string;
+  dossierContext?: string;
 }): string {
+  if (params.dossierContext === "Kommunale Prioritäten und Zielkonflikte") {
+    return "Du beschreibst mehrere kommunale Zielkonflikte, die gemeinsam priorisiert und nachvollziehbar abgewogen werden sollen.";
+  }
   const lowered = params.topicLabels.join(" ").toLowerCase();
   if (lowered.includes("amtsträger") && lowered.includes("qualifikation") && lowered.includes("sanktionen")) {
     return "Du forderst klare Mindestanforderungen und Konsequenzen für Amtsträger.";
@@ -157,6 +230,25 @@ function sortSuggestions(
   return [...suggestions].sort((a, b) => priority[a.kind] - priority[b.kind]);
 }
 
+function derivePositionClusters(result: CreateIntelligentFollowupResult): string[] {
+  if (result.understanding.positionClusters?.length) {
+    return result.understanding.positionClusters.map((cluster) => cluster.label);
+  }
+  const haystack = `${result.understanding.summary} ${result.sourceText} ${result.understanding.topics
+    .map((topic) => topic.label)
+    .join(" ")}`.toLowerCase();
+  const clusters: string[] = [];
+  if (/bezahlbar|chancen|entlast|sozial|pflege|schutz/.test(haystack)) clusters.push("sozial/ausgleichend");
+  if (/regel|leistung|sprachf[oö]rderung|sanktion|verantwort|rechtsstaat/.test(haystack)) {
+    clusters.push("ordnungs-/leistungsorientiert");
+  }
+  if (/abw[aä]g|pragmatisch|zust[aä]ndigkeit|kosten|umsetzung|option/.test(haystack)) {
+    clusters.push("pragmatisch/abwägend");
+  }
+  if (clusters.length === 0) clusters.push("pragmatisch/abwägend");
+  return clusters.slice(0, 3);
+}
+
 export default function CreateVisualFollowup({
   result,
   ctaHref,
@@ -165,31 +257,48 @@ export default function CreateVisualFollowup({
   onConfirm,
   onEdit,
   onOpenNewAnlassraum,
+  onSaveForLater = () => {},
+  onStartOptionalService = () => {},
 }: CreateVisualFollowupProps) {
   const visualMap = React.useMemo(() => buildCreateVisualMap(result), [result]);
   const sections = React.useMemo(() => buildCreateVisualSections(result, 4), [result]);
   const [showCorrectionRow, setShowCorrectionRow] = React.useState(false);
   const [correctionFocus, setCorrectionFocus] = React.useState<string | null>(null);
 
-  const topicLabels = result.understanding.topics.slice(0, 6).map((topic) => topic.label);
+  const topicLabels = result.understanding.topics.map((topic) => topic.label);
+  const broadTopicFields = React.useMemo(() => deriveBroadTopicFields(topicLabels), [topicLabels]);
   const dominantStance = deriveDominantUnderstandingStance(result.understanding);
   const statementNodes = visualMap.nodes.filter((node) => node.kind === "statement").slice(0, 4);
-  const topicNodes = visualMap.nodes.filter((node) => node.kind === "topic").slice(0, 6);
-  const sortedSuggestions = sortSuggestions(result.suggestions).slice(0, 3);
+  const topicNodes = visualMap.nodes.filter((node) => node.kind === "topic");
+  const sortedSuggestions = sortSuggestions(result.suggestions).slice(0, 4);
+  const voteSuggestion = sortedSuggestions.find((suggestion) => suggestion.kind === "vote");
+  const voteQuestions = React.useMemo(
+    () =>
+      buildVoteQuestions({
+        dossierContext: result.understanding.dossierContext,
+        broadTopicFields,
+        suggestions: sortedSuggestions,
+        fallbackTopic: result.understanding.dossierContext ?? topicLabels[0] ?? "Öffentliches Thema",
+      }),
+    [broadTopicFields, result.understanding.dossierContext, sortedSuggestions, topicLabels],
+  );
   const scopeChip = result.understanding.scopes[0] ?? "unclear";
   const assistantLead = resolveAssistantLead({
     topicLabels,
     summary: result.understanding.summary,
     statementText: result.understanding.statements[0]?.text ?? "",
+    dossierContext: result.understanding.dossierContext,
   });
   const showSectionFlow = result.sourceText.length > 500 || sections.length > 1;
   const showCompactUserBubble = result.sourceText.length <= 420 && !showSectionFlow;
+  const positionClusters = React.useMemo(() => derivePositionClusters(result), [result]);
   const keyStatement = resolveCoreClaim({
     topicLabels,
     fallback: statementNodes[0]?.label ?? result.understanding.summary,
+    dossierContext: result.understanding.dossierContext,
   });
-  const rootTopic = topicNodes[0]?.label ?? "Öffentliches Thema";
-  const branchTopics = topicNodes.slice(1);
+  const rootTopic = result.understanding.dossierContext ?? topicNodes[0]?.label ?? "Öffentliches Thema";
+  const branchTopics = topicLabels.filter((label) => label !== rootTopic);
   const primaryActionHref = buildCreateFollowupPrimaryCtaHref({
     ctaHref,
     topics: result.understanding.topics,
@@ -207,7 +316,7 @@ export default function CreateVisualFollowup({
   );
 
   return (
-    <section className="relative space-y-5 rounded-2xl border border-cyan-500/30 bg-cyan-50/80 p-4 pb-24 md:space-y-6 md:p-6 md:pb-20 dark:border-cyan-300/45 dark:bg-cyan-500/10">
+    <section className="relative space-y-5 rounded-2xl border border-slate-300/55 bg-slate-50/90 p-4 pb-24 md:space-y-6 md:p-6 md:pb-20 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))]">
       {showCompactUserBubble ? (
         <div className="ml-auto max-w-3xl rounded-2xl rounded-tr-md border border-slate-200 bg-white px-4 py-3 shadow-sm dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))] dark:shadow-none">
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-600 dark:text-[rgb(var(--muted))]">Du</p>
@@ -229,10 +338,12 @@ export default function CreateVisualFollowup({
         </div>
       )}
 
-      <div className="mr-auto max-w-4xl rounded-2xl rounded-tl-md border border-cyan-500/30 bg-white px-4 py-4 shadow-sm dark:border-cyan-300/45 dark:bg-[rgb(var(--card))] dark:shadow-none">
+      <div className="mr-auto max-w-4xl rounded-2xl rounded-tl-md border border-cyan-500/25 bg-white px-4 py-4 shadow-sm dark:border-cyan-300/35 dark:bg-[rgb(var(--card))] dark:shadow-none">
+        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-700 dark:text-[rgb(var(--muted))]">eDebatte</p>
         <p className="text-xs font-semibold uppercase tracking-[0.16em] text-cyan-800 dark:text-cyan-200">{CREATE_VISUAL_FOLLOWUP_COPY.structureTitle}</p>
         <p className="mt-1 text-base font-semibold text-cyan-950 md:text-lg dark:text-cyan-50">{CREATE_VISUAL_FOLLOWUP_COPY.headline}</p>
         <p className="mt-3 text-base text-cyan-900 md:text-lg dark:text-cyan-100">{assistantLead}</p>
+        <p className="mt-2 text-sm text-cyan-900/85 dark:text-cyan-100/85">Fortlaufender Struktur-Chat: Wir halten den Dossier-Kontext, Themenfelder und Claims im selben Arbeitsfenster zusammen.</p>
         <div className="mt-4 rounded-xl border border-cyan-500/35 bg-cyan-50 px-4 py-3 dark:border-cyan-300/40 dark:bg-cyan-500/10">
           <p className="text-xs font-semibold uppercase tracking-[0.14em] text-cyan-800 dark:text-cyan-200">{CREATE_VISUAL_FOLLOWUP_COPY.coreTitle}</p>
           <p className="mt-1 text-base font-semibold text-cyan-950 md:text-xl dark:text-cyan-50">{keyStatement}</p>
@@ -248,7 +359,7 @@ export default function CreateVisualFollowup({
       </div>
 
       <div className="space-y-4 rounded-xl border border-slate-200 bg-white px-3 py-3 shadow-sm md:px-4 md:py-4 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))] dark:shadow-none">
-        <p className="text-sm font-semibold text-[rgb(var(--fg))] md:text-base">{CREATE_VISUAL_FOLLOWUP_COPY.graphTitle}</p>
+        <p className="text-sm font-semibold text-[rgb(var(--fg))] md:text-base">Vorgeschlagener Arbeitsstand</p>
 
         <div className="space-y-3 md:hidden">
           <div className="rounded-lg border border-cyan-500/35 bg-cyan-50 px-3 py-2 text-sm font-semibold text-cyan-900 dark:border-cyan-300/35 dark:bg-cyan-500/10 dark:text-cyan-100">1. Dein Beitrag</div>
@@ -260,15 +371,66 @@ export default function CreateVisualFollowup({
           <div className={`rounded-xl border px-3 py-2 ${resolveNodeTone("statement")}`}>
             <p className="text-sm font-semibold">{keyStatement}</p>
           </div>
-          <div className="rounded-lg border border-cyan-500/35 bg-cyan-50 px-3 py-2 text-sm font-semibold text-cyan-900 dark:border-cyan-300/35 dark:bg-cyan-500/10 dark:text-cyan-100">3. Themen</div>
+          <div className="rounded-lg border border-cyan-500/35 bg-cyan-50 px-3 py-2 text-sm font-semibold text-cyan-900 dark:border-cyan-300/35 dark:bg-cyan-500/10 dark:text-cyan-100">3. Themenfelder</div>
           <div className="flex flex-wrap gap-2">
-            {topicNodes.map((node) => (
-              <span key={node.id} className={`rounded-full border px-2.5 py-1 text-sm ${resolveNodeTone(node.kind)}`}>
-                {node.label}
+            {topicLabels.map((label) => (
+              <span key={`mobile-topic-${label}`} className={`rounded-full border px-2.5 py-1 text-sm ${resolveNodeTone("topic")}`}>
+                {label}
               </span>
             ))}
           </div>
-          <div className="rounded-lg border border-cyan-500/35 bg-cyan-50 px-3 py-2 text-sm font-semibold text-cyan-900 dark:border-cyan-300/35 dark:bg-cyan-500/10 dark:text-cyan-100">4. Anschluss</div>
+          <div className="rounded-lg border border-cyan-500/35 bg-cyan-50 px-3 py-2 text-sm font-semibold text-cyan-900 dark:border-cyan-300/35 dark:bg-cyan-500/10 dark:text-cyan-100">4. Dossier-Kontext</div>
+          <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--bg))] dark:text-slate-100">
+            <p className="font-semibold">Dossier-Kontext / Oberthema</p>
+            <p className="mt-1">{rootTopic}</p>
+            <p className="mt-2 font-semibold">Themenfelder</p>
+            <div className="mt-1 flex flex-wrap gap-2">
+              {topicLabels.map((label) => (
+                <button
+                  key={`topic-correction-${label}`}
+                  type="button"
+                  onClick={() => openCorrection(`Thema: ${label}`)}
+                  className={`rounded-full border px-2.5 py-1 text-xs ${resolveNodeTone("topic")}`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            <p className="mt-2 font-semibold">Blickrichtungen</p>
+            <div className="mt-1 flex flex-wrap gap-2">
+              {positionClusters.map((cluster) => (
+                <button
+                  key={cluster}
+                  type="button"
+                  onClick={() => openCorrection(`Position: ${cluster}`)}
+                  className={`rounded-full border px-2.5 py-1 text-xs ${resolveNodeTone("stance")}`}
+                >
+                  {cluster}
+                </button>
+              ))}
+            </div>
+            <p className="mt-2 font-semibold">Mögliche Claims</p>
+            <div className="mt-1 space-y-1">
+              {statementNodes.slice(0, 2).map((node) => (
+                <button
+                  key={node.id}
+                  type="button"
+                  onClick={() => openCorrection(`Claim: ${node.label}`)}
+                  className="block w-full rounded-lg border border-sky-500/30 bg-sky-50 px-2.5 py-1.5 text-left text-xs text-sky-950 dark:border-sky-300/35 dark:bg-sky-500/10 dark:text-sky-50"
+                >
+                  {node.label}
+                </button>
+              ))}
+            </div>
+            <p className="mt-2 font-semibold">Mögliche Abstimmungsfragen</p>
+            <ol className="mt-1 space-y-1">
+              {voteQuestions.map((question, index) => (
+                <li key={`mobile-vote-question-${index}`} className="text-xs">
+                  {index + 1}. {question}
+                </li>
+              ))}
+            </ol>
+          </div>
         </div>
 
         <div className="hidden md:block">
@@ -288,11 +450,41 @@ export default function CreateVisualFollowup({
                   <p className="mt-1 text-base font-semibold">{rootTopic}</p>
                 </div>
                 <div className="mt-3 flex flex-wrap gap-2">
-                  {branchTopics.map((node) => (
-                    <span key={node.id} className={`rounded-full border px-3 py-1 text-sm ${resolveNodeTone(node.kind)}`}>
-                      {node.label}
-                    </span>
+                  {branchTopics.map((label) => (
+                    <button
+                      key={`branch-topic-${label}`}
+                      type="button"
+                      onClick={() => openCorrection(`Thema: ${label}`)}
+                      className={`rounded-full border px-3 py-1 text-sm ${resolveNodeTone("topic")}`}
+                    >
+                      {label}
+                    </button>
                   ))}
+                </div>
+                <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--bg))]">
+                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">Blickrichtungen</p>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {positionClusters.map((cluster) => (
+                      <button
+                        key={cluster}
+                        type="button"
+                        onClick={() => openCorrection(`Position: ${cluster}`)}
+                        className={`rounded-full border px-2.5 py-1 text-xs ${resolveNodeTone("stance")}`}
+                      >
+                        {cluster}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--bg))]">
+                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">Mögliche Abstimmungsfragen</p>
+                  <ol className="mt-2 space-y-1 text-sm">
+                    {voteQuestions.map((question, index) => (
+                      <li key={`desktop-vote-question-${index}`}>
+                        {index + 1}. {question}
+                      </li>
+                    ))}
+                  </ol>
                 </div>
               </div>
             </div>
@@ -300,9 +492,11 @@ export default function CreateVisualFollowup({
         </div>
       </div>
 
-      <div className="space-y-2 rounded-xl border border-slate-200 bg-white px-3 py-3 shadow-sm dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))] dark:shadow-none">
-        <p className="text-sm font-semibold text-[rgb(var(--fg))] md:text-base">{CREATE_VISUAL_FOLLOWUP_COPY.impactTitle}</p>
-        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+      <details className="rounded-xl border border-slate-200 bg-white px-3 py-3 shadow-sm dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))] dark:shadow-none">
+        <summary className="cursor-pointer text-sm font-semibold text-[rgb(var(--fg))] md:text-base">
+          {CREATE_VISUAL_FOLLOWUP_COPY.impactTitle} (optional)
+        </summary>
+        <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
           {sortedSuggestions.map((suggestion) => {
             const href = buildCreateFollowupTargetHref({
               kind: suggestion.kind,
@@ -346,7 +540,7 @@ export default function CreateVisualFollowup({
             );
           })}
         </div>
-      </div>
+      </details>
 
       {showSectionFlow ? (
         <div className="space-y-3 rounded-xl border border-slate-200 bg-white px-3 py-3 shadow-sm dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))] dark:shadow-none">
@@ -380,7 +574,7 @@ export default function CreateVisualFollowup({
       <div className="space-y-3 rounded-xl border border-cyan-500/30 bg-white px-3 py-3 shadow-sm dark:border-cyan-300/45 dark:bg-[rgb(var(--card))] dark:shadow-none">
         <p className="text-sm font-semibold text-[rgb(var(--fg))] md:text-base">{CREATE_VISUAL_FOLLOWUP_COPY.confirmTitle}</p>
         <p className="text-sm text-[rgb(var(--muted))] md:text-base">
-          Du kannst bestätigen, einzelne Punkte ändern oder erst passende Dossiers und Abstimmungen ansehen.
+          Du kannst bestätigen, einzelne Punkte ändern oder den Arbeitsstand für später speichern.
         </p>
         <div className="grid gap-2 md:grid-cols-2">
           <div className="rounded-lg border border-emerald-300/45 bg-emerald-50 px-3 py-2 dark:border-emerald-300/35 dark:bg-emerald-500/10">
@@ -404,16 +598,13 @@ export default function CreateVisualFollowup({
         </div>
         <div className="flex flex-wrap gap-2">
           <button type="button" className="btn-primary min-h-[40px] px-3 py-2 text-sm" onClick={onConfirm}>
-            Ja, so einordnen
+            Ja, Struktur übernehmen
           </button>
           <button type="button" className="btn-secondary min-h-[40px] px-3 py-2 text-sm" onClick={() => openCorrection("Thema")}>
-            Ein Thema stimmt nicht
+            Ein Thema ändern
           </button>
-          <Link href={primaryActionHref} className="btn-secondary min-h-[40px] px-3 py-2 text-sm">
-            Passende Dossiers ansehen
-          </Link>
-          <button type="button" className="btn-secondary min-h-[40px] px-3 py-2 text-sm" onClick={onOpenNewAnlassraum}>
-            Als neues Thema vorschlagen
+          <button type="button" className="btn-secondary min-h-[40px] px-3 py-2 text-sm" onClick={onSaveForLater}>
+            Für später speichern
           </button>
         </div>
         {showCorrectionRow ? (
@@ -437,9 +628,41 @@ export default function CreateVisualFollowup({
         ) : null}
         <p className="text-xs text-[rgb(var(--muted))]">{CREATE_VISUAL_FOLLOWUP_COPY.guardrail}</p>
         {isConfirmed ? (
-          <p className="text-sm text-emerald-700 dark:text-emerald-300">
-            Einordnung bestätigt. Dein Beitrag ist noch nicht veröffentlicht. Wähle jetzt den nächsten Schritt.
-          </p>
+          <div className="space-y-2 rounded-lg border border-emerald-300/45 bg-emerald-50 px-3 py-2 dark:border-emerald-300/35 dark:bg-emerald-500/10">
+            <p className="text-sm text-emerald-900 dark:text-emerald-100">
+              Einordnung bestätigt. Dein Beitrag ist noch nicht veröffentlicht. Wähle jetzt den nächsten Schritt.
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <Link href={primaryActionHref} className="btn-secondary min-h-[40px] px-3 py-2 text-sm">
+                Dossier-Kontext öffnen
+              </Link>
+              {voteSuggestion ? (
+                <Link
+                  href={buildCreateFollowupTargetHref({
+                    kind: "vote",
+                    ctaHref,
+                    topics: result.understanding.topics,
+                    statements: result.understanding.statements,
+                    suggestionTitle: voteSuggestion.title,
+                    suggestionHref: voteSuggestion.href ?? null,
+                  })}
+                  className="btn-secondary min-h-[40px] px-3 py-2 text-sm"
+                >
+                  Claims/Abstimmungen prüfen
+                </Link>
+              ) : (
+                <Link href={primaryActionHref} className="btn-secondary min-h-[40px] px-3 py-2 text-sm">
+                  Claims im Dossier prüfen
+                </Link>
+              )}
+              <button type="button" className="btn-secondary min-h-[40px] px-3 py-2 text-sm" onClick={onStartOptionalService}>
+                Faktencheck / Deep Search starten
+              </button>
+              <button type="button" className="btn-secondary min-h-[40px] px-3 py-2 text-sm" onClick={onSaveForLater}>
+                Arbeitsstand speichern
+              </button>
+            </div>
+          </div>
         ) : null}
         {actionNotice ? (
           <p className="rounded-lg border border-cyan-500/35 bg-cyan-50 px-3 py-2 text-xs text-cyan-900 dark:border-cyan-300/35 dark:bg-cyan-500/10 dark:text-cyan-100">
@@ -453,16 +676,16 @@ export default function CreateVisualFollowup({
         <p className="text-xs text-[rgb(var(--muted))]">Keine automatische Stimme oder Veröffentlichung.</p>
         <div className="mt-2 grid grid-cols-2 gap-2">
           <button type="button" className="btn-primary min-h-[40px] px-2 py-2 text-sm" onClick={onConfirm}>
-            Ja, so einordnen
+            Ja, Struktur übernehmen
           </button>
           <button type="button" className="btn-secondary min-h-[40px] px-2 py-2 text-sm" onClick={() => openCorrection("Thema")}>
             Ändern
           </button>
-          <Link href={primaryActionHref} className="btn-secondary min-h-[40px] px-2 py-2 text-sm">
-            Dossiers & Abstimmungen
-          </Link>
-          <button type="button" className="btn-secondary min-h-[40px] px-2 py-2 text-sm" onClick={onOpenNewAnlassraum}>
-            Neues Thema
+          <button type="button" className="btn-secondary min-h-[40px] px-2 py-2 text-sm" onClick={onSaveForLater}>
+            Speichern
+          </button>
+          <button type="button" className="btn-secondary min-h-[40px] px-2 py-2 text-sm" onClick={onStartOptionalService}>
+            Service
           </button>
         </div>
       </div>

@@ -72,6 +72,12 @@ describe("create intelligent follow-up contract", () => {
     expect(result.understanding.statements.length).toBeGreaterThan(0);
     expect(result.suggestions.length).toBeGreaterThan(0);
     expect(result.suggestions.every((suggestion) => suggestion.requiresConfirmation === true)).toBe(true);
+    const maybeVoteSuggestion = result.suggestions.find((suggestion) => suggestion.kind === "vote");
+    if (maybeVoteSuggestion) {
+      expect(maybeVoteSuggestion.href).toContain("/swipes?");
+      expect(maybeVoteSuggestion.href).toContain("claim=");
+      expect(maybeVoteSuggestion.href).toContain("from=create");
+    }
     const visualMap = buildCreateVisualMap(result);
     expect(visualMap.center.label).toBe("Dein Beitrag");
     expect(visualMap.nodes.some((node) => node.kind === "statement")).toBe(true);
@@ -79,9 +85,9 @@ describe("create intelligent follow-up contract", () => {
     expect(visualMap.nodes.some((node) => node.kind === "stance")).toBe(true);
     expect(visualMap.nodes.some((node) => node.kind === "dossier" || node.kind === "anlassraum" || node.kind === "vote" || node.kind === "new_anlassraum")).toBe(true);
     const connectionKinds = visualMap.nodes
-      .filter((node) => node.kind === "dossier" || node.kind === "vote" || node.kind === "anlassraum" || node.kind === "new_anlassraum")
+      .filter((node) => node.kind === "dossier" || node.kind === "anlassraum" || node.kind === "new_anlassraum")
       .map((node) => node.kind);
-    expect(connectionKinds).toEqual(expect.arrayContaining(["dossier", "vote"]));
+    expect(connectionKinds).toEqual(expect.arrayContaining(["dossier"]));
     expect(connectionKinds.some((kind) => kind === "anlassraum" || kind === "new_anlassraum")).toBe(true);
   });
 
@@ -129,8 +135,11 @@ describe("create intelligent follow-up contract", () => {
     expect(result.suggestions.some((item) => item.title.includes("Politische Verantwortung"))).toBe(true);
     const dossierSuggestion = result.suggestions.find((item) => item.kind === "dossier");
     const voteSuggestion = result.suggestions.find((item) => item.kind === "vote");
+    const topicSuggestion = result.suggestions.find((item) => item.kind === "topic");
     expect(dossierSuggestion?.href).toContain("/dossier?");
     expect(dossierSuggestion?.href).toContain("topic=");
+    expect(topicSuggestion?.href).toContain("/dossier?");
+    expect(topicSuggestion?.href).not.toContain("/swipes?");
     expect(voteSuggestion?.href).toContain("/swipes?");
     expect(voteSuggestion?.href).toContain("topic=");
     expect(voteSuggestion?.href).toContain("claim=");
@@ -170,6 +179,53 @@ describe("create intelligent follow-up contract", () => {
     expect(sections.length).toBeGreaterThan(1);
     expect(sections.every((section) => section.sourceText.length > 0)).toBe(true);
     expect(sections[0]?.label).toContain("Abschnitt");
+  });
+
+  it("infers broad municipal dossier context and topic fields for wide civic texts", async () => {
+    mocks.analyzeContribution.mockRejectedValue(new Error("provider_failed"));
+    const result = await buildCreateIntelligentFollowup({
+      text:
+        "Wir müssen Wohnen bezahlbar halten, den Verkehr alltagstauglich umbauen, Klimaziele erreichbar machen, Bildung und Sprachförderung verbessern, Integration verlässlich gestalten, Sicherheit und Rechtsstaat stärken, Pflege sichern, kommunale Finanzen stabilisieren und Bürgerbeteiligung ernsthaft priorisieren.",
+      locale: "de",
+      intent: "contribute",
+    });
+
+    expect(result.degraded).toBe(true);
+    expect(result.understanding.dossierContext).toBe("Kommunale Prioritäten und Zielkonflikte");
+    expect(result.understanding.topics.length).toBeGreaterThanOrEqual(9);
+    expect(result.understanding.topics.map((item) => item.label)).toEqual(
+      expect.arrayContaining([
+        "Kommunale Prioritäten und Zielkonflikte",
+        "Wohnen",
+        "Verkehr",
+        "Klima",
+        "Bildung",
+        "Migration/Integration",
+        "Sicherheit/Rechtsstaat",
+        "Gesundheit/Pflege",
+        "Kommunale Finanzen",
+        "Bürgerbeteiligung",
+      ]),
+    );
+    expect(result.understanding.positionClusters?.map((item) => item.label)).toEqual(
+      expect.arrayContaining(["sozial/ausgleichend", "ordnungs-/leistungsorientiert", "pragmatisch/abwägend"]),
+    );
+    expect(result.understanding.topics.map((item) => item.label)).not.toEqual(
+      expect.arrayContaining(["Amtsträger", "Qualifikation", "Sanktionen"]),
+    );
+
+    const dossierSuggestion = result.suggestions.find((item) => item.kind === "dossier");
+    const topicSuggestion = result.suggestions.find((item) => item.kind === "topic");
+    expect(dossierSuggestion?.title).toContain("Kommunale Prioritäten und Zielkonflikte");
+    expect(dossierSuggestion?.href).toContain("/dossier?");
+    expect(dossierSuggestion?.href).not.toContain("/swipes?");
+    expect(topicSuggestion?.href).toContain("/dossier?");
+    expect(topicSuggestion?.href).not.toContain("/swipes?");
+
+    const voteSuggestion = result.suggestions.find((item) => item.kind === "vote");
+    if (voteSuggestion) {
+      expect(voteSuggestion.title).toBe("Welche kommunalen Prioritäten sollen zuerst bearbeitet werden?");
+    }
   });
 
   it("marks vote suggestions as explicit confirmation only", async () => {

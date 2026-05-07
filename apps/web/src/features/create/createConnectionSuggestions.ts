@@ -51,8 +51,27 @@ function shouldSuggestVote(text: string): boolean {
   return /abstimm|stimme|vot|entscheid|beschluss|ja\/nein|option b|option c|option [a-z]/.test(normalized);
 }
 
+function isVoteableClaim(params: {
+  statement: CreateUnderstandingResult["statements"][number];
+  sourceText: string;
+}): boolean {
+  const statementText = params.statement.text.toLowerCase();
+  if (params.statement.kind === "question" || params.statement.kind === "option") return true;
+  if (params.statement.kind === "demand") {
+    return /soll|sollen|muss|müssen|option|prioris|abstimm|entscheid|beschluss|ja\/nein/.test(statementText);
+  }
+  return shouldSuggestVote(`${params.sourceText} ${params.statement.text}`);
+}
+
 function resolveHumanConnectionTitle(topics: Array<{ label: string }>): string {
   const lowered = topics.map((topic) => topic.label.toLowerCase()).join(" ");
+  if (
+    /kommunale priorit[aä]ten und zielkonflikte|wohnen|verkehr|klima|bildung|migration\/integration|sicherheit\/rechtsstaat|gesundheit\/pflege|kommunale finanzen|bürgerbeteiligung/.test(
+      lowered,
+    )
+  ) {
+    return "Kommunale Prioritäten und Zielkonflikte";
+  }
   if (/verantwort|amtstr[aä]ger|qualifikation/.test(lowered)) {
     return "Politische Verantwortung und Mindestanforderungen für Amtsträger";
   }
@@ -67,6 +86,13 @@ function resolveHumanConnectionTitle(topics: Array<{ label: string }>): string {
 
 function resolveDossierSuggestionTitle(topics: Array<{ label: string }>): string {
   const lowered = topics.map((topic) => topic.label.toLowerCase()).join(" ");
+  if (
+    /kommunale priorit[aä]ten und zielkonflikte|wohnen|verkehr|klima|bildung|migration\/integration|sicherheit\/rechtsstaat|gesundheit\/pflege|kommunale finanzen|bürgerbeteiligung/.test(
+      lowered,
+    )
+  ) {
+    return "Kommunale Prioritäten und Zielkonflikte";
+  }
   if (/verantwort|amtstr[aä]ger|mandat/.test(lowered)) {
     return "Politische Verantwortung öffentlicher Mandate";
   }
@@ -78,6 +104,13 @@ function resolveDossierSuggestionTitle(topics: Array<{ label: string }>): string
 
 function resolveNewAnlassraumTitle(topics: Array<{ label: string }>): string {
   const lowered = topics.map((topic) => topic.label.toLowerCase()).join(" ");
+  if (
+    /kommunale priorit[aä]ten und zielkonflikte|wohnen|verkehr|klima|bildung|migration|integration|sicherheit|rechtsstaat|pflege|kommunale finanzen|bürgerbeteiligung/.test(
+      lowered,
+    )
+  ) {
+    return "Kommunale Prioritäten und Zielkonflikte";
+  }
   if (/sanktion|qualifikation|amtstr[aä]ger/.test(lowered)) {
     return "Sanktionen und Qualifikation politischer Ämter";
   }
@@ -92,6 +125,9 @@ function resolveVoteSuggestionTitle(params: {
   statementText?: string | null;
 }): string {
   const lowered = params.topics.map((topic) => topic.label.toLowerCase()).join(" ");
+  if (/kommunale priorit[aä]ten und zielkonflikte/.test(lowered)) {
+    return "Welche kommunalen Prioritäten sollen zuerst bearbeitet werden?";
+  }
   if (/amtstr[aä]ger|qualifikation|sanktion/.test(lowered)) {
     return "Mindestanforderungen und Konsequenzen für Amtsträger";
   }
@@ -157,26 +193,16 @@ export function buildCreateConnectionSuggestions(
       id: `topic:${topics[0].id}`,
       kind: "topic",
       title: topicalTitle,
-      reason: "Thematische Nähe aus deinem Text erkannt.",
+      reason: "Thematische Nähe im Dossier-Kontext aus deinem Text erkannt.",
       confidence: topics[0].confidence,
-      href: buildSeededSwipesHref({
-        topic: topics[0].label,
-        claim: primaryClaim,
-        stance: mappedStance,
-      }),
+      href: buildSeededDossierHref(topics[0].label),
       suggestedContributionKind: input.understanding.categories[0]?.id ?? "hint",
       suggestedStance: mappedStance,
       requiresConfirmation: true,
     });
   }
 
-  if (
-    topStatement &&
-    (shouldSuggestVote(input.text) ||
-      topStatement.kind === "demand" ||
-      topStatement.kind === "option" ||
-      topStatement.kind === "question")
-  ) {
+  if (topStatement && primaryClaim && isVoteableClaim({ statement: topStatement, sourceText: input.text })) {
     suggestions.push({
       id: `vote:${topStatement.id}`,
       kind: "vote",
