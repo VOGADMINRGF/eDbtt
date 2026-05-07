@@ -100,6 +100,7 @@ export type SharedCreateComposerProps = {
   heroSublineOverride?: string;
   heroBadgeOverride?: string;
   collapseModeSelector?: boolean;
+  embeddedWorkspace?: boolean;
 };
 
 export default function SharedCreateComposer({
@@ -138,6 +139,7 @@ export default function SharedCreateComposer({
   heroSublineOverride,
   heroBadgeOverride,
   collapseModeSelector = false,
+  embeddedWorkspace = false,
 }: SharedCreateComposerProps) {
   const [attachments, setAttachments] = React.useState<File[]>([]);
   const [attachmentsError, setAttachmentsError] = React.useState<string | null>(null);
@@ -291,7 +293,13 @@ export default function SharedCreateComposer({
   }, [stopVoice]);
 
   return (
-    <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-[0_24px_64px_rgba(2,6,23,0.18)] sm:p-6 md:p-9 lg:p-10">
+    <section
+      className={
+        embeddedWorkspace
+          ? "rounded-2xl bg-transparent p-0"
+          : "rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-[0_24px_64px_rgba(2,6,23,0.18)] sm:p-6 md:p-9 lg:p-10"
+      }
+    >
       <div className="mx-auto w-full max-w-5xl space-y-6 md:space-y-7">
         <EntryHeroHeading
           badge={heroBadgeOverride ?? badge}

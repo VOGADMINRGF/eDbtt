@@ -955,6 +955,7 @@ export default function CreateClient({
 
   return (
     <div className="space-y-6 md:space-y-8">
+      <section className="create-dialog-workspace rounded-[2rem] border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-3 shadow-[0_24px_64px_rgba(2,6,23,0.14)] sm:p-4 md:p-6">
       <SharedCreateComposer
         badge={surfaceTexts.badgeCanonical}
         subline={surfaceTexts.sublineCanonical}
@@ -1026,6 +1027,7 @@ export default function CreateClient({
         }
         minRows={8}
         collapseModeSelector
+        embeddedWorkspace
       />
 
       {showTooShortHint ? (
@@ -1046,7 +1048,7 @@ export default function CreateClient({
       {showIntelligentFollowup && intelligentFollowup ? (
         <div
           ref={intelligentFollowupResultRef}
-          className="scroll-mt-24"
+          className="scroll-mt-24 pt-4 md:pt-5"
         >
           <CreateVisualFollowup
             result={intelligentFollowup}
@@ -1067,6 +1069,7 @@ export default function CreateClient({
           />
         </div>
       ) : null}
+      </section>
 
       {showPostInputModules && !showIntelligentFollowup ? (
         <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 md:p-5">
