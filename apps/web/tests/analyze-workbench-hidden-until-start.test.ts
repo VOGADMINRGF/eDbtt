@@ -242,8 +242,12 @@ describe("analyze workbench progressive disclosure", () => {
     expect(source).toContain("StructuredWorkstateBlock");
     expect(source).toContain("FollowupActionRail");
     expect(source).toContain("DetailsAccordion");
+    expect(source).toContain("create-chat-workspace");
+    expect(source).toContain("create-chat-spine");
+    expect(source).toContain("create-chat-message");
     expect(source).toContain("Du");
     expect(source).toContain("eDebatte");
+    expect(source).toContain("Nächster Schritt");
     expect(source).toContain("Ja, Struktur übernehmen");
     expect(source).toContain("Für später speichern");
     expect(source).toContain("Dossier-Kontext / Oberthema");
@@ -258,7 +262,7 @@ describe("analyze workbench progressive disclosure", () => {
     expect(source).toContain("Keine automatische Kostenbuchung.");
     expect(source).toContain("dedupeCreateFollowupSections");
     expect(source).toContain("Claims/Abstimmungen prüfen");
-    expect(source).toContain("bg-cyan-50/80");
+    expect(source).not.toContain("bg-cyan-50/80");
     expect(source).toContain("dark:bg-[rgb(var(--card))]");
     expect(source).toContain("border-cyan-500/35 bg-cyan-50 text-cyan-950");
     expect(source).toContain("dark:border-cyan-300/60 dark:bg-cyan-500/15 dark:text-cyan-50");
@@ -271,6 +275,8 @@ describe("analyze workbench progressive disclosure", () => {
     const clientSource = readFileSync(resolve(process.cwd(), "src/app/create/CreateClient.tsx"), "utf8");
     const composerSource = readFileSync(resolve(process.cwd(), "src/features/create/SharedCreateComposer.tsx"), "utf8");
     expect(clientSource).toContain("collapseModeSelector");
+    expect(clientSource).toContain("create-dialog-workspace");
+    expect(clientSource).toContain("embeddedWorkspace");
     expect(composerSource).toContain("Arbeitsweg wählen (optional)");
     expect(composerSource).toContain("Ohne Auswahl startet eDebatte mit dem Standardfluss");
   });

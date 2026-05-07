@@ -15,6 +15,11 @@ describe("create curated dialog workspace contract", () => {
 
     expect(clientSource).toContain("SharedCreateComposer");
     expect(clientSource).toContain("CreateVisualFollowup");
+    expect(clientSource).toContain("create-dialog-workspace");
+    expect(clientSource).toContain("embeddedWorkspace");
+    expect(followupSource).toContain("create-chat-workspace");
+    expect(followupSource).toContain("create-chat-spine");
+    expect(followupSource).toContain("create-chat-message");
     expect(followupSource).toContain("UserContributionBubble");
     expect(followupSource).toContain("AssistantUnderstandingBubble");
     expect(followupSource).toContain("StructuredWorkstateBlock");
@@ -30,6 +35,7 @@ describe("create curated dialog workspace contract", () => {
 
     expect(followupSource).toContain("Du");
     expect(followupSource).toContain("eDebatte");
+    expect(followupSource).toContain("Nächster Schritt");
     expect(followupSource).toContain("Vorgeschlagener Arbeitsstand");
     expect(followupSource).toContain("Ja, Struktur übernehmen");
     expect(followupSource).toContain("Keine automatische Stimme");
@@ -56,5 +62,6 @@ describe("create curated dialog workspace contract", () => {
     expect(confirmIndex).toBeLessThan(detailsIndex);
     expect(detailsIndex).toBeLessThan(impactIndex);
     expect(followupSource).toContain("summary className=\"cursor-pointer");
+    expect(followupSource).not.toContain("bg-cyan-50/80");
   });
 });
