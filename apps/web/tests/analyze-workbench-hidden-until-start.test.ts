@@ -237,6 +237,13 @@ describe("analyze workbench progressive disclosure", () => {
       resolve(process.cwd(), "src/features/create/CreateVisualFollowup.tsx"),
       "utf8",
     );
+    expect(source).toContain("UserContributionBubble");
+    expect(source).toContain("AssistantUnderstandingBubble");
+    expect(source).toContain("StructuredWorkstateBlock");
+    expect(source).toContain("FollowupActionRail");
+    expect(source).toContain("DetailsAccordion");
+    expect(source).toContain("Du");
+    expect(source).toContain("eDebatte");
     expect(source).toContain("Ja, Struktur übernehmen");
     expect(source).toContain("Für später speichern");
     expect(source).toContain("Dossier-Kontext / Oberthema");
@@ -244,12 +251,14 @@ describe("analyze workbench progressive disclosure", () => {
     expect(source).toContain("Mögliche Abstimmungsfragen");
     expect(source).toContain("Welche kommunalen Prioritäten sollen zuerst bearbeitet werden?");
     expect(source).toContain("Faktencheck / Deep Search starten");
-    expect(source).toContain("Fortlaufender Struktur-Chat");
+    expect(source).toContain("Details zum Originaltext");
+    expect(source).toContain("Sinnabschnitte");
+    expect(source).toContain("Zusatzservices (optional)");
     expect(source).toContain("Keine automatische Stimme oder Veröffentlichung.");
     expect(source).toContain("Keine automatische Kostenbuchung.");
     expect(source).toContain("dedupeCreateFollowupSections");
-    expect(source).toContain("Abstimmungsfragen prüfen");
-    expect(source).toContain("bg-slate-50/90");
+    expect(source).toContain("Claims/Abstimmungen prüfen");
+    expect(source).toContain("bg-cyan-50/80");
     expect(source).toContain("dark:bg-[rgb(var(--card))]");
     expect(source).toContain("border-cyan-500/35 bg-cyan-50 text-cyan-950");
     expect(source).toContain("dark:border-cyan-300/60 dark:bg-cyan-500/15 dark:text-cyan-50");
