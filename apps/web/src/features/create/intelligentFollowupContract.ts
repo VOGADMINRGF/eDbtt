@@ -12,6 +12,7 @@ export type CreateUnderstandingStatementKind =
 
 export type CreateUnderstandingResult = {
   summary: string;
+  dossierContext?: string;
   categories: Array<{
     id: string;
     label: string;
@@ -31,6 +32,11 @@ export type CreateUnderstandingResult = {
     sourceExcerpt?: string;
   }>;
   scopes: Array<"local" | "district" | "municipal" | "state" | "federal" | "eu" | "international" | "unclear">;
+  positionClusters?: Array<{
+    id: string;
+    label: "sozial/ausgleichend" | "ordnungs-/leistungsorientiert" | "pragmatisch/abwägend";
+    confidence: FollowupConfidence;
+  }>;
   openQuestion?: string | null;
   confidence: FollowupConfidence;
 };
@@ -233,7 +239,6 @@ export function buildCreateVisualMap(result: CreateIntelligentFollowupResult): C
   });
 
   const hasDossier = nodes.some((node) => node.kind === "dossier");
-  const hasVote = nodes.some((node) => node.kind === "vote");
   const hasNewAnlassraum = nodes.some((node) => node.kind === "new_anlassraum");
   if (!hasDossier) {
     const nodeId = "suggestion-fallback-dossier";
@@ -242,16 +247,6 @@ export function buildCreateVisualMap(result: CreateIntelligentFollowupResult): C
       kind: "dossier",
       label: "Dossier",
       confidence: "medium",
-    });
-    edges.push({ id: `edge-source-${nodeId}`, from: center.id, to: nodeId, label: "Anschluss" });
-  }
-  if (!hasVote) {
-    const nodeId = "suggestion-fallback-vote";
-    nodes.push({
-      id: nodeId,
-      kind: "vote",
-      label: "Abstimmung",
-      confidence: "low",
     });
     edges.push({ id: `edge-source-${nodeId}`, from: center.id, to: nodeId, label: "Anschluss" });
   }

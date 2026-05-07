@@ -100,7 +100,19 @@ type FallbackTopicRule = {
   pattern: RegExp;
 };
 
-const FALLBACK_TOPIC_RULES: readonly FallbackTopicRule[] = [
+const BROAD_COMMUNAL_TOPIC_RULES: readonly FallbackTopicRule[] = [
+  { label: "Wohnen", pattern: /wohnraum|wohnen|miete|mieten|zweckentfremdung|wohnungsbau|neubau/ },
+  { label: "Verkehr", pattern: /verkehr|bus|bahn|radweg|radwege|auto|mobilit[aä]t|schulweg/ },
+  { label: "Klima", pattern: /klima|klimaziel|co2|emission|generation/ },
+  { label: "Bildung", pattern: /schule|schulen|bildung|sprachf[oö]rderung|digitale ausstattung|basiskompetenz/ },
+  { label: "Migration/Integration", pattern: /migration|integration|zuwander/ },
+  { label: "Sicherheit/Rechtsstaat", pattern: /sicherheit|rechtsstaat|regeln|regelverst[oö][ßs]e?|missachtet|handlungsf[aä]hig/ },
+  { label: "Gesundheit/Pflege", pattern: /gesundheit|pflege|pflegedienst/ },
+  { label: "Kommunale Finanzen", pattern: /kommunale finanz|haushalt|haushalts|kosten|finanzierung/ },
+  { label: "Bürgerbeteiligung", pattern: /b[uü]rgerbeteiligung|priorisieren|mitentscheiden|direkt priorisieren/ },
+];
+
+const LEGACY_OFFICE_TOPIC_RULES: readonly FallbackTopicRule[] = [
   { label: "Politische Verantwortung", pattern: /verantwort|pflicht/ },
   { label: "Amtsträger", pattern: /minister|repr[aä]sentant|amtstr[aä]ger|mandat/ },
   { label: "Qualifikation", pattern: /qualifikation|vorausbildung|mindestanforderung|kompetenz/ },
@@ -109,6 +121,84 @@ const FALLBACK_TOPIC_RULES: readonly FallbackTopicRule[] = [
   { label: "Abstimmungsoptionen", pattern: /option\s*[a-z]|option b|option c|vorschlag|abstimm/ },
   { label: "Themenagenda / Optionen", pattern: /agenda|themenagenda/ },
 ];
+
+function isOfficeholderFocusedText(text: string): boolean {
+  const normalized = text.toLowerCase();
+  const hardHits = [
+    /amtstr[aä]ger/,
+    /minister/,
+    /gesetzesentwurf|gesetzgebung/,
+    /mandat/,
+    /mindestanforderung|qualifikation/,
+    /sanktion/,
+  ].filter((rule) => rule.test(normalized)).length;
+  return hardHits >= 2;
+}
+
+function detectBroadCommunalTopicFields(text: string): string[] {
+  const normalized = text.toLowerCase();
+  const fields: string[] = [];
+  for (const rule of BROAD_COMMUNAL_TOPIC_RULES) {
+    if (!rule.pattern.test(normalized)) continue;
+    if (fields.includes(rule.label)) continue;
+    fields.push(rule.label);
+  }
+  return fields;
+}
+
+function inferDossierContextFromText(params: {
+  text: string;
+  topics: Array<{ label: string }>;
+  statements: Array<{ text: string }>;
+}): {
+  dossierContext: string | null;
+  topicFields: string[];
+  useBroadContext: boolean;
+  officeholderFocus: boolean;
+} {
+  const combined = `${params.text} ${params.topics.map((topic) => topic.label).join(" ")} ${params.statements
+    .map((statement) => statement.text)
+    .join(" ")}`;
+  const topicFields = detectBroadCommunalTopicFields(combined);
+  const officeholderFocus = isOfficeholderFocusedText(combined);
+  const useBroadContext = topicFields.length >= 4 && !officeholderFocus;
+  if (useBroadContext) {
+    return {
+      dossierContext: "Kommunale Prioritäten und Zielkonflikte",
+      topicFields,
+      useBroadContext: true,
+      officeholderFocus: false,
+    };
+  }
+  return {
+    dossierContext: null,
+    topicFields,
+    useBroadContext: false,
+    officeholderFocus,
+  };
+}
+
+function buildPositionClusters(text: string): NonNullable<CreateUnderstandingResult["positionClusters"]> {
+  const normalized = text.toLowerCase();
+  const clusters: NonNullable<CreateUnderstandingResult["positionClusters"]> = [];
+  const pushCluster = (id: string, label: CreateUnderstandingResult["positionClusters"][number]["label"], confidence: FollowupConfidence) => {
+    if (clusters.some((item) => item.id === id)) return;
+    clusters.push({ id, label, confidence });
+  };
+  if (/bezahlbar|chancen|ausgrenzung|entlast|schutz|pflege|sozial/.test(normalized)) {
+    pushCluster("social-balance", "sozial/ausgleichend", "medium");
+  }
+  if (/regel|handlungsf[aä]hig|leistung|sprachf[oö]rderung|sanktion|rechtsstaat/.test(normalized)) {
+    pushCluster("order-performance", "ordnungs-/leistungsorientiert", "medium");
+  }
+  if (/abw[aä]g|zust[aä]ndigkeit|kosten|mobilit[aä]t|klimaziel|priorit[aä]t/.test(normalized)) {
+    pushCluster("pragmatic-balance", "pragmatisch/abwägend", "medium");
+  }
+  if (clusters.length === 0) {
+    pushCluster("pragmatic-balance", "pragmatisch/abwägend", "low");
+  }
+  return clusters.slice(0, 3);
+}
 
 function buildFallbackTopics(normalizedText: string): Array<{ id: string; label: string; confidence: FollowupConfidence }> {
   const topics: Array<{ id: string; label: string; confidence: FollowupConfidence }> = [];
@@ -120,13 +210,27 @@ function buildFallbackTopics(normalizedText: string): Array<{ id: string; label:
       confidence,
     });
   };
-  for (const rule of FALLBACK_TOPIC_RULES) {
-    if (!rule.pattern.test(normalizedText)) continue;
-    pushTopic(rule.label);
+  const broadFields = detectBroadCommunalTopicFields(normalizedText);
+  for (const field of broadFields) {
+    pushTopic(field);
   }
-  if (
-    /minister|repr[aä]sentant|amtstr[aä]ger|mandat|gesetzesentwurf|gesetzgebung/.test(normalizedText)
-  ) {
+
+  const officeholderFocus = isOfficeholderFocusedText(normalizedText);
+  if (officeholderFocus) {
+    for (const rule of LEGACY_OFFICE_TOPIC_RULES) {
+      if (!rule.pattern.test(normalizedText)) continue;
+      pushTopic(rule.label);
+    }
+  }
+
+  if (broadFields.length >= 4 && !officeholderFocus) {
+    topics.unshift({
+      id: "topic-context-1",
+      label: "Kommunale Prioritäten und Zielkonflikte",
+      confidence: "high",
+    });
+  }
+  if (officeholderFocus) {
     pushTopic("Politische Verantwortung");
   }
   if (topics.length === 0) {
@@ -170,6 +274,15 @@ function buildFallbackSummary(
   normalizedLower: string,
   topics: Array<{ label: string }>,
 ): string {
+  const dossierInference = inferDossierContextFromText({
+    text: normalizedText,
+    topics,
+    statements: [{ text: normalizedText }],
+  });
+  if (dossierInference.useBroadContext) {
+    const fieldText = dossierInference.topicFields.slice(0, 5).join(", ");
+    return `Du beschreibst kommunale Prioritäten und Zielkonflikte mit Fokus auf ${fieldText}.`;
+  }
   if (
     /minister|amtstr[aä]ger|gesetzesentwurf|gesetzgebung/.test(normalizedLower) &&
     /mindestanforderung|qualifikation|konsequenz|sanktion/.test(normalizedLower)
@@ -202,7 +315,7 @@ function mapAnalyzeResultToUnderstanding(text: string, result: AnalyzeResult): C
   });
 
   const topicsSeen = new Set<string>();
-  const topics = result.claims
+  const claimTopics = result.claims
     .flatMap((claim) => [claim.topic, claim.domain, ...(claim.domains ?? [])])
     .map((value) => String(value ?? "").trim())
     .filter((value) => value.length > 0)
@@ -212,12 +325,38 @@ function mapAnalyzeResultToUnderstanding(text: string, result: AnalyzeResult): C
       topicsSeen.add(key);
       return true;
     })
-    .slice(0, 6)
+    .slice(0, 8)
     .map((label, index) => ({
       id: `topic-${index + 1}`,
       label,
       confidence: normalizeConfidence(0.6 - index * 0.06),
     }));
+  const dossierInference = inferDossierContextFromText({
+    text,
+    topics: claimTopics,
+    statements: statements.map((item) => ({ text: item.text })),
+  });
+  const mergedTopics: Array<{ id: string; label: string; confidence: FollowupConfidence }> = [];
+  const seenTopicLabels = new Set<string>();
+  const pushTopic = (label: string, confidence: FollowupConfidence) => {
+    const key = label.toLowerCase();
+    if (seenTopicLabels.has(key)) return;
+    seenTopicLabels.add(key);
+    mergedTopics.push({
+      id: `topic-${mergedTopics.length + 1}`,
+      label,
+      confidence,
+    });
+  };
+  if (dossierInference.dossierContext) {
+    pushTopic(dossierInference.dossierContext, "high");
+  }
+  for (const field of dossierInference.topicFields) {
+    pushTopic(field, dossierInference.useBroadContext ? "high" : "medium");
+  }
+  for (const topic of claimTopics) {
+    pushTopic(topic.label, topic.confidence);
+  }
 
   const categorySet = new Map<string, { label: string; weight: number }>();
   for (const statement of statements) {
@@ -260,16 +399,26 @@ function mapAnalyzeResultToUnderstanding(text: string, result: AnalyzeResult): C
   const confidence = normalizeConfidence(
     Math.min(
       0.95,
-      0.3 + statements.length * 0.08 + categories.length * 0.07 + (topics.length > 0 ? 0.1 : 0),
+      0.3 + statements.length * 0.08 + categories.length * 0.07 + (mergedTopics.length > 0 ? 0.1 : 0),
     ),
   );
+  const summary = dossierInference.useBroadContext
+    ? `Du beschreibst kommunale Prioritäten und Zielkonflikte. Im Fokus stehen ${dossierInference.topicFields
+        .slice(0, 5)
+        .join(", ")}.`
+    : result.report?.summary?.trim() || summarizeText(text);
 
   return {
-    summary: result.report?.summary?.trim() || summarizeText(text),
+    summary,
+    dossierContext: dossierInference.dossierContext ?? undefined,
     categories,
-    topics: topics.length > 0 ? topics : [{ id: "topic-1", label: "Thema noch offen", confidence: "low" }],
+    topics:
+      mergedTopics.length > 0
+        ? mergedTopics.slice(0, 12)
+        : [{ id: "topic-1", label: "Thema noch offen", confidence: "low" }],
     statements,
     scopes: inferScopes(result, text),
+    positionClusters: buildPositionClusters(text),
     openQuestion,
     confidence,
   };
@@ -296,6 +445,7 @@ function buildFallbackUnderstanding(text: string): CreateUnderstandingResult {
 
   return {
     summary: buildFallbackSummary(normalized, normalizedLower, topics),
+    dossierContext: topics[0]?.label === "Kommunale Prioritäten und Zielkonflikte" ? topics[0].label : undefined,
     categories,
     topics,
     statements: [
@@ -308,6 +458,7 @@ function buildFallbackUnderstanding(text: string): CreateUnderstandingResult {
       },
     ],
     scopes,
+    positionClusters: buildPositionClusters(normalized),
     openQuestion: null,
     confidence: "medium",
   };
