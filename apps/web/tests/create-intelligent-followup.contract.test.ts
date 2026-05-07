@@ -129,6 +129,7 @@ describe("create intelligent follow-up contract", () => {
     expect(result.suggestions.some((item) => item.title.includes("Politische Verantwortung"))).toBe(true);
     const dossierSuggestion = result.suggestions.find((item) => item.kind === "dossier");
     const voteSuggestion = result.suggestions.find((item) => item.kind === "vote");
+    const topicSuggestion = result.suggestions.find((item) => item.kind === "topic");
     expect(dossierSuggestion?.href).toContain("/dossier?");
     expect(dossierSuggestion?.href).toContain("topic=");
     expect(voteSuggestion?.href).toContain("/swipes?");
@@ -136,6 +137,8 @@ describe("create intelligent follow-up contract", () => {
     expect(voteSuggestion?.href).toContain("claim=");
     expect(voteSuggestion?.href).toContain("from=create");
     expect(voteSuggestion?.title).toContain("Mindestanforderungen");
+    expect(topicSuggestion?.href).toContain("/dossier?");
+    expect(topicSuggestion?.href).not.toContain("/swipes?");
     expect(result.suggestions.every((item) => item.requiresConfirmation)).toBe(true);
     const visualMap = buildCreateVisualMap(result);
     expect(visualMap.nodes.map((node) => node.label)).toEqual(
@@ -170,6 +173,45 @@ describe("create intelligent follow-up contract", () => {
     expect(sections.length).toBeGreaterThan(1);
     expect(sections.every((section) => section.sourceText.length > 0)).toBe(true);
     expect(sections[0]?.label).toContain("Abschnitt");
+  });
+
+  it("extracts broad public policy topic map with position clusters for QA long text", async () => {
+    mocks.analyzeContribution.mockRejectedValue(new Error("provider_failed"));
+    const qaText = `
+Ich möchte eine Debatte darüber starten, wie unsere Stadt in den nächsten Jahren Prioritäten setzen soll. Einerseits brauchen wir mehr bezahlbaren Wohnraum, strengere Regeln gegen Zweckentfremdung und schnellere Genehmigungen für kommunalen Wohnungsbau. Andererseits sagen viele Eigentümer und Bauunternehmen, dass zu viele Auflagen Neubau verteuern und private Investitionen verhindern.
+
+Beim Verkehr bin ich dafür, Bus, Bahn und sichere Radwege auszubauen, aber Handwerker, Pflegedienste und Familien dürfen nicht so behandelt werden, als könnten sie komplett auf das Auto verzichten. Gleichzeitig müssen Klimaziele ernst genommen werden, sonst zahlen spätere Generationen den Preis.
+
+In Schulen sollten digitale Ausstattung, Basiskompetenzen und politische Bildung verbessert werden. Dabei gibt es Streit: Einige wollen mehr Leistungsorientierung und verbindliche Sprachförderung, andere warnen vor zu frühem Druck und sozialer Ausgrenzung.
+
+Außerdem geht es um Migration, Integration und Sicherheit: Wer hier lebt, soll faire Chancen bekommen, aber der Staat muss auch handlungsfähig bleiben, wenn Regeln dauerhaft missachtet werden. Ich sehe außerdem offene Fragen bei Gesundheit, Pflege, kommunalen Finanzen und Bürgerbeteiligung: Was kann die Kommune selbst entscheiden, was muss das Land oder der Bund lösen, und welche Maßnahmen sollten Bürger direkt priorisieren können?
+`.trim();
+    const result = await buildCreateIntelligentFollowup({
+      text: qaText,
+      locale: "de",
+      intent: "contribute",
+    });
+
+    expect(result.degraded).toBe(true);
+    expect(result.understanding.topics.length).toBeGreaterThanOrEqual(7);
+    expect(result.understanding.topics.map((item) => item.label)).toEqual(
+      expect.arrayContaining([
+        "Wohnen",
+        "Verkehr",
+        "Klima",
+        "Bildung",
+        "Migration / Integration",
+        "Sicherheit / Rechtsstaat",
+        "Gesundheit / Pflege / kommunale Finanzen / Beteiligung",
+      ]),
+    );
+    expect(result.understanding.positionClusters?.map((cluster) => cluster.label)).toEqual(
+      expect.arrayContaining([
+        "sozial/ausgleichend",
+        "ordnungs-/leistungsorientiert",
+        "pragmatisch/abwägend",
+      ]),
+    );
   });
 
   it("marks vote suggestions as explicit confirmation only", async () => {

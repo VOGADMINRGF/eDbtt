@@ -57,3 +57,10 @@ Geplante/ausgefuehrte Befehle in diesem Slice:
 - echtes produktives Graph-Matching fuer Anschlussvorschlaege kann spaeter den aktuellen Adapter/Fallback ersetzen
 - feinere Domain-/Scope-Erkennung je Kommune/Bezirk/Land ist ausbaubar
 - Legal-/Security-Feintext fuer vertrauliche Hinweise bleibt separater Decision-Boundary-Track
+
+## Revalidierung Issue #82 (2026-05-07)
+- Follow-up als zusammenhaengender Struktur-Chat verschaerft: `Beitrag -> Dossier-Kontext -> Positionen/Claims -> Abstimmungsfragen -> Bestaetigung`.
+- Dossier-first Routing gehärtet: Dossier-CTA fuehrt immer auf `/dossier?topic=<topic>&from=create`; Topic/Anlassraum-Fallback springt nicht mehr implizit zu Swipes.
+- Swipe-Handoff bleibt claim-seeded und nur fuer vote-faehige Claims (`/swipes?topic=...&claim=...&stance=...&from=create`).
+- Primaere Aktion auf `Ja, Struktur uebernehmen` umgestellt; Folgeaktionen sind nach Bestaetigung geordnet.
+- Fallback-Heuristik erweitert: breite Themenabdeckung fuer lange politische Texte (u. a. Wohnen, Verkehr, Klima, Bildung, Migration/Integration, Sicherheit/Rechtsstaat, Gesundheit/Pflege/kommunale Finanzen/Beteiligung) plus Positionscluster (`sozial/ausgleichend`, `ordnungs-/leistungsorientiert`, `pragmatisch/abwaegend`).

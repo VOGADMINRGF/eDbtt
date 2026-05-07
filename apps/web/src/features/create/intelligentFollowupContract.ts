@@ -31,6 +31,12 @@ export type CreateUnderstandingResult = {
     sourceExcerpt?: string;
   }>;
   scopes: Array<"local" | "district" | "municipal" | "state" | "federal" | "eu" | "international" | "unclear">;
+  positionClusters?: Array<{
+    id: string;
+    label: string;
+    confidence: FollowupConfidence;
+    reason: string;
+  }>;
   openQuestion?: string | null;
   confidence: FollowupConfidence;
 };

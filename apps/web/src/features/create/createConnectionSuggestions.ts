@@ -157,13 +157,9 @@ export function buildCreateConnectionSuggestions(
       id: `topic:${topics[0].id}`,
       kind: "topic",
       title: topicalTitle,
-      reason: "Thematische Nähe aus deinem Text erkannt.",
+      reason: "Unterthema im Dossier-Kontext aus deinem Beitrag erkannt.",
       confidence: topics[0].confidence,
-      href: buildSeededSwipesHref({
-        topic: topics[0].label,
-        claim: primaryClaim,
-        stance: mappedStance,
-      }),
+      href: buildSeededDossierHref(topics[0].label),
       suggestedContributionKind: input.understanding.categories[0]?.id ?? "hint",
       suggestedStance: mappedStance,
       requiresConfirmation: true,
@@ -172,6 +168,7 @@ export function buildCreateConnectionSuggestions(
 
   if (
     topStatement &&
+    primaryClaim &&
     (shouldSuggestVote(input.text) ||
       topStatement.kind === "demand" ||
       topStatement.kind === "option" ||

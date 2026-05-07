@@ -42,10 +42,6 @@ function buildDossierHref(topic?: string | null): string {
 }
 
 export function buildCreateFollowupTargetHref(input: BuildCreateFollowupTargetHrefInput): string {
-  if (input.suggestionHref && input.suggestionHref.trim()) {
-    return input.suggestionHref.trim();
-  }
-
   const primaryTopic = input.topics[0]?.label?.trim() || null;
   const primaryClaim =
     input.statements[0]?.text?.trim() || (input.suggestionTitle ? input.suggestionTitle.trim() : null);
@@ -62,12 +58,16 @@ export function buildCreateFollowupTargetHref(input: BuildCreateFollowupTargetHr
   if (input.kind === "dossier") {
     return buildDossierHref(primaryTopic);
   }
-  if (input.kind === "vote" || input.kind === "topic") {
+  if (input.kind === "vote") {
+    if (!primaryClaim) return buildDossierHref(primaryTopic);
     return buildSwipesHref({
       topic: primaryTopic,
       claim: primaryClaim,
       stance: seedStance,
     });
+  }
+  if (input.kind === "topic") {
+    return buildDossierHref(primaryTopic);
   }
   if (input.kind === "new_anlassraum") {
     const search = new URLSearchParams();
@@ -77,12 +77,8 @@ export function buildCreateFollowupTargetHref(input: BuildCreateFollowupTargetHr
     return `/create?${search.toString()}`;
   }
   if (input.kind === "anlassraum") {
-    if (input.ctaHref && input.ctaHref.trim()) return input.ctaHref;
-    return buildSwipesHref({
-      topic: primaryTopic,
-      claim: primaryClaim,
-      stance: seedStance,
-    });
+    if (input.suggestionHref && input.suggestionHref.trim()) return input.suggestionHref.trim();
+    return buildDossierHref(primaryTopic);
   }
 
   return input.ctaHref;
@@ -95,9 +91,8 @@ export function buildCreateFollowupPrimaryCtaHref(params: {
   suggestions: CreateConnectionSuggestion[];
 }): string {
   const voteSuggestion = params.suggestions.find((item) => item.kind === "vote");
-  const topicSuggestion = params.suggestions.find((item) => item.kind === "topic");
   const dossierSuggestion = params.suggestions.find((item) => item.kind === "dossier");
-  const preferred = voteSuggestion ?? topicSuggestion ?? dossierSuggestion ?? null;
+  const preferred = voteSuggestion ?? dossierSuggestion ?? null;
   if (!preferred) return params.ctaHref;
   return buildCreateFollowupTargetHref({
     kind: preferred.kind,

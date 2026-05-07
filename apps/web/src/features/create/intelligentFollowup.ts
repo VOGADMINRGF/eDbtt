@@ -101,6 +101,13 @@ type FallbackTopicRule = {
 };
 
 const FALLBACK_TOPIC_RULES: readonly FallbackTopicRule[] = [
+  { label: "Wohnen", pattern: /wohnraum|wohnen|miete|mieten|zweckentfremdung|neubau/ },
+  { label: "Verkehr", pattern: /verkehr|bus|bahn|radweg|radwege|auto|mobilit[aä]t|schulweg/ },
+  { label: "Klima", pattern: /klima|emission|co2|hitz|energie|generation/ },
+  { label: "Bildung", pattern: /schule|schulen|bildung|sprachf[oö]rderung|leistungsorientierung|basiskompetenz/ },
+  { label: "Migration / Integration", pattern: /migration|integration|zuwander|chancen/ },
+  { label: "Sicherheit / Rechtsstaat", pattern: /sicherheit|rechtsstaat|regel|gesetz|handlungsf[aä]hig|missachtet/ },
+  { label: "Gesundheit / Pflege / kommunale Finanzen / Beteiligung", pattern: /gesundheit|pflege|kommunal|finanz|haushalt|b[uü]rgerbeteiligung|beteiligung/ },
   { label: "Politische Verantwortung", pattern: /verantwort|pflicht/ },
   { label: "Amtsträger", pattern: /minister|repr[aä]sentant|amtstr[aä]ger|mandat/ },
   { label: "Qualifikation", pattern: /qualifikation|vorausbildung|mindestanforderung|kompetenz/ },
@@ -133,6 +140,60 @@ function buildFallbackTopics(normalizedText: string): Array<{ id: string; label:
     pushTopic("Öffentliches Anliegen", "low");
   }
   return topics;
+}
+
+function buildPositionClusters(params: {
+  sourceText: string;
+  topics: Array<{ label: string; id?: string; confidence?: FollowupConfidence }>;
+}): NonNullable<CreateUnderstandingResult["positionClusters"]> {
+  const normalized = `${params.sourceText} ${params.topics.map((topic) => topic.label).join(" ")}`.toLowerCase();
+  const clusters: NonNullable<CreateUnderstandingResult["positionClusters"]> = [];
+
+  const pushCluster = (
+    id: string,
+    label: string,
+    reason: string,
+    confidence: FollowupConfidence,
+  ) => {
+    if (clusters.some((cluster) => cluster.id === id)) return;
+    clusters.push({ id, label, reason, confidence });
+  };
+
+  if (/bezahlbar|wohnraum|chancen|ausgrenzung|entlast|pflege|gesundheit|schutz/.test(normalized)) {
+    pushCluster(
+      "social-balance",
+      "sozial/ausgleichend",
+      "Fokus auf bezahlbare Lebensbedingungen, faire Chancen und soziale Absicherung.",
+      "medium",
+    );
+  }
+  if (/regel|handlungsf[aä]hig|sprachf[oö]rderung|leistung|sanktion|sicherheit|rechtsstaat/.test(normalized)) {
+    pushCluster(
+      "order-performance",
+      "ordnungs-/leistungsorientiert",
+      "Fokus auf Verbindlichkeit, Handlungsfähigkeit und klare Anforderungen.",
+      "medium",
+    );
+  }
+  if (/klima|mobilit[aä]t|auto|zust[aä]ndigkeit|kosten|abw[aä]g|investition|genehmigung|priorit[aä]t/.test(normalized)) {
+    pushCluster(
+      "pragmatic-balance",
+      "pragmatisch/abwägend",
+      "Fokus auf Umsetzbarkeit, Zuständigkeiten und tragfähige Abwägungen.",
+      "medium",
+    );
+  }
+
+  if (clusters.length === 0) {
+    pushCluster(
+      "mixed-perspectives",
+      "pragmatisch/abwägend",
+      "Der Beitrag enthält mehrere Perspektiven und braucht eine schrittweise Klärung.",
+      "low",
+    );
+  }
+
+  return clusters.slice(0, 3);
 }
 
 function buildFallbackCategories(
@@ -270,6 +331,10 @@ function mapAnalyzeResultToUnderstanding(text: string, result: AnalyzeResult): C
     topics: topics.length > 0 ? topics : [{ id: "topic-1", label: "Thema noch offen", confidence: "low" }],
     statements,
     scopes: inferScopes(result, text),
+    positionClusters: buildPositionClusters({
+      sourceText: text,
+      topics: topics.length > 0 ? topics : [{ id: "topic-1", label: "Thema noch offen", confidence: "low" }],
+    }),
     openQuestion,
     confidence,
   };
@@ -308,6 +373,10 @@ function buildFallbackUnderstanding(text: string): CreateUnderstandingResult {
       },
     ],
     scopes,
+    positionClusters: buildPositionClusters({
+      sourceText: normalized,
+      topics,
+    }),
     openQuestion: null,
     confidence: "medium",
   };

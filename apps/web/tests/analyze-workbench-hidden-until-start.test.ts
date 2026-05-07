@@ -237,11 +237,13 @@ describe("analyze workbench progressive disclosure", () => {
       resolve(process.cwd(), "src/features/create/CreateVisualFollowup.tsx"),
       "utf8",
     );
-    expect(source).toContain("Dossiers & Abstimmungen");
+    expect(source).toContain("Claims/Abstimmungen prüfen");
+    expect(source).toContain("Ja, Struktur übernehmen");
+    expect(source).toContain("Dossier-Kontext / Oberthema");
     expect(source).toContain("Keine automatische Stimme oder Veröffentlichung.");
     expect(source).toContain("Keine automatische Kostenbuchung.");
-    expect(source).toContain("bg-cyan-50/80");
-    expect(source).toContain("dark:bg-cyan-500/10");
+    expect(source).toContain("bg-slate-50/90");
+    expect(source).toContain("dark:bg-[rgb(var(--card))]");
     expect(source).toContain("border-cyan-500/35 bg-cyan-50 text-cyan-950");
     expect(source).toContain("dark:border-cyan-300/60 dark:bg-cyan-500/15 dark:text-cyan-50");
     expect(source).not.toContain('className="text-cyan-50"');
