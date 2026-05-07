@@ -58,6 +58,7 @@ export type CreateComposerHeadlineText = {
 export type CreateComposerTexts = {
   headline: CreateComposerHeadlineText;
   modeSwitchAriaLabel: string;
+  quickActionsTitle: string;
   inputLabel: string;
   attachLabel: string;
   attachAria: string;
@@ -307,6 +308,7 @@ const CREATE_SURFACE_BUNDLES: Record<CreateSurfaceLocale, CreateSurfaceLocaleBun
         line2Tail: "",
       },
       modeSwitchAriaLabel: "Modusauswahl",
+      quickActionsTitle: "Schnell starten",
       inputLabel: "Beitrag",
       attachLabel: "Anhang",
       attachAria: "Anhang hinzufügen",
@@ -554,6 +556,7 @@ const CREATE_SURFACE_BUNDLES: Record<CreateSurfaceLocale, CreateSurfaceLocaleBun
         line2Tail: "!",
       },
       modeSwitchAriaLabel: "Mode selection",
+      quickActionsTitle: "Quick actions",
       inputLabel: "Contribution",
       attachLabel: "Attach",
       attachAria: "Add attachment",

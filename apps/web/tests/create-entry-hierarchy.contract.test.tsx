@@ -69,11 +69,22 @@ function renderCreateDe() {
 }
 
 describe("create entry hierarchy contract", () => {
-  it("keeps one primary intake field with three clear modes", () => {
+  it("keeps one primary intake field with unified structure-chat entry", () => {
     const html = renderCreateDe();
 
     expect((html.match(/<textarea/g) ?? []).length).toBe(1);
     expect(html).toContain("id=\"create-primary-intake\"");
+    expect(html).toContain("Was soll öffentlich geklärt werden?");
+    expect(html).toContain("eDebatte macht daraus einen strukturierten Arbeitsstand.");
+    expect(html).toContain("Region: optional");
+    expect(html).toContain("Kontext: automatisch erkannt");
+    expect(html).toContain("Arbeitsweise: Strukturieren");
+    expect(html).toContain("Ziel: Öffentlichkeit");
+    expect(html).toContain("Argumente strukturieren");
+    expect(html).toContain("Gegenpositionen finden");
+    expect(html).toContain("Abstimmungsfragen ableiten");
+    expect(html).toContain("Fakten &amp; Quellen prüfen");
+    expect(html).toContain("Lösungswege entwickeln");
     expect(html).toContain("Beitragen");
     expect(html).toContain("Prüfen");
     expect(html).toContain("Entwerfen");
@@ -82,9 +93,11 @@ describe("create entry hierarchy contract", () => {
     expect(html).toContain("Hilfebereich");
 
     const intakeIndex = html.indexOf("id=\"create-primary-intake\"");
+    const quickActionsIndex = html.indexOf("Argumente strukturieren");
     const contextIndex = html.indexOf("Kontext (optional)");
     const helpIndex = html.indexOf("Hilfebereich");
     expect(intakeIndex).toBeGreaterThan(-1);
+    expect(quickActionsIndex).toBeGreaterThan(intakeIndex);
     expect(contextIndex).toBeGreaterThan(intakeIndex);
     expect(helpIndex).toBeGreaterThan(intakeIndex);
   });

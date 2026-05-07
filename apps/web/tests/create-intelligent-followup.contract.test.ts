@@ -129,8 +129,11 @@ describe("create intelligent follow-up contract", () => {
     expect(result.suggestions.some((item) => item.title.includes("Politische Verantwortung"))).toBe(true);
     const dossierSuggestion = result.suggestions.find((item) => item.kind === "dossier");
     const voteSuggestion = result.suggestions.find((item) => item.kind === "vote");
+    const topicSuggestion = result.suggestions.find((item) => item.kind === "topic");
     expect(dossierSuggestion?.href).toContain("/dossier?");
     expect(dossierSuggestion?.href).toContain("topic=");
+    expect(topicSuggestion?.href).toContain("/dossier?");
+    expect(topicSuggestion?.href).not.toContain("/swipes?");
     expect(voteSuggestion?.href).toContain("/swipes?");
     expect(voteSuggestion?.href).toContain("topic=");
     expect(voteSuggestion?.href).toContain("claim=");

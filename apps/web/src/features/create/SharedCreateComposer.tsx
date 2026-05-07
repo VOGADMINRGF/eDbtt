@@ -100,6 +100,17 @@ export type SharedCreateComposerProps = {
   heroSublineOverride?: string;
   heroBadgeOverride?: string;
   collapseModeSelector?: boolean;
+  contextChips?: ReadonlyArray<{
+    id: string;
+    label: string;
+    tone?: "neutral" | "accent";
+  }>;
+  quickActions?: ReadonlyArray<{
+    id: string;
+    label: string;
+    active?: boolean;
+    onSelect: () => void;
+  }>;
 };
 
 export default function SharedCreateComposer({
@@ -138,6 +149,8 @@ export default function SharedCreateComposer({
   heroSublineOverride,
   heroBadgeOverride,
   collapseModeSelector = false,
+  contextChips = [],
+  quickActions = [],
 }: SharedCreateComposerProps) {
   const [attachments, setAttachments] = React.useState<File[]>([]);
   const [attachmentsError, setAttachmentsError] = React.useState<string | null>(null);
@@ -373,6 +386,22 @@ export default function SharedCreateComposer({
             </div>
           )}
           <p className="max-w-2xl text-sm leading-relaxed text-[rgb(var(--muted))]">{helperText}</p>
+          {contextChips.length > 0 ? (
+            <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1" aria-label="Kontextchips">
+              {contextChips.map((chip) => (
+                <span
+                  key={chip.id}
+                  className={`shrink-0 rounded-full border px-3 py-1.5 text-xs ${
+                    chip.tone === "accent"
+                      ? "border-cyan-500/40 bg-cyan-50 text-cyan-950 dark:border-cyan-300/45 dark:bg-cyan-500/10 dark:text-cyan-100"
+                      : "border-[rgb(var(--border))] bg-[rgb(var(--bg))] text-[rgb(var(--muted))]"
+                  }`}
+                >
+                  {chip.label}
+                </span>
+              ))}
+            </div>
+          ) : null}
         </div>
 
         {contextBanner}
@@ -473,6 +502,31 @@ export default function SharedCreateComposer({
             <p className="text-xs text-rose-700 dark:text-rose-300" role="alert">
               {voiceError}
             </p>
+          ) : null}
+
+          {quickActions.length > 0 ? (
+            <div className="space-y-2 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-4 py-3">
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
+                {texts.quickActionsTitle}
+              </p>
+              <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
+                {quickActions.map((action) => (
+                  <button
+                    key={action.id}
+                    type="button"
+                    className={`shrink-0 rounded-full border px-3 py-1.5 text-xs transition ${
+                      action.active
+                        ? "border-cyan-500/40 bg-cyan-50 text-cyan-950 dark:border-cyan-300/45 dark:bg-cyan-500/10 dark:text-cyan-100"
+                        : "border-[rgb(var(--border))] bg-transparent text-[rgb(var(--muted))] hover:border-cyan-400/45 hover:text-[rgb(var(--fg))]"
+                    }`}
+                    onClick={action.onSelect}
+                    aria-pressed={action.active === true}
+                  >
+                    {action.label}
+                  </button>
+                ))}
+              </div>
+            </div>
           ) : null}
 
           {contextAnchors.length > 0 ? (

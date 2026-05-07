@@ -82,6 +82,13 @@ type CreateWorkingState = {
   suggestedAssignment: string;
 };
 
+type CreateQuickActionId =
+  | "structure_arguments"
+  | "find_counterpositions"
+  | "derive_votes"
+  | "check_facts"
+  | "develop_solutions";
+
 export const CREATE_INTELLIGENT_FOLLOWUP_SECTION_LABELS = {
   understanding: "eDebatte hat deinen Beitrag strukturiert",
   extracted: "So hängt dein Beitrag zusammen",
@@ -495,6 +502,7 @@ export default function CreateClient({
   });
   const [understandingConfirmed, setUnderstandingConfirmed] = React.useState<boolean>(false);
   const [actionNotice, setActionNotice] = React.useState<string | null>(null);
+  const [activeQuickAction, setActiveQuickAction] = React.useState<CreateQuickActionId | null>(null);
   const intelligentFollowupResultRef = React.useRef<HTMLDivElement | null>(null);
 
   React.useEffect(() => {
@@ -950,8 +958,84 @@ export default function CreateClient({
         suggestion.kind === "dossier" ||
         suggestion.kind === "vote" ||
         suggestion.kind === "anlassraum" ||
-        suggestion.kind === "topic",
+      suggestion.kind === "topic",
     )?.href ?? "/dossier/demo";
+
+  const regionLabel =
+    initialIntakeContext?.scope
+      ? `Region: ${formatRelevanceScopeLabel(initialIntakeContext.scope, initialIntakeContext.scope)}`
+      : "Region: optional";
+  const contextLabel = intelligentFollowup?.understanding.topics[0]?.label
+    ? `Kontext: ${intelligentFollowup.understanding.topics[0].label}`
+    : "Kontext: automatisch erkannt";
+  const modeLabel = activeQuickAction
+    ? "Arbeitsweise: fokussiert"
+    : "Arbeitsweise: Strukturieren";
+  const audienceLabel = fromRundenFlow ? "Ziel: Arbeitsraum" : "Ziel: Öffentlichkeit";
+  const composerContextChips = [
+    { id: "region", label: regionLabel, tone: "neutral" as const },
+    { id: "context", label: contextLabel, tone: "accent" as const },
+    { id: "mode", label: modeLabel, tone: "neutral" as const },
+    { id: "audience", label: audienceLabel, tone: "neutral" as const },
+  ];
+
+  const composerQuickActions = [
+    {
+      id: "structure_arguments" as const,
+      label: "Argumente strukturieren",
+      active: activeQuickAction === "structure_arguments",
+      onSelect: () => {
+        setActiveQuickAction("structure_arguments");
+        setProductMode("analyze");
+        setActiveContextAnchorId("claim");
+        setActionNotice("Strukturfokus gesetzt. Der nächste Start ordnet Argumente zuerst.");
+      },
+    },
+    {
+      id: "find_counterpositions" as const,
+      label: "Gegenpositionen finden",
+      active: activeQuickAction === "find_counterpositions",
+      onSelect: () => {
+        setActiveQuickAction("find_counterpositions");
+        setProductMode("analyze");
+        setActiveContextAnchorId("objection");
+        setActionNotice("Gegenpositions-Fokus gesetzt. eDebatte markiert Spannungen und fehlende Perspektiven.");
+      },
+    },
+    {
+      id: "derive_votes" as const,
+      label: "Abstimmungsfragen ableiten",
+      active: activeQuickAction === "derive_votes",
+      onSelect: () => {
+        setActiveQuickAction("derive_votes");
+        setProductMode("analyze");
+        setActiveContextAnchorId("claim");
+        setActionNotice("Abstimmungsfokus gesetzt. Es wird nichts automatisch abgestimmt.");
+      },
+    },
+    {
+      id: "check_facts" as const,
+      label: "Fakten & Quellen prüfen",
+      active: activeQuickAction === "check_facts",
+      onSelect: () => {
+        setActiveQuickAction("check_facts");
+        setProductMode("media");
+        setActiveContextAnchorId("source");
+        setActionNotice("Prüfmodus vorbereitet. Faktencheck/Deep Search starten erst nach expliziter Bestätigung.");
+      },
+    },
+    {
+      id: "develop_solutions" as const,
+      label: "Lösungswege entwickeln",
+      active: activeQuickAction === "develop_solutions",
+      onSelect: () => {
+        setActiveQuickAction("develop_solutions");
+        setProductMode("guided");
+        setActiveContextAnchorId("option");
+        setActionNotice("Entwurfsfokus gesetzt. eDebatte entwickelt daraus einen belastbaren Arbeitsstand.");
+      },
+    },
+  ];
 
   return (
     <div className="space-y-6 md:space-y-8">
@@ -959,6 +1043,17 @@ export default function CreateClient({
         badge={surfaceTexts.badgeCanonical}
         subline={surfaceTexts.sublineCanonical}
         texts={surfaceComposerTexts}
+        heroHeadlineOverride={{
+          line1Lead: "Was soll öffentlich geklärt werden?",
+          line1Accent: "",
+          line1Tail: "",
+          line2Lead: "",
+          line2Accent: "",
+          line2Mid: "",
+          line2AccentB: "",
+          line2Tail: "",
+        }}
+        heroSublineOverride="Beschreibe dein Thema, deinen Hinweis oder deine Frage. eDebatte macht daraus einen strukturierten Arbeitsstand."
         topMeta={
           intakeRestoreInfo ? (
             <p className="max-w-2xl text-xs text-[rgb(var(--muted))]">{intakeRestoreInfo}</p>
@@ -969,6 +1064,7 @@ export default function CreateClient({
         activeMode={productMode}
         onModeChange={(modeOption) => {
           setProductMode(modeOption);
+          setActiveQuickAction(null);
           setActiveContextAnchorId(null);
           setIntelligentFollowup(null);
           setUnderstandingConfirmed(false);
@@ -1026,6 +1122,8 @@ export default function CreateClient({
         }
         minRows={8}
         collapseModeSelector
+        contextChips={composerContextChips}
+        quickActions={composerQuickActions}
       />
 
       {showTooShortHint ? (
@@ -1063,6 +1161,12 @@ export default function CreateClient({
             }}
             onOpenNewAnlassraum={() => {
               setActionNotice("Neuer Anlassraum als nächster Schritt markiert. Keine automatische Veröffentlichung.");
+            }}
+            onSaveForLater={() => {
+              setActionNotice("Arbeitsstand für später vorgemerkt. Keine automatische Veröffentlichung.");
+            }}
+            onStartOptionalService={() => {
+              setActionNotice("Optionaler Service markiert. Faktencheck/Deep Search startet nur nach expliziter Bestätigung.");
             }}
           />
         </div>
