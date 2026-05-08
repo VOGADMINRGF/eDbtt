@@ -6,6 +6,7 @@ import {
   buildCreateLightweightFollowupSnapshot,
   buildCreatePrimaryIntakeStorageKey,
   buildGuidedWorkspaceText,
+  hasPrimaryIntakeText,
   parseCreatePrimaryIntakeSnapshot,
   resolveCreatePostStartSectionOrder,
   resolveFollowupSurfaceOnStart,
@@ -15,6 +16,7 @@ import {
   shouldShowCreatePostInputModules,
 } from "@/app/create/CreateClient";
 import { CREATE_VISUAL_FOLLOWUP_COPY } from "@/features/create/CreateVisualFollowup";
+import { detectCreateLinkIntake } from "@/features/create/linkIntake";
 
 describe("analyze workbench progressive disclosure", () => {
   it("keeps post-input modules hidden before explicit start", () => {
@@ -33,6 +35,19 @@ describe("analyze workbench progressive disclosure", () => {
         intakeText: "Vollständiger Beitrag",
       }),
     ).toBe(true);
+    expect(hasPrimaryIntakeText(" https://youtu.be/demo123 ")).toBe(true);
+  });
+
+  it("classifies link-only intake separately from link-plus-context input", () => {
+    const linkOnly = detectCreateLinkIntake("https://youtu.be/demo123");
+    expect(linkOnly.hasLink).toBe(true);
+    expect(linkOnly.mostlyLinkOnly).toBe(true);
+
+    const linkWithContext = detectCreateLinkIntake(
+      "Bitte prüft diesen Artikel zur Schulwegsicherheit und die Aussage zur Finanzierung: https://example.com/artikel",
+    );
+    expect(linkWithContext.hasLink).toBe(true);
+    expect(linkWithContext.mostlyLinkOnly).toBe(false);
   });
 
   it("keeps guided analyze workspace hidden until guided bridge is confirmed", () => {
@@ -231,10 +246,21 @@ describe("analyze workbench progressive disclosure", () => {
   });
 
   it("keeps visual follow-up light/dark readable and sticky action wording", () => {
+    const clientSource = readFileSync(
+      resolve(process.cwd(), "src/app/create/CreateClient.tsx"),
+      "utf8",
+    );
+    const linkIntakeSource = readFileSync(
+      resolve(process.cwd(), "src/features/create/linkIntake.ts"),
+      "utf8",
+    );
     const source = readFileSync(
       resolve(process.cwd(), "src/features/create/CreateVisualFollowup.tsx"),
       "utf8",
     );
+    expect(clientSource).toContain("CreateLinkIntakeClarification");
+    expect(clientSource).toContain("buildCreateLinkSourceNotice");
+    expect(linkIntakeSource).toContain("Der Link wird als Quelle/Hinweis behandelt. Der Inhalt wurde noch nicht automatisch ausgewertet.");
     expect(source).toContain("UserContributionBubble");
     expect(source).toContain("AssistantUnderstandingBubble");
     expect(source).toContain("StructuredWorkstateBlock");
