@@ -1103,8 +1103,8 @@ export default function CreateClient({
   }
 
   return (
-    <div className="space-y-6 md:space-y-8">
-      <section className="create-dialog-workspace rounded-[2rem] border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-3 shadow-[0_24px_64px_rgba(2,6,23,0.14)] sm:p-4 md:p-6">
+    <div className="mx-auto max-w-6xl space-y-6 md:space-y-8">
+      <section className="create-dialog-workspace rounded-[2rem] border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-3 shadow-[0_24px_64px_rgba(2,6,23,0.14)] sm:p-4 md:p-6 lg:p-8">
       <SharedCreateComposer
         badge={surfaceTexts.badgeCanonical}
         subline={surfaceTexts.sublineCanonical}

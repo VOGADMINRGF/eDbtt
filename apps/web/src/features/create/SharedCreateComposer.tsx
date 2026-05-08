@@ -300,7 +300,13 @@ export default function SharedCreateComposer({
           : "rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-[0_24px_64px_rgba(2,6,23,0.18)] sm:p-6 md:p-9 lg:p-10"
       }
     >
-      <div className="mx-auto w-full max-w-5xl space-y-6 md:space-y-7">
+      <div
+        className={
+          embeddedWorkspace
+            ? "mx-auto w-full max-w-6xl space-y-6 md:space-y-7"
+            : "mx-auto w-full max-w-5xl space-y-6 md:space-y-7"
+        }
+      >
         <EntryHeroHeading
           badge={heroBadgeOverride ?? badge}
           headline={heroHeadlineOverride ?? texts.headline}
