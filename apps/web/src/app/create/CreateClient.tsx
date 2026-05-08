@@ -85,7 +85,7 @@ type CreateWorkingState = {
 export const CREATE_INTELLIGENT_FOLLOWUP_SECTION_LABELS = {
   understanding: "eDebatte hat deinen Beitrag strukturiert",
   extracted: "So hängt dein Beitrag zusammen",
-  connections: "Dort würden wir deinen Beitrag anschließen",
+  connections: "Mögliche Anschlüsse",
   voteNotice: "Deine Stimme wird nicht automatisch abgegeben.",
 } as const;
 
@@ -173,6 +173,8 @@ type CreatePrimaryIntakeSnapshot = {
 
 type CreateFollowupSurface = "none" | "lightweight" | "analysis";
 export type { CreateFollowupSurface };
+
+type CreateSaveState = "idle" | "saving" | "saved" | "error" | "unavailable";
 
 export type CreateLightweightFollowupSnapshot = {
   originalText: string;
@@ -494,6 +496,10 @@ export default function CreateClient({
     draft: false,
   });
   const [understandingConfirmed, setUnderstandingConfirmed] = React.useState<boolean>(false);
+  const [savedDraftId, setSavedDraftId] = React.useState<string | null>(null);
+  const [saveState, setSaveState] = React.useState<CreateSaveState>("idle");
+  const [saveMessage, setSaveMessage] = React.useState<string | null>(null);
+  const [factcheckMessage, setFactcheckMessage] = React.useState<string | null>(null);
   const [actionNotice, setActionNotice] = React.useState<string | null>(null);
   const intelligentFollowupResultRef = React.useRef<HTMLDivElement | null>(null);
 
@@ -779,6 +785,13 @@ export default function CreateClient({
     [surfaceTexts.actionNotAvailableLabel],
   );
 
+  const handleStartFactcheckService = React.useCallback(() => {
+    setFollowupSurface("analysis");
+    setAnalysisAutoRunToken((current) => current + 1);
+    setFactcheckMessage("Prüfmodus geöffnet. Faktencheck / Deep Search startet erst nach deiner weiteren Bestätigung. Keine automatische Kostenbuchung.");
+    setActionNotice("Prüfmodus geöffnet. Faktencheck / Deep Search startet erst nach deiner weiteren Bestätigung.");
+  }, []);
+
   const handleIntentAction = React.useCallback(
     (actionIndex: number) => {
       if (activeIntent === "contribute") {
@@ -844,28 +857,6 @@ export default function CreateClient({
     },
     [activeIntent, triggerActionNotice],
   );
-
-  if (gate.status === "loading") {
-    return (
-      <main className="mx-auto max-w-4xl px-4 py-12 text-center text-[rgb(var(--muted))]">
-        {text.loadingAccess}
-      </main>
-    );
-  }
-  if (gate.status === "anon") {
-    return (
-      <main className="mx-auto max-w-4xl px-4 py-12 text-center text-[rgb(var(--muted))]">
-        {text.loginRequired}
-      </main>
-    );
-  }
-  if (gate.status === "blocked") {
-    return (
-      <main className="mx-auto max-w-4xl px-4 py-12 text-center text-[rgb(var(--muted))]">
-        {text.submissionBlocked}
-      </main>
-    );
-  }
 
   const maxClaimsCap =
     canonicalIntent === "statement"
@@ -952,6 +943,91 @@ export default function CreateClient({
         suggestion.kind === "anlassraum" ||
         suggestion.kind === "topic",
     )?.href ?? "/dossier/demo";
+
+  const handleSaveWorkstate = React.useCallback(async () => {
+    if (!showIntelligentFollowup) {
+      setSaveState("unavailable");
+      setSaveMessage("Speichern ist in diesem Demo-/Entwurfsstand noch nicht verfügbar.");
+      setActionNotice("Speichern ist in diesem Demo-/Entwurfsstand noch nicht verfügbar.");
+      return;
+    }
+
+    const normalizedText = intakeText.trim();
+    if (!normalizedText) {
+      setSaveState("unavailable");
+      setSaveMessage("Speichern ist in diesem Demo-/Entwurfsstand noch nicht verfügbar.");
+      setActionNotice("Speichern ist in diesem Demo-/Entwurfsstand noch nicht verfügbar.");
+      return;
+    }
+
+    setSaveState("saving");
+    setSaveMessage("Arbeitsstand wird gespeichert …");
+    try {
+      const response = await fetch("/api/create/save", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          draftId: savedDraftId ?? undefined,
+          text: normalizedText,
+          locale: surfaceLocale,
+          source: "create_followup",
+          createMode: canonicalCreateMode,
+          anlassraumId: effectiveSelectedAnlassraumId ?? undefined,
+          useCase: productModeConfig.preferredUseCase,
+          analysis: intelligentFollowup
+            ? {
+                intelligentFollowup,
+                understandingConfirmed,
+              }
+            : undefined,
+        }),
+      });
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok || !body?.ok || typeof body?.draftId !== "string") {
+        throw new Error(body?.error || "save_failed");
+      }
+      setSavedDraftId(body.draftId);
+      setSaveState("saved");
+      setSaveMessage("Arbeitsstand gespeichert. Du kannst ihn später weiterbearbeiten.");
+      setActionNotice("Arbeitsstand gespeichert. Du kannst ihn später weiterbearbeiten.");
+    } catch {
+      setSaveState("error");
+      setSaveMessage("Speichern fehlgeschlagen. Bitte versuche es erneut.");
+      setActionNotice("Speichern fehlgeschlagen. Bitte versuche es erneut.");
+    }
+  }, [
+    canonicalCreateMode,
+    effectiveSelectedAnlassraumId,
+    intakeText,
+    intelligentFollowup,
+    productModeConfig.preferredUseCase,
+    savedDraftId,
+    showIntelligentFollowup,
+    surfaceLocale,
+    understandingConfirmed,
+  ]);
+
+  if (gate.status === "loading") {
+    return (
+      <main className="mx-auto max-w-4xl px-4 py-12 text-center text-[rgb(var(--muted))]">
+        {text.loadingAccess}
+      </main>
+    );
+  }
+  if (gate.status === "anon") {
+    return (
+      <main className="mx-auto max-w-4xl px-4 py-12 text-center text-[rgb(var(--muted))]">
+        {text.loginRequired}
+      </main>
+    );
+  }
+  if (gate.status === "blocked") {
+    return (
+      <main className="mx-auto max-w-4xl px-4 py-12 text-center text-[rgb(var(--muted))]">
+        {text.submissionBlocked}
+      </main>
+    );
+  }
 
   return (
     <div className="space-y-6 md:space-y-8">
@@ -1055,6 +1131,9 @@ export default function CreateClient({
             ctaHref={actionSuggestionHref}
             actionNotice={actionNotice}
             isConfirmed={understandingConfirmed}
+            saveState={saveState}
+            saveMessage={saveMessage}
+            factcheckMessage={factcheckMessage}
             onConfirm={() => {
               setUnderstandingConfirmed(true);
               setActionNotice("Einordnung bestätigt. Keine automatische Veröffentlichung.");
@@ -1066,6 +1145,8 @@ export default function CreateClient({
             onOpenNewAnlassraum={() => {
               setActionNotice("Neuer Anlassraum als nächster Schritt markiert. Keine automatische Veröffentlichung.");
             }}
+            onSaveForLater={handleSaveWorkstate}
+            onStartOptionalService={handleStartFactcheckService}
           />
         </div>
       ) : null}

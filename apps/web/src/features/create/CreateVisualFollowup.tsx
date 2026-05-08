@@ -21,6 +21,9 @@ type CreateVisualFollowupProps = {
   ctaHref: string;
   actionNotice?: string | null;
   isConfirmed?: boolean;
+  saveState?: "idle" | "saving" | "saved" | "error" | "unavailable";
+  saveMessage?: string | null;
+  factcheckMessage?: string | null;
   onConfirm: () => void;
   onEdit: () => void;
   onOpenNewAnlassraum: () => void;
@@ -33,7 +36,7 @@ export const CREATE_VISUAL_FOLLOWUP_COPY = {
   structureTitle: "Vorläufige Struktur",
   coreTitle: "Kern erkannt",
   graphTitle: "So hängt dein Beitrag zusammen",
-  impactTitle: "Dort würden wir deinen Beitrag anschließen",
+  impactTitle: "Mögliche Anschlüsse",
   confirmTitle: "Stimmt diese Einordnung?",
   guardrail:
     "Keine automatische Stimme. Keine automatische Veröffentlichung. Du bestätigst jeden nächsten Schritt selbst.",
@@ -241,29 +244,20 @@ function derivePositionClusters(result: CreateIntelligentFollowupResult): string
   return clusters.slice(0, 3);
 }
 
-function UserContributionBubble(props: { text: string; compact: boolean }) {
+function UserContributionBubble(props: { text: string }) {
   return (
     <div className="create-chat-message flex gap-3">
       <div className="mt-2 h-2.5 w-2.5 shrink-0 rounded-full bg-slate-400 ring-4 ring-white dark:bg-slate-500 dark:ring-[rgb(var(--bg))]" />
       <div className="max-w-3xl">
         <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-600 dark:text-[rgb(var(--muted))]">Du</p>
         <div className="mt-2 rounded-2xl rounded-tl-sm border border-slate-200 bg-white px-4 py-3 shadow-sm dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))] dark:shadow-none">
-          {props.compact ? (
-            <p className="text-sm text-slate-900 md:text-base dark:text-[rgb(var(--fg))]">
-              {props.text.slice(0, 260)}
-              {props.text.length > 260 ? " …" : ""}
-            </p>
-          ) : (
-            <>
-              <p className="text-sm text-slate-900 md:text-base dark:text-[rgb(var(--fg))]">Dein Beitrag wurde aufgenommen.</p>
-              <details className="mt-2">
-                <summary className="cursor-pointer text-sm text-slate-700 dark:text-[rgb(var(--muted))]">Originaltext anzeigen</summary>
-                <pre className="mt-2 whitespace-pre-wrap rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--bg))] dark:text-[rgb(var(--fg))]">
-                  {props.text}
-                </pre>
-              </details>
-            </>
-          )}
+          <p className="text-sm text-slate-900 md:text-base dark:text-[rgb(var(--fg))]">Dein Beitrag wurde aufgenommen.</p>
+          <details className="mt-2">
+            <summary className="cursor-pointer text-sm text-slate-700 dark:text-[rgb(var(--muted))]">Original anzeigen</summary>
+            <pre className="mt-2 whitespace-pre-wrap rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--bg))] dark:text-[rgb(var(--fg))]">
+              {props.text}
+            </pre>
+          </details>
         </div>
       </div>
     </div>
@@ -420,12 +414,21 @@ function StructuredWorkstateBlock(props: {
 
 function FollowupActionRail(props: {
   onConfirm: () => void;
-  onEdit: () => void;
+  onStartOptionalService: () => void;
   onSaveForLater: () => void;
   setCorrectionOpen: (focus: string) => void;
   showCorrectionRow: boolean;
   correctionFocus: string | null;
+  saveState: "idle" | "saving" | "saved" | "error" | "unavailable";
+  saveMessage?: string | null;
+  factcheckMessage?: string | null;
 }) {
+  const saveDisabled = props.saveState === "saving" || props.saveState === "unavailable";
+  const saveLabel =
+    props.saveState === "saving"
+      ? "Arbeitsstand wird gespeichert …"
+      : "Arbeitsstand speichern";
+
   return (
     <div className="create-chat-message flex gap-3">
       <div className="mt-2 h-2.5 w-2.5 shrink-0 rounded-full bg-emerald-600 ring-4 ring-white dark:bg-emerald-300 dark:ring-[rgb(var(--bg))]" />
@@ -433,9 +436,7 @@ function FollowupActionRail(props: {
         <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-700 dark:text-[rgb(var(--muted))]">Nächster Schritt</p>
         <div className="mt-2 space-y-3 rounded-2xl rounded-tl-sm border border-slate-200 bg-white px-4 py-4 shadow-sm dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))] dark:shadow-none">
           <p className="text-sm font-semibold text-[rgb(var(--fg))] md:text-base">{CREATE_VISUAL_FOLLOWUP_COPY.confirmTitle}</p>
-          <p className="text-sm text-[rgb(var(--muted))] md:text-base">
-            Du kannst bestätigen, einzelne Punkte ändern oder erst passende Dossiers und Abstimmungen ansehen.
-          </p>
+          <p className="text-sm text-[rgb(var(--muted))] md:text-base">Bestätige die Struktur, passe einzelne Punkte an oder sichere deinen Arbeitsstand.</p>
           <div className="grid gap-2 sm:grid-cols-2">
             <button type="button" className="btn-primary min-h-[40px] px-3 py-2 text-sm" onClick={props.onConfirm}>
               Ja, Struktur übernehmen
@@ -443,12 +444,22 @@ function FollowupActionRail(props: {
             <button type="button" className="btn-secondary min-h-[40px] px-3 py-2 text-sm" onClick={() => props.setCorrectionOpen("Thema")}>
               Ein Punkt ändern
             </button>
-            <button type="button" className="btn-secondary min-h-[40px] px-3 py-2 text-sm" onClick={props.onSaveForLater}>
-              Für später speichern
+            <button
+              type="button"
+              className="btn-secondary min-h-[40px] px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-60"
+              onClick={props.onSaveForLater}
+              disabled={saveDisabled}
+              aria-disabled={saveDisabled}
+            >
+              {saveLabel}
             </button>
-            <button type="button" className="btn-secondary min-h-[40px] px-3 py-2 text-sm" onClick={props.onEdit}>
-              Dossiers & Abstimmungen ansehen
+            <button type="button" className="btn-secondary min-h-[40px] px-3 py-2 text-sm" onClick={props.onStartOptionalService}>
+              Faktencheck / Deep Search starten
             </button>
+          </div>
+          <div className="space-y-1 text-xs text-[rgb(var(--muted))]">
+            <p>{props.saveMessage ?? "Arbeitsstand speichern ist in diesem Schritt verfügbar."}</p>
+            <p>{props.factcheckMessage ?? "Optional. Startet erst nach bewusster Bestätigung. Keine automatische Kostenbuchung."}</p>
           </div>
           {props.showCorrectionRow ? (
             <div className="rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2">
@@ -456,17 +467,25 @@ function FollowupActionRail(props: {
                 Was soll anders eingeordnet werden{props.correctionFocus ? `: ${props.correctionFocus}` : ""}?
               </p>
               <div className="mt-2 flex flex-wrap gap-2">
-                {["Thema ändern", "Haltung ändern", "Anschluss ändern", "Aussage fehlt"].map((chip) => (
+                {[
+                  "Thema ändern",
+                  "Haltung ändern",
+                  "Ebene ändern",
+                  "Anschluss ändern",
+                  "Aussage fehlt",
+                  "Abstimmungsfrage bearbeiten",
+                ].map((chip) => (
                   <button
                     key={chip}
                     type="button"
                     className="rounded-full border border-[rgb(var(--border))] px-2 py-1 text-xs text-[rgb(var(--fg))] hover:border-cyan-300/60"
-                    onClick={props.onEdit}
+                    onClick={() => props.setCorrectionOpen(chip)}
                   >
                     {chip}
                   </button>
                 ))}
               </div>
+              <p className="mt-2 text-xs text-[rgb(var(--muted))]">Änderungsvorschläge werden im nächsten Schritt reviewbar gespeichert.</p>
             </div>
           ) : null}
           <div className="space-y-1 text-xs text-[rgb(var(--muted))]">
@@ -484,10 +503,6 @@ function DetailsAccordion(props: {
   result: CreateIntelligentFollowupResult;
   sections: ReturnType<typeof buildCreateVisualSections>;
   sortedSuggestions: CreateConnectionSuggestion[];
-  ctaHref: string;
-  onOpenNewAnlassraum: () => void;
-  onOpenCorrection: (focus: string) => void;
-  onStartOptionalService: () => void;
 }) {
   const showSectionFlow = props.result.sourceText.length > 500 || props.sections.length > 1;
   const hasFutureModules = false;
@@ -539,15 +554,6 @@ function DetailsAccordion(props: {
         </summary>
         <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
           {props.sortedSuggestions.map((suggestion) => {
-            const href = buildCreateFollowupTargetHref({
-              kind: suggestion.kind,
-              ctaHref: props.ctaHref,
-              topics: props.result.understanding.topics,
-              statements: props.result.understanding.statements,
-              stance: suggestion.suggestedStance ?? null,
-              suggestionTitle: suggestion.title,
-              suggestionHref: suggestion.href ?? null,
-            });
             const toneKind: CreateVisualNode["kind"] =
               suggestion.kind === "dossier"
                 ? "dossier"
@@ -563,36 +569,15 @@ function DetailsAccordion(props: {
                 <p className="text-xs font-semibold uppercase tracking-[0.14em] opacity-80">{resolveSuggestionBadge(suggestion.kind)}</p>
                 <p className="mt-1 text-sm font-semibold md:text-base">{suggestion.title}</p>
                 <p className="mt-1 text-sm opacity-85">Warum passt das? {suggestion.reason}</p>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {suggestion.kind === "new_anlassraum" ? (
-                    <button type="button" className="btn-secondary min-h-[40px] px-3 py-2 text-sm" onClick={props.onOpenNewAnlassraum}>
-                      {resolveSuggestionCta(suggestion.kind)}
-                    </button>
-                  ) : (
-                    <Link href={href} className="btn-secondary min-h-[40px] px-3 py-2 text-sm">
-                      {resolveSuggestionCta(suggestion.kind)}
-                    </Link>
-                  )}
-                  <button type="button" className="btn-secondary min-h-[40px] px-3 py-2 text-sm" onClick={() => props.onOpenCorrection("Anschluss")}>
-                    Nicht passend
-                  </button>
-                </div>
+                <p className="mt-3 text-xs opacity-80">
+                  {suggestion.kind === "new_anlassraum"
+                    ? "Wird erst nach deiner Bestätigung als neuer Anlassraum vorgeschlagen."
+                    : `Kann nach Bestätigung unter ${resolveSuggestionCta(suggestion.kind)} geöffnet werden.`}
+                </p>
               </article>
             );
           })}
         </div>
-      </details>
-
-      <details className="border-t border-slate-200 py-3 dark:border-[rgb(var(--border))]">
-        <summary className="cursor-pointer text-sm font-semibold text-[rgb(var(--fg))] md:text-base">
-          Zusatzservices (optional)
-        </summary>
-        <p className="mt-3 text-sm text-[rgb(var(--muted))]">
-          Erweiterte Prüfung oder Begleitung startest du nur bewusst im nächsten Schritt. Keine automatische Kostenbuchung.
-        </p>
-        <button type="button" className="btn-secondary mt-3 min-h-[40px] px-3 py-2 text-sm" onClick={props.onStartOptionalService}>
-          Faktencheck / Deep Search starten
-        </button>
       </details>
 
       {hasFutureModules ? (
@@ -609,9 +594,11 @@ export default function CreateVisualFollowup({
   ctaHref,
   actionNotice,
   isConfirmed = false,
+  saveState = "unavailable",
+  saveMessage = null,
+  factcheckMessage = null,
   onConfirm,
   onEdit,
-  onOpenNewAnlassraum,
   onSaveForLater = () => {},
   onStartOptionalService = () => {},
 }: CreateVisualFollowupProps) {
@@ -645,7 +632,6 @@ export default function CreateVisualFollowup({
     statementText: result.understanding.statements[0]?.text ?? "",
     dossierContext: result.understanding.dossierContext,
   });
-  const showCompactUserBubble = result.sourceText.length <= 420 && sections.length <= 1;
   const positionClusters = React.useMemo(() => derivePositionClusters(result), [result]);
   const keyStatement = resolveCoreClaim({
     topicLabels,
@@ -679,7 +665,7 @@ export default function CreateVisualFollowup({
   return (
     <section className="create-chat-workspace relative -mt-3 mx-auto max-w-5xl pb-24 md:pb-10">
       <div className="create-chat-spine relative space-y-5 before:absolute before:left-[5px] before:top-3 before:h-[calc(100%-1.5rem)] before:w-px before:bg-slate-200 md:space-y-6 dark:before:bg-[rgb(var(--border))]">
-      <UserContributionBubble text={dedupedCopy.userBubbleText} compact={showCompactUserBubble} />
+      <UserContributionBubble text={dedupedCopy.userBubbleText} />
 
       <AssistantUnderstandingBubble
         summary={dedupedCopy.prominentSummary}
@@ -701,11 +687,14 @@ export default function CreateVisualFollowup({
 
       <FollowupActionRail
         onConfirm={onConfirm}
-        onEdit={onEdit}
+        onStartOptionalService={onStartOptionalService}
         onSaveForLater={onSaveForLater}
         setCorrectionOpen={openCorrection}
         showCorrectionRow={showCorrectionRow}
         correctionFocus={correctionFocus}
+        saveState={saveState}
+        saveMessage={saveMessage}
+        factcheckMessage={factcheckMessage}
       />
 
       {isConfirmed ? (
@@ -741,9 +730,19 @@ export default function CreateVisualFollowup({
               <button type="button" className="btn-secondary min-h-[40px] px-3 py-2 text-sm" onClick={onStartOptionalService}>
                 Faktencheck / Deep Search starten
               </button>
-              <button type="button" className="btn-secondary min-h-[40px] px-3 py-2 text-sm" onClick={onSaveForLater}>
+              <button
+                type="button"
+                className="btn-secondary min-h-[40px] px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-60"
+                onClick={onSaveForLater}
+                disabled={saveState === "saving" || saveState === "unavailable"}
+                aria-disabled={saveState === "saving" || saveState === "unavailable"}
+              >
                 Arbeitsstand speichern
               </button>
+            </div>
+            <div className="mt-3 space-y-1 text-xs text-emerald-900/85 dark:text-emerald-100/85">
+              <p>{saveMessage ?? "Arbeitsstand speichern ist in diesem Schritt verfügbar."}</p>
+              <p>{factcheckMessage ?? "Optional. Startet erst nach bewusster Bestätigung. Keine automatische Kostenbuchung."}</p>
             </div>
           </div>
         </div>
@@ -753,10 +752,6 @@ export default function CreateVisualFollowup({
         result={result}
         sections={sections}
         sortedSuggestions={sortedSuggestions}
-        ctaHref={ctaHref}
-        onOpenNewAnlassraum={onOpenNewAnlassraum}
-        onOpenCorrection={openCorrection}
-        onStartOptionalService={onStartOptionalService}
       />
 
       {actionNotice ? (
@@ -779,11 +774,17 @@ export default function CreateVisualFollowup({
           <button type="button" className="btn-secondary min-h-[40px] px-2 py-2 text-sm" onClick={() => openCorrection("Thema")}>
             Ändern
           </button>
-          <button type="button" className="btn-secondary min-h-[40px] px-2 py-2 text-sm" onClick={onSaveForLater}>
+          <button
+            type="button"
+            className="btn-secondary min-h-[40px] px-2 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-60"
+            onClick={onSaveForLater}
+            disabled={saveState === "saving" || saveState === "unavailable"}
+            aria-disabled={saveState === "saving" || saveState === "unavailable"}
+          >
             Speichern
           </button>
           <button type="button" className="btn-secondary min-h-[40px] px-2 py-2 text-sm" onClick={onStartOptionalService}>
-            Service
+            Faktencheck
           </button>
         </div>
       </div>
