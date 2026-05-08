@@ -192,7 +192,7 @@ export function buildCreateConnectionSuggestions(
       id: `vote:${topStatement.id}`,
       kind: "vote",
       title: resolveVoteSuggestionTitle({ topics, statementText: topStatement.text }),
-      reason: "Die Aussage eignet sich als abstimmbarer Claim zur Einordnung im Themenkontext.",
+      reason: "Die Aussage eignet sich als klare Entscheidungsoption oder Abstimmungsfrage im Themenkontext.",
       confidence: mapConfidence(topStatement.confidence === "high" ? 0.8 : topStatement.confidence === "medium" ? 0.55 : 0.3),
       href: buildSeededSwipesHref({
         topic: primaryTopic,
@@ -211,7 +211,7 @@ export function buildCreateConnectionSuggestions(
       id: "new_anlassraum:auto",
       kind: "new_anlassraum",
       title: fallbackTitle,
-      reason: "Kein vollständig passender Anschluss ist sicher genug.",
+      reason: "Noch kein vollständig passender nächster Schritt ist sicher genug.",
       confidence: input.understanding.confidence === "high" ? "medium" : "low",
       href: input.intent === "check" ? "/create?intent=check" : "/create?intent=contribute",
       suggestedContributionKind: input.understanding.categories[0]?.id ?? "hint",

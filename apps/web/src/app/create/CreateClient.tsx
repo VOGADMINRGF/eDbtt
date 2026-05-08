@@ -93,7 +93,7 @@ type CreateWorkingState = {
 export const CREATE_INTELLIGENT_FOLLOWUP_SECTION_LABELS = {
   understanding: "eDebatte hat deinen Beitrag strukturiert",
   extracted: "So hängt dein Beitrag zusammen",
-  connections: "Mögliche Anschlüsse",
+  connections: "Passende nächste Schritte",
   voteNotice: "Deine Stimme wird nicht automatisch abgegeben.",
 } as const;
 
@@ -762,10 +762,10 @@ export default function CreateClient({
         : initialIntakeContext?.sourceLabel
           ? initialIntakeContext.sourceLabel
           : productMode === "guided"
-            ? "Neuer Entwurfsraum"
+            ? "Neuer gemeinsamer Arbeitsstand"
             : productMode === "media"
-              ? "Prüfstand ohne feste Zuordnung"
-              : "Themen- oder Anlassraum-Zuordnung offen";
+              ? "Prüfweg noch offen"
+              : "Thema oder nächster Schritt noch offen";
 
       setFollowupSnapshot(snapshot);
       setWorkingState(
@@ -853,20 +853,20 @@ export default function CreateClient({
     (actionIndex: number) => {
       if (activeIntent === "contribute") {
         if (actionIndex === 0) {
-          triggerActionNotice("Hinweis markiert. Du kannst ihn im nächsten Schritt weiterführen.");
+          triggerActionNotice("Hinweis vorgemerkt. Du kannst jetzt den nächsten Schritt wählen oder einfach weiterschreiben.");
           return;
         }
         if (actionIndex === 1) {
           setProductMode("media");
           setFollowupSurface("analysis");
           setAnalysisAutoRunToken((current) => current + 1);
-          triggerActionNotice("Dossier-Bezug wird im Prüfmodus vorbereitet.");
+          triggerActionNotice("Prüfweg wird geöffnet.");
           return;
         }
         if (actionIndex === 2) {
           setProductMode("media");
           setActiveContextAnchorId("source");
-          triggerActionNotice("Quelle ergänzen aktiviert. Ergänze jetzt die Referenz im Textfeld.");
+          triggerActionNotice("Quellenhinweis ergänzen aktiviert. Ergänze jetzt die Referenz im Textfeld.");
           return;
         }
         triggerActionNotice("Beteiligung vorbereiten: als nächstes in Swipes weiterführen.");
@@ -882,35 +882,35 @@ export default function CreateClient({
         }
         if (actionIndex === 1) {
           setActiveContextAnchorId("source");
-          triggerActionNotice("Quellen ergänzen aktiviert. Ergänze jetzt die Referenzen im Textfeld.");
+          triggerActionNotice("Quellenhinweis ergänzen aktiviert. Ergänze jetzt die Referenzen im Textfeld.");
           return;
         }
         if (actionIndex === 2) {
           setProductMode("analyze");
           setActiveContextAnchorId("objection");
-          triggerActionNotice("Gegenpositionen sammeln aktiviert.");
+          triggerActionNotice("Gegenposition ergänzen aktiviert.");
           return;
         }
         setFollowupSurface("analysis");
         setAnalysisAutoRunToken((current) => current + 1);
-        triggerActionNotice("Prüfbericht-Vorbereitung gestartet.");
+        triggerActionNotice("Prüfbericht wird vorbereitet.");
         return;
       }
 
       if (actionIndex === 0) {
-        triggerActionNotice("Dossier-Struktur kann im nächsten Schritt übernommen werden.");
+        triggerActionNotice("Beitrag oder Themenstruktur kann im nächsten Schritt übernommen werden.");
         return;
       }
       if (actionIndex === 1) {
         setActiveContextAnchorId("question");
-        triggerActionNotice("Fragenkatalog-Fokus aktiviert.");
+        triggerActionNotice("Fragenkatalog vorbereitet.");
         return;
       }
       if (actionIndex === 2) {
         triggerActionNotice("Beteiligungsrunde vorbereiten: als nächstes in /runden weiterführen.");
         return;
       }
-      triggerActionNotice("Mandatslogik skizzieren ist als nächster Arbeitsschritt markiert.");
+      triggerActionNotice("Der nächste Arbeitsschritt ist markiert.");
     },
     [activeIntent, triggerActionNotice],
   );
@@ -1287,7 +1287,8 @@ export default function CreateClient({
 
       {showFollowupQuestionCard && !showLinkClarification ? (
         <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 md:p-5">
-          <p className="text-sm font-semibold text-[rgb(var(--fg))]">{surfaceTexts.followupQuestionLabel}</p>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[rgb(var(--muted))]">eDebatte</p>
+          <p className="mt-1 text-sm font-semibold text-[rgb(var(--fg))]">{surfaceTexts.followupQuestionLabel}</p>
           <p className="mt-1 text-sm text-[rgb(var(--muted))]">{productModeConfig.firstQuestion}</p>
           <label className="sr-only" htmlFor="create-followup-answer">
             {surfaceTexts.followupQuestionLabel}
@@ -1319,6 +1320,7 @@ export default function CreateClient({
               {productModeConfig.inputLabel}
             </span>
           </div>
+          <p className="mt-2 text-xs text-[rgb(var(--muted))]">Schreib einfach weiter, wenn du die Antwort lieber frei im Chat ergänzen möchtest.</p>
           {activeFollowupSaved ? (
             <p className="mt-2 text-sm text-emerald-700 dark:text-emerald-300">{surfaceTexts.followupQuestionSavedLabel}</p>
           ) : null}
@@ -1431,8 +1433,12 @@ export default function CreateClient({
 
       {showPostInputModules && workingState && !showIntelligentFollowup && !showLinkClarification ? (
         <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 md:p-5">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[rgb(var(--muted))]">
-            {productModeConfig.workingStateTitle}
+          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[rgb(var(--muted))]">eDebatte</p>
+          <p className="mt-1 text-sm font-semibold text-[rgb(var(--fg))]">
+            {productMode === "guided" ? surfaceTexts.followupGuidedTitle : productModeConfig.postStartTitle}
+          </p>
+          <p className="mt-1 text-sm text-[rgb(var(--muted))]">
+            {productMode === "guided" ? surfaceTexts.followupGuidedLead : productModeConfig.postStartLead}
           </p>
 
           <div className="mt-3 grid gap-3">
@@ -1448,7 +1454,7 @@ export default function CreateClient({
                 <p className="mt-1 text-sm text-[rgb(var(--fg))]">{workingState.recognizedType}</p>
               </div>
               <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2">
-                <p className="text-xs font-semibold text-[rgb(var(--muted))]">Mögliche Zuordnung</p>
+                <p className="text-xs font-semibold text-[rgb(var(--muted))]">Passendes Thema oder nächster Schritt</p>
                 <p className="mt-1 text-sm text-[rgb(var(--fg))]">{workingState.suggestedAssignment}</p>
               </div>
             </div>
@@ -1464,6 +1470,7 @@ export default function CreateClient({
 
           <div className="mt-4">
             <p className="text-sm font-semibold text-[rgb(var(--fg))]">{surfaceTexts.followupNextStepLabel}</p>
+            <p className="mt-1 text-sm text-[rgb(var(--muted))]">{surfaceTexts.followupNextStepLead}</p>
             <div className="mt-2 grid gap-2 sm:grid-cols-2">
               {productModeConfig.nextActions.map((actionLabel, actionIndex) => (
                 <button
@@ -1480,7 +1487,7 @@ export default function CreateClient({
 
           <div className="mt-3 flex flex-wrap gap-2">
             <Link href="/dossier/demo" className="btn-secondary text-xs">
-              Dossier öffnen
+              Thema öffnen
             </Link>
             <Link href="/swipes" className="btn-secondary text-xs">
               Beteiligung öffnen

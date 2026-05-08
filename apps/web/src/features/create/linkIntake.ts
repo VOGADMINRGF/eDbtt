@@ -58,29 +58,29 @@ export const CREATE_LINK_INTENT_OPTIONS: readonly CreateLinkIntentOption[] = [
   {
     id: "summarize",
     label: {
-      de: "Inhalt zusammenfassen",
+      de: "Zusammenfassen",
       en: "Summarize content",
     },
   },
   {
     id: "extract_claims",
     label: {
-      de: "Aussagen / Claims extrahieren",
-      en: "Extract claims",
+      de: "Aussagen ableiten",
+      en: "Derive statements",
     },
   },
   {
     id: "prepare_factcheck",
     label: {
-      de: "Faktencheck vorbereiten",
+      de: "Prüfpfad vorbereiten",
       en: "Prepare fact-check",
     },
   },
   {
     id: "add_source_to_dossier",
     label: {
-      de: "Als Quelle zu einem Dossier hinzufügen",
-      en: "Add as dossier source",
+      de: "Als Quelle vormerken",
+      en: "Save as source",
     },
   },
   {
@@ -214,30 +214,22 @@ export function buildCreateLinkSourceNotice(params: {
   const selection = params.selectedIntentId
     ? resolveCreateLinkIntentOptionLabel(params.selectedIntentId, params.locale)
     : null;
-  const mapping = params.selectedIntentId
-    ? resolveCreateLinkIntentE150Mapping(params.selectedIntentId)
-    : null;
-  const mappingLead = mapping
-    ? `${mapping.mapsTo.join(", ")} · inputType=${mapping.inputType}`
-    : null;
 
   if (params.locale === "en") {
     const prefix = selection ? `Selected: ${selection}. ` : "";
-    const mirrorHint = mappingLead ? `E150 mirror: ${mappingLead}. ` : "";
     const factcheckGuardrail =
       params.selectedIntentId === "prepare_factcheck"
         ? " Fact-check / Deep Search only starts after explicit confirmation. No automatic cost booking."
         : "";
-    return `${prefix}${mirrorHint}The link stays a source hint / review-path signal. Its content has not been automatically evaluated yet.${factcheckGuardrail}`;
+    return `${prefix}The link stays a source hint for now. Its content has not been automatically evaluated yet.${factcheckGuardrail}`;
   }
 
   const prefix = selection ? `Gewählt: ${selection}. ` : "";
-  const mirrorHint = mappingLead ? `E150-Mirror: ${mappingLead}. ` : "";
   const factcheckGuardrail =
     params.selectedIntentId === "prepare_factcheck"
       ? " Faktencheck / Deep Search startet erst nach bewusster Bestätigung. Keine automatische Kostenbuchung."
       : "";
-  return `${prefix}${mirrorHint}Der Link bleibt ein Quellenhinweis bzw. Prüfpfad-Signal. Der Inhalt wurde noch nicht automatisch ausgewertet.${factcheckGuardrail}`;
+  return `${prefix}Der Link bleibt vorerst ein Quellenhinweis. Der Inhalt wurde noch nicht automatisch ausgewertet.${factcheckGuardrail}`;
 }
 
 export function buildCreateLinkIntakeMeta(params: {

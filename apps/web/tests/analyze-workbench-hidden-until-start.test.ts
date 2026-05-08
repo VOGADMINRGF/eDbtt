@@ -206,16 +206,17 @@ describe("analyze workbench progressive disclosure", () => {
     expect(CREATE_INTELLIGENT_FOLLOWUP_SECTION_LABELS.understanding).toBe(
       "eDebatte hat deinen Beitrag strukturiert",
     );
-    expect(CREATE_INTELLIGENT_FOLLOWUP_SECTION_LABELS.connections).toBe("Mögliche Anschlüsse");
+    expect(CREATE_INTELLIGENT_FOLLOWUP_SECTION_LABELS.connections).toBe("Passende nächste Schritte");
     expect(CREATE_INTELLIGENT_FOLLOWUP_SECTION_LABELS.voteNotice).toContain(
       "nicht automatisch abgegeben",
     );
-    expect(CREATE_VISUAL_FOLLOWUP_COPY.structureTitle).toBe("Vorläufige Struktur");
+    expect(CREATE_VISUAL_FOLLOWUP_COPY.structureTitle).toBe("Ich ordne das kurz ein");
     expect(CREATE_VISUAL_FOLLOWUP_COPY.coreTitle).toBe("Kern erkannt");
-    expect(CREATE_VISUAL_FOLLOWUP_COPY.graphTitle).toBe("So hängt dein Beitrag zusammen");
-    expect(CREATE_VISUAL_FOLLOWUP_COPY.confirmTitle).toBe("Stimmt diese Einordnung?");
-    expect(CREATE_VISUAL_FOLLOWUP_COPY.impactTitle).toBe("Mögliche Anschlüsse");
+    expect(CREATE_VISUAL_FOLLOWUP_COPY.graphTitle).toBe("So könnte der Arbeitsstand aussehen");
+    expect(CREATE_VISUAL_FOLLOWUP_COPY.confirmTitle).toBe("Soll ich das so übernehmen?");
+    expect(CREATE_VISUAL_FOLLOWUP_COPY.impactTitle).toBe("Passende nächste Schritte");
     expect(CREATE_VISUAL_FOLLOWUP_COPY.guardrail).toContain("Keine automatische Veröffentlichung");
+    expect(CREATE_VISUAL_FOLLOWUP_COPY.freeWriteHint).toContain("Schreib einfach weiter");
     expect(Object.values(CREATE_VISUAL_FOLLOWUP_COPY).join(" ")).not.toContain("Systemprüfung");
   });
 
@@ -260,7 +261,7 @@ describe("analyze workbench progressive disclosure", () => {
     );
     expect(clientSource).toContain("CreateLinkIntakeClarification");
     expect(clientSource).toContain("buildCreateLinkSourceNotice");
-    expect(linkIntakeSource).toContain("Der Link bleibt ein Quellenhinweis bzw. Prüfpfad-Signal. Der Inhalt wurde noch nicht automatisch ausgewertet.");
+    expect(linkIntakeSource).toContain("Der Link bleibt vorerst ein Quellenhinweis. Der Inhalt wurde noch nicht automatisch ausgewertet.");
     expect(source).toContain("UserContributionBubble");
     expect(source).toContain("AssistantUnderstandingBubble");
     expect(source).toContain("StructuredWorkstateBlock");
@@ -274,7 +275,7 @@ describe("analyze workbench progressive disclosure", () => {
     expect(source).toContain("Nächster Schritt");
     expect(source).toContain("Ja, Struktur übernehmen");
     expect(source).toContain("Arbeitsstand speichern");
-    expect(source).toContain("Dossier-Kontext / Oberthema");
+    expect(source).toContain("Übergeordnetes Thema");
     expect(source).toContain("Vorgeschlagener Arbeitsstand");
     expect(source).toContain("Mögliche Abstimmungsfragen");
     expect(source).toContain("Welche kommunalen Prioritäten sollen zuerst bearbeitet werden?");
@@ -282,8 +283,9 @@ describe("analyze workbench progressive disclosure", () => {
     expect(source).toContain("Details zum Originaltext");
     expect(source).toContain("Sinnabschnitte");
     expect(source).toContain("Original anzeigen");
-    expect(source).toContain("Mögliche Anschlüsse");
-    expect(source).toContain("Keine automatische Stimme oder Veröffentlichung.");
+    expect(source).toContain("Passende nächste Schritte");
+    expect(source).toContain("Keine automatische Stimme.");
+    expect(source).toContain("Keine automatische Veröffentlichung.");
     expect(source).toContain("Keine automatische Kostenbuchung.");
     expect(source).toContain("Optional. Startet erst nach bewusster Bestätigung. Keine automatische Kostenbuchung.");
     expect(source).toContain("Änderungsvorschläge werden im nächsten Schritt reviewbar gespeichert.");
@@ -291,19 +293,22 @@ describe("analyze workbench progressive disclosure", () => {
     expect(source).toContain("Thema ändern");
     expect(source).toContain("Haltung ändern");
     expect(source).toContain("Ebene ändern");
-    expect(source).toContain("Anschluss ändern");
+    expect(source).toContain("Nächsten Schritt ändern");
     expect(source).toContain("Aussage fehlt");
+    expect(source).toContain("Schreib einfach weiter");
     expect(source).not.toContain("Für später speichern");
     expect(source).not.toContain("Dossiers & Abstimmungen ansehen");
     expect(source).not.toContain("Zusatzservices (optional)");
     expect(source).not.toContain("Nicht passend");
     expect(source).toContain("dedupeCreateFollowupSections");
-    expect(source).toContain("Claims/Abstimmungen prüfen");
+    expect(source).toContain("Aussagen / Abstimmungen prüfen");
     expect(source).toContain("disabled:cursor-not-allowed");
     expect(source).not.toContain("bg-cyan-50/80");
     expect(source).toContain("dark:bg-[rgb(var(--card))]");
     expect(source).toContain("border-cyan-500/35 bg-cyan-50 text-cyan-950");
     expect(source).toContain("dark:border-cyan-300/60 dark:bg-cyan-500/15 dark:text-cyan-50");
+    expect(source).not.toContain("Dossier-Kontext / Oberthema");
+    expect(source).not.toContain("Mögliche Claims");
     expect(source).not.toContain("topics.slice(0, 6)");
     expect(source).not.toContain('className="text-cyan-50"');
     expect(source).not.toContain("Abschnitt 1");

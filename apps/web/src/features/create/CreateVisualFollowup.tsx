@@ -34,14 +34,15 @@ type CreateVisualFollowupProps = {
 };
 
 export const CREATE_VISUAL_FOLLOWUP_COPY = {
-  headline: "eDebatte hat deinen Beitrag strukturiert",
-  structureTitle: "Vorläufige Struktur",
+  headline: "So würde eDebatte deinen Beitrag einordnen",
+  structureTitle: "Ich ordne das kurz ein",
   coreTitle: "Kern erkannt",
-  graphTitle: "So hängt dein Beitrag zusammen",
-  impactTitle: "Mögliche Anschlüsse",
-  confirmTitle: "Stimmt diese Einordnung?",
+  graphTitle: "So könnte der Arbeitsstand aussehen",
+  impactTitle: "Passende nächste Schritte",
+  confirmTitle: "Soll ich das so übernehmen?",
   guardrail:
     "Keine automatische Stimme. Keine automatische Veröffentlichung. Du bestätigst jeden nächsten Schritt selbst.",
+  freeWriteHint: "Schreib einfach weiter. eDebatte passt den Arbeitsstand an, wenn etwas anders gemeint war.",
 } as const;
 
 const BROAD_TOPIC_FIELD_ORDER = [
@@ -441,7 +442,7 @@ function StructureBranchCard(props: {
             </div>
           </div>
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">Mögliche Claims</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">Mögliche Aussagen</p>
             <ul className="mt-2 space-y-1.5 text-sm text-[rgb(var(--fg))]">
               {props.branch.claims.map((claim) => (
                 <li key={`${props.branch.id}-claim-${claim}`}>{claim}</li>
@@ -487,7 +488,7 @@ function StructureBranchList(props: {
   return (
     <div className="mt-4">
       <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">Strukturäste</p>
-      <div className="mt-3 grid gap-4 lg:grid-cols-2">
+      <div className="mt-3 grid gap-4">
         {props.branches.map((branch) => (
           <StructureBranchCard key={branch.id} branch={branch} onEdit={props.onEdit} />
         ))}
@@ -514,7 +515,7 @@ function StructuredWorkstateBlock(props: {
       </p>
 
       <div className={`max-w-3xl rounded-2xl border px-4 py-3 ${resolveNodeTone("topic")}`}>
-        <p className="text-sm font-semibold">Dossier-Kontext / Oberthema</p>
+        <p className="text-sm font-semibold">Übergeordnetes Thema</p>
         <p className="mt-1 text-base font-semibold">{props.rootTopic}</p>
       </div>
 
@@ -549,7 +550,7 @@ function StructuredWorkstateBlock(props: {
             </div>
             <div className="ml-6 mt-3 border-l-2 border-violet-500/30 pl-4 dark:border-violet-300/35">
               <div className={`max-w-2xl rounded-xl border px-4 py-3 ${resolveNodeTone("topic")}`}>
-                <p className="text-sm font-semibold">Dossier-Kontext / Oberthema</p>
+                <p className="text-sm font-semibold">Übergeordnetes Thema</p>
                 <p className="mt-1 text-base font-semibold">{props.rootTopic}</p>
               </div>
               <TopicFieldList labels={props.topicLabels.filter((label) => label !== props.rootTopic)} onPick={props.onEdit} />
@@ -595,15 +596,16 @@ function FollowupActionRail(props: {
           <div className="space-y-2">
             <p className="text-sm font-semibold text-[rgb(var(--fg))] md:text-base">{CREATE_VISUAL_FOLLOWUP_COPY.confirmTitle}</p>
             <p className="max-w-3xl text-sm leading-relaxed text-[rgb(var(--muted))] md:text-base">
-              Bestätige die Struktur, passe einzelne Punkte an oder sichere deinen Arbeitsstand.
+              Bestätige den Vorschlag, ändere einzelne Punkte oder schreib einfach weiter.
             </p>
+            <p className="max-w-3xl text-sm text-[rgb(var(--muted))]">{CREATE_VISUAL_FOLLOWUP_COPY.freeWriteHint}</p>
           </div>
           <button type="button" className="btn-primary min-h-[48px] w-full px-4 py-3 text-sm md:text-base" onClick={props.onConfirm}>
             Ja, Struktur übernehmen
           </button>
-          <div className="grid gap-2 lg:grid-cols-3">
+          <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
             <button type="button" className="btn-secondary min-h-[40px] px-3 py-2 text-sm" onClick={() => props.setCorrectionOpen("Thema")}>
-              Ein Punkt ändern
+              Etwas ändern
             </button>
             <button
               type="button"
@@ -640,7 +642,7 @@ function FollowupActionRail(props: {
                   "Thema ändern",
                   "Haltung ändern",
                   "Ebene ändern",
-                  "Anschluss ändern",
+                  "Nächsten Schritt ändern",
                   "Aussage fehlt",
                   "Abstimmungsfrage bearbeiten",
                 ].map((chip) => (
@@ -709,7 +711,7 @@ function DetailsAccordion(props: {
                   <p className="mt-1 text-sm text-[rgb(var(--muted))]"><span className="font-semibold text-[rgb(var(--fg))]">Gehört zu:</span> {section.topicLabel}</p>
                 ) : null}
                 {section.connectionLabel ? (
-                  <p className="mt-1 text-sm text-[rgb(var(--muted))]"><span className="font-semibold text-[rgb(var(--fg))]">Möglicher Anschluss:</span> {section.connectionLabel}</p>
+                  <p className="mt-1 text-sm text-[rgb(var(--muted))]"><span className="font-semibold text-[rgb(var(--fg))]">Passender nächster Schritt:</span> {section.connectionLabel}</p>
                 ) : null}
               </details>
             ))}
@@ -721,7 +723,7 @@ function DetailsAccordion(props: {
         <summary className="cursor-pointer text-sm font-semibold text-[rgb(var(--fg))] md:text-base">
           {CREATE_VISUAL_FOLLOWUP_COPY.impactTitle}
         </summary>
-        <div className="mt-3 grid gap-2 sm:grid-cols-2">
+        <div className="mt-3 grid gap-3">
           {props.sortedSuggestions.map((suggestion) => {
             const toneKind: CreateVisualNode["kind"] =
               suggestion.kind === "dossier"
@@ -877,7 +879,7 @@ export default function CreateVisualFollowup({
             </p>
             <div className="mt-3 flex flex-wrap gap-2">
               <Link href={primaryActionHref} className="btn-secondary min-h-[40px] px-3 py-2 text-sm">
-                Dossier-Kontext öffnen
+                Thema öffnen
               </Link>
               {voteSuggestion ? (
                 <Link
@@ -891,7 +893,7 @@ export default function CreateVisualFollowup({
                   })}
                   className="btn-secondary min-h-[40px] px-3 py-2 text-sm"
                 >
-                  Claims/Abstimmungen prüfen
+                  Aussagen / Abstimmungen prüfen
                 </Link>
               ) : (
                 <Link href={primaryActionHref} className="btn-secondary min-h-[40px] px-3 py-2 text-sm">
@@ -937,7 +939,7 @@ export default function CreateVisualFollowup({
 
       <div className="sticky bottom-2 z-10 rounded-xl border border-cyan-500/30 bg-white/95 px-3 py-2 shadow-xl shadow-cyan-950/10 backdrop-blur md:hidden dark:border-cyan-300/45 dark:bg-[rgb(var(--card))]/95 dark:shadow-black/20">
         <p className="text-sm font-semibold text-[rgb(var(--fg))]">{CREATE_VISUAL_FOLLOWUP_COPY.confirmTitle}</p>
-        <p className="text-xs text-[rgb(var(--muted))]">Keine automatische Stimme oder Veröffentlichung.</p>
+        <p className="text-xs text-[rgb(var(--muted))]">{CREATE_VISUAL_FOLLOWUP_COPY.freeWriteHint}</p>
         <div className="mt-2 grid grid-cols-2 gap-2">
           <button type="button" className="btn-primary min-h-[40px] px-2 py-2 text-sm" onClick={onConfirm}>
             Ja, Struktur übernehmen
