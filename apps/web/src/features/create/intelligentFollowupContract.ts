@@ -1,3 +1,8 @@
+import {
+  resolvePart06CategoryLabels,
+  type Part06CategoryKey,
+} from "@/features/create/part06TopicMapping";
+
 export type FollowupConfidence = "low" | "medium" | "high";
 
 export type CreateUnderstandingStatementKind =
@@ -106,6 +111,9 @@ export type CreateStructureBranch = {
   id: string;
   title: string;
   topics: string[];
+  topicTags: string[];
+  part06CategoryKeys: Part06CategoryKey[];
+  part06CategoryLabels: string[];
   need: string;
   claims: string[];
   voteQuestions: string[];
@@ -423,6 +431,9 @@ type BranchDefinition = {
   title: string;
   topicPatterns: RegExp[];
   textPatterns: RegExp[];
+  topicTagRules: Array<{ label: string; pattern: RegExp }>;
+  defaultTopicTags: string[];
+  part06CategoryKeys: Part06CategoryKey[];
   defaultNeed: string;
   defaultQuestion: string;
 };
@@ -433,6 +444,13 @@ const STRUCTURE_BRANCH_DEFINITIONS: readonly BranchDefinition[] = [
     title: "Wohnen und Genehmigungen",
     topicPatterns: [/wohnen/i],
     textPatterns: [/wohn|miete|genehmigung|bau|leerstand|zweckentfremdung|auflagen|invest/i],
+    topicTagRules: [
+      { label: "Wohnen", pattern: /wohn|miete|wohnungsbau|leerstand/i },
+      { label: "Genehmigungen", pattern: /genehmigung|auflagen/i },
+      { label: "Stadtentwicklung", pattern: /bau|neubau|invest|zweckentfremdung/i },
+    ],
+    defaultTopicTags: ["Wohnen", "Genehmigungen", "Stadtentwicklung"],
+    part06CategoryKeys: ["mobility_urban", "local_community"],
     defaultNeed: "Wohnungsbau, Zweckentfremdung, Auflagen und Investitionen müssen gemeinsam abgewogen werden.",
     defaultQuestion: "Soll kommunaler Wohnungsbau schneller genehmigt werden, auch wenn Auflagen vereinfacht werden?",
   },
@@ -441,6 +459,14 @@ const STRUCTURE_BRANCH_DEFINITIONS: readonly BranchDefinition[] = [
     title: "Verkehr, Klima und Alltagstauglichkeit",
     topicPatterns: [/verkehr/i, /klima/i],
     textPatterns: [/verkehr|bus|bahn|radweg|auto|handwerker|pflege|familie|klima|mobilit/i],
+    topicTagRules: [
+      { label: "ÖPNV", pattern: /öpnv|bus|bahn/i },
+      { label: "Radwege", pattern: /radweg|radwege|fahrrad/i },
+      { label: "Auto", pattern: /auto|autonutzung|handwerker/i },
+      { label: "Klimaziele", pattern: /klima|klimaziel|emission/i },
+    ],
+    defaultTopicTags: ["ÖPNV", "Radwege", "Auto", "Klimaziele"],
+    part06CategoryKeys: ["mobility_urban", "climate_environment"],
     defaultNeed: "Verkehrswende, Klimaziele und notwendige Autonutzung treffen im Alltag aufeinander.",
     defaultQuestion: "Wie soll die Stadt zwischen Klimazielen und notwendiger Autonutzung abwägen?",
   },
@@ -449,6 +475,14 @@ const STRUCTURE_BRANCH_DEFINITIONS: readonly BranchDefinition[] = [
     title: "Bildung, Integration und Sicherheit",
     topicPatterns: [/bildung/i, /migration|integration/i, /sicherheit|rechtsstaat/i],
     textPatterns: [/bildung|schule|digital|sprach|integration|migration|sicherheit|rechtsstaat|regelverst/i],
+    topicTagRules: [
+      { label: "Schule", pattern: /schule|schulen|bildung/i },
+      { label: "Sprachförderung", pattern: /sprachf[oö]rderung|sprach/i },
+      { label: "Integration", pattern: /integration|migration/i },
+      { label: "Regelverstöße", pattern: /regelverst|rechtsstaat|sicherheit/i },
+    ],
+    defaultTopicTags: ["Schule", "Sprachförderung", "Integration", "Regelverstöße"],
+    part06CategoryKeys: ["education_research", "migration_integration", "interior_security"],
     defaultNeed: "Bildung, Sprachförderung, Integration und Sicherheit brauchen nachvollziehbare Prioritäten.",
     defaultQuestion: "Soll Sprachförderung verbindlicher werden, ohne soziale Ausgrenzung zu verstärken?",
   },
@@ -457,6 +491,12 @@ const STRUCTURE_BRANCH_DEFINITIONS: readonly BranchDefinition[] = [
     title: "Gesundheit und Pflege",
     topicPatterns: [/gesundheit|pflege/i],
     textPatterns: [/gesundheit|pflege|pflegedienst/i],
+    topicTagRules: [
+      { label: "Pflege", pattern: /pflege|pflegedienst/i },
+      { label: "Gesundheitsversorgung", pattern: /gesundheit|arzt|versorgung/i },
+    ],
+    defaultTopicTags: ["Pflege", "Gesundheitsversorgung"],
+    part06CategoryKeys: ["health_care"],
     defaultNeed: "Gesundheit und Pflege sind als weiterer Prüfpunkt berührt.",
     defaultQuestion: "Welche Pflege- und Gesundheitsmaßnahmen sind kurzfristig am dringendsten?",
   },
@@ -465,6 +505,13 @@ const STRUCTURE_BRANCH_DEFINITIONS: readonly BranchDefinition[] = [
     title: "Finanzen und Beteiligung",
     topicPatterns: [/finanzen|beteiligung/i],
     textPatterns: [/kommunale finanz|haushalt|kosten|beteiligung|priorisieren|zust[aä]ndigkeit/i],
+    topicTagRules: [
+      { label: "Finanzen", pattern: /kommunale finanz|haushalt|kosten|finanzierung/i },
+      { label: "Bürgerbeteiligung", pattern: /b[uü]rgerbeteiligung|beteiligung|mitentscheiden|priorisieren/i },
+      { label: "Zuständigkeiten", pattern: /zust[aä]ndigkeit|kommune|verwaltung/i },
+    ],
+    defaultTopicTags: ["Finanzen", "Bürgerbeteiligung", "Zuständigkeiten"],
+    part06CategoryKeys: ["budget_finance", "democracy_elections", "local_community"],
     defaultNeed: "Finanzierbarkeit, Zuständigkeit und Beteiligung müssen im weiteren Arbeitsstand geklärt werden.",
     defaultQuestion: "Welche Prioritäten sind unter den aktuellen kommunalen Finanzen tragfähig?",
   },
@@ -511,6 +558,34 @@ function selectPositionClusters(
   return understanding.positionClusters?.map((cluster) => cluster.label).slice(0, 3) ?? [];
 }
 
+function selectBranchTopicTags(
+  sourceText: string,
+  topics: CreateUnderstandingResult["topics"],
+  branch: BranchDefinition,
+): string[] {
+  const tags: string[] = [];
+  const pushTag = (value?: string | null) => {
+    const normalized = String(value ?? "").trim();
+    if (!normalized || normalized === "Kommunale Prioritäten und Zielkonflikte" || tags.includes(normalized)) return;
+    tags.push(normalized);
+  };
+
+  for (const topic of topics) {
+    if (!topicMatchesBranch(topic.label, branch)) continue;
+    pushTag(topic.label);
+  }
+
+  for (const rule of branch.topicTagRules) {
+    if (rule.pattern.test(sourceText)) pushTag(rule.label);
+  }
+
+  for (const tag of branch.defaultTopicTags) {
+    pushTag(tag);
+  }
+
+  return tags.slice(0, 6);
+}
+
 export function buildCreateStructureBranches(
   result: CreateIntelligentFollowupResult,
   maxBranches: number = 3,
@@ -529,6 +604,9 @@ export function buildCreateStructureBranches(
       id: definition.id,
       title: definition.title,
       topics: matchedTopics.length > 0 ? matchedTopics : [definition.title],
+      topicTags: selectBranchTopicTags(sourceText, result.understanding.topics, definition),
+      part06CategoryKeys: [...definition.part06CategoryKeys],
+      part06CategoryLabels: resolvePart06CategoryLabels(definition.part06CategoryKeys),
       need: definition.defaultNeed,
       claims: selectBranchClaims(result.understanding.statements, definition),
       voteQuestions: [definition.defaultQuestion],

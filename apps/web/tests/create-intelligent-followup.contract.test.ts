@@ -14,6 +14,10 @@ import {
   buildCreateVisualMap,
   buildCreateVisualSections,
 } from "@/features/create/intelligentFollowupContract";
+import {
+  PART06_CATEGORY_KEYS,
+  PART06_CATEGORY_LABEL_BY_KEY,
+} from "@/features/create/part06TopicMapping";
 
 function analyzeFixture() {
   return {
@@ -232,7 +236,7 @@ describe("create intelligent follow-up contract", () => {
       intent: "contribute",
     });
 
-    const branches = buildCreateStructureBranches(result, 3);
+    const branches = buildCreateStructureBranches(result, 5);
     expect(result.understanding.dossierContext).toBe("Kommunale Prioritäten und Zielkonflikte");
     expect(branches.length).toBeGreaterThanOrEqual(3);
     expect(branches.map((branch) => branch.title)).toEqual(
@@ -250,7 +254,57 @@ describe("create intelligent follow-up contract", () => {
         "Soll Sprachförderung verbindlicher werden, ohne soziale Ausgrenzung zu verstärken?",
       ]),
     );
+    expect(branches.flatMap((branch) => branch.part06CategoryKeys)).toEqual(
+      expect.arrayContaining([
+        "mobility_urban",
+        "local_community",
+        "climate_environment",
+        "education_research",
+        "migration_integration",
+        "interior_security",
+        "health_care",
+        "budget_finance",
+        "democracy_elections",
+      ]),
+    );
+    const housingBranch = branches.find((branch) => branch.title === "Wohnen und Genehmigungen");
+    expect(housingBranch?.topicTags).toEqual(
+      expect.arrayContaining(["Wohnen", "Genehmigungen", "Stadtentwicklung"]),
+    );
+    expect(housingBranch?.part06CategoryLabels).toEqual(
+      expect.arrayContaining(["Mobilität & Stadtentwicklung", "Kommunales & Lebensumfeld"]),
+    );
+    const trafficBranch = branches.find((branch) => branch.title === "Verkehr, Klima und Alltagstauglichkeit");
+    expect(trafficBranch?.topicTags).toEqual(expect.arrayContaining(["ÖPNV", "Radwege", "Klimaziele"]));
+    const educationBranch = branches.find((branch) => branch.title === "Bildung, Integration und Sicherheit");
+    expect(educationBranch?.part06CategoryKeys).toEqual(
+      expect.arrayContaining(["education_research", "migration_integration", "interior_security"]),
+    );
     expect(branches.every((branch) => branch.openReviewPoints.length > 0)).toBe(true);
+  });
+
+  it("keeps exactly the 15 Part06 categories as the create mapping baseline", () => {
+    expect(PART06_CATEGORY_KEYS).toHaveLength(15);
+    expect(PART06_CATEGORY_KEYS).toEqual([
+      "democracy_elections",
+      "budget_finance",
+      "work_economy",
+      "social_family",
+      "education_research",
+      "health_care",
+      "climate_environment",
+      "energy_infrastructure",
+      "mobility_urban",
+      "interior_security",
+      "justice_law",
+      "migration_integration",
+      "digital_media",
+      "europe_foreign",
+      "local_community",
+    ]);
+    expect(PART06_CATEGORY_LABEL_BY_KEY.work_economy).toBe("Arbeit & Wirtschaft");
+    expect(PART06_CATEGORY_LABEL_BY_KEY.mobility_urban).toBe("Mobilität & Stadtentwicklung");
+    expect(PART06_CATEGORY_LABEL_BY_KEY.local_community).toBe("Kommunales & Lebensumfeld");
   });
 
   it("marks vote suggestions as explicit confirmation only", async () => {
