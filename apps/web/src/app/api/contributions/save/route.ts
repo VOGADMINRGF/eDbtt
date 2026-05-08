@@ -121,6 +121,8 @@ export async function POST(req: NextRequest) {
   const safety = evaluateCreateInputSafety({
     text: normalizedText,
     locale: body.locale ?? "de",
+    routeStage: "save",
+    draftId: body.draftId ?? null,
   });
 
   if (safety.decision === "blocked") {

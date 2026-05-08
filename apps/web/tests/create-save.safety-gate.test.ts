@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
 import { ObjectId } from "mongodb";
+import { CREATE_SAFETY_ADVERSARIAL_FIXTURES } from "./fixtures/createSafetyAdversarialFixtures";
 
 const mocks = vi.hoisted(() => {
   type AnyDoc = Record<string, any>;
@@ -68,7 +69,7 @@ describe("create save safety gate", () => {
   it("blocks save on blocked safety decision", async () => {
     const res = await POST(
       req({
-        textPrepared: "Ich bringe dich um.",
+        textPrepared: CREATE_SAFETY_ADVERSARIAL_FIXTURES.threat,
         createMode: "source",
       }),
     );
@@ -83,7 +84,7 @@ describe("create save safety gate", () => {
   it("stores redacted text when pii is present", async () => {
     const res = await POST(
       req({
-        textPrepared: "Kontakt: max@example.org, +49 171 1234567, Musterstraße 12.",
+        textPrepared: CREATE_SAFETY_ADVERSARIAL_FIXTURES.selfPii,
         createMode: "source",
       }),
     );
@@ -95,12 +96,14 @@ describe("create save safety gate", () => {
     expect(saved[0].text).not.toContain("max@example.org");
     expect(saved[0].text).toContain("[E-MAIL ENTFERNT]");
     expect(saved[0].analysis?.safety?.decision).toBeTruthy();
+    expect(JSON.stringify(saved[0].analysis?.safety?.telemetry ?? {})).not.toContain("1234567");
+    expect(saved[0].analysis?.safety?.telemetry?.routeStage).toBe("save");
   });
 
   it("saves moderation-required draft but keeps safety in analysis", async () => {
     const res = await POST(
       req({
-        textPrepared: "Wenn nichts passiert, regeln wir das per Selbstjustiz.",
+        textPrepared: CREATE_SAFETY_ADVERSARIAL_FIXTURES.selfJustice,
         createMode: "source",
       }),
     );
@@ -110,5 +113,21 @@ describe("create save safety gate", () => {
     expect(body.safety.decision).toBe("moderation_required");
     const saved = mocks.readAll();
     expect(saved[0].analysis?.safety?.decision).toBe("moderation_required");
+  });
+
+  it("saves safe verification questions with review items but without raw pii in review data", async () => {
+    const res = await POST(
+      req({
+        textPrepared: CREATE_SAFETY_ADVERSARIAL_FIXTURES.safeQuestionOnUnsafeClaim,
+        createMode: "source",
+      }),
+    );
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.ok).toBe(true);
+    expect(body.safety.decision).toBe("allow");
+    const saved = mocks.readAll();
+    expect(saved[0].analysis?.safety?.reviewItems?.length).toBeGreaterThan(0);
+    expect(JSON.stringify(saved[0].analysis?.safety?.reviewItems ?? [])).not.toContain("9999999");
   });
 });

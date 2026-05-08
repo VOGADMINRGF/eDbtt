@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
+import { CREATE_SAFETY_ADVERSARIAL_FIXTURES } from "./fixtures/createSafetyAdversarialFixtures";
 
 const mocks = vi.hoisted(() => ({
   analyzeContribution: vi.fn(),
@@ -103,17 +104,18 @@ describe("create analyze safety gate", () => {
   });
 
   it("blocks concrete violence before analyze", async () => {
-    const res = await POST(req("Ich bringe dich um."));
+    const res = await POST(req(CREATE_SAFETY_ADVERSARIAL_FIXTURES.threat));
     expect(res.status).toBe(422);
     const body = await res.json();
     expect(body.ok).toBe(false);
     expect(body.errorCode).toBe("CREATE_INPUT_BLOCKED");
     expect(body.safety.decision).toBe("blocked");
+    expect(body.safety.reviewItems.length).toBeGreaterThan(0);
     expect(mocks.analyzeContribution).not.toHaveBeenCalled();
   });
 
   it("returns moderation review envelope without running provider", async () => {
-    const res = await POST(req("Wenn nichts passiert, machen wir Selbstjustiz."));
+    const res = await POST(req(CREATE_SAFETY_ADVERSARIAL_FIXTURES.selfJustice));
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.ok).toBe(true);
@@ -126,13 +128,25 @@ describe("create analyze safety gate", () => {
   });
 
   it("continues analyze for factcheck_required but attaches safety meta", async () => {
-    const res = await POST(req("Die Presse schreibt nur für Investoren, das kostet 40 Millionen."));
+    const res = await POST(req(CREATE_SAFETY_ADVERSARIAL_FIXTURES.allegation));
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.ok).toBe(true);
     expect(body.safety.decision).toBe("factcheck_required");
     expect(body.meta.safety.decision).toBe("factcheck_required");
     expect(body.createAnalyze.safety.decision).toBe("factcheck_required");
+    expect(mocks.analyzeContribution).toHaveBeenCalledTimes(1);
+  });
+
+  it("continues analyze for safe verification questions and keeps safety telemetry pii-free", async () => {
+    const res = await POST(req(CREATE_SAFETY_ADVERSARIAL_FIXTURES.safeQuestionOnUnsafeClaim));
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.ok).toBe(true);
+    expect(body.safety.decision).toBe("allow");
+    expect(body.safety.telemetry.routeStage).toBe("analyze");
+    expect(body.safety.factCheckCandidates[0]?.truthStatus).toBe("open");
+    expect(JSON.stringify(body.safety.telemetry)).not.toContain("Investoren");
     expect(mocks.analyzeContribution).toHaveBeenCalledTimes(1);
   });
 });

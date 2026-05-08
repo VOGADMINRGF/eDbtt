@@ -176,6 +176,8 @@ export async function POST(req: NextRequest) {
       evaluateCreateInputSafety({
         text: String(claim?.text ?? ""),
         locale: "de",
+        routeStage: "finalize",
+        draftId: body.draftId,
       }),
     );
 
@@ -205,11 +207,13 @@ export async function POST(req: NextRequest) {
     if (draftSafety?.decision === "factcheck_required") {
       const hasUnsupportedClaim = selectedClaims.some((claim: any) => {
         const text = String(claim?.text ?? "");
-        const safety = evaluateCreateInputSafety({ text, locale: "de" });
-        return safety.findings.some(
-          (finding) =>
-            finding.kind === "unsupported_allegation" || finding.kind === "unverified_number",
-        );
+        const safety = evaluateCreateInputSafety({
+          text,
+          locale: "de",
+          routeStage: "finalize",
+          draftId: body.draftId,
+        });
+        return safety.decision === "factcheck_required";
       });
       if (hasUnsupportedClaim) {
         return NextResponse.json(

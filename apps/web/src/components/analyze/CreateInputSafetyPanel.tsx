@@ -22,10 +22,14 @@ export default function CreateInputSafetyPanel({ safety }: CreateInputSafetyPane
     finding.kind === "street_address" ||
     finding.kind === "postal_code" ||
     finding.kind === "doxxing" ||
-    finding.kind === "insult" ||
-    finding.kind === "threat" ||
+    finding.kind === "insult_public_actor" ||
+    finding.kind === "insult_private_person" ||
+    finding.kind === "group_abuse" ||
+    finding.kind === "threat_concrete" ||
+    finding.kind === "threat_implicit" ||
     finding.kind === "self_justice",
   );
+  const reviewItems = safety.reviewItems.filter((item) => item.action !== "redact");
 
   return (
     <section className="rounded-2xl border border-amber-300/50 bg-amber-50/70 p-4 text-sm text-amber-950 dark:border-amber-400/40 dark:bg-amber-500/10 dark:text-amber-100">
@@ -43,6 +47,11 @@ export default function CreateInputSafetyPanel({ safety }: CreateInputSafetyPane
         <div className="rounded-lg border border-amber-300/55 bg-white/80 px-3 py-2 dark:border-amber-300/35 dark:bg-[rgb(var(--card))]">
           <p className="text-xs font-semibold uppercase tracking-wide">So haben wir es verstanden</p>
           <p className="mt-1 text-sm">{safety.safeRewrite}</p>
+          {safety.redactedText !== safety.safeRewrite ? (
+            <p className="mt-2 text-xs text-amber-900/80 dark:text-amber-100/80">
+              Redigierte Fassung: {safety.redactedText}
+            </p>
+          ) : null}
         </div>
 
         {omitted.length > 0 ? (
@@ -56,12 +65,29 @@ export default function CreateInputSafetyPanel({ safety }: CreateInputSafetyPane
           </div>
         ) : null}
 
+        {reviewItems.length > 0 ? (
+          <div className="rounded-lg border border-amber-300/55 bg-white/80 px-3 py-2 dark:border-amber-300/35 dark:bg-[rgb(var(--card))]">
+            <p className="text-xs font-semibold uppercase tracking-wide">Review-Hinweise</p>
+            <ul className="mt-1 list-disc pl-4 text-sm">
+              {reviewItems.slice(0, 5).map((item) => (
+                <li key={item.id}>
+                  {item.summary}
+                  {item.sanitizedExcerpt ? ` (${item.sanitizedExcerpt})` : ""}
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
+
         {safety.factCheckCandidates.length > 0 ? (
           <div className="rounded-lg border border-amber-300/55 bg-white/80 px-3 py-2 dark:border-amber-300/35 dark:bg-[rgb(var(--card))]">
             <p className="text-xs font-semibold uppercase tracking-wide">Prüfpflichtige Behauptungen</p>
             <ul className="mt-1 list-disc pl-4 text-sm">
               {safety.factCheckCandidates.slice(0, 5).map((candidate, idx) => (
-                <li key={`${candidate}-${idx}`}>{candidate}</li>
+                <li key={`${candidate.id}-${idx}`}>
+                  {candidate.text}
+                  {candidate.safeQuestion ? " (als Prüffrage weiterführbar)" : ""}
+                </li>
               ))}
             </ul>
           </div>
