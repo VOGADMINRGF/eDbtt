@@ -363,11 +363,36 @@ function StructureBranchCard(props: {
         </div>
       </div>
       <div className="mt-3 flex flex-wrap gap-2">
-        {props.branch.topics.map((topic) => (
-          <span key={`${props.branch.id}-topic-${topic}`} className={`rounded-full border px-2.5 py-1 text-xs ${resolveNodeTone("topic")}`}>
-            {topic}
+        {props.branch.part06CategoryLabels.map((label) => (
+          <span key={`${props.branch.id}-part06-${label}`} className={`rounded-full border px-2.5 py-1 text-xs ${resolveNodeTone("dossier")}`}>
+            {label}
           </span>
         ))}
+      </div>
+      <div className="mt-3">
+        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">Einordnung im Themenkatalog</p>
+        <div className="mt-2 flex flex-wrap gap-2">
+          {props.branch.topicTags.map((topic) => (
+            <span key={`${props.branch.id}-topic-${topic}`} className={`rounded-full border px-2.5 py-1 text-xs ${resolveNodeTone("topic")}`}>
+              {topic}
+            </span>
+          ))}
+        </div>
+      </div>
+      <div className="mt-3 space-y-2">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">Themenfelder im Ast</p>
+          <div className="mt-1 flex flex-wrap gap-2">
+            {props.branch.topics.map((topic) => (
+              <span
+                key={`${props.branch.id}-field-${topic}`}
+                className="rounded-full border border-[rgb(var(--border))] px-2.5 py-1 text-xs text-[rgb(var(--muted))]"
+              >
+                {topic}
+              </span>
+            ))}
+          </div>
+        </div>
       </div>
       <div className="mt-3 space-y-2">
         <div>

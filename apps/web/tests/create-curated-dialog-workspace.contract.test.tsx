@@ -56,6 +56,7 @@ describe("create curated dialog workspace contract", () => {
     expect(followupSource).toContain("Vorgeschlagener Arbeitsstand");
     expect(followupSource).toContain("Strukturäste");
     expect(followupSource).toContain("Dossier-Kontext / Oberthema");
+    expect(followupSource).toContain("Einordnung im Themenkatalog");
     expect(followupSource).toContain("Mögliche Claims");
     expect(followupSource).toContain("Offene Prüfpunkte");
     expect(followupSource).toContain("Ja, Struktur übernehmen");
@@ -111,6 +112,9 @@ describe("create curated dialog workspace contract", () => {
     const branchActionIndex = followupSource.indexOf("Aussage ergänzen");
 
     expect(followupSource).toContain("buildCreateStructureBranches");
+    expect(contractSource).toContain("part06CategoryKeys");
+    expect(contractSource).toContain("part06CategoryLabels");
+    expect(contractSource).toContain("topicTags");
     expect(contractSource).toContain("Wohnen und Genehmigungen");
     expect(contractSource).toContain("Verkehr, Klima und Alltagstauglichkeit");
     expect(contractSource).toContain("Bildung, Integration und Sicherheit");
