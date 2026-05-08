@@ -12,9 +12,18 @@ describe("create curated dialog workspace contract", () => {
       resolve(process.cwd(), "src/features/create/CreateVisualFollowup.tsx"),
       "utf8",
     );
+    const linkClarificationSource = readFileSync(
+      resolve(process.cwd(), "src/features/create/CreateLinkIntakeClarification.tsx"),
+      "utf8",
+    );
+    const linkIntakeSource = readFileSync(
+      resolve(process.cwd(), "src/features/create/linkIntake.ts"),
+      "utf8",
+    );
 
     expect(clientSource).toContain("SharedCreateComposer");
     expect(clientSource).toContain("CreateVisualFollowup");
+    expect(clientSource).toContain("CreateLinkIntakeClarification");
     expect(clientSource).toContain("create-dialog-workspace");
     expect(clientSource).toContain("embeddedWorkspace");
     expect(followupSource).toContain("create-chat-workspace");
@@ -27,11 +36,17 @@ describe("create curated dialog workspace contract", () => {
     expect(followupSource).toContain("StructureBranchCard");
     expect(followupSource).toContain("FollowupActionRail");
     expect(followupSource).toContain("DetailsAccordion");
+    expect(linkClarificationSource).toContain("Ich habe einen Link erkannt. Was soll damit passieren?");
+    expect(linkIntakeSource).toContain("Als Quelle zu einem Dossier hinzufügen");
   });
 
   it("renders dialog roles and keeps primary action explicit", () => {
     const followupSource = readFileSync(
       resolve(process.cwd(), "src/features/create/CreateVisualFollowup.tsx"),
+      "utf8",
+    );
+    const linkClarificationSource = readFileSync(
+      resolve(process.cwd(), "src/features/create/CreateLinkIntakeClarification.tsx"),
       "utf8",
     );
 
@@ -53,6 +68,8 @@ describe("create curated dialog workspace contract", () => {
     expect(followupSource).not.toContain("Für später speichern");
     expect(followupSource).not.toContain("Dossiers & Abstimmungen ansehen");
     expect(followupSource).not.toContain("Nicht passend");
+    expect(linkClarificationSource).toContain("YouTube-Link erkannt.");
+    expect(linkClarificationSource).toContain("Extraktion wird vorbereitet. Der Inhalt wurde noch nicht automatisch ausgewertet.");
   });
 
   it("keeps details progressively disclosed after the core workstate", () => {

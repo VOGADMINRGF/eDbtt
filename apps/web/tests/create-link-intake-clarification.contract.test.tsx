@@ -1,0 +1,69 @@
+import { describe, expect, it } from "vitest";
+import { renderToStaticMarkup } from "react-dom/server";
+import CreateLinkIntakeClarification from "@/features/create/CreateLinkIntakeClarification";
+import {
+  buildCreateLinkSourceNotice,
+  detectCreateLinkIntake,
+} from "@/features/create/linkIntake";
+
+describe("create link intake clarification contract", () => {
+  it("detects link-only and multi-link inputs deterministically without network access", () => {
+    const youtubeDetection = detectCreateLinkIntake("https://youtu.be/demo123");
+    expect(youtubeDetection.hasLink).toBe(true);
+    expect(youtubeDetection.linkKind).toBe("youtube");
+    expect(youtubeDetection.linkOnly).toBe(true);
+    expect(youtubeDetection.mostlyLinkOnly).toBe(true);
+    expect(youtubeDetection.primaryUrl).toBe("https://youtu.be/demo123");
+
+    const multipleDetection = detectCreateLinkIntake("https://example.com/a https://example.com/b");
+    expect(multipleDetection.linkKind).toBe("multiple");
+    expect(multipleDetection.urls).toHaveLength(2);
+  });
+
+  it("keeps normal analysis available when a link comes with clear user context", () => {
+    const detection = detectCreateLinkIntake(
+      "Bitte prüft diesen Bericht zur Schulwegsicherheit und erklärt, welche Aussage zur Unfallentwicklung belastbar ist: https://example.com/bericht",
+    );
+
+    expect(detection.hasLink).toBe(true);
+    expect(detection.mostlyLinkOnly).toBe(false);
+    expect(detection.remainingWordCount).toBeGreaterThan(6);
+  });
+
+  it("renders the clarification options, youtube warning and honest guardrails", () => {
+    const html = renderToStaticMarkup(
+      <CreateLinkIntakeClarification
+        locale="de"
+        detection={detectCreateLinkIntake("https://youtube.com/watch?v=demo123")}
+        selectedIntentId="prepare_factcheck"
+        additionalContext="Bitte auf die Hauptaussage und die Quelle achten."
+        onSelectIntent={() => {}}
+        onAdditionalContextChange={() => {}}
+      />,
+    );
+
+    expect(html).toContain("Ich habe einen Link erkannt. Was soll damit passieren?");
+    expect(html).toContain("YouTube-Link erkannt.");
+    expect(html).toContain("Inhalt zusammenfassen");
+    expect(html).toContain("Aussagen / Claims extrahieren");
+    expect(html).toContain("Faktencheck vorbereiten");
+    expect(html).toContain("Als Quelle zu einem Dossier hinzufügen");
+    expect(html).toContain("Abstimmungsfragen ableiten");
+    expect(html).toContain("Gewählt: Faktencheck vorbereiten");
+    expect(html).toContain("Extraktion wird vorbereitet. Der Inhalt wurde noch nicht automatisch ausgewertet.");
+    expect(html).toContain("Keine automatische Kostenbuchung");
+    expect(html).toContain("Was ist an diesem Link wichtig?");
+  });
+
+  it("builds a source-only notice that does not claim automatic evaluation", () => {
+    const notice = buildCreateLinkSourceNotice({
+      locale: "de",
+      selectedIntentId: "extract_claims",
+    });
+
+    expect(notice).toContain("Gewählt: Aussagen / Claims extrahieren.");
+    expect(notice).toContain("Der Link wird als Quelle/Hinweis behandelt.");
+    expect(notice).not.toContain("automatisch extrahiert");
+    expect(notice).not.toContain("ausgelesen");
+  });
+});

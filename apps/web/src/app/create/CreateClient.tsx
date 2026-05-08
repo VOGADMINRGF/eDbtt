@@ -56,6 +56,14 @@ import {
   type CreateIntelligentFollowupResult,
 } from "@/features/create/intelligentFollowupContract";
 import CreateVisualFollowup from "@/features/create/CreateVisualFollowup";
+import CreateLinkIntakeClarification from "@/features/create/CreateLinkIntakeClarification";
+import {
+  buildCreateLinkIntakeMeta,
+  buildCreateLinkSourceNotice,
+  detectCreateLinkIntake,
+  type CreateLinkIntentOptionId,
+  type CreateLinkIntakeDetection,
+} from "@/features/create/linkIntake";
 
 export type CreateClientProps = {
   initialEntitlements: CreateEntitlements;
@@ -175,6 +183,12 @@ type CreateFollowupSurface = "none" | "lightweight" | "analysis";
 export type { CreateFollowupSurface };
 
 type CreateSaveState = "idle" | "saving" | "saved" | "error" | "unavailable";
+
+type CreateLinkClarificationState = {
+  detection: CreateLinkIntakeDetection;
+  selectedIntentId: CreateLinkIntentOptionId | null;
+  additionalContext: string;
+};
 
 export type CreateLightweightFollowupSnapshot = {
   originalText: string;
@@ -474,6 +488,8 @@ export default function CreateClient({
   const [activeContextAnchorId, setActiveContextAnchorId] = React.useState<CreateContextIntent | null>(null);
   const [hasStarted, setHasStarted] = React.useState<boolean>(false);
   const [isStarting, setIsStarting] = React.useState(false);
+  const [linkClarificationState, setLinkClarificationState] =
+    React.useState<CreateLinkClarificationState | null>(null);
   const [followupSurface, setFollowupSurface] = React.useState<CreateFollowupSurface>("none");
   const [followupSnapshot, setFollowupSnapshot] =
     React.useState<CreateLightweightFollowupSnapshot | null>(null);
@@ -585,6 +601,7 @@ export default function CreateClient({
   const intakePlaceholder = activeContextAnchor?.placeholder ?? productModeConfig.placeholder;
   const activeFollowupAnswer = followupAnswers[activeIntent];
   const activeFollowupSaved = followupAnswerSaved[activeIntent];
+  const currentLinkDetection = React.useMemo(() => detectCreateLinkIntake(intakeText), [intakeText]);
 
   const createOrchestration = React.useMemo(
     () =>
@@ -665,11 +682,12 @@ export default function CreateClient({
   const handleStart = React.useCallback(async () => {
     if (isStarting) return;
     const normalizedText = intakeText.trim();
+    const linkDetection = detectCreateLinkIntake(normalizedText);
     if (!normalizedText) {
       setIntakeError(surfaceTexts.intakeMissingError);
       return;
     }
-    if (normalizedText.length < MIN_INTENT_INPUT_LENGTH) {
+    if (normalizedText.length < MIN_INTENT_INPUT_LENGTH && !linkDetection.hasLink) {
       setIntakeError(productModeConfig.minimumInputHint);
       return;
     }
@@ -677,15 +695,46 @@ export default function CreateClient({
       const activeSelectedContext = selectedAnlassraumId
         ? contextItems.find((item) => item.anlassraumId === selectedAnlassraumId) ?? null
         : null;
+      setIntakeRestoreInfo(null);
+      setIntakeError(null);
+      setSaveState("idle");
+      setSaveMessage(null);
+      setFactcheckMessage(null);
+
+      if (linkDetection.hasLink && linkDetection.mostlyLinkOnly) {
+        setLinkClarificationState((current) => ({
+          detection: linkDetection,
+          selectedIntentId: current?.selectedIntentId ?? null,
+          additionalContext: current?.additionalContext ?? "",
+        }));
+        setFollowupSnapshot(null);
+        setWorkingState(null);
+        setIntelligentFollowup(null);
+        setUnderstandingConfirmed(false);
+        setActionNotice(null);
+        setHasStarted(true);
+        setFollowupSurface("none");
+        setGuidedBridgeConfirmed(productMode !== "guided");
+        return;
+      }
+
       const snapshot = buildCreateLightweightFollowupSnapshot({
         intakeText,
         modeLabel: productModeConfig.label,
         contextAnchorLabel: activeContextAnchor?.label,
         surfaceTexts,
       });
-      setIntakeRestoreInfo(null);
-      setIntakeError(null);
       setIsStarting(true);
+      setLinkClarificationState((current) =>
+        current && linkDetection.hasLink
+          ? {
+              ...current,
+              detection: linkDetection,
+            }
+          : linkDetection.hasLink
+            ? null
+            : null,
+      );
 
       let nextIntelligentFollowup: CreateIntelligentFollowupResult | null = null;
       if (productMode === "analyze") {
@@ -730,7 +779,14 @@ export default function CreateClient({
       );
       setIntelligentFollowup(nextIntelligentFollowup);
       setUnderstandingConfirmed(false);
-      setActionNotice(null);
+      setActionNotice(
+        linkDetection.hasLink
+          ? buildCreateLinkSourceNotice({
+              locale: surfaceLocale,
+              selectedIntentId: linkClarificationState?.selectedIntentId,
+            })
+          : null,
+      );
       setHasStarted(true);
       setGuidedBridgeConfirmed(productMode !== "guided");
 
@@ -763,6 +819,7 @@ export default function CreateClient({
     selectedAnlassraumId,
     surfaceLocale,
     surfaceTexts,
+    linkClarificationState?.selectedIntentId,
   ]);
 
   const handleSaveFollowupAnswer = React.useCallback(() => {
@@ -904,6 +961,9 @@ export default function CreateClient({
     hasStarted,
     intakeText,
   });
+  const showLinkClarification =
+    Boolean(linkClarificationState?.detection.hasLink) &&
+    Boolean(linkClarificationState?.detection.mostlyLinkOnly);
   const showIntelligentFollowup = shouldRenderCreateIntelligentFollowup({
     hasStarted,
     productMode,
@@ -930,9 +990,13 @@ export default function CreateClient({
         })
       : intakeText;
   const normalizedIntakeText = intakeText.trim();
-  const startDisabled = normalizedIntakeText.length < MIN_INTENT_INPUT_LENGTH || isStarting;
+  const startDisabled =
+    !normalizedIntakeText ||
+    ((!currentLinkDetection.hasLink && normalizedIntakeText.length < MIN_INTENT_INPUT_LENGTH) || isStarting);
   const showTooShortHint =
-    normalizedIntakeText.length > 0 && normalizedIntakeText.length < MIN_INTENT_INPUT_LENGTH;
+    normalizedIntakeText.length > 0 &&
+    normalizedIntakeText.length < MIN_INTENT_INPUT_LENGTH &&
+    !currentLinkDetection.hasLink;
   const startBusyStatusLabel =
     productMode === "analyze" ? "Wir ordnen deinen Beitrag ein …" : surfaceTexts.startBusyStatus;
   const actionSuggestionHref =
@@ -960,6 +1024,12 @@ export default function CreateClient({
       return;
     }
 
+    const linkIntakeMeta = buildCreateLinkIntakeMeta({
+      detection: linkClarificationState?.detection ?? currentLinkDetection,
+      selectedIntentId: linkClarificationState?.selectedIntentId,
+      additionalContext: linkClarificationState?.additionalContext,
+    });
+
     setSaveState("saving");
     setSaveMessage("Arbeitsstand wird gespeichert …");
     try {
@@ -978,6 +1048,7 @@ export default function CreateClient({
             ? {
                 intelligentFollowup,
                 understandingConfirmed,
+                linkIntake: linkIntakeMeta ?? undefined,
               }
             : undefined,
         }),
@@ -1005,6 +1076,8 @@ export default function CreateClient({
     showIntelligentFollowup,
     surfaceLocale,
     understandingConfirmed,
+    currentLinkDetection,
+    linkClarificationState,
   ]);
 
   if (gate.status === "loading") {
@@ -1049,6 +1122,7 @@ export default function CreateClient({
           setActiveContextAnchorId(null);
           setIntelligentFollowup(null);
           setUnderstandingConfirmed(false);
+          setLinkClarificationState(null);
           if (!hasStarted) return;
           setFollowupSurface("none");
           setGuidedBridgeConfirmed(modeOption !== "guided");
@@ -1062,6 +1136,15 @@ export default function CreateClient({
           setIntakeText(value);
           if (intakeRestoreInfo) setIntakeRestoreInfo(null);
           if (intakeError) setIntakeError(null);
+          setLinkClarificationState((current) => {
+            if (!current) return null;
+            const nextDetection = detectCreateLinkIntake(value);
+            if (!nextDetection.hasLink) return null;
+            return {
+              ...current,
+              detection: nextDetection,
+            };
+          });
         }}
         onStart={handleStart}
         startLabel={productModeConfig.ctaLabel}
@@ -1079,6 +1162,7 @@ export default function CreateClient({
           setActiveContextAnchorId(anchorId);
           setIntelligentFollowup(null);
           setUnderstandingConfirmed(false);
+          setLinkClarificationState(null);
           if (!anchor) return;
           setProductMode(anchor.mode);
           if (!hasStarted) return;
@@ -1121,6 +1205,35 @@ export default function CreateClient({
         </section>
       ) : null}
 
+      {showLinkClarification && linkClarificationState ? (
+        <CreateLinkIntakeClarification
+          locale={surfaceLocale}
+          detection={linkClarificationState.detection}
+          selectedIntentId={linkClarificationState.selectedIntentId}
+          additionalContext={linkClarificationState.additionalContext}
+          onSelectIntent={(intentId) => {
+            setLinkClarificationState((current) =>
+              current
+                ? {
+                    ...current,
+                    selectedIntentId: intentId,
+                  }
+                : current,
+            );
+          }}
+          onAdditionalContextChange={(value) => {
+            setLinkClarificationState((current) =>
+              current
+                ? {
+                    ...current,
+                    additionalContext: value,
+                  }
+                : current,
+            );
+          }}
+        />
+      ) : null}
+
       {showIntelligentFollowup && intelligentFollowup ? (
         <div
           ref={intelligentFollowupResultRef}
@@ -1152,7 +1265,7 @@ export default function CreateClient({
       ) : null}
       </section>
 
-      {showPostInputModules && !showIntelligentFollowup ? (
+      {showPostInputModules && !showIntelligentFollowup && !showLinkClarification ? (
         <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 md:p-5">
           <p className="text-sm font-semibold text-[rgb(var(--fg))]">{productModeConfig.postStartTitle}</p>
           <p className="mt-1 text-sm text-[rgb(var(--muted))]">{productModeConfig.postStartLead}</p>
@@ -1172,7 +1285,7 @@ export default function CreateClient({
         </section>
       ) : null}
 
-      {showFollowupQuestionCard ? (
+      {showFollowupQuestionCard && !showLinkClarification ? (
         <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 md:p-5">
           <p className="text-sm font-semibold text-[rgb(var(--fg))]">{surfaceTexts.followupQuestionLabel}</p>
           <p className="mt-1 text-sm text-[rgb(var(--muted))]">{productModeConfig.firstQuestion}</p>
@@ -1212,7 +1325,7 @@ export default function CreateClient({
         </section>
       ) : null}
 
-      {showPostInputModules && pickerEnabled ? (
+      {showPostInputModules && pickerEnabled && !showLinkClarification ? (
         <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 md:p-5">
           <div className="space-y-2">
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[rgb(var(--muted))]">{text.contextPickerTitle}</p>
@@ -1297,7 +1410,7 @@ export default function CreateClient({
         </section>
       ) : null}
 
-      {showPostInputModules ? (
+      {showPostInputModules && !showLinkClarification ? (
         <details className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4">
           <summary className="cursor-pointer text-sm font-semibold text-[rgb(var(--fg))]">{text.quotasTitle}</summary>
           <div className="mt-3 flex flex-wrap items-center gap-2 text-[11px] text-[rgb(var(--muted))]">
@@ -1316,7 +1429,7 @@ export default function CreateClient({
         </details>
       ) : null}
 
-      {showPostInputModules && workingState && !showIntelligentFollowup ? (
+      {showPostInputModules && workingState && !showIntelligentFollowup && !showLinkClarification ? (
         <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 md:p-5">
           <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[rgb(var(--muted))]">
             {productModeConfig.workingStateTitle}
