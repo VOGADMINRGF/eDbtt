@@ -23,6 +23,8 @@ describe("create curated dialog workspace contract", () => {
     expect(followupSource).toContain("UserContributionBubble");
     expect(followupSource).toContain("AssistantUnderstandingBubble");
     expect(followupSource).toContain("StructuredWorkstateBlock");
+    expect(followupSource).toContain("StructureBranchList");
+    expect(followupSource).toContain("StructureBranchCard");
     expect(followupSource).toContain("FollowupActionRail");
     expect(followupSource).toContain("DetailsAccordion");
   });
@@ -37,6 +39,10 @@ describe("create curated dialog workspace contract", () => {
     expect(followupSource).toContain("eDebatte");
     expect(followupSource).toContain("Nächster Schritt");
     expect(followupSource).toContain("Vorgeschlagener Arbeitsstand");
+    expect(followupSource).toContain("Strukturäste");
+    expect(followupSource).toContain("Dossier-Kontext / Oberthema");
+    expect(followupSource).toContain("Mögliche Claims");
+    expect(followupSource).toContain("Offene Prüfpunkte");
     expect(followupSource).toContain("Ja, Struktur übernehmen");
     expect(followupSource).toContain("Arbeitsstand speichern");
     expect(followupSource).toContain("Faktencheck / Deep Search starten");
@@ -71,5 +77,31 @@ describe("create curated dialog workspace contract", () => {
     expect(followupSource).toContain("Kann nach Bestätigung unter");
     expect(followupSource).not.toContain("Zusatzservices (optional)");
     expect(followupSource).not.toContain("bg-cyan-50/80");
+  });
+
+  it("keeps multi-topic branches under the dossier context instead of dossier cards per topic", () => {
+    const followupSource = readFileSync(
+      resolve(process.cwd(), "src/features/create/CreateVisualFollowup.tsx"),
+      "utf8",
+    );
+    const contractSource = readFileSync(
+      resolve(process.cwd(), "src/features/create/intelligentFollowupContract.ts"),
+      "utf8",
+    );
+
+    const contextIndex = followupSource.indexOf("Dossier-Kontext / Oberthema");
+    const branchesIndex = followupSource.indexOf("<StructureBranchList");
+    const branchActionIndex = followupSource.indexOf("Aussage ergänzen");
+
+    expect(followupSource).toContain("buildCreateStructureBranches");
+    expect(contractSource).toContain("Wohnen und Genehmigungen");
+    expect(contractSource).toContain("Verkehr, Klima und Alltagstauglichkeit");
+    expect(contractSource).toContain("Bildung, Integration und Sicherheit");
+    expect(contextIndex).toBeGreaterThan(-1);
+    expect(branchesIndex).toBeGreaterThan(-1);
+    expect(branchActionIndex).toBeGreaterThan(-1);
+    expect(contextIndex).toBeLessThan(branchesIndex);
+    expect(followupSource).not.toContain("Dossier ansehen");
+    expect(followupSource).not.toContain("Dossier ansehen pro Thema");
   });
 });

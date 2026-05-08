@@ -10,6 +10,7 @@ vi.mock("@features/analyze/analyzeContribution", () => ({
 
 import { buildCreateIntelligentFollowup } from "@/features/create/intelligentFollowup";
 import {
+  buildCreateStructureBranches,
   buildCreateVisualMap,
   buildCreateVisualSections,
 } from "@/features/create/intelligentFollowupContract";
@@ -220,6 +221,36 @@ describe("create intelligent follow-up contract", () => {
     if (voteSuggestion) {
       expect(voteSuggestion.title).toBe("Welche kommunalen Prioritäten sollen zuerst bearbeitet werden?");
     }
+  });
+
+  it("derives multi-topic structure branches for broad municipal input", async () => {
+    mocks.analyzeContribution.mockRejectedValue(new Error("provider_failed"));
+    const result = await buildCreateIntelligentFollowup({
+      text:
+        "Wir brauchen schnellere Genehmigungen für kommunalen Wohnungsbau, aber Zweckentfremdung und Auflagen müssen fair bleiben. Verkehrspolitik muss Bus und Bahn, Radwege, Handwerker, Pflegekräfte und Familien berücksichtigen, ohne Klimaziele aufzugeben. Schulen brauchen digitale Ausstattung, verbindliche Sprachförderung und weniger Leistungsdruck. Migration und Integration dürfen nicht gegen Sicherheit und Rechtsstaat ausgespielt werden. Gesundheit, Pflege, kommunale Finanzen und Bürgerbeteiligung müssen mitgedacht werden.",
+      locale: "de",
+      intent: "contribute",
+    });
+
+    const branches = buildCreateStructureBranches(result, 3);
+    expect(result.understanding.dossierContext).toBe("Kommunale Prioritäten und Zielkonflikte");
+    expect(branches.length).toBeGreaterThanOrEqual(3);
+    expect(branches.map((branch) => branch.title)).toEqual(
+      expect.arrayContaining([
+        "Wohnen und Genehmigungen",
+        "Verkehr, Klima und Alltagstauglichkeit",
+        "Bildung, Integration und Sicherheit",
+      ]),
+    );
+    expect(branches[0]?.title).not.toMatch(/Teil \d/);
+    expect(branches.flatMap((branch) => branch.voteQuestions)).toEqual(
+      expect.arrayContaining([
+        "Soll kommunaler Wohnungsbau schneller genehmigt werden, auch wenn Auflagen vereinfacht werden?",
+        "Wie soll die Stadt zwischen Klimazielen und notwendiger Autonutzung abwägen?",
+        "Soll Sprachförderung verbindlicher werden, ohne soziale Ausgrenzung zu verstärken?",
+      ]),
+    );
+    expect(branches.every((branch) => branch.openReviewPoints.length > 0)).toBe(true);
   });
 
   it("marks vote suggestions as explicit confirmation only", async () => {
