@@ -102,6 +102,18 @@ export type CreateVisualSection = {
   connectionLabel?: string;
 };
 
+export type CreateStructureBranch = {
+  id: string;
+  title: string;
+  topics: string[];
+  need: string;
+  claims: string[];
+  voteQuestions: string[];
+  openReviewPoints: string[];
+  positionClusters: string[];
+  overflowTopics?: string[];
+};
+
 export type CreateFollowupDedupeResult = {
   prominentSummary: string;
   prominentCoreClaim: string;
@@ -404,4 +416,137 @@ export function buildCreateVisualSections(
     };
     return baseSection;
   });
+}
+
+type BranchDefinition = {
+  id: string;
+  title: string;
+  topicPatterns: RegExp[];
+  textPatterns: RegExp[];
+  defaultNeed: string;
+  defaultQuestion: string;
+};
+
+const STRUCTURE_BRANCH_DEFINITIONS: readonly BranchDefinition[] = [
+  {
+    id: "housing-permits",
+    title: "Wohnen und Genehmigungen",
+    topicPatterns: [/wohnen/i],
+    textPatterns: [/wohn|miete|genehmigung|bau|leerstand|zweckentfremdung|auflagen|invest/i],
+    defaultNeed: "Wohnungsbau, Zweckentfremdung, Auflagen und Investitionen müssen gemeinsam abgewogen werden.",
+    defaultQuestion: "Soll kommunaler Wohnungsbau schneller genehmigt werden, auch wenn Auflagen vereinfacht werden?",
+  },
+  {
+    id: "traffic-climate-daily-life",
+    title: "Verkehr, Klima und Alltagstauglichkeit",
+    topicPatterns: [/verkehr/i, /klima/i],
+    textPatterns: [/verkehr|bus|bahn|radweg|auto|handwerker|pflege|familie|klima|mobilit/i],
+    defaultNeed: "Verkehrswende, Klimaziele und notwendige Autonutzung treffen im Alltag aufeinander.",
+    defaultQuestion: "Wie soll die Stadt zwischen Klimazielen und notwendiger Autonutzung abwägen?",
+  },
+  {
+    id: "education-integration-safety",
+    title: "Bildung, Integration und Sicherheit",
+    topicPatterns: [/bildung/i, /migration|integration/i, /sicherheit|rechtsstaat/i],
+    textPatterns: [/bildung|schule|digital|sprach|integration|migration|sicherheit|rechtsstaat|regelverst/i],
+    defaultNeed: "Bildung, Sprachförderung, Integration und Sicherheit brauchen nachvollziehbare Prioritäten.",
+    defaultQuestion: "Soll Sprachförderung verbindlicher werden, ohne soziale Ausgrenzung zu verstärken?",
+  },
+  {
+    id: "health-care",
+    title: "Gesundheit und Pflege",
+    topicPatterns: [/gesundheit|pflege/i],
+    textPatterns: [/gesundheit|pflege|pflegedienst/i],
+    defaultNeed: "Gesundheit und Pflege sind als weiterer Prüfpunkt berührt.",
+    defaultQuestion: "Welche Pflege- und Gesundheitsmaßnahmen sind kurzfristig am dringendsten?",
+  },
+  {
+    id: "finance-participation",
+    title: "Finanzen und Beteiligung",
+    topicPatterns: [/finanzen|beteiligung/i],
+    textPatterns: [/kommunale finanz|haushalt|kosten|beteiligung|priorisieren|zust[aä]ndigkeit/i],
+    defaultNeed: "Finanzierbarkeit, Zuständigkeit und Beteiligung müssen im weiteren Arbeitsstand geklärt werden.",
+    defaultQuestion: "Welche Prioritäten sind unter den aktuellen kommunalen Finanzen tragfähig?",
+  },
+];
+
+function topicMatchesBranch(topic: string, branch: BranchDefinition): boolean {
+  return branch.topicPatterns.some((pattern) => pattern.test(topic));
+}
+
+function textMatchesBranch(text: string, branch: BranchDefinition): boolean {
+  return branch.textPatterns.some((pattern) => pattern.test(text));
+}
+
+function statementMatchesBranch(statement: CreateUnderstandingResult["statements"][number], branch: BranchDefinition): boolean {
+  const combined = `${statement.text} ${statement.sourceExcerpt ?? ""}`;
+  return textMatchesBranch(combined, branch);
+}
+
+function selectBranchTopics(
+  topics: CreateUnderstandingResult["topics"],
+  branch: BranchDefinition,
+): string[] {
+  return topics
+    .map((topic) => topic.label)
+    .filter((label) => topicMatchesBranch(label, branch))
+    .slice(0, 4);
+}
+
+function selectBranchClaims(
+  statements: CreateUnderstandingResult["statements"],
+  branch: BranchDefinition,
+): string[] {
+  const claims = statements
+    .filter((statement) => statementMatchesBranch(statement, branch))
+    .map((statement) => statement.text)
+    .filter((text, index, list) => text.trim().length > 0 && list.indexOf(text) === index)
+    .slice(0, 2);
+  return claims.length > 0 ? claims : [branch.defaultNeed];
+}
+
+function selectPositionClusters(
+  understanding: CreateUnderstandingResult,
+): string[] {
+  return understanding.positionClusters?.map((cluster) => cluster.label).slice(0, 3) ?? [];
+}
+
+export function buildCreateStructureBranches(
+  result: CreateIntelligentFollowupResult,
+  maxBranches: number = 3,
+): CreateStructureBranch[] {
+  const sourceText = normalizeText(result.sourceText);
+  const topicLabels = result.understanding.topics.map((topic) => topic.label);
+  const positionClusters = selectPositionClusters(result.understanding);
+  const branches: CreateStructureBranch[] = [];
+
+  for (const definition of STRUCTURE_BRANCH_DEFINITIONS) {
+    const matchedTopics = selectBranchTopics(result.understanding.topics, definition);
+    const hasTextMatch = textMatchesBranch(sourceText, definition);
+    if (matchedTopics.length === 0 && !hasTextMatch) continue;
+
+    branches.push({
+      id: definition.id,
+      title: definition.title,
+      topics: matchedTopics.length > 0 ? matchedTopics : [definition.title],
+      need: definition.defaultNeed,
+      claims: selectBranchClaims(result.understanding.statements, definition),
+      voteQuestions: [definition.defaultQuestion],
+      openReviewPoints: ["Quellenlage prüfen", "Zuständigkeit klären", "Folgen und Zielkonflikte sauber abwägen"],
+      positionClusters,
+    });
+  }
+
+  if (branches.length <= maxBranches) return branches;
+
+  const visibleBranches = branches.slice(0, maxBranches);
+  const visibleTopics = new Set(visibleBranches.flatMap((branch) => branch.topics).map((topic) => normalizeText(topic)));
+  const overflowTopics = topicLabels.filter((label) => !visibleTopics.has(normalizeText(label)));
+  if (overflowTopics.length > 0) {
+    visibleBranches[visibleBranches.length - 1] = {
+      ...visibleBranches[visibleBranches.length - 1],
+      overflowTopics,
+    };
+  }
+  return visibleBranches;
 }

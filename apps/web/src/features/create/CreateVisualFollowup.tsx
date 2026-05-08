@@ -5,10 +5,12 @@ import Link from "next/link";
 import {
   buildCreateVisualMap,
   buildCreateVisualSections,
+  buildCreateStructureBranches,
   dedupeCreateFollowupSections,
   deriveDominantUnderstandingStance,
   type CreateConnectionSuggestion,
   type CreateIntelligentFollowupResult,
+  type CreateStructureBranch,
   type CreateVisualNode,
 } from "@/features/create/intelligentFollowupContract";
 import {
@@ -348,20 +350,122 @@ function VoteQuestionList(props: { questions: string[] }) {
   );
 }
 
+function StructureBranchCard(props: {
+  branch: CreateStructureBranch;
+  onEdit: (focus: string) => void;
+}) {
+  return (
+    <article className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--bg))]">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-sm font-semibold text-[rgb(var(--fg))] md:text-base">{props.branch.title}</p>
+          <p className="mt-1 text-sm text-[rgb(var(--muted))]">{props.branch.need}</p>
+        </div>
+      </div>
+      <div className="mt-3 flex flex-wrap gap-2">
+        {props.branch.topics.map((topic) => (
+          <span key={`${props.branch.id}-topic-${topic}`} className={`rounded-full border px-2.5 py-1 text-xs ${resolveNodeTone("topic")}`}>
+            {topic}
+          </span>
+        ))}
+      </div>
+      <div className="mt-3 space-y-2">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">Mögliche Claims</p>
+          <ul className="mt-1 space-y-1 text-sm text-[rgb(var(--fg))]">
+            {props.branch.claims.map((claim) => (
+              <li key={`${props.branch.id}-claim-${claim}`}>{claim}</li>
+            ))}
+          </ul>
+        </div>
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">Mögliche Abstimmungsfragen</p>
+          <ul className="mt-1 space-y-1 text-sm text-[rgb(var(--fg))]">
+            {props.branch.voteQuestions.map((question) => (
+              <li key={`${props.branch.id}-question-${question}`}>{question}</li>
+            ))}
+          </ul>
+        </div>
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">Offene Prüfpunkte</p>
+          <ul className="mt-1 space-y-1 text-sm text-[rgb(var(--muted))]">
+            {props.branch.openReviewPoints.map((point) => (
+              <li key={`${props.branch.id}-review-${point}`}>{point}</li>
+            ))}
+          </ul>
+        </div>
+      </div>
+      <div className="mt-3 flex flex-wrap gap-2">
+        {["Thema ändern", "Haltung ändern", "Ebene ändern", "Aussage ergänzen", "Abstimmungsfrage bearbeiten"].map((label) => (
+          <button
+            key={`${props.branch.id}-${label}`}
+            type="button"
+            className="rounded-full border border-[rgb(var(--border))] px-2 py-1 text-xs text-[rgb(var(--fg))] hover:border-cyan-300/60"
+            onClick={() => props.onEdit(`${props.branch.title}: ${label}`)}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+      <p className="mt-2 text-xs text-[rgb(var(--muted))]">Änderungsvorschläge werden reviewbar vorbereitet.</p>
+      {props.branch.overflowTopics?.length ? (
+        <details className="mt-3">
+          <summary className="cursor-pointer text-xs font-semibold text-[rgb(var(--muted))]">
+            + weitere Themen
+          </summary>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {props.branch.overflowTopics.map((topic) => (
+              <span key={`${props.branch.id}-overflow-${topic}`} className="rounded-full border border-[rgb(var(--border))] px-2 py-1 text-xs text-[rgb(var(--muted))]">
+                {topic}
+              </span>
+            ))}
+          </div>
+        </details>
+      ) : null}
+    </article>
+  );
+}
+
+function StructureBranchList(props: {
+  branches: CreateStructureBranch[];
+  onEdit: (focus: string) => void;
+}) {
+  if (props.branches.length < 2) return null;
+  return (
+    <div className="mt-4">
+      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">Strukturäste</p>
+      <div className="mt-2 grid gap-3 md:grid-cols-3">
+        {props.branches.map((branch) => (
+          <StructureBranchCard key={branch.id} branch={branch} onEdit={props.onEdit} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function StructuredWorkstateBlock(props: {
   rootTopic: string;
   topicLabels: string[];
   positionClusters: string[];
   voteQuestions: string[];
   keyStatement: string;
+  structureBranches: CreateStructureBranch[];
   onEdit: (focus: string) => void;
 }) {
+  const hasBranches = props.structureBranches.length >= 2;
   return (
     <div className="mt-5 space-y-4 border-t border-slate-200 pt-4 dark:border-[rgb(var(--border))]">
       <p className="text-sm font-semibold text-[rgb(var(--fg))] md:text-base">Vorgeschlagener Arbeitsstand</p>
       <p className="text-sm text-[rgb(var(--muted))] md:text-base">
         {CREATE_VISUAL_FOLLOWUP_COPY.graphTitle}
       </p>
+
+      <div className={`rounded-xl border px-3 py-2 ${resolveNodeTone("topic")}`}>
+        <p className="text-sm font-semibold">Dossier-Kontext / Oberthema</p>
+        <p className="mt-1 text-base font-semibold">{props.rootTopic}</p>
+      </div>
+
+      <StructureBranchList branches={props.structureBranches} onEdit={props.onEdit} />
 
       <div className="space-y-3 md:hidden">
         <div className="text-sm font-semibold text-cyan-900 dark:text-cyan-100">1. Dein Beitrag</div>
@@ -373,14 +477,14 @@ function StructuredWorkstateBlock(props: {
           <p className="text-sm font-semibold">{props.keyStatement}</p>
         </div>
         <div className="text-sm font-semibold text-cyan-900 dark:text-cyan-100">3. Themenfelder</div>
-        <TopicFieldList labels={props.topicLabels} onPick={props.onEdit} />
+        {hasBranches ? null : <TopicFieldList labels={props.topicLabels} onPick={props.onEdit} />}
         <div className="text-sm font-semibold text-cyan-900 dark:text-cyan-100">4. Blickrichtungen</div>
         <PositionClusterList labels={props.positionClusters} onPick={props.onEdit} />
         <div className="text-sm font-semibold text-cyan-900 dark:text-cyan-100">5. Mögliche Abstimmungsfragen</div>
-        <VoteQuestionList questions={props.voteQuestions} />
+        {hasBranches ? null : <VoteQuestionList questions={props.voteQuestions} />}
       </div>
 
-      <div className="hidden md:block">
+      <div className={hasBranches ? "hidden" : "hidden md:block"}>
         <div className="space-y-3">
           <div className={`max-w-2xl rounded-xl border px-4 py-3 ${resolveNodeTone("source_text")}`}>
             <p className="text-sm font-semibold">Dein Beitrag</p>
@@ -614,6 +718,7 @@ export default function CreateVisualFollowup({
   const sortedSuggestions = sortSuggestions(result.suggestions)
     .filter((suggestion) => suggestion.kind !== "topic")
     .slice(0, 4);
+  const structureBranches = React.useMemo(() => buildCreateStructureBranches(result, 3), [result]);
   const voteSuggestion = sortedSuggestions.find((suggestion) => suggestion.kind === "vote");
   const voteQuestions = React.useMemo(
     () =>
@@ -681,6 +786,7 @@ export default function CreateVisualFollowup({
           positionClusters={positionClusters}
           voteQuestions={voteQuestions}
           keyStatement={dedupedCopy.prominentCoreClaim}
+          structureBranches={structureBranches}
           onEdit={openCorrection}
         />
       </AssistantUnderstandingBubble>
