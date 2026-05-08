@@ -2,6 +2,7 @@ import type { AnalyzeResult } from "@features/analyze/schemas";
 import { resolveCreateCtaSuggestions } from "@/features/create/ctaResolver";
 import { resolveCreateLanguageContext } from "@/features/create/languageContextContract";
 import type { CreateIntent } from "@/features/create/intentFlows";
+import type { CreateClaimSafetyResult } from "@/features/create/safety/createClaimSafety";
 import type { CreateInputSafetyResult } from "@/features/create/safety/createInputSafety";
 
 export type CreateAnalyzeInputType =
@@ -105,6 +106,7 @@ export type CreateAnalyzeResponse = {
   noAutoPublish: true;
   noSilentMerge: true;
   safety?: CreateInputSafetyResult;
+  claimSafety?: CreateClaimSafetyResult[];
   provenanceRefs: string[];
   createdAt: string;
 };

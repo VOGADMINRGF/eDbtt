@@ -3089,7 +3089,13 @@ export default function AnalyzeWorkspace({
               ) : null}
 
               {analysisVerification ? <AnalyzeVerificationPanel verification={analysisVerification} /> : null}
-              {createInputSafety ? <CreateInputSafetyPanel safety={createInputSafety} /> : null}
+              {createInputSafety ? (
+                <CreateInputSafetyPanel
+                  safety={createInputSafety}
+                  claimSafety={createAnalyze?.claimSafety ?? null}
+                  selectedClaimIds={selectedClaimIds}
+                />
+              ) : null}
               {showGuidedCompanion ? (
                 <RouteBoundCompanionPanel
                   contextKind="guided_workspace"
@@ -3301,7 +3307,13 @@ export default function AnalyzeWorkspace({
               ) : null}
 
               {analysisVerification ? <AnalyzeVerificationPanel verification={analysisVerification} /> : null}
-              {createInputSafety ? <CreateInputSafetyPanel safety={createInputSafety} /> : null}
+              {createInputSafety ? (
+                <CreateInputSafetyPanel
+                  safety={createInputSafety}
+                  claimSafety={createAnalyze?.claimSafety ?? null}
+                  selectedClaimIds={selectedClaimIds}
+                />
+              ) : null}
               {showGuidedCompanion ? (
                 <RouteBoundCompanionPanel
                   contextKind="guided_workspace"

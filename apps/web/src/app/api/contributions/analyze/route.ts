@@ -43,6 +43,10 @@ import { resolveCreateLanguageContext } from "@/features/create/languageContextC
 import type { CreateProductMode } from "@/features/create/createProductModes";
 import type { CreateIntent } from "@/features/create/intentFlows";
 import {
+  evaluateCreateClaimSafety,
+  type CreateClaimSafetyResult,
+} from "@/features/create/safety/createClaimSafety";
+import {
   evaluateCreateInputSafety,
   type CreateInputSafetyResult,
 } from "@/features/create/safety/createInputSafety";
@@ -168,14 +172,41 @@ function resolveJourneyHintFromIntent(intent: CreateIntent): "analyze" | "media"
 function attachSafetyToCreateAnalyze(
   createAnalyze: ReturnType<typeof buildCreateAnalyzeResponse>,
   safety: CreateInputSafetyResult,
+  claimSafety: CreateClaimSafetyResult[],
 ) {
   return {
     ...createAnalyze,
     safety,
+    claimSafety,
     requiresHumanReview: createAnalyze.requiresHumanReview || safety.requiresHumanReview,
     noAutoPublish: true as const,
     noSilentMerge: true as const,
   };
+}
+
+function buildClaimSafetyForClaims(params: {
+  claims: unknown[];
+  locale: string;
+  sourceLanguage: string;
+  contentLanguage: string;
+}): CreateClaimSafetyResult[] {
+  if (!Array.isArray(params.claims)) return [];
+  return params.claims
+    .map((claim) => {
+      const text = typeof (claim as any)?.text === "string" ? (claim as any).text : "";
+      if (!text.trim()) return null;
+      return evaluateCreateClaimSafety({
+        claimId:
+          typeof (claim as any)?.id === "string" || typeof (claim as any)?.id === "number"
+            ? String((claim as any).id)
+            : null,
+        text,
+        locale: params.locale,
+        sourceLanguage: params.sourceLanguage,
+        contentLanguage: params.contentLanguage,
+      });
+    })
+    .filter((entry): entry is CreateClaimSafetyResult => Boolean(entry));
 }
 
 /**
@@ -295,6 +326,12 @@ export async function POST(req: NextRequest): Promise<Response> {
       locale: languageContext.contentLanguage,
       languageMode: "same_language_only",
     });
+    const claimSafety = buildClaimSafetyForClaims({
+      claims: Array.isArray(moderatedResult.claims) ? moderatedResult.claims : [],
+      locale: requestLocale,
+      sourceLanguage: languageContext.sourceLanguage,
+      contentLanguage: languageContext.contentLanguage,
+    });
     const createAnalyze = attachSafetyToCreateAnalyze(
       buildCreateAnalyzeResponse({
         runId,
@@ -306,6 +343,7 @@ export async function POST(req: NextRequest): Promise<Response> {
         matchResult: createMatch,
       }),
       safety,
+      claimSafety,
     );
     const verification = resolveAnalyzeVerificationContract(moderatedResult, analysisMode);
     const sourceGroundingAudit = finalizeSourceGroundingAudit({
@@ -329,6 +367,7 @@ export async function POST(req: NextRequest): Promise<Response> {
         meta: {
           runId,
           safety,
+          claimSafety,
           verificationMode: verification.verificationMode,
           researchUsed: verification.researchUsed,
           sealEligible: verification.sealEligible,
@@ -382,6 +421,12 @@ export async function POST(req: NextRequest): Promise<Response> {
       locale: languageContext.contentLanguage,
       languageMode: "same_language_only",
     });
+    const claimSafety = buildClaimSafetyForClaims({
+      claims: Array.isArray(result.claims) ? result.claims : [],
+      locale: requestLocale,
+      sourceLanguage: languageContext.sourceLanguage,
+      contentLanguage: languageContext.contentLanguage,
+    });
     const createAnalyze = attachSafetyToCreateAnalyze(
       buildCreateAnalyzeResponse({
         runId,
@@ -393,6 +438,7 @@ export async function POST(req: NextRequest): Promise<Response> {
         matchResult: createMatch,
       }),
       safety,
+      claimSafety,
     );
     const providerMatrix = buildProviderMatrixResponse(
       null,
@@ -413,6 +459,7 @@ export async function POST(req: NextRequest): Promise<Response> {
         meta: {
           runId,
           safety,
+          claimSafety,
           providerMatrix,
           verificationMode: verification.verificationMode,
           researchUsed: verification.researchUsed,
@@ -475,6 +522,12 @@ export async function POST(req: NextRequest): Promise<Response> {
         locale: languageContext.contentLanguage,
         languageMode: "same_language_only",
       });
+      const claimSafety = buildClaimSafetyForClaims({
+        claims: Array.isArray(fallback.claims) ? fallback.claims : [],
+        locale: requestLocale,
+        sourceLanguage: languageContext.sourceLanguage,
+        contentLanguage: languageContext.contentLanguage,
+      });
       const createAnalyze = attachSafetyToCreateAnalyze(
         buildCreateAnalyzeResponse({
           runId,
@@ -486,6 +539,7 @@ export async function POST(req: NextRequest): Promise<Response> {
           matchResult: createMatch,
         }),
         safety,
+        claimSafety,
       );
       return NextResponse.json({
         ok: true,
@@ -503,6 +557,7 @@ export async function POST(req: NextRequest): Promise<Response> {
         meta: {
           runId,
           safety,
+          claimSafety,
           verificationMode: verification.verificationMode,
           researchUsed: verification.researchUsed,
           sealEligible: verification.sealEligible,
@@ -586,6 +641,12 @@ export async function POST(req: NextRequest): Promise<Response> {
         locale: languageContext.contentLanguage,
         languageMode: "same_language_only",
       });
+      const claimSafety = buildClaimSafetyForClaims({
+        claims: [],
+        locale: requestLocale,
+        sourceLanguage: languageContext.sourceLanguage,
+        contentLanguage: languageContext.contentLanguage,
+      });
       const createAnalyze = attachSafetyToCreateAnalyze(
         buildCreateAnalyzeResponse({
           runId,
@@ -597,6 +658,7 @@ export async function POST(req: NextRequest): Promise<Response> {
           matchResult: createMatch,
         }),
         safety,
+        claimSafety,
       );
       const sourceGroundingAudit = finalizeSourceGroundingAudit({
         context: analyzeInput.sourceGrounding,
@@ -620,6 +682,7 @@ export async function POST(req: NextRequest): Promise<Response> {
           meta: {
             runId,
             safety,
+            claimSafety,
             providerMatrix,
             failedProviders: meta?.failedProviders ?? [],
             disabledProviders: meta?.disabledProviders ?? meta?.disabled ?? [],
