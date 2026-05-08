@@ -1,0 +1,50 @@
+import type { CreateSafetyCorpusCase } from "../helpers/createSafetyCorpusRunner";
+
+export const CREATE_SAFETY_CORPUS_MULTILINGUAL = [
+  {
+    id: "multi-tr-01",
+    title: "Turkish placeholder sample requires graph review",
+    locale: "tr",
+    input: "Belediye otobusleri neden bu kadar duzensiz calisiyor?",
+    expectedDecision: "graph_review_required",
+    mustFind: ["cross_lingual_review"],
+    mustHaveGraphReviewHint: true,
+    notes: "Placeholder multilingual sample routed into German graph review.",
+  },
+  {
+    id: "multi-ar-01",
+    title: "Arabic placeholder sample requires graph review",
+    locale: "ar",
+    input: "لماذا لا تعمل الحافلات البلدية بشكل منتظم؟",
+    expectedDecision: "graph_review_required",
+    mustFind: ["cross_lingual_review"],
+    mustHaveGraphReviewHint: true,
+  },
+  {
+    id: "multi-ru-01",
+    title: "Russian placeholder sample requires graph review",
+    locale: "ru",
+    input: "Почему городские автобусы ходят так нерегулярно?",
+    expectedDecision: "graph_review_required",
+    mustFind: ["cross_lingual_review"],
+    mustHaveGraphReviewHint: true,
+  },
+  {
+    id: "multi-uk-01",
+    title: "Ukrainian placeholder sample requires graph review",
+    locale: "uk",
+    input: "Чому міські автобуси ходять так нерегулярно?",
+    expectedDecision: "graph_review_required",
+    mustFind: ["cross_lingual_review"],
+    mustHaveGraphReviewHint: true,
+  },
+  {
+    id: "multi-pl-01",
+    title: "Polish placeholder sample requires graph review",
+    locale: "pl",
+    input: "Dlaczego autobusy miejskie jezdza tak nieregularnie?",
+    expectedDecision: "graph_review_required",
+    mustFind: ["cross_lingual_review"],
+    mustHaveGraphReviewHint: true,
+  },
+] satisfies CreateSafetyCorpusCase[];

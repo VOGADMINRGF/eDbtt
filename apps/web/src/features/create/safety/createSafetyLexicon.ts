@@ -1,7 +1,7 @@
 export const CREATE_SAFETY_EMAIL_RE = /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi;
 export const CREATE_SAFETY_PHONE_RE = /(?:\+?\d[\d\s\-().]{6,}\d)/g;
 export const CREATE_SAFETY_STREET_RE =
-  /\b(?:[A-ZÄÖÜ][\p{L}-]*(?:straße|str\.?|weg|allee|platz|gasse|ring)|[A-ZÄÖÜ][\p{L}-]+(?:\s+[A-ZÄÖÜa-zäöüß][\p{L}-]+){0,3}\s+(?:straße|str\.?|weg|allee|platz|gasse|ring))\s+\d+[a-z]?\b/giu;
+  /\b(?:[A-ZÄÖÜ][\p{L}-]*(?:straße|strasse|str\.?|weg|allee|platz|gasse|ring)|[A-ZÄÖÜ][\p{L}-]+(?:\s+[A-ZÄÖÜa-zäöüß][\p{L}-]+){0,3}\s+(?:straße|strasse|str\.?|weg|allee|platz|gasse|ring))\s+\d+[a-z]?\b/giu;
 export const CREATE_SAFETY_POSTAL_RE = /\b\d{5}\b/g;
 
 export const CREATE_SAFETY_CALL_TO_ACTION_RE =
@@ -9,9 +9,9 @@ export const CREATE_SAFETY_CALL_TO_ACTION_RE =
 export const CREATE_SAFETY_DOXXING_RE =
   /\b(doxx|adresse\s+teilen|adresse\s+veröffentlichen|adresse\s+veroeffentlichen|telefonnummer\s+teilen|share\s+the\s+address)\b/giu;
 export const CREATE_SAFETY_THREAT_CONCRETE_RE =
-  /\b(ich\s+bring(e)?\s+dich\s+um|wir\s+bringen\s+euch\s+um|wir\s+machen\s+euch\s+fertig|kill\s+you|we\s+will\s+hurt\s+you|anschlag|anzünden|anzuenden|verprügeln|verpruegeln)\b/giu;
+  /\b(ich\s+bring(e)?\s+dich\s+um|wir\s+bringen\s+euch\s+um|wir\s+machen\s+euch\s+fertig|kill\s+you|we\s+will\s+hurt\s+you|anschlag|anzünden|anzuenden|wir\s+zünd(?:en|e?t)\s+[^\n.!?]{0,40}\s+an|wir\s+zuend(?:en|e?t)\s+[^\n.!?]{0,40}\s+an|zünd(?:en|e?t)\s+wir\s+[^\n.!?]{0,40}\s+an|zuend(?:en|e?t)\s+wir\s+[^\n.!?]{0,40}\s+an|verprügeln|verpruegeln)\b/giu;
 export const CREATE_SAFETY_THREAT_IMPLICIT_RE =
-  /\b(das\s+wird\s+folgen\s+haben|wir\s+kriegen\s+dich|wir\s+finden\s+dich|you\s+will\s+pay|there\s+will\s+be\s+consequences)\b/giu;
+  /\b(das\s+wird\s+folgen\s+haben|wird\s+das\s+folgen\s+haben|wir\s+kriegen\s+dich|wir\s+finden\s+dich|you\s+will\s+pay|there\s+will\s+be\s+consequences)\b/giu;
 export const CREATE_SAFETY_SELF_JUSTICE_RE =
   /\b(selbstjustiz|wir\s+kümmern\s+uns\s+selbst|wir\s+kuemmern\s+uns\s+selbst|wir\s+regeln\s+das\s+selbst|take\s+justice\s+into\s+our\s+own\s+hands)\b/giu;
 
@@ -25,13 +25,13 @@ export const CREATE_SAFETY_GROUP_ABUSE_RE =
 export const CREATE_SAFETY_POLITICAL_FRAMING_RE =
   /\b(linke(n)?|rechte(n)?|altparteien|mainstreammedien|woke|establishment|lager|propaganda)\b/giu;
 export const CREATE_SAFETY_UNSUPPORTED_ALLEGATION_RE =
-  /\b(absichtlich|vertuscht|mafia|skandal|manipuliert|gekauft)\b/giu;
+  /\b(absichtlich|vertuscht|mafia|skandal|manipuliert|manipulated|gekauft)\b/giu;
 export const CREATE_SAFETY_CORRUPTION_OR_CAPTURE_RE =
   /\b(korruption|korrupt|investoren|presse\s+schreibt\s+nur|follow\s+the\s+money|bestechlich|captured\s+media)\b/giu;
 export const CREATE_SAFETY_UNVERIFIED_NUMBER_RE =
-  /\b(\d+[.,]?\d*\s*(million(en)?|mrd|milliarden?)|40\s+millionen|keine\s+ahnung\s+ob\s+die\s+zahl\s+stimmt|not\s+sure\s+if\s+that\s+number\s+is\s+correct)\b/giu;
+  /\b(\d+[.,]?\d*\s*(million(en)?|million|mrd|milliarden?|billion|billions)|40\s+millionen|keine\s+ahnung\s+ob\s+die\s+zahl\s+stimmt|not\s+sure\s+if\s+that\s+number\s+is\s+correct)\b/giu;
 export const CREATE_SAFETY_SOURCE_BLUFFING_RE =
-  /\b(aus\s+sicherer\s+quelle|jeder\s+weiß|jeder\s+weiss|man\s+weiß\s+doch|everyone\s+knows|trust\s+me|insider\s+say)\b/giu;
+  /\b(aus\s+sicherer\s+quelle|jeder\s+weiß|jeder\s+weiss|man\s+weiß\s+doch|man\s+weiss\s+doch|everyone\s+knows|trust\s+me|insider\s+say)\b/giu;
 export const CREATE_SAFETY_CENSORSHIP_COUNTERCLAIM_RE =
   /\b(faktencheck\s+ist\s+zensur|fact[-\s]?checking\s+is\s+censorship|zensur|censorship)\b/giu;
 export const CREATE_SAFETY_SPAM_CAMPAIGN_RE =
@@ -47,6 +47,7 @@ export const CREATE_SAFETY_SELF_PII_CONTEXT_RE =
   /\b(meine?|mein|ich\s+bin\s+erreichbar|ich\s+wohne|my\s+(email|number|phone|address)|you\s+can\s+reach\s+me)\b/iu;
 
 const CREATE_SAFETY_LANGUAGE_PLACEHOLDER_PATTERNS = [
+  { language: "en", pattern: /\b(the|but|claim|evidence|sources|verify|unclear|school|housing)\b/u },
   { language: "tr", pattern: /(?:\b(belediye|mahalle|ulaşım|ulasim)\b|[ıİğĞşŞçÇ])/u },
   { language: "ar", pattern: /[\u0600-\u06FF]/u },
   { language: "ru", pattern: /(?:\b(город|власть|дорога)\b|[ЁёЪъЫыЭэ])/u },
