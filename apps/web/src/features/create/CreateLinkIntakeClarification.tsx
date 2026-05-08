@@ -19,26 +19,28 @@ type CreateLinkIntakeClarificationProps = {
 
 const COPY = {
   de: {
-    title: "Ich habe einen Link erkannt. Was soll damit passieren?",
+    title: "Ich habe einen Quellenhinweis erkannt. Was soll ich daraus vorbereiten?",
     lead:
-      "Ich nutze den Link zuerst nur als Quellenhinweis (`sourceHints`) oder als Signal für einen späteren Prüfpfad. Eine Auswertung startet erst nach einem passenden nächsten Schritt.",
+      "Der Link wird noch nicht automatisch ausgewertet. Du kannst per Auswahl weitermachen oder einfach im Chat dazuschreiben, was wichtig ist.",
     youtubeLead:
-      "YouTube-Link erkannt. Ich kann daraus erst verlässlich arbeiten, wenn Transkript/Metadaten verfügbar sind oder du kurz beschreibst, was geprüft werden soll.",
-    selectedPrefix: "Gewählt:",
+      "YouTube-Link erkannt. Wenn du magst, schreib kurz dazu, welche Aussage oder welcher Teil wichtig ist.",
+    selectedPrefix: "Ausgewählt:",
     extractionPending:
-      "Der ausgewählte Prüfpfad wird vorbereitet. Der Inhalt wurde noch nicht automatisch ausgewertet.",
+      "Ich bereite diesen nächsten Schritt vor. Der Inhalt wurde noch nicht automatisch ausgewertet.",
     sourcePending:
-      "Der Link bleibt vorerst ein Quellenhinweis. Es wird noch keine automatische Auswertung behauptet.",
-    contextLabel: "Was ist an diesem Link wichtig?",
+      "Der Link bleibt vorerst als Quellenhinweis vorgemerkt.",
+    freeTextHint:
+      "Schreib einfach weiter, wenn du genauer sagen willst, welche Aussage geprüft oder welcher nächste Schritt vorbereitet werden soll.",
+    contextLabel: "Was ist daran wichtig?",
     contextPlaceholder:
-      "Zum Beispiel: Welche Aussage soll geprüft, welche Quelle ergänzt oder welche Abstimmungsfrage vorbereitet werden?",
+      "Zum Beispiel: Welche Aussage soll geprüft werden, worum geht es genau oder was soll ich daraus vorbereiten?",
     factcheckGuardrail:
       "Faktencheck / Deep Search startet erst nach bewusster Bestätigung. Keine automatische Kostenbuchung.",
   },
   en: {
     title: "I detected a link. What should happen with it?",
     lead:
-      "I first keep the link as a source hint (`sourceHints`) or as a signal for a later review path. Evaluation only starts after an explicit next step.",
+      "The link is not automatically evaluated yet. You can choose the next step or keep typing in chat.",
     youtubeLead:
       "YouTube link detected. I can work with it reliably only when transcript or metadata are available, or when you briefly describe what should be checked.",
     selectedPrefix: "Selected:",
@@ -46,9 +48,11 @@ const COPY = {
       "The selected review path is being prepared. The content has not been automatically evaluated yet.",
     sourcePending:
       "The link is currently treated as a source hint only. No automatic evaluation is claimed yet.",
+    freeTextHint:
+      "You can also keep typing if you want to explain what matters about the link or what should happen next.",
     contextLabel: "What matters about this link?",
     contextPlaceholder:
-      "For example: which claim should be checked, which source should be attached, or which vote question should be prepared?",
+      "For example: which statement should be checked, which source should be attached, or which vote question should be prepared?",
     factcheckGuardrail:
       "Fact-check / Deep Search starts only after explicit confirmation. No automatic cost booking.",
   },
@@ -81,14 +85,14 @@ export default function CreateLinkIntakeClarification({
         ) : null}
       </div>
 
-      <div className="mt-4 grid gap-2 sm:grid-cols-2">
+      <div className="mt-4 grid gap-3">
         {CREATE_LINK_INTENT_OPTIONS.map((option) => {
           const isSelected = option.id === selectedIntentId;
           return (
             <button
               key={option.id}
               type="button"
-              className={`rounded-xl border px-3 py-3 text-left text-sm ${
+              className={`min-h-[52px] rounded-2xl border px-4 py-3 text-left text-sm ${
                 isSelected
                   ? "border-[rgb(var(--grad-from))] bg-[rgb(var(--bg))] text-[rgb(var(--fg))]"
                   : "border-[rgb(var(--border))] bg-transparent text-[rgb(var(--fg))] hover:border-[rgb(var(--grad-from))]/40"
@@ -109,6 +113,7 @@ export default function CreateLinkIntakeClarification({
           <p className="text-sm text-[rgb(var(--muted))]">
             {showExtractionPending ? copy.extractionPending : copy.sourcePending}
           </p>
+          <p className="text-sm text-[rgb(var(--muted))]">{copy.freeTextHint}</p>
           {selectedIntentId === "prepare_factcheck" ? (
             <p className="rounded-xl border border-sky-300/45 bg-sky-500/10 px-3 py-2 text-sm text-sky-900 dark:text-sky-100">
               {copy.factcheckGuardrail}

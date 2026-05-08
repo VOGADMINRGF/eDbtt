@@ -37,8 +37,8 @@ describe("create curated dialog workspace contract", () => {
     expect(followupSource).toContain("StructureBranchCard");
     expect(followupSource).toContain("FollowupActionRail");
     expect(followupSource).toContain("DetailsAccordion");
-    expect(linkClarificationSource).toContain("Ich habe einen Link erkannt. Was soll damit passieren?");
-    expect(linkIntakeSource).toContain("Als Quelle zu einem Dossier hinzufügen");
+    expect(linkClarificationSource).toContain("Ich habe einen Quellenhinweis erkannt. Was soll ich daraus vorbereiten?");
+    expect(linkIntakeSource).toContain("Als Quelle vormerken");
   });
 
   it("renders dialog roles and keeps primary action explicit", () => {
@@ -56,13 +56,13 @@ describe("create curated dialog workspace contract", () => {
     expect(followupSource).toContain("Nächster Schritt");
     expect(followupSource).toContain("Vorgeschlagener Arbeitsstand");
     expect(followupSource).toContain("Strukturäste");
-    expect(followupSource).toContain("Dossier-Kontext / Oberthema");
+    expect(followupSource).toContain("Übergeordnetes Thema");
     expect(followupSource).toContain("Einordnung im Themenkatalog");
-    expect(followupSource).toContain("Mögliche Claims");
+    expect(followupSource).toContain("Mögliche Aussagen");
     expect(followupSource).toContain("Offene Prüfpunkte");
     expect(followupSource).toContain("Ast bearbeiten");
     expect(followupSource).toContain("Weitere Details zum Ast");
-    expect(followupSource).toContain("lg:grid-cols-2");
+    expect(followupSource).toContain("Schreib einfach weiter");
     expect(followupSource).toContain("Ja, Struktur übernehmen");
     expect(followupSource).toContain("Arbeitsstand speichern");
     expect(followupSource).toContain("Faktencheck / Deep Search starten");
@@ -70,11 +70,13 @@ describe("create curated dialog workspace contract", () => {
     expect(followupSource).toContain("Keine automatische Stimme");
     expect(followupSource).toContain("Keine automatische Veröffentlichung");
     expect(followupSource).toContain("Keine automatische Kostenbuchung");
+    expect(followupSource).not.toContain("Dossier-Kontext");
+    expect(followupSource).not.toContain("Mögliche Claims");
     expect(followupSource).not.toContain("Für später speichern");
     expect(followupSource).not.toContain("Dossiers & Abstimmungen ansehen");
     expect(followupSource).not.toContain("Nicht passend");
     expect(linkClarificationSource).toContain("YouTube-Link erkannt.");
-    expect(linkClarificationSource).toContain("Der ausgewählte Prüfpfad wird vorbereitet. Der Inhalt wurde noch nicht automatisch ausgewertet.");
+    expect(linkClarificationSource).toContain("Ich bereite diesen nächsten Schritt vor. Der Inhalt wurde noch nicht automatisch ausgewertet.");
   });
 
   it("keeps details progressively disclosed after the core workstate", () => {
@@ -84,7 +86,7 @@ describe("create curated dialog workspace contract", () => {
     );
 
     const coreIndex = followupSource.indexOf(">Vorgeschlagener Arbeitsstand</p>");
-    const confirmIndex = followupSource.indexOf("Bestätige die Struktur, passe einzelne Punkte an oder sichere deinen Arbeitsstand.");
+    const confirmIndex = followupSource.indexOf("Bestätige den Vorschlag, ändere einzelne Punkte oder schreib einfach weiter.");
     const detailsIndex = followupSource.indexOf("Details zum Originaltext");
     const impactIndex = followupSource.lastIndexOf("CREATE_VISUAL_FOLLOWUP_COPY.impactTitle");
 
@@ -111,7 +113,7 @@ describe("create curated dialog workspace contract", () => {
       "utf8",
     );
 
-    const contextIndex = followupSource.indexOf("Dossier-Kontext / Oberthema");
+    const contextIndex = followupSource.indexOf("Übergeordnetes Thema");
     const branchesIndex = followupSource.indexOf("<StructureBranchList");
     const branchActionIndex = followupSource.indexOf("Aussage ergänzen");
 
