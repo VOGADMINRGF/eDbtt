@@ -1,3 +1,18 @@
+import {
+  collectCreateSafetyLexicon,
+  redactCreateSafetySensitiveText,
+  sanitizeCreateSafetyExcerpt,
+  splitCreateSafetySentences,
+} from "@/features/create/safety/createSafetyLexicon";
+import {
+  buildCreateSafetyReviewItems,
+  type CreateSafetyReviewItem,
+} from "@/features/create/safety/createSafetyReviewContract";
+import {
+  buildCreateSafetyTelemetry,
+  type CreateSafetyTelemetry,
+} from "@/features/create/safety/createSafetyTelemetry";
+
 export type CreateInputSafetyDecision =
   | "allow"
   | "revise_required"
@@ -8,6 +23,16 @@ export type CreateInputSafetyDecision =
 
 export type CreateInputSafetySeverity = "low" | "medium" | "high" | "critical";
 
+export type CreateInputSafetyRouteStage = "analyze" | "save" | "finalize";
+
+export type CreateInputSafetyTruthStatus =
+  | "not_checked"
+  | "open"
+  | "supported"
+  | "contested"
+  | "refuted"
+  | "not_checkable";
+
 export type CreateInputSafetyFindingKind =
   | "email"
   | "phone"
@@ -15,12 +40,19 @@ export type CreateInputSafetyFindingKind =
   | "postal_code"
   | "third_party_call_to_action"
   | "doxxing"
-  | "threat"
+  | "threat_concrete"
+  | "threat_implicit"
   | "self_justice"
-  | "insult"
+  | "insult_public_actor"
+  | "insult_private_person"
+  | "group_abuse"
   | "unsupported_allegation"
-  | "political_framing"
+  | "corruption_or_capture_claim"
   | "unverified_number"
+  | "source_bluffing"
+  | "censorship_counterclaim"
+  | "spam_campaign"
+  | "political_framing"
   | "low_readability"
   | "cross_lingual_review";
 
@@ -40,6 +72,20 @@ export type CreateInputQualityScore = {
   notes: string[];
 };
 
+export type CreateInputSafetyFactCheckReason =
+  | "unsupported_allegation"
+  | "corruption_or_capture_claim"
+  | "unverified_number"
+  | "source_bluffing";
+
+export type CreateInputSafetyFactCheckCandidate = {
+  id: string;
+  text: string;
+  truthStatus: CreateInputSafetyTruthStatus;
+  safeQuestion: boolean;
+  reason: CreateInputSafetyFactCheckReason;
+};
+
 export type CreateInputSafetyResult = {
   decision: CreateInputSafetyDecision;
   severity: CreateInputSafetySeverity;
@@ -47,8 +93,10 @@ export type CreateInputSafetyResult = {
   quality: CreateInputQualityScore;
   redactedText: string;
   safeRewrite: string;
-  factCheckCandidates: string[];
+  factCheckCandidates: CreateInputSafetyFactCheckCandidate[];
   graphReviewHints: string[];
+  reviewItems: CreateSafetyReviewItem[];
+  telemetry: CreateSafetyTelemetry;
   requiresHumanReview: boolean;
   noAutoPublish: true;
   noSilentMerge: true;
@@ -66,31 +114,16 @@ type EvaluateCreateInputSafetyInput = {
   sourceLanguage?: string | null;
   contentLanguage?: string | null;
   uiLocale?: string | null;
+  routeStage?: CreateInputSafetyRouteStage;
+  runId?: string | null;
+  correlationId?: string | null;
+  draftId?: string | null;
 };
 
-const EMAIL_RE = /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi;
-const PHONE_RE = /(?:\+?\d[\d\s\-().]{6,}\d)/g;
-const STREET_RE =
-  /\b([A-ZÄÖÜ][\p{L}-]+(?:\s+[A-ZÄÖÜa-zäöüß][\p{L}-]+){0,3})\s+(?:straße|str\.?|weg|allee|platz|gasse|ring)\s+\d+[a-z]?\b/giu;
-const POSTAL_RE = /\b\d{5}\b/g;
-
-const CALL_TO_ACTION_RE =
-  /\b(ruft?(?:\s+\w+){0,3}\s+an|ruf(?:\s+\w+){0,3}\s+an|geht?\s+zu|geht?\s+hin|postet|veröffentlicht|teilt\s+die\s+adresse|call(?:\s+\w+){0,2}\s+(him|her|them)|go\s+to\s+his\s+house|go\s+to\s+her\s+house|share\s+his\s+address|share\s+her\s+address|doxx)\b/giu;
-const THREAT_RE =
-  /\b(ich\s+bring(e)?\s+dich\s+um|wir\s+bringen\s+euch\s+um|wir\s+machen\s+euch\s+fertig|kill\s+you|we\s+will\s+hurt\s+you|anschlag|anzünden|verprügeln)\b/giu;
-const SELF_JUSTICE_RE =
-  /\b(selbstjustiz|wir\s+kümmern\s+uns\s+selbst|wir\s+regeln\s+das\s+selbst|take\s+justice\s+into\s+our\s+own\s+hands)\b/giu;
-const INSULT_RE =
-  /\b(idiot(en)?|dumm(kopf|e)?|verräter|abschaum|schmarotzer|bastard|arschloch|spasti|clown(s)?|idiot(s)?|moron(s)?|stupid)\b/giu;
-
-const ALLEGATION_RE =
-  /\b(absichtlich|korruption|investoren|presse\s+schreibt\s+nur|jeder\s+weiß|follow\s+the\s+money|gekauft|vertuscht|mafia)\b/giu;
-const UNVERIFIED_NUMBER_RE =
-  /\b(\d+[.,]?\d*\s*(million(en)?|mrd|milliarden?)|40\s+millionen|keine\s+ahnung\s+ob\s+die\s+zahl\s+stimmt|not\s+sure\s+if\s+that\s+number\s+is\s+correct)\b/giu;
-const POLITICAL_FRAMING_RE =
-  /\b(linke(n)?|rechte(n)?|altparteien|mainstreammedien|woke|establishment|lager|propaganda)\b/giu;
-const ACCUSATION_RE =
-  /\b(kriminell|schuldig|hat\s+gestohlen|hat\s+gelogen|betrug|bestechlich|corrupt|criminal)\b/giu;
+type CandidateSeed = {
+  text: string;
+  reason: CreateInputSafetyFactCheckReason;
+};
 
 function cleanLang(value?: string | null, fallback = "de"): string {
   const raw = String(value ?? "").trim().toLowerCase();
@@ -119,33 +152,18 @@ function clampScore(value: number): number {
   return Math.max(0, Math.min(1, Number.isFinite(value) ? value : 0));
 }
 
-function splitSentences(text: string): string[] {
-  return text
-    .split(/(?<=[.!?])\s+|\n+/)
-    .map((entry) => entry.trim())
-    .filter((entry) => entry.length > 0);
-}
-
-function redactSensitive(text: string): string {
-  return text
-    .replace(EMAIL_RE, "[E-MAIL ENTFERNT]")
-    .replace(PHONE_RE, "[TELEFON ENTFERNT]")
-    .replace(STREET_RE, "[ADRESSE ENTFERNT]")
-    .replace(POSTAL_RE, "[PLZ ENTFERNT]");
-}
-
 function buildSafeRewrite(params: {
   redactedText: string;
-  factCheckCandidates: string[];
-  hasInsult: boolean;
-  hasThreat: boolean;
+  factCheckCandidates: CreateInputSafetyFactCheckCandidate[];
+  hasHostileLanguage: boolean;
+  hasThreatOrEscalation: boolean;
 }): string {
   const base = params.redactedText.replace(/\s+/g, " ").trim();
   const concise = base.length > 260 ? `${base.slice(0, 257).trim()}...` : base;
   const hints: string[] = [];
-  if (params.hasInsult) hints.push("Beleidigungen entfernen");
-  if (params.hasThreat) hints.push("Drohungen/Selbstjustiz entfernen");
-  if (params.factCheckCandidates.length > 0) hints.push("Behauptungen als prüfbare Fragen formulieren");
+  if (params.hasHostileLanguage) hints.push("beleidigende oder eskalierende Sprache entfernen");
+  if (params.hasThreatOrEscalation) hints.push("Drohungen, Selbstjustiz und Mobilisierung entfernen");
+  if (params.factCheckCandidates.length > 0) hints.push("Behauptungen als prüfbare Frage mit Belegen rahmen");
   const hintText = hints.length > 0 ? ` Nächster Schritt: ${hints.join(", ")}.` : "";
   return `Vorläufig verstanden: ${concise || "Anliegen mit öffentlichem Bezug."}.${hintText}`;
 }
@@ -153,7 +171,7 @@ function buildSafeRewrite(params: {
 function computeQuality(text: string, hasCivicMarkers: boolean): CreateInputQualityScore {
   const normalized = text.replace(/\s+/g, " ").trim();
   const words = normalized.length > 0 ? normalized.split(" ").filter(Boolean) : [];
-  const sentences = splitSentences(text);
+  const sentences = splitCreateSafetySentences(text);
   const avgSentenceLength = sentences.length > 0 ? words.length / sentences.length : words.length;
   const punctuationDensity = normalized.length > 0 ? (normalized.match(/[.,!?;:]/g)?.length ?? 0) / normalized.length : 0;
 
@@ -168,9 +186,11 @@ function computeQuality(text: string, hasCivicMarkers: boolean): CreateInputQual
   const civicIntent = hasCivicMarkers ? 0.82 : 0.48;
   const overall = clampScore(readability * 0.4 + structure * 0.25 + civicIntent * 0.35);
   const notes: string[] = [];
+
   if (readability < 0.4) notes.push("Text ist schwer lesbar; kurze Sätze helfen.");
   if (structure < 0.4) notes.push("Struktur ist dünn; Kontext und Ziel klarer benennen.");
   if (civicIntent < 0.6) notes.push("Öffentliche Fragestellung oder konkretes Anliegen ergänzen.");
+
   return {
     readability: clampScore(readability),
     structure: clampScore(structure),
@@ -193,79 +213,208 @@ function maxSeverity(
   return rank[left] >= rank[right] ? left : right;
 }
 
+function buildFactCheckCandidates(
+  seeds: CandidateSeed[],
+  safeQuestionDetected: boolean,
+): CreateInputSafetyFactCheckCandidate[] {
+  const seen = new Set<string>();
+
+  return seeds
+    .map((seed) => ({
+      text: sanitizeCreateSafetyExcerpt(seed.text, 220),
+      reason: seed.reason,
+    }))
+    .filter((seed) => {
+      if (!seed.text) return false;
+      const key = `${seed.reason}:${seed.text}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
+    .slice(0, 8)
+    .map((seed, index) => ({
+      id: `factcheck-${index + 1}`,
+      text: seed.text,
+      truthStatus: safeQuestionDetected ? "open" : "not_checked",
+      safeQuestion: safeQuestionDetected,
+      reason: seed.reason,
+    }));
+}
+
+function uniqueList(values: string[]): string[] {
+  return Array.from(new Set(values.filter(Boolean)));
+}
+
 export function evaluateCreateInputSafety(
   input: EvaluateCreateInputSafetyInput,
 ): CreateInputSafetyResult {
   const text = String(input.text ?? "").trim();
   const sourceLanguage = cleanLang(input.sourceLanguage, cleanLang(input.locale, "de"));
   const contentLanguage = cleanLang(input.contentLanguage, cleanLang(input.locale, "de"));
-  const lowered = text.toLowerCase();
+  const routeStage = input.routeStage ?? "analyze";
+  const createdAt = new Date().toISOString();
   const findings: CreateInputSafetyFinding[] = [];
+  const lexicon = collectCreateSafetyLexicon(text);
 
-  const hasEmail = EMAIL_RE.test(text);
-  const hasPhone = PHONE_RE.test(text);
-  const hasStreet = STREET_RE.test(text);
-  const hasPostal = POSTAL_RE.test(text);
-  EMAIL_RE.lastIndex = 0;
-  PHONE_RE.lastIndex = 0;
-  STREET_RE.lastIndex = 0;
-  POSTAL_RE.lastIndex = 0;
+  const hasEmail = lexicon.emails.length > 0;
+  const hasPhone = lexicon.phones.length > 0;
+  const hasStreet = lexicon.streetAddresses.length > 0;
+  const hasPostal = lexicon.postalCodes.length > 0;
+  const hasPii = hasEmail || hasPhone || hasStreet || hasPostal;
+  const hasSelfPiiContext = hasPii && lexicon.selfPiiContextDetected;
+  const hasCallToAction = lexicon.callToActionMatches.length > 0;
+  const hasDoxxingPattern = lexicon.doxxingMatches.length > 0;
+  const hasThreatConcrete = lexicon.threatConcreteMatches.length > 0;
+  const hasThreatImplicit = lexicon.threatImplicitMatches.length > 0;
+  const hasSelfJustice = lexicon.selfJusticeMatches.length > 0;
+  const hasInsultPublicActor = lexicon.insultPublicActorMatches.length > 0;
+  const hasInsultPrivatePerson = lexicon.insultPrivatePersonMatches.length > 0;
+  const hasGroupAbuse = lexicon.groupAbuseMatches.length > 0;
+  const hasPoliticalFraming = lexicon.politicalFramingMatches.length > 0;
+  const hasUnsupportedAllegation = lexicon.unsupportedAllegationMatches.length > 0;
+  const hasCorruptionClaim = lexicon.corruptionOrCaptureClaimMatches.length > 0;
+  const hasUnverifiedNumber = lexicon.unverifiedNumberMatches.length > 0;
+  const hasSourceBluffing = lexicon.sourceBluffingMatches.length > 0;
+  const hasCensorshipCounterclaim = lexicon.censorshipCounterclaimMatches.length > 0;
+  const hasSpamCampaign = lexicon.spamCampaignMatches.length > 0;
+  const hasAccusationOrAllegation =
+    hasUnsupportedAllegation || hasCorruptionClaim || hasUnverifiedNumber || hasSourceBluffing;
 
   if (hasEmail) makeFinding(findings, "email", "high", "E-Mail-Adresse erkannt.");
   if (hasPhone) makeFinding(findings, "phone", "high", "Telefonnummer erkannt.");
   if (hasStreet) makeFinding(findings, "street_address", "high", "Straße/Hausnummer erkannt.");
   if (hasPostal) makeFinding(findings, "postal_code", "medium", "Postleitzahl erkannt.");
 
-  const hasCallToAction =
-    CALL_TO_ACTION_RE.test(text) ||
-    ((/\bruf(t)?\b/iu.test(text) || /\bcall\b/iu.test(text)) &&
-      (/\ban\b/iu.test(text) || /\bhim\b|\bher\b|\bthem\b/iu.test(text)));
-  CALL_TO_ACTION_RE.lastIndex = 0;
   if (hasCallToAction) {
     makeFinding(
       findings,
       "third_party_call_to_action",
       "high",
       "Aufforderung gegen Dritte erkannt.",
+      sanitizeCreateSafetyExcerpt(lexicon.callToActionMatches[0] ?? text),
     );
   }
 
-  const hasThreat = THREAT_RE.test(text);
-  THREAT_RE.lastIndex = 0;
-  if (hasThreat) makeFinding(findings, "threat", "critical", "Konkrete Gewaltandrohung erkannt.");
+  if (hasThreatConcrete) {
+    makeFinding(
+      findings,
+      "threat_concrete",
+      "critical",
+      "Konkrete Gewaltandrohung erkannt.",
+      sanitizeCreateSafetyExcerpt(lexicon.threatConcreteMatches[0] ?? text),
+    );
+  }
 
-  const hasSelfJustice = SELF_JUSTICE_RE.test(text);
-  SELF_JUSTICE_RE.lastIndex = 0;
-  if (hasSelfJustice) makeFinding(findings, "self_justice", "high", "Selbstjustiz-Hinweis erkannt.");
+  if (hasThreatImplicit) {
+    makeFinding(
+      findings,
+      "threat_implicit",
+      "high",
+      "Implizite Droh- oder Einschüchterungssprache erkannt.",
+      sanitizeCreateSafetyExcerpt(lexicon.threatImplicitMatches[0] ?? text),
+    );
+  }
 
-  const hasInsult = INSULT_RE.test(text);
-  INSULT_RE.lastIndex = 0;
-  if (hasInsult) makeFinding(findings, "insult", "medium", "Beleidigende Sprache erkannt.");
+  if (hasSelfJustice) {
+    makeFinding(
+      findings,
+      "self_justice",
+      "high",
+      "Selbstjustiz-Hinweis erkannt.",
+      sanitizeCreateSafetyExcerpt(lexicon.selfJusticeMatches[0] ?? text),
+    );
+  }
 
-  const hasAllegation = ALLEGATION_RE.test(text);
-  ALLEGATION_RE.lastIndex = 0;
-  if (hasAllegation) {
+  if (hasInsultPublicActor) {
+    makeFinding(
+      findings,
+      "insult_public_actor",
+      "medium",
+      "Beleidigende Sprache gegen öffentliche Akteure erkannt.",
+      sanitizeCreateSafetyExcerpt(lexicon.insultPublicActorMatches[0] ?? text),
+    );
+  }
+
+  if (hasInsultPrivatePerson) {
+    makeFinding(
+      findings,
+      "insult_private_person",
+      "medium",
+      "Beleidigende Sprache gegen Einzelpersonen erkannt.",
+      sanitizeCreateSafetyExcerpt(lexicon.insultPrivatePersonMatches[0] ?? text),
+    );
+  }
+
+  if (hasGroupAbuse) {
+    makeFinding(
+      findings,
+      "group_abuse",
+      "high",
+      "Abwertende Sprache gegen Gruppen erkannt.",
+      sanitizeCreateSafetyExcerpt(lexicon.groupAbuseMatches[0] ?? text),
+    );
+  }
+
+  if (hasUnsupportedAllegation) {
     makeFinding(
       findings,
       "unsupported_allegation",
       "high",
       "Schwere Behauptung ohne Belegmarker erkannt.",
+      sanitizeCreateSafetyExcerpt(lexicon.allegationSentences[0] ?? text),
     );
   }
 
-  const hasUnverifiedNumber = UNVERIFIED_NUMBER_RE.test(text);
-  UNVERIFIED_NUMBER_RE.lastIndex = 0;
+  if (hasCorruptionClaim) {
+    makeFinding(
+      findings,
+      "corruption_or_capture_claim",
+      "high",
+      "Korruptions- oder Capture-Behauptung erkannt.",
+      sanitizeCreateSafetyExcerpt(lexicon.allegationSentences[0] ?? text),
+    );
+  }
+
   if (hasUnverifiedNumber) {
     makeFinding(
       findings,
       "unverified_number",
       "high",
-      "Unverifizierte Zahl/Größenordnung erkannt.",
+      "Unverifizierte Zahl oder Größenordnung erkannt.",
+      sanitizeCreateSafetyExcerpt(lexicon.allegationSentences[0] ?? text),
     );
   }
 
-  const hasPoliticalFraming = POLITICAL_FRAMING_RE.test(text);
-  POLITICAL_FRAMING_RE.lastIndex = 0;
+  if (hasSourceBluffing) {
+    makeFinding(
+      findings,
+      "source_bluffing",
+      "high",
+      "Unbelegte Quellenbehauptung erkannt.",
+      sanitizeCreateSafetyExcerpt(lexicon.allegationSentences[0] ?? text),
+    );
+  }
+
+  if (hasCensorshipCounterclaim) {
+    makeFinding(
+      findings,
+      "censorship_counterclaim",
+      "low",
+      "Zensur- oder Faktencheck-Gegenframing erkannt.",
+      sanitizeCreateSafetyExcerpt(text),
+    );
+  }
+
+  if (hasSpamCampaign) {
+    makeFinding(
+      findings,
+      "spam_campaign",
+      "medium",
+      "Kampagnen- oder Brigading-Signal erkannt.",
+      sanitizeCreateSafetyExcerpt(text),
+    );
+  }
+
   if (hasPoliticalFraming) {
     makeFinding(
       findings,
@@ -275,11 +424,9 @@ export function evaluateCreateInputSafety(
     );
   }
 
-  const hasAccusation = ACCUSATION_RE.test(text);
-  ACCUSATION_RE.lastIndex = 0;
-  const hasThirdPartyPii = hasEmail || hasPhone || hasStreet || hasPostal;
-
-  const crossLingualRisk = contentLanguage === "de" && sourceLanguage !== "de";
+  const crossLingualRisk =
+    contentLanguage === "de" &&
+    (sourceLanguage !== "de" || lexicon.languageRiskHints.some((language) => language !== "de"));
   if (crossLingualRisk) {
     makeFinding(
       findings,
@@ -289,93 +436,135 @@ export function evaluateCreateInputSafety(
     );
   }
 
-  const civicIntentMarkers =
-    /\b(anliegen|frage|vorschlag|lösung|loesung|bitte|können\s+wir|koennen\s+wir|wir\s+sollten|öffentlich|oeffentlich|kommune|bezirk)\b/iu.test(
-      lowered,
-    );
-  const quality = computeQuality(text, civicIntentMarkers);
+  const quality = computeQuality(text, lexicon.civicIntentDetected);
   if (quality.readability < 0.4) {
     makeFinding(findings, "low_readability", "low", "Text ist schwer lesbar.");
   }
 
-  const sentences = splitSentences(text);
-  const factCheckCandidates = sentences
-    .filter((sentence) => ALLEGATION_RE.test(sentence) || UNVERIFIED_NUMBER_RE.test(sentence))
-    .slice(0, 8);
-  ALLEGATION_RE.lastIndex = 0;
-  UNVERIFIED_NUMBER_RE.lastIndex = 0;
+  const safeQuestionDetected =
+    lexicon.questionMatches.length > 0 &&
+    (lexicon.evidenceMatches.length > 0 ||
+      lexicon.questionSentences.length > 0 ||
+      /\b(bitte\s+prüft|bitte\s+prueft|welche\s+quellen|can\s+anyone\s+verify|what\s+evidence)\b/iu.test(
+        text,
+      ));
 
-  const graphReviewHints: string[] = [];
-  if (crossLingualRisk) {
-    graphReviewHints.push("Cross-lingual Match nur manuell prüfen (same_language_only bleibt Standard).");
-  }
-  if (hasPoliticalFraming) {
-    graphReviewHints.push("Politisches Framing als Perspektive markieren, nicht als Faktknoten.");
-  }
+  const factCheckCandidates = buildFactCheckCandidates(
+    [
+      ...lexicon.allegationSentences.map((sentence) => ({
+        text: sentence,
+        reason: hasCorruptionClaim
+          ? ("corruption_or_capture_claim" as const)
+          : hasSourceBluffing
+            ? ("source_bluffing" as const)
+            : hasUnverifiedNumber
+              ? ("unverified_number" as const)
+              : ("unsupported_allegation" as const),
+      })),
+      ...lexicon.questionSentences
+        .filter((sentence) => safeQuestionDetected)
+        .map((sentence) => ({
+          text: sentence,
+          reason: hasCorruptionClaim
+            ? ("corruption_or_capture_claim" as const)
+            : hasSourceBluffing
+              ? ("source_bluffing" as const)
+              : hasUnverifiedNumber
+                ? ("unverified_number" as const)
+                : ("unsupported_allegation" as const),
+        })),
+    ],
+    safeQuestionDetected,
+  );
 
-  const hasDoxxingSignal = hasThirdPartyPii && hasCallToAction;
+  const graphReviewHints = uniqueList([
+    crossLingualRisk
+      ? `Cross-lingual Match nur manuell prüfen (${lexicon.languageRiskHints.join(", ") || sourceLanguage} -> ${contentLanguage}); same_language_only bleibt Standard.`
+      : "",
+    hasPoliticalFraming
+      ? "Politisches Framing als Perspektive markieren, nicht als Faktknoten."
+      : "",
+  ]);
+
+  const hasThirdPartyPii = hasPii && !hasSelfPiiContext;
+  const hasDoxxingSignal = hasThirdPartyPii && (hasCallToAction || hasDoxxingPattern);
+
   if (hasDoxxingSignal) {
     makeFinding(
       findings,
       "doxxing",
       "critical",
-      "Möglicher Doxxing-/Adressierungsaufruf erkannt.",
+      "Möglicher Doxxing- oder Adressierungsaufruf erkannt.",
+      sanitizeCreateSafetyExcerpt(text),
     );
   }
 
   let decision: CreateInputSafetyDecision = "allow";
-  if (hasThreat || hasDoxxingSignal) {
+  if (hasThreatConcrete || hasDoxxingSignal) {
     decision = "blocked";
-  } else if (hasThirdPartyPii && (hasAccusation || hasAllegation)) {
+  } else if (hasThirdPartyPii && hasAccusationOrAllegation) {
     decision = hasCallToAction ? "blocked" : "moderation_required";
-  } else if (hasSelfJustice) {
+  } else if (hasSelfJustice || hasThreatImplicit || hasGroupAbuse) {
     decision = "moderation_required";
-  } else if (hasAllegation || hasUnverifiedNumber) {
+  } else if (factCheckCandidates.length > 0 && !safeQuestionDetected) {
     decision = "factcheck_required";
   } else if (crossLingualRisk) {
     decision = "graph_review_required";
-  } else if (hasInsult || quality.readability < 0.4 || hasPoliticalFraming) {
+  } else if (
+    hasInsultPublicActor ||
+    hasInsultPrivatePerson ||
+    hasPoliticalFraming ||
+    hasCensorshipCounterclaim ||
+    hasSpamCampaign ||
+    quality.readability < 0.4
+  ) {
     decision = "revise_required";
   }
 
-  const redactedText = redactSensitive(text);
+  const redactedText = redactCreateSafetySensitiveText(text);
   const safeRewrite = buildSafeRewrite({
     redactedText,
     factCheckCandidates,
-    hasInsult,
-    hasThreat: hasThreat || hasSelfJustice,
+    hasHostileLanguage:
+      hasInsultPublicActor || hasInsultPrivatePerson || hasGroupAbuse || hasSpamCampaign,
+    hasThreatOrEscalation:
+      hasThreatConcrete || hasThreatImplicit || hasSelfJustice || hasDoxxingSignal,
   });
 
   const blockedReasons: string[] = [];
   if (decision === "blocked") {
-    if (hasThreat) blockedReasons.push("Konkrete Gewaltandrohung erkannt.");
+    if (hasThreatConcrete) blockedReasons.push("Konkrete Gewaltandrohung erkannt.");
     if (hasDoxxingSignal) blockedReasons.push("Doxxing-/Adressierungsaufruf mit Drittpersonenbezug erkannt.");
+    if (hasThirdPartyPii && hasAccusationOrAllegation && hasCallToAction) {
+      blockedReasons.push("Private Daten Dritter mit Vorwurf und Mobilisierung erkannt.");
+    }
   }
   if (decision === "moderation_required") {
-    if (hasSelfJustice) blockedReasons.push("Selbstjustiz-/Drohmarker benötigen Moderation.");
-    if (hasThirdPartyPii && (hasAccusation || hasAllegation)) {
+    if (hasSelfJustice) blockedReasons.push("Selbstjustiz-Sprache benötigt Moderation.");
+    if (hasThreatImplicit) blockedReasons.push("Implizite Drohsprache benötigt Moderation.");
+    if (hasGroupAbuse) blockedReasons.push("Abwertung von Gruppen benötigt Moderation.");
+    if (hasThirdPartyPii && hasAccusationOrAllegation) {
       blockedReasons.push("Private Daten Dritter in Verbindung mit Vorwürfen erkannt.");
     }
   }
 
+  const requiresHumanReview =
+    decision === "moderation_required" ||
+    decision === "blocked" ||
+    decision === "factcheck_required" ||
+    decision === "graph_review_required";
+
   const nextActions: string[] = [];
-  if (decision === "revise_required") {
-    nextActions.push("Bitte beleidigungsfrei und mit klarer Fragestellung formulieren.");
-  }
-  if (decision === "factcheck_required") {
-    nextActions.push("Belege/Quellen ergänzen oder Behauptung als prüfbare Frage formulieren.");
-  }
-  if (decision === "graph_review_required") {
-    nextActions.push("Sprachkontext und Graph-Matches manuell prüfen.");
-  }
-  if (decision === "moderation_required") {
-    nextActions.push("Beitrag wird vor Weiterverwendung moderiert.");
-  }
-  if (decision === "blocked") {
-    nextActions.push("Bitte entferne Drohungen, Doxxing oder personenbezogene Angriffe.");
+  if (decision === "revise_required") nextActions.push("Eingabe überarbeiten");
+  if (decision === "factcheck_required") nextActions.push("Faktencheck starten");
+  if (decision === "graph_review_required") nextActions.push("Graph-Review erforderlich");
+  if (decision === "moderation_required") nextActions.push("Moderation erforderlich");
+  if (decision === "blocked") nextActions.push("Blockiert: neu formulieren");
+  if ((safeQuestionDetected || redactedText !== text) && decision !== "blocked") {
+    nextActions.push("Sichere Fassung übernehmen");
   }
   if (nextActions.length === 0) {
-    nextActions.push("Du kannst mit der strukturierten Ausarbeitung fortfahren.");
+    nextActions.push("Sichere Fassung übernehmen");
   }
 
   let severity: CreateInputSafetySeverity = "low";
@@ -384,6 +573,44 @@ export function evaluateCreateInputSafety(
   }
   if (decision === "blocked") severity = "critical";
   if (decision === "moderation_required" && severity !== "critical") severity = "high";
+
+  const reviewItems = buildCreateSafetyReviewItems({
+    draftId: input.draftId,
+    runId: input.runId,
+    decision,
+    severity,
+    findings,
+    redactedText,
+    factCheckCandidates,
+    graphReviewHints,
+    blockedReasons,
+    crossLingualRisk,
+    safeQuestionDetected,
+    hasThirdPartyPii,
+    hasAccusationOrAllegation,
+    hasThreatImplicit,
+    hasGroupAbuse,
+    hasPoliticalFraming,
+    hasCensorshipCounterclaim,
+    hasSpamCampaign,
+    createdAt,
+  });
+
+  const telemetry = buildCreateSafetyTelemetry({
+    decision,
+    severity,
+    findings,
+    requiresHumanReview,
+    crossLingualRisk,
+    qualityOverall: quality.overall,
+    redactedText,
+    factCheckCandidateCount: factCheckCandidates.length,
+    graphReviewHintCount: graphReviewHints.length,
+    routeStage,
+    runId: input.runId,
+    correlationId: input.correlationId,
+    timestamp: createdAt,
+  });
 
   return {
     decision,
@@ -394,11 +621,9 @@ export function evaluateCreateInputSafety(
     safeRewrite,
     factCheckCandidates,
     graphReviewHints,
-    requiresHumanReview:
-      decision !== "allow" ||
-      crossLingualRisk ||
-      hasAllegation ||
-      hasUnverifiedNumber,
+    reviewItems,
+    telemetry,
+    requiresHumanReview,
     noAutoPublish: true,
     noSilentMerge: true,
     blockedReasons,
@@ -406,6 +631,6 @@ export function evaluateCreateInputSafety(
     sourceLanguage,
     contentLanguage,
     crossLingualRisk,
-    createdAt: new Date().toISOString(),
+    createdAt,
   };
 }

@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
 import { ObjectId } from "mongodb";
+import { CREATE_SAFETY_ADVERSARIAL_FIXTURES } from "./fixtures/createSafetyAdversarialFixtures";
 
 const mocks = vi.hoisted(() => {
   type AnyDoc = Record<string, any>;
@@ -140,12 +141,24 @@ describe("create finalize safety gate", () => {
   it("requires factcheck on unsupported allegation claims", async () => {
     const draftId = seedDraft({
       safetyDecision: "factcheck_required",
-      claimText: "Die Presse schreibt nur für Investoren und alle wissen das.",
+      claimText: CREATE_SAFETY_ADVERSARIAL_FIXTURES.allegation,
     });
     const res = await POST(req({ draftId, selectedClaimIds: ["c1"] }));
     expect(res.status).toBe(422);
     const body = await res.json();
     expect(body.error).toBe("factcheck_required");
     expect(body.safety).toBeTruthy();
+  });
+
+  it("allows finalize for a safe verification question even when the draft was factcheck-required", async () => {
+    const draftId = seedDraft({
+      safetyDecision: "factcheck_required",
+      claimText: CREATE_SAFETY_ADVERSARIAL_FIXTURES.safeQuestionOnUnsafeClaim,
+    });
+    const res = await POST(req({ draftId, selectedClaimIds: ["c1"] }));
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.ok).toBe(true);
+    expect(Array.isArray(body.proposalIds)).toBe(true);
   });
 });

@@ -262,6 +262,9 @@ export async function POST(req: NextRequest): Promise<Response> {
     contentLanguage: languageContext.contentLanguage,
     sourceLanguage: languageContext.sourceLanguage,
     uiLocale: languageContext.uiLocale,
+    routeStage: "analyze",
+    runId,
+    correlationId: contributionId,
   });
 
   if (safety.decision === "blocked") {
