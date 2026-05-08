@@ -191,9 +191,7 @@ describe("analyze workbench progressive disclosure", () => {
     expect(CREATE_INTELLIGENT_FOLLOWUP_SECTION_LABELS.understanding).toBe(
       "eDebatte hat deinen Beitrag strukturiert",
     );
-    expect(CREATE_INTELLIGENT_FOLLOWUP_SECTION_LABELS.connections).toBe(
-      "Dort würden wir deinen Beitrag anschließen",
-    );
+    expect(CREATE_INTELLIGENT_FOLLOWUP_SECTION_LABELS.connections).toBe("Mögliche Anschlüsse");
     expect(CREATE_INTELLIGENT_FOLLOWUP_SECTION_LABELS.voteNotice).toContain(
       "nicht automatisch abgegeben",
     );
@@ -201,7 +199,7 @@ describe("analyze workbench progressive disclosure", () => {
     expect(CREATE_VISUAL_FOLLOWUP_COPY.coreTitle).toBe("Kern erkannt");
     expect(CREATE_VISUAL_FOLLOWUP_COPY.graphTitle).toBe("So hängt dein Beitrag zusammen");
     expect(CREATE_VISUAL_FOLLOWUP_COPY.confirmTitle).toBe("Stimmt diese Einordnung?");
-    expect(CREATE_VISUAL_FOLLOWUP_COPY.impactTitle).toBe("Dort würden wir deinen Beitrag anschließen");
+    expect(CREATE_VISUAL_FOLLOWUP_COPY.impactTitle).toBe("Mögliche Anschlüsse");
     expect(CREATE_VISUAL_FOLLOWUP_COPY.guardrail).toContain("Keine automatische Veröffentlichung");
     expect(Object.values(CREATE_VISUAL_FOLLOWUP_COPY).join(" ")).not.toContain("Systemprüfung");
   });
@@ -249,7 +247,7 @@ describe("analyze workbench progressive disclosure", () => {
     expect(source).toContain("eDebatte");
     expect(source).toContain("Nächster Schritt");
     expect(source).toContain("Ja, Struktur übernehmen");
-    expect(source).toContain("Für später speichern");
+    expect(source).toContain("Arbeitsstand speichern");
     expect(source).toContain("Dossier-Kontext / Oberthema");
     expect(source).toContain("Vorgeschlagener Arbeitsstand");
     expect(source).toContain("Mögliche Abstimmungsfragen");
@@ -257,11 +255,25 @@ describe("analyze workbench progressive disclosure", () => {
     expect(source).toContain("Faktencheck / Deep Search starten");
     expect(source).toContain("Details zum Originaltext");
     expect(source).toContain("Sinnabschnitte");
-    expect(source).toContain("Zusatzservices (optional)");
+    expect(source).toContain("Original anzeigen");
+    expect(source).toContain("Mögliche Anschlüsse");
     expect(source).toContain("Keine automatische Stimme oder Veröffentlichung.");
     expect(source).toContain("Keine automatische Kostenbuchung.");
+    expect(source).toContain("Optional. Startet erst nach bewusster Bestätigung. Keine automatische Kostenbuchung.");
+    expect(source).toContain("Änderungsvorschläge werden im nächsten Schritt reviewbar gespeichert.");
+    expect(source).toContain("Abstimmungsfrage bearbeiten");
+    expect(source).toContain("Thema ändern");
+    expect(source).toContain("Haltung ändern");
+    expect(source).toContain("Ebene ändern");
+    expect(source).toContain("Anschluss ändern");
+    expect(source).toContain("Aussage fehlt");
+    expect(source).not.toContain("Für später speichern");
+    expect(source).not.toContain("Dossiers & Abstimmungen ansehen");
+    expect(source).not.toContain("Zusatzservices (optional)");
+    expect(source).not.toContain("Nicht passend");
     expect(source).toContain("dedupeCreateFollowupSections");
     expect(source).toContain("Claims/Abstimmungen prüfen");
+    expect(source).toContain("disabled:cursor-not-allowed");
     expect(source).not.toContain("bg-cyan-50/80");
     expect(source).toContain("dark:bg-[rgb(var(--card))]");
     expect(source).toContain("border-cyan-500/35 bg-cyan-50 text-cyan-950");
@@ -279,5 +291,14 @@ describe("analyze workbench progressive disclosure", () => {
     expect(clientSource).toContain("embeddedWorkspace");
     expect(composerSource).toContain("Arbeitsweg wählen (optional)");
     expect(composerSource).toContain("Ohne Auswahl startet eDebatte mit dem Standardfluss");
+  });
+
+  it("makes save and factcheck paths explicit in the create client", () => {
+    const clientSource = readFileSync(resolve(process.cwd(), "src/app/create/CreateClient.tsx"), "utf8");
+    expect(clientSource).toContain("/api/create/save");
+    expect(clientSource).toContain("Arbeitsstand gespeichert. Du kannst ihn später weiterbearbeiten.");
+    expect(clientSource).toContain("Prüfmodus geöffnet. Faktencheck / Deep Search startet erst nach deiner weiteren Bestätigung.");
+    expect(clientSource).toContain("setSaveState(\"saving\")");
+    expect(clientSource).toContain("setFactcheckMessage(");
   });
 });

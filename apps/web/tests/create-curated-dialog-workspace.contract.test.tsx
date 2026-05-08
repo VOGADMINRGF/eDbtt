@@ -38,9 +38,15 @@ describe("create curated dialog workspace contract", () => {
     expect(followupSource).toContain("Nächster Schritt");
     expect(followupSource).toContain("Vorgeschlagener Arbeitsstand");
     expect(followupSource).toContain("Ja, Struktur übernehmen");
+    expect(followupSource).toContain("Arbeitsstand speichern");
+    expect(followupSource).toContain("Faktencheck / Deep Search starten");
+    expect(followupSource).toContain("Original anzeigen");
     expect(followupSource).toContain("Keine automatische Stimme");
     expect(followupSource).toContain("Keine automatische Veröffentlichung");
     expect(followupSource).toContain("Keine automatische Kostenbuchung");
+    expect(followupSource).not.toContain("Für später speichern");
+    expect(followupSource).not.toContain("Dossiers & Abstimmungen ansehen");
+    expect(followupSource).not.toContain("Nicht passend");
   });
 
   it("keeps details progressively disclosed after the core workstate", () => {
@@ -50,7 +56,7 @@ describe("create curated dialog workspace contract", () => {
     );
 
     const coreIndex = followupSource.indexOf(">Vorgeschlagener Arbeitsstand</p>");
-    const confirmIndex = followupSource.indexOf("Du kannst bestätigen, einzelne Punkte ändern");
+    const confirmIndex = followupSource.indexOf("Bestätige die Struktur, passe einzelne Punkte an oder sichere deinen Arbeitsstand.");
     const detailsIndex = followupSource.indexOf("Details zum Originaltext");
     const impactIndex = followupSource.lastIndexOf("CREATE_VISUAL_FOLLOWUP_COPY.impactTitle");
 
@@ -62,6 +68,8 @@ describe("create curated dialog workspace contract", () => {
     expect(confirmIndex).toBeLessThan(detailsIndex);
     expect(detailsIndex).toBeLessThan(impactIndex);
     expect(followupSource).toContain("summary className=\"cursor-pointer");
+    expect(followupSource).toContain("Kann nach Bestätigung unter");
+    expect(followupSource).not.toContain("Zusatzservices (optional)");
     expect(followupSource).not.toContain("bg-cyan-50/80");
   });
 });
