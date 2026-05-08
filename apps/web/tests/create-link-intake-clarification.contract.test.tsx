@@ -50,7 +50,7 @@ describe("create link intake clarification contract", () => {
     expect(html).toContain("Als Quelle zu einem Dossier hinzufügen");
     expect(html).toContain("Abstimmungsfragen ableiten");
     expect(html).toContain("Gewählt: Faktencheck vorbereiten");
-    expect(html).toContain("Extraktion wird vorbereitet. Der Inhalt wurde noch nicht automatisch ausgewertet.");
+    expect(html).toContain("Der ausgewählte Prüfpfad wird vorbereitet. Der Inhalt wurde noch nicht automatisch ausgewertet.");
     expect(html).toContain("Keine automatische Kostenbuchung");
     expect(html).toContain("Was ist an diesem Link wichtig?");
   });
@@ -62,7 +62,7 @@ describe("create link intake clarification contract", () => {
     });
 
     expect(notice).toContain("Gewählt: Aussagen / Claims extrahieren.");
-    expect(notice).toContain("Der Link wird als Quelle/Hinweis behandelt.");
+    expect(notice).toContain("Der Link bleibt ein Quellenhinweis bzw. Prüfpfad-Signal.");
     expect(notice).not.toContain("automatisch extrahiert");
     expect(notice).not.toContain("ausgelesen");
   });

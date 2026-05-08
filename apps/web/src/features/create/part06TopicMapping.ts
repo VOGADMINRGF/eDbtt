@@ -3,6 +3,9 @@
  *
  * Source of truth:
  * docs/E150/Part06_Themenkatalog_und_Zustaendigkeiten.md
+ *
+ * This file exists as a stable mirror for UI usage and contract tests only.
+ * It is not a parallel taxonomy. Changes here must follow Part06 changes.
  */
 
 export type Part06CategoryKey =

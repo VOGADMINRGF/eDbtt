@@ -260,7 +260,7 @@ describe("analyze workbench progressive disclosure", () => {
     );
     expect(clientSource).toContain("CreateLinkIntakeClarification");
     expect(clientSource).toContain("buildCreateLinkSourceNotice");
-    expect(linkIntakeSource).toContain("Der Link wird als Quelle/Hinweis behandelt. Der Inhalt wurde noch nicht automatisch ausgewertet.");
+    expect(linkIntakeSource).toContain("Der Link bleibt ein Quellenhinweis bzw. Prüfpfad-Signal. Der Inhalt wurde noch nicht automatisch ausgewertet.");
     expect(source).toContain("UserContributionBubble");
     expect(source).toContain("AssistantUnderstandingBubble");
     expect(source).toContain("StructuredWorkstateBlock");

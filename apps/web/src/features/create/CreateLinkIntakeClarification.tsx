@@ -21,13 +21,14 @@ const COPY = {
   de: {
     title: "Ich habe einen Link erkannt. Was soll damit passieren?",
     lead:
-      "Ich werte den Inhalt erst aus, wenn ein passender Prüf- oder Extraktionspfad verfügbar ist. Ohne Auswertung nutze ich den Link nur als Hinweis/Quelle.",
+      "Ich nutze den Link zuerst nur als Quellenhinweis (`sourceHints`) oder als Signal für einen späteren Prüfpfad. Eine Auswertung startet erst nach einem passenden nächsten Schritt.",
     youtubeLead:
       "YouTube-Link erkannt. Ich kann daraus erst verlässlich arbeiten, wenn Transkript/Metadaten verfügbar sind oder du kurz beschreibst, was geprüft werden soll.",
     selectedPrefix: "Gewählt:",
-    extractionPending: "Extraktion wird vorbereitet. Der Inhalt wurde noch nicht automatisch ausgewertet.",
+    extractionPending:
+      "Der ausgewählte Prüfpfad wird vorbereitet. Der Inhalt wurde noch nicht automatisch ausgewertet.",
     sourcePending:
-      "Der Link wird vorerst als Quelle/Hinweis gehalten. Es wird noch keine automatische Auswertung behauptet.",
+      "Der Link bleibt vorerst ein Quellenhinweis. Es wird noch keine automatische Auswertung behauptet.",
     contextLabel: "Was ist an diesem Link wichtig?",
     contextPlaceholder:
       "Zum Beispiel: Welche Aussage soll geprüft, welche Quelle ergänzt oder welche Abstimmungsfrage vorbereitet werden?",
@@ -37,13 +38,14 @@ const COPY = {
   en: {
     title: "I detected a link. What should happen with it?",
     lead:
-      "I only evaluate the content once an appropriate review or extraction path is available. Until then, the link is treated as a source signal.",
+      "I first keep the link as a source hint (`sourceHints`) or as a signal for a later review path. Evaluation only starts after an explicit next step.",
     youtubeLead:
       "YouTube link detected. I can work with it reliably only when transcript or metadata are available, or when you briefly describe what should be checked.",
     selectedPrefix: "Selected:",
-    extractionPending: "Extraction is being prepared. The content has not been automatically evaluated yet.",
+    extractionPending:
+      "The selected review path is being prepared. The content has not been automatically evaluated yet.",
     sourcePending:
-      "The link is currently treated as a source signal only. No automatic evaluation is claimed yet.",
+      "The link is currently treated as a source hint only. No automatic evaluation is claimed yet.",
     contextLabel: "What matters about this link?",
     contextPlaceholder:
       "For example: which claim should be checked, which source should be attached, or which vote question should be prepared?",
