@@ -26,6 +26,7 @@ describe("create curated dialog workspace contract", () => {
     expect(clientSource).toContain("CreateLinkIntakeClarification");
     expect(clientSource).toContain("create-dialog-workspace");
     expect(clientSource).toContain("embeddedWorkspace");
+    expect(clientSource).toContain("max-w-6xl");
     expect(followupSource).toContain("create-chat-workspace");
     expect(followupSource).toContain("create-chat-spine");
     expect(followupSource).toContain("create-chat-message");
@@ -59,6 +60,9 @@ describe("create curated dialog workspace contract", () => {
     expect(followupSource).toContain("Einordnung im Themenkatalog");
     expect(followupSource).toContain("Mögliche Claims");
     expect(followupSource).toContain("Offene Prüfpunkte");
+    expect(followupSource).toContain("Ast bearbeiten");
+    expect(followupSource).toContain("Weitere Details zum Ast");
+    expect(followupSource).toContain("lg:grid-cols-2");
     expect(followupSource).toContain("Ja, Struktur übernehmen");
     expect(followupSource).toContain("Arbeitsstand speichern");
     expect(followupSource).toContain("Faktencheck / Deep Search starten");

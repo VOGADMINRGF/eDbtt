@@ -354,99 +354,127 @@ function StructureBranchCard(props: {
   branch: CreateStructureBranch;
   onEdit: (focus: string) => void;
 }) {
+  const visibleVoteQuestions = props.branch.voteQuestions.slice(0, 2);
+  const visibleTopicTags = props.branch.topicTags.slice(0, 3);
+
   return (
-    <article className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--bg))]">
+    <article className="rounded-2xl border border-slate-200/80 bg-white/90 px-4 py-4 shadow-sm shadow-slate-950/5 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))] dark:shadow-none">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-sm font-semibold text-[rgb(var(--fg))] md:text-base">{props.branch.title}</p>
-          <p className="mt-1 text-sm text-[rgb(var(--muted))]">{props.branch.need}</p>
+          <p className="text-base font-semibold text-[rgb(var(--fg))] md:text-lg">{props.branch.title}</p>
         </div>
       </div>
-      <div className="mt-3 flex flex-wrap gap-2">
+      <div className="mt-4 flex flex-wrap gap-2">
         {props.branch.part06CategoryLabels.map((label) => (
-          <span key={`${props.branch.id}-part06-${label}`} className={`rounded-full border px-2.5 py-1 text-xs ${resolveNodeTone("dossier")}`}>
+          <span
+            key={`${props.branch.id}-part06-${label}`}
+            className={`rounded-full border px-2.5 py-1 text-xs ${resolveNodeTone("dossier")}`}
+          >
             {label}
           </span>
         ))}
       </div>
-      <div className="mt-3">
-        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">Einordnung im Themenkatalog</p>
-        <div className="mt-2 flex flex-wrap gap-2">
-          {props.branch.topicTags.map((topic) => (
-            <span key={`${props.branch.id}-topic-${topic}`} className={`rounded-full border px-2.5 py-1 text-xs ${resolveNodeTone("topic")}`}>
-              {topic}
-            </span>
+      <div className="mt-4 rounded-xl border border-slate-200/80 bg-slate-50/80 px-3 py-3 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--bg))]">
+        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">Bedarf im Ast</p>
+        <p className="mt-2 text-sm leading-relaxed text-[rgb(var(--fg))]">{props.branch.need}</p>
+      </div>
+      <div className="mt-4 space-y-3">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">Wichtige Abstimmungsfragen</p>
+          <ul className="mt-2 space-y-2 text-sm leading-relaxed text-[rgb(var(--fg))]">
+            {visibleVoteQuestions.map((question) => (
+              <li
+                key={`${props.branch.id}-question-${question}`}
+                className="rounded-xl border border-slate-200/80 bg-slate-50/70 px-3 py-2 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--bg))]"
+              >
+                {question}
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+      <details className="mt-4 rounded-xl border border-slate-200/80 bg-slate-50/70 px-3 py-3 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--bg))]">
+        <summary className="cursor-pointer text-sm font-semibold text-[rgb(var(--fg))]">Ast bearbeiten</summary>
+        <div className="mt-3 flex flex-wrap gap-2">
+          {["Thema ändern", "Haltung ändern", "Ebene ändern", "Aussage ergänzen", "Abstimmungsfrage bearbeiten"].map((label) => (
+            <button
+              key={`${props.branch.id}-${label}`}
+              type="button"
+              className="rounded-full border border-[rgb(var(--border))] px-2.5 py-1 text-xs text-[rgb(var(--fg))] hover:border-cyan-300/60"
+              onClick={() => props.onEdit(`${props.branch.title}: ${label}`)}
+            >
+              {label}
+            </button>
           ))}
         </div>
-      </div>
-      <div className="mt-3 space-y-2">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">Themenfelder im Ast</p>
-          <div className="mt-1 flex flex-wrap gap-2">
-            {props.branch.topics.map((topic) => (
-              <span
-                key={`${props.branch.id}-field-${topic}`}
-                className="rounded-full border border-[rgb(var(--border))] px-2.5 py-1 text-xs text-[rgb(var(--muted))]"
-              >
-                {topic}
-              </span>
-            ))}
+        <p className="mt-3 text-xs text-[rgb(var(--muted))]">Änderungsvorschläge werden reviewbar vorbereitet.</p>
+      </details>
+      <details className="mt-3 rounded-xl border border-slate-200/80 bg-slate-50/70 px-3 py-3 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--bg))]">
+        <summary className="cursor-pointer text-sm font-semibold text-[rgb(var(--fg))]">Weitere Details zum Ast</summary>
+        <div className="mt-3 space-y-3">
+          {visibleTopicTags.length ? (
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">Einordnung im Themenkatalog</p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {visibleTopicTags.map((topic) => (
+                  <span
+                    key={`${props.branch.id}-topic-${topic}`}
+                    className={`rounded-full border px-2.5 py-1 text-xs ${resolveNodeTone("topic")}`}
+                  >
+                    {topic}
+                  </span>
+                ))}
+              </div>
+            </div>
+          ) : null}
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">Themenfelder im Ast</p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {props.branch.topics.map((topic) => (
+                <span
+                  key={`${props.branch.id}-field-${topic}`}
+                  className="rounded-full border border-[rgb(var(--border))] px-2.5 py-1 text-xs text-[rgb(var(--muted))]"
+                >
+                  {topic}
+                </span>
+              ))}
+            </div>
           </div>
-        </div>
-      </div>
-      <div className="mt-3 space-y-2">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">Mögliche Claims</p>
-          <ul className="mt-1 space-y-1 text-sm text-[rgb(var(--fg))]">
-            {props.branch.claims.map((claim) => (
-              <li key={`${props.branch.id}-claim-${claim}`}>{claim}</li>
-            ))}
-          </ul>
-        </div>
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">Mögliche Abstimmungsfragen</p>
-          <ul className="mt-1 space-y-1 text-sm text-[rgb(var(--fg))]">
-            {props.branch.voteQuestions.map((question) => (
-              <li key={`${props.branch.id}-question-${question}`}>{question}</li>
-            ))}
-          </ul>
-        </div>
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">Offene Prüfpunkte</p>
-          <ul className="mt-1 space-y-1 text-sm text-[rgb(var(--muted))]">
-            {props.branch.openReviewPoints.map((point) => (
-              <li key={`${props.branch.id}-review-${point}`}>{point}</li>
-            ))}
-          </ul>
-        </div>
-      </div>
-      <div className="mt-3 flex flex-wrap gap-2">
-        {["Thema ändern", "Haltung ändern", "Ebene ändern", "Aussage ergänzen", "Abstimmungsfrage bearbeiten"].map((label) => (
-          <button
-            key={`${props.branch.id}-${label}`}
-            type="button"
-            className="rounded-full border border-[rgb(var(--border))] px-2 py-1 text-xs text-[rgb(var(--fg))] hover:border-cyan-300/60"
-            onClick={() => props.onEdit(`${props.branch.title}: ${label}`)}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
-      <p className="mt-2 text-xs text-[rgb(var(--muted))]">Änderungsvorschläge werden reviewbar vorbereitet.</p>
-      {props.branch.overflowTopics?.length ? (
-        <details className="mt-3">
-          <summary className="cursor-pointer text-xs font-semibold text-[rgb(var(--muted))]">
-            + weitere Themen
-          </summary>
-          <div className="mt-2 flex flex-wrap gap-2">
-            {props.branch.overflowTopics.map((topic) => (
-              <span key={`${props.branch.id}-overflow-${topic}`} className="rounded-full border border-[rgb(var(--border))] px-2 py-1 text-xs text-[rgb(var(--muted))]">
-                {topic}
-              </span>
-            ))}
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">Mögliche Claims</p>
+            <ul className="mt-2 space-y-1.5 text-sm text-[rgb(var(--fg))]">
+              {props.branch.claims.map((claim) => (
+                <li key={`${props.branch.id}-claim-${claim}`}>{claim}</li>
+              ))}
+            </ul>
           </div>
-        </details>
-      ) : null}
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">Offene Prüfpunkte</p>
+            <ul className="mt-2 space-y-1.5 text-sm text-[rgb(var(--muted))]">
+              {props.branch.openReviewPoints.map((point) => (
+                <li key={`${props.branch.id}-review-${point}`}>{point}</li>
+              ))}
+            </ul>
+          </div>
+          {props.branch.overflowTopics?.length ? (
+            <details className="rounded-lg border border-[rgb(var(--border))] bg-white/80 px-3 py-2 dark:bg-[rgb(var(--card))]">
+              <summary className="cursor-pointer text-xs font-semibold text-[rgb(var(--muted))]">
+                + weitere Themen
+              </summary>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {props.branch.overflowTopics.map((topic) => (
+                  <span
+                    key={`${props.branch.id}-overflow-${topic}`}
+                    className="rounded-full border border-[rgb(var(--border))] px-2 py-1 text-xs text-[rgb(var(--muted))]"
+                  >
+                    {topic}
+                  </span>
+                ))}
+              </div>
+            </details>
+          ) : null}
+        </div>
+      </details>
     </article>
   );
 }
@@ -459,7 +487,7 @@ function StructureBranchList(props: {
   return (
     <div className="mt-4">
       <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">Strukturäste</p>
-      <div className="mt-2 grid gap-3 md:grid-cols-3">
+      <div className="mt-3 grid gap-4 lg:grid-cols-2">
         {props.branches.map((branch) => (
           <StructureBranchCard key={branch.id} branch={branch} onEdit={props.onEdit} />
         ))}
@@ -479,13 +507,13 @@ function StructuredWorkstateBlock(props: {
 }) {
   const hasBranches = props.structureBranches.length >= 2;
   return (
-    <div className="mt-5 space-y-4 border-t border-slate-200 pt-4 dark:border-[rgb(var(--border))]">
+    <div className="mt-5 space-y-5 border-t border-slate-200 pt-5 dark:border-[rgb(var(--border))]">
       <p className="text-sm font-semibold text-[rgb(var(--fg))] md:text-base">Vorgeschlagener Arbeitsstand</p>
-      <p className="text-sm text-[rgb(var(--muted))] md:text-base">
+      <p className="max-w-3xl text-sm leading-relaxed text-[rgb(var(--muted))] md:text-base">
         {CREATE_VISUAL_FOLLOWUP_COPY.graphTitle}
       </p>
 
-      <div className={`rounded-xl border px-3 py-2 ${resolveNodeTone("topic")}`}>
+      <div className={`max-w-3xl rounded-2xl border px-4 py-3 ${resolveNodeTone("topic")}`}>
         <p className="text-sm font-semibold">Dossier-Kontext / Oberthema</p>
         <p className="mt-1 text-base font-semibold">{props.rootTopic}</p>
       </div>
@@ -561,15 +589,19 @@ function FollowupActionRail(props: {
   return (
     <div className="create-chat-message flex gap-3">
       <div className="mt-2 h-2.5 w-2.5 shrink-0 rounded-full bg-emerald-600 ring-4 ring-white dark:bg-emerald-300 dark:ring-[rgb(var(--bg))]" />
-      <div className="max-w-4xl flex-1">
+      <div className="max-w-5xl flex-1">
         <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-700 dark:text-[rgb(var(--muted))]">Nächster Schritt</p>
-        <div className="mt-2 space-y-3 rounded-2xl rounded-tl-sm border border-slate-200 bg-white px-4 py-4 shadow-sm dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))] dark:shadow-none">
-          <p className="text-sm font-semibold text-[rgb(var(--fg))] md:text-base">{CREATE_VISUAL_FOLLOWUP_COPY.confirmTitle}</p>
-          <p className="text-sm text-[rgb(var(--muted))] md:text-base">Bestätige die Struktur, passe einzelne Punkte an oder sichere deinen Arbeitsstand.</p>
-          <div className="grid gap-2 sm:grid-cols-2">
-            <button type="button" className="btn-primary min-h-[40px] px-3 py-2 text-sm" onClick={props.onConfirm}>
-              Ja, Struktur übernehmen
-            </button>
+        <div className="mt-2 space-y-4 rounded-2xl rounded-tl-sm border border-emerald-200/70 bg-white px-4 py-4 shadow-sm dark:border-emerald-300/20 dark:bg-[rgb(var(--card))] dark:shadow-none">
+          <div className="space-y-2">
+            <p className="text-sm font-semibold text-[rgb(var(--fg))] md:text-base">{CREATE_VISUAL_FOLLOWUP_COPY.confirmTitle}</p>
+            <p className="max-w-3xl text-sm leading-relaxed text-[rgb(var(--muted))] md:text-base">
+              Bestätige die Struktur, passe einzelne Punkte an oder sichere deinen Arbeitsstand.
+            </p>
+          </div>
+          <button type="button" className="btn-primary min-h-[48px] w-full px-4 py-3 text-sm md:text-base" onClick={props.onConfirm}>
+            Ja, Struktur übernehmen
+          </button>
+          <div className="grid gap-2 lg:grid-cols-3">
             <button type="button" className="btn-secondary min-h-[40px] px-3 py-2 text-sm" onClick={() => props.setCorrectionOpen("Thema")}>
               Ein Punkt ändern
             </button>
@@ -586,12 +618,20 @@ function FollowupActionRail(props: {
               Faktencheck / Deep Search starten
             </button>
           </div>
-          <div className="space-y-1 text-xs text-[rgb(var(--muted))]">
+          <div className="flex flex-wrap items-center gap-2 text-xs text-[rgb(var(--muted))]">
+            <span className="rounded-full border border-emerald-300/60 bg-emerald-50 px-2.5 py-1 dark:border-emerald-300/25 dark:bg-emerald-500/10">
+              Primär: Struktur übernehmen
+            </span>
+            <span className="rounded-full border border-slate-200 px-2.5 py-1 dark:border-[rgb(var(--border))]">
+              Optional: Faktencheck / Deep Search
+            </span>
+          </div>
+          <div className="grid gap-2 text-xs text-[rgb(var(--muted))] md:grid-cols-2">
             <p>{props.saveMessage ?? "Arbeitsstand speichern ist in diesem Schritt verfügbar."}</p>
             <p>{props.factcheckMessage ?? "Optional. Startet erst nach bewusster Bestätigung. Keine automatische Kostenbuchung."}</p>
           </div>
           {props.showCorrectionRow ? (
-            <div className="rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2">
+            <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-3">
               <p className="text-sm text-[rgb(var(--fg))]">
                 Was soll anders eingeordnet werden{props.correctionFocus ? `: ${props.correctionFocus}` : ""}?
               </p>
@@ -637,7 +677,7 @@ function DetailsAccordion(props: {
   const hasFutureModules = false;
 
   return (
-    <div className="space-y-2 pl-5 md:pl-8">
+    <div className="max-w-4xl space-y-2 pl-5 md:pl-8 lg:pl-10">
       <details className="border-t border-slate-200 py-3 dark:border-[rgb(var(--border))]">
         <summary className="cursor-pointer text-sm font-semibold text-[rgb(var(--fg))] md:text-base">
           Details zum Originaltext
@@ -681,7 +721,7 @@ function DetailsAccordion(props: {
         <summary className="cursor-pointer text-sm font-semibold text-[rgb(var(--fg))] md:text-base">
           {CREATE_VISUAL_FOLLOWUP_COPY.impactTitle}
         </summary>
-        <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-3 grid gap-2 sm:grid-cols-2">
           {props.sortedSuggestions.map((suggestion) => {
             const toneKind: CreateVisualNode["kind"] =
               suggestion.kind === "dossier"
@@ -793,7 +833,7 @@ export default function CreateVisualFollowup({
   );
 
   return (
-    <section className="create-chat-workspace relative -mt-3 mx-auto max-w-5xl pb-24 md:pb-10">
+    <section className="create-chat-workspace relative -mt-3 mx-auto max-w-6xl pb-24 md:pb-10">
       <div className="create-chat-spine relative space-y-5 before:absolute before:left-[5px] before:top-3 before:h-[calc(100%-1.5rem)] before:w-px before:bg-slate-200 md:space-y-6 dark:before:bg-[rgb(var(--border))]">
       <UserContributionBubble text={dedupedCopy.userBubbleText} />
 
