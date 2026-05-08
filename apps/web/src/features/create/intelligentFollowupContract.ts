@@ -15,6 +15,11 @@ export type CreateUnderstandingStatementKind =
   | "objection"
   | "hint";
 
+/**
+ * Normalized create follow-up model derived from the E150 intake/analyze
+ * envelope. It may condense multiple upstream fields for `/create`, but it
+ * must not become a second domain contract beside Part16.
+ */
 export type CreateUnderstandingResult = {
   summary: string;
   dossierContext?: string;
@@ -46,6 +51,11 @@ export type CreateUnderstandingResult = {
   confidence: FollowupConfidence;
 };
 
+/**
+ * UI-facing Anschluss suggestions for `/create`.
+ * They stay reviewable view models and must not auto-assign dossiers,
+ * Anlassraeume or votes.
+ */
 export type CreateConnectionSuggestion = {
   id: string;
   kind: "dossier" | "anlassraum" | "vote" | "topic" | "new_anlassraum";
@@ -107,6 +117,11 @@ export type CreateVisualSection = {
   connectionLabel?: string;
 };
 
+/**
+ * UI-only ViewModel for the active-branch workspace in `/create`.
+ * It derives from `topics`, statement-level claims/question signals and the
+ * Part06 mirror. This is not a new domain taxonomy or orchestration contract.
+ */
 export type CreateStructureBranch = {
   id: string;
   title: string;
@@ -438,6 +453,9 @@ type BranchDefinition = {
   defaultQuestion: string;
 };
 
+// Heuristische UI-Grouping-Regeln fuer den Follow-up-Workspace.
+// Sie helfen nur beim Rendern lesbarer Strukturaste und sind kein kanonischer
+// E150-Contract und keine zweite Claim-/Fragen-Taxonomie.
 const STRUCTURE_BRANCH_DEFINITIONS: readonly BranchDefinition[] = [
   {
     id: "housing-permits",
@@ -537,7 +555,7 @@ function selectBranchTopics(
   return topics
     .map((topic) => topic.label)
     .filter((label) => topicMatchesBranch(label, branch))
-    .slice(0, 4);
+    .filter((label, index, list) => list.indexOf(label) === index);
 }
 
 function selectBranchClaims(
@@ -586,12 +604,30 @@ function selectBranchTopicTags(
   return tags.slice(0, 6);
 }
 
+function collectUnassignedCreateTopics(params: {
+  topics: CreateUnderstandingResult["topics"];
+  visibleBranches: CreateStructureBranch[];
+}): string[] {
+  const assignedTopics = new Set(
+    params.visibleBranches.flatMap((branch) => branch.topics).map((topic) => normalizeText(topic)),
+  );
+  const overflowTopics: string[] = [];
+
+  for (const topic of params.topics) {
+    const normalized = normalizeText(topic.label);
+    if (!normalized || assignedTopics.has(normalized)) continue;
+    if (overflowTopics.some((entry) => normalizeText(entry) === normalized)) continue;
+    overflowTopics.push(topic.label);
+  }
+
+  return overflowTopics;
+}
+
 export function buildCreateStructureBranches(
   result: CreateIntelligentFollowupResult,
   maxBranches: number = 3,
 ): CreateStructureBranch[] {
   const sourceText = normalizeText(result.sourceText);
-  const topicLabels = result.understanding.topics.map((topic) => topic.label);
   const positionClusters = selectPositionClusters(result.understanding);
   const branches: CreateStructureBranch[] = [];
 
@@ -615,12 +651,15 @@ export function buildCreateStructureBranches(
     });
   }
 
-  if (branches.length <= maxBranches) return branches;
+  if (branches.length === 0) return branches;
 
-  const visibleBranches = branches.slice(0, maxBranches);
-  const visibleTopics = new Set(visibleBranches.flatMap((branch) => branch.topics).map((topic) => normalizeText(topic)));
-  const overflowTopics = topicLabels.filter((label) => !visibleTopics.has(normalizeText(label)));
-  if (overflowTopics.length > 0) {
+  const branchLimit = Math.max(1, maxBranches);
+  const visibleBranches = branches.slice(0, branchLimit);
+  const overflowTopics = collectUnassignedCreateTopics({
+    topics: result.understanding.topics,
+    visibleBranches,
+  });
+  if (overflowTopics.length > 0 && visibleBranches.length > 0) {
     visibleBranches[visibleBranches.length - 1] = {
       ...visibleBranches[visibleBranches.length - 1],
       overflowTopics,

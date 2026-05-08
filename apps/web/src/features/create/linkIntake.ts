@@ -1,3 +1,11 @@
+/**
+ * UI mirror for E150 Part16 Intake-Orchestrierung.
+ *
+ * This helper only classifies link-shaped intake for the local `/create`
+ * clarification step. It mirrors canonical E150 intake fields like
+ * `inputType`, `segments`, `sourceHints` and `missingInfoQuestions`, but it
+ * does not scrape, summarize or auto-evaluate linked content.
+ */
 export type CreateLinkKind = "youtube" | "video" | "article" | "web" | "multiple" | "unknown";
 
 export type CreateLinkIntentOptionId =
@@ -14,6 +22,17 @@ export type CreateLinkIntentOption = {
   label: Record<CreateLinkLocale, string>;
 };
 
+export type CreateLinkIntentE150Field =
+  | "sourceHints"
+  | "missingInfoQuestions"
+  | "evidenceNeeds"
+  | "questionCandidates";
+
+export type CreateLinkIntentE150Mapping = {
+  inputType: "url" | "material_mix";
+  mapsTo: CreateLinkIntentE150Field[];
+};
+
 export type CreateLinkIntakeDetection = {
   normalizedInput: string;
   hasLink: boolean;
@@ -22,6 +41,7 @@ export type CreateLinkIntakeDetection = {
   urls: string[];
   linkOnly: boolean;
   mostlyLinkOnly: boolean;
+  // Semantically this is the remaining `segments`/context once URLs are removed.
   remainingText: string;
   remainingWordCount: number;
 };
@@ -71,6 +91,32 @@ export const CREATE_LINK_INTENT_OPTIONS: readonly CreateLinkIntentOption[] = [
     },
   },
 ] as const;
+
+const CREATE_LINK_INTENT_E150_MAPPING: Record<
+  CreateLinkIntentOptionId,
+  CreateLinkIntentE150Mapping
+> = {
+  summarize: {
+    inputType: "url",
+    mapsTo: ["sourceHints", "missingInfoQuestions"],
+  },
+  extract_claims: {
+    inputType: "url",
+    mapsTo: ["sourceHints", "evidenceNeeds"],
+  },
+  prepare_factcheck: {
+    inputType: "url",
+    mapsTo: ["sourceHints", "evidenceNeeds", "missingInfoQuestions"],
+  },
+  add_source_to_dossier: {
+    inputType: "url",
+    mapsTo: ["sourceHints"],
+  },
+  derive_vote_questions: {
+    inputType: "material_mix",
+    mapsTo: ["questionCandidates", "missingInfoQuestions"],
+  },
+};
 
 const URL_PATTERN = /\bhttps?:\/\/[^\s<>"'`]+|\bwww\.[^\s<>"'`]+/gi;
 const TRAILING_PUNCTUATION_PATTERN = /[),.;:!?]+$/;
@@ -155,6 +201,12 @@ export function resolveCreateLinkIntentOptionLabel(
   );
 }
 
+export function resolveCreateLinkIntentE150Mapping(
+  id: CreateLinkIntentOptionId,
+): CreateLinkIntentE150Mapping {
+  return CREATE_LINK_INTENT_E150_MAPPING[id];
+}
+
 export function buildCreateLinkSourceNotice(params: {
   locale: CreateLinkLocale;
   selectedIntentId?: CreateLinkIntentOptionId | null;
@@ -162,22 +214,30 @@ export function buildCreateLinkSourceNotice(params: {
   const selection = params.selectedIntentId
     ? resolveCreateLinkIntentOptionLabel(params.selectedIntentId, params.locale)
     : null;
+  const mapping = params.selectedIntentId
+    ? resolveCreateLinkIntentE150Mapping(params.selectedIntentId)
+    : null;
+  const mappingLead = mapping
+    ? `${mapping.mapsTo.join(", ")} · inputType=${mapping.inputType}`
+    : null;
 
   if (params.locale === "en") {
     const prefix = selection ? `Selected: ${selection}. ` : "";
+    const mirrorHint = mappingLead ? `E150 mirror: ${mappingLead}. ` : "";
     const factcheckGuardrail =
       params.selectedIntentId === "prepare_factcheck"
         ? " Fact-check / Deep Search only starts after explicit confirmation. No automatic cost booking."
         : "";
-    return `${prefix}The link is treated as a source signal. Its content has not been automatically evaluated yet.${factcheckGuardrail}`;
+    return `${prefix}${mirrorHint}The link stays a source hint / review-path signal. Its content has not been automatically evaluated yet.${factcheckGuardrail}`;
   }
 
   const prefix = selection ? `Gewählt: ${selection}. ` : "";
+  const mirrorHint = mappingLead ? `E150-Mirror: ${mappingLead}. ` : "";
   const factcheckGuardrail =
     params.selectedIntentId === "prepare_factcheck"
       ? " Faktencheck / Deep Search startet erst nach bewusster Bestätigung. Keine automatische Kostenbuchung."
       : "";
-  return `${prefix}Der Link wird als Quelle/Hinweis behandelt. Der Inhalt wurde noch nicht automatisch ausgewertet.${factcheckGuardrail}`;
+  return `${prefix}${mirrorHint}Der Link bleibt ein Quellenhinweis bzw. Prüfpfad-Signal. Der Inhalt wurde noch nicht automatisch ausgewertet.${factcheckGuardrail}`;
 }
 
 export function buildCreateLinkIntakeMeta(params: {

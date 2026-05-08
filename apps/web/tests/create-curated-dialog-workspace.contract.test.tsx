@@ -74,7 +74,7 @@ describe("create curated dialog workspace contract", () => {
     expect(followupSource).not.toContain("Dossiers & Abstimmungen ansehen");
     expect(followupSource).not.toContain("Nicht passend");
     expect(linkClarificationSource).toContain("YouTube-Link erkannt.");
-    expect(linkClarificationSource).toContain("Extraktion wird vorbereitet. Der Inhalt wurde noch nicht automatisch ausgewertet.");
+    expect(linkClarificationSource).toContain("Der ausgewählte Prüfpfad wird vorbereitet. Der Inhalt wurde noch nicht automatisch ausgewertet.");
   });
 
   it("keeps details progressively disclosed after the core workstate", () => {
