@@ -209,6 +209,48 @@ export function buildCreateLightweightFollowupSnapshot(params: {
   };
 }
 
+function CreateSubmittedContributionBubble(props: { text: string }) {
+  return (
+    <div className="create-chat-message flex gap-3">
+      <div className="mt-2 h-2.5 w-2.5 shrink-0 rounded-full bg-slate-400 ring-4 ring-white dark:bg-slate-500 dark:ring-[rgb(var(--bg))]" />
+      <div className="max-w-3xl">
+        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-600 dark:text-[rgb(var(--muted))]">Du</p>
+        <div className="mt-2 rounded-2xl rounded-tl-sm border border-slate-200 bg-white px-4 py-3 shadow-sm dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))] dark:shadow-none">
+          <p className="whitespace-pre-wrap text-sm text-slate-900 md:text-base dark:text-[rgb(var(--fg))]">
+            {props.text}
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function CreateAssistantStatusBubble(props: {
+  eyebrow: string;
+  title: string;
+  body: string;
+  notice?: string | null;
+}) {
+  return (
+    <div className="create-chat-message flex gap-3">
+      <div className="mt-2 h-2.5 w-2.5 shrink-0 rounded-full bg-cyan-600 ring-4 ring-white dark:bg-cyan-300 dark:ring-[rgb(var(--bg))]" />
+      <div className="max-w-5xl flex-1">
+        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-700 dark:text-[rgb(var(--muted))]">eDebatte</p>
+        <div className="mt-2 rounded-2xl rounded-tl-sm border border-cyan-500/25 bg-white px-4 py-4 shadow-sm md:px-5 md:py-5 dark:border-cyan-300/30 dark:bg-[rgb(var(--card))] dark:shadow-none">
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-cyan-800 dark:text-cyan-200">{props.eyebrow}</p>
+          <p className="mt-1 text-base font-semibold text-cyan-950 md:text-lg dark:text-cyan-50">{props.title}</p>
+          <p className="mt-3 text-sm leading-relaxed text-cyan-900 dark:text-cyan-100 md:text-base">{props.body}</p>
+          {props.notice ? (
+            <p className="mt-3 rounded-xl border border-cyan-300/35 bg-cyan-500/10 px-3 py-2 text-sm text-cyan-950 dark:text-cyan-50">
+              {props.notice}
+            </p>
+          ) : null}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 const CREATE_PRIMARY_INTAKE_STORAGE_KEY_PREFIX = "vog_create_primary_intake_v1";
 
 export function buildCreatePrimaryIntakeStorageKey(userId?: string | null): string {
@@ -999,6 +1041,22 @@ export default function CreateClient({
     !currentLinkDetection.hasLink;
   const startBusyStatusLabel =
     productMode === "analyze" ? "Wir ordnen deinen Beitrag ein …" : surfaceTexts.startBusyStatus;
+  const showStartChatPreview =
+    Boolean(followupSnapshot) && hasStarted && !showIntelligentFollowup && !showLinkClarification;
+  const startChatAssistantTitle = isStarting
+    ? "Ich ordne das kurz ein"
+    : productMode === "guided"
+      ? surfaceTexts.followupGuidedTitle
+      : productMode === "media"
+        ? productModeConfig.postStartTitle
+        : surfaceTexts.followupContributeTitle;
+  const startChatAssistantBody = isStarting
+    ? surfaceTexts.startBusyLead
+    : productMode === "guided"
+      ? surfaceTexts.followupGuidedLead
+      : productMode === "media"
+        ? productModeConfig.postStartLead
+        : followupSnapshot?.understandingLine ?? surfaceTexts.followupContributeLead;
   const actionSuggestionHref =
     intelligentFollowup?.suggestions.find(
       (suggestion) =>
@@ -1196,42 +1254,54 @@ export default function CreateClient({
         </p>
       ) : null}
 
-      {isStarting ? (
-        <section className="rounded-2xl border border-sky-200 bg-sky-50/80 p-4 md:p-5 dark:border-sky-500/40 dark:bg-sky-500/10">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-sky-800 dark:text-sky-100">
-            {startBusyStatusLabel}
-          </p>
-          <p className="mt-1 text-sm text-sky-900 dark:text-sky-100">{surfaceTexts.startBusyLead}</p>
-        </section>
+      {showStartChatPreview && followupSnapshot ? (
+        <div className="create-start-chat-preview create-chat-workspace rounded-[1.5rem] border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-4 py-4 md:px-5">
+          <div className="create-chat-spine space-y-5">
+            <CreateSubmittedContributionBubble text={followupSnapshot.originalText} />
+            <CreateAssistantStatusBubble
+              eyebrow={isStarting ? startBusyStatusLabel : surfaceTexts.followupUnderstandingLabel}
+              title={startChatAssistantTitle}
+              body={startChatAssistantBody}
+              notice={isStarting ? null : actionNotice}
+            />
+          </div>
+        </div>
       ) : null}
 
       {showLinkClarification && linkClarificationState ? (
-        <CreateLinkIntakeClarification
-          locale={surfaceLocale}
-          detection={linkClarificationState.detection}
-          selectedIntentId={linkClarificationState.selectedIntentId}
-          additionalContext={linkClarificationState.additionalContext}
-          onSelectIntent={(intentId) => {
-            setLinkClarificationState((current) =>
-              current
-                ? {
-                    ...current,
-                    selectedIntentId: intentId,
-                  }
-                : current,
-            );
-          }}
-          onAdditionalContextChange={(value) => {
-            setLinkClarificationState((current) =>
-              current
-                ? {
-                    ...current,
-                    additionalContext: value,
-                  }
-                : current,
-            );
-          }}
-        />
+        <div className="create-chat-workspace rounded-[1.5rem] border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-4 py-4 md:px-5">
+          <div className="create-chat-spine space-y-5">
+            <CreateSubmittedContributionBubble
+              text={followupSnapshot?.originalText ?? normalizedIntakeText}
+            />
+            <CreateLinkIntakeClarification
+              locale={surfaceLocale}
+              detection={linkClarificationState.detection}
+              selectedIntentId={linkClarificationState.selectedIntentId}
+              additionalContext={linkClarificationState.additionalContext}
+              onSelectIntent={(intentId) => {
+                setLinkClarificationState((current) =>
+                  current
+                    ? {
+                        ...current,
+                        selectedIntentId: intentId,
+                      }
+                    : current,
+                );
+              }}
+              onAdditionalContextChange={(value) => {
+                setLinkClarificationState((current) =>
+                  current
+                    ? {
+                        ...current,
+                        additionalContext: value,
+                      }
+                    : current,
+                );
+              }}
+            />
+          </div>
+        </div>
       ) : null}
 
       {showIntelligentFollowup && intelligentFollowup ? (

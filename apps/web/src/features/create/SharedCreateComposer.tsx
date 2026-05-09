@@ -292,6 +292,31 @@ export default function SharedCreateComposer({
     };
   }, [stopVoice]);
 
+  const renderModeChip = React.useCallback(
+    (modeOption: CreateProductMode) => {
+      const modeConfig = modeDefinitions[modeOption];
+      const isActive = modeOption === activeMode;
+      return (
+        <button
+          key={modeOption}
+          type="button"
+          onClick={() => onModeChange(modeOption)}
+          className={`rounded-full border px-3 py-1.5 text-xs font-medium transition ${
+            isActive
+              ? "border-[rgb(var(--grad-from))]/45 bg-[rgb(var(--card))] text-[rgb(var(--fg))] shadow-sm"
+              : "border-[rgb(var(--border))] bg-[rgb(var(--bg))] text-[rgb(var(--muted))] hover:border-[rgb(var(--grad-from))]/35 hover:text-[rgb(var(--fg))]"
+          }`}
+          aria-pressed={isActive}
+          aria-selected={isActive}
+          title={modeConfig.description}
+        >
+          {modeConfig.label}
+        </button>
+      );
+    },
+    [activeMode, modeDefinitions, onModeChange],
+  );
+
   return (
     <section
       className={
@@ -317,76 +342,13 @@ export default function SharedCreateComposer({
         />
 
         <div className="space-y-3">
-          {collapseModeSelector ? (
-            <details className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-4 py-3">
-              <summary className="cursor-pointer text-[11px] font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
-                Arbeitsweg wählen (optional)
-              </summary>
-              <p className="mt-2 text-sm leading-relaxed text-[rgb(var(--muted))]">
-                Ohne Auswahl startet eDebatte mit dem Standardfluss für Beiträge. Du kannst jederzeit zu Prüfen oder Entwerfen wechseln.
-              </p>
-              <div aria-label={texts.modeSwitchAriaLabel} className="mt-3 grid gap-2 md:grid-cols-3">
-                {modeOrder.map((modeOption) => {
-                  const modeConfig = modeDefinitions[modeOption];
-                  const isActive = modeOption === activeMode;
-                  return (
-                    <button
-                      key={modeOption}
-                      type="button"
-                      onClick={() => onModeChange(modeOption)}
-                      className={`rounded-2xl border px-3 py-2 text-left transition ${
-                        isActive
-                          ? "border-[rgb(var(--grad-from))]/45 bg-[rgb(var(--card))] text-[rgb(var(--fg))] shadow-sm"
-                          : "border-[rgb(var(--border))] bg-[rgb(var(--bg))] text-[rgb(var(--fg))] hover:border-[rgb(var(--grad-from))]/35"
-                      }`}
-                      aria-pressed={isActive}
-                      aria-selected={isActive}
-                    >
-                      <span className="block text-sm font-semibold">{modeConfig.label}</span>
-                      <span
-                        className={`mt-1 block text-xs leading-relaxed ${
-                          isActive ? "text-[rgb(var(--fg))]" : "text-[rgb(var(--muted))]"
-                        }`}
-                      >
-                        {modeConfig.description}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-            </details>
-          ) : (
-            <div aria-label={texts.modeSwitchAriaLabel} className="grid gap-2 md:grid-cols-3">
-              {modeOrder.map((modeOption) => {
-                const modeConfig = modeDefinitions[modeOption];
-                const isActive = modeOption === activeMode;
-                return (
-                  <button
-                    key={modeOption}
-                    type="button"
-                    onClick={() => onModeChange(modeOption)}
-                    className={`rounded-2xl border px-3 py-2 text-left transition ${
-                      isActive
-                        ? "border-[rgb(var(--grad-from))]/45 bg-[rgb(var(--card))] text-[rgb(var(--fg))] shadow-sm"
-                        : "border-[rgb(var(--border))] bg-[rgb(var(--bg))] text-[rgb(var(--fg))] hover:border-[rgb(var(--grad-from))]/35"
-                    }`}
-                    aria-pressed={isActive}
-                    aria-selected={isActive}
-                  >
-                    <span className="block text-sm font-semibold">{modeConfig.label}</span>
-                    <span
-                      className={`mt-1 block text-xs leading-relaxed ${
-                        isActive ? "text-[rgb(var(--fg))]" : "text-[rgb(var(--muted))]"
-                      }`}
-                    >
-                      {modeConfig.description}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          )}
-          <p className="max-w-2xl text-sm leading-relaxed text-[rgb(var(--muted))]">{helperText}</p>
+          <div className="flex flex-wrap items-center gap-2" aria-label={texts.modeSwitchAriaLabel}>
+            <span className="text-[11px] font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
+              {collapseModeSelector ? "Arbeitsweg optional" : texts.modeSwitchAriaLabel}
+            </span>
+            {modeOrder.map(renderModeChip)}
+          </div>
+          <p className="max-w-3xl text-sm leading-relaxed text-[rgb(var(--muted))]">{helperText}</p>
         </div>
 
         {contextBanner}
@@ -490,11 +452,11 @@ export default function SharedCreateComposer({
           ) : null}
 
           {contextAnchors.length > 0 ? (
-            <details className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-4 py-3">
-              <summary className="cursor-pointer text-[11px] font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
-                {texts.contextEntryTitle}
-              </summary>
-              <div className="mt-2 flex flex-wrap gap-2">
+            <div className="space-y-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-[11px] font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
+                  {texts.contextEntryTitle}
+                </span>
                 {contextAnchors.map((anchor) => {
                   const isActive = activeContextAnchorId === anchor.id;
                   return (
@@ -515,28 +477,26 @@ export default function SharedCreateComposer({
                 })}
               </div>
               {activeContextAnchorLead ? (
-                <p className="mt-2 text-xs leading-relaxed text-[rgb(var(--muted))]">{activeContextAnchorLead}</p>
+                <p className="text-xs leading-relaxed text-[rgb(var(--muted))]">{activeContextAnchorLead}</p>
               ) : null}
-            </details>
+            </div>
           ) : null}
 
           {helperLinks.length > 0 ? (
-            <details className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-4 py-3">
-              <summary className="cursor-pointer text-[11px] font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-[rgb(var(--muted))]">
+              <span className="text-[11px] font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
                 {texts.orientationTitle}
-              </summary>
-              <div className="mt-2 flex flex-wrap gap-x-4 gap-y-2 text-xs text-[rgb(var(--muted))]">
-                {helperLinks.map((helperLink) => (
-                  <Link
-                    key={helperLink.href}
-                    href={helperLink.href}
-                    className="underline decoration-dotted underline-offset-4 hover:text-[rgb(var(--fg))]"
-                  >
-                    {helperLink.label}
-                  </Link>
-                ))}
-              </div>
-            </details>
+              </span>
+              {helperLinks.map((helperLink) => (
+                <Link
+                  key={helperLink.href}
+                  href={helperLink.href}
+                  className="underline decoration-dotted underline-offset-4 hover:text-[rgb(var(--fg))]"
+                >
+                  {helperLink.label}
+                </Link>
+              ))}
+            </div>
           ) : null}
 
           {error ? <p className="text-sm text-rose-700 dark:text-rose-300">{error}</p> : null}

@@ -25,6 +25,9 @@ describe("create curated dialog workspace contract", () => {
     expect(clientSource).toContain("CreateVisualFollowup");
     expect(clientSource).toContain("CreateLinkIntakeClarification");
     expect(clientSource).toContain("create-dialog-workspace");
+    expect(clientSource).toContain("create-start-chat-preview");
+    expect(clientSource).toContain("CreateSubmittedContributionBubble");
+    expect(clientSource).toContain("CreateAssistantStatusBubble");
     expect(clientSource).toContain("embeddedWorkspace");
     expect(clientSource).toContain("max-w-6xl");
     expect(followupSource).toContain("create-chat-workspace");
@@ -38,6 +41,8 @@ describe("create curated dialog workspace contract", () => {
     expect(followupSource).toContain("FollowupActionRail");
     expect(followupSource).toContain("DetailsAccordion");
     expect(linkClarificationSource).toContain("Ich habe einen Quellenhinweis erkannt. Was soll ich daraus vorbereiten?");
+    expect(linkClarificationSource).toContain("create-chat-message");
+    expect(linkClarificationSource).toContain("eDebatte");
     expect(linkIntakeSource).toContain("Als Quelle vormerken");
   });
 
