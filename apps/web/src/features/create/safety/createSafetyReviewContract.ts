@@ -1,5 +1,6 @@
 import { sanitizeCreateSafetyExcerpt } from "@/features/create/safety/createSafetyLexicon";
 import type {
+  CreateInputSafetyClarification,
   CreateInputSafetyDecision,
   CreateInputSafetyFactCheckCandidate,
   CreateInputSafetyFinding,
@@ -12,6 +13,7 @@ export type CreateSafetyReviewStatus = "open" | "resolved" | "dismissed";
 export type CreateSafetyReviewAction =
   | "allow"
   | "clarify"
+  | "review"
   | "redact"
   | "factcheck"
   | "graph_review"
@@ -31,6 +33,8 @@ export type CreateSafetyReviewCode =
   | "cross_lingual_review"
   | "insult_revise"
   | "readability_clarify"
+  | "quality_clarification_required"
+  | "editorial_review_requested"
   | "political_framing_context"
   | "censorship_counterclaim_context"
   | "spam_campaign_clarify";
@@ -73,6 +77,8 @@ type BuildCreateSafetyReviewItemsParams = {
   hasPoliticalFraming: boolean;
   hasCensorshipCounterclaim: boolean;
   hasSpamCampaign: boolean;
+  clarifications: CreateInputSafetyClarification[];
+  editorialReviewRequested: boolean;
   createdAt: string;
 };
 
@@ -310,6 +316,61 @@ export function buildCreateSafetyReviewItems(
           action: "graph_review",
           summary: "Sprachwechsel erkannt. Cross-lingual Matches nur manuell prüfen, kein stilles Zusammenführen.",
           findingKinds: ["cross_lingual_review"],
+        },
+        items.length,
+      ),
+    );
+  }
+
+  if (params.clarifications.length > 0) {
+    const labels = params.clarifications
+      .map((clarification) => {
+        if (clarification.kind === "place") return "Ort";
+        if (clarification.kind === "timeframe") return "Zeitraum";
+        if (clarification.kind === "responsibility") return "Zuständigkeit";
+        if (clarification.kind === "source") return "Quelle";
+        if (clarification.kind === "requested_action") return "gewünschter nächster Schritt";
+        return "gemeintes Subjekt";
+      })
+      .slice(0, 4);
+
+    pushUniqueItem(
+      items,
+      buildBaseItem(
+        params,
+        {
+          code: "quality_clarification_required",
+          action: "clarify",
+          summary: `Vor der Einreichung fehlt noch Kontext zu: ${labels.join(", ")}.`,
+          findingKinds: Array.from(
+            new Set(
+              params.clarifications.flatMap((clarification) => {
+                if (clarification.kind === "place") return ["missing_place", "private_address_risk"];
+                if (clarification.kind === "timeframe") return ["missing_timeframe"];
+                if (clarification.kind === "responsibility") return ["missing_responsibility"];
+                if (clarification.kind === "source") return ["missing_source"];
+                if (clarification.kind === "requested_action") return ["missing_requested_action"];
+                return ["ambiguous_subject"];
+              }),
+            ),
+          ).filter((kind) => findingKinds.has(kind as CreateInputSafetyFindingKind)) as CreateInputSafetyFindingKind[],
+        },
+        items.length,
+      ),
+    );
+  }
+
+  if (params.editorialReviewRequested) {
+    pushUniqueItem(
+      items,
+      buildBaseItem(
+        params,
+        {
+          code: "editorial_review_requested",
+          action: "review",
+          summary:
+            "Manuelle redaktionelle Prüfung wurde angefragt. Kein automatisches Veröffentlichen oder stilles Finalisieren.",
+          findingKinds: ["editorial_review_requested"],
         },
         items.length,
       ),

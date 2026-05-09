@@ -32,6 +32,18 @@ describe("create input safety lexicon contract", () => {
     expect(lexicon.languageRiskHints).toContain("ar");
   });
 
+  it("detects vague local context and editorial review requests without requiring exact private addresses", () => {
+    const localLexicon = collectCreateSafetyLexicon(CREATE_SAFETY_ADVERSARIAL_FIXTURES.vagueOwnStreet);
+    const editorialLexicon = collectCreateSafetyLexicon(
+      CREATE_SAFETY_ADVERSARIAL_FIXTURES.editorialReviewRequested,
+    );
+
+    expect(localLexicon.vaguePlaceMatches.length).toBeGreaterThan(0);
+    expect(localLexicon.privateAddressRiskMatches.length).toBeGreaterThan(0);
+    expect(localLexicon.streetAddresses).toHaveLength(0);
+    expect(editorialLexicon.editorialReviewRequestMatches.length).toBeGreaterThan(0);
+  });
+
   it("redaction is idempotent and removes raw contact fragments", () => {
     const once = redactCreateSafetySensitiveText(
       CREATE_SAFETY_ADVERSARIAL_FIXTURES.thirdPartyPiiAccusation,

@@ -287,6 +287,7 @@ function parseSafetySnapshot(value: unknown): CreateInputSafetyResult | null {
     decision !== "revise_required" &&
     decision !== "factcheck_required" &&
     decision !== "graph_review_required" &&
+    decision !== "editorial_review_required" &&
     decision !== "moderation_required" &&
     decision !== "blocked"
   ) {
@@ -1756,6 +1757,14 @@ export default function AnalyzeWorkspace({
       });
       const body = await res.json().catch(() => ({}));
       if (!res.ok || !body?.ok) {
+        if (body?.error === "quality_clarification_required") {
+          throw new Error("Damit daraus ein guter öffentlicher Arbeitsstand wird, brauchen wir noch Kontext.");
+        }
+        if (body?.error === "editorial_review_required") {
+          throw new Error(
+            "Du hast manuelle Prüfung gewünscht. Wir geben das in die redaktionelle Prüfung; es wird nicht automatisch veröffentlicht.",
+          );
+        }
         throw new Error(body?.error || "Einreichen fehlgeschlagen");
       }
       const redirectTo = resolveAndNavigateAfterFinalize({

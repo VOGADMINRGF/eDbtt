@@ -152,4 +152,20 @@ describe("create save safety gate", () => {
     );
     expect(JSON.stringify(saved[0].analysis?.safety?.reviewItems ?? [])).not.toContain("9999999");
   });
+
+  it("persists quality clarifications and manual review requests in draft safety without blocking save", async () => {
+    const res = await POST(
+      req({
+        textPrepared: CREATE_SAFETY_ADVERSARIAL_FIXTURES.editorialReviewRequested,
+        createMode: "source",
+      }),
+    );
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.ok).toBe(true);
+    expect(body.safety.decision).toBe("editorial_review_required");
+    const saved = mocks.readAll();
+    expect(saved[0].analysis?.safety?.qualityGate?.editorialReviewRequested).toBe(true);
+    expect(saved[0].analysis?.safety?.reviewItems?.some((item: any) => item.code === "editorial_review_requested")).toBe(true);
+  });
 });

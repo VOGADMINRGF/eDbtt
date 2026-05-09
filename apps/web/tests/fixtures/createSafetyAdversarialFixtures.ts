@@ -31,6 +31,26 @@ export const CREATE_SAFETY_ADVERSARIAL_FIXTURES = {
     "Wir brauchen bessere Lösungen in der Kommune, but the claim data is unclear.",
   safeQuestionOnUnsafeClaim:
     "Stimmt es, dass die Presse nur für Investoren schreibt? Welche Quellen oder Belege gibt es dafür?",
+  vagueLocalStreet:
+    "Bei uns ist die Straße kaputt.",
+  vagueSchool:
+    "Hier an der Schule gibt es morgens gefährliche Situationen.",
+  vagueDistrict:
+    "Im Bezirk passiert seit Jahren nichts.",
+  vagueOwnStreet:
+    "In meiner Straße ist dauernd Lärm.",
+  vagueAdministration:
+    "Die Verwaltung macht nichts.",
+  vagueTimeframe:
+    "Letzte Woche war alles chaotisch.",
+  allegationWithoutSource:
+    "Der Unternehmer hat absichtlich Zahlen manipuliert.",
+  safeQuestionWithVaguePlace:
+    "Stimmt es, dass hier an der Schule morgens gefährliche Situationen entstehen? Welche Quellen oder Beobachtungen gibt es dazu?",
+  editorialReviewRequested:
+    "Bitte redaktionell prüfen. Ich bin unsicher und möchte nicht, dass das automatisch veröffentlicht wird.",
+  crossLingualLocalIssue:
+    "Bei uns im Bezirk ist der Bus chaotisch, but the local schedule data is unclear.",
   trPlaceholder:
     "Belediye otobüsleri neden bu kadar düzensiz çalışıyor?",
   arPlaceholder:

@@ -10,8 +10,18 @@ describe("create claim safety contract", () => {
       locale: "de",
     });
     expect(result.kind).toBe("observation");
-    expect(result.publicationStatus).toBe("publishable");
+    expect(result.publicationStatus).toBe("needs_rewrite");
     expect(result.truthStatus).toBe("not_checked");
+  });
+
+  it("keeps vague local observations in needs_rewrite until place context is added", () => {
+    const result = evaluateCreateClaimSafety({
+      claimId: "c-local",
+      text: CREATE_SAFETY_ADVERSARIAL_FIXTURES.vagueLocalStreet,
+      locale: "de",
+    });
+    expect(result.kind).toBe("observation");
+    expect(result.publicationStatus).toBe("needs_rewrite");
   });
 
   it("keeps opinions as opinion-only proposals", () => {

@@ -3,6 +3,7 @@ import type {
   CreateInputSafetyFindingKind,
   CreateInputSafetyRouteStage,
   CreateInputSafetyDecision,
+  CreateInputSafetyQualityGate,
   CreateInputSafetySeverity,
 } from "@/features/create/safety/createInputSafety";
 
@@ -20,6 +21,8 @@ export type CreateSafetyTelemetry = {
   redactionApplied: boolean;
   factCheckCandidateCount: number;
   graphReviewHintCount: number;
+  clarificationCount: number;
+  qualityGate: CreateInputSafetyQualityGate;
   routeStage: CreateInputSafetyRouteStage;
   runId?: string | null;
   correlationId?: string | null;
@@ -36,6 +39,8 @@ type BuildCreateSafetyTelemetryParams = {
   redactedText: string;
   factCheckCandidateCount: number;
   graphReviewHintCount: number;
+  qualityGate: CreateInputSafetyQualityGate;
+  clarificationCount: number;
   routeStage: CreateInputSafetyRouteStage;
   runId?: string | null;
   correlationId?: string | null;
@@ -73,6 +78,8 @@ export function buildCreateSafetyTelemetry(
     redactionApplied: hasRedaction(params.redactedText),
     factCheckCandidateCount: params.factCheckCandidateCount,
     graphReviewHintCount: params.graphReviewHintCount,
+    clarificationCount: params.clarificationCount,
+    qualityGate: params.qualityGate,
     routeStage: params.routeStage,
     runId: params.runId ?? null,
     correlationId: params.correlationId ?? null,

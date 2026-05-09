@@ -81,7 +81,10 @@ function resolveClaimKind(params: {
   const normalized = params.text.trim();
   const findingSet = new Set(params.findingKinds);
 
-  if (params.safetyDecision === "blocked" || params.safetyDecision === "moderation_required") {
+  if (
+    params.safetyDecision === "blocked" ||
+    params.safetyDecision === "moderation_required"
+  ) {
     return "unsafe";
   }
   if (normalized.includes("?")) return "question";
@@ -132,6 +135,14 @@ function resolvePublicationStatus(params: {
   if (params.kind === "question") return "publishable_as_question";
   if (params.kind === "opinion" || params.kind === "not_checkable") {
     return "publishable_as_opinion";
+  }
+  if (
+    findingSet.has("missing_place") ||
+    findingSet.has("missing_responsibility") ||
+    findingSet.has("missing_requested_action") ||
+    findingSet.has("ambiguous_subject")
+  ) {
+    return "needs_rewrite";
   }
   if (
     findingSet.size === 1 &&

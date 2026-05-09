@@ -125,6 +125,42 @@ describe("create input safety contract", () => {
     expect(result.reviewItems.some((item) => item.code === "safe_question_proceed")).toBe(true);
   });
 
+  it("asks for place context on vague local issues without forcing a private address", () => {
+    const result = evaluate(CREATE_SAFETY_ADVERSARIAL_FIXTURES.vagueOwnStreet);
+    expect(result.decision).toBe("revise_required");
+    expect(result.qualityGate.missingPlace).toBe(true);
+    expect(result.qualityGate.privateAddressRisk).toBe(true);
+    expect(result.clarifications.some((entry) => entry.kind === "place")).toBe(true);
+    expect(JSON.stringify(result.clarifications)).not.toContain("Hausnummer");
+  });
+
+  it("asks for responsibility or requested action when the responsible body stays vague", () => {
+    const result = evaluate(CREATE_SAFETY_ADVERSARIAL_FIXTURES.vagueAdministration);
+    expect(result.decision).toBe("revise_required");
+    expect(
+      result.qualityGate.missingResponsibility || result.qualityGate.missingRequestedAction,
+    ).toBe(true);
+    expect(result.clarifications.length).toBeGreaterThan(0);
+  });
+
+  it("tracks editorial review requests as manual review without raw text leakage", () => {
+    const result = evaluate(CREATE_SAFETY_ADVERSARIAL_FIXTURES.editorialReviewRequested);
+    expect(result.decision).toBe("editorial_review_required");
+    expect(result.qualityGate.editorialReviewRequested).toBe(true);
+    expect(result.reviewItems.some((item) => item.code === "editorial_review_requested")).toBe(true);
+    expect(result.requiresHumanReview).toBe(true);
+  });
+
+  it("keeps cross-lingual local issues in graph review while preserving place clarification", () => {
+    const result = evaluate(CREATE_SAFETY_ADVERSARIAL_FIXTURES.crossLingualLocalIssue, {
+      contentLanguage: "de",
+      sourceLanguage: "en",
+    });
+    expect(result.decision).toBe("graph_review_required");
+    expect(result.qualityGate.missingPlace).toBe(true);
+    expect(result.graphReviewHints.length).toBeGreaterThan(0);
+  });
+
   it("keeps stress input reviewable without blocking by default", () => {
     const result = evaluate(CREATE_SAFETY_STRESS_INPUT_DE);
     expect(result.decision).not.toBe("blocked");

@@ -70,8 +70,17 @@ function isSafetyDecision(value: unknown): value is CreateInputSafetyDecision {
     value === "revise_required" ||
     value === "factcheck_required" ||
     value === "graph_review_required" ||
+    value === "editorial_review_required" ||
     value === "moderation_required" ||
     value === "blocked"
+  );
+}
+
+function hasOpenRequiredClarifications(safety: CreateInputSafetyResult | null): boolean {
+  return Boolean(
+    safety &&
+      Array.isArray(safety.clarifications) &&
+      safety.clarifications.some((clarification) => clarification.requiredBeforeFinalize),
   );
 }
 
@@ -215,6 +224,31 @@ export async function POST(req: NextRequest) {
         {
           ok: false,
           error: "create_input_blocked",
+          safety: draftSafety,
+        },
+        { status: 422 },
+      );
+    }
+
+    if (
+      draftSafety?.decision === "editorial_review_required" ||
+      draftSafety?.qualityGate?.editorialReviewRequested
+    ) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: "editorial_review_required",
+          safety: draftSafety,
+        },
+        { status: 422 },
+      );
+    }
+
+    if (hasOpenRequiredClarifications(draftSafety)) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: "quality_clarification_required",
           safety: draftSafety,
         },
         { status: 422 },

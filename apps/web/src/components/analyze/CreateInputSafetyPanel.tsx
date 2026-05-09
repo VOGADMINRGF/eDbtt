@@ -14,6 +14,7 @@ function resolveDecisionLabel(decision: CreateInputSafetyResult["decision"]): st
   if (decision === "revise_required") return "Überarbeitung nötig";
   if (decision === "factcheck_required") return "Faktencheck nötig";
   if (decision === "graph_review_required") return "Graph-Review nötig";
+  if (decision === "editorial_review_required") return "Manuelle Prüfung angefragt";
   if (decision === "moderation_required") return "Moderation nötig";
   return "Blockiert";
 }
@@ -63,6 +64,11 @@ export default function CreateInputSafetyPanel({
       <p className="mt-1 text-xs">
         Status: {resolveDecisionLabel(safety.decision)} · noAutoPublish=true · noSilentMerge=true
       </p>
+      {safety.qualityGate.editorialReviewRequested ? (
+        <p className="mt-2 rounded-lg border border-amber-300/55 bg-white/80 px-3 py-2 text-xs leading-relaxed dark:border-amber-300/35 dark:bg-[rgb(var(--card))]">
+          Du hast manuelle Prüfung gewünscht. Wir geben das in die redaktionelle Prüfung; es wird nicht automatisch veröffentlicht.
+        </p>
+      ) : null}
       {claimSafety && claimSafety.length > 0 ? (
         <p className="mt-1 text-xs">
           Claim-Safety: {claimWarnings.length} Warnungen bei {claimSafety.length} Aussagen.
@@ -99,6 +105,24 @@ export default function CreateInputSafetyPanel({
                 <li key={item.id}>
                   {item.summary}
                   {item.sanitizedExcerpt ? ` (${item.sanitizedExcerpt})` : ""}
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
+
+        {safety.clarifications.length > 0 ? (
+          <div className="rounded-lg border border-amber-300/55 bg-white/80 px-3 py-2 dark:border-amber-300/35 dark:bg-[rgb(var(--card))]">
+            <p className="text-xs font-semibold uppercase tracking-wide">Bitte noch klären</p>
+            <p className="mt-1 text-xs leading-relaxed">
+              Damit daraus ein guter öffentlicher Arbeitsstand wird, brauchen wir noch Kontext.
+            </p>
+            <ul className="mt-2 list-disc pl-4 text-sm">
+              {safety.clarifications.slice(0, 6).map((clarification) => (
+                <li key={clarification.id}>
+                  {clarification.question}
+                  {clarification.privacyHint ? ` ${clarification.privacyHint}` : ""}
+                  {clarification.requiredBeforeFinalize ? " (vor Einreichung nötig)" : ""}
                 </li>
               ))}
             </ul>
@@ -144,6 +168,11 @@ export default function CreateInputSafetyPanel({
               <li key={action}>{action}</li>
             ))}
           </ul>
+          {safety.qualityGate.missingPlace || safety.qualityGate.privateAddressRisk ? (
+            <p className="mt-2 text-xs leading-relaxed text-amber-900/80 dark:text-amber-100/80">
+              Bitte nenne Ort, Bezirk oder Kommune nur so genau wie nötig. Private Wohnadressen werden nicht öffentlich übernommen.
+            </p>
+          ) : null}
         </div>
       </div>
     </section>

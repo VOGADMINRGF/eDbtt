@@ -19,11 +19,13 @@ describe("create input safety telemetry contract", () => {
     expect(result.telemetry.redactionApplied).toBe(true);
     expect(result.telemetry.findingCounts.phone).toBe(1);
     expect(result.telemetry.factCheckCandidateCount).toBeGreaterThan(0);
+    expect(result.telemetry.clarificationCount).toBeGreaterThanOrEqual(0);
     expect(JSON.stringify(result.telemetry)).not.toContain("9999999");
     expect(JSON.stringify(result.telemetry)).not.toContain("Musterstraße");
     expect(JSON.stringify(Object.keys(result.telemetry).sort())).toBe(
       JSON.stringify(
         [
+          "clarificationCount",
           "correlationId",
           "crossLingualRisk",
           "decision",
@@ -32,6 +34,7 @@ describe("create input safety telemetry contract", () => {
           "findingKinds",
           "graphReviewHintCount",
           "quality",
+          "qualityGate",
           "redactionApplied",
           "requiresHumanReview",
           "routeStage",
@@ -54,5 +57,17 @@ describe("create input safety telemetry contract", () => {
     expect(result.decision).toBe("allow");
     expect(result.telemetry.requiresHumanReview).toBe(false);
     expect(result.telemetry.quality.overall).toBeGreaterThan(0);
+  });
+
+  it("stores only metadata for quality gaps and editorial review requests", () => {
+    const result = evaluateCreateInputSafety({
+      text: CREATE_SAFETY_ADVERSARIAL_FIXTURES.vagueOwnStreet,
+      locale: "de",
+      routeStage: "save",
+    });
+
+    expect(result.telemetry.qualityGate.missingPlace).toBe(true);
+    expect(result.telemetry.qualityGate.privateAddressRisk).toBe(true);
+    expect(JSON.stringify(result.telemetry)).not.toContain("In meiner Straße");
   });
 });

@@ -1,7 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
 import { ObjectId } from "mongodb";
-import { CREATE_SAFETY_ADVERSARIAL_FIXTURES } from "./fixtures/createSafetyAdversarialFixtures";
 
 const mocks = vi.hoisted(() => {
   type AnyDoc = Record<string, any>;
@@ -98,13 +97,7 @@ function req(body: Record<string, unknown>) {
 }
 
 function seedDraft(params: {
-  safetyDecision:
-    | "blocked"
-    | "moderation_required"
-    | "factcheck_required"
-    | "editorial_review_required"
-    | "allow";
-  claimText?: string;
+  decision: string;
   clarifications?: Array<{ requiredBeforeFinalize: boolean }>;
   qualityGate?: Record<string, unknown>;
 }) {
@@ -115,65 +108,25 @@ function seedDraft(params: {
     status: "draft",
     analysis: {
       safety: {
-        decision: params.safetyDecision,
+        decision: params.decision,
         clarifications: params.clarifications ?? [],
         qualityGate: params.qualityGate ?? {},
       },
-      claims: [{ id: "c1", text: params.claimText ?? "Claim text" }],
+      claims: [{ id: "c1", text: "Bei uns ist die Straße kaputt." }],
     },
   });
   return id.toHexString();
 }
 
-describe("create finalize safety gate", () => {
+describe("create finalize quality clarification gate", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.reset();
   });
 
-  it("blocks finalize when draft safety is moderation_required", async () => {
-    const draftId = seedDraft({ safetyDecision: "moderation_required" });
-    const res = await POST(req({ draftId, selectedClaimIds: ["c1"] }));
-    expect(res.status).toBe(422);
-    const body = await res.json();
-    expect(body.error).toBe("create_input_blocked");
-  });
-
-  it("blocks finalize when draft safety is blocked", async () => {
-    const draftId = seedDraft({ safetyDecision: "blocked" });
-    const res = await POST(req({ draftId, selectedClaimIds: ["c1"] }));
-    expect(res.status).toBe(422);
-    const body = await res.json();
-    expect(body.error).toBe("create_input_blocked");
-  });
-
-  it("requires factcheck on unsupported allegation claims", async () => {
+  it("keeps drafts with required clarifications from finalizing into finished statements", async () => {
     const draftId = seedDraft({
-      safetyDecision: "factcheck_required",
-      claimText: CREATE_SAFETY_ADVERSARIAL_FIXTURES.allegation,
-    });
-    const res = await POST(req({ draftId, selectedClaimIds: ["c1"] }));
-    expect(res.status).toBe(422);
-    const body = await res.json();
-    expect(body.error).toBe("factcheck_required");
-    expect(body.safety).toBeTruthy();
-  });
-
-  it("allows finalize for a safe verification question even when the draft was factcheck-required", async () => {
-    const draftId = seedDraft({
-      safetyDecision: "factcheck_required",
-      claimText: CREATE_SAFETY_ADVERSARIAL_FIXTURES.safeQuestionOnUnsafeClaim,
-    });
-    const res = await POST(req({ draftId, selectedClaimIds: ["c1"] }));
-    expect(res.status).toBe(200);
-    const body = await res.json();
-    expect(body.ok).toBe(true);
-    expect(Array.isArray(body.proposalIds)).toBe(true);
-  });
-
-  it("blocks finalize when required quality clarifications are still open", async () => {
-    const draftId = seedDraft({
-      safetyDecision: "allow",
+      decision: "revise_required",
       clarifications: [{ requiredBeforeFinalize: true }],
     });
     const res = await POST(req({ draftId, selectedClaimIds: ["c1"] }));
@@ -182,9 +135,9 @@ describe("create finalize safety gate", () => {
     expect(body.error).toBe("quality_clarification_required");
   });
 
-  it("blocks finalize when the user requested editorial review", async () => {
+  it("keeps manual editorial review requests out of auto finalize", async () => {
     const draftId = seedDraft({
-      safetyDecision: "editorial_review_required",
+      decision: "editorial_review_required",
       qualityGate: { editorialReviewRequested: true },
     });
     const res = await POST(req({ draftId, selectedClaimIds: ["c1"] }));

@@ -18,6 +18,7 @@ export type CreateInputSafetyDecision =
   | "revise_required"
   | "factcheck_required"
   | "graph_review_required"
+  | "editorial_review_required"
   | "moderation_required"
   | "blocked";
 
@@ -54,7 +55,15 @@ export type CreateInputSafetyFindingKind =
   | "spam_campaign"
   | "political_framing"
   | "low_readability"
-  | "cross_lingual_review";
+  | "cross_lingual_review"
+  | "missing_place"
+  | "missing_timeframe"
+  | "missing_responsibility"
+  | "missing_source"
+  | "missing_requested_action"
+  | "ambiguous_subject"
+  | "private_address_risk"
+  | "editorial_review_requested";
 
 export type CreateInputSafetyFinding = {
   id: string;
@@ -70,6 +79,31 @@ export type CreateInputQualityScore = {
   civicIntent: number;
   overall: number;
   notes: string[];
+};
+
+export type CreateInputSafetyClarification = {
+  id: string;
+  kind:
+    | "place"
+    | "timeframe"
+    | "responsibility"
+    | "source"
+    | "requested_action"
+    | "subject";
+  question: string;
+  requiredBeforeFinalize: boolean;
+  privacyHint?: string;
+};
+
+export type CreateInputSafetyQualityGate = {
+  missingPlace: boolean;
+  missingTimeframe: boolean;
+  missingResponsibility: boolean;
+  missingSource: boolean;
+  missingRequestedAction: boolean;
+  ambiguousSubject: boolean;
+  privateAddressRisk: boolean;
+  editorialReviewRequested: boolean;
 };
 
 export type CreateInputSafetyFactCheckReason =
@@ -90,6 +124,8 @@ export type CreateInputSafetyResult = {
   decision: CreateInputSafetyDecision;
   severity: CreateInputSafetySeverity;
   findings: CreateInputSafetyFinding[];
+  clarifications: CreateInputSafetyClarification[];
+  qualityGate: CreateInputSafetyQualityGate;
   quality: CreateInputQualityScore;
   redactedText: string;
   safeRewrite: string;
@@ -245,6 +281,16 @@ function uniqueList(values: string[]): string[] {
   return Array.from(new Set(values.filter(Boolean)));
 }
 
+function buildClarification(
+  clarifications: CreateInputSafetyClarification[],
+  clarification: Omit<CreateInputSafetyClarification, "id">,
+) {
+  clarifications.push({
+    id: `clarification-${clarifications.length + 1}`,
+    ...clarification,
+  });
+}
+
 export function evaluateCreateInputSafety(
   input: EvaluateCreateInputSafetyInput,
 ): CreateInputSafetyResult {
@@ -254,6 +300,7 @@ export function evaluateCreateInputSafety(
   const routeStage = input.routeStage ?? "analyze";
   const createdAt = new Date().toISOString();
   const findings: CreateInputSafetyFinding[] = [];
+  const clarifications: CreateInputSafetyClarification[] = [];
   const lexicon = collectCreateSafetyLexicon(text);
 
   const hasEmail = lexicon.emails.length > 0;
@@ -277,6 +324,21 @@ export function evaluateCreateInputSafety(
   const hasSourceBluffing = lexicon.sourceBluffingMatches.length > 0;
   const hasCensorshipCounterclaim = lexicon.censorshipCounterclaimMatches.length > 0;
   const hasSpamCampaign = lexicon.spamCampaignMatches.length > 0;
+  const hasMissingPlace = lexicon.vaguePlaceMatches.length > 0 && lexicon.specificPlaceMatches.length === 0;
+  const hasMissingTimeframe =
+    lexicon.vagueTimeMatches.length > 0 && lexicon.explicitTimeMatches.length === 0;
+  const hasMissingResponsibility =
+    lexicon.vagueResponsibilityMatches.length > 0 && lexicon.explicitResponsibilityMatches.length === 0;
+  const hasPotentialRequestedActionGap =
+    lexicon.civicProblemMatches.length > 0 &&
+    lexicon.requestedActionMatches.length === 0 &&
+    text.length < 500;
+  const hasAmbiguousSubject = lexicon.ambiguousSubjectMatches.length > 0;
+  const hasPrivateAddressRisk =
+    lexicon.privateAddressRiskMatches.length > 0 ||
+    (lexicon.vaguePlaceMatches.some((match) => /straße|strasse/iu.test(match)) &&
+      lexicon.streetAddresses.length === 0);
+  const editorialReviewRequested = lexicon.editorialReviewRequestMatches.length > 0;
   const hasAccusationOrAllegation =
     hasUnsupportedAllegation || hasCorruptionClaim || hasUnverifiedNumber || hasSourceBluffing;
 
@@ -477,6 +539,87 @@ export function evaluateCreateInputSafety(
     safeQuestionDetected,
   );
 
+  const hasMissingSource =
+    factCheckCandidates.length > 0 &&
+    lexicon.evidenceMatches.length === 0 &&
+    !/https?:\/\//iu.test(text);
+
+  if (hasMissingPlace) {
+    makeFinding(findings, "missing_place", "medium", "Ortsbezug bleibt zu ungenau für einen öffentlichen Arbeitsstand.");
+    buildClarification(clarifications, {
+      kind: "place",
+      question: hasPrivateAddressRisk
+        ? "Welche Straße, Einrichtung oder Haltestelle ist gemeint? Bitte ohne private Wohnadresse, wenn es nicht erforderlich ist."
+        : "Auf welchen Ort, Bezirk oder welche Kommune bezieht sich dein Hinweis?",
+      requiredBeforeFinalize: true,
+      privacyHint:
+        "Bitte nenne Ort, Bezirk oder Kommune nur so genau wie nötig. Private Wohnadressen werden nicht öffentlich übernommen.",
+    });
+  }
+
+  if (hasMissingTimeframe) {
+    makeFinding(findings, "missing_timeframe", "low", "Zeitrahmen bleibt unklar.");
+    buildClarification(clarifications, {
+      kind: "timeframe",
+      question: "Auf welchen Zeitraum bezieht sich dein Hinweis?",
+      requiredBeforeFinalize: false,
+    });
+  }
+
+  if (hasMissingResponsibility) {
+    makeFinding(findings, "missing_responsibility", "medium", "Zuständigkeit bleibt unklar.");
+    buildClarification(clarifications, {
+      kind: "responsibility",
+      question: "Geht es um eine kommunale, Landes- oder Bundeszuständigkeit?",
+      requiredBeforeFinalize: true,
+    });
+  }
+
+  if (hasMissingSource) {
+    makeFinding(findings, "missing_source", "medium", "Für die Aussage fehlt ein klarer Quellen- oder Beobachtungsbezug.");
+    buildClarification(clarifications, {
+      kind: "source",
+      question: "Welche Quelle oder welcher Beobachtungsbezug stützt diese Aussage?",
+      requiredBeforeFinalize: !safeQuestionDetected,
+    });
+  }
+
+  if (hasPotentialRequestedActionGap) {
+    makeFinding(findings, "missing_requested_action", "low", "Gewünschter nächster Schritt bleibt offen.");
+    buildClarification(clarifications, {
+      kind: "requested_action",
+      question: "Welcher nächste Schritt wäre aus deiner Sicht hilfreich?",
+      requiredBeforeFinalize: true,
+    });
+  }
+
+  if (hasAmbiguousSubject) {
+    makeFinding(findings, "ambiguous_subject", "medium", "Subjekt oder Verantwortlicher bleibt mehrdeutig.");
+    buildClarification(clarifications, {
+      kind: "subject",
+      question: "Wer oder was genau ist gemeint?",
+      requiredBeforeFinalize: true,
+    });
+  }
+
+  if (hasPrivateAddressRisk) {
+    makeFinding(
+      findings,
+      "private_address_risk",
+      "medium",
+      "Bitte keinen genaueren privaten Adressbezug anfordern oder übernehmen.",
+    );
+  }
+
+  if (editorialReviewRequested) {
+    makeFinding(
+      findings,
+      "editorial_review_requested",
+      "medium",
+      "Manuelle redaktionelle Prüfung wurde ausdrücklich angefragt.",
+    );
+  }
+
   const graphReviewHints = uniqueList([
     crossLingualRisk
       ? `Cross-lingual Match nur manuell prüfen (${lexicon.languageRiskHints.join(", ") || sourceLanguage} -> ${contentLanguage}); same_language_only bleibt Standard.`
@@ -521,6 +664,14 @@ export function evaluateCreateInputSafety(
     decision = "revise_required";
   }
 
+  if (decision === "allow" && (clarifications.length > 0 || hasPrivateAddressRisk)) {
+    decision = "revise_required";
+  }
+
+  if (editorialReviewRequested && (decision === "allow" || decision === "revise_required")) {
+    decision = "editorial_review_required";
+  }
+
   const redactedText = redactCreateSafetySensitiveText(text);
   const safeRewrite = buildSafeRewrite({
     redactedText,
@@ -552,14 +703,20 @@ export function evaluateCreateInputSafety(
     decision === "moderation_required" ||
     decision === "blocked" ||
     decision === "factcheck_required" ||
-    decision === "graph_review_required";
+    decision === "graph_review_required" ||
+    decision === "editorial_review_required" ||
+    editorialReviewRequested;
 
   const nextActions: string[] = [];
   if (decision === "revise_required") nextActions.push("Eingabe überarbeiten");
   if (decision === "factcheck_required") nextActions.push("Faktencheck starten");
   if (decision === "graph_review_required") nextActions.push("Graph-Review erforderlich");
+  if (decision === "editorial_review_required") nextActions.push("Manuelle Prüfung angefragt");
   if (decision === "moderation_required") nextActions.push("Moderation erforderlich");
   if (decision === "blocked") nextActions.push("Blockiert: neu formulieren");
+  if (clarifications.some((clarification) => clarification.requiredBeforeFinalize)) {
+    nextActions.push("Kontext vor Einreichung ergänzen");
+  }
   if ((safeQuestionDetected || redactedText !== text) && decision !== "blocked") {
     nextActions.push("Sichere Fassung übernehmen");
   }
@@ -573,6 +730,18 @@ export function evaluateCreateInputSafety(
   }
   if (decision === "blocked") severity = "critical";
   if (decision === "moderation_required" && severity !== "critical") severity = "high";
+  if (decision === "editorial_review_required" && severity === "low") severity = "medium";
+
+  const qualityGate: CreateInputSafetyQualityGate = {
+    missingPlace: hasMissingPlace,
+    missingTimeframe: hasMissingTimeframe,
+    missingResponsibility: hasMissingResponsibility,
+    missingSource: hasMissingSource,
+    missingRequestedAction: hasPotentialRequestedActionGap,
+    ambiguousSubject: hasAmbiguousSubject,
+    privateAddressRisk: hasPrivateAddressRisk,
+    editorialReviewRequested,
+  };
 
   const reviewItems = buildCreateSafetyReviewItems({
     draftId: input.draftId,
@@ -593,6 +762,8 @@ export function evaluateCreateInputSafety(
     hasPoliticalFraming,
     hasCensorshipCounterclaim,
     hasSpamCampaign,
+    clarifications,
+    editorialReviewRequested,
     createdAt,
   });
 
@@ -606,6 +777,8 @@ export function evaluateCreateInputSafety(
     redactedText,
     factCheckCandidateCount: factCheckCandidates.length,
     graphReviewHintCount: graphReviewHints.length,
+    qualityGate,
+    clarificationCount: clarifications.length,
     routeStage,
     runId: input.runId,
     correlationId: input.correlationId,
@@ -616,6 +789,8 @@ export function evaluateCreateInputSafety(
     decision,
     severity,
     findings,
+    clarifications,
+    qualityGate,
     quality,
     redactedText,
     safeRewrite,

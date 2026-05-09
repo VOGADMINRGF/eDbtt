@@ -154,4 +154,15 @@ describe("create analyze safety gate", () => {
     expect(JSON.stringify(body.safety.telemetry)).not.toContain("Investoren");
     expect(mocks.analyzeContribution).toHaveBeenCalledTimes(1);
   });
+
+  it("continues analyze for editorial review requests but preserves the manual review signal", async () => {
+    const res = await POST(req(CREATE_SAFETY_ADVERSARIAL_FIXTURES.editorialReviewRequested));
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.ok).toBe(true);
+    expect(body.safety.decision).toBe("editorial_review_required");
+    expect(body.safety.qualityGate.editorialReviewRequested).toBe(true);
+    expect(body.safety.reviewItems.some((item: any) => item.code === "editorial_review_requested")).toBe(true);
+    expect(mocks.analyzeContribution).toHaveBeenCalledTimes(1);
+  });
 });

@@ -37,4 +37,17 @@ describe("create safety review contract", () => {
     expect(item?.factCheckCandidateCount).toBeGreaterThan(0);
     expect(result.decision).toBe("allow");
   });
+
+  it("adds explicit editorial review signal items without leaking more place detail", () => {
+    const result = evaluateCreateInputSafety({
+      text: CREATE_SAFETY_ADVERSARIAL_FIXTURES.editorialReviewRequested,
+      locale: "de",
+      routeStage: "save",
+    });
+
+    const item = result.reviewItems.find((entry) => entry.code === "editorial_review_requested");
+    expect(item?.action).toBe("review");
+    expect(item?.findingKinds).toContain("editorial_review_requested");
+    expect(JSON.stringify(item)).not.toContain("private Wohnadresse");
+  });
 });

@@ -45,6 +45,28 @@ export const CREATE_SAFETY_CIVIC_INTENT_RE =
   /\b(anliegen|frage|vorschlag|lösung|loesung|bitte|können\s+wir|koennen\s+wir|wir\s+sollten|öffentlich|oeffentlich|kommune|bezirk)\b/iu;
 export const CREATE_SAFETY_SELF_PII_CONTEXT_RE =
   /\b(meine?|mein|ich\s+bin\s+erreichbar|ich\s+wohne|my\s+(email|number|phone|address)|you\s+can\s+reach\s+me)\b/iu;
+export const CREATE_SAFETY_VAGUE_PLACE_RE =
+  /\b(bei\s+uns|hier|in\s+meiner\s+straße|in\s+meiner\s+strasse|im\s+bezirk|in\s+der\s+schule|in\s+der\s+kita|im\s+rathaus|an\s+der\s+haltestelle|vor\s+ort|near\s+us|here\s+at\s+the\s+school|in\s+my\s+street)\b/giu;
+export const CREATE_SAFETY_SPECIFIC_PLACE_RE =
+  /\b(?:in|im|am|an\s+der)\s+(?:stadt|kommune|gemeinde|bezirk|viertel|kiez|stadtteil|ort|schule|kita|haltestelle|rathaus|amt)\s+[A-ZÄÖÜ][\p{L}-]{2,}\b|\b[A-ZÄÖÜ][\p{L}-]{2,}\s+(?:straße|strasse|platz|allee|weg|gasse|ring|schule|kita|bahnhof|haltestelle|rathaus)\b/gu;
+export const CREATE_SAFETY_VAGUE_TIME_RE =
+  /\b(seit\s+jahren|seit\s+monaten|letzte\s+woche|neulich|kürzlich|kuerzlich|immer\s+wieder|morgens|abends|nachts|vor\s+kurzem|recently|last\s+week)\b/giu;
+export const CREATE_SAFETY_EXACT_TIME_RE =
+  /\b(\d{1,2}\.\d{1,2}\.\d{2,4}|\d{4}|montag|dienstag|mittwoch|donnerstag|freitag|samstag|sonntag|januar|februar|märz|maerz|april|mai|juni|juli|august|september|oktober|november|dezember|monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/giu;
+export const CREATE_SAFETY_VAGUE_RESPONSIBILITY_RE =
+  /\b(die\s+verwaltung|die\s+behörden|die\s+behoerden|die\s+politik|die\s+da\s+oben|zuständig|zustaendig|das\s+amt|die\s+regierung)\b/giu;
+export const CREATE_SAFETY_EXPLICIT_RESPONSIBILITY_RE =
+  /\b(kommune|kommunal|gemeinde|stadt|bezirk|landkreis|kreis|stadtrat|bürgermeister|buergermeister|schulamt|jugendamt|verkehrsbetriebe|landesregierung|bundesregierung|federal|municipal|district)\b/giu;
+export const CREATE_SAFETY_REQUESTED_ACTION_RE =
+  /\b(bit+e|soll(?:te|ten)?|muss|müssen|muessen|fordern|forderung|wünsche?|wuensche?|beantragen|melden|reparieren|ändern|aendern|verbessern|prüfen|pruefen|we\s+should|please|must|should)\b/giu;
+export const CREATE_SAFETY_CIVIC_PROBLEM_RE =
+  /\b(kaputt|gefährlich|gefaehrlich|chaotisch|lärm|laerm|passiert\s+nichts|zu\s+spät|zu\s+spaet|unsicher|problem|fehlt|broken|dangerous|unsafe|too\s+late)\b/giu;
+export const CREATE_SAFETY_AMBIGUOUS_SUBJECT_RE =
+  /\b(die\s+da|sie\s+da\s+oben|er\s+da|das\s+da|die\s+machen\s+nichts|those\s+people|they\s+up\s+there)\b/giu;
+export const CREATE_SAFETY_PRIVATE_ADDRESS_RISK_RE =
+  /\b(meine?r?\s+straße|meine?r?\s+strasse|vor\s+meiner\s+haustür|vor\s+meiner\s+haustuer|bei\s+mir\s+zuhause|an\s+meinem\s+haus|my\s+street|outside\s+my\s+home)\b/giu;
+export const CREATE_SAFETY_EDITORIAL_REVIEW_REQUEST_RE =
+  /\b(bitte\s+redaktionell\s+prüfen|bitte\s+redaktionell\s+pruefen|bitte\s+zur\s+manuellen\s+prüfung|bitte\s+zur\s+manuellen\s+pruefung|manuell(?:e)?\s+prüfung|manuell(?:e)?\s+pruefung|bitte\s+nicht\s+automatisch\s+veröffentlichen|bitte\s+nicht\s+automatisch\s+veroeffentlichen|ich\s+möchte,\s+dass\s+das\s+ein\s+mensch\s+gegenliest|ich\s+moechte,\s+dass\s+das\s+ein\s+mensch\s+gegenliest|please\s+send\s+this\s+for\s+manual\s+review|human\s+review)\b/giu;
 
 const CREATE_SAFETY_LANGUAGE_PLACEHOLDER_PATTERNS = [
   { language: "en", pattern: /\b(the|but|claim|evidence|sources|verify|unclear|school|housing)\b/u },
@@ -83,6 +105,17 @@ export type CreateSafetyLexiconSnapshot = {
   selfPiiContextDetected: boolean;
   civicIntentDetected: boolean;
   languageRiskHints: string[];
+  vaguePlaceMatches: string[];
+  specificPlaceMatches: string[];
+  vagueTimeMatches: string[];
+  explicitTimeMatches: string[];
+  vagueResponsibilityMatches: string[];
+  explicitResponsibilityMatches: string[];
+  requestedActionMatches: string[];
+  civicProblemMatches: string[];
+  ambiguousSubjectMatches: string[];
+  privateAddressRiskMatches: string[];
+  editorialReviewRequestMatches: string[];
 };
 
 function toGlobalRegex(pattern: RegExp): RegExp {
@@ -173,5 +206,16 @@ export function collectCreateSafetyLexicon(text: string): CreateSafetyLexiconSna
     selfPiiContextDetected: CREATE_SAFETY_SELF_PII_CONTEXT_RE.test(text),
     civicIntentDetected: CREATE_SAFETY_CIVIC_INTENT_RE.test(text.toLowerCase()),
     languageRiskHints,
+    vaguePlaceMatches: collectMatches(text, CREATE_SAFETY_VAGUE_PLACE_RE),
+    specificPlaceMatches: collectMatches(text, CREATE_SAFETY_SPECIFIC_PLACE_RE),
+    vagueTimeMatches: collectMatches(text, CREATE_SAFETY_VAGUE_TIME_RE),
+    explicitTimeMatches: collectMatches(text, CREATE_SAFETY_EXACT_TIME_RE),
+    vagueResponsibilityMatches: collectMatches(text, CREATE_SAFETY_VAGUE_RESPONSIBILITY_RE),
+    explicitResponsibilityMatches: collectMatches(text, CREATE_SAFETY_EXPLICIT_RESPONSIBILITY_RE),
+    requestedActionMatches: collectMatches(text, CREATE_SAFETY_REQUESTED_ACTION_RE),
+    civicProblemMatches: collectMatches(text, CREATE_SAFETY_CIVIC_PROBLEM_RE),
+    ambiguousSubjectMatches: collectMatches(text, CREATE_SAFETY_AMBIGUOUS_SUBJECT_RE),
+    privateAddressRiskMatches: collectMatches(text, CREATE_SAFETY_PRIVATE_ADDRESS_RISK_RE),
+    editorialReviewRequestMatches: collectMatches(text, CREATE_SAFETY_EDITORIAL_REVIEW_REQUEST_RE),
   };
 }
