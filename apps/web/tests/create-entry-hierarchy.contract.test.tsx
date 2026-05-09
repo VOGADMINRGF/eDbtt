@@ -80,6 +80,8 @@ describe("create entry hierarchy contract", () => {
     expect(html).toContain("Beitrag strukturieren");
     expect(html).toContain("Kontext (optional)");
     expect(html).toContain("Hilfebereich");
+    expect(html).toContain("Arbeitsweg optional");
+    expect(html).not.toContain("Arbeitsweg wählen (optional)");
 
     const intakeIndex = html.indexOf("id=\"create-primary-intake\"");
     const contextIndex = html.indexOf("Kontext (optional)");

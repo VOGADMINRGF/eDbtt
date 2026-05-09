@@ -320,8 +320,9 @@ describe("analyze workbench progressive disclosure", () => {
     expect(clientSource).toContain("collapseModeSelector");
     expect(clientSource).toContain("create-dialog-workspace");
     expect(clientSource).toContain("embeddedWorkspace");
-    expect(composerSource).toContain("Arbeitsweg wählen (optional)");
-    expect(composerSource).toContain("Ohne Auswahl startet eDebatte mit dem Standardfluss");
+    expect(clientSource).toContain("create-start-chat-preview");
+    expect(composerSource).toContain("Arbeitsweg optional");
+    expect(composerSource).not.toContain("Arbeitsweg wählen (optional)");
   });
 
   it("makes save and factcheck paths explicit in the create client", () => {

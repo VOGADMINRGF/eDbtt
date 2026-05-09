@@ -74,64 +74,70 @@ export default function CreateLinkIntakeClarification({
     selectedIntentId !== null && selectedIntentId !== "add_source_to_dossier";
 
   return (
-    <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 md:p-5">
-      <div className="space-y-2">
-        <p className="text-sm font-semibold text-[rgb(var(--fg))]">{copy.title}</p>
-        <p className="text-sm text-[rgb(var(--muted))]">{copy.lead}</p>
-        {detection.linkKind === "youtube" ? (
-          <p className="rounded-xl border border-amber-300/45 bg-amber-500/10 px-3 py-2 text-sm text-amber-900 dark:text-amber-100">
-            {copy.youtubeLead}
-          </p>
-        ) : null}
-      </div>
+    <div className="create-chat-message flex gap-3">
+      <div className="mt-2 h-2.5 w-2.5 shrink-0 rounded-full bg-cyan-600 ring-4 ring-white dark:bg-cyan-300 dark:ring-[rgb(var(--bg))]" />
+      <div className="max-w-5xl flex-1">
+        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-700 dark:text-[rgb(var(--muted))]">eDebatte</p>
+        <section className="mt-2 rounded-2xl rounded-tl-sm border border-cyan-500/25 bg-white px-4 py-4 shadow-sm md:px-5 md:py-5 dark:border-cyan-300/30 dark:bg-[rgb(var(--card))] dark:shadow-none">
+          <div className="space-y-2">
+            <p className="text-sm font-semibold text-[rgb(var(--fg))]">{copy.title}</p>
+            <p className="text-sm text-[rgb(var(--muted))]">{copy.lead}</p>
+            {detection.linkKind === "youtube" ? (
+              <p className="rounded-xl border border-amber-300/45 bg-amber-500/10 px-3 py-2 text-sm text-amber-900 dark:text-amber-100">
+                {copy.youtubeLead}
+              </p>
+            ) : null}
+          </div>
 
-      <div className="mt-4 grid gap-3">
-        {CREATE_LINK_INTENT_OPTIONS.map((option) => {
-          const isSelected = option.id === selectedIntentId;
-          return (
-            <button
-              key={option.id}
-              type="button"
-              className={`min-h-[52px] rounded-2xl border px-4 py-3 text-left text-sm ${
-                isSelected
-                  ? "border-[rgb(var(--grad-from))] bg-[rgb(var(--bg))] text-[rgb(var(--fg))]"
-                  : "border-[rgb(var(--border))] bg-transparent text-[rgb(var(--fg))] hover:border-[rgb(var(--grad-from))]/40"
-              }`}
-              onClick={() => onSelectIntent(option.id)}
-            >
-              {option.label[locale]}
-            </button>
-          );
-        })}
-      </div>
+          <div className="mt-4 grid gap-3">
+            {CREATE_LINK_INTENT_OPTIONS.map((option) => {
+              const isSelected = option.id === selectedIntentId;
+              return (
+                <button
+                  key={option.id}
+                  type="button"
+                  className={`min-h-[52px] rounded-2xl border px-4 py-3 text-left text-sm ${
+                    isSelected
+                      ? "border-[rgb(var(--grad-from))] bg-[rgb(var(--bg))] text-[rgb(var(--fg))]"
+                      : "border-[rgb(var(--border))] bg-transparent text-[rgb(var(--fg))] hover:border-[rgb(var(--grad-from))]/40"
+                  }`}
+                  onClick={() => onSelectIntent(option.id)}
+                >
+                  {option.label[locale]}
+                </button>
+              );
+            })}
+          </div>
 
-      {selectedLabel ? (
-        <div className="mt-4 space-y-2">
-          <p className="text-sm font-semibold text-[rgb(var(--fg))]">
-            {copy.selectedPrefix} {selectedLabel}
-          </p>
-          <p className="text-sm text-[rgb(var(--muted))]">
-            {showExtractionPending ? copy.extractionPending : copy.sourcePending}
-          </p>
-          <p className="text-sm text-[rgb(var(--muted))]">{copy.freeTextHint}</p>
-          {selectedIntentId === "prepare_factcheck" ? (
-            <p className="rounded-xl border border-sky-300/45 bg-sky-500/10 px-3 py-2 text-sm text-sky-900 dark:text-sky-100">
-              {copy.factcheckGuardrail}
-            </p>
+          {selectedLabel ? (
+            <div className="mt-4 space-y-2">
+              <p className="text-sm font-semibold text-[rgb(var(--fg))]">
+                {copy.selectedPrefix} {selectedLabel}
+              </p>
+              <p className="text-sm text-[rgb(var(--muted))]">
+                {showExtractionPending ? copy.extractionPending : copy.sourcePending}
+              </p>
+              <p className="text-sm text-[rgb(var(--muted))]">{copy.freeTextHint}</p>
+              {selectedIntentId === "prepare_factcheck" ? (
+                <p className="rounded-xl border border-sky-300/45 bg-sky-500/10 px-3 py-2 text-sm text-sky-900 dark:text-sky-100">
+                  {copy.factcheckGuardrail}
+                </p>
+              ) : null}
+              <label className="block text-sm font-semibold text-[rgb(var(--fg))]" htmlFor="create-link-extra-context">
+                {copy.contextLabel}
+              </label>
+              <textarea
+                id="create-link-extra-context"
+                rows={4}
+                value={additionalContext}
+                onChange={(event) => onAdditionalContextChange(event.target.value)}
+                className="w-full resize-y rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-sm text-[rgb(var(--fg))] shadow-sm focus:border-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                placeholder={copy.contextPlaceholder}
+              />
+            </div>
           ) : null}
-          <label className="block text-sm font-semibold text-[rgb(var(--fg))]" htmlFor="create-link-extra-context">
-            {copy.contextLabel}
-          </label>
-          <textarea
-            id="create-link-extra-context"
-            rows={4}
-            value={additionalContext}
-            onChange={(event) => onAdditionalContextChange(event.target.value)}
-            className="w-full resize-y rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-sm text-[rgb(var(--fg))] shadow-sm focus:border-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-200"
-            placeholder={copy.contextPlaceholder}
-          />
-        </div>
-      ) : null}
-    </section>
+        </section>
+      </div>
+    </div>
   );
 }
