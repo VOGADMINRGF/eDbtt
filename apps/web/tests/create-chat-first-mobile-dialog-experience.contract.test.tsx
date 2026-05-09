@@ -48,6 +48,71 @@ const FOLLOWUP_RESULT = {
   generatedAt: "2026-05-08T12:00:00.000Z",
 };
 
+const MULTI_BRANCH_FOLLOWUP_RESULT = {
+  understanding: {
+    summary: "Du beschreibst mehrere kommunale Zielkonflikte rund um Wohnen, Verkehr und Schule.",
+    dossierContext: "Kommunale Prioritäten und Zielkonflikte",
+    categories: [
+      { id: "hint", label: "Hinweis", confidence: "high" as const },
+    ],
+    topics: [
+      { id: "housing", label: "Wohnen", confidence: "high" as const },
+      { id: "traffic", label: "Verkehr", confidence: "high" as const },
+      { id: "education", label: "Bildung", confidence: "medium" as const },
+      { id: "integration", label: "Migration/Integration", confidence: "medium" as const },
+      { id: "safety", label: "Sicherheit/Rechtsstaat", confidence: "medium" as const },
+    ],
+    statements: [
+      {
+        id: "s1",
+        text: "Wohnungsbau und Genehmigungen dauern zu lange.",
+        kind: "demand" as const,
+        stance: "pro" as const,
+        confidence: "high" as const,
+      },
+      {
+        id: "s2",
+        text: "Bus, Fahrrad und notwendige Autonutzung müssen im Alltag zusammen gedacht werden.",
+        kind: "argument" as const,
+        stance: "mixed" as const,
+        confidence: "medium" as const,
+      },
+      {
+        id: "s3",
+        text: "Schule, Sprachförderung und Sicherheit brauchen klare Prioritäten.",
+        kind: "claim" as const,
+        stance: "pro" as const,
+        confidence: "medium" as const,
+      },
+    ],
+    scopes: ["municipal" as const],
+    confidence: "high" as const,
+  },
+  suggestions: [
+    {
+      id: "dossier:auto",
+      kind: "dossier" as const,
+      title: "Kommunale Prioritäten und Zielkonflikte",
+      reason: "Mehrere Themen sollen gemeinsam in einen Arbeitsstand überführt werden.",
+      confidence: "high" as const,
+      href: "/dossier?topic=kommunale-prioritaeten",
+      requiresConfirmation: true as const,
+    },
+    {
+      id: "vote:auto",
+      kind: "vote" as const,
+      title: "Welche Prioritäten sollen zuerst bearbeitet werden?",
+      reason: "Die Leitfrage passt zur beschriebenen Abwägung.",
+      confidence: "medium" as const,
+      href: "/swipes?topic=kommunale-prioritaeten",
+      requiresConfirmation: true as const,
+    },
+  ],
+  sourceText:
+    "Wohnungsbau und Genehmigungen dauern zu lange. Bus, Fahrrad und notwendige Autonutzung müssen im Alltag zusammen gedacht werden. Schule, Sprachförderung und Sicherheit brauchen klare Prioritäten.",
+  generatedAt: "2026-05-09T12:00:00.000Z",
+};
+
 function renderVisualFollowup() {
   return renderToStaticMarkup(
     <CreateVisualFollowup
@@ -59,6 +124,28 @@ function renderVisualFollowup() {
       onOpenNewAnlassraum={() => {}}
       onSaveForLater={() => {}}
       onStartOptionalService={() => {}}
+      continuationValue=""
+      onContinuationChange={() => {}}
+      onContinueConversation={() => {}}
+    />,
+  );
+}
+
+function renderMultiBranchVisualFollowup(isConfirmed = false) {
+  return renderToStaticMarkup(
+    <CreateVisualFollowup
+      result={MULTI_BRANCH_FOLLOWUP_RESULT}
+      ctaHref="/dossier?topic=kommunale-prioritaeten"
+      isConfirmed={isConfirmed}
+      factcheckMessage="Optional. Startet erst nach bewusster Bestätigung. Keine automatische Kostenbuchung."
+      onConfirm={() => {}}
+      onEdit={() => {}}
+      onOpenNewAnlassraum={() => {}}
+      onSaveForLater={() => {}}
+      onStartOptionalService={() => {}}
+      continuationValue=""
+      onContinuationChange={() => {}}
+      onContinueConversation={() => {}}
     />,
   );
 }
@@ -124,6 +211,31 @@ describe("create chat-first mobile dialog experience contract", () => {
     expect(html).toContain("Ja, Struktur übernehmen");
     expect(html).toContain("Arbeitsstand speichern");
     expect(html).toContain("Faktencheck / Deep Search starten");
+  });
+
+  it("renders a compact structure overview and only one active branch detail at a time", () => {
+    const html = renderMultiBranchVisualFollowup();
+
+    expect(html).toContain("Deine Struktur auf einen Blick");
+    expect(html).toContain("Prioritäten");
+    expect(html).toContain("Themencluster");
+    expect(html).toContain("Fragen &amp; Abstimmung");
+    expect(html).toContain("Nächste Schritte");
+    expect(html).toContain("Focus Card");
+    expect(html).toContain("Knapper Bedarf");
+    expect(html).toContain("Wichtigste Frage");
+    expect(html).toContain("data-mobile-sticky-create-actions");
+    expect((html.match(/data-focus-card-branch-selector/g) ?? [])).toHaveLength(3);
+    expect((html.match(/data-focus-card-detail/g) ?? [])).toHaveLength(1);
+  });
+
+  it("switches the sticky mobile action flow after confirmation", () => {
+    const html = renderMultiBranchVisualFollowup(true);
+
+    expect(html).toContain("Nächster Schritt");
+    expect(html).toContain("Die wichtigste Aktion bleibt unten erreichbar.");
+    expect(html).toContain("Thema öffnen");
+    expect(html).toContain("Prüfen");
   });
 
   it("keeps the link flow honest about non-automatic evaluation", () => {

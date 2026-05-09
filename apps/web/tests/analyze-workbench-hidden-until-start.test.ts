@@ -278,7 +278,8 @@ describe("analyze workbench progressive disclosure", () => {
     expect(source).toContain("Arbeitsstand speichern");
     expect(source).toContain("Übergeordnetes Thema");
     expect(source).toContain("Vorgeschlagener Arbeitsstand");
-    expect(source).toContain("Mögliche Abstimmungsfragen");
+    expect(source).toContain("Deine Struktur auf einen Blick");
+    expect(source).toContain("Fragen & Abstimmung");
     expect(source).toContain("Welche kommunalen Prioritäten sollen zuerst bearbeitet werden?");
     expect(source).toContain("Faktencheck / Deep Search starten");
     expect(source).not.toContain("Details zum Originaltext");

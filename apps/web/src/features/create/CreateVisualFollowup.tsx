@@ -42,6 +42,7 @@ export const CREATE_VISUAL_FOLLOWUP_COPY = {
   structureTitle: "Ich ordne das kurz ein",
   coreTitle: "Kern erkannt",
   graphTitle: "So könnte der Arbeitsstand aussehen",
+  overviewTitle: "Deine Struktur auf einen Blick",
   impactTitle: "Was ich nach deiner Bestätigung vorbereiten kann",
   confirmTitle: "Soll ich das so übernehmen?",
   guardrail:
@@ -50,6 +51,22 @@ export const CREATE_VISUAL_FOLLOWUP_COPY = {
   pendingPreparationHint:
     "Nach deiner Bestätigung kann eDebatte passende Themen, Abstimmungen oder einen neuen Arbeitsstand vorbereiten.",
 } as const;
+
+type FocusAreaId = "priorities" | "clusters" | "questions" | "next_steps";
+
+type FocusOverviewCard = {
+  id: FocusAreaId;
+  title: string;
+  lead: string;
+  status: string;
+};
+
+type NextStepChecklistItem = {
+  id: string;
+  label: string;
+  detail: string;
+  done: boolean;
+};
 
 const BROAD_TOPIC_FIELD_ORDER = [
   "Wohnen",
@@ -133,6 +150,43 @@ function resolveSuggestionCta(kind: CreateConnectionSuggestion["kind"]): string 
   return "Ansehen";
 }
 
+function FocusAreaIcon(props: { area: FocusAreaId | "branch"; active?: boolean }) {
+  const className = props.active ? "text-cyan-950 dark:text-cyan-50" : "text-slate-600 dark:text-slate-200";
+
+  if (props.area === "priorities") {
+    return (
+      <svg aria-hidden="true" viewBox="0 0 20 20" className={`h-4 w-4 ${className}`} fill="none" stroke="currentColor" strokeWidth="1.8">
+        <path d="M4 5h12" />
+        <path d="M4 10h9" />
+        <path d="M4 15h6" />
+      </svg>
+    );
+  }
+  if (props.area === "clusters" || props.area === "branch") {
+    return (
+      <svg aria-hidden="true" viewBox="0 0 20 20" className={`h-4 w-4 ${className}`} fill="none" stroke="currentColor" strokeWidth="1.8">
+        <rect x="3" y="4" width="5" height="5" rx="1.5" />
+        <rect x="12" y="4" width="5" height="5" rx="1.5" />
+        <rect x="7.5" y="11" width="5" height="5" rx="1.5" />
+      </svg>
+    );
+  }
+  if (props.area === "questions") {
+    return (
+      <svg aria-hidden="true" viewBox="0 0 20 20" className={`h-4 w-4 ${className}`} fill="none" stroke="currentColor" strokeWidth="1.8">
+        <path d="M7.2 7.1a2.8 2.8 0 1 1 5 1.7c-.8.8-1.7 1.3-1.7 2.6" />
+        <circle cx="10" cy="14.8" r=".8" fill="currentColor" stroke="none" />
+      </svg>
+    );
+  }
+  return (
+    <svg aria-hidden="true" viewBox="0 0 20 20" className={`h-4 w-4 ${className}`} fill="none" stroke="currentColor" strokeWidth="1.8">
+      <path d="M4 10.5 8 14l8-8" />
+      <path d="M4 5h12" />
+    </svg>
+  );
+}
+
 function toSentenceList(labels: string[]): string {
   if (labels.length === 0) return "";
   if (labels.length === 1) return labels[0] ?? "";
@@ -168,6 +222,53 @@ function shouldShowAssistantLead(summary: string, assistantLead: string, coreCla
   if (isSimilarDenseText(assistantLead, summary)) return false;
   if (isSimilarDenseText(assistantLead, coreClaim)) return false;
   return true;
+}
+
+function buildNextStepChecklist(params: {
+  isConfirmed: boolean;
+  structureBranches: CreateStructureBranch[];
+  voteQuestions: string[];
+  sortedSuggestions: CreateConnectionSuggestion[];
+}): NextStepChecklistItem[] {
+  const clusterLabel =
+    params.structureBranches.length > 1
+      ? `${params.structureBranches.length} Themencluster prüfen`
+      : "Themencluster prüfen";
+  const questionLabel =
+    params.voteQuestions.length > 1 ? `${params.voteQuestions.length} Fragen formulieren` : "1 Frage formulieren";
+  const handoffLabel =
+    params.sortedSuggestions[0]?.kind === "vote"
+      ? "Abstimmung vorbereiten"
+      : params.sortedSuggestions[0]?.kind === "dossier"
+        ? "Thema öffnen"
+        : "Beitrag einreichen";
+
+  return [
+    {
+      id: "confirm",
+      label: "Struktur übernehmen",
+      detail: "Der vorgeschlagene Arbeitsstand bleibt reviewbar und unveröffentlicht.",
+      done: params.isConfirmed,
+    },
+    {
+      id: "clusters",
+      label: clusterLabel,
+      detail: "Die wichtigsten Themen bleiben kompakt als Focus Cards zusammengefasst.",
+      done: params.isConfirmed,
+    },
+    {
+      id: "questions",
+      label: questionLabel,
+      detail: "Die Leitfragen werden erst nach deiner Bestätigung weiter vorbereitet.",
+      done: false,
+    },
+    {
+      id: "handoff",
+      label: handoffLabel,
+      detail: "Der nächste Schritt bleibt bewusst gewählt und startet nicht automatisch.",
+      done: false,
+    },
+  ];
 }
 
 function deriveBroadTopicFields(topicLabels: string[]): string[] {
@@ -388,19 +489,32 @@ function StructureBranchCard(props: {
   branch: CreateStructureBranch;
   onEdit: (focus: string) => void;
 }) {
-  const visibleVoteQuestions = props.branch.voteQuestions.slice(0, 2);
+  const primaryClaim = props.branch.claims[0] ?? props.branch.need;
+  const primaryQuestion = props.branch.voteQuestions[0] ?? "Welche Leitfrage soll zuerst geklärt werden?";
   const visibleTopicTags = props.branch.topicTags.slice(0, 3);
   const visiblePositionClusters = props.branch.positionClusters.slice(0, 2);
+  const visibleVoteQuestions = props.branch.voteQuestions.slice(0, 2);
   const showNeedBlock =
     props.branch.need.trim().length > 0 &&
     !isSimilarDenseText(props.branch.need, props.branch.title) &&
     !isSimilarDenseText(props.branch.need, props.branch.claims[0] ?? "");
+  const statusLabel = `${Math.max(1, visibleTopicTags.length)} Schwerpunkte · ${props.branch.openReviewPoints.length} Prüfpunkte`;
 
   return (
-    <article className="rounded-2xl border border-slate-200/80 bg-white/90 px-4 py-4 shadow-sm shadow-slate-950/5 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))] dark:shadow-none">
-      <div className="rounded-2xl border border-cyan-200/70 bg-cyan-50/70 px-3 py-3 dark:border-cyan-300/25 dark:bg-cyan-500/10">
-        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-cyan-800 dark:text-cyan-200">Strukturast</p>
-        <p className="mt-1 text-lg font-semibold text-cyan-950 md:text-xl dark:text-cyan-50">{props.branch.title}</p>
+    <article
+      data-focus-card-detail
+      className="rounded-[28px] border border-slate-200/80 bg-white/95 px-4 py-4 shadow-sm shadow-slate-950/5 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))] dark:shadow-none"
+    >
+      <div className="rounded-[24px] border border-cyan-200/70 bg-gradient-to-br from-cyan-50 via-white to-sky-50 px-3 py-3 dark:border-cyan-300/25 dark:from-cyan-500/12 dark:via-[rgb(var(--card))] dark:to-sky-500/10">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-cyan-800 dark:text-cyan-200">Focus Card</p>
+            <p className="mt-1 text-lg font-semibold text-cyan-950 md:text-xl dark:text-cyan-50">{props.branch.title}</p>
+          </div>
+          <span className="rounded-full border border-cyan-300/70 bg-white/80 px-2.5 py-1 text-xs font-semibold text-cyan-900 dark:border-cyan-300/35 dark:bg-cyan-500/10 dark:text-cyan-100">
+            {statusLabel}
+          </span>
+        </div>
         {visibleTopicTags.length ? (
           <p className="mt-2 text-sm text-cyan-900/90 dark:text-cyan-100/90">
             Schwerpunkt: {toSentenceList(visibleTopicTags)}
@@ -418,6 +532,14 @@ function StructureBranchCard(props: {
             ))}
           </div>
         ) : null}
+        <div className="mt-4 rounded-2xl border border-white/80 bg-white/80 px-3 py-3 dark:border-white/10 dark:bg-[rgb(var(--card))]/65">
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-cyan-800 dark:text-cyan-200">Knapper Bedarf</p>
+          <p className="mt-2 text-sm leading-relaxed text-cyan-950 dark:text-cyan-50">{showNeedBlock ? props.branch.need : primaryClaim}</p>
+        </div>
+        <div className="mt-3 rounded-2xl border border-cyan-200/70 bg-cyan-100/70 px-3 py-3 dark:border-cyan-300/25 dark:bg-cyan-500/12">
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-cyan-800 dark:text-cyan-200">Wichtigste Frage</p>
+          <p className="mt-2 text-sm font-medium leading-relaxed text-cyan-950 dark:text-cyan-50">{primaryQuestion}</p>
+        </div>
       </div>
       <div className="mt-4 flex flex-wrap gap-2">
         {props.branch.part06CategoryLabels.map((label) => (
@@ -429,12 +551,6 @@ function StructureBranchCard(props: {
           </span>
         ))}
       </div>
-      {showNeedBlock ? (
-        <div className="mt-4 rounded-xl border border-slate-200/80 bg-slate-50/80 px-3 py-3 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--bg))]">
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">Worum es hier konkret geht</p>
-          <p className="mt-2 text-sm leading-relaxed text-[rgb(var(--fg))]">{props.branch.need}</p>
-        </div>
-      ) : null}
       <div className="mt-4 space-y-3">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">Wichtige Abstimmungsfragen</p>
@@ -540,13 +656,144 @@ function StructureBranchList(props: {
   branches: CreateStructureBranch[];
   onEdit: (focus: string) => void;
 }) {
-  if (props.branches.length < 2) return null;
+  const [activeBranchId, setActiveBranchId] = React.useState<string | null>(props.branches[0]?.id ?? null);
+
+  React.useEffect(() => {
+    if (!props.branches.some((branch) => branch.id === activeBranchId)) {
+      setActiveBranchId(props.branches[0]?.id ?? null);
+    }
+  }, [activeBranchId, props.branches]);
+
+  if (props.branches.length === 0) return null;
+  const activeBranch =
+    props.branches.find((branch) => branch.id === activeBranchId) ?? props.branches[0] ?? null;
+
   return (
     <div className="mt-4">
-      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">Strukturäste</p>
-      <div className="mt-3 grid gap-4">
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">Strukturäste</p>
+        <p className="text-xs text-[rgb(var(--muted))]">Mobile-first als swipebare Focus Cards</p>
+      </div>
+      <div
+        data-focus-card-rail
+        className="mt-3 flex snap-x gap-3 overflow-x-auto pb-2"
+      >
         {props.branches.map((branch) => (
-          <StructureBranchCard key={branch.id} branch={branch} onEdit={props.onEdit} />
+          <button
+            key={branch.id}
+            data-focus-card-branch-selector
+            type="button"
+            onClick={() => setActiveBranchId(branch.id)}
+            aria-pressed={activeBranch?.id === branch.id}
+            className={`min-w-[248px] snap-start rounded-[24px] border px-4 py-4 text-left transition ${
+              activeBranch?.id === branch.id
+                ? "border-cyan-400/70 bg-cyan-50 shadow-sm shadow-cyan-950/5 dark:border-cyan-300/45 dark:bg-cyan-500/12"
+                : "border-slate-200/80 bg-white/85 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))]"
+            }`}
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <span className="flex h-8 w-8 items-center justify-center rounded-full border border-cyan-300/60 bg-white/80 dark:border-cyan-300/30 dark:bg-cyan-500/10">
+                  <FocusAreaIcon area="branch" active={activeBranch?.id === branch.id} />
+                </span>
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-600 dark:text-[rgb(var(--muted))]">Focus Card</p>
+                  <p className="text-sm font-semibold text-[rgb(var(--fg))]">{branch.title}</p>
+                </div>
+              </div>
+              <span className="rounded-full border border-slate-200/80 px-2 py-1 text-[11px] font-semibold text-[rgb(var(--muted))] dark:border-[rgb(var(--border))]">
+                {Math.max(1, branch.topicTags.length)} Schwerpunkte
+              </span>
+            </div>
+            <p className="mt-3 line-clamp-3 text-sm leading-relaxed text-[rgb(var(--fg))]">{branch.need}</p>
+            <p className="mt-3 text-xs font-medium text-slate-700 dark:text-slate-200">Leitfrage: {branch.voteQuestions[0] ?? "Frage wird vorbereitet."}</p>
+            <p className="mt-3 text-xs text-[rgb(var(--muted))]">
+              {branch.voteQuestions.length} Fragen · {branch.openReviewPoints.length} Prüfpunkte
+            </p>
+          </button>
+        ))}
+      </div>
+      {activeBranch ? <StructureBranchCard branch={activeBranch} onEdit={props.onEdit} /> : null}
+    </div>
+  );
+}
+
+function StructureOverviewRail(props: {
+  cards: FocusOverviewCard[];
+  activeCardId: FocusAreaId;
+  onSelect: (id: FocusAreaId) => void;
+}) {
+  return (
+    <div>
+      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">
+        {CREATE_VISUAL_FOLLOWUP_COPY.overviewTitle}
+      </p>
+      <div
+        data-focus-card-overview
+        className="mt-3 flex snap-x gap-3 overflow-x-auto pb-2 md:grid md:grid-cols-2 xl:grid-cols-4"
+      >
+        {props.cards.map((card) => {
+          const isActive = props.activeCardId === card.id;
+          return (
+            <button
+              key={card.id}
+              type="button"
+              onClick={() => props.onSelect(card.id)}
+              aria-pressed={isActive}
+              className={`min-w-[220px] snap-start rounded-[24px] border px-4 py-4 text-left transition ${
+                isActive
+                  ? "border-cyan-400/70 bg-cyan-50 shadow-sm shadow-cyan-950/5 dark:border-cyan-300/45 dark:bg-cyan-500/12"
+                  : "border-slate-200/80 bg-white/85 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))]"
+              }`}
+            >
+              <div className="flex items-start justify-between gap-3">
+                <span className="flex h-9 w-9 items-center justify-center rounded-full border border-cyan-300/60 bg-white/80 dark:border-cyan-300/30 dark:bg-cyan-500/10">
+                  <FocusAreaIcon area={card.id} active={isActive} />
+                </span>
+                <span className="rounded-full border border-slate-200/80 px-2 py-1 text-[11px] font-semibold text-[rgb(var(--muted))] dark:border-[rgb(var(--border))]">
+                  {card.status}
+                </span>
+              </div>
+              <p className="mt-3 text-base font-semibold text-[rgb(var(--fg))]">{card.title}</p>
+              <p className="mt-2 text-sm leading-relaxed text-[rgb(var(--muted))]">{card.lead}</p>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function NextStepChecklist(props: { items: NextStepChecklistItem[] }) {
+  return (
+    <div className="space-y-3">
+      <p className="text-sm font-semibold text-[rgb(var(--fg))]">Deine nächsten Schritte</p>
+      <div className="space-y-2">
+        {props.items.map((item) => (
+          <div
+            key={item.id}
+            className={`rounded-2xl border px-3 py-3 ${
+              item.done
+                ? "border-emerald-300/60 bg-emerald-50/80 dark:border-emerald-300/30 dark:bg-emerald-500/10"
+                : "border-slate-200/80 bg-white/85 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))]"
+            }`}
+          >
+            <div className="flex items-start gap-3">
+              <span
+                className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-xs font-semibold ${
+                  item.done
+                    ? "border-emerald-400/70 bg-emerald-100 text-emerald-900 dark:border-emerald-300/40 dark:bg-emerald-500/20 dark:text-emerald-100"
+                    : "border-slate-300/80 bg-slate-100 text-slate-700 dark:border-slate-500/60 dark:bg-slate-500/10 dark:text-slate-200"
+                }`}
+              >
+                {item.done ? "✓" : "○"}
+              </span>
+              <div>
+                <p className="text-sm font-medium text-[rgb(var(--fg))]">{item.label}</p>
+                <p className="mt-1 text-xs leading-relaxed text-[rgb(var(--muted))]">{item.detail}</p>
+              </div>
+            </div>
+          </div>
         ))}
       </div>
     </div>
@@ -560,67 +807,134 @@ function StructuredWorkstateBlock(props: {
   voteQuestions: string[];
   keyStatement: string;
   structureBranches: CreateStructureBranch[];
+  sortedSuggestions: CreateConnectionSuggestion[];
+  isConfirmed: boolean;
   onEdit: (focus: string) => void;
 }) {
-  const hasBranches = props.structureBranches.length >= 2;
+  const initialFocusArea: FocusAreaId = props.structureBranches.length > 0 ? "clusters" : "priorities";
+  const [activeFocusArea, setActiveFocusArea] = React.useState<FocusAreaId>(initialFocusArea);
+  const overviewCards = React.useMemo<FocusOverviewCard[]>(
+    () => {
+      const checklist = buildNextStepChecklist({
+        isConfirmed: props.isConfirmed,
+        structureBranches: props.structureBranches,
+        voteQuestions: props.voteQuestions,
+        sortedSuggestions: props.sortedSuggestions,
+      });
+      const doneChecklistCount = checklist.filter((item) => item.done).length;
+      return [
+        {
+          id: "priorities",
+          title: "Prioritäten",
+          lead: props.keyStatement,
+          status: `${Math.max(1, Math.min(props.topicLabels.length, 3))} Prioritäten`,
+        },
+        {
+          id: "clusters",
+          title: "Themencluster",
+          lead: props.structureBranches[0]?.title ?? props.rootTopic,
+          status: `${Math.max(1, props.structureBranches.length || 1)} Themencluster`,
+        },
+        {
+          id: "questions",
+          title: "Fragen & Abstimmung",
+          lead: props.voteQuestions[0] ?? "Leitfragen werden im nächsten Schritt vorbereitet.",
+          status: `${Math.max(1, props.voteQuestions.length)} Fragen`,
+        },
+        {
+          id: "next_steps",
+          title: "Nächste Schritte",
+          lead: checklist[0]?.label ?? "Struktur übernehmen",
+          status: `${doneChecklistCount}/${checklist.length} erledigt`,
+        },
+      ];
+    },
+    [
+      props.isConfirmed,
+      props.keyStatement,
+      props.rootTopic,
+      props.sortedSuggestions,
+      props.structureBranches,
+      props.topicLabels.length,
+      props.voteQuestions,
+    ],
+  );
+  const checklistItems = React.useMemo(
+    () =>
+      buildNextStepChecklist({
+        isConfirmed: props.isConfirmed,
+        structureBranches: props.structureBranches,
+        voteQuestions: props.voteQuestions,
+        sortedSuggestions: props.sortedSuggestions,
+      }),
+    [props.isConfirmed, props.sortedSuggestions, props.structureBranches, props.voteQuestions],
+  );
+
   return (
     <div className="mt-5 space-y-5 border-t border-slate-200 pt-5 dark:border-[rgb(var(--border))]">
-      <p className="text-sm font-semibold text-[rgb(var(--fg))] md:text-base">Vorgeschlagener Arbeitsstand</p>
-      <p className="max-w-3xl text-sm leading-relaxed text-[rgb(var(--muted))] md:text-base">
-        {CREATE_VISUAL_FOLLOWUP_COPY.graphTitle}
-      </p>
-
-      <div className={`max-w-3xl rounded-2xl border px-4 py-3 ${resolveNodeTone("topic")}`}>
-        <p className="text-sm font-semibold">Übergeordnetes Thema</p>
-        <p className="mt-1 text-base font-semibold">{props.rootTopic}</p>
+      <div className="space-y-2">
+        <p className="text-sm font-semibold text-[rgb(var(--fg))] md:text-base">Vorgeschlagener Arbeitsstand</p>
+        <p className="max-w-3xl text-sm leading-relaxed text-[rgb(var(--muted))] md:text-base">
+          {CREATE_VISUAL_FOLLOWUP_COPY.graphTitle}
+        </p>
       </div>
 
-      <StructureBranchList branches={props.structureBranches} onEdit={props.onEdit} />
+      <StructureOverviewRail cards={overviewCards} activeCardId={activeFocusArea} onSelect={setActiveFocusArea} />
 
-      <div className={hasBranches ? "hidden" : "space-y-3 md:hidden"}>
-        <div className="text-sm font-semibold text-cyan-900 dark:text-cyan-100">1. Dein Beitrag</div>
-        <div className={`rounded-xl border px-3 py-2 ${resolveNodeTone("source_text")}`}>
-          <p className="text-sm font-semibold">Ausgangspunkt im Dialog</p>
-        </div>
-        <div className="text-sm font-semibold text-cyan-900 dark:text-cyan-100">2. Kern erkannt</div>
-        <div className={`rounded-xl border px-3 py-2 ${resolveNodeTone("statement")}`}>
-          <p className="text-sm font-semibold">{props.keyStatement}</p>
-        </div>
-        <div className="text-sm font-semibold text-cyan-900 dark:text-cyan-100">3. Themenfelder</div>
-        {hasBranches ? null : <TopicFieldList labels={props.topicLabels} onPick={props.onEdit} />}
-        <div className="text-sm font-semibold text-cyan-900 dark:text-cyan-100">4. Blickrichtungen</div>
-        <PositionClusterList labels={props.positionClusters} onPick={props.onEdit} />
-        <div className="text-sm font-semibold text-cyan-900 dark:text-cyan-100">5. Mögliche Abstimmungsfragen</div>
-        {hasBranches ? null : <VoteQuestionList questions={props.voteQuestions} />}
-      </div>
-
-      <div className={hasBranches ? "hidden" : "hidden md:block"}>
-        <div className="space-y-3">
-          <div className={`max-w-2xl rounded-xl border px-4 py-3 ${resolveNodeTone("source_text")}`}>
-            <p className="text-sm font-semibold">Dein Beitrag</p>
-          </div>
-          <div className="ml-5 border-l-2 border-cyan-500/35 pl-4 dark:border-cyan-300/40">
-            <div className={`max-w-2xl rounded-xl border px-4 py-3 ${resolveNodeTone("statement")}`}>
-              <p className="text-sm font-semibold">Kern erkannt</p>
-              <p className="mt-1 text-base font-semibold">{props.keyStatement}</p>
+      <div className="rounded-[28px] border border-slate-200/80 bg-white/95 px-4 py-4 shadow-sm shadow-slate-950/5 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))] dark:shadow-none">
+        {activeFocusArea === "priorities" ? (
+          <div className="space-y-4">
+            <div className={`rounded-2xl border px-4 py-3 ${resolveNodeTone("topic")}`}>
+              <p className="text-sm font-semibold">Übergeordnetes Thema</p>
+              <p className="mt-1 text-base font-semibold">{props.rootTopic}</p>
             </div>
-            <div className="ml-6 mt-3 border-l-2 border-violet-500/30 pl-4 dark:border-violet-300/35">
-              <div className={`max-w-2xl rounded-xl border px-4 py-3 ${resolveNodeTone("topic")}`}>
-                <p className="text-sm font-semibold">Übergeordnetes Thema</p>
-                <p className="mt-1 text-base font-semibold">{props.rootTopic}</p>
-              </div>
-              <TopicFieldList labels={props.topicLabels.filter((label) => label !== props.rootTopic)} onPick={props.onEdit} />
-              <div className="mt-4 border-t border-slate-200 pt-3 dark:border-[rgb(var(--border))]">
-                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">Blickrichtungen</p>
-                <PositionClusterList labels={props.positionClusters} onPick={props.onEdit} />
-              </div>
-              <div className="mt-4 border-t border-slate-200 pt-3 dark:border-[rgb(var(--border))]">
-                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">Mögliche Abstimmungsfragen</p>
-                <VoteQuestionList questions={props.voteQuestions} />
-              </div>
+            <div className={`rounded-2xl border px-4 py-3 ${resolveNodeTone("statement")}`}>
+              <p className="text-xs font-semibold uppercase tracking-[0.14em]">Kern erkannt</p>
+              <p className="mt-2 text-base font-semibold leading-relaxed">{props.keyStatement}</p>
+            </div>
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">Themenfelder</p>
+              <TopicFieldList labels={props.topicLabels.slice(0, 6)} onPick={props.onEdit} />
+            </div>
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">Blickrichtungen</p>
+              <PositionClusterList labels={props.positionClusters} onPick={props.onEdit} />
             </div>
           </div>
-        </div>
+        ) : null}
+
+        {activeFocusArea === "clusters" ? (
+          props.structureBranches.length > 0 ? (
+            <StructureBranchList branches={props.structureBranches} onEdit={props.onEdit} />
+          ) : (
+            <div className="space-y-3">
+              <p className="text-sm font-semibold text-[rgb(var(--fg))]">Themencluster</p>
+              <p className="text-sm text-[rgb(var(--muted))]">Für diesen Beitrag reicht zunächst ein kompakter Themenfokus statt mehrerer Cluster.</p>
+              <TopicFieldList labels={props.topicLabels.slice(0, 6)} onPick={props.onEdit} />
+            </div>
+          )
+        ) : null}
+
+        {activeFocusArea === "questions" ? (
+          <div className="space-y-4">
+            <div className="rounded-2xl border border-fuchsia-200/70 bg-fuchsia-50/70 px-4 py-3 dark:border-fuchsia-300/25 dark:bg-fuchsia-500/10">
+              <p className="text-sm font-semibold text-fuchsia-950 dark:text-fuchsia-50">Fragen & Abstimmung</p>
+              <p className="mt-2 text-sm leading-relaxed text-fuchsia-900 dark:text-fuchsia-100">
+                Diese Leitfragen bleiben sichtbar, aber erst nach deiner Bestätigung werden sie weiter vorbereitet.
+              </p>
+            </div>
+            <VoteQuestionList questions={props.voteQuestions} />
+          </div>
+        ) : null}
+
+        {activeFocusArea === "next_steps" ? (
+          <div className="space-y-4">
+            <NextStepChecklist items={checklistItems} />
+            <div className="rounded-2xl border border-slate-200/80 bg-slate-50/80 px-4 py-3 text-xs leading-relaxed text-[rgb(var(--muted))] dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--bg))]">
+              Guardrails bleiben kompakt sichtbar: keine automatische Stimme, keine automatische Veröffentlichung, keine automatische Kostenbuchung.
+            </div>
+          </div>
+        ) : null}
       </div>
     </div>
   );
@@ -661,7 +975,7 @@ function FollowupActionRail(props: {
           </button>
           <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
             <button type="button" className="btn-secondary min-h-[40px] px-3 py-2 text-sm" onClick={() => props.setCorrectionOpen("Thema")}>
-              Etwas ändern
+              Ändern
             </button>
             <button
               type="button"
@@ -926,6 +1240,16 @@ export default function CreateVisualFollowup({
     statements: result.understanding.statements,
     suggestions: sortedSuggestions,
   });
+  const voteActionHref = voteSuggestion
+    ? buildCreateFollowupTargetHref({
+        kind: "vote",
+        ctaHref,
+        topics: result.understanding.topics,
+        statements: result.understanding.statements,
+        suggestionTitle: voteSuggestion.title,
+        suggestionHref: voteSuggestion.href ?? null,
+      })
+    : primaryActionHref;
 
   const openCorrection = React.useCallback(
     (focus: string) => {
@@ -957,6 +1281,8 @@ export default function CreateVisualFollowup({
           voteQuestions={voteQuestions}
           keyStatement={dedupedCopy.prominentCoreClaim}
           structureBranches={structureBranches}
+          sortedSuggestions={sortedSuggestions}
+          isConfirmed={isConfirmed}
           onEdit={openCorrection}
         />
       </AssistantUnderstandingBubble>
@@ -985,15 +1311,8 @@ export default function CreateVisualFollowup({
                 Thema öffnen
               </Link>
               {voteSuggestion ? (
-                <Link
-                  href={buildCreateFollowupTargetHref({
-                    kind: "vote",
-                    ctaHref,
-                    topics: result.understanding.topics,
-                    statements: result.understanding.statements,
-                    suggestionTitle: voteSuggestion.title,
-                    suggestionHref: voteSuggestion.href ?? null,
-                  })}
+              <Link
+                  href={voteActionHref}
                   className="btn-secondary min-h-[40px] px-3 py-2 text-sm"
                 >
                   Aussagen / Abstimmungen prüfen
@@ -1049,29 +1368,66 @@ export default function CreateVisualFollowup({
       ) : null}
       </div>
 
-      <div className="sticky bottom-2 z-10 rounded-xl border border-cyan-500/30 bg-white/95 px-3 py-2 shadow-xl shadow-cyan-950/10 backdrop-blur md:hidden dark:border-cyan-300/45 dark:bg-[rgb(var(--card))]/95 dark:shadow-black/20">
-        <p className="text-sm font-semibold text-[rgb(var(--fg))]">{CREATE_VISUAL_FOLLOWUP_COPY.confirmTitle}</p>
-        <p className="text-xs text-[rgb(var(--muted))]">{CREATE_VISUAL_FOLLOWUP_COPY.freeWriteHint}</p>
+      <div
+        data-mobile-sticky-create-actions
+        className="sticky bottom-2 z-10 rounded-2xl border border-cyan-500/30 bg-white/95 px-3 py-3 shadow-xl shadow-cyan-950/10 backdrop-blur md:hidden dark:border-cyan-300/45 dark:bg-[rgb(var(--card))]/95 dark:shadow-black/20"
+      >
+        <p className="text-sm font-semibold text-[rgb(var(--fg))]">
+          {isConfirmed ? "Nächster Schritt" : CREATE_VISUAL_FOLLOWUP_COPY.confirmTitle}
+        </p>
+        <p className="text-xs text-[rgb(var(--muted))]">
+          {isConfirmed
+            ? "Die wichtigste Aktion bleibt unten erreichbar."
+            : CREATE_VISUAL_FOLLOWUP_COPY.freeWriteHint}
+        </p>
         <div className="mt-2 grid grid-cols-2 gap-2">
-          <button type="button" className="btn-primary min-h-[40px] px-2 py-2 text-sm" onClick={onConfirm}>
-            Ja, Struktur übernehmen
-          </button>
-          <button type="button" className="btn-secondary min-h-[40px] px-2 py-2 text-sm" onClick={() => openCorrection("Thema")}>
-            Ändern
-          </button>
-          <button
-            type="button"
-            className="btn-secondary min-h-[40px] px-2 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-60"
-            onClick={onSaveForLater}
-            disabled={saveState === "saving" || saveState === "unavailable"}
-            aria-disabled={saveState === "saving" || saveState === "unavailable"}
-          >
-            Speichern
-          </button>
-          <button type="button" className="btn-secondary min-h-[40px] px-2 py-2 text-sm" onClick={onStartOptionalService}>
-            Faktencheck
-          </button>
+          {isConfirmed ? (
+            <>
+              <Link href={primaryActionHref} className="btn-primary min-h-[40px] px-2 py-2 text-center text-sm">
+                Thema öffnen
+              </Link>
+              <Link href={voteActionHref} className="btn-secondary min-h-[40px] px-2 py-2 text-center text-sm">
+                Prüfen
+              </Link>
+              <button
+                type="button"
+                className="btn-secondary min-h-[40px] px-2 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-60"
+                onClick={onSaveForLater}
+                disabled={saveState === "saving" || saveState === "unavailable"}
+                aria-disabled={saveState === "saving" || saveState === "unavailable"}
+              >
+                Speichern
+              </button>
+              <button type="button" className="btn-secondary min-h-[40px] px-2 py-2 text-sm" onClick={onStartOptionalService}>
+                Faktencheck
+              </button>
+            </>
+          ) : (
+            <>
+              <button type="button" className="btn-primary min-h-[40px] px-2 py-2 text-sm" onClick={onConfirm}>
+                Ja, Struktur übernehmen
+              </button>
+              <button type="button" className="btn-secondary min-h-[40px] px-2 py-2 text-sm" onClick={() => openCorrection("Thema")}>
+                Ändern
+              </button>
+              <button
+                type="button"
+                className="btn-secondary min-h-[40px] px-2 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-60"
+                onClick={onSaveForLater}
+                disabled={saveState === "saving" || saveState === "unavailable"}
+                aria-disabled={saveState === "saving" || saveState === "unavailable"}
+              >
+                Speichern
+              </button>
+              <button type="button" className="btn-secondary min-h-[40px] px-2 py-2 text-sm" onClick={onStartOptionalService}>
+                Faktencheck
+              </button>
+            </>
+          )}
         </div>
+        <p className="mt-2 text-[11px] text-[rgb(var(--muted))]">
+          Keine automatische Stimme. Keine automatische Veröffentlichung. Keine automatische Kostenbuchung.
+        </p>
       </div>
     </section>
   );
