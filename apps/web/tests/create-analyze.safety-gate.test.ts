@@ -122,6 +122,8 @@ describe("create analyze safety gate", () => {
     expect(body.degraded).toBe(true);
     expect(body.safety.decision).toBe("moderation_required");
     expect(body.createAnalyze.safety.decision).toBe("moderation_required");
+    expect(Array.isArray(body.createAnalyze.claimSafety)).toBe(true);
+    expect(Array.isArray(body.meta.claimSafety)).toBe(true);
     expect(body.createAnalyze.noAutoPublish).toBe(true);
     expect(body.createAnalyze.noSilentMerge).toBe(true);
     expect(mocks.analyzeContribution).not.toHaveBeenCalled();
@@ -135,6 +137,8 @@ describe("create analyze safety gate", () => {
     expect(body.safety.decision).toBe("factcheck_required");
     expect(body.meta.safety.decision).toBe("factcheck_required");
     expect(body.createAnalyze.safety.decision).toBe("factcheck_required");
+    expect(body.createAnalyze.claimSafety[0]?.claimId).toBe("c1");
+    expect(body.meta.claimSafety[0]?.noAutoPublish).toBe(true);
     expect(mocks.analyzeContribution).toHaveBeenCalledTimes(1);
   });
 
@@ -146,6 +150,7 @@ describe("create analyze safety gate", () => {
     expect(body.safety.decision).toBe("allow");
     expect(body.safety.telemetry.routeStage).toBe("analyze");
     expect(body.safety.factCheckCandidates[0]?.truthStatus).toBe("open");
+    expect(body.createAnalyze.claimSafety[0]?.publicationStatus).toBeTruthy();
     expect(JSON.stringify(body.safety.telemetry)).not.toContain("Investoren");
     expect(mocks.analyzeContribution).toHaveBeenCalledTimes(1);
   });
