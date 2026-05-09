@@ -302,6 +302,8 @@ describe("analyze workbench progressive disclosure", () => {
     expect(clientSource).toContain("setChatContinuationText");
     expect(clientSource).toContain("handleContinueConversation");
     expect(clientSource).not.toContain("details className=\"rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4\">\n          <summary className=\"cursor-pointer text-sm font-semibold text-[rgb(var(--fg))]\">{text.quotasTitle}</summary>");
+    expect(clientSource).toContain("href=\"/account\"");
+    expect(clientSource).toContain("hidden md:flex flex-wrap items-center gap-2");
     expect(source).not.toContain("Für später speichern");
     expect(source).not.toContain("Dossiers & Abstimmungen ansehen");
     expect(source).not.toContain("Zusatzservices (optional)");
@@ -316,6 +318,10 @@ describe("analyze workbench progressive disclosure", () => {
     expect(source).not.toContain("Dossier-Kontext / Oberthema");
     expect(source).not.toContain("Mögliche Claims");
     expect(source).not.toContain("topics.slice(0, 6)");
+    expect(source).toContain("resultChangeKey");
+    expect(source).toContain("setActiveFocusArea(initialFocusArea)");
+    expect(source).toContain("data-mobile-inline-create-actions");
+    expect(source).not.toContain("data-mobile-sticky-create-actions");
     expect(source).not.toContain('className="text-cyan-50"');
     expect(source).not.toContain("Abschnitt 1");
     expect(source).not.toContain("Teil 1");

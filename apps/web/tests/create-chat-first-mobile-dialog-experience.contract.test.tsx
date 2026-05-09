@@ -216,6 +216,8 @@ describe("create chat-first mobile dialog experience contract", () => {
   it("renders a compact structure overview and only one active branch detail at a time", () => {
     const html = renderMultiBranchVisualFollowup();
 
+    expect(html).toContain("Du");
+    expect(html).toContain("Dein Beitrag wurde aufgenommen.");
     expect(html).toContain("Deine Struktur auf einen Blick");
     expect(html).toContain("Prioritäten");
     expect(html).toContain("Themencluster");
@@ -224,7 +226,7 @@ describe("create chat-first mobile dialog experience contract", () => {
     expect(html).toContain("Focus Card");
     expect(html).toContain("Knapper Bedarf");
     expect(html).toContain("Wichtigste Frage");
-    expect(html).toContain("data-mobile-sticky-create-actions");
+    expect(html).toContain("data-mobile-inline-create-actions");
     expect((html.match(/data-focus-card-branch-selector/g) ?? [])).toHaveLength(3);
     expect((html.match(/data-focus-card-detail/g) ?? [])).toHaveLength(1);
   });
@@ -233,7 +235,7 @@ describe("create chat-first mobile dialog experience contract", () => {
     const html = renderMultiBranchVisualFollowup(true);
 
     expect(html).toContain("Nächster Schritt");
-    expect(html).toContain("Die wichtigste Aktion bleibt unten erreichbar.");
+    expect(html).toContain("Die wichtigste Aktion bleibt direkt unter dem aktiven Arbeitsstand erreichbar.");
     expect(html).toContain("Thema öffnen");
     expect(html).toContain("Prüfen");
   });
@@ -267,6 +269,11 @@ describe("create chat-first mobile dialog experience contract", () => {
     );
 
     expect(followupSource).not.toContain("lg:grid-cols-2");
+    expect(followupSource).not.toContain("min-w-[248px]");
+    expect(followupSource).toContain("Mobile-first als Tabs mit aktiver Karte");
+    expect(followupSource).toContain("data-mobile-inline-create-actions");
+    expect(followupSource).not.toContain("data-mobile-sticky-create-actions");
+    expect(followupSource).not.toContain("fixed inset-x-3");
     expect(linkClarificationSource).not.toContain("sm:grid-cols-2");
   });
 });

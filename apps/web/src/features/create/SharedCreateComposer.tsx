@@ -149,6 +149,7 @@ export default function SharedCreateComposer({
 
   const fileInputRef = React.useRef<React.ElementRef<"input"> | null>(null);
   const speechRef = React.useRef<SpeechRecognitionLike | null>(null);
+  const compactMetaMode = embeddedWorkspace && collapseModeSelector;
 
   React.useEffect(() => {
     if (!allowVoice) {
@@ -328,7 +329,7 @@ export default function SharedCreateComposer({
       <div
         className={
           embeddedWorkspace
-            ? "mx-auto w-full max-w-6xl space-y-6 md:space-y-7"
+            ? `mx-auto w-full max-w-6xl ${compactMetaMode ? "space-y-4 md:space-y-6" : "space-y-6 md:space-y-7"}`
             : "mx-auto w-full max-w-5xl space-y-6 md:space-y-7"
         }
       >
@@ -341,14 +342,14 @@ export default function SharedCreateComposer({
           headingTag="h2"
         />
 
-        <div className="space-y-3">
+        <div className={`space-y-2.5 ${compactMetaMode ? "rounded-2xl border border-[rgb(var(--border))] bg-[color-mix(in_oklab,rgb(var(--card))_92%,rgb(var(--bg))_8%)] px-4 py-3" : ""}`}>
           <div className="flex flex-wrap items-center gap-2" aria-label={texts.modeSwitchAriaLabel}>
             <span className="text-[11px] font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
               {collapseModeSelector ? "Arbeitsweg optional" : texts.modeSwitchAriaLabel}
             </span>
             {modeOrder.map(renderModeChip)}
           </div>
-          <p className="max-w-3xl text-sm leading-relaxed text-[rgb(var(--muted))]">{helperText}</p>
+          <p className={`max-w-3xl leading-relaxed text-[rgb(var(--muted))] ${compactMetaMode ? "text-xs sm:text-sm" : "text-sm"}`}>{helperText}</p>
         </div>
 
         {contextBanner}
@@ -364,11 +365,11 @@ export default function SharedCreateComposer({
                 value={inputValue}
                 onChange={(event) => onInputChange(event.target.value)}
                 rows={minRows}
-                className="w-full min-h-[170px] resize-y border-0 bg-transparent px-4 py-4 text-base leading-relaxed text-[rgb(var(--fg))] outline-none shadow-none placeholder:text-[rgb(var(--muted))] focus-visible:ring-2 focus-visible:ring-[rgb(var(--grad-from))] sm:min-h-[220px] sm:px-5 sm:py-5"
+                className={`w-full resize-y border-0 bg-transparent px-4 py-4 text-base leading-relaxed text-[rgb(var(--fg))] outline-none shadow-none placeholder:text-[rgb(var(--muted))] focus-visible:ring-2 focus-visible:ring-[rgb(var(--grad-from))] sm:px-5 sm:py-5 ${compactMetaMode ? "min-h-[148px] sm:min-h-[190px]" : "min-h-[170px] sm:min-h-[220px]"}`}
                 placeholder={inputPlaceholder}
               />
 
-              <div className="flex flex-col gap-3 px-4 pb-4 sm:flex-row sm:items-center sm:justify-between sm:px-5 sm:pb-5">
+              <div className={`flex flex-col px-4 pb-4 sm:flex-row sm:items-center sm:justify-between sm:px-5 sm:pb-5 ${compactMetaMode ? "gap-2.5" : "gap-3"}`}>
                 <div className="flex flex-wrap items-center gap-2.5">
                   <button
                     type="button"
@@ -451,52 +452,59 @@ export default function SharedCreateComposer({
             </p>
           ) : null}
 
-          {contextAnchors.length > 0 ? (
-            <div className="space-y-2">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="text-[11px] font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
-                  {texts.contextEntryTitle}
-                </span>
-                {contextAnchors.map((anchor) => {
-                  const isActive = activeContextAnchorId === anchor.id;
-                  return (
-                    <button
-                      key={anchor.id}
-                      type="button"
-                      className={`rounded-full border px-3 py-1.5 text-xs transition ${
-                        isActive
-                          ? "border-[rgb(var(--grad-from))] bg-[rgb(var(--card))] text-[rgb(var(--fg))]"
-                          : "border-[rgb(var(--border))] text-[rgb(var(--muted))] hover:border-[rgb(var(--grad-from))]/45 hover:text-[rgb(var(--fg))]"
-                      }`}
-                      onClick={() => onContextAnchorSelect(anchor.id)}
-                      aria-pressed={isActive}
-                    >
-                      {anchor.label}
-                    </button>
-                  );
-                })}
-              </div>
-              {activeContextAnchorLead ? (
-                <p className="text-xs leading-relaxed text-[rgb(var(--muted))]">{activeContextAnchorLead}</p>
+          {contextAnchors.length > 0 || helperLinks.length > 0 ? (
+            <details className="rounded-2xl border border-[rgb(var(--border))] bg-[color-mix(in_oklab,rgb(var(--card))_92%,rgb(var(--bg))_8%)] px-4 py-3">
+              <summary className="cursor-pointer text-sm font-semibold text-[rgb(var(--fg))]">
+                Kontext & Orientierung
+              </summary>
+              {contextAnchors.length > 0 ? (
+                <div className="mt-3 space-y-2">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-[11px] font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
+                      {texts.contextEntryTitle}
+                    </span>
+                    {contextAnchors.map((anchor) => {
+                      const isActive = activeContextAnchorId === anchor.id;
+                      return (
+                        <button
+                          key={anchor.id}
+                          type="button"
+                          className={`rounded-full border px-3 py-1.5 text-xs transition ${
+                            isActive
+                              ? "border-[rgb(var(--grad-from))] bg-[rgb(var(--card))] text-[rgb(var(--fg))]"
+                              : "border-[rgb(var(--border))] text-[rgb(var(--muted))] hover:border-[rgb(var(--grad-from))]/45 hover:text-[rgb(var(--fg))]"
+                          }`}
+                          onClick={() => onContextAnchorSelect(anchor.id)}
+                          aria-pressed={isActive}
+                        >
+                          {anchor.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {activeContextAnchorLead ? (
+                    <p className="text-xs leading-relaxed text-[rgb(var(--muted))]">{activeContextAnchorLead}</p>
+                  ) : null}
+                </div>
               ) : null}
-            </div>
-          ) : null}
 
-          {helperLinks.length > 0 ? (
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-[rgb(var(--muted))]">
-              <span className="text-[11px] font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
-                {texts.orientationTitle}
-              </span>
-              {helperLinks.map((helperLink) => (
-                <Link
-                  key={helperLink.href}
-                  href={helperLink.href}
-                  className="underline decoration-dotted underline-offset-4 hover:text-[rgb(var(--fg))]"
-                >
-                  {helperLink.label}
-                </Link>
-              ))}
-            </div>
+              {helperLinks.length > 0 ? (
+                <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-[rgb(var(--muted))]">
+                  <span className="text-[11px] font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
+                    {texts.orientationTitle}
+                  </span>
+                  {helperLinks.map((helperLink) => (
+                    <Link
+                      key={helperLink.href}
+                      href={helperLink.href}
+                      className="underline decoration-dotted underline-offset-4 hover:text-[rgb(var(--fg))]"
+                    >
+                      {helperLink.label}
+                    </Link>
+                  ))}
+                </div>
+              ) : null}
+            </details>
           ) : null}
 
           {error ? <p className="text-sm text-rose-700 dark:text-rose-300">{error}</p> : null}

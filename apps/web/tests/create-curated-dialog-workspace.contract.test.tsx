@@ -45,7 +45,7 @@ describe("create curated dialog workspace contract", () => {
     expect(followupSource).toContain("Deine Struktur auf einen Blick");
     expect(followupSource).toContain("data-focus-card-overview");
     expect(followupSource).toContain("data-focus-card-rail");
-    expect(followupSource).toContain("data-mobile-sticky-create-actions");
+    expect(followupSource).toContain("data-mobile-inline-create-actions");
     expect(linkClarificationSource).toContain("Ich habe einen Quellenhinweis erkannt. Was soll ich daraus vorbereiten?");
     expect(linkClarificationSource).toContain("create-chat-message");
     expect(linkClarificationSource).toContain("eDebatte");
@@ -108,17 +108,22 @@ describe("create curated dialog workspace contract", () => {
     const coreIndex = followupSource.indexOf(">Vorgeschlagener Arbeitsstand</p>");
     const overviewIndex = followupSource.indexOf("<StructureOverviewRail cards={overviewCards}");
     const confirmIndex = followupSource.indexOf("Bestätige den Vorschlag, ändere einzelne Punkte oder schreib einfach weiter.");
+    const continueIndex = followupSource.indexOf("<ContinueWritingComposer");
+    const detailsCallIndex = followupSource.lastIndexOf("<DetailsAccordion");
     const detailsIndex = followupSource.indexOf("Gelesene Sinnabschnitte");
     const impactIndex = followupSource.lastIndexOf("CREATE_VISUAL_FOLLOWUP_COPY.impactTitle");
 
     expect(coreIndex).toBeGreaterThan(-1);
     expect(overviewIndex).toBeGreaterThan(-1);
     expect(confirmIndex).toBeGreaterThan(-1);
+    expect(continueIndex).toBeGreaterThan(-1);
+    expect(detailsCallIndex).toBeGreaterThan(-1);
     expect(detailsIndex).toBeGreaterThan(-1);
     expect(impactIndex).toBeGreaterThan(-1);
     expect(coreIndex).toBeLessThan(confirmIndex);
     expect(overviewIndex).toBeGreaterThan(coreIndex);
-    expect(confirmIndex).toBeLessThan(detailsIndex);
+    expect(confirmIndex).toBeLessThan(continueIndex);
+    expect(continueIndex).toBeLessThan(detailsCallIndex);
     expect(detailsIndex).toBeLessThan(impactIndex);
     expect(followupSource).toContain("summary className=\"cursor-pointer");
     expect(followupSource).toContain("Wird erst nach deiner Bestätigung vorbereitet.");

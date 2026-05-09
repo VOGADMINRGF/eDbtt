@@ -1180,7 +1180,7 @@ export default function CreateClient({
   }
 
   return (
-    <div className="mx-auto max-w-6xl space-y-6 md:space-y-8">
+    <div className="mx-auto max-w-6xl space-y-4 md:space-y-8">
       <section className="create-dialog-workspace rounded-[2rem] border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-3 shadow-[0_24px_64px_rgba(2,6,23,0.14)] sm:p-4 md:p-6 lg:p-8">
       <SharedCreateComposer
         badge={surfaceTexts.badgeCanonical}
@@ -1277,19 +1277,21 @@ export default function CreateClient({
       ) : null}
 
       {showPostInputModules && !showLinkClarification ? (
-        <div className="flex flex-wrap items-center gap-2 text-[11px] text-[rgb(var(--muted))]">
-          <span className="vog-chip">{text.quotasTitle}</span>
+        <div className="hidden md:flex flex-wrap items-center gap-2 text-[11px] text-[rgb(var(--muted))]">
           <span className="vog-chip">{text.tierLabel}: {tierLabel}</span>
           <span className="vog-chip">{text.creditsLabel}: {formatOperatorNumber(credits, operatorLocale)}</span>
-          {monthlyLimit === null ? (
-            <span className="vog-chip">{text.monthlyLimitLabel}: {text.monthlyLimitUnlimited}</span>
-          ) : (
-            <span className="vog-chip">{text.monthlyLimitLabel}: {formatOperatorNumber(monthlyLimit, operatorLocale)}</span>
-          )}
-          <span className="vog-chip">{text.maxClaimsLabel}: {formatOperatorNumber(maxFinalizeClaims, operatorLocale)}</span>
+          <Link href="/account" className="vog-chip">
+            {text.quotasTitle}
+          </Link>
           <Link href={contextualReturnHref ?? "/runden"} className="vog-chip">
             {contextualReturnHref ? surfaceTexts.returnToContextLabel : surfaceTexts.goToRoundsLabel}
           </Link>
+          <span className="sr-only">
+            {monthlyLimit === null
+              ? `${text.monthlyLimitLabel}: ${text.monthlyLimitUnlimited}`
+              : `${text.monthlyLimitLabel}: ${formatOperatorNumber(monthlyLimit, operatorLocale)}`}
+          </span>
+          <span className="sr-only">{text.maxClaimsLabel}: {formatOperatorNumber(maxFinalizeClaims, operatorLocale)}</span>
         </div>
       ) : null}
 

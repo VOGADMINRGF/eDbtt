@@ -382,7 +382,7 @@ function UserContributionBubble(props: { text: string }) {
   return (
     <div className="create-chat-message flex gap-3">
       <div className="mt-2 h-2.5 w-2.5 shrink-0 rounded-full bg-slate-400 ring-4 ring-white dark:bg-slate-500 dark:ring-[rgb(var(--bg))]" />
-      <div className="max-w-3xl">
+      <div className="max-w-3xl min-w-0">
         <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-600 dark:text-[rgb(var(--muted))]">Du</p>
         <div className="mt-2 rounded-2xl rounded-tl-sm border border-slate-200 bg-white px-4 py-3 shadow-sm dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))] dark:shadow-none">
           <p className="text-sm text-slate-900 md:text-base dark:text-[rgb(var(--fg))]">Dein Beitrag wurde aufgenommen.</p>
@@ -411,22 +411,22 @@ function AssistantUnderstandingBubble(props: {
   return (
     <div className="create-chat-message flex gap-3">
       <div className="mt-2 h-2.5 w-2.5 shrink-0 rounded-full bg-cyan-600 ring-4 ring-white dark:bg-cyan-300 dark:ring-[rgb(var(--bg))]" />
-      <div className="max-w-5xl flex-1">
+      <div className="max-w-5xl min-w-0 flex-1">
         <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-700 dark:text-[rgb(var(--muted))]">eDebatte</p>
-        <div className="mt-2 rounded-2xl rounded-tl-sm border border-cyan-500/25 bg-white px-4 py-4 shadow-sm md:px-5 md:py-5 dark:border-cyan-300/30 dark:bg-[rgb(var(--card))] dark:shadow-none">
+        <div className="mt-2 rounded-[30px] rounded-tl-sm border border-cyan-500/18 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,252,255,0.95))] px-4 py-4 shadow-[0_22px_52px_rgba(2,6,23,0.05)] md:px-6 md:py-6 dark:border-cyan-300/20 dark:bg-[rgb(var(--card))] dark:shadow-none">
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-cyan-800 dark:text-cyan-200">{CREATE_VISUAL_FOLLOWUP_COPY.structureTitle}</p>
-          <p className="mt-1 text-base font-semibold text-cyan-950 md:text-lg dark:text-cyan-50">{CREATE_VISUAL_FOLLOWUP_COPY.headline}</p>
-          <p className="mt-3 text-base text-cyan-900 md:text-lg dark:text-cyan-100">{props.summary || props.assistantLead}</p>
+          <p className="mt-1 text-lg font-semibold text-cyan-950 md:text-[1.4rem] dark:text-cyan-50">{CREATE_VISUAL_FOLLOWUP_COPY.headline}</p>
+          <p className="mt-4 text-base leading-relaxed text-cyan-950 md:text-[1.15rem] dark:text-cyan-100">{props.summary || props.assistantLead}</p>
           {props.showAssistantLead ? (
-            <p className="mt-2 text-sm text-cyan-900/85 dark:text-cyan-100/85">{props.assistantLead}</p>
+            <p className="mt-3 max-w-3xl text-sm leading-relaxed text-cyan-900/80 dark:text-cyan-100/80">{props.assistantLead}</p>
           ) : null}
           {props.showCoreBlock ? (
-            <div className="mt-4 border-l-2 border-cyan-500/45 pl-3 dark:border-cyan-300/50">
+            <div className="mt-5 rounded-3xl border border-cyan-200/65 bg-cyan-50/60 px-4 py-4 dark:border-cyan-300/20 dark:bg-cyan-500/10">
               <p className="text-xs font-semibold uppercase tracking-[0.14em] text-cyan-800 dark:text-cyan-200">{CREATE_VISUAL_FOLLOWUP_COPY.coreTitle}</p>
-              <p className="mt-1 text-base font-semibold text-cyan-950 md:text-xl dark:text-cyan-50">{props.coreClaim}</p>
+              <p className="mt-2 text-base font-semibold leading-relaxed text-cyan-950 md:text-xl dark:text-cyan-50">{props.coreClaim}</p>
             </div>
           ) : null}
-          <div className="mt-3 flex flex-wrap gap-2">
+          <div className="mt-4 flex flex-wrap gap-2 opacity-90">
             <span className="rounded-full border border-emerald-500/30 bg-emerald-50 px-3 py-1 text-sm text-emerald-950 dark:border-emerald-300/40 dark:bg-emerald-500/10 dark:text-emerald-50">
               Haltung: {props.stanceLabel}
             </span>
@@ -503,25 +503,25 @@ function StructureBranchCard(props: {
   return (
     <article
       data-focus-card-detail
-      className="rounded-[28px] border border-slate-200/80 bg-white/95 px-4 py-4 shadow-sm shadow-slate-950/5 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))] dark:shadow-none"
+      className="overflow-hidden rounded-[28px] border border-cyan-200/65 bg-[linear-gradient(180deg,rgba(248,252,255,0.98),rgba(255,255,255,0.94))] px-4 py-5 shadow-[0_24px_56px_rgba(8,145,178,0.08)] dark:border-cyan-300/20 dark:bg-[rgb(var(--card))] dark:shadow-none sm:rounded-[32px]"
     >
-      <div className="rounded-[24px] border border-cyan-200/70 bg-gradient-to-br from-cyan-50 via-white to-sky-50 px-3 py-3 dark:border-cyan-300/25 dark:from-cyan-500/12 dark:via-[rgb(var(--card))] dark:to-sky-500/10">
+      <div className="space-y-5">
         <div className="flex items-start justify-between gap-3">
-          <div>
+          <div className="min-w-0 space-y-2">
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-cyan-800 dark:text-cyan-200">Focus Card</p>
-            <p className="mt-1 text-lg font-semibold text-cyan-950 md:text-xl dark:text-cyan-50">{props.branch.title}</p>
+            <p className="break-words text-lg font-semibold text-cyan-950 md:text-[1.75rem] dark:text-cyan-50">{props.branch.title}</p>
+            {visibleTopicTags.length ? (
+              <p className="max-w-3xl text-sm leading-relaxed text-cyan-900/85 dark:text-cyan-100/85">
+                Schwerpunkt: {toSentenceList(visibleTopicTags)}
+              </p>
+            ) : null}
           </div>
-          <span className="rounded-full border border-cyan-300/70 bg-white/80 px-2.5 py-1 text-xs font-semibold text-cyan-900 dark:border-cyan-300/35 dark:bg-cyan-500/10 dark:text-cyan-100">
+          <span className="max-w-[10rem] shrink-0 rounded-full border border-cyan-300/70 bg-white/85 px-3 py-1.5 text-right text-[11px] font-semibold leading-relaxed text-cyan-900 dark:border-cyan-300/35 dark:bg-cyan-500/10 dark:text-cyan-100">
             {statusLabel}
           </span>
         </div>
-        {visibleTopicTags.length ? (
-          <p className="mt-2 text-sm text-cyan-900/90 dark:text-cyan-100/90">
-            Schwerpunkt: {toSentenceList(visibleTopicTags)}
-          </p>
-        ) : null}
         {visiblePositionClusters.length ? (
-          <div className="mt-3 flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2">
             {visiblePositionClusters.map((cluster) => (
               <span
                 key={`${props.branch.id}-cluster-${cluster}`}
@@ -532,33 +532,35 @@ function StructureBranchCard(props: {
             ))}
           </div>
         ) : null}
-        <div className="mt-4 rounded-2xl border border-white/80 bg-white/80 px-3 py-3 dark:border-white/10 dark:bg-[rgb(var(--card))]/65">
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-cyan-800 dark:text-cyan-200">Knapper Bedarf</p>
-          <p className="mt-2 text-sm leading-relaxed text-cyan-950 dark:text-cyan-50">{showNeedBlock ? props.branch.need : primaryClaim}</p>
-        </div>
-        <div className="mt-3 rounded-2xl border border-cyan-200/70 bg-cyan-100/70 px-3 py-3 dark:border-cyan-300/25 dark:bg-cyan-500/12">
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-cyan-800 dark:text-cyan-200">Wichtigste Frage</p>
-          <p className="mt-2 text-sm font-medium leading-relaxed text-cyan-950 dark:text-cyan-50">{primaryQuestion}</p>
+        <div className="grid gap-3 xl:grid-cols-[minmax(0,1.1fr)_minmax(260px,0.9fr)]">
+          <div className="rounded-[24px] border border-white/75 bg-white/82 px-4 py-4 dark:border-white/10 dark:bg-[rgb(var(--card))]/70">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-cyan-800 dark:text-cyan-200">Knapper Bedarf</p>
+            <p className="mt-2 break-words text-sm leading-7 text-cyan-950 dark:text-cyan-50">{showNeedBlock ? props.branch.need : primaryClaim}</p>
+          </div>
+          <div className="rounded-[24px] border border-cyan-200/60 bg-cyan-100/70 px-4 py-4 dark:border-cyan-300/25 dark:bg-cyan-500/12">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-cyan-800 dark:text-cyan-200">Wichtigste Frage</p>
+            <p className="mt-2 break-words text-sm font-medium leading-7 text-cyan-950 dark:text-cyan-50">{primaryQuestion}</p>
+          </div>
         </div>
       </div>
-      <div className="mt-4 flex flex-wrap gap-2">
+      <div className="mt-5 flex flex-wrap gap-2">
         {props.branch.part06CategoryLabels.map((label) => (
           <span
             key={`${props.branch.id}-part06-${label}`}
-            className={`rounded-full border px-2.5 py-1 text-xs ${resolveNodeTone("dossier")}`}
+            className={`rounded-full border px-2.5 py-1 text-xs opacity-80 ${resolveNodeTone("dossier")}`}
           >
             {label}
           </span>
         ))}
       </div>
-      <div className="mt-4 space-y-3">
-        <div>
+      <div className="mt-5 space-y-3 border-t border-slate-200/80 pt-4 dark:border-[rgb(var(--border))]">
+        <div className="rounded-2xl border border-slate-200/80 bg-slate-50/70 px-3 py-3 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--bg))]">
           <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">Wichtige Abstimmungsfragen</p>
           <ul className="mt-2 space-y-2 text-sm leading-relaxed text-[rgb(var(--fg))]">
             {visibleVoteQuestions.map((question) => (
               <li
                 key={`${props.branch.id}-question-${question}`}
-                className="rounded-xl border border-slate-200/80 bg-slate-50/70 px-3 py-2 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--bg))]"
+                className="rounded-xl border border-slate-200/70 bg-white/85 px-4 py-3 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))]"
               >
                 {question}
               </li>
@@ -566,7 +568,7 @@ function StructureBranchCard(props: {
           </ul>
         </div>
       </div>
-      <details className="mt-4 rounded-xl border border-slate-200/80 bg-slate-50/70 px-3 py-3 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--bg))]">
+      <details className="mt-4 rounded-2xl border border-slate-200/80 bg-white/65 px-3 py-3 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--bg))]">
         <summary className="cursor-pointer text-sm font-semibold text-[rgb(var(--fg))]">Ast bearbeiten</summary>
         <div className="mt-3 flex flex-wrap gap-2">
           {["Thema ändern", "Haltung ändern", "Ebene ändern", "Aussage ergänzen", "Abstimmungsfrage bearbeiten"].map((label) => (
@@ -582,7 +584,7 @@ function StructureBranchCard(props: {
         </div>
         <p className="mt-3 text-xs text-[rgb(var(--muted))]">Änderungsvorschläge werden reviewbar vorbereitet.</p>
       </details>
-      <details className="mt-3 rounded-xl border border-slate-200/80 bg-slate-50/70 px-3 py-3 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--bg))]">
+      <details className="mt-3 rounded-2xl border border-slate-200/80 bg-white/65 px-3 py-3 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--bg))]">
         <summary className="cursor-pointer text-sm font-semibold text-[rgb(var(--fg))]">Weitere Details zum Ast</summary>
         <div className="mt-3 space-y-3">
           {visibleTopicTags.length ? (
@@ -655,6 +657,7 @@ function StructureBranchCard(props: {
 function StructureBranchList(props: {
   branches: CreateStructureBranch[];
   onEdit: (focus: string) => void;
+  resetKey: string;
 }) {
   const [activeBranchId, setActiveBranchId] = React.useState<string | null>(props.branches[0]?.id ?? null);
 
@@ -664,19 +667,25 @@ function StructureBranchList(props: {
     }
   }, [activeBranchId, props.branches]);
 
+  React.useEffect(() => {
+    setActiveBranchId(props.branches[0]?.id ?? null);
+  }, [props.branches, props.resetKey]);
+
   if (props.branches.length === 0) return null;
   const activeBranch =
     props.branches.find((branch) => branch.id === activeBranchId) ?? props.branches[0] ?? null;
 
   return (
-    <div className="mt-4">
+    <div className="space-y-4">
       <div className="flex items-center justify-between gap-3">
         <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">Strukturäste</p>
-        <p className="text-xs text-[rgb(var(--muted))]">Mobile-first als swipebare Focus Cards</p>
+        <p className="text-xs text-[rgb(var(--muted))]">Mobile-first als Tabs mit aktiver Karte</p>
       </div>
       <div
         data-focus-card-rail
-        className="mt-3 flex snap-x gap-3 overflow-x-auto pb-2"
+        className="flex flex-col gap-2 sm:flex-row sm:flex-wrap"
+        role="tablist"
+        aria-label="Fokusbereiche der Struktur"
       >
         {props.branches.map((branch) => (
           <button
@@ -685,35 +694,35 @@ function StructureBranchList(props: {
             type="button"
             onClick={() => setActiveBranchId(branch.id)}
             aria-pressed={activeBranch?.id === branch.id}
-            className={`min-w-[248px] snap-start rounded-[24px] border px-4 py-4 text-left transition ${
+            className={`w-full rounded-[22px] border px-3 py-3 text-left transition sm:max-w-[18rem] ${
               activeBranch?.id === branch.id
-                ? "border-cyan-400/70 bg-cyan-50 shadow-sm shadow-cyan-950/5 dark:border-cyan-300/45 dark:bg-cyan-500/12"
-                : "border-slate-200/80 bg-white/85 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))]"
+                ? "border-cyan-400/70 bg-cyan-50 shadow-[0_18px_40px_rgba(8,145,178,0.12)] dark:border-cyan-300/45 dark:bg-cyan-500/12"
+                : "border-slate-200/80 bg-white/88 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))]"
             }`}
           >
             <div className="flex items-start justify-between gap-3">
-              <div className="flex items-center gap-2">
+              <div className="min-w-0 flex items-center gap-2">
                 <span className="flex h-8 w-8 items-center justify-center rounded-full border border-cyan-300/60 bg-white/80 dark:border-cyan-300/30 dark:bg-cyan-500/10">
                   <FocusAreaIcon area="branch" active={activeBranch?.id === branch.id} />
                 </span>
-                <div>
+                <div className="min-w-0">
                   <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-600 dark:text-[rgb(var(--muted))]">Focus Card</p>
-                  <p className="text-sm font-semibold text-[rgb(var(--fg))]">{branch.title}</p>
+                  <p className="break-words text-sm font-semibold text-[rgb(var(--fg))]">{branch.title}</p>
                 </div>
               </div>
-              <span className="rounded-full border border-slate-200/80 px-2 py-1 text-[11px] font-semibold text-[rgb(var(--muted))] dark:border-[rgb(var(--border))]">
+              <span className="shrink-0 rounded-full border border-slate-200/80 px-2 py-1 text-[11px] font-semibold text-[rgb(var(--muted))] dark:border-[rgb(var(--border))]">
                 {Math.max(1, branch.topicTags.length)} Schwerpunkte
               </span>
             </div>
-            <p className="mt-3 line-clamp-3 text-sm leading-relaxed text-[rgb(var(--fg))]">{branch.need}</p>
-            <p className="mt-3 text-xs font-medium text-slate-700 dark:text-slate-200">Leitfrage: {branch.voteQuestions[0] ?? "Frage wird vorbereitet."}</p>
-            <p className="mt-3 text-xs text-[rgb(var(--muted))]">
-              {branch.voteQuestions.length} Fragen · {branch.openReviewPoints.length} Prüfpunkte
-            </p>
+            <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-[rgb(var(--fg))]">{branch.need}</p>
+            <div className="mt-2 flex items-center justify-between gap-2 text-xs text-[rgb(var(--muted))]">
+              <span>{branch.voteQuestions.length} Fragen</span>
+              <span>{branch.openReviewPoints.length} Prüfpunkte</span>
+            </div>
           </button>
         ))}
       </div>
-      {activeBranch ? <StructureBranchCard branch={activeBranch} onEdit={props.onEdit} /> : null}
+      <div className="pt-1">{activeBranch ? <StructureBranchCard branch={activeBranch} onEdit={props.onEdit} /> : null}</div>
     </div>
   );
 }
@@ -724,13 +733,13 @@ function StructureOverviewRail(props: {
   onSelect: (id: FocusAreaId) => void;
 }) {
   return (
-    <div>
+    <div className="space-y-3">
       <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">
         {CREATE_VISUAL_FOLLOWUP_COPY.overviewTitle}
       </p>
       <div
         data-focus-card-overview
-        className="mt-3 flex snap-x gap-3 overflow-x-auto pb-2 md:grid md:grid-cols-2 xl:grid-cols-4"
+        className="space-y-2 sm:space-y-3"
       >
         {props.cards.map((card) => {
           const isActive = props.activeCardId === card.id;
@@ -740,26 +749,68 @@ function StructureOverviewRail(props: {
               type="button"
               onClick={() => props.onSelect(card.id)}
               aria-pressed={isActive}
-              className={`min-w-[220px] snap-start rounded-[24px] border px-4 py-4 text-left transition ${
+              className={`w-full rounded-[24px] border px-4 py-3 text-left transition sm:rounded-[28px] sm:py-4 ${
                 isActive
-                  ? "border-cyan-400/70 bg-cyan-50 shadow-sm shadow-cyan-950/5 dark:border-cyan-300/45 dark:bg-cyan-500/12"
-                  : "border-slate-200/80 bg-white/85 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))]"
+                  ? "border-cyan-400/70 bg-cyan-50 shadow-[0_16px_36px_rgba(8,145,178,0.12)] dark:border-cyan-300/45 dark:bg-cyan-500/12"
+                  : "border-slate-200/75 bg-white/82 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))]"
               }`}
             >
-              <div className="flex items-start justify-between gap-3">
-                <span className="flex h-9 w-9 items-center justify-center rounded-full border border-cyan-300/60 bg-white/80 dark:border-cyan-300/30 dark:bg-cyan-500/10">
-                  <FocusAreaIcon area={card.id} active={isActive} />
-                </span>
-                <span className="rounded-full border border-slate-200/80 px-2 py-1 text-[11px] font-semibold text-[rgb(var(--muted))] dark:border-[rgb(var(--border))]">
-                  {card.status}
-                </span>
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex min-w-0 items-center gap-3">
+                  <span className="flex h-10 w-10 items-center justify-center rounded-full border border-cyan-300/60 bg-white/80 dark:border-cyan-300/30 dark:bg-cyan-500/10">
+                    <FocusAreaIcon area={card.id} active={isActive} />
+                  </span>
+                  <div className="min-w-0">
+                    <p className="text-base font-semibold text-[rgb(var(--fg))]">{card.title}</p>
+                    <p className="mt-1 hidden line-clamp-2 text-sm leading-relaxed text-[rgb(var(--muted))] sm:block">{card.lead}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="rounded-full border border-slate-200/80 px-2 py-1 text-[11px] font-semibold text-[rgb(var(--muted))] dark:border-[rgb(var(--border))]">
+                    {card.status}
+                  </span>
+                  <svg aria-hidden="true" viewBox="0 0 20 20" className="hidden h-4 w-4 text-slate-400 dark:text-slate-500 sm:block" fill="none" stroke="currentColor" strokeWidth="1.8">
+                    <path d="M7 4.5 13 10l-6 5.5" />
+                  </svg>
+                </div>
               </div>
-              <p className="mt-3 text-base font-semibold text-[rgb(var(--fg))]">{card.title}</p>
-              <p className="mt-2 text-sm leading-relaxed text-[rgb(var(--muted))]">{card.lead}</p>
             </button>
           );
         })}
       </div>
+    </div>
+  );
+}
+
+function SummarySnapshotCard(props: {
+  keyStatement: string;
+  rootTopic: string;
+  positionClusters: string[];
+}) {
+  return (
+    <div className="rounded-[30px] border border-slate-200/75 bg-white/92 px-4 py-4 shadow-sm shadow-slate-950/5 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))] dark:shadow-none">
+      <div className="space-y-4">
+        <div className={`rounded-[24px] border px-4 py-4 ${resolveNodeTone("statement")}`}>
+          <p className="text-xs font-semibold uppercase tracking-[0.14em]">Kurzfassung</p>
+          <p className="mt-2 text-base font-semibold leading-relaxed">{props.keyStatement}</p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <span className={`rounded-full border px-2.5 py-1 text-xs ${resolveNodeTone("topic")}`}>{props.rootTopic}</span>
+          {props.positionClusters.slice(0, 2).map((cluster) => (
+            <span key={`summary-cluster-${cluster}`} className={`rounded-full border px-2.5 py-1 text-xs ${resolveNodeTone("stance")}`}>
+              {cluster}
+            </span>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SecondaryFollowupNote(props: { children: React.ReactNode }) {
+  return (
+    <div className="rounded-2xl border border-slate-200/75 bg-slate-50/80 px-4 py-3 text-xs leading-relaxed text-[rgb(var(--muted))] dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--bg))]">
+      {props.children}
     </div>
   );
 }
@@ -800,6 +851,77 @@ function NextStepChecklist(props: { items: NextStepChecklistItem[] }) {
   );
 }
 
+function StructureFocusPanel(props: {
+  activeFocusArea: FocusAreaId;
+  rootTopic: string;
+  topicLabels: string[];
+  positionClusters: string[];
+  voteQuestions: string[];
+  keyStatement: string;
+  structureBranches: CreateStructureBranch[];
+  checklistItems: NextStepChecklistItem[];
+  onEdit: (focus: string) => void;
+  resultChangeKey: string;
+}) {
+  if (props.activeFocusArea === "priorities") {
+    return (
+      <div className="space-y-4 rounded-[30px] border border-slate-200/80 bg-white/94 px-4 py-5 shadow-[0_20px_48px_rgba(2,6,23,0.06)] dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))] dark:shadow-none">
+        <div className={`rounded-[24px] border px-4 py-4 ${resolveNodeTone("topic")}`}>
+          <p className="text-sm font-semibold">Übergeordnetes Thema</p>
+          <p className="mt-1 text-base font-semibold">{props.rootTopic}</p>
+        </div>
+        <div className={`rounded-[24px] border px-4 py-4 ${resolveNodeTone("statement")}`}>
+          <p className="text-xs font-semibold uppercase tracking-[0.14em]">Kern erkannt</p>
+          <p className="mt-2 text-base font-semibold leading-relaxed">{props.keyStatement}</p>
+        </div>
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">Themenfelder</p>
+          <TopicFieldList labels={props.topicLabels.slice(0, 6)} onPick={props.onEdit} />
+        </div>
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">Blickrichtungen</p>
+          <PositionClusterList labels={props.positionClusters} onPick={props.onEdit} />
+        </div>
+      </div>
+    );
+  }
+
+  if (props.activeFocusArea === "clusters") {
+    return props.structureBranches.length > 0 ? (
+      <StructureBranchList branches={props.structureBranches} onEdit={props.onEdit} resetKey={props.resultChangeKey} />
+    ) : (
+      <div className="space-y-3 rounded-[30px] border border-slate-200/80 bg-white/94 px-4 py-5 shadow-[0_20px_48px_rgba(2,6,23,0.06)] dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))] dark:shadow-none">
+        <p className="text-sm font-semibold text-[rgb(var(--fg))]">Themencluster</p>
+        <p className="text-sm text-[rgb(var(--muted))]">Für diesen Beitrag reicht zunächst ein kompakter Themenfokus statt mehrerer Cluster.</p>
+        <TopicFieldList labels={props.topicLabels.slice(0, 6)} onPick={props.onEdit} />
+      </div>
+    );
+  }
+
+  if (props.activeFocusArea === "questions") {
+    return (
+      <div className="space-y-4 rounded-[30px] border border-slate-200/80 bg-white/94 px-4 py-5 shadow-[0_20px_48px_rgba(2,6,23,0.06)] dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))] dark:shadow-none">
+        <div className="rounded-[24px] border border-fuchsia-200/70 bg-fuchsia-50/70 px-4 py-4 dark:border-fuchsia-300/25 dark:bg-fuchsia-500/10">
+          <p className="text-sm font-semibold text-fuchsia-950 dark:text-fuchsia-50">Fragen & Abstimmung</p>
+          <p className="mt-2 text-sm leading-relaxed text-fuchsia-900 dark:text-fuchsia-100">
+            Diese Leitfragen bleiben sichtbar, aber erst nach deiner Bestätigung werden sie weiter vorbereitet.
+          </p>
+        </div>
+        <VoteQuestionList questions={props.voteQuestions} />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4 rounded-[30px] border border-slate-200/80 bg-white/94 px-4 py-5 shadow-[0_20px_48px_rgba(2,6,23,0.06)] dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))] dark:shadow-none">
+      <NextStepChecklist items={props.checklistItems} />
+      <SecondaryFollowupNote>
+        Guardrails bleiben kompakt sichtbar: keine automatische Stimme, keine automatische Veröffentlichung, keine automatische Kostenbuchung.
+      </SecondaryFollowupNote>
+    </div>
+  );
+}
+
 function StructuredWorkstateBlock(props: {
   rootTopic: string;
   topicLabels: string[];
@@ -810,6 +932,7 @@ function StructuredWorkstateBlock(props: {
   sortedSuggestions: CreateConnectionSuggestion[];
   isConfirmed: boolean;
   onEdit: (focus: string) => void;
+  resultChangeKey: string;
 }) {
   const initialFocusArea: FocusAreaId = props.structureBranches.length > 0 ? "clusters" : "priorities";
   const [activeFocusArea, setActiveFocusArea] = React.useState<FocusAreaId>(initialFocusArea);
@@ -870,72 +993,122 @@ function StructuredWorkstateBlock(props: {
     [props.isConfirmed, props.sortedSuggestions, props.structureBranches, props.voteQuestions],
   );
 
+  React.useEffect(() => {
+    setActiveFocusArea(initialFocusArea);
+  }, [initialFocusArea, props.resultChangeKey]);
+
   return (
-    <div className="mt-5 space-y-5 border-t border-slate-200 pt-5 dark:border-[rgb(var(--border))]">
-      <div className="space-y-2">
+    <div className="mt-5 min-w-0 space-y-5 border-t border-slate-200 pt-5 dark:border-[rgb(var(--border))]">
+      <div className="space-y-3">
         <p className="text-sm font-semibold text-[rgb(var(--fg))] md:text-base">Vorgeschlagener Arbeitsstand</p>
         <p className="max-w-3xl text-sm leading-relaxed text-[rgb(var(--muted))] md:text-base">
           {CREATE_VISUAL_FOLLOWUP_COPY.graphTitle}
         </p>
       </div>
 
+      <SummarySnapshotCard
+        keyStatement={props.keyStatement}
+        rootTopic={props.rootTopic}
+        positionClusters={props.positionClusters}
+      />
+
       <StructureOverviewRail cards={overviewCards} activeCardId={activeFocusArea} onSelect={setActiveFocusArea} />
 
-      <div className="rounded-[28px] border border-slate-200/80 bg-white/95 px-4 py-4 shadow-sm shadow-slate-950/5 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))] dark:shadow-none">
-        {activeFocusArea === "priorities" ? (
-          <div className="space-y-4">
-            <div className={`rounded-2xl border px-4 py-3 ${resolveNodeTone("topic")}`}>
-              <p className="text-sm font-semibold">Übergeordnetes Thema</p>
-              <p className="mt-1 text-base font-semibold">{props.rootTopic}</p>
-            </div>
-            <div className={`rounded-2xl border px-4 py-3 ${resolveNodeTone("statement")}`}>
-              <p className="text-xs font-semibold uppercase tracking-[0.14em]">Kern erkannt</p>
-              <p className="mt-2 text-base font-semibold leading-relaxed">{props.keyStatement}</p>
-            </div>
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">Themenfelder</p>
-              <TopicFieldList labels={props.topicLabels.slice(0, 6)} onPick={props.onEdit} />
-            </div>
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">Blickrichtungen</p>
-              <PositionClusterList labels={props.positionClusters} onPick={props.onEdit} />
-            </div>
-          </div>
-        ) : null}
+      <StructureFocusPanel
+        activeFocusArea={activeFocusArea}
+        rootTopic={props.rootTopic}
+        topicLabels={props.topicLabels}
+        positionClusters={props.positionClusters}
+        voteQuestions={props.voteQuestions}
+        keyStatement={props.keyStatement}
+        structureBranches={props.structureBranches}
+        checklistItems={checklistItems}
+        onEdit={props.onEdit}
+        resultChangeKey={props.resultChangeKey}
+      />
+    </div>
+  );
+}
 
-        {activeFocusArea === "clusters" ? (
-          props.structureBranches.length > 0 ? (
-            <StructureBranchList branches={props.structureBranches} onEdit={props.onEdit} />
-          ) : (
-            <div className="space-y-3">
-              <p className="text-sm font-semibold text-[rgb(var(--fg))]">Themencluster</p>
-              <p className="text-sm text-[rgb(var(--muted))]">Für diesen Beitrag reicht zunächst ein kompakter Themenfokus statt mehrerer Cluster.</p>
-              <TopicFieldList labels={props.topicLabels.slice(0, 6)} onPick={props.onEdit} />
-            </div>
-          )
-        ) : null}
+function MobileInlineActionPanel(props: {
+  isConfirmed: boolean;
+  primaryActionHref: string;
+  voteActionHref: string;
+  saveState: "idle" | "saving" | "saved" | "error" | "unavailable";
+  onConfirm: () => void;
+  onStartOptionalService: () => void;
+  onSaveForLater: () => void;
+  onOpenCorrection: (focus: string) => void;
+}) {
+  const saveDisabled = props.saveState === "saving" || props.saveState === "unavailable";
 
-        {activeFocusArea === "questions" ? (
-          <div className="space-y-4">
-            <div className="rounded-2xl border border-fuchsia-200/70 bg-fuchsia-50/70 px-4 py-3 dark:border-fuchsia-300/25 dark:bg-fuchsia-500/10">
-              <p className="text-sm font-semibold text-fuchsia-950 dark:text-fuchsia-50">Fragen & Abstimmung</p>
-              <p className="mt-2 text-sm leading-relaxed text-fuchsia-900 dark:text-fuchsia-100">
-                Diese Leitfragen bleiben sichtbar, aber erst nach deiner Bestätigung werden sie weiter vorbereitet.
-              </p>
-            </div>
-            <VoteQuestionList questions={props.voteQuestions} />
-          </div>
-        ) : null}
-
-        {activeFocusArea === "next_steps" ? (
-          <div className="space-y-4">
-            <NextStepChecklist items={checklistItems} />
-            <div className="rounded-2xl border border-slate-200/80 bg-slate-50/80 px-4 py-3 text-xs leading-relaxed text-[rgb(var(--muted))] dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--bg))]">
-              Guardrails bleiben kompakt sichtbar: keine automatische Stimme, keine automatische Veröffentlichung, keine automatische Kostenbuchung.
-            </div>
-          </div>
-        ) : null}
+  return (
+    <div
+      data-mobile-inline-create-actions
+      className="space-y-3 rounded-[26px] border border-cyan-200/70 bg-[color-mix(in_oklab,rgb(var(--card))_96%,rgb(var(--bg))_4%)] px-4 py-4 dark:border-cyan-300/20 dark:bg-[rgb(var(--bg))]"
+    >
+      <div className="space-y-1">
+        <p className="text-sm font-semibold text-[rgb(var(--fg))]">
+          {props.isConfirmed ? "Nächster Schritt" : CREATE_VISUAL_FOLLOWUP_COPY.confirmTitle}
+        </p>
+        <p className="text-xs leading-relaxed text-[rgb(var(--muted))]">
+          {props.isConfirmed
+            ? "Die wichtigste Aktion bleibt direkt unter dem aktiven Arbeitsstand erreichbar."
+            : CREATE_VISUAL_FOLLOWUP_COPY.freeWriteHint}
+        </p>
       </div>
+      <div className="grid gap-2">
+        {props.isConfirmed ? (
+          <>
+            <Link href={props.primaryActionHref} className="btn-primary min-h-[46px] px-3 py-2 text-center text-sm">
+              Thema öffnen
+            </Link>
+            <div className="grid grid-cols-2 gap-2">
+              <Link href={props.voteActionHref} className="btn-secondary min-h-[40px] px-2 py-2 text-center text-sm">
+                Prüfen
+              </Link>
+              <button
+                type="button"
+                className="btn-secondary min-h-[40px] px-2 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-60"
+                onClick={props.onSaveForLater}
+                disabled={saveDisabled}
+                aria-disabled={saveDisabled}
+              >
+                Speichern
+              </button>
+            </div>
+            <button type="button" className="btn-secondary min-h-[40px] px-2 py-2 text-sm" onClick={props.onStartOptionalService}>
+              Faktencheck / Deep Search
+            </button>
+          </>
+        ) : (
+          <>
+            <button type="button" className="btn-primary min-h-[46px] px-3 py-2 text-sm" onClick={props.onConfirm}>
+              Ja, Struktur übernehmen
+            </button>
+            <div className="grid grid-cols-2 gap-2">
+              <button type="button" className="btn-secondary min-h-[40px] px-2 py-2 text-sm" onClick={() => props.onOpenCorrection("Thema")}>
+                Ändern
+              </button>
+              <button
+                type="button"
+                className="btn-secondary min-h-[40px] px-2 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-60"
+                onClick={props.onSaveForLater}
+                disabled={saveDisabled}
+                aria-disabled={saveDisabled}
+              >
+                Speichern
+              </button>
+            </div>
+            <button type="button" className="btn-secondary min-h-[40px] px-2 py-2 text-sm" onClick={props.onStartOptionalService}>
+              Faktencheck / Deep Search
+            </button>
+          </>
+        )}
+      </div>
+      <p className="text-[11px] leading-relaxed text-[rgb(var(--muted))]">
+        Keine automatische Stimme. Keine automatische Veröffentlichung. Keine automatische Kostenbuchung.
+      </p>
     </div>
   );
 }
@@ -960,20 +1133,19 @@ function FollowupActionRail(props: {
   return (
     <div className="create-chat-message flex gap-3">
       <div className="mt-2 h-2.5 w-2.5 shrink-0 rounded-full bg-emerald-600 ring-4 ring-white dark:bg-emerald-300 dark:ring-[rgb(var(--bg))]" />
-      <div className="max-w-5xl flex-1">
+      <div className="max-w-5xl min-w-0 flex-1">
         <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-700 dark:text-[rgb(var(--muted))]">Nächster Schritt</p>
-        <div className="mt-2 space-y-4 rounded-2xl rounded-tl-sm border border-emerald-200/70 bg-white px-4 py-4 shadow-sm dark:border-emerald-300/20 dark:bg-[rgb(var(--card))] dark:shadow-none">
+        <div className="mt-2 space-y-4 rounded-[30px] rounded-tl-sm border border-emerald-200/70 bg-white px-4 py-4 shadow-[0_22px_56px_rgba(5,150,105,0.08)] dark:border-emerald-300/20 dark:bg-[rgb(var(--card))] dark:shadow-none">
           <div className="space-y-2">
             <p className="text-sm font-semibold text-[rgb(var(--fg))] md:text-base">{CREATE_VISUAL_FOLLOWUP_COPY.confirmTitle}</p>
             <p className="max-w-3xl text-sm leading-relaxed text-[rgb(var(--muted))] md:text-base">
               Bestätige den Vorschlag, ändere einzelne Punkte oder schreib einfach weiter.
             </p>
-            <p className="max-w-3xl text-sm text-[rgb(var(--muted))]">{CREATE_VISUAL_FOLLOWUP_COPY.freeWriteHint}</p>
           </div>
-          <button type="button" className="btn-primary min-h-[48px] w-full px-4 py-3 text-sm md:text-base" onClick={props.onConfirm}>
+          <button type="button" className="btn-primary min-h-[56px] w-full px-4 py-3 text-sm shadow-lg shadow-cyan-950/10 md:text-base" onClick={props.onConfirm}>
             Ja, Struktur übernehmen
           </button>
-          <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
+          <div className="grid gap-2 md:grid-cols-3">
             <button type="button" className="btn-secondary min-h-[40px] px-3 py-2 text-sm" onClick={() => props.setCorrectionOpen("Thema")}>
               Ändern
             </button>
@@ -1050,18 +1222,15 @@ function DetailsAccordion(props: {
   const hasFutureModules = false;
 
   return (
-    <div className="max-w-4xl space-y-2 pl-5 md:pl-8 lg:pl-10">
+    <div className="max-w-4xl space-y-2 pl-5 opacity-80 md:pl-8 lg:pl-10">
       {showSectionFlow ? (
-        <details className="border-t border-slate-200 py-3 dark:border-[rgb(var(--border))]">
+        <details className="border-t border-slate-200/80 py-3 dark:border-[rgb(var(--border))]">
           <summary className="cursor-pointer text-sm font-semibold text-[rgb(var(--fg))] md:text-base">
             Gelesene Sinnabschnitte ({props.sections.length})
           </summary>
           <div className="mt-3 space-y-2">
             {props.sections.map((section) => (
-              <details
-                key={section.id}
-                className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--bg))]"
-              >
+              <details key={section.id} className="rounded-lg border border-slate-200/75 bg-slate-50/70 px-3 py-2 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--bg))]">
                 <summary className="cursor-pointer text-sm font-semibold text-[rgb(var(--fg))] md:text-base">
                   {section.label}
                 </summary>
@@ -1081,12 +1250,12 @@ function DetailsAccordion(props: {
         </details>
       ) : null}
 
-      <details className="border-t border-slate-200 py-3 dark:border-[rgb(var(--border))]">
+      <details className="border-t border-slate-200/80 py-3 dark:border-[rgb(var(--border))]">
         <summary className="cursor-pointer text-sm font-semibold text-[rgb(var(--fg))] md:text-base">
           {CREATE_VISUAL_FOLLOWUP_COPY.impactTitle}
         </summary>
         {!props.isConfirmed ? (
-          <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50/80 px-3 py-3 text-sm text-[rgb(var(--fg))] dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--bg))]">
+            <div className="mt-3 rounded-xl border border-slate-200/75 bg-slate-50/70 px-3 py-3 text-sm text-[rgb(var(--fg))] dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--bg))]">
             <p>{CREATE_VISUAL_FOLLOWUP_COPY.pendingPreparationHint}</p>
             <p className="mt-2 text-xs text-[rgb(var(--muted))]">Wird erst nach deiner Bestätigung vorbereitet.</p>
           </div>
@@ -1138,7 +1307,7 @@ function ContinueWritingComposer(props: {
   return (
     <div className="create-chat-message flex gap-3">
       <div className="mt-2 h-2.5 w-2.5 shrink-0 rounded-full bg-slate-400 ring-4 ring-white dark:bg-slate-500 dark:ring-[rgb(var(--bg))]" />
-      <div className="max-w-5xl flex-1 rounded-2xl rounded-tl-sm border border-slate-200 bg-white px-4 py-4 shadow-sm dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))] dark:shadow-none">
+      <div className="max-w-5xl min-w-0 flex-1 rounded-[24px] rounded-tl-sm border border-slate-200/75 bg-white/82 px-4 py-4 shadow-sm dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))] dark:shadow-none">
         <p className="text-sm font-semibold text-[rgb(var(--fg))]">Schreib einfach weiter</p>
         <p className="mt-1 text-sm text-[rgb(var(--muted))]">
           Ergänze hier, was anders gemeint war, welche Quelle noch fehlt oder welchen nächsten Schritt ich anpassen soll.
@@ -1188,6 +1357,23 @@ export default function CreateVisualFollowup({
   const sections = React.useMemo(() => buildCreateVisualSections(result, 4), [result]);
   const [showCorrectionRow, setShowCorrectionRow] = React.useState(false);
   const [correctionFocus, setCorrectionFocus] = React.useState<string | null>(null);
+  const resultChangeKey = React.useMemo(
+    () =>
+      [
+        result.generatedAt,
+        result.understanding.summary,
+        result.sourceText,
+        result.understanding.dossierContext,
+      ]
+        .filter(Boolean)
+        .join("::"),
+    [
+      result.generatedAt,
+      result.sourceText,
+      result.understanding.dossierContext,
+      result.understanding.summary,
+    ],
+  );
 
   const topicLabels = result.understanding.topics.map((topic) => topic.label);
   const broadTopicFields = React.useMemo(() => deriveBroadTopicFields(topicLabels), [topicLabels]);
@@ -1261,8 +1447,8 @@ export default function CreateVisualFollowup({
   );
 
   return (
-    <section className="create-chat-workspace relative -mt-3 mx-auto max-w-6xl pb-24 md:pb-10">
-      <div className="create-chat-spine relative space-y-5 before:absolute before:left-[5px] before:top-3 before:h-[calc(100%-1.5rem)] before:w-px before:bg-slate-200 md:space-y-6 dark:before:bg-[rgb(var(--border))]">
+    <section className="create-chat-workspace relative -mt-3 mx-auto min-w-0 max-w-6xl overflow-x-clip pb-4 md:pb-10">
+      <div className="create-chat-spine relative min-w-0 space-y-5 before:absolute before:left-[5px] before:top-3 before:h-[calc(100%-1.5rem)] before:w-px before:bg-slate-200 md:space-y-6 dark:before:bg-[rgb(var(--border))]">
       <UserContributionBubble text={dedupedCopy.userBubbleText} />
 
       <AssistantUnderstandingBubble
@@ -1284,22 +1470,38 @@ export default function CreateVisualFollowup({
           sortedSuggestions={sortedSuggestions}
           isConfirmed={isConfirmed}
           onEdit={openCorrection}
+          resultChangeKey={resultChangeKey}
         />
+        <div className="mt-5 md:hidden">
+          <MobileInlineActionPanel
+            isConfirmed={isConfirmed}
+            primaryActionHref={primaryActionHref}
+            voteActionHref={voteActionHref}
+            saveState={saveState}
+            onConfirm={onConfirm}
+            onStartOptionalService={onStartOptionalService}
+            onSaveForLater={onSaveForLater}
+            onOpenCorrection={openCorrection}
+          />
+        </div>
       </AssistantUnderstandingBubble>
 
-      <FollowupActionRail
-        onConfirm={onConfirm}
-        onStartOptionalService={onStartOptionalService}
-        onSaveForLater={onSaveForLater}
-        setCorrectionOpen={openCorrection}
-        showCorrectionRow={showCorrectionRow}
-        correctionFocus={correctionFocus}
-        saveState={saveState}
-        saveMessage={saveMessage}
-        factcheckMessage={factcheckMessage}
-      />
+      <div className="hidden md:block">
+        <FollowupActionRail
+          onConfirm={onConfirm}
+          onStartOptionalService={onStartOptionalService}
+          onSaveForLater={onSaveForLater}
+          setCorrectionOpen={openCorrection}
+          showCorrectionRow={showCorrectionRow}
+          correctionFocus={correctionFocus}
+          saveState={saveState}
+          saveMessage={saveMessage}
+          factcheckMessage={factcheckMessage}
+        />
+      </div>
 
       {isConfirmed ? (
+        <div className="hidden md:block">
         <div className="create-chat-message flex gap-3">
           <div className="mt-2 h-2.5 w-2.5 shrink-0 rounded-full bg-emerald-600 ring-4 ring-white dark:bg-emerald-300 dark:ring-[rgb(var(--bg))]" />
           <div className="max-w-4xl flex-1 rounded-2xl rounded-tl-sm border border-emerald-300/45 bg-emerald-50 px-4 py-3 dark:border-emerald-300/35 dark:bg-emerald-500/10">
@@ -1342,21 +1544,8 @@ export default function CreateVisualFollowup({
             </div>
           </div>
         </div>
+        </div>
       ) : null}
-
-      <DetailsAccordion
-        result={result}
-        sections={sections}
-        sortedSuggestions={sortedSuggestions}
-        isConfirmed={isConfirmed}
-      />
-
-      <ContinueWritingComposer
-        value={continuationValue}
-        onChange={onContinuationChange}
-        onSubmit={onContinueConversation}
-        submitDisabled={continueConversationDisabled}
-      />
 
       {actionNotice ? (
         <div className="create-chat-message flex gap-3">
@@ -1366,68 +1555,20 @@ export default function CreateVisualFollowup({
           </p>
         </div>
       ) : null}
-      </div>
 
-      <div
-        data-mobile-sticky-create-actions
-        className="sticky bottom-2 z-10 rounded-2xl border border-cyan-500/30 bg-white/95 px-3 py-3 shadow-xl shadow-cyan-950/10 backdrop-blur md:hidden dark:border-cyan-300/45 dark:bg-[rgb(var(--card))]/95 dark:shadow-black/20"
-      >
-        <p className="text-sm font-semibold text-[rgb(var(--fg))]">
-          {isConfirmed ? "Nächster Schritt" : CREATE_VISUAL_FOLLOWUP_COPY.confirmTitle}
-        </p>
-        <p className="text-xs text-[rgb(var(--muted))]">
-          {isConfirmed
-            ? "Die wichtigste Aktion bleibt unten erreichbar."
-            : CREATE_VISUAL_FOLLOWUP_COPY.freeWriteHint}
-        </p>
-        <div className="mt-2 grid grid-cols-2 gap-2">
-          {isConfirmed ? (
-            <>
-              <Link href={primaryActionHref} className="btn-primary min-h-[40px] px-2 py-2 text-center text-sm">
-                Thema öffnen
-              </Link>
-              <Link href={voteActionHref} className="btn-secondary min-h-[40px] px-2 py-2 text-center text-sm">
-                Prüfen
-              </Link>
-              <button
-                type="button"
-                className="btn-secondary min-h-[40px] px-2 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-60"
-                onClick={onSaveForLater}
-                disabled={saveState === "saving" || saveState === "unavailable"}
-                aria-disabled={saveState === "saving" || saveState === "unavailable"}
-              >
-                Speichern
-              </button>
-              <button type="button" className="btn-secondary min-h-[40px] px-2 py-2 text-sm" onClick={onStartOptionalService}>
-                Faktencheck
-              </button>
-            </>
-          ) : (
-            <>
-              <button type="button" className="btn-primary min-h-[40px] px-2 py-2 text-sm" onClick={onConfirm}>
-                Ja, Struktur übernehmen
-              </button>
-              <button type="button" className="btn-secondary min-h-[40px] px-2 py-2 text-sm" onClick={() => openCorrection("Thema")}>
-                Ändern
-              </button>
-              <button
-                type="button"
-                className="btn-secondary min-h-[40px] px-2 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-60"
-                onClick={onSaveForLater}
-                disabled={saveState === "saving" || saveState === "unavailable"}
-                aria-disabled={saveState === "saving" || saveState === "unavailable"}
-              >
-                Speichern
-              </button>
-              <button type="button" className="btn-secondary min-h-[40px] px-2 py-2 text-sm" onClick={onStartOptionalService}>
-                Faktencheck
-              </button>
-            </>
-          )}
-        </div>
-        <p className="mt-2 text-[11px] text-[rgb(var(--muted))]">
-          Keine automatische Stimme. Keine automatische Veröffentlichung. Keine automatische Kostenbuchung.
-        </p>
+      <ContinueWritingComposer
+        value={continuationValue}
+        onChange={onContinuationChange}
+        onSubmit={onContinueConversation}
+        submitDisabled={continueConversationDisabled}
+      />
+
+      <DetailsAccordion
+        result={result}
+        sections={sections}
+        sortedSuggestions={sortedSuggestions}
+        isConfirmed={isConfirmed}
+      />
       </div>
     </section>
   );
