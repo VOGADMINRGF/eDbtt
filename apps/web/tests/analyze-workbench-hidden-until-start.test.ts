@@ -323,9 +323,11 @@ describe("analyze workbench progressive disclosure", () => {
     expect(source).toContain("resolveNextIndexFromKey");
     expect(source).toContain("role=\"tablist\"");
     expect(source).toContain("role=\"tabpanel\"");
+    expect(source).toContain("color-mix(in_oklab,white_58%,rgb(var(--card))_42%)");
     expect(source).toContain("data-mobile-inline-create-actions");
     expect(source).not.toContain("data-mobile-sticky-create-actions");
     expect(source).not.toContain('className="text-cyan-50"');
+    expect(source).not.toContain("bg-white/94");
     expect(source).not.toContain("Abschnitt 1");
     expect(source).not.toContain("Teil 1");
   });

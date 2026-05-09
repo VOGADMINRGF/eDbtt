@@ -407,11 +407,11 @@ function UserContributionBubble(props: { text: string }) {
       <div className="mt-2 h-2.5 w-2.5 shrink-0 rounded-full bg-slate-400 ring-4 ring-white dark:bg-slate-500 dark:ring-[rgb(var(--bg))]" />
       <div className="max-w-3xl min-w-0">
         <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-600 dark:text-[rgb(var(--muted))]">Du</p>
-        <div className="mt-2 rounded-2xl rounded-tl-sm border border-slate-200 bg-white px-4 py-3 shadow-sm dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))] dark:shadow-none">
+        <div className="mt-2 rounded-2xl rounded-tl-sm border border-slate-200/90 bg-[color-mix(in_oklab,white_76%,rgb(var(--card))_24%)] px-4 py-3 shadow-sm shadow-slate-950/5 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))] dark:shadow-none">
           <p className="text-sm text-slate-900 md:text-base dark:text-[rgb(var(--fg))]">Dein Beitrag wurde aufgenommen.</p>
           <details className="mt-2">
             <summary className="cursor-pointer text-sm text-slate-700 dark:text-[rgb(var(--muted))]">Original oben anzeigen</summary>
-            <pre className="mt-2 whitespace-pre-wrap rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--bg))] dark:text-[rgb(var(--fg))]">
+            <pre className="mt-2 whitespace-pre-wrap rounded-lg border border-slate-200/85 bg-[color-mix(in_oklab,white_72%,rgb(var(--bg))_28%)] px-3 py-2 text-sm text-slate-900 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--bg))] dark:text-[rgb(var(--fg))]">
               {props.text}
             </pre>
           </details>
@@ -436,7 +436,7 @@ function AssistantUnderstandingBubble(props: {
       <div className="mt-2 h-2.5 w-2.5 shrink-0 rounded-full bg-cyan-600 ring-4 ring-white dark:bg-cyan-300 dark:ring-[rgb(var(--bg))]" />
       <div className="max-w-5xl min-w-0 flex-1">
         <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-700 dark:text-[rgb(var(--muted))]">eDebatte</p>
-        <div className="mt-2 rounded-[30px] rounded-tl-sm border border-cyan-500/18 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,252,255,0.95))] px-4 py-4 shadow-[0_22px_52px_rgba(2,6,23,0.05)] md:px-6 md:py-6 dark:border-cyan-300/20 dark:bg-[rgb(var(--card))] dark:shadow-none">
+        <div className="mt-2 rounded-[30px] rounded-tl-sm border border-cyan-500/18 bg-[linear-gradient(180deg,rgba(241,247,251,0.98),rgba(230,240,247,0.95))] px-4 py-4 shadow-[0_22px_52px_rgba(2,6,23,0.06)] md:px-6 md:py-6 dark:border-cyan-300/20 dark:bg-[rgb(var(--card))] dark:shadow-none">
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-cyan-800 dark:text-cyan-200">{CREATE_VISUAL_FOLLOWUP_COPY.structureTitle}</p>
           <p className="mt-1 text-lg font-semibold text-cyan-950 md:text-[1.4rem] dark:text-cyan-50">{CREATE_VISUAL_FOLLOWUP_COPY.headline}</p>
           <p className="mt-4 text-base leading-relaxed text-cyan-950 md:text-[1.15rem] dark:text-cyan-100">{props.summary || props.assistantLead}</p>
@@ -444,7 +444,7 @@ function AssistantUnderstandingBubble(props: {
             <p className="mt-3 max-w-3xl text-sm leading-relaxed text-cyan-900/80 dark:text-cyan-100/80">{props.assistantLead}</p>
           ) : null}
           {props.showCoreBlock ? (
-            <div className="mt-5 rounded-3xl border border-cyan-200/65 bg-cyan-50/60 px-4 py-4 dark:border-cyan-300/20 dark:bg-cyan-500/10">
+            <div className="mt-5 rounded-3xl border border-cyan-200/65 bg-[color-mix(in_oklab,rgba(207,242,255,0.72)_78%,rgb(var(--card))_22%)] px-4 py-4 dark:border-cyan-300/20 dark:bg-cyan-500/10">
               <p className="text-xs font-semibold uppercase tracking-[0.14em] text-cyan-800 dark:text-cyan-200">{CREATE_VISUAL_FOLLOWUP_COPY.coreTitle}</p>
               <p className="mt-2 text-base font-semibold leading-relaxed text-cyan-950 md:text-xl dark:text-cyan-50">{props.coreClaim}</p>
             </div>
@@ -526,7 +526,7 @@ function StructureBranchCard(props: {
   return (
     <article
       data-focus-card-detail
-      className="overflow-hidden rounded-[28px] border border-cyan-200/65 bg-[linear-gradient(180deg,rgba(248,252,255,0.98),rgba(255,255,255,0.94))] px-4 py-5 shadow-[0_24px_56px_rgba(8,145,178,0.08)] dark:border-cyan-300/20 dark:bg-[rgb(var(--card))] dark:shadow-none sm:rounded-[32px]"
+      className="overflow-hidden rounded-[28px] border border-cyan-200/65 bg-[linear-gradient(180deg,rgba(236,245,250,0.98),rgba(228,239,246,0.95))] px-4 py-5 shadow-[0_24px_56px_rgba(8,145,178,0.08)] dark:border-cyan-300/20 dark:bg-[rgb(var(--card))] dark:shadow-none sm:rounded-[32px]"
     >
       <div className="space-y-5">
         <div className="flex items-start justify-between gap-3">
@@ -539,7 +539,7 @@ function StructureBranchCard(props: {
               </p>
             ) : null}
           </div>
-          <span className="max-w-[10rem] shrink-0 rounded-full border border-cyan-300/70 bg-white/85 px-3 py-1.5 text-right text-[11px] font-semibold leading-relaxed text-cyan-900 dark:border-cyan-300/35 dark:bg-cyan-500/10 dark:text-cyan-100">
+          <span className="max-w-[10rem] shrink-0 rounded-full border border-cyan-300/70 bg-[color-mix(in_oklab,white_62%,rgb(var(--card))_38%)] px-3 py-1.5 text-right text-[11px] font-semibold leading-relaxed text-cyan-900 dark:border-cyan-300/35 dark:bg-cyan-500/10 dark:text-cyan-100">
             {statusLabel}
           </span>
         </div>
@@ -556,11 +556,11 @@ function StructureBranchCard(props: {
           </div>
         ) : null}
         <div className="grid gap-3 xl:grid-cols-[minmax(0,1.1fr)_minmax(260px,0.9fr)]">
-          <div className="rounded-[24px] border border-white/75 bg-white/82 px-4 py-4 dark:border-white/10 dark:bg-[rgb(var(--card))]/70">
+          <div className="rounded-[24px] border border-white/60 bg-[color-mix(in_oklab,white_60%,rgb(var(--card))_40%)] px-4 py-4 dark:border-white/10 dark:bg-[rgb(var(--card))]/70">
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-cyan-800 dark:text-cyan-200">Knapper Bedarf</p>
             <p className="mt-2 break-words text-sm leading-7 text-cyan-950 dark:text-cyan-50">{showNeedBlock ? props.branch.need : primaryClaim}</p>
           </div>
-          <div className="rounded-[24px] border border-cyan-200/60 bg-cyan-100/70 px-4 py-4 dark:border-cyan-300/25 dark:bg-cyan-500/12">
+          <div className="rounded-[24px] border border-cyan-200/60 bg-[color-mix(in_oklab,rgba(200,238,251,0.78)_78%,rgb(var(--card))_22%)] px-4 py-4 dark:border-cyan-300/25 dark:bg-cyan-500/12">
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-cyan-800 dark:text-cyan-200">Wichtigste Frage</p>
             <p className="mt-2 break-words text-sm font-medium leading-7 text-cyan-950 dark:text-cyan-50">{primaryQuestion}</p>
           </div>
@@ -577,13 +577,13 @@ function StructureBranchCard(props: {
         ))}
       </div>
       <div className="mt-5 space-y-3 border-t border-slate-200/80 pt-4 dark:border-[rgb(var(--border))]">
-        <div className="rounded-2xl border border-slate-200/80 bg-slate-50/70 px-3 py-3 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--bg))]">
+        <div className="rounded-2xl border border-slate-200/80 bg-[color-mix(in_oklab,white_62%,rgb(var(--bg))_38%)] px-3 py-3 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--bg))]">
           <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">Wichtige Abstimmungsfragen</p>
           <ul className="mt-2 space-y-2 text-sm leading-relaxed text-[rgb(var(--fg))]">
             {visibleVoteQuestions.map((question) => (
               <li
                 key={`${props.branch.id}-question-${question}`}
-                className="rounded-xl border border-slate-200/70 bg-white/85 px-4 py-3 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))]"
+                className="rounded-xl border border-slate-200/70 bg-[color-mix(in_oklab,white_64%,rgb(var(--card))_36%)] px-4 py-3 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))]"
               >
                 {question}
               </li>
@@ -591,7 +591,7 @@ function StructureBranchCard(props: {
           </ul>
         </div>
       </div>
-      <details className="mt-4 rounded-2xl border border-slate-200/80 bg-white/65 px-3 py-3 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--bg))]">
+      <details className="mt-4 rounded-2xl border border-slate-200/80 bg-[color-mix(in_oklab,white_54%,rgb(var(--card))_46%)] px-3 py-3 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--bg))]">
         <summary className="cursor-pointer text-sm font-semibold text-[rgb(var(--fg))]">Ast bearbeiten</summary>
         <div className="mt-3 flex flex-wrap gap-2">
           {["Thema ändern", "Haltung ändern", "Ebene ändern", "Aussage ergänzen", "Abstimmungsfrage bearbeiten"].map((label) => (
@@ -607,7 +607,7 @@ function StructureBranchCard(props: {
         </div>
         <p className="mt-3 text-xs text-[rgb(var(--muted))]">Änderungsvorschläge werden reviewbar vorbereitet.</p>
       </details>
-      <details className="mt-3 rounded-2xl border border-slate-200/80 bg-white/65 px-3 py-3 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--bg))]">
+      <details className="mt-3 rounded-2xl border border-slate-200/80 bg-[color-mix(in_oklab,white_54%,rgb(var(--card))_46%)] px-3 py-3 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--bg))]">
         <summary className="cursor-pointer text-sm font-semibold text-[rgb(var(--fg))]">Weitere Details zum Ast</summary>
         <div className="mt-3 space-y-3">
           {visibleTopicTags.length ? (
@@ -655,7 +655,7 @@ function StructureBranchCard(props: {
             </ul>
           </div>
           {props.branch.overflowTopics?.length ? (
-            <details className="rounded-lg border border-[rgb(var(--border))] bg-white/80 px-3 py-2 dark:bg-[rgb(var(--card))]">
+            <details className="rounded-lg border border-[rgb(var(--border))] bg-[color-mix(in_oklab,white_58%,rgb(var(--card))_42%)] px-3 py-2 dark:bg-[rgb(var(--card))]">
               <summary className="cursor-pointer text-xs font-semibold text-[rgb(var(--muted))]">
                 + weitere Themen
               </summary>
@@ -745,13 +745,13 @@ function StructureBranchList(props: {
             tabIndex={activeBranch?.id === branch.id ? 0 : -1}
             className={`w-full rounded-[22px] border px-3 py-3 text-left transition sm:max-w-[18rem] ${
               activeBranch?.id === branch.id
-                ? "border-cyan-400/70 bg-cyan-50 shadow-[0_18px_40px_rgba(8,145,178,0.12)] dark:border-cyan-300/45 dark:bg-cyan-500/12"
-                : "border-slate-200/80 bg-white/88 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))]"
+                ? "border-cyan-400/70 bg-[color-mix(in_oklab,rgba(205,241,252,0.78)_78%,rgb(var(--card))_22%)] shadow-[0_18px_40px_rgba(8,145,178,0.12)] dark:border-cyan-300/45 dark:bg-cyan-500/12"
+                : "border-slate-200/80 bg-[color-mix(in_oklab,white_60%,rgb(var(--card))_40%)] dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))]"
             }`}
           >
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0 flex items-center gap-2">
-                <span className="flex h-8 w-8 items-center justify-center rounded-full border border-cyan-300/60 bg-white/80 dark:border-cyan-300/30 dark:bg-cyan-500/10">
+                <span className="flex h-8 w-8 items-center justify-center rounded-full border border-cyan-300/60 bg-[color-mix(in_oklab,white_58%,rgb(var(--card))_42%)] dark:border-cyan-300/30 dark:bg-cyan-500/10">
                   <FocusAreaIcon area="branch" active={activeBranch?.id === branch.id} />
                 </span>
                 <div className="min-w-0">
@@ -839,13 +839,13 @@ function StructureOverviewRail(props: {
               tabIndex={isActive ? 0 : -1}
               className={`w-full rounded-[24px] border px-4 py-3 text-left transition sm:rounded-[28px] sm:py-4 ${
                 isActive
-                  ? "border-cyan-400/70 bg-cyan-50 shadow-[0_16px_36px_rgba(8,145,178,0.12)] dark:border-cyan-300/45 dark:bg-cyan-500/12"
-                  : "border-slate-200/75 bg-white/82 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))]"
+                  ? "border-cyan-400/70 bg-[color-mix(in_oklab,rgba(205,241,252,0.74)_76%,rgb(var(--card))_24%)] shadow-[0_16px_36px_rgba(8,145,178,0.12)] dark:border-cyan-300/45 dark:bg-cyan-500/12"
+                  : "border-slate-200/75 bg-[color-mix(in_oklab,white_58%,rgb(var(--card))_42%)] dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))]"
               }`}
             >
               <div className="flex items-center justify-between gap-3">
                 <div className="flex min-w-0 items-center gap-3">
-                  <span className="flex h-10 w-10 items-center justify-center rounded-full border border-cyan-300/60 bg-white/80 dark:border-cyan-300/30 dark:bg-cyan-500/10">
+                  <span className="flex h-10 w-10 items-center justify-center rounded-full border border-cyan-300/60 bg-[color-mix(in_oklab,white_58%,rgb(var(--card))_42%)] dark:border-cyan-300/30 dark:bg-cyan-500/10">
                     <FocusAreaIcon area={card.id} active={isActive} />
                   </span>
                   <div className="min-w-0">
@@ -876,7 +876,7 @@ function SummarySnapshotCard(props: {
   positionClusters: string[];
 }) {
   return (
-    <div className="rounded-[30px] border border-slate-200/75 bg-white/92 px-4 py-4 shadow-sm shadow-slate-950/5 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))] dark:shadow-none">
+    <div className="rounded-[30px] border border-slate-200/75 bg-[color-mix(in_oklab,white_58%,rgb(var(--card))_42%)] px-4 py-4 shadow-sm shadow-slate-950/5 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))] dark:shadow-none">
       <div className="space-y-4">
         <div className={`rounded-[24px] border px-4 py-4 ${resolveNodeTone("statement")}`}>
           <p className="text-xs font-semibold uppercase tracking-[0.14em]">Kurzfassung</p>
@@ -897,7 +897,7 @@ function SummarySnapshotCard(props: {
 
 function SecondaryFollowupNote(props: { children: React.ReactNode }) {
   return (
-    <div className="rounded-2xl border border-slate-200/75 bg-slate-50/80 px-4 py-3 text-xs leading-relaxed text-[rgb(var(--muted))] dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--bg))]">
+    <div className="rounded-2xl border border-slate-200/75 bg-[color-mix(in_oklab,white_52%,rgb(var(--bg))_48%)] px-4 py-3 text-xs leading-relaxed text-[rgb(var(--muted))] dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--bg))]">
       {props.children}
     </div>
   );
@@ -913,8 +913,8 @@ function NextStepChecklist(props: { items: NextStepChecklistItem[] }) {
             key={item.id}
             className={`rounded-2xl border px-3 py-3 ${
               item.done
-                ? "border-emerald-300/60 bg-emerald-50/80 dark:border-emerald-300/30 dark:bg-emerald-500/10"
-                : "border-slate-200/80 bg-white/85 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))]"
+                ? "border-emerald-300/60 bg-[color-mix(in_oklab,rgba(219,250,230,0.8)_78%,rgb(var(--card))_22%)] dark:border-emerald-300/30 dark:bg-emerald-500/10"
+                : "border-slate-200/80 bg-[color-mix(in_oklab,white_58%,rgb(var(--card))_42%)] dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))]"
             }`}
           >
             <div className="flex items-start gap-3">
@@ -953,7 +953,7 @@ function StructureFocusPanel(props: {
 }) {
   if (props.activeFocusArea === "priorities") {
     return (
-      <div className="space-y-4 rounded-[30px] border border-slate-200/80 bg-white/94 px-4 py-5 shadow-[0_20px_48px_rgba(2,6,23,0.06)] dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))] dark:shadow-none">
+      <div className="space-y-4 rounded-[30px] border border-slate-200/80 bg-[color-mix(in_oklab,white_56%,rgb(var(--card))_44%)] px-4 py-5 shadow-[0_20px_48px_rgba(2,6,23,0.06)] dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))] dark:shadow-none">
         <div className={`rounded-[24px] border px-4 py-4 ${resolveNodeTone("topic")}`}>
           <p className="text-sm font-semibold">Übergeordnetes Thema</p>
           <p className="mt-1 text-base font-semibold">{props.rootTopic}</p>
@@ -978,7 +978,7 @@ function StructureFocusPanel(props: {
     return props.structureBranches.length > 0 ? (
       <StructureBranchList branches={props.structureBranches} onEdit={props.onEdit} resetKey={props.resultChangeKey} />
     ) : (
-      <div className="space-y-3 rounded-[30px] border border-slate-200/80 bg-white/94 px-4 py-5 shadow-[0_20px_48px_rgba(2,6,23,0.06)] dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))] dark:shadow-none">
+      <div className="space-y-3 rounded-[30px] border border-slate-200/80 bg-[color-mix(in_oklab,white_56%,rgb(var(--card))_44%)] px-4 py-5 shadow-[0_20px_48px_rgba(2,6,23,0.06)] dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))] dark:shadow-none">
         <p className="text-sm font-semibold text-[rgb(var(--fg))]">Themencluster</p>
         <p className="text-sm text-[rgb(var(--muted))]">Für diesen Beitrag reicht zunächst ein kompakter Themenfokus statt mehrerer Cluster.</p>
         <TopicFieldList labels={props.topicLabels.slice(0, 6)} onPick={props.onEdit} />
@@ -988,7 +988,7 @@ function StructureFocusPanel(props: {
 
   if (props.activeFocusArea === "questions") {
     return (
-      <div className="space-y-4 rounded-[30px] border border-slate-200/80 bg-white/94 px-4 py-5 shadow-[0_20px_48px_rgba(2,6,23,0.06)] dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))] dark:shadow-none">
+      <div className="space-y-4 rounded-[30px] border border-slate-200/80 bg-[color-mix(in_oklab,white_56%,rgb(var(--card))_44%)] px-4 py-5 shadow-[0_20px_48px_rgba(2,6,23,0.06)] dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))] dark:shadow-none">
         <div className="rounded-[24px] border border-fuchsia-200/70 bg-fuchsia-50/70 px-4 py-4 dark:border-fuchsia-300/25 dark:bg-fuchsia-500/10">
           <p className="text-sm font-semibold text-fuchsia-950 dark:text-fuchsia-50">Fragen & Abstimmung</p>
           <p className="mt-2 text-sm leading-relaxed text-fuchsia-900 dark:text-fuchsia-100">
@@ -1001,7 +1001,7 @@ function StructureFocusPanel(props: {
   }
 
   return (
-    <div className="space-y-4 rounded-[30px] border border-slate-200/80 bg-white/94 px-4 py-5 shadow-[0_20px_48px_rgba(2,6,23,0.06)] dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))] dark:shadow-none">
+    <div className="space-y-4 rounded-[30px] border border-slate-200/80 bg-[color-mix(in_oklab,white_56%,rgb(var(--card))_44%)] px-4 py-5 shadow-[0_20px_48px_rgba(2,6,23,0.06)] dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))] dark:shadow-none">
       <NextStepChecklist items={props.checklistItems} />
       <SecondaryFollowupNote>
         Guardrails bleiben kompakt sichtbar: keine automatische Stimme, keine automatische Veröffentlichung, keine automatische Kostenbuchung.
@@ -1227,7 +1227,7 @@ function FollowupActionRail(props: {
       <div className="mt-2 h-2.5 w-2.5 shrink-0 rounded-full bg-emerald-600 ring-4 ring-white dark:bg-emerald-300 dark:ring-[rgb(var(--bg))]" />
       <div className="max-w-5xl min-w-0 flex-1">
         <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-700 dark:text-[rgb(var(--muted))]">Nächster Schritt</p>
-        <div className="mt-2 space-y-4 rounded-[30px] rounded-tl-sm border border-emerald-200/70 bg-white px-4 py-4 shadow-[0_22px_56px_rgba(5,150,105,0.08)] dark:border-emerald-300/20 dark:bg-[rgb(var(--card))] dark:shadow-none">
+        <div className="mt-2 space-y-4 rounded-[30px] rounded-tl-sm border border-emerald-200/70 bg-[color-mix(in_oklab,white_62%,rgb(var(--card))_38%)] px-4 py-4 shadow-[0_22px_56px_rgba(5,150,105,0.08)] dark:border-emerald-300/20 dark:bg-[rgb(var(--card))] dark:shadow-none">
           <div className="space-y-2">
             <p className="text-sm font-semibold text-[rgb(var(--fg))] md:text-base">{CREATE_VISUAL_FOLLOWUP_COPY.confirmTitle}</p>
             <p className="max-w-3xl text-sm leading-relaxed text-[rgb(var(--muted))] md:text-base">
@@ -1322,7 +1322,7 @@ function DetailsAccordion(props: {
           </summary>
           <div className="mt-3 space-y-2">
             {props.sections.map((section) => (
-              <details key={section.id} className="rounded-lg border border-slate-200/75 bg-slate-50/70 px-3 py-2 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--bg))]">
+              <details key={section.id} className="rounded-lg border border-slate-200/75 bg-[color-mix(in_oklab,white_52%,rgb(var(--bg))_48%)] px-3 py-2 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--bg))]">
                 <summary className="cursor-pointer text-sm font-semibold text-[rgb(var(--fg))] md:text-base">
                   {section.label}
                 </summary>
@@ -1347,7 +1347,7 @@ function DetailsAccordion(props: {
           {CREATE_VISUAL_FOLLOWUP_COPY.impactTitle}
         </summary>
         {!props.isConfirmed ? (
-            <div className="mt-3 rounded-xl border border-slate-200/75 bg-slate-50/70 px-3 py-3 text-sm text-[rgb(var(--fg))] dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--bg))]">
+            <div className="mt-3 rounded-xl border border-slate-200/75 bg-[color-mix(in_oklab,white_52%,rgb(var(--bg))_48%)] px-3 py-3 text-sm text-[rgb(var(--fg))] dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--bg))]">
             <p>{CREATE_VISUAL_FOLLOWUP_COPY.pendingPreparationHint}</p>
             <p className="mt-2 text-xs text-[rgb(var(--muted))]">Wird erst nach deiner Bestätigung vorbereitet.</p>
           </div>
@@ -1399,7 +1399,7 @@ function ContinueWritingComposer(props: {
   return (
     <div className="create-chat-message flex gap-3">
       <div className="mt-2 h-2.5 w-2.5 shrink-0 rounded-full bg-slate-400 ring-4 ring-white dark:bg-slate-500 dark:ring-[rgb(var(--bg))]" />
-      <div className="max-w-5xl min-w-0 flex-1 rounded-[24px] rounded-tl-sm border border-slate-200/75 bg-white/82 px-4 py-4 shadow-sm dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))] dark:shadow-none">
+      <div className="max-w-5xl min-w-0 flex-1 rounded-[24px] rounded-tl-sm border border-slate-200/75 bg-[color-mix(in_oklab,white_58%,rgb(var(--card))_42%)] px-4 py-4 shadow-sm dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))] dark:shadow-none">
         <p className="text-sm font-semibold text-[rgb(var(--fg))]">Schreib einfach weiter</p>
         <p className="mt-1 text-sm text-[rgb(var(--muted))]">
           Ergänze hier, was anders gemeint war, welche Quelle noch fehlt oder welchen nächsten Schritt ich anpassen soll.
@@ -1642,7 +1642,7 @@ export default function CreateVisualFollowup({
       {actionNotice ? (
         <div className="create-chat-message flex gap-3">
           <div className="mt-2 h-2.5 w-2.5 shrink-0 rounded-full bg-cyan-600 ring-4 ring-white dark:bg-cyan-300 dark:ring-[rgb(var(--bg))]" />
-          <p className="max-w-3xl rounded-2xl rounded-tl-sm border border-cyan-500/35 bg-white px-3 py-2 text-xs text-cyan-900 shadow-sm dark:border-cyan-300/35 dark:bg-[rgb(var(--card))] dark:text-cyan-100 dark:shadow-none">
+          <p className="max-w-3xl rounded-2xl rounded-tl-sm border border-cyan-500/35 bg-[color-mix(in_oklab,white_64%,rgb(var(--card))_36%)] px-3 py-2 text-xs text-cyan-900 shadow-sm dark:border-cyan-300/35 dark:bg-[rgb(var(--card))] dark:text-cyan-100 dark:shadow-none">
             {actionNotice}
           </p>
         </div>

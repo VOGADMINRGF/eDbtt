@@ -30,6 +30,7 @@ describe("create curated dialog workspace contract", () => {
     expect(clientSource).toContain("CreateAssistantStatusBubble");
     expect(clientSource).toContain("embeddedWorkspace");
     expect(clientSource).toContain("max-w-6xl");
+    expect(clientSource).toContain("color-mix(in_oklab,white_76%,rgb(var(--card))_24%)");
     expect(followupSource).toContain("create-chat-workspace");
     expect(followupSource).toContain("create-chat-spine");
     expect(followupSource).toContain("create-chat-message");
@@ -46,6 +47,7 @@ describe("create curated dialog workspace contract", () => {
     expect(followupSource).toContain("data-focus-card-overview");
     expect(followupSource).toContain("data-focus-card-rail");
     expect(followupSource).toContain("data-mobile-inline-create-actions");
+    expect(followupSource).toContain("color-mix(in_oklab,white_58%,rgb(var(--card))_42%)");
     expect(followupSource).toContain("role=\"tabpanel\"");
     expect(followupSource).toContain("aria-controls={`create-overview-panel-${card.id}`}");
     expect(followupSource).toContain("aria-controls={`create-branch-panel-${branch.id}`}");
@@ -137,6 +139,8 @@ describe("create curated dialog workspace contract", () => {
     expect(followupSource).not.toContain("Details zum Originaltext");
     expect(followupSource).not.toContain("Zusatzservices (optional)");
     expect(followupSource).not.toContain("bg-cyan-50/80");
+    expect(followupSource).not.toContain("bg-white/94");
+    expect(followupSource).not.toContain("bg-white/92");
   });
 
   it("keeps multi-topic branches in a focus-card selector instead of a long equal-weight list", () => {

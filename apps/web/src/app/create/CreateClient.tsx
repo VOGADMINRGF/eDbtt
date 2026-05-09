@@ -215,7 +215,7 @@ function CreateSubmittedContributionBubble(props: { text: string }) {
       <div className="mt-2 h-2.5 w-2.5 shrink-0 rounded-full bg-slate-400 ring-4 ring-white dark:bg-slate-500 dark:ring-[rgb(var(--bg))]" />
       <div className="max-w-3xl">
         <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-600 dark:text-[rgb(var(--muted))]">Du</p>
-        <div className="mt-2 rounded-2xl rounded-tl-sm border border-slate-200 bg-white px-4 py-3 shadow-sm dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))] dark:shadow-none">
+        <div className="mt-2 rounded-2xl rounded-tl-sm border border-slate-200/90 bg-[color-mix(in_oklab,white_76%,rgb(var(--card))_24%)] px-4 py-3 shadow-sm shadow-slate-950/5 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))] dark:shadow-none">
           <p className="whitespace-pre-wrap text-sm text-slate-900 md:text-base dark:text-[rgb(var(--fg))]">
             {props.text}
           </p>
@@ -236,12 +236,12 @@ function CreateAssistantStatusBubble(props: {
       <div className="mt-2 h-2.5 w-2.5 shrink-0 rounded-full bg-cyan-600 ring-4 ring-white dark:bg-cyan-300 dark:ring-[rgb(var(--bg))]" />
       <div className="max-w-5xl flex-1">
         <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-700 dark:text-[rgb(var(--muted))]">eDebatte</p>
-        <div className="mt-2 rounded-2xl rounded-tl-sm border border-cyan-500/25 bg-white px-4 py-4 shadow-sm md:px-5 md:py-5 dark:border-cyan-300/30 dark:bg-[rgb(var(--card))] dark:shadow-none">
+        <div className="mt-2 rounded-2xl rounded-tl-sm border border-cyan-500/25 bg-[linear-gradient(180deg,rgba(241,247,251,0.98),rgba(230,240,247,0.95))] px-4 py-4 shadow-[0_18px_42px_rgba(2,6,23,0.06)] md:px-5 md:py-5 dark:border-cyan-300/30 dark:bg-[rgb(var(--card))] dark:shadow-none">
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-cyan-800 dark:text-cyan-200">{props.eyebrow}</p>
           <p className="mt-1 text-base font-semibold text-cyan-950 md:text-lg dark:text-cyan-50">{props.title}</p>
           <p className="mt-3 text-sm leading-relaxed text-cyan-900 dark:text-cyan-100 md:text-base">{props.body}</p>
           {props.notice ? (
-            <p className="mt-3 rounded-xl border border-cyan-300/35 bg-cyan-500/10 px-3 py-2 text-sm text-cyan-950 dark:text-cyan-50">
+            <p className="mt-3 rounded-xl border border-cyan-300/35 bg-[color-mix(in_oklab,rgba(207,242,255,0.72)_78%,rgb(var(--card))_22%)] px-3 py-2 text-sm text-cyan-950 dark:text-cyan-50">
               {props.notice}
             </p>
           ) : null}
