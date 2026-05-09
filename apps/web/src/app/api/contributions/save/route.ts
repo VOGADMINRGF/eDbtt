@@ -7,6 +7,10 @@ import { getCol, ObjectId } from "@core/db/triMongo";
 import { z } from "zod";
 import { CREATE_MODE_VALUES, parseCreateMode, type CreateMode } from "@/features/create/intents";
 import {
+  evaluateCreateClaimSafety,
+  type CreateClaimSafetyResult,
+} from "@/features/create/safety/createClaimSafety";
+import {
   evaluateCreateInputSafety,
   type CreateInputSafetyResult,
 } from "@/features/create/safety/createInputSafety";
@@ -73,14 +77,52 @@ function hasPiiOrDoxxingFindings(safety: CreateInputSafetyResult): boolean {
 function withSafetyAnalysis(
   existing: unknown,
   safety: CreateInputSafetyResult,
+  claimSafety: CreateClaimSafetyResult[],
 ): Record<string, unknown> {
   if (existing && typeof existing === "object" && !Array.isArray(existing)) {
+    const existingRecord = existing as Record<string, unknown>;
+    const existingSafety =
+      existingRecord.safety && typeof existingRecord.safety === "object" && !Array.isArray(existingRecord.safety)
+        ? (existingRecord.safety as Record<string, unknown>)
+        : {};
     return {
-      ...(existing as Record<string, unknown>),
-      safety,
+      ...existingRecord,
+      safety: {
+        ...existingSafety,
+        ...safety,
+        claimSafety,
+      },
     };
   }
-  return { safety };
+  return {
+    safety: {
+      ...safety,
+      claimSafety,
+    },
+  };
+}
+
+function buildClaimSafety(analysis: unknown, locale: string): CreateClaimSafetyResult[] {
+  if (!analysis || typeof analysis !== "object" || Array.isArray(analysis)) return [];
+  const claims = Array.isArray((analysis as Record<string, unknown>).claims)
+    ? ((analysis as Record<string, unknown>).claims as unknown[])
+    : [];
+  return claims
+    .map((claim) => {
+      const text = typeof (claim as any)?.text === "string" ? (claim as any).text : "";
+      if (!text.trim()) return null;
+      return evaluateCreateClaimSafety({
+        claimId:
+          typeof (claim as any)?.id === "string" || typeof (claim as any)?.id === "number"
+            ? String((claim as any).id)
+            : null,
+        text,
+        locale,
+        sourceLanguage: locale,
+        contentLanguage: locale,
+      });
+    })
+    .filter((entry): entry is CreateClaimSafetyResult => Boolean(entry));
 }
 
 export async function POST(req: NextRequest) {
@@ -133,7 +175,8 @@ export async function POST(req: NextRequest) {
   }
 
   const textToPersist = hasPiiOrDoxxingFindings(safety) ? safety.redactedText : normalizedText;
-  const analysisWithSafety = withSafetyAnalysis(body.analysis, safety);
+  const claimSafety = buildClaimSafety(body.analysis, body.locale ?? "de");
+  const analysisWithSafety = withSafetyAnalysis(body.analysis, safety, claimSafety);
 
   if (body.draftId) {
     let draftOid: ObjectId;

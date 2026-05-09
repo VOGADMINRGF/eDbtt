@@ -86,6 +86,14 @@ describe("create save safety gate", () => {
       req({
         textPrepared: CREATE_SAFETY_ADVERSARIAL_FIXTURES.selfPii,
         createMode: "source",
+        analysis: {
+          claims: [
+            {
+              id: "c1",
+              text: CREATE_SAFETY_ADVERSARIAL_FIXTURES.thirdPartyPiiAccusation,
+            },
+          ],
+        },
       }),
     );
     expect(res.status).toBe(200);
@@ -96,7 +104,10 @@ describe("create save safety gate", () => {
     expect(saved[0].text).not.toContain("max@example.org");
     expect(saved[0].text).toContain("[E-MAIL ENTFERNT]");
     expect(saved[0].analysis?.safety?.decision).toBeTruthy();
+    expect(saved[0].analysis?.safety?.claimSafety?.[0]?.claimId).toBe("c1");
+    expect(saved[0].analysis?.safety?.claimSafety?.[0]?.publicationStatus).toBeTruthy();
     expect(JSON.stringify(saved[0].analysis?.safety?.telemetry ?? {})).not.toContain("1234567");
+    expect(JSON.stringify(saved[0].analysis?.safety?.claimSafety ?? [])).not.toContain("9999999");
     expect(saved[0].analysis?.safety?.telemetry?.routeStage).toBe("save");
   });
 
@@ -120,6 +131,14 @@ describe("create save safety gate", () => {
       req({
         textPrepared: CREATE_SAFETY_ADVERSARIAL_FIXTURES.safeQuestionOnUnsafeClaim,
         createMode: "source",
+        analysis: {
+          claims: [
+            {
+              id: "c1",
+              text: CREATE_SAFETY_ADVERSARIAL_FIXTURES.safeQuestionOnUnsafeClaim,
+            },
+          ],
+        },
       }),
     );
     expect(res.status).toBe(200);
@@ -128,6 +147,9 @@ describe("create save safety gate", () => {
     expect(body.safety.decision).toBe("allow");
     const saved = mocks.readAll();
     expect(saved[0].analysis?.safety?.reviewItems?.length).toBeGreaterThan(0);
+    expect(saved[0].analysis?.safety?.claimSafety?.[0]?.publicationStatus).toBe(
+      "publishable_as_question",
+    );
     expect(JSON.stringify(saved[0].analysis?.safety?.reviewItems ?? [])).not.toContain("9999999");
   });
 });

@@ -11,10 +11,14 @@ import {
   type InternalRedirectPath,
 } from "@/features/create/finalizeRedirect";
 import {
-  evaluateCreateInputSafety,
   type CreateInputSafetyDecision,
   type CreateInputSafetyResult,
 } from "@/features/create/safety/createInputSafety";
+import {
+  evaluateCreateClaimSafety,
+  type CreateClaimPublicationStatus,
+  type CreateClaimSafetyResult,
+} from "@/features/create/safety/createClaimSafety";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -58,6 +62,8 @@ type DraftDoc = {
   proposalIds?: string[];
 };
 
+type StoredClaimSafety = CreateClaimSafetyResult;
+
 function isSafetyDecision(value: unknown): value is CreateInputSafetyDecision {
   return (
     value === "allow" ||
@@ -84,6 +90,69 @@ function looksLikeSafeQuestionOrProofClaim(text: string): boolean {
   if (normalized.includes("?")) return true;
   if (/quelle|beleg|nachweis|source|evidence|https?:\/\//.test(normalized)) return true;
   return false;
+}
+
+function readDraftClaimSafety(analysis: unknown): StoredClaimSafety[] {
+  if (!analysis || typeof analysis !== "object" || Array.isArray(analysis)) return [];
+  const safety = (analysis as Record<string, unknown>).safety;
+  if (!safety || typeof safety !== "object" || Array.isArray(safety)) return [];
+  const claimSafety = (safety as Record<string, unknown>).claimSafety;
+  if (!Array.isArray(claimSafety)) return [];
+  return claimSafety.filter(
+    (entry): entry is StoredClaimSafety =>
+      Boolean(entry) &&
+      typeof entry === "object" &&
+      !Array.isArray(entry) &&
+      typeof (entry as Record<string, unknown>).publicationStatus === "string",
+  );
+}
+
+function resolveClaimSafetyForFinalize(params: {
+  claim: any;
+  storedClaimSafetyById: Map<string, StoredClaimSafety>;
+  locale: string;
+}): CreateClaimSafetyResult {
+  const claimId =
+    typeof params.claim?.id === "string" || typeof params.claim?.id === "number"
+      ? String(params.claim.id)
+      : null;
+  if (claimId && params.storedClaimSafetyById.has(claimId)) {
+    return params.storedClaimSafetyById.get(claimId)!;
+  }
+  return evaluateCreateClaimSafety({
+    claimId,
+    text: String(params.claim?.text ?? ""),
+    locale: params.locale,
+    sourceLanguage: params.locale,
+    contentLanguage: params.locale,
+  });
+}
+
+function isAllowedPublicationStatus(status: CreateClaimPublicationStatus): boolean {
+  return (
+    status === "publishable" ||
+    status === "publishable_as_question" ||
+    status === "publishable_as_opinion" ||
+    status === "needs_rewrite"
+  );
+}
+
+function resolveFinalizeErrorCode(claimSafety: CreateClaimSafetyResult | null): string {
+  if (!claimSafety) return "factcheck_required";
+  if (claimSafety.publicationStatus === "blocked" || claimSafety.publicationStatus === "moderation_required") {
+    return "create_input_blocked";
+  }
+  if (claimSafety.publicationStatus === "graph_review_required") {
+    return "graph_review_required";
+  }
+  return "factcheck_required";
+}
+
+function resolveProposalText(claim: any, claimSafety: CreateClaimSafetyResult): string {
+  if (claimSafety.safeText.trim()) {
+    return claimSafety.safeText;
+  }
+  return String(claim?.text ?? "");
 }
 
 type ProposalDoc = {
@@ -172,49 +241,41 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: false, error: "no_claims_selected" }, { status: 400 });
     }
 
+    const storedClaimSafety = readDraftClaimSafety(draft.analysis);
+    const storedClaimSafetyById = new Map(
+      storedClaimSafety
+        .filter((entry) => entry.claimId)
+        .map((entry) => [String(entry.claimId), entry] as const),
+    );
     const selectedClaimSafety = selectedClaims.map((claim: any) =>
-      evaluateCreateInputSafety({
-        text: String(claim?.text ?? ""),
+      resolveClaimSafetyForFinalize({
+        claim,
+        storedClaimSafetyById,
         locale: "de",
-        routeStage: "finalize",
-        draftId: body.draftId,
       }),
     );
 
-    const hasUnsafeSelectedClaim = selectedClaimSafety.some((safety, index) => {
-      if (safety.decision === "allow" || safety.decision === "revise_required" || safety.decision === "graph_review_required") {
-        return false;
-      }
-      const claimText = String(selectedClaims[index]?.text ?? "");
-      return !looksLikeSafeQuestionOrProofClaim(claimText);
-    });
+    const blockingClaimSafety =
+      selectedClaimSafety.find((entry) => !isAllowedPublicationStatus(entry.publicationStatus)) ??
+      null;
 
-    if (hasUnsafeSelectedClaim) {
-      const blockingSafety =
-        selectedClaimSafety.find((entry) => entry.decision === "blocked" || entry.decision === "moderation_required" || entry.decision === "factcheck_required") ??
-        selectedClaimSafety[0] ??
-        draftSafety;
+    if (blockingClaimSafety) {
       return NextResponse.json(
         {
           ok: false,
-          error: "factcheck_required",
-          safety: blockingSafety ?? draftSafety ?? null,
+          error: resolveFinalizeErrorCode(blockingClaimSafety),
+          safety: blockingClaimSafety,
         },
         { status: 422 },
       );
     }
 
     if (draftSafety?.decision === "factcheck_required") {
-      const hasUnsupportedClaim = selectedClaims.some((claim: any) => {
-        const text = String(claim?.text ?? "");
-        const safety = evaluateCreateInputSafety({
-          text,
-          locale: "de",
-          routeStage: "finalize",
-          draftId: body.draftId,
-        });
-        return safety.decision === "factcheck_required";
-      });
+      const hasUnsupportedClaim = selectedClaimSafety.some(
+        (entry) =>
+          entry.publicationStatus === "factcheck_required" &&
+          !looksLikeSafeQuestionOrProofClaim(entry.safeText || entry.text),
+      );
       if (hasUnsupportedClaim) {
         return NextResponse.json(
           {
@@ -231,7 +292,7 @@ export async function POST(req: NextRequest) {
     const resolvedAnlassraumId = body.anlassraumId ?? draft.anlassraumId ?? null;
 
     const now = new Date();
-    const insertDocs: ProposalDoc[] = selectedClaims.map((claim: any) => ({
+    const insertDocs: ProposalDoc[] = selectedClaims.map((claim: any, index: number) => ({
       draftId: draftOid,
       authorId: draft.authorId,
       authorName: draft.authorName ?? null,
@@ -239,7 +300,17 @@ export async function POST(req: NextRequest) {
       createMode: resolvedCreateMode,
       anlassraumId: resolvedAnlassraumId,
       claimId: String(claim.id),
-      text: String(claim.text ?? ""),
+      text: resolveProposalText(
+        claim,
+        selectedClaimSafety[index] ??
+          evaluateCreateClaimSafety({
+            claimId: claim?.id ? String(claim.id) : null,
+            text: String(claim?.text ?? ""),
+            locale: "de",
+            sourceLanguage: "de",
+            contentLanguage: "de",
+          }),
+      ),
       title: claim.title ?? null,
       responsibility: claim.responsibility ?? null,
       topic: claim.topic ?? null,

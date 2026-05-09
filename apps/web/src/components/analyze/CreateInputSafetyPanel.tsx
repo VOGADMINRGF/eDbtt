@@ -1,9 +1,12 @@
 "use client";
 
+import type { CreateClaimSafetyResult } from "@/features/create/safety/createClaimSafety";
 import type { CreateInputSafetyResult } from "@/features/create/safety/createInputSafety";
 
 type CreateInputSafetyPanelProps = {
   safety: CreateInputSafetyResult;
+  claimSafety?: CreateClaimSafetyResult[] | null;
+  selectedClaimIds?: string[] | null;
 };
 
 function resolveDecisionLabel(decision: CreateInputSafetyResult["decision"]): string {
@@ -15,7 +18,11 @@ function resolveDecisionLabel(decision: CreateInputSafetyResult["decision"]): st
   return "Blockiert";
 }
 
-export default function CreateInputSafetyPanel({ safety }: CreateInputSafetyPanelProps) {
+export default function CreateInputSafetyPanel({
+  safety,
+  claimSafety,
+  selectedClaimIds,
+}: CreateInputSafetyPanelProps) {
   const omitted = safety.findings.filter((finding) =>
     finding.kind === "email" ||
     finding.kind === "phone" ||
@@ -30,6 +37,20 @@ export default function CreateInputSafetyPanel({ safety }: CreateInputSafetyPane
     finding.kind === "self_justice",
   );
   const reviewItems = safety.reviewItems.filter((item) => item.action !== "redact");
+  const claimWarnings = (claimSafety ?? []).filter(
+    (entry) =>
+      entry.publicationStatus === "factcheck_required" ||
+      entry.publicationStatus === "graph_review_required" ||
+      entry.publicationStatus === "moderation_required" ||
+      entry.publicationStatus === "blocked" ||
+      entry.publicationStatus === "needs_rewrite",
+  );
+  const selectedRestrictions = (claimSafety ?? []).filter((entry) =>
+    (selectedClaimIds ?? []).includes(entry.claimId ?? "") &&
+    (entry.publicationStatus === "publishable_as_question" ||
+      entry.publicationStatus === "publishable_as_opinion" ||
+      entry.publicationStatus === "needs_rewrite"),
+  );
 
   return (
     <section className="rounded-2xl border border-amber-300/50 bg-amber-50/70 p-4 text-sm text-amber-950 dark:border-amber-400/40 dark:bg-amber-500/10 dark:text-amber-100">
@@ -42,6 +63,11 @@ export default function CreateInputSafetyPanel({ safety }: CreateInputSafetyPane
       <p className="mt-1 text-xs">
         Status: {resolveDecisionLabel(safety.decision)} · noAutoPublish=true · noSilentMerge=true
       </p>
+      {claimSafety && claimSafety.length > 0 ? (
+        <p className="mt-1 text-xs">
+          Claim-Safety: {claimWarnings.length} Warnungen bei {claimSafety.length} Aussagen.
+        </p>
+      ) : null}
 
       <div className="mt-3 space-y-2">
         <div className="rounded-lg border border-amber-300/55 bg-white/80 px-3 py-2 dark:border-amber-300/35 dark:bg-[rgb(var(--card))]">
@@ -87,6 +113,24 @@ export default function CreateInputSafetyPanel({ safety }: CreateInputSafetyPane
                 <li key={`${candidate.id}-${idx}`}>
                   {candidate.text}
                   {candidate.safeQuestion ? " (als Prüffrage weiterführbar)" : ""}
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
+
+        {selectedRestrictions.length > 0 ? (
+          <div className="rounded-lg border border-amber-300/55 bg-white/80 px-3 py-2 dark:border-amber-300/35 dark:bg-[rgb(var(--card))]">
+            <p className="text-xs font-semibold uppercase tracking-wide">Ausgewählte Aussagen</p>
+            <ul className="mt-1 list-disc pl-4 text-sm">
+              {selectedRestrictions.slice(0, 5).map((entry) => (
+                <li key={`${entry.claimId ?? entry.text}-${entry.publicationStatus}`}>
+                  {entry.safeText}
+                  {entry.publicationStatus === "publishable_as_question"
+                    ? " (nur als Frage weiterführbar)"
+                    : entry.publicationStatus === "publishable_as_opinion"
+                      ? " (nur als Meinung weiterführbar)"
+                      : " (vor Einreichung sprachlich schärfen)"}
                 </li>
               ))}
             </ul>
