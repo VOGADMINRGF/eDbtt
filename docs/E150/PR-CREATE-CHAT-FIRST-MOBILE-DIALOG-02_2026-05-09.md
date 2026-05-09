@@ -26,6 +26,8 @@ Die visuelle Hierarchie des lightweight `/create`-Follow-ups naeher an das defin
 - Mobile Follow-up bleibt jetzt einspaltig: breite swipebare Selector-Karten wurden auf kompakte Tabs mit einer aktiven Detailkarte reduziert, und der Workspace clippt keine Inhalte mehr seitlich.
 - Die mobile Primaeraktion sitzt jetzt inline direkt unter dem aktiven Arbeitsstand; dadurch braucht der Follow-up kein grosses Fixed-Overlay und kein zusaetzliches Bottom-Padding mehr.
 - `Kontingente und Zugriff` wird im Mobile-Hauptflow nicht gerendert; die Detailverwaltung bleibt sekundär ueber `/account` und auf Desktop sichtbar.
+- Fokusbereiche und Strukturäste sind nun auch semantisch als Tabs/Panel verkabelt (inkl. Keyboard-Navigation via Pfeiltasten/Home/End), damit die mobile Shell nicht nur visuell, sondern auch in der Bedienlogik wie ein sauberer App-Flow funktioniert.
+- Mobile- und Desktop-CTA nutzen dieselbe Save-Statuslogik (`Speichert …` / `Gespeichert` / `Speichern`), damit keine Text-/State-Drift zwischen den Shell-Varianten entsteht.
 - Der mobile Startbereich im eingebetteten Composer wurde kompakter gemacht (weniger vertikale Abstaende, kuerzeres Meta-Chrome, geringere Textarea-Minimalhoehe).
 - Die aktive Focus-Fläche und der aktive Strukturast werden bei neuem Follow-up-Ergebnis wieder auf den aktuellen Default zurueckgesetzt, damit kein alter Tabzustand haengen bleibt.
 

@@ -54,6 +54,8 @@ export const CREATE_VISUAL_FOLLOWUP_COPY = {
 
 type FocusAreaId = "priorities" | "clusters" | "questions" | "next_steps";
 
+const FOCUS_AREA_ORDER: readonly FocusAreaId[] = ["priorities", "clusters", "questions", "next_steps"] as const;
+
 type FocusOverviewCard = {
   id: FocusAreaId;
   title: string;
@@ -67,6 +69,8 @@ type NextStepChecklistItem = {
   detail: string;
   done: boolean;
 };
+
+type CreateFollowupSaveState = "idle" | "saving" | "saved" | "error" | "unavailable";
 
 const BROAD_TOPIC_FIELD_ORDER = [
   "Wohnen",
@@ -194,6 +198,25 @@ function toSentenceList(labels: string[]): string {
   const head = labels.slice(0, -1).join(", ");
   const last = labels[labels.length - 1];
   return `${head} und ${last}`;
+}
+
+function resolveLoopedIndex(currentIndex: number, offset: number, total: number): number {
+  return (currentIndex + offset + total) % total;
+}
+
+function resolveNextIndexFromKey(currentIndex: number, key: string, total: number): number | null {
+  if (total <= 0) return null;
+  if (key === "ArrowRight" || key === "ArrowDown") return resolveLoopedIndex(currentIndex, 1, total);
+  if (key === "ArrowLeft" || key === "ArrowUp") return resolveLoopedIndex(currentIndex, -1, total);
+  if (key === "Home") return 0;
+  if (key === "End") return total - 1;
+  return null;
+}
+
+function resolveSaveActionLabel(saveState: CreateFollowupSaveState, variant: "full" | "compact" = "full"): string {
+  if (saveState === "saving") return variant === "compact" ? "Speichert …" : "Arbeitsstand wird gespeichert …";
+  if (saveState === "saved") return variant === "compact" ? "Gespeichert" : "Arbeitsstand gespeichert";
+  return variant === "compact" ? "Speichern" : "Arbeitsstand speichern";
 }
 
 function normalizeTopicLabel(label: string): string {
@@ -660,6 +683,7 @@ function StructureBranchList(props: {
   resetKey: string;
 }) {
   const [activeBranchId, setActiveBranchId] = React.useState<string | null>(props.branches[0]?.id ?? null);
+  const branchTabRefs = React.useRef<Record<string, React.ElementRef<"button"> | null>>({});
 
   React.useEffect(() => {
     if (!props.branches.some((branch) => branch.id === activeBranchId)) {
@@ -671,9 +695,26 @@ function StructureBranchList(props: {
     setActiveBranchId(props.branches[0]?.id ?? null);
   }, [props.branches, props.resetKey]);
 
+  const handleBranchTabKeyDown = React.useCallback(
+    (event: React.KeyboardEvent<React.ElementRef<"button">>, branchId: string) => {
+      const currentIndex = props.branches.findIndex((branch) => branch.id === branchId);
+      const nextIndex = resolveNextIndexFromKey(currentIndex, event.key, props.branches.length);
+      if (nextIndex === null) return;
+      event.preventDefault();
+      const nextBranch = props.branches[nextIndex];
+      if (!nextBranch) return;
+      setActiveBranchId(nextBranch.id);
+      window.requestAnimationFrame(() => {
+        branchTabRefs.current[nextBranch.id]?.focus();
+      });
+    },
+    [props.branches],
+  );
+
   if (props.branches.length === 0) return null;
   const activeBranch =
     props.branches.find((branch) => branch.id === activeBranchId) ?? props.branches[0] ?? null;
+  const activeBranchPanelId = activeBranch ? `create-branch-panel-${activeBranch.id}` : undefined;
 
   return (
     <div className="space-y-4">
@@ -692,8 +733,16 @@ function StructureBranchList(props: {
             key={branch.id}
             data-focus-card-branch-selector
             type="button"
+            ref={(node) => {
+              branchTabRefs.current[branch.id] = node;
+            }}
             onClick={() => setActiveBranchId(branch.id)}
-            aria-pressed={activeBranch?.id === branch.id}
+            onKeyDown={(event) => handleBranchTabKeyDown(event, branch.id)}
+            role="tab"
+            id={`create-branch-tab-${branch.id}`}
+            aria-selected={activeBranch?.id === branch.id}
+            aria-controls={`create-branch-panel-${branch.id}`}
+            tabIndex={activeBranch?.id === branch.id ? 0 : -1}
             className={`w-full rounded-[22px] border px-3 py-3 text-left transition sm:max-w-[18rem] ${
               activeBranch?.id === branch.id
                 ? "border-cyan-400/70 bg-cyan-50 shadow-[0_18px_40px_rgba(8,145,178,0.12)] dark:border-cyan-300/45 dark:bg-cyan-500/12"
@@ -722,7 +771,14 @@ function StructureBranchList(props: {
           </button>
         ))}
       </div>
-      <div className="pt-1">{activeBranch ? <StructureBranchCard branch={activeBranch} onEdit={props.onEdit} /> : null}</div>
+      <div
+        className="pt-1"
+        role="tabpanel"
+        id={activeBranchPanelId}
+        aria-labelledby={activeBranch ? `create-branch-tab-${activeBranch.id}` : undefined}
+      >
+        {activeBranch ? <StructureBranchCard branch={activeBranch} onEdit={props.onEdit} /> : null}
+      </div>
     </div>
   );
 }
@@ -732,6 +788,28 @@ function StructureOverviewRail(props: {
   activeCardId: FocusAreaId;
   onSelect: (id: FocusAreaId) => void;
 }) {
+  const overviewTabRefs = React.useRef<Record<FocusAreaId, React.ElementRef<"button"> | null>>({
+    priorities: null,
+    clusters: null,
+    questions: null,
+    next_steps: null,
+  });
+
+  const handleOverviewTabKeyDown = React.useCallback(
+    (event: React.KeyboardEvent<React.ElementRef<"button">>, cardId: FocusAreaId) => {
+      const currentIndex = FOCUS_AREA_ORDER.indexOf(cardId);
+      const nextIndex = resolveNextIndexFromKey(currentIndex, event.key, FOCUS_AREA_ORDER.length);
+      if (nextIndex === null) return;
+      event.preventDefault();
+      const nextCardId = FOCUS_AREA_ORDER[nextIndex];
+      props.onSelect(nextCardId);
+      window.requestAnimationFrame(() => {
+        overviewTabRefs.current[nextCardId]?.focus();
+      });
+    },
+    [props],
+  );
+
   return (
     <div className="space-y-3">
       <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">
@@ -740,6 +818,8 @@ function StructureOverviewRail(props: {
       <div
         data-focus-card-overview
         className="space-y-2 sm:space-y-3"
+        role="tablist"
+        aria-label="Überblick über den vorgeschlagenen Arbeitsstand"
       >
         {props.cards.map((card) => {
           const isActive = props.activeCardId === card.id;
@@ -747,8 +827,16 @@ function StructureOverviewRail(props: {
             <button
               key={card.id}
               type="button"
+              ref={(node) => {
+                overviewTabRefs.current[card.id] = node;
+              }}
               onClick={() => props.onSelect(card.id)}
-              aria-pressed={isActive}
+              onKeyDown={(event) => handleOverviewTabKeyDown(event, card.id)}
+              role="tab"
+              id={`create-overview-tab-${card.id}`}
+              aria-selected={isActive}
+              aria-controls={`create-overview-panel-${card.id}`}
+              tabIndex={isActive ? 0 : -1}
               className={`w-full rounded-[24px] border px-4 py-3 text-left transition sm:rounded-[28px] sm:py-4 ${
                 isActive
                   ? "border-cyan-400/70 bg-cyan-50 shadow-[0_16px_36px_rgba(8,145,178,0.12)] dark:border-cyan-300/45 dark:bg-cyan-500/12"
@@ -1014,18 +1102,24 @@ function StructuredWorkstateBlock(props: {
 
       <StructureOverviewRail cards={overviewCards} activeCardId={activeFocusArea} onSelect={setActiveFocusArea} />
 
-      <StructureFocusPanel
-        activeFocusArea={activeFocusArea}
-        rootTopic={props.rootTopic}
-        topicLabels={props.topicLabels}
-        positionClusters={props.positionClusters}
-        voteQuestions={props.voteQuestions}
-        keyStatement={props.keyStatement}
-        structureBranches={props.structureBranches}
-        checklistItems={checklistItems}
-        onEdit={props.onEdit}
-        resultChangeKey={props.resultChangeKey}
-      />
+      <div
+        role="tabpanel"
+        id={`create-overview-panel-${activeFocusArea}`}
+        aria-labelledby={`create-overview-tab-${activeFocusArea}`}
+      >
+        <StructureFocusPanel
+          activeFocusArea={activeFocusArea}
+          rootTopic={props.rootTopic}
+          topicLabels={props.topicLabels}
+          positionClusters={props.positionClusters}
+          voteQuestions={props.voteQuestions}
+          keyStatement={props.keyStatement}
+          structureBranches={props.structureBranches}
+          checklistItems={checklistItems}
+          onEdit={props.onEdit}
+          resultChangeKey={props.resultChangeKey}
+        />
+      </div>
     </div>
   );
 }
@@ -1034,13 +1128,14 @@ function MobileInlineActionPanel(props: {
   isConfirmed: boolean;
   primaryActionHref: string;
   voteActionHref: string;
-  saveState: "idle" | "saving" | "saved" | "error" | "unavailable";
+  saveState: CreateFollowupSaveState;
   onConfirm: () => void;
   onStartOptionalService: () => void;
   onSaveForLater: () => void;
   onOpenCorrection: (focus: string) => void;
 }) {
   const saveDisabled = props.saveState === "saving" || props.saveState === "unavailable";
+  const saveLabel = resolveSaveActionLabel(props.saveState, "compact");
 
   return (
     <div
@@ -1074,7 +1169,7 @@ function MobileInlineActionPanel(props: {
                 disabled={saveDisabled}
                 aria-disabled={saveDisabled}
               >
-                Speichern
+                {saveLabel}
               </button>
             </div>
             <button type="button" className="btn-secondary min-h-[40px] px-2 py-2 text-sm" onClick={props.onStartOptionalService}>
@@ -1097,7 +1192,7 @@ function MobileInlineActionPanel(props: {
                 disabled={saveDisabled}
                 aria-disabled={saveDisabled}
               >
-                Speichern
+                {saveLabel}
               </button>
             </div>
             <button type="button" className="btn-secondary min-h-[40px] px-2 py-2 text-sm" onClick={props.onStartOptionalService}>
@@ -1120,15 +1215,12 @@ function FollowupActionRail(props: {
   setCorrectionOpen: (focus: string) => void;
   showCorrectionRow: boolean;
   correctionFocus: string | null;
-  saveState: "idle" | "saving" | "saved" | "error" | "unavailable";
+  saveState: CreateFollowupSaveState;
   saveMessage?: string | null;
   factcheckMessage?: string | null;
 }) {
   const saveDisabled = props.saveState === "saving" || props.saveState === "unavailable";
-  const saveLabel =
-    props.saveState === "saving"
-      ? "Arbeitsstand wird gespeichert …"
-      : "Arbeitsstand speichern";
+  const saveLabel = resolveSaveActionLabel(props.saveState);
 
   return (
     <div className="create-chat-message flex gap-3">

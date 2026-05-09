@@ -227,6 +227,10 @@ describe("create chat-first mobile dialog experience contract", () => {
     expect(html).toContain("Knapper Bedarf");
     expect(html).toContain("Wichtigste Frage");
     expect(html).toContain("data-mobile-inline-create-actions");
+    expect(html).toContain("role=\"tablist\"");
+    expect(html).toContain("role=\"tab\"");
+    expect(html).toContain("role=\"tabpanel\"");
+    expect(html).toContain("aria-controls=\"create-overview-panel-clusters\"");
     expect((html.match(/data-focus-card-branch-selector/g) ?? [])).toHaveLength(3);
     expect((html.match(/data-focus-card-detail/g) ?? [])).toHaveLength(1);
   });
@@ -272,6 +276,9 @@ describe("create chat-first mobile dialog experience contract", () => {
     expect(followupSource).not.toContain("min-w-[248px]");
     expect(followupSource).toContain("Mobile-first als Tabs mit aktiver Karte");
     expect(followupSource).toContain("data-mobile-inline-create-actions");
+    expect(followupSource).toContain("resolveNextIndexFromKey");
+    expect(followupSource).toContain("aria-selected={isActive}");
+    expect(followupSource).not.toContain("aria-pressed={isActive}");
     expect(followupSource).not.toContain("data-mobile-sticky-create-actions");
     expect(followupSource).not.toContain("fixed inset-x-3");
     expect(linkClarificationSource).not.toContain("sm:grid-cols-2");

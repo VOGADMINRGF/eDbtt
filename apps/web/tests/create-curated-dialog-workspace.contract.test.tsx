@@ -46,6 +46,9 @@ describe("create curated dialog workspace contract", () => {
     expect(followupSource).toContain("data-focus-card-overview");
     expect(followupSource).toContain("data-focus-card-rail");
     expect(followupSource).toContain("data-mobile-inline-create-actions");
+    expect(followupSource).toContain("role=\"tabpanel\"");
+    expect(followupSource).toContain("aria-controls={`create-overview-panel-${card.id}`}");
+    expect(followupSource).toContain("aria-controls={`create-branch-panel-${branch.id}`}");
     expect(linkClarificationSource).toContain("Ich habe einen Quellenhinweis erkannt. Was soll ich daraus vorbereiten?");
     expect(linkClarificationSource).toContain("create-chat-message");
     expect(linkClarificationSource).toContain("eDebatte");
@@ -75,6 +78,8 @@ describe("create curated dialog workspace contract", () => {
     expect(followupSource).toContain("Focus Card");
     expect(followupSource).toContain("Knapper Bedarf");
     expect(followupSource).toContain("Wichtigste Frage");
+    expect(followupSource).toContain("resolveSaveActionLabel");
+    expect(followupSource).toContain("Arbeitsstand gespeichert");
     expect(followupSource).toContain("Einordnung im Themenkatalog");
     expect(followupSource).toContain("Mögliche Aussagen");
     expect(followupSource).toContain("Offene Prüfpunkte");

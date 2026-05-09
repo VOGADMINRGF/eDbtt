@@ -320,6 +320,9 @@ describe("analyze workbench progressive disclosure", () => {
     expect(source).not.toContain("topics.slice(0, 6)");
     expect(source).toContain("resultChangeKey");
     expect(source).toContain("setActiveFocusArea(initialFocusArea)");
+    expect(source).toContain("resolveNextIndexFromKey");
+    expect(source).toContain("role=\"tablist\"");
+    expect(source).toContain("role=\"tabpanel\"");
     expect(source).toContain("data-mobile-inline-create-actions");
     expect(source).not.toContain("data-mobile-sticky-create-actions");
     expect(source).not.toContain('className="text-cyan-50"');
