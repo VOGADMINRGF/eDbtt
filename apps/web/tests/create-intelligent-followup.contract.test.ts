@@ -183,6 +183,31 @@ describe("create intelligent follow-up contract", () => {
     expect(sections[0]?.label).not.toContain("Abschnitt");
   });
 
+  it("gives long municipal sections individual passage-based titles", async () => {
+    mocks.analyzeContribution.mockRejectedValue(new Error("provider_failed"));
+    const result = await buildCreateIntelligentFollowup({
+      text: [
+        "Wir brauchen schnellere Genehmigungen für kommunalen Wohnungsbau und bezahlbare Mieten.",
+        "",
+        "Der Verkehr muss mit Bus, Bahn, Radwegen und alltagstauglichen Wegen zum Klimaziel passen.",
+        "",
+        "Schulen, Sprachförderung und Bildung brauchen eine verlässliche Priorität.",
+        "",
+        "Migration, Sicherheit und Verwaltung müssen gleichzeitig handhabbar bleiben.",
+      ].join("\n\n"),
+      locale: "de",
+      intent: "contribute",
+    });
+
+    const sections = buildCreateVisualSections(result, 4);
+    expect(sections).toHaveLength(4);
+    expect(new Set(sections.map((section) => section.label)).size).toBe(sections.length);
+    expect(sections.map((section) => section.label)).toEqual(
+      expect.arrayContaining(["Wohnen und Genehmigungen", "Wohnen", "Verkehr", "Klima"]),
+    );
+    expect(sections.some((section) => /Abschnitt|Teil|Schwerpunkt/.test(section.label))).toBe(false);
+  });
+
   it("infers broad municipal dossier context and topic fields for wide civic texts", async () => {
     mocks.analyzeContribution.mockRejectedValue(new Error("provider_failed"));
     const result = await buildCreateIntelligentFollowup({

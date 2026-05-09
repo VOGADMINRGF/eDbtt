@@ -68,10 +68,11 @@ describe("create curated dialog workspace contract", () => {
     expect(followupSource).toContain("Ast bearbeiten");
     expect(followupSource).toContain("Weitere Details zum Ast");
     expect(followupSource).toContain("Schreib einfach weiter");
+    expect(followupSource).toContain("Antwort fortsetzen");
     expect(followupSource).toContain("Ja, Struktur übernehmen");
     expect(followupSource).toContain("Arbeitsstand speichern");
     expect(followupSource).toContain("Faktencheck / Deep Search starten");
-    expect(followupSource).toContain("Original anzeigen");
+    expect(followupSource).toContain("Original oben anzeigen");
     expect(followupSource).toContain("Keine automatische Stimme");
     expect(followupSource).toContain("Keine automatische Veröffentlichung");
     expect(followupSource).toContain("Keine automatische Kostenbuchung");
@@ -92,7 +93,7 @@ describe("create curated dialog workspace contract", () => {
 
     const coreIndex = followupSource.indexOf(">Vorgeschlagener Arbeitsstand</p>");
     const confirmIndex = followupSource.indexOf("Bestätige den Vorschlag, ändere einzelne Punkte oder schreib einfach weiter.");
-    const detailsIndex = followupSource.indexOf("Details zum Originaltext");
+    const detailsIndex = followupSource.indexOf("Gelesene Sinnabschnitte");
     const impactIndex = followupSource.lastIndexOf("CREATE_VISUAL_FOLLOWUP_COPY.impactTitle");
 
     expect(coreIndex).toBeGreaterThan(-1);
@@ -103,7 +104,9 @@ describe("create curated dialog workspace contract", () => {
     expect(confirmIndex).toBeLessThan(detailsIndex);
     expect(detailsIndex).toBeLessThan(impactIndex);
     expect(followupSource).toContain("summary className=\"cursor-pointer");
-    expect(followupSource).toContain("Kann nach Bestätigung unter");
+    expect(followupSource).toContain("Wird erst nach deiner Bestätigung vorbereitet.");
+    expect(followupSource).toContain("Kann jetzt unter");
+    expect(followupSource).not.toContain("Details zum Originaltext");
     expect(followupSource).not.toContain("Zusatzservices (optional)");
     expect(followupSource).not.toContain("bg-cyan-50/80");
   });

@@ -31,6 +31,10 @@ type CreateVisualFollowupProps = {
   onOpenNewAnlassraum: () => void;
   onSaveForLater?: () => void;
   onStartOptionalService?: () => void;
+  continuationValue: string;
+  onContinuationChange: (value: string) => void;
+  onContinueConversation: () => void;
+  continueConversationDisabled?: boolean;
 };
 
 export const CREATE_VISUAL_FOLLOWUP_COPY = {
@@ -38,11 +42,13 @@ export const CREATE_VISUAL_FOLLOWUP_COPY = {
   structureTitle: "Ich ordne das kurz ein",
   coreTitle: "Kern erkannt",
   graphTitle: "So könnte der Arbeitsstand aussehen",
-  impactTitle: "Passende nächste Schritte",
+  impactTitle: "Was ich nach deiner Bestätigung vorbereiten kann",
   confirmTitle: "Soll ich das so übernehmen?",
   guardrail:
     "Keine automatische Stimme. Keine automatische Veröffentlichung. Du bestätigst jeden nächsten Schritt selbst.",
   freeWriteHint: "Schreib einfach weiter. eDebatte passt den Arbeitsstand an, wenn etwas anders gemeint war.",
+  pendingPreparationHint:
+    "Nach deiner Bestätigung kann eDebatte passende Themen, Abstimmungen oder einen neuen Arbeitsstand vorbereiten.",
 } as const;
 
 const BROAD_TOPIC_FIELD_ORDER = [
@@ -138,6 +144,30 @@ function toSentenceList(labels: string[]): string {
 
 function normalizeTopicLabel(label: string): string {
   return label.trim().toLowerCase();
+}
+
+function normalizeDenseText(value: string): string {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}\s]/gu, " ")
+    .replace(/\s+/g, " ");
+}
+
+function isSimilarDenseText(a?: string | null, b?: string | null): boolean {
+  const left = normalizeDenseText(String(a ?? ""));
+  const right = normalizeDenseText(String(b ?? ""));
+  if (!left || !right) return false;
+  if (left === right) return true;
+  if (left.length < 18 || right.length < 18) return false;
+  return left.includes(right) || right.includes(left);
+}
+
+function shouldShowAssistantLead(summary: string, assistantLead: string, coreClaim: string): boolean {
+  if (!assistantLead.trim()) return false;
+  if (isSimilarDenseText(assistantLead, summary)) return false;
+  if (isSimilarDenseText(assistantLead, coreClaim)) return false;
+  return true;
 }
 
 function deriveBroadTopicFields(topicLabels: string[]): string[] {
@@ -256,7 +286,7 @@ function UserContributionBubble(props: { text: string }) {
         <div className="mt-2 rounded-2xl rounded-tl-sm border border-slate-200 bg-white px-4 py-3 shadow-sm dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))] dark:shadow-none">
           <p className="text-sm text-slate-900 md:text-base dark:text-[rgb(var(--fg))]">Dein Beitrag wurde aufgenommen.</p>
           <details className="mt-2">
-            <summary className="cursor-pointer text-sm text-slate-700 dark:text-[rgb(var(--muted))]">Original anzeigen</summary>
+            <summary className="cursor-pointer text-sm text-slate-700 dark:text-[rgb(var(--muted))]">Original oben anzeigen</summary>
             <pre className="mt-2 whitespace-pre-wrap rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--bg))] dark:text-[rgb(var(--fg))]">
               {props.text}
             </pre>
@@ -272,6 +302,7 @@ function AssistantUnderstandingBubble(props: {
   assistantLead: string;
   coreClaim: string;
   showCoreBlock: boolean;
+  showAssistantLead: boolean;
   stanceLabel: string;
   scopeLabel: string;
   children: React.ReactNode;
@@ -285,7 +316,9 @@ function AssistantUnderstandingBubble(props: {
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-cyan-800 dark:text-cyan-200">{CREATE_VISUAL_FOLLOWUP_COPY.structureTitle}</p>
           <p className="mt-1 text-base font-semibold text-cyan-950 md:text-lg dark:text-cyan-50">{CREATE_VISUAL_FOLLOWUP_COPY.headline}</p>
           <p className="mt-3 text-base text-cyan-900 md:text-lg dark:text-cyan-100">{props.summary || props.assistantLead}</p>
-          <p className="mt-2 text-sm text-cyan-900/85 dark:text-cyan-100/85">{props.assistantLead}</p>
+          {props.showAssistantLead ? (
+            <p className="mt-2 text-sm text-cyan-900/85 dark:text-cyan-100/85">{props.assistantLead}</p>
+          ) : null}
           {props.showCoreBlock ? (
             <div className="mt-4 border-l-2 border-cyan-500/45 pl-3 dark:border-cyan-300/50">
               <p className="text-xs font-semibold uppercase tracking-[0.14em] text-cyan-800 dark:text-cyan-200">{CREATE_VISUAL_FOLLOWUP_COPY.coreTitle}</p>
@@ -357,13 +390,34 @@ function StructureBranchCard(props: {
 }) {
   const visibleVoteQuestions = props.branch.voteQuestions.slice(0, 2);
   const visibleTopicTags = props.branch.topicTags.slice(0, 3);
+  const visiblePositionClusters = props.branch.positionClusters.slice(0, 2);
+  const showNeedBlock =
+    props.branch.need.trim().length > 0 &&
+    !isSimilarDenseText(props.branch.need, props.branch.title) &&
+    !isSimilarDenseText(props.branch.need, props.branch.claims[0] ?? "");
 
   return (
     <article className="rounded-2xl border border-slate-200/80 bg-white/90 px-4 py-4 shadow-sm shadow-slate-950/5 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))] dark:shadow-none">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="text-base font-semibold text-[rgb(var(--fg))] md:text-lg">{props.branch.title}</p>
-        </div>
+      <div className="rounded-2xl border border-cyan-200/70 bg-cyan-50/70 px-3 py-3 dark:border-cyan-300/25 dark:bg-cyan-500/10">
+        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-cyan-800 dark:text-cyan-200">Strukturast</p>
+        <p className="mt-1 text-lg font-semibold text-cyan-950 md:text-xl dark:text-cyan-50">{props.branch.title}</p>
+        {visibleTopicTags.length ? (
+          <p className="mt-2 text-sm text-cyan-900/90 dark:text-cyan-100/90">
+            Schwerpunkt: {toSentenceList(visibleTopicTags)}
+          </p>
+        ) : null}
+        {visiblePositionClusters.length ? (
+          <div className="mt-3 flex flex-wrap gap-2">
+            {visiblePositionClusters.map((cluster) => (
+              <span
+                key={`${props.branch.id}-cluster-${cluster}`}
+                className={`rounded-full border px-2.5 py-1 text-xs ${resolveNodeTone("stance")}`}
+              >
+                {cluster}
+              </span>
+            ))}
+          </div>
+        ) : null}
       </div>
       <div className="mt-4 flex flex-wrap gap-2">
         {props.branch.part06CategoryLabels.map((label) => (
@@ -375,10 +429,12 @@ function StructureBranchCard(props: {
           </span>
         ))}
       </div>
-      <div className="mt-4 rounded-xl border border-slate-200/80 bg-slate-50/80 px-3 py-3 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--bg))]">
-        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">Bedarf im Ast</p>
-        <p className="mt-2 text-sm leading-relaxed text-[rgb(var(--fg))]">{props.branch.need}</p>
-      </div>
+      {showNeedBlock ? (
+        <div className="mt-4 rounded-xl border border-slate-200/80 bg-slate-50/80 px-3 py-3 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--bg))]">
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">Worum es hier konkret geht</p>
+          <p className="mt-2 text-sm leading-relaxed text-[rgb(var(--fg))]">{props.branch.need}</p>
+        </div>
+      ) : null}
       <div className="mt-4 space-y-3">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">Wichtige Abstimmungsfragen</p>
@@ -521,7 +577,7 @@ function StructuredWorkstateBlock(props: {
 
       <StructureBranchList branches={props.structureBranches} onEdit={props.onEdit} />
 
-      <div className="space-y-3 md:hidden">
+      <div className={hasBranches ? "hidden" : "space-y-3 md:hidden"}>
         <div className="text-sm font-semibold text-cyan-900 dark:text-cyan-100">1. Dein Beitrag</div>
         <div className={`rounded-xl border px-3 py-2 ${resolveNodeTone("source_text")}`}>
           <p className="text-sm font-semibold">Ausgangspunkt im Dialog</p>
@@ -674,25 +730,17 @@ function DetailsAccordion(props: {
   result: CreateIntelligentFollowupResult;
   sections: ReturnType<typeof buildCreateVisualSections>;
   sortedSuggestions: CreateConnectionSuggestion[];
+  isConfirmed: boolean;
 }) {
   const showSectionFlow = props.result.sourceText.length > 500 || props.sections.length > 1;
   const hasFutureModules = false;
 
   return (
     <div className="max-w-4xl space-y-2 pl-5 md:pl-8 lg:pl-10">
-      <details className="border-t border-slate-200 py-3 dark:border-[rgb(var(--border))]">
-        <summary className="cursor-pointer text-sm font-semibold text-[rgb(var(--fg))] md:text-base">
-          Details zum Originaltext
-        </summary>
-        <pre className="mt-3 whitespace-pre-wrap rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--bg))] dark:text-[rgb(var(--fg))]">
-          {props.result.sourceText}
-        </pre>
-      </details>
-
       {showSectionFlow ? (
         <details className="border-t border-slate-200 py-3 dark:border-[rgb(var(--border))]">
           <summary className="cursor-pointer text-sm font-semibold text-[rgb(var(--fg))] md:text-base">
-            Sinnabschnitte ({props.sections.length})
+            Gelesene Sinnabschnitte ({props.sections.length})
           </summary>
           <div className="mt-3 space-y-2">
             {props.sections.map((section) => (
@@ -723,32 +771,39 @@ function DetailsAccordion(props: {
         <summary className="cursor-pointer text-sm font-semibold text-[rgb(var(--fg))] md:text-base">
           {CREATE_VISUAL_FOLLOWUP_COPY.impactTitle}
         </summary>
-        <div className="mt-3 grid gap-3">
-          {props.sortedSuggestions.map((suggestion) => {
-            const toneKind: CreateVisualNode["kind"] =
-              suggestion.kind === "dossier"
-                ? "dossier"
-                : suggestion.kind === "vote"
-                  ? "vote"
-                  : suggestion.kind === "anlassraum"
-                    ? "anlassraum"
-                    : suggestion.kind === "new_anlassraum"
-                      ? "new_anlassraum"
-                      : "topic";
-            return (
-              <article key={suggestion.id} className={`rounded-xl border px-3 py-3 ${resolveNodeTone(toneKind)}`}>
-                <p className="text-xs font-semibold uppercase tracking-[0.14em] opacity-80">{resolveSuggestionBadge(suggestion.kind)}</p>
-                <p className="mt-1 text-sm font-semibold md:text-base">{suggestion.title}</p>
-                <p className="mt-1 text-sm opacity-85">Warum passt das? {suggestion.reason}</p>
-                <p className="mt-3 text-xs opacity-80">
-                  {suggestion.kind === "new_anlassraum"
-                    ? "Wird erst nach deiner Bestätigung als neuer Anlassraum vorgeschlagen."
-                    : `Kann nach Bestätigung unter ${resolveSuggestionCta(suggestion.kind)} geöffnet werden.`}
-                </p>
-              </article>
-            );
-          })}
-        </div>
+        {!props.isConfirmed ? (
+          <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50/80 px-3 py-3 text-sm text-[rgb(var(--fg))] dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--bg))]">
+            <p>{CREATE_VISUAL_FOLLOWUP_COPY.pendingPreparationHint}</p>
+            <p className="mt-2 text-xs text-[rgb(var(--muted))]">Wird erst nach deiner Bestätigung vorbereitet.</p>
+          </div>
+        ) : (
+          <div className="mt-3 grid gap-3">
+            {props.sortedSuggestions.map((suggestion) => {
+              const toneKind: CreateVisualNode["kind"] =
+                suggestion.kind === "dossier"
+                  ? "dossier"
+                  : suggestion.kind === "vote"
+                    ? "vote"
+                    : suggestion.kind === "anlassraum"
+                      ? "anlassraum"
+                      : suggestion.kind === "new_anlassraum"
+                        ? "new_anlassraum"
+                        : "topic";
+              return (
+                <article key={suggestion.id} className={`rounded-xl border px-3 py-3 ${resolveNodeTone(toneKind)}`}>
+                  <p className="text-xs font-semibold uppercase tracking-[0.14em] opacity-80">{resolveSuggestionBadge(suggestion.kind)}</p>
+                  <p className="mt-1 text-sm font-semibold md:text-base">{suggestion.title}</p>
+                  <p className="mt-1 text-sm opacity-85">Warum passt das? {suggestion.reason}</p>
+                  <p className="mt-3 text-xs opacity-80">
+                    {suggestion.kind === "new_anlassraum"
+                      ? "Wird jetzt nur als nächster Schritt vorgemerkt."
+                      : `Kann jetzt unter ${resolveSuggestionCta(suggestion.kind)} geöffnet werden.`}
+                  </p>
+                </article>
+              );
+            })}
+          </div>
+        )}
       </details>
 
       {hasFutureModules ? (
@@ -756,6 +811,44 @@ function DetailsAccordion(props: {
           Erweiterbare Module: Quellen, Statistik, Artikel, Video, Faktencheck.
         </div>
       ) : null}
+    </div>
+  );
+}
+
+function ContinueWritingComposer(props: {
+  value: string;
+  onChange: (value: string) => void;
+  onSubmit: () => void;
+  submitDisabled: boolean;
+}) {
+  return (
+    <div className="create-chat-message flex gap-3">
+      <div className="mt-2 h-2.5 w-2.5 shrink-0 rounded-full bg-slate-400 ring-4 ring-white dark:bg-slate-500 dark:ring-[rgb(var(--bg))]" />
+      <div className="max-w-5xl flex-1 rounded-2xl rounded-tl-sm border border-slate-200 bg-white px-4 py-4 shadow-sm dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))] dark:shadow-none">
+        <p className="text-sm font-semibold text-[rgb(var(--fg))]">Schreib einfach weiter</p>
+        <p className="mt-1 text-sm text-[rgb(var(--muted))]">
+          Ergänze hier, was anders gemeint war, welche Quelle noch fehlt oder welchen nächsten Schritt ich anpassen soll.
+        </p>
+        <textarea
+          value={props.value}
+          onChange={(event) => props.onChange(event.target.value)}
+          rows={4}
+          placeholder="Bitte ändere das Thema auf Pflege. Formuliere die Abstimmungsfrage neutraler. Ich möchte noch eine Quelle ergänzen."
+          className="mt-3 w-full resize-y rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-sm text-[rgb(var(--fg))] shadow-sm focus:border-cyan-300 focus:outline-none focus:ring-2 focus:ring-cyan-200"
+        />
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            className="btn-secondary min-h-[40px] px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-60"
+            onClick={props.onSubmit}
+            disabled={props.submitDisabled}
+            aria-disabled={props.submitDisabled}
+          >
+            Antwort fortsetzen
+          </button>
+          <span className="text-xs text-[rgb(var(--muted))]">Dein neuer Hinweis ergänzt den bisherigen Chatverlauf.</span>
+        </div>
+      </div>
     </div>
   );
 }
@@ -772,6 +865,10 @@ export default function CreateVisualFollowup({
   onEdit,
   onSaveForLater = () => {},
   onStartOptionalService = () => {},
+  continuationValue,
+  onContinuationChange,
+  onContinueConversation,
+  continueConversationDisabled = false,
 }: CreateVisualFollowupProps) {
   const visualMap = React.useMemo(() => buildCreateVisualMap(result), [result]);
   const sections = React.useMemo(() => buildCreateVisualSections(result, 4), [result]);
@@ -817,6 +914,11 @@ export default function CreateVisualFollowup({
     statementText: result.understanding.statements[0]?.text ?? "",
   });
   const showCoreBlock = dedupedCopy.prominentCoreClaim !== dedupedCopy.prominentSummary;
+  const showAssistantLeadText = shouldShowAssistantLead(
+    dedupedCopy.prominentSummary,
+    assistantLead,
+    dedupedCopy.prominentCoreClaim,
+  );
   const rootTopic = result.understanding.dossierContext ?? topicLabels[0] ?? "Öffentliches Thema";
   const primaryActionHref = buildCreateFollowupPrimaryCtaHref({
     ctaHref,
@@ -844,6 +946,7 @@ export default function CreateVisualFollowup({
         assistantLead={assistantLead}
         coreClaim={dedupedCopy.prominentCoreClaim}
         showCoreBlock={showCoreBlock}
+        showAssistantLead={showAssistantLeadText}
         stanceLabel={resolveStanceLead(dominantStance)}
         scopeLabel={resolveScopeLabel(scopeChip)}
       >
@@ -914,6 +1017,7 @@ export default function CreateVisualFollowup({
               </button>
             </div>
             <div className="mt-3 space-y-1 text-xs text-emerald-900/85 dark:text-emerald-100/85">
+              <p>Ich würde jetzt Folgendes vorbereiten: {toSentenceList(sortedSuggestions.slice(0, 3).map((item) => resolveSuggestionBadge(item.kind).toLowerCase()))}.</p>
               <p>{saveMessage ?? "Arbeitsstand speichern ist in diesem Schritt verfügbar."}</p>
               <p>{factcheckMessage ?? "Optional. Startet erst nach bewusster Bestätigung. Keine automatische Kostenbuchung."}</p>
             </div>
@@ -925,6 +1029,14 @@ export default function CreateVisualFollowup({
         result={result}
         sections={sections}
         sortedSuggestions={sortedSuggestions}
+        isConfirmed={isConfirmed}
+      />
+
+      <ContinueWritingComposer
+        value={continuationValue}
+        onChange={onContinuationChange}
+        onSubmit={onContinueConversation}
+        submitDisabled={continueConversationDisabled}
       />
 
       {actionNotice ? (

@@ -368,18 +368,62 @@ function resolveSectionThemeLabel(params: {
 
   if (/wohn|miete|genehmigung|bau|leerstand/.test(haystack)) return "Wohnen und Genehmigungen";
   if (/verkehr|mobilit|auto|rad|bus|bahn|klima/.test(haystack)) {
-    return "Verkehr, Klima und notwendige Autonutzung";
+    return "Verkehr, Klima und Alltagstauglichkeit";
   }
   if (/bildung|schule|sprach|leistung|kita/.test(haystack)) {
-    return "Bildung, Sprache und Leistungsdruck";
+    return "Schule und Bildung";
   }
-  if (/integration|migration|sicherheit|rechtsstaat|zust[aä]ndigkeit/.test(haystack)) {
-    return "Integration, Sicherheit und Zuständigkeiten";
+  if (/integration|migration|sicherheit|rechtsstaat|verwaltung|zust[aä]ndigkeit/.test(haystack)) {
+    return "Migration, Sicherheit und Verwaltung";
+  }
+  if (/gesundheit|pflege|versorgung/.test(haystack)) {
+    return "Gesundheit, Pflege und kommunale Zuständigkeit";
+  }
+  if (/finanz|haushalt|beteiligung|kommune/.test(haystack)) {
+    return "Finanzen, Beteiligung und Zuständigkeit";
   }
   if (/forderung|mindestanforder|soll|muss/.test(haystack)) return "Was du forderst";
   if (/option|vorschlag|alternative/.test(haystack)) return "Welche Lösung du vorschlägst";
   if (/frage|offen|unklar/.test(haystack)) return "Was noch offen ist";
-  return `Teil ${params.index + 1}`;
+  if (params.topicLabel?.trim()) return params.topicLabel.trim();
+  if (params.statementLabel?.trim()) return params.statementLabel.trim().slice(0, 72);
+  return `Schwerpunkt ${params.index + 1}`;
+}
+
+function dedupeSectionLabel(label: string, fallbackTopicLabel: string | undefined, usedLabels: Set<string>): string {
+  const normalizedLabel = normalizeText(label);
+  if (!normalizedLabel) return label;
+  if (!usedLabels.has(normalizedLabel)) {
+    usedLabels.add(normalizedLabel);
+    return label;
+  }
+
+  const topicLabel = String(fallbackTopicLabel ?? "").trim();
+  if (topicLabel) {
+    const topicNormalized = normalizeText(topicLabel);
+    if (topicNormalized && !usedLabels.has(topicNormalized)) {
+      usedLabels.add(topicNormalized);
+      return topicLabel;
+    }
+
+    const combined = `${label} zu ${topicLabel}`;
+    const combinedNormalized = normalizeText(combined);
+    if (!usedLabels.has(combinedNormalized)) {
+      usedLabels.add(combinedNormalized);
+      return combined;
+    }
+  }
+
+  let counter = 2;
+  while (true) {
+    const candidate = `${label} ${counter}`;
+    const candidateNormalized = normalizeText(candidate);
+    if (!usedLabels.has(candidateNormalized)) {
+      usedLabels.add(candidateNormalized);
+      return candidate;
+    }
+    counter += 1;
+  }
 }
 
 function splitIntoSentenceGroups(text: string, maxSections: number): string[] {
@@ -419,18 +463,24 @@ export function buildCreateVisualSections(
 ): CreateVisualSection[] {
   const chunks = splitIntoSentenceGroups(result.sourceText, Math.max(1, maxSections));
   if (chunks.length === 0) return [];
+  const usedLabels = new Set<string>();
   return chunks.map((chunk, index) => {
     const statement = result.understanding.statements[index] ?? result.understanding.statements[0];
     const topic = result.understanding.topics[index] ?? result.understanding.topics[0];
     const suggestion = result.suggestions[index] ?? result.suggestions[0];
-    const baseSection: CreateVisualSection = {
-      id: `section-${index + 1}`,
-      label: resolveSectionThemeLabel({
+    const label = dedupeSectionLabel(
+      resolveSectionThemeLabel({
         sourceText: chunk,
         statementLabel: statement?.text,
         topicLabel: topic?.label,
         index,
       }),
+      topic?.label,
+      usedLabels,
+    );
+    const baseSection: CreateVisualSection = {
+      id: `section-${index + 1}`,
+      label,
       sourceText: chunk,
       statementLabel: statement?.text,
       topicLabel: topic?.label,

@@ -214,9 +214,10 @@ describe("analyze workbench progressive disclosure", () => {
     expect(CREATE_VISUAL_FOLLOWUP_COPY.coreTitle).toBe("Kern erkannt");
     expect(CREATE_VISUAL_FOLLOWUP_COPY.graphTitle).toBe("So könnte der Arbeitsstand aussehen");
     expect(CREATE_VISUAL_FOLLOWUP_COPY.confirmTitle).toBe("Soll ich das so übernehmen?");
-    expect(CREATE_VISUAL_FOLLOWUP_COPY.impactTitle).toBe("Passende nächste Schritte");
+    expect(CREATE_VISUAL_FOLLOWUP_COPY.impactTitle).toBe("Was ich nach deiner Bestätigung vorbereiten kann");
     expect(CREATE_VISUAL_FOLLOWUP_COPY.guardrail).toContain("Keine automatische Veröffentlichung");
     expect(CREATE_VISUAL_FOLLOWUP_COPY.freeWriteHint).toContain("Schreib einfach weiter");
+    expect(CREATE_VISUAL_FOLLOWUP_COPY.pendingPreparationHint).toContain("Nach deiner Bestätigung");
     expect(Object.values(CREATE_VISUAL_FOLLOWUP_COPY).join(" ")).not.toContain("Systemprüfung");
   });
 
@@ -280,10 +281,10 @@ describe("analyze workbench progressive disclosure", () => {
     expect(source).toContain("Mögliche Abstimmungsfragen");
     expect(source).toContain("Welche kommunalen Prioritäten sollen zuerst bearbeitet werden?");
     expect(source).toContain("Faktencheck / Deep Search starten");
-    expect(source).toContain("Details zum Originaltext");
-    expect(source).toContain("Sinnabschnitte");
-    expect(source).toContain("Original anzeigen");
-    expect(source).toContain("Passende nächste Schritte");
+    expect(source).not.toContain("Details zum Originaltext");
+    expect(source).toContain("Gelesene Sinnabschnitte");
+    expect(source).toContain("Original oben anzeigen");
+    expect(source).toContain("Was ich nach deiner Bestätigung vorbereiten kann");
     expect(source).toContain("Keine automatische Stimme.");
     expect(source).toContain("Keine automatische Veröffentlichung.");
     expect(source).toContain("Keine automatische Kostenbuchung.");
@@ -296,6 +297,10 @@ describe("analyze workbench progressive disclosure", () => {
     expect(source).toContain("Nächsten Schritt ändern");
     expect(source).toContain("Aussage fehlt");
     expect(source).toContain("Schreib einfach weiter");
+    expect(source).toContain("Antwort fortsetzen");
+    expect(clientSource).toContain("setChatContinuationText");
+    expect(clientSource).toContain("handleContinueConversation");
+    expect(clientSource).not.toContain("details className=\"rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4\">\n          <summary className=\"cursor-pointer text-sm font-semibold text-[rgb(var(--fg))]\">{text.quotasTitle}</summary>");
     expect(source).not.toContain("Für später speichern");
     expect(source).not.toContain("Dossiers & Abstimmungen ansehen");
     expect(source).not.toContain("Zusatzservices (optional)");
@@ -312,6 +317,7 @@ describe("analyze workbench progressive disclosure", () => {
     expect(source).not.toContain("topics.slice(0, 6)");
     expect(source).not.toContain('className="text-cyan-50"');
     expect(source).not.toContain("Abschnitt 1");
+    expect(source).not.toContain("Teil 1");
   });
 
   it("keeps create entry mode selection optional instead of dominant first view", () => {

@@ -559,6 +559,7 @@ export default function CreateClient({
   const [saveMessage, setSaveMessage] = React.useState<string | null>(null);
   const [factcheckMessage, setFactcheckMessage] = React.useState<string | null>(null);
   const [actionNotice, setActionNotice] = React.useState<string | null>(null);
+  const [chatContinuationText, setChatContinuationText] = React.useState("");
   const intelligentFollowupResultRef = React.useRef<HTMLDivElement | null>(null);
 
   React.useEffect(() => {
@@ -721,9 +722,9 @@ export default function CreateClient({
     intelligentFollowupResultRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   }, [hasStarted, intelligentFollowup]);
 
-  const handleStart = React.useCallback(async () => {
+  const startCreateFlow = React.useCallback(async (rawText: string) => {
     if (isStarting) return;
-    const normalizedText = intakeText.trim();
+    const normalizedText = rawText.trim();
     const linkDetection = detectCreateLinkIntake(normalizedText);
     if (!normalizedText) {
       setIntakeError(surfaceTexts.intakeMissingError);
@@ -761,7 +762,7 @@ export default function CreateClient({
       }
 
       const snapshot = buildCreateLightweightFollowupSnapshot({
-        intakeText,
+        intakeText: rawText,
         modeLabel: productModeConfig.label,
         contextAnchorLabel: activeContextAnchor?.label,
         surfaceTexts,
@@ -851,7 +852,6 @@ export default function CreateClient({
     activeContextAnchor?.label,
     activeIntent,
     dossierId,
-    intakeText,
     initialIntakeContext?.sourceLabel,
     isStarting,
     productMode,
@@ -863,6 +863,10 @@ export default function CreateClient({
     surfaceTexts,
     linkClarificationState?.selectedIntentId,
   ]);
+
+  const handleStart = React.useCallback(async () => {
+    await startCreateFlow(intakeText);
+  }, [intakeText, startCreateFlow]);
 
   const handleSaveFollowupAnswer = React.useCallback(() => {
     const normalized = activeFollowupAnswer.trim();
@@ -890,6 +894,21 @@ export default function CreateClient({
     setFactcheckMessage("Prüfmodus geöffnet. Faktencheck / Deep Search startet erst nach deiner weiteren Bestätigung. Keine automatische Kostenbuchung.");
     setActionNotice("Prüfmodus geöffnet. Faktencheck / Deep Search startet erst nach deiner weiteren Bestätigung.");
   }, []);
+
+  const handleContinueConversation = React.useCallback(async () => {
+    const normalizedContinuation = chatContinuationText.trim();
+    if (!normalizedContinuation) {
+      setActionNotice("Schreib kurz, was ich anpassen oder ergänzen soll.");
+      return;
+    }
+
+    const baseText = intakeText.trim();
+    const combinedText = baseText ? `${baseText}\n\n${normalizedContinuation}` : normalizedContinuation;
+    setChatContinuationText("");
+    setIntakeText(combinedText);
+    setUnderstandingConfirmed(false);
+    await startCreateFlow(combinedText);
+  }, [chatContinuationText, intakeText, startCreateFlow]);
 
   const handleIntentAction = React.useCallback(
     (actionIndex: number) => {
@@ -1181,6 +1200,7 @@ export default function CreateClient({
           setIntelligentFollowup(null);
           setUnderstandingConfirmed(false);
           setLinkClarificationState(null);
+          setChatContinuationText("");
           if (!hasStarted) return;
           setFollowupSurface("none");
           setGuidedBridgeConfirmed(modeOption !== "guided");
@@ -1194,6 +1214,7 @@ export default function CreateClient({
           setIntakeText(value);
           if (intakeRestoreInfo) setIntakeRestoreInfo(null);
           if (intakeError) setIntakeError(null);
+          if (actionNotice) setActionNotice(null);
           setLinkClarificationState((current) => {
             if (!current) return null;
             const nextDetection = detectCreateLinkIntake(value);
@@ -1221,6 +1242,7 @@ export default function CreateClient({
           setIntelligentFollowup(null);
           setUnderstandingConfirmed(false);
           setLinkClarificationState(null);
+          setChatContinuationText("");
           if (!anchor) return;
           setProductMode(anchor.mode);
           if (!hasStarted) return;
@@ -1252,6 +1274,23 @@ export default function CreateClient({
         <p className="rounded-xl border border-amber-300/45 bg-amber-500/10 px-3 py-2 text-sm text-amber-100">
           {productModeConfig.minimumInputHint}
         </p>
+      ) : null}
+
+      {showPostInputModules && !showLinkClarification ? (
+        <div className="flex flex-wrap items-center gap-2 text-[11px] text-[rgb(var(--muted))]">
+          <span className="vog-chip">{text.quotasTitle}</span>
+          <span className="vog-chip">{text.tierLabel}: {tierLabel}</span>
+          <span className="vog-chip">{text.creditsLabel}: {formatOperatorNumber(credits, operatorLocale)}</span>
+          {monthlyLimit === null ? (
+            <span className="vog-chip">{text.monthlyLimitLabel}: {text.monthlyLimitUnlimited}</span>
+          ) : (
+            <span className="vog-chip">{text.monthlyLimitLabel}: {formatOperatorNumber(monthlyLimit, operatorLocale)}</span>
+          )}
+          <span className="vog-chip">{text.maxClaimsLabel}: {formatOperatorNumber(maxFinalizeClaims, operatorLocale)}</span>
+          <Link href={contextualReturnHref ?? "/runden"} className="vog-chip">
+            {contextualReturnHref ? surfaceTexts.returnToContextLabel : surfaceTexts.goToRoundsLabel}
+          </Link>
+        </div>
       ) : null}
 
       {showStartChatPreview && followupSnapshot ? (
@@ -1330,6 +1369,10 @@ export default function CreateClient({
             }}
             onSaveForLater={handleSaveWorkstate}
             onStartOptionalService={handleStartFactcheckService}
+            continuationValue={chatContinuationText}
+            onContinuationChange={setChatContinuationText}
+            onContinueConversation={handleContinueConversation}
+            continueConversationDisabled={isStarting || !chatContinuationText.trim()}
           />
         </div>
       ) : null}
@@ -1480,25 +1523,6 @@ export default function CreateClient({
             <p className="mt-3 text-xs text-amber-700 dark:text-amber-300">{selectionInfo}</p>
           ) : null}
         </section>
-      ) : null}
-
-      {showPostInputModules && !showLinkClarification ? (
-        <details className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4">
-          <summary className="cursor-pointer text-sm font-semibold text-[rgb(var(--fg))]">{text.quotasTitle}</summary>
-          <div className="mt-3 flex flex-wrap items-center gap-2 text-[11px] text-[rgb(var(--muted))]">
-            <span className="vog-chip">{text.tierLabel}: {tierLabel}</span>
-            <span className="vog-chip">{text.creditsLabel}: {formatOperatorNumber(credits, operatorLocale)}</span>
-            {monthlyLimit === null ? (
-              <span className="vog-chip">{text.monthlyLimitLabel}: {text.monthlyLimitUnlimited}</span>
-            ) : (
-              <span className="vog-chip">{text.monthlyLimitLabel}: {formatOperatorNumber(monthlyLimit, operatorLocale)}</span>
-            )}
-            <span className="vog-chip">{text.maxClaimsLabel}: {formatOperatorNumber(maxFinalizeClaims, operatorLocale)}</span>
-            <Link href={contextualReturnHref ?? "/runden"} className="vog-chip">
-              {contextualReturnHref ? surfaceTexts.returnToContextLabel : surfaceTexts.goToRoundsLabel}
-            </Link>
-          </div>
-        </details>
       ) : null}
 
       {showPostInputModules && workingState && !showIntelligentFollowup && !showLinkClarification ? (
