@@ -121,8 +121,26 @@ function renderVisualFollowup() {
       factcheckMessage="Optional. Startet erst nach bewusster Bestätigung. Keine automatische Kostenbuchung."
       onConfirm={() => {}}
       onEdit={() => {}}
-      onOpenNewAnlassraum={() => {}}
-      onSaveForLater={() => {}}
+      onPrepareSubmission={() => {}}
+      onRequestEditorialReview={() => {}}
+      onStartOptionalService={() => {}}
+      continuationValue=""
+      onContinuationChange={() => {}}
+      onContinueConversation={() => {}}
+    />,
+  );
+}
+
+function renderVisualFollowupInEditMode() {
+  return renderToStaticMarkup(
+    <CreateVisualFollowup
+      result={FOLLOWUP_RESULT}
+      ctaHref="/dossier?topic=schulwege"
+      showCorrectionComposer
+      onConfirm={() => {}}
+      onEdit={() => {}}
+      onPrepareSubmission={() => {}}
+      onRequestEditorialReview={() => {}}
       onStartOptionalService={() => {}}
       continuationValue=""
       onContinuationChange={() => {}}
@@ -140,8 +158,8 @@ function renderMultiBranchVisualFollowup(isConfirmed = false) {
       factcheckMessage="Optional. Startet erst nach bewusster Bestätigung. Keine automatische Kostenbuchung."
       onConfirm={() => {}}
       onEdit={() => {}}
-      onOpenNewAnlassraum={() => {}}
-      onSaveForLater={() => {}}
+      onPrepareSubmission={() => {}}
+      onRequestEditorialReview={() => {}}
       onStartOptionalService={() => {}}
       continuationValue=""
       onContinuationChange={() => {}}
@@ -204,44 +222,90 @@ describe("create chat-first mobile dialog experience contract", () => {
     expect(texts.followupGuidedTitle).toContain("Ich bereite daraus einen gemeinsamen Arbeitsstand vor");
   });
 
-  it("makes buttons and free writing visible in parallel", () => {
+  it("keeps the pre-confirmation flow to one primary action plus two secondary choices", () => {
     const html = renderVisualFollowup();
 
-    expect(html).toContain("Schreib einfach weiter");
-    expect(html).toContain("Ja, Struktur übernehmen");
-    expect(html).toContain("Arbeitsstand speichern");
-    expect(html).toContain("Faktencheck / Deep Search starten");
+    expect(html).toContain("So übernehmen");
+    expect(html).toContain("Ändern");
+    expect(html).toContain("Redaktionell prüfen lassen");
+    expect((html.match(/btn-primary/g) ?? []).length).toBe(1);
+    expect(html).not.toContain("Arbeitsstand speichern");
+    expect(html).not.toContain("Faktencheck / Deep Search starten");
   });
 
-  it("renders a compact structure overview and only one active branch detail at a time", () => {
+  it("renders a compact understood state before details", () => {
     const html = renderMultiBranchVisualFollowup();
 
-    expect(html).toContain("Du");
-    expect(html).toContain("Dein Beitrag wurde aufgenommen.");
-    expect(html).toContain("Deine Struktur auf einen Blick");
-    expect(html).toContain("Prioritäten");
-    expect(html).toContain("Themencluster");
-    expect(html).toContain("Fragen &amp; Abstimmung");
-    expect(html).toContain("Nächste Schritte");
-    expect(html).toContain("Focus Card");
-    expect(html).toContain("Knapper Bedarf");
-    expect(html).toContain("Wichtigste Frage");
+    expect(html).toContain("Wir haben deinen Beitrag grob verstanden.");
+    expect(html).toContain("Kern");
+    expect(html).toContain("Thema");
+    expect(html).toContain("Noch offen");
     expect(html).toContain("data-mobile-inline-create-actions");
-    expect(html).toContain("role=\"tablist\"");
-    expect(html).toContain("role=\"tab\"");
-    expect(html).toContain("role=\"tabpanel\"");
-    expect(html).toContain("aria-controls=\"create-overview-panel-clusters\"");
-    expect((html.match(/data-focus-card-branch-selector/g) ?? [])).toHaveLength(3);
-    expect((html.match(/data-focus-card-detail/g) ?? [])).toHaveLength(1);
+    expect(html).toContain("Details ansehen");
+    expect(html).not.toContain("Korrektur oder Ergänzung");
+    expect(html).not.toContain("Vorgeschlagener Arbeitsstand");
+    expect(html).not.toContain("Gelesene Sinnabschnitte");
+    expect(html).not.toContain("Original oben anzeigen");
+    expect(html).not.toContain("Kompakte Details");
   });
 
-  it("switches the sticky mobile action flow after confirmation", () => {
+  it("only opens the correction composer after edit mode is active", () => {
+    const defaultHtml = renderVisualFollowup();
+    const editHtml = renderVisualFollowupInEditMode();
+
+    expect(defaultHtml).not.toContain("Korrektur oder Ergänzung");
+    expect(defaultHtml).not.toContain("Antwort fortsetzen");
+    expect(editHtml).toContain("Korrektur oder Ergänzung");
+    expect(editHtml).toContain("Antwort fortsetzen");
+  });
+
+  it("shows the next-step choices only after confirmation and keeps Deep Search secondary", () => {
     const html = renderMultiBranchVisualFollowup(true);
 
-    expect(html).toContain("Nächster Schritt");
-    expect(html).toContain("Die wichtigste Aktion bleibt direkt unter dem aktiven Arbeitsstand erreichbar.");
-    expect(html).toContain("Thema öffnen");
-    expect(html).toContain("Prüfen");
+    expect(html).toContain("Was möchtest du daraus machen?");
+    expect(html).toContain("Beitrag einreichen");
+    expect(html).toContain("Dossier ergänzen");
+    expect(html).toContain("Beteiligungsfrage vorbereiten");
+    expect(html).toContain("Redaktionelle Prüfung anfragen");
+    expect(html).toContain("Faktencheck / Deep Search");
+  });
+
+  it("surfaces the place clarification prominently for vague local references", () => {
+    const html = renderToStaticMarkup(
+      <CreateVisualFollowup
+        result={{
+          ...FOLLOWUP_RESULT,
+          sourceText: "Bei uns in der Stadt ist der Schulweg morgens gefährlich.",
+          understanding: {
+            ...FOLLOWUP_RESULT.understanding,
+            openQuestion: "Auf welchen Ort, Bezirk oder welche Kommune bezieht sich dein Hinweis?",
+          },
+        }}
+        ctaHref="/dossier?topic=schulwege"
+        onConfirm={() => {}}
+        onEdit={() => {}}
+        onPrepareSubmission={() => {}}
+        onRequestEditorialReview={() => {}}
+        onStartOptionalService={() => {}}
+        continuationValue=""
+        onContinuationChange={() => {}}
+        onContinueConversation={() => {}}
+      />,
+    );
+
+    expect(html).toContain("Um welchen Ort geht es?");
+    expect(html).toContain("Ort ergänzen");
+    expect(html).toContain("Ort später ergänzen");
+  });
+
+  it("shows the correction composer only after the user chooses edit", () => {
+    const compactHtml = renderVisualFollowup();
+    const editHtml = renderVisualFollowupInEditMode();
+
+    expect(compactHtml).not.toContain("Korrektur oder Ergänzung");
+    expect(compactHtml).not.toContain("Antwort fortsetzen");
+    expect(editHtml).toContain("Korrektur oder Ergänzung");
+    expect(editHtml).toContain("Antwort fortsetzen");
   });
 
   it("keeps the link flow honest about non-automatic evaluation", () => {
@@ -262,9 +326,13 @@ describe("create chat-first mobile dialog experience contract", () => {
     expect(html).not.toContain("sourceHints");
   });
 
-  it("keeps the mobile follow-up layout single-column instead of mini-card grids", () => {
+  it("keeps the mobile follow-up layout single-column with details collapsed by default", () => {
     const followupSource = readFileSync(
       resolve(process.cwd(), "src/features/create/CreateVisualFollowup.tsx"),
+      "utf8",
+    );
+    const clientSource = readFileSync(
+      resolve(process.cwd(), "src/app/create/CreateClient.tsx"),
       "utf8",
     );
     const linkClarificationSource = readFileSync(
@@ -272,15 +340,18 @@ describe("create chat-first mobile dialog experience contract", () => {
       "utf8",
     );
 
-    expect(followupSource).not.toContain("lg:grid-cols-2");
-    expect(followupSource).not.toContain("min-w-[248px]");
-    expect(followupSource).toContain("Mobile-first als Tabs mit aktiver Karte");
+    expect(followupSource).toContain("Details ansehen");
+    expect(followupSource).toContain("PlaceClarificationPanel");
+    expect(followupSource).toContain("StructureProposalPanel");
+    expect(followupSource).toContain("NextStepPanel");
+    expect(followupSource).toContain("data-mobile-compact-details");
     expect(followupSource).toContain("data-mobile-inline-create-actions");
-    expect(followupSource).toContain("resolveNextIndexFromKey");
-    expect(followupSource).toContain("aria-selected={isActive}");
-    expect(followupSource).not.toContain("aria-pressed={isActive}");
-    expect(followupSource).not.toContain("data-mobile-sticky-create-actions");
-    expect(followupSource).not.toContain("fixed inset-x-3");
-    expect(linkClarificationSource).not.toContain("sm:grid-cols-2");
+    expect(followupSource).toContain("const [detailsOpen, setDetailsOpen] = React.useState(false);");
+    expect(followupSource).toContain("{detailsOpen ? (");
+    expect(followupSource).toContain("aria-expanded={detailsOpen}");
+    expect(followupSource).not.toContain("Arbeitsstand speichern");
+    expect(clientSource).toContain("CreateInlineAnalysisScene");
+    expect(clientSource).toContain("Prüfmodus jetzt im selben Arbeitsraum geöffnet.");
+    expect(linkClarificationSource).not.toContain("sourceHints");
   });
 });

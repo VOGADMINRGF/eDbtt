@@ -33,7 +33,7 @@ describe("e150 verification presentation contract", () => {
     expect(view.lane).toBe("standard");
     expect(view.verificationMode).toBe("none");
     expect(view.verificationLabel).toBe("analysiert");
-    expect(view.researchUsed).toBe("none");
+    expect(view.researchUsed).toBe("deep_search");
     expect(view.sealGranted).toBe(false);
     expect(view.isVerified).toBe(false);
   });
@@ -54,6 +54,22 @@ describe("e150 verification presentation contract", () => {
     expect(view.workflowLabel).toBe("in Warteschlange");
     expect(view.sealLabel).toBe("Siegel ausstehend");
     expect(view.isVerified).toBe(false);
+  });
+
+  it("labels material grounding separately and preserves gemini research context", () => {
+    const view = resolveVerificationPresentationView({
+      lane: "material_grounding",
+      verificationMode: "precheck",
+      researchUsed: "gemini",
+      sealEligible: false,
+      sealGranted: false,
+    });
+
+    expect(view.lane).toBe("material_grounding");
+    expect(view.laneLabel).toBe("Material-Grounding-Lane");
+    expect(view.verificationLabel).toBe("geprueft");
+    expect(view.researchUsed).toBe("gemini");
+    expect(view.researchLabel).toBe("Gemini Research");
   });
 
   it("marks verifiziert only for sealed lane with seal granted", () => {

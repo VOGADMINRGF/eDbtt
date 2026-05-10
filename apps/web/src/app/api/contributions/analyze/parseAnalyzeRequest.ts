@@ -29,6 +29,20 @@ export const AnalyzeRequestSchemaV2 = z
     maxClaims: z.number().int().min(1).max(30).optional(),
     detailPreset: z.number().int().min(1).max(4).optional(),
     evidenceItems: z.array(z.any()).optional(),
+    sourceUrls: z.array(z.string().min(1)).optional(),
+    uploadIds: z.array(z.string().min(1)).optional(),
+    materialItems: z.array(z.record(z.string(), z.any())).optional(),
+    researchMode: z
+      .preprocess(
+        (value) => {
+          if (typeof value !== "string") return value;
+          return value.trim().toLowerCase();
+        },
+        z.enum(["none", "gemini", "gpt_deepsearch", "auto"]).optional(),
+      )
+      .optional(),
+    allowDeepSearch: z.boolean().optional(),
+    researchConfirmed: z.boolean().optional(),
     stream: z.boolean().optional(),
     live: z.boolean().optional(),
 
@@ -78,7 +92,12 @@ export const AnalyzeRequestSchemaV2 = z
   .superRefine((val, ctx) => {
     if (val.test === "ping") return;
     const candidate = (val.textPrepared ?? val.preparedText ?? val.text ?? val.textOriginal ?? "").trim();
-    if (!candidate) {
+    const hasMaterialInput =
+      (Array.isArray(val.sourceUrls) && val.sourceUrls.length > 0) ||
+      (Array.isArray(val.uploadIds) && val.uploadIds.length > 0) ||
+      (Array.isArray(val.materialItems) && val.materialItems.length > 0) ||
+      (Array.isArray(val.evidenceItems) && val.evidenceItems.length > 0);
+    if (!candidate && !hasMaterialInput) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message: "Feld 'text' ist erforderlich.",
@@ -86,7 +105,7 @@ export const AnalyzeRequestSchemaV2 = z
       });
       return;
     }
-    if (candidate.length < 10) {
+    if (candidate.length > 0 && candidate.length < 10 && !hasMaterialInput) {
       ctx.addIssue({
         code: z.ZodIssueCode.too_small,
         minimum: 10,

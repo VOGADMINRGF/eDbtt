@@ -4,10 +4,20 @@ export type SourceGroundingTaskType = "analyze" | "media" | "guided";
 
 export type SourceGroundingInventoryItem = {
   id: string;
-  kind: "upload_document" | "web_reference" | "free_note";
+  kind:
+    | "upload_document"
+    | "web_reference"
+    | "free_note"
+    | "youtube_transcript"
+    | "pdf_document"
+    | "material_summary";
   label: string;
   text: string | null;
   url: string | null;
+  pageRef?: string | null;
+  timestampRef?: string | null;
+  extractedBy?: string | null;
+  extractionStatus?: "full" | "partial" | "none";
 };
 
 export type SourceGroundingAudit = {
@@ -17,6 +27,15 @@ export type SourceGroundingAudit = {
     uploadDocuments: number;
     webReferences: number;
     freeNotes: number;
+    youtubeTranscripts: number;
+    pdfDocuments: number;
+    materialSummaries: number;
+  };
+  materialExtraction: {
+    total: number;
+    complete: number;
+    partial: number;
+    none: number;
   };
   documentGroundingPass: {
     required: boolean;
@@ -106,6 +125,10 @@ function inferKind(input: Record<string, unknown>, url: string | null): SourceGr
       input.mimetype,
   );
 
+  if (marker.includes("youtube_transcript")) return "youtube_transcript";
+  if (marker.includes("pdf_document")) return "pdf_document";
+  if (marker.includes("material_summary")) return "material_summary";
+
   if (hasUploadKey || marker.includes("upload") || marker.includes("document") || marker.includes("file")) {
     return "upload_document";
   }
@@ -155,6 +178,13 @@ function sanitizeEvidenceItems(input: unknown): SourceGroundingInventoryItem[] {
         label,
         text,
         url,
+        pageRef: pickFirstText(raw, ["pageRef"]),
+        timestampRef: pickFirstText(raw, ["timestampRef"]),
+        extractedBy: pickFirstText(raw, ["extractedBy"]),
+        extractionStatus:
+          raw.extractionStatus === "full" || raw.extractionStatus === "partial" || raw.extractionStatus === "none"
+            ? raw.extractionStatus
+            : null,
       };
     })
     .filter((item): item is SourceGroundingInventoryItem => Boolean(item));
@@ -311,7 +341,14 @@ export function buildSourceGroundingContext(input: {
   const taskType = normalizeTaskType(input.analysisMode);
   const inventory = sanitizeEvidenceItems(input.evidenceItems);
   const documents = inventory
-    .filter((item) => item.kind === "upload_document" && item.text)
+    .filter(
+      (item) =>
+        (item.kind === "upload_document" ||
+          item.kind === "pdf_document" ||
+          item.kind === "youtube_transcript" ||
+          item.kind === "material_summary") &&
+        item.text,
+    )
     .map((item) => ({ id: item.id, label: item.label, text: item.text as string }));
   const web = inventory
     .filter((item) => item.kind === "web_reference")
@@ -327,11 +364,31 @@ export function buildSourceGroundingContext(input: {
   const endCoverage = documents.every((doc) => buildCoverageExcerpts(doc.text).end.length > 0);
 
   const contextRotRisk: "low" | "medium" | "high" =
-    documents.length === 0 && inventory.some((item) => item.kind === "upload_document")
+    documents.length === 0 &&
+    inventory.some(
+      (item) =>
+        item.kind === "upload_document" ||
+        item.kind === "pdf_document" ||
+        item.kind === "youtube_transcript",
+    )
       ? "high"
       : documents.length > 0 && !middleCoverage
         ? "medium"
         : "low";
+  const materialItems = inventory.filter((item) =>
+    item.kind === "upload_document" ||
+    item.kind === "pdf_document" ||
+    item.kind === "youtube_transcript" ||
+    item.kind === "material_summary",
+  );
+  const extractionBuckets = materialItems.reduce(
+    (acc, item) => {
+      const bucket = item.extractionStatus ?? "none";
+      acc[bucket] += 1;
+      return acc;
+    },
+    { full: 0, partial: 0, none: 0 },
+  );
 
   return {
     taskType,
@@ -349,9 +406,23 @@ export function buildSourceGroundingContext(input: {
         uploadDocuments: inventory.filter((item) => item.kind === "upload_document").length,
         webReferences: inventory.filter((item) => item.kind === "web_reference").length,
         freeNotes: inventory.filter((item) => item.kind === "free_note").length,
+        youtubeTranscripts: inventory.filter((item) => item.kind === "youtube_transcript").length,
+        pdfDocuments: inventory.filter((item) => item.kind === "pdf_document").length,
+        materialSummaries: inventory.filter((item) => item.kind === "material_summary").length,
+      },
+      materialExtraction: {
+        total: materialItems.length,
+        complete: extractionBuckets.full,
+        partial: extractionBuckets.partial,
+        none: extractionBuckets.none,
       },
       documentGroundingPass: {
-        required: inventory.some((item) => item.kind === "upload_document"),
+        required: inventory.some(
+          (item) =>
+            item.kind === "upload_document" ||
+            item.kind === "pdf_document" ||
+            item.kind === "youtube_transcript",
+        ),
         documentsWithText: documents.length,
         startCoverage,
         middleCoverage,

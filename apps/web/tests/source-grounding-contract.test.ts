@@ -89,4 +89,57 @@ describe("source grounding contract", () => {
     expect(audit.noSourceBluffing.reason).toBe("uploads_present_but_no_document_grounded_claims");
     expect(audit.requiresManualReview).toBe(true);
   });
+
+  it("tracks material extraction coverage for youtube transcripts and pdf pages", () => {
+    const context = buildSourceGroundingContext({
+      analysisMode: "media",
+      evidenceItems: [
+        {
+          kind: "youtube_transcript",
+          id: "yt-1",
+          label: "Stadtrat Livestream",
+          text: "Im ersten Teil wird die Haushaltslage erläutert.",
+          timestampRef: "00:03:12",
+          extractedBy: "notebooklm_adapter_mock",
+          extractionStatus: "partial",
+        },
+        {
+          kind: "pdf_document",
+          id: "pdf-1",
+          title: "Haushaltsbericht",
+          documentText: "Auf Seite 4 werden die Investitionskorridore präzisiert.",
+          pageRef: "S. 4",
+          extractedBy: "notebooklm_adapter_mock",
+          extractionStatus: "full",
+        },
+        {
+          kind: "material_summary",
+          id: "summary-1",
+          label: "Materialzusammenfassung",
+          text: "Zusammenfassung aus Video und Bericht.",
+          extractedBy: "notebooklm_adapter_mock",
+          extractionStatus: "partial",
+        },
+      ],
+    });
+
+    const audit = finalizeSourceGroundingAudit({
+      context,
+      result: {
+        claims: [{ text: "Der Bericht präzisiert Investitionskorridore auf Seite 4." }],
+        notes: [{ text: "Das Video liefert nur eine teilweise Vorstrukturierung." }],
+        report: { keyConflicts: [] },
+      },
+    });
+
+    expect(audit.sourceInventory.youtubeTranscripts).toBe(1);
+    expect(audit.sourceInventory.pdfDocuments).toBe(1);
+    expect(audit.sourceInventory.materialSummaries).toBe(1);
+    expect(audit.materialExtraction.total).toBe(3);
+    expect(audit.materialExtraction.complete).toBe(1);
+    expect(audit.materialExtraction.partial).toBe(2);
+    expect(audit.materialExtraction.none).toBe(0);
+    expect(audit.documentGroundingPass.required).toBe(true);
+    expect(audit.documentGroundingPass.documentsWithText).toBeGreaterThanOrEqual(2);
+  });
 });

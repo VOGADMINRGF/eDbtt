@@ -22,7 +22,8 @@ function normalizeJourneyHint(value?: string | null): E150JourneyKey | null {
     normalized === "analyze" ||
     normalized === "media" ||
     normalized === "guided" ||
-    normalized === "sealed_factcheck"
+    normalized === "sealed_factcheck" ||
+    normalized === "material_grounding"
   ) {
     return normalized as E150JourneyKey;
   }

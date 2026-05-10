@@ -58,6 +58,8 @@ export type CreateComposerHeadlineText = {
 export type CreateComposerTexts = {
   headline: CreateComposerHeadlineText;
   modeSwitchAriaLabel: string;
+  alternateModeLabel: string;
+  alternateModeLead: string;
   inputLabel: string;
   attachLabel: string;
   attachAria: string;
@@ -67,6 +69,7 @@ export type CreateComposerTexts = {
   voiceStopLabel: string;
   contextEntryTitle: string;
   orientationTitle: string;
+  attachmentsDisclosureLabel: (count: number) => string;
   attachmentsSelected: (files: File[]) => string;
   attachmentsTooMany: (maxFiles: number) => string;
   attachmentsTooLarge: string;
@@ -307,6 +310,8 @@ const CREATE_SURFACE_BUNDLES: Record<CreateSurfaceLocale, CreateSurfaceLocaleBun
         line2Tail: "",
       },
       modeSwitchAriaLabel: "Modusauswahl",
+      alternateModeLabel: "Anderer Arbeitsmodus",
+      alternateModeLead: "Wenn du statt eines Beitrags etwas prüfen oder entwerfen willst, kannst du hier umschalten.",
       inputLabel: "Beitrag",
       attachLabel: "Anhang",
       attachAria: "Anhang hinzufügen",
@@ -316,6 +321,7 @@ const CREATE_SURFACE_BUNDLES: Record<CreateSurfaceLocale, CreateSurfaceLocaleBun
       voiceStopLabel: "Stoppen",
       contextEntryTitle: "Kontext (optional)",
       orientationTitle: "Hilfebereich",
+      attachmentsDisclosureLabel: (count) => `Anhänge anzeigen (${count})`,
       attachmentsSelected: (files) =>
         `${files.length} Anhang${files.length === 1 ? "" : "e"} ausgewählt: ${files
           .map((file) => file.name)
@@ -554,6 +560,8 @@ const CREATE_SURFACE_BUNDLES: Record<CreateSurfaceLocale, CreateSurfaceLocaleBun
         line2Tail: "!",
       },
       modeSwitchAriaLabel: "Mode selection",
+      alternateModeLabel: "Different mode",
+      alternateModeLead: "Switch here if you want to review a claim or sketch a draft instead of submitting a contribution.",
       inputLabel: "Contribution",
       attachLabel: "Attach",
       attachAria: "Add attachment",
@@ -563,6 +571,7 @@ const CREATE_SURFACE_BUNDLES: Record<CreateSurfaceLocale, CreateSurfaceLocaleBun
       voiceStopLabel: "Stop",
       contextEntryTitle: "Context (optional)",
       orientationTitle: "Help",
+      attachmentsDisclosureLabel: (count) => `Show attachments (${count})`,
       attachmentsSelected: (files) =>
         `${files.length} attachment${files.length === 1 ? "" : "s"} selected: ${files
           .map((file) => file.name)

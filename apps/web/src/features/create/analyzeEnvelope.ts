@@ -107,6 +107,7 @@ function normalizeSourceGroundingAudit(value: unknown): SourceGroundingAudit | n
   if (!isRecord(value)) return null;
   const taskType = asSourceTaskType(value.taskType);
   const sourceInventory = isRecord(value.sourceInventory) ? value.sourceInventory : null;
+  const materialExtraction = isRecord(value.materialExtraction) ? value.materialExtraction : null;
   const documentGroundingPass = isRecord(value.documentGroundingPass) ? value.documentGroundingPass : null;
   const externalContextPass = isRecord(value.externalContextPass) ? value.externalContextPass : null;
   const synthesis = isRecord(value.synthesis) ? value.synthesis : null;
@@ -139,6 +140,18 @@ function normalizeSourceGroundingAudit(value: unknown): SourceGroundingAudit | n
       webReferences:
         typeof sourceInventory.webReferences === "number" ? sourceInventory.webReferences : 0,
       freeNotes: typeof sourceInventory.freeNotes === "number" ? sourceInventory.freeNotes : 0,
+      youtubeTranscripts:
+        typeof sourceInventory.youtubeTranscripts === "number" ? sourceInventory.youtubeTranscripts : 0,
+      pdfDocuments:
+        typeof sourceInventory.pdfDocuments === "number" ? sourceInventory.pdfDocuments : 0,
+      materialSummaries:
+        typeof sourceInventory.materialSummaries === "number" ? sourceInventory.materialSummaries : 0,
+    },
+    materialExtraction: {
+      total: typeof materialExtraction?.total === "number" ? materialExtraction.total : 0,
+      complete: typeof materialExtraction?.complete === "number" ? materialExtraction.complete : 0,
+      partial: typeof materialExtraction?.partial === "number" ? materialExtraction.partial : 0,
+      none: typeof materialExtraction?.none === "number" ? materialExtraction.none : 0,
     },
     documentGroundingPass: {
       required: Boolean(documentGroundingPass.required),
@@ -184,6 +197,7 @@ function asResearchUsed(value: unknown): ResearchUsed | null {
   if (
     value === "none" ||
     value === "lite" ||
+    value === "gemini" ||
     value === "search" ||
     value === "deep_search"
   ) {
@@ -198,7 +212,7 @@ function asVerificationLabel(value: unknown): UserFacingVerificationLabel | null
 }
 
 function asLane(value: unknown): E150Lane | null {
-  if (value === "standard" || value === "sealed_factcheck") return value;
+  if (value === "standard" || value === "sealed_factcheck" || value === "material_grounding") return value;
   return null;
 }
 

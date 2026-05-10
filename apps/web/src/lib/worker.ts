@@ -5,6 +5,15 @@ const isDev = process.env.NODE_ENV !== "production";
  * NICHT der BullMQ-Worker!
  */
 
+type WorkerLane = "standard" | "sealed_factcheck" | "material_grounding";
+type WorkerJourneyProfile =
+  | "analyze"
+  | "media"
+  | "guided"
+  | "sealed_factcheck"
+  | "material_grounding";
+type WorkerResearchUsed = "none" | "lite" | "gemini" | "search" | "deep_search";
+
 type EnqueuePayload = {
   contributionId?: string;
   text?: string;
@@ -22,7 +31,7 @@ type EnqueueResponse =
       status?: string;
       message?: string;
       verificationMode?: "none" | "precheck" | "sealed";
-      researchUsed?: "none" | "lite" | "search" | "deep_search";
+      researchUsed?: WorkerResearchUsed;
       sealEligible?: boolean;
       sealGranted?: boolean;
       verificationLabel?: "analysiert" | "geprueft" | "verifiziert";
@@ -30,8 +39,8 @@ type EnqueueResponse =
       workflowLabel?: string;
       sealStatus?: string;
       meta?: {
-        lane?: "standard" | "sealed_factcheck";
-        journeyProfile?: "analyze" | "media" | "guided" | "sealed_factcheck";
+        lane?: WorkerLane;
+        journeyProfile?: WorkerJourneyProfile;
       };
     }
   | { ok: false; reason?: string; code?: string; message?: string };
@@ -46,19 +55,19 @@ type StatusResponse =
         tokensUsed?: number;
         durationMs?: number;
         verificationMode?: "none" | "precheck" | "sealed";
-        researchUsed?: "none" | "lite" | "search" | "deep_search";
+        researchUsed?: WorkerResearchUsed;
         sealEligible?: boolean;
         sealGranted?: boolean;
         verificationLabel?: "analysiert" | "geprueft" | "verifiziert";
         workflowStage?: "started" | "queued" | "in_progress" | "completed";
         workflowLabel?: string;
         sealStatus?: string;
-        lane?: "standard" | "sealed_factcheck";
-        journeyProfile?: "analyze" | "media" | "guided" | "sealed_factcheck";
+        lane?: WorkerLane;
+        journeyProfile?: WorkerJourneyProfile;
       };
       claims: any[];
       verificationMode?: "none" | "precheck" | "sealed";
-      researchUsed?: "none" | "lite" | "search" | "deep_search";
+      researchUsed?: WorkerResearchUsed;
       sealEligible?: boolean;
       sealGranted?: boolean;
       verificationLabel?: "analysiert" | "geprueft" | "verifiziert";
@@ -66,8 +75,8 @@ type StatusResponse =
       workflowLabel?: string;
       sealStatus?: string;
       meta?: {
-        lane?: "standard" | "sealed_factcheck";
-        journeyProfile?: "analyze" | "media" | "guided" | "sealed_factcheck";
+        lane?: WorkerLane;
+        journeyProfile?: WorkerJourneyProfile;
       };
     }
   | { ok: false; reason?: string; code?: string; message?: string };

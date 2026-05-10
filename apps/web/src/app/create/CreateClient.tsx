@@ -55,7 +55,10 @@ import SharedCreateComposer from "@/features/create/SharedCreateComposer";
 import {
   type CreateIntelligentFollowupResult,
 } from "@/features/create/intelligentFollowupContract";
-import CreateVisualFollowup from "@/features/create/CreateVisualFollowup";
+import CreateVisualFollowup, {
+  CreateStructureOverview,
+  deriveCreateStructureOverviewMetrics,
+} from "@/features/create/CreateVisualFollowup";
 import CreateLinkIntakeClarification from "@/features/create/CreateLinkIntakeClarification";
 import {
   buildCreateLinkIntakeMeta,
@@ -182,7 +185,7 @@ type CreatePrimaryIntakeSnapshot = {
 type CreateFollowupSurface = "none" | "lightweight" | "analysis";
 export type { CreateFollowupSurface };
 
-type CreateSaveState = "idle" | "saving" | "saved" | "error" | "unavailable";
+type CreateReviewRequestState = "idle" | "saving" | "saved" | "error";
 
 type CreateLinkClarificationState = {
   detection: CreateLinkIntakeDetection;
@@ -248,6 +251,129 @@ function CreateAssistantStatusBubble(props: {
         </div>
       </div>
     </div>
+  );
+}
+
+function CreateInlineAnalysisScene(props: {
+  productMode: CreateProductMode;
+  notice?: string | null;
+  children: React.ReactNode;
+}) {
+  const heading =
+    props.productMode === "media"
+      ? { lead: "Beitrag", tail: "prüfen" }
+      : props.productMode === "guided"
+        ? { lead: "Entwurf", tail: "ausarbeiten" }
+        : { lead: "Statement", tail: "analysieren" };
+  const stepper = [
+    {
+      id: "input",
+      label: "Eingabe",
+      lead: "aufgenommen",
+      state: "done",
+    },
+    {
+      id: "classification",
+      label: "Einordnung",
+      lead: "geordnet",
+      state: "done",
+    },
+    {
+      id: "analysis",
+      label: "Analyse",
+      lead: props.productMode === "media" ? "offen" : "aktiv",
+      state: "active",
+    },
+    {
+      id: "factcheck",
+      label: "Prüfen",
+      lead: "optional",
+      state: "upcoming",
+    },
+    {
+      id: "handoff",
+      label: "Weiterführen",
+      lead: "danach",
+      state: "upcoming",
+    },
+  ] as const;
+
+  return (
+    <section className="space-y-4 rounded-[2rem] border border-cyan-300/18 bg-[linear-gradient(180deg,rgba(9,18,37,0.98),rgba(8,17,34,0.95))] p-4 shadow-[0_24px_56px_rgba(2,6,23,0.24)] md:p-5">
+      <div className="space-y-3">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-cyan-200/75">Analyse-Szene</p>
+            <h2 className="mt-1 text-2xl font-semibold text-white sm:text-[2rem]">
+              <span className="bg-gradient-to-r from-sky-400 via-cyan-300 to-emerald-300 bg-clip-text text-transparent">
+                {heading.lead}
+              </span>{" "}
+              {heading.tail}
+            </h2>
+            <p className="mt-2 max-w-3xl text-sm leading-relaxed text-slate-300">
+              Prüfmodus jetzt im selben Arbeitsraum geöffnet. Analyse, Quellenbindung und optionaler Faktencheck bleiben ein durchgehender nächster Schritt statt ein separater Abzweig.
+            </p>
+          </div>
+          <span className="rounded-full border border-cyan-300/20 bg-cyan-500/[0.08] px-3 py-1 text-[11px] font-semibold text-cyan-100">
+            Kein Auto-Start nach außen
+          </span>
+        </div>
+
+        <div className="overflow-x-auto pb-1">
+          <div className="flex min-w-max items-center gap-3">
+            {stepper.map((stage, index) => {
+              const isDone = stage.state === "done";
+              const isActive = stage.state === "active";
+              return (
+                <React.Fragment key={stage.id}>
+                  <div
+                    className={`flex min-w-[9rem] items-center gap-3 rounded-full border px-3 py-2 ${
+                      isActive
+                        ? "border-cyan-300/40 bg-cyan-500/[0.12]"
+                        : isDone
+                          ? "border-emerald-300/35 bg-emerald-500/[0.1]"
+                          : "border-white/10 bg-white/[0.03]"
+                    }`}
+                  >
+                    <span
+                      className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full border text-[11px] font-semibold ${
+                        isActive
+                          ? "border-cyan-300/60 text-cyan-100"
+                          : isDone
+                            ? "border-emerald-300/60 text-emerald-100"
+                            : "border-slate-400/35 text-slate-300"
+                      }`}
+                    >
+                      {isDone ? "✓" : index + 1}
+                    </span>
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-white">{stage.label}</p>
+                      <p className="text-[11px] text-slate-400">{stage.lead}</p>
+                    </div>
+                  </div>
+                  {index < stepper.length - 1 ? (
+                    <span
+                      aria-hidden="true"
+                      className="h-px w-8 shrink-0 bg-gradient-to-r from-cyan-400/45 to-emerald-300/25"
+                    />
+                  ) : null}
+                </React.Fragment>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
+      {props.notice ? (
+        <div className="rounded-2xl border border-cyan-300/18 bg-cyan-500/[0.08] px-4 py-3 text-sm leading-relaxed text-cyan-100">
+          {props.notice}
+        </div>
+      ) : null}
+
+      <div className="rounded-[1.75rem] border border-white/8 bg-[rgb(var(--bg))] p-1.5">
+        {props.children}
+      </div>
+    </section>
   );
 }
 
@@ -555,12 +681,15 @@ export default function CreateClient({
   });
   const [understandingConfirmed, setUnderstandingConfirmed] = React.useState<boolean>(false);
   const [savedDraftId, setSavedDraftId] = React.useState<string | null>(null);
-  const [saveState, setSaveState] = React.useState<CreateSaveState>("idle");
-  const [saveMessage, setSaveMessage] = React.useState<string | null>(null);
+  const [reviewRequestState, setReviewRequestState] = React.useState<CreateReviewRequestState>("idle");
+  const [reviewRequestMessage, setReviewRequestMessage] = React.useState<string | null>(null);
   const [factcheckMessage, setFactcheckMessage] = React.useState<string | null>(null);
   const [actionNotice, setActionNotice] = React.useState<string | null>(null);
   const [chatContinuationText, setChatContinuationText] = React.useState("");
+  const [showFollowupCorrectionComposer, setShowFollowupCorrectionComposer] = React.useState(false);
   const intelligentFollowupResultRef = React.useRef<HTMLDivElement | null>(null);
+  const analysisSceneRef = React.useRef<HTMLDivElement | null>(null);
+  const [analysisSceneMode, setAnalysisSceneMode] = React.useState<CreateProductMode | null>(null);
 
   React.useEffect(() => {
     if (intakeHydratedRef.current) return;
@@ -740,9 +869,10 @@ export default function CreateClient({
         : null;
       setIntakeRestoreInfo(null);
       setIntakeError(null);
-      setSaveState("idle");
-      setSaveMessage(null);
+      setReviewRequestState("idle");
+      setReviewRequestMessage(null);
       setFactcheckMessage(null);
+      setShowFollowupCorrectionComposer(false);
 
       if (linkDetection.hasLink && linkDetection.mostlyLinkOnly) {
         setLinkClarificationState((current) => ({
@@ -836,6 +966,7 @@ export default function CreateClient({
       const nextFollowupSurface =
         productMode === "analyze" ? "none" : resolveFollowupSurfaceOnStart(productMode);
       setFollowupSurface(nextFollowupSurface);
+      setAnalysisSceneMode(nextFollowupSurface === "analysis" ? productMode : null);
       if (nextFollowupSurface === "analysis") {
         setAnalysisAutoRunToken((current) => current + 1);
       }
@@ -890,6 +1021,7 @@ export default function CreateClient({
 
   const handleStartFactcheckService = React.useCallback(() => {
     setFollowupSurface("analysis");
+    setAnalysisSceneMode("media");
     setAnalysisAutoRunToken((current) => current + 1);
     setFactcheckMessage("Prüfmodus geöffnet. Faktencheck / Deep Search startet erst nach deiner weiteren Bestätigung. Keine automatische Kostenbuchung.");
     setActionNotice("Prüfmodus geöffnet. Faktencheck / Deep Search startet erst nach deiner weiteren Bestätigung.");
@@ -907,8 +1039,20 @@ export default function CreateClient({
     setChatContinuationText("");
     setIntakeText(combinedText);
     setUnderstandingConfirmed(false);
+    setShowFollowupCorrectionComposer(false);
     await startCreateFlow(combinedText);
   }, [chatContinuationText, intakeText, startCreateFlow]);
+
+  const handleSkipPlaceClarification = React.useCallback(async () => {
+    const normalizedContinuation = "Ort später ergänzen.";
+    const baseText = intakeText.trim();
+    const combinedText = baseText ? `${baseText}\n\n${normalizedContinuation}` : normalizedContinuation;
+    setChatContinuationText("");
+    setIntakeText(combinedText);
+    setUnderstandingConfirmed(false);
+    setShowFollowupCorrectionComposer(false);
+    await startCreateFlow(combinedText);
+  }, [intakeText, startCreateFlow]);
 
   const handleIntentAction = React.useCallback(
     (actionIndex: number) => {
@@ -920,6 +1064,7 @@ export default function CreateClient({
         if (actionIndex === 1) {
           setProductMode("media");
           setFollowupSurface("analysis");
+          setAnalysisSceneMode("media");
           setAnalysisAutoRunToken((current) => current + 1);
           triggerActionNotice("Prüfweg wird geöffnet.");
           return;
@@ -937,6 +1082,7 @@ export default function CreateClient({
       if (activeIntent === "check") {
         if (actionIndex === 0) {
           setFollowupSurface("analysis");
+          setAnalysisSceneMode("media");
           setAnalysisAutoRunToken((current) => current + 1);
           triggerActionNotice("Dossier-Weiterführung wird als Prüfstand vorbereitet.");
           return;
@@ -953,6 +1099,7 @@ export default function CreateClient({
           return;
         }
         setFollowupSurface("analysis");
+        setAnalysisSceneMode("media");
         setAnalysisAutoRunToken((current) => current + 1);
         triggerActionNotice("Prüfbericht wird vorbereitet.");
         return;
@@ -1042,6 +1189,15 @@ export default function CreateClient({
     productMode,
     guidedBridgeConfirmed,
   });
+  React.useEffect(() => {
+    if (!showAnalyzeWorkspace) return;
+    const node = analysisSceneRef.current;
+    if (!node) return;
+    window.requestAnimationFrame(() => {
+      node.scrollIntoView({ behavior: "smooth", block: "start" });
+      node.focus({ preventScroll: true });
+    });
+  }, [analysisAutoRunToken, showAnalyzeWorkspace]);
   const workspaceInitialText =
     productMode === "guided"
       ? buildGuidedWorkspaceText({
@@ -1084,20 +1240,28 @@ export default function CreateClient({
         suggestion.kind === "anlassraum" ||
         suggestion.kind === "topic",
     )?.href ?? "/dossier/demo";
+  const structureOverviewMetrics = React.useMemo(
+    () =>
+      deriveCreateStructureOverviewMetrics({
+        result: intelligentFollowup,
+        isConfirmed: understandingConfirmed,
+      }),
+    [intelligentFollowup, understandingConfirmed],
+  );
 
-  const handleSaveWorkstate = React.useCallback(async () => {
+  const persistFollowupWorkstate = React.useCallback(async (manualReviewRequested: boolean) => {
     if (!showIntelligentFollowup) {
-      setSaveState("unavailable");
-      setSaveMessage("Speichern ist in diesem Demo-/Entwurfsstand noch nicht verfügbar.");
-      setActionNotice("Speichern ist in diesem Demo-/Entwurfsstand noch nicht verfügbar.");
+      setReviewRequestState("error");
+      setReviewRequestMessage("Dieser Schritt ist in diesem Arbeitsstand noch nicht verfügbar.");
+      setActionNotice("Dieser Schritt ist in diesem Arbeitsstand noch nicht verfügbar.");
       return;
     }
 
     const normalizedText = intakeText.trim();
     if (!normalizedText) {
-      setSaveState("unavailable");
-      setSaveMessage("Speichern ist in diesem Demo-/Entwurfsstand noch nicht verfügbar.");
-      setActionNotice("Speichern ist in diesem Demo-/Entwurfsstand noch nicht verfügbar.");
+      setReviewRequestState("error");
+      setReviewRequestMessage("Bitte beschreibe zuerst deinen Beitrag.");
+      setActionNotice("Bitte beschreibe zuerst deinen Beitrag.");
       return;
     }
 
@@ -1107,8 +1271,8 @@ export default function CreateClient({
       additionalContext: linkClarificationState?.additionalContext,
     });
 
-    setSaveState("saving");
-    setSaveMessage("Arbeitsstand wird gespeichert …");
+    setReviewRequestState("saving");
+    setReviewRequestMessage("Prüfstatus wird gespeichert …");
     try {
       const response = await fetch("/api/create/save", {
         method: "POST",
@@ -1121,6 +1285,7 @@ export default function CreateClient({
           createMode: canonicalCreateMode,
           anlassraumId: effectiveSelectedAnlassraumId ?? undefined,
           useCase: productModeConfig.preferredUseCase,
+          manualReviewRequested,
           analysis: intelligentFollowup
             ? {
                 intelligentFollowup,
@@ -1135,13 +1300,21 @@ export default function CreateClient({
         throw new Error(body?.error || "save_failed");
       }
       setSavedDraftId(body.draftId);
-      setSaveState("saved");
-      setSaveMessage("Arbeitsstand gespeichert. Du kannst ihn später weiterbearbeiten.");
-      setActionNotice("Arbeitsstand gespeichert. Du kannst ihn später weiterbearbeiten.");
+      setReviewRequestState("saved");
+      setReviewRequestMessage(
+        manualReviewRequested
+          ? "Redaktionelle Prüfung angefragt. Keine automatische Veröffentlichung."
+          : "Arbeitsstand gespeichert.",
+      );
+      setActionNotice(
+        manualReviewRequested
+          ? "Redaktionelle Prüfung angefragt. Keine automatische Veröffentlichung."
+          : "Arbeitsstand gespeichert.",
+      );
     } catch {
-      setSaveState("error");
-      setSaveMessage("Speichern fehlgeschlagen. Bitte versuche es erneut.");
-      setActionNotice("Speichern fehlgeschlagen. Bitte versuche es erneut.");
+      setReviewRequestState("error");
+      setReviewRequestMessage("Prüfstatus konnte nicht gespeichert werden. Bitte erneut versuchen.");
+      setActionNotice("Prüfstatus konnte nicht gespeichert werden. Bitte erneut versuchen.");
     }
   }, [
     canonicalCreateMode,
@@ -1156,6 +1329,18 @@ export default function CreateClient({
     currentLinkDetection,
     linkClarificationState,
   ]);
+
+  const handleRequestEditorialReview = React.useCallback(async () => {
+    await persistFollowupWorkstate(true);
+  }, [persistFollowupWorkstate]);
+
+  const handlePrepareSubmission = React.useCallback(() => {
+    setFollowupSurface("analysis");
+    setAnalysisSceneMode("analyze");
+    setAnalysisAutoRunToken((current) => current + 1);
+    setShowFollowupCorrectionComposer(false);
+    setActionNotice("Einreichung wird vorbereitet. Keine automatische Veröffentlichung.");
+  }, []);
 
   if (gate.status === "loading") {
     return (
@@ -1180,8 +1365,8 @@ export default function CreateClient({
   }
 
   return (
-    <div className="mx-auto max-w-6xl space-y-4 md:space-y-8">
-      <section className="create-dialog-workspace rounded-[2rem] border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-3 shadow-[0_24px_64px_rgba(2,6,23,0.14)] sm:p-4 md:p-6 lg:p-8">
+    <div className="mx-auto max-w-[430px] space-y-4 px-3 md:max-w-4xl md:px-4 md:space-y-8 xl:max-w-7xl">
+      <section className="create-dialog-workspace overflow-hidden rounded-[2rem] border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-3 shadow-[0_24px_64px_rgba(2,6,23,0.14)] sm:p-4 md:p-6 lg:p-8">
       <SharedCreateComposer
         badge={surfaceTexts.badgeCanonical}
         subline={surfaceTexts.sublineCanonical}
@@ -1201,6 +1386,7 @@ export default function CreateClient({
           setUnderstandingConfirmed(false);
           setLinkClarificationState(null);
           setChatContinuationText("");
+          setAnalysisSceneMode(null);
           if (!hasStarted) return;
           setFollowupSurface("none");
           setGuidedBridgeConfirmed(modeOption !== "guided");
@@ -1231,8 +1417,8 @@ export default function CreateClient({
         startBusy={isStarting}
         startBusyLabel={startBusyStatusLabel}
         secondaryAction={{
-          href: contextualReturnHref ?? "/runden",
-          label: contextualReturnHref ? surfaceTexts.returnToContextLabel : surfaceTexts.goToRoundsLabel,
+          href: contextualReturnHref ?? "/account",
+          label: contextualReturnHref ? surfaceTexts.returnToContextLabel : "",
         }}
         contextAnchors={surfaceContextAnchors}
         activeContextAnchorId={activeContextAnchorId}
@@ -1268,6 +1454,10 @@ export default function CreateClient({
         minRows={8}
         collapseModeSelector
         embeddedWorkspace
+        experienceVariant="create_minimal"
+        minimalHeading={
+          surfaceLocale === "en" ? "What would you like to contribute?" : "Was möchtest du einbringen?"
+        }
       />
 
       {showTooShortHint ? (
@@ -1276,15 +1466,21 @@ export default function CreateClient({
         </p>
       ) : null}
 
-      {showPostInputModules && !showLinkClarification ? (
+      <CreateStructureOverview
+        locale={surfaceLocale === "en" ? "en" : "de"}
+        prioritiesCount={structureOverviewMetrics.prioritiesCount}
+        clustersCount={structureOverviewMetrics.clustersCount}
+        questionsCount={structureOverviewMetrics.questionsCount}
+        stepsDone={structureOverviewMetrics.stepsDone}
+        stepsTotal={structureOverviewMetrics.stepsTotal}
+      />
+
+      {showPostInputModules && !showLinkClarification && !showAnalyzeWorkspace ? (
         <div className="hidden md:flex flex-wrap items-center gap-2 text-[11px] text-[rgb(var(--muted))]">
           <span className="vog-chip">{text.tierLabel}: {tierLabel}</span>
           <span className="vog-chip">{text.creditsLabel}: {formatOperatorNumber(credits, operatorLocale)}</span>
           <Link href="/account" className="vog-chip">
             {text.quotasTitle}
-          </Link>
-          <Link href={contextualReturnHref ?? "/runden"} className="vog-chip">
-            {contextualReturnHref ? surfaceTexts.returnToContextLabel : surfaceTexts.goToRoundsLabel}
           </Link>
           <span className="sr-only">
             {monthlyLimit === null
@@ -1296,7 +1492,7 @@ export default function CreateClient({
       ) : null}
 
       {showStartChatPreview && followupSnapshot ? (
-        <div className="create-start-chat-preview create-chat-workspace rounded-[1.5rem] border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-4 py-4 md:px-5">
+        <div className="create-start-chat-preview create-chat-workspace hidden rounded-[1.5rem] border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-4 py-4 md:block md:px-5">
           <div className="create-chat-spine space-y-5">
             <CreateSubmittedContributionBubble text={followupSnapshot.originalText} />
             <CreateAssistantStatusBubble
@@ -1355,22 +1551,24 @@ export default function CreateClient({
             ctaHref={actionSuggestionHref}
             actionNotice={actionNotice}
             isConfirmed={understandingConfirmed}
-            saveState={saveState}
-            saveMessage={saveMessage}
+            reviewRequestState={reviewRequestState}
+            reviewRequestMessage={reviewRequestMessage}
             factcheckMessage={factcheckMessage}
+            showCorrectionComposer={showFollowupCorrectionComposer}
             onConfirm={() => {
               setUnderstandingConfirmed(true);
+              setShowFollowupCorrectionComposer(false);
               setActionNotice("Einordnung bestätigt. Keine automatische Veröffentlichung.");
             }}
             onEdit={() => {
               setUnderstandingConfirmed(false);
+              setShowFollowupCorrectionComposer(true);
               setActionNotice("Einordnung zur Korrektur geöffnet. Passe den Text an und starte erneut.");
             }}
-            onOpenNewAnlassraum={() => {
-              setActionNotice("Neuer Anlassraum als nächster Schritt markiert. Keine automatische Veröffentlichung.");
-            }}
-            onSaveForLater={handleSaveWorkstate}
+            onPrepareSubmission={handlePrepareSubmission}
+            onRequestEditorialReview={handleRequestEditorialReview}
             onStartOptionalService={handleStartFactcheckService}
+            onSkipPlaceClarification={handleSkipPlaceClarification}
             continuationValue={chatContinuationText}
             onContinuationChange={setChatContinuationText}
             onContinueConversation={handleContinueConversation}
@@ -1378,9 +1576,53 @@ export default function CreateClient({
           />
         </div>
       ) : null}
+
+      {showAnalyzeWorkspace ? (
+        <div
+          ref={analysisSceneRef}
+          tabIndex={-1}
+          className="scroll-mt-24 pt-4 outline-none md:pt-5"
+        >
+          <CreateInlineAnalysisScene
+            productMode={analysisSceneMode ?? productMode}
+            notice={factcheckMessage ?? actionNotice}
+          >
+            <AnalyzeWorkspace
+              key={`${productMode}-${canonicalCreateMode}-${canonicalIntent}-${dossierId ?? "no-dossier"}`}
+              mode={canonicalIntent}
+              createMode={canonicalCreateMode}
+              defaultLevel={2}
+              storageKey={
+                canonicalIntent === "statement"
+                  ? `vog_create_freistart_statement_${productMode}_v1`
+                  : `vog_create_freistart_contribution_${productMode}_v1`
+              }
+              analyzeEndpoint="/api/create/analyze"
+              saveEndpoint="/api/create/save"
+              finalizeEndpoint="/api/create/finalize"
+              afterFinalizeNavigateTo={afterFinalizeNavigateTo}
+              dossierId={dossierId ?? undefined}
+              selectedAnlassraumId={effectiveSelectedAnlassraumId ?? undefined}
+              verificationLevel={workspaceVerificationLevel}
+              verificationStatus="ok"
+              authorName={overview.displayName ?? overview.profile?.headline ?? ""}
+              useCaseAccess={useCaseAccess}
+              initialText={workspaceInitialText}
+              embeddedSingleIntake
+              syncTextFromParent
+              autoRunToken={analysisAutoRunToken}
+              maxClaimsCap={maxClaimsCap}
+              maxFinalizeClaims={maxFinalizeClaims}
+              analysisEntryVariant="single_button"
+              analysisModeHint={analysisSceneMode ?? productMode}
+              analysisIntentHint={activeIntent}
+            />
+          </CreateInlineAnalysisScene>
+        </div>
+      ) : null}
       </section>
 
-      {showPostInputModules && !showIntelligentFollowup && !showLinkClarification ? (
+      {showPostInputModules && !showIntelligentFollowup && !showLinkClarification && !showAnalyzeWorkspace ? (
         <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 md:p-5">
           <p className="text-sm font-semibold text-[rgb(var(--fg))]">{productModeConfig.postStartTitle}</p>
           <p className="mt-1 text-sm text-[rgb(var(--muted))]">{productModeConfig.postStartLead}</p>
@@ -1400,7 +1642,7 @@ export default function CreateClient({
         </section>
       ) : null}
 
-      {showFollowupQuestionCard && !showLinkClarification ? (
+      {showFollowupQuestionCard && !showLinkClarification && !showAnalyzeWorkspace ? (
         <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 md:p-5">
           <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[rgb(var(--muted))]">eDebatte</p>
           <p className="mt-1 text-sm font-semibold text-[rgb(var(--fg))]">{surfaceTexts.followupQuestionLabel}</p>
@@ -1442,7 +1684,7 @@ export default function CreateClient({
         </section>
       ) : null}
 
-      {showPostInputModules && pickerEnabled && !showLinkClarification ? (
+      {showPostInputModules && pickerEnabled && !showLinkClarification && !showAnalyzeWorkspace ? (
         <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 md:p-5">
           <div className="space-y-2">
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[rgb(var(--muted))]">{text.contextPickerTitle}</p>
@@ -1527,7 +1769,7 @@ export default function CreateClient({
         </section>
       ) : null}
 
-      {showPostInputModules && workingState && !showIntelligentFollowup && !showLinkClarification ? (
+      {showPostInputModules && workingState && !showIntelligentFollowup && !showLinkClarification && !showAnalyzeWorkspace ? (
         <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 md:p-5">
           <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[rgb(var(--muted))]">eDebatte</p>
           <p className="mt-1 text-sm font-semibold text-[rgb(var(--fg))]">
@@ -1588,9 +1830,6 @@ export default function CreateClient({
             <Link href="/swipes" className="btn-secondary text-xs">
               Beteiligung öffnen
             </Link>
-            <Link href={contextualReturnHref ?? "/runden"} className="btn-secondary text-xs">
-              {contextualReturnHref ? surfaceTexts.returnToContextLabel : surfaceTexts.goToRoundsLabel}
-            </Link>
           </div>
 
           {followupSnapshot ? (
@@ -1605,47 +1844,6 @@ export default function CreateClient({
             </p>
           ) : null}
         </section>
-      ) : null}
-
-
-      {showAnalyzeWorkspace ? (
-        <section className="rounded-2xl border border-sky-200 bg-sky-50/80 p-4 text-xs text-sky-900 dark:border-sky-500/40 dark:bg-sky-500/10 dark:text-sky-100">
-          <p className="font-semibold">{surfaceTexts.followupReviewFrameTitle}</p>
-          <p className="mt-1">{surfaceTexts.followupReviewFrameLead}</p>
-        </section>
-      ) : null}
-
-      {showAnalyzeWorkspace ? (
-        <AnalyzeWorkspace
-          key={`${productMode}-${canonicalCreateMode}-${canonicalIntent}-${dossierId ?? "no-dossier"}`}
-          mode={canonicalIntent}
-          createMode={canonicalCreateMode}
-          defaultLevel={2}
-          storageKey={
-            canonicalIntent === "statement"
-              ? `vog_create_freistart_statement_${productMode}_v1`
-              : `vog_create_freistart_contribution_${productMode}_v1`
-          }
-          analyzeEndpoint="/api/create/analyze"
-          saveEndpoint="/api/create/save"
-          finalizeEndpoint="/api/create/finalize"
-          afterFinalizeNavigateTo={afterFinalizeNavigateTo}
-          dossierId={dossierId ?? undefined}
-          selectedAnlassraumId={effectiveSelectedAnlassraumId ?? undefined}
-          verificationLevel={workspaceVerificationLevel}
-          verificationStatus="ok"
-          authorName={overview.displayName ?? overview.profile?.headline ?? ""}
-          useCaseAccess={useCaseAccess}
-          initialText={workspaceInitialText}
-          embeddedSingleIntake
-          syncTextFromParent
-          autoRunToken={analysisAutoRunToken}
-          maxClaimsCap={maxClaimsCap}
-          maxFinalizeClaims={maxFinalizeClaims}
-          analysisEntryVariant="single_button"
-          analysisModeHint={productMode}
-          analysisIntentHint={activeIntent}
-        />
       ) : null}
     </div>
   );

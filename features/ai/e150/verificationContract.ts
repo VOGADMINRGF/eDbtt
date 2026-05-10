@@ -1,5 +1,5 @@
 export type VerificationMode = "none" | "precheck" | "sealed";
-export type ResearchUsed = "none" | "lite" | "search" | "deep_search";
+export type ResearchUsed = "none" | "lite" | "gemini" | "search" | "deep_search";
 
 export type VerificationContract = {
   verificationMode: VerificationMode;
@@ -20,10 +20,11 @@ export function deriveVerificationLabel(
 
 export function buildStandardLaneContract(params?: {
   verificationMode?: "none" | "precheck";
+  researchUsed?: Extract<ResearchUsed, "none" | "lite" | "gemini" | "deep_search">;
 }): VerificationContract {
   return {
     verificationMode: params?.verificationMode ?? "none",
-    researchUsed: "none",
+    researchUsed: params?.researchUsed ?? "none",
     sealEligible: false,
     sealGranted: false,
   };

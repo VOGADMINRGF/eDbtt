@@ -50,6 +50,11 @@ import {
   evaluateCreateInputSafety,
   type CreateInputSafetyResult,
 } from "@/features/create/safety/createInputSafety";
+import {
+  resolveMaterialRouting,
+  type MaterialRoutingResult,
+} from "@/features/create/materialRouting";
+import { runNotebookMaterialAdapter } from "@/features/material/notebookMaterialAdapter";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -119,6 +124,7 @@ type AnalyzeJobInput = {
   contributionId: string;
   analysisMode: CreateProductMode;
   intent: CreateIntent;
+  journeyHint: "analyze" | "media" | "guided" | "material_grounding";
   presentationPassEnabled: boolean;
   sourceGrounding: SourceGroundingContext;
   userId?: string | null;
@@ -209,6 +215,45 @@ function buildClaimSafetyForClaims(params: {
     .filter((entry): entry is CreateClaimSafetyResult => Boolean(entry));
 }
 
+function mergeAnalyzeEvidenceItems(...collections: unknown[]): unknown[] {
+  const merged: unknown[] = [];
+  collections.forEach((collection) => {
+    if (!Array.isArray(collection)) return;
+    collection.forEach((entry) => merged.push(entry));
+  });
+  return merged;
+}
+
+function resolveMaterialFallbackUsed(params: {
+  providerFallbackUsed?: boolean;
+  materialRouting: MaterialRoutingResult;
+}): boolean {
+  return Boolean(params.providerFallbackUsed) || params.materialRouting.fallbackUsed;
+}
+
+function resolveMetaResearchUsed(params: {
+  verification: VerificationContract;
+  materialRouting: MaterialRoutingResult;
+}): VerificationContract["researchUsed"] {
+  if (params.materialRouting.researchUsed === "gemini") return "gemini";
+  if (params.materialRouting.researchUsed === "deep_search") return "deep_search";
+  return params.verification.researchUsed;
+}
+
+function resolveMetaRequiresHumanReview(params: {
+  createAnalyze?: { requiresHumanReview?: boolean } | null;
+  safety: CreateInputSafetyResult;
+  sourceGroundingAudit: { requiresManualReview: boolean };
+  materialRouting: MaterialRoutingResult;
+}): boolean {
+  return Boolean(
+    params.createAnalyze?.requiresHumanReview ||
+      params.safety.requiresHumanReview ||
+      params.sourceGroundingAudit.requiresManualReview ||
+      params.materialRouting.requiresHumanReview,
+  );
+}
+
 /**
  * E150 – Contribution-AI
  * - JSON: { ok: true, result: AnalyzeResult }
@@ -251,18 +296,47 @@ export async function POST(req: NextRequest): Promise<Response> {
   });
   const locale = languageContext.contentLanguage;
   const maxClaims = sanitizeMaxClaims(body.maxClaims);
-  const text = body.text?.trim() || "";
+  const materialRouting = resolveMaterialRouting({
+    text: body.text,
+    sourceUrls: body.sourceUrls,
+    uploadIds: body.uploadIds,
+    materialItems: body.materialItems,
+    evidenceItems: body.evidenceItems,
+    researchMode: body.researchMode,
+    allowDeepSearch: body.allowDeepSearch,
+    researchConfirmed: body.researchConfirmed,
+  });
+  const notebookMaterial =
+    materialRouting.lane === "material_grounding"
+      ? await runNotebookMaterialAdapter({
+          locale,
+          items: materialRouting.materialItems,
+          userText: body.text ?? null,
+        })
+      : null;
+  const text =
+    body.text?.trim() ||
+    notebookMaterial?.summary?.trim() ||
+    materialRouting.materialItems
+      .map((item) => item.label || item.url || item.fileName || item.uploadId || "")
+      .filter(Boolean)
+      .join(" · ");
   const analysisMode = body.analysisMode ?? "analyze";
   const routeJourneyProfile = resolveJourneyProfile({
     analysisMode,
     routePath: "/api/contributions/analyze",
+    journeyHint: materialRouting.lane === "material_grounding" ? "material_grounding" : null,
   });
   const routeClassification = resolveAiRouteClassification("/api/contributions/analyze");
   const userId = req.cookies.get("u_id")?.value ?? null;
   const contributionId = resolveContributionId(body.contributionId, text);
+  const mergedEvidenceItems = mergeAnalyzeEvidenceItems(
+    body.evidenceItems,
+    notebookMaterial?.evidenceItems,
+  );
   const sourceGrounding = buildSourceGroundingContext({
     analysisMode,
-    evidenceItems: body.evidenceItems,
+    evidenceItems: mergedEvidenceItems,
   });
   const ip = (req.headers.get("x-forwarded-for") || "local").split(",")[0].trim();
 
@@ -279,6 +353,7 @@ export async function POST(req: NextRequest): Promise<Response> {
     contributionId,
     analysisMode,
     intent: body.intent ?? resolveIntentFromAnalysisMode(analysisMode),
+    journeyHint: materialRouting.lane === "material_grounding" ? "material_grounding" : resolveJourneyHintFromIntent(body.intent ?? resolveIntentFromAnalysisMode(analysisMode)),
     presentationPassEnabled: resolvePresentationPassEnabled({
       analysisMode,
       requested: body.presentationPass,
@@ -345,10 +420,16 @@ export async function POST(req: NextRequest): Promise<Response> {
       safety,
       claimSafety,
     );
-    const verification = resolveAnalyzeVerificationContract(moderatedResult, analysisMode);
+    const verification = resolveAnalyzeVerificationContract(moderatedResult, analysisMode, materialRouting);
     const sourceGroundingAudit = finalizeSourceGroundingAudit({
       context: analyzeInput.sourceGrounding,
       result: toSourceGroundingResultInput(moderatedResult),
+    });
+    const requiresHumanReview = resolveMetaRequiresHumanReview({
+      createAnalyze,
+      safety,
+      sourceGroundingAudit,
+      materialRouting,
     });
 
     return NextResponse.json(
@@ -360,7 +441,7 @@ export async function POST(req: NextRequest): Promise<Response> {
         safety,
         createAnalyze,
         verificationMode: verification.verificationMode,
-        researchUsed: verification.researchUsed,
+        researchUsed: resolveMetaResearchUsed({ verification, materialRouting }),
         sealEligible: verification.sealEligible,
         sealGranted: verification.sealGranted,
         verificationLabel: deriveVerificationLabel(verification),
@@ -369,7 +450,9 @@ export async function POST(req: NextRequest): Promise<Response> {
           safety,
           claimSafety,
           verificationMode: verification.verificationMode,
-          researchUsed: verification.researchUsed,
+          researchUsed: resolveMetaResearchUsed({ verification, materialRouting }),
+          materialProvider: materialRouting.materialProvider,
+          researchProvider: materialRouting.researchProvider,
           sealEligible: verification.sealEligible,
           sealGranted: verification.sealGranted,
           verificationLabel: deriveVerificationLabel(verification),
@@ -381,7 +464,9 @@ export async function POST(req: NextRequest): Promise<Response> {
             fallback: routeJourneyProfile.fallbackProviders,
             openAiRoles: routeJourneyProfile.openAiRoles,
           },
-          fallbackUsed: true,
+          fallbackUsed: resolveMaterialFallbackUsed({ providerFallbackUsed: true, materialRouting }),
+          requiresHumanReview,
+          materialRouting,
           disagreement: {
             present: false,
             successfulProviders: [],
@@ -407,7 +492,7 @@ export async function POST(req: NextRequest): Promise<Response> {
   try {
     const result = await withHardTimeout(runAnalyzeJob(analyzeInput), ANALYZE_HARD_TIMEOUT_MS);
     await finalizeResultPayload(result, analyzeInput);
-    const verification = resolveAnalyzeVerificationContract(result, analysisMode);
+    const verification = resolveAnalyzeVerificationContract(result, analysisMode, materialRouting);
     const sourceGroundingAudit = finalizeSourceGroundingAudit({
       context: analyzeInput.sourceGrounding,
       result: toSourceGroundingResultInput(result),
@@ -445,6 +530,12 @@ export async function POST(req: NextRequest): Promise<Response> {
       (result as any)?._meta?.providerMatrix,
       (result as any)?._meta,
     );
+    const requiresHumanReview = resolveMetaRequiresHumanReview({
+      createAnalyze,
+      safety,
+      sourceGroundingAudit,
+      materialRouting,
+    });
     return NextResponse.json(
       {
         ok: true,
@@ -452,7 +543,7 @@ export async function POST(req: NextRequest): Promise<Response> {
         safety,
         createAnalyze,
         verificationMode: verification.verificationMode,
-        researchUsed: verification.researchUsed,
+        researchUsed: resolveMetaResearchUsed({ verification, materialRouting }),
         sealEligible: verification.sealEligible,
         sealGranted: verification.sealGranted,
         verificationLabel: deriveVerificationLabel(verification),
@@ -462,7 +553,9 @@ export async function POST(req: NextRequest): Promise<Response> {
           claimSafety,
           providerMatrix,
           verificationMode: verification.verificationMode,
-          researchUsed: verification.researchUsed,
+          researchUsed: resolveMetaResearchUsed({ verification, materialRouting }),
+          materialProvider: materialRouting.materialProvider,
+          researchProvider: materialRouting.researchProvider,
           sealEligible: verification.sealEligible,
           sealGranted: verification.sealGranted,
           verificationLabel: deriveVerificationLabel(verification),
@@ -474,7 +567,12 @@ export async function POST(req: NextRequest): Promise<Response> {
             fallback: routeJourneyProfile.fallbackProviders,
             openAiRoles: routeJourneyProfile.openAiRoles,
           },
-          fallbackUsed: (result as any)?._meta?.fallbackUsed ?? false,
+          fallbackUsed: resolveMaterialFallbackUsed({
+            providerFallbackUsed: (result as any)?._meta?.fallbackUsed ?? false,
+            materialRouting,
+          }),
+          requiresHumanReview,
+          materialRouting,
           disagreement: (result as any)?._meta?.disagreement ?? {
             present: false,
             successfulProviders: [],
@@ -512,7 +610,7 @@ export async function POST(req: NextRequest): Promise<Response> {
         context: analyzeInput.sourceGrounding,
         result: toSourceGroundingResultInput(fallback),
       });
-      const verification = resolveAnalyzeVerificationContract(fallback, analysisMode);
+      const verification = resolveAnalyzeVerificationContract(fallback, analysisMode, materialRouting);
       const createMatch = await resolveCreateMatchesSafe({
         text,
         normalizedInputSummary: summarizeCreateAnalyzeInput(text),
@@ -541,6 +639,12 @@ export async function POST(req: NextRequest): Promise<Response> {
         safety,
         claimSafety,
       );
+      const requiresHumanReview = resolveMetaRequiresHumanReview({
+        createAnalyze,
+        safety,
+        sourceGroundingAudit,
+        materialRouting,
+      });
       return NextResponse.json({
         ok: true,
         fallback: true,
@@ -550,7 +654,7 @@ export async function POST(req: NextRequest): Promise<Response> {
         safety,
         createAnalyze,
         verificationMode: verification.verificationMode,
-        researchUsed: verification.researchUsed,
+        researchUsed: resolveMetaResearchUsed({ verification, materialRouting }),
         sealEligible: verification.sealEligible,
         sealGranted: verification.sealGranted,
         verificationLabel: deriveVerificationLabel(verification),
@@ -559,7 +663,9 @@ export async function POST(req: NextRequest): Promise<Response> {
           safety,
           claimSafety,
           verificationMode: verification.verificationMode,
-          researchUsed: verification.researchUsed,
+          researchUsed: resolveMetaResearchUsed({ verification, materialRouting }),
+          materialProvider: materialRouting.materialProvider,
+          researchProvider: materialRouting.researchProvider,
           sealEligible: verification.sealEligible,
           sealGranted: verification.sealGranted,
           verificationLabel: deriveVerificationLabel(verification),
@@ -571,7 +677,9 @@ export async function POST(req: NextRequest): Promise<Response> {
             fallback: routeJourneyProfile.fallbackProviders,
             openAiRoles: routeJourneyProfile.openAiRoles,
           },
-          fallbackUsed: true,
+          fallbackUsed: resolveMaterialFallbackUsed({ providerFallbackUsed: true, materialRouting }),
+          requiresHumanReview,
+          materialRouting,
           disagreement: {
             present: false,
             successfulProviders: [],
@@ -664,7 +772,13 @@ export async function POST(req: NextRequest): Promise<Response> {
         context: analyzeInput.sourceGrounding,
         result: toSourceGroundingResultInput(degradedResult),
       });
-      const verification = resolveAnalyzeVerificationContract(degradedResult, analysisMode);
+      const verification = resolveAnalyzeVerificationContract(degradedResult, analysisMode, materialRouting);
+      const requiresHumanReview = resolveMetaRequiresHumanReview({
+        createAnalyze,
+        safety,
+        sourceGroundingAudit,
+        materialRouting,
+      });
 
       return NextResponse.json(
         {
@@ -675,7 +789,7 @@ export async function POST(req: NextRequest): Promise<Response> {
           safety,
           createAnalyze,
           verificationMode: verification.verificationMode,
-          researchUsed: verification.researchUsed,
+          researchUsed: resolveMetaResearchUsed({ verification, materialRouting }),
           sealEligible: verification.sealEligible,
           sealGranted: verification.sealGranted,
           verificationLabel: deriveVerificationLabel(verification),
@@ -689,7 +803,9 @@ export async function POST(req: NextRequest): Promise<Response> {
             skippedProviders: meta?.skippedProviders ?? meta?.skipped ?? [],
             probes: meta?.probes ?? [],
             verificationMode: verification.verificationMode,
-            researchUsed: verification.researchUsed,
+            researchUsed: resolveMetaResearchUsed({ verification, materialRouting }),
+            materialProvider: materialRouting.materialProvider,
+            researchProvider: materialRouting.researchProvider,
             sealEligible: verification.sealEligible,
             sealGranted: verification.sealGranted,
             verificationLabel: deriveVerificationLabel(verification),
@@ -701,7 +817,9 @@ export async function POST(req: NextRequest): Promise<Response> {
               fallback: routeJourneyProfile.fallbackProviders,
               openAiRoles: routeJourneyProfile.openAiRoles,
             },
-            fallbackUsed: true,
+            fallbackUsed: resolveMaterialFallbackUsed({ providerFallbackUsed: true, materialRouting }),
+            requiresHumanReview,
+            materialRouting,
             disagreement: {
               present: false,
               successfulProviders: [],
@@ -791,7 +909,7 @@ async function runAnalyzeJob(input: AnalyzeJobInput): Promise<AnalyzeResultWithM
     maxClaims: input.maxClaims,
     audienceRole: resolveAnalyzeAudienceRole(input.analysisMode),
     analysisMode: input.analysisMode,
-    journeyHint: resolveJourneyHintFromIntent(input.intent),
+    journeyHint: input.journeyHint,
     routePath: "/api/contributions/analyze",
     sourceGroundingPromptAddon: input.sourceGrounding.promptAddon,
     presentationPassEnabled: input.presentationPassEnabled,
@@ -802,6 +920,7 @@ async function runAnalyzeJob(input: AnalyzeJobInput): Promise<AnalyzeResultWithM
 function resolveAnalyzeVerificationContract(
   result: AnalyzeResultWithMeta,
   analysisMode: CreateProductMode,
+  materialRouting: MaterialRoutingResult,
 ): VerificationContract {
   const meta = (result as any)?._meta ?? {};
   const modeFromMeta = meta?.verificationMode;
@@ -811,9 +930,21 @@ function resolveAnalyzeVerificationContract(
       : analysisMode === "analyze"
         ? "none"
         : "precheck";
+  const researchUsed =
+    materialRouting.researchUsed === "gemini"
+      ? "gemini"
+      : materialRouting.researchUsed === "deep_search"
+        ? "deep_search"
+        : meta?.researchUsed === "none" ||
+            meta?.researchUsed === "lite" ||
+            meta?.researchUsed === "gemini" ||
+            meta?.researchUsed === "deep_search"
+          ? meta.researchUsed
+          : "none";
 
   return buildStandardLaneContract({
     verificationMode,
+    researchUsed,
   });
 }
 

@@ -2,6 +2,7 @@ import {
   resolveVerificationPresentationView,
   type VerificationPresentationView,
 } from "@features/ai/e150/verificationPresentation";
+import type { E150Lane } from "@features/ai/e150/journeyProfiles";
 import type {
   ResearchUsed,
   VerificationMode,
@@ -17,7 +18,7 @@ export type ShareObjectType =
   | "analyze";
 
 export type ShareVerificationInfo = {
-  lane: "standard" | "sealed_factcheck";
+  lane: E150Lane;
   verificationMode: VerificationMode;
   researchUsed: ResearchUsed;
   sealEligible: boolean;
@@ -79,7 +80,7 @@ type BuildShareOutputAssetInput = {
   region?: string | null;
   neutralCtaLabel?: string | null;
   deepLinkPath?: string | null;
-  lane?: "standard" | "sealed_factcheck" | null;
+  lane?: E150Lane | null;
   verificationMode?: VerificationMode | null;
   researchUsed?: ResearchUsed | null;
   sealEligible?: boolean | null;

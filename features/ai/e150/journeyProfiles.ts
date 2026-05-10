@@ -1,8 +1,8 @@
 import type { ResearchUsed, VerificationMode } from "./verificationContract";
 
 export type E150ProviderName = "openai" | "anthropic" | "mistral" | "gemini" | "ari";
-export type E150Lane = "standard" | "sealed_factcheck";
-export type E150JourneyKey = "analyze" | "media" | "guided" | "sealed_factcheck";
+export type E150Lane = "standard" | "sealed_factcheck" | "material_grounding";
+export type E150JourneyKey = "analyze" | "media" | "guided" | "sealed_factcheck" | "material_grounding";
 
 export type E150RoleProviders = Record<string, readonly E150ProviderName[]>;
 
@@ -80,6 +80,26 @@ export const E150_JOURNEY_PROFILES: Record<E150JourneyKey, E150JourneyProfile> =
     verificationDefaults: {
       verificationMode: "precheck",
       researchUsed: "none",
+      sealEligible: false,
+      sealGranted: false,
+    },
+  },
+  material_grounding: {
+    journey: "material_grounding",
+    lane: "material_grounding",
+    primaryRoles: {
+      material_research: ["gemini"],
+      structure: ["mistral"],
+      readable_summary: ["anthropic"],
+    },
+    secondaryRoles: {
+      disagreement_cross_check: ["anthropic", "gemini"],
+    },
+    fallbackProviders: ["openai"],
+    openAiRoles: ["fallback", "presentation_pass"],
+    verificationDefaults: {
+      verificationMode: "precheck",
+      researchUsed: "gemini",
       sealEligible: false,
       sealGranted: false,
     },

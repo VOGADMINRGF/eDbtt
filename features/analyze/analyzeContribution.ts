@@ -31,7 +31,7 @@ export type AnalyzeInput = {
   locale?: string; // "de" | "en" | ...
   audienceRole?: "citizen" | "staff" | "institution";
   analysisMode?: "analyze" | "media" | "guided";
-  journeyHint?: "analyze" | "media" | "guided" | "sealed_factcheck";
+  journeyHint?: "analyze" | "media" | "guided" | "sealed_factcheck" | "material_grounding";
   routePath?: string;
   sealedFactcheck?: boolean;
   sourceGroundingPromptAddon?: string | null;
@@ -656,8 +656,8 @@ export type AnalyzeResultWithMeta = AnalyzeResult & {
     eventualitiesReviewed?: boolean;
     eventualitiesReviewedAt?: string | null;
     providerMatrix?: import("@features/ai/orchestratorE150").ProviderMatrixEntry[];
-    journeyProfile?: "analyze" | "media" | "guided" | "sealed_factcheck";
-    lane?: "standard" | "sealed_factcheck";
+    journeyProfile?: "analyze" | "media" | "guided" | "sealed_factcheck" | "material_grounding";
+    lane?: "standard" | "sealed_factcheck" | "material_grounding";
     roleProviderMapping?: {
       primary: Record<string, readonly ("openai" | "anthropic" | "mistral" | "gemini" | "ari")[]>;
       secondary: Record<string, readonly ("openai" | "anthropic" | "mistral" | "gemini" | "ari")[]>;
@@ -686,7 +686,7 @@ export type AnalyzeResultWithMeta = AnalyzeResult & {
       reasons: string[];
     };
     verificationMode?: "none" | "precheck" | "sealed";
-    researchUsed?: "none" | "lite" | "search" | "deep_search";
+    researchUsed?: "none" | "lite" | "gemini" | "search" | "deep_search";
     sealEligible?: boolean;
     sealGranted?: boolean;
     verificationLabel?: "analysiert" | "geprueft" | "verifiziert";

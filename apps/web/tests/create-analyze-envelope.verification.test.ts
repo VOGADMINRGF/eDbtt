@@ -36,4 +36,25 @@ describe("create analyze envelope verification parsing", () => {
     expect(parsed.verification?.verificationLabel).toBe("geprueft");
     expect(parsed.verification?.lane).toBe("standard");
   });
+
+  it("parses material-grounding verification and gemini research from meta", () => {
+    const parsed = parseCreateAnalyzeEnvelope({
+      meta: {
+        lane: "material_grounding",
+        verificationMode: "precheck",
+        researchUsed: "gemini",
+        sealEligible: false,
+        sealGranted: false,
+      },
+    });
+
+    expect(parsed.verification).toEqual({
+      lane: "material_grounding",
+      verificationMode: "precheck",
+      researchUsed: "gemini",
+      sealEligible: false,
+      sealGranted: false,
+      verificationLabel: "geprueft",
+    });
+  });
 });

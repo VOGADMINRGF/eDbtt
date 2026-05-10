@@ -53,6 +53,7 @@ const LABEL_HINT: Record<UserFacingVerificationLabel, string> = {
 const RESEARCH_LABEL: Record<ResearchUsed, string> = {
   none: "keine Recherche",
   lite: "Lite-Recherche",
+  gemini: "Gemini Research",
   search: "Search",
   deep_search: "Deep Search",
 };
@@ -65,7 +66,7 @@ const WORKFLOW_LABEL: Record<SealedFactcheckWorkflowStage, string> = {
 };
 
 function asLane(value: unknown): E150Lane | null {
-  if (value === "standard" || value === "sealed_factcheck") return value;
+  if (value === "standard" || value === "sealed_factcheck" || value === "material_grounding") return value;
   return null;
 }
 
@@ -123,15 +124,18 @@ export function resolveVerificationPresentationView(
     modeRaw === "precheck" ? "precheck" : "none";
   const standardContract = buildStandardLaneContract({
     verificationMode: standardMode,
+    researchUsed: args.researchUsed === "gemini" || args.researchUsed === "deep_search" ? args.researchUsed : "none",
   });
   const verificationLabel = deriveVerificationLabel({
     verificationMode: standardContract.verificationMode,
     sealGranted: standardContract.sealGranted,
   });
 
+  const laneLabel = lane === "material_grounding" ? "Material-Grounding-Lane" : "Standard-Lane";
+
   return {
     lane,
-    laneLabel: "Standard-Lane",
+    laneLabel,
     verificationMode: standardContract.verificationMode,
     verificationLabel,
     verificationLabelDisplay: LABEL_DISPLAY[verificationLabel],

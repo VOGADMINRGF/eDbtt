@@ -44,8 +44,8 @@ describe("create entry i18n render", () => {
     expect(html).toContain("Contribute");
     expect(html).toContain("Review");
     expect(html).toContain("Draft together");
-    expect(html).toContain("Context (optional)");
-    expect(html).toContain("Help");
+    expect(html).toContain("Mode selection");
+    expect(html).toContain("Attach");
   });
 
   it("renders busy start state with disabled button label", () => {

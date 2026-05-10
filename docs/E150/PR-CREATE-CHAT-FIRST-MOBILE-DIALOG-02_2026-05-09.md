@@ -32,6 +32,13 @@ Die visuelle Hierarchie des lightweight `/create`-Follow-ups naeher an das defin
 - Der mobile Startbereich im eingebetteten Composer wurde kompakter gemacht (weniger vertikale Abstaende, kuerzeres Meta-Chrome, geringere Textarea-Minimalhoehe).
 - Die aktive Focus-Fläche und der aktive Strukturast werden bei neuem Follow-up-Ergebnis wieder auf den aktuellen Default zurueckgesetzt, damit kein alter Tabzustand haengen bleibt.
 
+## Finales UX-Glattziehen (2026-05-10)
+
+- Die Seitenheadline `Was möchtest du einbringen?` wurde visuell unter die Compose-Card abgestuft, damit `Deinen Beitrag verfassen` die staerkere Mobile-Ebene bleibt.
+- Der Alternate-Mode-Disclosure ist fuer den Minimal-Composer explizit als nachgeordneter Desktop-Hinweis markiert und bleibt aus dem mobilen Hauptfluss heraus.
+- Der Mobile-Vertrag ist testseitig auf den gewollten Zustand nachgeschaerft: einspaltige Strukturkarten, keine dominanten Meta-/Kontingent-Chips im Hauptfluss, keine offene Korrekturbox vor explizitem `Ändern`, und keine Detailmodule im Haupt-DOM solange `Details ansehen` geschlossen ist.
+- Die Safety-/Quality-Gate-Trennung bleibt fuer diesen UX-Slice bestehen: keine Rueckkehr zu `result.clarifications`, `qualityGate` oder `editorial_review_*`; Ortsrueckfragen bleiben an `result.understanding.openQuestion` gebunden.
+
 ## Bewusst nicht geaendert
 
 - keine neue Taxonomie
@@ -44,3 +51,4 @@ Die visuelle Hierarchie des lightweight `/create`-Follow-ups naeher an das defin
 - `pnpm -C apps/web exec vitest run tests/create-curated-dialog-workspace.contract.test.tsx tests/analyze-workbench-hidden-until-start.test.ts tests/create-chat-first-mobile-dialog-experience.contract.test.tsx`
 - `pnpm -C apps/web run typecheck`
 - `pnpm -C apps/web run lint`
+- `pnpm -C apps/web exec vitest run tests/create-entry-hierarchy.contract.test.tsx tests/create-i18n-no-mixed-locale.contract.test.tsx tests/create-no-chip-overload.contract.test.tsx tests/create-entry-i18n.render.test.tsx tests/create-chat-first-mobile-dialog-experience.contract.test.tsx tests/create-curated-dialog-workspace.contract.test.tsx tests/create-attachment-layout.contract.test.ts tests/analyze-workbench-hidden-until-start.test.ts`
