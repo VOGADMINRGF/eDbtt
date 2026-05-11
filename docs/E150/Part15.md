@@ -518,6 +518,69 @@ Ist/Unerledigt:
 
 ## PR-Log
 
+### PR-CREATE-WORKFLOW-LIVE-QA-01 / PR-CREATE-VISUAL-PARITY-ANALYZE-01 (2026-05-10) – Embedded Analyze Scene + Action Bar Parity
+
+Ziel:
+- Den eingebetteten Analyze-/Finalize-Teil von `/create` als denselben Arbeitsraum weiterfuehren und die mobile/Desktop-CTA-Fuehrung bis in den AnalyzeWorkspace hinein beruhigen.
+
+Changes:
+- `apps/web/src/app/create/CreateClient.tsx`
+  - `CreateInlineAnalysisScene` auf dieselbe Card-/Border-Sprache wie der vorherige `/create`-Follow-up zurueckgenommen; weniger buehnenhaft, mehr Arbeitsraum.
+- `apps/web/src/components/analyze/AnalyzeWorkspace.tsx`
+  - neue Helper `shouldRenderCompactEmbeddedWorkspaceHeader` und `shouldUseInlineCreateActionBar`.
+  - im `analysisEntryVariant="single_button"` wird der grosse Workspace-Hero durch einen kompakten Header `Im selben Arbeitsraum` ersetzt.
+  - der bisher globale fixe Finalize-Balken schaltet im eingebetteten Create-Pfad auf `inline + lg:sticky` um; Mobile bleibt erreichbar, aber ohne grosses Overlay.
+  - Save-/Finalize-Feedback sitzt im eingebetteten Pfad jetzt direkt am Abschlussblock; die obere Save-CTA wird dort ausgeblendet, sobald die Abschlussleiste aktiv ist.
+- Tests nachgezogen in:
+  - `apps/web/tests/create-analyze.workspace-ui.test.ts`
+  - `apps/web/tests/analyze-workbench-hidden-until-start.test.ts`
+
+Verification:
+- `pnpm -C apps/web exec vitest run tests/create-analyze.workspace-ui.test.ts`
+- `pnpm -C apps/web exec vitest run tests/analyze-workbench-hidden-until-start.test.ts`
+- `pnpm -C apps/web exec vitest run tests/create-chat-first-mobile-dialog-experience.contract.test.tsx`
+- `pnpm -C apps/web run typecheck`
+- Browser-Addendum: echter `/create`-Run mit kommunalem Beispieltext bestaetigt im Follow-up die Badge-Zeile `Deine Struktur auf einen Blick`, konkrete Bedarfspunkte statt generischem `Kern: Fragestellung` und nach `Faktencheck / Deep Search` den eingebetteten Analysekopf `Im selben Arbeitsraum` ohne zweiten Hero.
+
+Next Steps:
+- Echter browsernaher Matrixlauf fuer `/create` bleibt offen: Link-/YouTube-/PDF-/Upload-, Save-/Finalize- und Rueckweg-Pfade aktiv im Browser pruefen.
+- Screenshot-/Viewport-Abgleich fuer 390px und Desktop auf dem jetzt harmonisierten Analyze-/Follow-up-Uebergang nachziehen.
+
+### PR-CREATE-GPT-PLANNER-GRAPH-FIRST-01 (2026-05-10) – Planner-first fachliche Vorentscheidung im Fast-Follow-up
+
+Ziel:
+- Den ersten fachlichen Schritt in `/create` als nicht-mutative Planner-Vorstufe verankern, damit breite oder spezialisierte Freitexte nicht mehr in fachfremde Demo-Fallbacks kippen.
+
+Changes:
+- `apps/web/src/features/create/createPlanner.ts`
+  - neuer lokaler Planner-First-Step fuer `/create`.
+  - liefert `plannerTopic`, `plannerCore`, `plannerScope`, `plannerStance`, `plannerClusters`, `plannerOpenQuestions`, `recommendedLane`, `providerPlan`.
+  - OpenAI ist als `planner_only` vorbereitet; bei Ausfall greift ein neutraler heuristischer Fallback.
+- `apps/web/src/features/create/intelligentFollowup.ts`
+  - Planner wird vor `analyzeContribution` ausgefuehrt und anschliessend in Summary, Topics, Statements, Scope und Open Question gemerged.
+  - Meta enthaelt jetzt `planner` plus bestaetigungspflichtigen `graphMatch`-Plan fuer `after_structure`.
+- `apps/web/src/features/create/intelligentFollowupContract.ts`
+  - Follow-up-Meta und Planner-getriebene Strukturast-Bildung erweitert.
+  - Tierwohl-/Import-/EU-/Kennzeichnungs-Cluster koennen direkt als Strukturäste erscheinen.
+- `apps/web/src/features/create/createConnectionSuggestions.ts`
+  - fachfremde Amtstraeger-Defaults entfernt; neutrale oder planner-getriebene Titel statt pauschalem Officeholder-Fallback.
+- `apps/web/src/features/create/CreateVisualFollowup.tsx`
+  - Erstblick nutzt Planner-Core/-Open-Question fuer `Kern`, `Thema` und `Noch offen`.
+  - tierwohl-spezifische Einordnung wird konkret sichtbar, ohne zweite Create-Surface.
+
+Fachlicher Effekt:
+- Das Video-Beispiel zu Tierschutz/Tierhaltung wird jetzt als `Tierschutz, Tierhaltung und Agrarstandards` mit konkreten Clustern, EU/Bund/internationalem Scope und offener Produkt-/Kontrollfrage eingeordnet.
+- `mindestens in den Ländern, aus denen wir importieren` fuehrt nicht mehr zu `Amtsträger`.
+- Explizite Amtstraeger-Texte koennen weiterhin in den Officeholder-Pfad gehen.
+
+Verification:
+- `pnpm -C apps/web run typecheck`
+- `pnpm -C apps/web exec vitest run tests/create-planner-routing.contract.test.ts tests/create-followup-tierwohl-mapping.contract.test.ts tests/create-connection-suggestions.no-domain-fallback.contract.test.ts tests/create-graph-match-after-planner.contract.test.ts tests/create-chat-first-mobile-dialog-experience.contract.test.tsx tests/create-entry-hierarchy.contract.test.tsx tests/e150-journey-routing.contract.test.ts`
+
+Next Steps:
+- Der echte Browser-/Workflow-Matrixlauf bleibt unter `PR-CREATE-WORKFLOW-LIVE-QA-01`.
+- Der aeltere breite Contract `create-intelligent-followup.contract.test.ts` sollte in einem separaten Cleanup die Planner-first-Architektur explizit mitziehen.
+
 ### PR-GOV-12 (2026-03-20) – Canonical Multi-Orchestration Flow + Hard-Deferred Sovereignty Block
 
 Ziel:
@@ -1314,3 +1377,54 @@ Verification:
 
 Next Steps:
 - Optional: kleine interne Admin-UI fuer Berichtslauf-Historie aufsetzen (aktuell API-only).
+
+### 2026-05-10 - PR-CREATE-HANDOFF-INTEGRITY-01
+
+Ziel:
+- Alle Klicks aus `/create` in Richtung Faktencheck, Dossier, Beteiligung, Graph-Anschluss und Beitragseinreichung sollen einen reviewbaren Arbeitsstand mitgeben statt nur kontextloser Navigation.
+
+Changes:
+- Neues Create-Handoff-Modell mit `plannerResult`, `graphMatches`, Claim-/Argument-/Open-Question-Trennung, `sourceGrounding`, `reviewState` und `requiresConfirmation=true`.
+- `/create`-CTAs erzeugen jetzt Handoff-Drafts fuer `/factcheck`, `/dossier`, `/swipes` und `/community/contributions`.
+- Faktencheck-Handoff bleibt nicht-mutativ: Claim-Preview statt Auto-DeepSearch oder Factcheck-Siegel.
+- Dossier-/Swipes-/Contribution-Ziele zeigen den vorbereiteten Arbeitsstand sichtbar an; keine stille Dossier-Anheftung, kein stiller Graph-Merge.
+- Graph-Matches fuehren `relation` und bleiben komplett bestaetigungspflichtig; `duplicate_risk` fuehrt in Review statt Auto-Merge.
+
+Verification:
+- `pnpm -C apps/web run typecheck`
+- `pnpm -C apps/web run lint`
+- `pnpm -C apps/web exec vitest run tests/create-handoff-draft.contract.test.ts tests/create-factcheck-handoff.contract.test.ts tests/create-dossier-handoff.contract.test.ts tests/create-argument-claim-separation.contract.test.ts tests/create-graph-match-confirmation.contract.test.ts tests/live-click-hardening.contract.test.ts tests/create-chat-first-mobile-dialog-experience.contract.test.tsx tests/create-entry-hierarchy.contract.test.tsx`
+
+### 2026-05-10 - PR-CREATE-ANLASSRAUM-DOSSIER-FEED-E2E-01
+
+Ziel:
+- Die reviewbare Handoff-Kette aus `/create` bis in Anlassraum, Dossier und spaetere Feed-/Themenweiterfuehrung ohne Kontextverlust absichern.
+
+Changes:
+- `CreateHandoffDraft` um `topicSeed` und `resumeHref` erweitert.
+- Neuer `/create`-Folgeschritt `Anlassraum vorbereiten` eingefuehrt und auf `/runden` verdrahtet.
+- `/runden` zeigt bei Create-Handoff einen sichtbaren Review-Banner statt stiller Query-Navigation.
+- Dossier- und Contribution-Surfaces zeigen Topic-Key/Jurisdiktion plus Ruecklink in `/create`.
+- Contracts fuer Anlassraum-Handoff, Rueckbearbeitung und reale `/runden`-CTA-Nutzung nachgezogen.
+
+Verification:
+- `pnpm -C apps/web run typecheck`
+- `pnpm -C apps/web run lint`
+- `pnpm -C apps/web exec vitest run tests/create-handoff-draft.contract.test.ts tests/create-dossier-handoff.contract.test.ts tests/create-anlassraum-handoff.contract.test.tsx tests/live-click-hardening.contract.test.ts tests/create-chat-first-mobile-dialog-experience.contract.test.tsx tests/create-curated-dialog-workspace.contract.test.tsx tests/runden-page.acceptance.test.ts`
+
+### 2026-05-11 - GOV-ACTOR-REGISTER-02 / GOV-COMMUNITY-SIGNAL-02 / GOV-ADMIN-REGION-02
+
+Ziel:
+- Die regionale Verortung fuer Anlassraeume von einer Fixture-Basis auf eine operative Verwaltungs-/Akteurs-/Signalschicht heben.
+
+Changes:
+- Offizielle Verwaltungsadressliste aus `apps/web/public/Listen/Anschriften_der_Gemeinde_und_Stadtverwaltungen_Stand_31012023_final.xlsx` als Directory-Readmodel operationalisiert.
+- Region-/Actor-Contracts um `administrativeUnitType`, amtliche Directory-Referenzen und Verwaltungsadressdaten erweitert.
+- Neues Repo-/Store-Layer fuer manuelle regionale Actor-Eintraege und review-first Community-Signale eingefuehrt.
+- Neue Admin-Routen fuer Actor-Register, Signal-Inbox und Regional-Cockpit angelegt.
+- Neue read-only Admin-Surface `/admin/region` fuer Verwaltung, Akteure und Signale ergänzt.
+
+Verification:
+- `pnpm -C apps/web run typecheck`
+- `pnpm -C apps/web run lint`
+- `pnpm -C apps/web exec vitest run tests/regional-official-directory.contract.test.ts tests/regional-actor-register.route.test.ts tests/community-signal-intake.route.test.ts tests/admin-region-cockpit.route.test.ts tests/admin-region-page.render.test.tsx tests/regional-actor-register.contract.test.ts tests/community-signal-inbox.contract.test.ts tests/regional-admin-cockpit.contract.test.ts`

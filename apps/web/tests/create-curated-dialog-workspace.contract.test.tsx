@@ -111,7 +111,7 @@ describe("create curated dialog workspace contract", () => {
     expect(followupSource).toContain("So übernehmen");
     expect(followupSource).toContain("Redaktionell prüfen lassen");
     expect(followupSource).toContain("Beitrag einreichen");
-    expect(followupSource).toContain("Faktencheck / Deep Search");
+    expect(followupSource).toContain("Faktencheck anfragen");
     expect(followupSource).toContain("Ändern");
     expect(followupSource).toContain("Keine automatische Stimme");
     expect(followupSource).toContain("Keine automatische Veröffentlichung");
@@ -133,12 +133,16 @@ describe("create curated dialog workspace contract", () => {
     const html = renderToStaticMarkup(
       <CreateVisualFollowup
         result={FOLLOWUP_RESULT}
-        ctaHref="/dossier?topic=schulwege"
         onConfirm={() => {}}
         onEdit={() => {}}
         onPrepareSubmission={() => {}}
+        onPrepareAnlassraum={() => {}}
+        onOpenDossierAppend={() => {}}
+        onOpenDossierCreate={() => {}}
+        onPrepareVote={() => {}}
         onRequestEditorialReview={() => {}}
         onStartOptionalService={() => {}}
+        onSaveOnly={() => {}}
         continuationValue=""
         onContinuationChange={() => {}}
         onContinueConversation={() => {}}

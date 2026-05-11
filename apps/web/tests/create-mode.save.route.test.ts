@@ -140,6 +140,28 @@ describe("create mode split - save route", () => {
     expect(saved[0].anlassraumId).toBe("65f000000000000000000011");
   });
 
+  it("persists link and material context inside the saved draft analysis snapshot", async () => {
+    const res = await savePOST(
+      req({
+        textPrepared: "Bitte prüft den beigefügten Tierwohl-Bericht und den Link zum EU-Standard.",
+        source: "contribution_new",
+        createMode: "source",
+        sourceUrls: ["https://example.org/tierwohl-standard"],
+        materialItems: [{ id: "mat-1", kind: "pdf_document", fileName: "tierwohl-bericht.pdf" }],
+      }),
+    );
+
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body).toMatchObject({ ok: true, createMode: "source" });
+
+    const saved = mocks.readAll();
+    expect(saved[0].analysis?.inputContext).toMatchObject({
+      sourceUrls: ["https://example.org/tierwohl-standard"],
+      materialItems: [{ id: "mat-1", kind: "pdf_document", fileName: "tierwohl-bericht.pdf" }],
+    });
+  });
+
   it("Scenario C: ai mode is accepted as drafting intent only (no publish side effect)", async () => {
     const res = await savePOST(
       req({

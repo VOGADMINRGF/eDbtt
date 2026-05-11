@@ -113,17 +113,25 @@ const MULTI_BRANCH_FOLLOWUP_RESULT = {
   generatedAt: "2026-05-09T12:00:00.000Z",
 };
 
+const FOLLOWUP_ACTIONS = {
+  onPrepareSubmission: () => {},
+  onPrepareAnlassraum: () => {},
+  onOpenDossierAppend: () => {},
+  onOpenDossierCreate: () => {},
+  onPrepareVote: () => {},
+  onRequestEditorialReview: () => {},
+  onStartOptionalService: () => {},
+  onSaveOnly: () => {},
+};
+
 function renderVisualFollowup() {
   return renderToStaticMarkup(
     <CreateVisualFollowup
       result={FOLLOWUP_RESULT}
-      ctaHref="/dossier?topic=schulwege"
       factcheckMessage="Optional. Startet erst nach bewusster Bestätigung. Keine automatische Kostenbuchung."
       onConfirm={() => {}}
       onEdit={() => {}}
-      onPrepareSubmission={() => {}}
-      onRequestEditorialReview={() => {}}
-      onStartOptionalService={() => {}}
+      {...FOLLOWUP_ACTIONS}
       continuationValue=""
       onContinuationChange={() => {}}
       onContinueConversation={() => {}}
@@ -135,13 +143,10 @@ function renderVisualFollowupInEditMode() {
   return renderToStaticMarkup(
     <CreateVisualFollowup
       result={FOLLOWUP_RESULT}
-      ctaHref="/dossier?topic=schulwege"
       showCorrectionComposer
       onConfirm={() => {}}
       onEdit={() => {}}
-      onPrepareSubmission={() => {}}
-      onRequestEditorialReview={() => {}}
-      onStartOptionalService={() => {}}
+      {...FOLLOWUP_ACTIONS}
       continuationValue=""
       onContinuationChange={() => {}}
       onContinueConversation={() => {}}
@@ -153,14 +158,11 @@ function renderMultiBranchVisualFollowup(isConfirmed = false) {
   return renderToStaticMarkup(
     <CreateVisualFollowup
       result={MULTI_BRANCH_FOLLOWUP_RESULT}
-      ctaHref="/dossier?topic=kommunale-prioritaeten"
       isConfirmed={isConfirmed}
       factcheckMessage="Optional. Startet erst nach bewusster Bestätigung. Keine automatische Kostenbuchung."
       onConfirm={() => {}}
       onEdit={() => {}}
-      onPrepareSubmission={() => {}}
-      onRequestEditorialReview={() => {}}
-      onStartOptionalService={() => {}}
+      {...FOLLOWUP_ACTIONS}
       continuationValue=""
       onContinuationChange={() => {}}
       onContinueConversation={() => {}}
@@ -227,7 +229,7 @@ describe("create chat-first mobile dialog experience contract", () => {
 
     expect(html).toContain("So übernehmen");
     expect(html).toContain("Ändern");
-    expect(html).toContain("Redaktionell prüfen lassen");
+    expect(html).toContain("Prüfung anfragen");
     expect((html.match(/btn-primary/g) ?? []).length).toBe(1);
     expect(html).not.toContain("Arbeitsstand speichern");
     expect(html).not.toContain("Faktencheck / Deep Search starten");
@@ -240,6 +242,11 @@ describe("create chat-first mobile dialog experience contract", () => {
     expect(html).toContain("Kern");
     expect(html).toContain("Thema");
     expect(html).toContain("Noch offen");
+    expect(html).toContain("Mehrere kommunale Zielkonflikte priorisieren");
+    expect(html).toContain("Welche Bereiche sollen zuerst bearbeitet werden – und wer ist zuständig?");
+    expect(html).toContain("Erkannte Bedarfspunkte");
+    expect(html).toContain("Wohnen und Genehmigungen");
+    expect(html).toContain("Verkehr, Klima und Alltagstauglichkeit");
     expect(html).toContain("data-mobile-inline-create-actions");
     expect(html).toContain("Details ansehen");
     expect(html).not.toContain("Korrektur oder Ergänzung");
@@ -264,10 +271,12 @@ describe("create chat-first mobile dialog experience contract", () => {
 
     expect(html).toContain("Was möchtest du daraus machen?");
     expect(html).toContain("Beitrag einreichen");
-    expect(html).toContain("Dossier ergänzen");
+    expect(html).toContain("Anlassraum vorbereiten");
+    expect(html).toContain("Als Ergänzung anhängen");
+    expect(html).toContain("Neues Dossier vorbereiten");
     expect(html).toContain("Beteiligungsfrage vorbereiten");
-    expect(html).toContain("Redaktionelle Prüfung anfragen");
-    expect(html).toContain("Faktencheck / Deep Search");
+    expect(html).toContain("Redaktionell prüfen lassen");
+    expect(html).toContain("Faktencheck anfragen");
   });
 
   it("surfaces the place clarification prominently for vague local references", () => {
@@ -281,12 +290,9 @@ describe("create chat-first mobile dialog experience contract", () => {
             openQuestion: "Auf welchen Ort, Bezirk oder welche Kommune bezieht sich dein Hinweis?",
           },
         }}
-        ctaHref="/dossier?topic=schulwege"
         onConfirm={() => {}}
         onEdit={() => {}}
-        onPrepareSubmission={() => {}}
-        onRequestEditorialReview={() => {}}
-        onStartOptionalService={() => {}}
+        {...FOLLOWUP_ACTIONS}
         continuationValue=""
         onContinuationChange={() => {}}
         onContinueConversation={() => {}}
@@ -346,6 +352,10 @@ describe("create chat-first mobile dialog experience contract", () => {
     expect(followupSource).toContain("NextStepPanel");
     expect(followupSource).toContain("data-mobile-compact-details");
     expect(followupSource).toContain("data-mobile-inline-create-actions");
+    expect(followupSource).toContain("nextStepsCount");
+    expect(followupSource).toContain("Mehrere kommunale Zielkonflikte priorisieren");
+    expect(followupSource).toContain("Welche Bereiche sollen zuerst bearbeitet werden – und wer ist zuständig?");
+    expect(followupSource).toContain("unreadLabel");
     expect(followupSource).toContain("const [detailsOpen, setDetailsOpen] = React.useState(false);");
     expect(followupSource).toContain("{detailsOpen ? (");
     expect(followupSource).toContain("aria-expanded={detailsOpen}");

@@ -38,6 +38,16 @@ describe("analyze workbench progressive disclosure", () => {
     expect(hasPrimaryIntakeText(" https://youtu.be/demo123 ")).toBe(true);
   });
 
+  it("keeps post-input modules visible for material-backed create runs even with minimal freetext", () => {
+    expect(
+      shouldShowCreatePostInputModules({
+        hasStarted: true,
+        intakeText: "",
+        hasMaterialContext: true,
+      }),
+    ).toBe(true);
+  });
+
   it("classifies link-only intake separately from link-plus-context input", () => {
     const linkOnly = detectCreateLinkIntake("https://youtu.be/demo123");
     expect(linkOnly.hasLink).toBe(true);
@@ -139,6 +149,16 @@ describe("analyze workbench progressive disclosure", () => {
         followupActivated: true,
         hasStarted: true,
         intakeText: "Persistierter Beitrag",
+        productMode: "media",
+        guidedBridgeConfirmed: true,
+      }),
+    ).toBe(true);
+    expect(
+      shouldRenderCreateAnalyzeWorkspace({
+        followupActivated: true,
+        hasStarted: true,
+        intakeText: "",
+        hasMaterialContext: true,
         productMode: "media",
         guidedBridgeConfirmed: true,
       }),
@@ -251,6 +271,10 @@ describe("analyze workbench progressive disclosure", () => {
       resolve(process.cwd(), "src/app/create/CreateClient.tsx"),
       "utf8",
     );
+    const workspaceSource = readFileSync(
+      resolve(process.cwd(), "src/components/analyze/AnalyzeWorkspace.tsx"),
+      "utf8",
+    );
     const linkIntakeSource = readFileSync(
       resolve(process.cwd(), "src/features/create/linkIntake.ts"),
       "utf8",
@@ -300,6 +324,10 @@ describe("analyze workbench progressive disclosure", () => {
     expect(clientSource).toContain("handleContinueConversation");
     expect(clientSource).toContain("CreateInlineAnalysisScene");
     expect(clientSource).toContain("Prüfmodus jetzt im selben Arbeitsraum geöffnet.");
+    expect(workspaceSource).toContain("shouldRenderCompactEmbeddedWorkspaceHeader");
+    expect(workspaceSource).toContain("shouldUseInlineCreateActionBar");
+    expect(workspaceSource).toContain("Im selben Arbeitsraum");
+    expect(workspaceSource).toContain("lg:sticky lg:bottom-3");
     expect(clientSource).not.toContain("details className=\"rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4\">\n          <summary className=\"cursor-pointer text-sm font-semibold text-[rgb(var(--fg))]\">{text.quotasTitle}</summary>");
     expect(clientSource).toContain("href=\"/account\"");
     expect(clientSource).toContain("hidden md:flex flex-wrap items-center gap-2");

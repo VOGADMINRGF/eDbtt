@@ -70,6 +70,7 @@ import {
   resolveInitialPrepareAttachTargetKey,
   type CreatePrepareAttachTargetOption,
 } from "@/features/create/prepareAttachDraft";
+import type { NormalizedMaterialItem } from "@/features/create/materialRouting";
 
 const MAX_LEVEL1_STATEMENTS = 3;
 
@@ -482,6 +483,35 @@ export type UseCaseAccess = {
   ctaLabel?: string;
 };
 
+export function buildAnalyzeWorkspaceMaterialPayload(params: {
+  sourceUrls?: string[] | null;
+  uploadIds?: string[] | null;
+  materialItems?: NormalizedMaterialItem[] | null;
+}): {
+  sourceUrls?: string[];
+  uploadIds?: string[];
+  materialItems?: NormalizedMaterialItem[];
+} {
+  const sourceUrls = Array.isArray(params.sourceUrls)
+    ? params.sourceUrls.filter((value): value is string => typeof value === "string" && value.trim().length > 0)
+    : [];
+  const uploadIds = Array.isArray(params.uploadIds)
+    ? params.uploadIds.filter((value): value is string => typeof value === "string" && value.trim().length > 0)
+    : [];
+  const materialItems = Array.isArray(params.materialItems)
+    ? params.materialItems.filter(
+        (item): item is NormalizedMaterialItem =>
+          Boolean(item) && typeof item === "object" && typeof item.id === "string" && item.id.trim().length > 0,
+      )
+    : [];
+
+  return {
+    sourceUrls: sourceUrls.length > 0 ? sourceUrls : undefined,
+    uploadIds: uploadIds.length > 0 ? uploadIds : undefined,
+    materialItems: materialItems.length > 0 ? materialItems : undefined,
+  };
+}
+
 type AnalyzeWorkspaceProps = {
   mode: "contribution" | "statement";
   createMode?: CreateMode;
@@ -506,6 +536,9 @@ type AnalyzeWorkspaceProps = {
   embeddedSingleIntake?: boolean;
   syncTextFromParent?: boolean;
   autoRunToken?: number;
+  sourceUrls?: string[] | null;
+  uploadIds?: string[] | null;
+  materialItems?: NormalizedMaterialItem[] | null;
 };
 
 const BASE_STEPS: AnalyzeStepState[] = [
@@ -538,6 +571,18 @@ export function shouldHydrateDraftIdentityFromStorage(params: {
   syncTextFromParent?: boolean;
 }): boolean {
   return params.syncTextFromParent !== true;
+}
+
+export function shouldRenderCompactEmbeddedWorkspaceHeader(params: {
+  analysisEntryVariant?: "use_case_cards" | "single_button";
+}): boolean {
+  return params.analysisEntryVariant === "single_button";
+}
+
+export function shouldUseInlineCreateActionBar(params: {
+  analysisEntryVariant?: "use_case_cards" | "single_button";
+}): boolean {
+  return params.analysisEntryVariant === "single_button";
 }
 
 type DraftStorage = {
@@ -908,6 +953,9 @@ export default function AnalyzeWorkspace({
   embeddedSingleIntake,
   syncTextFromParent,
   autoRunToken,
+  sourceUrls,
+  uploadIds,
+  materialItems,
 }: AnalyzeWorkspaceProps) {
   const router = useRouter();
   const { locale } = useLocale();
@@ -1000,6 +1048,15 @@ export default function AnalyzeWorkspace({
   const showWorkspacePrimaryInput = shouldRenderWorkspacePrimaryTextInput({
     embeddedSingleIntake,
   });
+  const materialPayload = React.useMemo(
+    () =>
+      buildAnalyzeWorkspaceMaterialPayload({
+        sourceUrls,
+        uploadIds,
+        materialItems,
+      }),
+    [materialItems, sourceUrls, uploadIds],
+  );
 
   const flowConfig = FLOW_OPTIONS.find((opt) => opt.id === flow) ?? FLOW_OPTIONS[0];
   const allowTrace = flowConfig.allowTrace;
@@ -1553,6 +1610,13 @@ export default function AnalyzeWorkspace({
   const showOutputSection = analysisStatus === "success" || hasAnyResults;
   const showInsights = analysisStatus === "success" && (allowTrace || allowResearch) && hasStatements;
   const usesCreateSingleStartSurface = analysisEntryVariant === "single_button";
+  const usesCompactEmbeddedHeader = shouldRenderCompactEmbeddedWorkspaceHeader({
+    analysisEntryVariant,
+  });
+  const usesInlineCreateActionBar = shouldUseInlineCreateActionBar({
+    analysisEntryVariant,
+  });
+  const showHeaderSaveButton = !(usesInlineCreateActionBar && totalStatements > 0);
   const sourceGroundingHint = deriveSourceGroundingUiHint(sourceGroundingAudit);
   const createAnalyzePhases = createAnalyze
     ? [
@@ -1655,6 +1719,7 @@ export default function AnalyzeWorkspace({
         anlassraumId: selectedAnlassraumId ?? undefined,
         authorName: authorName?.trim() || undefined,
         useCase,
+        ...materialPayload,
         analysis: {
           claims: statements,
           notes,
@@ -1706,6 +1771,7 @@ export default function AnalyzeWorkspace({
     impactAndResponsibility,
     knots,
     locale,
+    materialPayload,
     mode,
     resolvedCreateMode,
     selectedAnlassraumId,
@@ -1969,6 +2035,7 @@ export default function AnalyzeWorkspace({
           maxClaims,
           detailPreset: viewLevel,
           evidenceItems,
+          ...materialPayload,
         }),
       });
       const data = await res.json().catch(() => ({}));
@@ -2166,6 +2233,7 @@ export default function AnalyzeWorkspace({
     dossierId,
     locale,
     maxClaims,
+    materialPayload,
     preparedText,
     resolvedCreateMode,
     selectedAnlassraumId,
@@ -2504,35 +2572,76 @@ export default function AnalyzeWorkspace({
 
   return (
     <div ref={workspaceRef} className="min-h-[calc(100vh-64px)] bg-[rgb(var(--bg))]">
-      <div className={["container-vog max-w-none px-4 space-y-4 pt-6", totalStatements > 0 ? "pb-40" : "pb-24"].join(" ")}>
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-          <div className="space-y-2">
-            <h1 className="vog-head text-3xl sm:text-4xl">
-              <span className="bg-gradient-to-r from-sky-500 via-cyan-500 to-emerald-500 bg-clip-text text-transparent">
-                {workspaceHeading.lead}
-              </span>{" "}
-              {workspaceHeading.tail}
-            </h1>
-            <p className="text-xs text-[rgb(var(--muted))]">
-              {workspaceFlowPrefix}: <span className="font-semibold text-[rgb(var(--muted))]">{flowConfig.label}</span> ·{" "}
-              {flowConfig.description}
-            </p>
-            <div className="flex flex-wrap gap-2 text-[10px] text-[rgb(var(--muted))]">
-              <span className="inline-flex rounded-full bg-[rgb(var(--card))] px-2 py-1 ring-1 ring-inset ring-[rgb(var(--border))]">
-                {workspacePlanChip}
-              </span>
-              <span className="inline-flex rounded-full bg-[rgb(var(--card))] px-2 py-1 ring-1 ring-inset ring-[rgb(var(--border))]">
-                {flowIsLite ? "Schnellstart" : "Vertieft"}
-              </span>
+      <div
+        className={[
+          "container-vog max-w-none px-4 space-y-4 pt-6",
+          totalStatements > 0
+            ? usesInlineCreateActionBar
+              ? "pb-24 lg:pb-32"
+              : "pb-40"
+            : "pb-24",
+        ].join(" ")}
+      >
+        {usesCompactEmbeddedHeader ? (
+          <div className="rounded-[28px] border border-[rgb(var(--border))] bg-[color-mix(in_oklab,rgb(var(--card))_94%,rgb(var(--bg))_6%)] px-4 py-4 shadow-sm">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+              <div className="space-y-2">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
+                  Im selben Arbeitsraum
+                </p>
+                <h1 className="text-xl font-semibold text-[rgb(var(--fg))] sm:text-2xl">
+                  {workspaceHeading.lead} {workspaceHeading.tail}
+                </h1>
+                <p className="text-sm leading-relaxed text-[rgb(var(--muted))]">
+                  {workspaceFlowPrefix}: <span className="font-semibold">{flowConfig.label}</span> · {flowConfig.description}
+                </p>
+                <div className="flex flex-wrap gap-2 text-[10px] text-[rgb(var(--muted))]">
+                  <span className="inline-flex rounded-full bg-[rgb(var(--card))] px-2 py-1 ring-1 ring-inset ring-[rgb(var(--border))]">
+                    {workspacePlanChip}
+                  </span>
+                  <span className="inline-flex rounded-full bg-[rgb(var(--card))] px-2 py-1 ring-1 ring-inset ring-[rgb(var(--border))]">
+                    {flowIsLite ? "Schnellstart" : "Vertieft"}
+                  </span>
+                </div>
+              </div>
+              <div className="flex flex-col items-start gap-2 text-[11px] text-[rgb(var(--muted))] lg:items-end">
+                <span>
+                  UI: <span className="font-medium uppercase">{locale || "-"}</span>
+                </span>
+                <ContentLanguageSelect value={contentLang} onChange={setContentLang} />
+              </div>
             </div>
           </div>
-          <div className="flex flex-col items-start gap-2 text-[11px] text-[rgb(var(--muted))] sm:items-end">
-            <span>
-              UI: <span className="font-medium uppercase">{locale || "-"}</span>
-            </span>
-            <ContentLanguageSelect value={contentLang} onChange={setContentLang} />
+        ) : (
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+            <div className="space-y-2">
+              <h1 className="vog-head text-3xl sm:text-4xl">
+                <span className="bg-gradient-to-r from-sky-500 via-cyan-500 to-emerald-500 bg-clip-text text-transparent">
+                  {workspaceHeading.lead}
+                </span>{" "}
+                {workspaceHeading.tail}
+              </h1>
+              <p className="text-xs text-[rgb(var(--muted))]">
+                {workspaceFlowPrefix}: <span className="font-semibold text-[rgb(var(--muted))]">{flowConfig.label}</span> ·{" "}
+                {flowConfig.description}
+              </p>
+              <div className="flex flex-wrap gap-2 text-[10px] text-[rgb(var(--muted))]">
+                <span className="inline-flex rounded-full bg-[rgb(var(--card))] px-2 py-1 ring-1 ring-inset ring-[rgb(var(--border))]">
+                  {workspacePlanChip}
+                </span>
+                <span className="inline-flex rounded-full bg-[rgb(var(--card))] px-2 py-1 ring-1 ring-inset ring-[rgb(var(--border))]">
+                  {flowIsLite ? "Schnellstart" : "Vertieft"}
+                </span>
+              </div>
+            </div>
+            <div className="flex flex-col items-start gap-2 text-[11px] text-[rgb(var(--muted))] sm:items-end">
+              <span>
+                UI: <span className="font-medium uppercase">{locale || "-"}</span>
+              </span>
+              <ContentLanguageSelect value={contentLang} onChange={setContentLang} />
+            </div>
           </div>
-        </div>
+        )}
 
         <div className="max-w-4xl mx-auto space-y-5">
           <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm space-y-4">
@@ -2599,16 +2708,18 @@ export default function AnalyzeWorkspace({
                 <span>Aufbereitet: ~{preparedRatio}% kürzer (spart Zeit & Coins)</span>
               </div>
 
-              <div className="flex w-full justify-center">
-                <button
-                  type="button"
-                  onClick={saveDraftSnapshot}
-                  disabled={isSaving || !preparedText.trim()}
-                  className="w-full rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-5 py-2.5 text-sm font-semibold text-[rgb(var(--muted))] hover:bg-[rgb(var(--bg))] disabled:opacity-60 sm:w-auto"
-                >
-                  {isSaving ? "Speichere …" : "Speichern"}
-                </button>
-              </div>
+              {showHeaderSaveButton ? (
+                <div className="flex w-full justify-center">
+                  <button
+                    type="button"
+                    onClick={saveDraftSnapshot}
+                    disabled={isSaving || !preparedText.trim()}
+                    className="w-full rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-5 py-2.5 text-sm font-semibold text-[rgb(var(--muted))] hover:bg-[rgb(var(--bg))] disabled:opacity-60 sm:w-auto"
+                  >
+                    {isSaving ? "Speichere …" : "Speichern"}
+                  </button>
+                </div>
+              ) : null}
 
               {error ? (
                 <span className="inline-flex items-center rounded-full bg-rose-50 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-rose-700 ring-1 ring-rose-100 dark:bg-rose-500/15 dark:text-rose-200 dark:ring-rose-400/30">
@@ -4219,34 +4330,81 @@ export default function AnalyzeWorkspace({
       </div>
 
       {totalStatements > 0 ? (
-        <div ref={ctaRef} className="fixed bottom-3 left-0 right-0 z-30 px-3">
-          <div className="mx-auto flex max-w-3xl flex-wrap items-center justify-between gap-3 rounded-2xl bg-[rgb(var(--card))] px-3 py-2 shadow-[0_18px_45px_rgba(15,23,42,0.12)] ring-1 ring-[rgb(var(--border))]">
-            <div className="min-w-[180px]">
-              <p className="text-xs font-semibold text-[rgb(var(--fg))]">
-                {selectedClaimIds.length} von {totalStatements} ausgewählt
-              </p>
-              <p className="text-[11px] text-[rgb(var(--muted))]">Wähle, welche Statements eingereicht werden.</p>
-            </div>
-            <div className="flex flex-1 flex-wrap items-center justify-end gap-2">
-              <button
-                type="button"
-                onClick={saveDraftSnapshot}
-                disabled={isSaving || !preparedText.trim()}
-                className="rounded-full border border-[rgb(var(--border))] px-4 py-2 text-xs font-semibold text-[rgb(var(--muted))] hover:bg-[rgb(var(--bg))] disabled:opacity-60"
-              >
-                Speichern
-              </button>
-              <button
-                type="button"
-                onClick={handleFinalize}
-                disabled={!draftId || isFinalizing}
-                className="rounded-full bg-gradient-to-r from-sky-500 via-cyan-500 to-emerald-500 px-5 py-2 text-xs font-semibold text-white shadow-md hover:brightness-105 focus:outline-none focus:ring-2 focus:ring-sky-200 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                Einreichen
-              </button>
+        <div
+          ref={ctaRef}
+          className={
+            usesInlineCreateActionBar
+              ? "mt-6 lg:sticky lg:bottom-3 lg:z-20"
+              : "fixed bottom-3 left-0 right-0 z-30 px-3"
+          }
+        >
+          <div
+            className={
+              usesInlineCreateActionBar
+                ? "mx-auto max-w-4xl rounded-[28px] border border-[rgb(var(--border))] bg-[color-mix(in_oklab,rgb(var(--card))_94%,rgb(var(--bg))_6%)] px-4 py-4 shadow-[0_18px_45px_rgba(15,23,42,0.12)]"
+                : "mx-auto flex max-w-3xl flex-wrap items-center justify-between gap-3 rounded-2xl bg-[rgb(var(--card))] px-3 py-2 shadow-[0_18px_45px_rgba(15,23,42,0.12)] ring-1 ring-[rgb(var(--border))]"
+            }
+          >
+            <div className={usesInlineCreateActionBar ? "space-y-3" : "contents"}>
+              <div className={usesInlineCreateActionBar ? "flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between" : "contents"}>
+                <div className="min-w-[180px]">
+                  {usesInlineCreateActionBar ? (
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
+                      Abschluss im Arbeitsraum
+                    </p>
+                  ) : null}
+                  <p className={`font-semibold text-[rgb(var(--fg))] ${usesInlineCreateActionBar ? "mt-1 text-sm" : "text-xs"}`}>
+                    {selectedClaimIds.length} von {totalStatements} ausgewählt
+                  </p>
+                  <p className="text-[11px] text-[rgb(var(--muted))]">Wähle, welche Statements eingereicht werden.</p>
+                </div>
+                <div className="flex flex-1 flex-wrap items-center justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={saveDraftSnapshot}
+                    disabled={isSaving || !preparedText.trim()}
+                    className="rounded-full border border-[rgb(var(--border))] px-4 py-2 text-xs font-semibold text-[rgb(var(--muted))] hover:bg-[rgb(var(--bg))] disabled:opacity-60"
+                  >
+                    {isSaving ? "Speichere …" : "Speichern"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleFinalize}
+                    disabled={!draftId || isFinalizing}
+                    className="rounded-full bg-gradient-to-r from-sky-500 via-cyan-500 to-emerald-500 px-5 py-2 text-xs font-semibold text-white shadow-md hover:brightness-105 focus:outline-none focus:ring-2 focus:ring-sky-200 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {isFinalizing ? "Reiche ein …" : "Einreichen"}
+                  </button>
+                </div>
+              </div>
+              {usesInlineCreateActionBar && (saveInfo || finalizeInfo) ? (
+                <div className="space-y-2">
+                  {saveInfo ? (
+                    <p className="rounded-xl bg-emerald-50 px-3 py-2 text-[11px] text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-200">
+                      {saveInfo}
+                    </p>
+                  ) : null}
+                  {finalizeInfo ? (
+                    <div className="rounded-xl bg-emerald-50 px-3 py-2 text-[11px] text-emerald-700 ring-1 ring-emerald-100 dark:bg-emerald-500/15 dark:text-emerald-200 dark:ring-emerald-400/30">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <span>{finalizeInfo}</span>
+                        {finalizeRedirectTo ? (
+                          <button
+                            type="button"
+                            onClick={handleRedirect}
+                            className="text-[11px] font-semibold underline underline-offset-2"
+                          >
+                            Weiter zur Zielansicht
+                          </button>
+                        ) : null}
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
             </div>
           </div>
-          {finalizeInfo && (
+          {!usesInlineCreateActionBar && finalizeInfo ? (
             <div className="mx-auto mt-2 max-w-3xl rounded-2xl bg-emerald-50 px-3 py-2 text-xs text-emerald-700 ring-1 ring-emerald-100 dark:bg-emerald-500/15 dark:text-emerald-200 dark:ring-emerald-400/30">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <span>{finalizeInfo}</span>
@@ -4261,7 +4419,7 @@ export default function AnalyzeWorkspace({
                 ) : null}
               </div>
             </div>
-          )}
+          ) : null}
         </div>
       ) : null}
     </div>

@@ -1,8 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import LocalizedContentDisplay from "@/components/i18n/LocalizedContentDisplay";
 import { useLocale } from "@/context/LocaleContext";
+import { CreateHandoffPanel } from "@/features/create/CreateHandoffPanel";
+import { useCreateHandoffDraft } from "@/features/create/useCreateHandoffDraft";
 import {
   formatContentTranslationStatusLabel,
   resolveContentTranslationStatus,
@@ -66,6 +69,9 @@ const AUTHOR_KIND_OPTIONS: Array<{
 
 export default function CommunityContributionsPage() {
   const { locale } = useLocale();
+  const searchParams = useSearchParams();
+  const handoffId = searchParams.get("handoffId");
+  const draft = useCreateHandoffDraft(handoffId);
   const [type, setType] = useState<ContributionType>("source");
   const [topicId, setTopicId] = useState("");
   const [candidateId, setCandidateId] = useState("");
@@ -114,6 +120,16 @@ export default function CommunityContributionsPage() {
     loadList();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    if (!draft) return;
+    setTitle(draft.plannerResult.plannerTopic);
+    setBody(draft.sourceText);
+    setTopicId(draft.topicSeed.topicKey);
+    setCandidateId(draft.id);
+    setType(draft.selectedAction === "request_review" ? "question" : "view");
+    setFeedback("Create-Handoff geladen. Topic-Key und Kandidatenreferenz sind für Review, Feed-Weiterführung und Themenaufbau vorbelegt.");
+  }, [draft]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -175,6 +191,10 @@ export default function CommunityContributionsPage() {
           Menschen, Organisationen und verantwortliche Personen können Quellen, Optionen, Fragen oder Folgen einreichen. Beiträge werden vor Freigabe moderiert.
         </p>
       </header>
+
+      {draft ? (
+        <CreateHandoffPanel draft={draft} title="Aus /create vorbereitet" />
+      ) : null}
 
       <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm">
         <form className="grid gap-4 md:grid-cols-2" onSubmit={handleSubmit}>

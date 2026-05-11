@@ -12,6 +12,8 @@ import {
   buildShareOutputAsset,
 } from "@features/share/socialOutputContract";
 import { BRAND } from "@/lib/brand";
+import { CreateHandoffPanel } from "@/features/create/CreateHandoffPanel";
+import { useCreateHandoffDraft } from "@/features/create/useCreateHandoffDraft";
 
 type ApiResponse =
   | { ok: true; dossier: Dossier }
@@ -40,9 +42,16 @@ function extractDossierSubtitle(dossier: Dossier): string {
   return "Kontext und Einordnung für den weiteren Arbeitsprozess.";
 }
 
-export default function DossierPageClient({ dossierId }: { dossierId: string }) {
+export default function DossierPageClient({
+  dossierId,
+  handoffId = null,
+}: {
+  dossierId: string;
+  handoffId?: string | null;
+}) {
   const [dossier, setDossier] = useState<Dossier>(demoFallback);
   const [loaded, setLoaded] = useState(false);
+  const handoffDraft = useCreateHandoffDraft(handoffId);
 
   useEffect(() => {
     let cancelled = false;
@@ -88,6 +97,14 @@ export default function DossierPageClient({ dossierId }: { dossierId: string }) 
     <div className="mx-auto w-full max-w-[1440px] px-4 py-8 sm:px-6 sm:py-10 lg:px-10 lg:py-12">
       {!loaded ? (
         <p className="text-xs text-[rgb(var(--muted))]">Dossier wird geladen…</p>
+      ) : null}
+      {handoffDraft ? (
+        <div className="mb-4">
+          <CreateHandoffPanel draft={handoffDraft} title="Aus deinem Beitrag vorbereitet" />
+          <p className="mt-2 text-xs text-[rgb(var(--muted))]">
+            Keine stille Anheftung an bestehende Dossiers. Der Handoff bleibt reviewbar und bestaetigungspflichtig.
+          </p>
+        </div>
       ) : null}
       <p className="mb-3 text-xs text-[rgb(var(--muted))]">
         Dossier = strukturierte Verdichtung; der thematische Arbeitskontext bleibt bei den Anlässen (/runden).

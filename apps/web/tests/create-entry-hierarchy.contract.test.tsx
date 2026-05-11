@@ -8,6 +8,14 @@ vi.mock("@/components/analyze/AnalyzeWorkspace", () => ({
   default: () => null,
 }));
 
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({
+    push: () => {},
+    replace: () => {},
+    refresh: () => {},
+  }),
+}));
+
 import CreateClient, { type CreateClientProps } from "@/app/create/CreateClient";
 import { LocaleProvider } from "@/context/LocaleContext";
 
@@ -92,16 +100,16 @@ describe("create entry hierarchy contract", () => {
     expect(html).toContain("Sprache");
     expect(html).toContain("Deine Struktur auf einen Blick");
     expect(html).toContain("Prioritäten");
-    expect(html).toContain("0 Prioritäten");
+    expect(html).toContain("Was zählt zuerst?");
     expect(html).toContain("Themencluster");
-    expect(html).toContain("0 Cluster");
+    expect(html).toContain("Erkannte Cluster");
     expect(html).toContain("Fragen &amp; Abstimmung");
-    expect(html).toContain("0 Fragen");
+    expect(html).toContain("Offene Fragen");
     expect(html).toContain("Nächste Schritte");
-    expect(html).toContain("0/3 erledigt");
+    expect(html).toContain("Was als Nächstes folgt");
     expect((html.match(/data-mobile-structure-card/g) ?? []).length).toBe(4);
-    expect(followupSource).toContain("flex min-h-[82px] items-center gap-3");
-    expect(followupSource).toContain("grid gap-3 lg:grid-cols-2");
+    expect(followupSource).toContain("data-mobile-structure-card className=\"flex items-center gap-2.5\"");
+    expect(followupSource).toContain("grid gap-4 lg:grid-cols-[minmax(0,1.1fr)_minmax(18rem,22rem)]");
     expect(composerSource).toContain("text-lg font-semibold tracking-tight");
     expect(composerSource).toContain("data-create-alternate-mode-disclosure");
     expect(composerSource).toContain("px-4 py-3 md:block");

@@ -27,6 +27,12 @@ export type NormalizedMaterialItem = {
   extractionStatus: MaterialExtractionStatus;
 };
 
+export type CreateAttachmentLike = {
+  name: string;
+  type?: string | null;
+  size?: number | null;
+};
+
 export type MaterialRoutingResult = {
   lane: MaterialLane;
   materialProvider: MaterialProvider;
@@ -266,6 +272,39 @@ function collectUploadItems(input: unknown): NormalizedMaterialItem[] {
       };
     })
     .filter(Boolean) as NormalizedMaterialItem[];
+}
+
+export function buildCreateAttachmentMaterialItems(
+  files: readonly CreateAttachmentLike[],
+): NormalizedMaterialItem[] {
+  return files
+    .map((file, index) => {
+      const fileName = asOptionalString(file?.name);
+      if (!fileName) return null;
+      const mimeType = asOptionalString(file?.type);
+      const kind = inferMaterialKind({
+        url: null,
+        mimeType,
+        fileName,
+        marker: "attachment",
+      });
+      if (!kind) return null;
+      return {
+        id: `create-attachment-${index + 1}`,
+        kind,
+        label: fileName,
+        url: null,
+        uploadId: null,
+        mimeType,
+        fileName,
+        text: null,
+        pageRef: null,
+        timestampRef: null,
+        extractedBy: null,
+        extractionStatus: inferExtractionStatus(null, kind),
+      };
+    })
+    .filter((item): item is NormalizedMaterialItem => Boolean(item));
 }
 
 function collectTextLinkItems(text: string): NormalizedMaterialItem[] {

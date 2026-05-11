@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { resolveMaterialRouting } from "@/features/create/materialRouting";
+import {
+  buildCreateAttachmentMaterialItems,
+  resolveMaterialRouting,
+} from "@/features/create/materialRouting";
 
 describe("create material routing contract", () => {
   it("routes YouTube-only intake into material grounding with notebooklm + gemini", () => {
@@ -23,6 +26,23 @@ describe("create material routing contract", () => {
 
     expect(result.lane).toBe("material_grounding");
     expect(result.materialItems.some((item) => item.kind === "pdf_document" || item.kind === "upload_document")).toBe(true);
+  });
+
+  it("maps selected create attachments into material items before analyze/save", () => {
+    const items = buildCreateAttachmentMaterialItems([
+      { name: "tierwohl-bericht.pdf", type: "application/pdf" },
+      { name: "protokoll.txt", type: "text/plain" },
+    ]);
+
+    expect(items).toHaveLength(2);
+    expect(items[0]).toMatchObject({
+      kind: "pdf_document",
+      fileName: "tierwohl-bericht.pdf",
+    });
+    expect(items[1]).toMatchObject({
+      kind: "upload_document",
+      fileName: "protokoll.txt",
+    });
   });
 
   it("keeps normal freetext out of research by default", () => {

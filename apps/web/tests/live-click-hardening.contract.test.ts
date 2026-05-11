@@ -29,6 +29,9 @@ describe("live click hardening contract", () => {
       "/start",
       "/themen",
       "/swipes",
+      "/runden",
+      "/factcheck",
+      "/dossier",
       "/community/contributions",
       "/howtoworks/edebatte",
       "/pricing",
@@ -41,6 +44,29 @@ describe("live click hardening contract", () => {
       "/kontakt",
     ].forEach((target) => {
       expect(routePageExists(target)).toBe(true);
+    });
+  });
+
+  it("keeps create handoff CTAs bound to real targets without placeholder hrefs", () => {
+    const followupSource = readFileSync(resolve(process.cwd(), "src/features/create/CreateVisualFollowup.tsx"), "utf8");
+    const createClientSource = readFileSync(resolve(process.cwd(), "src/app/create/CreateClient.tsx"), "utf8");
+
+    expect(followupSource).not.toContain('href="#"');
+    expect(createClientSource).not.toContain('href="#"');
+
+    [
+      "Anlassraum vorbereiten",
+      "Als Ergänzung anhängen",
+      "Neues Dossier vorbereiten",
+      "Faktencheck anfragen",
+      "Redaktionell prüfen lassen",
+      "Nur speichern",
+    ].forEach((label) => {
+      expect(followupSource).toContain(label);
+    });
+
+    ["/community/contributions", "/dossier", "/factcheck", "/swipes", "/runden"].forEach((routeTarget) => {
+      expect(createClientSource).toContain(routeTarget);
     });
   });
 

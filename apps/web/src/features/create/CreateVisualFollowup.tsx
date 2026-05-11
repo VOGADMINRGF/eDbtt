@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-import Link from "next/link";
 import {
   buildCreateVisualSections,
   buildCreateStructureBranches,
@@ -12,14 +11,8 @@ import {
   type CreateStructureBranch,
   type CreateVisualNode,
 } from "@/features/create/intelligentFollowupContract";
-import {
-  buildCreateFollowupPrimaryCtaHref,
-  buildCreateFollowupTargetHref,
-} from "@/features/create/followupTargetHref";
-
 type CreateVisualFollowupProps = {
   result: CreateIntelligentFollowupResult;
-  ctaHref: string;
   actionNotice?: string | null;
   isConfirmed?: boolean;
   reviewRequestState?: "idle" | "saving" | "saved" | "error";
@@ -29,8 +22,13 @@ type CreateVisualFollowupProps = {
   onConfirm: () => void;
   onEdit: () => void;
   onPrepareSubmission: () => void;
+  onPrepareAnlassraum: () => void;
+  onOpenDossierAppend: () => void;
+  onOpenDossierCreate: () => void;
+  onPrepareVote: () => void;
   onRequestEditorialReview?: () => void;
   onStartOptionalService?: () => void;
+  onSaveOnly?: () => void;
   onSkipPlaceClarification?: () => void;
   continuationValue: string;
   onContinuationChange: (value: string) => void;
@@ -99,9 +97,14 @@ type CreateStructureOverviewProps = {
   prioritiesCount: number;
   clustersCount: number;
   questionsCount: number;
-  stepsDone: number;
-  stepsTotal: number;
+  nextStepsCount: number;
   onOpenSection?: (section: "priorities" | "clusters" | "questions" | "next_steps") => void;
+};
+
+type TopNeedPoint = {
+  id: string;
+  label: string;
+  detail: string;
 };
 
 const BROAD_TOPIC_FIELD_ORDER = [
@@ -275,8 +278,7 @@ export function deriveCreateStructureOverviewMetrics(params: {
   prioritiesCount: number;
   clustersCount: number;
   questionsCount: number;
-  stepsDone: number;
-  stepsTotal: number;
+  nextStepsCount: number;
 } {
   const result = params.result ?? null;
   const structureBranches = result ? buildCreateStructureBranches(result, 3) : [];
@@ -294,8 +296,7 @@ export function deriveCreateStructureOverviewMetrics(params: {
     prioritiesCount: result ? Math.min(Math.max(result.understanding.topics.length, 1), 3) : 0,
     clustersCount: result ? Math.max(structureBranches.length, 1) : 0,
     questionsCount: result ? Math.max(voteQuestions.length, 1) : 0,
-    stepsDone: params.isConfirmed ? 1 : 0,
-    stepsTotal: 3,
+    nextStepsCount: result ? 1 : 0,
   };
 }
 
@@ -559,12 +560,17 @@ function resolveAssistantLead(params: {
   summary: string;
   statementText: string;
   dossierContext?: string;
+  plannerTopic?: string | null;
 }): string {
+  if (params.plannerTopic === "Tierschutz, Tierhaltung und Agrarstandards") {
+    return "Ich erkenne eine normative Forderung nach strengeren Tierwohl-, Tierhaltungs- und Agrarstandards mit Blick auf Import, Export, Kennzeichnung und EU-Regeln.";
+  }
   if (params.dossierContext === "Kommunale Prioritäten und Zielkonflikte") {
     return "Ich sehe einen breiten kommunalen Prioritätenkonflikt. Es geht nicht um ein einzelnes Thema, sondern um mehrere Zielkonflikte, die zusammen priorisiert werden müssen.";
   }
   const lowered = params.topicLabels.join(" ").toLowerCase();
   if (
+    /\bamtstr[aä]ger\b|\bpolitiker\b|\bmandatstr[aä]ger\b|\bminister\b|\babgeordnete?\b|\bpolitische [aä]mter\b/.test(lowered) &&
     lowered.includes("politische verantwortung") &&
     lowered.includes("amtsträger") &&
     lowered.includes("qualifikation") &&
@@ -583,15 +589,68 @@ function resolveCoreClaim(params: {
   topicLabels: string[];
   fallback: string;
   dossierContext?: string;
+  plannerCore?: string | null;
 }): string {
+  if (params.plannerCore?.trim()) {
+    return params.plannerCore.trim();
+  }
   if (params.dossierContext === "Kommunale Prioritäten und Zielkonflikte") {
     return "Du beschreibst mehrere kommunale Zielkonflikte, die gemeinsam priorisiert und nachvollziehbar abgewogen werden sollen.";
   }
   const lowered = params.topicLabels.join(" ").toLowerCase();
-  if (lowered.includes("amtsträger") && lowered.includes("qualifikation") && lowered.includes("sanktionen")) {
+  if (
+    /\bamtstr[aä]ger\b|\bpolitiker\b|\bmandatstr[aä]ger\b|\bminister\b|\babgeordnete?\b|\bpolitische [aä]mter\b/.test(lowered) &&
+    lowered.includes("qualifikation") &&
+    lowered.includes("sanktionen")
+  ) {
     return "Du forderst klare Mindestanforderungen und Konsequenzen für Amtsträger.";
   }
   return params.fallback;
+}
+
+function resolveCorePreviewTitle(params: {
+  result: CreateIntelligentFollowupResult;
+  fallbackLabel: string;
+}): string {
+  if (params.result.understanding.dossierContext === "Kommunale Prioritäten und Zielkonflikte") {
+    return "Mehrere kommunale Zielkonflikte priorisieren";
+  }
+  return params.fallbackLabel;
+}
+
+function resolveDefaultOpenQuestion(result: CreateIntelligentFollowupResult, voteQuestions: string[]): string {
+  const plannerQuestion = result.meta?.planner?.plannerOpenQuestions[0] ?? result.meta?.planner?.openQuestions[0] ?? null;
+  if (plannerQuestion) return plannerQuestion;
+  if (result.understanding.dossierContext === "Kommunale Prioritäten und Zielkonflikte") {
+    return "Welche Bereiche sollen zuerst bearbeitet werden – und wer ist zuständig?";
+  }
+  return voteQuestions[0] ?? "Welche Rückfrage ist für die Einordnung noch offen?";
+}
+
+function buildTopNeedPoints(params: {
+  structureBranches: CreateStructureBranch[];
+  statements: CreateIntelligentFollowupResult["understanding"]["statements"];
+  dossierContext?: string;
+  topicCount: number;
+}): TopNeedPoint[] {
+  const preferBranches =
+    params.structureBranches.length > 1 ||
+    params.topicCount > 3 ||
+    params.dossierContext === "Kommunale Prioritäten und Zielkonflikte";
+
+  if (preferBranches && params.structureBranches.length > 0) {
+    return params.structureBranches.slice(0, 3).map((branch) => ({
+      id: branch.id,
+      label: branch.title,
+      detail: branch.need,
+    }));
+  }
+
+  return params.statements.slice(0, 3).map((statement, index) => ({
+    id: statement.id || `statement-${index + 1}`,
+    label: `Bedarfspunkt ${index + 1}`,
+    detail: statement.text,
+  }));
 }
 
 function sortSuggestions(
@@ -1013,23 +1072,31 @@ function CreateStructureOverviewCard(props: {
   title: string;
   description: string;
   pillLabel: string;
+  unreadLabel?: string;
   area: "priorities" | "clusters" | "questions" | "next_steps";
   onClick?: () => void;
 }) {
   const content = (
-    <div data-mobile-structure-card className="flex min-h-[82px] items-center gap-3">
-      <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-cyan-300/60 bg-cyan-500/[0.06] dark:border-cyan-300/30 dark:bg-cyan-500/10">
+    <div data-mobile-structure-card className="flex items-center gap-2.5">
+      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-cyan-300/60 bg-cyan-500/[0.06] dark:border-cyan-300/30 dark:bg-cyan-500/10">
         <FocusAreaIcon area={props.area} />
       </span>
-      <div className="min-w-0 flex-1">
-        <p className="text-base font-semibold text-[rgb(var(--fg))]">{props.title}</p>
-        <p className="mt-1 text-sm leading-relaxed text-[rgb(var(--muted))]">{props.description}</p>
+      <div className="min-w-0">
+        <div className="flex flex-wrap items-center gap-2">
+          <p className="text-sm font-semibold text-[rgb(var(--fg))]">{props.title}</p>
+          {props.unreadLabel ? (
+            <span className="rounded-full bg-cyan-600 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-white dark:bg-cyan-300 dark:text-slate-950">
+              {props.unreadLabel}
+            </span>
+          ) : null}
+        </div>
+        <p className="mt-0.5 text-xs leading-relaxed text-[rgb(var(--muted))]">{props.description}</p>
       </div>
-      <div className="flex shrink-0 items-center gap-2">
-        <span className="rounded-full border border-slate-200/80 px-2.5 py-1 text-[11px] font-semibold text-[rgb(var(--muted))] dark:border-[rgb(var(--border))]">
+      <div className="ml-auto flex shrink-0 items-center gap-2">
+        <span className="rounded-full border border-slate-200/80 bg-white/70 px-2.5 py-1 text-[11px] font-semibold text-slate-700 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--bg))] dark:text-slate-100">
           {props.pillLabel}
         </span>
-        <svg aria-hidden="true" viewBox="0 0 20 20" className="h-4 w-4 text-slate-400 dark:text-slate-500" fill="none" stroke="currentColor" strokeWidth="1.8">
+        <svg aria-hidden="true" viewBox="0 0 20 20" className="h-3.5 w-3.5 text-slate-400 dark:text-slate-500" fill="none" stroke="currentColor" strokeWidth="1.8">
           <path d="M7 4.5 13 10l-6 5.5" />
         </svg>
       </div>
@@ -1038,7 +1105,7 @@ function CreateStructureOverviewCard(props: {
 
   if (!props.onClick) {
     return (
-      <article className="rounded-[24px] border border-slate-200/75 bg-[color-mix(in_oklab,rgb(var(--card))_92%,rgb(var(--bg))_8%)] px-4 py-4 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))]">
+      <article className="rounded-full border border-slate-200/75 bg-[color-mix(in_oklab,rgb(var(--card))_92%,rgb(var(--bg))_8%)] px-3 py-2.5 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))]">
         {content}
       </article>
     );
@@ -1048,7 +1115,7 @@ function CreateStructureOverviewCard(props: {
     <button
       type="button"
       onClick={props.onClick}
-      className="w-full rounded-[24px] border border-slate-200/75 bg-[color-mix(in_oklab,rgb(var(--card))_92%,rgb(var(--bg))_8%)] px-4 py-4 text-left transition hover:border-cyan-300/55 hover:bg-cyan-500/[0.05] dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))]"
+      className="w-full rounded-full border border-slate-200/75 bg-[color-mix(in_oklab,rgb(var(--card))_92%,rgb(var(--bg))_8%)] px-3 py-2.5 text-left transition hover:border-cyan-300/55 hover:bg-cyan-500/[0.05] dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))]"
     >
       {content}
     </button>
@@ -1058,44 +1125,48 @@ function CreateStructureOverviewCard(props: {
 export function CreateStructureOverview(props: CreateStructureOverviewProps) {
   const isEnglish = props.locale === "en";
   return (
-    <section data-mobile-structure-overview className="space-y-3 rounded-[28px] border border-slate-200/80 bg-[color-mix(in_oklab,rgb(var(--card))_94%,rgb(var(--bg))_6%)] px-4 py-4 shadow-[0_16px_36px_rgba(2,6,23,0.05)] dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))]">
-      <div className="space-y-1">
+    <section data-mobile-structure-overview className="space-y-3 rounded-[26px] border border-slate-200/80 bg-[color-mix(in_oklab,rgb(var(--card))_94%,rgb(var(--bg))_6%)] px-4 py-4 shadow-[0_16px_36px_rgba(2,6,23,0.05)] dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))]">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
           {isEnglish ? "Your structure at a glance" : CREATE_VISUAL_FOLLOWUP_COPY.overviewTitle}
         </p>
-        <p className="text-sm leading-relaxed text-[rgb(var(--muted))]">
+        <p className="text-xs leading-relaxed text-[rgb(var(--muted))]">
           {isEnglish
-            ? "The core areas stay compact first and open more detail only when needed."
-            : "Die wichtigsten Bereiche bleiben zuerst kompakt und öffnen erst bei Bedarf mehr Details."}
+            ? "Compact first, details only on demand."
+            : "Kompakt zuerst, Details bei Bedarf."}
         </p>
       </div>
-      <div className="grid gap-3 lg:grid-cols-2">
+      <div className="flex flex-wrap gap-2">
         <CreateStructureOverviewCard
           area="priorities"
           title={isEnglish ? "Priorities" : "Prioritäten"}
-          description={isEnglish ? "What matters most to you?" : "Was ist dir besonders wichtig?"}
-          pillLabel={isEnglish ? `${props.prioritiesCount} priorities` : `${props.prioritiesCount} Prioritäten`}
+          description={isEnglish ? "What matters most?" : "Was zählt zuerst?"}
+          pillLabel={String(props.prioritiesCount)}
+          unreadLabel={props.prioritiesCount > 0 ? (isEnglish ? "new" : "neu") : undefined}
           onClick={props.onOpenSection ? () => props.onOpenSection?.("priorities") : undefined}
         />
         <CreateStructureOverviewCard
           area="clusters"
           title={isEnglish ? "Topic clusters" : "Themencluster"}
-          description={isEnglish ? "Your focus areas in detail" : "Deine Schwerpunkte im Detail"}
-          pillLabel={isEnglish ? `${props.clustersCount} clusters` : `${props.clustersCount} Cluster`}
+          description={isEnglish ? "Recognized clusters" : "Erkannte Cluster"}
+          pillLabel={String(props.clustersCount)}
+          unreadLabel={props.clustersCount > 0 ? (isEnglish ? "new" : "neu") : undefined}
           onClick={props.onOpenSection ? () => props.onOpenSection?.("clusters") : undefined}
         />
         <CreateStructureOverviewCard
           area="questions"
           title={isEnglish ? "Questions & participation" : "Fragen & Abstimmung"}
-          description={isEnglish ? "What do you think? Join in." : "Was denkst du? Mach mit!"}
-          pillLabel={isEnglish ? `${props.questionsCount} questions` : `${props.questionsCount} Fragen`}
+          description={isEnglish ? "Open questions" : "Offene Fragen"}
+          pillLabel={String(props.questionsCount)}
+          unreadLabel={props.questionsCount > 0 ? (isEnglish ? "new" : "neu") : undefined}
           onClick={props.onOpenSection ? () => props.onOpenSection?.("questions") : undefined}
         />
         <CreateStructureOverviewCard
           area="next_steps"
           title={isEnglish ? "Next steps" : "Nächste Schritte"}
-          description={isEnglish ? "What happens next" : "So geht es weiter"}
-          pillLabel={isEnglish ? `${props.stepsDone}/${props.stepsTotal} done` : `${props.stepsDone}/${props.stepsTotal} erledigt`}
+          description={isEnglish ? "What happens next" : "Was als Nächstes folgt"}
+          pillLabel={String(props.nextStepsCount)}
+          unreadLabel={props.nextStepsCount > 0 ? (isEnglish ? "new" : "neu") : undefined}
           onClick={props.onOpenSection ? () => props.onOpenSection?.("next_steps") : undefined}
         />
       </div>
@@ -1709,6 +1780,37 @@ function CompactPreviewCard(props: {
   );
 }
 
+function TopNeedPointList(props: { items: TopNeedPoint[]; topicLabels: string[] }) {
+  return (
+    <div className="space-y-3">
+      <div className="flex flex-wrap items-center gap-2">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
+          Erkannte Bedarfspunkte
+        </p>
+        {props.topicLabels.slice(0, 4).map((label) => (
+          <span
+            key={`need-topic-${label}`}
+            className={`rounded-full border px-2.5 py-1 text-[11px] ${resolveNodeTone("topic")}`}
+          >
+            {label}
+          </span>
+        ))}
+      </div>
+      <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
+        {props.items.map((item) => (
+          <article
+            key={item.id}
+            className="rounded-2xl border border-slate-200/75 bg-[color-mix(in_oklab,rgb(var(--card))_92%,rgb(var(--bg))_8%)] px-3 py-3 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))]"
+          >
+            <p className="text-xs font-semibold text-[rgb(var(--fg))]">{item.label}</p>
+            <p className="mt-1.5 text-sm leading-relaxed text-[rgb(var(--muted))]">{item.detail}</p>
+          </article>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function PlaceClarificationPanel(props: {
   question: string;
   privacyHint?: string;
@@ -1818,37 +1920,40 @@ function StructureProposalPanel(props: {
   reviewRequestMessage?: string | null;
 }) {
   return (
-    <div
-      data-mobile-inline-create-actions
-      className="space-y-4 rounded-[28px] border border-emerald-300/30 bg-[linear-gradient(180deg,rgba(9,20,42,0.98),rgba(11,24,46,0.95))] px-4 py-4 shadow-[0_18px_42px_rgba(5,150,105,0.12)]"
-    >
-      <div className="space-y-1">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-emerald-200/75">Strukturvorschlag</p>
-        <p className="text-base font-semibold text-white">{CREATE_VISUAL_FOLLOWUP_COPY.confirmTitle}</p>
-        <p className="text-sm leading-relaxed text-slate-300">
-          Übernimm den Vorschlag, öffne eine Korrektur oder fordere bewusst eine manuelle Prüfung an.
-        </p>
+    <div data-mobile-inline-create-actions className="space-y-3 border-t border-slate-200/80 pt-4 dark:border-[rgb(var(--border))]">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+        <div className="max-w-2xl space-y-1">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">Nächster Schritt</p>
+          <p className="text-base font-semibold text-[rgb(var(--fg))]">{CREATE_VISUAL_FOLLOWUP_COPY.confirmTitle}</p>
+          <p className="text-sm leading-relaxed text-[rgb(var(--muted))]">
+            Übernimm den Vorschlag, öffne eine Korrektur oder fordere bewusst eine manuelle Prüfung an.
+          </p>
+        </div>
+        <div className="flex flex-col gap-2 lg:items-end">
+          <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap lg:justify-end">
+            <button type="button" className="btn-secondary min-h-[42px] px-3 py-2 text-sm" onClick={props.onEdit}>
+              Ändern
+            </button>
+            <button
+              type="button"
+              className="btn-secondary min-h-[42px] px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-60"
+              onClick={props.onRequestEditorialReview}
+              disabled={props.reviewRequestState === "saving"}
+              aria-disabled={props.reviewRequestState === "saving"}
+            >
+              {resolveReviewRequestLabel(props.reviewRequestState, "compact")}
+            </button>
+            <button type="button" className="btn-primary min-h-[46px] px-4 py-2 text-sm" onClick={props.onConfirm}>
+              So übernehmen
+            </button>
+          </div>
+          <p className="text-[11px] leading-relaxed text-[rgb(var(--muted))] lg:text-right">
+            Keine automatische Veröffentlichung. Keine automatische Kostenbuchung.
+          </p>
+        </div>
       </div>
-      <button type="button" className="btn-primary min-h-[48px] w-full px-4 py-2 text-sm" onClick={props.onConfirm}>
-        So übernehmen
-      </button>
-      <button type="button" className="btn-secondary min-h-[42px] w-full px-3 py-2 text-sm" onClick={props.onEdit}>
-        Ändern
-      </button>
-      <button
-        type="button"
-        className="text-sm font-medium text-emerald-100 underline-offset-4 transition hover:underline disabled:cursor-not-allowed disabled:opacity-60"
-        onClick={props.onRequestEditorialReview}
-        disabled={props.reviewRequestState === "saving"}
-        aria-disabled={props.reviewRequestState === "saving"}
-      >
-        {resolveReviewRequestLabel(props.reviewRequestState)}
-      </button>
-      <p className="text-[11px] leading-relaxed text-slate-400">
-        Keine automatische Veröffentlichung. Keine automatische Kostenbuchung.
-      </p>
       {props.reviewRequestMessage ? (
-        <p className="rounded-xl border border-emerald-300/25 bg-emerald-500/[0.08] px-3 py-2 text-xs leading-relaxed text-emerald-100">
+        <p className="rounded-xl border border-emerald-300/25 bg-emerald-500/[0.08] px-3 py-2 text-xs leading-relaxed text-emerald-900 dark:text-emerald-100">
           {props.reviewRequestMessage}
         </p>
       ) : null}
@@ -1857,11 +1962,14 @@ function StructureProposalPanel(props: {
 }
 
 function NextStepPanel(props: {
-  primaryActionHref: string;
-  voteActionHref: string;
   onPrepareSubmission: () => void;
+  onPrepareAnlassraum: () => void;
+  onOpenDossierAppend: () => void;
+  onOpenDossierCreate: () => void;
+  onPrepareVote: () => void;
   onRequestEditorialReview: () => void;
   onStartOptionalService: () => void;
+  onSaveOnly: () => void;
   reviewRequestState: CreateReviewRequestState;
   reviewRequestMessage?: string | null;
   factcheckMessage?: string | null;
@@ -1879,23 +1987,40 @@ function NextStepPanel(props: {
         Beitrag einreichen
       </button>
       <div className="grid gap-2 sm:grid-cols-2">
-        <Link href={props.primaryActionHref} className="btn-secondary min-h-[42px] px-3 py-2 text-center text-sm">
-          Dossier ergänzen
-        </Link>
-        <Link href={props.voteActionHref} className="btn-secondary min-h-[42px] px-3 py-2 text-center text-sm">
+        <button type="button" className="btn-secondary min-h-[42px] px-3 py-2 text-sm" onClick={props.onPrepareAnlassraum}>
+          Anlassraum vorbereiten
+        </button>
+        <button type="button" className="btn-secondary min-h-[42px] px-3 py-2 text-sm" onClick={props.onOpenDossierAppend}>
+          Als Ergänzung anhängen
+        </button>
+        <button type="button" className="btn-secondary min-h-[42px] px-3 py-2 text-sm" onClick={props.onOpenDossierCreate}>
+          Neues Dossier vorbereiten
+        </button>
+        <button type="button" className="btn-secondary min-h-[42px] px-3 py-2 text-sm" onClick={props.onPrepareVote}>
           Beteiligungsfrage vorbereiten
-        </Link>
+        </button>
         <button
           type="button"
           className="btn-secondary min-h-[42px] px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-60"
           onClick={props.onRequestEditorialReview}
           disabled={props.reviewRequestState === "saving"}
           aria-disabled={props.reviewRequestState === "saving"}
+          aria-label="Redaktionelle Prüfung anfragen"
+          title="Redaktionelle Prüfung anfragen"
         >
-          Redaktionelle Prüfung anfragen
+          Redaktionell prüfen lassen
         </button>
-        <button type="button" className="btn-secondary min-h-[42px] px-3 py-2 text-sm" onClick={props.onStartOptionalService}>
-          Faktencheck / Deep Search
+        <button
+          type="button"
+          className="btn-secondary min-h-[42px] px-3 py-2 text-sm"
+          onClick={props.onStartOptionalService}
+          aria-label="Faktencheck / Deep Search"
+          title="Faktencheck / Deep Search"
+        >
+          Faktencheck anfragen
+        </button>
+        <button type="button" className="btn-secondary min-h-[42px] px-3 py-2 text-sm" onClick={props.onSaveOnly}>
+          Nur speichern
         </button>
       </div>
       {props.reviewRequestMessage ? (
@@ -1951,7 +2076,6 @@ function ContinueWritingComposer(props: {
 
 export default function CreateVisualFollowup({
   result,
-  ctaHref,
   actionNotice,
   isConfirmed = false,
   reviewRequestState = "idle",
@@ -1961,8 +2085,13 @@ export default function CreateVisualFollowup({
   onConfirm,
   onEdit,
   onPrepareSubmission,
+  onPrepareAnlassraum,
+  onOpenDossierAppend,
+  onOpenDossierCreate,
+  onPrepareVote,
   onRequestEditorialReview = () => {},
   onStartOptionalService = () => {},
+  onSaveOnly = () => {},
   onSkipPlaceClarification = () => {},
   continuationValue,
   onContinuationChange,
@@ -2004,7 +2133,6 @@ export default function CreateVisualFollowup({
       }),
     [result, sections, sortedSuggestions],
   );
-  const voteSuggestion = sortedSuggestions.find((suggestion) => suggestion.kind === "vote");
   const voteQuestions = React.useMemo(
     () =>
       buildVoteQuestions({
@@ -2021,12 +2149,14 @@ export default function CreateVisualFollowup({
     summary: result.understanding.summary,
     statementText: result.understanding.statements[0]?.text ?? "",
     dossierContext: result.understanding.dossierContext,
+    plannerTopic: result.meta?.planner?.plannerTopic ?? null,
   });
   const positionClusters = React.useMemo(() => derivePositionClusters(result), [result]);
   const keyStatement = resolveCoreClaim({
     topicLabels,
     fallback: result.understanding.statements[0]?.text ?? result.understanding.summary,
     dossierContext: result.understanding.dossierContext,
+    plannerCore: result.meta?.planner?.plannerCore ?? null,
   });
   const dedupedCopy = dedupeCreateFollowupSections({
     summary: result.understanding.summary,
@@ -2041,22 +2171,6 @@ export default function CreateVisualFollowup({
     dedupedCopy.prominentCoreClaim,
   );
   const rootTopic = result.understanding.dossierContext ?? topicLabels[0] ?? "Öffentliches Thema";
-  const primaryActionHref = buildCreateFollowupPrimaryCtaHref({
-    ctaHref,
-    topics: result.understanding.topics,
-    statements: result.understanding.statements,
-    suggestions: sortedSuggestions,
-  });
-  const voteActionHref = voteSuggestion
-    ? buildCreateFollowupTargetHref({
-        kind: "vote",
-        ctaHref,
-        topics: result.understanding.topics,
-        statements: result.understanding.statements,
-        suggestionTitle: voteSuggestion.title,
-        suggestionHref: voteSuggestion.href ?? null,
-      })
-    : primaryActionHref;
   const openQuestion = result.understanding.openQuestion ?? null;
   const placeClarification = openQuestion
     ? {
@@ -2070,10 +2184,30 @@ export default function CreateVisualFollowup({
   const openQuestionText =
     placeClarification?.question ??
     result.understanding.openQuestion?.trim() ??
-    voteQuestions[0] ??
-    "Welche Rückfrage ist für die Einordnung noch offen?";
-  const visibleTopicLabels = topicLabels.filter((label) => label !== rootTopic).slice(0, 3);
+    resolveDefaultOpenQuestion(result, voteQuestions);
+  const openQuestionDetail = placeClarification
+    ? openQuestionText
+    : result.meta?.planner?.plannerTopic === "Tierschutz, Tierhaltung und Agrarstandards"
+      ? "Offen bleibt, welche Produkte, Länder, Standards und Kontrollmechanismen konkret gemeint sind."
+    : result.understanding.dossierContext === "Kommunale Prioritäten und Zielkonflikte"
+      ? "Welche Bereiche sollen zuerst bearbeitet werden – und was braucht noch Klärung?"
+      : "Diese Rückfrage bleibt vor der weiteren Vorbereitung sichtbar.";
+  const visibleTopicLabels = topicLabels.filter((label) => label !== rootTopic).slice(0, 4);
   const understandingKindLabel = resolveUnderstandingKindLabel(result);
+  const corePreviewTitle = resolveCorePreviewTitle({
+    result,
+    fallbackLabel: understandingKindLabel,
+  });
+  const topNeedPoints = React.useMemo(
+    () =>
+      buildTopNeedPoints({
+        structureBranches,
+        statements: result.understanding.statements,
+        dossierContext: result.understanding.dossierContext,
+        topicCount: topicLabels.length,
+      }),
+    [result.understanding.dossierContext, result.understanding.statements, structureBranches, topicLabels.length],
+  );
   const nextStepTitles = sortedSuggestions.map((suggestion) => suggestion.title).filter(Boolean);
   const [detailsOpen, setDetailsOpen] = React.useState(false);
 
@@ -2098,9 +2232,12 @@ export default function CreateVisualFollowup({
                 Verstanden
               </p>
               <p className="text-lg font-semibold text-[rgb(var(--fg))]">{CREATE_VISUAL_FOLLOWUP_COPY.headline}</p>
-              <p className="text-sm leading-relaxed text-[rgb(var(--muted))]">
-                Zuerst nur die kompakte Zusammenfassung. Analyse- und Arbeitsmodule öffnen sich erst nach Bedarf.
+              <p className="text-sm leading-relaxed text-[rgb(var(--fg))]">
+                {dedupedCopy.prominentSummary}
               </p>
+              {showAssistantLeadText ? (
+                <p className="text-sm leading-relaxed text-[rgb(var(--muted))]">{assistantLead}</p>
+              ) : null}
             </div>
 
             {actionNotice ? (
@@ -2109,10 +2246,10 @@ export default function CreateVisualFollowup({
               </p>
             ) : null}
 
-            <div className="mt-4 grid gap-3 lg:grid-cols-3">
+            <div className="mt-4 grid gap-2 md:grid-cols-3">
               <CompactPreviewCard
                 lead="Kern"
-                title={understandingKindLabel}
+                title={corePreviewTitle}
                 tone="core"
                 body={<p>{dedupedCopy.prominentCoreClaim}</p>}
               />
@@ -2139,11 +2276,27 @@ export default function CreateVisualFollowup({
               />
               <CompactPreviewCard
                 lead="Noch offen"
-                title={placeClarification ? "Um welchen Ort geht es?" : "Was ist noch offen?"}
+                title={placeClarification ? "Um welchen Ort geht es?" : openQuestionText}
                 tone="question"
-                body={<p>{openQuestionText}</p>}
+                body={<p>{openQuestionDetail}</p>}
               />
             </div>
+
+            <div className="mt-4">
+              <TopNeedPointList items={topNeedPoints} topicLabels={topicLabels} />
+            </div>
+
+            {!isConfirmed && !placeClarification ? (
+              <div className="mt-4">
+                <StructureProposalPanel
+                  onConfirm={onConfirm}
+                  onEdit={() => openCorrection("Thema")}
+                  onRequestEditorialReview={onRequestEditorialReview}
+                  reviewRequestState={reviewRequestState}
+                  reviewRequestMessage={reviewRequestMessage}
+                />
+              </div>
+            ) : null}
           </div>
 
           {placeClarification ? (
@@ -2158,28 +2311,23 @@ export default function CreateVisualFollowup({
             />
           ) : null}
 
-          {!isConfirmed ? (
-            <StructureProposalPanel
-              onConfirm={onConfirm}
-              onEdit={() => openCorrection("Thema")}
-              onRequestEditorialReview={onRequestEditorialReview}
-              reviewRequestState={reviewRequestState}
-              reviewRequestMessage={reviewRequestMessage}
-            />
-          ) : (
+          {isConfirmed ? (
             <div className="lg:hidden">
-              <NextStepPanel
-                primaryActionHref={primaryActionHref}
-                voteActionHref={voteActionHref}
-                onPrepareSubmission={onPrepareSubmission}
-                onRequestEditorialReview={onRequestEditorialReview}
-                onStartOptionalService={onStartOptionalService}
-                reviewRequestState={reviewRequestState}
-                reviewRequestMessage={reviewRequestMessage}
-                factcheckMessage={factcheckMessage}
+                <NextStepPanel
+                  onPrepareSubmission={onPrepareSubmission}
+                  onPrepareAnlassraum={onPrepareAnlassraum}
+                  onOpenDossierAppend={onOpenDossierAppend}
+                  onOpenDossierCreate={onOpenDossierCreate}
+                  onPrepareVote={onPrepareVote}
+                  onRequestEditorialReview={onRequestEditorialReview}
+                  onStartOptionalService={onStartOptionalService}
+                  onSaveOnly={onSaveOnly}
+                  reviewRequestState={reviewRequestState}
+                  reviewRequestMessage={reviewRequestMessage}
+                  factcheckMessage={factcheckMessage}
               />
             </div>
-          )}
+          ) : null}
 
           {showCorrectionComposer && !placeClarification ? (
             <ContinueWritingComposer
@@ -2262,12 +2410,15 @@ export default function CreateVisualFollowup({
         {isConfirmed ? (
           <aside className="hidden lg:block lg:space-y-4">
             <div className="lg:sticky lg:top-4">
-              <NextStepPanel
-                primaryActionHref={primaryActionHref}
-                voteActionHref={voteActionHref}
-                onPrepareSubmission={onPrepareSubmission}
+                <NextStepPanel
+                  onPrepareSubmission={onPrepareSubmission}
+                  onPrepareAnlassraum={onPrepareAnlassraum}
+                  onOpenDossierAppend={onOpenDossierAppend}
+                  onOpenDossierCreate={onOpenDossierCreate}
+                onPrepareVote={onPrepareVote}
                 onRequestEditorialReview={onRequestEditorialReview}
                 onStartOptionalService={onStartOptionalService}
+                onSaveOnly={onSaveOnly}
                 reviewRequestState={reviewRequestState}
                 reviewRequestMessage={reviewRequestMessage}
                 factcheckMessage={factcheckMessage}

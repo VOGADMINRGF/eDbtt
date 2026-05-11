@@ -43,6 +43,9 @@ const DraftSaveSchema = z.object({
   ),
   authorName: z.string().max(160).optional(),
   useCase: z.enum(["civic", "journalism", "agenda"]).optional(),
+  sourceUrls: z.array(z.string().min(1)).optional(),
+  uploadIds: z.array(z.string().min(1)).optional(),
+  materialItems: z.array(z.record(z.string(), z.any())).optional(),
   analysis: z.unknown().optional(),
 });
 
@@ -99,6 +102,48 @@ function withSafetyAnalysis(
       ...safety,
       claimSafety,
     },
+  };
+}
+
+function withMaterialContext(
+  existing: unknown,
+  materialContext: {
+    sourceUrls?: string[];
+    uploadIds?: string[];
+    materialItems?: Record<string, unknown>[];
+  },
+): unknown {
+  const hasMaterialContext =
+    (materialContext.sourceUrls?.length ?? 0) > 0 ||
+    (materialContext.uploadIds?.length ?? 0) > 0 ||
+    (materialContext.materialItems?.length ?? 0) > 0;
+  if (!hasMaterialContext) return existing;
+
+  const normalizedContext = {
+    sourceUrls: materialContext.sourceUrls ?? [],
+    uploadIds: materialContext.uploadIds ?? [],
+    materialItems: materialContext.materialItems ?? [],
+  };
+
+  if (existing && typeof existing === "object" && !Array.isArray(existing)) {
+    const existingRecord = existing as Record<string, unknown>;
+    const existingInputContext =
+      existingRecord.inputContext &&
+      typeof existingRecord.inputContext === "object" &&
+      !Array.isArray(existingRecord.inputContext)
+        ? (existingRecord.inputContext as Record<string, unknown>)
+        : {};
+    return {
+      ...existingRecord,
+      inputContext: {
+        ...existingInputContext,
+        ...normalizedContext,
+      },
+    };
+  }
+
+  return {
+    inputContext: normalizedContext,
   };
 }
 
@@ -175,8 +220,13 @@ export async function POST(req: NextRequest) {
   }
 
   const textToPersist = hasPiiOrDoxxingFindings(safety) ? safety.redactedText : normalizedText;
-  const claimSafety = buildClaimSafety(body.analysis, body.locale ?? "de");
-  const analysisWithSafety = withSafetyAnalysis(body.analysis, safety, claimSafety);
+  const analysisWithMaterial = withMaterialContext(body.analysis, {
+    sourceUrls: body.sourceUrls,
+    uploadIds: body.uploadIds,
+    materialItems: body.materialItems as Record<string, unknown>[] | undefined,
+  });
+  const claimSafety = buildClaimSafety(analysisWithMaterial, body.locale ?? "de");
+  const analysisWithSafety = withSafetyAnalysis(analysisWithMaterial, safety, claimSafety);
 
   if (body.draftId) {
     let draftOid: ObjectId;

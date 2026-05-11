@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import { readSession } from "@/utils/session";
 import { resolveSurfaceContext } from "@/features/surface";
-import { SwipesSurface } from "@/features/surfaces/swipes";
+import { SwipesHandoffShell } from "@/features/surfaces/swipes/SwipesHandoffShell";
 import { parseFromDraftParam } from "@/features/swipes/fromDraftParam";
 
 export const metadata = {
@@ -26,6 +26,7 @@ export default async function SwipesPage({ searchParams }: Props) {
   const initialTopic = firstParam(searchParams?.topic);
   const initialClaim = firstParam(searchParams?.claim);
   const initialStance = firstParam(searchParams?.stance);
+  const handoffId = firstParam(searchParams?.handoffId);
   const fromCreate = firstParam(searchParams?.from) === "create";
   if (!userId) {
     const context = resolveSurfaceContext({ mode: "live", audience: "none", viewerRole: "public", dataSource: "live" });
@@ -34,7 +35,7 @@ export default async function SwipesPage({ searchParams }: Props) {
     return (
       <>
         <h1 className="sr-only">Swipes</h1>
-        <SwipesSurface
+        <SwipesHandoffShell
           context={context}
           initialTopic={initialTopic}
           initialClaim={initialClaim}
@@ -43,6 +44,7 @@ export default async function SwipesPage({ searchParams }: Props) {
           fromDraftId={fromDraftId}
           requireAuthAfterFreeVotes
           showWelcomeHint={showWelcomeHint}
+          handoffId={handoffId}
         />
       </>
     );
@@ -55,7 +57,7 @@ export default async function SwipesPage({ searchParams }: Props) {
   return (
     <>
       <h1 className="sr-only">Swipes</h1>
-      <SwipesSurface
+      <SwipesHandoffShell
         context={context}
         initialTopic={initialTopic}
         initialClaim={initialClaim}
@@ -64,6 +66,7 @@ export default async function SwipesPage({ searchParams }: Props) {
         fromDraftId={fromDraftId}
         requireAuthAfterFreeVotes={false}
         showWelcomeHint={showWelcomeHint}
+        handoffId={handoffId}
       />
     </>
   );
