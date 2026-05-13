@@ -28,6 +28,7 @@ type CreateVisualFollowupProps = {
   onPrepareVote: () => void;
   onRequestEditorialReview?: () => void;
   onStartOptionalService?: () => void;
+  onRetryPlanner?: () => void;
   onSaveOnly?: () => void;
   onSkipPlaceClarification?: () => void;
   continuationValue: string;
@@ -38,7 +39,9 @@ type CreateVisualFollowupProps = {
 
 export const CREATE_VISUAL_FOLLOWUP_COPY = {
   headline: "Wir haben deinen Beitrag grob verstanden.",
+  headlineNeedsClarification: "Wir konnten deinen Beitrag noch nicht exakt zuordnen.",
   structureTitle: "Vorläufig verstanden",
+  structureTitleNeedsClarification: "Einordnung offen",
   coreTitle: "Kern erkannt",
   graphTitle: "So könnte der Arbeitsstand aussehen",
   overviewTitle: "Deine Struktur auf einen Blick",
@@ -130,6 +133,14 @@ const BROAD_TOPIC_QUESTION_BY_FIELD: Record<(typeof BROAD_TOPIC_FIELD_ORDER)[num
   "kommunale Finanzen": "Welche Prioritäten sind unter den aktuellen kommunalen Finanzen tragfähig?",
   "Bürgerbeteiligung": "Wie kann Bürgerbeteiligung verbindlicher in Entscheidungen einfließen?",
 };
+
+function isPlaceClarificationQuestion(question: string | null | undefined): boolean {
+  const normalized = String(question ?? "").trim().toLowerCase();
+  if (!normalized) return false;
+  return /\bort\b|\bbezirk\b|\bkommune\b|\bgemeinde\b|\bstadt\b|\bkiez\b|\bviertel\b|\bregion\b|\bpostleitzahl\b|\bplz\b/.test(
+    normalized,
+  );
+}
 
 function resolveNodeTone(kind: CreateVisualNode["kind"]): string {
   if (kind === "source_text") {
@@ -257,6 +268,102 @@ function resolveReviewRequestLabel(
   if (state === "saved") return variant === "compact" ? "Prüfung angefragt" : "Redaktionelle Prüfung angefragt";
   if (state === "error") return variant === "compact" ? "Erneut anfragen" : "Prüfung erneut anfragen";
   return variant === "compact" ? "Prüfung anfragen" : "Redaktionell prüfen lassen";
+}
+
+function needsPlannerClarification(result: CreateIntelligentFollowupResult): boolean {
+  const planner = result.meta?.planner;
+  if (!planner) return false;
+  return (
+    planner.plannerDegraded ||
+    planner.qualityStatus === "generic" ||
+    planner.qualityStatus === "needs_confirmation" ||
+    planner.qualityStatus === "failed"
+  );
+}
+
+function resolvePlannerClarificationReason(result: CreateIntelligentFollowupResult): string {
+  const planner = result.meta?.planner;
+  if (!planner) {
+    return "Konnte nicht exakt zugeordnet werden.";
+  }
+  if (planner.degradedReason === "missing_provider_key") {
+    return "Die KI-Einordnung ist gerade nicht verfügbar.";
+  }
+  if (planner.degradedReason === "timeout") {
+    return "Das Zeitlimit für die KI-Einordnung wurde erreicht.";
+  }
+  if (
+    planner.degradedReason === "invalid_json" ||
+    planner.degradedReason === "invalid_provider_payload" ||
+    planner.degradedReason === "normalization_failed"
+  ) {
+    return "Die KI-Antwort konnte nicht sauber in den erwarteten Vertrag überführt werden.";
+  }
+  if (planner.degradedReason === "quality_gate_failed") {
+    return "Die Antwort war zu allgemein, um daraus sicher einen Arbeitsstand vorzubereiten.";
+  }
+  if (planner.degradedReason === "rate_limited") {
+    return "Die KI-Einordnung ist gerade ausgelastet.";
+  }
+  if (planner.degradedReason === "provider_error") {
+    return "Die KI-Einordnung konnte gerade nicht geladen werden.";
+  }
+  if (planner.qualityStatus === "generic" || planner.qualityStatus === "needs_confirmation") {
+    return "Konnte nicht exakt zugeordnet werden.";
+  }
+  return "Die Einordnung braucht noch eine kurze Bestätigung.";
+}
+
+function isGenericPlannerLabel(label: string): boolean {
+  const normalized = label.trim().toLowerCase();
+  if (!normalized) return true;
+  return (
+    normalized === "aussage" ||
+    normalized === "beitrag" ||
+    normalized === "hinweis" ||
+    normalized === "öffentliches anliegen" ||
+    normalized === "öffentliches anliegen mit klärungsbedarf" ||
+    normalized === "oeffentliches anliegen mit klaerungsbedarf" ||
+    normalized === "neues öffentliches thema strukturieren" ||
+    normalized === "neues oeffentliches thema strukturieren"
+  );
+}
+
+function extractDegradedStartPoints(result: CreateIntelligentFollowupResult): string[] {
+  const planner = result.meta?.planner;
+  const fromPlanner = [
+    ...(planner?.plannerClusters ?? []),
+    ...(planner?.clusterCandidates ?? []),
+    ...(planner?.topicCandidates ?? []),
+    ...(result.understanding.topics ?? []).map((topic) => topic.label),
+  ]
+    .map((value) => String(value ?? "").trim())
+    .filter((value) => value.length > 0 && !isGenericPlannerLabel(value));
+
+  const sourceText = `${result.sourceText} ${result.understanding.summary}`.toLowerCase();
+  const fallback: string[] = [];
+  const pushFallback = (label: string, pattern: RegExp) => {
+    if (!pattern.test(sourceText)) return;
+    if (fallback.includes(label)) return;
+    fallback.push(label);
+  };
+
+  pushFallback("Gleichberechtigung und Frauenquote", /frauenquote|gleichberechtigung/);
+  pushFallback("Minderheitenförderung", /minderheiten|minderheit/);
+  pushFallback("Quotenregelungen in Unternehmen", /quote|quoten|unternehmen/);
+  pushFallback("wirtschaftliche Auswirkungen", /wirtschaft|wirtschaftlich|unternehmen/);
+
+  const ordered = [...fromPlanner, ...fallback];
+  const seen = new Set<string>();
+  const startPoints: string[] = [];
+  for (const entry of ordered) {
+    const key = entry.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    startPoints.push(entry);
+    if (startPoints.length === 4) break;
+  }
+  return startPoints;
 }
 
 function resolveUnderstandingKindLabel(result: CreateIntelligentFollowupResult): string {
@@ -706,6 +813,8 @@ function UserContributionBubble(props: { text: string }) {
 }
 
 function AssistantUnderstandingBubble(props: {
+  eyebrow: string;
+  headline: string;
   summary: string;
   assistantLead: string;
   coreClaim: string;
@@ -721,8 +830,8 @@ function AssistantUnderstandingBubble(props: {
       <div className="max-w-5xl min-w-0 flex-1">
         <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-700 dark:text-[rgb(var(--muted))]">eDebatte</p>
         <div className="mt-2 rounded-[30px] rounded-tl-sm border border-cyan-500/18 bg-[color-mix(in_oklab,rgb(var(--card))_94%,rgb(var(--bg))_6%)] px-4 py-4 shadow-[0_22px_52px_rgba(2,6,23,0.06)] md:px-6 md:py-6 dark:border-cyan-300/20 dark:bg-[color-mix(in_oklab,rgb(var(--card))_94%,rgb(var(--bg))_6%)] dark:shadow-none">
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-cyan-800 dark:text-cyan-200">{CREATE_VISUAL_FOLLOWUP_COPY.structureTitle}</p>
-          <p className="mt-1 text-lg font-semibold text-cyan-950 md:text-[1.4rem] dark:text-cyan-50">{CREATE_VISUAL_FOLLOWUP_COPY.headline}</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-cyan-800 dark:text-cyan-200">{props.eyebrow}</p>
+          <p className="mt-1 text-lg font-semibold text-cyan-950 md:text-[1.4rem] dark:text-cyan-50">{props.headline}</p>
           <p className="mt-4 text-base leading-relaxed text-cyan-950 md:text-[1.15rem] dark:text-cyan-100">{props.summary || props.assistantLead}</p>
           {props.showAssistantLead ? (
             <p className="mt-3 max-w-3xl text-sm leading-relaxed text-cyan-900/80 dark:text-cyan-100/80">{props.assistantLead}</p>
@@ -1961,6 +2070,75 @@ function StructureProposalPanel(props: {
   );
 }
 
+function PlannerClarificationPanel(props: {
+  reason: string;
+  startPoints: string[];
+  onRetryPlanner?: () => void;
+  onEdit: () => void;
+  onRequestEditorialReview?: () => void;
+  reviewRequestState: CreateReviewRequestState;
+  reviewRequestMessage?: string | null;
+}) {
+  return (
+    <div className="space-y-3 rounded-[28px] border border-amber-300/30 bg-amber-500/[0.08] px-4 py-4 dark:border-amber-300/20 dark:bg-amber-500/[0.1]">
+      <div className="space-y-1">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-amber-900 dark:text-amber-100">Einordnung offen</p>
+        <p className="text-base font-semibold text-amber-950 dark:text-amber-50">Konnte nicht exakt zugeordnet werden.</p>
+        <p className="text-sm leading-relaxed text-amber-950/85 dark:text-amber-100/85">
+          Die KI-Einordnung konnte gerade nicht zuverlässig abgeschlossen werden oder dein Beitrag enthält mehrere mögliche Themen.
+        </p>
+        <p className="text-sm leading-relaxed text-amber-950/85 dark:text-amber-100/85">{props.reason}</p>
+      </div>
+      {props.startPoints.length > 0 ? (
+        <div className="space-y-2">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-amber-900 dark:text-amber-100">Mögliche Startpunkte</p>
+          <div className="flex flex-wrap gap-2">
+            {props.startPoints.map((label) => (
+              <span
+                key={`degraded-start-${label}`}
+                className="rounded-full border border-amber-400/30 bg-amber-500/[0.12] px-2.5 py-1 text-xs text-amber-950 dark:border-amber-300/30 dark:bg-amber-500/[0.14] dark:text-amber-50"
+              >
+                {label}
+              </span>
+            ))}
+          </div>
+        </div>
+      ) : null}
+      <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+        <button
+          type="button"
+          className="btn-secondary min-h-[42px] px-3 py-2 text-sm"
+          onClick={props.onRetryPlanner}
+          disabled={!props.onRetryPlanner}
+          aria-disabled={!props.onRetryPlanner}
+        >
+          KI-Suche aktivieren
+        </button>
+        <button
+          type="button"
+          className="btn-secondary min-h-[42px] px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-60"
+          onClick={props.onRequestEditorialReview}
+          disabled={!props.onRequestEditorialReview || props.reviewRequestState === "saving"}
+          aria-disabled={!props.onRequestEditorialReview || props.reviewRequestState === "saving"}
+        >
+          Bericht an die Redaktion senden
+        </button>
+        <button type="button" className="btn-primary min-h-[46px] px-4 py-2 text-sm" onClick={props.onEdit}>
+          Thema selbst auswählen
+        </button>
+      </div>
+      {props.reviewRequestMessage ? (
+        <p className="rounded-xl border border-amber-300/25 bg-amber-500/[0.08] px-3 py-2 text-xs leading-relaxed text-amber-950 dark:text-amber-100">
+          {props.reviewRequestMessage}
+        </p>
+      ) : null}
+      <p className="text-xs leading-relaxed text-amber-950/85 dark:text-amber-100/85">
+        Keine automatische Veröffentlichung. Keine automatische Kostenbuchung. Keine stille Zuordnung.
+      </p>
+    </div>
+  );
+}
+
 function NextStepPanel(props: {
   onPrepareSubmission: () => void;
   onPrepareAnlassraum: () => void;
@@ -2091,6 +2269,7 @@ export default function CreateVisualFollowup({
   onPrepareVote,
   onRequestEditorialReview = () => {},
   onStartOptionalService = () => {},
+  onRetryPlanner,
   onSaveOnly = () => {},
   onSkipPlaceClarification = () => {},
   continuationValue,
@@ -2144,6 +2323,11 @@ export default function CreateVisualFollowup({
     [broadTopicFields, result.understanding.dossierContext, sortedSuggestions, topicLabels],
   );
   const scopeChip = result.understanding.scopes[0] ?? "unclear";
+  const plannerClarificationRequired = needsPlannerClarification(result);
+  const plannerClarificationReason = resolvePlannerClarificationReason(result);
+  const degradedStartPoints = React.useMemo(() => extractDegradedStartPoints(result), [result]);
+  const plannerClarificationLeadText =
+    "Dein Beitrag enthält mehrere mögliche Themen oder die KI-Einordnung konnte gerade nicht zuverlässig abgeschlossen werden.";
   const assistantLead = resolveAssistantLead({
     topicLabels,
     summary: result.understanding.summary,
@@ -2172,7 +2356,7 @@ export default function CreateVisualFollowup({
   );
   const rootTopic = result.understanding.dossierContext ?? topicLabels[0] ?? "Öffentliches Thema";
   const openQuestion = result.understanding.openQuestion ?? null;
-  const placeClarification = openQuestion
+  const placeClarification = isPlaceClarificationQuestion(openQuestion)
     ? {
         kind: "place" as const,
         question: openQuestion,
@@ -2229,14 +2413,21 @@ export default function CreateVisualFollowup({
           <div className="rounded-[28px] border border-slate-200/80 bg-[color-mix(in_oklab,rgb(var(--card))_94%,rgb(var(--bg))_6%)] px-4 py-4 shadow-[0_18px_42px_rgba(2,6,23,0.06)] dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))]">
             <div className="space-y-1">
               <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
-                Verstanden
+                {plannerClarificationRequired ? "Einordnung offen" : "Verstanden"}
               </p>
-              <p className="text-lg font-semibold text-[rgb(var(--fg))]">{CREATE_VISUAL_FOLLOWUP_COPY.headline}</p>
+              <p className="text-lg font-semibold text-[rgb(var(--fg))]">
+                {plannerClarificationRequired
+                  ? CREATE_VISUAL_FOLLOWUP_COPY.headlineNeedsClarification
+                  : CREATE_VISUAL_FOLLOWUP_COPY.headline}
+              </p>
               <p className="text-sm leading-relaxed text-[rgb(var(--fg))]">
-                {dedupedCopy.prominentSummary}
+                {plannerClarificationRequired ? plannerClarificationLeadText : dedupedCopy.prominentSummary}
               </p>
-              {showAssistantLeadText ? (
+              {showAssistantLeadText && !plannerClarificationRequired ? (
                 <p className="text-sm leading-relaxed text-[rgb(var(--muted))]">{assistantLead}</p>
+              ) : null}
+              {plannerClarificationRequired ? (
+                <p className="text-sm leading-relaxed text-amber-900 dark:text-amber-100">{plannerClarificationReason}</p>
               ) : null}
             </div>
 
@@ -2246,50 +2437,67 @@ export default function CreateVisualFollowup({
               </p>
             ) : null}
 
-            <div className="mt-4 grid gap-2 md:grid-cols-3">
-              <CompactPreviewCard
-                lead="Kern"
-                title={corePreviewTitle}
-                tone="core"
-                body={<p>{dedupedCopy.prominentCoreClaim}</p>}
-              />
-              <CompactPreviewCard
-                lead="Thema"
-                title={rootTopic}
-                tone="topic"
-                body={
-                  visibleTopicLabels.length > 0 ? (
-                    <div className="flex flex-wrap gap-2">
-                      {visibleTopicLabels.map((label) => (
-                        <span
-                          key={`topic-preview-${label}`}
-                          className={`rounded-full border px-2.5 py-1 text-xs ${resolveNodeTone("topic")}`}
-                        >
-                          {label}
-                        </span>
-                      ))}
-                    </div>
-                  ) : (
-                    <p>{dedupedCopy.prominentSummary}</p>
-                  )
-                }
-              />
-              <CompactPreviewCard
-                lead="Noch offen"
-                title={placeClarification ? "Um welchen Ort geht es?" : openQuestionText}
-                tone="question"
-                body={<p>{openQuestionDetail}</p>}
-              />
-            </div>
+            {!plannerClarificationRequired ? (
+              <>
+                <div className="mt-4 grid gap-2 md:grid-cols-3">
+                  <CompactPreviewCard
+                    lead="Kern"
+                    title={corePreviewTitle}
+                    tone="core"
+                    body={<p>{dedupedCopy.prominentCoreClaim}</p>}
+                  />
+                  <CompactPreviewCard
+                    lead="Thema"
+                    title={rootTopic}
+                    tone="topic"
+                    body={
+                      visibleTopicLabels.length > 0 ? (
+                        <div className="flex flex-wrap gap-2">
+                          {visibleTopicLabels.map((label) => (
+                            <span
+                              key={`topic-preview-${label}`}
+                              className={`rounded-full border px-2.5 py-1 text-xs ${resolveNodeTone("topic")}`}
+                            >
+                              {label}
+                            </span>
+                          ))}
+                        </div>
+                      ) : (
+                        <p>{dedupedCopy.prominentSummary}</p>
+                      )
+                    }
+                  />
+                  <CompactPreviewCard
+                    lead="Noch offen"
+                    title={placeClarification ? "Um welchen Ort geht es?" : openQuestionText}
+                    tone="question"
+                    body={<p>{openQuestionDetail}</p>}
+                  />
+                </div>
 
-            <div className="mt-4">
-              <TopNeedPointList items={topNeedPoints} topicLabels={topicLabels} />
-            </div>
+                <div className="mt-4">
+                  <TopNeedPointList items={topNeedPoints} topicLabels={topicLabels} />
+                </div>
+              </>
+            ) : null}
 
-            {!isConfirmed && !placeClarification ? (
+            {!isConfirmed && !placeClarification && !plannerClarificationRequired ? (
               <div className="mt-4">
                 <StructureProposalPanel
                   onConfirm={onConfirm}
+                  onEdit={() => openCorrection("Thema")}
+                  onRequestEditorialReview={onRequestEditorialReview}
+                  reviewRequestState={reviewRequestState}
+                  reviewRequestMessage={reviewRequestMessage}
+                />
+              </div>
+            ) : null}
+            {!isConfirmed && !placeClarification && plannerClarificationRequired ? (
+              <div className="mt-4">
+                <PlannerClarificationPanel
+                  reason={plannerClarificationReason}
+                  startPoints={degradedStartPoints}
+                  onRetryPlanner={onRetryPlanner}
                   onEdit={() => openCorrection("Thema")}
                   onRequestEditorialReview={onRequestEditorialReview}
                   reviewRequestState={reviewRequestState}
@@ -2311,7 +2519,7 @@ export default function CreateVisualFollowup({
             />
           ) : null}
 
-          {isConfirmed ? (
+          {isConfirmed && !plannerClarificationRequired ? (
             <div className="lg:hidden">
                 <NextStepPanel
                   onPrepareSubmission={onPrepareSubmission}
@@ -2359,55 +2567,85 @@ export default function CreateVisualFollowup({
             </button>
             {detailsOpen ? (
               <div className="mt-4 space-y-4">
-                <div className="lg:hidden">
-                  <MobileDetailList
-                    summary={dedupedCopy.prominentSummary}
-                    rootTopic={rootTopic}
-                    topicLabels={topicLabels}
-                    stanceLabel={resolveStanceLead(dominantStance)}
-                    scopeLabel={resolveScopeLabel(scopeChip)}
-                    openQuestion={openQuestionText}
-                    nextStepTitles={nextStepTitles}
-                  />
-                </div>
-                <div className="hidden lg:block">
-                  <div className="create-chat-spine relative min-w-0 space-y-5 before:absolute before:left-[5px] before:top-3 before:h-[calc(100%-1.5rem)] before:w-px before:bg-slate-200 dark:before:bg-[rgb(var(--border))]">
-                    <UserContributionBubble text={dedupedCopy.userBubbleText} />
-                    <AssistantUnderstandingBubble
-                      summary={dedupedCopy.prominentSummary}
-                      assistantLead={assistantLead}
-                      coreClaim={dedupedCopy.prominentCoreClaim}
-                      showCoreBlock={showCoreBlock}
-                      showAssistantLead={showAssistantLeadText}
-                      stanceLabel={resolveStanceLead(dominantStance)}
-                      scopeLabel={resolveScopeLabel(scopeChip)}
-                    >
-                      <div className="mt-4 rounded-2xl border border-slate-200/75 bg-[color-mix(in_oklab,rgb(var(--card))_90%,rgb(var(--bg))_10%)] px-4 py-3 text-sm leading-relaxed text-[rgb(var(--muted))] dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--bg))]">
-                        Desktop zeigt hier bewusst mehr Arbeitskontext. Auf Mobile bleibt dieser Bereich hinter Details verborgen.
+                {plannerClarificationRequired ? (
+                  <div className="rounded-[24px] border border-amber-300/30 bg-amber-500/[0.08] px-4 py-4 text-sm leading-relaxed text-amber-950 dark:border-amber-300/20 dark:bg-amber-500/[0.1] dark:text-amber-50">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-amber-900 dark:text-amber-100">
+                      Einordnung offen
+                    </p>
+                    <p className="mt-1 text-base font-semibold">Warum wir hier noch nicht weiter automatisieren</p>
+                    <p className="mt-2">
+                      Wir zeigen hier bewusst keine normale Struktur mit Kern, Thema und Handoffs, solange die
+                      KI-Einordnung nicht belastbar genug ist.
+                    </p>
+                    <p className="mt-2">{plannerClarificationReason}</p>
+                    {degradedStartPoints.length > 0 ? (
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        {degradedStartPoints.map((label) => (
+                          <span
+                            key={`degraded-detail-start-${label}`}
+                            className="rounded-full border border-amber-400/30 bg-amber-500/[0.12] px-2.5 py-1 text-xs text-amber-950 dark:border-amber-300/30 dark:bg-amber-500/[0.14] dark:text-amber-50"
+                          >
+                            {label}
+                          </span>
+                        ))}
                       </div>
-                    </AssistantUnderstandingBubble>
+                    ) : null}
                   </div>
-                  <StructuredWorkstateBlock
-                    rootTopic={rootTopic}
-                    topicLabels={topicLabels}
-                    positionClusters={positionClusters}
-                    voteQuestions={voteQuestions}
-                    keyStatement={dedupedCopy.prominentCoreClaim}
-                    structureBranches={structureBranches}
-                    sortedSuggestions={sortedSuggestions}
-                    isConfirmed={isConfirmed}
-                    onEdit={openCorrection}
-                    resultChangeKey={resultChangeKey}
-                    sections={sections}
-                    modules={contentModules}
-                  />
-                </div>
+                ) : (
+                  <>
+                    <div className="lg:hidden">
+                      <MobileDetailList
+                        summary={dedupedCopy.prominentSummary}
+                        rootTopic={rootTopic}
+                        topicLabels={topicLabels}
+                        stanceLabel={resolveStanceLead(dominantStance)}
+                        scopeLabel={resolveScopeLabel(scopeChip)}
+                        openQuestion={openQuestionText}
+                        nextStepTitles={nextStepTitles}
+                      />
+                    </div>
+                    <div className="hidden lg:block">
+                      <div className="create-chat-spine relative min-w-0 space-y-5 before:absolute before:left-[5px] before:top-3 before:h-[calc(100%-1.5rem)] before:w-px before:bg-slate-200 dark:before:bg-[rgb(var(--border))]">
+                        <UserContributionBubble text={dedupedCopy.userBubbleText} />
+                        <AssistantUnderstandingBubble
+                          eyebrow={CREATE_VISUAL_FOLLOWUP_COPY.structureTitle}
+                          headline={CREATE_VISUAL_FOLLOWUP_COPY.headline}
+                          summary={dedupedCopy.prominentSummary}
+                          assistantLead={assistantLead}
+                          coreClaim={dedupedCopy.prominentCoreClaim}
+                          showCoreBlock={showCoreBlock}
+                          showAssistantLead={showAssistantLeadText}
+                          stanceLabel={resolveStanceLead(dominantStance)}
+                          scopeLabel={resolveScopeLabel(scopeChip)}
+                        >
+                          <div className="mt-4 rounded-2xl border border-slate-200/75 bg-[color-mix(in_oklab,rgb(var(--card))_90%,rgb(var(--bg))_10%)] px-4 py-3 text-sm leading-relaxed text-[rgb(var(--muted))] dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--bg))]">
+                            Desktop zeigt hier bewusst mehr Arbeitskontext. Auf Mobile bleibt dieser Bereich hinter Details verborgen.
+                          </div>
+                        </AssistantUnderstandingBubble>
+                      </div>
+                      <StructuredWorkstateBlock
+                        rootTopic={rootTopic}
+                        topicLabels={topicLabels}
+                        positionClusters={positionClusters}
+                        voteQuestions={voteQuestions}
+                        keyStatement={dedupedCopy.prominentCoreClaim}
+                        structureBranches={structureBranches}
+                        sortedSuggestions={sortedSuggestions}
+                        isConfirmed={isConfirmed}
+                        onEdit={openCorrection}
+                        resultChangeKey={resultChangeKey}
+                        sections={sections}
+                        modules={contentModules}
+                      />
+                    </div>
+                  </>
+                )}
               </div>
             ) : null}
           </div>
         </div>
 
-        {isConfirmed ? (
+        {isConfirmed && !plannerClarificationRequired ? (
           <aside className="hidden lg:block lg:space-y-4">
             <div className="lg:sticky lg:top-4">
                 <NextStepPanel

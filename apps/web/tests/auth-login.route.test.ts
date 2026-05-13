@@ -367,6 +367,40 @@ describe("auth login route regressions", () => {
     expect(mocks.setPendingTwoFactorCookie).toHaveBeenCalledTimes(1);
   });
 
+  it("does not advertise an email fallback for active authenticator-based 2FA", async () => {
+    mocks.seedUser({
+      _id: "user-otp",
+      email: "otp@example.org",
+      passwordHash: "otp-hash",
+      verification: { twoFA: { enabled: true, method: "totp" } },
+    });
+    mocks.seedCredentials({
+      _id: "cred-otp",
+      coreUserId: "user-otp",
+      email: "otp@example.org",
+      passwordHash: "otp-hash",
+      twoFactorEnabled: true,
+      twoFactorMethod: "otp",
+      otpSecret: "SECRET123",
+    });
+    mocks.allowPassword("correct-pass", "otp-hash");
+
+    const res = await POST(
+      loginReq({
+        identifier: "otp@example.org",
+        password: "correct-pass",
+      }),
+    );
+
+    expect(res.status).toBe(200);
+    await expect(res.json()).resolves.toMatchObject({
+      ok: true,
+      require2fa: true,
+      method: "otp",
+      allowEmailFallback: false,
+    });
+  });
+
   it("routes admin/backoffice users to /admin when no explicit next target exists", async () => {
     mocks.seedUser({
       _id: "user-5",

@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import {
   buildAnalyzeWorkspaceMaterialPayload,
+  buildAnalyzeWorkspaceSavePayload,
   buildCreatePrepareAttachReviewState,
   collectCreateAnalyzeReasons,
   deriveSourceGroundingUiHint,
@@ -57,6 +58,40 @@ describe("create analyze workspace UI helpers", () => {
         materialItems: [],
       }),
     ).toEqual({});
+  });
+
+  it("omits null draftId from save payload so first embedded save stays schema-safe", () => {
+    expect(
+      buildAnalyzeWorkspaceSavePayload({
+        draftId: null,
+        preparedText: "Bitte prüft die Tierwohl-Standards im Import.",
+        text: "Bitte prüft die Tierwohl-Standards im Import.",
+        locale: "de",
+        mode: "contribution",
+        resolvedCreateMode: "source",
+        selectedAnlassraumId: null,
+        authorName: null,
+        useCase: "civic",
+        materialPayload: {},
+        analysis: {
+          claims: [],
+          notes: [],
+          questions: [],
+          knots: [],
+          consequences: [],
+          responsibilities: [],
+          responsibilityPaths: [],
+          impactAndResponsibility: { impacts: [], responsibleActors: [] },
+          report: null,
+          eventualities: [],
+          decisionTrees: [],
+        },
+      }),
+    ).toEqual(
+      expect.not.objectContaining({
+        draftId: expect.anything(),
+      }),
+    );
   });
 
   it("prioritizes neu_anlegen messaging for no_match", () => {

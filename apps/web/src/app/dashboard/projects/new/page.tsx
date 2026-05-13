@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { ObjectId, getCol } from "@core/db/triMongo";
 import { getSessionUser } from "@/lib/server/auth/sessionUser";
-import { sessionHasPassedTwoFactor, userRequiresTwoFactor } from "@/lib/server/auth/twoFactor";
+import { sessionHasPassedTwoFactor, sessionSatisfiesProtectedTwoFactor, userRequiresTwoFactor } from "@/lib/server/auth/twoFactor";
 import { userIsAdminDashboard } from "@/lib/server/auth/roles";
 import ProjectForm from "@features/event/components/ProjectForm";
 
@@ -12,10 +12,10 @@ async function ensureProAccess() {
   }
 
   // Pro self-serve requires 2FA setup + a session that has passed 2FA.
-  if (!userRequiresTwoFactor(user)) {
+  if (!userRequiresTwoFactor(user) && !sessionSatisfiesProtectedTwoFactor(user)) {
     redirect("/auth/2fa-setup?next=/dashboard/projects/new");
   }
-  if (!sessionHasPassedTwoFactor(user)) {
+  if (userRequiresTwoFactor(user) && !sessionHasPassedTwoFactor(user) && !sessionSatisfiesProtectedTwoFactor(user)) {
     redirect("/login?next=/dashboard/projects/new");
   }
 

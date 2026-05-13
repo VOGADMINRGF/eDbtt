@@ -36,6 +36,26 @@ type UserDoc = {
   newsletterOptIn?: boolean | null;
 };
 
+const MANAGED_USER_ROLES: UserRole[] = [
+  "guest",
+  "user",
+  "verified",
+  "editor",
+  "journalist",
+  "redaktion",
+  "moderator",
+  "staff",
+  "admin",
+  "ngo",
+  "politics",
+  "legitimized",
+  "owner",
+  "premium",
+  "superadmin",
+  "kurator",
+  "creator",
+];
+
 const createSchema = z.object({
   email: z.string().email(),
   name: z.string().min(2).max(120),
@@ -184,10 +204,25 @@ export async function PATCH(req: NextRequest) {
 
   const update: any = {};
   if (Array.isArray(body.roles)) {
-    if (body.roles.includes("superadmin") && !actorIsSuper) {
+    const normalizedRoles = normalizeManagedRoles(body.roles);
+    if (!normalizedRoles.length) {
+      return NextResponse.json({ ok: false, error: "invalid_roles" }, { status: 422 });
+    }
+    if (normalizedRoles.includes("superadmin") && !actorIsSuper) {
       return NextResponse.json({ ok: false, error: "forbidden_superadmin" }, { status: 403 });
     }
-    update.roles = body.roles;
+    const wouldKeepAdminAccess = normalizedRoles.includes("admin") || normalizedRoles.includes("superadmin");
+    const currentlyHasAdminAccess = targetRoles.includes("admin") || targetRoles.includes("superadmin");
+    if (currentlyHasAdminAccess && !wouldKeepAdminAccess) {
+      const adminCount = await users.countDocuments({
+        $or: [{ roles: { $in: ["admin", "superadmin"] } }, { role: { $in: ["admin", "superadmin"] } }],
+      });
+      if (adminCount <= 1) {
+        return NextResponse.json({ ok: false, error: "last_admin_required" }, { status: 422 });
+      }
+    }
+    update.roles = normalizedRoles;
+    update.role = normalizedRoles[0];
   }
   if (body.packageCode !== undefined) {
     update["membership.edebatte.planKey"] = body.packageCode;
@@ -236,8 +271,12 @@ export async function POST(req: NextRequest) {
   const email = body.email.trim().toLowerCase();
   const email_lc = email;
   const name = body.name.trim();
-  const roles = Array.isArray(body.roles) ? body.roles.map((r) => String(r)) : [];
+  const roles = normalizeManagedRoles(Array.isArray(body.roles) ? body.roles : ["user"]);
   const actorIsSuper = userIsSuperadmin(actor as any);
+
+  if (!roles.length) {
+    return NextResponse.json({ ok: false, error: "invalid_roles" }, { status: 422 });
+  }
 
   if (roles.includes("superadmin") && !actorIsSuper) {
     return NextResponse.json({ ok: false, error: "forbidden_superadmin" }, { status: 403 });
@@ -406,4 +445,15 @@ function generatePassword(length = 16) {
   const bytes = crypto.randomBytes(length);
   const core = Array.from(bytes, (b) => all[b % all.length]).join("");
   return `${core.slice(0, length - 3)}${digits[0]}${symbols[0]}${letters[0]}`;
+}
+
+function normalizeManagedRoles(input: string[]): UserRole[] {
+  const deduped = new Set<UserRole>();
+  for (const raw of input) {
+    const value = String(raw || "").trim() as UserRole;
+    if (MANAGED_USER_ROLES.includes(value)) {
+      deduped.add(value);
+    }
+  }
+  return Array.from(deduped);
 }

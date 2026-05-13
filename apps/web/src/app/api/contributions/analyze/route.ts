@@ -590,12 +590,6 @@ export async function POST(req: NextRequest): Promise<Response> {
       { status: 200 },
     );
   } catch (error) {
-    if ((error as any)?.code === "ANALYZE_TIMEOUT" || (error as any)?.message === "analyze_timeout") {
-      return NextResponse.json(
-        { ok: false, errorCode: "ANALYZE_TIMEOUT", message: "Analyze timed out" },
-        { status: 504 },
-      );
-    }
     console.error("[contributions/analyze] failed", error);
     logErrorSafe({
       msg: "analyze.route.error",
@@ -1125,6 +1119,13 @@ function normalizeAnalyzerError(error: unknown): NormalizedAnalyzerError {
       status: 502,
     };
   }
+  if (code === "ANALYZE_TIMEOUT" || message === "analyze_timeout") {
+    return {
+      code: "ANALYZE_TIMEOUT",
+      message: "Analyse hat das Zeitlimit erreicht. Es wird ein vereinfachter Fallback verwendet.",
+      status: 504,
+    };
+  }
   return {
     code: "ANALYZE_FAILED",
     message:
@@ -1134,6 +1135,7 @@ function normalizeAnalyzerError(error: unknown): NormalizedAnalyzerError {
 }
 
 const FALLBACK_ELIGIBLE_CODES = new Set([
+  "ANALYZE_TIMEOUT",
   "NO_ANALYZE_PROVIDER",
   "MISSING_ENV",
   "INVALID_AI_RESPONSE",

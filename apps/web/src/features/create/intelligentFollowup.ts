@@ -316,6 +316,7 @@ function mapPlannerStanceToUnderstanding(stance: CreatePlannerStance): CreateUnd
   if (stance === "pro") return "pro";
   if (stance === "contra") return "contra";
   if (stance === "mixed") return "mixed";
+  if (stance === "reform_oriented") return "mixed";
   if (stance === "open") return "open";
   return "unclear";
 }
@@ -422,6 +423,12 @@ function applyPlannerToUnderstanding(params: {
   understanding: CreateUnderstandingResult;
   planner: CreatePlannerResult;
 }): CreateUnderstandingResult {
+  if (params.planner.qualityStatus !== "specific") {
+    return {
+      ...params.understanding,
+      openQuestion: params.planner.plannerOpenQuestions[0] ?? params.planner.openQuestions[0] ?? params.understanding.openQuestion,
+    };
+  }
   const mergedTopics = mergeUnderstandingTopics({ understanding: params.understanding, planner: params.planner });
   const mergedStatements = mergeUnderstandingStatements({
     understanding: params.understanding,
@@ -449,13 +456,24 @@ function applyPlannerToUnderstanding(params: {
 }
 
 function buildGraphMatchPlan(planner: CreatePlannerResult): CreateFollowupGraphMatchPlan {
+  const graphAllowed = planner.qualityStatus === "specific" && planner.plannerDegraded === false;
+  if (!graphAllowed) {
+    return {
+      stage: "after_structure",
+      prepared: false,
+      requiresConfirmation: true,
+      searchTerms: [],
+      matches: [],
+      matchedTopics: [],
+      matchedDossiers: [],
+      matchedClaims: [],
+      matchedAnlassraeume: [],
+      matchedVotes: [],
+      shouldCreateNewTopic: false,
+    };
+  }
   const matches: CreateFollowupGraphMatchPlan["matches"] = planner.graphSearchTerms.slice(0, 5).map((term, index) => {
-    const relation =
-      index === 0
-        ? planner.plannerTopic === "Öffentliches Anliegen mit Klärungsbedarf"
-          ? "needs_review"
-          : "new"
-        : "related";
+    const relation = index === 0 ? "new" : "related";
     return {
       id: `graph-match-${index + 1}`,
       kind: index === 0 ? "topic" : "claim",

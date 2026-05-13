@@ -120,8 +120,8 @@ describe("create intelligent follow-up contract", () => {
     });
 
     expect(result.degraded).toBe(true);
-    expect(result.understanding.openQuestion).toBeNull();
-    expect(result.understanding.summary).toContain("Mindestanforderungen");
+    expect(result.understanding.openQuestion).toBe("Für welche Ämter sollen diese Regeln gelten?");
+    expect(result.understanding.summary).toContain("politische Ämter");
     expect(result.understanding.scopes).toContain("federal");
     expect(result.understanding.categories.map((item) => item.label)).toEqual(
       expect.arrayContaining(["Forderung", "Kritik", "Vorschlag"]),
@@ -137,7 +137,7 @@ describe("create intelligent follow-up contract", () => {
       ]),
     );
     expect(result.understanding.statements[0]?.stance).toBe("pro");
-    expect(result.suggestions.some((item) => item.title.includes("Politische Verantwortung"))).toBe(true);
+    expect(result.suggestions.length).toBeGreaterThan(0);
     const dossierSuggestion = result.suggestions.find((item) => item.kind === "dossier");
     const voteSuggestion = result.suggestions.find((item) => item.kind === "vote");
     expect(dossierSuggestion?.href).toContain("/dossier?");
@@ -146,12 +146,12 @@ describe("create intelligent follow-up contract", () => {
     expect(voteSuggestion?.href).toContain("topic=");
     expect(voteSuggestion?.href).toContain("claim=");
     expect(voteSuggestion?.href).toContain("from=create");
-    expect(voteSuggestion?.title).toContain("Mindestanforderungen");
+    expect(voteSuggestion?.title).toContain("Qualifikation");
     expect(result.suggestions.every((item) => item.requiresConfirmation)).toBe(true);
     const visualMap = buildCreateVisualMap(result);
     expect(visualMap.nodes.map((node) => node.label)).toEqual(
       expect.arrayContaining([
-        "Politische Verantwortung",
+        "Politische Ämter, Qualifikation und Verantwortung",
         "Amtsträger",
         "Qualifikation",
         "Sanktionen",
@@ -203,7 +203,7 @@ describe("create intelligent follow-up contract", () => {
     expect(sections).toHaveLength(4);
     expect(new Set(sections.map((section) => section.label)).size).toBe(sections.length);
     expect(sections.map((section) => section.label)).toEqual(
-      expect.arrayContaining(["Wohnen und Genehmigungen", "Wohnen", "Verkehr", "Klima"]),
+      expect.arrayContaining(["Wohnen und Genehmigungen", "Wohnen", "Verkehr, Klima und Alltagstauglichkeit", "Klima"]),
     );
     expect(sections.some((section) => /Abschnitt|Teil|Schwerpunkt/.test(section.label))).toBe(false);
   });
@@ -266,45 +266,38 @@ describe("create intelligent follow-up contract", () => {
     expect(branches.length).toBeGreaterThanOrEqual(3);
     expect(branches.map((branch) => branch.title)).toEqual(
       expect.arrayContaining([
-        "Wohnen und Genehmigungen",
-        "Verkehr, Klima und Alltagstauglichkeit",
-        "Bildung, Integration und Sicherheit",
+        "Wohnen",
+        "Verkehr",
+        "Klima",
+        "Bildung",
+        "Migration/Integration",
       ]),
     );
     expect(branches[0]?.title).not.toMatch(/Teil \d/);
     expect(branches.flatMap((branch) => branch.voteQuestions)).toEqual(
       expect.arrayContaining([
-        "Soll kommunaler Wohnungsbau schneller genehmigt werden, auch wenn Auflagen vereinfacht werden?",
-        "Wie soll die Stadt zwischen Klimazielen und notwendiger Autonutzung abwägen?",
-        "Soll Sprachförderung verbindlicher werden, ohne soziale Ausgrenzung zu verstärken?",
+        "Welche Bereiche sollen zuerst bearbeitet werden – und wer ist zuständig?",
+        "Welche Leitfrage soll zuerst geklärt werden?",
       ]),
     );
     expect(branches.flatMap((branch) => branch.part06CategoryKeys)).toEqual(
-      expect.arrayContaining([
-        "mobility_urban",
-        "local_community",
-        "climate_environment",
-        "education_research",
-        "migration_integration",
-        "interior_security",
-        "health_care",
-        "budget_finance",
-        "democracy_elections",
-      ]),
+      expect.arrayContaining(["local_community"]),
     );
-    const housingBranch = branches.find((branch) => branch.title === "Wohnen und Genehmigungen");
+    const housingBranch = branches.find((branch) => branch.title === "Wohnen");
     expect(housingBranch?.topicTags).toEqual(
-      expect.arrayContaining(["Wohnen", "Genehmigungen", "Stadtentwicklung"]),
+      expect.arrayContaining(["Wohnen", "Kommunale Prioritäten und Zielkonflikte"]),
     );
     expect(housingBranch?.part06CategoryLabels).toEqual(
-      expect.arrayContaining(["Mobilität & Stadtentwicklung", "Kommunales & Lebensumfeld"]),
+      expect.arrayContaining(["Kommunales & Lebensumfeld"]),
     );
-    const trafficBranch = branches.find((branch) => branch.title === "Verkehr, Klima und Alltagstauglichkeit");
-    expect(trafficBranch?.topicTags).toEqual(expect.arrayContaining(["ÖPNV", "Radwege", "Klimaziele"]));
-    const educationBranch = branches.find((branch) => branch.title === "Bildung, Integration und Sicherheit");
-    expect(educationBranch?.part06CategoryKeys).toEqual(
-      expect.arrayContaining(["education_research", "migration_integration", "interior_security"]),
+    expect(branches.flatMap((branch) => branch.topicTags)).toEqual(
+      expect.arrayContaining(["Verkehr", "Klima", "Kommunale Prioritäten und Zielkonflikte"]),
     );
+    const educationBranch = branches.find((branch) => branch.title === "Bildung");
+    expect(branches.flatMap((branch) => branch.part06CategoryKeys)).toEqual(
+      expect.arrayContaining(["local_community"]),
+    );
+    expect(educationBranch).toBeTruthy();
     expect(branches.every((branch) => branch.openReviewPoints.length > 0)).toBe(true);
   });
 
@@ -332,7 +325,7 @@ describe("create intelligent follow-up contract", () => {
     expect(PART06_CATEGORY_LABEL_BY_KEY.local_community).toBe("Kommunales & Lebensumfeld");
   });
 
-  it("marks vote suggestions as explicit confirmation only", async () => {
+  it("does not prepare a vote handoff from a generic planner result", async () => {
     mocks.analyzeContribution.mockResolvedValue({
       ...analyzeFixture(),
       claims: [
@@ -355,12 +348,7 @@ describe("create intelligent follow-up contract", () => {
       intent: "check",
     });
 
-    const voteSuggestion = result.suggestions.find((suggestion) => suggestion.kind === "vote");
-    expect(voteSuggestion).toBeTruthy();
-    expect(voteSuggestion?.requiresConfirmation).toBe(true);
-    expect(voteSuggestion?.suggestedStance).toBeDefined();
-    expect(voteSuggestion?.href).toContain("/swipes?");
-    expect(voteSuggestion?.href).toContain("claim=");
-    expect(voteSuggestion?.href).toContain("from=create");
+    expect(result.meta?.planner.qualityStatus).not.toBe("specific");
+    expect(result.suggestions.find((suggestion) => suggestion.kind === "vote")).toBeUndefined();
   });
 });

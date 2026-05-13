@@ -39,4 +39,17 @@ describe("create graph match after planner contract", () => {
     expect(result.meta?.graphMatch.shouldCreateNewTopic).toBe(true);
     expect(result.meta?.deepSearchUsed).toBe(false);
   });
+
+  it("blocks graph match preparation when the planner stays generic", async () => {
+    const result = await buildCreateIntelligentFollowup({
+      text: "Ich habe da ein öffentliches Thema, über das man einmal sprechen sollte.",
+      locale: "de",
+      intent: "contribute",
+    });
+
+    expect(result.meta?.planner.qualityStatus).not.toBe("specific");
+    expect(result.meta?.graphMatch.prepared).toBe(false);
+    expect(result.meta?.graphMatch.searchTerms).toEqual([]);
+    expect(result.meta?.graphMatch.matches).toEqual([]);
+  });
 });

@@ -304,6 +304,33 @@ describe("create chat-first mobile dialog experience contract", () => {
     expect(html).toContain("Ort später ergänzen");
   });
 
+  it("does not turn non-local open questions into place clarification", () => {
+    const html = renderToStaticMarkup(
+      <CreateVisualFollowup
+        result={{
+          ...FOLLOWUP_RESULT,
+          sourceText:
+            "Ich bin für besseren Tierschutz und Tierhaltung. Das sollte Europa und weltweit einheitlich umgesetzt werden.",
+          understanding: {
+            ...FOLLOWUP_RESULT.understanding,
+            openQuestion: "Welche Produkte, Länder, Standards und Kontrollmechanismen sind gemeint?",
+          },
+        }}
+        onConfirm={() => {}}
+        onEdit={() => {}}
+        {...FOLLOWUP_ACTIONS}
+        continuationValue=""
+        onContinuationChange={() => {}}
+        onContinueConversation={() => {}}
+      />,
+    );
+
+    expect(html).not.toContain("Um welchen Ort geht es?");
+    expect(html).not.toContain("Ort ergänzen");
+    expect(html).not.toContain("Ort später ergänzen");
+    expect(html).toContain("Welche Produkte, Länder, Standards und Kontrollmechanismen sind gemeint?");
+  });
+
   it("shows the correction composer only after the user chooses edit", () => {
     const compactHtml = renderVisualFollowup();
     const editHtml = renderVisualFollowupInEditMode();

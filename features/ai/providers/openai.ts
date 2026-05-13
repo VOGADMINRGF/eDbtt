@@ -17,6 +17,7 @@ export type AskArgs = {
   prompt: string;
   asJson?: boolean;
   model?: string;
+  temperature?: number;
   maxOutputTokens?: number;
   max_tokens?: number;
   timeoutMs?: number;
@@ -198,6 +199,7 @@ async function askOpenAI({
   prompt,
   asJson = false,
   model,
+  temperature,
   maxOutputTokens = 1400,
   max_tokens,
   timeoutMs,
@@ -262,6 +264,7 @@ async function askOpenAI({
     model: resolvedModel,
     input: mergedInput,
     max_output_tokens: resolvedMaxTokens,
+    temperature: Number.isFinite(temperature) ? temperature : undefined,
     reasoning:
       reasoningEffort && supportsReasoningEffort(resolvedModel)
         ? { effort: reasoningEffort }

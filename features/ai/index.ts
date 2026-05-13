@@ -21,8 +21,36 @@ export type JsonCallArgs = {
   model?: string;
   temperature?: number;
   max_tokens?: number;
+  timeoutMs?: number;
   response_format?: any;
 };
+
+function normalizeJsonSchemaConfig(responseFormat: any): { name?: string; schema: any; strict?: boolean } | null {
+  if (!responseFormat || typeof responseFormat !== "object") return null;
+  if (responseFormat.schema && typeof responseFormat.schema === "object") {
+    return {
+      name: typeof responseFormat.name === "string" ? responseFormat.name : "response_json",
+      schema: responseFormat.schema,
+      strict: responseFormat.strict !== false,
+    };
+  }
+  if (
+    responseFormat.type === "json_schema" &&
+    responseFormat.json_schema &&
+    typeof responseFormat.json_schema === "object" &&
+    responseFormat.json_schema.schema
+  ) {
+    return {
+      name:
+        typeof responseFormat.json_schema.name === "string"
+          ? responseFormat.json_schema.name
+          : "response_json",
+      schema: responseFormat.json_schema.schema,
+      strict: responseFormat.json_schema.strict !== false,
+    };
+  }
+  return null;
+}
 
 /**
  * Vereinheitlichter JSON-Call:
@@ -51,10 +79,7 @@ export async function callOpenAIJson(
   }
 
   // --- Variante B: Objekt aus analyzeContribution.ts ---
-  const { system, user, max_tokens } = promptOrArgs;
-
-  // Wir ignorieren model/temperature/response_format vorerst – wichtig ist,
-  // dass wir stabil JSON bekommen. Fein-Tuning kannst du später ergänzen.
+  const { system, user, model, temperature, max_tokens, timeoutMs, response_format } = promptOrArgs;
   const parts: string[] = [];
 
   if (system && system.trim()) {
@@ -70,11 +95,18 @@ export async function callOpenAIJson(
   }
 
   const combinedPrompt = parts.join("\n");
+  const jsonSchema = normalizeJsonSchemaConfig(response_format);
+  const forceJsonFormat = Boolean(response_format);
 
   const { text } = await callOpenAI({
     prompt: combinedPrompt,
     asJson: true,
+    model,
+    temperature,
     maxOutputTokens: max_tokens ?? maxOutputTokens ?? 1800,
+    timeoutMs,
+    forceJsonFormat,
+    jsonSchema,
   });
 
   return { text };

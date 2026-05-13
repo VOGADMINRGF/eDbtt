@@ -15,8 +15,11 @@ export const TWO_FA_COLLECTION = "twofactor_challenges" as const;
 export const DEFAULT_REDIRECT = "/" as const;
 export const TWO_FA_WINDOW_MS = 10 * 60 * 1000;
 export const LOGIN_WINDOW_MS = 15 * 60 * 1000;
+export const TWO_FACTOR_FALLBACK_COOKIE = "u_2fa_fallback" as const;
 
 export type TwoFactorMethod = "email" | "otp" | "totp";
+export type TwoFactorChallengePurpose = "login_verify" | "setup_fallback" | "recovery";
+export type TwoFactorFallbackMode = "setup" | "recovery";
 
 export type PiiUserCredentials = {
   _id?: ObjectId;
@@ -40,10 +43,15 @@ export type TwoFactorChallengeDoc = {
   _id?: ObjectId;
   userId: ObjectId;
   method: TwoFactorMethod;
+  purpose?: TwoFactorChallengePurpose;
+  redirectTo?: string | null;
   codeHash?: string | null;
   createdAt: Date;
   expiresAt: Date;
   attempts: number;
+  status?: "pending" | "used" | "expired" | "superseded" | "user_missing";
+  supersededAt?: Date;
+  consumedAt?: Date;
 };
 
 export type CoreUserAuthSnapshot = {
@@ -127,6 +135,31 @@ export async function clearPendingTwoFactorCookie() {
   const jar = await cookies();
   jar.set({
     name: "pending_2fa",
+    value: "",
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    maxAge: 0,
+  });
+}
+
+export async function setTwoFactorFallbackCookie(mode: TwoFactorFallbackMode) {
+  const jar = await cookies();
+  jar.set({
+    name: TWO_FACTOR_FALLBACK_COOKIE,
+    value: mode,
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+  });
+}
+
+export async function clearTwoFactorFallbackCookie() {
+  const jar = await cookies();
+  jar.set({
+    name: TWO_FACTOR_FALLBACK_COOKIE,
     value: "",
     httpOnly: true,
     sameSite: "lax",

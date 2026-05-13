@@ -11,6 +11,7 @@ import { ensureVerificationDefaults, upgradeVerificationLevel } from "@core/auth
 import { logIdentityEvent } from "@core/telemetry/identityEvents";
 import {
   applySessionCookies,
+  clearTwoFactorFallbackCookie,
   CREDENTIAL_COLLECTION,
   type CoreUserAuthSnapshot,
   type PiiUserCredentials,
@@ -35,7 +36,6 @@ function sanitizeNext(value?: string | null) {
 export async function POST(req: NextRequest) {
   try {
     const uid = await readCookie("u_id");
-    console.log("[totp/verify] session", { userId: uid });
     if (!uid || !ObjectId.isValid(uid)) {
       return NextResponse.json(
         { ok: false, error: "UNAUTHORIZED" },
@@ -166,6 +166,7 @@ export async function POST(req: NextRequest) {
       role: nextPrimaryRole,
       roles: nextRoles,
     };
+    await clearTwoFactorFallbackCookie();
     await applySessionCookies(sessionUser);
 
     const nextUrl = sanitizeNext(next) ?? "/account?welcome=1";

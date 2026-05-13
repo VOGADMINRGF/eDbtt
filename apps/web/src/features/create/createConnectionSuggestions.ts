@@ -161,11 +161,29 @@ export function buildCreateConnectionSuggestions(
 ): CreateConnectionSuggestion[] {
   const suggestions: CreateConnectionSuggestion[] = [];
   const maxSuggestions = Math.max(2, Math.min(8, input.maxSuggestions ?? 5));
+  const plannerReadyForStructuredHandoff = input.planner
+    ? input.planner.qualityStatus === "specific"
+    : true;
   const topics = input.understanding.topics.slice(0, 3);
   const topStatement = input.understanding.statements[0];
   const primaryTopic = topics[0]?.label ?? null;
   const primaryClaim = topStatement?.text?.trim() || null;
   const mappedStance = topStatement ? mapVoteStance(topStatement.stance) : null;
+
+  if (!plannerReadyForStructuredHandoff) {
+    suggestions.push({
+      id: "new_anlassraum:clarify-first",
+      kind: "new_anlassraum",
+      title: "Thema zuerst bestätigen",
+      reason: "Die Einordnung ist noch zu allgemein. Dossier-, Anlassraum- oder Beteiligungsanschlüsse bleiben bis zur Bestätigung gesperrt.",
+      confidence: "low",
+      href: input.intent === "check" ? "/create?intent=check" : "/create?intent=contribute",
+      suggestedContributionKind: input.understanding.categories[0]?.id ?? "hint",
+      suggestedStance: mappedStance,
+      requiresConfirmation: true,
+    });
+    return suggestions;
+  }
 
   if (input.dossierId) {
     suggestions.push({

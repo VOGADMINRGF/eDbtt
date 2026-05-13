@@ -70,3 +70,115 @@ Den eingebetteten Analyze-/Finalize-Teil von `/create` als denselben Arbeitsraum
 - `PR-CREATE-WORKFLOW-LIVE-QA-01` bleibt offen fuer den restlichen browsernahen Gesamtmatrixlauf bis in Save-/Finalize-/Rueckweg-Pfade sowie fuer Link-/YouTube-/PDF-/Upload-Faelle.
 - Im eingebetteten Pruefmodus wurde im Live-Lauf der Arbeitsraum geoeffnet, aber der volle Analyze->Save->Finalize-Pfad wurde in diesem Slice noch nicht bis zum Ende verprobt.
 - Der Materialtransport ist jetzt kontraktisch gehaertet, aber der vollstaendige echte Browserlauf fuer Upload-/PDF-Faelle inkl. spaeterem Speichern/Weiterfuehren steht weiterhin aus.
+
+## Browser-QA Slice E (2026-05-11)
+
+### Gezielte Fixes
+
+- `createPlanner.ts` begrenzt `planner_only` jetzt mit einem harten Fast-Timeout (`CREATE_PLANNER_TIMEOUT_MS`, Default 2200ms), damit `/api/create/intelligent-followup` nicht mehr durch einen offenen OpenAI-Call fuer 40s+ haengt.
+- `CreateVisualFollowup.tsx` behandelt offene Fragen nur noch dann als Ortsklaerung, wenn der Text wirklich Ort/Bezirk/Kommune/Stadt/Region/PLZ anspricht. Fachliche Rueckfragen wie `Welche Produkte, Länder, Standards und Kontrollmechanismen sind gemeint?` blockieren dadurch nicht mehr die Bestaetigungs- und Handoff-CTAs.
+- Nebenbei wurde ein separater Build-Drift in `apps/web/src/app/dossier/[id]/page.tsx` auf das von Next 16 erwartete `searchParams`-Promise-Shape nachgezogen.
+
+### Echte Browser-Evidence
+
+- Desktop 1440px, normaler Freitext, Tierschutz/Tierhaltung:
+  - `pass`
+  - Nach `Beitrag strukturieren` erscheint innerhalb von ca. 12s wieder das Follow-up mit `Kern`, `Thema`, `Noch offen`, `Erkannte Bedarfspunkte` und der kompakten Badge-Zeile (`3 / 3 / 1 / 1`).
+  - Die falsche Ortsklaerung ist weg; statt `Um welchen Ort geht es?` bleibt die fachliche Rueckfrage `Welche Produkte, Länder, Standards und Kontrollmechanismen sind gemeint?` sichtbar.
+- Desktop 1440px, `So übernehmen`:
+  - `pass`
+  - Nach Bestaetigung erscheinen die echten Next-Step-CTAs: `Beitrag einreichen`, `Anlassraum vorbereiten`, `Als Ergänzung anhängen`, `Neues Dossier vorbereiten`, `Beteiligungsfrage vorbereiten`, `Redaktionell prüfen lassen`, `Faktencheck anfragen`, `Nur speichern`.
+- Desktop 1440px, Faktencheck-Handoff:
+  - `pass`
+  - Klick auf `Faktencheck anfragen` fuehrt auf `/factcheck?...handoffId=...`.
+  - Sichtbar: `FACTCHECK-HANDOFF AUS /CREATE`, `Reviewstatus: Faktencheck-Kandidat`, Claim-Preview, offene Fragen, Quellenstatus.
+  - Keine automatische DeepSearch, kein Siegel, Claim-Liste ist explizit als `nicht automatisch prüfbar` markiert.
+- Desktop 1440px, Dossier-Handoff:
+  - `pass`
+  - Klick auf `Als Ergänzung anhängen` fuehrt auf `/dossier?...handoffId=...&createAction=append_to_dossier`.
+  - Sichtbar: `DOSSIER-HANDOFF`, `Aus deinem Beitrag vorbereitet`, Argumente, prüfbare Behauptungen, offene Fragen, Quellenstatus.
+  - Der Warnhinweis `Hier wird nichts automatisch an ein bestehendes Dossier angehängt` bleibt sichtbar.
+- Desktop 1440px, Rueckweg aus Handoff:
+  - `pass`
+  - `In /create weiter bearbeiten` fuehrt auf `/create?resume=create_handoff&handoffId=...`.
+  - Sichtbar: `Handoff-Arbeitsstand zur Weiterbearbeitung geladen.`
+
+### Noch offen / nicht abgeschlossen
+
+- Anlassraum-Handoff wurde in diesem Slice nicht erneut browsernah durchgeklickt; nur die vorhandenen Contracts bleiben dafuer gruen.
+- Mobile-390px-Revalidierung fuer den neuen Tierschutz-/Tierhaltungs-Pfad steht noch aus.
+- Die echten Materialmatrix-Faelle `Link`, `YouTube`, `PDF / Upload` wurden in diesem Slice nicht bis Save/Finalize browsernah durchgeprueft.
+
+## Browser-QA Slice F (2026-05-11)
+
+### Zusätzliche echte Browser-Evidence
+
+- Desktop 1440px, `Anlassraum vorbereiten`:
+  - `pass`
+  - Nach `So übernehmen` führt der CTA nicht mehr zurück in `/create`, sondern browsernah auf `/runden?view=active&from=create&topic=...&handoffId=...&createAction=prepare_anlassraum`.
+  - Sichtbar: `AUS /CREATE IN DEN ANLASSRAUM ÜBERNOMMEN`, Handoff-Kontext, `Keine automatische Veröffentlichung`, `kein stiller Themen- oder Graph-Merge`.
+- Mobile 390px, normaler Tierschutz-Freitext:
+  - `pass`
+  - Follow-up, kompakte Badge-Zeile und Next-Step-CTAs bleiben im einspaltigen Flow erreichbar.
+  - Kein grosses Bottom-Overlay; die Aktionsgruppe bleibt inline im Arbeitsraum.
+- Desktop 1440px, `Nur speichern`:
+  - `pass`
+  - Nach `Beitrag strukturieren` -> `So übernehmen` -> `Nur speichern` bleibt der Nutzer auf `/create`.
+  - Sichtbar: `Arbeitsstand gespeichert.` als direktes Feedback im Follow-up-Arbeitsraum.
+- Desktop 1440px, `Beitrag einreichen`:
+  - `pass`
+  - Handoff führt auf `/community/contributions?...&createAction=submit_draft`.
+  - Sichtbar: `AUS /CREATE VORBEREITET`, reviewbarer Arbeitsstand mit Kern, Anschlüssen, Argumenten und prüfbaren Behauptungen.
+  - `In /create weiter bearbeiten` lädt denselben Handoff-Arbeitsstand wieder über `/create?resume=create_handoff&handoffId=...`.
+- Desktop 1440px, Textlink:
+  - `pass`
+  - Ein normaler Artikel-Link bleibt bis ins Dossier-Handoff erhalten.
+  - Im Abschnitt `QUELLENSTATUS` ist die URL als Herkunft sichtbar.
+- Desktop 1440px, YouTube-Link:
+  - `pass`
+  - Factcheck-Handoff führt auf `/factcheck?...&createAction=request_factcheck`.
+  - Sichtbar: `YouTube-Link (link_reference)` im Quellenstatus, Claim-Preview, `Recherche startet nicht automatisch`.
+  - Kein Auto-DeepSearch, kein Factcheck-Siegel.
+- Desktop 1440px, PDF-Upload:
+  - `pass`
+  - Bereits im Composer erscheint nach dem Dateisetzen `Anhänge anzeigen (1)`.
+  - Nach `Als Ergänzung anhängen` zeigt das Dossier-Handoff im `QUELLENSTATUS` die hochgeladene Herkunft (`create-tierwohl.pdf`, `pdf_document`).
+  - Damit bleibt die Upload-Provenienz bis in den reviewbaren Arbeitsstand erhalten.
+
+### Neue Blocker in diesem Slice
+
+- Keine neuen Produkt- oder Workflow-Blocker.
+- Ein zwischenzeitlicher Fehlalarm im Upload-Fall kam aus dem ersten Prüfskript: Es suchte nach Dateiname oder offenem Disclosure-Text, obwohl die Oberfläche korrekt nur `Anhänge anzeigen (1)` renderte, solange das Disclosure nicht aufgeklappt ist.
+
+### Weiterhin offen
+
+- Der eingebettete Analyze->Save->Finalize-Endpfad wurde weiterhin nicht vollständig browsernah bis zum finalen Redirect durchgeklickt.
+- Die Materialfälle `Link`, `YouTube`, `PDF / Upload` sind jetzt in ihren Handoff-/Provenienzpfaden live bestätigt, aber noch nicht jeweils separat auf genau diesem eingebetteten Analyze->Finalize-Endpfad wiederholt.
+
+## Browser-QA Slice G (2026-05-11)
+
+### Gezielte Fixes
+
+- `AnalyzeWorkspace.tsx` baut den Save-Payload jetzt schema-sicher auf: beim ersten Embedded-Save wird `draftId` nicht mehr als `null`, sondern nur bei vorhandenem serverseitigem Draft gesendet.
+- `/api/contributions/analyze/route.ts` behandelt `ANALYZE_TIMEOUT` jetzt als fallback-faehigen Fehler. Statt eines nackten `504 Analyze timed out` liefert die Route denselben heuristischen Analyze-Fallback wie andere degrade-/provider-nahe Fehler.
+
+### Verifikation
+
+- `pnpm -C apps/web exec vitest run tests/create-analyze.route.test.ts tests/create-analyze.workspace-ui.test.ts tests/create-mode.save.route.test.ts`
+- `pnpm -C apps/web run typecheck`
+
+### Echte Browser- und API-Evidence
+
+- Embedded-Prüfpfad, `/create?intent=check`, Desktop 1440px:
+  - `pass` fuer den Save-Fix
+  - Nach `Dialog starten` und Öffnen des eingebetteten Prüfmodus bestätigt `Speichern` jetzt sichtbar `Entwurf gespeichert.` statt des früheren `Invalid input: expected string, received null`.
+- Direkter `/api/create/analyze`-Payload im selben Tierschutz-Fall:
+  - `pass`
+  - Die Route antwortet nach Timeout jetzt mit `ok: true`, `fallback: true`, `errorCode: ANALYZE_TIMEOUT` und heuristischen Claims statt mit einem leeren 504.
+  - Im Fallback werden wieder Claims, Fragen und `createAnalyze`-Metadaten geliefert.
+
+### Offener Restblocker
+
+- Der eingebettete `?intent=check`-Pfad ist browsernah noch nicht vollständig stabil bis `Claims sichtbar -> auswählen -> Einreichen -> Redirect`.
+- Im Live-Lauf kippt die Surface inkonsistent zwischen Embedded-Prüfmodus und planner-first-Follow-up, sodass der finale Verify-Schritt noch nicht als stabil `pass` markiert werden kann.
+- Deshalb bleibt `PR-CREATE-WORKFLOW-LIVE-QA-01` bewusst weiter `in_progress`.

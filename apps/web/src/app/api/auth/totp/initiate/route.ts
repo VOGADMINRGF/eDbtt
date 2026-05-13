@@ -22,7 +22,6 @@ async function readCookie(name: string): Promise<string | undefined> {
 export async function POST(_req: NextRequest) {
   try {
     const uid = await readCookie("u_id");
-    console.log("[totp/initiate] session", { userId: uid });
     if (!uid || !ObjectId.isValid(uid)) {
       return NextResponse.json(
         { ok: false, error: "UNAUTHORIZED" },

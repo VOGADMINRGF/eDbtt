@@ -228,7 +228,7 @@ export async function POST(req: NextRequest) {
 
   const twoFactorMethod = resolveTwoFactorMethod(credentials, user);
   const twoFactorEnabled = credentials?.twoFactorEnabled || user.verification?.twoFA?.enabled;
-  const allowEmailFallback = true;
+  const allowEmailFallback = twoFactorMethod === "email";
   const redirectUrl = resolvePostLoginRedirect({
     requestedRedirect,
     roles: user.roles,

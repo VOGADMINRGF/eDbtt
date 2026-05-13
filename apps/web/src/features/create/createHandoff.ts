@@ -161,10 +161,16 @@ function buildArgumentDrafts(result: CreateIntelligentFollowupResult, claims: Cr
   const argumentsDrafts: CreateArgumentDraft[] = [];
   const plannerSummary = result.meta?.planner?.shortSummary?.trim();
   if (plannerSummary) {
+    const plannerStance = result.meta?.planner?.plannerStance;
     argumentsDrafts.push({
       id: "argument-1",
       text: plannerSummary,
-      stance: result.meta?.planner?.plannerStance === "open" ? "unclear" : result.meta?.planner?.plannerStance ?? "unclear",
+      stance:
+        plannerStance === "open"
+          ? "unclear"
+          : plannerStance === "reform_oriented"
+            ? "mixed"
+            : plannerStance ?? "unclear",
       supportsClaimIds: primaryClaimIds,
     });
   }

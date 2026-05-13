@@ -4,7 +4,7 @@ import { mapUserRolesToGovernanceRole } from "@features/trust/gates";
 import { getOrgContext } from "./org";
 import { userIsAdminDashboard } from "./roles";
 import { getSessionUser, type SessionUser } from "./sessionUser";
-import { sessionHasPassedTwoFactor, userRequiresTwoFactor } from "./twoFactor";
+import { sessionHasPassedTwoFactor, sessionSatisfiesProtectedTwoFactor, userRequiresTwoFactor } from "./twoFactor";
 
 export type GovernanceAccess = {
   user: SessionUser;
@@ -22,11 +22,12 @@ export async function requireGovernanceActorOrResponse(
   }
 
   const hasTwoFactorSetup = userRequiresTwoFactor(user);
-  const hasTwoFactor = sessionHasPassedTwoFactor(user);
-  if (!hasTwoFactorSetup) {
+  const hasProtectedTwoFactor = sessionSatisfiesProtectedTwoFactor(user);
+  const hasDirectTwoFactor = sessionHasPassedTwoFactor(user);
+  if (!hasTwoFactorSetup && !hasProtectedTwoFactor) {
     return NextResponse.json({ ok: false, error: "two_factor_setup_required" }, { status: 403 });
   }
-  if (!hasTwoFactor) {
+  if (hasTwoFactorSetup && !hasDirectTwoFactor && !hasProtectedTwoFactor) {
     return NextResponse.json({ ok: false, error: "two_factor_required" }, { status: 403 });
   }
 

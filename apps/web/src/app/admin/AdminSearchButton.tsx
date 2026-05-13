@@ -35,6 +35,7 @@ const DATA_GROUP_ORDER = [
   "Access Policies",
   "Access Overrides",
   "Feed Drafts",
+  "Themen",
   "Eventualitaeten",
   "Responsibility Actors",
   "Evidence Claims",

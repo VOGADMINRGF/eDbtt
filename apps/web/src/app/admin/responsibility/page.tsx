@@ -47,6 +47,7 @@ export default function ResponsibilityAdminPage() {
   const [entries, setEntries] = useState<DirectoryEntry[]>([]);
   const [paths, setPaths] = useState<ResponsibilityPath[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [form, setForm] = useState({
     actorKey: "",
     level: "municipality",
@@ -59,6 +60,7 @@ export default function ResponsibilityAdminPage() {
 
   async function refresh() {
     setLoading(true);
+    setLoadError(null);
     try {
       const [dirRes, pathRes] = await Promise.all([
         fetch("/api/admin/responsibility/directory"),
@@ -68,8 +70,8 @@ export default function ResponsibilityAdminPage() {
       const pathJson = await pathRes.json();
       if (dirJson.ok) setEntries(dirJson.entries ?? []);
       if (pathJson.ok) setPaths(pathJson.paths ?? []);
-    } catch (err) {
-      console.error(err);
+    } catch (err: unknown) {
+      setLoadError(err instanceof Error ? err.message : "Verantwortungsverzeichnis konnte nicht geladen werden.");
     } finally {
       setLoading(false);
     }
@@ -132,6 +134,12 @@ export default function ResponsibilityAdminPage() {
           Pflege die zentrale Directory-Liste und Responsibility-Pfade für Statements.
         </p>
       </header>
+
+      {loadError ? (
+        <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+          {loadError}
+        </div>
+      ) : null}
 
       <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-sm">
         <h2 className="text-lg font-semibold text-[rgb(var(--fg))]">Eintrag hinzufügen / bearbeiten</h2>
@@ -210,11 +218,16 @@ export default function ResponsibilityAdminPage() {
             </button>
             <button
               type="button"
-              className="rounded-full border border-[rgb(var(--border))] px-4 py-2 text-sm text-[rgb(var(--muted))]"
-              title="Import/Export folgt"
+              disabled
+              aria-disabled="true"
+              className="rounded-full border border-[rgb(var(--border))] px-4 py-2 text-sm text-[rgb(var(--muted))] disabled:opacity-60"
+              title="Import und Export sind in diesem Slice noch nicht freigegeben."
             >
-              Import / Export (coming soon)
+              Import / Export noch nicht freigegeben
             </button>
+            <span className="text-xs text-[rgb(var(--muted))]">
+              CSV-/Batch-Import folgt erst mit eigenem Review- und Audit-Pfad.
+            </span>
             {status && <span className="text-sm text-[rgb(var(--muted))]">{status}</span>}
           </div>
         </form>

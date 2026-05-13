@@ -1428,3 +1428,20 @@ Verification:
 - `pnpm -C apps/web run typecheck`
 - `pnpm -C apps/web run lint`
 - `pnpm -C apps/web exec vitest run tests/regional-official-directory.contract.test.ts tests/regional-actor-register.route.test.ts tests/community-signal-intake.route.test.ts tests/admin-region-cockpit.route.test.ts tests/admin-region-page.render.test.tsx tests/regional-actor-register.contract.test.ts tests/community-signal-inbox.contract.test.ts tests/regional-admin-cockpit.contract.test.ts`
+
+### 2026-05-11 - PR-AUTH-2FA-SETUP-UX-EMAIL-OTP-01
+
+Ziel:
+- Die 2FA-Setup-/Verify-Strecke nach Anmeldung ohne Maus bedienbar, kontraststark und mit sicherem E-Mail-Fallback fuer Setup-/Recovery-Kontexte nutzbar machen.
+
+Changes:
+- Neue `TwoFactorSetupClient`-Surface fuer `/auth/2fa-setup` mit direktem Fokus, numerischer 6-Ziffern-Eingabe, deutscher Fehlermeldung und klar lesbarem Dark-/Light-Input.
+- Neue E-Mail-Code-Endpunkte `/api/auth/2fa/email-code/send` und `/api/auth/2fa/email-code/verify` fuer `setup_fallback`/`recovery` mit Hash-Speicherung, Zeitlimit und 60s-Cooldown.
+- Session-/Guard-Schicht um `u_2fa_fallback` erweitert, damit explizite Setup-/Recovery-Sitzungen weiterkommen, ohne TOTP dauerhaft als aktiviert zu markieren.
+- Bestehender Login-2FA-Flow bewirbt keinen E-Mail-Fallback mehr fuer aktive Authenticator-Konten; alter `request-email`-Pfad lehnt stillen Downgrade ebenfalls ab.
+
+Verification:
+- `pnpm -C apps/web exec vitest run tests/auth-2fa-setup-ui.contract.test.ts tests/auth-2fa-email-code.route.test.ts tests/auth-login.route.test.ts`
+- `pnpm -C apps/web run lint`
+- `pnpm -C apps/web run typecheck`
+- `pnpm -C apps/web run build`

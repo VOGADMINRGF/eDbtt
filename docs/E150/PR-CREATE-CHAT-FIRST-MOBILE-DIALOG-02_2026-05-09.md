@@ -52,3 +52,43 @@ Die visuelle Hierarchie des lightweight `/create`-Follow-ups naeher an das defin
 - `pnpm -C apps/web run typecheck`
 - `pnpm -C apps/web run lint`
 - `pnpm -C apps/web exec vitest run tests/create-entry-hierarchy.contract.test.tsx tests/create-i18n-no-mixed-locale.contract.test.tsx tests/create-no-chip-overload.contract.test.tsx tests/create-entry-i18n.render.test.tsx tests/create-chat-first-mobile-dialog-experience.contract.test.tsx tests/create-curated-dialog-workspace.contract.test.tsx tests/create-attachment-layout.contract.test.ts tests/analyze-workbench-hidden-until-start.test.ts`
+
+## PR-124 Scope Reality Check (2026-05-12)
+
+Der aktuelle Diff gegen `origin/main` ist kein schmaler Mobile-Shell-PR mehr.
+
+Nach Klassifikation umfasst der Branch mindestens diese Bloecke:
+
+- Mobile UX
+  - `CreateVisualFollowup`, `SharedCreateComposer`, `CreateClient`, zugehoerige Mobile-/Entry-Contracts
+- Planner / Graph
+  - `createPlanner`, `intelligentFollowup`, `createConnectionSuggestions`, Planner-/Graph-Contracts
+- Handoff
+  - `createHandoff`, `CreateHandoffPanel`, Dossier-/Factcheck-/Anlassraum-/Contribution-Handoffs
+- Material
+  - `materialRouting`, `AnalyzeWorkspace`, Analyze-/Save-Routen, Notebook-/Source-Grounding-Nachzug
+- Live-QA / Hardening
+  - Live-Click-, Save-/Analyze-, Browser- und Follow-up-Contracts
+- Region / Admin
+  - `public/Listen/*.xlsx`, Region-Directory, Region-Admin-Routen, Regional-Contracts
+
+Bewertung:
+
+- PR #124 sollte nicht mehr als reiner `Mobile Shell`-PR bezeichnet werden.
+- Ehrlicher Zustand ist ein Integrations-PR ueber mehrere dokumentierte E150-Slices.
+- `apps/web/public/Listen/Anschriften_der_Gemeinde_und_Stadtverwaltungen_Stand_31012023_final.xlsx` ist nur dann im PR plausibel, wenn der Region-/Admin-Slice bewusst mit enthalten bleibt.
+- `apps/web/next-env.d.ts` sollte nur im PR bleiben, wenn der aktuelle Build es tatsaechlich braucht; es ist kein fachlicher Bestandteil des Mobile-Slices.
+
+Empfehlung:
+
+- nicht als schmalen Mobile-PR mergen
+- entweder in mehrere sachliche PRs splitten
+- oder PR #124 ehrlich als Integrations-PR umbenennen und den PR-Body nach Slice-Gruppen aktualisieren
+
+Kanonische `/create`-Pipeline fuer diesen Branch:
+
+`SharedCreateComposer -> createPlanner -> intelligentFollowup -> CreateVisualFollowup -> createHandoff -> Zielsurface/AnalyzeWorkspace -> Save/Finalize/Rueckweg`
+
+Statushinweis:
+
+- `PR-CREATE-WORKFLOW-LIVE-QA-01` bleibt bewusst `in_progress`, bis der echte Browser-Matrixlauf fuer Save / Finalize / Rueckwege / Link / YouTube / PDF / Upload vollstaendig dokumentiert ist.

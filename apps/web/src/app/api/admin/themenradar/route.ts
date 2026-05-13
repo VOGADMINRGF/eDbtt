@@ -33,6 +33,7 @@ export async function GET(req: NextRequest) {
   const params = req.nextUrl.searchParams;
   const statusRaw = String(params.get("status") ?? "all");
   const sourceRaw = String(params.get("sourceType") ?? "all");
+  const q = String(params.get("q") ?? "").trim();
   const limitRaw = Number(params.get("limit") ?? 60);
 
   const status =
@@ -47,6 +48,7 @@ export async function GET(req: NextRequest) {
   const items = await listThemenradarItems({
     status,
     sourceType,
+    q: q || null,
     limit: Number.isFinite(limitRaw) ? limitRaw : 60,
   });
 

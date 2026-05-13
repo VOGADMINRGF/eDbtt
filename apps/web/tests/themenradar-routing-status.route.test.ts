@@ -66,7 +66,22 @@ describe("/api/admin/themenradar routing + status", () => {
     expect(mocks.listThemenradarItems).toHaveBeenCalledWith({
       status: "raw",
       sourceType: "community",
+      q: null,
       limit: 10,
+    });
+  });
+
+  it("passes the search query through to Themenradar list loading", async () => {
+    const req = new NextRequest(
+      "http://localhost/api/admin/themenradar?status=review_ready&sourceType=create_intake&q=verkehr&limit=12",
+    );
+    const res = await LIST_GET(req);
+    expect(res.status).toBe(200);
+    expect(mocks.listThemenradarItems).toHaveBeenCalledWith({
+      status: "review_ready",
+      sourceType: "create_intake",
+      q: "verkehr",
+      limit: 12,
     });
   });
 

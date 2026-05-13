@@ -600,4 +600,29 @@ describe("/api/contributions/analyze create orchestration envelope", () => {
       delete process.env.E150_DEEPSEARCH_REQUIRE_CONFIRMATION;
     }
   });
+
+  it("falls back to heuristic createAnalyze output when analyze times out", async () => {
+    const timeoutError = Object.assign(new Error("analyze_timeout"), { code: "ANALYZE_TIMEOUT" });
+    mocks.analyzeContribution.mockRejectedValue(timeoutError);
+    mocks.buildHeuristicAnalyzeResult.mockReturnValue(
+      buildAnalyzeResult({ claims: [{ id: "c-timeout", text: "Fallback-Claim" }] }),
+    );
+
+    const res = await analyzePOST(
+      req({
+        text: "Das ist ein laengerer Freitext mit genug Kontext fuer die Analyse.",
+        locale: "de-DE",
+        createMode: "source",
+      }),
+    );
+
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.ok).toBe(true);
+    expect(body.fallback).toBe(true);
+    expect(body.errorCode).toBe("ANALYZE_TIMEOUT");
+    expect(body.result?.claims?.[0]?.text).toBe("Fallback-Claim");
+    expect(body.createAnalyze).toBeTruthy();
+    expect(body.meta?.fallbackUsed).toBe(true);
+  });
 });

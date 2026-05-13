@@ -6,6 +6,7 @@ import { coreCol } from "@core/db/triMongo";
 import {
   CONSENT_COOKIE_NAME,
   LEGACY_CONSENT_COOKIE_NAME,
+  hasRequiredPrivacyAcknowledgement,
   parseConsentCookie,
 } from "@/lib/privacy/consent";
 
@@ -54,7 +55,7 @@ type AnalyticsPageviewDoc = {
 
 export async function POST(req: NextRequest) {
   const consent = readConsent(req);
-  if (!consent?.analytics) {
+  if (!hasRequiredPrivacyAcknowledgement(consent) || !consent?.optional.analytics) {
     return new Response(null, { status: 204 });
   }
 

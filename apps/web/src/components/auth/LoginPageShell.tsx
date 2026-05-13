@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useLoginFlow, type LoginStep, type TwoFactorMethod } from "@/hooks/useLoginFlow";
 import Link from "next/link";
+import { normalizeTwoFactorCode, TWO_FACTOR_CODE_LENGTH } from "@/features/auth/twoFactorSetup";
 
 export function LoginPageShell({
   redirectTo,
@@ -15,6 +16,7 @@ export function LoginPageShell({
   initialMethod?: TwoFactorMethod | null;
   forceTwoFactor?: boolean;
 }) {
+  const codeInputRef = useRef<HTMLInputElement | null>(null);
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [code, setCode] = useState("");
@@ -39,6 +41,8 @@ export function LoginPageShell({
     const diff = Math.max(0, expires - Date.now());
     return Math.ceil(diff / 60000);
   }, [expiresAt]);
+  const normalizedCode = useMemo(() => normalizeTwoFactorCode(code), [code]);
+  const canSubmitTwoFactor = normalizedCode.length === TWO_FACTOR_CODE_LENGTH && !loading;
 
   const primaryButtonClass =
     "inline-flex w-full items-center justify-center rounded-full bg-gradient-to-r from-sky-500 via-cyan-500 to-emerald-500 px-4 py-2.5 text-sm font-semibold text-white shadow-[0_10px_30px_rgba(14,116,144,0.35)] transition hover:brightness-105 focus:outline-none focus:ring-2 focus:ring-sky-200 disabled:opacity-60";
@@ -51,6 +55,12 @@ export function LoginPageShell({
     }
   }, [step]);
 
+  useEffect(() => {
+    if (step === "twofactor") {
+      codeInputRef.current?.focus();
+    }
+  }, [step, method]);
+
   async function handleCredentialSubmit(e: React.FormEvent) {
     e.preventDefault();
     await submitCredentials(identifier, password);
@@ -58,7 +68,7 @@ export function LoginPageShell({
 
   async function handleTwoFactorSubmit(e: React.FormEvent) {
     e.preventDefault();
-    await submitTwoFactor(code);
+    await submitTwoFactor(normalizedCode);
   }
 
   return (
@@ -154,12 +164,16 @@ export function LoginPageShell({
               Sicherheitscode
             </label>
             <input
+              ref={codeInputRef}
               id="code"
               className="w-full rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-[rgb(var(--fg))] shadow-inner focus:border-sky-400 focus:bg-[rgb(var(--card))] focus:outline-none focus:ring-2 focus:ring-sky-100"
-              value={code}
+              value={normalizedCode}
               onChange={(e) => setCode(e.target.value)}
               inputMode="numeric"
               autoComplete="one-time-code"
+              pattern="[0-9]*"
+              maxLength={6}
+              autoFocus
               required
             />
           </div>
@@ -178,7 +192,7 @@ export function LoginPageShell({
           )}
           {error && <p className="text-sm text-rose-600">{error}</p>}
           <div className="flex items-center gap-3">
-            <button type="submit" className={`${primaryButtonClass} w-full`} disabled={loading}>
+            <button type="submit" className={`${primaryButtonClass} w-full`} disabled={!canSubmitTwoFactor}>
               {loading ? "Prüfe Code …" : "Bestätigen"}
             </button>
             <button type="button" className={secondaryButtonClass} onClick={reset}>

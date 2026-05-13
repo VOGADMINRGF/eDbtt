@@ -29,7 +29,7 @@ export async function POST(
   const col = await graphRepairsCol();
   const ticket = await col.findOne({ _id: new ObjectId(ticketId) });
   if (!ticket) return NextResponse.json({ ok: false, error: "not_found" }, { status: 404 });
-  if (ticket.status !== "pending") {
+  if (!["pending", "open", "in_review"].includes(ticket.status)) {
     return NextResponse.json({ ok: false, error: "not_pending" }, { status: 400 });
   }
 
@@ -71,6 +71,10 @@ async function applyGraphRepair(ticket: any) {
 
   const session = driver.session();
   try {
+    if (ticket.type === "graph_unavailable" || ticket.type === "missing_env" || ticket.type === "db_unreachable") {
+      return { ok: false, error: "manual_review_required", status: 409 } as const;
+    }
+
     if (ticket.type === "merge_suggest") {
       const aId = ticket.payload?.aId;
       const bId = ticket.payload?.bId;

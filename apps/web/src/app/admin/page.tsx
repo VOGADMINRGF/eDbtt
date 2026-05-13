@@ -91,7 +91,7 @@ export default function AdminDashboardPage() {
         <div className="mt-3 grid gap-2 md:grid-cols-2 lg:grid-cols-4">
           {[
             { label: "Editorial Triage", href: "/admin/editorial/queue?status=triage" },
-            { label: "Graph Repairs", href: "/admin/graph/repairs?status=pending" },
+            { label: "Graph Repairs", href: "/admin/graph/repairs" },
             { label: "Report Assets", href: "/admin/reports/assets" },
             { label: "Support Ledger", href: "/admin/support" },
             { label: "Pricing Orders", href: "/admin/pricing/orders" },
@@ -224,12 +224,12 @@ export default function AdminDashboardPage() {
           "/admin/reports/assets",
         )}
         {renderCard(
-          "Graph Repairs (pending)",
+          "Graph Repairs (aktiv)",
           data?.pendingGraphRepairs,
           loading,
           nf,
           undefined,
-          "/admin/graph/repairs?status=pending",
+          "/admin/graph/repairs",
         )}
       </section>
 

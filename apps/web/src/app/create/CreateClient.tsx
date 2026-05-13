@@ -53,6 +53,7 @@ import {
   type OperatorCreateTexts,
 } from "@/features/i18n/operatorSystemTexts";
 import SharedCreateComposer from "@/features/create/SharedCreateComposer";
+import { usePrivacyGate } from "@/components/privacy/PrivacyGateProvider";
 import {
   type CreateIntelligentFollowupResult,
 } from "@/features/create/intelligentFollowupContract";
@@ -147,6 +148,32 @@ export function resolveCreatePostStartSectionOrder(params: {
   if (params.showPostInputModules && params.pickerEnabled) sections.push("context-picker");
   if (params.showPostInputModules) sections.push("quotas");
   return sections;
+}
+
+export function resolveCreateAnlassraumTargetHref(
+  followup: CreateIntelligentFollowupResult | null,
+): string {
+  if (!followup) return "/runden?view=active&from=create";
+  const roomSuggestion =
+    followup.suggestions.find((suggestion) => suggestion.kind === "anlassraum") ??
+    followup.suggestions.find((suggestion) => suggestion.kind === "new_anlassraum") ??
+    null;
+  const suggestedHref = roomSuggestion?.href?.trim() ?? "";
+  if (suggestedHref && !suggestedHref.startsWith("/create")) {
+    return suggestedHref;
+  }
+  if (followup.meta?.planner?.plannerTopic) {
+    return `/runden?view=active&from=create&topic=${encodeURIComponent(followup.meta.planner.plannerTopic)}`;
+  }
+  return "/runden?view=active&from=create";
+}
+
+function isPlannerReadyForStructuredHandoff(
+  followup: CreateIntelligentFollowupResult | null,
+): boolean {
+  const planner = followup?.meta?.planner ?? null;
+  if (!planner) return false;
+  return planner.qualityStatus === "specific" && planner.plannerDegraded === false;
 }
 
 type CreateProductModeConfig = ReturnType<typeof resolveCreateModeDefinition> & {
@@ -619,6 +646,7 @@ export default function CreateClient({
   initialIntakeContext,
   initialReturnTo,
 }: CreateClientProps) {
+  const privacyGate = usePrivacyGate();
   const router = useRouter();
   const { locale } = useLocale();
   const surfaceLocale = resolveCreateSurfaceLocale(locale);
@@ -1051,8 +1079,9 @@ export default function CreateClient({
   ]);
 
   const handleStart = React.useCallback(async () => {
+    if (!privacyGate.ensureActiveProcessingAllowed("create-start")) return;
     await startCreateFlow(intakeText);
-  }, [intakeText, startCreateFlow]);
+  }, [intakeText, privacyGate, startCreateFlow]);
 
   const handleSaveFollowupAnswer = React.useCallback(() => {
     const normalized = activeFollowupAnswer.trim();
@@ -1075,6 +1104,7 @@ export default function CreateClient({
   );
 
   const handleContinueConversation = React.useCallback(async () => {
+    if (!privacyGate.ensureActiveProcessingAllowed("create-continue")) return;
     const normalizedContinuation = chatContinuationText.trim();
     if (!normalizedContinuation) {
       setActionNotice("Schreib kurz, was ich anpassen oder ergänzen soll.");
@@ -1088,7 +1118,7 @@ export default function CreateClient({
     setUnderstandingConfirmed(false);
     setShowFollowupCorrectionComposer(false);
     await startCreateFlow(combinedText);
-  }, [chatContinuationText, intakeText, startCreateFlow]);
+  }, [chatContinuationText, intakeText, privacyGate, startCreateFlow]);
 
   const handleSkipPlaceClarification = React.useCallback(async () => {
     const normalizedContinuation = "Ort später ergänzen.";
@@ -1380,8 +1410,16 @@ export default function CreateClient({
 
   const navigateWithCreateHandoff = React.useCallback(
     (selectedAction: CreateHandoffAction, baseHref: string) => {
+      if (!privacyGate.ensureActiveProcessingAllowed(`create-handoff:${selectedAction}`)) return;
       if (!intelligentFollowup?.meta?.planner || !intelligentFollowup?.meta?.graphMatch) {
         setActionNotice("Dieser Schritt braucht zuerst einen bestätigbaren Arbeitsstand.");
+        return;
+      }
+      if (
+        ["append_to_dossier", "create_dossier", "request_factcheck", "prepare_vote", "prepare_anlassraum"].includes(selectedAction) &&
+        !isPlannerReadyForStructuredHandoff(intelligentFollowup)
+      ) {
+        setActionNotice("Bitte bestätige das Thema zuerst genauer oder sende einen Bericht an die Redaktion.");
         return;
       }
       const draft = buildCreateHandoffDraft({
@@ -1400,8 +1438,60 @@ export default function CreateClient({
       });
       router.push(targetHref as Parameters<typeof router.push>[0]);
     },
-    [currentMaterialRouting.materialItems, currentMaterialRouting.sourceUrls, intelligentFollowup, router],
+    [currentMaterialRouting.materialItems, currentMaterialRouting.sourceUrls, intelligentFollowup, privacyGate, router],
   );
+
+  const handleRetryPlanner = React.useCallback(async () => {
+    const sourceText = (intelligentFollowup?.sourceText ?? followupSnapshot?.originalText ?? normalizedIntakeText).trim();
+    if (!sourceText) {
+      setActionNotice("Bitte beschreibe zuerst deinen Beitrag.");
+      return;
+    }
+    if (!privacyGate.ensureActiveProcessingAllowed("create-retry-planner")) return;
+
+    setActionNotice("KI-Einordnung wird erneut versucht …");
+    try {
+      const response = await fetch("/api/create/intelligent-followup", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          text: sourceText,
+          locale: surfaceLocale,
+          anlassraumId: selectedAnlassraumId,
+          dossierId: dossierId ?? null,
+          intent: activeIntent,
+          sourceUrls: currentMaterialRouting.sourceUrls,
+          materialItems: currentMaterialRouting.materialItems,
+        }),
+      });
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok || !body?.ok || !body?.result) {
+        throw new Error("create_intelligent_followup_failed");
+      }
+      const nextFollowup = body.result as CreateIntelligentFollowupResult;
+      setIntelligentFollowup(nextFollowup);
+      setUnderstandingConfirmed(false);
+      setShowFollowupCorrectionComposer(false);
+      setActionNotice(
+        isPlannerReadyForStructuredHandoff(nextFollowup)
+          ? "Einordnung aktualisiert. Bitte bestätige, welchen Teil wir zuerst vorbereiten sollen."
+          : "Die Einordnung bleibt noch offen. Du kannst das Thema jetzt gezielt bestätigen oder an die Redaktion geben.",
+      );
+    } catch {
+      setActionNotice("Die genauere KI-Einordnung konnte gerade nicht geladen werden.");
+    }
+  }, [
+    activeIntent,
+    currentMaterialRouting.materialItems,
+    currentMaterialRouting.sourceUrls,
+    dossierId,
+    followupSnapshot?.originalText,
+    intelligentFollowup?.sourceText,
+    normalizedIntakeText,
+    privacyGate,
+    selectedAnlassraumId,
+    surfaceLocale,
+  ]);
 
   const handleRequestEditorialReview = React.useCallback(() => {
     navigateWithCreateHandoff("request_review", "/community/contributions");
@@ -1416,15 +1506,7 @@ export default function CreateClient({
       setActionNotice("Bitte beschreibe zuerst deinen Beitrag.");
       return;
     }
-    const roomSuggestion =
-      intelligentFollowup.suggestions.find((suggestion) => suggestion.kind === "anlassraum") ??
-      intelligentFollowup.suggestions.find((suggestion) => suggestion.kind === "new_anlassraum") ??
-      null;
-    const baseHref = roomSuggestion?.href?.trim()
-      ? roomSuggestion.href.trim()
-      : intelligentFollowup.meta?.planner?.plannerTopic
-        ? `/runden?view=active&from=create&topic=${encodeURIComponent(intelligentFollowup.meta.planner.plannerTopic)}`
-        : "/runden?view=active&from=create";
+    const baseHref = resolveCreateAnlassraumTargetHref(intelligentFollowup);
     navigateWithCreateHandoff("prepare_anlassraum", baseHref);
   }, [intelligentFollowup, navigateWithCreateHandoff]);
 
@@ -1473,8 +1555,9 @@ export default function CreateClient({
   }, [navigateWithCreateHandoff]);
 
   const handleSaveOnly = React.useCallback(async () => {
+    if (!privacyGate.ensureActiveProcessingAllowed("create-save")) return;
     await persistFollowupWorkstate(false);
-  }, [persistFollowupWorkstate]);
+  }, [persistFollowupWorkstate, privacyGate]);
 
   if (gate.status === "loading") {
     return (
@@ -1705,6 +1788,7 @@ export default function CreateClient({
             onPrepareVote={handlePrepareVote}
             onRequestEditorialReview={handleRequestEditorialReview}
             onStartOptionalService={handleStartFactcheckService}
+            onRetryPlanner={handleRetryPlanner}
             onSaveOnly={handleSaveOnly}
             onSkipPlaceClarification={handleSkipPlaceClarification}
             continuationValue={chatContinuationText}

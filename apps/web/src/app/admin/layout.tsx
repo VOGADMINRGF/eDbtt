@@ -1,8 +1,9 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { ReactNode } from "react";
+import { maskEmail } from "@core/pii/redact";
 import { getSessionUser } from "@/lib/server/auth/sessionUser";
-import { sessionHasPassedTwoFactor, userRequiresTwoFactor } from "@/lib/server/auth/twoFactor";
+import { sessionHasPassedTwoFactor, sessionSatisfiesProtectedTwoFactor, userRequiresTwoFactor } from "@/lib/server/auth/twoFactor";
 import { userIsAdminDashboard } from "@/lib/server/auth/roles";
 import AdminSidebar from "./AdminSidebar";
 import AdminSearchButton from "./AdminSearchButton";
@@ -20,18 +21,8 @@ export default async function AdminLayout({ children }: Props) {
   const sessionValid = user?.sessionValid ?? false;
   const isAdmin = userIsAdminDashboard(user);
   const hasTwoFactorSetup = userRequiresTwoFactor(user);
-  const hasTwoFactor = sessionHasPassedTwoFactor(user);
-
-  logGate({
-    path: "/admin",
-    userId: user?._id ? String(user._id) : null,
-    email: maskEmail((user as any)?.email),
-    roles: (user as any)?.roles || (user as any)?.role,
-    sessionValid,
-    isAdmin,
-    hasTwoFactorSetup,
-    hasTwoFactor,
-  });
+  const hasProtectedTwoFactor = sessionSatisfiesProtectedTwoFactor(user);
+  const hasDirectTwoFactor = sessionHasPassedTwoFactor(user);
 
   if (!user || !sessionValid) {
     redirect(`/login?next=${encodeURIComponent("/admin")}`);
@@ -41,11 +32,11 @@ export default async function AdminLayout({ children }: Props) {
     redirect("/");
   }
 
-  if (!hasTwoFactorSetup) {
+  if (!hasTwoFactorSetup && !hasProtectedTwoFactor) {
     redirect(`/auth/2fa-setup?next=${encodeURIComponent("/admin")}`);
   }
 
-  if (!hasTwoFactor) {
+  if (hasTwoFactorSetup && !hasDirectTwoFactor && !hasProtectedTwoFactor) {
     redirect(`/login?next=${encodeURIComponent("/admin")}`);
   }
 
@@ -78,20 +69,4 @@ export default async function AdminLayout({ children }: Props) {
       </div>
     </div>
   );
-}
-
-function maskEmail(email?: string | null) {
-  if (!email) return null;
-  const [name, domain] = email.split("@");
-  if (!domain) return email;
-  const head = name.slice(0, 2);
-  return `${head}${name.length > 2 ? "***" : ""}@${domain}`;
-}
-
-function logGate(payload: Record<string, unknown>) {
-  try {
-    console.log("[admin-layout]", payload);
-  } catch {
-    // ignore
-  }
 }

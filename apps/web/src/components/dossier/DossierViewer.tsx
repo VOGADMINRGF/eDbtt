@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { usePrivacyGate } from "@/components/privacy/PrivacyGateProvider";
 import type { Dossier } from "@features/dossier";
 import DossierLayout from "./DossierLayout";
 import EvidenceField from "./EvidenceField";
@@ -423,6 +424,7 @@ export function DossierViewer({
   dossier: Dossier;
   hideExternalCreateLinks?: boolean;
 }) {
+  const privacyGate = usePrivacyGate();
   const { meta, analyze, voteConfig } = dossier;
   const corrections = useMemo(() => dossier.corrections ?? [], [dossier.corrections]);
   const presentationBundle = useMemo(() => getPresentation(dossier), [dossier]);
@@ -712,6 +714,7 @@ export function DossierViewer({
   const canManageWatchlist = watchlistActive !== null;
 
   const toggleWatchlist = async () => {
+    if (!privacyGate.ensureActiveProcessingAllowed("dossier-watchlist")) return;
     if (watchlistBusy || !meta.id) return;
     setWatchlistBusy(true);
     try {
@@ -1579,7 +1582,10 @@ export function DossierViewer({
             selectedOptionId={selectedOptionId}
             savedOptionId={savedOptionId}
             onSelect={setSelectedOptionId}
-            onSave={() => void saveSelection()}
+            onSave={() => {
+              if (!privacyGate.ensureActiveProcessingAllowed("dossier-vote")) return;
+              void saveSelection();
+            }}
             saveNotice={saveNotice}
             savedAt={savedAt}
             canVote={isCitizen}
@@ -2112,6 +2118,7 @@ export function DossierViewer({
               type="button"
               className="btn btn-ghost text-xs"
               onClick={async () => {
+                if (!privacyGate.ensureActiveProcessingAllowed("dossier-clarification")) return;
                 setClarificationNotice(null);
                 const questionText =
                   questionsForDisplay[0]?.text ?? "Bitte klären: Offene Frage im Dossier";

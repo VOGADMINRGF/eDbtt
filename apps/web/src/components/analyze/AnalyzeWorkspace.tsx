@@ -512,6 +512,63 @@ export function buildAnalyzeWorkspaceMaterialPayload(params: {
   };
 }
 
+export function buildAnalyzeWorkspaceSavePayload(params: {
+  draftId?: string | null;
+  preparedText: string;
+  text: string;
+  locale: string;
+  mode: "contribution" | "statement";
+  resolvedCreateMode: CreateMode;
+  selectedAnlassraumId?: string | null;
+  authorName?: string | null;
+  useCase: UseCaseId;
+  materialPayload: {
+    sourceUrls?: string[];
+    uploadIds?: string[];
+    materialItems?: NormalizedMaterialItem[];
+  };
+  analysis: {
+    claims: unknown[];
+    notes: unknown[];
+    questions: unknown[];
+    knots: unknown[];
+    consequences: unknown[];
+    responsibilities: unknown[];
+    responsibilityPaths: unknown[];
+    impactAndResponsibility: unknown;
+    report: unknown;
+    eventualities: unknown[];
+    decisionTrees: unknown[];
+  };
+}): Record<string, unknown> {
+  return {
+    ...(params.draftId ? { draftId: params.draftId } : {}),
+    text: params.preparedText || params.text,
+    textOriginal: params.text,
+    textPrepared: params.preparedText,
+    locale: params.locale,
+    source: params.mode === "statement" ? "statement_new" : "contribution_new",
+    createMode: params.resolvedCreateMode,
+    anlassraumId: params.selectedAnlassraumId ?? undefined,
+    authorName: params.authorName?.trim() || undefined,
+    useCase: params.useCase,
+    ...params.materialPayload,
+    analysis: {
+      claims: params.analysis.claims,
+      notes: params.analysis.notes,
+      questions: params.analysis.questions,
+      knots: params.analysis.knots,
+      consequences: params.analysis.consequences,
+      responsibilities: params.analysis.responsibilities,
+      responsibilityPaths: params.analysis.responsibilityPaths,
+      impactAndResponsibility: params.analysis.impactAndResponsibility,
+      report: params.analysis.report,
+      eventualities: params.analysis.eventualities,
+      decisionTrees: params.analysis.decisionTrees,
+    },
+  };
+}
+
 type AnalyzeWorkspaceProps = {
   mode: "contribution" | "statement";
   createMode?: CreateMode;
@@ -1708,18 +1765,17 @@ export default function AnalyzeWorkspace({
     setSaveInfo(null);
     try {
       const saveUrl = saveEndpoint || "/api/drafts/save";
-      const payload = {
+      const payload = buildAnalyzeWorkspaceSavePayload({
         draftId,
-        text: preparedText || text,
-        textOriginal: text,
-        textPrepared: preparedText,
+        preparedText,
+        text,
         locale,
-        source: mode === "statement" ? "statement_new" : "contribution_new",
-        createMode: resolvedCreateMode,
-        anlassraumId: selectedAnlassraumId ?? undefined,
-        authorName: authorName?.trim() || undefined,
+        mode,
+        resolvedCreateMode,
+        selectedAnlassraumId,
+        authorName,
         useCase,
-        ...materialPayload,
+        materialPayload,
         analysis: {
           claims: statements,
           notes,
@@ -1733,7 +1789,7 @@ export default function AnalyzeWorkspace({
           eventualities,
           decisionTrees,
         },
-      };
+      });
 
       const res = await fetch(saveUrl, {
         method: "POST",

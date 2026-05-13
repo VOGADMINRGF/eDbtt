@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { usePrivacyGate } from "@/components/privacy/PrivacyGateProvider";
 import { buildSwipeDossierHref, buildSwipeEvidenceHref, buildSwipeVotingHref } from "@/features/surfaces/swipes/detailRoutes";
 import { useMobileChromeVisibility } from "@/hooks/useMobileChromeVisibility";
 import {
@@ -162,6 +163,7 @@ export function SwipesClient({
   requireAuthAfterFreeVotes = false,
   showWelcomeHint = false,
 }: SwipesClientProps) {
+  const privacyGate = usePrivacyGate();
   const [topicQuery, setTopicQuery] = useState(variant === "solo" ? "" : initialTopic);
   const [activeLevel, setActiveLevel] = useState<"ALL" | "Bund" | "Land" | "Kommune" | "EU">("ALL");
   const [activeSegment, setActiveSegment] = useState<SwipeDiscoverySegment>("all");
@@ -512,6 +514,7 @@ export function SwipesClient({
 
   const handlePrimaryVote = useCallback(
     async (item: SwipeItem, decision: SwipeDecision) => {
+      if (!privacyGate.ensureActiveProcessingAllowed("swipes-vote")) return;
       if (isVoteLocked) {
         freeVote.setGateOpen(true);
         return;
@@ -578,6 +581,7 @@ export function SwipesClient({
       freeVote,
       isVoteLocked,
       openDossierRoute,
+      privacyGate,
       queueVotePayload,
       transitionHint,
     ],
