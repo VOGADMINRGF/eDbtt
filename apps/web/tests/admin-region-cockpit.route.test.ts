@@ -1,6 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
-import { createInMemoryRegionDataRepo, setRegionDataRepoForTests } from "@features/region";
+import {
+  createInMemoryRegionDataRepo,
+  createInMemoryRegionOrganizationRuntimeRepo,
+  setRegionDataRepoForTests,
+  setRegionOrganizationRuntimeRepoForTests,
+} from "@features/region";
 
 const mocks = vi.hoisted(() => ({
   requireGovernanceActorOrResponse: vi.fn(),
@@ -52,6 +57,7 @@ describe("/api/admin/region/cockpit/[regionId]", () => {
         ],
       }),
     );
+    setRegionOrganizationRuntimeRepoForTests(createInMemoryRegionOrganizationRuntimeRepo());
   });
 
   it("returns a read-only cockpit with regional signals, suggestions and guardrails", async () => {
@@ -106,6 +112,34 @@ describe("/api/admin/region/cockpit/[regionId]", () => {
   });
 
   it("blocks pending self-declared users from the region dashboard", async () => {
+    setRegionOrganizationRuntimeRepoForTests(
+      createInMemoryRegionOrganizationRuntimeRepo({
+        memberships: [
+          {
+            id: "membership-pending-1",
+            userId: "pending-1",
+            organizationId: "org-reinickendorf-1",
+            organizationName: "Bezirksamt Reinickendorf",
+            organizationType: "district_office",
+            regionId: "bezirk-berlin-reinickendorf",
+            unitId: null,
+            unitName: null,
+            optionalLocation: null,
+            roleLabel: "Sachbearbeitung",
+            roleType: "staff",
+            verificationStatus: "pending_review",
+            allowedActions: [],
+            createdAt: "2026-05-14T00:00:00.000Z",
+            updatedAt: "2026-05-14T00:00:00.000Z",
+            verifiedBy: null,
+            verifiedAt: null,
+            expiresAt: null,
+            revokedAt: null,
+            noAutoAuthority: true,
+          },
+        ],
+      }),
+    );
     mocks.requireGovernanceActorOrResponse.mockResolvedValue({
       user: { _id: { toHexString: () => "pending-1" } },
       roles: [],
@@ -128,6 +162,80 @@ describe("/api/admin/region/cockpit/[regionId]", () => {
     await expect(res.json()).resolves.toMatchObject({
       ok: false,
       error: "region_dashboard_forbidden",
+    });
+  });
+
+  it("allows organization-verified memberships to read only their own region from persisted runtime data", async () => {
+    setRegionOrganizationRuntimeRepoForTests(
+      createInMemoryRegionOrganizationRuntimeRepo({
+        organizations: [
+          {
+            id: "org-reinickendorf-1",
+            name: "Bezirksamt Reinickendorf",
+            type: "district_office",
+            countryCode: "DE",
+            primaryRegionId: "bezirk-berlin-reinickendorf",
+            website: "https://reinickendorf.example",
+            verificationStatus: "organization_verified",
+            createdByUserId: "staff-1",
+          },
+        ],
+        memberships: [
+          {
+            id: "membership-org-verified-1",
+            userId: "staff-1",
+            organizationId: "org-reinickendorf-1",
+            organizationName: "Bezirksamt Reinickendorf",
+            organizationType: "district_office",
+            regionId: "bezirk-berlin-reinickendorf",
+            unitId: null,
+            unitName: null,
+            optionalLocation: null,
+            roleLabel: "Kommunikation",
+            roleType: "communications",
+            verificationStatus: "organization_verified",
+            allowedActions: ["read_region_dashboard"],
+            createdAt: "2026-05-14T00:00:00.000Z",
+            updatedAt: "2026-05-14T00:00:00.000Z",
+            verifiedBy: "admin-1",
+            verifiedAt: "2026-05-14T00:00:00.000Z",
+            expiresAt: null,
+            revokedAt: null,
+            noAutoAuthority: true,
+          },
+        ],
+      }),
+    );
+    mocks.requireGovernanceActorOrResponse.mockResolvedValue({
+      user: { _id: { toHexString: () => "staff-1" } },
+      roles: ["institutional_actor", "region_staff:bezirk-berlin-reinickendorf"],
+      actor: {
+        userId: "staff-1",
+        role: "institutional_actor",
+        isAdmin: false,
+        scopedOwnerIds: ["org-reinickendorf-1"],
+        scopedEntityIds: ["org-reinickendorf-1"],
+        personTrust: null,
+      },
+    });
+
+    const res = await GET(
+      new NextRequest("http://localhost/api/admin/region/cockpit/berlin-reinickendorf"),
+      { params: Promise.resolve({ regionId: "berlin-reinickendorf" }) },
+    );
+
+    expect(res.status).toBe(200);
+    await expect(res.json()).resolves.toMatchObject({
+      ok: true,
+      cockpit: {
+        accessSummary: {
+          authoritySource: "verified_membership",
+          adminFallback: false,
+          verificationStatus: "organization_verified",
+          canReadRegionDashboard: true,
+          canCreateDossierDraft: false,
+        },
+      },
     });
   });
 

@@ -2,12 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { requireGovernanceActorOrResponse } from "@/lib/server/auth/governance";
 import {
-  buildRegionAccessContext,
+  buildPersistedRegionAccessContext,
   createRegionSignalDraft,
-  parseOrganization,
-  parseOrganizationMembership,
-  type Organization,
-  type OrganizationMembership,
 } from "@features/region";
 
 export const runtime = "nodejs";
@@ -23,46 +19,16 @@ const DraftBodySchema = z
   })
   .strict();
 
-function parseFixtureJsonHeader<T>(
-  req: NextRequest,
-  name: string,
-  parser: (value: unknown) => T,
-): T[] {
-  if (!process.env.VITEST) return [];
-  const raw = req.headers.get(name);
-  if (!raw) return [];
-  try {
-    const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return [];
-    return parsed.map((entry) => parser(entry));
-  } catch {
-    return [];
-  }
-}
-
-function buildAccessContextFromRequestFixture(
-  req: NextRequest,
+async function buildAccessContextFromRuntime(
   gate: Awaited<ReturnType<typeof requireGovernanceActorOrResponse>>,
 ) {
   if (gate instanceof Response) return null;
-  const memberships = parseFixtureJsonHeader<OrganizationMembership>(
-    req,
-    "x-edebatte-region-memberships",
-    parseOrganizationMembership,
-  );
-  const organizations = parseFixtureJsonHeader<Organization>(
-    req,
-    "x-edebatte-region-organizations",
-    parseOrganization,
-  );
-  return buildRegionAccessContext({
+  return buildPersistedRegionAccessContext({
     userId: gate.actor.userId,
     actorRole: gate.actor.role,
     isAdmin: gate.actor.isAdmin,
     roles: gate.roles,
     organizationIds: gate.actor.scopedOwnerIds,
-    memberships,
-    organizations,
   });
 }
 
@@ -88,7 +54,7 @@ export async function POST(
   try {
     const body = DraftBodySchema.parse(await req.json());
     const { id } = await params;
-    const accessContext = buildAccessContextFromRequestFixture(req, gate);
+    const accessContext = await buildAccessContextFromRuntime(gate);
     if (!accessContext) {
       return NextResponse.json({ ok: false, error: "missing_access_context" }, { status: 400 });
     }

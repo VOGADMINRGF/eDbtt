@@ -63,6 +63,12 @@ function uniqueNonEmpty(values: Array<string | null | undefined>): string[] {
   return Array.from(new Set(values.map((value) => String(value ?? "").trim()).filter(Boolean)));
 }
 
+function membershipIsActive(membership: OrganizationMembership): boolean {
+  if (membership.revokedAt) return false;
+  if (membership.expiresAt && Date.parse(membership.expiresAt) <= Date.now()) return false;
+  return true;
+}
+
 function extractScopedRegionIds(roles: string[]): string[] {
   const scoped = roles.flatMap((role) => {
     const normalized = String(role || "").trim().toLowerCase();
@@ -84,9 +90,13 @@ function mergeAllowedActions(
   defaults: RegionAllowedAction[],
   memberships: OrganizationMembership[],
 ): RegionAllowedAction[] {
-  const granted = memberships.flatMap((membership) =>
-    allowedActionsForVerificationStatus(membership.verificationStatus),
-  );
+  const granted = memberships.flatMap((membership) => {
+    if (!membershipIsActive(membership)) return [];
+    const explicit = Array.isArray(membership.allowedActions) ? membership.allowedActions : [];
+    return explicit.length > 0
+      ? explicit
+      : allowedActionsForVerificationStatus(membership.verificationStatus);
+  });
   return uniqueNonEmpty([...defaults, ...granted]) as RegionAllowedAction[];
 }
 
@@ -97,9 +107,11 @@ function deriveScopedRegionIdsFromMemberships(
   const orgMap = new Map(organizations.map((organization) => [organization.id, organization]));
   return uniqueNonEmpty(
     memberships.flatMap((membership) => {
+      if (!membershipIsActive(membership)) return [];
+      if (membership.regionId) return [membership.regionId];
       const organization = orgMap.get(membership.organizationId);
       if (!organization) return [];
-      return [organization.primaryRegionId];
+      return organization.primaryRegionId ? [organization.primaryRegionId] : [];
     }),
   );
 }
@@ -112,15 +124,17 @@ function deriveVerifiedRegionIdsFromMemberships(
   return uniqueNonEmpty(
     memberships.flatMap((membership) => {
       if (
+        !membershipIsActive(membership) ||
         membership.verificationStatus !== "organization_verified" &&
         membership.verificationStatus !== "unit_verified" &&
         membership.verificationStatus !== "publication_approved"
       ) {
         return [];
       }
+      if (membership.regionId) return [membership.regionId];
       const organization = orgMap.get(membership.organizationId);
       if (!organization) return [];
-      return [organization.primaryRegionId];
+      return organization.primaryRegionId ? [organization.primaryRegionId] : [];
     }),
   );
 }
