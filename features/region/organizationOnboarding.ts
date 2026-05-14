@@ -31,13 +31,19 @@ export const ORGANIZATION_TYPES = [
   "public_administration",
   "municipality",
   "district_office",
+  "city_administration",
+  "county_administration",
   "ministry",
   "agency",
   "school",
   "public_body",
+  "association",
   "ngo",
+  "civic_initiative",
+  "foundation",
   "media",
   "company",
+  "research_institution",
   "custom",
 ] as const;
 
@@ -83,6 +89,15 @@ export type OnboardingAllowedAction = (typeof ONBOARDING_ALLOWED_ACTIONS)[number
 
 const ExternalIdSchema = z.record(z.string().trim().min(1), z.string().trim().min(1));
 
+export const OptionalLocationSchema = z
+  .object({
+    label: z.string().trim().min(1).nullable().optional(),
+    name: z.string().trim().min(1),
+  })
+  .strict();
+
+export type OptionalLocation = z.infer<typeof OptionalLocationSchema>;
+
 export const AdministrativeRegionSchema = z
   .object({
     id: z.string().trim().min(1),
@@ -101,8 +116,8 @@ export const OrganizationSchema = z
     id: z.string().trim().min(1),
     name: z.string().trim().min(1),
     type: z.enum(ORGANIZATION_TYPES),
-    countryCode: z.string().trim().min(2).max(3),
-    primaryRegionId: z.string().trim().min(1),
+    countryCode: z.string().trim().min(2).max(3).nullable().optional(),
+    primaryRegionId: z.string().trim().min(1).nullable().optional(),
     website: z.string().trim().url().nullable().optional(),
     verificationStatus: z.enum(VERIFICATION_STATUSES),
     createdByUserId: z.string().trim().min(1).nullable(),
@@ -130,14 +145,23 @@ export const OrganizationMembershipSchema = z
     id: z.string().trim().min(1),
     userId: z.string().trim().min(1),
     organizationId: z.string().trim().min(1),
+    organizationName: z.string().trim().min(1),
+    organizationType: z.enum(ORGANIZATION_TYPES),
+    regionId: z.string().trim().min(1).nullable().optional(),
     unitId: z.string().trim().min(1).nullable().optional(),
+    unitName: z.string().trim().min(1).nullable().optional(),
+    optionalLocation: OptionalLocationSchema.nullable().optional(),
     roleLabel: z.string().trim().min(1),
     roleType: z.enum(ORGANIZATION_ROLE_TYPES),
     verificationStatus: z.enum(VERIFICATION_STATUSES),
     allowedActions: z.array(z.enum(ONBOARDING_ALLOWED_ACTIONS)).default([]),
+    createdAt: z.string().datetime({ offset: true }),
+    updatedAt: z.string().datetime({ offset: true }),
     verifiedBy: z.string().trim().min(1).nullable().optional(),
     verifiedAt: z.string().datetime({ offset: true }).nullable().optional(),
     expiresAt: z.string().datetime({ offset: true }).nullable().optional(),
+    revokedAt: z.string().datetime({ offset: true }).nullable().optional(),
+    noAutoAuthority: z.literal(true),
   })
   .strict();
 
@@ -172,27 +196,108 @@ export const SelfDeclaredOrganizationProfileSchema = z
 
 export type SelfDeclaredOrganizationProfile = z.infer<typeof SelfDeclaredOrganizationProfileSchema>;
 
+export const OrganizationClaimEvidenceSchema = z
+  .object({
+    emailDomain: z.string().trim().min(1).nullable().optional(),
+    website: z.string().trim().url().nullable().optional(),
+    note: z.string().trim().min(1).nullable().optional(),
+  })
+  .strict();
+
+export type OrganizationClaimEvidence = z.infer<typeof OrganizationClaimEvidenceSchema>;
+
+export const ORGANIZATION_CLAIM_SOURCES = [
+  "self_declared",
+  "admin_created",
+  "invite",
+  "migration",
+  "fixture",
+] as const;
+
+export type OrganizationClaimSource = (typeof ORGANIZATION_CLAIM_SOURCES)[number];
+
 export const OrganizationClaimSchema = z
   .object({
     id: z.string().trim().min(1),
     userId: z.string().trim().min(1),
     organizationId: z.string().trim().min(1).nullable().optional(),
     organizationName: z.string().trim().min(1),
-    requestedRegionId: z.string().trim().min(1).nullable().optional(),
-    requestedUnitName: z.string().trim().min(1).nullable().optional(),
-    roleLabel: z.string().trim().min(1),
-    workEmail: z.string().trim().email().nullable().optional(),
-    website: z.string().trim().url().nullable().optional(),
-    evidenceUrl: z.string().trim().url().nullable().optional(),
-    referencePersonName: z.string().trim().min(1).nullable().optional(),
+    organizationType: z.enum(ORGANIZATION_TYPES),
+    regionId: z.string().trim().min(1).nullable().optional(),
+    countryCode: z.string().trim().min(2).max(3).nullable().optional(),
+    unitName: z.string().trim().min(1).nullable().optional(),
+    roleLabel: z.string().trim().min(1).nullable().optional(),
+    optionalLocation: OptionalLocationSchema.nullable().optional(),
+    evidence: OrganizationClaimEvidenceSchema,
     verificationStatus: z.enum(VERIFICATION_STATUSES),
-    selfDeclaredProfile: SelfDeclaredOrganizationProfileSchema,
+    selfDeclaredProfile: SelfDeclaredOrganizationProfileSchema.nullable().optional(),
     createdAt: z.string().datetime({ offset: true }),
     updatedAt: z.string().datetime({ offset: true }),
+    reviewedBy: z.string().trim().min(1).nullable().optional(),
+    reviewedAt: z.string().datetime({ offset: true }).nullable().optional(),
+    rejectionReason: z.string().trim().min(1).nullable().optional(),
+    source: z.enum(ORGANIZATION_CLAIM_SOURCES),
+    noAutoAuthority: z.literal(true),
   })
   .strict();
 
 export type OrganizationClaim = z.infer<typeof OrganizationClaimSchema>;
+
+export const VERIFICATION_REVIEW_DECISIONS = [
+  "approve_organization",
+  "approve_unit",
+  "approve_publication",
+  "reject",
+  "revoke",
+  "needs_more_information",
+] as const;
+
+export type VerificationReviewDecision = (typeof VERIFICATION_REVIEW_DECISIONS)[number];
+
+export const VerificationReviewSchema = z
+  .object({
+    id: z.string().trim().min(1),
+    claimId: z.string().trim().min(1),
+    userId: z.string().trim().min(1),
+    decision: z.enum(VERIFICATION_REVIEW_DECISIONS),
+    previousStatus: z.enum(VERIFICATION_STATUSES),
+    nextStatus: z.enum(VERIFICATION_STATUSES),
+    allowedActions: z.array(z.enum(ONBOARDING_ALLOWED_ACTIONS)).default([]),
+    note: z.string().trim().min(1).nullable().optional(),
+    reviewedBy: z.string().trim().min(1),
+    reviewedAt: z.string().datetime({ offset: true }),
+  })
+  .strict();
+
+export type VerificationReview = z.infer<typeof VerificationReviewSchema>;
+
+export const MEMBERSHIP_AUDIT_EVENT_TYPES = [
+  "claim_created",
+  "claim_reviewed",
+  "membership_created",
+  "membership_updated",
+  "membership_revoked",
+] as const;
+
+export type MembershipAuditEventType = (typeof MEMBERSHIP_AUDIT_EVENT_TYPES)[number];
+
+export const MembershipAuditEventSchema = z
+  .object({
+    id: z.string().trim().min(1),
+    membershipId: z.string().trim().min(1).nullable().optional(),
+    claimId: z.string().trim().min(1).nullable().optional(),
+    userId: z.string().trim().min(1),
+    organizationId: z.string().trim().min(1).nullable().optional(),
+    regionId: z.string().trim().min(1).nullable().optional(),
+    eventType: z.enum(MEMBERSHIP_AUDIT_EVENT_TYPES),
+    verificationStatus: z.enum(VERIFICATION_STATUSES),
+    note: z.string().trim().min(1).nullable().optional(),
+    createdBy: z.string().trim().min(1),
+    createdAt: z.string().datetime({ offset: true }),
+  })
+  .strict();
+
+export type MembershipAuditEvent = z.infer<typeof MembershipAuditEventSchema>;
 
 export function parseAdministrativeRegion(value: unknown): AdministrativeRegion {
   return AdministrativeRegionSchema.parse(value);
@@ -214,22 +319,26 @@ export function parseOrganizationClaim(value: unknown): OrganizationClaim {
   return OrganizationClaimSchema.parse(value);
 }
 
+export function parseOptionalLocation(value: unknown): OptionalLocation {
+  return OptionalLocationSchema.parse(value);
+}
+
 export function parseSelfDeclaredOrganizationProfile(value: unknown): SelfDeclaredOrganizationProfile {
   return SelfDeclaredOrganizationProfileSchema.parse(value);
+}
+
+export function parseVerificationReview(value: unknown): VerificationReview {
+  return VerificationReviewSchema.parse(value);
+}
+
+export function parseMembershipAuditEvent(value: unknown): MembershipAuditEvent {
+  return MembershipAuditEventSchema.parse(value);
 }
 
 export function allowedActionsForVerificationStatus(
   status: VerificationStatus,
 ): OnboardingAllowedAction[] {
   switch (status) {
-    case "email_verified":
-      return [
-        "create_region_draft",
-        "create_dossier_draft",
-        "create_anlassraum_draft",
-        "attach_signal_to_dossier",
-        "submit_for_review",
-      ];
     case "organization_verified":
       return [
         "read_region_dashboard",
@@ -249,6 +358,12 @@ export function allowedActionsForVerificationStatus(
     default:
       return [];
   }
+}
+
+function extractEmailDomain(value: string | null | undefined): string | null {
+  const raw = String(value ?? "").trim().toLowerCase();
+  const parts = raw.split("@");
+  return parts.length === 2 && parts[1] ? parts[1] : null;
 }
 
 function slugify(value: string): string {
@@ -284,29 +399,37 @@ export function createPendingClaimBundle(input: {
     name: profile.organizationName,
     type: profile.organizationType,
     countryCode: profile.countryCode,
-    primaryRegionId:
-      input.requestedRegionId ??
-      slugify(profile.regionLevel2Name ?? profile.regionLevel1Name ?? profile.countryName),
+    primaryRegionId: input.requestedRegionId ??
+      (slugify(profile.regionLevel2Name ?? profile.regionLevel1Name ?? profile.countryName) || null),
     website: profile.website ?? null,
     verificationStatus: "unverified",
     createdByUserId: input.userId,
   });
 
   const unit =
-    profile.unitName || profile.departmentName || profile.locationName
+    profile.unitName || profile.departmentName
       ? parseOrganizationUnit({
-          id: input.unitId ?? `${input.organizationId}-unit-${slugify(profile.unitName ?? profile.departmentName ?? profile.locationName ?? "unit")}`,
+          id:
+            input.unitId ??
+            `${input.organizationId}-unit-${slugify(profile.unitName ?? profile.departmentName ?? "unit")}`,
           organizationId: organization.id,
-          name: profile.unitName ?? profile.departmentName ?? profile.locationName ?? "Unit",
-          type: profile.unitName ? "unit" : profile.departmentName ? "department" : "location",
+          name: profile.unitName ?? profile.departmentName ?? "Unit",
+          type: profile.unitName ? "unit" : "department",
           parentUnitId: null,
           jurisdictionTags: [
             profile.departmentName,
             profile.unitName,
-            profile.locationName,
             profile.regionLevel2Name,
           ].filter(Boolean),
           verificationStatus: "unverified",
+        })
+      : null;
+
+  const optionalLocation =
+    profile.locationName && profile.locationName.trim().length > 0
+      ? parseOptionalLocation({
+          label: profile.locationLabel ?? null,
+          name: profile.locationName,
         })
       : null;
 
@@ -315,31 +438,49 @@ export function createPendingClaimBundle(input: {
     userId: input.userId,
     organizationId: organization.id,
     organizationName: organization.name,
-    requestedRegionId: input.requestedRegionId ?? organization.primaryRegionId,
-    requestedUnitName: unit?.name ?? null,
+    organizationType: organization.type,
+    regionId: input.requestedRegionId ?? organization.primaryRegionId ?? null,
+    countryCode: profile.countryCode,
+    unitName: unit?.name ?? null,
     roleLabel: profile.roleLabel,
-    workEmail: profile.workEmail ?? null,
-    website: profile.website ?? null,
-    evidenceUrl: profile.evidenceUrl ?? null,
-    referencePersonName: profile.referencePersonName ?? null,
+    optionalLocation,
+    evidence: {
+      emailDomain: extractEmailDomain(profile.workEmail),
+      website: profile.website ?? null,
+      note: profile.referencePersonName ?? null,
+    },
     verificationStatus: "pending_review",
     selfDeclaredProfile: profile,
     createdAt: input.createdAt,
     updatedAt: input.createdAt,
+    reviewedBy: null,
+    reviewedAt: null,
+    rejectionReason: null,
+    source: "fixture",
+    noAutoAuthority: true,
   });
 
   const membership = parseOrganizationMembership({
     id: input.membershipId,
     userId: input.userId,
     organizationId: organization.id,
+    organizationName: organization.name,
+    organizationType: organization.type,
+    regionId: input.requestedRegionId ?? organization.primaryRegionId ?? null,
     unitId: unit?.id ?? null,
+    unitName: unit?.name ?? null,
+    optionalLocation,
     roleLabel: profile.roleLabel,
     roleType: profile.roleType,
     verificationStatus: "pending_review",
     allowedActions: [],
+    createdAt: input.createdAt,
+    updatedAt: input.createdAt,
     verifiedBy: null,
     verifiedAt: null,
     expiresAt: null,
+    revokedAt: null,
+    noAutoAuthority: true,
   });
 
   return {

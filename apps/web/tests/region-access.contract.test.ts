@@ -8,8 +8,52 @@ import {
   canReadRegionDashboard,
   canReviewRegionSignal,
   createPendingClaimBundle,
+  parseOrganization,
+  parseOrganizationMembership,
   parseSelfDeclaredOrganizationProfile,
+  type Organization,
+  type OrganizationMembership,
 } from "@features/region";
+
+function buildOrganization(overrides: Partial<Organization> = {}): Organization {
+  return parseOrganization({
+    id: "org-reinickendorf-1",
+    name: "Bezirksamt Reinickendorf",
+    type: "district_office",
+    countryCode: "DE",
+    primaryRegionId: "bezirk-berlin-reinickendorf",
+    website: "https://reinickendorf.example",
+    verificationStatus: "organization_verified",
+    createdByUserId: "user-1",
+    ...overrides,
+  });
+}
+
+function buildMembership(overrides: Partial<OrganizationMembership> = {}): OrganizationMembership {
+  return parseOrganizationMembership({
+    id: "membership-1",
+    userId: "user-1",
+    organizationId: "org-reinickendorf-1",
+    organizationName: "Bezirksamt Reinickendorf",
+    organizationType: "district_office",
+    regionId: "bezirk-berlin-reinickendorf",
+    unitId: null,
+    unitName: null,
+    optionalLocation: null,
+    roleLabel: "Sachbearbeitung",
+    roleType: "staff",
+    verificationStatus: "pending_review",
+    allowedActions: [],
+    createdAt: "2026-05-14T00:00:00.000Z",
+    updatedAt: "2026-05-14T00:00:00.000Z",
+    verifiedBy: null,
+    verifiedAt: null,
+    expiresAt: null,
+    revokedAt: null,
+    noAutoAuthority: true,
+    ...overrides,
+  });
+}
 
 describe("region access and organization onboarding contracts", () => {
   it("stores self-declared Reinickendorf administration data as pending instead of verified access", () => {
@@ -40,6 +84,7 @@ describe("region access and organization onboarding contracts", () => {
     });
 
     expect(bundle.claim.verificationStatus).toBe("pending_review");
+    expect(bundle.claim.noAutoAuthority).toBe(true);
     expect(bundle.membership.verificationStatus).toBe("pending_review");
     expect(bundle.membership.allowedActions).toEqual([]);
     expect(bundle.organization.verificationStatus).toBe("unverified");
@@ -48,33 +93,8 @@ describe("region access and organization onboarding contracts", () => {
   it("does not grant dashboard access to pending self-declared staff", () => {
     const context = buildRegionAccessContext({
       actorRole: "institutional_actor",
-      memberships: [
-        {
-          id: "membership-pending-1",
-          userId: "user-1",
-          organizationId: "org-reinickendorf-1",
-          unitId: null,
-          roleLabel: "Sachbearbeitung",
-          roleType: "staff",
-          verificationStatus: "pending_review",
-          allowedActions: [],
-          verifiedBy: null,
-          verifiedAt: null,
-          expiresAt: null,
-        },
-      ],
-      organizations: [
-        {
-          id: "org-reinickendorf-1",
-          name: "Bezirksamt Reinickendorf",
-          type: "district_office",
-          countryCode: "DE",
-          primaryRegionId: "bezirk-berlin-reinickendorf",
-          website: "https://reinickendorf.example",
-          verificationStatus: "organization_verified",
-          createdByUserId: "user-1",
-        },
-      ],
+      memberships: [buildMembership()],
+      organizations: [buildOrganization()],
     });
 
     expect(canReadRegionDashboard(context, "bezirk-berlin-reinickendorf")).toBe(false);
@@ -98,32 +118,13 @@ describe("region access and organization onboarding contracts", () => {
     const context = buildRegionAccessContext({
       actorRole: "institutional_actor",
       memberships: [
-        {
+        buildMembership({
           id: "membership-email-1",
           userId: "user-email-1",
-          organizationId: "org-reinickendorf-1",
-          unitId: null,
-          roleLabel: "Sachbearbeitung",
-          roleType: "staff",
           verificationStatus: "email_verified",
-          allowedActions: [],
-          verifiedBy: null,
-          verifiedAt: null,
-          expiresAt: null,
-        },
+        }),
       ],
-      organizations: [
-        {
-          id: "org-reinickendorf-1",
-          name: "Bezirksamt Reinickendorf",
-          type: "district_office",
-          countryCode: "DE",
-          primaryRegionId: "bezirk-berlin-reinickendorf",
-          website: "https://reinickendorf.example",
-          verificationStatus: "organization_verified",
-          createdByUserId: "user-email-1",
-        },
-      ],
+      organizations: [buildOrganization({ createdByUserId: "user-email-1" })],
     });
 
     expect(canReadRegionDashboard(context, "bezirk-berlin-reinickendorf")).toBe(false);
@@ -134,32 +135,18 @@ describe("region access and organization onboarding contracts", () => {
     const context = buildRegionAccessContext({
       actorRole: "institutional_actor",
       memberships: [
-        {
+        buildMembership({
           id: "membership-org-verified-1",
           userId: "user-org-1",
-          organizationId: "org-reinickendorf-1",
-          unitId: null,
           roleLabel: "Kommunikation",
           roleType: "communications",
           verificationStatus: "organization_verified",
-          allowedActions: [],
+          allowedActions: ["read_region_dashboard"],
           verifiedBy: "admin-1",
           verifiedAt: "2026-05-14T00:00:00.000Z",
-          expiresAt: null,
-        },
+        }),
       ],
-      organizations: [
-        {
-          id: "org-reinickendorf-1",
-          name: "Bezirksamt Reinickendorf",
-          type: "district_office",
-          countryCode: "DE",
-          primaryRegionId: "bezirk-berlin-reinickendorf",
-          website: "https://reinickendorf.example",
-          verificationStatus: "organization_verified",
-          createdByUserId: "user-org-1",
-        },
-      ],
+      organizations: [buildOrganization({ createdByUserId: "user-org-1" })],
     });
 
     expect(canReadRegionDashboard(context, "bezirk-berlin-reinickendorf")).toBe(true);
@@ -171,32 +158,28 @@ describe("region access and organization onboarding contracts", () => {
     const context = buildRegionAccessContext({
       actorRole: "institutional_actor",
       memberships: [
-        {
+        buildMembership({
           id: "membership-verified-1",
           userId: "user-2",
-          organizationId: "org-reinickendorf-1",
           unitId: "unit-reinickendorf-1",
+          unitName: "Beteiligung",
           roleLabel: "Beteiligung",
           roleType: "participation_officer",
           verificationStatus: "unit_verified",
-          allowedActions: [],
+          allowedActions: [
+            "read_region_dashboard",
+            "review_region_signal",
+            "create_region_draft",
+            "create_dossier_draft",
+            "create_anlassraum_draft",
+            "attach_signal_to_dossier",
+            "submit_for_review",
+          ],
           verifiedBy: "admin-1",
           verifiedAt: "2026-05-14T00:00:00.000Z",
-          expiresAt: null,
-        },
+        }),
       ],
-      organizations: [
-        {
-          id: "org-reinickendorf-1",
-          name: "Bezirksamt Reinickendorf",
-          type: "district_office",
-          countryCode: "DE",
-          primaryRegionId: "bezirk-berlin-reinickendorf",
-          website: "https://reinickendorf.example",
-          verificationStatus: "organization_verified",
-          createdByUserId: "user-2",
-        },
-      ],
+      organizations: [buildOrganization({ createdByUserId: "user-2" })],
     });
 
     expect(canReadRegionDashboard(context, "bezirk-berlin-reinickendorf")).toBe(true);
@@ -214,62 +197,56 @@ describe("region access and organization onboarding contracts", () => {
     const approved = buildRegionAccessContext({
       actorRole: "institutional_actor",
       memberships: [
-        {
+        buildMembership({
           id: "membership-publication-1",
           userId: "user-pub-1",
-          organizationId: "org-reinickendorf-1",
           unitId: "unit-reinickendorf-1",
+          unitName: "Leitung",
           roleLabel: "Leitung",
           roleType: "lead",
           verificationStatus: "publication_approved",
-          allowedActions: [],
+          allowedActions: [
+            "read_region_dashboard",
+            "review_region_signal",
+            "create_region_draft",
+            "create_dossier_draft",
+            "create_anlassraum_draft",
+            "attach_signal_to_dossier",
+            "submit_for_review",
+            "approve_publication",
+            "manage_organization_members",
+          ],
           verifiedBy: "admin-1",
           verifiedAt: "2026-05-14T00:00:00.000Z",
-          expiresAt: null,
-        },
+        }),
       ],
-      organizations: [
-        {
-          id: "org-reinickendorf-1",
-          name: "Bezirksamt Reinickendorf",
-          type: "district_office",
-          countryCode: "DE",
-          primaryRegionId: "bezirk-berlin-reinickendorf",
-          website: "https://reinickendorf.example",
-          verificationStatus: "organization_verified",
-          createdByUserId: "user-pub-1",
-        },
-      ],
+      organizations: [buildOrganization({ createdByUserId: "user-pub-1" })],
     });
     const unitVerified = buildRegionAccessContext({
       actorRole: "institutional_actor",
       memberships: [
-        {
+        buildMembership({
           id: "membership-unit-2",
           userId: "user-pub-2",
-          organizationId: "org-reinickendorf-1",
           unitId: "unit-reinickendorf-1",
+          unitName: "Leitung",
           roleLabel: "Leitung",
           roleType: "lead",
           verificationStatus: "unit_verified",
-          allowedActions: [],
+          allowedActions: [
+            "read_region_dashboard",
+            "review_region_signal",
+            "create_region_draft",
+            "create_dossier_draft",
+            "create_anlassraum_draft",
+            "attach_signal_to_dossier",
+            "submit_for_review",
+          ],
           verifiedBy: "admin-1",
           verifiedAt: "2026-05-14T00:00:00.000Z",
-          expiresAt: null,
-        },
+        }),
       ],
-      organizations: [
-        {
-          id: "org-reinickendorf-1",
-          name: "Bezirksamt Reinickendorf",
-          type: "district_office",
-          countryCode: "DE",
-          primaryRegionId: "bezirk-berlin-reinickendorf",
-          website: "https://reinickendorf.example",
-          verificationStatus: "organization_verified",
-          createdByUserId: "user-pub-2",
-        },
-      ],
+      organizations: [buildOrganization({ createdByUserId: "user-pub-2" })],
     });
 
     expect(canApprovePublication(approved, "bezirk-berlin-reinickendorf")).toBe(true);
@@ -298,6 +275,7 @@ describe("region access and organization onboarding contracts", () => {
       regionLevel2Label: "Municipality",
       regionLevel2Name: "Amsterdam",
       organizationName: "Gemeente Amsterdam",
+      organizationType: "municipality",
       departmentName: "Housing",
       unitName: "Public Participation Office",
       roleLabel: "Project Officer",
@@ -324,6 +302,7 @@ describe("region access and organization onboarding contracts", () => {
         regionLevel1Name: "Noord-Holland",
         regionLevel2Name: "Amsterdam",
         organizationName: "Gemeente Amsterdam",
+        organizationType: "municipality",
         departmentName: "Housing",
         unitName: "Public Participation Office",
         roleLabel: "Project Officer",
@@ -331,6 +310,7 @@ describe("region access and organization onboarding contracts", () => {
     });
 
     expect(bundle.claim.verificationStatus).toBe("pending_review");
+    expect(bundle.claim.optionalLocation).toBeNull();
     expect(bundle.unit?.name).toBe("Public Participation Office");
     expect(bundle.organization.verificationStatus).toBe("unverified");
   });
@@ -355,8 +335,8 @@ describe("region access and organization onboarding contracts", () => {
     });
 
     expect(bundle.organization.name).toBe("Bezirksamt Reinickendorf");
-    expect(bundle.unit?.name).toBe("Rathaus Reinickendorf");
-    expect(bundle.unit?.type).toBe("location");
+    expect(bundle.unit).toBeNull();
+    expect(bundle.claim.optionalLocation?.name).toBe("Rathaus Reinickendorf");
     expect(bundle.claim.verificationStatus).toBe("pending_review");
   });
 

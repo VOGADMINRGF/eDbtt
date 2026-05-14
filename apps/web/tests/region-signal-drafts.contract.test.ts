@@ -41,20 +41,57 @@ function makeVerifiedContext(
             id: `membership-${verificationStatus}`,
             userId: "user-1",
             organizationId: REINICKENDORF_ORG.id,
+            organizationName: REINICKENDORF_ORG.name,
+            organizationType: REINICKENDORF_ORG.type,
+            regionId: options.regionId ?? REINICKENDORF_ORG.primaryRegionId,
             unitId:
               verificationStatus === "organization_verified" || verificationStatus === "pending_review"
                 ? null
                 : "unit-1",
+            unitName:
+              verificationStatus === "organization_verified" || verificationStatus === "pending_review"
+                ? null
+                : "Beteiligung",
+            optionalLocation: null,
             roleLabel: "Beteiligung",
             roleType: "participation_officer",
             verificationStatus,
-            allowedActions: [],
+            allowedActions:
+              verificationStatus === "organization_verified"
+                ? ["read_region_dashboard"]
+                : verificationStatus === "unit_verified"
+                  ? [
+                      "read_region_dashboard",
+                      "review_region_signal",
+                      "create_region_draft",
+                      "create_dossier_draft",
+                      "create_anlassraum_draft",
+                      "attach_signal_to_dossier",
+                      "submit_for_review",
+                    ]
+                  : verificationStatus === "publication_approved"
+                    ? [
+                        "read_region_dashboard",
+                        "review_region_signal",
+                        "create_region_draft",
+                        "create_dossier_draft",
+                        "create_anlassraum_draft",
+                        "attach_signal_to_dossier",
+                        "submit_for_review",
+                        "approve_publication",
+                        "manage_organization_members",
+                      ]
+                    : [],
+            createdAt: "2026-05-14T00:00:00.000Z",
+            updatedAt: "2026-05-14T00:00:00.000Z",
             verifiedBy: verificationStatus === "pending_review" ? null : "admin-1",
             verifiedAt:
               verificationStatus === "pending_review"
                 ? null
                 : "2026-05-14T00:00:00.000Z",
             expiresAt: null,
+            revokedAt: null,
+            noAutoAuthority: true,
           },
         ],
     organizations: [

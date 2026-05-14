@@ -1,0 +1,38 @@
+import { redirect } from "next/navigation";
+import { getSessionUser } from "@/lib/server/auth/sessionUser";
+import { userIsAdminDashboard } from "@/lib/server/auth/admin";
+import { getRegionOrganizationRuntimeRepo } from "@features/region";
+import { AdminOrganizationClaimsClient } from "./AdminOrganizationClaimsClient";
+
+export const metadata = {
+  title: "OrganizationClaims Review · eDebatte",
+};
+
+export default async function AdminOrganizationClaimsPage() {
+  const user = await getSessionUser();
+  if (!user || !user.sessionValid) {
+    redirect(`/login?next=${encodeURIComponent("/admin/organization-claims")}`);
+  }
+  if (!userIsAdminDashboard(user)) {
+    redirect("/account/organization");
+  }
+
+  const repo = getRegionOrganizationRuntimeRepo();
+  const claims = await repo.listOrganizationClaimsForReview();
+
+  return (
+    <main className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-8 sm:px-6">
+      <header className="space-y-2">
+        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
+          Admin Review
+        </p>
+        <h1 className="text-3xl font-semibold text-[rgb(var(--fg))]">OrganizationClaims prüfen</h1>
+        <p className="max-w-3xl text-sm text-[rgb(var(--muted))]">
+          Self-declared Angaben bleiben ohne Rechte. Erst Review erzeugt persistierte Memberships und
+          verifizierte Regionenzuordnung.
+        </p>
+      </header>
+      <AdminOrganizationClaimsClient initialClaims={claims} />
+    </main>
+  );
+}

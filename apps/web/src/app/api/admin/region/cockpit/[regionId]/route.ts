@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireGovernanceActorOrResponse } from "@/lib/server/auth/governance";
 import {
-  buildRegionAccessContext,
+  buildPersistedRegionAccessContext,
   canReadRegionDashboard,
   getOperationalRegionById,
   getRegionalAdminCockpitReadModel,
@@ -21,7 +21,7 @@ export async function GET(
       return NextResponse.json({ ok: false, error: "region_not_found" }, { status: 404 });
     }
 
-    const accessContext = buildRegionAccessContext({
+    const accessContext = await buildPersistedRegionAccessContext({
       userId: gate.actor.userId,
       actorRole: gate.actor.role,
       isAdmin: gate.actor.isAdmin,
