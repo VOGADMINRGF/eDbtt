@@ -51,6 +51,17 @@ import {
   REGION_FEED_SIGNAL_FIXTURES,
 } from "./regionFeedSignals";
 import {
+  getRegionParticipationSignalById as getFixtureRegionParticipationSignalById,
+  type RegionParticipationAggregate,
+  type RegionParticipationAggregationMode,
+  type RegionParticipationPrivacyMode,
+  type RegionParticipationReviewItem,
+  type RegionParticipationSignal,
+  listRegionParticipationSignalsForRuntime,
+  parseRegionParticipationAggregate,
+  parseRegionParticipationReviewItem,
+} from "./regionParticipationSignals";
+import {
   getRegionDataRepo,
   setRegionDataRepoForTests,
   type CommunitySignalRepoListQuery,
@@ -101,12 +112,15 @@ export type RegionDashboardAccessSummary = {
 export type RegionDashboardOpenReviewItem = {
   id: string;
   title: string;
-  sourceType: RegionFeedSignal["sourceType"];
-  suggestedAction: RegionFeedSignal["suggestedAction"];
+  sourceClass: "feed" | "participation";
+  sourceType: RegionFeedSignal["sourceType"] | RegionParticipationSignal["sourceType"];
+  suggestedAction: RegionFeedSignal["suggestedAction"] | "review_public_input";
   reviewStatus: RegionSignalReviewState;
   dataOrigin: RegionFeedSignal["provenance"]["dataOrigin"];
   isFixture: boolean;
   confidence: number;
+  aggregationMode: RegionParticipationAggregationMode | null;
+  privacyMode: RegionParticipationPrivacyMode | null;
 };
 
 export type RegionDashboardActiveDossier = {
@@ -127,6 +141,30 @@ export type RegionalAdminCockpitReadModel = {
   directoryStructureBreakdown: Array<{ administrativeUnitType: string; count: number }>;
   cockpit: RegionalAdminCockpit;
   feedSignals: RegionFeedSignal[];
+  participationSignals: RegionParticipationSignal[];
+  participationAggregates: RegionParticipationAggregate[];
+  publicClaimsSummary: {
+    total: number;
+    reviewPending: number;
+    labels: string[];
+  };
+  publicQuestionsSummary: {
+    total: number;
+    reviewPending: number;
+    labels: string[];
+  };
+  swipeInterestSummary: {
+    totalSignals: number;
+    totalCount: number;
+    labels: string[];
+  };
+  counterpointSummary: {
+    totalSignals: number;
+    totalCount: number;
+    labels: string[];
+  };
+  communitySourceHints: RegionParticipationSignal[];
+  reviewItemsFromPublicInput: RegionParticipationReviewItem[];
   topicClusters: RegionTopicCluster[];
   suggestedAnlassraeume: RegionAnlassraumSuggestion[];
   suggestedDossiers: RegionDossierSuggestion[];
@@ -346,6 +384,142 @@ function resolveRegionFeedSignals(params: {
   return [...pilotSignals, ...runtimeSignals].sort((left, right) => right.confidence - left.confidence);
 }
 
+function resolveParticipationSignals(params: {
+  region: Region;
+  scopedRegionIds: string[];
+  allSignals: RegionParticipationSignal[];
+}): RegionParticipationSignal[] {
+  return params.allSignals
+    .filter(
+      (signal) =>
+        params.scopedRegionIds.includes(signal.regionId) && !signal.needsRegionReview,
+    )
+    .map((signal) => clone(signal))
+    .sort((left, right) => right.confidence - left.confidence);
+}
+
+function buildParticipationAggregates(
+  regionId: string,
+  signals: RegionParticipationSignal[],
+): RegionParticipationAggregate[] {
+  const buckets = new Map<string, RegionParticipationSignal[]>();
+  for (const signal of signals) {
+    const key =
+      signal.sourceType === "swipe_interest"
+        ? "swipe-interest"
+        : signal.sourceType === "swipe_counterpoint"
+          ? "swipe-counterpoint"
+          : signal.sourceType === "public_claim"
+            ? "public-claims"
+            : signal.sourceType === "public_question"
+              ? "public-questions"
+              : signal.sourceType === "public_source_hint"
+                ? "public-source-hints"
+                : "public-contributions";
+    if (!buckets.has(key)) buckets.set(key, []);
+    buckets.get(key)?.push(signal);
+  }
+
+  return Array.from(buckets.entries()).map(([key, bucket]) =>
+    parseRegionParticipationAggregate({
+      id: `region-participation-aggregate-${regionId}-${key}`,
+      regionId,
+      label:
+        key === "swipe-interest"
+          ? "Swipe-/Interesse-Signale"
+          : key === "swipe-counterpoint"
+            ? "Gegenpositionen"
+            : key === "public-claims"
+              ? "Claims aus der Öffentlichkeit"
+              : key === "public-questions"
+                ? "Fragen aus der Öffentlichkeit"
+                : key === "public-source-hints"
+                  ? "Quellenhinweise aus der Community"
+                  : "Öffentliche Beiträge",
+      summary:
+        key === "swipe-interest" || key === "swipe-counterpoint"
+          ? `${bucket.length} anonymisierte Hinweise ohne Personenbezug und ohne Repräsentativitätsbehauptung.`
+          : `${bucket.length} reviewpflichtige öffentliche Hinweise, ungeprüft und nicht amtlich.`,
+      signalIds: uniqueNonEmpty(bucket.map((signal) => signal.id)),
+      sourceTypes: bucket.map((signal) => signal.sourceType),
+      totalSignals: bucket.length,
+      totalCount: bucket.length,
+      detectedTopics: uniqueNonEmpty(bucket.flatMap((signal) => signal.detectedTopics)),
+      aggregationMode:
+        bucket.every((signal) => signal.aggregationMode === "anonymized_count")
+          ? "anonymized_count"
+          : bucket.some((signal) => signal.aggregationMode === "aggregate_only")
+            ? "aggregate_only"
+            : "single_review_item",
+      privacyMode:
+        bucket.every((signal) => signal.privacyMode === "anonymized")
+          ? "anonymized"
+          : bucket.some((signal) => signal.privacyMode === "review_restricted")
+            ? "review_restricted"
+            : "no_personal_data",
+      reviewStatus: bucket.every((signal) => signal.reviewStatus === "accepted")
+        ? "accepted"
+        : "needs_review",
+      noPersonalProfiling: true,
+      noPoliticalScoring: true,
+      noRepresentativeClaim: true,
+    }),
+  );
+}
+
+function buildParticipationSummary(
+  signals: RegionParticipationSignal[],
+  sourceType: RegionParticipationSignal["sourceType"],
+) {
+  const filtered = signals.filter((signal) => signal.sourceType === sourceType);
+  return {
+    total: filtered.length,
+    reviewPending: filtered.filter((signal) => signal.reviewStatus !== "accepted").length,
+    labels: uniqueNonEmpty(
+      filtered.flatMap((signal) => [
+        signal.title,
+        ...signal.detectedTopics,
+      ]),
+    ).slice(0, 4),
+  };
+}
+
+function buildSwipeSummary(
+  signals: RegionParticipationSignal[],
+  sourceType: "swipe_interest" | "swipe_counterpoint",
+) {
+  const filtered = signals.filter((signal) => signal.sourceType === sourceType);
+  return {
+    totalSignals: filtered.length,
+    totalCount: filtered.length,
+    labels: uniqueNonEmpty(filtered.map((signal) => signal.title)).slice(0, 4),
+  };
+}
+
+function buildParticipationReviewItems(
+  signals: RegionParticipationSignal[],
+): RegionParticipationReviewItem[] {
+  return signals
+    .filter((signal) => signal.reviewStatus === "draft" || signal.reviewStatus === "needs_review")
+    .map((signal) =>
+      parseRegionParticipationReviewItem({
+        id: signal.id,
+        regionId: signal.regionId,
+        title: signal.title,
+        sourceType: signal.sourceType,
+        reviewStatus: signal.reviewStatus,
+        aggregationMode: signal.aggregationMode,
+        privacyMode: signal.privacyMode,
+        confidence: signal.confidence,
+        summary: signal.summary,
+        needsRegionReview: signal.needsRegionReview,
+        noPersonalProfiling: true,
+        noPoliticalScoring: true,
+        noRepresentativeClaim: true,
+      }),
+    );
+}
+
 function buildTopicClusters(regionId: string, signals: RegionFeedSignal[]): RegionTopicCluster[] {
   const buckets = new Map<string, RegionFeedSignal[]>();
   for (const signal of signals) {
@@ -449,19 +623,46 @@ function buildSuggestedAnlassraeume(
   );
 }
 
-function buildOpenReviewItems(signals: RegionFeedSignal[]): RegionDashboardOpenReviewItem[] {
-  return signals
+function buildOpenReviewItems(
+  feedSignals: RegionFeedSignal[],
+  participationSignals: RegionParticipationSignal[],
+): RegionDashboardOpenReviewItem[] {
+  const feedItems = feedSignals
     .filter((signal) => signal.reviewStatus === "draft" || signal.reviewStatus === "needs_review")
     .map((signal) => ({
       id: signal.id,
       title: signal.title,
+      sourceClass: "feed" as const,
       sourceType: signal.sourceType,
       suggestedAction: signal.suggestedAction,
       reviewStatus: signal.reviewStatus,
       dataOrigin: signal.provenance.dataOrigin,
       isFixture: signal.provenance.isFixture,
       confidence: signal.confidence,
+      aggregationMode: null,
+      privacyMode: null,
     }));
+
+  const participationItems = participationSignals
+    .filter((signal) => signal.reviewStatus === "draft" || signal.reviewStatus === "needs_review")
+    .map((signal) => ({
+      id: signal.id,
+      title: signal.title,
+      sourceClass: "participation" as const,
+      sourceType: signal.sourceType,
+      suggestedAction: "review_public_input" as const,
+      reviewStatus: signal.reviewStatus,
+      dataOrigin:
+        signal.source.sourceKind === "fixture"
+          ? ("pilot_fixture" as const)
+          : ("runtime_review_queue" as const),
+      isFixture: signal.source.isFixture,
+      confidence: signal.confidence,
+      aggregationMode: signal.aggregationMode,
+      privacyMode: signal.privacyMode,
+    }));
+
+  return [...feedItems, ...participationItems].sort((left, right) => right.confidence - left.confidence);
 }
 
 function buildActiveDossiers(activeAnlassraeume: RegionalAnlassraum[]): RegionDashboardActiveDossier[] {
@@ -667,6 +868,16 @@ export async function getRegionalCommunitySignalById(id: string): Promise<Commun
   return getCommunitySignalById(id);
 }
 
+export async function getRegionalParticipationSignalById(
+  id: string,
+): Promise<RegionParticipationSignal | null> {
+  const regions = await listOperationalRegions();
+  const runtimeSignals = await listRegionParticipationSignalsForRuntime(regions);
+  const runtimeMatch = runtimeSignals.find((signal) => signal.id === id) ?? null;
+  if (runtimeMatch) return clone(runtimeMatch);
+  return getFixtureRegionParticipationSignalById(id);
+}
+
 export async function createRegionalCommunitySignal(
   input: z.input<typeof CommunitySignalCreateSchema>,
 ): Promise<CommunitySignal> {
@@ -733,6 +944,7 @@ export async function getRegionalAdminCockpitReadModel(
   const scopedRegionIds = collectScopedRegionIds(region.id, regions);
   const scopedSet = new Set(scopedRegionIds);
   const regionMap = new Map(regions.map((entry) => [entry.id, entry]));
+  const allParticipationSignals = await listRegionParticipationSignalsForRuntime(regions);
   const communitySignals = allSignals.filter((signal) => scopedSet.has(signal.regionId));
   const actors = allActors.filter((actor) => scopedSet.has(actor.regionId));
   const activeAnlassraeume = listRegionalAnlassraeume()
@@ -817,10 +1029,17 @@ export async function getRegionalAdminCockpitReadModel(
     communitySignals,
     regionMap,
   });
+  const participationSignals = resolveParticipationSignals({
+    region,
+    scopedRegionIds,
+    allSignals: allParticipationSignals,
+  });
+  const participationAggregates = buildParticipationAggregates(region.id, participationSignals);
+  const reviewItemsFromPublicInput = buildParticipationReviewItems(participationSignals);
   const topicClusters = buildTopicClusters(region.id, feedSignals);
   const suggestedDossiers = buildSuggestedDossiers(region.id, feedSignals);
   const suggestedAnlassraeume = buildSuggestedAnlassraeume(region.id, feedSignals);
-  const openReviewItems = buildOpenReviewItems(feedSignals);
+  const openReviewItems = buildOpenReviewItems(feedSignals, participationSignals);
   const cockpit = buildDefaultCockpit({
     region,
     feedSignals,
@@ -842,7 +1061,7 @@ export async function getRegionalAdminCockpitReadModel(
     actorCount: actors.length,
     verifiedActorCount: actors.filter((actor) => actor.verificationStatus === "verified").length,
     officialDirectoryActorCount: actors.filter((actor) => actor.sourceKind === "official_directory").length,
-    signalCount: feedSignals.length,
+    signalCount: feedSignals.length + participationSignals.length,
     pendingSignalCount: openReviewItems.length,
     directoryStructureBreakdown:
       actors.length > 0
@@ -855,6 +1074,16 @@ export async function getRegionalAdminCockpitReadModel(
           })),
     cockpit,
     feedSignals,
+    participationSignals,
+    participationAggregates,
+    publicClaimsSummary: buildParticipationSummary(participationSignals, "public_claim"),
+    publicQuestionsSummary: buildParticipationSummary(participationSignals, "public_question"),
+    swipeInterestSummary: buildSwipeSummary(participationSignals, "swipe_interest"),
+    counterpointSummary: buildSwipeSummary(participationSignals, "swipe_counterpoint"),
+    communitySourceHints: participationSignals.filter(
+      (signal) => signal.sourceType === "public_source_hint",
+    ),
+    reviewItemsFromPublicInput,
     topicClusters,
     suggestedAnlassraeume,
     suggestedDossiers,

@@ -10,6 +10,7 @@ import {
 } from "./access";
 import type { DossierActorRole } from "@features/dossier/schemas";
 import {
+  getRegionalParticipationSignalById,
   getOperationalRegionById,
   getRegionalAdminCockpitReadModel,
   getRegionalCommunitySignalById,
@@ -20,6 +21,10 @@ import {
   REGION_SIGNAL_REVIEW_STATUSES,
   parseRegionFeedSignal,
 } from "./regionFeedSignals";
+import {
+  mapParticipationSignalToFeedSignalForDraft,
+  type RegionParticipationSignal,
+} from "./regionParticipationSignals";
 
 export const REGION_SIGNAL_DRAFT_TARGETS = ["dossier", "anlassraum"] as const;
 export type RegionSignalDraftTarget = (typeof REGION_SIGNAL_DRAFT_TARGETS)[number];
@@ -258,6 +263,14 @@ function buildDraftProvenance(signal: RegionFeedSignal): RegionSignalDraftProven
   });
 }
 
+function participationSignalBlockedForDraft(
+  signal: RegionParticipationSignal,
+): RegionSignalDraftBlockedReason | null {
+  if (signal.privacyMode === "review_restricted") return "validation_error";
+  if (signal.needsRegionReview) return "wrong_region";
+  return null;
+}
+
 function mapRuntimeSignalToFeedSignal(input: {
   signal: CommunitySignal;
   regionId: string;
@@ -361,12 +374,12 @@ function buildDraftAction(params: {
 async function resolveRegionSignalForDraft(regionId: string, signalId: string) {
   const region = await getOperationalRegionById(regionId);
   if (!region) {
-    return { region: null, signal: null, wrongRegion: false as const };
+    return { region: null, signal: null, wrongRegion: false as const, participationSignal: null };
   }
 
   const cockpit = await getRegionalAdminCockpitReadModel(region.id);
   const signal = cockpit.feedSignals.find((entry) => entry.id === signalId) ?? null;
-  if (signal) return { region, signal, wrongRegion: false as const };
+  if (signal) return { region, signal, wrongRegion: false as const, participationSignal: null };
 
   const fixtureSignal = REGION_FEED_SIGNAL_FIXTURES.find((entry) => entry.id === signalId) ?? null;
   if (fixtureSignal) {
@@ -374,6 +387,7 @@ async function resolveRegionSignalForDraft(regionId: string, signalId: string) {
       region,
       signal: fixtureSignal,
       wrongRegion: fixtureSignal.regionId !== region.id,
+      participationSignal: null,
     };
   }
 
@@ -384,16 +398,28 @@ async function resolveRegionSignalForDraft(regionId: string, signalId: string) {
         region,
         signal: mapRuntimeSignalToFeedSignal({ signal: runtimeSignal, regionId: region.id }),
         wrongRegion: false as const,
+        participationSignal: null,
       };
     }
     return {
       region,
       signal: null,
       wrongRegion: runtimeSignal.regionId !== region.id,
+      participationSignal: null,
     };
   }
 
-  return { region, signal: null, wrongRegion: false as const };
+  const participationSignal = await getRegionalParticipationSignalById(signalId);
+  if (participationSignal) {
+    return {
+      region,
+      signal: mapParticipationSignalToFeedSignalForDraft(participationSignal),
+      wrongRegion: participationSignal.regionId !== region.id,
+      participationSignal,
+    };
+  }
+
+  return { region, signal: null, wrongRegion: false as const, participationSignal: null };
 }
 
 async function ensureDraftIndexes() {
@@ -659,6 +685,20 @@ export async function createRegionSignalDraft(input: {
       createdByRole,
       guardrails: DRAFT_GUARDRAILS,
     });
+  }
+
+  if (resolved.participationSignal) {
+    const participationBlock = participationSignalBlockedForDraft(resolved.participationSignal);
+    if (participationBlock) {
+      return RegionSignalDraftResultSchema.parse({
+        ok: false,
+        blockedReason: participationBlock,
+        draftType,
+        reviewStatus: "needs_review",
+        createdByRole,
+        guardrails: DRAFT_GUARDRAILS,
+      });
+    }
   }
 
   const signal = resolved.signal;

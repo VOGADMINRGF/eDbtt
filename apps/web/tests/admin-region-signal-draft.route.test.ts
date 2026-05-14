@@ -422,4 +422,71 @@ describe("/api/admin/region/signals/[id]/draft", () => {
       blockedReason: "missing_permission",
     });
   });
+
+  it("keeps public participation signals review-gated and only lets accepted sanitized signals reach the draft path", async () => {
+    seedVerifiedRuntimeMembership();
+    seedActiveEntitlement();
+    mocks.requireGovernanceActorOrResponse.mockResolvedValue({
+      user: { _id: { toHexString: () => "staff-1" } },
+      roles: ["institutional_actor"],
+      actor: {
+        userId: "staff-1",
+        role: "institutional_actor",
+        isAdmin: false,
+        scopedOwnerIds: ["org-reinickendorf-1"],
+        scopedEntityIds: ["org-reinickendorf-1"],
+        personTrust: null,
+      },
+    });
+
+    const claimRes = await POST(
+      buildRequest(
+        "http://localhost/api/admin/region/signals/region-participation-reinickendorf-claim-001/draft",
+        { regionId: "berlin-reinickendorf", target: "dossier" },
+      ),
+      {
+        params: Promise.resolve({
+          id: "region-participation-reinickendorf-claim-001",
+        }),
+      },
+    );
+    const restrictedRes = await POST(
+      buildRequest(
+        "http://localhost/api/admin/region/signals/region-participation-reinickendorf-source-hint-001/draft",
+        { regionId: "berlin-reinickendorf", target: "dossier" },
+      ),
+      {
+        params: Promise.resolve({
+          id: "region-participation-reinickendorf-source-hint-001",
+        }),
+      },
+    );
+    const acceptedRes = await POST(
+      buildRequest(
+        "http://localhost/api/admin/region/signals/region-participation-reinickendorf-question-accepted-001/draft",
+        { regionId: "berlin-reinickendorf", target: "dossier" },
+      ),
+      {
+        params: Promise.resolve({
+          id: "region-participation-reinickendorf-question-accepted-001",
+        }),
+      },
+    );
+
+    expect(claimRes.status).toBe(400);
+    expect(restrictedRes.status).toBe(400);
+    expect(acceptedRes.status).toBe(201);
+    await expect(claimRes.json()).resolves.toMatchObject({
+      ok: false,
+      blockedReason: "signal_not_accepted",
+    });
+    await expect(restrictedRes.json()).resolves.toMatchObject({
+      ok: false,
+      blockedReason: "validation_error",
+    });
+    await expect(acceptedRes.json()).resolves.toMatchObject({
+      ok: true,
+      draftType: "dossier",
+    });
+  });
 });

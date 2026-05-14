@@ -42,6 +42,22 @@ function sourceTypeLabel(value: string) {
       return "Bürgerhinweis";
     case "feed_draft":
       return "Feed-Draft";
+    case "public_claim":
+      return "Öffentlicher Claim";
+    case "public_contribution":
+      return "Öffentlicher Beitrag";
+    case "public_question":
+      return "Öffentliche Frage";
+    case "public_source_hint":
+      return "Öffentlicher Quellenhinweis";
+    case "swipe_interest":
+      return "Aggregiertes Swipe-Interesse";
+    case "swipe_counterpoint":
+      return "Aggregierte Gegenposition";
+    case "saved_topic":
+      return "Gespeichertes Thema";
+    case "support_signal":
+      return "Unterstütztes Thema";
     default:
       return "Manuelle Notiz";
   }
@@ -211,6 +227,28 @@ function actionStateLabel(cockpit: RegionalAdminCockpitReadModel) {
 
 function renderEmptyState(label: string) {
   return <p className="text-sm text-[rgb(var(--muted))]">Noch keine {label} sichtbar.</p>;
+}
+
+function aggregationModeLabel(value: string) {
+  switch (value) {
+    case "anonymized_count":
+      return "anonymisiert/aggregiert";
+    case "aggregate_only":
+      return "aggregiert";
+    default:
+      return "einzelner Review-Hinweis";
+  }
+}
+
+function privacyModeLabel(value: string) {
+  switch (value) {
+    case "anonymized":
+      return "anonymisiert";
+    case "review_restricted":
+      return "reviewbeschränkt";
+    default:
+      return "ohne Personendaten";
+  }
 }
 
 export default async function AdminRegionPage({
@@ -494,6 +532,157 @@ export default async function AdminRegionPage({
                 ) : (
                   renderEmptyState("Themencluster")
                 )}
+              </div>
+            </article>
+          </section>
+
+          <section
+            data-testid="admin-region-participation-signals"
+            className="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]"
+          >
+            <article className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5">
+              <p className="text-xs uppercase tracking-[0.14em] text-[rgb(var(--muted))]">
+                Öffentliche Beteiligungssignale
+              </p>
+              <h2 className="mt-2 text-lg font-semibold text-[rgb(var(--fg))]">
+                Ungeprüft, nicht amtlich, reviewpflichtig
+              </h2>
+              <p className="mt-2 text-sm text-[rgb(var(--muted))]">
+                Öffentliche Claims, Beiträge, Fragen, Quellenhinweise und Swipe-Signale erscheinen hier nur
+                anonymisiert oder aggregiert. Keine Personenprofile, keine Repräsentativitätsbehauptung und
+                keine automatische amtliche Übernahme.
+              </p>
+              <div className="mt-4 grid gap-3 md:grid-cols-2">
+                <div className="rounded-2xl border border-[rgb(var(--border))] p-3">
+                  <p className="text-xs uppercase tracking-[0.12em] text-[rgb(var(--muted))]">
+                    Claims aus der Öffentlichkeit
+                  </p>
+                  <p className="mt-2 text-sm font-semibold text-[rgb(var(--fg))]">
+                    {cockpit.publicClaimsSummary.total}
+                  </p>
+                  <p className="mt-1 text-xs text-[rgb(var(--muted))]">
+                    {cockpit.publicClaimsSummary.reviewPending} reviewpflichtig · nicht repräsentativ
+                  </p>
+                </div>
+                <div className="rounded-2xl border border-[rgb(var(--border))] p-3">
+                  <p className="text-xs uppercase tracking-[0.12em] text-[rgb(var(--muted))]">
+                    Fragen aus der Öffentlichkeit
+                  </p>
+                  <p className="mt-2 text-sm font-semibold text-[rgb(var(--fg))]">
+                    {cockpit.publicQuestionsSummary.total}
+                  </p>
+                  <p className="mt-1 text-xs text-[rgb(var(--muted))]">
+                    {cockpit.publicQuestionsSummary.reviewPending} reviewpflichtig · nicht amtlich
+                  </p>
+                </div>
+                <div className="rounded-2xl border border-[rgb(var(--border))] p-3">
+                  <p className="text-xs uppercase tracking-[0.12em] text-[rgb(var(--muted))]">
+                    Swipe-/Interesse-Signale aggregiert
+                  </p>
+                  <p className="mt-2 text-sm font-semibold text-[rgb(var(--fg))]">
+                    {cockpit.swipeInterestSummary.totalSignals}
+                  </p>
+                  <p className="mt-1 text-xs text-[rgb(var(--muted))]">
+                    anonymisiert/aggregiert · keine Personendaten
+                  </p>
+                </div>
+                <div className="rounded-2xl border border-[rgb(var(--border))] p-3">
+                  <p className="text-xs uppercase tracking-[0.12em] text-[rgb(var(--muted))]">
+                    Gegenpositionen / andere Sichtweisen
+                  </p>
+                  <p className="mt-2 text-sm font-semibold text-[rgb(var(--fg))]">
+                    {cockpit.counterpointSummary.totalSignals}
+                  </p>
+                  <p className="mt-1 text-xs text-[rgb(var(--muted))]">
+                    anonymisiert/aggregiert · nicht repräsentativ
+                  </p>
+                </div>
+              </div>
+              <div className="mt-4 space-y-3">
+                {cockpit.participationSignals.length > 0 ? (
+                  cockpit.participationSignals.slice(0, 6).map((signal) => (
+                    <div key={signal.id} className="rounded-2xl border border-[rgb(var(--border))] p-3">
+                      <div className="flex flex-wrap items-center gap-2 text-xs text-[rgb(var(--muted))]">
+                        <span>{sourceTypeLabel(signal.sourceType)}</span>
+                        <span>·</span>
+                        <span>{reviewStatusLabel(signal.reviewStatus)}</span>
+                        <span>·</span>
+                        <span>{aggregationModeLabel(signal.aggregationMode)}</span>
+                        <span>·</span>
+                        <span>{privacyModeLabel(signal.privacyMode)}</span>
+                        <span>·</span>
+                        <span>nicht amtlich</span>
+                        <span>·</span>
+                        <span>nicht repräsentativ</span>
+                      </div>
+                      <h3 className="mt-2 text-sm font-semibold text-[rgb(var(--fg))]">{signal.title}</h3>
+                      <p className="mt-1 text-sm text-[rgb(var(--muted))]">{signal.summary}</p>
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        {signal.detectedTopics.map((topic) => (
+                          <span
+                            key={topic}
+                            className="rounded-full border border-[rgb(var(--border))] px-2 py-1 text-xs text-[rgb(var(--muted))]"
+                          >
+                            {topic}
+                          </span>
+                        ))}
+                      </div>
+                      <p className="mt-2 text-xs text-[rgb(var(--muted))]">
+                        Orte: {signal.detectedPlaces.join(", ") || "nicht sicher zugeordnet"}
+                      </p>
+                    </div>
+                  ))
+                ) : (
+                  renderEmptyState("öffentliche Beteiligungssignale")
+                )}
+              </div>
+            </article>
+
+            <article className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5">
+              <p className="text-xs uppercase tracking-[0.14em] text-[rgb(var(--muted))]">
+                Public Input Review
+              </p>
+              <h2 className="mt-2 text-lg font-semibold text-[rgb(var(--fg))]">
+                Quellenhinweise, Aggregation und Datenschutz
+              </h2>
+              <div className="mt-4 space-y-3">
+                <div className="rounded-2xl border border-[rgb(var(--border))] p-3">
+                  <p className="text-xs uppercase tracking-[0.12em] text-[rgb(var(--muted))]">
+                    Quellenhinweise aus der Community
+                  </p>
+                  {cockpit.communitySourceHints.length > 0 ? (
+                    cockpit.communitySourceHints.slice(0, 3).map((signal) => (
+                      <p key={signal.id} className="mt-2 text-sm text-[rgb(var(--muted))]">
+                        {signal.title}
+                      </p>
+                    ))
+                  ) : (
+                    <p className="mt-2 text-sm text-[rgb(var(--muted))]">Noch keine Hinweise sichtbar.</p>
+                  )}
+                </div>
+                <div className="rounded-2xl border border-[rgb(var(--border))] p-3">
+                  <p className="text-xs uppercase tracking-[0.12em] text-[rgb(var(--muted))]">
+                    Swipe-Signale
+                  </p>
+                  <p className="mt-2 text-sm text-[rgb(var(--muted))]">
+                    Nur anonymisiert/aggregiert, keine Nutzerlisten, keine politischen Profile, keine
+                    Verwaltungssicht auf individuelle Präferenzen.
+                  </p>
+                </div>
+                <div className="rounded-2xl border border-[rgb(var(--border))] p-3">
+                  <p className="text-xs uppercase tracking-[0.12em] text-[rgb(var(--muted))]">
+                    Review-Items aus öffentlichem Input
+                  </p>
+                  {cockpit.reviewItemsFromPublicInput.length > 0 ? (
+                    cockpit.reviewItemsFromPublicInput.slice(0, 4).map((item) => (
+                      <div key={item.id} className="mt-2 text-sm text-[rgb(var(--muted))]">
+                        {item.title} · {privacyModeLabel(item.privacyMode)} · {aggregationModeLabel(item.aggregationMode)}
+                      </div>
+                    ))
+                  ) : (
+                    <p className="mt-2 text-sm text-[rgb(var(--muted))]">Noch keine Review-Items sichtbar.</p>
+                  )}
+                </div>
               </div>
             </article>
           </section>

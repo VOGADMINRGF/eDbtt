@@ -356,4 +356,44 @@ describe("region signal drafts contract", () => {
       blockedReason: "tender_or_procurement_out_of_scope",
     });
   });
+
+  it("blocks non-accepted or privacy-restricted public participation signals and allows accepted sanitized ones", async () => {
+    const context = makeVerifiedContext("unit_verified");
+
+    const notAccepted = await createRegionSignalDraft({
+      signalId: "region-participation-reinickendorf-claim-001",
+      regionId: "berlin-reinickendorf",
+      target: "dossier",
+      accessContext: context,
+      requestedBy: "user-1",
+    });
+    const privacyRestricted = await createRegionSignalDraft({
+      signalId: "region-participation-reinickendorf-source-hint-001",
+      regionId: "berlin-reinickendorf",
+      target: "dossier",
+      accessContext: context,
+      requestedBy: "user-1",
+    });
+    const accepted = await createRegionSignalDraft({
+      signalId: "region-participation-reinickendorf-question-accepted-001",
+      regionId: "berlin-reinickendorf",
+      target: "dossier",
+      accessContext: context,
+      requestedBy: "user-1",
+    });
+
+    expect(notAccepted).toMatchObject({
+      ok: false,
+      blockedReason: "signal_not_accepted",
+    });
+    expect(privacyRestricted).toMatchObject({
+      ok: false,
+      blockedReason: "validation_error",
+    });
+    expect(accepted).toMatchObject({
+      ok: true,
+      draftType: "dossier",
+      reviewStatus: "needs_review",
+    });
+  });
 });
