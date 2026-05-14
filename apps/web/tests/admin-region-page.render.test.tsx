@@ -20,6 +20,7 @@ describe("admin-region-page.render", () => {
     expect(html).toContain('data-testid="admin-region-access-summary"');
     expect(html).toContain('data-testid="admin-region-guardrails"');
     expect(html).toContain('data-testid="admin-region-feed-signals"');
+    expect(html).toContain('data-testid="admin-region-participation-signals"');
     expect(html).toContain('data-testid="admin-region-suggestions"');
     expect(html).toContain('data-testid="admin-region-open-review"');
     expect(html).toContain('data-testid="admin-region-prepare-actions"');
@@ -36,6 +37,15 @@ describe("admin-region-page.render", () => {
     expect(html).toContain("noTenderMonitoring: true");
     expect(html).toContain("noProcurementMonitoring: true");
     expect(html).toContain("Feed- und Signal-Hinweise");
+    expect(html).toContain("Öffentliche Beteiligungssignale");
+    expect(html).toContain("Claims aus der Öffentlichkeit");
+    expect(html).toContain("Fragen aus der Öffentlichkeit");
+    expect(html).toContain("Swipe-/Interesse-Signale aggregiert");
+    expect(html).toContain("Gegenpositionen / andere Sichtweisen");
+    expect(html).toContain("Quellenhinweise aus der Community");
+    expect(html).toContain("anonymisiert/aggregiert");
+    expect(html).toContain("nicht amtlich");
+    expect(html).toContain("nicht repräsentativ");
     expect(html).toContain("Reviewpflichtige Verdichtungen");
     expect(html).toContain("Nur Vorschläge, kein automatischer Anlassraum");
     expect(html).toContain("Nur Vorschläge, kein automatisches Dossier");
@@ -47,6 +57,7 @@ describe("admin-region-page.render", () => {
     expect(html).toContain("Self-declared ist nicht verifiziert.");
     expect(html).toContain("Pending hat keine Behördenrechte.");
     expect(html).toContain("Standortangaben wie Rathaus Reinickendorf bleiben optional.");
+    expect(html).not.toContain("userId");
     expect(html).not.toContain("Standort ist Pflicht");
   });
 });

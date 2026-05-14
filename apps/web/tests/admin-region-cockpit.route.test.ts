@@ -70,7 +70,8 @@ describe("/api/admin/region/cockpit/[regionId]", () => {
     );
 
     expect(res.status).toBe(200);
-    await expect(res.json()).resolves.toMatchObject({
+    const body = await res.json();
+    expect(body).toMatchObject({
       ok: true,
       cockpit: {
         region: { id: "bezirk-berlin-reinickendorf" },
@@ -96,6 +97,35 @@ describe("/api/admin/region/cockpit/[regionId]", () => {
             provenance: expect.objectContaining({ dataOrigin: "pilot_fixture" }),
           }),
         ]),
+        participationSignals: expect.arrayContaining([
+          expect.objectContaining({
+            sourceType: "public_claim",
+            noPersonalProfiling: true,
+            noPoliticalScoring: true,
+            noRepresentativeClaim: true,
+          }),
+          expect.objectContaining({
+            sourceType: "swipe_interest",
+            aggregationMode: "anonymized_count",
+            privacyMode: "anonymized",
+          }),
+        ]),
+        participationAggregates: expect.arrayContaining([
+          expect.objectContaining({
+            label: "Claims aus der Öffentlichkeit",
+          }),
+        ]),
+        publicClaimsSummary: expect.objectContaining({
+          total: expect.any(Number),
+        }),
+        swipeInterestSummary: expect.objectContaining({
+          totalSignals: expect.any(Number),
+        }),
+        reviewItemsFromPublicInput: expect.arrayContaining([
+          expect.objectContaining({
+            sourceType: "public_claim",
+          }),
+        ]),
         suggestedAnlassraeume: expect.arrayContaining([
           expect.objectContaining({
             title: "Bildung & Schulinfrastruktur Reinickendorf",
@@ -114,6 +144,9 @@ describe("/api/admin/region/cockpit/[regionId]", () => {
         ]),
       },
     });
+
+    const payload = JSON.stringify(body);
+    expect(payload).not.toContain("userId");
   });
 
   it("blocks pending self-declared users from the region dashboard", async () => {
