@@ -53,6 +53,9 @@ export type SwipeFeedFilter = {
   level?: SwipeScopeLevel | "ALL";
   statementId?: string;
   fromDraftId?: string;
+  regionId?: string;
+  adminContext?: boolean;
+  reviewContext?: boolean;
 };
 
 export type SwipeFeedRequest = {

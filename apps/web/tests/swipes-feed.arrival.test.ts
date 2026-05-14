@@ -171,6 +171,21 @@ describe("swipes feed arrival mode", () => {
     expect(feed.items[0]?.id.startsWith("seed-")).toBe(true);
   });
 
+  it("blocks seed fallback for guarded region/admin contexts", async () => {
+    mocks.setProposals([]);
+
+    const feed = await getSwipeFeed({
+      edebattePackage: "none",
+      filter: {
+        regionId: "berlin-reinickendorf",
+        adminContext: true,
+      },
+      limit: 20,
+    });
+
+    expect(feed.items).toEqual([]);
+  });
+
   it("preserves fromDraft no-match fallback when proposal collection is unavailable", async () => {
     const fromDraftId = new ObjectId().toHexString();
     mocks.setProposalCollectionFailure(true);
@@ -195,5 +210,20 @@ describe("swipes feed arrival mode", () => {
 
     expect(feed.items.length).toBeGreaterThan(0);
     expect(feed.items[0]?.id.startsWith("seed-")).toBe(true);
+  });
+
+  it("keeps no-match semantics when proposal collection is unavailable in review contexts", async () => {
+    mocks.setProposalCollectionFailure(true);
+
+    const feed = await getSwipeFeed({
+      edebattePackage: "none",
+      filter: {
+        reviewContext: true,
+        regionId: "berlin-reinickendorf",
+      },
+      limit: 20,
+    });
+
+    expect(feed.items).toEqual([]);
   });
 });

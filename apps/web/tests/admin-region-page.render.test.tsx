@@ -27,6 +27,8 @@ describe("admin-region-page.render", () => {
     expect(html).toContain("Verwaltung, Akteure und Signale");
     expect(html).toContain("Aktuelle Themenlage Berlin Reinickendorf");
     expect(html).toContain("Pilotdaten zur Demonstration der Themenlage");
+    expect(html).toContain("notRealNews=true");
+    expect(html).toContain("notProductionData=true");
     expect(html).toContain("reviewRequired: true");
     expect(html).toContain("noAutoPublish: true");
     expect(html).toContain("noAutoDossierCreation: true");

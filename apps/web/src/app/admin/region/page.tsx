@@ -334,7 +334,7 @@ export default async function AdminRegionPage({
                         <span>·</span>
                         <span>
                           {signal.provenance.dataOrigin === "pilot_fixture"
-                            ? "pilot fixture · not real news · not production data"
+                            ? "pilot fixture · notRealNews=true · notProductionData=true"
                             : "runtime review queue"}
                         </span>
                       </div>

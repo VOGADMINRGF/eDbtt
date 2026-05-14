@@ -14,10 +14,16 @@ import {
 import { BRAND } from "@/lib/brand";
 import { CreateHandoffPanel } from "@/features/create/CreateHandoffPanel";
 import { useCreateHandoffDraft } from "@/features/create/useCreateHandoffDraft";
+import {
+  isRegionDraftDossierId,
+  shouldAllowDemoDossierFallback,
+} from "@/features/runtimeDataGuardrails";
 
 type ApiResponse =
   | { ok: true; dossier: Dossier }
-  | { ok: false; error?: string };
+  | { ok: false; error?: string; dossierId?: string; status?: string };
+
+type DossierLoadState = "loading" | "ready" | "review_only" | "not_found" | "load_failed";
 
 function extractDossierSubtitle(dossier: Dossier): string {
   const fromAnalyzeSummary = (dossier as any)?.analyze?.summary;
@@ -42,6 +48,13 @@ function extractDossierSubtitle(dossier: Dossier): string {
   return "Kontext und Einordnung für den weiteren Arbeitsprozess.";
 }
 
+function fallbackDossierSubtitle(dossierId: string): string {
+  if (isRegionDraftDossierId(dossierId)) {
+    return "Reviewpflichtiger Dossier-Draft aus dem Region-Dashboard. Keine veröffentlichte Viewer-Fassung verfügbar.";
+  }
+  return "Dossierdaten werden geladen oder liegen noch nicht als veröffentlichbare Viewer-Fassung vor.";
+}
+
 export default function DossierPageClient({
   dossierId,
   handoffId = null,
@@ -49,31 +62,43 @@ export default function DossierPageClient({
   dossierId: string;
   handoffId?: string | null;
 }) {
-  const [dossier, setDossier] = useState<Dossier>(demoFallback);
-  const [loaded, setLoaded] = useState(false);
+  const demoAllowed = shouldAllowDemoDossierFallback(dossierId);
+  const [dossier, setDossier] = useState<Dossier | null>(demoAllowed ? demoFallback : null);
+  const [loadState, setLoadState] = useState<DossierLoadState>(demoAllowed ? "ready" : "loading");
   const handoffDraft = useCreateHandoffDraft(handoffId);
 
   useEffect(() => {
+    if (demoAllowed) return;
     let cancelled = false;
     fetch(`/api/dossier/${encodeURIComponent(dossierId)}`, { cache: "no-store" })
       .then((r) => r.json() as Promise<ApiResponse>)
       .then((data) => {
         if (cancelled) return;
-        if (data.ok) setDossier(data.dossier);
-        setLoaded(true);
+        if (data.ok) {
+          setDossier(data.dossier);
+          setLoadState("ready");
+          return;
+        }
+        const errorCode = "error" in data ? data.error : undefined;
+        setDossier(null);
+        setLoadState(errorCode === "dossier_review_only" ? "review_only" : "not_found");
       })
-      .catch(() => setLoaded(true));
+      .catch(() => {
+        if (cancelled) return;
+        setDossier(null);
+        setLoadState("load_failed");
+      });
     return () => {
       cancelled = true;
     };
-  }, [dossierId]);
+  }, [demoAllowed, dossierId]);
 
   const shareAsset = buildShareOutputAsset({
     baseUrl: BRAND.baseUrl,
     canonicalPathOrUrl: `/dossier/${dossierId}`,
     objectType: "dossier",
     title: dossier?.meta?.title ?? `Dossier ${dossierId}`,
-    subtitle: extractDossierSubtitle(dossier),
+    subtitle: dossier ? extractDossierSubtitle(dossier) : fallbackDossierSubtitle(dossierId),
     lane: "standard",
     verificationMode: "precheck",
     researchUsed: "none",
@@ -95,7 +120,7 @@ export default function DossierPageClient({
 
   return (
     <div className="mx-auto w-full max-w-[1440px] px-4 py-8 sm:px-6 sm:py-10 lg:px-10 lg:py-12">
-      {!loaded ? (
+      {loadState === "loading" ? (
         <p className="text-xs text-[rgb(var(--muted))]">Dossier wird geladen…</p>
       ) : null}
       {handoffDraft ? (
@@ -132,7 +157,42 @@ export default function DossierPageClient({
           }}
         />
       </div>
-      <DossierViewer dossier={dossier} />
+      {loadState === "review_only" ? (
+        <section className="rounded-3xl border border-amber-500/40 bg-amber-500/10 p-5 text-sm text-amber-950">
+          <h2 className="text-base font-semibold">Reviewpflichtiger Dossier-Draft</h2>
+          <p className="mt-2">
+            Dieser Dossierpfad verweist auf einen reviewpflichtigen Draft. Solange noch keine vollständige
+            Viewer-Fassung vorliegt, wird bewusst kein Demo-Dossier eingeblendet.
+          </p>
+          <p className="mt-2 text-xs">
+            Status: Draft/Review-only. Keine automatische Veröffentlichung, keine produktive Demo-Ersetzung.
+          </p>
+        </section>
+      ) : null}
+      {loadState === "not_found" ? (
+        <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 text-sm text-[rgb(var(--muted))]">
+          <h2 className="text-base font-semibold text-[rgb(var(--fg))]">Dossier nicht gefunden</h2>
+          <p className="mt-2">
+            Für diese ID liegt aktuell kein verfügbares Dossier vor. Es wird kein generischer Demo-Inhalt als
+            Ersatz angezeigt.
+          </p>
+          {isRegionDraftDossierId(dossierId) ? (
+            <p className="mt-2 text-xs">
+              Region-Draft-IDs bleiben reviewpflichtig und zeigen ohne Runtime-Daten einen ehrlichen Leerzustand.
+            </p>
+          ) : null}
+        </section>
+      ) : null}
+      {loadState === "load_failed" ? (
+        <section className="rounded-3xl border border-rose-500/40 bg-rose-500/10 p-5 text-sm text-rose-950">
+          <h2 className="text-base font-semibold">Dossier konnte nicht geladen werden</h2>
+          <p className="mt-2">
+            Die Runtime-Daten sind aktuell nicht verfügbar. Es wird bewusst kein Demo-Fallback aus einem
+            produktnahen Dossierpfad angezeigt.
+          </p>
+        </section>
+      ) : null}
+      {dossier ? <DossierViewer dossier={dossier} /> : null}
     </div>
   );
 }

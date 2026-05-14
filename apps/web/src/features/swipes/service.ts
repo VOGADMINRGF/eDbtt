@@ -24,6 +24,7 @@ import { ObjectId } from "@core/db/triMongo";
 import { applySwipeForCredits } from "@features/user/credits";
 import { normalizeAccessTier } from "@/config/accessTiers";
 import { FEATURE_MATRIX_DEFAULTS } from "@/config/featureMatrix";
+import { shouldAllowSwipeSeedFallback } from "@/features/runtimeDataGuardrails";
 
 type ProposalDoc = {
   _id?: any;
@@ -211,6 +212,12 @@ export async function getSwipeFeed(req: SwipeFeedRequest): Promise<SwipeFeedResp
   const level = filter?.level;
   const statementId = filter?.statementId;
   const fromDraftId = toObjectIdHex(filter?.fromDraftId);
+  const allowSeedFallback = shouldAllowSwipeSeedFallback({
+    fromDraftId,
+    regionId: filter?.regionId ?? null,
+    adminContext: filter?.adminContext,
+    reviewContext: filter?.reviewContext,
+  });
 
   let proposalDocs: ProposalDoc[] = [];
   try {
@@ -223,6 +230,10 @@ export async function getSwipeFeed(req: SwipeFeedRequest): Promise<SwipeFeedResp
     if (fromDraftId) {
       // fromDraft arrival must not fabricate unrelated fallback cards.
       console.error("[swipes] proposal feed unavailable, preserving explicit fromDraft no-match", error);
+      return { items: [], nextCursor: null };
+    }
+    if (!allowSeedFallback) {
+      console.error("[swipes] proposal feed unavailable, seed fallback blocked for guarded context", error);
       return { items: [], nextCursor: null };
     }
     console.error("[swipes] proposal feed unavailable, using seed fallback", error);
@@ -298,6 +309,9 @@ export async function getSwipeFeed(req: SwipeFeedRequest): Promise<SwipeFeedResp
   }
 
   if (items.length === 0) {
+    if (!allowSeedFallback) {
+      return { items: [], nextCursor: null };
+    }
     const seed = filterSwipeSeedItems(req.filter);
     return { items: seed, nextCursor: null };
   }
