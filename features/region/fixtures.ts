@@ -48,6 +48,40 @@ export const REGION_FIXTURES: readonly Region[] = [
     updatedAt: "2026-05-03T00:00:00.000Z",
   }),
   parseRegion({
+    id: "bezirk-berlin-spandau",
+    slug: "berlin-spandau",
+    name: "Berlin Spandau",
+    type: "bezirk",
+    parentRegionId: "region-berlin",
+    officialBody: {
+      id: "body-bezirksamt-spandau",
+      label: "Bezirksamt Spandau",
+      bodyType: "bezirksamt",
+    },
+    federalState: "Berlin",
+    country: "DE",
+    publicVisibility: "public",
+    createdAt: "2026-05-14T00:00:00.000Z",
+    updatedAt: "2026-05-14T00:00:00.000Z",
+  }),
+  parseRegion({
+    id: "bezirk-berlin-pankow",
+    slug: "berlin-pankow",
+    name: "Berlin Pankow",
+    type: "bezirk",
+    parentRegionId: "region-berlin",
+    officialBody: {
+      id: "body-bezirksamt-pankow",
+      label: "Bezirksamt Pankow",
+      bodyType: "bezirksamt",
+    },
+    federalState: "Berlin",
+    country: "DE",
+    publicVisibility: "public",
+    createdAt: "2026-05-14T00:00:00.000Z",
+    updatedAt: "2026-05-14T00:00:00.000Z",
+  }),
+  parseRegion({
     id: "kommune-beispielstadt",
     slug: "beispielstadt",
     name: "Beispielstadt",
@@ -63,6 +97,23 @@ export const REGION_FIXTURES: readonly Region[] = [
     publicVisibility: "public",
     createdAt: "2026-05-03T00:00:00.000Z",
     updatedAt: "2026-05-03T00:00:00.000Z",
+  }),
+  parseRegion({
+    id: "kommune-magdeburg",
+    slug: "magdeburg",
+    name: "Magdeburg",
+    type: "kommune",
+    parentRegionId: null,
+    officialBody: {
+      id: "body-stadtverwaltung-magdeburg",
+      label: "Landeshauptstadt Magdeburg",
+      bodyType: "stadtverwaltung",
+    },
+    federalState: "Sachsen-Anhalt",
+    country: "DE",
+    publicVisibility: "public",
+    createdAt: "2026-05-14T00:00:00.000Z",
+    updatedAt: "2026-05-14T00:00:00.000Z",
   }),
   parseRegion({
     id: "quartier-tegel-sued",
@@ -192,6 +243,42 @@ export const REGIONAL_ANLASSRAUM_FIXTURES: readonly RegionalAnlassraum[] = [
     createdAt: "2026-05-03T00:00:00.000Z",
     updatedAt: "2026-05-03T00:00:00.000Z",
   }),
+  parseRegionalAnlassraum({
+    id: "regional-anlassraum-magdeburg",
+    regionId: "kommune-magdeburg",
+    slug: "magdeburg-beteiligungsraum",
+    title: "Regionaler Anlassraum Magdeburg",
+    description:
+      "Kommunaler Pilotraum fuer getrennte Signale, Dossier-Vorschlaege und Review-Queue ohne automatische Freigabe.",
+    status: "draft",
+    scope: [...REGIONAL_ANLASSRAUM_SCOPE_KEYS],
+    guidelineProfile: null,
+    guardrails: {
+      noAutoPublish: true,
+      noAutoMandate: true,
+      noAutomaticPoliticalAssignment: true,
+      noScrapingByDefault: true,
+    },
+    links: {
+      dossierIds: ["dossier-magdeburg-001"],
+      roundIds: [],
+      mandateIds: [],
+    },
+    ownershipModel: "reference_only",
+    publicReadModel: {
+      headline: "Kommunaler Pilotraum Magdeburg",
+      summary:
+        "Getrennte Pilot-Fallkonstellation fuer Regionstrennung und reviewpflichtige Signalsichtung.",
+      regionName: "Magdeburg",
+      statusLabel: "Entwurf",
+      scopeBadges: [...REGIONAL_ANLASSRAUM_SCOPE_KEYS],
+      participationPath:
+        "Check -> Dossier -> Runde -> Beteiligung -> Ergebnis -> Mandat -> Status",
+      lastUpdatedAt: "2026-05-14T00:00:00.000Z",
+    },
+    createdAt: "2026-05-14T00:00:00.000Z",
+    updatedAt: "2026-05-14T00:00:00.000Z",
+  }),
 ] as const;
 
 export const REGIONAL_ACTOR_FIXTURES: readonly RegionalActor[] = [
@@ -267,6 +354,24 @@ export const REGIONAL_ACTOR_FIXTURES: readonly RegionalActor[] = [
     createdAt: "2026-05-10T00:00:00.000Z",
     updatedAt: "2026-05-10T00:00:00.000Z",
   }),
+  parseRegionalActor({
+    id: "actor-magdeburg-jugendamt",
+    regionId: "kommune-magdeburg",
+    slug: "jugendamt-magdeburg",
+    name: "Jugendamt Magdeburg",
+    actorType: "verwaltung",
+    verificationStatus: "verified",
+    description: "Kommunaler Verwaltungsakteur fuer Jugend- und Kulturthemen im Pilot-Scope.",
+    publicVisibility: "public",
+    tags: ["verwaltung", "jugend", "kommune"],
+    guardrails: {
+      noAutomaticPoliticalAssignment: true,
+      noAutomaticVoiceOpenGovMembership: true,
+      verificationStatusRequired: true,
+    },
+    createdAt: "2026-05-14T00:00:00.000Z",
+    updatedAt: "2026-05-14T00:00:00.000Z",
+  }),
 ] as const;
 
 export const COMMUNITY_SIGNAL_FIXTURES: readonly CommunitySignal[] = [
@@ -341,6 +446,30 @@ export const COMMUNITY_SIGNAL_FIXTURES: readonly CommunitySignal[] = [
     },
     createdAt: "2026-05-10T00:00:00.000Z",
     updatedAt: "2026-05-10T00:00:00.000Z",
+  }),
+  parseCommunitySignal({
+    id: "signal-magdeburg-jugend-001",
+    regionId: "kommune-magdeburg",
+    title: "Hinweis zu offenen Jugend- und Sportangeboten",
+    summary:
+      "Pilotischer Community-Hinweis fuer getrennte Kommunal-Tests. Keine automatische Dossier- oder Anlassraum-Erstellung.",
+    signalType: "topic_proposal",
+    reviewStatus: "submitted",
+    sourceActorId: "actor-magdeburg-jugendamt",
+    sourceUrls: [],
+    submitter: {
+      mode: "registered_reference",
+      displayName: "Jugendamt Magdeburg",
+      contactChannel: "jugendamt@magdeburg.example",
+    },
+    guardrails: {
+      moderationRequired: true,
+      noAutoPublish: true,
+      noAutoMandate: true,
+      noAutomaticDossierCreation: true,
+    },
+    createdAt: "2026-05-14T00:00:00.000Z",
+    updatedAt: "2026-05-14T00:00:00.000Z",
   }),
 ] as const;
 

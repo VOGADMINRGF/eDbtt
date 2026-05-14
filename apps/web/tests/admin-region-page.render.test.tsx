@@ -9,7 +9,7 @@ describe("admin-region-page.render", () => {
     const html = renderToStaticMarkup(
       await AdminRegionPage({
         searchParams: {
-          regionId: "region-official-01051011",
+          regionId: "berlin-reinickendorf",
         },
       }),
     );
@@ -17,7 +17,10 @@ describe("admin-region-page.render", () => {
     expect(html).toContain('data-testid="admin-region-page"');
     expect(html).toContain('data-testid="admin-region-selector"');
     expect(html).toContain('data-testid="admin-region-summary"');
+    expect(html).toContain('data-testid="admin-region-feed-signals"');
+    expect(html).toContain('data-testid="admin-region-suggestions"');
     expect(html).toContain('data-testid="admin-region-modules"');
     expect(html).toContain("Verwaltung, Akteure und Signale");
+    expect(html).toContain("Aktuelle Themenlage Berlin Reinickendorf");
   });
 });
