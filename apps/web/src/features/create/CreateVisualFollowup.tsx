@@ -1107,7 +1107,6 @@ function StructureBranchList(props: {
   if (props.branches.length === 0) return null;
   const activeBranch =
     props.branches.find((branch) => branch.id === activeBranchId) ?? props.branches[0] ?? null;
-  const activeBranchPanelId = activeBranch ? `create-branch-panel-${activeBranch.id}` : undefined;
 
   return (
     <div className="space-y-4">
@@ -1165,14 +1164,21 @@ function StructureBranchList(props: {
           </button>
         ))}
       </div>
-      <div
-        className="pt-1"
-        role="tabpanel"
-        id={activeBranchPanelId}
-        aria-labelledby={activeBranch ? `create-branch-tab-${activeBranch.id}` : undefined}
-      >
-        {activeBranch ? <StructureBranchCard branch={activeBranch} onEdit={props.onEdit} /> : null}
-      </div>
+      {props.branches.map((branch) => {
+        const isActive = activeBranch?.id === branch.id;
+        return (
+          <div
+            key={branch.id}
+            className="pt-1"
+            role="tabpanel"
+            id={`create-branch-panel-${branch.id}`}
+            aria-labelledby={`create-branch-tab-${branch.id}`}
+            hidden={!isActive}
+          >
+            <StructureBranchCard branch={branch} onEdit={props.onEdit} />
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -1804,65 +1810,72 @@ function StructuredWorkstateBlock(props: {
           <StructureOverviewRail cards={overviewCards} activeCardId={activeFocusArea} onSelect={setActiveFocusArea} />
         </div>
 
-        <div
-          role="tabpanel"
-          id={`create-overview-panel-${activeFocusArea}`}
-          aria-labelledby={`create-overview-tab-${activeFocusArea}`}
-          className="space-y-4"
-        >
-          <StructureFocusPanel
-            activeFocusArea={activeFocusArea}
-            rootTopic={props.rootTopic}
-            topicLabels={props.topicLabels}
-            positionClusters={props.positionClusters}
-            voteQuestions={props.voteQuestions}
-            keyStatement={props.keyStatement}
-            structureBranches={props.structureBranches}
-            checklistItems={checklistItems}
-            onEdit={props.onEdit}
-            resultChangeKey={props.resultChangeKey}
-            sections={props.sections}
-            modules={props.modules}
-          />
-          {activeFocusArea !== "priorities" ? <ContentModuleGrid modules={props.modules.slice(0, 4)} /> : null}
-          <details className="rounded-[24px] border border-slate-200/80 bg-[color-mix(in_oklab,rgb(var(--card))_92%,rgb(var(--bg))_8%)] px-4 py-4 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))]">
-            <summary className="cursor-pointer text-sm font-semibold text-[rgb(var(--fg))]">
-              Gelesene Sinnabschnitte und Lesemodus
-            </summary>
-            <div className="mt-4 space-y-4">
-              <div className="rounded-[24px] border border-sky-200/60 bg-sky-500/[0.06] px-4 py-4 dark:border-sky-300/25 dark:bg-sky-500/10">
-                <p className="text-sm font-semibold text-sky-950 dark:text-sky-50">Gelesene Sinnabschnitte</p>
-                <p className="mt-2 text-sm leading-relaxed text-sky-900 dark:text-sky-100">
-                  Diese Analysebausteine bleiben bewusst hinter Details und tauchen nicht im ersten Bürger-Flow auf.
-                </p>
-              </div>
-              <SectionFlowDiagram sections={props.sections} />
-              <div className="space-y-2">
-                {props.sections.map((section) => (
-                  <details
-                    key={section.id}
-                    className="rounded-2xl border border-slate-200/75 bg-[color-mix(in_oklab,rgb(var(--card))_90%,rgb(var(--bg))_10%)] px-3 py-3 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--bg))]"
-                  >
-                    <summary className="cursor-pointer text-sm font-semibold text-[rgb(var(--fg))]">{section.label}</summary>
-                    <div className="mt-3 space-y-2 text-sm">
-                      <p className="text-[rgb(var(--fg))]"><span className="font-semibold">Du sagst:</span> {section.sourceText}</p>
-                      {section.statementLabel ? (
-                        <p className="text-[rgb(var(--muted))]"><span className="font-semibold text-[rgb(var(--fg))]">Erkannt als:</span> {section.statementLabel}</p>
-                      ) : null}
-                      {section.topicLabel ? (
-                        <p className="text-[rgb(var(--muted))]"><span className="font-semibold text-[rgb(var(--fg))]">Gehört zu:</span> {section.topicLabel}</p>
-                      ) : null}
-                      {section.connectionLabel ? (
-                        <p className="text-[rgb(var(--muted))]"><span className="font-semibold text-[rgb(var(--fg))]">Passender nächster Schritt:</span> {section.connectionLabel}</p>
-                      ) : null}
-                    </div>
-                  </details>
-                ))}
-              </div>
-              <ContentModuleGrid modules={props.modules} />
+        {FOCUS_AREA_ORDER.map((focusArea) => {
+          const isActive = activeFocusArea === focusArea;
+          return (
+            <div
+              key={focusArea}
+              role="tabpanel"
+              id={`create-overview-panel-${focusArea}`}
+              aria-labelledby={`create-overview-tab-${focusArea}`}
+              className="space-y-4"
+              hidden={!isActive}
+            >
+              <StructureFocusPanel
+                activeFocusArea={focusArea}
+                rootTopic={props.rootTopic}
+                topicLabels={props.topicLabels}
+                positionClusters={props.positionClusters}
+                voteQuestions={props.voteQuestions}
+                keyStatement={props.keyStatement}
+                structureBranches={props.structureBranches}
+                checklistItems={checklistItems}
+                onEdit={props.onEdit}
+                resultChangeKey={props.resultChangeKey}
+                sections={props.sections}
+                modules={props.modules}
+              />
+              {focusArea !== "priorities" ? <ContentModuleGrid modules={props.modules.slice(0, 4)} /> : null}
+              <details className="rounded-[24px] border border-slate-200/80 bg-[color-mix(in_oklab,rgb(var(--card))_92%,rgb(var(--bg))_8%)] px-4 py-4 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))]">
+                <summary className="cursor-pointer text-sm font-semibold text-[rgb(var(--fg))]">
+                  Gelesene Sinnabschnitte und Lesemodus
+                </summary>
+                <div className="mt-4 space-y-4">
+                  <div className="rounded-[24px] border border-sky-200/60 bg-sky-500/[0.06] px-4 py-4 dark:border-sky-300/25 dark:bg-sky-500/10">
+                    <p className="text-sm font-semibold text-sky-950 dark:text-sky-50">Gelesene Sinnabschnitte</p>
+                    <p className="mt-2 text-sm leading-relaxed text-sky-900 dark:text-sky-100">
+                      Diese Analysebausteine bleiben bewusst hinter Details und tauchen nicht im ersten Bürger-Flow auf.
+                    </p>
+                  </div>
+                  <SectionFlowDiagram sections={props.sections} />
+                  <div className="space-y-2">
+                    {props.sections.map((section) => (
+                      <details
+                        key={section.id}
+                        className="rounded-2xl border border-slate-200/75 bg-[color-mix(in_oklab,rgb(var(--card))_90%,rgb(var(--bg))_10%)] px-3 py-3 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--bg))]"
+                      >
+                        <summary className="cursor-pointer text-sm font-semibold text-[rgb(var(--fg))]">{section.label}</summary>
+                        <div className="mt-3 space-y-2 text-sm">
+                          <p className="text-[rgb(var(--fg))]"><span className="font-semibold">Du sagst:</span> {section.sourceText}</p>
+                          {section.statementLabel ? (
+                            <p className="text-[rgb(var(--muted))]"><span className="font-semibold text-[rgb(var(--fg))]">Erkannt als:</span> {section.statementLabel}</p>
+                          ) : null}
+                          {section.topicLabel ? (
+                            <p className="text-[rgb(var(--muted))]"><span className="font-semibold text-[rgb(var(--fg))]">Gehört zu:</span> {section.topicLabel}</p>
+                          ) : null}
+                          {section.connectionLabel ? (
+                            <p className="text-[rgb(var(--muted))]"><span className="font-semibold text-[rgb(var(--fg))]">Passender nächster Schritt:</span> {section.connectionLabel}</p>
+                          ) : null}
+                        </div>
+                      </details>
+                    ))}
+                  </div>
+                  <ContentModuleGrid modules={props.modules} />
+                </div>
+              </details>
             </div>
-          </details>
-        </div>
+          );
+        })}
       </div>
     </div>
   );

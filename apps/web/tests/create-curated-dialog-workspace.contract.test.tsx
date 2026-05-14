@@ -209,4 +209,18 @@ describe("create curated dialog workspace contract", () => {
     expect(followupSource).not.toContain("Dossier ansehen");
     expect(followupSource).not.toContain("Dossier ansehen pro Thema");
   });
+
+  it("keeps tab controls aligned with persistent tabpanels", () => {
+    const followupSource = readFileSync(
+      resolve(process.cwd(), "src/features/create/CreateVisualFollowup.tsx"),
+      "utf8",
+    );
+
+    expect(followupSource).toContain("aria-controls={`create-branch-panel-${branch.id}`}");
+    expect(followupSource).toContain("id={`create-branch-panel-${branch.id}`}");
+    expect(followupSource).toContain("hidden={!isActive}");
+    expect(followupSource).toContain("aria-controls={`create-overview-panel-${card.id}`}");
+    expect(followupSource).toContain("id={`create-overview-panel-${focusArea}`}");
+    expect(followupSource).toContain("{FOCUS_AREA_ORDER.map((focusArea) => {");
+  });
 });
