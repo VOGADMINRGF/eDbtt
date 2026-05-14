@@ -87,6 +87,13 @@ Nicht im Scope:
 - Kein automatisches Scraping.
 - Kein Auto-Publish.
 
+## Audit-Follow-up (2026-05-14)
+
+- Der regionale Anlassraum bleibt der bevorzugte Pilotpfad fuer Verwaltung, Dossier, Claims, offene Fragen und Review.
+- Vergabe-/Ausschreibungs- und Akquise-Logik sind fuer den aktuellen eDebatte-MVP geparkt.
+- Kein Beschaffungsmonitoring, keine Ausschreibungs-Ingestion und keine Vergabebewertung im eDebatte-Kern.
+- Reinickendorf bleibt der naechste Zielraum fuer einen gehaerteten Region-Dashboard-/Dossier-/Review-Schnitt.
+
 ## Ergebnis
 
 OpenTasks ist um eine eigenstaendige, zusammenhaengende Regional-Familie erweitert.

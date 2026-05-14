@@ -195,34 +195,35 @@ Dieses Dokument hält angerissene, noch nicht abschließend ausgearbeitete Punkt
 
 ### PR-VOG-BETEILIGUNGSRADAR-01
 
-- Status: `codex_ready`
+- Status: `research_only`
 - Priority: `high`
 - Depends on: `PR-LANDING-CLARITY-01`, `PR-PRICING-B2G-HIERARCHY-01`
-- Scope: VoiceOpenGov Beteiligungsradar, signal-to-dossier contract, admin/operator surface
-- Goal: RUWE-Bid-OS-Logik in VoiceOpenGov/eDebatte übersetzen: Ausschreibungen, Beteiligungsanlässe und kommunale Signale werden als Signale erkannt und in Anlassraum/Dossier/Runde/Mandat vorbereitet.
+- Scope: VoiceOpenGov Beteiligungsradar als spaeterer oeffentlicher Themen-/Signalradar, ohne Vergabe-/Scraping-Engine
+- Goal: Beteiligungssignale und oeffentliche Themenhinweise spaeter als vorgelagerte Signalebene fuer Anlassraum/Dossier/Runde/Mandat beschreiben, ohne Ausschreibungs-/Vergabe-Fokus in den eDebatte-MVP zu ziehen.
 - Flow:
-  - Signal/Ausschreibung -> Anlassraum -> Dossier -> Runde -> Mandat
+  - Signal/Themenimpuls -> Anlassraum -> Dossier -> Runde -> Mandat
 - Acceptance Criteria:
   - Typed `ParticipationSignal` und `ParticipationSignalScore` Contract.
-  - Demo-Signale für Ausschreibung, Nahverkehrsplan, Stadtentwicklung, Beteiligungsportal, Medien-/Community-Signal.
-  - Admin-Surface `/admin/radar/beteiligung` oder passende Operator-Surface.
-  - Kein Auto-Publish, keine automatische Ausschreibung, keine gesetzliche Verfahrensersetzung.
+  - Beispiele bleiben bei Themen-/Signaltypen wie Nahverkehrsplan, Stadtentwicklung, Beteiligungsportal, Medien-/Community-Signal.
+  - Keine Ausschreibungen, keine Vergabe, kein Scraping, keine automatische Ingestion.
+  - Kein Auto-Publish und keine gesetzliche Verfahrensersetzung.
   - Handoff nach `/create?entryIntent=issue_signal&source=participation_radar`.
 - Decision open: no
+- Scope note: `pause / spaeterer Themen-/Signalradar ausserhalb des aktuellen eDebatte-MVP`
 
 ### PR-RADAR-B2G-ACQUISITION-01
 
-- Status: `open`
+- Status: `research_only`
 - Priority: `medium`
 - Depends on: `PR-VOG-BETEILIGUNGSRADAR-01`
 - Scope: Admin acquisition dashboard, municipal feed/source discovery
-- Goal: Späterer Ausbau zu einem Akquise-/Operator-Dashboard für kommunale Beteiligungssignale und Ausschreibungen, anschlussfähig an 11.500 Kommunen.
+- Goal: Vorlaeufig geparkt; kein Akquise-/Ausschreibungs-Dashboard im eDebatte-MVP.
 - Acceptance Criteria:
-  - Kein Live-Crawling im ersten Schritt ohne Guardrails.
-  - Quellen-/Feed-Registry als Mock/Seed möglich.
-  - Region, Kommune, Frist, Quelle, Signaltyp, Relevanz und nächster Schritt sichtbar.
-  - Dedupe und no-auto-publish Guardrails.
-- Decision open: yes – Datenquellen-/Crawling-Strategie.
+  - Kein Live-Crawling und keine Ausschreibungs-Ingestion im MVP.
+  - Keine Abstimmungen ueber laufende Vergabeverfahren.
+  - Falls spaeter reaktiviert: nur als separater Nicht-MVP-Slice mit neuer Datenquellen-/Crawling-Entscheidung.
+- Decision open: no
+- Scope note: `pause / out_of_scope_for_edebatte_mvp`
 
 ## 6. Mandat / VoiceOpenGov Directory / Mitgliedschaft
 
@@ -278,9 +279,9 @@ Dieses Dokument hält angerissene, noch nicht abschließend ausgearbeitete Punkt
 1. `PR-PRICING-B2G-HIERARCHY-01` – vor Merge von PR #71 finalisieren.
 2. `PR-PRICING-B2B-PARTNER-01` – B2B Beteiligungsbüros/Dialogprofis ausarbeiten.
 3. `PR-LANDING-CLARITY-01` – Startseite klar und segmentorientiert machen.
-4. `PR-VOG-BETEILIGUNGSRADAR-01` – Beteiligungsradar als separater Signal-/Anlassraum-Slice.
-5. `PR-MANDAT-REGISTRY-01` – Mandat/Directory/VoiceOpenGov-Verknüpfung.
-6. Output-Studio-Folge: Persistence, Export Assets, Channel Adapter Registry, Privacy-safe Impact.
+4. `PR-MANDAT-REGISTRY-01` – Mandat/Directory/VoiceOpenGov-Verknuepfung.
+5. Output-Studio-Folge: Persistence, Export Assets, Channel Adapter Registry, Privacy-safe Impact.
+6. Beteiligungsradar und B2G-Akquise bleiben fuer den aktuellen eDebatte-MVP geparkt.
 
 ## Guardrails gesamt
 
@@ -288,6 +289,7 @@ Dieses Dokument hält angerissene, noch nicht abschließend ausgearbeitete Punkt
 - Kein Fake-OAuth.
 - Keine Rechtsberatung.
 - Keine automatische Ausschreibung.
+- Keine Vergabe-/Beschaffungslogik im eDebatte-MVP.
 - Keine gesetzliche Verfahrensersetzung.
 - Kein Drittanbieter-Tracking ohne bewusste Entscheidung.
 - Dossier bleibt Source of Truth.
