@@ -41,7 +41,7 @@ describe("admin-region-page.render", () => {
     expect(html).toContain("Anlassraum-Draft vorbereiten");
     expect(html).toContain("Quelle prüfen");
     expect(html).toContain("Offene Frage markieren");
-    expect(html).toContain("Folgt in CUT-03");
+    expect(html).toContain("Persistente Draft-Erstellung läuft serverseitig nur für akzeptierte Signale.");
     expect(html).toContain("Self-declared ist nicht verifiziert.");
     expect(html).toContain("Pending hat keine Behördenrechte.");
     expect(html).toContain("Standortangaben wie Rathaus Reinickendorf bleiben optional.");

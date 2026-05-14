@@ -510,7 +510,7 @@ export default async function AdminRegionPage({
                   >
                     <span className="block font-semibold text-[rgb(var(--fg))]">{label}</span>
                     <span className="mt-1 block text-xs text-[rgb(var(--muted))]">
-                      {actionStateLabel(cockpit)} · Folgt in CUT-03
+                      {actionStateLabel(cockpit)} · Persistente Draft-Erstellung läuft serverseitig nur für akzeptierte Signale. Diese Oberfläche bleibt bewusst prepare-only.
                     </span>
                   </button>
                 ))}

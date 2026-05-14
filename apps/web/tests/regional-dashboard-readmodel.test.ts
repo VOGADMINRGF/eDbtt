@@ -38,12 +38,16 @@ describe("regional dashboard readmodel", () => {
     expect(magdeburg.feedSignals.some((signal) => signal.regionId === "bezirk-berlin-reinickendorf")).toBe(false);
   });
 
-  it("keeps create_dossier suggestions review-only and never auto-publishes", async () => {
+  it("keeps create_dossier suggestions review-gated and never auto-publishes", async () => {
     const model = await getRegionalAdminCockpitReadModel("berlin-reinickendorf");
     const createDossierSignal = model.feedSignals.find((signal) => signal.suggestedAction === "create_dossier");
 
     expect(createDossierSignal).toBeTruthy();
-    expect(createDossierSignal?.reviewStatus === "draft" || createDossierSignal?.reviewStatus === "needs_review").toBe(true);
+    expect(
+      createDossierSignal?.reviewStatus === "draft" ||
+        createDossierSignal?.reviewStatus === "needs_review" ||
+        createDossierSignal?.reviewStatus === "accepted",
+    ).toBe(true);
     expect(createDossierSignal?.noAutoPublish).toBe(true);
     expect(createDossierSignal?.noAutoCreateDossier).toBe(true);
     expect(createDossierSignal?.noAutoCreateAnlassraum).toBe(true);

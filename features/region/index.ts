@@ -4,5 +4,6 @@ export * from "./directory";
 export * from "./fixtures";
 export * from "./organizationOnboarding";
 export * from "./regionFeedSignals";
+export * from "./regionSignalDrafts";
 export * from "./store";
 export * from "./server/repo";
