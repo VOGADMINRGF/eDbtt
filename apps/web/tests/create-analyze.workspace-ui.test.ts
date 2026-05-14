@@ -1,13 +1,17 @@
 import { describe, expect, it, vi } from "vitest";
 import {
+  buildAnalyzeWorkspaceMaterialPayload,
+  buildAnalyzeWorkspaceSavePayload,
   buildCreatePrepareAttachReviewState,
   collectCreateAnalyzeReasons,
   deriveSourceGroundingUiHint,
   deriveCreateAnalyzeRoutingHint,
   resolveFinalizeRedirectTarget,
+  shouldRenderCompactEmbeddedWorkspaceHeader,
   shouldHydrateDraftIdentityFromStorage,
   shouldRenderWorkspacePrimaryTextInput,
   shouldTriggerEmbeddedAutoAnalyze,
+  shouldUseInlineCreateActionBar,
 } from "@/components/analyze/AnalyzeWorkspace";
 import {
   buildFinalizeFallbackPath,
@@ -15,6 +19,81 @@ import {
 } from "@/features/create/finalizeRedirect";
 
 describe("create analyze workspace UI helpers", () => {
+  it("keeps source/material payload compact and omits empty arrays", () => {
+    expect(
+      buildAnalyzeWorkspaceMaterialPayload({
+        sourceUrls: ["https://example.org/bericht"],
+        uploadIds: [],
+        materialItems: [
+          {
+            id: "mat-1",
+            kind: "web_document",
+            label: "Bericht",
+            url: "https://example.org/bericht",
+            uploadId: null,
+            mimeType: null,
+            fileName: null,
+            text: null,
+            pageRef: null,
+            timestampRef: null,
+            extractedBy: null,
+            extractionStatus: "partial",
+          },
+        ],
+      }),
+    ).toEqual({
+      sourceUrls: ["https://example.org/bericht"],
+      materialItems: [
+        expect.objectContaining({
+          id: "mat-1",
+          kind: "web_document",
+        }),
+      ],
+    });
+
+    expect(
+      buildAnalyzeWorkspaceMaterialPayload({
+        sourceUrls: [],
+        uploadIds: [],
+        materialItems: [],
+      }),
+    ).toEqual({});
+  });
+
+  it("omits null draftId from save payload so first embedded save stays schema-safe", () => {
+    expect(
+      buildAnalyzeWorkspaceSavePayload({
+        draftId: null,
+        preparedText: "Bitte prüft die Tierwohl-Standards im Import.",
+        text: "Bitte prüft die Tierwohl-Standards im Import.",
+        locale: "de",
+        mode: "contribution",
+        resolvedCreateMode: "source",
+        selectedAnlassraumId: null,
+        authorName: null,
+        useCase: "civic",
+        materialPayload: {},
+        analysis: {
+          claims: [],
+          notes: [],
+          questions: [],
+          knots: [],
+          consequences: [],
+          responsibilities: [],
+          responsibilityPaths: [],
+          impactAndResponsibility: { impacts: [], responsibleActors: [] },
+          report: null,
+          eventualities: [],
+          decisionTrees: [],
+        },
+      }),
+    ).toEqual(
+      expect.not.objectContaining({
+        draftId: expect.anything(),
+      }),
+    );
+  });
+
   it("prioritizes neu_anlegen messaging for no_match", () => {
     const hint = deriveCreateAnalyzeRoutingHint({
       matchType: "no_match",
@@ -482,5 +561,31 @@ describe("create analyze workspace UI helpers", () => {
         syncTextFromParent: false,
       }),
     ).toBe(true);
+  });
+
+  it("uses a compact workspace header for embedded create analysis scenes", () => {
+    expect(
+      shouldRenderCompactEmbeddedWorkspaceHeader({
+        analysisEntryVariant: "single_button",
+      }),
+    ).toBe(true);
+    expect(
+      shouldRenderCompactEmbeddedWorkspaceHeader({
+        analysisEntryVariant: "use_case_cards",
+      }),
+    ).toBe(false);
+  });
+
+  it("switches the create analysis action bar from global overlay to inline/sticky mode", () => {
+    expect(
+      shouldUseInlineCreateActionBar({
+        analysisEntryVariant: "single_button",
+      }),
+    ).toBe(true);
+    expect(
+      shouldUseInlineCreateActionBar({
+        analysisEntryVariant: "use_case_cards",
+      }),
+    ).toBe(false);
   });
 });

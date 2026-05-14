@@ -15,6 +15,7 @@ describe("themenradar-admin-page.render", () => {
     expect(html).toContain('data-testid="themenradar-filters"');
     expect(html).toContain('data-testid="themenradar-status-filter"');
     expect(html).toContain('data-testid="themenradar-source-filter"');
+    expect(html).toContain('data-testid="themenradar-query-filter"');
     expect(html).toContain("Neues Thema anlegen");
     expect(html).toContain("Operator-Fläche");
   });

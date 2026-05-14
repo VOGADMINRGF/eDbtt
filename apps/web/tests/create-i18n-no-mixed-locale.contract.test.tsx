@@ -78,34 +78,30 @@ describe("create i18n no mixed locale contract", () => {
   it("keeps EN entry copy free from DE leftovers", () => {
     const html = renderCreate("en");
 
-    expect(html).toContain("Your");
-    expect(html).toContain("opinion");
+    expect(html).toContain("What would you like to contribute?");
     expect(html).toContain("Contribute");
     expect(html).toContain("Review");
     expect(html).toContain("Draft together");
-    expect(html).toContain("Context (optional)");
-    expect(html).toContain("Help");
+    expect(html).toContain("Different mode");
 
     expect(html).not.toContain("Deine");
     expect(html).not.toContain("Meinung");
     expect(html).not.toContain("Beitragen");
     expect(html).not.toContain("Prüfen");
     expect(html).not.toContain("Entwerfen");
-    expect(html).not.toContain("Hilfebereich");
+    expect(html).not.toContain("Anderer Arbeitsmodus");
   });
 
   it("keeps DE entry copy free from EN leftovers", () => {
     const html = renderCreate("de");
 
-    expect(html).toContain("Deine");
-    expect(html).toContain("Meinung");
+    expect(html).toContain("Was möchtest du einbringen?");
     expect(html).toContain("Beitragen");
     expect(html).toContain("Prüfen");
     expect(html).toContain("Entwerfen");
-    expect(html).toContain("Kontext (optional)");
-    expect(html).toContain("Hilfebereich");
+    expect(html).toContain("Anderer Arbeitsmodus");
 
-    expect(html).not.toContain("Context (optional)");
-    expect(html).not.toContain("How it works");
+    expect(html).not.toContain("Different mode");
+    expect(html).not.toContain("What would you like to contribute?");
   });
 });

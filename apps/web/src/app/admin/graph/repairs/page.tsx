@@ -1,21 +1,37 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 type RepairItem = {
   id: string;
   type: string;
   status: string;
+  severity: "low" | "medium" | "high" | "critical";
+  entityId: string | null;
+  entityLabel: string | null;
+  cause: string | null;
+  proposedAction: string | null;
+  nextActions: string[];
+  systemGenerated: boolean;
   payload: Record<string, unknown>;
   createdAt?: string | null;
+  updatedAt?: string | null;
 };
 
 type RepairResponse = {
+  status: "ok" | "degraded" | "unavailable";
+  source: "real_graph" | "system_health" | "mock" | "seed";
+  isMock: boolean;
   items: RepairItem[];
   total: number;
   page: number;
   pageSize: number;
+  filters: {
+    type: string | null;
+    status: string | null;
+  };
+  message: string | null;
 };
 
 export default function AdminGraphRepairsPage() {
@@ -27,12 +43,7 @@ export default function AdminGraphRepairsPage() {
   const [data, setData] = useState<RepairResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [mergeA, setMergeA] = useState("");
-  const [mergeB, setMergeB] = useState("");
-  const [mergeReason, setMergeReason] = useState("");
-  const [relinkFrom, setRelinkFrom] = useState("");
-  const [relinkTo, setRelinkTo] = useState("");
-  const [relinkReason, setRelinkReason] = useState("");
+  const [actionState, setActionState] = useState<string | null>(null);
 
   useEffect(() => {
     const typeParam = searchParams.get("type") ?? "";
@@ -41,81 +52,59 @@ export default function AdminGraphRepairsPage() {
     if (statusParam) setStatus(statusParam);
   }, [searchParams]);
 
-  useEffect(() => {
-    let active = true;
-    async function load() {
-      setLoading(true);
-      setError(null);
-      try {
-        const params = new URLSearchParams();
-        if (type !== "all") params.set("type", type);
-        if (status !== "all") params.set("status", status);
-        params.set("page", String(page));
-        params.set("limit", "30");
-        const res = await fetch(`/api/admin/graph/repairs?${params.toString()}`, { cache: "no-store" });
-        if (res.status === 401) {
-          router.replace("/login?next=/admin/graph/repairs");
-          return;
-        }
-        const body = await res.json().catch(() => ({}));
-        if (!res.ok || !body?.ok) throw new Error(body?.error || res.statusText);
-        if (active) setData(body);
-      } catch (err: any) {
-        if (active) setError(err?.message ?? "repairs_load_failed");
-      } finally {
-        if (active) setLoading(false);
+  const loadRepairs = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const params = new URLSearchParams();
+      if (type !== "all") params.set("type", type);
+      if (status !== "all") params.set("status", status);
+      params.set("page", String(page));
+      params.set("limit", "30");
+      const res = await fetch(`/api/admin/graph/repairs?${params.toString()}`, { cache: "no-store" });
+      if (res.status === 401) {
+        router.replace("/login?next=/admin/graph/repairs");
+        return;
       }
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok || !body?.ok) throw new Error(body?.error || res.statusText);
+      setData(body);
+    } catch (err: any) {
+      setError(err?.message ?? "repairs_load_failed");
+    } finally {
+      setLoading(false);
     }
-    load();
-    return () => {
-      active = false;
-    };
-  }, [type, status, page, router]);
+  }, [page, router, status, type]);
+
+  useEffect(() => {
+    void loadRepairs();
+  }, [loadRepairs]);
 
   const totalPages = useMemo(() => {
     if (!data) return 1;
     return Math.max(1, Math.ceil(data.total / data.pageSize));
   }, [data]);
 
-  const handleMerge = async () => {
+  async function handleRunDiagnostics() {
+    setActionState("Diagnose wird aktualisiert …");
     setError(null);
     try {
-      const res = await fetch("/api/admin/graph/repairs/merge-suggest", {
+      const res = await fetch("/api/admin/graph/repairs/run-diagnostics", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ aId: mergeA, bId: mergeB, reason: mergeReason || undefined }),
       });
       const body = await res.json().catch(() => ({}));
-      if (!res.ok || !body?.ok) throw new Error(body?.error || "merge_failed");
-      setMergeA("");
-      setMergeB("");
-      setMergeReason("");
-      setPage(1);
+      if (!res.ok || !body?.ok) throw new Error(body?.error || "diagnostics_failed");
+      await loadRepairs();
+      setActionState("Diagnose aktualisiert.");
     } catch (err: any) {
-      setError(err?.message ?? "merge_failed");
+      setError(err?.message ?? "diagnostics_failed");
+      setActionState(null);
     }
-  };
+  }
 
-  const handleRelink = async () => {
-    setError(null);
-    try {
-      const res = await fetch("/api/admin/graph/repairs/relink", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ fromId: relinkFrom, toId: relinkTo, reason: relinkReason || undefined }),
-      });
-      const body = await res.json().catch(() => ({}));
-      if (!res.ok || !body?.ok) throw new Error(body?.error || "relink_failed");
-      setRelinkFrom("");
-      setRelinkTo("");
-      setRelinkReason("");
-      setPage(1);
-    } catch (err: any) {
-      setError(err?.message ?? "relink_failed");
-    }
-  };
-
-  const handleApply = async (ticketId: string) => {
+  async function handleApply(ticketId: string) {
+    setActionState("Aktion wird ausgeführt …");
     setError(null);
     try {
       const res = await fetch(`/api/admin/graph/repairs/${ticketId}/apply`, {
@@ -125,92 +114,79 @@ export default function AdminGraphRepairsPage() {
       });
       const body = await res.json().catch(() => ({}));
       if (!res.ok || !body?.ok) throw new Error(body?.error || "apply_failed");
+      await loadRepairs();
+      setActionState("Ticket aktualisiert.");
     } catch (err: any) {
       setError(err?.message ?? "apply_failed");
+      setActionState(null);
     }
-  };
+  }
 
-  const handleReject = async (ticketId: string) => {
+  async function handleReject(ticketId: string) {
+    setActionState("Ticket wird zurückgestellt …");
     setError(null);
     try {
       const res = await fetch(`/api/admin/graph/repairs/${ticketId}/reject`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ reason: "reject" }),
+        body: JSON.stringify({ reason: "manuell zurückgestellt" }),
       });
       const body = await res.json().catch(() => ({}));
       if (!res.ok || !body?.ok) throw new Error(body?.error || "reject_failed");
+      await loadRepairs();
+      setActionState("Ticket aktualisiert.");
     } catch (err: any) {
       setError(err?.message ?? "reject_failed");
+      setActionState(null);
     }
-  };
+  }
 
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-8">
       <header className="space-y-1">
         <p className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">Admin · Graph</p>
-        <h1 className="text-2xl font-bold text-[rgb(var(--fg))]">Repairs</h1>
-        <p className="text-sm text-[rgb(var(--muted))]">Tickets anlegen, pruefen und anwenden.</p>
+        <h1 className="text-2xl font-bold text-[rgb(var(--fg))]">Graph Repairs</h1>
+        <p className="text-sm text-[rgb(var(--muted))]">
+          Diagnose-Tickets, Systemblocker und sichere Review-Aktionen für den Graph.
+        </p>
       </header>
 
-      {error && (
-        <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
-          {error}
-        </div>
-      )}
+      {error ? (
+        <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</div>
+      ) : null}
+      {actionState ? (
+        <div className="rounded-2xl border border-cyan-200 bg-cyan-50 px-4 py-3 text-sm text-cyan-700">{actionState}</div>
+      ) : null}
 
-      <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm">
-        <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Merge Suggest</h2>
-        <div className="mt-3 grid gap-3 md:grid-cols-3">
-          <input
-            value={mergeA}
-            onChange={(e) => setMergeA(e.target.value)}
-            placeholder="Node A ID"
-            className="rounded-2xl border border-[rgb(var(--border))] px-3 py-2 text-sm"
-          />
-          <input
-            value={mergeB}
-            onChange={(e) => setMergeB(e.target.value)}
-            placeholder="Node B ID"
-            className="rounded-2xl border border-[rgb(var(--border))] px-3 py-2 text-sm"
-          />
-          <input
-            value={mergeReason}
-            onChange={(e) => setMergeReason(e.target.value)}
-            placeholder="Reason"
-            className="rounded-2xl border border-[rgb(var(--border))] px-3 py-2 text-sm"
-          />
+      <section
+        className={`rounded-3xl border px-4 py-4 shadow-sm ${
+          data?.status === "unavailable"
+            ? "border-rose-300 bg-rose-50/80"
+            : data?.status === "degraded"
+              ? "border-amber-300 bg-amber-50/80"
+              : "border-[rgb(var(--border))] bg-[rgb(var(--card))]"
+        }`}
+      >
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">Status</p>
+            <h2 className="mt-1 text-lg font-semibold text-[rgb(var(--fg))]">
+              {data?.status === "unavailable"
+                ? "Graph nicht verfügbar"
+                : data?.status === "degraded"
+                  ? "Graph eingeschränkt"
+                  : "Graph-Reparaturen"}
+            </h2>
+            <p className="mt-2 text-sm text-[rgb(var(--muted))]">{data?.message ?? "Offene und geschlossene Tickets."}</p>
+          </div>
+          <button
+            type="button"
+            onClick={handleRunDiagnostics}
+            className="rounded-full border border-[rgb(var(--border))] px-4 py-2 text-sm font-semibold text-[rgb(var(--fg))]"
+          >
+            Diagnose aktualisieren
+          </button>
         </div>
-        <button className="mt-3 rounded-2xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white" onClick={handleMerge}>
-          Ticket erstellen
-        </button>
-      </section>
-
-      <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm">
-        <h2 className="text-sm font-semibold text-[rgb(var(--fg))]">Relink</h2>
-        <div className="mt-3 grid gap-3 md:grid-cols-3">
-          <input
-            value={relinkFrom}
-            onChange={(e) => setRelinkFrom(e.target.value)}
-            placeholder="From ID"
-            className="rounded-2xl border border-[rgb(var(--border))] px-3 py-2 text-sm"
-          />
-          <input
-            value={relinkTo}
-            onChange={(e) => setRelinkTo(e.target.value)}
-            placeholder="To ID"
-            className="rounded-2xl border border-[rgb(var(--border))] px-3 py-2 text-sm"
-          />
-          <input
-            value={relinkReason}
-            onChange={(e) => setRelinkReason(e.target.value)}
-            placeholder="Reason"
-            className="rounded-2xl border border-[rgb(var(--border))] px-3 py-2 text-sm"
-          />
-        </div>
-        <button className="mt-3 rounded-2xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white" onClick={handleRelink}>
-          Ticket erstellen
-        </button>
       </section>
 
       <section className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-sm">
@@ -221,6 +197,8 @@ export default function AdminGraphRepairsPage() {
             className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-2 text-sm"
           >
             <option value="all">Alle Typen</option>
+            <option value="graph_unavailable">graph_unavailable</option>
+            <option value="missing_env">missing_env</option>
             <option value="merge_suggest">merge_suggest</option>
             <option value="relink">relink</option>
           </select>
@@ -230,64 +208,95 @@ export default function AdminGraphRepairsPage() {
             className="rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-2 text-sm"
           >
             <option value="all">Alle Status</option>
+            <option value="blocked">blocked</option>
             <option value="pending">pending</option>
             <option value="applied">applied</option>
             <option value="rejected">rejected</option>
           </select>
         </div>
+
         <div className="mt-4 overflow-hidden rounded-2xl border border-[rgb(var(--border))]">
           <table className="min-w-full divide-y divide-[rgb(var(--border))] text-sm">
             <thead className="bg-[rgb(var(--bg))]">
               <tr>
-                <th className="px-4 py-3 text-left font-semibold text-[rgb(var(--muted))]">Type</th>
-                <th className="px-4 py-3 text-left font-semibold text-[rgb(var(--muted))]">Payload</th>
+                <th className="px-4 py-3 text-left font-semibold text-[rgb(var(--muted))]">Ticket</th>
+                <th className="px-4 py-3 text-left font-semibold text-[rgb(var(--muted))]">Typ</th>
                 <th className="px-4 py-3 text-left font-semibold text-[rgb(var(--muted))]">Status</th>
+                <th className="px-4 py-3 text-left font-semibold text-[rgb(var(--muted))]">Ursache</th>
+                <th className="px-4 py-3 text-left font-semibold text-[rgb(var(--muted))]">Nächste Aktion</th>
                 <th className="px-4 py-3 text-left font-semibold text-[rgb(var(--muted))]">Aktion</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[rgb(var(--border))]">
-              {loading && (
+              {loading ? (
                 <tr>
-                  <td colSpan={4} className="px-4 py-6 text-center text-[rgb(var(--muted))]">
+                  <td colSpan={6} className="px-4 py-6 text-center text-[rgb(var(--muted))]">
                     Lädt Repairs...
                   </td>
                 </tr>
-              )}
-              {!loading && data?.items?.length === 0 && (
+              ) : null}
+              {!loading && data?.items?.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="px-4 py-6 text-center text-[rgb(var(--muted))]">
-                    Keine Tickets.
+                  <td colSpan={6} className="px-4 py-6 text-center text-[rgb(var(--muted))]">
+                    Keine offenen Graph-Reparaturen.
                   </td>
                 </tr>
-              )}
+              ) : null}
               {!loading &&
-                data?.items?.map((item) => (
-                  <tr key={item.id}>
-                    <td className="px-4 py-3 text-[rgb(var(--muted))]">{item.type}</td>
-                    <td className="px-4 py-3 text-[rgb(var(--muted))]">
-                      {JSON.stringify(item.payload)}
-                    </td>
-                    <td className="px-4 py-3 text-[rgb(var(--muted))]">{item.status}</td>
-                    <td className="px-4 py-3">
-                      {item.status === "pending" && (
-                        <div className="flex gap-2">
+                data?.items?.map((item) => {
+                  const manualOnly = item.type === "graph_unavailable" || item.type === "missing_env";
+                  return (
+                    <tr key={item.id}>
+                      <td className="px-4 py-3 text-[rgb(var(--fg))]">
+                        <div className="font-medium">{item.entityLabel ?? item.entityId ?? item.id}</div>
+                        <div className="text-xs text-[rgb(var(--muted))]">{item.id}</div>
+                      </td>
+                      <td className="px-4 py-3 text-[rgb(var(--muted))]">{item.type}</td>
+                      <td className="px-4 py-3 text-[rgb(var(--muted))]">
+                        <span className="rounded-full border border-[rgb(var(--border))] px-2 py-1 text-xs">{item.status}</span>
+                      </td>
+                      <td className="px-4 py-3 text-[rgb(var(--muted))]">{item.cause ?? "—"}</td>
+                      <td className="px-4 py-3 text-[rgb(var(--muted))]">
+                        <div>{item.proposedAction ?? "—"}</div>
+                        {item.nextActions.length ? (
+                          <div className="mt-2 text-xs">
+                            {item.nextActions.slice(0, 2).map((action) => (
+                              <div key={action}>• {action}</div>
+                            ))}
+                          </div>
+                        ) : null}
+                      </td>
+                      <td className="px-4 py-3">
+                        {item.status === "pending" ? (
+                          <div className="flex flex-wrap gap-2">
+                            <button
+                              className="rounded-full border border-[rgb(var(--border))] px-3 py-1 text-xs"
+                              onClick={() => handleApply(item.id)}
+                              disabled={manualOnly}
+                            >
+                              {manualOnly ? "Review nötig" : "Anwenden"}
+                            </button>
+                            <button
+                              className="rounded-full border border-[rgb(var(--border))] px-3 py-1 text-xs"
+                              onClick={() => handleReject(item.id)}
+                            >
+                              Zurückstellen
+                            </button>
+                          </div>
+                        ) : item.status === "blocked" ? (
                           <button
                             className="rounded-full border border-[rgb(var(--border))] px-3 py-1 text-xs"
-                            onClick={() => handleApply(item.id)}
+                            onClick={handleRunDiagnostics}
                           >
-                            Apply
+                            Erneut prüfen
                           </button>
-                          <button
-                            className="rounded-full border border-[rgb(var(--border))] px-3 py-1 text-xs"
-                            onClick={() => handleReject(item.id)}
-                          >
-                            Reject
-                          </button>
-                        </div>
-                      )}
-                    </td>
-                  </tr>
-                ))}
+                        ) : (
+                          <span className="text-xs text-[rgb(var(--muted))]">Keine Aktion</span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
             </tbody>
           </table>
         </div>
@@ -302,7 +311,7 @@ export default function AdminGraphRepairsPage() {
           Zurück
         </button>
         <span>
-          Seite {page} / {Math.max(1, Math.ceil((data?.total ?? 1) / (data?.pageSize ?? 1)))}
+          Seite {page} / {Math.max(1, totalPages)}
         </span>
         <button
           className="rounded-full border border-[rgb(var(--border))] px-3 py-1 disabled:opacity-50"

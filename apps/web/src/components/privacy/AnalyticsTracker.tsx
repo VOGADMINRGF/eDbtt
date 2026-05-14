@@ -6,6 +6,7 @@ import {
   CONSENT_COOKIE_NAME,
   CONSENT_LOCALSTORAGE_KEY,
   LEGACY_CONSENT_COOKIE_NAME,
+  hasRequiredPrivacyAcknowledgement,
   parseConsentCookie,
 } from "@/lib/privacy/consent";
 
@@ -61,7 +62,7 @@ export function AnalyticsTracker() {
     lastTracked.current = pathname;
 
     const consent = readConsent();
-    if (!consent?.analytics) return;
+    if (!hasRequiredPrivacyAcknowledgement(consent) || !consent?.optional.analytics) return;
 
     const visitorId = ensureVisitorId();
 

@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { ObjectId, piiCol } from "@core/db/triMongo";
+import {
+  PRIVACY_NOTICE_VERSION,
+  buildDefaultConsent,
+  normalizeConsent,
+  type Consent,
+} from "@/lib/privacy/consent";
 import { readSession } from "@/utils/session";
 
 export const runtime = "nodejs";
@@ -10,18 +16,48 @@ const CONSENT_COLLECTION = "user_consent_preferences" as const;
 type ConsentDoc = {
   _id?: ObjectId;
   userId: ObjectId;
-  essential: true;
-  analytics: boolean;
+  privacyNoticeVersion: string;
+  requiredNoticeAcknowledged: boolean;
+  optional: {
+    comfort: boolean;
+    analytics: boolean;
+    externalMedia: boolean;
+    productImprovement: boolean;
+  };
   source?: string | null;
   updatedAt: Date;
   createdAt: Date;
 };
 
-const patchSchema = z.object({
+const currentPatchSchema = z.object({
+  privacyNoticeVersion: z.string().min(1).max(64).optional(),
+  requiredNoticeAcknowledged: z.boolean(),
+  optional: z.object({
+    comfort: z.boolean(),
+    analytics: z.boolean(),
+    externalMedia: z.boolean(),
+    productImprovement: z.boolean(),
+  }),
+  source: z.string().max(64).optional(),
+  timestamp: z.string().optional(),
+});
+
+const legacyPatchSchema = z.object({
   essential: z.literal(true).optional(),
   analytics: z.boolean(),
   source: z.string().max(40).optional(),
 });
+
+function serializeConsentForResponse(consent: Consent, updatedAt: Date) {
+  return {
+    privacyNoticeVersion: consent.privacyNoticeVersion,
+    requiredNoticeAcknowledged: consent.requiredNoticeAcknowledged,
+    optional: consent.optional,
+    source: consent.source,
+    timestamp: consent.timestamp,
+    updatedAt,
+  };
+}
 
 async function requireUserId() {
   const session = await readSession();
@@ -38,17 +74,19 @@ export async function GET() {
 
   const col = await piiCol<ConsentDoc>(CONSENT_COLLECTION);
   const doc = await col.findOne({ userId });
+  const consent = doc
+    ? normalizeConsent({
+        privacyNoticeVersion: doc.privacyNoticeVersion,
+        requiredNoticeAcknowledged: doc.requiredNoticeAcknowledged,
+        optional: doc.optional,
+        timestamp: doc.updatedAt.toISOString(),
+        source: doc.source ?? "account-settings",
+      })
+    : null;
 
   return NextResponse.json({
     ok: true,
-    consent: doc
-      ? {
-          essential: true,
-          analytics: Boolean(doc.analytics),
-          source: doc.source ?? null,
-          updatedAt: doc.updatedAt,
-        }
-      : null,
+    consent: consent ? serializeConsentForResponse(consent, doc!.updatedAt) : null,
   });
 }
 
@@ -59,10 +97,31 @@ export async function PATCH(req: NextRequest) {
   }
 
   const body = await req.json().catch(() => ({}));
-  const parsed = patchSchema.safeParse(body);
-  if (!parsed.success) {
+  const current = currentPatchSchema.safeParse(body);
+  const legacy = current.success ? null : legacyPatchSchema.safeParse(body);
+  if (!current.success && !legacy?.success) {
     return NextResponse.json({ ok: false, error: "invalid_payload" }, { status: 400 });
   }
+
+  const consent = current.success
+    ? buildDefaultConsent({
+        privacyNoticeVersion: current.data.privacyNoticeVersion ?? PRIVACY_NOTICE_VERSION,
+        requiredNoticeAcknowledged: current.data.requiredNoticeAcknowledged,
+        optional: current.data.optional,
+        source: current.data.source ?? "privacy-gate",
+        timestamp: current.data.timestamp ?? new Date().toISOString(),
+      })
+    : buildDefaultConsent({
+        requiredNoticeAcknowledged: false,
+        optional: {
+          comfort: false,
+          analytics: Boolean(legacy!.data.analytics),
+          externalMedia: false,
+          productImprovement: false,
+        },
+        source: legacy!.data.source ?? "cookie-banner-migrated",
+        timestamp: new Date().toISOString(),
+      });
 
   const now = new Date();
   const col = await piiCol<ConsentDoc>(CONSENT_COLLECTION);
@@ -71,9 +130,10 @@ export async function PATCH(req: NextRequest) {
     { userId },
     {
       $set: {
-        essential: true,
-        analytics: parsed.data.analytics,
-        source: parsed.data.source ?? null,
+        privacyNoticeVersion: consent.privacyNoticeVersion,
+        requiredNoticeAcknowledged: consent.requiredNoticeAcknowledged,
+        optional: consent.optional,
+        source: consent.source ?? null,
         updatedAt: now,
       },
       $setOnInsert: {
@@ -85,11 +145,6 @@ export async function PATCH(req: NextRequest) {
 
   return NextResponse.json({
     ok: true,
-    consent: {
-      essential: true,
-      analytics: parsed.data.analytics,
-      source: parsed.data.source ?? null,
-      updatedAt: now,
-    },
+    consent: serializeConsentForResponse(consent, now),
   });
 }

@@ -16,6 +16,7 @@ export type SessionUser = {
   b2cPlanId?: string | null;
   verification?: any;
   sessionTwoFactorAuthenticated?: boolean;
+  sessionTwoFactorFallbackMode?: "setup" | "recovery" | null;
   sessionValid?: boolean;
 };
 
@@ -63,6 +64,12 @@ export async function getSessionUser(req?: NextRequest): Promise<SessionUser | n
     (req ? req.cookies.get("u_2fa")?.value : await readCookie("u_2fa")) ?? undefined;
   const sessionTwoFactorAuthenticated =
     session?.tfa ?? (cookieTwoFactor === "1" ? true : cookieTwoFactor === "0" ? false : undefined);
+  const cookieTwoFactorFallback =
+    (req ? req.cookies.get("u_2fa_fallback")?.value : await readCookie("u_2fa_fallback")) ?? undefined;
+  const sessionTwoFactorFallbackMode =
+    cookieTwoFactorFallback === "setup" || cookieTwoFactorFallback === "recovery"
+      ? cookieTwoFactorFallback
+      : null;
 
   // DB is source of truth for roles (session roles can be stale after role changes).
   const dbRoles = Array.isArray(user.roles)
@@ -81,6 +88,7 @@ export async function getSessionUser(req?: NextRequest): Promise<SessionUser | n
     roles: normalizedRoles as UserRole[],
     verification,
     sessionTwoFactorAuthenticated,
+    sessionTwoFactorFallbackMode,
     sessionValid: Boolean(sessionUid),
   };
 }

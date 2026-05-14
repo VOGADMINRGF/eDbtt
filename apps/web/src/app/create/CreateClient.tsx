@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import AnalyzeWorkspace, { type UseCaseAccess, type UseCaseId } from "@/components/analyze/AnalyzeWorkspace";
 import type { AccountOverview } from "@features/account/types";
 import { getAccessTierConfigForUser, getUserAccessTier } from "@core/access/accessTiers";
@@ -52,10 +53,25 @@ import {
   type OperatorCreateTexts,
 } from "@/features/i18n/operatorSystemTexts";
 import SharedCreateComposer from "@/features/create/SharedCreateComposer";
+import { usePrivacyGate } from "@/components/privacy/PrivacyGateProvider";
 import {
   type CreateIntelligentFollowupResult,
 } from "@/features/create/intelligentFollowupContract";
-import CreateVisualFollowup from "@/features/create/CreateVisualFollowup";
+import {
+  buildCreateFollowupPrimaryCtaHref,
+  buildCreateFollowupTargetHref,
+} from "@/features/create/followupTargetHref";
+import CreateVisualFollowup, {
+  CreateStructureOverview,
+  deriveCreateStructureOverviewMetrics,
+} from "@/features/create/CreateVisualFollowup";
+import {
+  buildCreateHandoffDraft,
+  buildCreateHandoffTargetHref,
+  readCreateHandoffDraft,
+  saveCreateHandoffDraft,
+  type CreateHandoffAction,
+} from "@/features/create/createHandoff";
 import CreateLinkIntakeClarification from "@/features/create/CreateLinkIntakeClarification";
 import {
   buildCreateLinkIntakeMeta,
@@ -64,6 +80,10 @@ import {
   type CreateLinkIntentOptionId,
   type CreateLinkIntakeDetection,
 } from "@/features/create/linkIntake";
+import {
+  buildCreateAttachmentMaterialItems,
+  resolveMaterialRouting,
+} from "@/features/create/materialRouting";
 
 export type CreateClientProps = {
   initialEntitlements: CreateEntitlements;
@@ -130,6 +150,32 @@ export function resolveCreatePostStartSectionOrder(params: {
   return sections;
 }
 
+export function resolveCreateAnlassraumTargetHref(
+  followup: CreateIntelligentFollowupResult | null,
+): string {
+  if (!followup) return "/runden?view=active&from=create";
+  const roomSuggestion =
+    followup.suggestions.find((suggestion) => suggestion.kind === "anlassraum") ??
+    followup.suggestions.find((suggestion) => suggestion.kind === "new_anlassraum") ??
+    null;
+  const suggestedHref = roomSuggestion?.href?.trim() ?? "";
+  if (suggestedHref && !suggestedHref.startsWith("/create")) {
+    return suggestedHref;
+  }
+  if (followup.meta?.planner?.plannerTopic) {
+    return `/runden?view=active&from=create&topic=${encodeURIComponent(followup.meta.planner.plannerTopic)}`;
+  }
+  return "/runden?view=active&from=create";
+}
+
+function isPlannerReadyForStructuredHandoff(
+  followup: CreateIntelligentFollowupResult | null,
+): boolean {
+  const planner = followup?.meta?.planner ?? null;
+  if (!planner) return false;
+  return planner.qualityStatus === "specific" && planner.plannerDegraded === false;
+}
+
 type CreateProductModeConfig = ReturnType<typeof resolveCreateModeDefinition> & {
   preferredUseCase: UseCaseId;
   preferredCreateMode?: CreateMode;
@@ -182,7 +228,7 @@ type CreatePrimaryIntakeSnapshot = {
 type CreateFollowupSurface = "none" | "lightweight" | "analysis";
 export type { CreateFollowupSurface };
 
-type CreateSaveState = "idle" | "saving" | "saved" | "error" | "unavailable";
+type CreateReviewRequestState = "idle" | "saving" | "saved" | "error";
 
 type CreateLinkClarificationState = {
   detection: CreateLinkIntakeDetection;
@@ -215,7 +261,7 @@ function CreateSubmittedContributionBubble(props: { text: string }) {
       <div className="mt-2 h-2.5 w-2.5 shrink-0 rounded-full bg-slate-400 ring-4 ring-white dark:bg-slate-500 dark:ring-[rgb(var(--bg))]" />
       <div className="max-w-3xl">
         <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-600 dark:text-[rgb(var(--muted))]">Du</p>
-        <div className="mt-2 rounded-2xl rounded-tl-sm border border-slate-200 bg-white px-4 py-3 shadow-sm dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))] dark:shadow-none">
+        <div className="mt-2 rounded-2xl rounded-tl-sm border border-slate-200/90 bg-[color-mix(in_oklab,white_76%,rgb(var(--card))_24%)] px-4 py-3 shadow-sm shadow-slate-950/5 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))] dark:shadow-none">
           <p className="whitespace-pre-wrap text-sm text-slate-900 md:text-base dark:text-[rgb(var(--fg))]">
             {props.text}
           </p>
@@ -236,18 +282,141 @@ function CreateAssistantStatusBubble(props: {
       <div className="mt-2 h-2.5 w-2.5 shrink-0 rounded-full bg-cyan-600 ring-4 ring-white dark:bg-cyan-300 dark:ring-[rgb(var(--bg))]" />
       <div className="max-w-5xl flex-1">
         <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-700 dark:text-[rgb(var(--muted))]">eDebatte</p>
-        <div className="mt-2 rounded-2xl rounded-tl-sm border border-cyan-500/25 bg-white px-4 py-4 shadow-sm md:px-5 md:py-5 dark:border-cyan-300/30 dark:bg-[rgb(var(--card))] dark:shadow-none">
+        <div className="mt-2 rounded-2xl rounded-tl-sm border border-cyan-500/25 bg-[linear-gradient(180deg,rgba(241,247,251,0.98),rgba(230,240,247,0.95))] px-4 py-4 shadow-[0_18px_42px_rgba(2,6,23,0.06)] md:px-5 md:py-5 dark:border-cyan-300/30 dark:bg-[rgb(var(--card))] dark:shadow-none">
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-cyan-800 dark:text-cyan-200">{props.eyebrow}</p>
           <p className="mt-1 text-base font-semibold text-cyan-950 md:text-lg dark:text-cyan-50">{props.title}</p>
           <p className="mt-3 text-sm leading-relaxed text-cyan-900 dark:text-cyan-100 md:text-base">{props.body}</p>
           {props.notice ? (
-            <p className="mt-3 rounded-xl border border-cyan-300/35 bg-cyan-500/10 px-3 py-2 text-sm text-cyan-950 dark:text-cyan-50">
+            <p className="mt-3 rounded-xl border border-cyan-300/35 bg-[color-mix(in_oklab,rgba(207,242,255,0.72)_78%,rgb(var(--card))_22%)] px-3 py-2 text-sm text-cyan-950 dark:text-cyan-50">
               {props.notice}
             </p>
           ) : null}
         </div>
       </div>
     </div>
+  );
+}
+
+function CreateInlineAnalysisScene(props: {
+  productMode: CreateProductMode;
+  notice?: string | null;
+  children: React.ReactNode;
+}) {
+  const heading =
+    props.productMode === "media"
+      ? { lead: "Beitrag", tail: "prüfen" }
+      : props.productMode === "guided"
+        ? { lead: "Entwurf", tail: "ausarbeiten" }
+        : { lead: "Statement", tail: "analysieren" };
+  const stepper = [
+    {
+      id: "input",
+      label: "Eingabe",
+      lead: "aufgenommen",
+      state: "done",
+    },
+    {
+      id: "classification",
+      label: "Einordnung",
+      lead: "geordnet",
+      state: "done",
+    },
+    {
+      id: "analysis",
+      label: "Analyse",
+      lead: props.productMode === "media" ? "offen" : "aktiv",
+      state: "active",
+    },
+    {
+      id: "factcheck",
+      label: "Prüfen",
+      lead: "optional",
+      state: "upcoming",
+    },
+    {
+      id: "handoff",
+      label: "Weiterführen",
+      lead: "danach",
+      state: "upcoming",
+    },
+  ] as const;
+
+  return (
+    <section className="space-y-4 rounded-[2rem] border border-[rgb(var(--border))] bg-[color-mix(in_oklab,rgb(var(--card))_96%,rgb(var(--bg))_4%)] p-4 shadow-[0_24px_56px_rgba(2,6,23,0.12)] md:p-5">
+      <div className="space-y-3">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">Analyse-Szene</p>
+            <h2 className="mt-1 text-xl font-semibold text-[rgb(var(--fg))] sm:text-2xl">
+              <span className="bg-gradient-to-r from-sky-600 via-cyan-600 to-emerald-500 bg-clip-text text-transparent">
+                {heading.lead}
+              </span>{" "}
+              {heading.tail}
+            </h2>
+            <p className="mt-2 max-w-3xl text-sm leading-relaxed text-[rgb(var(--muted))]">
+              Prüfmodus jetzt im selben Arbeitsraum geöffnet. Analyse, Quellenbindung und optionaler Faktencheck bleiben ein durchgehender nächster Schritt statt ein separater Abzweig.
+            </p>
+          </div>
+          <span className="rounded-full border border-cyan-300/35 bg-cyan-500/[0.08] px-3 py-1 text-[11px] font-semibold text-cyan-900 dark:text-cyan-100">
+            Kein Auto-Start nach außen
+          </span>
+        </div>
+
+        <div className="overflow-x-auto pb-1">
+          <div className="flex min-w-max items-center gap-3">
+            {stepper.map((stage, index) => {
+              const isDone = stage.state === "done";
+              const isActive = stage.state === "active";
+              return (
+                <React.Fragment key={stage.id}>
+                  <div
+                    className={`flex min-w-[9rem] items-center gap-3 rounded-full border px-3 py-2 ${
+                      isActive
+                        ? "border-cyan-300/50 bg-cyan-500/[0.09]"
+                        : isDone
+                          ? "border-emerald-300/35 bg-emerald-500/[0.08]"
+                          : "border-[rgb(var(--border))] bg-[rgb(var(--bg))]"
+                    }`}
+                  >
+                    <span
+                      className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full border text-[11px] font-semibold ${
+                        isActive
+                          ? "border-cyan-300/60 text-cyan-900 dark:text-cyan-100"
+                          : isDone
+                            ? "border-emerald-300/60 text-emerald-800 dark:text-emerald-100"
+                            : "border-slate-300/70 text-slate-500 dark:border-slate-400/35 dark:text-slate-300"
+                      }`}
+                    >
+                      {isDone ? "✓" : index + 1}
+                    </span>
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-[rgb(var(--fg))]">{stage.label}</p>
+                      <p className="text-[11px] text-[rgb(var(--muted))]">{stage.lead}</p>
+                    </div>
+                  </div>
+                  {index < stepper.length - 1 ? (
+                    <span
+                      aria-hidden="true"
+                      className="h-px w-8 shrink-0 bg-gradient-to-r from-cyan-400/35 to-emerald-300/20"
+                    />
+                  ) : null}
+                </React.Fragment>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
+      {props.notice ? (
+        <div className="rounded-2xl border border-cyan-300/25 bg-cyan-500/[0.08] px-4 py-3 text-sm leading-relaxed text-cyan-900 dark:text-cyan-100">
+          {props.notice}
+        </div>
+      ) : null}
+
+      <div className="rounded-[1.75rem] border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-1.5">
+        {props.children}
+      </div>
+    </section>
   );
 }
 
@@ -322,9 +491,10 @@ export function hasPrimaryIntakeText(value?: string | null): boolean {
 export function shouldShowCreatePostInputModules(params: {
   hasStarted: boolean;
   intakeText: string;
+  hasMaterialContext?: boolean;
 }): boolean {
   if (!params.hasStarted) return false;
-  return hasPrimaryIntakeText(params.intakeText);
+  return hasPrimaryIntakeText(params.intakeText) || params.hasMaterialContext === true;
 }
 
 export function getCreateContextAnchorsForMode(params: {
@@ -357,6 +527,7 @@ export function shouldRenderCreateAnalyzeWorkspace(params: {
   followupActivated: boolean;
   hasStarted: boolean;
   intakeText: string;
+  hasMaterialContext?: boolean;
   productMode: CreateProductMode;
   guidedBridgeConfirmed: boolean;
 }): boolean {
@@ -364,6 +535,7 @@ export function shouldRenderCreateAnalyzeWorkspace(params: {
   const postInputReady = shouldShowCreatePostInputModules({
     hasStarted: params.hasStarted,
     intakeText: params.intakeText,
+    hasMaterialContext: params.hasMaterialContext,
   });
   if (!postInputReady) return false;
   if (params.productMode !== "guided") return true;
@@ -474,6 +646,8 @@ export default function CreateClient({
   initialIntakeContext,
   initialReturnTo,
 }: CreateClientProps) {
+  const privacyGate = usePrivacyGate();
+  const router = useRouter();
   const { locale } = useLocale();
   const surfaceLocale = resolveCreateSurfaceLocale(locale);
   const surfaceTexts = React.useMemo(() => getCreateSurfaceTexts(surfaceLocale), [surfaceLocale]);
@@ -527,6 +701,7 @@ export default function CreateClient({
   const contextLoadedRef = React.useRef(false);
   const intakeHydratedRef = React.useRef(false);
   const [intakeText, setIntakeText] = React.useState(initialText ?? "");
+  const [composerAttachments, setComposerAttachments] = React.useState<File[]>([]);
   const [activeContextAnchorId, setActiveContextAnchorId] = React.useState<CreateContextIntent | null>(null);
   const [hasStarted, setHasStarted] = React.useState<boolean>(false);
   const [isStarting, setIsStarting] = React.useState(false);
@@ -555,12 +730,15 @@ export default function CreateClient({
   });
   const [understandingConfirmed, setUnderstandingConfirmed] = React.useState<boolean>(false);
   const [savedDraftId, setSavedDraftId] = React.useState<string | null>(null);
-  const [saveState, setSaveState] = React.useState<CreateSaveState>("idle");
-  const [saveMessage, setSaveMessage] = React.useState<string | null>(null);
+  const [reviewRequestState, setReviewRequestState] = React.useState<CreateReviewRequestState>("idle");
+  const [reviewRequestMessage, setReviewRequestMessage] = React.useState<string | null>(null);
   const [factcheckMessage, setFactcheckMessage] = React.useState<string | null>(null);
   const [actionNotice, setActionNotice] = React.useState<string | null>(null);
   const [chatContinuationText, setChatContinuationText] = React.useState("");
+  const [showFollowupCorrectionComposer, setShowFollowupCorrectionComposer] = React.useState(false);
   const intelligentFollowupResultRef = React.useRef<HTMLDivElement | null>(null);
+  const analysisSceneRef = React.useRef<HTMLDivElement | null>(null);
+  const [analysisSceneMode, setAnalysisSceneMode] = React.useState<CreateProductMode | null>(null);
 
   React.useEffect(() => {
     if (intakeHydratedRef.current) return;
@@ -582,6 +760,19 @@ export default function CreateClient({
       // ignore local restore issues
     }
   }, [initialText, intakeRestoreInfoText, intakeStorageKey]);
+
+  React.useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (hasPrimaryIntakeText(initialText)) return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("resume") !== "create_handoff") return;
+    const handoffId = params.get("handoffId");
+    const draft = readCreateHandoffDraft(handoffId);
+    if (!draft) return;
+    setIntakeText(draft.sourceText);
+    setActionNotice("Arbeitsstand aus Handoff geladen. Du kannst jetzt überarbeiten und neu einordnen.");
+    setIntakeRestoreInfo("Handoff-Arbeitsstand zur Weiterbearbeitung geladen.");
+  }, [initialText]);
 
   React.useEffect(() => {
     try {
@@ -645,6 +836,19 @@ export default function CreateClient({
   const activeFollowupAnswer = followupAnswers[activeIntent];
   const activeFollowupSaved = followupAnswerSaved[activeIntent];
   const currentLinkDetection = React.useMemo(() => detectCreateLinkIntake(intakeText), [intakeText]);
+  const composerAttachmentMaterialItems = React.useMemo(
+    () => buildCreateAttachmentMaterialItems(composerAttachments),
+    [composerAttachments],
+  );
+  const currentMaterialRouting = React.useMemo(
+    () =>
+      resolveMaterialRouting({
+        text: intakeText,
+        materialItems: composerAttachmentMaterialItems,
+      }),
+    [composerAttachmentMaterialItems, intakeText],
+  );
+  const hasMaterialContext = currentMaterialRouting.materialItems.length > 0;
 
   const createOrchestration = React.useMemo(
     () =>
@@ -726,11 +930,16 @@ export default function CreateClient({
     if (isStarting) return;
     const normalizedText = rawText.trim();
     const linkDetection = detectCreateLinkIntake(normalizedText);
-    if (!normalizedText) {
+    const materialRouting = resolveMaterialRouting({
+      text: normalizedText,
+      materialItems: composerAttachmentMaterialItems,
+    });
+    const hasStartMaterialContext = materialRouting.materialItems.length > 0;
+    if (!normalizedText && !hasStartMaterialContext) {
       setIntakeError(surfaceTexts.intakeMissingError);
       return;
     }
-    if (normalizedText.length < MIN_INTENT_INPUT_LENGTH && !linkDetection.hasLink) {
+    if (normalizedText.length > 0 && normalizedText.length < MIN_INTENT_INPUT_LENGTH && !linkDetection.hasLink) {
       setIntakeError(productModeConfig.minimumInputHint);
       return;
     }
@@ -740,9 +949,10 @@ export default function CreateClient({
         : null;
       setIntakeRestoreInfo(null);
       setIntakeError(null);
-      setSaveState("idle");
-      setSaveMessage(null);
+      setReviewRequestState("idle");
+      setReviewRequestMessage(null);
       setFactcheckMessage(null);
+      setShowFollowupCorrectionComposer(false);
 
       if (linkDetection.hasLink && linkDetection.mostlyLinkOnly) {
         setLinkClarificationState((current) => ({
@@ -790,6 +1000,8 @@ export default function CreateClient({
             anlassraumId: selectedAnlassraumId,
             dossierId: dossierId ?? null,
             intent: activeIntent,
+            sourceUrls: materialRouting.sourceUrls,
+            materialItems: materialRouting.materialItems,
           }),
         });
         const body = await response.json().catch(() => ({}));
@@ -836,6 +1048,7 @@ export default function CreateClient({
       const nextFollowupSurface =
         productMode === "analyze" ? "none" : resolveFollowupSurfaceOnStart(productMode);
       setFollowupSurface(nextFollowupSurface);
+      setAnalysisSceneMode(nextFollowupSurface === "analysis" ? productMode : null);
       if (nextFollowupSurface === "analysis") {
         setAnalysisAutoRunToken((current) => current + 1);
       }
@@ -851,6 +1064,7 @@ export default function CreateClient({
   }, [
     activeContextAnchor?.label,
     activeIntent,
+    composerAttachmentMaterialItems,
     dossierId,
     initialIntakeContext?.sourceLabel,
     isStarting,
@@ -865,8 +1079,9 @@ export default function CreateClient({
   ]);
 
   const handleStart = React.useCallback(async () => {
+    if (!privacyGate.ensureActiveProcessingAllowed("create-start")) return;
     await startCreateFlow(intakeText);
-  }, [intakeText, startCreateFlow]);
+  }, [intakeText, privacyGate, startCreateFlow]);
 
   const handleSaveFollowupAnswer = React.useCallback(() => {
     const normalized = activeFollowupAnswer.trim();
@@ -888,14 +1103,8 @@ export default function CreateClient({
     [surfaceTexts.actionNotAvailableLabel],
   );
 
-  const handleStartFactcheckService = React.useCallback(() => {
-    setFollowupSurface("analysis");
-    setAnalysisAutoRunToken((current) => current + 1);
-    setFactcheckMessage("Prüfmodus geöffnet. Faktencheck / Deep Search startet erst nach deiner weiteren Bestätigung. Keine automatische Kostenbuchung.");
-    setActionNotice("Prüfmodus geöffnet. Faktencheck / Deep Search startet erst nach deiner weiteren Bestätigung.");
-  }, []);
-
   const handleContinueConversation = React.useCallback(async () => {
+    if (!privacyGate.ensureActiveProcessingAllowed("create-continue")) return;
     const normalizedContinuation = chatContinuationText.trim();
     if (!normalizedContinuation) {
       setActionNotice("Schreib kurz, was ich anpassen oder ergänzen soll.");
@@ -907,8 +1116,20 @@ export default function CreateClient({
     setChatContinuationText("");
     setIntakeText(combinedText);
     setUnderstandingConfirmed(false);
+    setShowFollowupCorrectionComposer(false);
     await startCreateFlow(combinedText);
-  }, [chatContinuationText, intakeText, startCreateFlow]);
+  }, [chatContinuationText, intakeText, privacyGate, startCreateFlow]);
+
+  const handleSkipPlaceClarification = React.useCallback(async () => {
+    const normalizedContinuation = "Ort später ergänzen.";
+    const baseText = intakeText.trim();
+    const combinedText = baseText ? `${baseText}\n\n${normalizedContinuation}` : normalizedContinuation;
+    setChatContinuationText("");
+    setIntakeText(combinedText);
+    setUnderstandingConfirmed(false);
+    setShowFollowupCorrectionComposer(false);
+    await startCreateFlow(combinedText);
+  }, [intakeText, startCreateFlow]);
 
   const handleIntentAction = React.useCallback(
     (actionIndex: number) => {
@@ -920,6 +1141,7 @@ export default function CreateClient({
         if (actionIndex === 1) {
           setProductMode("media");
           setFollowupSurface("analysis");
+          setAnalysisSceneMode("media");
           setAnalysisAutoRunToken((current) => current + 1);
           triggerActionNotice("Prüfweg wird geöffnet.");
           return;
@@ -937,6 +1159,7 @@ export default function CreateClient({
       if (activeIntent === "check") {
         if (actionIndex === 0) {
           setFollowupSurface("analysis");
+          setAnalysisSceneMode("media");
           setAnalysisAutoRunToken((current) => current + 1);
           triggerActionNotice("Dossier-Weiterführung wird als Prüfstand vorbereitet.");
           return;
@@ -953,6 +1176,7 @@ export default function CreateClient({
           return;
         }
         setFollowupSurface("analysis");
+        setAnalysisSceneMode("media");
         setAnalysisAutoRunToken((current) => current + 1);
         triggerActionNotice("Prüfbericht wird vorbereitet.");
         return;
@@ -1021,6 +1245,7 @@ export default function CreateClient({
   const showPostInputModules = shouldShowCreatePostInputModules({
     hasStarted,
     intakeText,
+    hasMaterialContext,
   });
   const showLinkClarification =
     Boolean(linkClarificationState?.detection.hasLink) &&
@@ -1039,9 +1264,19 @@ export default function CreateClient({
     followupActivated: analyzeFollowupActivated,
     hasStarted,
     intakeText,
+    hasMaterialContext,
     productMode,
     guidedBridgeConfirmed,
   });
+  React.useEffect(() => {
+    if (!showAnalyzeWorkspace) return;
+    const node = analysisSceneRef.current;
+    if (!node) return;
+    window.requestAnimationFrame(() => {
+      node.scrollIntoView({ behavior: "smooth", block: "start" });
+      node.focus({ preventScroll: true });
+    });
+  }, [analysisAutoRunToken, showAnalyzeWorkspace]);
   const workspaceInitialText =
     productMode === "guided"
       ? buildGuidedWorkspaceText({
@@ -1052,8 +1287,11 @@ export default function CreateClient({
       : intakeText;
   const normalizedIntakeText = intakeText.trim();
   const startDisabled =
-    !normalizedIntakeText ||
-    ((!currentLinkDetection.hasLink && normalizedIntakeText.length < MIN_INTENT_INPUT_LENGTH) || isStarting);
+    (!normalizedIntakeText && !hasMaterialContext) ||
+    ((normalizedIntakeText.length > 0 &&
+      !currentLinkDetection.hasLink &&
+      normalizedIntakeText.length < MIN_INTENT_INPUT_LENGTH) ||
+      isStarting);
   const showTooShortHint =
     normalizedIntakeText.length > 0 &&
     normalizedIntakeText.length < MIN_INTENT_INPUT_LENGTH &&
@@ -1076,28 +1314,28 @@ export default function CreateClient({
       : productMode === "media"
         ? productModeConfig.postStartLead
         : followupSnapshot?.understandingLine ?? surfaceTexts.followupContributeLead;
-  const actionSuggestionHref =
-    intelligentFollowup?.suggestions.find(
-      (suggestion) =>
-        suggestion.kind === "dossier" ||
-        suggestion.kind === "vote" ||
-        suggestion.kind === "anlassraum" ||
-        suggestion.kind === "topic",
-    )?.href ?? "/dossier/demo";
+  const structureOverviewMetrics = React.useMemo(
+    () =>
+      deriveCreateStructureOverviewMetrics({
+        result: intelligentFollowup,
+        isConfirmed: understandingConfirmed,
+      }),
+    [intelligentFollowup, understandingConfirmed],
+  );
 
-  const handleSaveWorkstate = React.useCallback(async () => {
+  const persistFollowupWorkstate = React.useCallback(async (manualReviewRequested: boolean) => {
     if (!showIntelligentFollowup) {
-      setSaveState("unavailable");
-      setSaveMessage("Speichern ist in diesem Demo-/Entwurfsstand noch nicht verfügbar.");
-      setActionNotice("Speichern ist in diesem Demo-/Entwurfsstand noch nicht verfügbar.");
+      setReviewRequestState("error");
+      setReviewRequestMessage("Dieser Schritt ist in diesem Arbeitsstand noch nicht verfügbar.");
+      setActionNotice("Dieser Schritt ist in diesem Arbeitsstand noch nicht verfügbar.");
       return;
     }
 
     const normalizedText = intakeText.trim();
     if (!normalizedText) {
-      setSaveState("unavailable");
-      setSaveMessage("Speichern ist in diesem Demo-/Entwurfsstand noch nicht verfügbar.");
-      setActionNotice("Speichern ist in diesem Demo-/Entwurfsstand noch nicht verfügbar.");
+      setReviewRequestState("error");
+      setReviewRequestMessage("Bitte beschreibe zuerst deinen Beitrag.");
+      setActionNotice("Bitte beschreibe zuerst deinen Beitrag.");
       return;
     }
 
@@ -1107,8 +1345,8 @@ export default function CreateClient({
       additionalContext: linkClarificationState?.additionalContext,
     });
 
-    setSaveState("saving");
-    setSaveMessage("Arbeitsstand wird gespeichert …");
+    setReviewRequestState("saving");
+    setReviewRequestMessage("Prüfstatus wird gespeichert …");
     try {
       const response = await fetch("/api/create/save", {
         method: "POST",
@@ -1121,6 +1359,9 @@ export default function CreateClient({
           createMode: canonicalCreateMode,
           anlassraumId: effectiveSelectedAnlassraumId ?? undefined,
           useCase: productModeConfig.preferredUseCase,
+          manualReviewRequested,
+          sourceUrls: currentMaterialRouting.sourceUrls,
+          materialItems: currentMaterialRouting.materialItems,
           analysis: intelligentFollowup
             ? {
                 intelligentFollowup,
@@ -1135,13 +1376,21 @@ export default function CreateClient({
         throw new Error(body?.error || "save_failed");
       }
       setSavedDraftId(body.draftId);
-      setSaveState("saved");
-      setSaveMessage("Arbeitsstand gespeichert. Du kannst ihn später weiterbearbeiten.");
-      setActionNotice("Arbeitsstand gespeichert. Du kannst ihn später weiterbearbeiten.");
+      setReviewRequestState("saved");
+      setReviewRequestMessage(
+        manualReviewRequested
+          ? "Redaktionelle Prüfung angefragt. Keine automatische Veröffentlichung."
+          : "Arbeitsstand gespeichert.",
+      );
+      setActionNotice(
+        manualReviewRequested
+          ? "Redaktionelle Prüfung angefragt. Keine automatische Veröffentlichung."
+          : "Arbeitsstand gespeichert.",
+      );
     } catch {
-      setSaveState("error");
-      setSaveMessage("Speichern fehlgeschlagen. Bitte versuche es erneut.");
-      setActionNotice("Speichern fehlgeschlagen. Bitte versuche es erneut.");
+      setReviewRequestState("error");
+      setReviewRequestMessage("Prüfstatus konnte nicht gespeichert werden. Bitte erneut versuchen.");
+      setActionNotice("Prüfstatus konnte nicht gespeichert werden. Bitte erneut versuchen.");
     }
   }, [
     canonicalCreateMode,
@@ -1154,8 +1403,161 @@ export default function CreateClient({
     surfaceLocale,
     understandingConfirmed,
     currentLinkDetection,
+    currentMaterialRouting.materialItems,
+    currentMaterialRouting.sourceUrls,
     linkClarificationState,
   ]);
+
+  const navigateWithCreateHandoff = React.useCallback(
+    (selectedAction: CreateHandoffAction, baseHref: string) => {
+      if (!privacyGate.ensureActiveProcessingAllowed(`create-handoff:${selectedAction}`)) return;
+      if (!intelligentFollowup?.meta?.planner || !intelligentFollowup?.meta?.graphMatch) {
+        setActionNotice("Dieser Schritt braucht zuerst einen bestätigbaren Arbeitsstand.");
+        return;
+      }
+      if (
+        ["append_to_dossier", "create_dossier", "request_factcheck", "prepare_vote", "prepare_anlassraum"].includes(selectedAction) &&
+        !isPlannerReadyForStructuredHandoff(intelligentFollowup)
+      ) {
+        setActionNotice("Bitte bestätige das Thema zuerst genauer oder sende einen Bericht an die Redaktion.");
+        return;
+      }
+      const draft = buildCreateHandoffDraft({
+        result: intelligentFollowup,
+        selectedAction,
+        sourceUrls: currentMaterialRouting.sourceUrls,
+        materialItems: currentMaterialRouting.materialItems,
+      });
+      saveCreateHandoffDraft(draft);
+      setShowFollowupCorrectionComposer(false);
+      setActionNotice("Reviewbarer Handoff vorbereitet. Keine automatische Veröffentlichung.");
+      const targetHref = buildCreateHandoffTargetHref({
+        baseHref,
+        handoffId: draft.id,
+        action: selectedAction,
+      });
+      router.push(targetHref as Parameters<typeof router.push>[0]);
+    },
+    [currentMaterialRouting.materialItems, currentMaterialRouting.sourceUrls, intelligentFollowup, privacyGate, router],
+  );
+
+  const handleRetryPlanner = React.useCallback(async () => {
+    const sourceText = (intelligentFollowup?.sourceText ?? followupSnapshot?.originalText ?? normalizedIntakeText).trim();
+    if (!sourceText) {
+      setActionNotice("Bitte beschreibe zuerst deinen Beitrag.");
+      return;
+    }
+    if (!privacyGate.ensureActiveProcessingAllowed("create-retry-planner")) return;
+
+    setActionNotice("KI-Einordnung wird erneut versucht …");
+    try {
+      const response = await fetch("/api/create/intelligent-followup", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          text: sourceText,
+          locale: surfaceLocale,
+          anlassraumId: selectedAnlassraumId,
+          dossierId: dossierId ?? null,
+          intent: activeIntent,
+          sourceUrls: currentMaterialRouting.sourceUrls,
+          materialItems: currentMaterialRouting.materialItems,
+        }),
+      });
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok || !body?.ok || !body?.result) {
+        throw new Error("create_intelligent_followup_failed");
+      }
+      const nextFollowup = body.result as CreateIntelligentFollowupResult;
+      setIntelligentFollowup(nextFollowup);
+      setUnderstandingConfirmed(false);
+      setShowFollowupCorrectionComposer(false);
+      setActionNotice(
+        isPlannerReadyForStructuredHandoff(nextFollowup)
+          ? "Einordnung aktualisiert. Bitte bestätige, welchen Teil wir zuerst vorbereiten sollen."
+          : "Die Einordnung bleibt noch offen. Du kannst das Thema jetzt gezielt bestätigen oder an die Redaktion geben.",
+      );
+    } catch {
+      setActionNotice("Die genauere KI-Einordnung konnte gerade nicht geladen werden.");
+    }
+  }, [
+    activeIntent,
+    currentMaterialRouting.materialItems,
+    currentMaterialRouting.sourceUrls,
+    dossierId,
+    followupSnapshot?.originalText,
+    intelligentFollowup?.sourceText,
+    normalizedIntakeText,
+    privacyGate,
+    selectedAnlassraumId,
+    surfaceLocale,
+  ]);
+
+  const handleRequestEditorialReview = React.useCallback(() => {
+    navigateWithCreateHandoff("request_review", "/community/contributions");
+  }, [navigateWithCreateHandoff]);
+
+  const handlePrepareSubmission = React.useCallback(() => {
+    navigateWithCreateHandoff("submit_draft", "/community/contributions");
+  }, [navigateWithCreateHandoff]);
+
+  const handlePrepareAnlassraum = React.useCallback(() => {
+    if (!intelligentFollowup) {
+      setActionNotice("Bitte beschreibe zuerst deinen Beitrag.");
+      return;
+    }
+    const baseHref = resolveCreateAnlassraumTargetHref(intelligentFollowup);
+    navigateWithCreateHandoff("prepare_anlassraum", baseHref);
+  }, [intelligentFollowup, navigateWithCreateHandoff]);
+
+  const handleOpenDossierAppend = React.useCallback(() => {
+    if (!intelligentFollowup) {
+      setActionNotice("Bitte beschreibe zuerst deinen Beitrag.");
+      return;
+    }
+    const baseHref = buildCreateFollowupPrimaryCtaHref({
+      ctaHref: "/dossier",
+      topics: intelligentFollowup.understanding.topics,
+      statements: intelligentFollowup.understanding.statements,
+      suggestions: intelligentFollowup.suggestions,
+    });
+    navigateWithCreateHandoff("append_to_dossier", baseHref);
+  }, [intelligentFollowup, navigateWithCreateHandoff]);
+
+  const handleOpenDossierCreate = React.useCallback(() => {
+    navigateWithCreateHandoff("create_dossier", "/dossier");
+  }, [navigateWithCreateHandoff]);
+
+  const handlePrepareVote = React.useCallback(() => {
+    if (!intelligentFollowup) {
+      setActionNotice("Bitte beschreibe zuerst deinen Beitrag.");
+      return;
+    }
+    const voteSuggestion = intelligentFollowup.suggestions.find((suggestion) => suggestion.kind === "vote");
+    const baseHref = voteSuggestion
+      ? buildCreateFollowupTargetHref({
+          kind: "vote",
+          ctaHref: "/swipes",
+          topics: intelligentFollowup.understanding.topics,
+          statements: intelligentFollowup.understanding.statements,
+          suggestionTitle: voteSuggestion.title,
+          suggestionHref: voteSuggestion.href ?? null,
+        })
+      : "/swipes?from=create";
+    navigateWithCreateHandoff("prepare_vote", baseHref);
+  }, [intelligentFollowup, navigateWithCreateHandoff]);
+
+  const handleStartFactcheckService = React.useCallback(() => {
+    setFactcheckMessage(
+      "Prüfmodus geöffnet. Faktencheck / Deep Search startet erst nach deiner weiteren Bestätigung.",
+    );
+    navigateWithCreateHandoff("request_factcheck", "/factcheck");
+  }, [navigateWithCreateHandoff]);
+
+  const handleSaveOnly = React.useCallback(async () => {
+    if (!privacyGate.ensureActiveProcessingAllowed("create-save")) return;
+    await persistFollowupWorkstate(false);
+  }, [persistFollowupWorkstate, privacyGate]);
 
   if (gate.status === "loading") {
     return (
@@ -1180,8 +1582,8 @@ export default function CreateClient({
   }
 
   return (
-    <div className="mx-auto max-w-6xl space-y-6 md:space-y-8">
-      <section className="create-dialog-workspace rounded-[2rem] border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-3 shadow-[0_24px_64px_rgba(2,6,23,0.14)] sm:p-4 md:p-6 lg:p-8">
+    <div className="mx-auto max-w-[430px] space-y-4 px-3 md:max-w-4xl md:px-4 md:space-y-8 xl:max-w-7xl">
+      <section className="create-dialog-workspace overflow-hidden rounded-[2rem] border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-3 shadow-[0_24px_64px_rgba(2,6,23,0.14)] sm:p-4 md:p-6 lg:p-8">
       <SharedCreateComposer
         badge={surfaceTexts.badgeCanonical}
         subline={surfaceTexts.sublineCanonical}
@@ -1201,6 +1603,7 @@ export default function CreateClient({
           setUnderstandingConfirmed(false);
           setLinkClarificationState(null);
           setChatContinuationText("");
+          setAnalysisSceneMode(null);
           if (!hasStarted) return;
           setFollowupSurface("none");
           setGuidedBridgeConfirmed(modeOption !== "guided");
@@ -1225,14 +1628,15 @@ export default function CreateClient({
             };
           });
         }}
+        onAttachmentsChange={setComposerAttachments}
         onStart={handleStart}
         startLabel={productModeConfig.ctaLabel}
         startDisabled={startDisabled}
         startBusy={isStarting}
         startBusyLabel={startBusyStatusLabel}
         secondaryAction={{
-          href: contextualReturnHref ?? "/runden",
-          label: contextualReturnHref ? surfaceTexts.returnToContextLabel : surfaceTexts.goToRoundsLabel,
+          href: contextualReturnHref ?? "/account",
+          label: contextualReturnHref ? surfaceTexts.returnToContextLabel : "",
         }}
         contextAnchors={surfaceContextAnchors}
         activeContextAnchorId={activeContextAnchorId}
@@ -1268,6 +1672,10 @@ export default function CreateClient({
         minRows={8}
         collapseModeSelector
         embeddedWorkspace
+        experienceVariant="create_minimal"
+        minimalHeading={
+          surfaceLocale === "en" ? "What would you like to contribute?" : "Was möchtest du einbringen?"
+        }
       />
 
       {showTooShortHint ? (
@@ -1276,25 +1684,32 @@ export default function CreateClient({
         </p>
       ) : null}
 
-      {showPostInputModules && !showLinkClarification ? (
-        <div className="flex flex-wrap items-center gap-2 text-[11px] text-[rgb(var(--muted))]">
-          <span className="vog-chip">{text.quotasTitle}</span>
+      <CreateStructureOverview
+        locale={surfaceLocale === "en" ? "en" : "de"}
+        prioritiesCount={structureOverviewMetrics.prioritiesCount}
+        clustersCount={structureOverviewMetrics.clustersCount}
+        questionsCount={structureOverviewMetrics.questionsCount}
+        nextStepsCount={structureOverviewMetrics.nextStepsCount}
+      />
+
+      {showPostInputModules && !showLinkClarification && !showAnalyzeWorkspace ? (
+        <div className="hidden md:flex flex-wrap items-center gap-2 text-[11px] text-[rgb(var(--muted))]">
           <span className="vog-chip">{text.tierLabel}: {tierLabel}</span>
           <span className="vog-chip">{text.creditsLabel}: {formatOperatorNumber(credits, operatorLocale)}</span>
-          {monthlyLimit === null ? (
-            <span className="vog-chip">{text.monthlyLimitLabel}: {text.monthlyLimitUnlimited}</span>
-          ) : (
-            <span className="vog-chip">{text.monthlyLimitLabel}: {formatOperatorNumber(monthlyLimit, operatorLocale)}</span>
-          )}
-          <span className="vog-chip">{text.maxClaimsLabel}: {formatOperatorNumber(maxFinalizeClaims, operatorLocale)}</span>
-          <Link href={contextualReturnHref ?? "/runden"} className="vog-chip">
-            {contextualReturnHref ? surfaceTexts.returnToContextLabel : surfaceTexts.goToRoundsLabel}
+          <Link href="/account" className="vog-chip">
+            {text.quotasTitle}
           </Link>
+          <span className="sr-only">
+            {monthlyLimit === null
+              ? `${text.monthlyLimitLabel}: ${text.monthlyLimitUnlimited}`
+              : `${text.monthlyLimitLabel}: ${formatOperatorNumber(monthlyLimit, operatorLocale)}`}
+          </span>
+          <span className="sr-only">{text.maxClaimsLabel}: {formatOperatorNumber(maxFinalizeClaims, operatorLocale)}</span>
         </div>
       ) : null}
 
       {showStartChatPreview && followupSnapshot ? (
-        <div className="create-start-chat-preview create-chat-workspace rounded-[1.5rem] border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-4 py-4 md:px-5">
+        <div className="create-start-chat-preview create-chat-workspace hidden rounded-[1.5rem] border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-4 py-4 md:block md:px-5">
           <div className="create-chat-spine space-y-5">
             <CreateSubmittedContributionBubble text={followupSnapshot.originalText} />
             <CreateAssistantStatusBubble
@@ -1350,25 +1765,32 @@ export default function CreateClient({
         >
           <CreateVisualFollowup
             result={intelligentFollowup}
-            ctaHref={actionSuggestionHref}
             actionNotice={actionNotice}
             isConfirmed={understandingConfirmed}
-            saveState={saveState}
-            saveMessage={saveMessage}
+            reviewRequestState={reviewRequestState}
+            reviewRequestMessage={reviewRequestMessage}
             factcheckMessage={factcheckMessage}
+            showCorrectionComposer={showFollowupCorrectionComposer}
             onConfirm={() => {
               setUnderstandingConfirmed(true);
+              setShowFollowupCorrectionComposer(false);
               setActionNotice("Einordnung bestätigt. Keine automatische Veröffentlichung.");
             }}
             onEdit={() => {
               setUnderstandingConfirmed(false);
+              setShowFollowupCorrectionComposer(true);
               setActionNotice("Einordnung zur Korrektur geöffnet. Passe den Text an und starte erneut.");
             }}
-            onOpenNewAnlassraum={() => {
-              setActionNotice("Neuer Anlassraum als nächster Schritt markiert. Keine automatische Veröffentlichung.");
-            }}
-            onSaveForLater={handleSaveWorkstate}
+            onPrepareSubmission={handlePrepareSubmission}
+            onPrepareAnlassraum={handlePrepareAnlassraum}
+            onOpenDossierAppend={handleOpenDossierAppend}
+            onOpenDossierCreate={handleOpenDossierCreate}
+            onPrepareVote={handlePrepareVote}
+            onRequestEditorialReview={handleRequestEditorialReview}
             onStartOptionalService={handleStartFactcheckService}
+            onRetryPlanner={handleRetryPlanner}
+            onSaveOnly={handleSaveOnly}
+            onSkipPlaceClarification={handleSkipPlaceClarification}
             continuationValue={chatContinuationText}
             onContinuationChange={setChatContinuationText}
             onContinueConversation={handleContinueConversation}
@@ -1376,9 +1798,55 @@ export default function CreateClient({
           />
         </div>
       ) : null}
+
+      {showAnalyzeWorkspace ? (
+        <div
+          ref={analysisSceneRef}
+          tabIndex={-1}
+          className="scroll-mt-24 pt-4 outline-none md:pt-5"
+        >
+          <CreateInlineAnalysisScene
+            productMode={analysisSceneMode ?? productMode}
+            notice={factcheckMessage ?? actionNotice}
+          >
+            <AnalyzeWorkspace
+              key={`${productMode}-${canonicalCreateMode}-${canonicalIntent}-${dossierId ?? "no-dossier"}`}
+              mode={canonicalIntent}
+              createMode={canonicalCreateMode}
+              defaultLevel={2}
+              storageKey={
+                canonicalIntent === "statement"
+                  ? `vog_create_freistart_statement_${productMode}_v1`
+                  : `vog_create_freistart_contribution_${productMode}_v1`
+              }
+              analyzeEndpoint="/api/create/analyze"
+              saveEndpoint="/api/create/save"
+              finalizeEndpoint="/api/create/finalize"
+              afterFinalizeNavigateTo={afterFinalizeNavigateTo}
+              dossierId={dossierId ?? undefined}
+              selectedAnlassraumId={effectiveSelectedAnlassraumId ?? undefined}
+              verificationLevel={workspaceVerificationLevel}
+              verificationStatus="ok"
+              authorName={overview.displayName ?? overview.profile?.headline ?? ""}
+              useCaseAccess={useCaseAccess}
+              initialText={workspaceInitialText}
+              embeddedSingleIntake
+              syncTextFromParent
+              autoRunToken={analysisAutoRunToken}
+              maxClaimsCap={maxClaimsCap}
+              maxFinalizeClaims={maxFinalizeClaims}
+              analysisEntryVariant="single_button"
+              analysisModeHint={analysisSceneMode ?? productMode}
+              analysisIntentHint={activeIntent}
+              sourceUrls={currentMaterialRouting.sourceUrls}
+              materialItems={currentMaterialRouting.materialItems}
+            />
+          </CreateInlineAnalysisScene>
+        </div>
+      ) : null}
       </section>
 
-      {showPostInputModules && !showIntelligentFollowup && !showLinkClarification ? (
+      {showPostInputModules && !showIntelligentFollowup && !showLinkClarification && !showAnalyzeWorkspace ? (
         <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 md:p-5">
           <p className="text-sm font-semibold text-[rgb(var(--fg))]">{productModeConfig.postStartTitle}</p>
           <p className="mt-1 text-sm text-[rgb(var(--muted))]">{productModeConfig.postStartLead}</p>
@@ -1398,7 +1866,7 @@ export default function CreateClient({
         </section>
       ) : null}
 
-      {showFollowupQuestionCard && !showLinkClarification ? (
+      {showFollowupQuestionCard && !showLinkClarification && !showAnalyzeWorkspace ? (
         <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 md:p-5">
           <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[rgb(var(--muted))]">eDebatte</p>
           <p className="mt-1 text-sm font-semibold text-[rgb(var(--fg))]">{surfaceTexts.followupQuestionLabel}</p>
@@ -1440,7 +1908,7 @@ export default function CreateClient({
         </section>
       ) : null}
 
-      {showPostInputModules && pickerEnabled && !showLinkClarification ? (
+      {showPostInputModules && pickerEnabled && !showLinkClarification && !showAnalyzeWorkspace ? (
         <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 md:p-5">
           <div className="space-y-2">
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[rgb(var(--muted))]">{text.contextPickerTitle}</p>
@@ -1525,7 +1993,7 @@ export default function CreateClient({
         </section>
       ) : null}
 
-      {showPostInputModules && workingState && !showIntelligentFollowup && !showLinkClarification ? (
+      {showPostInputModules && workingState && !showIntelligentFollowup && !showLinkClarification && !showAnalyzeWorkspace ? (
         <section className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 md:p-5">
           <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[rgb(var(--muted))]">eDebatte</p>
           <p className="mt-1 text-sm font-semibold text-[rgb(var(--fg))]">
@@ -1586,9 +2054,6 @@ export default function CreateClient({
             <Link href="/swipes" className="btn-secondary text-xs">
               Beteiligung öffnen
             </Link>
-            <Link href={contextualReturnHref ?? "/runden"} className="btn-secondary text-xs">
-              {contextualReturnHref ? surfaceTexts.returnToContextLabel : surfaceTexts.goToRoundsLabel}
-            </Link>
           </div>
 
           {followupSnapshot ? (
@@ -1603,47 +2068,6 @@ export default function CreateClient({
             </p>
           ) : null}
         </section>
-      ) : null}
-
-
-      {showAnalyzeWorkspace ? (
-        <section className="rounded-2xl border border-sky-200 bg-sky-50/80 p-4 text-xs text-sky-900 dark:border-sky-500/40 dark:bg-sky-500/10 dark:text-sky-100">
-          <p className="font-semibold">{surfaceTexts.followupReviewFrameTitle}</p>
-          <p className="mt-1">{surfaceTexts.followupReviewFrameLead}</p>
-        </section>
-      ) : null}
-
-      {showAnalyzeWorkspace ? (
-        <AnalyzeWorkspace
-          key={`${productMode}-${canonicalCreateMode}-${canonicalIntent}-${dossierId ?? "no-dossier"}`}
-          mode={canonicalIntent}
-          createMode={canonicalCreateMode}
-          defaultLevel={2}
-          storageKey={
-            canonicalIntent === "statement"
-              ? `vog_create_freistart_statement_${productMode}_v1`
-              : `vog_create_freistart_contribution_${productMode}_v1`
-          }
-          analyzeEndpoint="/api/create/analyze"
-          saveEndpoint="/api/create/save"
-          finalizeEndpoint="/api/create/finalize"
-          afterFinalizeNavigateTo={afterFinalizeNavigateTo}
-          dossierId={dossierId ?? undefined}
-          selectedAnlassraumId={effectiveSelectedAnlassraumId ?? undefined}
-          verificationLevel={workspaceVerificationLevel}
-          verificationStatus="ok"
-          authorName={overview.displayName ?? overview.profile?.headline ?? ""}
-          useCaseAccess={useCaseAccess}
-          initialText={workspaceInitialText}
-          embeddedSingleIntake
-          syncTextFromParent
-          autoRunToken={analysisAutoRunToken}
-          maxClaimsCap={maxClaimsCap}
-          maxFinalizeClaims={maxFinalizeClaims}
-          analysisEntryVariant="single_button"
-          analysisModeHint={productMode}
-          analysisIntentHint={activeIntent}
-        />
       ) : null}
     </div>
   );

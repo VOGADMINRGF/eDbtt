@@ -240,8 +240,14 @@ function resolveAriStatus(): ResearchProviderStatus {
 }
 
 function resolveOpenAiDeepResearchStatus(): ResearchProviderStatus {
-  const enabled = parseBool(process.env.OPENAI_DEEP_RESEARCH_ENABLED, false);
-  const model = process.env.OPENAI_DEEP_RESEARCH_MODEL?.trim() ?? "";
+  const enabled = parseBool(
+    process.env.E150_DEEPSEARCH_ENABLED ?? process.env.OPENAI_DEEP_RESEARCH_ENABLED,
+    false,
+  );
+  const model =
+    process.env.OPENAI_DEEPSEARCH_MODEL?.trim() ??
+    process.env.OPENAI_DEEP_RESEARCH_MODEL?.trim() ??
+    "";
   const hasApiKey = hasValue(process.env.OPENAI_API_KEY);
 
   if (!enabled) {

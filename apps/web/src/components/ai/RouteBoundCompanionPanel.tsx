@@ -3,6 +3,9 @@
 import { useState } from "react";
 import VerificationStatusPanel from "./VerificationStatusPanel";
 import ShareDeepLinkActions from "@/components/mobile/ShareDeepLinkActions";
+import { usePrivacyGate } from "@/components/privacy/PrivacyGateProvider";
+import type { E150JourneyKey, E150Lane } from "@features/ai/e150/journeyProfiles";
+import type { ResearchUsed, VerificationMode } from "@features/ai/e150/verificationContract";
 
 type CompanionContextKind =
   | "dossier"
@@ -12,9 +15,9 @@ type CompanionContextKind =
 
 type ParentStatus = {
   status?: string | null;
-  lane?: "standard" | "sealed_factcheck";
-  verificationMode?: "none" | "precheck" | "sealed";
-  researchUsed?: "none" | "lite" | "search" | "deep_search";
+  lane?: E150Lane;
+  verificationMode?: VerificationMode;
+  researchUsed?: ResearchUsed;
   sealEligible?: boolean;
   sealGranted?: boolean;
 };
@@ -23,10 +26,10 @@ type CompanionResponse = {
   ok: boolean;
   companion?: {
     contextKind: CompanionContextKind;
-    journeyProfile: "analyze" | "media" | "guided" | "sealed_factcheck";
-    lane: "standard" | "sealed_factcheck";
-    verificationMode: "none" | "precheck" | "sealed";
-    researchUsed: "none" | "lite" | "search" | "deep_search";
+    journeyProfile: E150JourneyKey;
+    lane: E150Lane;
+    verificationMode: VerificationMode;
+    researchUsed: ResearchUsed;
     sealEligible: boolean;
     sealGranted: boolean;
     verificationLabel: "analysiert" | "geprueft" | "verifiziert";
@@ -51,12 +54,14 @@ type RouteBoundCompanionPanelProps = {
 };
 
 export default function RouteBoundCompanionPanel(props: RouteBoundCompanionPanelProps) {
+  const privacyGate = usePrivacyGate();
   const [prompt, setPrompt] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [answer, setAnswer] = useState<CompanionResponse["companion"] | null>(null);
 
   async function handleAsk() {
+    if (!privacyGate.ensureActiveProcessingAllowed("dossier-companion")) return;
     const message = prompt.trim();
     if (message.length < 2) return;
     setLoading(true);

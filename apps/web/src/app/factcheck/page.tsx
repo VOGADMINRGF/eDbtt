@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { parseDemoPersona } from "@/features/demo/personas";
 import { readSession } from "@/utils/session";
 import { readStringParam, resolveSurfaceContext } from "@/features/surface";
-import { FactcheckSurface } from "@/features/surfaces/factcheck";
+import { FactcheckHandoffShell } from "@/features/surfaces/factcheck/FactcheckHandoffShell";
 import { buildShareMetadata } from "@/features/share/metadata";
 
 export const metadata: Metadata = buildShareMetadata({
@@ -44,7 +44,11 @@ export default async function FactcheckPage({
   return (
     <>
       <h1 className="sr-only">Factcheck</h1>
-      <FactcheckSurface context={context} persona={persona} />
+      <FactcheckHandoffShell
+        context={context}
+        persona={persona}
+        handoffId={readStringParam(resolved?.handoffId)}
+      />
     </>
   );
 }

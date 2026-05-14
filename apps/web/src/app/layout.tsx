@@ -1,4 +1,4 @@
-// E200: Public root layout with locale bootstrap and consent banner.
+// E200: Public root layout with locale bootstrap and privacy gate.
 import type { Metadata } from "next";
 import { cookies, headers } from "next/headers";
 import type { Collection } from "mongodb";
@@ -10,8 +10,7 @@ import { BRAND } from "@/lib/brand";
 import { LocaleProvider } from "@/context/LocaleContext";
 import { DEFAULT_LOCALE, type SupportedLocale, isSupportedLocale } from "@/config/locales";
 import { SiteHeader } from "./(components)/SiteHeader";
-import { getPrivacyStrings } from "./privacyStrings";
-import { CookieConsentBanner } from "@/components/privacy/CookieConsentBanner";
+import { PrivacyGateProvider } from "@/components/privacy/PrivacyGateProvider";
 import { AnalyticsTracker } from "@/components/privacy/AnalyticsTracker";
 import { CONSENT_COOKIE_NAME, LEGACY_CONSENT_COOKIE_NAME, parseConsentCookie } from "@/lib/privacy/consent";
 import SiteFooter from "@/components/SiteFooter";
@@ -59,7 +58,6 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const initialConsent = parseConsentCookie(
     cookieStore.get(CONSENT_COOKIE_NAME)?.value ?? cookieStore.get(LEGACY_CONSENT_COOKIE_NAME)?.value,
   );
-  const privacyStrings = getPrivacyStrings(initialLocale);
   const initialUser = await loadServerUser(cookieStore);
 
   return (
@@ -68,17 +66,18 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <ThemeProvider>
           <ReadingModeProvider>
             <LocaleProvider initialLocale={initialLocale}>
-              <div className="flex min-h-screen flex-col">
-                <SiteHeader initialUser={initialUser} />
-                <main data-site-main="true" className="flex-1">
-                  {children}
-                </main>
-                <SiteFooter />
-                <MobileAppShellChrome />
-                <div data-site-safe-area-spacer="true" />
-                <AnalyticsTracker />
-                <CookieConsentBanner strings={privacyStrings} initialConsent={initialConsent} />
-              </div>
+              <PrivacyGateProvider initialConsent={initialConsent}>
+                <div className="flex min-h-screen flex-col">
+                  <SiteHeader initialUser={initialUser} />
+                  <main data-site-main="true" className="flex-1">
+                    {children}
+                  </main>
+                  <SiteFooter />
+                  <MobileAppShellChrome />
+                  <div data-site-safe-area-spacer="true" />
+                  <AnalyticsTracker />
+                </div>
+              </PrivacyGateProvider>
             </LocaleProvider>
           </ReadingModeProvider>
         </ThemeProvider>

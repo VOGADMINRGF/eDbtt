@@ -180,7 +180,7 @@ export default function SocialDistributionPanel({
         selectedCount: selectedList.length,
       },
     });
-    setNotice("Verteilplan als Entwurf gespeichert.");
+    setNotice("Verteilplan lokal im Browser als Entwurf gespeichert. Keine produktive Behördenpersistenz.");
   };
 
   const requestReview = () => {
@@ -201,7 +201,7 @@ export default function SocialDistributionPanel({
         selectedCount: selectedList.length,
       },
     });
-    setNotice("Post-Entwurf für Review markiert.");
+    setNotice("Post-Entwurf lokal für Review markiert. Keine produktive Behördenpersistenz.");
   };
 
   const preparePublication = () => {
@@ -220,8 +220,8 @@ export default function SocialDistributionPanel({
     localStorage.setItem(`${keyForPlan(dossierId)}:qr-print-preview`, JSON.stringify(preview));
     setNotice(
       validation.errors.length > 0
-        ? "Veröffentlichung nur als Review-Entwurf vorbereitet (Pflichtfelder im QR/Print-Kontext fehlen)."
-        : "Veröffentlichung intern vorbereitet.",
+        ? "Veröffentlichung nur lokal als Review-Entwurf vorbereitet (Pflichtfelder im QR/Print-Kontext fehlen)."
+        : "Veröffentlichung lokal intern vorbereitet. Keine produktive Behördenpersistenz.",
     );
   };
 
@@ -242,7 +242,7 @@ export default function SocialDistributionPanel({
         selectedCount: selectedList.length,
       },
     });
-    setNotice("Entwurf gespeichert.");
+    setNotice("Entwurf lokal gespeichert. Keine produktive Behördenpersistenz.");
   };
 
   const copyPost = async () => {
@@ -285,6 +285,9 @@ export default function SocialDistributionPanel({
         <h3 className="text-lg font-semibold">Kanäle auswählen</h3>
         <p className="mt-1 text-sm text-[rgb(var(--muted))]">
           Diese Kanäle nehmen wir in den Veröffentlichungsplan auf.
+        </p>
+        <p className="mt-2 text-xs text-[rgb(var(--muted))]">
+          Browser-Arbeitsstände werden nur lokal gespeichert. Das ist keine produktive Behördenpersistenz.
         </p>
 
         <div className="mt-4 grid gap-3 md:grid-cols-2">

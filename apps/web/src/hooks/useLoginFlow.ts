@@ -167,7 +167,7 @@ function mapVerifyError(code?: string) {
     case "code_required":
       return "Bitte den Sicherheitscode eingeben.";
     case "invalid_code":
-      return "Der Code ist falsch oder abgelaufen.";
+      return "Der Code ist ungültig oder abgelaufen. Bitte erneut prüfen.";
     case "challenge_expired":
       return "Der Code ist abgelaufen. Bitte erneut einloggen.";
     case "challenge_missing":

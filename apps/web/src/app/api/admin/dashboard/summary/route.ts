@@ -115,7 +115,7 @@ export async function GET(req: NextRequest) {
   const [orgsTotal, reportAssetsTotal, pendingRepairs, editorialAgg] = await Promise.all([
     (await orgsCol()).countDocuments({ $or: [{ archivedAt: { $exists: false } }, { archivedAt: null }] }),
     (await reportAssetsCol()).countDocuments({}),
-    (await graphRepairsCol()).countDocuments({ status: "pending" }),
+    (await graphRepairsCol()).countDocuments({ status: { $in: ["pending", "open", "in_review", "blocked"] } }),
     (await editorialItemsCol())
       .aggregate([{ $group: { _id: "$status", count: { $sum: 1 } } }])
       .toArray(),

@@ -1,5 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 
 vi.mock("@/components/analyze/AnalyzeWorkspace", () => ({
   __esModule: true,
@@ -99,16 +101,22 @@ describe("create no chip overload contract", () => {
     expect(guidedAnchors[0]?.id).toBe("option");
   });
 
-  it("renders a reduced analyze chip set on first load", () => {
+  it("keeps mode switching behind a secondary disclosure on first load", () => {
     const html = renderToStaticMarkup(
       <LocaleProvider initialLocale="de">
         <CreateClient {...PROPS} />
       </LocaleProvider>,
     );
+    const composerSource = readFileSync(
+      resolve(process.cwd(), "src/features/create/SharedCreateComposer.tsx"),
+      "utf8",
+    );
 
-    expect(html).toContain("Offene Frage");
-    expect(html).toContain("Perspektive ergänzen");
-    expect(html).toContain("Widerspruch einreichen");
-    expect(html).not.toContain("Kernaussage formulieren");
+    expect(composerSource).toContain("data-create-alternate-mode-disclosure");
+    expect(composerSource).toContain("px-4 py-3 md:block");
+    expect(html).not.toContain("Test stadt");
+    expect(html).not.toContain("Checkliste");
+    expect(html).not.toContain("Kontingente und Zugriff</span></div><section");
+    expect(html).toContain("Deine Struktur auf einen Blick");
   });
 });

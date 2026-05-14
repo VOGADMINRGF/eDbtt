@@ -1,0 +1,1251 @@
+import { callOpenAIJson } from "@features/ai";
+
+export type CreatePlannerScope =
+  | "local"
+  | "district"
+  | "municipal"
+  | "state"
+  | "federal"
+  | "eu"
+  | "international"
+  | "unclear";
+export type CreatePlannerStance =
+  | "pro"
+  | "contra"
+  | "mixed"
+  | "open"
+  | "reform_oriented"
+  | "unclear";
+export type CreatePlannerRecommendedLane = "standard" | "create_fast_followup";
+export type CreatePlannerSource = "openai" | "heuristic_fallback";
+export type CreatePlannerProviderName = "openai" | "anthropic" | "mistral" | "local_fallback" | "none";
+export type CreatePlannerDegradedReason =
+  | "missing_provider_key"
+  | "provider_error"
+  | "invalid_json"
+  | "invalid_provider_payload"
+  | "normalization_failed"
+  | "quality_gate_failed"
+  | "timeout"
+  | "rate_limited";
+export type CreatePlannerQualityStatus = "specific" | "generic" | "failed" | "needs_confirmation";
+export type CreatePlannerDebug = {
+  attemptedProvider: "openai" | null;
+  usedProvider: CreatePlannerProviderName;
+  providerAvailable: boolean;
+  providerErrorCode?: string | null;
+  providerErrorMessage?: string | null;
+  errorMessage?: string | null;
+  rawPayloadValid: boolean;
+  rawTextValid: boolean;
+  normalizedPayloadValid: boolean;
+  qualityGatePassed: boolean;
+  rawText?: string | null;
+};
+
+export type CreatePlannerProviderPlan = {
+  lane: CreatePlannerRecommendedLane;
+  plannerProvider: CreatePlannerProviderName;
+  plannerRole: "planner_only";
+  structureProvider: "mistral";
+  summaryProvider: "claude";
+  researchUsed: "none";
+  researchProvider: null;
+  deepSearchUsed: false;
+  graphMatch: "after_structure";
+};
+
+export type CreatePlannerPermissions = {
+  nonMutative: true;
+  canPublish: false;
+  canSave: false;
+  canMerge: false;
+  canDeepSearch: false;
+};
+
+export type CreatePlannerResult = {
+  source: CreatePlannerSource;
+  plannerSource: CreatePlannerSource;
+  plannerProvider: CreatePlannerProviderName;
+  plannerRole: "planner_only";
+  plannerTopic: string;
+  plannerCore: string;
+  plannerScope: CreatePlannerScope[];
+  plannerStance: CreatePlannerStance;
+  plannerClusters: string[];
+  plannerOpenQuestions: string[];
+  shortSummary: string;
+  topicCandidates: string[];
+  clusterCandidates: string[];
+  scopeCandidates: CreatePlannerScope[];
+  stance: CreatePlannerStance;
+  openQuestions: string[];
+  graphSearchTerms: string[];
+  materialSignals: string[];
+  recommendedLane: CreatePlannerRecommendedLane;
+  providerPlan: CreatePlannerProviderPlan;
+  permissions: CreatePlannerPermissions;
+  plannerDegraded: boolean;
+  degradedReason: CreatePlannerDegradedReason | null;
+  plannerDegradedReason: CreatePlannerDegradedReason | null;
+  qualityStatus: CreatePlannerQualityStatus;
+  qualityIssues: string[];
+  providerCallAttempted: boolean;
+  providerCallSucceeded: boolean;
+  plannerDebug: CreatePlannerDebug;
+};
+
+type BuildCreatePlannerInput = {
+  text: string;
+  locale: string;
+};
+
+export type PlannerAttempt =
+  | { ok: true; result: CreatePlannerResult; debug: CreatePlannerDebug; rawText?: string }
+  | {
+      ok: false;
+      reason: CreatePlannerDegradedReason;
+      debug: CreatePlannerDebug;
+      rawText?: string;
+    };
+
+type CreatePlannerDraft = {
+  plannerTopic: string;
+  plannerCore: string;
+  plannerScope: CreatePlannerScope[];
+  plannerStance: CreatePlannerStance;
+  plannerClusters: string[];
+  plannerOpenQuestions: string[];
+  shortSummary: string;
+  topicCandidates: string[];
+  clusterCandidates: string[];
+  scopeCandidates: CreatePlannerScope[];
+  stance: CreatePlannerStance;
+  openQuestions: string[];
+  graphSearchTerms: string[];
+  materialSignals: string[];
+  recommendedLane: CreatePlannerRecommendedLane;
+};
+
+type OpenAiPlannerPayload = {
+  plannerTopic?: unknown;
+  plannerCore?: unknown;
+  plannerScope?: unknown;
+  plannerStance?: unknown;
+  plannerClusters?: unknown;
+  plannerOpenQuestions?: unknown;
+  shortSummary?: unknown;
+  topicCandidates?: unknown;
+  clusterCandidates?: unknown;
+  scopeCandidates?: unknown;
+  stance?: unknown;
+  openQuestions?: unknown;
+  graphSearchTerms?: unknown;
+  materialSignals?: unknown;
+  recommendedLane?: unknown;
+};
+
+const DEFAULT_CREATE_PLANNER_TIMEOUT_MS = 2_200;
+const DEFAULT_OPENAI_PLANNER_MODEL = process.env.OPENAI_PLANNER_MODEL || "gpt-4.1-mini";
+
+const CREATE_PLANNER_JSON_SCHEMA = {
+  type: "object",
+  additionalProperties: false,
+  required: [
+    "plannerTopic",
+    "plannerCore",
+    "plannerScope",
+    "plannerStance",
+    "plannerClusters",
+    "plannerOpenQuestions",
+    "shortSummary",
+    "topicCandidates",
+    "clusterCandidates",
+    "scopeCandidates",
+    "openQuestions",
+    "graphSearchTerms",
+    "materialSignals",
+    "recommendedLane",
+  ],
+  properties: {
+    plannerTopic: { type: "string" },
+    plannerCore: { type: "string" },
+    plannerScope: {
+      type: "array",
+      items: { type: "string", enum: ["local", "district", "municipal", "state", "federal", "eu", "international", "unclear"] },
+    },
+    plannerStance: {
+      type: "string",
+      enum: ["pro", "contra", "mixed", "open", "reform_oriented", "unclear"],
+    },
+    plannerClusters: { type: "array", items: { type: "string" } },
+    plannerOpenQuestions: { type: "array", items: { type: "string" } },
+    shortSummary: { type: "string" },
+    topicCandidates: { type: "array", items: { type: "string" } },
+    clusterCandidates: { type: "array", items: { type: "string" } },
+    scopeCandidates: {
+      type: "array",
+      items: { type: "string", enum: ["local", "district", "municipal", "state", "federal", "eu", "international", "unclear"] },
+    },
+    stance: {
+      type: "string",
+      enum: ["pro", "contra", "mixed", "open", "reform_oriented", "unclear"],
+    },
+    openQuestions: { type: "array", items: { type: "string" } },
+    graphSearchTerms: { type: "array", items: { type: "string" } },
+    materialSignals: { type: "array", items: { type: "string" } },
+    recommendedLane: {
+      type: "string",
+      enum: ["standard", "create_fast_followup"],
+    },
+  },
+} as const;
+
+const GENERIC_CORE_PATTERNS = [
+  /^aussage$/i,
+  /^beitrag$/i,
+  /^hinweis$/i,
+  /^fragestellung$/i,
+  /^neues öffentliches thema strukturieren$/i,
+  /^öffentliches thema mit klärungsbedarf$/i,
+] as const;
+
+const GENERIC_TOPIC_PATTERNS = [
+  /öffentliches anliegen/i,
+  /thema noch offen/i,
+  /klärungsbedarf/i,
+  /^allgemeines thema$/i,
+] as const;
+
+const GENERIC_GRAPH_TERM_PATTERNS = [/öffentliches anliegen/i, /^aussage$/i, /neues thema/i, /^beitrag$/i] as const;
+
+const BROAD_COMMUNAL_TOPIC_RULES = [
+  { label: "Wohnen", pattern: /wohnraum|wohnen|miete|mieten|zweckentfremdung|wohnungsbau|neubau/i },
+  { label: "Verkehr", pattern: /verkehr|bus|bahn|radweg|radwege|auto|mobilität|mobilitaet|schulweg/i },
+  { label: "Klima", pattern: /klima|klimaziel|co2|emission|generation/i },
+  { label: "Bildung", pattern: /schule|schulen|bildung|sprachförderung|sprachfoerderung|digitale ausstattung|basiskompetenz/i },
+  { label: "Migration/Integration", pattern: /migration|integration|zuwander/i },
+  { label: "Sicherheit/Rechtsstaat", pattern: /sicherheit|rechtsstaat|regeln|regelverstöße?|regelverstoesse?|missachtet|handlungsfähig|handlungsfaehig/i },
+  { label: "Gesundheit/Pflege", pattern: /gesundheit|pflege|pflegedienst/i },
+  { label: "Kommunale Finanzen", pattern: /kommunale finanz|haushalt|haushalts|kosten|finanzierung/i },
+  { label: "Bürgerbeteiligung", pattern: /bürgerbeteiligung|buergerbeteiligung|priorisieren|mitentscheiden|direkt priorisieren/i },
+] as const;
+
+const EXPLICIT_OFFICEHOLDER_PATTERNS = [
+  /\bamtsträger\b/i,
+  /\bamtstraeger\b/i,
+  /\bpolitiker\b/i,
+  /\bmandatsträger\b/i,
+  /\bmandatstraeger\b/i,
+  /\bminister\b/i,
+  /\babgeordnete?\b/i,
+  /\bpolitische ämter\b/i,
+  /\bpolitische aemter\b/i,
+  /\bqualifikation für amt\b/i,
+  /\bqualifikation fuer amt\b/i,
+  /\bsanktionen für amtsträger\b/i,
+  /\bsanktionen fuer amtstraeger\b/i,
+] as const;
+
+const ANIMAL_WELFARE_KEYWORDS = [
+  /\btierschutz\b/i,
+  /\btierhaltung\b/i,
+  /\btierwohl\b/i,
+  /\bhaltungsstufe\b/i,
+  /\bbio[- ]?label\b/i,
+  /\bfleisch\b/i,
+  /\bgeflügel\b/i,
+  /\bgefluegel\b/i,
+  /\bfisch\b/i,
+  /\bagrar\b/i,
+  /\bimport\b/i,
+  /\bexport\b/i,
+  /\beuropa\b/i,
+  /\beu\b/i,
+  /\bweltweit\b/i,
+  /\binternational\b/i,
+  /\bethisch\b/i,
+  /\bmindeststandards?\b/i,
+  /\bhaltungsstandards?\b/i,
+] as const;
+
+const COMPLEX_CIVIC_CLUSTER_RULES = [
+  {
+    id: "rights",
+    label: "Menschenwürde, Grundrechte und Verantwortung",
+    patterns: [
+      /würde des menschen|wuerde des menschen|menschenwürde|menschenwuerde/i,
+      /grundrechte?|grundgesetz/i,
+      /pflichten und rechte|verantwortung/i,
+    ],
+  },
+  {
+    id: "migration",
+    label: "Migration, offene Grenzen und gesellschaftliche Regeln",
+    patterns: [/grenzpolitik|offene grenzen|offene grenz/i, /migration|grenzen/i],
+  },
+  {
+    id: "eu_industry",
+    label: "Europäische Energie- und Industriepolitik",
+    patterns: [/energiepolitik|industriepolitik/i, /gesamt[- ]?europa|europa/i],
+  },
+  {
+    id: "participation",
+    label: "Regionale Abstimmungen und Bürgerbeteiligung",
+    patterns: [/abstimmen lassen|abstimmungen|abstimmen/i, /regionen|bürgerbeteiligung|buergerbeteiligung/i],
+  },
+  {
+    id: "budget",
+    label: "Budgetverteilung und öffentliche Prioritäten",
+    patterns: [/budget|verteilen|pauschal/i, /prioritäten|prioritaeten|haushalt/i],
+  },
+] as const;
+
+function dedupeStrings(values: Array<string | null | undefined>): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const value of values) {
+    const trimmed = String(value ?? "").trim();
+    if (!trimmed) continue;
+    const key = trimmed.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(trimmed);
+  }
+  return out;
+}
+
+function isPlannerScope(value: string): value is CreatePlannerScope {
+  return ["local", "district", "municipal", "state", "federal", "eu", "international", "unclear"].includes(value);
+}
+
+function isPlannerStance(value: string): value is CreatePlannerStance {
+  return ["pro", "contra", "mixed", "open", "reform_oriented", "unclear"].includes(value);
+}
+
+function isRecommendedLane(value: string): value is CreatePlannerRecommendedLane {
+  return ["standard", "create_fast_followup"].includes(value);
+}
+
+function asStringArray(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((entry) => String(entry ?? "").trim())
+    .filter((entry) => entry.length > 0);
+}
+
+function countPatternHits(text: string, patterns: readonly RegExp[]): number {
+  return patterns.filter((pattern) => pattern.test(text)).length;
+}
+
+function normalizeDenseText(value: string): string {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}\s]/gu, " ")
+    .replace(/\s+/g, " ");
+}
+
+function hasAnyPattern(text: string, patterns: readonly RegExp[]): boolean {
+  return patterns.some((pattern) => pattern.test(text));
+}
+
+function resolveCreatePlannerTimeoutMs(): number {
+  const raw = Number(process.env.CREATE_PLANNER_TIMEOUT_MS ?? DEFAULT_CREATE_PLANNER_TIMEOUT_MS);
+  if (!Number.isFinite(raw) || raw <= 0) return DEFAULT_CREATE_PLANNER_TIMEOUT_MS;
+  return Math.min(6_000, Math.max(600, Math.floor(raw)));
+}
+
+function withPlannerTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error(`create_planner_timeout_after_${timeoutMs}ms`)), timeoutMs);
+    promise.then(
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      (error) => {
+        clearTimeout(timer);
+        reject(error);
+      },
+    );
+  });
+}
+
+function detectBroadCommunalTopicFields(text: string): string[] {
+  return BROAD_COMMUNAL_TOPIC_RULES.filter((rule) => rule.pattern.test(text)).map((rule) => rule.label);
+}
+
+function isExplicitOfficeholderText(text: string): boolean {
+  return EXPLICIT_OFFICEHOLDER_PATTERNS.some((pattern) => pattern.test(text));
+}
+
+function isAnimalWelfareText(text: string): boolean {
+  return countPatternHits(text, ANIMAL_WELFARE_KEYWORDS) >= 4;
+}
+
+function detectComplexCivicClusters(text: string): string[] {
+  return COMPLEX_CIVIC_CLUSTER_RULES.filter((rule) => rule.patterns.some((pattern) => pattern.test(text))).map((rule) => rule.label);
+}
+
+function isComplexCivicPolicyText(text: string): boolean {
+  return detectComplexCivicClusters(text).length >= 4;
+}
+
+function inferScopesFromText(text: string): CreatePlannerScope[] {
+  const scopes = new Set<CreatePlannerScope>();
+  if (/lokal|nachbarschaft|kiez|viertel|region/i.test(text)) scopes.add("local");
+  if (/bezirk/i.test(text)) scopes.add("district");
+  if (/kommune|kommunal|stadt|gemeinde/i.test(text)) scopes.add("municipal");
+  if (/landtag|landes/i.test(text)) scopes.add("state");
+  if (/bund|bundes|grundgesetz/i.test(text)) scopes.add("federal");
+  if (/\beu\b|europa/i.test(text)) scopes.add("eu");
+  if (/international|weltweit|global|import|export/i.test(text)) scopes.add("international");
+  if (scopes.size === 0) scopes.add("unclear");
+  return Array.from(scopes).slice(0, 4);
+}
+
+function baseProviderPlan(
+  plannerProvider: CreatePlannerProviderName,
+  lane: CreatePlannerRecommendedLane,
+): CreatePlannerProviderPlan {
+  return {
+    lane,
+    plannerProvider,
+    plannerRole: "planner_only",
+    structureProvider: "mistral",
+    summaryProvider: "claude",
+    researchUsed: "none",
+    researchProvider: null,
+    deepSearchUsed: false,
+    graphMatch: "after_structure",
+  };
+}
+
+function basePermissions(): CreatePlannerPermissions {
+  return {
+    nonMutative: true,
+    canPublish: false,
+    canSave: false,
+    canMerge: false,
+    canDeepSearch: false,
+  };
+}
+
+function summarizeText(text: string): string {
+  const normalized = text.replace(/\s+/g, " ").trim();
+  if (normalized.length <= 240) return normalized;
+  return `${normalized.slice(0, 237).trim()}...`;
+}
+
+function shouldExposePlannerDebugRawText(): boolean {
+  return process.env.NODE_ENV !== "production";
+}
+
+function normalizePlannerDebugRawText(rawText?: string | null): string | null {
+  if (!rawText || !shouldExposePlannerDebugRawText()) return null;
+  return rawText;
+}
+
+function estimateTopicSignalCount(text: string): number {
+  const civic = detectComplexCivicClusters(text).length;
+  const communal = detectBroadCommunalTopicFields(text).length;
+  const officeholder = isExplicitOfficeholderText(text) ? 1 : 0;
+  const animalWelfare = isAnimalWelfareText(text) ? 1 : 0;
+  return Math.max(civic, communal, officeholder + animalWelfare);
+}
+
+function createPlannerDebug(overrides: Partial<CreatePlannerDebug>): CreatePlannerDebug {
+  const providerErrorMessage = overrides.providerErrorMessage ?? overrides.errorMessage ?? null;
+  const errorMessage = overrides.errorMessage ?? providerErrorMessage;
+  const rawPayloadValid = overrides.rawPayloadValid ?? overrides.rawTextValid ?? false;
+  const rawTextValid = overrides.rawTextValid ?? rawPayloadValid;
+  return {
+    attemptedProvider: overrides.attemptedProvider ?? null,
+    usedProvider: overrides.usedProvider ?? "none",
+    providerAvailable: overrides.providerAvailable ?? false,
+    providerErrorCode: overrides.providerErrorCode ?? null,
+    providerErrorMessage,
+    errorMessage,
+    rawPayloadValid,
+    rawTextValid,
+    normalizedPayloadValid: overrides.normalizedPayloadValid ?? false,
+    qualityGatePassed: overrides.qualityGatePassed ?? false,
+    rawText: overrides.rawText ?? null,
+  };
+}
+
+function hasForeignFallbackDomains(text: string, terms: string[]): string[] {
+  const combined = terms.join(" ");
+  const issues: string[] = [];
+  if (
+    /\bamtsträger\b|\bamtstraeger\b|\bminister\b|\bpolitiker\b|\bmandatsträger\b|\bmandatstraeger\b|\bqualifikation\b|\bsanktionen\b/i.test(
+      combined,
+    ) &&
+    !isExplicitOfficeholderText(text)
+  ) {
+    issues.push("foreign_officeholder_domain");
+  }
+  if (/\bwohnen\b/i.test(combined) && !/wohnraum|wohnen|miete|mieten|wohnungsbau/i.test(text)) issues.push("foreign_housing_domain");
+  if (/\bverkehr\b/i.test(combined) && !/verkehr|bus|bahn|radweg|mobilität|mobilitaet|auto/i.test(text)) {
+    issues.push("foreign_traffic_domain");
+  }
+  if (/\bklima\b/i.test(combined) && !/klima|co2|emission/i.test(text)) issues.push("foreign_climate_domain");
+  return issues;
+}
+
+export function validateCreatePlannerQuality(
+  planner: Pick<
+    CreatePlannerResult,
+    | "plannerCore"
+    | "plannerTopic"
+    | "plannerClusters"
+    | "graphSearchTerms"
+    | "topicCandidates"
+    | "clusterCandidates"
+    | "plannerScope"
+    | "scopeCandidates"
+  >,
+  sourceText: string,
+): { qualityStatus: CreatePlannerQualityStatus; qualityIssues: string[] } {
+  const qualityIssues: string[] = [];
+  const denseSource = normalizeDenseText(sourceText);
+  const sentenceCount = sourceText
+    .split(/[.!?]+/)
+    .map((part) => part.trim())
+    .filter(Boolean).length;
+  const complexText = sourceText.trim().length > 160 && sentenceCount >= 3;
+  const topicSignals = estimateTopicSignalCount(sourceText);
+
+  if (GENERIC_CORE_PATTERNS.some((pattern) => pattern.test(planner.plannerCore.trim()))) qualityIssues.push("core_generic");
+  if (GENERIC_TOPIC_PATTERNS.some((pattern) => pattern.test(planner.plannerTopic.trim()))) qualityIssues.push("topic_generic");
+  if (planner.graphSearchTerms.length === 0) qualityIssues.push("graph_terms_missing");
+  if (
+    planner.graphSearchTerms.length > 0 &&
+    planner.graphSearchTerms.every((term) => GENERIC_GRAPH_TERM_PATTERNS.some((pattern) => pattern.test(term.trim())))
+  ) {
+    qualityIssues.push("graph_terms_generic");
+  }
+  if ((complexText || topicSignals >= 3) && planner.plannerClusters.length < 3) {
+    qualityIssues.push("clusters_too_few_for_complex_input");
+  }
+  if (
+    (/\beu\b|europa|bund|bundes|grundgesetz|land|region|kommune|kommunal|stadt|gemeinde|bezirk|lokal|international|weltweit/i.test(
+      sourceText,
+    ) &&
+      dedupeStrings([...(planner.plannerScope ?? []), ...(planner.scopeCandidates ?? [])]).every((scope) => scope === "unclear"))
+  ) {
+    qualityIssues.push("scope_too_unclear_for_explicit_jurisdiction");
+  }
+  if (
+    planner.topicCandidates.length > 0 &&
+    planner.topicCandidates.every((candidate) => GENERIC_TOPIC_PATTERNS.some((pattern) => pattern.test(candidate.trim())))
+  ) {
+    qualityIssues.push("topic_candidates_generic");
+  }
+
+  const plannerTerms = dedupeStrings([
+    planner.plannerTopic,
+    planner.plannerCore,
+    ...planner.plannerClusters,
+    ...planner.topicCandidates,
+    ...planner.clusterCandidates,
+    ...planner.graphSearchTerms,
+  ]);
+  qualityIssues.push(...hasForeignFallbackDomains(sourceText, plannerTerms));
+
+  if (denseSource.length > 0 && planner.graphSearchTerms.some((term) => !normalizeDenseText(term))) {
+    qualityIssues.push("graph_terms_empty");
+  }
+
+  if (qualityIssues.length === 0) {
+    return { qualityStatus: "specific", qualityIssues: [] };
+  }
+  if (qualityIssues.includes("core_generic") || qualityIssues.includes("topic_generic")) {
+    return {
+      qualityStatus: complexText || topicSignals >= 3 ? "needs_confirmation" : "generic",
+      qualityIssues,
+    };
+  }
+  if (qualityIssues.includes("clusters_too_few_for_complex_input")) {
+    return { qualityStatus: "needs_confirmation", qualityIssues };
+  }
+  return { qualityStatus: "generic", qualityIssues };
+}
+
+function finalizePlannerResult(params: {
+  text: string;
+  draft: CreatePlannerDraft;
+  source: CreatePlannerSource;
+  plannerProvider: CreatePlannerProviderName;
+  plannerDegraded: boolean;
+  degradedReason: CreatePlannerDegradedReason | null;
+  providerCallAttempted: boolean;
+  providerCallSucceeded: boolean;
+  plannerDebug: CreatePlannerDebug;
+}): CreatePlannerResult {
+  const draft = params.draft;
+  const recommendedLane = draft.recommendedLane;
+  const quality = validateCreatePlannerQuality(
+    {
+      plannerCore: draft.plannerCore,
+      plannerTopic: draft.plannerTopic,
+      plannerScope: dedupeStrings(draft.plannerScope).filter(isPlannerScope),
+      plannerClusters: dedupeStrings(draft.plannerClusters),
+      graphSearchTerms: dedupeStrings(draft.graphSearchTerms),
+      topicCandidates: dedupeStrings(draft.topicCandidates),
+      clusterCandidates: dedupeStrings(draft.clusterCandidates),
+      scopeCandidates: dedupeStrings(draft.scopeCandidates).filter(isPlannerScope),
+    },
+    params.text,
+  );
+
+  return {
+    source: params.source,
+    plannerSource: params.source,
+    plannerProvider: params.plannerProvider,
+    plannerRole: "planner_only",
+    plannerTopic: draft.plannerTopic,
+    plannerCore: draft.plannerCore,
+    plannerScope: dedupeStrings(draft.plannerScope).filter(isPlannerScope),
+    plannerStance: draft.plannerStance,
+    plannerClusters: dedupeStrings(draft.plannerClusters),
+    plannerOpenQuestions: dedupeStrings(draft.plannerOpenQuestions),
+    shortSummary: draft.shortSummary.trim(),
+    topicCandidates: dedupeStrings(draft.topicCandidates),
+    clusterCandidates: dedupeStrings(draft.clusterCandidates),
+    scopeCandidates: dedupeStrings(draft.scopeCandidates).filter(isPlannerScope),
+    stance: draft.stance,
+    openQuestions: dedupeStrings(draft.openQuestions),
+    graphSearchTerms: dedupeStrings(draft.graphSearchTerms),
+    materialSignals: dedupeStrings(draft.materialSignals),
+    recommendedLane,
+    providerPlan: baseProviderPlan(params.plannerProvider, recommendedLane),
+    permissions: basePermissions(),
+    plannerDegraded: params.plannerDegraded || quality.qualityStatus !== "specific",
+    degradedReason:
+      quality.qualityStatus === "specific" ? params.degradedReason : params.degradedReason ?? "quality_gate_failed",
+    plannerDegradedReason:
+      quality.qualityStatus === "specific" ? params.degradedReason : params.degradedReason ?? "quality_gate_failed",
+    qualityStatus: quality.qualityStatus,
+    qualityIssues: quality.qualityIssues,
+    providerCallAttempted: params.providerCallAttempted,
+    providerCallSucceeded: params.providerCallSucceeded,
+    plannerDebug: params.plannerDebug,
+  };
+}
+
+function buildAnimalWelfarePlanner(params: {
+  text: string;
+  source: CreatePlannerSource;
+  plannerProvider: CreatePlannerProviderName;
+  plannerDegraded: boolean;
+  degradedReason: CreatePlannerDegradedReason | null;
+  providerCallAttempted: boolean;
+  providerCallSucceeded: boolean;
+  plannerDebug: CreatePlannerDebug;
+}): CreatePlannerResult {
+  const scopes = inferScopesFromText(params.text);
+  const openQuestions = [
+    "Welche Produkte, Länder, Standards und Kontrollmechanismen sind gemeint?",
+    "Sollten importierte und exportierte Tierprodukte nur zugelassen werden, wenn vergleichbare Tierwohlstandards eingehalten werden?",
+    "Welche Zuständigkeit liegt bei EU, Bund oder internationalen Handelsregeln?",
+  ];
+  const clusters = [
+    "Tierwohl und Haltungsstandards",
+    "Import- und Exportregeln",
+    "EU-/internationale Mindeststandards",
+    "Verbraucherinformation / Kennzeichnung / Bio-Label / Haltungsstufen",
+    "ethische Bewertung von Tierhaltung",
+  ];
+  const topic = "Tierschutz, Tierhaltung und Agrarstandards";
+  const core = "Forderung nach besseren Tierschutz- und Tierhaltungsstandards";
+
+  return finalizePlannerResult({
+    text: params.text,
+    source: params.source,
+    plannerProvider: params.plannerProvider,
+    plannerDegraded: params.plannerDegraded,
+    degradedReason: params.degradedReason,
+    providerCallAttempted: params.providerCallAttempted,
+    providerCallSucceeded: params.providerCallSucceeded,
+    plannerDebug: params.plannerDebug,
+    draft: {
+      plannerTopic: topic,
+      plannerCore: core,
+      plannerScope: scopes.includes("federal") ? scopes : dedupeStrings([...scopes, "federal"]).filter(isPlannerScope),
+      plannerStance: "pro",
+      plannerClusters: clusters,
+      plannerOpenQuestions: openQuestions,
+      shortSummary:
+        "Der Beitrag fordert strengere Tierwohl- und Tierhaltungsstandards für Fleisch, Geflügel und Fisch, auch entlang von Import-, Export- und EU-Regeln.",
+      topicCandidates: [topic, "Tierwohl", "Import und Export", "Kennzeichnung", "Bio-Label", "Haltungsstufen", "Agrarstandards"],
+      clusterCandidates: clusters,
+      scopeCandidates: scopes.includes("federal") ? scopes : dedupeStrings([...scopes, "federal"]).filter(isPlannerScope),
+      stance: "pro",
+      openQuestions,
+      graphSearchTerms: [
+        "Tierwohl",
+        "Tierhaltung",
+        "Agrarstandards",
+        "Import Export Tierprodukte",
+        "EU Mindeststandards",
+        "Bio-Label Haltungsstufen",
+      ],
+      materialSignals: [],
+      recommendedLane: "create_fast_followup",
+    },
+  });
+}
+
+function buildOfficeholderPlanner(params: {
+  text: string;
+  source: CreatePlannerSource;
+  plannerProvider: CreatePlannerProviderName;
+  plannerDegraded: boolean;
+  degradedReason: CreatePlannerDegradedReason | null;
+  providerCallAttempted: boolean;
+  providerCallSucceeded: boolean;
+  plannerDebug: CreatePlannerDebug;
+}): CreatePlannerResult {
+  const scopes = inferScopesFromText(params.text);
+  const topic = "Politische Ämter, Qualifikation und Verantwortung";
+  const core = "Forderung nach klaren Qualifikations- und Verantwortungsregeln für politische Ämter";
+  const openQuestions = [
+    "Für welche Ämter sollen diese Regeln gelten?",
+    "Welche Qualifikation, Kontrolle oder Sanktionen sind konkret gemeint?",
+  ];
+  const clusters = [
+    "Qualifikation für politische Ämter",
+    "Verantwortung und Transparenz",
+    "Sanktionen bei Pflichtverletzungen",
+  ];
+  const stance = /dagegen|ablehnen|nicht/i.test(params.text) ? "contra" : "pro";
+
+  return finalizePlannerResult({
+    text: params.text,
+    source: params.source,
+    plannerProvider: params.plannerProvider,
+    plannerDegraded: params.plannerDegraded,
+    degradedReason: params.degradedReason,
+    providerCallAttempted: params.providerCallAttempted,
+    providerCallSucceeded: params.providerCallSucceeded,
+    plannerDebug: params.plannerDebug,
+    draft: {
+      plannerTopic: topic,
+      plannerCore: core,
+      plannerScope: scopes,
+      plannerStance: stance,
+      plannerClusters: clusters,
+      plannerOpenQuestions: openQuestions,
+      shortSummary: "Der Beitrag zielt auf politische Ämter, Qualifikation und Konsequenzen bei Pflichtverletzungen.",
+      topicCandidates: [topic, "Amtsträger", "Qualifikation", "Sanktionen"],
+      clusterCandidates: clusters,
+      scopeCandidates: scopes,
+      stance,
+      openQuestions,
+      graphSearchTerms: ["Amtsträger", "politische Ämter", "Qualifikation", "Sanktionen"],
+      materialSignals: [],
+      recommendedLane: "create_fast_followup",
+    },
+  });
+}
+
+function buildBroadCommunalPlanner(params: {
+  text: string;
+  source: CreatePlannerSource;
+  plannerProvider: CreatePlannerProviderName;
+  plannerDegraded: boolean;
+  degradedReason: CreatePlannerDegradedReason | null;
+  providerCallAttempted: boolean;
+  providerCallSucceeded: boolean;
+  plannerDebug: CreatePlannerDebug;
+}): CreatePlannerResult {
+  const fields = detectBroadCommunalTopicFields(params.text);
+  const topic = "Kommunale Prioritäten und Zielkonflikte";
+  const core = "Mehrere kommunale Zielkonflikte priorisieren";
+  const openQuestions = ["Welche Bereiche sollen zuerst bearbeitet werden – und wer ist zuständig?"];
+
+  return finalizePlannerResult({
+    text: params.text,
+    source: params.source,
+    plannerProvider: params.plannerProvider,
+    plannerDegraded: params.plannerDegraded,
+    degradedReason: params.degradedReason,
+    providerCallAttempted: params.providerCallAttempted,
+    providerCallSucceeded: params.providerCallSucceeded,
+    plannerDebug: params.plannerDebug,
+    draft: {
+      plannerTopic: topic,
+      plannerCore: core,
+      plannerScope: inferScopesFromText(params.text),
+      plannerStance: "open",
+      plannerClusters: fields.slice(0, 6),
+      plannerOpenQuestions: openQuestions,
+      shortSummary: `Der Beitrag bündelt mehrere kommunale Bedarfspunkte: ${fields.slice(0, 6).join(", ")}.`,
+      topicCandidates: [topic, ...fields],
+      clusterCandidates: fields,
+      scopeCandidates: inferScopesFromText(params.text),
+      stance: "open",
+      openQuestions,
+      graphSearchTerms: [topic, ...fields],
+      materialSignals: [],
+      recommendedLane: "create_fast_followup",
+    },
+  });
+}
+
+function buildComplexCivicPlanner(params: {
+  text: string;
+  source: CreatePlannerSource;
+  plannerProvider: CreatePlannerProviderName;
+  plannerDegraded: boolean;
+  degradedReason: CreatePlannerDegradedReason | null;
+  providerCallAttempted: boolean;
+  providerCallSucceeded: boolean;
+  plannerDebug: CreatePlannerDebug;
+}): CreatePlannerResult {
+  const clusters = detectComplexCivicClusters(params.text);
+  const scopes = inferScopesFromText(params.text);
+  const mergedScopes = dedupeStrings([
+    ...scopes,
+    "federal",
+    /\beu\b|europa/i.test(params.text) ? "eu" : null,
+    /region/i.test(params.text) ? "local" : null,
+  ]).filter(isPlannerScope);
+  const openQuestion =
+    "Welcher Teil soll zuerst bearbeitet werden: Grundrechte, Migration, Energiepolitik, regionale Abstimmung oder Budgetverteilung?";
+
+  return finalizePlannerResult({
+    text: params.text,
+    source: params.source,
+    plannerProvider: params.plannerProvider,
+    plannerDegraded: params.plannerDegraded,
+    degradedReason: params.degradedReason,
+    providerCallAttempted: params.providerCallAttempted,
+    providerCallSucceeded: params.providerCallSucceeded,
+    plannerDebug: params.plannerDebug,
+    draft: {
+      plannerTopic: "Grundrechte, gesellschaftliche Pflichten und demokratische Priorisierung",
+      plannerCore:
+        "Zielkonflikt zwischen Menschenwürde, Grundrechten, gesellschaftlicher Verantwortung, Migration, europäischer Politik, regionaler Beteiligung und Budgetprioritäten.",
+      plannerScope: mergedScopes,
+      plannerStance: "reform_oriented",
+      plannerClusters: clusters,
+      plannerOpenQuestions: [openQuestion],
+      shortSummary:
+        "Der Beitrag verbindet Grundrechte, offene Grenzen, europäische Politik, regionale Beteiligung und Budgetfragen zu einem reformorientierten Mehrthemenkonflikt.",
+      topicCandidates: [
+        "Grundrechte, gesellschaftliche Pflichten und demokratische Priorisierung",
+        "Menschenwürde",
+        "Grundrechte",
+        "Migration",
+        "offene Grenzen",
+        "Energiepolitik Europa",
+        "Industriepolitik Europa",
+        "regionale Abstimmungen",
+        "Budgetpriorisierung",
+      ],
+      clusterCandidates: clusters,
+      scopeCandidates: mergedScopes,
+      stance: "reform_oriented",
+      openQuestions: [openQuestion],
+      graphSearchTerms: [
+        "Menschenwürde",
+        "Grundrechte",
+        "gesellschaftliche Pflichten",
+        "offene Grenzen",
+        "Migration",
+        "EU Energiepolitik",
+        "Industriepolitik Europa",
+        "regionale Abstimmungen",
+        "Bürgerbeteiligung",
+        "Budgetpriorisierung",
+      ],
+      materialSignals: [],
+      recommendedLane: "create_fast_followup",
+    },
+  });
+}
+
+function buildNeutralPlanner(params: {
+  text: string;
+  source: CreatePlannerSource;
+  plannerProvider: CreatePlannerProviderName;
+  plannerDegraded: boolean;
+  degradedReason: CreatePlannerDegradedReason | null;
+  providerCallAttempted: boolean;
+  providerCallSucceeded: boolean;
+  plannerDebug: CreatePlannerDebug;
+}): CreatePlannerResult {
+  const normalized = params.text.replace(/\s+/g, " ").trim();
+  const scopes = inferScopesFromText(params.text);
+  const summary = normalized.length > 220 ? `${normalized.slice(0, 217).trim()}...` : normalized;
+  const openQuestions = ["Was genau soll geklärt, verändert oder vorbereitet werden?"];
+  const stance =
+    /dagegen|ablehnen|nicht sinnvoll/i.test(params.text)
+      ? "contra"
+      : /soll|muss|fordern|fordere|verlangen/i.test(params.text)
+        ? "pro"
+        : "open";
+
+  return finalizePlannerResult({
+    text: params.text,
+    source: params.source,
+    plannerProvider: params.plannerProvider,
+    plannerDegraded: params.plannerDegraded,
+    degradedReason: params.degradedReason,
+    providerCallAttempted: params.providerCallAttempted,
+    providerCallSucceeded: params.providerCallSucceeded,
+    plannerDebug: params.plannerDebug,
+    draft: {
+      plannerTopic: "Öffentliches Anliegen mit Klärungsbedarf",
+      plannerCore: "Neues öffentliches Thema strukturieren",
+      plannerScope: scopes,
+      plannerStance: stance,
+      plannerClusters: [],
+      plannerOpenQuestions: openQuestions,
+      shortSummary: summary || "Ein neues öffentliches Anliegen soll eingeordnet werden.",
+      topicCandidates: ["Öffentliches Anliegen mit Klärungsbedarf"],
+      clusterCandidates: [],
+      scopeCandidates: scopes,
+      stance,
+      openQuestions,
+      graphSearchTerms: [],
+      materialSignals: [],
+      recommendedLane: "standard",
+    },
+  });
+}
+
+function buildHeuristicPlanner(params: {
+  text: string;
+  plannerProvider: CreatePlannerProviderName;
+  plannerDegraded: boolean;
+  degradedReason: CreatePlannerDegradedReason | null;
+  providerCallAttempted: boolean;
+  providerCallSucceeded: boolean;
+  plannerDebug: CreatePlannerDebug;
+}): CreatePlannerResult {
+  const common = {
+    text: params.text,
+    source: "heuristic_fallback" as const,
+    plannerProvider: params.plannerProvider,
+    plannerDegraded: params.plannerDegraded,
+    degradedReason: params.degradedReason,
+    providerCallAttempted: params.providerCallAttempted,
+    providerCallSucceeded: params.providerCallSucceeded,
+    plannerDebug: params.plannerDebug,
+  };
+  if (isAnimalWelfareText(params.text)) return buildAnimalWelfarePlanner(common);
+  if (isComplexCivicPolicyText(params.text)) return buildComplexCivicPlanner(common);
+  if (isExplicitOfficeholderText(params.text)) return buildOfficeholderPlanner(common);
+  const communalFields = detectBroadCommunalTopicFields(params.text);
+  if (communalFields.length >= 4) return buildBroadCommunalPlanner(common);
+  return buildNeutralPlanner(common);
+}
+
+function normalizeOpenAiPlannerPayload(
+  payload: OpenAiPlannerPayload,
+  text: string,
+  rawText?: string,
+): PlannerAttempt {
+  const normalizedRawText = normalizePlannerDebugRawText(rawText);
+  const plannerTopic = String(payload.plannerTopic ?? "").trim();
+  const plannerCore = String(payload.plannerCore ?? "").trim();
+  if (!plannerTopic || !plannerCore) {
+    const errorMessage = !plannerTopic ? "plannerTopic fehlt" : "plannerCore fehlt";
+    return {
+      ok: false,
+      reason: "invalid_provider_payload",
+      rawText: normalizedRawText,
+      debug: createPlannerDebug({
+        attemptedProvider: "openai",
+        usedProvider: "local_fallback",
+        providerAvailable: true,
+        providerErrorMessage: errorMessage,
+        errorMessage,
+        rawPayloadValid: true,
+        rawTextValid: true,
+        normalizedPayloadValid: false,
+        qualityGatePassed: false,
+        rawText: normalizedRawText,
+      }),
+    };
+  }
+
+  const plannerScope = asStringArray(payload.plannerScope).filter(isPlannerScope);
+  const plannerStanceRaw = String(payload.plannerStance ?? payload.stance ?? "").trim().toLowerCase();
+  const plannerStance = isPlannerStance(plannerStanceRaw) ? plannerStanceRaw : "open";
+  const recommendedLaneRaw = String(payload.recommendedLane ?? "").trim().toLowerCase();
+  const recommendedLane = isRecommendedLane(recommendedLaneRaw) ? recommendedLaneRaw : "create_fast_followup";
+  const plannerClusters = asStringArray(payload.plannerClusters);
+  const plannerOpenQuestions = dedupeStrings([...asStringArray(payload.plannerOpenQuestions), ...asStringArray(payload.openQuestions)]);
+  const topicCandidates = dedupeStrings([plannerTopic, ...asStringArray(payload.topicCandidates)]);
+  const clusterCandidates = dedupeStrings([...plannerClusters, ...asStringArray(payload.clusterCandidates)]);
+  const scopeCandidates = dedupeStrings([...plannerScope, ...asStringArray(payload.scopeCandidates)]).filter(isPlannerScope);
+  const graphSearchTerms = dedupeStrings([
+    ...asStringArray(payload.graphSearchTerms),
+    ...plannerClusters,
+    plannerTopic,
+  ]);
+  const materialSignals = asStringArray(payload.materialSignals);
+  const shortSummary = String(payload.shortSummary ?? "").trim() || plannerCore || summarizeText(text);
+
+  const result = finalizePlannerResult({
+    text,
+    source: "openai",
+    plannerProvider: "openai",
+    plannerDegraded: false,
+    degradedReason: null,
+    providerCallAttempted: true,
+    providerCallSucceeded: true,
+    plannerDebug: {
+      ...createPlannerDebug({
+        attemptedProvider: "openai",
+        usedProvider: "openai",
+        providerAvailable: true,
+        providerErrorMessage: null,
+        errorMessage: null,
+        rawPayloadValid: true,
+        rawTextValid: true,
+        normalizedPayloadValid: true,
+        qualityGatePassed: true,
+        rawText: normalizedRawText,
+      }),
+    },
+    draft: {
+      plannerTopic,
+      plannerCore,
+      plannerScope: plannerScope.length > 0 ? plannerScope : inferScopesFromText(text),
+      plannerStance,
+      plannerClusters,
+      plannerOpenQuestions,
+      shortSummary,
+      topicCandidates,
+      clusterCandidates,
+      scopeCandidates: scopeCandidates.length > 0 ? scopeCandidates : inferScopesFromText(text),
+      stance: plannerStance,
+      openQuestions: plannerOpenQuestions,
+      graphSearchTerms,
+      materialSignals,
+      recommendedLane,
+    },
+  });
+  if (result.qualityStatus !== "specific") {
+    const errorMessage = `qualityStatus=${result.qualityStatus}; issues=${result.qualityIssues.join(",")}`;
+    return {
+      ok: false,
+      reason: "quality_gate_failed",
+      rawText: normalizedRawText,
+      debug: createPlannerDebug({
+        attemptedProvider: "openai",
+        usedProvider: "local_fallback",
+        providerAvailable: true,
+        providerErrorMessage: errorMessage,
+        errorMessage,
+        rawPayloadValid: true,
+        rawTextValid: true,
+        normalizedPayloadValid: true,
+        qualityGatePassed: false,
+        rawText: normalizedRawText,
+      }),
+    };
+  }
+  return {
+    ok: true,
+    result,
+    debug: result.plannerDebug,
+    rawText: normalizedRawText ?? undefined,
+  };
+}
+
+async function tryOpenAiPlanner(input: BuildCreatePlannerInput): Promise<PlannerAttempt> {
+  if (!process.env.OPENAI_API_KEY) {
+    const errorMessage = "OPENAI_API_KEY fehlt";
+    return {
+      ok: false,
+      reason: "missing_provider_key",
+      debug: createPlannerDebug({
+        attemptedProvider: "openai",
+        usedProvider: "local_fallback",
+        providerAvailable: false,
+        providerErrorMessage: errorMessage,
+        errorMessage,
+        rawPayloadValid: false,
+        rawTextValid: false,
+        normalizedPayloadValid: false,
+        qualityGatePassed: false,
+      }),
+    };
+  }
+
+  const system = [
+    "Du bist planner_only für den ersten nicht-mutativen /create-Follow-up-Schritt in E150.",
+    "Strukturiere den Beitrag fachlich, ohne Fakten zu erfinden und ohne mutative Aktionen.",
+    "Erkenne Mehrthemenbeiträge. Bei längeren politischen Texten mit mehreren Themenfeldern musst du Cluster bilden.",
+    "Nutze keine generischen Platzhalter wie 'Aussage' oder 'Öffentliches Anliegen', wenn ein konkretes Thema erkennbar ist.",
+    "Amtsträger, Qualifikation oder Sanktionen nur bei expliziten Hinweisen auf Amtsträger, Politiker, Mandatsträger, Minister, Abgeordnete oder politische Ämter.",
+    "Gib strikt JSON zurück.",
+  ].join("\n");
+
+  const user = [
+    "Analysiere den folgenden Beitrag als planner_only.",
+    "Liefere genau diese JSON-Felder:",
+    "plannerTopic, plannerCore, plannerScope, plannerStance, plannerClusters, plannerOpenQuestions, shortSummary, topicCandidates, clusterCandidates, scopeCandidates, openQuestions, graphSearchTerms, materialSignals, recommendedLane.",
+    "Regeln:",
+    "- Keine Veröffentlichung, kein Speichern, kein Mergen, kein DeepSearch, kein Faktencheck, keine Quellenbehauptungen.",
+    "- 'Öffentliches Anliegen' ist nur erlaubt, wenn absolut kein Thema erkennbar ist.",
+    "- 'Aussage' ist nie ausreichend als plannerCore bei längeren politischen Texten.",
+    "- Bei mehreren Politikfeldern müssen mindestens 3 Cluster entstehen.",
+    "- Formuliere die offene Rückfrage als Auswahlfrage, wenn mehrere Themen konkurrieren.",
+    "",
+    `Locale: ${input.locale}`,
+    "",
+    "TEXT:",
+    input.text,
+  ].join("\n");
+
+  try {
+    const { text } = await withPlannerTimeout(
+      callOpenAIJson({
+        system,
+        user,
+        model: DEFAULT_OPENAI_PLANNER_MODEL,
+        temperature: 0.2,
+        max_tokens: 1200,
+        response_format: {
+          name: "create_planner_result",
+          schema: CREATE_PLANNER_JSON_SCHEMA,
+          strict: true,
+        },
+      }),
+      resolveCreatePlannerTimeoutMs(),
+    );
+    let parsed: OpenAiPlannerPayload;
+    try {
+      parsed = JSON.parse(text) as OpenAiPlannerPayload;
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "JSON.parse fehlgeschlagen";
+      const normalizedRawText = normalizePlannerDebugRawText(text);
+      return {
+        ok: false,
+        reason: "invalid_json",
+        rawText: normalizedRawText,
+        debug: createPlannerDebug({
+          attemptedProvider: "openai",
+          usedProvider: "local_fallback",
+          providerAvailable: true,
+          providerErrorMessage: errorMessage,
+          errorMessage,
+          rawPayloadValid: false,
+          rawTextValid: false,
+          normalizedPayloadValid: false,
+          qualityGatePassed: false,
+          rawText: normalizedRawText,
+        }),
+      };
+    }
+    return normalizeOpenAiPlannerPayload(parsed, input.text, text);
+  } catch (error) {
+    const errorObject = error as { message?: string; meta?: { code?: string; messageShort?: string } } | null;
+    const message = error instanceof Error ? error.message : "unknown_provider_error";
+    if (message.includes("create_planner_timeout_after_")) {
+      return {
+        ok: false,
+        reason: "timeout",
+        debug: createPlannerDebug({
+          attemptedProvider: "openai",
+          usedProvider: "local_fallback",
+          providerAvailable: true,
+          providerErrorCode: errorObject?.meta?.code ?? null,
+          providerErrorMessage: message,
+          errorMessage: message,
+          rawPayloadValid: false,
+          rawTextValid: false,
+          normalizedPayloadValid: false,
+          qualityGatePassed: false,
+        }),
+      };
+    }
+    if (/rate.?limit|429/i.test(message)) {
+      return {
+        ok: false,
+        reason: "rate_limited",
+        debug: createPlannerDebug({
+          attemptedProvider: "openai",
+          usedProvider: "local_fallback",
+          providerAvailable: true,
+          providerErrorCode: errorObject?.meta?.code ?? "rate_limited",
+          providerErrorMessage: message,
+          errorMessage: message,
+          rawPayloadValid: false,
+          rawTextValid: false,
+          normalizedPayloadValid: false,
+          qualityGatePassed: false,
+        }),
+      };
+    }
+    return {
+      ok: false,
+      reason: "provider_error",
+      debug: createPlannerDebug({
+        attemptedProvider: "openai",
+        usedProvider: "local_fallback",
+        providerAvailable: true,
+        providerErrorCode: errorObject?.meta?.code ?? null,
+        providerErrorMessage: message,
+        errorMessage: message,
+        rawPayloadValid: false,
+        rawTextValid: false,
+        normalizedPayloadValid: false,
+        qualityGatePassed: false,
+      }),
+    };
+  }
+}
+
+export async function buildCreatePlanner(input: BuildCreatePlannerInput): Promise<CreatePlannerResult> {
+  const text = input.text.trim();
+  const openAiResult = await tryOpenAiPlanner({
+    ...input,
+    text,
+  });
+  if (openAiResult.ok) return openAiResult.result;
+  if (!openAiResult.ok) {
+    const plannerFailure = openAiResult as Extract<PlannerAttempt, { ok: false }>;
+    return buildHeuristicPlanner({
+      text,
+      plannerProvider: "local_fallback",
+      plannerDegraded: true,
+      degradedReason: plannerFailure.reason,
+      providerCallAttempted: plannerFailure.reason !== "missing_provider_key",
+      providerCallSucceeded: false,
+      plannerDebug: plannerFailure.debug,
+    });
+  }
+
+  return buildNeutralPlanner({
+    text,
+    source: "heuristic_fallback",
+    plannerProvider: "local_fallback",
+    plannerDegraded: true,
+    degradedReason: "normalization_failed",
+    providerCallAttempted: true,
+    providerCallSucceeded: false,
+    plannerDebug: {
+      ...createPlannerDebug({
+        attemptedProvider: "openai",
+        usedProvider: "local_fallback",
+        providerAvailable: Boolean(process.env.OPENAI_API_KEY),
+        providerErrorMessage: "planner_attempt_unreachable_state",
+        errorMessage: "planner_attempt_unreachable_state",
+        rawPayloadValid: false,
+        rawTextValid: false,
+        normalizedPayloadValid: false,
+        qualityGatePassed: false,
+        rawText: null,
+      }),
+    },
+  });
+}

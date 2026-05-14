@@ -205,6 +205,12 @@ export const NAV_SECTIONS: NavSection[] = [
         keywords: ["acquisition", "feeds", "regions", "outreach"],
       },
       {
+        href: "/admin/region",
+        label: "Region Register",
+        description: "Verwaltung, Akteure, Signale",
+        keywords: ["region", "verwaltung", "actors", "signals", "cockpit"],
+      },
+      {
         href: "/admin/research/tasks",
         label: "Research Tasks",
         description: "Recherche-Aufgaben",

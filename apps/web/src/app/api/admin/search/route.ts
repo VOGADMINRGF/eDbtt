@@ -20,6 +20,7 @@ import type { AiTelemetryEvent } from "@features/ai/telemetry";
 import { getEffectiveRoutePolicies } from "@core/access/db";
 import type { RoutePolicy, UserRouteOverride } from "@features/access/types";
 import type { AiUsageDailyRow } from "@core/telemetry/aiUsageTypes";
+import { listThemenradarItems } from "@features/themenradar/store";
 import { ErrorLogModel } from "@/models/ErrorLog";
 import type { UserRole } from "@/types/user";
 import { requireAdminOrResponse } from "@/lib/server/auth/admin";
@@ -51,6 +52,7 @@ type SearchGroup =
   | "Access Policies"
   | "Access Overrides"
   | "Feed Drafts"
+  | "Themen"
   | "Eventualitaeten"
   | "Responsibility Actors"
   | "Evidence Claims"
@@ -82,6 +84,7 @@ const LIMIT_CONTRIBUTIONS = 5;
 const LIMIT_POLICIES = 6;
 const LIMIT_OVERRIDES = 6;
 const LIMIT_DRAFTS = 5;
+const LIMIT_THEMENRADAR = 6;
 const LIMIT_EVENTUALITIES = 5;
 const LIMIT_ACTORS = 5;
 const LIMIT_CLAIMS = 5;
@@ -123,6 +126,7 @@ export async function GET(req: NextRequest) {
     contributions,
     policies,
     drafts,
+    themenradarItems,
     eventualities,
     actors,
     auditEvents,
@@ -143,6 +147,7 @@ export async function GET(req: NextRequest) {
     safeCall(() => loadResearchContributions(regex), [] as ResearchContributionHit[]),
     safeCall(() => loadAccessPolicies(regex), [] as AccessPolicyHit[]),
     safeCall(() => loadFeedDrafts(regex), [] as FeedDraftHit[]),
+    safeCall(() => loadThemenradarItems(safeQuery), [] as ThemenradarSearchHit[]),
     safeCall(() => loadEventualitySnapshots(regex), [] as EventualitySnapshotDoc[]),
     safeCall(() => loadResponsibilityActors(regex), [] as ResponsibilityActorHit[]),
     safeCall(() => loadAuditEvents(regex), [] as AuditEventHit[]),
@@ -356,6 +361,25 @@ export async function GET(req: NextRequest) {
       description: descParts.join(" · "),
       href: `/admin/feeds/drafts/${encodeURIComponent(draft.id)}`,
       badge: draft.status ?? null,
+    });
+  }
+
+  // Themenradar
+  for (const item of themenradarItems) {
+    const descParts = [
+      item.lifecycleStatus ? `Status: ${item.lifecycleStatus}` : null,
+      item.sourceType ? `Quelle: ${item.sourceType}` : null,
+      item.linkedDossierId ? `Dossier: ${shortId(item.linkedDossierId)}` : null,
+      item.linkedAnlassraumId ? `Anlassraum: ${shortId(item.linkedAnlassraumId)}` : null,
+    ].filter(Boolean);
+
+    results.push({
+      id: `themenradar:${item.id}`,
+      group: "Themen",
+      label: item.title?.trim() || item.id,
+      description: descParts.join(" · "),
+      href: `/admin/themenradar/${encodeURIComponent(item.id)}`,
+      badge: item.lifecycleStatus ?? null,
     });
   }
 
@@ -941,6 +965,28 @@ async function loadFeedDrafts(regex: RegExp): Promise<FeedDraftHit[]> {
     status: doc.status,
     regionCode: doc.regionCode ?? undefined,
     pipeline: doc.pipeline ?? undefined,
+  }));
+}
+
+type ThemenradarSearchHit = {
+  id: string;
+  title: string;
+  sourceType: string;
+  lifecycleStatus: string;
+  linkedAnlassraumId?: string | null;
+  linkedDossierId?: string | null;
+};
+
+async function loadThemenradarItems(query: string): Promise<ThemenradarSearchHit[]> {
+  if (query.length < MIN_QUERY_LEN) return [];
+  const items = await listThemenradarItems({ q: query, limit: LIMIT_THEMENRADAR });
+  return items.map((item) => ({
+    id: item.id,
+    title: item.title,
+    sourceType: item.sourceType,
+    lifecycleStatus: item.lifecycleStatus,
+    linkedAnlassraumId: item.linkedAnlassraumId ?? null,
+    linkedDossierId: item.linkedDossierId ?? null,
   }));
 }
 

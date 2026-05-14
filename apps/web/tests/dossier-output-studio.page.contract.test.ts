@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import DossierOutputStudioPage from "@/app/dossier/[id]/studio/page";
 
-async function renderStudioPage(dossierId = "demo-studio") {
+async function renderStudioPage(dossierId = "dossier_demo_mobility_berlin") {
   const element = await DossierOutputStudioPage({
     params: Promise.resolve({ id: dossierId }),
   });
@@ -11,7 +11,7 @@ async function renderStudioPage(dossierId = "demo-studio") {
 
 describe("/dossier/[id]/studio social distribution workspace", () => {
   it("renders studio hero and master post section", async () => {
-    const html = await renderStudioPage("dossier-31");
+    const html = await renderStudioPage();
 
     expect(html).toContain("eDebatte Studio");
     expect(html).toContain("Vom Dossier zum fertigen Beitrag, Kanal-Versionen und Veröffentlichungsplan.");
@@ -23,7 +23,7 @@ describe("/dossier/[id]/studio social distribution workspace", () => {
   });
 
   it("renders channel selection and distribution planning with policy hints", async () => {
-    const html = await renderStudioPage("dossier-31");
+    const html = await renderStudioPage();
 
     expect(html).toContain("Kanäle auswählen");
     expect(html).toContain("Kanalverbindungen");
@@ -55,12 +55,22 @@ describe("/dossier/[id]/studio social distribution workspace", () => {
   });
 
   it("keeps publish action non-active and preserves source/review warning", async () => {
-    const html = await renderStudioPage("dossier-31");
+    const html = await renderStudioPage();
 
     expect(html).toContain("Veröffentlichung vorbereiten");
     expect(html).toContain("Quellenlage");
     expect(html).toContain("Review erforderlich");
     expect(html).not.toContain("extern veröffentlicht");
     expect(html).not.toContain("Jetzt veröffentlichen");
+  });
+
+  it("blocks silent demo fallback for region draft dossier ids without runtime studio data", async () => {
+    const html = await renderStudioPage("dossier-draft-missing-001");
+
+    expect(html).toContain("Für dieses Dossier liegen aktuell keine runtimefähigen Studio-Daten vor.");
+    expect(html).toContain("kein `demoDossierForOutputEngine` als Ersatz");
+    expect(html).toContain("region draft review only");
+    expect(html).not.toContain("Fertiger Post-Entwurf");
+    expect(html).not.toContain("Verteilplan übernehmen");
   });
 });

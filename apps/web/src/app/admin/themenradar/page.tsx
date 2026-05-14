@@ -56,6 +56,7 @@ export default function ThemenradarAdminPage() {
     useState<(typeof STATUS_OPTIONS)[number]>("all");
   const [sourceFilter, setSourceFilter] =
     useState<(typeof SOURCE_OPTIONS)[number]>("all");
+  const [query, setQuery] = useState("");
   const [items, setItems] = useState<ThemenradarItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -76,6 +77,7 @@ export default function ThemenradarAdminPage() {
       const params = new URLSearchParams();
       if (statusFilter !== "all") params.set("status", statusFilter);
       if (sourceFilter !== "all") params.set("sourceType", sourceFilter);
+      if (query.trim()) params.set("q", query.trim());
       const res = await fetch(`/api/admin/themenradar?${params.toString()}`, {
         cache: "no-store",
       });
@@ -95,7 +97,7 @@ export default function ThemenradarAdminPage() {
   useEffect(() => {
     loadList();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [statusFilter, sourceFilter]);
+  }, [statusFilter, sourceFilter, query]);
 
   const counts = useMemo(() => {
     const result: Record<string, number> = {
@@ -243,6 +245,13 @@ export default function ThemenradarAdminPage() {
       </section>
 
       <section className="flex flex-wrap items-center gap-2" data-testid="themenradar-filters">
+        <input
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+          placeholder="Suche nach Titel, ID, Status, Quelle oder Verknüpfung"
+          data-testid="themenradar-query-filter"
+          className="min-w-[18rem] rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-2 text-sm"
+        />
         <select
           value={statusFilter}
           onChange={(event) =>

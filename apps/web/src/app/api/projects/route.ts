@@ -4,7 +4,7 @@ import { safeRandomId } from "@core/utils/random";
 import { projectsCol } from "@features/project/db";
 import type { ProjectDoc, ProjectOption, ProjectTopic, ProjectStatus } from "@features/project/types";
 import { getSessionUser } from "@/lib/server/auth/sessionUser";
-import { sessionHasPassedTwoFactor, userRequiresTwoFactor } from "@/lib/server/auth/twoFactor";
+import { sessionHasPassedTwoFactor, sessionSatisfiesProtectedTwoFactor, userRequiresTwoFactor } from "@/lib/server/auth/twoFactor";
 import { userIsAdminDashboard } from "@/lib/server/auth/roles";
 
 export const runtime = "nodejs";
@@ -24,11 +24,11 @@ async function gateProjectCreator(req: NextRequest) {
     return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
   }
 
-  if (!userRequiresTwoFactor(user)) {
+  if (!userRequiresTwoFactor(user) && !sessionSatisfiesProtectedTwoFactor(user)) {
     return NextResponse.json({ ok: false, error: "two_factor_setup_required" }, { status: 403 });
   }
 
-  if (!sessionHasPassedTwoFactor(user)) {
+  if (userRequiresTwoFactor(user) && !sessionHasPassedTwoFactor(user) && !sessionSatisfiesProtectedTwoFactor(user)) {
     return NextResponse.json({ ok: false, error: "two_factor_required" }, { status: 403 });
   }
 

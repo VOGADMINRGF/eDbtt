@@ -2,12 +2,19 @@ import {
   resolveVerificationPresentationView,
   type VerificationBadgeTone,
 } from "@features/ai/e150/verificationPresentation";
+import type {
+  E150Lane,
+} from "@features/ai/e150/journeyProfiles";
+import type {
+  ResearchUsed,
+  VerificationMode,
+} from "@features/ai/e150/verificationContract";
 
 type VerificationStatusPanelProps = {
-  lane?: "standard" | "sealed_factcheck" | null;
+  lane?: E150Lane | null;
   status?: string | null;
-  verificationMode?: "none" | "precheck" | "sealed" | null;
-  researchUsed?: "none" | "lite" | "search" | "deep_search" | null;
+  verificationMode?: VerificationMode | null;
+  researchUsed?: ResearchUsed | null;
   sealEligible?: boolean | null;
   sealGranted?: boolean | null;
   showHint?: boolean;

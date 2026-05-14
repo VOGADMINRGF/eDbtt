@@ -1,4 +1,10 @@
 import Link from "next/link";
+import {
+  dossierClaimsCol,
+  dossierSourcesCol,
+  openQuestionsCol,
+} from "@features/dossier/db";
+import { findDossierByAnyId } from "@features/dossier/lookup";
 import MasterPostActions from "@/components/outputEngine/MasterPostActions";
 import SocialCarouselPreview from "@/components/outputEngine/SocialCarouselPreview";
 import SocialDistributionPanel from "@/components/outputEngine/SocialDistributionPanel";
@@ -10,7 +16,13 @@ import {
   generateSocialCarouselOutput,
   generateOutputPackage,
   getSocialPublishingPolicy,
+  type MinimalDossierInput,
 } from "@features/outputEngine";
+import {
+  buildRuntimeDataGuardrail,
+  isExplicitDemoDossierId,
+  isRegionDraftDossierId,
+} from "@/features/runtimeDataGuardrails";
 
 type PageProps = { params: Promise<{ id: string }> };
 
@@ -38,20 +50,104 @@ function sourceStateLabel(value: string): string {
   return value;
 }
 
+type StudioRuntimeState =
+  | {
+      mode: "runtime";
+      dossier: MinimalDossierInput;
+      guardrailLabel: string;
+    }
+  | {
+      mode: "demo";
+      dossier: MinimalDossierInput;
+      guardrailLabel: string;
+    }
+  | {
+      mode: "missing";
+      guardrailLabel: string;
+    };
+
+async function loadStudioRuntimeState(dossierId: string): Promise<StudioRuntimeState> {
+  if (isExplicitDemoDossierId(dossierId)) {
+    const guardrail = buildRuntimeDataGuardrail("demo");
+    return {
+      mode: "demo",
+      dossier: {
+        ...demoDossierForOutputEngine,
+        id: dossierId,
+        updatedAt: demoDossierForOutputEngine.updatedAt,
+      },
+      guardrailLabel: `${guardrail.sourceKind} · demoOnly=${guardrail.demoOnly} · notProductionData=${guardrail.notProductionData}`,
+    };
+  }
+
+  const dossier = await findDossierByAnyId(dossierId).catch(() => null);
+  if (!dossier) {
+    return {
+      mode: "missing",
+      guardrailLabel: isRegionDraftDossierId(dossierId)
+        ? "runtime missing · region draft review only · no demo fallback"
+        : "runtime missing · no demo fallback in produktnahen Studio-Pfaden",
+    };
+  }
+
+  const [claims, sources, openQuestions] = await Promise.all([
+    (await dossierClaimsCol()).find({ dossierId: dossier.dossierId }).sort({ createdAt: 1 }).toArray(),
+    (await dossierSourcesCol()).find({ dossierId: dossier.dossierId }).sort({ createdAt: 1 }).toArray(),
+    (await openQuestionsCol()).find({ dossierId: dossier.dossierId }).sort({ createdAt: 1 }).toArray(),
+  ]);
+  const guardrail = buildRuntimeDataGuardrail("runtime");
+  return {
+    mode: "runtime",
+    dossier: {
+      id: dossier.dossierId,
+      title: dossier.title ?? `Dossier ${dossier.dossierId}`,
+      summary:
+        dossier.status === "draft"
+          ? "Reviewpflichtiger Dossier-Entwurf aus einem produktnahen Arbeitskontext. Keine veröffentlichte Dossierfassung."
+          : "Runtime-Dossier für das Studio.",
+      claims: claims.map((claim) => ({
+        id: claim.claimId,
+        text: claim.text,
+        status: claim.status,
+      })),
+      sources: sources.map((source) => ({
+        id: source.sourceId,
+        title: source.title,
+        url: source.url,
+      })),
+      openQuestions: openQuestions.map((question) => question.text),
+      options: [],
+      status: dossier.status,
+      updatedAt: dossier.updatedAt?.toISOString() ?? dossier.createdAt.toISOString(),
+    },
+    guardrailLabel: `${guardrail.sourceKind} · reviewRequired=${guardrail.reviewRequired} · notProductionData=${guardrail.notProductionData}`,
+  };
+}
+
 export default async function DossierOutputStudioPage({ params }: PageProps) {
   const { id } = await params;
+  const runtimeState = await loadStudioRuntimeState(id);
 
-  const outputPackage = generateOutputPackage(
-    {
-      ...demoDossierForOutputEngine,
-      id,
-      updatedAt: demoDossierForOutputEngine.updatedAt,
-    },
-    {
-      generatedAt: demoDossierForOutputEngine.updatedAt,
-      baseUrl: "https://edebatte.org",
-    },
-  );
+  if (runtimeState.mode === "missing") {
+    return (
+      <main className="mx-auto min-h-screen max-w-5xl space-y-4 px-4 py-10 text-[rgb(var(--fg))]">
+        <h1 className="text-2xl font-semibold">eDebatte Studio</h1>
+        <p className="rounded-2xl border border-amber-500/40 bg-amber-500/10 p-4 text-sm text-amber-950">
+          Für dieses Dossier liegen aktuell keine runtimefähigen Studio-Daten vor. Es wird bewusst kein
+          `demoDossierForOutputEngine` als Ersatz in einem produktnahen Pfad angezeigt.
+        </p>
+        <p className="text-sm text-[rgb(var(--muted))]">
+          Guardrail: {runtimeState.guardrailLabel}. Lokale Studio-Arbeitsstände bleiben browserlokal und sind
+          keine produktive Behördenpersistenz.
+        </p>
+      </main>
+    );
+  }
+
+  const outputPackage = generateOutputPackage(runtimeState.dossier, {
+    generatedAt: runtimeState.dossier.updatedAt,
+    baseUrl: "https://edebatte.org",
+  });
 
   const parsedPackage = OutputPackageSchema.safeParse(outputPackage);
 
@@ -86,6 +182,10 @@ export default async function DossierOutputStudioPage({ params }: PageProps) {
           Für Beteiligungsbüros, Moderations- und Dialogprofis: Dossier-Inhalte in professionelle Kommunikation
           übersetzen — ohne automatische Live-Veröffentlichung.
         </p>
+        <p className="mt-3 text-xs text-[rgb(var(--muted))]">
+          Datenherkunft: {runtimeState.guardrailLabel}. LocalStorage-Arbeitsstände bleiben lokal und gelten nicht
+          als produktive Behördenpersistenz.
+        </p>
         <div className="mt-4 flex flex-wrap gap-2 text-xs">
           <span className="rounded-full border border-[rgb(var(--border))] px-2 py-1">Dossier bleibt Quelle</span>
           <span className="rounded-full border border-amber-500/40 bg-amber-500/10 px-2 py-1">{reviewStateLabel}</span>
@@ -93,6 +193,11 @@ export default async function DossierOutputStudioPage({ params }: PageProps) {
           <span className="rounded-full border border-[rgb(var(--border))] px-2 py-1">
             Externe Kanäle nur Export/Kopieren, solange nicht verbunden
           </span>
+          {runtimeState.mode === "demo" ? (
+            <span className="rounded-full border border-amber-500/40 bg-amber-500/10 px-2 py-1">
+              Demo-Modus · keine produktiven Behördendaten
+            </span>
+          ) : null}
         </div>
       </section>
 

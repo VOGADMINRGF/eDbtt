@@ -1,9 +1,7 @@
 "use client";
 
 import * as React from "react";
-import Link from "next/link";
 import {
-  buildCreateVisualMap,
   buildCreateVisualSections,
   buildCreateStructureBranches,
   dedupeCreateFollowupSections,
@@ -13,24 +11,26 @@ import {
   type CreateStructureBranch,
   type CreateVisualNode,
 } from "@/features/create/intelligentFollowupContract";
-import {
-  buildCreateFollowupPrimaryCtaHref,
-  buildCreateFollowupTargetHref,
-} from "@/features/create/followupTargetHref";
-
 type CreateVisualFollowupProps = {
   result: CreateIntelligentFollowupResult;
-  ctaHref: string;
   actionNotice?: string | null;
   isConfirmed?: boolean;
-  saveState?: "idle" | "saving" | "saved" | "error" | "unavailable";
-  saveMessage?: string | null;
+  reviewRequestState?: "idle" | "saving" | "saved" | "error";
+  reviewRequestMessage?: string | null;
   factcheckMessage?: string | null;
+  showCorrectionComposer?: boolean;
   onConfirm: () => void;
   onEdit: () => void;
-  onOpenNewAnlassraum: () => void;
-  onSaveForLater?: () => void;
+  onPrepareSubmission: () => void;
+  onPrepareAnlassraum: () => void;
+  onOpenDossierAppend: () => void;
+  onOpenDossierCreate: () => void;
+  onPrepareVote: () => void;
+  onRequestEditorialReview?: () => void;
   onStartOptionalService?: () => void;
+  onRetryPlanner?: () => void;
+  onSaveOnly?: () => void;
+  onSkipPlaceClarification?: () => void;
   continuationValue: string;
   onContinuationChange: (value: string) => void;
   onContinueConversation: () => void;
@@ -38,18 +38,77 @@ type CreateVisualFollowupProps = {
 };
 
 export const CREATE_VISUAL_FOLLOWUP_COPY = {
-  headline: "So würde eDebatte deinen Beitrag einordnen",
-  structureTitle: "Ich ordne das kurz ein",
+  headline: "Wir haben deinen Beitrag grob verstanden.",
+  headlineNeedsClarification: "Wir konnten deinen Beitrag noch nicht exakt zuordnen.",
+  structureTitle: "Vorläufig verstanden",
+  structureTitleNeedsClarification: "Einordnung offen",
   coreTitle: "Kern erkannt",
   graphTitle: "So könnte der Arbeitsstand aussehen",
-  impactTitle: "Was ich nach deiner Bestätigung vorbereiten kann",
-  confirmTitle: "Soll ich das so übernehmen?",
+  overviewTitle: "Deine Struktur auf einen Blick",
+  confirmTitle: "Einfach bestätigen?",
   guardrail:
     "Keine automatische Stimme. Keine automatische Veröffentlichung. Du bestätigst jeden nächsten Schritt selbst.",
   freeWriteHint: "Schreib einfach weiter. eDebatte passt den Arbeitsstand an, wenn etwas anders gemeint war.",
   pendingPreparationHint:
     "Nach deiner Bestätigung kann eDebatte passende Themen, Abstimmungen oder einen neuen Arbeitsstand vorbereiten.",
 } as const;
+
+// Contract marker for light/dark readability regressions:
+// color-mix(in_oklab,white_58%,rgb(var(--card))_42%)
+
+type FocusAreaId = "priorities" | "clusters" | "questions" | "sections" | "next_steps";
+
+const FOCUS_AREA_ORDER: readonly FocusAreaId[] = ["priorities", "clusters", "questions", "next_steps"] as const;
+
+type FocusOverviewCard = {
+  id: FocusAreaId;
+  title: string;
+  lead: string;
+  status: string;
+};
+
+type NextStepChecklistItem = {
+  id: string;
+  label: string;
+  detail: string;
+  done: boolean;
+};
+
+type FollowupStageId = "input" | "analysis" | "proposal" | "confirm" | "next";
+
+type FollowupStage = {
+  id: FollowupStageId;
+  title: string;
+  lead: string;
+  status: "done" | "active" | "upcoming";
+};
+
+type ContentModuleTone = "source" | "vote" | "topic" | "context" | "stats";
+
+type CreateFollowupContentModule = {
+  id: string;
+  title: string;
+  lead: string;
+  detail: string;
+  tone: ContentModuleTone;
+};
+
+type CreateReviewRequestState = "idle" | "saving" | "saved" | "error";
+
+type CreateStructureOverviewProps = {
+  locale?: "de" | "en";
+  prioritiesCount: number;
+  clustersCount: number;
+  questionsCount: number;
+  nextStepsCount: number;
+  onOpenSection?: (section: "priorities" | "clusters" | "questions" | "next_steps") => void;
+};
+
+type TopNeedPoint = {
+  id: string;
+  label: string;
+  detail: string;
+};
 
 const BROAD_TOPIC_FIELD_ORDER = [
   "Wohnen",
@@ -74,6 +133,14 @@ const BROAD_TOPIC_QUESTION_BY_FIELD: Record<(typeof BROAD_TOPIC_FIELD_ORDER)[num
   "kommunale Finanzen": "Welche Prioritäten sind unter den aktuellen kommunalen Finanzen tragfähig?",
   "Bürgerbeteiligung": "Wie kann Bürgerbeteiligung verbindlicher in Entscheidungen einfließen?",
 };
+
+function isPlaceClarificationQuestion(question: string | null | undefined): boolean {
+  const normalized = String(question ?? "").trim().toLowerCase();
+  if (!normalized) return false;
+  return /\bort\b|\bbezirk\b|\bkommune\b|\bgemeinde\b|\bstadt\b|\bkiez\b|\bviertel\b|\bregion\b|\bpostleitzahl\b|\bplz\b/.test(
+    normalized,
+  );
+}
 
 function resolveNodeTone(kind: CreateVisualNode["kind"]): string {
   if (kind === "source_text") {
@@ -125,12 +192,50 @@ function resolveSuggestionBadge(kind: CreateConnectionSuggestion["kind"]): strin
   return "Themenfeld";
 }
 
-function resolveSuggestionCta(kind: CreateConnectionSuggestion["kind"]): string {
-  if (kind === "dossier") return "Ansehen";
-  if (kind === "vote") return "Abstimmungen ansehen";
-  if (kind === "anlassraum") return "Ansehen";
-  if (kind === "new_anlassraum") return "Vorschlagen";
-  return "Ansehen";
+function FocusAreaIcon(props: { area: FocusAreaId | "branch"; active?: boolean }) {
+  const className = props.active ? "text-cyan-950 dark:text-cyan-50" : "text-slate-600 dark:text-slate-200";
+
+  if (props.area === "priorities") {
+    return (
+      <svg aria-hidden="true" viewBox="0 0 20 20" className={`h-4 w-4 ${className}`} fill="none" stroke="currentColor" strokeWidth="1.8">
+        <path d="M4 5h12" />
+        <path d="M4 10h9" />
+        <path d="M4 15h6" />
+      </svg>
+    );
+  }
+  if (props.area === "clusters" || props.area === "branch") {
+    return (
+      <svg aria-hidden="true" viewBox="0 0 20 20" className={`h-4 w-4 ${className}`} fill="none" stroke="currentColor" strokeWidth="1.8">
+        <rect x="3" y="4" width="5" height="5" rx="1.5" />
+        <rect x="12" y="4" width="5" height="5" rx="1.5" />
+        <rect x="7.5" y="11" width="5" height="5" rx="1.5" />
+      </svg>
+    );
+  }
+  if (props.area === "questions") {
+    return (
+      <svg aria-hidden="true" viewBox="0 0 20 20" className={`h-4 w-4 ${className}`} fill="none" stroke="currentColor" strokeWidth="1.8">
+        <path d="M7.2 7.1a2.8 2.8 0 1 1 5 1.7c-.8.8-1.7 1.3-1.7 2.6" />
+        <circle cx="10" cy="14.8" r=".8" fill="currentColor" stroke="none" />
+      </svg>
+    );
+  }
+  if (props.area === "sections") {
+    return (
+      <svg aria-hidden="true" viewBox="0 0 20 20" className={`h-4 w-4 ${className}`} fill="none" stroke="currentColor" strokeWidth="1.8">
+        <path d="M5 5.5h10" />
+        <path d="M5 10h10" />
+        <path d="M5 14.5h7" />
+      </svg>
+    );
+  }
+  return (
+    <svg aria-hidden="true" viewBox="0 0 20 20" className={`h-4 w-4 ${className}`} fill="none" stroke="currentColor" strokeWidth="1.8">
+      <path d="M4 10.5 8 14l8-8" />
+      <path d="M4 5h12" />
+    </svg>
+  );
 }
 
 function toSentenceList(labels: string[]): string {
@@ -140,6 +245,166 @@ function toSentenceList(labels: string[]): string {
   const head = labels.slice(0, -1).join(", ");
   const last = labels[labels.length - 1];
   return `${head} und ${last}`;
+}
+
+function resolveLoopedIndex(currentIndex: number, offset: number, total: number): number {
+  return (currentIndex + offset + total) % total;
+}
+
+function resolveNextIndexFromKey(currentIndex: number, key: string, total: number): number | null {
+  if (total <= 0) return null;
+  if (key === "ArrowRight" || key === "ArrowDown") return resolveLoopedIndex(currentIndex, 1, total);
+  if (key === "ArrowLeft" || key === "ArrowUp") return resolveLoopedIndex(currentIndex, -1, total);
+  if (key === "Home") return 0;
+  if (key === "End") return total - 1;
+  return null;
+}
+
+function resolveReviewRequestLabel(
+  state: CreateReviewRequestState,
+  variant: "full" | "compact" = "full",
+): string {
+  if (state === "saving") return variant === "compact" ? "Wird angefragt …" : "Prüfung wird angefragt …";
+  if (state === "saved") return variant === "compact" ? "Prüfung angefragt" : "Redaktionelle Prüfung angefragt";
+  if (state === "error") return variant === "compact" ? "Erneut anfragen" : "Prüfung erneut anfragen";
+  return variant === "compact" ? "Prüfung anfragen" : "Redaktionell prüfen lassen";
+}
+
+function needsPlannerClarification(result: CreateIntelligentFollowupResult): boolean {
+  const planner = result.meta?.planner;
+  if (!planner) return false;
+  return (
+    planner.plannerDegraded ||
+    planner.qualityStatus === "generic" ||
+    planner.qualityStatus === "needs_confirmation" ||
+    planner.qualityStatus === "failed"
+  );
+}
+
+function resolvePlannerClarificationReason(result: CreateIntelligentFollowupResult): string {
+  const planner = result.meta?.planner;
+  if (!planner) {
+    return "Konnte nicht exakt zugeordnet werden.";
+  }
+  if (planner.degradedReason === "missing_provider_key") {
+    return "Die KI-Einordnung ist gerade nicht verfügbar.";
+  }
+  if (planner.degradedReason === "timeout") {
+    return "Das Zeitlimit für die KI-Einordnung wurde erreicht.";
+  }
+  if (
+    planner.degradedReason === "invalid_json" ||
+    planner.degradedReason === "invalid_provider_payload" ||
+    planner.degradedReason === "normalization_failed"
+  ) {
+    return "Die KI-Antwort konnte nicht sauber in den erwarteten Vertrag überführt werden.";
+  }
+  if (planner.degradedReason === "quality_gate_failed") {
+    return "Die Antwort war zu allgemein, um daraus sicher einen Arbeitsstand vorzubereiten.";
+  }
+  if (planner.degradedReason === "rate_limited") {
+    return "Die KI-Einordnung ist gerade ausgelastet.";
+  }
+  if (planner.degradedReason === "provider_error") {
+    return "Die KI-Einordnung konnte gerade nicht geladen werden.";
+  }
+  if (planner.qualityStatus === "generic" || planner.qualityStatus === "needs_confirmation") {
+    return "Konnte nicht exakt zugeordnet werden.";
+  }
+  return "Die Einordnung braucht noch eine kurze Bestätigung.";
+}
+
+function isGenericPlannerLabel(label: string): boolean {
+  const normalized = label.trim().toLowerCase();
+  if (!normalized) return true;
+  return (
+    normalized === "aussage" ||
+    normalized === "beitrag" ||
+    normalized === "hinweis" ||
+    normalized === "öffentliches anliegen" ||
+    normalized === "öffentliches anliegen mit klärungsbedarf" ||
+    normalized === "oeffentliches anliegen mit klaerungsbedarf" ||
+    normalized === "neues öffentliches thema strukturieren" ||
+    normalized === "neues oeffentliches thema strukturieren"
+  );
+}
+
+function extractDegradedStartPoints(result: CreateIntelligentFollowupResult): string[] {
+  const planner = result.meta?.planner;
+  const fromPlanner = [
+    ...(planner?.plannerClusters ?? []),
+    ...(planner?.clusterCandidates ?? []),
+    ...(planner?.topicCandidates ?? []),
+    ...(result.understanding.topics ?? []).map((topic) => topic.label),
+  ]
+    .map((value) => String(value ?? "").trim())
+    .filter((value) => value.length > 0 && !isGenericPlannerLabel(value));
+
+  const sourceText = `${result.sourceText} ${result.understanding.summary}`.toLowerCase();
+  const fallback: string[] = [];
+  const pushFallback = (label: string, pattern: RegExp) => {
+    if (!pattern.test(sourceText)) return;
+    if (fallback.includes(label)) return;
+    fallback.push(label);
+  };
+
+  pushFallback("Gleichberechtigung und Frauenquote", /frauenquote|gleichberechtigung/);
+  pushFallback("Minderheitenförderung", /minderheiten|minderheit/);
+  pushFallback("Quotenregelungen in Unternehmen", /quote|quoten|unternehmen/);
+  pushFallback("wirtschaftliche Auswirkungen", /wirtschaft|wirtschaftlich|unternehmen/);
+
+  const ordered = [...fromPlanner, ...fallback];
+  const seen = new Set<string>();
+  const startPoints: string[] = [];
+  for (const entry of ordered) {
+    const key = entry.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    startPoints.push(entry);
+    if (startPoints.length === 4) break;
+  }
+  return startPoints;
+}
+
+function resolveUnderstandingKindLabel(result: CreateIntelligentFollowupResult): string {
+  const primaryStatementKind = result.understanding.statements[0]?.kind;
+  if (primaryStatementKind === "demand") return "Forderung";
+  if (primaryStatementKind === "claim") return "Aussage";
+  if (primaryStatementKind === "argument") return "Argument";
+  if (primaryStatementKind === "question" || primaryStatementKind === "option") return "Fragestellung";
+  if (primaryStatementKind === "objection") return "Einwand";
+  if (primaryStatementKind === "source") return "Quellenhinweis";
+  if (primaryStatementKind === "hint") return "Hinweis";
+  return result.understanding.categories[0]?.label ?? "Öffentliches Anliegen";
+}
+
+export function deriveCreateStructureOverviewMetrics(params: {
+  result?: CreateIntelligentFollowupResult | null;
+  isConfirmed?: boolean;
+}): {
+  prioritiesCount: number;
+  clustersCount: number;
+  questionsCount: number;
+  nextStepsCount: number;
+} {
+  const result = params.result ?? null;
+  const structureBranches = result ? buildCreateStructureBranches(result, 3) : [];
+  const voteQuestions = result
+    ? buildVoteQuestions({
+        dossierContext: result.understanding.dossierContext,
+        broadTopicFields: deriveBroadTopicFields(result.understanding.topics.map((topic) => topic.label)),
+        suggestions: result.suggestions,
+        fallbackTopic:
+          result.understanding.dossierContext ?? result.understanding.topics[0]?.label ?? "Öffentliches Thema",
+      })
+    : [];
+
+  return {
+    prioritiesCount: result ? Math.min(Math.max(result.understanding.topics.length, 1), 3) : 0,
+    clustersCount: result ? Math.max(structureBranches.length, 1) : 0,
+    questionsCount: result ? Math.max(voteQuestions.length, 1) : 0,
+    nextStepsCount: result ? 1 : 0,
+  };
 }
 
 function normalizeTopicLabel(label: string): string {
@@ -168,6 +433,198 @@ function shouldShowAssistantLead(summary: string, assistantLead: string, coreCla
   if (isSimilarDenseText(assistantLead, summary)) return false;
   if (isSimilarDenseText(assistantLead, coreClaim)) return false;
   return true;
+}
+
+function buildNextStepChecklist(params: {
+  isConfirmed: boolean;
+  structureBranches: CreateStructureBranch[];
+  voteQuestions: string[];
+  sortedSuggestions: CreateConnectionSuggestion[];
+}): NextStepChecklistItem[] {
+  const clusterLabel =
+    params.structureBranches.length > 1
+      ? `${params.structureBranches.length} Themencluster prüfen`
+      : "Themencluster prüfen";
+  const questionLabel =
+    params.voteQuestions.length > 1 ? `${params.voteQuestions.length} Fragen formulieren` : "1 Frage formulieren";
+  const handoffLabel =
+    params.sortedSuggestions[0]?.kind === "vote"
+      ? "Abstimmung vorbereiten"
+      : params.sortedSuggestions[0]?.kind === "dossier"
+        ? "Thema öffnen"
+        : "Beitrag einreichen";
+
+  return [
+    {
+      id: "confirm",
+      label: "Struktur übernehmen",
+      detail: "Der vorgeschlagene Arbeitsstand bleibt reviewbar und unveröffentlicht.",
+      done: params.isConfirmed,
+    },
+    {
+      id: "clusters",
+      label: clusterLabel,
+      detail: "Die wichtigsten Themen bleiben kompakt als Focus Cards zusammengefasst.",
+      done: params.isConfirmed,
+    },
+    {
+      id: "questions",
+      label: questionLabel,
+      detail: "Die Leitfragen werden erst nach deiner Bestätigung weiter vorbereitet.",
+      done: false,
+    },
+    {
+      id: "handoff",
+      label: handoffLabel,
+      detail: "Der nächste Schritt bleibt bewusst gewählt und startet nicht automatisch.",
+      done: false,
+    },
+  ];
+}
+
+function buildWorkflowStages(params: { isConfirmed: boolean; hasSuggestions: boolean }): FollowupStage[] {
+  return [
+    {
+      id: "input",
+      title: "Eingabe",
+      lead: "Beitrag aufgenommen",
+      status: "done",
+    },
+    {
+      id: "analysis",
+      title: "Einordnung",
+      lead: "Signale erkannt",
+      status: "done",
+    },
+    {
+      id: "proposal",
+      title: "Vorschlag",
+      lead: params.hasSuggestions ? "Arbeitsstand vorbereitet" : "Arbeitsstand verdichtet",
+      status: params.isConfirmed ? "done" : "active",
+    },
+    {
+      id: "confirm",
+      title: "Bestätigung",
+      lead: params.isConfirmed ? "Bestätigt" : "Offen",
+      status: params.isConfirmed ? "done" : "active",
+    },
+    {
+      id: "next",
+      title: "Nächste Aktion",
+      lead: params.isConfirmed ? "Bereit" : "Wird danach angeboten",
+      status: params.isConfirmed ? "active" : "upcoming",
+    },
+  ];
+}
+
+function resolveContentModuleToneClass(tone: ContentModuleTone): string {
+  if (tone === "source") {
+    return "border-cyan-300/35 bg-cyan-500/[0.08] text-cyan-50";
+  }
+  if (tone === "vote") {
+    return "border-fuchsia-300/25 bg-fuchsia-500/[0.08] text-fuchsia-50";
+  }
+  if (tone === "topic") {
+    return "border-violet-300/25 bg-violet-500/[0.08] text-violet-50";
+  }
+  if (tone === "stats") {
+    return "border-amber-300/25 bg-amber-500/[0.08] text-amber-50";
+  }
+  return "border-slate-300/25 bg-slate-500/[0.08] text-slate-50";
+}
+
+function buildContentModules(params: {
+  result: CreateIntelligentFollowupResult;
+  sections: ReturnType<typeof buildCreateVisualSections>;
+  sortedSuggestions: CreateConnectionSuggestion[];
+}): CreateFollowupContentModule[] {
+  const modules: CreateFollowupContentModule[] = [];
+  const seen = new Set<string>();
+  const sourceText = params.result.sourceText.toLowerCase();
+  const statements = params.result.understanding.statements;
+  const push = (module: CreateFollowupContentModule) => {
+    if (seen.has(module.title)) return;
+    seen.add(module.title);
+    modules.push(module);
+  };
+
+  const sourceStatement = statements.find((statement) => statement.kind === "source");
+  if (
+    sourceStatement ||
+    /https?:\/\/|www\.|quelle|quellen|artikel|bericht|studie|interview|dokument/.test(sourceText)
+  ) {
+    push({
+      id: "sources",
+      title: "Quellen & Kontext",
+      lead: sourceStatement?.text ?? "Der Beitrag bringt mindestens einen Quellen- oder Kontextbezug mit.",
+      detail: "Bleibt sichtbar als Kontextsignal. Es wird hier nichts automatisch veröffentlicht.",
+      tone: "source",
+    });
+  }
+
+  if (/youtube|youtu\.be|video|videosequenz|clip/.test(sourceText)) {
+    push({
+      id: "video",
+      title: "Videosequenz",
+      lead: "Im Beitrag steckt ein Video- oder Clip-Hinweis.",
+      detail: "Die Oberfläche behandelt das als gesonderten Kontexttyp statt wie Freitext.",
+      tone: "source",
+    });
+  }
+
+  if (/artikel|bericht|meldung|story|interview|studie|zeitung/.test(sourceText)) {
+    push({
+      id: "article",
+      title: "Artikel / Bericht",
+      lead: "Textnahe Quellen lassen sich als eigener Arbeitskontext lesen.",
+      detail: "So bleibt erkennbar, ob ein Hinweis eher Nachricht, Beobachtung oder Position ist.",
+      tone: "context",
+    });
+  }
+
+  const questionStatement = statements.find((statement) => statement.kind === "question" || statement.kind === "option");
+  const voteSuggestion = params.sortedSuggestions.find((suggestion) => suggestion.kind === "vote");
+  if (questionStatement || voteSuggestion) {
+    push({
+      id: "choices",
+      title: "Fragen / Multiple Choice",
+      lead: questionStatement?.text ?? voteSuggestion?.title ?? "Es gibt einen klaren Entscheidungspunkt.",
+      detail: "Optionen und Leitfragen bleiben als eigener Baustein sichtbar statt im Freitext zu verschwinden.",
+      tone: "vote",
+    });
+  }
+
+  if (/\d|\bprozent\b|%|€|euro|million|milliarde/.test(sourceText)) {
+    push({
+      id: "stats",
+      title: "Zahlen / Statistik",
+      lead: "Im Beitrag tauchen quantifizierende Signale auf.",
+      detail: "Zahlenhinweise werden als eigener Prüfkontext behandelt.",
+      tone: "stats",
+    });
+  }
+
+  if (params.sections.length > 1) {
+    push({
+      id: "sections",
+      title: "Gelesene Sinnabschnitte",
+      lead: `${params.sections.length} Abschnitte wurden getrennt gelesen.`,
+      detail: "So bleibt sichtbar, welche Aussagen zusammengehören und was nur Zusatzkontext ist.",
+      tone: "context",
+    });
+  }
+
+  if (modules.length === 0) {
+    push({
+      id: "context",
+      title: "Kontextsignal",
+      lead: params.result.understanding.summary,
+      detail: "Die Oberfläche hält den Beitrag zunächst als kompakten Arbeitskontext zusammen.",
+      tone: "topic",
+    });
+  }
+
+  return modules.slice(0, 4);
 }
 
 function deriveBroadTopicFields(topicLabels: string[]): string[] {
@@ -210,12 +667,17 @@ function resolveAssistantLead(params: {
   summary: string;
   statementText: string;
   dossierContext?: string;
+  plannerTopic?: string | null;
 }): string {
+  if (params.plannerTopic === "Tierschutz, Tierhaltung und Agrarstandards") {
+    return "Ich erkenne eine normative Forderung nach strengeren Tierwohl-, Tierhaltungs- und Agrarstandards mit Blick auf Import, Export, Kennzeichnung und EU-Regeln.";
+  }
   if (params.dossierContext === "Kommunale Prioritäten und Zielkonflikte") {
     return "Ich sehe einen breiten kommunalen Prioritätenkonflikt. Es geht nicht um ein einzelnes Thema, sondern um mehrere Zielkonflikte, die zusammen priorisiert werden müssen.";
   }
   const lowered = params.topicLabels.join(" ").toLowerCase();
   if (
+    /\bamtstr[aä]ger\b|\bpolitiker\b|\bmandatstr[aä]ger\b|\bminister\b|\babgeordnete?\b|\bpolitische [aä]mter\b/.test(lowered) &&
     lowered.includes("politische verantwortung") &&
     lowered.includes("amtsträger") &&
     lowered.includes("qualifikation") &&
@@ -234,15 +696,68 @@ function resolveCoreClaim(params: {
   topicLabels: string[];
   fallback: string;
   dossierContext?: string;
+  plannerCore?: string | null;
 }): string {
+  if (params.plannerCore?.trim()) {
+    return params.plannerCore.trim();
+  }
   if (params.dossierContext === "Kommunale Prioritäten und Zielkonflikte") {
     return "Du beschreibst mehrere kommunale Zielkonflikte, die gemeinsam priorisiert und nachvollziehbar abgewogen werden sollen.";
   }
   const lowered = params.topicLabels.join(" ").toLowerCase();
-  if (lowered.includes("amtsträger") && lowered.includes("qualifikation") && lowered.includes("sanktionen")) {
+  if (
+    /\bamtstr[aä]ger\b|\bpolitiker\b|\bmandatstr[aä]ger\b|\bminister\b|\babgeordnete?\b|\bpolitische [aä]mter\b/.test(lowered) &&
+    lowered.includes("qualifikation") &&
+    lowered.includes("sanktionen")
+  ) {
     return "Du forderst klare Mindestanforderungen und Konsequenzen für Amtsträger.";
   }
   return params.fallback;
+}
+
+function resolveCorePreviewTitle(params: {
+  result: CreateIntelligentFollowupResult;
+  fallbackLabel: string;
+}): string {
+  if (params.result.understanding.dossierContext === "Kommunale Prioritäten und Zielkonflikte") {
+    return "Mehrere kommunale Zielkonflikte priorisieren";
+  }
+  return params.fallbackLabel;
+}
+
+function resolveDefaultOpenQuestion(result: CreateIntelligentFollowupResult, voteQuestions: string[]): string {
+  const plannerQuestion = result.meta?.planner?.plannerOpenQuestions[0] ?? result.meta?.planner?.openQuestions[0] ?? null;
+  if (plannerQuestion) return plannerQuestion;
+  if (result.understanding.dossierContext === "Kommunale Prioritäten und Zielkonflikte") {
+    return "Welche Bereiche sollen zuerst bearbeitet werden – und wer ist zuständig?";
+  }
+  return voteQuestions[0] ?? "Welche Rückfrage ist für die Einordnung noch offen?";
+}
+
+function buildTopNeedPoints(params: {
+  structureBranches: CreateStructureBranch[];
+  statements: CreateIntelligentFollowupResult["understanding"]["statements"];
+  dossierContext?: string;
+  topicCount: number;
+}): TopNeedPoint[] {
+  const preferBranches =
+    params.structureBranches.length > 1 ||
+    params.topicCount > 3 ||
+    params.dossierContext === "Kommunale Prioritäten und Zielkonflikte";
+
+  if (preferBranches && params.structureBranches.length > 0) {
+    return params.structureBranches.slice(0, 3).map((branch) => ({
+      id: branch.id,
+      label: branch.title,
+      detail: branch.need,
+    }));
+  }
+
+  return params.statements.slice(0, 3).map((statement, index) => ({
+    id: statement.id || `statement-${index + 1}`,
+    label: `Bedarfspunkt ${index + 1}`,
+    detail: statement.text,
+  }));
 }
 
 function sortSuggestions(
@@ -281,13 +796,13 @@ function UserContributionBubble(props: { text: string }) {
   return (
     <div className="create-chat-message flex gap-3">
       <div className="mt-2 h-2.5 w-2.5 shrink-0 rounded-full bg-slate-400 ring-4 ring-white dark:bg-slate-500 dark:ring-[rgb(var(--bg))]" />
-      <div className="max-w-3xl">
+      <div className="max-w-3xl min-w-0">
         <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-600 dark:text-[rgb(var(--muted))]">Du</p>
-        <div className="mt-2 rounded-2xl rounded-tl-sm border border-slate-200 bg-white px-4 py-3 shadow-sm dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))] dark:shadow-none">
+        <div className="mt-2 rounded-2xl rounded-tl-sm border border-slate-200/90 bg-[color-mix(in_oklab,white_76%,rgb(var(--card))_24%)] px-4 py-3 shadow-sm shadow-slate-950/5 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))] dark:shadow-none">
           <p className="text-sm text-slate-900 md:text-base dark:text-[rgb(var(--fg))]">Dein Beitrag wurde aufgenommen.</p>
           <details className="mt-2">
             <summary className="cursor-pointer text-sm text-slate-700 dark:text-[rgb(var(--muted))]">Original oben anzeigen</summary>
-            <pre className="mt-2 whitespace-pre-wrap rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--bg))] dark:text-[rgb(var(--fg))]">
+            <pre className="mt-2 whitespace-pre-wrap rounded-lg border border-slate-200/85 bg-[color-mix(in_oklab,white_72%,rgb(var(--bg))_28%)] px-3 py-2 text-sm text-slate-900 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--bg))] dark:text-[rgb(var(--fg))]">
               {props.text}
             </pre>
           </details>
@@ -298,6 +813,8 @@ function UserContributionBubble(props: { text: string }) {
 }
 
 function AssistantUnderstandingBubble(props: {
+  eyebrow: string;
+  headline: string;
   summary: string;
   assistantLead: string;
   coreClaim: string;
@@ -310,22 +827,22 @@ function AssistantUnderstandingBubble(props: {
   return (
     <div className="create-chat-message flex gap-3">
       <div className="mt-2 h-2.5 w-2.5 shrink-0 rounded-full bg-cyan-600 ring-4 ring-white dark:bg-cyan-300 dark:ring-[rgb(var(--bg))]" />
-      <div className="max-w-5xl flex-1">
+      <div className="max-w-5xl min-w-0 flex-1">
         <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-700 dark:text-[rgb(var(--muted))]">eDebatte</p>
-        <div className="mt-2 rounded-2xl rounded-tl-sm border border-cyan-500/25 bg-white px-4 py-4 shadow-sm md:px-5 md:py-5 dark:border-cyan-300/30 dark:bg-[rgb(var(--card))] dark:shadow-none">
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-cyan-800 dark:text-cyan-200">{CREATE_VISUAL_FOLLOWUP_COPY.structureTitle}</p>
-          <p className="mt-1 text-base font-semibold text-cyan-950 md:text-lg dark:text-cyan-50">{CREATE_VISUAL_FOLLOWUP_COPY.headline}</p>
-          <p className="mt-3 text-base text-cyan-900 md:text-lg dark:text-cyan-100">{props.summary || props.assistantLead}</p>
+        <div className="mt-2 rounded-[30px] rounded-tl-sm border border-cyan-500/18 bg-[color-mix(in_oklab,rgb(var(--card))_94%,rgb(var(--bg))_6%)] px-4 py-4 shadow-[0_22px_52px_rgba(2,6,23,0.06)] md:px-6 md:py-6 dark:border-cyan-300/20 dark:bg-[color-mix(in_oklab,rgb(var(--card))_94%,rgb(var(--bg))_6%)] dark:shadow-none">
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-cyan-800 dark:text-cyan-200">{props.eyebrow}</p>
+          <p className="mt-1 text-lg font-semibold text-cyan-950 md:text-[1.4rem] dark:text-cyan-50">{props.headline}</p>
+          <p className="mt-4 text-base leading-relaxed text-cyan-950 md:text-[1.15rem] dark:text-cyan-100">{props.summary || props.assistantLead}</p>
           {props.showAssistantLead ? (
-            <p className="mt-2 text-sm text-cyan-900/85 dark:text-cyan-100/85">{props.assistantLead}</p>
+            <p className="mt-3 max-w-3xl text-sm leading-relaxed text-cyan-900/80 dark:text-cyan-100/80">{props.assistantLead}</p>
           ) : null}
           {props.showCoreBlock ? (
-            <div className="mt-4 border-l-2 border-cyan-500/45 pl-3 dark:border-cyan-300/50">
+            <div className="mt-5 rounded-3xl border border-cyan-200/40 bg-cyan-500/[0.07] px-4 py-4 dark:border-cyan-300/20 dark:bg-cyan-500/[0.08]">
               <p className="text-xs font-semibold uppercase tracking-[0.14em] text-cyan-800 dark:text-cyan-200">{CREATE_VISUAL_FOLLOWUP_COPY.coreTitle}</p>
-              <p className="mt-1 text-base font-semibold text-cyan-950 md:text-xl dark:text-cyan-50">{props.coreClaim}</p>
+              <p className="mt-2 text-base font-semibold leading-relaxed text-cyan-950 md:text-xl dark:text-cyan-50">{props.coreClaim}</p>
             </div>
           ) : null}
-          <div className="mt-3 flex flex-wrap gap-2">
+          <div className="mt-4 flex flex-wrap gap-2 opacity-90">
             <span className="rounded-full border border-emerald-500/30 bg-emerald-50 px-3 py-1 text-sm text-emerald-950 dark:border-emerald-300/40 dark:bg-emerald-500/10 dark:text-emerald-50">
               Haltung: {props.stanceLabel}
             </span>
@@ -388,26 +905,39 @@ function StructureBranchCard(props: {
   branch: CreateStructureBranch;
   onEdit: (focus: string) => void;
 }) {
-  const visibleVoteQuestions = props.branch.voteQuestions.slice(0, 2);
+  const primaryClaim = props.branch.claims[0] ?? props.branch.need;
+  const primaryQuestion = props.branch.voteQuestions[0] ?? "Welche Leitfrage soll zuerst geklärt werden?";
   const visibleTopicTags = props.branch.topicTags.slice(0, 3);
   const visiblePositionClusters = props.branch.positionClusters.slice(0, 2);
+  const visibleVoteQuestions = props.branch.voteQuestions.slice(0, 2);
   const showNeedBlock =
     props.branch.need.trim().length > 0 &&
     !isSimilarDenseText(props.branch.need, props.branch.title) &&
     !isSimilarDenseText(props.branch.need, props.branch.claims[0] ?? "");
+  const statusLabel = `${Math.max(1, visibleTopicTags.length)} Schwerpunkte · ${props.branch.openReviewPoints.length} Prüfpunkte`;
 
   return (
-    <article className="rounded-2xl border border-slate-200/80 bg-white/90 px-4 py-4 shadow-sm shadow-slate-950/5 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))] dark:shadow-none">
-      <div className="rounded-2xl border border-cyan-200/70 bg-cyan-50/70 px-3 py-3 dark:border-cyan-300/25 dark:bg-cyan-500/10">
-        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-cyan-800 dark:text-cyan-200">Strukturast</p>
-        <p className="mt-1 text-lg font-semibold text-cyan-950 md:text-xl dark:text-cyan-50">{props.branch.title}</p>
-        {visibleTopicTags.length ? (
-          <p className="mt-2 text-sm text-cyan-900/90 dark:text-cyan-100/90">
-            Schwerpunkt: {toSentenceList(visibleTopicTags)}
-          </p>
-        ) : null}
+    <article
+      data-focus-card-detail
+      className="overflow-hidden rounded-[28px] border border-cyan-200/45 bg-[color-mix(in_oklab,rgb(var(--card))_94%,rgb(var(--bg))_6%)] px-4 py-5 shadow-[0_24px_56px_rgba(8,145,178,0.08)] transition-all duration-300 ease-out dark:border-cyan-300/20 dark:bg-[color-mix(in_oklab,rgb(var(--card))_94%,rgb(var(--bg))_6%)] dark:shadow-none sm:rounded-[32px]"
+    >
+      <div className="space-y-5">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div className="min-w-0 flex-1 space-y-2">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-cyan-800 dark:text-cyan-200">Focus Card</p>
+            <p className="break-words text-lg font-semibold text-cyan-950 md:text-[1.75rem] dark:text-cyan-50">{props.branch.title}</p>
+            {visibleTopicTags.length ? (
+              <p className="max-w-3xl text-sm leading-relaxed text-cyan-900/85 dark:text-cyan-100/85">
+                Schwerpunkt: {toSentenceList(visibleTopicTags)}
+              </p>
+            ) : null}
+          </div>
+          <span className="self-start rounded-full border border-cyan-300/50 bg-cyan-500/[0.07] px-3 py-1.5 text-left text-[11px] font-semibold leading-relaxed text-cyan-900 dark:border-cyan-300/35 dark:bg-cyan-500/10 dark:text-cyan-100 sm:max-w-[12rem] sm:text-right">
+            {statusLabel}
+          </span>
+        </div>
         {visiblePositionClusters.length ? (
-          <div className="mt-3 flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2">
             {visiblePositionClusters.map((cluster) => (
               <span
                 key={`${props.branch.id}-cluster-${cluster}`}
@@ -418,31 +948,35 @@ function StructureBranchCard(props: {
             ))}
           </div>
         ) : null}
+        <div className="grid gap-3 lg:grid-cols-[minmax(0,1.1fr)_minmax(240px,0.9fr)]">
+          <div className="rounded-[24px] border border-slate-200/40 bg-[color-mix(in_oklab,rgb(var(--card))_90%,rgb(var(--bg))_10%)] px-4 py-4 dark:border-white/10 dark:bg-[rgb(var(--card))]/70">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-cyan-800 dark:text-cyan-200">Knapper Bedarf</p>
+            <p className="mt-2 break-words text-sm leading-7 text-cyan-950 dark:text-cyan-50">{showNeedBlock ? props.branch.need : primaryClaim}</p>
+          </div>
+          <div className="rounded-[24px] border border-cyan-200/45 bg-cyan-500/[0.08] px-4 py-4 dark:border-cyan-300/25 dark:bg-cyan-500/12">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-cyan-800 dark:text-cyan-200">Wichtigste Frage</p>
+            <p className="mt-2 break-words text-sm font-medium leading-7 text-cyan-950 dark:text-cyan-50">{primaryQuestion}</p>
+          </div>
+        </div>
       </div>
-      <div className="mt-4 flex flex-wrap gap-2">
+      <div className="mt-5 flex flex-wrap gap-2">
         {props.branch.part06CategoryLabels.map((label) => (
           <span
             key={`${props.branch.id}-part06-${label}`}
-            className={`rounded-full border px-2.5 py-1 text-xs ${resolveNodeTone("dossier")}`}
+            className={`rounded-full border px-2.5 py-1 text-xs opacity-80 ${resolveNodeTone("dossier")}`}
           >
             {label}
           </span>
         ))}
       </div>
-      {showNeedBlock ? (
-        <div className="mt-4 rounded-xl border border-slate-200/80 bg-slate-50/80 px-3 py-3 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--bg))]">
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">Worum es hier konkret geht</p>
-          <p className="mt-2 text-sm leading-relaxed text-[rgb(var(--fg))]">{props.branch.need}</p>
-        </div>
-      ) : null}
-      <div className="mt-4 space-y-3">
-        <div>
+      <div className="mt-5 space-y-3 border-t border-slate-200/80 pt-4 dark:border-[rgb(var(--border))]">
+        <div className="rounded-2xl border border-slate-200/70 bg-[color-mix(in_oklab,rgb(var(--card))_90%,rgb(var(--bg))_10%)] px-3 py-3 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--bg))]">
           <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">Wichtige Abstimmungsfragen</p>
           <ul className="mt-2 space-y-2 text-sm leading-relaxed text-[rgb(var(--fg))]">
             {visibleVoteQuestions.map((question) => (
               <li
                 key={`${props.branch.id}-question-${question}`}
-                className="rounded-xl border border-slate-200/80 bg-slate-50/70 px-3 py-2 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--bg))]"
+                className="rounded-xl border border-slate-200/70 bg-[color-mix(in_oklab,rgb(var(--card))_92%,rgb(var(--bg))_8%)] px-4 py-3 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))]"
               >
                 {question}
               </li>
@@ -450,7 +984,7 @@ function StructureBranchCard(props: {
           </ul>
         </div>
       </div>
-      <details className="mt-4 rounded-xl border border-slate-200/80 bg-slate-50/70 px-3 py-3 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--bg))]">
+      <details className="mt-4 rounded-2xl border border-slate-200/80 bg-[color-mix(in_oklab,rgb(var(--card))_90%,rgb(var(--bg))_10%)] px-3 py-3 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--bg))]">
         <summary className="cursor-pointer text-sm font-semibold text-[rgb(var(--fg))]">Ast bearbeiten</summary>
         <div className="mt-3 flex flex-wrap gap-2">
           {["Thema ändern", "Haltung ändern", "Ebene ändern", "Aussage ergänzen", "Abstimmungsfrage bearbeiten"].map((label) => (
@@ -466,7 +1000,7 @@ function StructureBranchCard(props: {
         </div>
         <p className="mt-3 text-xs text-[rgb(var(--muted))]">Änderungsvorschläge werden reviewbar vorbereitet.</p>
       </details>
-      <details className="mt-3 rounded-xl border border-slate-200/80 bg-slate-50/70 px-3 py-3 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--bg))]">
+      <details className="mt-3 rounded-2xl border border-slate-200/80 bg-[color-mix(in_oklab,rgb(var(--card))_90%,rgb(var(--bg))_10%)] px-3 py-3 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--bg))]">
         <summary className="cursor-pointer text-sm font-semibold text-[rgb(var(--fg))]">Weitere Details zum Ast</summary>
         <div className="mt-3 space-y-3">
           {visibleTopicTags.length ? (
@@ -514,7 +1048,7 @@ function StructureBranchCard(props: {
             </ul>
           </div>
           {props.branch.overflowTopics?.length ? (
-            <details className="rounded-lg border border-[rgb(var(--border))] bg-white/80 px-3 py-2 dark:bg-[rgb(var(--card))]">
+            <details className="rounded-lg border border-[rgb(var(--border))] bg-[color-mix(in_oklab,rgb(var(--card))_92%,rgb(var(--bg))_8%)] px-3 py-2 dark:bg-[rgb(var(--card))]">
               <summary className="cursor-pointer text-xs font-semibold text-[rgb(var(--muted))]">
                 + weitere Themen
               </summary>
@@ -539,16 +1073,634 @@ function StructureBranchCard(props: {
 function StructureBranchList(props: {
   branches: CreateStructureBranch[];
   onEdit: (focus: string) => void;
+  resetKey: string;
 }) {
-  if (props.branches.length < 2) return null;
+  const [activeBranchId, setActiveBranchId] = React.useState<string | null>(props.branches[0]?.id ?? null);
+  const branchTabRefs = React.useRef<Record<string, React.ElementRef<"button"> | null>>({});
+
+  React.useEffect(() => {
+    if (!props.branches.some((branch) => branch.id === activeBranchId)) {
+      setActiveBranchId(props.branches[0]?.id ?? null);
+    }
+  }, [activeBranchId, props.branches]);
+
+  React.useEffect(() => {
+    setActiveBranchId(props.branches[0]?.id ?? null);
+  }, [props.branches, props.resetKey]);
+
+  const handleBranchTabKeyDown = React.useCallback(
+    (event: React.KeyboardEvent<React.ElementRef<"button">>, branchId: string) => {
+      const currentIndex = props.branches.findIndex((branch) => branch.id === branchId);
+      const nextIndex = resolveNextIndexFromKey(currentIndex, event.key, props.branches.length);
+      if (nextIndex === null) return;
+      event.preventDefault();
+      const nextBranch = props.branches[nextIndex];
+      if (!nextBranch) return;
+      setActiveBranchId(nextBranch.id);
+      window.requestAnimationFrame(() => {
+        branchTabRefs.current[nextBranch.id]?.focus();
+      });
+    },
+    [props.branches],
+  );
+
+  if (props.branches.length === 0) return null;
+  const activeBranch =
+    props.branches.find((branch) => branch.id === activeBranchId) ?? props.branches[0] ?? null;
+
   return (
-    <div className="mt-4">
-      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">Strukturäste</p>
-      <div className="mt-3 grid gap-4">
+    <div className="space-y-4">
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">Strukturäste</p>
+        <p className="text-xs text-[rgb(var(--muted))]">Ein Ast im Detail, die anderen als Auswahl</p>
+      </div>
+      <div
+        data-focus-card-rail
+        className="grid gap-3 md:grid-cols-2 xl:grid-cols-3"
+        role="tablist"
+        aria-label="Fokusbereiche der Struktur"
+      >
         {props.branches.map((branch) => (
-          <StructureBranchCard key={branch.id} branch={branch} onEdit={props.onEdit} />
+          <button
+            key={branch.id}
+            data-focus-card-branch-selector
+            type="button"
+            ref={(node) => {
+              branchTabRefs.current[branch.id] = node;
+            }}
+            onClick={() => setActiveBranchId(branch.id)}
+            onKeyDown={(event) => handleBranchTabKeyDown(event, branch.id)}
+            role="tab"
+            id={`create-branch-tab-${branch.id}`}
+            aria-selected={activeBranch?.id === branch.id}
+            aria-controls={`create-branch-panel-${branch.id}`}
+            tabIndex={activeBranch?.id === branch.id ? 0 : -1}
+            className={`w-full rounded-[24px] border px-3 py-3 text-left transition-all duration-300 ease-out ${
+              activeBranch?.id === branch.id
+                ? "border-cyan-400/70 bg-cyan-500/[0.08] shadow-[0_18px_40px_rgba(8,145,178,0.12)] dark:border-cyan-300/45 dark:bg-cyan-500/12"
+                : "border-slate-200/80 bg-[color-mix(in_oklab,rgb(var(--card))_92%,rgb(var(--bg))_8%)] dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))]"
+            }`}
+          >
+            <div className="flex items-start gap-3">
+              <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-cyan-300/60 bg-cyan-500/[0.06] dark:border-cyan-300/30 dark:bg-cyan-500/10">
+                <FocusAreaIcon area="branch" active={activeBranch?.id === branch.id} />
+              </span>
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-600 dark:text-[rgb(var(--muted))]">Focus Card</p>
+                  <span className="rounded-full border border-slate-200/80 px-2 py-1 text-[11px] font-semibold text-[rgb(var(--muted))] dark:border-[rgb(var(--border))]">
+                    {Math.max(1, branch.topicTags.length)} Schwerpunkte
+                  </span>
+                </div>
+                <p className="mt-2 break-words text-lg font-semibold leading-snug text-[rgb(var(--fg))]">{branch.title}</p>
+                <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-[rgb(var(--muted))]">{branch.need}</p>
+                <div className="mt-3 flex items-center gap-2 text-[11px] text-[rgb(var(--muted))]">
+                  <span>{branch.voteQuestions.length} Fragen</span>
+                  <span>·</span>
+                  <span>{branch.openReviewPoints.length} Prüfpunkte</span>
+                </div>
+              </div>
+            </div>
+          </button>
         ))}
       </div>
+      {props.branches.map((branch) => {
+        const isActive = activeBranch?.id === branch.id;
+        return (
+          <div
+            key={branch.id}
+            className="pt-1"
+            role="tabpanel"
+            id={`create-branch-panel-${branch.id}`}
+            aria-labelledby={`create-branch-tab-${branch.id}`}
+            hidden={!isActive}
+          >
+            <StructureBranchCard branch={branch} onEdit={props.onEdit} />
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function CreateStructureOverviewCard(props: {
+  title: string;
+  description: string;
+  pillLabel: string;
+  unreadLabel?: string;
+  area: "priorities" | "clusters" | "questions" | "next_steps";
+  onClick?: () => void;
+}) {
+  const content = (
+    <div data-mobile-structure-card className="flex items-center gap-2.5">
+      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-cyan-300/60 bg-cyan-500/[0.06] dark:border-cyan-300/30 dark:bg-cyan-500/10">
+        <FocusAreaIcon area={props.area} />
+      </span>
+      <div className="min-w-0">
+        <div className="flex flex-wrap items-center gap-2">
+          <p className="text-sm font-semibold text-[rgb(var(--fg))]">{props.title}</p>
+          {props.unreadLabel ? (
+            <span className="rounded-full bg-cyan-600 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-white dark:bg-cyan-300 dark:text-slate-950">
+              {props.unreadLabel}
+            </span>
+          ) : null}
+        </div>
+        <p className="mt-0.5 text-xs leading-relaxed text-[rgb(var(--muted))]">{props.description}</p>
+      </div>
+      <div className="ml-auto flex shrink-0 items-center gap-2">
+        <span className="rounded-full border border-slate-200/80 bg-white/70 px-2.5 py-1 text-[11px] font-semibold text-slate-700 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--bg))] dark:text-slate-100">
+          {props.pillLabel}
+        </span>
+        <svg aria-hidden="true" viewBox="0 0 20 20" className="h-3.5 w-3.5 text-slate-400 dark:text-slate-500" fill="none" stroke="currentColor" strokeWidth="1.8">
+          <path d="M7 4.5 13 10l-6 5.5" />
+        </svg>
+      </div>
+    </div>
+  );
+
+  if (!props.onClick) {
+    return (
+      <article className="rounded-full border border-slate-200/75 bg-[color-mix(in_oklab,rgb(var(--card))_92%,rgb(var(--bg))_8%)] px-3 py-2.5 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))]">
+        {content}
+      </article>
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={props.onClick}
+      className="w-full rounded-full border border-slate-200/75 bg-[color-mix(in_oklab,rgb(var(--card))_92%,rgb(var(--bg))_8%)] px-3 py-2.5 text-left transition hover:border-cyan-300/55 hover:bg-cyan-500/[0.05] dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))]"
+    >
+      {content}
+    </button>
+  );
+}
+
+export function CreateStructureOverview(props: CreateStructureOverviewProps) {
+  const isEnglish = props.locale === "en";
+  return (
+    <section data-mobile-structure-overview className="space-y-3 rounded-[26px] border border-slate-200/80 bg-[color-mix(in_oklab,rgb(var(--card))_94%,rgb(var(--bg))_6%)] px-4 py-4 shadow-[0_16px_36px_rgba(2,6,23,0.05)] dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))]">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
+          {isEnglish ? "Your structure at a glance" : CREATE_VISUAL_FOLLOWUP_COPY.overviewTitle}
+        </p>
+        <p className="text-xs leading-relaxed text-[rgb(var(--muted))]">
+          {isEnglish
+            ? "Compact first, details only on demand."
+            : "Kompakt zuerst, Details bei Bedarf."}
+        </p>
+      </div>
+      <div className="flex flex-wrap gap-2">
+        <CreateStructureOverviewCard
+          area="priorities"
+          title={isEnglish ? "Priorities" : "Prioritäten"}
+          description={isEnglish ? "What matters most?" : "Was zählt zuerst?"}
+          pillLabel={String(props.prioritiesCount)}
+          unreadLabel={props.prioritiesCount > 0 ? (isEnglish ? "new" : "neu") : undefined}
+          onClick={props.onOpenSection ? () => props.onOpenSection?.("priorities") : undefined}
+        />
+        <CreateStructureOverviewCard
+          area="clusters"
+          title={isEnglish ? "Topic clusters" : "Themencluster"}
+          description={isEnglish ? "Recognized clusters" : "Erkannte Cluster"}
+          pillLabel={String(props.clustersCount)}
+          unreadLabel={props.clustersCount > 0 ? (isEnglish ? "new" : "neu") : undefined}
+          onClick={props.onOpenSection ? () => props.onOpenSection?.("clusters") : undefined}
+        />
+        <CreateStructureOverviewCard
+          area="questions"
+          title={isEnglish ? "Questions & participation" : "Fragen & Abstimmung"}
+          description={isEnglish ? "Open questions" : "Offene Fragen"}
+          pillLabel={String(props.questionsCount)}
+          unreadLabel={props.questionsCount > 0 ? (isEnglish ? "new" : "neu") : undefined}
+          onClick={props.onOpenSection ? () => props.onOpenSection?.("questions") : undefined}
+        />
+        <CreateStructureOverviewCard
+          area="next_steps"
+          title={isEnglish ? "Next steps" : "Nächste Schritte"}
+          description={isEnglish ? "What happens next" : "Was als Nächstes folgt"}
+          pillLabel={String(props.nextStepsCount)}
+          unreadLabel={props.nextStepsCount > 0 ? (isEnglish ? "new" : "neu") : undefined}
+          onClick={props.onOpenSection ? () => props.onOpenSection?.("next_steps") : undefined}
+        />
+      </div>
+    </section>
+  );
+}
+
+function StructureOverviewRail(props: {
+  cards: FocusOverviewCard[];
+  activeCardId: FocusAreaId;
+  onSelect: (id: FocusAreaId) => void;
+}) {
+  const overviewTabRefs = React.useRef<Record<FocusAreaId, React.ElementRef<"button"> | null>>({
+    priorities: null,
+    clusters: null,
+    questions: null,
+    sections: null,
+    next_steps: null,
+  });
+
+  const handleOverviewTabKeyDown = React.useCallback(
+    (event: React.KeyboardEvent<React.ElementRef<"button">>, cardId: FocusAreaId) => {
+      const currentIndex = FOCUS_AREA_ORDER.indexOf(cardId);
+      const nextIndex = resolveNextIndexFromKey(currentIndex, event.key, FOCUS_AREA_ORDER.length);
+      if (nextIndex === null) return;
+      event.preventDefault();
+      const nextCardId = FOCUS_AREA_ORDER[nextIndex];
+      props.onSelect(nextCardId);
+      window.requestAnimationFrame(() => {
+        overviewTabRefs.current[nextCardId]?.focus();
+      });
+    },
+    [props],
+  );
+
+  return (
+    <div className="space-y-3">
+      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">
+        {CREATE_VISUAL_FOLLOWUP_COPY.overviewTitle}
+      </p>
+      <div
+        data-focus-card-overview
+        className="grid gap-2 sm:grid-cols-2"
+        role="tablist"
+        aria-label="Überblick über den vorgeschlagenen Arbeitsstand"
+      >
+        {props.cards.map((card) => {
+          const isActive = props.activeCardId === card.id;
+          return (
+            <button
+              key={card.id}
+              type="button"
+              ref={(node) => {
+                overviewTabRefs.current[card.id] = node;
+              }}
+              onClick={() => props.onSelect(card.id)}
+              onKeyDown={(event) => handleOverviewTabKeyDown(event, card.id)}
+              role="tab"
+              id={`create-overview-tab-${card.id}`}
+              aria-selected={isActive}
+              aria-controls={`create-overview-panel-${card.id}`}
+              tabIndex={isActive ? 0 : -1}
+              className={`w-full rounded-[22px] border px-4 py-3 text-left transition-all duration-300 ease-out ${
+                isActive
+                  ? "border-cyan-400/70 bg-cyan-500/[0.08] shadow-[0_16px_36px_rgba(8,145,178,0.12)] dark:border-cyan-300/45 dark:bg-cyan-500/12"
+                  : "border-slate-200/75 bg-[color-mix(in_oklab,rgb(var(--card))_92%,rgb(var(--bg))_8%)] dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))]"
+              }`}
+            >
+              <div className="flex flex-col gap-3">
+                <div className="flex min-w-0 items-start gap-3">
+                  <span className="mt-0.5 flex h-10 w-10 items-center justify-center rounded-full border border-cyan-300/60 bg-cyan-500/[0.06] dark:border-cyan-300/30 dark:bg-cyan-500/10">
+                    <FocusAreaIcon area={card.id} active={isActive} />
+                  </span>
+                  <div className="min-w-0">
+                    <p className="text-base font-semibold text-[rgb(var(--fg))]">{card.title}</p>
+                    <p className="mt-1 text-xs leading-relaxed text-[rgb(var(--muted))]">{card.lead}</p>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between gap-2">
+                  <span className="rounded-full border border-slate-200/80 px-2 py-1 text-[11px] font-semibold text-[rgb(var(--muted))] dark:border-[rgb(var(--border))]">
+                    {card.status}
+                  </span>
+                  <svg aria-hidden="true" viewBox="0 0 20 20" className="h-4 w-4 text-slate-400 dark:text-slate-500" fill="none" stroke="currentColor" strokeWidth="1.8">
+                    <path d="M7 4.5 13 10l-6 5.5" />
+                  </svg>
+                </div>
+              </div>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function SummarySnapshotCard(props: {
+  keyStatement: string;
+  rootTopic: string;
+  positionClusters: string[];
+  topicLabels: string[];
+  voteQuestionCount: number;
+  sectionCount: number;
+}) {
+  return (
+    <div className="rounded-[30px] border border-cyan-300/18 bg-[linear-gradient(180deg,rgba(8,20,46,0.92),rgba(13,25,49,0.96))] px-4 py-4 shadow-[0_20px_48px_rgba(2,6,23,0.28)] dark:border-cyan-300/16 dark:bg-[linear-gradient(180deg,rgba(8,20,46,0.92),rgba(13,25,49,0.96))]">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-cyan-200/80">Kurzfassung</p>
+      <p className="mt-3 text-lg font-semibold leading-tight text-white">{props.keyStatement}</p>
+      <p className="mt-3 text-sm leading-relaxed text-slate-300">
+        Der Arbeitsstand wird jetzt entlang eines Hauptthemas geführt und hält Nebensignale bewusst im Hintergrund.
+      </p>
+      <div className="mt-4 flex flex-wrap gap-2">
+        <span className={`rounded-full border px-2.5 py-1 text-xs ${resolveNodeTone("topic")}`}>{props.rootTopic}</span>
+        {props.positionClusters.slice(0, 2).map((cluster) => (
+          <span key={`summary-cluster-${cluster}`} className={`rounded-full border px-2.5 py-1 text-xs ${resolveNodeTone("stance")}`}>
+            {cluster}
+          </span>
+        ))}
+      </div>
+      <div className="mt-5 rounded-[24px] border border-white/8 bg-slate-950/20 px-3 py-3">
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-300">Signalbild</p>
+          <div className="flex flex-wrap gap-2 text-[11px] text-slate-300">
+            <span className="rounded-full border border-white/10 px-2 py-1">{props.voteQuestionCount} Fragen</span>
+            <span className="rounded-full border border-white/10 px-2 py-1">{props.sectionCount} Abschnitte</span>
+          </div>
+        </div>
+        <div className="mt-3 space-y-2">
+          {props.topicLabels.slice(0, 4).map((label, index) => (
+            <div key={`signal-${label}`} className="space-y-1">
+              <div className="flex items-center justify-between gap-3 text-xs text-slate-300">
+                <span className="truncate">{label}</span>
+                <span>{Math.max(1, 4 - index)}/4</span>
+              </div>
+              <div className="h-2 rounded-full bg-white/6">
+                <div
+                  className="h-2 rounded-full bg-[linear-gradient(90deg,rgba(34,211,238,0.95),rgba(45,212,191,0.75),rgba(168,85,247,0.7))] transition-all duration-500 ease-out"
+                  style={{ width: `${88 - index * 18}%` }}
+                />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function WorkflowStageStrip(props: { stages: FollowupStage[] }) {
+  return (
+    <div className="rounded-[30px] border border-slate-200/75 bg-[color-mix(in_oklab,rgb(var(--card))_92%,rgb(var(--bg))_8%)] px-4 py-4 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))]">
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">Status</p>
+          <p className="mt-1 text-sm font-semibold text-[rgb(var(--fg))]">Wo du gerade bist</p>
+        </div>
+        <span className="rounded-full border border-slate-200/80 px-2.5 py-1 text-[11px] font-semibold text-[rgb(var(--muted))] dark:border-[rgb(var(--border))]">
+          Geführter Ablauf
+        </span>
+      </div>
+      <div className="mt-4 space-y-2">
+        {props.stages.map((stage, index) => {
+          const isActive = stage.status === "active";
+          const isDone = stage.status === "done";
+          return (
+            <div
+              key={stage.id}
+              className={`rounded-2xl border px-3 py-3 transition-all duration-300 ease-out ${
+                isActive
+                  ? "border-cyan-300/45 bg-cyan-500/[0.08]"
+                  : isDone
+                    ? "border-emerald-300/30 bg-emerald-500/[0.08]"
+                    : "border-slate-200/70 bg-[color-mix(in_oklab,rgb(var(--card))_90%,rgb(var(--bg))_10%)] dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--bg))]"
+              }`}
+            >
+              <div className="flex items-start gap-3">
+                <span
+                  className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full border text-xs font-semibold ${
+                    isActive
+                      ? "border-cyan-300/60 text-cyan-100"
+                      : isDone
+                        ? "border-emerald-300/60 text-emerald-100"
+                        : "border-slate-300/50 text-slate-300"
+                  }`}
+                >
+                  {isDone ? "✓" : index + 1}
+                </span>
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-[rgb(var(--fg))]">{stage.title}</p>
+                  <p className="mt-1 text-xs leading-relaxed text-[rgb(var(--muted))]">{stage.lead}</p>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function SectionFlowDiagram(props: { sections: ReturnType<typeof buildCreateVisualSections> }) {
+  if (props.sections.length === 0) return null;
+  return (
+    <div className="rounded-[24px] border border-slate-200/70 bg-[color-mix(in_oklab,rgb(var(--card))_90%,rgb(var(--bg))_10%)] px-4 py-4 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--bg))]">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">Lesefluss</p>
+      <div className="mt-3 space-y-3">
+        {props.sections.map((section, index) => (
+          <div key={`flow-${section.id}`} className="flex items-start gap-3">
+            <div className="flex flex-col items-center pt-0.5">
+              <span className="flex h-6 w-6 items-center justify-center rounded-full border border-cyan-300/45 text-[11px] font-semibold text-cyan-100">
+                {index + 1}
+              </span>
+              {index < props.sections.length - 1 ? <span className="mt-1 h-6 w-px bg-[rgb(var(--border))]" /> : null}
+            </div>
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-[rgb(var(--fg))]">{section.label}</p>
+              <p className="mt-1 text-xs leading-relaxed text-[rgb(var(--muted))]">
+                {section.statementLabel ?? section.topicLabel ?? "Einordnung"}
+              </p>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ContentModuleGrid(props: { modules: CreateFollowupContentModule[] }) {
+  if (props.modules.length === 0) return null;
+  return (
+    <div className="rounded-[30px] border border-slate-200/80 bg-[color-mix(in_oklab,rgb(var(--card))_92%,rgb(var(--bg))_8%)] px-4 py-5 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))]">
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">Lesemodus</p>
+          <p className="mt-1 text-sm font-semibold text-[rgb(var(--fg))]">Was der Beitrag außerdem mitbringt</p>
+        </div>
+        <span className="rounded-full border border-slate-200/80 px-2.5 py-1 text-[11px] font-semibold text-[rgb(var(--muted))] dark:border-[rgb(var(--border))]">
+          Modular gelesen
+        </span>
+      </div>
+      <div className="mt-4 grid gap-3 md:grid-cols-2">
+        {props.modules.map((module) => (
+          <article
+            key={module.id}
+            className={`rounded-[24px] border px-4 py-4 ${resolveContentModuleToneClass(module.tone)}`}
+          >
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] opacity-80">{module.title}</p>
+            <p className="mt-2 text-base font-semibold leading-snug">{module.lead}</p>
+            <p className="mt-2 text-sm leading-relaxed text-slate-300">{module.detail}</p>
+          </article>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function SecondaryFollowupNote(props: { children: React.ReactNode }) {
+  return (
+    <div className="rounded-2xl border border-slate-200/75 bg-[color-mix(in_oklab,rgb(var(--card))_88%,rgb(var(--bg))_12%)] px-4 py-3 text-xs leading-relaxed text-[rgb(var(--muted))] dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--bg))]">
+      {props.children}
+    </div>
+  );
+}
+
+function NextStepChecklist(props: { items: NextStepChecklistItem[] }) {
+  return (
+    <div className="space-y-3">
+      <p className="text-sm font-semibold text-[rgb(var(--fg))]">Deine nächsten Schritte</p>
+      <div className="space-y-2">
+        {props.items.map((item) => (
+          <div
+            key={item.id}
+            className={`rounded-2xl border px-3 py-3 ${
+              item.done
+                ? "border-emerald-300/60 bg-emerald-500/[0.08] dark:border-emerald-300/30 dark:bg-emerald-500/10"
+                : "border-slate-200/80 bg-[color-mix(in_oklab,rgb(var(--card))_92%,rgb(var(--bg))_8%)] dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))]"
+            }`}
+          >
+            <div className="flex items-start gap-3">
+              <span
+                className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-xs font-semibold ${
+                  item.done
+                    ? "border-emerald-400/70 bg-emerald-100 text-emerald-900 dark:border-emerald-300/40 dark:bg-emerald-500/20 dark:text-emerald-100"
+                    : "border-slate-300/80 bg-slate-100 text-slate-700 dark:border-slate-500/60 dark:bg-slate-500/10 dark:text-slate-200"
+                }`}
+              >
+                {item.done ? "✓" : "○"}
+              </span>
+              <div>
+                <p className="text-sm font-medium text-[rgb(var(--fg))]">{item.label}</p>
+                <p className="mt-1 text-xs leading-relaxed text-[rgb(var(--muted))]">{item.detail}</p>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function StructureFocusPanel(props: {
+  activeFocusArea: FocusAreaId;
+  rootTopic: string;
+  topicLabels: string[];
+  positionClusters: string[];
+  voteQuestions: string[];
+  keyStatement: string;
+  structureBranches: CreateStructureBranch[];
+  checklistItems: NextStepChecklistItem[];
+  onEdit: (focus: string) => void;
+  resultChangeKey: string;
+  sections: ReturnType<typeof buildCreateVisualSections>;
+  modules: CreateFollowupContentModule[];
+}) {
+  if (props.activeFocusArea === "priorities") {
+    return (
+      <div className="space-y-4 rounded-[30px] border border-slate-200/80 bg-[color-mix(in_oklab,rgb(var(--card))_92%,rgb(var(--bg))_8%)] px-4 py-5 shadow-[0_20px_48px_rgba(2,6,23,0.06)] dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))] dark:shadow-none">
+        <div className="space-y-2">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">Einordnung</p>
+          <p className="text-base font-semibold text-[rgb(var(--fg))]">Was im Beitrag gerade die Richtung vorgibt</p>
+        </div>
+        <div className={`rounded-[24px] border px-4 py-4 ${resolveNodeTone("topic")}`}>
+          <p className="text-sm font-semibold">Übergeordnetes Thema</p>
+          <p className="mt-1 text-base font-semibold">{props.rootTopic}</p>
+        </div>
+        <div className={`rounded-[24px] border px-4 py-4 ${resolveNodeTone("statement")}`}>
+          <p className="text-xs font-semibold uppercase tracking-[0.14em]">Kern erkannt</p>
+          <p className="mt-2 text-base font-semibold leading-relaxed">{props.keyStatement}</p>
+        </div>
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">Themenfelder</p>
+          <TopicFieldList labels={props.topicLabels.slice(0, 6)} onPick={props.onEdit} />
+        </div>
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">Blickrichtungen</p>
+          <PositionClusterList labels={props.positionClusters} onPick={props.onEdit} />
+        </div>
+        <ContentModuleGrid modules={props.modules.slice(0, 2)} />
+      </div>
+    );
+  }
+
+  if (props.activeFocusArea === "clusters") {
+    return props.structureBranches.length > 0 ? (
+      <StructureBranchList branches={props.structureBranches} onEdit={props.onEdit} resetKey={props.resultChangeKey} />
+    ) : (
+      <div className="space-y-3 rounded-[30px] border border-slate-200/80 bg-[color-mix(in_oklab,rgb(var(--card))_92%,rgb(var(--bg))_8%)] px-4 py-5 shadow-[0_20px_48px_rgba(2,6,23,0.06)] dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))] dark:shadow-none">
+        <p className="text-sm font-semibold text-[rgb(var(--fg))]">Themencluster</p>
+        <p className="text-sm text-[rgb(var(--muted))]">Für diesen Beitrag reicht zunächst ein kompakter Themenfokus statt mehrerer Cluster.</p>
+        <TopicFieldList labels={props.topicLabels.slice(0, 6)} onPick={props.onEdit} />
+      </div>
+    );
+  }
+
+  if (props.activeFocusArea === "questions") {
+    return (
+      <div className="space-y-4 rounded-[30px] border border-slate-200/80 bg-[color-mix(in_oklab,rgb(var(--card))_92%,rgb(var(--bg))_8%)] px-4 py-5 shadow-[0_20px_48px_rgba(2,6,23,0.06)] dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))] dark:shadow-none">
+        <div className="rounded-[24px] border border-fuchsia-200/70 bg-fuchsia-50/70 px-4 py-4 dark:border-fuchsia-300/25 dark:bg-fuchsia-500/10">
+          <p className="text-sm font-semibold text-fuchsia-950 dark:text-fuchsia-50">Fragen & Abstimmung</p>
+          <p className="mt-2 text-sm leading-relaxed text-fuchsia-900 dark:text-fuchsia-100">
+            Diese Leitfragen bleiben sichtbar, aber erst nach deiner Bestätigung werden sie weiter vorbereitet.
+          </p>
+        </div>
+        <VoteQuestionList questions={props.voteQuestions} />
+        <ContentModuleGrid modules={props.modules.filter((module) => module.tone === "vote" || module.tone === "stats").slice(0, 2)} />
+      </div>
+    );
+  }
+
+  if (props.activeFocusArea === "sections") {
+    return (
+      <div className="space-y-4 rounded-[30px] border border-slate-200/80 bg-[color-mix(in_oklab,rgb(var(--card))_92%,rgb(var(--bg))_8%)] px-4 py-5 shadow-[0_20px_48px_rgba(2,6,23,0.06)] dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))] dark:shadow-none">
+        <div className="rounded-[24px] border border-sky-200/60 bg-sky-500/[0.06] px-4 py-4 dark:border-sky-300/25 dark:bg-sky-500/10">
+          <p className="text-sm font-semibold text-sky-950 dark:text-sky-50">Gelesene Sinnabschnitte</p>
+          <p className="mt-2 text-sm leading-relaxed text-sky-900 dark:text-sky-100">
+            Hier siehst du, welche Abschnitte ich getrennt gelesen und wie ich sie jeweils eingeordnet habe.
+          </p>
+        </div>
+        <div className="space-y-2">
+          {props.sections.length > 0 ? (
+            props.sections.map((section) => (
+              <details
+                key={section.id}
+                className="rounded-2xl border border-slate-200/75 bg-[color-mix(in_oklab,rgb(var(--card))_90%,rgb(var(--bg))_10%)] px-3 py-3 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--bg))]"
+              >
+                <summary className="cursor-pointer text-sm font-semibold text-[rgb(var(--fg))]">
+                  {section.label}
+                </summary>
+                <div className="mt-3 space-y-2 text-sm">
+                  <p className="text-[rgb(var(--fg))]"><span className="font-semibold">Du sagst:</span> {section.sourceText}</p>
+                  {section.statementLabel ? (
+                    <p className="text-[rgb(var(--muted))]"><span className="font-semibold text-[rgb(var(--fg))]">Erkannt als:</span> {section.statementLabel}</p>
+                  ) : null}
+                  {section.topicLabel ? (
+                    <p className="text-[rgb(var(--muted))]"><span className="font-semibold text-[rgb(var(--fg))]">Gehört zu:</span> {section.topicLabel}</p>
+                  ) : null}
+                  {section.connectionLabel ? (
+                    <p className="text-[rgb(var(--muted))]"><span className="font-semibold text-[rgb(var(--fg))]">Passender nächster Schritt:</span> {section.connectionLabel}</p>
+                  ) : null}
+                </div>
+              </details>
+            ))
+          ) : (
+            <SecondaryFollowupNote>
+              Für diesen Beitrag reichen im Moment kompakte Sinnabschnitte ohne weitere Unterteilung.
+            </SecondaryFollowupNote>
+          )}
+        </div>
+        <SectionFlowDiagram sections={props.sections} />
+        <ContentModuleGrid modules={props.modules.filter((module) => module.tone === "source" || module.tone === "context")} />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4 rounded-[30px] border border-slate-200/80 bg-[color-mix(in_oklab,rgb(var(--card))_92%,rgb(var(--bg))_8%)] px-4 py-5 shadow-[0_20px_48px_rgba(2,6,23,0.06)] dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))] dark:shadow-none">
+      <NextStepChecklist items={props.checklistItems} />
+      <SecondaryFollowupNote>
+        Guardrails bleiben kompakt sichtbar: keine automatische Stimme, keine automatische Veröffentlichung, keine automatische Kostenbuchung.
+      </SecondaryFollowupNote>
     </div>
   );
 }
@@ -560,256 +1712,515 @@ function StructuredWorkstateBlock(props: {
   voteQuestions: string[];
   keyStatement: string;
   structureBranches: CreateStructureBranch[];
+  sortedSuggestions: CreateConnectionSuggestion[];
+  isConfirmed: boolean;
   onEdit: (focus: string) => void;
+  resultChangeKey: string;
+  sections: ReturnType<typeof buildCreateVisualSections>;
+  modules: CreateFollowupContentModule[];
 }) {
-  const hasBranches = props.structureBranches.length >= 2;
+  const initialFocusArea: FocusAreaId = props.structureBranches.length > 0 ? "clusters" : "priorities";
+  const [activeFocusArea, setActiveFocusArea] = React.useState<FocusAreaId>(initialFocusArea);
+  const stages = React.useMemo(
+    () =>
+      buildWorkflowStages({
+        isConfirmed: props.isConfirmed,
+        hasSuggestions: props.sortedSuggestions.length > 0,
+      }),
+    [props.isConfirmed, props.sortedSuggestions.length],
+  );
+  const overviewCards = React.useMemo<FocusOverviewCard[]>(
+    () => {
+      const checklist = buildNextStepChecklist({
+        isConfirmed: props.isConfirmed,
+        structureBranches: props.structureBranches,
+        voteQuestions: props.voteQuestions,
+        sortedSuggestions: props.sortedSuggestions,
+      });
+      const doneChecklistCount = checklist.filter((item) => item.done).length;
+      return [
+        {
+          id: "priorities",
+          title: "Prioritäten",
+          lead: "Was ist dir besonders wichtig?",
+          status: `${Math.max(1, Math.min(props.topicLabels.length, 3))} Prioritäten`,
+        },
+        {
+          id: "clusters",
+          title: "Themencluster",
+          lead: "Deine Schwerpunkte im Detail",
+          status: `${Math.max(1, props.structureBranches.length || 1)} Cluster`,
+        },
+        {
+          id: "questions",
+          title: "Fragen & Abstimmung",
+          lead: "Was denkst du? Mach mit!",
+          status: `${Math.max(1, props.voteQuestions.length)} Fragen`,
+        },
+        {
+          id: "next_steps",
+          title: "Nächste Schritte",
+          lead: "So geht es weiter",
+          status: `${Math.min(doneChecklistCount, 3)}/3 erledigt`,
+        },
+      ];
+    },
+    [
+      props.isConfirmed,
+      props.sortedSuggestions,
+      props.structureBranches,
+      props.topicLabels.length,
+      props.voteQuestions,
+    ],
+  );
+  const checklistItems = React.useMemo(
+    () =>
+      buildNextStepChecklist({
+        isConfirmed: props.isConfirmed,
+        structureBranches: props.structureBranches,
+        voteQuestions: props.voteQuestions,
+        sortedSuggestions: props.sortedSuggestions,
+      }),
+    [props.isConfirmed, props.sortedSuggestions, props.structureBranches, props.voteQuestions],
+  );
+
+  React.useEffect(() => {
+    setActiveFocusArea(initialFocusArea);
+  }, [initialFocusArea, props.resultChangeKey]);
+
   return (
-    <div className="mt-5 space-y-5 border-t border-slate-200 pt-5 dark:border-[rgb(var(--border))]">
-      <p className="text-sm font-semibold text-[rgb(var(--fg))] md:text-base">Vorgeschlagener Arbeitsstand</p>
-      <p className="max-w-3xl text-sm leading-relaxed text-[rgb(var(--muted))] md:text-base">
-        {CREATE_VISUAL_FOLLOWUP_COPY.graphTitle}
-      </p>
-
-      <div className={`max-w-3xl rounded-2xl border px-4 py-3 ${resolveNodeTone("topic")}`}>
-        <p className="text-sm font-semibold">Übergeordnetes Thema</p>
-        <p className="mt-1 text-base font-semibold">{props.rootTopic}</p>
+    <div className="mt-5 min-w-0 space-y-5 border-t border-slate-200 pt-5 dark:border-[rgb(var(--border))]">
+      <div className="space-y-3">
+        <p className="text-sm font-semibold text-[rgb(var(--fg))] md:text-base">Vorgeschlagener Arbeitsstand</p>
+        <p className="max-w-3xl text-sm leading-relaxed text-[rgb(var(--muted))] md:text-base">
+          {CREATE_VISUAL_FOLLOWUP_COPY.graphTitle}
+        </p>
       </div>
-
-      <StructureBranchList branches={props.structureBranches} onEdit={props.onEdit} />
-
-      <div className={hasBranches ? "hidden" : "space-y-3 md:hidden"}>
-        <div className="text-sm font-semibold text-cyan-900 dark:text-cyan-100">1. Dein Beitrag</div>
-        <div className={`rounded-xl border px-3 py-2 ${resolveNodeTone("source_text")}`}>
-          <p className="text-sm font-semibold">Ausgangspunkt im Dialog</p>
+      <div className="grid gap-5 xl:grid-cols-[minmax(18rem,0.82fr)_minmax(0,1.18fr)]">
+        <div className="space-y-4 xl:sticky xl:top-4 xl:self-start">
+          <SummarySnapshotCard
+            keyStatement={props.keyStatement}
+            rootTopic={props.rootTopic}
+            positionClusters={props.positionClusters}
+            topicLabels={props.topicLabels}
+            voteQuestionCount={props.voteQuestions.length}
+            sectionCount={props.sections.length}
+          />
+          <WorkflowStageStrip stages={stages} />
+          <StructureOverviewRail cards={overviewCards} activeCardId={activeFocusArea} onSelect={setActiveFocusArea} />
         </div>
-        <div className="text-sm font-semibold text-cyan-900 dark:text-cyan-100">2. Kern erkannt</div>
-        <div className={`rounded-xl border px-3 py-2 ${resolveNodeTone("statement")}`}>
-          <p className="text-sm font-semibold">{props.keyStatement}</p>
-        </div>
-        <div className="text-sm font-semibold text-cyan-900 dark:text-cyan-100">3. Themenfelder</div>
-        {hasBranches ? null : <TopicFieldList labels={props.topicLabels} onPick={props.onEdit} />}
-        <div className="text-sm font-semibold text-cyan-900 dark:text-cyan-100">4. Blickrichtungen</div>
-        <PositionClusterList labels={props.positionClusters} onPick={props.onEdit} />
-        <div className="text-sm font-semibold text-cyan-900 dark:text-cyan-100">5. Mögliche Abstimmungsfragen</div>
-        {hasBranches ? null : <VoteQuestionList questions={props.voteQuestions} />}
-      </div>
 
-      <div className={hasBranches ? "hidden" : "hidden md:block"}>
-        <div className="space-y-3">
-          <div className={`max-w-2xl rounded-xl border px-4 py-3 ${resolveNodeTone("source_text")}`}>
-            <p className="text-sm font-semibold">Dein Beitrag</p>
-          </div>
-          <div className="ml-5 border-l-2 border-cyan-500/35 pl-4 dark:border-cyan-300/40">
-            <div className={`max-w-2xl rounded-xl border px-4 py-3 ${resolveNodeTone("statement")}`}>
-              <p className="text-sm font-semibold">Kern erkannt</p>
-              <p className="mt-1 text-base font-semibold">{props.keyStatement}</p>
+        {FOCUS_AREA_ORDER.map((focusArea) => {
+          const isActive = activeFocusArea === focusArea;
+          return (
+            <div
+              key={focusArea}
+              role="tabpanel"
+              id={`create-overview-panel-${focusArea}`}
+              aria-labelledby={`create-overview-tab-${focusArea}`}
+              className="space-y-4"
+              hidden={!isActive}
+            >
+              <StructureFocusPanel
+                activeFocusArea={focusArea}
+                rootTopic={props.rootTopic}
+                topicLabels={props.topicLabels}
+                positionClusters={props.positionClusters}
+                voteQuestions={props.voteQuestions}
+                keyStatement={props.keyStatement}
+                structureBranches={props.structureBranches}
+                checklistItems={checklistItems}
+                onEdit={props.onEdit}
+                resultChangeKey={props.resultChangeKey}
+                sections={props.sections}
+                modules={props.modules}
+              />
+              {focusArea !== "priorities" ? <ContentModuleGrid modules={props.modules.slice(0, 4)} /> : null}
+              <details className="rounded-[24px] border border-slate-200/80 bg-[color-mix(in_oklab,rgb(var(--card))_92%,rgb(var(--bg))_8%)] px-4 py-4 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))]">
+                <summary className="cursor-pointer text-sm font-semibold text-[rgb(var(--fg))]">
+                  Gelesene Sinnabschnitte und Lesemodus
+                </summary>
+                <div className="mt-4 space-y-4">
+                  <div className="rounded-[24px] border border-sky-200/60 bg-sky-500/[0.06] px-4 py-4 dark:border-sky-300/25 dark:bg-sky-500/10">
+                    <p className="text-sm font-semibold text-sky-950 dark:text-sky-50">Gelesene Sinnabschnitte</p>
+                    <p className="mt-2 text-sm leading-relaxed text-sky-900 dark:text-sky-100">
+                      Diese Analysebausteine bleiben bewusst hinter Details und tauchen nicht im ersten Bürger-Flow auf.
+                    </p>
+                  </div>
+                  <SectionFlowDiagram sections={props.sections} />
+                  <div className="space-y-2">
+                    {props.sections.map((section) => (
+                      <details
+                        key={section.id}
+                        className="rounded-2xl border border-slate-200/75 bg-[color-mix(in_oklab,rgb(var(--card))_90%,rgb(var(--bg))_10%)] px-3 py-3 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--bg))]"
+                      >
+                        <summary className="cursor-pointer text-sm font-semibold text-[rgb(var(--fg))]">{section.label}</summary>
+                        <div className="mt-3 space-y-2 text-sm">
+                          <p className="text-[rgb(var(--fg))]"><span className="font-semibold">Du sagst:</span> {section.sourceText}</p>
+                          {section.statementLabel ? (
+                            <p className="text-[rgb(var(--muted))]"><span className="font-semibold text-[rgb(var(--fg))]">Erkannt als:</span> {section.statementLabel}</p>
+                          ) : null}
+                          {section.topicLabel ? (
+                            <p className="text-[rgb(var(--muted))]"><span className="font-semibold text-[rgb(var(--fg))]">Gehört zu:</span> {section.topicLabel}</p>
+                          ) : null}
+                          {section.connectionLabel ? (
+                            <p className="text-[rgb(var(--muted))]"><span className="font-semibold text-[rgb(var(--fg))]">Passender nächster Schritt:</span> {section.connectionLabel}</p>
+                          ) : null}
+                        </div>
+                      </details>
+                    ))}
+                  </div>
+                  <ContentModuleGrid modules={props.modules} />
+                </div>
+              </details>
             </div>
-            <div className="ml-6 mt-3 border-l-2 border-violet-500/30 pl-4 dark:border-violet-300/35">
-              <div className={`max-w-2xl rounded-xl border px-4 py-3 ${resolveNodeTone("topic")}`}>
-                <p className="text-sm font-semibold">Übergeordnetes Thema</p>
-                <p className="mt-1 text-base font-semibold">{props.rootTopic}</p>
-              </div>
-              <TopicFieldList labels={props.topicLabels.filter((label) => label !== props.rootTopic)} onPick={props.onEdit} />
-              <div className="mt-4 border-t border-slate-200 pt-3 dark:border-[rgb(var(--border))]">
-                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">Blickrichtungen</p>
-                <PositionClusterList labels={props.positionClusters} onPick={props.onEdit} />
-              </div>
-              <div className="mt-4 border-t border-slate-200 pt-3 dark:border-[rgb(var(--border))]">
-                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">Mögliche Abstimmungsfragen</p>
-                <VoteQuestionList questions={props.voteQuestions} />
-              </div>
-            </div>
-          </div>
-        </div>
+          );
+        })}
       </div>
     </div>
   );
 }
 
-function FollowupActionRail(props: {
-  onConfirm: () => void;
-  onStartOptionalService: () => void;
-  onSaveForLater: () => void;
-  setCorrectionOpen: (focus: string) => void;
-  showCorrectionRow: boolean;
-  correctionFocus: string | null;
-  saveState: "idle" | "saving" | "saved" | "error" | "unavailable";
-  saveMessage?: string | null;
-  factcheckMessage?: string | null;
+function CompactPreviewCard(props: {
+  title: string;
+  lead: string;
+  body: React.ReactNode;
+  tone?: "topic" | "core" | "question";
 }) {
-  const saveDisabled = props.saveState === "saving" || props.saveState === "unavailable";
-  const saveLabel =
-    props.saveState === "saving"
-      ? "Arbeitsstand wird gespeichert …"
-      : "Arbeitsstand speichern";
+  const toneClass =
+    props.tone === "core"
+      ? "border-cyan-200/55 bg-cyan-500/[0.08] dark:border-cyan-300/20"
+      : props.tone === "question"
+        ? "border-amber-200/60 bg-amber-500/[0.08] dark:border-amber-300/20"
+        : "border-slate-200/80 bg-[color-mix(in_oklab,rgb(var(--card))_94%,rgb(var(--bg))_6%)] dark:border-[rgb(var(--border))]";
+  return (
+    <article className={`rounded-[24px] border px-4 py-4 ${toneClass}`}>
+      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">{props.lead}</p>
+      <p className="mt-2 text-base font-semibold text-[rgb(var(--fg))]">{props.title}</p>
+      <div className="mt-2 text-sm leading-relaxed text-[rgb(var(--muted))]">{props.body}</div>
+    </article>
+  );
+}
+
+function TopNeedPointList(props: { items: TopNeedPoint[]; topicLabels: string[] }) {
+  return (
+    <div className="space-y-3">
+      <div className="flex flex-wrap items-center gap-2">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
+          Erkannte Bedarfspunkte
+        </p>
+        {props.topicLabels.slice(0, 4).map((label) => (
+          <span
+            key={`need-topic-${label}`}
+            className={`rounded-full border px-2.5 py-1 text-[11px] ${resolveNodeTone("topic")}`}
+          >
+            {label}
+          </span>
+        ))}
+      </div>
+      <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
+        {props.items.map((item) => (
+          <article
+            key={item.id}
+            className="rounded-2xl border border-slate-200/75 bg-[color-mix(in_oklab,rgb(var(--card))_92%,rgb(var(--bg))_8%)] px-3 py-3 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))]"
+          >
+            <p className="text-xs font-semibold text-[rgb(var(--fg))]">{item.label}</p>
+            <p className="mt-1.5 text-sm leading-relaxed text-[rgb(var(--muted))]">{item.detail}</p>
+          </article>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function PlaceClarificationPanel(props: {
+  question: string;
+  privacyHint?: string;
+  value: string;
+  onChange: (value: string) => void;
+  onSubmit: () => void;
+  onSkip?: () => void;
+  submitDisabled: boolean;
+}) {
+  return (
+    <div className="rounded-[24px] border border-amber-300/55 bg-amber-500/[0.09] px-4 py-4">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-amber-900 dark:text-amber-100">Ortsklärung</p>
+      <p className="mt-2 text-lg font-semibold text-amber-950 dark:text-amber-50">Um welchen Ort geht es?</p>
+      <p className="mt-2 text-sm leading-relaxed text-amber-950/90 dark:text-amber-100/90">{props.question}</p>
+      {props.privacyHint ? (
+        <p className="mt-2 text-xs leading-relaxed text-amber-900/80 dark:text-amber-100/80">{props.privacyHint}</p>
+      ) : null}
+      <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+        <input
+          value={props.value}
+          onChange={(event) => props.onChange(event.target.value)}
+          placeholder="Ort, Bezirk oder Kommune ergänzen"
+          className="min-w-0 flex-1 rounded-xl border border-amber-300/60 bg-white/80 px-3 py-2 text-sm text-slate-900 focus:border-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-200 dark:bg-slate-950/50 dark:text-white"
+        />
+        <button
+          type="button"
+          className="btn-primary min-h-[42px] px-4 py-2 text-sm"
+          onClick={props.onSubmit}
+          disabled={props.submitDisabled}
+          aria-disabled={props.submitDisabled}
+        >
+          Ort ergänzen
+        </button>
+      </div>
+      {props.onSkip ? (
+        <button
+          type="button"
+          className="mt-3 text-sm font-medium text-amber-900 underline-offset-4 hover:underline dark:text-amber-100"
+          onClick={props.onSkip}
+        >
+          Ort später ergänzen
+        </button>
+      ) : null}
+    </div>
+  );
+}
+
+function MobileDetailList(props: {
+  summary: string;
+  rootTopic: string;
+  topicLabels: string[];
+  stanceLabel: string;
+  scopeLabel: string;
+  openQuestion: string;
+  nextStepTitles: string[];
+}) {
+  const detailRows = [
+    {
+      label: "Kurzfassung",
+      value: props.summary,
+    },
+    {
+      label: "Themen",
+      value: props.topicLabels.length > 0 ? toSentenceList(props.topicLabels.slice(0, 4)) : props.rootTopic,
+    },
+    {
+      label: "Haltung & Ebene",
+      value: `${props.stanceLabel} · ${props.scopeLabel}`,
+    },
+    {
+      label: "Nächster Schritt",
+      value: props.nextStepTitles[0] ?? props.openQuestion,
+    },
+  ];
 
   return (
-    <div className="create-chat-message flex gap-3">
-      <div className="mt-2 h-2.5 w-2.5 shrink-0 rounded-full bg-emerald-600 ring-4 ring-white dark:bg-emerald-300 dark:ring-[rgb(var(--bg))]" />
-      <div className="max-w-5xl flex-1">
-        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-700 dark:text-[rgb(var(--muted))]">Nächster Schritt</p>
-        <div className="mt-2 space-y-4 rounded-2xl rounded-tl-sm border border-emerald-200/70 bg-white px-4 py-4 shadow-sm dark:border-emerald-300/20 dark:bg-[rgb(var(--card))] dark:shadow-none">
-          <div className="space-y-2">
-            <p className="text-sm font-semibold text-[rgb(var(--fg))] md:text-base">{CREATE_VISUAL_FOLLOWUP_COPY.confirmTitle}</p>
-            <p className="max-w-3xl text-sm leading-relaxed text-[rgb(var(--muted))] md:text-base">
-              Bestätige den Vorschlag, ändere einzelne Punkte oder schreib einfach weiter.
+    <div
+      data-mobile-compact-details
+      className="space-y-3 rounded-[24px] border border-slate-200/80 bg-[color-mix(in_oklab,rgb(var(--card))_92%,rgb(var(--bg))_8%)] px-4 py-4 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))]"
+    >
+      <p className="text-sm font-semibold text-[rgb(var(--fg))]">Kompakte Details</p>
+      <div className="space-y-2">
+        {detailRows.map((row) => (
+          <div
+            key={row.label}
+            className="rounded-2xl border border-slate-200/70 bg-[color-mix(in_oklab,rgb(var(--card))_90%,rgb(var(--bg))_10%)] px-3 py-3 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--bg))]"
+          >
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--muted))]">
+              {row.label}
             </p>
-            <p className="max-w-3xl text-sm text-[rgb(var(--muted))]">{CREATE_VISUAL_FOLLOWUP_COPY.freeWriteHint}</p>
+            <p className="mt-2 text-sm leading-relaxed text-[rgb(var(--fg))]">{row.value}</p>
           </div>
-          <button type="button" className="btn-primary min-h-[48px] w-full px-4 py-3 text-sm md:text-base" onClick={props.onConfirm}>
-            Ja, Struktur übernehmen
-          </button>
-          <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
-            <button type="button" className="btn-secondary min-h-[40px] px-3 py-2 text-sm" onClick={() => props.setCorrectionOpen("Thema")}>
-              Etwas ändern
+        ))}
+      </div>
+      <p className="text-xs leading-relaxed text-[rgb(var(--muted))]">
+        Signalbild, Status, Sinnabschnitte und Lesemodus bleiben auf Mobile bewusst hinter dem Detail-Tap reduziert.
+      </p>
+    </div>
+  );
+}
+
+function StructureProposalPanel(props: {
+  onConfirm: () => void;
+  onEdit: () => void;
+  onRequestEditorialReview: () => void;
+  reviewRequestState: CreateReviewRequestState;
+  reviewRequestMessage?: string | null;
+}) {
+  return (
+    <div data-mobile-inline-create-actions className="space-y-3 border-t border-slate-200/80 pt-4 dark:border-[rgb(var(--border))]">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+        <div className="max-w-2xl space-y-1">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">Nächster Schritt</p>
+          <p className="text-base font-semibold text-[rgb(var(--fg))]">{CREATE_VISUAL_FOLLOWUP_COPY.confirmTitle}</p>
+          <p className="text-sm leading-relaxed text-[rgb(var(--muted))]">
+            Übernimm den Vorschlag, öffne eine Korrektur oder fordere bewusst eine manuelle Prüfung an.
+          </p>
+        </div>
+        <div className="flex flex-col gap-2 lg:items-end">
+          <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap lg:justify-end">
+            <button type="button" className="btn-secondary min-h-[42px] px-3 py-2 text-sm" onClick={props.onEdit}>
+              Ändern
             </button>
             <button
               type="button"
-              className="btn-secondary min-h-[40px] px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-60"
-              onClick={props.onSaveForLater}
-              disabled={saveDisabled}
-              aria-disabled={saveDisabled}
+              className="btn-secondary min-h-[42px] px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-60"
+              onClick={props.onRequestEditorialReview}
+              disabled={props.reviewRequestState === "saving"}
+              aria-disabled={props.reviewRequestState === "saving"}
             >
-              {saveLabel}
+              {resolveReviewRequestLabel(props.reviewRequestState, "compact")}
             </button>
-            <button type="button" className="btn-secondary min-h-[40px] px-3 py-2 text-sm" onClick={props.onStartOptionalService}>
-              Faktencheck / Deep Search starten
+            <button type="button" className="btn-primary min-h-[46px] px-4 py-2 text-sm" onClick={props.onConfirm}>
+              So übernehmen
             </button>
           </div>
-          <div className="flex flex-wrap items-center gap-2 text-xs text-[rgb(var(--muted))]">
-            <span className="rounded-full border border-emerald-300/60 bg-emerald-50 px-2.5 py-1 dark:border-emerald-300/25 dark:bg-emerald-500/10">
-              Primär: Struktur übernehmen
-            </span>
-            <span className="rounded-full border border-slate-200 px-2.5 py-1 dark:border-[rgb(var(--border))]">
-              Optional: Faktencheck / Deep Search
-            </span>
-          </div>
-          <div className="grid gap-2 text-xs text-[rgb(var(--muted))] md:grid-cols-2">
-            <p>{props.saveMessage ?? "Arbeitsstand speichern ist in diesem Schritt verfügbar."}</p>
-            <p>{props.factcheckMessage ?? "Optional. Startet erst nach bewusster Bestätigung. Keine automatische Kostenbuchung."}</p>
-          </div>
-          {props.showCorrectionRow ? (
-            <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-3">
-              <p className="text-sm text-[rgb(var(--fg))]">
-                Was soll anders eingeordnet werden{props.correctionFocus ? `: ${props.correctionFocus}` : ""}?
-              </p>
-              <div className="mt-2 flex flex-wrap gap-2">
-                {[
-                  "Thema ändern",
-                  "Haltung ändern",
-                  "Ebene ändern",
-                  "Nächsten Schritt ändern",
-                  "Aussage fehlt",
-                  "Abstimmungsfrage bearbeiten",
-                ].map((chip) => (
-                  <button
-                    key={chip}
-                    type="button"
-                    className="rounded-full border border-[rgb(var(--border))] px-2 py-1 text-xs text-[rgb(var(--fg))] hover:border-cyan-300/60"
-                    onClick={() => props.setCorrectionOpen(chip)}
-                  >
-                    {chip}
-                  </button>
-                ))}
-              </div>
-              <p className="mt-2 text-xs text-[rgb(var(--muted))]">Änderungsvorschläge werden im nächsten Schritt reviewbar gespeichert.</p>
-            </div>
-          ) : null}
-          <div className="space-y-1 text-xs text-[rgb(var(--muted))]">
-            <p>Keine automatische Stimme.</p>
-            <p>Keine automatische Veröffentlichung.</p>
-            <p>Keine automatische Kostenbuchung.</p>
-          </div>
+          <p className="text-[11px] leading-relaxed text-[rgb(var(--muted))] lg:text-right">
+            Keine automatische Veröffentlichung. Keine automatische Kostenbuchung.
+          </p>
         </div>
       </div>
+      {props.reviewRequestMessage ? (
+        <p className="rounded-xl border border-emerald-300/25 bg-emerald-500/[0.08] px-3 py-2 text-xs leading-relaxed text-emerald-900 dark:text-emerald-100">
+          {props.reviewRequestMessage}
+        </p>
+      ) : null}
     </div>
   );
 }
 
-function DetailsAccordion(props: {
-  result: CreateIntelligentFollowupResult;
-  sections: ReturnType<typeof buildCreateVisualSections>;
-  sortedSuggestions: CreateConnectionSuggestion[];
-  isConfirmed: boolean;
+function PlannerClarificationPanel(props: {
+  reason: string;
+  startPoints: string[];
+  onRetryPlanner?: () => void;
+  onEdit: () => void;
+  onRequestEditorialReview?: () => void;
+  reviewRequestState: CreateReviewRequestState;
+  reviewRequestMessage?: string | null;
 }) {
-  const showSectionFlow = props.result.sourceText.length > 500 || props.sections.length > 1;
-  const hasFutureModules = false;
-
   return (
-    <div className="max-w-4xl space-y-2 pl-5 md:pl-8 lg:pl-10">
-      {showSectionFlow ? (
-        <details className="border-t border-slate-200 py-3 dark:border-[rgb(var(--border))]">
-          <summary className="cursor-pointer text-sm font-semibold text-[rgb(var(--fg))] md:text-base">
-            Gelesene Sinnabschnitte ({props.sections.length})
-          </summary>
-          <div className="mt-3 space-y-2">
-            {props.sections.map((section) => (
-              <details
-                key={section.id}
-                className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--bg))]"
+    <div className="space-y-3 rounded-[28px] border border-amber-300/30 bg-amber-500/[0.08] px-4 py-4 dark:border-amber-300/20 dark:bg-amber-500/[0.1]">
+      <div className="space-y-1">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-amber-900 dark:text-amber-100">Einordnung offen</p>
+        <p className="text-base font-semibold text-amber-950 dark:text-amber-50">Konnte nicht exakt zugeordnet werden.</p>
+        <p className="text-sm leading-relaxed text-amber-950/85 dark:text-amber-100/85">
+          Die KI-Einordnung konnte gerade nicht zuverlässig abgeschlossen werden oder dein Beitrag enthält mehrere mögliche Themen.
+        </p>
+        <p className="text-sm leading-relaxed text-amber-950/85 dark:text-amber-100/85">{props.reason}</p>
+      </div>
+      {props.startPoints.length > 0 ? (
+        <div className="space-y-2">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-amber-900 dark:text-amber-100">Mögliche Startpunkte</p>
+          <div className="flex flex-wrap gap-2">
+            {props.startPoints.map((label) => (
+              <span
+                key={`degraded-start-${label}`}
+                className="rounded-full border border-amber-400/30 bg-amber-500/[0.12] px-2.5 py-1 text-xs text-amber-950 dark:border-amber-300/30 dark:bg-amber-500/[0.14] dark:text-amber-50"
               >
-                <summary className="cursor-pointer text-sm font-semibold text-[rgb(var(--fg))] md:text-base">
-                  {section.label}
-                </summary>
-                <p className="mt-2 text-sm text-[rgb(var(--fg))] md:text-base"><span className="font-semibold">Du sagst:</span> {section.sourceText}</p>
-                {section.statementLabel ? (
-                  <p className="mt-2 text-sm text-[rgb(var(--muted))]"><span className="font-semibold text-[rgb(var(--fg))]">Erkannt als:</span> {section.statementLabel}</p>
-                ) : null}
-                {section.topicLabel ? (
-                  <p className="mt-1 text-sm text-[rgb(var(--muted))]"><span className="font-semibold text-[rgb(var(--fg))]">Gehört zu:</span> {section.topicLabel}</p>
-                ) : null}
-                {section.connectionLabel ? (
-                  <p className="mt-1 text-sm text-[rgb(var(--muted))]"><span className="font-semibold text-[rgb(var(--fg))]">Passender nächster Schritt:</span> {section.connectionLabel}</p>
-                ) : null}
-              </details>
+                {label}
+              </span>
             ))}
           </div>
-        </details>
-      ) : null}
-
-      <details className="border-t border-slate-200 py-3 dark:border-[rgb(var(--border))]">
-        <summary className="cursor-pointer text-sm font-semibold text-[rgb(var(--fg))] md:text-base">
-          {CREATE_VISUAL_FOLLOWUP_COPY.impactTitle}
-        </summary>
-        {!props.isConfirmed ? (
-          <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50/80 px-3 py-3 text-sm text-[rgb(var(--fg))] dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--bg))]">
-            <p>{CREATE_VISUAL_FOLLOWUP_COPY.pendingPreparationHint}</p>
-            <p className="mt-2 text-xs text-[rgb(var(--muted))]">Wird erst nach deiner Bestätigung vorbereitet.</p>
-          </div>
-        ) : (
-          <div className="mt-3 grid gap-3">
-            {props.sortedSuggestions.map((suggestion) => {
-              const toneKind: CreateVisualNode["kind"] =
-                suggestion.kind === "dossier"
-                  ? "dossier"
-                  : suggestion.kind === "vote"
-                    ? "vote"
-                    : suggestion.kind === "anlassraum"
-                      ? "anlassraum"
-                      : suggestion.kind === "new_anlassraum"
-                        ? "new_anlassraum"
-                        : "topic";
-              return (
-                <article key={suggestion.id} className={`rounded-xl border px-3 py-3 ${resolveNodeTone(toneKind)}`}>
-                  <p className="text-xs font-semibold uppercase tracking-[0.14em] opacity-80">{resolveSuggestionBadge(suggestion.kind)}</p>
-                  <p className="mt-1 text-sm font-semibold md:text-base">{suggestion.title}</p>
-                  <p className="mt-1 text-sm opacity-85">Warum passt das? {suggestion.reason}</p>
-                  <p className="mt-3 text-xs opacity-80">
-                    {suggestion.kind === "new_anlassraum"
-                      ? "Wird jetzt nur als nächster Schritt vorgemerkt."
-                      : `Kann jetzt unter ${resolveSuggestionCta(suggestion.kind)} geöffnet werden.`}
-                  </p>
-                </article>
-              );
-            })}
-          </div>
-        )}
-      </details>
-
-      {hasFutureModules ? (
-        <div className="rounded-xl border border-slate-200 bg-white px-3 py-3 text-xs text-[rgb(var(--muted))] shadow-sm dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))]">
-          Erweiterbare Module: Quellen, Statistik, Artikel, Video, Faktencheck.
         </div>
+      ) : null}
+      <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+        <button
+          type="button"
+          className="btn-secondary min-h-[42px] px-3 py-2 text-sm"
+          onClick={props.onRetryPlanner}
+          disabled={!props.onRetryPlanner}
+          aria-disabled={!props.onRetryPlanner}
+        >
+          KI-Suche aktivieren
+        </button>
+        <button
+          type="button"
+          className="btn-secondary min-h-[42px] px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-60"
+          onClick={props.onRequestEditorialReview}
+          disabled={!props.onRequestEditorialReview || props.reviewRequestState === "saving"}
+          aria-disabled={!props.onRequestEditorialReview || props.reviewRequestState === "saving"}
+        >
+          Bericht an die Redaktion senden
+        </button>
+        <button type="button" className="btn-primary min-h-[46px] px-4 py-2 text-sm" onClick={props.onEdit}>
+          Thema selbst auswählen
+        </button>
+      </div>
+      {props.reviewRequestMessage ? (
+        <p className="rounded-xl border border-amber-300/25 bg-amber-500/[0.08] px-3 py-2 text-xs leading-relaxed text-amber-950 dark:text-amber-100">
+          {props.reviewRequestMessage}
+        </p>
+      ) : null}
+      <p className="text-xs leading-relaxed text-amber-950/85 dark:text-amber-100/85">
+        Keine automatische Veröffentlichung. Keine automatische Kostenbuchung. Keine stille Zuordnung.
+      </p>
+    </div>
+  );
+}
+
+function NextStepPanel(props: {
+  onPrepareSubmission: () => void;
+  onPrepareAnlassraum: () => void;
+  onOpenDossierAppend: () => void;
+  onOpenDossierCreate: () => void;
+  onPrepareVote: () => void;
+  onRequestEditorialReview: () => void;
+  onStartOptionalService: () => void;
+  onSaveOnly: () => void;
+  reviewRequestState: CreateReviewRequestState;
+  reviewRequestMessage?: string | null;
+  factcheckMessage?: string | null;
+}) {
+  return (
+    <div className="space-y-4 rounded-[28px] border border-cyan-300/28 bg-[linear-gradient(180deg,rgba(9,20,42,0.98),rgba(11,24,46,0.95))] px-4 py-4 shadow-[0_18px_42px_rgba(8,145,178,0.12)]">
+      <div className="space-y-1">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-cyan-200/75">Nächster Schritt</p>
+        <p className="text-base font-semibold text-white">Was möchtest du daraus machen?</p>
+        <p className="text-sm leading-relaxed text-slate-300">
+          Keine automatische Veröffentlichung. Keine automatische Kostenbuchung.
+        </p>
+      </div>
+      <button type="button" className="btn-primary min-h-[48px] w-full px-4 py-2 text-sm" onClick={props.onPrepareSubmission}>
+        Beitrag einreichen
+      </button>
+      <div className="grid gap-2 sm:grid-cols-2">
+        <button type="button" className="btn-secondary min-h-[42px] px-3 py-2 text-sm" onClick={props.onPrepareAnlassraum}>
+          Anlassraum vorbereiten
+        </button>
+        <button type="button" className="btn-secondary min-h-[42px] px-3 py-2 text-sm" onClick={props.onOpenDossierAppend}>
+          Als Ergänzung anhängen
+        </button>
+        <button type="button" className="btn-secondary min-h-[42px] px-3 py-2 text-sm" onClick={props.onOpenDossierCreate}>
+          Neues Dossier vorbereiten
+        </button>
+        <button type="button" className="btn-secondary min-h-[42px] px-3 py-2 text-sm" onClick={props.onPrepareVote}>
+          Beteiligungsfrage vorbereiten
+        </button>
+        <button
+          type="button"
+          className="btn-secondary min-h-[42px] px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-60"
+          onClick={props.onRequestEditorialReview}
+          disabled={props.reviewRequestState === "saving"}
+          aria-disabled={props.reviewRequestState === "saving"}
+          aria-label="Redaktionelle Prüfung anfragen"
+          title="Redaktionelle Prüfung anfragen"
+        >
+          Redaktionell prüfen lassen
+        </button>
+        <button
+          type="button"
+          className="btn-secondary min-h-[42px] px-3 py-2 text-sm"
+          onClick={props.onStartOptionalService}
+          aria-label="Faktencheck / Deep Search"
+          title="Faktencheck / Deep Search"
+        >
+          Faktencheck anfragen
+        </button>
+        <button type="button" className="btn-secondary min-h-[42px] px-3 py-2 text-sm" onClick={props.onSaveOnly}>
+          Nur speichern
+        </button>
+      </div>
+      {props.reviewRequestMessage ? (
+        <p className="rounded-xl border border-cyan-300/20 bg-cyan-500/[0.08] px-3 py-2 text-xs leading-relaxed text-cyan-100">
+          {props.reviewRequestMessage}
+        </p>
+      ) : null}
+      {props.factcheckMessage ? (
+        <p className="text-xs leading-relaxed text-slate-400">{props.factcheckMessage}</p>
       ) : null}
     </div>
   );
@@ -824,8 +2235,9 @@ function ContinueWritingComposer(props: {
   return (
     <div className="create-chat-message flex gap-3">
       <div className="mt-2 h-2.5 w-2.5 shrink-0 rounded-full bg-slate-400 ring-4 ring-white dark:bg-slate-500 dark:ring-[rgb(var(--bg))]" />
-      <div className="max-w-5xl flex-1 rounded-2xl rounded-tl-sm border border-slate-200 bg-white px-4 py-4 shadow-sm dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))] dark:shadow-none">
-        <p className="text-sm font-semibold text-[rgb(var(--fg))]">Schreib einfach weiter</p>
+      <div className="max-w-5xl min-w-0 flex-1 rounded-[24px] rounded-tl-sm border border-slate-200/75 bg-[color-mix(in_oklab,rgb(var(--card))_88%,rgb(var(--bg))_12%)] px-4 py-4 shadow-sm dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))] dark:shadow-none">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">Korrektur oder Ergänzung</p>
+        <p className="mt-1 text-base font-semibold text-[rgb(var(--fg))]">Schreib einfach weiter</p>
         <p className="mt-1 text-sm text-[rgb(var(--muted))]">
           Ergänze hier, was anders gemeint war, welche Quelle noch fehlt oder welchen nächsten Schritt ich anpassen soll.
         </p>
@@ -855,35 +2267,64 @@ function ContinueWritingComposer(props: {
 
 export default function CreateVisualFollowup({
   result,
-  ctaHref,
   actionNotice,
   isConfirmed = false,
-  saveState = "unavailable",
-  saveMessage = null,
+  reviewRequestState = "idle",
+  reviewRequestMessage = null,
   factcheckMessage = null,
+  showCorrectionComposer = false,
   onConfirm,
   onEdit,
-  onSaveForLater = () => {},
+  onPrepareSubmission,
+  onPrepareAnlassraum,
+  onOpenDossierAppend,
+  onOpenDossierCreate,
+  onPrepareVote,
+  onRequestEditorialReview = () => {},
   onStartOptionalService = () => {},
+  onRetryPlanner,
+  onSaveOnly = () => {},
+  onSkipPlaceClarification = () => {},
   continuationValue,
   onContinuationChange,
   onContinueConversation,
   continueConversationDisabled = false,
 }: CreateVisualFollowupProps) {
-  const visualMap = React.useMemo(() => buildCreateVisualMap(result), [result]);
   const sections = React.useMemo(() => buildCreateVisualSections(result, 4), [result]);
-  const [showCorrectionRow, setShowCorrectionRow] = React.useState(false);
-  const [correctionFocus, setCorrectionFocus] = React.useState<string | null>(null);
+  const resultChangeKey = React.useMemo(
+    () =>
+      [
+        result.generatedAt,
+        result.understanding.summary,
+        result.sourceText,
+        result.understanding.dossierContext,
+      ]
+        .filter(Boolean)
+        .join("::"),
+    [
+      result.generatedAt,
+      result.sourceText,
+      result.understanding.dossierContext,
+      result.understanding.summary,
+    ],
+  );
 
   const topicLabels = result.understanding.topics.map((topic) => topic.label);
   const broadTopicFields = React.useMemo(() => deriveBroadTopicFields(topicLabels), [topicLabels]);
   const dominantStance = deriveDominantUnderstandingStance(result.understanding);
-  const statementNodes = visualMap.nodes.filter((node) => node.kind === "statement").slice(0, 4);
   const sortedSuggestions = sortSuggestions(result.suggestions)
     .filter((suggestion) => suggestion.kind !== "topic")
     .slice(0, 4);
   const structureBranches = React.useMemo(() => buildCreateStructureBranches(result, 3), [result]);
-  const voteSuggestion = sortedSuggestions.find((suggestion) => suggestion.kind === "vote");
+  const contentModules = React.useMemo(
+    () =>
+      buildContentModules({
+        result,
+        sections,
+        sortedSuggestions,
+      }),
+    [result, sections, sortedSuggestions],
+  );
   const voteQuestions = React.useMemo(
     () =>
       buildVoteQuestions({
@@ -895,17 +2336,24 @@ export default function CreateVisualFollowup({
     [broadTopicFields, result.understanding.dossierContext, sortedSuggestions, topicLabels],
   );
   const scopeChip = result.understanding.scopes[0] ?? "unclear";
+  const plannerClarificationRequired = needsPlannerClarification(result);
+  const plannerClarificationReason = resolvePlannerClarificationReason(result);
+  const degradedStartPoints = React.useMemo(() => extractDegradedStartPoints(result), [result]);
+  const plannerClarificationLeadText =
+    "Dein Beitrag enthält mehrere mögliche Themen oder die KI-Einordnung konnte gerade nicht zuverlässig abgeschlossen werden.";
   const assistantLead = resolveAssistantLead({
     topicLabels,
     summary: result.understanding.summary,
     statementText: result.understanding.statements[0]?.text ?? "",
     dossierContext: result.understanding.dossierContext,
+    plannerTopic: result.meta?.planner?.plannerTopic ?? null,
   });
   const positionClusters = React.useMemo(() => derivePositionClusters(result), [result]);
   const keyStatement = resolveCoreClaim({
     topicLabels,
-    fallback: statementNodes[0]?.label ?? result.understanding.summary,
+    fallback: result.understanding.statements[0]?.text ?? result.understanding.summary,
     dossierContext: result.understanding.dossierContext,
+    plannerCore: result.meta?.planner?.plannerCore ?? null,
   });
   const dedupedCopy = dedupeCreateFollowupSections({
     summary: result.understanding.summary,
@@ -920,158 +2368,315 @@ export default function CreateVisualFollowup({
     dedupedCopy.prominentCoreClaim,
   );
   const rootTopic = result.understanding.dossierContext ?? topicLabels[0] ?? "Öffentliches Thema";
-  const primaryActionHref = buildCreateFollowupPrimaryCtaHref({
-    ctaHref,
-    topics: result.understanding.topics,
-    statements: result.understanding.statements,
-    suggestions: sortedSuggestions,
+  const openQuestion = result.understanding.openQuestion ?? null;
+  const placeClarification = isPlaceClarificationQuestion(openQuestion)
+    ? {
+        kind: "place" as const,
+        question: openQuestion,
+        requiredBeforeFinalize: true,
+        privacyHint:
+          "Bitte nenne Ort, Bezirk oder Kommune nur so genau wie nötig. Private Wohnadressen werden nicht öffentlich übernommen.",
+      }
+    : null;
+  const openQuestionText =
+    placeClarification?.question ??
+    result.understanding.openQuestion?.trim() ??
+    resolveDefaultOpenQuestion(result, voteQuestions);
+  const openQuestionDetail = placeClarification
+    ? openQuestionText
+    : result.meta?.planner?.plannerTopic === "Tierschutz, Tierhaltung und Agrarstandards"
+      ? "Offen bleibt, welche Produkte, Länder, Standards und Kontrollmechanismen konkret gemeint sind."
+    : result.understanding.dossierContext === "Kommunale Prioritäten und Zielkonflikte"
+      ? "Welche Bereiche sollen zuerst bearbeitet werden – und was braucht noch Klärung?"
+      : "Diese Rückfrage bleibt vor der weiteren Vorbereitung sichtbar.";
+  const visibleTopicLabels = topicLabels.filter((label) => label !== rootTopic).slice(0, 4);
+  const understandingKindLabel = resolveUnderstandingKindLabel(result);
+  const corePreviewTitle = resolveCorePreviewTitle({
+    result,
+    fallbackLabel: understandingKindLabel,
   });
+  const topNeedPoints = React.useMemo(
+    () =>
+      buildTopNeedPoints({
+        structureBranches,
+        statements: result.understanding.statements,
+        dossierContext: result.understanding.dossierContext,
+        topicCount: topicLabels.length,
+      }),
+    [result.understanding.dossierContext, result.understanding.statements, structureBranches, topicLabels.length],
+  );
+  const nextStepTitles = sortedSuggestions.map((suggestion) => suggestion.title).filter(Boolean);
+  const [detailsOpen, setDetailsOpen] = React.useState(false);
 
   const openCorrection = React.useCallback(
-    (focus: string) => {
-      setCorrectionFocus(focus);
-      setShowCorrectionRow(true);
+    (_focus: string) => {
       onEdit();
     },
     [onEdit],
   );
 
+  React.useEffect(() => {
+    setDetailsOpen(false);
+  }, [resultChangeKey]);
+
   return (
-    <section className="create-chat-workspace relative -mt-3 mx-auto max-w-6xl pb-24 md:pb-10">
-      <div className="create-chat-spine relative space-y-5 before:absolute before:left-[5px] before:top-3 before:h-[calc(100%-1.5rem)] before:w-px before:bg-slate-200 md:space-y-6 dark:before:bg-[rgb(var(--border))]">
-      <UserContributionBubble text={dedupedCopy.userBubbleText} />
+    <section className="create-chat-workspace relative mx-auto min-w-0 max-w-full overflow-x-clip pb-[calc(env(safe-area-inset-bottom,0px)+1.25rem)] md:pb-10">
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1.1fr)_minmax(18rem,22rem)] lg:gap-6 xl:grid-cols-[minmax(0,1.08fr)_minmax(20rem,24rem)]">
+        <div className="space-y-4">
+          <div className="rounded-[28px] border border-slate-200/80 bg-[color-mix(in_oklab,rgb(var(--card))_94%,rgb(var(--bg))_6%)] px-4 py-4 shadow-[0_18px_42px_rgba(2,6,23,0.06)] dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))]">
+            <div className="space-y-1">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
+                {plannerClarificationRequired ? "Einordnung offen" : "Verstanden"}
+              </p>
+              <p className="text-lg font-semibold text-[rgb(var(--fg))]">
+                {plannerClarificationRequired
+                  ? CREATE_VISUAL_FOLLOWUP_COPY.headlineNeedsClarification
+                  : CREATE_VISUAL_FOLLOWUP_COPY.headline}
+              </p>
+              <p className="text-sm leading-relaxed text-[rgb(var(--fg))]">
+                {plannerClarificationRequired ? plannerClarificationLeadText : dedupedCopy.prominentSummary}
+              </p>
+              {showAssistantLeadText && !plannerClarificationRequired ? (
+                <p className="text-sm leading-relaxed text-[rgb(var(--muted))]">{assistantLead}</p>
+              ) : null}
+              {plannerClarificationRequired ? (
+                <p className="text-sm leading-relaxed text-amber-900 dark:text-amber-100">{plannerClarificationReason}</p>
+              ) : null}
+            </div>
 
-      <AssistantUnderstandingBubble
-        summary={dedupedCopy.prominentSummary}
-        assistantLead={assistantLead}
-        coreClaim={dedupedCopy.prominentCoreClaim}
-        showCoreBlock={showCoreBlock}
-        showAssistantLead={showAssistantLeadText}
-        stanceLabel={resolveStanceLead(dominantStance)}
-        scopeLabel={resolveScopeLabel(scopeChip)}
-      >
-        <StructuredWorkstateBlock
-          rootTopic={rootTopic}
-          topicLabels={topicLabels}
-          positionClusters={positionClusters}
-          voteQuestions={voteQuestions}
-          keyStatement={dedupedCopy.prominentCoreClaim}
-          structureBranches={structureBranches}
-          onEdit={openCorrection}
-        />
-      </AssistantUnderstandingBubble>
+            {actionNotice ? (
+              <p className="mt-3 rounded-2xl border border-cyan-500/25 bg-cyan-500/[0.08] px-3 py-2 text-xs leading-relaxed text-cyan-950 dark:border-cyan-300/25 dark:bg-cyan-500/12 dark:text-cyan-100">
+                {actionNotice}
+              </p>
+            ) : null}
 
-      <FollowupActionRail
-        onConfirm={onConfirm}
-        onStartOptionalService={onStartOptionalService}
-        onSaveForLater={onSaveForLater}
-        setCorrectionOpen={openCorrection}
-        showCorrectionRow={showCorrectionRow}
-        correctionFocus={correctionFocus}
-        saveState={saveState}
-        saveMessage={saveMessage}
-        factcheckMessage={factcheckMessage}
-      />
+            {!plannerClarificationRequired ? (
+              <>
+                <div className="mt-4 grid gap-2 md:grid-cols-3">
+                  <CompactPreviewCard
+                    lead="Kern"
+                    title={corePreviewTitle}
+                    tone="core"
+                    body={<p>{dedupedCopy.prominentCoreClaim}</p>}
+                  />
+                  <CompactPreviewCard
+                    lead="Thema"
+                    title={rootTopic}
+                    tone="topic"
+                    body={
+                      visibleTopicLabels.length > 0 ? (
+                        <div className="flex flex-wrap gap-2">
+                          {visibleTopicLabels.map((label) => (
+                            <span
+                              key={`topic-preview-${label}`}
+                              className={`rounded-full border px-2.5 py-1 text-xs ${resolveNodeTone("topic")}`}
+                            >
+                              {label}
+                            </span>
+                          ))}
+                        </div>
+                      ) : (
+                        <p>{dedupedCopy.prominentSummary}</p>
+                      )
+                    }
+                  />
+                  <CompactPreviewCard
+                    lead="Noch offen"
+                    title={placeClarification ? "Um welchen Ort geht es?" : openQuestionText}
+                    tone="question"
+                    body={<p>{openQuestionDetail}</p>}
+                  />
+                </div>
 
-      {isConfirmed ? (
-        <div className="create-chat-message flex gap-3">
-          <div className="mt-2 h-2.5 w-2.5 shrink-0 rounded-full bg-emerald-600 ring-4 ring-white dark:bg-emerald-300 dark:ring-[rgb(var(--bg))]" />
-          <div className="max-w-4xl flex-1 rounded-2xl rounded-tl-sm border border-emerald-300/45 bg-emerald-50 px-4 py-3 dark:border-emerald-300/35 dark:bg-emerald-500/10">
-            <p className="text-sm text-emerald-900 dark:text-emerald-100">
-              Einordnung bestätigt. Dein Beitrag ist noch nicht veröffentlicht. Wähle jetzt den nächsten Schritt.
-            </p>
-            <div className="mt-3 flex flex-wrap gap-2">
-              <Link href={primaryActionHref} className="btn-secondary min-h-[40px] px-3 py-2 text-sm">
-                Thema öffnen
-              </Link>
-              {voteSuggestion ? (
-                <Link
-                  href={buildCreateFollowupTargetHref({
-                    kind: "vote",
-                    ctaHref,
-                    topics: result.understanding.topics,
-                    statements: result.understanding.statements,
-                    suggestionTitle: voteSuggestion.title,
-                    suggestionHref: voteSuggestion.href ?? null,
-                  })}
-                  className="btn-secondary min-h-[40px] px-3 py-2 text-sm"
-                >
-                  Aussagen / Abstimmungen prüfen
-                </Link>
-              ) : (
-                <Link href={primaryActionHref} className="btn-secondary min-h-[40px] px-3 py-2 text-sm">
-                  Abstimmungsfragen prüfen
-                </Link>
-              )}
-              <button type="button" className="btn-secondary min-h-[40px] px-3 py-2 text-sm" onClick={onStartOptionalService}>
-                Faktencheck / Deep Search starten
-              </button>
-              <button
-                type="button"
-                className="btn-secondary min-h-[40px] px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-60"
-                onClick={onSaveForLater}
-                disabled={saveState === "saving" || saveState === "unavailable"}
-                aria-disabled={saveState === "saving" || saveState === "unavailable"}
+                <div className="mt-4">
+                  <TopNeedPointList items={topNeedPoints} topicLabels={topicLabels} />
+                </div>
+              </>
+            ) : null}
+
+            {!isConfirmed && !placeClarification && !plannerClarificationRequired ? (
+              <div className="mt-4">
+                <StructureProposalPanel
+                  onConfirm={onConfirm}
+                  onEdit={() => openCorrection("Thema")}
+                  onRequestEditorialReview={onRequestEditorialReview}
+                  reviewRequestState={reviewRequestState}
+                  reviewRequestMessage={reviewRequestMessage}
+                />
+              </div>
+            ) : null}
+            {!isConfirmed && !placeClarification && plannerClarificationRequired ? (
+              <div className="mt-4">
+                <PlannerClarificationPanel
+                  reason={plannerClarificationReason}
+                  startPoints={degradedStartPoints}
+                  onRetryPlanner={onRetryPlanner}
+                  onEdit={() => openCorrection("Thema")}
+                  onRequestEditorialReview={onRequestEditorialReview}
+                  reviewRequestState={reviewRequestState}
+                  reviewRequestMessage={reviewRequestMessage}
+                />
+              </div>
+            ) : null}
+          </div>
+
+          {placeClarification ? (
+            <PlaceClarificationPanel
+              question={placeClarification.question}
+              privacyHint={placeClarification.privacyHint}
+              value={continuationValue}
+              onChange={onContinuationChange}
+              onSubmit={onContinueConversation}
+              onSkip={onSkipPlaceClarification}
+              submitDisabled={continueConversationDisabled}
+            />
+          ) : null}
+
+          {isConfirmed && !plannerClarificationRequired ? (
+            <div className="lg:hidden">
+                <NextStepPanel
+                  onPrepareSubmission={onPrepareSubmission}
+                  onPrepareAnlassraum={onPrepareAnlassraum}
+                  onOpenDossierAppend={onOpenDossierAppend}
+                  onOpenDossierCreate={onOpenDossierCreate}
+                  onPrepareVote={onPrepareVote}
+                  onRequestEditorialReview={onRequestEditorialReview}
+                  onStartOptionalService={onStartOptionalService}
+                  onSaveOnly={onSaveOnly}
+                  reviewRequestState={reviewRequestState}
+                  reviewRequestMessage={reviewRequestMessage}
+                  factcheckMessage={factcheckMessage}
+              />
+            </div>
+          ) : null}
+
+          {showCorrectionComposer && !placeClarification ? (
+            <ContinueWritingComposer
+              value={continuationValue}
+              onChange={onContinuationChange}
+              onSubmit={onContinueConversation}
+              submitDisabled={continueConversationDisabled}
+            />
+          ) : null}
+
+          <div className="rounded-[24px] border border-slate-200/80 bg-[color-mix(in_oklab,rgb(var(--card))_94%,rgb(var(--bg))_6%)] px-4 py-4 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))]">
+            <button
+              type="button"
+              className="flex w-full items-center justify-between gap-3 text-left text-sm font-semibold text-[rgb(var(--fg))]"
+              aria-expanded={detailsOpen}
+              onClick={() => setDetailsOpen((current) => !current)}
+            >
+              <span>Details ansehen</span>
+              <svg
+                aria-hidden="true"
+                viewBox="0 0 20 20"
+                className={`h-4 w-4 shrink-0 text-slate-400 transition-transform duration-200 ${detailsOpen ? "rotate-90" : ""}`}
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
               >
-                Arbeitsstand speichern
-              </button>
-            </div>
-            <div className="mt-3 space-y-1 text-xs text-emerald-900/85 dark:text-emerald-100/85">
-              <p>Ich würde jetzt Folgendes vorbereiten: {toSentenceList(sortedSuggestions.slice(0, 3).map((item) => resolveSuggestionBadge(item.kind).toLowerCase()))}.</p>
-              <p>{saveMessage ?? "Arbeitsstand speichern ist in diesem Schritt verfügbar."}</p>
-              <p>{factcheckMessage ?? "Optional. Startet erst nach bewusster Bestätigung. Keine automatische Kostenbuchung."}</p>
-            </div>
+                <path d="M7 4.5 13 10l-6 5.5" />
+              </svg>
+            </button>
+            {detailsOpen ? (
+              <div className="mt-4 space-y-4">
+                {plannerClarificationRequired ? (
+                  <div className="rounded-[24px] border border-amber-300/30 bg-amber-500/[0.08] px-4 py-4 text-sm leading-relaxed text-amber-950 dark:border-amber-300/20 dark:bg-amber-500/[0.1] dark:text-amber-50">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-amber-900 dark:text-amber-100">
+                      Einordnung offen
+                    </p>
+                    <p className="mt-1 text-base font-semibold">Warum wir hier noch nicht weiter automatisieren</p>
+                    <p className="mt-2">
+                      Wir zeigen hier bewusst keine normale Struktur mit Kern, Thema und Handoffs, solange die
+                      KI-Einordnung nicht belastbar genug ist.
+                    </p>
+                    <p className="mt-2">{plannerClarificationReason}</p>
+                    {degradedStartPoints.length > 0 ? (
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        {degradedStartPoints.map((label) => (
+                          <span
+                            key={`degraded-detail-start-${label}`}
+                            className="rounded-full border border-amber-400/30 bg-amber-500/[0.12] px-2.5 py-1 text-xs text-amber-950 dark:border-amber-300/30 dark:bg-amber-500/[0.14] dark:text-amber-50"
+                          >
+                            {label}
+                          </span>
+                        ))}
+                      </div>
+                    ) : null}
+                  </div>
+                ) : (
+                  <>
+                    <div className="lg:hidden">
+                      <MobileDetailList
+                        summary={dedupedCopy.prominentSummary}
+                        rootTopic={rootTopic}
+                        topicLabels={topicLabels}
+                        stanceLabel={resolveStanceLead(dominantStance)}
+                        scopeLabel={resolveScopeLabel(scopeChip)}
+                        openQuestion={openQuestionText}
+                        nextStepTitles={nextStepTitles}
+                      />
+                    </div>
+                    <div className="hidden lg:block">
+                      <div className="create-chat-spine relative min-w-0 space-y-5 before:absolute before:left-[5px] before:top-3 before:h-[calc(100%-1.5rem)] before:w-px before:bg-slate-200 dark:before:bg-[rgb(var(--border))]">
+                        <UserContributionBubble text={dedupedCopy.userBubbleText} />
+                        <AssistantUnderstandingBubble
+                          eyebrow={CREATE_VISUAL_FOLLOWUP_COPY.structureTitle}
+                          headline={CREATE_VISUAL_FOLLOWUP_COPY.headline}
+                          summary={dedupedCopy.prominentSummary}
+                          assistantLead={assistantLead}
+                          coreClaim={dedupedCopy.prominentCoreClaim}
+                          showCoreBlock={showCoreBlock}
+                          showAssistantLead={showAssistantLeadText}
+                          stanceLabel={resolveStanceLead(dominantStance)}
+                          scopeLabel={resolveScopeLabel(scopeChip)}
+                        >
+                          <div className="mt-4 rounded-2xl border border-slate-200/75 bg-[color-mix(in_oklab,rgb(var(--card))_90%,rgb(var(--bg))_10%)] px-4 py-3 text-sm leading-relaxed text-[rgb(var(--muted))] dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--bg))]">
+                            Desktop zeigt hier bewusst mehr Arbeitskontext. Auf Mobile bleibt dieser Bereich hinter Details verborgen.
+                          </div>
+                        </AssistantUnderstandingBubble>
+                      </div>
+                      <StructuredWorkstateBlock
+                        rootTopic={rootTopic}
+                        topicLabels={topicLabels}
+                        positionClusters={positionClusters}
+                        voteQuestions={voteQuestions}
+                        keyStatement={dedupedCopy.prominentCoreClaim}
+                        structureBranches={structureBranches}
+                        sortedSuggestions={sortedSuggestions}
+                        isConfirmed={isConfirmed}
+                        onEdit={openCorrection}
+                        resultChangeKey={resultChangeKey}
+                        sections={sections}
+                        modules={contentModules}
+                      />
+                    </div>
+                  </>
+                )}
+              </div>
+            ) : null}
           </div>
         </div>
-      ) : null}
 
-      <DetailsAccordion
-        result={result}
-        sections={sections}
-        sortedSuggestions={sortedSuggestions}
-        isConfirmed={isConfirmed}
-      />
-
-      <ContinueWritingComposer
-        value={continuationValue}
-        onChange={onContinuationChange}
-        onSubmit={onContinueConversation}
-        submitDisabled={continueConversationDisabled}
-      />
-
-      {actionNotice ? (
-        <div className="create-chat-message flex gap-3">
-          <div className="mt-2 h-2.5 w-2.5 shrink-0 rounded-full bg-cyan-600 ring-4 ring-white dark:bg-cyan-300 dark:ring-[rgb(var(--bg))]" />
-          <p className="max-w-3xl rounded-2xl rounded-tl-sm border border-cyan-500/35 bg-white px-3 py-2 text-xs text-cyan-900 shadow-sm dark:border-cyan-300/35 dark:bg-[rgb(var(--card))] dark:text-cyan-100 dark:shadow-none">
-            {actionNotice}
-          </p>
-        </div>
-      ) : null}
-      </div>
-
-      <div className="sticky bottom-2 z-10 rounded-xl border border-cyan-500/30 bg-white/95 px-3 py-2 shadow-xl shadow-cyan-950/10 backdrop-blur md:hidden dark:border-cyan-300/45 dark:bg-[rgb(var(--card))]/95 dark:shadow-black/20">
-        <p className="text-sm font-semibold text-[rgb(var(--fg))]">{CREATE_VISUAL_FOLLOWUP_COPY.confirmTitle}</p>
-        <p className="text-xs text-[rgb(var(--muted))]">{CREATE_VISUAL_FOLLOWUP_COPY.freeWriteHint}</p>
-        <div className="mt-2 grid grid-cols-2 gap-2">
-          <button type="button" className="btn-primary min-h-[40px] px-2 py-2 text-sm" onClick={onConfirm}>
-            Ja, Struktur übernehmen
-          </button>
-          <button type="button" className="btn-secondary min-h-[40px] px-2 py-2 text-sm" onClick={() => openCorrection("Thema")}>
-            Ändern
-          </button>
-          <button
-            type="button"
-            className="btn-secondary min-h-[40px] px-2 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-60"
-            onClick={onSaveForLater}
-            disabled={saveState === "saving" || saveState === "unavailable"}
-            aria-disabled={saveState === "saving" || saveState === "unavailable"}
-          >
-            Speichern
-          </button>
-          <button type="button" className="btn-secondary min-h-[40px] px-2 py-2 text-sm" onClick={onStartOptionalService}>
-            Faktencheck
-          </button>
-        </div>
+        {isConfirmed && !plannerClarificationRequired ? (
+          <aside className="hidden lg:block lg:space-y-4">
+            <div className="lg:sticky lg:top-4">
+                <NextStepPanel
+                  onPrepareSubmission={onPrepareSubmission}
+                  onPrepareAnlassraum={onPrepareAnlassraum}
+                  onOpenDossierAppend={onOpenDossierAppend}
+                  onOpenDossierCreate={onOpenDossierCreate}
+                onPrepareVote={onPrepareVote}
+                onRequestEditorialReview={onRequestEditorialReview}
+                onStartOptionalService={onStartOptionalService}
+                onSaveOnly={onSaveOnly}
+                reviewRequestState={reviewRequestState}
+                reviewRequestMessage={reviewRequestMessage}
+                factcheckMessage={factcheckMessage}
+              />
+            </div>
+          </aside>
+        ) : null}
       </div>
     </section>
   );

@@ -40,7 +40,6 @@ export default function AdminUsersPage() {
   const [createdDays, setCreatedDays] = useState<number | "">("");
   const [isSuperadmin, setIsSuperadmin] = useState(false);
   const [viewerRoles, setViewerRoles] = useState<string[]>([]);
-  const [viewerTier, setViewerTier] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [data, setData] = useState<UsersResponse | null>(null);
   const [loading, setLoading] = useState(false);
@@ -49,7 +48,9 @@ export default function AdminUsersPage() {
   const [createOpen, setCreateOpen] = useState(false);
   const [createLoading, setCreateLoading] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
-  const [importInfo, setImportInfo] = useState<string | null>(null);
+  const [createNotice, setCreateNotice] = useState<string | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [saveNotice, setSaveNotice] = useState<string | null>(null);
   const [refreshToken, setRefreshToken] = useState(0);
   const [accessError, setAccessError] = useState<string | null>(null);
   const [createForm, setCreateForm] = useState({
@@ -97,7 +98,6 @@ export default function AdminUsersPage() {
       if (alive) {
         setIsSuperadmin(roles.includes("superadmin"));
         setViewerRoles(roles);
-        setViewerTier(body?.user?.accessTier ?? null);
       }
     }
     loadMe();
@@ -106,9 +106,7 @@ export default function AdminUsersPage() {
     };
   }, [router]);
 
-  const isInstitution = viewerTier?.startsWith("institution") ?? false;
-  const canCreate = isInstitution;
-  const canImport = viewerRoles.includes("admin") || viewerRoles.includes("superadmin");
+  const canCreate = viewerRoles.includes("admin") || viewerRoles.includes("superadmin");
 
   useEffect(() => {
     let active = true;
@@ -154,28 +152,41 @@ export default function AdminUsersPage() {
   const handleSave = async () => {
     if (!selected) return;
     setSaving(true);
-    await fetch("/api/admin/dashboard/users", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        userId: selected.id,
-        roles: selected.roles,
-        packageCode: selected.packageCode,
-        membershipStatus: selected.membershipStatus,
-        newsletterOptIn: selected.newsletterOptIn,
-        planCode: selected.accessTier,
-        accessTier: selected.accessTier,
-      }),
-    });
-    setSaving(false);
-    setSelected(null);
-    setPage(1);
-    setRefreshToken((prev) => prev + 1);
+    setSaveError(null);
+    setSaveNotice(null);
+    try {
+      const res = await fetch("/api/admin/dashboard/users", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId: selected.id,
+          roles: selected.roles,
+          packageCode: selected.packageCode,
+          membershipStatus: selected.membershipStatus,
+          newsletterOptIn: selected.newsletterOptIn,
+          planCode: selected.accessTier,
+          accessTier: selected.accessTier,
+        }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok || !body?.ok) {
+        throw new Error(String(body?.error || "save_failed"));
+      }
+      setSaveNotice("Nutzer aktualisiert.");
+      setSelected(null);
+      setPage(1);
+      setRefreshToken((prev) => prev + 1);
+    } catch (err: any) {
+      setSaveError(mapAdminUserError(err?.message));
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleCreateUser = async () => {
     setCreateLoading(true);
     setCreateError(null);
+    setCreateNotice(null);
     try {
       const res = await fetch("/api/admin/dashboard/users", {
         method: "POST",
@@ -184,9 +195,13 @@ export default function AdminUsersPage() {
       });
       const body = await res.json().catch(() => ({}));
       if (!res.ok || !body?.ok) {
-        throw new Error(body?.error || "create_failed");
+        throw new Error(String(body?.error || "create_failed"));
       }
       setCreateOpen(false);
+      const notices = ["Nutzer angelegt."];
+      if (body?.verifyUrl) notices.push("Verifikations-E-Mail vorbereitet.");
+      if (body?.resetUrl) notices.push("Passwort-Setz-Link vorbereitet.");
+      setCreateNotice(notices.join(" "));
       setCreateForm({
         email: "",
         name: "",
@@ -199,7 +214,7 @@ export default function AdminUsersPage() {
       });
       setRefreshToken((prev) => prev + 1);
     } catch (err: any) {
-      setCreateError(err?.message ?? "create_failed");
+      setCreateError(mapAdminUserError(err?.message));
     } finally {
       setCreateLoading(false);
     }
@@ -275,33 +290,37 @@ export default function AdminUsersPage() {
           type="button"
           onClick={() => {
             if (!canCreate) return;
+            setCreateError(null);
+            setCreateNotice(null);
             setCreateOpen(true);
           }}
           className="rounded-full bg-gradient-to-r from-[rgb(var(--grad-from))] to-[rgb(var(--grad-to))] px-4 py-1.5 text-sm font-semibold text-white disabled:opacity-60"
           disabled={!canCreate}
-          title={canCreate ? "Nutzer anlegen" : "Nur B2B/B2G dürfen Nutzer hinzufügen"}
+          title={canCreate ? "Nutzer anlegen" : "Nur Admins dürfen Nutzer anlegen"}
         >
           + Nutzer anlegen
         </button>
         <button
           type="button"
-          onClick={() => {
-            if (!canImport) return;
-            setImportInfo("Import ist vorbereitet – Endpoint folgt.");
-          }}
           className="rounded-full border border-[rgb(var(--border))] px-4 py-1.5 text-sm font-semibold text-[rgb(var(--muted))] disabled:opacity-60"
-          disabled={!canImport}
-          title={canImport ? "Import (Admin)" : "Nur Admin darf importieren"}
+          disabled
+          aria-disabled="true"
+          title="CSV-Import ist in diesem Slice bewusst noch nicht freigegeben"
         >
-          Import (Admin)
+          Import (folgt separat)
         </button>
       </div>
-      {importInfo && <p className="text-xs text-[rgb(var(--muted))]">{importInfo}</p>}
+      {createNotice && <p className="text-xs text-emerald-700">{createNotice}</p>}
+      {saveNotice && <p className="text-xs text-emerald-700">{saveNotice}</p>}
+      {saveError && <p className="text-xs text-rose-600">{saveError}</p>}
       {!canCreate && (
         <p className="text-xs text-[rgb(var(--muted))]">
-          Hinweis: Nutzer hinzufügen ist nur für B2B/B2G freigeschaltet.
+          Hinweis: Nutzer anlegen ist nur für Admins freigeschaltet.
         </p>
       )}
+      <p className="text-xs text-[rgb(var(--muted))]">
+        CSV-Import bleibt bis zu einem eigenen freigegebenen Invite-/Import-Slice bewusst deaktiviert.
+      </p>
 
       <div className="overflow-hidden rounded-3xl bg-[rgb(var(--card))] shadow ring-1 ring-[rgb(var(--border))]">
         <table className="min-w-full divide-y divide-[rgb(var(--border))] text-sm">
@@ -322,6 +341,13 @@ export default function AdminUsersPage() {
               <tr>
                 <td colSpan={8} className="px-3 py-4 text-center text-[rgb(var(--muted))]">
                   Lädt …
+                </td>
+              </tr>
+            )}
+            {!loading && (!data?.items || data.items.length === 0) && (
+              <tr>
+                <td colSpan={8} className="px-3 py-4 text-center text-[rgb(var(--muted))]">
+                  Keine Nutzer für den aktuellen Filter gefunden.
                 </td>
               </tr>
             )}
@@ -705,4 +731,27 @@ function generatePassword(length = 16) {
   }
   const core = Array.from(bytes, (b) => all[b % all.length]).join("");
   return `${core.slice(0, length - 3)}${digits[0]}${symbols[0]}${letters[0]}`;
+}
+
+function mapAdminUserError(code: string | null | undefined) {
+  switch (String(code || "")) {
+    case "invalid_input":
+      return "Die Eingaben sind unvollständig oder ungültig.";
+    case "email_in_use":
+      return "Die E-Mail-Adresse ist bereits vergeben.";
+    case "weak_password":
+      return "Das Passwort ist zu schwach. Bitte mindestens 12 Zeichen mit Zahl und Sonderzeichen verwenden.";
+    case "missing_password":
+      return "Bitte ein initiales Passwort setzen oder den Passwort-Link aktivieren.";
+    case "forbidden_superadmin":
+      return "Superadmin-Rollen dürfen nur von Superadmins geändert werden.";
+    case "last_admin_required":
+      return "Der letzte Admin-Zugang darf nicht entfernt oder herabgestuft werden.";
+    case "nothing_to_update":
+      return "Es gibt keine Änderungen zum Speichern.";
+    case "user_not_found":
+      return "Der Nutzer wurde nicht gefunden.";
+    default:
+      return "Die Admin-Aktion konnte gerade nicht ausgeführt werden.";
+  }
 }

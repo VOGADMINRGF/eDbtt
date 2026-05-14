@@ -46,6 +46,9 @@ export async function POST(req: NextRequest) {
       await clearPendingTwoFactorCookie();
       return NextResponse.json({ error: "challenge_missing" }, { status: 400 });
     }
+    if (existing.method !== "email") {
+      return NextResponse.json({ error: "email_fallback_disabled" }, { status: 409 });
+    }
 
     const userLimit = await rateLimitOrThrow(
       `2fa:email:user:${String(existing.userId)}`,

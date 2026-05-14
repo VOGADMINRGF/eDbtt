@@ -88,6 +88,9 @@ export default function MasterPostActions({
       <p className="mt-1 text-sm text-[rgb(var(--muted))]">
         Veröffentlichung bleibt review-gebunden. Keine Live-Veröffentlichung.
       </p>
+      <p className="mt-2 text-xs text-[rgb(var(--muted))]">
+        LocalStorage-Arbeitsstände bleiben lokal im Browser und gelten nicht als produktive Behördenpersistenz.
+      </p>
 
       {editMode ? (
         <textarea
@@ -145,10 +148,10 @@ export default function MasterPostActions({
 
       <div className="mt-3 text-xs text-[rgb(var(--muted))]">
         {copyNotice ? <p>{copyNotice}</p> : null}
-        {draftState === "saved" ? <p>Entwurf lokal gespeichert.</p> : null}
-        {reviewState === "saved" ? <p>Review-Status lokal auf „needs_review“ gesetzt.</p> : null}
-        {planState === "saved" ? <p>Planung als Entwurf gespeichert ({nextSlot}).</p> : null}
-        {prepareState === "saved" ? <p>Veröffentlichung als review-pflichtiger Entwurf vorbereitet.</p> : null}
+        {draftState === "saved" ? <p>Entwurf lokal gespeichert. Keine produktive Behördenpersistenz.</p> : null}
+        {reviewState === "saved" ? <p>Review-Status lokal auf „needs_review“ gesetzt. Keine produktive Behördenpersistenz.</p> : null}
+        {planState === "saved" ? <p>Planung lokal als Entwurf gespeichert ({nextSlot}). Keine produktive Behördenpersistenz.</p> : null}
+        {prepareState === "saved" ? <p>Veröffentlichung lokal als review-pflichtiger Entwurf vorbereitet. Keine produktive Behördenpersistenz.</p> : null}
       </div>
     </section>
   );

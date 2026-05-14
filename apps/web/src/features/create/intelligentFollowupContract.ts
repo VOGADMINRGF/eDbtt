@@ -2,6 +2,7 @@ import {
   resolvePart06CategoryLabels,
   type Part06CategoryKey,
 } from "@/features/create/part06TopicMapping";
+import type { CreatePlannerResult } from "@/features/create/createPlanner";
 
 export type FollowupConfidence = "low" | "medium" | "high";
 
@@ -68,11 +69,52 @@ export type CreateConnectionSuggestion = {
   requiresConfirmation: true;
 };
 
+export type CreateGraphMatchRelation =
+  | "same"
+  | "related"
+  | "opposing"
+  | "duplicate_risk"
+  | "new"
+  | "needs_review";
+
+export type CreateGraphMatchRecord = {
+  id: string;
+  kind: "topic" | "dossier" | "claim" | "anlassraum" | "vote";
+  label: string;
+  relation: CreateGraphMatchRelation;
+  requiresConfirmation: true;
+};
+
+export type CreateFollowupGraphMatchPlan = {
+  stage: "after_structure";
+  prepared: boolean;
+  requiresConfirmation: true;
+  searchTerms: string[];
+  matches: CreateGraphMatchRecord[];
+  matchedTopics: string[];
+  matchedDossiers: string[];
+  matchedClaims: string[];
+  matchedAnlassraeume: string[];
+  matchedVotes: string[];
+  shouldCreateNewTopic: boolean;
+};
+
+export type CreateGraphMatchResult = CreateFollowupGraphMatchPlan;
+
+export type CreateIntelligentFollowupMeta = {
+  planner: CreatePlannerResult;
+  graphMatch: CreateFollowupGraphMatchPlan;
+  researchUsed: "none";
+  researchProvider: null;
+  deepSearchUsed: false;
+};
+
 export type CreateIntelligentFollowupResult = {
   understanding: CreateUnderstandingResult;
   suggestions: CreateConnectionSuggestion[];
   sourceText: string;
   generatedAt: string;
+  meta?: CreateIntelligentFollowupMeta;
   degraded?: boolean;
   degradedReason?: string | null;
 };
@@ -317,6 +359,20 @@ function normalizeText(value: string): string {
     .replace(/\s+/g, " ");
 }
 
+function dedupeStrings(values: Array<string | null | undefined>): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const value of values) {
+    const normalized = String(value ?? "").trim();
+    if (!normalized) continue;
+    const key = normalizeText(normalized);
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    out.push(normalized);
+  }
+  return out;
+}
+
 function areSimilarText(a: string, b: string): boolean {
   const left = normalizeText(a);
   const right = normalizeText(b);
@@ -503,6 +559,14 @@ type BranchDefinition = {
   defaultQuestion: string;
 };
 
+type PlannerBranchDefinition = {
+  id: string;
+  part06CategoryKeys: Part06CategoryKey[];
+  defaultNeed: string;
+  defaultQuestion: string;
+  topicTags: string[];
+};
+
 // Heuristische UI-Grouping-Regeln fuer den Follow-up-Workspace.
 // Sie helfen nur beim Rendern lesbarer Strukturaste und sind kein kanonischer
 // E150-Contract und keine zweite Claim-/Fragen-Taxonomie.
@@ -584,6 +648,44 @@ const STRUCTURE_BRANCH_DEFINITIONS: readonly BranchDefinition[] = [
     defaultQuestion: "Welche Prioritäten sind unter den aktuellen kommunalen Finanzen tragfähig?",
   },
 ];
+
+const PLANNER_BRANCH_DEFINITIONS: Readonly<Record<string, PlannerBranchDefinition>> = {
+  "tierwohl und haltungsstandards": {
+    id: "animal-welfare-standards",
+    part06CategoryKeys: ["climate_environment", "work_economy", "local_community"],
+    defaultNeed: "Tierwohl, Haltung und Mindeststandards sollen konkreter gefasst werden.",
+    defaultQuestion: "Welche Tierwohl- und Haltungsstandards sollen verbindlich werden?",
+    topicTags: ["Tierwohl", "Tierhaltung", "Mindeststandards"],
+  },
+  "import- und exportregeln": {
+    id: "animal-trade-rules",
+    part06CategoryKeys: ["europe_foreign", "work_economy", "justice_law"],
+    defaultNeed: "Import- und Exportregeln sollen an vergleichbare Tierwohlstandards gekoppelt werden.",
+    defaultQuestion: "Sollten importierte und exportierte Tierprodukte nur zugelassen werden, wenn vergleichbare Tierwohlstandards eingehalten werden?",
+    topicTags: ["Import", "Export", "Lieferketten"],
+  },
+  "eu-/internationale mindeststandards": {
+    id: "animal-eu-international-standards",
+    part06CategoryKeys: ["europe_foreign", "justice_law", "climate_environment"],
+    defaultNeed: "EU- und internationale Mindeststandards brauchen eine klarere Zuständigkeits- und Regelperspektive.",
+    defaultQuestion: "Welche Standards sollen auf EU- oder internationaler Ebene vereinheitlicht werden?",
+    topicTags: ["EU", "international", "Mindeststandards"],
+  },
+  "verbraucherinformation / kennzeichnung / bio-label / haltungsstufen": {
+    id: "animal-labeling-consumer-info",
+    part06CategoryKeys: ["work_economy", "justice_law", "local_community"],
+    defaultNeed: "Kennzeichnung, Bio-Label und Haltungsstufen sollen Verbraucherinformation verständlicher machen.",
+    defaultQuestion: "Welche Kennzeichnungs- und Kontrollpflichten sollen für Bio-Label und Haltungsstufen gelten?",
+    topicTags: ["Kennzeichnung", "Bio-Label", "Haltungsstufen"],
+  },
+  "ethische bewertung von tierhaltung": {
+    id: "animal-ethics",
+    part06CategoryKeys: ["climate_environment", "social_family", "justice_law"],
+    defaultNeed: "Die ethische Bewertung von Tierhaltung soll ausdrücklich mitgeführt werden.",
+    defaultQuestion: "Welche ethischen Grenzen oder Leitprinzipien sollen für Tierhaltung gelten?",
+    topicTags: ["Ethik", "Tierhaltung", "Bewertung"],
+  },
+};
 
 function topicMatchesBranch(topic: string, branch: BranchDefinition): boolean {
   return branch.topicPatterns.some((pattern) => pattern.test(topic));
@@ -673,10 +775,71 @@ function collectUnassignedCreateTopics(params: {
   return overflowTopics;
 }
 
+function buildPlannerStructureBranches(
+  result: CreateIntelligentFollowupResult,
+  maxBranches: number,
+): CreateStructureBranch[] {
+  const planner = result.meta?.planner;
+  if (!planner || planner.plannerClusters.length === 0) return [];
+  const positionClusters = selectPositionClusters(result.understanding);
+  const topicLabels = result.understanding.topics.map((topic) => topic.label);
+  const branchLimit = Math.max(1, maxBranches);
+
+  return planner.plannerClusters.slice(0, branchLimit).map((cluster, index) => {
+    const key = normalizeText(cluster);
+    const definition = PLANNER_BRANCH_DEFINITIONS[key];
+    const part06CategoryKeys = definition?.part06CategoryKeys ?? ["local_community"];
+    const voteQuestion =
+      definition?.defaultQuestion ??
+      planner.plannerOpenQuestions[index] ??
+      planner.openQuestions[index] ??
+      "Welche Leitfrage soll zuerst geklärt werden?";
+    const plannerClaim = index === 0 ? planner.plannerCore : planner.openQuestions[index - 1] ?? planner.plannerCore;
+    const relatedTopics = dedupeStrings([
+      cluster,
+      planner.plannerTopic,
+      ...topicLabels.filter((topic) => normalizeText(topic).includes(normalizeText(cluster).split(" ")[0] ?? "")),
+    ]);
+
+    return {
+      id: definition?.id ?? `planner-branch-${index + 1}`,
+      title: cluster,
+      topics: relatedTopics.length > 0 ? relatedTopics : [cluster],
+      topicTags: dedupeStrings([...(definition?.topicTags ?? []), cluster, planner.plannerTopic]).slice(0, 6),
+      part06CategoryKeys,
+      part06CategoryLabels: resolvePart06CategoryLabels(part06CategoryKeys),
+      need: definition?.defaultNeed ?? `${cluster} braucht eine konkretere Einordnung.`,
+      claims: dedupeStrings([plannerClaim, result.understanding.statements[index]?.text]).slice(0, 2),
+      voteQuestions: [voteQuestion],
+      openReviewPoints: dedupeStrings([
+        planner.plannerOpenQuestions[index] ?? planner.openQuestions[index] ?? "",
+        "Zuständigkeit klären",
+        "Kontroll- und Umsetzungslogik prüfen",
+      ]).slice(0, 3),
+      positionClusters,
+    };
+  });
+}
+
 export function buildCreateStructureBranches(
   result: CreateIntelligentFollowupResult,
   maxBranches: number = 3,
 ): CreateStructureBranch[] {
+  const plannerBranches = buildPlannerStructureBranches(result, maxBranches);
+  if (plannerBranches.length > 0) {
+    const overflowTopics = collectUnassignedCreateTopics({
+      topics: result.understanding.topics,
+      visibleBranches: plannerBranches,
+    });
+    if (overflowTopics.length > 0) {
+      plannerBranches[plannerBranches.length - 1] = {
+        ...plannerBranches[plannerBranches.length - 1],
+        overflowTopics,
+      };
+    }
+    return plannerBranches;
+  }
+
   const sourceText = normalizeText(result.sourceText);
   const positionClusters = selectPositionClusters(result.understanding);
   const branches: CreateStructureBranch[] = [];

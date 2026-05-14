@@ -4,6 +4,7 @@ import { listRundenEntryItems, type RundenEntryItem } from "@features/topicRound
 import { readSession } from "@/utils/session";
 import RundenShareActions from "./RundenShareActions";
 import RundenGuidedQuestionBuilder from "./RundenGuidedQuestionBuilder";
+import RundenCreateHandoffBanner from "./RundenCreateHandoffBanner";
 
 export const metadata: Metadata = {
   title: "Anlässe - eDebatte",
@@ -358,9 +359,13 @@ function RoundParticipationModule(props: {
 export default async function RundenPage({
   searchParams,
 }: {
-  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+  searchParams?:
+    | Promise<Record<string, string | string[] | undefined>>
+    | Record<string, string | string[] | undefined>;
 }) {
   const resolvedSearchParams = (await searchParams) ?? {};
+  const handoffId = readStringParam(resolvedSearchParams.handoffId) ?? null;
+  const createAction = readStringParam(resolvedSearchParams.createAction) ?? null;
 
   const session = await readSession().catch(() => null);
   const isSignedIn = Boolean(session?.uid);
@@ -516,6 +521,10 @@ export default async function RundenPage({
           )}
         </div>
       </header>
+
+      {handoffId ? (
+        <RundenCreateHandoffBanner handoffId={handoffId} createAction={createAction} />
+      ) : null}
 
       <RundenGuidedQuestionBuilder
         returnTo={buildRundenReturnHref(featured?.anlassraumId)}

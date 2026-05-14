@@ -9,6 +9,7 @@ import {
 export type OrchestrationLane =
   | "fast_draft"
   | "standard_analyze"
+  | "material_grounding"
   | "dossier_enrichment"
   | "sealed_factcheck"
   | "premium_deep_research";
@@ -21,6 +22,7 @@ export type ProviderRole =
   | "optional_large_context"
   | "optional_multimodal"
   | "optional_draft"
+  | "research"
   | "research_discovery"
   | "search"
   | "premium_deep_research"
@@ -98,11 +100,11 @@ export const PROVIDER_ROLE_MATRIX: readonly ProviderRoleMatrixEntry[] = [
   },
   {
     provider: "gemini",
-    roles: ["optional_large_context", "optional_multimodal", "optional_draft"],
+    roles: ["optional_large_context", "optional_multimodal", "optional_draft", "research"],
     analyzeProvider: false,
     strictPrimaryCandidate: false,
     optionalOnly: true,
-    notes: ["Optional provider; not part of all-primary or strict primary."],
+    notes: ["Optional provider; can support research/material grounding but is not strict primary."],
   },
   {
     provider: "perplexity",
@@ -155,6 +157,15 @@ export const LANE_ROUTING_POLICY: readonly LaneRoutingPolicy[] = [
     draftFallbackCandidates: ["anthropic", "mistral"],
     optionalCandidates: ["gemini"],
     researchCandidates: ["perplexity", "ari", "openai_deep_research"],
+    researchRequired: false,
+    requiredCredits: [],
+  },
+  {
+    lane: "material_grounding",
+    primaryAnalyzeCandidates: ["openai"],
+    draftFallbackCandidates: ["anthropic", "mistral"],
+    optionalCandidates: ["gemini"],
+    researchCandidates: ["openai_deep_research", "perplexity", "ari"],
     researchRequired: false,
     requiredCredits: [],
   },

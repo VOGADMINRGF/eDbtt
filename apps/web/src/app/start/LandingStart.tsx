@@ -298,12 +298,14 @@ export default function LandingStart({ blocks }: LandingStartProps) {
             <div className="mt-6 flex flex-wrap gap-2">
               <a
                 href="/create?intent=check"
+                data-requires-privacy-gate="true"
                 className="rounded-full bg-cyan-500 px-5 py-2.5 text-sm font-semibold text-slate-950 transition hover:bg-cyan-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
               >
                 Thema prüfen
               </a>
               <a
                 href="/create?intent=contribute"
+                data-requires-privacy-gate="true"
                 className="rounded-full border border-cyan-300/40 bg-cyan-500/10 px-5 py-2.5 text-sm font-semibold text-cyan-100 transition hover:bg-cyan-500/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
               >
                 Anliegen einbringen
@@ -408,12 +410,14 @@ export default function LandingStart({ blocks }: LandingStartProps) {
           <div className="mt-4 flex flex-wrap gap-2">
             <a
               href="/swipes"
+              data-requires-privacy-gate="true"
               className="rounded-full bg-cyan-500 px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-cyan-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
             >
               Swipes ansehen
             </a>
             <a
               href="/create"
+              data-requires-privacy-gate="true"
               className="rounded-full border border-slate-600 bg-slate-900/70 px-4 py-2 text-sm font-semibold text-slate-100 transition hover:border-cyan-300/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
             >
               Eigenes Thema starten
@@ -456,6 +460,7 @@ export default function LandingStart({ blocks }: LandingStartProps) {
           <p className="mt-4 text-sm font-semibold text-cyan-100">Das Ziel ist nicht künstliche Einigkeit. Das Ziel ist mehr Klarheit.</p>
           <a
             href="/create?intent=check"
+            data-requires-privacy-gate="true"
             className="mt-4 inline-flex rounded-full bg-cyan-500 px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-cyan-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
           >
             Aussage prüfen

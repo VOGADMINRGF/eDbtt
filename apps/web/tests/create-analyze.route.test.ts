@@ -519,4 +519,110 @@ describe("/api/contributions/analyze create orchestration envelope", () => {
     expect(body.meta?.sourceGrounding?.noSourceBluffing?.passed).toBe(true);
     expect(body.meta?.sourceGrounding?.synthesis?.documentGroundedClaims).toBeGreaterThanOrEqual(1);
   });
+
+  it("routes YouTube material intake through material grounding with notebooklm and gemini", async () => {
+    mocks.analyzeContribution.mockResolvedValue(buildAnalyzeResult({ claims: [] }));
+
+    const res = await analyzePOST(
+      req({
+        sourceUrls: ["https://www.youtube.com/watch?v=demo12345"],
+        researchMode: "auto",
+        locale: "de-DE",
+      }),
+    );
+
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.ok).toBe(true);
+    expect(body.meta?.lane).toBe("material_grounding");
+    expect(body.meta?.journeyProfile).toBe("material_grounding");
+    expect(body.meta?.materialProvider).toBe("notebooklm");
+    expect(body.meta?.researchProvider).toBe("gemini");
+    expect(body.meta?.fallbackUsed).toBe(false);
+    expect(body.researchUsed).toBe("gemini");
+    expect(body.createAnalyze?.requiresHumanReview).toBe(true);
+    expect(body.meta?.sourceGrounding?.sourceInventory?.youtubeTranscripts).toBe(1);
+    expect(body.meta?.sourceGrounding?.materialExtraction?.total).toBeGreaterThanOrEqual(1);
+    expect(mocks.analyzeContribution).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        journeyHint: "material_grounding",
+        text: expect.stringContaining("Material erkannt"),
+      }),
+    );
+  });
+
+  it("routes PDF uploads into material grounding without auto publish side effects", async () => {
+    mocks.analyzeContribution.mockResolvedValue(buildAnalyzeResult({ claims: [] }));
+
+    const res = await analyzePOST(
+      req({
+        uploadIds: ["upload-7"],
+        materialItems: [{ uploadId: "upload-7", fileName: "bericht.pdf", kind: "upload_document" }],
+        locale: "de-DE",
+      }),
+    );
+
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.ok).toBe(true);
+    expect(body.meta?.lane).toBe("material_grounding");
+    expect(body.meta?.materialProvider).toBe("notebooklm");
+    expect(body.researchUsed).toBe("gemini");
+    expect(body.createAnalyze?.noAutoPublish).toBe(true);
+    expect(body.createAnalyze?.noSilentMerge).toBe(true);
+    expect(body.meta?.sourceGrounding?.sourceInventory?.pdfDocuments).toBeGreaterThanOrEqual(1);
+  });
+
+  it("uses gated deep-search fallback only when enabled and confirmed", async () => {
+    process.env.E150_DEEPSEARCH_ENABLED = "true";
+    process.env.E150_DEEPSEARCH_REQUIRE_CONFIRMATION = "true";
+    mocks.analyzeContribution.mockResolvedValue(buildAnalyzeResult({ claims: [] }));
+
+    try {
+      const res = await analyzePOST(
+        req({
+          sourceUrls: ["https://www.youtube.com/watch?v=demo12345"],
+          researchMode: "gpt_deepsearch",
+          allowDeepSearch: true,
+          researchConfirmed: true,
+          locale: "de-DE",
+        }),
+      );
+
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.ok).toBe(true);
+      expect(body.researchUsed).toBe("deep_search");
+      expect(body.meta?.researchProvider).toBe("openai_deep_research");
+      expect(body.meta?.fallbackUsed).toBe(true);
+    } finally {
+      delete process.env.E150_DEEPSEARCH_ENABLED;
+      delete process.env.E150_DEEPSEARCH_REQUIRE_CONFIRMATION;
+    }
+  });
+
+  it("falls back to heuristic createAnalyze output when analyze times out", async () => {
+    const timeoutError = Object.assign(new Error("analyze_timeout"), { code: "ANALYZE_TIMEOUT" });
+    mocks.analyzeContribution.mockRejectedValue(timeoutError);
+    mocks.buildHeuristicAnalyzeResult.mockReturnValue(
+      buildAnalyzeResult({ claims: [{ id: "c-timeout", text: "Fallback-Claim" }] }),
+    );
+
+    const res = await analyzePOST(
+      req({
+        text: "Das ist ein laengerer Freitext mit genug Kontext fuer die Analyse.",
+        locale: "de-DE",
+        createMode: "source",
+      }),
+    );
+
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.ok).toBe(true);
+    expect(body.fallback).toBe(true);
+    expect(body.errorCode).toBe("ANALYZE_TIMEOUT");
+    expect(body.result?.claims?.[0]?.text).toBe("Fallback-Claim");
+    expect(body.createAnalyze).toBeTruthy();
+    expect(body.meta?.fallbackUsed).toBe(true);
+  });
 });

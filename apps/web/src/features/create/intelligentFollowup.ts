@@ -2,7 +2,9 @@ import { analyzeContribution } from "@features/analyze/analyzeContribution";
 import type { AnalyzeResult } from "@features/analyze/schemas";
 import type { CreateIntent } from "@/features/create/intentFlows";
 import { buildCreateConnectionSuggestions } from "@/features/create/createConnectionSuggestions";
+import { buildCreatePlanner, type CreatePlannerResult, type CreatePlannerScope, type CreatePlannerStance } from "@/features/create/createPlanner";
 import type {
+  CreateFollowupGraphMatchPlan,
   CreateIntelligentFollowupResult,
   CreateUnderstandingStatementKind,
   CreateUnderstandingResult,
@@ -114,9 +116,9 @@ const BROAD_COMMUNAL_TOPIC_RULES: readonly FallbackTopicRule[] = [
 
 const LEGACY_OFFICE_TOPIC_RULES: readonly FallbackTopicRule[] = [
   { label: "Politische Verantwortung", pattern: /verantwort|pflicht/ },
-  { label: "Amtsträger", pattern: /minister|repr[aä]sentant|amtstr[aä]ger|mandat/ },
-  { label: "Qualifikation", pattern: /qualifikation|vorausbildung|mindestanforderung|kompetenz/ },
-  { label: "Sanktionen", pattern: /sanktion|streichen|entzug|konsequenz/ },
+  { label: "Amtsträger", pattern: /\bminister\b|\bpolitiker\b|\bmandatstr[aä]ger\b|\bamtstr[aä]ger\b|\babgeordnete?\b|\bpolitische [aä]mter\b/ },
+  { label: "Qualifikation", pattern: /\bqualifikation f[üu]r amt\b|\bqualifikation\b|\bvorausbildung\b|\bkompetenz\b|\bmindestanforderung(?:en)?\b/ },
+  { label: "Sanktionen", pattern: /\bsanktionen? f[üu]r amtstr[aä]ger\b|\bsanktion\b|\bstreichen\b|\bentzug\b|\bkonsequenz\b/ },
   { label: "Gesetzgebung", pattern: /gesetzesentwurf|gesetzgebung|gesetz/ },
   { label: "Abstimmungsoptionen", pattern: /option\s*[a-z]|option b|option c|vorschlag|abstimm/ },
   { label: "Themenagenda / Optionen", pattern: /agenda|themenagenda/ },
@@ -124,15 +126,16 @@ const LEGACY_OFFICE_TOPIC_RULES: readonly FallbackTopicRule[] = [
 
 function isOfficeholderFocusedText(text: string): boolean {
   const normalized = text.toLowerCase();
-  const hardHits = [
-    /amtstr[aä]ger/,
-    /minister/,
-    /gesetzesentwurf|gesetzgebung/,
-    /mandat/,
-    /mindestanforderung|qualifikation/,
-    /sanktion/,
-  ].filter((rule) => rule.test(normalized)).length;
-  return hardHits >= 2;
+  return [
+    /\bamtstr[aä]ger\b/,
+    /\bpolitiker\b/,
+    /\bmandatstr[aä]ger\b/,
+    /\bminister\b/,
+    /\babgeordnete?\b/,
+    /\bpolitische [aä]mter\b/,
+    /\bqualifikation f[üu]r amt\b/,
+    /\bsanktionen? f[üu]r amtstr[aä]ger\b/,
+  ].some((rule) => rule.test(normalized));
 }
 
 function detectBroadCommunalTopicFields(text: string): string[] {
@@ -285,7 +288,7 @@ function buildFallbackSummary(
   }
   if (
     /minister|amtstr[aä]ger|gesetzesentwurf|gesetzgebung/.test(normalizedLower) &&
-    /mindestanforderung|qualifikation|konsequenz|sanktion/.test(normalizedLower)
+    (/qualifikation|mindestanforderung/.test(normalizedLower) || /sanktionen? f[üu]r amtstr[aä]ger/.test(normalizedLower) || /pflicht/.test(normalizedLower))
   ) {
     return "Du forderst klarere Mindestanforderungen und Konsequenzen für gewählte oder ernannte Amtsträger, insbesondere bei Ministerämtern und Gesetzgebung.";
   }
@@ -296,6 +299,202 @@ function buildFallbackSummary(
       .join(", ")}.`;
   }
   return summarizeText(normalizedText);
+}
+
+function mapPlannerScope(scope: CreatePlannerScope): CreateUnderstandingResult["scopes"][number] {
+  if (scope === "local") return "local";
+  if (scope === "district") return "district";
+  if (scope === "municipal") return "municipal";
+  if (scope === "state") return "state";
+  if (scope === "federal") return "federal";
+  if (scope === "eu") return "eu";
+  if (scope === "international") return "international";
+  return "unclear";
+}
+
+function mapPlannerStanceToUnderstanding(stance: CreatePlannerStance): CreateUnderstandingResult["statements"][number]["stance"] {
+  if (stance === "pro") return "pro";
+  if (stance === "contra") return "contra";
+  if (stance === "mixed") return "mixed";
+  if (stance === "reform_oriented") return "mixed";
+  if (stance === "open") return "open";
+  return "unclear";
+}
+
+function mergeUnderstandingTopics(params: {
+  understanding: CreateUnderstandingResult;
+  planner: CreatePlannerResult;
+}): CreateUnderstandingResult["topics"] {
+  const merged: CreateUnderstandingResult["topics"] = [];
+  const seen = new Set<string>();
+  const pushTopic = (label: string, confidence: FollowupConfidence = "high") => {
+    const trimmed = label.trim();
+    if (!trimmed) return;
+    const key = trimmed.toLowerCase();
+    if (seen.has(key)) return;
+    seen.add(key);
+    merged.push({
+      id: `topic-${merged.length + 1}`,
+      label: trimmed,
+      confidence,
+    });
+  };
+
+  pushTopic(params.planner.plannerTopic, "high");
+  params.planner.topicCandidates.forEach((topic) => pushTopic(topic, "high"));
+  params.planner.plannerClusters.forEach((cluster) => pushTopic(cluster, "medium"));
+  params.understanding.topics.forEach((topic) => pushTopic(topic.label, topic.confidence));
+  return merged.slice(0, 12);
+}
+
+function mergeUnderstandingCategories(params: {
+  understanding: CreateUnderstandingResult;
+  planner: CreatePlannerResult;
+  text: string;
+}): CreateUnderstandingResult["categories"] {
+  const kind = inferStatementKind(params.planner.plannerCore, /soll|muss|fordern|fordere|verlangen/.test(params.text) ? "demand" : null);
+  const label =
+    kind === "question"
+      ? "Frage"
+      : kind === "demand"
+        ? "Forderung"
+        : kind === "source"
+          ? "Quelle"
+          : kind === "option"
+            ? "Option"
+            : kind === "objection"
+              ? "Widerspruch"
+              : kind === "hint"
+                ? "Hinweis"
+                : kind === "argument"
+                  ? "Argument"
+                  : "Aussage";
+  const merged = [{ id: kind, label, confidence: "high" as const }, ...params.understanding.categories];
+  const seen = new Set<string>();
+  return merged.filter((item) => {
+    const key = item.id.toLowerCase();
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  }).slice(0, 5);
+}
+
+function mergeUnderstandingStatements(params: {
+  understanding: CreateUnderstandingResult;
+  planner: CreatePlannerResult;
+  text: string;
+}): CreateUnderstandingResult["statements"] {
+  const plannerStatement = {
+    id: "planner-core",
+    text: params.planner.plannerCore,
+    kind: inferStatementKind(params.planner.plannerCore, /soll|muss|fordern|fordere|verlangen/.test(params.text) ? "demand" : null),
+    stance: mapPlannerStanceToUnderstanding(params.planner.plannerStance),
+    confidence: "high" as const,
+  };
+  const statements = [plannerStatement, ...params.understanding.statements];
+  const seen = new Set<string>();
+  return statements
+    .filter((statement) => {
+      const key = statement.text.trim().toLowerCase();
+      if (!key || seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
+    .slice(0, 6);
+}
+
+function mergeUnderstandingScopes(params: {
+  understanding: CreateUnderstandingResult;
+  planner: CreatePlannerResult;
+}): CreateUnderstandingResult["scopes"] {
+  const merged = [...params.planner.plannerScope.map(mapPlannerScope), ...params.understanding.scopes];
+  const seen = new Set<CreateUnderstandingResult["scopes"][number]>();
+  const scopes: CreateUnderstandingResult["scopes"] = [];
+  for (const scope of merged) {
+    if (seen.has(scope)) continue;
+    seen.add(scope);
+    scopes.push(scope);
+  }
+  return scopes.length > 0 ? scopes.slice(0, 4) : ["unclear"];
+}
+
+function applyPlannerToUnderstanding(params: {
+  text: string;
+  understanding: CreateUnderstandingResult;
+  planner: CreatePlannerResult;
+}): CreateUnderstandingResult {
+  if (params.planner.qualityStatus !== "specific") {
+    return {
+      ...params.understanding,
+      openQuestion: params.planner.plannerOpenQuestions[0] ?? params.planner.openQuestions[0] ?? params.understanding.openQuestion,
+    };
+  }
+  const mergedTopics = mergeUnderstandingTopics({ understanding: params.understanding, planner: params.planner });
+  const mergedStatements = mergeUnderstandingStatements({
+    understanding: params.understanding,
+    planner: params.planner,
+    text: params.text,
+  });
+  return {
+    ...params.understanding,
+    summary: params.planner.shortSummary || params.understanding.summary,
+    dossierContext:
+      params.planner.plannerTopic === "Kommunale Prioritäten und Zielkonflikte"
+        ? params.planner.plannerTopic
+        : params.understanding.dossierContext,
+    topics: mergedTopics,
+    statements: mergedStatements,
+    categories: mergeUnderstandingCategories({
+      understanding: params.understanding,
+      planner: params.planner,
+      text: params.text,
+    }),
+    scopes: mergeUnderstandingScopes({ understanding: params.understanding, planner: params.planner }),
+    openQuestion: params.planner.plannerOpenQuestions[0] ?? params.planner.openQuestions[0] ?? params.understanding.openQuestion,
+    confidence: params.understanding.confidence === "high" ? "high" : "medium",
+  };
+}
+
+function buildGraphMatchPlan(planner: CreatePlannerResult): CreateFollowupGraphMatchPlan {
+  const graphAllowed = planner.qualityStatus === "specific" && planner.plannerDegraded === false;
+  if (!graphAllowed) {
+    return {
+      stage: "after_structure",
+      prepared: false,
+      requiresConfirmation: true,
+      searchTerms: [],
+      matches: [],
+      matchedTopics: [],
+      matchedDossiers: [],
+      matchedClaims: [],
+      matchedAnlassraeume: [],
+      matchedVotes: [],
+      shouldCreateNewTopic: false,
+    };
+  }
+  const matches: CreateFollowupGraphMatchPlan["matches"] = planner.graphSearchTerms.slice(0, 5).map((term, index) => {
+    const relation = index === 0 ? "new" : "related";
+    return {
+      id: `graph-match-${index + 1}`,
+      kind: index === 0 ? "topic" : "claim",
+      label: term,
+      relation,
+      requiresConfirmation: true,
+    };
+  });
+  return {
+    stage: "after_structure",
+    prepared: planner.graphSearchTerms.length > 0,
+    requiresConfirmation: true,
+    searchTerms: planner.graphSearchTerms,
+    matches,
+    matchedTopics: [],
+    matchedDossiers: [],
+    matchedClaims: [],
+    matchedAnlassraeume: [],
+    matchedVotes: [],
+    shouldCreateNewTopic: true,
+  };
 }
 
 function mapAnalyzeResultToUnderstanding(text: string, result: AnalyzeResult): CreateUnderstandingResult {
@@ -430,7 +629,7 @@ function buildFallbackUnderstanding(text: string): CreateUnderstandingResult {
   const fallbackKind = inferStatementKind(normalized);
   const topics = buildFallbackTopics(normalizedLower);
   const categories = buildFallbackCategories(normalizedLower, fallbackKind);
-  const inferredStance: "pro" | "contra" | "mixed" | "open" | "unclear" = /mindestanforderung|qualifikation|konsequenz|sanktion/.test(
+  const inferredStance: "pro" | "contra" | "mixed" | "open" | "unclear" = /qualifikation f[üu]r amt|sanktionen? f[üu]r amtstr[aä]ger|soll|muss|fordern|fordere|verlangen/.test(
     normalizedLower,
   )
     ? "pro"
@@ -441,6 +640,8 @@ function buildFallbackUnderstanding(text: string): CreateUnderstandingResult {
   if (/minister|gesetzesentwurf|gesetzgebung|bund|bundes/.test(normalizedLower)) scopes.push("federal");
   if (/bezirk/.test(normalizedLower)) scopes.push("district");
   if (/kommune|stadt|gemeinde/.test(normalizedLower)) scopes.push("municipal");
+  if (/\beu\b|europa/.test(normalizedLower)) scopes.push("eu");
+  if (/international|weltweit|global|import|export/.test(normalizedLower)) scopes.push("international");
   if (scopes.length === 0) scopes.push("unclear");
 
   return {
@@ -469,6 +670,11 @@ export async function buildCreateIntelligentFollowup(
 ): Promise<CreateIntelligentFollowupResult> {
   const text = input.text.trim();
   const generatedAt = new Date().toISOString();
+  const planner = await buildCreatePlanner({
+    text,
+    locale: input.locale,
+  });
+  const graphMatch = buildGraphMatchPlan(planner);
   try {
     const result = await withTimeout(
       analyzeContribution({
@@ -480,11 +686,16 @@ export async function buildCreateIntelligentFollowup(
       }),
       resolveFastFollowupTimeoutMs(),
     );
-    const understanding = mapAnalyzeResultToUnderstanding(text, result as AnalyzeResult);
+    const understanding = applyPlannerToUnderstanding({
+      text,
+      understanding: mapAnalyzeResultToUnderstanding(text, result as AnalyzeResult),
+      planner,
+    });
     const suggestions = buildCreateConnectionSuggestions({
       text,
       intent: input.intent,
       understanding,
+      planner,
       anlassraumId: input.anlassraumId,
       dossierId: input.dossierId,
       maxSuggestions: input.maxSuggestions,
@@ -494,15 +705,27 @@ export async function buildCreateIntelligentFollowup(
       suggestions,
       sourceText: text,
       generatedAt,
+      meta: {
+        planner,
+        graphMatch,
+        researchUsed: "none",
+        researchProvider: null,
+        deepSearchUsed: false,
+      },
       degraded: false,
       degradedReason: null,
     };
   } catch (error: unknown) {
-    const understanding = buildFallbackUnderstanding(text);
+    const understanding = applyPlannerToUnderstanding({
+      text,
+      understanding: buildFallbackUnderstanding(text),
+      planner,
+    });
     const suggestions = buildCreateConnectionSuggestions({
       text,
       intent: input.intent,
       understanding,
+      planner,
       anlassraumId: input.anlassraumId,
       dossierId: input.dossierId,
       maxSuggestions: input.maxSuggestions,
@@ -512,6 +735,13 @@ export async function buildCreateIntelligentFollowup(
       suggestions,
       sourceText: text,
       generatedAt,
+      meta: {
+        planner,
+        graphMatch,
+        researchUsed: "none",
+        researchProvider: null,
+        deepSearchUsed: false,
+      },
       degraded: true,
       degradedReason: error instanceof Error ? error.message : "fallback_used",
     };

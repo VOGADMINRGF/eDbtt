@@ -50,4 +50,20 @@ describe("create mode analyze parse boundary", () => {
     if (!parsed.ok) return;
     expect(parsed.value.presentationPass).toBe(true);
   });
+
+  it("accepts material-only analyze requests without mandatory freetext", () => {
+    const parsed = parseAnalyzeRequestBody({
+      sourceUrls: ["https://www.youtube.com/watch?v=demo12345"],
+      uploadIds: ["upload-42"],
+      materialItems: [{ uploadId: "upload-42", fileName: "bericht.pdf", kind: "upload_document" }],
+      researchMode: "auto",
+    });
+
+    expect(parsed.ok).toBe(true);
+    if (!parsed.ok) return;
+    expect(parsed.value.text).toBe("");
+    expect(parsed.value.sourceUrls).toEqual(["https://www.youtube.com/watch?v=demo12345"]);
+    expect(parsed.value.uploadIds).toEqual(["upload-42"]);
+    expect(parsed.value.researchMode).toBe("auto");
+  });
 });

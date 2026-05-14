@@ -30,6 +30,7 @@ export type ThemenradarStoredRecord = {
 export type ThemenradarRepoListQuery = {
   status?: ThemenradarLifecycleStatus | "all";
   sourceType?: ThemenradarSourceType | "all";
+  q?: string | null;
   limit?: number;
 };
 
@@ -48,6 +49,11 @@ function normalizeLimit(value: unknown) {
   const numeric = Number(value);
   if (!Number.isFinite(numeric) || numeric <= 0) return 40;
   return Math.max(1, Math.min(200, Math.floor(numeric)));
+}
+
+function normalizeSearchQuery(value: unknown) {
+  if (typeof value !== "string") return "";
+  return value.trim().slice(0, 120);
 }
 
 function clone<T>(value: T): T {
@@ -100,12 +106,27 @@ export function createMongoThemenradarRepo(): ThemenradarRepo {
       await ensureMongoIndexes();
       const items = await coreCol<ThemenradarItemDoc>(THEMENRADAR_ITEMS_COLLECTION);
       const limit = normalizeLimit(query.limit);
+      const q = normalizeSearchQuery(query.q);
       const filter: Record<string, unknown> = {};
       if (query.status && query.status !== "all") {
         filter["item.lifecycleStatus"] = query.status;
       }
       if (query.sourceType && query.sourceType !== "all") {
         filter["item.sourceType"] = query.sourceType;
+      }
+      if (q) {
+        const escaped = q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        const regex = new RegExp(escaped, "i");
+        filter.$or = [
+          { _id: regex },
+          { "item.title": regex },
+          { "item.rawSignal": regex },
+          { "item.campaignKey": regex },
+          { "item.linkedAnlassraumId": regex },
+          { "item.linkedDossierId": regex },
+          { "item.sourceType": regex },
+          { "item.lifecycleStatus": regex },
+        ];
       }
 
       const docs = await items
@@ -190,6 +211,7 @@ export function createInMemoryThemenradarRepo(seed?: {
       const limit = normalizeLimit(query.limit);
       const status = query.status ?? "all";
       const sourceType = query.sourceType ?? "all";
+      const q = normalizeSearchQuery(query.q).toLowerCase();
 
       return Array.from(byId.values())
         .map((entry) => clone(entry))
@@ -199,6 +221,22 @@ export function createInMemoryThemenradarRepo(seed?: {
         .filter((entry) =>
           sourceType === "all" ? true : entry.item.sourceType === sourceType,
         )
+        .filter((entry) => {
+          if (!q) return true;
+          const haystack = [
+            entry.item.id,
+            entry.item.title,
+            entry.item.rawSignal,
+            entry.item.campaignKey ?? "",
+            entry.item.linkedAnlassraumId ?? "",
+            entry.item.linkedDossierId ?? "",
+            entry.item.sourceType,
+            entry.item.lifecycleStatus,
+          ]
+            .join(" ")
+            .toLowerCase();
+          return haystack.includes(q);
+        })
         .sort((left, right) => right.item.updatedAt.localeCompare(left.item.updatedAt))
         .slice(0, limit);
     },

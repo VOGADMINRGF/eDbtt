@@ -4,7 +4,7 @@ import DossierOutputStudioPage from "@/app/dossier/[id]/studio/page";
 
 async function renderStudio() {
   const element = await DossierOutputStudioPage({
-    params: Promise.resolve({ id: "dossier-studio-test" }),
+    params: Promise.resolve({ id: "dossier_demo_mobility_berlin" }),
   });
   return renderToStaticMarkup(element);
 }
@@ -22,6 +22,8 @@ describe("studio distribution panel contract", () => {
     expect(html).toContain("Text kopieren");
     expect(html).toContain("Entwurf speichern");
     expect(html).toContain("Veröffentlichung vorbereiten");
+    expect(html).toContain("LocalStorage-Arbeitsstände bleiben lokal im Browser");
+    expect(html).toContain("Browser-Arbeitsstände werden nur lokal gespeichert.");
     expect(html).not.toContain("Jetzt veröffentlichen");
     expect(html).not.toContain("Live posten");
   });

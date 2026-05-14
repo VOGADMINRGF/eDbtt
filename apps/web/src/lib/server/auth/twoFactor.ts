@@ -13,8 +13,19 @@ export function userRequiresTwoFactor(user: SessionUser | null): boolean {
 export function sessionHasPassedTwoFactor(user: SessionUser | null): boolean {
   if (!user) return false;
   if ((user as any).sessionValid === false) return false;
-  const requires = userRequiresTwoFactor(user);
-  const passed = user.sessionTwoFactorAuthenticated;
-  if (requires) return Boolean(passed);
-  return passed !== false;
+  return Boolean(user.sessionTwoFactorAuthenticated);
+}
+
+export function sessionHasTwoFactorFallback(user: SessionUser | null): boolean {
+  if (!user) return false;
+  if ((user as any).sessionValid === false) return false;
+  return user.sessionTwoFactorFallbackMode === "setup" || user.sessionTwoFactorFallbackMode === "recovery";
+}
+
+export function sessionSatisfiesProtectedTwoFactor(user: SessionUser | null): boolean {
+  if (!user) return false;
+  if (userRequiresTwoFactor(user)) {
+    return sessionHasPassedTwoFactor(user) || sessionHasTwoFactorFallback(user);
+  }
+  return sessionHasTwoFactorFallback(user);
 }

@@ -1,8 +1,9 @@
 import { z } from "zod";
-import { GRAPH_REPAIR_TYPES, GRAPH_REPAIR_STATUSES } from "./types";
+import { GRAPH_REPAIR_TYPES, GRAPH_REPAIR_STATUSES, GRAPH_REPAIR_SEVERITIES } from "./types";
 
 export const GraphRepairTypeSchema = z.enum(GRAPH_REPAIR_TYPES);
 export const GraphRepairStatusSchema = z.enum(GRAPH_REPAIR_STATUSES);
+export const GraphRepairSeveritySchema = z.enum(GRAPH_REPAIR_SEVERITIES);
 
 export const GraphMergeSuggestSchema = z.object({
   aId: z.string().min(2),
