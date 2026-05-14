@@ -2,10 +2,12 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
 import {
   createInMemoryRegionDataRepo,
+  createInMemoryRegionEntitlementRuntimeRepo,
   createInMemoryRegionOrganizationRuntimeRepo,
   createInMemoryRegionSignalDraftPersistence,
   listRegionSignalDraftRecords,
   setRegionDataRepoForTests,
+  setRegionEntitlementRuntimeRepoForTests,
   setRegionOrganizationRuntimeRepoForTests,
   setRegionSignalDraftPersistenceForTests,
 } from "@features/region";
@@ -81,6 +83,7 @@ describe("/api/admin/region/signals/[id]/draft", () => {
     vi.clearAllMocks();
     setRegionDataRepoForTests(createInMemoryRegionDataRepo());
     setRegionOrganizationRuntimeRepoForTests(createInMemoryRegionOrganizationRuntimeRepo());
+    setRegionEntitlementRuntimeRepoForTests(createInMemoryRegionEntitlementRuntimeRepo());
     setRegionSignalDraftPersistenceForTests(createInMemoryRegionSignalDraftPersistence());
     mocks.requireGovernanceActorOrResponse.mockResolvedValue({
       user: { _id: { toHexString: () => "admin-1" } },
@@ -101,6 +104,53 @@ describe("/api/admin/region/signals/[id]/draft", () => {
       createInMemoryRegionOrganizationRuntimeRepo({
         organizations,
         memberships: unitMembership,
+      }),
+    );
+  }
+
+  function seedActiveEntitlement() {
+    setRegionEntitlementRuntimeRepoForTests(
+      createInMemoryRegionEntitlementRuntimeRepo({
+        entitlements: [
+          {
+            id: "entitlement-reinickendorf-1",
+            organizationId: "org-reinickendorf-1",
+            organizationName: "Bezirksamt Reinickendorf",
+            organizationType: "district_office",
+            regionId: "bezirk-berlin-reinickendorf",
+            unitId: "unit-1",
+            planId: "kommune-aktivierung",
+            planLabel: "Kommune Aktivierung",
+            status: "active",
+            scope: "organization_unit",
+            validFrom: "2026-05-14T00:00:00.000Z",
+            validUntil: null,
+            limits: {
+              maxRegions: 1,
+              maxDossiers: 10,
+              maxAnlassraeume: 10,
+              maxSignalsPerMonth: 100,
+              maxDraftsPerMonth: 25,
+              maxUsers: 10,
+              factcheckCredits: 0,
+            },
+            usage: {
+              regionsUsed: 0,
+              dossiersUsed: 0,
+              anlassraeumeUsed: 0,
+              signalsThisMonth: 0,
+              draftsThisMonth: 0,
+              usersUsed: 0,
+              factcheckCreditsUsed: 0,
+            },
+            createdAt: "2026-05-14T00:00:00.000Z",
+            updatedAt: "2026-05-14T00:00:00.000Z",
+            createdBy: "admin-1",
+            source: "admin_grant",
+            noAutoBilling: true,
+            noAutoCharge: true,
+          },
+        ],
       }),
     );
   }
@@ -151,6 +201,7 @@ describe("/api/admin/region/signals/[id]/draft", () => {
 
   it("allows fixture-backed unit-verified staff to create dossier and anlassraum drafts in their own region", async () => {
     seedVerifiedRuntimeMembership();
+    seedActiveEntitlement();
     mocks.requireGovernanceActorOrResponse.mockResolvedValue({
       user: { _id: { toHexString: () => "staff-1" } },
       roles: ["institutional_actor"],
@@ -242,6 +293,7 @@ describe("/api/admin/region/signals/[id]/draft", () => {
       },
     });
     seedVerifiedRuntimeMembership();
+    seedActiveEntitlement();
 
     const wrongRegionRes = await POST(
       buildRequest(
@@ -280,6 +332,7 @@ describe("/api/admin/region/signals/[id]/draft", () => {
 
   it("keeps procurement-flavoured accepted signals out of scope", async () => {
     seedVerifiedRuntimeMembership();
+    seedActiveEntitlement();
     setRegionDataRepoForTests(
       createInMemoryRegionDataRepo({
         signals: [
@@ -333,6 +386,40 @@ describe("/api/admin/region/signals/[id]/draft", () => {
     await expect(res.json()).resolves.toMatchObject({
       ok: false,
       blockedReason: "tender_or_procurement_out_of_scope",
+    });
+  });
+
+  it("blocks verified staff without entitlement even for accepted signals", async () => {
+    seedVerifiedRuntimeMembership();
+    mocks.requireGovernanceActorOrResponse.mockResolvedValue({
+      user: { _id: { toHexString: () => "staff-1" } },
+      roles: ["institutional_actor"],
+      actor: {
+        userId: "staff-1",
+        role: "institutional_actor",
+        isAdmin: false,
+        scopedOwnerIds: ["org-reinickendorf-1"],
+        scopedEntityIds: ["org-reinickendorf-1"],
+        personTrust: null,
+      },
+    });
+
+    const res = await POST(
+      buildRequest(
+        "http://localhost/api/admin/region/signals/region-feed-signal-reinickendorf-school-renovation-accepted-001/draft",
+        { regionId: "berlin-reinickendorf", target: "dossier" },
+      ),
+      {
+        params: Promise.resolve({
+          id: "region-feed-signal-reinickendorf-school-renovation-accepted-001",
+        }),
+      },
+    );
+
+    expect(res.status).toBe(403);
+    await expect(res.json()).resolves.toMatchObject({
+      ok: false,
+      blockedReason: "missing_permission",
     });
   });
 });

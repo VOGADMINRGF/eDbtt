@@ -6,5 +6,6 @@ export * from "./organizationOnboarding";
 export * from "./regionFeedSignals";
 export * from "./regionSignalDrafts";
 export * from "./store";
+export * from "./server/paidEntitlements";
 export * from "./server/membershipRuntime";
 export * from "./server/repo";

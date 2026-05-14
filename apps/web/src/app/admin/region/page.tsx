@@ -100,6 +100,66 @@ function verificationStatusLabel(
   }
 }
 
+function entitlementStatusLabel(
+  value: RegionalAdminCockpitReadModel["accessSummary"]["entitlementStatus"],
+) {
+  switch (value) {
+    case "admin_fallback":
+      return "Admin-Fallback";
+    case "active":
+      return "Aktiv";
+    case "trial":
+      return "Testweise aktiv";
+    case "past_due":
+      return "Überfällig";
+    case "suspended":
+      return "Suspendiert";
+    case "cancelled":
+      return "Gekündigt";
+    case "expired":
+      return "Abgelaufen";
+    case "revoked":
+      return "Widerrufen";
+    case "inactive":
+      return "Inaktiv";
+    default:
+      return "Keine Freischaltung";
+  }
+}
+
+function entitlementReasonLabel(
+  value: RegionalAdminCockpitReadModel["accessSummary"]["entitlementReason"],
+) {
+  switch (value) {
+    case "admin_fallback":
+      return "Globale Adminsicht ohne gesonderte Freischaltung.";
+    case "active":
+      return "Freischaltung aktiv.";
+    case "trial":
+      return "Test- oder Pilotfreischaltung aktiv.";
+    case "missing_entitlement":
+      return "Verifizierte Membership vorhanden, aber Freischaltung fehlt.";
+    case "expired":
+      return "Freischaltung ist abgelaufen.";
+    case "suspended":
+      return "Freischaltung ist vorübergehend gesperrt.";
+    case "past_due":
+      return "Freischaltung steht auf überfällig und ist deshalb blockiert.";
+    case "over_limit":
+      return "Limit erreicht. Lesen oder Aktionen bleiben eingeschränkt.";
+    case "wrong_region":
+      return "Freischaltung passt nicht zur aktuellen Region.";
+    case "wrong_organization":
+      return "Freischaltung passt nicht zur aktuellen Organisation.";
+    case "membership_not_verified":
+      return "Freischaltung allein reicht nicht ohne verifizierte Membership.";
+    case "unsupported_organization_type":
+      return "Dieser Organisationstyp braucht einen gesonderten Review-Pfad.";
+    default:
+      return "Freischaltung wurde noch nicht geprüft.";
+  }
+}
+
 function allowedActionLabel(action: RegionAllowedAction) {
   switch (action) {
     case "read_region_dashboard":
@@ -125,7 +185,10 @@ function allowedActionLabel(action: RegionAllowedAction) {
 
 function accessHint(cockpit: RegionalAdminCockpitReadModel) {
   if (cockpit.accessSummary.adminFallback) {
-    return "Zugriff über adminFallback. Das ist eine globale Adminsicht und noch keine verifizierte Behördenfreischaltung.";
+    return "Zugriff über adminFallback. Das ist eine globale Adminsicht und noch keine verifizierte Behördenfreischaltung oder bezahlte Freischaltung.";
+  }
+  if (cockpit.accessSummary.paidDashboardEntitlement !== "granted") {
+    return "Verifizierte Membership allein reicht nicht. Für dieses RegionDashboard ist zusätzlich eine aktive oder testweise Freischaltung erforderlich.";
   }
   if (cockpit.accessSummary.verificationStatus === "publication_approved") {
     return "Publikationsfreigabe wäre theoretisch erlaubt. CUT-02 baut dafür bewusst noch keine Publikationsroute.";
@@ -256,8 +319,46 @@ export default async function AdminRegionPage({
                     Pending hat keine Behördenrechte. Publication approval bleibt gesondert erforderlich.
                   </p>
                 </div>
+                <div className="rounded-2xl border border-[rgb(var(--border))] p-3">
+                  <p className="text-xs uppercase tracking-[0.12em] text-[rgb(var(--muted))]">Freischaltung</p>
+                  <p className="mt-2 text-sm font-semibold text-[rgb(var(--fg))]">
+                    {entitlementStatusLabel(cockpit.accessSummary.entitlementStatus)}
+                  </p>
+                  <p className="mt-1 text-sm text-[rgb(var(--muted))]">
+                    {entitlementReasonLabel(cockpit.accessSummary.entitlementReason)}
+                  </p>
+                </div>
+                <div className="rounded-2xl border border-[rgb(var(--border))] p-3">
+                  <p className="text-xs uppercase tracking-[0.12em] text-[rgb(var(--muted))]">Plan</p>
+                  <p className="mt-2 text-sm font-semibold text-[rgb(var(--fg))]">
+                    {cockpit.accessSummary.entitlementPlanLabel ?? "Kein Plan"}
+                  </p>
+                  <p className="mt-1 text-sm text-[rgb(var(--muted))]">
+                    {cockpit.accessSummary.entitlementSource === "admin_grant"
+                      ? "Admin-Grant, ohne Checkout"
+                      : cockpit.accessSummary.entitlementSource === "pilot_grant"
+                        ? "Pilot-Grant, ohne Billing"
+                        : cockpit.accessSummary.entitlementSource === "manual_contract"
+                          ? "Manueller Vertrag, ohne Auto-Charge"
+                          : cockpit.accessSummary.entitlementSource === "admin_fallback"
+                            ? "Admin-Fallback"
+                            : cockpit.accessSummary.entitlementSource === "not_checked"
+                              ? "Noch nicht geprüft"
+                              : cockpit.accessSummary.entitlementSource ?? "Unbekannt"}
+                  </p>
+                </div>
               </div>
               <p className="mt-4 text-sm text-[rgb(var(--muted))]">{accessHint(cockpit)}</p>
+              <p className="mt-2 text-sm text-[rgb(var(--muted))]">
+                Limits/Usage: Regionen {cockpit.accessSummary.entitlementUsage?.regionsUsed ?? 0}
+                {cockpit.accessSummary.entitlementLimits?.maxRegions != null
+                  ? ` / ${cockpit.accessSummary.entitlementLimits.maxRegions}`
+                  : " / offen"}
+                {" · "}Drafts {cockpit.accessSummary.entitlementUsage?.draftsThisMonth ?? 0}
+                {cockpit.accessSummary.entitlementLimits?.maxDraftsPerMonth != null
+                  ? ` / ${cockpit.accessSummary.entitlementLimits.maxDraftsPerMonth}`
+                  : " / offen"}
+              </p>
               <p className="mt-2 text-sm text-[rgb(var(--muted))]">
                 Self-declared ist nicht verifiziert. Pending hat keine Behördenrechte. Publication approval ist
                 gesondert erforderlich. Standortangaben wie Rathaus Reinickendorf bleiben optional.
