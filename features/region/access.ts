@@ -1,5 +1,6 @@
 import {
   allowedActionsForVerificationStatus,
+  type VerificationStatus,
   type OnboardingAllowedAction,
   type Organization,
   type OrganizationMembership,
@@ -37,6 +38,7 @@ export type RegionAccessContext = {
   isAdmin: boolean;
   authoritySource: RegionAccessAuthoritySource;
   adminFallback: boolean;
+  verificationStatus: VerificationStatus | "none" | "admin_fallback";
   roles: string[];
   hintedRegionIds: string[];
   verifiedRegionIds: string[];
@@ -123,6 +125,28 @@ function deriveVerifiedRegionIdsFromMemberships(
   );
 }
 
+function resolveHighestVerificationStatus(
+  isAdmin: boolean,
+  memberships: OrganizationMembership[],
+): VerificationStatus | "none" | "admin_fallback" {
+  if (isAdmin) return "admin_fallback";
+  const precedence: VerificationStatus[] = [
+    "publication_approved",
+    "unit_verified",
+    "organization_verified",
+    "email_verified",
+    "pending_review",
+    "unverified",
+    "rejected",
+    "revoked",
+  ];
+
+  for (const status of precedence) {
+    if (memberships.some((membership) => membership.verificationStatus === status)) return status;
+  }
+  return "none";
+}
+
 export function buildOrganizationAccessContext(input: {
   organizationIds?: string[] | null;
   paidDashboardEntitlement?: OrganizationAccessContext["paidDashboardEntitlement"];
@@ -160,6 +184,7 @@ export function buildRegionAccessContext(input: RegionAccessContextInput = {}): 
     : verifiedRegionIds.length > 0
       ? "verified_membership"
       : "unverified_hint_only";
+  const verificationStatus = resolveHighestVerificationStatus(isAdmin, memberships);
 
   return {
     userId: input.userId ?? null,
@@ -167,6 +192,7 @@ export function buildRegionAccessContext(input: RegionAccessContextInput = {}): 
     isAdmin,
     authoritySource,
     adminFallback: isAdmin,
+    verificationStatus,
     roles,
     hintedRegionIds,
     verifiedRegionIds,

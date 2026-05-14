@@ -11,6 +11,7 @@ import {
   canCreateRegionDraft,
   canReadRegionDashboard,
   canReviewRegionSignal,
+  type RegionAllowedAction,
   type RegionAccessContext,
 } from "./access";
 import {
@@ -74,11 +75,13 @@ export type RegionDashboardAccessSummary = {
   isAdmin: boolean;
   authoritySource: RegionAccessContext["authoritySource"];
   adminFallback: boolean;
+  verificationStatus: RegionAccessContext["verificationStatus"];
   hintedRegionIds: string[];
   verifiedRegionIds: string[];
   scopedRegionIds: string[];
   organizationIds: string[];
   paidDashboardEntitlement: "placeholder_not_enforced" | "granted" | "missing";
+  allowedActions: RegionAllowedAction[];
   canReadRegionDashboard: boolean;
   canReviewRegionSignal: boolean;
   canCreateRegionDraft: boolean;
@@ -95,6 +98,7 @@ export type RegionDashboardOpenReviewItem = {
   reviewStatus: RegionSignalReviewState;
   dataOrigin: RegionFeedSignal["provenance"]["dataOrigin"];
   isFixture: boolean;
+  confidence: number;
 };
 
 export type RegionDashboardActiveDossier = {
@@ -448,6 +452,7 @@ function buildOpenReviewItems(signals: RegionFeedSignal[]): RegionDashboardOpenR
       reviewStatus: signal.reviewStatus,
       dataOrigin: signal.provenance.dataOrigin,
       isFixture: signal.provenance.isFixture,
+      confidence: signal.confidence,
     }));
 }
 
@@ -478,11 +483,13 @@ function buildAccessSummary(regionId: string, context: RegionAccessContext): Reg
     isAdmin: context.isAdmin,
     authoritySource: context.authoritySource,
     adminFallback: context.adminFallback,
+    verificationStatus: context.verificationStatus,
     hintedRegionIds: context.hintedRegionIds,
     verifiedRegionIds: context.verifiedRegionIds,
     scopedRegionIds: context.scopedRegionIds,
     organizationIds: context.organization.organizationIds,
     paidDashboardEntitlement: context.organization.paidDashboardEntitlement,
+    allowedActions: context.allowedActions,
     canReadRegionDashboard: canReadRegionDashboard(context, regionId),
     canReviewRegionSignal: canReviewRegionSignal(context, regionId),
     canCreateRegionDraft: canCreateRegionDraft(context, regionId),
@@ -723,6 +730,7 @@ export async function getRegionalAdminCockpitReadModel(
       isAdmin: true,
       authoritySource: "admin_fallback",
       adminFallback: true,
+      verificationStatus: "admin_fallback",
       roles: ["admin"],
       hintedRegionIds: [],
       verifiedRegionIds: scopedRegionIds,

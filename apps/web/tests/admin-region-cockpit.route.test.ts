@@ -66,6 +66,9 @@ describe("/api/admin/region/cockpit/[regionId]", () => {
       cockpit: {
         region: { id: "bezirk-berlin-reinickendorf" },
         accessSummary: {
+          authoritySource: "admin_fallback",
+          adminFallback: true,
+          verificationStatus: "admin_fallback",
           canReadRegionDashboard: true,
           canCreateDossierDraft: true,
         },
@@ -74,6 +77,7 @@ describe("/api/admin/region/cockpit/[regionId]", () => {
           noAutoDossierCreation: true,
           noAutoAnlassraumCreation: true,
           noTenderMonitoring: true,
+          noProcurementMonitoring: true,
         },
         feedSignals: expect.arrayContaining([
           expect.objectContaining({
@@ -81,10 +85,20 @@ describe("/api/admin/region/cockpit/[regionId]", () => {
             provenance: expect.objectContaining({ dataOrigin: "pilot_fixture" }),
           }),
         ]),
+        suggestedAnlassraeume: expect.arrayContaining([
+          expect.objectContaining({
+            title: "Bildung & Schulinfrastruktur Reinickendorf",
+          }),
+        ]),
         suggestedDossiers: expect.arrayContaining([
           expect.objectContaining({
             title: "Sanierung von Schulen im Bezirk",
             noAutoCreateDossier: true,
+          }),
+        ]),
+        openReviewItems: expect.arrayContaining([
+          expect.objectContaining({
+            title: "Pilot-Fall: Hinweise zu Schulsanierung und Bauzustand",
           }),
         ]),
       },
