@@ -1,5 +1,6 @@
 import { coreCol, ObjectId } from "@core/db/triMongo";
 import { buildRegionAccessContext, type RegionAccessContext } from "../access";
+import { getRegionEntitlementRuntimeRepo } from "./paidEntitlements";
 import {
   allowedActionsForVerificationStatus,
   parseMembershipAuditEvent,
@@ -1066,6 +1067,7 @@ export async function buildPersistedRegionAccessContext(input: {
   isAdmin: boolean;
   roles: string[];
   organizationIds?: string[] | null;
+  regionId?: string | null;
 }): Promise<RegionAccessContext> {
   if (input.isAdmin) {
     return buildRegionAccessContext({
@@ -1080,6 +1082,31 @@ export async function buildPersistedRegionAccessContext(input: {
   const repo = getRegionOrganizationRuntimeRepo();
   const memberships = await repo.listMembershipsForUser(input.userId);
   const organizations = await repo.listOrganizationsByIds(memberships.map((membership) => membership.organizationId));
+  const normalizedRegionId = String(input.regionId ?? "").trim();
+  const entitlementRepo = getRegionEntitlementRuntimeRepo();
+  const dashboardEntitlementCheck = normalizedRegionId
+    ? await entitlementRepo.checkRegionDashboardEntitlement({
+        memberships,
+        organizations,
+        regionId: normalizedRegionId,
+      })
+    : null;
+  const dossierDraftEntitlementCheck = normalizedRegionId
+    ? await entitlementRepo.checkSignalDraftEntitlement({
+        memberships,
+        organizations,
+        regionId: normalizedRegionId,
+        draftTarget: "dossier",
+      })
+    : null;
+  const anlassraumDraftEntitlementCheck = normalizedRegionId
+    ? await entitlementRepo.checkSignalDraftEntitlement({
+        memberships,
+        organizations,
+        regionId: normalizedRegionId,
+        draftTarget: "anlassraum",
+      })
+    : null;
   return buildRegionAccessContext({
     userId: input.userId,
     actorRole: input.actorRole,
@@ -1088,5 +1115,8 @@ export async function buildPersistedRegionAccessContext(input: {
     organizationIds: input.organizationIds,
     memberships,
     organizations,
+    dashboardEntitlementCheck,
+    dossierDraftEntitlementCheck,
+    anlassraumDraftEntitlementCheck,
   });
 }

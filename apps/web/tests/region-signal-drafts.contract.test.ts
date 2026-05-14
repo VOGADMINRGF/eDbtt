@@ -7,6 +7,7 @@ import {
   listRegionSignalDraftRecords,
   setRegionDataRepoForTests,
   setRegionSignalDraftPersistenceForTests,
+  type EntitlementCheckResult,
 } from "@features/region";
 
 const REINICKENDORF_ORG = {
@@ -19,6 +20,50 @@ const REINICKENDORF_ORG = {
   verificationStatus: "organization_verified" as const,
   createdByUserId: "user-1",
 };
+
+function entitlementCheck(
+  allowed: boolean,
+  reason: EntitlementCheckResult["reason"] = allowed ? "active" : "missing_entitlement",
+): EntitlementCheckResult {
+  return {
+    allowed,
+    reason,
+    entitlementId: allowed ? "entitlement-1" : null,
+    status: allowed ? "active" : null,
+    planId: allowed ? "kommune-aktivierung" : null,
+    planLabel: allowed ? "Kommune Aktivierung" : null,
+    scope: allowed ? "region" : null,
+    source: allowed ? "admin_grant" : null,
+    limits: allowed
+      ? {
+          maxRegions: 1,
+          maxDossiers: 10,
+          maxAnlassraeume: 10,
+          maxSignalsPerMonth: 100,
+          maxDraftsPerMonth: 25,
+          maxUsers: 10,
+          factcheckCredits: 0,
+        }
+      : null,
+    usage: allowed
+      ? {
+          regionsUsed: 0,
+          dossiersUsed: 0,
+          anlassraeumeUsed: 0,
+          signalsThisMonth: 0,
+          draftsThisMonth: 0,
+          usersUsed: 0,
+          factcheckCreditsUsed: 0,
+        }
+      : null,
+    guardrails: {
+      noAutoBilling: true,
+      noAutoCharge: true,
+      noAutoPublish: true,
+      requiresVerifiedMembership: true,
+    },
+  };
+}
 
 function makeVerifiedContext(
   verificationStatus:
@@ -100,6 +145,23 @@ function makeVerifiedContext(
         primaryRegionId: options.regionId ?? REINICKENDORF_ORG.primaryRegionId,
       },
     ],
+    dashboardEntitlementCheck: options.isAdmin
+      ? undefined
+      : entitlementCheck(
+          verificationStatus === "organization_verified" ||
+            verificationStatus === "unit_verified" ||
+            verificationStatus === "publication_approved",
+        ),
+    dossierDraftEntitlementCheck: options.isAdmin
+      ? undefined
+      : entitlementCheck(
+          verificationStatus === "unit_verified" || verificationStatus === "publication_approved",
+        ),
+    anlassraumDraftEntitlementCheck: options.isAdmin
+      ? undefined
+      : entitlementCheck(
+          verificationStatus === "unit_verified" || verificationStatus === "publication_approved",
+        ),
   });
 }
 

@@ -4,6 +4,7 @@ import { requireGovernanceActorOrResponse } from "@/lib/server/auth/governance";
 import {
   buildPersistedRegionAccessContext,
   createRegionSignalDraft,
+  getOperationalRegionById,
 } from "@features/region";
 
 export const runtime = "nodejs";
@@ -21,6 +22,7 @@ const DraftBodySchema = z
 
 async function buildAccessContextFromRuntime(
   gate: Awaited<ReturnType<typeof requireGovernanceActorOrResponse>>,
+  regionId: string,
 ) {
   if (gate instanceof Response) return null;
   return buildPersistedRegionAccessContext({
@@ -29,6 +31,7 @@ async function buildAccessContextFromRuntime(
     isAdmin: gate.actor.isAdmin,
     roles: gate.roles,
     organizationIds: gate.actor.scopedOwnerIds,
+    regionId,
   });
 }
 
@@ -54,14 +57,18 @@ export async function POST(
   try {
     const body = DraftBodySchema.parse(await req.json());
     const { id } = await params;
-    const accessContext = await buildAccessContextFromRuntime(gate);
+    const resolvedRegion = await getOperationalRegionById(body.regionId);
+    if (!resolvedRegion) {
+      return NextResponse.json({ ok: false, error: "region_not_found" }, { status: 404 });
+    }
+    const accessContext = await buildAccessContextFromRuntime(gate, resolvedRegion.id);
     if (!accessContext) {
       return NextResponse.json({ ok: false, error: "missing_access_context" }, { status: 400 });
     }
 
     const result = await createRegionSignalDraft({
       signalId: id,
-      regionId: body.regionId,
+      regionId: resolvedRegion.slug ?? resolvedRegion.id,
       target: body.target,
       accessContext,
       requestedBy: gate.actor.userId,

@@ -11,6 +11,7 @@ import {
   parseOrganization,
   parseOrganizationMembership,
   parseSelfDeclaredOrganizationProfile,
+  type EntitlementCheckResult,
   type Organization,
   type OrganizationMembership,
 } from "@features/region";
@@ -53,6 +54,46 @@ function buildMembership(overrides: Partial<OrganizationMembership> = {}): Organ
     noAutoAuthority: true,
     ...overrides,
   });
+}
+
+function buildEntitlementCheck(
+  overrides: Partial<EntitlementCheckResult> = {},
+): EntitlementCheckResult {
+  return {
+    allowed: true,
+    reason: "active",
+    entitlementId: "entitlement-1",
+    status: "active",
+    planId: "kommune-aktivierung",
+    planLabel: "Kommune Aktivierung",
+    scope: "region",
+    source: "admin_grant",
+    limits: {
+      maxRegions: 1,
+      maxDossiers: 10,
+      maxAnlassraeume: 10,
+      maxSignalsPerMonth: 100,
+      maxDraftsPerMonth: 25,
+      maxUsers: 10,
+      factcheckCredits: 0,
+    },
+    usage: {
+      regionsUsed: 0,
+      dossiersUsed: 0,
+      anlassraeumeUsed: 0,
+      signalsThisMonth: 0,
+      draftsThisMonth: 0,
+      usersUsed: 0,
+      factcheckCreditsUsed: 0,
+    },
+    guardrails: {
+      noAutoBilling: true,
+      noAutoCharge: true,
+      noAutoPublish: true,
+      requiresVerifiedMembership: true,
+    },
+    ...overrides,
+  };
 }
 
 describe("region access and organization onboarding contracts", () => {
@@ -147,6 +188,31 @@ describe("region access and organization onboarding contracts", () => {
         }),
       ],
       organizations: [buildOrganization({ createdByUserId: "user-org-1" })],
+      dashboardEntitlementCheck: buildEntitlementCheck(),
+      dossierDraftEntitlementCheck: buildEntitlementCheck({
+        allowed: false,
+        reason: "missing_entitlement",
+        entitlementId: null,
+        status: null,
+        planId: null,
+        planLabel: null,
+        scope: null,
+        source: null,
+        limits: null,
+        usage: null,
+      }),
+      anlassraumDraftEntitlementCheck: buildEntitlementCheck({
+        allowed: false,
+        reason: "missing_entitlement",
+        entitlementId: null,
+        status: null,
+        planId: null,
+        planLabel: null,
+        scope: null,
+        source: null,
+        limits: null,
+        usage: null,
+      }),
     });
 
     expect(canReadRegionDashboard(context, "bezirk-berlin-reinickendorf")).toBe(true);
@@ -180,6 +246,9 @@ describe("region access and organization onboarding contracts", () => {
         }),
       ],
       organizations: [buildOrganization({ createdByUserId: "user-2" })],
+      dashboardEntitlementCheck: buildEntitlementCheck(),
+      dossierDraftEntitlementCheck: buildEntitlementCheck(),
+      anlassraumDraftEntitlementCheck: buildEntitlementCheck(),
     });
 
     expect(canReadRegionDashboard(context, "bezirk-berlin-reinickendorf")).toBe(true);
@@ -221,6 +290,9 @@ describe("region access and organization onboarding contracts", () => {
         }),
       ],
       organizations: [buildOrganization({ createdByUserId: "user-pub-1" })],
+      dashboardEntitlementCheck: buildEntitlementCheck(),
+      dossierDraftEntitlementCheck: buildEntitlementCheck(),
+      anlassraumDraftEntitlementCheck: buildEntitlementCheck(),
     });
     const unitVerified = buildRegionAccessContext({
       actorRole: "institutional_actor",
@@ -247,6 +319,9 @@ describe("region access and organization onboarding contracts", () => {
         }),
       ],
       organizations: [buildOrganization({ createdByUserId: "user-pub-2" })],
+      dashboardEntitlementCheck: buildEntitlementCheck(),
+      dossierDraftEntitlementCheck: buildEntitlementCheck(),
+      anlassraumDraftEntitlementCheck: buildEntitlementCheck(),
     });
 
     expect(canApprovePublication(approved, "bezirk-berlin-reinickendorf")).toBe(true);
@@ -262,8 +337,53 @@ describe("region access and organization onboarding contracts", () => {
 
     expect(context.adminFallback).toBe(true);
     expect(context.authoritySource).toBe("admin_fallback");
+    expect(context.organization.paidDashboardEntitlement).toBe("admin_fallback");
     expect(canReadRegionDashboard(context, "bezirk-berlin-reinickendorf")).toBe(true);
     expect(canApprovePublication(context, "kommune-magdeburg")).toBe(true);
+  });
+
+  it("blocks verified memberships without paid entitlement from dashboard and draft actions", () => {
+    const blockedEntitlement = buildEntitlementCheck({
+      allowed: false,
+      reason: "missing_entitlement",
+      entitlementId: null,
+      status: null,
+      planId: null,
+      planLabel: null,
+      scope: null,
+      source: null,
+      limits: null,
+      usage: null,
+    });
+    const context = buildRegionAccessContext({
+      actorRole: "institutional_actor",
+      memberships: [
+        buildMembership({
+          id: "membership-unit-no-entitlement",
+          userId: "user-no-entitlement",
+          unitId: "unit-1",
+          unitName: "Beteiligung",
+          verificationStatus: "unit_verified",
+          allowedActions: [
+            "read_region_dashboard",
+            "review_region_signal",
+            "create_region_draft",
+            "create_dossier_draft",
+            "create_anlassraum_draft",
+          ],
+          verifiedBy: "admin-1",
+          verifiedAt: "2026-05-14T00:00:00.000Z",
+        }),
+      ],
+      organizations: [buildOrganization({ createdByUserId: "user-no-entitlement" })],
+      dashboardEntitlementCheck: blockedEntitlement,
+      dossierDraftEntitlementCheck: blockedEntitlement,
+      anlassraumDraftEntitlementCheck: blockedEntitlement,
+    });
+
+    expect(canReadRegionDashboard(context, "bezirk-berlin-reinickendorf")).toBe(false);
+    expect(canCreateDossierDraft(context, "bezirk-berlin-reinickendorf")).toBe(false);
+    expect(canCreateAnlassraumDraft(context, "bezirk-berlin-reinickendorf")).toBe(false);
   });
 
   it("keeps international onboarding flexible without German-only required fields", () => {

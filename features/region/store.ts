@@ -80,7 +80,15 @@ export type RegionDashboardAccessSummary = {
   verifiedRegionIds: string[];
   scopedRegionIds: string[];
   organizationIds: string[];
-  paidDashboardEntitlement: "placeholder_not_enforced" | "granted" | "missing";
+  paidDashboardEntitlement: RegionAccessContext["organization"]["paidDashboardEntitlement"];
+  entitlementStatus: RegionAccessContext["organization"]["entitlementStatus"];
+  entitlementReason: RegionAccessContext["organization"]["entitlementReason"];
+  entitlementPlanId: string | null;
+  entitlementPlanLabel: string | null;
+  entitlementScope: RegionAccessContext["organization"]["entitlementScope"];
+  entitlementSource: RegionAccessContext["organization"]["entitlementSource"];
+  entitlementLimits: RegionAccessContext["organization"]["entitlementLimits"];
+  entitlementUsage: RegionAccessContext["organization"]["entitlementUsage"];
   allowedActions: RegionAllowedAction[];
   canReadRegionDashboard: boolean;
   canReviewRegionSignal: boolean;
@@ -489,6 +497,14 @@ function buildAccessSummary(regionId: string, context: RegionAccessContext): Reg
     scopedRegionIds: context.scopedRegionIds,
     organizationIds: context.organization.organizationIds,
     paidDashboardEntitlement: context.organization.paidDashboardEntitlement,
+    entitlementStatus: context.organization.entitlementStatus,
+    entitlementReason: context.organization.entitlementReason,
+    entitlementPlanId: context.organization.entitlementPlanId,
+    entitlementPlanLabel: context.organization.entitlementPlanLabel,
+    entitlementScope: context.organization.entitlementScope,
+    entitlementSource: context.organization.entitlementSource,
+    entitlementLimits: context.organization.entitlementLimits,
+    entitlementUsage: context.organization.entitlementUsage,
     allowedActions: context.allowedActions,
     canReadRegionDashboard: canReadRegionDashboard(context, regionId),
     canReviewRegionSignal: canReviewRegionSignal(context, regionId),
@@ -738,8 +754,49 @@ export async function getRegionalAdminCockpitReadModel(
       organization: {
         organizationIds: [],
         primaryOrganizationId: null,
-        paidDashboardEntitlement: "placeholder_not_enforced",
-        entitlementSource: "contract_placeholder",
+        paidDashboardEntitlement: "admin_fallback",
+        entitlementSource: "admin_fallback",
+        entitlementStatus: "admin_fallback",
+        entitlementReason: "admin_fallback",
+        entitlementPlanId: null,
+        entitlementPlanLabel: "Admin-Fallback",
+        entitlementScope: null,
+        entitlementLimits: null,
+        entitlementUsage: null,
+        requiresVerifiedMembership: true,
+        dashboard: {
+          allowed: true,
+          reason: "admin_fallback",
+          status: "admin_fallback",
+          planId: null,
+          planLabel: "Admin-Fallback",
+          scope: null,
+          source: "admin_fallback",
+          limits: null,
+          usage: null,
+        },
+        dossierDraft: {
+          allowed: true,
+          reason: "admin_fallback",
+          status: "admin_fallback",
+          planId: null,
+          planLabel: "Admin-Fallback",
+          scope: null,
+          source: "admin_fallback",
+          limits: null,
+          usage: null,
+        },
+        anlassraumDraft: {
+          allowed: true,
+          reason: "admin_fallback",
+          status: "admin_fallback",
+          planId: null,
+          planLabel: "Admin-Fallback",
+          scope: null,
+          source: "admin_fallback",
+          limits: null,
+          usage: null,
+        },
       },
       allowedActions: [
         "read_region_dashboard",

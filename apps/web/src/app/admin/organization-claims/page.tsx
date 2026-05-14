@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { getSessionUser } from "@/lib/server/auth/sessionUser";
 import { userIsAdminDashboard } from "@/lib/server/auth/admin";
 import { getRegionOrganizationRuntimeRepo } from "@features/region";
@@ -30,6 +31,12 @@ export default async function AdminOrganizationClaimsPage() {
         <p className="max-w-3xl text-sm text-[rgb(var(--muted))]">
           Self-declared Angaben bleiben ohne Rechte. Erst Review erzeugt persistierte Memberships und
           verifizierte Regionenzuordnung.
+        </p>
+        <p className="text-sm text-[rgb(var(--muted))]">
+          Paid Entitlements werden getrennt verwaltet.{" "}
+          <Link className="font-semibold text-[rgb(var(--fg))]" href="/admin/entitlements">
+            Zur Entitlement-Verwaltung
+          </Link>
         </p>
       </header>
       <AdminOrganizationClaimsClient initialClaims={claims} />

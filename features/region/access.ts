@@ -5,6 +5,15 @@ import {
   type Organization,
   type OrganizationMembership,
 } from "./organizationOnboarding";
+import type {
+  EntitlementCheckReason,
+  EntitlementCheckResult,
+  EntitlementLimit,
+  EntitlementScope,
+  EntitlementSource,
+  EntitlementStatus,
+  EntitlementUsage,
+} from "./server/paidEntitlements";
 
 export const REGION_ALLOWED_ACTIONS = [
   "read_region_dashboard",
@@ -20,11 +29,38 @@ export const REGION_ALLOWED_ACTIONS = [
 
 export type RegionAllowedAction = (typeof REGION_ALLOWED_ACTIONS)[number];
 
+type RegionEntitlementSnapshotReason = EntitlementCheckReason | "admin_fallback" | "not_checked";
+type RegionEntitlementSnapshotStatus = EntitlementStatus | "admin_fallback" | null;
+type RegionEntitlementSnapshotSource = EntitlementSource | "admin_fallback" | "not_checked";
+
+export type RegionEntitlementSnapshot = {
+  allowed: boolean;
+  reason: RegionEntitlementSnapshotReason;
+  status: RegionEntitlementSnapshotStatus;
+  planId: string | null;
+  planLabel: string | null;
+  scope: EntitlementScope | null;
+  source: RegionEntitlementSnapshotSource;
+  limits: EntitlementLimit | null;
+  usage: EntitlementUsage | null;
+};
+
 export type OrganizationAccessContext = {
   organizationIds: string[];
   primaryOrganizationId: string | null;
-  paidDashboardEntitlement: "placeholder_not_enforced" | "granted" | "missing";
-  entitlementSource: "contract_placeholder";
+  paidDashboardEntitlement: "admin_fallback" | "granted" | "missing" | "blocked";
+  entitlementSource: RegionEntitlementSnapshotSource;
+  entitlementStatus: RegionEntitlementSnapshotStatus;
+  entitlementReason: RegionEntitlementSnapshotReason;
+  entitlementPlanId: string | null;
+  entitlementPlanLabel: string | null;
+  entitlementScope: EntitlementScope | null;
+  entitlementLimits: EntitlementLimit | null;
+  entitlementUsage: EntitlementUsage | null;
+  requiresVerifiedMembership: true;
+  dashboard: RegionEntitlementSnapshot;
+  dossierDraft: RegionEntitlementSnapshot;
+  anlassraumDraft: RegionEntitlementSnapshot;
 };
 
 export type RegionAccessAuthoritySource =
@@ -54,9 +90,11 @@ type RegionAccessContextInput = {
   roles?: string[] | null;
   scopedRegionIds?: string[] | null;
   organizationIds?: string[] | null;
-  paidDashboardEntitlement?: OrganizationAccessContext["paidDashboardEntitlement"];
   memberships?: OrganizationMembership[] | null;
   organizations?: Organization[] | null;
+  dashboardEntitlementCheck?: EntitlementCheckResult | null;
+  dossierDraftEntitlementCheck?: EntitlementCheckResult | null;
+  anlassraumDraftEntitlementCheck?: EntitlementCheckResult | null;
 };
 
 function uniqueNonEmpty(values: Array<string | null | undefined>): string[] {
@@ -163,14 +201,80 @@ function resolveHighestVerificationStatus(
 
 export function buildOrganizationAccessContext(input: {
   organizationIds?: string[] | null;
-  paidDashboardEntitlement?: OrganizationAccessContext["paidDashboardEntitlement"];
+  isAdmin?: boolean;
+  dashboardEntitlementCheck?: EntitlementCheckResult | null;
+  dossierDraftEntitlementCheck?: EntitlementCheckResult | null;
+  anlassraumDraftEntitlementCheck?: EntitlementCheckResult | null;
 } = {}): OrganizationAccessContext {
   const organizationIds = uniqueNonEmpty(input.organizationIds ?? []);
+  const buildSnapshot = (
+    check: EntitlementCheckResult | null | undefined,
+    isAdmin: boolean,
+  ): RegionEntitlementSnapshot => {
+    if (isAdmin) {
+      return {
+        allowed: true,
+        reason: "admin_fallback",
+        status: "admin_fallback",
+        planId: null,
+        planLabel: "Admin-Fallback",
+        scope: null,
+        source: "admin_fallback",
+        limits: null,
+        usage: null,
+      };
+    }
+    if (!check) {
+      return {
+        allowed: false,
+        reason: "not_checked",
+        status: null,
+        planId: null,
+        planLabel: null,
+        scope: null,
+        source: "not_checked",
+        limits: null,
+        usage: null,
+      };
+    }
+    return {
+      allowed: check.allowed,
+      reason: check.reason,
+      status: check.status ?? null,
+      planId: check.planId ?? null,
+      planLabel: check.planLabel ?? null,
+      scope: check.scope ?? null,
+      source: check.source ?? "not_checked",
+      limits: check.limits ?? null,
+      usage: check.usage ?? null,
+    };
+  };
+  const dashboard = buildSnapshot(input.dashboardEntitlementCheck, Boolean(input.isAdmin));
+  const dossierDraft = buildSnapshot(input.dossierDraftEntitlementCheck, Boolean(input.isAdmin));
+  const anlassraumDraft = buildSnapshot(input.anlassraumDraftEntitlementCheck, Boolean(input.isAdmin));
+  const paidDashboardEntitlement: OrganizationAccessContext["paidDashboardEntitlement"] = Boolean(input.isAdmin)
+    ? "admin_fallback"
+    : dashboard.allowed
+      ? "granted"
+      : dashboard.reason === "missing_entitlement" || dashboard.reason === "not_checked"
+        ? "missing"
+        : "blocked";
   return {
     organizationIds,
     primaryOrganizationId: organizationIds[0] ?? null,
-    paidDashboardEntitlement: input.paidDashboardEntitlement ?? "placeholder_not_enforced",
-    entitlementSource: "contract_placeholder",
+    paidDashboardEntitlement,
+    entitlementSource: dashboard.source,
+    entitlementStatus: dashboard.status,
+    entitlementReason: dashboard.reason,
+    entitlementPlanId: dashboard.planId,
+    entitlementPlanLabel: dashboard.planLabel,
+    entitlementScope: dashboard.scope,
+    entitlementLimits: dashboard.limits,
+    entitlementUsage: dashboard.usage,
+    requiresVerifiedMembership: true,
+    dashboard,
+    dossierDraft,
+    anlassraumDraft,
   };
 }
 
@@ -213,7 +317,10 @@ export function buildRegionAccessContext(input: RegionAccessContextInput = {}): 
     scopedRegionIds,
     organization: buildOrganizationAccessContext({
       organizationIds: input.organizationIds,
-      paidDashboardEntitlement: input.paidDashboardEntitlement,
+      isAdmin,
+      dashboardEntitlementCheck: input.dashboardEntitlementCheck,
+      dossierDraftEntitlementCheck: input.dossierDraftEntitlementCheck,
+      anlassraumDraftEntitlementCheck: input.anlassraumDraftEntitlementCheck,
     }),
     allowedActions,
   };
@@ -230,7 +337,14 @@ function contextAllowsAction(
   action: RegionAllowedAction,
   regionId: string,
 ): boolean {
-  return contextCanAccessRegion(context, regionId) && context.allowedActions.includes(action);
+  if (!contextCanAccessRegion(context, regionId) || !context.allowedActions.includes(action)) {
+    return false;
+  }
+  if (context.isAdmin) return true;
+  if (!context.organization.dashboard.allowed) return false;
+  if (action === "create_dossier_draft") return context.organization.dossierDraft.allowed;
+  if (action === "create_anlassraum_draft") return context.organization.anlassraumDraft.allowed;
+  return true;
 }
 
 export function canReadRegionDashboard(context: RegionAccessContext, regionId: string): boolean {

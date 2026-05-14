@@ -27,6 +27,7 @@ export async function GET(
       isAdmin: gate.actor.isAdmin,
       roles: gate.roles,
       organizationIds: gate.actor.scopedOwnerIds,
+      regionId: region.id,
     });
     if (!canReadRegionDashboard(accessContext, region.id)) {
       return NextResponse.json(
