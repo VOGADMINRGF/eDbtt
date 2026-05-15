@@ -1,8 +1,8 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import type { RegionAllowedAction, RegionalAdminCockpitReadModel } from "@features/region";
 import {
   getRegionalAdminCockpitReadModel,
-  listOperationalRegions,
 } from "@features/region";
 
 type SearchParamsShape =
@@ -280,8 +280,10 @@ export default async function AdminRegionPage({
   searchParams?: SearchParamsShape;
 }) {
   const resolved = searchParams ? await searchParams : {};
-  const regions = await listOperationalRegions();
-  const selectedRegionId = firstParam(resolved.regionId) ?? regions[0]?.slug ?? regions[0]?.id ?? null;
+  const selectedRegionId = firstParam(resolved.regionId);
+  if (!selectedRegionId) {
+    redirect("/admin/regions");
+  }
   const cockpit = selectedRegionId ? await getRegionalAdminCockpitReadModel(selectedRegionId) : null;
 
   return (
@@ -293,35 +295,30 @@ export default async function AdminRegionPage({
         <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
           Regionales Lagebild
         </p>
+        <div
+          data-testid="admin-region-context"
+          className="flex flex-wrap items-center gap-2 text-xs text-[rgb(var(--muted))]"
+        >
+          <Link href="/admin/regions" className="rounded-full border border-[rgb(var(--border))] px-3 py-1">
+            Zur Regionen-Übersicht
+          </Link>
+          {selectedRegionId ? (
+            <span className="rounded-full border border-[rgb(var(--border))] px-3 py-1">
+              Arbeitsansicht: {selectedRegionId}
+            </span>
+          ) : null}
+          <span className="rounded-full border border-[rgb(var(--border))] px-3 py-1">
+            Detailroute: `/admin/region?regionId=...`
+          </span>
+        </div>
         <h1 className="text-3xl font-semibold text-[rgb(var(--fg))]">Verwaltung, Akteure und Signale</h1>
         <p className="max-w-3xl text-sm text-[rgb(var(--muted))]">
-          Die Surface verbindet regionale Signale, Feed-Vorschläge und reviewpflichtige Dossier- oder
-          Anlassraum-Hinweise. Keine automatische Veröffentlichung, keine automatische Dossier-Erstellung,
-          kein Vergabe- oder Procurement-Monitoring.
+          `/admin/region` bleibt die Detail- und Arbeitsansicht für eine ausgewählte Region. Die Surface verbindet
+          regionale Signale, Feed-Vorschläge und reviewpflichtige Dossier- oder Anlassraum-Hinweise. Keine
+          automatische Veröffentlichung, keine automatische Dossier-Erstellung, kein Vergabe- oder
+          Procurement-Monitoring.
         </p>
       </header>
-
-      <section
-        data-testid="admin-region-selector"
-        className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4"
-      >
-        <p className="text-sm font-semibold text-[rgb(var(--fg))]">Region auswählen</p>
-        <div className="mt-3 flex flex-wrap gap-2">
-          {regions.slice(0, 18).map((region) => (
-            <Link
-              key={region.id}
-              href={`/admin/region?regionId=${encodeURIComponent(region.slug || region.id)}`}
-              className={`rounded-full border px-3 py-1 text-xs ${
-                region.id === cockpit?.region.id || region.slug === selectedRegionId
-                  ? "border-cyan-400 bg-cyan-500/10 text-cyan-900"
-                  : "border-[rgb(var(--border))] text-[rgb(var(--muted))]"
-              }`}
-            >
-              {region.name}
-            </Link>
-          ))}
-        </div>
-      </section>
 
       {cockpit ? (
         <>

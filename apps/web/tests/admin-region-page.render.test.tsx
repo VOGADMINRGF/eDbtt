@@ -23,7 +23,7 @@ describe("admin-region-page.render", () => {
     );
 
     expect(html).toContain('data-testid="admin-region-page"');
-    expect(html).toContain('data-testid="admin-region-selector"');
+    expect(html).toContain('data-testid="admin-region-context"');
     expect(html).toContain('data-testid="admin-region-summary"');
     expect(html).toContain('data-testid="admin-region-access-summary"');
     expect(html).toContain('data-testid="admin-region-guardrails"');
@@ -35,6 +35,9 @@ describe("admin-region-page.render", () => {
     expect(html).toContain('data-testid="admin-region-prepare-actions"');
     expect(html).toContain('data-testid="admin-region-modules"');
     expect(html).toContain("Verwaltung, Akteure und Signale");
+    expect(html).toContain("Zur Regionen-Übersicht");
+    expect(html).toContain("Arbeitsansicht: berlin-reinickendorf");
+    expect(html).toContain("Detailroute: `/admin/region?regionId=...`");
     expect(html).toContain("Aktuelle Themenlage Berlin Reinickendorf");
     expect(html).toContain("Pilotdaten zur Demonstration der Themenlage");
     expect(html).toContain("notRealNews=true");
