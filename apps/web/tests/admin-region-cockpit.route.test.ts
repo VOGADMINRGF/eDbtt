@@ -1,9 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
 import {
+  createInMemoryParticipationSignalReviewRuntimeRepo,
   createInMemoryRegionDataRepo,
   createInMemoryRegionEntitlementRuntimeRepo,
   createInMemoryRegionOrganizationRuntimeRepo,
+  setParticipationSignalReviewRuntimeRepoForTests,
   setRegionDataRepoForTests,
   setRegionEntitlementRuntimeRepoForTests,
   setRegionOrganizationRuntimeRepoForTests,
@@ -61,6 +63,9 @@ describe("/api/admin/region/cockpit/[regionId]", () => {
     );
     setRegionOrganizationRuntimeRepoForTests(createInMemoryRegionOrganizationRuntimeRepo());
     setRegionEntitlementRuntimeRepoForTests(createInMemoryRegionEntitlementRuntimeRepo());
+    setParticipationSignalReviewRuntimeRepoForTests(
+      createInMemoryParticipationSignalReviewRuntimeRepo(),
+    );
   });
 
   it("returns a read-only cockpit with regional signals, suggestions and guardrails", async () => {
@@ -130,6 +135,11 @@ describe("/api/admin/region/cockpit/[regionId]", () => {
         reviewItemsFromPublicInput: expect.arrayContaining([
           expect.objectContaining({
             sourceType: "public_claim",
+          }),
+        ]),
+        needsRegionReviewSignals: expect.arrayContaining([
+          expect.objectContaining({
+            reviewStatus: "needs_region_review",
           }),
         ]),
         suggestedAnlassraeume: expect.arrayContaining([

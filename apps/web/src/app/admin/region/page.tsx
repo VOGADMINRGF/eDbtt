@@ -71,6 +71,10 @@ function reviewStatusLabel(value: string) {
       return "abgelehnt";
     case "archived":
       return "archiviert";
+    case "needs_region_review":
+      return "Region prüfen";
+    case "revoked":
+      return "widerrufen";
     case "needs_review":
       return "reviewpflichtig";
     default:
@@ -649,6 +653,27 @@ export default async function AdminRegionPage({
                   </p>
                 </div>
               </div>
+              {cockpit.needsRegionReviewSignals.length > 0 ? (
+                <div className="mt-4 rounded-2xl border border-amber-300 bg-amber-50 p-3">
+                  <p className="text-xs uppercase tracking-[0.12em] text-amber-900">
+                    Regionzuordnung offen
+                  </p>
+                  <p className="mt-2 text-sm text-amber-950">
+                    {cockpit.needsRegionReviewSignals.length} öffentliche Signale bleiben bis zur bestätigten
+                    Regionzuordnung außerhalb der aktiven Themenlage.
+                  </p>
+                  <div className="mt-3 space-y-2">
+                    {cockpit.needsRegionReviewSignals.slice(0, 4).map((signal) => (
+                      <div key={signal.id} className="rounded-xl border border-amber-200 bg-white px-3 py-2">
+                        <p className="text-sm font-semibold text-[rgb(var(--fg))]">{signal.title}</p>
+                        <p className="mt-1 text-xs text-[rgb(var(--muted))]">
+                          {reviewStatusLabel(signal.reviewStatus)} · {privacyModeLabel(signal.privacyMode)}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
               <div className="mt-4 space-y-3">
                 {cockpit.participationSignals.length > 0 ? (
                   cockpit.participationSignals.slice(0, 6).map((signal) => (

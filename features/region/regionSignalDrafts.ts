@@ -10,10 +10,10 @@ import {
 } from "./access";
 import type { DossierActorRole } from "@features/dossier/schemas";
 import {
-  getRegionalParticipationSignalById,
   getOperationalRegionById,
   getRegionalAdminCockpitReadModel,
   getRegionalCommunitySignalById,
+  listOperationalRegions,
 } from "./store";
 import {
   type RegionFeedSignal,
@@ -23,8 +23,13 @@ import {
 } from "./regionFeedSignals";
 import {
   mapParticipationSignalToFeedSignalForDraft,
-  type RegionParticipationSignal,
 } from "./regionParticipationSignals";
+import {
+  getParticipationSignalReviewRuntimeRepo,
+  serializeParticipationSignalForDashboard,
+  syncParticipationSignalRecords,
+  type RegionParticipationSignalRecord,
+} from "./server/participationSignalReviewRuntime";
 
 export const REGION_SIGNAL_DRAFT_TARGETS = ["dossier", "anlassraum"] as const;
 export type RegionSignalDraftTarget = (typeof REGION_SIGNAL_DRAFT_TARGETS)[number];
@@ -35,6 +40,10 @@ export type RegionSignalDraftStatus = (typeof REGION_SIGNAL_DRAFT_STATUSES)[numb
 export const REGION_SIGNAL_DRAFT_BLOCK_REASONS = [
   "signal_not_found",
   "signal_not_accepted",
+  "public_signal_not_found",
+  "public_signal_not_accepted",
+  "public_signal_region_unconfirmed",
+  "public_signal_privacy_restricted",
   "missing_permission",
   "wrong_region",
   "tender_or_procurement_out_of_scope",
@@ -264,10 +273,16 @@ function buildDraftProvenance(signal: RegionFeedSignal): RegionSignalDraftProven
 }
 
 function participationSignalBlockedForDraft(
-  signal: RegionParticipationSignal,
+  record: RegionParticipationSignalRecord,
 ): RegionSignalDraftBlockedReason | null {
-  if (signal.privacyMode === "review_restricted") return "validation_error";
-  if (signal.needsRegionReview) return "wrong_region";
+  if (!record.regionId || record.needsRegionReview) return "public_signal_region_unconfirmed";
+  if (
+    record.privacyMode === "review_restricted" &&
+    (!record.publicSafeTitle || !record.publicSafeSummary)
+  ) {
+    return "public_signal_privacy_restricted";
+  }
+  if (record.reviewStatus !== "accepted") return "public_signal_not_accepted";
   return null;
 }
 
@@ -374,12 +389,12 @@ function buildDraftAction(params: {
 async function resolveRegionSignalForDraft(regionId: string, signalId: string) {
   const region = await getOperationalRegionById(regionId);
   if (!region) {
-    return { region: null, signal: null, wrongRegion: false as const, participationSignal: null };
+    return { region: null, signal: null, wrongRegion: false as const, participationSignalRecord: null };
   }
 
   const cockpit = await getRegionalAdminCockpitReadModel(region.id);
   const signal = cockpit.feedSignals.find((entry) => entry.id === signalId) ?? null;
-  if (signal) return { region, signal, wrongRegion: false as const, participationSignal: null };
+  if (signal) return { region, signal, wrongRegion: false as const, participationSignalRecord: null };
 
   const fixtureSignal = REGION_FEED_SIGNAL_FIXTURES.find((entry) => entry.id === signalId) ?? null;
   if (fixtureSignal) {
@@ -387,7 +402,7 @@ async function resolveRegionSignalForDraft(regionId: string, signalId: string) {
       region,
       signal: fixtureSignal,
       wrongRegion: fixtureSignal.regionId !== region.id,
-      participationSignal: null,
+      participationSignalRecord: null,
     };
   }
 
@@ -398,28 +413,40 @@ async function resolveRegionSignalForDraft(regionId: string, signalId: string) {
         region,
         signal: mapRuntimeSignalToFeedSignal({ signal: runtimeSignal, regionId: region.id }),
         wrongRegion: false as const,
-        participationSignal: null,
+        participationSignalRecord: null,
       };
     }
     return {
       region,
       signal: null,
       wrongRegion: runtimeSignal.regionId !== region.id,
-      participationSignal: null,
+      participationSignalRecord: null,
     };
   }
 
-  const participationSignal = await getRegionalParticipationSignalById(signalId);
-  if (participationSignal) {
+  const allRegions = await listOperationalRegions();
+  await syncParticipationSignalRecords(allRegions);
+  const participationRepo = getParticipationSignalReviewRuntimeRepo();
+  const participationSignalRecord = await participationRepo.getParticipationSignalRecordById(signalId);
+  if (participationSignalRecord) {
+    const wrongRegion =
+      Boolean(participationSignalRecord.regionId && participationSignalRecord.regionId !== region.id) ||
+      Boolean(
+        !participationSignalRecord.regionId &&
+          participationSignalRecord.proposedRegionId &&
+          participationSignalRecord.proposedRegionId !== region.id &&
+          !participationSignalRecord.matchedRegionIds.includes(region.id),
+      );
+    const dashboardSignal = serializeParticipationSignalForDashboard(participationSignalRecord);
     return {
       region,
-      signal: mapParticipationSignalToFeedSignalForDraft(participationSignal),
-      wrongRegion: participationSignal.regionId !== region.id,
-      participationSignal,
+      signal: dashboardSignal ? mapParticipationSignalToFeedSignalForDraft(dashboardSignal) : null,
+      wrongRegion,
+      participationSignalRecord,
     };
   }
 
-  return { region, signal: null, wrongRegion: false as const, participationSignal: null };
+  return { region, signal: null, wrongRegion: false as const, participationSignalRecord: null };
 }
 
 async function ensureDraftIndexes() {
@@ -676,19 +703,8 @@ export async function createRegionSignalDraft(input: {
     });
   }
 
-  if (!resolved.signal) {
-    return RegionSignalDraftResultSchema.parse({
-      ok: false,
-      blockedReason: "signal_not_found",
-      draftType,
-      reviewStatus: "needs_review",
-      createdByRole,
-      guardrails: DRAFT_GUARDRAILS,
-    });
-  }
-
-  if (resolved.participationSignal) {
-    const participationBlock = participationSignalBlockedForDraft(resolved.participationSignal);
+  if (resolved.participationSignalRecord) {
+    const participationBlock = participationSignalBlockedForDraft(resolved.participationSignalRecord);
     if (participationBlock) {
       return RegionSignalDraftResultSchema.parse({
         ok: false,
@@ -699,6 +715,17 @@ export async function createRegionSignalDraft(input: {
         guardrails: DRAFT_GUARDRAILS,
       });
     }
+  }
+
+  if (!resolved.signal) {
+    return RegionSignalDraftResultSchema.parse({
+      ok: false,
+      blockedReason: resolved.participationSignalRecord ? "public_signal_not_found" : "signal_not_found",
+      draftType,
+      reviewStatus: "needs_review",
+      createdByRole,
+      guardrails: DRAFT_GUARDRAILS,
+    });
   }
 
   const signal = resolved.signal;

@@ -1,11 +1,19 @@
 import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
-import { createInMemoryRegionDataRepo, setRegionDataRepoForTests } from "@features/region";
+import {
+  createInMemoryParticipationSignalReviewRuntimeRepo,
+  createInMemoryRegionDataRepo,
+  setParticipationSignalReviewRuntimeRepoForTests,
+  setRegionDataRepoForTests,
+} from "@features/region";
 import AdminRegionPage from "@/app/admin/region/page";
 
 describe("admin-region-page.render", () => {
   it("renders the regional review surface with access, guardrails and prepare-only actions", async () => {
     setRegionDataRepoForTests(createInMemoryRegionDataRepo());
+    setParticipationSignalReviewRuntimeRepoForTests(
+      createInMemoryParticipationSignalReviewRuntimeRepo(),
+    );
     const html = renderToStaticMarkup(
       await AdminRegionPage({
         searchParams: {
@@ -48,6 +56,7 @@ describe("admin-region-page.render", () => {
     expect(html).toContain("Dokumentation");
     expect(html).toContain("Nachvollziehbarkeit");
     expect(html).toContain("Öffentliche Beteiligungssignale");
+    expect(html).toContain("Regionzuordnung offen");
     expect(html).toContain("Claims aus der Öffentlichkeit");
     expect(html).toContain("Fragen aus der Öffentlichkeit");
     expect(html).toContain("Swipe-/Interesse-Signale aggregiert");

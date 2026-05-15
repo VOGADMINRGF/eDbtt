@@ -21,7 +21,12 @@ describe("region participation signals contract", () => {
       noPoliticalScoring: true,
       noRepresentativeClaim: true,
     });
-    expect(findSignal("public_contribution")).toMatchObject({
+    expect(findSignal("public_contribution", "needs-region-review-001")).toMatchObject({
+      reviewStatus: "needs_region_review",
+      sourceClass: "participation",
+      needsRegionReview: true,
+    });
+    expect(findSignal("public_contribution", "magdeburg-contribution-001")).toMatchObject({
       reviewStatus: "needs_review",
       sourceClass: "participation",
     });

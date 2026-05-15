@@ -1,11 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
 import {
+  createInMemoryParticipationSignalReviewRuntimeRepo,
   createInMemoryRegionDataRepo,
   createInMemoryRegionEntitlementRuntimeRepo,
   createInMemoryRegionOrganizationRuntimeRepo,
   createInMemoryRegionSignalDraftPersistence,
   listRegionSignalDraftRecords,
+  setParticipationSignalReviewRuntimeRepoForTests,
   setRegionDataRepoForTests,
   setRegionEntitlementRuntimeRepoForTests,
   setRegionOrganizationRuntimeRepoForTests,
@@ -85,6 +87,9 @@ describe("/api/admin/region/signals/[id]/draft", () => {
     setRegionOrganizationRuntimeRepoForTests(createInMemoryRegionOrganizationRuntimeRepo());
     setRegionEntitlementRuntimeRepoForTests(createInMemoryRegionEntitlementRuntimeRepo());
     setRegionSignalDraftPersistenceForTests(createInMemoryRegionSignalDraftPersistence());
+    setParticipationSignalReviewRuntimeRepoForTests(
+      createInMemoryParticipationSignalReviewRuntimeRepo(),
+    );
     mocks.requireGovernanceActorOrResponse.mockResolvedValue({
       user: { _id: { toHexString: () => "admin-1" } },
       roles: ["admin"],
@@ -478,11 +483,11 @@ describe("/api/admin/region/signals/[id]/draft", () => {
     expect(acceptedRes.status).toBe(201);
     await expect(claimRes.json()).resolves.toMatchObject({
       ok: false,
-      blockedReason: "signal_not_accepted",
+      blockedReason: "public_signal_not_accepted",
     });
     await expect(restrictedRes.json()).resolves.toMatchObject({
       ok: false,
-      blockedReason: "validation_error",
+      blockedReason: "public_signal_privacy_restricted",
     });
     await expect(acceptedRes.json()).resolves.toMatchObject({
       ok: true,
