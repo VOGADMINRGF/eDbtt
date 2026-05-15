@@ -113,6 +113,148 @@ const MULTI_BRANCH_FOLLOWUP_RESULT = {
   generatedAt: "2026-05-09T12:00:00.000Z",
 };
 
+const PROVISIONAL_QUOTA_FOLLOWUP_RESULT = {
+  understanding: {
+    summary:
+      "Der Beitrag kritisiert verbindliche Quotenregelungen, befürwortet aber Gleichberechtigung und will Fairness, Vergleichbarkeit mit anderen Minderheiten und wirtschaftliche Folgen für Unternehmen prüfen.",
+    categories: [{ id: "objection", label: "Einwand", confidence: "high" as const }],
+    topics: [
+      { id: "quota-topic", label: "Gleichberechtigung, Antidiskriminierung und Quotenregelungen", confidence: "high" as const },
+      { id: "quota-equality", label: "Gleichberechtigung", confidence: "high" as const },
+      { id: "quota-women", label: "Frauenquote", confidence: "high" as const },
+      { id: "quota-minorities", label: "Minderheitenförderung", confidence: "medium" as const },
+      {
+        id: "quota-business",
+        label: "wirtschaftliche Auswirkungen für Unternehmen",
+        confidence: "medium" as const,
+      },
+    ],
+    statements: [
+      {
+        id: "s1",
+        text: "Kritik an verbindlichen Quotenregelungen bei gleichzeitigem Wunsch nach Gleichberechtigung",
+        kind: "objection" as const,
+        stance: "mixed" as const,
+        confidence: "high" as const,
+      },
+    ],
+    scopes: ["federal" as const],
+    openQuestion: "Geht es um gesetzliche Quoten, Unternehmensquoten oder Förderprogramme?",
+    confidence: "high" as const,
+  },
+  suggestions: [],
+  sourceText:
+    "ich bin gegen frauenquote aber für mehr gleichberechtigung, gibt es eine frauenquote müsste es auch quoten von anderen minderheiten geben, das kann nicht richtig und wirtschaftlich für ein unternehmen sein.",
+  generatedAt: "2026-05-15T12:00:00.000Z",
+  meta: {
+    planner: {
+      source: "heuristic_fallback" as const,
+      plannerSource: "heuristic_fallback" as const,
+      plannerProvider: "local_fallback" as const,
+      plannerRole: "planner_only" as const,
+      plannerTopic: "Gleichberechtigung, Antidiskriminierung und Quotenregelungen",
+      plannerCore: "Kritik an verbindlichen Quotenregelungen bei gleichzeitigem Wunsch nach Gleichberechtigung",
+      plannerScope: ["federal" as const, "unclear" as const],
+      plannerStance: "mixed" as const,
+      plannerClusters: [
+        "Gleichberechtigung",
+        "Frauenquote",
+        "Minderheitenförderung",
+        "wirtschaftliche Auswirkungen für Unternehmen",
+      ],
+      plannerOpenQuestions: [
+        "Geht es um gesetzliche Quoten, Unternehmensquoten oder Förderprogramme?",
+        "Welche Minderheiten oder Gruppen sollen verglichen werden?",
+        "Soll daraus ein Claim, eine Frage oder ein Dossier entstehen?",
+      ],
+      shortSummary:
+        "Der Beitrag kritisiert verbindliche Quotenregelungen, befürwortet aber Gleichberechtigung und will Fairness, Vergleichbarkeit mit anderen Minderheiten und wirtschaftliche Folgen für Unternehmen prüfen.",
+      topicCandidates: [
+        "Gleichberechtigung, Antidiskriminierung und Quotenregelungen",
+        "Gleichberechtigung",
+        "Frauenquote",
+        "Minderheitenförderung",
+        "wirtschaftliche Auswirkungen für Unternehmen",
+      ],
+      clusterCandidates: [
+        "Gleichberechtigung",
+        "Frauenquote",
+        "Minderheitenförderung",
+        "wirtschaftliche Auswirkungen für Unternehmen",
+      ],
+      scopeCandidates: ["federal" as const, "unclear" as const],
+      stance: "mixed" as const,
+      openQuestions: [
+        "Geht es um gesetzliche Quoten, Unternehmensquoten oder Förderprogramme?",
+        "Welche Minderheiten oder Gruppen sollen verglichen werden?",
+        "Soll daraus ein Claim, eine Frage oder ein Dossier entstehen?",
+      ],
+      graphSearchTerms: [
+        "Gleichberechtigung",
+        "Frauenquote",
+        "Minderheitenförderung",
+        "Quotenregelungen Unternehmen",
+        "Fairness Quotenregelungen",
+      ],
+      materialSignals: [],
+      recommendedLane: "create_fast_followup" as const,
+      providerPlan: {
+        lane: "create_fast_followup" as const,
+        plannerProvider: "local_fallback" as const,
+        plannerRole: "planner_only" as const,
+        structureProvider: "mistral" as const,
+        summaryProvider: "claude" as const,
+        researchUsed: "none" as const,
+        researchProvider: null,
+        deepSearchUsed: false,
+        graphMatch: "after_structure" as const,
+      },
+      permissions: {
+        nonMutative: true as const,
+        canPublish: false as const,
+        canSave: false as const,
+        canMerge: false as const,
+        canDeepSearch: false as const,
+      },
+      plannerDegraded: true,
+      degradedReason: "timeout" as const,
+      plannerDegradedReason: "timeout" as const,
+      qualityStatus: "specific" as const,
+      qualityIssues: [],
+      providerCallAttempted: true,
+      providerCallSucceeded: false,
+      plannerDebug: {
+        attemptedProvider: "openai" as const,
+        usedProvider: "local_fallback" as const,
+        providerAvailable: true,
+        providerErrorCode: null,
+        providerErrorMessage: "create_planner_timeout_after_2200ms",
+        errorMessage: "create_planner_timeout_after_2200ms",
+        rawPayloadValid: false,
+        rawTextValid: false,
+        normalizedPayloadValid: false,
+        qualityGatePassed: false,
+      },
+    },
+    graphMatch: {
+      stage: "after_structure" as const,
+      prepared: false,
+      requiresConfirmation: true,
+      searchTerms: [],
+      matches: [],
+      matchedTopics: [],
+      matchedDossiers: [],
+      matchedClaims: [],
+      matchedAnlassraeume: [],
+      matchedVotes: [],
+      shouldCreateNewTopic: false,
+    },
+    researchUsed: "none" as const,
+    researchProvider: null,
+    deepSearchUsed: false,
+  },
+};
+
 const FOLLOWUP_ACTIONS = {
   onPrepareSubmission: () => {},
   onPrepareAnlassraum: () => {},
@@ -160,6 +302,20 @@ function renderMultiBranchVisualFollowup(isConfirmed = false) {
       result={MULTI_BRANCH_FOLLOWUP_RESULT}
       isConfirmed={isConfirmed}
       factcheckMessage="Optional. Startet erst nach bewusster Bestätigung. Keine automatische Kostenbuchung."
+      onConfirm={() => {}}
+      onEdit={() => {}}
+      {...FOLLOWUP_ACTIONS}
+      continuationValue=""
+      onContinuationChange={() => {}}
+      onContinueConversation={() => {}}
+    />,
+  );
+}
+
+function renderProvisionalQuotaFollowup() {
+  return renderToStaticMarkup(
+    <CreateVisualFollowup
+      result={PROVISIONAL_QUOTA_FOLLOWUP_RESULT}
       onConfirm={() => {}}
       onEdit={() => {}}
       {...FOLLOWUP_ACTIONS}
@@ -254,6 +410,22 @@ describe("create chat-first mobile dialog experience contract", () => {
     expect(html).not.toContain("Gelesene Sinnabschnitte");
     expect(html).not.toContain("Original oben anzeigen");
     expect(html).not.toContain("Kompakte Details");
+  });
+
+  it("keeps a specific local planner fallback visible as provisional structure instead of a timeout-first card", () => {
+    const html = renderProvisionalQuotaFollowup();
+
+    expect(html).toContain("Vorläufige Einordnung");
+    expect(html).toContain("Wir haben deinen Beitrag vorläufig eingeordnet.");
+    expect(html).toContain("Gleichberechtigung, Antidiskriminierung und Quotenregelungen");
+    expect(html).toContain("Kritik an verbindlichen Quotenregelungen bei gleichzeitigem Wunsch nach Gleichberechtigung");
+    expect(html).toContain("Gleichberechtigung");
+    expect(html).toContain("Frauenquote");
+    expect(html).toContain("Minderheitenförderung");
+    expect(html).toContain("wirtschaftliche Auswirkungen für Unternehmen");
+    expect(html).toContain("Geht es um gesetzliche Quoten, Unternehmensquoten oder Förderprogramme?");
+    expect(html).not.toContain("Wir konnten deinen Beitrag noch nicht exakt zuordnen.");
+    expect(html).not.toContain("Einordnung offen");
   });
 
   it("only opens the correction composer after edit mode is active", () => {
@@ -383,6 +555,8 @@ describe("create chat-first mobile dialog experience contract", () => {
     expect(followupSource).toContain("Mehrere kommunale Zielkonflikte priorisieren");
     expect(followupSource).toContain("Welche Bereiche sollen zuerst bearbeitet werden – und wer ist zuständig?");
     expect(followupSource).toContain("unreadLabel");
+    expect(followupSource).toContain("data-structure-overview-grid");
+    expect(followupSource).toContain("sm:grid-cols-2 md:grid-cols-4");
     expect(followupSource).toContain("const [detailsOpen, setDetailsOpen] = React.useState(false);");
     expect(followupSource).toContain("{detailsOpen ? (");
     expect(followupSource).toContain("aria-expanded={detailsOpen}");

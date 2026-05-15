@@ -108,7 +108,9 @@ describe("create entry hierarchy contract", () => {
     expect(html).toContain("Nächste Schritte");
     expect(html).toContain("Was als Nächstes folgt");
     expect((html.match(/data-mobile-structure-card/g) ?? []).length).toBe(4);
-    expect(followupSource).toContain("data-mobile-structure-card className=\"flex items-center gap-2.5\"");
+    expect(followupSource).toContain("data-mobile-structure-card className=\"flex h-full flex-col gap-2.5\"");
+    expect(followupSource).toContain("data-structure-overview-grid");
+    expect(followupSource).toContain("sm:grid-cols-2 md:grid-cols-4");
     expect(followupSource).toContain("grid gap-4 lg:grid-cols-[minmax(0,1.1fr)_minmax(18rem,22rem)]");
     expect(composerSource).toContain("text-lg font-semibold tracking-tight");
     expect(composerSource).toContain("data-create-alternate-mode-disclosure");

@@ -39,6 +39,7 @@ type CreateVisualFollowupProps = {
 
 export const CREATE_VISUAL_FOLLOWUP_COPY = {
   headline: "Wir haben deinen Beitrag grob verstanden.",
+  headlineProvisional: "Wir haben deinen Beitrag vorläufig eingeordnet.",
   headlineNeedsClarification: "Wir konnten deinen Beitrag noch nicht exakt zuordnen.",
   structureTitle: "Vorläufig verstanden",
   structureTitleNeedsClarification: "Einordnung offen",
@@ -274,11 +275,16 @@ function needsPlannerClarification(result: CreateIntelligentFollowupResult): boo
   const planner = result.meta?.planner;
   if (!planner) return false;
   return (
-    planner.plannerDegraded ||
     planner.qualityStatus === "generic" ||
     planner.qualityStatus === "needs_confirmation" ||
     planner.qualityStatus === "failed"
   );
+}
+
+function hasProvisionalPlannerStructure(result: CreateIntelligentFollowupResult): boolean {
+  const planner = result.meta?.planner;
+  if (!planner) return false;
+  return planner.plannerDegraded && planner.qualityStatus === "specific";
 }
 
 function resolvePlannerClarificationReason(result: CreateIntelligentFollowupResult): string {
@@ -312,6 +318,31 @@ function resolvePlannerClarificationReason(result: CreateIntelligentFollowupResu
     return "Konnte nicht exakt zugeordnet werden.";
   }
   return "Die Einordnung braucht noch eine kurze Bestätigung.";
+}
+
+function resolvePlannerProvisionalNotice(result: CreateIntelligentFollowupResult): string | null {
+  const planner = result.meta?.planner;
+  if (!planner || !hasProvisionalPlannerStructure(result)) return null;
+  if (planner.degradedReason === "missing_provider_key") {
+    return "Vorläufige Einordnung aus lokalen Textsignalen. Die KI-Einordnung ist gerade nicht verfügbar.";
+  }
+  if (planner.degradedReason === "timeout") {
+    return "Vorläufige Einordnung aus lokalen Textsignalen. Die KI-Einordnung hat das Zeitlimit erreicht.";
+  }
+  if (planner.degradedReason === "rate_limited") {
+    return "Vorläufige Einordnung aus lokalen Textsignalen. Die KI-Einordnung ist gerade ausgelastet.";
+  }
+  if (planner.degradedReason === "provider_error") {
+    return "Vorläufige Einordnung aus lokalen Textsignalen. Die KI-Einordnung konnte gerade nicht geladen werden.";
+  }
+  if (
+    planner.degradedReason === "invalid_json" ||
+    planner.degradedReason === "invalid_provider_payload" ||
+    planner.degradedReason === "normalization_failed"
+  ) {
+    return "Vorläufige Einordnung aus lokalen Textsignalen. Die KI-Antwort konnte nicht sauber verarbeitet werden.";
+  }
+  return "Vorläufige Einordnung aus lokalen Textsignalen.";
 }
 
 function isGenericPlannerLabel(label: string): boolean {
@@ -1192,22 +1223,24 @@ function CreateStructureOverviewCard(props: {
   onClick?: () => void;
 }) {
   const content = (
-    <div data-mobile-structure-card className="flex items-center gap-2.5">
-      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-cyan-300/60 bg-cyan-500/[0.06] dark:border-cyan-300/30 dark:bg-cyan-500/10">
-        <FocusAreaIcon area={props.area} />
-      </span>
-      <div className="min-w-0">
-        <div className="flex flex-wrap items-center gap-2">
-          <p className="text-sm font-semibold text-[rgb(var(--fg))]">{props.title}</p>
-          {props.unreadLabel ? (
-            <span className="rounded-full bg-cyan-600 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-white dark:bg-cyan-300 dark:text-slate-950">
-              {props.unreadLabel}
-            </span>
-          ) : null}
+    <div data-mobile-structure-card className="flex h-full flex-col gap-2.5">
+      <div className="flex items-start gap-2.5">
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-cyan-300/60 bg-cyan-500/[0.06] dark:border-cyan-300/30 dark:bg-cyan-500/10">
+          <FocusAreaIcon area={props.area} />
+        </span>
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="text-sm font-semibold text-[rgb(var(--fg))]">{props.title}</p>
+            {props.unreadLabel ? (
+              <span className="rounded-full bg-cyan-600 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-white dark:bg-cyan-300 dark:text-slate-950">
+                {props.unreadLabel}
+              </span>
+            ) : null}
+          </div>
+          <p className="mt-0.5 text-xs leading-relaxed text-[rgb(var(--muted))]">{props.description}</p>
         </div>
-        <p className="mt-0.5 text-xs leading-relaxed text-[rgb(var(--muted))]">{props.description}</p>
       </div>
-      <div className="ml-auto flex shrink-0 items-center gap-2">
+      <div className="mt-auto flex items-center justify-between gap-2">
         <span className="rounded-full border border-slate-200/80 bg-white/70 px-2.5 py-1 text-[11px] font-semibold text-slate-700 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--bg))] dark:text-slate-100">
           {props.pillLabel}
         </span>
@@ -1218,19 +1251,18 @@ function CreateStructureOverviewCard(props: {
     </div>
   );
 
+  const className =
+    "h-full rounded-[20px] border border-slate-200/75 bg-[color-mix(in_oklab,rgb(var(--card))_92%,rgb(var(--bg))_8%)] px-3 py-3 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))]";
+
   if (!props.onClick) {
-    return (
-      <article className="rounded-full border border-slate-200/75 bg-[color-mix(in_oklab,rgb(var(--card))_92%,rgb(var(--bg))_8%)] px-3 py-2.5 dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))]">
-        {content}
-      </article>
-    );
+    return <article className={className}>{content}</article>;
   }
 
   return (
     <button
       type="button"
       onClick={props.onClick}
-      className="w-full rounded-full border border-slate-200/75 bg-[color-mix(in_oklab,rgb(var(--card))_92%,rgb(var(--bg))_8%)] px-3 py-2.5 text-left transition hover:border-cyan-300/55 hover:bg-cyan-500/[0.05] dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))]"
+      className={`${className} w-full text-left transition hover:border-cyan-300/55 hover:bg-cyan-500/[0.05]`}
     >
       {content}
     </button>
@@ -1251,7 +1283,7 @@ export function CreateStructureOverview(props: CreateStructureOverviewProps) {
             : "Kompakt zuerst, Details bei Bedarf."}
         </p>
       </div>
-      <div className="flex flex-wrap gap-2">
+      <div data-structure-overview-grid className="grid items-stretch gap-2 sm:grid-cols-2 md:grid-cols-4">
         <CreateStructureOverviewCard
           area="priorities"
           title={isEnglish ? "Priorities" : "Prioritäten"}
@@ -2338,6 +2370,8 @@ export default function CreateVisualFollowup({
   const scopeChip = result.understanding.scopes[0] ?? "unclear";
   const plannerClarificationRequired = needsPlannerClarification(result);
   const plannerClarificationReason = resolvePlannerClarificationReason(result);
+  const plannerProvisionalNotice = resolvePlannerProvisionalNotice(result);
+  const plannerUsesProvisionalStructure = Boolean(plannerProvisionalNotice);
   const degradedStartPoints = React.useMemo(() => extractDegradedStartPoints(result), [result]);
   const plannerClarificationLeadText =
     "Dein Beitrag enthält mehrere mögliche Themen oder die KI-Einordnung konnte gerade nicht zuverlässig abgeschlossen werden.";
@@ -2386,9 +2420,11 @@ export default function CreateVisualFollowup({
     ? openQuestionText
     : result.meta?.planner?.plannerTopic === "Tierschutz, Tierhaltung und Agrarstandards"
       ? "Offen bleibt, welche Produkte, Länder, Standards und Kontrollmechanismen konkret gemeint sind."
-    : result.understanding.dossierContext === "Kommunale Prioritäten und Zielkonflikte"
-      ? "Welche Bereiche sollen zuerst bearbeitet werden – und was braucht noch Klärung?"
-      : "Diese Rückfrage bleibt vor der weiteren Vorbereitung sichtbar.";
+      : result.meta?.planner?.plannerTopic === "Gleichberechtigung, Antidiskriminierung und Quotenregelungen"
+        ? "Offen bleibt vor allem, welche Quotenform, welche Vergleichsgruppen und welches Format als nächster Schritt gemeint sind."
+        : result.understanding.dossierContext === "Kommunale Prioritäten und Zielkonflikte"
+          ? "Welche Bereiche sollen zuerst bearbeitet werden – und was braucht noch Klärung?"
+          : "Diese Rückfrage bleibt vor der weiteren Vorbereitung sichtbar.";
   const visibleTopicLabels = topicLabels.filter((label) => label !== rootTopic).slice(0, 4);
   const understandingKindLabel = resolveUnderstandingKindLabel(result);
   const corePreviewTitle = resolveCorePreviewTitle({
@@ -2426,12 +2462,14 @@ export default function CreateVisualFollowup({
           <div className="rounded-[28px] border border-slate-200/80 bg-[color-mix(in_oklab,rgb(var(--card))_94%,rgb(var(--bg))_6%)] px-4 py-4 shadow-[0_18px_42px_rgba(2,6,23,0.06)] dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))]">
             <div className="space-y-1">
               <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
-                {plannerClarificationRequired ? "Einordnung offen" : "Verstanden"}
+                {plannerClarificationRequired ? "Einordnung offen" : plannerUsesProvisionalStructure ? "Vorläufige Einordnung" : "Verstanden"}
               </p>
               <p className="text-lg font-semibold text-[rgb(var(--fg))]">
                 {plannerClarificationRequired
                   ? CREATE_VISUAL_FOLLOWUP_COPY.headlineNeedsClarification
-                  : CREATE_VISUAL_FOLLOWUP_COPY.headline}
+                  : plannerUsesProvisionalStructure
+                    ? CREATE_VISUAL_FOLLOWUP_COPY.headlineProvisional
+                    : CREATE_VISUAL_FOLLOWUP_COPY.headline}
               </p>
               <p className="text-sm leading-relaxed text-[rgb(var(--fg))]">
                 {plannerClarificationRequired ? plannerClarificationLeadText : dedupedCopy.prominentSummary}
@@ -2441,6 +2479,9 @@ export default function CreateVisualFollowup({
               ) : null}
               {plannerClarificationRequired ? (
                 <p className="text-sm leading-relaxed text-amber-900 dark:text-amber-100">{plannerClarificationReason}</p>
+              ) : null}
+              {plannerUsesProvisionalStructure ? (
+                <p className="text-sm leading-relaxed text-amber-900 dark:text-amber-100">{plannerProvisionalNotice}</p>
               ) : null}
             </div>
 

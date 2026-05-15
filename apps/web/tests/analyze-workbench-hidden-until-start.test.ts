@@ -300,6 +300,8 @@ describe("analyze workbench progressive disclosure", () => {
     expect(source).toContain("So übernehmen");
     expect(source).toContain("Redaktionell prüfen lassen");
     expect(source).toContain("Deine Struktur auf einen Blick");
+    expect(source).toContain("data-structure-overview-grid");
+    expect(source).toContain("sm:grid-cols-2 md:grid-cols-4");
     expect(source).toContain("Fragen & Abstimmung");
     expect(source).toContain("Gelesene Sinnabschnitte");
     expect(source).toContain("Welche kommunalen Prioritäten sollen zuerst bearbeitet werden?");
