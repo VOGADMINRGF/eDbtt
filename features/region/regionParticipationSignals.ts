@@ -2,9 +2,7 @@ import { coreCol } from "@core/db/triMongo";
 import { z } from "zod";
 import type { Region } from "./contracts";
 import {
-  REGION_SIGNAL_REVIEW_STATUSES,
   type RegionFeedSignal,
-  type RegionSignalReviewState,
   parseRegionFeedSignal,
 } from "./regionFeedSignals";
 
@@ -46,6 +44,18 @@ export const REGION_PARTICIPATION_PRIVACY_MODES = [
 export type RegionParticipationPrivacyMode =
   (typeof REGION_PARTICIPATION_PRIVACY_MODES)[number];
 
+export const REGION_PARTICIPATION_REVIEW_STATUSES = [
+  "draft",
+  "needs_review",
+  "needs_region_review",
+  "accepted",
+  "rejected",
+  "archived",
+  "revoked",
+] as const;
+export type RegionParticipationReviewStatus =
+  (typeof REGION_PARTICIPATION_REVIEW_STATUSES)[number];
+
 export const NEEDS_REGION_REVIEW_REGION_ID = "needs-region-review";
 
 const RegionParticipationSignalSourceSchema = z
@@ -86,7 +96,7 @@ const RegionParticipationSignalSchema = z
     needsRegionReview: z.boolean().default(false),
     aggregationMode: z.enum(REGION_PARTICIPATION_AGGREGATION_MODES),
     privacyMode: z.enum(REGION_PARTICIPATION_PRIVACY_MODES),
-    reviewStatus: z.enum(REGION_SIGNAL_REVIEW_STATUSES),
+    reviewStatus: z.enum(REGION_PARTICIPATION_REVIEW_STATUSES),
     confidence: z.number().min(0).max(1),
     source: RegionParticipationSignalSourceSchema,
     noAutoPublish: z.literal(true),
@@ -117,7 +127,7 @@ const RegionParticipationAggregateSchema = z
     detectedTopics: z.array(z.string().trim().min(1)).default([]),
     aggregationMode: z.enum(REGION_PARTICIPATION_AGGREGATION_MODES),
     privacyMode: z.enum(REGION_PARTICIPATION_PRIVACY_MODES),
-    reviewStatus: z.enum(REGION_SIGNAL_REVIEW_STATUSES),
+    reviewStatus: z.enum(REGION_PARTICIPATION_REVIEW_STATUSES),
     noPersonalProfiling: z.literal(true),
     noPoliticalScoring: z.literal(true),
     noRepresentativeClaim: z.literal(true),
@@ -134,7 +144,7 @@ const RegionParticipationReviewItemSchema = z
     regionId: z.string().trim().min(1),
     title: z.string().trim().min(1),
     sourceType: z.enum(REGION_PARTICIPATION_SOURCE_TYPES),
-    reviewStatus: z.enum(REGION_SIGNAL_REVIEW_STATUSES),
+    reviewStatus: z.enum(REGION_PARTICIPATION_REVIEW_STATUSES),
     aggregationMode: z.enum(REGION_PARTICIPATION_AGGREGATION_MODES),
     privacyMode: z.enum(REGION_PARTICIPATION_PRIVACY_MODES),
     confidence: z.number().min(0).max(1),
@@ -407,7 +417,7 @@ function buildRuntimeSource(input: {
 function defaultReviewStatusFromContribution(
   reviewStatus: string | null | undefined,
   status: string | null | undefined,
-): RegionSignalReviewState {
+): RegionParticipationReviewStatus {
   const normalizedReview = String(reviewStatus ?? "").trim().toLowerCase();
   const normalizedStatus = String(status ?? "").trim().toLowerCase();
   if (normalizedReview === "approved") return "accepted";
@@ -508,6 +518,38 @@ export const REGION_PARTICIPATION_SIGNAL_FIXTURES: RegionParticipationSignal[] =
     privacyMode: "no_personal_data",
     reviewStatus: "needs_review",
     confidence: 0.66,
+    source: buildFixtureSource("participation_fixtures"),
+    noAutoPublish: true,
+    noAutoCreateDossier: true,
+    noAutoCreateAnlassraum: true,
+    noPersonalProfiling: true,
+    noPoliticalScoring: true,
+    noRepresentativeClaim: true,
+    noTenderMonitoring: true,
+    noProcurementMonitoring: true,
+  }),
+  parseRegionParticipationSignal({
+    id: "region-participation-needs-region-review-001",
+    regionId: NEEDS_REGION_REVIEW_REGION_ID,
+    sourceClass: "participation",
+    sourceType: "public_contribution",
+    title: "Öffentlicher Beitrag mit möglichem Bezug zu Schulwegen",
+    summary:
+      "Pilot-Fall: Der Hinweis nennt Schulwege und Verkehr, aber der konkrete Bezirksbezug muss erst bestätigt werden.",
+    relatedClaimIds: [],
+    relatedContributionIds: [],
+    relatedStatementIds: [],
+    relatedDossierIds: [],
+    relatedAnlassraumIds: [],
+    detectedTopics: ["Verkehr & Schulwege"],
+    detectedPlaces: ["Nordwesten Berlin"],
+    matchedPlaces: ["Nordwesten Berlin"],
+    matchedRegionIds: ["bezirk-berlin-reinickendorf"],
+    needsRegionReview: true,
+    aggregationMode: "single_review_item",
+    privacyMode: "no_personal_data",
+    reviewStatus: "needs_region_review",
+    confidence: 0.31,
     source: buildFixtureSource("participation_fixtures"),
     noAutoPublish: true,
     noAutoCreateDossier: true,
@@ -1097,7 +1139,7 @@ async function loadRuntimeSwipeSignals(
   }
 }
 
-export async function listRegionParticipationSignalsForRuntime(
+export async function listDerivedRegionParticipationSignals(
   regions: Region[],
 ): Promise<RegionParticipationSignal[]> {
   const [runtimeContributions, runtimeStatements, runtimeSwipes] =

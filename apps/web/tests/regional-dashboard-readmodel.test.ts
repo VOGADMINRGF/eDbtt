@@ -1,13 +1,18 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import {
+  createInMemoryParticipationSignalReviewRuntimeRepo,
   createInMemoryRegionDataRepo,
   getRegionalAdminCockpitReadModel,
+  setParticipationSignalReviewRuntimeRepoForTests,
   setRegionDataRepoForTests,
 } from "@features/region";
 
 describe("regional dashboard readmodel", () => {
   beforeEach(() => {
     setRegionDataRepoForTests(createInMemoryRegionDataRepo());
+    setParticipationSignalReviewRuntimeRepoForTests(
+      createInMemoryParticipationSignalReviewRuntimeRepo(),
+    );
   });
 
   it("gives Reinickendorf its own feed, topic and dossier suggestions", async () => {
@@ -20,6 +25,7 @@ describe("regional dashboard readmodel", () => {
     expect(model.feedSignals.some((signal) => signal.title.includes("Schulsanierung"))).toBe(true);
     expect(model.participationSignals.some((signal) => signal.sourceType === "public_claim")).toBe(true);
     expect(model.participationSignals.some((signal) => signal.sourceType === "swipe_interest")).toBe(true);
+    expect(model.needsRegionReviewSignals.some((signal) => signal.reviewStatus === "needs_region_review")).toBe(true);
     expect(model.suggestedAnlassraeume.some((item) => item.title === "Bildung & Schulinfrastruktur Reinickendorf")).toBe(true);
     expect(model.suggestedDossiers.some((item) => item.title === "Sanierung von Schulen im Bezirk")).toBe(true);
     expect(model.topicClusters.length).toBeGreaterThan(0);

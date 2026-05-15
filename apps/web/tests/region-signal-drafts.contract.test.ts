@@ -1,10 +1,12 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import {
   buildRegionAccessContext,
+  createInMemoryParticipationSignalReviewRuntimeRepo,
   createInMemoryRegionDataRepo,
   createInMemoryRegionSignalDraftPersistence,
   createRegionSignalDraft,
   listRegionSignalDraftRecords,
+  setParticipationSignalReviewRuntimeRepoForTests,
   setRegionDataRepoForTests,
   setRegionSignalDraftPersistenceForTests,
   type EntitlementCheckResult,
@@ -169,6 +171,9 @@ describe("region signal drafts contract", () => {
   beforeEach(() => {
     setRegionDataRepoForTests(createInMemoryRegionDataRepo());
     setRegionSignalDraftPersistenceForTests(createInMemoryRegionSignalDraftPersistence());
+    setParticipationSignalReviewRuntimeRepoForTests(
+      createInMemoryParticipationSignalReviewRuntimeRepo(),
+    );
   });
 
   it("blocks pending, email-verified, organization-verified and raw-role contexts from creating drafts", async () => {
@@ -367,6 +372,13 @@ describe("region signal drafts contract", () => {
       accessContext: context,
       requestedBy: "user-1",
     });
+    const regionReviewPending = await createRegionSignalDraft({
+      signalId: "region-participation-needs-region-review-001",
+      regionId: "berlin-reinickendorf",
+      target: "dossier",
+      accessContext: context,
+      requestedBy: "user-1",
+    });
     const privacyRestricted = await createRegionSignalDraft({
       signalId: "region-participation-reinickendorf-source-hint-001",
       regionId: "berlin-reinickendorf",
@@ -384,11 +396,15 @@ describe("region signal drafts contract", () => {
 
     expect(notAccepted).toMatchObject({
       ok: false,
-      blockedReason: "signal_not_accepted",
+      blockedReason: "public_signal_not_accepted",
+    });
+    expect(regionReviewPending).toMatchObject({
+      ok: false,
+      blockedReason: "public_signal_region_unconfirmed",
     });
     expect(privacyRestricted).toMatchObject({
       ok: false,
-      blockedReason: "validation_error",
+      blockedReason: "public_signal_privacy_restricted",
     });
     expect(accepted).toMatchObject({
       ok: true,

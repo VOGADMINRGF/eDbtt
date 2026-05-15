@@ -51,21 +51,28 @@ import {
   REGION_FEED_SIGNAL_FIXTURES,
 } from "./regionFeedSignals";
 import {
-  getRegionParticipationSignalById as getFixtureRegionParticipationSignalById,
   type RegionParticipationAggregate,
   type RegionParticipationAggregationMode,
   type RegionParticipationPrivacyMode,
   type RegionParticipationReviewItem,
+  type RegionParticipationReviewStatus,
   type RegionParticipationSignal,
-  listRegionParticipationSignalsForRuntime,
   parseRegionParticipationAggregate,
-  parseRegionParticipationReviewItem,
 } from "./regionParticipationSignals";
 import {
   getRegionGuidelineMatrixByProfile,
   resolveGuidelineProfileForRegion,
   type RegionGuidelineMatrix,
 } from "./guidelines";
+import {
+  getParticipationSignalReviewRuntimeRepo,
+  listParticipationSignalsForDashboard,
+  listParticipationSignalsForReviewRuntime,
+  serializeParticipationReviewItem,
+  serializeParticipationSignalForDashboard,
+  syncParticipationSignalRecords,
+  type RegionParticipationSignalRecord,
+} from "./server/participationSignalReviewRuntime";
 import {
   getRegionDataRepo,
   setRegionDataRepoForTests,
@@ -120,7 +127,7 @@ export type RegionDashboardOpenReviewItem = {
   sourceClass: "feed" | "participation";
   sourceType: RegionFeedSignal["sourceType"] | RegionParticipationSignal["sourceType"];
   suggestedAction: RegionFeedSignal["suggestedAction"] | "review_public_input";
-  reviewStatus: RegionSignalReviewState;
+  reviewStatus: RegionSignalReviewState | RegionParticipationReviewStatus;
   dataOrigin: RegionFeedSignal["provenance"]["dataOrigin"];
   isFixture: boolean;
   confidence: number;
@@ -172,6 +179,7 @@ export type RegionalAdminCockpitReadModel = {
   };
   communitySourceHints: RegionParticipationSignal[];
   reviewItemsFromPublicInput: RegionParticipationReviewItem[];
+  needsRegionReviewSignals: RegionParticipationReviewItem[];
   topicClusters: RegionTopicCluster[];
   suggestedAnlassraeume: RegionAnlassraumSuggestion[];
   suggestedDossiers: RegionDossierSuggestion[];
@@ -391,20 +399,6 @@ function resolveRegionFeedSignals(params: {
   return [...pilotSignals, ...runtimeSignals].sort((left, right) => right.confidence - left.confidence);
 }
 
-function resolveParticipationSignals(params: {
-  region: Region;
-  scopedRegionIds: string[];
-  allSignals: RegionParticipationSignal[];
-}): RegionParticipationSignal[] {
-  return params.allSignals
-    .filter(
-      (signal) =>
-        params.scopedRegionIds.includes(signal.regionId) && !signal.needsRegionReview,
-    )
-    .map((signal) => clone(signal))
-    .sort((left, right) => right.confidence - left.confidence);
-}
-
 function buildParticipationAggregates(
   regionId: string,
   signals: RegionParticipationSignal[],
@@ -504,27 +498,16 @@ function buildSwipeSummary(
 }
 
 function buildParticipationReviewItems(
-  signals: RegionParticipationSignal[],
+  records: RegionParticipationSignalRecord[],
 ): RegionParticipationReviewItem[] {
-  return signals
-    .filter((signal) => signal.reviewStatus === "draft" || signal.reviewStatus === "needs_review")
-    .map((signal) =>
-      parseRegionParticipationReviewItem({
-        id: signal.id,
-        regionId: signal.regionId,
-        title: signal.title,
-        sourceType: signal.sourceType,
-        reviewStatus: signal.reviewStatus,
-        aggregationMode: signal.aggregationMode,
-        privacyMode: signal.privacyMode,
-        confidence: signal.confidence,
-        summary: signal.summary,
-        needsRegionReview: signal.needsRegionReview,
-        noPersonalProfiling: true,
-        noPoliticalScoring: true,
-        noRepresentativeClaim: true,
-      }),
-    );
+  return records
+    .filter(
+      (record) =>
+        record.reviewStatus !== "archived" &&
+        record.reviewStatus !== "rejected" &&
+        record.reviewStatus !== "revoked",
+    )
+    .map((record) => serializeParticipationReviewItem(record));
 }
 
 function buildTopicClusters(regionId: string, signals: RegionFeedSignal[]): RegionTopicCluster[] {
@@ -879,10 +862,11 @@ export async function getRegionalParticipationSignalById(
   id: string,
 ): Promise<RegionParticipationSignal | null> {
   const regions = await listOperationalRegions();
-  const runtimeSignals = await listRegionParticipationSignalsForRuntime(regions);
-  const runtimeMatch = runtimeSignals.find((signal) => signal.id === id) ?? null;
-  if (runtimeMatch) return clone(runtimeMatch);
-  return getFixtureRegionParticipationSignalById(id);
+  await syncParticipationSignalRecords(regions);
+  const repo = getParticipationSignalReviewRuntimeRepo();
+  const record = await repo.getParticipationSignalRecordById(id);
+  if (!record) return null;
+  return serializeParticipationSignalForDashboard(record);
 }
 
 export async function createRegionalCommunitySignal(
@@ -951,7 +935,18 @@ export async function getRegionalAdminCockpitReadModel(
   const scopedRegionIds = collectScopedRegionIds(region.id, regions);
   const scopedSet = new Set(scopedRegionIds);
   const regionMap = new Map(regions.map((entry) => [entry.id, entry]));
-  const allParticipationSignals = await listRegionParticipationSignalsForRuntime(regions);
+  const { activeSignals: participationSignals, needsRegionReviewSignals } =
+    await listParticipationSignalsForDashboard({
+      regions,
+      regionId: region.id,
+    });
+  const participationReviewRecords = await listParticipationSignalsForReviewRuntime({
+    regions,
+    query: {
+      regionId: region.id,
+      reviewStatus: "all",
+    },
+  });
   const communitySignals = allSignals.filter((signal) => scopedSet.has(signal.regionId));
   const actors = allActors.filter((actor) => scopedSet.has(actor.regionId));
   const activeAnlassraeume = listRegionalAnlassraeume()
@@ -1041,13 +1036,15 @@ export async function getRegionalAdminCockpitReadModel(
     communitySignals,
     regionMap,
   });
-  const participationSignals = resolveParticipationSignals({
-    region,
-    scopedRegionIds,
-    allSignals: allParticipationSignals,
-  });
   const participationAggregates = buildParticipationAggregates(region.id, participationSignals);
-  const reviewItemsFromPublicInput = buildParticipationReviewItems(participationSignals);
+  const reviewItemsFromPublicInput = buildParticipationReviewItems(
+    participationReviewRecords.filter(
+      (record) =>
+        (record.regionId && scopedSet.has(record.regionId)) ||
+        (record.proposedRegionId && scopedSet.has(record.proposedRegionId)) ||
+        record.matchedRegionIds.some((entry) => scopedSet.has(entry)),
+    ),
+  );
   const topicClusters = buildTopicClusters(region.id, feedSignals);
   const suggestedDossiers = buildSuggestedDossiers(region.id, feedSignals);
   const suggestedAnlassraeume = buildSuggestedAnlassraeume(region.id, feedSignals);
@@ -1098,6 +1095,7 @@ export async function getRegionalAdminCockpitReadModel(
       (signal) => signal.sourceType === "public_source_hint",
     ),
     reviewItemsFromPublicInput,
+    needsRegionReviewSignals,
     topicClusters,
     suggestedAnlassraeume,
     suggestedDossiers,
