@@ -62,6 +62,11 @@ import {
   parseRegionParticipationReviewItem,
 } from "./regionParticipationSignals";
 import {
+  getRegionGuidelineMatrixByProfile,
+  resolveGuidelineProfileForRegion,
+  type RegionGuidelineMatrix,
+} from "./guidelines";
+import {
   getRegionDataRepo,
   setRegionDataRepoForTests,
   type CommunitySignalRepoListQuery,
@@ -133,6 +138,8 @@ export type RegionDashboardActiveDossier = {
 export type RegionalAdminCockpitReadModel = {
   region: Region;
   accessSummary: RegionDashboardAccessSummary;
+  guidelineProfile: string | null;
+  guidelineMatrix: RegionGuidelineMatrix | null;
   actorCount: number;
   verifiedActorCount: number;
   officialDirectoryActorCount: number;
@@ -950,6 +957,11 @@ export async function getRegionalAdminCockpitReadModel(
   const activeAnlassraeume = listRegionalAnlassraeume()
     .filter((anlassraum) => scopedSet.has(anlassraum.regionId))
     .map((anlassraum) => clone(anlassraum));
+  const guidelineProfile = resolveGuidelineProfileForRegion({
+    region,
+    activeAnlassraeume,
+  });
+  const guidelineMatrix = getRegionGuidelineMatrixByProfile(guidelineProfile);
   const accessContext =
     input.accessContext ??
     ({
@@ -1058,6 +1070,8 @@ export async function getRegionalAdminCockpitReadModel(
   return {
     region,
     accessSummary: buildAccessSummary(region.id, accessContext),
+    guidelineProfile,
+    guidelineMatrix,
     actorCount: actors.length,
     verifiedActorCount: actors.filter((actor) => actor.verificationStatus === "verified").length,
     officialDirectoryActorCount: actors.filter((actor) => actor.sourceKind === "official_directory").length,

@@ -20,6 +20,7 @@ describe("admin-region-page.render", () => {
     expect(html).toContain('data-testid="admin-region-access-summary"');
     expect(html).toContain('data-testid="admin-region-guardrails"');
     expect(html).toContain('data-testid="admin-region-feed-signals"');
+    expect(html).toContain('data-testid="admin-region-guidelines"');
     expect(html).toContain('data-testid="admin-region-participation-signals"');
     expect(html).toContain('data-testid="admin-region-suggestions"');
     expect(html).toContain('data-testid="admin-region-open-review"');
@@ -37,6 +38,15 @@ describe("admin-region-page.render", () => {
     expect(html).toContain("noTenderMonitoring: true");
     expect(html).toContain("noProcurementMonitoring: true");
     expect(html).toContain("Feed- und Signal-Hinweise");
+    expect(html).toContain("Leitlinienmatrix Berlin / Bürgerbeteiligung");
+    expect(html).toContain("Keine Rechtsberatung");
+    expect(html).toContain("Frühzeitigkeit");
+    expect(html).toContain("Transparenz");
+    expect(html).toContain("Rückmeldung");
+    expect(html).toContain("Zielgruppenansprache");
+    expect(html).toContain("Barrierefreiheit");
+    expect(html).toContain("Dokumentation");
+    expect(html).toContain("Nachvollziehbarkeit");
     expect(html).toContain("Öffentliche Beteiligungssignale");
     expect(html).toContain("Claims aus der Öffentlichkeit");
     expect(html).toContain("Fragen aus der Öffentlichkeit");

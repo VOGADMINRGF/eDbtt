@@ -84,6 +84,12 @@ describe("/api/admin/region/cockpit/[regionId]", () => {
           canReadRegionDashboard: true,
           canCreateDossierDraft: true,
         },
+        guidelineProfile: "berlin_participation_guidelines",
+        guidelineMatrix: expect.objectContaining({
+          title: "Leitlinienmatrix Berlin / Bürgerbeteiligung",
+          legalAdvice: false,
+          reviewRequired: true,
+        }),
         guardrails: {
           noAutoPublish: true,
           noAutoDossierCreation: true,

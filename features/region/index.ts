@@ -2,6 +2,7 @@ export * from "./access";
 export * from "./contracts";
 export * from "./directory";
 export * from "./fixtures";
+export * from "./guidelines";
 export * from "./organizationOnboarding";
 export * from "./regionFeedSignals";
 export * from "./regionParticipationSignals";
