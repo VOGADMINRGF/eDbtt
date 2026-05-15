@@ -14,6 +14,9 @@ describe("regional dashboard readmodel", () => {
     const model = await getRegionalAdminCockpitReadModel("berlin-reinickendorf");
 
     expect(model.region.id).toBe("bezirk-berlin-reinickendorf");
+    expect(model.guidelineProfile).toBe("berlin_participation_guidelines");
+    expect(model.guidelineMatrix?.title).toBe("Leitlinienmatrix Berlin / Bürgerbeteiligung");
+    expect(model.guidelineMatrix?.legalAdvice).toBe(false);
     expect(model.feedSignals.some((signal) => signal.title.includes("Schulsanierung"))).toBe(true);
     expect(model.participationSignals.some((signal) => signal.sourceType === "public_claim")).toBe(true);
     expect(model.participationSignals.some((signal) => signal.sourceType === "swipe_interest")).toBe(true);
@@ -26,6 +29,8 @@ describe("regional dashboard readmodel", () => {
     const spandau = await getRegionalAdminCockpitReadModel("berlin-spandau");
     const pankow = await getRegionalAdminCockpitReadModel("berlin-pankow");
 
+    expect(spandau.guidelineMatrix?.title).toBe("Leitlinienmatrix Berlin / Bürgerbeteiligung");
+    expect(pankow.guidelineMatrix?.title).toBe("Leitlinienmatrix Berlin / Bürgerbeteiligung");
     expect(spandau.feedSignals.some((signal) => signal.title.includes("Schulsanierung"))).toBe(false);
     expect(pankow.feedSignals.some((signal) => signal.title.includes("Schulsanierung"))).toBe(false);
     expect(spandau.participationSignals.some((signal) => signal.regionId === "bezirk-berlin-reinickendorf")).toBe(false);
@@ -38,6 +43,8 @@ describe("regional dashboard readmodel", () => {
     const magdeburg = await getRegionalAdminCockpitReadModel("magdeburg");
 
     expect(magdeburg.region.id).toBe("kommune-magdeburg");
+    expect(magdeburg.guidelineProfile).toBeNull();
+    expect(magdeburg.guidelineMatrix).toBeNull();
     expect(magdeburg.feedSignals.some((signal) => signal.detectedPlaces.includes("Magdeburg"))).toBe(true);
     expect(magdeburg.participationSignals.some((signal) => signal.detectedPlaces.includes("Magdeburg"))).toBe(true);
     expect(magdeburg.feedSignals.some((signal) => signal.regionId === "bezirk-berlin-reinickendorf")).toBe(false);

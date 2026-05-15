@@ -229,6 +229,25 @@ function renderEmptyState(label: string) {
   return <p className="text-sm text-[rgb(var(--muted))]">Noch keine {label} sichtbar.</p>;
 }
 
+function guidelineLabel(value: string) {
+  switch (value) {
+    case "fruehzeitigkeit":
+      return "Frühzeitigkeit";
+    case "transparenz":
+      return "Transparenz";
+    case "rueckmeldung":
+      return "Rückmeldung";
+    case "zielgruppenansprache":
+      return "Zielgruppenansprache";
+    case "barrierefreiheit":
+      return "Barrierefreiheit";
+    case "dokumentation":
+      return "Dokumentation";
+    default:
+      return "Nachvollziehbarkeit";
+  }
+}
+
 function aggregationModeLabel(value: string) {
   switch (value) {
     case "anonymized_count":
@@ -535,6 +554,38 @@ export default async function AdminRegionPage({
               </div>
             </article>
           </section>
+
+          {cockpit.guidelineMatrix ? (
+            <section
+              data-testid="admin-region-guidelines"
+              className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5"
+            >
+              <p className="text-xs uppercase tracking-[0.14em] text-[rgb(var(--muted))]">Leitlinienmatrix</p>
+              <h2 className="mt-2 text-lg font-semibold text-[rgb(var(--fg))]">
+                {cockpit.guidelineMatrix.title}
+              </h2>
+              <p className="mt-2 text-sm text-[rgb(var(--muted))]">
+                Arbeits- und Transparenzmatrix für {cockpit.region.name}. Keine Rechtsberatung, keine automatische
+                Leitlinien-Erfüllung und keine automatische Veröffentlichung.
+              </p>
+              <div className="mt-4 grid gap-3 lg:grid-cols-2">
+                {cockpit.guidelineMatrix.criteria.map((criterion) => (
+                  <article key={criterion.key} className="rounded-2xl border border-[rgb(var(--border))] p-4">
+                    <p className="text-xs uppercase tracking-[0.12em] text-[rgb(var(--muted))]">
+                      {guidelineLabel(criterion.key)}
+                    </p>
+                    <p className="mt-2 text-sm font-semibold text-[rgb(var(--fg))]">{criterion.workingRule}</p>
+                    <p className="mt-2 text-sm text-[rgb(var(--muted))]">
+                      Prüffrage: {criterion.reviewQuestion}
+                    </p>
+                    <p className="mt-2 text-xs text-[rgb(var(--muted))]">
+                      Dokumentationshinweis: {criterion.evidenceHint}
+                    </p>
+                  </article>
+                ))}
+              </div>
+            </section>
+          ) : null}
 
           <section
             data-testid="admin-region-participation-signals"
