@@ -967,6 +967,12 @@ export function setParticipationSignalReviewRuntimeRepoForTests(
   repo: ParticipationSignalReviewRuntimeRepo | null,
 ) {
   repoSingleton = repo;
+  indexesReady = false;
+}
+
+export function resetParticipationSignalReviewRuntimeForTests() {
+  repoSingleton = null;
+  indexesReady = false;
 }
 
 export async function syncParticipationSignalRecords(
