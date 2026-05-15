@@ -604,10 +604,14 @@ function finalizePlannerResult(params: {
   providerCallAttempted: boolean;
   providerCallSucceeded: boolean;
   plannerDebug: CreatePlannerDebug;
+  qualityOverride?: {
+    status: CreatePlannerQualityStatus;
+    issues: string[];
+  };
 }): CreatePlannerResult {
   const draft = params.draft;
   const recommendedLane = draft.recommendedLane;
-  const quality = validateCreatePlannerQuality(
+  const validatedQuality = validateCreatePlannerQuality(
     {
       plannerCore: draft.plannerCore,
       plannerTopic: draft.plannerTopic,
@@ -620,6 +624,12 @@ function finalizePlannerResult(params: {
     },
     params.text,
   );
+  const quality = params.qualityOverride
+    ? {
+        qualityStatus: params.qualityOverride.status,
+        qualityIssues: dedupeStrings([...validatedQuality.qualityIssues, ...params.qualityOverride.issues]),
+      }
+    : validatedQuality;
 
   return {
     source: params.source,
@@ -889,6 +899,7 @@ function buildComplexCivicPlanner(params: {
   });
 }
 
+// technical fallback only, not canonical domain mapping
 function buildQuotaEqualityPlanner(params: {
   text: string;
   source: CreatePlannerSource;
@@ -928,6 +939,10 @@ function buildQuotaEqualityPlanner(params: {
     providerCallAttempted: params.providerCallAttempted,
     providerCallSucceeded: params.providerCallSucceeded,
     plannerDebug: params.plannerDebug,
+    qualityOverride: {
+      status: "needs_confirmation",
+      issues: ["technical_fallback_only"],
+    },
     draft: {
       plannerTopic: "Gleichberechtigung, Antidiskriminierung und Quotenregelungen",
       plannerCore: "Kritik an verbindlichen Quotenregelungen bei gleichzeitigem Wunsch nach Gleichberechtigung",

@@ -271,15 +271,17 @@ describe("create planner routing contract", () => {
         "Welche Minderheiten oder Gruppen sollen verglichen werden?",
         "Soll daraus ein Claim, eine Frage oder ein Dossier entstehen?",
       ]);
-      expect(planner.qualityStatus).toBe("specific");
+      expect(planner.qualityStatus).toBe("needs_confirmation");
       expect(planner.plannerDegraded).toBe(true);
       expect(planner.degradedReason).toBe("missing_provider_key");
+      expect(planner.qualityIssues).toContain("technical_fallback_only");
       expect(planner.permissions.canSave).toBe(false);
       expect(planner.permissions.canPublish).toBe(false);
       expect(planner.permissions.canMerge).toBe(false);
       expect(planner.permissions.canDeepSearch).toBe(false);
       expect(planner.providerPlan.deepSearchUsed).toBe(false);
       expect(planner.providerPlan.researchUsed).toBe("none");
+      expect(planner.providerPlan.plannerProvider).toBe("local_fallback");
       expect(planner.providerPlan.graphMatch).toBe("after_structure");
     } finally {
       if (originalOpenAiKey === undefined) delete process.env.OPENAI_API_KEY;

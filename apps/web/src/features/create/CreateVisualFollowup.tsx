@@ -275,6 +275,7 @@ function needsPlannerClarification(result: CreateIntelligentFollowupResult): boo
   const planner = result.meta?.planner;
   if (!planner) return false;
   return (
+    planner.qualityIssues.includes("technical_fallback_only") ||
     planner.qualityStatus === "generic" ||
     planner.qualityStatus === "needs_confirmation" ||
     planner.qualityStatus === "failed"
@@ -284,7 +285,17 @@ function needsPlannerClarification(result: CreateIntelligentFollowupResult): boo
 function hasProvisionalPlannerStructure(result: CreateIntelligentFollowupResult): boolean {
   const planner = result.meta?.planner;
   if (!planner) return false;
-  return planner.plannerDegraded && planner.qualityStatus === "specific";
+  return (
+    planner.plannerDegraded &&
+    planner.qualityStatus === "specific" &&
+    !planner.qualityIssues.includes("technical_fallback_only")
+  );
+}
+
+function isTechnicalPlannerFallback(result: CreateIntelligentFollowupResult): boolean {
+  const planner = result.meta?.planner;
+  if (!planner) return false;
+  return planner.qualityIssues.includes("technical_fallback_only");
 }
 
 function resolvePlannerClarificationReason(result: CreateIntelligentFollowupResult): string {
@@ -2118,6 +2129,7 @@ function StructureProposalPanel(props: {
 function PlannerClarificationPanel(props: {
   reason: string;
   startPoints: string[];
+  technicalFallback?: boolean;
   onRetryPlanner?: () => void;
   onEdit: () => void;
   onRequestEditorialReview?: () => void;
@@ -2127,10 +2139,14 @@ function PlannerClarificationPanel(props: {
   return (
     <div className="space-y-3 rounded-[28px] border border-amber-300/30 bg-amber-500/[0.08] px-4 py-4 dark:border-amber-300/20 dark:bg-amber-500/[0.1]">
       <div className="space-y-1">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-amber-900 dark:text-amber-100">Einordnung offen</p>
+        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-amber-900 dark:text-amber-100">
+          {props.technicalFallback ? "Vorläufige Einordnung" : "Einordnung offen"}
+        </p>
         <p className="text-base font-semibold text-amber-950 dark:text-amber-50">Konnte nicht exakt zugeordnet werden.</p>
         <p className="text-sm leading-relaxed text-amber-950/85 dark:text-amber-100/85">
-          Die KI-Einordnung konnte gerade nicht zuverlässig abgeschlossen werden oder dein Beitrag enthält mehrere mögliche Themen.
+          {props.technicalFallback
+            ? "Die KI-Einordnung wurde nicht vollständig abgeschlossen."
+            : "Die KI-Einordnung konnte gerade nicht zuverlässig abgeschlossen werden oder dein Beitrag enthält mehrere mögliche Themen."}
         </p>
         <p className="text-sm leading-relaxed text-amber-950/85 dark:text-amber-100/85">{props.reason}</p>
       </div>
@@ -2372,9 +2388,12 @@ export default function CreateVisualFollowup({
   const plannerClarificationReason = resolvePlannerClarificationReason(result);
   const plannerProvisionalNotice = resolvePlannerProvisionalNotice(result);
   const plannerUsesProvisionalStructure = Boolean(plannerProvisionalNotice);
+  const plannerTechnicalFallback = isTechnicalPlannerFallback(result);
   const degradedStartPoints = React.useMemo(() => extractDegradedStartPoints(result), [result]);
   const plannerClarificationLeadText =
-    "Dein Beitrag enthält mehrere mögliche Themen oder die KI-Einordnung konnte gerade nicht zuverlässig abgeschlossen werden.";
+    plannerTechnicalFallback
+      ? "Die KI-Einordnung wurde nicht vollständig abgeschlossen."
+      : "Dein Beitrag enthält mehrere mögliche Themen oder die KI-Einordnung konnte gerade nicht zuverlässig abgeschlossen werden.";
   const assistantLead = resolveAssistantLead({
     topicLabels,
     summary: result.understanding.summary,
@@ -2462,7 +2481,13 @@ export default function CreateVisualFollowup({
           <div className="rounded-[28px] border border-slate-200/80 bg-[color-mix(in_oklab,rgb(var(--card))_94%,rgb(var(--bg))_6%)] px-4 py-4 shadow-[0_18px_42px_rgba(2,6,23,0.06)] dark:border-[rgb(var(--border))] dark:bg-[rgb(var(--card))]">
             <div className="space-y-1">
               <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
-                {plannerClarificationRequired ? "Einordnung offen" : plannerUsesProvisionalStructure ? "Vorläufige Einordnung" : "Verstanden"}
+                {plannerClarificationRequired
+                  ? plannerTechnicalFallback
+                    ? "Vorläufige Einordnung"
+                    : "Einordnung offen"
+                  : plannerUsesProvisionalStructure
+                    ? "Vorläufige Einordnung"
+                    : "Verstanden"}
               </p>
               <p className="text-lg font-semibold text-[rgb(var(--fg))]">
                 {plannerClarificationRequired
@@ -2551,6 +2576,7 @@ export default function CreateVisualFollowup({
                 <PlannerClarificationPanel
                   reason={plannerClarificationReason}
                   startPoints={degradedStartPoints}
+                  technicalFallback={plannerTechnicalFallback}
                   onRetryPlanner={onRetryPlanner}
                   onEdit={() => openCorrection("Thema")}
                   onRequestEditorialReview={onRequestEditorialReview}
@@ -2624,7 +2650,7 @@ export default function CreateVisualFollowup({
                 {plannerClarificationRequired ? (
                   <div className="rounded-[24px] border border-amber-300/30 bg-amber-500/[0.08] px-4 py-4 text-sm leading-relaxed text-amber-950 dark:border-amber-300/20 dark:bg-amber-500/[0.1] dark:text-amber-50">
                     <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-amber-900 dark:text-amber-100">
-                      Einordnung offen
+                      {plannerTechnicalFallback ? "Vorläufige Einordnung" : "Einordnung offen"}
                     </p>
                     <p className="mt-1 text-base font-semibold">Warum wir hier noch nicht weiter automatisieren</p>
                     <p className="mt-2">
