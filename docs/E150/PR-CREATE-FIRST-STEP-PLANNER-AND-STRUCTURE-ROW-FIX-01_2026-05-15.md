@@ -29,44 +29,55 @@ Im UI wurde jeder degradierte Planner bisher sofort als `Einordnung offen` behan
 
 ## Umsetzung
 
-### 1. Planner-first mit konkretem lokalem Minimalplanner
+### 1. Planner-first mit engem technischem Notfallback
 
 `apps/web/src/features/create/createPlanner.ts`
 
-- neue lokale Signalheuristik fuer gemischte Quoten-/Gleichberechtigungs-Texte:
+- neuer enger technischer Notfallback fuer gemischte Quoten-/Gleichberechtigungs-Texte:
   - `Gleichberechtigung`
   - `Frauenquote`
   - `Minderheitenförderung`
   - `wirtschaftliche Auswirkungen für Unternehmen`
   - optional `Antidiskriminierung`
 - neuer lokaler Planner-Pfad `buildQuotaEqualityPlanner()`
+- Kommentar im Code: `technical fallback only, not canonical domain mapping`
 - Ergebnis bleibt strikt non-mutativ:
   - kein Auto-Save
   - kein Auto-Publish
   - kein Auto-DeepSearch
   - kein Auto-Graph-Merge
   - keine Kostenbuchung
+- der Fallback bleibt explizit degradiert:
+  - `plannerDegraded=true`
+  - `plannerProvider=local_fallback`
+  - `providerPlan.plannerProvider=local_fallback`
+  - `qualityStatus=needs_confirmation`
+  - `qualityIssues` enthaelt `technical_fallback_only`
 
-Das lokale Ergebnis fuer den Beispieltext liefert jetzt konkret:
+Der lokale Notfallback extrahiert fuer den Beispieltext nur offensichtliche Startpunkte:
 
 - `plannerCore`: Kritik an verbindlichen Quotenregelungen bei gleichzeitigem Wunsch nach Gleichberechtigung
 - `plannerTopic`: Gleichberechtigung, Antidiskriminierung und Quotenregelungen
 - `plannerClusters`: Gleichberechtigung, Frauenquote, Minderheitenförderung, wirtschaftliche Auswirkungen für Unternehmen
 - `plannerOpenQuestions` mit klaren Folgefragen statt generischem Timeout-Rest
 
-### 2. Spezifische degradierte Planner nicht mehr als Total-Fallback behandeln
+Der Fallback gilt damit nicht als kanonische fachliche Zuordnung, sondern nur als vorlaeufige Orientierung, bis `planner_only` wieder belastbar verfuegbar ist.
+
+### 2. UI zeigt technischen Notfallback jetzt sichtbar als vorlaeufig
 
 `apps/web/src/features/create/CreateVisualFollowup.tsx`
 
-- `needsPlannerClarification()` springt nicht mehr allein auf `plannerDegraded` an
-- degradierte **aber spezifische** lokale Planner werden jetzt als:
-  - `Vorläufige Einordnung`
-  - `Wir haben deinen Beitrag vorläufig eingeordnet.`
-  - subtile Hinweiscopy zur lokalen Signalschicht
-  gerendert
-- nur generische oder fachlich unzureichende Planner bleiben im deeskalierten `Einordnung offen`-Zustand
+- der Quoten-Notfallback traegt jetzt den Quality-Issue-Marker `technical_fallback_only`
+- `CreateVisualFollowup` behandelt diesen Marker bewusst als Klarstellungszustand statt als quasi-verstandene Struktur
+- sichtbare UI fuer diesen Fall:
+  - Titel: `Vorläufige Einordnung`
+  - Hinweis: `Die KI-Einordnung wurde nicht vollständig abgeschlossen.`
+  - CTA: `KI-Suche aktivieren`
+  - CTA: `Bericht an die Redaktion senden`
+  - CTA: `Thema selbst auswählen`
+- es werden nur moegliche Startpunkte gezeigt, keine normale Struktur mit `Kern`, `Thema` und Folge-Handoffs
 
-Damit erscheint bei echtem Timeout nicht mehr zuerst die reine Timeout-Karte, solange konkrete lokale Struktur vorhanden ist.
+Damit bleibt der technische Notfallback sichtbar nuetzlich, taeuscht aber keine finale fachliche Zuordnung mehr vor.
 
 ### 3. Strukturzeile symmetrisch gemacht
 
@@ -96,6 +107,7 @@ Dadurch erscheinen Bedarf und Leitfragen im Detailzustand nicht mehr generisch.
 - `apps/web/src/features/create/CreateVisualFollowup.tsx`
 - `apps/web/src/features/create/intelligentFollowupContract.ts`
 - `apps/web/tests/create-planner-routing.contract.test.ts`
+- `apps/web/tests/create-planner-no-domain-heuristic-expansion.contract.test.ts`
 - `apps/web/tests/create-chat-first-mobile-dialog-experience.contract.test.tsx`
 - `apps/web/tests/create-curated-dialog-workspace.contract.test.tsx`
 - `apps/web/tests/create-entry-hierarchy.contract.test.tsx`
@@ -107,6 +119,7 @@ Dadurch erscheinen Bedarf und Leitfragen im Detailzustand nicht mehr generisch.
 Ausgefuehrt:
 
 - `pnpm -C apps/web exec vitest run tests/create-planner-routing.contract.test.ts tests/create-chat-first-mobile-dialog-experience.contract.test.tsx tests/create-curated-dialog-workspace.contract.test.tsx tests/create-entry-hierarchy.contract.test.tsx tests/analyze-workbench-hidden-until-start.test.ts`
+- `pnpm -C apps/web exec vitest run tests/create-planner-no-domain-heuristic-expansion.contract.test.ts`
 - `pnpm -C apps/web run typecheck`
 - `pnpm -C apps/web run lint`
 
@@ -122,4 +135,4 @@ Ergebnis:
 - keine neue Provider-Orchestrierung
 - keine DeepSearch-/Billing-/Publish-/Graph-Merge-Logik
 - keine neue Create-Surface
-- andere noch nicht abgedeckte gesellschaftspolitische Mischfaelle koennen bei fehlender KI weiterhin eigene lokale Heuristiken brauchen; dieser Slice schliesst gezielt den Quoten-/Gleichberechtigungs-Fall und das UI-Verhalten fuer spezifische degradierte Planner
+- andere noch nicht abgedeckte gesellschaftspolitische Mischfaelle koennen bei fehlender KI weiterhin eigene lokale Heuristiken brauchen; diese Nachschaerfung fuehrt dafuer aber bewusst **keine** neue kanonische Ersatz-Taxonomie ein

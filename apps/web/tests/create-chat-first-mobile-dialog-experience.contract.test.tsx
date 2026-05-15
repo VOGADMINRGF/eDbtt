@@ -219,8 +219,8 @@ const PROVISIONAL_QUOTA_FOLLOWUP_RESULT = {
       plannerDegraded: true,
       degradedReason: "timeout" as const,
       plannerDegradedReason: "timeout" as const,
-      qualityStatus: "specific" as const,
-      qualityIssues: [],
+      qualityStatus: "needs_confirmation" as const,
+      qualityIssues: ["technical_fallback_only"],
       providerCallAttempted: true,
       providerCallSucceeded: false,
       plannerDebug: {
@@ -412,20 +412,21 @@ describe("create chat-first mobile dialog experience contract", () => {
     expect(html).not.toContain("Kompakte Details");
   });
 
-  it("keeps a specific local planner fallback visible as provisional structure instead of a timeout-first card", () => {
+  it("keeps the local quota fallback in a clearly provisional clarification state", () => {
     const html = renderProvisionalQuotaFollowup();
 
     expect(html).toContain("Vorläufige Einordnung");
-    expect(html).toContain("Wir haben deinen Beitrag vorläufig eingeordnet.");
-    expect(html).toContain("Gleichberechtigung, Antidiskriminierung und Quotenregelungen");
-    expect(html).toContain("Kritik an verbindlichen Quotenregelungen bei gleichzeitigem Wunsch nach Gleichberechtigung");
+    expect(html).toContain("Wir konnten deinen Beitrag noch nicht exakt zuordnen.");
+    expect(html).toContain("Die KI-Einordnung wurde nicht vollständig abgeschlossen.");
     expect(html).toContain("Gleichberechtigung");
     expect(html).toContain("Frauenquote");
     expect(html).toContain("Minderheitenförderung");
     expect(html).toContain("wirtschaftliche Auswirkungen für Unternehmen");
-    expect(html).toContain("Geht es um gesetzliche Quoten, Unternehmensquoten oder Förderprogramme?");
-    expect(html).not.toContain("Wir konnten deinen Beitrag noch nicht exakt zuordnen.");
-    expect(html).not.toContain("Einordnung offen");
+    expect(html).toContain("KI-Suche aktivieren");
+    expect(html).toContain("Bericht an die Redaktion senden");
+    expect(html).toContain("Thema selbst auswählen");
+    expect(html).not.toContain("Wir haben deinen Beitrag vorläufig eingeordnet.");
+    expect(html).not.toContain("Kern");
   });
 
   it("only opens the correction composer after edit mode is active", () => {
