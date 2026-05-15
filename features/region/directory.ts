@@ -34,6 +34,11 @@ type DirectoryWorkbookRow = {
 };
 
 let cachedRows: DirectoryWorkbookRow[] | null = null;
+let cachedDirectorySummary:
+  | Array<{ administrativeUnitType: AdministrativeUnitType; count: number }>
+  | null = null;
+let cachedOfficialRegions: Region[] | null = null;
+let cachedOfficialActors: RegionalActor[] | null = null;
 
 function trimOrNull(value: unknown): string | null {
   const normalized = String(value ?? "").trim();
@@ -204,36 +209,48 @@ export function summarizeOfficialAdministrativeDirectory(): Array<{
   administrativeUnitType: AdministrativeUnitType;
   count: number;
 }> {
+  if (cachedDirectorySummary) return cachedDirectorySummary;
   const counters = new Map<AdministrativeUnitType, number>();
   for (const row of readWorkbookRows()) {
     counters.set(row.administrativeUnitType, (counters.get(row.administrativeUnitType) ?? 0) + 1);
   }
-  return Array.from(counters.entries())
+  cachedDirectorySummary = Array.from(counters.entries())
     .map(([administrativeUnitType, count]) => ({ administrativeUnitType, count }))
     .sort((left, right) => right.count - left.count);
+  return cachedDirectorySummary;
 }
 
 export function buildOfficialRegionsFromDirectory(): Region[] {
+  if (cachedOfficialRegions) return cachedOfficialRegions;
   const entries = listOfficialMunicipalDirectoryEntries();
+  const rows = readWorkbookRows();
+  const landCodeToName = new Map<string, string>();
+  for (const row of rows) {
+    if (!landCodeToName.has(row.landCode) && row.landName) {
+      landCodeToName.set(row.landCode, row.landName);
+    }
+  }
   const regions = new Map<string, Region>();
 
   for (const entry of entries) {
-    const landRegionId = deriveLandRegionId((entry.ars ?? "").slice(0, 2));
+    const landCode = (entry.ars ?? "").slice(0, 2);
+    const landName = landCodeToName.get(landCode) ?? entry.locality ?? "Bundesland";
+    const landRegionId = deriveLandRegionId(landCode);
     if (!regions.has(landRegionId)) {
       regions.set(landRegionId, {
         id: landRegionId,
-        slug: `${slugify(entry.municipalityName.split(",")[0] || entry.municipalityName)}-${(entry.ars ?? "").slice(0, 2)}`,
-        name: readWorkbookRows().find((row) => row.landCode === (entry.ars ?? "").slice(0, 2))?.landName ?? entry.locality ?? "Bundesland",
+        slug: `${slugify(entry.municipalityName.split(",")[0] || entry.municipalityName)}-${landCode}`,
+        name: landName,
         type: "land",
         administrativeUnitType: "land",
         parentRegionId: null,
         officialBody: {
           id: `body-${landRegionId}`,
-          label: readWorkbookRows().find((row) => row.landCode === (entry.ars ?? "").slice(0, 2))?.landName ?? "Landesverwaltung",
+          label: landName,
           bodyType: "landesverwaltung",
         },
         officialDirectoryEntry: null,
-        federalState: readWorkbookRows().find((row) => row.landCode === (entry.ars ?? "").slice(0, 2))?.landName ?? null,
+        federalState: landName,
         country: "DE",
         publicVisibility: "public",
       });
@@ -255,17 +272,19 @@ export function buildOfficialRegionsFromDirectory(): Region[] {
         bodyType: deriveOfficialBodyType(entry.administrativeUnitType ?? "sonstige"),
       },
       officialDirectoryEntry: entry,
-      federalState: readWorkbookRows().find((row) => row.landCode === (entry.ars ?? "").slice(0, 2))?.landName ?? null,
+      federalState: landName,
       country: "DE",
       publicVisibility: "public",
     });
   }
 
-  return Array.from(regions.values());
+  cachedOfficialRegions = Array.from(regions.values());
+  return cachedOfficialRegions;
 }
 
 export function buildOfficialRegionalActorsFromDirectory(): RegionalActor[] {
-  return listOfficialMunicipalDirectoryEntries().map((entry) => {
+  if (cachedOfficialActors) return cachedOfficialActors;
+  cachedOfficialActors = listOfficialMunicipalDirectoryEntries().map((entry) => {
     const regionId = deriveOfficialRegionId(entry);
     return {
       id: `actor-official-${entry.ags ?? entry.ars ?? slugify(entry.municipalityName)}`,
@@ -298,4 +317,5 @@ export function buildOfficialRegionalActorsFromDirectory(): RegionalActor[] {
       updatedAt: `${OFFICIAL_DIRECTORY_SOURCE_AS_OF}T00:00:00.000Z`,
     } satisfies RegionalActor;
   });
+  return cachedOfficialActors;
 }

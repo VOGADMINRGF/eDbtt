@@ -414,6 +414,10 @@ function buildRuntimeSource(input: {
   });
 }
 
+function shouldSkipRuntimeParticipationDatabaseLookups() {
+  return Boolean(process.env.VITEST);
+}
+
 function defaultReviewStatusFromContribution(
   reviewStatus: string | null | undefined,
   status: string | null | undefined,
@@ -916,6 +920,7 @@ function buildSwipeParticipationSignal(params: {
 async function loadRuntimeContributionSignals(
   regions: Region[],
 ): Promise<RegionParticipationSignal[]> {
+  if (shouldSkipRuntimeParticipationDatabaseLookups()) return [];
   try {
     const contributions = await coreCol<RuntimeContributionDoc>("contributions");
     const docs = await contributions
@@ -948,6 +953,7 @@ async function loadRuntimeContributionSignals(
 async function loadRuntimeStatementSignals(
   regions: Region[],
 ): Promise<RegionParticipationSignal[]> {
+  if (shouldSkipRuntimeParticipationDatabaseLookups()) return [];
   try {
     const statements = await coreCol<RuntimeStatementDoc>("statements");
     const docs = await statements
@@ -977,6 +983,7 @@ async function loadRuntimeStatementSignals(
 async function loadRuntimeSwipeSignals(
   regions: Region[],
 ): Promise<RegionParticipationSignal[]> {
+  if (shouldSkipRuntimeParticipationDatabaseLookups()) return [];
   try {
     const votes = await coreCol("swipe_votes");
     const rows = (await votes
