@@ -6,15 +6,18 @@ import {
   buildCopyText,
   buildDistributionPlan,
   buildDraftRecord,
+  buildSocialDistributionDraft,
   buildQrPrintPreview,
   buildSocialDistributionQueue,
   recordStudioTelemetryEvent,
   type SocialDistributionChannel,
   type SocialConnectorStatus,
   type SocialDistributionPlan,
+  type SocialDistributionDraft,
   type SocialDistributionTarget,
   type SocialScheduleMode,
   type MasterPost,
+  type SocialCarouselOutput,
   validateDistributionExport,
 } from "@features/outputEngine";
 
@@ -24,6 +27,9 @@ type SocialDistributionPanelProps = {
   reviewRequired: boolean;
   dossierBacklink: string;
   masterPost: MasterPost;
+  carouselDraft: SocialCarouselOutput;
+  workspaceApiPath?: string;
+  initialDistributionDraft?: SocialDistributionDraft | null;
 };
 
 type StudioScheduleChoice = "draft" | "suggested" | "scheduled" | "after_review";
@@ -87,14 +93,28 @@ export default function SocialDistributionPanel({
   reviewRequired,
   dossierBacklink,
   masterPost,
+  carouselDraft,
+  workspaceApiPath,
+  initialDistributionDraft,
 }: SocialDistributionPanelProps) {
   const [selectedChannels, setSelectedChannels] = useState<Set<SocialDistributionChannel>>(
-    new Set(plan.selectedChannels),
+    new Set(initialDistributionDraft?.selectedChannels ?? plan.selectedChannels),
   );
   const [connectorOverrides, setConnectorOverrides] = useState<
     Partial<Record<SocialDistributionChannel, SocialConnectorStatus>>
   >({});
-  const [scheduleChoice, setScheduleChoice] = useState<StudioScheduleChoice>("suggested");
+  const [scheduleChoice, setScheduleChoice] = useState<StudioScheduleChoice>(() => {
+    switch (initialDistributionDraft?.scheduleMode) {
+      case "manual":
+        return "draft";
+      case "scheduled_at":
+        return "scheduled";
+      case "immediate_after_review":
+        return "after_review";
+      default:
+        return "suggested";
+    }
+  });
   const [notice, setNotice] = useState<string | null>(null);
   const [queueCancelled, setQueueCancelled] = useState<Set<string>>(new Set());
 
@@ -161,6 +181,35 @@ export default function SocialDistributionPanel({
     return "suggested_window";
   };
 
+  const persistWorkspace = async (distributionDraft: SocialDistributionDraft, reviewNote?: string) => {
+    if (!workspaceApiPath) return;
+    try {
+      const res = await fetch(workspaceApiPath, {
+        method: "PATCH",
+        headers: {
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          distributionDraft,
+          carouselDraft,
+          reviewNotes: reviewNote ?? null,
+          status: distributionDraft.reviewRequired ? "needs_review" : "draft",
+        }),
+      });
+      if (!res.ok) {
+        setNotice(
+          "Serverseitiges Speichern fehlgeschlagen. Der Browser-Entwurf bleibt lokal und ist nicht produktiv.",
+        );
+        return;
+      }
+      setNotice("Arbeitsstand serverseitig gespeichert, reviewpflichtig, nicht veröffentlicht.");
+    } catch {
+      setNotice(
+        "Serverseitiges Speichern fehlgeschlagen. Der Browser-Entwurf bleibt lokal und ist nicht produktiv.",
+      );
+    }
+  };
+
   const savePlan = () => {
     const draft = buildDistributionPlan({
       plan: {
@@ -181,6 +230,7 @@ export default function SocialDistributionPanel({
       },
     });
     setNotice("Verteilplan lokal im Browser als Entwurf gespeichert. Keine produktive Behördenpersistenz.");
+    void persistWorkspace(draft, "Verteilplan als Entwurf gespeichert.");
   };
 
   const requestReview = () => {
@@ -202,11 +252,12 @@ export default function SocialDistributionPanel({
       },
     });
     setNotice("Post-Entwurf lokal für Review markiert. Keine produktive Behördenpersistenz.");
+    void persistWorkspace(draft, "Review für Verteilplan angefordert.");
   };
 
   const preparePublication = () => {
     const validation = validateDistributionExport(masterPost);
-    const draft = buildDistributionPlan({
+    const draft = buildSocialDistributionDraft({
       plan: {
         ...plan,
         targets: targetsWithOverrides,
@@ -214,6 +265,7 @@ export default function SocialDistributionPanel({
       selectedChannels: selectedList,
       scheduleMode: scheduleModeFromChoice(scheduleChoice),
       reviewRequired: reviewRequired || validation.reviewRequired,
+      status: "prepared_internal",
     });
     localStorage.setItem(`${keyForPlan(dossierId)}:prepared`, JSON.stringify(draft));
     const preview = buildQrPrintPreview(masterPost);
@@ -223,6 +275,7 @@ export default function SocialDistributionPanel({
         ? "Veröffentlichung nur lokal als Review-Entwurf vorbereitet (Pflichtfelder im QR/Print-Kontext fehlen)."
         : "Veröffentlichung lokal intern vorbereitet. Keine produktive Behördenpersistenz.",
     );
+    void persistWorkspace(draft, "Veröffentlichung nur intern vorbereitet, nicht veröffentlicht.");
   };
 
   const saveDraft = () => {
@@ -243,6 +296,7 @@ export default function SocialDistributionPanel({
       },
     });
     setNotice("Entwurf lokal gespeichert. Keine produktive Behördenpersistenz.");
+    void persistWorkspace(draft, "Verteilungsentwurf gespeichert.");
   };
 
   const copyPost = async () => {

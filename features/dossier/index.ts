@@ -2,3 +2,4 @@
 export * from "./schemas";
 // Builder
 export * from "./buildDossierFromAnalyze";
+export * from "./server/studioPersistence";

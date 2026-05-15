@@ -1,0 +1,103 @@
+import { beforeEach, describe, expect, it } from "vitest";
+import { renderToStaticMarkup } from "react-dom/server";
+import DossierOutputStudioPage from "@/app/dossier/[id]/studio/page";
+import {
+  createInMemoryDossierStudioWorkspaceRepo,
+  setDossierStudioWorkspaceRepoForTests,
+} from "@features/dossier";
+import {
+  buildDraftRecord,
+  buildSocialDistributionPlan,
+  demoDossierForOutputEngine,
+  generateMasterPost,
+  generateOutputPackage,
+  generateSocialCarouselOutput,
+  getSocialPublishingPolicy,
+} from "@features/outputEngine";
+
+function buildWorkspaceSeed(dossierId = "dossier_demo_mobility_berlin") {
+  const pkg = generateOutputPackage(
+    {
+      ...demoDossierForOutputEngine,
+      id: dossierId,
+    },
+    {
+      generatedAt: demoDossierForOutputEngine.updatedAt,
+      baseUrl: "https://edebatte.org",
+    },
+  );
+  const masterPost = generateMasterPost(pkg);
+  const carouselDraft = generateSocialCarouselOutput(pkg);
+  const plan = buildSocialDistributionPlan(masterPost, carouselDraft, {
+    policy: getSocialPublishingPolicy(),
+  });
+  const distributionDraft = buildDraftRecord({
+    plan,
+    selectedChannels: plan.selectedChannels,
+    reviewRequired: true,
+  });
+  return {
+    id: "studio-workspace-seed-001",
+    dossierId,
+    source: "imported_demo" as const,
+    status: "needs_review" as const,
+    title: "Demo Studio Workspace",
+    masterPostDraft: masterPost,
+    distributionDraft,
+    carouselDraft,
+    createdBy: "admin-1",
+    updatedBy: "admin-1",
+    createdAt: "2026-05-15T08:00:00.000Z",
+    updatedAt: "2026-05-15T08:10:00.000Z",
+    provenance: {
+      notProductionData: true,
+      fixture: true,
+    },
+    guardrails: {
+      noAutoPublish: true,
+      noSocialPublishing: true,
+      noAutoMandate: true,
+      noAutoVote: true,
+      reviewRequired: true,
+      localStorageIsNotProduction: true,
+    },
+  };
+}
+
+describe("dossier studio server persistence UI", () => {
+  beforeEach(() => {
+    setDossierStudioWorkspaceRepoForTests(createInMemoryDossierStudioWorkspaceRepo());
+  });
+
+  it("shows honest empty-state persistence copy when no server workspace exists", async () => {
+    const html = renderToStaticMarkup(
+      await DossierOutputStudioPage({
+        params: Promise.resolve({ id: "dossier_demo_mobility_berlin" }),
+      }),
+    );
+
+    expect(html).toContain("Noch kein serverseitiger Studio-Arbeitsstand.");
+    expect(html).toContain("Browser-Arbeitsstände bleiben lokal und nicht produktiv");
+    expect(html).toContain("LocalStorage-Arbeitsstände bleiben lokal im Browser");
+  });
+
+  it("shows persisted server workspace status without claiming publication", async () => {
+    setDossierStudioWorkspaceRepoForTests(
+      createInMemoryDossierStudioWorkspaceRepo({
+        workspaces: [buildWorkspaceSeed()],
+      }),
+    );
+
+    const html = renderToStaticMarkup(
+      await DossierOutputStudioPage({
+        params: Promise.resolve({ id: "dossier_demo_mobility_berlin" }),
+      }),
+    );
+
+    expect(html).toContain("Studio-Arbeitsstand serverseitig gespeichert");
+    expect(html).toContain("reviewpflichtig und nicht veröffentlicht");
+    expect(html).toContain("Server-Workspace · needs_review · reviewpflichtig");
+    expect(html).not.toContain("Jetzt veröffentlichen");
+    expect(html).not.toContain("Live posten");
+  });
+});
