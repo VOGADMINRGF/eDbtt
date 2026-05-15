@@ -650,6 +650,34 @@ const STRUCTURE_BRANCH_DEFINITIONS: readonly BranchDefinition[] = [
 ];
 
 const PLANNER_BRANCH_DEFINITIONS: Readonly<Record<string, PlannerBranchDefinition>> = {
+  gleichberechtigung: {
+    id: "quota-equality",
+    part06CategoryKeys: ["social_family", "justice_law", "democracy_elections"],
+    defaultNeed: "Gleichberechtigung soll gestärkt werden, ohne neue Ungleichbehandlung zu erzeugen.",
+    defaultQuestion: "Welche Form von Gleichberechtigung soll gestärkt werden, ohne starre Quotenlogik zu übernehmen?",
+    topicTags: ["Gleichberechtigung", "Gleichstellung", "Fairness"],
+  },
+  frauenquote: {
+    id: "quota-women",
+    part06CategoryKeys: ["social_family", "justice_law", "work_economy"],
+    defaultNeed: "Folgen und Fairness verbindlicher Frauenquoten sollen konkret geprüft werden.",
+    defaultQuestion: "Geht es um gesetzliche Quoten, Unternehmensquoten oder Förderprogramme?",
+    topicTags: ["Frauenquote", "Quotenregelungen", "Unternehmenspraxis"],
+  },
+  minderheitenförderung: {
+    id: "quota-minorities",
+    part06CategoryKeys: ["social_family", "migration_integration", "justice_law"],
+    defaultNeed: "Vergleichbarkeit zwischen Frauenquote und Förderinstrumenten für andere Minderheiten braucht klare Kriterien.",
+    defaultQuestion: "Welche Minderheiten oder Gruppen sollen verglichen werden?",
+    topicTags: ["Minderheitenförderung", "Vergleich", "Antidiskriminierung"],
+  },
+  "wirtschaftliche auswirkungen für unternehmen": {
+    id: "quota-business-impact",
+    part06CategoryKeys: ["work_economy", "justice_law", "social_family"],
+    defaultNeed: "Wirtschaftliche Folgen und Umsetzbarkeit für Unternehmen sollen nachvollziehbar geprüft werden.",
+    defaultQuestion: "Welche wirtschaftlichen Folgen oder betrieblichen Zielkonflikte stehen im Vordergrund?",
+    topicTags: ["Unternehmen", "Wirtschaft", "Umsetzbarkeit"],
+  },
   "tierwohl und haltungsstandards": {
     id: "animal-welfare-standards",
     part06CategoryKeys: ["climate_environment", "work_economy", "local_community"],

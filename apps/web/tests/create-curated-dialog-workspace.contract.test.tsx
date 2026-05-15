@@ -84,6 +84,8 @@ describe("create curated dialog workspace contract", () => {
     expect(followupSource).toContain("StructuredWorkstateBlock");
     expect(followupSource).toContain("data-mobile-compact-details");
     expect(followupSource).toContain("Deine Struktur auf einen Blick");
+    expect(followupSource).toContain("data-structure-overview-grid");
+    expect(followupSource).toContain("sm:grid-cols-2 md:grid-cols-4");
     expect(followupSource).toContain("data-mobile-inline-create-actions");
     expect(linkClarificationSource).toContain("Ich habe einen Quellenhinweis erkannt. Was soll ich daraus vorbereiten?");
     expect(linkClarificationSource).toContain("create-chat-message");

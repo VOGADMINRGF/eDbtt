@@ -239,4 +239,51 @@ describe("create planner routing contract", () => {
     expect(result.meta?.planner.plannerDebug.attemptedProvider).toBe("openai");
     expect(result.meta?.planner.plannerDebug.usedProvider).toBe("local_fallback");
   });
+
+  it("builds a concrete local planner for mixed quota and equality text when AI is unavailable", async () => {
+    const originalOpenAiKey = process.env.OPENAI_API_KEY;
+    delete process.env.OPENAI_API_KEY;
+
+    try {
+      const { buildCreatePlanner } = await vi.importActual<typeof import("@/features/create/createPlanner")>(
+        "@/features/create/createPlanner",
+      );
+      const planner = await buildCreatePlanner({
+        text: "ich bin gegen frauenquote aber für mehr gleichberechtigung, gibt es eine frauenquote müsste es auch quoten von anderen minderheiten geben, das kann nicht richtig und wirtschaftlich für ein unternehmen sein.",
+        locale: "de",
+      });
+
+      expect(planner.source).toBe("heuristic_fallback");
+      expect(planner.plannerProvider).toBe("local_fallback");
+      expect(planner.plannerRole).toBe("planner_only");
+      expect(planner.plannerTopic).toBe("Gleichberechtigung, Antidiskriminierung und Quotenregelungen");
+      expect(planner.plannerCore).toBe(
+        "Kritik an verbindlichen Quotenregelungen bei gleichzeitigem Wunsch nach Gleichberechtigung",
+      );
+      expect(planner.plannerClusters).toEqual([
+        "Gleichberechtigung",
+        "Frauenquote",
+        "Minderheitenförderung",
+        "wirtschaftliche Auswirkungen für Unternehmen",
+      ]);
+      expect(planner.plannerOpenQuestions).toEqual([
+        "Geht es um gesetzliche Quoten, Unternehmensquoten oder Förderprogramme?",
+        "Welche Minderheiten oder Gruppen sollen verglichen werden?",
+        "Soll daraus ein Claim, eine Frage oder ein Dossier entstehen?",
+      ]);
+      expect(planner.qualityStatus).toBe("specific");
+      expect(planner.plannerDegraded).toBe(true);
+      expect(planner.degradedReason).toBe("missing_provider_key");
+      expect(planner.permissions.canSave).toBe(false);
+      expect(planner.permissions.canPublish).toBe(false);
+      expect(planner.permissions.canMerge).toBe(false);
+      expect(planner.permissions.canDeepSearch).toBe(false);
+      expect(planner.providerPlan.deepSearchUsed).toBe(false);
+      expect(planner.providerPlan.researchUsed).toBe("none");
+      expect(planner.providerPlan.graphMatch).toBe("after_structure");
+    } finally {
+      if (originalOpenAiKey === undefined) delete process.env.OPENAI_API_KEY;
+      else process.env.OPENAI_API_KEY = originalOpenAiKey;
+    }
+  });
 });

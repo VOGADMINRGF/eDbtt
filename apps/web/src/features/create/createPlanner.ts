@@ -301,6 +301,14 @@ const COMPLEX_CIVIC_CLUSTER_RULES = [
   },
 ] as const;
 
+const QUOTA_EQUALITY_CLUSTER_RULES = [
+  { label: "Gleichberechtigung", pattern: /gleichberechtigung|gleichstellung|chancengleichheit/i },
+  { label: "Frauenquote", pattern: /frauenquote|geschlechterquote|geschlechterquoten/i },
+  { label: "Minderheitenförderung", pattern: /minderheiten|minderheit|foerderung|förderung/i },
+  { label: "wirtschaftliche Auswirkungen für Unternehmen", pattern: /wirtschaft|wirtschaftlich|unternehmen|betrieb|betriebe/i },
+  { label: "Antidiskriminierung", pattern: /diskriminierung|gleichbehandlung|benachteiligung/i },
+] as const;
+
 function dedupeStrings(values: Array<string | null | undefined>): string[] {
   const seen = new Set<string>();
   const out: string[] = [];
@@ -390,6 +398,19 @@ function detectComplexCivicClusters(text: string): string[] {
 
 function isComplexCivicPolicyText(text: string): boolean {
   return detectComplexCivicClusters(text).length >= 4;
+}
+
+function detectQuotaEqualityClusters(text: string): string[] {
+  return QUOTA_EQUALITY_CLUSTER_RULES.filter((rule) => rule.pattern.test(text)).map((rule) => rule.label);
+}
+
+function isQuotaEqualityPolicyText(text: string): boolean {
+  const clusters = detectQuotaEqualityClusters(text);
+  const hasQuotaSignal = /\bfrauenquote\b|\bquote\b|\bquoten\b/i.test(text);
+  const hasEqualitySignal = /gleichberechtigung|gleichstellung|chancengleichheit|gleichbehandlung/i.test(text);
+  const hasComparisonSignal = /minderheiten|minderheit|vergleich|andere gruppen/i.test(text);
+  const hasBusinessSignal = /wirtschaft|wirtschaftlich|unternehmen|betrieb|betriebe/i.test(text);
+  return clusters.length >= 3 || (hasQuotaSignal && hasEqualitySignal && (hasComparisonSignal || hasBusinessSignal));
 }
 
 function inferScopesFromText(text: string): CreatePlannerScope[] {
@@ -868,6 +889,78 @@ function buildComplexCivicPlanner(params: {
   });
 }
 
+function buildQuotaEqualityPlanner(params: {
+  text: string;
+  source: CreatePlannerSource;
+  plannerProvider: CreatePlannerProviderName;
+  plannerDegraded: boolean;
+  degradedReason: CreatePlannerDegradedReason | null;
+  providerCallAttempted: boolean;
+  providerCallSucceeded: boolean;
+  plannerDebug: CreatePlannerDebug;
+}): CreatePlannerResult {
+  const detectedClusters = detectQuotaEqualityClusters(params.text);
+  const clusters = dedupeStrings([
+    "Gleichberechtigung",
+    "Frauenquote",
+    "Minderheitenförderung",
+    "wirtschaftliche Auswirkungen für Unternehmen",
+    ...detectedClusters,
+  ]).slice(0, 5);
+  const scopes = dedupeStrings(["federal", ...inferScopesFromText(params.text)]).filter(isPlannerScope);
+  const supportsEquality = /gleichberechtigung|gleichstellung|chancengleichheit/i.test(params.text);
+  const rejectsQuota =
+    /(gegen|kritik|nicht richtig|nicht sinnvoll|ungerecht|ablehn)/i.test(params.text) &&
+    /\bquote\b|\bquoten\b|\bfrauenquote\b/i.test(params.text);
+  const stance: CreatePlannerStance = supportsEquality && rejectsQuota ? "mixed" : rejectsQuota ? "contra" : "open";
+  const openQuestions = [
+    "Geht es um gesetzliche Quoten, Unternehmensquoten oder Förderprogramme?",
+    "Welche Minderheiten oder Gruppen sollen verglichen werden?",
+    "Soll daraus ein Claim, eine Frage oder ein Dossier entstehen?",
+  ];
+
+  return finalizePlannerResult({
+    text: params.text,
+    source: params.source,
+    plannerProvider: params.plannerProvider,
+    plannerDegraded: params.plannerDegraded,
+    degradedReason: params.degradedReason,
+    providerCallAttempted: params.providerCallAttempted,
+    providerCallSucceeded: params.providerCallSucceeded,
+    plannerDebug: params.plannerDebug,
+    draft: {
+      plannerTopic: "Gleichberechtigung, Antidiskriminierung und Quotenregelungen",
+      plannerCore: "Kritik an verbindlichen Quotenregelungen bei gleichzeitigem Wunsch nach Gleichberechtigung",
+      plannerScope: scopes,
+      plannerStance: stance,
+      plannerClusters: clusters,
+      plannerOpenQuestions: openQuestions,
+      shortSummary:
+        "Der Beitrag kritisiert verbindliche Quotenregelungen, befürwortet aber Gleichberechtigung und will Fairness, Vergleichbarkeit mit anderen Minderheiten und wirtschaftliche Folgen für Unternehmen prüfen.",
+      topicCandidates: [
+        "Gleichberechtigung, Antidiskriminierung und Quotenregelungen",
+        "Gleichberechtigung",
+        "Frauenquote",
+        "Minderheitenförderung",
+        "wirtschaftliche Auswirkungen für Unternehmen",
+      ],
+      clusterCandidates: clusters,
+      scopeCandidates: scopes,
+      stance,
+      openQuestions,
+      graphSearchTerms: [
+        "Gleichberechtigung",
+        "Frauenquote",
+        "Minderheitenförderung",
+        "Quotenregelungen Unternehmen",
+        "Fairness Quotenregelungen",
+      ],
+      materialSignals: [],
+      recommendedLane: "create_fast_followup",
+    },
+  });
+}
+
 function buildNeutralPlanner(params: {
   text: string;
   source: CreatePlannerSource;
@@ -938,6 +1031,7 @@ function buildHeuristicPlanner(params: {
     plannerDebug: params.plannerDebug,
   };
   if (isAnimalWelfareText(params.text)) return buildAnimalWelfarePlanner(common);
+  if (isQuotaEqualityPolicyText(params.text)) return buildQuotaEqualityPlanner(common);
   if (isComplexCivicPolicyText(params.text)) return buildComplexCivicPlanner(common);
   if (isExplicitOfficeholderText(params.text)) return buildOfficeholderPlanner(common);
   const communalFields = detectBroadCommunalTopicFields(params.text);
