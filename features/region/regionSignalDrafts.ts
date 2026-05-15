@@ -654,6 +654,15 @@ export async function listRegionSignalDraftRecords(): Promise<RegionSignalDraftR
   return getRegionSignalDraftPersistence().listRecords();
 }
 
+export async function findRegionSignalDraftRecordByDraftId(
+  draftId: string,
+): Promise<RegionSignalDraftRecord | null> {
+  const records = await getRegionSignalDraftPersistence().listRecords();
+  const normalized = String(draftId || "").trim();
+  const match = records.find((record) => record.draftId === normalized);
+  return match ? clone(match) : null;
+}
+
 export async function createRegionSignalDraft(input: {
   signalId: string;
   regionId: string;

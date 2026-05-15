@@ -5,6 +5,7 @@ import {
   openQuestionsCol,
 } from "@features/dossier/db";
 import { findDossierByAnyId } from "@features/dossier/lookup";
+import { getDossierStudioWorkspaceRepo } from "@features/dossier/server/studioPersistence";
 import MasterPostActions from "@/components/outputEngine/MasterPostActions";
 import SocialCarouselPreview from "@/components/outputEngine/SocialCarouselPreview";
 import SocialDistributionPanel from "@/components/outputEngine/SocialDistributionPanel";
@@ -164,10 +165,12 @@ export default async function DossierOutputStudioPage({ params }: PageProps) {
 
   const pkg = parsedPackage.data;
   const reviewRequired = REVIEW_REQUIRED_STATUSES.has(pkg.reviewStatus);
-  const carousel = generateSocialCarouselOutput(pkg);
-  const masterPost = generateMasterPost(pkg);
+  const studioWorkspace = await getDossierStudioWorkspaceRepo().getDossierStudioWorkspace(id);
+  const carousel = studioWorkspace?.carouselDraft ?? generateSocialCarouselOutput(pkg);
+  const masterPost = studioWorkspace?.masterPostDraft ?? generateMasterPost(pkg);
   const policy = getSocialPublishingPolicy();
   const distributionPlan = buildSocialDistributionPlan(masterPost, carousel, { policy });
+  const persistedDistributionDraft = studioWorkspace?.distributionDraft ?? null;
   const sourceNarrative = masterPost.sourceSituation;
   const reviewStateLabel = reviewRequired ? "Review erforderlich" : "Review abgeschlossen";
 
@@ -186,6 +189,11 @@ export default async function DossierOutputStudioPage({ params }: PageProps) {
           Datenherkunft: {runtimeState.guardrailLabel}. LocalStorage-Arbeitsstände bleiben lokal und gelten nicht
           als produktive Behördenpersistenz.
         </p>
+        <p className="mt-2 text-xs text-[rgb(var(--muted))]">
+          {studioWorkspace
+            ? `Studio-Arbeitsstand serverseitig gespeichert (${studioWorkspace.status}), reviewpflichtig und nicht veröffentlicht.`
+            : "Noch kein serverseitiger Studio-Arbeitsstand. Browser-Arbeitsstände bleiben lokal und nicht produktiv, bis explizit serverseitig gespeichert wird."}
+        </p>
         <div className="mt-4 flex flex-wrap gap-2 text-xs">
           <span className="rounded-full border border-[rgb(var(--border))] px-2 py-1">Dossier bleibt Quelle</span>
           <span className="rounded-full border border-amber-500/40 bg-amber-500/10 px-2 py-1">{reviewStateLabel}</span>
@@ -196,6 +204,11 @@ export default async function DossierOutputStudioPage({ params }: PageProps) {
           {runtimeState.mode === "demo" ? (
             <span className="rounded-full border border-amber-500/40 bg-amber-500/10 px-2 py-1">
               Demo-Modus · keine produktiven Behördendaten
+            </span>
+          ) : null}
+          {studioWorkspace ? (
+            <span className="rounded-full border border-emerald-500/40 bg-emerald-500/10 px-2 py-1">
+              Server-Workspace · {studioWorkspace.status} · reviewpflichtig
             </span>
           ) : null}
         </div>
@@ -329,8 +342,14 @@ export default async function DossierOutputStudioPage({ params }: PageProps) {
       <section className="mt-5">
         <MasterPostActions
           dossierId={id}
-          initialText={`${masterPost.title}\n\n${masterPost.hook}\n\n${masterPost.body}\n\n${masterPost.participationQuestion}\n\nCTA: ${masterPost.cta}\nLink: ${masterPost.backlinkTarget}`}
+          initialText={
+            studioWorkspace?.masterPostDraft
+              ? studioWorkspace.masterPostDraft.body
+              : `${masterPost.title}\n\n${masterPost.hook}\n\n${masterPost.body}\n\n${masterPost.participationQuestion}\n\nCTA: ${masterPost.cta}\nLink: ${masterPost.backlinkTarget}`
+          }
           suggestedSlots={masterPost.suggestedPostingWindows.map((entry) => entry.window)}
+          masterPostTemplate={masterPost}
+          workspaceApiPath={`/api/dossier/${encodeURIComponent(id)}/studio/workspace`}
         />
       </section>
 
@@ -341,6 +360,9 @@ export default async function DossierOutputStudioPage({ params }: PageProps) {
           reviewRequired={reviewRequired}
           dossierBacklink={pkg.dossierBacklinkTarget}
           masterPost={masterPost}
+          carouselDraft={carousel}
+          workspaceApiPath={`/api/dossier/${encodeURIComponent(id)}/studio/workspace`}
+          initialDistributionDraft={persistedDistributionDraft}
         />
         <SocialCarouselPreview carousel={carousel} reviewRequired={reviewRequired} />
       </section>

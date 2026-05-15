@@ -1,11 +1,14 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import type { MasterPost } from "@features/outputEngine";
 
 type MasterPostActionsProps = {
   dossierId: string;
   initialText: string;
   suggestedSlots: string[];
+  masterPostTemplate: MasterPost;
+  workspaceApiPath?: string;
 };
 
 type SaveState = "idle" | "saved";
@@ -18,6 +21,8 @@ export default function MasterPostActions({
   dossierId,
   initialText,
   suggestedSlots,
+  masterPostTemplate,
+  workspaceApiPath,
 }: MasterPostActionsProps) {
   const [editableText, setEditableText] = useState(initialText);
   const [editMode, setEditMode] = useState(false);
@@ -26,8 +31,49 @@ export default function MasterPostActions({
   const [planState, setPlanState] = useState<SaveState>("idle");
   const [prepareState, setPrepareState] = useState<SaveState>("idle");
   const [reviewState, setReviewState] = useState<SaveState>("idle");
+  const [serverNotice, setServerNotice] = useState<string | null>(null);
 
   const nextSlot = useMemo(() => suggestedSlots[0] ?? "Kein empfohlenes Zeitfenster", [suggestedSlots]);
+
+  const persistWorkspace = async (input: {
+    text: string;
+    status: "draft" | "needs_review";
+    reviewNotes?: string | null;
+  }) => {
+    if (!workspaceApiPath) return;
+    const masterPostDraft: MasterPost = {
+      ...masterPostTemplate,
+      body: input.text,
+      reviewStatus: input.status === "needs_review" ? "review_required" : "draft",
+      publicationStatus: "draft_review_required",
+      createdAt: masterPostTemplate.createdAt,
+    };
+    try {
+      const res = await fetch(workspaceApiPath, {
+        method: "PATCH",
+        headers: {
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          title: masterPostDraft.title,
+          masterPostDraft,
+          reviewNotes: input.reviewNotes ?? null,
+          status: input.status,
+        }),
+      });
+      if (!res.ok) {
+        setServerNotice(
+          "Serverseitiges Speichern fehlgeschlagen. Der Browser-Entwurf bleibt lokal und ist nicht produktiv.",
+        );
+        return;
+      }
+      setServerNotice("Arbeitsstand serverseitig gespeichert, reviewpflichtig, nicht veröffentlicht.");
+    } catch {
+      setServerNotice(
+        "Serverseitiges Speichern fehlgeschlagen. Der Browser-Entwurf bleibt lokal und ist nicht produktiv.",
+      );
+    }
+  };
 
   const onCopy = async () => {
     try {
@@ -48,6 +94,7 @@ export default function MasterPostActions({
     };
     localStorage.setItem(storageKey(dossierId), JSON.stringify(payload));
     setDraftState("saved");
+    void persistWorkspace({ text: editableText, status: "draft" });
   };
 
   const onPlan = () => {
@@ -59,6 +106,11 @@ export default function MasterPostActions({
     };
     localStorage.setItem(storageKey(dossierId), JSON.stringify(payload));
     setPlanState("saved");
+    void persistWorkspace({
+      text: editableText,
+      status: "draft",
+      reviewNotes: `Zeitpunkt geplant: ${nextSlot}`,
+    });
   };
 
   const onRequestReview = () => {
@@ -69,6 +121,11 @@ export default function MasterPostActions({
     };
     localStorage.setItem(storageKey(dossierId), JSON.stringify(payload));
     setReviewState("saved");
+    void persistWorkspace({
+      text: editableText,
+      status: "needs_review",
+      reviewNotes: "Review über Studio angefordert.",
+    });
   };
 
   const onPreparePublication = () => {
@@ -80,6 +137,11 @@ export default function MasterPostActions({
     };
     localStorage.setItem(storageKey(dossierId), JSON.stringify(payload));
     setPrepareState("saved");
+    void persistWorkspace({
+      text: editableText,
+      status: "needs_review",
+      reviewNotes: "Veröffentlichung nur als reviewpflichtiger Entwurf vorbereitet.",
+    });
   };
 
   return (
@@ -152,6 +214,7 @@ export default function MasterPostActions({
         {reviewState === "saved" ? <p>Review-Status lokal auf „needs_review“ gesetzt. Keine produktive Behördenpersistenz.</p> : null}
         {planState === "saved" ? <p>Planung lokal als Entwurf gespeichert ({nextSlot}). Keine produktive Behördenpersistenz.</p> : null}
         {prepareState === "saved" ? <p>Veröffentlichung lokal als review-pflichtiger Entwurf vorbereitet. Keine produktive Behördenpersistenz.</p> : null}
+        {serverNotice ? <p>{serverNotice}</p> : null}
       </div>
     </section>
   );
