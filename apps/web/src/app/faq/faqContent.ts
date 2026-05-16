@@ -52,6 +52,36 @@ export const FAQ_CATEGORIES: FaqCategory[] = [
           "eDebatte ist unser eigens entwickeltes Werkzeug. Dort werden Themen vorbereitet, Quellen gesammelt, Pro & Contra sichtbar gemacht und Abstimmungen durchgeführt. So bleibt der Prozess transparent, fair und überprüfbar.",
       },
       {
+        id: "grundlagen-1c",
+        question: "Was meint eDebatte mit einer regionalen Startlage?",
+        answer:
+          "Wenn sich eine Verwaltung, ein Verband, ein Verein oder ein Träger für eine Region interessiert, kann eDebatte aus regionalen Quellen eine hochwertige, aktuelle und vorqualifizierte Themenlage vorbereiten. Das ist keine Demo-Fixture, sondern eine kuratierte regionale Startlage. Sie bleibt reviewpflichtig und wird nicht automatisch amtlich oder verbindlich.",
+      },
+      {
+        id: "grundlagen-1d",
+        question: "Was passiert zuerst in /create?",
+        answer:
+          "In /create soll zuerst die Frage „Haben wir dich richtig verstanden?“ klären, was gemeint ist. Primär geht es danach um Einreichen oder Veröffentlichen entlang der Risikologik. Erst danach folgen tiefere Themenarbeit und Werkzeugauswahl.",
+      },
+      {
+        id: "grundlagen-1e",
+        question: "Ist eDebatte nur ein Pilot?",
+        answer:
+          "Nein. eDebatte ist nicht auf einen dauerhaften Pilotzustand angelegt. Manche Bereiche sind heute pilotfähig oder produktionsnah, andere sind erst als Grundlage vorhanden. Das Ziel ist eine klare Reifekette: Grundlage vorhanden, pilotfähig, produktionsnah, produktionsfähig und live.",
+      },
+      {
+        id: "grundlagen-1f",
+        question: "Was bedeutet pilotfähig?",
+        answer:
+          "Pilotfähig heißt: Ein Bereich kann in einem kontrollierten Rahmen mit klaren Guardrails genutzt werden. Es gibt also schon einen echten Pfad, aber noch nicht das volle Produktversprechen für jede Zielgruppe und jeden Betriebsfall.",
+      },
+      {
+        id: "grundlagen-1g",
+        question: "Wann ist ein Bereich produktionsfähig?",
+        answer:
+          "Produktionsfähig ist ein Bereich dann, wenn er für eine klar benannte Zielgruppe als belastbarer Produktpfad genutzt werden kann. Dazu gehören geschlossene Rechte- und Reviewregeln, klare Betriebsannahmen, ehrliche Sichtbarkeitslogik und keine stillen Demo- oder Seed-Abhängigkeiten im Produktpfad.",
+      },
+      {
         id: "grundlagen-2",
         question: "Ist eDebatte eine Partei?",
         answer:
@@ -70,6 +100,12 @@ export const FAQ_CATEGORIES: FaqCategory[] = [
           "Nein. Ein Thema ist ein inhaltliches Feld, zum Beispiel Wohnen, Verkehr, Bildung oder Klima. Ein Dossier ist ein konkreter Arbeitsstand zu einer öffentlichen Frage. Ein Dossier hat meistens ein Hauptthema, kann aber mehrere Themenfelder berühren. Beispiel: Das Dossier „Kommunale Prioritäten und Zielkonflikte“ kann die Themenfelder Wohnen, Verkehr, Klima, Bildung, Sicherheit/Rechtsstaat, Gesundheit/Pflege, kommunale Finanzen und Bürgerbeteiligung enthalten.",
       },
       {
+        id: "grundlagen-4b",
+        question: "Ist ein Anlassraum nur ein Admin-Container?",
+        answer:
+          "Nein. Ein Anlassraum ist ein öffentlicher Themenraum. Er kann mit Freund:innen und Nachbar:innen geteilt, per QR-Code geöffnet, bei Veranstaltungen genutzt, aus Zeitung, TV oder Artikeln weitergeführt und für Bürgerdialoge verwendet werden. Verwaltung und Redaktion arbeiten darin, aber der Anlassraum ist nicht nur ein interner Admin-Container.",
+      },
+      {
         id: "grundlagen-5",
         question: "Was ist ein Claim?",
         answer:
@@ -80,6 +116,12 @@ export const FAQ_CATEGORIES: FaqCategory[] = [
         question: "Was ist eine Abstimmung?",
         answer:
           "Eine Abstimmung entsteht aus einem Claim oder aus einer übergeordneten Dossierfrage. Nutzer stimmen also nicht einfach über ein ganzes Thema ab, sondern über konkrete Fragen, Prioritäten, Positionen oder Entscheidungsoptionen. Beispiel: „Welche kommunalen Prioritäten sollen zuerst bearbeitet werden?“ ist eine Dossierfrage. „Soll kommunaler Wohnungsbau beschleunigt werden, auch wenn Auflagen reduziert werden?“ ist eine Abstimmungsfrage zu einem konkreten Claim.",
+      },
+      {
+        id: "grundlagen-6b",
+        question: "Wie funktioniert die Veröffentlichungslogik?",
+        answer:
+          "eDebatte trennt Sichtbarkeit und Prüfstatus über eine Risk Ladder:\n- private_draft: nur als eigener Arbeitsstand\n- internal_review: intern sichtbar zur Prüfung\n- public_unverified: öffentlich sichtbar, aber ungeprüft\n- public_reviewed: öffentlich sichtbar und geprüft\n- public_official: offiziell freigegeben\n- archived: archiviert\n- blocked: gesperrt\nNiedrigrisiko-Beiträge können automatisch sichtbar werden. Faktenstatus, Dossiers und amtliche Antworten bleiben reviewpflichtig. Doxxing, Drohungen und sensible Daten werden blockiert.",
       },
     ],
   },
@@ -146,6 +188,30 @@ export const FAQ_CATEGORIES: FaqCategory[] = [
         question: "Wie können Journalist:innen mitmachen?",
         answer:
           "Journalist:innen können redaktionell mitgestalten: offene Fragen präzisieren, Faktenchecks ergänzen und Dossiers als Grundlage für Beiträge nutzen. eDebatte liefert Quellen, Minderheitenberichte und exportierbare Daten für Artikel, Podcasts oder Streams.",
+      },
+      {
+        id: "mitmachen-3d",
+        question: "Woher kommen Regionen, Verwaltungsdaten und Geobezüge?",
+        answer:
+          "Für Regionen nutzt eDebatte zuerst eine RegionRegistry aus Destatis GV-ISys / Gemeindeverzeichnis, später ergänzt um Eurostat NUTS/LAU. Ein OfficialDirectory führt die Anschriften der Gemeinde- und Stadtverwaltungen. Eine GeoBoundaryRegistry auf Basis von BKG VG250 oder Eurostat GISCO und eine StatsRegistry auf Basis von GENESIS / Regionalstatistik sind spätere Ausbaustufen. XLSX, CSV und APIs sind dabei Importquellen, keine Runtime-Abhängigkeit.",
+      },
+      {
+        id: "mitmachen-3e",
+        question: "Was braucht eine Verwaltung oder Organisation im Dashboard?",
+        answer:
+          "Ein Verwaltungs- oder Organisationsdashboard braucht mindestens Status, Region, Freischaltung, Rollen, offene Reviews sowie Dossier- und Anlassraum-Drafts. Dazu gehört auch die KI-vorqualifizierte Themenlage für die jeweilige Region. Das Dashboard ist damit nicht nur eine Nutzerliste, sondern der operative Review- und Arbeitsraum.",
+      },
+      {
+        id: "mitmachen-3f",
+        question: "Was sieht eine Verwaltung oder Organisation?",
+        answer:
+          "Eine Verwaltung oder Organisation soll im eigenen Arbeitsraum Status, Region, Freischaltung, Rollen, offene Reviews, Dossier- und Anlassraum-Drafts sowie die KI-vorqualifizierte Themenlage ihrer Region sehen. Das ist ein Review- und Arbeitsraum, nicht bloß eine Liste von Nutzerkonten.",
+      },
+      {
+        id: "mitmachen-3g",
+        question: "Was sieht die Öffentlichkeit?",
+        answer:
+          "Die Öffentlichkeit sieht nur, was entlang der Sichtbarkeits- und Prüfregeln freigegeben ist. Niedrigrisiko-Beiträge können später öffentlich sichtbar werden. Dossiers, Faktenstatus und amtliche Antworten bleiben bis zur Prüfung reviewpflichtig. Interne Reviews, Freischaltungen und Verwaltungsentwürfe sind nicht automatisch öffentlich.",
       },
       {
         id: "mitmachen-4",
