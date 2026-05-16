@@ -161,11 +161,19 @@ Surface-/Handoff-Contract (Ist-Stand, GOV-AI-03C):
 ## G. Wording
 
 Glossar/Abgrenzung (Ist-Stand):
+- `Grundlage vorhanden`: Contracts, Importstrategie oder Runtime-Bausteine sind angelegt, aber noch kein geschlossener Produktpfad.
+- `pilotfaehig`: kontrollierter Pilot mit klaren Guardrails ist moeglich.
+- `produktionsnah` / `produktionskandidat`: ein Pfad ist nah an einem belastbaren Produkt, die offenen Luecken sind klar begrenzt.
+- `produktionsfaehig`: definierter Zielgruppenpfad ist ohne stille Demo-/Seed-Abhaengigkeiten belastbar nutzbar.
+- `live`: aktiver Betriebs- oder Vermarktungszustand mit belastbaren Support-/Betriebsannahmen.
 - `Anlassraum`: Domaenenbegriff fuer thematischen Arbeits- und Kontextraum.
 - `/runden`: aktuelle oeffentliche Surface fuer Anlassraum-/Round-Einstieg.
 - `/anlassraum`: offizieller Alias-/Zielbegriff; als non-breaking Wrapper auf `/runden` aktiv, ohne harte Migration.
 - `Dossier`: strukturierte Verdichtung als eigenes Zielobjekt.
 - `Swipes`: Voting-/Einordnungsoberflaeche fuer Beteiligung; nicht thematische Oberdomaene.
+- `Risk Ladder`: Sichtbarkeits- und Pruefstatus von `private_draft` ueber `internal_review`, `public_unverified`, `public_reviewed`, `public_official`, `archived` bis `blocked`.
+- `RegionRegistry`: autoritative Importbasis fuer Regionen (z. B. Destatis GV-ISys / Gemeindeverzeichnis, spaeter Eurostat NUTS/LAU); kein Renderpfad fuer lokale XLSX-Dateien.
+- `OfficialDirectory`: getrenntes Register fuer Anschriften der Gemeinde- und Stadtverwaltungen; ebenfalls Importbasis statt Runtime-Abhaengigkeit.
 - `Registry`: operative Einordnungs-/Sammelansicht fuer Beteiligungsobjekte (im Ist-Code primaer `/swipes`).
 - `Review/Operator`: Governance-/Management-Kontext, getrennt von Buerger-Surfaces.
 - `Demo`: explizit gekennzeichneter Demo-/Pilot-Kontext, getrennt vom produktiven Standardfluss.
