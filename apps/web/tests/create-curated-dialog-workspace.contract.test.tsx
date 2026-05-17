@@ -105,14 +105,14 @@ describe("create curated dialog workspace contract", () => {
 
     expect(followupSource).toContain("Du");
     expect(followupSource).toContain("eDebatte");
-    expect(followupSource).toContain("Wir haben deinen Beitrag grob verstanden.");
+    expect(followupSource).toContain("Haben wir dich richtig verstanden?");
     expect(followupSource).toContain("Kern");
     expect(followupSource).toContain("Thema");
     expect(followupSource).toContain("Noch offen");
     expect(followupSource).toContain("Details ansehen");
-    expect(followupSource).toContain("So übernehmen");
+    expect(followupSource).toContain("Ja, so einreichen");
+    expect(followupSource).toContain("Ich möchte tiefer ins Thema");
     expect(followupSource).toContain("Redaktionell prüfen lassen");
-    expect(followupSource).toContain("Beitrag einreichen");
     expect(followupSource).toContain("Faktencheck anfragen");
     expect(followupSource).toContain("Ändern");
     expect(followupSource).toContain("Keine automatische Stimme");
@@ -151,8 +151,8 @@ describe("create curated dialog workspace contract", () => {
       />,
     );
 
-    const coreIndex = followupSource.indexOf("Wir haben deinen Beitrag grob verstanden.");
-    const confirmIndex = followupSource.indexOf("So übernehmen");
+    const coreIndex = followupSource.indexOf("Haben wir dich richtig verstanden?");
+    const confirmIndex = followupSource.indexOf("Ja, so einreichen");
     const detailsToggleIndex = followupSource.indexOf("Details ansehen");
     const continueIndex = followupSource.indexOf("<ContinueWritingComposer");
     const detailsIndex = followupSource.indexOf("<StructuredWorkstateBlock");

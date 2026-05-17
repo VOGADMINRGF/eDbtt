@@ -132,10 +132,10 @@ describe("create degraded followup actions contract", () => {
     expect(html).toContain("Thema selbst auswählen");
     expect(html).toContain("Mögliche Startpunkte");
     expect(html).toContain("Gleichberechtigung und Frauenquote");
-    expect(html).not.toContain("Wir haben deinen Beitrag grob verstanden.");
+    expect(html).not.toContain("Haben wir dich richtig verstanden?");
     expect(html).not.toContain("Öffentliches Anliegen</p>");
     expect(html).not.toContain("Kern</p>");
-    expect(html).not.toContain("Beitrag einreichen");
+    expect(html).not.toContain("Ja, so einreichen");
     expect(html).not.toContain("Faktencheck anfragen");
   });
 });

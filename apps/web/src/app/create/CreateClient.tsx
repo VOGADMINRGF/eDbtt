@@ -1774,7 +1774,7 @@ export default function CreateClient({
             onConfirm={() => {
               setUnderstandingConfirmed(true);
               setShowFollowupCorrectionComposer(false);
-              setActionNotice("Einordnung bestätigt. Keine automatische Veröffentlichung.");
+              setActionNotice("Verstanden. Du kannst jetzt tiefer ins Thema gehen. Nichts wird automatisch veröffentlicht.");
             }}
             onEdit={() => {
               setUnderstandingConfirmed(false);

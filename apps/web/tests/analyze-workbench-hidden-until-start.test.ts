@@ -233,7 +233,7 @@ describe("analyze workbench progressive disclosure", () => {
     expect(CREATE_VISUAL_FOLLOWUP_COPY.structureTitle).toBe("Vorläufig verstanden");
     expect(CREATE_VISUAL_FOLLOWUP_COPY.coreTitle).toBe("Kern erkannt");
     expect(CREATE_VISUAL_FOLLOWUP_COPY.graphTitle).toBe("So könnte der Arbeitsstand aussehen");
-    expect(CREATE_VISUAL_FOLLOWUP_COPY.confirmTitle).toBe("Einfach bestätigen?");
+    expect(CREATE_VISUAL_FOLLOWUP_COPY.confirmTitle).toBe("Wie möchtest du weitergehen?");
     expect(CREATE_VISUAL_FOLLOWUP_COPY.guardrail).toContain("Keine automatische Veröffentlichung");
     expect(CREATE_VISUAL_FOLLOWUP_COPY.freeWriteHint).toContain("Schreib einfach weiter");
     expect(CREATE_VISUAL_FOLLOWUP_COPY.pendingPreparationHint).toContain("Nach deiner Bestätigung");
@@ -296,8 +296,9 @@ describe("analyze workbench progressive disclosure", () => {
     expect(source).toContain("create-chat-message");
     expect(source).toContain("Du");
     expect(source).toContain("eDebatte");
-    expect(source).toContain("Was möchtest du daraus machen?");
-    expect(source).toContain("So übernehmen");
+    expect(source).toContain("Wie möchtest du tiefer ins Thema gehen?");
+    expect(source).toContain("Ja, so einreichen");
+    expect(source).toContain("Ich möchte tiefer ins Thema");
     expect(source).toContain("Redaktionell prüfen lassen");
     expect(source).toContain("Deine Struktur auf einen Blick");
     expect(source).toContain("data-structure-overview-grid");
