@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { RegionPublicationVisibilityState } from "@features/region";
+import RundenPublicInputPanel from "./RundenPublicInputPanel";
 
 const PUBLIC_CREATE_HREF =
   "/create?mode=source&intent=contribution&source=runden&reason=public_anlassraum_input";
@@ -75,9 +76,13 @@ function visibilityAccent(
   return "border-rose-300/70 bg-rose-50 text-rose-900";
 }
 
-export default function RundenPublicSharingGuide() {
+export default function RundenPublicSharingGuide(props: {
+  featuredAnlassraumId?: string | null;
+  featuredAnlassraumTitle?: string | null;
+}) {
   return (
-    <section className="grid gap-4 xl:grid-cols-[1.1fr_0.9fr]">
+    <section className="grid gap-4">
+      <div className="grid gap-4 xl:grid-cols-[1.1fr_0.9fr]">
       <div className="space-y-4 rounded-2xl border bg-[rgb(var(--card))] p-5">
         <div className="space-y-2">
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[rgb(var(--muted))]">
@@ -202,6 +207,12 @@ export default function RundenPublicSharingGuide() {
           </div>
         </div>
       </div>
+      </div>
+
+      <RundenPublicInputPanel
+        anlassraumId={props.featuredAnlassraumId ?? null}
+        anlassraumTitle={props.featuredAnlassraumTitle ?? null}
+      />
     </section>
   );
 }

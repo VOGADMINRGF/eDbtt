@@ -532,7 +532,10 @@ export default async function RundenPage({
         <RundenCreateHandoffBanner handoffId={handoffId} createAction={createAction} />
       ) : null}
 
-      <RundenPublicSharingGuide />
+      <RundenPublicSharingGuide
+        featuredAnlassraumId={featured?.anlassraumId ?? null}
+        featuredAnlassraumTitle={featured?.title ?? null}
+      />
 
       <RundenGuidedQuestionBuilder
         returnTo={buildRundenReturnHref(featured?.anlassraumId)}
