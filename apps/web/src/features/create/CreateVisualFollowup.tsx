@@ -38,15 +38,15 @@ type CreateVisualFollowupProps = {
 };
 
 export const CREATE_VISUAL_FOLLOWUP_COPY = {
-  headline: "Wir haben deinen Beitrag grob verstanden.",
-  headlineProvisional: "Wir haben deinen Beitrag vorläufig eingeordnet.",
+  headline: "Haben wir dich richtig verstanden?",
+  headlineProvisional: "Haben wir dich vorläufig richtig verstanden?",
   headlineNeedsClarification: "Wir konnten deinen Beitrag noch nicht exakt zuordnen.",
   structureTitle: "Vorläufig verstanden",
   structureTitleNeedsClarification: "Einordnung offen",
   coreTitle: "Kern erkannt",
   graphTitle: "So könnte der Arbeitsstand aussehen",
   overviewTitle: "Deine Struktur auf einen Blick",
-  confirmTitle: "Einfach bestätigen?",
+  confirmTitle: "Wie möchtest du weitergehen?",
   guardrail:
     "Keine automatische Stimme. Keine automatische Veröffentlichung. Du bestätigst jeden nächsten Schritt selbst.",
   freeWriteHint: "Schreib einfach weiter. eDebatte passt den Arbeitsstand an, wenn etwas anders gemeint war.",
@@ -494,12 +494,12 @@ function buildNextStepChecklist(params: {
       ? "Abstimmung vorbereiten"
       : params.sortedSuggestions[0]?.kind === "dossier"
         ? "Thema öffnen"
-        : "Beitrag einreichen";
+        : "Ja, so einreichen";
 
   return [
     {
       id: "confirm",
-      label: "Struktur übernehmen",
+      label: "Tiefer ins Thema gehen",
       detail: "Der vorgeschlagene Arbeitsstand bleibt reviewbar und unveröffentlicht.",
       done: params.isConfirmed,
     },
@@ -2080,6 +2080,7 @@ function MobileDetailList(props: {
 function StructureProposalPanel(props: {
   onConfirm: () => void;
   onEdit: () => void;
+  onPrepareSubmission: () => void;
   onRequestEditorialReview: () => void;
   reviewRequestState: CreateReviewRequestState;
   reviewRequestMessage?: string | null;
@@ -2091,11 +2092,21 @@ function StructureProposalPanel(props: {
           <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">Nächster Schritt</p>
           <p className="text-base font-semibold text-[rgb(var(--fg))]">{CREATE_VISUAL_FOLLOWUP_COPY.confirmTitle}</p>
           <p className="text-sm leading-relaxed text-[rgb(var(--muted))]">
-            Übernimm den Vorschlag, öffne eine Korrektur oder fordere bewusst eine manuelle Prüfung an.
+            Reiche die Aussage direkt ein oder öffne danach bewusst den tieferen Themenpfad.
           </p>
         </div>
         <div className="flex flex-col gap-2 lg:items-end">
           <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap lg:justify-end">
+            <button
+              type="button"
+              className="btn-primary min-h-[46px] px-4 py-2 text-sm"
+              onClick={props.onPrepareSubmission}
+            >
+              Ja, so einreichen
+            </button>
+            <button type="button" className="btn-primary min-h-[46px] px-4 py-2 text-sm" onClick={props.onConfirm}>
+              Ich möchte tiefer ins Thema
+            </button>
             <button type="button" className="btn-secondary min-h-[42px] px-3 py-2 text-sm" onClick={props.onEdit}>
               Ändern
             </button>
@@ -2107,9 +2118,6 @@ function StructureProposalPanel(props: {
               aria-disabled={props.reviewRequestState === "saving"}
             >
               {resolveReviewRequestLabel(props.reviewRequestState, "compact")}
-            </button>
-            <button type="button" className="btn-primary min-h-[46px] px-4 py-2 text-sm" onClick={props.onConfirm}>
-              So übernehmen
             </button>
           </div>
           <p className="text-[11px] leading-relaxed text-[rgb(var(--muted))] lg:text-right">
@@ -2217,13 +2225,13 @@ function NextStepPanel(props: {
     <div className="space-y-4 rounded-[28px] border border-cyan-300/28 bg-[linear-gradient(180deg,rgba(9,20,42,0.98),rgba(11,24,46,0.95))] px-4 py-4 shadow-[0_18px_42px_rgba(8,145,178,0.12)]">
       <div className="space-y-1">
         <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-cyan-200/75">Nächster Schritt</p>
-        <p className="text-base font-semibold text-white">Was möchtest du daraus machen?</p>
+        <p className="text-base font-semibold text-white">Wie möchtest du tiefer ins Thema gehen?</p>
         <p className="text-sm leading-relaxed text-slate-300">
-          Keine automatische Veröffentlichung. Keine automatische Kostenbuchung.
+          Nichts wird automatisch veröffentlicht. Keine automatische Kostenbuchung.
         </p>
       </div>
       <button type="button" className="btn-primary min-h-[48px] w-full px-4 py-2 text-sm" onClick={props.onPrepareSubmission}>
-        Beitrag einreichen
+        Ja, so einreichen
       </button>
       <div className="grid gap-2 sm:grid-cols-2">
         <button type="button" className="btn-secondary min-h-[42px] px-3 py-2 text-sm" onClick={props.onPrepareAnlassraum}>
@@ -2565,6 +2573,7 @@ export default function CreateVisualFollowup({
                 <StructureProposalPanel
                   onConfirm={onConfirm}
                   onEdit={() => openCorrection("Thema")}
+                  onPrepareSubmission={onPrepareSubmission}
                   onRequestEditorialReview={onRequestEditorialReview}
                   reviewRequestState={reviewRequestState}
                   reviewRequestMessage={reviewRequestMessage}

@@ -131,10 +131,10 @@ describe("create planner degraded ui contract", () => {
     expect(html).toContain("Bericht an die Redaktion senden");
     expect(html).toContain("Thema selbst auswählen");
     expect(html).toContain("Keine automatische Veröffentlichung. Keine automatische Kostenbuchung. Keine stille Zuordnung.");
-    expect(html).not.toContain("Wir haben deinen Beitrag grob verstanden.");
+    expect(html).not.toContain("Haben wir dich richtig verstanden?");
     expect(html).not.toContain("Kern</p><p class=\"text-base font-semibold text-[rgb(var(--fg))]\">Aussage");
     expect(html).not.toContain("Öffentliches Anliegen mit Klärungsbedarf");
-    expect(html).not.toContain("Beitrag einreichen");
+    expect(html).not.toContain("Ja, so einreichen");
     expect(html).not.toContain("Faktencheck anfragen");
   });
 });

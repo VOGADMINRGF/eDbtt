@@ -364,16 +364,16 @@ const CREATE_SURFACE_BUNDLES: Record<CreateSurfaceLocale, CreateSurfaceLocaleBun
       startFailedError:
         "Dein Beitrag konnte gerade nicht aufgenommen werden. Bitte versuche es erneut.",
       followupContributeStatus: "Beitrag aufgenommen",
-      followupContributeTitle: "Ich habe deinen Beitrag verstanden.",
+      followupContributeTitle: "Haben wir dich richtig verstanden?",
       followupContributeLead:
-        "Daraus entsteht jetzt ein erster Arbeitsstand. Du kannst bestätigen, ändern oder einfach weiterschreiben.",
+        "Deine Aussage bleibt reviewpflichtig. Du kannst sie jetzt direkt einreichen oder tiefer ins Thema gehen.",
       followupOriginalTextLabel: "Dein Originaltext",
       followupUnderstandingLabel: "So haben wir es verstanden",
       followupUnderstandingLine: (label) => `Ich ordne deinen Beitrag zuerst als ${label} ein.`,
       followupNotPublishedLabel: "Noch nicht veröffentlicht.",
-      followupNextStepLabel: "So kann es weitergehen",
+      followupNextStepLabel: "Nächster Schritt",
       followupNextStepLead:
-        "Tippe einen nächsten Schritt an oder schreib einfach weiter.",
+        "Reiche die Aussage direkt ein oder öffne danach einen tieferen Themenpfad.",
       followupGuidedStatus: "Entwurf läuft",
       followupGuidedTitle: "Verstanden. Ich bereite daraus einen gemeinsamen Arbeitsstand vor",
       followupGuidedLead:
@@ -611,15 +611,15 @@ const CREATE_SURFACE_BUNDLES: Record<CreateSurfaceLocale, CreateSurfaceLocaleBun
       startBusyLead: "We are classifying your contribution …",
       startFailedError: "Your contribution could not be captured right now. Please try again.",
       followupContributeStatus: "Contribution received",
-      followupContributeTitle: "I understood your contribution.",
+      followupContributeTitle: "Did we understand you correctly?",
       followupContributeLead:
-        "This becomes a first working state. You can confirm it, adjust it, or keep typing.",
+        "Your statement stays reviewable. You can submit it now or go deeper into the topic.",
       followupOriginalTextLabel: "Your original text",
       followupUnderstandingLabel: "How we understood it",
       followupUnderstandingLine: (label) => `I would first classify this as ${label}.`,
       followupNotPublishedLabel: "Not published yet.",
-      followupNextStepLabel: "How to continue",
-      followupNextStepLead: "Tap the next step or keep typing in chat.",
+      followupNextStepLabel: "Next step",
+      followupNextStepLead: "Submit the statement now or open a deeper topic path next.",
       followupGuidedStatus: "Draft running",
       followupGuidedTitle: "Understood. I am preparing a shared working state from this",
       followupGuidedLead:

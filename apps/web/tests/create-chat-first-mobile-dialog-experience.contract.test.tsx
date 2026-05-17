@@ -380,13 +380,15 @@ describe("create chat-first mobile dialog experience contract", () => {
     expect(texts.followupGuidedTitle).toContain("Ich bereite daraus einen gemeinsamen Arbeitsstand vor");
   });
 
-  it("keeps the pre-confirmation flow to one primary action plus two secondary choices", () => {
+  it("keeps the pre-confirmation flow statement-first with two primary branches", () => {
     const html = renderVisualFollowup();
 
-    expect(html).toContain("So übernehmen");
+    expect(html).toContain("Haben wir dich richtig verstanden?");
+    expect(html).toContain("Ja, so einreichen");
+    expect(html).toContain("Ich möchte tiefer ins Thema");
     expect(html).toContain("Ändern");
     expect(html).toContain("Prüfung anfragen");
-    expect((html.match(/btn-primary/g) ?? []).length).toBe(1);
+    expect((html.match(/btn-primary/g) ?? []).length).toBe(2);
     expect(html).not.toContain("Arbeitsstand speichern");
     expect(html).not.toContain("Faktencheck / Deep Search starten");
   });
@@ -394,7 +396,7 @@ describe("create chat-first mobile dialog experience contract", () => {
   it("renders a compact understood state before details", () => {
     const html = renderMultiBranchVisualFollowup();
 
-    expect(html).toContain("Wir haben deinen Beitrag grob verstanden.");
+    expect(html).toContain("Haben wir dich richtig verstanden?");
     expect(html).toContain("Kern");
     expect(html).toContain("Thema");
     expect(html).toContain("Noch offen");
@@ -442,8 +444,8 @@ describe("create chat-first mobile dialog experience contract", () => {
   it("shows the next-step choices only after confirmation and keeps Deep Search secondary", () => {
     const html = renderMultiBranchVisualFollowup(true);
 
-    expect(html).toContain("Was möchtest du daraus machen?");
-    expect(html).toContain("Beitrag einreichen");
+    expect(html).toContain("Wie möchtest du tiefer ins Thema gehen?");
+    expect(html).toContain("Ja, so einreichen");
     expect(html).toContain("Anlassraum vorbereiten");
     expect(html).toContain("Als Ergänzung anhängen");
     expect(html).toContain("Neues Dossier vorbereiten");

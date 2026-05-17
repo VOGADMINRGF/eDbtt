@@ -29,14 +29,16 @@ describe("create follow-up i18n contract", () => {
 
     expect(de.startBusyStatus).toBe("Wird eingeordnet …");
     expect(de.startBusyLead).toBe("Wir ordnen deinen Beitrag ein …");
-    expect(de.followupContributeTitle).toBe("Dein Text wurde aufgenommen.");
-    expect(de.followupContributeLead).toBe("Bitte prüfe die Einordnung, bevor er weiterverwendet wird.");
+    expect(de.followupContributeTitle).toBe("Haben wir dich richtig verstanden?");
+    expect(de.followupContributeLead).toBe(
+      "Deine Aussage bleibt reviewpflichtig. Du kannst sie jetzt direkt einreichen oder tiefer ins Thema gehen.",
+    );
     expect(de.followupOriginalTextLabel).toBe("Dein Originaltext");
     expect(de.followupUnderstandingLabel).toBe("So haben wir es verstanden");
     expect(de.followupNotPublishedLabel).toBe("Noch nicht veröffentlicht.");
     expect(de.followupNextStepLabel).toBe("Nächster Schritt");
 
-    expect(en.followupContributeTitle).toBe("Your text was captured.");
+    expect(en.followupContributeTitle).toBe("Did we understand you correctly?");
     expect(en.followupContributeTitle.toLowerCase()).not.toContain("classification flow");
   });
 });
