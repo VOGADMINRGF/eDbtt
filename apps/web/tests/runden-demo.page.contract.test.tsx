@@ -8,6 +8,8 @@ describe("/runden/demo page contract", () => {
     const html = renderToStaticMarkup(<RundenDemoPage />);
 
     expect(html).toContain("Aus einzelnen Beiträgen wird ein gemeinsamer Arbeitsstand");
+    expect(html).toContain("Ein öffentlicher Themenraum zu einem konkreten Anlass.");
+    expect(html).toContain("Lass das beste Argument gewinnen.");
     expect(html).toContain("Anlass öffnen");
     expect(html).toContain("QR oder Link teilen");
     expect(html).toContain("Beiträge fließen geordnet ein");

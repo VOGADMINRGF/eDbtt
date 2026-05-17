@@ -151,6 +151,11 @@ export default function RundenShareActions({ share }: RundenShareActionsProps) {
         </button>
       </div>
 
+      <div className="mt-3 space-y-1 text-[11px] text-[rgb(var(--muted))]">
+        <p>Teile diesen Anlassraum mit Nachbarn, Freunden oder deiner Initiative.</p>
+        <p>Nutze den QR-Code für Bürgerdialoge, Veranstaltungen oder Workshops.</p>
+      </div>
+
       {showQr ? (
         <div className="mt-3 rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-3">
           <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-center">
@@ -188,7 +193,10 @@ export default function RundenShareActions({ share }: RundenShareActionsProps) {
         {share.shareSummary}
       </p>
       <p className="mt-1 text-[11px] text-[rgb(var(--muted))]">
-        Öffentliche Veröffentlichung bleibt kuratiert oder qualifiziert.
+        Sichtbar heißt nicht automatisch geprüft oder amtlich.
+      </p>
+      <p className="mt-1 text-[11px] text-[rgb(var(--muted))]">
+        Amtliche Antworten und Freigaben bleiben verifizierten Rollen vorbehalten.
       </p>
       {message ? (
         <p className="mt-1 text-[11px] text-[rgb(var(--muted))]">{message}</p>
