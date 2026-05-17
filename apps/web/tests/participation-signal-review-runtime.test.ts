@@ -26,6 +26,7 @@ describe("participation signal review runtime", () => {
 
     expect(claim).toMatchObject({
       reviewStatus: "needs_review",
+      visibilityState: "internal_review",
       noPersonalProfiling: true,
       noPoliticalScoring: true,
       noRepresentativeClaim: true,
@@ -33,6 +34,7 @@ describe("participation signal review runtime", () => {
     expect(swipe).toMatchObject({
       aggregationMode: "anonymized_count",
       privacyMode: "anonymized",
+      visibilityState: "public_unverified",
       noPersonalProfiling: true,
     });
   });
@@ -50,6 +52,7 @@ describe("participation signal review runtime", () => {
       proposedRegionId: "bezirk-berlin-reinickendorf",
       needsRegionReview: true,
       reviewStatus: "needs_region_review",
+      visibilityState: "internal_review",
     });
 
     const confirmed = await repo.confirmParticipationSignalRegion(
@@ -63,6 +66,7 @@ describe("participation signal review runtime", () => {
         regionId: "bezirk-berlin-reinickendorf",
         needsRegionReview: false,
         reviewStatus: "needs_review",
+        visibilityState: "internal_review",
       }),
     });
   });
@@ -95,7 +99,39 @@ describe("participation signal review runtime", () => {
     });
   });
 
-  it("keeps rejected and archived records out of the active dashboard payload and strips person-level data", async () => {
+  it("surfaces low-risk questions publicly while keeping risky claims in internal review", async () => {
+    const regions = await listOperationalRegions();
+    await syncParticipationSignalRecords(regions);
+    const repo = getParticipationSignalReviewRuntimeRepo();
+
+    await repo.reviewParticipationSignal({
+      signalId: "region-participation-reinickendorf-claim-001",
+      decision: "accept",
+      reviewedBy: "admin-1",
+    });
+
+    const dashboard = await listParticipationSignalsForDashboard({
+      regions,
+      regionId: "bezirk-berlin-reinickendorf",
+    });
+
+    expect(
+      dashboard.activeSignals.find(
+        (signal) => signal.id === "region-participation-reinickendorf-question-001",
+      ),
+    ).toMatchObject({
+      visibilityState: "public_unverified",
+    });
+    expect(
+      dashboard.activeSignals.find(
+        (signal) => signal.id === "region-participation-reinickendorf-claim-001",
+      ),
+    ).toMatchObject({
+      visibilityState: "public_reviewed",
+    });
+  });
+
+  it("keeps rejected, archived and internal-review-only records out of the active dashboard payload and strips person-level data", async () => {
     const regions = await listOperationalRegions();
     await syncParticipationSignalRecords(regions);
     const repo = getParticipationSignalReviewRuntimeRepo();
@@ -125,6 +161,11 @@ describe("participation signal review runtime", () => {
     expect(
       dashboard.activeSignals.some(
         (signal) => signal.id === "region-participation-reinickendorf-question-accepted-001",
+      ),
+    ).toBe(false);
+    expect(
+      dashboard.activeSignals.some(
+        (signal) => signal.id === "region-participation-reinickendorf-source-hint-001",
       ),
     ).toBe(false);
     expect(dashboard.needsRegionReviewSignals.length).toBeGreaterThan(0);
@@ -158,6 +199,7 @@ describe("participation signal review runtime", () => {
       aggregationMode: fixtureQuestion.aggregationMode,
       privacyMode: fixtureQuestion.privacyMode,
       reviewStatus: "accepted",
+      visibilityState: "public_unverified",
       confidence: fixtureQuestion.confidence,
       provenance: fixtureQuestion.source,
       createdAt: "2026-05-15T00:00:00.000Z",

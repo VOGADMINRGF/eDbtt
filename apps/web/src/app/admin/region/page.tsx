@@ -4,6 +4,7 @@ import type { RegionAllowedAction, RegionalAdminCockpitReadModel } from "@featur
 import {
   getOperationalRegionById,
   getRegionalAdminCockpitReadModel,
+  resolveFeedVisibilityState,
 } from "@features/region";
 
 type SearchParamsShape =
@@ -80,6 +81,27 @@ function reviewStatusLabel(value: string) {
       return "reviewpflichtig";
     default:
       return "Entwurf";
+  }
+}
+
+function visibilityStateLabel(value: string) {
+  switch (value) {
+    case "private_draft":
+      return "nur intern als Entwurf";
+    case "internal_review":
+      return "intern in Prüfung";
+    case "public_unverified":
+      return "öffentlich ungeprüft";
+    case "public_reviewed":
+      return "öffentlich geprüft";
+    case "public_official":
+      return "offiziell freigegeben";
+    case "archived":
+      return "archiviert";
+    case "blocked":
+      return "gesperrt";
+    default:
+      return "Sichtbarkeit offen";
   }
 }
 
@@ -495,6 +517,11 @@ export default async function AdminRegionPage({
                         <span>·</span>
                         <span>{reviewStatusLabel(signal.reviewStatus)}</span>
                         <span>·</span>
+                        <span>{visibilityStateLabel(resolveFeedVisibilityState({
+                          reviewStatus: signal.reviewStatus,
+                          sourceType: signal.sourceType,
+                        }))}</span>
+                        <span>·</span>
                         <span>Confidence {signal.confidence.toFixed(2)}</span>
                         <span>·</span>
                         <span>
@@ -686,6 +713,8 @@ export default async function AdminRegionPage({
                         <span>·</span>
                         <span>{reviewStatusLabel(signal.reviewStatus)}</span>
                         <span>·</span>
+                        <span>{visibilityStateLabel(signal.visibilityState)}</span>
+                        <span>·</span>
                         <span>{aggregationModeLabel(signal.aggregationMode)}</span>
                         <span>·</span>
                         <span>{privacyModeLabel(signal.privacyMode)}</span>
@@ -756,6 +785,7 @@ export default async function AdminRegionPage({
                     cockpit.reviewItemsFromPublicInput.slice(0, 4).map((item) => (
                       <div key={item.id} className="mt-2 text-sm text-[rgb(var(--muted))]">
                         {item.title} · {privacyModeLabel(item.privacyMode)} · {aggregationModeLabel(item.aggregationMode)}
+                        {" "}· {visibilityStateLabel(item.visibilityState)}
                       </div>
                     ))
                   ) : (
@@ -837,6 +867,8 @@ export default async function AdminRegionPage({
                         <span>{sourceTypeLabel(item.sourceType)}</span>
                         <span>·</span>
                         <span>{reviewStatusLabel(item.reviewStatus)}</span>
+                        <span>·</span>
+                        <span>{visibilityStateLabel(item.visibilityState)}</span>
                         <span>·</span>
                         <span>{item.isFixture ? "Pilotvorschau / kuratierte Startlage" : "Runtime-Review"}</span>
                         <span>·</span>

@@ -2,6 +2,11 @@ import { coreCol, ObjectId } from "@core/db/triMongo";
 import { z } from "zod";
 import type { Region } from "../contracts";
 import {
+  isPublicVisibilityState,
+  resolveParticipationVisibilityState,
+  type RegionPublicationVisibilityState,
+} from "../publicationRiskLadder";
+import {
   listDerivedRegionParticipationSignals,
   parseRegionParticipationReviewItem,
   parseRegionParticipationSignal,
@@ -68,6 +73,15 @@ const RegionParticipationSignalRecordSchema = z
       "rejected",
       "archived",
       "revoked",
+    ]),
+    visibilityState: z.enum([
+      "private_draft",
+      "internal_review",
+      "public_unverified",
+      "public_reviewed",
+      "public_official",
+      "archived",
+      "blocked",
     ]),
     confidence: z.number().min(0).max(1),
     provenance: z
@@ -282,8 +296,10 @@ function normalizeLimit(value: unknown) {
   return Math.max(1, Math.min(2000, Math.floor(numeric)));
 }
 
-function activeDashboardStatuses(status: RegionParticipationReviewStatus) {
-  return status === "needs_review" || status === "accepted";
+function activeDashboardVisibilityStates(
+  visibilityState: RegionPublicationVisibilityState,
+) {
+  return isPublicVisibilityState(visibilityState);
 }
 
 function initialReviewStatus(
@@ -320,6 +336,17 @@ function buildRecordFromSignal(
   const regionId =
     existing?.regionId ??
     (signal.needsRegionReview ? null : signal.regionId);
+  const visibilityState = resolveParticipationVisibilityState({
+    reviewStatus,
+    sourceType: signal.sourceType,
+    privacyMode: signal.privacyMode,
+    needsRegionReview:
+      existing?.needsRegionReview ??
+      (reviewStatus === "needs_region_review" || signal.needsRegionReview),
+    regionId,
+    publicSafeTitle: existing?.publicSafeTitle ?? buildPublicSafeTitle(signal),
+    publicSafeSummary: existing?.publicSafeSummary ?? buildPublicSafeSummary(signal),
+  });
   return RegionParticipationSignalRecordSchema.parse({
     id: signal.id,
     regionId,
@@ -345,6 +372,7 @@ function buildRecordFromSignal(
     aggregationMode: signal.aggregationMode,
     privacyMode: signal.privacyMode,
     reviewStatus,
+    visibilityState,
     confidence: signal.confidence,
     provenance: signal.source,
     createdAt,
@@ -417,6 +445,7 @@ export function serializeParticipationSignalForDashboard(
     aggregationMode: record.aggregationMode,
     privacyMode: record.privacyMode,
     reviewStatus: record.reviewStatus,
+    visibilityState: record.visibilityState,
     confidence: record.confidence,
     source: record.provenance as RegionParticipationSignalSource,
     noAutoPublish: true,
@@ -451,6 +480,7 @@ export function serializeParticipationReviewItem(
       (record.privacyMode === "review_restricted"
         ? buildGenericRestrictedSummary(record)
         : record.summary),
+    visibilityState: record.visibilityState,
     needsRegionReview: record.needsRegionReview,
     noPersonalProfiling: true,
     noPoliticalScoring: true,
@@ -572,21 +602,34 @@ function buildUpdatedRecordFromDecision(
   const reviewedAt = isoNow();
   const confirmedRegionId =
     input.decision === "confirm_region" ? String(input.regionId ?? "").trim() || null : record.regionId;
+  const nextRegionId =
+    input.decision === "request_region_review"
+      ? null
+      : confirmedRegionId ?? record.regionId;
+  const nextProposedRegionId =
+    input.decision === "confirm_region"
+      ? confirmedRegionId
+      : input.decision === "request_region_review"
+        ? String(input.regionId ?? record.regionId ?? record.proposedRegionId ?? "").trim() || null
+        : record.proposedRegionId;
+  const nextNeedsRegionReview = nextStatus === "needs_region_review";
+  const visibilityState = resolveParticipationVisibilityState({
+    reviewStatus: nextStatus,
+    sourceType: record.sourceType,
+    privacyMode: record.privacyMode,
+    needsRegionReview: nextNeedsRegionReview,
+    regionId: nextRegionId,
+    publicSafeTitle: record.publicSafeTitle,
+    publicSafeSummary: record.publicSafeSummary,
+  });
 
   return RegionParticipationSignalRecordSchema.parse({
     ...record,
-    regionId:
-      input.decision === "request_region_review"
-        ? null
-        : confirmedRegionId ?? record.regionId,
-    proposedRegionId:
-      input.decision === "confirm_region"
-        ? confirmedRegionId
-        : input.decision === "request_region_review"
-          ? String(input.regionId ?? record.regionId ?? record.proposedRegionId ?? "").trim() || null
-          : record.proposedRegionId,
-    needsRegionReview: nextStatus === "needs_region_review",
+    regionId: nextRegionId,
+    proposedRegionId: nextProposedRegionId,
+    needsRegionReview: nextNeedsRegionReview,
     reviewStatus: nextStatus,
+    visibilityState,
     reviewedBy: input.reviewedBy,
     reviewedAt,
     updatedAt: reviewedAt,
@@ -997,7 +1040,8 @@ export async function listParticipationSignalsForDashboard(params: {
   const activeSignals = records
     .filter(
       (record) =>
-        record.regionId === params.regionId && activeDashboardStatuses(record.reviewStatus),
+        record.regionId === params.regionId &&
+        activeDashboardVisibilityStates(record.visibilityState),
     )
     .map((record) => serializeParticipationSignalForDashboard(record))
     .filter((record): record is RegionParticipationSignal => Boolean(record));

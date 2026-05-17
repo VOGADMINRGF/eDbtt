@@ -2,6 +2,11 @@ import { coreCol } from "@core/db/triMongo";
 import { z } from "zod";
 import type { Region } from "./contracts";
 import {
+  REGION_PUBLICATION_VISIBILITY_STATES,
+  resolveParticipationVisibilityState,
+  type RegionPublicationVisibilityState,
+} from "./publicationRiskLadder";
+import {
   type RegionFeedSignal,
   parseRegionFeedSignal,
 } from "./regionFeedSignals";
@@ -76,7 +81,7 @@ export type RegionParticipationSignalSource = z.infer<
   typeof RegionParticipationSignalSourceSchema
 >;
 
-const RegionParticipationSignalSchema = z
+const RegionParticipationSignalInputSchema = z
   .object({
     id: z.string().trim().min(1),
     regionId: z.string().trim().min(1),
@@ -97,6 +102,7 @@ const RegionParticipationSignalSchema = z
     aggregationMode: z.enum(REGION_PARTICIPATION_AGGREGATION_MODES),
     privacyMode: z.enum(REGION_PARTICIPATION_PRIVACY_MODES),
     reviewStatus: z.enum(REGION_PARTICIPATION_REVIEW_STATUSES),
+    visibilityState: z.enum(REGION_PUBLICATION_VISIBILITY_STATES).optional(),
     confidence: z.number().min(0).max(1),
     source: RegionParticipationSignalSourceSchema,
     noAutoPublish: z.literal(true),
@@ -110,11 +116,15 @@ const RegionParticipationSignalSchema = z
   })
   .strict();
 
+const RegionParticipationSignalSchema = RegionParticipationSignalInputSchema.extend({
+  visibilityState: z.enum(REGION_PUBLICATION_VISIBILITY_STATES),
+}).strict();
+
 export type RegionParticipationSignal = z.infer<
   typeof RegionParticipationSignalSchema
 >;
 
-const RegionParticipationAggregateSchema = z
+const RegionParticipationAggregateInputSchema = z
   .object({
     id: z.string().trim().min(1),
     regionId: z.string().trim().min(1),
@@ -128,17 +138,22 @@ const RegionParticipationAggregateSchema = z
     aggregationMode: z.enum(REGION_PARTICIPATION_AGGREGATION_MODES),
     privacyMode: z.enum(REGION_PARTICIPATION_PRIVACY_MODES),
     reviewStatus: z.enum(REGION_PARTICIPATION_REVIEW_STATUSES),
+    visibilityState: z.enum(REGION_PUBLICATION_VISIBILITY_STATES).optional(),
     noPersonalProfiling: z.literal(true),
     noPoliticalScoring: z.literal(true),
     noRepresentativeClaim: z.literal(true),
   })
   .strict();
 
+const RegionParticipationAggregateSchema = RegionParticipationAggregateInputSchema.extend({
+  visibilityState: z.enum(REGION_PUBLICATION_VISIBILITY_STATES),
+}).strict();
+
 export type RegionParticipationAggregate = z.infer<
   typeof RegionParticipationAggregateSchema
 >;
 
-const RegionParticipationReviewItemSchema = z
+const RegionParticipationReviewItemInputSchema = z
   .object({
     id: z.string().trim().min(1),
     regionId: z.string().trim().min(1),
@@ -149,6 +164,7 @@ const RegionParticipationReviewItemSchema = z
     privacyMode: z.enum(REGION_PARTICIPATION_PRIVACY_MODES),
     confidence: z.number().min(0).max(1),
     summary: z.string().trim().min(1),
+    visibilityState: z.enum(REGION_PUBLICATION_VISIBILITY_STATES).optional(),
     needsRegionReview: z.boolean(),
     noPersonalProfiling: z.literal(true),
     noPoliticalScoring: z.literal(true),
@@ -156,9 +172,39 @@ const RegionParticipationReviewItemSchema = z
   })
   .strict();
 
+const RegionParticipationReviewItemSchema = RegionParticipationReviewItemInputSchema.extend({
+  visibilityState: z.enum(REGION_PUBLICATION_VISIBILITY_STATES),
+}).strict();
+
 export type RegionParticipationReviewItem = z.infer<
   typeof RegionParticipationReviewItemSchema
 >;
+
+function resolveAggregateVisibilityState(params: {
+  reviewStatus: RegionParticipationReviewStatus;
+  sourceTypes: RegionParticipationSignalSourceType[];
+  privacyMode: RegionParticipationPrivacyMode;
+}): RegionPublicationVisibilityState {
+  if (params.reviewStatus === "accepted") {
+    const lowRiskOnly = params.sourceTypes.every(
+      (sourceType) =>
+        sourceType === "public_question" || sourceType === "public_source_hint",
+    );
+    return lowRiskOnly ? "public_unverified" : "public_reviewed";
+  }
+  return resolveParticipationVisibilityState({
+    reviewStatus: params.reviewStatus,
+    sourceType: params.sourceTypes[0] ?? "public_contribution",
+    privacyMode: params.privacyMode,
+    needsRegionReview: params.reviewStatus === "needs_region_review",
+    regionId:
+      params.reviewStatus === "needs_region_review"
+        ? null
+        : "region-derived-aggregate",
+    publicSafeTitle: "aggregate",
+    publicSafeSummary: "aggregate",
+  });
+}
 
 type RegionAssignment = {
   regionId: string | null;
@@ -364,21 +410,58 @@ export function inferParticipationRegionAssignment(input: {
 }
 
 export function parseRegionParticipationSignal(
-  input: z.input<typeof RegionParticipationSignalSchema>,
+  input: z.input<typeof RegionParticipationSignalInputSchema>,
 ): RegionParticipationSignal {
-  return RegionParticipationSignalSchema.parse(input);
+  const parsed = RegionParticipationSignalInputSchema.parse(input);
+  return RegionParticipationSignalSchema.parse({
+    ...parsed,
+    visibilityState:
+      parsed.visibilityState ??
+      resolveParticipationVisibilityState({
+        reviewStatus: parsed.reviewStatus,
+        sourceType: parsed.sourceType,
+        privacyMode: parsed.privacyMode,
+        needsRegionReview: parsed.needsRegionReview,
+        regionId: parsed.regionId,
+      }),
+  });
 }
 
 export function parseRegionParticipationAggregate(
-  input: z.input<typeof RegionParticipationAggregateSchema>,
+  input: z.input<typeof RegionParticipationAggregateInputSchema>,
 ): RegionParticipationAggregate {
-  return RegionParticipationAggregateSchema.parse(input);
+  const parsed = RegionParticipationAggregateInputSchema.parse(input);
+  return RegionParticipationAggregateSchema.parse({
+    ...parsed,
+    visibilityState:
+      parsed.visibilityState ??
+      resolveAggregateVisibilityState({
+        reviewStatus: parsed.reviewStatus,
+        sourceTypes: parsed.sourceTypes,
+        privacyMode: parsed.privacyMode,
+      }),
+  });
 }
 
 export function parseRegionParticipationReviewItem(
-  input: z.input<typeof RegionParticipationReviewItemSchema>,
+  input: z.input<typeof RegionParticipationReviewItemInputSchema>,
 ): RegionParticipationReviewItem {
-  return RegionParticipationReviewItemSchema.parse(input);
+  const parsed = RegionParticipationReviewItemInputSchema.parse(input);
+  return RegionParticipationReviewItemSchema.parse({
+    ...parsed,
+    visibilityState:
+      parsed.visibilityState ??
+      resolveParticipationVisibilityState({
+        reviewStatus: parsed.reviewStatus,
+        sourceType: parsed.sourceType,
+        privacyMode: parsed.privacyMode,
+        needsRegionReview: parsed.needsRegionReview,
+        regionId:
+          parsed.reviewStatus === "needs_region_review"
+            ? null
+            : parsed.regionId,
+      }),
+  });
 }
 
 function buildFixtureSource(

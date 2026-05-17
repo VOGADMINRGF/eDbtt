@@ -15,6 +15,7 @@ describe("region participation signals contract", () => {
   it("exposes public claims, contributions, questions and source hints as reviewpflichtige or accepted public signals", () => {
     expect(findSignal("public_claim")).toMatchObject({
       reviewStatus: "needs_review",
+      visibilityState: "internal_review",
       sourceClass: "participation",
       noAutoPublish: true,
       noPersonalProfiling: true,
@@ -23,19 +24,28 @@ describe("region participation signals contract", () => {
     });
     expect(findSignal("public_contribution", "needs-region-review-001")).toMatchObject({
       reviewStatus: "needs_region_review",
+      visibilityState: "internal_review",
       sourceClass: "participation",
       needsRegionReview: true,
     });
     expect(findSignal("public_contribution", "magdeburg-contribution-001")).toMatchObject({
       reviewStatus: "needs_review",
+      visibilityState: "internal_review",
       sourceClass: "participation",
     });
     expect(findSignal("public_question", "question-001")).toMatchObject({
       reviewStatus: "needs_review",
+      visibilityState: "public_unverified",
+      sourceClass: "participation",
+    });
+    expect(findSignal("public_question", "accepted-001")).toMatchObject({
+      reviewStatus: "accepted",
+      visibilityState: "public_unverified",
       sourceClass: "participation",
     });
     expect(findSignal("public_source_hint")).toMatchObject({
       reviewStatus: "needs_review",
+      visibilityState: "internal_review",
       sourceClass: "participation",
     });
   });
@@ -44,6 +54,7 @@ describe("region participation signals contract", () => {
     expect(findSignal("swipe_interest")).toMatchObject({
       aggregationMode: "anonymized_count",
       privacyMode: "anonymized",
+      visibilityState: "public_unverified",
       noPersonalProfiling: true,
       noPoliticalScoring: true,
       noRepresentativeClaim: true,
@@ -51,6 +62,7 @@ describe("region participation signals contract", () => {
     expect(findSignal("swipe_counterpoint")).toMatchObject({
       aggregationMode: "anonymized_count",
       privacyMode: "anonymized",
+      visibilityState: "public_unverified",
     });
   });
 

@@ -64,6 +64,11 @@ import {
   parseRegionParticipationAggregate,
 } from "./regionParticipationSignals";
 import {
+  isReviewVisibilityState,
+  resolveFeedVisibilityState,
+  type RegionPublicationVisibilityState,
+} from "./publicationRiskLadder";
+import {
   getRegionGuidelineMatrixByProfile,
   resolveGuidelineProfileForRegion,
   type RegionGuidelineMatrix,
@@ -132,6 +137,7 @@ export type RegionDashboardOpenReviewItem = {
   sourceType: RegionFeedSignal["sourceType"] | RegionParticipationSignal["sourceType"];
   suggestedAction: RegionFeedSignal["suggestedAction"] | "review_public_input";
   reviewStatus: RegionSignalReviewState | RegionParticipationReviewStatus;
+  visibilityState: RegionPublicationVisibilityState;
   dataOrigin: RegionFeedSignal["provenance"]["dataOrigin"];
   isFixture: boolean;
   confidence: number;
@@ -448,7 +454,7 @@ function buildParticipationSummary(
   const filtered = signals.filter((signal) => signal.sourceType === sourceType);
   return {
     total: filtered.length,
-    reviewPending: filtered.filter((signal) => signal.reviewStatus !== "accepted").length,
+    reviewPending: filtered.filter((signal) => signal.visibilityState === "public_unverified").length,
     labels: uniqueNonEmpty(
       filtered.flatMap((signal) => [
         signal.title,
@@ -476,9 +482,7 @@ function buildParticipationReviewItems(
   return records
     .filter(
       (record) =>
-        record.reviewStatus !== "archived" &&
-        record.reviewStatus !== "rejected" &&
-        record.reviewStatus !== "revoked",
+        isReviewVisibilityState(record.visibilityState),
     )
     .map((record) => serializeParticipationReviewItem(record));
 }
@@ -588,10 +592,17 @@ function buildSuggestedAnlassraeume(
 
 function buildOpenReviewItems(
   feedSignals: RegionFeedSignal[],
-  participationSignals: RegionParticipationSignal[],
+  participationRecords: RegionParticipationSignalRecord[],
 ): RegionDashboardOpenReviewItem[] {
   const feedItems = feedSignals
-    .filter((signal) => signal.reviewStatus === "draft" || signal.reviewStatus === "needs_review")
+    .filter((signal) =>
+      isReviewVisibilityState(
+        resolveFeedVisibilityState({
+          reviewStatus: signal.reviewStatus,
+          sourceType: signal.sourceType,
+        }),
+      ),
+    )
     .map((signal) => ({
       id: signal.id,
       title: signal.title,
@@ -599,6 +610,10 @@ function buildOpenReviewItems(
       sourceType: signal.sourceType,
       suggestedAction: signal.suggestedAction,
       reviewStatus: signal.reviewStatus,
+      visibilityState: resolveFeedVisibilityState({
+        reviewStatus: signal.reviewStatus,
+        sourceType: signal.sourceType,
+      }),
       dataOrigin: signal.provenance.dataOrigin,
       isFixture: signal.provenance.isFixture,
       confidence: signal.confidence,
@@ -606,23 +621,24 @@ function buildOpenReviewItems(
       privacyMode: null,
     }));
 
-  const participationItems = participationSignals
-    .filter((signal) => signal.reviewStatus === "draft" || signal.reviewStatus === "needs_review")
-    .map((signal) => ({
-      id: signal.id,
-      title: signal.title,
+  const participationItems = participationRecords
+    .filter((record) => isReviewVisibilityState(record.visibilityState))
+    .map((record) => ({
+      id: record.id,
+      title: record.publicSafeTitle ?? record.title,
       sourceClass: "participation" as const,
-      sourceType: signal.sourceType,
+      sourceType: record.sourceType,
       suggestedAction: "review_public_input" as const,
-      reviewStatus: signal.reviewStatus,
+      reviewStatus: record.reviewStatus,
+      visibilityState: record.visibilityState,
       dataOrigin:
-        signal.source.sourceKind === "fixture"
+        record.provenance.sourceKind === "fixture"
           ? ("pilot_fixture" as const)
           : ("runtime_review_queue" as const),
-      isFixture: signal.source.isFixture,
-      confidence: signal.confidence,
-      aggregationMode: signal.aggregationMode,
-      privacyMode: signal.privacyMode,
+      isFixture: record.provenance.isFixture,
+      confidence: record.confidence,
+      aggregationMode: record.aggregationMode,
+      privacyMode: record.privacyMode,
     }));
 
   return [...feedItems, ...participationItems].sort((left, right) => right.confidence - left.confidence);
@@ -1024,7 +1040,7 @@ export async function getRegionalAdminCockpitReadModel(
   const topicClusters = buildTopicClusters(region.id, feedSignals);
   const suggestedDossiers = buildSuggestedDossiers(region.id, feedSignals);
   const suggestedAnlassraeume = buildSuggestedAnlassraeume(region.id, feedSignals);
-  const openReviewItems = buildOpenReviewItems(feedSignals, participationSignals);
+  const openReviewItems = buildOpenReviewItems(feedSignals, participationReviewRecords);
   const cockpit = buildDefaultCockpit({
     region,
     feedSignals,

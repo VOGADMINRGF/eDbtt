@@ -109,6 +109,7 @@ export async function GET(req: NextRequest) {
       aggregationMode: signal.aggregationMode,
       privacyMode: signal.privacyMode,
       reviewStatus: signal.reviewStatus,
+      visibilityState: signal.visibilityState,
       confidence: signal.confidence,
       reviewedAt: signal.reviewedAt,
       noPersonalProfiling: signal.noPersonalProfiling,

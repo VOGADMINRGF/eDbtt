@@ -110,10 +110,8 @@ describe("/api/admin/region/cockpit/[regionId]", () => {
         ]),
         participationSignals: expect.arrayContaining([
           expect.objectContaining({
-            sourceType: "public_claim",
-            noPersonalProfiling: true,
-            noPoliticalScoring: true,
-            noRepresentativeClaim: true,
+            sourceType: "public_question",
+            visibilityState: "public_unverified",
           }),
           expect.objectContaining({
             sourceType: "swipe_interest",
@@ -123,7 +121,7 @@ describe("/api/admin/region/cockpit/[regionId]", () => {
         ]),
         participationAggregates: expect.arrayContaining([
           expect.objectContaining({
-            label: "Aussagen aus der Öffentlichkeit",
+            label: "Fragen aus der Öffentlichkeit",
           }),
         ]),
         publicClaimsSummary: expect.objectContaining({
@@ -135,6 +133,7 @@ describe("/api/admin/region/cockpit/[regionId]", () => {
         reviewItemsFromPublicInput: expect.arrayContaining([
           expect.objectContaining({
             sourceType: "public_claim",
+            visibilityState: "internal_review",
           }),
         ]),
         needsRegionReviewSignals: expect.arrayContaining([

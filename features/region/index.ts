@@ -5,6 +5,7 @@ export * from "./fixtures";
 export * from "./guidelines";
 export * from "./intelligence";
 export * from "./organizationOnboarding";
+export * from "./publicationRiskLadder";
 export * from "./regionFeedSignals";
 export * from "./regionParticipationSignals";
 export * from "./regionSignalDrafts";

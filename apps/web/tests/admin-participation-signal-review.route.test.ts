@@ -169,11 +169,13 @@ describe("admin participation signal review routes", () => {
     expect(body.ok).toBe(true);
     expect(body.signals).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({
+      expect.objectContaining({
           sourceType: "public_claim",
+          visibilityState: "internal_review",
         }),
         expect.objectContaining({
           reviewStatus: "needs_region_review",
+          visibilityState: "internal_review",
         }),
       ]),
     );
@@ -240,6 +242,7 @@ describe("admin participation signal review routes", () => {
       record: expect.objectContaining({
         reviewStatus: "accepted",
         regionId: "bezirk-berlin-reinickendorf",
+        visibilityState: "public_reviewed",
       }),
     });
   });
@@ -273,6 +276,7 @@ describe("admin participation signal review routes", () => {
       ok: true,
       record: expect.objectContaining({
         reviewStatus: "rejected",
+        visibilityState: "blocked",
       }),
     });
   });
