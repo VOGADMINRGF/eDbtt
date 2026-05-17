@@ -1,5 +1,9 @@
 import Link from "next/link";
-import { listOperationalRegions } from "@features/region";
+import {
+  getDirectorySourceStatus,
+  listOperationalRegions,
+  listRegionsFromRegistry,
+} from "@features/region";
 
 function regionTypeLabel(value: string) {
   switch (value) {
@@ -57,11 +61,15 @@ function RegionCard(props: {
 
 export default async function AdminRegionsPage() {
   const regions = await listOperationalRegions();
-  const productiveRegions = regions
-    .filter((region) => Boolean(region.officialDirectoryEntry))
+  const registryRegions = listRegionsFromRegistry();
+  const sourceStatus = getDirectorySourceStatus();
+  const regionMap = new Map(regions.map((region) => [region.id, region]));
+  const productiveRegions = registryRegions
+    .map((region) => regionMap.get(region.id) ?? region)
     .sort((left, right) => left.name.localeCompare(right.name, "de"));
+  const productiveRegionIds = new Set(productiveRegions.map((region) => region.id));
   const pilotFixtures = regions
-    .filter((region) => !region.officialDirectoryEntry)
+    .filter((region) => !productiveRegionIds.has(region.id))
     .sort((left, right) => left.name.localeCompare(right.name, "de"));
 
   return (
@@ -81,21 +89,32 @@ export default async function AdminRegionsPage() {
         </p>
       </header>
 
-      <section data-testid="admin-regions-summary" className="grid gap-3 md:grid-cols-3">
+      <section data-testid="admin-regions-summary" className="grid gap-3 md:grid-cols-4">
         <div className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4">
           <p className="text-xs uppercase tracking-[0.14em] text-[rgb(var(--muted))]">Produktive Regionen</p>
           <p className="mt-2 text-2xl font-semibold text-[rgb(var(--fg))]">{productiveRegions.length}</p>
-          <p className="text-sm text-[rgb(var(--muted))]">Directory-basierte operative Übersichtseinträge</p>
+          <p className="text-sm text-[rgb(var(--muted))]">RegionRegistry-basierte operative Übersichtseinträge</p>
         </div>
         <div className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4">
-          <p className="text-xs uppercase tracking-[0.14em] text-[rgb(var(--muted))]">Pilot-/Fixture-Pfade</p>
+          <p className="text-xs uppercase tracking-[0.14em] text-[rgb(var(--muted))]">Manuelle/Pilot-Pfade</p>
           <p className="mt-2 text-2xl font-semibold text-[rgb(var(--fg))]">{pilotFixtures.length}</p>
-          <p className="text-sm text-[rgb(var(--muted))]">Getrennt sichtbar, nicht als produktiver Normalfall gemischt</p>
+          <p className="text-sm text-[rgb(var(--muted))]">Getrennt sichtbar, nicht als amtlicher Produktpfad gemischt</p>
         </div>
         <div className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4">
-          <p className="text-xs uppercase tracking-[0.14em] text-[rgb(var(--muted))]">IA-Regel</p>
-          <p className="mt-2 text-lg font-semibold text-[rgb(var(--fg))]">Übersicht → Detailroute</p>
+          <p className="text-xs uppercase tracking-[0.14em] text-[rgb(var(--muted))]">RegionRegistry</p>
+          <p className="mt-2 text-lg font-semibold text-[rgb(var(--fg))]">
+            {sourceStatus.regionRegistry.status === "ready" ? "Verbunden" : "Nicht verbunden"}
+          </p>
           <p className="text-sm text-[rgb(var(--muted))]">Erst Übersicht wählen, dann gezielt in `/admin/region` arbeiten.</p>
+        </div>
+        <div className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4">
+          <p className="text-xs uppercase tracking-[0.14em] text-[rgb(var(--muted))]">OfficialDirectory</p>
+          <p className="mt-2 text-lg font-semibold text-[rgb(var(--fg))]">
+            {sourceStatus.officialDirectory.status === "ready" ? "Verbunden" : "Nicht verbunden"}
+          </p>
+          <p className="text-sm text-[rgb(var(--muted))]">
+            Verwaltungsanschriften bleiben getrennt vom RegionRegistry-Import.
+          </p>
         </div>
       </section>
 
@@ -104,12 +123,25 @@ export default async function AdminRegionsPage() {
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
             Produktive Übersicht
           </p>
-          <h2 className="text-xl font-semibold text-[rgb(var(--fg))]">Operative Regionen aus dem offiziellen Verzeichnis</h2>
+          <h2 className="text-xl font-semibold text-[rgb(var(--fg))]">Operative Regionen aus der RegionRegistry</h2>
           <p className="max-w-3xl text-sm text-[rgb(var(--muted))]">
-            Diese Einträge bilden die produktive Betreiber-/Admin-Übersicht. Sie führen weiter in die bestehende
-            Detail- und Arbeitsansicht, ohne neue Fachlogik oder neue Mutationspfade einzuführen.
+            Diese Einträge bilden die produktive Betreiber-/Admin-Übersicht. `RegionRegistry` und
+            `OfficialDirectory` bleiben getrennt: Regionen kommen aus der Registry, Verwaltungsanschriften aus dem
+            Directory.
           </p>
         </div>
+        {sourceStatus.regionRegistry.status !== "ready" ? (
+          <div
+            data-testid="admin-regions-registry-missing-state"
+            className="rounded-3xl border border-dashed border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4"
+          >
+            <p className="text-sm font-medium text-[rgb(var(--fg))]">Amtliches Gemeindeverzeichnis ist nicht verbunden.</p>
+            <p className="mt-1 text-sm text-[rgb(var(--muted))]">
+              Manuelle Regionen bleiben nutzbar. XLSX-, CSV- oder API-Dateien dürfen nur Importquellen sein und
+              hängen nicht im UI-Renderpfad.
+            </p>
+          </div>
+        ) : null}
         <div className="grid gap-4 lg:grid-cols-2">
           {productiveRegions.length > 0 ? (
             productiveRegions.map((region) => (
@@ -121,12 +153,12 @@ export default async function AdminRegionsPage() {
                 type={region.type}
                 administrativeUnitType={region.administrativeUnitType}
                 officialBodyLabel={region.officialBody?.label ?? null}
-                sourceLabel="offizielles Verzeichnis"
-                sourceHint="Produktiver Übersichtseintrag aus der operationalen Regionsbasis."
+                sourceLabel="RegionRegistry"
+                sourceHint="Produktiver Übersichtseintrag aus der getrennten Regionsbasis."
               />
             ))
           ) : (
-            <p className="text-sm text-[rgb(var(--muted))]">Noch keine produktiven Regionseinträge gefunden.</p>
+            <p className="text-sm text-[rgb(var(--muted))]">Noch keine RegionRegistry-Einträge gefunden.</p>
           )}
         </div>
       </section>
@@ -134,12 +166,12 @@ export default async function AdminRegionsPage() {
       <section data-testid="admin-regions-pilot-fixtures" className="space-y-4">
         <div className="space-y-1">
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted))]">
-            Pilot-/Fixture-Pfade
+            Manuelle/Pilot-Pfade
           </p>
-          <h2 className="text-xl font-semibold text-[rgb(var(--fg))]">Getrennt markierte Test- und Pilotregionen</h2>
+          <h2 className="text-xl font-semibold text-[rgb(var(--fg))]">Getrennt markierte manuelle und Pilotregionen</h2>
           <p className="max-w-3xl text-sm text-[rgb(var(--muted))]">
-            Diese Einträge bleiben sichtbar, aber getrennt von der produktiven Übersicht. Keine GeoReference, keine
-            Reinickendorf-only-Sonderlogik und keine stillen Demo-Fallbacks im produktiven Hauptpfad.
+            Diese Einträge bleiben sichtbar, aber getrennt von der produktiven Übersicht. Keine Fake-Daten werden
+            als amtlich behauptet und keine Demo-Fallbacks still als RegionRegistry gelesen.
           </p>
         </div>
         <div className="grid gap-4 lg:grid-cols-2">
@@ -153,8 +185,8 @@ export default async function AdminRegionsPage() {
                 type={region.type}
                 administrativeUnitType={region.administrativeUnitType}
                 officialBodyLabel={region.officialBody?.label ?? null}
-                sourceLabel="Pilot-/Fixture-Pfad"
-                sourceHint="Nur getrennt angezeigt. Nicht als produktiver Betreiber-Normalweg zu lesen."
+                sourceLabel="Manuell/Pilot"
+                sourceHint="Nur getrennt angezeigt. Nicht als amtlicher Betreiber-Normalweg zu lesen."
               />
             ))
           ) : (

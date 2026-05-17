@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import {
   createInMemoryParticipationSignalReviewRuntimeRepo,
@@ -6,9 +6,28 @@ import {
   setParticipationSignalReviewRuntimeRepoForTests,
   setRegionDataRepoForTests,
 } from "@features/region";
+
+const navigationMocks = vi.hoisted(() => ({
+  redirect: vi.fn((target: string) => {
+    throw new Error(`NEXT_REDIRECT:${target}`);
+  }),
+}));
+
+vi.mock("next/navigation", async () => {
+  const actual = await vi.importActual<object>("next/navigation");
+  return {
+    ...actual,
+    redirect: (...args: unknown[]) => navigationMocks.redirect(...args),
+  };
+});
+
 import AdminRegionPage from "@/app/admin/region/page";
 
 describe("admin-region-page.render", () => {
+  beforeEach(() => {
+    navigationMocks.redirect.mockClear();
+  });
+
   it("renders the regional review surface with access, guardrails and prepare-only actions", async () => {
     setRegionDataRepoForTests(createInMemoryRegionDataRepo());
     setParticipationSignalReviewRuntimeRepoForTests(
@@ -81,5 +100,22 @@ describe("admin-region-page.render", () => {
     expect(html).toContain("Standortangaben wie Rathaus Reinickendorf bleiben optional.");
     expect(html).not.toContain("userId");
     expect(html).not.toContain("Standort ist Pflicht");
+  });
+
+  it("redirects cleanly when the selected region is not available from the registry or manual fixtures", async () => {
+    setRegionDataRepoForTests(createInMemoryRegionDataRepo());
+    setParticipationSignalReviewRuntimeRepoForTests(
+      createInMemoryParticipationSignalReviewRuntimeRepo(),
+    );
+
+    await expect(
+      AdminRegionPage({
+        searchParams: {
+          regionId: "region-official-01001000",
+        },
+      }),
+    ).rejects.toThrow("NEXT_REDIRECT:/admin/regions");
+
+    expect(navigationMocks.redirect).toHaveBeenCalledWith("/admin/regions");
   });
 });

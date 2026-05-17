@@ -3,6 +3,7 @@ import path from "node:path";
 import * as XLSX from "xlsx";
 import {
   normalizeAdministrativeUnitType,
+  parseRegion,
   parseOfficialDirectoryEntry,
   type AdministrativeUnitType,
   type OfficialDirectoryEntry,
@@ -16,6 +17,42 @@ export const OFFICIAL_DIRECTORY_SOURCE_FILE =
   "Anschriften_der_Gemeinde_und_Stadtverwaltungen_Stand_31012023_final.xlsx";
 export const OFFICIAL_DIRECTORY_SHEET = "Anschriften_31_01_2023";
 export const OFFICIAL_DIRECTORY_SOURCE_AS_OF = "2023-01-31";
+export const REGION_REGISTRY_SOURCE_FILE = "RegionRegistry.snapshot.json";
+
+export type DirectorySourceState = "ready" | "missing" | "error";
+
+export type DirectorySourceStatus = {
+  sourceKey: "region_registry" | "official_directory";
+  label: string;
+  sourceFile: string;
+  sourcePath: string | null;
+  sourceAsOf: string | null;
+  status: DirectorySourceState;
+  isConnected: boolean;
+  recordCount: number;
+  message: string;
+  errorCode: string | null;
+};
+
+export type OfficialDirectoryImport = {
+  status: DirectorySourceStatus;
+  entries: OfficialDirectoryEntry[];
+  summary: Array<{ administrativeUnitType: AdministrativeUnitType; count: number }>;
+  derivedRegions: Region[];
+  derivedActors: RegionalActor[];
+};
+
+export type RegionRegistryImport = {
+  status: DirectorySourceStatus;
+  regions: Region[];
+};
+
+type RegionRegistrySnapshotDocument = {
+  sourceFile?: string | null;
+  sourceAsOf?: string | null;
+  items?: unknown[];
+  regions?: unknown[];
+};
 
 type DirectoryWorkbookRow = {
   landCode: string;
@@ -33,12 +70,8 @@ type DirectoryWorkbookRow = {
   administrativeUnitType: AdministrativeUnitType;
 };
 
-let cachedRows: DirectoryWorkbookRow[] | null = null;
-let cachedDirectorySummary:
-  | Array<{ administrativeUnitType: AdministrativeUnitType; count: number }>
-  | null = null;
-let cachedOfficialRegions: Region[] | null = null;
-let cachedOfficialActors: RegionalActor[] | null = null;
+let cachedOfficialDirectoryImport: OfficialDirectoryImport | null = null;
+let cachedRegionRegistryImport: RegionRegistryImport | null = null;
 
 function trimOrNull(value: unknown): string | null {
   const normalized = String(value ?? "").trim();
@@ -66,36 +99,53 @@ function slugify(value: string): string {
     .slice(0, 96);
 }
 
-function resolveDirectoryFilePath(): string {
-  const candidates = [
-    path.join(process.cwd(), "public", "Listen", OFFICIAL_DIRECTORY_SOURCE_FILE),
-    path.join(process.cwd(), "apps", "web", "public", "Listen", OFFICIAL_DIRECTORY_SOURCE_FILE),
-    path.resolve(path.dirname(new URL(import.meta.url).pathname), "../../apps/web/public/Listen", OFFICIAL_DIRECTORY_SOURCE_FILE),
+function buildSourceCandidates(fileName: string): string[] {
+  return [
+    path.join(process.cwd(), "public", "Listen", fileName),
+    path.join(process.cwd(), "apps", "web", "public", "Listen", fileName),
+    path.resolve(
+      path.dirname(new URL(import.meta.url).pathname),
+      "../../apps/web/public/Listen",
+      fileName,
+    ),
   ];
+}
 
+function resolveExistingSourcePath(fileName: string): string | null {
+  const candidates = buildSourceCandidates(fileName);
   for (const candidate of candidates) {
     const normalized = decodeURIComponent(candidate);
     if (fs.existsSync(normalized)) return normalized;
   }
-
-  throw new Error(`official_directory_not_found:${OFFICIAL_DIRECTORY_SOURCE_FILE}`);
+  return null;
 }
 
-function readWorkbookRows(): DirectoryWorkbookRow[] {
-  if (cachedRows) return cachedRows;
+function createDirectorySourceStatus(input: {
+  sourceKey: DirectorySourceStatus["sourceKey"];
+  label: string;
+  sourceFile: string;
+  sourcePath?: string | null;
+  sourceAsOf?: string | null;
+  status: DirectorySourceState;
+  recordCount?: number;
+  message: string;
+  errorCode?: string | null;
+}): DirectorySourceStatus {
+  return {
+    sourceKey: input.sourceKey,
+    label: input.label,
+    sourceFile: input.sourceFile,
+    sourcePath: input.sourcePath ?? null,
+    sourceAsOf: input.sourceAsOf ?? null,
+    status: input.status,
+    isConnected: input.status === "ready",
+    recordCount: input.recordCount ?? 0,
+    message: input.message,
+    errorCode: input.errorCode ?? null,
+  };
+}
 
-  const workbook = XLSX.readFile(resolveDirectoryFilePath(), { cellDates: false });
-  const sheet = workbook.Sheets[OFFICIAL_DIRECTORY_SHEET];
-  if (!sheet) {
-    throw new Error(`official_directory_sheet_missing:${OFFICIAL_DIRECTORY_SHEET}`);
-  }
-
-  const rows = XLSX.utils.sheet_to_json(sheet, {
-    header: 1,
-    raw: false,
-    defval: "",
-  }) as Array<Array<string | number>>;
-
+function parseWorkbookRows(rows: Array<Array<string | number>>): DirectoryWorkbookRow[] {
   const parsed: DirectoryWorkbookRow[] = [];
   for (const row of rows.slice(5)) {
     const landCode = String(row[0] ?? "").trim();
@@ -121,9 +171,23 @@ function readWorkbookRows(): DirectoryWorkbookRow[] {
       administrativeUnitType: normalizeAdministrativeUnitType(rawAdministrativeUnitLabel),
     });
   }
-
-  cachedRows = parsed;
   return parsed;
+}
+
+function readWorkbookRowsFromFile(filePath: string): DirectoryWorkbookRow[] {
+  const workbook = XLSX.readFile(filePath, { cellDates: false });
+  const sheet = workbook.Sheets[OFFICIAL_DIRECTORY_SHEET];
+  if (!sheet) {
+    throw new Error(`official_directory_sheet_missing:${OFFICIAL_DIRECTORY_SHEET}`);
+  }
+
+  const rows = XLSX.utils.sheet_to_json(sheet, {
+    header: 1,
+    raw: false,
+    defval: "",
+  }) as Array<Array<string | number>>;
+
+  return parseWorkbookRows(rows);
 }
 
 function deriveBroadRegionType(administrativeUnitType: AdministrativeUnitType): RegionType {
@@ -201,29 +265,23 @@ function deriveParentRegionId(entry: OfficialDirectoryEntry): string | null {
   return deriveLandRegionId((entry.ars ?? "").slice(0, 2));
 }
 
-export function listOfficialMunicipalDirectoryEntries(): OfficialDirectoryEntry[] {
-  return readWorkbookRows().map(buildOfficialDirectoryEntry);
-}
-
-export function summarizeOfficialAdministrativeDirectory(): Array<{
+function buildDirectorySummary(rows: DirectoryWorkbookRow[]): Array<{
   administrativeUnitType: AdministrativeUnitType;
   count: number;
 }> {
-  if (cachedDirectorySummary) return cachedDirectorySummary;
   const counters = new Map<AdministrativeUnitType, number>();
-  for (const row of readWorkbookRows()) {
+  for (const row of rows) {
     counters.set(row.administrativeUnitType, (counters.get(row.administrativeUnitType) ?? 0) + 1);
   }
-  cachedDirectorySummary = Array.from(counters.entries())
+  return Array.from(counters.entries())
     .map(([administrativeUnitType, count]) => ({ administrativeUnitType, count }))
     .sort((left, right) => right.count - left.count);
-  return cachedDirectorySummary;
 }
 
-export function buildOfficialRegionsFromDirectory(): Region[] {
-  if (cachedOfficialRegions) return cachedOfficialRegions;
-  const entries = listOfficialMunicipalDirectoryEntries();
-  const rows = readWorkbookRows();
+function buildOfficialRegionsFromEntries(
+  entries: OfficialDirectoryEntry[],
+  rows: DirectoryWorkbookRow[],
+): Region[] {
   const landCodeToName = new Map<string, string>();
   for (const row of rows) {
     if (!landCodeToName.has(row.landCode) && row.landName) {
@@ -278,13 +336,11 @@ export function buildOfficialRegionsFromDirectory(): Region[] {
     });
   }
 
-  cachedOfficialRegions = Array.from(regions.values());
-  return cachedOfficialRegions;
+  return Array.from(regions.values());
 }
 
-export function buildOfficialRegionalActorsFromDirectory(): RegionalActor[] {
-  if (cachedOfficialActors) return cachedOfficialActors;
-  cachedOfficialActors = listOfficialMunicipalDirectoryEntries().map((entry) => {
+function buildOfficialActorsFromEntries(entries: OfficialDirectoryEntry[]): RegionalActor[] {
+  return entries.map((entry) => {
     const regionId = deriveOfficialRegionId(entry);
     return {
       id: `actor-official-${entry.ags ?? entry.ars ?? slugify(entry.municipalityName)}`,
@@ -317,5 +373,230 @@ export function buildOfficialRegionalActorsFromDirectory(): RegionalActor[] {
       updatedAt: `${OFFICIAL_DIRECTORY_SOURCE_AS_OF}T00:00:00.000Z`,
     } satisfies RegionalActor;
   });
-  return cachedOfficialActors;
+}
+
+function parseRegionRegistryDocument(raw: unknown): RegionRegistrySnapshotDocument {
+  if (Array.isArray(raw)) return { items: raw };
+  if (!raw || typeof raw !== "object") {
+    throw new Error("region_registry_snapshot_invalid");
+  }
+  const candidate = raw as RegionRegistrySnapshotDocument;
+  return candidate;
+}
+
+function parseRegionRegistryItems(items: unknown[]): Region[] {
+  const regionMap = new Map<string, Region>();
+  for (const item of items) {
+    const parsed = parseRegion(item);
+    regionMap.set(parsed.id, parsed);
+  }
+  return Array.from(regionMap.values());
+}
+
+export function importOfficialDirectoryFromXlsx(options: {
+  filePath?: string | null;
+  rawRows?: Array<Array<string | number>>;
+} = {}): OfficialDirectoryImport {
+  const useDefaultSource = !options.filePath && !options.rawRows;
+  if (useDefaultSource && cachedOfficialDirectoryImport) return cachedOfficialDirectoryImport;
+
+  const requestedPath = options.filePath ? decodeURIComponent(options.filePath) : null;
+  const sourcePath = options.rawRows
+    ? null
+    : requestedPath
+      ? fs.existsSync(requestedPath)
+        ? requestedPath
+        : null
+      : resolveExistingSourcePath(OFFICIAL_DIRECTORY_SOURCE_FILE);
+
+  if (!options.rawRows && !sourcePath) {
+    const missing = {
+      status: createDirectorySourceStatus({
+        sourceKey: "official_directory",
+        label: "OfficialDirectory",
+        sourceFile: OFFICIAL_DIRECTORY_SOURCE_FILE,
+        sourceAsOf: OFFICIAL_DIRECTORY_SOURCE_AS_OF,
+        status: "missing",
+        message: "Amtliche Verwaltungsanschriften sind nicht verbunden.",
+        errorCode: "official_directory_not_found",
+      }),
+      entries: [],
+      summary: [],
+      derivedRegions: [],
+      derivedActors: [],
+    } satisfies OfficialDirectoryImport;
+    if (useDefaultSource) cachedOfficialDirectoryImport = missing;
+    return missing;
+  }
+
+  try {
+    const rows = options.rawRows ? parseWorkbookRows(options.rawRows) : readWorkbookRowsFromFile(sourcePath!);
+    const entries = rows.map(buildOfficialDirectoryEntry);
+    const summary = buildDirectorySummary(rows);
+    const derivedRegions = buildOfficialRegionsFromEntries(entries, rows);
+    const derivedActors = buildOfficialActorsFromEntries(entries);
+    const result = {
+      status: createDirectorySourceStatus({
+        sourceKey: "official_directory",
+        label: "OfficialDirectory",
+        sourceFile: OFFICIAL_DIRECTORY_SOURCE_FILE,
+        sourcePath,
+        sourceAsOf: OFFICIAL_DIRECTORY_SOURCE_AS_OF,
+        status: "ready",
+        recordCount: entries.length,
+        message: "Amtliche Verwaltungsanschriften sind verbunden.",
+      }),
+      entries,
+      summary,
+      derivedRegions,
+      derivedActors,
+    } satisfies OfficialDirectoryImport;
+    if (useDefaultSource) cachedOfficialDirectoryImport = result;
+    return result;
+  } catch (error) {
+    const failed = {
+      status: createDirectorySourceStatus({
+        sourceKey: "official_directory",
+        label: "OfficialDirectory",
+        sourceFile: OFFICIAL_DIRECTORY_SOURCE_FILE,
+        sourcePath,
+        sourceAsOf: OFFICIAL_DIRECTORY_SOURCE_AS_OF,
+        status: "error",
+        message: "Amtliche Verwaltungsanschriften konnten nicht gelesen werden.",
+        errorCode: error instanceof Error ? error.message : "official_directory_import_failed",
+      }),
+      entries: [],
+      summary: [],
+      derivedRegions: [],
+      derivedActors: [],
+    } satisfies OfficialDirectoryImport;
+    if (useDefaultSource) cachedOfficialDirectoryImport = failed;
+    return failed;
+  }
+}
+
+export function importRegionRegistrySnapshot(options: {
+  filePath?: string | null;
+  snapshot?: unknown;
+} = {}): RegionRegistryImport {
+  const useDefaultSource = !options.filePath && options.snapshot === undefined;
+  if (useDefaultSource && cachedRegionRegistryImport) return cachedRegionRegistryImport;
+
+  const requestedPath = options.filePath ? decodeURIComponent(options.filePath) : null;
+  const sourcePath = options.snapshot !== undefined
+    ? null
+    : requestedPath
+      ? fs.existsSync(requestedPath)
+        ? requestedPath
+        : null
+      : resolveExistingSourcePath(REGION_REGISTRY_SOURCE_FILE);
+
+  if (options.snapshot === undefined && !sourcePath) {
+    const missing = {
+      status: createDirectorySourceStatus({
+        sourceKey: "region_registry",
+        label: "RegionRegistry",
+        sourceFile: REGION_REGISTRY_SOURCE_FILE,
+        status: "missing",
+        message: "Amtliches Gemeindeverzeichnis ist nicht verbunden.",
+        errorCode: "region_registry_not_found",
+      }),
+      regions: [],
+    } satisfies RegionRegistryImport;
+    if (useDefaultSource) cachedRegionRegistryImport = missing;
+    return missing;
+  }
+
+  try {
+    const raw = options.snapshot !== undefined
+      ? options.snapshot
+      : JSON.parse(fs.readFileSync(sourcePath!, "utf8"));
+    const document = parseRegionRegistryDocument(raw);
+    const items = Array.isArray(document.items)
+      ? document.items
+      : Array.isArray(document.regions)
+        ? document.regions
+        : [];
+    const regions = parseRegionRegistryItems(items);
+    const result = {
+      status: createDirectorySourceStatus({
+        sourceKey: "region_registry",
+        label: "RegionRegistry",
+        sourceFile: document.sourceFile?.trim() || REGION_REGISTRY_SOURCE_FILE,
+        sourcePath,
+        sourceAsOf: document.sourceAsOf?.trim() || null,
+        status: "ready",
+        recordCount: regions.length,
+        message: "Amtliches Gemeindeverzeichnis ist verbunden.",
+      }),
+      regions,
+    } satisfies RegionRegistryImport;
+    if (useDefaultSource) cachedRegionRegistryImport = result;
+    return result;
+  } catch (error) {
+    const failed = {
+      status: createDirectorySourceStatus({
+        sourceKey: "region_registry",
+        label: "RegionRegistry",
+        sourceFile: REGION_REGISTRY_SOURCE_FILE,
+        sourcePath,
+        status: "error",
+        message: "Amtliches Gemeindeverzeichnis konnte nicht gelesen werden.",
+        errorCode: error instanceof Error ? error.message : "region_registry_import_failed",
+      }),
+      regions: [],
+    } satisfies RegionRegistryImport;
+    if (useDefaultSource) cachedRegionRegistryImport = failed;
+    return failed;
+  }
+}
+
+export function getDirectorySourceStatus(): {
+  regionRegistry: DirectorySourceStatus;
+  officialDirectory: DirectorySourceStatus;
+} {
+  const regionRegistry = importRegionRegistrySnapshot().status;
+  const officialDirectory = importOfficialDirectoryFromXlsx().status;
+  return { regionRegistry, officialDirectory };
+}
+
+export function listOfficialMunicipalDirectoryEntries(): OfficialDirectoryEntry[] {
+  return importOfficialDirectoryFromXlsx().entries;
+}
+
+export function summarizeOfficialAdministrativeDirectory(): Array<{
+  administrativeUnitType: AdministrativeUnitType;
+  count: number;
+}> {
+  return importOfficialDirectoryFromXlsx().summary;
+}
+
+export function buildOfficialRegionsFromDirectory(): Region[] {
+  return importOfficialDirectoryFromXlsx().derivedRegions;
+}
+
+export function buildOfficialRegionalActorsFromDirectory(): RegionalActor[] {
+  return importOfficialDirectoryFromXlsx().derivedActors;
+}
+
+export function listRegionsFromRegistry(): Region[] {
+  return importRegionRegistrySnapshot().regions;
+}
+
+export function listOfficialBodiesForRegion(regionId: string): RegionOfficialBody[] {
+  const normalized = String(regionId || "").trim();
+  if (!normalized) return [];
+  const bodyMap = new Map<string, RegionOfficialBody>();
+  for (const actor of buildOfficialRegionalActorsFromDirectory()) {
+    if (actor.regionId !== normalized) continue;
+    const bodyType = actor.officialDirectoryEntry?.administrativeUnitType
+      ? deriveOfficialBodyType(actor.officialDirectoryEntry.administrativeUnitType)
+      : "sonstige";
+    bodyMap.set(actor.id, {
+      id: actor.id,
+      label: actor.name,
+      bodyType,
+    });
+  }
+  return Array.from(bodyMap.values());
 }

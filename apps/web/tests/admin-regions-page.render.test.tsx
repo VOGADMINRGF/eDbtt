@@ -5,6 +5,33 @@ vi.mock("@features/region", async () => {
   const actual = await vi.importActual<object>("@features/region");
   return {
     ...actual,
+    listRegionsFromRegistry: () => [],
+    getDirectorySourceStatus: () => ({
+      regionRegistry: {
+        sourceKey: "region_registry",
+        label: "RegionRegistry",
+        sourceFile: "RegionRegistry.snapshot.json",
+        sourcePath: null,
+        sourceAsOf: null,
+        status: "missing",
+        isConnected: false,
+        recordCount: 0,
+        message: "Amtliches Gemeindeverzeichnis ist nicht verbunden.",
+        errorCode: "region_registry_not_found",
+      },
+      officialDirectory: {
+        sourceKey: "official_directory",
+        label: "OfficialDirectory",
+        sourceFile: "Anschriften_der_Gemeinde_und_Stadtverwaltungen_Stand_31012023_final.xlsx",
+        sourcePath: "/tmp/mock.xlsx",
+        sourceAsOf: "2023-01-31",
+        status: "ready",
+        isConnected: true,
+        recordCount: 1,
+        message: "Amtliche Verwaltungsanschriften sind verbunden.",
+        errorCode: null,
+      },
+    }),
     listOperationalRegions: async () => [
       {
         id: "region-official-01001000",
@@ -38,16 +65,17 @@ describe("admin-regions-page.render", () => {
     expect(html).toContain('data-testid="admin-regions-summary"');
     expect(html).toContain('data-testid="admin-regions-productive"');
     expect(html).toContain('data-testid="admin-regions-pilot-fixtures"');
+    expect(html).toContain('data-testid="admin-regions-registry-missing-state"');
     expect(html).toContain("`/admin/regions` ist die produktive Übersicht.");
-    expect(html).toContain("Operative Regionen aus dem offiziellen Verzeichnis");
-    expect(html).toContain("Getrennt markierte Test- und Pilotregionen");
-    expect(html).toContain("Flensburg");
-    expect(html).toContain("offizielles Verzeichnis");
+    expect(html).toContain("Operative Regionen aus der RegionRegistry");
+    expect(html).toContain("Getrennt markierte manuelle und Pilotregionen");
+    expect(html).toContain("Amtliches Gemeindeverzeichnis ist nicht verbunden.");
+    expect(html).toContain("Noch keine RegionRegistry-Einträge gefunden.");
     expect(html).toContain("Berlin Reinickendorf");
-    expect(html).toContain("Pilot-/Fixture-Pfad");
+    expect(html).toContain("Manuell/Pilot");
     expect(html).toContain("Arbeitsansicht öffnen");
-    expect(html).toContain("/admin/region?regionId=flensburg");
     expect(html).toContain("/admin/region?regionId=berlin-reinickendorf");
+    expect(html).toContain("Verwaltungsanschriften bleiben getrennt vom RegionRegistry-Import.");
     expect(html).toContain("Keine GeoReference, kein Live-Crawler, kein Payment und keine Publishing-Logik");
   });
 });

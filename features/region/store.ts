@@ -1,7 +1,7 @@
 import { z } from "zod";
 import {
   buildOfficialRegionalActorsFromDirectory,
-  buildOfficialRegionsFromDirectory,
+  listRegionsFromRegistry,
   summarizeOfficialAdministrativeDirectory,
 } from "./directory";
 import {
@@ -762,22 +762,23 @@ function buildDefaultCockpit(params: {
 }
 
 export async function listOperationalRegions(): Promise<Region[]> {
-  const fixtureMap = new Map(listRegions().map((region) => [region.id, clone(region)]));
-  for (const region of buildOfficialRegionsFromDirectory()) {
-    if (!fixtureMap.has(region.id)) fixtureMap.set(region.id, region);
+  const operationalMap = new Map(listRegionsFromRegistry().map((region) => [region.id, clone(region)]));
+  for (const region of listRegions()) {
+    if (!operationalMap.has(region.id)) operationalMap.set(region.id, clone(region));
   }
-  return Array.from(fixtureMap.values());
+  return Array.from(operationalMap.values());
 }
 
 export async function getOperationalRegionById(id: string): Promise<Region | null> {
   const normalized = String(id || "").trim();
   if (!normalized) return null;
 
-  const fixture = getRegionById(normalized);
-  if (fixture) return clone(fixture);
-
   const regions = await listOperationalRegions();
-  return regions.find((region) => region.id === normalized || region.slug === normalized) ?? null;
+  const operational = regions.find((region) => region.id === normalized || region.slug === normalized) ?? null;
+  if (operational) return clone(operational);
+
+  const fixture = getRegionById(normalized);
+  return fixture ? clone(fixture) : null;
 }
 
 export async function listRegionalActorRegister(query: RegionalActorRegisterQuery = {}): Promise<RegionalActor[]> {
