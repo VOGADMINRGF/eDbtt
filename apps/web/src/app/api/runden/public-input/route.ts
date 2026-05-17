@@ -1,10 +1,8 @@
 import { ObjectId } from "@core/db/triMongo";
 import { anlassraumCol } from "@features/anlassraum/db";
 import { getParticipationSignalReviewRuntimeRepo } from "@features/region";
-import {
-  PublicAnlassraumInputPayloadSchema,
-  buildPublicAnlassraumParticipationSignal,
-} from "@features/topicRound/publicInput";
+import { PublicAnlassraumInputPayloadSchema } from "@features/topicRound/publicInput";
+import { buildPublicAnlassraumParticipationSignal } from "@features/topicRound/server/publicInputSubmission";
 import { NextResponse } from "next/server";
 
 function normalizeRoomContext(room: Record<string, unknown>, anlassraumId: string) {
