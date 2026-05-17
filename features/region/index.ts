@@ -4,6 +4,7 @@ export * from "./directory";
 export * from "./fixtures";
 export * from "./guidelines";
 export * from "./intelligence";
+export * from "./organizationDashboard";
 export * from "./organizationOnboarding";
 export * from "./publicationRiskLadder";
 export * from "./regionFeedSignals";
