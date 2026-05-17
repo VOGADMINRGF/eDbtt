@@ -4,7 +4,7 @@ import Link from "next/link";
 export const metadata: Metadata = {
   title: "So funktioniert ein Anlassraum - eDebatte",
   description:
-    "Erklärung, wie aus einzelnen Beiträgen über Link und QR ein gemeinsamer Arbeitsstand entsteht.",
+    "Erklärung, wie ein öffentlicher Themenraum über Link und QR in einen gemeinsamen Arbeitsstand übergeht.",
 };
 
 export default function RundenDemoPage() {
@@ -16,9 +16,15 @@ export default function RundenDemoPage() {
           Aus einzelnen Beiträgen wird ein gemeinsamer Arbeitsstand
         </h1>
         <p className="mt-3 max-w-3xl text-sm leading-6 text-[rgb(var(--muted))]">
+          Ein öffentlicher Themenraum zu einem konkreten Anlass.
+        </p>
+        <p className="mt-3 max-w-3xl text-sm leading-6 text-[rgb(var(--muted))]">
           Ein Anlassraum sammelt Hinweise, Fragen, Widerspruch und Vorschläge an einem Ort. Per QR oder Link kommen
           Menschen direkt in genau diesen Raum. So entsteht aus vielen Einzelstimmen ein geordneter,
           nachvollziehbarer Stand.
+        </p>
+        <p className="max-w-3xl text-sm leading-6 text-[rgb(var(--muted))]">
+          Lass das beste Argument gewinnen.
         </p>
       </header>
 

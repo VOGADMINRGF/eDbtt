@@ -5,10 +5,12 @@ import { readSession } from "@/utils/session";
 import RundenShareActions from "./RundenShareActions";
 import RundenGuidedQuestionBuilder from "./RundenGuidedQuestionBuilder";
 import RundenCreateHandoffBanner from "./RundenCreateHandoffBanner";
+import RundenPublicSharingGuide from "./RundenPublicSharingGuide";
 
 export const metadata: Metadata = {
-  title: "Anlässe - eDebatte",
-  description: "Laufende Anlassräume als Arbeitsstand mit Beteiligung, Beiträgen und nächstem Schritt.",
+  title: "Anlassraum - eDebatte",
+  description:
+    "Öffentlicher Themenraum für Beteiligung, Teilen per Link oder QR und reviewpflichtige Weiterführung.",
 };
 
 type RoundEntryView = "active" | "mine" | "results";
@@ -442,7 +444,7 @@ export default async function RundenPage({
 
         <div className="relative space-y-5">
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[rgb(var(--muted))]">
-            ANLÄSSE
+            ANLASSRAUM
           </p>
 
           <div className="space-y-2">
@@ -456,16 +458,20 @@ export default async function RundenPage({
                 color: "transparent",
               }}
             >
-              Anlässe führen
+              Anlassraum
             </h1>
 
             <p className="max-w-3xl text-sm leading-6 text-[rgb(var(--muted))]">
-              Hier sammelst du Beiträge, teilst einen Anlass per QR oder Link und führst den Stand eines Themas
-              sichtbar weiter.
+              Ein öffentlicher Themenraum zu einem konkreten Anlass.
             </p>
             <p className="max-w-3xl text-sm leading-6 text-[rgb(var(--muted))]">
-              Ein Anlassraum hilft dabei, Hinweise, Fragen, Widerspruch und Vorschläge nicht im Kommentarstrom zu
-              verlieren, sondern geordnet in einen gemeinsamen Arbeitsstand mit offenen Fragen und nächsten Schritten zu überführen.
+              Lass das beste Argument gewinnen.
+            </p>
+            <p className="max-w-3xl text-sm leading-6 text-[rgb(var(--muted))]">
+              Hier sammelst du Fragen, Perspektiven, Quellen und Optionen. Ein Anlassraum hilft dabei,
+              Hinweise, Widerspruch und Vorschläge nicht im Kommentarstrom zu verlieren, sondern
+              geordnet in einen gemeinsamen Arbeitsstand mit offenen Fragen und nächsten Schritten zu
+              überführen.
             </p>
           </div>
 
@@ -525,6 +531,8 @@ export default async function RundenPage({
       {handoffId ? (
         <RundenCreateHandoffBanner handoffId={handoffId} createAction={createAction} />
       ) : null}
+
+      <RundenPublicSharingGuide />
 
       <RundenGuidedQuestionBuilder
         returnTo={buildRundenReturnHref(featured?.anlassraumId)}

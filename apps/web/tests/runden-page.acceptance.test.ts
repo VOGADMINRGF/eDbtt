@@ -134,8 +134,13 @@ describe("/runden acceptance states", () => {
     const tree = await RundenPage({ searchParams: Promise.resolve({ view: "mine" }) });
     const html = renderToStaticMarkup(tree);
 
-    expect(html).toContain("ANLÄSSE");
-    expect(html).toContain("Anlässe führen");
+    expect(html).toContain("ANLASSRAUM");
+    expect(html).toContain(">Anlassraum<");
+    expect(html).toContain("Ein öffentlicher Themenraum zu einem konkreten Anlass.");
+    expect(html).toContain("Lass das beste Argument gewinnen.");
+    expect(html).toContain("Sichtbar heißt nicht automatisch geprüft oder amtlich.");
+    expect(html).toContain("Für Veranstaltungen nutzen");
+    expect(html).toContain("Für Artikel oder Berichte nutzen");
     expect(html).toContain("Neuen Anlass öffnen");
     expect(html).toContain("Laufenden Anlass weiterführen");
     expect(html).toContain("Stand und Ergebnisse ansehen");

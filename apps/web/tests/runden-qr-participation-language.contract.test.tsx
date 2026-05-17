@@ -24,7 +24,10 @@ describe("runden qr participation language contract", () => {
     expect(html).toContain("Teilnahmelink kopieren");
     expect(html).toContain("Teilnahme per QR öffnen");
     expect(html).toContain("Teilnahme teilen");
-    expect(html).toContain("Öffentliche Veröffentlichung bleibt kuratiert oder qualifiziert.");
+    expect(html).toContain("Teile diesen Anlassraum mit Nachbarn, Freunden oder deiner Initiative.");
+    expect(html).toContain("Nutze den QR-Code für Bürgerdialoge, Veranstaltungen oder Workshops.");
+    expect(html).toContain("Sichtbar heißt nicht automatisch geprüft oder amtlich.");
+    expect(html).toContain("Amtliche Antworten und Freigaben bleiben verifizierten Rollen vorbehalten.");
 
     expect(html).not.toContain("Link kopieren");
     expect(html).not.toContain("QR bereitstellen");
